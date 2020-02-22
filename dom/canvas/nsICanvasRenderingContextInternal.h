@@ -26,6 +26,7 @@
   }
 
 class nsDisplayListBuilder;
+class nsIDocShell;
 
 namespace mozilla {
 class PresShell;

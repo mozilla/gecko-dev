@@ -37,31 +37,15 @@
 ]>
 
 <html id="main-window"
-        xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-        xmlns:svg="http://www.w3.org/2000/svg"
         xmlns:html="http://www.w3.org/1999/xhtml"
         xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         xmlns="http://www.w3.org/1999/xhtml"
-        title_normal="&mainWindow.title;"
-#ifdef XP_MACOSX
-        title_privatebrowsing="&mainWindow.title;&mainWindow.titlemodifiermenuseparator;&mainWindow.titlePrivateBrowsingSuffix;"
-        titledefault="&mainWindow.title;"
-        titlemodifier=""
-        titlemodifier_normal=""
-        titlemodifier_privatebrowsing="&mainWindow.titlePrivateBrowsingSuffix;"
-#else
-        title_privatebrowsing="&mainWindow.titlemodifier; &mainWindow.titlePrivateBrowsingSuffix;"
-        titlemodifier="&mainWindow.titlemodifier;"
-        titlemodifier_normal="&mainWindow.titlemodifier;"
-        titlemodifier_privatebrowsing="&mainWindow.titlemodifier; &mainWindow.titlePrivateBrowsingSuffix;"
-#endif
 #ifdef XP_WIN
         chromemargin="0,2,2,2"
 #else
         chromemargin="0,-1,-1,-1"
 #endif
         tabsintitlebar="true"
-        titlemenuseparator="&mainWindow.titlemodifiermenuseparator;"
         windowtype="navigator:browser"
         macanimationtype="document"
         screenX="4" screenY="4"
@@ -74,12 +58,17 @@
 <head>
   <link rel="localization" href="branding/brand.ftl"/>
   <link rel="localization" href="browser/branding/sync-brand.ftl"/>
+  <link rel="localization" href="browser/branding/brandings.ftl"/>
+  <link rel="localization" href="toolkit/global/textActions.ftl"/>
   <link rel="localization" href="browser/browser.ftl"/>
+  <link rel="localization" href="browser/browserContext.ftl"/>
   <link rel="localization" href="browser/menubar.ftl"/>
   <link rel="localization" href="browser/protectionsPanel.ftl"/>
   <link rel="localization" href="browser/appmenu.ftl"/>
 
-  <title>&mainWindow.title;</title>
+  <title
+    data-l10n-id="browser-main-window-title"
+    data-l10n-args='{"mode": "default"}'></title>
 
 # All JS files which are needed by browser.xhtml and other top level windows to
 # support MacOS specific features *must* go into the global-scripts.inc file so
@@ -589,21 +578,13 @@
     <tooltip id="tabbrowser-tab-tooltip" onpopupshowing="gBrowser.createTooltip(event);"/>
 
     <tooltip id="back-button-tooltip">
-      <description class="tooltip-label" value="&backButton.tooltip;"/>
-#ifdef XP_MACOSX
-      <description class="tooltip-label" value="&backForwardButtonMenuMac.tooltip;"/>
-#else
-      <description class="tooltip-label" value="&backForwardButtonMenu.tooltip;"/>
-#endif
+      <description class="tooltip-label" data-l10n-id="navbar-tooltip-back"/>
+      <description class="tooltip-label" data-l10n-id="navbar-tooltip-instruction"/>
     </tooltip>
 
     <tooltip id="forward-button-tooltip">
-      <description class="tooltip-label" value="&forwardButton.tooltip;"/>
-#ifdef XP_MACOSX
-      <description class="tooltip-label" value="&backForwardButtonMenuMac.tooltip;"/>
-#else
-      <description class="tooltip-label" value="&backForwardButtonMenu.tooltip;"/>
-#endif
+      <description class="tooltip-label" data-l10n-id="navbar-tooltip-forward"/>
+      <description class="tooltip-label" data-l10n-id="navbar-tooltip-instruction"/>
     </tooltip>
 
 #include popup-notifications.inc
@@ -648,25 +629,19 @@
     </menupopup>
     <menupopup id="SyncedTabsSidebarTabsFilterContext"
                class="textbox-contextmenu">
-      <menuitem label="&undoCmd.label;"
-                accesskey="&undoCmd.accesskey;"
+      <menuitem data-l10n-id="text-action-undo"
                 cmd="cmd_undo"/>
       <menuseparator/>
-      <menuitem label="&cutCmd.label;"
-                accesskey="&cutCmd.accesskey;"
+      <menuitem data-l10n-id="text-action-cut"
                 cmd="cmd_cut"/>
-      <menuitem label="&copyCmd.label;"
-                accesskey="&copyCmd.accesskey;"
+      <menuitem data-l10n-id="text-action-copy"
                 cmd="cmd_copy"/>
-      <menuitem label="&pasteCmd.label;"
-                accesskey="&pasteCmd.accesskey;"
+      <menuitem data-l10n-id="text-action-paste"
                 cmd="cmd_paste"/>
-      <menuitem label="&deleteCmd.label;"
-                accesskey="&deleteCmd.accesskey;"
+      <menuitem data-l10n-id="text-action-delete"
                 cmd="cmd_delete"/>
       <menuseparator/>
-      <menuitem label="&selectAllCmd.label;"
-                accesskey="&selectAllCmd.accesskey;"
+      <menuitem data-l10n-id="text-action-select-all"
                 cmd="cmd_selectAll"/>
       <menuseparator/>
       <menuitem data-lazy-l10n-id="synced-tabs-context-sync-now"
@@ -708,7 +683,7 @@
 #include browser-menubar.inc
         </toolbaritem>
         <spacer flex="1" skipintoolbarset="true" ordinal="1000"/>
-#include titlebar-items.inc.xul
+#include titlebar-items.inc.xhtml
       </toolbar>
 
       <toolbar id="TabsToolbar"
@@ -731,9 +706,7 @@
                   setfocus="false"
                   tooltip="tabbrowser-tab-tooltip"
                   stopwatchid="FX_TAB_CLICK_MS">
-              <hbox class="tab-drop-indicator-box">
-                <image class="tab-drop-indicator" hidden="true"/>
-              </hbox>
+              <hbox class="tab-drop-indicator" hidden="true"/>
               <arrowscrollbox orient="horizontal" flex="1" style="min-width: 1px;" clicktoscroll="true" class="tabbrowser-arrowscrollbox" scrolledtostart="true" scrolledtoend="true">
                 <tab is="tabbrowser-tab" class="tabbrowser-tab" selected="true" visuallyselected="true" fadein="true"/>
                 <toolbarbutton id="tabs-newtab-button"
@@ -777,7 +750,7 @@
         <hbox class="private-browsing-indicator"/>
 #endif
 
-#include titlebar-items.inc.xul
+#include titlebar-items.inc.xhtml
 
 #ifdef XP_MACOSX
         <!-- OS X does not natively support RTL for its titlebar items, so we prevent this secondary
@@ -806,7 +779,7 @@
       <toolbartabstop/>
       <hbox id="nav-bar-customization-target" flex="1">
         <toolbarbutton id="back-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
-                       label="&backCmd.label;"
+                       data-l10n-id="toolbar-button-back"
                        removable="false" overflows="false"
                        keepbroadcastattributeswhencustomizing="true"
                        command="Browser:BackOrBackDuplicate"
@@ -814,7 +787,7 @@
                        tooltip="back-button-tooltip"
                        context="backForwardMenu"/>
         <toolbarbutton id="forward-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
-                       label="&forwardCmd.label;"
+                       data-l10n-id="toolbar-button-forward"
                        removable="false" overflows="false"
                        keepbroadcastattributeswhencustomizing="true"
                        command="Browser:ForwardOrForwardDuplicate"
@@ -822,10 +795,10 @@
                        tooltip="forward-button-tooltip"
                        context="backForwardMenu"/>
         <toolbaritem id="stop-reload-button" class="chromeclass-toolbar-additional"
-                     title="&reloadCmd.label;"
+                     data-l10n-id="toolbar-button-stop-reload"
                      removable="true" overflows="false">
           <toolbarbutton id="reload-button" class="toolbarbutton-1"
-                         label="&reloadCmd.label;"
+                         data-l10n-id="toolbar-button-reload"
                          command="Browser:ReloadOrDuplicate"
                          onclick="checkForMiddleClick(this, event);"
                          tooltip="dynamic-shortcut-tooltip">
@@ -834,7 +807,7 @@
             </box>
           </toolbarbutton>
           <toolbarbutton id="stop-button" class="toolbarbutton-1"
-                         label="&stopCmd.label;"
+                         data-l10n-id="toolbar-button-stop"
                          command="Browser:Stop"
                          tooltip="dynamic-shortcut-tooltip">
             <box class="toolbarbutton-animatable-box">
@@ -902,10 +875,13 @@
                 <box style="pointer-events: none;">
                     <image class="sharing-icon" id="webrtc-sharing-icon"/>
                     <image class="sharing-icon geo-icon" id="geo-sharing-icon"/>
+                    <image class="sharing-icon xr-icon" id="xr-sharing-icon"/>
                 </box>
                 <box id="blocked-permissions-container" align="center">
                   <image data-permission-id="geo" class="blocked-permission-icon geo-icon" role="button"
                          data-l10n-id="urlbar-geolocation-blocked"/>
+                  <image data-permission-id="xr" class="blocked-permission-icon xr-icon" role="button"
+                         data-l10n-id="urlbar-xr-blocked"/>
                   <image data-permission-id="desktop-notification" class="blocked-permission-icon desktop-notification-icon" role="button"
                          data-l10n-id="urlbar-web-notifications-blocked"/>
                   <image data-permission-id="camera" class="blocked-permission-icon camera-icon" role="button"
@@ -936,6 +912,8 @@
                          data-l10n-id="urlbar-default-notification-anchor"/>
                   <image id="geo-notification-icon" class="notification-anchor-icon geo-icon" role="button"
                          data-l10n-id="urlbar-geolocation-notification-anchor"/>
+                  <image id="xr-notification-icon" class="notification-anchor-icon xr-icon" role="button"
+                         data-l10n-id="urlbar-xr-notification-anchor"/>
                   <image id="autoplay-media-notification-icon" class="notification-anchor-icon autoplay-media-icon" role="button"
                          data-l10n-id="urlbar-autoplay-notification-anchor"/>
                   <image id="addons-notification-icon" class="notification-anchor-icon install-icon" role="button"
@@ -1005,6 +983,7 @@
                      onclick="gURLBar.handleCommand(event);"
                      tooltiptext="&goEndCap.tooltip;"/>
               <image class="urlbar-history-dropmarker urlbar-icon chromeclass-toolbar-additional"
+                     hidden="true"
                      tooltiptext="&urlbar.openHistoryPopup.tooltip;"/>
               <hbox id="page-action-buttons" context="pageActionContextMenu">
                 <toolbartabstop/>

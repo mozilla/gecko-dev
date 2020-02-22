@@ -14,7 +14,6 @@
 
 #include "nsIPrincipal.h"
 #include "nsJSPrincipals.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsCOMPtr.h"
 
 #include "mozilla/BasePrincipal.h"
@@ -51,6 +50,7 @@ class NullPrincipal final : public BasePrincipal {
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
   uint32_t GetHashValue() override;
   NS_IMETHOD GetURI(nsIURI** aURI) override;
+  NS_IMETHOD GetIsOriginPotentiallyTrustworthy(bool* aResult) override;
   NS_IMETHOD GetDomain(nsIURI** aDomain) override;
   NS_IMETHOD SetDomain(nsIURI* aDomain) override;
   NS_IMETHOD GetBaseDomain(nsACString& aBaseDomain) override;
@@ -86,15 +86,9 @@ class NullPrincipal final : public BasePrincipal {
   virtual nsresult PopulateJSONObject(Json::Value& aObject) override;
 
   // Serializable keys are the valid enum fields the serialization supports
-  enum SerializableKeys { eSpec = 0, eSuffix, eMax = eSuffix };
-  // KeyVal is a lightweight storage that passes
-  // SerializableKeys and values after JSON parsing in the BasePrincipal to
-  // FromProperties
-  struct KeyVal {
-    bool valueWasSerialized;
-    nsCString value;
-    SerializableKeys key;
-  };
+  enum SerializableKeys : uint8_t { eSpec = 0, eSuffix, eMax = eSuffix };
+  typedef mozilla::BasePrincipal::KeyValT<SerializableKeys> KeyVal;
+
   static already_AddRefed<BasePrincipal> FromProperties(
       nsTArray<NullPrincipal::KeyVal>& aFields);
 

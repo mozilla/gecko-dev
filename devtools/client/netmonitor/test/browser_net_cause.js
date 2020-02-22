@@ -109,7 +109,7 @@ add_task(async function() {
   // page has actually made at least one request.
   const { tab, monitor } = await initNetMonitor(SIMPLE_URL);
 
-  const { document, store, windowRequire, connector } = monitor.panelWin;
+  const { document, store, windowRequire } = monitor.panelWin;
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
   const { getSortedRequests } = windowRequire(
     "devtools/client/netmonitor/src/selectors/index"
@@ -121,15 +121,28 @@ add_task(async function() {
   BrowserTestUtils.loadURI(tab.linkedBrowser, CAUSE_URL);
   await wait;
 
-  const requests = getSortedRequests(store.getState());
-  await Promise.all(
-    requests.map(requestItem =>
-      connector.requestData(requestItem.id, "stackTrace")
-    )
-  );
+  // For all expected requests
+  for (const [index, { stack }] of EXPECTED_REQUESTS.entries()) {
+    if (!stack) {
+      continue;
+    }
+
+    // Select them
+    EventUtils.sendMouseEvent(
+      { type: "mousedown" },
+      document.querySelectorAll(".request-list-item")[index]
+    );
+
+    // And select the stack trace panel
+    const onStackTraceRendered = waitUntil(() =>
+      document.querySelector("#stack-trace-panel .stack-trace .frame-link")
+    );
+    document.querySelector("#stack-trace-tab").click();
+    await onStackTraceRendered;
+  }
 
   is(
-    store.getState().requests.requests.size,
+    store.getState().requests.requests.length,
     EXPECTED_REQUESTS.length,
     "All the page events should be recorded."
   );
@@ -143,7 +156,7 @@ add_task(async function() {
   );
   const expectedOrder = EXPECTED_REQUESTS.map(r => r.causeType).sort();
   expectedOrder.forEach((expectedCause, i) => {
-    const cause = getSortedRequests(store.getState()).get(i).cause.type;
+    const cause = getSortedRequests(store.getState())[i].cause.type;
     is(
       cause,
       expectedCause,

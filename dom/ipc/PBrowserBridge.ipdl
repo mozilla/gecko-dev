@@ -5,12 +5,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PBrowser;
+#ifdef ACCESSIBILITY
 include protocol PDocAccessible;
+#endif
 
 include DOMTypes;
 
-using ScreenIntSize from "Units.h";
-using nsSizeMode from "nsIWidgetListener.h";
 using mozilla::layers::LayersObserverEpoch from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::LayersId from "mozilla/layers/LayersTypes.h";
 using mozilla::WidgetMouseEvent from "ipc/nsGUIEventIPC.h";
@@ -76,7 +76,7 @@ parent:
   async ResumeLoad(uint64_t aPendingSwitchID);
 
   // Out of process rendering.
-  async Show(ScreenIntSize size, bool parentIsActive, nsSizeMode sizeMode);
+  async Show(OwnerShowInfo info);
   async UpdateDimensions(DimensionInfo dimensions) compressall;
   async RenderLayers(bool aEnabled, LayersObserverEpoch aEpoch);
 
@@ -103,6 +103,7 @@ parent:
 
   async SkipBrowsingContextDetach();
 
+#ifdef ACCESSIBILITY
   /**
    * Tell the parent the accessible for this iframe's embedder
    * OuterDocAccessible.
@@ -110,6 +111,7 @@ parent:
    * aID is the unique id of the embedder accessible within that document.
    */
   async SetEmbedderAccessible(PDocAccessible aDoc, uint64_t aID);
+#endif
 };
 
 }  // namespace dom

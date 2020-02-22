@@ -16,13 +16,9 @@
 #include "nsPrintSettingsGTK.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
-#include "nsIFile.h"
 #include "nsIStringBundle.h"
 #include "nsIPrintSettingsService.h"
 #include "nsPIDOMWindow.h"
-#include "nsIBaseWindow.h"
-#include "nsIDocShellTreeItem.h"
-#include "nsIDocShell.h"
 #include "nsIGIOService.h"
 #include "WidgetUtils.h"
 #include "nsIObserverService.h"
@@ -922,8 +918,7 @@ nsFlatpakPrintPortal::~nsFlatpakPrintPortal() {
 
 NS_IMETHODIMP
 nsPrintDialogServiceGTK::Show(nsPIDOMWindowOuter* aParent,
-                              nsIPrintSettings* aSettings,
-                              nsIWebBrowserPrint* aWebBrowserPrint) {
+                              nsIPrintSettings* aSettings) {
   MOZ_ASSERT(aParent, "aParent must not be null");
   MOZ_ASSERT(aSettings, "aSettings must not be null");
 
@@ -947,7 +942,6 @@ nsPrintDialogServiceGTK::Show(nsPIDOMWindowOuter* aParent,
     // This blocks until nsFlatpakPrintPortal::FinishPrintDialog is called
     GtkPrintOperationResult printDialogResult = fpPrintPortal->GetResult();
 
-    rv = NS_OK;
     switch (printDialogResult) {
       case GTK_PRINT_OPERATION_RESULT_APPLY: {
         nsCOMPtr<nsIObserverService> os =

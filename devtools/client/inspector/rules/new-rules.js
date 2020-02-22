@@ -16,12 +16,12 @@ const EventEmitter = require("devtools/shared/event-emitter");
 const {
   updateClasses,
   updateClassPanelExpanded,
-} = require("./actions/class-list");
+} = require("devtools/client/inspector/rules/actions/class-list");
 const {
   disableAllPseudoClasses,
   setPseudoClassLocks,
   togglePseudoClass,
-} = require("./actions/pseudo-classes");
+} = require("devtools/client/inspector/rules/actions/pseudo-classes");
 const {
   updateAddRuleEnabled,
   updateColorSchemeSimulationHidden,
@@ -29,9 +29,11 @@ const {
   updatePrintSimulationHidden,
   updateRules,
   updateSourceLinkEnabled,
-} = require("./actions/rules");
+} = require("devtools/client/inspector/rules/actions/rules");
 
-const RulesApp = createFactory(require("./components/RulesApp"));
+const RulesApp = createFactory(
+  require("devtools/client/inspector/rules/components/RulesApp")
+);
 
 const { LocalizationHelper } = require("devtools/shared/l10n");
 const INSPECTOR_L10N = new LocalizationHelper(
@@ -81,7 +83,6 @@ class RulesView {
     this.cssProperties = inspector.cssProperties;
     this.doc = window.document;
     this.inspector = inspector;
-    this.pageStyle = inspector.pageStyle;
     this.selection = inspector.selection;
     this.store = inspector.store;
     this.telemetry = inspector.telemetry;
@@ -757,6 +758,7 @@ class RulesView {
       return;
     }
 
+    this.pageStyle = element.inspectorFront.pageStyle;
     this.elementStyle = new ElementStyle(
       element,
       this,

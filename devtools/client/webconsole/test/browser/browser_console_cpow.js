@@ -5,25 +5,27 @@
 
 "use strict";
 
-const ObjectFront = require("devtools/shared/fronts/object");
-
 const {
   gDevToolsBrowser,
 } = require("devtools/client/framework/devtools-browser");
 
 add_task(async function() {
+  // Needed for the execute() function below
+  await pushPref("security.allow_parent_unrestricted_js_loads", true);
+
   await addTab("about:blank");
 
   const hud = await BrowserConsoleManager.openBrowserConsoleOrFocus();
 
-  const { message, actor } = await obtainObjectWithCPOW(hud);
-  await testFrontEnd(hud, message);
-  await testBackEnd(hud, actor);
+  const { message, objectFront } = await obtainObjectWithCPOW(hud);
+  await testFrontEnd(message);
+  await testBackEnd(objectFront);
+  await clearOutput(hud, true);
 });
 
 async function obtainObjectWithCPOW(hud) {
   info("Add a message listener, it will receive an object with a CPOW");
-  await hud.ui.evaluateJSAsync(`
+  await hud.evaluateJSAsync(`
     Services.ppmm.addMessageListener("cpow", function listener(message) {
       Services.ppmm.removeMessageListener("cpow", listener);
       console.log(message.objects);
@@ -33,26 +35,27 @@ async function obtainObjectWithCPOW(hud) {
 
   info("Open the browser content toolbox and send a message");
   const toolbox = await gDevToolsBrowser.openContentProcessToolbox(gBrowser);
-  await toolbox.target.activeConsole.evaluateJSAsync(`
+  const webConsoleFront = await toolbox.target.getFront("console");
+  await webConsoleFront.evaluateJSAsync(`
     let {Services} = ChromeUtils.import("resource://gre/modules/Services.jsm");
     Services.cpmm.sendAsyncMessage("cpow", null, {cpow: {a:1}});
   `);
 
   info("Obtain the object with CPOW");
   const message = await waitFor(() => findMessage(hud, "cpow"));
-  const result = await hud.ui.evaluateJSAsync("result");
-  const { actor } = result.result;
+  const result = await hud.evaluateJSAsync("result");
+  const objectFront = result.result;
 
   info("Cleanup");
-  await hud.ui.evaluateJSAsync("delete globalThis.result;");
+  await hud.evaluateJSAsync("delete globalThis.result;");
   const onToolboxDestroyed = toolbox.once("destroyed");
   toolbox.topWindow.close();
   await onToolboxDestroyed;
 
-  return { message, actor };
+  return { message, objectFront };
 }
 
-async function testFrontEnd(hud, message) {
+async function testFrontEnd(message) {
   const oi = message.querySelector(".tree");
   const node = oi.querySelector(".tree-node");
   is(node.textContent, "Object { cpow: CPOW }", "Got an object with a CPOW");
@@ -68,26 +71,22 @@ async function testFrontEnd(hud, message) {
   is(getObjectInspectorChildrenNodes(cpow).length, 0, "CPOW has no children");
 }
 
-async function testBackEnd(hud, actor) {
+async function testBackEnd(objectFront) {
   // Check that inspecting an object with CPOW doesn't throw in the server.
   // This would be done in a mochitest-chrome suite, but that doesn't run in
   // e10s, so it's harder to get ahold of a CPOW.
-  info("Creating an ObjectFront with: " + actor);
-  const objectFront = new ObjectFront(hud.ui.proxy.client, { actor });
 
   // Before the fix for Bug 1382833, this wouldn't resolve due to a CPOW error
   // in the ObjectActor.
   const prototypeAndProperties = await objectFront.getPrototypeAndProperties();
 
   // The CPOW is in the "cpow" property.
-  const cpow = prototypeAndProperties.ownProperties.cpow.value;
+  const cpowFront = prototypeAndProperties.ownProperties.cpow.value;
 
-  is(cpow.class, "CPOW", "The CPOW grip has the right class.");
+  is(cpowFront.getGrip().class, "CPOW", "The CPOW grip has the right class.");
 
   // Check that various protocol request methods work for the CPOW.
-  const objClient = new ObjectFront(hud.ui.proxy.client, cpow);
-
-  let response = await objClient.getPrototypeAndProperties();
+  let response = await cpowFront.getPrototypeAndProperties();
   is(
     Reflect.ownKeys(response.ownProperties).length,
     0,
@@ -96,7 +95,7 @@ async function testBackEnd(hud, actor) {
   is(response.ownSymbols.length, 0, "No symbol property was retrieved.");
   is(response.prototype.type, "null", "The prototype is null.");
 
-  response = await objClient.enumProperties({ ignoreIndexedProperties: true });
+  response = await cpowFront.enumProperties({ ignoreIndexedProperties: true });
   let slice = await response.slice(0, response.count);
   is(
     Reflect.ownKeys(slice.ownProperties).length,
@@ -104,7 +103,7 @@ async function testBackEnd(hud, actor) {
     "No property was retrieved."
   );
 
-  response = await objClient.enumProperties({});
+  response = await cpowFront.enumProperties({});
   slice = await response.slice(0, response.count);
   is(
     Reflect.ownKeys(slice.ownProperties).length,
@@ -112,20 +111,20 @@ async function testBackEnd(hud, actor) {
     "No property was retrieved."
   );
 
-  response = await objClient.getOwnPropertyNames();
+  response = await cpowFront.getOwnPropertyNames();
   is(response.ownPropertyNames.length, 0, "No property was retrieved.");
 
-  response = await objClient.getProperty("x");
+  response = await cpowFront.getProperty("x");
   is(response.descriptor, undefined, "The property does not exist.");
 
-  response = await objClient.enumSymbols();
+  response = await cpowFront.enumSymbols();
   slice = await response.slice(0, response.count);
   is(slice.ownSymbols.length, 0, "No symbol property was retrieved.");
 
-  response = await objClient.getPrototype();
+  response = await cpowFront.getPrototype();
   is(response.prototype.type, "null", "The prototype is null.");
 
-  response = await objClient.getDisplayString();
+  response = await cpowFront.getDisplayString();
   is(response.displayString, "<cpow>", "The CPOW stringifies to <cpow>");
 }
 

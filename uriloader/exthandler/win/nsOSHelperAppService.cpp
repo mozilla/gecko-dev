@@ -5,14 +5,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsComponentManagerUtils.h"
 #include "nsOSHelperAppService.h"
 #include "nsISupports.h"
 #include "nsString.h"
-#include "nsIURL.h"
 #include "nsIMIMEInfo.h"
 #include "nsMIMEInfoWin.h"
 #include "nsMimeTypes.h"
-#include "nsIProcess.h"
 #include "plstr.h"
 #include "nsAutoPtr.h"
 #include "nsNativeCharsetUtils.h"
@@ -27,10 +26,6 @@
 #include <shlwapi.h>
 
 #define LOG(args) MOZ_LOG(mLog, mozilla::LogLevel::Debug, args)
-
-#ifdef __MINGW32__
-#  define ASSOCF_NONE 0x0
-#endif
 
 // helper methods: forward declarations...
 static nsresult GetExtensionFromWindowsMimeDatabase(const nsACString& aMimeType,
@@ -452,25 +447,21 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
   RefPtr<nsMIMEInfoWin> mi;
 
   // We should have *something* to go on here.
-  if (fileExtension.IsEmpty() && !haveMeaningfulMimeType) {
+  nsAutoString extensionFromMimeType;
+  if (haveMeaningfulMimeType) {
+    GetExtensionFromWindowsMimeDatabase(aMIMEType, extensionFromMimeType);
+  }
+  if (fileExtension.IsEmpty() && extensionFromMimeType.IsEmpty()) {
+    // Without an extension from the mimetype or the file, we can't
+    // do anything here.
     mi = new nsMIMEInfoWin(flatType.get());
+    if (!aFileExt.IsEmpty()) {
+      mi->AppendExtension(aFileExt);
+    }
     mi.forget(aMIMEInfo);
     return NS_OK;
   }
 
-  nsAutoString extensionFromMimeType;
-  if (haveMeaningfulMimeType) {
-    GetExtensionFromWindowsMimeDatabase(aMIMEType, extensionFromMimeType);
-    if (extensionFromMimeType.IsEmpty()) {
-      // We can't verify the mime type and file extension make sense.
-      mi = new nsMIMEInfoWin(flatType.get());
-      if (!aFileExt.IsEmpty()) {
-        mi->AppendExtension(aFileExt);
-      }
-      mi.forget(aMIMEInfo);
-      return NS_OK;
-    }
-  }
   // Either fileExtension or extensionFromMimeType must now be non-empty.
 
   *aFound = true;
@@ -481,7 +472,7 @@ nsOSHelperAppService::GetMIMEInfoFromOS(const nsACString& aMIMEType,
   // mime type's default file extension instead.
   bool usedMimeTypeExtensionForLookup = false;
   if (fileExtension.IsEmpty() ||
-      (haveMeaningfulMimeType &&
+      (!extensionFromMimeType.IsEmpty() &&
        !typeFromExtEquals(fileExtension.get(), flatType.get()))) {
     usedMimeTypeExtensionForLookup = true;
     fileExtension = extensionFromMimeType;

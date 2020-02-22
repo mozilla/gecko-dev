@@ -16,6 +16,7 @@ namespace mozilla {
 namespace dom {
 
 class SHistoryParent;
+class SHEntryParent;
 
 /**
  * Session history implementation based on the legacy implementation that used
@@ -36,6 +37,8 @@ class LegacySHistory final : public nsSHistory {
                  CanonicalBrowsingContext* aRootBC, const nsID& aDocShellID);
 
   NS_IMETHOD CreateEntry(nsISHEntry** aEntry) override;
+  using nsSHistory::ReloadCurrentEntry;
+  NS_IMETHOD ReloadCurrentEntry() override;
 
   SHistoryParent* GetActor() { return mSHistoryParent; }
 };

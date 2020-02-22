@@ -16,7 +16,6 @@
 #include "mozilla/dom/indexedDB/PBackgroundIDBSharedTypes.h"
 #include "mozilla/dom/DOMStringList.h"
 #include "mozilla/dom/File.h"
-#include "nsIInputStream.h"
 
 namespace mozilla {
 namespace dom {
@@ -112,8 +111,8 @@ inline size_t StructuredCloneReadInfo::Size() const {
 }
 
 template <typename E, typename Map>
-already_AddRefed<DOMStringList> CreateSortedDOMStringList(
-    const nsTArray<E>& aArray, const Map& aMap) {
+RefPtr<DOMStringList> CreateSortedDOMStringList(const nsTArray<E>& aArray,
+                                                const Map& aMap) {
   auto list = MakeRefPtr<DOMStringList>();
 
   if (!aArray.IsEmpty()) {
@@ -126,7 +125,7 @@ already_AddRefed<DOMStringList> CreateSortedDOMStringList(
     mapped.Sort();
   }
 
-  return list.forget();
+  return list;
 }
 
 }  // namespace indexedDB

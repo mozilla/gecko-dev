@@ -21,7 +21,6 @@
 #include "nsFrameManager.h"
 #include "mozilla/dom/Document.h"
 #include "nsRect.h"
-#include "nsIComponentManager.h"
 #include "nsBoxLayoutState.h"
 #include "nsIScrollableFrame.h"
 #include "nsIPopupContainer.h"
@@ -37,13 +36,13 @@
 #include "nsIBaseWindow.h"
 #include "nsISound.h"
 #include "nsIScreenManager.h"
-#include "nsIServiceManager.h"
 #include "nsStyleConsts.h"
 #include "nsStyleStructInlines.h"
 #include "nsTransitionManager.h"
 #include "nsDisplayList.h"
-#include "nsIDOMXULSelectCntrlItemEl.h"
+#include "nsIDOMXULSelectCntrlEl.h"
 #include "mozilla/AnimationUtils.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/EventStates.h"
@@ -62,6 +61,8 @@
 #  include <gdk/gdkx.h>
 #  include <gdk/gdkwayland.h>
 #endif /* MOZ_WAYLAND */
+
+#include "X11UndefineNone.h"
 
 using namespace mozilla;
 using mozilla::dom::Document;
@@ -284,8 +285,8 @@ nsresult nsMenuPopupFrame::CreateWidgetForView(nsView* aView) {
 
     // If pointer-events: none; is set on the popup, then the widget should
     // ignore mouse events, passing them through to the content behind.
-    mMouseTransparent = StyleUI()->GetEffectivePointerEvents(this) ==
-                        NS_STYLE_POINTER_EVENTS_NONE;
+    mMouseTransparent =
+        StyleUI()->GetEffectivePointerEvents(this) == StylePointerEvents::None;
     widgetData.mMouseTransparent = mMouseTransparent;
   }
 
@@ -476,10 +477,10 @@ void nsMenuPopupFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
     }
   }
 
-  bool newMouseTransparent = StyleUI()->GetEffectivePointerEvents(this) ==
-                             NS_STYLE_POINTER_EVENTS_NONE;
+  bool newMouseTransparent =
+      StyleUI()->GetEffectivePointerEvents(this) == StylePointerEvents::None;
   bool oldMouseTransparent = aOldStyle->StyleUI()->GetEffectivePointerEvents(
-                                 this) == NS_STYLE_POINTER_EVENTS_NONE;
+                                 this) == StylePointerEvents::None;
 
   if (newMouseTransparent != oldMouseTransparent) {
     if (nsIWidget* widget = GetWidget()) {

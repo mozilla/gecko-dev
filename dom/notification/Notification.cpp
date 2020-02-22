@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/Notification.h"
 
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/Components.h"
 #include "mozilla/Encoding.h"
 #include "mozilla/EventStateManager.h"
@@ -49,11 +50,9 @@
 #include "nsIPermission.h"
 #include "nsIPushService.h"
 #include "nsIScriptError.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsIServiceWorkerManager.h"
 #include "nsISimpleEnumerator.h"
 #include "nsIUUIDGenerator.h"
-#include "nsIXPConnect.h"
 #include "nsNetUtil.h"
 #include "nsProxyRelease.h"
 #include "nsServiceManagerUtils.h"
@@ -296,7 +295,8 @@ class FocusWindowRunnable final : public Runnable {
   }
 };
 
-nsresult CheckScope(nsIPrincipal* aPrincipal, const nsACString& aScope) {
+nsresult CheckScope(nsIPrincipal* aPrincipal, const nsACString& aScope,
+                    uint64_t aWindowID) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aPrincipal);
 
@@ -306,8 +306,9 @@ nsresult CheckScope(nsIPrincipal* aPrincipal, const nsACString& aScope) {
     return rv;
   }
 
-  return aPrincipal->CheckMayLoad(scopeURI, /* report = */ true,
-                                  /* allowIfInheritsPrincipal = */ false);
+  return aPrincipal->CheckMayLoadWithReporting(
+      scopeURI,
+      /* allowIfInheritsPrincipal = */ false, aWindowID);
 }
 }  // anonymous namespace
 
@@ -471,7 +472,7 @@ NS_IMPL_QUERY_INTERFACE_CYCLE_COLLECTION_INHERITED(
 
 NS_IMETHODIMP
 NotificationPermissionRequest::Run() {
-  bool isSystem = nsContentUtils::IsSystemPrincipal(mPrincipal);
+  bool isSystem = mPrincipal->IsSystemPrincipal();
   bool blocked = false;
   if (isSystem) {
     mPermission = NotificationPermission::Granted;
@@ -1513,7 +1514,7 @@ NotificationPermission Notification::GetPermissionInternal(
   AssertIsOnMainThread();
   MOZ_ASSERT(aPrincipal);
 
-  if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
+  if (aPrincipal->IsSystemPrincipal()) {
     return NotificationPermission::Granted;
   } else {
     // Allow files to show notifications by default.
@@ -2076,7 +2077,7 @@ class CheckLoadRunnable final : public WorkerMainThreadRunnable {
 
   bool MainThreadRun() override {
     nsIPrincipal* principal = mWorkerPrivate->GetPrincipal();
-    mRv = CheckScope(principal, mScope);
+    mRv = CheckScope(principal, mScope, mWorkerPrivate->WindowID());
 
     if (NS_FAILED(mRv)) {
       return true;
@@ -2121,7 +2122,13 @@ already_AddRefed<Promise> Notification::ShowPersistentNotification(
       return nullptr;
     }
 
-    aRv = CheckScope(principal, NS_ConvertUTF16toUTF8(aScope));
+    uint64_t windowID = 0;
+    nsCOMPtr<nsPIDOMWindowInner> win = do_QueryInterface(aGlobal);
+    if (win) {
+      windowID = win->WindowID();
+    }
+
+    aRv = CheckScope(principal, NS_ConvertUTF16toUTF8(aScope), windowID);
     if (NS_WARN_IF(aRv.Failed())) {
       aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
       return nullptr;

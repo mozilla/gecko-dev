@@ -15,11 +15,9 @@
 #include "js/SourceText.h"
 #include "js/TracingAPI.h"
 #include "mozilla/Attributes.h"
-#include "nsIServiceManager.h"
 #include "nsAtom.h"
 #include "mozilla/dom/NodeInfo.h"
 #include "nsIControllers.h"
-#include "nsIDOMXULMultSelectCntrlEl.h"
 #include "nsIURI.h"
 #include "nsLayoutCID.h"
 #include "AttrArray.h"
@@ -385,16 +383,6 @@ class nsXULElement : public nsStyledElement {
   }
 
   // WebIDL API
-  void GetAlign(DOMString& aValue) const {
-    GetXULAttr(nsGkAtoms::align, aValue);
-  }
-  void SetAlign(const nsAString& aValue, mozilla::ErrorResult& rv) {
-    SetXULAttr(nsGkAtoms::align, aValue, rv);
-  }
-  void GetDir(DOMString& aValue) const { GetXULAttr(nsGkAtoms::dir, aValue); }
-  void SetDir(const nsAString& aValue, mozilla::ErrorResult& rv) {
-    SetXULAttr(nsGkAtoms::dir, aValue, rv);
-  }
   void GetFlex(DOMString& aValue) const { GetXULAttr(nsGkAtoms::flex, aValue); }
   void SetFlex(const nsAString& aValue, mozilla::ErrorResult& rv) {
     SetXULAttr(nsGkAtoms::flex, aValue, rv);
@@ -410,10 +398,6 @@ class nsXULElement : public nsStyledElement {
   }
   void SetOrient(const nsAString& aValue, mozilla::ErrorResult& rv) {
     SetXULAttr(nsGkAtoms::orient, aValue, rv);
-  }
-  void GetPack(DOMString& aValue) const { GetXULAttr(nsGkAtoms::pack, aValue); }
-  void SetPack(const nsAString& aValue, mozilla::ErrorResult& rv) {
-    SetXULAttr(nsGkAtoms::pack, aValue, rv);
   }
   bool Hidden() const { return BoolAttrIsTrue(nsGkAtoms::hidden); }
   void SetHidden(bool aHidden) { SetXULBoolAttr(nsGkAtoms::hidden, aHidden); }

@@ -6,20 +6,18 @@
 
 #include "nsContentUtils.h"
 #include "nsIconChannel.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/EndianUtils.h"
 #include "nsIIconURI.h"
-#include "nsIServiceManager.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsString.h"
 #include "nsMimeTypes.h"
 #include "nsMemory.h"
-#include "nsIStringStream.h"
 #include "nsIURL.h"
 #include "nsNetCID.h"
 #include "nsIPipe.h"
 #include "nsIOutputStream.h"
-#include "nsIMIMEService.h"
 #include "nsCExternalHandlerService.h"
 #include "nsILocalFileMac.h"
 #include "nsIFileURL.h"
@@ -67,7 +65,16 @@ NS_IMETHODIMP
 nsIconChannel::GetStatus(nsresult* status) { return mPump->GetStatus(status); }
 
 NS_IMETHODIMP
-nsIconChannel::Cancel(nsresult status) { return mPump->Cancel(status); }
+nsIconChannel::Cancel(nsresult status) {
+  mCanceled = true;
+  return mPump->Cancel(status);
+}
+
+NS_IMETHODIMP
+nsIconChannel::GetCanceled(bool* result) {
+  *result = mCanceled;
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 nsIconChannel::Suspend(void) { return mPump->Suspend(); }
@@ -185,7 +192,7 @@ nsIconChannel::AsyncOpen(nsIStreamListener* aListener) {
   MOZ_ASSERT(
       !mLoadInfo || mLoadInfo->GetSecurityMode() == 0 || mLoadInfo->GetInitialSecurityCheckDone() ||
           (mLoadInfo->GetSecurityMode() == nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL &&
-           nsContentUtils::IsSystemPrincipal(mLoadInfo->LoadingPrincipal())),
+           mLoadInfo->LoadingPrincipal() && mLoadInfo->LoadingPrincipal()->IsSystemPrincipal()),
       "security flags in loadInfo but doContentSecurityCheck() not called");
 
   nsCOMPtr<nsIInputStream> inStream;

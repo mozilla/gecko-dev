@@ -119,7 +119,7 @@ iris-2.0:
     fetch:
         type: git
         repo: https://github.com/mozilla/iris_firefox
-        revision: 34f6e7add8fb66eb40eb94900fea0311ad87b734
+        revision: 597f3517ec018b201250945d1f8cd38bef112ae1
 
 isl-0.15:
     description: ISL 0.15 source code
@@ -264,12 +264,12 @@ wine-3.0.3:
             sig-url: "{url}.sign"
             key-path: build/unix/build-gcc/DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D.key
 
-cbindgen-0.9.1:
+cbindgen-0.12.0:
     description: cbindgen source code
     fetch:
         type: git
         repo: https://github.com/eqrion/cbindgen
-        revision: 8e4db4c17fbdc0cfa9b98cfe9d47ca6263858def
+        revision: 38fda6b7785a09721d45ed723b14b118b46ae711
 
 cctools-port:
     description: cctools-port source code
@@ -364,21 +364,21 @@ mingw-w64:
     fetch:
         type: git
         repo: git://git.code.sf.net/p/mingw-w64/mingw-w64
-        revision: 0a1d495478d8ed1a94fc77b9dbb428b7e0372588
+        revision: 1b373beec6d07478ffba33726bb3bb21f32e4411
 
 libunwind:
     description: libunwind source code
     fetch:
         type: git
         repo: https://github.com/llvm-mirror/libunwind
-        revision: 6ee92fcc97350ae32db3172a269e9afcc2bab686
+        revision: efd17a11b0fae29d3414e11e99307e082d4ee949
 
 llvm-mingw:
     description: llvm-mingw source code
     fetch:
         type: git
         repo: https://github.com/mstorsjo/llvm-mingw
-        revision: c3a16814bd26aa6702e1e5b482a3d9044bb0f725
+        revision: 9f8e5cebd6dbbb7546e8917e6c59284699a48d26
 
 android-rs-glue:
     description: android-rs-glue source code
@@ -409,11 +409,11 @@ clang-8:
         revision: 19a71f6bdf2dddb10764939e7f0ec2b98dba76c9
 
 clang-9:
-    description: clang 9.0.0 source code
+    description: clang 9.0.1 source code
     fetch:
         type: git
         repo: https://github.com/llvm/llvm-project
-        revision: 0399d5a9682b3cef71c653373e38890c63c4c365
+        revision: c1a0a213378a458fbea1a5c77b315c7dce08fd05
 
 wasi-sdk:
     description: wasi-sdk source code
@@ -449,3 +449,10 @@ lucetc-source:
         type: git
         repo: https://github.com/PLSysSec/lucet_sandbox_compiler/
         revision: 5c22392b5b1aaa60e915c75e92b57391e1e61e6d
+
+dump-syms:
+    description: dump_syms source code
+    fetch:
+        type: git
+        repo: https://github.com/mozilla/dump_syms/
+        revision: fe924d894ae079a3fe3f2e0f83434e89204af155

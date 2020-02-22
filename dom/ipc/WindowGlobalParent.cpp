@@ -198,14 +198,7 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvLoadURI(
   // FIXME: We should really initiate the load in the parent before bouncing
   // back down to the child.
 
-  WindowGlobalParent* wgp = aTargetBC->Canonical()->GetCurrentWindowGlobal();
-  if (!wgp) {
-    MOZ_LOG(BrowsingContext::GetLog(), LogLevel::Debug,
-            ("ParentIPC: Target BrowsingContext has no WindowGlobalParent"));
-    return IPC_OK();
-  }
-
-  Unused << wgp->SendLoadURIInChild(aLoadState, aSetNavigating);
+  aTargetBC->LoadURI(nullptr, aLoadState, aSetNavigating);
   return IPC_OK();
 }
 
@@ -228,17 +221,7 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvInternalLoad(
   // FIXME: We should really initiate the load in the parent before bouncing
   // back down to the child.
 
-  WindowGlobalParent* wgp = aTargetBC->Canonical()->GetCurrentWindowGlobal();
-  if (!wgp) {
-    MOZ_LOG(BrowsingContext::GetLog(), LogLevel::Debug,
-            ("ParentIPC: Target BrowsingContext has no WindowGlobalParent"));
-    return IPC_OK();
-  }
-
-  bool takeFocus =
-      mBrowsingContext->GetIsActive() && !aTargetBC->GetIsActive() &&
-      !Preferences::GetBool("browser.tabs.loadDivertedInBackground", false);
-  Unused << wgp->SendInternalLoadInChild(aLoadState, takeFocus);
+  aTargetBC->InternalLoad(mBrowsingContext, aLoadState, nullptr, nullptr);
   return IPC_OK();
 }
 
@@ -280,19 +263,23 @@ IPCResult WindowGlobalParent::RecvDestroy() {
 }
 
 IPCResult WindowGlobalParent::RecvRawMessage(
-    const JSWindowActorMessageMeta& aMeta, const ClonedMessageData& aData) {
+    const JSWindowActorMessageMeta& aMeta, const ClonedMessageData& aData,
+    const ClonedMessageData& aStack) {
   StructuredCloneData data;
   data.BorrowFromClonedMessageDataForParent(aData);
-  ReceiveRawMessage(aMeta, std::move(data));
+  StructuredCloneData stack;
+  stack.BorrowFromClonedMessageDataForParent(aStack);
+  ReceiveRawMessage(aMeta, std::move(data), std::move(stack));
   return IPC_OK();
 }
 
 void WindowGlobalParent::ReceiveRawMessage(
-    const JSWindowActorMessageMeta& aMeta, StructuredCloneData&& aData) {
+    const JSWindowActorMessageMeta& aMeta, StructuredCloneData&& aData,
+    StructuredCloneData&& aStack) {
   RefPtr<JSWindowActorParent> actor =
       GetActor(aMeta.actorName(), IgnoreErrors());
   if (actor) {
-    actor->ReceiveRawMessage(aMeta, std::move(aData));
+    actor->ReceiveRawMessage(aMeta, std::move(aData), std::move(aStack));
   }
 }
 
@@ -397,14 +384,13 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvShare(
 
   // Initialize the ShareWidget
   RefPtr<BrowserParent> parent = GetBrowserParent();
-  if (NS_WARN_IF(!parent)) {
-    aResolver(NS_ERROR_FAILURE);
-    return IPC_OK();
-  }
-  nsCOMPtr<mozIDOMWindowProxy> openerWindow = parent->GetParentWindowOuter();
-  if (!openerWindow) {
-    aResolver(NS_ERROR_FAILURE);
-    return IPC_OK();
+  nsCOMPtr<mozIDOMWindowProxy> openerWindow;
+  if (parent) {
+    openerWindow = parent->GetParentWindowOuter();
+    if (!openerWindow) {
+      aResolver(NS_ERROR_FAILURE);
+      return IPC_OK();
+    }
   }
   sharePicker->Init(openerWindow);
 

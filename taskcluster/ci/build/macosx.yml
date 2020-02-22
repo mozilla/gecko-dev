@@ -50,6 +50,7 @@ macosx64/opt:
         product: firefox
         job-name: macosx64-opt
     attributes:
+        enable-build-signing: true
         enable-full-crashsymbols: true
     treeherder:
         platform: osx-cross/opt
@@ -169,6 +170,7 @@ macosx64-fuzzing/debug:
 
 macosx64-devedition-nightly/opt:
     description: "MacOS X Dev Edition x64 Nightly"
+    use-pgo: macosx64-shippable/opt
     attributes:
         nightly: true
         enable-full-crashsymbols: true
@@ -300,6 +302,7 @@ macosx64-add-on-devel/opt:
 
 macosx64-shippable/opt:
     description: "MacOS X x64 Cross-compile"
+    use-pgo: true
     attributes:
         shippable: true
         enable-full-crashsymbols: true
@@ -311,7 +314,7 @@ macosx64-shippable/opt:
         type: shippable
     treeherder:
         platform: osx-shippable/opt
-        symbol: B
+        symbol: Bpgo(B)
         tier: 1
     worker-type: b-linux
     worker:

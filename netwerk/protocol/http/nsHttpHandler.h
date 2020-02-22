@@ -11,6 +11,7 @@
 #include "nsHttp.h"
 #include "nsHttpAuthCache.h"
 #include "nsHttpConnectionMgr.h"
+#include "AlternateServices.h"
 #include "ASpdySession.h"
 #include "HttpTrafficAnalyzer.h"
 
@@ -245,7 +246,11 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   nsHttpAuthCache* AuthCache(bool aPrivate) {
     return aPrivate ? &mPrivateAuthCache : &mAuthCache;
   }
-  nsHttpConnectionMgr* ConnMgr() { return mConnMgr; }
+  nsHttpConnectionMgr* ConnMgr() { return mConnMgr->AsHttpConnectionMgr(); }
+  AltSvcCache* AltServiceCache() const {
+    MOZ_ASSERT(XRE_IsParentProcess());
+    return mAltSvcCache.get();
+  }
 
   // cache support
   uint32_t GenerateUniqueID() { return ++mLastUniqueID; }
@@ -317,16 +322,16 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   void UpdateAltServiceMapping(AltSvcMapping* map, nsProxyInfo* proxyInfo,
                                nsIInterfaceRequestor* callbacks, uint32_t caps,
                                const OriginAttributes& originAttributes) {
-    mConnMgr->UpdateAltServiceMapping(map, proxyInfo, callbacks, caps,
-                                      originAttributes);
+    mAltSvcCache->UpdateAltServiceMapping(map, proxyInfo, callbacks, caps,
+                                          originAttributes);
   }
 
   already_AddRefed<AltSvcMapping> GetAltServiceMapping(
       const nsACString& scheme, const nsACString& host, int32_t port, bool pb,
       bool isolated, const nsACString& topWindowOrigin,
       const OriginAttributes& originAttributes) {
-    return mConnMgr->GetAltServiceMapping(scheme, host, port, pb, isolated,
-                                          topWindowOrigin, originAttributes);
+    return mAltSvcCache->GetAltServiceMapping(
+        scheme, host, port, pb, isolated, topWindowOrigin, originAttributes);
   }
 
   //
@@ -494,7 +499,9 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   nsHttpAuthCache mPrivateAuthCache;
 
   // the connection manager
-  RefPtr<nsHttpConnectionMgr> mConnMgr;
+  RefPtr<HttpConnectionMgrShell> mConnMgr;
+
+  UniquePtr<AltSvcCache> mAltSvcCache;
 
   //
   // prefs
@@ -764,6 +771,7 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   Mutex mLastActiveTabLoadOptimizationLock;
   TimeStamp mLastActiveTabLoadOptimizationHit;
 
+  Mutex mSpdyBlacklistLock;
  public:
   MOZ_MUST_USE nsresult NewChannelId(uint64_t& channelId);
 

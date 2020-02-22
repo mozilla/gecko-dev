@@ -12,8 +12,6 @@
 #include "nsCOMPtr.h"
 #include "nsIWeakReferenceUtils.h"
 
-#include "nsIFind.h"
-
 #include "nsString.h"
 
 class nsIDOMWindow;
@@ -81,6 +79,7 @@ class nsWebBrowserFind : public nsIWebBrowserFind,
   bool mWrapFind;
   bool mEntireWord;
   bool mMatchCase;
+  bool mMatchDiacritics;
 
   bool mSearchSubFrames;
   bool mSearchParentFrames;

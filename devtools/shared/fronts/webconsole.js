@@ -11,6 +11,9 @@ const {
   registerFront,
 } = require("devtools/shared/protocol");
 const { webconsoleSpec } = require("devtools/shared/specs/webconsole");
+const {
+  getAdHocFrontOrPrimitiveGrip,
+} = require("devtools/shared/fronts/object");
 
 /**
  * A WebConsoleFront is used as a front end for the WebConsoleActor that is
@@ -44,6 +47,9 @@ class WebConsoleFront extends FrontClassWithSpec(webconsoleSpec) {
 
     this.on("evaluationResult", this.onEvaluationResult);
     this.on("serverNetworkEvent", this.onNetworkEvent);
+    this.before("consoleAPICall", this.beforeConsoleAPICall);
+    this.before("pageError", this.beforePageError);
+
     this._client.on("networkEventUpdate", this.onNetworkEventUpdate);
   }
 
@@ -194,6 +200,7 @@ class WebConsoleFront extends FrontClassWithSpec(webconsoleSpec) {
       selectedNodeActor: opts.selectedNodeActor,
       selectedObjectActor: opts.selectedObjectActor,
       mapped: opts.mapped,
+      eager: opts.eager,
     };
 
     const { resultID } = await super.evaluateJSAsync(options);
@@ -205,6 +212,31 @@ class WebConsoleFront extends FrontClassWithSpec(webconsoleSpec) {
           if (resp.error) {
             reject(resp);
           } else {
+            if (resp.result) {
+              resp.result = getAdHocFrontOrPrimitiveGrip(resp.result, this);
+            }
+
+            if (resp.helperResult && resp.helperResult.object) {
+              resp.helperResult.object = getAdHocFrontOrPrimitiveGrip(
+                resp.helperResult.object,
+                this
+              );
+            }
+
+            if (resp.exception) {
+              resp.exception = getAdHocFrontOrPrimitiveGrip(
+                resp.exception,
+                this
+              );
+            }
+
+            if (resp.exceptionMessage) {
+              resp.exceptionMessage = getAdHocFrontOrPrimitiveGrip(
+                resp.exceptionMessage,
+                this
+              );
+            }
+
             resolve(resp);
           }
         });
@@ -231,6 +263,44 @@ class WebConsoleFront extends FrontClassWithSpec(webconsoleSpec) {
           ")"
       );
     }
+  }
+
+  beforeConsoleAPICall(packet) {
+    if (packet.message && Array.isArray(packet.message.arguments)) {
+      // We might need to create fronts for each of the message arguments.
+      packet.message.arguments = packet.message.arguments.map(arg =>
+        getAdHocFrontOrPrimitiveGrip(arg, this)
+      );
+    }
+    return packet;
+  }
+
+  beforePageError(packet) {
+    if (packet && packet.pageError && packet.pageError.errorMessage) {
+      packet.pageError.errorMessage = getAdHocFrontOrPrimitiveGrip(
+        packet.pageError.errorMessage,
+        this
+      );
+    }
+    return packet;
+  }
+
+  async getCachedMessages(messageTypes) {
+    const response = await super.getCachedMessages(messageTypes);
+    if (Array.isArray(response.messages)) {
+      response.messages = response.messages.map(message => {
+        if (!message || !Array.isArray(message.arguments)) {
+          return message;
+        }
+
+        // We might need to create fronts for each of the message arguments.
+        message.arguments = message.arguments.map(arg =>
+          getAdHocFrontOrPrimitiveGrip(arg, this)
+        );
+        return message;
+      });
+    }
+    return response;
   }
 
   /**
@@ -500,11 +570,15 @@ class WebConsoleFront extends FrontClassWithSpec(webconsoleSpec) {
     if (!this._client) {
       return null;
     }
+
+    this._client.off("networkEventUpdate", this.onNetworkEventUpdate);
+    // This will make future calls to this function harmless because of the early return
+    // at the top of the function.
+    this._client = null;
+
     this.off("evaluationResult", this.onEvaluationResult);
     this.off("serverNetworkEvent", this.onNetworkEvent);
-    this._client.off("networkEventUpdate", this.onNetworkEventUpdate);
     this._longStrings = null;
-    this._client = null;
     this.pendingEvaluationResults.clear();
     this.pendingEvaluationResults = null;
     this.clearNetworkRequests();

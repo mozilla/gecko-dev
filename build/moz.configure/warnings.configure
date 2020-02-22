@@ -83,6 +83,9 @@ add_gcc_warning('-Wno-invalid-offsetof', cxx_compiler)
 # catches objects passed by value to variadic functions.
 check_and_add_gcc_warning('-Wclass-varargs')
 
+# catches empty if/switch/for initialization statements that have no effect
+check_and_add_gcc_warning('-Wempty-init-stmt', cxx_compiler)
+
 # catches some implicit conversion of floats to ints
 check_and_add_gcc_warning('-Wfloat-overflow-conversion')
 check_and_add_gcc_warning('-Wfloat-zero-conversion')
@@ -91,7 +94,6 @@ check_and_add_gcc_warning('-Wfloat-zero-conversion')
 check_and_add_gcc_warning('-Wloop-analysis')
 
 # catches C++ version forward-compat issues
-check_and_add_gcc_warning('-Wc++1z-compat', cxx_compiler)
 check_and_add_gcc_warning('-Wc++2a-compat', cxx_compiler)
 
 # catches possible misuse of the comma operator

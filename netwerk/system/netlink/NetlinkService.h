@@ -9,22 +9,16 @@
 #include <netinet/in.h>
 #include <linux/netlink.h>
 
-#include "nsINetworkLinkService.h"
 #include "nsIRunnable.h"
 #include "nsThreadUtils.h"
 #include "nsCOMPtr.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/TimeStamp.h"
-#include "nsITimer.h"
 #include "nsClassHashtable.h"
 #include "mozilla/SHA1.h"
 
 namespace mozilla {
 namespace net {
-
-#if defined(NIGHTLY_BUILD) || defined(MOZ_DEV_EDITION) || defined(DEBUG)
-#  define NL_DEBUG_LOG
-#endif
 
 class NetlinkAddress;
 class NetlinkNeighbor;

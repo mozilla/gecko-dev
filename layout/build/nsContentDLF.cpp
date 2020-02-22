@@ -11,15 +11,10 @@
 #include "nsDocShell.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
-#include "nsIComponentManager.h"
-#include "nsIComponentRegistrar.h"
 #include "nsIContentViewer.h"
-#include "nsICategoryManager.h"
 #include "nsIDocumentLoaderFactory.h"
 #include "mozilla/dom/Document.h"
-#include "nsIURL.h"
 #include "nsNodeInfoManager.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsString.h"
 #include "nsContentCID.h"
 #include "nsNetUtil.h"
@@ -32,7 +27,6 @@
 #include "DecoderTraits.h"
 
 // plugins
-#include "nsIPluginHost.h"
 #include "nsPluginHost.h"
 
 // Factory code for creating variations on html documents
@@ -47,8 +41,6 @@ static const char* const gHTMLTypes[] = {TEXT_HTML,
                                          VIEWSOURCE_CONTENT_TYPE,
                                          APPLICATION_XHTML_XML,
                                          APPLICATION_WAPXHTML_XML,
-                                         TEXT_XUL,
-                                         APPLICATION_CACHED_XUL,
                                          0};
 
 static const char* const gXMLTypes[] = {TEXT_XML,

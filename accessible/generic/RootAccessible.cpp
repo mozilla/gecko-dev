@@ -29,7 +29,6 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/BrowserHost.h"
 
-#include "nsIDocShellTreeItem.h"
 #include "nsIDocShellTreeOwner.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/EventTarget.h"
@@ -37,7 +36,6 @@
 #include "mozilla/dom/Document.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIPropertyBag2.h"
-#include "nsIServiceManager.h"
 #include "nsPIDOMWindow.h"
 #include "nsIWebBrowserChrome.h"
 #include "nsReadableUtils.h"
@@ -80,16 +78,6 @@ ENameValueFlag RootAccessible::Name(nsString& aName) const {
 
   mDocumentNode->GetTitle(aName);
   return eNameOK;
-}
-
-role RootAccessible::NativeRole() const {
-  // If it's a <dialog>, use roles::DIALOG instead
-  dom::Element* rootElm = mDocumentNode->GetRootElement();
-  if (rootElm && rootElm->IsXULElement(nsGkAtoms::dialog)) {
-    return roles::DIALOG;
-  }
-
-  return DocAccessibleWrap::NativeRole();
 }
 
 // RootAccessible protected member

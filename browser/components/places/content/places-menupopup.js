@@ -389,7 +389,7 @@
         }
 
         if (linkURI) {
-          window.XULBrowserWindow.setOverLink(linkURI, null);
+          window.XULBrowserWindow.setOverLink(linkURI);
         }
       }
     }
@@ -401,7 +401,7 @@
       }
 
       if (window.XULBrowserWindow) {
-        window.XULBrowserWindow.setOverLink("", null);
+        window.XULBrowserWindow.setOverLink("");
       }
     }
 
@@ -663,9 +663,9 @@
         container.orient = "horizontal";
         arrowbox.orient = "vertical";
         if (position.indexOf("_after") > 0) {
-          arrowbox.pack = "end";
+          arrowbox.setAttribute("pack", "end");
         } else {
-          arrowbox.pack = "start";
+          arrowbox.setAttribute("pack", "start");
         }
         arrowbox.style.transform = "translate(0, " + -offset + "px)";
 
@@ -686,9 +686,9 @@
         container.orient = "";
         arrowbox.orient = "";
         if (position.indexOf("_end") > 0) {
-          arrowbox.pack = "end";
+          arrowbox.setAttribute("pack", "end");
         } else {
-          arrowbox.pack = "start";
+          arrowbox.setAttribute("pack", "start");
         }
         arrowbox.style.transform = "translate(" + -offset + "px, 0)";
 

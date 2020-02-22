@@ -36,6 +36,7 @@ sys.path.insert(0, OUR_DIR)
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosectionlabel',
+    'sphinx.ext.doctest',
     'sphinx.ext.graphviz',
     'sphinx.ext.napoleon',
     'sphinx.ext.todo',
@@ -116,4 +117,5 @@ def setup(app):
         # We use it for testing/web-platform/tests
         'enable_eval_rst': True,
             }, True)
+    app.add_stylesheet('custom_theme.css')
     app.add_transform(AutoStructify)

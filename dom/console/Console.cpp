@@ -9,6 +9,7 @@
 #include "mozilla/dom/ConsoleBinding.h"
 #include "ConsoleCommon.h"
 
+#include "js/Array.h"  // JS::GetArrayLength, JS::NewArrayObject
 #include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Exceptions.h"
@@ -25,6 +26,7 @@
 #include "mozilla/dom/WorkletGlobalScope.h"
 #include "mozilla/dom/WorkletImpl.h"
 #include "mozilla/dom/WorkletThread.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/StaticPrefs_devtools.h"
 #include "nsCycleCollectionParticipant.h"
@@ -44,7 +46,6 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsILoadContext.h"
 #include "nsISensitiveInfoHiddenURI.h"
-#include "nsIServiceManager.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIWebNavigation.h"
 #include "nsIXPConnect.h"
@@ -342,7 +343,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     ConsoleCommon::ClearException ce(aCx);
 
     JS::Rooted<JSObject*> arguments(
-        aCx, JS_NewArrayObject(aCx, aCallData->mCopiedArguments.Length()));
+        aCx, JS::NewArrayObject(aCx, aCallData->mCopiedArguments.Length()));
     if (NS_WARN_IF(!arguments)) {
       return false;
     }
@@ -381,7 +382,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     JS::Rooted<JSObject*> argumentsObj(aCx, &argumentsValue.toObject());
 
     uint32_t length;
-    if (!JS_GetArrayLength(aCx, argumentsObj, &length)) {
+    if (!JS::GetArrayLength(aCx, argumentsObj, &length)) {
       return;
     }
 
@@ -421,7 +422,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     ConsoleCommon::ClearException ce(aCx);
 
     JS::Rooted<JSObject*> arguments(
-        aCx, JS_NewArrayObject(aCx, aArguments.Length()));
+        aCx, JS::NewArrayObject(aCx, aArguments.Length()));
     if (NS_WARN_IF(!arguments)) {
       return false;
     }
@@ -465,7 +466,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     }
 
     uint32_t length;
-    if (!JS_GetArrayLength(aCx, argumentsObj, &length)) {
+    if (!JS::GetArrayLength(aCx, argumentsObj, &length)) {
       return;
     }
 
@@ -1435,7 +1436,7 @@ void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
       callData->SetAddonId(principal);
 
 #ifdef DEBUG
-      if (!nsContentUtils::IsSystemPrincipal(principal)) {
+      if (!principal->IsSystemPrincipal()) {
         nsCOMPtr<nsIWebNavigation> webNav = do_GetInterface(mGlobal);
         if (webNav) {
           nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(webNav);

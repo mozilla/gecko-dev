@@ -12,7 +12,7 @@
 #include "mozilla/dom/StorageTypeBinding.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "mozilla/DOMEventTargetHelper.h"
-#include "nsAutoPtr.h"
+#include "mozilla/UniquePtr.h"
 #include "nsDataHashtable.h"
 #include "nsHashKeys.h"
 #include "nsString.h"
@@ -63,10 +63,10 @@ class IDBDatabase final : public DOMEventTargetHelper {
   // and the world will explode.
   RefPtr<IDBFactory> mFactory;
 
-  nsAutoPtr<DatabaseSpec> mSpec;
+  UniquePtr<DatabaseSpec> mSpec;
 
   // Normally null except during a versionchange transaction.
-  nsAutoPtr<DatabaseSpec> mPreviousSpec;
+  UniquePtr<DatabaseSpec> mPreviousSpec;
 
   indexedDB::BackgroundDatabaseChild* mBackgroundActor;
 
@@ -88,9 +88,10 @@ class IDBDatabase final : public DOMEventTargetHelper {
   bool mIncreasedActiveDatabaseCount;
 
  public:
-  static already_AddRefed<IDBDatabase> Create(
+  static MOZ_MUST_USE RefPtr<IDBDatabase> Create(
       IDBOpenDBRequest* aRequest, IDBFactory* aFactory,
-      indexedDB::BackgroundDatabaseChild* aActor, DatabaseSpec* aSpec);
+      indexedDB::BackgroundDatabaseChild* aActor,
+      UniquePtr<DatabaseSpec> aSpec);
 
   void AssertIsOnOwningThread() const
 #ifdef DEBUG
@@ -112,7 +113,7 @@ class IDBDatabase final : public DOMEventTargetHelper {
 
   uint64_t Version() const;
 
-  already_AddRefed<Document> GetOwnerDocument() const;
+  MOZ_MUST_USE RefPtr<Document> GetOwnerDocument() const;
 
   void Close() {
     AssertIsOnOwningThread();
@@ -178,23 +179,24 @@ class IDBDatabase final : public DOMEventTargetHelper {
 
   void NoteFinishedMutableFile(IDBMutableFile* aMutableFile);
 
-  already_AddRefed<DOMStringList> ObjectStoreNames() const;
+  MOZ_MUST_USE RefPtr<DOMStringList> ObjectStoreNames() const;
 
-  already_AddRefed<IDBObjectStore> CreateObjectStore(
+  MOZ_MUST_USE RefPtr<IDBObjectStore> CreateObjectStore(
       const nsAString& aName,
       const IDBObjectStoreParameters& aOptionalParameters, ErrorResult& aRv);
 
   void DeleteObjectStore(const nsAString& name, ErrorResult& aRv);
 
   // This will be called from the DOM.
-  already_AddRefed<IDBTransaction> Transaction(
+  MOZ_MUST_USE RefPtr<IDBTransaction> Transaction(
       JSContext* aCx, const StringOrStringSequence& aStoreNames,
       IDBTransactionMode aMode, ErrorResult& aRv);
 
   // This can be called from C++ to avoid JS exception.
   nsresult Transaction(JSContext* aCx,
                        const StringOrStringSequence& aStoreNames,
-                       IDBTransactionMode aMode, IDBTransaction** aTransaction);
+                       IDBTransactionMode aMode,
+                       RefPtr<IDBTransaction>* aTransaction);
 
   StorageType Storage() const;
 
@@ -203,15 +205,13 @@ class IDBDatabase final : public DOMEventTargetHelper {
   IMPL_EVENT_HANDLER(error)
   IMPL_EVENT_HANDLER(versionchange)
 
-  already_AddRefed<IDBRequest> CreateMutableFile(
+  MOZ_MUST_USE RefPtr<IDBRequest> CreateMutableFile(
       JSContext* aCx, const nsAString& aName, const Optional<nsAString>& aType,
       ErrorResult& aRv);
 
-  already_AddRefed<IDBRequest> MozCreateFileHandle(
+  MOZ_MUST_USE RefPtr<IDBRequest> MozCreateFileHandle(
       JSContext* aCx, const nsAString& aName, const Optional<nsAString>& aType,
-      ErrorResult& aRv) {
-    return CreateMutableFile(aCx, aName, aType, aRv);
-  }
+      ErrorResult& aRv);
 
   void ClearBackgroundActor() {
     AssertIsOnOwningThread();
@@ -223,7 +223,7 @@ class IDBDatabase final : public DOMEventTargetHelper {
     mBackgroundActor = nullptr;
   }
 
-  const DatabaseSpec* Spec() const { return mSpec; }
+  const DatabaseSpec* Spec() const { return mSpec.get(); }
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(IDBDatabase, DOMEventTargetHelper)
@@ -241,7 +241,8 @@ class IDBDatabase final : public DOMEventTargetHelper {
 
  private:
   IDBDatabase(IDBOpenDBRequest* aRequest, IDBFactory* aFactory,
-              indexedDB::BackgroundDatabaseChild* aActor, DatabaseSpec* aSpec);
+              indexedDB::BackgroundDatabaseChild* aActor,
+              UniquePtr<DatabaseSpec> aSpec);
 
   ~IDBDatabase();
 

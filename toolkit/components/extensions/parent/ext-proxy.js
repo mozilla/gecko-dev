@@ -198,10 +198,13 @@ this.proxy = class extends ExtensionAPI {
                 passthrough: Services.prefs.getCharPref(
                   "network.proxy.no_proxies_on"
                 ),
-                respectBeConservative: Services.prefs.getBoolPref(
-                  "network.http.proxy.respect-be-conservative"
-                ),
               };
+
+              if (extension.isPrivileged) {
+                proxyConfig.respectBeConservative = Services.prefs.getBoolPref(
+                  "network.http.proxy.respect-be-conservative"
+                );
+              }
 
               for (let prop of ["http", "ftp", "ssl", "socks"]) {
                 let host = Services.prefs.getCharPref(`network.proxy.${prop}`);
@@ -259,7 +262,7 @@ this.proxy = class extends ExtensionAPI {
                 // Match what about:preferences does with proxy settings
                 // since the proxy service does not check the value
                 // of share_proxy_settings.
-                for (let prop of ["ftp", "ssl", "socks"]) {
+                for (let prop of ["ftp", "ssl"]) {
                   value[prop] = value.http;
                 }
               }
@@ -311,7 +314,10 @@ this.proxy = class extends ExtensionAPI {
 
               if (
                 value.respectBeConservative !== undefined &&
-                !extension.isPrivileged
+                !extension.isPrivileged &&
+                Services.prefs.getBoolPref(
+                  "network.http.proxy.respect-be-conservative"
+                ) != value.respectBeConservative
               ) {
                 throw new ExtensionError(
                   `respectBeConservative can be set by privileged extensions only.`

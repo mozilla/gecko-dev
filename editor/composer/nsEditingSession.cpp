@@ -19,22 +19,20 @@
 #include "nsContentUtils.h"
 #include "nsDebug.h"  // for NS_ENSURE_SUCCESS, etc
 #include "nsEditingSession.h"
-#include "nsError.h"               // for NS_ERROR_FAILURE, NS_OK, etc
-#include "nsIChannel.h"            // for nsIChannel
-#include "nsIContentViewer.h"      // for nsIContentViewer
-#include "nsIControllers.h"        // for nsIControllers
-#include "nsID.h"                  // for NS_GET_IID, etc
-#include "nsHTMLDocument.h"        // for nsHTMLDocument
-#include "nsIDocShell.h"           // for nsIDocShell
-#include "mozilla/dom/Document.h"  // for Document
-#include "nsIDocumentStateListener.h"
+#include "nsError.h"                     // for NS_ERROR_FAILURE, NS_OK, etc
+#include "nsIChannel.h"                  // for nsIChannel
+#include "nsIContentViewer.h"            // for nsIContentViewer
+#include "nsIControllers.h"              // for nsIControllers
+#include "nsID.h"                        // for NS_GET_IID, etc
+#include "nsHTMLDocument.h"              // for nsHTMLDocument
+#include "nsIDocShell.h"                 // for nsIDocShell
+#include "mozilla/dom/Document.h"        // for Document
 #include "nsIEditor.h"                   // for nsIEditor
 #include "nsIInterfaceRequestorUtils.h"  // for do_GetInterface
 #include "nsIPlaintextEditor.h"          // for nsIPlaintextEditor, etc
 #include "nsIRefreshURI.h"               // for nsIRefreshURI
 #include "nsIRequest.h"                  // for nsIRequest
 #include "nsITimer.h"                    // for nsITimer, etc
-#include "nsITransactionManager.h"       // for nsITransactionManager
 #include "nsIWeakReference.h"            // for nsISupportsWeakReference, etc
 #include "nsIWebNavigation.h"            // for nsIWebNavigation
 #include "nsIWebProgress.h"              // for nsIWebProgress, etc
@@ -249,8 +247,7 @@ const char* const gSupportedTextTypes[] = {
     "application/ecmascript",
     "application/x-javascript",  // obsolete type
     "text/xul",                  // obsolete type
-    "application/vnd.mozilla.xul+xml",
-    nullptr  // IMPORTANT! Null must be at end
+    nullptr                      // IMPORTANT! Null must be at end
 };
 
 bool IsSupportedTextType(const char* aMIMEType) {

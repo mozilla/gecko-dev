@@ -24,7 +24,7 @@ add_task(async function testNoPermissionPrompt() {
         {
           set: [
             ["dom.security.featurePolicy.enabled", true],
-            ["permissions.delegation.enable", true],
+            ["permissions.delegation.enabled", true],
             ["dom.security.featurePolicy.header.enabled", true],
             ["dom.security.featurePolicy.webidl.enabled", true],
           ],
@@ -33,7 +33,7 @@ add_task(async function testNoPermissionPrompt() {
       );
     });
 
-    await ContentTask.spawn(browser, null, async function(host0) {
+    await SpecialPowers.spawn(browser, [], async function(host0) {
       let frame = content.document.createElement("iframe");
       // Cross origin src
       frame.src = "https://example.org/browser/dom/quota/test/empty.html";

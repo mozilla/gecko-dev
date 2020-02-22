@@ -108,6 +108,24 @@ WeakMap<K, V>::WeakMap(JSContext* cx, JSObject* memOf)
 template <class K, class V>
 void WeakMap<K, V>::markKey(GCMarker* marker, gc::Cell* markedCell,
                             gc::Cell* origKey) {
+#if DEBUG
+  if (!mapColor) {
+    fprintf(stderr, "markKey called on an unmarked map %p", this);
+    Zone* zone = markedCell->asTenured().zoneFromAnyThread();
+    fprintf(stderr, "  markedCell=%p from zone %p state %d mark %d\n",
+            markedCell, zone, zone->gcState(),
+            int(debug::GetMarkInfo(markedCell)));
+    zone = origKey->asTenured().zoneFromAnyThread();
+    fprintf(stderr, "  origKey=%p from zone %p state %d mark %d\n", origKey,
+            zone, zone->gcState(), int(debug::GetMarkInfo(markedCell)));
+    if (memberOf) {
+      zone = memberOf->asTenured().zoneFromAnyThread();
+      fprintf(stderr, "  memberOf=%p from zone %p state %d mark %d\n",
+              memberOf.get(), zone, zone->gcState(),
+              int(debug::GetMarkInfo(memberOf.get())));
+    }
+  }
+#endif
   MOZ_ASSERT(mapColor);
 
   Ptr p = Base::lookup(static_cast<Lookup>(origKey));
@@ -134,7 +152,8 @@ bool WeakMap<K, V>::markEntry(GCMarker* marker, K& key, V& value) {
     CellColor delegateColor = gc::detail::GetEffectiveColor(rt, delegate);
     if (keyColor < delegateColor) {
       gc::AutoSetMarkColor autoColor(*marker, delegateColor);
-      TraceEdge(marker, &key, "proxy-preserved WeakMap entry key");
+      TraceWeakMapKeyEdge(marker, zone(), &key,
+                          "proxy-preserved WeakMap entry key");
       MOZ_ASSERT(key->color() >= delegateColor);
       marked = true;
       keyColor = delegateColor;
@@ -184,7 +203,8 @@ void WeakMap<K, V>::trace(JSTracer* trc) {
   // Trace keys only if weakMapAction() says to.
   if (trc->weakMapAction() == TraceWeakMapKeysValues) {
     for (Enum e(*this); !e.empty(); e.popFront()) {
-      TraceEdge(trc, &e.front().mutableKey(), "WeakMap entry key");
+      TraceWeakMapKeyEdge(trc, zone(), &e.front().mutableKey(),
+                          "WeakMap entry key");
     }
   }
 

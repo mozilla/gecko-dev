@@ -20,11 +20,17 @@ const APIS = {
   GetPrefs: function({ prefs }) {
     return browser.test.getPrefs(prefs);
   },
+  RemoveCertOverride: function({ host, port }) {
+    browser.test.removeCertOverride(host, port);
+  },
   RestorePrefs: function({ oldPrefs }) {
     return browser.test.restorePrefs(oldPrefs);
   },
   SetPrefs: function({ oldPrefs, newPrefs }) {
     return browser.test.setPrefs(oldPrefs, newPrefs);
+  },
+  SetResolutionAndScaleTo: function({ resolution }) {
+    return browser.test.setResolutionAndScaleTo(resolution);
   },
 };
 

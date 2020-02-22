@@ -1,5 +1,5 @@
 /* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 8 -*- */
-/* vim: set sw=4 ts=8 et tw=80 ft=cpp : */
+/* vim: set sw=2 ts=8 et tw=80 ft=cpp : */
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,9 @@
 
 include protocol PColorPicker;
 include protocol PContent;
+#ifdef ACCESSIBILITY
 include protocol PDocAccessible;
+#endif
 include protocol PFilePicker;
 include protocol PPluginWidget;
 include protocol PRemotePrintJob;
@@ -39,7 +41,6 @@ using mozilla::LayoutDeviceIntPoint from "Units.h";
 using mozilla::LayoutDevicePoint from "Units.h";
 using mozilla::ScreenIntCoord from "Units.h";
 using mozilla::ScreenIntPoint from "Units.h";
-using ScreenIntSize from "Units.h";
 using ScreenRect from "Units.h";
 using struct mozilla::layers::ScrollableLayerGuid from "mozilla/layers/ScrollableLayerGuid.h";
 using struct mozilla::layers::ZoomConstraints from "mozilla/layers/ZoomConstraints.h";
@@ -81,7 +82,6 @@ using class mozilla::dom::ipc::StructuredCloneData from "mozilla/dom/ipc/Structu
 using mozilla::EventMessage from "mozilla/EventForwards.h";
 using nsEventStatus from "mozilla/EventForwards.h";
 using mozilla::Modifiers from "mozilla/EventForwards.h";
-using nsSizeMode from "nsIWidgetListener.h";
 using mozilla::widget::CandidateWindowPosition from "ipc/nsGUIEventIPC.h";
 using class mozilla::NativeEventData from "ipc/nsGUIEventIPC.h";
 using mozilla::FontRange from "ipc/nsGUIEventIPC.h";
@@ -98,18 +98,6 @@ using refcounted class nsITransportSecurityInfo from "nsITransportSecurityInfo.h
 
 namespace mozilla {
 namespace dom {
-
-struct ShowInfo
-{
-  nsString name;
-  bool fullscreenAllowed;
-  bool isPrivate;
-  bool fakeShowInfo;
-  bool isTransparent;
-  float dpi;
-  int32_t widgetRounding;
-  double defaultScale;
-};
 
 struct WebProgressData
 {
@@ -182,7 +170,11 @@ nested(upto inside_cpow) sync refcounted protocol PBrowser
     manager PContent;
 
     manages PColorPicker;
+
+#ifdef ACCESSIBILITY
     manages PDocAccessible;
+#endif
+
     manages PFilePicker;
     manages PPluginWidget;
     manages PPaymentRequest;
@@ -194,6 +186,7 @@ both:
                        nsIPrincipal aPrincipal, ClonedMessageData aData);
 
 parent:
+#ifdef ACCESSIBILITY
     /**
      * Tell the parent process a new accessible document has been created.
      * aParentDoc is the accessible document it was created in if any, and
@@ -204,6 +197,7 @@ parent:
      */
     async PDocAccessible(nullable PDocAccessible aParentDoc, uint64_t aParentAcc,
                          uint32_t aMsaaID, IAccessibleHolder aDocCOMProxy);
+#endif
 
     /*
      * Creates a new remoted nsIWidget connection for windowed plugins
@@ -463,9 +457,9 @@ parent:
 
     /**
      * Used to set the current text of the status tooltip.
-     * Nowadays this is mainly used for link locations on hover.
+     * Nowadays this is only used for link locations on hover.
      */
-    async SetStatus(uint32_t type, nsString status);
+    async SetLinkStatus(nsString status);
 
     /**
      * Show/hide a tooltip when the mouse hovers over an element in the content
@@ -671,7 +665,8 @@ parent:
      * Sent by the child to the parent to inform it that an update to the
      * dimensions has been requested, likely through win.moveTo or resizeTo
      */
-    async SetDimensions(uint32_t aFlags, int32_t aX, int32_t aY, int32_t aCx, int32_t aCy);
+    async SetDimensions(uint32_t aFlags, int32_t aX, int32_t aY,
+                        int32_t aCx, int32_t aCy, double aScale);
 
     nested(inside_sync) sync DispatchWheelEvent(WidgetWheelEvent event);
     nested(inside_sync) sync DispatchMouseEvent(WidgetMouseEvent event);
@@ -718,18 +713,10 @@ parent:
 
 child:
     /**
-     * Notify the remote browser that it has been Show()n on this
-     * side, with the given |visibleRect|.  This message is expected
-     * to trigger creation of the remote browser's "widget".
-     *
-     * |Show()| and |Move()| take IntSizes rather than Rects because
-     * content processes always render to a virtual <0, 0> top-left
-     * point.
+     * Notify the remote browser that it has been Show()n on this side. This
+     * message is expected to trigger creation of the remote browser's "widget".
      */
-    async Show(ScreenIntSize size,
-               ShowInfo info,
-               bool parentIsActive,
-               nsSizeMode sizeMode);
+    async Show(ParentShowInfo parentInfo, OwnerShowInfo childInfo);
 
     async InitRendering(TextureFactoryIdentifier textureFactoryIdentifier,
                         LayersId layersId,
@@ -738,9 +725,9 @@ child:
 
     async CompositorOptionsChanged(CompositorOptions newOptions);
 
-    async LoadURL(nsCString uri, ShowInfo info);
+    async LoadURL(nsCString uri, ParentShowInfo info);
 
-    async ResumeLoad(uint64_t pendingSwitchID, ShowInfo info);
+    async ResumeLoad(uint64_t pendingSwitchID, ParentShowInfo info);
 
     async UpdateDimensions(DimensionInfo dimensions) compressall;
 

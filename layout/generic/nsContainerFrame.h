@@ -154,9 +154,9 @@ class nsContainerFrame : public nsSplittableFrame {
                                     nsIFrame* aOldParentFrame,
                                     nsIFrame* aNewParentFrame);
 
-  static nsresult ReparentFrameViewList(const nsFrameList& aChildFrameList,
-                                        nsIFrame* aOldParentFrame,
-                                        nsIFrame* aNewParentFrame);
+  static void ReparentFrameViewList(const nsFrameList& aChildFrameList,
+                                    nsIFrame* aOldParentFrame,
+                                    nsIFrame* aNewParentFrame);
 
   // Set the view's size and position after its frame has been reflowed.
   //
@@ -307,6 +307,8 @@ class nsContainerFrame : public nsSplittableFrame {
    * The nsOverflowContinuationTracker helper class should be used for tracking
    * overflow containers and adding them to the appropriate list.
    * See nsBlockFrame::Reflow for a sample implementation.
+   *
+   * For more information, see https://wiki.mozilla.org/Gecko:Continuation_Model
    */
 
   friend class nsOverflowContinuationTracker;

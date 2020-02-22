@@ -25,9 +25,8 @@
 #include "builtin/streams/ReadableStreamReader.h"  // js::ReadableStream{,Default}Reader
 #include "builtin/streams/StreamController.h"  // js::StreamController
 #include "builtin/streams/TeeState.h"          // js::TeeState
-#include "gc/Heap.h"
-#include "js/ArrayBuffer.h"  // JS::NewArrayBuffer
-#include "js/Class.h"        // js::ClassSpec
+#include "js/ArrayBuffer.h"                    // JS::NewArrayBuffer
+#include "js/Class.h"                          // js::ClassSpec
 #include "js/PropertySpec.h"
 #include "vm/Interpreter.h"
 #include "vm/JSContext.h"

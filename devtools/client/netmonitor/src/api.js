@@ -7,10 +7,12 @@
 const EventEmitter = require("devtools/shared/event-emitter");
 
 const { bindActionCreators } = require("devtools/client/shared/vendor/redux");
-const { Connector } = require("./connector/index");
-const { configureStore } = require("./create-store");
-const { EVENTS } = require("./constants");
-const Actions = require("./actions/index");
+const { Connector } = require("devtools/client/netmonitor/src/connector/index");
+const {
+  configureStore,
+} = require("devtools/client/netmonitor/src/create-store");
+const { EVENTS } = require("devtools/client/netmonitor/src/constants");
+const Actions = require("devtools/client/netmonitor/src/actions/index");
 
 // Telemetry
 const Telemetry = require("devtools/client/shared/telemetry");
@@ -18,9 +20,7 @@ const Telemetry = require("devtools/client/shared/telemetry");
 const {
   getDisplayedRequestById,
   getSortedRequests,
-} = require("./selectors/index");
-
-loader.lazyRequireGetter(this, "flags", "devtools/shared/flags");
+} = require("devtools/client/netmonitor/src/selectors/index");
 
 /**
  * API object for NetMonitor panel (like a facade). This object can be
@@ -229,16 +229,6 @@ NetMonitorAPI.prototype = {
     // Send custom request with same url, headers and body as the request
     // with the given requestId.
     this.store.dispatch(Actions.sendCustomRequest(this.connector, requestId));
-  },
-
-  /**
-   * Fire events for the owner object. These events are only
-   * used in tests so, don't fire them in production release.
-   */
-  emitForTests(type, data) {
-    if (flags.testing) {
-      this.emit(type, data);
-    }
   },
 };
 

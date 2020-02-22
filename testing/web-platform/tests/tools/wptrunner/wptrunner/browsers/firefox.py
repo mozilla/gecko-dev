@@ -23,7 +23,8 @@ from .base import (get_free_port,
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executormarionette import (MarionetteTestharnessExecutor,  # noqa: F401
                                             MarionetteRefTestExecutor,  # noqa: F401
-                                            MarionetteWdspecExecutor)  # noqa: F401
+                                            MarionetteWdspecExecutor,  # noqa: F401
+                                            MarionetteCrashtestExecutor)  # noqa: F401
 
 
 here = os.path.join(os.path.split(__file__)[0])
@@ -31,7 +32,8 @@ here = os.path.join(os.path.split(__file__)[0])
 __wptrunner__ = {"product": "firefox",
                  "check_args": "check_args",
                  "browser": "FirefoxBrowser",
-                 "executor": {"testharness": "MarionetteTestharnessExecutor",
+                 "executor": {"crashtest": "MarionetteCrashtestExecutor",
+                              "testharness": "MarionetteTestharnessExecutor",
                               "reftest": "MarionetteRefTestExecutor",
                               "wdspec": "MarionetteWdspecExecutor"},
                  "browser_kwargs": "browser_kwargs",
@@ -166,17 +168,13 @@ def run_info_extras(**kwargs):
           "wasm": kwargs.get("wasm", True),
           "verify": kwargs["verify"],
           "headless": kwargs.get("headless", False) or "MOZ_HEADLESS" in os.environ,
+          "sw-e10s": False,
           "fission": get_bool_pref("fission.autostart")}
 
     # The value of `sw-e10s` defaults to whether the "parent_intercept"
     # implementation is enabled for the current build. This value, however,
     # can be overridden by explicitly setting the pref with the `--setpref` CLI
-    # flag, which is checked here. If not supplied, the default value of
-    # `sw-e10s` will be filled in in `RunInfo`'s constructor.
-    #
-    # We can't capture the default value right now because (currently), it
-    # defaults to the value of `nightly_build`, which isn't known until
-    # `RunInfo`'s constructor.
+    # flag, which is checked here.
     sw_e10s_override = get_bool_pref_if_exists("dom.serviceWorkers.parent_intercept")
     if sw_e10s_override is not None:
         rv["sw-e10s"] = sw_e10s_override

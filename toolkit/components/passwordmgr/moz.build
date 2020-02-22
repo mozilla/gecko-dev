@@ -21,6 +21,7 @@ XPIDL_SOURCES += [
     'nsILoginAutoCompleteSearch.idl',
     'nsILoginInfo.idl',
     'nsILoginManager.idl',
+    'nsILoginManagerAuthPrompter.idl',
     'nsILoginManagerCrypto.idl',
     'nsILoginManagerPrompter.idl',
     'nsILoginManagerStorage.idl',
@@ -37,23 +38,24 @@ EXTRA_JS_MODULES += [
     'LoginHelper.jsm',
     'LoginInfo.jsm',
     'LoginManager.jsm',
+    'LoginManagerAuthPrompter.jsm',
     'LoginManagerChild.jsm',
     'LoginManagerParent.jsm',
     'LoginManagerPrompter.jsm',
     'LoginRecipes.jsm',
     'OSCrypto.jsm',
+    'storage-json.js',
 ]
 
 if CONFIG['OS_TARGET'] == 'Android':
     EXTRA_JS_MODULES += [
-        'storage-mozStorage.js',
+        'storage-geckoview.js',
     ]
 else:
     EXTRA_JS_MODULES += [
         'LoginImport.jsm',
         'LoginStore.jsm',
         'PasswordGenerator.jsm',
-        'storage-json.js',
     ]
 
 if CONFIG['OS_TARGET'] == 'WINNT':

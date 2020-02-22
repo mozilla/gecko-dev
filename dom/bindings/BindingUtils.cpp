@@ -26,10 +26,8 @@
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
 #include "nsHTMLTags.h"
-#include "nsIDocShell.h"
 #include "nsIDOMGlobalPropertyInitializer.h"
 #include "nsINode.h"
-#include "nsIPermissionManager.h"
 #include "nsIPrincipal.h"
 #include "nsIURIFixup.h"
 #include "nsIXPConnect.h"
@@ -2532,9 +2530,9 @@ bool NonVoidByteStringToJsval(JSContext* cx, const nsACString& str,
                               JS::MutableHandle<JS::Value> rval) {
   // ByteStrings are not UTF-8 encoded.
   JSString* jsStr = JS_NewStringCopyN(cx, str.Data(), str.Length());
-
-  if (!jsStr) return false;
-
+  if (!jsStr) {
+    return false;
+  }
   rval.setString(jsStr);
   return true;
 }
@@ -3877,6 +3875,14 @@ void SetUseCounter(JSObject* aObject, UseCounter aUseCounter) {
       xpc::WindowGlobalOrNull(js::UncheckedUnwrap(aObject));
   if (win && win->GetDocument()) {
     win->GetDocument()->SetUseCounter(aUseCounter);
+  }
+}
+
+void SetUseCounter(UseCounterWorker aUseCounter) {
+  // If this is called from Worklet thread, workerPrivate will be null.
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+  if (workerPrivate) {
+    workerPrivate->SetUseCounter(aUseCounter);
   }
 }
 

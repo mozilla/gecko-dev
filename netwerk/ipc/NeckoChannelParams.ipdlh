@@ -22,6 +22,7 @@ using struct nsHttpAtom from "nsHttp.h";
 using class mozilla::net::nsHttpResponseHead from "nsHttpResponseHead.h";
 using class mozilla::TimeStamp from "mozilla/TimeStamp.h";
 using refcounted class nsIPropertyBag2 from "mozilla/dom/PropertyBagUtils.h";
+using refcounted class nsDOMNavigationTiming from "nsDOMNavigationTiming.h";
 
 namespace mozilla {
 namespace net {
@@ -300,6 +301,46 @@ union HttpChannelCreationArgs
   HttpChannelConnectArgs;   // Used for redirected-to channels
 };
 
+struct ProxyInfoCloneArgs
+{
+  nsCString type;
+  nsCString host;
+  int32_t port;
+  nsCString username;
+  nsCString password;
+  uint32_t flags;
+  uint32_t timeout;
+  uint32_t resolveFlags;
+  nsCString proxyAuthorizationHeader;
+  nsCString connectionIsolationKey;
+};
+
+struct HttpConnectionInfoCloneArgs
+{
+  nsCString host;
+  int32_t port;
+  nsCString npnToken;
+  nsCString username;
+  OriginAttributes originAttributes;
+  bool endToEndSSL;
+  nsCString routedHost;
+  int32_t routedPort;
+  bool anonymous;
+  bool aPrivate; // use prefix to avoid code generation error
+  bool insecureScheme;
+  bool noSpdy;
+  bool beConservative;
+  uint32_t tlsFlags;
+  bool isolated;
+  bool isTrrServiceChannel;
+  bool trrDisabled;
+  bool isIPv4Disabled;
+  bool isIPv6Disabled;
+  nsCString topWindowOrigin;
+  bool isHttp3;
+  ProxyInfoCloneArgs[] proxyInfo;
+};
+
 //-----------------------------------------------------------------------------
 // FTP IPDL structs
 //-----------------------------------------------------------------------------
@@ -365,9 +406,12 @@ struct DocumentChannelCreationArgs {
   uint32_t loadFlags;
   uint32_t loadType;
   uint32_t cacheKey;
+  uint32_t? documentOpenFlags;
   bool isActive;
   bool isTopLevelDoc;
   bool hasNonEmptySandboxingFlags;
+  bool pluginsAllowed;
+  nsDOMNavigationTiming? timing;
 };
 
 struct DocumentChannelRedirect {
@@ -398,9 +442,45 @@ struct RedirectToRealChannelArgs {
   uint64_t redirectIdentifier;
   nsIPropertyBag2 properties;
   LastVisitInfo lastVisitInfo;
+  uint32_t loadStateLoadFlags;
+  nsDOMNavigationTiming? timing;
 };
 
+struct TimingStructArgs {
+  TimeStamp domainLookupStart;
+  TimeStamp domainLookupEnd;
+  TimeStamp connectStart;
+  TimeStamp tcpConnectEnd;
+  TimeStamp secureConnectionStart;
+  TimeStamp connectEnd;
+  TimeStamp requestStart;
+  TimeStamp responseStart;
+  TimeStamp responseEnd;
+};
 
+struct ResourceTimingStructArgs {
+  TimeStamp domainLookupStart;
+  TimeStamp domainLookupEnd;
+  TimeStamp connectStart;
+  TimeStamp tcpConnectEnd;
+  TimeStamp secureConnectionStart;
+  TimeStamp connectEnd;
+  TimeStamp requestStart;
+  TimeStamp responseStart;
+  TimeStamp responseEnd;
+  TimeStamp fetchStart;
+  TimeStamp redirectStart;
+  TimeStamp redirectEnd;
+  uint64_t transferSize;
+  uint64_t encodedBodySize;
+  nsCString protocolVersion;
+
+  // Not actually part of resource timing, but not part of the transaction
+  // timings either. These need to be passed to HttpChannelChild along with
+  // the rest of the timings so the timing information in the child is complete.
+  TimeStamp cacheReadStart;
+  TimeStamp cacheReadEnd;
+};
 
 } // namespace net
 } // namespace mozilla

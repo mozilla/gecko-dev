@@ -800,7 +800,7 @@
 #   (2) browser.display.document_color_use set to 2 (always)
 - name: browser.display.permit_backplate
   type: RelaxedAtomicBool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
   rust: true
 
@@ -925,10 +925,10 @@
 # If set, use DocumentChannel with nsDocShell in place of HttpChannel.
 - name: browser.tabs.documentchannel
   type: bool
-#if !defined(ANDROID)
-  value: @IS_NIGHTLY_BUILD@
-#else
+#if defined(ANDROID)
   value: false  # See bug 1589982.
+#else
+  value: false 
 #endif
   mirror: always
 
@@ -946,14 +946,22 @@
 # Cross-Origin-Embedder-Policy header will fail to load
 - name: browser.tabs.remote.useCrossOriginEmbedderPolicy
   type: RelaxedAtomicBool
-  value: false
+#if !defined(ANDROID)
+  value: @IS_NIGHTLY_BUILD@
+#else
+  value: false # Blocked by DocumentChannel, see Bug 1589982.
+#endif
   mirror: always
 
 # When this pref is enabled top level loads with a mismatched
 # Cross-Origin-Opener-Policy header will be loaded in a separate process.
 - name: browser.tabs.remote.useCrossOriginOpenerPolicy
   type: RelaxedAtomicBool
-  value: false
+#if !defined(ANDROID)
+  value: @IS_NIGHTLY_BUILD@
+#else
+  value: false # Blocked by DocumentChannel, see Bug 1589982.
+#endif
   mirror: always
 
 # When this pref is enabled, the browser will check no-cors responses that
@@ -962,7 +970,11 @@
 # (or base domain) of the loaded resource.
 - name: browser.tabs.remote.useCORP
   type: bool
-  value: false
+#if !defined(ANDROID)
+  value: @IS_NIGHTLY_BUILD@
+#else
+  value: false # Blocked by DocumentChannel, see Bug 1589982.
+#endif
   mirror: always
 
 # The percentage of the screen that needs to be scrolled before toolbar
@@ -1456,6 +1468,18 @@
   value: true
   mirror: always
 
+# Whether touch event listeners are passive by default.
+- name: dom.event.default_to_passive_touch_listeners
+  type: bool
+  value: true
+  mirror: always
+
+# Whether wheel listeners are passive by default.
+- name: dom.event.default_to_passive_wheel_listeners
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # Enable clipboard readText() and writeText() by default
 - name: dom.events.asyncClipboard
   type: bool
@@ -1519,6 +1543,12 @@
 - name: dom.forms.number.grouping
   type: bool
   value: false
+  mirror: always
+
+# Whether the form.requestSubmit API is enabled
+- name: dom.forms.requestsubmit.enabled
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # Whether the Gamepad API is enabled
@@ -1615,6 +1645,11 @@
 - name: dom.ipc.plugins.unloadTimeoutSecs
   type: RelaxedAtomicUint32
   value: 30
+  mirror: always
+
+- name: dom.ipc.plugins.allow_dxgi_surface
+  type: bool
+  value: true
   mirror: always
 
 # Enable e10s hang monitoring (slow script checking and plugin hang detection).
@@ -1785,6 +1820,12 @@
   value: true
   mirror: always
 
+# Whether "W3C Web Manifest" processing is enabled
+- name: dom.manifest.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Whether window.onappinstalled from "W3C Web Manifest" is enabled
 - name: dom.manifest.onappinstalled
   type: bool
@@ -1814,11 +1855,6 @@
 # Enable meta-viewport support in remote APZ-enabled frames.
 - name: dom.meta-viewport.enabled
   type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
-- name: dom.metaElement.setCookie.allowed
-  type: bool
   value: false
   mirror: always
 
@@ -1954,10 +1990,15 @@
   value: true
   mirror: always
 
-# re-SAB; Whether allow postMessage a sharedArrayBuffer
+# re-SAB: Whether to allow postMessage of a SharedArrayBuffer if various
+# preconditions related to COOP and COEP are met
 - name: dom.postMessage.sharedArrayBuffer.withCOOP_COEP
   type: RelaxedAtomicBool
-  value: false
+#if !defined(ANDROID)
+  value: @IS_NIGHTLY_BUILD@
+#else
+  value: false # Blocked by DocumentChannel, see Bug 1589982.
+#endif
   mirror: always
 
 # Overridden in all.js on RELEASE_OR_BETA in order to add the locked attribute.
@@ -2154,7 +2195,7 @@
 # HTMLIFrameElement objects.
 - name: dom.security.featurePolicy.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 # This pref enables the featurePolicy header support.
@@ -2166,6 +2207,11 @@
 - name: dom.security.respect_document_nosniff
   type: RelaxedAtomicBool
   value: true
+  mirror: always
+
+- name: dom.security.featurePolicy.experimental.enabled
+  type: bool
+  value: false
   mirror: always
 
 # Expose the 'policy' attribute in document and HTMLIFrameElement
@@ -2195,7 +2241,7 @@
 # Note, this is not currently safe to use for normal browsing yet.
 - name: dom.serviceWorkers.parent_intercept
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: false 
   mirror: never
 
 - name: dom.serviceWorkers.testing.enabled
@@ -2403,6 +2449,26 @@
 #else
   value: false
 #endif
+  mirror: always
+
+# Should VR sessions always be reported as supported, without first
+# checking for VR runtimes?  This will prevent permission prompts
+# from being suppressed on machines without VR runtimes and cause
+# navigatior.xr.isSessionSupported to always report that immersive-vr
+# is supported.
+- name: dom.vr.always_support_vr
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+# Should AR sessions always be reported as supported, without first
+# checking for AR runtimes?  This will prevent permission prompts
+# from being suppressed on machines without AR runtimes and cause
+# navigatior.xr.isSessionSupported to always report that immersive-ar
+# is supported.
+- name: dom.vr.always_support_ar
+  type: RelaxedAtomicBool
+  value: false
   mirror: always
 
 # It is often desirable to automatically start vr presentation when
@@ -2631,6 +2697,19 @@
 - name: dom.w3c_touch_events.legacy_apis.enabled
   type: bool
   value: @IS_ANDROID@
+  mirror: always
+
+# W3C touch events
+# 0 - disabled, 1 - enabled, 2 - autodetect
+# Autodetection is currently only supported on Windows and GTK3 (and assumed on
+# Android).
+- name: dom.w3c_touch_events.enabled
+  type: int32_t
+#if defined(XP_MACOSX)
+  value: 0
+#else
+  value: 2
+#endif
   mirror: always
 
 # Is support for the Web Audio API enabled?
@@ -3020,12 +3099,6 @@
   type: bool
   value: false
   mirror: always
-
-- name: full-screen-api.unprefix.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-  rust: true
 
 - name: full-screen-api.allow-trusted-requests-only
   type: bool
@@ -3676,6 +3749,11 @@
 #endif
   mirror: once
 
+- name: gfx.webrender.compositor.surface-pool-size
+  type: uint32_t
+  value: 25
+  mirror: once
+
 - name: gfx.webrender.max-partial-present-rects
   type: uint32_t
   value: 0
@@ -3689,6 +3767,15 @@
   value: false
 #endif
   mirror: once
+
+#ifdef NIGHTLY_BUILD
+  # Keep this pref hidden on non-nightly builds to avoid people accidentally
+  # turning it on.
+- name: gfx.webrender.panic-on-gl-error
+  type: bool
+  value: false
+  mirror: once
+#endif
 
 #ifdef NIGHTLY_BUILD
   # Keep this pref hidden on non-nightly builds to avoid people accidentally
@@ -3713,6 +3800,18 @@
     value: false
     mirror: always
 #endif
+
+- name: gfx.webrender.enable-low-priority-pool
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+  # Force disables allowing sacrificing subpixel anti-aliasing for less
+  # powerful configurations.
+- name: gfx.webrender.quality.force-disable-sacrificing-subpixel-aa
+  type: bool
+  value: false
+  mirror: always
 
 # Use vsync events generated by hardware
 - name: gfx.work-around-driver-bugs
@@ -3989,12 +4088,37 @@
 #---------------------------------------------------------------------------
 
 # Whether ISO-2022-JP is a permitted content-based encoding detection
-# outcome.
+# outcome in the JapaneseDetector.
 - name: intl.charset.detector.iso2022jp.allowed
   type: bool
   value: true
   mirror: always
 
+# Whether the new encoding detector is enabled (except for Japan's ccTLDs).
+- name: intl.charset.detector.ng.enabled
+  type: bool
+  value: true
+  mirror: always
+
+# Whether the new encoding detector is enabled for the .jp TLD.
+- name: intl.charset.detector.ng.jp.enabled
+  type: bool
+  value: false
+  mirror: always
+
+# Whether the new encoding detector is enabled for the .in TLD.
+- name: intl.charset.detector.ng.in.enabled
+  type: bool
+  value: false
+  mirror: always
+
+# Whether the new encoding detector is enabled for the .lk TLD.
+- name: intl.charset.detector.ng.lk.enabled
+  type: bool
+  value: false
+  mirror: always
+
+# Whether the TLD is considered if the new encoding detector is disabled.
 - name: intl.charset.fallback.tld
   type: bool
   value: true
@@ -4029,6 +4153,12 @@
 #else
   value: 300000
 #endif
+  mirror: always
+
+# Defer allocation of GC objects as late as possible in a parse
+- name: javascript.options.parser_defer_allocation
+  type: RelaxedAtomicBool
+  value: false
   mirror: always
 
 - name: javascript.options.experimental.fields
@@ -4786,6 +4916,12 @@
   value: 4096
   mirror: always
 
+# Whether Constructable Stylesheets are enabled in script.
+- name: layout.css.constructable-stylesheets.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Whether we get notified of history queries for visited even if unvisited.
 - name: layout.css.notify-of-unvisited
   type: RelaxedAtomicBool
@@ -4841,6 +4977,12 @@
   value: true
   mirror: always
 
+# text underline position
+- name: layout.css.text-underline-position.enabled
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # text decoration thickness
 - name: layout.css.text-decoration-thickness.enabled
   type: bool
@@ -4849,12 +4991,6 @@
 
 # text decoration skip ink
 - name: layout.css.text-decoration-skip-ink.enabled
-  type: bool
-  value: true
-  mirror: always
-
-# Is support for CSS column-span enabled?
-- name: layout.css.column-span.enabled
   type: bool
   value: true
   mirror: always
@@ -4975,7 +5111,7 @@
 # Expose the media query -moz-touch-enabled to web content.
 - name: layout.css.moz-touch-enabled.enabled
   type: RelaxedAtomicBool
-  value: @IS_NOT_NIGHTLY_BUILD@
+  value: false
   mirror: always
   rust: true
 
@@ -5220,14 +5356,6 @@
 - name: layout.css.xul-box-display-values.content.enabled
   type: RelaxedAtomicBool
   value: false
-  mirror: always
-  rust: true
-
-# Pref to control whether display: -moz-box and display: -moz-inline-box are
-# "blockified" to "-moz-box" (rather than to "block")
-- name: layout.css.xul-box-display-values.survive-blockification.enabled
-  type: RelaxedAtomicBool
-  value: true
   mirror: always
   rust: true
 
@@ -5554,7 +5682,7 @@
 # Whether to disable the mfenced element.
 - name: mathml.mfenced_element.disabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Whether to disable legacy names "thin", "thick" and "medium" for the
@@ -5763,6 +5891,27 @@
 # objects. If a scheme is present when we check for support, we must ensure we
 # support that scheme in order to provide key system access.
 - name: media.eme.encrypted-media-encryption-scheme.enabled
+  type: bool
+  value: false
+  mirror: always
+
+- name: media.eme.audio.blank
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: media.eme.video.blank
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: media.eme.chromium-api.video-shmems
+  type: RelaxedAtomicUint32
+  value: 6
+  mirror: always
+
+# Is support for MediaKeys.getStatusForPolicy enabled?
+- name: media.eme.hdcp-policy-check.enabled
   type: bool
   value: false
   mirror: always
@@ -6020,20 +6169,6 @@
 - name: media.gmp.decoder.enabled
   type: RelaxedAtomicBool
   value: false
-  mirror: always
-
-- name: media.eme.audio.blank
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-- name: media.eme.video.blank
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
-- name: media.eme.chromium-api.video-shmems
-  type: RelaxedAtomicUint32
-  value: 6
   mirror: always
 
 # Whether to suspend decoding of videos in background tabs.
@@ -6400,12 +6535,6 @@
   value: @IS_NIGHTLY_BUILD@
   mirror: always
 
-# Is support for MediaKeys.getStatusForPolicy enabled?
-- name: media.eme.hdcp-policy-check.enabled
-  type: bool
-  value: false
-  mirror: always
-
 # Is support for MediaDevices.ondevicechange enabled?
 - name: media.ondevicechange.enabled
   type: bool
@@ -6432,7 +6561,7 @@
 
 - name: media.audioFocus.management
   type: bool
-#if defined(MOZ_WIDGET_ANDROID) && defined(NIGHTLY_BUILD)
+#if defined(MOZ_WIDGET_ANDROID)
   value: true
 #else
   value: false
@@ -6441,12 +6570,16 @@
 
 - name: media.hardwaremediakeys.enabled
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 - name: media.webrtc.platformencoder
   type: bool
+#if defined(MOZ_WIDGET_ANDROID)
+  value: true
+#else
   value: false
+#endif
   mirror: always
 
 - name: media.block-autoplay-until-in-foreground
@@ -6460,7 +6593,11 @@
 
 - name: media.webrtc.hw.h264.enabled
   type: bool
+#if defined(MOZ_WIDGET_ANDROID)
+  value: true
+#else
   value: false
+#endif
   mirror: always
 
  # If true, then we require explicit approval from the embedding app (ex. Fenix)
@@ -6479,6 +6616,11 @@
 - name: media.geckoview.autoplay.request.testing
   type: uint32_t
   value: 0
+  mirror: always
+
+- name: media.mediacontrol.testingevents.enabled
+  type: bool
+  value: false
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -6893,6 +7035,12 @@
   value: false
   mirror: always
 
+# Whether to send the User-Agent header for TRR requests
+- name: network.trr.send_user-agent_headers
+  type: bool
+  value: false
+  mirror: always
+
 # This pref controls if TRR will still be enabled when a VPN is detected on
 # the system. Detection is not foolproof, and some VPNs may not be detected.
 # See bug 1565004 comment 3 for details.
@@ -6957,6 +7105,11 @@
   value: true
   mirror: always
 
+# Whether to use the rust implemented DefaultURI for unknown scheme types
+- name: network.url.useDefaultURI
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
 
 #---------------------------------------------------------------------------
 # Prefs starting with "nglayout."
@@ -6989,10 +7142,9 @@
 #---------------------------------------------------------------------------
 # Prefs starting with "permissions."
 #---------------------------------------------------------------------------
-
-- name: permissions.delegation.enable
+- name: permissions.delegation.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 - name: permissions.isolateBy.userContext
@@ -7364,6 +7516,13 @@
 
 # Allowed by default so it doesn't affect Thunderbird/SeaMonkey, but
 # not allowed for Firefox Desktop in firefox.js
+- name: security.allow_parent_unrestricted_js_loads
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+# Allowed by default so it doesn't affect Thunderbird/SeaMonkey, but
+# not allowed for Firefox Desktop in firefox.js
 - name: security.allow_eval_with_system_principal
   type: RelaxedAtomicBool
   value: true
@@ -7504,7 +7663,7 @@
 # Is support for letter-spacing and word-spacing in SVG text enabled?
 - name: svg.text-spacing.enabled
   type: bool
-  value: false
+  value: true
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -7517,6 +7676,11 @@
 - name: telemetry.origin_telemetry_test_mode.enabled
   type: RelaxedAtomicBool
   value: false
+  mirror: always
+
+- name: telemetry.number_of_site_origin.min_interval
+  type: uint32_t
+  value: 300000
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -7927,6 +8091,19 @@
 - name: widget.window-transforms.disabled
   type: RelaxedAtomicBool
   value: false
+  mirror: always
+
+# Whether to allow gtk dark themes in content.
+- name: widget.content.allow-gtk-dark-theme
+  type: bool
+  value: false
+  mirror: always
+
+# Whether to use gtk high contrast themes to disable content styling like on
+# windows high contrast mode.
+- name: widget.content.gtk-high-contrast.enabled
+  type: bool
+  value: true
   mirror: always
 
 #---------------------------------------------------------------------------

@@ -11,6 +11,8 @@
 #include <assert.h>
 #include <map>
 #include <vector>
+#include <dwmapi.h>
+#include <unordered_map>
 
 #define EGL_EGL_PROTOTYPES 1
 #define EGL_EGLEXT_PROTOTYPES 1
@@ -23,11 +25,45 @@
 #include "GLES/glext.h"
 #include "GLES3/gl3.h"
 
+#define NUM_QUERIES 2
+
+enum SyncMode {
+    None = 0,
+    Swap = 1,
+    Commit = 2,
+    Flush = 3,
+    Query = 4,
+};
+
 // The OS compositor representation of a picture cache tile.
 struct Tile {
     // Represents the underlying DirectComposition surface texture that gets drawn into.
     IDCompositionSurface *pSurface;
     // Represents the node in the visual tree that defines the properties of this tile (clip, position etc).
+    IDCompositionVisual2 *pVisual;
+};
+
+struct TileKey {
+    int x;
+    int y;
+
+    TileKey(int ax, int ay) : x(ax), y(ay) {}
+};
+
+bool operator==(const TileKey &k0, const TileKey &k1) {
+    return k0.x == k1.x && k0.y == k1.y;
+}
+
+struct TileKeyHasher {
+    size_t operator()(const TileKey &key) const {
+        return key.x ^ key.y;
+    }
+};
+
+struct Surface {
+    int tile_width;
+    int tile_height;
+    std::unordered_map<TileKey, Tile, TileKeyHasher> tiles;
     IDCompositionVisual2 *pVisual;
 };
 
@@ -44,12 +80,15 @@ struct Window {
     HINSTANCE hInstance;
     bool enable_compositor;
     RECT client_rect;
+    SyncMode sync_mode;
 
     // Main interfaces to D3D11 and DirectComposition
     ID3D11Device *pD3D11Device;
     IDCompositionDesktopDevice *pDCompDevice;
     IDCompositionTarget *pDCompTarget;
     IDXGIDevice *pDXGIDevice;
+    ID3D11Query *pQueries[NUM_QUERIES];
+    int current_query;
 
     // ANGLE interfaces that wrap the D3D device
     EGLDeviceEXT EGLDevice;
@@ -68,13 +107,14 @@ struct Window {
     // all child tiles are parented to here.
     IDCompositionVisual2 *pRoot;
     IDCompositionVisualDebug *pVisualDebug;
-    // Maps the WR surface IDs to the DC representation of each tile.
-    std::map<uint64_t, Tile> tiles;
     std::vector<CachedFrameBuffer> mFrameBuffers;
 
     // Maintain list of layer state between frames to avoid visual tree rebuild.
     std::vector<uint64_t> mCurrentLayers;
     std::vector<uint64_t> mPrevLayers;
+
+    // Maps WR surface IDs to each OS surface
+    std::unordered_map<uint64_t, Surface> surfaces;
 };
 
 static const wchar_t *CLASS_NAME = L"WR DirectComposite";
@@ -134,12 +174,13 @@ static LRESULT CALLBACK WndProc(
 }
 
 extern "C" {
-    Window *com_dc_create_window(int width, int height, bool enable_compositor) {
+    Window *com_dc_create_window(int width, int height, bool enable_compositor, SyncMode sync_mode) {
         // Create a simple Win32 window
         Window *window = new Window;
         window->hInstance = GetModuleHandle(NULL);
         window->enable_compositor = enable_compositor;
         window->mEGLImage = EGL_NO_IMAGE;
+        window->sync_mode = sync_mode;
 
         WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
         wcex.style = CS_HREDRAW | CS_VREDRAW;
@@ -167,9 +208,16 @@ extern "C" {
         UINT window_width = static_cast<UINT>(ceil(float(window_rect.right - window_rect.left) * dpiX / 96.f));
         UINT window_height = static_cast<UINT>(ceil(float(window_rect.bottom - window_rect.top) * dpiY / 96.f));
 
+        LPCWSTR name;
+        if (enable_compositor) {
+            name = L"example-compositor (DirectComposition)";
+        } else {
+            name = L"example-compositor (Simple)";
+        }
+
         window->hWnd = CreateWindow(
             CLASS_NAME,
-            L"DirectComposition Demo Application",
+            name,
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
@@ -200,6 +248,15 @@ extern "C" {
             nullptr
         );
         assert(SUCCEEDED(hr));
+
+        D3D11_QUERY_DESC query_desc;
+        memset(&query_desc, 0, sizeof(query_desc));
+        query_desc.Query = D3D11_QUERY_EVENT;
+        for (int i=0 ; i < NUM_QUERIES ; ++i) {
+            hr = window->pD3D11Device->CreateQuery(&query_desc, &window->pQueries[i]);
+            assert(SUCCEEDED(hr));
+        }
+        window->current_query = 0;
 
         hr = window->pD3D11Device->QueryInterface(&window->pDXGIDevice);
         assert(SUCCEEDED(hr));
@@ -318,9 +375,15 @@ extern "C" {
     }
 
     void com_dc_destroy_window(Window *window) {
-        for (auto it=window->tiles.begin() ; it != window->tiles.end() ; ++it) {
-            it->second.pSurface->Release();
-            it->second.pVisual->Release();
+        for (auto surface_it=window->surfaces.begin() ; surface_it != window->surfaces.end() ; ++surface_it) {
+            Surface &surface = surface_it->second;
+
+            for (auto tile_it=surface.tiles.begin() ; tile_it != surface.tiles.end() ; ++tile_it) {
+                tile_it->second.pSurface->Release();
+                tile_it->second.pVisual->Release();
+            }
+
+            surface.pVisual->Release();
         }
 
         if (window->fb_surface != EGL_NO_SURFACE) {
@@ -330,6 +393,9 @@ extern "C" {
         eglTerminate(window->EGLDisplay);
         eglReleaseDeviceANGLE(window->EGLDevice);
 
+        for (int i=0 ; i < NUM_QUERIES ; ++i) {
+            window->pQueries[i]->Release();
+        }
         window->pRoot->Release();
         window->pVisualDebug->Release();
         window->pD3D11Device->Release();
@@ -361,8 +427,36 @@ extern "C" {
     void com_dc_swap_buffers(Window *window) {
         // If not using DC mode, then do a normal EGL swap buffers.
         if (window->fb_surface != EGL_NO_SURFACE) {
-            eglSwapInterval(window->EGLDisplay, 0);
+            switch (window->sync_mode) {
+                case SyncMode::None:
+                    eglSwapInterval(window->EGLDisplay, 0);
+                    break;
+                case SyncMode::Swap:
+                    eglSwapInterval(window->EGLDisplay, 1);
+                    break;
+                default:
+                    assert(false);  // unexpected vsync mode for simple compositor.
+                    break;
+            }
+
             eglSwapBuffers(window->EGLDisplay, window->fb_surface);
+        } else {
+            switch (window->sync_mode) {
+                case SyncMode::None:
+                    break;
+                case SyncMode::Commit:
+                    window->pDCompDevice->WaitForCommitCompletion();
+                    break;
+                case SyncMode::Flush:
+                    DwmFlush();
+                    break;
+                case SyncMode::Query:
+                    // todo!!!!
+                    break;
+                default:
+                    assert(false);  // unexpected vsync mode for native compositor
+                    break;
+            }
         }
     }
 
@@ -370,20 +464,42 @@ extern "C" {
     void com_dc_create_surface(
         Window *window,
         uint64_t id,
-        int width,
-        int height,
+        int tile_width,
+        int tile_height
+    ) {
+        assert(window->surfaces.count(id) == 0);
+
+        Surface surface;
+        surface.tile_width = tile_width;
+        surface.tile_height = tile_height;
+
+        // Create the visual node in the DC tree that stores properties
+        HRESULT hr = window->pDCompDevice->CreateVisual(&surface.pVisual);
+        assert(SUCCEEDED(hr));
+
+        window->surfaces[id] = surface;
+    }
+
+    void com_dc_create_tile(
+        Window *window,
+        uint64_t id,
+        int x,
+        int y,
         bool is_opaque
     ) {
-        assert(window->tiles.count(id) == 0);
+        assert(window->surfaces.count(id) == 1);
+        Surface &surface = window->surfaces[id];
+
+        TileKey key(x, y);
+        assert(surface.tiles.count(key) == 0);
 
         Tile tile;
 
-        DXGI_ALPHA_MODE alpha_mode = is_opaque ? DXGI_ALPHA_MODE_IGNORE : DXGI_ALPHA_MODE_PREMULTIPLIED;
-
         // Create the video memory surface.
+        DXGI_ALPHA_MODE alpha_mode = is_opaque ? DXGI_ALPHA_MODE_IGNORE : DXGI_ALPHA_MODE_PREMULTIPLIED;
         HRESULT hr = window->pDCompDevice->CreateSurface(
-            width,
-            height,
+            surface.tile_width,
+            surface.tile_height,
             DXGI_FORMAT_B8G8R8A8_UNORM,
             alpha_mode,
             &tile.pSurface
@@ -398,27 +514,67 @@ extern "C" {
         hr = tile.pVisual->SetContent(tile.pSurface);
         assert(SUCCEEDED(hr));
 
-        window->tiles[id] = tile;
+        // Place the visual in local-space of this surface
+        float offset_x = (float) (x * surface.tile_width);
+        float offset_y = (float) (y * surface.tile_height);
+        tile.pVisual->SetOffsetX(offset_x);
+        tile.pVisual->SetOffsetY(offset_y);
+
+        surface.pVisual->AddVisual(
+            tile.pVisual,
+            FALSE,
+            NULL
+        );
+
+        surface.tiles[key] = tile;
+    }
+
+    void com_dc_destroy_tile(
+        Window *window,
+        uint64_t id,
+        int x,
+        int y
+    ) {
+        assert(window->surfaces.count(id) == 1);
+        Surface &surface = window->surfaces[id];
+
+        TileKey key(x, y);
+        assert(surface.tiles.count(key) == 1);
+        Tile &tile = surface.tiles[key];
+
+        surface.pVisual->RemoveVisual(tile.pVisual);
+
+        tile.pVisual->Release();
+        tile.pSurface->Release();
+
+        surface.tiles.erase(key);
     }
 
     void com_dc_destroy_surface(
         Window *window,
         uint64_t id
     ) {
-        assert(window->tiles.count(id) == 1);
+        assert(window->surfaces.count(id) == 1);
+        Surface &surface = window->surfaces[id];
+
+        window->pRoot->RemoveVisual(surface.pVisual);
 
         // Release the video memory and visual in the tree
-        Tile &tile = window->tiles[id];
-        tile.pVisual->Release();
-        tile.pSurface->Release();
+        for (auto tile_it=surface.tiles.begin() ; tile_it != surface.tiles.end() ; ++tile_it) {
+            tile_it->second.pSurface->Release();
+            tile_it->second.pVisual->Release();
+        }
 
-        window->tiles.erase(id);
+        surface.pVisual->Release();
+        window->surfaces.erase(id);
     }
 
     // Bind a DC surface to allow issuing GL commands to it
     GLuint com_dc_bind_surface(
         Window *window,
-        uint64_t id,
+        uint64_t surface_id,
+        int tile_x,
+        int tile_y,
         int *x_offset,
         int *y_offset,
         int dirty_x0,
@@ -426,8 +582,12 @@ extern "C" {
         int dirty_width,
         int dirty_height
     ) {
-        assert(window->tiles.count(id) == 1);
-        Tile &tile = window->tiles[id];
+        assert(window->surfaces.count(surface_id) == 1);
+        Surface &surface = window->surfaces[surface_id];
+
+        TileKey key(tile_x, tile_y);
+        assert(surface.tiles.count(key) == 1);
+        Tile &tile = surface.tiles[key];
 
         // Store the current surface for unbinding later
         window->pCurrentSurface = tile.pSurface;
@@ -521,16 +681,15 @@ extern "C" {
         int clip_w,
         int clip_h
     ) {
-        Tile &tile = window->tiles[id];
-
+        Surface surface = window->surfaces[id];
         window->mCurrentLayers.push_back(id);
 
         // Place the visual - this changes frame to frame based on scroll position
         // of the slice.
         float offset_x = (float) (x + window->client_rect.left);
         float offset_y = (float) (y + window->client_rect.top);
-        tile.pVisual->SetOffsetX(offset_x);
-        tile.pVisual->SetOffsetY(offset_y);
+        surface.pVisual->SetOffsetX(offset_x);
+        surface.pVisual->SetOffsetY(offset_y);
 
         // Set the clip rect - converting from world space to the pre-offset space
         // that DC requires for rectangle clips.
@@ -539,7 +698,7 @@ extern "C" {
         clip_rect.top = clip_y - offset_y;
         clip_rect.right = clip_rect.left + clip_w;
         clip_rect.bottom = clip_rect.top + clip_h;
-        tile.pVisual->SetClip(clip_rect);
+        surface.pVisual->SetClip(clip_rect);
     }
 
     // Finish the composition transaction, telling DC to composite
@@ -551,12 +710,12 @@ extern "C" {
             assert(SUCCEEDED(hr));
 
             for (auto it = window->mCurrentLayers.begin(); it != window->mCurrentLayers.end(); ++it) {
-                Tile &tile = window->tiles[*it];
+                Surface &surface = window->surfaces[*it];
 
                 // Add this visual as the last element in the visual tree (z-order is implicit,
                 // based on the order tiles are added).
-                HRESULT hr = window->pRoot->AddVisual(
-                    tile.pVisual,
+                hr = window->pRoot->AddVisual(
+                    surface.pVisual,
                     FALSE,
                     NULL
                 );

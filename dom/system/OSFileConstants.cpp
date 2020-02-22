@@ -66,7 +66,6 @@
 #include "nsIObserver.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsIXULRuntime.h"
-#include "nsIPropertyBag2.h"
 #include "nsXPCOMCIDInternal.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
@@ -81,7 +80,6 @@
 #include "mozilla/UniquePtr.h"
 
 #include "OSFileConstants.h"
-#include "nsIOSFileConstantsService.h"
 #include "nsZipArchive.h"
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__) || \
@@ -530,8 +528,7 @@ static const dom::ConstantSpec gLibcProperties[] = {
     // Size
     {"OSFILE_SIZEOF_DIRENT", JS::Int32Value(sizeof(dirent))},
 
-// Defining |flock|.
-#  if defined(XP_UNIX)
+    // Defining |flock|.
     {"OSFILE_SIZEOF_FLOCK", JS::Int32Value(sizeof(struct flock))},
     {"OSFILE_OFFSETOF_FLOCK_L_START",
      JS::Int32Value(offsetof(struct flock, l_start))},
@@ -543,7 +540,7 @@ static const dom::ConstantSpec gLibcProperties[] = {
      JS::Int32Value(offsetof(struct flock, l_type))},
     {"OSFILE_OFFSETOF_FLOCK_L_WHENCE",
      JS::Int32Value(offsetof(struct flock, l_whence))},
-#  endif  // defined(XP_UNIX)
+
     // Offset of field |d_name|.
     {"OSFILE_OFFSETOF_DIRENT_D_NAME",
      JS::Int32Value(offsetof(struct dirent, d_name))},

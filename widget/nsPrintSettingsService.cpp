@@ -16,17 +16,12 @@
 #include "nsServiceManagerUtils.h"
 
 #include "nsArray.h"
-#include "nsIDialogParamBlock.h"
 #include "nsXPCOM.h"
-#include "nsISupportsPrimitives.h"
-#include "nsIWindowWatcher.h"
 
 #include "nsIStringEnumerator.h"
-#include "nsISupportsPrimitives.h"
 #include "stdlib.h"
 #include "mozilla/Preferences.h"
 #include "nsPrintfCString.h"
-#include "nsIWebBrowserPrint.h"
 
 using namespace mozilla;
 using namespace mozilla::embedding;
@@ -90,7 +85,6 @@ nsresult nsPrintSettingsService::Init() { return NS_OK; }
 
 NS_IMETHODIMP
 nsPrintSettingsService::SerializeToPrintData(nsIPrintSettings* aSettings,
-                                             nsIWebBrowserPrint* aWBP,
                                              PrintData* data) {
   nsCOMPtr<nsIPrintSession> session;
   nsresult rv = aSettings->GetPrintSession(getter_AddRefs(session));

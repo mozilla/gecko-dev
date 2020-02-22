@@ -36,7 +36,6 @@ use crate::gecko_bindings::bindings::Gecko_SetNullImageValue;
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsCSSPropertyID;
 use crate::gecko_bindings::structs::mozilla::PseudoStyleType;
-use crate::gecko_bindings::sugar::refptr::RefPtr;
 use crate::gecko::values::round_border_to_device_pixels;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
@@ -45,7 +44,6 @@ use crate::properties::longhands;
 use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::PseudoElement;
 use servo_arc::{Arc, RawOffsetArc, UniqueArc};
-use std::marker::PhantomData;
 use std::mem::{forget, MaybeUninit};
 use std::{cmp, ops, ptr};
 use crate::values::{self, CustomIdent, Either, KeyframesName, None_};
@@ -426,7 +424,7 @@ def set_gecko_property(ffi_name, expr):
 
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         use crate::gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
-        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
+        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name}.clone();
         self.gecko.mContextFlags =
             (self.gecko.mContextFlags & !CONTEXT_VALUE) |
             (other.gecko.mContextFlags & CONTEXT_VALUE);
@@ -442,7 +440,7 @@ def set_gecko_property(ffi_name, expr):
         if (self.gecko.mContextFlags & CONTEXT_VALUE) != 0 {
             return SVGLength::ContextValue;
         }
-        SVGLength::LengthPercentage(self.gecko.${gecko_ffi_name})
+        SVGLength::LengthPercentage(self.gecko.${gecko_ffi_name}.clone())
     }
 </%def>
 
@@ -563,7 +561,7 @@ def set_gecko_property(ffi_name, expr):
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name}.${index} =
-            other.gecko.${gecko_ffi_name}.${index};
+            other.gecko.${gecko_ffi_name}.${index}.clone();
     }
     #[allow(non_snake_case)]
     pub fn reset_${ident}(&mut self, other: &Self) {
@@ -572,7 +570,7 @@ def set_gecko_property(ffi_name, expr):
 
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        self.gecko.${gecko_ffi_name}.${index}
+        self.gecko.${gecko_ffi_name}.${index}.clone()
     }
 </%def>
 
@@ -601,7 +599,7 @@ def set_gecko_property(ffi_name, expr):
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name}.${corner} =
-            other.gecko.${gecko_ffi_name}.${corner};
+            other.gecko.${gecko_ffi_name}.${corner}.clone();
     }
     #[allow(non_snake_case)]
     pub fn reset_${ident}(&mut self, other: &Self) {
@@ -609,7 +607,7 @@ def set_gecko_property(ffi_name, expr):
     }
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        self.gecko.${gecko_ffi_name}.${corner}
+        self.gecko.${gecko_ffi_name}.${corner}.clone()
     }
 </%def>
 
@@ -1134,7 +1132,7 @@ fn static_assert() {
     pub fn set_font_size(&mut self, v: FontSize) {
         use crate::values::specified::font::KeywordSize;
 
-        let size = v.size();
+        let size = Au::from(v.size());
         self.gecko.mScriptUnconstrainedSize = size.0;
 
         // These two may be changed from Cascade::fixup_font_stuff.
@@ -1852,7 +1850,7 @@ fn static_assert() {
         for (layer, other) in self.gecko.${layers_field_name}.mLayers.iter_mut()
                                   .zip(other.gecko.${layers_field_name}.mLayers.iter())
                                   .take(count as usize) {
-            layer.${field_name} = other.${field_name};
+            layer.${field_name} = other.${field_name}.clone();
         }
         self.gecko.${layers_field_name}.${field_name}Count = count;
     }
@@ -2006,7 +2004,7 @@ fn static_assert() {
         for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
                                   .zip(other.gecko.${image_layers_field}.mLayers.iter())
                                   .take(count as usize) {
-            layer.mPosition.${keyword} = other.mPosition.${keyword};
+            layer.mPosition.${keyword} = other.mPosition.${keyword}.clone();
         }
         self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count = count;
     }
@@ -2020,7 +2018,7 @@ fn static_assert() {
         longhands::${shorthand}_position_${orientation}::computed_value::List(
             self.gecko.${image_layers_field}.mLayers.iter()
                 .take(self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count as usize)
-                .map(|position| position.mPosition.${keyword})
+                .map(|position| position.mPosition.${keyword}.clone())
                 .collect()
         )
     }
@@ -2054,7 +2052,7 @@ fn static_assert() {
 
     pub fn clone_${shorthand}_size(&self) -> longhands::${shorthand}_size::computed_value::T {
         longhands::${shorthand}_size::computed_value::List(
-            self.gecko.${image_layers_field}.mLayers.iter().map(|layer| layer.mSize).collect()
+            self.gecko.${image_layers_field}.mLayers.iter().map(|layer| layer.mSize.clone()).collect()
         )
     }
 
@@ -2200,19 +2198,18 @@ fn static_assert() {
     }
 
     pub fn set_list_style_type(&mut self, v: longhands::list_style_type::computed_value::T) {
-        use crate::gecko_bindings::bindings::Gecko_SetCounterStyleToName;
-        use crate::gecko_bindings::bindings::Gecko_SetCounterStyleToString;
         use nsstring::{nsACString, nsCStr};
         use self::longhands::list_style_type::computed_value::T;
         match v {
             T::None => unsafe {
-                Gecko_SetCounterStyleToName(&mut self.gecko.mCounterStyle,
-                                            atom!("none").into_addrefed());
+                bindings::Gecko_SetCounterStyleToNone(&mut self.gecko.mCounterStyle)
             }
             T::CounterStyle(s) => s.to_gecko_value(&mut self.gecko.mCounterStyle),
             T::String(s) => unsafe {
-                Gecko_SetCounterStyleToString(&mut self.gecko.mCounterStyle,
-                                              &nsCStr::from(&s) as &nsACString)
+                bindings::Gecko_SetCounterStyleToString(
+                    &mut self.gecko.mCounterStyle,
+                    &nsCStr::from(&s) as &nsACString,
+                )
             }
         }
     }
@@ -2580,236 +2577,9 @@ clip-path
     ${impl_simple('column_rule_style', 'mColumnRuleStyle')}
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Counters" skip_longhands="content">
+<%self:impl_trait style_struct_name="Counters">
     pub fn ineffective_content_property(&self) -> bool {
-        self.gecko.mContents.is_empty()
-    }
-
-    pub fn set_content(&mut self, v: longhands::content::computed_value::T) {
-        use crate::values::CustomIdent;
-        use crate::values::generics::counters::{Content, ContentItem};
-        use crate::values::generics::CounterStyle;
-        use crate::gecko_bindings::structs::nsStyleContentData;
-        use crate::gecko_bindings::structs::nsStyleContentAttr;
-        use crate::gecko_bindings::structs::StyleContentType;
-        use crate::gecko_bindings::bindings::Gecko_ClearAndResizeStyleContents;
-
-        // Converts a string as utf16, and returns an owned, zero-terminated raw buffer.
-        fn as_utf16_and_forget(s: &str) -> *mut u16 {
-            use std::mem;
-            let mut vec = s.encode_utf16().collect::<Vec<_>>();
-            vec.push(0u16);
-            let ptr = vec.as_mut_ptr();
-            mem::forget(vec);
-            ptr
-        }
-
-        fn set_counter_function(
-            data: &mut nsStyleContentData,
-            content_type: StyleContentType,
-            name: CustomIdent,
-            sep: &str,
-            style: CounterStyle,
-        ) {
-            debug_assert!(content_type == StyleContentType::Counter ||
-                          content_type == StyleContentType::Counters);
-            let counter_func = unsafe {
-                bindings::Gecko_SetCounterFunction(data, content_type).as_mut().unwrap()
-            };
-            counter_func.mIdent.set_move(unsafe {
-                RefPtr::from_addrefed(name.0.into_addrefed())
-            });
-            if content_type == StyleContentType::Counters {
-                counter_func.mSeparator.assign_str(sep);
-            }
-            style.to_gecko_value(&mut counter_func.mCounterStyle);
-        }
-
-        match v {
-            Content::None |
-            Content::Normal => {
-                // Ensure destructors run, otherwise we could leak.
-                if !self.gecko.mContents.is_empty() {
-                    unsafe {
-                        Gecko_ClearAndResizeStyleContents(&mut *self.gecko, 0);
-                    }
-                }
-            },
-            Content::MozAltContent => {
-                unsafe {
-                    Gecko_ClearAndResizeStyleContents(&mut *self.gecko, 1);
-                    *self.gecko.mContents[0].mContent.mString.as_mut() = ptr::null_mut();
-                }
-                self.gecko.mContents[0].mType = StyleContentType::AltContent;
-            },
-            Content::Items(items) => {
-                unsafe {
-                    Gecko_ClearAndResizeStyleContents(&mut *self.gecko,
-                                                      items.len() as u32);
-                }
-                for (i, item) in items.into_vec().into_iter().enumerate() {
-                    // NB: Gecko compares the mString value if type is not image
-                    // or URI independently of whatever gets there. In the quote
-                    // cases, they set it to null, so do the same here.
-                    unsafe {
-                        *self.gecko.mContents[i].mContent.mString.as_mut() = ptr::null_mut();
-                    }
-                    match item {
-                        ContentItem::String(ref value) => {
-                            self.gecko.mContents[i].mType = StyleContentType::String;
-                            unsafe {
-                                // NB: we share allocators, so doing this is fine.
-                                *self.gecko.mContents[i].mContent.mString.as_mut() =
-                                    as_utf16_and_forget(&value);
-                            }
-                        }
-                        ContentItem::Attr(ref attr) => {
-                            self.gecko.mContents[i].mType = StyleContentType::Attr;
-                            unsafe {
-                                // NB: we share allocators, so doing this is fine.
-                                let maybe_ns = attr.namespace.clone();
-                                let attr_struct = Box::new(nsStyleContentAttr {
-                                    mName: structs::RefPtr {
-                                        mRawPtr: attr.attribute.clone().into_addrefed(),
-                                        _phantom_0: PhantomData,
-                                    },
-                                    mNamespaceURL: structs::RefPtr {
-                                        mRawPtr: maybe_ns.map_or(ptr::null_mut(), |x| (x.1).0.into_addrefed()),
-                                        _phantom_0: PhantomData,
-                                    },
-                                });
-                                *self.gecko.mContents[i].mContent.mAttr.as_mut() =
-                                    Box::into_raw(attr_struct);
-                            }
-                        }
-                        ContentItem::OpenQuote
-                            => self.gecko.mContents[i].mType = StyleContentType::OpenQuote,
-                        ContentItem::CloseQuote
-                            => self.gecko.mContents[i].mType = StyleContentType::CloseQuote,
-                        ContentItem::NoOpenQuote
-                            => self.gecko.mContents[i].mType = StyleContentType::NoOpenQuote,
-                        ContentItem::NoCloseQuote
-                            => self.gecko.mContents[i].mType = StyleContentType::NoCloseQuote,
-                        ContentItem::Counter(name, style) => {
-                            set_counter_function(
-                                &mut self.gecko.mContents[i],
-                                StyleContentType::Counter,
-                                name,
-                                "",
-                                style,
-                            );
-                        }
-                        ContentItem::Counters(name, sep, style) => {
-                            set_counter_function(
-                                &mut self.gecko.mContents[i],
-                                StyleContentType::Counters,
-                                name,
-                                &sep,
-                                style,
-                            );
-                        }
-                        ContentItem::Url(ref url) => {
-                            unsafe {
-                                bindings::Gecko_SetContentDataImageValue(
-                                    &mut self.gecko.mContents[i],
-                                    url,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn copy_content_from(&mut self, other: &Self) {
-        use crate::gecko_bindings::bindings::Gecko_CopyStyleContentsFrom;
-        unsafe {
-            Gecko_CopyStyleContentsFrom(&mut *self.gecko, &*other.gecko)
-        }
-    }
-
-    pub fn reset_content(&mut self, other: &Self) {
-        self.copy_content_from(other)
-    }
-
-    pub fn clone_content(&self) -> longhands::content::computed_value::T {
-        use {Atom, Namespace};
-        use crate::gecko::conversions::string_from_chars_pointer;
-        use crate::gecko_bindings::structs::StyleContentType;
-        use crate::values::generics::counters::{Content, ContentItem};
-        use crate::values::{CustomIdent, Either};
-        use crate::values::generics::CounterStyle;
-        use crate::values::specified::Attr;
-
-        if self.gecko.mContents.is_empty() {
-            return Content::None;
-        }
-
-        if self.gecko.mContents.len() == 1 &&
-           self.gecko.mContents[0].mType == StyleContentType::AltContent {
-            return Content::MozAltContent;
-        }
-
-        Content::Items(
-            self.gecko.mContents.iter().map(|gecko_content| {
-                match gecko_content.mType {
-                    StyleContentType::OpenQuote => ContentItem::OpenQuote,
-                    StyleContentType::CloseQuote => ContentItem::CloseQuote,
-                    StyleContentType::NoOpenQuote => ContentItem::NoOpenQuote,
-                    StyleContentType::NoCloseQuote => ContentItem::NoCloseQuote,
-                    StyleContentType::String => {
-                        let gecko_chars = unsafe { gecko_content.mContent.mString.as_ref() };
-                        let string = unsafe { string_from_chars_pointer(*gecko_chars) };
-                        ContentItem::String(string.into_boxed_str())
-                    },
-                    StyleContentType::Attr => {
-                        let (namespace, attribute) = unsafe {
-                            let s = &**gecko_content.mContent.mAttr.as_ref();
-                            let ns = if s.mNamespaceURL.mRawPtr.is_null() {
-                                None
-                            } else {
-                                // FIXME(bholley): We don't have any way to get the prefix here. :-(
-                                let prefix = atom!("");
-                                Some((prefix, Namespace(Atom::from_raw(s.mNamespaceURL.mRawPtr))))
-                            };
-                            (ns, Atom::from_raw(s.mName.mRawPtr))
-                        };
-                        ContentItem::Attr(Attr { namespace, attribute })
-                    },
-                    StyleContentType::Counter | StyleContentType::Counters => {
-                        let gecko_function =
-                            unsafe { &**gecko_content.mContent.mCounters.as_ref() };
-                        let ident = CustomIdent(unsafe {
-                            Atom::from_raw(gecko_function.mIdent.mRawPtr)
-                        });
-                        let style =
-                            CounterStyle::from_gecko_value(&gecko_function.mCounterStyle);
-                        let style = match style {
-                            Either::First(counter_style) => counter_style,
-                            Either::Second(_) =>
-                                unreachable!("counter function shouldn't have single string type"),
-                        };
-                        if gecko_content.mType == StyleContentType::Counter {
-                            ContentItem::Counter(ident, style)
-                        } else {
-                            let separator = gecko_function.mSeparator.to_string();
-                            ContentItem::Counters(ident, separator.into_boxed_str(), style)
-                        }
-                    },
-                    StyleContentType::Image => {
-                        unsafe {
-                            let gecko_image_request =
-                                &**gecko_content.mContent.mImage.as_ref();
-                            ContentItem::Url(
-                                ComputedImageUrl::from_image_request(gecko_image_request)
-                            )
-                        }
-                    },
-                    _ => panic!("Found unexpected value in style struct for content property"),
-                }
-            }).collect::<Vec<_>>().into_boxed_slice()
-        )
+        !self.gecko.mContent.is_items()
     }
 </%self:impl_trait>
 

@@ -22,7 +22,6 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/UniquePtr.h"
 #include "gfx2DGlue.h"
-#include "imgIEncoder.h"
 #include "nsLayoutUtils.h"
 #include "mozilla/EnumeratedArray.h"
 #include "FilterSupport.h"
@@ -1042,6 +1041,7 @@ class CanvasRenderingContext2D final : public nsICanvasRenderingContextInternal,
   bool IsWriteOnly() const { return mWriteOnly; }
 
   bool mWriteOnly;
+  bool mClipsNeedConverting = false;
 };
 
 size_t BindingJSObjectMallocBytes(CanvasRenderingContext2D* aContext);

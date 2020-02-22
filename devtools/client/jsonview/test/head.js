@@ -53,6 +53,13 @@ async function addJsonViewTab(
   info("Adding a new JSON tab with URL: '" + url + "'");
   const tabAdded = BrowserTestUtils.waitForNewTab(gBrowser, url);
   const tabLoaded = addTab(url);
+
+  // The `tabAdded` promise resolves when the JSON Viewer starts loading.
+  // This is usually what we want, however, it never resolves for unrecognized
+  // content types that trigger a download.
+  // On the other hand, `tabLoaded` always resolves, but not until the document
+  // is fully loaded, which is too late if `docReadyState !== "complete"`.
+  // Therefore, we race both promises.
   const tab = await Promise.race([tabAdded, tabLoaded]);
   const browser = tab.linkedBrowser;
 
@@ -62,7 +69,7 @@ async function addJsonViewTab(
 
   // Catch RequireJS errors (usually timeouts)
   const error = tabLoaded.then(() =>
-    ContentTask.spawn(browser, null, function() {
+    SpecialPowers.spawn(browser, [], function() {
       return new Promise((resolve, reject) => {
         const { requirejs } = content.wrappedJSObject;
         if (requirejs) {

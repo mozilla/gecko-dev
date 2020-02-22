@@ -44,7 +44,6 @@ XPIDL_SOURCES += [
     'nsIPrivacyTransitionObserver.idl',
     'nsIReflowObserver.idl',
     'nsIRefreshURI.idl',
-    'nsIScrollable.idl',
     'nsITooltipListener.idl',
     'nsITooltipTextProvider.idl',
     'nsIURIFixup.idl',
@@ -62,6 +61,7 @@ EXPORTS += [
     'nsDocShellLoadTypes.h',
     'nsDocShellTreeOwner.h',
     'nsIScrollObserver.h',
+    'nsWebNavigationInfo.h',
     'SerializedLoadContext.h',
 ]
 

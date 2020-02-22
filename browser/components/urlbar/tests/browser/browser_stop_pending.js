@@ -30,15 +30,23 @@ add_task(async function() {
     true
   );
 
+  let initialValue = gURLBar.untrimmedValue;
   let expectedURLBarChange = SLOW_PAGE;
   let sawChange = false;
-  let handler = e => {
-    sawChange = true;
-    is(
+  let handler = () => {
+    isnot(
       gURLBar.untrimmedValue,
-      expectedURLBarChange,
-      "Should not change URL bar value!"
+      initialValue,
+      "Should not revert URL bar value!"
     );
+    if (gURLBar.getAttribute("pageproxystate") == "valid") {
+      sawChange = true;
+      is(
+        gURLBar.untrimmedValue,
+        expectedURLBarChange,
+        "Should set expected URL bar value!"
+      );
+    }
   };
 
   let obs = new MutationObserver(handler);
@@ -90,7 +98,7 @@ add_task(async function() {
   info("Using URLs: " + SLOW_HOST);
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, BASE_PAGE);
   info("opened tab");
-  await ContentTask.spawn(tab.linkedBrowser, SLOW_HOST, URL => {
+  await SpecialPowers.spawn(tab.linkedBrowser, [SLOW_HOST], URL => {
     let link = content.document.createElement("a");
     link.href = URL;
     link.textContent = "click me to open a slow page";
@@ -158,7 +166,7 @@ add_task(async function() {
   info("Using URLs: " + SLOW_HOST1 + " and " + SLOW_HOST2);
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, BASE_PAGE);
   info("opened tab");
-  await ContentTask.spawn(tab.linkedBrowser, SLOW_HOST1, URL => {
+  await SpecialPowers.spawn(tab.linkedBrowser, [SLOW_HOST1], URL => {
     let link = content.document.createElement("a");
     link.href = URL;
     link.textContent = "click me to open a slow page";

@@ -40,7 +40,7 @@ async function testSetWatchpoint({ threadFront, debuggee, targetFront }) {
       stopMe({a: { b: 1 }})`,
       debuggee,
       "1.8",
-      "test_watchpoint-01.js",
+      "test_watchpoint-01.js"
     );
     /* eslint-disable */
   }
@@ -50,22 +50,22 @@ async function testSetWatchpoint({ threadFront, debuggee, targetFront }) {
     threadFront
   );
 
-  info("Test that we paused on the debugger statement.");
+  info("Test that we paused on the debugger statement");
   Assert.equal(packet.frame.where.line, 3);
 
-  info("Add set watchpoint.");
+  info("Add set watchpoint");
   const args = packet.frame.arguments;
   const obj = args[0];
   const objClient = threadFront.pauseGrip(obj);
   await objClient.addWatchpoint("a", "obj.a", "set");
 
-  let result =  await evaluateJS("obj.a");
-  Assert.equal(result.preview.ownProperties.b.value, 1)
+  let result = await evaluateJS("obj.a");
+  Assert.equal(result.getGrip().preview.ownProperties.b.value, 1);
 
   result = await evaluateJS("obj.a.b");
   Assert.equal(result, 1);
 
-  info("Test that watchpoint triggers pause on set.");
+  info("Test that watchpoint triggers pause on set");
   const packet2 = await resumeAndWaitForPause(threadFront);
   Assert.equal(packet2.frame.where.line, 4);
   Assert.equal(packet2.why.type, "setWatchpoint");
@@ -82,11 +82,11 @@ async function testGetWatchpoint({ threadFront, debuggee }) {
       function stopMe(obj) {              // 2
         debugger;                         // 3
         obj.a + 4;                        // 4
-      }                                   // 
+      }                                   //
       stopMe({a: 1})`,
       debuggee,
       "1.8",
-      "test_watchpoint-01.js",
+      "test_watchpoint-01.js"
     );
     /* eslint-disable */
   }
@@ -96,7 +96,7 @@ async function testGetWatchpoint({ threadFront, debuggee }) {
     threadFront
   );
 
-  //Test that we paused on the debugger statement.
+  info("Test that we paused on the debugger statement");
   Assert.equal(packet.frame.where.line, 3);
 
   info("Add get watchpoint.");
@@ -105,7 +105,7 @@ async function testGetWatchpoint({ threadFront, debuggee }) {
   const objClient = threadFront.pauseGrip(obj);
   await objClient.addWatchpoint("a", "obj.a", "get");
 
-  info('Test that watchpoint triggers pause on get.');
+  info("Test that watchpoint triggers pause on get.");
   const packet2 = await resumeAndWaitForPause(threadFront);
   Assert.equal(packet2.frame.where.line, 4);
   Assert.equal(packet2.why.type, "getWatchpoint");
@@ -128,7 +128,7 @@ async function testRemoveWatchpoint({ threadFront, debuggee }) {
       stopMe({a: 1})`,
       debuggee,
       "1.8",
-      "test_watchpoint-01.js",
+      "test_watchpoint-01.js"
     );
     /* eslint-disable */
   }
@@ -137,22 +137,23 @@ async function testRemoveWatchpoint({ threadFront, debuggee }) {
     () => evaluateTestCode(debuggee),
     threadFront
   );
-  
-  //Test that we paused on the debugger statement.
+
+  info(`Test that we paused on the debugger statement`)
   Assert.equal(packet.frame.where.line, 3);
 
-  //Add and then remove set watchpoint.
+  info(`Add set watchpoint`)
   const args = packet.frame.arguments;
   const obj = args[0];
   const objClient = threadFront.pauseGrip(obj);
   await objClient.addWatchpoint("a", "obj.a", "set");
+  
+  info(`Remove set watchpoint`)
   await objClient.removeWatchpoint("a");
 
-  //Test that we do not pause on set.
-
+  info(`Test that we do not pause on set`)
   const packet2 = await resumeAndWaitForPause(threadFront);
   Assert.equal(packet2.frame.where.line, 5);
-  
+
   await resume(threadFront);
 }
 
@@ -179,17 +180,17 @@ async function testRemoveWatchpoints({ threadFront, debuggee }) {
     threadFront
   );
 
-  //Test that we paused on the debugger statement.
+  info("Test that we paused on the debugger statement");
   Assert.equal(packet.frame.where.line, 3);
 
-  //Add and then remove set watchpoint.
+  info("Add and then remove set watchpoint")
   const args = packet.frame.arguments;
   const obj = args[0];
   const objClient = threadFront.pauseGrip(obj);
   await objClient.addWatchpoint("a", "obj.a", "set");
   await objClient.removeWatchpoints();
 
-  //Test that we do not pause on set.
+  info("Test that we do not pause on set")
   const packet2 = await resumeAndWaitForPause(threadFront);
   Assert.equal(packet2.frame.where.line, 5);
 

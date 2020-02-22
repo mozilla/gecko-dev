@@ -11,7 +11,6 @@ include NeckoChannelParams;
 include "mozilla/net/NeckoMessageUtils.h";
 
 using class nsHttpHeaderArray from "nsHttpHeaderArray.h";
-using struct mozilla::net::ResourceTimingStruct from "mozilla/net/TimingStruct.h";
 
 namespace mozilla {
 namespace net {
@@ -30,14 +29,20 @@ child:
 
   // Combines a single OnDataAvailable and its associated OnProgress &
   // OnStatus calls into one IPDL message
+  // This is duplicated on PHttpChannel, which gets used for multi-part
+  // streams to make synchronization when we get OnStartRequest multiple
+  // times easier.
   async OnTransportAndData(nsresult  channelStatus,
                            nsresult  transportStatus,
                            uint64_t  offset,
                            uint32_t  count,
                            nsCString data);
 
+  // This is duplicated on PHttpChannel, which gets used for multi-part
+  // streams to make synchronization when we get OnStartRequest multiple
+  // times easier.
   async OnStopRequest(nsresult channelStatus,
-                      ResourceTimingStruct timing,
+                      ResourceTimingStructArgs timing,
                       TimeStamp lastActiveTabOptimization,
                       nsHttpHeaderArray responseTrailers);
 

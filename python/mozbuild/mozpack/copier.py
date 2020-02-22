@@ -4,26 +4,18 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import concurrent.futures as futures
+import errno
 import os
-import six
 import stat
 import sys
+from collections import Counter, OrderedDict, defaultdict
 
-from mozpack.errors import errors
-from mozpack.files import (
-    BaseFile,
-    DeflatedFile,
-    Dest,
-    ManifestFile,
-)
+import six
+
 import mozpack.path as mozpath
-import errno
-from collections import (
-    defaultdict,
-    Counter,
-    OrderedDict,
-)
-import concurrent.futures as futures
+from mozpack.errors import errors
+from mozpack.files import BaseFile, DeflatedFile, Dest, ManifestFile
 
 
 class FileRegistry(object):
@@ -113,7 +105,7 @@ class FileRegistry(object):
         '''
         Return all paths stored in the container, in the order they were added.
         '''
-        return self._files.keys()
+        return list(self._files)
 
     def __len__(self):
         '''

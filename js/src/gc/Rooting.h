@@ -7,6 +7,7 @@
 #ifndef gc_Rooting_h
 #define gc_Rooting_h
 
+#include "gc/Allocator.h"
 #include "gc/Policy.h"
 #include "js/GCVector.h"
 #include "js/RootingAPI.h"
@@ -69,6 +70,7 @@ typedef JS::MutableHandle<DebuggerScript*> MutableHandleDebuggerScript;
 typedef JS::MutableHandle<DebuggerSource*> MutableHandleDebuggerSource;
 typedef JS::MutableHandle<Scope*> MutableHandleScope;
 typedef JS::MutableHandle<ModuleObject*> MutableHandleModuleObject;
+typedef JS::MutableHandle<ArrayObject*> MutableHandleArrayObject;
 
 typedef JS::Rooted<NativeObject*> RootedNativeObject;
 typedef JS::Rooted<Shape*> RootedShape;
@@ -148,6 +150,38 @@ class FakeMutableHandle
   DELETE_ASSIGNMENT_OPS(FakeMutableHandle, T);
 
   T* ptr;
+};
+
+/**
+ * Types for a variable that either should or shouldn't be rooted, depending on
+ * the template parameter allowGC. Used for implementing functions that can
+ * operate on either rooted or unrooted data.
+ *
+ * The toHandle() and toMutableHandle() functions are for calling functions
+ * which require handle types and are only called in the CanGC case. These
+ * allow the calling code to type check.
+ */
+
+template <typename T, AllowGC allowGC>
+class MaybeRooted {};
+
+template <typename T>
+class MaybeRooted<T, CanGC> {
+ public:
+  typedef JS::Handle<T> HandleType;
+  typedef JS::Rooted<T> RootType;
+  typedef JS::MutableHandle<T> MutableHandleType;
+
+  static inline JS::Handle<T> toHandle(HandleType v) { return v; }
+
+  static inline JS::MutableHandle<T> toMutableHandle(MutableHandleType v) {
+    return v;
+  }
+
+  template <typename T2>
+  static inline JS::Handle<T2*> downcastHandle(HandleType v) {
+    return v.template as<T2>();
+  }
 };
 
 template <typename T>

@@ -22,7 +22,12 @@ pub struct Window {
 
 // C99 functions that do the compositor work
 extern {
-    fn com_dc_create_window(width: i32, height: i32, enable_compositor: bool) -> *mut Window;
+    fn com_dc_create_window(
+        width: i32,
+        height: i32,
+        enable_compositor: bool,
+        sync_mode: i32,
+    ) -> *mut Window;
     fn com_dc_destroy_window(window: *mut Window);
     fn com_dc_tick(window: *mut Window) -> bool;
     fn com_dc_get_proc_address(name: *const c_char) -> *const c_void;
@@ -31,9 +36,23 @@ extern {
     fn com_dc_create_surface(
         window: *mut Window,
         id: u64,
-        width: i32,
-        height: i32,
+        tile_width: i32,
+        tile_height: i32,
+    );
+
+    fn com_dc_create_tile(
+        window: *mut Window,
+        id: u64,
+        x: i32,
+        y: i32,
         is_opaque: bool,
+    );
+
+    fn com_dc_destroy_tile(
+        window: *mut Window,
+        id: u64,
+        x: i32,
+        y: i32,
     );
 
     fn com_dc_destroy_surface(
@@ -43,7 +62,9 @@ extern {
 
     fn com_dc_bind_surface(
         window: *mut Window,
-        id: u64,
+        surface_id: u64,
+        tile_x: i32,
+        tile_y: i32,
         x_offset: &mut i32,
         y_offset: &mut i32,
         dirty_x0: i32,
@@ -69,9 +90,14 @@ extern {
     fn com_dc_end_transaction(window: *mut Window);
 }
 
-pub fn create_window(width: i32, height: i32, enable_compositor: bool) -> *mut Window {
+pub fn create_window(
+    width: i32,
+    height: i32,
+    enable_compositor: bool,
+    sync_mode: i32,
+) -> *mut Window {
     unsafe {
-        com_dc_create_window(width, height, enable_compositor)
+        com_dc_create_window(width, height, enable_compositor, sync_mode)
     }
 }
 
@@ -96,17 +122,49 @@ pub fn get_proc_address(name: *const c_char) -> *const c_void {
 pub fn create_surface(
     window: *mut Window,
     id: u64,
-    width: i32,
-    height: i32,
-    is_opaque: bool,
+    tile_width: i32,
+    tile_height: i32,
 ) {
     unsafe {
         com_dc_create_surface(
             window,
             id,
-            width,
-            height,
-            is_opaque
+            tile_width,
+            tile_height,
+        )
+    }
+}
+
+pub fn create_tile(
+    window: *mut Window,
+    id: u64,
+    x: i32,
+    y: i32,
+    is_opaque: bool,
+) {
+    unsafe {
+        com_dc_create_tile(
+            window,
+            id,
+            x,
+            y,
+            is_opaque,
+        )
+    }
+}
+
+pub fn destroy_tile(
+    window: *mut Window,
+    id: u64,
+    x: i32,
+    y: i32,
+) {
+    unsafe {
+        com_dc_destroy_tile(
+            window,
+            id,
+            x,
+            y,
         )
     }
 }
@@ -125,7 +183,9 @@ pub fn destroy_surface(
 
 pub fn bind_surface(
     window: *mut Window,
-    id: u64,
+    surface_id: u64,
+    tile_x: i32,
+    tile_y: i32,
     dirty_x0: i32,
     dirty_y0: i32,
     dirty_width: i32,
@@ -137,7 +197,9 @@ pub fn bind_surface(
 
         let fbo_id = com_dc_bind_surface(
             window,
-            id,
+            surface_id,
+            tile_x,
+            tile_y,
             &mut x_offset,
             &mut y_offset,
             dirty_x0,

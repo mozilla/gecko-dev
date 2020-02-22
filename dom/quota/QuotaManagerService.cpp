@@ -19,7 +19,6 @@
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "nsIIdleService.h"
 #include "nsIObserverService.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsXULAppAPI.h"
 #include "QuotaManager.h"
 #include "QuotaRequests.h"
@@ -810,17 +809,6 @@ QuotaManagerService::Observe(nsISupports* aSubject, const char* aTopic,
 
   if (!strcmp(aTopic, PROFILE_BEFORE_CHANGE_QM_OBSERVER_ID)) {
     RemoveIdleObserver();
-    return NS_OK;
-  }
-
-  if (!strcmp(aTopic, "clear-origin-attributes-data")) {
-    nsCOMPtr<nsIQuotaRequest> request;
-    nsresult rv = ClearStoragesForOriginAttributesPattern(
-        nsDependentString(aData), getter_AddRefs(request));
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
     return NS_OK;
   }
 

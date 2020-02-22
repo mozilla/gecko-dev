@@ -121,7 +121,7 @@ class AstValType {
   explicit AstValType(AstRef ref) {
     if (ref.name().empty()) {
       which_ = IsValType;
-      type_ = ValType(ValType::Ref, ref.index());
+      type_ = RefType::fromTypeIndex(ref.index());
     } else {
       which_ = IsAstRef;
       ref_ = ref;
@@ -130,7 +130,15 @@ class AstValType {
 
 #ifdef ENABLE_WASM_GC
   bool isNarrowType() const {
-    return code() == ValType::AnyRef || code() == ValType::Ref;
+    if (which_ == IsAstRef) {
+      return true;
+    }
+    // This test is just heuristic; to do better (ie to tell whether it is a
+    // struct type) we need a type environment, but we have none.
+    //
+    // In most cases, we won't have a typeIndex here anyway, because types will
+    // not have been resolved.
+    return type_.isAnyRef() || type_.isTypeIndex();
   }
 #endif
 
@@ -143,12 +151,12 @@ class AstValType {
   void resolve() {
     MOZ_ASSERT(which_ == IsAstRef);
     which_ = IsValType;
-    type_ = ValType(ValType::Ref, ref_.index());
+    type_ = RefType::fromTypeIndex(ref_.index());
   }
 
-  ValType::Code code() const {
+  ValType::Kind code() const {
     if (which_ == IsValType) {
-      return type_.code();
+      return type_.kind();
     }
     return ValType::Ref;
   }
@@ -1140,15 +1148,18 @@ class AstImport : public AstNode {
         module_(module),
         field_(field),
         kind_(DefinitionKind::Function),
-        funcType_(funcType) {}
+        funcType_(funcType),
+        tableKind_(TableKind::NullRef) {}
   AstImport(AstName name, AstName module, AstName field, DefinitionKind kind,
             const Limits& limits)
       : name_(name),
         module_(module),
         field_(field),
         kind_(kind),
-        limits_(limits) {
-    MOZ_ASSERT(kind != DefinitionKind::Table, "A table must have a kind");
+        limits_(limits),
+        tableKind_(TableKind::NullRef) {
+    MOZ_ASSERT(kind != DefinitionKind::Table,
+               "A table must have a meaningful DefinitionKind");
   }
   AstImport(AstName name, AstName module, AstName field, const Limits& limits,
             TableKind tableKind)
@@ -1164,6 +1175,7 @@ class AstImport : public AstNode {
         module_(module),
         field_(field),
         kind_(DefinitionKind::Global),
+        tableKind_(TableKind::NullRef),
         global_(global) {}
 
   AstName name() const { return name_; }

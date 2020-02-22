@@ -12,28 +12,28 @@ using namespace mozilla::dom;
 
 TEST(MediaController, DefaultValueCheck)
 {
-  RefPtr<MediaController> controller = new TabMediaController(CONTROLLER_ID);
+  RefPtr<MediaController> controller = new MediaController(CONTROLLER_ID);
   ASSERT_TRUE(controller->ControlledMediaNum() == 0);
   ASSERT_TRUE(controller->Id() == CONTROLLER_ID);
   ASSERT_TRUE(!controller->IsPlaying());
   ASSERT_TRUE(!controller->IsAudible());
 }
 
-TEST(MediaController, NotifyMediaActiveChanged)
+TEST(MediaController, NotifyMediaStateChanged)
 {
-  RefPtr<MediaController> controller = new TabMediaController(CONTROLLER_ID);
+  RefPtr<MediaController> controller = new MediaController(CONTROLLER_ID);
   ASSERT_TRUE(controller->ControlledMediaNum() == 0);
 
-  controller->NotifyMediaActiveChanged(true);
+  controller->NotifyMediaStateChanged(ControlledMediaState::eStarted);
   ASSERT_TRUE(controller->ControlledMediaNum() == 1);
 
-  controller->NotifyMediaActiveChanged(true);
+  controller->NotifyMediaStateChanged(ControlledMediaState::eStarted);
   ASSERT_TRUE(controller->ControlledMediaNum() == 2);
 
-  controller->NotifyMediaActiveChanged(false);
+  controller->NotifyMediaStateChanged(ControlledMediaState::eStopped);
   ASSERT_TRUE(controller->ControlledMediaNum() == 1);
 
-  controller->NotifyMediaActiveChanged(false);
+  controller->NotifyMediaStateChanged(ControlledMediaState::eStopped);
   ASSERT_TRUE(controller->ControlledMediaNum() == 0);
 }
 
@@ -43,18 +43,18 @@ TEST(MediaController, ActiveAndDeactiveController)
   ASSERT_TRUE(service->GetControllersNum() == 0);
 
   RefPtr<MediaController> controller1 =
-      new TabMediaController(FIRST_CONTROLLER_ID);
+      new MediaController(FIRST_CONTROLLER_ID);
 
-  controller1->NotifyMediaActiveChanged(true);
+  controller1->NotifyMediaStateChanged(ControlledMediaState::eStarted);
   ASSERT_TRUE(service->GetControllersNum() == 1);
 
-  controller1->NotifyMediaActiveChanged(false);
+  controller1->NotifyMediaStateChanged(ControlledMediaState::eStopped);
   ASSERT_TRUE(service->GetControllersNum() == 0);
 }
 
 TEST(MediaController, AudibleChanged)
 {
-  RefPtr<MediaController> controller = new TabMediaController(CONTROLLER_ID);
+  RefPtr<MediaController> controller = new MediaController(CONTROLLER_ID);
   controller->Play();
   ASSERT_TRUE(!controller->IsAudible());
 
@@ -67,7 +67,7 @@ TEST(MediaController, AudibleChanged)
 
 TEST(MediaController, AlwaysInaudibleIfControllerIsNotPlaying)
 {
-  RefPtr<MediaController> controller = new TabMediaController(CONTROLLER_ID);
+  RefPtr<MediaController> controller = new MediaController(CONTROLLER_ID);
   ASSERT_TRUE(!controller->IsAudible());
 
   controller->NotifyMediaAudibleChanged(true);
@@ -86,19 +86,105 @@ TEST(MediaController, AlwaysInaudibleIfControllerIsNotPlaying)
   ASSERT_TRUE(!controller->IsAudible());
 }
 
-TEST(MediaController, playingStateChanged)
+TEST(MediaController, ChangePlayingStateViaPlayPauseStop)
 {
-  RefPtr<MediaController> controller = new TabMediaController(CONTROLLER_ID);
+  RefPtr<MediaController> controller = new MediaController(CONTROLLER_ID);
   ASSERT_TRUE(!controller->IsPlaying());
 
   controller->Play();
   ASSERT_TRUE(controller->IsPlaying());
 
-  controller->Play();
   controller->Pause();
   ASSERT_TRUE(!controller->IsPlaying());
 
   controller->Play();
+  ASSERT_TRUE(controller->IsPlaying());
+
   controller->Stop();
+  ASSERT_TRUE(!controller->IsPlaying());
+}
+
+class FakeControlledMedia final {
+ public:
+  explicit FakeControlledMedia(MediaController* aController)
+      : mController(aController) {
+    mController->NotifyMediaStateChanged(ControlledMediaState::eStarted);
+  }
+
+  void SetPlaying(bool aIsPlaying) {
+    if (mIsPlaying == aIsPlaying) {
+      return;
+    }
+    mController->NotifyMediaStateChanged(aIsPlaying
+                                             ? ControlledMediaState::ePlayed
+                                             : ControlledMediaState::ePaused);
+    mIsPlaying = aIsPlaying;
+  }
+
+  ~FakeControlledMedia() {
+    if (mIsPlaying) {
+      mController->NotifyMediaStateChanged(ControlledMediaState::ePaused);
+    }
+    mController->NotifyMediaStateChanged(ControlledMediaState::eStopped);
+  }
+
+ private:
+  bool mIsPlaying = false;
+  RefPtr<MediaController> mController;
+};
+
+TEST(MediaController, PlayingStateChangeViaControlledMedia)
+{
+  RefPtr<MediaController> controller = new MediaController(CONTROLLER_ID);
+  ASSERT_TRUE(!controller->IsPlaying());
+
+  // In order to check playing state after FakeControlledMedia destroyed.
+  {
+    FakeControlledMedia foo(controller);
+    ASSERT_TRUE(!controller->IsPlaying());
+
+    foo.SetPlaying(true);
+    ASSERT_TRUE(controller->IsPlaying());
+
+    foo.SetPlaying(false);
+    ASSERT_TRUE(!controller->IsPlaying());
+
+    foo.SetPlaying(true);
+    ASSERT_TRUE(controller->IsPlaying());
+  }
+
+  // FakeControlledMedia has been destroyed, no playing media exists.
+  ASSERT_TRUE(!controller->IsPlaying());
+}
+
+TEST(MediaController, ControllerShouldRemainPlayingIfAnyPlayingMediaExists)
+{
+  RefPtr<MediaController> controller = new MediaController(CONTROLLER_ID);
+  ASSERT_TRUE(!controller->IsPlaying());
+
+  {
+    FakeControlledMedia foo(controller);
+    ASSERT_TRUE(!controller->IsPlaying());
+
+    foo.SetPlaying(true);
+    ASSERT_TRUE(controller->IsPlaying());
+
+    // foo is playing, so controller is in `playing` state.
+    FakeControlledMedia bar(controller);
+    ASSERT_TRUE(controller->IsPlaying());
+
+    bar.SetPlaying(true);
+    ASSERT_TRUE(controller->IsPlaying());
+
+    // Although we paused bar, but foo is still playing, so the controller would
+    // still be in `playing`.
+    bar.SetPlaying(false);
+    ASSERT_TRUE(controller->IsPlaying());
+
+    foo.SetPlaying(false);
+    ASSERT_TRUE(!controller->IsPlaying());
+  }
+
+  // both foo and bar have been destroyed, no playing media exists.
   ASSERT_TRUE(!controller->IsPlaying());
 }

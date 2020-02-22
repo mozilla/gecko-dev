@@ -28,8 +28,6 @@
 #include "nsHttpHandler.h"
 #include "nsHttpRequestHead.h"
 #include "nsIClassOfService.h"
-#include "nsIPipe.h"
-#include "nsISocketTransport.h"
 #include "nsStandardURL.h"
 #include "prnetdb.h"
 
@@ -1513,7 +1511,7 @@ nsresult Http2Stream::OnReadSegment(const char* buf, uint32_t count,
       mRequestBodyLenRemaining -= dataLength;
       GenerateDataFrameHeader(dataLength, !mRequestBodyLenRemaining);
       ChangeState(SENDING_BODY);
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case SENDING_BODY:
       MOZ_ASSERT(mTxInlineFrameUsed, "OnReadSegment Send Data Header 0b");

@@ -1222,11 +1222,8 @@ class MOZ_STACK_CLASS JS_HAZ_ROOTED ModuleValidatorShared {
       MOZ_ASSERT(which_ == FFI);
       return u.ffiIndex_;
     }
-    bool isAnyArrayView() const {
-      return which_ == ArrayView || which_ == ArrayViewCtor;
-    }
     Scalar::Type viewType() const {
-      MOZ_ASSERT(isAnyArrayView());
+      MOZ_ASSERT(which_ == ArrayView || which_ == ArrayViewCtor);
       return u.viewType_;
     }
     bool isMathFunction() const { return which_ == MathBuiltinFunction; }
@@ -1351,8 +1348,9 @@ class MOZ_STACK_CLASS JS_HAZ_ROOTED ModuleValidatorShared {
         funcImportMap_(cx),
         arrayViews_(cx),
         compilerEnv_(CompileMode::Once, Tier::Optimized, OptimizedBackend::Ion,
-                     DebugEnabled::False, /* ref types */ false,
-                     /* gc types */ false, /* huge memory */ false),
+                     DebugEnabled::False, /* multi value */ false,
+                     /* ref types */ false, /* gc types */ false,
+                     /* huge memory */ false, /* bigint */ false),
         env_(&compilerEnv_, Shareable::False, ModuleKind::AsmJS) {
     compilerEnv_.computeParameters(/* gc types */ false);
     env_.minMemoryLength = RoundUpToNextValidAsmJSHeapLength(0);
@@ -3410,7 +3408,7 @@ static bool CheckArrayAccess(FunctionValidator<Unit>& f, ParseNode* viewName,
 
   const ModuleValidatorShared::Global* global =
       f.lookupGlobal(viewName->as<NameNode>().name());
-  if (!global || !global->isAnyArrayView()) {
+  if (!global || global->which() != ModuleValidatorShared::Global::ArrayView) {
     return f.fail(viewName,
                   "base of array access must be a typed array view name");
   }
@@ -6537,7 +6535,7 @@ static bool ValidateGlobalVariable(JSContext* cx, const AsmJSGlobal& global,
         return LinkFail(cx, "Imported values must be primitives");
       }
 
-      switch (global.varInitImportType().code()) {
+      switch (global.varInitImportType().kind()) {
         case ValType::I32: {
           int32_t i32;
           if (!ToInt32(cx, v, &i32)) {
@@ -6564,10 +6562,7 @@ static bool ValidateGlobalVariable(JSContext* cx, const AsmJSGlobal& global,
           val->emplace(d);
           return true;
         }
-        case ValType::Ref:
-        case ValType::NullRef:
-        case ValType::AnyRef:
-        case ValType::FuncRef: {
+        case ValType::Ref: {
           MOZ_CRASH("not available in asm.js");
         }
       }

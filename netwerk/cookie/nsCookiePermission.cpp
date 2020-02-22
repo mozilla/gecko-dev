@@ -7,19 +7,13 @@
 #include "nsCookiePermission.h"
 
 #include "nsICookie.h"
-#include "nsIServiceManager.h"
-#include "nsICookieManager.h"
 #include "nsICookieService.h"
 #include "nsNetUtil.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsIProtocolHandler.h"
 #include "nsIURI.h"
 #include "nsIChannel.h"
-#include "nsIHttpChannelInternal.h"
-#include "nsIPrincipal.h"
 #include "nsString.h"
 #include "nsCRT.h"
-#include "nsILoadContext.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsNetCID.h"
 #include "prtime.h"
@@ -77,7 +71,7 @@ nsCookiePermission::CanSetCookie(nsIURI* aURI, nsIChannel* aChannel,
   switch (perm) {
     case nsICookiePermission::ACCESS_SESSION:
       *aIsSession = true;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case nsICookiePermission::ACCESS_ALLOW:
       *aResult = true;

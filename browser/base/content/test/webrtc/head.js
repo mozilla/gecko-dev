@@ -49,7 +49,8 @@ function promiseIndicatorWindow() {
         "load",
         function() {
           if (
-            win.location.href !== "chrome://browser/content/webrtcIndicator.xul"
+            win.location.href !==
+            "chrome://browser/content/webrtcIndicator.xhtml"
           ) {
             info("ignoring a window with this url: " + win.location.href);
             return;
@@ -445,9 +446,9 @@ function promiseRequestDevice(
   aBadDevice = false
 ) {
   info("requesting devices");
-  return ContentTask.spawn(
+  return SpecialPowers.spawn(
     aBrowser,
-    { aRequestAudio, aRequestVideo, aFrameId, aType, aBadDevice },
+    [{ aRequestAudio, aRequestVideo, aFrameId, aType, aBadDevice }],
     async function(args) {
       let global = content.wrappedJSObject;
       if (args.aFrameId) {
@@ -483,15 +484,17 @@ async function closeStream(
   }
 
   info("closing the stream");
-  await ContentTask.spawn(gBrowser.selectedBrowser, aFrameId, async function(
-    contentFrameId
-  ) {
-    let global = content.wrappedJSObject;
-    if (contentFrameId) {
-      global = global.document.getElementById(contentFrameId).contentWindow;
+  await SpecialPowers.spawn(
+    gBrowser.selectedBrowser,
+    [aFrameId],
+    async function(contentFrameId) {
+      let global = content.wrappedJSObject;
+      if (contentFrameId) {
+        global = global.document.getElementById(contentFrameId).contentWindow;
+      }
+      global.closeStream();
     }
-    global.closeStream();
-  });
+  );
 
   await Promise.all(observerPromises);
 
@@ -506,10 +509,8 @@ async function reloadAndAssertClosedStreams() {
   await disableObserverVerification();
 
   let loadedPromise = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-  await ContentTask.spawn(
-    gBrowser.selectedBrowser,
-    null,
-    "() => content.location.reload()"
+  await ContentTask.spawn(gBrowser.selectedBrowser, null, () =>
+    content.location.reload()
   );
 
   await loadedPromise;
@@ -660,6 +661,29 @@ function promiseReloadFrame(aFrameId) {
         content.wrappedJSObject.document
           .getElementById(contentFrameId)
           .contentWindow.location.reload();
+      });
+    }
+  );
+}
+
+function promiseChangeLocationFrame(aFrameId, aNewLocation) {
+  return SpecialPowers.spawn(
+    gBrowser.selectedBrowser.browsingContext,
+    [{ aFrameId, aNewLocation }],
+    async function(args) {
+      let frame = content.wrappedJSObject.document.getElementById(
+        args.aFrameId
+      );
+      return new Promise(resolve => {
+        function listener() {
+          frame.removeEventListener("load", listener, true);
+          resolve();
+        }
+        frame.addEventListener("load", listener, true);
+
+        content.wrappedJSObject.document.getElementById(
+          args.aFrameId
+        ).contentWindow.location = args.aNewLocation;
       });
     }
   );

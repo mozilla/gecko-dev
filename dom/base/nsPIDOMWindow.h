@@ -168,6 +168,10 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
   // Returns true if this window is the same as mTopInnerWindow
   inline bool IsTopInnerWindow() const;
 
+  // Returns true if this was the current window for its BrowsingContext when it
+  // was discarded.
+  virtual bool WasCurrentInnerWindow() const = 0;
+
   // Check whether a document is currently loading (really checks if the
   // load event has completed).  May not be reset to false on errors.
   inline bool IsLoading() const;
@@ -305,9 +309,8 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
   // indexedDB counters.
   void TryToCacheTopInnerWindow();
 
-  // Increase/Decrease the number of active IndexedDB transactions/databases for
-  // the decision making of TabGroup scheduling and timeout-throttling.
-  void UpdateActiveIndexedDBTransactionCount(int32_t aDelta);
+  // Increase/Decrease the number of active IndexedDB databases for the
+  // decision making of TabGroup scheduling and timeout-throttling.
   void UpdateActiveIndexedDBDatabaseCount(int32_t aDelta);
 
   // Return true if there is any active IndexedDB databases which could block

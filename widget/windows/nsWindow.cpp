@@ -86,7 +86,6 @@
 #include "prenv.h"
 
 #include "mozilla/WidgetTraceEvent.h"
-#include "nsIAppShell.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIKeyEventInPluginCallback.h"
 #include "nsITheme.h"
@@ -95,7 +94,6 @@
 #include "imgIContainer.h"
 #include "nsIFile.h"
 #include "nsIRollupListener.h"
-#include "nsIServiceManager.h"
 #include "nsIClipboard.h"
 #include "WinMouseScrollHandler.h"
 #include "nsFontMetrics.h"
@@ -116,15 +114,12 @@
 #include "nsWindowsDllInterceptor.h"
 #include "nsLayoutUtils.h"
 #include "nsView.h"
-#include "nsIWindowMediator.h"
-#include "nsIServiceManager.h"
 #include "nsWindowGfx.h"
 #include "gfxWindowsPlatform.h"
 #include "gfxDWriteFonts.h"
 #include "Layers.h"
 #include "nsPrintfCString.h"
 #include "mozilla/Preferences.h"
-#include "nsISound.h"
 #include "SystemTimeConverter.h"
 #include "WinTaskbar.h"
 #include "WidgetUtils.h"
@@ -133,7 +128,6 @@
 #include "mozilla/dom/Touch.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/GPUProcessManager.h"
-#include "nsIAppStartup.h"
 #include "mozilla/WindowsVersion.h"
 #include "mozilla/TextEvents.h"  // For WidgetKeyboardEvent
 #include "mozilla/TextEventDispatcherListener.h"
@@ -183,7 +177,6 @@
 #include "nsWindowDefs.h"
 
 #include "nsCrashOnException.h"
-#include "nsIXULRuntime.h"
 
 #include "nsIContent.h"
 
@@ -1864,8 +1857,10 @@ void nsWindow::Resize(double aWidth, double aHeight, bool aRepaint) {
 
     ClearThemeRegion();
     double oldScale = mDefaultScale;
+    mResizeState = RESIZING;
     VERIFY(
         ::SetWindowPos(mWnd, nullptr, 0, 0, width, GetHeight(height), flags));
+    mResizeState = NOT_RESIZING;
     if (WinUtils::LogToPhysFactor(mWnd) != oldScale) {
       ChangedDPI();
     }
@@ -1913,8 +1908,10 @@ void nsWindow::Resize(double aX, double aY, double aWidth, double aHeight,
 
     ClearThemeRegion();
     double oldScale = mDefaultScale;
+    mResizeState = RESIZING;
     VERIFY(
         ::SetWindowPos(mWnd, nullptr, x, y, width, GetHeight(height), flags));
+    mResizeState = NOT_RESIZING;
     if (WinUtils::LogToPhysFactor(mWnd) != oldScale) {
       ChangedDPI();
     }
@@ -3405,7 +3402,7 @@ void* nsWindow::GetNativeData(uint32_t aDataType) {
       if (pseudoIMEContext) {
         return pseudoIMEContext;
       }
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     }
     case NS_NATIVE_TSF_THREAD_MGR:
     case NS_NATIVE_TSF_CATEGORY_MGR:
@@ -3492,6 +3489,26 @@ nsresult nsWindow::SetTitle(const nsAString& aTitle) {
  *
  **************************************************************/
 
+void nsWindow::SetBigIcon(HICON aIcon) {
+  HICON icon =
+      (HICON)::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_BIG, (LPARAM)aIcon);
+  if (icon) {
+    ::DestroyIcon(icon);
+  }
+
+  mIconBig = aIcon;
+}
+
+void nsWindow::SetSmallIcon(HICON aIcon) {
+  HICON icon = (HICON)::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_SMALL,
+                                     (LPARAM)aIcon);
+  if (icon) {
+    ::DestroyIcon(icon);
+  }
+
+  mIconSmall = aIcon;
+}
+
 void nsWindow::SetIcon(const nsAString& aIconSpec) {
   // Assume the given string is a local identifier for an icon file.
 
@@ -3517,10 +3534,7 @@ void nsWindow::SetIcon(const nsAString& aIconSpec) {
                           ::GetSystemMetrics(SM_CYSMICON), LR_LOADFROMFILE);
 
   if (bigIcon) {
-    HICON icon = (HICON)::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_BIG,
-                                       (LPARAM)bigIcon);
-    if (icon) ::DestroyIcon(icon);
-    mIconBig = bigIcon;
+    SetBigIcon(bigIcon);
   }
 #ifdef DEBUG_SetIcon
   else {
@@ -3531,10 +3545,7 @@ void nsWindow::SetIcon(const nsAString& aIconSpec) {
   }
 #endif
   if (smallIcon) {
-    HICON icon = (HICON)::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_SMALL,
-                                       (LPARAM)smallIcon);
-    if (icon) ::DestroyIcon(icon);
-    mIconSmall = smallIcon;
+    SetSmallIcon(smallIcon);
   }
 #ifdef DEBUG_SetIcon
   else {
@@ -7885,7 +7896,7 @@ bool nsWindow::DealWithPopups(HWND aWnd, UINT aMessage, WPARAM aWParam,
         // compatibility mouse events will do it instead.
         return false;
       }
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case WM_LBUTTONDOWN:
     case WM_RBUTTONDOWN:
     case WM_MBUTTONDOWN:

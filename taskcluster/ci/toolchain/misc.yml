@@ -168,6 +168,7 @@ wasi-sysroot:
         toolchain-artifact: public/build/wasi-sysroot.tar.xz
     fetches:
         fetch:
+            - clang-9
             - wasi-sdk
         toolchain:
             - linux64-binutils
@@ -189,7 +190,7 @@ wrench-deps:
         fetch:
             - android-rs-glue
         toolchain:
-            - linux64-rust-1.37  # whatever m-c is built with
+            - linux64-rust-1.39  # whatever m-c is built with
 
 lucetc:
     description: "lucetc build process"

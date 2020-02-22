@@ -7,7 +7,7 @@
 var { settleAll } = require("devtools/shared/DevToolsUtils");
 var EventEmitter = require("devtools/shared/event-emitter");
 
-var { Pool } = require("./Pool");
+var { Pool } = require("devtools/shared/protocol/Pool");
 var {
   getStack,
   callFunctionWithAsyncStack,
@@ -270,8 +270,6 @@ class Front extends Pool {
     callFunctionWithAsyncStack(
       () => {
         if (packet.error) {
-          // "Protocol error" is here to avoid TBPL heuristics. See also
-          // https://dxr.mozilla.org/webtools-central/source/tbpl/php/inc/GeneralErrorFilter.php
           let message;
           if (packet.error && packet.message) {
             message =
@@ -279,7 +277,8 @@ class Front extends Pool {
           } else {
             message = packet.error;
           }
-          deferred.reject(message);
+          const packetError = new Error(message);
+          deferred.reject(packetError);
         } else {
           deferred.resolve(packet);
         }

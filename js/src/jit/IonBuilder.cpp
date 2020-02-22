@@ -22,6 +22,7 @@
 #include "jit/JitSpewer.h"
 #include "jit/Lowering.h"
 #include "jit/MIRGraph.h"
+#include "util/CheckedArithmetic.h"
 #include "vm/ArgumentsObject.h"
 #include "vm/BytecodeIterator.h"
 #include "vm/BytecodeLocation.h"
@@ -543,13 +544,9 @@ IonBuilder::InliningDecision IonBuilder::canInlineTarget(JSFunction* target,
   return InliningDecision_Inline;
 }
 
-AbortReasonOr<Ok> IonBuilder::analyzeNewLoopTypes(MBasicBlock* entry,
-                                                  jsbytecode* loopHeadPc,
-                                                  bool isForIn,
-                                                  jsbytecode* loopStartPc,
-                                                  jsbytecode* loopStopPc) {
+AbortReasonOr<Ok> IonBuilder::analyzeNewLoopTypes(MBasicBlock* entry) {
   MOZ_ASSERT(!entry->isDead());
-  MOZ_ASSERT(JSOp(*loopHeadPc) == JSOP_LOOPHEAD);
+  MOZ_ASSERT(JSOp(*pc) == JSOP_LOOPHEAD);
 
   // The phi inputs at the loop head only reflect types for variables that
   // were present at the start of the loop. If the variable changes to a new
@@ -571,7 +568,7 @@ AbortReasonOr<Ok> IonBuilder::analyzeNewLoopTypes(MBasicBlock* entry,
   // also pick up types discovered while previously building the loop body.
   bool foundEntry = false;
   for (size_t i = 0; i < loopHeaders_.length(); i++) {
-    if (loopHeaders_[i].pc == loopHeadPc) {
+    if (loopHeaders_[i].pc == pc) {
       MBasicBlock* oldEntry = loopHeaders_[i].header;
 
       // If this block has been discarded, its resume points will have
@@ -607,34 +604,23 @@ AbortReasonOr<Ok> IonBuilder::analyzeNewLoopTypes(MBasicBlock* entry,
     }
   }
   if (!foundEntry) {
-    if (!loopHeaders_.append(LoopHeader(loopHeadPc, entry))) {
+    if (!loopHeaders_.append(LoopHeader(pc, entry))) {
       return abort(AbortReason::Alloc);
     }
   }
 
-  if (isForIn) {
-    // The backedge will have MIteratorMore with MIRType::Value. This slot
-    // is initialized to MIRType::Undefined before the loop. Add
-    // MIRType::Value to avoid unnecessary loop restarts.
-
-    MPhi* phi = entry->getSlot(entry->stackDepth() - 1)->toPhi();
-    MOZ_ASSERT(phi->getOperand(0)->type() == MIRType::Undefined);
-
-    if (!phi->addBackedgeType(alloc(), MIRType::Value, nullptr)) {
-      return abort(AbortReason::Alloc);
-    }
-  }
-
-  // Get the start and end bytecode locations of this loop.
-  BytecodeLocation start(script_, loopStartPc);
-  start = start.next();
-  BytecodeLocation end(script_, loopStopPc);
+  // Get the start and end bytecode locations.
+  BytecodeLocation start(script_, pc);
+  BytecodeLocation end(script_, script_->codeEnd());
 
   // Iterate the bytecode quickly to seed possible types in the loopheader.
   Maybe<BytecodeLocation> last;
   Maybe<BytecodeLocation> earlier;
 
   for (auto it : BytecodeLocationRange(start, end)) {
+    if (IsBackedgeForLoopHead(it.toRawBytecode(), pc)) {
+      break;
+    }
     MOZ_TRY(analyzeNewLoopTypesForLocation(entry, it, last, earlier));
     earlier = last;
     last = mozilla::Some(it);
@@ -976,7 +962,7 @@ AbortReasonOr<Ok> IonBuilder::build() {
   }
 #endif
 
-  insertRecompileCheck();
+  insertRecompileCheck(pc);
 
   auto clearLastPriorResumePoint = mozilla::MakeScopeExit([&] {
     // Discard unreferenced & pre-allocated resume points.
@@ -1154,7 +1140,7 @@ AbortReasonOr<Ok> IonBuilder::buildInline(IonBuilder* callerBuilder,
   }
 #endif
 
-  insertRecompileCheck();
+  insertRecompileCheck(pc);
 
   // Insert an interrupt check when recording or replaying, which will bump
   // the record/replay system's progress counter.
@@ -1409,7 +1395,7 @@ AbortReasonOr<Ok> IonBuilder::addOsrValueTypeBarrier(
              type == MIRType::MagicOptimizedArguments) {
     // No unbox instruction will be added below, so check the type by
     // adding a type barrier for a singleton type set.
-    TypeSet::Type ntype = TypeSet::PrimitiveType(ValueTypeFromMIRType(type));
+    TypeSet::Type ntype = TypeSet::PrimitiveType(type);
     LifoAlloc* lifoAlloc = alloc().lifoAlloc();
     typeSet = lifoAlloc->new_<TemporaryTypeSet>(lifoAlloc, ntype);
     if (!typeSet) {
@@ -1434,6 +1420,13 @@ AbortReasonOr<Ok> IonBuilder::addOsrValueTypeBarrier(
       break;
   }
 
+  // Unbox the OSR value to the type expected by the loop header.
+  //
+  // The only specialized types that can show up here are MIRTypes with a
+  // corresponding TypeSet::Type because NewBaselineFrameInspector and
+  // newPendingLoopHeader use TypeSet::Type for Values from the BaselineFrame.
+  // This means magic values other than MagicOptimizedArguments are represented
+  // as UnknownType() and MIRType::Value. See also TypeSet::IsUntrackedValue.
   switch (type) {
     case MIRType::Boolean:
     case MIRType::Int32:
@@ -1448,6 +1441,10 @@ AbortReasonOr<Ok> IonBuilder::addOsrValueTypeBarrier(
         osrBlock->rewriteSlot(slot, unbox);
         def = unbox;
       }
+      break;
+
+    case MIRType::Value:
+      // Nothing to do.
       break;
 
     case MIRType::Null: {
@@ -1477,7 +1474,7 @@ AbortReasonOr<Ok> IonBuilder::addOsrValueTypeBarrier(
     }
 
     default:
-      break;
+      MOZ_CRASH("Unexpected type");
   }
 
   MOZ_ASSERT(def == osrBlock->getSlot(slot));
@@ -1630,10 +1627,13 @@ class MOZ_RAII PoppedValueUseChecker {
           if (current_->peek(-1) == popped_[0]) {
             break;
           }
-          MOZ_FALLTHROUGH;
+          [[fallthrough]];
 
         default:
           MOZ_ASSERT(popped_[i]->isImplicitlyUsed() ||
+                     // First value popped by JSOP_ENDITER is not used at all,
+                     // it's similar to JSOP_POP above.
+                     (op == JSOP_ENDITER && i == 0) ||
                      // MNewDerivedTypedObject instances are
                      // often dead unless they escape from the
                      // fn. See IonBuilder::loadTypedObjectData()
@@ -1651,13 +1651,10 @@ AbortReasonOr<Ok> IonBuilder::traverseBytecode() {
   // See the "Control Flow handling in IonBuilder" comment in IonBuilder.h for
   // more information.
 
-  // IonBuilder's destructor is not called, so make sure pendingEdges_ and
-  // GSNCache are not holding onto malloc memory when we return.
+  // IonBuilder's destructor is not called, so make sure pendingEdges_ is not
+  // holding onto malloc memory when we return.
   pendingEdges_.emplace();
-  auto freeMemory = mozilla::MakeScopeExit([&] {
-    pendingEdges_.reset();
-    gsn.purge();
-  });
+  auto freeMemory = mozilla::MakeScopeExit([&] { pendingEdges_.reset(); });
 
   MOZ_TRY(startTraversingBlock(current));
 
@@ -1669,29 +1666,29 @@ AbortReasonOr<Ok> IonBuilder::traverseBytecode() {
     }
 
     // Skip unreachable ops (for example code after a 'return' or 'throw') until
-    // we get to the next jump target. Note that JSOP_LOOPENTRY is a jump target
-    // op, but we always skip it here because it means the whole loop is
-    // unreachable.
+    // we get to the next jump target.
     if (hasTerminatedBlock()) {
-      while (!BytecodeIsJumpTarget(JSOp(*pc)) || *pc == JSOP_LOOPENTRY) {
+      while (!BytecodeIsJumpTarget(JSOp(*pc))) {
+        // Finish any "broken" loops with an unreachable backedge. For example:
+        //
+        //   do {
+        //     ...
+        //     return;
+        //     ...
+        //   } while (x);
+        //
+        // This loop never actually loops.
+        if (!loopStack_.empty() &&
+            IsBackedgeForLoopHead(pc, loopStack_.back().header()->pc())) {
+          MOZ_ASSERT(loopDepth_ > 0);
+          loopDepth_--;
+          loopStack_.popBack();
+        }
+
         pc = GetNextPc(pc);
         if (pc == codeEnd) {
           return Ok();
         }
-      }
-
-      // Finish any "broken" loops with an unreachable backedge. For example:
-      //
-      //   do {
-      //     ...
-      //     return;
-      //     ...
-      //   } while (x);
-      //
-      // This loop never actually loops.
-      while (!loopStack_.empty() && pc >= loopStack_.back().successorStart()) {
-        loopDepth_--;
-        loopStack_.popBack();
       }
     }
 
@@ -1728,7 +1725,9 @@ AbortReasonOr<Ok> IonBuilder::traverseBytecode() {
     }
   }
 
-  return Ok();
+  // The iloop above never breaks, so this point is unreachable.  Don't add code
+  // here, or you'll trigger compile errors about unreachable code with some
+  // compilers!
 }
 
 AbortReasonOr<Ok> IonBuilder::startTraversingBlock(MBasicBlock* block) {
@@ -1759,21 +1758,11 @@ AbortReasonOr<Ok> IonBuilder::startTraversingBlock(MBasicBlock* block) {
 AbortReasonOr<Ok> IonBuilder::jsop_goto(bool* restarted) {
   MOZ_ASSERT(*pc == JSOP_GOTO);
 
-  jsbytecode* target = pc + GET_JUMP_OFFSET(pc);
-
-  if (target < pc) {
-    // This must be a backedge for a do-while (or similar) loop.
-    MOZ_ASSERT(loopStack_.back().state() == LoopState::State::DoWhileLike);
+  if (IsBackedgePC(pc)) {
     return visitBackEdge(restarted);
   }
 
-  if (jssrcnote* sn = GetSrcNote(gsn, script(), pc)) {
-    if (SN_TYPE(sn) == SRC_FOR_OF || SN_TYPE(sn) == SRC_FOR_IN ||
-        SN_TYPE(sn) == SRC_WHILE) {
-      return visitWhileOrForInOrForOfLoop(sn);
-    }
-  }
-
+  jsbytecode* target = pc + GET_JUMP_OFFSET(pc);
   return visitGoto(target);
 }
 
@@ -1805,192 +1794,41 @@ AbortReasonOr<Ok> IonBuilder::visitGoto(jsbytecode* target) {
   return Ok();
 }
 
-AbortReasonOr<Ok> IonBuilder::startLoop(LoopState::State initState,
-                                        jsbytecode* beforeLoopEntry,
-                                        jsbytecode* loopEntry,
-                                        jsbytecode* loopHead,
-                                        jsbytecode* backjump, bool isForIn,
-                                        uint32_t stackPhiCount) {
-  MOZ_ASSERT(initState == LoopState::State::DoWhileLike ||
-             initState == LoopState::State::WhileLikeCond);
-  MOZ_ASSERT(JSOp(*loopEntry) == JSOP_LOOPENTRY);
-  MOZ_ASSERT(JSOp(*loopHead) == JSOP_LOOPHEAD);
-  MOZ_ASSERT(JSOp(*backjump) == JSOP_GOTO || JSOp(*backjump) == JSOP_IFNE ||
-             JSOp(*backjump) == JSOP_IFEQ);
-  MOZ_ASSERT(GET_JUMP_OFFSET(backjump) < 0);
+AbortReasonOr<Ok> IonBuilder::jsop_loophead() {
+  // All loops have the following bytecode structure:
+  //
+  //    LOOPHEAD
+  //    ...
+  //    IFNE/GOTO to LOOPHEAD
 
-  bool canOsr = LoopEntryCanIonOsr(loopEntry);
-  bool osr = loopEntry == info().osrPc();
+  MOZ_ASSERT(*pc == JSOP_LOOPHEAD);
+
+  if (hasTerminatedBlock()) {
+    // The whole loop is unreachable.
+    return Ok();
+  }
+
+  bool osr = pc == info().osrPc();
   if (osr) {
-    MOZ_ASSERT(canOsr);
-
     MBasicBlock* preheader;
-    MOZ_TRY_VAR(preheader,
-                newOsrPreheader(current, loopEntry, beforeLoopEntry));
+    MOZ_TRY_VAR(preheader, newOsrPreheader(current, pc));
     current->end(MGoto::New(alloc(), preheader));
     MOZ_TRY(setCurrentAndSpecializePhis(preheader));
   }
 
   loopDepth_++;
   MBasicBlock* header;
-  MOZ_TRY_VAR(header, newPendingLoopHeader(current, loopEntry, osr, canOsr,
-                                           stackPhiCount));
+  MOZ_TRY_VAR(header, newPendingLoopHeader(current, pc, osr));
   current->end(MGoto::New(alloc(), header));
 
-  if (!loopStack_.emplaceBack(initState, header, loopEntry, loopHead,
-                              GetNextPc(backjump))) {
+  if (!loopStack_.emplaceBack(header)) {
     return abort(AbortReason::Alloc);
   }
 
-  MOZ_TRY(analyzeNewLoopTypes(header, loopHead, isForIn, loopHead, backjump));
+  MOZ_TRY(analyzeNewLoopTypes(header));
 
-  nextpc = loopEntry;
-
-  return startTraversingBlock(header);
-}
-
-AbortReasonOr<Ok> IonBuilder::visitDoWhileLoop(jssrcnote* sn) {
-  // do { } while() loops have the following structure:
-  //    NOP
-  //    LOOPHEAD    ; SRC_DO_WHILE (offsets to COND and IFNE)
-  //    LOOPENTRY
-  //    ...         ; body
-  //    ...
-  //    COND        ; start of condition
-  //    ...
-  //    IFNE ->     ; goes to LOOPHEAD
-
-  MOZ_ASSERT(*pc == JSOP_LOOPHEAD);
-
-  jsbytecode* backjump =
-      pc + GetSrcNoteOffset(sn, SrcNote::DoWhile::BackJumpOffset);
-  MOZ_ASSERT(backjump > pc);
-  MOZ_ASSERT(JSOp(*backjump) == JSOP_IFNE);
-
-  jsbytecode* loopEntry = GetNextPc(pc);
-  MOZ_ASSERT(JSOp(*loopEntry) == JSOP_LOOPENTRY);
-
-  if (hasTerminatedBlock()) {
-    // The whole loop is unreachable, just skip it.
-    nextpc = GetNextPc(backjump);
-    return Ok();
-  }
-
-  return startLoop(LoopState::State::DoWhileLike, pc, loopEntry, pc, backjump,
-                   /* isForIn = */ false, /* stackPhiCount = */ 0);
-}
-
-AbortReasonOr<Ok> IonBuilder::visitWhileOrForInOrForOfLoop(jssrcnote* sn) {
-  // while (cond) { } loops have the following structure:
-  //    GOTO cond   ; SRC_WHILE (offset to IFNE)
-  //    LOOPHEAD
-  //    ...
-  //  cond:
-  //    LOOPENTRY
-  //    ...
-  //    IFNE        ; goes to LOOPHEAD
-  //
-  // for-in/for-of loops are similar; for-in/for-of have IFEQ as the back
-  // jump, and the cond of for-in will be a MOREITER.
-
-  MOZ_ASSERT(*pc == JSOP_GOTO);
-  MOZ_ASSERT(SN_TYPE(sn) == SRC_FOR_OF || SN_TYPE(sn) == SRC_FOR_IN ||
-             SN_TYPE(sn) == SRC_WHILE);
-
-  static_assert(unsigned(SrcNote::While::BackJumpOffset) ==
-                    unsigned(SrcNote::ForIn::BackJumpOffset),
-                "SrcNote::{While,ForIn,ForOf}::BackJumpOffset should be same");
-  static_assert(unsigned(SrcNote::While::BackJumpOffset) ==
-                    unsigned(SrcNote::ForOf::BackJumpOffset),
-                "SrcNote::{While,ForIn,ForOf}::BackJumpOffset should be same");
-  int backjumpOffset = GetSrcNoteOffset(sn, SrcNote::While::BackJumpOffset);
-  jsbytecode* backjump = pc + backjumpOffset;
-  MOZ_ASSERT(backjump > pc);
-
-  // Verify that the back jump goes back to a loophead op.
-  MOZ_ASSERT(JSOp(*GetNextPc(pc)) == JSOP_LOOPHEAD);
-  MOZ_ASSERT(GetNextPc(pc) == backjump + GET_JUMP_OFFSET(backjump));
-
-  jsbytecode* loopEntry = pc + GET_JUMP_OFFSET(pc);
-  MOZ_ASSERT(JSOp(*loopEntry) == JSOP_LOOPENTRY);
-
-  jsbytecode* loopHead = GetNextPc(pc);
-  MOZ_ASSERT(JSOp(*loopHead) == JSOP_LOOPHEAD);
-
-  uint32_t stackPhiCount;
-  switch (SN_TYPE(sn)) {
-    case SRC_FOR_OF:
-      stackPhiCount = 3;
-      break;
-    case SRC_FOR_IN:
-      stackPhiCount = 1;
-      break;
-    case SRC_WHILE:
-      stackPhiCount = 0;
-      break;
-    default:
-      MOZ_CRASH("Unexpected source note");
-  }
-
-  bool isForIn = SN_TYPE(sn) == SRC_FOR_IN;
-  return startLoop(LoopState::State::WhileLikeCond, pc, loopEntry, loopHead,
-                   backjump, isForIn, stackPhiCount);
-}
-
-AbortReasonOr<Ok> IonBuilder::visitForLoop(jssrcnote* sn) {
-  // for-loops have the following structures:
-  //
-  //   NOP
-  //   [GOTO cond]
-  //   LOOPHEAD
-  // body:
-  //    ; [body]
-  // [update:]
-  //   [FRESHENBLOCKSCOPE, if needed by a cloned block]
-  //    ; [update]
-  // [cond:]
-  //   LOOPENTRY
-  //    ; [cond]
-  //   [GOTO body | IFNE body]
-  //
-  // If there is a condition (condpc != backjumppc), this acts similar to a
-  // while loop otherwise, it acts like a do-while loop.
-  //
-  // Note that currently Ion does not compile pushblockscope/popblockscope as
-  // necessary prerequisites to freshenblockscope.  So the code below doesn't
-  // and needn't consider the implications of freshenblockscope.
-
-  MOZ_ASSERT(*pc == JSOP_NOP);
-
-  jsbytecode* startpc = GetNextPc(pc);
-  jsbytecode* condpc = startpc + GetSrcNoteOffset(sn, SrcNote::For::CondOffset);
-  jsbytecode* backjumppc =
-      startpc + GetSrcNoteOffset(sn, SrcNote::For::BackJumpOffset);
-
-  LoopState::State state;
-  jsbytecode* loopHead;
-  jsbytecode* loopEntry;
-  if (condpc != backjumppc) {
-    state = LoopState::State::WhileLikeCond;
-    MOZ_ASSERT(JSOp(*startpc) == JSOP_GOTO);
-    MOZ_ASSERT(startpc + GET_JUMP_OFFSET(startpc) == condpc);
-    loopHead = GetNextPc(startpc);
-    loopEntry = condpc;
-  } else {
-    // No loop condition, such as for(j = 0; ; j++)
-    state = LoopState::State::DoWhileLike;
-    MOZ_ASSERT(JSOp(*startpc) == JSOP_LOOPHEAD);
-    loopHead = startpc;
-    loopEntry = GetNextPc(loopHead);
-  }
-
-  MOZ_ASSERT(JSOp(*loopEntry) == JSOP_LOOPENTRY);
-  MOZ_ASSERT(JSOp(*loopHead) == JSOP_LOOPHEAD);
-  MOZ_ASSERT(backjumppc + GET_JUMP_OFFSET(backjumppc) == loopHead);
-
-  return startLoop(state, pc, loopEntry, loopHead, backjumppc,
-                   /* isForIn = */ false,
-                   /* stackPhiCount = */ 0);
+  MOZ_TRY(startTraversingBlock(header));
+  return emitLoopHeadInstructions(pc);
 }
 
 AbortReasonOr<Ok> IonBuilder::visitBackEdge(bool* restarted) {
@@ -2024,20 +1862,12 @@ AbortReasonOr<Ok> IonBuilder::visitBackEdge(bool* restarted) {
   }
 }
 
-AbortReasonOr<Ok> IonBuilder::jsop_loopentry(bool* restarted) {
-  if (loopStack_.back().state() == LoopState::State::WhileLikeBody) {
-    // We reached the end of the loop body. Try to finish the loop.
-    jsbytecode* successorpc = loopStack_.back().successorStart();
-    MOZ_TRY(visitBackEdge(restarted));
-    if (!*restarted) {
-      nextpc = successorpc;
-    }
-    return Ok();
-  }
+AbortReasonOr<Ok> IonBuilder::emitLoopHeadInstructions(jsbytecode* pc) {
+  MOZ_ASSERT(JSOp(*pc) == JSOP_LOOPHEAD);
 
   MInterruptCheck* check = MInterruptCheck::New(alloc());
   current->add(check);
-  insertRecompileCheck();
+  insertRecompileCheck(pc);
 
   if (script()->trackRecordReplayProgress()) {
     check->setTrackRecordReplayProgress();
@@ -2056,23 +1886,11 @@ AbortReasonOr<Ok> IonBuilder::inspectOpcode(JSOp op, bool* restarted) {
     case JSOP_NOP_DESTRUCTURING:
     case JSOP_TRY_DESTRUCTURING:
     case JSOP_LINENO:
+    case JSOP_NOP:
       return Ok();
 
-    case JSOP_NOP: {
-      jssrcnote* sn = GetSrcNote(gsn, script(), pc);
-      if (sn && SN_TYPE(sn) == SRC_FOR) {
-        return visitForLoop(sn);
-      }
-      return Ok();
-    }
-
-    case JSOP_LOOPHEAD: {
-      jssrcnote* sn = GetSrcNote(gsn, script(), pc);
-      if (sn && SN_TYPE(sn) == SRC_DO_WHILE) {
-        return visitDoWhileLoop(sn);
-      }
-      return Ok();
-    }
+    case JSOP_LOOPHEAD:
+      return jsop_loophead();
 
     case JSOP_UNDEFINED:
       // If this ever changes, change what JSOP_GIMPLICITTHIS does too.
@@ -2427,7 +2245,7 @@ AbortReasonOr<Ok> IonBuilder::inspectOpcode(JSOp op, bool* restarted) {
         }
       }
       // Fall through to JSOP_BINDNAME
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case JSOP_BINDNAME:
       return jsop_bindname(info().getName(pc));
 
@@ -2626,7 +2444,7 @@ AbortReasonOr<Ok> IonBuilder::inspectOpcode(JSOp op, bool* restarted) {
         return Ok();
       }
       // Fallthrough to IMPLICITTHIS in non-syntactic scope case
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case JSOP_IMPLICITTHIS: {
       PropertyName* name = info().getAtom(pc)->asPropertyName();
       return jsop_implicitthis(name);
@@ -2667,9 +2485,6 @@ AbortReasonOr<Ok> IonBuilder::inspectOpcode(JSOp op, bool* restarted) {
 
     case JSOP_DYNAMIC_IMPORT:
       return jsop_dynamic_import();
-
-    case JSOP_LOOPENTRY:
-      return jsop_loopentry(restarted);
 
     case JSOP_INSTRUMENTATION_ACTIVE:
       return jsop_instrumentation_active();
@@ -2731,6 +2546,8 @@ AbortReasonOr<Ok> IonBuilder::inspectOpcode(JSOp op, bool* restarted) {
     case JSOP_YIELD:
     case JSOP_FINALYIELDRVAL:
     case JSOP_RESUME:
+    case JSOP_RESUMEKIND:
+    case JSOP_CHECK_RESUMEKIND:
     case JSOP_AFTERYIELD:
     case JSOP_AWAIT:
     case JSOP_TRYSKIPAWAIT:
@@ -2755,10 +2572,6 @@ AbortReasonOr<Ok> IonBuilder::inspectOpcode(JSOp op, bool* restarted) {
       // Intentionally not implemented.
       break;
 
-    case JSOP_UNUSED71:
-    case JSOP_UNUSED106:
-    case JSOP_UNUSED120:
-    case JSOP_UNUSED149:
     case JSOP_LIMIT:
       break;
   }
@@ -2821,13 +2634,15 @@ AbortReasonOr<Ok> IonBuilder::restartLoop(MBasicBlock* header) {
   // Don't specializePhis(), as the header has been visited before and the
   // phis have already had their type set.
   setCurrent(header);
-  nextpc = header->pc();
   graph().addBlock(current);
 
-  if (loopStack_.back().state() == LoopState::State::WhileLikeBody) {
-    // Back to square one.
-    loopStack_.back().setState(LoopState::State::WhileLikeCond);
-  }
+  jsbytecode* loopHead = header->pc();
+  MOZ_ASSERT(JSOp(*loopHead) == JSOP_LOOPHEAD);
+
+  // Since we discarded the header's instructions above, emit them again. This
+  // includes the interrupt check.
+  MOZ_TRY(emitLoopHeadInstructions(loopHead));
+  nextpc = GetNextPc(loopHead);
 
   // Remove loop header and dead blocks from pendingBlocks.
   for (PendingEdgesMap::Range r = pendingEdges_->all(); !r.empty();
@@ -2970,7 +2785,7 @@ AbortReasonOr<Ok> IonBuilder::improveTypesAtTypeOfCompare(MCompare* ins,
       return Ok();
     }
     inputTypes = &tmp;
-    tmp.addType(TypeSet::PrimitiveType(ValueTypeFromMIRType(subject->type())),
+    tmp.addType(TypeSet::PrimitiveOrAnyObjectType(subject->type()),
                 alloc_->lifoAlloc());
   }
 
@@ -3061,7 +2876,7 @@ AbortReasonOr<Ok> IonBuilder::improveTypesAtNullOrUndefinedCompare(
       return Ok();
     }
     inputTypes = &tmp;
-    tmp.addType(TypeSet::PrimitiveType(ValueTypeFromMIRType(subject->type())),
+    tmp.addType(TypeSet::PrimitiveOrAnyObjectType(subject->type()),
                 alloc_->lifoAlloc());
   }
 
@@ -3144,9 +2959,8 @@ AbortReasonOr<Ok> IonBuilder::improveTypesAtTest(MDefinition* ins,
           return Ok();
         }
         oldType = &tmp;
-        tmp.addType(
-            TypeSet::PrimitiveType(ValueTypeFromMIRType(subject->type())),
-            alloc_->lifoAlloc());
+        tmp.addType(TypeSet::PrimitiveOrAnyObjectType(subject->type()),
+                    alloc_->lifoAlloc());
       }
 
       if (oldType->unknown()) {
@@ -3178,9 +2992,8 @@ AbortReasonOr<Ok> IonBuilder::improveTypesAtTest(MDefinition* ins,
           return Ok();
         }
         oldType = &tmp;
-        tmp.addType(
-            TypeSet::PrimitiveType(ValueTypeFromMIRType(subject->type())),
-            alloc_->lifoAlloc());
+        tmp.addType(TypeSet::PrimitiveOrAnyObjectType(subject->type()),
+                    alloc_->lifoAlloc());
       }
 
       // If ins does not have a typeset we return as we cannot optimize.
@@ -3228,7 +3041,7 @@ AbortReasonOr<Ok> IonBuilder::improveTypesAtTest(MDefinition* ins,
       return Ok();
     }
     oldType = &tmp;
-    tmp.addType(TypeSet::PrimitiveType(ValueTypeFromMIRType(ins->type())),
+    tmp.addType(TypeSet::PrimitiveOrAnyObjectType(ins->type()),
                 alloc_->lifoAlloc());
   }
 
@@ -3285,50 +3098,27 @@ AbortReasonOr<Ok> IonBuilder::jsop_dup2() {
 }
 
 AbortReasonOr<Ok> IonBuilder::visitTestBackedge(JSOp op, bool* restarted) {
-  MOZ_ASSERT(op == JSOP_IFNE || op == JSOP_IFEQ);
+  MOZ_ASSERT(op == JSOP_IFNE);
   MOZ_ASSERT(loopDepth_ > 0);
 
   MDefinition* ins = current->pop();
 
+  jsbytecode* loopHead = pc + GET_JUMP_OFFSET(pc);
+  MOZ_ASSERT(JSOp(*loopHead) == JSOP_LOOPHEAD);
+
   jsbytecode* successorPC = GetNextPc(pc);
-  MOZ_ASSERT(loopStack_.back().successorStart() == successorPC);
 
-  // If we're compiling a do-while-like loop, we can finish the loop now.
-  if (loopStack_.back().state() == LoopState::State::DoWhileLike) {
-    MBasicBlock* backedge;
-    MOZ_TRY_VAR(backedge, newBlock(current, loopStack_.back().loopEntry()));
+  // We can finish the loop now. Use the loophead pc instead of the current pc
+  // because the stack depth at the start of that op matches the current stack
+  // depth (after popping our operand).
+  MBasicBlock* backedge;
+  MOZ_TRY_VAR(backedge, newBlock(current, loopHead));
 
-    MOZ_ASSERT(op == JSOP_IFNE);
-    current->end(newTest(ins, backedge, nullptr));
-    MOZ_TRY(
-        addPendingEdge(PendingEdge::NewTestFalse(current, op), successorPC));
+  current->end(newTest(ins, backedge, nullptr));
+  MOZ_TRY(addPendingEdge(PendingEdge::NewTestFalse(current, op), successorPC));
 
-    MOZ_TRY(startTraversingBlock(backedge));
-    return visitBackEdge(restarted);
-  }
-
-  // We finished compiling the condition of a while-like loop. Continue with the
-  // loop body.
-
-  MOZ_ASSERT(loopStack_.back().state() == LoopState::State::WhileLikeCond);
-
-  MBasicBlock* loopBody;
-  MOZ_TRY_VAR(loopBody, newBlock(current, loopStack_.back().loopHead()));
-
-  if (op == JSOP_IFNE) {
-    current->end(newTest(ins, loopBody, nullptr));
-    MOZ_TRY(
-        addPendingEdge(PendingEdge::NewTestFalse(current, op), successorPC));
-  } else {
-    current->end(newTest(ins, nullptr, loopBody));
-    MOZ_TRY(addPendingEdge(PendingEdge::NewTestTrue(current, op), successorPC));
-  }
-
-  MOZ_TRY(startTraversingBlock(loopBody));
-  loopStack_.back().setState(LoopState::State::WhileLikeBody);
-
-  nextpc = loopStack_.back().loopHead();
-  return Ok();
+  MOZ_TRY(startTraversingBlock(backedge));
+  return visitBackEdge(restarted);
 }
 
 // Returns true iff the MTest added for |op| has a true-target corresponding
@@ -3354,12 +3144,12 @@ AbortReasonOr<Ok> IonBuilder::visitTest(JSOp op, bool* restarted) {
   MOZ_ASSERT(op == JSOP_IFEQ || op == JSOP_IFNE || op == JSOP_AND ||
              op == JSOP_OR || op == JSOP_CASE);
 
-  jsbytecode* target1 = GetNextPc(pc);
-  jsbytecode* target2 = pc + GET_JUMP_OFFSET(pc);
-
-  if (target2 < pc) {
+  if (IsBackedgePC(pc)) {
     return visitTestBackedge(op, restarted);
   }
+
+  jsbytecode* target1 = GetNextPc(pc);
+  jsbytecode* target2 = pc + GET_JUMP_OFFSET(pc);
 
   // JSOP_AND and JSOP_OR inspect the top stack value but don't pop it.
   // Also note that JSOP_CASE must pop a second value on the true-branch (the
@@ -3427,13 +3217,9 @@ AbortReasonOr<Ok> IonBuilder::visitTry() {
     return abort(AbortReason::Disable, "Try-catch during analysis");
   }
 
-  jssrcnote* sn = GetSrcNote(gsn, script(), pc);
-  MOZ_ASSERT(SN_TYPE(sn) == SRC_TRY);
-
   // Get the pc of the last instruction in the try block. It's a JSOP_GOTO to
   // jump over the catch block.
-  jsbytecode* endpc =
-      pc + GetSrcNoteOffset(sn, SrcNote::Try::EndOfTryJumpOffset);
+  jsbytecode* endpc = pc + GET_CODE_OFFSET(pc);
   MOZ_ASSERT(JSOp(*endpc) == JSOP_GOTO);
   MOZ_ASSERT(GET_JUMP_OFFSET(endpc) > 0);
 
@@ -6113,6 +5899,9 @@ AbortReasonOr<Ok> IonBuilder::jsop_spreadcall() {
   if (target && target->realm() == script()->realm()) {
     apply->setNotCrossRealm();
   }
+  if (BytecodeIsPopped(pc)) {
+    apply->setIgnoresReturnValue();
+  }
 
   // TypeBarrier the call result
   TemporaryTypeSet* types = bytecodeTypes(pc);
@@ -6270,6 +6059,9 @@ AbortReasonOr<Ok> IonBuilder::jsop_funapplyarray(uint32_t argc) {
   if (target && target->realm() == script()->realm()) {
     apply->setNotCrossRealm();
   }
+  if (BytecodeIsPopped(pc)) {
+    apply->setIgnoresReturnValue();
+  }
 
   TemporaryTypeSet* types = bytecodeTypes(pc);
   return pushTypeBarrier(apply, types, BarrierKind::TypeSet);
@@ -6335,6 +6127,9 @@ AbortReasonOr<Ok> IonBuilder::jsop_funapplyarguments(uint32_t argc) {
 
     if (target && target->realm() == script()->realm()) {
       apply->setNotCrossRealm();
+    }
+    if (BytecodeIsPopped(pc)) {
+      apply->setIgnoresReturnValue();
     }
 
     TemporaryTypeSet* types = bytecodeTypes(pc);
@@ -6513,7 +6308,14 @@ AbortReasonOr<bool> IonBuilder::testShouldDOMCall(TypeSet* inTypes,
 }
 
 static bool ArgumentTypesMatch(MDefinition* def, StackTypeSet* calleeTypes) {
-  if (!calleeTypes) {
+  MOZ_ASSERT(calleeTypes);
+
+  if (calleeTypes->unknown()) {
+    return true;
+  }
+
+  if (TypeSet::IsUntrackedMIRType(def->type())) {
+    // The TypeSet has to be marked as unknown. See JitScript::MonitorThisType.
     return false;
   }
 
@@ -7010,10 +6812,7 @@ static bool ObjectOrSimplePrimitive(MDefinition* op) {
   return !op->mightBeType(MIRType::String) &&
          !op->mightBeType(MIRType::BigInt) &&
          !op->mightBeType(MIRType::Double) &&
-         !op->mightBeType(MIRType::Float32) &&
-         !op->mightBeType(MIRType::MagicOptimizedArguments) &&
-         !op->mightBeType(MIRType::MagicHole) &&
-         !op->mightBeType(MIRType::MagicIsConstructing);
+         !op->mightBeType(MIRType::Float32) && !op->mightBeMagicType();
 }
 
 AbortReasonOr<Ok> IonBuilder::compareTrySpecialized(bool* emitted, JSOp op,
@@ -7526,13 +7325,26 @@ AbortReasonOr<Ok> IonBuilder::jsop_initelem_inc() {
   MDefinition* id = current->pop();
   MDefinition* obj = current->peek(-1);
 
-  bool emitted = false;
-
   MAdd* nextId = MAdd::New(alloc(), id, constantInt(1), MIRType::Int32);
   current->add(nextId);
   current->push(nextId);
 
+  return initArrayElement(obj, id, value);
+}
+
+AbortReasonOr<Ok> IonBuilder::initArrayElement(MDefinition* obj,
+                                               MDefinition* id,
+                                               MDefinition* value) {
+  MOZ_ASSERT(*pc == JSOP_INITELEM_ARRAY || *pc == JSOP_INITELEM_INC);
+
+  bool emitted = false;
+
   if (!forceInlineCaches()) {
+    MOZ_TRY(initArrayElemTryFastPath(&emitted, obj, id, value));
+    if (emitted) {
+      return Ok();
+    }
+
     MOZ_TRY(initOrSetElemTryDense(&emitted, obj, id, value,
                                   /* writeHole = */ true));
     if (emitted) {
@@ -7552,57 +7364,70 @@ AbortReasonOr<Ok> IonBuilder::jsop_initelem_inc() {
   return resumeAfter(initElem);
 }
 
-AbortReasonOr<Ok> IonBuilder::jsop_initelem_array() {
-  MDefinition* value = current->pop();
-  MDefinition* obj = current->peek(-1);
+AbortReasonOr<Ok> IonBuilder::initArrayElemTryFastPath(bool* emitted,
+                                                       MDefinition* obj,
+                                                       MDefinition* id,
+                                                       MDefinition* value) {
+  MOZ_ASSERT(*emitted == false);
+  MOZ_ASSERT(*pc == JSOP_INITELEM_ARRAY || *pc == JSOP_INITELEM_INC);
 
   // Make sure that arrays have the type being written to them by the
   // intializer, and that arrays are marked as non-packed when writing holes
   // to them during initialization.
-  bool needStub = false;
+
+  if (!obj->isNewArray()) {
+    return Ok();
+  }
+
   if (shouldAbortOnPreliminaryGroups(obj)) {
-    needStub = true;
-  } else if (!obj->resultTypeSet() || obj->resultTypeSet()->unknownObject() ||
-             obj->resultTypeSet()->getObjectCount() != 1) {
-    needStub = true;
-  } else {
-    MOZ_ASSERT(obj->resultTypeSet()->getObjectCount() == 1);
-    TypeSet::ObjectKey* initializer = obj->resultTypeSet()->getObject(0);
-    if (value->type() == MIRType::MagicHole) {
-      if (!initializer->hasFlags(constraints(), OBJECT_FLAG_NON_PACKED)) {
-        needStub = true;
-      }
-    } else if (!initializer->unknownProperties()) {
-      HeapTypeSetKey elemTypes = initializer->property(JSID_VOID);
-      if (!TypeSetIncludes(elemTypes.maybeTypes(), value->type(),
-                           value->resultTypeSet())) {
-        elemTypes.freeze(constraints());
-        needStub = true;
-      }
+    return Ok();
+  }
+
+  if (!obj->resultTypeSet() || obj->resultTypeSet()->unknownObject() ||
+      obj->resultTypeSet()->getObjectCount() != 1) {
+    return Ok();
+  }
+
+  TypeSet::ObjectKey* initializer = obj->resultTypeSet()->getObject(0);
+  if (value->type() == MIRType::MagicHole) {
+    if (!initializer->hasFlags(constraints(), OBJECT_FLAG_NON_PACKED)) {
+      return Ok();
+    }
+  } else if (!initializer->unknownProperties()) {
+    HeapTypeSetKey elemTypes = initializer->property(JSID_VOID);
+    if (!TypeSetIncludes(elemTypes.maybeTypes(), value->type(),
+                         value->resultTypeSet())) {
+      elemTypes.freeze(constraints());
+      return Ok();
     }
   }
 
-  uint32_t index = GET_UINT32(pc);
-  if (needStub) {
-    MOZ_ASSERT(index <= INT32_MAX,
-               "the bytecode emitter must fail to compile code that would "
-               "produce JSOP_INITELEM_ARRAY with an index exceeding "
-               "int32_t range");
-    MCallInitElementArray* store =
-        MCallInitElementArray::New(alloc(), obj, constantInt(index), value);
-    current->add(store);
-    return resumeAfter(store);
-  }
+  MOZ_TRY(initArrayElementFastPath(obj->toNewArray(), id, value,
+                                   /* addResumePoint = */ true));
 
-  return initializeArrayElement(obj, index, value, /* addResumePoint = */ true);
+  *emitted = true;
+  return Ok();
 }
 
-AbortReasonOr<Ok> IonBuilder::initializeArrayElement(
-    MDefinition* obj, size_t index, MDefinition* value,
-    bool addResumePointAndIncrementInitializedLength) {
+AbortReasonOr<Ok> IonBuilder::jsop_initelem_array() {
+  MDefinition* value = current->pop();
+  MDefinition* obj = current->peek(-1);
+
+  uint32_t index = GET_UINT32(pc);
+  MOZ_ASSERT(index <= INT32_MAX,
+             "the bytecode emitter must fail to compile code that would "
+             "produce JSOP_INITELEM_ARRAY with an index exceeding "
+             "int32_t range");
+
   MConstant* id = MConstant::New(alloc(), Int32Value(index));
   current->add(id);
 
+  return initArrayElement(obj, id, value);
+}
+
+AbortReasonOr<Ok> IonBuilder::initArrayElementFastPath(
+    MNewArray* obj, MDefinition* id, MDefinition* value,
+    bool addResumePointAndIncrementInitializedLength) {
   // Get the elements vector.
   MElements* elements = MElements::New(alloc(), obj);
   current->add(elements);
@@ -7611,7 +7436,7 @@ AbortReasonOr<Ok> IonBuilder::initializeArrayElement(
     current->add(MPostWriteBarrier::New(alloc(), obj, value));
   }
 
-  if (obj->isNewArray() && obj->toNewArray()->convertDoubleElements()) {
+  if (obj->convertDoubleElements()) {
     MInstruction* valueDouble = MToDouble::New(alloc(), value);
     current->add(valueDouble);
     value = valueDouble;
@@ -7777,25 +7602,24 @@ AbortReasonOr<MBasicBlock*> IonBuilder::newBlockAfter(
 }
 
 AbortReasonOr<MBasicBlock*> IonBuilder::newOsrPreheader(
-    MBasicBlock* predecessor, jsbytecode* loopEntry,
-    jsbytecode* beforeLoopEntry) {
-  MOZ_ASSERT(JSOp(*loopEntry) == JSOP_LOOPENTRY);
-  MOZ_ASSERT(loopEntry == info().osrPc());
+    MBasicBlock* predecessor, jsbytecode* loopHead) {
+  MOZ_ASSERT(JSOp(*loopHead) == JSOP_LOOPHEAD);
+  MOZ_ASSERT(loopHead == info().osrPc());
 
   // Create two blocks: one for the OSR entry with no predecessors, one for
   // the preheader, which has the OSR entry block as a predecessor. The
   // OSR block is always the second block (with id 1).
   MBasicBlock* osrBlock;
   MOZ_TRY_VAR(osrBlock, newBlockAfter(*graph().begin(),
-                                      predecessor->stackDepth(), loopEntry));
+                                      predecessor->stackDepth(), loopHead));
   MBasicBlock* preheader;
-  MOZ_TRY_VAR(preheader, newBlock(predecessor, loopEntry));
+  MOZ_TRY_VAR(preheader, newBlock(predecessor, loopHead));
 
   graph().addBlock(preheader);
 
   // Give the pre-header the same hit count as the code before the loop.
-  if (script()->hasScriptCounts()) {
-    preheader->setHitCount(script()->getHitCount(beforeLoopEntry));
+  if (predecessor->getHitState() == MBasicBlock::HitState::Count) {
+    preheader->setHitCount(predecessor->getHitCount());
   }
 
   MOsrEntry* entry = MOsrEntry::New(alloc());
@@ -7918,7 +7742,7 @@ AbortReasonOr<MBasicBlock*> IonBuilder::newOsrPreheader(
 
   // MOsrValue instructions are infallible, so the first MResumePoint must
   // occur after they execute, at the point of the MStart.
-  MOZ_TRY(resumeAt(start, loopEntry));
+  MOZ_TRY(resumeAt(start, loopHead));
 
   // Link the same MResumePoint from the MStart to each MOsrValue.
   // This causes logic in ShouldSpecializeInput() to not replace Uses with
@@ -7964,16 +7788,9 @@ AbortReasonOr<MBasicBlock*> IonBuilder::newOsrPreheader(
 }
 
 AbortReasonOr<MBasicBlock*> IonBuilder::newPendingLoopHeader(
-    MBasicBlock* predecessor, jsbytecode* pc, bool osr, bool canOsr,
-    unsigned stackPhiCount) {
-  // If this site can OSR, all values on the expression stack are part of the
-  // loop.
-  if (canOsr) {
-    stackPhiCount = predecessor->stackDepth() - info().firstStackSlot();
-  }
-
+    MBasicBlock* predecessor, jsbytecode* pc, bool osr) {
   MBasicBlock* block = MBasicBlock::NewPendingLoopHeader(
-      graph(), info(), predecessor, bytecodeSite(pc), stackPhiCount);
+      graph(), info(), predecessor, bytecodeSite(pc));
   if (!block) {
     return abort(AbortReason::Alloc);
   }
@@ -8028,6 +7845,26 @@ AbortReasonOr<MBasicBlock*> IonBuilder::newPendingLoopHeader(
       if (!phi->addBackedgeType(alloc(), type, typeSet)) {
         return abort(AbortReason::Alloc);
       }
+    }
+  }
+
+  // The bytecode emitted for destructuring assignments uses a "done" stack
+  // value that can be read from the exception handler. Mark the loop phi for
+  // this slot as having implicit uses so it won't be optimized away (replaced
+  // by the JS_OPTIMIZED_OUT magic value).
+  // See ProcessTryNotes in vm/Interpreter.cpp.
+  MOZ_ASSERT(block->stackDepth() >= info().firstStackSlot());
+  bool emptyStack = block->stackDepth() == info().firstStackSlot();
+  if (!emptyStack) {
+    JSContext* cx = TlsContext.get();
+    for (TryNoteIterAll tni(cx, script(), pc); !tni.done(); ++tni) {
+      const JSTryNote& tn = **tni;
+      if (tn.kind != JSTRY_DESTRUCTURING) {
+        continue;
+      }
+      MOZ_ASSERT(tn.stackDepth > 1);
+      uint32_t slot = info().stackSlot(tn.stackDepth - 1);
+      block->getSlot(slot)->setImplicitlyUsedUnchecked();
     }
   }
 
@@ -8153,8 +7990,8 @@ static bool ObjectHasExtraOwnProperty(CompileRealm* realm,
   return ClassMayResolveId(realm->runtime()->names(), clasp, id, singleton);
 }
 
-void IonBuilder::insertRecompileCheck() {
-  MOZ_ASSERT(pc == script()->code() || *pc == JSOP_LOOPENTRY);
+void IonBuilder::insertRecompileCheck(jsbytecode* pc) {
+  MOZ_ASSERT(pc == script()->code() || *pc == JSOP_LOOPHEAD);
 
   // No need for recompile checks if this is the highest optimization level or
   // if we're performing an analysis instead of compilation.
@@ -8169,7 +8006,7 @@ void IonBuilder::insertRecompileCheck() {
   // works.
 
   MRecompileCheck::RecompileCheckType type;
-  if (*pc == JSOP_LOOPENTRY) {
+  if (*pc == JSOP_LOOPHEAD) {
     type = MRecompileCheck::RecompileCheckType::OptimizationLevelOSR;
   } else if (this != outermostBuilder()) {
     type = MRecompileCheck::RecompileCheckType::OptimizationLevelInlined;
@@ -8712,9 +8549,12 @@ AbortReasonOr<Ok> IonBuilder::setStaticName(JSObject* staticObject,
 
   current->pop();
 
-  // Pop the bound object on the stack.
+  // Pop the bound object on the stack. This is usually a constant but it can
+  // be a phi if loops are involved, for example: x = [...arr];
   MDefinition* obj = current->pop();
-  MOZ_ASSERT(&obj->toConstant()->toObject() == staticObject);
+  MOZ_ASSERT(obj->isConstant() || obj->isPhi());
+  MOZ_ASSERT_IF(obj->isConstant(),
+                &obj->toConstant()->toObject() == staticObject);
 
   if (needsPostBarrier(value)) {
     current->add(MPostWriteBarrier::New(alloc(), obj, value));
@@ -13151,7 +12991,6 @@ AbortReasonOr<Ok> IonBuilder::jsop_setarg(uint32_t arg) {
     }
 
     MSetFrameArgument* store = MSetFrameArgument::New(alloc(), arg, val);
-    modifiesFrameArguments_ = true;
     current->add(store);
     current->setArg(arg);
     return Ok();
@@ -13379,9 +13218,10 @@ AbortReasonOr<Ok> IonBuilder::jsop_isnoiter() {
 }
 
 AbortReasonOr<Ok> IonBuilder::jsop_iterend() {
+  current->pop();  // Iterator value is not used.
   MDefinition* iter = current->pop();
-  MInstruction* ins = MIteratorEnd::New(alloc(), iter);
 
+  MInstruction* ins = MIteratorEnd::New(alloc(), iter);
   current->add(ins);
 
   return resumeAfter(ins);

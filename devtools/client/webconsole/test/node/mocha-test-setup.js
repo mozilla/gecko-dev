@@ -27,6 +27,7 @@ pref("devtools.webconsole.sidebarToggle", true);
 pref("devtools.webconsole.groupWarningMessages", false);
 pref("devtools.webconsole.input.editor", false);
 pref("devtools.webconsole.input.autocomplete", true);
+pref("devtools.webconsole.input.eagerEvaluation", false);
 pref("devtools.browserconsole.contentMessages", true);
 pref("devtools.webconsole.input.editorWidth", 800);
 pref("devtools.webconsole.input.editorOnboarding", true);
@@ -103,7 +104,9 @@ requireHacker.global_hook("default", (path, module) => {
     react: () => getModule("devtools/client/shared/vendor/react-dev"),
     "devtools/client/shared/vendor/react": () =>
       getModule("devtools/client/shared/vendor/react-dev"),
-    chrome: () => `module.exports = { Cc: {}, Ci: {}, Cu: {} }`,
+    chrome: () =>
+      `module.exports = { Cc: {}, Ci: {}, Cu: {}, components: {stack: {caller: ""}} }`,
+    ChromeUtils: () => `module.exports = { import: () => ({}) }`,
     // Some modules depend on Chrome APIs which don't work in mocha. When such a module
     // is required, replace it with a mock version.
     "devtools/shared/l10n": () =>
@@ -113,9 +116,8 @@ requireHacker.global_hook("default", (path, module) => {
     "devtools/shared/plural-form": () =>
       getModule("devtools/client/webconsole/test/node/fixtures/PluralForm"),
     Services: () => `module.exports = require("devtools-services")`,
-    "devtools/shared/fronts/object": () => `() => {}`,
-    "devtools/shared/fronts/string": () =>
-      `() => ({LongStringFront: () => {}})`,
+    "devtools/server/debugger-server": () =>
+      `module.exports = {DebuggerServer: {}}`,
     "devtools/client/shared/components/SmartTrace": () => "{}",
     "devtools/client/netmonitor/src/components/TabboxPanel": () => "{}",
     "devtools/client/webconsole/utils/context-menu": () => "{}",

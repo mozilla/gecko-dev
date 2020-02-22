@@ -1,7 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+from __future__ import print_function, absolute_import
+
 import os
 from optparse import OptionParser
 from subprocess import Popen, PIPE
@@ -30,11 +33,9 @@ import re
 # But for now, let's just import a few sets of tests.
 
 gSubtrees = [
-    os.path.join("css-namespaces"),
     os.path.join("css-conditional"),
     os.path.join("css-values"),
     os.path.join("css-writing-modes"),
-    os.path.join("selectors"),
 ]
 
 # Insert the properties which you want to add "-moz" prefix to

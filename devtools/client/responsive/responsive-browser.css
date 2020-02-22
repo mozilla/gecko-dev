@@ -20,11 +20,9 @@
   border: none;
   position: absolute;
   width: 100%;
-  height: 30px;
 }
 
 .browserContainer.responsive-mode .browserStack.device-modal-opened > .rdm-toolbar {
-  height: 100%;
   z-index: 1;
 }
 
@@ -41,6 +39,9 @@
 }
 
 .browserContainer.responsive-mode > .browserStack > * {
+  box-sizing: content-box; /* This is important to ensure that the pane has the
+                              precise number of pixels defined by --rdm-width
+                              and --rdm-height. */
   height: var(--rdm-height);
   width: var(--rdm-width);
 }

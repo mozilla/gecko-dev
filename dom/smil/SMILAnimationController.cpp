@@ -19,7 +19,6 @@
 #include "nsContentUtils.h"
 #include "nsCSSProps.h"
 #include "mozilla/dom/Document.h"
-#include "nsITimer.h"
 #include "SMILCompositor.h"
 #include "SMILCSSProperty.h"
 
@@ -679,8 +678,7 @@ bool SMILAnimationController::PreTraverseInSubtree(Element* aRoot) {
     }
 
     context->RestyleManager()->PostRestyleEventForAnimations(
-        key.mElement, PseudoStyleType::NotPseudo,
-        StyleRestyleHint_RESTYLE_SMIL);
+        key.mElement, PseudoStyleType::NotPseudo, RestyleHint::RESTYLE_SMIL);
 
     foundElementsNeedingRestyle = true;
   }

@@ -9,9 +9,9 @@
  * @module utils/source
  */
 
-import { isOriginalId, isGeneratedId } from "devtools-source-map";
 import { getUnicodeUrl } from "devtools-modules";
 
+import { isOriginalSource } from "../utils/source-maps";
 import { endTruncateStr } from "./utils";
 import { truncateMiddleText } from "../utils/text";
 import { parse as parseURL } from "../utils/url";
@@ -30,8 +30,9 @@ import type {
   SourceLocation,
   ThreadId,
 } from "../types";
+
 import { isFulfilled, type AsyncValue } from "./async-value";
-import type { Symbols } from "../reducers/types";
+import type { Symbols, TabsSources } from "../reducers/types";
 
 type transformUrlCallback = string => string;
 
@@ -71,7 +72,7 @@ export function shouldBlackbox(source: ?Source) {
     return false;
   }
 
-  if (!features.originalBlackbox && isOriginalId(source.id)) {
+  if (!features.originalBlackbox && isOriginalSource(source)) {
     return false;
   }
 
@@ -199,7 +200,10 @@ export function getTruncatedFileName(
  * @static
  */
 
-export function getDisplayPath(mySource: Source, sources: Source[]) {
+export function getDisplayPath(
+  mySource: Source,
+  sources: Source[] | TabsSources
+) {
   const rawSourceURL = getRawSourceURL(mySource.url);
   const filename = getFilename(mySource, rawSourceURL);
 
@@ -507,11 +511,11 @@ export function underRoot(
 export function isOriginal(source: Source) {
   // Pretty-printed sources are given original IDs, so no need
   // for any additional check
-  return isOriginalId(source.id);
+  return isOriginalSource(source);
 }
 
 export function isGenerated(source: Source) {
-  return isGeneratedId(source.id);
+  return !isOriginal(source);
 }
 
 export function getSourceQueryString(source: ?Source) {

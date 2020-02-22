@@ -31,6 +31,8 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Uptake: "resource://normandy/lib/Uptake.jsm",
   ActionsManager: "resource://normandy/lib/ActionsManager.jsm",
   Kinto: "resource://services-common/kinto-offline-client.js",
+  clearTimeout: "resource://gre/modules/Timer.jsm",
+  setTimeout: "resource://gre/modules/Timer.jsm",
 });
 
 var EXPORTED_SYMBOLS = ["RecipeRunner"];
@@ -47,6 +49,8 @@ const SHIELD_ENABLED_PREF = `${PREF_PREFIX}.enabled`;
 const DEV_MODE_PREF = `${PREF_PREFIX}.dev_mode`;
 const API_URL_PREF = `${PREF_PREFIX}.api_url`;
 const LAZY_CLASSIFY_PREF = `${PREF_PREFIX}.experiments.lazy_classify`;
+const LAST_BUILDID_PREF = `${PREF_PREFIX}.last_seen_buildid`;
+const ONSYNC_SKEW_SEC_PREF = `${PREF_PREFIX}.onsync_skew_sec`;
 
 // Timer last update preference.
 // see https://searchfox.org/mozilla-central/rev/11cfa0462/toolkit/components/timermanager/UpdateTimerManager.jsm#8
@@ -92,6 +96,7 @@ var RecipeRunner = {
     this.running = false;
     this.enabled = null;
     this.loadFromRemoteSettings = false;
+    this._syncSkewTimeout = null;
 
     this.checkPrefs(); // sets this.enabled
     this.watchPrefs();
@@ -102,11 +107,25 @@ var RecipeRunner = {
     // false.
     const firstRun = Services.prefs.getBoolPref(FIRST_RUN_PREF, true);
 
+    // If we've seen a build ID from a previous run that doesn't match the
+    // current build ID, run immediately. This is probably an upgrade or
+    // downgrade, which may cause recipe eligibility to change.
+    let lastSeenBuildID = Services.prefs.getCharPref(LAST_BUILDID_PREF, "");
+    let hasNewBuildID =
+      lastSeenBuildID && Services.appinfo.appBuildID != lastSeenBuildID;
+
+    if (hasNewBuildID || !lastSeenBuildID) {
+      Services.prefs.setCharPref(
+        LAST_BUILDID_PREF,
+        Services.appinfo.appBuildID
+      );
+    }
+
     // Dev mode is a mode used for development and QA that bypasses the normal
     // timer function of Normandy, to make testing more convenient.
     const devMode = Services.prefs.getBoolPref(DEV_MODE_PREF, false);
 
-    if (this.enabled && (devMode || firstRun)) {
+    if (this.enabled && (devMode || firstRun || hasNewBuildID)) {
       // In dev mode, if remote settings is enabled, force an immediate sync
       // before running. This ensures that the latest data is used for testing.
       // This is not needed for the first run case, because remote settings
@@ -117,7 +136,16 @@ var RecipeRunner = {
           await gRemoteSettingsClient.sync();
         }
       }
-      await this.run();
+      let trigger;
+      if (devMode) {
+        trigger = "devMode";
+      } else if (firstRun) {
+        trigger = "firstRun";
+      } else if (hasNewBuildID) {
+        trigger = "newBuildID";
+      }
+
+      await this.run({ trigger });
     }
 
     // Update the firstRun pref, to indicate that Normandy has run at least once
@@ -246,7 +274,31 @@ var RecipeRunner = {
         if (!this.enabled) {
           return;
         }
-        await this.run({ trigger: "sync" });
+
+        // Delay the Normandy run by a random amount, determined by preference.
+        // This helps alleviate server load, since we don't have a thundering
+        // herd of users trying to update all at once.
+        if (this._syncSkewTimeout) {
+          clearTimeout(this._syncSkewTimeout);
+        }
+        let minSkewSec = 1; // this is primarily is to avoid race conditions in tests
+        let maxSkewSec = Services.prefs.getIntPref(ONSYNC_SKEW_SEC_PREF, 0);
+        if (maxSkewSec >= minSkewSec) {
+          let skewMillis =
+            (minSkewSec + Math.random() * (maxSkewSec - minSkewSec)) * 1000;
+          log.debug(
+            `Delaying on-sync Normandy run for ${Math.floor(
+              skewMillis / 1000
+            )} seconds`
+          );
+          this._syncSkewTimeout = setTimeout(
+            () => this.run({ trigger: "sync" }),
+            skewMillis
+          );
+        } else {
+          log.debug(`Not skewing on-sync Normandy run`);
+          await this.run({ trigger: "sync" });
+        }
       };
 
       gRemoteSettingsClient.on("sync", this._onSync);
@@ -258,8 +310,13 @@ var RecipeRunner = {
     if (this._onSync) {
       // Ignore if no event listener was setup or was already removed (ie. pref changed while enabled).
       gRemoteSettingsClient.off("sync", this._onSync);
+      this._onSync = null;
     }
-    this._onSync = null;
+
+    if (this._syncSkewTimeout) {
+      clearTimeout(this._syncSkewTimeout);
+      this._syncSkewTimeout = null;
+    }
   },
 
   updateRunInterval() {
@@ -277,8 +334,13 @@ var RecipeRunner = {
     }
     try {
       this.running = true;
-
       Services.obs.notifyObservers(null, "recipe-runner:start");
+
+      if (this._syncSkewTimeout) {
+        clearTimeout(this._syncSkewTimeout);
+        this._syncSkewTimeout = null;
+      }
+
       this.clearCaches();
       // Unless lazy classification is enabled, prep the classify cache.
       if (!Services.prefs.getBoolPref(LAZY_CLASSIFY_PREF, false)) {
@@ -476,7 +538,7 @@ var RecipeRunner = {
           );
           await Uptake.reportRecipe(
             recipe,
-            Uptake.RECIPE_INCOMPATIBLE_COMPATIBILITIES
+            Uptake.RECIPE_INCOMPATIBLE_CAPABILITIES
           );
           return false;
         }

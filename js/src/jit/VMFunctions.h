@@ -854,9 +854,6 @@ MOZ_MUST_USE bool InvokeFunction(JSContext* cx, HandleObject obj0,
                                  bool constructing, bool ignoresReturnValue,
                                  uint32_t argc, Value* argv,
                                  MutableHandleValue rval);
-MOZ_MUST_USE bool InvokeFunctionShuffleNewTarget(
-    JSContext* cx, HandleObject obj, uint32_t numActualArgs,
-    uint32_t numFormalArgs, Value* argv, MutableHandleValue rval);
 
 class InterpreterStubExitFrameLayout;
 bool InvokeFromInterpreterStub(JSContext* cx,
@@ -950,8 +947,7 @@ int32_t GetIndexFromString(JSString* str);
 
 JSObject* WrapObjectPure(JSContext* cx, JSObject* obj);
 
-MOZ_MUST_USE bool DebugPrologue(JSContext* cx, BaselineFrame* frame,
-                                jsbytecode* pc, bool* mustReturn);
+MOZ_MUST_USE bool DebugPrologue(JSContext* cx, BaselineFrame* frame);
 MOZ_MUST_USE bool DebugEpilogue(JSContext* cx, BaselineFrame* frame,
                                 jsbytecode* pc, bool ok);
 MOZ_MUST_USE bool DebugEpilogueOnBaselineReturn(JSContext* cx,
@@ -966,14 +962,12 @@ MOZ_MUST_USE bool NormalSuspend(JSContext* cx, HandleObject obj,
                                 jsbytecode* pc);
 MOZ_MUST_USE bool FinalSuspend(JSContext* cx, HandleObject obj, jsbytecode* pc);
 MOZ_MUST_USE bool InterpretResume(JSContext* cx, HandleObject obj,
-                                  HandleValue val, HandlePropertyName kind,
-                                  MutableHandleValue rval);
-MOZ_MUST_USE bool DebugAfterYield(JSContext* cx, BaselineFrame* frame,
-                                  jsbytecode* pc, bool* mustReturn);
+                                  Value* stackValues, MutableHandleValue rval);
+MOZ_MUST_USE bool DebugAfterYield(JSContext* cx, BaselineFrame* frame);
 MOZ_MUST_USE bool GeneratorThrowOrReturn(
     JSContext* cx, BaselineFrame* frame,
     Handle<AbstractGeneratorObject*> genObj, HandleValue arg,
-    uint32_t resumeKindArg);
+    int32_t resumeKindArg);
 
 MOZ_MUST_USE bool GlobalNameConflictsCheckFromIon(JSContext* cx,
                                                   HandleScript script);
@@ -990,9 +984,8 @@ JSObject* InitRestParameter(JSContext* cx, uint32_t length, Value* rest,
                             HandleObject templateObj, HandleObject res);
 
 MOZ_MUST_USE bool HandleDebugTrap(JSContext* cx, BaselineFrame* frame,
-                                  uint8_t* retAddr, bool* mustReturn);
-MOZ_MUST_USE bool OnDebuggerStatement(JSContext* cx, BaselineFrame* frame,
-                                      jsbytecode* pc, bool* mustReturn);
+                                  uint8_t* retAddr);
+MOZ_MUST_USE bool OnDebuggerStatement(JSContext* cx, BaselineFrame* frame);
 MOZ_MUST_USE bool GlobalHasLiveOnDebuggerStatement(JSContext* cx);
 
 MOZ_MUST_USE bool EnterWith(JSContext* cx, BaselineFrame* frame,
@@ -1074,11 +1067,6 @@ bool ObjectIsConstructor(JSObject* obj);
 
 MOZ_MUST_USE bool ThrowRuntimeLexicalError(JSContext* cx, unsigned errorNumber);
 
-MOZ_MUST_USE bool BaselineThrowUninitializedThis(JSContext* cx,
-                                                 BaselineFrame* frame);
-
-MOZ_MUST_USE bool BaselineThrowInitializedThis(JSContext* cx);
-
 MOZ_MUST_USE bool ThrowBadDerivedReturn(JSContext* cx, HandleValue v);
 
 MOZ_MUST_USE bool ThrowObjectCoercible(JSContext* cx, HandleValue v);
@@ -1144,23 +1132,6 @@ bool DoToNumber(JSContext* cx, HandleValue arg, MutableHandleValue ret);
 bool DoToNumeric(JSContext* cx, HandleValue arg, MutableHandleValue ret);
 
 void* AllocateBigIntNoGC(JSContext* cx);
-
-BigInt* BigIntAdd(JSContext* cx, HandleBigInt x, HandleBigInt y);
-BigInt* BigIntSub(JSContext* cx, HandleBigInt x, HandleBigInt y);
-BigInt* BigIntMul(JSContext* cx, HandleBigInt x, HandleBigInt y);
-BigInt* BigIntDiv(JSContext* cx, HandleBigInt x, HandleBigInt y);
-BigInt* BigIntMod(JSContext* cx, HandleBigInt x, HandleBigInt y);
-BigInt* BigIntPow(JSContext* cx, HandleBigInt x, HandleBigInt y);
-BigInt* BigIntBitAnd(JSContext* cx, HandleBigInt x, HandleBigInt y);
-BigInt* BigIntBitOr(JSContext* cx, HandleBigInt x, HandleBigInt y);
-BigInt* BigIntBitXor(JSContext* cx, HandleBigInt x, HandleBigInt y);
-BigInt* BigIntLeftShift(JSContext* cx, HandleBigInt x, HandleBigInt y);
-BigInt* BigIntRightShift(JSContext* cx, HandleBigInt x, HandleBigInt y);
-
-BigInt* BigIntBitNot(JSContext* cx, HandleBigInt x);
-BigInt* BigIntNeg(JSContext* cx, HandleBigInt x);
-BigInt* BigIntInc(JSContext* cx, HandleBigInt x);
-BigInt* BigIntDec(JSContext* cx, HandleBigInt x);
 
 template <EqualityKind Kind>
 bool BigIntEqual(BigInt* x, BigInt* y);

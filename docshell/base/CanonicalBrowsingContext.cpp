@@ -207,10 +207,37 @@ void CanonicalBrowsingContext::NotifyMediaMutedChanged(bool aMuted) {
   SetMuted(aMuted);
 }
 
-void CanonicalBrowsingContext::UpdateMediaAction(MediaControlActions aAction) {
-  MediaActionHandler::UpdateMediaAction(this, aAction);
+uint32_t CanonicalBrowsingContext::CountSiteOrigins(
+    GlobalObject& aGlobal,
+    const Sequence<OwningNonNull<BrowsingContext>>& aRoots) {
+  nsTHashtable<nsCStringHashKey> uniqueSiteOrigins;
+
+  for (const auto& root : aRoots) {
+    root->PreOrderWalk([&](BrowsingContext* aContext) {
+      WindowGlobalParent* windowGlobalParent =
+          aContext->Canonical()->GetCurrentWindowGlobal();
+      if (windowGlobalParent) {
+        nsIPrincipal* documentPrincipal =
+            windowGlobalParent->DocumentPrincipal();
+
+        bool isContentPrincipal = documentPrincipal->GetIsContentPrincipal();
+        if (isContentPrincipal) {
+          nsCString siteOrigin;
+          documentPrincipal->GetSiteOrigin(siteOrigin);
+          uniqueSiteOrigins.PutEntry(siteOrigin);
+        }
+      }
+    });
+  }
+
+  return uniqueSiteOrigins.Count();
+}
+
+void CanonicalBrowsingContext::UpdateMediaControlKeysEvent(
+    MediaControlKeysEvent aEvent) {
+  MediaActionHandler::HandleMediaControlKeysEvent(this, aEvent);
   Group()->EachParent([&](ContentParent* aParent) {
-    Unused << aParent->SendUpdateMediaAction(this, aAction);
+    Unused << aParent->SendUpdateMediaControlKeysEvent(this, aEvent);
   });
 }
 

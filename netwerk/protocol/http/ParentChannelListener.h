@@ -11,6 +11,7 @@
 #include "nsIInterfaceRequestor.h"
 #include "nsINetworkInterceptController.h"
 #include "nsIStreamListener.h"
+#include "nsIMultiPartChannel.h"
 #include "mozilla/dom/BrowserParent.h"
 
 namespace mozilla {
@@ -29,12 +30,14 @@ namespace net {
 
 class ParentChannelListener final : public nsIInterfaceRequestor,
                                     public nsIStreamListener,
+                                    public nsIMultiPartChannelListener,
                                     public nsINetworkInterceptController {
  public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
+  NS_DECL_NSIMULTIPARTCHANNELLISTENER
   NS_DECL_NSINETWORKINTERCEPTCONTROLLER
 
   NS_DECLARE_STATIC_IID_ACCESSOR(PARENT_CHANNEL_LISTENER)
@@ -43,7 +46,7 @@ class ParentChannelListener final : public nsIInterfaceRequestor,
                                  dom::BrowserParent* aBrowserParent);
 
   // For channel diversion from child to parent.
-  MOZ_MUST_USE nsresult DivertTo(nsIStreamListener* aListener);
+  void DivertTo(nsIStreamListener* aListener);
   MOZ_MUST_USE nsresult SuspendForDiversion();
 
   void SetupInterception(const nsHttpResponseHead& aResponseHead);
@@ -57,7 +60,7 @@ class ParentChannelListener final : public nsIInterfaceRequestor,
   virtual ~ParentChannelListener();
 
   // Private partner function to SuspendForDiversion.
-  MOZ_MUST_USE nsresult ResumeForDiversion();
+  void ResumeForDiversion();
 
   // Can be the original HttpChannelParent that created this object (normal
   // case), a different {HTTP|FTP}ChannelParent that we've been redirected to,
@@ -87,9 +90,17 @@ class ParentChannelListener final : public nsIInterfaceRequestor,
   nsCOMPtr<nsINetworkInterceptController> mInterceptController;
 
   RefPtr<mozilla::dom::BrowserParent> mBrowserParent;
+
+  // True if we received OnStartRequest for a nsIMultiPartChannel, and are
+  // expected AllPartsStopped to be called when complete.
+  bool mIsMultiPart = false;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(ParentChannelListener, PARENT_CHANNEL_LISTENER)
+
+inline nsISupports* ToSupports(ParentChannelListener* aDoc) {
+  return static_cast<nsIInterfaceRequestor*>(aDoc);
+}
 
 }  // namespace net
 }  // namespace mozilla

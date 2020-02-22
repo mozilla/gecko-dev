@@ -2668,6 +2668,21 @@ var gCSSProperties = {
     alias_for: "column-rule-color",
     subproperties: ["column-rule-color"],
   },
+  "column-span": {
+    domProp: "columnSpan",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["none"],
+    other_values: ["all"],
+    invalid_values: ["-1", "0", "auto", "2px"],
+  },
+  "-moz-column-span": {
+    domProp: "MozColumnSpan",
+    inherited: false,
+    type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
+    alias_for: "column-span",
+    subproperties: ["column-span"],
+  },
   "column-width": {
     domProp: "columnWidth",
     inherited: false,
@@ -5278,7 +5293,7 @@ var gCSSProperties = {
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     applies_to_marker: true,
-    /* XXX needs to be on pseudo-elements */
+    // XXX This really depends on pseudo-element-ness.
     initial_values: ["normal", "none"],
     other_values: [
       '""',
@@ -7763,6 +7778,34 @@ var gCSSProperties = {
       "43%",
       "-10%",
       "from font",
+    ],
+  },
+  "text-underline-position": {
+    domProp: "textUnderlinePosition",
+    inherited: true,
+    type: CSS_TYPE_LONGHAND,
+    applies_to_first_letter: true,
+    applies_to_first_line: true,
+    applies_to_placeholder: true,
+    initial_values: ["auto"],
+    other_values: [
+      "under",
+      "left",
+      "right",
+      "left under",
+      "under left",
+      "right under",
+      "under right",
+    ],
+    invalid_values: [
+      "none",
+      "auto under",
+      "left right",
+      "right auto",
+      "0",
+      "1px",
+      "10%",
+      "from-font",
     ],
   },
   "text-emphasis": {
@@ -12427,6 +12470,24 @@ if (IsCSSPropertyPrefEnabled("layout.css.overscroll-behavior.enabled")) {
     other_values: ["contain", "none"],
     invalid_values: ["left", "1px"],
   };
+  gCSSProperties["overscroll-behavior-inline"] = {
+    domProp: "overscrollBehaviorInline",
+    inherited: false,
+    logical: true,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["auto"],
+    other_values: ["contain", "none"],
+    invalid_values: ["left", "1px"],
+  };
+  gCSSProperties["overscroll-behavior-block"] = {
+    domProp: "overscrollBehaviorBlock",
+    inherited: false,
+    logical: true,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["auto"],
+    other_values: ["contain", "none"],
+    invalid_values: ["left", "1px"],
+  };
   gCSSProperties["overscroll-behavior"] = {
     domProp: "overscrollBehavior",
     inherited: false,
@@ -12519,24 +12580,6 @@ if (IsCSSPropertyPrefEnabled("layout.css.offset-logical-properties.enabled")) {
 }
 
 gCSSProperties["display"].other_values.push("flow-root");
-
-if (IsCSSPropertyPrefEnabled("layout.css.column-span.enabled")) {
-  gCSSProperties["column-span"] = {
-    domProp: "columnSpan",
-    inherited: false,
-    type: CSS_TYPE_LONGHAND,
-    initial_values: ["none"],
-    other_values: ["all"],
-    invalid_values: ["-1", "0", "auto", "2px"],
-  };
-  gCSSProperties["-moz-column-span"] = {
-    domProp: "MozColumnSpan",
-    inherited: false,
-    type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
-    alias_for: "column-span",
-    subproperties: ["column-span"],
-  };
-}
 
 if (IsCSSPropertyPrefEnabled("layout.css.webkit-line-clamp.enabled")) {
   gCSSProperties["-webkit-line-clamp"] = {

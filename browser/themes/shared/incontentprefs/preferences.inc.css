@@ -28,12 +28,23 @@ body {
 }
 
 #preferences-body {
+  vertical-align: top; /* See bug 1606130 */
   display: -moz-box;
   -moz-box-orient: vertical;
 }
 
 * {
   -moz-user-select: text;
+}
+
+/*
+  The stack has some very tall content but it shouldn't be taller than the
+  viewport (and we know the tall content will still be accessible via scrollbars
+  regardless if the stack has a shorter height). So we use min-height: 0 to allow
+  the stack to be smaller than its content height so it can fit the viewport size.
+*/
+#preferences-stack {
+  min-height: 0;
 }
 
 .main-content {
@@ -284,10 +295,6 @@ button > hbox > label {
 
 #useDocumentColors {
   margin: 0;
-}
-
-#activeLanguages {
-  height: 16em;
 }
 
 #activeLanguages > richlistitem {
@@ -612,12 +619,13 @@ button > hbox > label {
 
 #fxaSyncComputerName {
   -moz-box-flex: 1;
+  margin-block: 4px;
   margin-inline-start: 0;
-  margin-bottom: 4px;
 }
 
 #fxaChangeDeviceName {
   margin-block: 4px;
+  margin-inline-end: 0;
 }
 
 #noFxaCaption {
@@ -973,10 +981,6 @@ menulist[indicator=true] > menupopup menuitem[indicator=true]:not([image]) > .me
   min-width: 20em;
 }
 
-#selectedLocales {
-  height: 150px;
-}
-
 #selectedLocales > richlistitem {
   padding-inline-start: 13px;
 }
@@ -1039,4 +1043,21 @@ richlistitem .text-link {
 
 richlistitem .text-link:hover {
   color: inherit;
+}
+
+#proxy-grid,
+#dnsOverHttps-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+#proxy-grid > .thin {
+  grid-column-end: 3;
+  height: 20px;
+}
+
+#dnsOverHttps-grid.custom-container-hidden #networkCustomDnsOverHttpsInputLabelContainer,
+#dnsOverHttps-grid.custom-container-hidden #networkCustomDnsOverHttpsInput {
+  display: none;
 }

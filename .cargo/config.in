@@ -15,16 +15,11 @@ rev = "6a866fdad2ca880df9b87fcbc9921abac1e91914"
 [source."https://github.com/mozilla/neqo"]
 git = "https://github.com/mozilla/neqo"
 replace-with = "vendored-sources"
-tag = "v0.1.6"
+tag = "v0.1.7"
 
 [source."https://github.com/kvark/spirv_cross"]
 branch = "wgpu"
 git = "https://github.com/kvark/spirv_cross"
-replace-with = "vendored-sources"
-
-[source."https://github.com/kvark/rust-objc-exception"]
-branch = "cc"
-git = "https://github.com/kvark/rust-objc-exception"
 replace-with = "vendored-sources"
 
 [source."https://github.com/jfkthame/mapped_hyph.git"]
@@ -37,6 +32,16 @@ branch = "rust_1_32"
 git = "https://github.com/hsivonen/packed_simd"
 replace-with = "vendored-sources"
 
+[source."https://github.com/djg/cubeb-pulse-rs"]
+git = "https://github.com/djg/cubeb-pulse-rs"
+replace-with = "vendored-sources"
+rev = "8069f8f4189982e0b38fa6dc8993dd4fab41f728"
+
+[source."https://github.com/bytecodealliance/cranelift"]
+git = "https://github.com/bytecodealliance/cranelift"
+replace-with = "vendored-sources"
+rev = "ec787eb281bb2e18e191508c17abe694e91f0677"
+
 [source."https://github.com/alexcrichton/mio-named-pipes"]
 branch = "master"
 git = "https://github.com/alexcrichton/mio-named-pipes"
@@ -45,22 +50,22 @@ replace-with = "vendored-sources"
 [source."https://github.com/PLSysSec/rlbox_lucet_sandbox/"]
 git = "https://github.com/PLSysSec/rlbox_lucet_sandbox/"
 replace-with = "vendored-sources"
-rev = "997c648eb0eaeaaa7a00a9eee20431f750b4e190"
+rev = "a31b9119bd01893ae1e930331ca4fe1738a088f7"
 
 [source."https://github.com/PLSysSec/lucet_sandbox_compiler"]
-branch = "master"
 git = "https://github.com/PLSysSec/lucet_sandbox_compiler"
 replace-with = "vendored-sources"
+rev = "36f0e4deb5b080dfee73042fec655d3723c7a12b"
 
 [source."https://github.com/NikVolf/tokio-named-pipes"]
 branch = "stable"
 git = "https://github.com/NikVolf/tokio-named-pipes"
 replace-with = "vendored-sources"
 
-[source."https://github.com/CraneStation/Cranelift"]
-git = "https://github.com/CraneStation/Cranelift"
+[source."https://github.com/ChunMinChang/cubeb-coreaudio-rs"]
+git = "https://github.com/ChunMinChang/cubeb-coreaudio-rs"
 replace-with = "vendored-sources"
-rev = "da179e4fd83d49b7ad6c9f286b1ea04d4f64907e"
+rev = "acb90e9bf36e6e035ac6bbe51efa0a8825b5b6be"
 
 [source.crates-io]
 replace-with = "vendored-sources"

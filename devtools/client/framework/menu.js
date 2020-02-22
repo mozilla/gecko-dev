@@ -41,6 +41,13 @@ Menu.prototype.append = function(menuItem) {
 };
 
 /**
+ * Remove all items from the Menu
+ */
+Menu.prototype.clear = function() {
+  this.menuitems = [];
+};
+
+/**
  * Add an item to a specified position in the menu
  *
  * @param {int} pos
@@ -212,6 +219,9 @@ function applyItemAttributesToNode(item, node) {
   }
   if (item.checked) {
     node.setAttribute("checked", "true");
+  }
+  if (item.image) {
+    node.setAttribute("image", item.image);
   }
   if (item.id) {
     node.id = item.id;

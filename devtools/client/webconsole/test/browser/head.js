@@ -100,7 +100,7 @@ async function openNewTabAndConsole(url, clearJstermHistory = true) {
  *         Resolves to the toolbox.
  */
 async function openNewWindowAndConsole(url) {
-  const win = await openNewBrowserWindow();
+  const win = await BrowserTestUtils.openNewBrowserWindow();
   const tab = await addTab(url, { window: win });
   win.gBrowser.selectedTab = tab;
   const hud = await openConsole(tab);
@@ -125,7 +125,15 @@ function logAllStoreChanges(hud) {
         return { id, type, parameters, messageText };
       }
     );
-    info("messages : " + JSON.stringify(debugMessages));
+    info(
+      "messages : " +
+        JSON.stringify(debugMessages, function(key, value) {
+          if (value && value.getGrip) {
+            return value.getGrip();
+          }
+          return value;
+        })
+    );
   });
 }
 
@@ -891,26 +899,6 @@ function overrideOpenLink(fn) {
 }
 
 /**
- * Open a new browser window and return a promise that resolves when the new window has
- * fired the "browser-delayed-startup-finished" event.
- *
- * @param {Object} options: An options object that will be passed to OpenBrowserWindow.
- * @returns Promise
- *          A Promise that resolves when the window is ready.
- */
-function openNewBrowserWindow(options) {
-  const win = OpenBrowserWindow(options);
-  return new Promise(resolve => {
-    Services.obs.addObserver(function observer(subject, topic) {
-      if (win == subject) {
-        Services.obs.removeObserver(observer, topic);
-        resolve(win);
-      }
-    }, "browser-delayed-startup-finished");
-  });
-}
-
-/**
  * Open a network request logged in the webconsole in the netmonitor panel.
  *
  * @param {Object} toolbox
@@ -1166,6 +1154,31 @@ function isReverseSearchInputFocused(hud) {
   return document.activeElement == reverseSearchInput && documentIsFocused;
 }
 
+async function waitForEagerEvaluationResult(hud, text) {
+  await waitUntil(() => {
+    const elem = hud.ui.outputNode.querySelector(".eager-evaluation-result");
+    if (elem) {
+      if (text instanceof RegExp) {
+        return text.test(elem.innerText);
+      }
+      return elem.innerText == text;
+    }
+    return false;
+  });
+  ok(true, `Got eager evaluation result ${text}`);
+}
+
+// This just makes sure the eager evaluation result disappears. This will pass
+// even for inputs which eventually have a result because nothing will be shown
+// while the evaluation happens. Waiting here does make sure that a previous
+// input was processed and sent down to the server for evaluating.
+async function waitForNoEagerEvaluationResult(hud) {
+  await waitUntil(() => {
+    return !hud.ui.outputNode.querySelector(".eager-evaluation-result");
+  });
+  ok(true, `Eager evaluation result disappeared`);
+}
+
 /**
  * Selects a node in the inspector.
  *
@@ -1338,9 +1351,9 @@ async function selectFrame(dbg, frame) {
 async function pauseDebugger(dbg) {
   info("Waiting for debugger to pause");
   const onPaused = waitForPaused(dbg);
-  ContentTask.spawn(gBrowser.selectedBrowser, {}, async function() {
+  SpecialPowers.spawn(gBrowser.selectedBrowser, [], function() {
     content.wrappedJSObject.firstCall();
-  });
+  }).catch(() => {});
   await onPaused;
 }
 
@@ -1494,10 +1507,10 @@ function checkConsoleOutputForWarningGroup(hud, expectedMessages) {
  * @param {WebConsole} hud
  * @param {string} text
  *        message substring to look for
- * @param {Array<number>} frameLines
+ * @param {Array<number>} expectedFrameLines
  *        line numbers of the frames expected in the stack
  */
-async function checkMessageStack(hud, text, frameLines) {
+async function checkMessageStack(hud, text, expectedFrameLines) {
   const msgNode = await waitFor(() => findMessage(hud, text));
   ok(!msgNode.classList.contains("open"), `Error logged not expanded`);
 
@@ -1505,20 +1518,24 @@ async function checkMessageStack(hud, text, frameLines) {
   button.click();
 
   const framesNode = await waitFor(() => msgNode.querySelector(".frames"));
-  const frameNodes = framesNode.querySelectorAll(".frame");
-  let frameLinesIndex = 0;
+  const frameNodes = Array.from(framesNode.querySelectorAll(".frame")).filter(
+    el => el.querySelector(".filename").textContent !== "self-hosted"
+  );
+
   for (let i = 0; i < frameNodes.length; i++) {
-    if (frameNodes[i].querySelector(".filename").textContent == "self-hosted") {
-      continue;
-    }
-    ok(
-      frameNodes[i].querySelector(".line").textContent ==
-        "" + frameLines[frameLinesIndex],
-      `Found line ${frameLines[frameLinesIndex]} for frame #${i}`
+    const frameNode = frameNodes[i];
+    is(
+      frameNode.querySelector(".line").textContent,
+      expectedFrameLines[i].toString(),
+      `Found line ${expectedFrameLines[i]} for frame #${i}`
     );
-    frameLinesIndex++;
   }
-  is(frameLines.length, frameLinesIndex, `Found ${frameLines.length} frames`);
+
+  is(
+    frameNodes.length,
+    expectedFrameLines.length,
+    `Found ${frameNodes.length} frames`
+  );
 }
 
 /**
@@ -1532,7 +1549,7 @@ function reloadPage() {
     "load",
     true
   );
-  ContentTask.spawn(gBrowser.selectedBrowser, null, () => {
+  SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
     content.location.reload();
   });
   return onLoad;
@@ -1578,13 +1595,21 @@ async function waitForLazyRequests(toolbox) {
 }
 
 /**
- * Clear the console output and when for the "messages-cleared" event to be emitted.
+ * Clear the console output and wait for eventual object actors to be released.
+ *
  * @param {WebConsole} hud
  * @param {Object} An options object with the following properties:
  *                 - {Boolean} keepStorage: true to prevent clearing the messages storage.
  */
 async function clearOutput(hud, { keepStorage = false } = {}) {
-  const onMessagesCleared = hud.ui.once("messages-cleared");
-  hud.ui.clearOutput(!keepStorage);
-  await onMessagesCleared;
+  const { ui } = hud;
+  const promises = [ui.once("messages-cleared")];
+
+  // If there's an object inspector, we need to wait for the actors to be released.
+  if (ui.outputNode.querySelector(".object-inspector")) {
+    promises.push(ui.once("fronts-released"));
+  }
+
+  ui.clearOutput(!keepStorage);
+  await Promise.all(promises);
 }

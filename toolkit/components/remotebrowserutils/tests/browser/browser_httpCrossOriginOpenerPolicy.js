@@ -114,7 +114,7 @@ function waitForDownloadWindow() {
 
           is(
             domwindow.document.location.href,
-            "chrome://mozapps/content/downloads/unknownContentType.xul",
+            "chrome://mozapps/content/downloads/unknownContentType.xhtml",
             "Download page appeared"
           );
           resolve(domwindow);
@@ -155,7 +155,7 @@ async function test_download_from(initCoop, downloadCoop) {
 
     let winPromise = waitForDownloadWindow();
     let browser = gBrowser.selectedBrowser;
-    ContentTask.spawn(browser, downloadCoop, downloadCoop => {
+    SpecialPowers.spawn(browser, [downloadCoop], downloadCoop => {
       content.document.getElementById(downloadCoop).click();
     });
 

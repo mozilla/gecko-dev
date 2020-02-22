@@ -13,7 +13,6 @@
 #include "nsIServiceWorkerManager.h"
 #include "nsIScriptError.h"
 #include "nsThreadUtils.h"
-#include "nsIURL.h"
 #include "nsNetUtil.h"
 #include "nsPIDOMWindow.h"
 #include "mozilla/Services.h"
@@ -21,7 +20,7 @@
 
 #include "nsCycleCollectionParticipant.h"
 #include "nsServiceManagerUtils.h"
-
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/StorageAccess.h"
 #include "mozilla/dom/ClientIPCTypes.h"
@@ -640,7 +639,7 @@ nsIGlobalObject* ServiceWorkerContainer::GetGlobalIfValid(
   }
 
   // Don't allow service workers when the document is chrome.
-  if (NS_WARN_IF(nsContentUtils::IsSystemPrincipal(doc->NodePrincipal()))) {
+  if (NS_WARN_IF(doc->NodePrincipal()->IsSystemPrincipal())) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return nullptr;
   }

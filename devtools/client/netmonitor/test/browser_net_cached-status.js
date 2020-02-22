@@ -105,7 +105,7 @@ add_task(async function() {
     await verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
-      getSortedRequests(store.getState()).get(index),
+      getSortedRequests(store.getState())[index],
       request.method,
       request.uri,
       request.details
@@ -118,7 +118,7 @@ add_task(async function() {
 
   async function performRequestsAndWait() {
     const wait = waitForNetworkEvents(monitor, 3);
-    await ContentTask.spawn(tab.linkedBrowser, {}, async function() {
+    await SpecialPowers.spawn(tab.linkedBrowser, [], async function() {
       content.wrappedJSObject.performCachedRequests();
     });
     await wait;

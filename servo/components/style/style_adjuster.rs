@@ -12,8 +12,6 @@ use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
-#[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-use crate::values::specified::box_::DisplayInside;
 use app_units::Au;
 
 /// A struct that implements all the adjustment methods.
@@ -63,43 +61,38 @@ where
 {
     use crate::Atom;
 
-    // FIXME(emilio): This should be an actual static.
-    lazy_static! {
-        static ref SPECIAL_HTML_ELEMENTS: [Atom; 16] = [
-            atom!("br"),
-            atom!("wbr"),
-            atom!("meter"),
-            atom!("progress"),
-            atom!("canvas"),
-            atom!("embed"),
-            atom!("object"),
-            atom!("audio"),
-            atom!("iframe"),
-            atom!("img"),
-            atom!("video"),
-            atom!("frame"),
-            atom!("frameset"),
-            atom!("input"),
-            atom!("textarea"),
-            atom!("select"),
-        ];
-    }
+    const SPECIAL_HTML_ELEMENTS: [Atom; 16] = [
+        atom!("br"),
+        atom!("wbr"),
+        atom!("meter"),
+        atom!("progress"),
+        atom!("canvas"),
+        atom!("embed"),
+        atom!("object"),
+        atom!("audio"),
+        atom!("iframe"),
+        atom!("img"),
+        atom!("video"),
+        atom!("frame"),
+        atom!("frameset"),
+        atom!("input"),
+        atom!("textarea"),
+        atom!("select"),
+    ];
 
     // https://drafts.csswg.org/css-display/#unbox-svg
     //
     // There's a note about "Unknown elements", but there's not a good way to
     // know what that means, or to get that information from here, and no other
     // UA implements this either.
-    lazy_static! {
-        static ref SPECIAL_SVG_ELEMENTS: [Atom; 6] = [
-            atom!("svg"),
-            atom!("a"),
-            atom!("g"),
-            atom!("use"),
-            atom!("tspan"),
-            atom!("textPath"),
-        ];
-    }
+    const SPECIAL_SVG_ELEMENTS: [Atom; 6] = [
+        atom!("svg"),
+        atom!("a"),
+        atom!("g"),
+        atom!("use"),
+        atom!("tspan"),
+        atom!("textPath"),
+    ];
 
     // https://drafts.csswg.org/css-display/#unbox-html
     if element.is_html_element() {
@@ -212,7 +205,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.style.pseudo.map_or(false, |p| p.is_marker()) &&
                 self.style.get_parent_list().clone_list_style_position() ==
                     ListStylePosition::Outside &&
-                layout_parent_style.get_box().clone_display().inside() != DisplayInside::Inline
+                !layout_parent_style.get_box().clone_display().is_inline_flow()
         );
 
         if !blockify {

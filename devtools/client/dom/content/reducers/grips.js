@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const constants = require("../constants");
+const constants = require("devtools/client/dom/content/constants");
 
 /**
  * Initial state definition
@@ -46,7 +46,10 @@ function onRequestProperties(state, action) {
 function onReceiveProperties(cache, action) {
   const response = action.response;
   const from = response.from;
-  const className = action.grip.class;
+  const className =
+    action.grip && action.grip.getGrip
+      ? action.grip.getGrip().class
+      : action.grip.class;
 
   // Properly deal with getters.
   mergeProperties(response);

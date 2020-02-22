@@ -52,7 +52,7 @@ namespace gfx {
 // Whether B comes before R in pixel memory layout.
 static constexpr bool IsBGRFormat(SurfaceFormat aFormat) {
   return aFormat == SurfaceFormat::B8G8R8A8 ||
-#if MOZ_LITTLE_ENDIAN
+#if MOZ_LITTLE_ENDIAN()
          aFormat == SurfaceFormat::R5G6B5_UINT16 ||
 #endif
          aFormat == SurfaceFormat::B8G8R8X8 || aFormat == SurfaceFormat::B8G8R8;
@@ -79,7 +79,7 @@ static constexpr uint32_t AlphaByteIndex(SurfaceFormat aFormat) {
 
 // The endian-dependent bit shift to access RGB of a UINT32 pixel.
 static constexpr uint32_t RGBBitShift(SurfaceFormat aFormat) {
-#if MOZ_LITTLE_ENDIAN
+#if MOZ_LITTLE_ENDIAN()
   return 8 * RGBByteIndex(aFormat);
 #else
   return 8 - 8 * RGBByteIndex(aFormat);
@@ -214,6 +214,14 @@ void SwizzleRow_NEON(const uint8_t*, uint8_t*, int32_t);
         aSrcFormat, aDstFormat,                               \
         SwizzleRow_NEON<ShouldSwapRB(aSrcFormat, aDstFormat), \
                         ShouldForceOpaque(aSrcFormat, aDstFormat)>)
+
+template <bool aSwapRB>
+void UnpackRowRGB24_NEON(const uint8_t*, uint8_t*, int32_t);
+
+#  define UNPACK_ROW_RGB_NEON(aDstFormat)  \
+    FORMAT_CASE_ROW(                       \
+        SurfaceFormat::R8G8B8, aDstFormat, \
+        UnpackRowRGB24_NEON<ShouldSwapRB(SurfaceFormat::R8G8B8, aDstFormat)>)
 #endif
 
 /**
@@ -676,7 +684,7 @@ static void SwizzleChunkSwap(const uint8_t*& aSrc, uint8_t*& aDst,
   do {
     // Use an endian swap to move the bytes, i.e. BGRA -> ARGB.
     uint32_t rgba = *reinterpret_cast<const uint32_t*>(aSrc);
-#if MOZ_LITTLE_ENDIAN
+#if MOZ_LITTLE_ENDIAN()
     rgba = NativeEndian::swapToBigEndian(rgba);
 #else
     rgba = NativeEndian::swapToLittleEndian(rgba);
@@ -1036,6 +1044,10 @@ SwizzleRowFn SwizzleRow(SurfaceFormat aSrcFormat, SurfaceFormat aDstFormat) {
 
 #ifdef USE_NEON
   if (mozilla::supports_neon()) switch (FORMAT_KEY(aSrcFormat, aDstFormat)) {
+      UNPACK_ROW_RGB_NEON(SurfaceFormat::R8G8B8X8)
+      UNPACK_ROW_RGB_NEON(SurfaceFormat::R8G8B8A8)
+      UNPACK_ROW_RGB_NEON(SurfaceFormat::B8G8R8X8)
+      UNPACK_ROW_RGB_NEON(SurfaceFormat::B8G8R8A8)
       SWIZZLE_ROW_NEON(SurfaceFormat::B8G8R8A8, SurfaceFormat::R8G8B8A8)
       SWIZZLE_ROW_NEON(SurfaceFormat::B8G8R8X8, SurfaceFormat::R8G8B8X8)
       SWIZZLE_ROW_NEON(SurfaceFormat::B8G8R8A8, SurfaceFormat::R8G8B8X8)

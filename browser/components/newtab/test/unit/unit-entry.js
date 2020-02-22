@@ -42,7 +42,11 @@ const TEST_GLOBAL = {
       return Promise.resolve({ addons: [], fullData: false });
     },
   },
-  AppConstants: { MOZILLA_OFFICIAL: true, MOZ_APP_VERSION: "69.0a1" },
+  AppConstants: {
+    MOZILLA_OFFICIAL: true,
+    MOZ_APP_VERSION: "69.0a1",
+    platform: "win",
+  },
   UpdateUtils: { getUpdateChannel() {} },
   BrowserWindowTracker: { getTopWindow() {} },
   ChromeUtils: {
@@ -73,8 +77,11 @@ const TEST_GLOBAL = {
     },
     isSuccessCode: () => true,
   },
+  // NB: These are functions/constructors
   // eslint-disable-next-line object-shorthand
-  ContentSearchUIController: function() {}, // NB: This is a function/constructor
+  ContentSearchUIController: function() {},
+  // eslint-disable-next-line object-shorthand
+  ContentSearchHandoffUIController: function() {},
   Cc: {
     "@mozilla.org/browser/nav-bookmarks-service;1": {
       addObserver() {},
@@ -227,6 +234,7 @@ const TEST_GLOBAL = {
     telemetry: {
       setEventRecordingEnabled: () => {},
       recordEvent: eventDetails => {},
+      scalarSet: () => {},
     },
     console: { logStringMessage: () => {} },
     prefs: {
@@ -372,9 +380,18 @@ const TEST_GLOBAL = {
   TelemetryEnvironment: {
     setExperimentActive() {},
   },
+  TelemetryStopwatch: {
+    start: () => {},
+    finish: () => {},
+  },
   Sampling: {
     ratioSample(seed, ratios) {
       return Promise.resolve(0);
+    },
+  },
+  BrowserHandler: {
+    get kiosk() {
+      return false;
     },
   },
 };

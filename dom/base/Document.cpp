@@ -45,6 +45,7 @@
 #include "mozilla/URLDecorationStripper.h"
 #include "mozilla/URLExtraData.h"
 #include "mozilla/Base64.h"
+#include "mozilla/BasePrincipal.h"
 #include <algorithm>
 
 #include "mozilla/Logging.h"
@@ -77,6 +78,8 @@
 #include "mozilla/Services.h"
 #include "nsScreen.h"
 #include "ChildIterator.h"
+#include "nsSerializationHelper.h"
+#include "nsICertOverrideService.h"
 #include "nsIX509Cert.h"
 #include "nsIX509CertValidity.h"
 #include "nsITransportSecurityInfo.h"
@@ -138,7 +141,6 @@
 #include "mozilla/dom/PromiseNativeHandler.h"
 #include "mozilla/dom/TreeWalker.h"
 
-#include "nsIServiceManager.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
 #include "imgLoader.h"
 
@@ -176,7 +178,6 @@
 
 #include "nsPIDOMWindow.h"
 #include "nsFocusManager.h"
-#include "nsICookiePermission.h"
 #include "nsICookieService.h"
 
 #include "nsBidiUtils.h"
@@ -198,7 +199,6 @@
 #include "nsDOMCID.h"
 
 #include "jsapi.h"
-#include "nsIXPConnect.h"
 #include "xpcpublic.h"
 #include "nsCCUncollectableMarker.h"
 #include "nsIContentPolicy.h"
@@ -256,7 +256,6 @@
 
 #include "mozilla/Preferences.h"
 
-#include "imgILoader.h"
 #include "imgRequestProxy.h"
 #include "nsWrapperCacheInlines.h"
 #include "nsSandboxFlags.h"
@@ -295,12 +294,10 @@
 #include "nsIDocumentEncoder.h"
 #include "nsIDocumentActivity.h"
 #include "nsIStructuredCloneContainer.h"
-#include "nsIMutableArray.h"
 #include "mozilla/dom/DOMStringList.h"
 #include "nsWindowSizes.h"
 #include "mozilla/dom/Location.h"
 #include "mozilla/dom/FontFaceSet.h"
-#include "nsISupportsPrimitives.h"
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
@@ -355,6 +352,7 @@
 #define NS_MAX_DOCUMENT_WRITE_DEPTH 20
 
 mozilla::LazyLogModule gPageCacheLog("PageCache");
+mozilla::LazyLogModule gTimeoutDeferralLog("TimeoutDefer");
 
 namespace mozilla {
 namespace dom {
@@ -767,7 +765,7 @@ void ExternalResourceMap::EnumerateResources(SubDocEnumFunc aCallback,
   }
 
   for (auto& doc : docs) {
-    if (!aCallback(*doc, aData)) {
+    if (aCallback(*doc, aData) == CallState::Stop) {
       return;
     }
   }
@@ -1352,8 +1350,6 @@ Document::Document(const char* aContentType)
       mFlashClassification(FlashClassification::Unknown),
       mScrollAnchorAdjustmentLength(0),
       mScrollAnchorAdjustmentCount(0),
-      mCurrentOrientationAngle(0),
-      mCurrentOrientationType(OrientationType::Portrait_primary),
       mServoRestyleRootDirtyBits(0),
       mThrowOnDynamicMarkupInsertionCounter(0),
       mIgnoreOpensDuringUnloadCounter(0),
@@ -1387,6 +1383,8 @@ Document::Document(const char* aContentType)
   mReferrerInfo = new dom::ReferrerInfo(nullptr);
 }
 
+#ifndef ANDROID
+// unused by GeckoView
 static bool IsAboutErrorPage(nsGlobalWindowInner* aWin, const char* aSpec) {
   if (NS_WARN_IF(!aWin)) {
     return false;
@@ -1408,10 +1406,148 @@ static bool IsAboutErrorPage(nsGlobalWindowInner* aWin, const char* aSpec) {
 
   return aboutSpec.EqualsASCII(aSpec);
 }
+#endif
 
 bool Document::CallerIsTrustedAboutNetError(JSContext* aCx, JSObject* aObject) {
   nsGlobalWindowInner* win = xpc::WindowOrNull(aObject);
+#ifdef ANDROID
+  // GeckoView uses data URLs for error pages, so for now just check for any
+  // error page
+  return win && win->GetDocument() && win->GetDocument()->IsErrorPage();
+#else
   return IsAboutErrorPage(win, "neterror");
+#endif
+}
+
+already_AddRefed<mozilla::dom::Promise> Document::AddCertException(
+    bool aIsTemporary) {
+  nsIGlobalObject* global = GetScopeObject();
+  if (!global) {
+    return nullptr;
+  }
+
+  ErrorResult er;
+  RefPtr<Promise> promise =
+      Promise::Create(global, er, Promise::ePropagateUserInteraction);
+  if (er.Failed()) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsISupports> info;
+  nsCOMPtr<nsITransportSecurityInfo> tsi;
+  nsresult rv = NS_OK;
+  if (NS_WARN_IF(!mFailedChannel)) {
+    promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return promise.forget();
+  }
+
+  rv = mFailedChannel->GetSecurityInfo(getter_AddRefs(info));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    promise->MaybeReject(rv);
+    return promise.forget();
+  }
+  nsCOMPtr<nsIURI> failedChannelURI;
+  NS_GetFinalChannelURI(mFailedChannel, getter_AddRefs(failedChannelURI));
+  if (!failedChannelURI) {
+    promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return promise.forget();
+  }
+  nsAutoCString host;
+  failedChannelURI->GetAsciiHost(host);
+  int32_t port;
+  failedChannelURI->GetPort(&port);
+
+  tsi = do_QueryInterface(info);
+  if (NS_WARN_IF(!tsi)) {
+    promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return promise.forget();
+  }
+
+  bool isUntrusted = true;
+  rv = tsi->GetIsUntrusted(&isUntrusted);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    promise->MaybeReject(rv);
+    return promise.forget();
+  }
+
+  bool isDomainMismatch = true;
+  rv = tsi->GetIsDomainMismatch(&isDomainMismatch);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    promise->MaybeReject(rv);
+    return promise.forget();
+  }
+
+  bool isNotValidAtThisTime = true;
+  rv = tsi->GetIsNotValidAtThisTime(&isNotValidAtThisTime);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    promise->MaybeReject(rv);
+    return promise.forget();
+  }
+
+  nsCOMPtr<nsIX509Cert> cert;
+  rv = tsi->GetServerCert(getter_AddRefs(cert));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    promise->MaybeReject(rv);
+    return promise.forget();
+  }
+  if (NS_WARN_IF(!cert)) {
+    promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return promise.forget();
+  }
+
+  uint32_t flags = 0;
+  if (isUntrusted) {
+    flags |= nsICertOverrideService::ERROR_UNTRUSTED;
+  }
+  if (isDomainMismatch) {
+    flags |= nsICertOverrideService::ERROR_MISMATCH;
+  }
+  if (isNotValidAtThisTime) {
+    flags |= nsICertOverrideService::ERROR_TIME;
+  }
+
+  if (XRE_IsContentProcess()) {
+    nsCOMPtr<nsISerializable> certSer = do_QueryInterface(cert);
+    nsCString certSerialized;
+    NS_SerializeToString(certSer, certSerialized);
+
+    ContentChild* cc = ContentChild::GetSingleton();
+    MOZ_ASSERT(cc);
+    cc->SendAddCertException(certSerialized, flags, host, port, aIsTemporary)
+        ->Then(GetCurrentThreadSerialEventTarget(), __func__,
+               [promise](const mozilla::MozPromise<
+                         nsresult, mozilla::ipc::ResponseRejectReason,
+                         true>::ResolveOrRejectValue& aValue) {
+                 if (aValue.IsResolve()) {
+                   promise->MaybeResolve(aValue.ResolveValue());
+                 } else {
+                   promise->MaybeRejectWithUndefined();
+                 }
+               });
+    return promise.forget();
+  }
+
+  if (XRE_IsParentProcess()) {
+    nsCOMPtr<nsICertOverrideService> overrideService =
+        do_GetService(NS_CERTOVERRIDE_CONTRACTID);
+    if (!overrideService) {
+      promise->MaybeReject(NS_ERROR_FAILURE);
+      return promise.forget();
+    }
+
+    rv = overrideService->RememberValidityOverride(host, port, cert, flags,
+                                                   aIsTemporary);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      promise->MaybeReject(rv);
+      return promise.forget();
+    }
+
+    promise->MaybeResolveWithUndefined();
+    return promise.forget();
+  }
+
+  promise->MaybeReject(NS_ERROR_FAILURE);
+  return promise.forget();
 }
 
 void Document::GetNetErrorInfo(NetErrorInfo& aInfo, ErrorResult& aRv) {
@@ -1446,7 +1582,18 @@ void Document::GetNetErrorInfo(NetErrorInfo& aInfo, ErrorResult& aRv) {
 bool Document::CallerIsTrustedAboutCertError(JSContext* aCx,
                                              JSObject* aObject) {
   nsGlobalWindowInner* win = xpc::WindowOrNull(aObject);
+#ifdef ANDROID
+  // GeckoView uses data URLs for error pages, so for now just check for any
+  // error page
+  return win && win->GetDocument() && win->GetDocument()->IsErrorPage();
+#else
   return IsAboutErrorPage(win, "certerror");
+#endif
+}
+
+bool Document::IsErrorPage() const {
+  nsCOMPtr<nsILoadInfo> loadInfo = mChannel ? mChannel->LoadInfo() : nullptr;
+  return loadInfo && loadInfo->GetLoadErrorPage();
 }
 
 void Document::GetFailedCertSecurityInfo(FailedCertSecurityInfo& aInfo,
@@ -1651,13 +1798,28 @@ void Document::GetFailedCertSecurityInfo(FailedCertSecurityInfo& aInfo,
   attrs = nsContentUtils::GetOriginAttributes(this);
   nsCOMPtr<nsIURI> aURI;
   mFailedChannel->GetURI(getter_AddRefs(aURI));
-  ContentChild* cc = ContentChild::GetSingleton();
-  mozilla::ipc::URIParams uri;
-  SerializeURI(aURI, uri);
-  cc->SendIsSecureURI(nsISiteSecurityService::HEADER_HSTS, uri, flags, attrs,
-                      &aInfo.mHasHSTS);
-  cc->SendIsSecureURI(nsISiteSecurityService::HEADER_HPKP, uri, flags, attrs,
-                      &aInfo.mHasHPKP);
+  if (XRE_IsContentProcess()) {
+    ContentChild* cc = ContentChild::GetSingleton();
+    MOZ_ASSERT(cc);
+    mozilla::ipc::URIParams uri;
+    SerializeURI(aURI, uri);
+    cc->SendIsSecureURI(nsISiteSecurityService::HEADER_HSTS, uri, flags, attrs,
+                        &aInfo.mHasHSTS);
+    cc->SendIsSecureURI(nsISiteSecurityService::HEADER_HPKP, uri, flags, attrs,
+                        &aInfo.mHasHPKP);
+  } else {
+    nsCOMPtr<nsISiteSecurityService> sss =
+        do_GetService(NS_SSSERVICE_CONTRACTID);
+    if (NS_WARN_IF(!sss)) {
+      return;
+    }
+    Unused << NS_WARN_IF(NS_FAILED(
+        sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, aURI, flags,
+                         attrs, nullptr, nullptr, &aInfo.mHasHSTS)));
+    Unused << NS_WARN_IF(NS_FAILED(
+        sss->IsSecureURI(nsISiteSecurityService::HEADER_HPKP, aURI, flags,
+                         attrs, nullptr, nullptr, &aInfo.mHasHPKP)));
+  }
 }
 
 bool Document::IsAboutPage() const {
@@ -2474,7 +2636,7 @@ already_AddRefed<nsIPrincipal> Document::MaybeDowngradePrincipal(
     return do_AddRef(expanded->AllowList().LastElement());
   }
 
-  if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
+  if (aPrincipal->IsSystemPrincipal()) {
     // We basically want the parent document here, but because this is very
     // early in the load, GetInProcessParentDocument() returns null, so we use
     // the docshell hierarchy to get this information instead.
@@ -2487,8 +2649,7 @@ already_AddRefed<nsIPrincipal> Document::MaybeDowngradePrincipal(
       if (parentDocShell) {
         nsCOMPtr<Document> parentDoc;
         parentDoc = parentDocShell->GetDocument();
-        if (!parentDoc ||
-            !nsContentUtils::IsSystemPrincipal(parentDoc->NodePrincipal())) {
+        if (!parentDoc || !parentDoc->NodePrincipal()->IsSystemPrincipal()) {
           nsCOMPtr<nsIPrincipal> nullPrincipal =
               do_CreateInstance("@mozilla.org/nullprincipal;1");
           return nullPrincipal.forget();
@@ -2820,20 +2981,23 @@ static void WarnIfSandboxIneffective(nsIDocShell* aDocShell,
   if (aSandboxFlags & SANDBOXED_NAVIGATION &&
       !(aSandboxFlags & SANDBOXED_SCRIPTS) &&
       !(aSandboxFlags & SANDBOXED_ORIGIN)) {
-    nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
-    aDocShell->GetInProcessSameTypeParent(getter_AddRefs(parentAsItem));
-    nsCOMPtr<nsIDocShell> parentDocShell = do_QueryInterface(parentAsItem);
-    if (!parentDocShell) {
+    RefPtr<BrowsingContext> bc = aDocShell->GetBrowsingContext();
+    MOZ_ASSERT(bc->IsInProcess());
+
+    RefPtr<BrowsingContext> parentBC = bc->GetParent();
+    if (!parentBC || !parentBC->IsInProcess()) {
+      // If parent document is not in process, then by construction it
+      // cannot be same origin.
       return;
     }
 
     // Don't warn if our parent is not the top-level document.
-    nsCOMPtr<nsIDocShellTreeItem> grandParentAsItem;
-    parentDocShell->GetInProcessSameTypeParent(
-        getter_AddRefs(grandParentAsItem));
-    if (grandParentAsItem) {
+    if (!parentBC->IsTopContent()) {
       return;
     }
+
+    nsCOMPtr<nsIDocShell> parentDocShell = parentBC->GetDocShell();
+    MOZ_ASSERT(parentDocShell);
 
     nsCOMPtr<nsIChannel> parentChannel;
     parentDocShell->GetCurrentDocumentChannel(getter_AddRefs(parentChannel));
@@ -2864,7 +3028,7 @@ bool Document::IsSynthesized() {
 // static
 bool Document::IsCallerChromeOrAddon(JSContext* aCx, JSObject* aObject) {
   nsIPrincipal* principal = nsContentUtils::SubjectPrincipal(aCx);
-  return principal && (nsContentUtils::IsSystemPrincipal(principal) ||
+  return principal && (principal->IsSystemPrincipal() ||
                        principal->GetIsAddonOrExpandedAddonPrincipal());
 }
 
@@ -2945,6 +3109,9 @@ nsresult Document::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
         IsSynthesized() && XRE_IsContentProcess()) {
       ContentChild::UpdateCookieStatus(mChannel);
     }
+
+    // Store the security info for future use.
+    mChannel->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
   }
 
   // If this document is being loaded by a docshell, copy its sandbox flags
@@ -3695,7 +3862,7 @@ bool Document::DocumentSupportsL10n(JSContext* aCx, JSObject* aObject) {
       nsContentUtils::SubjectPrincipal(aCx);
   nsGlobalWindowInner* win = xpc::WindowOrNull(aObject);
   return nsContentUtils::PrincipalAllowsL10n(
-      callerPrincipal, win ? win->GetDocumentURI() : nullptr);
+      *callerPrincipal, win ? win->GetDocumentURI() : nullptr);
 }
 
 void Document::LocalizationLinkAdded(Element* aLinkElement) {
@@ -3804,7 +3971,8 @@ void Document::InitialDocumentTranslationCompleted() {
 }
 
 bool Document::AllowsL10n() const {
-  return nsContentUtils::PrincipalAllowsL10n(NodePrincipal(), GetDocumentURI());
+  return nsContentUtils::PrincipalAllowsL10n(*NodePrincipal(),
+                                             GetDocumentURI());
 }
 
 bool Document::IsWebAnimationsEnabled(JSContext* aCx, JSObject* /*unused*/) {
@@ -4508,7 +4676,7 @@ bool Document::ExecCommand(const nsAString& aHTMLCommandName, bool aShowUI,
 
   // Do security check first.
   if (commandData.IsCutOrCopyCommand()) {
-    if (!nsContentUtils::IsCutCopyAllowed(&aSubjectPrincipal)) {
+    if (!nsContentUtils::IsCutCopyAllowed(aSubjectPrincipal)) {
       // We have rejected the event due to it not being performed in an
       // input-driven context therefore, we report the error to the console.
       nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
@@ -4518,7 +4686,7 @@ bool Document::ExecCommand(const nsAString& aHTMLCommandName, bool aShowUI,
       return false;
     }
   } else if (commandData.IsPasteCommand()) {
-    if (!nsContentUtils::PrincipalHasPermission(&aSubjectPrincipal,
+    if (!nsContentUtils::PrincipalHasPermission(aSubjectPrincipal,
                                                 nsGkAtoms::clipboardRead)) {
       return false;
     }
@@ -4714,12 +4882,11 @@ bool Document::QueryCommandEnabled(const nsAString& aHTMLCommandName,
 
   // cut & copy are always allowed
   if (commandData.IsCutOrCopyCommand()) {
-    return nsContentUtils::IsCutCopyAllowed(&aSubjectPrincipal);
+    return nsContentUtils::IsCutCopyAllowed(aSubjectPrincipal);
   }
 
   // Report false for restricted commands
-  if (commandData.IsPasteCommand() &&
-      !nsContentUtils::IsSystemPrincipal(&aSubjectPrincipal)) {
+  if (commandData.IsPasteCommand() && !aSubjectPrincipal.IsSystemPrincipal()) {
     return false;
   }
 
@@ -5906,6 +6073,7 @@ void Document::SetHeaderData(nsAtom* aHeaderField, const nsAString& aData) {
       // before the current URI of the webnavigation has been updated, so we
       // can't assert equality here.
       refresher->SetupRefreshURIFromHeader(mDocumentURI, NodePrincipal(),
+                                           InnerWindowID(),
                                            NS_ConvertUTF16toUTF8(aData));
     }
   }
@@ -5961,7 +6129,7 @@ already_AddRefed<PresShell> Document::CreatePresShell(
 
   AssertNoStaleServoDataIn(*this);
 
-  RefPtr<PresShell> presShell = new PresShell;
+  RefPtr<PresShell> presShell = new PresShell(this);
   // Note: we don't hold a ref to the shell (it holds a ref to us)
   mPresShell = presShell;
 
@@ -5970,7 +6138,7 @@ already_AddRefed<PresShell> Document::CreatePresShell(
     FillStyleSet();
   }
 
-  presShell->Init(this, aContext, aViewManager);
+  presShell->Init(aContext, aViewManager);
 
   if (hadStyleSheets) {
     // Gaining a shell causes changes in how media queries are evaluated, so
@@ -6400,8 +6568,7 @@ void Document::SetStyleSheetApplicableState(StyleSheet& aSheet,
 
     RefPtr<StyleSheetApplicableStateChangeEvent> event =
         StyleSheetApplicableStateChangeEvent::Constructor(
-            this, NS_LITERAL_STRING("StyleSheetApplicableStateChanged"),
-            init);
+            this, NS_LITERAL_STRING("StyleSheetApplicableStateChanged"), init);
     event->SetTrusted(true);
     event->SetTarget(this);
     RefPtr<AsyncEventDispatcher> asyncDispatcher =
@@ -6913,17 +7080,6 @@ bool Document::RemoveObserver(nsIDocumentObserver* aObserver) {
 }
 
 void Document::BeginUpdate() {
-  // If the document is going away, then it's probably okay to do things to it
-  // in the wrong DocGroup. We're unlikely to run JS or do anything else
-  // observable at this point. We reach this point when cycle collecting a
-  // <link> element and the unlink code removes a style sheet.
-  //
-  // TODO(emilio): Style updates are gone, can this happen now?
-  if (mDocGroup && !mIsGoingAway && !mInUnlinkOrDeletion &&
-      !mIgnoreDocGroupMismatches) {
-    mDocGroup->ValidateAccess();
-  }
-
   ++mUpdateNestLevel;
   nsContentUtils::AddScriptBlocker();
   NS_DOCUMENT_NOTIFY_OBSERVERS(BeginUpdate, (this));
@@ -7014,7 +7170,7 @@ void Document::DispatchContentLoadedEvents() {
   if (os) {
     nsIPrincipal* principal = NodePrincipal();
     os->NotifyObservers(ToSupports(this),
-                        nsContentUtils::IsSystemPrincipal(principal)
+                        principal->IsSystemPrincipal()
                             ? "chrome-document-interactive"
                             : "content-document-interactive",
                         nullptr);
@@ -8359,6 +8515,10 @@ void Document::SetPrototypeDocument(nsXULPrototypeDocument* aPrototype) {
   mSynchronousDOMContentLoaded = true;
 }
 
+nsIPermissionDelegateHandler* Document::PermDelegateHandler() {
+  return GetPermissionDelegateHandler();
+}
+
 Document* Document::RequestExternalResource(
     nsIURI* aURI, nsIReferrerInfo* aReferrerInfo, nsINode* aRequestingNode,
     ExternalResourceLoad** aPendingLoad) {
@@ -9105,7 +9265,7 @@ nsINode* Document::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv) {
         rv.Throw(NS_ERROR_DOM_HIERARCHY_REQUEST_ERR);
         return nullptr;
       }
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     }
     case ELEMENT_NODE:
     case PROCESSING_INSTRUCTION_NODE:
@@ -9441,7 +9601,7 @@ nsViewportInfo Document::GetViewportInfo(const ScreenIntSize& aDisplaySize) {
       mWidthStrEmpty = metaData.mWidth.IsEmpty();
 
       mViewportType = hasValidContents ? Specified : NoValidContent;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     }
     case Specified:
     case NoValidContent:
@@ -9711,11 +9871,6 @@ EventListenerManager* Document::GetExistingListenerManager() const {
 }
 
 void Document::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
-  if (mDocGroup && aVisitor.mEvent->mMessage != eVoidEvent &&
-      !mIgnoreDocGroupMismatches) {
-    mDocGroup->ValidateAccess();
-  }
-
   aVisitor.mCanHandle = true;
   // FIXME! This is a hack to make middle mouse paste working also in Editor.
   // Bug 329119
@@ -9802,18 +9957,27 @@ void Document::FlushPendingNotifications(mozilla::ChangesToFlush aFlush) {
   }
 
   // If we have a parent we must flush the parent too to ensure that our
-  // container is reflowed if its size was changed.  But if it's not safe to
-  // flush ourselves, then don't flush the parent, since that can cause things
-  // like resizes of our frame's widget, which we can't handle while flushing
-  // is unsafe.
-  // Since media queries mean that a size change of our container can
-  // affect style, we need to promote a style flush on ourself to a
-  // layout flush on our parent, since we need our container to be the
-  // correct size to determine the correct style.
+  // container is reflowed if its size was changed.
+  //
+  // We do it only if the subdocument and the parent can observe each other
+  // synchronously (that is, if we're not cross-origin), to avoid work that is
+  // not observable, and if the parent document has finished loading all its
+  // render-blocking stylesheets and may start laying out the document, to avoid
+  // unnecessary flashes of unstyled content on the parent document. Note that
+  // this last bit means that size-dependent media queries in this document may
+  // produce incorrect results temporarily.
+  //
+  // But if it's not safe to flush ourselves, then don't flush the parent, since
+  // that can cause things like resizes of our frame's widget, which we can't
+  // handle while flushing is unsafe.
   if (StyleOrLayoutObservablyDependsOnParentDocumentLayout() &&
-      IsSafeToFlush()) {
-    mozilla::ChangesToFlush parentFlush = aFlush;
+      mParentDocument->MayStartLayout() && IsSafeToFlush()) {
+    ChangesToFlush parentFlush = aFlush;
     if (flushType >= FlushType::Style) {
+      // Since media queries mean that a size change of our container can affect
+      // style, we need to promote a style flush on ourself to a layout flush on
+      // our parent, since we need our container to be the correct size to
+      // determine the correct style.
       parentFlush.mFlushType = std::max(FlushType::Layout, flushType);
     }
     mParentDocument->FlushPendingNotifications(parentFlush);
@@ -9833,9 +9997,9 @@ void Document::FlushExternalResources(FlushType aType) {
   }
 
   EnumerateExternalResources(
-      [](Document& aDoc, void* aData) -> bool {
+      [](Document& aDoc, void* aData) -> CallState {
         aDoc.FlushPendingNotifications(*static_cast<FlushType*>(aData));
-        return true;
+        return CallState::Continue;
       },
       &aType);
 }
@@ -10041,7 +10205,7 @@ void Document::Sanitize() {
         HTMLInputElement::FromNodeOrNull(nodes->Item(i));
     if (!input) continue;
 
-    input->GetAttribute(NS_LITERAL_STRING("autocomplete"), value);
+    input->GetAttr(nsGkAtoms::autocomplete, value);
     if (value.LowerCaseEqualsLiteral("off") || input->HasBeenTypePassword()) {
       input->Reset();
     }
@@ -10077,7 +10241,7 @@ void Document::EnumerateSubDocuments(SubDocEnumFunc aCallback, void* aData) {
     }
   }
   for (auto& subdoc : subdocs) {
-    if (!aCallback(*subdoc, aData)) {
+    if (aCallback(*subdoc, aData) == CallState::Stop) {
       break;
     }
   }
@@ -10342,6 +10506,11 @@ void Document::RemovedFromDocShell() {
        child = child->GetNextSibling()) {
     child->SaveSubtreeState();
   }
+
+  nsIDocShell* docShell = GetDocShell();
+  if (docShell) {
+    docShell->SynchronizeLayoutHistoryState();
+  }
 }
 
 already_AddRefed<nsILayoutHistoryState> Document::GetLayoutHistoryState()
@@ -10557,10 +10726,10 @@ void Document::DispatchPageTransition(EventTarget* aDispatchTarget,
                                     nullptr);
 }
 
-static bool NotifyPageShow(Document& aDocument, void* aData) {
+static CallState NotifyPageShow(Document& aDocument, void* aData) {
   const bool* aPersistedPtr = static_cast<const bool*>(aData);
   aDocument.OnPageShow(*aPersistedPtr, nullptr);
-  return true;
+  return CallState::Continue;
 }
 
 void Document::OnPageShow(bool aPersisted, EventTarget* aDispatchStartTarget,
@@ -10609,9 +10778,8 @@ void Document::OnPageShow(bool aPersisted, EventTarget* aDispatchStartTarget,
     if (os) {
       nsIPrincipal* principal = NodePrincipal();
       os->NotifyObservers(ToSupports(this),
-                          nsContentUtils::IsSystemPrincipal(principal)
-                              ? "chrome-page-shown"
-                              : "content-page-shown",
+                          principal->IsSystemPrincipal() ? "chrome-page-shown"
+                                                         : "content-page-shown",
                           nullptr);
     }
 
@@ -10624,10 +10792,10 @@ void Document::OnPageShow(bool aPersisted, EventTarget* aDispatchStartTarget,
   }
 }
 
-static bool NotifyPageHide(Document& aDocument, void* aData) {
+static CallState NotifyPageHide(Document& aDocument, void* aData) {
   const bool* aPersistedPtr = static_cast<const bool*>(aData);
   aDocument.OnPageHide(*aPersistedPtr, nullptr);
-  return true;
+  return CallState::Continue;
 }
 
 static void DispatchFullscreenChange(Document& aDocument, nsINode* aTarget) {
@@ -10647,23 +10815,6 @@ void Document::OnPageHide(bool aPersisted, EventTarget* aDispatchStartTarget,
   MOZ_DIAGNOSTIC_ASSERT(
       inFrameLoaderSwap ==
       (mDocumentContainer && mDocumentContainer->InFrameSwap()));
-
-  if (IsTopLevelContentDocument() && GetDocGroup() &&
-      Telemetry::CanRecordExtended()) {
-    TabGroup* tabGroup = mDocGroup->GetTabGroup();
-
-    if (tabGroup) {
-      uint32_t active = tabGroup->Count(true /* aActiveOnly */);
-      uint32_t total = tabGroup->Count();
-
-      if (HasHttpScheme(GetDocumentURI())) {
-        Telemetry::Accumulate(Telemetry::ACTIVE_HTTP_DOCGROUPS_PER_TABGROUP,
-                              active);
-        Telemetry::Accumulate(Telemetry::TOTAL_HTTP_DOCGROUPS_PER_TABGROUP,
-                              total);
-      }
-    }
-  }
 
   // Send out notifications that our <link> elements are detached,
   // but only if this is not a full unload.
@@ -10703,7 +10854,7 @@ void Document::OnPageHide(bool aPersisted, EventTarget* aDispatchStartTarget,
     if (os) {
       nsIPrincipal* principal = NodePrincipal();
       os->NotifyObservers(ToSupports(this),
-                          nsContentUtils::IsSystemPrincipal(principal)
+                          principal->IsSystemPrincipal()
                               ? "chrome-page-hidden"
                               : "content-page-hidden",
                           nullptr);
@@ -10936,35 +11087,45 @@ nsresult Document::CloneDocHelper(Document* clone) const {
   return NS_OK;
 }
 
-static bool SetLoadingInSubDocument(Document& aDocument, void* aData) {
-  aDocument.SetAncestorLoading(*(static_cast<bool*>(aData)));
-  return true;
-}
-
-void Document::SetAncestorLoading(bool aAncestorIsLoading) {
-  NotifyLoading(mAncestorIsLoading, aAncestorIsLoading, mReadyState,
-                mReadyState);
-  mAncestorIsLoading = aAncestorIsLoading;
-}
-
-void Document::NotifyLoading(const bool& aCurrentParentIsLoading,
-                             bool aNewParentIsLoading,
+void Document::NotifyLoading(bool aNewParentIsLoading,
                              const ReadyState& aCurrentState,
                              ReadyState aNewState) {
   // Mirror the top-level loading state down to all subdocuments
-  bool was_loading = aCurrentParentIsLoading ||
+  bool was_loading = mAncestorIsLoading ||
                      aCurrentState == READYSTATE_LOADING ||
                      aCurrentState == READYSTATE_INTERACTIVE;
   bool is_loading = aNewParentIsLoading || aNewState == READYSTATE_LOADING ||
                     aNewState == READYSTATE_INTERACTIVE;  // new value for state
   bool set_load_state = was_loading != is_loading;
 
+  MOZ_LOG(
+      gTimeoutDeferralLog, mozilla::LogLevel::Debug,
+      ("NotifyLoading for doc %p: currentAncestor: %d, newParent: %d, "
+       "currentState %d newState: %d, was_loading: %d, is_loading: %d, "
+       "set_load_state: %d",
+       (void*)this, mAncestorIsLoading, aNewParentIsLoading, (int)aCurrentState,
+       (int)aNewState, was_loading, is_loading, set_load_state));
+
+  mAncestorIsLoading = aNewParentIsLoading;
   if (set_load_state && StaticPrefs::dom_timeout_defer_during_load()) {
+    // Tell our innerwindow (and thus TimeoutManager)
     nsPIDOMWindowInner* inner = GetInnerWindow();
     if (inner) {
       inner->SetActiveLoadingState(is_loading);
     }
-    EnumerateSubDocuments(SetLoadingInSubDocument, &is_loading);
+    BrowsingContext* context = GetBrowsingContext();
+    if (context) {
+      // Don't use PreOrderWalk to mirror this down; go down one level as a
+      // time so we can set mAncestorIsLoading and take into account the
+      // readystates of the subdocument.  In the child process it will call
+      // NotifyLoading() to notify the innerwindow/TimeoutManager, and then
+      // iterate it's children
+      for (auto& child : context->GetChildren()) {
+        MOZ_LOG(gTimeoutDeferralLog, mozilla::LogLevel::Debug,
+                ("bc: %p SetAncestorLoading(%d)", (void*)child, is_loading));
+        child->SetAncestorLoading(is_loading);
+      }
+    }
   }
 }
 
@@ -10989,8 +11150,7 @@ void Document::SetReadyStateInternal(ReadyState aReadyState,
   if (aUpdateTimingInformation && READYSTATE_LOADING == aReadyState) {
     mLoadingTimeStamp = TimeStamp::Now();
   }
-  NotifyLoading(mAncestorIsLoading, mAncestorIsLoading, mReadyState,
-                aReadyState);
+  NotifyLoading(mAncestorIsLoading, mReadyState, aReadyState);
   mReadyState = aReadyState;
   if (aUpdateTimingInformation && mTiming) {
     switch (aReadyState) {
@@ -11011,7 +11171,7 @@ void Document::SetReadyStateInternal(ReadyState aReadyState,
   // At the time of loading start, we don't have timing object, record time.
 
   if (READYSTATE_INTERACTIVE == aReadyState &&
-      nsContentUtils::IsSystemPrincipal(NodePrincipal())) {
+      NodePrincipal()->IsSystemPrincipal()) {
     if (!mXULPersist) {
       mXULPersist = new XULPersist(this);
       mXULPersist->Init();
@@ -11048,9 +11208,10 @@ void Document::GetReadyState(nsAString& aReadyState) const {
   }
 }
 
-static bool SuppressEventHandlingInDocument(Document& aDocument, void* aData) {
+static CallState SuppressEventHandlingInDocument(Document& aDocument,
+                                                 void* aData) {
   aDocument.SuppressEventHandling(*static_cast<uint32_t*>(aData));
-  return true;
+  return CallState::Continue;
 }
 
 void Document::SuppressEventHandling(uint32_t aIncrease) {
@@ -11386,7 +11547,8 @@ class nsDelayedEventDispatcher : public Runnable {
   nsTArray<nsCOMPtr<Document>> mDocuments;
 };
 
-static bool GetAndUnsuppressSubDocuments(Document& aDocument, void* aData) {
+static CallState GetAndUnsuppressSubDocuments(Document& aDocument,
+                                              void* aData) {
   if (aDocument.EventHandlingSuppressed() > 0) {
     aDocument.DecreaseEventSuppression();
     aDocument.ScriptLoader()->RemoveExecuteBlocker();
@@ -11396,7 +11558,7 @@ static bool GetAndUnsuppressSubDocuments(Document& aDocument, void* aData) {
 
   docs->AppendElement(&aDocument);
   aDocument.EnumerateSubDocuments(GetAndUnsuppressSubDocuments, aData);
-  return true;
+  return CallState::Continue;
 }
 
 void Document::UnsuppressEventHandlingAndFireEvents(bool aFireEvents) {
@@ -11466,7 +11628,7 @@ void Document::SetSuppressedEventListener(EventListener* aListener) {
       [](Document& aDocument, void* aData) {
         aDocument.SetSuppressedEventListener(
             static_cast<EventListener*>(aData));
-        return true;
+        return CallState::Continue;
       },
       aListener);
 }
@@ -12018,12 +12180,12 @@ mozilla::dom::ImageTracker* Document::ImageTracker() {
   return mImageTracker;
 }
 
-static bool AllSubDocumentPluginEnum(Document& aDocument, void* userArg) {
+static CallState AllSubDocumentPluginEnum(Document& aDocument, void* userArg) {
   nsTArray<nsIObjectLoadingContent*>* plugins =
       reinterpret_cast<nsTArray<nsIObjectLoadingContent*>*>(userArg);
   MOZ_ASSERT(plugins);
   aDocument.GetPlugins(*plugins);
-  return true;
+  return CallState::Continue;
 }
 
 void Document::GetPlugins(nsTArray<nsIObjectLoadingContent*>& aPlugins) {
@@ -12735,7 +12897,7 @@ class PendingFullscreenChangeList {
             // Always automatically drop fullscreen changes which are
             // from a document detached from the doc shell.
             UniquePtr<T> change = TakeAndNextInternal();
-            change->MayRejectPromise();
+            change->MayRejectPromise(u"Document is not active");
             continue;
           }
           while (docShell && docShell != mRootShellForIteration) {
@@ -12821,12 +12983,12 @@ void Document::AsyncExitFullscreen(Document* aDoc) {
   }
 }
 
-static bool CountFullscreenSubDocuments(Document& aDoc, void* aData) {
+static CallState CountFullscreenSubDocuments(Document& aDoc, void* aData) {
   if (aDoc.FullscreenStackTop()) {
     uint32_t* count = static_cast<uint32_t*>(aData);
     (*count)++;
   }
-  return true;
+  return CallState::Continue;
 }
 
 static uint32_t CountFullscreenSubDocuments(Document& aDoc) {
@@ -12844,14 +13006,19 @@ bool Document::IsFullscreenLeaf() {
   return CountFullscreenSubDocuments(*this) == 0;
 }
 
-bool GetFullscreenLeaf(Document& aDoc, void* aData) {
+static bool GetFullscreenLeaf(Document& aDoc, void* aData) {
   if (aDoc.IsFullscreenLeaf()) {
     Document** result = static_cast<Document**>(aData);
     *result = &aDoc;
     return false;
   }
   if (aDoc.FullscreenStackTop()) {
-    aDoc.EnumerateSubDocuments(GetFullscreenLeaf, aData);
+    aDoc.EnumerateSubDocuments(
+        [](Document& aDocument, void* aData) {
+          return GetFullscreenLeaf(aDocument, aData) ? CallState::Continue
+                                                     : CallState::Stop;
+        },
+        aData);
   }
   return true;
 }
@@ -12874,7 +13041,7 @@ static Document* GetFullscreenLeaf(Document* aDoc) {
   return leaf;
 }
 
-static bool ResetFullscreen(Document& aDocument, void* aData) {
+static CallState ResetFullscreen(Document& aDocument, void* aData) {
   if (Element* fsElement = aDocument.FullscreenStackTop()) {
     NS_ASSERTION(CountFullscreenSubDocuments(aDocument) <= 1,
                  "Should have at most 1 fullscreen subdocument.");
@@ -12883,7 +13050,7 @@ static bool ResetFullscreen(Document& aDocument, void* aData) {
     DispatchFullscreenChange(aDocument, fsElement);
     aDocument.EnumerateSubDocuments(ResetFullscreen, nullptr);
   }
-  return true;
+  return CallState::Continue;
 }
 
 // Since Document::ExitFullscreenInDocTree() could be called from
@@ -12974,8 +13141,12 @@ void Document::RestorePreviousFullscreenState(UniquePtr<FullscreenExit> aExit) {
   NS_ASSERTION(!FullscreenStackTop() || !FullscreenRoots::IsEmpty(),
                "Should have at least 1 fullscreen root when fullscreen!");
 
-  if (!FullscreenStackTop() || !GetWindow() || FullscreenRoots::IsEmpty()) {
-    aExit->MayRejectPromise();
+  if (!GetWindow()) {
+    aExit->MayRejectPromise(u"No active window");
+    return;
+  }
+  if (!FullscreenStackTop() || FullscreenRoots::IsEmpty()) {
+    aExit->MayRejectPromise(u"Not in fullscreen mode");
     return;
   }
 
@@ -13247,14 +13418,6 @@ void Document::RemoteFrameFullscreenReverted() {
   RestorePreviousFullscreenState(std::move(exit));
 }
 
-/* static */
-bool Document::IsUnprefixedFullscreenEnabled(JSContext* aCx,
-                                             JSObject* aObject) {
-  MOZ_ASSERT(NS_IsMainThread());
-  return nsContentUtils::IsSystemCaller(aCx) ||
-         StaticPrefs::full_screen_api_unprefix_enabled();
-}
-
 static bool HasFullscreenSubDocument(Document& aDoc) {
   uint32_t count = CountFullscreenSubDocuments(aDoc);
   NS_ASSERTION(count <= 1,
@@ -13266,15 +13429,14 @@ static bool HasFullscreenSubDocument(Document& aDoc) {
 // in the given document. Returns a static string indicates the reason
 // why it is not enabled otherwise.
 static const char* GetFullscreenError(Document* aDoc, CallerType aCallerType) {
-  bool apiEnabled = StaticPrefs::full_screen_api_enabled();
-  if (apiEnabled && aCallerType == CallerType::System) {
+  if (!StaticPrefs::full_screen_api_enabled()) {
+    return "FullscreenDeniedDisabled";
+  }
+
+  if (aCallerType == CallerType::System) {
     // Chrome code can always use the fullscreen API, provided it's not
     // explicitly disabled.
     return nullptr;
-  }
-
-  if (!apiEnabled) {
-    return "FullscreenDeniedDisabled";
   }
 
   if (!aDoc->IsVisible()) {
@@ -13290,7 +13452,7 @@ static const char* GetFullscreenError(Document* aDoc, CallerType aCallerType) {
   return nullptr;
 }
 
-bool Document::FullscreenElementReadyCheck(const FullscreenRequest& aRequest) {
+bool Document::FullscreenElementReadyCheck(FullscreenRequest& aRequest) {
   Element* elem = aRequest.Element();
   // Strictly speaking, this isn't part of the fullscreen element ready
   // check in the spec, but per steps in the spec, when an element which
@@ -13339,7 +13501,7 @@ bool Document::FullscreenElementReadyCheck(const FullscreenRequest& aRequest) {
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
   if (!fm) {
     NS_WARNING("Failed to retrieve focus manager in fullscreen request.");
-    aRequest.MayRejectPromise();
+    aRequest.MayRejectPromise(u"An unexpected error occurred");
     return false;
   }
   if (nsContentUtils::HasPluginWithUncontrolledEventDispatch(
@@ -13395,7 +13557,7 @@ void Document::RequestFullscreen(UniquePtr<FullscreenRequest> aRequest,
                                  bool applyFullScreenDirectly) {
   nsCOMPtr<nsPIDOMWindowOuter> rootWin = GetRootWindow(this);
   if (!rootWin) {
-    aRequest->MayRejectPromise();
+    aRequest->MayRejectPromise(u"No active window");
     return;
   }
 
@@ -13453,7 +13615,7 @@ static void ClearPendingFullscreenRequests(Document* aDoc) {
       aDoc, PendingFullscreenChangeList::eInclusiveDescendants);
   while (!iter.AtEnd()) {
     UniquePtr<FullscreenRequest> request = iter.TakeAndNext();
-    request->MayRejectPromise();
+    request->MayRejectPromise(u"Fullscreen request aborted");
   }
 }
 
@@ -13589,12 +13751,6 @@ bool Document::SetOrientationPendingPromise(Promise* aPromise) {
 
   mOrientationPendingPromise = aPromise;
   return true;
-}
-
-void Document::SetRDMPaneOrientation(OrientationType aType, uint16_t aAngle) {
-  if (GetBrowsingContext()->InRDMPane()) {
-    SetCurrentOrientation(aType, aAngle);
-  }
 }
 
 static void DispatchPointerLockChange(Document* aTarget) {
@@ -13928,9 +14084,6 @@ void Document::DocAddSizeOfExcludingThis(nsWindowSizes& aWindowSizes) const {
   }
 
   mStyleSet->AddSizeOfIncludingThis(aWindowSizes);
-
-  aWindowSizes.mDOMOtherSize += mLangGroupFontPrefs.SizeOfExcludingThis(
-      aWindowSizes.mState.mMallocSizeOf);
 
   aWindowSizes.mPropertyTablesSize +=
       mPropertyTable.SizeOfExcludingThis(aWindowSizes.mState.mMallocSizeOf);
@@ -14368,9 +14521,9 @@ void Document::ReportUseCounters() {
       doc->ReportUseCounters();
     }
     EnumerateExternalResources(
-        [](Document& aDoc, void*) -> bool {
+        [](Document& aDoc, void*) -> CallState {
           aDoc.ReportUseCounters();
-          return true;
+          return CallState::Continue;
         },
         nullptr);
   }
@@ -14527,9 +14680,10 @@ void Document::NotifyIntersectionObservers() {
   }
 }
 
-static bool NotifyLayerManagerRecreatedCallback(Document& aDocument, void*) {
+static CallState NotifyLayerManagerRecreatedCallback(Document& aDocument,
+                                                     void*) {
   aDocument.NotifyLayerManagerRecreated();
-  return true;
+  return CallState::Continue;
 }
 
 void Document::NotifyLayerManagerRecreated() {
@@ -14579,7 +14733,7 @@ Document::DocumentTheme Document::GetDocumentLWTheme() {
 }
 
 Document::DocumentTheme Document::ThreadSafeGetDocumentLWTheme() const {
-  if (!nsContentUtils::IsSystemPrincipal(NodePrincipal())) {
+  if (!NodePrincipal()->IsSystemPrincipal()) {
     return Doc_Theme_None;
   }
 
@@ -14619,7 +14773,8 @@ already_AddRefed<Element> Document::CreateHTMLElement(nsAtom* aTag) {
   return element.forget();
 }
 
-bool MarkDocumentTreeToBeInSyncOperation(Document& aDoc, void* aData) {
+static CallState MarkDocumentTreeToBeInSyncOperation(Document& aDoc,
+                                                     void* aData) {
   auto* documents = static_cast<nsTArray<nsCOMPtr<Document>>*>(aData);
   aDoc.SetIsInSyncOperation(true);
   if (nsCOMPtr<nsPIDOMWindowInner> window = aDoc.GetInnerWindow()) {
@@ -14627,7 +14782,7 @@ bool MarkDocumentTreeToBeInSyncOperation(Document& aDoc, void* aData) {
   }
   documents->AppendElement(&aDoc);
   aDoc.EnumerateSubDocuments(MarkDocumentTreeToBeInSyncOperation, aData);
-  return true;
+  return CallState::Continue;
 }
 
 nsAutoSyncOperation::nsAutoSyncOperation(Document* aDoc) {
@@ -15071,9 +15226,14 @@ void Document::TraceProtos(JSTracer* aTrc) {
  * toolkit/components/url-classifier/flash-block-lists.rst
  */
 FlashClassification Document::DocumentFlashClassification() {
+  // Disable flash blocking when fission is enabled(See Bug 1584931).
+  const auto fnIsFlashBlockingEnabled = [] {
+    return StaticPrefs::plugins_flashBlock_enabled() &&
+           !StaticPrefs::fission_autostart();
+  };
+
   // If neither pref is on, skip the null-principal and principal URI checks.
-  if (!StaticPrefs::plugins_http_https_only() &&
-      !StaticPrefs::plugins_flashBlock_enabled()) {
+  if (!StaticPrefs::plugins_http_https_only() && !fnIsFlashBlockingEnabled()) {
     return FlashClassification::Unknown;
   }
 
@@ -15096,7 +15256,7 @@ FlashClassification Document::DocumentFlashClassification() {
 
   // If flash blocking is disabled, it is equivalent to all sites being
   // on neither list.
-  if (!StaticPrefs::plugins_flashBlock_enabled()) {
+  if (!fnIsFlashBlockingEnabled()) {
     return FlashClassification::Unknown;
   }
 
@@ -15437,12 +15597,6 @@ already_AddRefed<Promise> Document::RequestStorageAccess(ErrorResult& aRv) {
                       Telemetry::LABELS_STORAGE_ACCESS_API_UI::Allow);
                   p->Resolve(AntiTrackingCommon::eAllow, __func__);
                 },
-                // Allow on any site
-                [p] {
-                  Telemetry::AccumulateCategorical(
-                      Telemetry::LABELS_STORAGE_ACCESS_API_UI::AllowOnAnySite);
-                  p->Resolve(AntiTrackingCommon::eAllowOnAnySite, __func__);
-                },
                 // Block
                 [p] {
                   Telemetry::AccumulateCategorical(
@@ -15452,17 +15606,6 @@ already_AddRefed<Promise> Document::RequestStorageAccess(ErrorResult& aRv) {
 
         typedef ContentPermissionRequestBase::PromptResult PromptResult;
         PromptResult pr = sapr->CheckPromptPrefs();
-        bool onAnySite = false;
-        if (pr == PromptResult::Pending) {
-          // Also check our custom pref for the "Allow on any site" case
-          if (Preferences::GetBool("dom.storage_access.prompt.testing",
-                                   false) &&
-              Preferences::GetBool(
-                  "dom.storage_access.prompt.testing.allowonanysite", false)) {
-            pr = PromptResult::Granted;
-            onAnySite = true;
-          }
-        }
 
         if (pr == PromptResult::Pending) {
           // We're about to show a prompt, record the request attempt
@@ -15472,7 +15615,7 @@ already_AddRefed<Promise> Document::RequestStorageAccess(ErrorResult& aRv) {
 
         self->AutomaticStorageAccessCanBeGranted()->Then(
             GetCurrentThreadSerialEventTarget(), __func__,
-            [p, pr, sapr, inner, onAnySite](
+            [p, pr, sapr, inner](
                 const AutomaticStorageAccessGrantPromise::ResolveOrRejectValue&
                     aValue) -> void {
               // Make a copy because we can't modified copy-captured lambda
@@ -15499,9 +15642,7 @@ already_AddRefed<Promise> Document::RequestStorageAccess(ErrorResult& aRv) {
                 if (pr2 == PromptResult::Granted) {
                   AntiTrackingCommon::StorageAccessPromptChoices choice =
                       AntiTrackingCommon::eAllow;
-                  if (onAnySite) {
-                    choice = AntiTrackingCommon::eAllowOnAnySite;
-                  } else if (autoGrant) {
+                  if (autoGrant) {
                     choice = AntiTrackingCommon::eAllowAutoGrant;
                   }
                   if (!autoGrant) {

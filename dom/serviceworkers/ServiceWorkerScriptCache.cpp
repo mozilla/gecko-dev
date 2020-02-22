@@ -5,6 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ServiceWorkerScriptCache.h"
+
+#include "js/Array.h"  // JS::GetArrayLength
 #include "mozilla/SystemGroup.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/CacheBinding.h"
@@ -18,13 +20,13 @@
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/net/CookieSettings.h"
 #include "nsICacheInfoChannel.h"
-#include "nsIHttpChannelInternal.h"
 #include "nsIStreamLoader.h"
 #include "nsIThreadRetargetableRequest.h"
+#include "nsIUUIDGenerator.h"
+#include "nsIXPConnect.h"
 
 #include "nsIInputStreamPump.h"
 #include "nsIPrincipal.h"
-#include "nsIScriptError.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsContentUtils.h"
 #include "nsNetUtil.h"
@@ -390,7 +392,7 @@ class CompareManager final : public PromiseNativeHandler {
     }
 
     uint32_t len = 0;
-    if (!JS_GetArrayLength(aCx, obj, &len)) {
+    if (!JS::GetArrayLength(aCx, obj, &len)) {
       return;
     }
 

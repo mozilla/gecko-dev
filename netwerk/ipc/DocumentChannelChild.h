@@ -9,6 +9,7 @@
 #define mozilla_net_DocumentChannelChild_h
 
 #include "mozilla/net/PDocumentChannelChild.h"
+#include "nsDOMNavigationTiming.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsIChannel.h"
 #include "nsIChildChannel.h"
@@ -46,7 +47,8 @@ class DocumentChannelChild final : public nsIIdentChannel,
 
   mozilla::ipc::IPCResult RecvFailedAsyncOpen(const nsresult& aStatusCode);
 
-  mozilla::ipc::IPCResult RecvDisconnectChildListeners(const nsresult& aStatus);
+  mozilla::ipc::IPCResult RecvDisconnectChildListeners(
+      const nsresult& aStatus, const nsresult& aLoadGroupStatus);
 
   mozilla::ipc::IPCResult RecvDeleteSelf();
 
@@ -70,11 +72,20 @@ class DocumentChannelChild final : public nsIIdentChannel,
     *aChannelRedirectFlags = mLastVisitInfo.previousFlags();
   }
 
+  void SetDocumentOpenFlags(uint32_t aFlags, bool aPluginsAllowed) {
+    mDocumentOpenFlags = Some(aFlags);
+    mPluginsAllowed = aPluginsAllowed;
+  }
+
+  void SetNavigationTiming(nsDOMNavigationTiming* aTiming) {
+    mTiming = aTiming;
+  }
+
  private:
   void ShutdownListeners(nsresult aStatusCode);
   nsDocShell* GetDocShell();
 
-  ~DocumentChannelChild() = default;
+  ~DocumentChannelChild();
 
   LastVisitInfo mLastVisitInfo;
   nsCOMPtr<nsIChannel> mRedirectChannel;
@@ -93,6 +104,7 @@ class DocumentChannelChild final : public nsIIdentChannel,
 
   nsresult mStatus = NS_OK;
   bool mCanceled = false;
+  Maybe<uint32_t> mDocumentOpenFlags;
   bool mIsPending = false;
   bool mWasOpened = false;
   uint64_t mChannelId;
@@ -103,6 +115,8 @@ class DocumentChannelChild final : public nsIIdentChannel,
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   nsCOMPtr<nsIStreamListener> mListener;
   nsCOMPtr<nsISupports> mOwner;
+  bool mPluginsAllowed = false;
+  RefPtr<nsDOMNavigationTiming> mTiming;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(DocumentChannelChild, DOCUMENT_CHANNEL_CHILD_IID)

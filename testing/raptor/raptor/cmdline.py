@@ -140,9 +140,14 @@ def create_parser(mach_interface=False):
             help="Run without multiple processes (e10s).")
     add_arg('--enable-webrender', dest="enable_webrender", action="store_true", default=False,
             help="Enable the WebRender compositor in Gecko.")
-    add_arg('--with-conditioned-profile', dest="with_conditioned_profile", action="store_true",
-            default=False,
-            help="Run Raptor tests with a conditioned profile.")
+    add_arg('--no-conditioned-profile', dest="no_conditioned_profile", action="store_true",
+            default=False, help="Run Raptor tests without a conditioned profile.")
+    add_arg('--device-name', dest="device_name", default=None,
+            type=str, help="Device name of mobile device.")
+    add_arg('--enable-fission', dest="enable_fission", action="store_true", default=False,
+            help="Enable Fission (site isolation) in Gecko.")
+    add_arg('--setpref', dest="extra_prefs", action="append", default=[],
+            help="A preference to set. Must be a key-value pair separated by a ':'.")
     if not mach_interface:
         add_arg('--run-local', dest="run_local", default=False, action="store_true",
                 help="Flag which indicates if Raptor is running locally or in production")
@@ -153,6 +158,9 @@ def create_parser(mach_interface=False):
     add_arg('--installerpath', dest="installerpath", default=None, type=str,
             help="Location where Android browser APK was extracted to before installation.")
 
+    # for browsertime jobs, cold page load is determined by a '--cold' cmd line argument
+    add_arg('--cold', dest="cold", action="store_true",
+            help="Enable cold page-load for browsertime tp6")
     # Arguments for invoking browsertime.
     add_arg('--browsertime', dest='browsertime', default=False, action="store_true",
             help="Whether to use browsertime to execute pageload tests")
@@ -183,9 +191,9 @@ def verify_options(parser, args):
         if not os.path.isfile(args.binary):
             parser.error("{binary} does not exist!".format(**ctx))
 
-    # if geckoProfile specified but not running on Firefox, not supported
-    if args.gecko_profile is True and args.app != "firefox":
-        parser.error("Gecko profiling is only supported when running Raptor on Firefox!")
+    # if geckoProfile specified but running on Chrom[e|ium], not supported
+    if args.gecko_profile and args.app in CHROMIUM_DISTROS:
+        parser.error("Gecko profiling is not supported on Chrome/Chromium!")
 
     # if running power tests on geckoview/android, --host must be specified.
     if args.power_test:

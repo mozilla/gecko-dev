@@ -2903,37 +2903,31 @@ class nsIFrame : public nsQueryFrame {
   enum {
     eMathML = 1 << 0,
     eSVG = 1 << 1,
-    eSVGForeignObject = 1 << 2,
-    eSVGContainer = 1 << 3,
-    eSVGGeometry = 1 << 4,
-    eSVGPaintServer = 1 << 5,
-    eBidiInlineContainer = 1 << 6,
+    eSVGContainer = 1 << 2,
+    eSVGPaintServer = 1 << 3,
+    eBidiInlineContainer = 1 << 4,
     // the frame is for a replaced element, such as an image
-    eReplaced = 1 << 7,
+    eReplaced = 1 << 5,
     // Frame that contains a block but looks like a replaced element
     // from the outside
-    eReplacedContainsBlock = 1 << 8,
+    eReplacedContainsBlock = 1 << 6,
     // A frame that participates in inline reflow, i.e., one that
     // requires ReflowInput::mLineLayout.
-    eLineParticipant = 1 << 9,
-    eXULBox = 1 << 10,
-    eCanContainOverflowContainers = 1 << 11,
-    eTablePart = 1 << 12,
-    // If this bit is set, the frame doesn't allow ignorable whitespace as
-    // children. For example, the whitespace between <table>\n<tr>\n<td>
-    // will be excluded during the construction of children.
-    eExcludesIgnorableWhitespace = 1 << 13,
-    eSupportsCSSTransforms = 1 << 14,
+    eLineParticipant = 1 << 7,
+    eXULBox = 1 << 8,
+    eCanContainOverflowContainers = 1 << 9,
+    eTablePart = 1 << 10,
+    eSupportsCSSTransforms = 1 << 11,
 
     // A replaced element that has replaced-element sizing
     // characteristics (i.e., like images or iframes), as opposed to
     // inline-block sizing characteristics (like form controls).
-    eReplacedSizing = 1 << 15,
+    eReplacedSizing = 1 << 12,
 
     // Does this frame class support 'contain: layout' and
     // 'contain:paint' (supporting one is equivalent to supporting the
     // other).
-    eSupportsContainLayoutAndPaint = 1 << 16,
+    eSupportsContainLayoutAndPaint = 1 << 13,
 
     // These are to allow nsFrame::Init to assert that IsFrameOfType
     // implementations all call the base class method.  They are only
@@ -2968,6 +2962,12 @@ class nsIFrame : public nsQueryFrame {
    * subclasses.
    */
   bool IsBlockFrameOrSubclass() const;
+
+  /**
+   * Returns true if the frame is an instance of nsSVGGeometryFrame or one
+   * of its subclasses.
+   */
+  inline bool IsSVGGeometryFrameOrSubclass() const;
 
   /**
    * Get this frame's CSS containing block.

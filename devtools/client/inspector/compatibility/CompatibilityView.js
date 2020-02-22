@@ -19,10 +19,10 @@ loader.lazyRequireGetter(
 const {
   updateSelectedNode,
   updateTargetBrowsers,
-} = require("./actions/compatibility");
+} = require("devtools/client/inspector/compatibility/actions/compatibility");
 
 const CompatibilityApp = createFactory(
-  require("./components/CompatibilityApp")
+  require("devtools/client/inspector/compatibility/components/CompatibilityApp")
 );
 
 class CompatibilityView {
@@ -124,7 +124,6 @@ function _getDefaultTargetBrowsers() {
     "safari",
     "safari_ios",
     "edge",
-    "edge_mobile",
   ];
   const TARGET_BROWSER_STATUS = ["esr", "current", "beta", "nightly"];
 

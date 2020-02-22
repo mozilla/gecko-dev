@@ -208,6 +208,9 @@ class ChromeUtils {
                               const nsAString& aText);
   static void RecordReplaySetActiveTab(const GlobalObject& aGlobal,
                                        nsISupports* aTab);
+
+  static void GenerateMediaControlKeysTestEvent(
+      const GlobalObject& aGlobal, MediaControlKeysTestEvent aEvent);
 };
 
 }  // namespace dom

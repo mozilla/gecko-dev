@@ -620,7 +620,8 @@ pwmgr:
     ]
     bug_numbers:
       - 1548463
-    expiry_version: "74"
+      - 1600958
+    expiry_version: never
     notification_emails: ["loines@mozilla.com", "passwords-dev@mozilla.org", "jaws@mozilla.com"]
     release_channel_collection: opt-out
     products:
@@ -1596,6 +1597,26 @@ security.ui.protections:
     extra_keys:
       category: The category of protections the user is in, standard, strict or custom.
 
+security.ui.app_menu:
+  click:
+    bug_numbers:
+      - 1603545 
+    description: >
+      Privacy and Security click events on app menu.
+    objects: [
+      "open_full_report",
+    ]
+    expiry_version: "76"
+    record_in_processes: 
+      - main
+    release_channel_collection: opt-out
+    notification_emails:
+      - chsiang@mozilla.com
+      - ewright@mozilla.com 
+      - seceng-telemetry@mozilla.com
+    products:
+      - firefox
+
 security.ui.protectionspopup:
   open:
     objects: ["protections_popup"]
@@ -1605,6 +1626,7 @@ security.ui.protectionspopup:
       How many times the protections panel was opened.
     expiry_version: "75"
     notification_emails:
+      - ewright@mozilla.com
       - nhnt11@mozilla.com
       - jhofmann@mozilla.com
       - chsiang@mozilla.com
@@ -1629,9 +1651,11 @@ security.ui.protectionspopup:
       "subview_settings",
       "settings",
       "full_report",
+      "milestone_message",
     ]
     bug_numbers:
       - 1560327
+      - 1602015
     description: >
       User interaction by click events in the protections panel.
     expiry_version: "75"
@@ -1726,6 +1750,8 @@ security:
       Expected values are:
         chromeuri - chrome:// file
         resourceuri - resource:// file
+        datauri - a data URI
+        bloburi - a blob URI
         singlestring - A single file or string with no slashes
         mozillaextension - An extension claiming to be from *mozilla.org
         otherextension - Another extension not from Mozilla
@@ -1737,101 +1763,43 @@ security:
                               the value prepared as for sanitizedWindowsPath, or the bare scheme of
                               the original url
         other - Unknown
-        other-on-worker - We cannot do a regex; it is not chromeuri or resourceuri, but
+        other-on-worker - We cannot do a regex; it is not a chrome, resource, data, or blob uri, but
                           could be any other.
         regexfailure - Our Regex Matching code threw an error
       The fileinfo key may contain additional information about the file that caused the eval()
       depending on the above value. Resource, Chrome, and SingleString will contain the full value.
       Extensions will contain the full value; however .xpi! will be shortened to !,
-      shield.mozilla.org! to s! and mozilla.org! to m!.  UserChromeJS, Other, and Regexfailure should
-      have no value.
-    expiry_version: "never"
+      shield.mozilla.org! to s! and mozilla.org! to m!.  Data, Blob, UserChromeJS, Other, and
+      Regexfailure should have no value.
     notification_emails:
       - tom@mozilla.com
       - ckerschb@mozilla.com
     release_channel_collection: opt-out
     products:
       - firefox
-      - fennec
-      - geckoview
     expiry_version: "75"
     record_in_processes:
       - all
     extra_keys:
       fileinfo: Information about the file that triggered eval
-
-
-# This data collection is intended for study-only collection
-# and is not meant to be enabled permanently on opt-in or opt-out.
-# It is controlled by the permissions.eventTelemetry.enabled pref.
-security.ui.permissionprompt:
-  show:
-    objects: [
-      "notifications",
-      "geo",
-    ]
+  javascriptLoad:
+    objects: ["parentProcess"]
     bug_numbers:
-      - 1536454
-      - 1578266
+      - 1582512
     description: >
-      When a permission prompt was shown.
-    expiry_version: "74"
+      The javascript engine requested to load a filename that was not allowed.
+      Expected values, and fileinfo key, are the same possible values as above in 'evalUsage'
     notification_emails:
-      - jhofmann@mozilla.com
-      - ehsan@mozilla.com
-      - seceng-telemetry@mozilla.com
+      - tom@mozilla.com
+      - gijs@mozilla.com
     release_channel_collection: opt-out
+    products:
+      - firefox
+    expiry_version: "77"
     record_in_processes:
       - main
     extra_keys:
-      previousVisits: How often the user has visited this site before today
-      timeOnPage: How much time the user has spent on this page so far
-      hasUserInput: Whether the prompt was handling user input (not including scrolling)
-      docHasUserInput: Whether the document has been interacted with (includes scrolling)
-      lastInteraction: When the site was last interacted with (includes scrolling)
-      allPermsDenied: How many permissions were denied by the user in total
-      allPermsGranted: How many permissions were granted by the user in total
-      thisPermDenied: How many permissions of the same kind were denied by the user in total
-      thisPermGranted: How many permissions of the same kind were granted by the user in total
-    products:
-      - firefox
-  remove:
-    objects: [
-      "notifications",
-      "geo",
-    ]
-    methods: [
-      "accept",
-      "deny",
-      "never",
-      "leave",
-      "other",
-    ]
-    bug_numbers:
-      - 1536454
-      - 1578266
-    description: >
-      When a permission prompt was removed, with the reasons being represented in the method field.
-    expiry_version: "74"
-    notification_emails:
-      - jhofmann@mozilla.com
-      - ehsan@mozilla.com
-      - seceng-telemetry@mozilla.com
-    release_channel_collection: opt-out
-    record_in_processes:
-      - main
-    extra_keys:
-      previousVisits: How often the user has visited this site before today
-      timeOnPage: How much time the user has spent on this page so far
-      hasUserInput: Whether the prompt was handling user input (not including scrolling)
-      docHasUserInput: Whether the document has been interacted with (includes scrolling)
-      lastInteraction: When the site was last interacted with (includes scrolling)
-      allPermsDenied: How many permissions were denied by the user in total
-      allPermsGranted: How many permissions were granted by the user in total
-      thisPermDenied: How many permissions of the same kind were denied by the user in total
-      thisPermGranted: How many permissions of the same kind were granted by the user in total
-    products:
-      - firefox
+      fileinfo: Information about the filename that was requested to be loaded
 
 pictureinpicture:
   create:

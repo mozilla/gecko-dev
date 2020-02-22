@@ -37,6 +37,7 @@
 #include "util/StringBuffer.h"
 #include "util/Unicode.h"
 #include "vm/GeckoProfiler.h"
+#include "vm/JSFunction.h"
 
 #include "vm/GeckoProfiler-inl.h"
 #include "vm/JSContext-inl.h"
@@ -941,7 +942,7 @@ static inline void FillChars(unsigned char* dest, const unsigned char* src,
 
 static inline void FillChars(char16_t* dest, LittleEndianChars src,
                              size_t length) {
-#ifdef MOZ_LITTLE_ENDIAN
+#if MOZ_LITTLE_ENDIAN()
   memcpy(dest, src.get(), length * sizeof(char16_t));
 #else
   for (size_t i = 0; i < length; ++i) {
@@ -1310,38 +1311,6 @@ void StaticStrings::trace(JSTracer* trc) {
   for (uint32_t i = 0; i < INT_STATIC_LIMIT; i++) {
     TraceStaticString(trc, intStaticTable[i], "int-static-string");
   }
-}
-
-template <typename CharT>
-/* static */
-bool StaticStrings::isStatic(const CharT* chars, size_t length) {
-  switch (length) {
-    case 1: {
-      char16_t c = chars[0];
-      return c < UNIT_STATIC_LIMIT;
-    }
-    case 2:
-      return fitsInSmallChar(chars[0]) && fitsInSmallChar(chars[1]);
-    case 3:
-      if ('1' <= chars[0] && chars[0] <= '9' && '0' <= chars[1] &&
-          chars[1] <= '9' && '0' <= chars[2] && chars[2] <= '9') {
-        int i =
-            (chars[0] - '0') * 100 + (chars[1] - '0') * 10 + (chars[2] - '0');
-
-        return unsigned(i) < INT_STATIC_LIMIT;
-      }
-      return false;
-    default:
-      return false;
-  }
-}
-
-/* static */
-bool StaticStrings::isStatic(JSAtom* atom) {
-  AutoCheckCannotGC nogc;
-  return atom->hasLatin1Chars()
-             ? isStatic(atom->latin1Chars(nogc), atom->length())
-             : isStatic(atom->twoByteChars(nogc), atom->length());
 }
 
 bool AutoStableStringChars::init(JSContext* cx, JSString* s) {
@@ -2351,6 +2320,11 @@ JSString* js::ValueToSource(JSContext* cx, HandleValue v) {
     }
 
     return ToString<CanGC>(cx, v);
+  }
+
+  if (obj->is<JSFunction>()) {
+    RootedFunction fun(cx, &obj->as<JSFunction>());
+    return FunctionToString(cx, fun, true);
   }
 
   return ObjectToSource(cx, obj);

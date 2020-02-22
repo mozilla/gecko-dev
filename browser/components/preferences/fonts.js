@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* import-globals-from ../../base/content/utilityOverlay.js */
 /* import-globals-from ../../../toolkit/mozapps/preferences/fontbuilder.js */
 
 // browser.display.languageList LOCK ALL when LOCKED
@@ -18,10 +19,9 @@ const kFontSizeFmtVariable = "font.size.variable.%LANG%";
 const kFontSizeFmtFixed = "font.size.monospace.%LANG%";
 const kFontMinSizeFmt = "font.minimum-size.%LANG%";
 
-document.documentElement.addEventListener(
-  "dialoghelp",
-  window.top.openPrefsHelp
-);
+document
+  .getElementById("FontsDialog")
+  .addEventListener("dialoghelp", window.top.openPrefsHelp);
 window.addEventListener("load", () => gFontsDialog.onLoad());
 
 Preferences.addAll([
@@ -29,6 +29,10 @@ Preferences.addAll([
   { id: "browser.display.use_document_fonts", type: "int" },
   { id: "intl.charset.fallback.override", type: "string" },
 ]);
+
+document.getElementById("FallbackGroupbox").hidden = Services.prefs.getBoolPref(
+  "intl.charset.detector.ng.enabled"
+);
 
 var gFontsDialog = {
   _selectLanguageGroupPromise: Promise.resolve(),

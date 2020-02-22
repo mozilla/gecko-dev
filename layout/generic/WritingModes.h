@@ -29,8 +29,8 @@
 // (In some cases, there are internal (private) methods that don't do this;
 // such methods should only be used by other methods that have already checked
 // the writing modes.)
-// The check ignores the StyleWritingMode_VERTICAL_SIDEWAYS and
-// StyleWritingMode_TEXT_SIDEWAYS bit of writing mode, because
+// The check ignores the StyleWritingMode::VERTICAL_SIDEWAYS and
+// StyleWritingMode::TEXT_SIDEWAYS bit of writing mode, because
 // this does not affect the interpretation of logical coordinates.
 
 #define CHECK_WRITING_MODE(param)                                           \
@@ -42,6 +42,23 @@ namespace mozilla {
 namespace widget {
 struct IMENotification;
 }  // namespace widget
+
+// Logical axis, edge, side and corner constants for use in various places.
+enum LogicalAxis { eLogicalAxisBlock = 0x0, eLogicalAxisInline = 0x1 };
+enum LogicalEdge { eLogicalEdgeStart = 0x0, eLogicalEdgeEnd = 0x1 };
+enum LogicalSide : uint8_t {
+  eLogicalSideBStart = (eLogicalAxisBlock << 1) | eLogicalEdgeStart,   // 0x0
+  eLogicalSideBEnd = (eLogicalAxisBlock << 1) | eLogicalEdgeEnd,       // 0x1
+  eLogicalSideIStart = (eLogicalAxisInline << 1) | eLogicalEdgeStart,  // 0x2
+  eLogicalSideIEnd = (eLogicalAxisInline << 1) | eLogicalEdgeEnd       // 0x3
+};
+
+enum LogicalCorner {
+  eLogicalCornerBStartIStart = 0,
+  eLogicalCornerBStartIEnd = 1,
+  eLogicalCornerBEndIEnd = 2,
+  eLogicalCornerBEndIStart = 3
+};
 
 // Physical axis constants.
 enum PhysicalAxis { eAxisVertical = 0x0, eAxisHorizontal = 0x1 };
@@ -196,7 +213,7 @@ class WritingMode {
    * Return the line-relative inline flow direction as a BidiDir
    */
   BidiDir GetBidiDir() const {
-    return BidiDir((mWritingMode & StyleWritingMode_RTL).bits);
+    return BidiDir((mWritingMode & StyleWritingMode::RTL).bits);
   }
 
   /**
@@ -206,7 +223,7 @@ class WritingMode {
    * if both of those are true).
    */
   bool IsInlineReversed() const {
-    return !!(mWritingMode & StyleWritingMode_INLINE_REVERSED);
+    return !!(mWritingMode & StyleWritingMode::INLINE_REVERSED);
   }
 
   /**
@@ -248,7 +265,7 @@ class WritingMode {
    * writing-mode: vertical-lr | vertical-rl.
    */
   bool IsVertical() const {
-    return !!(mWritingMode & StyleWritingMode_VERTICAL);
+    return !!(mWritingMode & StyleWritingMode::VERTICAL);
   }
 
   /**
@@ -256,7 +273,7 @@ class WritingMode {
    * This is true only when writing-mode is vertical-lr.
    */
   bool IsLineInverted() const {
-    return !!(mWritingMode & StyleWritingMode_LINE_INVERTED);
+    return !!(mWritingMode & StyleWritingMode::LINE_INVERTED);
   }
 
   /**
@@ -274,7 +291,7 @@ class WritingMode {
    * writing-mode: sideways-lr | sideways-rl.
    */
   bool IsVerticalSideways() const {
-    return !!(mWritingMode & StyleWritingMode_VERTICAL_SIDEWAYS);
+    return !!(mWritingMode & StyleWritingMode::VERTICAL_SIDEWAYS);
   }
 
   /**
@@ -297,17 +314,18 @@ class WritingMode {
    * baseline remains centered.
    */
   bool IsSideways() const {
-    return !!(mWritingMode & (StyleWritingMode_VERTICAL_SIDEWAYS |
-                              StyleWritingMode_TEXT_SIDEWAYS));
+    return !!(mWritingMode & (StyleWritingMode::VERTICAL_SIDEWAYS |
+                              StyleWritingMode::TEXT_SIDEWAYS));
   }
 
 #ifdef DEBUG
   // Used by CHECK_WRITING_MODE to compare modes without regard for the
-  // StyleWritingMode_VERTICAL_SIDEWAYS or StyleWritingMode_TEXT_SIDEWAYS flags.
+  // StyleWritingMode::VERTICAL_SIDEWAYS or StyleWritingMode::TEXT_SIDEWAYS
+  // flags.
   WritingMode IgnoreSideways() const {
     return WritingMode(
         mWritingMode.bits &
-        ~(StyleWritingMode_VERTICAL_SIDEWAYS | StyleWritingMode_TEXT_SIDEWAYS)
+        ~(StyleWritingMode::VERTICAL_SIDEWAYS | StyleWritingMode::TEXT_SIDEWAYS)
              .bits);
   }
 #endif
@@ -345,7 +363,7 @@ class WritingMode {
     // and hypothetical) values.  But this is fine; we only need to
     // distinguish between vertical and horizontal in
     // PhysicalAxisForLogicalAxis.
-    const auto wm = (mWritingMode & StyleWritingMode_VERTICAL).bits;
+    const auto wm = (mWritingMode & StyleWritingMode::VERTICAL).bits;
     return PhysicalAxisForLogicalAxis(wm, aAxis);
   }
 
@@ -353,8 +371,8 @@ class WritingMode {
                                                 LogicalEdge aEdge) {
     // indexes are NS_STYLE_WRITING_MODE_* values, which are the same as these
     // two-bit values:
-    //   bit 0 = the StyleWritingMode_VERTICAL value
-    //   bit 1 = the StyleWritingMode_VERTICAL_LR value
+    //   bit 0 = the StyleWritingMode::VERTICAL value
+    //   bit 1 = the StyleWritingMode::VERTICAL_LR value
     static const mozilla::Side kLogicalBlockSides[][2] = {
         {eSideTop, eSideBottom},  // horizontal-tb
         {eSideRight, eSideLeft},  // vertical-rl
@@ -374,10 +392,10 @@ class WritingMode {
 
   mozilla::Side PhysicalSideForInlineAxis(LogicalEdge aEdge) const {
     // indexes are four-bit values:
-    //   bit 0 = the StyleWritingMode_VERTICAL value
-    //   bit 1 = the StyleWritingMode_INLINE_REVERSED value
-    //   bit 2 = the StyleWritingMode_VERTICAL_LR value
-    //   bit 3 = the StyleWritingMode_LINE_INVERTED value
+    //   bit 0 = the StyleWritingMode::VERTICAL value
+    //   bit 1 = the StyleWritingMode::INLINE_REVERSED value
+    //   bit 2 = the StyleWritingMode::VERTICAL_LR value
+    //   bit 3 = the StyleWritingMode::LINE_INVERTED value
     // Not all of these combinations can actually be specified via CSS: there
     // is no horizontal-bt writing-mode, and no text-orientation value that
     // produces "inverted" text. (The former 'sideways-left' value, no longer
@@ -402,14 +420,14 @@ class WritingMode {
     };
 
     // Inline axis sides depend on all three of writing-mode, text-orientation
-    // and direction, which are encoded in the StyleWritingMode_VERTICAL,
-    // StyleWritingMode_INLINE_REVERSED, StyleWritingMode_VERTICAL_LR and
-    // StyleWritingMode_LINE_INVERTED bits.  Use these four bits to index into
+    // and direction, which are encoded in the StyleWritingMode::VERTICAL,
+    // StyleWritingMode::INLINE_REVERSED, StyleWritingMode::VERTICAL_LR and
+    // StyleWritingMode::LINE_INVERTED bits.  Use these four bits to index into
     // kLogicalInlineSides.
-    MOZ_ASSERT(StyleWritingMode_VERTICAL.bits == 0x01 &&
-                   StyleWritingMode_INLINE_REVERSED.bits == 0x02 &&
-                   StyleWritingMode_VERTICAL_LR.bits == 0x04 &&
-                   StyleWritingMode_LINE_INVERTED.bits == 0x08,
+    MOZ_ASSERT(StyleWritingMode::VERTICAL.bits == 0x01 &&
+                   StyleWritingMode::INLINE_REVERSED.bits == 0x02 &&
+                   StyleWritingMode::VERTICAL_LR.bits == 0x04 &&
+                   StyleWritingMode::LINE_INVERTED.bits == 0x08,
                "unexpected mask values");
     int index = mWritingMode.bits & 0x0F;
     return kLogicalInlineSides[index][aEdge];
@@ -421,12 +439,12 @@ class WritingMode {
    */
   mozilla::Side PhysicalSide(LogicalSide aSide) const {
     if (IsBlock(aSide)) {
-      MOZ_ASSERT(StyleWritingMode_VERTICAL.bits == 0x01 &&
-                     StyleWritingMode_VERTICAL_LR.bits == 0x04,
+      MOZ_ASSERT(StyleWritingMode::VERTICAL.bits == 0x01 &&
+                     StyleWritingMode::VERTICAL_LR.bits == 0x04,
                  "unexpected mask values");
       const auto wm = static_cast<uint8_t>(
-          ((mWritingMode & StyleWritingMode_VERTICAL_LR).bits >> 1) |
-          (mWritingMode & StyleWritingMode_VERTICAL).bits);
+          ((mWritingMode & StyleWritingMode::VERTICAL_LR).bits >> 1) |
+          (mWritingMode & StyleWritingMode::VERTICAL).bits);
       return PhysicalSideForBlockAxis(wm, GetEdge(aSide));
     }
 
@@ -441,10 +459,10 @@ class WritingMode {
   LogicalSide LogicalSideForPhysicalSide(mozilla::Side aSide) const {
     // clang-format off
     // indexes are four-bit values:
-    //   bit 0 = the StyleWritingMode_VERTICAL value
-    //   bit 1 = the StyleWritingMode_INLINE_REVERSED value
-    //   bit 2 = the StyleWritingMode_VERTICAL_LR value
-    //   bit 3 = the StyleWritingMode_LINE_INVERTED value
+    //   bit 0 = the StyleWritingMode::VERTICAL value
+    //   bit 1 = the StyleWritingMode::INLINE_REVERSED value
+    //   bit 2 = the StyleWritingMode::VERTICAL_LR value
+    //   bit 3 = the StyleWritingMode::LINE_INVERTED value
     static const LogicalSide kPhysicalToLogicalSides[][4] = {
       // top                right
       // bottom             left
@@ -483,10 +501,10 @@ class WritingMode {
     };
     // clang-format on
 
-    MOZ_ASSERT(StyleWritingMode_VERTICAL.bits == 0x01 &&
-                   StyleWritingMode_INLINE_REVERSED.bits == 0x02 &&
-                   StyleWritingMode_VERTICAL_LR.bits == 0x04 &&
-                   StyleWritingMode_LINE_INVERTED.bits == 0x08,
+    MOZ_ASSERT(StyleWritingMode::VERTICAL.bits == 0x01 &&
+                   StyleWritingMode::INLINE_REVERSED.bits == 0x02 &&
+                   StyleWritingMode::VERTICAL_LR.bits == 0x04 &&
+                   StyleWritingMode::LINE_INVERTED.bits == 0x08,
                "unexpected mask values");
     int index = mWritingMode.bits & 0x0F;
     return kPhysicalToLogicalSides[index][aSide];
@@ -539,8 +557,7 @@ class WritingMode {
    */
   void SetDirectionFromBidiLevel(uint8_t level) {
     if (IS_LEVEL_RTL(level) == IsBidiLTR()) {
-      mWritingMode.bits ^= static_cast<uint8_t>(
-          (StyleWritingMode_RTL | StyleWritingMode_INLINE_REVERSED).bits);
+      mWritingMode ^= StyleWritingMode::RTL | StyleWritingMode::INLINE_REVERSED;
     }
   }
 

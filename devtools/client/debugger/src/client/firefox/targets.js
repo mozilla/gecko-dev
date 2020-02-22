@@ -22,6 +22,8 @@ type Args = {
 async function attachTargets(targetLists, args) {
   const { targets } = args;
 
+  targetLists = targetLists.filter(target => !!target);
+
   for (const actor of Object.keys(targets)) {
     if (!targetLists.some(target => target.targetForm.threadActor == actor)) {
       delete targets[actor];
@@ -69,58 +71,98 @@ async function listWorkerTargets(args: Args) {
     return [];
   }
 
-  const { workers } = await currentTarget.listWorkers();
+  let workers = [];
+  let allWorkers;
+  let serviceWorkerRegistrations = [];
+  if (attachAllTargets(currentTarget)) {
+    workers = await debuggerClient.mainRoot.listAllWorkerTargets();
 
-  if (features.windowlessServiceWorkers && currentTarget.url) {
-    const { service } = await debuggerClient.mainRoot.listAllWorkers();
-    for (const { active, id, url } of service) {
-      // Attach to any service workers that are same-origin with our target.
-      // For now, ignore service workers associated with cross-origin iframes.
-      if (active && sameOrigin(url, currentTarget.url)) {
-        const workerTarget = await debuggerClient.mainRoot.getWorker(id);
-        workers.push(workerTarget);
-      }
-    }
-  } else if (attachAllTargets(currentTarget)) {
+    // subprocess workers are ignored because they take several seconds to
+    // attach to when opening the browser toolbox. See bug 1594597.
+    workers = workers.filter(({ url }) => !url.includes("subprocess_worker"));
+
+    allWorkers = workers;
+
     const {
-      other,
-      service,
-      shared,
-    } = await debuggerClient.mainRoot.listAllWorkers();
+      registrations,
+    } = await debuggerClient.mainRoot.listServiceWorkerRegistrations();
+    serviceWorkerRegistrations = registrations;
+  } else {
+    workers = (await currentTarget.listWorkers()).workers;
+    if (currentTarget.url && features.windowlessServiceWorkers) {
+      allWorkers = await debuggerClient.mainRoot.listAllWorkerTargets();
+      const {
+        registrations,
+      } = await debuggerClient.mainRoot.listServiceWorkerRegistrations();
+      serviceWorkerRegistrations = registrations.filter(front =>
+        sameOrigin(front.url, currentTarget.url)
+      );
+    }
+  }
 
-    for (const { workerTargetFront, url } of [...other, ...shared]) {
-      // subprocess workers are ignored because they take several seconds to
-      // attach to when opening the browser toolbox. See bug 1594597.
-      if (!url.includes("subprocess_worker")) {
-        workers.push(workerTargetFront);
-      }
+  for (const front of serviceWorkerRegistrations) {
+    const {
+      activeWorker,
+      waitingWorker,
+      installingWorker,
+      evaluatingWorker,
+    } = front;
+    await maybeMarkServiceWorker(activeWorker, "active");
+    await maybeMarkServiceWorker(waitingWorker, "waiting");
+    await maybeMarkServiceWorker(installingWorker, "installing");
+    await maybeMarkServiceWorker(evaluatingWorker, "evaluating");
+  }
+
+  async function maybeMarkServiceWorker(info, status) {
+    if (!info) {
+      return;
     }
 
-    for (const { active, id } of service) {
-      if (active) {
-        const workerTarget = await debuggerClient.mainRoot.getWorker(id);
-        workers.push(workerTarget);
-      }
+    const worker = allWorkers.find(front => front && front.id == info.id);
+    if (!worker) {
+      return;
+    }
+
+    worker.debuggerServiceWorkerStatus = status;
+    if (!workers.includes(worker)) {
+      workers.push(worker);
     }
   }
 
   return workers;
 }
 
-async function listProcessTargets(args: Args) {
-  const { currentTarget, debuggerClient } = args;
-  if (!attachAllTargets(currentTarget)) {
-    return [];
-  }
-
+async function getAllProcessTargets(args) {
+  const { debuggerClient } = args;
   const { processes } = await debuggerClient.mainRoot.listProcesses();
-  const targets = await Promise.all(
+  return Promise.all(
     processes
       .filter(descriptor => !descriptor.isParent)
       .map(descriptor => descriptor.getTarget())
   );
+}
 
-  return targets;
+async function listProcessTargets(args: Args) {
+  const { currentTarget } = args;
+  if (!attachAllTargets(currentTarget)) {
+    if (currentTarget.url && features.windowlessServiceWorkers) {
+      // Service workers associated with our target's origin need to pause until
+      // we attach, regardless of which process they are running in.
+      const origin = new URL(currentTarget.url).origin;
+      const targets = await getAllProcessTargets(args);
+      try {
+        await Promise.all(
+          targets.map(t => t.pauseMatchingServiceWorkers({ origin }))
+        );
+      } catch (e) {
+        // Old servers without pauseMatchingServiceWorkers will throw.
+        // @backward-compatibility: remove in Firefox 75
+      }
+    }
+    return [];
+  }
+
+  return getAllProcessTargets(args);
 }
 
 export async function updateTargets(args: Args) {

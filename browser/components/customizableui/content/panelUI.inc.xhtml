@@ -251,7 +251,7 @@
         <toolbaritem>
           <toolbarbutton id="appMenu-protection-report-button"
                class="subviewbutton subviewbutton-iconic"
-               oncommand="gProtectionsHandler.openProtections();"
+               oncommand="gProtectionsHandler.openProtections(); gProtectionsHandler.recordClick('open_full_report', null, 'app_menu');"
                data-l10n-id="appmenuitem-protection-report-tooltip">
             <image id="appMenu-protection-report-icon" class="toolbarbutton-icon"/>
             <label id="appMenu-protection-report-text"
@@ -355,6 +355,12 @@
                        key="key_openAddons"
                        command="Tools:Addons"
                        />
+        <toolbarbutton id="appMenu-ssb-button"
+                       class="subviewbutton subviewbutton-iconic subviewbutton-nav"
+                       label="Site Browsers"
+                       closemenu="none"
+                       oncommand="PanelUI.showSubView('appMenu-SSBView', this)"
+                       hidden="true" persist="hidden"/>
         <toolbarbutton id="appMenu-preferences-button"
                        class="subviewbutton subviewbutton-iconic"
 #ifdef XP_WIN
@@ -381,7 +387,7 @@
                        />
         <toolbarbutton id="appMenu-save-file-button"
                        class="subviewbutton"
-                       label="&savePageCmd.label;"
+                       data-l10n-id="toolbar-button-page-save"
                        key="key_savePage"
                        command="Browser:SavePage"
                        />
@@ -668,8 +674,8 @@
         <toolbarseparator/>
         <vbox id="PanelUI-characterEncodingView-charsets"
               class="PanelUI-characterEncodingView-list"/>
-        <toolbarseparator/>
-        <vbox>
+        <toolbarseparator id="PanelUI-characterEncodingView-autodetect-separator"/>
+        <vbox id="PanelUI-characterEncodingView-autodetect-container">
           <label id="PanelUI-characterEncodingView-autodetect-label"/>
           <vbox id="PanelUI-characterEncodingView-autodetect"
                 class="PanelUI-characterEncodingView-list"/>
@@ -700,6 +706,12 @@
                        command="cmd_toggleOfflineStatus"/>
       </vbox>
     </panelview>
+
+    <panelview id="appMenu-SSBView" class="PanelUI-subView">
+      <vbox class="panel-subview-body">
+      </vbox>
+    </panelview>
+
     <panelview id="appMenu-libraryView" class="PanelUI-subView">
       <vbox class="panel-subview-body">
         <toolbarbutton id="appMenu-library-bookmarks-button"
@@ -814,19 +826,13 @@
       </vbox>
     </panelview>
 
-    <panelview id="PanelUI-fxa-menu-account-panel" flex="1" title="&fxa.menu.settings.label;" class="PanelUI-subView" descriptionheightworkaround="true">
+    <panelview id="PanelUI-fxa-menu-account-panel" flex="1" title="&fxa.menu.accountSettings.label;" class="PanelUI-subView" descriptionheightworkaround="true">
       <vbox class="panel-subview-body">
         <toolbarbutton id="PanelUI-fxa-menu-account-settings-button"
                       class="subviewbutton subviewbutton-iconic"
-                      label="&fxa.menu.accountSettings.label;"
+                      label="&fxa.menu.manageAccount2.label;"
                       type="open-to-new"
                       oncommand="gSync.openFxAManagePageFromFxaMenu(this)"/>
-        <toolbarseparator/>
-        <label id="fxa-menu-device-name-label" class="subview-subheader"/>
-        <toolbarbutton id="PanelUI-fxa-menu-account-devices-button"
-                       class="subviewbutton subviewbutton-iconic"
-                       label="&fxa.menu.deviceSettings.label;"
-                       oncommand="gSync.openPrefsFromFxaMenu('sync_settings', this);"/>
         <toolbarseparator/>
         <toolbarbutton id="PanelUI-fxa-menu-account-signout-button"
                 class="subviewbutton subviewbutton-iconic"

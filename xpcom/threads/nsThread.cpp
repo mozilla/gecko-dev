@@ -241,6 +241,7 @@ struct nsThreadShutdownContext {
                           NotNull<nsThread*> aJoiningThread,
                           bool aAwaitingShutdownAck)
       : mTerminatingThread(aTerminatingThread),
+        mTerminatingPRThread(aTerminatingThread->GetPRThread()),
         mJoiningThread(aJoiningThread),
         mAwaitingShutdownAck(aAwaitingShutdownAck),
         mIsMainThreadJoining(NS_IsMainThread()) {
@@ -250,6 +251,7 @@ struct nsThreadShutdownContext {
 
   // NB: This will be the last reference.
   NotNull<RefPtr<nsThread>> mTerminatingThread;
+  PRThread* const mTerminatingPRThread;
   NotNull<nsThread*> MOZ_UNSAFE_REF(
       "Thread manager is holding reference to joining thread") mJoiningThread;
   bool mAwaitingShutdownAck;
@@ -418,7 +420,6 @@ void nsThread::ThreadFunc(void* aArg) {
   MOZ_ASSERT(self->mEvents);
 
   self->mThread = PR_GetCurrentThread();
-  self->mVirtualThread = GetCurrentVirtualThread();
   self->mEventTarget->SetCurrentThread();
   SetupCurrentThreadForChaosMode();
 
@@ -504,6 +505,9 @@ void nsThread::ThreadFunc(void* aArg) {
   FreeTraceInfo();
 #endif
 
+  // The PRThread will be deleted in PR_JoinThread(), so clear references.
+  self->mThread = nullptr;
+  self->mEventTarget->ClearCurrentThread();
   NS_RELEASE(self);
 }
 
@@ -594,7 +598,6 @@ nsThread::nsThread(NotNull<SynchronizedEventQueue*> aQueue,
           new ThreadEventTarget(mEvents.get(), aMainThread == MAIN_THREAD)),
       mShutdownContext(nullptr),
       mScriptObserver(nullptr),
-      mThread(nullptr),
       mStackSize(aStackSize),
       mNestedEventLoopDepth(0),
       mCurrentEventLoopDepth(MaxValue<uint32_t>::value),
@@ -618,7 +621,6 @@ nsThread::nsThread()
       mEventTarget(nullptr),
       mShutdownContext(nullptr),
       mScriptObserver(nullptr),
-      mThread(nullptr),
       mStackSize(0),
       mNestedEventLoopDepth(0),
       mCurrentEventLoopDepth(MaxValue<uint32_t>::value),
@@ -693,7 +695,6 @@ nsresult nsThread::Init(const nsACString& aName) {
 
 nsresult nsThread::InitCurrentThread() {
   mThread = PR_GetCurrentThread();
-  mVirtualThread = GetCurrentVirtualThread();
   SetupCurrentThreadForChaosMode();
   InitCommon();
 
@@ -758,14 +759,16 @@ nsThread::IsOnCurrentThread(bool* aResult) {
   if (mEventTarget) {
     return mEventTarget->IsOnCurrentThread(aResult);
   }
-  *aResult = GetCurrentVirtualThread() == mVirtualThread;
+  *aResult = PR_GetCurrentThread() == mThread;
   return NS_OK;
 }
 
 NS_IMETHODIMP_(bool)
 nsThread::IsOnCurrentThreadInfallible() {
-  // Rely on mVirtualThread being correct.
-  MOZ_CRASH("IsOnCurrentThreadInfallible should never be called on nsIThread");
+  // This method is only going to be called if `mThread` is null, which
+  // only happens when the thread has exited the event loop.  Therefore, when
+  // we are called, we can never be on this thread.
+  return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -773,8 +776,9 @@ nsThread::IsOnCurrentThreadInfallible() {
 
 NS_IMETHODIMP
 nsThread::GetPRThread(PRThread** aResult) {
-  *aResult = mThread;
-  return NS_OK;
+  PRThread* thread = mThread;  // atomic load
+  *aResult = thread;
+  return thread ? NS_OK : NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP
@@ -813,29 +817,23 @@ NS_IMETHODIMP
 nsThread::AsyncShutdown() {
   LOG(("THRD(%p) async shutdown\n", this));
 
-  // XXX If we make this warn, then we hit that warning at xpcom shutdown while
-  //     shutting down a thread in a thread pool.  That happens b/c the thread
-  //     in the thread pool is already shutdown by the thread manager.
-  if (!mThread) {
-    return NS_OK;
-  }
-
-  return !!ShutdownInternal(/* aSync = */ false) ? NS_OK : NS_ERROR_UNEXPECTED;
+  ShutdownInternal(/* aSync = */ false);
+  return NS_OK;
 }
 
 nsThreadShutdownContext* nsThread::ShutdownInternal(bool aSync) {
   MOZ_ASSERT(mEvents);
   MOZ_ASSERT(mEventTarget);
-  MOZ_ASSERT(mThread);
   MOZ_ASSERT(mThread != PR_GetCurrentThread());
   if (NS_WARN_IF(mThread == PR_GetCurrentThread())) {
     return nullptr;
   }
 
-  // Prevent multiple calls to this method
+  // Prevent multiple calls to this method.
   if (!mShutdownRequired.compareExchange(true, false)) {
     return nullptr;
   }
+  MOZ_ASSERT(mThread);
 
   MaybeRemoveFromThreadList();
 
@@ -866,7 +864,6 @@ nsThreadShutdownContext* nsThread::ShutdownInternal(bool aSync) {
 void nsThread::ShutdownComplete(NotNull<nsThreadShutdownContext*> aContext) {
   MOZ_ASSERT(mEvents);
   MOZ_ASSERT(mEventTarget);
-  MOZ_ASSERT(mThread);
   MOZ_ASSERT(aContext->mTerminatingThread == this);
 
   MaybeRemoveFromThreadList();
@@ -879,9 +876,8 @@ void nsThread::ShutdownComplete(NotNull<nsThreadShutdownContext*> aContext) {
   }
 
   // Now, it should be safe to join without fear of dead-locking.
-
-  PR_JoinThread(mThread);
-  mThread = nullptr;
+  PR_JoinThread(aContext->mTerminatingPRThread);
+  MOZ_ASSERT(!mThread);
 
 #ifdef DEBUG
   nsCOMPtr<nsIThreadObserver> obs = mEvents->GetObserver();
@@ -905,15 +901,10 @@ NS_IMETHODIMP
 nsThread::Shutdown() {
   LOG(("THRD(%p) sync shutdown\n", this));
 
-  // XXX If we make this warn, then we hit that warning at xpcom shutdown while
-  //     shutting down a thread in a thread pool.  That happens b/c the thread
-  //     in the thread pool is already shutdown by the thread manager.
-  if (!mThread) {
-    return NS_OK;
-  }
-
   nsThreadShutdownContext* maybeContext = ShutdownInternal(/* aSync = */ true);
-  if (!maybeContext) return NS_ERROR_UNEXPECTED;
+  if (!maybeContext) {
+    return NS_OK;  // The thread has already shut down.
+  }
 
   NotNull<nsThreadShutdownContext*> context = WrapNotNull(maybeContext);
 

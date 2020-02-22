@@ -44,6 +44,7 @@ import bisection
 from ctypes.util import find_library
 from datetime import datetime, timedelta
 from manifestparser import TestManifest
+from manifestparser.util import normsep
 from manifestparser.filters import (
     chunk_by_dir,
     chunk_by_runtime,
@@ -1485,10 +1486,6 @@ toolbar#nav-bar {
                 self.log.error(NO_TESTS_FOUND.format(options.flavor, manifest.fmt_filters()))
 
         paths = []
-
-        # When running mochitest locally the manifest is based on topsrcdir,
-        # but when running in automation it is based on the test root.
-        manifest_root = build_obj.topsrcdir if build_obj else self.testRootAbs
         for test in tests:
             if len(tests) == 1 and 'disabled' in test:
                 del test['disabled']
@@ -1503,18 +1500,23 @@ toolbar#nav-bar {
                     (test['name'], test['manifest']))
                 continue
 
-            manifest_relpath = os.path.relpath(test['manifest'], manifest_root)
-            self.tests_by_manifest[manifest_relpath].append(tp)
-            self.prefs_by_manifest[manifest_relpath].add(test.get('prefs'))
-            self.env_vars_by_manifest[manifest_relpath].add(test.get('environment'))
+            manifest_key = test['manifest_relpath']
+            # Ignore ancestor_manifests that live at the root (e.g, don't have a
+            # path separator).
+            if 'ancestor_manifest' in test and '/' in normsep(test['ancestor_manifest']):
+                manifest_key = '{}:{}'.format(test['ancestor_manifest'], manifest_key)
+
+            self.tests_by_manifest[manifest_key].append(tp)
+            self.prefs_by_manifest[manifest_key].add(test.get('prefs'))
+            self.env_vars_by_manifest[manifest_key].add(test.get('environment'))
 
             for key in ['prefs', 'environment']:
                 if key in test and not options.runByManifest and 'disabled' not in test:
                     self.log.error("parsing {}: runByManifest mode must be enabled to "
-                                   "set the `{}` key".format(manifest_relpath, key))
+                                   "set the `{}` key".format(test['manifest_relpath'], key))
                     sys.exit(1)
 
-            testob = {'path': tp, 'manifest': manifest_relpath}
+            testob = {'path': tp, 'manifest': manifest_key}
             if 'disabled' in test:
                 testob['disabled'] = test['disabled']
             if 'expected' in test:
@@ -2210,6 +2212,8 @@ toolbar#nav-bar {
             self.start_script_kwargs['testUrl'] = testUrl or 'about:blank'
 
             if detectShutdownLeaks:
+                env['MOZ_LOG'] = (env['MOZ_LOG'] + "," if env['MOZ_LOG'] else "") + \
+                    "DocShellAndDOMWindowLeak:3"
                 shutdownLeaks = ShutdownLeaks(self.log)
             else:
                 shutdownLeaks = None
@@ -2566,10 +2570,10 @@ toolbar#nav-bar {
             # should by synchronized with the default pref value indicated in
             # StaticPrefList.yaml.
             #
-            # Currently for automation, the pref defaults to true in nightly
-            # builds and false otherwise (but can be overridden with --setpref).
+            # Currently for automation, the pref defaults to true (but can be
+            # overridden with --setpref).
             "serviceworker_e10s": self.extraPrefs.get(
-                'dom.serviceWorkers.parent_intercept', mozinfo.info['nightly_build']),
+                'dom.serviceWorkers.parent_intercept', False),
 
             "socketprocess_e10s": self.extraPrefs.get(
                 'network.process.enabled', False),

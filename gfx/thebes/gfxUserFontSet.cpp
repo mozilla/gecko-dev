@@ -7,7 +7,6 @@
 
 #include "gfxUserFontSet.h"
 #include "gfxPlatform.h"
-#include "nsIProtocolHandler.h"
 #include "gfxFontConstants.h"
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/Preferences.h"
@@ -243,21 +242,23 @@ class MOZ_STACK_CLASS gfxOTSContext : public ots::OTSContext {
       mWarningsIssued.PutEntry(msg);
     }
 
-    mMessages.AppendElement(msg);
+    mMessages.AppendElement(gfxUserFontEntry::OTSMessage{msg, level});
   }
 
   bool Process(ots::OTSStream* aOutput, const uint8_t* aInput, size_t aLength,
-               nsTArray<nsCString>& aMessages) {
+               nsTArray<gfxUserFontEntry::OTSMessage>& aMessages) {
     bool ok = ots::OTSContext::Process(aOutput, aInput, aLength);
     aMessages = TakeMessages();
     return ok;
   }
 
-  nsTArray<nsCString>&& TakeMessages() { return std::move(mMessages); }
+  nsTArray<gfxUserFontEntry::OTSMessage>&& TakeMessages() {
+    return std::move(mMessages);
+  }
 
  private:
   nsTHashtable<nsCStringHashKey> mWarningsIssued;
-  nsTArray<nsCString> mMessages;
+  nsTArray<gfxUserFontEntry::OTSMessage> mMessages;
   bool mCheckOTLTables;
   bool mCheckVariationTables;
   bool mKeepColorBitmaps;
@@ -267,7 +268,7 @@ class MOZ_STACK_CLASS gfxOTSContext : public ots::OTSContext {
 // Returns a newly-allocated block, or nullptr in case of fatal errors.
 const uint8_t* gfxUserFontEntry::SanitizeOpenTypeData(
     const uint8_t* aData, uint32_t aLength, uint32_t& aSaneLength,
-    gfxUserFontType& aFontType, nsTArray<nsCString>& aMessages) {
+    gfxUserFontType& aFontType, nsTArray<OTSMessage>& aMessages) {
   aFontType = gfxFontUtils::DetermineFontDataType(aData, aLength);
   Telemetry::Accumulate(Telemetry::WEBFONT_FONTTYPE, uint32_t(aFontType));
 
@@ -696,7 +697,7 @@ bool gfxUserFontEntry::LoadPlatformFontSync(const uint8_t* aFontData,
   // if necessary. The original data in aFontData is left unchanged.
   uint32_t saneLen;
   gfxUserFontType fontType;
-  nsTArray<nsCString> messages;
+  nsTArray<OTSMessage> messages;
   const uint8_t* saneData =
       SanitizeOpenTypeData(aFontData, aLength, saneLen, fontType, messages);
 
@@ -712,13 +713,13 @@ void gfxUserFontEntry::StartPlatformFontLoadOnWorkerThread(
 
   uint32_t saneLen;
   gfxUserFontType fontType;
-  nsTArray<nsCString> messages;
+  nsTArray<OTSMessage> messages;
   const uint8_t* saneData =
       SanitizeOpenTypeData(aFontData, aLength, saneLen, fontType, messages);
 
   nsCOMPtr<nsIRunnable> event =
       NewRunnableMethod<const uint8_t*, uint32_t, gfxUserFontType,
-                        const uint8_t*, uint32_t, nsTArray<nsCString>&&,
+                        const uint8_t*, uint32_t, nsTArray<OTSMessage>&&,
                         nsMainThreadPtrHandle<nsIFontLoadCompleteCallback>>(
           "gfxUserFontEntry::ContinuePlatformFontLoadOnMainThread", this,
           &gfxUserFontEntry::ContinuePlatformFontLoadOnMainThread, aFontData,
@@ -731,11 +732,13 @@ bool gfxUserFontEntry::LoadPlatformFont(const uint8_t* aOriginalFontData,
                                         gfxUserFontType aFontType,
                                         const uint8_t* aSanitizedFontData,
                                         uint32_t aSanitizedLength,
-                                        nsTArray<nsCString>&& aMessages) {
+                                        nsTArray<OTSMessage>&& aMessages) {
   MOZ_ASSERT(NS_IsMainThread());
 
   for (const auto& msg : aMessages) {
-    mFontSet->LogMessage(this, msg.get());
+    mFontSet->LogMessage(this, msg.mMessage.get(),
+                         msg.mLevel > 0 ? nsIScriptError::warningFlag
+                                        : nsIScriptError::errorFlag);
   }
 
   if (!aSanitizedFontData) {
@@ -950,7 +953,7 @@ void gfxUserFontEntry::LoadPlatformFontAsync(
 void gfxUserFontEntry::ContinuePlatformFontLoadOnMainThread(
     const uint8_t* aOriginalFontData, uint32_t aOriginalLength,
     gfxUserFontType aFontType, const uint8_t* aSanitizedFontData,
-    uint32_t aSanitizedLength, nsTArray<nsCString>&& aMessages,
+    uint32_t aSanitizedLength, nsTArray<OTSMessage>&& aMessages,
     nsMainThreadPtrHandle<nsIFontLoadCompleteCallback> aCallback) {
   MOZ_ASSERT(NS_IsMainThread());
 

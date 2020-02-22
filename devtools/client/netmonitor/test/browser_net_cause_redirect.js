@@ -41,7 +41,7 @@ add_task(async function() {
   await Promise.all(requests);
 
   EXPECTED_REQUESTS.forEach(({ status }, i) => {
-    const item = getSortedRequests(store.getState()).get(i);
+    const item = getSortedRequests(store.getState())[i];
 
     is(item.status, status, `Request #${i} has the expected status`);
 
@@ -60,10 +60,12 @@ add_task(async function() {
   await teardown(monitor);
 
   function performRequests(count, url) {
-    return ContentTask.spawn(tab.linkedBrowser, { count, url }, async function(
-      args
-    ) {
-      content.wrappedJSObject.performRequests(args.count, args.url);
-    });
+    return SpecialPowers.spawn(
+      tab.linkedBrowser,
+      [{ count, url }],
+      async function(args) {
+        content.wrappedJSObject.performRequests(args.count, args.url);
+      }
+    );
   }
 });

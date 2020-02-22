@@ -28,6 +28,7 @@
 
 #include "frontend/BytecodeCompiler.h"
 #include "frontend/SourceNotes.h"
+#include "gc/PublicIterators.h"
 #include "js/CharacterEncoding.h"
 #include "js/Printf.h"
 #include "js/Symbol.h"
@@ -47,7 +48,7 @@
 #include "vm/Realm.h"
 #include "vm/Shape.h"
 
-#include "gc/PrivateIterators-inl.h"
+#include "gc/GC-inl.h"
 #include "vm/BytecodeIterator-inl.h"
 #include "vm/BytecodeLocation-inl.h"
 #include "vm/JSContext-inl.h"
@@ -65,7 +66,7 @@ using js::frontend::IsIdentifier;
 JS_STATIC_ASSERT(sizeof(uint32_t) * CHAR_BIT >= INDEX_LIMIT_LOG2 + 1);
 
 const JSCodeSpec js::CodeSpec[] = {
-#define MAKE_CODESPEC(op, val, name, token, length, nuses, ndefs, format) \
+#define MAKE_CODESPEC(op, name, token, length, nuses, ndefs, format) \
   {length, nuses, ndefs, format},
     FOR_EACH_OPCODE(MAKE_CODESPEC)
 #undef MAKE_CODESPEC
@@ -76,7 +77,7 @@ const JSCodeSpec js::CodeSpec[] = {
  * bytecode or null.
  */
 static const char* const CodeToken[] = {
-#define TOKEN(op, val, name, token, ...) token,
+#define TOKEN(op, name, token, ...) token,
     FOR_EACH_OPCODE(TOKEN)
 #undef TOKEN
 };
@@ -86,7 +87,7 @@ static const char* const CodeToken[] = {
  * and JIT debug spew.
  */
 const char* const js::CodeName[] = {
-#define OPNAME(op, val, name, ...) name,
+#define OPNAME(op, name, ...) name,
     FOR_EACH_OPCODE(OPNAME)
 #undef OPNAME
 };
@@ -543,9 +544,9 @@ class BytecodeParser {
                              const OffsetAndDefIndex* offsetStack,
                              uint32_t stackDepth);
 
-  inline bool addJump(uint32_t offset, uint32_t* currentOffset,
-                      uint32_t stackDepth, const OffsetAndDefIndex* offsetStack,
-                      jsbytecode* pc, JumpKind kind);
+  inline bool addJump(uint32_t offset, uint32_t stackDepth,
+                      const OffsetAndDefIndex* offsetStack, jsbytecode* pc,
+                      JumpKind kind);
 };
 
 }  // anonymous namespace
@@ -690,7 +691,6 @@ uint32_t BytecodeParser::simulateOp(JSOp op, uint32_t offset,
     case JSOP_THROWSETCALLEE:
     case JSOP_THROWSETCONST:
     case JSOP_INITALIASEDLEXICAL:
-    case JSOP_INITIALYIELD:
     case JSOP_ITERNEXT:
       // Keep the top value.
       MOZ_ASSERT(nuses == 1);
@@ -700,6 +700,12 @@ uint32_t BytecodeParser::simulateOp(JSOp op, uint32_t offset,
     case JSOP_INITHOMEOBJECT:
       // Pop the top value, keep the other value.
       MOZ_ASSERT(nuses == 2);
+      MOZ_ASSERT(ndefs == 1);
+      break;
+
+    case JSOP_CHECK_RESUMEKIND:
+      // Pop the top two values, keep the other value.
+      MOZ_ASSERT(nuses == 3);
       MOZ_ASSERT(ndefs == 1);
       break;
 
@@ -769,8 +775,7 @@ bool BytecodeParser::recordBytecode(uint32_t offset,
   return true;
 }
 
-bool BytecodeParser::addJump(uint32_t offset, uint32_t* currentOffset,
-                             uint32_t stackDepth,
+bool BytecodeParser::addJump(uint32_t offset, uint32_t stackDepth,
                              const OffsetAndDefIndex* offsetStack,
                              jsbytecode* pc, JumpKind kind) {
   if (!recordBytecode(offset, offsetStack, stackDepth)) {
@@ -778,21 +783,17 @@ bool BytecodeParser::addJump(uint32_t offset, uint32_t* currentOffset,
   }
 
 #ifdef DEBUG
+  uint32_t currentOffset = script_->pcToOffset(pc);
   if (isStackDump) {
-    if (!codeArray_[offset]->addJump(script_->pcToOffset(pc), kind)) {
+    if (!codeArray_[offset]->addJump(currentOffset, kind)) {
       reportOOM();
       return false;
     }
   }
-#endif /* DEBUG */
 
-  Bytecode*& code = codeArray_[offset];
-  if (offset < *currentOffset && !code->parsed) {
-    // Backedge in a while/for loop, whose body has not been parsed due
-    // to a lack of fallthrough at the loop head. Roll back the offset
-    // to analyze the body.
-    *currentOffset = offset;
-  }
+  // If this is a backedge, assert we parsed the target JSOP_LOOPHEAD.
+  MOZ_ASSERT_IF(offset < currentOffset, codeArray_[offset]->parsed);
+#endif /* DEBUG */
 
   return true;
 }
@@ -828,22 +829,16 @@ bool BytecodeParser::parse() {
   startcode->stackDepth = 0;
   codeArray_[0] = startcode;
 
-  uint32_t offset, nextOffset = 0;
-  while (nextOffset < length) {
-    offset = nextOffset;
-
+  for (uint32_t offset = 0, nextOffset = 0; offset < length;
+       offset = nextOffset) {
     Bytecode* code = maybeCode(offset);
     jsbytecode* pc = script_->offsetToPC(offset);
 
+    // Next bytecode to analyze.
+    nextOffset = offset + GetBytecodeLength(pc);
+
     JSOp op = (JSOp)*pc;
     MOZ_ASSERT(op < JSOP_LIMIT);
-
-    // Immediate successor of this bytecode.
-    uint32_t successorOffset = offset + GetBytecodeLength(pc);
-
-    // Next bytecode to analyze.  This is either the successor, or is an
-    // earlier bytecode if this bytecode has a loop backedge.
-    nextOffset = successorOffset;
 
     if (!code) {
       // Haven't found a path by which this bytecode is reachable.
@@ -886,7 +881,7 @@ bool BytecodeParser::parse() {
         int32_t high = GET_JUMP_OFFSET(pc2);
         pc2 += JUMP_OFFSET_LEN;
 
-        if (!addJump(defaultOffset, &nextOffset, stackDepth, offsetStack, pc,
+        if (!addJump(defaultOffset, stackDepth, offsetStack, pc,
                      JumpKind::SwitchDefault)) {
           return false;
         }
@@ -896,7 +891,7 @@ bool BytecodeParser::parse() {
         for (uint32_t i = 0; i < ncases; i++) {
           uint32_t targetOffset = script_->tableSwitchCaseOffset(pc, i);
           if (targetOffset != defaultOffset) {
-            if (!addJump(targetOffset, &nextOffset, stackDepth, offsetStack, pc,
+            if (!addJump(targetOffset, stackDepth, offsetStack, pc,
                          JumpKind::SwitchCase)) {
               return false;
             }
@@ -912,16 +907,16 @@ bool BytecodeParser::parse() {
         // same function: no more code will execute, and it does not matter what
         // is defined.
         for (const JSTryNote& tn : script_->trynotes()) {
-          if (tn.start == offset + 1) {
+          if (tn.start == offset + JSOP_TRY_LENGTH) {
             uint32_t catchOffset = tn.start + tn.length;
             if (tn.kind == JSTRY_CATCH) {
-              if (!addJump(catchOffset, &nextOffset, stackDepth, offsetStack,
-                           pc, JumpKind::TryCatch)) {
+              if (!addJump(catchOffset, stackDepth, offsetStack, pc,
+                           JumpKind::TryCatch)) {
                 return false;
               }
             } else if (tn.kind == JSTRY_FINALLY) {
-              if (!addJump(catchOffset, &nextOffset, stackDepth, offsetStack,
-                           pc, JumpKind::TryFinally)) {
+              if (!addJump(catchOffset, stackDepth, offsetStack, pc,
+                           JumpKind::TryFinally)) {
                 return false;
               }
             }
@@ -943,7 +938,7 @@ bool BytecodeParser::parse() {
       }
 
       uint32_t targetOffset = offset + GET_JUMP_OFFSET(pc);
-      if (!addJump(targetOffset, &nextOffset, newStackDepth, offsetStack, pc,
+      if (!addJump(targetOffset, newStackDepth, offsetStack, pc,
                    JumpKind::Simple)) {
         return false;
       }
@@ -951,7 +946,7 @@ bool BytecodeParser::parse() {
 
     // Handle any fallthrough from this opcode.
     if (BytecodeFallsThrough(op)) {
-      if (!recordBytecode(successorOffset, offsetStack, stackDepth)) {
+      if (!recordBytecode(nextOffset, offsetStack, stackDepth)) {
         return false;
       }
     }
@@ -1407,25 +1402,18 @@ static unsigned Disassemble1(JSContext* cx, HandleScript script, jsbytecode* pc,
   int i;
   switch (JOF_TYPE(cs->format)) {
     case JOF_BYTE:
-      // Scan the trynotes to find the associated catch block
-      // and make the try opcode look like a jump instruction
-      // with an offset. This simplifies code coverage analysis
-      // based on this disassembled output.
-      if (op == JSOP_TRY) {
-        for (const JSTryNote& tn : script->trynotes()) {
-          if (tn.kind == JSTRY_CATCH && tn.start == loc + 1) {
-            if (!sp->jsprintf(" %u (%+d)", unsigned(loc + tn.length + 1),
-                              int(tn.length + 1))) {
-              return 0;
-            }
-            break;
-          }
-        }
-      }
       break;
 
     case JOF_JUMP: {
       ptrdiff_t off = GET_JUMP_OFFSET(pc);
+      if (!sp->jsprintf(" %u (%+d)", unsigned(loc + int(off)), int(off))) {
+        return 0;
+      }
+      break;
+    }
+
+    case JOF_CODE_OFFSET: {
+      ptrdiff_t off = GET_CODE_OFFSET(pc);
       if (!sp->jsprintf(" %u (%+d)", unsigned(loc + int(off)), int(off))) {
         return 0;
       }
@@ -1579,12 +1567,29 @@ static unsigned Disassemble1(JSContext* cx, HandleScript script, jsbytecode* pc,
       }
       break;
 
-    case JOF_LOOPENTRY:
-      if (!sp->jsprintf(" (ic: %u, data: %u,%u)", GET_ICINDEX(pc),
-                        LoopEntryCanIonOsr(pc), LoopEntryDepthHint(pc))) {
+    case JOF_LOOPHEAD:
+      if (!sp->jsprintf(" (ic: %u, depthHint: %u)", GET_ICINDEX(pc),
+                        LoopHeadDepthHint(pc))) {
         return 0;
       }
       break;
+
+    case JOF_CLASS_CTOR: {
+      uint32_t atomIndex = 0;
+      uint32_t classStartOffset = 0, classEndOffset = 0;
+      GetClassConstructorOperands(pc, &atomIndex, &classStartOffset,
+                                  &classEndOffset);
+      RootedValue v(cx, StringValue(script->getAtom(atomIndex)));
+      UniqueChars bytes = ToDisassemblySource(cx, v);
+      if (!bytes) {
+        return 0;
+      }
+      if (!sp->jsprintf(" %s (off: %u-%u)", bytes.get(), classStartOffset,
+                        classEndOffset)) {
+        return 0;
+      }
+      break;
+    }
 
     case JOF_ARGC:
     case JOF_UINT16:
@@ -2108,12 +2113,23 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
       case JSOP_UNINITIALIZED:
         return write("UNINITIALIZED");
 
+      case JSOP_INITIALYIELD:
       case JSOP_AWAIT:
       case JSOP_YIELD:
         // Printing "yield SOMETHING" is confusing since the operand doesn't
         // match to the syntax, since the stack operand for "yield 10" is
         // the result object, not 10.
-        return write("RVAL");
+        if (defIndex == 0) {
+          return write("RVAL");
+        }
+        if (defIndex == 1) {
+          return write("GENERATOR");
+        }
+        MOZ_ASSERT(defIndex == 2);
+        return write("RESUMEKIND");
+
+      case JSOP_RESUMEKIND:
+        return write("RESUMEKIND");
 
       case JSOP_ASYNCAWAIT:
       case JSOP_ASYNCRESOLVE:

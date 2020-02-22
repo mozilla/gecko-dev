@@ -21,50 +21,40 @@ class AbstractGeneratorObject;
 class PromiseObject;
 
 /**
- * Tells how the JS engine should resume debuggee execution after firing a
- * debugger hook.  Most debugger hooks get to choose how the debuggee proceeds;
- * see js/src/doc/Debugger/Conventions.md under "Resumption Values".
- *
- * Debugger::processHandlerResult() translates between JavaScript values and
- * this enum.
- *
- * The values `ResumeMode::Throw` and `ResumeMode::Return` are always
- * associated with a value (the exception value or return value). Sometimes
- * this is represented as an explicit `JS::Value` variable or parameter,
- * declared alongside the `ResumeMode`. In other cases, especially when
- * ResumeMode is used as a return type (as in Debugger::onEnterFrame), the
- * value is stashed in `cx`'s pending exception slot or the topmost frame's
- * return value slot.
+ * DebugAPI::onNativeCall allows the debugger to call callbacks just before
+ * some native functions are to be executed. It also allows the hooks
+ * themselves to affect the result of the call. This enum represents the
+ * various affects that DebugAPI::onNativeCall may perform.
  */
-enum class ResumeMode {
+enum class NativeResumeMode {
   /**
-   * The debuggee should continue unchanged.
+   * If the debugger hook did not return a value to manipulate the result of
+   * the native call, execution can continue unchanged.
    *
-   * This corresponds to a resumption value of `undefined`.
+   * Continue indicates that the native function should execute normally.
    */
   Continue,
 
   /**
-   * Throw an exception in the debuggee.
+   * If the debugger hook returned an explicit return value that is meant to
+   * take the place of the native call's result, execution of the native
+   * function needs to be skipped in favor of the explicit result.
    *
-   * This corresponds to a resumption value of `{throw: <value>}`.
+   * Override indicates that the native function should be skipped and that
+   * the debugger has already stored the return value into the CallArgs.
    */
-  Throw,
+  Override,
 
   /**
-   * Terminate the debuggee, as if it had been cancelled via the "slow
-   * script" ribbon.
+   * If the debugger hook returns an explicit termination or an explicit
+   * thrown exception, execution of the native function needs to be skipped
+   * in favor of handling the error condition.
    *
-   * This corresponds to a resumption value of `null`.
+   * Abort indicates that the native function should be skipped and that
+   * execution should be terminated. The debugger may or may not have set a
+   * pending exception.
    */
-  Terminate,
-
-  /**
-   * Force the debuggee to return from the current frame.
-   *
-   * This corresponds to a resumption value of `{return: <value>}`.
-   */
-  Return,
+  Abort,
 };
 
 class DebugScript;
@@ -105,23 +95,6 @@ class DebugAPI {
   static inline void traceGeneratorFrame(JSTracer* tracer,
                                          AbstractGeneratorObject* generator);
 
-  /*
-   * A Debugger object is live if:
-   *   * the Debugger JSObject is live (Debugger::trace handles this case); OR
-   *   * it is in the middle of dispatching an event (the event dispatching
-   *     code roots it in this case); OR
-   *   * it is debugging at least one live compartment, and at least one of the
-   *     following is true:
-   *       - it has a debugger hook installed
-   *       - it has a breakpoint set on a live script
-   *       - it has a watchpoint set on a live object.
-   *
-   * DebugAPI::markIteratively handles the last case. If it finds any Debugger
-   * objects that are definitely live but not yet marked, it marks them and
-   * returns true. If not, it returns false.
-   */
-  static MOZ_MUST_USE bool markIteratively(GCMarker* marker);
-
   // Trace cross compartment edges in all debuggers relevant to the current GC.
   static void traceCrossCompartmentEdges(JSTracer* tracer);
 
@@ -130,6 +103,8 @@ class DebugAPI {
 
   // Trace debugging information for a JSScript.
   static void traceDebugScript(JSTracer* trc, JSScript* script);
+
+  static void traceFromRealm(JSTracer* trc, Realm* realm);
 
   // The garbage collector calls this after everything has been marked, but
   // before anything has been finalized. We use this to clear Debugger /
@@ -219,7 +194,8 @@ class DebugAPI {
    * frame, |frame|. Call whatever hooks have been registered to observe new
    * frames.
    */
-  static inline ResumeMode onEnterFrame(JSContext* cx, AbstractFramePtr frame);
+  static inline MOZ_MUST_USE bool onEnterFrame(JSContext* cx,
+                                               AbstractFramePtr frame);
 
   /*
    * Like onEnterFrame, but for resuming execution of a generator or async
@@ -236,10 +212,12 @@ class DebugAPI {
    * JSOP_AFTERYIELD, just after the generator resumes. The difference
    * should not be user-visible.
    */
-  static inline ResumeMode onResumeFrame(JSContext* cx, AbstractFramePtr frame);
+  static inline MOZ_MUST_USE bool onResumeFrame(JSContext* cx,
+                                                AbstractFramePtr frame);
 
-  static inline ResumeMode onNativeCall(JSContext* cx, const CallArgs& args,
-                                        CallReason reason);
+  static inline NativeResumeMode onNativeCall(JSContext* cx,
+                                              const CallArgs& args,
+                                              CallReason reason);
 
   /*
    * Announce to the debugger a |debugger;| statement on has been
@@ -249,15 +227,15 @@ class DebugAPI {
    * Note that this method is called for all |debugger;| statements,
    * regardless of the frame's debuggee-ness.
    */
-  static inline ResumeMode onDebuggerStatement(JSContext* cx,
-                                               AbstractFramePtr frame);
+  static inline MOZ_MUST_USE bool onDebuggerStatement(JSContext* cx,
+                                                      AbstractFramePtr frame);
 
   /*
    * Announce to the debugger that an exception has been thrown and propagated
    * to |frame|. Call whatever hooks have been registered to observe this.
    */
-  static inline ResumeMode onExceptionUnwind(JSContext* cx,
-                                             AbstractFramePtr frame);
+  static inline MOZ_MUST_USE bool onExceptionUnwind(JSContext* cx,
+                                                    AbstractFramePtr frame);
 
   /*
    * Announce to the debugger that the thread has exited a JavaScript frame,
@@ -279,10 +257,10 @@ class DebugAPI {
                                                jsbytecode* pc, bool ok);
 
   // Call any breakpoint handlers for the current scripted location.
-  static ResumeMode onTrap(JSContext* cx, MutableHandleValue vp);
+  static MOZ_MUST_USE bool onTrap(JSContext* cx);
 
   // Call any stepping handlers for the current scripted location.
-  static ResumeMode onSingleStep(JSContext* cx, MutableHandleValue vp);
+  static MOZ_MUST_USE bool onSingleStep(JSContext* cx);
 
   // Notify any Debugger instances observing this promise's global that a new
   // promise was allocated.
@@ -334,12 +312,6 @@ class DebugAPI {
   static bool hasDebuggerStatementHook(GlobalObject* global);
 
   /*** Assorted methods for interacting with the runtime. *********************/
-
-  // When a step handler called during the interrupt callback forces the current
-  // frame to return, set state in the frame and context so that the exception
-  // handler will perform the forced return.
-  static void propagateForcedReturn(JSContext* cx, AbstractFramePtr frame,
-                                    HandleValue rval);
 
   // Checks if the current compartment is allowed to execute code.
   static inline MOZ_MUST_USE bool checkNoExecute(JSContext* cx,
@@ -394,15 +366,17 @@ class DebugAPI {
       Handle<AbstractGeneratorObject*> genObj);
   static MOZ_MUST_USE bool slowPathCheckNoExecute(JSContext* cx,
                                                   HandleScript script);
-  static ResumeMode slowPathOnEnterFrame(JSContext* cx, AbstractFramePtr frame);
-  static ResumeMode slowPathOnResumeFrame(JSContext* cx,
-                                          AbstractFramePtr frame);
-  static ResumeMode slowPathOnNativeCall(JSContext* cx, const CallArgs& args,
-                                         CallReason reason);
-  static ResumeMode slowPathOnDebuggerStatement(JSContext* cx,
+  static MOZ_MUST_USE bool slowPathOnEnterFrame(JSContext* cx,
                                                 AbstractFramePtr frame);
-  static ResumeMode slowPathOnExceptionUnwind(JSContext* cx,
-                                              AbstractFramePtr frame);
+  static MOZ_MUST_USE bool slowPathOnResumeFrame(JSContext* cx,
+                                                 AbstractFramePtr frame);
+  static NativeResumeMode slowPathOnNativeCall(JSContext* cx,
+                                               const CallArgs& args,
+                                               CallReason reason);
+  static MOZ_MUST_USE bool slowPathOnDebuggerStatement(JSContext* cx,
+                                                       AbstractFramePtr frame);
+  static MOZ_MUST_USE bool slowPathOnExceptionUnwind(JSContext* cx,
+                                                     AbstractFramePtr frame);
   static void slowPathOnNewWasmInstance(
       JSContext* cx, Handle<WasmInstanceObject*> wasmInstance);
   static void slowPathOnNewPromise(JSContext* cx,

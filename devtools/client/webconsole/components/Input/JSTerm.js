@@ -100,6 +100,8 @@ class JSTerm extends Component {
       editorToggle: PropTypes.func.isRequired,
       // Dismiss the editor onboarding UI.
       editorOnboardingDismiss: PropTypes.func.isRequired,
+      // Set the last JS input value.
+      terminalInputChanged: PropTypes.func.isRequired,
       // Is the input in editor mode.
       editorMode: PropTypes.bool,
       editorWidth: PropTypes.number,
@@ -125,6 +127,14 @@ class JSTerm extends Component {
     // as the user is typing.
     // The delay should be small enough to be unnoticed by the user.
     this.autocompleteUpdate = debounce(this.props.autocompleteUpdate, 75, this);
+
+    // Updates to the terminal input which can trigger eager evaluations are
+    // similarly debounced.
+    this.terminalInputChanged = debounce(
+      this.props.terminalInputChanged,
+      75,
+      this
+    );
 
     // Because the autocomplete has a slight delay (75ms), there can be time where the
     // codeMirror completion text is out-of-date, which might lead to issue when the user
@@ -231,7 +241,10 @@ class JSTerm extends Component {
         autoCloseBrackets: false,
         lineNumbers: this.props.editorMode,
         lineWrapping: true,
-        mode: Editor.modes.js,
+        mode: {
+          name: "javascript",
+          globalVars: true,
+        },
         styleActiveLine: false,
         tabIndex: "0",
         viewportMargin: Infinity,
@@ -454,7 +467,11 @@ class JSTerm extends Component {
 
           "Ctrl-Space": () => {
             if (!this.autocompletePopup.isOpen) {
-              this.props.autocompleteUpdate(true);
+              this.props.autocompleteUpdate(
+                true,
+                null,
+                this._getExpressionVariables()
+              );
               return null;
             }
 
@@ -618,6 +635,7 @@ class JSTerm extends Component {
    */
   _setValue(newValue = "") {
     this.lastInputValue = newValue;
+    this.terminalInputChanged(newValue);
 
     if (this.editor) {
       // In order to get the autocomplete popup to work properly, we need to set the
@@ -721,6 +739,18 @@ class JSTerm extends Component {
       this.autocompletePopup.items.some(({ preLabel, label }) =>
         label.startsWith(preLabel + addedText)
       );
+    const nextSelectedAutocompleteItemIndex =
+      addedCharacterMatchPopupItem &&
+      this.autocompletePopup.items.findIndex(({ preLabel, label }) =>
+        label.startsWith(preLabel + addedText)
+      );
+
+    if (addedCharacterMatchPopupItem) {
+      this.autocompletePopup.selectItemAtIndex(
+        nextSelectedAutocompleteItemIndex,
+        { preventSelectCallback: true }
+      );
+    }
 
     if (!completionText || change.canceled || !addedCharacterMatchCompletion) {
       this.setAutoCompletionText("");
@@ -748,6 +778,35 @@ class JSTerm extends Component {
   }
 
   /**
+   * Retrieve variable declared in the expression from the CodeMirror state, in order
+   * to display them in the autocomplete popup.
+   */
+  _getExpressionVariables() {
+    const cm = this.editor.codeMirror;
+    const { state } = cm.getTokenAt(cm.getCursor());
+    const variables = [];
+
+    if (state.context) {
+      for (let c = state.context; c; c = c.prev) {
+        for (let v = c.vars; v; v = v.next) {
+          variables.push(v.name);
+        }
+      }
+    }
+
+    const keys = ["localVars", "globalVars"];
+    for (const key of keys) {
+      if (state[key]) {
+        for (let v = state[key]; v; v = v.next) {
+          variables.push(v.name);
+        }
+      }
+    }
+
+    return variables;
+  }
+
+  /**
    * The editor "changes" event handler.
    */
   _onEditorChanges(cm, changes) {
@@ -764,9 +823,10 @@ class JSTerm extends Component {
         !isJsTermChangeOnly &&
         (this.props.autocomplete || this.hasAutocompletionSuggestion())
       ) {
-        this.autocompleteUpdate();
+        this.autocompleteUpdate(false, null, this._getExpressionVariables());
       }
       this.lastInputValue = value;
+      this.terminalInputChanged(value);
     }
   }
 
@@ -1257,13 +1317,15 @@ function mapDispatchToProps(dispatch) {
   return {
     updateHistoryPosition: (direction, expression) =>
       dispatch(actions.updateHistoryPosition(direction, expression)),
-    autocompleteUpdate: (force, getterPath) =>
-      dispatch(actions.autocompleteUpdate(force, getterPath)),
+    autocompleteUpdate: (force, getterPath, expressionVars) =>
+      dispatch(actions.autocompleteUpdate(force, getterPath, expressionVars)),
     autocompleteClear: () => dispatch(actions.autocompleteClear()),
     evaluateExpression: expression =>
       dispatch(actions.evaluateExpression(expression)),
     editorToggle: () => dispatch(actions.editorToggle()),
     editorOnboardingDismiss: () => dispatch(actions.editorOnboardingDismiss()),
+    terminalInputChanged: value =>
+      dispatch(actions.terminalInputChanged(value)),
   };
 }
 

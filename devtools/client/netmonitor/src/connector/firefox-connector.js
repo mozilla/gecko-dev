@@ -5,9 +5,14 @@
 "use strict";
 
 const Services = require("Services");
-const { ACTIVITY_TYPE, EVENTS } = require("../constants");
-const FirefoxDataProvider = require("./firefox-data-provider");
-const { getDisplayedTimingMarker } = require("../selectors/index");
+const {
+  ACTIVITY_TYPE,
+  EVENTS,
+} = require("devtools/client/netmonitor/src/constants");
+const FirefoxDataProvider = require("devtools/client/netmonitor/src/connector/firefox-data-provider");
+const {
+  getDisplayedTimingMarker,
+} = require("devtools/client/netmonitor/src/selectors/index");
 
 // Network throttling
 loader.lazyRequireGetter(
@@ -58,7 +63,7 @@ class FirefoxConnector {
     // The owner object (NetMonitorAPI) received all events.
     this.owner = connection.owner;
 
-    this.webConsoleFront = this.tabTarget.activeConsole;
+    this.webConsoleFront = await this.tabTarget.getFront("console");
 
     this.dataProvider = new FirefoxDataProvider({
       webConsoleFront: this.webConsoleFront,

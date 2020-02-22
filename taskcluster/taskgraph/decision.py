@@ -10,6 +10,7 @@ import json
 import logging
 import time
 import sys
+from collections import defaultdict
 
 from redo import retry
 import yaml
@@ -120,6 +121,7 @@ PER_PROJECT_PARAMETERS = {
 visual_metrics_jobs_schema = Schema({
         Required('jobs'): [
             {
+                Required('test_name'): str,
                 Required('json_location'): str,
                 Required('video_location'): str,
             }
@@ -137,10 +139,6 @@ try_task_config_schema = Schema({
     Optional('use-artifact-builds'): bool,
     # Keep in sync with JOB_SCHEMA in taskcluster/docker/visual-metrics/run-visual-metrics.py.
     Optional('visual-metrics-jobs'): visual_metrics_jobs_schema,
-    Optional(
-        "debian-tests",
-        description="Run linux desktop tests on debian 10 (buster)."
-        ): bool,
     Optional(
         "ubuntu-bionic",
         description="Run linux desktop tests on Ubuntu 18.04 (bionic)."
@@ -172,6 +170,17 @@ def full_task_graph_to_runnable_jobs(full_task_json):
         if th.get('machine', {}).get('platform'):
             runnable_jobs[label]['platform'] = th['machine']['platform']
     return runnable_jobs
+
+
+def full_task_graph_to_manifests_by_task(full_task_json):
+    manifests_by_task = defaultdict(list)
+    for label, node in full_task_json.iteritems():
+        manifests = node['attributes'].get('test_manifests')
+        if not manifests:
+            continue
+
+        manifests_by_task[label].extend(manifests)
+    return manifests_by_task
 
 
 def try_syntax_from_message(message):
@@ -218,6 +227,9 @@ def taskgraph_decision(options, parameters=None):
 
     # write out the public/runnable-jobs.json file
     write_artifact('runnable-jobs.json', full_task_graph_to_runnable_jobs(full_task_json))
+
+    # write out the public/manifests-by-task.json file
+    write_artifact('manifests-by-task.json', full_task_graph_to_manifests_by_task(full_task_json))
 
     # this is just a test to check whether the from_json() function is working
     _, _ = TaskGraph.from_json(full_task_json)

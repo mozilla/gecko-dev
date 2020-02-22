@@ -43,7 +43,9 @@ class gfxVarReceiver;
   _(UseWebRenderFlipSequentialWin, bool, false)                    \
   _(UseWebRenderDCompWin, bool, false)                             \
   _(UseWebRenderTripleBufferingWin, bool, false)                   \
+  _(UseWebRenderCompositor, bool, false)                           \
   _(UseWebRenderProgramBinaryDisk, bool, false)                    \
+  _(WebRenderMaxPartialPresentRects, int32_t, 0)                   \
   _(WebRenderDebugFlags, int32_t, 0)                               \
   _(ScreenDepth, int32_t, 0)                                       \
   _(GREDirectory, nsString, nsString())                            \
@@ -54,7 +56,8 @@ class gfxVarReceiver;
   _(LayersWindowRecordingPath, nsCString, nsCString())             \
   _(RemoteCanvasEnabled, bool, false)                              \
   _(UseDoubleBufferingWithCompositor, bool, false)                 \
-  _(UseGLSwizzle, bool, true)
+  _(UseGLSwizzle, bool, true)                                      \
+  _(AllowSacrificingSubpixelAA, bool, false)
 
 /* Add new entries above this line. */
 

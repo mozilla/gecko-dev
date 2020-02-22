@@ -10,7 +10,9 @@ const {
   callFunctionWithAsyncStack,
 } = require("devtools/shared/platform/stack");
 const EventEmitter = require("devtools/shared/event-emitter");
-const { UnsolicitedNotifications } = require("./constants");
+const {
+  UnsolicitedNotifications,
+} = require("devtools/shared/client/constants");
 
 loader.lazyRequireGetter(
   this,
@@ -31,7 +33,12 @@ loader.lazyRequireGetter(
   "devtools/shared/fronts/root",
   true
 );
-loader.lazyRequireGetter(this, "ObjectFront", "devtools/shared/fronts/object");
+loader.lazyRequireGetter(
+  this,
+  "ObjectFront",
+  "devtools/shared/fronts/object",
+  true
+);
 loader.lazyRequireGetter(this, "Front", "devtools/shared/protocol", true);
 
 /**
@@ -88,23 +95,16 @@ DebuggerClient.prototype = {
   /**
    * Connect to the server and start exchanging protocol messages.
    *
-   * @param onConnected function
-   *        If specified, will be called when the greeting packet is
-   *        received from the debugging server.
-   *
    * @return Promise
    *         Resolves once connected with an array whose first element
    *         is the application type, by default "browser", and the second
    *         element is the traits object (help figure out the features
    *         and behaviors of the server we connect to. See RootActor).
    */
-  connect(onConnected) {
+  connect() {
     return new Promise(resolve => {
       this.once("connected", (applicationType, traits) => {
         this.traits = traits;
-        if (onConnected) {
-          onConnected(applicationType, traits);
-        }
         resolve([applicationType, traits]);
       });
 
@@ -115,14 +115,10 @@ DebuggerClient.prototype = {
   /**
    * Shut down communication with the debugging server.
    *
-   * @param onClosed function
-   *        If specified, will be called when the debugging connection
-   *        has been closed. This parameter is deprecated - please use
-   *        the returned Promise.
    * @return Promise
    *         Resolves after the underlying transport is closed.
    */
-  close(onClosed) {
+  close() {
     const promise = new Promise(resolve => {
       // Disable detach event notifications, because event handlers will be in a
       // cleared scope by the time they run.
@@ -148,10 +144,6 @@ DebuggerClient.prototype = {
 
       cleanup();
     });
-
-    if (onClosed) {
-      promise.then(onClosed);
-    }
 
     return promise;
   },
@@ -807,8 +799,8 @@ DebuggerClient.prototype = {
    * @param {Object} grip: The grip to create the ObjectFront for.
    * @returns {ObjectFront}
    */
-  createObjectFront(grip) {
-    return new ObjectFront(this, grip);
+  createObjectFront(grip, threadFront) {
+    return new ObjectFront(this, threadFront.targetFront, threadFront, grip);
   },
 
   get transport() {

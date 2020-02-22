@@ -22,11 +22,18 @@ namespace dom {
 class MediaControlKeysManager final : public MediaControlKeysEventSource,
                                       public MediaControlKeysEventListener {
  public:
-  NS_DECL_ISUPPORTS_INHERITED
+  NS_INLINE_DECL_REFCOUNTING(MediaControlKeysManager, override)
+
   MediaControlKeysManager() = default;
 
-  void Init();
+  // MediaControlKeysEventSource methods
+  bool Open() override;
+  bool IsOpened() const override;
 
+  void SetPlaybackState(PlaybackState aState) override;
+  PlaybackState GetPlaybackState() const override;
+
+  // MediaControlKeysEventListener methods
   void OnKeyPressed(MediaControlKeysEvent aKeyEvent) override;
 
   // The callback function for monitoring the media controller amount changed
@@ -37,7 +44,6 @@ class MediaControlKeysManager final : public MediaControlKeysEventSource,
   ~MediaControlKeysManager();
   void StartMonitoringControlKeys();
   void StopMonitoringControlKeys();
-  void CreateEventSource();
   RefPtr<MediaControlKeysEventSource> mEventSource;
   MediaEventListener mControllerAmountChangedListener;
 };

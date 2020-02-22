@@ -990,25 +990,34 @@ size_t ArgumentsObject::objectMoved(JSObject* dst, JSObject* src) {
  * arguments object.
  */
 const JSClassOps MappedArgumentsObject::classOps_ = {
-    nullptr, /* addProperty */
-    ArgumentsObject::obj_delProperty,
-    MappedArgumentsObject::obj_enumerate,
-    nullptr, /* newEnumerate */
-    MappedArgumentsObject::obj_resolve,
-    ArgumentsObject::obj_mayResolve,
-    ArgumentsObject::finalize,
-    nullptr, /* call        */
-    nullptr, /* hasInstance */
-    nullptr, /* construct   */
-    ArgumentsObject::trace};
+    nullptr,                               // addProperty
+    ArgumentsObject::obj_delProperty,      // delProperty
+    MappedArgumentsObject::obj_enumerate,  // enumerate
+    nullptr,                               // newEnumerate
+    MappedArgumentsObject::obj_resolve,    // resolve
+    ArgumentsObject::obj_mayResolve,       // mayResolve
+    ArgumentsObject::finalize,             // finalize
+    nullptr,                               // call
+    nullptr,                               // hasInstance
+    nullptr,                               // construct
+    ArgumentsObject::trace,                // trace
+};
 
 const js::ClassExtension MappedArgumentsObject::classExt_ = {
-    ArgumentsObject::objectMoved /* objectMovedOp */
+    ArgumentsObject::objectMoved,  // objectMovedOp
 };
 
 const ObjectOps MappedArgumentsObject::objectOps_ = {
-    nullptr, /* lookupProperty */
-    MappedArgumentsObject::obj_defineProperty};
+    nullptr,                                    // lookupProperty
+    MappedArgumentsObject::obj_defineProperty,  // defineProperty
+    nullptr,                                    // hasProperty
+    nullptr,                                    // getProperty
+    nullptr,                                    // setProperty
+    nullptr,                                    // getOwnPropertyDescriptor
+    nullptr,                                    // deleteProperty
+    nullptr,                                    // getElements
+    nullptr,                                    // funToString
+};
 
 const JSClass MappedArgumentsObject::class_ = {
     "Arguments",
@@ -1026,20 +1035,21 @@ const JSClass MappedArgumentsObject::class_ = {
  * it is represented by a different class while sharing some functionality.
  */
 const JSClassOps UnmappedArgumentsObject::classOps_ = {
-    nullptr, /* addProperty */
-    ArgumentsObject::obj_delProperty,
-    UnmappedArgumentsObject::obj_enumerate,
-    nullptr, /* newEnumerate */
-    UnmappedArgumentsObject::obj_resolve,
-    ArgumentsObject::obj_mayResolve,
-    ArgumentsObject::finalize,
-    nullptr, /* call        */
-    nullptr, /* hasInstance */
-    nullptr, /* construct   */
-    ArgumentsObject::trace};
+    nullptr,                                 // addProperty
+    ArgumentsObject::obj_delProperty,        // delProperty
+    UnmappedArgumentsObject::obj_enumerate,  // enumerate
+    nullptr,                                 // newEnumerate
+    UnmappedArgumentsObject::obj_resolve,    // resolve
+    ArgumentsObject::obj_mayResolve,         // mayResolve
+    ArgumentsObject::finalize,               // finalize
+    nullptr,                                 // call
+    nullptr,                                 // hasInstance
+    nullptr,                                 // construct
+    ArgumentsObject::trace,                  // trace
+};
 
 const js::ClassExtension UnmappedArgumentsObject::classExt_ = {
-    ArgumentsObject::objectMoved /* objectMovedOp */
+    ArgumentsObject::objectMoved,  // objectMovedOp
 };
 
 const JSClass UnmappedArgumentsObject::class_ = {

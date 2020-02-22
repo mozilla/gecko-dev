@@ -149,8 +149,9 @@ class DebuggerFrame : public NativeObject {
   static NativeObject* initClass(JSContext* cx, Handle<GlobalObject*> global,
                                  HandleObject dbgCtor);
   static DebuggerFrame* create(JSContext* cx, HandleObject proto,
-                               const FrameIter& iter,
-                               HandleNativeObject debugger);
+                               HandleNativeObject debugger,
+                               const FrameIter* maybeIter,
+                               Handle<AbstractGeneratorObject*> maybeGenerator);
 
   static MOZ_MUST_USE bool getArguments(JSContext* cx,
                                         HandleDebuggerFrame frame,
@@ -163,11 +164,13 @@ class DebuggerFrame : public NativeObject {
   static MOZ_MUST_USE bool getEnvironment(
       JSContext* cx, HandleDebuggerFrame frame,
       MutableHandleDebuggerEnvironment result);
-  static bool getIsGenerator(HandleDebuggerFrame frame);
   static MOZ_MUST_USE bool getOffset(JSContext* cx, HandleDebuggerFrame frame,
                                      size_t& result);
   static MOZ_MUST_USE bool getOlder(JSContext* cx, HandleDebuggerFrame frame,
                                     MutableHandleDebuggerFrame result);
+  static MOZ_MUST_USE bool getAsyncPromise(JSContext* cx,
+                                           HandleDebuggerFrame frame,
+                                           MutableHandleDebuggerObject result);
   static MOZ_MUST_USE bool getThis(JSContext* cx, HandleDebuggerFrame frame,
                                    MutableHandleValue result);
   static DebuggerFrameType getType(HandleDebuggerFrame frame);
@@ -182,14 +185,12 @@ class DebuggerFrame : public NativeObject {
       mozilla::Range<const char16_t> chars, HandleObject bindings,
       const EvalOptions& options);
 
-  MOZ_MUST_USE bool requireLive(JSContext* cx);
-  static MOZ_MUST_USE DebuggerFrame* check(JSContext* cx, HandleValue thisv,
-                                           bool checkLive);
+  static MOZ_MUST_USE DebuggerFrame* check(JSContext* cx, HandleValue thisv);
 
-  bool isLive() const;
+  bool isOnStack() const;
 
-  // Like isLive, but works even in the midst of a relocating GC.
-  bool isLiveMaybeForwarded() const;
+  // Like isOnStack, but works even in the midst of a relocating GC.
+  bool isOnStackMaybeForwarded() const;
 
   OnStepHandler* onStepHandler() const;
   OnPopHandler* onPopHandler() const;

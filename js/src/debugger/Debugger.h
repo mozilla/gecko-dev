@@ -92,6 +92,46 @@ class DebuggerSource;
 class DebuggerMemory;
 class ScriptedOnStepHandler;
 class ScriptedOnPopHandler;
+class DebuggerDebuggeeLink;
+
+/**
+ * Tells how the JS engine should resume debuggee execution after firing a
+ * debugger hook.  Most debugger hooks get to choose how the debuggee proceeds;
+ * see js/src/doc/Debugger/Conventions.md under "Resumption Values".
+ *
+ * Debugger::processHandlerResult() translates between JavaScript values and
+ * this enum.
+ */
+enum class ResumeMode {
+  /**
+   * The debuggee should continue unchanged.
+   *
+   * This corresponds to a resumption value of `undefined`.
+   */
+  Continue,
+
+  /**
+   * Throw an exception in the debuggee.
+   *
+   * This corresponds to a resumption value of `{throw: <value>}`.
+   */
+  Throw,
+
+  /**
+   * Terminate the debuggee, as if it had been cancelled via the "slow
+   * script" ribbon.
+   *
+   * This corresponds to a resumption value of `null`.
+   */
+  Terminate,
+
+  /**
+   * Force the debuggee to return from the current frame.
+   *
+   * This corresponds to a resumption value of `{return: <value>}`.
+   */
+  Return,
+};
 
 /**
  * A completion value, describing how some sort of JavaScript evaluation
@@ -483,6 +523,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger> {
     JSSLOT_DEBUG_HOOK_START = JSSLOT_DEBUG_PROTO_STOP,
     JSSLOT_DEBUG_HOOK_STOP = JSSLOT_DEBUG_HOOK_START + HookCount,
     JSSLOT_DEBUG_MEMORY_INSTANCE = JSSLOT_DEBUG_HOOK_STOP,
+    JSSLOT_DEBUG_DEBUGGEE_LINK,
     JSSLOT_DEBUG_COUNT
   };
 
@@ -752,10 +793,9 @@ class Debugger : private mozilla::LinkedListElement<Debugger> {
                            ResumeMode resumeMode, MutableHandleValue vp);
 
   /*
-   * Report and clear the pending exception on ar.context, if any, and return
-   * ResumeMode::Terminate.
+   * Report and clear the pending exception on ar.context, if any.
    */
-  ResumeMode reportUncaughtException(mozilla::Maybe<AutoRealm>& ar);
+  void reportUncaughtException(mozilla::Maybe<AutoRealm>& ar);
 
   /*
    * Cope with an error or exception in a debugger hook.
@@ -915,7 +955,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger> {
   void updateObservesAsmJSOnDebuggees(IsObserving observing);
 
   JSObject* getHook(Hook hook) const;
-  bool hasAnyLiveHooks(JSRuntime* rt) const;
+  bool hasAnyLiveHooks() const;
 
   static void slowPathPromiseHook(JSContext* cx, Hook hook,
                                   Handle<PromiseObject*> promise);
@@ -1068,6 +1108,8 @@ class Debugger : private mozilla::LinkedListElement<Debugger> {
   MOZ_MUST_USE bool wrapDebuggeeValue(JSContext* cx, MutableHandleValue vp);
   MOZ_MUST_USE bool wrapDebuggeeObject(JSContext* cx, HandleObject obj,
                                        MutableHandleDebuggerObject result);
+  MOZ_MUST_USE bool wrapNullableDebuggeeObject(
+      JSContext* cx, HandleObject obj, MutableHandleDebuggerObject result);
 
   /*
    * Unwrap a Debug.Object, without rewrapping it for any particular debuggee
@@ -1113,6 +1155,9 @@ class Debugger : private mozilla::LinkedListElement<Debugger> {
                              MutableHandleValue vp);
   MOZ_MUST_USE bool getFrame(JSContext* cx, const FrameIter& iter,
                              MutableHandleDebuggerFrame result);
+  MOZ_MUST_USE bool getFrame(JSContext* cx,
+                             Handle<AbstractGeneratorObject*> genObj,
+                             MutableHandleDebuggerFrame result);
 
   /*
    * Return the Debugger.Script object for |script|, or create a new one if
@@ -1149,9 +1194,55 @@ class Debugger : private mozilla::LinkedListElement<Debugger> {
   DebuggerSource* wrapWasmSource(JSContext* cx,
                                  Handle<WasmInstanceObject*> wasmInstance);
 
+  DebuggerDebuggeeLink* getDebuggeeLink();
+
  private:
   Debugger(const Debugger&) = delete;
   Debugger& operator=(const Debugger&) = delete;
+};
+
+/**
+ * This class exists for one specific reason. If a given Debugger object is in
+ * a state where:
+ *
+ *   a) nothing in the system has a reference to the object
+ *   b) the debugger is currently attached to a live debuggee
+ *   c) the debugger has hooks like 'onEnterFrame'
+ *
+ * then we don't want the GC to delete the Debugger, because the system could
+ * still call the hooks. This means we need to ensure that, whenever the global
+ * gets marked, the Debugger will get marked as well. Critically, we _only_
+ * want that to happen if the debugger has hooks. If it doesn't, then GCing
+ * the debugger is the right think to do.
+ *
+ * Note that there are _other_ cases where the debugger may be held live, but
+ * those are not addressed by this case.
+ *
+ * To accomplish this, we use a bit of roundabout link approach. Both the
+ * Debugger and the debuggees can reach the link object:
+ *
+ *   Debugger  -> DebuggerDebuggeeLink  <- CCW <- Debuggee Global #1
+ *      |                  |    ^   ^---<- CCW <- Debuggee Global #2
+ *      \--<<-optional-<<--/     \------<- CCW <- Debuggee Global #3
+ *
+ * and critically, the Debugger is able to conditionally add or remove the link
+ * going from the DebuggerDebuggeeLink _back_ to the Debugger. When this link
+ * exists, the GC can trace all the way from the global to the Debugger,
+ * meaning that any Debugger with this link will be kept alive as long as any
+ * of its debuggees are alive.
+ */
+class DebuggerDebuggeeLink : public NativeObject {
+ private:
+  enum {
+    DEBUGGER_LINK_SLOT,
+    RESERVED_SLOTS,
+  };
+
+ public:
+  static const JSClass class_;
+
+  void setLinkSlot(Debugger& dbg);
+  void clearLinkSlot();
 };
 
 /*

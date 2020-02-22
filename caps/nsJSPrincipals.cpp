@@ -5,15 +5,12 @@
 
 #include "xpcpublic.h"
 #include "nsString.h"
-#include "nsIObjectOutputStream.h"
-#include "nsIObjectInputStream.h"
 #include "nsJSPrincipals.h"
 #include "plstr.h"
 #include "nsCOMPtr.h"
-#include "nsIServiceManager.h"
 #include "nsMemory.h"
 #include "nsStringBuffer.h"
-
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/StructuredCloneTags.h"
 // for mozilla::dom::workerinternals::kJSPrincipalsDebugToken
 #include "mozilla/dom/workerinternals/JSSettings.h"

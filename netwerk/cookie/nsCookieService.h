@@ -21,13 +21,9 @@
 #include "nsTHashtable.h"
 #include "mozIStorageStatement.h"
 #include "mozIStorageAsyncStatement.h"
-#include "mozIStoragePendingStatement.h"
 #include "mozIStorageConnection.h"
-#include "mozIStorageRow.h"
 #include "mozIStorageCompletionCallback.h"
 #include "mozIStorageStatementCallback.h"
-#include "mozIStorageFunction.h"
-#include "nsIVariant.h"
 #include "nsIFile.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/BasePrincipal.h"
@@ -195,7 +191,6 @@ class nsCookieService final : public nsICookieService,
    * (thus instantiating it, if necessary) and clear all the cookies for that
    * app.
    */
-  static void AppClearDataObserverInit();
   static nsAutoCString GetPathFromURI(nsIURI* aHostURI);
   static nsresult GetBaseDomain(nsIEffectiveTLDService* aTLDService,
                                 nsIURI* aHostURI, nsCString& aBaseDomain,

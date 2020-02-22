@@ -36,7 +36,6 @@
 #include "mozilla/ipc/FileDescriptor.h"
 #include "mozilla/ipc/InputStreamParams.h"
 #include "mozilla/ipc/InputStreamUtils.h"
-#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "mozilla/dom/Document.h"
 #include "nsIObserver.h"
@@ -148,10 +147,11 @@ class IDBDatabase::Observer final : public nsIObserver {
 };
 
 IDBDatabase::IDBDatabase(IDBOpenDBRequest* aRequest, IDBFactory* aFactory,
-                         BackgroundDatabaseChild* aActor, DatabaseSpec* aSpec)
+                         BackgroundDatabaseChild* aActor,
+                         UniquePtr<DatabaseSpec> aSpec)
     : DOMEventTargetHelper(aRequest),
       mFactory(aFactory),
-      mSpec(aSpec),
+      mSpec(std::move(aSpec)),
       mBackgroundActor(aActor),
       mFileHandleDisabled(aRequest->IsFileHandleDisabled()),
       mClosed(false),
@@ -162,7 +162,7 @@ IDBDatabase::IDBDatabase(IDBOpenDBRequest* aRequest, IDBFactory* aFactory,
   MOZ_ASSERT(aFactory);
   aFactory->AssertIsOnOwningThread();
   MOZ_ASSERT(aActor);
-  MOZ_ASSERT(aSpec);
+  MOZ_ASSERT(mSpec);
 }
 
 IDBDatabase::~IDBDatabase() {
@@ -172,16 +172,18 @@ IDBDatabase::~IDBDatabase() {
 }
 
 // static
-already_AddRefed<IDBDatabase> IDBDatabase::Create(
-    IDBOpenDBRequest* aRequest, IDBFactory* aFactory,
-    BackgroundDatabaseChild* aActor, DatabaseSpec* aSpec) {
+RefPtr<IDBDatabase> IDBDatabase::Create(IDBOpenDBRequest* aRequest,
+                                        IDBFactory* aFactory,
+                                        BackgroundDatabaseChild* aActor,
+                                        UniquePtr<DatabaseSpec> aSpec) {
   MOZ_ASSERT(aRequest);
   MOZ_ASSERT(aFactory);
   aFactory->AssertIsOnOwningThread();
   MOZ_ASSERT(aActor);
   MOZ_ASSERT(aSpec);
 
-  RefPtr<IDBDatabase> db = new IDBDatabase(aRequest, aFactory, aActor, aSpec);
+  RefPtr<IDBDatabase> db =
+      new IDBDatabase(aRequest, aFactory, aActor, std::move(aSpec));
 
   if (NS_IsMainThread()) {
     nsCOMPtr<nsPIDOMWindowInner> window =
@@ -212,7 +214,7 @@ already_AddRefed<IDBDatabase> IDBDatabase::Create(
 
   db->IncreaseActiveDatabaseCount();
 
-  return db.forget();
+  return db;
 }
 
 #ifdef DEBUG
@@ -279,7 +281,7 @@ void IDBDatabase::EnterSetVersionTransaction(uint64_t aNewVersion) {
   MOZ_ASSERT(mSpec);
   MOZ_ASSERT(!mPreviousSpec);
 
-  mPreviousSpec = new DatabaseSpec(*mSpec);
+  mPreviousSpec = MakeUnique<DatabaseSpec>(*mSpec);
 
   mSpec->metadata().version() = aNewVersion;
 }
@@ -299,9 +301,9 @@ void IDBDatabase::RevertToPreviousState() {
 
   // Hold the current spec alive until RefreshTransactionsSpecEnumerator has
   // finished!
-  nsAutoPtr<DatabaseSpec> currentSpec(mSpec.forget());
+  auto currentSpec = std::move(mSpec);
 
-  mSpec = mPreviousSpec.forget();
+  mSpec = std::move(mPreviousSpec);
 
   RefreshSpec(/* aMayDelete */ true);
 }
@@ -331,7 +333,7 @@ uint64_t IDBDatabase::Version() const {
   return mSpec->metadata().version();
 }
 
-already_AddRefed<DOMStringList> IDBDatabase::ObjectStoreNames() const {
+RefPtr<DOMStringList> IDBDatabase::ObjectStoreNames() const {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mSpec);
 
@@ -340,15 +342,14 @@ already_AddRefed<DOMStringList> IDBDatabase::ObjectStoreNames() const {
       [](const auto& objectStore) { return objectStore.metadata().name(); });
 }
 
-already_AddRefed<Document> IDBDatabase::GetOwnerDocument() const {
+RefPtr<Document> IDBDatabase::GetOwnerDocument() const {
   if (nsPIDOMWindowInner* window = GetOwner()) {
-    nsCOMPtr<Document> doc = window->GetExtantDoc();
-    return doc.forget();
+    return window->GetExtantDoc();
   }
   return nullptr;
 }
 
-already_AddRefed<IDBObjectStore> IDBDatabase::CreateObjectStore(
+RefPtr<IDBObjectStore> IDBDatabase::CreateObjectStore(
     const nsAString& aName, const IDBObjectStoreParameters& aOptionalParameters,
     ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -407,7 +408,7 @@ already_AddRefed<IDBObjectStore> IDBDatabase::CreateObjectStore(
     RefreshSpec(/* aMayDelete */ false);
   }
 
-  RefPtr<IDBObjectStore> objectStore = transaction->CreateObjectStore(*newSpec);
+  auto objectStore = transaction->CreateObjectStore(*newSpec);
   MOZ_ASSERT(objectStore);
 
   // Don't do this in the macro because we always need to increment the serial
@@ -420,7 +421,7 @@ already_AddRefed<IDBObjectStore> IDBDatabase::CreateObjectStore(
       requestSerialNumber, IDB_LOG_STRINGIFY(this),
       IDB_LOG_STRINGIFY(transaction), IDB_LOG_STRINGIFY(objectStore));
 
-  return objectStore.forget();
+  return objectStore;
 }
 
 void IDBDatabase::DeleteObjectStore(const nsAString& aName, ErrorResult& aRv) {
@@ -470,7 +471,7 @@ void IDBDatabase::DeleteObjectStore(const nsAString& aName, ErrorResult& aRv) {
       IDB_LOG_STRINGIFY(transaction), NS_ConvertUTF16toUTF8(aName).get());
 }
 
-already_AddRefed<IDBTransaction> IDBDatabase::Transaction(
+RefPtr<IDBTransaction> IDBDatabase::Transaction(
     JSContext* aCx, const StringOrStringSequence& aStoreNames,
     IDBTransactionMode aMode, ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -489,19 +490,20 @@ already_AddRefed<IDBTransaction> IDBDatabase::Transaction(
   }
 
   RefPtr<IDBTransaction> transaction;
-  aRv = Transaction(aCx, aStoreNames, aMode, getter_AddRefs(transaction));
+  aRv = Transaction(aCx, aStoreNames, aMode, &transaction);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
 
-  return transaction.forget();
+  return transaction;
 }
 
 nsresult IDBDatabase::Transaction(JSContext* aCx,
                                   const StringOrStringSequence& aStoreNames,
                                   IDBTransactionMode aMode,
-                                  IDBTransaction** aTransaction) {
+                                  RefPtr<IDBTransaction>* aTransaction) {
   AssertIsOnOwningThread();
+  MOZ_ASSERT(aTransaction);
 
   if (NS_WARN_IF((aMode == IDBTransactionMode::Readwriteflush ||
                   aMode == IDBTransactionMode::Cleanup) &&
@@ -590,12 +592,13 @@ nsresult IDBDatabase::Transaction(JSContext* aCx,
       MOZ_CRASH("Unknown mode!");
   }
 
-  RefPtr<IDBTransaction> transaction =
-      IDBTransaction::Create(aCx, this, sortedStoreNames, mode);
-  if (NS_WARN_IF(!transaction)) {
+  *aTransaction = IDBTransaction::Create(aCx, this, sortedStoreNames, mode);
+  if (NS_WARN_IF(!*aTransaction)) {
     IDB_REPORT_INTERNAL_ERR();
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
   }
+
+  const auto& transaction = *aTransaction;
 
   BackgroundTransactionChild* actor =
       new BackgroundTransactionChild(transaction);
@@ -616,7 +619,6 @@ nsresult IDBDatabase::Transaction(JSContext* aCx,
     ExpireFileActors(/* aExpireAll */ true);
   }
 
-  transaction.forget(aTransaction);
   return NS_OK;
 }
 
@@ -627,7 +629,7 @@ StorageType IDBDatabase::Storage() const {
   return PersistenceTypeToStorage(mSpec->metadata().persistenceType());
 }
 
-already_AddRefed<IDBRequest> IDBDatabase::CreateMutableFile(
+RefPtr<IDBRequest> IDBDatabase::CreateMutableFile(
     JSContext* aCx, const nsAString& aName, const Optional<nsAString>& aType,
     ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -655,7 +657,7 @@ already_AddRefed<IDBRequest> IDBDatabase::CreateMutableFile(
 
   CreateFileParams params(nsString(aName), type);
 
-  RefPtr<IDBRequest> request = IDBRequest::Create(aCx, this, nullptr);
+  auto request = IDBRequest::Create(aCx, this, nullptr);
   MOZ_ASSERT(request);
 
   BackgroundDatabaseRequestChild* actor =
@@ -671,7 +673,13 @@ already_AddRefed<IDBRequest> IDBDatabase::CreateMutableFile(
   MOZ_ASSERT(actor->GetActorEventTarget(),
              "The event target shall be inherited from its manager actor.");
 
-  return request.forget();
+  return request;
+}
+
+RefPtr<IDBRequest> IDBDatabase::MozCreateFileHandle(
+    JSContext* aCx, const nsAString& aName, const Optional<nsAString>& aType,
+    ErrorResult& aRv) {
+  return CreateMutableFile(aCx, aName, aType, aRv);
 }
 
 void IDBDatabase::RegisterTransaction(IDBTransaction* aTransaction) {

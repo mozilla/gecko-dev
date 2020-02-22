@@ -12,14 +12,13 @@
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/dom/Notification.h"
 #include "mozilla/Unused.h"
-#include "nsIServiceManager.h"
 #include "nsISupportsPrimitives.h"
 #include "nsPIDOMWindow.h"
 #include "nsIWindowWatcher.h"
 
 using namespace mozilla;
 
-#define ALERT_CHROME_URL "chrome://global/content/alerts/alert.xul"
+#define ALERT_CHROME_URL "chrome://global/content/alerts/alert.xhtml"
 
 namespace {
 StaticRefPtr<nsXULAlerts> gXULAlerts;

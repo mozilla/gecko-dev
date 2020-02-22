@@ -200,7 +200,7 @@
 #define PER_SHARED_ARCH DEFINED_ON(ALL_SHARED_ARCH)
 #define OOL_IN_HEADER
 
-#if MOZ_LITTLE_ENDIAN
+#if MOZ_LITTLE_ENDIAN()
 #  define IMM32_16ADJ(X) (X) << 16
 #else
 #  define IMM32_16ADJ(X) (X)
@@ -777,6 +777,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void move16To64SignExtend(Register src, Register64 dest) PER_ARCH;
   inline void move32To64SignExtend(Register src, Register64 dest) PER_ARCH;
 
+  inline void move32ZeroExtendToPtr(Register src, Register dest) PER_ARCH;
+
   // Copy a constant, typed-register, or a ValueOperand into a ValueOperand
   // destination.
   inline void moveValue(const ConstantOrRegister& src,
@@ -1327,6 +1329,12 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void branchIfScriptHasJitScript(Register script, Label* label);
   inline void branchIfScriptHasNoJitScript(Register script, Label* label);
   inline void loadJitScript(Register script, Register dest);
+
+  // Loads the function length. This handles interpreted, native, and bound
+  // functions. The caller is responsible for checking that INTERPRETED_LAZY and
+  // RESOLVED_LENGTH flags are not set.
+  void loadFunctionLength(Register func, Register funFlags, Register output,
+                          Label* slowPath);
 
   inline void branchFunctionKind(Condition cond,
                                  FunctionFlags::FunctionKind kind, Register fun,

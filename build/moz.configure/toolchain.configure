@@ -525,18 +525,16 @@ def check_compiler(compiler, language, target):
             flags.append('-Xclang')
         flags.append('-std=gnu99')
 
-    # Note: this is a strict version check because we used to always add
-    # -std=gnu++14.
-    cxx14_version = 201402
+    cxx17_version = 201703
     if info.language == 'C++':
-        if info.language_version != cxx14_version:
-            # MSVC headers include C++14 features, but don't guard them
+        if info.language_version != cxx17_version:
+            # MSVC headers include C++17 features, but don't guard them
             # with appropriate checks.
             if info.type == 'clang-cl':
                 flags.append('-Xclang')
-                flags.append('-std=c++14')
+                flags.append('-std=c++17')
             else:
-                flags.append('-std=gnu++14')
+                flags.append('-std=gnu++17')
 
     # Check compiler target
     # --------------------------------------------------------------------
@@ -711,17 +709,14 @@ def toolchain_search_path_for(host_or_target):
             result.append(vc_compiler_path[0])
 
         # Also add in the location to which `mach bootstrap` or
-        # `mach artifact toolchain` installs clang.
-        bootstrapped = []
-
-        bootstrap_clang_path = os.path.join(mozbuild_state_path, 'clang', 'bin')
-        bootstrapped.append(bootstrap_clang_path)
-
-        bootstrap_cbindgen_path = os.path.join(mozbuild_state_path, 'cbindgen')
-        bootstrapped.append(bootstrap_cbindgen_path)
-
-        bootstrap_nasm_path = os.path.join(mozbuild_state_path, 'nasm')
-        bootstrapped.append(bootstrap_nasm_path)
+        # `mach artifact toolchain` installs clang, cbindgen, etc.
+        bootstrapped = [
+            os.path.join(mozbuild_state_path, *rest) for rest in (
+                ['clang', 'bin'],
+                ['cbindgen'],
+                ['nasm'],
+                ['lucetc'],
+            )]
 
         # Also add the rustup install directory for cargo/rustc.
         rustup_path = os.path.expanduser(os.path.join('~', '.cargo', 'bin'))
@@ -1185,13 +1180,21 @@ include('compile-checks.configure')
 include('arm.configure', when=depends(target.cpu)(lambda cpu: cpu == 'arm'))
 
 
-@depends(host,
-         host_os_kernel_major_version,
-         target,
-         cxx_compiler.try_run(header='#include_next <inttypes.h>'))
-def check_have_mac_10_14_sdk(host, version, target, value):
+@depends(host, host_os_kernel_major_version, target)
+def needs_macos_sdk_headers_check(host, version, target):
     # Only an issue on Mac OS X 10.14 (and probably above).
-    if host.kernel != 'Darwin' or target.kernel !='Darwin' or version < '18' or value:
+    if host.kernel != 'Darwin' or target.kernel !='Darwin' or version < '18':
+        return
+
+    return True
+
+
+@depends(cxx_compiler.try_run(header='#include_next <inttypes.h>',
+                              check_msg='for macOS SDK headers',
+                              when=needs_macos_sdk_headers_check),
+         when=needs_macos_sdk_headers_check)
+def check_have_mac_10_14_sdk(value):
+    if value:
         return
 
     die('System inttypes.h not found. Please try running '
@@ -1474,7 +1477,9 @@ def ubsan(options):
         'bool',
         'bounds',
         'integer-divide-by-zero',
+        'object-size',
         'pointer-overflow',
+        'return',
         'vla-bound',
     ]
 
@@ -1529,6 +1534,7 @@ option('--enable-hardening', env='MOZ_SECURITY_HARDENING',
 def security_hardening_cflags(hardening_flag, asan, debug, optimize, c_compiler,
                               target):
     compiler_is_gccish = c_compiler.type in ('gcc', 'clang')
+    mingw_clang = c_compiler.type == 'clang' and target.os == 'WINNT'
 
     flags = []
     ldflags = []
@@ -1548,18 +1554,19 @@ def security_hardening_cflags(hardening_flag, asan, debug, optimize, c_compiler,
                 flags.append("-D_FORTIFY_SOURCE=2")
             js_flags.append("-U_FORTIFY_SOURCE")
             js_flags.append("-D_FORTIFY_SOURCE=2")
+            if mingw_clang:
+                # mingw-clang needs to link in ssp which is not done by default
+                ldflags.append('-lssp')
+                js_ldflags.append('-lssp')
 
         # fstack-protector ------------------------------------
         # Enable only if hardening is not disabled and ASAN is
         # not on as ASAN will catch the crashes for us
-        # mingw-clang cross-compile toolchain has bugs with stack protector
-        mingw_clang = c_compiler.type == 'clang' and target.os == 'WINNT'
         if compiler_is_gccish and not asan:
-            if not mingw_clang:
-                flags.append("-fstack-protector-strong")
-                ldflags.append("-fstack-protector-strong")
-                js_flags.append("-fstack-protector-strong")
-                js_ldflags.append("-fstack-protector-strong")
+            flags.append("-fstack-protector-strong")
+            ldflags.append("-fstack-protector-strong")
+            js_flags.append("-fstack-protector-strong")
+            js_ldflags.append("-fstack-protector-strong")
 
         # ftrivial-auto-var-init ------------------------------
         # Initialize local variables with a 0xAA pattern in clang debug builds.

@@ -29,7 +29,7 @@ pub use crate::values::specified::url::UrlOrNone;
 pub use crate::values::specified::{Angle, BorderStyle, Time};
 
 impl ToComputedValue for specified::NoCalcLength {
-    type ComputedValue = CSSPixelLength;
+    type ComputedValue = Length;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
@@ -75,9 +75,7 @@ impl ToComputedValue for specified::Length {
 ///
 /// https://drafts.csswg.org/css-values-4/#typedef-length-percentage
 #[allow(missing_docs)]
-#[derive(
-    Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue,
-)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue)]
 #[repr(C)]
 pub struct LengthPercentage {
     length: Length,
@@ -170,6 +168,12 @@ impl LengthPercentage {
         self.length
     }
 
+    /// Returns the percentage component of this `calc()`
+    #[inline]
+    pub fn percentage_component(&self) -> Percentage {
+        Percentage(self.clamping_mode.clamp(self.percentage.0))
+    }
+
     /// Return the percentage value as CSSFloat.
     #[inline]
     pub fn percentage(&self) -> CSSFloat {
@@ -181,6 +185,16 @@ impl LengthPercentage {
     pub fn specified_percentage(&self) -> Option<Percentage> {
         if self.has_percentage {
             Some(self.percentage)
+        } else {
+            None
+        }
+    }
+
+    /// Returns the length component if this could be represented as a
+    /// non-calc length.
+    pub fn as_length(&self) -> Option<Length> {
+        if !self.has_percentage {
+            Some(self.length_component())
         } else {
             None
         }
@@ -527,14 +541,14 @@ impl ToAnimatedValue for NonNegativeLengthPercentage {
 impl From<NonNegativeLength> for NonNegativeLengthPercentage {
     #[inline]
     fn from(length: NonNegativeLength) -> Self {
-        LengthPercentage::new(length.0, None).into()
+        NonNegative(LengthPercentage::new(length.0, None))
     }
 }
 
 impl From<LengthPercentage> for NonNegativeLengthPercentage {
     #[inline]
     fn from(lp: LengthPercentage) -> Self {
-        NonNegative::<LengthPercentage>(lp)
+        NonNegative(lp)
     }
 }
 
@@ -641,14 +655,14 @@ impl CSSPixelLength {
 
     /// Return the containing pixel value.
     #[inline]
-    pub fn px(&self) -> CSSFloat {
+    pub fn px(self) -> CSSFloat {
         self.0
     }
 
     /// Return the length with app_unit i32 type.
     #[inline]
-    pub fn to_i32_au(&self) -> i32 {
-        Au::from(*self).0
+    pub fn to_i32_au(self) -> i32 {
+        Au::from(self).0
     }
 
     /// Return the absolute value of this length.
@@ -676,8 +690,28 @@ impl CSSPixelLength {
     }
 
     /// Sets `self` to the maximum between `self` and `other`.
+    #[inline]
     pub fn max_assign(&mut self, other: Self) {
         *self = self.max(other);
+    }
+
+    /// Clamp the value to a lower bound and an optional upper bound.
+    ///
+    /// Can be used for example with `min-width` and `max-width`.
+    #[inline]
+    pub fn clamp_between_extremums(self, min_size: Self, max_size: Option<Self>) -> Self {
+        self.clamp_below_max(max_size).max(min_size)
+    }
+
+    /// Clamp the value to an optional upper bound.
+    ///
+    /// Can be used for example with `max-width`.
+    #[inline]
+    pub fn clamp_below_max(self, max_size: Option<Self>) -> Self {
+        match max_size {
+            None => self,
+            Some(max_size) => self.min(max_size),
+        }
     }
 }
 

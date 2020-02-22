@@ -417,24 +417,27 @@ class MOZ_STACK_CLASS nsFlexContainerFrame::FlexboxAxisTracker {
   void InitAxesFromModernProps(const nsFlexContainerFrame* aFlexContainer);
 
   // XXXdholbert [BEGIN DEPRECATED]
-  AxisOrientationType mMainAxis;
-  AxisOrientationType mCrossAxis;
+  AxisOrientationType mMainAxis = eAxis_LR;
+  AxisOrientationType mCrossAxis = eAxis_TB;
   // XXXdholbert [END DEPRECATED]
 
   const WritingMode mWM;  // The flex container's writing mode.
 
-  bool mIsRowOriented;  // Is our main axis the inline axis?
-                        // (Are we 'flex-direction:row[-reverse]'?)
+  // Is our main axis the inline axis? (Are we 'flex-direction:row[-reverse]'?)
+  bool mIsRowOriented = true;
 
-  bool mIsMainAxisReversed;   // Is our main axis in the opposite direction
-                              // as mWM's corresponding axis? (e.g. RTL vs LTR)
-  bool mIsCrossAxisReversed;  // Is our cross axis in the opposite direction
-                              // as mWM's corresponding axis? (e.g. BTT vs TTB)
+  // Is our main axis in the opposite direction as mWM's corresponding axis?
+  // (e.g. RTL vs LTR)
+  bool mIsMainAxisReversed = false;
+
+  // Is our cross axis in the opposite direction as mWM's corresponding axis?
+  // (e.g. BTT vs TTB)
+  bool mIsCrossAxisReversed = false;
 
   // Implementation detail -- this indicates whether we've decided to
   // transparently reverse our axes & our child ordering, to avoid having
   // frames flow from bottom to top in either axis (& to make pagination saner).
-  bool mAreAxesInternallyReversed;
+  bool mAreAxesInternallyReversed = false;
 };
 
 /**
@@ -849,64 +852,75 @@ class nsFlexContainerFrame::FlexItem : public LinkedListElement<FlexItem> {
                            const FlexboxAxisTracker& aAxisTracker);
 
   // Values that we already know in constructor (and are hence mostly 'const'):
-  nsIFrame* const mFrame;  // The flex item's frame.
-  const float mFlexGrow;
-  const float mFlexShrink;
+  // The flex item's frame.
+  nsIFrame* const mFrame = nullptr;
+  const float mFlexGrow = 0.0f;
+  const float mFlexShrink = 0.0f;
   const AspectRatio mIntrinsicRatio;
   const nsMargin mBorderPadding;
-  nsMargin mMargin;  // non-const because we need to resolve auto margins
+  // Non-const because we need to resolve auto margins.
+  nsMargin mMargin;
 
   // These are non-const so that we can lazily update them with the item's
   // intrinsic size (obtained via a "measuring" reflow), when necessary.
   // (e.g. for "flex-basis:auto;height:auto" & "min-height:auto")
-  nscoord mFlexBaseSize;
-  nscoord mMainMinSize;
-  nscoord mMainMaxSize;
+  nscoord mFlexBaseSize = 0;
+  nscoord mMainMinSize = 0;
+  nscoord mMainMaxSize = 0;
 
-  const nscoord mCrossMinSize;
-  const nscoord mCrossMaxSize;
+  const nscoord mCrossMinSize = 0;
+  const nscoord mCrossMaxSize = 0;
 
   // Values that we compute after constructor:
-  nscoord mMainSize;
-  nscoord mMainPosn;
-  nscoord mCrossSize;
-  nscoord mCrossPosn;
-  mutable nscoord mAscent;  // Mutable b/c it's set & resolved lazily, sometimes
-                            // via const pointer. See comment above SetAscent().
+  nscoord mMainSize = 0;
+  nscoord mMainPosn = 0;
+  nscoord mCrossSize = 0;
+  nscoord mCrossPosn = 0;
+
+  // Mutable b/c it's set & resolved lazily, sometimes via const pointer. See
+  // comment above SetAscent().
+  mutable nscoord mAscent = 0;
 
   // Temporary state, while we're resolving flexible widths (for our main size)
   // XXXdholbert To save space, we could use a union to make these variables
   // overlay the same memory as some other member vars that aren't touched
   // until after main-size has been resolved. In particular, these could share
   // memory with mMainPosn through mAscent, and mIsStretched.
-  float mShareOfWeightSoFar;
+  float mShareOfWeightSoFar = 0.0f;
 
-  const WritingMode mWM;  // The flex item's writing mode.
-  bool mIsFrozen;
-  bool mHadMinViolation;
-  bool mHadMaxViolation;
+  // The flex item's writing mode.
+  const WritingMode mWM;
+  bool mIsFrozen = false;
+  bool mHadMinViolation = false;
+  bool mHadMaxViolation = false;
 
-  // Misc:
-  bool mHadMeasuringReflow;  // Did this item get a preliminary reflow,
-                             // to measure its desired height?
-  bool mIsStretched;         // See IsStretched() documentation
-  bool mIsStrut;             // Is this item a "strut" left behind by an element
-                             // with visibility:collapse?
-  const bool mIsInlineAxisMainAxis;  // See IsInlineAxisMainAxis() documentation
+  // Did this item get a preliminary reflow, to measure its desired height?
+  bool mHadMeasuringReflow = false;
+
+  // See IsStretched() documentation.
+  bool mIsStretched = false;
+
+  // Is this item a "strut" left behind by an element with visibility:collapse?
+  bool mIsStrut = false;
+
+  // See IsInlineAxisMainAxis() documentation.
+  const bool mIsInlineAxisMainAxis = true;
 
   // Does this item need to resolve a min-[width|height]:auto (in main-axis).
-  bool mNeedsMinSizeAutoResolution;
+  bool mNeedsMinSizeAutoResolution = false;
 
   // Should we take care to treat this item's resolved BSize as indefinite?
-  bool mTreatBSizeAsIndefinite;
+  bool mTreatBSizeAsIndefinite = false;
 
   // Does this item have an auto margin in either main or cross axis?
-  bool mHasAnyAutoMargin;
+  bool mHasAnyAutoMargin = false;
 
-  uint8_t mAlignSelf;       // My "align-self" computed value (with "auto"
-                            // swapped out for parent"s "align-items" value,
-                            // in our constructor).
-  uint8_t mAlignSelfFlags;  // Flags for 'align-self' (safe/unsafe/legacy)
+  // My "align-self" computed value (with "auto" swapped out for parent"s
+  // "align-items" value, in our constructor).
+  uint8_t mAlignSelf = NS_STYLE_ALIGN_AUTO;
+
+  // Flags for 'align-self' (safe/unsafe/legacy).
+  uint8_t mAlignSelfFlags = 0;
 };
 
 /**
@@ -915,15 +929,7 @@ class nsFlexContainerFrame::FlexItem : public LinkedListElement<FlexItem> {
  */
 class nsFlexContainerFrame::FlexLine : public LinkedListElement<FlexLine> {
  public:
-  explicit FlexLine(nscoord aMainGapSize)
-      : mNumItems(0),
-        mNumFrozenItems(0),
-        mTotalItemMBP(0),
-        mTotalOuterHypotheticalMainSize(0),
-        mLineCrossSize(0),
-        mFirstBaselineOffset(nscoord_MIN),
-        mLastBaselineOffset(nscoord_MIN),
-        mMainGapSize(aMainGapSize) {}
+  explicit FlexLine(nscoord aMainGapSize) : mMainGapSize(aMainGapSize) {}
 
   nscoord GetSumOfGaps() const {
     return mNumItems > 0 ? (mNumItems - 1) * mMainGapSize : 0;
@@ -1090,32 +1096,32 @@ class nsFlexContainerFrame::FlexLine : public LinkedListElement<FlexLine> {
 
   AutoCleanLinkedList<FlexItem> mItems;  // Linked list of this line's items.
 
-  uint32_t mNumItems;  // Number of FlexItems in this line (in |mItems|).
-                       // (Shouldn't change after GenerateFlexLines finishes
-                       // with this line -- at least, not until we add support
-                       // for splitting lines across continuations. Then we can
-                       // update this count carefully.)
+  // Number of FlexItems in this line (in |mItems|). (Shouldn't change after
+  // GenerateFlexLines finishes with this line -- at least, not until we add
+  // support for splitting lines across continuations. Then we can update this
+  // count carefully.)
+  uint32_t mNumItems = 0;
 
   // Number of *frozen* FlexItems in this line, based on FlexItem::IsFrozen().
   // Mostly used for optimization purposes, e.g. to bail out early from loops
   // when we can tell they have nothing left to do.
-  uint32_t mNumFrozenItems;
+  uint32_t mNumFrozenItems = 0;
 
   // Sum of margin/border/padding for the FlexItems in this FlexLine.
-  nscoord mTotalItemMBP;
+  nscoord mTotalItemMBP = 0;
 
   // Sum of FlexItems' outer hypothetical main sizes and all main-axis
   // {row,columnm}-gaps between items.
   // (i.e. their flex base sizes, clamped via their min/max-size properties,
   // plus their main-axis margin/border/padding, plus the sum of the gaps.)
-  nscoord mTotalOuterHypotheticalMainSize;
+  nscoord mTotalOuterHypotheticalMainSize = 0;
 
-  nscoord mLineCrossSize;
-  nscoord mFirstBaselineOffset;
-  nscoord mLastBaselineOffset;
+  nscoord mLineCrossSize = 0;
+  nscoord mFirstBaselineOffset = nscoord_MIN;
+  nscoord mLastBaselineOffset = nscoord_MIN;
 
   // Maintain size of each {row,column}-gap in the main axis
-  nscoord mMainGapSize;
+  nscoord mMainGapSize = 0;
 };
 
 // Information about a strut left behind by a FlexItem that's been collapsed
@@ -1139,7 +1145,7 @@ static void BuildStrutInfoFromCollapsedItems(const FlexLine* aFirstLine,
   for (const FlexLine* line = aFirstLine; line; line = line->getNext()) {
     for (const FlexItem* item = line->GetFirstItem(); item;
          item = item->getNext()) {
-      if (NS_STYLE_VISIBILITY_COLLAPSE ==
+      if (StyleVisibility::Collapse ==
           item->Frame()->StyleVisibility()->mVisible) {
         // Note the cross size of the line as the item's strut size.
         aStruts.AppendElement(
@@ -1899,18 +1905,8 @@ FlexItem::FlexItem(ReflowInput& aFlexItemReflowInput, float aFlexGrow,
       mMainMaxSize(aMainMaxSize),
       mCrossMinSize(aCrossMinSize),
       mCrossMaxSize(aCrossMaxSize),
-      mMainPosn(0),
       mCrossSize(aTentativeCrossSize),
-      mCrossPosn(0),
-      mAscent(0),
-      mShareOfWeightSoFar(0.0f),
       mWM(aFlexItemReflowInput.GetWritingMode()),
-      mIsFrozen(false),
-      mHadMinViolation(false),
-      mHadMaxViolation(false),
-      mHadMeasuringReflow(false),
-      mIsStretched(false),
-      mIsStrut(false),
       mIsInlineAxisMainAxis(aAxisTracker.IsRowOriented() !=
                             aAxisTracker.GetWritingMode().IsOrthogonalTo(mWM))
 // mNeedsMinSizeAutoResolution is initialized in CheckForMinSizeAuto()
@@ -2043,40 +2039,17 @@ FlexItem::FlexItem(ReflowInput& aFlexItemReflowInput, float aFlexGrow,
 FlexItem::FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize,
                    WritingMode aContainerWM)
     : mFrame(aChildFrame),
-      mFlexGrow(0.0f),
-      mFlexShrink(0.0f),
-      // mBorderPadding uses default constructor,
-      // mMargin uses default constructor,
-      mFlexBaseSize(0),
-      mMainMinSize(0),
-      mMainMaxSize(0),
-      mCrossMinSize(0),
-      mCrossMaxSize(0),
-      mMainSize(0),
-      mMainPosn(0),
       mCrossSize(aCrossSize),
-      mCrossPosn(0),
-      mAscent(0),
-      mShareOfWeightSoFar(0.0f),
       // Struts don't do layout, so its WM doesn't matter at this point. So, we
       // just share container's WM for simplicity:
       mWM(aContainerWM),
       mIsFrozen(true),
-      mHadMinViolation(false),
-      mHadMaxViolation(false),
-      mHadMeasuringReflow(false),
-      mIsStretched(false),
       mIsStrut(true),  // (this is the constructor for making struts, after all)
       mIsInlineAxisMainAxis(true),  // (doesn't matter, we're not doing layout)
-      mNeedsMinSizeAutoResolution(false),
-      mTreatBSizeAsIndefinite(false),
-      mHasAnyAutoMargin(false),
-      mAlignSelf(NS_STYLE_ALIGN_FLEX_START),
-      mAlignSelfFlags(0) {
+      mAlignSelf(NS_STYLE_ALIGN_FLEX_START) {
   MOZ_ASSERT(mFrame, "expecting a non-null child frame");
-  MOZ_ASSERT(
-      NS_STYLE_VISIBILITY_COLLAPSE == mFrame->StyleVisibility()->mVisible,
-      "Should only make struts for children with 'visibility:collapse'");
+  MOZ_ASSERT(StyleVisibility::Collapse == mFrame->StyleVisibility()->mVisible,
+             "Should only make struts for children with 'visibility:collapse'");
   MOZ_ASSERT(!mFrame->IsPlaceholderFrame(),
              "placeholder frames should not be treated as flex items");
   MOZ_ASSERT(!(mFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW),
@@ -2257,7 +2230,7 @@ class MOZ_STACK_CLASS PositionTracker {
  protected:
   // Protected constructor, to be sure we're only instantiated via a subclass.
   PositionTracker(AxisOrientationType aAxis, bool aIsAxisReversed)
-      : mPosition(0), mAxis(aAxis), mIsAxisReversed(aIsAxisReversed) {}
+      : mAxis(aAxis), mIsAxisReversed(aIsAxisReversed) {}
 
   // Delete copy-constructor & reassignment operator, to prevent accidental
   // (unnecessary) copying.
@@ -2265,13 +2238,16 @@ class MOZ_STACK_CLASS PositionTracker {
   PositionTracker& operator=(const PositionTracker&) = delete;
 
   // Member data:
-  nscoord mPosition;  // The position we're tracking
+  // The position we're tracking.
+  nscoord mPosition = 0;
   // XXXdholbert [BEGIN DEPRECATED]
-  const AxisOrientationType mAxis;  // The axis along which we're moving.
+  // The axis along which we're moving.
+  const AxisOrientationType mAxis = eAxis_LR;
   // XXXdholbert [END DEPRECATED]
-  const bool mIsAxisReversed;  // Is the axis along which we're moving reversed
-                               // (e.g. LTR vs RTL) with respect to the
-                               // corresponding axis on the flex container's WM?
+
+  // Is the axis along which we're moving reversed (e.g. LTR vs RTL) with
+  // respect to the corresponding axis on the flex container's WM?
+  const bool mIsAxisReversed = false;
 };
 
 // Tracks our position in the main axis, when we're laying out flex items.
@@ -2301,11 +2277,11 @@ class MOZ_STACK_CLASS MainAxisPositionTracker : public PositionTracker {
   void ResolveAutoMarginsInMainAxis(FlexItem& aItem);
 
  private:
-  nscoord mPackingSpaceRemaining;
-  uint32_t mNumAutoMarginsInMainAxis;
-  uint32_t mNumPackingSpacesRemaining;
+  nscoord mPackingSpaceRemaining = 0;
+  uint32_t mNumAutoMarginsInMainAxis = 0;
+  uint32_t mNumPackingSpacesRemaining = 0;
   // XXX this should be uint16_t when we add explicit fallback handling
-  uint8_t mJustifyContent;
+  uint8_t mJustifyContent = NS_STYLE_JUSTIFY_AUTO;
 };
 
 // Utility class for managing our position along the cross axis along
@@ -2342,10 +2318,10 @@ class MOZ_STACK_CLASS CrossAxisPositionTracker : public PositionTracker {
   void EnterChildFrame(nscoord aChildFrameSize) = delete;
   void ExitChildFrame(nscoord aChildFrameSize) = delete;
 
-  nscoord mPackingSpaceRemaining;
-  uint32_t mNumPackingSpacesRemaining;
+  nscoord mPackingSpaceRemaining = 0;
+  uint32_t mNumPackingSpacesRemaining = 0;
   // XXX this should be uint16_t when we add explicit fallback handling
-  uint8_t mAlignContent;
+  uint8_t mAlignContent = NS_STYLE_ALIGN_AUTO;
 
   nscoord mCrossGapSize = 0;
 };
@@ -2952,8 +2928,6 @@ MainAxisPositionTracker::MainAxisPositionTracker(
                       aAxisTracker.IsMainAxisReversed()),
       // we chip away at this below
       mPackingSpaceRemaining(aContentBoxMainSize),
-      mNumAutoMarginsInMainAxis(0),
-      mNumPackingSpacesRemaining(0),
       mJustifyContent(aJustifyContent) {
   // Extract the flag portion of mJustifyContent and strip off the flag bits
   // NOTE: This must happen before any assignment to mJustifyContent to
@@ -3134,8 +3108,6 @@ CrossAxisPositionTracker::CrossAxisPositionTracker(
     const FlexboxAxisTracker& aAxisTracker, const nscoord aCrossGapSize)
     : PositionTracker(aAxisTracker.GetCrossAxis(),
                       aAxisTracker.IsCrossAxisReversed()),
-      mPackingSpaceRemaining(0),
-      mNumPackingSpacesRemaining(0),
       mAlignContent(aReflowInput.mStylePosition->mAlignContent),
       mCrossGapSize(aCrossGapSize) {
   MOZ_ASSERT(aFirstLine, "null first line pointer");
@@ -3251,7 +3223,7 @@ CrossAxisPositionTracker::CrossAxisPositionTracker(
             "NYI: "
             "align-items/align-self:left/right/self-start/self-end/baseline/"
             "last baseline");
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
       case NS_STYLE_ALIGN_FLEX_START:
         // All packing space should go at the end --> nothing to do here.
         break;
@@ -3652,11 +3624,7 @@ static inline AxisOrientationType BlockDirToAxisOrientation(
 FlexboxAxisTracker::FlexboxAxisTracker(
     const nsFlexContainerFrame* aFlexContainer, const WritingMode& aWM,
     AxisTrackerFlags aFlags)
-    : mMainAxis(eAxis_LR),
-      mWM(aWM),
-      mIsRowOriented(true),
-      mIsMainAxisReversed(false),
-      mAreAxesInternallyReversed(false) {
+    : mWM(aWM) {
   if (IsLegacyBox(aFlexContainer)) {
     InitAxesFromLegacyProps(aFlexContainer);
   } else {
@@ -3925,7 +3893,7 @@ void nsFlexContainerFrame::GenerateFlexLines(
 
     UniquePtr<FlexItem> item;
     if (useMozBoxCollapseBehavior &&
-        (NS_STYLE_VISIBILITY_COLLAPSE ==
+        (StyleVisibility::Collapse ==
          childFrame->StyleVisibility()->mVisible)) {
       // Legacy visibility:collapse behavior: make a 0-sized strut. (No need to
       // bother with aStruts and remembering cross size.)
@@ -5341,7 +5309,7 @@ nscoord nsFlexContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
     // If we're using legacy "visibility:collapse" behavior, then we don't
     // care about the sizes of any collapsed children.
     if (!useMozBoxCollapseBehavior ||
-        (NS_STYLE_VISIBILITY_COLLAPSE !=
+        (StyleVisibility::Collapse !=
          childFrame->StyleVisibility()->mVisible)) {
       nscoord childISize = nsLayoutUtils::IntrinsicForContainer(
           aRenderingContext, childFrame, aType);

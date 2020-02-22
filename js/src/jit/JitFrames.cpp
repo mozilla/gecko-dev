@@ -114,6 +114,7 @@ static void CloseLiveIteratorIon(JSContext* cx,
 
   if (isDestructuring) {
     RootedValue doneValue(cx, si.read());
+    MOZ_RELEASE_ASSERT(!doneValue.isMagic());
     bool done = ToBoolean(doneValue);
     // Do not call IteratorClose if the destructuring iterator is already
     // done.
@@ -200,9 +201,6 @@ static void HandleExceptionIon(JSContext* cx, const InlineFrameIterator& frame,
     switch (tn->kind) {
       case JSTRY_FOR_IN:
       case JSTRY_DESTRUCTURING:
-        MOZ_ASSERT_IF(tn->kind == JSTRY_FOR_IN,
-                      JSOp(*(script->offsetToPC(tn->start + tn->length))) ==
-                          JSOP_ENDITER);
         CloseLiveIteratorIon(cx, frame, tn);
         break;
 
@@ -258,11 +256,6 @@ static void OnLeaveBaselineFrame(JSContext* cx, const JSJitFrameIter& frame,
   }
 }
 
-static inline void ForcedReturn(JSContext* cx, const JSJitFrameIter& frame,
-                                jsbytecode* pc, ResumeFromException* rfe) {
-  OnLeaveBaselineFrame(cx, frame, pc, rfe, true);
-}
-
 static inline void BaselineFrameAndStackPointersFromTryNote(
     const JSTryNote* tn, const JSJitFrameIter& frame, uint8_t** framePointer,
     uint8_t** stackPointer) {
@@ -299,7 +292,7 @@ class BaselineTryNoteFilter {
     BaselineFrame* frame = frame_.baselineFrame();
 
     uint32_t numValueSlots = frame_.baselineFrameNumValueSlots();
-    MOZ_ASSERT(numValueSlots >= frame->script()->nfixed());
+    MOZ_RELEASE_ASSERT(numValueSlots >= frame->script()->nfixed());
 
     uint32_t currDepth = numValueSlots - frame->script()->nfixed();
     return note->stackDepth <= currDepth;
@@ -407,7 +400,10 @@ static bool ProcessTryNotesBaseline(JSContext* cx, const JSJitFrameIter& frame,
         uint8_t* stackPointer;
         BaselineFrameAndStackPointersFromTryNote(tn, frame, &framePointer,
                                                  &stackPointer);
+        // Note: if this ever changes, also update the JSTRY_DESTRUCTURING code
+        // in IonBuilder.cpp!
         RootedValue doneValue(cx, *(reinterpret_cast<Value*>(stackPointer)));
+        MOZ_RELEASE_ASSERT(!doneValue.isMagic());
         bool done = ToBoolean(doneValue);
         if (!done) {
           Value iterValue(*(reinterpret_cast<Value*>(stackPointer) + 1));
@@ -477,40 +473,19 @@ static void HandleExceptionBaseline(JSContext* cx, JSJitFrameIter& frame,
     }
   }
 
-  // We may be propagating a forced return from the interrupt
-  // callback, which cannot easily force a return.
-  if (cx->isPropagatingForcedReturn()) {
-    cx->clearPropagatingForcedReturn();
-    ForcedReturn(cx, frame, pc, rfe);
-    return;
-  }
-
   bool hasTryNotes = !script->trynotes().empty();
 
 again:
   if (cx->isExceptionPending()) {
     if (!cx->isClosingGenerator()) {
-      switch (DebugAPI::onExceptionUnwind(cx, frame.baselineFrame())) {
-        case ResumeMode::Terminate:
-          // Uncatchable exception.
-          MOZ_ASSERT(!cx->isExceptionPending());
+      if (!DebugAPI::onExceptionUnwind(cx, frame.baselineFrame())) {
+        if (!cx->isExceptionPending()) {
           goto again;
-
-        case ResumeMode::Continue:
-        case ResumeMode::Throw:
-          MOZ_ASSERT(cx->isExceptionPending());
-          break;
-
-        case ResumeMode::Return:
-          if (hasTryNotes) {
-            CloseLiveIteratorsBaselineForUncatchableException(cx, frame, pc);
-          }
-          ForcedReturn(cx, frame, pc, rfe);
-          return;
-
-        default:
-          MOZ_CRASH("Invalid onExceptionUnwind resume mode");
+        }
       }
+      // Ensure that the debugger hasn't returned 'true' while clearing the
+      // exception state.
+      MOZ_ASSERT(cx->isExceptionPending());
     }
 
     if (hasTryNotes) {
@@ -527,9 +502,16 @@ again:
     }
 
     frameOk = HandleClosingGeneratorReturn(cx, frame.baselineFrame(), frameOk);
-    frameOk = DebugAPI::onLeaveFrame(cx, frame.baselineFrame(), pc, frameOk);
-  } else if (hasTryNotes) {
-    CloseLiveIteratorsBaselineForUncatchableException(cx, frame, pc);
+  } else {
+    if (hasTryNotes) {
+      CloseLiveIteratorsBaselineForUncatchableException(cx, frame, pc);
+    }
+
+    // We may be propagating a forced return from a debugger hook function.
+    if (MOZ_UNLIKELY(cx->isPropagatingForcedReturn())) {
+      cx->clearPropagatingForcedReturn();
+      frameOk = true;
+    }
   }
 
   OnLeaveBaselineFrame(cx, frame, pc, rfe, frameOk);

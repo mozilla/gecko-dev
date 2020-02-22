@@ -6,13 +6,6 @@
 
 import { onConnect } from "../../firefox";
 
-const tabTarget = {
-  on: () => {},
-  _form: {
-    url: "url",
-  },
-};
-
 const threadFront = {
   on: () => {},
   reconfigure: () => {},
@@ -30,6 +23,16 @@ const threadFront = {
   _parent: {
     addListener: () => {},
     listWorkers: () => new Promise(resolve => resolve({ workers: [] })),
+  },
+};
+
+const targetList = {
+  targetFront: {
+    on: () => {},
+    _form: {
+      url: "url",
+    },
+    threadFront,
   },
 };
 
@@ -57,11 +60,8 @@ describe("firefox onConnect", () => {
   it("wait for sources at startup", async () => {
     await onConnect(
       {
-        tabConnection: {
-          tabTarget,
-          threadFront,
-          debuggerClient,
-        },
+        targetList,
+        debuggerClient,
       },
       actions
     );

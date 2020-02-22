@@ -8,7 +8,6 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPtr.h"
-#include "nsIServiceManager.h"
 #include "nsISupportsUtils.h"
 #include "nsString.h"
 #include "nsIPrintDialogService.h"
@@ -21,9 +20,9 @@
 #  include "nsPrintProgressParams.h"
 
 static const char* kPrintProgressDialogURL =
-    "chrome://global/content/printProgress.xul";
+    "chrome://global/content/printProgress.xhtml";
 static const char* kPrtPrvProgressDialogURL =
-    "chrome://global/content/printPreviewProgress.xul";
+    "chrome://global/content/printPreviewProgress.xhtml";
 #endif
 
 using namespace mozilla;
@@ -64,16 +63,13 @@ nsresult nsPrintingPromptService::Init() {
 
 NS_IMETHODIMP
 nsPrintingPromptService::ShowPrintDialog(mozIDOMWindowProxy* parent,
-                                         nsIWebBrowserPrint* webBrowserPrint,
                                          nsIPrintSettings* printSettings) {
-  NS_ENSURE_ARG(webBrowserPrint);
   NS_ENSURE_ARG(printSettings);
 
   nsCOMPtr<nsIPrintDialogService> dlgPrint(
       do_GetService(NS_PRINTDIALOGSERVICE_CONTRACTID));
   if (dlgPrint)
-    return dlgPrint->Show(nsPIDOMWindowOuter::From(parent), printSettings,
-                          webBrowserPrint);
+    return dlgPrint->Show(nsPIDOMWindowOuter::From(parent), printSettings);
 
   return NS_ERROR_FAILURE;
 }
@@ -81,9 +77,8 @@ nsPrintingPromptService::ShowPrintDialog(mozIDOMWindowProxy* parent,
 NS_IMETHODIMP
 nsPrintingPromptService::ShowPrintProgressDialog(
     mozIDOMWindowProxy* parent,
-    nsIWebBrowserPrint* webBrowserPrint,  // ok to be null
-    nsIPrintSettings* printSettings,      // ok to be null
-    nsIObserver* openDialogObserver,      // ok to be null
+    nsIPrintSettings* printSettings,  // ok to be null
+    nsIObserver* openDialogObserver,  // ok to be null
     bool isForPrinting, nsIWebProgressListener** webProgressListener,
     nsIPrintProgressParams** printProgressParams, bool* notifyOnOpen) {
 #if !defined(XP_MACOSX)

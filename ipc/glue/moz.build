@@ -38,6 +38,7 @@ EXPORTS.mozilla.ipc += [
     'IPCStreamSource.h',
     'IPCStreamUtils.h',
     'IPDLParamTraits.h',
+    'LibrarySandboxPreload.h',
     'MessageChannel.h',
     'MessageLink.h',
     'Neutering.h',
@@ -162,6 +163,7 @@ UNIFIED_SOURCES += [
     'IPCStreamParent.cpp',
     'IPCStreamSource.cpp',
     'IPCStreamUtils.cpp',
+    'LibrarySandboxPreload.cpp',
     'MessageChannel.cpp',
     'MessageLink.cpp',
     'MessagePump.cpp',
@@ -201,6 +203,7 @@ LOCAL_INCLUDES += [
     '/dom/storage',
     '/media/webrtc/trunk',
     '/media/webrtc/trunk/webrtc',
+    '/netwerk/base',
     '/xpcom/build',
 ]
 
@@ -218,6 +221,21 @@ IPDL_SOURCES = [
     'ProtocolTypes.ipdlh',
     'URIParams.ipdlh',
 ]
+
+if CONFIG['MOZ_ENABLE_FORKSERVER']:
+    EXPORTS.mozilla.ipc += [
+        'ForkServer.h',
+        'ForkServiceChild.h',
+        'MiniTransceiver.h',
+    ]
+    UNIFIED_SOURCES += [
+        'ForkServer.cpp',
+        'ForkServiceChild.cpp',
+        'MiniTransceiver.cpp',
+    ]
+    XPCOM_MANIFESTS += [
+        'components.conf',
+    ]
 
 LOCAL_INCLUDES += [
     '/dom/ipc',

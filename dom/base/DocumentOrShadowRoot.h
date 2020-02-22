@@ -21,7 +21,9 @@ class nsIRadioVisitor;
 class nsWindowSizes;
 
 namespace mozilla {
+class ErrorResult;
 class StyleSheet;
+class ErrorResult;
 
 namespace dom {
 
@@ -72,7 +74,7 @@ class DocumentOrShadowRoot {
     return mStyleSheets.IndexOf(&aSheet);
   }
 
-  StyleSheetList& EnsureDOMStyleSheets();
+  StyleSheetList* StyleSheets();
 
   Element* GetElementById(const nsAString& aElementId);
 

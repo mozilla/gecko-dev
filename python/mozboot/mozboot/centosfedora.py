@@ -9,16 +9,19 @@ import platform
 from mozboot.base import BaseBootstrapper
 from mozboot.linux_common import (
     ClangStaticAnalysisInstall,
+    LucetcInstall,
     NasmInstall,
     NodeInstall,
     SccacheInstall,
     StyloInstall,
+    WasiSysrootInstall,
 )
 
 
-class CentOSFedoraBootstrapper(NasmInstall, NodeInstall, StyloInstall,
-                               SccacheInstall, ClangStaticAnalysisInstall,
-                               BaseBootstrapper):
+class CentOSFedoraBootstrapper(
+        NasmInstall, NodeInstall, StyloInstall, SccacheInstall,
+        ClangStaticAnalysisInstall, LucetcInstall, WasiSysrootInstall,
+        BaseBootstrapper):
     def __init__(self, distro, version, dist_id, **kwargs):
         BaseBootstrapper.__init__(self, **kwargs)
 
@@ -164,4 +167,7 @@ class CentOSFedoraBootstrapper(NasmInstall, NodeInstall, StyloInstall,
         self.suggest_mobile_android_mozconfig(artifact_mode=True)
 
     def upgrade_mercurial(self, current):
-        self.dnf_update('mercurial')
+        if current is None:
+            self.dnf_install('mercurial')
+        else:
+            self.dnf_update('mercurial')

@@ -802,24 +802,6 @@ class TestEmitterBasic(unittest.TestCase):
                                      'entry in support-files not present in the srcdir'):
             self.read_topsrcdir(reader)
 
-    def test_test_manifest_install_to_subdir(self):
-        """ """
-        reader = self.reader('test-manifest-install-subdir')
-
-        objs = self.read_topsrcdir(reader)
-        self.assertEqual(len(objs), 1)
-        o = objs[0]
-        self.assertEqual(len(o.installs), 3)
-        self.assertEqual(o.manifest_relpath, "subdir.ini")
-        self.assertEqual(o.manifest_obj_relpath, "subdir/subdir.ini")
-        expected = [
-            mozpath.normpath(mozpath.join(o.install_prefix, "subdir/subdir.ini")),
-            mozpath.normpath(mozpath.join(o.install_prefix, "subdir/support.txt")),
-            mozpath.normpath(mozpath.join(o.install_prefix, "subdir/test_foo.html")),
-        ]
-        paths = sorted([v[0] for v in o.installs.values()])
-        self.assertEqual(paths, expected)
-
     def test_test_manifest_install_includes(self):
         """Ensure that any [include:foo.ini] are copied to the objdir."""
         reader = self.reader('test-manifest-install-includes')
@@ -829,11 +811,11 @@ class TestEmitterBasic(unittest.TestCase):
         o = objs[0]
         self.assertEqual(len(o.installs), 3)
         self.assertEqual(o.manifest_relpath, "mochitest.ini")
-        self.assertEqual(o.manifest_obj_relpath, "subdir/mochitest.ini")
+        self.assertEqual(o.manifest_obj_relpath, "mochitest.ini")
         expected = [
-            mozpath.normpath(mozpath.join(o.install_prefix, "subdir/common.ini")),
-            mozpath.normpath(mozpath.join(o.install_prefix, "subdir/mochitest.ini")),
-            mozpath.normpath(mozpath.join(o.install_prefix, "subdir/test_foo.html")),
+            mozpath.normpath(mozpath.join(o.install_prefix, "common.ini")),
+            mozpath.normpath(mozpath.join(o.install_prefix, "mochitest.ini")),
+            mozpath.normpath(mozpath.join(o.install_prefix, "test_foo.html")),
         ]
         paths = sorted([v[0] for v in o.installs.values()])
         self.assertEqual(paths, expected)
@@ -1338,8 +1320,8 @@ class TestEmitterBasic(unittest.TestCase):
                               linkable.objs)
 
     def test_wasm_sources(self):
-        """Test that HOST_SOURCES works properly."""
-        reader = self.reader('wasm-sources')
+        """Test that WASM_SOURCES works properly."""
+        reader = self.reader('wasm-sources', extra_substs={'OS_TARGET': 'Linux'})
         objs = list(self.read_topsrcdir(reader))
 
         # The second to last object is a linkable.
@@ -1718,7 +1700,7 @@ class TestEmitterBasic(unittest.TestCase):
             self.read_topsrcdir(reader)
 
     def test_wasm_compile_flags(self):
-        reader = self.reader('wasm-compile-flags')
+        reader = self.reader('wasm-compile-flags', extra_substs={'OS_TARGET': 'Linux'})
         flags = list(self.read_topsrcdir(reader))[2]
         self.assertIsInstance(flags, ComputedFlags)
         self.assertEqual(flags.flags['WASM_CFLAGS'],

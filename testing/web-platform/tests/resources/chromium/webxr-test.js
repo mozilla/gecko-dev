@@ -209,6 +209,12 @@ class MockRuntime {
     "bounded-floor": device.mojom.XRSessionFeature.REF_SPACE_BOUNDED_FLOOR,
     "unbounded": device.mojom.XRSessionFeature.REF_SPACE_UNBOUNDED };
 
+  static sessionModeToMojoMap = {
+    "inline": device.mojom.XRSessionMode.kInline,
+    "immersive-vr": device.mojom.XRSessionMode.kImmersiveVr,
+    "immersive-ar": device.mojom.XRSessionMode.kImmersiveAr,
+  };
+
   constructor(fakeDeviceInit, service) {
     this.sessionClient_ = new device.mojom.XRSessionClientPtr();
     this.presentation_provider_ = new MockXRPresentationProvider();
@@ -216,7 +222,7 @@ class MockRuntime {
     this.pose_ = null;
     this.next_frame_id_ = 0;
     this.bounds_ = null;
-    this.send_pose_reset_ = false;
+    this.send_mojo_space_reset_ = false;
 
     this.service_ = service;
 
@@ -225,16 +231,38 @@ class MockRuntime {
     this.input_sources_ = [];
     this.next_input_source_index_ = 1;
 
-    // Initialize DisplayInfo first to set the defaults, then override with
-    // anything from the deviceInit
-    if (fakeDeviceInit.supportsImmersive) {
-      this.displayInfo_ = this.getImmersiveDisplayInfo();
+    let supportedModes = [];
+    if (fakeDeviceInit.supportedModes) {
+      supportedModes = fakeDeviceInit.supportedModes.slice();
+      if(fakeDeviceInit.supportedModes.length === 0) {
+        supportedModes = ["inline"];
+      }
     } else {
-      this.displayInfo_ = this.getNonImmersiveDisplayInfo();
+      // Back-compat mode.
+      console.warn("Please use `supportedModes` to signal which modes are supported by this device.");
+      if(fakeDeviceInit.supportsImmersive == null) {
+        throw new TypeError("'supportsImmersive' must be set");
+      }
+
+      supportedModes = ["inline"];
+      if(fakeDeviceInit.supportsImmersive) {
+        supportedModes.push("immersive-vr");
+      }
     }
 
-    if (fakeDeviceInit.supportsEnvironmentIntegration) {
-      this.displayInfo_.capabilities.canProvideEnvironmentIntegration = true;
+    this.supportedModes_ = this._convertModesToEnum(supportedModes);
+
+    // Initialize DisplayInfo first to set the defaults, then override with
+    // anything from the deviceInit
+    if(this.supportedModes_.includes(device.mojom.XRSessionMode.kImmersiveVr)
+    || this.supportedModes_.includes(device.mojom.XRSessionMode.kImmersiveAr)) {
+      this.displayInfo_ = this.getImmersiveDisplayInfo();
+    } else if (this.supportedModes_.includes(device.mojom.XRSessionMode.kInline)) {
+      this.displayInfo_ = this.getNonImmersiveDisplayInfo();
+    } else {
+      // This should never happen!
+      console.error("Device has empty supported modes array!");
+      throw new InvalidStateError();
     }
 
     if (fakeDeviceInit.viewerOrigin != null) {
@@ -245,6 +273,10 @@ class MockRuntime {
       this.setFloorOrigin(fakeDeviceInit.floorOrigin);
     }
 
+    if (fakeDeviceInit.world) {
+      this.world_ = fakeDeviceInit.world;
+    }
+
     // This appropriately handles if the coordinates are null
     this.setBoundsGeometry(fakeDeviceInit.boundsCoordinates);
 
@@ -252,6 +284,17 @@ class MockRuntime {
 
     // Need to support webVR which doesn't have a notion of features
     this.setFeatures(fakeDeviceInit.supportedFeatures || []);
+  }
+
+  _convertModeToEnum(sessionMode) {
+    if(sessionMode in MockRuntime.sessionModeToMojoMap)
+      return MockRuntime.sessionModeToMojoMap[sessionMode];
+
+    throw new TypeError("Unrecognized value for XRSessionMode enum: " + sessionMode);
+  }
+
+  _convertModesToEnum(sessionModes) {
+    return sessionModes.map(mode => this._convertModeToEnum(mode));
   }
 
   // Test API methods.
@@ -370,7 +413,7 @@ class MockRuntime {
   }
 
   simulateResetPose() {
-    this.send_pose_reset_ = true;
+    this.send_mojo_space_reset_ = true;
   }
 
   simulateInputSourceConnection(fakeInputSourceInit) {
@@ -514,22 +557,22 @@ class MockRuntime {
 
   // XRFrameDataProvider implementation.
   getFrameData() {
+    let mojo_space_reset = this.send_mojo_space_reset_;
+    this.send_mojo_space_reset_ = false;
     if (this.pose_) {
       this.pose_.poseIndex++;
-      this.pose_.poseReset = this.send_pose_reset_;
-      this.send_pose_reset_ = false;
 
-      // Setting the input_state to null tests a slightly different path than
-      // the browser tests where if the last input source is removed, the device
-      // code always sends up an empty array, but it's also valid mojom to send
-      // up a null array.
-      if (this.input_sources_.length > 0) {
-        this.pose_.inputState = [];
-        for (let i = 0; i < this.input_sources_.length; i++) {
-          this.pose_.inputState.push(this.input_sources_[i].getInputSourceState());
-        }
-      } else {
-        this.pose_.inputState = null;
+    }
+
+    // Setting the input_state to null tests a slightly different path than
+    // the browser tests where if the last input source is removed, the device
+    // code always sends up an empty array, but it's also valid mojom to send
+    // up a null array.
+    let input_state = null;
+    if (this.input_sources_.length > 0) {
+      input_state = [];
+      for (let i = 0; i < this.input_sources_.length; i++) {
+        input_state.push(this.input_sources_[i].getInputSourceState());
       }
     }
 
@@ -542,6 +585,8 @@ class MockRuntime {
     return Promise.resolve({
       frameData: {
         pose: this.pose_,
+        mojoSpaceReset: mojo_space_reset,
+        inputState: input_state,
         timeDelta: {
           microseconds: now,
         },
@@ -631,10 +676,9 @@ class MockRuntime {
 
   runtimeSupportsSession(options) {
     return Promise.resolve({
-      supportsSession:
-          !options.immersive || this.displayInfo_.capabilities.canPresent
+      supportsSession: this.supportedModes_.includes(options.mode)
     });
-  };
+  }
 }
 
 class MockXRSessionMetricsRecorder {
@@ -828,6 +872,10 @@ class MockXRInputSource {
 
     input_state.primaryInputPressed = this.primary_input_pressed_;
     input_state.primaryInputClicked = this.primary_input_clicked_;
+    // Setting the input source's "clicked" state should generate one "select"
+    // event. Reset the input value to prevent it from continuously generating
+    // events.
+    this.primary_input_clicked_ = false;
 
     input_state.mojoFromInput = this.mojo_from_input_;
 

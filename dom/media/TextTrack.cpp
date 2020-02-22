@@ -163,7 +163,7 @@ void TextTrack::GetId(nsAString& aId) const {
   // If the track has a track element then its id should be the same as the
   // track element's id.
   if (mTrackElement) {
-    mTrackElement->GetAttribute(NS_LITERAL_STRING("id"), aId);
+    mTrackElement->GetAttr(nsGkAtoms::id, aId);
   }
 }
 
@@ -225,12 +225,6 @@ void TextTrack::GetActiveCueArray(nsTArray<RefPtr<TextTrackCue> >& aCues) {
 }
 
 TextTrackReadyState TextTrack::ReadyState() const { return mReadyState; }
-
-void TextTrack::SetReadyState(uint32_t aReadyState) {
-  if (aReadyState <= TextTrackReadyState::FailedToLoad) {
-    SetReadyState(static_cast<TextTrackReadyState>(aReadyState));
-  }
-}
 
 void TextTrack::SetReadyState(TextTrackReadyState aState) {
   WEBVTT_LOG("SetReadyState=%s", ToReadyStateStr(aState));
@@ -309,7 +303,7 @@ bool TextTrack::IsLoaded() {
       return true;
     }
   }
-  return (mReadyState >= Loaded);
+  return mReadyState >= TextTrackReadyState::Loaded;
 }
 
 void TextTrack::NotifyCueActiveStateChanged(TextTrackCue* aCue) {

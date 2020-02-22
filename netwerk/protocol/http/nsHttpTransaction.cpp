@@ -21,7 +21,6 @@
 #include "nsTransportUtils.h"
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
-#include "nsIChannel.h"
 #include "nsIPipe.h"
 #include "nsCRT.h"
 #include "mozilla/Tokenizer.h"
@@ -39,12 +38,14 @@
 #include "nsIClassOfService.h"
 #include "nsIEventTarget.h"
 #include "nsIHttpChannelInternal.h"
+#include "nsIMultiplexInputStream.h"
 #include "nsIInputStream.h"
 #include "nsIThrottledInputChannel.h"
 #include "nsITransport.h"
 #include "nsIOService.h"
 #include "nsIRequestContext.h"
 #include "nsIHttpAuthenticator.h"
+#include "nsQueryObject.h"
 #include "NSSErrorsService.h"
 #include "TunnelUtils.h"
 #include "sslerr.h"
@@ -250,8 +251,8 @@ nsresult nsHttpTransaction::Init(
     nsIInputStream* requestBody, uint64_t requestContentLength,
     bool requestBodyHasHeaders, nsIEventTarget* target,
     nsIInterfaceRequestor* callbacks, nsITransportEventSink* eventsink,
-    uint64_t topLevelOuterContentWindowId, HttpTrafficCategory trafficCategory,
-    nsIAsyncInputStream** responseBody) {
+    uint64_t topLevelOuterContentWindowId,
+    HttpTrafficCategory trafficCategory) {
   nsresult rv;
 
   LOG1(("nsHttpTransaction::Init [this=%p caps=%x]\n", this, caps));
@@ -383,8 +384,9 @@ nsresult nsHttpTransaction::Init(
 
   if (mHasRequestBody) {
     // wrap the headers and request body in a multiplexed input stream.
-    nsCOMPtr<nsIMultiplexInputStream> multi =
-        do_CreateInstance(kMultiplexInputStream, &rv);
+    nsCOMPtr<nsIMultiplexInputStream> multi;
+    rv = nsMultiplexInputStreamConstructor(
+        nullptr, NS_GET_IID(nsIMultiplexInputStream), getter_AddRefs(multi));
     if (NS_FAILED(rv)) return rv;
 
     rv = multi->AppendStream(headers);
@@ -437,8 +439,20 @@ nsresult nsHttpTransaction::Init(
                    nsIOService::gDefaultSegmentCount);
   if (NS_FAILED(rv)) return rv;
 
-  nsCOMPtr<nsIAsyncInputStream> tmp(mPipeIn);
-  tmp.forget(responseBody);
+  return NS_OK;
+}
+
+nsresult nsHttpTransaction::AsyncRead(nsIStreamListener* listener,
+                                      nsIRequest** pump) {
+  RefPtr<nsInputStreamPump> transactionPump;
+  nsresult rv =
+      nsInputStreamPump::Create(getter_AddRefs(transactionPump), mPipeIn);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = transactionPump->AsyncRead(listener, nullptr);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  transactionPump.forget(pump);
   return NS_OK;
 }
 
@@ -494,6 +508,13 @@ nsHttpHeaderArray* nsHttpTransaction::TakeResponseTrailers() {
 
   mResponseTrailersTaken = true;
   return mForTakeResponseTrailers.forget();
+}
+
+nsresult nsHttpTransaction::SetSniffedTypeToChannel(
+    nsIRequest* aPump, nsIChannel* aChannel,
+    nsInputStreamPump::PeekSegmentFun aCallTypeSniffers) {
+  // TODO: will be implemented later in bug 1600254.
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 void nsHttpTransaction::SetProxyConnectFailed() { mProxyConnectFailed = true; }
@@ -1005,9 +1026,11 @@ void nsHttpTransaction::SetPushedStream(Http2PushedStreamWrapper* push) {
   mPushedStream = push;
 }
 
-bool nsHttpTransaction::ResolvedByTRR() { return mResolvedByTRR; }
-
 nsHttpTransaction* nsHttpTransaction::AsHttpTransaction() { return this; }
+
+HttpTransactionParent* nsHttpTransaction::AsHttpTransactionParent() {
+  return nullptr;
+}
 
 void nsHttpTransaction::Close(nsresult reason) {
   LOG(("nsHttpTransaction::Close [this=%p reason=%" PRIx32 "]\n", this,
@@ -1674,7 +1697,7 @@ nsresult nsHttpTransaction::HandleContentStart() {
     switch (mResponseHead->Status()) {
       case 101:
         mPreserveStream = true;
-        MOZ_FALLTHROUGH;  // to other no content cases:
+        [[fallthrough]];  // to other no content cases:
       case 204:
       case 205:
       case 304:
@@ -1683,7 +1706,7 @@ nsresult nsHttpTransaction::HandleContentStart() {
         break;
       case 421:
         LOG(("Misdirected Request.\n"));
-        gHttpHandler->ConnMgr()->ClearHostMapping(mConnInfo);
+        gHttpHandler->AltServiceCache()->ClearHostMapping(mConnInfo);
 
         // retry on a new connection - just in case
         if (!mRestartCount) {
@@ -2317,10 +2340,12 @@ nsHttpTransaction::OnOutputStreamReady(nsIAsyncOutputStream* out) {
   return NS_OK;
 }
 
-void nsHttpTransaction::GetNetworkAddresses(NetAddr& self, NetAddr& peer) {
+void nsHttpTransaction::GetNetworkAddresses(NetAddr& self, NetAddr& peer,
+                                            bool& aResolvedByTRR) {
   MutexAutoLock lock(mLock);
   self = mSelfAddr;
   peer = mPeerAddr;
+  aResolvedByTRR = mResolvedByTRR;
 }
 
 bool nsHttpTransaction::CanDo0RTT() {

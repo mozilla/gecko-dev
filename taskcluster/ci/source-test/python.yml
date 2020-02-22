@@ -87,7 +87,7 @@ mochitest-harness:
     worker:
         by-platform:
             linux64.*:
-                docker-image: {in-tree: "desktop1604-test"}
+                docker-image: {in-tree: "ubuntu1804-test"}
                 max-run-time: 3600
     run:
         using: run-task
@@ -139,7 +139,21 @@ mozharness:
         cache-dotcache: true
         cwd: '{checkout}/testing/mozharness'
         command: >
-            /usr/local/bin/tox -e py27-hg4.3
+            /usr/local/bin/tox -e py27-hg5.2
+    when:
+        files-changed:
+            - 'testing/mozharness/**'
+
+mozharness-py3:
+    description: mozharness integration tests
+    treeherder:
+        symbol: py3(mh)
+    run:
+        using: run-task
+        cache-dotcache: true
+        cwd: '{checkout}/testing/mozharness'
+        command: >
+            /usr/local/bin/tox -e py36-hg5.2
     when:
         files-changed:
             - 'testing/mozharness/**'
@@ -229,7 +243,7 @@ reftest-harness:
     worker:
         by-platform:
             linux64.*:
-                docker-image: {in-tree: "desktop1604-test"}
+                docker-image: {in-tree: "ubuntu1804-test"}
                 max-run-time: 3600
     run:
         using: run-task

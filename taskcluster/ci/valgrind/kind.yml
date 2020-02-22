@@ -28,7 +28,7 @@ jobs:
             symbol: V
             kind: build
             tier: 1
-        worker-type: b-linux
+        worker-type: b-linux-aws
         worker:
             docker-image: {in-tree: valgrind-build}
             max-run-time: 72000
@@ -54,3 +54,5 @@ jobs:
                 - linux64-sccache
                 - linux64-nasm
                 - linux64-node
+                - lucetc
+                - wasi-sysroot

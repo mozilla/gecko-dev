@@ -36,7 +36,6 @@
 #include "mozilla/StaticPrefs_layout.h"
 #include "nsCSSRendering.h"
 #include "nsCSSRenderingGradients.h"
-#include "nsISelectionController.h"
 #include "nsRegion.h"
 #include "nsStyleStructInlines.h"
 #include "nsStyleTransformMatrix.h"
@@ -823,7 +822,13 @@ static Maybe<TransformData> CreateAnimationData(
   if (aFrame->HasAnyStateBits(NS_FRAME_SVG_LAYOUT) &&
       aFrame->StyleDisplay()->mTransformBox != StyleGeometryBox::ViewBox &&
       aFrame->StyleDisplay()->mTransformBox != StyleGeometryBox::BorderBox) {
-    framePosition = CSSPoint::FromAppUnits(aFrame->GetPosition());
+    if (aFrame->IsFrameOfType(nsIFrame::eSVGContainer)) {
+      nsRect boxRect = nsLayoutUtils::ComputeGeometryBox(
+          const_cast<nsIFrame*>(aFrame), StyleGeometryBox::FillBox);
+      framePosition = CSSPoint::FromAppUnits(nsPoint{boxRect.x, boxRect.y});
+    } else {
+      framePosition = CSSPoint::FromAppUnits(aFrame->GetPosition());
+    }
   }
 
   return Some(TransformData(origin, offsetToTransformOrigin, motionPathOrigin,
@@ -2919,8 +2924,8 @@ bool nsDisplayList::ComputeVisibilityForSublist(
   return anyVisible;
 }
 
-static bool TriggerPendingAnimationsOnSubDocuments(Document& aDoc,
-                                                   void* aReadyTime) {
+static CallState TriggerPendingAnimationsOnSubDocuments(Document& aDoc,
+                                                        void* aReadyTime) {
   if (PendingAnimationTracker* tracker = aDoc.GetPendingAnimationTracker()) {
     PresShell* presShell = aDoc.GetPresShell();
     // If paint-suppression is in effect then we haven't finished painting
@@ -2932,7 +2937,7 @@ static bool TriggerPendingAnimationsOnSubDocuments(Document& aDoc,
   }
   aDoc.EnumerateSubDocuments(TriggerPendingAnimationsOnSubDocuments,
                              aReadyTime);
-  return true;
+  return CallState::Continue;
 }
 
 static void TriggerPendingAnimations(Document& aDocument,
@@ -3342,7 +3347,7 @@ void nsDisplayList::DeleteAll(nsDisplayListBuilder* aBuilder) {
 }
 
 static bool IsFrameReceivingPointerEvents(nsIFrame* aFrame) {
-  return NS_STYLE_POINTER_EVENTS_NONE !=
+  return StylePointerEvents::None !=
          aFrame->StyleUI()->GetEffectivePointerEvents(aFrame);
 }
 
@@ -6460,6 +6465,18 @@ nsDisplayOpacity::nsDisplayOpacity(
   mState.mOpacity = mOpacity;
 }
 
+void nsDisplayOpacity::HitTest(nsDisplayListBuilder* aBuilder,
+                               const nsRect& aRect,
+                               nsDisplayItem::HitTestState* aState,
+                               nsTArray<nsIFrame*>* aOutFrames) {
+  // TODO(emilio): special-casing zero is a bit arbitrary... Maybe we should
+  // only consider fully opaque items? Or make this configurable somehow?
+  if (aBuilder->HitTestIsForVisibility() && mOpacity == 0.0f) {
+    return;
+  }
+  nsDisplayWrapList::HitTest(aBuilder, aRect, aState, aOutFrames);
+}
+
 nsRegion nsDisplayOpacity::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                                            bool* aSnap) const {
   *aSnap = false;
@@ -7041,10 +7058,10 @@ bool nsDisplayOwnLayer::CreateWebRenderCommands(
   params.clip =
       wr::WrStackingContextClip::ClipChain(aBuilder.CurrentClipChainId());
   if (IsScrollbarContainer()) {
-    params.prim_flags |= wr::PrimitiveFlags_IS_SCROLLBAR_CONTAINER;
+    params.prim_flags |= wr::PrimitiveFlags::IS_SCROLLBAR_CONTAINER;
   }
   if (IsScrollThumbLayer()) {
-    params.prim_flags |= wr::PrimitiveFlags_IS_SCROLLBAR_THUMB;
+    params.prim_flags |= wr::PrimitiveFlags::IS_SCROLLBAR_THUMB;
   }
   StackingContextHelper sc(aSc, GetActiveScrolledRoot(), mFrame, this, aBuilder,
                            params);
@@ -8542,6 +8559,22 @@ auto nsDisplayTransform::ShouldPrerenderTransformedContent(
     return FullPrerender;
   }
 
+  // Frames participating any preserve-3d rendering context are force to
+  // full prerender here if we failed the previous if-conditions.
+  // If the current frame doesn't have animations and any of its parent has
+  // animations, we still hit this path because
+  // ActiveLayerTracker::IsTransformMaybeAnimated() catches the existing
+  // animations on the parent frames in the preserve-3d rendering context.
+  // FIXME: For now, we force all the frame in the 3D rendering context to use
+  // FullPrerender, so this may have an issue if one of the frame is too large
+  // and it has animations (which may make the calculation of visible and dirty
+  // rects not correct.).
+  if (aFrame->Extend3DContext() || aFrame->Combines3DTransformWithAncestors()) {
+    // Use overflow as dirty and force to use full prerender.
+    *aDirtyRect = overflow;
+    return FullPrerender;
+  }
+
   if (StaticPrefs::layout_animation_prerender_partial()) {
     *aDirtyRect = nsLayoutUtils::ComputePartialPrerenderArea(*aDirtyRect,
                                                              overflow, maxSize);
@@ -8713,8 +8746,12 @@ bool nsDisplayTransform::CreateWebRenderCommands(
     position.Round();
   }
 
-  uint64_t animationsId = AddAnimationsForWebRender(
-      this, aManager, aDisplayListBuilder, aBuilder.GetRenderRoot());
+  // We don't send animations for transform separator display items.
+  uint64_t animationsId =
+      mIsTransformSeparator
+          ? 0
+          : AddAnimationsForWebRender(this, aManager, aDisplayListBuilder,
+                                      aBuilder.GetRenderRoot());
   wr::WrAnimationProperty prop{
       wr::WrAnimationType::Transform,
       animationsId,
@@ -8731,14 +8768,15 @@ bool nsDisplayTransform::CreateWebRenderCommands(
   }
 
   // Determine if we're possibly animated (= would need an active layer in FLB).
-  bool animated = ActiveLayerTracker::IsTransformMaybeAnimated(Frame());
+  bool animated = !mIsTransformSeparator &&
+                  ActiveLayerTracker::IsTransformMaybeAnimated(Frame());
 
   wr::StackingContextParams params;
   params.mBoundTransform = &newTransformMatrix;
   params.animation = animationsId ? &prop : nullptr;
   params.mTransformPtr = transformForSC;
   params.prim_flags = !BackfaceIsHidden()
-                          ? wr::PrimitiveFlags_IS_BACKFACE_VISIBLE
+                          ? wr::PrimitiveFlags::IS_BACKFACE_VISIBLE
                           : wr::PrimitiveFlags{0};
   params.mDeferredTransformItem = deferredTransformItem;
   params.mAnimated = animated;
@@ -8823,8 +8861,12 @@ already_AddRefed<Layer> nsDisplayTransform::BuildLayer(
     mFrame->SetProperty(nsIFrame::RefusedAsyncAnimationProperty(), false);
   }
 
-  nsDisplayListBuilder::AddAnimationsAndTransitionsToLayer(
-      container, aBuilder, this, mFrame, GetType());
+  // We don't send animations for transform separator display items.
+  if (!mIsTransformSeparator) {
+    nsDisplayListBuilder::AddAnimationsAndTransitionsToLayer(
+        container, aBuilder, this, mFrame, GetType());
+  }
+
   if (mAllowAsyncAnimation && MayBeAnimated(aBuilder)) {
     // Only allow async updates to the transform if we're an animated layer,
     // since that's what triggers us to set the correct AGR in the constructor
@@ -9443,7 +9485,7 @@ bool nsDisplayPerspective::CreateWebRenderCommands(
   params.mTransformPtr = &perspectiveMatrix;
   params.reference_frame_kind = wr::WrReferenceFrameKind::Perspective;
   params.prim_flags = !BackfaceIsHidden()
-                          ? wr::PrimitiveFlags_IS_BACKFACE_VISIBLE
+                          ? wr::PrimitiveFlags::IS_BACKFACE_VISIBLE
                           : wr::PrimitiveFlags{0};
   params.SetPreserve3D(preserve3D);
   params.clip =

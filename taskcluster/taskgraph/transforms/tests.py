@@ -20,9 +20,22 @@ for example - use `all_tests.py` instead.
 from __future__ import absolute_import, print_function, unicode_literals
 
 import copy
+import json
 import logging
 import os
 
+from manifestparser.filters import chunk_by_runtime
+from mozbuild.schedules import INCLUSIVE_COMPONENTS
+from mozbuild.util import memoize
+from moztest.resolve import TestResolver, TestManifestLoader, TEST_SUITES
+from voluptuous import (
+    Any,
+    Optional,
+    Required,
+    Exclusive,
+)
+
+from taskgraph import GECKO
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.attributes import match_run_on_projects, keymatch
 from taskgraph.util.keyed_by import evaluate_keyed_by
@@ -38,16 +51,7 @@ from taskgraph.util.taskcluster import (
     get_artifact_path,
     get_index_url,
 )
-from mozbuild.schedules import INCLUSIVE_COMPONENTS
-
 from taskgraph.util.perfile import perfile_number_of_chunks
-
-from voluptuous import (
-    Any,
-    Optional,
-    Required,
-    Exclusive,
-)
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -158,10 +162,9 @@ TEST_VARIANTS = {
         'suffix': 'fis',
         'replace': {
             'e10s': True,
-            'run-on-projects': ['ash', 'try'],
         },
         'merge': {
-            'tier': 2,
+            'fission-run-on-projects': ['ash', 'try'],
             'mozharness': {
                 'extra-options': ['--setpref=fission.autostart=true',
                                   '--setpref=dom.serviceWorkers.parent_intercept=true',
@@ -261,8 +264,21 @@ test_description_schema = Schema({
         'test-platform',
         Any([basestring], 'built-projects')),
 
+    # Same as `run-on-projects` except it only applies to Fission tasks. Fission
+    # tasks will ignore `run_on_projects` and non-Fission tasks will ignore
+    # `fission-run-on-projects`.
+    Optional('fission-run-on-projects'): optionally_keyed_by(
+        'test-platform',
+        Any([basestring], 'built-projects')),
+
     # the sheriffing tier for this task (default: set based on test platform)
     Optional('tier'): optionally_keyed_by(
+        'test-platform',
+        Any(int, 'default')),
+
+    # Same as `tier` except it only applies to Fission tasks. Fission tasks
+    # will ignore `tier` and non-Fission tasks will ignore `fission-tier`.
+    Optional('fission-tier'): optionally_keyed_by(
         'test-platform',
         Any(int, 'default')),
 
@@ -408,7 +424,10 @@ test_description_schema = Schema({
             bool),
     },
 
-    # The current chunk; this is filled in by `all_kinds.py`
+    # The set of test manifests to run.
+    Optional('test-manifests'): [basestring],
+
+    # The current chunk (if chunking is enabled).
     Optional('this-chunk'): int,
 
     # os user groups for test task workers; required scopes, will be
@@ -552,9 +571,10 @@ def set_defaults(config, tests):
         test.setdefault('loopback-audio', False)
         test.setdefault('loopback-video', False)
         test.setdefault('limit-platforms', [])
-        if config.params['try_task_config'].get('debian-tests'):
-            test.setdefault('docker-image', {'in-tree': 'debian10-test'})
-        elif config.params['try_task_config'].get('ubuntu-bionic'):
+        # Bug 1602863 - temporarily in place while ubuntu1604 and ubuntu1804
+        # both exist in the CI.
+        if ('linux1804' in test['test-platform'] or
+                config.params['try_task_config'].get('ubuntu-bionic')):
             test.setdefault('docker-image', {'in-tree': 'ubuntu1804-test'})
         else:
             test.setdefault('docker-image', {'in-tree': 'desktop1604-test'})
@@ -734,7 +754,6 @@ def set_treeherder_machine_platform(config, tests):
     translation = {
         # Linux64 build platforms for asan and pgo are specified differently to
         # treeherder.
-        'linux64-asan/opt': 'linux64/asan',
         'linux64-pgo/opt': 'linux64/pgo',
         'macosx1014-64/debug': 'osx-10-14/debug',
         'macosx1014-64/opt': 'osx-10-14/opt',
@@ -768,6 +787,13 @@ def set_treeherder_machine_platform(config, tests):
         elif 'android-em-7.0-x86' in test['test-platform']:
             opt = test['test-platform'].split('/')[1]
             test['treeherder-machine-platform'] = 'android-em-7-0-x86/'+opt
+        # Bug 1602863 - must separately define linux64/asan and linux1804-64/asan
+        # otherwise causes an exception during taskgraph generation about
+        # duplicate treeherder platform/symbol.
+        elif 'linux64-asan/opt' in test['test-platform']:
+            test['treeherder-machine-platform'] = 'linux64/asan'
+        elif 'linux1804-asan/opt' in test['test-platform']:
+            test['treeherder-machine-platform'] = 'linux1804-64/asan'
         else:
             test['treeherder-machine-platform'] = translation.get(
                 test['build-platform'], test['test-platform'])
@@ -781,6 +807,9 @@ def set_tier(config, tests):
     for test in tests:
         if 'tier' in test:
             resolve_keyed_by(test, 'tier', item_name=test['test-name'])
+
+        if 'fission-tier' in test:
+            resolve_keyed_by(test, 'fission-tier', item_name=test['test-name'])
 
         # only override if not set for the test
         if 'tier' not in test or test['tier'] == 'default':
@@ -800,6 +829,14 @@ def set_tier(config, tests):
                                          'linux64-qr/debug',
                                          'linux64-pgo-qr/opt',
                                          'linux64-shippable-qr/opt',
+                                         'linux1804-32-shippable/opt',
+                                         'linux1804-64/opt',
+                                         'linux1804-64/debug',
+                                         'linux1804-64-shippable/opt',
+                                         'linux1804-64-qr/opt',
+                                         'linux1804-64-qr/debug',
+                                         'linux1804-64-shippable-qr/opt',
+                                         'linux1804-64-asan/opt',
                                          'windows7-32/debug',
                                          'windows7-32/opt',
                                          'windows7-32-pgo/opt',
@@ -880,6 +917,7 @@ def handle_keyed_by(config, tests):
         'e10s',
         'suite',
         'run-on-projects',
+        'fission-run-on-projects',
         'os-groups',
         'run-as-administrator',
         'workdir',
@@ -957,27 +995,32 @@ def setup_browsertime(config, tests):
             'linux.*': [
                 'linux64-chromedriver-76',
                 'linux64-chromedriver-77',
-                'linux64-chromedriver-78'
+                'linux64-chromedriver-78',
+                'linux64-chromedriver-79'
             ],
             'macosx.*': [
                 'mac64-chromedriver-76',
                 'mac64-chromedriver-77',
-                'mac64-chromedriver-78'
+                'mac64-chromedriver-78',
+                'mac64-chromedriver-79'
             ],
             'windows.*aarch64.*': [
                 'win32-chromedriver-76',
                 'win32-chromedriver-77',
-                'win32-chromedriver-78'
+                'win32-chromedriver-78',
+                'win32-chromedriver-79'
             ],
             'windows.*-32.*': [
                 'win32-chromedriver-76',
                 'win32-chromedriver-77',
-                'win32-chromedriver-78'
+                'win32-chromedriver-78',
+                'win32-chromedriver-79'
             ],
             'windows.*-64.*': [
                 'win32-chromedriver-76',
                 'win32-chromedriver-77',
-                'win32-chromedriver-78'
+                'win32-chromedriver-78',
+                'win32-chromedriver-79'
             ],
         }
 
@@ -1120,7 +1163,7 @@ def enable_code_coverage(config, tests):
             if 'talos' in test['test-name']:
                 test['max-run-time'] = 7200
                 if 'linux' in test['build-platform']:
-                    test['docker-image'] = {"in-tree": "desktop1604-test"}
+                    test['docker-image'] = {"in-tree": "ubuntu1804-test"}
                 test['mozharness']['extra-options'].append('--add-option')
                 test['mozharness']['extra-options'].append('--cycles,1')
                 test['mozharness']['extra-options'].append('--add-option')
@@ -1174,47 +1217,25 @@ def split_variants(config, tests):
             testv['treeherder-symbol'] = join_symbol(group, symbol)
 
             testv.update(variant.get('replace', {}))
+
+            if test['suite'] == 'raptor':
+                testv['tier'] = max(testv['tier'], 2)
+
             yield merge(testv, variant.get('merge', {}))
 
 
 @transforms.add
-def enable_fission_on_central(config, tests):
-    """Enable select fission tasks on mozilla-central."""
+def handle_fission_attributes(config, tests):
+    """Handle run_on_projects for fission tasks."""
     for test in tests:
-        if test['attributes'].get('unittest_variant') != 'fission':
-            yield test
-            continue
+        for attr in ('run-on-projects', 'tier'):
+            fission_attr = test.pop('fission-{}'.format(attr), None)
 
-        # Mochitest/wpt/awsy only (with exceptions)
-        exceptions = ('gpu', 'remote', 'screenshots')
-        if (test['attributes']['unittest_category'] not in
-                ('mochitest', 'web-platform-tests', 'awsy') or
-                any(s in test['attributes']['unittest_suite'] for s in exceptions)):
-            yield test
-            continue
+            if test['attributes'].get('unittest_variant') != 'fission' or fission_attr is None:
+                continue
 
-        # Linux and Windows (except debug) 64 bit only.
-        platform = test['build-attributes']['build_platform']
-        btype = test['build-attributes']['build_type']
-        if not (platform == 'linux64' or (platform == 'win64' and btype != 'debug')):
-            yield test
-            continue
+            test[attr] = fission_attr
 
-        if not runs_on_central(test):
-            test['run-on-projects'].append('mozilla-central')
-
-        # Promote select fission tests to tier 1 and ensure they run on trunk
-        if (test['attributes']['unittest_category'] == "mochitest" and
-            platform == 'linux64' and btype == 'debug' and (test['webrender'] or
-           'mochitest-browser-chrome' in test['attributes']['unittest_suite'])):
-            test['tier'] = 1
-            test['run-on-projects'] = ['ash', 'try', 'trunk']
-        elif test['attributes']['unittest_category'] == "web-platform-tests":
-            test['tier'] = 3
-            if platform == 'linux64' and btype == 'debug' and test['webrender']:
-                test['run-on-projects'] = ['ash', 'try', 'trunk']
-        elif test['attributes']['unittest_category'] == 'awsy':
-            test['tier'] = 3
         yield test
 
 
@@ -1262,11 +1283,83 @@ def split_e10s(config, tests):
             yield test
 
 
+CHUNK_SUITES_BLACKLIST = (
+    'awsy',
+    'cppunittest',
+    'crashtest',
+    'firefox-ui-functional-local',
+    'firefox-ui-functional-remote',
+    'geckoview-junit',
+    'gtest',
+    'jittest',
+    'jsreftest',
+    'marionette',
+    'mochitest-a11y',
+    'mochitest-browser-chrome',
+    'mochitest-browser-chrome-screenshots',
+    'mochitest-browser-chrome-thunderbird',
+    'mochitest-devtools-webreplay',
+    'mochitest-plain',
+    'mochitest-valgrind-plain',
+    'mochitest-webgl1-core',
+    'mochitest-webgl1-ext',
+    'mochitest-webgl2-core',
+    'mochitest-webgl2-ext',
+    'raptor',
+    'reftest',
+    'reftest-gpu',
+    'reftest-no-accel',
+    'talos',
+    'telemetry-tests-client',
+    'test-coverage',
+    'test-coverage-wpt',
+    'test-verify',
+    'test-verify-gpu',
+    'test-verify-wpt',
+    'web-platform-tests',
+    'web-platform-tests-crashtests',
+    'web-platform-tests-reftests',
+    'web-platform-tests-wdspec',
+    'xpcshell',
+)
+"""These suites will be chunked at test runtime rather than here in the taskgraph."""
+
+
 @transforms.add
 def split_chunks(config, tests):
     """Based on the 'chunks' key, split tests up into chunks by duplicating
     them and assigning 'this-chunk' appropriately and updating the treeherder
     symbol."""
+    resolver = TestResolver.from_environment(cwd=here, loader_cls=TestManifestLoader)
+
+    @memoize
+    def get_runtimes(platform):
+        base = os.path.join(GECKO, 'testing', 'runtimes', 'manifest-runtimes-{}.json')
+        for key in ('android', 'windows'):
+            if key in platform:
+                path = base.format(key)
+                break
+        else:
+            path = base.format('unix')
+
+        with open(path, 'r') as fh:
+            return json.load(fh)
+
+    @memoize
+    def get_tests(flavor, subsuite):
+        return list(resolver.resolve_tests(flavor=flavor, subsuite=subsuite))
+
+    @memoize
+    def get_chunked_manifests(flavor, subsuite, platform, chunks):
+        tests = get_tests(flavor, subsuite)
+        return [
+            c[1] for c in chunk_by_runtime(
+                None,
+                chunks,
+                get_runtimes(platform)
+            ).get_chunked_manifests(tests)
+        ]
+
     for test in tests:
         if test['suite'].startswith('test-verify') or \
            test['suite'].startswith('test-coverage'):
@@ -1286,19 +1379,35 @@ def split_chunks(config, tests):
             if test['chunks'] > maximum_number_verify_chunks:
                 test['chunks'] = maximum_number_verify_chunks
 
-        if test['chunks'] <= 1:
-            test['this-chunk'] = 1
-            yield test
-            continue
+        chunked_manifests = None
+        if test['suite'] not in CHUNK_SUITES_BLACKLIST:
+            suite_definition = TEST_SUITES[test['suite']]
+            chunked_manifests = get_chunked_manifests(
+                suite_definition['build_flavor'],
+                suite_definition.get('kwargs', {}).get('subsuite', 'undefined'),
+                test['test-platform'],
+                test['chunks'],
+            )
 
-        for this_chunk in range(1, test['chunks'] + 1):
+        for i in range(test['chunks']):
+            this_chunk = i + 1
+
             # copy the test and update with the chunk number
             chunked = copy.deepcopy(test)
             chunked['this-chunk'] = this_chunk
 
-            # add the chunk number to the TH symbol
-            chunked['treeherder-symbol'] = add_suffix(
-                chunked['treeherder-symbol'], this_chunk)
+            if chunked_manifests is not None:
+                manifests = sorted(chunked_manifests[i])
+                if not manifests:
+                    raise Exception(
+                        'Chunking algorithm yielded no manifests for chunk {} of {} on {}'.format(
+                            this_chunk, test['test-name'], test['test-platform']))
+                chunked['test-manifests'] = manifests
+
+            if test['chunks'] > 1:
+                # add the chunk number to the TH symbol
+                chunked['treeherder-symbol'] = add_suffix(
+                    chunked['treeherder-symbol'], this_chunk)
 
             yield chunked
 
@@ -1498,6 +1607,7 @@ def make_job_description(config, tests):
             'build_type': attr_build_type,
             'test_platform': test['test-platform'],
             'test_chunk': str(test['this-chunk']),
+            'test_manifests': test.get('test-manifests'),
             attr_try_name: try_name,
         })
 
@@ -1518,7 +1628,7 @@ def make_job_description(config, tests):
 
         jobdesc['expires-after'] = test['expires-after']
         jobdesc['routes'] = []
-        jobdesc['run-on-projects'] = test['run-on-projects']
+        jobdesc['run-on-projects'] = sorted(test['run-on-projects'])
         jobdesc['scopes'] = []
         jobdesc['tags'] = test.get('tags', {})
         jobdesc['extra'] = {

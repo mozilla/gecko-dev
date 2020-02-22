@@ -303,6 +303,8 @@ class TrySelect(MachCommandBase):
             kwargs_copy['push'] = False
             kwargs_copy['save'] = None
             kwargs['query'] = self.run(save_query=True, **kwargs_copy)
+            if not kwargs['query']:
+                return
 
         if kwargs.get('paths'):
             kwargs['test_paths'] = kwargs['paths']
@@ -424,5 +426,16 @@ class TrySelect(MachCommandBase):
                 parser=get_parser('release'))
     def try_release(self, **kwargs):
         """Push the current tree to try, configured for a staging release.
+        """
+        return self.run(**kwargs)
+
+    @SubCommand('try',
+                'scriptworker',
+                description='Run scriptworker tasks against a recent release.',
+                parser=get_parser('scriptworker'))
+    def try_scriptworker(self, **kwargs):
+        """Run scriptworker tasks against a recent release.
+
+        Requires VPN and shipit access.
         """
         return self.run(**kwargs)

@@ -7,10 +7,9 @@
 /* import-globals-from ../../../toolkit/content/preferencesBindings.js */
 /* import-globals-from in-content/extensionControlled.js */
 
-document.documentElement.addEventListener(
-  "dialoghelp",
-  window.top.openPrefsHelp
-);
+document
+  .getElementById("ConnectionsDialog")
+  .addEventListener("dialoghelp", window.top.openPrefsHelp);
 
 Preferences.addAll([
   // Add network.proxy.autoconfig_url before network.proxy.type so they're
@@ -85,9 +84,11 @@ window.addEventListener(
     gConnectionsDialog.updateProxySettingsUI();
     initializeProxyUI(gConnectionsDialog);
     gConnectionsDialog.registerSyncPrefListeners();
-    document.documentElement.addEventListener("beforeaccept", e =>
-      gConnectionsDialog.beforeAccept(e)
-    );
+    document
+      .getElementById("ConnectionsDialog")
+      .addEventListener("beforeaccept", e =>
+        gConnectionsDialog.beforeAccept(e)
+      );
   },
   { once: true, capture: true }
 );
@@ -136,11 +137,11 @@ var gConnectionsDialog = {
       );
       let proxyPref = Preferences.get("network.proxy." + prefName);
       // Only worry about ports which are currently active. If the share option is on, then ignore
-      // all ports except the HTTP port
+      // all ports except the HTTP and SOCKS port
       if (
         proxyPref.value != "" &&
         proxyPortPref.value == 0 &&
-        (prefName == "http" || !shareProxiesPref.value)
+        (prefName == "http" || prefName == "socks" || !shareProxiesPref.value)
       ) {
         document
           .getElementById("networkProxy" + prefName.toUpperCase() + "_Port")
@@ -152,7 +153,7 @@ var gConnectionsDialog = {
 
     // In the case of a shared proxy preference, backup the current values and update with the HTTP value
     if (shareProxiesPref.value) {
-      var proxyPrefs = ["ssl", "ftp", "socks"];
+      var proxyPrefs = ["ssl", "ftp"];
       for (var i = 0; i < proxyPrefs.length; ++i) {
         var proxyServerURLPref = Preferences.get(
           "network.proxy." + proxyPrefs[i]
@@ -269,7 +270,7 @@ var gConnectionsDialog = {
       );
 
       // Restore previous per-proxy custom settings, if present.
-      if (!shareProxiesPref.value) {
+      if (proxyPrefs[i] != "socks" && !shareProxiesPref.value) {
         var backupServerURLPref = Preferences.get(
           "network.proxy.backup." + proxyPrefs[i]
         );
@@ -288,26 +289,27 @@ var gConnectionsDialog = {
 
       proxyServerURLPref.updateElements();
       proxyPortPref.updateElements();
-      proxyServerURLPref.disabled =
-        proxyTypePref.value != 1 || shareProxiesPref.value;
+      let prefIsShared = proxyPrefs[i] != "socks" && shareProxiesPref.value;
+      proxyServerURLPref.disabled = proxyTypePref.value != 1 || prefIsShared;
       proxyPortPref.disabled = proxyServerURLPref.disabled;
     }
     var socksVersionPref = Preferences.get("network.proxy.socks_version");
-    socksVersionPref.disabled =
-      proxyTypePref.value != 1 || shareProxiesPref.value;
+    socksVersionPref.disabled = proxyTypePref.value != 1;
     this.updateDNSPref();
     return undefined;
   },
 
   readProxyProtocolPref(aProtocol, aIsPort) {
-    var shareProxiesPref = Preferences.get(
-      "network.proxy.share_proxy_settings"
-    );
-    if (shareProxiesPref.value) {
-      var pref = Preferences.get(
-        "network.proxy.http" + (aIsPort ? "_port" : "")
+    if (aProtocol != "socks") {
+      var shareProxiesPref = Preferences.get(
+        "network.proxy.share_proxy_settings"
       );
-      return pref.value;
+      if (shareProxiesPref.value) {
+        var pref = Preferences.get(
+          "network.proxy.http" + (aIsPort ? "_port" : "")
+        );
+        return pref.value;
+      }
     }
 
     var backupPref = Preferences.get(

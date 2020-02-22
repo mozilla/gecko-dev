@@ -62,17 +62,17 @@ class AvdInfo(object):
    and the parameters for each reflect those used in mozharness.
 """
 AVD_DICT = {
-    '4.3': AvdInfo('Android 4.3',
-                   'mozemulator-4.3',
-                   'testing/config/tooltool-manifests/androidarm_4_3/mach-emulator.manifest',
-                   ['-skip-adb-auth', '-verbose', '-show-kernel'],
-                   False),
-    'x86': AvdInfo('Android 4.2 x86',
-                   'mozemulator-x86',
-                   'testing/config/tooltool-manifests/androidx86/mach-emulator.manifest',
-                   ['-skip-adb-auth', '-verbose', '-show-kernel',
-                    '-qemu', '-m', '1024', '-enable-kvm'],
-                   True),
+    'arm-4.3': AvdInfo('Android 4.3',
+                       'mozemulator-4.3',
+                       'testing/config/tooltool-manifests/androidarm_4_3/mach-emulator.manifest',
+                       ['-skip-adb-auth', '-verbose', '-show-kernel'],
+                       False),
+    'x86-4.2': AvdInfo('Android 4.2 x86',
+                       'mozemulator-x86',
+                       'testing/config/tooltool-manifests/androidx86/mach-emulator.manifest',
+                       ['-skip-adb-auth', '-verbose', '-show-kernel',
+                        '-qemu', '-m', '1024', '-enable-kvm'],
+                       True),
     'x86-7.0': AvdInfo('Android 7.0 x86/x86_64',
                        'mozemulator-x86-7.0',
                        'testing/config/tooltool-manifests/androidx86_7_0/mach-emulator.manifest',
@@ -102,7 +102,8 @@ def _install_host_utils(build_obj):
     installed = False
     host_platform = _get_host_platform()
     if host_platform:
-        path = os.path.join(MANIFEST_PATH, host_platform, 'hostutils.manifest')
+        path = os.path.join(build_obj.topsrcdir, MANIFEST_PATH)
+        path = os.path.join(path, host_platform, 'hostutils.manifest')
         _get_tooltool_manifest(build_obj.substs, path, EMULATOR_HOME_DIR,
                                'releng.manifest')
         _tooltool_fetch(build_obj.substs)
@@ -143,7 +144,8 @@ def _maybe_update_host_utils(build_obj):
     if host_platform:
         # Extract tooltool file name from manifest, something like:
         #     "filename": "host-utils-58.0a1.en-US-linux-x86_64.tar.gz",
-        manifest_path = os.path.join(MANIFEST_PATH, host_platform, 'hostutils.manifest')
+        path = os.path.join(build_obj.topsrcdir, MANIFEST_PATH)
+        manifest_path = os.path.join(path, host_platform, 'hostutils.manifest')
         with open(manifest_path, 'r') as f:
             for line in f.readlines():
                 m = re.search('.*\"(host-utils-.*)\"', line)
@@ -645,7 +647,7 @@ class AndroidEmulator(object):
             if not self.substs['TARGET_CPU'].startswith('arm'):
                 return 'x86-7.0'
             else:
-                return '4.3'
+                return 'arm-4.3'
         return 'x86-7.0'
 
 

@@ -47,6 +47,7 @@
 #include "nsCRT.h"
 #include "nsINetworkPredictor.h"
 #include "nsReadableUtils.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/image/ImageMemoryReporter.h"
@@ -65,7 +66,6 @@
 // so we can associate the document URI with the load group.
 // until this point, we have an evil hack:
 #include "nsIHttpChannelInternal.h"
-#include "nsILoadContext.h"
 #include "nsILoadGroupChild.h"
 #include "nsIDocShell.h"
 
@@ -184,7 +184,7 @@ class imgMemoryReporter final : public nsIMemoryReporter {
         // tree -- so we use moz_malloc_size_of instead of ImagesMallocSizeOf to
         // prevent DMD from seeing it reported twice.
         SizeOfState state(moz_malloc_size_of);
-        ImageMemoryCounter counter(image, state, /* aIsUsed = */ true);
+        ImageMemoryCounter counter(req, image, state, /* aIsUsed = */ true);
 
         n += counter.Values().DecodedHeap();
         n += counter.Values().DecodedNonHeap();
@@ -218,6 +218,8 @@ class imgMemoryReporter final : public nsIMemoryReporter {
         } else {
           mUnusedVectorCounter += aImageCounter.Values();
         }
+      } else if (aImageCounter.Type() == imgIContainer::TYPE_REQUEST) {
+        // Nothing to do, we did not get to the point of having an image.
       } else {
         MOZ_CRASH("Unexpected image type");
       }
@@ -289,10 +291,36 @@ class imgMemoryReporter final : public nsIMemoryReporter {
                           layers::SharedSurfacesMemoryReport& aSharedSurfaces) {
     nsAutoCString pathPrefix(NS_LITERAL_CSTRING("explicit/"));
     pathPrefix.Append(aPathPrefix);
-    pathPrefix.Append(aCounter.Type() == imgIContainer::TYPE_RASTER
-                          ? "/raster/"
-                          : "/vector/");
+
+    switch (aCounter.Type()) {
+      case imgIContainer::TYPE_RASTER:
+        pathPrefix.AppendLiteral("/raster/");
+        break;
+      case imgIContainer::TYPE_VECTOR:
+        pathPrefix.AppendLiteral("/vector/");
+        break;
+      case imgIContainer::TYPE_REQUEST:
+        pathPrefix.AppendLiteral("/request/");
+        break;
+      default:
+        pathPrefix.AppendLiteral("/unknown=");
+        pathPrefix.AppendInt(aCounter.Type());
+        pathPrefix.AppendLiteral("/");
+        break;
+    }
+
     pathPrefix.Append(aCounter.IsUsed() ? "used/" : "unused/");
+    if (aCounter.IsValidating()) {
+      pathPrefix.AppendLiteral("validating/");
+    }
+    if (aCounter.HasError()) {
+      pathPrefix.AppendLiteral("err/");
+    }
+
+    pathPrefix.AppendLiteral("progress=");
+    pathPrefix.AppendInt(aCounter.Progress(), 16);
+    pathPrefix.AppendLiteral("/");
+
     pathPrefix.AppendLiteral("image(");
     pathPrefix.AppendInt(aCounter.IntrinsicSize().width);
     pathPrefix.AppendLiteral("x");
@@ -333,6 +361,10 @@ class imgMemoryReporter final : public nsIMemoryReporter {
       surfacePathPrefix.AppendInt(counter.Key().Size().width);
       surfacePathPrefix.AppendLiteral("x");
       surfacePathPrefix.AppendInt(counter.Key().Size().height);
+
+      if (!counter.IsFinished()) {
+        surfacePathPrefix.AppendLiteral(", incomplete");
+      }
 
       if (counter.Values().ExternalHandles() > 0) {
         surfacePathPrefix.AppendLiteral(", handles:");
@@ -492,15 +524,17 @@ class imgMemoryReporter final : public nsIMemoryReporter {
   static void RecordCounterForRequest(imgRequest* aRequest,
                                       nsTArray<ImageMemoryCounter>* aArray,
                                       bool aIsUsed) {
-    RefPtr<image::Image> image = aRequest->GetImage();
-    if (!image) {
-      return;
-    }
-
     SizeOfState state(ImagesMallocSizeOf);
-    ImageMemoryCounter counter(image, state, aIsUsed);
-
-    aArray->AppendElement(std::move(counter));
+    RefPtr<image::Image> image = aRequest->GetImage();
+    if (image) {
+      ImageMemoryCounter counter(aRequest, image, state, aIsUsed);
+      aArray->AppendElement(std::move(counter));
+    } else {
+      // We can at least record some information about the image from the
+      // request, and mark it as not knowing the image type yet.
+      ImageMemoryCounter counter(aRequest, state, aIsUsed);
+      aArray->AppendElement(std::move(counter));
+    }
   }
 };
 
@@ -685,7 +719,7 @@ static bool ShouldLoadCachedImage(imgRequest* aImgRequest,
       }
     }
 
-    if (!nsContentUtils::IsSystemPrincipal(aTriggeringPrincipal)) {
+    if (!aTriggeringPrincipal || !aTriggeringPrincipal->IsSystemPrincipal()) {
       // Set the requestingLocation from the aTriggeringPrincipal.
       nsCOMPtr<nsIURI> requestingLocation;
       if (aTriggeringPrincipal) {
@@ -1381,8 +1415,7 @@ imgLoader::RemoveEntriesFromPrincipal(nsIPrincipal* aPrincipal) {
 
   AutoTArray<RefPtr<imgCacheEntry>, 128> entriesToBeRemoved;
 
-  imgCacheTable& cache =
-      GetCache(nsContentUtils::IsSystemPrincipal(aPrincipal));
+  imgCacheTable& cache = GetCache(aPrincipal->IsSystemPrincipal());
   for (auto iter = cache.Iter(); !iter.Done(); iter.Next()) {
     auto& key = iter.Key();
 

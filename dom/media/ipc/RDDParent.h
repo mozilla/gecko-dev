@@ -25,8 +25,7 @@ class RDDParent final : public PRDDParent {
             MessageLoop* aIOLoop, IPC::Channel* aChannel);
 
   mozilla::ipc::IPCResult RecvInit(nsTArray<GfxVarUpdate>&& vars,
-                                   const Maybe<ipc::FileDescriptor>& aBrokerFd,
-                                   bool aStartMacSandbox);
+                                   const Maybe<ipc::FileDescriptor>& aBrokerFd);
   mozilla::ipc::IPCResult RecvInitProfiler(
       Endpoint<PProfilerChild>&& aEndpoint);
 
@@ -38,6 +37,8 @@ class RDDParent final : public PRDDParent {
       const uint32_t& generation, const bool& anonymize,
       const bool& minimizeMemoryUsage,
       const Maybe<ipc::FileDescriptor>& DMDFile);
+  mozilla::ipc::IPCResult RecvGetUntrustedModulesData(
+      GetUntrustedModulesDataResolver&& aResolver);
   mozilla::ipc::IPCResult RecvPreferenceUpdate(const Pref& pref);
   mozilla::ipc::IPCResult RecvUpdateVar(const GfxVarUpdate& pref);
 

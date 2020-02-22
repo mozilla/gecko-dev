@@ -8,6 +8,7 @@
 #define js_TracingAPI_h
 
 #include "js/AllocPolicy.h"
+#include "js/GCTypeMacros.h"
 #include "js/HashTable.h"
 #include "js/HeapAPI.h"
 #include "js/TraceKind.h"
@@ -95,16 +96,16 @@ class JS_PUBLIC_API JSTracer {
   JSTracer(JSRuntime* rt, TracerKindTag tag,
            WeakMapTraceKind weakTraceKind = TraceWeakMapValues)
       : runtime_(rt),
-        weakMapAction_(weakTraceKind)
-#ifdef DEBUG
-        ,
-        checkEdges_(true)
-#endif
-        ,
+        weakMapAction_(weakTraceKind),
         tag_(tag),
         traceWeakEdges_(true),
+#ifdef DEBUG
+        checkEdges_(true),
+#endif
         canSkipJsids_(false) {
   }
+
+  void setTraceWeakEdges(bool value) { traceWeakEdges_ = value; }
 
 #ifdef DEBUG
   // Set whether to check edges are valid in debug builds.
@@ -112,15 +113,18 @@ class JS_PUBLIC_API JSTracer {
 #endif
 
  private:
-  JSRuntime* runtime_;
-  WeakMapTraceKind weakMapAction_;
+  JSRuntime* const runtime_;
+  const WeakMapTraceKind weakMapAction_;
+  const TracerKindTag tag_;
+
+  // Whether the tracer should trace weak edges. GCMarker sets this to false.
+  bool traceWeakEdges_;
+
 #ifdef DEBUG
   bool checkEdges_;
 #endif
 
  protected:
-  const TracerKindTag tag_;
-  bool traceWeakEdges_;
   bool canSkipJsids_;
 };
 
@@ -279,8 +283,6 @@ class JS_PUBLIC_API CallbackTracer : public JSTracer {
   }
 
  protected:
-  void setTraceWeakEdges(bool value) { traceWeakEdges_ = value; }
-
   // If this is set to false, then the tracer will skip some jsids
   // to improve performance. This is needed for the cycle collector.
   void setCanSkipJsids(bool value) { canSkipJsids_ = value; }
@@ -370,10 +372,28 @@ JS::CallbackTracer* JSTracer::asCallbackTracer() {
 }
 
 namespace js {
+
+class AbstractGeneratorObject;
+class SavedFrame;
+
 namespace gc {
-template <typename T>
-JS_PUBLIC_API void TraceExternalEdge(JSTracer* trc, T* thingp,
-                                     const char* name);
+
+#define JS_DECLARE_TRACE_EXTERNAL_EDGE(type)                               \
+  extern JS_PUBLIC_API void TraceExternalEdge(JSTracer* trc, type* thingp, \
+                                              const char* name);
+
+// Declare edge-tracing function overloads for public GC pointer types.
+JS_FOR_EACH_PUBLIC_GC_POINTER_TYPE(JS_DECLARE_TRACE_EXTERNAL_EDGE)
+JS_FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(JS_DECLARE_TRACE_EXTERNAL_EDGE)
+
+// We also require overloads for these purely-internal types.  These overloads
+// ought not be in public headers, and they should use a different name in order
+// to not be *actual* overloads, but for the moment we still declare them here.
+JS_DECLARE_TRACE_EXTERNAL_EDGE(AbstractGeneratorObject*)
+JS_DECLARE_TRACE_EXTERNAL_EDGE(SavedFrame*)
+
+#undef JS_DECLARE_TRACE_EXTERNAL_EDGE
+
 }  // namespace gc
 }  // namespace js
 
@@ -413,14 +433,26 @@ inline void TraceEdge(JSTracer* trc, JS::TenuredHeap<T>* thingp,
 }
 
 // Edges that are always traced as part of root marking do not require
-// incremental barriers. This function allows for marking non-barriered
-// pointers, but asserts that this happens during root marking.
+// incremental barriers. |JS::UnsafeTraceRoot| overloads allow for marking
+// non-barriered pointers but assert that this happens during root marking.
 //
 // Note that while |edgep| must never be null, it is fine for |*edgep| to be
 // nullptr.
-template <typename T>
-extern JS_PUBLIC_API void UnsafeTraceRoot(JSTracer* trc, T* edgep,
-                                          const char* name);
+#define JS_DECLARE_UNSAFE_TRACE_ROOT(type)                              \
+  extern JS_PUBLIC_API void UnsafeTraceRoot(JSTracer* trc, type* edgep, \
+                                            const char* name);
+
+// Declare edge-tracing function overloads for public GC pointer types.
+JS_FOR_EACH_PUBLIC_GC_POINTER_TYPE(JS_DECLARE_UNSAFE_TRACE_ROOT)
+JS_FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(JS_DECLARE_UNSAFE_TRACE_ROOT)
+
+// We also require overloads for these purely-internal types.  These overloads
+// ought not be in public headers, and they should use a different name in order
+// to not be *actual* overloads, but for the moment we still declare them here.
+JS_DECLARE_UNSAFE_TRACE_ROOT(js::AbstractGeneratorObject*)
+JS_DECLARE_UNSAFE_TRACE_ROOT(js::SavedFrame*)
+
+#undef JS_DECLARE_UNSAFE_TRACE_ROOT
 
 extern JS_PUBLIC_API void TraceChildren(JSTracer* trc, GCCellPtr thing);
 
@@ -452,9 +484,8 @@ namespace js {
 //
 // This method does not check if |*edgep| is non-null before tracing through
 // it, so callers must check any nullable pointer before calling this method.
-template <typename T>
 extern JS_PUBLIC_API void UnsafeTraceManuallyBarrieredEdge(JSTracer* trc,
-                                                           T* edgep,
+                                                           JSObject** edgep,
                                                            const char* name);
 
 // Not part of the public API, but declared here so we can use it in

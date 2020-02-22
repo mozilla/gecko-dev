@@ -16,9 +16,9 @@ add_task(async function setup() {
 add_task(async function test_show_logins() {
   let browser = gBrowser.selectedBrowser;
 
-  await ContentTask.spawn(
+  await SpecialPowers.spawn(
     browser,
-    [TEST_LOGIN1.guid, TEST_LOGIN2.guid],
+    [[TEST_LOGIN1.guid, TEST_LOGIN2.guid]],
     async loginGuids => {
       let loginList = Cu.waiveXrays(
         content.document.querySelector("login-list")
@@ -47,22 +47,15 @@ add_task(async function test_login_item() {
   let browser = gBrowser.selectedBrowser;
 
   function waitForDelete() {
-    return new Promise(resolve => {
-      browser.messageManager.addMessageListener(
-        "AboutLogins:DeleteLogin",
-        function onMsg() {
-          resolve(true);
-          browser.messageManager.removeMessageListener(
-            "AboutLogins:DeleteLogin",
-            onMsg
-          );
-        }
-      );
-    });
+    let numLogins = Services.logins.countLogins("", "", "");
+    return BrowserTestUtils.waitForCondition(
+      () => Services.logins.countLogins("", "", "") < numLogins,
+      "Error waiting for login deletion"
+    );
   }
 
   function deleteFirstLoginAfterEdit() {
-    return ContentTask.spawn(browser, null, async () => {
+    return SpecialPowers.spawn(browser, [], async () => {
       let loginList = content.document.querySelector("login-list");
       let loginListItem = loginList.shadowRoot.querySelector(
         ".login-list-item[data-guid]:not([hidden])"
@@ -81,9 +74,7 @@ add_task(async function test_login_item() {
       let usernameInput = loginItem.shadowRoot.querySelector(
         "input[name='username']"
       );
-      let passwordInput = loginItem.shadowRoot.querySelector(
-        "input[name='password']"
-      );
+      let passwordInput = loginItem._passwordInput;
 
       let editButton = loginItem.shadowRoot.querySelector(".edit-button");
       editButton.click();
@@ -105,7 +96,7 @@ add_task(async function test_login_item() {
   }
 
   function deleteFirstLogin() {
-    return ContentTask.spawn(browser, null, async () => {
+    return SpecialPowers.spawn(browser, [], async () => {
       let loginList = content.document.querySelector("login-list");
       let loginListItem = loginList.shadowRoot.querySelector(
         ".login-list-item[data-guid]:not([hidden])"
@@ -135,13 +126,10 @@ add_task(async function test_login_item() {
   }
 
   let onDeletePromise = waitForDelete();
-
   await deleteFirstLoginAfterEdit();
   await onDeletePromise;
 
-  onDeletePromise = waitForDelete();
-
-  await ContentTask.spawn(browser, null, async () => {
+  await SpecialPowers.spawn(browser, [], async () => {
     let loginList = content.document.querySelector("login-list");
     ok(
       !content.document.documentElement.classList.contains("no-logins"),
@@ -161,10 +149,11 @@ add_task(async function test_login_item() {
     );
   });
 
+  onDeletePromise = waitForDelete();
   await deleteFirstLogin();
   await onDeletePromise;
 
-  await ContentTask.spawn(browser, null, async () => {
+  await SpecialPowers.spawn(browser, [], async () => {
     let loginList = content.document.querySelector("login-list");
     ok(
       content.document.documentElement.classList.contains("no-logins"),

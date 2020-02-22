@@ -12,6 +12,8 @@
 #include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/BrowsingContextBinding.h"
+#include "mozilla/dom/ClonedErrorHolder.h"
+#include "mozilla/dom/ClonedErrorHolderBinding.h"
 #include "mozilla/dom/StructuredCloneBlob.h"
 #include "mozilla/dom/Directory.h"
 #include "mozilla/dom/DirectoryBinding.h"
@@ -946,6 +948,10 @@ JSObject* StructuredCloneHolder::CustomReadHandler(
     return BrowsingContext::ReadStructuredClone(aCx, aReader, this);
   }
 
+  if (aTag == SCTAG_DOM_CLONED_ERROR_OBJECT) {
+    return ClonedErrorHolder::ReadStructuredClone(aCx, aReader, this);
+  }
+
   return ReadFullySerializableObjects(aCx, aReader, aTag);
 }
 
@@ -1018,6 +1024,14 @@ bool StructuredCloneHolder::CustomWriteHandler(JSContext* aCx,
     }
   }
 
+  // See if this is a ClonedErrorHolder object.
+  {
+    ClonedErrorHolder* holder = nullptr;
+    if (NS_SUCCEEDED(UNWRAP_OBJECT(ClonedErrorHolder, &obj, holder))) {
+      return holder->WriteStructuredClone(aCx, aWriter, this);
+    }
+  }
+
   // See if this is a WasmModule.
   if ((mStructuredCloneScope == StructuredCloneScope::SameProcessSameThread ||
        mStructuredCloneScope ==
@@ -1054,7 +1068,7 @@ bool StructuredCloneHolder::CustomReadTransferHandler(
     }
 #endif
     MOZ_ASSERT(aExtraData < mPortIdentifiers.Length());
-    const MessagePortIdentifier& portIdentifier = mPortIdentifiers[aExtraData];
+    UniqueMessagePortId portIdentifier(mPortIdentifiers[aExtraData]);
 
     ErrorResult rv;
     RefPtr<MessagePort> port = MessagePort::Create(mGlobal, portIdentifier, rv);
@@ -1133,15 +1147,16 @@ bool StructuredCloneHolder::CustomWriteTransferHandler(
     MessagePort* port = nullptr;
     nsresult rv = UNWRAP_OBJECT(MessagePort, &obj, port);
     if (NS_SUCCEEDED(rv)) {
-      // We use aExtraData to store the index of this new port identifier.
-      *aExtraData = mPortIdentifiers.Length();
-      MessagePortIdentifier* identifier = mPortIdentifiers.AppendElement();
-
       if (!port->CanBeCloned()) {
         return false;
       }
 
-      port->CloneAndDisentangle(*identifier);
+      UniqueMessagePortId identifier;
+      port->CloneAndDisentangle(identifier);
+
+      // We use aExtraData to store the index of this new port identifier.
+      *aExtraData = mPortIdentifiers.Length();
+      mPortIdentifiers.AppendElement(identifier.release());
 
       *aTag = SCTAG_DOM_MAP_MESSAGEPORT;
       *aOwnership = JS::SCTAG_TMO_CUSTOM;

@@ -8,8 +8,14 @@ job-defaults:
     workdir: /builds/worker
     run-on-projects:
         by-app:
-            fenix: []
-            geckoview: ["mozilla-central", "try"]
+            fenix:
+                by-test-platform:
+                    android-hw-p2-.*aarch64.*/pgo: ["mozilla-central", "try"]
+                    default: []
+            geckoview:
+                by-test-platform:
+                    android-hw-p2-.*aarch64.*/pgo: ["mozilla-central", "try"]
+                    default: []
             refbrow: []
     tier: 3
     target:
@@ -17,11 +23,11 @@ job-defaults:
             fenix:
                 by-test-platform:
                     android-hw.*-aarch64.*/.*:
-                        index: project.mobile.fenix.v2.performance-test.latest.aarch64
-                        name: target.apk
+                        index: project.mobile.fenix.v2.performance-test.latest
+                        name: build/arm64-v8a/geckoNightly/target.apk
                     default:
-                        index: project.mobile.fenix.v2.performance-test.latest.arm
-                        name: target.apk
+                        index: project.mobile.fenix.v2.performance-test.latest
+                        name: build/armeabi-v7a/geckoNightly/target.apk
             geckoview: geckoview_example.apk
             refbrow:
                 by-test-platform:
@@ -50,9 +56,26 @@ job-defaults:
         extra-options:
             - --browsertime
 
-browsertime-tp6m-1:
-    description: "Raptor (browsertime) tp6m-1"
+browsertime-tp6m:
+    description: "Raptor (browsertime) tp6 page-load tests on android"
+    raptor-test: tp6m
+    raptor-subtests: ['amazon', 'youtube']
+    apps: ["geckoview", "fenix"]
+    pageload: cold
+    run-visual-metrics: true
+    treeherder-symbol: Btime(tp6m)
+
+browsertime-tp6m-profiling:
+    description: "Raptor (browsertime) tp6 page-load tests on android with Gecko profiling"
+    raptor-test: tp6m
+    raptor-subtests: ['amazon', 'youtube']
     apps: ["geckoview"]
     pageload: cold
-    treeherder-symbol: Btime(tp6m-1)
-    raptor-test: raptor-tp6m-1
+    treeherder-symbol: Btime-Prof(tp6m)
+    mozharness:
+        script: raptor_script.py
+        config:
+            - raptor/android_hw_config.py
+        extra-options:
+            - --browsertime
+            - --gecko-profile

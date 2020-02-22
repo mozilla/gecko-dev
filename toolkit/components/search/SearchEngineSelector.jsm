@@ -98,16 +98,16 @@ class SearchEngineSelector {
         ) {
           for (const webExtensionLocale of baseConfig.webExtension.locales) {
             const engine = { ...baseConfig };
-            engine.webExtension.locales = [
-              webExtensionLocale == USER_LOCALE ? locale : webExtensionLocale,
-            ];
+            engine.webExtension = { ...baseConfig.webExtension };
+            delete engine.webExtension.locales;
+            engine.webExtension.locale =
+              webExtensionLocale == USER_LOCALE ? locale : webExtensionLocale;
             engines.push(engine);
           }
         } else {
           const engine = { ...baseConfig };
-          (engine.webExtension = engine.webExtension || {}).locales = [
-            SearchUtils.DEFAULT_TAG,
-          ];
+          (engine.webExtension = engine.webExtension || {}).locale =
+            SearchUtils.DEFAULT_TAG;
           engines.push(engine);
         }
       }

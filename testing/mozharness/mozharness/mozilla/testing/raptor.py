@@ -20,7 +20,9 @@ import mozharness
 
 from mozharness.base.errors import PythonErrorList
 from mozharness.base.log import OutputParser, DEBUG, ERROR, CRITICAL, INFO
-from mozharness.mozilla.automation import TBPL_SUCCESS, TBPL_RETRY, TBPL_WORST_LEVEL_TUPLE
+from mozharness.mozilla.automation import (
+    EXIT_STATUS_DICT, TBPL_SUCCESS, TBPL_RETRY, TBPL_WORST_LEVEL_TUPLE
+)
 from mozharness.mozilla.testing.android import AndroidMixin
 from mozharness.mozilla.testing.errors import HarnessErrorList, TinderBoxPrintRe
 from mozharness.mozilla.testing.testbase import TestingMixin, testing_config_options
@@ -133,11 +135,16 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             "default": False,
             "help": "Enable the WebRender compositor in Gecko.",
         }],
-        [["--with-conditioned-profile"], {
+        [["--no-conditioned-profile"], {
             "action": "store_true",
-            "dest": "with_conditioned_profile",
+            "dest": "no_conditioned_profile",
             "default": False,
-            "help": "Run using the conditioned profile.",
+            "help": "Run without the conditioned profile.",
+        }],
+        [["--device-name"], {
+            "dest": "device_name",
+            "default": None,
+            "help": "Device name of mobile device.",
         }],
         [["--geckoProfile"], {
             "dest": "gecko_profile",
@@ -236,6 +243,24 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             "default": True,
             "help": "Run without multiple processes (e10s).",
         }],
+        [["--enable-fission"], {
+            "action": "store_true",
+            "dest": "enable_fission",
+            "default": False,
+            "help": "Enable Fission (site isolation) in Gecko.",
+        }],
+        [["--setpref"], {
+            "action": "append",
+            "dest": "extra_prefs",
+            "default": [],
+            "help": "A preference to set. Must be a key-value pair separated by a ':'."
+        }],
+        [["--cold"], {
+            "action": "store_true",
+            "dest": "cold",
+            "default": False,
+            "help": "Enable cold page-load for browsertime tp6",
+        }],
 
     ] + testing_config_options + \
         copy.deepcopy(code_coverage_config_options) + \
@@ -322,6 +347,7 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
         self.power_test = self.config.get('power_test')
         self.memory_test = self.config.get('memory_test')
         self.cpu_test = self.config.get('cpu_test')
+        self.extra_prefs = self.config.get('extra_prefs')
         self.is_release_build = self.config.get('is_release_build')
         self.debug_mode = self.config.get('debug_mode', False)
         self.firefox_android_browsers = ["fennec", "geckoview", "refbrow", "fenix"]
@@ -471,6 +497,8 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             kw_options['obj-path'] = self.config['obj_path']
         if self.test_url_params:
             kw_options['test-url-params'] = self.test_url_params
+        if self.config.get('device_name') is not None:
+            kw_options['device-name'] = self.config['device_name']
 
         kw_options.update(kw)
         if self.host:
@@ -494,10 +522,16 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             options.extend(['--memory-test'])
         if self.config.get('cpu_test', False):
             options.extend(['--cpu-test'])
+        if self.config.get('cold', False):
+            options.extend(['--cold'])
         if self.config.get('enable_webrender', False):
             options.extend(['--enable-webrender'])
-        if self.config.get('with_conditioned_profile', False):
-            options.extend(['--with-conditioned-profile'])
+        if self.config.get('no_conditioned_profile', False):
+            options.extend(['--no-conditioned-profile'])
+        if self.config.get('enable_fission', False):
+            options.extend(['--enable-fission'])
+        if self.config.get('extra_prefs'):
+            options.extend(['--setpref={}'.format(i) for i in self.config.get('extra_prefs')])
 
         for (arg,), details in Raptor.browsertime_options:
             # Allow overriding defaults on the `./mach raptor-test ...` command-line
@@ -541,7 +575,7 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
 
     def download_and_extract(self, extract_dirs=None, suite_categories=None):
         return super(Raptor, self).download_and_extract(
-            suite_categories=['common', 'raptor']
+            suite_categories=['common', 'condprof', 'raptor']
         )
 
     def create_virtualenv(self, **kwargs):
@@ -754,6 +788,15 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
                 dest = os.path.join(env['MOZ_UPLOAD_DIR'], 'screenshots.html')
                 self.info(str(dest))
                 self._artifact_perf_data(src, dest)
+
+        # Allow log failures to over-ride successful runs of the test harness and
+        # give log failures priority, so that, for instance, log failures resulting
+        # in TBPL_RETRY cause a retry rather than simply reporting an error.
+        if parser.tbpl_status != TBPL_SUCCESS:
+            parser_status = EXIT_STATUS_DICT[parser.tbpl_status]
+            self.info('return code %s changed to %s due to log output' %
+                      (str(self.return_code), str(parser_status)))
+            self.return_code = parser_status
 
 
 class RaptorOutputParser(OutputParser):

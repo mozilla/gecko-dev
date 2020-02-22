@@ -17,6 +17,7 @@
 #include "nsNetUtil.h"
 #include "nsReadableUtils.h"
 
+#include "mozilla/BasePrincipal.h"
 #include "nsICachingChannel.h"
 #include "nsIPrincipal.h"
 #include "nsIScriptError.h"
@@ -26,7 +27,6 @@
 #include "nsIEncodedChannel.h"
 #include "nsIApplicationCacheChannel.h"
 #include "nsIMutableArray.h"
-#include "nsIURIMutator.h"
 #include "nsEscape.h"
 #include "nsStreamListenerWrapper.h"
 #include "nsISecurityConsoleMessage.h"
@@ -36,6 +36,7 @@
 #include "nsCRT.h"
 #include "nsContentUtils.h"
 #include "nsIMutableArray.h"
+#include "nsIURIMutator.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIObserverService.h"
 #include "nsIProtocolProxyService.h"
@@ -59,7 +60,6 @@
 #include "LoadInfo.h"
 #include "nsISSLSocketControl.h"
 #include "mozilla/Telemetry.h"
-#include "nsIURL.h"
 #include "nsIConsoleService.h"
 #include "mozilla/BinarySearch.h"
 #include "mozilla/DebugOnly.h"
@@ -70,14 +70,11 @@
 #include "mozilla/Tokenizer.h"
 #include "nsIHttpHeaderVisitor.h"
 #include "nsIMIMEInputStream.h"
-#include "nsIXULRuntime.h"
 #include "nsICacheInfoChannel.h"
 #include "nsIDOMWindowUtils.h"
-#include "nsIURIFixup.h"
 #include "nsHttpChannel.h"
 #include "nsRedirectHistoryEntry.h"
 #include "nsServerTiming.h"
-#include "nsIURIMutator.h"
 #include "mozilla/Tokenizer.h"
 
 #include <algorithm>
@@ -182,6 +179,7 @@ HttpBaseChannel::HttpBaseChannel()
       mClassOfService(0),
       mUpgradeToSecure(false),
       mApplyConversion(true),
+      mHasAppliedConversion(false),
       mIsPending(false),
       mWasOpened(false),
       mRequestObserversCalled(false),
@@ -1045,13 +1043,13 @@ HttpBaseChannel::ExplicitSetUploadStream(nsIInputStream* aStream,
   return NS_OK;
 }
 
-nsresult HttpBaseChannel::ExplicitSetUploadStreamLength(
-    uint64_t aContentLength, bool aStreamHasHeaders) {
+void HttpBaseChannel::ExplicitSetUploadStreamLength(uint64_t aContentLength,
+                                                    bool aStreamHasHeaders) {
   // We already have the content length. We don't need to determinate it.
   mReqContentLength = aContentLength;
 
   if (aStreamHasHeaders) {
-    return NS_OK;
+    return;
   }
 
   nsAutoCString header;
@@ -1061,7 +1059,7 @@ nsresult HttpBaseChannel::ExplicitSetUploadStreamLength(
   nsAutoCString value;
   nsresult rv = GetRequestHeader(header, value);
   if (NS_SUCCEEDED(rv) && !value.IsEmpty()) {
-    return NS_OK;
+    return;
   }
 
   // SetRequestHeader propagates headers to chrome if HttpChannelChild
@@ -1069,8 +1067,6 @@ nsresult HttpBaseChannel::ExplicitSetUploadStreamLength(
   nsAutoCString contentLengthStr;
   contentLengthStr.AppendInt(aContentLength);
   SetRequestHeader(header, contentLengthStr, false);
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -2891,7 +2887,8 @@ void HttpBaseChannel::AssertPrivateBrowsingId() {
   // We skip testing of favicon loading here since it could be triggered by XUL
   // image which uses SystemPrincipal. The SystemPrincpal doesn't have
   // mPrivateBrowsingId.
-  if (nsContentUtils::IsSystemPrincipal(mLoadInfo->LoadingPrincipal()) &&
+  if (mLoadInfo->LoadingPrincipal() &&
+      mLoadInfo->LoadingPrincipal()->IsSystemPrincipal() &&
       mLoadInfo->InternalContentPolicyType() ==
           nsIContentPolicy::TYPE_INTERNAL_IMAGE_FAVICON) {
     return;
@@ -3134,6 +3131,7 @@ bool HttpBaseChannel::ShouldRewriteRedirectToGET(
 HttpBaseChannel::ReplacementChannelConfig
 HttpBaseChannel::CloneReplacementChannelConfig(bool aPreserveMethod,
                                                uint32_t aRedirectFlags,
+                                               ReplacementReason aReason,
                                                uint32_t aExtraLoadFlags) {
   ReplacementChannelConfig config;
   config.loadFlags = mLoadFlags;
@@ -3159,27 +3157,37 @@ HttpBaseChannel::CloneReplacementChannelConfig(bool aPreserveMethod,
   }
 
   if (mReferrerInfo) {
-    dom::ReferrerPolicy referrerPolicy = dom::ReferrerPolicy::_empty;
-    nsAutoCString tRPHeaderCValue;
-    Unused << GetResponseHeader(NS_LITERAL_CSTRING("referrer-policy"),
-                                tRPHeaderCValue);
-    NS_ConvertUTF8toUTF16 tRPHeaderValue(tRPHeaderCValue);
-
-    if (!tRPHeaderValue.IsEmpty()) {
-      referrerPolicy =
-          dom::ReferrerInfo::ReferrerPolicyFromHeaderString(tRPHeaderValue);
-    }
-
-    if (referrerPolicy != dom::ReferrerPolicy::_empty) {
-      // We may reuse computed referrer in redirect, so if referrerPolicy
-      // changes, we must not use the old computed value, and have to compute
-      // again.
-      nsCOMPtr<nsIReferrerInfo> referrerInfo =
-          dom::ReferrerInfo::CreateFromOtherAndPolicyOverride(mReferrerInfo,
-                                                              referrerPolicy);
-      config.referrerInfo = referrerInfo;
-    } else {
+    // When cloning for a document channel replacement (parent process
+    // copying values for a new content process channel), this happens after
+    // OnStartRequest so we have the headers for the response available.
+    // We don't want to apply them to the referrer for the channel though,
+    // since that is the referrer for the current document, and the header
+    // should only apply to navigations from the current document.
+    if (aReason == ReplacementReason::DocumentChannel) {
       config.referrerInfo = mReferrerInfo;
+    } else {
+      dom::ReferrerPolicy referrerPolicy = dom::ReferrerPolicy::_empty;
+      nsAutoCString tRPHeaderCValue;
+      Unused << GetResponseHeader(NS_LITERAL_CSTRING("referrer-policy"),
+                                  tRPHeaderCValue);
+      NS_ConvertUTF8toUTF16 tRPHeaderValue(tRPHeaderCValue);
+
+      if (!tRPHeaderValue.IsEmpty()) {
+        referrerPolicy =
+            dom::ReferrerInfo::ReferrerPolicyFromHeaderString(tRPHeaderValue);
+      }
+
+      if (referrerPolicy != dom::ReferrerPolicy::_empty) {
+        // We may reuse computed referrer in redirect, so if referrerPolicy
+        // changes, we must not use the old computed value, and have to compute
+        // again.
+        nsCOMPtr<nsIReferrerInfo> referrerInfo =
+            dom::ReferrerInfo::CreateFromOtherAndPolicyOverride(mReferrerInfo,
+                                                                referrerPolicy);
+        config.referrerInfo = referrerInfo;
+      } else {
+        config.referrerInfo = mReferrerInfo;
+      }
     }
   }
 
@@ -3253,7 +3261,7 @@ HttpBaseChannel::CloneReplacementChannelConfig(bool aPreserveMethod,
 
 /* static */ void HttpBaseChannel::ConfigureReplacementChannel(
     nsIChannel* newChannel, const ReplacementChannelConfig& config,
-    ConfigureReason aReason) {
+    ReplacementReason aReason) {
   newChannel->SetLoadFlags(config.loadFlags);
 
   nsCOMPtr<nsIClassOfService> cos(do_QueryInterface(newChannel));
@@ -3278,7 +3286,7 @@ HttpBaseChannel::CloneReplacementChannelConfig(bool aPreserveMethod,
     // If we're an internal redirect, or a document channel replacement,
     // then we shouldn't record any new timing for this and just copy
     // over the existing values.
-    bool shouldHideTiming = aReason != ConfigureReason::Redirect;
+    bool shouldHideTiming = aReason != ReplacementReason::Redirect;
     if (shouldHideTiming) {
       newTimedChannel->SetRedirectCount(config.timedChannel->redirectCount());
       int8_t newCount = config.timedChannel->internalRedirectCount() + 1;
@@ -3487,12 +3495,12 @@ nsresult HttpBaseChannel::SetupReplacementChannel(nsIURI* newURI,
 
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(newChannel);
 
-  ReplacementChannelConfig config = CloneReplacementChannelConfig(
-      preserveMethod, redirectFlags, LOAD_REPLACE);
-  ConfigureReason redirectType =
+  ReplacementReason redirectType =
       (redirectFlags & nsIChannelEventSink::REDIRECT_INTERNAL)
-          ? ConfigureReason::InternalRedirect
-          : ConfigureReason::Redirect;
+          ? ReplacementReason::InternalRedirect
+          : ReplacementReason::Redirect;
+  ReplacementChannelConfig config = CloneReplacementChannelConfig(
+      preserveMethod, redirectFlags, redirectType, LOAD_REPLACE);
   ConfigureReplacementChannel(newChannel, config, redirectType);
 
   // Check whether or not this was a cross-domain redirect.
@@ -3580,8 +3588,7 @@ nsresult HttpBaseChannel::SetupReplacementChannel(nsIURI* newURI,
       realChannel->SetContentBlockingAllowListPrincipal(
           mContentBlockingAllowListPrincipal);
 
-      rv = realChannel->SetTopWindowURI(mTopWindowURI);
-      MOZ_ASSERT(NS_SUCCEEDED(rv));
+      realChannel->SetTopWindowURI(mTopWindowURI);
     }
 
     // update the DocumentURI indicator since we are being redirected.

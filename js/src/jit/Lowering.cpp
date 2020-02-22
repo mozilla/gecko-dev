@@ -64,7 +64,7 @@ void LIRGenerator::visitParameter(MParameter* param) {
 
   offset *= sizeof(Value);
 #if defined(JS_NUNBOX32)
-#  if MOZ_BIG_ENDIAN
+#  if MOZ_BIG_ENDIAN()
   ins->getDef(0)->setOutput(LArgument(offset));
   ins->getDef(1)->setOutput(LArgument(offset + 4));
 #  else
@@ -355,10 +355,7 @@ void LIRGenerator::visitComputeThis(MComputeThis* ins) {
   MOZ_ASSERT(ins->type() == MIRType::Value);
   MOZ_ASSERT(ins->input()->type() == MIRType::Value);
 
-  // Don't use useBoxAtStart because ComputeThis has a safepoint and needs to
-  // have its inputs in different registers than its return value so that
-  // they aren't clobbered.
-  LComputeThis* lir = new (alloc()) LComputeThis(useBox(ins->input()));
+  LComputeThis* lir = new (alloc()) LComputeThis(useBoxAtStart(ins->input()));
   defineBox(lir, ins);
   assignSafepoint(lir, ins);
 }
@@ -1972,7 +1969,7 @@ void LIRGenerator::visitToDouble(MToDouble* convert) {
 
     case MIRType::Boolean:
       MOZ_ASSERT(conversion != MToFPInstruction::NumbersOnly);
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case MIRType::Int32: {
       LInt32ToDouble* lir =
@@ -2025,7 +2022,7 @@ void LIRGenerator::visitToFloat32(MToFloat32* convert) {
 
     case MIRType::Boolean:
       MOZ_ASSERT(conversion != MToFPInstruction::NumbersOnly);
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case MIRType::Int32: {
       LInt32ToFloat32* lir =
@@ -2480,8 +2477,9 @@ void LIRGenerator::visitLambdaArrow(MLambdaArrow* ins) {
   MOZ_ASSERT(ins->environmentChain()->type() == MIRType::Object);
   MOZ_ASSERT(ins->newTargetDef()->type() == MIRType::Value);
 
-  LLambdaArrow* lir = new (alloc()) LLambdaArrow(
-      useRegister(ins->environmentChain()), useBox(ins->newTargetDef()));
+  LLambdaArrow* lir =
+      new (alloc()) LLambdaArrow(useRegister(ins->environmentChain()),
+                                 useBox(ins->newTargetDef()), temp());
   define(lir, ins);
   assignSafepoint(lir, ins);
 }
@@ -4826,11 +4824,6 @@ bool LIRGenerator::visitInstruction(MInstruction* ins) {
     return false;
   }
   visitInstructionDispatch(ins);
-
-  if (ins->possiblyCalls()) {
-    gen->setNeedsStaticStackAlignment();
-    gen->setNeedsOverrecursedCheck();
-  }
 
   if (ins->resumePoint()) {
     updateResumeState(ins);

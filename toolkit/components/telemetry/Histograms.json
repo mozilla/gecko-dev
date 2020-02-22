@@ -1710,6 +1710,19 @@
     "description": "Time between receiving a keypress event on the event loop and compositing its result onto the screen (ms)",
     "bug_numbers": [1506537, 1580077]
   },
+  "SCROLL_PRESENT_LATENCY": {
+    "record_in_processes": ["main", "gpu"],
+    "products": ["firefox", "fennec", "geckoview"],
+    "alert_emails": [ "perfteam@mozilla.com", "sefeng@mozilla.com", "vchin@mozilla.com" ],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "releaseChannelCollection": "opt-out",
+    "low": 1,
+    "high": 20000,
+    "n_buckets": 100,
+    "description": "Time between receiving a scroll event on the event loop and compositing its result onto the screen (ms)",
+    "bug_numbers": [ 1500465 ]
+  },
   "CANVAS_2D_USED": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "geckoview"],
@@ -2470,10 +2483,11 @@
   "NETWORK_HTTP_REDIRECT_TO_SCHEME" :{
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["necko@mozilla.com", "seceng-telemetry@mozilla.com", "jkt@mozilla.com"],
-    "bug_numbers": [1413512],
-    "expires_in_version": "64",
+    "alert_emails": ["necko@mozilla.com"],
+    "bug_numbers": [1413512, 1567462],
+    "expires_in_version": "never",
     "kind": "categorical",
+    "releaseChannelCollection": "opt-out",
     "keyed": true,
     "description": "Count of the HTTP redirection that triggered by top-level document or by subresource, keyed by the URL scheme redirected to.",
     "labels": ["topLevel", "subresource"]
@@ -6880,6 +6894,18 @@
     "releaseChannelCollection": "opt-out",
     "description": "Diagnostic probe to aid in categorizing tab switch spinners. Records what most recently set the loadTimer to null if a spinner was displayed."
   },
+  "FX_NUMBER_OF_UNIQUE_SITE_ORIGINS_ALL_TABS": {
+    "record_in_processes": ["main"],
+    "products": ["firefox", "geckoview_streaming"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 100,
+    "n_buckets": 50,
+    "description": "When a document is loaded, report the number of unique site origins across the browser(all tabs) if it has been at least 5 minutes since last time we collect this data",
+    "bug_numbers": [1589700],
+    "alert_emails": ["sefeng@mozilla.com", "perfteam@mozilla.com"],
+    "releaseChannelCollection": "opt-out"
+  },
   "FX_TAB_SWITCH_REQUEST_TAB_WARMING_STATE": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec", "geckoview"],
@@ -7029,7 +7055,7 @@
     "products": ["firefox"],
     "bug_numbers": [731025, 1584261],
     "alert_emails": ["gijs@mozilla.com", "MattN+telemetry@mozilla.com"],
-    "expires_in_version": "74",
+    "expires_in_version": "80",
     "kind": "enumerated",
     "n_values": 10,
     "releaseChannelCollection": "opt-out",
@@ -7051,7 +7077,7 @@
     "products": ["firefox"],
     "bug_numbers": [731025, 1584261],
     "alert_emails": ["gijs@mozilla.com", "MattN+telemetry@mozilla.com"],
-    "expires_in_version": "74",
+    "expires_in_version": "80",
     "kind": "enumerated",
     "keyed": true,
     "n_values": 12,
@@ -7063,7 +7089,7 @@
     "products": ["firefox"],
     "bug_numbers": [731025, 1584261],
     "alert_emails": ["gijs@mozilla.com", "MattN+telemetry@mozilla.com"],
-    "expires_in_version": "74",
+    "expires_in_version": "80",
     "kind": "enumerated",
     "keyed": true,
     "n_values": 12,
@@ -7075,7 +7101,7 @@
     "products": ["firefox"],
     "bug_numbers": [1289436],
     "alert_emails": ["gijs@mozilla.com"],
-    "expires_in_version": "65",
+    "expires_in_version": "80",
     "kind": "exponential",
     "n_buckets": 70,
     "high": 100000,
@@ -7088,7 +7114,7 @@
     "products": ["firefox"],
     "bug_numbers": [1289436],
     "alert_emails": ["gijs@mozilla.com"],
-    "expires_in_version": "65",
+    "expires_in_version": "80",
     "kind": "exponential",
     "n_buckets": 70,
     "high": 100000,
@@ -7101,7 +7127,7 @@
     "products": ["firefox"],
     "bug_numbers": [1289436, 1584261],
     "alert_emails": ["gijs@mozilla.com", "MattN+telemetry@mozilla.com", "passwords-dev@mozilla.org"],
-    "expires_in_version": "74",
+    "expires_in_version": "80",
     "kind": "exponential",
     "n_buckets": 70,
     "high": 100000,
@@ -7140,7 +7166,7 @@
     "products": ["firefox"],
     "bug_numbers": [1338522, 1584261],
     "alert_emails": ["dao@mozilla.com", "MattN+telemetry@mozilla.com", "passwords-dev@mozilla.org"],
-    "expires_in_version": "74",
+    "expires_in_version": "80",
     "kind": "exponential",
     "n_buckets": 20,
     "high": 60000,
@@ -7153,7 +7179,7 @@
     "products": ["firefox"],
     "bug_numbers": [1279501],
     "alert_emails": ["gijs@mozilla.com"],
-    "expires_in_version": "65",
+    "expires_in_version": "80",
     "kind": "exponential",
     "n_buckets": 20,
     "high": 1000,
@@ -7166,7 +7192,7 @@
     "products": ["firefox"],
     "bug_numbers": [1279501],
     "alert_emails": ["gijs@mozilla.com"],
-    "expires_in_version": "65",
+    "expires_in_version": "80",
     "kind": "exponential",
     "n_buckets": 40,
     "high": 10000,
@@ -7179,7 +7205,7 @@
     "products": ["firefox"],
     "bug_numbers": [1279501, 1584261],
     "alert_emails": ["gijs@mozilla.com", "MattN+telemetry@mozilla.com", "passwords-dev@mozilla.org"],
-    "expires_in_version": "74",
+    "expires_in_version": "80",
     "kind": "exponential",
     "n_buckets": 20,
     "high": 1000,
@@ -7232,61 +7258,6 @@
     "kind": "boolean",
     "releaseChannelCollection": "opt-out",
     "description": "Whether the browser we migrated from was the browser with the most recent data. Keyed by that browser's identifier (e.g. 'ie', 'edge', 'safari', etc.)."
-  },
-  "FX_PAGE_ACTION_ADDED": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["gijs@mozilla.com"],
-    "bug_numbers": [1393843],
-    "expires_in_version": "64",
-    "kind": "categorical",
-    "labels": ["bookmark", "pocket", "screenshots", "webcompat", "copyURL", "emailLink",
-               "sendToDevice", "other", "addSearchEngine", "shareURL", "screenshotsMozillaOr"],
-    "description": "Count how many times people add items to the url bar"
-  },
-  "FX_PAGE_ACTION_REMOVED": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["gijs@mozilla.com"],
-    "bug_numbers": [1393843],
-    "expires_in_version": "64",
-    "kind": "categorical",
-    "labels": ["bookmark", "pocket", "screenshots", "webcompat", "copyURL", "emailLink",
-               "sendToDevice", "other", "addSearchEngine", "shareURL", "screenshotsMozillaOr"],
-    "description": "Count how many times people remove items from the url bar"
-  },
-  "FX_PAGE_ACTION_MANAGED": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["gijs@mozilla.com"],
-    "bug_numbers": [1393843],
-    "expires_in_version": "64",
-    "kind": "categorical",
-    "labels": ["bookmark", "pocket", "screenshots", "webcompat", "copyURL", "emailLink",
-               "sendToDevice", "other", "addSearchEngine", "shareURL", "screenshotsMozillaOr"],
-    "description": "Count how many times people manage extensions via their actions in the url bar"
-  },
-  "FX_PAGE_ACTION_URLBAR_USED": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["gijs@mozilla.com"],
-    "bug_numbers": [1393843],
-    "expires_in_version": "64",
-    "kind": "categorical",
-    "labels": ["bookmark", "pocket", "screenshots", "webcompat", "copyURL", "emailLink",
-               "sendToDevice", "other", "addSearchEngine", "shareURL", "screenshotsMozillaOr"],
-    "description": "Count how many times people use items in the url bar"
-  },
-  "FX_PAGE_ACTION_PANEL_USED": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["gijs@mozilla.com"],
-    "bug_numbers": [1393843],
-    "expires_in_version": "64",
-    "kind": "categorical",
-    "labels": ["bookmark", "pocket", "screenshots", "webcompat", "copyURL", "emailLink",
-               "sendToDevice", "other", "addSearchEngine", "shareURL", "screenshotsMozillaOr"],
-    "description": "Count how many times people use items from the main page action button"
   },
   "FX_PICTURE_IN_PICTURE_WINDOW_OPEN_DURATION": {
     "record_in_processes": ["main"],
@@ -7663,8 +7634,8 @@
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "geckoview"],
     "alert_emails": ["hsivonen@mozilla.com"],
-    "bug_numbers": [840476, 977573, 1513473, 1554592],
-    "expires_in_version": "72",
+    "bug_numbers": [840476, 977573, 1513473, 1554592, 1603047],
+    "expires_in_version": "79",
     "releaseChannelCollection": "opt-out",
     "kind": "categorical",
     "labels": ["Local", "RemoteTld", "RemoteNonTld", "LocalChardet", "RemoteChardet", "Labeled", "AlreadyOverridden", "Bug"],
@@ -8884,6 +8855,18 @@
     "n_buckets": 10,
     "description": "Number of sites blocked from the new tab page."
   },
+  "MS_MESSAGE_REQUEST_TIME_MS": {
+    "record_in_processes": ["main"],
+    "products": ["firefox"],
+    "alert_emails": ["user-journey@mozilla.com", "aoprea@mozilla.com"],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "exponential",
+    "high": 2000,
+    "n_buckets": 20,
+    "bug_numbers": [1600335],
+    "description": "Firefox: Time in ms spent selecting and matching messages to user profile."
+  },
   "BROWSERPROVIDER_XUL_IMPORT_BOOKMARKS": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "geckoview"],
@@ -9284,10 +9267,10 @@
      "description": "A counter incremented every time the simplified mode is unavailable on print preview."
    },
   "PRINT_DIALOG_OPENED_COUNT": {
-    "record_in_processes": ["main", "content"],
+    "record_in_processes": ["main"],
     "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["carnold@mozilla.org"],
-    "bug_numbers": [1306624, 1568968],
+    "alert_emails": ["jwatt@jwatt.org"],
+    "bug_numbers": [1306624, 1568968, 1594391],
     "expires_in_version": "never",
     "kind": "count",
     "keyed": true,
@@ -9295,10 +9278,10 @@
     "description": "A counter incremented every time the user opens print dialog."
   },
   "PRINT_COUNT": {
-    "record_in_processes": ["main", "content"],
+    "record_in_processes": ["main"],
     "products": ["firefox", "fennec", "geckoview"],
-     "alert_emails": ["carnold@mozilla.org"],
-     "bug_numbers": [1287587, 1568968],
+     "alert_emails": ["jwatt@jwatt.org"],
+     "bug_numbers": [1287587, 1568968, 1594391],
      "expires_in_version": "never",
      "kind": "count",
      "keyed": true,
@@ -11646,6 +11629,41 @@
     "n_values": 6,
     "description": "1 = No SHA1 signatures, 2 = SHA1 certificates issued by an imported root, 3 = SHA1 certificates issued before 2016, 4 = SHA1 certificates issued after 2015, 5 = another error prevented successful verification"
   },
+  "CRLITE_RESULT": {
+    "record_in_processes": ["main"],
+    "products": ["firefox"],
+    "expires_in_version": "75",
+    "kind": "categorical",
+    "labels": ["FilterNotAvailable", "IssuerNotEnrolled", "CertificateTooNew", "CertificateValid", "CertificateRevoked", "LibraryFailure"],
+    "description": "The result of looking up revocation information for a TLS server certificate in CRLite.",
+    "bug_numbers": [1586855],
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["dkeeler@mozilla.com", "jcj@mozilla.com", "seceng-telemetry@mozilla.com"]
+  },
+  "CRLITE_FASTER_THAN_OCSP_MS": {
+    "record_in_processes": ["main"],
+    "products": ["firefox"],
+    "expires_in_version": "75",
+    "kind": "exponential",
+    "high": 20000,
+    "n_buckets": 50,
+    "description": "If both a CRLite lookup and OCSP request are made, how many milliseconds faster was CRLite?",
+    "bug_numbers": [1602641],
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["dkeeler@mozilla.com", "jcj@mozilla.com", "seceng-telemetry@mozilla.com"]
+  },
+  "OCSP_FASTER_THAN_CRLITE_MS": {
+    "record_in_processes": ["main"],
+    "products": ["firefox"],
+    "expires_in_version": "75",
+    "kind": "exponential",
+    "high": 20000,
+    "n_buckets": 50,
+    "description": "If both a CRLite lookup and OCSP request are made, how many milliseconds faster was OCSP?",
+    "bug_numbers": [1602641],
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["dkeeler@mozilla.com", "jcj@mozilla.com", "seceng-telemetry@mozilla.com"]
+  },
   "WEAVE_CONFIGURED_MASTER_PASSWORD": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "geckoview"],
@@ -11987,6 +12005,16 @@
     "description": "Time (in ms) measured between when the fetch handler finished executing and when we reset the network channel."
   },
 
+  "SERVICE_WORKER_DESTROYED": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "fennec", "geckoview"],
+    "expires_in_version": "never",
+    "kind": "count",
+    "releaseChannelCollection": "opt-out",
+    "bug_numbers": [1202706],
+    "alert_emails": ["tdsmith@mozilla.com", "compatibility@lists.mozilla.org"],
+    "description": "Number of service workers destroyed; used in conjunction with use counter histograms"
+  },
   "ONBEFOREUNLOAD_PROMPT_ACTION" : {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "geckoview"],
@@ -12542,6 +12570,16 @@
     "kind": "count",
     "description": "Tracking whether a SharedWorker spawn gets queued due to hitting max workers per domain limit. File bugs in Core::DOM in case of a Telemetry regression."
   },
+  "SHARED_WORKER_DESTROYED": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "fennec", "geckoview"],
+    "expires_in_version": "never",
+    "kind": "count",
+    "releaseChannelCollection": "opt-out",
+    "bug_numbers": [1202706],
+    "alert_emails": ["tdsmith@mozilla.com", "compatibility@lists.mozilla.org"],
+    "description": "Number of shared workers destroyed; used in conjunction with use counter histograms"
+  },
   "DEDICATED_WORKER_SPAWN_GETS_QUEUED": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "geckoview"],
@@ -12550,6 +12588,16 @@
     "expires_in_version": "never",
     "kind": "count",
     "description": "Tracking whether a DedicatedWorker spawn gets queued due to hitting max workers per domain limit. File bugs in Core::DOM in case of a Telemetry regression."
+  },
+  "DEDICATED_WORKER_DESTROYED": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "fennec", "geckoview"],
+    "expires_in_version": "never",
+    "kind": "count",
+    "releaseChannelCollection": "opt-out",
+    "bug_numbers": [1202706],
+    "alert_emails": ["tdsmith@mozilla.com", "compatibility@lists.mozilla.org"],
+    "description": "Number of dedicated workers destroyed; used in conjunction with use counter histograms"
   },
   "SERVICE_WORKER_REGISTRATIONS": {
     "record_in_processes": ["main", "content"],
@@ -13107,16 +13155,6 @@
     "n_buckets": 40,
     "keyed": true,
     "description": "Measures the number of milliseconds we spend waiting for sync IPC messages to finish sending, keyed by message name. Note: only messages that wait for more than 500 microseconds and block the main thread are included in this probe."
-  },
-  "REJECTED_MESSAGE_MANAGER_MESSAGE": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["amccreight@mozilla.com"],
-    "bug_numbers": [1272423],
-    "expires_in_version": "55",
-    "kind": "count",
-    "keyed": true,
-    "description": "Each key is the message name, with digits removed, from an async message manager message that was rejected for being over approximately 128MB, recorded in the sending process at the time of sending."
   },
   "SANDBOX_HAS_SECCOMP_BPF": {
     "record_in_processes": ["main", "content"],
@@ -14333,6 +14371,28 @@
     "description": "Measure the time how long the cursor is hovering before opening the unselcted tab. Only record the data if someone requests for sending unselected tab hover msg.",
     "releaseChannelCollection": "opt-out"
   },
+  "FXRPC_FF_INSTALLATION_FROM": {
+    "record_in_processes": ["main", "gpu"],
+    "products": ["firefox"],
+    "alert_emails": ["fxr-telemetry@mozilla.com", "dmu@mozilla.com"],
+    "bug_numbers": [1603539],
+    "expires_in_version": "79",
+    "kind": "categorical",
+    "releaseChannelCollection": "opt-out",
+    "labels": ["User", "FxR", "HTC", "Valve"],
+    "description": "Determine if FireFox is installed at user's PC already, or they are new installation from Firefox Reality PC distribution channels."
+  },
+  "FXRPC_ENTRY_METHOD": {
+    "record_in_processes": ["main", "gpu"],
+    "products": ["firefox"],
+    "alert_emails": ["fxr-telemetry@mozilla.com", "dmu@mozilla.com"],
+    "bug_numbers": [1603539],
+    "expires_in_version": "79",
+    "kind": "categorical",
+    "releaseChannelCollection": "opt-out",
+    "labels": ["SysBtn", "Library", "Gaze"],
+    "description": "The approach of users enter Firefox Reality PC."
+  },
   "WEBVR_USERS_VIEW_IN": {
     "record_in_processes": ["main", "gpu", "content"],
     "products": ["firefox", "fennec", "geckoview"],
@@ -14565,28 +14625,6 @@
     "n_buckets": 20,
     "kind": "exponential",
     "description": "Age of files scanned in profile directory in days when determining initial profile age."
-  },
-  "ACTIVE_HTTP_DOCGROUPS_PER_TABGROUP": {
-    "record_in_processes": ["content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["farre@mozilla.com"],
-    "bug_numbers": [1441972, 1468843],
-    "expires_in_version": "67",
-    "kind": "exponential",
-    "high": 50,
-    "n_buckets": 20,
-    "description": "Number of active http:// and https:// doc groups per tab group. Collected at the point when the top level document of the tab group is unloaded."
-  },
-  "TOTAL_HTTP_DOCGROUPS_PER_TABGROUP": {
-    "record_in_processes": ["content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["farre@mozilla.com"],
-    "bug_numbers": [1441972, 1468843],
-    "expires_in_version": "67",
-    "kind": "exponential",
-    "high": 50,
-    "n_buckets": 20,
-    "description": "Total number of http:// and https:// doc groups per tab group, including docgroups fully in bfcache. Collected at the point when the top level document of the tab group is unloaded."
   },
   "QUIRKS_MODE": {
     "record_in_processes": ["main", "content"],

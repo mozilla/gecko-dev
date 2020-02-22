@@ -5,23 +5,19 @@
 
 #include "nsCOMPtr.h"
 #include "nsMemory.h"
-#include "nsIServiceManager.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/ModuleUtils.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/Services.h"
-#include "nsIWebBrowserChrome.h"
 #include "nsCURILoader.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsNetUtil.h"
 #include "nsIURL.h"
 #include "nsIURI.h"
 #include "nsIDocShell.h"
-#include "nsIDocShellTreeOwner.h"
 #include "nsISimpleEnumerator.h"
 #include "nsPIDOMWindow.h"
 #include "nsIPrefBranch.h"
-#include "nsIPrefService.h"
 #include "nsString.h"
 #include "nsCRT.h"
 #include "nsGenericHTMLElement.h"
@@ -29,14 +25,12 @@
 #include "nsIFrame.h"
 #include "nsContainerFrame.h"
 #include "nsFrameTraversal.h"
-#include "nsIImageDocument.h"
 #include "mozilla/dom/Document.h"
 #include "nsIContent.h"
 #include "nsTextFragment.h"
 #include "nsIEditor.h"
 
 #include "nsIDocShellTreeItem.h"
-#include "nsIWebNavigation.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsContentCID.h"
@@ -44,7 +38,6 @@
 #include "nsWidgetsCID.h"
 #include "nsIFormControl.h"
 #include "nsNameSpaceManager.h"
-#include "nsIWindowWatcher.h"
 #include "nsIObserverService.h"
 #include "nsFocusManager.h"
 #include "mozilla/dom/Element.h"
@@ -86,7 +79,8 @@ nsTypeAheadFind::nsTypeAheadFind()
       mLastFindLength(0),
       mIsSoundInitialized(false),
       mCaseSensitive(false),
-      mEntireWord(false) {}
+      mEntireWord(false),
+      mMatchDiacritics(false) {}
 
 nsTypeAheadFind::~nsTypeAheadFind() {
   nsCOMPtr<nsIPrefBranch> prefInternal(
@@ -207,6 +201,24 @@ nsTypeAheadFind::SetEntireWord(bool isEntireWord) {
 NS_IMETHODIMP
 nsTypeAheadFind::GetEntireWord(bool* isEntireWord) {
   *isEntireWord = mEntireWord;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsTypeAheadFind::SetMatchDiacritics(bool matchDiacritics) {
+  mMatchDiacritics = matchDiacritics;
+
+  if (mFind) {
+    mFind->SetMatchDiacritics(mMatchDiacritics);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsTypeAheadFind::GetMatchDiacritics(bool* matchDiacritics) {
+  *matchDiacritics = mMatchDiacritics;
 
   return NS_OK;
 }
@@ -555,9 +567,11 @@ nsresult nsTypeAheadFind::FindItNow(uint32_t aMode, bool aIsLinksOnly,
         nsCOMPtr<nsINode> node = returnRange->GetStartContainer();
         while (node) {
           nsCOMPtr<nsIEditor> editor;
-          if (auto input = HTMLInputElement::FromNode(node)) {
+          if (RefPtr<HTMLInputElement> input =
+                  HTMLInputElement::FromNode(node)) {
             editor = input->GetEditor();
-          } else if (auto textarea = HTMLTextAreaElement::FromNode(node)) {
+          } else if (RefPtr<HTMLTextAreaElement> textarea =
+                         HTMLTextAreaElement::FromNode(node)) {
             editor = textarea->GetEditor();
           } else {
             node = node->GetParentNode();

@@ -28,6 +28,7 @@ raptor_description_schema = Schema({
         [basestring]
     ),
     Optional('raptor-test'): basestring,
+    Optional('raptor-subtests'): [basestring],
     Optional('activity'): optionally_keyed_by(
         'app',
         basestring
@@ -40,10 +41,6 @@ raptor_description_schema = Schema({
         'test-platform', 'app',
         Any('cold', 'warm', 'both'),
     ),
-    Optional('condprof'): optionally_keyed_by(
-        'app',
-        bool,
-    ),
     # Configs defined in the 'test_description_schema'.
     Optional('max-run-time'): optionally_keyed_by(
         'app',
@@ -51,6 +48,7 @@ raptor_description_schema = Schema({
     ),
     Optional('run-on-projects'): optionally_keyed_by(
         'app',
+        'test-name',
         test_description_schema['run-on-projects']
     ),
     Optional('variants'): optionally_keyed_by(
@@ -125,7 +123,6 @@ def split_apps(config, tests):
 @transforms.add
 def handle_keyed_by_app(config, tests):
     fields = [
-        'condprof',
         'variants',
         'limit-platforms',
         'activity',
@@ -157,7 +154,15 @@ def split_pageload(config, tests):
 
         assert 'raptor-test' in test
         test['description'] += " using cold pageload"
-        test['raptor-test'] += '-cold'
+
+        # for raptor-webext to run cold we just call the corresponding '-cold' test name; but
+        # for raptor browsertime we leave the raptor test name as/is and will set the '--cold'
+        # command line argument instead via settting test['cold'] to true
+        if test['test-name'].startswith('browsertime-tp6'):
+            test['cold'] = True
+        else:
+            test['raptor-test'] += '-cold'
+
         test['max-run-time'] = 3000
         test['test-name'] += '-cold'
         test['try-name'] += '-cold'
@@ -169,31 +174,37 @@ def split_pageload(config, tests):
 
 
 @transforms.add
-def build_condprof_tests(config, tests):
+def split_browsertime_page_load_by_url(config, tests):
+
     for test in tests:
-        if not test.pop('condprof', False):
+
+        # for tests that have 'raptor-subtests' listed, we want to create a separate
+        # test job for every subtest (i.e. split out each page-load URL into its own job)
+        subtests = test.pop('raptor-subtests', None)
+        if not subtests:
             yield test
             continue
-        if 'chrome' in test['test-name'] or 'chromium' in test['test-name']:
-            yield test
-            continue
 
-        # Make condprof test
-        condprof_test = deepcopy(test)
-        yield test
+        chunk_number = 0
 
-        extra_options = condprof_test.setdefault('mozharness', {}).setdefault('extra-options', [])
-        extra_options.append('--with-conditioned-profile')
+        for subtest in subtests:
 
-        group, symbol = split_symbol(condprof_test['treeherder-symbol'])
-        symbol += '-condprof'
+            # create new test job
+            chunked = deepcopy(test)
 
-        condprof_test['description'] += " with condprof"
-        condprof_test['try-name'] += '-condprof'
-        condprof_test['test-name'] += '-condprof'
-        condprof_test['treeherder-symbol'] = join_symbol(group, symbol)
+            # only run the subtest/single URL
+            chunked['test-name'] += "-{}".format(subtest)
+            chunked['try-name'] += "-{}".format(subtest)
+            chunked['raptor-test'] = subtest
 
-        yield condprof_test
+            # set treeherder symbol and description
+            chunk_number += 1
+            group, symbol = split_symbol(test['treeherder-symbol'])
+            symbol += "-{}".format(chunk_number)
+            chunked['treeherder-symbol'] = join_symbol(group, symbol)
+            chunked['description'] += "-{}".format(subtest)
+
+            yield chunked
 
 
 @transforms.add
@@ -201,12 +212,24 @@ def add_extra_options(config, tests):
     for test in tests:
         extra_options = test.setdefault('mozharness', {}).setdefault('extra-options', [])
 
+        # Adding device name if we're on android
+        test_platform = test['test-platform']
+        if test_platform.startswith('android-hw-g5'):
+            extra_options.append('--device-name=g5')
+        elif test_platform.startswith('android-hw-p2'):
+            extra_options.append('--device-name=p2_aarch64')
+
         if test.pop('run-visual-metrics', False):
             extra_options.append('--browsertime-video')
             test['attributes']['run-visual-metrics'] = True
 
         if 'app' in test:
             extra_options.append('--app={}'.format(test.pop('app')))
+
+        # for browsertime tp6 cold page-load jobs we need to set the '--cold' cmd line arg
+        if test['test-name'].startswith('browsertime-tp6'):
+            if test.pop('cold', False) is True:
+                extra_options.append('--cold')
 
         if 'activity' in test:
             extra_options.append('--activity={}'.format(test.pop('activity')))

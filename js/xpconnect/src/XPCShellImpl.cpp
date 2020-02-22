@@ -7,6 +7,7 @@
 #include "nsXULAppAPI.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "js/Array.h"  // JS::NewArrayObject
 #include "js/CharacterEncoding.h"
 #include "js/CompilationAndEvaluation.h"  // JS::Evaluate
 #include "js/ContextOptions.h"
@@ -366,7 +367,9 @@ static bool Load(JSContext* cx, unsigned argc, Value* vp) {
       return false;
     }
     JS::CompileOptions options(cx);
-    options.setFileAndLine(filename.get(), 1).setIsRunOnce(true);
+    options.setFileAndLine(filename.get(), 1)
+        .setIsRunOnce(true)
+        .setSkipFilenameValidation(true);
     JS::Rooted<JSScript*> script(cx);
     JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
     script = JS::CompileUtf8File(cx, options, file);
@@ -699,7 +702,9 @@ static bool ProcessUtf8Line(AutoJSAPI& jsapi, const char* buffer,
                             int startline) {
   JSContext* cx = jsapi.cx();
   JS::CompileOptions options(cx);
-  options.setFileAndLine("typein", startline).setIsRunOnce(true);
+  options.setFileAndLine("typein", startline)
+      .setIsRunOnce(true)
+      .setSkipFilenameValidation(true);
 
   JS::SourceText<mozilla::Utf8Unit> srcBuf;
   if (!srcBuf.init(cx, buffer, strlen(buffer), JS::SourceOwnership::Borrowed)) {
@@ -769,7 +774,8 @@ static bool ProcessFile(AutoJSAPI& jsapi, const char* filename, FILE* file,
     JS::CompileOptions options(cx);
     options.setFileAndLine(filename, 1)
         .setIsRunOnce(true)
-        .setNoScriptRval(true);
+        .setNoScriptRval(true)
+        .setSkipFilenameValidation(true);
     script = JS::CompileUtf8File(cx, options, file);
     if (!script) {
       return false;
@@ -867,7 +873,7 @@ static void ProcessArgsForCompartment(JSContext* cx, char** argv, int argc) {
         break;
       case 'S':
         ContextOptionsRef(cx).toggleWerror();
-        MOZ_FALLTHROUGH;  // because -S implies -s
+        [[fallthrough]];  // because -S implies -s
       case 's':
         ContextOptionsRef(cx).toggleExtraWarnings();
         break;
@@ -926,7 +932,7 @@ static bool ProcessArgs(AutoJSAPI& jsapi, char** argv, int argc,
    * Create arguments early and define it to root it, so it's safe from any
    * GC calls nested below, and so it is available to -f <file> arguments.
    */
-  argsObj = JS_NewArrayObject(cx, 0);
+  argsObj = JS::NewArrayObject(cx, 0);
   if (!argsObj) {
     return 1;
   }
@@ -986,6 +992,7 @@ static bool ProcessArgs(AutoJSAPI& jsapi, char** argv, int argc,
         }
 
         JS::CompileOptions opts(cx);
+        opts.setSkipFilenameValidation(true);
         opts.setFileAndLine("-e", 1);
 
         JS::SourceText<mozilla::Utf8Unit> srcBuf;
@@ -1332,6 +1339,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
 
     // Ensure that DLL Services are running
     RefPtr<DllServices> dllSvc(DllServices::Get());
+    dllSvc->StartUntrustedModulesProcessor();
     auto dllServicesDisable =
         MakeScopeExit([&dllSvc]() { dllSvc->DisableFull(); });
 

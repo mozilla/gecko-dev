@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Test that all kinds of workers show up properly in the omniscient browser
+// Test that all kinds of workers show up properly in the multiprocess browser
 // toolbox.
 
 "use strict";
@@ -33,7 +33,7 @@ add_task(async function() {
       return (
         hasWorker("simple-worker.js") &&
         hasWorker("shared-worker.js") &&
-        hasWorker("service-worker.js")
+        hasWorker("service-worker.sjs")
       );
 
       function hasWorker(workerName) {

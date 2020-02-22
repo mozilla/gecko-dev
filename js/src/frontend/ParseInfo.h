@@ -12,6 +12,7 @@
 
 #include "ds/LifoAlloc.h"
 #include "frontend/FunctionTree.h"
+#include "frontend/Stencil.h"
 #include "frontend/UsedNameTracker.h"
 #include "js/RealmOptions.h"
 #include "js/Vector.h"
@@ -27,12 +28,21 @@ class ParserBase;
 // as well as controls the lifetime of parse nodes and other data
 // by controling the mark and reset of the LifoAlloc.
 struct MOZ_RAII ParseInfo {
+  // ParseInfo's mode can be eager or deferred:
+  //
+  // - In Eager mode, allocation happens right away and the Function Tree is not
+  //   constructed.
+  // - In Deferred mode, allocation is deferred as late as possible.
   enum Mode { Eager, Deferred };
 
   UsedNameTracker usedNames;
   LifoAllocScope& allocScope;
   FunctionTreeHolder treeHolder;
   Mode mode;
+  // Hold onto the RegExpCreationData and BigIntCreationDatas that are allocated
+  // during parse to ensure correct destruction.
+  Vector<RegExpCreationData> regExpData;
+  Vector<BigIntCreationData> bigIntData;
 
   ParseInfo(JSContext* cx, LifoAllocScope& alloc)
       : usedNames(cx),
@@ -40,7 +50,16 @@ struct MOZ_RAII ParseInfo {
         treeHolder(cx),
         mode(cx->realm()->behaviors().deferredParserAlloc()
                  ? ParseInfo::Mode::Deferred
-                 : ParseInfo::Mode::Eager) {}
+                 : ParseInfo::Mode::Eager),
+        regExpData(cx),
+        bigIntData(cx) {}
+
+  // To avoid any misuses, make sure this is neither copyable,
+  // movable or assignable.
+  ParseInfo(const ParseInfo&) = delete;
+  ParseInfo(ParseInfo&&) = delete;
+  ParseInfo& operator=(const ParseInfo&) = delete;
+  ParseInfo& operator=(ParseInfo&&) = delete;
 
   bool isEager() { return mode == Mode::Eager; }
   bool isDeferred() { return mode == Mode::Deferred; }

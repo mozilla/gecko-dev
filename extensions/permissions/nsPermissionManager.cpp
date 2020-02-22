@@ -6,10 +6,10 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/AntiTrackingCommon.h"
-#include "mozilla/DebugOnly.h"
-
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/ContentPrincipal.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/Pair.h"
 #include "mozilla/Services.h"
 #include "mozilla/SystemGroup.h"
@@ -19,17 +19,17 @@
 #include "nsNetUtil.h"
 #include "nsTArray.h"
 #include "nsReadableUtils.h"
-#include "nsILineInputStream.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceDefs.h"
+#include "mozIStorageCompletionCallback.h"
+#include "mozIStorageService.h"
+#include "mozIStorageStatementCallback.h"
 #include "mozilla/storage.h"
 #include "mozilla/Attributes.h"
 #include "nsXULAppAPI.h"
 #include "nsIPrincipal.h"
 #include "nsIURIMutator.h"
 #include "nsContentUtils.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsIEffectiveTLDService.h"
 #include "nsPIDOMWindow.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/net/NeckoMessageUtils.h"
@@ -882,7 +882,7 @@ void nsPermissionManager::Startup() {
 // nsPermissionManager Implementation
 
 #define PERMISSIONS_FILE_NAME "permissions.sqlite"
-#define HOSTS_SCHEMA_VERSION 10
+#define HOSTS_SCHEMA_VERSION 11
 
 // Default permissions are read from a URL - this is the preference we read
 // to find that URL. If not set, don't use any default permissions.
@@ -979,7 +979,6 @@ nsresult nsPermissionManager::Init() {
     observerService->AddObserver(this, "profile-do-change", true);
     observerService->AddObserver(this, "testonly-reload-permissions-from-disk",
                                  true);
-    observerService->AddObserver(this, "clear-origin-attributes-data", true);
   }
 
   // ignore failure here, since it's non-fatal (we can run fine without
@@ -1112,7 +1111,7 @@ nsresult nsPermissionManager::InitDB(bool aRemoveFile) {
       }
 
         // fall through to the next upgrade
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       // TODO: we want to make default version as version 2 in order to fix bug
       // 784875.
@@ -1132,7 +1131,7 @@ nsresult nsPermissionManager::InitDB(bool aRemoveFile) {
       }
 
         // fall through to the next upgrade
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       // Version 3->4 is the creation of the modificationTime field.
       case 3: {
@@ -1149,7 +1148,7 @@ nsresult nsPermissionManager::InitDB(bool aRemoveFile) {
       }
 
         // fall through to the next upgrade
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       // In version 5, host appId, and isInBrowserElement were merged into a
       // single origin entry
@@ -1242,7 +1241,7 @@ nsresult nsPermissionManager::InitDB(bool aRemoveFile) {
         }
 
         // fall through to the next upgrade
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       // At this point, the version 5 table has been migrated to a version 6
       // table We are guaranteed to have at least one of moz_hosts and
@@ -1415,7 +1414,7 @@ nsresult nsPermissionManager::InitDB(bool aRemoveFile) {
       }
 
         // fall through to the next upgrade
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       // The version 7-8 migration is the re-migration of localhost and
       // ip-address entries due to errors in the previous version 7 migration
@@ -1508,7 +1507,7 @@ nsresult nsPermissionManager::InitDB(bool aRemoveFile) {
       }
 
         // fall through to the next upgrade
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       // The version 8-9 migration removes the unnecessary backup moz-hosts
       // database contents. as the data no longer needs to be migrated
@@ -1537,15 +1536,34 @@ nsresult nsPermissionManager::InitDB(bool aRemoveFile) {
       }
 
         // fall through to the next upgrade
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       case 9: {
+        rv = mDBConn->SetSchemaVersion(10);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+        // fall through to the next upgrade
+        [[fallthrough]];
+
+      case 10: {
+        // Filter out the rows with storage access API permissions with a
+        // granted origin, and remove the granted origin part from the
+        // permission type.
+        rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+            "UPDATE moz_perms "
+            "SET type=SUBSTR(type, 0, INSTR(SUBSTR(type, INSTR(type, '^') + "
+            "1), '^') + INSTR(type, '^')) "
+            "WHERE INSTR(SUBSTR(type, INSTR(type, '^') + 1), '^') AND "
+            "SUBSTR(type, 0, 18) == \"storageAccessAPI^\";"));
+        NS_ENSURE_SUCCESS(rv, rv);
+
         rv = mDBConn->SetSchemaVersion(HOSTS_SCHEMA_VERSION);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
         // fall through to the next upgrade
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       // current version.
       case HOSTS_SCHEMA_VERSION:
@@ -1668,7 +1686,7 @@ nsPermissionManager::AddFromPrincipal(nsIPrincipal* aPrincipal,
 
   // We don't add the system principal because it actually has no URI and we
   // always allow action for them.
-  if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
+  if (aPrincipal->IsSystemPrincipal()) {
     return NS_OK;
   }
 
@@ -1989,7 +2007,7 @@ nsPermissionManager::RemoveFromPrincipal(nsIPrincipal* aPrincipal,
   NS_ENSURE_ARG_POINTER(aPrincipal);
 
   // System principals are never added to the database, no need to remove them.
-  if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
+  if (aPrincipal->IsSystemPrincipal()) {
     return NS_OK;
   }
 
@@ -2217,7 +2235,7 @@ nsPermissionManager::GetPermissionObject(nsIPrincipal* aPrincipal,
 
   *aResult = nullptr;
 
-  if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
+  if (aPrincipal->IsSystemPrincipal()) {
     return NS_OK;
   }
 
@@ -2555,8 +2573,6 @@ NS_IMETHODIMP nsPermissionManager::Observe(nsISupports* aSubject,
     RemoveAllFromMemory();
     CloseDB(false);
     InitDB(false);
-  } else if (!nsCRT::strcmp(aTopic, "clear-origin-attributes-data")) {
-    return RemovePermissionsWithAttributes(nsDependentString(someData));
   }
 
   return NS_OK;
@@ -2572,7 +2588,8 @@ nsresult nsPermissionManager::RemoveAllModifiedSince(
       });
 }
 
-nsresult nsPermissionManager::RemovePermissionsWithAttributes(
+NS_IMETHODIMP
+nsPermissionManager::RemovePermissionsWithAttributes(
     const nsAString& aPattern) {
   ENSURE_NOT_CHILD_PROCESS;
   mozilla::OriginAttributesPattern pattern;

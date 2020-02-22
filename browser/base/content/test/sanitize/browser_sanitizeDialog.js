@@ -627,19 +627,20 @@ WindowHelper.prototype = {
    * "Presses" the dialog's OK button.
    */
   acceptDialog() {
+    let dialog = this.win.document.getElementById("SanitizeDialog");
     is(
-      this.win.document.documentElement.getButton("accept").disabled,
+      dialog.getButton("accept").disabled,
       false,
       "Dialog's OK button should not be disabled"
     );
-    this.win.document.documentElement.acceptDialog();
+    dialog.acceptDialog();
   },
 
   /**
    * "Presses" the dialog's Cancel button.
    */
   cancelDialog() {
-    this.win.document.documentElement.cancelDialog();
+    this.win.document.getElementById("SanitizeDialog").cancelDialog();
   },
 
   /**
@@ -777,7 +778,7 @@ WindowHelper.prototype = {
 
     Services.ww.openWindow(
       browserWin,
-      "chrome://browser/content/sanitize.xul",
+      "chrome://browser/content/sanitize.xhtml",
       "SanitizeDialog",
       "chrome,titlebar,dialog,centerscreen,modal",
       null

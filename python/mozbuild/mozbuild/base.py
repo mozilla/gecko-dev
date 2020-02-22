@@ -55,7 +55,10 @@ def ancestors(path):
 
 
 def samepath(path1, path2):
-    if hasattr(os.path, 'samefile'):
+    # Under Python 3 (but NOT Python 2), MozillaBuild exposes the
+    # os.path.samefile function despite it not working, so only use it if we're
+    # not running under Windows.
+    if hasattr(os.path, 'samefile') and os.name != 'nt':
         return os.path.samefile(path1, path2)
     return os.path.normcase(os.path.realpath(path1)) == \
         os.path.normcase(os.path.realpath(path2))
@@ -933,6 +936,13 @@ class MachCommandConditions(object):
         return False
 
     @staticmethod
+    def is_jsshell(cls):
+        """Must have a jsshell build."""
+        if hasattr(cls, 'substs'):
+            return cls.substs.get('MOZ_BUILD_APP') == 'js'
+        return False
+
+    @staticmethod
     def is_thunderbird(cls):
         """Must have a Thunderbird build."""
         if hasattr(cls, 'substs'):
@@ -963,6 +973,12 @@ class MachCommandConditions(object):
         """Must have a build."""
         return (MachCommandConditions.is_firefox_or_android(cls) or
                 MachCommandConditions.is_thunderbird(cls))
+
+    @staticmethod
+    def has_build_or_shell(cls):
+        """Must have a build or a shell build."""
+        return (MachCommandConditions.has_build(cls) or
+                MachCommandConditions.is_jsshell(cls))
 
     @staticmethod
     def is_hg(cls):

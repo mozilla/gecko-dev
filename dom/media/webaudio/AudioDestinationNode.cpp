@@ -19,8 +19,6 @@
 #include "MediaTrackGraph.h"
 #include "nsContentUtils.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsIDocShell.h"
-#include "nsIPermissionManager.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/dom/Promise.h"
@@ -344,7 +342,15 @@ AudioDestinationNode::AudioDestinationNode(AudioContext* aContext,
   mTrack->AddAudioOutput(nullptr);
 
   if (aAllowedToStart) {
-    graph->NotifyWhenGraphStarted(mTrack);
+    graph->NotifyWhenGraphStarted(mTrack)->Then(
+        aContext->GetMainThread(), "AudioDestinationNode OnRunning",
+        [context = RefPtr<AudioContext>(aContext)] {
+          context->OnStateChanged(nullptr, AudioContextState::Running);
+        },
+        [] {
+          NS_WARNING(
+              "AudioDestinationNode's graph never started processing audio");
+        });
   }
 }
 

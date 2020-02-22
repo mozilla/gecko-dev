@@ -31,7 +31,7 @@ function startup() {
     gProfileManagerBundle = document.getElementById("bundle_profileManager");
     gBrandBundle = document.getElementById("bundle_brand");
 
-    document.documentElement.centerWindowOnScreen();
+    document.getElementById("profileWindow").centerWindowOnScreen();
 
     var profilesElement = document.getElementById("profiles");
 
@@ -200,14 +200,14 @@ function onProfilesKey(aEvent) {
 
 function onProfilesDblClick(aEvent) {
   if (aEvent.target.closest("richlistitem")) {
-    document.documentElement.acceptDialog();
+    document.getElementById("profileWindow").acceptDialog();
   }
 }
 
 // invoke the createProfile Wizard
 function CreateProfileWizard() {
   window.openDialog(
-    "chrome://mozapps/content/profile/createProfileWizard.xul",
+    "chrome://mozapps/content/profile/createProfileWizard.xhtml",
     "",
     "centerscreen,chrome,modal,titlebar",
     gProfileService,

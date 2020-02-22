@@ -54,8 +54,9 @@ public class WebExtension {
      */
     public final @WebExtensionFlags long flags;
 
-    // TODO: make public
-    final MetaData metaData;
+    /** Provides information about this {@link WebExtension}. */
+    // TODO: move to @NonNull when we remove registerWebExtension
+    public final @Nullable MetaData metaData;
 
     // TODO: make public
     final boolean isBuiltIn;
@@ -63,12 +64,18 @@ public class WebExtension {
     // TODO: make public
     final boolean isEnabled;
 
-    /**
-     * Delegates that handle messaging between this WebExtension and the app.
-     */
-    /* package */ final @NonNull Map<String, MessageDelegate> messageDelegates;
+    /** Called whenever a delegate is set or unset on this {@link WebExtension} instance.
+    /* package */ interface DelegateController {
+        void onMessageDelegate(final String nativeApp, final MessageDelegate delegate);
+        void onActionDelegate(final ActionDelegate delegate);
+        ActionDelegate getActionDelegate();
+    }
 
-    /* package */ @NonNull ActionDelegate actionDelegate;
+    private DelegateController mDelegateController = null;
+
+    /* package */ void setDelegateController(final DelegateController delegate) {
+        mDelegateController = delegate;
+    }
 
     @Override
     public String toString() {
@@ -107,7 +114,6 @@ public class WebExtension {
         flags = bundle.getInt("webExtensionFlags", 0);
         isBuiltIn = bundle.getBoolean("isBuiltIn", false);
         isEnabled = bundle.getBoolean("isEnabled", false);
-        messageDelegates = new HashMap<>();
         if (bundle.containsKey("metaData")) {
             metaData = new MetaData(bundle.getBundle("metaData"));
         } else {
@@ -138,13 +144,15 @@ public class WebExtension {
      *               </a>
      *           </ul>
      * @param flags {@link Flags} for this WebExtension.
+     * @param controller the current {@link WebExtensionController} instance
      */
     public WebExtension(final @NonNull String location, final @NonNull String id,
-                        final @WebExtensionFlags long flags) {
+                        final @WebExtensionFlags long flags,
+                        final @NonNull WebExtensionController controller) {
+        setDelegateController(controller.delegateFor(this));
         this.location = location;
         this.id = id;
         this.flags = flags;
-        this.messageDelegates = new HashMap<>();
 
         // TODO:
         this.isEnabled = false;
@@ -163,9 +171,11 @@ public class WebExtension {
      * @param location The WebExtension install location. It must be either a
      *                 <code>resource:</code> URI to a folder inside the APK or
      *                 a <code>file:</code> URL to a <code>.xpi</code> file.
+     * @param controller the current {@link WebExtensionController} instance
      */
-    public WebExtension(final @NonNull String location) {
-        this(location, "{" + UUID.randomUUID().toString() + "}", Flags.NONE);
+    public WebExtension(final @NonNull String location,
+                        final @NonNull WebExtensionController controller) {
+        this(location, "{" + UUID.randomUUID().toString() + "}", Flags.NONE, controller);
     }
 
     /**
@@ -219,11 +229,9 @@ public class WebExtension {
     @UiThread
     public void setMessageDelegate(final @Nullable MessageDelegate messageDelegate,
                                    final @NonNull String nativeApp) {
-        if (messageDelegate == null) {
-            messageDelegates.remove(nativeApp);
-            return;
+        if (mDelegateController != null) {
+            mDelegateController.onMessageDelegate(nativeApp, messageDelegate);
         }
-        messageDelegates.put(nativeApp, messageDelegate);
     }
 
     /**
@@ -309,7 +317,7 @@ public class WebExtension {
         /* package */ final long id;
         /* package */ PortDelegate delegate;
         /* package */ boolean disconnected = false;
-        /* package */ final WeakReference<DisconnectDelegate> disconnectDelegate;
+        /* package */ final WeakReference<Observer> observer;
 
         /** {@link MessageSender} corresponding to this port. */
         public @NonNull final MessageSender sender;
@@ -317,24 +325,25 @@ public class WebExtension {
         /** The application identifier of the MessageDelegate that opened this port. */
         public @NonNull final String name;
 
-        /* package */ interface DisconnectDelegate {
+        /* package */ interface Observer {
             void onDisconnectFromApp(Port port);
+            void onDelegateAttached(Port port);
         }
 
         /** Override for tests. */
         protected Port() {
             this.id = -1;
             this.delegate = null;
-            this.disconnectDelegate = null;
+            this.observer = null;
             this.sender = null;
             this.name = null;
         }
 
         /* package */ Port(final String name, final long id, final MessageSender sender,
-                           final DisconnectDelegate disconnectDelegate) {
+                           final Observer observer) {
             this.id = id;
-            this.delegate = NULL_PORT_DELEGATE;
-            this.disconnectDelegate = new WeakReference<>(disconnectDelegate);
+            this.delegate = null;
+            this.observer = new WeakReference<>(observer);
             this.sender = sender;
             this.name = name;
         }
@@ -365,9 +374,9 @@ public class WebExtension {
                 return;
             }
 
-            DisconnectDelegate disconnectDelegate = this.disconnectDelegate.get();
-            if (disconnectDelegate != null) {
-                disconnectDelegate.onDisconnectFromApp(this);
+            final Observer observer = this.observer.get();
+            if (observer != null) {
+                observer.onDisconnectFromApp(this);
             }
 
             GeckoBundle args = new GeckoBundle(1);
@@ -384,28 +393,13 @@ public class WebExtension {
          * this {@link Port}.
          */
         public void setDelegate(final @Nullable PortDelegate delegate) {
-            if (delegate != null) {
-                this.delegate = delegate;
-            } else {
-                this.delegate = NULL_PORT_DELEGATE;
+            this.delegate = delegate;
+            final Observer observer = this.observer.get();
+            if (observer != null) {
+                observer.onDelegateAttached(this);
             }
         }
     }
-
-    /* package */ static final WebExtension.PortDelegate NULL_PORT_DELEGATE = new WebExtension.PortDelegate() {
-        @Override
-        public void onPortMessage(final @NonNull Object message,
-                                  final @NonNull Port port) {
-            Log.d(LOGTAG, "Unhandled message from " + port.sender.webExtension.id
-                    + ": " + message.toString());
-        }
-
-        @NonNull
-        @Override
-        public void onDisconnect(final @NonNull Port port) {
-            Log.d(LOGTAG, "Unhandled disconnect from " + port.sender.webExtension.id);
-        }
-    };
 
     private static class Sender {
         public String webExtensionId;
@@ -439,31 +433,71 @@ public class WebExtension {
     /* package */ final static class Listener implements BundleEventListener {
         final private HashMap<Sender, WebExtension.MessageDelegate> mMessageDelegates;
         final private HashMap<String, WebExtension.ActionDelegate> mActionDelegates;
+        private WebExtensionController.TabDelegate mTabDelegate = null;
+
         final private GeckoSession mSession;
+        final private EventDispatcher mEventDispatcher;
+
+        private boolean mActionDelegateRegistered = false;
+        private boolean mMessageDelegateRegistered = false;
         public GeckoRuntime runtime;
 
-        public Listener(final GeckoSession session) {
-            mMessageDelegates = new HashMap<>();
-            mActionDelegates = new HashMap<>();
-            mSession = session;
+        public Listener(final GeckoRuntime runtime) {
+            this(null, runtime);
         }
 
-        /* package */ void registerListeners() {
-            mSession.getEventDispatcher().registerUiThreadListener(this,
-                    "GeckoView:WebExtension:Message",
-                    "GeckoView:WebExtension:PortMessage",
-                    "GeckoView:WebExtension:Connect",
-                    "GeckoView:WebExtension:CloseTab",
+        public Listener(final GeckoSession session) {
+            this(session, null);
 
-                    // Browser and Page Actions
-                    "GeckoView:BrowserAction:Update",
-                    "GeckoView:BrowserAction:OpenPopup",
-                    "GeckoView:PageAction:Update",
-                    "GeckoView:PageAction:OpenPopup");
+            // Close tab event is forwarded to the main listener so we need to listen
+            // to it here.
+            mEventDispatcher.registerUiThreadListener(this,
+                    "GeckoView:WebExtension:CloseTab");
+        }
+
+        private Listener(final GeckoSession session, final GeckoRuntime runtime) {
+            mMessageDelegates = new HashMap<>();
+            mActionDelegates = new HashMap<>();
+            mEventDispatcher = session != null
+                    ? session.getEventDispatcher()
+                    : EventDispatcher.getInstance();
+            mSession = session;
+            this.runtime = runtime;
+        }
+
+        public void setTabDelegate(final WebExtensionController.TabDelegate delegate) {
+            if (delegate != null && mTabDelegate == null) {
+                mEventDispatcher.registerUiThreadListener(
+                        this,
+                        "GeckoView:WebExtension:NewTab",
+                        "GeckoView:WebExtension:CloseTab"
+                );
+            } else if (delegate == null && mTabDelegate != null) {
+                mEventDispatcher.unregisterUiThreadListener(
+                        this,
+                        "GeckoView:WebExtension:NewTab",
+                        "GeckoView:WebExtension:CloseTab"
+                );
+            }
+
+            mTabDelegate = delegate;
+        }
+
+        public WebExtensionController.TabDelegate getTabDelegate() {
+            return mTabDelegate;
         }
 
         public void setActionDelegate(final WebExtension webExtension,
                                       final WebExtension.ActionDelegate delegate) {
+            if (!mActionDelegateRegistered && delegate != null) {
+                mEventDispatcher.registerUiThreadListener(this,
+                        "GeckoView:BrowserAction:Update",
+                        "GeckoView:BrowserAction:OpenPopup",
+                        "GeckoView:PageAction:Update",
+                        "GeckoView:PageAction:OpenPopup");
+                mActionDelegateRegistered = true;
+            }
+
             mActionDelegates.put(webExtension.id, delegate);
         }
 
@@ -474,6 +508,15 @@ public class WebExtension {
         public void setMessageDelegate(final WebExtension webExtension,
                                        final WebExtension.MessageDelegate delegate,
                                        final String nativeApp) {
+            if (!mMessageDelegateRegistered && delegate != null) {
+                mEventDispatcher.registerUiThreadListener(this,
+                        "GeckoView:WebExtension:Message",
+                        "GeckoView:WebExtension:PortMessage",
+                        "GeckoView:WebExtension:Connect",
+                        "GeckoView:WebExtension:Disconnect");
+                mMessageDelegateRegistered = true;
+            }
+
             mMessageDelegates.put(new Sender(webExtension.id, nativeApp), delegate);
         }
 
@@ -489,19 +532,41 @@ public class WebExtension {
                 return;
             }
 
+            final WebExtensionController controller = runtime.getWebExtensionController();
+
             if ("GeckoView:WebExtension:Message".equals(event)
                     || "GeckoView:WebExtension:PortMessage".equals(event)
                     || "GeckoView:WebExtension:Connect".equals(event)
+                    || "GeckoView:WebExtension:Disconnect".equals(event)
                     || "GeckoView:PageAction:Update".equals(event)
                     || "GeckoView:PageAction:OpenPopup".equals(event)
                     || "GeckoView:BrowserAction:Update".equals(event)
                     || "GeckoView:BrowserAction:OpenPopup".equals(event)) {
-                runtime.getWebExtensionController()
-                        .handleMessage(event, message, callback, mSession);
+                controller.handleMessage(event, message, callback, mSession);
                 return;
-            } else if ("GeckoView:WebExtension:CloseTab".equals(event)) {
-                runtime.getWebExtensionController().closeTab(message, callback, mSession);
+            }
+
+            // If a tab delegate is not defined on the session, try the runtime
+            //
+            // TODO: The tab delegate is special because it's only set on the
+            // controller and not on the session, all other delegates are set
+            // on both, we should unify this and have a tab delegate for each
+            // session too.
+            WebExtensionController.TabDelegate delegate = mTabDelegate;
+            if (delegate == null && mSession != null) {
+                delegate = runtime.getWebExtensionController().getTabDelegate();
+            }
+
+            if (delegate == null) {
+                callback.sendError("No delegate registered.");
                 return;
+            }
+
+            if ("GeckoView:WebExtension:CloseTab".equals(event)) {
+                controller.closeTab(message, callback, delegate, mSession);
+                return;
+            } else if ("GeckoView:WebExtension:NewTab".equals(event)) {
+                controller.newTab(message, callback, delegate);
             }
         }
     }
@@ -885,12 +950,12 @@ public class WebExtension {
         @UiThread
         public void click() {
             if (mPopupUri != null && !mPopupUri.isEmpty()) {
-                if (mExtension.actionDelegate == null) {
+                final ActionDelegate delegate = mExtension.mDelegateController.getActionDelegate();
+                if (delegate == null) {
                     return;
                 }
 
-                GeckoResult<GeckoSession> popup =
-                        mExtension.actionDelegate.onTogglePopup(mExtension, this);
+                GeckoResult<GeckoSession> popup = delegate.onTogglePopup(mExtension, this);
                 openPopup(popup);
 
                 // When popupUri is specified, the extension doesn't get a callback
@@ -1022,6 +1087,58 @@ public class WebExtension {
         }
     }
 
+    /** Extension thrown when an error occurs during extension installation. */
+    public static class InstallException extends Exception {
+        public static class ErrorCodes {
+            /** The download failed due to network problems. */
+            public static final int ERROR_NETWORK_FAILURE = -1;
+            /** The downloaded file did not match the provided hash. */
+            public static final int ERROR_INCORRECT_HASH = -2;
+            /** The downloaded file seems to be corrupted in some way. */
+            public static final int ERROR_CORRUPT_FILE = -3;
+            /** An error occurred trying to write to the filesystem. */
+            public static final int ERROR_FILE_ACCESS = -4;
+            /** The extension must be signed and isn't. */
+            public static final int ERROR_SIGNEDSTATE_REQUIRED = -5;
+            /** The downloaded extension had a different type than expected. */
+            public static final int ERROR_UNEXPECTED_ADDON_TYPE = -6;
+            /** The extension did not have the expected ID. */
+            public static final int ERROR_INCORRECT_ID = -7;
+
+            /** For testing. */
+            protected ErrorCodes() {}
+        }
+
+        @Retention(RetentionPolicy.SOURCE)
+        @IntDef(value = {
+                ErrorCodes.ERROR_NETWORK_FAILURE,
+                ErrorCodes.ERROR_INCORRECT_HASH,
+                ErrorCodes.ERROR_CORRUPT_FILE,
+                ErrorCodes.ERROR_FILE_ACCESS,
+                ErrorCodes.ERROR_SIGNEDSTATE_REQUIRED,
+                ErrorCodes.ERROR_UNEXPECTED_ADDON_TYPE,
+                ErrorCodes.ERROR_INCORRECT_ID
+        })
+        /* package */ @interface Codes {}
+
+        /** One of {@link ErrorCodes} that provides more information about this exception. */
+        public final @Codes int code;
+
+        /** For testing */
+        protected InstallException() {
+            this.code = ErrorCodes.ERROR_NETWORK_FAILURE;
+        }
+
+        @Override
+        public String toString() {
+            return "InstallException: " + code;
+        }
+
+        /* package */ InstallException(final @Codes int code) {
+            this.code = code;
+        }
+    }
+
     /**
      * Set the Action delegate for this WebExtension.
      *
@@ -1035,18 +1152,38 @@ public class WebExtension {
      */
     @AnyThread
     public void setActionDelegate(final @Nullable ActionDelegate delegate) {
-        actionDelegate = delegate;
+        if (mDelegateController != null) {
+            mDelegateController.onActionDelegate(delegate);
+        }
+
+        final GeckoBundle bundle = new GeckoBundle(1);
+        bundle.putString("extensionId", id);
+
+        EventDispatcher.getInstance().dispatch(
+                "GeckoView:ActionDelegate:Attached", bundle);
     }
 
-    // TODO: make public
-    // Keep in sync with AddonManager.jsm
-    static class SignedStateFlags {
-        final static int UNKNOWN = -1;
-        final static int MISSING = 0;
-        final static int PRELIMINARY = 1;
-        final static int SIGNED = 2;
-        final static int SYSTEM = 3;
-        final static int PRIVILEGED = 4;
+    /** Describes the signed status for a {@link WebExtension}.
+     *
+     * See <a href="https://support.mozilla.org/en-US/kb/add-on-signing-in-firefox">
+     *   Add-on signing in Firefox.
+     * </a>
+     */
+    public static class SignedStateFlags {
+        // Keep in sync with AddonManager.jsm
+        /** This extension may be signed but by a certificate that doesn't
+         * chain to our our trusted certificate. */
+        public final static int UNKNOWN = -1;
+        /** This extension is unsigned. */
+        public final static int MISSING = 0;
+        /** This extension has been preliminarily reviewed. */
+        public final static int PRELIMINARY = 1;
+        /** This extension has been fully reviewed. */
+        public final static int SIGNED = 2;
+        /** This extension is a system add-on. */
+        public final static int SYSTEM = 3;
+        /** This extension is signed with a "Mozilla Extensions" certificate. */
+        public final static int PRIVILEGED = 4;
 
         /* package */ final static int LAST = PRIVILEGED;
     }
@@ -1056,40 +1193,136 @@ public class WebExtension {
         SignedStateFlags.SIGNED, SignedStateFlags.SYSTEM, SignedStateFlags.PRIVILEGED})
     @interface SignedState {}
 
-    // TODO: make public
-    // Keep in sync with nsIBlocklistService.idl
-    static class BlockedReasonFlags {
-        final static int NOT_BLOCKED = 0;
-        final static int SOFTBLOCKED = 1;
-        final static int BLOCKED = 2;
-        final static int OUTDATED = 3;
-        final static int VULNERABLE_UPDATE_AVAILABLE = 4;
-        final static int VULNERABLE_NO_UPDATE = 5;
+    /** Describes the blocklist state for a {@link WebExtension}.
+     *  See <a href="https://support.mozilla.org/en-US/kb/add-ons-cause-issues-are-on-blocklist">
+     *      Add-ons that cause stability or security issues are put on a blocklist
+     *  </a>.
+     */
+    public static class BlocklistStateFlags {
+        // Keep in sync with nsIBlocklistService.idl
+        /** This extension does not appear in the blocklist. */
+        public final static int NOT_BLOCKED = 0;
+        /** This extension is in the blocklist but the problem is not severe
+         * enough to warant forcibly blocking. */
+        public final static int SOFTBLOCKED = 1;
+        /** This extension should be blocked and never used. */
+        public final static int BLOCKED = 2;
+        /** This extension is considered outdated, and there is a known update
+         * available. */
+        public final static int OUTDATED = 3;
+        /** This extension is vulnerable and there is an update. */
+        public final static int VULNERABLE_UPDATE_AVAILABLE = 4;
+        /** This extension is vulnerable and there is no update. */
+        public final static int VULNERABLE_NO_UPDATE = 5;
     }
 
     @Retention(RetentionPolicy.SOURCE)
-    @IntDef({ BlockedReasonFlags.NOT_BLOCKED, BlockedReasonFlags.SOFTBLOCKED,
-            BlockedReasonFlags.BLOCKED, BlockedReasonFlags.OUTDATED,
-            BlockedReasonFlags.VULNERABLE_UPDATE_AVAILABLE,
-            BlockedReasonFlags.VULNERABLE_NO_UPDATE})
-    @interface BlockedReason {}
+    @IntDef({ BlocklistStateFlags.NOT_BLOCKED, BlocklistStateFlags.SOFTBLOCKED,
+            BlocklistStateFlags.BLOCKED, BlocklistStateFlags.OUTDATED,
+            BlocklistStateFlags.VULNERABLE_UPDATE_AVAILABLE,
+            BlocklistStateFlags.VULNERABLE_NO_UPDATE})
+    @interface BlocklistState {}
 
-    // TODO: make public
-    class MetaData {
-        final Icon icon;
-        final String[] permissions;
-        final String[] origins;
-        final String name;
-        final String description;
-        final String version;
-        final String creatorName;
-        final String creatorUrl;
-        final String homepageUrl;
-        final String optionsPageUrl;
+    /** Provides information about a {@link WebExtension}. */
+    public class MetaData {
+        /** Main {@link Icon} branding for this {@link WebExtension}.
+          * Can be used when displaying prompts. */
+        public final @NonNull Icon icon;
+        /** API permissions requested or granted to this extension.
+          *
+          * Permission identifiers match entries in the manifest, see
+          * <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/permissions#API_permissions">
+          *   API permissions
+          * </a>.
+          */
+        public final @NonNull String[] permissions;
+        /** Host permissions requested or granted to this extension.
+          *
+          * See <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/permissions#Host_permissions">
+          *   Host permissions
+          * </a>.
+          */
+        public final @NonNull String[] origins;
+        /** Branding name for this extension.
+          *
+          * See <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/name">
+          *   manifest.json/name
+          * </a>
+          */
+        public final @Nullable String name;
+        /** Branding description for this extension. This string will be
+          * localized using the current GeckoView language setting.
+          *
+          * See <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/description">
+          *   manifest.json/description
+          * </a>
+          */
+        public final @Nullable String description;
+        /** Version string for this extension.
+          *
+          * See <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/version">
+          *   manifest.json/version
+          * </a>
+          */
+        public final @NonNull String version;
+        /** Creator name as provided in the manifest.
+          *
+          * See <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/developer">
+          *   manifest.json/developer
+          * </a>
+          */
+        public final @Nullable String creatorName;
+        /** Creator url as provided in the manifest.
+          *
+          * See <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/developer">
+          *   manifest.json/developer
+          * </a>
+          */
+        public final @Nullable String creatorUrl;
+        /** Homepage url as provided in the manifest.
+          *
+          * See <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/homepage_url">
+          *   manifest.json/homepage_url
+          * </a>
+          */
+        public final @Nullable String homepageUrl;
+        /** Options page as provided in the manifest.
+          *
+          * See <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/options_ui">
+          *   manifest.json/options_ui
+          * </a>
+          */
+        // TODO: Bug 1598792
+        final @Nullable String optionsPageUrl;
+        /** Whether the options page should be open in a Tab or not.
+          *
+          * See <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/options_ui#Syntax">
+          *   manifest.json/options_ui#Syntax
+          * </a>
+          */
+        // TODO: Bug 1598792
         final boolean openOptionsPageInTab;
-        final boolean isRecommended;
-        final @BlockedReason int blockedReason;
-        final @SignedState int signedState;
+        /** Whether or not this is a recommended extension.
+          *
+          * See <a href="https://blog.mozilla.org/firefox/firefox-recommended-extensions/">
+          *   Recommended Extensions program
+          * </a>
+          */
+        public final boolean isRecommended;
+        /** Blocklist status for this extension.
+          *
+          * See <a href="https://support.mozilla.org/en-US/kb/add-ons-cause-issues-are-on-blocklist">
+          *     Add-ons that cause stability or security issues are put on a blocklist
+          * </a>.
+          */
+        public final @BlocklistState int blocklistState;
+        /** Signed status for this extension.
+          *
+          * See <a href="https://support.mozilla.org/en-US/kb/add-on-signing-in-firefox">
+          *   Add-on signing in Firefox.
+          * </a>.
+          */
+        public final @SignedState int signedState;
 
         /** Override for testing. */
         protected MetaData() {
@@ -1105,7 +1338,7 @@ public class WebExtension {
             optionsPageUrl = null;
             openOptionsPageInTab = false;
             isRecommended = false;
-            blockedReason = BlockedReasonFlags.NOT_BLOCKED;
+            blocklistState = BlocklistStateFlags.NOT_BLOCKED;
             signedState = SignedStateFlags.UNKNOWN;
         }
 
@@ -1121,7 +1354,7 @@ public class WebExtension {
             optionsPageUrl = bundle.getString("optionsPageUrl");
             openOptionsPageInTab = bundle.getBoolean("openOptionsPageInTab");
             isRecommended = bundle.getBoolean("isRecommended");
-            blockedReason = bundle.getInt("blockedReason", BlockedReasonFlags.NOT_BLOCKED);
+            blocklistState = bundle.getInt("blocklistState", BlocklistStateFlags.NOT_BLOCKED);
 
             int signedState = bundle.getInt("signedState", SignedStateFlags.UNKNOWN);
             if (signedState <= SignedStateFlags.LAST) {

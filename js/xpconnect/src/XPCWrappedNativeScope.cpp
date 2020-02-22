@@ -15,7 +15,6 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Unused.h"
-#include "nsIXULRuntime.h"
 #include "mozJSComponentLoader.h"
 
 #include "mozilla/dom/BindingUtils.h"
@@ -206,7 +205,7 @@ JSObject* GetUAWidgetScope(JSContext* cx, JSObject* contentScopeArg) {
   JSAutoRealm ar(cx, contentScope);
   nsIPrincipal* principal = GetObjectPrincipal(contentScope);
 
-  if (nsContentUtils::IsSystemPrincipal(principal)) {
+  if (principal->IsSystemPrincipal()) {
     return JS::GetNonCCWObjectGlobal(contentScope);
   }
 
@@ -384,10 +383,7 @@ void XPCWrappedNativeScope::SystemIsBeingShutDown() {
     }
     for (auto i = cur->mWrappedNativeMap->Iter(); !i.Done(); i.Next()) {
       auto entry = static_cast<Native2WrappedNativeMap::Entry*>(i.Get());
-      XPCWrappedNative* wrapper = entry->value;
-      if (wrapper->IsValid()) {
-        wrapper->SystemIsBeingShutDown();
-      }
+      entry->value->SystemIsBeingShutDown();
       i.Remove();
     }
 

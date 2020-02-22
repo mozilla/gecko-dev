@@ -370,7 +370,7 @@ void MediaEngineWebRTCMicrophoneSource::ApplySettings(
 
 nsresult MediaEngineWebRTCMicrophoneSource::Allocate(
     const dom::MediaTrackConstraints& aConstraints,
-    const MediaEnginePrefs& aPrefs, const ipc::PrincipalInfo& aPrincipalInfo,
+    const MediaEnginePrefs& aPrefs, uint64_t aWindowID,
     const char** aOutBadConstraint) {
   AssertIsOnOwningThread();
 
@@ -1029,6 +1029,16 @@ void AudioInputProcessing::InsertInGraph(const T* aBuffer, size_t aFrames,
   segment.AppendFrames(buffer.forget(), channels, aFrames, mPrincipal);
 
   mTrack->AppendData(&segment);
+}
+
+void AudioInputProcessing::NotifyStarted(MediaTrackGraphImpl* aGraph) {
+  MOZ_ASSERT(aGraph->OnGraphThread());
+  // This is called when an AudioCallbackDriver switch has happened for any
+  // reason, including other reasons than starting this audio input stream. We
+  // reset state when this happens, as a fallback driver may have fiddled with
+  // the amount of buffered silence during the switch.
+  mLiveFramesAppended = false;
+  mLiveSilenceAppended = false;
 }
 
 // Called back on GraphDriver thread!

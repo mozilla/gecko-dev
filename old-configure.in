@@ -206,8 +206,6 @@ case "$target" in
 
         WRAP_STL_INCLUDES=1
         STL_FLAGS="-I${DIST}/stl_wrappers"
-        CFLAGS="$CFLAGS -D_HAS_EXCEPTIONS=0"
-        CXXFLAGS="$CXXFLAGS -D_HAS_EXCEPTIONS=0"
     else
         # Check w32api version
         _W32API_MAJOR_VERSION=`echo $W32API_VERSION | $AWK -F\. '{ print $1 }'`
@@ -228,6 +226,9 @@ case "$target" in
         # causing problems with local implementations with the same name.
         AC_DEFINE(STRSAFE_NO_DEPRECATE)
     fi # !GNU_CC
+
+    CFLAGS="$CFLAGS -D_HAS_EXCEPTIONS=0"
+    CXXFLAGS="$CXXFLAGS -D_HAS_EXCEPTIONS=0"
 
     AC_DEFINE_UNQUOTED(WINVER,0x$WINVER)
     AC_DEFINE_UNQUOTED(_WIN32_WINNT,0x$WINVER)
@@ -1507,7 +1508,7 @@ MOZ_ARG_WITH_BOOL(system-nss,
     _USE_SYSTEM_NSS=1 )
 
 if test -n "$_USE_SYSTEM_NSS"; then
-    AM_PATH_NSS(3.48, [MOZ_SYSTEM_NSS=1], [AC_MSG_ERROR([you don't have NSS installed or your version is too old])])
+    AM_PATH_NSS(3.49.2, [MOZ_SYSTEM_NSS=1], [AC_MSG_ERROR([you don't have NSS installed or your version is too old])])
 fi
 
 NSS_CFLAGS="$NSS_CFLAGS -I${DIST}/include/nss"
@@ -1648,19 +1649,6 @@ else
   AC_MSG_RESULT([no])
 fi
 
-# Allow influencing configure with a defines.sh script.
-. "${srcdir}/build/defines.sh"
-
-# If we're not building a release build, define EARLY_BETA_OR_EARLIER if it is
-# set in defines.sh
-if test "$BUILDING_RELEASE"; then
-  # Override value in defines.sh, if any
-  EARLY_BETA_OR_EARLIER=
-elif test "$EARLY_BETA_OR_EARLIER"; then
-  AC_DEFINE(EARLY_BETA_OR_EARLIER)
-fi
-AC_SUBST(EARLY_BETA_OR_EARLIER)
-
 if test "$EARLY_BETA_OR_EARLIER"; then
     MOZ_NEW_CERT_STORAGE=1
     AC_DEFINE(MOZ_NEW_CERT_STORAGE)
@@ -1685,22 +1673,6 @@ WITH_APP_BASENAME=$withval,
 if test -n "$WITH_APP_BASENAME" ; then
     MOZ_APP_BASENAME="$WITH_APP_BASENAME"
 fi
-
-# Special cases where we need to AC_DEFINE something. Also a holdover for apps
-# that haven't made a confvars.sh yet. Don't add new stuff here, use
-# MOZ_BUILD_APP.
-case "$MOZ_BUILD_APP" in
-browser)
-  AC_DEFINE(MOZ_PHOENIX)
-  ;;
-esac
-
-# Graphene is a desktop runtime for running applications with a HTML UI.
-if test -n "$MOZ_GRAPHENE"; then
-    AC_DEFINE(MOZ_GRAPHENE)
-fi
-
-AC_SUBST(MOZ_PHOENIX)
 
 dnl ========================================================
 dnl Ensure Android SDK and build-tools versions depending on

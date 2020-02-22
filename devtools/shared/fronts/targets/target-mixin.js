@@ -38,8 +38,13 @@ function TargetMixin(parentClass) {
       this.destroy = this.destroy.bind(this);
       this._onNewSource = this._onNewSource.bind(this);
 
-      this.activeConsole = null;
       this.threadFront = null;
+
+      // This promise is exposed to consumers that want to wait until the thread
+      // front is available and attached.
+      this.onThreadAttached = new Promise(
+        r => (this._resolveOnThreadAttached = r)
+      );
 
       // By default, we close the DebuggerClient of local tabs which
       // are instanciated from TargetFactory module.
@@ -159,34 +164,16 @@ function TargetMixin(parentClass) {
     }
 
     /**
-     * The following getters: isLocalTab, tab, ... will be overriden for local
-     * tabs by some code in devtools/shared/fronts/targets/local-tab.js. They
-     * are all specific to local tabs, i.e. when you are debugging a tab of the
-     * current Firefox instance.
+     * The following getters: isLocalTab, localTab, ... will be overriden for
+     * local tabs by some code in devtools/shared/fronts/targets/local-tab.js.
+     * They are all specific to local tabs, i.e. when you are debugging a tab of
+     * the current Firefox instance.
      */
     get isLocalTab() {
       return false;
     }
 
-    get tab() {
-      return null;
-    }
-
-    /**
-     * For local tabs, returns the tab's contentPrincipal, which can be used as a
-     * `triggeringPrincipal` when opening links.  However, this is a hack as it is not
-     * correct for subdocuments and it won't work for remote debugging.  Bug 1467945 hopes
-     * to devise a better approach.
-     */
-    get contentPrincipal() {
-      return null;
-    }
-
-    /**
-     * Similar to the above get contentPrincipal(), the get csp()
-     * returns the CSP which should be used for opening links.
-     */
-    get csp() {
+    get localTab() {
       return null;
     }
 
@@ -356,11 +343,14 @@ function TargetMixin(parentClass) {
 
     // Attach the console actor
     async attachConsole() {
-      this.activeConsole = await this.getFront("console");
-      await this.activeConsole.startListeners([]);
+      const consoleFront = await this.getFront("console");
+      await consoleFront.startListeners([]);
 
       this._onInspectObject = packet => this.emit("inspect-object", packet);
-      this.activeConsole.on("inspectObject", this._onInspectObject);
+      this.removeOnInspectObjectListener = consoleFront.on(
+        "inspectObject",
+        this._onInspectObject
+      );
     }
 
     /**
@@ -382,6 +372,10 @@ function TargetMixin(parentClass) {
       const result = await this.threadFront.attach(options);
 
       this.threadFront.on("newSource", this._onNewSource);
+
+      // Resolve the onThreadAttached promise so that consumers that need to
+      // wait for the thread to be attached can resume.
+      this._resolveOnThreadAttached();
 
       return [result, this.threadFront];
     }
@@ -416,8 +410,9 @@ function TargetMixin(parentClass) {
       }
 
       // Remove listeners set in attachConsole
-      if (this.activeConsole && this._onInspectObject) {
-        this.activeConsole.off("inspectObject", this._onInspectObject);
+      if (this.removeOnInspectObjectListener) {
+        this.removeOnInspectObjectListener();
+        this.removeOnInspectObjectListener = null;
       }
     }
 
@@ -431,60 +426,65 @@ function TargetMixin(parentClass) {
         return this._destroyer;
       }
 
-      this._destroyer = (async () => {
-        // Before taking any action, notify listeners that destruction is imminent.
-        this.emit("close");
-
-        for (let [, front] of this.fronts) {
-          // If a Front with an async initialize method is still being instantiated,
-          // we should wait for completion before trying to destroy it.
-          if (front instanceof Promise) {
-            front = await front;
-          }
-          front.destroy();
-        }
-
-        this._teardownRemoteListeners();
-
-        this.threadFront = null;
-
-        if (this.shouldCloseClient) {
-          try {
-            await this._client.close();
-          } catch (e) {
-            // Ignore any errors while closing, since there is not much that can be done
-            // at this point.
-            console.warn(`Error while closing client: ${e.message}`);
-          }
-
-          // Not all targets supports attach/detach. For example content process doesn't.
-          // Also ensure that the front is still active before trying to do the request.
-        } else if (this.detach && this.actorID) {
-          // The client was handed to us, so we are not responsible for closing
-          // it. We just need to detach from the tab, if already attached.
-          // |detach| may fail if the connection is already dead, so proceed with
-          // cleanup directly after this.
-          try {
-            await this.detach();
-          } catch (e) {
-            console.warn(`Error while detaching target: ${e.message}`);
-          }
-        }
-
-        // Do that very last in order to let a chance to dispatch `detach` requests.
-        super.destroy();
-
-        this._cleanup();
-      })();
+      // This pattern allows to immediately return the destroyer promise.
+      // See Bug 1602727 for more details.
+      let destroyerResolve;
+      this._destroyer = new Promise(r => (destroyerResolve = r));
+      this._destroyTarget().then(destroyerResolve);
 
       return this._destroyer;
+    }
+
+    async _destroyTarget() {
+      // Before taking any action, notify listeners that destruction is imminent.
+      this.emit("close");
+
+      for (let [, front] of this.fronts) {
+        // If a Front with an async initialize method is still being instantiated,
+        // we should wait for completion before trying to destroy it.
+        if (front instanceof Promise) {
+          front = await front;
+        }
+        front.destroy();
+      }
+
+      this._teardownRemoteListeners();
+
+      this.threadFront = null;
+
+      if (this.shouldCloseClient) {
+        try {
+          await this._client.close();
+        } catch (e) {
+          // Ignore any errors while closing, since there is not much that can be done
+          // at this point.
+          console.warn("Error while closing client:", e);
+        }
+
+        // Not all targets supports attach/detach. For example content process doesn't.
+        // Also ensure that the front is still active before trying to do the request.
+      } else if (this.detach && this.actorID) {
+        // The client was handed to us, so we are not responsible for closing
+        // it. We just need to detach from the tab, if already attached.
+        // |detach| may fail if the connection is already dead, so proceed with
+        // cleanup directly after this.
+        try {
+          await this.detach();
+        } catch (e) {
+          console.warn("Error while detaching target:", e);
+        }
+      }
+
+      // Do that very last in order to let a chance to dispatch `detach` requests.
+      super.destroy();
+
+      this._cleanup();
     }
 
     /**
      * Clean up references to what this target points to.
      */
     _cleanup() {
-      this.activeConsole = null;
       this.threadFront = null;
       this._client = null;
 

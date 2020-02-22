@@ -6,7 +6,7 @@ use api::{AlphaType, BorderDetails, BorderDisplayItem, BuiltDisplayListIter, Pri
 use api::{ClipId, ColorF, CommonItemProperties, ComplexClipRegion, ComponentTransferFuncType, RasterSpace};
 use api::{DisplayItem, DisplayItemRef, ExtendMode, ExternalScrollId, FilterData};
 use api::{FilterOp, FilterPrimitive, FontInstanceKey, GlyphInstance, GlyphOptions, GradientStop};
-use api::{IframeDisplayItem, ImageKey, ImageRendering, ItemRange, ColorDepth};
+use api::{IframeDisplayItem, ImageKey, ImageRendering, ItemRange, ColorDepth, QualitySettings};
 use api::{LineOrientation, LineStyle, NinePatchBorderSource, PipelineId, MixBlendMode};
 use api::{PropertyBinding, ReferenceFrame, ReferenceFrameKind, ScrollFrameDisplayItem, ScrollSensitivity};
 use api::{Shadow, SpaceAndClipInfo, SpatialId, StackingContext, StickyFrameDisplayItem};
@@ -369,6 +369,9 @@ pub struct SceneBuilder<'a> {
     /// Gecko ever produces picture cache slices with complex transforms, so
     /// in future we should prevent this in the public API and remove this hack.
     picture_cache_spatial_nodes: FastHashSet<SpatialNodeIndex>,
+
+    /// The current quality / performance settings for this scene.
+    quality_settings: QualitySettings,
 }
 
 impl<'a> SceneBuilder<'a> {
@@ -410,6 +413,7 @@ impl<'a> SceneBuilder<'a> {
             iframe_depth: 0,
             content_slice_count: 0,
             picture_cache_spatial_nodes: FastHashSet::default(),
+            quality_settings: view.quality_settings,
         };
 
         let device_pixel_scale = view.accumulated_scale_factor_for_snapping();
@@ -456,7 +460,8 @@ impl<'a> SceneBuilder<'a> {
         debug_assert!(builder.sc_stack.is_empty());
 
         BuiltScene {
-            src: scene.clone(),
+            has_root_pipeline: scene.has_root_pipeline(),
+            pipeline_epochs: scene.pipeline_epochs.clone(),
             output_rect: view.device_rect.size.into(),
             background_color,
             hit_testing_scene: Arc::new(builder.hit_testing_scene),
@@ -989,21 +994,8 @@ impl<'a> SceneBuilder<'a> {
     fn process_common_properties(
         &mut self,
         common: &CommonItemProperties,
-        apply_pipeline_clip: bool
-    ) -> (LayoutPrimitiveInfo, ScrollNodeAndClipChain) {
-        let (layout, _, clip_and_scroll) = self.process_common_properties_with_bounds(
-            common,
-            &common.clip_rect,
-            apply_pipeline_clip,
-        );
-        (layout, clip_and_scroll)
-    }
-
-    fn process_common_properties_with_bounds(
-        &mut self,
-        common: &CommonItemProperties,
-        bounds: &LayoutRect,
-        apply_pipeline_clip: bool
+        bounds: Option<&LayoutRect>,
+        apply_pipeline_clip: bool,
     ) -> (LayoutPrimitiveInfo, LayoutRect, ScrollNodeAndClipChain) {
         let clip_and_scroll = self.get_clip_and_scroll(
             &common.clip_id,
@@ -1019,17 +1011,39 @@ impl<'a> SceneBuilder<'a> {
             &self.clip_scroll_tree
         );
 
-        let clip_rect = common.clip_rect.translate(current_offset);
-        let rect = bounds.translate(current_offset);
+        let unsnapped_clip_rect = common.clip_rect.translate(current_offset);
+        let clip_rect = snap_to_device.snap_rect(&unsnapped_clip_rect);
+
+        let unsnapped_rect = bounds.map(|bounds| {
+            bounds.translate(current_offset)
+        });
+
+        // If no bounds rect is given, default to clip rect.
+        let rect = unsnapped_rect.map_or(clip_rect, |bounds| {
+            snap_to_device.snap_rect(&bounds)
+        });
 
         let layout = LayoutPrimitiveInfo {
-            rect: snap_to_device.snap_rect(&rect),
-            clip_rect: snap_to_device.snap_rect(&clip_rect),
+            rect,
+            clip_rect,
             flags: common.flags,
             hit_info: common.hit_info,
         };
 
-        (layout, rect, clip_and_scroll)
+        (layout, unsnapped_rect.unwrap_or(unsnapped_clip_rect), clip_and_scroll)
+    }
+
+    fn process_common_properties_with_bounds(
+        &mut self,
+        common: &CommonItemProperties,
+        bounds: &LayoutRect,
+        apply_pipeline_clip: bool,
+    ) -> (LayoutPrimitiveInfo, LayoutRect, ScrollNodeAndClipChain) {
+        self.process_common_properties(
+            common,
+            Some(bounds),
+            apply_pipeline_clip,
+        )
     }
 
     pub fn snap_rect(
@@ -1136,8 +1150,9 @@ impl<'a> SceneBuilder<'a> {
                 );
             }
             DisplayItem::Rectangle(ref info) => {
-                let (layout, clip_and_scroll) = self.process_common_properties(
+                let (layout, _, clip_and_scroll) = self.process_common_properties(
                     &info.common,
+                    None,
                     apply_pipeline_clip,
                 );
 
@@ -1148,8 +1163,9 @@ impl<'a> SceneBuilder<'a> {
                 );
             }
             DisplayItem::HitTest(ref info) => {
-                let (layout, clip_and_scroll) = self.process_common_properties(
+                let (layout, _, clip_and_scroll) = self.process_common_properties(
                     &info.common,
+                    None,
                     apply_pipeline_clip,
                 );
 
@@ -1160,8 +1176,9 @@ impl<'a> SceneBuilder<'a> {
                 );
             }
             DisplayItem::ClearRectangle(ref info) => {
-                let (layout, clip_and_scroll) = self.process_common_properties(
+                let (layout, _, clip_and_scroll) = self.process_common_properties(
                     &info.common,
+                    None,
                     apply_pipeline_clip,
                 );
 
@@ -1414,8 +1431,9 @@ impl<'a> SceneBuilder<'a> {
                 );
             }
             DisplayItem::BackdropFilter(ref info) => {
-                let (layout, clip_and_scroll) = self.process_common_properties(
+                let (layout, _, clip_and_scroll) = self.process_common_properties(
                     &info.common,
+                    None,
                     apply_pipeline_clip,
                 );
 
@@ -1892,6 +1910,7 @@ impl<'a> SceneBuilder<'a> {
                                 &self.clip_scroll_tree,
                                 &self.clip_store,
                                 &self.interners,
+                                &self.quality_settings,
                             );
 
                             // Mark that a user supplied tile cache was specified.
@@ -1924,6 +1943,7 @@ impl<'a> SceneBuilder<'a> {
                     &self.clip_scroll_tree,
                     &self.clip_store,
                     &self.interners,
+                    &self.quality_settings,
                 );
                 self.picture_caching_initialized = true;
             }
@@ -3583,6 +3603,7 @@ impl FlattenedStackingContext {
         clip_scroll_tree: &ClipScrollTree,
         clip_store: &ClipStore,
         interners: &Interners,
+        quality_settings: &QualitySettings,
     ) -> usize {
         struct SliceInfo {
             cluster_index: usize,
@@ -3615,6 +3636,12 @@ impl FlattenedStackingContext {
                             true
                         }
                         (_, ROOT_SPATIAL_NODE_INDEX) => {
+                            // If quality settings prefer subpixel AA over performance, skip creating
+                            // a slice for the fixed position element(s) here.
+                            if !quality_settings.allow_sacrificing_subpixel_aa {
+                                return false;
+                            }
+
                             // A fixed position slice is encountered within a scroll root. Only create
                             // a slice in this case if all the clips referenced by this cluster are also
                             // fixed position. There's no real point in creating slices for these cases,

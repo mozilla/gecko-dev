@@ -80,6 +80,10 @@ if __name__ == '__main__':
                        port=PORT,
                        options='primary,privileged')
 
+    old_profraw_files = glob.glob('*.profraw')
+    for f in old_profraw_files:
+        os.remove(f)
+
     with TemporaryDirectory() as profilePath:
         # TODO: refactor this into mozprofile
         profile_data_dir = os.path.join(build.topsrcdir, 'testing', 'profiles')
@@ -118,6 +122,7 @@ if __name__ == '__main__':
         # We disable sandboxing to make writing profiling data actually work
         # Bug 1553850 considers fixing this.
         env["MOZ_DISABLE_CONTENT_SANDBOX"] = "1"
+        env["MOZ_DISABLE_RDD_SANDBOX"] = "1"
 
         # Ensure different pids write to different files
         env["LLVM_PROFILE_FILE"] = "default_%p_random_%m.profraw"
@@ -151,6 +156,8 @@ if __name__ == '__main__':
         if jarlog:
             env["MOZ_JAR_LOG_FILE"] = os.path.abspath(jarlog)
             print("jarlog: %s" % env["MOZ_JAR_LOG_FILE"])
+            if os.path.exists(jarlog):
+                os.remove(jarlog)
 
         if 'UPLOAD_PATH' in env:
             process_args['logfile'] = os.path.join(env['UPLOAD_PATH'], 'profile-run-2.log')

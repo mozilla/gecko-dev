@@ -542,6 +542,12 @@ class UrlbarQueryContext {
    *   Whether or not to allow providers to include autofill results.
    * @param {number} options.userContextId
    *   The container id where this context was generated, if any.
+   * @param {array} [options.sources]
+   *   A list of acceptable UrlbarUtils.RESULT_SOURCE for the context.
+   * @param {string} [options.engineName]
+   *   If sources is restricting to just SEARCH, this property can be used to
+   *   pick a specific search engine, by setting it to the name under which the
+   *   engine is registered with the search service.
    */
   constructor(options = {}) {
     this._checkRequiredOptions(options, [
@@ -557,22 +563,24 @@ class UrlbarQueryContext {
       );
     }
 
-    if (
-      options.providers &&
-      (!Array.isArray(options.providers) || !options.providers.length)
-    ) {
-      throw new Error(`Invalid providers list`);
-    }
-
-    if (
-      options.sources &&
-      (!Array.isArray(options.sources) || !options.sources.length)
-    ) {
-      throw new Error(`Invalid sources list`);
+    // Manage optional properties of options.
+    for (let [prop, checkFn] of [
+      ["providers", v => Array.isArray(v) && v.length],
+      ["sources", v => Array.isArray(v) && v.length],
+      ["engineName", v => typeof v == "string" && !!v.length],
+    ]) {
+      if (options[prop]) {
+        if (!checkFn(options[prop])) {
+          throw new Error(`Invalid value for option "${prop}"`);
+        }
+        this[prop] = options[prop];
+      }
     }
 
     this.lastResultCount = 0;
-    this.userContextId = options.userContextId;
+    this.userContextId =
+      options.userContextId ||
+      Ci.nsIScriptSecurityManager.DEFAULT_USER_CONTEXT_ID;
   }
 
   /**

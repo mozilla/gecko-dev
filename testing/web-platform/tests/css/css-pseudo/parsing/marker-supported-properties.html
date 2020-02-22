@@ -31,11 +31,14 @@ test_pseudo_computed_value("::marker", "font-variant-numeric", "slashed-zero");
 test_pseudo_computed_value("::marker", "font-variant-position", "sub");
 test_pseudo_computed_value("::marker", "font-weight", "900");
 
+// ::marker supports `white-space`
+test_pseudo_computed_value("::marker", "white-space", "nowrap");
+
 // ::marker supports `color`
 test_pseudo_computed_value("::marker", "color", "rgb(0, 100, 200)");
 
 // ::marker supports `text-combine-upright`, `unicode-bidi` and `direction`
-test_pseudo_computed_value("::marker", "text-combine-upright", "none");
+test_pseudo_computed_value("::marker", "text-combine-upright", "all");
 test_pseudo_computed_value("::marker", "unicode-bidi", "plaintext");
 test_pseudo_computed_value("::marker", "direction", "rtl");
 
@@ -43,7 +46,7 @@ test_pseudo_computed_value("::marker", "direction", "rtl");
 test_pseudo_computed_value("::marker", "content", "\"foo\"");
 
 // ::marker does NOT support layout properties
-test_pseudo_computed_value("::marker", "display", "none", ["block", "inline"]);
+test_pseudo_computed_value("::marker", "display", "none", ["block", "inline", "inline-block"]);
 test_pseudo_computed_value("::marker", "position", "absolute", "static");
 test_pseudo_computed_value("::marker", "float", "right", "none");
 

@@ -20,13 +20,7 @@
 
 #include "nsNetCID.h"
 #include "nsILoadContext.h"
-#include "nsIProperty.h"
-#include "nsIPropertyBag2.h"
-#include "nsIServiceManager.h"
-#include "nsISimpleEnumerator.h"
 #include "nsServiceManagerUtils.h"
-#include "nsISocketTransportService.h"
-#include "nsIConsoleService.h"
 #include "nsThreadUtils.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
@@ -37,6 +31,7 @@
 #include "VideoConduit.h"
 #include "MediaTrackGraph.h"
 #include "runnable_utils.h"
+#include "IPeerConnection.h"
 #include "PeerConnectionCtx.h"
 #include "PeerConnectionImpl.h"
 #include "PeerConnectionMedia.h"
@@ -73,11 +68,9 @@
 #include "nsXULAppAPI.h"
 #include "nsContentUtils.h"
 #include "nsDOMJSUtils.h"
-#include "nsIScriptError.h"
 #include "nsPrintfCString.h"
 #include "nsURLHelper.h"
 #include "nsNetUtil.h"
-#include "nsIURLParser.h"
 #include "js/ArrayBuffer.h"    // JS::NewArrayBufferWithContents
 #include "js/GCAnnotations.h"  // JS_HAZ_ROOTED
 #include "js/RootingAPI.h"     // JS::{{,Mutable}Handle,Rooted}
@@ -319,6 +312,7 @@ PeerConnectionImpl::PeerConnectionImpl(const GlobalObject* aGlobal)
       mPacketDumpEnabled(false),
       mPacketDumpFlagsMutex("Packet dump flags mutex"),
       mTimestampMaker(aGlobal),
+      mIdGenerator(new RTCStatsIdGenerator()),
       listenPort(0),
       connectPort(0),
       connectStr(nullptr) {
@@ -2238,6 +2232,17 @@ void PeerConnectionImpl::SetSignalingState_m(RTCSignalingState aSignalingState,
     return;
   }
 
+  // We'd like to handle this in PeerConnectionMedia::UpdateNetworkState.
+  // Unfortunately, if the WiFi switch happens quickly, we never see
+  // that state change.  We need to detect the ice restart here and
+  // reset the PeerConnectionMedia's stun addresses so they are
+  // regathered when PeerConnectionMedia::GatherIfReady is called.
+  if ((aSignalingState == RTCSignalingState::Have_local_offer ||
+       aSignalingState == RTCSignalingState::Have_remote_offer) &&
+      !rollback && mJsepSession->IsIceRestarting()) {
+    mMedia->ResetStunAddrsForIceRestart();
+  }
+
   if (aSignalingState == RTCSignalingState::Have_local_offer ||
       (aSignalingState == RTCSignalingState::Stable &&
        mSignalingState == RTCSignalingState::Have_remote_offer && !rollback)) {
@@ -2734,7 +2739,9 @@ static UniquePtr<dom::RTCStatsCollection> GetSenderStats_s(
   ssrc.apply([&s](uint32_t aSsrc) { s.mSsrc.Construct(aSsrc); });
   s.mMediaType.Construct(kind);  // mediaType is the old name for kind.
   s.mKind.Construct(kind);
-  s.mRemoteId.Construct(remoteId);
+  if (remoteId.Length()) {
+    s.mRemoteId.Construct(remoteId);
+  }
   s.mPacketsSent.Construct(aPipeline->RtpPacketsSent());
   s.mBytesSent.Construct(aPipeline->RtpBytesSent());
 
@@ -2810,6 +2817,35 @@ void PeerConnectionImpl::RecordConduitTelemetry() {
       }
     }
   }));
+}
+
+template <class T>
+void AssignWithOpaqueIds(dom::Sequence<T>& aSource, dom::Sequence<T>& aDest,
+                         RefPtr<RTCStatsIdGenerator>& aGenerator) {
+  for (auto& stat : aSource) {
+    stat.mId.Value() = aGenerator->Id(stat.mId.Value());
+  }
+  aDest.AppendElements(aSource, fallible);
+}
+
+template <class T>
+void RewriteRemoteIds(dom::Sequence<T>& aList,
+                      RefPtr<RTCStatsIdGenerator>& aGenerator) {
+  for (auto& stat : aList) {
+    if (stat.mRemoteId.WasPassed()) {
+      stat.mRemoteId.Value() = aGenerator->Id(stat.mRemoteId.Value());
+    }
+  }
+}
+
+template <class T>
+void RewriteLocalIds(dom::Sequence<T>& aList,
+                     RefPtr<RTCStatsIdGenerator>& aGenerator) {
+  for (auto& stat : aList) {
+    if (stat.mLocalId.WasPassed()) {
+      stat.mLocalId.Value() = aGenerator->Id(stat.mLocalId.Value());
+    }
+  }
 }
 
 RefPtr<dom::RTCStatsReportPromise> PeerConnectionImpl::GetStats(
@@ -2896,32 +2932,53 @@ RefPtr<dom::RTCStatsReportPromise> PeerConnectionImpl::GetStats(
   return dom::RTCStatsPromise::All(mThread, promises)
       ->Then(
           mThread, __func__,
-          [report = std::move(report)](
+          [report = std::move(report), idGen = mIdGenerator](
               const nsTArray<UniquePtr<dom::RTCStatsCollection>>&
                   aStats) mutable {
+            // Rewrite an Optional id
+            auto rewriteId = [&idGen](Optional<nsString>& id) {
+              if (id.WasPassed()) {
+                id.Value() = idGen->Id(id.Value());
+              }
+            };
+
+            // Involves a lot of copying, since webidl dictionaries don't have
+            // move semantics. Oh well.
             for (const auto& stats : aStats) {
-              // Involves a lot of copying, since webidl dictionaries don't have
-              // move semantics. Oh well.
-              report->mIceCandidatePairStats.AppendElements(
-                  stats->mIceCandidatePairStats, fallible);
-              report->mIceCandidateStats.AppendElements(
-                  stats->mIceCandidateStats, fallible);
-              report->mInboundRtpStreamStats.AppendElements(
-                  stats->mInboundRtpStreamStats, fallible);
-              report->mOutboundRtpStreamStats.AppendElements(
-                  stats->mOutboundRtpStreamStats, fallible);
+              for (auto& stat : stats->mIceCandidatePairStats) {
+                rewriteId(stat.mLocalCandidateId);
+                rewriteId(stat.mRemoteCandidateId);
+              };
+              AssignWithOpaqueIds(stats->mIceCandidatePairStats,
+                                  report->mIceCandidatePairStats, idGen);
+
+              AssignWithOpaqueIds(stats->mIceCandidateStats,
+                                  report->mIceCandidateStats, idGen);
+
+              RewriteRemoteIds(stats->mInboundRtpStreamStats, idGen);
+              AssignWithOpaqueIds(stats->mInboundRtpStreamStats,
+                                  report->mInboundRtpStreamStats, idGen);
+
+              RewriteRemoteIds(stats->mOutboundRtpStreamStats, idGen);
+              AssignWithOpaqueIds(stats->mOutboundRtpStreamStats,
+                                  report->mOutboundRtpStreamStats, idGen);
+
+              RewriteLocalIds(stats->mRemoteInboundRtpStreamStats, idGen);
+              AssignWithOpaqueIds(stats->mRemoteInboundRtpStreamStats,
+                                  report->mRemoteInboundRtpStreamStats, idGen);
+
+              RewriteLocalIds(stats->mRemoteOutboundRtpStreamStats, idGen);
+              AssignWithOpaqueIds(stats->mRemoteOutboundRtpStreamStats,
+                                  report->mRemoteOutboundRtpStreamStats, idGen);
+
+              AssignWithOpaqueIds(stats->mRtpContributingSourceStats,
+                                  report->mRtpContributingSourceStats, idGen);
+              AssignWithOpaqueIds(stats->mTrickledIceCandidateStats,
+                                  report->mTrickledIceCandidateStats, idGen);
               report->mRawLocalCandidates.AppendElements(
                   stats->mRawLocalCandidates, fallible);
               report->mRawRemoteCandidates.AppendElements(
                   stats->mRawRemoteCandidates, fallible);
-              report->mRemoteInboundRtpStreamStats.AppendElements(
-                  stats->mRemoteInboundRtpStreamStats, fallible);
-              report->mRemoteOutboundRtpStreamStats.AppendElements(
-                  stats->mRemoteOutboundRtpStreamStats, fallible);
-              report->mRtpContributingSourceStats.AppendElements(
-                  stats->mRtpContributingSourceStats, fallible);
-              report->mTrickledIceCandidateStats.AppendElements(
-                  stats->mTrickledIceCandidateStats, fallible);
             }
             return dom::RTCStatsReportPromise::CreateAndResolve(
                 std::move(report), __func__);

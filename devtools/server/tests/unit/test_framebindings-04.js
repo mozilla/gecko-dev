@@ -9,26 +9,17 @@
  * Check the environment bindings of a  |with| within a |with|.
  */
 
-var gDebuggee;
-var gThreadFront;
-
 add_task(
-  threadFrontTest(
-    async ({ threadFront, debuggee }) => {
-      gThreadFront = threadFront;
-      gDebuggee = debuggee;
-      test_pause_frame();
-    },
-    { waitForFinish: true }
-  )
-);
+  threadFrontTest(async ({ threadFront, debuggee }) => {
+    const packet = await executeOnNextTickAndWaitForPause(
+      () => evalCode(debuggee),
+      threadFront
+    );
 
-function test_pause_frame() {
-  gThreadFront.once("paused", async function(packet) {
     const env = await packet.frame.getEnvironment();
     Assert.notEqual(env, undefined);
 
-    const objClient = gThreadFront.pauseGrip(env.object);
+    const objClient = threadFront.pauseGrip(env.object);
     let response = await objClient.getPrototypeAndProperties();
     Assert.equal(response.ownProperties.one.value, 1);
     Assert.equal(response.ownProperties.two.value, 2);
@@ -37,12 +28,12 @@ function test_pause_frame() {
     let parentEnv = env.parent;
     Assert.notEqual(parentEnv, undefined);
 
-    const parentClient = gThreadFront.pauseGrip(parentEnv.object);
+    const parentClient = threadFront.pauseGrip(parentEnv.object);
     response = await parentClient.getPrototypeAndProperties();
     Assert.equal(response.ownProperties.PI.value, Math.PI);
-    Assert.equal(response.ownProperties.cos.value.type, "object");
-    Assert.equal(response.ownProperties.cos.value.class, "Function");
-    Assert.ok(!!response.ownProperties.cos.value.actor);
+    Assert.equal(response.ownProperties.cos.value.getGrip().type, "object");
+    Assert.equal(response.ownProperties.cos.value.getGrip().class, "Function");
+    Assert.ok(!!response.ownProperties.cos.value.actorID);
 
     parentEnv = parentEnv.parent;
     Assert.notEqual(parentEnv, undefined);
@@ -58,24 +49,30 @@ function test_pause_frame() {
     Assert.ok(!!vars.arguments.value.actor);
     Assert.equal(vars.foo.value, 2 * Math.PI);
 
-    await gThreadFront.resume();
-    threadFrontTestFinished();
-  });
+    await threadFront.resume();
+  })
+);
 
+function evalCode(debuggee) {
   /* eslint-disable */
-  gDebuggee.eval("(" + function () {
-    function stopMe(number) {
-      var a, obj = { one: 1, two: 2 };
-      var r = number;
-      with (Math) {
-        a = PI * r * r;
-        with (obj) {
-          var foo = two * PI;
-          debugger;
+  debuggee.eval(
+    "(" +
+      function() {
+        function stopMe(number) {
+          var a,
+            obj = { one: 1, two: 2 };
+          var r = number;
+          with (Math) {
+            a = PI * r * r;
+            with (obj) {
+              var foo = two * PI;
+              debugger;
+            }
+          }
         }
-      }
-    }
-    stopMe(10);
-  } + ")()");
+        stopMe(10);
+      } +
+      ")()"
+  );
   /* eslint-enable */
 }

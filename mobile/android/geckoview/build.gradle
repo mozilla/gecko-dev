@@ -157,6 +157,14 @@ android {
                 }
             }
 
+            resources {
+                if (mozconfig.substs.MOZ_ASAN) {
+                    // If this is an ASAN build, include a `wrap.sh` for Android 8.1+ devices.  See
+                    // https://developer.android.com/ndk/guides/wrap-script.
+                    srcDir "${topsrcdir}/mobile/android/geckoview/src/asan/resources"
+                }
+            }
+
             assets {
             }
         }
@@ -215,12 +223,13 @@ dependencies {
     testImplementation 'org.mockito:mockito-core:1.10.19'
 
     androidTestImplementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.2"
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test:rules:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     androidTestImplementation "com.android.support:support-annotations:$support_library_version"
 
-    androidTestImplementation 'org.eclipse.jetty:jetty-server:7.6.21.v20160908'
+    androidTestImplementation 'com.koushikdutta.async:androidasync:2.+'
 }
 
 apply from: "${topsrcdir}/mobile/android/gradle/with_gecko_binaries.gradle"
@@ -351,6 +360,10 @@ android.libraryVariants.all { variant ->
 apply plugin: 'maven-publish'
 
 version = computeVersionNumber()
+if (!mozconfig.substs.MOZILLA_OFFICIAL && !mozconfig.substs.MOZ_ANDROID_FAT_AAR_ARCHITECTURES) {
+    // Use -SNAPSHOT versions locally to enable the local GeckoView substitution flow.
+    version = "${version}-SNAPSHOT"
+}
 
 publishing {
     publications {

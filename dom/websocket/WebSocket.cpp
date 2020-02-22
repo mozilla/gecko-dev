@@ -11,6 +11,7 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "mozilla/Atomics.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/net/WebSocketChannel.h"
 #include "mozilla/dom/File.h"
@@ -31,7 +32,6 @@
 #include "nsIScriptGlobalObject.h"
 #include "mozilla/dom/Document.h"
 #include "nsXPCOM.h"
-#include "nsIXPConnect.h"
 #include "nsContentUtils.h"
 #include "nsError.h"
 #include "nsICookieSettings.h"
@@ -45,7 +45,6 @@
 #include "nsIConsoleService.h"
 #include "mozilla/dom/CloseEvent.h"
 #include "mozilla/net/WebSocketEventService.h"
-#include "nsICryptoHash.h"
 #include "nsJSUtils.h"
 #include "nsIScriptError.h"
 #include "nsNetUtil.h"
@@ -1530,7 +1529,7 @@ nsresult WebSocketImpl::Init(JSContext* aCx, nsIPrincipal* aLoadingPrincipal,
   }
 
   mPrivateBrowsing = !!aPrincipal->OriginAttributesRef().mPrivateBrowsingId;
-  mIsChromeContext = nsContentUtils::IsSystemPrincipal(aPrincipal);
+  mIsChromeContext = aPrincipal->IsSystemPrincipal();
 
   // parses the url
   rv = ParseURL(aURL);

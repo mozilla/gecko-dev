@@ -52,6 +52,7 @@ const actionTypes = {
   WS_SET_REQUEST_FILTER_TEXT: "WS_SET_REQUEST_FILTER_TEXT",
   WS_TOGGLE_COLUMN: "WS_TOGGLE_COLUMN",
   WS_RESET_COLUMNS: "WS_RESET_COLUMNS",
+  WS_CLOSE_CONNECTION: "WS_CLOSE_CONNECTION",
 
   // Search
   ADD_SEARCH_QUERY: "ADD_SEARCH_QUERY",
@@ -504,6 +505,7 @@ const BLOCKED_REASON_MESSAGES = {
   4004: "CSP Data Document",
   4005: "CSP Web Browser",
   4006: "CSP Preload",
+  5000: "Not same-origin",
 };
 
 const general = {

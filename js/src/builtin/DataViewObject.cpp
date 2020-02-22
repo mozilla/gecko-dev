@@ -266,7 +266,7 @@ SharedMem<uint8_t*> DataViewObject::getDataPointer(JSContext* cx,
 }
 
 static inline bool needToSwapBytes(bool littleEndian) {
-#if MOZ_LITTLE_ENDIAN
+#if MOZ_LITTLE_ENDIAN()
   return !littleEndian;
 #else
   return littleEndian;
@@ -443,7 +443,7 @@ static inline bool WebIDLCast(JSContext* cx, HandleValue value,
 template <>
 inline bool WebIDLCast<int64_t>(JSContext* cx, HandleValue value,
                                 int64_t* out) {
-  RootedBigInt bi(cx, ToBigInt(cx, value));
+  BigInt* bi = ToBigInt(cx, value);
   if (!bi) {
     return false;
   }
@@ -454,7 +454,7 @@ inline bool WebIDLCast<int64_t>(JSContext* cx, HandleValue value,
 template <>
 inline bool WebIDLCast<uint64_t>(JSContext* cx, HandleValue value,
                                  uint64_t* out) {
-  RootedBigInt bi(cx, ToBigInt(cx, value));
+  BigInt* bi = ToBigInt(cx, value);
   if (!bi) {
     return false;
   }
@@ -983,17 +983,19 @@ JSObject* DataViewObject::CreatePrototype(JSContext* cx, JSProtoKey key) {
                                             &DataViewObject::protoClass_);
 }
 
-static const JSClassOps DataViewObjectClassOps = {nullptr, /* addProperty */
-                                                  nullptr, /* delProperty */
-                                                  nullptr, /* enumerate */
-                                                  nullptr, /* newEnumerate */
-                                                  nullptr, /* resolve */
-                                                  nullptr, /* mayResolve */
-                                                  nullptr, /* finalize */
-                                                  nullptr, /* call */
-                                                  nullptr, /* hasInstance */
-                                                  nullptr, /* construct */
-                                                  ArrayBufferViewObject::trace};
+static const JSClassOps DataViewObjectClassOps = {
+    nullptr,                       // addProperty
+    nullptr,                       // delProperty
+    nullptr,                       // enumerate
+    nullptr,                       // newEnumerate
+    nullptr,                       // resolve
+    nullptr,                       // mayResolve
+    nullptr,                       // finalize
+    nullptr,                       // call
+    nullptr,                       // hasInstance
+    nullptr,                       // construct
+    ArrayBufferViewObject::trace,  // trace
+};
 
 const ClassSpec DataViewObject::classSpec_ = {
     GenericCreateConstructor<DataViewObject::construct, 1,

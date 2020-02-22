@@ -23,7 +23,6 @@
 #include "nsGlobalWindowOuter.h"
 #include "nsIAppShell.h"
 #include "nsIAppShellService.h"
-#include "nsIServiceManager.h"
 #include "nsIContentViewer.h"
 #include "mozilla/dom/Document.h"
 #include "nsPIDOMWindow.h"
@@ -32,13 +31,10 @@
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIIOService.h"
-#include "nsILoadContext.h"
 #include "nsIObserverService.h"
 #include "nsIWindowMediator.h"
 #include "nsIScreenManager.h"
 #include "nsIScreen.h"
-#include "nsIScrollable.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsIWindowWatcher.h"
 #include "nsIURI.h"
 #include "nsAppShellCID.h"
@@ -436,19 +432,6 @@ NS_IMETHODIMP AppWindow::SetZLevel(uint32_t aLevel) {
 NS_IMETHODIMP AppWindow::GetChromeFlags(uint32_t* aChromeFlags) {
   NS_ENSURE_ARG_POINTER(aChromeFlags);
   *aChromeFlags = mChromeFlags;
-  /* mChromeFlags is kept up to date, except for scrollbar visibility.
-     That can be changed directly by the content DOM window, which
-     doesn't know to update the chrome window. So that we must check
-     separately. */
-
-  // however, it's pointless to ask if the window isn't set up yet
-  if (!mChromeLoaded) return NS_OK;
-
-  if (GetContentScrollbarVisibility())
-    *aChromeFlags |= nsIWebBrowserChrome::CHROME_SCROLLBARS;
-  else
-    *aChromeFlags &= ~nsIWebBrowserChrome::CHROME_SCROLLBARS;
-
   return NS_OK;
 }
 
@@ -2445,27 +2428,6 @@ void AppWindow::SetContentScrollbarVisibility(bool aVisible) {
   nsContentUtils::SetScrollbarsVisibility(contentWin->GetDocShell(), aVisible);
 }
 
-bool AppWindow::GetContentScrollbarVisibility() {
-  // This code already exists in dom/src/base/nsBarProp.cpp, but we
-  // can't safely get to that from here as this function is called
-  // while the DOM window is being set up, and we need the DOM window
-  // to get to that code.
-  nsCOMPtr<nsIScrollable> scroller(do_QueryInterface(mPrimaryContentShell));
-
-  if (scroller) {
-    int32_t prefValue;
-    scroller->GetDefaultScrollbarPreferences(nsIScrollable::ScrollOrientation_Y,
-                                             &prefValue);
-    if (prefValue == nsIScrollable::Scrollbar_Never)  // try the other way
-      scroller->GetDefaultScrollbarPreferences(
-          nsIScrollable::ScrollOrientation_X, &prefValue);
-
-    if (prefValue == nsIScrollable::Scrollbar_Never) return false;
-  }
-
-  return true;
-}
-
 // during spinup, attributes that haven't been loaded yet can't be dirty
 void AppWindow::PersistentAttributesDirty(uint32_t aDirtyFlags) {
   mPersistentAttributesDirty |= aDirtyFlags & mPersistentAttributesMask;
@@ -2484,8 +2446,8 @@ void AppWindow::ApplyChromeFlags() {
     // So just don't do these until mChromeLoaded is true.
 
     // Scrollbars have their own special treatment.
-    SetContentScrollbarVisibility(
-        mChromeFlags & nsIWebBrowserChrome::CHROME_SCROLLBARS ? true : false);
+    SetContentScrollbarVisibility(mChromeFlags &
+                                  nsIWebBrowserChrome::CHROME_SCROLLBARS);
   }
 
   /* the other flags are handled together. we have style rules

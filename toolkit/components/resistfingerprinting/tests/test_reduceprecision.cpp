@@ -7,8 +7,8 @@
 #include <math.h>
 
 #include "gtest/gtest.h"
-#include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
+#include "nsServiceManagerUtils.h"
 #include "nsRFPService.h"
 
 using namespace mozilla;

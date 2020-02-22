@@ -59,7 +59,6 @@
 #include "nsViewManager.h"
 #include "nsView.h"
 #include "nsCSSRendering.h"
-#include "nsIServiceManager.h"
 #include "nsBoxLayout.h"
 #include "nsSprocketLayout.h"
 #include "nsIScrollableFrame.h"
@@ -78,7 +77,6 @@
 #include <algorithm>
 
 // Needed for Print Preview
-#include "nsIURI.h"
 
 #include "mozilla/TouchEvents.h"
 
@@ -826,7 +824,7 @@ nsresult nsBoxFrame::AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
 
   // Ignore 'width', 'height', 'screenX', 'screenY' and 'sizemode' on a
   // <window>.
-  if (mContent->IsAnyOfXULElements(nsGkAtoms::window, nsGkAtoms::dialog) &&
+  if (mContent->IsXULElement(nsGkAtoms::window) &&
       (nsGkAtoms::width == aAttribute || nsGkAtoms::height == aAttribute ||
        nsGkAtoms::screenX == aAttribute || nsGkAtoms::screenY == aAttribute ||
        nsGkAtoms::sizemode == aAttribute)) {

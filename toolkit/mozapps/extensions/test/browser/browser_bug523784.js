@@ -2,7 +2,7 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 const URI_BLOCKLIST_DIALOG =
-  "chrome://mozapps/content/extensions/blocklist.xul";
+  "chrome://mozapps/content/extensions/blocklist.xhtml";
 
 // This tests that the blocklist dialog still affects soft-blocked add-ons
 // if the user clicks the "Restart Later" button. It also ensures that the
@@ -55,7 +55,9 @@ function bug523784_test1(win) {
   let bundle = Services.strings.createBundle(
     "chrome://mozapps/locale/update/updates.properties"
   );
-  let cancelButton = win.document.documentElement.getButton("cancel");
+  let cancelButton = win.document
+    .getElementById("BlocklistDialog")
+    .getButton("cancel");
   let moreInfoLink = win.document.getElementById("moreInfo");
 
   is(
@@ -102,7 +104,9 @@ function bug523784_test2(win) {
       function() {
         executeSoon(function() {
           let moreInfoLink = win.document.getElementById("moreInfo");
-          let cancelButton = win.document.documentElement.getButton("cancel");
+          let cancelButton = win.document
+            .getElementById("BlocklistDialog")
+            .getButton("cancel");
           is(
             moreInfoLink.getAttribute("href"),
             Services.urlFormatter.formatURLPref(

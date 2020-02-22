@@ -1493,8 +1493,7 @@ void GCRuntime::removeBlackRootsTracer(JSTraceDataOp traceOp, void* data) {
 
 void GCRuntime::setGrayRootsTracer(JSTraceDataOp traceOp, void* data) {
   AssertHeapIsIdle();
-  grayRootTracer.op = traceOp;
-  grayRootTracer.data = data;
+  grayRootTracer.ref() = {traceOp, data};
 }
 
 void GCRuntime::clearBlackAndGrayRootTracers() {
@@ -1504,25 +1503,25 @@ void GCRuntime::clearBlackAndGrayRootTracers() {
 }
 
 void GCRuntime::setGCCallback(JSGCCallback callback, void* data) {
-  gcCallback.op = callback;
-  gcCallback.data = data;
+  gcCallback.ref() = {callback, data};
 }
 
 void GCRuntime::callGCCallback(JSGCStatus status) const {
-  MOZ_ASSERT(gcCallback.op);
-  gcCallback.op(rt->mainContextFromOwnThread(), status, gcCallback.data);
+  const auto& callback = gcCallback.ref();
+  MOZ_ASSERT(callback.op);
+  callback.op(rt->mainContextFromOwnThread(), status, callback.data);
 }
 
 void GCRuntime::setObjectsTenuredCallback(JSObjectsTenuredCallback callback,
                                           void* data) {
-  tenuredCallback.op = callback;
-  tenuredCallback.data = data;
+  tenuredCallback.ref() = {callback, data};
 }
 
 void GCRuntime::callObjectsTenuredCallback() {
   JS::AutoSuppressGCAnalysis nogc;
-  if (tenuredCallback.op) {
-    tenuredCallback.op(rt->mainContextFromOwnThread(), tenuredCallback.data);
+  const auto& callback = tenuredCallback.ref();
+  if (callback.op) {
+    callback.op(rt->mainContextFromOwnThread(), callback.data);
   }
 }
 
@@ -1531,14 +1530,18 @@ bool GCRuntime::addFinalizeCallback(JSFinalizeCallback callback, void* data) {
       Callback<JSFinalizeCallback>(callback, data));
 }
 
-void GCRuntime::removeFinalizeCallback(JSFinalizeCallback callback) {
-  for (Callback<JSFinalizeCallback>* p = finalizeCallbacks.ref().begin();
-       p < finalizeCallbacks.ref().end(); p++) {
+template <typename F>
+static void EraseCallback(CallbackVector<F>& vector, F callback) {
+  for (Callback<F>* p = vector.begin(); p != vector.end(); p++) {
     if (p->op == callback) {
-      finalizeCallbacks.ref().erase(p);
-      break;
+      vector.erase(p);
+      return;
     }
   }
+}
+
+void GCRuntime::removeFinalizeCallback(JSFinalizeCallback callback) {
+  EraseCallback(finalizeCallbacks.ref(), callback);
 }
 
 void GCRuntime::callFinalizeCallbacks(JSFreeOp* fop,
@@ -1550,13 +1553,13 @@ void GCRuntime::callFinalizeCallbacks(JSFreeOp* fop,
 
 void GCRuntime::setHostCleanupFinalizationGroupCallback(
     JSHostCleanupFinalizationGroupCallback callback, void* data) {
-  hostCleanupFinalizationGroupCallback = {callback, data};
+  hostCleanupFinalizationGroupCallback.ref() = {callback, data};
 }
 
 void GCRuntime::callHostCleanupFinalizationGroupCallback(
     FinalizationGroupObject* group) {
   JS::AutoSuppressGCAnalysis nogc;
-  auto& callback = hostCleanupFinalizationGroupCallback;
+  const auto& callback = hostCleanupFinalizationGroupCallback.ref();
   if (callback.op) {
     callback.op(group, callback.data);
   }
@@ -1570,12 +1573,7 @@ bool GCRuntime::addWeakPointerZonesCallback(JSWeakPointerZonesCallback callback,
 
 void GCRuntime::removeWeakPointerZonesCallback(
     JSWeakPointerZonesCallback callback) {
-  for (auto& p : updateWeakPointerZonesCallbacks.ref()) {
-    if (p.op == callback) {
-      updateWeakPointerZonesCallbacks.ref().erase(&p);
-      break;
-    }
-  }
+  EraseCallback(updateWeakPointerZonesCallbacks.ref(), callback);
 }
 
 void GCRuntime::callWeakPointerZonesCallbacks() const {
@@ -1593,12 +1591,7 @@ bool GCRuntime::addWeakPointerCompartmentCallback(
 
 void GCRuntime::removeWeakPointerCompartmentCallback(
     JSWeakPointerCompartmentCallback callback) {
-  for (auto& p : updateWeakPointerCompartmentCallbacks.ref()) {
-    if (p.op == callback) {
-      updateWeakPointerCompartmentCallbacks.ref().erase(&p);
-      break;
-    }
-  }
+  EraseCallback(updateWeakPointerCompartmentCallbacks.ref(), callback);
 }
 
 void GCRuntime::callWeakPointerCompartmentCallbacks(
@@ -1620,15 +1613,15 @@ JS::GCNurseryCollectionCallback GCRuntime::setNurseryCollectionCallback(
 
 JS::DoCycleCollectionCallback GCRuntime::setDoCycleCollectionCallback(
     JS::DoCycleCollectionCallback callback) {
-  auto prior = gcDoCycleCollectionCallback;
-  gcDoCycleCollectionCallback =
-      Callback<JS::DoCycleCollectionCallback>(callback, nullptr);
+  const auto prior = gcDoCycleCollectionCallback.ref();
+  gcDoCycleCollectionCallback.ref() = {callback, nullptr};
   return prior.op;
 }
 
 void GCRuntime::callDoCycleCollectionCallback(JSContext* cx) {
-  if (gcDoCycleCollectionCallback.op) {
-    gcDoCycleCollectionCallback.op(cx);
+  const auto& callback = gcDoCycleCollectionCallback.ref();
+  if (callback.op) {
+    callback.op(cx);
   }
 }
 
@@ -2109,6 +2102,7 @@ void GCRuntime::sweepZoneAfterCompacting(MovingTracer* trc, Zone* zone) {
   MOZ_ASSERT(zone->isCollecting());
   sweepTypesAfterCompacting(zone);
   sweepFinalizationGroups(zone);
+  sweepWeakRefs(zone);
   zone->sweepWeakMaps();
   for (auto* cache : zone->weakCaches()) {
     cache->sweep();
@@ -3697,7 +3691,9 @@ class CompartmentCheckTracer final : public JS::CallbackTracer {
       : JS::CallbackTracer(rt),
         src(nullptr),
         zone(nullptr),
-        compartment(nullptr) {}
+        compartment(nullptr) {
+    setTraceWeakEdges(false);
+  }
 
   Cell* src;
   JS::TraceKind srcKind;
@@ -3736,7 +3732,7 @@ bool CompartmentCheckTracer::onChild(const JS::GCCellPtr& thing) {
         (srcKind == JS::TraceKind::Object &&
          InCrossCompartmentMap(runtime(), static_cast<JSObject*>(src), thing)));
   } else {
-    TenuredCell* tenured = TenuredCell::fromPointer(thing.asCell());
+    TenuredCell* tenured = &thing.asCell()->asTenured();
     Zone* thingZone = tenured->zoneFromAnyThread();
     MOZ_ASSERT(thingZone == zone || thingZone->isAtomsZone());
   }
@@ -4176,7 +4172,6 @@ void GCRuntime::markWeakReferences(gcstats::PhaseKind phase) {
         markedAny |= WeakMapBase::markZoneIteratively(zone, &marker);
       }
     }
-    markedAny |= DebugAPI::markIteratively(&marker);
     markedAny |= jit::JitRuntime::MarkJitcodeGlobalTableIteratively(&marker);
 
     if (!markedAny) {
@@ -4218,310 +4213,6 @@ void GCRuntime::markAllWeakReferences(gcstats::PhaseKind phase) {
 void GCRuntime::markAllGrayReferences(gcstats::PhaseKind phase) {
   markGrayRoots<GCZonesIter>(phase);
   drainMarkStack();
-}
-
-#ifdef JS_GC_ZEAL
-
-struct GCChunkHasher {
-  typedef gc::Chunk* Lookup;
-
-  /*
-   * Strip zeros for better distribution after multiplying by the golden
-   * ratio.
-   */
-  static HashNumber hash(gc::Chunk* chunk) {
-    MOZ_ASSERT(!(uintptr_t(chunk) & gc::ChunkMask));
-    return HashNumber(uintptr_t(chunk) >> gc::ChunkShift);
-  }
-
-  static bool match(gc::Chunk* k, gc::Chunk* l) {
-    MOZ_ASSERT(!(uintptr_t(k) & gc::ChunkMask));
-    MOZ_ASSERT(!(uintptr_t(l) & gc::ChunkMask));
-    return k == l;
-  }
-};
-
-class js::gc::MarkingValidator {
- public:
-  explicit MarkingValidator(GCRuntime* gc);
-  void nonIncrementalMark(AutoGCSession& session);
-  void validate();
-
- private:
-  GCRuntime* gc;
-  bool initialized;
-
-  using BitmapMap =
-      HashMap<Chunk*, UniquePtr<ChunkBitmap>, GCChunkHasher, SystemAllocPolicy>;
-  BitmapMap map;
-};
-
-js::gc::MarkingValidator::MarkingValidator(GCRuntime* gc)
-    : gc(gc), initialized(false) {}
-
-void js::gc::MarkingValidator::nonIncrementalMark(AutoGCSession& session) {
-  /*
-   * Perform a non-incremental mark for all collecting zones and record
-   * the results for later comparison.
-   *
-   * Currently this does not validate gray marking.
-   */
-
-  JSRuntime* runtime = gc->rt;
-  GCMarker* gcmarker = &gc->marker;
-
-  gc->waitBackgroundSweepEnd();
-
-  /* Wait for off-thread parsing which can allocate. */
-  HelperThreadState().waitForAllThreads();
-
-  /* Save existing mark bits. */
-  {
-    AutoLockGC lock(gc);
-    for (auto chunk = gc->allNonEmptyChunks(lock); !chunk.done();
-         chunk.next()) {
-      ChunkBitmap* bitmap = &chunk->bitmap;
-      auto entry = MakeUnique<ChunkBitmap>();
-      if (!entry) {
-        return;
-      }
-
-      memcpy((void*)entry->bitmap, (void*)bitmap->bitmap,
-             sizeof(bitmap->bitmap));
-
-      if (!map.putNew(chunk, std::move(entry))) {
-        return;
-      }
-    }
-  }
-
-  /*
-   * Temporarily clear the weakmaps' mark flags for the compartments we are
-   * collecting.
-   */
-
-  WeakMapColors markedWeakMaps;
-
-  /*
-   * For saving, smush all of the keys into one big table and split them back
-   * up into per-zone tables when restoring.
-   */
-  gc::WeakKeyTable savedWeakKeys(SystemAllocPolicy(),
-                                 runtime->randomHashCodeScrambler());
-  if (!savedWeakKeys.init()) {
-    return;
-  }
-
-  for (GCZonesIter zone(gc); !zone.done(); zone.next()) {
-    if (!WeakMapBase::saveZoneMarkedWeakMaps(zone, markedWeakMaps)) {
-      return;
-    }
-
-    AutoEnterOOMUnsafeRegion oomUnsafe;
-    for (gc::WeakKeyTable::Range r = zone->gcWeakKeys().all(); !r.empty();
-         r.popFront()) {
-      if (!savedWeakKeys.put(std::move(r.front().key),
-                             std::move(r.front().value))) {
-        oomUnsafe.crash("saving weak keys table for validator");
-      }
-    }
-
-    if (!zone->gcWeakKeys().clear()) {
-      oomUnsafe.crash("clearing weak keys table for validator");
-    }
-  }
-
-  /*
-   * After this point, the function should run to completion, so we shouldn't
-   * do anything fallible.
-   */
-  initialized = true;
-
-  /* Re-do all the marking, but non-incrementally. */
-  js::gc::State state = gc->incrementalState;
-  gc->incrementalState = State::MarkRoots;
-
-  {
-    gcstats::AutoPhase ap(gc->stats(), gcstats::PhaseKind::PREPARE);
-
-    {
-      gcstats::AutoPhase ap(gc->stats(), gcstats::PhaseKind::UNMARK);
-
-      for (GCZonesIter zone(gc); !zone.done(); zone.next()) {
-        WeakMapBase::unmarkZone(zone);
-      }
-
-      MOZ_ASSERT(gcmarker->isDrained());
-      gcmarker->reset();
-
-      AutoLockGC lock(gc);
-      for (auto chunk = gc->allNonEmptyChunks(lock); !chunk.done();
-           chunk.next()) {
-        chunk->bitmap.clear();
-      }
-    }
-  }
-
-  {
-    gcstats::AutoPhase ap(gc->stats(), gcstats::PhaseKind::MARK);
-
-    gc->traceRuntimeForMajorGC(gcmarker, session);
-
-    gc->incrementalState = State::Mark;
-    gc->drainMarkStack();
-  }
-
-  gc->incrementalState = State::Sweep;
-  {
-    gcstats::AutoPhase ap1(gc->stats(), gcstats::PhaseKind::SWEEP);
-    gcstats::AutoPhase ap2(gc->stats(), gcstats::PhaseKind::SWEEP_MARK);
-
-    gc->markAllWeakReferences(gcstats::PhaseKind::SWEEP_MARK_WEAK);
-
-    /* Update zone state for gray marking. */
-    for (GCZonesIter zone(gc); !zone.done(); zone.next()) {
-      zone->changeGCState(Zone::MarkBlackOnly, Zone::MarkBlackAndGray);
-    }
-
-    AutoSetMarkColor setColorGray(*gcmarker, MarkColor::Gray);
-    gcmarker->setMainStackColor(MarkColor::Gray);
-
-    gc->markAllGrayReferences(gcstats::PhaseKind::SWEEP_MARK_GRAY);
-    gc->markAllWeakReferences(gcstats::PhaseKind::SWEEP_MARK_GRAY_WEAK);
-    gc->marker.setMainStackColor(MarkColor::Black);
-
-    /* Restore zone state. */
-    for (GCZonesIter zone(gc); !zone.done(); zone.next()) {
-      zone->changeGCState(Zone::MarkBlackAndGray, Zone::MarkBlackOnly);
-    }
-    MOZ_ASSERT(gc->marker.isDrained());
-  }
-
-  /* Take a copy of the non-incremental mark state and restore the original. */
-  {
-    AutoLockGC lock(gc);
-    for (auto chunk = gc->allNonEmptyChunks(lock); !chunk.done();
-         chunk.next()) {
-      ChunkBitmap* bitmap = &chunk->bitmap;
-      ChunkBitmap* entry = map.lookup(chunk)->value().get();
-      Swap(*entry, *bitmap);
-    }
-  }
-
-  for (GCZonesIter zone(gc); !zone.done(); zone.next()) {
-    WeakMapBase::unmarkZone(zone);
-    AutoEnterOOMUnsafeRegion oomUnsafe;
-    if (!zone->gcWeakKeys().clear()) {
-      oomUnsafe.crash("clearing weak keys table for validator");
-    }
-  }
-
-  WeakMapBase::restoreMarkedWeakMaps(markedWeakMaps);
-
-  for (gc::WeakKeyTable::Range r = savedWeakKeys.all(); !r.empty();
-       r.popFront()) {
-    AutoEnterOOMUnsafeRegion oomUnsafe;
-    Zone* zone = gc::TenuredCell::fromPointer(r.front().key)->zone();
-    if (!zone->gcWeakKeys().put(std::move(r.front().key),
-                                std::move(r.front().value))) {
-      oomUnsafe.crash("restoring weak keys table for validator");
-    }
-  }
-
-  gc->incrementalState = state;
-}
-
-void js::gc::MarkingValidator::validate() {
-  /*
-   * Validates the incremental marking for a single compartment by comparing
-   * the mark bits to those previously recorded for a non-incremental mark.
-   */
-
-  if (!initialized) {
-    return;
-  }
-
-  gc->waitBackgroundSweepEnd();
-
-  AutoLockGC lock(gc->rt);
-  for (auto chunk = gc->allNonEmptyChunks(lock); !chunk.done(); chunk.next()) {
-    BitmapMap::Ptr ptr = map.lookup(chunk);
-    if (!ptr) {
-      continue; /* Allocated after we did the non-incremental mark. */
-    }
-
-    ChunkBitmap* bitmap = ptr->value().get();
-    ChunkBitmap* incBitmap = &chunk->bitmap;
-
-    for (size_t i = 0; i < ArenasPerChunk; i++) {
-      if (chunk->decommittedArenas.get(i)) {
-        continue;
-      }
-      Arena* arena = &chunk->arenas[i];
-      if (!arena->allocated()) {
-        continue;
-      }
-      if (!arena->zone->isGCSweeping()) {
-        continue;
-      }
-
-      AllocKind kind = arena->getAllocKind();
-      uintptr_t thing = arena->thingsStart();
-      uintptr_t end = arena->thingsEnd();
-      while (thing < end) {
-        auto cell = reinterpret_cast<TenuredCell*>(thing);
-
-        /*
-         * If a non-incremental GC wouldn't have collected a cell, then
-         * an incremental GC won't collect it.
-         */
-        if (bitmap->isMarkedAny(cell)) {
-          MOZ_RELEASE_ASSERT(incBitmap->isMarkedAny(cell));
-        }
-
-        /*
-         * If the cycle collector isn't allowed to collect an object
-         * after a non-incremental GC has run, then it isn't allowed to
-         * collected it after an incremental GC.
-         */
-        if (!bitmap->isMarkedGray(cell)) {
-          MOZ_RELEASE_ASSERT(!incBitmap->isMarkedGray(cell));
-        }
-
-        thing += Arena::thingSize(kind);
-      }
-    }
-  }
-}
-
-#endif  // JS_GC_ZEAL
-
-void GCRuntime::computeNonIncrementalMarkingForValidation(
-    AutoGCSession& session) {
-#ifdef JS_GC_ZEAL
-  MOZ_ASSERT(!markingValidator);
-  if (isIncremental && hasZealMode(ZealMode::IncrementalMarkingValidator)) {
-    markingValidator = js_new<MarkingValidator>(this);
-  }
-  if (markingValidator) {
-    markingValidator->nonIncrementalMark(session);
-  }
-#endif
-}
-
-void GCRuntime::validateIncrementalMarking() {
-#ifdef JS_GC_ZEAL
-  if (markingValidator) {
-    markingValidator->validate();
-  }
-#endif
-}
-
-void GCRuntime::finishMarkingValidation() {
-#ifdef JS_GC_ZEAL
-  js_delete(markingValidator.ref());
-  markingValidator = nullptr;
-#endif
 }
 
 void GCRuntime::dropStringWrappers() {
@@ -5218,6 +4909,18 @@ void js::gc::SweepFinalizationGroups(GCParallelTask* task) {
   }
 }
 
+void js::gc::SweepWeakRefs(GCParallelTask* task) {
+  for (SweepGroupZonesIter zone(task->gc); !zone.done(); zone.next()) {
+    AutoSetThreadIsSweeping threadIsSweeping(zone);
+    task->gc->sweepWeakRefs(zone);
+  }
+}
+
+void GCRuntime::sweepWeakRefs(Zone* zone) {
+  auto& map = zone->weakRefMap();
+  map.sweep();
+}
+
 void GCRuntime::startTask(GCParallelTask& task, gcstats::PhaseKind phase,
                           AutoLockHelperThreadState& lock) {
   if (!CanUseExtraThreads()) {
@@ -5422,7 +5125,9 @@ IncrementalProgress GCRuntime::beginSweepingSweepGroup(JSFreeOp* fop,
     }
   }
 
+#ifdef JS_GC_ZEAL
   validateIncrementalMarking();
+#endif
 
 #ifdef DEBUG
   for (auto cell : cellsToAssertNotGray.ref()) {
@@ -5482,6 +5187,8 @@ IncrementalProgress GCRuntime::beginSweepingSweepGroup(JSFreeOp* fop,
     AutoRunParallelTask sweepFinalizationGroups(
         this, SweepFinalizationGroups, PhaseKind::SWEEP_FINALIZATION_GROUPS,
         lock);
+    AutoRunParallelTask sweepWeakRefs(this, SweepWeakRefs,
+                                      PhaseKind::SWEEP_WEAKREFS, lock);
 
     WeakCacheTaskVector sweepCacheTasks;
     if (!PrepareWeakCacheTasks(rt, &sweepCacheTasks)) {
@@ -5597,7 +5304,9 @@ void GCRuntime::beginSweepPhase(JS::GCReason reason, AutoGCSession& session) {
 
   releaseHeldRelocatedArenas();
 
+#ifdef JS_GC_ZEAL
   computeNonIncrementalMarkingForValidation(session);
+#endif
 
   gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP);
 
@@ -6372,7 +6081,9 @@ void GCRuntime::endSweepPhase(bool destroyingRuntime) {
     }
   }
 
+#ifdef JS_GC_ZEAL
   finishMarkingValidation();
+#endif
 
 #ifdef DEBUG
   for (ZonesIter zone(this, WithAtoms); !zone.done(); zone.next()) {
@@ -6752,7 +6463,7 @@ void GCRuntime::incrementalSlice(SliceBudget& budget,
 
       incrementalState = State::MarkRoots;
 
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case State::MarkRoots:
       if (!beginMarkPhase(reason, session)) {
@@ -6775,7 +6486,7 @@ void GCRuntime::incrementalSlice(SliceBudget& budget,
         break;
       }
 
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case State::Mark:
       AutoGCRooter::traceAllWrappers(rt->mainContextFromOwnThread(), &marker);
@@ -6819,7 +6530,7 @@ void GCRuntime::incrementalSlice(SliceBudget& budget,
       lastMarkSlice = false;
       beginSweepPhase(reason, session);
 
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case State::Sweep:
       MOZ_ASSERT(nursery().isEmpty());
@@ -6835,7 +6546,7 @@ void GCRuntime::incrementalSlice(SliceBudget& budget,
 
       incrementalState = State::Finalize;
 
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case State::Finalize: {
       gcstats::AutoPhase ap(stats(),
@@ -6869,7 +6580,7 @@ void GCRuntime::incrementalSlice(SliceBudget& budget,
         break;
       }
 
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case State::Compact:
       if (isCompacting) {
@@ -6889,7 +6600,7 @@ void GCRuntime::incrementalSlice(SliceBudget& budget,
       startDecommit();
       incrementalState = State::Decommit;
 
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case State::Decommit: {
       gcstats::AutoPhase ap(stats(),
@@ -6904,7 +6615,7 @@ void GCRuntime::incrementalSlice(SliceBudget& budget,
 
       incrementalState = State::Finish;
 
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     }
 
     case State::Finish:
@@ -7144,7 +6855,7 @@ class js::gc::AutoCallGCCallbacks {
 };
 
 void GCRuntime::maybeCallGCCallback(JSGCStatus status) {
-  if (!gcCallback.op) {
+  if (!gcCallback.ref().op) {
     return;
   }
 
@@ -8120,10 +7831,6 @@ void ArenaLists::adoptArenas(ArenaLists* fromArenaLists,
 AutoSuppressGC::AutoSuppressGC(JSContext* cx)
     : suppressGC_(cx->suppressGC.ref()) {
   suppressGC_++;
-}
-
-bool js::UninlinedIsInsideNursery(const gc::Cell* cell) {
-  return IsInsideNursery(cell);
 }
 
 #ifdef DEBUG

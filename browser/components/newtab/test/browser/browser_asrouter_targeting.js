@@ -157,15 +157,15 @@ add_task(async function check_other_error_handling() {
   // If the location of this file has changed, the MOZ_JEXL_FILEPATH constant should be updated om ASRouterTargeting.jsm
   is(
     result[0],
-    ASRouterTargeting.ERROR_TYPES.OTHER_ERROR,
-    "should not recognize the error as being an other error, not a mozjexl one"
+    ASRouterTargeting.ERROR_TYPES.ATTRIBUTE_ERROR,
+    "should not recognize the error as being an attribute error."
   );
   is(
     result[1].message,
     "test error",
     "should call onError with the error thrown in the context"
   );
-  is(result[2], messages[0], "should call onError with the invalid message");
+  is(result[2], "foo", "should call onError with the invalid attribute");
 });
 
 // ASRouterTargeting.Environment
@@ -837,22 +837,6 @@ add_task(async function check_hasAccessedFxAPanel() {
     await ASRouterTargeting.Environment.hasAccessedFxAPanel,
     true,
     "Should detect panel access"
-  );
-});
-
-add_task(async function check_isFxABadgeEnabled() {
-  is(
-    await ASRouterTargeting.Environment.isFxABadgeEnabled,
-    true,
-    "Default pref value is true"
-  );
-
-  await pushPrefs(["browser.messaging-system.fxatoolbarbadge.enabled", false]);
-
-  is(
-    await ASRouterTargeting.Environment.isFxABadgeEnabled,
-    false,
-    "Value should be false according to pref"
   );
 });
 

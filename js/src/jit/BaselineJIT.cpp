@@ -14,6 +14,7 @@
 
 #include "debugger/DebugAPI.h"
 #include "gc/FreeOp.h"
+#include "gc/PublicIterators.h"
 #include "jit/BaselineCodeGen.h"
 #include "jit/BaselineIC.h"
 #include "jit/CompileInfo.h"
@@ -25,7 +26,7 @@
 #include "vm/TraceLogging.h"
 
 #include "debugger/DebugAPI-inl.h"
-#include "gc/PrivateIterators-inl.h"
+#include "gc/GC-inl.h"
 #include "jit/JitFrames-inl.h"
 #include "jit/MacroAssembler-inl.h"
 #include "vm/BytecodeUtil-inl.h"
@@ -137,7 +138,7 @@ static JitExecStatus EnterBaseline(JSContext* cx, EnterJitData& data) {
 JitExecStatus jit::EnterBaselineInterpreterAtBranch(JSContext* cx,
                                                     InterpreterFrame* fp,
                                                     jsbytecode* pc) {
-  MOZ_ASSERT(JSOp(*pc) == JSOP_LOOPENTRY);
+  MOZ_ASSERT(JSOp(*pc) == JSOP_LOOPHEAD);
 
   EnterJitData data(cx);
 
@@ -409,7 +410,7 @@ bool jit::BaselineCompileFromBaselineInterpreter(JSContext* cx,
 
   RootedScript script(cx, frame->script());
   jsbytecode* pc = frame->interpreterPC();
-  MOZ_ASSERT(pc == script->code() || *pc == JSOP_LOOPENTRY);
+  MOZ_ASSERT(pc == script->code() || *pc == JSOP_LOOPHEAD);
 
   MethodStatus status = CanEnterBaselineJIT(cx, script,
                                             /* osrSourceFrame = */ frame);
@@ -423,7 +424,9 @@ bool jit::BaselineCompileFromBaselineInterpreter(JSContext* cx,
       return true;
 
     case Method_Compiled: {
-      if (*pc == JSOP_LOOPENTRY) {
+      if (*pc == JSOP_LOOPHEAD) {
+        MOZ_ASSERT(pc > script->code(),
+                   "Prologue vs OSR cases must not be ambiguous");
         BaselineScript* baselineScript = script->baselineScript();
         uint32_t pcOffset = script->pcToOffset(pc);
         *res = baselineScript->nativeCodeForOSREntry(pcOffset);
@@ -1022,7 +1025,6 @@ void jit::ToggleBaselineTraceLoggerEngine(JSRuntime* runtime, bool enable) {
 void BaselineInterpreter::init(JitCode* code, uint32_t interpretOpOffset,
                                uint32_t interpretOpNoDebugTrapOffset,
                                uint32_t bailoutPrologueOffset,
-                               uint32_t generatorThrowOrReturnCallOffset,
                                uint32_t profilerEnterToggleOffset,
                                uint32_t profilerExitToggleOffset,
                                uint32_t debugTrapHandlerOffset,
@@ -1035,7 +1037,6 @@ void BaselineInterpreter::init(JitCode* code, uint32_t interpretOpOffset,
   interpretOpOffset_ = interpretOpOffset;
   interpretOpNoDebugTrapOffset_ = interpretOpNoDebugTrapOffset;
   bailoutPrologueOffset_ = bailoutPrologueOffset;
-  generatorThrowOrReturnCallOffset_ = generatorThrowOrReturnCallOffset;
   profilerEnterToggleOffset_ = profilerEnterToggleOffset;
   profilerExitToggleOffset_ = profilerExitToggleOffset;
   debugTrapHandlerOffset_ = debugTrapHandlerOffset;

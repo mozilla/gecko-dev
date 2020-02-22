@@ -46,6 +46,7 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
       this._getWalker(),
       this._getHighlighter(),
       this._getPageStyle(),
+      this._startChangesFront(),
     ]);
   }
 
@@ -91,6 +92,10 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
 
   async _getPageStyle() {
     this.pageStyle = await super.getPageStyle();
+  }
+
+  async _startChangesFront() {
+    await this.targetFront.getFront("changes");
   }
 
   destroy() {
@@ -177,7 +182,7 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
     }
 
     // If the contentDomReference has a different browsing context than the current one,
-    // we are either in Fission or in the Omniscient Browser Toolbox, so we need to
+    // we are either in Fission or in the Multiprocess Browser Toolbox, so we need to
     // retrieve the walker of the BrowsingContextTarget.
     const descriptor = await this.targetFront.client.mainRoot.getBrowsingContextDescriptor(
       browsingContextId

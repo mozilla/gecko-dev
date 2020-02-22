@@ -29,6 +29,7 @@ class ErrorValue;
 class FetchEventOpProxyChild;
 class RemoteWorkerData;
 class ServiceWorkerOp;
+class UniqueMessagePortId;
 class WeakWorkerRef;
 class WorkerErrorReport;
 class WorkerPrivate;
@@ -59,7 +60,7 @@ class RemoteWorkerChild final
   void FlushReportsOnMainThread(nsIConsoleReportCollector* aReporter);
 
   void AddPortIdentifier(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-                         const MessagePortIdentifier& aPortIdentifier);
+                         UniqueMessagePortId& aPortIdentifier);
 
   RefPtr<GenericNonExclusivePromise> GetTerminationPromise();
 
@@ -71,16 +72,19 @@ class RemoteWorkerChild final
   class Op;
   class SharedWorkerOp;
 
-  struct Pending {
+  struct WorkerPrivateAccessibleState {
+    ~WorkerPrivateAccessibleState();
+    RefPtr<WorkerPrivate> mWorkerPrivate;
+  };
+
+  struct Pending : WorkerPrivateAccessibleState {
     nsTArray<RefPtr<Op>> mPendingOps;
   };
 
   struct PendingTerminated {};
 
-  struct Running {
+  struct Running : WorkerPrivateAccessibleState {
     ~Running();
-
-    RefPtr<WorkerPrivate> mWorkerPrivate;
     RefPtr<WeakWorkerRef> mWorkerRef;
   };
 
@@ -119,7 +123,7 @@ class RemoteWorkerChild final
 
   nsresult ExecWorkerOnMainThread(RemoteWorkerData&& aData);
 
-  void InitializeOnWorker(already_AddRefed<WorkerPrivate> aWorkerPrivate);
+  void InitializeOnWorker();
 
   void ShutdownOnWorker();
 
@@ -148,8 +152,6 @@ class RemoteWorkerChild final
 
   void MaybeStartOp(RefPtr<Op>&& aOp);
 
-  MozPromiseHolder<GenericNonExclusivePromise> mTerminationPromise;
-
   const bool mIsServiceWorker;
   const nsCOMPtr<nsISerialEventTarget> mOwningEventTarget;
 
@@ -158,6 +160,7 @@ class RemoteWorkerChild final
 
   struct LauncherBoundData {
     bool mIPCActive = true;
+    MozPromiseHolder<GenericNonExclusivePromise> mTerminationPromise;
   };
 
   ThreadBound<LauncherBoundData> mLauncherData;

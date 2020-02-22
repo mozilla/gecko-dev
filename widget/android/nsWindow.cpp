@@ -43,11 +43,6 @@ using mozilla::dom::ContentParent;
 #include "AndroidGraphics.h"
 #include "JavaExceptions.h"
 
-#include "nsIBaseWindow.h"
-#include "nsIBrowserDOMWindow.h"
-#include "nsIDOMChromeWindow.h"
-#include "nsIObserverService.h"
-#include "nsISupportsPrimitives.h"
 #include "nsIWidgetListener.h"
 #include "nsIWindowWatcher.h"
 #include "nsIAppWindow.h"
@@ -91,10 +86,7 @@ using mozilla::dom::ContentParent;
 #include "MotionEvent.h"
 #include "ScreenHelperAndroid.h"
 
-#include "imgIEncoder.h"
-
 #include "GeckoProfiler.h"  // For AUTO_PROFILER_LABEL
-#include "nsIXULRuntime.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
 
@@ -1291,7 +1283,7 @@ void nsWindow::GeckoViewSupport::Open(
   } else {
     nsresult rv = Preferences::GetCString("toolkit.defaultChromeURI", url);
     if (NS_FAILED(rv)) {
-      url = NS_LITERAL_CSTRING("chrome://geckoview/content/geckoview.xul");
+      url = NS_LITERAL_CSTRING("chrome://geckoview/content/geckoview.xhtml");
     }
   }
 

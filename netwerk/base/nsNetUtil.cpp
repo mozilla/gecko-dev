@@ -16,17 +16,18 @@
 #include "mozilla/LoadInfo.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/Telemetry.h"
+#include "nsBufferedStreams.h"
 #include "nsCategoryCache.h"
 #include "nsContentUtils.h"
 #include "nsFileStreams.h"
 #include "nsHashKeys.h"
 #include "nsHttp.h"
 #include "nsMimeTypes.h"
-#include "nsIAsyncStreamCopier.h"
 #include "nsIAuthPrompt.h"
 #include "nsIAuthPrompt2.h"
 #include "nsIAuthPromptAdapterFactory.h"
@@ -35,7 +36,6 @@
 #include "nsIChannelEventSink.h"
 #include "nsIContentSniffer.h"
 #include "mozilla/dom/Document.h"
-#include "nsICookieService.h"
 #include "nsIDownloader.h"
 #include "nsIFileProtocolHandler.h"
 #include "nsIFileStreams.h"
@@ -46,7 +46,6 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsILoadContext.h"
 #include "nsIMIMEHeaderParam.h"
-#include "nsIMutable.h"
 #include "nsINode.h"
 #include "nsIObjectLoadingContent.h"
 #include "nsIOfflineCacheUpdate.h"
@@ -56,21 +55,15 @@
 #include "nsIProtocolProxyService.h"
 #include "mozilla/net/RedirectChannelRegistrar.h"
 #include "nsRequestObserverProxy.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsISensitiveInfoHiddenURI.h"
 #include "nsISimpleStreamListener.h"
 #include "nsISocketProvider.h"
-#include "nsISocketProviderService.h"
 #include "nsIStandardURL.h"
 #include "nsIStreamLoader.h"
 #include "nsIIncrementalStreamLoader.h"
-#include "nsIStreamTransportService.h"
 #include "nsStringStream.h"
 #include "nsSyncStreamListener.h"
-#include "nsITransport.h"
 #include "nsIURIWithSpecialOrigin.h"
-#include "nsIURLParser.h"
-#include "nsIUUIDGenerator.h"
 #include "nsIViewSourceChannel.h"
 #include "nsInterfaceRequestorAgg.h"
 #include "plstr.h"
@@ -94,6 +87,7 @@
 #include "mozIThirdPartyUtil.h"
 #include "../mime/nsMIMEHeaderParamImpl.h"
 #include "nsStandardURL.h"
+#include "DefaultURI.h"
 #include "nsChromeProtocolHandler.h"
 #include "nsJSProtocolHandler.h"
 #include "nsDataHandler.h"
@@ -1263,9 +1257,9 @@ MOZ_MUST_USE nsresult NS_NewBufferedInputStream(
     uint32_t aBufferSize) {
   nsCOMPtr<nsIInputStream> inputStream = std::move(aInputStream);
 
-  nsresult rv;
-  nsCOMPtr<nsIBufferedInputStream> in =
-      do_CreateInstance(NS_BUFFEREDINPUTSTREAM_CONTRACTID, &rv);
+  nsCOMPtr<nsIBufferedInputStream> in;
+  nsresult rv = nsBufferedInputStream::Create(
+      nullptr, NS_GET_IID(nsIBufferedInputStream), getter_AddRefs(in));
   if (NS_SUCCEEDED(rv)) {
     rv = in->Init(inputStream, aBufferSize);
     if (NS_SUCCEEDED(rv)) {
@@ -1847,10 +1841,12 @@ nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
   // that have notion of hostname, authority and relative URLs. Below we
   // manually check agains set of known protocols schemes until more general
   // solution is in place (See Bug 1569733)
-  if (scheme.EqualsLiteral("dweb") || scheme.EqualsLiteral("dat") ||
-      scheme.EqualsLiteral("ipfs") || scheme.EqualsLiteral("ipns") ||
-      scheme.EqualsLiteral("ssb") || scheme.EqualsLiteral("wtp")) {
-    return NewStandardURI(aSpec, aCharset, aBaseURI, -1, aURI);
+  if (!StaticPrefs::network_url_useDefaultURI()) {
+    if (scheme.EqualsLiteral("dweb") || scheme.EqualsLiteral("dat") ||
+        scheme.EqualsLiteral("ipfs") || scheme.EqualsLiteral("ipns") ||
+        scheme.EqualsLiteral("ssb") || scheme.EqualsLiteral("wtp")) {
+      return NewStandardURI(aSpec, aCharset, aBaseURI, -1, aURI);
+    }
   }
 
 #if defined(MOZ_THUNDERBIRD) || defined(MOZ_SUITE)
@@ -1872,8 +1868,20 @@ nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
       MOZ_DIAGNOSTIC_ASSERT(newScheme == scheme);
     }
 
+    if (StaticPrefs::network_url_useDefaultURI()) {
+      return NS_MutateURI(new DefaultURI::Mutator())
+          .SetSpec(newSpec)
+          .Finalize(aURI);
+    }
+
     return NS_MutateURI(new nsSimpleURI::Mutator())
         .SetSpec(newSpec)
+        .Finalize(aURI);
+  }
+
+  if (StaticPrefs::network_url_useDefaultURI()) {
+    return NS_MutateURI(new DefaultURI::Mutator())
+        .SetSpec(aSpec)
         .Finalize(aURI);
   }
 
@@ -1978,6 +1986,8 @@ bool NS_HasBeenCrossOrigin(nsIChannel* aChannel, bool aReport) {
 
   bool aboutBlankInherits = dataInherits && loadInfo->GetAboutBlankInherits();
 
+  uint64_t innerWindowID = loadInfo->GetInnerWindowID();
+
   for (nsIRedirectHistoryEntry* redirectHistoryEntry :
        loadInfo->RedirectChain()) {
     nsCOMPtr<nsIPrincipal> principal;
@@ -1996,7 +2006,14 @@ bool NS_HasBeenCrossOrigin(nsIChannel* aChannel, bool aReport) {
       continue;
     }
 
-    if (NS_FAILED(loadingPrincipal->CheckMayLoad(uri, aReport, dataInherits))) {
+    nsresult res;
+    if (aReport) {
+      res = loadingPrincipal->CheckMayLoadWithReporting(uri, dataInherits,
+                                                        innerWindowID);
+    } else {
+      res = loadingPrincipal->CheckMayLoad(uri, dataInherits);
+    }
+    if (NS_FAILED(res)) {
       return true;
     }
   }
@@ -2011,7 +2028,15 @@ bool NS_HasBeenCrossOrigin(nsIChannel* aChannel, bool aReport) {
     return false;
   }
 
-  return NS_FAILED(loadingPrincipal->CheckMayLoad(uri, aReport, dataInherits));
+  nsresult res;
+  if (aReport) {
+    res = loadingPrincipal->CheckMayLoadWithReporting(uri, dataInherits,
+                                                      innerWindowID);
+  } else {
+    res = loadingPrincipal->CheckMayLoad(uri, dataInherits);
+  }
+
+  return NS_FAILED(res);
 }
 
 bool NS_IsSafeTopLevelNav(nsIChannel* aChannel) {
@@ -3004,7 +3029,8 @@ nsresult NS_CompareLoadInfoAndLoadContext(nsIChannel* aChannel) {
   // the loadInfo will use originAttributes from the content. Thus, the
   // originAttributes between loadInfo and loadContext will be different.
   // That's why we have to skip the comparison for the favicon loading.
-  if (nsContentUtils::IsSystemPrincipal(loadInfo->LoadingPrincipal()) &&
+  if (loadInfo->LoadingPrincipal() &&
+      loadInfo->LoadingPrincipal()->IsSystemPrincipal() &&
       loadInfo->InternalContentPolicyType() ==
           nsIContentPolicy::TYPE_INTERNAL_IMAGE_FAVICON) {
     return NS_OK;
@@ -3125,7 +3151,7 @@ bool NS_ShouldClassifyChannel(nsIChannel* aChannel) {
   nsContentPolicyType type = loadInfo->GetExternalContentPolicyType();
   // Skip classifying channel triggered by system unless it is a top-level
   // load.
-  if (nsContentUtils::IsSystemPrincipal(loadInfo->TriggeringPrincipal()) &&
+  if (loadInfo->TriggeringPrincipal()->IsSystemPrincipal() &&
       nsIContentPolicy::TYPE_DOCUMENT != type) {
     return false;
   }

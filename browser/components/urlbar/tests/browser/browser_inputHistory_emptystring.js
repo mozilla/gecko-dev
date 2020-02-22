@@ -61,7 +61,11 @@ async function do_test(openFn, pickMethod) {
 
 add_task(async function setup() {
   await PlacesUtils.history.clear();
-  await PlacesTestUtils.addVisits(TEST_URL);
+  for (let i = 0; i < 5; i++) {
+    await PlacesTestUtils.addVisits(TEST_URL);
+  }
+
+  await updateTopSites(sites => sites && sites[0] && sites[0].url == TEST_URL);
   registerCleanupFunction(async () => {
     await PlacesUtils.history.clear();
   });
@@ -78,36 +82,44 @@ add_task(async function test_history_no_search_terms() {
         return true;
       },
       () => {
+        if (gURLBar.dropmarker.hidden) {
+          return false;
+        }
         info("Test opening panel with history dropmarker");
-        UrlbarTestUtils.getDropMarker(window).click();
+        gURLBar.dropmarker.click();
         return true;
       },
       async () => {
+        if (gURLBar.dropmarker.hidden) {
+          return false;
+        }
         info("Test opening panel with history dropmarker on a page");
         let selectedBrowser = gBrowser.selectedBrowser;
         await BrowserTestUtils.loadURI(selectedBrowser, TEST_URL);
         await BrowserTestUtils.browserLoaded(selectedBrowser);
-        UrlbarTestUtils.getDropMarker(window).click();
+        gURLBar.dropmarker.click();
         return true;
       },
-      // The following tests must be the last to run because of the pref change.
       async () => {
         info("Test opening panel on focus");
         Services.prefs.setBoolPref("browser.urlbar.openViewOnFocus", true);
         gURLBar.blur();
         EventUtils.synthesizeMouseAtCenter(gURLBar.textbox, {});
-        registerCleanupFunction(() => {
-          Services.prefs.clearUserPref("browser.urlbar.openViewOnFocus");
-        });
+        Services.prefs.clearUserPref("browser.urlbar.openViewOnFocus");
         return true;
       },
       async () => {
         info("Test opening panel on focus on a page");
+        Services.prefs.setBoolPref("browser.urlbar.openViewOnFocus", true);
         let selectedBrowser = gBrowser.selectedBrowser;
-        await BrowserTestUtils.loadURI(selectedBrowser, TEST_URL);
+        // A page other than TEST_URL must be loaded, or the first Top Site
+        // result will be a switch-to-tab result and page won't be reloaded when
+        // the result is selected.
+        await BrowserTestUtils.loadURI(selectedBrowser, "http://example.org/");
         await BrowserTestUtils.browserLoaded(selectedBrowser);
         gURLBar.blur();
         EventUtils.synthesizeMouseAtCenter(gURLBar.textbox, {});
+        Services.prefs.clearUserPref("browser.urlbar.openViewOnFocus");
         return true;
       },
     ]) {

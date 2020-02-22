@@ -13,6 +13,7 @@
 #include "gc/WeakMap.h"
 #include "js/GCHashTable.h"
 #include "vm/ArgumentsObject.h"
+#include "vm/GeneratorObject.h"
 #include "vm/GlobalObject.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
@@ -251,6 +252,8 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *
  */
 // clang-format on
+
+enum class IsSingletonEnv { Yes, No };
 
 class EnvironmentObject : public NativeObject {
  protected:
@@ -502,10 +505,9 @@ class LexicalEnvironmentObject : public EnvironmentObject {
   static const JSClass class_;
 
  private:
-  static LexicalEnvironmentObject* createTemplateObject(JSContext* cx,
-                                                        HandleShape shape,
-                                                        HandleObject enclosing,
-                                                        gc::InitialHeap heap);
+  static LexicalEnvironmentObject* createTemplateObject(
+      JSContext* cx, HandleShape shape, HandleObject enclosing,
+      gc::InitialHeap heap, IsSingletonEnv isSingleton);
 
   void initThisValue(JSObject* obj) {
     MOZ_ASSERT(isGlobal() || !isSyntactic());
@@ -885,6 +887,9 @@ class LiveEnvironmentVal {
 extern JSObject* GetDebugEnvironmentForFunction(JSContext* cx,
                                                 HandleFunction fun);
 
+extern JSObject* GetDebugEnvironmentForSuspendedGenerator(
+    JSContext* cx, JSScript* script, AbstractGeneratorObject& genObj);
+
 extern JSObject* GetDebugEnvironmentForFrame(JSContext* cx,
                                              AbstractFramePtr frame,
                                              jsbytecode* pc);
@@ -1149,8 +1154,11 @@ ModuleObject* GetModuleObjectForScript(JSScript* script);
 
 ModuleEnvironmentObject* GetModuleEnvironmentForScript(JSScript* script);
 
-MOZ_MUST_USE bool GetThisValueForDebuggerMaybeOptimizedOut(
+MOZ_MUST_USE bool GetThisValueForDebuggerFrameMaybeOptimizedOut(
     JSContext* cx, AbstractFramePtr frame, jsbytecode* pc,
+    MutableHandleValue res);
+MOZ_MUST_USE bool GetThisValueForDebuggerSuspendedGeneratorMaybeOptimizedOut(
+    JSContext* cx, AbstractGeneratorObject& genObj, JSScript* script,
     MutableHandleValue res);
 
 MOZ_MUST_USE bool CheckVarNameConflict(
@@ -1183,6 +1191,11 @@ MOZ_MUST_USE bool PushVarEnvironmentObject(JSContext* cx, HandleScope scope,
 MOZ_MUST_USE bool GetFrameEnvironmentAndScope(JSContext* cx,
                                               AbstractFramePtr frame,
                                               jsbytecode* pc,
+                                              MutableHandleObject env,
+                                              MutableHandleScope scope);
+
+void GetSuspendedGeneratorEnvironmentAndScope(AbstractGeneratorObject& genObj,
+                                              JSScript* script,
                                               MutableHandleObject env,
                                               MutableHandleScope scope);
 

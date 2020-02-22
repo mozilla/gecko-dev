@@ -17,6 +17,10 @@
 #include <intrin.h> /* for _xgetbv() */
 #endif
 
+#if defined(_WIN64) && defined(__aarch64__)
+#include <windows.h>
+#endif
+
 static PRCallOnceType coFreeblInit;
 
 /* State variables. */
@@ -139,6 +143,13 @@ CheckARMSupport()
     char *disable_arm_neon = PR_GetEnvSecure("NSS_DISABLE_ARM_NEON");
     char *disable_hw_aes = PR_GetEnvSecure("NSS_DISABLE_HW_AES");
     char *disable_pmull = PR_GetEnvSecure("NSS_DISABLE_PMULL");
+#if defined(_WIN64)
+    BOOL arm_crypto_support = IsProcessorFeaturePresent(PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE);
+    arm_aes_support_ = arm_crypto_support && disable_hw_aes == NULL;
+    arm_pmull_support_ = arm_crypto_support && disable_pmull == NULL;
+    arm_sha1_support_ = arm_crypto_support;
+    arm_sha2_support_ = arm_crypto_support;
+#else
     if (getauxval) {
         long hwcaps = getauxval(AT_HWCAP);
         arm_aes_support_ = hwcaps & HWCAP_AES && disable_hw_aes == NULL;
@@ -146,6 +157,7 @@ CheckARMSupport()
         arm_sha1_support_ = hwcaps & HWCAP_SHA1;
         arm_sha2_support_ = hwcaps & HWCAP_SHA2;
     }
+#endif
     /* aarch64 must support NEON. */
     arm_neon_support_ = disable_arm_neon == NULL;
 }

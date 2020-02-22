@@ -45,6 +45,8 @@
 #include "gfx2DGlue.h"
 #include "TextDrawTarget.h"
 
+#include "ThebesRLBox.h"
+
 #include "GreekCasing.h"
 
 #include "cairo.h"
@@ -481,7 +483,7 @@ void gfxFontShaper::MergeFontFeatures(
     case NS_FONT_VARIANT_CAPS_ALLSMALL:
       mergedFeatures.Put(HB_TAG('c', '2', 's', 'c'), 1);
       // fall through to the small-caps case
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case NS_FONT_VARIANT_CAPS_SMALLCAPS:
       mergedFeatures.Put(HB_TAG('s', 'm', 'c', 'p'), 1);
@@ -492,7 +494,7 @@ void gfxFontShaper::MergeFontFeatures(
                                        : HB_TAG('c', '2', 'p', 'c'),
                          1);
       // fall through to the petite-caps case
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case NS_FONT_VARIANT_CAPS_PETITECAPS:
       mergedFeatures.Put(aAddSmallCaps ? HB_TAG('s', 'm', 'c', 'p')
@@ -1238,7 +1240,7 @@ bool gfxFont::HasSubstitutionRulesWithSpaceLookups(Script aRunScript) {
   return false;
 }
 
-bool gfxFont::SpaceMayParticipateInShaping(Script aRunScript) {
+tainted_boolean_hint gfxFont::SpaceMayParticipateInShaping(Script aRunScript) {
   // avoid checking fonts known not to include default space-dependent features
   if (MOZ_UNLIKELY(mFontEntry->mSkipDefaultFeatureSpaceCheck)) {
     if (!mKerningSet && mStyle.featureSettings.IsEmpty() &&
@@ -1941,12 +1943,12 @@ bool gfxFont::DrawMissingGlyph(const TextRunDrawParams& aRunParams,
     if (textDrawer) {
       // Generate an orientation matrix for the current writing mode
       wr::FontInstanceFlags flags = textDrawer->GetWRGlyphFlags();
-      if (flags & wr::FontInstanceFlags_TRANSPOSE) {
+      if (flags & wr::FontInstanceFlags::TRANSPOSE) {
         std::swap(mat._11, mat._12);
         std::swap(mat._21, mat._22);
       }
-      mat.PostScale(flags & wr::FontInstanceFlags_FLIP_X ? -1.0f : 1.0f,
-                    flags & wr::FontInstanceFlags_FLIP_Y ? -1.0f : 1.0f);
+      mat.PostScale(flags & wr::FontInstanceFlags::FLIP_X ? -1.0f : 1.0f,
+                    flags & wr::FontInstanceFlags::FLIP_Y ? -1.0f : 1.0f);
       matPtr = &mat;
     }
 
@@ -2114,11 +2116,11 @@ void gfxFont::Draw(const gfxTextRun* aTextRun, uint32_t aStart, uint32_t aEnd,
       // X and Y, while left rotation flips the resulting Y axis, and right
       // rotation flips the resulting X axis.
       textDrawer->SetWRGlyphFlags(
-          textDrawer->GetWRGlyphFlags() | wr::FontInstanceFlags_TRANSPOSE |
+          textDrawer->GetWRGlyphFlags() | wr::FontInstanceFlags::TRANSPOSE |
           (aOrientation ==
                    gfx::ShapedTextFlags::TEXT_ORIENT_VERTICAL_SIDEWAYS_LEFT
-               ? wr::FontInstanceFlags_FLIP_Y
-               : wr::FontInstanceFlags_FLIP_X));
+               ? wr::FontInstanceFlags::FLIP_Y
+               : wr::FontInstanceFlags::FLIP_X));
       // We also need to set up a transform for the glyph offset vector that
       // may be present in DetailedGlyph records.
       static const gfx::Matrix kSidewaysLeft = {0, -1, 1, 0, 0, 0};
@@ -2343,14 +2345,26 @@ bool gfxFont::RenderColorGlyph(DrawTarget* aDrawTarget, gfxContext* aContext,
     return false;
   }
 
-  // defaultColor is the one that comes from CSS, so it has transparency info.
-  bool hasTransparency = 0.f < defaultColor.a && defaultColor.a < 1.f;
-  if (aTextDrawer && hasTransparency && layerGlyphs.Length() > 1) {
-    // WebRender doesn't support drawing multi-layer transparent color-glyphs,
-    // as it requires compositing all the layers before applying transparency.
-    // (pretend to succeed, output doesn't matter, we will emit a blob)
-    aTextDrawer->FoundUnsupportedFeature();
-    return true;
+  // Default to opaque rendering (non-webrender applies alpha with a layer)
+  float alpha = 1.0;
+  if (aTextDrawer) {
+    // defaultColor is the one that comes from CSS, so it has transparency info.
+    bool hasComplexTransparency = 0.f < defaultColor.a && defaultColor.a < 1.f;
+    if (hasComplexTransparency && layerGlyphs.Length() > 1) {
+      // WebRender doesn't support drawing multi-layer transparent color-glyphs,
+      // as it requires compositing all the layers before applying transparency.
+      // (pretend to succeed, output doesn't matter, we will emit a blob)
+      aTextDrawer->FoundUnsupportedFeature();
+      return true;
+    }
+
+    // If we get here, then either alpha is 0 or 1, or there's only one layer
+    // which shouldn't have composition issues. In all of these cases, applying
+    // transparency directly to the glyph should work perfectly fine.
+    //
+    // Note that we must still emit completely transparent emoji, because they
+    // might be wrapped in a shadow that uses the text run's glyphs.
+    alpha = defaultColor.a;
   }
 
   for (uint32_t layerIndex = 0; layerIndex < layerGlyphs.Length();
@@ -2363,8 +2377,9 @@ bool gfxFont::RenderColorGlyph(DrawTarget* aDrawTarget, gfxContext* aContext,
     buffer.mGlyphs = &glyph;
     buffer.mNumGlyphs = 1;
 
-    aDrawTarget->FillGlyphs(scaledFont, buffer,
-                            ColorPattern(layerColors[layerIndex]),
+    mozilla::gfx::Color layerColor = layerColors[layerIndex];
+    layerColor.a *= alpha;
+    aDrawTarget->FillGlyphs(scaledFont, buffer, ColorPattern(layerColor),
                             aDrawOptions);
   }
   return true;
@@ -3005,7 +3020,16 @@ bool gfxFont::SplitAndInitTextRun(
   // fractions), need to shape without using the word cache which segments
   // textruns on space boundaries. Word cache can be used if the textrun
   // is short enough to fit in the word cache and it lacks spaces.
-  if (SpaceMayParticipateInShaping(aRunScript)) {
+  tainted_boolean_hint t_canParticipate =
+      SpaceMayParticipateInShaping(aRunScript);
+  bool canParticipate = t_canParticipate.unverified_safe_because(
+      "We need to ensure that this function operates safely independent of "
+      "t_canParticipate. The worst that can happen here is that the decision "
+      "to use the cache is incorrectly made, resulting in a bad "
+      "rendering/slowness. However, this  would not compromise the memory "
+      "safety of Firefox in any way, and can thus be permitted");
+
+  if (canParticipate) {
     if (aRunLength > wordCacheCharLimit || HasSpaces(aString, aRunLength)) {
       TEXT_PERF_INCR(tp, wordCacheSpaceRules);
       return ShapeTextWithoutWordCache(aDrawTarget, aString, aRunStart,
@@ -3248,7 +3272,7 @@ bool gfxFont::InitFakeSmallCapsRun(DrawTarget* aDrawTarget,
         case kUppercaseReduce:
           // use reduced-size font, then fall through to uppercase the text
           f = smallCapsFont;
-          MOZ_FALLTHROUGH;
+          [[fallthrough]];
 
         case kUppercase:
           // apply uppercase transform to the string

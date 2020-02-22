@@ -13,10 +13,12 @@ const {
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 
-const Browser = createFactory(require("./Browser"));
+const Browser = createFactory(
+  require("devtools/client/responsive/components/Browser")
+);
 
-const Constants = require("../constants");
-const Types = require("../types");
+const Constants = require("devtools/client/responsive/constants");
+const Types = require("devtools/client/responsive/types");
 
 const VIEWPORT_MIN_WIDTH = Constants.MIN_VIEWPORT_DIMENSION;
 const VIEWPORT_MIN_HEIGHT = Constants.MIN_VIEWPORT_DIMENSION;
@@ -26,7 +28,6 @@ class ResizableViewport extends PureComponent {
     return {
       leftAlignmentEnabled: PropTypes.bool.isRequired,
       onBrowserMounted: PropTypes.func.isRequired,
-      onChangeViewportOrientation: PropTypes.func.isRequired,
       onContentResize: PropTypes.func.isRequired,
       onRemoveDeviceAssociation: PropTypes.func.isRequired,
       doResizeViewport: PropTypes.func.isRequired,
@@ -148,7 +149,6 @@ class ResizableViewport extends PureComponent {
       swapAfterMount,
       viewport,
       onBrowserMounted,
-      onChangeViewportOrientation,
       onContentResize,
       onResizeViewport,
     } = this.props;
@@ -180,7 +180,6 @@ class ResizableViewport extends PureComponent {
             userContextId: viewport.userContextId,
             viewport,
             onBrowserMounted,
-            onChangeViewportOrientation,
             onContentResize,
             onResizeViewport,
           })

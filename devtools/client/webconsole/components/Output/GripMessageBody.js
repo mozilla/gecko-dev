@@ -72,14 +72,18 @@ function GripMessageBody(props) {
     mode,
     maybeScrollToBottom,
     onCmdCtrlClick: (node, { depth, event, focused, expanded }) => {
-      const value = objectInspector.utils.node.getValue(node);
-      if (value) {
-        dispatch(actions.showObjectInSidebar(value));
+      const front = objectInspector.utils.node.getFront(node);
+      if (front) {
+        dispatch(actions.showObjectInSidebar(front));
       }
     },
   };
 
-  if (typeof grip === "string" || (grip && grip.type === "longString")) {
+  if (
+    typeof grip === "string" ||
+    (grip && grip.type === "longString") ||
+    (grip && grip.getGrip && grip.getGrip().type === "longString")
+  ) {
     Object.assign(objectInspectorProps, {
       useQuotes,
       transformEmptyString: true,
@@ -100,11 +104,11 @@ const allowedStylesRegex = new RegExp(
 
 // Regular expression that matches the forbidden CSS property values.
 const forbiddenValuesRegexs = [
-  // url(), -moz-element()
-  /\b(?:url|(?:-moz-)?element)[\s('"]+/gi,
+  // -moz-element()
+  /\b((?:-moz-)?element)[\s('"]+/gi,
 
   // various URL protocols
-  /['"(]*(?:chrome|resource|about|app|data|https?|ftp|file):+\/*/gi,
+  /['"(]*(?:chrome|resource|about|app|https?|ftp|file):+\/*/gi,
 ];
 
 function cleanupStyle(userProvidedStyle, createElement) {

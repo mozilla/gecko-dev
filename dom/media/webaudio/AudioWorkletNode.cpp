@@ -7,13 +7,17 @@
 #include "AudioWorkletNode.h"
 
 #include "AudioParamMap.h"
+#include "js/Array.h"  // JS::{Get,Set}ArrayLength, JS::NewArrayLength
 #include "mozilla/dom/AudioWorkletNodeBinding.h"
+#include "mozilla/dom/MessageChannel.h"
 #include "mozilla/dom/MessagePort.h"
+#include "PlayingRefChangeHandler.h"
 
 namespace mozilla {
 namespace dom {
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(AudioWorkletNode, AudioNode)
+NS_IMPL_CYCLE_COLLECTION_INHERITED(AudioWorkletNode, AudioNode, mPort)
 
 class WorkletNodeEngine final : public AudioNodeEngine {
  public:
@@ -28,7 +32,8 @@ class WorkletNodeEngine final : public AudioNodeEngine {
   MOZ_CAN_RUN_SCRIPT
   void ConstructProcessor(AudioWorkletImpl* aWorkletImpl,
                           const nsAString& aName,
-                          NotNull<StructuredCloneHolder*> aSerializedOptions);
+                          NotNull<StructuredCloneHolder*> aSerializedOptions,
+                          UniqueMessagePortId& aPortIdentifier);
 
   void ProcessBlock(AudioNodeTrack* aTrack, GraphTime aFrom,
                     const AudioBlock& aInput, AudioBlock* aOutput,
@@ -44,6 +49,8 @@ class WorkletNodeEngine final : public AudioNodeEngine {
                             Span<AudioBlock> aOutput, bool* aFinished) override;
 
   void NotifyForcedShutdown() override { ReleaseJSResources(); }
+
+  bool IsActive() const override { return mKeepEngineActive; }
 
   // Vector<T> supports non-memmovable types such as PersistentRooted
   // (without any need to jump through hoops like
@@ -65,8 +72,9 @@ class WorkletNodeEngine final : public AudioNodeEngine {
 
  private:
   void SendProcessorError();
-  bool CallProcess(JSContext* aCx, JS::Handle<JS::Value> aCallable,
-                   bool* aActiveRet);
+  bool CallProcess(AudioNodeTrack* aTrack, JSContext* aCx,
+                   JS::Handle<JS::Value> aCallable);
+  void ProduceSilence(AudioNodeTrack* aTrack, Span<AudioBlock> aOutput);
 
   void ReleaseJSResources() {
     mInputs.mPorts.clearAndFree();
@@ -99,6 +107,17 @@ class WorkletNodeEngine final : public AudioNodeEngine {
 
   RefPtr<AudioWorkletGlobalScope> mGlobal;
   JS::PersistentRooted<JSObject*> mProcessor;
+
+  // mProcessorIsActive is named [[active source]] in the spec.
+  // It is initially true and so at least the first process()
+  // call will not be skipped when there are no active inputs.
+  bool mProcessorIsActive = true;
+  // mKeepEngineActive ensures another call to ProcessBlocksOnPorts(), even if
+  // there are no active inputs.  Its transitions to false lag those of
+  // mProcessorIsActive by one call to ProcessBlocksOnPorts() so that
+  // downstream engines can addref their nodes before this engine's node is
+  // released.
+  bool mKeepEngineActive = true;
 };
 
 void WorkletNodeEngine::SendProcessorError() {
@@ -118,13 +137,15 @@ void WorkletNodeEngine::SendProcessorError() {
 
 void WorkletNodeEngine::ConstructProcessor(
     AudioWorkletImpl* aWorkletImpl, const nsAString& aName,
-    NotNull<StructuredCloneHolder*> aSerializedOptions) {
+    NotNull<StructuredCloneHolder*> aSerializedOptions,
+    UniqueMessagePortId& aPortIdentifier) {
   MOZ_ASSERT(mInputs.mPorts.empty() && mOutputs.mPorts.empty());
   RefPtr<AudioWorkletGlobalScope> global = aWorkletImpl->GetGlobalScope();
   MOZ_ASSERT(global);  // global has already been used to register processor
   JS::RootingContext* cx = RootingCx();
   mProcessor.init(cx);
-  if (!global->ConstructProcessor(aName, aSerializedOptions, &mProcessor) ||
+  if (!global->ConstructProcessor(aName, aSerializedOptions, aPortIdentifier,
+                                  &mProcessor) ||
       // mInputs and mOutputs outer arrays are fixed length and so much of the
       // initialization need only be performed once (i.e. here).
       NS_WARN_IF(!mInputs.mPorts.growBy(InputCount())) ||
@@ -164,15 +185,15 @@ static bool PrepareArray(JSContext* aCx, const T& aElements,
   if (aArray) {
     // Attempt to reuse.
     uint32_t oldLength;
-    if (JS_GetArrayLength(aCx, aArray, &oldLength) &&
-        (oldLength == length || JS_SetArrayLength(aCx, aArray, length)) &&
+    if (JS::GetArrayLength(aCx, aArray, &oldLength) &&
+        (oldLength == length || JS::SetArrayLength(aCx, aArray, length)) &&
         SetArrayElements(aCx, aElements, aArray)) {
       return true;
     }
     // Script may have frozen the array.  Try again with a new Array.
     JS_ClearPendingException(aCx);
   }
-  JSObject* array = JS_NewArrayObject(aCx, length);
+  JSObject* array = JS::NewArrayObject(aCx, length);
   if (NS_WARN_IF(!array)) {
     return false;
   }
@@ -241,9 +262,8 @@ static bool PrepareBufferArrays(JSContext* aCx, Span<const AudioBlock> aBlocks,
 // potentially destroy the WorkletNodeEngine and its AudioNodeTrack, cannot
 // be triggered by script.  They are not run from an nsIThread event loop and
 // do not run until after ProcessBlocksOnPorts() has returned.
-bool WorkletNodeEngine::CallProcess(JSContext* aCx,
-                                    JS::Handle<JS::Value> aCallable,
-                                    bool* aActiveRet) {
+bool WorkletNodeEngine::CallProcess(AudioNodeTrack* aTrack, JSContext* aCx,
+                                    JS::Handle<JS::Value> aCallable) {
   JS::RootedVector<JS::Value> argv(aCx);
   if (NS_WARN_IF(!argv.resize(3))) {
     return false;
@@ -256,11 +276,30 @@ bool WorkletNodeEngine::CallProcess(JSContext* aCx,
     return false;
   }
 
-  *aActiveRet = JS::ToBoolean(rval);
+  mProcessorIsActive = JS::ToBoolean(rval);
+  // Transitions of mProcessorIsActive to false do not trigger
+  // PlayingRefChangeHandler::RELEASE until silence is produced in the next
+  // block.  This allows downstream engines receiving this non-silence block
+  // to take a reference to their nodes before this engine's node releases its
+  // down node references.
+  if (mProcessorIsActive && !mKeepEngineActive) {
+    mKeepEngineActive = true;
+    RefPtr<PlayingRefChangeHandler> refchanged =
+        new PlayingRefChangeHandler(aTrack, PlayingRefChangeHandler::ADDREF);
+    aTrack->Graph()->DispatchToMainThreadStableState(refchanged.forget());
+  }
   return true;
 }
 
-static void ProduceSilence(Span<AudioBlock> aOutput) {
+void WorkletNodeEngine::ProduceSilence(AudioNodeTrack* aTrack,
+                                       Span<AudioBlock> aOutput) {
+  if (mKeepEngineActive) {
+    mKeepEngineActive = false;
+    aTrack->ScheduleCheckForInactive();
+    RefPtr<PlayingRefChangeHandler> refchanged =
+        new PlayingRefChangeHandler(aTrack, PlayingRefChangeHandler::RELEASE);
+    aTrack->Graph()->DispatchToMainThreadStableState(refchanged.forget());
+  }
   for (AudioBlock& output : aOutput) {
     output.SetNull(WEBAUDIO_BLOCK_SIZE);
   }
@@ -273,8 +312,22 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
   MOZ_ASSERT(aInput.Length() == InputCount());
   MOZ_ASSERT(aOutput.Length() == OutputCount());
 
-  if (!mProcessor) {
-    ProduceSilence(aOutput);
+  bool isSilent = true;
+  if (mProcessor) {
+    if (mProcessorIsActive) {
+      isSilent = false;  // call process()
+    } else {             // [[active source]] is false.
+      // Call process() only if an input is actively processing.
+      for (const AudioBlock& input : aInput) {
+        if (!input.IsNull()) {
+          isSilent = false;
+          break;
+        }
+      }
+    }
+  }
+  if (isSilent) {
+    ProduceSilence(aTrack, aOutput);
     return;
   }
 
@@ -284,7 +337,8 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
       aOutput[o].AllocateChannels(mOutputChannelCount[o]);
     }
   } else if (aInput.Length() == 1 && aOutput.Length() == 1) {
-    aOutput[0].AllocateChannels(aInput[0].ChannelCount());
+    uint32_t channelCount = std::max(aInput[0].ChannelCount(), 1U);
+    aOutput[0].AllocateChannels(channelCount);
   } else {
     for (AudioBlock& output : aOutput) {
       output.AllocateChannels(1);
@@ -301,7 +355,7 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
       !PrepareBufferArrays(cx, aOutput, &mOutputs, ArrayElementInit::Zero)) {
     // process() not callable or OOM.
     SendProcessorError();
-    ProduceSilence(aOutput);
+    ProduceSilence(aTrack, aOutput);
     return;
   }
 
@@ -326,8 +380,7 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
     }
   }
 
-  bool active;
-  if (!CallProcess(cx, process, &active)) {
+  if (!CallProcess(aTrack, cx, process)) {
     // An exception occurred.
     SendProcessorError();
     /**
@@ -335,10 +388,9 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
      * Note that once an exception is thrown, the processor will output silence
      * throughout its lifetime.
      */
-    ProduceSilence(aOutput);
+    ProduceSilence(aTrack, aOutput);
     return;
   }
-  // TODO: Stay active even without inputs, if active is set.
 
   // Copy output values from JS objects.
   for (size_t o = 0; o < aOutput.Length(); ++o) {
@@ -433,6 +485,23 @@ already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
   }
 
   /**
+   * 4. Let messageChannel be a new MessageChannel.
+   */
+  RefPtr<MessageChannel> messageChannel =
+      MessageChannel::Constructor(aGlobal, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+  /* 5. Let nodePort be the value of messageChannel’s port1 attribute.
+   * 6. Let processorPortOnThisSide be the value of messageChannel’s port2
+   *    attribute.
+   * 7. Let serializedProcessorPort be the result of
+   *    StructuredSerializeWithTransfer(processorPortOnThisSide,
+   *                                    « processorPortOnThisSide »).
+   */
+  UniqueMessagePortId processorPortId;
+  messageChannel->Port2()->CloneAndDisentangle(processorPortId);
+  /**
    * 8. Convert options dictionary to optionsObject.
    */
   JSContext* cx = aGlobal.Context();
@@ -456,6 +525,10 @@ already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
+  /**
+   * 10. Set node’s port to nodePort.
+   */
+  audioWorkletNode->mPort = messageChannel->Port1();
 
   auto engine =
       new WorkletNodeEngine(audioWorkletNode, aOptions.mOutputChannelCount);
@@ -478,22 +551,22 @@ already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
       // See bug 1535398.
       [track = audioWorkletNode->mTrack,
        workletImpl = RefPtr<AudioWorkletImpl>(workletImpl),
-       name = nsString(aName), options = std::move(serializedOptions)]()
-          MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+       name = nsString(aName), options = std::move(serializedOptions),
+       portId = std::move(processorPortId)]()
+          MOZ_CAN_RUN_SCRIPT_BOUNDARY mutable {
             auto engine = static_cast<WorkletNodeEngine*>(track->Engine());
             engine->ConstructProcessor(workletImpl, name,
-                                       WrapNotNull(options.get()));
+                                       WrapNotNull(options.get()), portId);
           }));
+
+  // [[active source]] is initially true and so at least the first process()
+  // call will not be skipped when there are no active inputs.
+  audioWorkletNode->MarkActive();
 
   return audioWorkletNode.forget();
 }
 
 AudioParamMap* AudioWorkletNode::GetParameters(ErrorResult& aRv) const {
-  aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
-  return nullptr;
-}
-
-MessagePort* AudioWorkletNode::GetPort(ErrorResult& aRv) const {
   aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
   return nullptr;
 }

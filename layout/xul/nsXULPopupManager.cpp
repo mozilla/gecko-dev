@@ -12,14 +12,12 @@
 #include "nsMenuBarListener.h"
 #include "nsContentUtils.h"
 #include "nsXULElement.h"
-#include "nsIDOMXULMenuListElement.h"
 #include "nsIDOMXULCommandDispatcher.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsGlobalWindow.h"
 #include "nsIContentInlines.h"
 #include "nsLayoutUtils.h"
 #include "nsViewManager.h"
-#include "nsIComponentManager.h"
 #include "nsITimer.h"
 #include "nsFocusManager.h"
 #include "nsIDocShell.h"
@@ -2151,7 +2149,7 @@ bool nsXULPopupManager::HandleKeyboardEventWithKeyCode(
         Rollup(0, false, nullptr, nullptr);
         break;
       }
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 #endif
 
     case KeyboardEvent_Binding::DOM_VK_LEFT:
@@ -2197,7 +2195,7 @@ bool nsXULPopupManager::HandleKeyboardEventWithKeyCode(
         break;
       }
       // Intentional fall-through to RETURN case
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case KeyboardEvent_Binding::DOM_VK_RETURN: {
       // If there is a popup open, check if the current item needs to be opened.

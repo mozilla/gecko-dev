@@ -212,6 +212,10 @@ jobs:
     static-analysis-build:
         symbol: I(static-analysis-build)
         parent: debian9-base
+    gdb-test:
+        symbol: I(gdb)
+        parent: debian7-amd64-build
+        definition: gdb-test
     mingw32-build:
         symbol: I(mingw)
         parent: debian9-base
@@ -248,3 +252,10 @@ jobs:
     visual-metrics:
         symbol: I(visual-metrics)
         parent: debian9-base
+    github-sync:
+        symbol: I(github-sync)
+        parent: debian9-base
+    system-symbols-mac:
+        symbol: I(system-symbols-mac)
+    system-symbols-win:
+        symbol: I(system-symbols-win)

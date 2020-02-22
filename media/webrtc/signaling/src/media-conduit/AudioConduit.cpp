@@ -15,8 +15,6 @@
 #include "nsCOMPtr.h"
 #include "mozilla/media/MediaUtils.h"
 #include "nsServiceManagerUtils.h"
-#include "nsIPrefService.h"
-#include "nsIPrefBranch.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Telemetry.h"
 #include "mtransport/runnable_utils.h"
@@ -160,6 +158,7 @@ void WebrtcAudioConduit::SetSyncGroup(const std::string& group) {
 bool WebrtcAudioConduit::GetSendPacketTypeStats(
     webrtc::RtcpPacketTypeCounter* aPacketCounts) {
   ASSERT_ON_THREAD(mStsThread);
+  MutexAutoLock lock(mMutex);
   if (!mSendStream) {
     return false;
   }
@@ -169,6 +168,7 @@ bool WebrtcAudioConduit::GetSendPacketTypeStats(
 bool WebrtcAudioConduit::GetRecvPacketTypeStats(
     webrtc::RtcpPacketTypeCounter* aPacketCounts) {
   ASSERT_ON_THREAD(mStsThread);
+  MutexAutoLock lock(mMutex);
   if (!mEngineReceiving) {
     return false;
   }
@@ -180,6 +180,7 @@ bool WebrtcAudioConduit::GetRTPReceiverStats(unsigned int* jitterMs,
   ASSERT_ON_THREAD(mStsThread);
   *jitterMs = 0;
   *cumulativeLost = 0;
+  MutexAutoLock lock(mMutex);
   if (!mRecvStream) {
     return false;
   }
@@ -199,6 +200,7 @@ bool WebrtcAudioConduit::GetRTCPReceiverReport(uint32_t* jitterMs,
   int64_t timestampTmp = 0;
   int64_t rttMsTmp = 0;
   bool res = false;
+  MutexAutoLock lock(mMutex);
   if (mSendChannelProxy) {
     res = mSendChannelProxy->GetRTCPReceiverStatistics(
         &timestampTmp, jitterMs, cumulativeLost, packetsReceived, bytesReceived,
@@ -234,6 +236,7 @@ bool WebrtcAudioConduit::GetRTCPReceiverReport(uint32_t* jitterMs,
 bool WebrtcAudioConduit::GetRTCPSenderReport(unsigned int* packetsSent,
                                              uint64_t* bytesSent) {
   ASSERT_ON_THREAD(mStsThread);
+  MutexAutoLock lock(mMutex);
   if (!mRecvChannelProxy) {
     return false;
   }
@@ -277,6 +280,34 @@ void WebrtcAudioConduit::OnRtpPacket(const webrtc::RTPHeader& aHeader,
                                      const uint32_t aJitter) {
   ASSERT_ON_THREAD(mStsThread);
   mRtpSourceObserver.OnRtpPacket(aHeader, aTimestamp, aJitter);
+}
+
+void WebrtcAudioConduit::OnRtcpBye() {
+  RefPtr<WebrtcAudioConduit> self = this;
+  NS_DispatchToMainThread(media::NewRunnableFrom([self]() mutable {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (self->mRtcpEventObserver) {
+      self->mRtcpEventObserver->OnRtcpBye();
+    }
+    return NS_OK;
+  }));
+}
+
+void WebrtcAudioConduit::OnRtcpTimeout() {
+  RefPtr<WebrtcAudioConduit> self = this;
+  NS_DispatchToMainThread(media::NewRunnableFrom([self]() mutable {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (self->mRtcpEventObserver) {
+      self->mRtcpEventObserver->OnRtcpTimeout();
+    }
+    return NS_OK;
+  }));
+}
+
+void WebrtcAudioConduit::SetRtcpEventObserver(
+    mozilla::RtcpEventObserver* observer) {
+  MOZ_ASSERT(NS_IsMainThread());
+  mRtcpEventObserver = observer;
 }
 
 void WebrtcAudioConduit::GetRtpSources(
@@ -376,11 +407,6 @@ MediaConduitErrorCode WebrtcAudioConduit::ConfigureSendMediaCodec(
   }
 
   mDtmfEnabled = codecConfig->mDtmfEnabled;
-
-  condError = StartTransmitting();
-  if (condError != kMediaConduitNoError) {
-    return condError;
-  }
 
   return kMediaConduitNoError;
 }
@@ -1082,6 +1108,7 @@ MediaConduitErrorCode WebrtcAudioConduit::CreateChannels() {
   }
 
   mRecvChannelProxy->SetRtpPacketObserver(this);
+  mRecvChannelProxy->SetRtcpEventObserver(this);
   mRecvChannelProxy->RegisterTransport(this);
 
   mSendChannelProxy = vei->GetChannelProxy(mSendChannel);

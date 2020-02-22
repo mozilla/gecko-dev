@@ -16,10 +16,6 @@ const TEST_URL =
   '<div style="background:blue; width:200px; height:200px"></div>';
 
 addRDMTask(TEST_URL, async function({ ui, manager }) {
-  await SpecialPowers.pushPrefEnv({
-    set: [["devtools.responsive.metaViewport.enabled", true]],
-  });
-
   // Wait until the viewport has been added and the device list has been loaded
   const { store } = ui.toolWindow;
   await waitUntilState(
@@ -43,7 +39,7 @@ addRDMTask(TEST_URL, async function({ ui, manager }) {
     info("Setting focus on the browser.");
     browser.focus();
 
-    await ContentTask.spawn(browser, null, () => {
+    await SpecialPowers.spawn(browser, [], () => {
       content.scrollTo(0, 0);
     });
 

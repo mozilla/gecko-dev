@@ -14,7 +14,6 @@
 #include "mozilla/dom/PresentationConnectionAvailableEvent.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/Move.h"
-#include "mozIThirdPartyUtil.h"
 #include "nsContentSecurityManager.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsGlobalWindow.h"
@@ -509,14 +508,8 @@ bool PresentationRequest::IsPrioriAuthenticatedURL(const nsAString& aUrl) {
     return false;
   }
 
-  nsCOMPtr<nsIContentSecurityManager> csm =
-      do_GetService(NS_CONTENTSECURITYMANAGER_CONTRACTID);
-  if (NS_WARN_IF(!csm)) {
-    return false;
-  }
-
   bool isTrustworthyOrigin = false;
-  csm->IsOriginPotentiallyTrustworthy(principal, &isTrustworthyOrigin);
+  principal->GetIsOriginPotentiallyTrustworthy(&isTrustworthyOrigin);
   return isTrustworthyOrigin;
 }
 

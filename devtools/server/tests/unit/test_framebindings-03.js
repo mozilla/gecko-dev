@@ -8,22 +8,13 @@
  * Check a |with| frame actor's bindings.
  */
 
-var gDebuggee;
-var gThreadFront;
-
 add_task(
-  threadFrontTest(
-    async ({ threadFront, debuggee }) => {
-      gThreadFront = threadFront;
-      gDebuggee = debuggee;
-      test_pause_frame();
-    },
-    { waitForFinish: true }
-  )
-);
+  threadFrontTest(async ({ threadFront, debuggee }) => {
+    const packet = await executeOnNextTickAndWaitForPause(
+      () => evalCode(debuggee),
+      threadFront
+    );
 
-function test_pause_frame() {
-  gThreadFront.once("paused", async function(packet) {
     const env = await packet.frame.getEnvironment();
     Assert.notEqual(env, undefined);
 
@@ -40,28 +31,33 @@ function test_pause_frame() {
     Assert.equal(vars.arguments.value.class, "Arguments");
     Assert.ok(!!vars.arguments.value.actor);
 
-    const objClient = gThreadFront.pauseGrip(env.object);
+    const objClient = threadFront.pauseGrip(env.object);
     const response = await objClient.getPrototypeAndProperties();
     Assert.equal(response.ownProperties.PI.value, Math.PI);
-    Assert.equal(response.ownProperties.cos.value.type, "object");
-    Assert.equal(response.ownProperties.cos.value.class, "Function");
-    Assert.ok(!!response.ownProperties.cos.value.actor);
+    Assert.equal(response.ownProperties.cos.value.getGrip().type, "object");
+    Assert.equal(response.ownProperties.cos.value.getGrip().class, "Function");
+    Assert.ok(!!response.ownProperties.cos.value.actorID);
 
-    await gThreadFront.resume();
-    threadFrontTestFinished();
-  });
+    await threadFront.resume();
+  })
+);
 
+function evalCode(debuggee) {
   /* eslint-disable */
-  gDebuggee.eval("(" + function () {
-    function stopMe(number) {
-      var a;
-      var r = number;
-      with (Math) {
-        a = PI * r * r;
-        debugger;
-      }
-    }
-    stopMe(10);
-  } + ")()");
+  debuggee.eval(
+    "(" +
+      function() {
+        function stopMe(number) {
+          var a;
+          var r = number;
+          with (Math) {
+            a = PI * r * r;
+            debugger;
+          }
+        }
+        stopMe(10);
+      } +
+      ")()"
+  );
   /* eslint-enable */
 }

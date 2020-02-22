@@ -21,24 +21,24 @@ add_task(async function() {
   info("Beacon tab added successfully.");
 
   is(
-    store.getState().requests.requests.size,
+    store.getState().requests.requests.length,
     0,
     "The requests menu should be empty."
   );
 
   const wait = waitForNetworkEvents(monitor, 1);
-  await ContentTask.spawn(beaconTab.linkedBrowser, {}, async function() {
+  await SpecialPowers.spawn(beaconTab.linkedBrowser, [], async function() {
     content.wrappedJSObject.performRequests();
   });
   tab.linkedBrowser.reload();
   await wait;
 
   is(
-    store.getState().requests.requests.size,
+    store.getState().requests.requests.length,
     1,
     "Only the reload should be recorded."
   );
-  const request = getSortedRequests(store.getState()).get(0);
+  const request = getSortedRequests(store.getState())[0];
   is(request.method, "GET", "The method is correct.");
   is(request.status, "200", "The status is correct.");
 

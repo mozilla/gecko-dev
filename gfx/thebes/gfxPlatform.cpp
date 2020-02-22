@@ -44,9 +44,11 @@
 #include "gfxTextRun.h"
 #include "gfxUserFontSet.h"
 #include "gfxConfig.h"
+#include "GfxDriverInfo.h"
 #include "VRProcessManager.h"
 #include "VRThread.h"
 
+#include "mozilla/SSE.h"
 #include "mozilla/arm.h"
 
 #ifdef XP_WIN
@@ -567,44 +569,48 @@ static void WebRenderDebugPrefChangeCallback(const char* aPrefName, void*) {
     flags |= (bit);                                        \
   }
 
-  GFX_WEBRENDER_DEBUG(".profiler", wr::DebugFlags_PROFILER_DBG)
-  GFX_WEBRENDER_DEBUG(".render-targets", wr::DebugFlags_RENDER_TARGET_DBG)
-  GFX_WEBRENDER_DEBUG(".texture-cache", wr::DebugFlags_TEXTURE_CACHE_DBG)
-  GFX_WEBRENDER_DEBUG(".gpu-time-queries", wr::DebugFlags_GPU_TIME_QUERIES)
-  GFX_WEBRENDER_DEBUG(".gpu-sample-queries", wr::DebugFlags_GPU_SAMPLE_QUERIES)
-  GFX_WEBRENDER_DEBUG(".disable-batching", wr::DebugFlags_DISABLE_BATCHING)
-  GFX_WEBRENDER_DEBUG(".epochs", wr::DebugFlags_EPOCHS)
-  GFX_WEBRENDER_DEBUG(".compact-profiler", wr::DebugFlags_COMPACT_PROFILER)
-  GFX_WEBRENDER_DEBUG(".smart-profiler", wr::DebugFlags_SMART_PROFILER)
+  GFX_WEBRENDER_DEBUG(".profiler", wr::DebugFlags::PROFILER_DBG)
+  GFX_WEBRENDER_DEBUG(".render-targets", wr::DebugFlags::RENDER_TARGET_DBG)
+  GFX_WEBRENDER_DEBUG(".texture-cache", wr::DebugFlags::TEXTURE_CACHE_DBG)
+  GFX_WEBRENDER_DEBUG(".gpu-time-queries", wr::DebugFlags::GPU_TIME_QUERIES)
+  GFX_WEBRENDER_DEBUG(".gpu-sample-queries", wr::DebugFlags::GPU_SAMPLE_QUERIES)
+  GFX_WEBRENDER_DEBUG(".disable-batching", wr::DebugFlags::DISABLE_BATCHING)
+  GFX_WEBRENDER_DEBUG(".epochs", wr::DebugFlags::EPOCHS)
+  GFX_WEBRENDER_DEBUG(".compact-profiler", wr::DebugFlags::COMPACT_PROFILER)
+  GFX_WEBRENDER_DEBUG(".smart-profiler", wr::DebugFlags::SMART_PROFILER)
   GFX_WEBRENDER_DEBUG(".echo-driver-messages",
-                      wr::DebugFlags_ECHO_DRIVER_MESSAGES)
+                      wr::DebugFlags::ECHO_DRIVER_MESSAGES)
   GFX_WEBRENDER_DEBUG(".new-frame-indicator",
-                      wr::DebugFlags_NEW_FRAME_INDICATOR)
+                      wr::DebugFlags::NEW_FRAME_INDICATOR)
   GFX_WEBRENDER_DEBUG(".new-scene-indicator",
-                      wr::DebugFlags_NEW_SCENE_INDICATOR)
-  GFX_WEBRENDER_DEBUG(".show-overdraw", wr::DebugFlags_SHOW_OVERDRAW)
-  GFX_WEBRENDER_DEBUG(".gpu-cache", wr::DebugFlags_GPU_CACHE_DBG)
+                      wr::DebugFlags::NEW_SCENE_INDICATOR)
+  GFX_WEBRENDER_DEBUG(".show-overdraw", wr::DebugFlags::SHOW_OVERDRAW)
+  GFX_WEBRENDER_DEBUG(".gpu-cache", wr::DebugFlags::GPU_CACHE_DBG)
   GFX_WEBRENDER_DEBUG(".slow-frame-indicator",
-                      wr::DebugFlags_SLOW_FRAME_INDICATOR)
+                      wr::DebugFlags::SLOW_FRAME_INDICATOR)
   GFX_WEBRENDER_DEBUG(".texture-cache.clear-evicted",
-                      wr::DebugFlags_TEXTURE_CACHE_DBG_CLEAR_EVICTED)
-  GFX_WEBRENDER_DEBUG(".picture-caching", wr::DebugFlags_PICTURE_CACHING_DBG)
-  GFX_WEBRENDER_DEBUG(".primitives", wr::DebugFlags_PRIMITIVE_DBG)
+                      wr::DebugFlags::TEXTURE_CACHE_DBG_CLEAR_EVICTED)
+  GFX_WEBRENDER_DEBUG(".picture-caching", wr::DebugFlags::PICTURE_CACHING_DBG)
+  GFX_WEBRENDER_DEBUG(".primitives", wr::DebugFlags::PRIMITIVE_DBG)
   // Bit 18 is for the zoom display, which requires the mouse position and thus
   // currently only works in wrench.
-  GFX_WEBRENDER_DEBUG(".small-screen", wr::DebugFlags_SMALL_SCREEN)
+  GFX_WEBRENDER_DEBUG(".small-screen", wr::DebugFlags::SMALL_SCREEN)
   GFX_WEBRENDER_DEBUG(".disable-opaque-pass",
-                      wr::DebugFlags_DISABLE_OPAQUE_PASS)
-  GFX_WEBRENDER_DEBUG(".disable-alpha-pass", wr::DebugFlags_DISABLE_ALPHA_PASS)
-  GFX_WEBRENDER_DEBUG(".disable-clip-masks", wr::DebugFlags_DISABLE_CLIP_MASKS)
-  GFX_WEBRENDER_DEBUG(".disable-text-prims", wr::DebugFlags_DISABLE_TEXT_PRIMS)
+                      wr::DebugFlags::DISABLE_OPAQUE_PASS)
+  GFX_WEBRENDER_DEBUG(".disable-alpha-pass", wr::DebugFlags::DISABLE_ALPHA_PASS)
+  GFX_WEBRENDER_DEBUG(".disable-clip-masks", wr::DebugFlags::DISABLE_CLIP_MASKS)
+  GFX_WEBRENDER_DEBUG(".disable-text-prims", wr::DebugFlags::DISABLE_TEXT_PRIMS)
   GFX_WEBRENDER_DEBUG(".disable-gradient-prims",
-                      wr::DebugFlags_DISABLE_GRADIENT_PRIMS)
-  GFX_WEBRENDER_DEBUG(".obscure-images", wr::DebugFlags_OBSCURE_IMAGES)
-  GFX_WEBRENDER_DEBUG(".glyph-flashing", wr::DebugFlags_GLYPH_FLASHING)
+                      wr::DebugFlags::DISABLE_GRADIENT_PRIMS)
+  GFX_WEBRENDER_DEBUG(".obscure-images", wr::DebugFlags::OBSCURE_IMAGES)
+  GFX_WEBRENDER_DEBUG(".glyph-flashing", wr::DebugFlags::GLYPH_FLASHING)
 #undef GFX_WEBRENDER_DEBUG
 
   gfx::gfxVars::SetWebRenderDebugFlags(flags.bits);
+}
+
+static void WebRenderQualityPrefChangeCallback(const char* aPref, void*) {
+  gfxPlatform::GetPlatform()->UpdateAllowSacrificingSubpixelAA();
 }
 
 #if defined(USE_SKIA)
@@ -1274,7 +1280,6 @@ bool gfxPlatform::CanMigrateMacGPUs() {
 
   return forceEnable || (!forceDisable && !blocked);
 }
-
 
 static bool sLayersIPCIsUp = false;
 
@@ -2103,6 +2108,11 @@ eCMSMode gfxPlatform::GetCMSMode() {
     if (enableV4) {
       qcms_enable_iccv4();
     }
+#ifdef MOZILLA_MAY_SUPPORT_AVX
+    if (mozilla::supports_avx()) {
+      qcms_enable_avx();
+    }
+#endif
 #ifdef MOZILLA_MAY_SUPPORT_NEON
     if (mozilla::supports_neon()) {
       qcms_enable_neon();
@@ -2513,6 +2523,15 @@ void gfxPlatform::UpdateCanUseHardwareVideoDecoding() {
   }
 }
 
+void gfxPlatform::UpdateAllowSacrificingSubpixelAA() {
+  int64_t kMaxPixels = 1920 * 1200;  // WUXGA
+  bool allowSacrificingSubpixelAA =
+      mScreenPixels > kMaxPixels &&
+      !StaticPrefs::
+          gfx_webrender_quality_force_disable_sacrificing_subpixel_aa();
+  gfxVars::SetAllowSacrificingSubpixelAA(allowSacrificingSubpixelAA);
+}
+
 void gfxPlatform::InitAcceleration() {
   if (sLayersAccelerationPrefsInitialized) {
     return;
@@ -2753,7 +2772,9 @@ static void HardwareTooOldForWR(FeatureState& aFeature) {
 }
 
 static void UpdateWRQualificationForNvidia(FeatureState& aFeature,
-                                           int32_t aDeviceId,
+                                           nsIGfxInfo* aGfxInfo,
+                                           int32_t aDeviceId, bool aHasBattery,
+                                           int64_t aScreenPixels,
                                            bool* aOutGuardedByQualifiedPref) {
   // 0x6c0 is the lowest Fermi device id. Unfortunately some Tesla
   // devices that don't support D3D 10.1 have higher deviceIDs. They
@@ -2771,12 +2792,80 @@ static void UpdateWRQualificationForNvidia(FeatureState& aFeature,
 
 #  if defined(XP_WIN)
   // Nvidia devices with device id >= 0x6c0 got WR in release Firefox 67.
-  *aOutGuardedByQualifiedPref = false;
+  if (aHasBattery) {
+    // If we have a battery, we currently disallow screens larger than 1080p.
+    // Otherwise they can be turned on with the qualified pref.
+    const int64_t kMaxPixelsBattery = 1920 * 1200;  // WUXGA
+    if (aScreenPixels <= 0) {
+      aFeature.Disable(
+          FeatureStatus::BlockedScreenUnknown, "Screen size unknown",
+          NS_LITERAL_CSTRING("FEATURE_FAILURE_SCREEN_SIZE_UNKNOWN"));
+    } else if (aScreenPixels > kMaxPixelsBattery) {
+      aFeature.Disable(FeatureStatus::BlockedHasBattery, "Has battery",
+                       NS_LITERAL_CSTRING("FEATURE_FAILURE_WR_HAS_BATTERY"));
+    } else {  // <= kMaxPixelsBattery
+#    if defined(EARLY_BETA_OR_EARLIER)
+      // Battery and small screen, it should be on by default in early beta and
+      // nightly.
+      *aOutGuardedByQualifiedPref = false;
+#    else
+      // Battery and small screen, it should be only on for recent Windows 10
+      // builds and NVIDIA driver versions in late beta and release.
+
+      // Windows version is 10.0.<dwBuildNumber>
+      const uint32_t kMinOSBuildNumber = 18362;
+      OSVERSIONINFO vinfo;
+      vinfo.dwOSVersionInfoSize = sizeof(vinfo);
+#      ifdef _MSC_VER
+      // Disable warning about GetVersionEx being deprecated.
+#        pragma warning(push)
+#        pragma warning(disable : 4996)
+#      endif
+      if (!GetVersionEx(&vinfo) || vinfo.dwBuildNumber < kMinOSBuildNumber) {
+#      ifdef _MSC_VER
+#        pragma warning(pop)
+#      endif
+        aFeature.Disable(
+            FeatureStatus::BlockedHasBattery,
+            "Has battery and old Windows 10 build",
+            NS_LITERAL_CSTRING(
+                "FEATURE_FAILURE_WR_HAS_BATTERY_OLD_WINDOWS_10_BUILD"));
+      } else {
+        nsString driverVersionString;
+        aGfxInfo->GetAdapterDriverVersion(driverVersionString);
+
+        const uint64_t kMinDriverVersion = widget::V(26, 21, 14, 3200);
+        uint64_t driverVersion = 0;
+
+        if (!widget::ParseDriverVersion(driverVersionString, &driverVersion) ||
+            driverVersion < kMinDriverVersion) {
+          aFeature.Disable(
+              FeatureStatus::BlockedHasBattery, "Has battery and old driver",
+              NS_LITERAL_CSTRING("FEATURE_FAILURE_WR_HAS_BATTERY_OLD_DRIVER"));
+        } else {
+          // New Windows, new driver, enable by default.
+          *aOutGuardedByQualifiedPref = false;
+        }
+      }
+#    endif
+    }
+  } else {
+    // No battery, it should be on by default.
+    *aOutGuardedByQualifiedPref = false;
+  }
 #  elif defined(NIGHTLY_BUILD)
   // Qualify on Linux Nightly, but leave *aOutGuardedByQualifiedPref as true
   // to indicate users on release don't have it yet, and it's still guarded
   // by the qualified pref.
+
+  // aHasBattery is only ever true on Windows, we don't check it on other
+  // platforms.
+  MOZ_ASSERT(!aHasBattery);
 #  else
+  // aHasBattery is only ever true on Windows, we don't check it on other
+  // platforms.
+  MOZ_ASSERT(!aHasBattery);
+
   // Disqualify everywhere else
   aFeature.Disable(
       FeatureStatus::BlockedReleaseChannelNvidia, "Release channel and Nvidia",
@@ -2785,7 +2874,8 @@ static void UpdateWRQualificationForNvidia(FeatureState& aFeature,
 }
 
 static void UpdateWRQualificationForAMD(FeatureState& aFeature,
-                                        int32_t aDeviceId,
+                                        nsIGfxInfo* aGfxInfo, int32_t aDeviceId,
+                                        bool aHasBattery, int64_t aScreenPixels,
                                         bool* aOutGuardedByQualifiedPref) {
   // AMD deviceIDs are not very well ordered. This
   // condition is based off the information in gpu-db
@@ -2808,12 +2898,46 @@ static void UpdateWRQualificationForAMD(FeatureState& aFeature,
 
 #  if defined(XP_WIN)
   // These devices got WR in release Firefox 68.
-  *aOutGuardedByQualifiedPref = false;
+  if (aHasBattery) {
+    // If we have a battery, we only allow the user to be qualified on nightly,
+    // for 1080p or smaller screens. For larger screens, it remains disabled by
+    // default.
+    const int64_t kMaxPixelsBattery = 1920 * 1200;  // WUXGA
+    if (aScreenPixels <= 0) {
+      aFeature.Disable(
+          FeatureStatus::BlockedScreenUnknown, "Screen size unknown",
+          NS_LITERAL_CSTRING("FEATURE_FAILURE_SCREEN_SIZE_UNKNOWN"));
+    } else if (aScreenPixels <= kMaxPixelsBattery) {
+#    ifdef NIGHTLY_BUILD
+      // Battery and small screen, it should be on by default in nightly.
+      *aOutGuardedByQualifiedPref = false;
+#    else
+      aFeature.Disable(
+          FeatureStatus::BlockedReleaseChannelBattery,
+          "Release channel and battery",
+          NS_LITERAL_CSTRING("FEATURE_FAILURE_RELEASE_CHANNEL_BATTERY"));
+#    endif  // !NIGHTLY_BUILD
+    } else {
+      aFeature.Disable(FeatureStatus::BlockedHasBattery, "Has battery",
+                       NS_LITERAL_CSTRING("FEATURE_FAILURE_WR_HAS_BATTERY"));
+    }
+  } else {
+    // No battery, it should be on by default.
+    *aOutGuardedByQualifiedPref = false;
+  }
 #  elif defined(NIGHTLY_BUILD)
   // Qualify on Linux Nightly, but leave *aOutGuardedByQualifiedPref as true
   // to indicate users on release don't have it yet, and it's still guarded
   // by the qualified pref.
+
+  // aHasBattery is only ever true on Windows, we don't check it on other
+  // platforms.
+  MOZ_ASSERT(!aHasBattery);
 #  else
+  // aHasBattery is only ever true on Windows, we don't check it on other
+  // platforms.
+  MOZ_ASSERT(!aHasBattery);
+
   // Disqualify everywhere else
   aFeature.Disable(FeatureStatus::BlockedReleaseChannelAMD,
                    "Release channel and AMD",
@@ -2822,7 +2946,8 @@ static void UpdateWRQualificationForAMD(FeatureState& aFeature,
 }
 
 static void UpdateWRQualificationForIntel(FeatureState& aFeature,
-                                          int32_t aDeviceId,
+                                          nsIGfxInfo* aGfxInfo,
+                                          int32_t aDeviceId, bool aHasBattery,
                                           int64_t aScreenPixels,
                                           bool* aOutGuardedByQualifiedPref) {
   const uint16_t supportedDevices[] = {
@@ -2923,8 +3048,28 @@ static void UpdateWRQualificationForIntel(FeatureState& aFeature,
   // Performance is not great on 4k screens with WebRender.
   // Disable it for now on all release platforms, and also on Linux
   // nightly. We only allow it on Windows nightly.
+  //
+  // Additionally, if we have a battery, we add a further restriction
+  // that it cannot be larger than a 1080p screen.
+  const int64_t kMaxPixelsBattery = 1920 * 1200;  // WUXGA
 #  if defined(XP_WIN) && defined(NIGHTLY_BUILD)
-  // Windows nightly, so don't do screen size checks
+  // Windows nightly, only check for battery screen size restrictions.
+  if (aHasBattery) {
+    if (aScreenPixels <= 0) {
+      aFeature.Disable(
+          FeatureStatus::BlockedScreenUnknown, "Screen size unknown",
+          NS_LITERAL_CSTRING("FEATURE_FAILURE_SCREEN_SIZE_UNKNOWN"));
+      return;
+    }
+    if (aScreenPixels > kMaxPixelsBattery) {
+      aFeature.Disable(FeatureStatus::BlockedHasBattery, "Has battery",
+                       NS_LITERAL_CSTRING("FEATURE_FAILURE_WR_HAS_BATTERY"));
+      return;
+    }
+
+    // Battery and small screen, it should be on by default in nightly.
+    *aOutGuardedByQualifiedPref = false;
+  }
 #  else
   // Windows release, Linux nightly, Linux release. Do screen size
   // checks. (macOS is still completely blocked by the blocklist).
@@ -2947,6 +3092,29 @@ static void UpdateWRQualificationForIntel(FeatureState& aFeature,
     aFeature.Disable(FeatureStatus::BlockedScreenUnknown, "Screen size unknown",
                      NS_LITERAL_CSTRING("FEATURE_FAILURE_SCREEN_SIZE_UNKNOWN"));
     return;
+  }
+  if (aHasBattery) {
+#    ifndef XP_WIN
+    // aHasBattery is only ever true on Windows, we don't check it on other
+    // platforms.
+    MOZ_ASSERT(false);
+#    endif
+    if (aScreenPixels <= kMaxPixelsBattery) {
+#    ifdef NIGHTLY_BUILD
+      // Battery and small screen, it should be on by default in nightly.
+      *aOutGuardedByQualifiedPref = false;
+#    else
+      aFeature.Disable(
+          FeatureStatus::BlockedReleaseChannelBattery,
+          "Release channel and battery",
+          NS_LITERAL_CSTRING("FEATURE_FAILURE_RELEASE_CHANNEL_BATTERY"));
+      return;
+#    endif  // !NIGHTLY_BUILD
+    } else {
+      aFeature.Disable(FeatureStatus::BlockedHasBattery, "Has battery",
+                       NS_LITERAL_CSTRING("FEATURE_FAILURE_WR_HAS_BATTERY"));
+      return;
+    }
   }
 #  endif
 
@@ -3013,14 +3181,17 @@ static FeatureState& WebRenderHardwareQualificationStatus(
   }
 
   if (adapterVendorID == u"0x10de") {  // Nvidia
-    UpdateWRQualificationForNvidia(featureWebRenderQualified, deviceID,
+    UpdateWRQualificationForNvidia(featureWebRenderQualified, gfxInfo, deviceID,
+                                   aHasBattery, aScreenPixels,
                                    aOutGuardedByQualifiedPref);
   } else if (adapterVendorID == u"0x1002") {  // AMD
-    UpdateWRQualificationForAMD(featureWebRenderQualified, deviceID,
+    UpdateWRQualificationForAMD(featureWebRenderQualified, gfxInfo, deviceID,
+                                aHasBattery, aScreenPixels,
                                 aOutGuardedByQualifiedPref);
   } else if (adapterVendorID == u"0x8086") {  // Intel
-    UpdateWRQualificationForIntel(featureWebRenderQualified, deviceID,
-                                  aScreenPixels, aOutGuardedByQualifiedPref);
+    UpdateWRQualificationForIntel(featureWebRenderQualified, gfxInfo, deviceID,
+                                  aHasBattery, aScreenPixels,
+                                  aOutGuardedByQualifiedPref);
   } else {
     featureWebRenderQualified.Disable(
         FeatureStatus::BlockedVendorUnsupported, "Unsupported vendor",
@@ -3032,35 +3203,6 @@ static FeatureState& WebRenderHardwareQualificationStatus(
     // this population must still be guarded by the qualified pref.
     MOZ_ASSERT(*aOutGuardedByQualifiedPref);
     return featureWebRenderQualified;
-  }
-
-  // We leave checking the battery for last because we would like to know
-  // which users were denied WebRender only because they have a battery.
-  if (aHasBattery) {
-#  ifndef XP_WIN
-    // aHasBattery is only ever true on Windows, we don't check it on other
-    // platforms.
-    MOZ_ASSERT(false);
-#  endif
-    // We never released WR to the battery populations, so let's keep the pref
-    // guard for these populations. That way we can do a gradual rollout to
-    // the battery population using the pref.
-    *aOutGuardedByQualifiedPref = true;
-
-    // if we have a battery, ignore it if the screen is small enough.
-    const int64_t kMaxPixelsBattery = 1920 * 1200;  // WUXGA
-    if (aScreenPixels > 0 && aScreenPixels <= kMaxPixelsBattery) {
-#  ifndef NIGHTLY_BUILD
-      featureWebRenderQualified.Disable(
-          FeatureStatus::BlockedReleaseChannelBattery,
-          "Release channel and battery",
-          NS_LITERAL_CSTRING("FEATURE_FAILURE_RELEASE_CHANNEL_BATTERY"));
-#  endif  // !NIGHTLY_BUILD
-    } else {
-      featureWebRenderQualified.Disable(
-          FeatureStatus::BlockedHasBattery, "Has battery",
-          NS_LITERAL_CSTRING("FEATURE_FAILURE_WR_HAS_BATTERY"));
-    }
   }
 #endif
   return featureWebRenderQualified;
@@ -3185,6 +3327,12 @@ void gfxPlatform::InitWebRenderConfig() {
     if (XRE_IsParentProcess()) {
       Preferences::RegisterPrefixCallbackAndCall(
           WebRenderDebugPrefChangeCallback, WR_DEBUG_PREF);
+      Preferences::RegisterCallback(
+          WebRenderQualityPrefChangeCallback,
+          nsDependentCString(
+              StaticPrefs::
+                  GetPrefName_gfx_webrender_quality_force_disable_sacrificing_subpixel_aa()));
+      UpdateAllowSacrificingSubpixelAA();
     }
   }
 #if defined(MOZ_WIDGET_GTK)
@@ -3229,6 +3377,57 @@ void gfxPlatform::InitWebRenderConfig() {
     }
   }
 #endif
+
+  // Initialize WebRender native compositor usage
+  FeatureState& featureComp =
+      gfxConfig::GetFeature(Feature::WEBRENDER_COMPOSITOR);
+  featureComp.SetDefaultFromPref("gfx.webrender.compositor", true, false);
+  if (!StaticPrefs::gfx_webrender_picture_caching()) {
+    featureComp.ForceDisable(
+        FeatureStatus::Unavailable, "Picture caching is disabled",
+        NS_LITERAL_CSTRING("FEATURE_FAILURE_PICTURE_CACHING_DISABLED"));
+  }
+
+  if (!IsFeatureSupported(nsIGfxInfo::FEATURE_WEBRENDER_COMPOSITOR, false)) {
+    featureComp.ForceDisable(FeatureStatus::Blacklisted, "Blacklisted",
+                             NS_LITERAL_CSTRING("FEATURE_FAILURE_BLACKLIST"));
+  }
+
+#ifdef XP_WIN
+  if (!gfxVars::UseWebRenderDCompWin()) {
+    featureComp.ForceDisable(
+        FeatureStatus::Unavailable, "No DirectComposition usage",
+        NS_LITERAL_CSTRING("FEATURE_FAILURE_NO_DIRECTCOMPOSITION"));
+  }
+#endif
+
+  if (gfx::gfxConfig::IsEnabled(gfx::Feature::WEBRENDER_COMPOSITOR)) {
+    gfxVars::SetUseWebRenderCompositor(true);
+    // Call UserEnable() only for reporting to Decision Log.
+    // If feature is enabled by default. It is not reported to Decision Log.
+    featureComp.UserEnable("Enabled");
+  }
+
+  // Initialize WebRender partial present config.
+  // Partial present is used only when WebRender compositor is not used.
+  if (StaticPrefs::gfx_webrender_max_partial_present_rects_AtStartup() > 0) {
+    if (UseWebRender()) {
+      FeatureState& featurePartial =
+          gfxConfig::GetFeature(Feature::WEBRENDER_PARTIAL);
+      featurePartial.EnableByDefault();
+      if (StaticPrefs::gfx_webrender_picture_caching()) {
+        gfxVars::SetWebRenderMaxPartialPresentRects(
+            StaticPrefs::gfx_webrender_max_partial_present_rects_AtStartup());
+        // Call UserEnable() only for reporting to Decision Log.
+        // If feature is enabled by default. It is not reported to Decision Log.
+        featurePartial.UserEnable("Enabled");
+      } else {
+        featurePartial.ForceDisable(
+            FeatureStatus::Unavailable, "Picture caching is disabled",
+            NS_LITERAL_CSTRING("FEATURE_FAILURE_PICTURE_CACHING_DISABLED"));
+      }
+    }
+  }
 
   // Set features that affect WR's RendererOptions
   gfxVars::SetUseGLSwizzle(

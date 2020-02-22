@@ -22,8 +22,8 @@ struct BytecodeInfo {
   bool initialized : 1;
   bool jumpTarget : 1;
 
-  // If true, this is a JSOP_LOOPENTRY op inside a catch or finally block.
-  bool loopEntryInCatchOrFinally : 1;
+  // If true, this is a JSOP_LOOPHEAD op inside a catch or finally block.
+  bool loopHeadInCatchOrFinally : 1;
 
   // True if the script has a resume offset for this bytecode op.
   bool hasResumeOffset : 1;
@@ -45,7 +45,7 @@ class BytecodeAnalysis {
  public:
   explicit BytecodeAnalysis(TempAllocator& alloc, JSScript* script);
 
-  MOZ_MUST_USE bool init(TempAllocator& alloc, GSNCache& gsn);
+  MOZ_MUST_USE bool init(TempAllocator& alloc);
 
   BytecodeInfo& info(jsbytecode* pc) {
     uint32_t pcOffset = script_->pcToOffset(pc);

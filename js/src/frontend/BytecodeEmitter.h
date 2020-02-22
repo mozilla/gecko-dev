@@ -20,6 +20,7 @@
 
 #include "jsapi.h"  // CompletionKind
 
+#include "frontend/AbstractScope.h"
 #include "frontend/BCEParserHandle.h"            // BCEParserHandle
 #include "frontend/BytecodeControlStructures.h"  // NestableControl
 #include "frontend/BytecodeOffset.h"             // BytecodeOffset
@@ -48,6 +49,12 @@
 #include "vm/JSScript.h"  // JSScript, LazyScript, FieldInitializers, JSTryNoteKind
 #include "vm/Runtime.h"     // ReportOutOfMemory
 #include "vm/StringType.h"  // JSAtom
+
+namespace js {
+
+enum class GeneratorResumeKind;
+
+}  // namespace js
 
 namespace js {
 namespace frontend {
@@ -134,9 +141,6 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   EmitterScope* innermostEmitterScopeNoCheck() const {
     return innermostEmitterScope_;
   }
-
-  // Script contains JSOP_CALLSITEOBJ.
-  bool hasCallSiteObj = false;
 
   // Script contains finally block.
   bool hasTryFinally = false;
@@ -255,11 +259,11 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
     varEmitterScope = emitterScope;
   }
 
-  Scope* outermostScope() const {
+  AbstractScope outermostScope() const {
     return perScriptData().gcThingList().firstScope();
   }
-  Scope* innermostScope() const;
-  Scope* bodyScope() const {
+  AbstractScope innermostScope() const;
+  AbstractScope bodyScope() const {
     return perScriptData().gcThingList().getScope(bodyScopeIndex);
   }
 
@@ -293,8 +297,6 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
 
   MOZ_MUST_USE bool emitThisEnvironmentCallee();
   MOZ_MUST_USE bool emitSuperBase();
-
-  void tellDebuggerAboutCompiledScript(JSContext* cx);
 
   uint32_t mainOffset() const { return *mainOffset_; }
 
@@ -439,8 +441,6 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   MOZ_MUST_USE bool emitJumpTarget(JumpTarget* target);
   MOZ_MUST_USE bool emitJumpNoFallthrough(JSOp op, JumpList* jump);
   MOZ_MUST_USE bool emitJump(JSOp op, JumpList* jump);
-  MOZ_MUST_USE bool emitBackwardJump(JSOp op, JumpTarget target, JumpList* jump,
-                                     JumpTarget* fallthrough);
   void patchJumpsToTarget(JumpList jump, JumpTarget target);
   MOZ_MUST_USE bool emitJumpTargetAndPatch(JumpList jump);
 
@@ -509,7 +509,8 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   MOZ_MUST_USE bool emitObjLiteralValue(ObjLiteralCreationData* data,
                                         ParseNode* value);
 
-  FieldInitializers setupFieldInitializers(ListNode* classMembers);
+  mozilla::Maybe<FieldInitializers> setupFieldInitializers(
+      ListNode* classMembers);
   MOZ_MUST_USE bool emitCreateFieldKeys(ListNode* obj);
   MOZ_MUST_USE bool emitCreateFieldInitializers(ClassEmitter& ce,
                                                 ListNode* obj);
@@ -578,6 +579,8 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   }
   MOZ_MUST_USE bool emitAwaitInInnermostScope(UnaryNode* awaitNode);
   MOZ_MUST_USE bool emitAwaitInScope(EmitterScope& currentScope);
+
+  MOZ_MUST_USE bool emitPushResumeKind(GeneratorResumeKind kind);
 
   MOZ_MUST_USE bool emitPropLHS(PropertyAccess* prop);
   MOZ_MUST_USE bool emitPropIncDec(UnaryNode* incDec);

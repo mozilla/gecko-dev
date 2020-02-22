@@ -263,8 +263,8 @@ JS::Result<FunctionBox*> BinASTParserPerTokenizer<Tok>::buildFunctionBox(
   RootedFunction fun(cx_);
   if (pc_) {
     Rooted<FunctionCreationData> fcd(
-        cx_, GenerateFunctionCreationData(atom, syntax, generatorKind,
-                                          functionAsyncKind));
+        cx_,
+        FunctionCreationData(atom, syntax, generatorKind, functionAsyncKind));
     BINJS_TRY_VAR(fun, AllocNewFunction(cx_, fcd));
     MOZ_ASSERT(fun->explicitName() == atom);
   } else {
@@ -290,6 +290,7 @@ JS::Result<FunctionBox*> BinASTParserPerTokenizer<Tok>::buildFunctionBox(
     funbox->initWithEnclosingParseContext(pc_, fun, syntax);
   } else {
     funbox->initFromLazyFunction(fun);
+    funbox->initWithEnclosingScope(fun);
   }
   return funbox;
 }
@@ -366,11 +367,11 @@ JS::Result<Ok> BinASTParserPerTokenizer<Tok>::finishLazyFunction(
   funbox->setArgCount(nargs);
   funbox->synchronizeArgCount();
 
-  BINJS_TRY_DECL(lazy,
-                 LazyScript::Create(
-                     cx_, fun, sourceObject_, pc_->closedOverBindingsForLazy(),
-                     pc_->innerFunctionBoxesForLazy, start, end, start, end,
-                     /* lineno = */ 0, start, ParseGoal::Script));
+  BINJS_TRY_DECL(lazy, LazyScript::Create(cx_, fun, sourceObject_,
+                                          pc_->closedOverBindingsForLazy(),
+                                          pc_->innerFunctionBoxesForLazy, start,
+                                          end, start, end,
+                                          /* lineno = */ 0, start));
 
   if (funbox->strict()) {
     lazy->setStrict();

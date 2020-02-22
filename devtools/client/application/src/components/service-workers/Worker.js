@@ -31,15 +31,13 @@ const {
 const FluentReact = require("devtools/client/shared/vendor/fluent-react");
 const Localized = createFactory(FluentReact.Localized);
 
-const Types = require("../../types/index");
+const {
+  services,
+} = require("devtools/client/application/src/modules/application-services");
+const Types = require("devtools/client/application/src/types/index");
 
-const UIButton = createFactory(require("../ui/UIButton"));
-
-loader.lazyRequireGetter(
-  this,
-  "gDevToolsBrowser",
-  "devtools/client/framework/devtools-browser",
-  true
+const UIButton = createFactory(
+  require("devtools/client/application/src/components/ui/UIButton")
 );
 
 /**
@@ -70,8 +68,7 @@ class Worker extends PureComponent {
       return;
     }
 
-    const { workerTargetFront } = this.props.worker;
-    gDevToolsBrowser.openWorkerToolbox(workerTargetFront);
+    services.openWorkerInDebugger(this.props.worker.workerTargetFront);
   }
 
   start() {

@@ -38,6 +38,8 @@ common-tests:
     - mochitest-remote
     - mochitest-webgl1-core
     - mochitest-webgl1-ext
+    - mochitest-webgl2-core
+    - mochitest-webgl2-ext
     - reftest
     - reftest-no-accel
     - telemetry-tests-client
@@ -48,6 +50,7 @@ common-tests:
 
 web-platform-tests:
     - web-platform-tests
+    - web-platform-tests-crashtests
     - web-platform-tests-reftests
     - web-platform-tests-wdspec
 
@@ -203,6 +206,7 @@ raptor-chrome:
     - raptor-tp6-30-chrome-cold
     - raptor-ares6-chrome
     - raptor-jetstream2-chrome
+    - raptor-youtube-playback-chrome
 
 raptor-profiling:
     - raptor-tp6-1-firefox-profiling
@@ -310,8 +314,9 @@ raptor-fetch-chromium:
     - raptor-jetstream2-chromium
 
 browsertime:
-    - browsertime-tp6-1
+    - browsertime-tp6
     - browsertime-speedometer
+    - browsertime-tp6-profiling
 
 # Raptor desktop power tests
 # (requires Intel Power Gadget to be pre-installed)
@@ -332,19 +337,52 @@ awsy-stylo-sequential:
 ##
 # Limited test sets for specific platforms
 
-linux-qr-tests:
+linux-common-tests:
+    - firefox-ui-functional-local
+    - firefox-ui-functional-remote
+    - gtest
+    - jittest
+    - jsreftest
+    - marionette
+    - mochitest
+    - mochitest-a11y
+    - mochitest-browser-chrome
+    - mochitest-chrome
+    - mochitest-devtools-chrome
+    - mochitest-media
+    - mochitest-remote
+    - mochitest-webgl1-core
+    - mochitest-webgl1-ext
+    - reftest
+    - reftest-no-accel
+    - telemetry-tests-client
+    - test-verify
+    - test-verify-gpu
+    - test-verify-wpt
+    - xpcshell
+
+# List of tests that are green on ubuntu1804 docker image.
+# See Bug 1602863 for information.
+linux1804-tests:
     - cppunit
     - crashtest
+    - mochitest-gpu
+
+linux1804-qr-tests:
+    - cppunit
+    - crashtest
+    - mochitest-gpu
+
+linux-qr-tests:
     - gtest
     - jittest
     - jsreftest
     - mochitest
     - mochitest-a11y
     - mochitest-chrome
-    - mochitest-gpu
     - mochitest-media
     - mochitest-webgl1-core
-    - mochitest-webgl1-ext
+    - mochitest-webgl2-core
     - reftest
     - xpcshell
 
@@ -362,9 +400,7 @@ windows-qr-tests:
     - mochitest-gpu
     - mochitest-media
     - mochitest-webgl1-core
-    - mochitest-webgl1-ext
     - mochitest-webgl2-core
-    - mochitest-webgl2-ext
     - reftest
 
 ccov-code-coverage-tests:
@@ -439,6 +475,7 @@ windows-aarch64-tests:
     - mochitest-webgl2-ext
     - reftest
     - web-platform-tests
+    - web-platform-tests-crashtests
     - web-platform-tests-reftests
     - xpcshell
 
@@ -464,9 +501,6 @@ windows-talos:
 marionette-gpu-tests:
     - marionette-gpu
 
-marionette-media-tests:
-    - marionette-media
-
 macosx1014-64-tests:
     - cppunit
     - crashtest
@@ -488,13 +522,14 @@ macosx1014-64-tests:
     - mochitest-webgl1-core
     - mochitest-webgl1-ext
     - mochitest-webgl2-core
-    # - mochitest-webgl2-ext test  # timeouts
+    - mochitest-webgl2-ext
     - reftest
     - telemetry-tests-client
     - test-verify
     - test-verify-gpu
     - test-verify-wpt
     - web-platform-tests
+    - web-platform-tests-crashtests
     - web-platform-tests-reftests
     - web-platform-tests-wdspec
     - xpcshell
@@ -534,9 +569,14 @@ android-x86_64-tests:
     - gtest
     - mochitest
     - mochitest-gpu
+    # - mochitest-webgl1-core # Harness issues?
+    # - mochitest-webgl1-ext
+    # - mochitest-webgl2-core # Emulator not creating ES3?
+    # - mochitest-webgl2-ext
     - reftest
     - test-verify
     - web-platform-tests
+    - web-platform-tests-crashtests
     - web-platform-tests-reftests
     - xpcshell
 
@@ -558,6 +598,9 @@ remote-tests:
 
 android-hw-arm7-opt-unittests:
     - mochitest-media
+    # - mochitest-webgl1-core
+    # - mochitest-webgl1-ext
+    # - mochitest-webgl2-core
 
 android-hw-arm7-pgo-unittests:
     - jittest
@@ -568,6 +611,9 @@ android-hw-arm7-debug-unittests:
     - jittest
     - jsreftest
     - mochitest-media
+    # - mochitest-webgl1-core
+    # - mochitest-webgl1-ext
+    # - mochitest-webgl2-core
 
 android-hw-arm7-qr:
     - crashtest
@@ -576,6 +622,8 @@ android-hw-arm7-qr:
 android-hw-arm7-raptor:
     - raptor-speedometer-geckoview
     - raptor-speedometer-refbrow
+    - raptor-speedometer-fenix
+    - raptor-speedometer-fennec68
     - raptor-youtube-playback-fenix
     - raptor-youtube-playback-geckoview
     - raptor-tp6m-1-geckoview
@@ -720,6 +768,8 @@ android-hw-arm7-raptor:
 android-hw-aarch64-raptor:
     - raptor-speedometer-geckoview
     - raptor-speedometer-refbrow
+    - raptor-speedometer-fenix
+    - raptor-speedometer-fennec68
     - raptor-youtube-playback-fenix
     - raptor-youtube-playback-geckoview
     - raptor-tp6m-1-geckoview
@@ -853,10 +903,14 @@ android-hw-aarch64-raptor:
 
 android-hw-arm7-raptor-power:
     - raptor-speedometer-geckoview-power
+    - raptor-speedometer-fenix-power
+    - raptor-speedometer-fennec68-power
     - raptor-scn-power-idle-fenix
+    - raptor-scn-power-idle-fennec68
     - raptor-scn-power-idle-geckoview
     - raptor-scn-power-idle-refbrow
     - raptor-scn-power-idle-bg-fenix
+    - raptor-scn-power-idle-bg-fennec68
     - raptor-scn-power-idle-bg-geckoview
     - raptor-scn-power-idle-bg-refbrow
 
@@ -880,10 +934,14 @@ android-hw-arm7-raptor-cpu-memory-power:
 
 android-hw-aarch64-raptor-power:
     - raptor-speedometer-geckoview-power
+    - raptor-speedometer-fenix-power
+    - raptor-speedometer-fennec68-power
     - raptor-scn-power-idle-fenix
+    - raptor-scn-power-idle-fennec68
     - raptor-scn-power-idle-geckoview
     - raptor-scn-power-idle-refbrow
     - raptor-scn-power-idle-bg-fenix
+    - raptor-scn-power-idle-bg-fennec68
     - raptor-scn-power-idle-bg-geckoview
     - raptor-scn-power-idle-bg-refbrow
 
@@ -918,7 +976,9 @@ android-hw-arm7-raptor-nightly:
     - raptor-tp6m-10-fennec68
 
 android-hw-aarch64-browsertime:
-    - browsertime-tp6m-1
+    - browsertime-tp6m
+    - browsertime-tp6m-profiling
 
 android-hw-arm7-browsertime:
-    - browsertime-tp6m-1
+    - browsertime-tp6m
+    - browsertime-tp6m-profiling

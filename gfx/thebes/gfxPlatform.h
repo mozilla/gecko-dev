@@ -15,7 +15,6 @@
 #include "nsUnicodeScriptCodes.h"
 
 #include "gfxTypes.h"
-#include "gfxFontFamilyList.h"
 #include "gfxBlur.h"
 #include "gfxSkipChars.h"
 #include "nsRect.h"
@@ -44,6 +43,7 @@ class gfxTextPerfMetrics;
 typedef struct FT_LibraryRec_* FT_Library;
 
 namespace mozilla {
+class FontFamilyList;
 namespace layers {
 class FrameStats;
 }
@@ -663,6 +663,12 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
    * Update the frame rate (called e.g. after pref changes).
    */
   static void ReInitFrameRate();
+
+  /**
+   * Update allow sacrificing subpixel AA quality setting (called after pref
+   * changes).
+   */
+  void UpdateAllowSacrificingSubpixelAA();
 
   /**
    * Used to test which input types are handled via APZ.

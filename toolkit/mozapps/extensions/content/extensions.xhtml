@@ -1,0 +1,98 @@
+<?xml version="1.0"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://mozapps/content/extensions/extensions.css"?>
+<?xml-stylesheet href="chrome://mozapps/skin/extensions/extensions.css"?>
+
+<!-- Used for the modals related to the inline options_page XUL browser -->
+<?xml-stylesheet href="chrome://global/content/tabprompts.css" type="text/css"?>
+<?xml-stylesheet href="chrome://global/skin/tabprompts.css" type="text/css"?>
+
+<!-- @CSP: Soon, about:addons will not be implemented using XUL anymore (see Bug 1558982).
+   - Until then we have to whitelist the following things:
+   - *) the extensions.webservice.discoverURL using data:, http:, and https:
+   -->
+<window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        csp="default-src chrome:; frame-src chrome: data: http: https:; script-src chrome:; object-src 'none'"
+        id="addons-page" data-l10n-id="addons-window"
+        role="application" windowtype="Addons:Manager">
+
+  <xhtml:link rel="shortcut icon"
+              href="chrome://mozapps/skin/extensions/extensionGeneric-16.svg"/>
+  <linkset>
+    <xhtml:link rel="localization" href="branding/brand.ftl"/>
+    <xhtml:link rel="localization" href="toolkit/about/aboutAddons.ftl"/>
+  </linkset>
+
+  <script src="chrome://mozapps/content/extensions/aboutaddonsCommon.js"/>
+  <script src="chrome://mozapps/content/extensions/extensions.js"/>
+  <script src="chrome://mozapps/content/extensions/abuse-report-frame.js"/>
+
+  <stack id="main-page-stack" flex="1">
+  <hbox id="main-page-content" flex="1">
+    <vbox id="category-box">
+      <!-- category list -->
+      <richlistbox id="categories" flex="1">
+        <richlistitem id="category-discover" value="addons://discover/"
+                      class="category"
+                      is="addon-category"
+                      data-l10n-id="extensions-view-discopane"
+                      data-l10n-attrs="name"
+                      priority="1000"/>
+        <richlistitem id="category-availableUpdates" value="addons://updates/available"
+                      class="category"
+                      is="addon-category"
+                      data-l10n-id="extensions-view-available-updates"
+                      data-l10n-attrs="name"
+                      hidden="true"/>
+        <richlistitem id="category-recentUpdates" value="addons://updates/recent"
+                      class="category"
+                      is="addon-category"
+                      data-l10n-id="extensions-view-recent-updates"
+                      data-l10n-attrs="name"
+                      priority="101000"
+                      hidden="true"/>
+      </richlistbox>
+
+      <spacer flex="1"/>
+
+      <hbox class="sidebar-footer-button" pack="center">
+        <label id="preferencesButton" is="text-link">
+          <hbox align="center">
+            <image class="sidebar-footer-icon preferences-icon"/>
+            <label class="sidebar-footer-label" data-l10n-id="preferences" flex="1"/>
+          </hbox>
+        </label>
+      </hbox>
+
+      <hbox class="sidebar-footer-button help-button" pack="center">
+        <label id="helpButton" is="text-link">
+          <hbox align="center">
+            <image class="sidebar-footer-icon help-icon"/>
+            <label class="sidebar-footer-label" data-l10n-id="help-button" flex="1"/>
+          </hbox>
+        </label>
+      </hbox>
+    </vbox>
+
+    <vbox class="main-content" flex="1">
+      <!-- view port -->
+      <deck id="view-port" flex="1" selectedIndex="0">
+        <!-- container for views with the search/tools header -->
+        <vbox id="headered-views" flex="1">
+          <deck id="headered-views-content" flex="1" selectedIndex="0">
+            <vbox id="html-view" flex="1">
+              <browser id="html-view-browser" type="content" flex="1" disablehistory="true"/>
+            </vbox>
+          </deck>
+        </vbox>
+      </deck>
+    </vbox>
+  </hbox>
+  <addon-abuse-report-xulframe hidden="true"></addon-abuse-report-xulframe>
+  </stack>
+</window>

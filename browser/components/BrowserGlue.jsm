@@ -41,6 +41,35 @@ const PREF_PDFJS_ENABLED_CACHE_STATE = "pdfjs.enabledCache.state";
  * available at https://firefox-source-docs.mozilla.org/dom/Fission.html#jswindowactor
  */
 let ACTORS = {
+  AboutLogins: {
+    parent: {
+      moduleURI: "resource:///actors/AboutLoginsParent.jsm",
+    },
+    child: {
+      moduleURI: "resource:///actors/AboutLoginsChild.jsm",
+      events: {
+        AboutLoginsCopyLoginDetail: { wantUntrusted: true },
+        AboutLoginsCreateLogin: { wantUntrusted: true },
+        AboutLoginsDeleteLogin: { wantUntrusted: true },
+        AboutLoginsDismissBreachAlert: { wantUntrusted: true },
+        AboutLoginsHideFooter: { wantUntrusted: true },
+        AboutLoginsImport: { wantUntrusted: true },
+        AboutLoginsInit: { wantUntrusted: true },
+        AboutLoginsGetHelp: { wantUntrusted: true },
+        AboutLoginsOpenMobileAndroid: { wantUntrusted: true },
+        AboutLoginsOpenMobileIos: { wantUntrusted: true },
+        AboutLoginsOpenPreferences: { wantUntrusted: true },
+        AboutLoginsOpenSite: { wantUntrusted: true },
+        AboutLoginsRecordTelemetryEvent: { wantUntrusted: true },
+        AboutLoginsSortChanged: { wantUntrusted: true },
+        AboutLoginsSyncEnable: { wantUntrusted: true },
+        AboutLoginsSyncOptions: { wantUntrusted: true },
+        AboutLoginsUpdateLogin: { wantUntrusted: true },
+      },
+    },
+    matches: ["about:logins", "about:logins?*"],
+  },
+
   BlockedSite: {
     parent: {
       moduleURI: "resource:///actors/BlockedSiteParent.jsm",
@@ -165,8 +194,8 @@ let ACTORS = {
       "about:newtab",
       "about:welcome",
       "chrome://browser/content/syncedtabs/sidebar.xhtml",
-      "chrome://browser/content/places/historySidebar.xul",
-      "chrome://browser/content/places/bookmarksSidebar.xul",
+      "chrome://browser/content/places/historySidebar.xhtml",
+      "chrome://browser/content/places/bookmarksSidebar.xhtml",
     ],
   },
 
@@ -279,6 +308,17 @@ let ACTORS = {
     allFrames: true,
   },
 
+  SiteSpecificBrowser: {
+    parent: {
+      moduleURI: "resource:///actors/SiteSpecificBrowserParent.jsm",
+    },
+    child: {
+      moduleURI: "resource:///actors/SiteSpecificBrowserChild.jsm",
+    },
+
+    allFrames: true,
+  },
+
   UITour: {
     parent: {
       moduleURI: "resource:///modules/UITourParent.jsm",
@@ -293,46 +333,6 @@ let ACTORS = {
 };
 
 let LEGACY_ACTORS = {
-  AboutLogins: {
-    child: {
-      matches: ["about:logins", "about:logins?*"],
-      module: "resource:///actors/AboutLoginsChild.jsm",
-      events: {
-        AboutLoginsCopyLoginDetail: { wantUntrusted: true },
-        AboutLoginsCreateLogin: { wantUntrusted: true },
-        AboutLoginsDeleteLogin: { wantUntrusted: true },
-        AboutLoginsDismissBreachAlert: { wantUntrusted: true },
-        AboutLoginsHideFooter: { wantUntrusted: true },
-        AboutLoginsImport: { wantUntrusted: true },
-        AboutLoginsInit: { wantUntrusted: true },
-        AboutLoginsGetHelp: { wantUntrusted: true },
-        AboutLoginsOpenMobileAndroid: { wantUntrusted: true },
-        AboutLoginsOpenMobileIos: { wantUntrusted: true },
-        AboutLoginsOpenPreferences: { wantUntrusted: true },
-        AboutLoginsOpenSite: { wantUntrusted: true },
-        AboutLoginsRecordTelemetryEvent: { wantUntrusted: true },
-        AboutLoginsSortChanged: { wantUntrusted: true },
-        AboutLoginsSyncEnable: { wantUntrusted: true },
-        AboutLoginsSyncOptions: { wantUntrusted: true },
-        AboutLoginsUpdateLogin: { wantUntrusted: true },
-      },
-      messages: [
-        "AboutLogins:AllLogins",
-        "AboutLogins:LoginAdded",
-        "AboutLogins:LoginModified",
-        "AboutLogins:LoginRemoved",
-        "AboutLogins:MasterPasswordAuthRequired",
-        "AboutLogins:MasterPasswordResponse",
-        "AboutLogins:SendFavicons",
-        "AboutLogins:SetBreaches",
-        "AboutLogins:Setup",
-        "AboutLogins:ShowLoginItemError",
-        "AboutLogins:SyncState",
-        "AboutLogins:UpdateBreaches",
-      ],
-    },
-  },
-
   AboutReader: {
     child: {
       module: "resource:///actors/AboutReaderChild.jsm",
@@ -515,6 +515,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   BookmarkHTMLUtils: "resource://gre/modules/BookmarkHTMLUtils.jsm",
   BookmarkJSONUtils: "resource://gre/modules/BookmarkJSONUtils.jsm",
   BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.jsm",
+  BrowserUtils: "resource://gre/modules/BrowserUtils.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
   ContextualIdentityService:
     "resource://gre/modules/ContextualIdentityService.jsm",
@@ -1108,10 +1109,6 @@ BrowserGlue.prototype = {
     os.removeObserver(this, "shield-init-complete");
 
     Services.prefs.removeObserver(
-      "permissions.eventTelemetry.enabled",
-      this._togglePermissionPromptTelemetry
-    );
-    Services.prefs.removeObserver(
       "privacy.trackingprotection",
       this._matchCBCategory
     );
@@ -1151,7 +1148,7 @@ BrowserGlue.prototype = {
     if (Services.appinfo.inSafeMode) {
       Services.ww.openWindow(
         null,
-        "chrome://browser/content/safeMode.xul",
+        "chrome://browser/content/safeMode.xhtml",
         "_blank",
         "chrome,centerscreen,modal,resizable=no",
         null
@@ -1657,30 +1654,16 @@ BrowserGlue.prototype = {
     ContentBlockingCategoriesPrefs.updateCBCategory();
   },
 
-  _togglePermissionPromptTelemetry() {
-    let enablePermissionPromptTelemetry = Services.prefs.getBoolPref(
-      "permissions.eventTelemetry.enabled",
-      false
-    );
-
-    Services.telemetry.setEventRecordingEnabled(
-      "security.ui.permissionprompt",
-      enablePermissionPromptTelemetry
-    );
-
-    if (!enablePermissionPromptTelemetry) {
-      // Remove the saved unique identifier to reduce the (remote) chance
-      // of leaking it to our servers in the future.
-      Services.prefs.clearUserPref("permissions.eventTelemetry.uuid");
-    }
-  },
-
   _recordContentBlockingTelemetry() {
     Services.telemetry.setEventRecordingEnabled(
       "security.ui.protectionspopup",
       Services.prefs.getBoolPref(
         "security.protectionspopup.recordEventTelemetry"
       )
+    );
+    Services.telemetry.setEventRecordingEnabled(
+      "security.ui.app_menu",
+      Services.prefs.getBoolPref("security.app_menu.recordEventTelemetry")
     );
 
     let tpEnabled = Services.prefs.getBoolPref(
@@ -1940,7 +1923,7 @@ BrowserGlue.prototype = {
 
       Services.ww.openWindow(
         win,
-        "chrome://browser/content/newInstall.xul",
+        "chrome://browser/content/newInstall.xhtml",
         "_blank",
         "chrome,modal,resizable=no,centerscreen",
         null
@@ -2044,14 +2027,6 @@ BrowserGlue.prototype = {
       Discovery.update();
     });
 
-    Services.tm.idleDispatchToMainThread(() => {
-      Services.prefs.addObserver(
-        "permissions.eventTelemetry.enabled",
-        this._togglePermissionPromptTelemetry
-      );
-      this._togglePermissionPromptTelemetry();
-    });
-
     // Begin listening for incoming push messages.
     Services.tm.idleDispatchToMainThread(() => {
       try {
@@ -2075,6 +2050,14 @@ BrowserGlue.prototype = {
 
     Services.tm.idleDispatchToMainThread(() => {
       this._recordDataSanitizationPrefs();
+    });
+
+    Services.tm.idleDispatchToMainThread(() => {
+      let siteSpecific = Services.prefs.getBoolPref(
+        "browser.zoom.siteSpecific",
+        false
+      );
+      Services.telemetry.scalarSet("a11y.sitezoom", siteSpecific);
     });
 
     // Load the Login Manager data from disk off the main thread, some time
@@ -2189,6 +2172,34 @@ BrowserGlue.prototype = {
       Services.tm.idleDispatchToMainThread(() => {
         Services.obs.notifyObservers(null, "remote-startup-requested");
       });
+    }
+
+    // Temporary for Delegated Credentials Study:
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1582591
+    // Disable in automation and non-nightly builds.
+    if (!Cu.isInAutomation && AppConstants.NIGHTLY_BUILD) {
+      let env = Cc["@mozilla.org/process/environment;1"].getService(
+        Ci.nsIEnvironment
+      );
+
+      // Disable under xpcshell-test.
+      if (!env.exists("XPCSHELL_TEST_PROFILE_DIR")) {
+        let { DelegatedCredsExperiment } = ChromeUtils.import(
+          "resource:///modules/DelegatedCredsExperiment.jsm"
+        );
+
+        let currentDate = new Date();
+        let expiryDate = new Date("2020-01-10 0:00:00");
+        if (currentDate < expiryDate) {
+          Services.tm.idleDispatchToMainThread(() => {
+            DelegatedCredsExperiment.runTest();
+          });
+        } else {
+          Services.tm.idleDispatchToMainThread(() => {
+            DelegatedCredsExperiment.uninstall();
+          });
+        }
+      }
     }
 
     // Marionette needs to be initialized as very last step
@@ -2796,7 +2807,7 @@ BrowserGlue.prototype = {
   _migrateUI: function BG__migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 89;
+    const UI_VERSION = 91;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     if (!Services.prefs.prefHasUserValue("browser.migration.version")) {
@@ -3246,6 +3257,44 @@ BrowserGlue.prototype = {
       );
     }
 
+    if (currentUIVersion < 90) {
+      this._migrateXULStoreForDocument(
+        "chrome://browser/content/places/historySidebar.xul",
+        "chrome://browser/content/places/historySidebar.xhtml"
+      );
+      this._migrateXULStoreForDocument(
+        "chrome://browser/content/places/places.xul",
+        "chrome://browser/content/places/places.xhtml"
+      );
+      this._migrateXULStoreForDocument(
+        "chrome://browser/content/places/bookmarksSidebar.xul",
+        "chrome://browser/content/places/bookmarksSidebar.xhtml"
+      );
+    }
+
+    // Clear socks proxy values if they were shared from http, to prevent
+    // websocket breakage after bug 1577862 (see bug 969282).
+    if (
+      currentUIVersion < 91 &&
+      Services.prefs.getBoolPref("network.proxy.share_proxy_settings", false) &&
+      Services.prefs.getIntPref("network.proxy.type", 0) == 1
+    ) {
+      let httpProxy = Services.prefs.getCharPref("network.proxy.http", "");
+      let httpPort = Services.prefs.getIntPref("network.proxy.http_port", 0);
+      let socksProxy = Services.prefs.getCharPref("network.proxy.socks", "");
+      let socksPort = Services.prefs.getIntPref("network.proxy.socks_port", 0);
+      if (httpProxy && httpProxy == socksProxy && httpPort == socksPort) {
+        Services.prefs.setCharPref(
+          "network.proxy.socks",
+          Services.prefs.getCharPref("network.proxy.backup.socks", "")
+        );
+        Services.prefs.setIntPref(
+          "network.proxy.socks_port",
+          Services.prefs.getIntPref("network.proxy.backup.socks_port", 0)
+        );
+      }
+    }
+
     // Update the migration version.
     Services.prefs.setIntPref("browser.migration.version", UI_VERSION);
   },
@@ -3513,9 +3562,7 @@ BrowserGlue.prototype = {
         // same way that the url bar would.
         body = URIs[0].uri.replace(/([?#]).*$/, "$1");
         let wasTruncated = body.length < URIs[0].uri.length;
-        if (win.gURLBar) {
-          body = win.gURLBar.trimValue(body);
-        }
+        body = BrowserUtils.trimURL(body);
         if (wasTruncated) {
           body = bundle.formatStringFromName(
             "singleTabArrivingWithTruncatedURL.body",
@@ -4002,6 +4049,9 @@ const ContentPermissionIntegration = {
     switch (type) {
       case "geolocation": {
         return new PermissionUI.GeolocationPermissionPrompt(request);
+      }
+      case "xr": {
+        return new PermissionUI.XRPermissionPrompt(request);
       }
       case "desktop-notification": {
         return new PermissionUI.DesktopNotificationPermissionPrompt(request);

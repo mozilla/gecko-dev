@@ -34,6 +34,14 @@ XPCOMUtils.defineLazyPreferenceGetter(
   getTrailheadConfigFromPref
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "useReleaseSnippets",
+  "browser.newtabpage.activity-stream.asrouter.useReleaseSnippets",
+  false,
+  null
+);
+
 const DEFAULT_STATE = {
   _initialized: false,
   _providers: null,
@@ -173,6 +181,10 @@ class _ASRouterPreferences {
     return this._devtoolsEnabled;
   }
 
+  get useReleaseSnippets() {
+    return useReleaseSnippets;
+  }
+
   observe(aSubject, aTopic, aPrefName) {
     if (aPrefName && aPrefName.startsWith(this._providerPrefBranch)) {
       this._providers = null;
@@ -183,11 +195,9 @@ class _ASRouterPreferences {
     this._callbacks.forEach(cb => cb(aPrefName));
   }
 
-  getUserPreference(providerId) {
-    if (!USER_PREFERENCES[providerId]) {
-      return null;
-    }
-    return Services.prefs.getBoolPref(USER_PREFERENCES[providerId], true);
+  getUserPreference(name) {
+    const prefName = USER_PREFERENCES[name] || name;
+    return Services.prefs.getBoolPref(prefName, true);
   }
 
   getAllUserPreferences() {

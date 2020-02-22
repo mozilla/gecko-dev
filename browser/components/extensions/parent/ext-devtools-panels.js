@@ -20,7 +20,7 @@ var { IconDetails, watchExtensionProxyContextLoad } = ExtensionParent;
 
 var { promiseDocumentLoaded } = ExtensionUtils;
 
-const WEBEXT_PANELS_URL = "chrome://browser/content/webext-panels.xul";
+const WEBEXT_PANELS_URL = "chrome://browser/content/webext-panels.xhtml";
 
 class BaseDevToolsPanel {
   constructor(context, panelOptions) {
@@ -447,7 +447,7 @@ class ParentDevToolsInspectorSidebar extends BaseDevToolsPanel {
   onExtensionPageMount(containerEl) {
     this.containerEl = containerEl;
 
-    // Wait the webext-panel.xul page to have been loaded in the
+    // Wait the webext-panel.xhtml page to have been loaded in the
     // inspector sidebar panel.
     promiseDocumentLoaded(containerEl.contentDocument).then(() => {
       this.createBrowserElement(containerEl.contentWindow);
@@ -657,11 +657,12 @@ this.devtools_panels = class extends ExtensionAPI {
                 }
 
                 const front = await waitForInspectedWindowFront;
+                const toolboxEvalOptions = await getToolboxEvalOptions(context);
                 const evalOptions = Object.assign(
                   {
                     evalResultAsGrip: true,
                   },
-                  getToolboxEvalOptions(context)
+                  toolboxEvalOptions
                 );
                 const evalResult = await front.eval(
                   callerInfo,

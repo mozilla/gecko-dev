@@ -2562,7 +2562,7 @@ var DownloadAddonInstall = class extends AddonInstall {
       );
       let prompt = factory.getPrompt(win, Ci.nsIAuthPrompt2);
 
-      if (this.browser && prompt instanceof Ci.nsILoginManagerPrompter) {
+      if (this.browser && prompt instanceof Ci.nsILoginManagerAuthPrompter) {
         prompt.browser = this.browser;
       }
 
@@ -2899,17 +2899,12 @@ UpdateChecker.prototype = {
       );
     }
 
-    let compatOverrides = AddonManager.strictCompatibility
-      ? null
-      : await AddonRepository.getCompatibilityOverrides(this.addon.id);
-
     let update = await AUC.getNewestCompatibleUpdate(
       aUpdates,
       this.appVersion,
       this.platformVersion,
       ignoreMaxVersion,
-      ignoreStrictCompat,
-      compatOverrides
+      ignoreStrictCompat
     );
 
     if (

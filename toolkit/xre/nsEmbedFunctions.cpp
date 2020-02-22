@@ -17,15 +17,14 @@
 
 #include "nsIAppShell.h"
 #include "nsAppStartupNotifier.h"
-#include "nsIDirectoryService.h"
 #include "nsIFile.h"
-#include "nsIToolkitChromeRegistry.h"
 #include "nsIToolkitProfile.h"
 
 #ifdef XP_WIN
 #  include <process.h>
 #  include <shobjidl.h>
 #  include "mozilla/ipc/WindowsMessageLoop.h"
+#  include "mozilla/WinDllServices.h"
 #endif
 
 #include "nsAppDirectoryServiceDefs.h"
@@ -131,6 +130,10 @@ using mozilla::_ipdltest::IPDLUnitTestProcessChild;
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
 #  include "mozilla/sandboxing/SandboxInitialization.h"
 #  include "mozilla/sandboxing/sandboxLogging.h"
+#endif
+
+#if defined(MOZ_ENABLE_FORKSERVER)
+#  include "mozilla/ipc/ForkServer.h"
 #endif
 
 #include "VRProcessChild.h"
@@ -264,7 +267,8 @@ void XRE_SetAndroidChildFds(JNIEnv* env, const XRE_AndroidChildFds& fds) {
 
 void XRE_SetProcessType(const char* aProcessTypeString) {
   static bool called = false;
-  if (called) {
+  if (called &&
+      sChildProcessType != GeckoProcessType_ForkServer) {
     MOZ_CRASH();
   }
   called = true;
@@ -582,8 +586,7 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
 #  endif
     printf_stderr(
         "\n\nCHILDCHILDCHILDCHILD (process type %s)\n  debug me @ %d\n\n",
-        XRE_GeckoProcessTypeToString(XRE_GetProcessType()),
-        base::GetCurrentProcId());
+        XRE_GetProcessTypeString(), base::GetCurrentProcId());
     sleep(GetDebugChildPauseTime());
   }
 #elif defined(OS_WIN)
@@ -594,8 +597,7 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
   } else if (PR_GetEnv("MOZ_DEBUG_CHILD_PAUSE")) {
     printf_stderr(
         "\n\nCHILDCHILDCHILDCHILD (process type %s)\n  debug me @ %d\n\n",
-        XRE_GeckoProcessTypeToString(XRE_GetProcessType()),
-        base::GetCurrentProcId());
+        XRE_GetProcessTypeString(), base::GetCurrentProcId());
     ::Sleep(GetDebugChildPauseTime());
   }
 #endif
@@ -732,6 +734,12 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
           process = new RemoteSandboxBrokerProcessChild(parentPID);
           break;
 #endif
+
+#if defined(MOZ_ENABLE_FORKSERVER)
+        case GeckoProcessType_ForkServer:
+          MOZ_CRASH("Fork server should not go here");
+          break;
+#endif
         default:
           MOZ_CRASH("Unknown main thread class");
       }
@@ -745,6 +753,10 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
       // chrome process is killed in cases where the user shuts the system
       // down or logs off.
       ::SetProcessShutdownParameters(0x280 - 1, SHUTDOWN_NORETRY);
+
+      RefPtr<DllServices> dllSvc(DllServices::Get());
+      auto dllSvcDisable =
+          MakeScopeExit([&dllSvc]() { dllSvc->DisableFull(); });
 #endif
 
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
@@ -1025,5 +1037,11 @@ void XRE_InstallX11ErrorHandler() {
 #  else
   InstallX11ErrorHandler();
 #  endif
+}
+#endif
+
+#ifdef MOZ_ENABLE_FORKSERVER
+int XRE_ForkServer(int* aArgc, char*** aArgv) {
+  return mozilla::ipc::ForkServer::RunForkServer(aArgc, aArgv) ? 1 : 0;
 }
 #endif

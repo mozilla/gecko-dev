@@ -14,11 +14,6 @@ const TEST_URL =
   "</body>";
 
 addRDMTask(TEST_URL, async function({ ui, manager }) {
-  // Turn on the pref that allows meta viewport support.
-  await SpecialPowers.pushPrefEnv({
-    set: [["devtools.responsive.metaViewport.enabled", true]],
-  });
-
   const store = ui.toolWindow.store;
 
   // Wait until the viewport has been added.
@@ -38,7 +33,7 @@ addRDMTask(TEST_URL, async function({ ui, manager }) {
     },
     {
       metaSupport: true,
-      before: [0.5, 600, 1200],
+      before: [0.5, 300, 600],
       after: [1.0, 600, 300],
     },
   ];

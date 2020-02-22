@@ -499,6 +499,10 @@ html #webconsole-notificationbox {
   fill: var(--theme-icon-checked-color);
 }
 
+.eager-evaluation-result * {
+  color: var(--theme-comment) !important;
+}
+
 .webconsole-app .cm-auto-complete-shadow-text::after {
   content: attr(title);
   color: var(--theme-comment);
@@ -943,6 +947,14 @@ a.learn-more-link.webconsole-learn-more-link {
   margin-top: -1px;
   -moz-context-properties: fill;
   fill: var(--theme-icon-dimmed-color);
+}
+
+/* In RTL the tree arrows should usually point to the left, but in
+   this context it should point to the right.
+   This overrides the rule from other stylesheets that does the opposite. */
+.webconsole-app .tree .arrow:dir(rtl),
+.webconsole-app .object-inspector .tree-node .arrow:dir(rtl) {
+  transform: rotate(-90deg);
 }
 
 .webconsole-app .tree .arrow.expanded,

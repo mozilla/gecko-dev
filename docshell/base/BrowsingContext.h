@@ -17,6 +17,7 @@
 #include "mozilla/dom/LoadURIOptionsBinding.h"
 #include "mozilla/dom/LocationBase.h"
 #include "mozilla/dom/FeaturePolicyUtils.h"
+#include "mozilla/dom/SessionStorageManager.h"
 #include "mozilla/dom/UserActivation.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -72,6 +73,10 @@ class BrowsingContextBase {
   }
   ~BrowsingContextBase() = default;
 
+  // This defines the default do-nothing implementations for DidSetXxxx()
+  // and MaySetXxxxx() for all the fields in
+  // mozilla/dom/BrowsingContextFieldList.h.  See below for descriptions
+  // of what these do if overridden.
 #define MOZ_BC_FIELD(name, type)                                    \
   type m##name;                                                     \
                                                                     \
@@ -226,7 +231,6 @@ class BrowsingContext : public nsISupports,
     MOZ_ASSERT_IF(mParent, mParent->mType == mType);
     return mParent;
   }
-
   BrowsingContext* Top();
 
   already_AddRefed<BrowsingContext> GetOpener() const {
@@ -273,6 +277,18 @@ class BrowsingContext : public nsISupports,
   bool InRDMPane() { return mInRDMPane; }
 
   bool IsLoading();
+
+  // ScreenOrientation related APIs
+  void SetCurrentOrientation(OrientationType aType, float aAngle) {
+    SetCurrentOrientationType(aType);
+    SetCurrentOrientationAngle(aAngle);
+  }
+
+  void SetRDMPaneOrientation(OrientationType aType, float aAngle) {
+    if (mInRDMPane) {
+      SetCurrentOrientation(aType, aAngle);
+    }
+  }
 
   // Using the rules for choosing a browsing context we try to find
   // the browsing context with the given name in the set of
@@ -444,6 +460,14 @@ class BrowsingContext : public nsISupports,
     bool mValidated = false;
   };
 
+  // Every BrowsingContext has a set of GetXxxx() and SetXxxxx() methods for
+  // all the fields defined in mozilla/dom/BrowsingContextFieldList.h.
+  // They all have optional DidSetXxxx() and MaySetXxxx() methods, which
+  // have default inherited do-nothing implementations, but we can override
+  // here.  DidSetXxxx() is used to run code in any process that sees the
+  // the value updated (note: even if the value itself didn't change).
+  // MaySetXxxx() is used to verify that the setting is allowed, and will
+  // assert if it fails in Debug builds.
 #define MOZ_BC_FIELD(name, type)                        \
   template <typename... Args>                           \
   void Set##name(Args&&... aValue) {                    \
@@ -491,6 +515,13 @@ class BrowsingContext : public nsISupports,
   // page has been loaded or if a timeout has fired.
   // Must be called only on the top level BrowsingContext.
   void AddDeprioritizedLoadRunner(nsIRunnable* aRunner);
+
+  RefPtr<SessionStorageManager> GetSessionStorageManager();
+
+  Type GetType() const { return mType; }
+
+  bool PendingInitialization() const { return mPendingInitialization; };
+  void SetPendingInitialization(bool aVal) { mPendingInitialization = aVal; };
 
  protected:
   virtual ~BrowsingContext();
@@ -560,6 +591,8 @@ class BrowsingContext : public nsISupports,
   // volume of all media elements.
   void DidSetMuted();
 
+  void DidSetAncestorLoading();
+
   bool MaySetEmbedderInnerWindowId(const uint64_t& aValue,
                                    ContentParent* aSource);
 
@@ -617,6 +650,10 @@ class BrowsingContext : public nsISupports,
   // process, and might have remote window proxies that need to be cleaned up.
   bool mDanglingRemoteOuterProxies : 1;
 
+  // If true, the docShell has not been fully initialized, and may not be used
+  // as the target of a load.
+  bool mPendingInitialization : 1;
+
   // The start time of user gesture, this is only available if the browsing
   // context is in process.
   TimeStamp mUserGestureStart;
@@ -642,6 +679,8 @@ class BrowsingContext : public nsISupports,
   };
 
   mozilla::LinkedList<DeprioritizedLoadRunner> mDeprioritizedLoadRunner;
+
+  RefPtr<dom::SessionStorageManager> mSessionStorageManager;
 };
 
 /**

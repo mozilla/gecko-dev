@@ -17,6 +17,7 @@
 #include "mozilla/Encoding.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/HTMLEditor.h"
+#include "mozilla/dom/ImageTracker.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Helpers.h"
 #include "mozilla/gfx/PathHelpers.h"
@@ -48,7 +49,6 @@
 #include "nsTransform2D.h"
 #include "nsImageMap.h"
 #include "nsILoadGroup.h"
-#include "nsISupportsPriority.h"
 #include "nsNetUtil.h"
 #include "nsNetCID.h"
 #include "nsCSSRendering.h"
@@ -271,12 +271,11 @@ void nsImageFrame::DestroyFrom(nsIFrame* aDestructRoot,
     // deregister with our refresh driver.
     imageLoader->FrameDestroyed(this);
     imageLoader->RemoveNativeObserver(mListener);
-  } else {
-    if (mContentURLRequest) {
-      nsLayoutUtils::DeregisterImageRequest(PresContext(), mContentURLRequest,
-                                            &mContentURLRequestRegistered);
-      mContentURLRequest->Cancel(NS_BINDING_ABORTED);
-    }
+  } else if (mContentURLRequest) {
+    PresContext()->Document()->ImageTracker()->Remove(mContentURLRequest);
+    nsLayoutUtils::DeregisterImageRequest(PresContext(), mContentURLRequest,
+                                          &mContentURLRequestRegistered);
+    mContentURLRequest->Cancel(NS_BINDING_ABORTED);
   }
 
   // set the frame to null so we don't send messages to a dead object.
@@ -334,7 +333,9 @@ void nsImageFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
 
   mListener = new nsImageListener(this);
 
-  if (!gIconLoad) LoadIcons(PresContext());
+  if (!gIconLoad) {
+    LoadIcons(PresContext());
+  }
 
   if (mKind == Kind::ImageElement) {
     nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(aContent);
@@ -363,11 +364,12 @@ void nsImageFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
       contentIndex = static_cast<GeneratedImageContent*>(aContent)->Index();
     }
     MOZ_RELEASE_ASSERT(contentIndex < styleContent->ContentCount());
-    MOZ_RELEASE_ASSERT(styleContent->ContentAt(contentIndex).GetType() ==
-                       StyleContentType::Image);
-    if (auto* proxy = styleContent->ContentAt(contentIndex).GetImage()) {
-      proxy->Clone(mListener, mContent->OwnerDoc(),
-                   getter_AddRefs(mContentURLRequest));
+    MOZ_RELEASE_ASSERT(styleContent->ContentAt(contentIndex).IsUrl());
+    auto& url = const_cast<StyleComputedUrl&>(
+        styleContent->ContentAt(contentIndex).AsUrl());
+    Document* doc = PresContext()->Document();
+    if (RefPtr<imgRequestProxy> proxy = url.LoadImage(*doc)) {
+      proxy->Clone(mListener, doc, getter_AddRefs(mContentURLRequest));
       SetupForContentURLRequest();
     }
   }
@@ -391,6 +393,9 @@ void nsImageFrame::SetupForContentURLRequest() {
   if (!mContentURLRequest) {
     return;
   }
+
+  // We're not using nsStyleImageRequest, so manually track the image.
+  PresContext()->Document()->ImageTracker()->Add(mContentURLRequest);
 
   uint32_t status = 0;
   nsresult rv = mContentURLRequest->GetImageStatus(&status);
@@ -1562,14 +1567,10 @@ ImgDrawResult nsImageFrame::DisplayAltFeedbackWithoutLayer(
       inner, PresContext()->AppUnitsPerDevPixel());
   auto wrBounds = wr::ToLayoutRect(bounds);
 
-  // Draw image
-  ImgDrawResult result = ImgDrawResult::NOT_READY;
-
   // Check if we should display image placeholders
-  if (!ShouldShowBrokenImageIcon() || !gIconLoad->mPrefShowPlaceholders ||
-      (isLoading && !gIconLoad->mPrefShowLoadingPlaceholder)) {
-    result = ImgDrawResult::SUCCESS;
-  } else {
+  if (ShouldShowBrokenImageIcon() && gIconLoad->mPrefShowPlaceholders &&
+      (!isLoading || gIconLoad->mPrefShowLoadingPlaceholder)) {
+    ImgDrawResult result = ImgDrawResult::NOT_READY;
     nscoord size = nsPresContext::CSSPixelsToAppUnits(ICON_SIZE);
     imgIRequest* request = isLoading ? nsImageFrame::gIconLoad->mLoadingImage
                                      : nsImageFrame::gIconLoad->mBrokenImage;

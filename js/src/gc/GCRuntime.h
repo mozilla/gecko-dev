@@ -32,6 +32,7 @@ class AutoLockGCBgAlloc;
 class AutoLockHelperThreadState;
 class FinalizationGroupObject;
 class VerifyPreTracer;
+class WeakRefObject;
 class ZoneAllocator;
 
 namespace gc {
@@ -173,16 +174,15 @@ class SweepMarkTask : public GCParallelTaskHelper<SweepMarkTask> {
 
 template <typename F>
 struct Callback {
-  MainThreadOrGCTaskData<F> op;
-  MainThreadOrGCTaskData<void*> data;
+  F op;
+  void* data;
 
   Callback() : op(nullptr), data(nullptr) {}
   Callback(F op, void* data) : op(op), data(data) {}
 };
 
 template <typename F>
-using CallbackVector =
-    MainThreadData<Vector<Callback<F>, 4, SystemAllocPolicy>>;
+using CallbackVector = Vector<Callback<F>, 4, SystemAllocPolicy>;
 
 template <typename T, typename Iter0, typename Iter1>
 class ChainedIter {
@@ -249,6 +249,7 @@ class ZoneList {
 };
 
 void SweepFinalizationGroups(GCParallelTask* task);
+void SweepWeakRefs(GCParallelTask* task);
 
 class GCRuntime {
   friend GCMarker::MarkQueueProgress GCMarker::processMarkQueue();
@@ -551,6 +552,12 @@ class GCRuntime {
 
   void mergeRealms(JS::Realm* source, JS::Realm* target);
 
+  // WeakRefs
+  bool registerWeakRef(HandleObject target, HandleObject weakRef);
+  bool unregisterWeakRef(JSContext* cx, JSObject* target,
+                         js::WeakRefObject* weakRef);
+  void traceKeptObjects(JSTracer* trc);
+
  private:
   enum IncrementalResult { ResetIncremental = 0, Ok };
 
@@ -694,6 +701,8 @@ class GCRuntime {
   void sweepFinalizationGroups(Zone* zone);
   friend void SweepFinalizationGroups(GCParallelTask* task);
   void queueFinalizationGroupForCleanup(FinalizationGroupObject* group);
+  void sweepWeakRefs(Zone* zone);
+  friend void SweepWeakRefs(GCParallelTask* task);
   IncrementalProgress endSweepingSweepGroup(JSFreeOp* fop, SliceBudget& budget);
   IncrementalProgress performSweepActions(SliceBudget& sliceBudget);
   IncrementalProgress sweepTypeInformation(JSFreeOp* fop, SliceBudget& budget);
@@ -742,9 +751,11 @@ class GCRuntime {
                                               const AutoLockGC& lock);
   void finishCollection();
 
+#ifdef JS_GC_ZEAL
   void computeNonIncrementalMarkingForValidation(AutoGCSession& session);
   void validateIncrementalMarking();
   void finishMarkingValidation();
+#endif
 
 #ifdef DEBUG
   void checkForCompartmentMismatches();
@@ -1057,14 +1068,16 @@ class GCRuntime {
 
   MainThreadData<uint32_t> gcCallbackDepth;
 
-  Callback<JSGCCallback> gcCallback;
-  Callback<JS::DoCycleCollectionCallback> gcDoCycleCollectionCallback;
-  Callback<JSObjectsTenuredCallback> tenuredCallback;
-  CallbackVector<JSFinalizeCallback> finalizeCallbacks;
-  Callback<JSHostCleanupFinalizationGroupCallback>
+  MainThreadData<Callback<JSGCCallback>> gcCallback;
+  MainThreadData<Callback<JS::DoCycleCollectionCallback>>
+      gcDoCycleCollectionCallback;
+  MainThreadData<Callback<JSObjectsTenuredCallback>> tenuredCallback;
+  MainThreadData<CallbackVector<JSFinalizeCallback>> finalizeCallbacks;
+  MainThreadOrGCTaskData<Callback<JSHostCleanupFinalizationGroupCallback>>
       hostCleanupFinalizationGroupCallback;
-  CallbackVector<JSWeakPointerZonesCallback> updateWeakPointerZonesCallbacks;
-  CallbackVector<JSWeakPointerCompartmentCallback>
+  MainThreadData<CallbackVector<JSWeakPointerZonesCallback>>
+      updateWeakPointerZonesCallbacks;
+  MainThreadData<CallbackVector<JSWeakPointerCompartmentCallback>>
       updateWeakPointerCompartmentCallbacks;
 
   /*
@@ -1073,8 +1086,8 @@ class GCRuntime {
    * roots. The black/gray distinction is only relevant to the cycle
    * collector.
    */
-  CallbackVector<JSTraceDataOp> blackRootTracers;
-  Callback<JSTraceDataOp> grayRootTracer;
+  MainThreadData<CallbackVector<JSTraceDataOp>> blackRootTracers;
+  MainThreadOrGCTaskData<Callback<JSTraceDataOp>> grayRootTracer;
 
   /* Always preserve JIT code during GCs, for testing. */
   MainThreadData<bool> alwaysPreserveCode;

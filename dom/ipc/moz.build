@@ -40,6 +40,7 @@ EXPORTS.mozilla.dom += [
     'BrowserChild.h',
     'BrowserHost.h',
     'BrowserParent.h',
+    'ClonedErrorHolder.h',
     'CoalescedInputData.h',
     'CoalescedMouseData.h',
     'CoalescedWheelData.h',
@@ -91,6 +92,7 @@ UNIFIED_SOURCES += [
     'BrowserChild.cpp',
     'BrowserHost.cpp',
     'BrowserParent.cpp',
+    'ClonedErrorHolder.cpp',
     'CoalescedMouseData.cpp',
     'CoalescedWheelData.cpp',
     'ColorPickerParent.cpp',
@@ -133,14 +135,14 @@ SOURCES += [
 ]
 
 PREPROCESSED_IPDL_SOURCES += [
+    'PBrowser.ipdl',
+    'PBrowserBridge.ipdl',
     'PContent.ipdl',
 ]
 
 IPDL_SOURCES += [
     'DOMTypes.ipdlh',
     'MemoryReportTypes.ipdlh',
-    'PBrowser.ipdl',
-    'PBrowserBridge.ipdl',
     'PBrowserOrId.ipdlh',
     'PColorPicker.ipdl',
     'PContentPermission.ipdlh',

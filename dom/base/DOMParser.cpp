@@ -12,14 +12,13 @@
 #include "SystemPrincipal.h"
 #include "nsIStreamListener.h"
 #include "nsStringStream.h"
-#include "nsIScriptError.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsCRT.h"
 #include "nsStreamUtils.h"
 #include "nsContentUtils.h"
 #include "nsDOMJSUtils.h"
 #include "nsError.h"
 #include "nsPIDOMWindow.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/NullPrincipal.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -107,7 +106,7 @@ already_AddRefed<Document> DOMParser::ParseFromSafeString(const nsAString& aStr,
   // new document with the system principal, then the new document will be
   // placed in the same docGroup as the chrome document.
   nsCOMPtr<nsIPrincipal> docPrincipal = mPrincipal;
-  if (!nsContentUtils::IsSystemPrincipal(mPrincipal)) {
+  if (!mPrincipal->IsSystemPrincipal()) {
     mPrincipal = SystemPrincipal::Create();
   }
 
@@ -250,7 +249,7 @@ already_AddRefed<DOMParser> DOMParser::Constructor(const GlobalObject& aOwner,
   nsCOMPtr<nsIPrincipal> docPrincipal = aOwner.GetSubjectPrincipal();
   nsCOMPtr<nsIURI> documentURI;
   nsIURI* baseURI = nullptr;
-  if (nsContentUtils::IsSystemPrincipal(docPrincipal)) {
+  if (docPrincipal->IsSystemPrincipal()) {
     docPrincipal = NullPrincipal::CreateWithoutOriginAttributes();
     docPrincipal->GetURI(getter_AddRefs(documentURI));
   } else {

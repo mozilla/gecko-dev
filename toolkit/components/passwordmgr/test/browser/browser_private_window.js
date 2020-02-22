@@ -19,7 +19,7 @@ async function focusWindow(win) {
 
 function getDialogDoc() {
   // Trudge through all the open windows, until we find the one
-  // that has either commonDialog.xul or selectDialog.xul loaded.
+  // that has either commonDialog.xhtml or selectDialog.xhtml loaded.
   // var enumerator = Services.wm.getEnumerator("navigator:browser");
   for (let { docShell } of Services.wm.getEnumerator(null)) {
     var containedDocShells = docShell.getAllDocShellsInSubtree(
@@ -34,8 +34,9 @@ function getDialogDoc() {
       }
       var childDoc = childDocShell.contentViewer.DOMDocument;
       if (
-        childDoc.location.href != "chrome://global/content/commonDialog.xul" &&
-        childDoc.location.href != "chrome://global/content/selectDialog.xul"
+        childDoc.location.href !=
+          "chrome://global/content/commonDialog.xhtml" &&
+        childDoc.location.href != "chrome://global/content/selectDialog.xhtml"
       ) {
         continue;
       }
@@ -703,16 +704,20 @@ add_task(async function test_normal_http_basic_auth() {
       ok(true, "Auth-required page loaded");
 
       // verify result in the response document
-      let fieldValues = await ContentTask.spawn(browser, [], async function() {
-        let username = content.document.getElementById("user").textContent;
-        let password = content.document.getElementById("pass").textContent;
-        let ok = content.document.getElementById("ok").textContent;
-        return {
-          username,
-          password,
-          ok,
-        };
-      });
+      let fieldValues = await SpecialPowers.spawn(
+        browser,
+        [[]],
+        async function() {
+          let username = content.document.getElementById("user").textContent;
+          let password = content.document.getElementById("pass").textContent;
+          let ok = content.document.getElementById("ok").textContent;
+          return {
+            username,
+            password,
+            ok,
+          };
+        }
+      );
       is(fieldValues.ok, "PASS", "Checking authorization passed");
       is(fieldValues.username, "test", "Checking authorized username");
       is(fieldValues.password, "testpass", "Checking authorized password");

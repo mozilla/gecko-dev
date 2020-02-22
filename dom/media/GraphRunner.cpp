@@ -22,8 +22,6 @@ GraphRunner::GraphRunner(MediaTrackGraphImpl* aGraph,
     : Runnable("GraphRunner"),
       mMonitor("GraphRunner::mMonitor"),
       mGraph(aGraph),
-      mStateEnd(0),
-      mStillProcessing(true),
       mThreadState(ThreadState::Wait),
       mThread(aThread) {
   mThread->Dispatch(do_AddRef(this));
@@ -58,12 +56,13 @@ void GraphRunner::Shutdown() {
   mThread->Shutdown();
 }
 
-bool GraphRunner::OneIteration(GraphTime aStateEnd) {
+auto GraphRunner::OneIteration(GraphTime aStateEnd, GraphTime aIterationEnd,
+                               AudioMixer* aMixer) -> IterationResult {
   TRACE_AUDIO_CALLBACK();
 
   MonitorAutoLock lock(mMonitor);
   MOZ_ASSERT(mThreadState == ThreadState::Wait);
-  mStateEnd = aStateEnd;
+  mIterationState = Some(IterationState(aStateEnd, aIterationEnd, aMixer));
 
 #ifdef DEBUG
   if (auto audioDriver = mGraph->CurrentDriver()->AsAudioCallbackDriver()) {
@@ -75,10 +74,10 @@ bool GraphRunner::OneIteration(GraphTime aStateEnd) {
     MOZ_CRASH("Unknown GraphDriver");
   }
 #endif
-  // Signal that mStateEnd was updated
+  // Signal that mIterationState was updated
   mThreadState = ThreadState::Run;
   mMonitor.Notify();
-  // Wait for mStillProcessing to update
+  // Wait for mIterationResult to update
   do {
     mMonitor.Wait();
   } while (mThreadState == ThreadState::Run);
@@ -88,7 +87,11 @@ bool GraphRunner::OneIteration(GraphTime aStateEnd) {
   mClockDriverThread = nullptr;
 #endif
 
-  return mStillProcessing;
+  mIterationState = Nothing();
+
+  IterationResult result = std::move(mIterationResult);
+  mIterationResult = IterationResult();
+  return result;
 }
 
 NS_IMETHODIMP GraphRunner::Run() {
@@ -98,14 +101,17 @@ NS_IMETHODIMP GraphRunner::Run() {
   MonitorAutoLock lock(mMonitor);
   while (true) {
     while (mThreadState == ThreadState::Wait) {
-      mMonitor.Wait();  // Wait for mStateEnd to update or for shutdown
+      mMonitor.Wait();  // Wait for mIterationState to update or for shutdown
     }
     if (mThreadState == ThreadState::Shutdown) {
       break;
     }
+    MOZ_DIAGNOSTIC_ASSERT(mIterationState.isSome());
     TRACE();
-    mStillProcessing = mGraph->OneIterationImpl(mStateEnd);
-    // Signal that mStillProcessing was updated
+    mIterationResult = mGraph->OneIterationImpl(mIterationState->StateEnd(),
+                                                mIterationState->IterationEnd(),
+                                                mIterationState->Mixer());
+    // Signal that mIterationResult was updated
     mThreadState = ThreadState::Wait;
     mMonitor.Notify();
   }
@@ -124,7 +130,7 @@ bool GraphRunner::OnThread() {
 }
 
 #ifdef DEBUG
-bool GraphRunner::RunByGraphDriver(GraphDriver* aDriver) {
+bool GraphRunner::InDriverIteration(GraphDriver* aDriver) {
   if (!OnThread()) {
     return false;
   }

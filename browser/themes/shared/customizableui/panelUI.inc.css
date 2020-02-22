@@ -717,10 +717,6 @@ toolbarbutton[constrain-size="true"][cui-areatype="menu-panel"] > .toolbarbutton
   --avatar-image-url: url(chrome://browser/skin/fxa/avatar-empty.svg);
 }
 
-:root[fxastatus="not_configured"][fxa_avatar_badged="badged"] {
-  --avatar-image-url: url(chrome://browser/skin/fxa/avatar-empty-badged.svg);
-}
-
 :root:not([fxatoolbarmenu]) #fxa-toolbar-menu-button {
   display: none;
 }
@@ -954,7 +950,7 @@ panelmultiview[mainViewId="PanelUI-fxa"] #PanelUI-remotetabs-syncnow {
                    11em);
 }
 
-#PanelUI-remotetabs-tabslist > label[itemtype="client"] {
+.PanelUI-remotetabs-clientcontainer > label[itemtype="client"] {
   color: var(--panel-disabled-color);
 }
 
@@ -1387,7 +1383,7 @@ menuitem.panel-subview-footer@menuStateActive@,
   margin-inline-end: auto;
 }
 
-#PanelUI-remotetabs-tabslist > toolbarbutton[itemtype="tab"],
+.PanelUI-remotetabs-clientcontainer > toolbarbutton[itemtype="tab"],
 #PanelUI-historyItems > toolbarbutton {
   list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.svg");
   -moz-context-properties: fill;
@@ -1398,7 +1394,7 @@ menuitem.panel-subview-footer@menuStateActive@,
 #fxa-menu-account-fxa-avatar,
 #appMenu-fxa-label > .toolbarbutton-icon,
 #PanelUI-containersItems > .subviewbutton > .toolbarbutton-icon,
-#PanelUI-remotetabs-tabslist > toolbarbutton[itemtype="tab"] > .toolbarbutton-icon,
+.PanelUI-remotetabs-clientcontainer > toolbarbutton[itemtype="tab"] > .toolbarbutton-icon,
 #PanelUI-recentlyClosedWindows > toolbarbutton > .toolbarbutton-icon,
 #PanelUI-recentlyClosedTabs > toolbarbutton > .toolbarbutton-icon,
 #PanelUI-historyItems > toolbarbutton > .toolbarbutton-icon {
@@ -1908,8 +1904,9 @@ panelview[mainview] #PanelUI-whatsNew-content {
 }
 
 #PanelUI-whatsNew .whatsNew-message-body.has-icon {
-  padding-inline-end: 46px;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 #PanelUI-whatsNew .whatsNew-message-icon {
@@ -1922,6 +1919,7 @@ panelview[mainview] #PanelUI-whatsNew-content {
 
 #PanelUI-whatsNew .whatsNew-message-title,
 #protections-popup-message .whatsNew-message-title {
+  padding-inline-end: 46px;
   font-size: 1.3em;
   font-weight: 600;
   line-height: 1.4em;

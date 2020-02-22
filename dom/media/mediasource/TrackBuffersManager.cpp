@@ -1720,6 +1720,7 @@ void TrackBuffersManager::ProcessFrames(TrackBuffer& aSamples,
     aSample->mTime = aInterval.mStart;
     aSample->mDuration = aInterval.Length();
     aSample->mTrackInfo = trackBuffer.mLastInfo;
+    MOZ_DIAGNOSTIC_ASSERT(aSample->HasValidTime());
     samplesRange += aInterval;
     sizeNewSamples += aSample->ComputedSizeOfIncludingThis();
     samples.AppendElement(aSample);
@@ -2624,6 +2625,7 @@ const MediaRawData* TrackBuffersManager::GetSample(TrackInfo::TrackType aTrack,
   const RefPtr<MediaRawData>& sample = track[aIndex];
   if (!aIndex || sample->mTimecode <= aExpectedDts + aFuzz ||
       sample->mTime <= aExpectedPts + aFuzz) {
+    MOZ_DIAGNOSTIC_ASSERT(sample->HasValidTime());
     return sample;
   }
 

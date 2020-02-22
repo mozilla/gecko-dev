@@ -6,6 +6,7 @@
 
 #include "frontend/SharedContext.h"
 
+#include "frontend/AbstractScope.h"
 #include "frontend/ModuleSharedContext.h"
 
 #include "frontend/ParseContext-inl.h"
@@ -117,20 +118,17 @@ bool FunctionBox::atomsAreKept() { return cx_->zone()->hasKeptAtoms(); }
 FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
                          uint32_t toStringStart, Directives directives,
                          bool extraWarnings, GeneratorKind generatorKind,
-                         FunctionAsyncKind asyncKind, bool isArrow,
-                         bool isNamedLambda, bool isGetter, bool isSetter,
-                         bool isMethod, bool isInterpreted,
-                         bool isInterpretedLazy,
-                         FunctionFlags::FunctionKind kind, JSAtom* explicitName)
+                         FunctionAsyncKind asyncKind, JSAtom* explicitName,
+                         FunctionFlags flags)
     : ObjectBox(nullptr, traceListHead, TraceListNode::NodeType::Function),
       SharedContext(cx, Kind::FunctionBox, directives, extraWarnings),
-      enclosingScope_(nullptr),
+      enclosingScope_(),
       namedLambdaBindings_(nullptr),
       functionScopeBindings_(nullptr),
       extraVarScopeBindings_(nullptr),
       functionNode(nullptr),
-      bufStart(0),
-      bufEnd(0),
+      sourceStart(0),
+      sourceEnd(0),
       startLine(1),
       startColumn(0),
       toStringStart(toStringStart),
@@ -159,16 +157,9 @@ FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
       isDerivedClassConstructor_(false),
       hasThisBinding_(false),
       hasInnerFunctions_(false),
-      isArrow_(isArrow),
-      isNamedLambda_(isNamedLambda),
-      isGetter_(isGetter),
-      isSetter_(isSetter),
-      isMethod_(isMethod),
-      isInterpreted_(isInterpreted),
-      isInterpretedLazy_(isInterpretedLazy),
-      kind_(kind),
+      nargs_(0),
       explicitName_(explicitName),
-      nargs_(0) {}
+      flags_(flags) {}
 
 FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
                          JSFunction* fun, uint32_t toStringStart,
@@ -176,10 +167,7 @@ FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
                          GeneratorKind generatorKind,
                          FunctionAsyncKind asyncKind)
     : FunctionBox(cx, traceListHead, toStringStart, directives, extraWarnings,
-                  generatorKind, asyncKind, fun->isArrow(),
-                  fun->isNamedLambda(), fun->isGetter(), fun->isSetter(),
-                  fun->isMethod(), fun->isInterpreted(),
-                  fun->isInterpretedLazy(), fun->kind(), fun->explicitName()) {
+                  generatorKind, asyncKind, fun->explicitName(), fun->flags()) {
   gcThing = fun;
   // Functions created at parse time may be set singleton after parsing and
   // baked into JIT code, so they must be allocated tenured. They are held by
@@ -193,32 +181,41 @@ FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
                          bool extraWarnings, GeneratorKind generatorKind,
                          FunctionAsyncKind asyncKind)
     : FunctionBox(cx, traceListHead, toStringStart, directives, extraWarnings,
-                  generatorKind, asyncKind, data.get().flags.isArrow(),
-                  data.get().flags.isNamedLambda(data.get().atom),
-                  data.get().flags.isGetter(), data.get().flags.isSetter(),
-                  data.get().flags.isMethod(), data.get().flags.isInterpreted(),
-                  data.get().flags.isInterpretedLazy(), data.get().flags.kind(),
-                  data.get().atom) {
+                  generatorKind, asyncKind, data.get().atom, data.get().flags) {
   functionCreationData_.emplace(data);
 }
 
 void FunctionBox::initFromLazyFunction(JSFunction* fun) {
-  LazyScript* lazy = fun->lazyScript();
+  BaseScript* lazy = fun->baseScript();
   if (lazy->isDerivedClassConstructor()) {
     setDerivedClassConstructor();
   }
   if (lazy->needsHomeObject()) {
     setNeedsHomeObject();
   }
-  enclosingScope_ = fun->enclosingScope();
-  initWithEnclosingScope(enclosingScope_, fun);
+  if (lazy->bindingsAccessedDynamically()) {
+    setBindingsAccessedDynamically();
+  }
+  if (lazy->hasDirectEval()) {
+    setHasDirectEval();
+  }
+  if (lazy->hasModuleGoal()) {
+    setHasModuleGoal();
+  }
+
+  sourceStart = lazy->sourceStart();
+  sourceEnd = lazy->sourceEnd();
+  toStringStart = lazy->toStringStart();
+  toStringEnd = lazy->toStringEnd();
+  startLine = lazy->lineno();
+  startColumn = lazy->column();
 }
 
 void FunctionBox::initStandaloneFunction(Scope* enclosingScope) {
   // Standalone functions are Function or Generator constructors and are
   // always scoped to the global.
   MOZ_ASSERT(enclosingScope->is<GlobalScope>());
-  enclosingScope_ = enclosingScope;
+  enclosingScope_ = AbstractScope(enclosingScope);
   allowNewTarget_ = true;
   thisBinding_ = ThisBinding::Function;
 }
@@ -258,6 +255,9 @@ void FunctionBox::initWithEnclosingParseContext(ParseContext* enclosing,
     thisBinding_ = ThisBinding::Function;
   }
 
+  // We inherit the parse goal from our top-level.
+  hasModuleGoal_ = sc->hasModuleGoal();
+
   if (sc->inWith()) {
     inWith_ = true;
   } else {
@@ -280,8 +280,10 @@ void FunctionBox::initFieldInitializer(ParseContext* enclosing,
   needsThisTDZChecks_ = hasHeritage == HasHeritage::Yes;
 }
 
-void FunctionBox::initWithEnclosingScope(Scope* enclosingScope,
-                                         JSFunction* fun) {
+void FunctionBox::initWithEnclosingScope(JSFunction* fun) {
+  Scope* enclosingScope = fun->enclosingScope();
+  MOZ_ASSERT(enclosingScope);
+
   if (!isArrow()) {
     allowNewTarget_ = true;
     allowSuperProperty_ = fun->allowSuperProperty();
@@ -299,24 +301,29 @@ void FunctionBox::initWithEnclosingScope(Scope* enclosingScope,
   }
 
   computeInWith(enclosingScope);
+
+  enclosingScope_ = AbstractScope(enclosingScope);
 }
 
-void FunctionBox::setEnclosingScopeForInnerLazyFunction(Scope* enclosingScope) {
-  MOZ_ASSERT(isLazyFunctionWithoutEnclosingScope());
-
+void FunctionBox::setEnclosingScopeForInnerLazyFunction(
+    const AbstractScope& enclosingScope) {
   // For lazy functions inside a function which is being compiled, we cache
   // the incomplete scope object while compiling, and store it to the
   // LazyScript once the enclosing script successfully finishes compilation
   // in FunctionBox::finish.
+  MOZ_ASSERT(!enclosingScope_);
   enclosingScope_ = enclosingScope;
 }
 
 void FunctionBox::finish() {
-  if (!isLazyFunctionWithoutEnclosingScope()) {
-    return;
+  if (isInterpretedLazy()) {
+    // Lazy inner functions need to record their enclosing scope for when they
+    // eventually are compiled.
+    function()->setEnclosingScope(enclosingScope_.maybeScope());
+  } else {
+    // Non-lazy inner functions don't use the enclosingScope_ field.
+    MOZ_ASSERT(!enclosingScope_);
   }
-  MOZ_ASSERT(enclosingScope_);
-  function()->setEnclosingScope(enclosingScope_);
 }
 
 ModuleSharedContext::ModuleSharedContext(JSContext* cx, ModuleObject* module,
@@ -328,6 +335,7 @@ ModuleSharedContext::ModuleSharedContext(JSContext* cx, ModuleObject* module,
       bindings(cx),
       builder(builder) {
   thisBinding_ = ThisBinding::Module;
+  hasModuleGoal_ = true;
 }
 
 }  // namespace frontend

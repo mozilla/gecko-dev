@@ -10,11 +10,6 @@ const TEST_URL =
   '<head><meta name="viewport" content="width=300"/></head>' +
   "<body>meta viewport width 300</body>";
 addRDMTask(TEST_URL, async function({ ui, manager }) {
-  // Turn on the pref that allows meta viewport support.
-  await SpecialPowers.pushPrefEnv({
-    set: [["devtools.responsive.metaViewport.enabled", true]],
-  });
-
   const store = ui.toolWindow.store;
 
   // Wait until the viewport has been added.
@@ -35,7 +30,7 @@ addRDMTask(TEST_URL, async function({ ui, manager }) {
     {
       metaSupport: true,
       before: [2.0, 300, 150],
-      after: [0.25, 200, 200], // This checks that min-zoom is active.
+      after: [0.25, 300, 300], // This checks that min-zoom is active.
     },
   ];
 

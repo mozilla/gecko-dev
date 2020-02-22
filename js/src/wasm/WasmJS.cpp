@@ -103,8 +103,21 @@ bool wasm::HasMultiValueSupport(JSContext* cx) {
 #endif
 }
 
+bool wasm::HasI64BigIntSupport(JSContext* cx) {
+#ifdef ENABLE_WASM_CRANELIFT
+  if (cx->options().wasmCranelift()) {
+    return false;
+  }
+#endif
+#ifdef ENABLE_WASM_BIGINT
+  return cx->options().isWasmBigIntEnabled();
+#else
+  return false;
+#endif
+}
+
 bool wasm::HasCompilerSupport(JSContext* cx) {
-#if !MOZ_LITTLE_ENDIAN || defined(JS_CODEGEN_NONE)
+#if !MOZ_LITTLE_ENDIAN() || defined(JS_CODEGEN_NONE)
   return false;
 #endif
 
@@ -177,9 +190,37 @@ bool wasm::HasCachingSupport(JSContext* cx) {
   return HasStreamingSupport(cx) && HasOptimizedCompilerTier(cx);
 }
 
+bool wasm::CheckRefType(JSContext* cx, RefType::Kind targetTypeKind,
+                        HandleValue v, MutableHandleFunction fnval,
+                        MutableHandleAnyRef refval) {
+  switch (targetTypeKind) {
+    case RefType::Func:
+      if (!CheckFuncRefValue(cx, v, fnval)) {
+        return false;
+      }
+      break;
+    case RefType::Null:
+      if (!v.isNull()) {
+        JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                                 JSMSG_WASM_NULL_REQUIRED);
+        return false;
+      }
+      refval.set(AnyRef::null());
+      break;
+    case RefType::Any:
+      if (!BoxAnyRef(cx, v, refval)) {
+        return false;
+      }
+      break;
+    case RefType::TypeIndex:
+      MOZ_CRASH("temporarily unsupported Ref type");
+  }
+  return true;
+}
+
 static bool ToWebAssemblyValue(JSContext* cx, ValType targetType, HandleValue v,
                                MutableHandleVal val) {
-  switch (targetType.code()) {
+  switch (targetType.kind()) {
     case ValType::I32: {
       int32_t i32;
       if (!ToInt32(cx, v, &i32)) {
@@ -204,46 +245,78 @@ static bool ToWebAssemblyValue(JSContext* cx, ValType targetType, HandleValue v,
       val.set(Val(d));
       return true;
     }
-    case ValType::FuncRef: {
-      RootedFunction fun(cx);
-      if (!CheckFuncRefValue(cx, v, &fun)) {
-        return false;
-      }
-      val.set(Val(ValType::FuncRef, FuncRef::fromJSFunction(fun)));
-      return true;
-    }
-    case ValType::AnyRef: {
-      RootedAnyRef tmp(cx, AnyRef::null());
-      if (!BoxAnyRef(cx, v, &tmp)) {
-        return false;
-      }
-      val.set(Val(ValType::AnyRef, tmp));
-      return true;
-    }
-    case ValType::Ref:
-    case ValType::NullRef:
     case ValType::I64: {
+#ifdef ENABLE_WASM_BIGINT
+      if (HasI64BigIntSupport(cx)) {
+        BigInt* bigint = ToBigInt(cx, v);
+        if (!bigint) {
+          return false;
+        }
+        val.set(Val(BigInt::toUint64(bigint)));
+        return true;
+      }
+#endif
+      break;
+    }
+    case ValType::Ref: {
+      RootedFunction fun(cx);
+      RootedAnyRef any(cx, AnyRef::null());
+      if (!CheckRefType(cx, targetType.refTypeKind(), v, &fun, &any)) {
+        return false;
+      }
+      switch (targetType.refTypeKind()) {
+        case RefType::Func:
+          val.set(Val(RefType::func(), FuncRef::fromJSFunction(fun)));
+          return true;
+        case RefType::Any:
+        case RefType::Null:
+          val.set(Val(targetType.refType(), any));
+          return true;
+        case RefType::TypeIndex:
+          break;
+      }
       break;
     }
   }
   MOZ_CRASH("unexpected import value type, caller must guard");
 }
 
-static Value ToJSValue(const Val& val) {
-  switch (val.type().code()) {
+static bool ToJSValue(JSContext* cx, const Val& val, MutableHandleValue out) {
+  switch (val.type().kind()) {
     case ValType::I32:
-      return Int32Value(val.i32());
+      out.setInt32(val.i32());
+      return true;
     case ValType::F32:
-      return JS::CanonicalizedDoubleValue(double(val.f32()));
+      out.setDouble(JS::CanonicalizeNaN(double(val.f32())));
+      return true;
     case ValType::F64:
-      return JS::CanonicalizedDoubleValue(val.f64());
-    case ValType::FuncRef:
-      return UnboxFuncRef(FuncRef::fromAnyRefUnchecked(val.ref()));
-    case ValType::AnyRef:
-      return UnboxAnyRef(val.ref());
+      out.setDouble(JS::CanonicalizeNaN(val.f64()));
+      return true;
+    case ValType::I64: {
+#ifdef ENABLE_WASM_BIGINT
+      if (HasI64BigIntSupport(cx)) {
+        BigInt* bi = BigInt::createFromInt64(cx, val.i64());
+        if (!bi) {
+          return false;
+        }
+        out.setBigInt(bi);
+        return true;
+      }
+#endif
+      break;
+    }
     case ValType::Ref:
-    case ValType::NullRef:
-    case ValType::I64:
+      switch (val.type().refTypeKind()) {
+        case RefType::Func:
+          out.set(UnboxFuncRef(FuncRef::fromAnyRefUnchecked(val.ref())));
+          return true;
+        case RefType::Any:
+        case RefType::Null:
+          out.set(UnboxAnyRef(val.ref()));
+          return true;
+        case RefType::TypeIndex:
+          break;
+      }
       break;
   }
   MOZ_CRASH("unexpected type when translating to a JS value");
@@ -374,21 +447,30 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
           obj->val(&val);
         } else {
           if (IsNumberType(global.type())) {
-            if (!v.isNumber()) {
-              return ThrowBadImportType(cx, import.field.get(), "Number");
+            if (HasI64BigIntSupport(cx)) {
+              if (global.type() == ValType::I64 && v.isNumber()) {
+                return ThrowBadImportType(cx, import.field.get(), "BigInt");
+              }
+              if (global.type() != ValType::I64 && !v.isNumber()) {
+                return ThrowBadImportType(cx, import.field.get(), "Number");
+              }
+            } else {
+              if (!v.isNumber()) {
+                return ThrowBadImportType(cx, import.field.get(), "Number");
+              }
+              if (global.type() == ValType::I64) {
+                JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                                         JSMSG_WASM_BAD_I64_LINK);
+                return false;
+              }
             }
           } else {
             MOZ_ASSERT(global.type().isReference());
-            if (!v.isNull() && !v.isObject() && global.type().isRef()) {
+            if (!global.type().isAnyRef() && !v.isObjectOrNull()) {
               return ThrowBadImportType(cx, import.field.get(),
-                                        "Object-or-null");
+                                        "Object-or-null value required for "
+                                        "non-anyref reference type");
             }
-          }
-
-          if (global.type() == ValType::I64) {
-            JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                                     JSMSG_WASM_BAD_I64_LINK);
-            return false;
           }
 
           if (global.isMutable()) {
@@ -698,13 +780,19 @@ static JSObject* CreateWasmConstructor(JSContext* cx, JSProtoKey key) {
 // ============================================================================
 // WebAssembly.Module class and methods
 
-const JSClassOps WasmModuleObject::classOps_ = {nullptr, /* addProperty */
-                                                nullptr, /* delProperty */
-                                                nullptr, /* enumerate */
-                                                nullptr, /* newEnumerate */
-                                                nullptr, /* resolve */
-                                                nullptr, /* mayResolve */
-                                                WasmModuleObject::finalize};
+const JSClassOps WasmModuleObject::classOps_ = {
+    nullptr,                     // addProperty
+    nullptr,                     // delProperty
+    nullptr,                     // enumerate
+    nullptr,                     // newEnumerate
+    nullptr,                     // resolve
+    nullptr,                     // mayResolve
+    WasmModuleObject::finalize,  // finalize
+    nullptr,                     // call
+    nullptr,                     // hasInstance
+    nullptr,                     // construct
+    nullptr,                     // trace
+};
 
 const JSClass WasmModuleObject::class_ = {
     "WebAssembly.Module",
@@ -1242,17 +1330,19 @@ const Module& WasmModuleObject::module() const {
 // ============================================================================
 // WebAssembly.Instance class and methods
 
-const JSClassOps WasmInstanceObject::classOps_ = {nullptr, /* addProperty */
-                                                  nullptr, /* delProperty */
-                                                  nullptr, /* enumerate */
-                                                  nullptr, /* newEnumerate */
-                                                  nullptr, /* resolve */
-                                                  nullptr, /* mayResolve */
-                                                  WasmInstanceObject::finalize,
-                                                  nullptr, /* call */
-                                                  nullptr, /* hasInstance */
-                                                  nullptr, /* construct */
-                                                  WasmInstanceObject::trace};
+const JSClassOps WasmInstanceObject::classOps_ = {
+    nullptr,                       // addProperty
+    nullptr,                       // delProperty
+    nullptr,                       // enumerate
+    nullptr,                       // newEnumerate
+    nullptr,                       // resolve
+    nullptr,                       // mayResolve
+    WasmInstanceObject::finalize,  // finalize
+    nullptr,                       // call
+    nullptr,                       // hasInstance
+    nullptr,                       // construct
+    WasmInstanceObject::trace,     // trace
+};
 
 const JSClass WasmInstanceObject::class_ = {
     "WebAssembly.Instance",
@@ -1688,13 +1778,19 @@ uint32_t wasm::ExportedFunctionToFuncIndex(JSFunction* fun) {
 // ============================================================================
 // WebAssembly.Memory class and methods
 
-const JSClassOps WasmMemoryObject::classOps_ = {nullptr, /* addProperty */
-                                                nullptr, /* delProperty */
-                                                nullptr, /* enumerate */
-                                                nullptr, /* newEnumerate */
-                                                nullptr, /* resolve */
-                                                nullptr, /* mayResolve */
-                                                WasmMemoryObject::finalize};
+const JSClassOps WasmMemoryObject::classOps_ = {
+    nullptr,                     // addProperty
+    nullptr,                     // delProperty
+    nullptr,                     // enumerate
+    nullptr,                     // newEnumerate
+    nullptr,                     // resolve
+    nullptr,                     // mayResolve
+    WasmMemoryObject::finalize,  // finalize
+    nullptr,                     // call
+    nullptr,                     // hasInstance
+    nullptr,                     // construct
+    nullptr,                     // trace
+};
 
 const JSClass WasmMemoryObject::class_ = {
     "WebAssembly.Memory",
@@ -2051,17 +2147,19 @@ bool js::wasm::IsSharedWasmMemoryObject(JSObject* obj) {
 // ============================================================================
 // WebAssembly.Table class and methods
 
-const JSClassOps WasmTableObject::classOps_ = {nullptr, /* addProperty */
-                                               nullptr, /* delProperty */
-                                               nullptr, /* enumerate */
-                                               nullptr, /* newEnumerate */
-                                               nullptr, /* resolve */
-                                               nullptr, /* mayResolve */
-                                               WasmTableObject::finalize,
-                                               nullptr, /* call */
-                                               nullptr, /* hasInstance */
-                                               nullptr, /* construct */
-                                               WasmTableObject::trace};
+const JSClassOps WasmTableObject::classOps_ = {
+    nullptr,                    // addProperty
+    nullptr,                    // delProperty
+    nullptr,                    // enumerate
+    nullptr,                    // newEnumerate
+    nullptr,                    // resolve
+    nullptr,                    // mayResolve
+    WasmTableObject::finalize,  // finalize
+    nullptr,                    // call
+    nullptr,                    // hasInstance
+    nullptr,                    // construct
+    WasmTableObject::trace,     // trace
+};
 
 const JSClass WasmTableObject::class_ = {
     "WebAssembly.Table",
@@ -2182,13 +2280,18 @@ bool WasmTableObject::construct(JSContext* cx, unsigned argc, Value* vp) {
       StringEqualsLiteral(elementLinearStr, "funcref")) {
     tableKind = TableKind::FuncRef;
 #ifdef ENABLE_WASM_REFTYPES
-  } else if (StringEqualsLiteral(elementLinearStr, "anyref")) {
+  } else if (StringEqualsLiteral(elementLinearStr, "anyref") ||
+             StringEqualsLiteral(elementLinearStr, "nullref")) {
     if (!HasReftypesSupport(cx)) {
       JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                                JSMSG_WASM_BAD_ELEMENT);
       return false;
     }
-    tableKind = TableKind::AnyRef;
+    if (StringEqualsLiteral(elementLinearStr, "anyref")) {
+      tableKind = TableKind::AnyRef;
+    } else {
+      tableKind = TableKind::NullRef;
+    }
 #endif
   } else {
 #ifdef ENABLE_WASM_REFTYPES
@@ -2269,8 +2372,9 @@ bool WasmTableObject::getImpl(JSContext* cx, const CallArgs& args) {
     return false;
   }
 
-  switch (table.kind()) {
-    case TableKind::FuncRef: {
+  switch (table.repr()) {
+    case TableRepr::Func: {
+      MOZ_RELEASE_ASSERT(table.kind() == TableKind::FuncRef);
       RootedFunction fun(cx);
       if (!table.getFuncRef(cx, index, &fun)) {
         return false;
@@ -2278,12 +2382,9 @@ bool WasmTableObject::getImpl(JSContext* cx, const CallArgs& args) {
       args.rval().setObjectOrNull(fun);
       break;
     }
-    case TableKind::AnyRef: {
+    case TableRepr::Ref: {
       args.rval().set(UnboxAnyRef(table.getAnyRef(index)));
       break;
-    }
-    default: {
-      MOZ_CRASH("Unexpected table kind");
     }
   }
   return true;
@@ -2310,29 +2411,26 @@ bool WasmTableObject::setImpl(JSContext* cx, const CallArgs& args) {
     return false;
   }
 
+  MOZ_ASSERT(index < MaxTableLength);
+  static_assert(MaxTableLength < UINT32_MAX, "Invariant");
+
   RootedValue fillValue(cx, args[1]);
+  RootedFunction fun(cx);
+  RootedAnyRef any(cx, AnyRef::null());
+  if (!CheckRefType(cx, ToElemValType(table.kind()).refTypeKind(), fillValue,
+                    &fun, &any)) {
+    return false;
+  }
   switch (table.kind()) {
-    case TableKind::FuncRef: {
-      RootedFunction fun(cx);
-      if (!CheckFuncRefValue(cx, fillValue, &fun)) {
-        return false;
-      }
-      MOZ_ASSERT(index < MaxTableLength);
-      static_assert(MaxTableLength < UINT32_MAX, "Invariant");
+    case TableKind::AsmJS:
+      MOZ_CRASH("Should not happen");
+    case TableKind::FuncRef:
       table.fillFuncRef(index, 1, FuncRef::fromJSFunction(fun), cx);
       break;
-    }
-    case TableKind::AnyRef: {
-      RootedAnyRef tmp(cx, AnyRef::null());
-      if (!BoxAnyRef(cx, fillValue, &tmp)) {
-        return false;
-      }
-      table.fillAnyRef(index, 1, tmp);
+    case TableKind::NullRef:
+    case TableKind::AnyRef:
+      table.fillAnyRef(index, 1, any);
       break;
-    }
-    default: {
-      MOZ_CRASH("Unexpected table kind");
-    }
   }
 
   args.rval().setUndefined();
@@ -2379,43 +2477,40 @@ bool WasmTableObject::growImpl(JSContext* cx, const CallArgs& args) {
 
   static_assert(MaxTableLength < UINT32_MAX, "Invariant");
 
-  switch (table.kind()) {
-    case TableKind::FuncRef: {
-      if (fillValue.isNull()) {
+  if (!fillValue.isNull()) {
+    RootedFunction fun(cx);
+    RootedAnyRef any(cx, AnyRef::null());
+    if (!CheckRefType(cx, ToElemValType(table.kind()).refTypeKind(), fillValue,
+                      &fun, &any)) {
+      return false;
+    }
+    switch (table.repr()) {
+      case TableRepr::Func:
+        MOZ_ASSERT(table.kind() == TableKind::FuncRef);
+        table.fillFuncRef(oldLength, delta, FuncRef::fromJSFunction(fun), cx);
+        break;
+      case TableRepr::Ref:
+        table.fillAnyRef(oldLength, delta, any);
+        break;
+    }
+  }
+
 #ifdef DEBUG
+  if (fillValue.isNull()) {
+    switch (table.repr()) {
+      case TableRepr::Func:
         for (uint32_t index = oldLength; index < oldLength + delta; index++) {
           MOZ_ASSERT(table.getFuncRef(index).code == nullptr);
         }
-#endif
-      } else {
-        RootedFunction fun(cx);
-        if (!CheckFuncRefValue(cx, fillValue, &fun)) {
-          return false;
-        }
-        table.fillFuncRef(oldLength, delta, FuncRef::fromJSFunction(fun), cx);
-      }
-      break;
-    }
-    case TableKind::AnyRef: {
-      RootedAnyRef tmp(cx, AnyRef::null());
-      if (!BoxAnyRef(cx, fillValue, &tmp)) {
-        return false;
-      }
-      if (!tmp.get().isNull()) {
-        table.fillAnyRef(oldLength, delta, tmp);
-      } else {
-#ifdef DEBUG
+        break;
+      case TableRepr::Ref:
         for (uint32_t index = oldLength; index < oldLength + delta; index++) {
           MOZ_ASSERT(table.getAnyRef(index).isNull());
         }
-#endif
-      }
-      break;
-    }
-    default: {
-      MOZ_CRASH("Unexpected table kind");
+        break;
     }
   }
+#endif
 
   args.rval().setInt32(oldLength);
   return true;
@@ -2441,17 +2536,19 @@ Table& WasmTableObject::table() const {
 // ============================================================================
 // WebAssembly.global class and methods
 
-const JSClassOps WasmGlobalObject::classOps_ = {nullptr, /* addProperty */
-                                                nullptr, /* delProperty */
-                                                nullptr, /* enumerate */
-                                                nullptr, /* newEnumerate */
-                                                nullptr, /* resolve */
-                                                nullptr, /* mayResolve */
-                                                WasmGlobalObject::finalize,
-                                                nullptr, /* call */
-                                                nullptr, /* hasInstance */
-                                                nullptr, /* construct */
-                                                WasmGlobalObject::trace};
+const JSClassOps WasmGlobalObject::classOps_ = {
+    nullptr,                     // addProperty
+    nullptr,                     // delProperty
+    nullptr,                     // enumerate
+    nullptr,                     // newEnumerate
+    nullptr,                     // resolve
+    nullptr,                     // mayResolve
+    WasmGlobalObject::finalize,  // finalize
+    nullptr,                     // call
+    nullptr,                     // hasInstance
+    nullptr,                     // construct
+    WasmGlobalObject::trace,     // trace
+};
 
 const JSClass WasmGlobalObject::class_ = {
     "WebAssembly.Global",
@@ -2482,26 +2579,31 @@ void WasmGlobalObject::trace(JSTracer* trc, JSObject* obj) {
     // there's nothing to trace yet.
     return;
   }
-  switch (global->type().code()) {
-    case ValType::FuncRef:
-    case ValType::AnyRef:
-      if (!global->cell()->ref.isNull()) {
-        // TODO/AnyRef-boxing: With boxed immediates and strings, the write
-        // barrier is going to have to be more complicated.
-        ASSERT_ANYREF_IS_JSOBJECT;
-        TraceManuallyBarrieredEdge(trc, global->cell()->ref.asJSObjectAddress(),
-                                   "wasm reference-typed global");
-      }
-      break;
+  switch (global->type().kind()) {
     case ValType::I32:
     case ValType::F32:
     case ValType::I64:
     case ValType::F64:
       break;
     case ValType::Ref:
-      MOZ_CRASH("Ref NYI");
-    case ValType::NullRef:
-      MOZ_CRASH("NullRef not expressible");
+      switch (global->type().refTypeKind()) {
+        case RefType::Func:
+        case RefType::Any:
+          if (!global->cell()->ref.isNull()) {
+            // TODO/AnyRef-boxing: With boxed immediates and strings, the write
+            // barrier is going to have to be more complicated.
+            ASSERT_ANYREF_IS_JSOBJECT;
+            TraceManuallyBarrieredEdge(trc,
+                                       global->cell()->ref.asJSObjectAddress(),
+                                       "wasm reference-typed global");
+          }
+          break;
+        case RefType::Null:
+          break;
+        case RefType::TypeIndex:
+          MOZ_CRASH("Ref NYI");
+      }
+      break;
   }
 }
 
@@ -2539,7 +2641,7 @@ WasmGlobalObject* WasmGlobalObject::create(JSContext* cx, HandleVal hval,
   }
 
   const Val& val = hval.get();
-  switch (val.type().code()) {
+  switch (val.type().kind()) {
     case ValType::I32:
       cell->i32 = val.i32();
       break;
@@ -2552,22 +2654,26 @@ WasmGlobalObject* WasmGlobalObject::create(JSContext* cx, HandleVal hval,
     case ValType::F64:
       cell->f64 = val.f64();
       break;
-    case ValType::FuncRef:
-    case ValType::AnyRef:
-      MOZ_ASSERT(cell->ref.isNull(), "no prebarriers needed");
-      cell->ref = val.ref();
-      if (!cell->ref.isNull()) {
-        // TODO/AnyRef-boxing: With boxed immediates and strings, the write
-        // barrier is going to have to be more complicated.
-        ASSERT_ANYREF_IS_JSOBJECT;
-        JSObject::writeBarrierPost(cell->ref.asJSObjectAddress(), nullptr,
-                                   cell->ref.asJSObject());
+    case ValType::Ref:
+      switch (val.type().refTypeKind()) {
+        case RefType::Func:
+        case RefType::Any:
+          MOZ_ASSERT(cell->ref.isNull(), "no prebarriers needed");
+          cell->ref = val.ref();
+          if (!cell->ref.isNull()) {
+            // TODO/AnyRef-boxing: With boxed immediates and strings, the write
+            // barrier is going to have to be more complicated.
+            ASSERT_ANYREF_IS_JSOBJECT;
+            JSObject::writeBarrierPost(cell->ref.asJSObjectAddress(), nullptr,
+                                       cell->ref.asJSObject());
+          }
+          break;
+        case RefType::Null:
+          break;
+        case RefType::TypeIndex:
+          MOZ_CRASH("Ref NYI");
       }
       break;
-    case ValType::Ref:
-      MOZ_CRASH("Ref NYI");
-    case ValType::NullRef:
-      MOZ_CRASH("NullRef not expressible");
   }
 
   obj->initReservedSlot(TYPE_SLOT,
@@ -2633,13 +2739,21 @@ bool WasmGlobalObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     globalType = ValType::F32;
   } else if (StringEqualsLiteral(typeLinearStr, "f64")) {
     globalType = ValType::F64;
+#ifdef ENABLE_WASM_BIGINT
+  } else if (HasI64BigIntSupport(cx) &&
+             StringEqualsLiteral(typeLinearStr, "i64")) {
+    globalType = ValType::I64;
+#endif
 #ifdef ENABLE_WASM_REFTYPES
   } else if (HasReftypesSupport(cx) &&
              StringEqualsLiteral(typeLinearStr, "funcref")) {
-    globalType = ValType::FuncRef;
+    globalType = RefType::func();
   } else if (HasReftypesSupport(cx) &&
              StringEqualsLiteral(typeLinearStr, "anyref")) {
-    globalType = ValType::AnyRef;
+    globalType = RefType::any();
+  } else if (HasReftypesSupport(cx) &&
+             StringEqualsLiteral(typeLinearStr, "nullref")) {
+    globalType = RefType::null();
 #endif
   } else {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
@@ -2653,7 +2767,7 @@ bool WasmGlobalObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   RootedVal globalVal(cx);
 
   // Initialize with default value.
-  switch (globalType.code()) {
+  switch (globalType.kind()) {
     case ValType::I32:
       globalVal = Val(uint32_t(0));
       break;
@@ -2666,16 +2780,19 @@ bool WasmGlobalObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     case ValType::F64:
       globalVal = Val(double(0.0));
       break;
-    case ValType::FuncRef:
-      globalVal = Val(ValType::FuncRef, AnyRef::null());
-      break;
-    case ValType::AnyRef:
-      globalVal = Val(ValType::AnyRef, AnyRef::null());
-      break;
     case ValType::Ref:
-      MOZ_CRASH("Ref NYI");
-    case ValType::NullRef:
-      MOZ_CRASH("NullRef not expressible");
+      switch (globalType.refTypeKind()) {
+        case RefType::Func:
+          globalVal = Val(RefType::func(), AnyRef::null());
+          break;
+        case RefType::Any:
+        case RefType::Null:
+          globalVal = Val(RefType::any(), AnyRef::null());
+          break;
+        case RefType::TypeIndex:
+          MOZ_CRASH("Ref NYI");
+      }
+      break;
   }
 
   // Override with non-undefined value, if provided.
@@ -2702,22 +2819,34 @@ static bool IsGlobal(HandleValue v) {
 
 /* static */
 bool WasmGlobalObject::valueGetterImpl(JSContext* cx, const CallArgs& args) {
-  switch (args.thisv().toObject().as<WasmGlobalObject>().type().code()) {
+  switch (args.thisv().toObject().as<WasmGlobalObject>().type().kind()) {
     case ValType::I32:
     case ValType::F32:
     case ValType::F64:
-    case ValType::FuncRef:
-    case ValType::AnyRef:
-      args.rval().set(args.thisv().toObject().as<WasmGlobalObject>().value(cx));
+      args.thisv().toObject().as<WasmGlobalObject>().value(cx, args.rval());
       return true;
     case ValType::I64:
+#ifdef ENABLE_WASM_BIGINT
+      if (HasI64BigIntSupport(cx)) {
+        return args.thisv().toObject().as<WasmGlobalObject>().value(
+            cx, args.rval());
+      }
+#endif
       JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                                JSMSG_WASM_BAD_I64_TYPE);
       return false;
     case ValType::Ref:
-      MOZ_CRASH("Ref NYI");
-    case ValType::NullRef:
-      MOZ_CRASH("NullRef not expressible");
+      switch (
+          args.thisv().toObject().as<WasmGlobalObject>().type().refTypeKind()) {
+        case RefType::Func:
+        case RefType::Any:
+        case RefType::Null:
+          args.thisv().toObject().as<WasmGlobalObject>().value(cx, args.rval());
+          return true;
+        case RefType::TypeIndex:
+          MOZ_CRASH("Ref NYI");
+      }
+      break;
   }
   MOZ_CRASH();
 }
@@ -2742,7 +2871,7 @@ bool WasmGlobalObject::valueSetterImpl(JSContext* cx, const CallArgs& args) {
     return false;
   }
 
-  if (global->type() == ValType::I64) {
+  if (global->type() == ValType::I64 && !HasI64BigIntSupport(cx)) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                              JSMSG_WASM_BAD_I64_TYPE);
     return false;
@@ -2754,7 +2883,7 @@ bool WasmGlobalObject::valueSetterImpl(JSContext* cx, const CallArgs& args) {
   }
 
   Cell* cell = global->cell();
-  switch (global->type().code()) {
+  switch (global->type().kind()) {
     case ValType::I32:
       cell->i32 = val.get().i32();
       break;
@@ -2764,27 +2893,38 @@ bool WasmGlobalObject::valueSetterImpl(JSContext* cx, const CallArgs& args) {
     case ValType::F64:
       cell->f64 = val.get().f64();
       break;
-    case ValType::FuncRef:
-    case ValType::AnyRef: {
-      AnyRef prevPtr = cell->ref;
-      // TODO/AnyRef-boxing: With boxed immediates and strings, the write
-      // barrier is going to have to be more complicated.
-      ASSERT_ANYREF_IS_JSOBJECT;
-      JSObject::writeBarrierPre(prevPtr.asJSObject());
-      cell->ref = val.get().ref();
-      if (!cell->ref.isNull()) {
-        JSObject::writeBarrierPost(cell->ref.asJSObjectAddress(),
-                                   prevPtr.asJSObject(),
-                                   cell->ref.asJSObject());
+    case ValType::I64:
+#ifdef ENABLE_WASM_BIGINT
+      MOZ_ASSERT(HasI64BigIntSupport(cx),
+                 "expected BigInt support for setting I64 global");
+      cell->i64 = val.get().i64();
+#endif
+      break;
+    case ValType::Ref:
+      switch (global->type().refTypeKind()) {
+        case RefType::Func:
+        case RefType::Any: {
+          AnyRef prevPtr = cell->ref;
+          // TODO/AnyRef-boxing: With boxed immediates and strings, the write
+          // barrier is going to have to be more complicated.
+          ASSERT_ANYREF_IS_JSOBJECT;
+          JSObject::writeBarrierPre(prevPtr.asJSObject());
+          cell->ref = val.get().ref();
+          if (!cell->ref.isNull()) {
+            JSObject::writeBarrierPost(cell->ref.asJSObjectAddress(),
+                                       prevPtr.asJSObject(),
+                                       cell->ref.asJSObject());
+          }
+          break;
+        }
+        case RefType::Null: {
+          break;
+        }
+        case RefType::TypeIndex: {
+          MOZ_CRASH("Ref NYI");
+        }
       }
       break;
-    }
-    case ValType::I64:
-      MOZ_CRASH("unexpected i64 when setting global's value");
-    case ValType::Ref:
-      MOZ_CRASH("Ref NYI");
-    case ValType::NullRef:
-      MOZ_CRASH("NullRef not expressible");
   }
 
   args.rval().setUndefined();
@@ -2819,7 +2959,7 @@ bool WasmGlobalObject::isMutable() const {
 
 void WasmGlobalObject::val(MutableHandleVal outval) const {
   Cell* cell = this->cell();
-  switch (type().code()) {
+  switch (type().kind()) {
     case ValType::I32:
       outval.set(Val(uint32_t(cell->i32)));
       return;
@@ -2832,25 +2972,27 @@ void WasmGlobalObject::val(MutableHandleVal outval) const {
     case ValType::F64:
       outval.set(Val(cell->f64));
       return;
-    case ValType::FuncRef:
-      outval.set(Val(ValType::FuncRef, cell->ref));
-      return;
-    case ValType::AnyRef:
-      outval.set(Val(ValType::AnyRef, cell->ref));
-      return;
     case ValType::Ref:
-      MOZ_CRASH("Ref NYI");
-    case ValType::NullRef:
-      MOZ_CRASH("NullRef not expressible");
+      switch (type().refTypeKind()) {
+        case RefType::Func:
+          outval.set(Val(RefType::func(), cell->ref));
+          return;
+        case RefType::Any:
+        case RefType::Null:
+          outval.set(Val(RefType::any(), cell->ref));
+          return;
+        case RefType::TypeIndex:
+          MOZ_CRASH("Ref NYI");
+      }
+      break;
   }
   MOZ_CRASH("unexpected Global type");
 }
 
-Value WasmGlobalObject::value(JSContext* cx) const {
-  // ToJSValue crashes on I64; this is desirable.
+bool WasmGlobalObject::value(JSContext* cx, MutableHandleValue out) {
   RootedVal result(cx);
   val(&result);
-  return ToJSValue(result.get());
+  return ToJSValue(cx, result.get(), out);
 }
 
 WasmGlobalObject::Cell* WasmGlobalObject::cell() const {
@@ -3607,13 +3749,18 @@ class ResolveResponseClosure : public NativeObject {
 };
 
 const JSClassOps ResolveResponseClosure::classOps_ = {
-    nullptr, /* addProperty */
-    nullptr, /* delProperty */
-    nullptr, /* enumerate */
-    nullptr, /* newEnumerate */
-    nullptr, /* resolve */
-    nullptr, /* mayResolve */
-    ResolveResponseClosure::finalize};
+    nullptr,                           // addProperty
+    nullptr,                           // delProperty
+    nullptr,                           // enumerate
+    nullptr,                           // newEnumerate
+    nullptr,                           // resolve
+    nullptr,                           // mayResolve
+    ResolveResponseClosure::finalize,  // finalize
+    nullptr,                           // call
+    nullptr,                           // hasInstance
+    nullptr,                           // construct
+    nullptr,                           // trace
+};
 
 const JSClass ResolveResponseClosure::class_ = {
     "WebAssembly ResolveResponseClosure",

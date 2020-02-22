@@ -200,6 +200,13 @@ TEST_SUITES = {
         'task_regex': ['web-platform-tests($|.*(-1|[^0-9])$)',
                        'test-verify-wpt'],
     },
+    'web-platform-tests-crashtest': {
+        'aliases': ('wpt',),
+        'mach_command': 'web-platform-tests',
+        'kwargs': {'include': []},
+        'task_regex': ['web-platform-tests-crashtests($|.*(-1|[^0-9])$)',
+                       'test-verify-wpt'],
+    },
     'web-platform-tests-testharness': {
         'aliases': ('wpt',),
         'mach_command': 'web-platform-tests',
@@ -295,6 +302,7 @@ _test_subsuites = {
     ('mochitest', 'webgl2-ext'): 'mochitest-webgl2-ext',
     ('mochitest', 'webgl2-deqp'): 'mochitest-webgl2-deqp',
     ('web-platform-tests', 'testharness'): 'web-platform-tests-testharness',
+    ('web-platform-tests', 'crashtest'): 'web-platform-tests-crashtest',
     ('web-platform-tests', 'reftest'): 'web-platform-tests-reftest',
     ('web-platform-tests', 'wdspec'): 'web-platform-tests-wdspec',
 }
@@ -328,28 +336,14 @@ def get_suite_definition(flavor, subsuite=None, strict=False):
     return suite_name, suite
 
 
-def rewrite_test_base(test, new_base, honor_install_to_subdir=False):
+def rewrite_test_base(test, new_base):
     """Rewrite paths in a test to be under a new base path.
 
     This is useful for running tests from a separate location from where they
     were defined.
-
-    honor_install_to_subdir and the underlying install-to-subdir field are a
-    giant hack intended to work around the restriction where the mochitest
-    runner can't handle single test files with multiple configurations. This
-    argument should be removed once the mochitest runner talks manifests
-    (bug 984670).
     """
     test['here'] = mozpath.join(new_base, test['dir_relpath'])
-
-    if honor_install_to_subdir and test.get('install-to-subdir'):
-        manifest_relpath = mozpath.relpath(test['path'],
-                                           mozpath.dirname(test['manifest']))
-        test['path'] = mozpath.join(new_base, test['dir_relpath'],
-                                    test['install-to-subdir'], manifest_relpath)
-    else:
-        test['path'] = mozpath.join(new_base, test['file_relpath'])
-
+    test['path'] = mozpath.join(new_base, test['file_relpath'])
     return test
 
 
@@ -398,11 +392,12 @@ class BuildBackendLoader(TestLoader):
             for metadata in tests:
                 defaults_manifests = [metadata['manifest']]
 
-                ancestor_manifest = metadata.get('ancestor-manifest')
+                ancestor_manifest = metadata.get('ancestor_manifest')
                 if ancestor_manifest:
                     # The (ancestor manifest, included manifest) tuple
                     # contains the defaults of the included manifest, so
                     # use it instead of [metadata['manifest']].
+                    ancestor_manifest = os.path.join(self.topsrcdir, ancestor_manifest)
                     defaults_manifests[0] = (ancestor_manifest, metadata['manifest'])
                     defaults_manifests.append(ancestor_manifest)
 
@@ -660,7 +655,7 @@ class TestResolver(MozbuildObject):
             for test_type, path, tests in manifest:
                 full_path = os.path.join(tests_root, path)
                 src_path = os.path.relpath(full_path, self.topsrcdir)
-                if test_type not in ["testharness", "reftest", "wdspec"]:
+                if test_type not in ["testharness", "reftest", "wdspec", "crashtest"]:
                     continue
                 for test in tests:
                     self._tests.append({
@@ -742,8 +737,7 @@ class TestResolver(MozbuildObject):
 
             if rewrite_base:
                 rewrite_base = os.path.join(self.topobjdir, os.path.normpath(rewrite_base))
-                yield rewrite_test_base(test, rewrite_base,
-                                        honor_install_to_subdir=True)
+                yield rewrite_test_base(test, rewrite_base)
             else:
                 yield test
 

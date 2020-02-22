@@ -98,7 +98,7 @@ function waitForMessageContent(messageId, l10nId, doc) {
 async function openNotificationsPermissionDialog() {
   let dialogOpened = promiseLoadSubDialog(PERMISSIONS_URL);
 
-  await ContentTask.spawn(gBrowser.selectedBrowser, null, function() {
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], function() {
     let doc = content.document;
     let settingsButton = doc.getElementById("notificationSettingsButton");
     settingsButton.click();
@@ -1122,7 +1122,7 @@ add_task(async function testExtensionControlledProxyConfig() {
   async function openProxyPanel() {
     let panel = await openAndLoadSubDialog(PANEL_URL);
     let closingPromise = waitForEvent(
-      panel.document.documentElement,
+      panel.document.getElementById("ConnectionsDialog"),
       "dialogclosing"
     );
     ok(panel, "Proxy panel opened.");
@@ -1130,7 +1130,8 @@ add_task(async function testExtensionControlledProxyConfig() {
   }
 
   async function closeProxyPanel(panelObj) {
-    panelObj.panel.document.documentElement.cancelDialog();
+    let dialog = panelObj.panel.document.getElementById("ConnectionsDialog");
+    dialog.cancelDialog();
     let panelClosingEvent = await panelObj.closingPromise;
     ok(panelClosingEvent, "Proxy panel closed.");
   }

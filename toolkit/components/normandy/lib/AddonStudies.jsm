@@ -162,14 +162,20 @@ var AddonStudies = {
   },
 
   async init() {
-    // If an active study's add-on has been removed since we last ran, stop the
-    // study.
-    const activeStudies = (await this.getAll()).filter(study => study.active);
-    for (const study of activeStudies) {
+    for (const study of await this.getAllActive()) {
+      // If an active study's add-on has been removed since we last ran, stop it.
       const addon = await AddonManager.getAddonByID(study.addonId);
       if (!addon) {
         await this.markAsEnded(study, "uninstalled-sideload");
+        continue;
       }
+
+      // Otherwise mark that study as active in Telemetry
+      TelemetryEnvironment.setExperimentActive(study.slug, study.branch, {
+        type: "normandy-addonstudy",
+        enrollmentId:
+          study.enrollmentId || TelemetryEvents.NO_ENROLLMENT_ID_MARKER,
+      });
     }
 
     // Listen for add-on uninstalls so we can stop the corresponding studies.
@@ -177,6 +183,15 @@ var AddonStudies = {
     CleanupManager.addCleanupHandler(() => {
       AddonManager.removeAddonListener(this);
     });
+  },
+
+  /** When Telemetry is disabled, clear all identifiers from the stored studies.  */
+  async onTelemetryDisabled() {
+    const studies = await this.getAll();
+    for (const study of studies) {
+      study.enrollmentId = TelemetryEvents.NO_ENROLLMENT_ID_MARKER;
+    }
+    await this.updateMany(studies);
   },
 
   /**
@@ -318,6 +333,42 @@ var AddonStudies = {
   async update(study) {
     const db = await getDatabase();
     return getStore(db, "readwrite").put(study);
+  },
+
+  /**
+   * Update many existing studies. More efficient than calling `update` many
+   * times in a row.
+   * @param {Array<AddonStudy>} studies
+   * @throws If any of the passed studies have a slug that doesn't exist in the database already.
+   */
+  async updateMany(studies) {
+    // Don't touch the database if there is nothing to do
+    if (!studies.length) {
+      return;
+    }
+
+    // Both of the below operations use .map() instead of a normal loop becaues
+    // once we get the object store, we can't let it expire by spinning the
+    // event loop. This approach queues up all the interactions with the store
+    // immediately, preventing it from expiring too soon.
+
+    const db = await getDatabase();
+    let store = await getStore(db, "readonly");
+    await Promise.all(
+      studies.map(async ({ recipeId }) => {
+        let existingStudy = await store.get(recipeId);
+        if (!existingStudy) {
+          throw new Error(
+            `Tried to update addon study ${recipeId}, but it doesn't exist.`
+          );
+        }
+      })
+    );
+
+    // awaiting spun the event loop, so the store is now invalid. Get a new
+    // store. This is also a chance to get it in readwrite mode.
+    store = await getStore(db, "readwrite");
+    await Promise.all(studies.map(study => store.put(study)));
   },
 
   /**

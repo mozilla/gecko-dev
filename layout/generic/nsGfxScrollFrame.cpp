@@ -16,7 +16,6 @@
 #include "nsPresContext.h"
 #include "nsView.h"
 #include "nsViewportInfo.h"
-#include "nsIScrollable.h"
 #include "nsContainerFrame.h"
 #include "nsGkAtoms.h"
 #include "nsNameSpaceManager.h"
@@ -29,6 +28,7 @@
 #include "nsINode.h"
 #include "nsIScrollbarMediator.h"
 #include "nsITextControlFrame.h"
+#include "nsILayoutHistoryState.h"
 #include "nsNodeInfoManager.h"
 #include "nsContentCreatorFunctions.h"
 #include "mozilla/PresState.h"
@@ -37,10 +37,12 @@
 #include "nsLayoutUtils.h"
 #include "nsBidiPresUtils.h"
 #include "nsBidiUtils.h"
+#include "nsDocShell.h"
 #include "mozilla/ContentEvents.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/ScrollbarPreferences.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Event.h"
@@ -51,7 +53,6 @@
 #include "FrameLayerBuilder.h"
 #include "nsSubDocumentFrame.h"
 #include "nsSVGOuterSVGFrame.h"
-#include "nsIObjectLoadingContent.h"
 #include "mozilla/Attributes.h"
 #include "ScrollbarActivity.h"
 #include "nsRefreshDriver.h"
@@ -60,7 +61,6 @@
 #include "nsIScrollPositionListener.h"
 #include "StickyScrollContainer.h"
 #include "nsIFrameInlines.h"
-#include "nsILayoutHistoryState.h"
 #include "gfxPlatform.h"
 #include "mozilla/StaticPrefs_apz.h"
 #include "mozilla/StaticPrefs_general.h"
@@ -74,6 +74,7 @@
 #include "nsPluginFrame.h"
 #include "nsSliderFrame.h"
 #include "ViewportFrame.h"
+#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
 #include "mozilla/layers/AxisPhysicsModel.h"
 #include "mozilla/layers/AxisPhysicsMSDModel.h"
@@ -2594,28 +2595,36 @@ static nscoord ClampAndAlignWithPixels(nscoord aDesired, nscoord aBoundLower,
   // Convert back from PaintedLayer space to appunits relative to the top-left
   // of the scrolled frame.
   nscoord aligned =
-      NSToCoordRoundWithClamp(nearestLayerVal * aAppUnitsPerPixel / aRes);
+      aRes == 0.0
+          ? 0.0
+          : NSToCoordRoundWithClamp(nearestLayerVal * aAppUnitsPerPixel / aRes);
 
   // Use a bound if it is within the allowed range and closer to desired than
   // the nearest pixel-aligned value.
   if (aBoundUpper == destUpper &&
       static_cast<decltype(Abs(desired))>(aBoundUpper - desired) <
-          Abs(desired - aligned))
+          Abs(desired - aligned)) {
     return aBoundUpper;
+  }
 
   if (aBoundLower == destLower &&
       static_cast<decltype(Abs(desired))>(desired - aBoundLower) <
-          Abs(aligned - desired))
+          Abs(aligned - desired)) {
     return aBoundLower;
+  }
 
   // Accept the nearest pixel-aligned value if it is within the allowed range.
-  if (aligned >= destLower && aligned <= destUpper) return aligned;
+  if (aligned >= destLower && aligned <= destUpper) {
+    return aligned;
+  }
 
   // Check if opposite pixel boundary fits into allowed range.
   double oppositeLayerVal =
       nearestLayerVal + ((nearestLayerVal < desiredLayerVal) ? 1.0 : -1.0);
-  nscoord opposite =
-      NSToCoordRoundWithClamp(oppositeLayerVal * aAppUnitsPerPixel / aRes);
+  nscoord opposite = aRes == 0.0
+                         ? 0.0
+                         : NSToCoordRoundWithClamp(oppositeLayerVal *
+                                                   aAppUnitsPerPixel / aRes);
   if (opposite >= destLower && opposite <= destUpper) {
     return opposite;
   }
@@ -3476,7 +3485,7 @@ void ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 
   const nsStyleDisplay* disp = mOuter->StyleDisplay();
   if (aBuilder->IsForPainting() &&
-      disp->mWillChange.bits & StyleWillChangeBits_SCROLL) {
+      disp->mWillChange.bits & StyleWillChangeBits::SCROLL) {
     aBuilder->AddToWillChangeBudget(mOuter, GetVisualViewportSize());
   }
 
@@ -4072,23 +4081,6 @@ bool ScrollFrameHelper::IsRectNearlyVisible(const nsRect& aRect) const {
       ExpandRectToNearlyVisible(usingDisplayport ? displayPort : mScrollPort));
 }
 
-static void HandleScrollPref(nsIScrollable* aScrollable, int32_t aOrientation,
-                             StyleOverflow& aValue) {
-  int32_t pref;
-  aScrollable->GetDefaultScrollbarPreferences(aOrientation, &pref);
-  switch (pref) {
-    case nsIScrollable::Scrollbar_Auto:
-      // leave |aValue| untouched
-      break;
-    case nsIScrollable::Scrollbar_Never:
-      aValue = StyleOverflow::Hidden;
-      break;
-    case nsIScrollable::Scrollbar_Always:
-      aValue = StyleOverflow::Scroll;
-      break;
-  }
-}
-
 OverscrollBehaviorInfo ScrollFrameHelper::GetOverscrollBehaviorInfo() const {
   nsIFrame* frame = GetFrameForStyle();
   if (!frame) {
@@ -4112,13 +4104,14 @@ ScrollStyles ScrollFrameHelper::GetScrollStylesFromFrame() const {
   }
 
   ScrollStyles result = presContext->GetViewportScrollStylesOverride();
-  nsCOMPtr<nsISupports> container = presContext->GetContainerWeak();
-  nsCOMPtr<nsIScrollable> scrollable = do_QueryInterface(container);
-  if (scrollable) {
-    HandleScrollPref(scrollable, nsIScrollable::ScrollOrientation_X,
-                     result.mHorizontal);
-    HandleScrollPref(scrollable, nsIScrollable::ScrollOrientation_Y,
-                     result.mVertical);
+  if (nsDocShell* ds = presContext->GetDocShell()) {
+    switch (ds->ScrollbarPreference()) {
+      case ScrollbarPreference::Auto:
+        break;
+      case ScrollbarPreference::Never:
+        result.mHorizontal = result.mVertical = StyleOverflow::Hidden;
+        break;
+    }
   }
   return result;
 }
@@ -5485,7 +5478,7 @@ bool ScrollFrameHelper::IsScrollbarOnRight() const {
 
 bool ScrollFrameHelper::IsMaybeScrollingActive() const {
   const nsStyleDisplay* disp = mOuter->StyleDisplay();
-  if (disp->mWillChange.bits & StyleWillChangeBits_SCROLL) {
+  if (disp->mWillChange.bits & StyleWillChangeBits::SCROLL) {
     return true;
   }
 
@@ -5498,7 +5491,7 @@ bool ScrollFrameHelper::IsMaybeScrollingActive() const {
 bool ScrollFrameHelper::IsScrollingActive(
     nsDisplayListBuilder* aBuilder) const {
   const nsStyleDisplay* disp = mOuter->StyleDisplay();
-  if (disp->mWillChange.bits & StyleWillChangeBits_SCROLL &&
+  if (disp->mWillChange.bits & StyleWillChangeBits::SCROLL &&
       aBuilder->IsInWillChangeBudget(mOuter, GetVisualViewportSize())) {
     return true;
   }
@@ -6650,6 +6643,57 @@ uint32_t nsIScrollableFrame::GetAvailableScrollingDirections() const {
   }
   if (scrollRange.height >= oneDevPixel) {
     directions |= VERTICAL;
+  }
+  return directions;
+}
+
+nsRect ScrollFrameHelper::GetScrollRangeForUserInputEvents() const {
+  // This function computes a scroll range based on a scrolled rect and scroll
+  // port defined as follows:
+  //   scrollable rect = overflow:hidden ? layout viewport : scrollable rect
+  //   scroll port = have visual viewport ? visual viewport : layout viewport
+  // The results in the same notion of scroll range that APZ uses (the combined
+  // effect of FrameMetrics::CalculateScrollRange() and
+  // nsLayoutUtils::CalculateScrollableRectForFrame).
+
+  ScrollStyles ss = GetScrollStylesFromFrame();
+
+  nsRect scrolledRect = GetScrolledRect();
+  if (StyleOverflow::Hidden == ss.mHorizontal) {
+    scrolledRect.width = mScrollPort.width;
+  }
+  if (StyleOverflow::Hidden == ss.mVertical) {
+    scrolledRect.height = mScrollPort.height;
+  }
+
+  nsSize scrollPort = GetVisualViewportSize();
+
+  nsRect scrollRange = scrolledRect;
+  scrollRange.width = std::max(scrolledRect.width - scrollPort.width, 0);
+  scrollRange.height = std::max(scrolledRect.height - scrollPort.height, 0);
+
+  return scrollRange;
+}
+
+uint32_t ScrollFrameHelper::GetAvailableScrollingDirectionsForUserInputEvents()
+    const {
+  nsRect scrollRange = GetScrollRangeForUserInputEvents();
+
+  // We check if there is at least one half of a screen pixel of scroll range to
+  // roughly match what apz does when it checks if the change in scroll position
+  // in screen pixels round to zero or not.
+  // (https://searchfox.org/mozilla-central/rev/2f09184ec781a2667feec87499d4b81b32b6c48e/gfx/layers/apz/src/AsyncPanZoomController.cpp#3210)
+  // This isn't quite half a screen pixel, it doesn't take into account CSS
+  // transforms, but should be good enough.
+  float halfScreenPixel =
+      GetScrolledFrame()->PresContext()->AppUnitsPerDevPixel() /
+      (mOuter->PresShell()->GetCumulativeResolution() * 2.f);
+  uint32_t directions = 0;
+  if (scrollRange.width >= halfScreenPixel) {
+    directions |= nsIScrollableFrame::HORIZONTAL;
+  }
+  if (scrollRange.height >= halfScreenPixel) {
+    directions |= nsIScrollableFrame::VERTICAL;
   }
   return directions;
 }

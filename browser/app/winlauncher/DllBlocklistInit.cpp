@@ -17,16 +17,31 @@
 #include "DllBlocklistInit.h"
 #include "freestanding/DllBlocklist.h"
 
-extern uint32_t gBlocklistInitFlags;
-
 #if defined(_MSC_VER)
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 #endif
 
 namespace mozilla {
 
-LauncherVoidResult InitializeDllBlocklistOOP(const wchar_t* aFullImagePath,
-                                             HANDLE aChildProcess) {
+#if defined(MOZ_ASAN) || defined(_M_ARM64)
+
+// This DLL blocking code is incompatible with ASAN because
+// it is able to execute before ASAN itself has even initialized.
+// Also, AArch64 has not been tested with this.
+LauncherVoidResultWithLineInfo InitializeDllBlocklistOOP(
+    const wchar_t* aFullImagePath, HANDLE aChildProcess) {
+  return mozilla::Ok();
+}
+
+LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPFromLauncher(
+    const wchar_t* aFullImagePath, HANDLE aChildProcess) {
+  return mozilla::Ok();
+}
+
+#else
+
+static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
+    const wchar_t* aFullImagePath, HANDLE aChildProcess) {
   CrossProcessDllInterceptor intcpt(aChildProcess);
   intcpt.Init(L"ntdll.dll");
 
@@ -101,6 +116,13 @@ LauncherVoidResult InitializeDllBlocklistOOP(const wchar_t* aFullImagePath,
 
   // Tell the mozglue blocklist that we have bootstrapped
   uint32_t newFlags = eDllBlocklistInitFlagWasBootstrapped;
+
+  if (gBlocklistInitFlags & eDllBlocklistInitFlagWasBootstrapped) {
+    // If we ourselves were bootstrapped, then we are starting a child process
+    // and need to set the appropriate flag.
+    newFlags |= eDllBlocklistInitFlagIsChildProcess;
+  }
+
   ok = !!::WriteProcessMemory(aChildProcess, &gBlocklistInitFlags, &newFlags,
                               sizeof(newFlags), &bytesWritten);
   if (!ok || bytesWritten != sizeof(newFlags)) {
@@ -109,5 +131,24 @@ LauncherVoidResult InitializeDllBlocklistOOP(const wchar_t* aFullImagePath,
 
   return Ok();
 }
+
+LauncherVoidResultWithLineInfo InitializeDllBlocklistOOP(
+    const wchar_t* aFullImagePath, HANDLE aChildProcess) {
+  // We come here when the browser process launches a sandbox process.
+  // If the launcher process already failed to bootstrap the browser process,
+  // we should not attempt to bootstrap a child process.
+  if (!(gBlocklistInitFlags & eDllBlocklistInitFlagWasBootstrapped)) {
+    return Ok();
+  }
+
+  return InitializeDllBlocklistOOPInternal(aFullImagePath, aChildProcess);
+}
+
+LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPFromLauncher(
+    const wchar_t* aFullImagePath, HANDLE aChildProcess) {
+  return InitializeDllBlocklistOOPInternal(aFullImagePath, aChildProcess);
+}
+
+#endif  // defined(MOZ_ASAN) || defined(_M_ARM64)
 
 }  // namespace mozilla

@@ -13,7 +13,6 @@
 #include "prlock.h"
 #include "mozilla/RefPtr.h"
 #include "nsAutoPtr.h"
-#include "IPeerConnection.h"
 #include "nsComponentManagerUtils.h"
 #include "nsPIDOMWindow.h"
 #include "nsIUUIDGenerator.h"
@@ -40,8 +39,8 @@
 #include "VideoUtils.h"
 #include "VideoSegment.h"
 #include "mozilla/dom/RTCStatsReportBinding.h"
-#include "nsIPrincipal.h"
 #include "mozilla/PeerIdentity.h"
+#include "RTCStatsIdGenerator.h"
 #include "RTCStatsReport.h"
 
 namespace test {
@@ -666,6 +665,8 @@ class PeerConnectionImpl final
   std::vector<std::string> mRawTrickledCandidates;
 
   dom::RTCStatsTimestampMaker mTimestampMaker;
+
+  RefPtr<RTCStatsIdGenerator> mIdGenerator;
 
  public:
   // these are temporary until the DataChannel Listen/Connect API is removed

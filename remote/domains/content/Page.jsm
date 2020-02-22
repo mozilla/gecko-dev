@@ -6,12 +6,23 @@
 
 var EXPORTED_SYMBOLS = ["Page"];
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+
 const { ContentProcessDomain } = ChromeUtils.import(
   "chrome://remote/content/domains/ContentProcessDomain.jsm"
 );
-const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { UnsupportedError } = ChromeUtils.import(
   "chrome://remote/content/Error.jsm"
+);
+
+XPCOMUtils.defineLazyServiceGetter(
+  this,
+  "uuidGen",
+  "@mozilla.org/uuid-generator;1",
+  "nsIUUIDGenerator"
 );
 
 const {
@@ -26,12 +37,19 @@ class Page extends ContentProcessDomain {
 
     this.enabled = false;
     this.lifecycleEnabled = false;
+    // script id => { source, worldName }
+    this.scriptsToEvaluateOnLoad = new Map();
+    this.worldsToEvaluateOnLoad = new Set();
 
-    this.onFrameNavigated = this.onFrameNavigated.bind(this);
+    this._onFrameNavigated = this._onFrameNavigated.bind(this);
+    this._onScriptLoaded = this._onScriptLoaded.bind(this);
+
+    this.contextObserver.on("script-loaded", this._onScriptLoaded);
   }
 
   destructor() {
     this.setLifecycleEventsEnabled({ enabled: false });
+    this.contextObserver.off("script-loaded", this._onScriptLoaded);
     this.disable();
 
     super.destructor();
@@ -42,7 +60,7 @@ class Page extends ContentProcessDomain {
   async enable() {
     if (!this.enabled) {
       this.enabled = true;
-      this.contextObserver.on("frame-navigated", this.onFrameNavigated);
+      this.contextObserver.on("frame-navigated", this._onFrameNavigated);
 
       this.chromeEventHandler.addEventListener("DOMContentLoaded", this, {
         mozSystemGroup: true,
@@ -58,7 +76,7 @@ class Page extends ContentProcessDomain {
 
   disable() {
     if (this.enabled) {
-      this.contextObserver.off("frame-navigated", this.onFrameNavigated);
+      this.contextObserver.off("frame-navigated", this._onFrameNavigated);
 
       this.chromeEventHandler.removeEventListener("DOMContentLoaded", this, {
         mozSystemGroup: true,
@@ -71,15 +89,6 @@ class Page extends ContentProcessDomain {
       });
       this.enabled = false;
     }
-  }
-
-  _viewportRect() {
-    return new DOMRect(
-      this.content.pageXOffset,
-      this.content.pageYOffset,
-      this.content.innerWidth,
-      this.content.innerHeight
-    );
   }
 
   async navigate({ url, referrer, transitionType, frameId } = {}) {
@@ -95,7 +104,7 @@ class Page extends ContentProcessDomain {
     this.docShell.loadURI(url, opts);
 
     return {
-      frameId: this.content.windowUtils.outerWindowID,
+      frameId: this.content.windowUtils.outerWindowID.toString(),
     };
   }
 
@@ -109,7 +118,7 @@ class Page extends ContentProcessDomain {
   }
 
   getFrameTree() {
-    const frameId = this.content.windowUtils.outerWindowID;
+    const frameId = this.content.windowUtils.outerWindowID.toString();
     return {
       frameTree: {
         frame: {
@@ -124,8 +133,63 @@ class Page extends ContentProcessDomain {
     };
   }
 
-  addScriptToEvaluateOnNewDocument() {}
-  createIsolatedWorld() {}
+  /**
+   * Enqueues given script to be evaluated in every frame upon creation
+   *
+   * If `worldName` is specified, creates an execution context with the given name
+   * and evaluates given script in it.
+   *
+   * At this time, queued scripts do not get evaluated, hence `source` is marked as
+   * "unsupported".
+   *
+   * @param {Object} options
+   * @param {string} options.source (not supported)
+   * @param {string=} options.worldName
+   * @return {string} Page.ScriptIdentifier
+   */
+  addScriptToEvaluateOnNewDocument(options = {}) {
+    const { source, worldName } = options;
+    if (worldName) {
+      this.worldsToEvaluateOnLoad.add(worldName);
+    }
+    const identifier = uuidGen
+      .generateUUID()
+      .toString()
+      .slice(1, -1);
+    this.scriptsToEvaluateOnLoad.set(identifier, { worldName, source });
+
+    return { identifier };
+  }
+
+  /**
+   * Creates an isolated world for the given frame.
+   *
+   * Really it just creates an execution context with label "isolated".
+   *
+   * @param {Object} options
+   * @param {string} options.frameId
+   * @param {string=} options.worldName
+   * @param {boolean=} options.grantUniversalAccess (not supported)
+   *     This is a powerful option, use with caution.
+   * @return {number} Runtime.ExecutionContextId
+   */
+  createIsolatedWorld(options = {}) {
+    const { frameId, worldName } = options;
+    if (frameId && frameId != this.content.windowUtils.outerWindowID) {
+      throw new UnsupportedError("frameId not supported");
+    }
+    const Runtime = this.session.domains.get("Runtime");
+
+    const executionContextId = Runtime._onContextCreated("context-created", {
+      windowId: this.content.windowUtils.currentInnerWindowID,
+      window: this.content,
+      isDefault: false,
+      contextName: worldName,
+      contextType: "isolated",
+    });
+
+    return { executionContextId };
+  }
 
   /**
    * Controls whether page will emit lifecycle events.
@@ -134,7 +198,7 @@ class Page extends ContentProcessDomain {
    * @param {boolean} options.enabled
    *     If true, starts emitting lifecycle events.
    */
-  setLifecycleEventsEnabled(options) {
+  setLifecycleEventsEnabled(options = {}) {
     const { enabled } = options;
 
     this.lifecycleEnabled = enabled;
@@ -144,7 +208,7 @@ class Page extends ContentProcessDomain {
     return this.content.location.href;
   }
 
-  onFrameNavigated(name, { frameId, window }) {
+  _onFrameNavigated(name, { frameId, window }) {
     const url = window.location.href;
     this.emit("Page.frameNavigated", {
       frame: {
@@ -155,6 +219,20 @@ class Page extends ContentProcessDomain {
         url,
       },
     });
+  }
+
+  _onScriptLoaded(name) {
+    const Runtime = this.session.domains.get("Runtime");
+    for (const world of this.worldsToEvaluateOnLoad) {
+      Runtime._onContextCreated("context-created", {
+        windowId: this.content.windowUtils.currentInnerWindowID,
+        window: this.content,
+        isDefault: false,
+        contextName: world,
+        contextType: "isolated",
+      });
+    }
+    // TODO evaluate each onNewDoc script in the appropriate world
   }
 
   emitLifecycleEvent(frameId, loaderId, name, timestamp) {
@@ -172,7 +250,7 @@ class Page extends ContentProcessDomain {
     }
 
     const timestamp = Date.now();
-    const frameId = target.defaultView.windowUtils.outerWindowID;
+    const frameId = target.defaultView.windowUtils.outerWindowID.toString();
     const url = target.location.href;
 
     switch (type) {
@@ -218,6 +296,44 @@ class Page extends ContentProcessDomain {
 
         break;
     }
+  }
+
+  _contentSize() {
+    const docEl = this.content.document.documentElement;
+
+    return {
+      x: 0,
+      y: 0,
+      width: docEl.scrollWidth,
+      height: docEl.scrollHeight,
+    };
+  }
+
+  _getScrollbarSize() {
+    const scrollbarHeight = {};
+    const scrollbarWidth = {};
+
+    this.content.windowUtils.getScrollbarSize(
+      false,
+      scrollbarWidth,
+      scrollbarHeight
+    );
+
+    return {
+      width: scrollbarWidth.value,
+      height: scrollbarHeight.value,
+    };
+  }
+
+  _layoutViewport() {
+    const scrollbarSize = this._getScrollbarSize();
+
+    return {
+      pageX: this.content.pageXOffset,
+      pageY: this.content.pageYOffset,
+      clientWidth: this.content.innerWidth - scrollbarSize.width,
+      clientHeight: this.content.innerHeight - scrollbarSize.height,
+    };
   }
 }
 

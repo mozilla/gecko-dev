@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "gc/Zone.h"
+#include "js/Array.h"  // JS::GetArrayLength
 #include "jsapi-tests/tests.h"
 #include "vm/Realm.h"
 
@@ -53,7 +54,7 @@ bool checkSize(JS::HandleObject map, uint32_t expected) {
   CHECK(JS_NondeterministicGetWeakMapKeys(cx, map, &keys));
 
   uint32_t length;
-  CHECK(JS_GetArrayLength(cx, keys, &length));
+  CHECK(JS::GetArrayLength(cx, keys, &length));
   CHECK(length == expected);
 
   return true;
@@ -193,21 +194,22 @@ JSObject* newCCW(JS::HandleObject sourceZone, JS::HandleObject destZone) {
 
 JSObject* newDelegate() {
   static const JSClassOps delegateClassOps = {
-      nullptr, /* addProperty */
-      nullptr, /* delProperty */
-      nullptr, /* enumerate */
-      nullptr, /* newEnumerate */
-      nullptr, /* resolve */
-      nullptr, /* mayResolve */
-      nullptr, /* finalize */
-      nullptr, /* call */
-      nullptr, /* hasInstance */
-      nullptr, /* construct */
-      JS_GlobalObjectTraceHook,
+      nullptr,                   // addProperty
+      nullptr,                   // delProperty
+      nullptr,                   // enumerate
+      nullptr,                   // newEnumerate
+      nullptr,                   // resolve
+      nullptr,                   // mayResolve
+      nullptr,                   // finalize
+      nullptr,                   // call
+      nullptr,                   // hasInstance
+      nullptr,                   // construct
+      JS_GlobalObjectTraceHook,  // trace
   };
 
   static const js::ClassExtension delegateClassExtension = {
-      DelegateObjectMoved};
+      DelegateObjectMoved,  // objectMovedOp
+  };
 
   static const JSClass delegateClass = {
       "delegate",
@@ -235,7 +237,7 @@ bool checkSize(JS::HandleObject map, uint32_t expected) {
   CHECK(JS_NondeterministicGetWeakMapKeys(cx, map, &keys));
 
   uint32_t length;
-  CHECK(JS_GetArrayLength(cx, keys, &length));
+  CHECK(JS::GetArrayLength(cx, keys, &length));
   CHECK(length == expected);
 
   return true;

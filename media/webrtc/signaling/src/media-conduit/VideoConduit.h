@@ -68,6 +68,7 @@ class WebrtcVideoDecoder : public VideoDecoder, public webrtc::VideoDecoder {};
  */
 class WebrtcVideoConduit
     : public VideoSessionConduit,
+      public webrtc::RtcpEventObserver,
       public webrtc::Transport,
       public webrtc::VideoEncoderFactory,
       public rtc::VideoSinkInterface<webrtc::VideoFrame>,
@@ -207,7 +208,11 @@ class WebrtcVideoConduit
    */
   void AddOrUpdateSink(rtc::VideoSinkInterface<webrtc::VideoFrame>* sink,
                        const rtc::VideoSinkWants& wants) override;
+  void AddOrUpdateSinkNotLocked(rtc::VideoSinkInterface<webrtc::VideoFrame>* sink,
+                                const rtc::VideoSinkWants& wants);
+
   void RemoveSink(rtc::VideoSinkInterface<webrtc::VideoFrame>* sink) override;
+  void RemoveSinkNotLocked(rtc::VideoSinkInterface<webrtc::VideoFrame>* sink);
 
   void OnSinkWantsChanged(const rtc::VideoSinkWants& wants);
 
@@ -290,6 +295,12 @@ class WebrtcVideoConduit
     mSendStreamStats.RecordTelemetry();
     mRecvStreamStats.RecordTelemetry();
   }
+
+  void OnRtcpBye() override;
+
+  void OnRtcpTimeout() override;
+
+  void SetRtcpEventObserver(mozilla::RtcpEventObserver* observer) override;
 
  private:
   // Don't allow copying/assigning.
@@ -513,6 +524,9 @@ class WebrtcVideoConduit
   // Written only on main thread. Guarded by mMutex, except for reads on main.
   nsAutoPtr<VideoCodecConfig> mCurSendCodecConfig;
 
+  bool mUpdateResolution = false;
+  int mSinkWantsPixelCount = std::numeric_limits<int>::max();
+
   // Bookkeeping of send stream stats. Sts thread only.
   SendStreamStatistics mSendStreamStats;
 
@@ -633,6 +647,9 @@ class WebrtcVideoConduit
 
   // Accessed only on mStsThread
   Maybe<DOMHighResTimeStamp> mLastRtcpReceived;
+
+  // Accessed only on main thread.
+  mozilla::RtcpEventObserver* mRtcpEventObserver = nullptr;
 };
 }  // namespace mozilla
 

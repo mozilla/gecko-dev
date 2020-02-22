@@ -70,12 +70,15 @@ class RenderCompositorANGLE : public RenderCompositor {
   // Interface for wr::Compositor
   void CompositorBeginFrame() override;
   void CompositorEndFrame() override;
-  void Bind(wr::NativeSurfaceId aId, wr::DeviceIntPoint* aOffset,
-            uint32_t* aFboId, wr::DeviceIntRect aDirtyRect) override;
+  void Bind(wr::NativeTileId aId, wr::DeviceIntPoint* aOffset, uint32_t* aFboId,
+            wr::DeviceIntRect aDirtyRect) override;
   void Unbind() override;
-  void CreateSurface(wr::NativeSurfaceId aId, wr::DeviceIntSize aSize,
-                     bool aIsOpaque) override;
+  void CreateSurface(wr::NativeSurfaceId aId,
+                     wr::DeviceIntSize aTileSize) override;
   void DestroySurface(NativeSurfaceId aId) override;
+  void CreateTile(wr::NativeSurfaceId aId, int32_t aX, int32_t aY,
+                  bool aIsOpaque) override;
+  void DestroyTile(wr::NativeSurfaceId aId, int32_t aX, int32_t aY) override;
   void AddSurface(wr::NativeSurfaceId aId, wr::DeviceIntPoint aPosition,
                   wr::DeviceIntRect aClipRect) override;
 
@@ -84,11 +87,16 @@ class RenderCompositorANGLE : public RenderCompositor {
   bool RequestFullRender() override;
   uint32_t GetMaxPartialPresentRects() override;
 
+  bool MaybeReadback(const gfx::IntSize& aReadbackSize,
+                     const wr::ImageFormat& aReadbackFormat,
+                     const Range<uint8_t>& aReadbackBuffer) override;
+
  protected:
   bool UseCompositor();
   void InitializeUsePartialPresent();
-  void InsertPresentWaitQuery(RenderedFrameId aRenderedFrameId);
-  bool WaitForPreviousPresentQuery();
+  void InsertGraphicsCommandsFinishedWaitQuery(
+      RenderedFrameId aRenderedFrameId);
+  bool WaitForPreviousGraphicsCommandsFinishedQuery();
   bool ResizeBufferIfNeeded();
   bool CreateEGLSurface();
   void DestroyEGLSurface();

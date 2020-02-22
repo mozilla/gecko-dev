@@ -190,15 +190,6 @@ class WindowsError final {
 template <typename T>
 using WindowsErrorResult = Result<T, WindowsError>;
 
-#if defined(MOZILLA_INTERNAL_API)
-
-template <typename T>
-using LauncherResult = WindowsErrorResult<T>;
-
-using WindowsErrorType = WindowsError;
-
-#else
-
 struct LauncherError {
   LauncherError(const char* aFile, int aLine, WindowsError aWin32Error)
       : mFile(aFile), mLine(aLine), mError(aWin32Error) {}
@@ -220,14 +211,31 @@ struct LauncherError {
   bool operator!=(const WindowsError& aOther) const { return mError != aOther; }
 };
 
+#if defined(MOZILLA_INTERNAL_API)
+
+template <typename T>
+using LauncherResult = WindowsErrorResult<T>;
+
+template <typename T>
+using LauncherResultWithLineInfo = Result<T, LauncherError>;
+
+using WindowsErrorType = WindowsError;
+
+#else
+
 template <typename T>
 using LauncherResult = Result<T, LauncherError>;
+
+template <typename T>
+using LauncherResultWithLineInfo = LauncherResult<T>;
 
 using WindowsErrorType = LauncherError;
 
 #endif  // defined(MOZILLA_INTERNAL_API)
 
 using LauncherVoidResult = LauncherResult<Ok>;
+
+using LauncherVoidResultWithLineInfo = LauncherResultWithLineInfo<Ok>;
 
 #if defined(MOZILLA_INTERNAL_API)
 
@@ -449,7 +457,7 @@ class FileUniqueId final {
 class MOZ_RAII AutoVirtualProtect final {
  public:
   AutoVirtualProtect(void* aAddress, size_t aLength, DWORD aProtFlags,
-                     HANDLE aTargetProcess = nullptr)
+                     HANDLE aTargetProcess = ::GetCurrentProcess())
       : mAddress(aAddress),
         mLength(aLength),
         mTargetProcess(aTargetProcess),
@@ -526,6 +534,8 @@ inline UniquePtr<wchar_t[]> GetFullBinaryPath() {
 
 class ModuleVersion final {
  public:
+  constexpr ModuleVersion() : mVersion(0ULL) {}
+
   explicit ModuleVersion(const VS_FIXEDFILEINFO& aFixedInfo)
       : mVersion((static_cast<uint64_t>(aFixedInfo.dwFileVersionMS) << 32) |
                  static_cast<uint64_t>(aFixedInfo.dwFileVersionLS)) {}
@@ -554,6 +564,11 @@ class ModuleVersion final {
   }
 
   bool operator<(const uint64_t& aOther) const { return mVersion < aOther; }
+
+  ModuleVersion& operator=(const uint64_t aIntVersion) {
+    mVersion = aIntVersion;
+    return *this;
+  }
 
  private:
   uint64_t mVersion;

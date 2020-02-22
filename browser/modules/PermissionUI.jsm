@@ -76,11 +76,6 @@ ChromeUtils.defineModuleGetter(
   "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "PermissionUITelemetry",
-  "resource:///modules/PermissionUITelemetry.jsm"
-);
 
 XPCOMUtils.defineLazyServiceGetter(
   this,
@@ -149,17 +144,11 @@ var PermissionPromptPrototype = {
   },
 
   /**
-   * Provides the preferred name to use in the permission popups,
-   * based on the principal URI (the URI.hostPort for any URI scheme
-   * besides the moz-extension one which should default to the
-   * extension name).
+   * Indicates the type of the permission request from content. This type might
+   * be different from the permission key used in the permissions database.
    */
-  get principalName() {
-    if (this.principal.addonPolicy) {
-      return this.principal.addonPolicy.name;
-    }
-
-    return this.principal.URI.hostPort;
+  get type() {
+    return undefined;
   },
 
   /**
@@ -174,17 +163,6 @@ var PermissionPromptPrototype = {
    * will be selected automatically.
    */
   get permissionKey() {
-    return undefined;
-  },
-
-  /**
-   * A string that needs to be set to include this prompt in
-   * experimental event telemetry collection.
-   *
-   * This needs to conform to event telemetry string rules,
-   * i.e. it needs to be an alphabetic string under 20 characters.
-   */
-  get permissionTelemetryKey() {
     return undefined;
   },
 
@@ -273,6 +251,20 @@ var PermissionPromptPrototype = {
    */
   get message() {
     throw new Error("Not implemented.");
+  },
+
+  /**
+   * Provides the preferred name to use in the permission popups,
+   * based on the principal URI (the URI.hostPort for any URI scheme
+   * besides the moz-extension one which should default to the
+   * extension name).
+   */
+  getPrincipalName(principal = this.principal) {
+    if (principal.addonPolicy) {
+      return principal.addonPolicy.name;
+    }
+
+    return principal.URI.hostPort;
   },
 
   /**
@@ -413,7 +405,10 @@ var PermissionPromptPrototype = {
         return;
       }
 
-      if (state == SitePermissions.ALLOW) {
+      if (
+        state == SitePermissions.ALLOW &&
+        !this.request.maybeUnsafePermissionDelegate
+      ) {
         this.allow();
         return;
       }
@@ -451,8 +446,6 @@ var PermissionPromptPrototype = {
       this.cancel();
       return;
     }
-
-    this._buttonAction = null;
 
     // Transform the PermissionPrompt actions into PopupNotification actions.
     let popupNotificationActions = [];
@@ -496,16 +489,9 @@ var PermissionPromptPrototype = {
             }
 
             // Grant permission if action is ALLOW.
-            // Record buttonAction for telemetry.
             if (promptAction.action == SitePermissions.ALLOW) {
-              this._buttonAction = "accept";
               this.allow();
             } else {
-              if (promptAction.scope == SitePermissions.SCOPE_PERSISTENT) {
-                this._buttonAction = "never";
-              } else {
-                this._buttonAction = "deny";
-              }
               this.cancel();
             }
           } else if (this.permissionKey) {
@@ -603,20 +589,6 @@ var PermissionPromptPrototype = {
 
     let options = this.popupOptions;
 
-    let telemetryData = null;
-    if (this.request && this.permissionTelemetryKey) {
-      telemetryData = {
-        permissionTelemetryKey: this.permissionTelemetryKey,
-        permissionKey: this.permissionKey,
-        principal: this.principal,
-        documentDOMContentLoadedTimestamp: this.request
-          .documentDOMContentLoadedTimestamp,
-        isHandlingUserInput: this.request.isHandlingUserInput,
-        userHadInteractedWithDocument: this.request
-          .userHadInteractedWithDocument,
-      };
-    }
-
     if (!options.hasOwnProperty("displayURI") || options.displayURI) {
       options.displayURI = this.principal.URI;
     }
@@ -648,13 +620,6 @@ var PermissionPromptPrototype = {
       // You can remove this restriction if you need it, but be
       // mindful of other consumers.
       if (topic == "removed" && !postPrompt) {
-        if (telemetryData) {
-          PermissionUITelemetry.onRemoved(
-            telemetryData,
-            this._buttonAction,
-            nextRemovalReason
-          );
-        }
         if (isCancel) {
           this.cancel();
         }
@@ -680,9 +645,6 @@ var PermissionPromptPrototype = {
         secondaryActions,
         options
       );
-      if (telemetryData) {
-        PermissionUITelemetry.onShow(telemetryData);
-      }
     }
   },
 };
@@ -711,7 +673,8 @@ var PermissionPromptForRequestPrototype = {
   },
 
   get principal() {
-    return this.request.principal;
+    let request = this.request.QueryInterface(Ci.nsIContentPermissionRequest);
+    return request.getDelegatePrincipal(this.type);
   },
 
   cancel() {
@@ -739,11 +702,11 @@ function GeolocationPermissionPrompt(request) {
 GeolocationPermissionPrompt.prototype = {
   __proto__: PermissionPromptForRequestPrototype,
 
-  get permissionKey() {
+  get type() {
     return "geo";
   },
 
-  get permissionTelemetryKey() {
+  get permissionKey() {
     return "geo";
   },
 
@@ -752,7 +715,7 @@ GeolocationPermissionPrompt.prototype = {
     let options = {
       learnMoreURL: Services.urlFormatter.formatURLPref(pref),
       displayURI: false,
-      name: this.principalName,
+      name: this.getPrincipalName(),
     };
 
     if (this.principal.schemeIs("file")) {
@@ -762,6 +725,12 @@ GeolocationPermissionPrompt.prototype = {
       options.checkbox = {
         show: !PrivateBrowsingUtils.isWindowPrivate(this.browser.ownerGlobal),
       };
+    }
+
+    if (this.request.maybeUnsafePermissionDelegate) {
+      // Second name should be the third party origin
+      options.secondName = this.getPrincipalName(this.request.principal);
+      options.checkbox = { show: false };
     }
 
     if (options.checkbox.show) {
@@ -784,6 +753,13 @@ GeolocationPermissionPrompt.prototype = {
   get message() {
     if (this.principal.schemeIs("file")) {
       return gBrowserBundle.GetStringFromName("geolocation.shareWithFile3");
+    }
+
+    if (this.request.maybeUnsafePermissionDelegate) {
+      return gBrowserBundle.formatStringFromName(
+        "geolocation.shareWithSiteUnsafeDelegation",
+        ["<>", "{}"]
+      );
     }
 
     return gBrowserBundle.formatStringFromName("geolocation.shareWithSite3", [
@@ -859,6 +835,111 @@ PermissionUI.GeolocationPermissionPrompt = GeolocationPermissionPrompt;
 
 /**
  * Creates a PermissionPrompt for a nsIContentPermissionRequest for
+ * the WebXR API.
+ *
+ * @param request (nsIContentPermissionRequest)
+ *        The request for a permission from content.
+ */
+function XRPermissionPrompt(request) {
+  this.request = request;
+}
+
+XRPermissionPrompt.prototype = {
+  __proto__: PermissionPromptForRequestPrototype,
+
+  get type() {
+    return "xr";
+  },
+
+  get permissionKey() {
+    return "xr";
+  },
+
+  get popupOptions() {
+    let pref = "browser.xr.warning.infoURL";
+    let options = {
+      learnMoreURL: Services.urlFormatter.formatURLPref(pref),
+      displayURI: false,
+      name: this.getPrincipalName(),
+    };
+
+    if (this.principal.URI.schemeIs("file")) {
+      options.checkbox = { show: false };
+    } else {
+      // Don't offer "always remember" action in PB mode
+      options.checkbox = {
+        show: !PrivateBrowsingUtils.isWindowPrivate(this.browser.ownerGlobal),
+      };
+    }
+
+    if (options.checkbox.show) {
+      options.checkbox.label = gBrowserBundle.GetStringFromName("xr.remember");
+    }
+
+    return options;
+  },
+
+  get notificationID() {
+    return "xr";
+  },
+
+  get anchorID() {
+    return "xr-notification-icon";
+  },
+
+  get message() {
+    if (this.principal.URI.schemeIs("file")) {
+      return gBrowserBundle.GetStringFromName("xr.shareWithFile3");
+    }
+
+    return gBrowserBundle.formatStringFromName("xr.shareWithSite3", ["<>"]);
+  },
+
+  get promptActions() {
+    return [
+      {
+        label: gBrowserBundle.GetStringFromName("xr.allow"),
+        accessKey: gBrowserBundle.GetStringFromName("xr.allow.accesskey"),
+        action: SitePermissions.ALLOW,
+      },
+      {
+        label: gBrowserBundle.GetStringFromName("xr.dontAllow"),
+        accessKey: gBrowserBundle.GetStringFromName("xr.dontAllow.accesskey"),
+        action: SitePermissions.BLOCK,
+      },
+    ];
+  },
+
+  _updateXRSharing(state) {
+    let gBrowser = this.browser.ownerGlobal.gBrowser;
+    if (gBrowser == null) {
+      return;
+    }
+    gBrowser.updateBrowserSharing(this.browser, { xr: state });
+
+    let devicePermOrigins = this.browser.getDevicePermissionOrigins("xr");
+    if (!state) {
+      devicePermOrigins.delete(this.principal.origin);
+      return;
+    }
+    devicePermOrigins.add(this.principal.origin);
+  },
+
+  allow(...args) {
+    this._updateXRSharing(true);
+    PermissionPromptForRequestPrototype.allow.apply(this, args);
+  },
+
+  cancel(...args) {
+    this._updateXRSharing(false);
+    PermissionPromptForRequestPrototype.cancel.apply(this, args);
+  },
+};
+
+PermissionUI.XRPermissionPrompt = XRPermissionPrompt;
+
+/**
+ * Creates a PermissionPrompt for a nsIContentPermissionRequest for
  * the Desktop Notification API.
  *
  * @param request (nsIContentPermissionRequest)
@@ -888,12 +969,12 @@ function DesktopNotificationPermissionPrompt(request) {
 DesktopNotificationPermissionPrompt.prototype = {
   __proto__: PermissionPromptForRequestPrototype,
 
-  get permissionKey() {
+  get type() {
     return "desktop-notification";
   },
 
-  get permissionTelemetryKey() {
-    return "notifications";
+  get permissionKey() {
+    return "desktop-notification";
   },
 
   get popupOptions() {
@@ -903,7 +984,7 @@ DesktopNotificationPermissionPrompt.prototype = {
     return {
       learnMoreURL,
       displayURI: false,
-      name: this.principalName,
+      name: this.getPrincipalName(),
     };
   },
 
@@ -991,6 +1072,10 @@ function PersistentStoragePermissionPrompt(request) {
 PersistentStoragePermissionPrompt.prototype = {
   __proto__: PermissionPromptForRequestPrototype,
 
+  get type() {
+    return "persistent-storage";
+  },
+
   get permissionKey() {
     return "persistent-storage";
   },
@@ -1002,7 +1087,7 @@ PersistentStoragePermissionPrompt.prototype = {
     return {
       learnMoreURL,
       displayURI: false,
-      name: this.principalName,
+      name: this.getPrincipalName(),
     };
   },
 
@@ -1079,6 +1164,10 @@ function MIDIPermissionPrompt(request) {
 MIDIPermissionPrompt.prototype = {
   __proto__: PermissionPromptForRequestPrototype,
 
+  get type() {
+    return "midi";
+  },
+
   get permissionKey() {
     return this.permName;
   },
@@ -1087,7 +1176,7 @@ MIDIPermissionPrompt.prototype = {
     // TODO (bug 1433235) We need a security/permissions explanation URL for this
     let options = {
       displayURI: false,
-      name: this.principalName,
+      name: this.getPrincipalName(),
     };
 
     if (this.principal.schemeIs("file")) {
@@ -1171,6 +1260,10 @@ StorageAccessPermissionPrompt.prototype = {
     return false;
   },
 
+  get type() {
+    return "storage-access";
+  },
+
   get permissionKey() {
     // Make sure this name is unique per each third-party tracker
     return "storage-access-" + this.principal.origin;
@@ -1190,41 +1283,16 @@ StorageAccessPermissionPrompt.prototype = {
   },
 
   get popupOptions() {
+    let learnMoreURL =
+      Services.urlFormatter.formatURLPref("app.support.baseURL") +
+      "third-party-cookies";
     return {
+      learnMoreURL,
       displayURI: false,
       name: this.prettifyHostPort(this.principal.URI),
       secondName: this.prettifyHostPort(this.topLevelPrincipal.URI),
       escAction: "buttoncommand",
     };
-  },
-
-  onShown() {
-    let document = this.browser.ownerDocument;
-    let label = gBrowserBundle.formatStringFromName(
-      "storageAccess.description.label",
-      [this.prettifyHostPort(this.request.principal.URI), "<>"]
-    );
-    let parts = label.split("<>");
-    if (parts.length == 1) {
-      parts.push("");
-    }
-    let map = {
-      "storage-access-perm-label": parts[0],
-      "storage-access-perm-learnmore": gBrowserBundle.GetStringFromName(
-        "storageAccess.description.learnmore"
-      ),
-      "storage-access-perm-endlabel": parts[1],
-    };
-    for (let id in map) {
-      let str = map[id];
-      document.getElementById(id).textContent = str;
-    }
-    let learnMoreURL =
-      Services.urlFormatter.formatURLPref("app.support.baseURL") +
-      "third-party-cookies";
-    document.getElementById(
-      "storage-access-perm-learnmore"
-    ).href = learnMoreURL;
   },
 
   get notificationID() {
@@ -1236,7 +1304,7 @@ StorageAccessPermissionPrompt.prototype = {
   },
 
   get message() {
-    return gBrowserBundle.formatStringFromName("storageAccess.message", [
+    return gBrowserBundle.formatStringFromName("storageAccess2.message", [
       "<>",
       "{}",
     ]);
@@ -1266,18 +1334,6 @@ StorageAccessPermissionPrompt.prototype = {
         action: Ci.nsIPermissionManager.ALLOW_ACTION,
         callback(state) {
           self.allow({ "storage-access": "allow" });
-        },
-      },
-      {
-        label: gBrowserBundle.GetStringFromName(
-          "storageAccess.AllowOnAnySite.label"
-        ),
-        accessKey: gBrowserBundle.GetStringFromName(
-          "storageAccess.AllowOnAnySite.accesskey"
-        ),
-        action: Ci.nsIPermissionManager.ALLOW_ACTION,
-        callback(state) {
-          self.allow({ "storage-access": "allow-on-any-site" });
         },
       },
     ];

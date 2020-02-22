@@ -287,6 +287,11 @@ void CompositorOGL::Destroy() {
 void CompositorOGL::CleanupResources() {
   if (!mGLContext) return;
 
+  if (mSurfacePoolHandle) {
+    mSurfacePoolHandle->Pool()->DestroyGLResourcesForContext(mGLContext);
+    mSurfacePoolHandle = nullptr;
+  }
+
   RefPtr<GLContext> ctx = mGLContext->GetSharedContext();
   if (!ctx) {
     ctx = mGLContext;
@@ -758,7 +763,6 @@ CompositorOGL::RenderTargetForNativeLayer(NativeLayer* aNativeLayer,
   }
 
   aNativeLayer->SetSurfaceIsFlipped(true);
-  aNativeLayer->SetGLContext(mGLContext);
 
   IntRect layerRect = aNativeLayer->GetRect();
   IntRegion invalidRelativeToLayer =
@@ -2068,6 +2072,15 @@ void CompositorOGL::WaitForGPU() {
   mThisFrameDoneSync = nullptr;
 }
 
+RefPtr<SurfacePoolHandle> CompositorOGL::GetSurfacePoolHandle() {
+#ifdef XP_MACOSX
+  if (!mSurfacePoolHandle) {
+    mSurfacePoolHandle = SurfacePool::Create(0)->GetHandleForGL(mGLContext);
+  }
+#endif
+  return mSurfacePoolHandle;
+}
+
 bool CompositorOGL::NeedToRecreateFullWindowRenderTarget() const {
   if (!ShouldRecordFrames()) {
     return false;
@@ -2135,11 +2148,15 @@ void CompositorOGL::Pause() {
   java::GeckoSurfaceTexture::DetachAllFromGLContext((int64_t)mGLContext.get());
   // ReleaseSurface internally calls MakeCurrent
   gl()->ReleaseSurface();
+#elif defined(MOZ_WAYLAND)
+  // ReleaseSurface internally calls MakeCurrent
+  gl()->ReleaseSurface();
 #endif
 }
 
 bool CompositorOGL::Resume() {
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_UIKIT)
+#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_UIKIT) || \
+    defined(MOZ_WAYLAND)
   if (!gl() || gl()->IsDestroyed()) return false;
 
   // RenewSurface internally calls MakeCurrent.

@@ -65,8 +65,15 @@ const urlRegex = /(^|[\s(,;'"`“])((?:https?:\/\/|www\d{0,3}[.][a-z0-9.\-]{2,24
 // parentheses (english-specific).
 const uneatLastUrlCharsRegex = /(?:[),;.!?`'"]|[.!?]\)|\)[.!?])$/;
 
-const { MESSAGE_SOURCE, MESSAGE_TYPE, MESSAGE_LEVEL } = require("../constants");
-const { ConsoleMessage, NetworkEventMessage } = require("../types");
+const {
+  MESSAGE_SOURCE,
+  MESSAGE_TYPE,
+  MESSAGE_LEVEL,
+} = require("devtools/client/webconsole/constants");
+const {
+  ConsoleMessage,
+  NetworkEventMessage,
+} = require("devtools/client/webconsole/types");
 
 function prepareMessage(packet, idGenerator) {
   if (!packet.source) {
@@ -206,7 +213,9 @@ function transformConsoleAPICallPacket(packet) {
       if (
         !Array.isArray(parameters) ||
         parameters.length === 0 ||
-        !supportedClasses.includes(parameters[0].class)
+        !parameters[0] ||
+        !parameters[0].getGrip ||
+        !supportedClasses.includes(parameters[0].getGrip().class)
       ) {
         // If the class of the first parameter is not supported,
         // we handle the call as a simple console.log
@@ -428,6 +437,10 @@ function getRepeatId(message) {
     function(_, value) {
       if (typeof value === "bigint") {
         return value.toString() + "n";
+      }
+
+      if (value && value._grip) {
+        return value._grip;
       }
 
       return value;

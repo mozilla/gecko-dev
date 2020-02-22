@@ -27,6 +27,8 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/IdleDeadline.h"
 #include "mozilla/dom/JSWindowActorService.h"
+#include "mozilla/dom/MediaControlUtils.h"
+#include "mozilla/dom/MediaControlService.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ReportingHeader.h"
 #include "mozilla/dom/UnionTypes.h"
@@ -695,6 +697,9 @@ static WebIDLProcType ProcTypeToWebIDL(mozilla::ProcType aType) {
     PROCTYPE_TO_WEBIDL_CASE(RDD, Rdd);
     PROCTYPE_TO_WEBIDL_CASE(Socket, Socket);
     PROCTYPE_TO_WEBIDL_CASE(RemoteSandboxBroker, RemoteSandboxBroker);
+#ifdef MOZ_ENABLE_FORKSERVER
+    PROCTYPE_TO_WEBIDL_CASE(ForkServer, ForkServer);
+#endif
     PROCTYPE_TO_WEBIDL_CASE(Unknown, Unknown);
   }
 
@@ -805,6 +810,11 @@ already_AddRefed<Promise> ChromeUtils::RequestProcInfo(GlobalObject& aGlobal,
                     case GeckoProcessType::GeckoProcessType_RemoteSandboxBroker:
                       type = mozilla::ProcType::RemoteSandboxBroker;
                       break;
+#ifdef MOZ_ENABLE_FORKSERVER
+                    case GeckoProcessType::GeckoProcessType_ForkServer:
+                      type = mozilla::ProcType::ForkServer;
+                      break;
+#endif
                     default:
                       // Leave the default Unknown value in |type|.
                       break;
@@ -1201,6 +1211,15 @@ void ChromeUtils::RecordReplaySetActiveTab(const GlobalObject& aGlobal,
                                            nsISupports* aTab) {
   BrowserHost* host = (BrowserHost*)(void*)aTab;
   gActiveContentParent = host ? host->GetContentParent() : nullptr;
+}
+
+void ChromeUtils::GenerateMediaControlKeysTestEvent(
+    const GlobalObject& aGlobal, MediaControlKeysTestEvent aEvent) {
+  RefPtr<MediaControlService> service = MediaControlService::GetService();
+  if (service) {
+    service->GenerateMediaControlKeysTestEvent(
+        ConvertMediaControlKeysTestEventToMediaControlKeysEvent(aEvent));
+  }
 }
 
 }  // namespace dom

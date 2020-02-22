@@ -140,15 +140,22 @@ interface nsIPrincipal : nsISerializable
      *
      *
      * @param uri    The URI about to be loaded.
-     * @param report If true, will report a warning to the console service
-     *               if the load is not allowed.
      * @param allowIfInheritsPrincipal   If true, the load is allowed if the
      *                                   loadee inherits the principal of the
      *                                   loader.
      * @throws NS_ERROR_DOM_BAD_URI if the load is not allowed.
      */
-    void checkMayLoad(in nsIURI uri, in boolean report,
+    void checkMayLoad(in nsIURI uri,
                       in boolean allowIfInheritsPrincipal);
+
+    /**
+     * Like checkMayLoad, but if returning an error will also report that error
+     * to the console, using the provided window id.  The window id may be 0 to
+     * report to just the browser console, not web consoles.
+     */
+    void checkMayLoadWithReporting(in nsIURI uri,
+                                   in boolean allowIfInheritsPrincipal,
+                                   in unsigned long long innerWindowID);
 
     /**
     * Checks if the provided URI is concidered third-party to the
@@ -236,6 +243,24 @@ interface nsIPrincipal : nsISerializable
     * @param pref    The pref to be checked
     */
     bool IsURIInPrefList(in string pref);
+
+    /*
+    * Uses NS_Security Compare to determine if the
+    * other URI is same-origin as the uri of the Principal
+    */
+    bool IsSameOrigin(in nsIURI otherURI, in bool aIsPrivateWin);
+
+    /**
+     * Implementation of
+     * https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
+     *
+     * The value returned by this method feeds into the the Secure Context
+     * algorithm that determins the value of Window.isSecureContext and
+     * WorkerGlobalScope.isSecureContext.
+     *
+     * This method returns false instead of throwing upon errors.
+     */ 
+    readonly attribute bool IsOriginPotentiallyTrustworthy;
 
     /**
      * Returns the Flags of the Principals 

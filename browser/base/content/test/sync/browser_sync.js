@@ -22,9 +22,6 @@ add_task(async function test_ui_state_notification_calls_updateAllUI() {
 });
 
 add_task(async function test_ui_state_signedin() {
-  const msBadgeEnabled = Services.prefs.getBoolPref(
-    "browser.messaging-system.fxatoolbarbadge.enabled"
-  );
   const relativeDateAnchor = new Date();
   let state = {
     status: UIState.STATUS_SIGNED_IN,
@@ -55,7 +52,7 @@ add_task(async function test_ui_state_signedin() {
   checkMenuBarItem("sync-syncnowitem");
   checkFxaToolbarButtonPanel({
     headerTitle: "foo@bar.com",
-    headerDescription: "Settings",
+    headerDescription: "Account Settings",
     enabledItems: [
       "PanelUI-fxa-menu-sendtab-button",
       "PanelUI-fxa-menu-connect-device-button",
@@ -66,15 +63,12 @@ add_task(async function test_ui_state_signedin() {
       "PanelUI-fxa-menu-monitor-button",
       "PanelUI-fxa-menu-send-button",
       "PanelUI-fxa-menu-account-settings-button",
-      "PanelUI-fxa-menu-account-devices-button",
       "PanelUI-fxa-menu-account-signout-button",
     ],
     disabledItems: [],
     hiddenItems: ["PanelUI-fxa-menu-setup-sync-button"],
   });
-  if (!msBadgeEnabled) {
-    checkFxAAvatar("signedin");
-  }
+  checkFxAAvatar("signedin");
   gSync.relativeTimeFormat = origRelativeTimeFormat;
 });
 
@@ -106,9 +100,6 @@ add_task(async function test_ui_state_syncing() {
 });
 
 add_task(async function test_ui_state_unconfigured() {
-  const msBadgeEnabled = Services.prefs.getBoolPref(
-    "browser.messaging-system.fxatoolbarbadge.enabled"
-  );
   let state = {
     status: UIState.STATUS_NOT_CONFIGURED,
   };
@@ -138,15 +129,10 @@ add_task(async function test_ui_state_unconfigured() {
       "PanelUI-fxa-menu-sync-prefs-button",
     ],
   });
-  if (!msBadgeEnabled) {
-    checkFxAAvatar("not_configured");
-  }
+  checkFxAAvatar("not_configured");
 });
 
 add_task(async function test_ui_state_syncdisabled() {
-  const msBadgeEnabled = Services.prefs.getBoolPref(
-    "browser.messaging-system.fxatoolbarbadge.enabled"
-  );
   let state = {
     status: UIState.STATUS_SIGNED_IN,
     syncEnabled: false,
@@ -165,7 +151,7 @@ add_task(async function test_ui_state_syncdisabled() {
   checkMenuBarItem("sync-enable");
   checkFxaToolbarButtonPanel({
     headerTitle: "foo@bar.com",
-    headerDescription: "Settings",
+    headerDescription: "Account Settings",
     enabledItems: [
       "PanelUI-fxa-menu-sendtab-button",
       "PanelUI-fxa-menu-connect-device-button",
@@ -175,7 +161,6 @@ add_task(async function test_ui_state_syncdisabled() {
       "PanelUI-fxa-menu-monitor-button",
       "PanelUI-fxa-menu-send-button",
       "PanelUI-fxa-menu-account-settings-button",
-      "PanelUI-fxa-menu-account-devices-button",
       "PanelUI-fxa-menu-account-signout-button",
     ],
     disabledItems: [],
@@ -184,9 +169,7 @@ add_task(async function test_ui_state_syncdisabled() {
       "PanelUI-fxa-menu-sync-prefs-button",
     ],
   });
-  if (!msBadgeEnabled) {
-    checkFxAAvatar("signedin");
-  }
+  checkFxAAvatar("signedin");
 });
 
 add_task(async function test_ui_state_unverified() {
@@ -396,8 +379,7 @@ function checkFxAAvatar(fxaStatus) {
   for (const avatar of avatarContainers) {
     const avatarURL = getComputedStyle(avatar).listStyleImage;
     const expected = {
-      not_configured:
-        'url("chrome://browser/skin/fxa/avatar-empty-badged.svg")',
+      not_configured: 'url("chrome://browser/skin/fxa/avatar-empty.svg")',
       unverified: 'url("chrome://browser/skin/fxa/avatar-confirm.svg")',
       signedin: 'url("chrome://browser/skin/fxa/avatar.svg")',
       "login-failed": 'url("chrome://browser/skin/fxa/avatar-alert.svg")',

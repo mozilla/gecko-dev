@@ -1,6 +1,6 @@
 use crate::cdsl::settings::{SettingGroup, SettingGroupBuilder};
 
-pub fn define() -> SettingGroup {
+pub(crate) fn define() -> SettingGroup {
     let mut settings = SettingGroupBuilder::new("shared");
 
     settings.add_enum(
@@ -21,8 +21,8 @@ pub fn define() -> SettingGroup {
         r#"
         Run the Cranelift IR verifier at strategic times during compilation.
 
-        This makes compilation slower but catches many bugs. The verifier is
-        disabled by default, except when reading Cranelift IR from a text file.
+        This makes compilation slower but catches many bugs. The verifier is always enabled by
+        default, which is useful during development.
         "#,
         true,
     );

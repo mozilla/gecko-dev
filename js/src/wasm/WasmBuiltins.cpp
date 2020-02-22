@@ -30,6 +30,7 @@
 #include "threading/Mutex.h"
 #include "util/Memory.h"
 #include "util/Poison.h"
+#include "vm/BigIntType.h"
 #include "wasm/WasmInstance.h"
 #include "wasm/WasmStubs.h"
 #include "wasm/WasmTypes.h"
@@ -311,15 +312,18 @@ static bool WasmHandleDebugTrap() {
     }
     debugFrame->setIsDebuggee();
     debugFrame->observe(cx);
-    ResumeMode mode = DebugAPI::onEnterFrame(cx, debugFrame);
-    if (mode == ResumeMode::Return) {
-      // Ignoring forced return (ResumeMode::Return) -- changing code execution
-      // order is not yet implemented in the wasm baseline.
-      // TODO properly handle ResumeMode::Return and resume wasm execution.
-      JS_ReportErrorASCII(cx, "Unexpected resumption value from onEnterFrame");
+    if (!DebugAPI::onEnterFrame(cx, debugFrame)) {
+      if (cx->isPropagatingForcedReturn()) {
+        cx->clearPropagatingForcedReturn();
+        // Ignoring forced return because changing code execution order is
+        // not yet implemented in the wasm baseline.
+        // TODO properly handle forced return and resume wasm execution.
+        JS_ReportErrorASCII(cx,
+                            "Unexpected resumption value from onEnterFrame");
+      }
       return false;
     }
-    return mode == ResumeMode::Continue;
+    return true;
   }
   if (site->kind() == CallSite::LeaveFrame) {
     if (!debugFrame->updateReturnJSValue()) {
@@ -333,27 +337,24 @@ static bool WasmHandleDebugTrap() {
   DebugState& debug = instance->debug();
   MOZ_ASSERT(debug.hasBreakpointTrapAtOffset(site->lineOrBytecode()));
   if (debug.stepModeEnabled(debugFrame->funcIndex())) {
-    RootedValue result(cx, UndefinedValue());
-    ResumeMode mode = DebugAPI::onSingleStep(cx, &result);
-    if (mode == ResumeMode::Return) {
-      // TODO properly handle ResumeMode::Return.
-      JS_ReportErrorASCII(cx, "Unexpected resumption value from onSingleStep");
-      return false;
-    }
-    if (mode != ResumeMode::Continue) {
+    if (!DebugAPI::onSingleStep(cx)) {
+      if (cx->isPropagatingForcedReturn()) {
+        cx->clearPropagatingForcedReturn();
+        // TODO properly handle forced return.
+        JS_ReportErrorASCII(cx,
+                            "Unexpected resumption value from onSingleStep");
+      }
       return false;
     }
   }
   if (debug.hasBreakpointSite(site->lineOrBytecode())) {
-    RootedValue result(cx, UndefinedValue());
-    ResumeMode mode = DebugAPI::onTrap(cx, &result);
-    if (mode == ResumeMode::Return) {
-      // TODO properly handle ResumeMode::Return.
-      JS_ReportErrorASCII(
-          cx, "Unexpected resumption value from breakpoint handler");
-      return false;
-    }
-    if (mode != ResumeMode::Continue) {
+    if (!DebugAPI::onTrap(cx)) {
+      if (cx->isPropagatingForcedReturn()) {
+        cx->clearPropagatingForcedReturn();
+        // TODO properly handle forced return.
+        JS_ReportErrorASCII(
+            cx, "Unexpected resumption value from breakpoint handler");
+      }
       return false;
     }
   }
@@ -403,13 +404,15 @@ void* wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter) {
     // Assume ResumeMode::Terminate if no exception is pending --
     // no onExceptionUnwind handlers must be fired.
     if (cx->isExceptionPending()) {
-      ResumeMode mode = DebugAPI::onExceptionUnwind(cx, frame);
-      if (mode == ResumeMode::Return) {
-        // Unexpected trap return -- raising error since throw recovery
-        // is not yet implemented in the wasm baseline.
-        // TODO properly handle ResumeMode::Return and resume wasm execution.
-        JS_ReportErrorASCII(
-            cx, "Unexpected resumption value from onExceptionUnwind");
+      if (!DebugAPI::onExceptionUnwind(cx, frame)) {
+        if (cx->isPropagatingForcedReturn()) {
+          cx->clearPropagatingForcedReturn();
+          // Unexpected trap return -- raising error since throw recovery
+          // is not yet implemented in the wasm baseline.
+          // TODO properly handle forced return and resume wasm execution.
+          JS_ReportErrorASCII(
+              cx, "Unexpected resumption value from onExceptionUnwind");
+        }
       }
     }
 
@@ -529,6 +532,22 @@ static int32_t CoerceInPlace_ToInt32(Value* rawVal) {
   return true;
 }
 
+#ifdef ENABLE_WASM_BIGINT
+static int32_t CoerceInPlace_ToBigInt(Value* rawVal) {
+  JSContext* cx = TlsContext.get();
+
+  RootedValue val(cx, *rawVal);
+  BigInt* bi = ToBigInt(cx, val);
+  if (!bi) {
+    *rawVal = PoisonedObjectValue(0x43);
+    return false;
+  }
+
+  *rawVal = BigIntValue(bi);
+  return true;
+}
+#endif
+
 static int32_t CoerceInPlace_ToNumber(Value* rawVal) {
   JSContext* cx = TlsContext.get();
 
@@ -563,7 +582,7 @@ static int32_t CoerceInPlace_JitEntry(int funcExportIndex, TlsData* tlsData,
 
   for (size_t i = 0; i < fe.funcType().args().length(); i++) {
     HandleValue arg = HandleValue::fromMarkedLocation(&argv[i]);
-    switch (fe.funcType().args()[i].code()) {
+    switch (fe.funcType().args()[i].kind()) {
       case ValType::I32: {
         int32_t i32;
         if (!ToInt32(cx, arg, &i32)) {
@@ -583,19 +602,42 @@ static int32_t CoerceInPlace_JitEntry(int funcExportIndex, TlsData* tlsData,
         argv[i] = DoubleValue(dbl);
         break;
       }
-      case ValType::AnyRef: {
-        // Leave Object and Null alone, we will unbox inline.  All we need to do
-        // is convert other values to an Object representation.
-        if (!arg.isObjectOrNull()) {
-          RootedAnyRef result(cx, AnyRef::null());
-          if (!BoxAnyRef(cx, arg, &result)) {
-            return false;
-          }
-          argv[i].setObject(*result.get().asJSObject());
+      case ValType::Ref: {
+        switch (fe.funcType().args()[i].refTypeKind()) {
+          case RefType::Any:
+            // Leave Object and Null alone, we will unbox inline.  All we need
+            // to do is convert other values to an Object representation.
+            if (!arg.isObjectOrNull()) {
+              RootedAnyRef result(cx, AnyRef::null());
+              if (!BoxAnyRef(cx, arg, &result)) {
+                return false;
+              }
+              argv[i].setObject(*result.get().asJSObject());
+            }
+            break;
+          case RefType::Func:
+          case RefType::Null:
+          case RefType::TypeIndex:
+            // Guarded against by temporarilyUnsupportedReftypeForEntry()
+            MOZ_CRASH("unexpected input argument in CoerceInPlace_JitEntry");
         }
         break;
       }
+#ifdef ENABLE_WASM_BIGINT
+      case ValType::I64: {
+        // In this case we store a BigInt value as there is no value type
+        // corresponding directly to an I64. The conversion to I64 happens
+        // in the JIT entry stub.
+        BigInt* bigint = ToBigInt(cx, arg);
+        if (!bigint) {
+          return false;
+        }
+        argv[i] = BigIntValue(bigint);
+        break;
+      }
+#endif
       default: {
+        // Guarded against by temporarilyUnsupportedReftypeForEntry()
         MOZ_CRASH("unexpected input argument in CoerceInPlace_JitEntry");
       }
     }
@@ -603,6 +645,15 @@ static int32_t CoerceInPlace_JitEntry(int funcExportIndex, TlsData* tlsData,
 
   return true;
 }
+
+#ifdef ENABLE_WASM_BIGINT
+// Allocate a BigInt without GC, corresponds to the similar VMFunction.
+static BigInt* AllocateBigInt() {
+  JSContext* cx = TlsContext.get();
+
+  return js::Allocate<BigInt, NoGC>(cx);
+}
+#endif
 
 static int64_t DivI64(uint32_t x_hi, uint32_t x_lo, uint32_t y_hi,
                       uint32_t y_lo) {
@@ -771,9 +822,19 @@ void* wasm::AddressOf(SymbolicAddress imm, ABIFunctionType* abiType) {
           ArgType_Int32,
           {ArgType_General, ArgType_Int32, ArgType_Int32, ArgType_General});
       return FuncCast(Instance::callImport_anyref, *abiType);
+    case SymbolicAddress::CallImport_NullRef:
+      *abiType = MakeABIFunctionType(
+          ArgType_Int32,
+          {ArgType_General, ArgType_Int32, ArgType_Int32, ArgType_General});
+      return FuncCast(Instance::callImport_nullref, *abiType);
     case SymbolicAddress::CoerceInPlace_ToInt32:
       *abiType = Args_General1;
       return FuncCast(CoerceInPlace_ToInt32, *abiType);
+#ifdef ENABLE_WASM_BIGINT
+    case SymbolicAddress::CoerceInPlace_ToBigInt:
+      *abiType = Args_General1;
+      return FuncCast(CoerceInPlace_ToBigInt, *abiType);
+#endif
     case SymbolicAddress::CoerceInPlace_ToNumber:
       *abiType = Args_General1;
       return FuncCast(CoerceInPlace_ToNumber, *abiType);
@@ -786,6 +847,11 @@ void* wasm::AddressOf(SymbolicAddress imm, ABIFunctionType* abiType) {
     case SymbolicAddress::BoxValue_Anyref:
       *abiType = Args_General1;
       return FuncCast(BoxValue_Anyref, *abiType);
+#ifdef ENABLE_WASM_BIGINT
+    case SymbolicAddress::AllocateBigInt:
+      *abiType = Args_General0;
+      return FuncCast(AllocateBigInt, *abiType);
+#endif
     case SymbolicAddress::DivI64:
       *abiType = Args_General4;
       return FuncCast(DivI64, *abiType);
@@ -1062,8 +1128,12 @@ bool wasm::NeedsBuiltinThunk(SymbolicAddress sym) {
     case SymbolicAddress::CallImport_F64:
     case SymbolicAddress::CallImport_FuncRef:
     case SymbolicAddress::CallImport_AnyRef:
+    case SymbolicAddress::CallImport_NullRef:
     case SymbolicAddress::CoerceInPlace_ToInt32:  // GenerateImportJitExit
     case SymbolicAddress::CoerceInPlace_ToNumber:
+#if defined(ENABLE_WASM_BIGINT)
+    case SymbolicAddress::CoerceInPlace_ToBigInt:
+#endif
     case SymbolicAddress::BoxValue_Anyref:
 #if defined(JS_CODEGEN_MIPS32)
     case SymbolicAddress::js_jit_gAtomic64Lock:
@@ -1092,6 +1162,9 @@ bool wasm::NeedsBuiltinThunk(SymbolicAddress sym) {
 #if defined(JS_CODEGEN_ARM)
     case SymbolicAddress::aeabi_idivmod:
     case SymbolicAddress::aeabi_uidivmod:
+#endif
+#if defined(ENABLE_WASM_BIGINT)
+    case SymbolicAddress::AllocateBigInt:
 #endif
     case SymbolicAddress::ModD:
     case SymbolicAddress::SinD:
@@ -1425,7 +1498,7 @@ static Maybe<ABIFunctionType> ToBuiltinABIFunctionType(
   }
 
   uint32_t abiType;
-  switch (funcType.ret().ref().code()) {
+  switch (funcType.ret().ref().kind()) {
     case ValType::F32:
       abiType = ArgType_Float32 << RetType_Shift;
       break;
@@ -1441,7 +1514,7 @@ static Maybe<ABIFunctionType> ToBuiltinABIFunctionType(
   }
 
   for (size_t i = 0; i < args.length(); i++) {
-    switch (args[i].code()) {
+    switch (args[i].kind()) {
       case ValType::F32:
         abiType |= (ArgType_Float32 << (ArgType_Shift * (i + 1)));
         break;

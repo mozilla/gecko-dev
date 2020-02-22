@@ -3,6 +3,8 @@
 
 "use strict";
 
+const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
+
 const { RemoteAgentError } = ChromeUtils.import(
   "chrome://remote/content/Error.jsm"
 );
@@ -10,16 +12,37 @@ const { RemoteAgent } = ChromeUtils.import(
   "chrome://remote/content/RemoteAgent.jsm"
 );
 
-/**
- * Override `add_task` in order to translate chrome-remote-interface exceptions
- * into something that logs better errors on stdout
- */
-const add_plain_task = add_task.bind(this);
-this.add_task = function(taskFn, opts = {}) {
-  const { createTab = true } = opts;
+/*
+add_task() is overriden to setup and teardown a test environment
+making it easier to  write browser-chrome tests for the remote
+debugger.
 
-  add_plain_task(async function() {
-    let client;
+Before the task is run, the nsIRemoteAgent listener is started and
+a CDP client is connected to it.  A new tab is also added.  These
+three things are exposed to the provided task like this:
+
+	add_task(async function testName(client, CDP, tab) {
+	  // client is an instance of the CDP class
+	  // CDP is ./chrome-remote-interface.js
+	  // tab is a fresh tab, destroyed after the test
+	});
+
+Also target discovery is getting enabled, which means that targetCreated,
+targetDestroyed, and targetInfoChanged events will be received by the client.
+
+add_plain_task() may be used to write test tasks without the implicit
+setup and teardown described above.
+*/
+
+const add_plain_task = add_task.bind(this);
+
+this.add_task = function(taskFn, opts = {}) {
+  const {
+    createTab = true, // By default run each test in its own tab
+  } = opts;
+
+  const fn = async function() {
+    let client, tab, target;
 
     await RemoteAgent.listen(Services.io.newURI("http://localhost:9222"));
     info("CDP server started");
@@ -27,30 +50,28 @@ this.add_task = function(taskFn, opts = {}) {
     try {
       const CDP = await getCDP();
 
-      // By default run each test in its own tab
       if (createTab) {
-        const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+        tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
         const browsingContextId = tab.linkedBrowser.browsingContext.id;
 
-        client = await CDP({
-          target(list) {
-            return list.find(target => target.id === browsingContextId);
-          },
-        });
-        info("CDP client instantiated");
+        const targets = await CDP.List();
+        target = targets.find(target => target.id === browsingContextId);
+      }
 
-        await taskFn(client, CDP, tab);
+      client = await CDP({ target });
+      info("CDP client instantiated");
 
+      // Bug 1605722 - Workaround to not hang when waiting for Target events
+      await getDiscoveredTargets(client.Target);
+
+      await taskFn(client, CDP, tab);
+
+      if (createTab) {
         // taskFn may resolve within a tick after opening a new tab.
         // We shouldn't remove the newly opened tab in the same tick.
         // Wait for the next tick here.
         await TestUtils.waitForTick();
         BrowserTestUtils.removeTab(tab);
-      } else {
-        client = await CDP({});
-        info("CDP client instantiated");
-
-        await taskFn(client, CDP);
       }
     } catch (e) {
       // Display better error message with the server side stacktrace
@@ -74,7 +95,10 @@ this.add_task = function(taskFn, opts = {}) {
         gBrowser.removeCurrentTab();
       }
     }
-  });
+  };
+
+  Object.defineProperty(fn, "name", { value: taskFn.name, writable: false });
+  add_plain_task(fn);
 };
 
 /**
@@ -141,6 +165,71 @@ function getTargets(CDP) {
   });
 }
 
+// Wait for all Target.targetCreated events. One for each tab, plus the one
+// for the main process target.
+async function getDiscoveredTargets(Target) {
+  return new Promise(resolve => {
+    const targets = [];
+
+    const unsubscribe = Target.targetCreated(target => {
+      targets.push(target);
+
+      if (targets.length >= gBrowser.tabs.length + 1) {
+        unsubscribe();
+        resolve(targets);
+      }
+    });
+
+    Target.setDiscoverTargets({ discover: true });
+  });
+}
+
+async function openTab(Target, options = {}) {
+  const { activate = false } = options;
+
+  info("Create a new tab and wait for the target to be created");
+  const targetCreated = Target.targetCreated();
+  const newTab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+  const { targetInfo } = await targetCreated;
+
+  is(targetInfo.type, "page");
+
+  if (activate) {
+    await Target.activateTarget({
+      targetId: targetInfo.targetId,
+    });
+    info(`New tab with target id ${targetInfo.targetId} created and activated`);
+  } else {
+    info(`New tab with target id ${targetInfo.targetId} created`);
+  }
+
+  return { targetInfo, newTab };
+}
+
+async function openWindow(Target, options = {}) {
+  const { activate = false } = options;
+
+  info("Create a new window and wait for the target to be created");
+  const targetCreated = Target.targetCreated();
+  const newWindow = await BrowserTestUtils.openNewBrowserWindow();
+  const newTab = newWindow.gBrowser.selectedTab;
+  const { targetInfo } = await targetCreated;
+  is(targetInfo.type, "page");
+
+  if (activate) {
+    await Target.activateTarget({
+      targetId: targetInfo.targetId,
+    });
+    info(
+      `New window with target id ${targetInfo.targetId} created and activated`
+    );
+  } else {
+    info(`New window with target id ${targetInfo.targetId} created`);
+  }
+
+  return { targetInfo, newWindow, newTab };
+}
+
 /** Creates a data URL for the given source document. */
 function toDataURL(src, doctype = "html") {
   let doc, mime;
@@ -172,9 +261,9 @@ async function loadURL(url) {
  */
 function getContentProperty(prop) {
   info(`Retrieve ${prop} on the content window`);
-  return ContentTask.spawn(
+  return SpecialPowers.spawn(
     gBrowser.selectedBrowser,
-    prop,
+    [prop],
     _prop => content[_prop]
   );
 }
@@ -186,4 +275,152 @@ function timeoutPromise(ms) {
   return new Promise(resolve => {
     window.setTimeout(resolve, ms);
   });
+}
+
+/** Fail a test. */
+function fail(message) {
+  ok(false, message);
+}
+
+/**
+ * Create a file with the specified contents.
+ *
+ * @param {string} contents
+ *     Contents of the file.
+ * @param {Object} options
+ * @param {string=} options.path
+ *     Path of the file. Defaults to the temporary directory.
+ * @param {boolean=} options.remove
+ *     If true, automatically remove the file after the test. Defaults to true.
+ *
+ * @return {Promise}
+ * @resolves {string}
+ *     Returns the final path of the created file.
+ */
+async function createFile(contents, options = {}) {
+  let { path = null, remove = true } = options;
+
+  if (!path) {
+    const basePath = OS.Path.join(OS.Constants.Path.tmpDir, "remote-agent.txt");
+    const { file, path: tmpPath } = await OS.File.openUnique(basePath, {
+      humanReadable: true,
+    });
+    await file.close();
+    path = tmpPath;
+  }
+
+  let encoder = new TextEncoder();
+  let array = encoder.encode(contents);
+
+  const count = await OS.File.writeAtomic(path, array, {
+    encoding: "utf-8",
+    tmpPath: path + ".tmp",
+  });
+  is(count, contents.length, "All data has been written to file");
+
+  const file = await OS.File.open(path);
+
+  // Automatically remove the file once the test has finished
+  if (remove) {
+    registerCleanupFunction(async () => {
+      await file.close();
+      await OS.File.remove(path, { ignoreAbsent: true });
+    });
+  }
+
+  return { file, path };
+}
+
+class RecordEvents {
+  /**
+   * A timeline of events chosen by calls to `addRecorder`.
+   * Call `configure`` for each client event you want to record.
+   * Then `await record(someTimeout)` to record a timeline that you
+   * can make assertions about.
+   *
+   * const history = new RecordEvents(expectedNumberOfEvents);
+   *
+   * history.addRecorder({
+   *  event: Runtime.executionContextDestroyed,
+   *  eventName: "Runtime.executionContextDestroyed",
+   *  messageFn: payload => {
+   *    return `Received Runtime.executionContextDestroyed for id ${payload.executionContextId}`;
+   *  },
+   * });
+   *
+   *
+   * @param {number} total
+   *     Number of expected events. Stop recording when this number is exceeded.
+   *
+   */
+  constructor(total) {
+    this.events = [];
+    this.promises = new Set();
+    this.subscriptions = new Set();
+    this.total = total;
+  }
+
+  /**
+   * Configure an event to be recorded and logged.
+   * The recording stops once we accumulate more than the expected
+   * total of all configured events.
+   *
+   * @param {Object} options
+   * @param {CDPEvent} options.event
+   *     https://github.com/cyrus-and/chrome-remote-interface#clientdomaineventcallback
+   * @param {string} options.eventName
+   *     Name to use for reporting.
+   * @param {function(payload):string=} options.messageFn
+   */
+  addRecorder(options = {}) {
+    const {
+      event,
+      eventName,
+      messageFn = () => `Received ${eventName}`,
+    } = options;
+    const promise = new Promise(resolve => {
+      const unsubscribe = event(payload => {
+        info(messageFn(payload));
+        this.events.push({ eventName, payload });
+        if (this.events.length > this.total) {
+          this.subscriptions.delete(unsubscribe);
+          unsubscribe();
+          resolve(this.events);
+        }
+      });
+      this.subscriptions.add(unsubscribe);
+    });
+    this.promises.add(promise);
+  }
+
+  /**
+   * Record events until we hit the timeout or the expected total is exceeded.
+   *
+   * @param {number=} timeout
+   *     milliseconds
+   *
+   * @return {Array<{ eventName, payload }>} Recorded events
+   */
+  async record(timeout = 1000) {
+    await Promise.race([Promise.all(this.promises), timeoutPromise(timeout)]);
+    for (const unsubscribe of this.subscriptions) {
+      unsubscribe();
+    }
+    return this.events;
+  }
+
+  /**
+   * Find first occurrence of the given event.
+   *
+   * @param {string} eventName
+   *
+   * @return {object} The event payload, if any.
+   */
+  findEvent(eventName) {
+    const event = this.events.find(el => el.eventName == eventName);
+    if (event) {
+      return event.payload;
+    }
+    return {};
+  }
 }

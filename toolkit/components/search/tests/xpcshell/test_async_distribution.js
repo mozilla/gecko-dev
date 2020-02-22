@@ -3,7 +3,7 @@
 
 add_task(async function setup() {
   await AddonTestUtils.promiseStartupManager();
-  await useTestEngines("data", "search-extensions");
+  await useTestEngines("simple-engines");
 });
 
 add_task(async function test_async_distribution() {
@@ -17,9 +17,9 @@ add_task(async function test_async_distribution() {
 
     // test that the engine from the distribution overrides our jar engine
     return Services.search.getEngines().then(engines => {
-      Assert.equal(engines.length, 1);
+      Assert.equal(engines.length, 2);
 
-      let engine = Services.search.getEngineByName("bug645970");
+      let engine = Services.search.getEngineByName("basic");
       Assert.notEqual(engine, null);
 
       // check the engine we have is actually the one from the distribution

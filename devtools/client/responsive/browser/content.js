@@ -28,9 +28,6 @@ var global = this;
   addMessageListener("ResponsiveMode:Stop", stopResponsiveMode);
   addMessageListener("ResponsiveMode:IsActive", isActive);
 
-  // Track the resolution and re-apply it after a full zoom change.
-  let resolutionBeforeFullZoom = 0;
-
   function debug(msg) {
     // dump(`RDM CHILD: ${msg}\n`);
   }
@@ -63,16 +60,6 @@ var global = this;
       startOnResize();
     }
 
-    addEventListener("PreFullZoomChange", onPreFullZoomChange);
-    addEventListener(
-      "mozupdatedremoteframedimensions",
-      onUpdatedRemoteFrameDimensions,
-      {
-        capture: true,
-        mozSystemGroup: true,
-      }
-    );
-
     // At this point, a content viewer might not be loaded for this
     // docshell. setDocumentInRDMPane and makeScrollbarsFloating will be
     // triggered by onLocationChange.
@@ -82,20 +69,6 @@ var global = this;
     }
     active = true;
     sendAsyncMessage("ResponsiveMode:Start:Done");
-  }
-
-  function onPreFullZoomChange(event) {
-    if (event.originalTarget == content.document) {
-      resolutionBeforeFullZoom = content.windowUtils.getResolution();
-    }
-  }
-
-  function onUpdatedRemoteFrameDimensions(event) {
-    if (event.originalTarget == content.document) {
-      content.windowUtils.setResolutionAndScaleTo(resolutionBeforeFullZoom);
-      const e = new CustomEvent("ZoomComplete", { bubbles: true });
-      content.dispatchEvent(e);
-    }
   }
 
   function onResize() {
@@ -108,9 +81,8 @@ var global = this;
       height,
     });
 
-    const zoom = content.windowUtils.getResolution();
-    width = content.innerWidth * zoom;
-    height = content.innerHeight * zoom;
+    width = content.innerWidth;
+    height = content.innerHeight;
     debug(`EMIT RESIZEVIEWPORT: ${width} x ${height}`);
     sendAsyncMessage("ResponsiveMode:OnResizeViewport", {
       width,
@@ -155,19 +127,9 @@ var global = this;
       .getInterface(Ci.nsIWebProgress);
     webProgress.removeProgressListener(WebProgressListener);
     docShell.deviceSizeIsPageSize = gDeviceSizeWasPageSize;
-    // Restore the original physical screen orientation values before RDM is stopped.
-    // This is necessary since the window document's `setCurrentRDMPaneOrientation`
-    // WebIDL operation can only modify the window's screen orientation values while the
-    // window content is in RDM.
-    restoreScreenOrientation();
     restoreScrollbars();
     setDocumentInRDMPane(false);
     stopOnResize();
-    removeEventListener("PreFullZoomChange", onPreFullZoomChange);
-    removeEventListener(
-      "mozupdatedremoteframedimensions",
-      onUpdatedRemoteFrameDimensions
-    );
     sendAsyncMessage("ResponsiveMode:Stop:Done");
   }
 
@@ -207,13 +169,6 @@ var global = this;
       } catch (e) {}
     }
     flushStyle();
-  }
-
-  function restoreScreenOrientation() {
-    docShell.contentViewer.DOMDocument.setRDMPaneOrientation(
-      "landscape-primary",
-      0
-    );
   }
 
   function setDocumentInRDMPane(inRDMPane) {

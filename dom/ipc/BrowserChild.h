@@ -12,7 +12,7 @@
 #include "nsIWebNavigation.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
-#include "nsIWebBrowserChrome2.h"
+#include "nsIWebBrowserChrome.h"
 #include "nsIEmbeddingSiteWindow.h"
 #include "nsIWebBrowserChromeFocus.h"
 #include "nsIDOMEventListener.h"
@@ -42,7 +42,6 @@
 #include "PuppetWidget.h"
 #include "mozilla/layers/GeckoContentController.h"
 #include "nsDeque.h"
-#include "nsISHistoryListener.h"
 
 class nsBrowserStatusFilter;
 class nsIDOMWindow;
@@ -148,7 +147,7 @@ class ContentListener final : public nsIDOMEventListener {
 class BrowserChild final : public nsMessageManagerScriptExecutor,
                            public ipc::MessageManagerCallback,
                            public PBrowserChild,
-                           public nsIWebBrowserChrome2,
+                           public nsIWebBrowserChrome,
                            public nsIEmbeddingSiteWindow,
                            public nsIWebBrowserChromeFocus,
                            public nsIInterfaceRequestor,
@@ -208,7 +207,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIWEBBROWSERCHROME
-  NS_DECL_NSIWEBBROWSERCHROME2
   NS_DECL_NSIEMBEDDINGSITEWINDOW
   NS_DECL_NSIWEBBROWSERCHROMEFOCUS
   NS_DECL_NSIINTERFACEREQUESTOR
@@ -261,16 +259,13 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
                                const Maybe<ZoomConstraints>& aConstraints);
 
   mozilla::ipc::IPCResult RecvLoadURL(const nsCString& aURI,
-                                      const ShowInfo& aInfo);
+                                      const ParentShowInfo&);
 
   mozilla::ipc::IPCResult RecvResumeLoad(const uint64_t& aPendingSwitchID,
-                                         const ShowInfo& aInfo);
+                                         const ParentShowInfo&);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  mozilla::ipc::IPCResult RecvShow(const ScreenIntSize& aSize,
-                                   const ShowInfo& aInfo,
-                                   const bool& aParentIsActive,
-                                   const nsSizeMode& aSizeMode);
+  mozilla::ipc::IPCResult RecvShow(const ParentShowInfo&, const OwnerShowInfo&);
 
   mozilla::ipc::IPCResult RecvInitRendering(
       const TextureFactoryIdentifier& aTextureFactoryIdentifier,
@@ -411,12 +406,13 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   mozilla::ipc::IPCResult RecvSwappedWithOtherRemoteLoader(
       const IPCTabContext& aContext);
 
+#ifdef ACCESSIBILITY
   PDocAccessibleChild* AllocPDocAccessibleChild(PDocAccessibleChild*,
                                                 const uint64_t&,
                                                 const uint32_t&,
                                                 const IAccessibleHolder&);
-
   bool DeallocPDocAccessibleChild(PDocAccessibleChild*);
+#endif
 
   PColorPickerChild* AllocPColorPickerChild(const nsString& aTitle,
                                             const nsString& aInitialColor);
@@ -565,7 +561,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   Maybe<LayoutDeviceIntRect> GetVisibleRect() const;
 
   // Call RecvShow(nsIntSize(0, 0)) and block future calls to RecvShow().
-  void DoFakeShow(const ShowInfo& aShowInfo);
+  void DoFakeShow(const ParentShowInfo&);
 
   void ContentReceivedInputBlock(uint64_t aInputBlockId,
                                  bool aPreventDefault) const;
@@ -765,7 +761,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   void DestroyWindow();
 
-  void ApplyShowInfo(const ShowInfo& aInfo);
+  void ApplyParentShowInfo(const ParentShowInfo&);
 
   bool HasValidInnerSize();
 

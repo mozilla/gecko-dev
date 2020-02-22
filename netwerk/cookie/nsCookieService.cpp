@@ -20,17 +20,9 @@
 #include "nsCookieService.h"
 #include "nsContentUtils.h"
 #include "nsIClassifiedChannel.h"
-#include "nsIServiceManager.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsIWebProgressListener.h"
 #include "nsIHttpChannel.h"
 
-#include "nsIIOService.h"
-#include "nsIPermissionManager.h"
-#include "nsIProtocolHandler.h"
-#include "nsIPrefBranch.h"
-#include "nsIPrefService.h"
-#include "nsIScriptError.h"
 #include "nsCookiePermission.h"
 #include "nsIURI.h"
 #include "nsIURL.h"
@@ -40,21 +32,21 @@
 #include "nsILineInputStream.h"
 #include "nsIEffectiveTLDService.h"
 #include "nsIIDNService.h"
-#include "nsIThread.h"
+#include "mozIStorageBindingParamsArray.h"
+#include "mozIStorageError.h"
+#include "mozIStorageFunction.h"
+#include "mozIStorageService.h"
 #include "mozIThirdPartyUtil.h"
 
 #include "nsTArray.h"
 #include "nsCOMArray.h"
 #include "nsIMutableArray.h"
-#include "nsArrayEnumerator.h"
-#include "nsEnumeratorUtils.h"
 #include "nsAutoPtr.h"
 #include "nsReadableUtils.h"
 #include "nsCRT.h"
 #include "prprf.h"
 #include "nsNetUtil.h"
 #include "nsNetCID.h"
-#include "nsISimpleEnumerator.h"
 #include "nsIInputStream.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsNetCID.h"
@@ -109,8 +101,6 @@ static StaticRefPtr<nsCookieService> gCookieService;
 #define IDX_ORIGIN_ATTRIBUTES 10
 #define IDX_SAME_SITE 11
 #define IDX_RAW_SAME_SITE 12
-
-#define TOPIC_CLEAR_ORIGIN_DATA "clear-origin-attributes-data"
 
 static const int64_t kCookiePurgeAge =
     int64_t(30 * 24 * 60 * 60) * PR_USEC_PER_SEC;  // 30 days in microseconds
@@ -466,31 +456,6 @@ NS_IMPL_ISUPPORTS(CloseCookieDBListener, mozIStorageCompletionCallback)
 
 namespace {
 
-class AppClearDataObserver final : public nsIObserver {
-  ~AppClearDataObserver() = default;
-
- public:
-  NS_DECL_ISUPPORTS
-
-  // nsIObserver implementation.
-  NS_IMETHOD
-  Observe(nsISupports* aSubject, const char* aTopic,
-          const char16_t* aData) override {
-    MOZ_ASSERT(!nsCRT::strcmp(aTopic, TOPIC_CLEAR_ORIGIN_DATA));
-
-    MOZ_ASSERT(XRE_IsParentProcess());
-
-    nsCOMPtr<nsICookieManager> cookieManager =
-        do_GetService(NS_COOKIEMANAGER_CONTRACTID);
-    MOZ_ASSERT(cookieManager);
-
-    return cookieManager->RemoveCookiesWithOriginAttributes(
-        nsDependentString(aData), EmptyCString());
-  }
-};
-
-NS_IMPL_ISUPPORTS(AppClearDataObserver, nsIObserver)
-
 // comparator class for sorting cookies by entry and index.
 class CompareCookiesByIndex {
  public:
@@ -564,14 +529,6 @@ already_AddRefed<nsCookieService> nsCookieService::GetSingleton() {
   }
 
   return do_AddRef(gCookieService);
-}
-
-/* static */
-void nsCookieService::AppClearDataObserverInit() {
-  nsCOMPtr<nsIObserverService> observerService = services::GetObserverService();
-  nsCOMPtr<nsIObserver> obs = new AppClearDataObserver();
-  observerService->AddObserver(obs, TOPIC_CLEAR_ORIGIN_DATA,
-                               /* ownsWeak= */ false);
 }
 
 /******************************************************************************
@@ -887,7 +844,7 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
         NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
       }
         // Fall through to the next upgrade.
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       case 2: {
         // Add the baseDomain column and index to the table.
@@ -945,7 +902,7 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
         NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
       }
         // Fall through to the next upgrade.
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       case 3: {
         // Add the creationTime column to the table, and create a unique index
@@ -1041,7 +998,7 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
         NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
       }
         // Fall through to the next upgrade.
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       case 4: {
         // We need to add appId/inBrowserElement, plus change a constraint on
@@ -1089,7 +1046,7 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
                          ("Upgraded database to schema version 5"));
       }
         // Fall through to the next upgrade.
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       case 5: {
         // Change in the version: Replace the columns |appId| and
@@ -1156,7 +1113,7 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
         COOKIE_LOGSTRING(LogLevel::Debug,
                          ("Upgraded database to schema version 6"));
       }
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       case 6: {
         // We made a mistake in schema version 6. We cannot remove expected
@@ -1211,7 +1168,7 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
         COOKIE_LOGSTRING(LogLevel::Debug,
                          ("Upgraded database to schema version 7"));
       }
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       case 7: {
         // Remove the appId field from moz_cookies.
@@ -1296,7 +1253,7 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
         COOKIE_LOGSTRING(LogLevel::Debug,
                          ("Upgraded database to schema version 8"));
       }
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       case 8: {
         // Add the sameSite column to the table.
@@ -1307,7 +1264,7 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
         COOKIE_LOGSTRING(LogLevel::Debug,
                          ("Upgraded database to schema version 9"));
       }
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       case 9: {
         // Add the rawSameSite column to the table.
@@ -1328,7 +1285,7 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
             mDefaultDBState->syncConn->SetSchemaVersion(COOKIES_SCHEMA_VERSION);
         NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
       }
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       case COOKIES_SCHEMA_VERSION:
         break;
@@ -1346,7 +1303,7 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
         NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
       }
         // fall through to downgrade check
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
 
       // downgrading.
       // if columns have been added to the table, we can still use the ones we
@@ -2429,7 +2386,7 @@ nsCookieService::RemoveAll() {
 }
 
 NS_IMETHODIMP
-nsCookieService::GetEnumerator(nsISimpleEnumerator** aEnumerator) {
+nsCookieService::GetCookies(nsTArray<RefPtr<nsICookie>>& aCookies) {
   if (!mDBState) {
     NS_WARNING("No DBState! Profile already closed?");
     return NS_ERROR_NOT_AVAILABLE;
@@ -2437,19 +2394,19 @@ nsCookieService::GetEnumerator(nsISimpleEnumerator** aEnumerator) {
 
   EnsureReadComplete(true);
 
-  nsCOMArray<nsICookie> cookieList(mDBState->cookieCount);
+  aCookies.SetCapacity(mDBState->cookieCount);
   for (auto iter = mDBState->hostTable.Iter(); !iter.Done(); iter.Next()) {
     const nsCookieEntry::ArrayType& cookies = iter.Get()->GetCookies();
     for (nsCookieEntry::IndexType i = 0; i < cookies.Length(); ++i) {
-      cookieList.AppendObject(cookies[i]);
+      aCookies.AppendElement(cookies[i]);
     }
   }
 
-  return NS_NewArrayEnumerator(aEnumerator, cookieList, NS_GET_IID(nsICookie));
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsCookieService::GetSessionEnumerator(nsISimpleEnumerator** aEnumerator) {
+nsCookieService::GetSessionCookies(nsTArray<RefPtr<nsICookie>>& aCookies) {
   if (!mDBState) {
     NS_WARNING("No DBState! Profile already closed?");
     return NS_ERROR_NOT_AVAILABLE;
@@ -2457,19 +2414,19 @@ nsCookieService::GetSessionEnumerator(nsISimpleEnumerator** aEnumerator) {
 
   EnsureReadComplete(true);
 
-  nsCOMArray<nsICookie> cookieList(mDBState->cookieCount);
+  aCookies.SetCapacity(mDBState->cookieCount);
   for (auto iter = mDBState->hostTable.Iter(); !iter.Done(); iter.Next()) {
     const nsCookieEntry::ArrayType& cookies = iter.Get()->GetCookies();
     for (nsCookieEntry::IndexType i = 0; i < cookies.Length(); ++i) {
       nsCookie* cookie = cookies[i];
       // Filter out non-session cookies.
       if (cookie->IsSession()) {
-        cookieList.AppendObject(cookie);
+        aCookies.AppendElement(cookie);
       }
     }
   }
 
-  return NS_NewArrayEnumerator(aEnumerator, cookieList, NS_GET_IID(nsICookie));
+  return NS_OK;
 }
 
 NS_IMETHODIMP

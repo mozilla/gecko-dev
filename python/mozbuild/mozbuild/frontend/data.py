@@ -406,8 +406,6 @@ class Linkable(ContextDerived):
         'lib_defines',
         'linked_libraries',
         'linked_system_libs',
-        'no_pgo_sources',
-        'no_pgo',
         'sources',
     )
 
@@ -418,8 +416,6 @@ class Linkable(ContextDerived):
         self.linked_system_libs = []
         self.lib_defines = Defines(context, {})
         self.sources = defaultdict(list)
-        self.no_pgo_sources = []
-        self.no_pgo = False
 
     def link_library(self, obj):
         assert isinstance(obj, BaseLibrary)
@@ -467,10 +463,6 @@ class Linkable(ContextDerived):
     def _obj_suffix(self):
         """Can be overridden by a base class for custom behavior."""
         return self.config.substs.get('OBJ_SUFFIX', '')
-
-    @property
-    def no_pgo_objs(self):
-        return self._get_objs(self.no_pgo_sources)
 
     @property
     def objs(self):
@@ -686,6 +678,18 @@ class SandboxedWasmLibrary(Library):
 
     def __init__(self, context, basename, real_name=None):
         Library.__init__(self, context, basename, real_name)
+
+        # TODO: WASM sandboxed libraries are in a weird place: they are
+        # built in a different way, but they should share some code with
+        # SharedLibrary.  This is the minimal configuration needed to work
+        # with Linux, but it would need to be extended for other platforms.
+        assert context.config.substs['OS_TARGET'] == 'Linux'
+
+        self.lib_name = '%s%s%s' % (
+            context.config.dll_prefix,
+            real_name or basename,
+            context.config.dll_suffix,
+        )
 
     def _obj_suffix(self):
         """Can be overridden by a base class for custom behavior."""

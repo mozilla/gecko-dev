@@ -146,6 +146,11 @@ this.TelemetryFeed = class TelemetryFeed {
     for (let win of Services.wm.getEnumerator("navigator:browser")) {
       this._addWindowListeners(win);
     }
+    // Set a scalar for the "deletion-request" ping (See bug 1602064)
+    Services.telemetry.scalarSet(
+      "deletion.request.impression_id",
+      this._impressionId
+    );
   }
 
   handleEvent(event) {
@@ -569,6 +574,7 @@ this.TelemetryFeed = class TelemetryFeed {
       case "cfr_user_event":
         event = await this.applyCFRPolicy(event);
         break;
+      case "snippets_local_testing_user_event":
       case "snippets_user_event":
         event = await this.applySnippetsPolicy(event);
         break;
@@ -713,6 +719,15 @@ this.TelemetryFeed = class TelemetryFeed {
     const { ping, pingType } = await this.createASRouterEvent(action);
     if (!pingType) {
       Cu.reportError("Unknown ping type for ASRouter telemetry");
+      return;
+    }
+    // Don't report snippets telemetry from Nightly channel if using release
+    // snippets endpoint
+    if (
+      pingType === "snippets" &&
+      ASRouterPreferences.useReleaseSnippets &&
+      action.data.action !== "snippets_local_testing_user_event"
+    ) {
       return;
     }
     this.sendStructuredIngestionEvent(

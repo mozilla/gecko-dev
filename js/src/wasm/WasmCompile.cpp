@@ -92,6 +92,12 @@ SharedCompileArgs CompileArgs::build(JSContext* cx,
   bool gc = false;
 #endif
 
+#ifdef ENABLE_WASM_BIGINT
+  bool bigInt = cx->options().isWasmBigIntEnabled();
+#else
+  bool bigInt = false;
+#endif
+
   // Debug information such as source view or debug traps will require
   // additional memory and permanently stay in baseline code, so we try to
   // only enable it when a developer actually cares: when the debugger tab
@@ -145,6 +151,7 @@ SharedCompileArgs CompileArgs::build(JSContext* cx,
   target->forceTiering = forceTiering;
   target->gcEnabled = gc;
   target->hugeMemory = wasm::IsHugeMemoryEnabled();
+  target->bigIntEnabled = bigInt;
 
   return target;
 }
@@ -439,9 +446,10 @@ CompilerEnvironment::CompilerEnvironment(const CompileArgs& args)
 CompilerEnvironment::CompilerEnvironment(CompileMode mode, Tier tier,
                                          OptimizedBackend optimizedBackend,
                                          DebugEnabled debugEnabled,
+                                         bool multiValueConfigured,
                                          bool refTypesConfigured,
                                          bool gcTypesConfigured,
-                                         bool hugeMemory)
+                                         bool hugeMemory, bool bigIntConfigured)
     : state_(InitialWithModeTierDebug),
       mode_(mode),
       tier_(tier),
@@ -449,8 +457,9 @@ CompilerEnvironment::CompilerEnvironment(CompileMode mode, Tier tier,
       debug_(debugEnabled),
       refTypes_(refTypesConfigured),
       gcTypes_(gcTypesConfigured),
-      multiValues_(true),
-      hugeMemory_(hugeMemory) {}
+      multiValues_(multiValueConfigured),
+      hugeMemory_(hugeMemory),
+      bigInt_(bigIntConfigured) {}
 
 void CompilerEnvironment::computeParameters(bool gcFeatureOptIn) {
   MOZ_ASSERT(state_ == InitialWithModeTierDebug);
@@ -476,6 +485,7 @@ void CompilerEnvironment::computeParameters(Decoder& d, bool gcFeatureOptIn) {
   bool craneliftEnabled = args_->craneliftEnabled;
   bool forceTiering = args_->forceTiering;
   bool hugeMemory = args_->hugeMemory;
+  bool bigIntEnabled = args_->bigIntEnabled;
 
   bool hasSecondTier = ionEnabled || craneliftEnabled;
   MOZ_ASSERT_IF(gcEnabled || debugEnabled, baselineEnabled);
@@ -505,9 +515,18 @@ void CompilerEnvironment::computeParameters(Decoder& d, bool gcFeatureOptIn) {
 
   debug_ = debugEnabled ? DebugEnabled::True : DebugEnabled::False;
   gcTypes_ = gcEnabled;
+#ifdef ENABLE_WASM_REFTYPES
   refTypes_ = !craneliftEnabled;
+#else
+  refTypes_ = false;
+#endif
+#ifdef ENABLE_WASM_MULTI_VALUE
   multiValues_ = !craneliftEnabled;
+#else
+  multiValues_ = false;
+#endif
   hugeMemory_ = hugeMemory;
+  bigInt_ = bigIntEnabled && !craneliftEnabled;
   state_ = Computed;
 }
 
@@ -607,15 +626,26 @@ void wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
   Decoder d(bytecode, 0, &error);
 
   bool gcTypesConfigured = false;  // No optimized backend support yet
+#ifdef ENABLE_WASM_REFTYPES
   bool refTypesConfigured = !args.craneliftEnabled;
+#else
+  bool refTypesConfigured = false;
+#endif
+#ifdef ENABLE_WASM_MULTI_VALUE
+  bool multiValueConfigured = !args.craneliftEnabled;
+#else
+  bool multiValueConfigured = false;
+#endif
+  bool bigIntConfigured = args.bigIntEnabled && !args.craneliftEnabled;
+
   OptimizedBackend optimizedBackend = args.craneliftEnabled
                                           ? OptimizedBackend::Cranelift
                                           : OptimizedBackend::Ion;
 
-  CompilerEnvironment compilerEnv(CompileMode::Tier2, Tier::Optimized,
-                                  optimizedBackend, DebugEnabled::False,
-                                  refTypesConfigured, gcTypesConfigured,
-                                  args.hugeMemory);
+  CompilerEnvironment compilerEnv(
+      CompileMode::Tier2, Tier::Optimized, optimizedBackend,
+      DebugEnabled::False, multiValueConfigured, refTypesConfigured,
+      gcTypesConfigured, args.hugeMemory, bigIntConfigured);
 
   ModuleEnvironment env(&compilerEnv, args.sharedMemoryEnabled
                                           ? Shareable::True

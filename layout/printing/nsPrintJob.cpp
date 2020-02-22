@@ -7,7 +7,6 @@
 #include "nsPrintJob.h"
 
 #include "nsDocShell.h"
-#include "nsIStringBundle.h"
 #include "nsReadableUtils.h"
 #include "nsCRT.h"
 
@@ -32,10 +31,8 @@
 #include "nsIPrintSettingsService.h"
 #include "nsIPrintSession.h"
 #include "nsGfxCIID.h"
-#include "nsIServiceManager.h"
 #include "nsGkAtoms.h"
 #include "nsXPCOM.h"
-#include "nsISupportsPrimitives.h"
 
 static const char sPrintSettingsServiceContractID[] =
     "@mozilla.org/gfx/printsettings-service;1";
@@ -46,16 +43,11 @@ static const char sPrintSettingsServiceContractID[] =
 #include "nsIWebBrowserPrint.h"
 
 // Print Preview
-#include "imgIContainer.h"  // image animation mode constants
 
 // Print Progress
-#include "nsIPrintProgress.h"
-#include "nsIPrintProgressParams.h"
 #include "nsIObserver.h"
 
 // Print error dialog
-#include "nsIPrompt.h"
-#include "nsIWindowWatcher.h"
 
 // Printing Prompts
 #include "nsIPrintingPromptService.h"
@@ -70,7 +62,6 @@ static const char kPrintingPromptService[] =
 #include "mozilla/dom/DocumentInlines.h"
 
 // Focus
-#include "nsISelectionController.h"
 
 // Misc
 #include "gfxContext.h"
@@ -79,7 +70,6 @@ static const char kPrintingPromptService[] =
 #include "nsISupportsUtils.h"
 #include "nsIScriptContext.h"
 #include "nsIDocumentObserver.h"
-#include "nsISelectionListener.h"
 #include "nsContentCID.h"
 #include "nsLayoutCID.h"
 #include "nsContentUtils.h"
@@ -94,14 +84,10 @@ static const char kPrintingPromptService[] =
 #include "nsViewManager.h"
 
 #include "nsPageSequenceFrame.h"
-#include "nsIURL.h"
-#include "nsIContentViewerEdit.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsIWebBrowserChrome.h"
-#include "nsIBaseWindow.h"
-#include "nsILayoutHistoryState.h"
 #include "nsFrameManager.h"
 #include "mozilla/ReflowInput.h"
 #include "nsIContentViewer.h"
@@ -114,7 +100,6 @@ static const char kPrintingPromptService[] =
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLFrameElement.h"
 #include "nsContentList.h"
-#include "nsIChannel.h"
 #include "PrintPreviewUserEventSuppressor.h"
 #include "xpcpublic.h"
 #include "nsVariant.h"
@@ -536,10 +521,10 @@ static nsresult EnsureSettingsHasPrinterNameSet(
 #endif
 }
 
-static bool DocHasPrintCallbackCanvas(Document& aDoc, void* aData) {
+static CallState DocHasPrintCallbackCanvas(Document& aDoc, void* aData) {
   Element* root = aDoc.GetRootElement();
   if (!root) {
-    return true;
+    return CallState::Continue;
   }
   RefPtr<nsContentList> canvases =
       NS_GetContentList(root, kNameSpaceID_XHTML, NS_LITERAL_STRING("canvas"));
@@ -551,10 +536,10 @@ static bool DocHasPrintCallbackCanvas(Document& aDoc, void* aData) {
       // This subdocument has a print callback. Set result and return false to
       // stop iteration.
       *static_cast<bool*>(aData) = true;
-      return false;
+      return CallState::Stop;
     }
   }
-  return true;
+  return CallState::Continue;
 }
 
 static bool AnySubdocHasPrintCallbackCanvas(Document& aDoc) {
@@ -934,8 +919,7 @@ nsresult nsPrintJob::DoCommonPrint(bool aIsPrintPreview,
         // NS_ERROR_NOT_IMPLEMENTED indicates they want default behavior
         // Any other error code means we must bail out
         //
-        nsCOMPtr<nsIWebBrowserPrint> wbp(do_QueryInterface(mDocViewerPrint));
-        rv = printPromptService->ShowPrintDialog(domWin, wbp,
+        rv = printPromptService->ShowPrintDialog(domWin,
                                                  printData->mPrintSettings);
         //
         // ShowPrintDialog triggers an event loop which means we can't assume
@@ -1055,9 +1039,9 @@ nsresult nsPrintJob::Print(Document* aSourceDoc,
   // If we have a print preview document, use that instead of the original
   // mDocument. That way animated images etc. get printed using the same state
   // as in print preview.
-  Document* doc = mPrtPreview && mPrtPreview->mPrintObject
-                      ? mPrtPreview->mPrintObject->mDocument.get()
-                      : aSourceDoc;
+  RefPtr<Document> doc = mPrtPreview && mPrtPreview->mPrintObject
+                             ? mPrtPreview->mPrintObject->mDocument.get()
+                             : aSourceDoc;
 
   return CommonPrint(false, aPrintSettings, aWebProgressListener, doc);
 }
@@ -1206,9 +1190,8 @@ void nsPrintJob::ShowPrintProgress(bool aIsForPrinting, bool& aDoNotify) {
 
       nsCOMPtr<nsIWebProgressListener> printProgressListener;
 
-      nsCOMPtr<nsIWebBrowserPrint> wbp(do_QueryInterface(mDocViewerPrint));
       nsresult rv = printPromptService->ShowPrintProgressDialog(
-          domWin, wbp, printData->mPrintSettings, this, aIsForPrinting,
+          domWin, printData->mPrintSettings, this, aIsForPrinting,
           getter_AddRefs(printProgressListener),
           getter_AddRefs(printData->mPrintProgressParams), &aDoNotify);
       if (NS_SUCCEEDED(rv)) {
@@ -1482,7 +1465,8 @@ nsresult nsPrintJob::ReconstructAndReflow(bool doSetPixelScale) {
                      float(printData->mPrintDC->AppUnitsPerDevPixel());
     po->mPresContext->SetPrintPreviewScale(mScreenDPI / printDPI);
 
-    po->mPresShell->ReconstructFrames();
+    RefPtr<PresShell> presShell(po->mPresShell);
+    presShell->ReconstructFrames();
 
     // If the printing was canceled or restarted with different data,
     // let's stop doing this printing.
@@ -1505,7 +1489,6 @@ nsresult nsPrintJob::ReconstructAndReflow(bool doSetPixelScale) {
       }
     }
 
-    RefPtr<PresShell> presShell = po->mPresShell;
     presShell->FlushPendingNotifications(FlushType::Layout);
 
     // If the printing was canceled or restarted with different data,
@@ -1831,7 +1814,7 @@ nsresult nsPrintJob::ResumePrintAfterResourcesLoaded(bool aCleanupOnError) {
 ////////////////////////////////////////////////////////////////////////////////
 // nsIWebProgressListener
 
-NS_IMETHODIMP
+MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP
 nsPrintJob::OnStateChange(nsIWebProgress* aWebProgress, nsIRequest* aRequest,
                           uint32_t aStateFlags, nsresult aStatus) {
   nsAutoCString name;
@@ -3065,9 +3048,8 @@ nsresult nsPrintJob::StartPagePrintTimer(const UniquePtr<nsPrintObject>& aPO) {
 }
 
 /*=============== nsIObserver Interface ======================*/
-NS_IMETHODIMP
-nsPrintJob::Observe(nsISupports* aSubject, const char* aTopic,
-                    const char16_t* aData) {
+MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP nsPrintJob::Observe(
+    nsISupports* aSubject, const char* aTopic, const char16_t* aData) {
   // Only process a null topic which means the progress dialog is open.
   if (aTopic) {
     return NS_OK;

@@ -13,12 +13,10 @@
 #include "xpcpublic.h"
 
 #include "nsIAppStartup.h"
-#include "nsIDirectoryEnumerator.h"
 #include "nsIFile.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
 #include "nsISimpleEnumerator.h"
-#include "nsIToolkitChromeRegistry.h"
 #include "nsIToolkitProfileService.h"
 #include "nsIXULRuntime.h"
 #include "commonupdatedir.h"
@@ -616,7 +614,6 @@ static const char* GetProcessTempBaseDirKey() {
 #  endif
 }
 
-#  if defined(MOZ_SANDBOX)
 //
 // Sets mContentTempDir so that it refers to the appropriate temp dir.
 // If the sandbox is enabled, NS_APP_CONTENT_PROCESS_TEMP_DIR, otherwise
@@ -642,7 +639,7 @@ nsresult nsXREDirProvider::LoadContentProcessTempDir() {
     }
   }
 
-#    if defined(XP_WIN)
+#  if defined(XP_WIN)
   // The content temp dir can be used in sandbox rules, so we need to make sure
   // it doesn't contain any junction points or symlinks or the sandbox will
   // reject those rules.
@@ -650,11 +647,10 @@ nsresult nsXREDirProvider::LoadContentProcessTempDir() {
           mContentTempDir)) {
     NS_WARNING("Failed to resolve Content Temp Dir.");
   }
-#    endif
+#  endif
 
   return NS_OK;
 }
-#  endif
 
 //
 // Sets mPluginTempDir so that it refers to the appropriate temp dir.
@@ -741,11 +737,9 @@ static already_AddRefed<nsIFile> GetProcessSandboxTempDir(
 //
 static already_AddRefed<nsIFile> CreateProcessSandboxTempDir(
     GeckoProcessType procType) {
-#  if defined(MOZ_SANDBOX)
   if ((procType == GeckoProcessType_Content) && IsContentSandboxDisabled()) {
     return nullptr;
   }
-#  endif
 
   MOZ_ASSERT((procType == GeckoProcessType_Content) ||
              (procType == GeckoProcessType_Plugin));

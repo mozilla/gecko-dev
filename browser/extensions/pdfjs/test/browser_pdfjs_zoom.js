@@ -85,7 +85,7 @@ add_task(async function test() {
         TESTROOT + "file_pdfjs_test.pdf#zoom=100"
       );
 
-      await ContentTask.spawn(newTabBrowser, TESTS, async function(
+      await SpecialPowers.spawn(newTabBrowser, [TESTS], async function(
         contentTESTS
       ) {
         let document = content.document;
@@ -139,7 +139,7 @@ add_task(async function test() {
             }
 
             // Dispatch the event for changing the zoom
-            ev = new Event(subTest.action.event);
+            ev = new content.Event(subTest.action.event);
           } else {
             // We zoom using keyboard
             // Simulate key press
@@ -190,8 +190,15 @@ add_task(async function test() {
   );
 });
 
+// Performs a SpecialPowers.spawn round-trip to ensure that any setup
+// that needs to be done in the content process by any pending tasks has
+// a chance to complete before continuing.
+function waitForRoundTrip(browser) {
+  return SpecialPowers.spawn(browser, [], () => {});
+}
+
 async function waitForRenderAndGetWidth(newTabBrowser) {
-  return ContentTask.spawn(newTabBrowser, null, async function() {
+  return SpecialPowers.spawn(newTabBrowser, [], async function() {
     function waitForRender(document) {
       return new Promise(resolve => {
         document.addEventListener(
@@ -233,6 +240,7 @@ add_task(async function test_browser_zoom() {
 
       // Zoom in
       let newWidthPromise = waitForRenderAndGetWidth(newTabBrowser);
+      await waitForRoundTrip(newTabBrowser);
       FullZoom.enlarge();
       ok(
         (await newWidthPromise) > initialWidth,
@@ -241,11 +249,13 @@ add_task(async function test_browser_zoom() {
 
       // Reset
       newWidthPromise = waitForRenderAndGetWidth(newTabBrowser);
+      await waitForRoundTrip(newTabBrowser);
       FullZoom.reset();
       is(await newWidthPromise, initialWidth, "Zoom reset restores page.");
 
       // Zoom out
       newWidthPromise = waitForRenderAndGetWidth(newTabBrowser);
+      await waitForRoundTrip(newTabBrowser);
       FullZoom.reduce();
       ok(
         (await newWidthPromise) < initialWidth,
@@ -253,7 +263,7 @@ add_task(async function test_browser_zoom() {
       );
 
       // Clean-up after the PDF viewer.
-      await ContentTask.spawn(newTabBrowser, null, function() {
+      await SpecialPowers.spawn(newTabBrowser, [], function() {
         const viewer = content.wrappedJSObject.PDFViewerApplication;
         return viewer.close();
       });

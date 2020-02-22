@@ -34,9 +34,7 @@
 #include "nsNetCID.h"
 #include "nsIOfflineCacheUpdate.h"
 #include "nsIApplicationCache.h"
-#include "nsIApplicationCacheContainer.h"
 #include "nsIApplicationCacheChannel.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsICookieService.h"
 #include "nsContentUtils.h"
 #include "nsNodeInfoManager.h"
@@ -249,40 +247,6 @@ nsresult nsContentSink::ProcessHeaderData(nsAtom* aHeader,
   // necko doesn't process headers coming in from the parser
 
   mDocument->SetHeaderData(aHeader, aValue);
-
-  if (aHeader == nsGkAtoms::setcookie &&
-      StaticPrefs::dom_metaElement_setCookie_allowed()) {
-    // Note: Necko already handles cookies set via the channel.  We can't just
-    // call SetCookie on the channel because we want to do some security checks
-    // here.
-    nsCOMPtr<nsICookieService> cookieServ =
-        do_GetService(NS_COOKIESERVICE_CONTRACTID, &rv);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    // Get a URI from the document principal
-
-    // We use the original content URI in case the principal was changed
-    // by SetDomain
-
-    // Note that a non-content principal (eg the system principal) will return
-    // a null URI.
-    nsCOMPtr<nsIURI> contentURI;
-    rv = mDocument->NodePrincipal()->GetURI(getter_AddRefs(contentURI));
-    NS_ENSURE_TRUE(contentURI, rv);
-
-    nsCOMPtr<nsIChannel> channel;
-    if (mParser) {
-      mParser->GetChannel(getter_AddRefs(channel));
-    }
-
-    rv = cookieServ->SetCookieString(contentURI, nullptr,
-                                     NS_ConvertUTF16toUTF8(aValue), channel);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-  }
 
   return rv;
 }
@@ -755,13 +719,6 @@ nsresult nsContentSink::ProcessMETATag(nsIContent* aContent) {
       return NS_OK;
     }
 
-    // Don't allow setting cookies in <meta http-equiv> in cookie averse
-    // documents.
-    if (nsGkAtoms::setcookie->Equals(header) && mDocument->IsCookieAverse() &&
-        StaticPrefs::dom_metaElement_setCookie_allowed()) {
-      return NS_OK;
-    }
-
     nsAutoString result;
     element->GetAttr(kNameSpaceID_None, nsGkAtoms::content, result);
     if (!result.IsEmpty()) {
@@ -922,7 +879,7 @@ nsresult nsContentSink::SelectDocAppCache(
   } else {
     // The document was not loaded from an application cache
     // Here we know the manifest has the same origin as the
-    // document. There is call to CheckMayLoad() on it above.
+    // document. There is call to CheckMayLoadWithReporting() on it above.
 
     if (!aFetchedWithHTTPGetOrEquiv) {
       // The document was not loaded using HTTP GET or equivalent
@@ -1060,7 +1017,8 @@ void nsContentSink::ProcessOfflineManifest(const nsAString& aManifestSpec) {
     }
 
     // Documents must list a manifest from the same origin
-    rv = mDocument->NodePrincipal()->CheckMayLoad(manifestURI, true, false);
+    rv = mDocument->NodePrincipal()->CheckMayLoadWithReporting(
+        manifestURI, false, mDocument->InnerWindowID());
     if (NS_FAILED(rv)) {
       action = CACHE_SELECTION_RESELECT_WITHOUT_MANIFEST;
     } else {

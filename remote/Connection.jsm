@@ -11,6 +11,10 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
+const { UnknownMethodError } = ChromeUtils.import(
+  "chrome://remote/content/Error.jsm"
+);
+
 XPCOMUtils.defineLazyGetter(this, "log", Log.get);
 XPCOMUtils.defineLazyServiceGetter(
   this,
@@ -210,11 +214,15 @@ class Connection {
         }
       }
 
+      // Bug 1600317 - Workaround to deny internal methods to be called
+      if (command.startsWith("_")) {
+        throw new UnknownMethodError(command);
+      }
+
       // Finally, instruct the targeted session to execute the command
       const result = await session.execute(id, domain, command, params);
       this.onResult(id, result, sessionId);
     } catch (e) {
-      log.warn(e);
       this.onError(packet.id, e, packet.sessionId);
     }
   }

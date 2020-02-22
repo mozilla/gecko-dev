@@ -12,7 +12,6 @@
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/dom/RemoteWorkerController.h"
 #include "nsIConsoleReportCollector.h"
-#include "nsINetworkInterceptController.h"
 #include "nsIPrincipal.h"
 #include "nsProxyRelease.h"
 
@@ -64,7 +63,7 @@ SharedWorkerManager::~SharedWorkerManager() {
 
 bool SharedWorkerManager::MaybeCreateRemoteWorker(
     const RemoteWorkerData& aData, uint64_t aWindowID,
-    const MessagePortIdentifier& aPortIdentifier, base::ProcessId aProcessId) {
+    UniqueMessagePortId& aPortIdentifier, base::ProcessId aProcessId) {
   AssertIsOnBackgroundThread();
 
   if (!mRemoteWorkerController) {
@@ -79,7 +78,7 @@ bool SharedWorkerManager::MaybeCreateRemoteWorker(
     mRemoteWorkerController->AddWindowID(aWindowID);
   }
 
-  mRemoteWorkerController->AddPortIdentifier(aPortIdentifier);
+  mRemoteWorkerController->AddPortIdentifier(aPortIdentifier.release());
   return true;
 }
 

@@ -13,7 +13,6 @@
 #include "mozilla/Move.h"
 #include "AnimationParams.h"
 #include "gfxDrawable.h"
-#include "imgIContainer.h"
 #include "MainThreadUtils.h"
 
 namespace mozilla {
@@ -184,13 +183,19 @@ class imgFrame {
 
   struct AddSizeOfCbData {
     AddSizeOfCbData()
-        : heap(0), nonHeap(0), handles(0), index(0), externalId(0) {}
+        : heap(0),
+          nonHeap(0),
+          handles(0),
+          index(0),
+          externalId(0),
+          finished(false) {}
 
     size_t heap;
     size_t nonHeap;
     size_t handles;
     size_t index;
     uint64_t externalId;
+    bool finished;
   };
 
   typedef std::function<void(AddSizeOfCbData& aMetadata)> AddSizeOfCb;
@@ -349,8 +354,11 @@ class DrawableFrameRef final {
         mFrame = nullptr;
         mRef.reset();
       }
-    } else {
-      MOZ_ASSERT(aFrame->mOptSurface);
+    } else if (!aFrame->mOptSurface || !aFrame->mOptSurface->IsValid()) {
+      // The optimized surface has become invalid, so we need to redecode.
+      // For example, on Windows, there may have been a device reset, and
+      // all D2D surfaces now need to be recreated.
+      mFrame = nullptr;
     }
   }
 

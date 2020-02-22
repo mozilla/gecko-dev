@@ -1332,7 +1332,7 @@ class nsContextMenu {
 
         // Confirm since it's annoying if you hit this accidentally.
         const kDesktopBackgroundURL =
-          "chrome://browser/content/setDesktopBackground.xul";
+          "chrome://browser/content/setDesktopBackground.xhtml";
 
         if (AppConstants.platform == "macosx") {
           // On Mac, the Set Desktop Background window is not modal.
@@ -1847,7 +1847,7 @@ class nsContextMenu {
   }
 
   printFrame() {
-    PrintUtils.printWindow(this.frameOuterWindowID, this.browser);
+    PrintUtils.printWindow(this.actor.browsingContext);
   }
 
   switchPageDirection() {
@@ -1855,7 +1855,7 @@ class nsContextMenu {
       "SwitchDocumentDirection",
       {},
       "SwitchDocumentDirection",
-      true
+      "roots"
     );
   }
 

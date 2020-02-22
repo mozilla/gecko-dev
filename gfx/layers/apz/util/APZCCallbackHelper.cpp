@@ -661,7 +661,10 @@ using FrameForPointOption = nsLayoutUtils::FrameForPointOption;
 
 // Determine the scrollable target frame for the given point and add it to
 // the target list. If the frame doesn't have a displayport, set one.
-// Return whether or not a displayport was set.
+// Return whether or not the frame had a displayport that has already been
+// painted (in this case, the caller can send the SetTargetAPZC notification
+// right away, rather than waiting for a transaction to propagate the
+// displayport to APZ first).
 static bool PrepareForSetTargetAPZCNotification(
     nsIWidget* aWidget, const LayersId& aLayersId, nsIFrame* aRootFrame,
     const LayoutDeviceIntPoint& aRefPoint,
@@ -712,8 +715,14 @@ static bool PrepareForSetTargetAPZCNotification(
       &(guid.mScrollableLayerGuid.mScrollId));
   aTargets->AppendElement(guid);
 
-  if (!guidIsValid || nsLayoutUtils::HasDisplayPort(dpElement)) {
+  if (!guidIsValid) {
     return false;
+  }
+  if (nsLayoutUtils::HasDisplayPort(dpElement)) {
+    // If the element has a displayport but it hasn't been painted yet,
+    // we want the caller to wait for the paint to happen, but we don't
+    // need to set the displayport here since it's already been set.
+    return !nsLayoutUtils::HasPaintedDisplayPort(dpElement);
   }
 
   if (!scrollAncestor) {

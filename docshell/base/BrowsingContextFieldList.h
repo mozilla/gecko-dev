@@ -42,6 +42,11 @@ MOZ_BC_FIELD(FeaturePolicy, RefPtr<mozilla::dom::FeaturePolicy>)
 // See nsSandboxFlags.h for the possible flags.
 MOZ_BC_FIELD(SandboxFlags, uint32_t)
 
+// ScreenOrientation-related APIs
+MOZ_BC_FIELD(CurrentOrientationAngle, float)
+
+MOZ_BC_FIELD(CurrentOrientationType, mozilla::dom::OrientationType)
+
 MOZ_BC_FIELD(HistoryID, nsID)
 
 MOZ_BC_FIELD(InRDMPane, bool)
@@ -53,5 +58,7 @@ MOZ_BC_FIELD(Loading, bool)
 // context.
 MOZ_BC_FIELD(GVAudibleAutoplayRequestStatus, GVAutoplayRequestStatus)
 MOZ_BC_FIELD(GVInaudibleAutoplayRequestStatus, GVAutoplayRequestStatus)
+
+MOZ_BC_FIELD(AncestorLoading, bool)
 
 #undef MOZ_BC_FIELD

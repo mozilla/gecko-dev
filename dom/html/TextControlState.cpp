@@ -15,13 +15,11 @@
 #include "nsContentCreatorFunctions.h"
 #include "nsTextControlFrame.h"
 #include "nsIControllers.h"
-#include "nsITransactionManager.h"
 #include "nsIControllerContext.h"
 #include "nsAttrValue.h"
 #include "nsAttrValueInlines.h"
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMEventListener.h"
-#include "nsIEditorObserver.h"
 #include "nsIWidget.h"
 #include "nsIDocumentEncoder.h"
 #include "nsPIDOMWindow.h"
@@ -155,7 +153,7 @@ class RestoreSelectionState : public Runnable {
         mFrame(aFrame),
         mTextControlState(aState) {}
 
-  NS_IMETHOD Run() override {
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() override {
     if (!mTextControlState) {
       return NS_OK;
     }
@@ -1075,10 +1073,15 @@ nsresult TextInputListener::UpdateTextInputCommands(
  *****************************************************************************/
 
 enum class TextControlAction {
-  PrepareEditor,
+  CacheForReuse,
   CommitComposition,
-  SetValue,
+  Destructor,
+  PrepareEditor,
+  SetRangeText,
   SetSelectionRange,
+  SetValue,
+  UnbindFromFrame,
+  Unlink,
 };
 
 class MOZ_STACK_CLASS AutoTextControlHandlingState {
@@ -1094,8 +1097,8 @@ class MOZ_STACK_CLASS AutoTextControlHandlingState {
    * Generic constructor.  If TextControlAction does not require additional
    * data, must use this constructor.
    */
-  AutoTextControlHandlingState(TextControlState& aTextControlState,
-                               TextControlAction aTextControlAction)
+  MOZ_CAN_RUN_SCRIPT AutoTextControlHandlingState(
+      TextControlState& aTextControlState, TextControlAction aTextControlAction)
       : mParent(aTextControlState.mHandlingState),
         mTextControlState(aTextControlState),
         mTextCtrlElement(aTextControlState.mTextCtrlElement),
@@ -1119,11 +1122,10 @@ class MOZ_STACK_CLASS AutoTextControlHandlingState {
    * must be specified and the creator should check whether we succeeded to
    * allocate memory for line breaker conversion.
    */
-  AutoTextControlHandlingState(TextControlState& aTextControlState,
-                               TextControlAction aTextControlAction,
-                               const nsAString& aSettingValue,
-                               const nsAString* aOldValue, uint32_t aFlags,
-                               ErrorResult& aRv)
+  MOZ_CAN_RUN_SCRIPT AutoTextControlHandlingState(
+      TextControlState& aTextControlState, TextControlAction aTextControlAction,
+      const nsAString& aSettingValue, const nsAString* aOldValue,
+      uint32_t aFlags, ErrorResult& aRv)
       : mParent(aTextControlState.mHandlingState),
         mTextControlState(aTextControlState),
         mTextCtrlElement(aTextControlState.mTextCtrlElement),
@@ -1160,6 +1162,12 @@ class MOZ_STACK_CLASS AutoTextControlHandlingState {
   }
 
   void OnDestroyTextControlState() {
+    if (IsHandling(TextControlAction::Destructor) ||
+        IsHandling(TextControlAction::CacheForReuse)) {
+      // Do nothing since mTextContrlState.DeleteOrCacheForReuse() has
+      // already been called.
+      return;
+    }
     mTextControlStateDestroyed = true;
     if (mParent) {
       mParent->OnDestroyTextControlState();
@@ -1392,6 +1400,8 @@ TextControlState* TextControlState::Construct(
 TextControlState::~TextControlState() {
   MOZ_ASSERT(!mHandlingState);
   MOZ_COUNT_DTOR(TextControlState);
+  AutoTextControlHandlingState handlingDesctructor(
+      *this, TextControlAction::Destructor);
   Clear();
 }
 
@@ -1412,6 +1422,8 @@ void TextControlState::Destroy() {
     return;
   }
   DeleteOrCacheForReuse();
+  // Note that this instance may have already been deleted here.  Don't touch
+  // any members.
 }
 
 void TextControlState::DeleteOrCacheForReuse() {
@@ -1420,12 +1432,23 @@ void TextControlState::DeleteOrCacheForReuse() {
   // If we can cache this instance, we should do it instead of deleting it.
   if (!sHasShutDown && (!sReleasedInstances || sReleasedInstances->Length() <
                                                    kMaxCountOfCacheToReuse)) {
-    PrepareForReuse();
+    AutoTextControlHandlingState handlingCacheForReuse(
+        *this, TextControlAction::CacheForReuse);
+
+    // Prepare for reuse, unlink and release any refcountable objects.
+    UnlinkInternal();
+    mValue.reset();
+    mTextCtrlElement = nullptr;
+
+    // Put this instance to the cache.  Note that now, the array may be full,
+    // but it's not problem to cache more instances than kMaxCountOfCacheToReuse
+    // because it just requires reallocation cost of the array buffer.
     if (!sReleasedInstances) {
       sReleasedInstances =
           new AutoTArray<TextControlState*, kMaxCountOfCacheToReuse>;
     }
     sReleasedInstances->AppendElement(this);
+
     return;
   }
   delete this;
@@ -1444,13 +1467,12 @@ Element* TextControlState::GetPreviewNode() {
 }
 
 void TextControlState::Clear() {
+  MOZ_ASSERT(mHandlingState);
+  MOZ_ASSERT(mHandlingState->Is(TextControlAction::Destructor) ||
+             mHandlingState->Is(TextControlAction::CacheForReuse) ||
+             mHandlingState->Is(TextControlAction::Unlink));
   if (mTextEditor) {
     mTextEditor->SetTextInputListener(nullptr);
-  }
-
-  if (mHandlingState) {
-    mHandlingState->OnDestroyTextControlState();
-    mHandlingState = nullptr;
   }
 
   if (mBoundFrame) {
@@ -1470,6 +1492,14 @@ void TextControlState::Clear() {
 }
 
 void TextControlState::Unlink() {
+  AutoTextControlHandlingState handlingUnlink(*this, TextControlAction::Unlink);
+  UnlinkInternal();
+}
+
+void TextControlState::UnlinkInternal() {
+  MOZ_ASSERT(mHandlingState);
+  MOZ_ASSERT(mHandlingState->Is(TextControlAction::Unlink) ||
+             mHandlingState->Is(TextControlAction::CacheForReuse));
   TextControlState* tmp = this;
   tmp->Clear();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSelCon)
@@ -1487,6 +1517,9 @@ nsFrameSelection* TextControlState::GetConstFrameSelection() {
 }
 
 TextEditor* TextControlState::GetTextEditor() {
+  // Note that if the instance is destroyed in PrepareEditor(), it returns
+  // NS_ERROR_NOT_INITIALIZED so that we don't need to create kungFuDeathGrip
+  // in this hot path.
   if (!mTextEditor && NS_WARN_IF(NS_FAILED(PrepareEditor()))) {
     return nullptr;
   }
@@ -1513,7 +1546,7 @@ class PrepareEditorEvent : public Runnable {
     aState.mValueTransferInProgress = true;
   }
 
-  NS_IMETHOD Run() override {
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD Run() override {
     if (NS_WARN_IF(!mState)) {
       return NS_ERROR_NULL_POINTER;
     }
@@ -1540,6 +1573,9 @@ class PrepareEditorEvent : public Runnable {
 };
 
 nsresult TextControlState::BindToFrame(nsTextControlFrame* aFrame) {
+  MOZ_ASSERT(
+      !nsContentUtils::IsSafeToRunScript(),
+      "TextControlState::BindToFrame() has to be called with script blocker");
   NS_ASSERTION(aFrame, "The frame to bind to should be valid");
   if (!aFrame) {
     return NS_ERROR_INVALID_ARG;
@@ -1921,7 +1957,9 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
     mSelectionCached = false;
   }
 
-  return rv;
+  return preparingEditor.IsTextControlStateDestroyed()
+             ? NS_ERROR_NOT_INITIALIZED
+             : rv;
 }
 
 void TextControlState::FinishedRestoringSelection() {
@@ -1960,6 +1998,7 @@ void TextControlState::SetSelectionProperties(
   if (mBoundFrame) {
     mBoundFrame->SetSelectionRange(aProps.GetStart(), aProps.GetEnd(),
                                    aProps.GetDirection());
+    // The instance may have already been deleted here.
   } else {
     mSelectionProperties = aProps;
   }
@@ -2115,6 +2154,7 @@ void TextControlState::SetSelectionStart(const Nullable<uint32_t>& aStart,
   }
 
   SetSelectionRange(start, end, dir, aRv);
+  // The instance may have already been deleted here.
 }
 
 void TextControlState::SetSelectionEnd(const Nullable<uint32_t>& aEnd,
@@ -2136,6 +2176,7 @@ void TextControlState::SetSelectionEnd(const Nullable<uint32_t>& aEnd,
   }
 
   SetSelectionRange(start, end, dir, aRv);
+  // The instance may have already been deleted here.
 }
 
 static void DirectionToName(nsITextControlFrame::SelectionDirection dir,
@@ -2194,6 +2235,7 @@ void TextControlState::SetSelectionDirection(const nsAString& aDirection,
   }
 
   SetSelectionRange(start, end, dir, aRv);
+  // The instance may have already been deleted here.
 }
 
 static nsITextControlFrame::SelectionDirection
@@ -2214,6 +2256,7 @@ void TextControlState::SetSelectionRange(uint32_t aSelectionStart,
       DirectionStringToSelectionDirection(aDirection);
 
   SetSelectionRange(aSelectionStart, aSelectionEnd, dir, aRv);
+  // The instance may have already been deleted here.
 }
 
 void TextControlState::SetRangeText(const nsAString& aReplacement,
@@ -2226,6 +2269,7 @@ void TextControlState::SetRangeText(const nsAString& aReplacement,
 
   SetRangeText(aReplacement, start, end, SelectionMode::Preserve, aRv,
                Some(start), Some(end));
+  // The instance may have already been deleted here.
 }
 
 void TextControlState::SetRangeText(const nsAString& aReplacement,
@@ -2237,6 +2281,9 @@ void TextControlState::SetRangeText(const nsAString& aReplacement,
     aRv.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
     return;
   }
+
+  AutoTextControlHandlingState handlingSetRangeText(
+      *this, TextControlAction::SetRangeText);
 
   nsAutoString value;
   mTextCtrlElement->GetValueFromSetRangeText(value);
@@ -2265,7 +2312,8 @@ void TextControlState::SetRangeText(const nsAString& aReplacement,
 
   MOZ_ASSERT(aStart <= aEnd);
   value.Replace(aStart, aEnd - aStart, aReplacement);
-  nsresult rv = mTextCtrlElement->SetValueFromSetRangeText(value);
+  nsresult rv =
+      MOZ_KnownLive(mTextCtrlElement)->SetValueFromSetRangeText(value);
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
     return;
@@ -2303,6 +2351,7 @@ void TextControlState::SetRangeText(const nsAString& aReplacement,
   }
 
   SetSelectionRange(selectionStart, selectionEnd, Optional<nsAString>(), aRv);
+  // The instance may have already been deleted here.
 }
 
 HTMLInputElement* TextControlState::GetParentNumberControl(
@@ -2353,6 +2402,9 @@ void TextControlState::UnbindFromFrame(nsTextControlFrame* aFrame) {
   if (aFrame && aFrame != mBoundFrame) {
     return;
   }
+
+  AutoTextControlHandlingState handlingUnbindFromFrame(
+      *this, TextControlAction::UnbindFromFrame);
 
   // We need to start storing the value outside of the editor if we're not
   // going to use it anymore, so retrieve it for now.

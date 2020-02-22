@@ -15,6 +15,7 @@
 #include "nsContentUtils.h"
 #include "nsCycleCollector.h"
 #include "jsfriendapi.h"
+#include "js/Array.h"  // JS::IsArrayObject
 #include "js/CharacterEncoding.h"
 #include "js/ContextOptions.h"
 #include "js/SavedFrameAPI.h"
@@ -24,6 +25,7 @@
 #include "mozilla/LoadContext.h"
 #include "mozilla/Preferences.h"
 #include "nsJSEnvironment.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/URLPreloader.h"
@@ -1448,8 +1450,9 @@ nsXPCComponents_Utils::ReportError(HandleValue error, HandleValue stack,
 NS_IMETHODIMP
 nsXPCComponents_Utils::EvalInSandbox(
     const nsAString& source, HandleValue sandboxVal, HandleValue version,
-    const nsACString& filenameArg, int32_t lineNumber, JSContext* cx,
-    uint8_t optionalArgc, MutableHandleValue retval) {
+    const nsACString& filenameArg, int32_t lineNumber,
+    bool enforceFilenameRestrictions, JSContext* cx, uint8_t optionalArgc,
+    MutableHandleValue retval) {
   RootedObject sandbox(cx);
   if (!JS_ValueToObject(cx, sandboxVal, &sandbox) || !sandbox) {
     return NS_ERROR_INVALID_ARG;
@@ -1472,8 +1475,11 @@ nsXPCComponents_Utils::EvalInSandbox(
       lineNo = frame->GetLineNumber(cx);
     }
   }
+  enforceFilenameRestrictions =
+      (optionalArgc >= 4) ? enforceFilenameRestrictions : true;
 
-  return xpc::EvalInSandbox(cx, sandbox, source, filename, lineNo, retval);
+  return xpc::EvalInSandbox(cx, sandbox, source, filename, lineNo,
+                            enforceFilenameRestrictions, retval);
 }
 
 NS_IMETHODIMP
@@ -1577,7 +1583,7 @@ nsXPCComponents_Utils::ImportGlobalProperties(HandleValue aPropertyList,
 
   RootedObject propertyList(cx, &aPropertyList.toObject());
   bool isArray;
-  if (NS_WARN_IF(!JS_IsArrayObject(cx, propertyList, &isArray))) {
+  if (NS_WARN_IF(!JS::IsArrayObject(cx, propertyList, &isArray))) {
     return NS_ERROR_FAILURE;
   }
   if (NS_WARN_IF(!isArray)) {
@@ -2138,7 +2144,7 @@ nsXPCComponents_Utils::BlockScriptForGlobal(HandleValue globalArg,
   RootedObject global(cx, UncheckedUnwrap(&globalArg.toObject(),
                                           /* stopAtWindowProxy = */ false));
   NS_ENSURE_TRUE(JS_IsGlobalObject(global), NS_ERROR_INVALID_ARG);
-  if (nsContentUtils::IsSystemPrincipal(xpc::GetObjectPrincipal(global))) {
+  if (xpc::GetObjectPrincipal(global)->IsSystemPrincipal()) {
     JS_ReportErrorASCII(cx, "Script may not be disabled for system globals");
     return NS_ERROR_FAILURE;
   }
@@ -2153,7 +2159,7 @@ nsXPCComponents_Utils::UnblockScriptForGlobal(HandleValue globalArg,
   RootedObject global(cx, UncheckedUnwrap(&globalArg.toObject(),
                                           /* stopAtWindowProxy = */ false));
   NS_ENSURE_TRUE(JS_IsGlobalObject(global), NS_ERROR_INVALID_ARG);
-  if (nsContentUtils::IsSystemPrincipal(xpc::GetObjectPrincipal(global))) {
+  if (xpc::GetObjectPrincipal(global)->IsSystemPrincipal()) {
     JS_ReportErrorASCII(cx, "Script may not be disabled for system globals");
     return NS_ERROR_FAILURE;
   }

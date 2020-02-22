@@ -6,8 +6,13 @@ header = """/* This Source Code Form is subject to the terms of the Mozilla Publ
 #pragma GCC diagnostic push
 #ifdef __clang__
 #  pragma GCC diagnostic ignored "-Wreturn-type-c-linkage"
-#endif"""
+#endif
+// Work-around silly windows.h define.
+#pragma push_macro("STRICT")
+#undef STRICT
+"""
 trailer = """
+#pragma pop_macro("STRICT")
 #pragma GCC diagnostic pop
 #include "mozilla/ServoStyleConstsInlines.h"
 """
@@ -33,6 +38,7 @@ extra_bindings = ["style"]
 include = ["style", "cssparser", "style_traits", "servo_arc"]
 
 [struct]
+associated_constants_in_body = true
 derive_eq = true
 derive_neq = true
 
@@ -49,6 +55,7 @@ derive_helper_methods = true
 derive_const_casts = true
 derive_tagged_enum_destructor = true
 derive_tagged_enum_copy_constructor = true
+derive_tagged_enum_copy_assignment = true
 private_default_tagged_enum_constructor = true
 cast_assert_name = "MOZ_ASSERT"
 
@@ -130,6 +137,7 @@ include = [
   "TouchAction",
   "WillChange",
   "TextDecorationLine",
+  "TextUnderlinePosition",
   "TextTransform",
   "TextOverflow",
   "MozListReversed",
@@ -178,6 +186,8 @@ include = [
   "CounterIncrement",
   "WritingMode",
   "VecU8",
+  "Content",
+  "ContentItem",
 ]
 item_types = ["enums", "structs", "typedefs", "functions", "constants"]
 renaming_overrides_prefixing = true
@@ -336,6 +346,13 @@ renaming_overrides_prefixing = true
 "TextTransform" = """
   static inline StyleTextTransform None();
   inline bool IsNone() const;
+"""
+
+"TextUnderlinePosition" = """
+  inline bool IsAuto() const;
+  inline bool IsUnder() const;
+  inline bool IsLeft() const;
+  inline bool IsRight() const;
 """
 
 # TODO(emilio): Add hooks to cbindgen to be able to generate MOZ_MUST_USE_TYPE
@@ -584,7 +601,7 @@ renaming_overrides_prefixing = true
   inline StyleCorsMode CorsMode() const;
   already_AddRefed<nsIURI> ResolveLocalRef(nsIURI* aBase) const;
   already_AddRefed<nsIURI> ResolveLocalRef(const nsIContent* aContent) const;
-  imgRequestProxy* LoadImage(mozilla::dom::Document&);
+  already_AddRefed<imgRequestProxy> LoadImage(mozilla::dom::Document&);
 """
 
 "GenericGradient" = """

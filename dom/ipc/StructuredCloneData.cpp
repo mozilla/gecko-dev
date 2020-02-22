@@ -6,9 +6,6 @@
 
 #include "StructuredCloneData.h"
 
-#include "nsIMutable.h"
-#include "nsIXPConnect.h"
-
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/BlobBinding.h"
@@ -147,7 +144,7 @@ bool BuildClonedMessageData(M* aManager, StructuredCloneData& aData,
     return false;
   }
   if (aData.SupportsTransferring()) {
-    aClonedData.identfiers().AppendElements(aData.PortIdentifiers());
+    aClonedData.identifiers().AppendElements(aData.PortIdentifiers());
   }
 
   const nsTArray<RefPtr<BlobImpl>>& blobImpls = aData.BlobImpls();
@@ -261,7 +258,8 @@ template <MemoryFlavorEnum MemoryFlavor, ActorFlavorEnum Flavor>
 static void UnpackClonedMessageData(
     typename MemoryTraits<MemoryFlavor>::ClonedMessageType& aClonedData,
     StructuredCloneData& aData) {
-  const nsTArray<MessagePortIdentifier>& identifiers = aClonedData.identfiers();
+  const nsTArray<MessagePortIdentifier>& identifiers =
+      aClonedData.identifiers();
 
   MemoryTraits<MemoryFlavor>::ProvideBuffer(aClonedData, aData);
 

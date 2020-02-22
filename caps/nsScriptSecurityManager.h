@@ -69,9 +69,8 @@ class nsScriptSecurityManager final : public nsIScriptSecurityManager {
   static uint32_t SecurityHashURI(nsIURI* aURI);
 
   static nsresult ReportError(const char* aMessageTag, nsIURI* aSource,
-                              nsIURI* aTarget, bool aFromPrivateWindow);
-
-  static uint32_t HashPrincipalByOrigin(nsIPrincipal* aPrincipal);
+                              nsIURI* aTarget, bool aFromPrivateWindow,
+                              uint64_t aInnerWindowID = 0);
 
   static bool GetStrictFileOriginPolicy() { return sStrictFileOriginPolicy; }
 
@@ -103,7 +102,8 @@ class nsScriptSecurityManager final : public nsIScriptSecurityManager {
 
   nsresult CheckLoadURIFlags(nsIURI* aSourceURI, nsIURI* aTargetURI,
                              nsIURI* aSourceBaseURI, nsIURI* aTargetBaseURI,
-                             uint32_t aFlags, bool aFromPrivateWindow);
+                             uint32_t aFlags, bool aFromPrivateWindow,
+                             uint64_t aInnerWindowID);
 
   // Returns the file URI allowlist, initializing it if it has not been
   // initialized.

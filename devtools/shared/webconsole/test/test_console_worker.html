@@ -12,9 +12,11 @@
 <p>Test for the Console API and Workers</p>
 
 <script class="testbody" type="text/javascript">
+"use strict";
+
 SimpleTest.waitForExplicitFinish();
 
-let expectedCachedConsoleCalls = [
+const expectedCachedConsoleCalls = [
     {
       level: "log",
       filename: /console-test-worker/,
@@ -22,7 +24,7 @@ let expectedCachedConsoleCalls = [
     },
 ];
 
-let expectedConsoleAPICalls = [
+const expectedConsoleAPICalls = [
     {
       level: "log",
       arguments: ['Log was requested from worker'],
@@ -30,9 +32,9 @@ let expectedConsoleAPICalls = [
 ];
 
 window.onload = async function () {
-  let {state,response} = await new Promise(resolve => {
-    attachConsoleToWorker(["ConsoleAPI"], (state, response) => {
-      resolve({state,response})
+  const {state} = await new Promise(resolve => {
+    attachConsoleToWorker(["ConsoleAPI"], (s) => {
+      resolve({state: s})
     });
   });
 
@@ -44,11 +46,11 @@ window.onload = async function () {
   });
 };
 
-let testCachedMessages = async function (state) {
+const testCachedMessages = async function (state) {
   info("testCachedMessages entered");
   return new Promise(resolve => {
-    let onCachedConsoleAPI = (response) => {
-      let consoleCalls = response.messages;
+    const onCachedConsoleAPI = (response) => {
+      const consoleCalls = response.messages;
 
       info('Received cached response. Checking console calls.');
       checkConsoleAPICalls(consoleCalls, expectedCachedConsoleCalls);
@@ -58,10 +60,10 @@ let testCachedMessages = async function (state) {
   })
 };
 
-let testConsoleAPI = async function (state) {
+const testConsoleAPI = async function (state) {
   info("testConsoleAPI entered");
   return new Promise(resolve => {
-    let onConsoleAPICall = (packet) => {
+    const onConsoleAPICall = (packet) => {
       info("received message level: " + packet.message.level);
       checkConsoleAPICalls([packet.message], expectedConsoleAPICalls);
       state.webConsoleFront.off("consoleAPICall", onConsoleAPICall);

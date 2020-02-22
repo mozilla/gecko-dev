@@ -175,11 +175,8 @@ class SearchConfigTest {
           : AppConstants.MOZ_UPDATE_CHANNEL
       );
       for (let config of configs.engines) {
-        let engine = await Services.search.makeEnginesFromConfig(config);
-        // Currently wikipedia is the only engine that uses multiple
-        // locales and that isn't a tested engine so for now pick
-        // the first (only) locale.
-        engines.push(engine[0]);
+        let engine = await Services.search.makeEngineFromConfig(config);
+        engines.push(engine);
       }
       return engines;
     }
@@ -429,6 +426,11 @@ class SearchConfigTest {
         this._localeRegionInSection(value.excluded, region, locale);
       return included && !excluded;
     });
+    this.assertEqual(
+      details.length,
+      1,
+      `Should have just one details section for region: ${region} locale: ${locale}`
+    );
 
     const engine = this._findEngine(engines, this._config.identifier);
     this.assertOk(engine, "Should have an engine present");

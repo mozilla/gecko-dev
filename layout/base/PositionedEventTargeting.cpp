@@ -12,6 +12,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/dom/MouseEventBinding.h"
+#include "nsHTMLParts.h"
 #include "nsLayoutUtils.h"
 #include "nsGkAtoms.h"
 #include "nsFontMetrics.h"
@@ -154,23 +155,15 @@ static bool HasMouseListener(nsIContent* aContent) {
   return false;
 }
 
-static bool gTouchEventsRegistered = false;
-static int32_t gTouchEventsEnabled = 0;
-
 static bool HasTouchListener(nsIContent* aContent) {
   EventListenerManager* elm = aContent->GetExistingListenerManager();
   if (!elm) {
     return false;
   }
 
-  if (!gTouchEventsRegistered) {
-    Preferences::AddIntVarCache(&gTouchEventsEnabled,
-                                "dom.w3c_touch_events.enabled",
-                                gTouchEventsEnabled);
-    gTouchEventsRegistered = true;
-  }
-
-  if (!gTouchEventsEnabled) {
+  // FIXME: Should this really use the pref rather than TouchEvent::PrefEnabled
+  // or such?
+  if (!StaticPrefs::dom_w3c_touch_events_enabled()) {
     return false;
   }
 

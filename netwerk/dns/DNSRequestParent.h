@@ -8,7 +8,6 @@
 #define mozilla_net_DNSRequestParent_h
 
 #include "mozilla/net/PDNSRequestParent.h"
-#include "nsIDNSService.h"
 #include "nsIDNSListener.h"
 
 namespace mozilla {
@@ -30,16 +29,11 @@ class DNSRequestParent : public PDNSRequestParent, public nsIDNSListener {
       const nsCString& hostName, const uint16_t& type,
       const OriginAttributes& originAttributes, const uint32_t& flags,
       const nsresult& reason);
-  mozilla::ipc::IPCResult Recv__delete__() override;
-
- protected:
-  virtual void ActorDestroy(ActorDestroyReason why) override;
 
  private:
   virtual ~DNSRequestParent() = default;
 
   uint32_t mFlags;
-  bool mIPCClosed;  // true if IPDL channel has been closed (child crash)
 };
 
 }  // namespace net

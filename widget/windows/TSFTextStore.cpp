@@ -22,7 +22,6 @@
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/WindowsVersion.h"
-#include "nsIXULRuntime.h"
 #include "nsWindow.h"
 #include "nsPrintfCString.h"
 
@@ -906,11 +905,9 @@ class GetInputScopeString : public nsAutoCString {
         case IS_XML:
           AppendLiteral("IS_XML");
           break;
-#ifndef __MINGW32__
         case IS_PRIVATE:
           AppendLiteral("IS_PRIVATE");
           break;
-#endif
         default:
           AppendPrintf("Unknown Value(%d)", inputScope);
           break;
@@ -3968,12 +3965,9 @@ void TSFTextStore::SetInputScope(const nsString& aHTMLInputType,
                                  bool aInPrivateBrowsing) {
   mInputScopes.Clear();
 
-#ifndef __MINGW32__
-  // MinGW build environment doesn't have IS_PRIVATE yet.
   if (aInPrivateBrowsing) {
     mInputScopes.AppendElement(IS_PRIVATE);
   }
-#endif
 
   if (aHTMLInputType.IsEmpty() || aHTMLInputType.EqualsLiteral("text")) {
     if (aHTMLInputInputMode.EqualsLiteral("url")) {
@@ -4822,7 +4816,7 @@ bool TSFTextStore::MaybeHackNoErrorLayoutBugs(LONG& aACPStart, LONG& aACPEnd) {
         MOZ_ASSERT(TSFStaticSink::IsATOKReferringNativeCaretActive());
         return false;
       }
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case TextInputProcessorID::eATOK2016:
     case TextInputProcessorID::eATOKUnknown:
       if (!TSFPrefs::DoNotReturnNoLayoutErrorToATOKOfCompositionString()) {

@@ -25,7 +25,6 @@
 #include "nsContentUtils.h"
 #include "nsINetworkLinkService.h"
 #include "nsIObserverService.h"
-#include "nsIPrincipal.h"
 #include "nsPrintfCString.h"
 #include "nsProxyRelease.h"
 #include "nsThreadUtils.h"
@@ -730,9 +729,14 @@ void MediaCache::FlushInternal(AutoLock& aLock) {
 void MediaCache::Flush() {
   MOZ_ASSERT(NS_IsMainThread());
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-      "MediaCache::Flush", [self = RefPtr<MediaCache>(this)]() {
+      "MediaCache::Flush", [self = RefPtr<MediaCache>(this)]() mutable {
         AutoLock lock(self->mMonitor);
         self->FlushInternal(lock);
+        // Ensure MediaCache is deleted on the main thread.
+        NS_ProxyRelease(
+            "MediaCache::Flush",
+            SystemGroup::EventTargetFor(mozilla::TaskCategory::Other),
+            self.forget());
       });
   sThread->Dispatch(r.forget());
 }
@@ -741,7 +745,7 @@ void MediaCache::CloseStreamsForPrivateBrowsing() {
   MOZ_ASSERT(NS_IsMainThread());
   sThread->Dispatch(NS_NewRunnableFunction(
       "MediaCache::CloseStreamsForPrivateBrowsing",
-      [self = RefPtr<MediaCache>(this)]() {
+      [self = RefPtr<MediaCache>(this)]() mutable {
         AutoLock lock(self->mMonitor);
         // Copy mStreams since CloseInternal() will change the array.
         nsTArray<MediaCacheStream*> streams(self->mStreams);
@@ -750,6 +754,11 @@ void MediaCache::CloseStreamsForPrivateBrowsing() {
             s->CloseInternal(lock);
           }
         }
+        // Ensure MediaCache is deleted on the main thread.
+        NS_ProxyRelease(
+            "MediaCache::CloseStreamsForPrivateBrowsing",
+            SystemGroup::EventTargetFor(mozilla::TaskCategory::Other),
+            self.forget());
       }));
 }
 

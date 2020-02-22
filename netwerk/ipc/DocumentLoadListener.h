@@ -14,12 +14,15 @@
 #include "mozilla/net/PDocumentChannelParent.h"
 #include "mozilla/net/ParentChannelListener.h"
 #include "mozilla/net/ADocumentChannelBridge.h"
+#include "mozilla/dom/BrowserParent.h"
+#include "nsDOMNavigationTiming.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIObserver.h"
 #include "nsIParentChannel.h"
 #include "nsIParentRedirectingChannel.h"
 #include "nsIProcessSwitchRequestor.h"
 #include "nsIRedirectResultListener.h"
+#include "nsIMultiPartChannel.h"
 
 #define DOCUMENT_LOAD_LISTENER_IID                   \
   {                                                  \
@@ -55,22 +58,29 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
                              public nsIParentChannel,
                              public nsIChannelEventSink,
                              public HttpChannelSecurityWarningReporter,
-                             public nsIProcessSwitchRequestor {
+                             public nsIProcessSwitchRequestor,
+                             public nsIMultiPartChannelListener {
  public:
-  explicit DocumentLoadListener(const dom::PBrowserOrId& aIframeEmbedding,
+  explicit DocumentLoadListener(dom::BrowserParent* aBrowser,
                                 nsILoadContext* aLoadContext,
                                 PBOverrideStatus aOverrideStatus,
                                 ADocumentChannelBridge* aBridge);
 
   // Creates the channel, and then calls AsyncOpen on it.
-  bool Open(nsDocShellLoadState* aLoadState, class LoadInfo* aLoadInfo,
-            const nsString* aInitiatorType, nsLoadFlags aLoadFlags,
-            uint32_t aLoadType, uint32_t aCacheKey, bool aIsActive,
-            bool aIsTopLevelDoc, bool aHasNonEmptySandboxingFlags,
+  // Must be the same BrowserParent as was passed to the constructor, we
+  // expect Necko to pass it again so that we don't need a member var for
+  // it.
+  bool Open(dom::BrowserParent* aBrowser, nsDocShellLoadState* aLoadState,
+            class LoadInfo* aLoadInfo, const nsString* aInitiatorType,
+            nsLoadFlags aLoadFlags, uint32_t aLoadType, uint32_t aCacheKey,
+            bool aIsActive, bool aIsTopLevelDoc,
+            bool aHasNonEmptySandboxingFlags,
             const Maybe<ipc::URIParams>& aTopWindowURI,
             const Maybe<ipc::PrincipalInfo>& aContentBlockingAllowListPrincipal,
             const nsString& aCustomUserAgent, const uint64_t& aChannelId,
-            const TimeStamp& aAsyncOpenTime, nsresult* aRv);
+            const TimeStamp& aAsyncOpenTime,
+            const Maybe<uint32_t>& aDocumentOpenFlags, bool aPluginsAllowed,
+            nsDOMNavigationTiming* aTiming, nsresult* aRv);
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIREQUESTOBSERVER
@@ -80,6 +90,7 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   NS_DECL_NSIASYNCVERIFYREDIRECTREADYCALLBACK
   NS_DECL_NSICHANNELEVENTSINK
   NS_DECL_NSIPROCESSSWITCHREQUESTOR
+  NS_DECL_NSIMULTIPARTCHANNELLISTENER
 
   // We suspend the underlying channel when replacing ourselves with
   // the real listener channel.
@@ -91,8 +102,6 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   NS_DECLARE_STATIC_IID_ACCESSOR(DOCUMENT_LOAD_LISTENER_IID)
 
   void Cancel(const nsresult& status);
-  void Suspend();
-  void Resume();
 
   nsresult ReportSecurityMessage(const nsAString& aMessageTag,
                                  const nsAString& aMessageCategory) override {
@@ -131,6 +140,8 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   // our reference to it.
   void DocumentChannelBridgeDisconnected();
 
+  void DisconnectChildListeners(nsresult aStatus, nsresult aLoadGroupStatus);
+
   base::ProcessId OtherPid() const {
     if (mDocumentChannelBridge) {
       return mDocumentChannelBridge->OtherPid();
@@ -153,7 +164,7 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
                              uint32_t aLoadFlags);
 
  protected:
-  virtual ~DocumentLoadListener() = default;
+  virtual ~DocumentLoadListener();
 
   // Initiates the switch from DocumentChannel to the real protocol-specific
   // channel, and ensures that RedirectToRealChannelFinished is called when
@@ -258,14 +269,32 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
       SecurityWarningFunction;
   nsTArray<SecurityWarningFunction> mSecurityWarningFunctions;
 
-  struct OnDataAvailableRequest {
+  struct OnStartRequestParams {
+    nsCOMPtr<nsIRequest> request;
+  };
+  struct OnDataAvailableParams {
+    nsCOMPtr<nsIRequest> request;
     nsCString data;
     uint64_t offset;
     uint32_t count;
   };
+  struct OnStopRequestParams {
+    nsCOMPtr<nsIRequest> request;
+    nsresult status;
+  };
+  struct OnAfterLastPartParams {
+    nsresult status;
+  };
+  typedef mozilla::Variant<OnStartRequestParams, OnDataAvailableParams,
+                           OnStopRequestParams, OnAfterLastPartParams>
+      StreamListenerFunction;
   // TODO Backtrack this.
-  nsTArray<OnDataAvailableRequest> mPendingRequests;
-  Maybe<nsresult> mStopRequestValue;
+  // The set of nsIStreamListener functions that got called on this
+  // listener, so that we can replay them onto the replacement channel's
+  // listener. This should generally only be OnStartRequest, since we
+  // Suspend() the channel at that point, but it can fail sometimes
+  // so we have to support holding a list.
+  nsTArray<StreamListenerFunction> mStreamListenerFunctions;
 
   nsCOMPtr<nsIChannel> mChannel;
 
@@ -292,16 +321,26 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   // value we need here.
   nsCOMPtr<nsIURI> mChannelCreationURI;
 
+  // The original navigation timing information containing various timestamps
+  // such as when the original load started.
+  // This will be passed back to the new content process should a process
+  // switch occurs.
+  RefPtr<nsDOMNavigationTiming> mTiming;
+
   nsTArray<DocumentChannelRedirect> mRedirects;
+
+  // Flags from nsDocShellLoadState::LoadFlags that we want to make available
+  // to the new docshell if we switch processes.
+  uint32_t mLoadStateLoadFlags = 0;
 
   // Corresponding redirect channel registrar Id for the final channel that
   // we want to use when redirecting the child, or doing a process switch.
   // 0 means redirection is not started.
   uint32_t mRedirectChannelId = 0;
-  // Set to true if we called Suspend on mChannel to initiate our redirect.
-  // This isn't currently set when we do a process swap, since that gets
-  // initiated in nsHttpChannel.
-  bool mSuspendedChannel = false;
+  // Set to true once we initiate the redirect to a real channel (either
+  // via a process switch or a same-process redirect, and Suspend the
+  // underlying channel.
+  bool mInitiatedRedirectToRealChannel = false;
   // Set to true if we're currently in the middle of replacing this with
   // a new channel connected a different process.
   bool mDoingProcessSwitch = false;
@@ -313,6 +352,10 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   // Set to true if any previous channel that we redirected away
   // from had a COOP mismatch.
   bool mHasCrossOriginOpenerPolicyMismatch = false;
+  // Set to true if we've received OnStopRequest, and shouldn't
+  // setup a reference from the ParentChannelListener to the replacement
+  // channel.
+  bool mIsFinished = false;
 
   typedef MozPromise<uint64_t, nsresult, true /* exclusive */>
       ContentProcessIdPromise;

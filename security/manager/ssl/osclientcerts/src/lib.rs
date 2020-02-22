@@ -25,21 +25,28 @@ mod util;
 #[cfg(target_os = "windows")]
 mod backend_windows;
 
-use manager::Manager;
+use manager::ManagerProxy;
 
 lazy_static! {
-    /// The singleton `Manager` that handles state with respect to PKCS #11. Only one thread may
-    /// use it at a time.
-    static ref MANAGER: Mutex<Manager> = {
-        env_logger::init();
-        Mutex::new(Manager::new())
-    };
+    /// The singleton `ManagerProxy` that handles state with respect to PKCS #11. Only one thread
+    /// may use it at a time, but there is no restriction on which threads may use it. However, as
+    /// OS APIs being used are not necessarily thread-safe (e.g. they may be using
+    /// thread-local-storage), the `ManagerProxy` forwards calls from any thread to a single thread
+    /// where the real `Manager` does the actual work.
+    static ref MANAGER_PROXY: Mutex<Option<ManagerProxy>> = Mutex::new(None);
 }
 
-macro_rules! try_to_get_manager {
+// Obtaining a handle on the manager proxy is a two-step process. First the mutex must be locked,
+// which (if successful), results in a mutex guard object. We must then get a mutable refence to the
+// underlying manager proxy (if set - otherwise we return an error). This can't happen all in one
+// macro without dropping a reference that needs to live long enough for this to be safe. In
+// practice, this looks like:
+//   let mut manager_guard = try_to_get_manager_guard!();
+//   let manager = manager_guard_to_manager!(manager_guard);
+macro_rules! try_to_get_manager_guard {
     () => {
-        match MANAGER.lock() {
-            Ok(manager) => manager,
+        match MANAGER_PROXY.lock() {
+            Ok(maybe_manager_proxy) => maybe_manager_proxy,
             Err(poison_error) => {
                 error!(
                     "previous thread panicked acquiring manager lock: {}",
@@ -51,18 +58,47 @@ macro_rules! try_to_get_manager {
     };
 }
 
+macro_rules! manager_guard_to_manager {
+    ($manager_guard:ident) => {
+        match $manager_guard.as_mut() {
+            Some(manager_proxy) => manager_proxy,
+            None => {
+                error!("manager expected to be set, but it is not");
+                return CKR_DEVICE_ERROR;
+            }
+        }
+    };
+}
+
 /// This gets called to initialize the module. For this implementation, this consists of
-/// instantiating the `Manager`.
+/// instantiating the `ManagerProxy`.
 extern "C" fn C_Initialize(_pInitArgs: CK_C_INITIALIZE_ARGS_PTR) -> CK_RV {
-    // Getting the manager initializes our logging, so do it first.
-    let _manager = try_to_get_manager!();
+    env_logger::init();
+    let mut manager_guard = try_to_get_manager_guard!();
+    match manager_guard.replace(ManagerProxy::new()) {
+        Some(_unexpected_previous_manager) => {
+            error!("C_Initialize: manager unexpectedly previously set");
+            return CKR_DEVICE_ERROR;
+        }
+        None => {}
+    }
     debug!("C_Initialize: CKR_OK");
     CKR_OK
 }
 
 extern "C" fn C_Finalize(_pReserved: CK_VOID_PTR) -> CK_RV {
-    debug!("C_Finalize: CKR_OK");
-    CKR_OK
+    let mut manager_guard = try_to_get_manager_guard!();
+    let manager = manager_guard_to_manager!(manager_guard);
+    match manager.stop() {
+        Ok(()) => {
+            debug!("C_Finalize: CKR_OK");
+            CKR_OK
+        }
+        Err(()) => {
+            debug!("C_Finalize: CKR_DEVICE_ERROR");
+            CKR_DEVICE_ERROR
+        }
+    }
 }
 
 // The specification mandates that these strings be padded with spaces to the appropriate length.
@@ -237,7 +273,8 @@ extern "C" fn C_SetPIN(
     CKR_FUNCTION_NOT_SUPPORTED
 }
 
-/// This gets called to create a new session. This module defers to the `Manager` to implement this.
+/// This gets called to create a new session. This module defers to the `ManagerProxy` to implement
+/// this.
 extern "C" fn C_OpenSession(
     slotID: CK_SLOT_ID,
     _flags: CK_FLAGS,
@@ -249,8 +286,15 @@ extern "C" fn C_OpenSession(
         error!("C_OpenSession: CKR_ARGUMENTS_BAD");
         return CKR_ARGUMENTS_BAD;
     }
-    let mut manager = try_to_get_manager!();
-    let session_handle = manager.open_session();
+    let mut manager_guard = try_to_get_manager_guard!();
+    let manager = manager_guard_to_manager!(manager_guard);
+    let session_handle = match manager.open_session() {
+        Ok(session_handle) => session_handle,
+        Err(()) => {
+            error!("C_OpenSession: open_session failed");
+            return CKR_DEVICE_ERROR;
+        }
+    };
     unsafe {
         *phSession = session_handle;
     }
@@ -258,9 +302,10 @@ extern "C" fn C_OpenSession(
     CKR_OK
 }
 
-/// This gets called to close a session. This is proxied to the `Manager`.
+/// This gets called to close a session. This is handled by the `ManagerProxy`.
 extern "C" fn C_CloseSession(hSession: CK_SESSION_HANDLE) -> CK_RV {
-    let mut manager = try_to_get_manager!();
+    let mut manager_guard = try_to_get_manager_guard!();
+    let manager = manager_guard_to_manager!(manager_guard);
     if manager.close_session(hSession).is_err() {
         error!("C_CloseSession: CKR_SESSION_HANDLE_INVALID");
         return CKR_SESSION_HANDLE_INVALID;
@@ -269,16 +314,24 @@ extern "C" fn C_CloseSession(hSession: CK_SESSION_HANDLE) -> CK_RV {
     CKR_OK
 }
 
-/// This gets called to close all open sessions at once. This is proxied to the `Manager`.
+/// This gets called to close all open sessions at once. This is handled by the `ManagerProxy`.
 extern "C" fn C_CloseAllSessions(slotID: CK_SLOT_ID) -> CK_RV {
     if slotID != SLOT_ID {
         error!("C_CloseAllSessions: CKR_ARGUMENTS_BAD");
         return CKR_ARGUMENTS_BAD;
     }
-    let mut manager = try_to_get_manager!();
-    manager.close_all_sessions();
-    debug!("C_CloseAllSessions: CKR_OK");
-    CKR_OK
+    let mut manager_guard = try_to_get_manager_guard!();
+    let manager = manager_guard_to_manager!(manager_guard);
+    match manager.close_all_sessions() {
+        Ok(()) => {
+            debug!("C_CloseAllSessions: CKR_OK");
+            CKR_OK
+        }
+        Err(()) => {
+            debug!("C_CloseAllSessions: close_all_sessions failed");
+            CKR_DEVICE_ERROR
+        }
+    }
 }
 
 extern "C" fn C_GetSessionInfo(_hSession: CK_SESSION_HANDLE, _pInfo: CK_SESSION_INFO_PTR) -> CK_RV {
@@ -360,8 +413,8 @@ extern "C" fn C_GetObjectSize(
 }
 
 /// This gets called to obtain the values of a number of attributes of an object identified by the
-/// given handle. This module implements this by requesting the object from the `Manager` and
-/// attempting to get the value of each attribute. If a specified attribute is not defined on the
+/// given handle. This module implements this by requesting that the `ManagerProxy` find the object
+/// and attempt to get the value of each attribute. If a specified attribute is not defined on the
 /// object, the length of that attribute is set to -1 to indicate that it is not available.
 /// This gets called twice: once to obtain the lengths of the attributes and again to get the
 /// values.
@@ -375,17 +428,30 @@ extern "C" fn C_GetAttributeValue(
         error!("C_GetAttributeValue: CKR_ARGUMENTS_BAD");
         return CKR_ARGUMENTS_BAD;
     }
-    let mut manager = try_to_get_manager!();
-    let object = match manager.get_object(hObject) {
-        Ok(object) => object,
+    let mut attr_types = Vec::with_capacity(ulCount as usize);
+    for i in 0..ulCount {
+        let attr = unsafe { &*pTemplate.offset(i as isize) };
+        attr_types.push(attr.attrType);
+    }
+    let mut manager_guard = try_to_get_manager_guard!();
+    let manager = manager_guard_to_manager!(manager_guard);
+    let values = match manager.get_attributes(hObject, attr_types) {
+        Ok(values) => values,
         Err(()) => {
             error!("C_GetAttributeValue: CKR_ARGUMENTS_BAD");
             return CKR_ARGUMENTS_BAD;
         }
     };
-    for i in 0..ulCount {
+    if values.len() != ulCount as usize {
+        error!(
+            "C_GetAttributeValue: manager.get_attributes didn't return the right number of values"
+        );
+        return CKR_DEVICE_ERROR;
+    }
+    for i in 0..ulCount as usize {
         let mut attr = unsafe { &mut *pTemplate.offset(i as isize) };
-        if let Some(attr_value) = object.get_attribute(attr.attrType) {
+        // NB: the safety of this array access depends on the length check above
+        if let Some(attr_value) = &values[i] {
             if attr.pValue.is_null() {
                 attr.ulValueLen = attr_value.len() as CK_ULONG;
             } else {
@@ -417,8 +483,8 @@ extern "C" fn C_SetAttributeValue(
 }
 
 /// This gets called to initialize a search for objects matching a given list of attributes. This
-/// module implements this by gathering the attributes and passing them to the `Manager` to start
-/// the search.
+/// module implements this by gathering the attributes and passing them to the `ManagerProxy` to
+/// start the search.
 extern "C" fn C_FindObjectsInit(
     hSession: CK_SESSION_HANDLE,
     pTemplate: CK_ATTRIBUTE_PTR,
@@ -438,8 +504,9 @@ extern "C" fn C_FindObjectsInit(
         };
         attrs.push((attr.attrType, slice.to_owned()));
     }
-    let mut manager = try_to_get_manager!();
-    match manager.start_search(hSession, &attrs) {
+    let mut manager_guard = try_to_get_manager_guard!();
+    let manager = manager_guard_to_manager!(manager_guard);
+    match manager.start_search(hSession, attrs) {
         Ok(()) => {}
         Err(()) => {
             error!("C_FindObjectsInit: CKR_ARGUMENTS_BAD");
@@ -451,8 +518,8 @@ extern "C" fn C_FindObjectsInit(
 }
 
 /// This gets called after `C_FindObjectsInit` to get the results of a search. This module
-/// implements this by looking up the search in the `Manager` and copying out the matching object
-/// handles.
+/// implements this by looking up the search in the `ManagerProxy` and copying out the matching
+/// object handles.
 extern "C" fn C_FindObjects(
     hSession: CK_SESSION_HANDLE,
     phObject: CK_OBJECT_HANDLE_PTR,
@@ -463,7 +530,8 @@ extern "C" fn C_FindObjects(
         error!("C_FindObjects: CKR_ARGUMENTS_BAD");
         return CKR_ARGUMENTS_BAD;
     }
-    let mut manager = try_to_get_manager!();
+    let mut manager_guard = try_to_get_manager_guard!();
+    let manager = manager_guard_to_manager!(manager_guard);
     let handles = match manager.search(hSession, ulMaxObjectCount as usize) {
         Ok(handles) => handles,
         Err(()) => {
@@ -491,13 +559,21 @@ extern "C" fn C_FindObjects(
 }
 
 /// This gets called after `C_FindObjectsInit` and `C_FindObjects` to finish a search. The module
-/// tells the `Manager` to clear the search.
+/// tells the `ManagerProxy` to clear the search.
 extern "C" fn C_FindObjectsFinal(hSession: CK_SESSION_HANDLE) -> CK_RV {
-    let mut manager = try_to_get_manager!();
+    let mut manager_guard = try_to_get_manager_guard!();
+    let manager = manager_guard_to_manager!(manager_guard);
     // It would be an error if there were no search for this session, but we can be permissive here.
-    manager.clear_search(hSession);
-    debug!("C_FindObjectsFinal: CKR_OK");
-    CKR_OK
+    match manager.clear_search(hSession) {
+        Ok(()) => {
+            debug!("C_FindObjectsFinal: CKR_OK");
+            CKR_OK
+        }
+        Err(()) => {
+            debug!("C_FindObjectsFinal: clear_search failed");
+            CKR_DEVICE_ERROR
+        }
+    }
 }
 
 extern "C" fn C_EncryptInit(
@@ -619,7 +695,8 @@ extern "C" fn C_DigestFinal(
     CKR_FUNCTION_NOT_SUPPORTED
 }
 
-/// This gets called to set up a sign operation. The module essentially defers to the `Manager`.
+/// This gets called to set up a sign operation. The module essentially defers to the
+/// `ManagerProxy`.
 extern "C" fn C_SignInit(
     hSession: CK_SESSION_HANDLE,
     pMechanism: CK_MECHANISM_PTR,
@@ -645,7 +722,8 @@ extern "C" fn C_SignInit(
     } else {
         None
     };
-    let mut manager = try_to_get_manager!();
+    let mut manager_guard = try_to_get_manager_guard!();
+    let manager = manager_guard_to_manager!(manager_guard);
     match manager.start_sign(hSession, hKey, mechanism_params) {
         Ok(()) => {}
         Err(()) => {
@@ -659,7 +737,7 @@ extern "C" fn C_SignInit(
 
 /// NSS calls this after `C_SignInit` (there are more ways in the PKCS #11 specification to sign
 /// data, but this is the only way supported by this module). The module essentially defers to the
-/// `Manager` and copies out the resulting signature.
+/// `ManagerProxy` and copies out the resulting signature.
 extern "C" fn C_Sign(
     hSession: CK_SESSION_HANDLE,
     pData: CK_BYTE_PTR,
@@ -673,8 +751,9 @@ extern "C" fn C_Sign(
     }
     let data = unsafe { std::slice::from_raw_parts(pData, ulDataLen as usize) };
     if pSignature.is_null() {
-        let manager = try_to_get_manager!();
-        match manager.get_signature_length(hSession, data) {
+        let mut manager_guard = try_to_get_manager_guard!();
+        let manager = manager_guard_to_manager!(manager_guard);
+        match manager.get_signature_length(hSession, data.to_vec()) {
             Ok(signature_length) => unsafe {
                 *pulSignatureLen = signature_length as CK_ULONG;
             },
@@ -684,8 +763,9 @@ extern "C" fn C_Sign(
             }
         }
     } else {
-        let mut manager = try_to_get_manager!();
-        match manager.sign(hSession, data) {
+        let mut manager_guard = try_to_get_manager_guard!();
+        let manager = manager_guard_to_manager!(manager_guard);
+        match manager.sign(hSession, data.to_vec()) {
             Ok(signature) => {
                 let signature_capacity = unsafe { *pulSignatureLen } as usize;
                 if signature_capacity < signature.len() {

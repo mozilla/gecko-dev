@@ -27,7 +27,8 @@ const std::string& HybridSdpParser::ParserName() {
 }
 
 HybridSdpParser::HybridSdpParser()
-    : mPrimary(SdpPref::Primary()),
+    : mStrictSuccess(SdpPref::StrictSuccess()),
+      mPrimary(SdpPref::Primary()),
       mSecondary(SdpPref::Secondary()),
       mFailover(SdpPref::Failover()) {
   MOZ_ASSERT(!(mSecondary && mFailover),
@@ -53,12 +54,19 @@ auto HybridSdpParser::Parse(const std::string& aText)
   Mode mode = Mode::Never;
   auto results = mPrimary->Parse(aText);
 
+  auto successful = [&](Results& aRes) -> bool {
+    // In strict mode any reported error counts as failure
+    if (mStrictSuccess) {
+      return aRes->Ok();
+    }
+    return aRes->Sdp() != nullptr;
+  };
   // Pass results on for comparison and return A if it was a success and B
   // otherwise.
   auto compare = [&](Results&& aResB) -> Results {
     SdpTelemetry::RecordParse(aResB, mode, Role::Secondary);
     ParsingResultComparer::Compare(results, aResB, aText, mode);
-    return std::move(results->Ok() ? results : aResB);
+    return std::move(successful(results) ? results : aResB);
   };
   // Run secondary parser, if there is one, and update selected results.
   mSecondary.apply([&](auto& sec) {
@@ -68,7 +76,7 @@ auto HybridSdpParser::Parse(const std::string& aText)
   // Run failover parser, if there is one, and update selected results.
   mFailover.apply([&](auto& failover) {  // Only run if primary parser failed
     mode = Mode::Failover;
-    if (!results->Ok()) {
+    if (!successful(results)) {
       results = compare(std::move(failover->Parse(aText)));
     }
   });

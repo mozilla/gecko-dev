@@ -19,8 +19,8 @@ static_prefs = { path = "../../../../modules/libpref/init/static_prefs" }
 profiler_helper = { path = "../../../../tools/profiler/rust-helper", optional = true }
 mozurl = { path = "../../../../netwerk/base/mozurl" }
 webrender_bindings = { path = "../../../../gfx/webrender_bindings", optional = true }
-cubeb-coreaudio = { path = "../../../../media/libcubeb/cubeb-coreaudio-rs", optional = true }
-cubeb-pulse = { path = "../../../../media/libcubeb/cubeb-pulse-rs", optional = true, features=["pulse-dlopen"] }
+cubeb-coreaudio = { git = "https://github.com/ChunMinChang/cubeb-coreaudio-rs", rev = "acb90e9bf36e6e035ac6bbe51efa0a8825b5b6be", optional = true }
+cubeb-pulse = { git = "https://github.com/djg/cubeb-pulse-rs", rev="8069f8f4189982e0b38fa6dc8993dd4fab41f728", optional = true, features=["pulse-dlopen"] }
 cubeb-sys = { version = "0.6", optional = true, features=["gecko-in-tree"] }
 encoding_glue = { path = "../../../../intl/encoding_glue" }
 audioipc-client = { path = "../../../../media/audioipc/client", optional = true }
@@ -39,6 +39,7 @@ bitsdownload = { path = "../../../components/bitsdownload", optional = true }
 storage = { path = "../../../../storage/rust" }
 bookmark_sync = { path = "../../../components/places/bookmark_sync", optional = true }
 shift_or_euc_c = "0.1.0"
+chardetng_c = "0.1.1"
 audio_thread_priority = "0.20.2"
 mdns_service = { path="../../../../media/mtransport/mdns_service", optional = true }
 neqo_glue = { path = "../../../../netwerk/socket/neqo_glue" }

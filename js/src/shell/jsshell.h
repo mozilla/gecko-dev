@@ -112,11 +112,15 @@ extern bool enableWasmGc;
 #endif
 extern bool enableWasmVerbose;
 extern bool enableTestWasmAwaitTier2;
+#ifdef ENABLE_WASM_BIGINT
+extern bool enableWasmBigInt;
+#endif
 extern bool enableAsyncStacks;
 extern bool enableStreams;
 extern bool enableReadableByteStreams;
 extern bool enableBYOBStreamReaders;
 extern bool enableWritableStreams;
+extern bool enableReadableStreamPipeTo;
 extern bool enableFields;
 extern bool enableAwaitFix;
 extern bool enableWeakRefs;

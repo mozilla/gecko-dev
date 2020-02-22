@@ -14,6 +14,8 @@
 <iframe id="content-iframe" src="http://example.com/chrome/devtools/shared/webconsole/test/sandboxed_iframe.html"></iframe>
 
 <script class="testbody" type="text/javascript">
+"use strict";
+
 SimpleTest.waitForExplicitFinish();
 let gState;
 
@@ -26,19 +28,19 @@ function startTest()
   removeEventListener("load", startTest);
   attachConsoleToTab([], state => {
     gState = state;
-    let tests = [checkUndefinedResult,checkAdditionResult,checkObjectResult];
+    const tests = [checkUndefinedResult,checkAdditionResult,checkObjectResult];
     runTests(tests, testEnd);
   });
 }
 
-let checkUndefinedResult = async function () {
+const checkUndefinedResult = async function () {
   info ("$_ returns undefined if nothing has evaluated yet");
-  let response = await evaluateJS("$_");
+  const response = await evaluateJS("$_");
   basicResultCheck(response, "$_", undefined);
   nextTest();
 };
 
-let checkAdditionResult = async function () {
+const checkAdditionResult = async function () {
   info ("$_ returns last value and performs basic arithmetic");
   let response = await evaluateJS("2+2");
   basicResultCheck(response, "2+2", 4);
@@ -55,7 +57,7 @@ let checkAdditionResult = async function () {
   nextTest();
 };
 
-let checkObjectResult = async function () {
+const checkObjectResult = async function () {
   info ("$_ has correct references to objects");
 
   let response = await evaluateJS("var foo = {bar:1}; foo;");
@@ -64,7 +66,7 @@ let checkObjectResult = async function () {
     class: "Object",
     actor: /[a-z]/,
   });
-  checkObject(response.result.preview.ownProperties, {
+  checkObject(response.result.getGrip().preview.ownProperties, {
     bar: {
       value: 1
     }
@@ -76,7 +78,7 @@ let checkObjectResult = async function () {
     class: "Object",
     actor: /[a-z]/,
   });
-  checkObject(response.result.preview.ownProperties, {
+  checkObject(response.result.getGrip().preview.ownProperties, {
     bar: {
       value: 1
     }
@@ -90,7 +92,7 @@ let checkObjectResult = async function () {
     class: "Object",
     actor: /[a-z]/,
   });
-  checkObject(response.result.preview.ownProperties, {
+  checkObject(response.result.getGrip().preview.ownProperties, {
     bar: {
       value: 2
     }

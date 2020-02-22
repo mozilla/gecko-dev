@@ -29,7 +29,7 @@
  * JS operation bytecodes.
  */
 enum JSOp : uint8_t {
-#define ENUMERATE_OPCODE(op, val, ...) op = val,
+#define ENUMERATE_OPCODE(op, ...) op,
   FOR_EACH_OPCODE(ENUMERATE_OPCODE)
 #undef ENUMERATE_OPCODE
 
@@ -40,28 +40,30 @@ enum JSOp : uint8_t {
  * [SMDOC] Bytecode Format flags (JOF_*)
  */
 enum {
-  JOF_BYTE = 0,         /* single bytecode, no immediates */
-  JOF_UINT8 = 1,        /* unspecified uint8_t argument */
-  JOF_UINT16 = 2,       /* unspecified uint16_t argument */
-  JOF_UINT24 = 3,       /* unspecified uint24_t argument */
-  JOF_UINT32 = 4,       /* unspecified uint32_t argument */
-  JOF_INT8 = 5,         /* int8_t literal */
-  JOF_INT32 = 6,        /* int32_t literal */
-  JOF_JUMP = 7,         /* int32_t jump offset */
-  JOF_TABLESWITCH = 8,  /* table switch */
-  JOF_ENVCOORD = 9,     /* embedded ScopeCoordinate immediate */
-  JOF_ARGC = 10,        /* uint16_t argument count */
-  JOF_QARG = 11,        /* function argument index */
-  JOF_LOCAL = 12,       /* var or block-local variable */
-  JOF_RESUMEINDEX = 13, /* yield, await, or gosub resume index */
-  JOF_ATOM = 14,        /* uint32_t constant index */
-  JOF_OBJECT = 15,      /* uint32_t object index */
-  JOF_REGEXP = 16,      /* uint32_t regexp index */
-  JOF_DOUBLE = 17,      /* inline DoubleValue */
-  JOF_SCOPE = 18,       /* uint32_t scope index */
-  JOF_ICINDEX = 19,     /* uint32_t IC index */
-  JOF_LOOPENTRY = 20,   /* JSOP_LOOPENTRY, combines JOF_ICINDEX and JOF_UINT8 */
-  JOF_BIGINT = 21,      /* uint32_t index for BigInt value */
+  JOF_BYTE = 0,          /* single bytecode, no immediates */
+  JOF_UINT8 = 1,         /* unspecified uint8_t argument */
+  JOF_UINT16 = 2,        /* unspecified uint16_t argument */
+  JOF_UINT24 = 3,        /* unspecified uint24_t argument */
+  JOF_UINT32 = 4,        /* unspecified uint32_t argument */
+  JOF_INT8 = 5,          /* int8_t literal */
+  JOF_INT32 = 6,         /* int32_t literal */
+  JOF_JUMP = 7,          /* int32_t jump offset */
+  JOF_TABLESWITCH = 8,   /* table switch */
+  JOF_ENVCOORD = 9,      /* embedded ScopeCoordinate immediate */
+  JOF_ARGC = 10,         /* uint16_t argument count */
+  JOF_QARG = 11,         /* function argument index */
+  JOF_LOCAL = 12,        /* var or block-local variable */
+  JOF_RESUMEINDEX = 13,  /* yield, await, or gosub resume index */
+  JOF_ATOM = 14,         /* uint32_t constant index */
+  JOF_OBJECT = 15,       /* uint32_t object index */
+  JOF_REGEXP = 16,       /* uint32_t regexp index */
+  JOF_DOUBLE = 17,       /* inline DoubleValue */
+  JOF_SCOPE = 18,        /* uint32_t scope index */
+  JOF_ICINDEX = 19,      /* uint32_t IC index */
+  JOF_LOOPHEAD = 20,     /* JSOP_LOOPHEAD, combines JOF_ICINDEX and JOF_UINT8 */
+  JOF_BIGINT = 21,       /* uint32_t index for BigInt value */
+  JOF_CLASS_CTOR = 22,   /* uint32_t atom index, sourceStart, sourceEnd */
+  JOF_CODE_OFFSET = 23,  /* int32_t bytecode offset */
   JOF_TYPEMASK = 0x001f, /* mask for above immediate types */
 
   JOF_NAME = 1 << 5,     /* name operation */
@@ -72,13 +74,12 @@ enum {
   JOF_PROPSET = 1 << 7,      /* property/element/name set operation */
   JOF_PROPINIT = 1 << 8,     /* property/element/name init operation */
   JOF_DETECTING = 1 << 9,    /* object detection for warning-quelling */
-  JOF_CHECKSLOPPY = 1 << 10, /* Op can only be generated in sloppy mode */
-  JOF_CHECKSTRICT = 1 << 11, /* Op can only be generated in strict mode */
-  JOF_INVOKE = 1 << 12,      /* JSOP_CALL, JSOP_FUNCALL, JSOP_FUNAPPLY,
-                                JSOP_NEW, JSOP_EVAL, JSOP_CALLITER */
+  JOF_CHECKSLOPPY = 1 << 10, /* op can only be generated in sloppy mode */
+  JOF_CHECKSTRICT = 1 << 11, /* op can only be generated in strict mode */
+  JOF_INVOKE = 1 << 12,      /* call, construct, or spreadcall instruction */
   JOF_GNAME = 1 << 13,       /* predicted global name */
   JOF_TYPESET = 1 << 14,     /* has an entry in a script's type sets */
-  JOF_IC = 1 << 15,          /* Baseline may use an IC for this op */
+  JOF_IC = 1 << 15,          /* baseline may use an IC for this op */
 };
 
 /* Shorthand for type from format. */
@@ -125,7 +126,7 @@ static const int32_t JUMP_OFFSET_MIN = INT32_MIN;
 static const int32_t JUMP_OFFSET_MAX = INT32_MAX;
 
 static MOZ_ALWAYS_INLINE uint32_t GET_UINT24(const jsbytecode* pc) {
-#if MOZ_LITTLE_ENDIAN
+#if MOZ_LITTLE_ENDIAN()
   // Do a single 32-bit load (for opcode and operand), then shift off the
   // opcode.
   uint32_t result;
@@ -139,7 +140,7 @@ static MOZ_ALWAYS_INLINE uint32_t GET_UINT24(const jsbytecode* pc) {
 static MOZ_ALWAYS_INLINE void SET_UINT24(jsbytecode* pc, uint32_t i) {
   MOZ_ASSERT(i < (1 << 24));
 
-#if MOZ_LITTLE_ENDIAN
+#if MOZ_LITTLE_ENDIAN()
   memcpy(pc + 1, &i, 3);
 #else
   pc[1] = jsbytecode(i);
@@ -187,6 +188,14 @@ static MOZ_ALWAYS_INLINE int32_t GET_JUMP_OFFSET(jsbytecode* pc) {
 }
 
 static MOZ_ALWAYS_INLINE void SET_JUMP_OFFSET(jsbytecode* pc, int32_t off) {
+  SET_INT32(pc, off);
+}
+
+static MOZ_ALWAYS_INLINE int32_t GET_CODE_OFFSET(jsbytecode* pc) {
+  return GET_INT32(pc);
+}
+
+static MOZ_ALWAYS_INLINE void SET_CODE_OFFSET(jsbytecode* pc, int32_t off) {
   SET_INT32(pc, off);
 }
 
@@ -252,22 +261,50 @@ static inline void SET_ICINDEX(jsbytecode* pc, uint32_t icIndex) {
   SET_UINT32(pc, icIndex);
 }
 
-static inline unsigned LoopEntryDepthHint(jsbytecode* pc) {
-  MOZ_ASSERT(*pc == JSOP_LOOPENTRY);
-  return GET_UINT8(pc + 4) & 0x7f;
+static inline unsigned LoopHeadDepthHint(jsbytecode* pc) {
+  MOZ_ASSERT(*pc == JSOP_LOOPHEAD);
+  return GET_UINT8(pc + 4);
 }
 
-static inline bool LoopEntryCanIonOsr(jsbytecode* pc) {
-  MOZ_ASSERT(*pc == JSOP_LOOPENTRY);
-  return GET_UINT8(pc + 4) & 0x80;
-}
-
-static inline void SetLoopEntryDepthHintAndFlags(jsbytecode* pc,
-                                                 unsigned loopDepth,
-                                                 bool canIonOsr) {
-  MOZ_ASSERT(*pc == JSOP_LOOPENTRY);
-  uint8_t data = std::min(loopDepth, unsigned(0x7f)) | (canIonOsr ? 0x80 : 0);
+static inline void SetLoopHeadDepthHint(jsbytecode* pc, unsigned loopDepth) {
+  MOZ_ASSERT(*pc == JSOP_LOOPHEAD);
+  uint8_t data = std::min(loopDepth, unsigned(UINT8_MAX));
   SET_UINT8(pc + 4, data);
+}
+
+static inline bool IsBackedgePC(jsbytecode* pc) {
+  switch (JSOp(*pc)) {
+    case JSOP_GOTO:
+    case JSOP_IFNE:
+      return GET_JUMP_OFFSET(pc) < 0;
+    default:
+      return false;
+  }
+}
+
+static inline bool IsBackedgeForLoopHead(jsbytecode* pc, jsbytecode* loopHead) {
+  MOZ_ASSERT(JSOp(*loopHead) == JSOP_LOOPHEAD);
+  return IsBackedgePC(pc) && pc + GET_JUMP_OFFSET(pc) == loopHead;
+}
+
+static inline void SetClassConstructorOperands(jsbytecode* pc,
+                                               uint32_t atomIndex,
+                                               uint32_t sourceStart,
+                                               uint32_t sourceEnd) {
+  MOZ_ASSERT(*pc == JSOP_CLASSCONSTRUCTOR || *pc == JSOP_DERIVEDCONSTRUCTOR);
+  SET_UINT32(pc, atomIndex);
+  SET_UINT32(pc + 4, sourceStart);
+  SET_UINT32(pc + 8, sourceEnd);
+}
+
+static inline void GetClassConstructorOperands(jsbytecode* pc,
+                                               uint32_t* atomIndex,
+                                               uint32_t* sourceStart,
+                                               uint32_t* sourceEnd) {
+  MOZ_ASSERT(*pc == JSOP_CLASSCONSTRUCTOR || *pc == JSOP_DERIVEDCONSTRUCTOR);
+  *atomIndex = GET_UINT32(pc);
+  *sourceStart = GET_UINT32(pc + 4);
+  *sourceEnd = GET_UINT32(pc + 8);
 }
 
 /*
@@ -350,7 +387,6 @@ static inline bool BytecodeIsJumpTarget(JSOp op) {
   switch (op) {
     case JSOP_JUMPTARGET:
     case JSOP_LOOPHEAD:
-    case JSOP_LOOPENTRY:
     case JSOP_AFTERYIELD:
       return true;
     default:

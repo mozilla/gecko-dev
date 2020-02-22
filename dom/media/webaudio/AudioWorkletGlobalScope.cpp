@@ -10,8 +10,10 @@
 #include "AudioNodeTrack.h"
 #include "AudioWorkletImpl.h"
 #include "jsapi.h"
+#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
 #include "mozilla/dom/AudioWorkletGlobalScopeBinding.h"
 #include "mozilla/dom/AudioWorkletProcessor.h"
+#include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/StructuredCloneHolder.h"
 #include "mozilla/dom/WorkletPrincipals.h"
 #include "mozilla/dom/AudioParamDescriptorBinding.h"
@@ -152,8 +154,8 @@ void AudioWorkletGlobalScope::RegisterProcessor(
    *    TypeError and abort these steps.
    */
   bool isArray = false;
-  if (!JS_IsArrayObject(aCx, descriptors, &isArray)) {
-    // I would assume isArray won't be set to true if JS_IsArrayObject
+  if (!JS::IsArrayObject(aCx, descriptors, &isArray)) {
+    // I would assume isArray won't be set to true if JS::IsArrayObject
     // failed, but just in case, force it to false
     isArray = false;
     JS_ClearPendingException(aCx);
@@ -232,7 +234,7 @@ AudioParamDescriptorMap AudioWorkletGlobalScope::DescriptorsFromJS(
 
   JS::Rooted<JSObject*> aDescriptorsArray(aCx, &aDescriptors.toObject());
   uint32_t length = 0;
-  if (!JS_GetArrayLength(aCx, aDescriptorsArray, &length)) {
+  if (!JS::GetArrayLength(aCx, aDescriptorsArray, &length)) {
     aRv.NoteJSContextException(aCx);
     return AudioParamDescriptorMap();
   }
@@ -296,6 +298,7 @@ AudioParamDescriptorMap AudioWorkletGlobalScope::DescriptorsFromJS(
 
 bool AudioWorkletGlobalScope::ConstructProcessor(
     const nsAString& aName, NotNull<StructuredCloneHolder*> aSerializedOptions,
+    UniqueMessagePortId& aPortIdentifier,
     JS::MutableHandle<JSObject*> aRetProcessor) {
   /**
    * See
@@ -307,10 +310,15 @@ bool AudioWorkletGlobalScope::ConstructProcessor(
   }
   JSContext* cx = jsapi.cx();
   ErrorResult rv;
-  /** TODO https://bugzilla.mozilla.org/show_bug.cgi?id=1565956
+  /**
    * 4. Let deserializedPort be the result of
    *    StructuredDeserialize(serializedPort, the current Realm).
    */
+  RefPtr<MessagePort> deserializedPort =
+      MessagePort::Create(this, aPortIdentifier, rv);
+  if (NS_WARN_IF(rv.MaybeSetPendingException(cx))) {
+    return false;
+  }
   /**
    * 5. Let deserializedOptions be the result of
    *    StructuredDeserialize(serializedOptions, the current Realm).
@@ -329,11 +337,14 @@ bool AudioWorkletGlobalScope::ConstructProcessor(
   // AudioWorkletNode has already checked the definition exists.
   // See also https://github.com/WebAudio/web-audio-api/issues/1854
   MOZ_ASSERT(processorCtor);
-  /** TODO https://bugzilla.mozilla.org/show_bug.cgi?id=1565956
+  /**
    * 7. Store nodeReference and deserializedPort to node reference and
    *    transferred port of this AudioWorkletGlobalScope's pending processor
    *    construction data respectively.
    */
+  // |nodeReference| is not required here because the "processorerror" event
+  // is thrown by WorkletNodeEngine::ConstructProcessor().
+  mPortForProcessor = std::move(deserializedPort);
   /**
    * 8. Construct a callback function from processorCtor with the argument
    *    of deserializedOptions.
@@ -344,6 +355,8 @@ bool AudioWorkletGlobalScope::ConstructProcessor(
   RefPtr<AudioWorkletProcessor> processor = processorCtor->Construct(
       options, rv, "AudioWorkletProcessor construction",
       CallbackFunction::eReportExceptions);
+  // https://github.com/WebAudio/web-audio-api/issues/2096
+  mPortForProcessor = nullptr;
   if (rv.Failed()) {
     rv.SuppressException();  // already reported
     return false;
@@ -355,6 +368,10 @@ bool AudioWorkletGlobalScope::ConstructProcessor(
   MOZ_ASSERT(processorVal.isObject());
   aRetProcessor.set(&processorVal.toObject());
   return true;
+}
+
+RefPtr<MessagePort> AudioWorkletGlobalScope::TakePortForProcessorCtor() {
+  return std::move(mPortForProcessor);
 }
 
 }  // namespace dom

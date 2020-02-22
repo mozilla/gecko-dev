@@ -63,7 +63,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "nsNetUtil.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsProxyRelease.h"
 #include "mozilla/RefPtr.h"
 #include "nsThreadUtils.h"
@@ -1308,6 +1307,18 @@ bool BackgroundParentImpl::DeallocPMediaTransportParent(
   delete aActor;
 #endif
   return true;
+}
+
+PParentToChildStreamParent*
+BackgroundParentImpl::SendPParentToChildStreamConstructor(
+    PParentToChildStreamParent* aActor) {
+  return PBackgroundParent::SendPParentToChildStreamConstructor(aActor);
+}
+
+PFileDescriptorSetParent*
+BackgroundParentImpl::SendPFileDescriptorSetConstructor(
+    const FileDescriptor& aFD) {
+  return PBackgroundParent::SendPFileDescriptorSetConstructor(aFD);
 }
 
 }  // namespace ipc

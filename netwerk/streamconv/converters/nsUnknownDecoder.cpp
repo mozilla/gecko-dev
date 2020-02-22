@@ -8,7 +8,6 @@
 #include "nsIInputStream.h"
 #include "nsIOutputStream.h"
 #include "nsMimeTypes.h"
-#include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 
 #include "nsCRT.h"
@@ -142,6 +141,12 @@ nsUnknownDecoder::AsyncConvertData(const char* aFromType, const char* aToType,
   MutexAutoLock lock(mMutex);
   mNextListener = aListener;
   return (aListener) ? NS_OK : NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsUnknownDecoder::GetConvertedType(const nsACString& aFromType,
+                                   nsACString& aToType) {
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 // ----

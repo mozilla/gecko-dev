@@ -175,6 +175,8 @@ impl Context {
     ///
     /// The machine code is not relocated. Instead, any relocations are emitted into `relocs`.
     ///
+    /// # Safety
+    ///
     /// This function is unsafe since it does not perform bounds checking on the memory buffer,
     /// and it can't guarantee that the `mem` pointer is valid.
     ///
@@ -191,6 +193,16 @@ impl Context {
         let mut sink = MemoryCodeSink::new(mem, relocs, traps, stackmaps);
         isa.emit_function_to_memory(&self.func, &mut sink);
         sink.info
+    }
+
+    /// Emit unwind information.
+    ///
+    /// Requires that the function layout be calculated (see `relax_branches`).
+    ///
+    /// Only some calling conventions (e.g. Windows fastcall) will have unwind information.
+    /// This is a no-op if the function has no unwind information.
+    pub fn emit_unwind_info(&self, isa: &dyn TargetIsa, mem: &mut Vec<u8>) {
+        isa.emit_unwind_info(&self.func, mem);
     }
 
     /// Run the verifier on the function.

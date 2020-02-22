@@ -66,9 +66,7 @@ class BrowserBridgeParent : public PBrowserBridgeParent {
  protected:
   friend class PBrowserBridgeParent;
 
-  mozilla::ipc::IPCResult RecvShow(const ScreenIntSize& aSize,
-                                   const bool& aParentIsActive,
-                                   const nsSizeMode& aSizeMode);
+  mozilla::ipc::IPCResult RecvShow(const OwnerShowInfo&);
   mozilla::ipc::IPCResult RecvLoadURL(const nsCString& aUrl);
   mozilla::ipc::IPCResult RecvResumeLoad(uint64_t aPendingSwitchID);
   mozilla::ipc::IPCResult RecvUpdateDimensions(
@@ -92,8 +90,10 @@ class BrowserBridgeParent : public PBrowserBridgeParent {
   mozilla::ipc::IPCResult RecvSetIsUnderHiddenEmbedderElement(
       const bool& aIsUnderHiddenEmbedderElement);
 
+#ifdef ACCESSIBILITY
   mozilla::ipc::IPCResult RecvSetEmbedderAccessible(PDocAccessibleParent* aDoc,
                                                     uint64_t aID);
+#endif
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
@@ -101,10 +101,10 @@ class BrowserBridgeParent : public PBrowserBridgeParent {
   ~BrowserBridgeParent();
 
   RefPtr<BrowserParent> mBrowserParent;
-#if defined(ACCESSIBILITY)
+#ifdef ACCESSIBILITY
   RefPtr<a11y::DocAccessibleParent> mEmbedderAccessibleDoc;
   uint64_t mEmbedderAccessibleID = 0;
-#endif  // defined(ACCESSIBILITY)
+#endif  // ACCESSIBILITY
 };
 
 }  // namespace dom

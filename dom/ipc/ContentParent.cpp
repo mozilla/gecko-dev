@@ -14,19 +14,15 @@
 #include "BrowserParent.h"
 #include "mozilla/dom/MediaControlService.h"
 
-#if defined(ANDROID) || defined(LINUX)
-#  include <sys/time.h>
-#  include <sys/resource.h>
-#endif
-
 #include "chrome/common/process_watcher.h"
 
-#include "mozilla/a11y/PDocAccessible.h"
+#ifdef ACCESSIBILITY
+#  include "mozilla/a11y/PDocAccessible.h"
+#endif
 #include "GeckoProfiler.h"
 #include "GMPServiceParent.h"
 #include "HandlerServiceParent.h"
 #include "IHistory.h"
-#include "imgIContainer.h"
 #if defined(XP_WIN) && defined(ACCESSIBILITY)
 #  include "mozilla/a11y/AccessibleWrap.h"
 #  include "mozilla/a11y/Compatibility.h"
@@ -47,6 +43,7 @@
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/ClientManager.h"
 #include "mozilla/dom/ClientOpenWindowOpActors.h"
+#include "mozilla/dom/ContentMediaController.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/DataTransfer.h"
 #include "mozilla/dom/Element.h"
@@ -154,6 +151,7 @@
 #include "Geolocation.h"
 #include "nsIDragService.h"
 #include "mozilla/dom/WakeLock.h"
+#include "nsICrashService.h"
 #include "nsIExternalProtocolService.h"
 #include "nsIGfxInfo.h"
 #include "nsIIdleService.h"
@@ -162,11 +160,9 @@
 #include "nsIMemoryInfoDumper.h"
 #include "nsIMemoryReporter.h"
 #include "nsIMozBrowserFrame.h"
-#include "nsIMutable.h"
 #include "nsINetworkLinkService.h"
 #include "nsIObserverService.h"
 #include "nsIParentChannel.h"
-#include "nsIRemoteWindowContext.h"
 #include "nsIScriptError.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsISearchService.h"
@@ -175,14 +171,12 @@
 #include "nsISound.h"
 #include "mozilla/mozSpellChecker.h"
 #include "nsIStringBundle.h"
-#include "nsISupportsPrimitives.h"
 #include "nsITimer.h"
 #include "nsIURIFixup.h"
 #include "nsIURL.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsIAppWindow.h"
 #include "nsIDOMChromeWindow.h"
-#include "nsIWindowWatcher.h"
 #include "nsPIWindowWatcher.h"
 #include "nsThread.h"
 #include "nsWindowWatcher.h"
@@ -222,19 +216,20 @@
 #include "mozilla/psm/PSMContentListener.h"
 #include "nsPluginHost.h"
 #include "nsPluginTags.h"
-#include "nsIBlocklistService.h"
 #include "nsITrackingDBService.h"
 #include "mozilla/GlobalStyleSheetCache.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
 #include "nsICaptivePortalService.h"
-#include "nsIObjectLoadingContent.h"
 #include "nsIBidiKeyboard.h"
 #include "MMPrinter.h"
 #include "nsStreamUtils.h"
 #include "nsIAsyncInputStream.h"
 #include "xpcpublic.h"
 #include "nsHyphenationManager.h"
+#include "nsICertOverrideService.h"
+#include "nsIX509Cert.h"
+#include "nsSerializationHelper.h"
 
 #include "mozilla/Sprintf.h"
 
@@ -291,6 +286,7 @@
 #ifdef XP_WIN
 #  include "mozilla/audio/AudioNotificationSender.h"
 #  include "mozilla/widget/AudioSession.h"
+#  include "mozilla/WinDllServices.h"
 #endif
 
 #ifdef ACCESSIBILITY
@@ -825,90 +821,195 @@ already_AddRefed<ContentParent> ContentParent::MinTabSelect(
 }
 
 /*static*/
+Maybe<ContentParent::RecordReplayState> ContentParent::GetRecordReplayState(
+    Element* aFrameElement, nsAString& aRecordingFile) {
+  if (!aFrameElement) {
+    return Some(eNotRecordingOrReplaying);
+  }
+  aFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::ReplayExecution,
+                         aRecordingFile);
+  if (!aRecordingFile.IsEmpty()) {
+    return Some(eReplaying);
+  }
+  aFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::RecordExecution,
+                         aRecordingFile);
+  if (aRecordingFile.IsEmpty() &&
+      recordreplay::parent::SaveAllRecordingsDirectory()) {
+    aRecordingFile.AssignLiteral("*");
+  }
+  if (!aRecordingFile.IsEmpty()) {
+    if (aRecordingFile.EqualsLiteral("*") &&
+        !CreateTemporaryRecordingFile(aRecordingFile)) {
+      return Nothing();
+    }
+    return Some(eRecording);
+  }
+  return Some(eNotRecordingOrReplaying);
+}
+
+/*static*/
+already_AddRefed<ContentParent> ContentParent::GetUsedBrowserProcess(
+    ContentParent* aOpener, const nsAString& aRemoteType,
+    nsTArray<ContentParent*>& aContentParents, uint32_t aMaxContentParents,
+    bool aPreferUsed) {
+  uint32_t numberOfParents = aContentParents.Length();
+  nsTArray<RefPtr<nsIContentProcessInfo>> infos(numberOfParents);
+  for (auto* cp : aContentParents) {
+    infos.AppendElement(cp->mScriptableHelper);
+  }
+
+  if (aPreferUsed && numberOfParents) {
+    // For the preloaded browser we don't want to create a new process but
+    // reuse an existing one.
+    aMaxContentParents = numberOfParents;
+  }
+
+  nsCOMPtr<nsIContentProcessProvider> cpp =
+      do_GetService("@mozilla.org/ipc/processselector;1");
+  nsIContentProcessInfo* openerInfo =
+      aOpener ? aOpener->mScriptableHelper.get() : nullptr;
+  int32_t index;
+  if (cpp && NS_SUCCEEDED(cpp->ProvideProcess(aRemoteType, openerInfo, infos,
+                                              aMaxContentParents, &index))) {
+    // If the provider returned an existing ContentParent, use that one.
+    if (0 <= index && static_cast<uint32_t>(index) <= aMaxContentParents) {
+      RefPtr<ContentParent> retval = aContentParents[index];
+      return retval.forget();
+    }
+  } else {
+    // If there was a problem with the JS chooser, fall back to a random
+    // selection.
+    NS_WARNING("nsIContentProcessProvider failed to return a process");
+    RefPtr<ContentParent> random;
+    if (aContentParents.Length() >= aMaxContentParents &&
+        (random = MinTabSelect(aContentParents, aOpener, aMaxContentParents))) {
+      return random.forget();
+    }
+  }
+
+  // Try to take the preallocated process only for the default process type.
+  // The preallocated process manager might not had the chance yet to release
+  // the process after a very recent ShutDownProcess, let's make sure we don't
+  // try to reuse a process that is being shut down.
+  RefPtr<ContentParent> p;
+  if (aRemoteType.EqualsLiteral(DEFAULT_REMOTE_TYPE) &&
+      (p = PreallocatedProcessManager::Take()) && !p->mShutdownPending) {
+    // For pre-allocated process we have not set the opener yet.
+    p->mOpener = aOpener;
+    aContentParents.AppendElement(p);
+    p->mActivateTS = TimeStamp::Now();
+    return p.forget();
+  }
+
+  return nullptr;
+}
+
+/*static*/
+RefPtr<ContentParent::LaunchPromise>
+ContentParent::GetNewOrUsedBrowserProcessAsync(Element* aFrameElement,
+                                               const nsAString& aRemoteType,
+                                               ProcessPriority aPriority,
+                                               ContentParent* aOpener,
+                                               bool aPreferUsed) {
+  // Figure out if this process will be recording or replaying, and which file
+  // to use for the recording.
+  nsAutoString recordingFile;
+  Maybe<RecordReplayState> maybeRecordReplayState =
+      GetRecordReplayState(aFrameElement, recordingFile);
+  if (maybeRecordReplayState.isNothing()) {
+    // Error, cannot fulfill this record/replay request.
+    return nullptr;
+  }
+  RecordReplayState recordReplayState = maybeRecordReplayState.value();
+
+  nsTArray<ContentParent*>& contentParents = GetOrCreatePool(aRemoteType);
+  uint32_t maxContentParents = GetMaxProcessCount(aRemoteType);
+  if (recordReplayState ==
+          eNotRecordingOrReplaying  // Fall through and always create a new
+                                    // process when recording or replaying.
+      && aRemoteType.EqualsLiteral(
+             LARGE_ALLOCATION_REMOTE_TYPE)  // We never want to re-use
+                                            // Large-Allocation processes.
+      && contentParents.Length() >= maxContentParents) {
+    return GetNewOrUsedBrowserProcessAsync(
+        aFrameElement, NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE), aPriority,
+        aOpener);
+  }
+  {
+    RefPtr<ContentParent> existing = GetUsedBrowserProcess(
+        aOpener, aRemoteType, contentParents, maxContentParents, aPreferUsed);
+    if (existing != nullptr) {
+      return LaunchPromise::CreateAndResolve(existing, __func__);
+    }
+  }
+
+  // Create a new process from scratch.
+  RefPtr<ContentParent> p =
+      new ContentParent(aOpener, aRemoteType, recordReplayState, recordingFile);
+
+  RefPtr<LaunchPromise> launchPromise = p->LaunchSubprocessAsync(aPriority);
+  MOZ_ASSERT(launchPromise);
+
+  return launchPromise->Then(
+      GetCurrentThreadSerialEventTarget(), __func__,
+      // on resolve
+      [&p, &recordReplayState, &aRemoteType,
+       launchPromise =
+           std::move(launchPromise)](const RefPtr<ContentParent>& subProcess) {
+        // Until the new process is ready let's not allow to start up any
+        // preallocated processes.
+        PreallocatedProcessManager::AddBlocker(p);
+
+        if (recordReplayState == eNotRecordingOrReplaying) {
+          // We cannot reuse `contentParents` as it may have been
+          // overwritten or otherwise altered by another process launch.
+          nsTArray<ContentParent*>& contentParents =
+              GetOrCreatePool(aRemoteType);
+          contentParents.AppendElement(p);
+        }
+
+        p->mActivateTS = TimeStamp::Now();
+        return launchPromise;
+      },
+      [launchPromise = std::move(launchPromise)]() { return launchPromise; }
+      // on reject, propagate LaunchError
+  );
+}
+
+/*static*/
 already_AddRefed<ContentParent> ContentParent::GetNewOrUsedBrowserProcess(
     Element* aFrameElement, const nsAString& aRemoteType,
     ProcessPriority aPriority, ContentParent* aOpener, bool aPreferUsed) {
   // Figure out if this process will be recording or replaying, and which file
   // to use for the recording.
-  RecordReplayState recordReplayState = eNotRecordingOrReplaying;
   nsAutoString recordingFile;
-  if (aFrameElement) {
-    aFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::ReplayExecution,
-                           recordingFile);
-    if (!recordingFile.IsEmpty()) {
-      recordReplayState = eReplaying;
-    } else {
-      aFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::RecordExecution,
-                             recordingFile);
-      if (recordingFile.IsEmpty() &&
-          recordreplay::parent::SaveAllRecordingsDirectory()) {
-        recordingFile.AssignLiteral("*");
-      }
-      if (!recordingFile.IsEmpty()) {
-        recordReplayState = eRecording;
-      }
-    }
+  Maybe<RecordReplayState> maybeRecordReplayState =
+      GetRecordReplayState(aFrameElement, recordingFile);
+  if (maybeRecordReplayState.isNothing()) {
+    // Error, cannot fulfill this record/replay request.
+    return nullptr;
   }
+  RecordReplayState recordReplayState = maybeRecordReplayState.value();
 
   nsTArray<ContentParent*>& contentParents = GetOrCreatePool(aRemoteType);
   uint32_t maxContentParents = GetMaxProcessCount(aRemoteType);
-  if (recordReplayState != eNotRecordingOrReplaying) {
-    // Fall through and always create a new process when recording or replaying.
-  } else if (aRemoteType.EqualsLiteral(LARGE_ALLOCATION_REMOTE_TYPE)) {
-    // We never want to re-use Large-Allocation processes.
-    if (contentParents.Length() >= maxContentParents) {
-      return GetNewOrUsedBrowserProcess(aFrameElement,
-                                        NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE),
-                                        aPriority, aOpener);
-    }
-  } else {
-    uint32_t numberOfParents = contentParents.Length();
-    nsTArray<RefPtr<nsIContentProcessInfo>> infos(numberOfParents);
-    for (auto* cp : contentParents) {
-      infos.AppendElement(cp->mScriptableHelper);
-    }
+  if (recordReplayState ==
+          eNotRecordingOrReplaying  // Fall through and always create a new
+                                    // process when recording or replaying.
+      && aRemoteType.EqualsLiteral(
+             LARGE_ALLOCATION_REMOTE_TYPE)  // We never want to re-use
+                                            // Large-Allocation processes.
+      && contentParents.Length() >= maxContentParents) {
+    return GetNewOrUsedBrowserProcess(aFrameElement,
+                                      NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE),
+                                      aPriority, aOpener);
+  }
 
-    if (aPreferUsed && numberOfParents) {
-      // For the preloaded browser we don't want to create a new process but
-      // reuse an existing one.
-      maxContentParents = numberOfParents;
-    }
-
-    nsCOMPtr<nsIContentProcessProvider> cpp =
-        do_GetService("@mozilla.org/ipc/processselector;1");
-    nsIContentProcessInfo* openerInfo =
-        aOpener ? aOpener->mScriptableHelper.get() : nullptr;
-    int32_t index;
-    if (cpp && NS_SUCCEEDED(cpp->ProvideProcess(aRemoteType, openerInfo, infos,
-                                                maxContentParents, &index))) {
-      // If the provider returned an existing ContentParent, use that one.
-      if (0 <= index && static_cast<uint32_t>(index) <= maxContentParents) {
-        RefPtr<ContentParent> retval = contentParents[index];
-        return retval.forget();
-      }
-    } else {
-      // If there was a problem with the JS chooser, fall back to a random
-      // selection.
-      NS_WARNING("nsIContentProcessProvider failed to return a process");
-      RefPtr<ContentParent> random;
-      if (contentParents.Length() >= maxContentParents &&
-          (random = MinTabSelect(contentParents, aOpener, maxContentParents))) {
-        return random.forget();
-      }
-    }
-
-    // Try to take the preallocated process only for the default process type.
-    // The preallocated process manager might not had the chance yet to release
-    // the process after a very recent ShutDownProcess, let's make sure we don't
-    // try to reuse a process that is being shut down.
-    RefPtr<ContentParent> p;
-    if (aRemoteType.EqualsLiteral(DEFAULT_REMOTE_TYPE) &&
-        (p = PreallocatedProcessManager::Take()) && !p->mShutdownPending) {
-      // For pre-allocated process we have not set the opener yet.
-      p->mOpener = aOpener;
-      contentParents.AppendElement(p);
-      p->mActivateTS = TimeStamp::Now();
-      return p.forget();
+  if (recordReplayState == eNotRecordingOrReplaying) {
+    RefPtr<ContentParent> existing = GetUsedBrowserProcess(
+        aOpener, aRemoteType, contentParents, maxContentParents, aPreferUsed);
+    if (existing != nullptr) {
+      return existing.forget();
     }
   }
 
@@ -1350,27 +1451,11 @@ void ContentParent::Init() {
   mScriptableHelper = new ScriptableCPInfo(this);
 }
 
-namespace {
-
-class RemoteWindowContext final : public nsIRemoteWindowContext,
-                                  public nsIInterfaceRequestor {
- public:
-  explicit RemoteWindowContext(BrowserParent* aBrowserParent)
-      : mBrowserParent(aBrowserParent) {}
-
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIINTERFACEREQUESTOR
-  NS_DECL_NSIREMOTEWINDOWCONTEXT
-
- private:
-  ~RemoteWindowContext();
-  RefPtr<BrowserParent> mBrowserParent;
-};
-
 NS_IMPL_ISUPPORTS(RemoteWindowContext, nsIRemoteWindowContext,
                   nsIInterfaceRequestor)
 
-RemoteWindowContext::~RemoteWindowContext() {}
+RemoteWindowContext::RemoteWindowContext(BrowserParent* aBrowserParent)
+    : mBrowserParent(aBrowserParent) {}
 
 NS_IMETHODIMP
 RemoteWindowContext::GetInterface(const nsIID& aIID, void** aSink) {
@@ -1389,8 +1474,6 @@ RemoteWindowContext::GetUsePrivateBrowsing(bool* aUsePrivateBrowsing) {
   *aUsePrivateBrowsing = loadContext && loadContext->UsePrivateBrowsing();
   return NS_OK;
 }
-
-}  // namespace
 
 void ContentParent::MaybeAsyncSendShutDownMessage() {
   MOZ_ASSERT(NS_IsMainThread());
@@ -1562,32 +1645,6 @@ void ContentParent::OnChannelConnected(int32_t pid) {
   MOZ_ASSERT(NS_IsMainThread());
 
   SetOtherProcessId(pid);
-
-#if defined(ANDROID) || defined(LINUX)
-  // Check nice preference
-  int32_t nice = Preferences::GetInt("dom.ipc.content.nice", 0);
-
-  // Environment variable overrides preference
-  char* relativeNicenessStr = getenv("MOZ_CHILD_PROCESS_RELATIVE_NICENESS");
-  if (relativeNicenessStr) {
-    nice = atoi(relativeNicenessStr);
-  }
-
-  /* make the GUI thread have higher priority on single-cpu devices */
-  nsCOMPtr<nsIPropertyBag2> infoService =
-      do_GetService(NS_SYSTEMINFO_CONTRACTID);
-  if (infoService) {
-    int32_t cpus;
-    nsresult rv =
-        infoService->GetPropertyAsInt32(NS_LITERAL_STRING("cpucount"), &cpus);
-    if (NS_FAILED(rv)) {
-      cpus = 1;
-    }
-    if (nice != 0 && cpus == 1) {
-      setpriority(PRIO_PROCESS, pid, getpriority(PRIO_PROCESS, pid) + nice);
-    }
-  }
-#endif
 }
 
 void ContentParent::ProcessingError(Result aCode, const char* aReason) {
@@ -1665,6 +1722,7 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
 
       props->SetPropertyAsBool(NS_LITERAL_STRING("abnormal"), true);
 
+      nsAutoString dumpID;
       // There's a window in which child processes can crash
       // after IPC is established, but before a crash reporter
       // is created.
@@ -1675,14 +1733,19 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
           mCrashReporter->GenerateCrashReport(OtherPid());
         }
 
-        nsAutoString dumpID;
         if (mCrashReporter->HasMinidump()) {
           dumpID = mCrashReporter->MinidumpID();
         }
-        props->SetPropertyAsAString(NS_LITERAL_STRING("dumpID"), dumpID);
       } else {
-        CrashReporter::FinalizeOrphanedMinidump(OtherPid(),
-                                                GeckoProcessType_Content);
+        CrashReporter::FinalizeOrphanedMinidump(
+            OtherPid(), GeckoProcessType_Content, &dumpID);
+        CrashReporterHost::RecordCrash(GeckoProcessType_Content,
+                                       nsICrashService::CRASH_TYPE_CRASH,
+                                       dumpID);
+      }
+
+      if (!dumpID.IsEmpty()) {
+        props->SetPropertyAsAString(NS_LITERAL_STRING("dumpID"), dumpID);
       }
     }
     nsAutoString cpId;
@@ -2439,7 +2502,7 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
 
   spellChecker->GetDictionaryList(&xpcomInit.dictionaries());
 
-  LocaleService::GetInstance()->GetAppLocalesAsLangTags(xpcomInit.appLocales());
+  LocaleService::GetInstance()->GetAppLocalesAsBCP47(xpcomInit.appLocales());
   LocaleService::GetInstance()->GetRequestedLocales(
       xpcomInit.requestedLocales());
 
@@ -4669,8 +4732,8 @@ PContentPermissionRequestParent*
 ContentParent::AllocPContentPermissionRequestParent(
     const nsTArray<PermissionRequest>& aRequests,
     const IPC::Principal& aPrincipal, const IPC::Principal& aTopLevelPrincipal,
-    const bool& aIsHandlingUserInput, const bool& aDocumentHasUserInput,
-    const DOMTimeStamp& aPageLoadTimestamp, const TabId& aTabId) {
+    const bool& aIsHandlingUserInput,
+    const bool& aMaybeUnsafePermissionDelegate, const TabId& aTabId) {
   ContentProcessManager* cpm = ContentProcessManager::GetSingleton();
   RefPtr<BrowserParent> tp =
       cpm->GetTopLevelBrowserParentByProcessAndTabId(this->ChildID(), aTabId);
@@ -4678,9 +4741,14 @@ ContentParent::AllocPContentPermissionRequestParent(
     return nullptr;
   }
 
+  nsIPrincipal* topPrincipal = aTopLevelPrincipal;
+  if (!topPrincipal) {
+    nsCOMPtr<nsIPrincipal> principal = tp->GetContentPrincipal();
+    topPrincipal = principal;
+  }
   return nsContentPermissionUtils::CreateContentPermissionRequestParent(
-      aRequests, tp->GetOwnerElement(), aPrincipal, aTopLevelPrincipal,
-      aIsHandlingUserInput, aDocumentHasUserInput, aPageLoadTimestamp, aTabId);
+      aRequests, tp->GetOwnerElement(), aPrincipal, topPrincipal,
+      aIsHandlingUserInput, aMaybeUnsafePermissionDelegate, aTabId);
 }
 
 bool ContentParent::DeallocPContentPermissionRequestParent(
@@ -5329,6 +5397,7 @@ mozilla::ipc::IPCResult ContentParent::RecvA11yHandlerControl(
 bool ContentParent::HandleWindowsMessages(const Message& aMsg) const {
   MOZ_ASSERT(aMsg.is_sync());
 
+#ifdef ACCESSIBILITY
   // a11y messages can be triggered by windows messages, which means if we
   // allow handling windows messages while we wait for the response to a sync
   // a11y message we can reenter the ipc message sending code.
@@ -5336,6 +5405,7 @@ bool ContentParent::HandleWindowsMessages(const Message& aMsg) const {
       a11y::PDocAccessible::PDocAccessibleEnd > aMsg.type()) {
     return false;
   }
+#endif
 
   return true;
 }
@@ -5450,6 +5520,19 @@ nsresult ContentParent::AboutToLoadHttpFtpDocumentForChild(
   aChannel->GetLoadFlags(&newLoadFlags);
   if (newLoadFlags & nsIRequest::LOAD_DOCUMENT_NEEDS_COOKIE) {
     UpdateCookieStatus(aChannel);
+  }
+
+  RefPtr<nsILoadInfo> loadInfo;
+  rv = aChannel->GetLoadInfo(getter_AddRefs(loadInfo));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  RefPtr<BrowsingContext> browsingContext;
+  rv = loadInfo->GetBrowsingContext(getter_AddRefs(browsingContext));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (browsingContext && !browsingContext->IsDiscarded()) {
+    browsingContext->GetSessionStorageManager()
+        ->SendSessionStorageDataToContentProcess(this, principal);
   }
 
   if (!NextGenLocalStorageEnabled()) {
@@ -5803,6 +5886,31 @@ mozilla::ipc::IPCResult ContentParent::RecvBHRThreadHang(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult ContentParent::RecvAddCertException(
+    const nsACString& aSerializedCert, uint32_t aFlags,
+    const nsACString& aHostName, int32_t aPort, bool aIsTemporary,
+    AddCertExceptionResolver&& aResolver) {
+  nsCOMPtr<nsISupports> certObj;
+  nsresult rv = NS_DeserializeObject(aSerializedCert, getter_AddRefs(certObj));
+  if (NS_SUCCEEDED(rv)) {
+    nsCOMPtr<nsIX509Cert> cert = do_QueryInterface(certObj);
+    if (!cert) {
+      rv = NS_ERROR_INVALID_ARG;
+    } else {
+      nsCOMPtr<nsICertOverrideService> overrideService =
+          do_GetService(NS_CERTOVERRIDE_CONTRACTID);
+      if (!overrideService) {
+        rv = NS_ERROR_FAILURE;
+      } else {
+        rv = overrideService->RememberValidityOverride(aHostName, aPort, cert,
+                                                       aFlags, aIsTemporary);
+      }
+    }
+  }
+  aResolver(rv);
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult ContentParent::RecvAutomaticStorageAccessCanBeGranted(
     const Principal& aPrincipal,
     AutomaticStorageAccessCanBeGrantedResolver&& aResolver) {
@@ -5813,13 +5921,11 @@ mozilla::ipc::IPCResult ContentParent::RecvAutomaticStorageAccessCanBeGranted(
 mozilla::ipc::IPCResult
 ContentParent::RecvFirstPartyStorageAccessGrantedForOrigin(
     const Principal& aParentPrincipal, const Principal& aTrackingPrincipal,
-    const nsCString& aTrackingOrigin, const nsCString& aGrantedOrigin,
-    const int& aAllowMode,
+    const nsCString& aTrackingOrigin, const int& aAllowMode,
     FirstPartyStorageAccessGrantedForOriginResolver&& aResolver) {
   AntiTrackingCommon::
       SaveFirstPartyStorageAccessGrantedForOriginOnParentProcess(
-          aParentPrincipal, aTrackingPrincipal, aTrackingOrigin, aGrantedOrigin,
-          aAllowMode)
+          aParentPrincipal, aTrackingPrincipal, aTrackingOrigin, aAllowMode)
           ->Then(GetCurrentThreadSerialEventTarget(), __func__,
                  [aResolver = std::move(aResolver)](
                      AntiTrackingCommon::FirstPartyStorageAccessGrantPromise::
@@ -5837,18 +5943,24 @@ mozilla::ipc::IPCResult ContentParent::RecvStoreUserInteractionAsPermission(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentParent::RecvNotifyMediaActiveChanged(
-    BrowsingContext* aContext, bool aActive) {
+mozilla::ipc::IPCResult ContentParent::RecvNotifyMediaStateChanged(
+    BrowsingContext* aContext, ControlledMediaState aState) {
+  if (!aContext || aContext->IsDiscarded()) {
+    return IPC_OK();
+  }
   RefPtr<MediaControlService> service = MediaControlService::GetService();
   MOZ_ASSERT(!aContext->GetParent(), "Should be top level browsing context!");
   RefPtr<MediaController> controller =
       service->GetOrCreateControllerById(aContext->Id());
-  controller->NotifyMediaActiveChanged(aActive);
+  controller->NotifyMediaStateChanged(aState);
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult ContentParent::RecvNotifyMediaAudibleChanged(
     BrowsingContext* aContext, bool aAudible) {
+  if (!aContext || aContext->IsDiscarded()) {
+    return IPC_OK();
+  }
   RefPtr<MediaControlService> service = MediaControlService::GetService();
   MOZ_ASSERT(!aContext->GetParent(), "Should be top level browsing context!");
   RefPtr<MediaController> controller =
@@ -5856,6 +5968,33 @@ mozilla::ipc::IPCResult ContentParent::RecvNotifyMediaAudibleChanged(
   if (controller) {
     controller->NotifyMediaAudibleChanged(aAudible);
   }
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult ContentParent::RecvGetModulesTrust(
+    ModulePaths&& aModPaths, bool aRunAtNormalPriority,
+    GetModulesTrustResolver&& aResolver) {
+#if defined(XP_WIN)
+  RefPtr<DllServices> dllSvc(DllServices::Get());
+  dllSvc->GetModulesTrust(std::move(aModPaths), aRunAtNormalPriority)
+      ->Then(
+          GetMainThreadSerialEventTarget(), __func__,
+          [aResolver](ModulesMapResult&& aResult) {
+            aResolver(Some(ModulesMapResult(std::move(aResult))));
+          },
+          [aResolver](nsresult aRv) { aResolver(Nothing()); });
+  return IPC_OK();
+#else
+  return IPC_FAIL(this, "Unsupported on this platform");
+#endif  // defined(XP_WIN)
+}
+
+mozilla::ipc::IPCResult ContentParent::RecvSessionStorageData(
+    BrowsingContext* const aTop, const nsACString& aOriginAttrs,
+    const nsACString& aOriginKey, const nsTArray<KeyValuePair>& aDefaultData,
+    const nsTArray<KeyValuePair>& aSessionData) {
+  aTop->GetSessionStorageManager()->LoadSessionStorageData(
+      this, aOriginAttrs, aOriginKey, aDefaultData, aSessionData);
   return IPC_OK();
 }
 
@@ -6163,6 +6302,18 @@ mozilla::ipc::IPCResult ContentParent::RecvCommitBrowsingContextTransaction(
 
 TimeDuration ContentParent::TimeSinceLaunch() {
   return TimeStamp::Now() - mLaunchTS;
+}
+
+PParentToChildStreamParent* ContentParent::SendPParentToChildStreamConstructor(
+    PParentToChildStreamParent* aActor) {
+  MOZ_ASSERT(NS_IsMainThread());
+  return PContentParent::SendPParentToChildStreamConstructor(aActor);
+}
+
+PFileDescriptorSetParent* ContentParent::SendPFileDescriptorSetConstructor(
+    const FileDescriptor& aFD) {
+  MOZ_ASSERT(NS_IsMainThread());
+  return PContentParent::SendPFileDescriptorSetConstructor(aFD);
 }
 
 }  // namespace dom

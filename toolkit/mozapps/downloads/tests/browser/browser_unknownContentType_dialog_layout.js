@@ -8,7 +8,7 @@
  * This tests that both layouts have correct collapsed elements.
  */
 
-const UCT_URI = "chrome://mozapps/content/downloads/unknownContentType.xul";
+const UCT_URI = "chrome://mozapps/content/downloads/unknownContentType.xhtml";
 
 let tests = [
   {
@@ -91,7 +91,7 @@ add_task(async function test_unknownContentType_dialog_layout() {
         uctWindow.focus();
         await focusOnDialog;
 
-        uctWindow.document.documentElement.cancelDialog();
+        uctWindow.document.getElementById("unknownContentType").cancelDialog();
         uctWindow = null;
         Services.ww.unregisterNotification(UCTObserver);
       }

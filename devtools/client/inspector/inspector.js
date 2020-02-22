@@ -9,7 +9,6 @@ const promise = require("promise");
 const EventEmitter = require("devtools/shared/event-emitter");
 const { executeSoon } = require("devtools/shared/DevToolsUtils");
 const { Toolbox } = require("devtools/client/framework/toolbox");
-const ReflowTracker = require("devtools/client/inspector/shared/reflow-tracker");
 const Store = require("devtools/client/inspector/store");
 const InspectorStyleChangeTracker = require("devtools/client/inspector/shared/style-change-tracker");
 
@@ -66,7 +65,12 @@ loader.lazyRequireGetter(
   "saveScreenshot",
   "devtools/shared/screenshot/save"
 );
-loader.lazyRequireGetter(this, "ObjectFront", "devtools/shared/fronts/object");
+loader.lazyRequireGetter(
+  this,
+  "ObjectFront",
+  "devtools/shared/fronts/object",
+  true
+);
 
 // This import to chrome code is forbidden according to the inspector specific
 // eslintrc. TODO: Fix in Bug 1591091.
@@ -151,7 +155,12 @@ function Inspector(toolbox) {
   this.telemetry = toolbox.telemetry;
   this.store = Store({
     createObjectFront: object => {
-      return new ObjectFront(toolbox.target.client, object);
+      return new ObjectFront(
+        this.inspectorFront.conn,
+        this.inspectorFront.targetFront,
+        this.inspectorFront,
+        object
+      );
     },
     releaseActor: actor => {
       if (!actor) {
@@ -198,6 +207,7 @@ function Inspector(toolbox) {
   this.onSidebarToggle = this.onSidebarToggle.bind(this);
   this.handleThreadPaused = this.handleThreadPaused.bind(this);
   this.handleThreadResumed = this.handleThreadResumed.bind(this);
+  this.onReflowInSelection = this.onReflowInSelection.bind(this);
 }
 
 Inspector.prototype = {
@@ -231,7 +241,6 @@ Inspector.prototype = {
     // Store the URL of the target page prior to navigation in order to ensure
     // telemetry counts in the Grid Inspector are not double counted on reload.
     this.previousURL = this.currentTarget.url;
-    this.reflowTracker = new ReflowTracker(this.currentTarget);
     this.styleChangeTracker = new InspectorStyleChangeTracker(this);
 
     this._markupBox = this.panelDoc.getElementById("markup-box");
@@ -239,7 +248,7 @@ Inspector.prototype = {
     return this._deferredOpen();
   },
 
-  async _onTargetAvailable(type, targetFront, isTopLevel) {
+  async _onTargetAvailable({ type, targetFront, isTopLevel }) {
     // Ignore all targets but the top level one
     if (!isTopLevel) {
       return;
@@ -251,12 +260,9 @@ Inspector.prototype = {
 
     await Promise.all([
       this._getCssProperties(),
-      this._getPageStyle(),
       this._getDefaultSelection(),
       this._getAccessibilityFront(),
-      this._getChangesFront(),
     ]);
-    this.reflowTracker = new ReflowTracker(this.currentTarget);
 
     // When we navigate to another process and switch to a new
     // target and the inspector is already ready, we want to
@@ -273,7 +279,7 @@ Inspector.prototype = {
     }
   },
 
-  _onTargetDestroyed(type, targetFront, isTopLevel) {
+  _onTargetDestroyed({ type, targetFront, isTopLevel }) {
     // Ignore all targets but the top level one
     if (!isTopLevel) {
       return;
@@ -282,9 +288,6 @@ Inspector.prototype = {
 
     this._defaultNode = null;
     this.selection.setNodeFront(null);
-
-    this.reflowTracker.destroy();
-    this.reflowTracker = null;
   },
 
   async initInspectorFront(targetFront) {
@@ -466,27 +469,12 @@ Inspector.prototype = {
     return this.accessibilityFront;
   },
 
-  _getChangesFront: async function() {
-    // Get the Changes front, then call a method on it, which will instantiate
-    // the ChangesActor. We want the ChangesActor to be guaranteed available before
-    // the user makes any changes.
-    this.changesFront = await this.currentTarget.getFront("changes");
-    await this.changesFront.start();
-    return this.changesFront;
-  },
-
   _getDefaultSelection: function() {
     // This may throw if the document is still loading and we are
     // refering to a dead about:blank document
     return this._getDefaultNodeForSelection().catch(
       this._handleRejectionIfNotDestroyed
     );
-  },
-
-  _getPageStyle: function() {
-    return this.inspectorFront.getPageStyle().then(pageStyle => {
-      this.pageStyle = pageStyle;
-    }, this._handleRejectionIfNotDestroyed);
   },
 
   /**
@@ -1591,6 +1579,7 @@ Inspector.prototype = {
 
     this.updateAddElementButton();
     this.updateSelectionCssSelectors();
+    this.trackReflowsInSelection();
 
     const selfUpdate = this.updating("inspector-panel");
     executeSoon(() => {
@@ -1601,6 +1590,41 @@ Inspector.prototype = {
         console.error(ex);
       }
     });
+  },
+
+  /**
+   * Starts listening for reflows in the targetFront of the currently selected nodeFront.
+   */
+  async trackReflowsInSelection() {
+    this.untrackReflowsInSelection();
+    if (!this.selection.nodeFront) {
+      return;
+    }
+
+    const { targetFront } = this.selection.nodeFront;
+    this.reflowFront = await targetFront.getFront("reflow");
+    this.reflowFront.on("reflows", this.onReflowInSelection);
+    this.reflowFront.start();
+  },
+
+  /**
+   * Stops listening for reflows.
+   */
+  untrackReflowsInSelection() {
+    if (!this.reflowFront) {
+      return;
+    }
+
+    this.reflowFront.off("reflows", this.onReflowInSelection);
+    this.reflowFront.stop();
+    this.reflowFront = null;
+  },
+
+  onReflowInSelection() {
+    // This event will be fired whenever a reflow is detected in the target front of the
+    // selected node front (so when a reflow is detected inside any of the windows that
+    // belong to the BrowsingContext when the currently selected node lives).
+    this.emit("reflow-in-selected-target");
   },
 
   /**
@@ -1684,10 +1708,11 @@ Inspector.prototype = {
 
     if (this.walker) {
       this.walker.off("new-root", this.onNewRoot);
-      this.pageStyle = null;
     }
 
     this.cancelUpdate();
+
+    this.untrackReflowsInSelection();
 
     this.sidebar.destroy();
 
@@ -1789,7 +1814,6 @@ Inspector.prototype = {
     this._markupFrame.contentWindow.focus();
     this._markupBox.style.visibility = "visible";
     this.markup = new MarkupView(this, this._markupFrame, this._toolbox.win);
-    this.markup.init();
     this.emit("markuploaded");
   },
 

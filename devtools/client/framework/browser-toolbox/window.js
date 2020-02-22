@@ -74,6 +74,16 @@ var connect = async function() {
   const env = Cc["@mozilla.org/process/environment;1"].getService(
     Ci.nsIEnvironment
   );
+
+  // MOZ_BROWSER_TOOLBOX_FISSION_PREF is set by the target Firefox instance
+  // before opening the Browser Toolbox.
+  // If "devtools.browsertoolbox.fission" is true, the variable is set to "1",
+  // otherwise it is set to "0".
+  Services.prefs.setBoolPref(
+    "devtools.browsertoolbox.fission",
+    env.get("MOZ_BROWSER_TOOLBOX_FISSION_PREF") === "1"
+  );
+
   const port = env.get("MOZ_BROWSER_TOOLBOX_PORT");
 
   // A port needs to be passed in from the environment, for instance:
@@ -198,6 +208,7 @@ async function openToolbox(target) {
     Toolbox.HostType.CUSTOM,
     toolboxOptions
   );
+  toolbox.setBrowserToolbox(true);
   await onNewToolbox(toolbox);
 }
 
@@ -253,30 +264,9 @@ async function bindToolboxHandlers() {
     // process.
     updateBadgeText(false);
 
-    // Once the debugger panel opens listen for thread pause / resume.
-    const panel = await gToolbox.getPanelWhenReady("jsdebugger");
-    setupThreadListeners(panel);
+    gToolbox.on("toolbox-paused", () => updateBadgeText(true));
+    gToolbox.on("toolbox-resumed", () => updateBadgeText(false));
   }
-}
-
-function setupThreadListeners(panel) {
-  updateBadgeText(panel.isPaused());
-
-  const onPaused = packet => {
-    if (packet.why.type === "interrupted") {
-      return;
-    }
-    updateBadgeText(true);
-  };
-  const onResumed = updateBadgeText.bind(null, false);
-  const threadFront = gToolbox.target.threadFront;
-  threadFront.on("paused", onPaused);
-  threadFront.on("resumed", onResumed);
-
-  panel.once("destroyed", () => {
-    threadFront.off("paused", onPaused);
-    threadFront.off("resumed", onResumed);
-  });
 }
 
 function updateBadgeText(paused) {

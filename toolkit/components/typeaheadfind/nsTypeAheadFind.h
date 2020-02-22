@@ -6,14 +6,12 @@
 #include "nsComponentManagerUtils.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsISelectionController.h"
-#include "nsIController.h"
-#include "nsIControllers.h"
+#include "nsIDocShell.h"
 #include "nsIObserver.h"
 #include "nsUnicharUtils.h"
 #include "nsIFind.h"
 #include "nsIWebBrowserFind.h"
 #include "nsWeakReference.h"
-#include "nsIDocShellTreeItem.h"
 #include "nsITypeAheadFind.h"
 #include "nsISound.h"
 
@@ -120,6 +118,7 @@ class nsTypeAheadFind : public nsITypeAheadFind,
 
   bool mCaseSensitive;
   bool mEntireWord;
+  bool mMatchDiacritics;
 
   bool EnsureFind() {
     if (mFind) {
@@ -133,6 +132,7 @@ class nsTypeAheadFind : public nsITypeAheadFind,
 
     mFind->SetCaseSensitive(mCaseSensitive);
     mFind->SetEntireWord(mEntireWord);
+    mFind->SetMatchDiacritics(mMatchDiacritics);
 
     return true;
   }

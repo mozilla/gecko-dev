@@ -28,6 +28,7 @@
 #include <iprtrmib.h>
 #include "plstr.h"
 #include "mozilla/Logging.h"
+#include "nsComponentManagerUtils.h"
 #include "nsThreadUtils.h"
 #include "nsIObserverService.h"
 #include "nsIWindowsRegKey.h"
@@ -396,6 +397,11 @@ nsresult nsNotifyAddrListener::NotifyObservers(const char* aTopic,
                                                const char* aData) {
   LOG(("NotifyObservers: %s=%s\n", aTopic, aData));
 
+  if (mShutdown) {
+    LOG(("NotifyObservers call failed when called during shutdown"));
+    return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
+  }
+
   auto runnable = [self = RefPtr<nsNotifyAddrListener>(this), aTopic, aData] {
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
@@ -507,40 +513,54 @@ nsNotifyAddrListener::CheckAdaptersAddresses(void) {
     // It seems that the only way to retrieve non-connection specific DNS
     // suffixes is via the Windows registry.
 
-    auto checkRegistry = [&dnsSuffixList] {
+    // This function takes a registry path. If aRegPath\\SearchList is
+    // found and successfully parsed, then it returns true. Otherwise it
+    // returns false.
+    auto checkRegistry = [&dnsSuffixList](const nsAString& aRegPath) -> bool {
       nsresult rv;
       nsCOMPtr<nsIWindowsRegKey> regKey =
           do_CreateInstance("@mozilla.org/windows-registry-key;1", &rv);
       if (NS_FAILED(rv)) {
         LOG(("  creating nsIWindowsRegKey failed\n"));
-        return;
+        return false;
       }
-      rv = regKey->Open(
-          nsIWindowsRegKey::ROOT_KEY_LOCAL_MACHINE,
-          NS_LITERAL_STRING(
-              "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters"),
-          nsIWindowsRegKey::ACCESS_READ);
+      rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_LOCAL_MACHINE, aRegPath,
+                        nsIWindowsRegKey::ACCESS_READ);
       if (NS_FAILED(rv)) {
         LOG(("  opening registry key failed\n"));
-        return;
+        return false;
       }
       nsAutoString wideSuffixString;
       rv = regKey->ReadStringValue(NS_LITERAL_STRING("SearchList"),
                                    wideSuffixString);
       if (NS_FAILED(rv)) {
         LOG(("  reading registry string value failed\n"));
-        return;
+        return false;
       }
 
+      // Normally the key should not contain whitespace, but editing the
+      // registry manually or through gpedit doesn't alway enforce this.
       nsAutoCString list = NS_ConvertUTF16toUTF8(wideSuffixString);
+      list.StripWhitespace();
       for (const nsACString& suffix : list.Split(',')) {
         LOG(("  appending DNS suffix from registry: %s\n",
              suffix.BeginReading()));
-        dnsSuffixList.AppendElement(suffix);
+        if (!suffix.IsEmpty()) {
+          dnsSuffixList.AppendElement(suffix);
+        }
       }
+
+      return true;
     };
 
-    checkRegistry();
+    // The Local group policy overrides the user set suffix list, so we must
+    // first check the registry key that is sets by gpedit, and if that fails we
+    // fall back to the one that is set by the user.
+    if (!checkRegistry(NS_LITERAL_STRING(
+            "SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient"))) {
+      checkRegistry(NS_LITERAL_STRING(
+          "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters"));
+    }
   }
 
   auto registryChildCount = [](const nsAString& aRegPath) -> uint32_t {

@@ -11,7 +11,7 @@
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
 const { DebuggerServer } = require("devtools/server/debugger-server");
 const { DebuggerClient } = require("devtools/shared/client/debugger-client");
-const ObjectFront = require("devtools/shared/fronts/object");
+const { ObjectFront } = require("devtools/shared/fronts/object");
 const Services = require("Services");
 
 function initCommon() {
@@ -97,7 +97,7 @@ var _attachConsole = async function(listeners, attachToTab, attachToWorker) {
     const [, threadFront] = await target.attachThread();
     await threadFront.resume();
 
-    const webConsoleFront = target.activeConsole;
+    const webConsoleFront = await target.getFront("console");
 
     // By default the console isn't listening for anything,
     // request listeners from here

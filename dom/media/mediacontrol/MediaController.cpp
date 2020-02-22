@@ -13,58 +13,61 @@
 
 // avoid redefined macro in unified build
 #undef LOG
-#define LOG(msg, ...)                                                       \
-  MOZ_LOG(gMediaControlLog, LogLevel::Debug,                                \
-          ("TabMediaController=%p, Id=%" PRId64 ", " msg, this, this->Id(), \
+#define LOG(msg, ...)                                                    \
+  MOZ_LOG(gMediaControlLog, LogLevel::Debug,                             \
+          ("MediaController=%p, Id=%" PRId64 ", " msg, this, this->Id(), \
            ##__VA_ARGS__))
 
 namespace mozilla {
 namespace dom {
 
-already_AddRefed<BrowsingContext> MediaController::GetContext() const {
-  return BrowsingContext::Get(mBrowsingContextId);
-}
-
-TabMediaController::TabMediaController(uint64_t aContextId)
-    : MediaController(aContextId) {
+MediaController::MediaController(uint64_t aContextId)
+    : mBrowsingContextId(aContextId) {
   MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess(),
                         "MediaController only runs on Chrome process!");
   LOG("Create controller %" PRId64, Id());
 }
 
-TabMediaController::~TabMediaController() {
+MediaController::~MediaController() {
   LOG("Destroy controller %" PRId64, Id());
   MOZ_DIAGNOSTIC_ASSERT(!mControlledMediaNum);
 };
 
-void TabMediaController::Play() {
+void MediaController::Play() {
   LOG("Play");
   mIsPlaying = true;
-  RefPtr<BrowsingContext> context = GetContext();
-  if (context) {
-    context->Canonical()->UpdateMediaAction(MediaControlActions::ePlay);
-  }
+  UpdateMediaControlKeysEventToContentMediaIfNeeded(
+      MediaControlKeysEvent::ePlay);
 }
 
-void TabMediaController::Pause() {
+void MediaController::Pause() {
   LOG("Pause");
   mIsPlaying = false;
-  RefPtr<BrowsingContext> context = GetContext();
-  if (context) {
-    context->Canonical()->UpdateMediaAction(MediaControlActions::ePause);
-  }
+  UpdateMediaControlKeysEventToContentMediaIfNeeded(
+      MediaControlKeysEvent::ePause);
 }
 
-void TabMediaController::Stop() {
+void MediaController::Stop() {
   LOG("Stop");
   mIsPlaying = false;
-  RefPtr<BrowsingContext> context = GetContext();
+  UpdateMediaControlKeysEventToContentMediaIfNeeded(
+      MediaControlKeysEvent::eStop);
+}
+
+void MediaController::UpdateMediaControlKeysEventToContentMediaIfNeeded(
+    MediaControlKeysEvent aEvent) {
+  // There is no controlled media existing, we have no need to update media
+  // action to the content process.
+  if (!ControlledMediaNum()) {
+    return;
+  }
+  RefPtr<BrowsingContext> context = BrowsingContext::Get(mBrowsingContextId);
   if (context) {
-    context->Canonical()->UpdateMediaAction(MediaControlActions::eStop);
+    context->Canonical()->UpdateMediaControlKeysEvent(aEvent);
   }
 }
 
-void TabMediaController::Shutdown() {
+void MediaController::Shutdown() {
   mIsPlaying = false;
   mControlledMediaNum = 0;
   RefPtr<MediaControlService> service = MediaControlService::GetService();
@@ -72,17 +75,19 @@ void TabMediaController::Shutdown() {
   service->GetAudioFocusManager().RevokeAudioFocus(Id());
 }
 
-bool TabMediaController::IsAudible() const { return mIsPlaying && mAudible; }
-
-void TabMediaController::NotifyMediaActiveChanged(bool aActive) {
-  if (aActive) {
+void MediaController::NotifyMediaStateChanged(ControlledMediaState aState) {
+  if (aState == ControlledMediaState::eStarted) {
     IncreaseControlledMediaNum();
-  } else {
+  } else if (aState == ControlledMediaState::eStopped) {
     DecreaseControlledMediaNum();
+  } else if (aState == ControlledMediaState::ePlayed) {
+    IncreasePlayingControlledMediaNum();
+  } else if (aState == ControlledMediaState::ePaused) {
+    DecreasePlayingControlledMediaNum();
   }
 }
 
-void TabMediaController::NotifyMediaAudibleChanged(bool aAudible) {
+void MediaController::NotifyMediaAudibleChanged(bool aAudible) {
   mAudible = aAudible;
   if (mAudible) {
     RefPtr<MediaControlService> service = MediaControlService::GetService();
@@ -91,7 +96,7 @@ void TabMediaController::NotifyMediaAudibleChanged(bool aAudible) {
   }
 }
 
-void TabMediaController::IncreaseControlledMediaNum() {
+void MediaController::IncreaseControlledMediaNum() {
   MOZ_DIAGNOSTIC_ASSERT(mControlledMediaNum >= 0);
   mControlledMediaNum++;
   LOG("Increase controlled media num to %" PRId64, mControlledMediaNum);
@@ -100,7 +105,7 @@ void TabMediaController::IncreaseControlledMediaNum() {
   }
 }
 
-void TabMediaController::DecreaseControlledMediaNum() {
+void MediaController::DecreaseControlledMediaNum() {
   MOZ_DIAGNOSTIC_ASSERT(mControlledMediaNum >= 1);
   mControlledMediaNum--;
   LOG("Decrease controlled media num to %" PRId64, mControlledMediaNum);
@@ -109,23 +114,50 @@ void TabMediaController::DecreaseControlledMediaNum() {
   }
 }
 
+void MediaController::IncreasePlayingControlledMediaNum() {
+  MOZ_ASSERT(mPlayingControlledMediaNum >= 0);
+  mPlayingControlledMediaNum++;
+  LOG("Increase playing controlled media num to %" PRId64,
+      mPlayingControlledMediaNum);
+  MOZ_ASSERT(mPlayingControlledMediaNum <= mControlledMediaNum,
+             "The number of playing media should not exceed the number of "
+             "controlled media!");
+  if (mPlayingControlledMediaNum == 1) {
+    mIsPlaying = true;
+  }
+}
+
+void MediaController::DecreasePlayingControlledMediaNum() {
+  mPlayingControlledMediaNum--;
+  LOG("Decrease playing controlled media num to %" PRId64,
+      mPlayingControlledMediaNum);
+  MOZ_ASSERT(mPlayingControlledMediaNum >= 0);
+  if (mPlayingControlledMediaNum == 0) {
+    mIsPlaying = false;
+  }
+}
+
 // TODO : Use watchable to moniter mControlledMediaNum
-void TabMediaController::Activate() {
-  mIsPlaying = true;
+void MediaController::Activate() {
   RefPtr<MediaControlService> service = MediaControlService::GetService();
   MOZ_ASSERT(service);
   service->AddMediaController(this);
 }
 
-void TabMediaController::Deactivate() {
-  mIsPlaying = false;
+void MediaController::Deactivate() {
   RefPtr<MediaControlService> service = MediaControlService::GetService();
   MOZ_ASSERT(service);
   service->RemoveMediaController(this);
   service->GetAudioFocusManager().RevokeAudioFocus(Id());
 }
 
-uint64_t TabMediaController::ControlledMediaNum() const {
+uint64_t MediaController::Id() const { return mBrowsingContextId; }
+
+bool MediaController::IsPlaying() const { return mIsPlaying; }
+
+bool MediaController::IsAudible() const { return IsPlaying() && mAudible; }
+
+uint64_t MediaController::ControlledMediaNum() const {
   return mControlledMediaNum;
 }
 

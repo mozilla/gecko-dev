@@ -7,7 +7,6 @@
 const { Component } = require("devtools/client/shared/vendor/react");
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
-const { L10N } = require("../../utils/l10n");
 
 /**
  * Renders the "Time" column of a WebSocket frame.
@@ -31,19 +30,24 @@ class FrameListColumnTime extends Component {
    * @param {number} highResTimeStamp
    */
   formatTime(highResTimeStamp) {
-    const timeStamp = Math.floor(highResTimeStamp / 1000);
-    const hoursMinutesSeconds = new Date(timeStamp).toLocaleTimeString(
-      undefined,
-      {
-        formatMatcher: "basic",
-        hour12: false,
-      }
-    );
-    return L10N.getFormatStr(
-      "netmonitor.ws.time.format",
-      hoursMinutesSeconds,
-      String(timeStamp % 1000).padStart(3, "0")
-    );
+    const date = new Date(highResTimeStamp / 1000);
+    const hh = date
+      .getHours()
+      .toString()
+      .padStart(2, "0");
+    const mm = date
+      .getMinutes()
+      .toString()
+      .padStart(2, "0");
+    const ss = date
+      .getSeconds()
+      .toString()
+      .padStart(2, "0");
+    const mmm = date
+      .getMilliseconds()
+      .toString()
+      .padStart(3, "0");
+    return `${hh}:${mm}:${ss}.${mmm}`;
   }
 
   render() {

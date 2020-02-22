@@ -28,17 +28,14 @@
 #include "nsISimpleEnumerator.h"
 #include "nsIContent.h"
 #include "mozilla/dom/Document.h"
-#include "nsIServiceManager.h"
 #include "mozilla/Preferences.h"
 #include "BasicLayers.h"
 #include "ClientLayerManager.h"
 #include "mozilla/layers/Compositor.h"
-#include "nsIXULRuntime.h"
 #include "nsIAppWindow.h"
 #include "nsIBaseWindow.h"
 #include "nsXULPopupManager.h"
 #include "nsIWidgetListener.h"
-#include "nsIGfxInfo.h"
 #include "npapi.h"
 #include "X11UndefineNone.h"
 #include "base/thread.h"
@@ -909,7 +906,7 @@ void nsBaseWidget::ConfigureAPZCTreeManager() {
   // When APZ is enabled, we can actually enable raw touch events because we
   // have code that can deal with them properly. If APZ is not enabled, this
   // function doesn't get called.
-  if (Preferences::GetInt("dom.w3c_touch_events.enabled", 0) ||
+  if (StaticPrefs::dom_w3c_touch_events_enabled() ||
       StaticPrefs::dom_w3c_pointer_events_enabled()) {
     RegisterTouchWindow();
   }

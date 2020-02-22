@@ -39,9 +39,9 @@ enum class StyleDisplay : uint16_t {
   Contents =
       StyleDisplayFrom(StyleDisplayOutside::None, StyleDisplayInside::Contents),
   Inline =
-      StyleDisplayFrom(StyleDisplayOutside::Inline, StyleDisplayInside::Inline),
+      StyleDisplayFrom(StyleDisplayOutside::Inline, StyleDisplayInside::Flow),
   Block =
-      StyleDisplayFrom(StyleDisplayOutside::Block, StyleDisplayInside::Block),
+      StyleDisplayFrom(StyleDisplayOutside::Block, StyleDisplayInside::Flow),
   FlowRoot = StyleDisplayFrom(StyleDisplayOutside::Block,
                               StyleDisplayInside::FlowRoot),
   Flex = StyleDisplayFrom(StyleDisplayOutside::Block, StyleDisplayInside::Flex),
@@ -51,7 +51,7 @@ enum class StyleDisplay : uint16_t {
   InlineTable =
       StyleDisplayFrom(StyleDisplayOutside::Inline, StyleDisplayInside::Table),
   TableCaption = StyleDisplayFrom(StyleDisplayOutside::TableCaption,
-                                  StyleDisplayInside::Block),
+                                  StyleDisplayInside::Flow),
   Ruby =
       StyleDisplayFrom(StyleDisplayOutside::Inline, StyleDisplayInside::Ruby),
   WebkitBox = StyleDisplayFrom(StyleDisplayOutside::Block,
@@ -186,21 +186,6 @@ enum class StyleColumnFill : uint8_t {
 enum class StyleColumnSpan : uint8_t {
   None,
   All,
-};
-
-// Counters and generated content.
-enum class StyleContentType : uint8_t {
-  String = 1,
-  Image = 10,
-  Attr = 20,
-  Counter = 30,
-  Counters = 31,
-  OpenQuote = 40,
-  CloseQuote = 41,
-  NoOpenQuote = 42,
-  NoCloseQuote = 43,
-  AltContent = 50,
-  Uninitialized,
 };
 
 // Define geometry box for clip-path's reference-box, background-clip,
@@ -357,15 +342,6 @@ enum class StyleBorderCollapse : uint8_t { Collapse, Separate };
 
 // border-image-repeat
 enum class StyleBorderImageRepeat : uint8_t { Stretch, Repeat, Round, Space };
-
-// See nsStyleContent
-enum class StyleContent : uint8_t {
-  OpenQuote,
-  CloseQuote,
-  NoOpenQuote,
-  NoCloseQuote,
-  AltContent
-};
 
 // See nsStyleVisibility
 #define NS_STYLE_DIRECTION_LTR 0
@@ -578,20 +554,23 @@ enum class StyleGridTrackBreadth : uint8_t {
 #define NS_STYLE_LIST_STYLE_POSITION_OUTSIDE 1
 
 // See nsStyleVisibility
-#define NS_STYLE_POINTER_EVENTS_NONE 0
-#define NS_STYLE_POINTER_EVENTS_VISIBLEPAINTED 1
-#define NS_STYLE_POINTER_EVENTS_VISIBLEFILL 2
-#define NS_STYLE_POINTER_EVENTS_VISIBLESTROKE 3
-#define NS_STYLE_POINTER_EVENTS_VISIBLE 4
-#define NS_STYLE_POINTER_EVENTS_PAINTED 5
-#define NS_STYLE_POINTER_EVENTS_FILL 6
-#define NS_STYLE_POINTER_EVENTS_STROKE 7
-#define NS_STYLE_POINTER_EVENTS_ALL 8
-#define NS_STYLE_POINTER_EVENTS_AUTO 9
+enum class StylePointerEvents : uint8_t {
+  None,
+  Visiblepainted,
+  Visiblefill,
+  Visiblestroke,
+  Visible,
+  Painted,
+  Fill,
+  Stroke,
+  All,
+  Auto,
+};
 
-// See nsStyleDisplay
-#define NS_STYLE_ISOLATION_AUTO 0
-#define NS_STYLE_ISOLATION_ISOLATE 1
+enum class StyleIsolation : uint8_t {
+  Auto,
+  Isolate,
+};
 
 // See nsStylePosition.mObjectFit
 enum class StyleObjectFit : uint8_t {
@@ -641,9 +620,11 @@ enum class StyleTopLayer : uint8_t {
 };
 
 // See nsStyleVisibility
-#define NS_STYLE_VISIBILITY_HIDDEN 0
-#define NS_STYLE_VISIBILITY_VISIBLE 1
-#define NS_STYLE_VISIBILITY_COLLAPSE 2
+enum class StyleVisibility : uint8_t {
+  Hidden,
+  Visible,
+  Collapse,
+};
 
 // See nsStyleText
 #define NS_STYLE_TABSIZE_INITIAL 8
@@ -668,9 +649,10 @@ enum class StyleRubyAlign : uint8_t {
 };
 
 // ruby-position, see nsStyleText
-#define NS_STYLE_RUBY_POSITION_OVER 0
-#define NS_STYLE_RUBY_POSITION_UNDER 1
-#define NS_STYLE_RUBY_POSITION_INTER_CHARACTER 2  // placeholder, not yet parsed
+enum class StyleRubyPosition : uint8_t {
+  Over,
+  Under,
+};
 
 // See nsStyleText
 enum class StyleTextSizeAdjust : uint8_t {

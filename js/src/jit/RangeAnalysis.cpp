@@ -20,6 +20,7 @@
 #include "jit/MIRGenerator.h"
 #include "jit/MIRGraph.h"
 #include "js/Conversions.h"
+#include "util/CheckedArithmetic.h"
 #include "vm/ArgumentsObject.h"
 #include "vm/TypedArrayObject.h"
 
@@ -291,7 +292,7 @@ bool RangeAnalysis::addBetaNodes() {
           continue;
         }
         // Otherwise fall through to handle JSOP_STRICTEQ the same as JSOP_EQ.
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
       case JSOP_EQ:
         comp.setDouble(bound, bound);
         break;
@@ -301,7 +302,7 @@ bool RangeAnalysis::addBetaNodes() {
           continue;
         }
         // Otherwise fall through to handle JSOP_STRICTNE the same as JSOP_NE.
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
       case JSOP_NE:
         // Negative zero is not not-equal to zero.
         if (bound == 0) {
@@ -1180,6 +1181,13 @@ Range* Range::ceil(TempAllocator& alloc, const Range* op) {
   } else if (copy->max_exponent_ < MaxFiniteExponent) {
     copy->max_exponent_++;
   }
+
+  // If the range is definitely above 0 or below -1, we don't need to include
+  // -0; otherwise we do.
+
+  copy->canBeNegativeZero_ = ((copy->lower_ > 0) || (copy->upper_ <= -1))
+                                 ? copy->canBeNegativeZero_
+                                 : IncludesNegativeZero;
 
   copy->canHaveFractionalPart_ = ExcludesFractionalParts;
   copy->assertInvariants();

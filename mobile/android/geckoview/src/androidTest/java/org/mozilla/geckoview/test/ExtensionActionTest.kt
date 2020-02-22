@@ -23,15 +23,15 @@ import org.mozilla.geckoview.test.rule.GeckoSessionTestRule
 @MediumTest
 @RunWith(Parameterized::class)
 class ExtensionActionTest : BaseSessionTest() {
-    var extension: WebExtension? = null
-    var default: WebExtension.Action? = null
-    var backgroundPort: WebExtension.Port? = null
-    var windowPort: WebExtension.Port? = null
+    private var extension: WebExtension? = null
+    private var default: WebExtension.Action? = null
+    private var backgroundPort: WebExtension.Port? = null
+    private var windowPort: WebExtension.Port? = null
 
     companion object {
         @get:Parameterized.Parameters(name = "{0}")
         @JvmStatic
-        val parameters: List<Array<out Any>> = listOf(
+        val parameters = listOf(
                 arrayOf("#pageAction"),
                 arrayOf("#browserAction"))
     }
@@ -49,7 +49,8 @@ class ExtensionActionTest : BaseSessionTest() {
         val backgroundPortResult = GeckoResult<WebExtension.Port>()
 
         extension = WebExtension("resource://android/assets/web_extensions/actions/",
-                "actions", WebExtension.Flags.ALLOW_CONTENT_MESSAGING)
+                "actions", WebExtension.Flags.ALLOW_CONTENT_MESSAGING,
+                sessionRule.runtime.webExtensionController)
 
         sessionRule.session.setMessageDelegate(
                 extension!!,
@@ -101,7 +102,7 @@ class ExtensionActionTest : BaseSessionTest() {
         }
     }
 
-    private var type: String = ""
+    private val type: String
         get() = when(id) {
             "#pageAction" -> "pageAction"
             "#browserAction" -> "browserAction"
@@ -127,12 +128,20 @@ class ExtensionActionTest : BaseSessionTest() {
                 { extension!!.setActionDelegate(null) },
                 object : WebExtension.ActionDelegate {
             override fun onBrowserAction(extension: WebExtension, session: GeckoSession?, action: WebExtension.Action) {
+                if (sessionRule.currentCall.counter == 1) {
+                    // When attaching the delegate, we will receive a default message, ignore it
+                    return
+                }
                 assertEquals(id, "#browserAction")
                 default = action
                 tester(action)
                 result.complete(null)
             }
             override fun onPageAction(extension: WebExtension, session: GeckoSession?, action: WebExtension.Action) {
+                if (sessionRule.currentCall.counter == 1) {
+                    // When attaching the delegate, we will receive a default message, ignore it
+                    return
+                }
                 assertEquals(id, "#pageAction")
                 default = action
                 tester(action)
@@ -180,6 +189,36 @@ class ExtensionActionTest : BaseSessionTest() {
             assertEquals(action.title, "Test action default")
             assertEquals(action.enabled, false)
         }
+    }
+
+    @Test
+    fun attachingDelegateTriggersDefaultUpdate() {
+        val result = GeckoResult<Void>()
+
+        // We should always get a default update after we attach the delegate
+        when (id) {
+            "#browserAction" -> {
+                extension!!.setActionDelegate(object : WebExtension.ActionDelegate {
+                    override fun onBrowserAction(extension: WebExtension, session: GeckoSession?,
+                                                 action: WebExtension.Action) {
+                        assertEquals(action.title, "Test action default")
+                        result.complete(null)
+                    }
+                })
+            }
+            "#pageAction" -> {
+                extension!!.setActionDelegate(object : WebExtension.ActionDelegate {
+                    override fun onPageAction(extension: WebExtension, session: GeckoSession?,
+                                              action: WebExtension.Action) {
+                        assertEquals(action.title, "Test action default")
+                        result.complete(null)
+                    }
+                })
+            }
+            else -> throw IllegalArgumentException()
+        }
+
+        sessionRule.waitForResult(result)
     }
 
     @Test
@@ -253,7 +292,7 @@ class ExtensionActionTest : BaseSessionTest() {
             }
 
             val hexColor = String.format("#%08X", result)
-            assertEquals(hexColor, "$expectedHex")
+            assertEquals(hexColor, expectedHex)
         }
     }
 
@@ -411,7 +450,7 @@ class ExtensionActionTest : BaseSessionTest() {
 
     @Test
     @GeckoSessionTestRule.WithDisplay(width=100, height=100)
-    @Ignore // this test fails intermittently on try :(
+    @Ignore("This test fails intermittently on try")
     fun testOpenPopup() {
         // First, let's make sure we have a popup set
         val actionResult = GeckoResult<Void>()

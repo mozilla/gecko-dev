@@ -52,17 +52,17 @@ using mozilla::Nothing;
 using mozilla::Some;
 
 const JSClassOps DebuggerEnvironment::classOps_ = {
-    nullptr,                              /* addProperty */
-    nullptr,                              /* delProperty */
-    nullptr,                              /* enumerate   */
-    nullptr,                              /* newEnumerate */
-    nullptr,                              /* resolve     */
-    nullptr,                              /* mayResolve  */
-    nullptr,                              /* finalize    */
-    nullptr,                              /* call        */
-    nullptr,                              /* hasInstance */
-    nullptr,                              /* construct   */
-    CallTraceMethod<DebuggerEnvironment>, /* trace */
+    nullptr,                               // addProperty
+    nullptr,                               // delProperty
+    nullptr,                               // enumerate
+    nullptr,                               // newEnumerate
+    nullptr,                               // resolve
+    nullptr,                               // mayResolve
+    nullptr,                               // finalize
+    nullptr,                               // call
+    nullptr,                               // hasInstance
+    nullptr,                               // construct
+    CallTraceMethod<DebuggerEnvironment>,  // trace
 };
 
 const JSClass DebuggerEnvironment::class_ = {
@@ -488,11 +488,10 @@ bool DebuggerEnvironment::getCallee(JSContext* cx,
 
   RootedObject callee(cx, &scope.as<CallObject>().callee());
   if (IsInternalFunctionObject(*callee)) {
-    result.set(nullptr);
-    return true;
+    callee = nullptr;
   }
 
-  return owner()->wrapDebuggeeObject(cx, callee, result);
+  return owner()->wrapNullableDebuggeeObject(cx, callee, result);
 }
 
 bool DebuggerEnvironment::isDebuggee() const {

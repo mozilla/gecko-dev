@@ -36,10 +36,6 @@ inline GlobalObject& InterpreterFrame::global() const {
   return script()->global();
 }
 
-inline JSObject& InterpreterFrame::varObj() const {
-  return GetVariablesObject(environmentChain());
-}
-
 inline LexicalEnvironmentObject&
 InterpreterFrame::extensibleLexicalEnvironment() const {
   return NearestEnclosingExtensibleLexicalEnvironment(environmentChain());
@@ -51,7 +47,7 @@ inline void InterpreterFrame::initCallFrame(InterpreterFrame* prev,
                                             JSScript* script, Value* argv,
                                             uint32_t nactual,
                                             MaybeConstruct constructing) {
-  MOZ_ASSERT(callee.nonLazyScript() == script);
+  MOZ_ASSERT(callee.baseScript() == script);
 
   /* Initialize stack frame members. */
   flags_ = 0;
@@ -223,7 +219,7 @@ MOZ_ALWAYS_INLINE InterpreterFrame* InterpreterStack::getCallFrame(
     MaybeConstruct constructing, Value** pargv) {
   JSFunction* fun = &args.callee().as<JSFunction>();
 
-  MOZ_ASSERT(fun->nonLazyScript() == script);
+  MOZ_ASSERT(fun->baseScript() == script);
   unsigned nformal = fun->nargs();
   unsigned nvals = script->nslots();
 
@@ -265,7 +261,7 @@ MOZ_ALWAYS_INLINE bool InterpreterStack::pushInlineFrame(
     HandleScript script, MaybeConstruct constructing) {
   RootedFunction callee(cx, &args.callee().as<JSFunction>());
   MOZ_ASSERT(regs.sp == args.end());
-  MOZ_ASSERT(callee->nonLazyScript() == script);
+  MOZ_ASSERT(callee->baseScript() == script);
 
   InterpreterFrame* prev = regs.fp();
   jsbytecode* prevpc = regs.pc;
@@ -662,28 +658,6 @@ inline bool AbstractFramePtr::isGeneratorFrame() const {
   }
   JSScript* s = script();
   return s->isGenerator() || s->isAsync();
-}
-
-inline bool AbstractFramePtr::isNonStrictDirectEvalFrame() const {
-  if (isInterpreterFrame()) {
-    return asInterpreterFrame()->isNonStrictDirectEvalFrame();
-  }
-  if (isBaselineFrame()) {
-    return asBaselineFrame()->isNonStrictDirectEvalFrame();
-  }
-  MOZ_ASSERT(isRematerializedFrame());
-  return false;
-}
-
-inline bool AbstractFramePtr::isStrictEvalFrame() const {
-  if (isInterpreterFrame()) {
-    return asInterpreterFrame()->isStrictEvalFrame();
-  }
-  if (isBaselineFrame()) {
-    return asBaselineFrame()->isStrictEvalFrame();
-  }
-  MOZ_ASSERT(isRematerializedFrame());
-  return false;
 }
 
 inline Value* AbstractFramePtr::argv() const {

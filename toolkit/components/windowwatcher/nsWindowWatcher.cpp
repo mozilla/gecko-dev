@@ -25,7 +25,6 @@
 #include "nsDocShellLoadState.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIDocShellTreeOwner.h"
-#include "nsIDocumentLoader.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/Document.h"
@@ -37,17 +36,14 @@
 #include "nsIScreenManager.h"
 #include "nsIScriptContext.h"
 #include "nsIObserverService.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsXPCOM.h"
 #include "nsIURI.h"
 #include "nsIWebBrowser.h"
 #include "nsIWebBrowserChrome.h"
 #include "nsIWebNavigation.h"
 #include "nsIWindowCreator.h"
-#include "nsIXPConnect.h"
 #include "nsIXULRuntime.h"
 #include "nsPIDOMWindow.h"
-#include "nsIContentViewer.h"
 #include "nsIWindowProvider.h"
 #include "nsIMutableArray.h"
 #include "nsIDOMStorageManager.h"
@@ -59,6 +55,7 @@
 #include "nsIPrefService.h"
 #include "nsSandboxFlags.h"
 #include "nsSimpleEnumerator.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/NullPrincipal.h"
 #include "mozilla/Preferences.h"
@@ -401,7 +398,7 @@ static bool CheckUserContextCompatibility(nsIDocShell* aDocShell) {
 
   // DocShell can have UsercontextID set but loading a document with system
   // principal. In this case, we consider everything ok.
-  if (nsContentUtils::IsSystemPrincipal(subjectPrincipal)) {
+  if (subjectPrincipal->IsSystemPrincipal()) {
     return true;
   }
 
@@ -1238,10 +1235,11 @@ nsresult nsWindowWatcher::OpenWindowInternal(
 
   // Copy the current session storage for the current domain. Don't perform the
   // copy if we're forcing noopener, however.
-  if (!aForceNoOpener && subjectPrincipal && parentDocShell) {
-    nsCOMPtr<nsIDOMStorageManager> parentStorageManager =
-        do_QueryInterface(parentDocShell);
-    nsCOMPtr<nsIDOMStorageManager> newStorageManager(newDocShell);
+  if (!aForceNoOpener && subjectPrincipal && parentDocShell && newDocShell) {
+    const RefPtr<SessionStorageManager> parentStorageManager =
+        parentDocShell->GetBrowsingContext()->GetSessionStorageManager();
+    const RefPtr<SessionStorageManager> newStorageManager =
+        newDocShell->GetBrowsingContext()->GetSessionStorageManager();
 
     if (parentStorageManager && newStorageManager) {
       RefPtr<Storage> storage;

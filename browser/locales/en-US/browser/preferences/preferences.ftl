@@ -245,6 +245,19 @@ colors-settings =
     .label = Colors…
     .accesskey = C
 
+# Zoom is a noun, and the message is used as header for a group of options
+preferences-zoom-header = Zoom
+
+preferences-default-zoom = Default zoom
+    .accesskey = z
+
+preferences-default-zoom-value =
+    .label = { $percentage }%
+
+preferences-zoom-text-only =
+    .label = Zoom text only
+    .accesskey = t
+
 language-header = Language
 
 choose-language-description = Choose your preferred language for displaying pages
@@ -428,10 +441,6 @@ update-application-warning-cross-user-setting = This setting will apply to all W
 update-application-use-service =
     .label = Use a background service to install updates
     .accesskey = b
-
-update-enable-search-update =
-    .label = Automatically update search engines
-    .accesskey = e
 
 update-setting-write-failure-title = Error saving Update preferences
 
@@ -693,7 +702,12 @@ search-keyword-warning-bookmark = You have chosen a keyword that is currently in
 
 ## Containers Section
 
-containers-back-link = « Go Back
+containers-back-button =
+    .aria-label =
+      { PLATFORM() ->
+          [windows] Back to Options
+         *[other] Back to Preferences
+      }
 containers-header = Container Tabs
 containers-add-button =
     .label = Add New Container
@@ -1112,6 +1126,11 @@ permissions-location-settings =
     .label = Settings…
     .accesskey = t
 
+permissions-xr = Virtual Reality
+permissions-xr-settings =
+    .label = Settings…
+    .accesskey = t
+
 permissions-camera = Camera
 permissions-camera-settings =
     .label = Settings…
@@ -1166,6 +1185,9 @@ collection-header = { -brand-short-name } Data Collection and Use
 
 collection-description = We strive to provide you with choices and collect only what we need to provide and improve { -brand-short-name } for everyone. We always ask permission before receiving personal information.
 collection-privacy-notice = Privacy Notice
+
+collection-health-report-telemetry-disabled = You’re no longer allowing { -vendor-short-name } to capture technical and interaction data. All past data will be deleted within 30 days. 
+collection-health-report-telemetry-disabled-link = Learn more
 
 collection-health-report =
     .label = Allow { -brand-short-name } to send technical and interaction data to { -vendor-short-name }

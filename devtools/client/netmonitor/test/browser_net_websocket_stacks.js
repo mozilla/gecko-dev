@@ -20,7 +20,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: "http://localhost:8080/",
+    url: "ws://localhost:8080/",
     causeType: "websocket",
     causeUri: TOP_URL,
     stack: [
@@ -37,7 +37,7 @@ const EXPECTED_REQUESTS = [
   },
   {
     method: "GET",
-    url: "https://localhost:8081/",
+    url: "wss://localhost:8081/",
     causeType: "websocket",
     causeUri: TOP_URL,
     stack: [
@@ -62,7 +62,7 @@ add_task(async function() {
   await waitForNetworkEvents(monitor, EXPECTED_REQUESTS.length);
 
   is(
-    store.getState().requests.requests.size,
+    store.getState().requests.requests.length,
     EXPECTED_REQUESTS.length,
     "All the page events should be recorded."
   );

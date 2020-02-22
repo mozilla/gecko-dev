@@ -44,118 +44,65 @@ LoopControl::LoopControl(BytecodeEmitter* bce, StatementKind loopKind)
 
   stackDepth_ = bce->bytecodeSection().stackDepth();
   loopDepth_ = enclosingLoop ? enclosingLoop->loopDepth_ + 1 : 1;
-
-  int loopSlots;
-  if (loopKind == StatementKind::Spread) {
-    // The iterator next method, the iterator, the result array, and
-    // the current array index are on the stack.
-    loopSlots = 4;
-  } else if (loopKind == StatementKind::ForOfLoop) {
-    // The iterator next method, the iterator, and the current value
-    // are on the stack.
-    loopSlots = 3;
-  } else if (loopKind == StatementKind::ForInLoop) {
-    // The iterator and the current value are on the stack.
-    loopSlots = 2;
-  } else {
-    // No additional loop values are on the stack.
-    loopSlots = 0;
-  }
-
-  MOZ_ASSERT(loopSlots <= stackDepth_);
-
-  if (enclosingLoop) {
-    canIonOsr_ = (enclosingLoop->canIonOsr_ &&
-                  stackDepth_ == enclosingLoop->stackDepth_ + loopSlots);
-  } else {
-    canIonOsr_ = stackDepth_ == loopSlots;
-  }
 }
 
 bool LoopControl::emitContinueTarget(BytecodeEmitter* bce) {
-  if (!bce->emitJumpTarget(&continueTarget_)) {
-    return false;
-  }
-  return true;
-}
-
-bool LoopControl::emitSpecialBreakForDone(BytecodeEmitter* bce) {
-  // This doesn't pop stack values, nor handle any other controls.
-  // Should be called on the toplevel of the loop.
-  MOZ_ASSERT(bce->bytecodeSection().stackDepth() == stackDepth_);
-  MOZ_ASSERT(bce->innermostNestableControl == this);
-
-  if (!bce->emitJump(JSOP_GOTO, &breaks)) {
-    return false;
-  }
-
-  return true;
-}
-
-bool LoopControl::emitEntryJump(BytecodeEmitter* bce) {
-  if (!bce->emitJump(JSOP_GOTO, &entryJump_)) {
-    return false;
-  }
-  return true;
+  // Note: this is always called after emitting the loop body so we must have
+  // emitted all 'continues' by now.
+  return bce->emitJumpTargetAndPatch(continues);
 }
 
 bool LoopControl::emitLoopHead(BytecodeEmitter* bce,
                                const Maybe<uint32_t>& nextPos) {
+  // Insert a NOP if needed to ensure the script does not start with a
+  // JSOP_LOOPHEAD. This avoids JIT issues with prologue code + try notes
+  // or OSR. See bug 1602390 and bug 1602681.
+  if (bce->bytecodeSection().offset().toUint32() == 0) {
+    if (!bce->emit1(JSOP_NOP)) {
+      return false;
+    }
+  }
+
   if (nextPos) {
     if (!bce->updateSourceCoordNotes(*nextPos)) {
       return false;
     }
   }
 
+  MOZ_ASSERT(loopDepth_ > 0);
+
   head_ = {bce->bytecodeSection().offset()};
+
   BytecodeOffset off;
   if (!bce->emitJumpTargetOp(JSOP_LOOPHEAD, &off)) {
     return false;
   }
+  SetLoopHeadDepthHint(bce->bytecodeSection().code(off), loopDepth_);
 
   return true;
 }
 
-bool LoopControl::emitLoopEntry(BytecodeEmitter* bce,
-                                const Maybe<uint32_t>& nextPos) {
-  if (nextPos) {
-    if (!bce->updateSourceCoordNotes(*nextPos)) {
-      return false;
-    }
-  }
-
-  JumpTarget entry = {bce->bytecodeSection().offset()};
-  bce->patchJumpsToTarget(entryJump_, entry);
-
-  MOZ_ASSERT(loopDepth_ > 0);
-
-  BytecodeOffset off;
-  if (!bce->emitJumpTargetOp(JSOP_LOOPENTRY, &off)) {
+bool LoopControl::emitLoopEnd(BytecodeEmitter* bce, JSOp op,
+                              JSTryNoteKind tryNoteKind) {
+  JumpList jump;
+  if (!bce->emitJumpNoFallthrough(op, &jump)) {
     return false;
   }
-  SetLoopEntryDepthHintAndFlags(bce->bytecodeSection().code(off), loopDepth_,
-                                canIonOsr_);
+  bce->patchJumpsToTarget(jump, head_);
 
-  return true;
-}
-
-bool LoopControl::emitLoopEnd(BytecodeEmitter* bce, JSOp op) {
-  JumpList beq;
-  if (!bce->emitBackwardJump(op, head_, &beq, &breakTarget_)) {
+  // Create a fallthrough for closing iterators, and as a target for break
+  // statements.
+  JumpTarget breakTarget;
+  if (!bce->emitJumpTarget(&breakTarget)) {
     return false;
   }
-
-  loopEndOffset_ = beq.offset;
-
-  return true;
-}
-
-bool LoopControl::patchBreaksAndContinues(BytecodeEmitter* bce) {
-  MOZ_ASSERT(continueTarget_.offset.valid());
   if (!patchBreaks(bce)) {
     return false;
   }
-  bce->patchJumpsToTarget(continues, continueTarget_);
+  if (!bce->addTryNote(tryNoteKind, bce->bytecodeSection().stackDepth(),
+                       headOffset(), breakTarget.offset)) {
+    return false;
+  }
   return true;
 }
 

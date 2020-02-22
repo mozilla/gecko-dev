@@ -142,7 +142,6 @@
       this.removeAttribute("image");
       this.removeAttribute("title");
       this.removeAttribute("text");
-      this.removeAttribute("displayurl");
     }
 
     _onOverflow() {
@@ -403,10 +402,6 @@
       this.setAttribute("title", title);
       this.setAttribute("text", this.getAttribute("ac-text"));
 
-      let popup = this.parentNode.parentNode;
-      let titleLooksLikeUrl = false;
-      let displayUrl = originalUrl;
-
       let type = this.getAttribute("originaltype");
       let types = new Set(type.split(/\s+/));
       // Remove types that should ultimately not be in the `type` string.
@@ -414,21 +409,10 @@
       type = [...types][0] || "";
       this.setAttribute("type", type);
 
-      let input = popup.input;
-      if (typeof input.trimValue == "function") {
-        displayUrl = input.trimValue(displayUrl);
-      }
-      displayUrl = this._unescapeUrl(displayUrl);
-
-      // For performance reasons we may want to limit the displayUrl size.
-      if (popup.textRunsMaxLen && displayUrl) {
-        displayUrl = displayUrl.substr(0, popup.textRunsMaxLen);
-      }
-      this.setAttribute("displayurl", displayUrl);
+      let displayUrl = this._unescapeUrl(originalUrl);
 
       // Show the domain as the title if we don't have a title.
       if (!title) {
-        titleLooksLikeUrl = true;
         try {
           let uri = Services.io.newURI(originalUrl);
           // Not all valid URLs have a domain.
@@ -441,28 +425,9 @@
         }
       }
 
-      if (titleLooksLikeUrl) {
-        this._titleText.setAttribute("lookslikeurl", "true");
-      } else {
-        this._titleText.removeAttribute("lookslikeurl");
-      }
-
       if (Array.isArray(title)) {
-        // For performance reasons we may want to limit the title size.
-        if (popup.textRunsMaxLen) {
-          title.forEach(t => {
-            // Limit all the even items.
-            for (let i = 0; i < t.length; i += 2) {
-              t[i] = t[i].substr(0, popup.textRunsMaxLen);
-            }
-          });
-        }
         this._setUpEmphasisedSections(this._titleText, title);
       } else {
-        // For performance reasons we may want to limit the title size.
-        if (popup.textRunsMaxLen && title) {
-          title = title.substr(0, popup.textRunsMaxLen);
-        }
         this._setUpDescription(this._titleText, title);
       }
       this._setUpDescription(this._urlText, displayUrl);

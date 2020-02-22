@@ -117,8 +117,8 @@ add_task(async function test_registerProvider() {
             "SearchString is non empty"
           );
           browser.test.assertTrue(
-            Array.isArray(query.acceptableSources),
-            "acceptableSources is an array"
+            Array.isArray(query.sources),
+            "sources is an array"
           );
           return state;
         }, name);
@@ -193,7 +193,7 @@ add_task(async function test_onProviderResultsRequested() {
         browser.test.assertFalse(query.isPrivate);
         browser.test.assertEq(query.maxResults, 10);
         browser.test.assertEq(query.searchString, "test");
-        browser.test.assertTrue(Array.isArray(query.acceptableSources));
+        browser.test.assertTrue(Array.isArray(query.sources));
         return [
           {
             type: "remote_tab",
@@ -1414,48 +1414,6 @@ add_task(async function test_nonPrivateBrowsing() {
   await ext.unload();
 });
 
-// Tests the openViewOnFocus property.
-add_task(async function test_setOpenViewOnFocus() {
-  let getPrefValue = () => UrlbarPrefs.get("openViewOnFocus");
-
-  Assert.equal(
-    getPrefValue(),
-    false,
-    "Open-view-on-focus mode should be disabled by default"
-  );
-
-  let ext = ExtensionTestUtils.loadExtension({
-    manifest: {
-      permissions: ["urlbar"],
-    },
-    isPrivileged: true,
-    incognitoOverride: "spanning",
-    useAddonManager: "temporary",
-    async background() {
-      await browser.urlbar.openViewOnFocus.set({ value: true });
-      browser.test.sendMessage("ready");
-    },
-  });
-  await ext.startup();
-  await ext.awaitMessage("ready");
-
-  Assert.equal(
-    getPrefValue(),
-    true,
-    "Successfully enabled the open-view-on-focus mode"
-  );
-
-  let completed = promiseUninstallCompleted(ext.id);
-  await ext.unload();
-  await completed;
-
-  Assert.equal(
-    getPrefValue(),
-    false,
-    "Open-view-on-focus mode should be reset after unloading the add-on"
-  );
-});
-
 // Tests the engagementTelemetry property.
 add_task(async function test_engagementTelemetry() {
   let getPrefValue = () => UrlbarPrefs.get("eventTelemetry.enabled");
@@ -1473,11 +1431,13 @@ add_task(async function test_engagementTelemetry() {
     isPrivileged: true,
     incognitoOverride: "spanning",
     useAddonManager: "temporary",
-    background() {
-      browser.urlbar.engagementTelemetry.set({ value: true });
+    async background() {
+      await browser.urlbar.engagementTelemetry.set({ value: true });
+      browser.test.sendMessage("ready");
     },
   });
   await ext.startup();
+  await ext.awaitMessage("ready");
 
   Assert.equal(
     getPrefValue(),

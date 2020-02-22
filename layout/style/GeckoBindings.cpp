@@ -23,14 +23,11 @@
 #include "nsDOMTokenList.h"
 #include "nsDeviceContext.h"
 #include "nsIContentInlines.h"
-#include "nsICrashReporter.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "nsILoadContext.h"
 #include "nsIFrame.h"
-#include "nsIMemoryReporter.h"
 #include "nsIMozBrowserFrame.h"
 #include "nsINode.h"
-#include "nsIPrincipal.h"
 #include "nsIURI.h"
 #include "nsFontMetrics.h"
 #include "nsHTMLStyleSheet.h"
@@ -1079,19 +1076,13 @@ void Gecko_FontWeight_SetFloat(FontWeight* aWeight, float aFloat) {
   *aWeight = FontWeight(aFloat);
 }
 
-void Gecko_SetCounterStyleToName(CounterStylePtr* aPtr, nsAtom* aName) {
-  RefPtr<nsAtom> name = already_AddRefed<nsAtom>(aName);
-  *aPtr = name.forget();
+void Gecko_CounterStyle_ToPtr(const StyleCounterStyle* aStyle,
+                              CounterStylePtr* aPtr) {
+  *aPtr = CounterStylePtr::FromStyle(*aStyle);
 }
 
-void Gecko_SetCounterStyleToSymbols(CounterStylePtr* aPtr, uint8_t aSymbolsType,
-                                    nsACString const* const* aSymbols,
-                                    uint32_t aSymbolsCount) {
-  nsTArray<nsString> symbols(aSymbolsCount);
-  for (uint32_t i = 0; i < aSymbolsCount; i++) {
-    symbols.AppendElement(NS_ConvertUTF8toUTF16(*aSymbols[i]));
-  }
-  *aPtr = new AnonymousCounterStyle(aSymbolsType, std::move(symbols));
+void Gecko_SetCounterStyleToNone(CounterStylePtr* aPtr) {
+  *aPtr = nsGkAtoms::none;
 }
 
 void Gecko_SetCounterStyleToString(CounterStylePtr* aPtr,
@@ -1176,23 +1167,6 @@ void Gecko_CopyCursorArrayFrom(nsStyleUI* aDest, const nsStyleUI* aSrc) {
   aDest->mCursorImages = aSrc->mCursorImages;
 }
 
-void Gecko_SetContentDataImageValue(nsStyleContentData* aContent,
-                                    const StyleComputedImageUrl* aUrl) {
-  MOZ_ASSERT(aContent && aUrl);
-
-  RefPtr<nsStyleImageRequest> req =
-      CreateStyleImageRequest(nsStyleImageRequest::Mode::Track, aUrl);
-  aContent->SetImageRequest(req.forget());
-}
-
-nsStyleContentData::CounterFunction* Gecko_SetCounterFunction(
-    nsStyleContentData* aContent, StyleContentType aType) {
-  auto counterFunc = MakeRefPtr<nsStyleContentData::CounterFunction>();
-  auto* ptr = counterFunc.get();
-  aContent->SetCounters(aType, counterFunc.forget());
-  return ptr;
-}
-
 const nsStyleImageRequest* Gecko_GetImageRequest(const nsStyleImage* aImage) {
   MOZ_ASSERT(aImage);
   return aImage->ImageRequest();
@@ -1246,22 +1220,6 @@ void Gecko_ResizeTArrayForStrings(nsTArray<nsString>* aArray,
 
 void Gecko_ResizeAtomArray(nsTArray<RefPtr<nsAtom>>* aArray, uint32_t aLength) {
   aArray->SetLength(aLength);
-}
-
-void Gecko_ClearAndResizeStyleContents(nsStyleContent* aContent,
-                                       uint32_t aHowMany) {
-  aContent->AllocateContents(aHowMany);
-}
-
-void Gecko_CopyStyleContentsFrom(nsStyleContent* aContent,
-                                 const nsStyleContent* aOther) {
-  uint32_t count = aOther->ContentCount();
-
-  aContent->AllocateContents(count);
-
-  for (uint32_t i = 0; i < count; ++i) {
-    aContent->ContentAt(i) = aOther->ContentAt(i);
-  }
 }
 
 void Gecko_EnsureImageLayersLength(nsStyleImageLayers* aLayers, size_t aLen,
@@ -1446,12 +1404,6 @@ void Gecko_nsIURI_Debug(nsIURI* aURI, nsCString* aOut) {
 // subclasses have the HasThreadSafeRefCnt bits.
 void Gecko_AddRefnsIURIArbitraryThread(nsIURI* aPtr) { NS_ADDREF(aPtr); }
 void Gecko_ReleasensIURIArbitraryThread(nsIURI* aPtr) { NS_RELEASE(aPtr); }
-void Gecko_AddRefnsIReferrerInfoArbitraryThread(nsIReferrerInfo* aPtr) {
-  NS_ADDREF(aPtr);
-}
-void Gecko_ReleasensIReferrerInfoArbitraryThread(nsIReferrerInfo* aPtr) {
-  NS_RELEASE(aPtr);
-}
 
 void Gecko_nsIReferrerInfo_Debug(nsIReferrerInfo* aReferrerInfo,
                                  nsCString* aOut) {
@@ -1676,14 +1628,15 @@ static already_AddRefed<StyleSheet> LoadImportSheet(
   nsCOMPtr<nsIURI> uri = aURL.GetURI();
   nsresult rv = uri ? NS_OK : NS_ERROR_FAILURE;
 
-  StyleSheet* previousFirstChild = aParent->GetFirstChild();
+  size_t previousSheetCount = aParent->ChildSheets().Length();
   if (NS_SUCCEEDED(rv)) {
+    // TODO(emilio): We should probably make LoadChildSheet return the
+    // stylesheet rather than the return code.
     rv = aLoader->LoadChildSheet(*aParent, aParentLoadData, uri, media,
                                  aReusableSheets);
   }
 
-  if (NS_FAILED(rv) || !aParent->GetFirstChild() ||
-      aParent->GetFirstChild() == previousFirstChild) {
+  if (NS_FAILED(rv) || previousSheetCount == aParent->ChildSheets().Length()) {
     // Servo and Gecko have different ideas of what a valid URL is, so we might
     // get in here with a URL string that NS_NewURI can't handle.  We may also
     // reach here via an import cycle.  For the import cycle case, we need some
@@ -1703,11 +1656,11 @@ static already_AddRefed<StyleSheet> LoadImportSheet(
         ReferrerInfo::CreateForExternalCSSResources(emptySheet);
     emptySheet->SetReferrerInfo(referrerInfo);
     emptySheet->SetComplete();
-    aParent->PrependStyleSheet(emptySheet);
+    aParent->AppendStyleSheet(*emptySheet);
     return emptySheet.forget();
   }
 
-  RefPtr<StyleSheet> sheet = static_cast<StyleSheet*>(aParent->GetFirstChild());
+  RefPtr<StyleSheet> sheet = aParent->ChildSheets().LastElement();
   return sheet.forget();
 }
 

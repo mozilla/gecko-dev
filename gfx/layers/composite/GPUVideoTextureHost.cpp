@@ -7,6 +7,7 @@
 #include "GPUVideoTextureHost.h"
 #include "mozilla/RemoteDecoderManagerParent.h"
 #include "ImageContainer.h"
+#include "mozilla/layers/ImageBridgeParent.h"
 #include "mozilla/layers/VideoBridgeParent.h"
 
 namespace mozilla {
@@ -36,8 +37,9 @@ TextureHost* GPUVideoTextureHost::EnsureWrappedTextureHost() {
   // then there might be two VideoBridgeParents (one within the GPU process,
   // one from RDD). We'll need to flag which one to use to lookup our
   // descriptor, or just try both.
+  auto& sd = static_cast<SurfaceDescriptorRemoteDecoder&>(mDescriptor);
   mWrappedTextureHost =
-      VideoBridgeParent::GetSingleton(mDescriptor.source())->LookupTexture(mDescriptor.handle());
+      VideoBridgeParent::GetSingleton(sd.source())->LookupTexture(sd.handle());
   return mWrappedTextureHost;
 }
 
@@ -135,13 +137,14 @@ uint32_t GPUVideoTextureHost::NumSubTextures() {
 
 void GPUVideoTextureHost::PushResourceUpdates(
     wr::TransactionBuilder& aResources, ResourceUpdateOp aOp,
-    const Range<wr::ImageKey>& aImageKeys, const wr::ExternalImageId& aExtID) {
+    const Range<wr::ImageKey>& aImageKeys, const wr::ExternalImageId& aExtID,
+    const bool aPreferCompositorSurface) {
   MOZ_ASSERT(EnsureWrappedTextureHost());
   if (!EnsureWrappedTextureHost()) {
     return;
   }
-  EnsureWrappedTextureHost()->PushResourceUpdates(aResources, aOp, aImageKeys,
-                                                  aExtID);
+  EnsureWrappedTextureHost()->PushResourceUpdates(
+      aResources, aOp, aImageKeys, aExtID, aPreferCompositorSurface);
 }
 
 void GPUVideoTextureHost::PushDisplayItems(

@@ -44,12 +44,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   this,
-  "isFxABadgeEnabled",
-  "browser.messaging-system.fxatoolbarbadge.enabled",
-  true
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
   "hasAccessedFxAPanel",
   "identity.fxaccounts.toolbar.accessed",
   false
@@ -120,7 +114,7 @@ const FRECENT_SITES_IGNORE_BLOCKED = false;
 const FRECENT_SITES_NUM_ITEMS = 25;
 const FRECENT_SITES_MIN_FRECENCY = 100;
 
-const CACHE_EXPIRATION = 60 * 1000;
+const CACHE_EXPIRATION = 5 * 60 * 1000;
 const jexlEvaluationCache = new Map();
 
 /**
@@ -513,7 +507,8 @@ const TargetingGetters = {
     return isWhatsNewPanelEnabled;
   },
   get isFxABadgeEnabled() {
-    return isFxABadgeEnabled;
+    // Requires cleanup and update of remote messages. See Bug 1601965.
+    return true;
   },
   get userPrefs() {
     return {
@@ -573,37 +568,32 @@ this.ASRouterTargeting = {
 
   ERROR_TYPES: {
     MALFORMED_EXPRESSION: "MALFORMED_EXPRESSION",
+    ATTRIBUTE_ERROR: "JEXL_ATTRIBUTE_GETTER_ERROR",
     OTHER_ERROR: "OTHER_ERROR",
   },
 
   // Combines the getter properties of two objects without evaluating them
-  combineContexts(contextA = {}, contextB = {}) {
-    const sameProperty = Object.keys(contextA).find(p =>
-      Object.keys(contextB).includes(p)
-    );
-    if (sameProperty) {
-      Cu.reportError(
-        `Property ${sameProperty} exists in both contexts and is overwritten.`
-      );
-    }
+  combineContexts(contextA = {}, contextB = {}, onError) {
+    return {
+      get: (obj, prop) => {
+        try {
+          return contextA[prop] || contextB[prop];
+        } catch (error) {
+          onError(this.ERROR_TYPES.ATTRIBUTE_ERROR, error, prop);
+        }
 
-    const context = {};
-    Object.defineProperties(
-      context,
-      Object.getOwnPropertyDescriptors(contextA)
-    );
-    Object.defineProperties(
-      context,
-      Object.getOwnPropertyDescriptors(contextB)
-    );
-
-    return context;
+        return null;
+      },
+    };
   },
 
-  isMatch(filterExpression, customContext) {
+  isMatch(filterExpression, customContext, onError) {
     return FilterExpressions.eval(
       filterExpression,
-      this.combineContexts(this.Environment, customContext)
+      new Proxy(
+        {},
+        this.combineContexts(customContext, this.Environment, onError)
+      )
     );
   },
 
@@ -678,7 +668,7 @@ this.ASRouterTargeting = {
           return result.value;
         }
       }
-      result = await this.isMatch(message.targeting, context);
+      result = await this.isMatch(message.targeting, context, onError);
       if (shouldCache) {
         jexlEvaluationCache.set(message.targeting, {
           timestamp: Date.now(),
@@ -698,11 +688,6 @@ this.ASRouterTargeting = {
     return result;
   },
 
-  _getCombinedContext(trigger, context) {
-    const triggerContext = trigger ? trigger.context : {};
-    return this.combineContexts(context, triggerContext);
-  },
-
   _isMessageMatch(message, trigger, context, onError, shouldCache = false) {
     return (
       message &&
@@ -719,13 +704,14 @@ this.ASRouterTargeting = {
    * findMatchingMessage - Given an array of messages, returns one message
    *                       whos targeting expression evaluates to true
    *
-   * @param {Array} messages An array of AS router messages
+   * @param {Array<Message>} messages An array of AS router messages
    * @param {trigger} string A trigger expression if a message for that trigger is desired
    * @param {obj|null} context A FilterExpression context. Defaults to TargetingGetters above.
    * @param {func} onError A function to handle errors (takes two params; error, message)
    * @param {func} ordered An optional param when true sort message by order specified in message
    * @param {boolean} shouldCache Should the JEXL evaluations be cached and reused.
-   * @returns {obj} an AS router message
+   * @param {boolean} returnAll Should we return all matching messages, not just the first one found.
+   * @returns {obj|Array<Message>} If returnAll is false, a single message. If returnAll is true, an array of messages.
    */
   async findMatchingMessage({
     messages,
@@ -734,56 +720,35 @@ this.ASRouterTargeting = {
     onError,
     ordered = false,
     shouldCache = false,
+    returnAll = false,
   }) {
     const sortedMessages = getSortedMessages(messages, { ordered });
-    const combinedContext = this._getCombinedContext(trigger, context);
+    const combinedContext = new Proxy(
+      {},
+      this.combineContexts(trigger && trigger.context, context, onError)
+    );
+    const matching = returnAll ? [] : null;
+
+    const isMatch = candidate =>
+      this._isMessageMatch(
+        candidate,
+        trigger,
+        combinedContext,
+        onError,
+        shouldCache
+      );
 
     for (const candidate of sortedMessages) {
-      if (
-        await this._isMessageMatch(
-          candidate,
-          trigger,
-          combinedContext,
-          onError,
-          shouldCache
-        )
-      ) {
-        return candidate;
+      if (await isMatch(candidate)) {
+        // If not returnAll, we should return the first message we find that matches.
+        if (!returnAll) {
+          return candidate;
+        }
+
+        matching.push(candidate);
       }
     }
-    return null;
-  },
-
-  /**
-   * findAllMatchingMessages - Given an array of messages, returns an array of
-   *                           messages that that match the targeting.
-   *
-   * @param {Array} messages An array of AS router messages.
-   * @param {trigger} string A trigger expression if a message for that trigger is desired.
-   * @param {obj|null} context A FilterExpression context. Defaults to TargetingGetters above.
-   * @param {func} onError A function to handle errors (takes two params; error, message)
-   * @param {func} ordered An optional param when true sort message by order specified in message
-   * @returns {Array} An array of AS router messages that match.
-   */
-  async findAllMatchingMessages({
-    messages,
-    trigger,
-    context,
-    onError,
-    ordered = false,
-  }) {
-    const sortedMessages = getSortedMessages(messages, { ordered });
-    const combinedContext = this._getCombinedContext(trigger, context);
-    const matchingMessages = [];
-
-    for (const candidate of sortedMessages) {
-      if (
-        await this._isMessageMatch(candidate, trigger, combinedContext, onError)
-      ) {
-        matchingMessages.push(candidate);
-      }
-    }
-    return matchingMessages;
+    return matching;
   },
 };
 

@@ -18,6 +18,7 @@
 #include "ProgressTracker.h"
 #include "SurfaceCache.h"
 
+class imgRequest;
 class nsIRequest;
 class nsIInputStream;
 
@@ -74,13 +75,14 @@ enum class SurfaceMemoryCounterType { NORMAL, COMPOSITING, COMPOSITING_PREV };
 struct SurfaceMemoryCounter {
   SurfaceMemoryCounter(
       const SurfaceKey& aKey, bool aIsLocked, bool aCannotSubstitute,
-      bool aIsFactor2,
+      bool aIsFactor2, bool aFinished,
       SurfaceMemoryCounterType aType = SurfaceMemoryCounterType::NORMAL)
       : mKey(aKey),
         mType(aType),
         mIsLocked(aIsLocked),
         mCannotSubstitute(aCannotSubstitute),
-        mIsFactor2(aIsFactor2) {}
+        mIsFactor2(aIsFactor2),
+        mFinished(aFinished) {}
 
   const SurfaceKey& Key() const { return mKey; }
   MemoryCounter& Values() { return mValues; }
@@ -89,6 +91,7 @@ struct SurfaceMemoryCounter {
   bool IsLocked() const { return mIsLocked; }
   bool CannotSubstitute() const { return mCannotSubstitute; }
   bool IsFactor2() const { return mIsFactor2; }
+  bool IsFinished() const { return mFinished; }
 
  private:
   const SurfaceKey mKey;
@@ -97,24 +100,49 @@ struct SurfaceMemoryCounter {
   const bool mIsLocked;
   const bool mCannotSubstitute;
   const bool mIsFactor2;
+  const bool mFinished;
 };
 
 struct ImageMemoryCounter {
-  ImageMemoryCounter(Image* aImage, SizeOfState& aState, bool aIsUsed);
+  ImageMemoryCounter(imgRequest* aRequest, SizeOfState& aState, bool aIsUsed);
+  ImageMemoryCounter(imgRequest* aRequest, Image* aImage, SizeOfState& aState,
+                     bool aIsUsed);
 
   nsCString& URI() { return mURI; }
   const nsCString& URI() const { return mURI; }
   const nsTArray<SurfaceMemoryCounter>& Surfaces() const { return mSurfaces; }
   const gfx::IntSize IntrinsicSize() const { return mIntrinsicSize; }
   const MemoryCounter& Values() const { return mValues; }
+  uint32_t Progress() const { return mProgress; }
   uint16_t Type() const { return mType; }
   bool IsUsed() const { return mIsUsed; }
+  bool HasError() const { return mHasError; }
+  bool IsValidating() const { return mValidating; }
 
   bool IsNotable() const {
+    // Errors or requests without images are always notable.
+    if (mHasError || mProgress == UINT32_MAX || mProgress & FLAG_HAS_ERROR ||
+        mType == imgIContainer::TYPE_REQUEST) {
+      return true;
+    }
+
+    // Sufficiently large images are notable.
     const size_t NotableThreshold = 16 * 1024;
     size_t total =
         mValues.Source() + mValues.DecodedHeap() + mValues.DecodedNonHeap();
-    return total >= NotableThreshold;
+    if (total >= NotableThreshold) {
+      return true;
+    }
+
+    // Incomplete images are always notable as well; the odds of capturing
+    // mid-decode should be fairly low.
+    for (const auto& surface : mSurfaces) {
+      if (!surface.IsFinished()) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
  private:
@@ -122,8 +150,11 @@ struct ImageMemoryCounter {
   nsTArray<SurfaceMemoryCounter> mSurfaces;
   gfx::IntSize mIntrinsicSize;
   MemoryCounter mValues;
+  uint32_t mProgress;
   uint16_t mType;
   const bool mIsUsed;
+  bool mHasError;
+  bool mValidating;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

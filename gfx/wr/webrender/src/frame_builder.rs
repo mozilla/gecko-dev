@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use api::{ColorF, DebugFlags, DocumentLayer, FontRenderMode, PremultipliedColorF};
-use api::{PipelineId};
 use api::units::*;
 use crate::batch::{BatchBuilder, AlphaBatchBuilder, AlphaBatchContainer};
 use crate::clip::{ClipStore, ClipChainStack};
@@ -26,10 +25,9 @@ use crate::render_task_graph::{RenderTaskId, RenderTaskGraph, RenderTaskGraphCou
 use crate::render_task_graph::{RenderPassKind, RenderPass};
 use crate::render_task::{RenderTask, RenderTaskLocation, RenderTaskKind};
 use crate::resource_cache::{ResourceCache};
-use crate::scene::{BuiltScene, ScenePipeline, SceneProperties};
+use crate::scene::{BuiltScene, SceneProperties};
 use crate::segment::SegmentBuilder;
 use std::{f32, mem};
-use std::sync::Arc;
 use crate::util::MaxRect;
 
 
@@ -137,7 +135,6 @@ pub struct FrameVisibilityState<'a> {
 pub struct FrameBuildingContext<'a> {
     pub global_device_pixel_scale: DevicePixelScale,
     pub scene_properties: &'a SceneProperties,
-    pub pipelines: &'a FastHashMap<PipelineId, Arc<ScenePipeline>>,
     pub global_screen_world_rect: WorldRect,
     pub clip_scroll_tree: &'a ClipScrollTree,
     pub max_local_clip: LayoutRect,
@@ -259,7 +256,6 @@ impl FrameBuilder {
         let frame_context = FrameBuildingContext {
             global_device_pixel_scale,
             scene_properties,
-            pipelines: &scene.src.pipelines,
             global_screen_world_rect,
             clip_scroll_tree: &scene.clip_scroll_tree,
             max_local_clip: LayoutRect::new(
@@ -363,10 +359,10 @@ impl FrameBuilder {
             // the end of each frame. However, if we're in native compositor mode,
             // we need to manually clean up any native compositor surfaces that were
             // allocated by these tiles.
-            for (_, cache_state) in visibility_state.retained_tiles.caches.drain() {
-                visibility_state.composite_state.destroy_native_surfaces(
-                    cache_state.tiles.values(),
-                );
+            for (_, mut cache_state) in visibility_state.retained_tiles.caches.drain() {
+                if let Some(native_surface_id) = cache_state.native_surface_id.take() {
+                    visibility_state.resource_cache.destroy_compositor_surface(native_surface_id);
+                }
             }
         }
 
@@ -997,5 +993,27 @@ impl Frame {
     // texture cache, and hasn't been drawn yet.
     pub fn must_be_drawn(&self) -> bool {
         self.has_texture_cache_tasks && !self.has_been_rendered
+    }
+
+    // Returns true if this frame doesn't alter what is on screen currently.
+    pub fn is_nop(&self) -> bool {
+        // If picture caching is disabled, we don't have enough information
+        // to know if this frame is a nop, so it gets drawn unconditionally.
+        if !self.composite_state.picture_caching_is_enabled {
+            return false;
+        }
+
+        // When picture caching is enabled, the first (main framebuffer) pass
+        // consists of compositing tiles only (whether via the simple compositor
+        // or the native OS compositor). If there are no other passes, that
+        // implies that none of the picture cache tiles were updated, and thus
+        // the frame content must be exactly the same as last frame. If this is
+        // true, drawing this frame is a no-op and can be skipped.
+
+        if self.passes.len() > 1 {
+            return false;
+        }
+
+        true
     }
 }

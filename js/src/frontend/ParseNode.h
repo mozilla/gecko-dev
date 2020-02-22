@@ -10,9 +10,9 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Variant.h"
 
+#include "frontend/Stencil.h"
 #include "frontend/Token.h"
 #include "util/Text.h"
-#include "vm/BigIntType.h"
 #include "vm/BytecodeUtil.h"
 #include "vm/JSContext.h"
 #include "vm/Printer.h"
@@ -45,6 +45,7 @@ namespace js {
 namespace frontend {
 
 class ParseContext;
+struct ParseInfo;
 class ParserSharedBase;
 class FullParseHandler;
 class FunctionBox;
@@ -586,7 +587,7 @@ inline bool IsTypeofKind(ParseNodeKind kind) {
 FOR_EACH_PARSENODE_SUBCLASS(DECLARE_CLASS)
 #undef DECLARE_CLASS
 
-enum class FunctionSyntaxKind {
+enum class FunctionSyntaxKind : uint8_t {
   // A non-arrow function expression.
   Expression,
 
@@ -1524,65 +1525,27 @@ class NumericLiteral : public ParseNode {
   void setDecimalPoint(DecimalPoint d) { decimalPoint_ = d; }
 };
 
-// This owns a set of characters guaranteed to parse into a BigInt via
-// ParseBigIntLiteral. Used to avoid allocating the BigInt on the
-// GC heap during parsing.
-class BigIntCreationData {
-  UniqueTwoByteChars buf_;
-  size_t length_ = 0;
-
- public:
-  BigIntCreationData() = default;
-
-  MOZ_MUST_USE bool init(JSContext* cx, const Vector<char16_t, 32>& buf) {
-#ifdef DEBUG
-    // Assert we have no separators; if we have a separator then the algorithm
-    // used in BigInt::literalIsZero will be incorrect.
-    for (char16_t c : buf) {
-      MOZ_ASSERT(c != '_');
-    }
-#endif
-    length_ = buf.length();
-    buf_ = js::DuplicateString(cx, buf.begin(), buf.length());
-    return buf_ != nullptr;
-  }
-
-  BigInt* createBigInt(JSContext* cx) {
-    mozilla::Range<const char16_t> source(buf_.get(), length_);
-
-    return js::ParseBigIntLiteral(cx, source);
-  }
-
-  bool isZero() {
-    mozilla::Range<const char16_t> source(buf_.get(), length_);
-    return js::BigIntLiteralIsZero(source);
-  }
-};
-
 class BigIntLiteral : public ParseNode {
-  mozilla::Variant<mozilla::Nothing, BigIntCreationData, BigIntBox*> data_;
+  // BigIntLiterals hold onto a ParseInfo reference to avoid
+  // having to plumb ParseInfo through FoldConstants.
+  struct Deferred {
+    ParseInfo& parseInfo;
+    BigIntIndex index;
+  };
+  mozilla::Variant<Deferred, BigIntBox*> data_;
 
   BigIntBox* box() const { return data_.as<BigIntBox*>(); }
 
  public:
   BigIntLiteral(BigIntBox* bibox, const TokenPos& pos)
+      : ParseNode(ParseNodeKind::BigIntExpr, pos), data_(bibox) {}
+
+  explicit BigIntLiteral(BigIntIndex index, ParseInfo& parseInfo,
+                         const TokenPos& pos)
       : ParseNode(ParseNodeKind::BigIntExpr, pos),
-        data_(mozilla::AsVariant(bibox)) {}
+        data_(Deferred{parseInfo, index}) {}
 
-  // Used to allocate a BigIntCreationData in two phase initialization to enusre
-  // clear ownership of data in an allocation failure.
-  explicit BigIntLiteral(const TokenPos& pos)
-      : ParseNode(ParseNodeKind::BigIntExpr, pos),
-        data_(AsVariant(mozilla::Nothing())) {}
-
-  void init(BigIntCreationData data) {
-    data_ = mozilla::AsVariant(std::move(data));
-  }
-
-  bool isDeferred() {
-    MOZ_ASSERT(!data_.is<mozilla::Nothing>());
-    return data_.is<BigIntCreationData>();
-  }
+  bool isDeferred() { return data_.is<Deferred>(); }
 
   static bool test(const ParseNode& node) {
     return node.isKind(ParseNodeKind::BigIntExpr);
@@ -1599,22 +1562,16 @@ class BigIntLiteral : public ParseNode {
   void dumpImpl(GenericPrinter& out, int indent);
 #endif
 
+  BigIntIndex index() { return data_.as<Deferred>().index; }
+
   // Get the contained BigInt value: Assumes it was created with one,
   // and cannot be used when deferred allocation mode is enabled.
   BigInt* value();
 
   // Get the contained BigIntValue, or parse it from the creation data
   // Can be used when deferred allocation mode is enabled.
-  BigInt* getOrCreateBigInt(JSContext* cx) {
-    if (data_.is<BigIntBox*>()) {
-      return value();
-    }
-    return data_.as<BigIntCreationData>().createBigInt(cx);
-  }
+  BigInt* getOrCreate(JSContext* cx);
 
-  BigIntCreationData creationData() {
-    return std::move(data_.as<BigIntCreationData>());
-  }
   bool isZero();
 };
 
@@ -1892,49 +1849,21 @@ class BooleanLiteral : public NullaryNode {
   }
 };
 
-// This owns a set of characters, previously syntax checked as a RegExp. Used
-// to avoid allocating the RegExp on the GC heap during parsing.
-class RegExpCreationData {
-  UniquePtr<char16_t[], JS::FreePolicy> buf_;
-  size_t length_ = 0;
-  JS::RegExpFlags flags_;
-
- public:
-  RegExpCreationData() = default;
-
-  MOZ_MUST_USE bool init(JSContext* cx, mozilla::Range<const char16_t> range,
-                         JS::RegExpFlags flags) {
-    length_ = range.length();
-    buf_ = js::DuplicateString(cx, range.begin().get(), range.length());
-    if (!buf_) {
-      return false;
-    }
-    flags_ = flags;
-    return true;
-  }
-
-  RegExpObject* createRegExp(JSContext* cx) const;
-};
-
 class RegExpLiteral : public ParseNode {
-  mozilla::Variant<mozilla::Nothing, ObjectBox*, RegExpCreationData> data_;
+  mozilla::Variant<ObjectBox*, RegExpIndex> data_;
 
  public:
   RegExpLiteral(ObjectBox* reobj, const TokenPos& pos)
       : ParseNode(ParseNodeKind::RegExpExpr, pos), data_(reobj) {}
 
-  explicit RegExpLiteral(const TokenPos& pos)
-      : ParseNode(ParseNodeKind::RegExpExpr, pos), data_(mozilla::Nothing()) {}
+  RegExpLiteral(RegExpIndex dataIndex, const TokenPos& pos)
+      : ParseNode(ParseNodeKind::RegExpExpr, pos), data_(dataIndex) {}
 
-  void init(RegExpCreationData data) {
-    data_ = mozilla::AsVariant(std::move(data));
-  }
-
-  bool isDeferred() const { return data_.is<RegExpCreationData>(); }
+  bool isDeferred() const { return data_.is<RegExpIndex>(); }
 
   ObjectBox* objbox() const { return data_.as<ObjectBox*>(); }
 
-  RegExpObject* getOrCreate(JSContext* cx) const;
+  RegExpObject* getOrCreate(JSContext* cx, ParseInfo& parseInfo) const;
 
 #ifdef DEBUG
   void dumpImpl(GenericPrinter& out, int indent);
@@ -1951,7 +1880,7 @@ class RegExpLiteral : public ParseNode {
     return true;
   }
 
-  RegExpCreationData& creationData() { return data_.as<RegExpCreationData>(); }
+  RegExpIndex index() { return data_.as<RegExpIndex>(); }
 };
 
 class PropertyAccess : public BinaryNode {

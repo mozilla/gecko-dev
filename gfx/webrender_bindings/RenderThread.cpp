@@ -45,6 +45,8 @@ static StaticRefPtr<RenderThread> sRenderThread;
 
 RenderThread::RenderThread(base::Thread* aThread)
     : mThread(aThread),
+      mThreadPool(false),
+      mThreadPoolLP(true),
       mWindowInfos("RenderThread.mWindowInfos"),
       mRenderTextureMapLock("RenderThread.mRenderTextureMapLock"),
       mHasShutdown(false),
@@ -118,6 +120,7 @@ void RenderThread::ShutDownTask(layers::SynchronousTask* aTask) {
 
   // Let go of our handle to the (internally ref-counted) thread pool.
   mThreadPool.Release();
+  mThreadPoolLP.Release();
 
   // Releasing on the render thread will allow us to avoid dispatching to remove
   // remaining textures from the texture map.
@@ -125,6 +128,7 @@ void RenderThread::ShutDownTask(layers::SynchronousTask* aTask) {
 
   ClearAllBlobImageResources();
   ClearSharedGL();
+  ClearSharedSurfacePool();
 }
 
 // static
@@ -846,9 +850,25 @@ gl::GLContext* RenderThread::SharedGL() {
 
 void RenderThread::ClearSharedGL() {
   MOZ_ASSERT(IsInRenderThread());
+  if (mSurfacePool) {
+    mSurfacePool->DestroyGLResourcesForContext(mSharedGL);
+  }
   mShaders = nullptr;
   mSharedGL = nullptr;
 }
+
+RefPtr<layers::SurfacePool> RenderThread::SharedSurfacePool() {
+#ifdef XP_MACOSX
+  if (!mSurfacePool) {
+    size_t poolSizeLimit =
+        StaticPrefs::gfx_webrender_compositor_surface_pool_size_AtStartup();
+    mSurfacePool = layers::SurfacePool::Create(poolSizeLimit);
+  }
+#endif
+  return mSurfacePool;
+}
+
+void RenderThread::ClearSharedSurfacePool() { mSurfacePool = nullptr; }
 
 WebRenderShaders::WebRenderShaders(gl::GLContext* gl,
                                    WebRenderProgramCache* programCache) {
@@ -867,8 +887,8 @@ WebRenderPipelineInfo::~WebRenderPipelineInfo() {
   wr_pipeline_info_delete(mPipelineInfo);
 }
 
-WebRenderThreadPool::WebRenderThreadPool() {
-  mThreadPool = wr_thread_pool_new();
+WebRenderThreadPool::WebRenderThreadPool(bool low_priority) {
+  mThreadPool = wr_thread_pool_new(low_priority);
 }
 
 WebRenderThreadPool::~WebRenderThreadPool() { Release(); }

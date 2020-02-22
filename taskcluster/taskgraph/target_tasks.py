@@ -373,6 +373,12 @@ def target_tasks_push_desktop(full_task_graph, parameters, graph_config):
         if task.attributes.get('shipping_product') == parameters['release_product'] and \
                 task.attributes.get('shipping_phase') == 'push':
             return True
+        # XXX: Bug 1612540 - include beetmover jobs for publishing geckoview, along
+        # with the regular Firefox (not Devedition!) releases so that they are at sync
+        if (task.attributes.get('shipping_product') == 'fennec' and
+            task.kind in ('beetmover-geckoview', 'upload-symbols') and
+                parameters['release_product'] == 'firefox'):
+            return True
 
     return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
 
@@ -524,10 +530,21 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
         if attributes.get('unittest_suite') != 'raptor':
             return False
         try_name = attributes.get('raptor_try_name')
+
         # Run chrome and chromium on all platforms available
         if '-chrome' in try_name:
             return True
         if '-chromium' in try_name:
+            return True
+
+        # Run raptor scn-power-idle and speedometer for fenix and fennec68
+        if 'raptor-scn-power-idle' in try_name \
+                and 'pgo' in platform \
+                and ('-fenix' in try_name or '-fennec68' in try_name):
+            return True
+        if 'raptor-speedometer' in try_name \
+                and 'pgo' in platform \
+                and ('-fenix' in try_name or '-fennec68' in try_name):
             return True
 
         # Run the following tests on android geckoview
@@ -841,4 +858,14 @@ def target_tasks_condprof(full_task_graph, parameters, graph_config):
     """
     for name, task in full_task_graph.tasks.iteritems():
         if task.kind == "condprof":
+            yield name
+
+
+@_target_task('system_symbols')
+def target_tasks_system_symbols(full_task_graph, parameters, graph_config):
+    """
+    Select tasks for uploading system-symbols.
+    """
+    for name, task in full_task_graph.tasks.iteritems():
+        if task.kind == "system-symbols-upload":
             yield name

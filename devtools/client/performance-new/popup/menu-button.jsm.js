@@ -32,17 +32,20 @@ function requireLazy(callback) {
   };
 }
 
+// Provide an exports object for the JSM to be properly read by TypeScript.
+/** @type {any} */ (this).exports = {};
+
 const lazyServices = requireLazy(() =>
   /** @type {import("resource://gre/modules/Services.jsm")} */
   (ChromeUtils.import("resource://gre/modules/Services.jsm"))
 );
 const lazyCustomizableUI = requireLazy(() =>
   /** @type {import("resource:///modules/CustomizableUI.jsm")} */
-  ChromeUtils.import("resource:///modules/CustomizableUI.jsm")
+  (ChromeUtils.import("resource:///modules/CustomizableUI.jsm"))
 );
 const lazyCustomizableWidgets = requireLazy(() =>
   /** @type {import("resource:///modules/CustomizableWidgets.jsm")} */
-  ChromeUtils.import("resource:///modules/CustomizableWidgets.jsm")
+  (ChromeUtils.import("resource:///modules/CustomizableWidgets.jsm"))
 );
 /** @type {PerformancePref["PopupEnabled"]} */
 const BUTTON_ENABLED_PREF = "devtools.performance.popup.enabled";
@@ -72,7 +75,7 @@ function setMenuItemChecked(document, isChecked) {
 /**
  * Toggle the menu button, and initialize the widget if needed.
  *
- * @param {object} document - The browser's document.
+ * @param {ChromeDocument} document - The browser's document.
  * @return {void}
  */
 function toggle(document) {
@@ -92,7 +95,7 @@ function toggle(document) {
     // The widgets are not being properly destroyed. This is a workaround
     // until Bug 1552565 lands.
     const element = document.getElementById("PanelUI-profiler");
-    delete element._addedEventListeners;
+    delete /** @type {any} */ (element)._addedEventListeners;
   }
 }
 
@@ -180,6 +183,22 @@ function initialize() {
           iframe.style.height = `${Math.min(600, height)}px`;
         };
 
+        // Tell the iframe whether we're in dark mode or not. This approach
+        // unfortunately has two flaws. First, since this is a boolean setting,
+        // we ignore any theme information and just flip on our preset dark mode
+        // if the theme is dark enough. It might look out of place depending on
+        // the system or Firefox theme in use. Second, we won't detect all dark
+        // mode cases here. If the user is using the default Firefox theme, which
+        // normally adjusts to system-themes, we'll only be able to detect dark
+        // mode on Windows and Macintosh. In Linux, instead of having a global
+        // dark mode setting, we use GTK-theme colors directly for theming, and
+        // those won't be detected here. Similarly, if a Windows user is not using
+        // the particular dark mode system setting, but instead using a darker
+        // system theme, then that will also not be detected here.
+        contentWindow.gIsDarkMode = document.documentElement.hasAttribute(
+          "lwt-popup-brighttext"
+        );
+
         // The popup has an annoying rendering "blip" when first rendering the react
         // components. This adds a blocker until the content is ready to show.
         event.detail.addBlocker(
@@ -242,4 +261,8 @@ function initialize() {
 
 const ProfilerMenuButton = { toggle, initialize, isEnabled };
 
-var EXPORTED_SYMBOLS = ["ProfilerMenuButton"];
+exports.ProfilerMenuButton = ProfilerMenuButton;
+
+// Object.keys() confuses the linting which expects a static array expression.
+// eslint-disable-next-line
+var EXPORTED_SYMBOLS = Object.keys(exports);

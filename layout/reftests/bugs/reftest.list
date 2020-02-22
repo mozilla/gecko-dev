@@ -293,7 +293,7 @@ fuzzy-if(skiaContent,0-1,0-5) == 255820-1.html 255820-1-ref.html
 == 260406-1.html 260406-1-ref.html
 == chrome://reftest/content/bugs/261826-1.xhtml chrome://reftest/content/bugs/261826-1-ref.xhtml
 == 262151-1.html 262151-1-ref.html
-fuzzy-if(skiaContent,0-1,0-5) == 262998-1.html 262998-1-ref.html
+fuzzy-if(skiaContent,0-1,0-5) fails-if(browserIsFission) == 262998-1.html 262998-1-ref.html
 == 267353-1.html 267353-1-ref.html
 == 269908-1.html 269908-1-ref.html
 == 269908-2.html 269908-2-ref.html
@@ -342,7 +342,7 @@ fails-if(Android) != 301726-2.html 301726-2-ref.html
 == 306630-1.html 306630-1-ref.html
 == 306660-1.html 306660-1-ref.html
 == 306660-2.html 306660-2-ref.html
-== 306660-3.html 306660-3-ref.html
+skip-if(browserIsFission) == 306660-3.html 306660-3-ref.html
 == 307076-1.html 307076-1-ref.html
 == 307102-1.html 307102-1-ref.html
 == 307102-2.html 307102-2-ref.html
@@ -997,7 +997,7 @@ fuzzy-if(Android,0-11,0-17) fuzzy-if(webrender,0-1,0-10) == 413361-1.html 413361
 == 421436-1a.html 421436-1-ref.html
 == 421436-1b.html 421436-1-ref.html
 fuzzy-if(skiaContent,0-1,0-40) == 421632-1.html 421632-1-ref.html
-asserts(1-1) != 421710-1.html about:blank # Bug 1574046
+!= 421710-1.html about:blank
 fails-if(Android) fuzzy-if(webrender,63-64,1024-1024) fails-if(usesRepeatResampling&&!(webrender&&winWidget)) == 421885-1.xml 421885-1-ref.xml
 == 421955-1.html 421955-1-ref.html
 == 422249-1.html 422249-1-ref.html
@@ -1234,7 +1234,7 @@ fuzzy-if(webrender,16-16,3392-4020) == chrome://reftest/content/bugs/463217-1.xh
 == 472769-3.html 472769-3-ref.html
 == chrome://reftest/content/bugs/473847-1.xhtml chrome://reftest/content/bugs/473847-1-ref.xhtml
 == 474417-1.html 474417-1-ref.html
-fuzzy-if(skiaContent,0-1,0-5) == 474472-1.html 474472-1-ref.html
+fuzzy-if(skiaContent,0-1,0-5) fails-if(browserIsFission) == 474472-1.html 474472-1-ref.html
 == 475986-1a.html 475986-1-ref.html
 == 475986-1b.html 475986-1-ref.html
 == 475986-1c.html 475986-1-ref.html
@@ -1516,12 +1516,6 @@ fuzzy-if(Android,0-1,0-1) needs-focus == 568441.html 568441-ref.html
 == 571281-1a.html 571281-1-ref.html
 == 571281-1b.html 571281-1-ref.html
 == 571281-1c.html 571281-1-ref.html
-# Bug 1423383: The three tests for bug 571281 are duplicated for testing
-# while layout.css.column-span.enabled is disabled. Remove them once the
-# pref is default on.
-pref(layout.css.column-span.enabled,true) == 571281-1a.html 571281-1-ref.html
-pref(layout.css.column-span.enabled,true) == 571281-1b.html 571281-1-ref.html
-pref(layout.css.column-span.enabled,true) == 571281-1c.html 571281-1-ref.html
 == 571347-1a.html 571347-1-ref.html
 == 571347-1b.html 571347-1-ref.html
 == 571347-2a.html 571347-2-ref.html
@@ -1582,8 +1576,12 @@ random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == 600974-2.html 600974-1-r
 random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == 600974-3.html 600974-1-ref.html # Bug 1392106
 == 602200-1.html 602200-1-ref.html
 == 602200-2.html 602200-2-ref.html
-# Canvas with a fractional margin does not snap properly; see bug 1580534
+# Canvas with a fractional margin and translate snaps differently; non-WebRender
+# accepts a kludge for performance reasons, while WebRender is able to create
+# the idealized rendering. As such we assume we fail the old test, and pass the
+# new test. See bug 1580534 for more details.
 fuzzy-if(Android,0-8,0-20) fails-if(webrender) == 602200-3.html 602200-3-ref.html
+fails-if(!webrender) == 1580534.html 1580534-ref.html
 == 602200-4.html 602200-4-ref.html
 == 603423-1.html 603423-1-ref.html
 == 604737.html 604737-ref.html
@@ -1738,14 +1736,14 @@ fuzzy-if(Android,0-4,0-400) == 815593-1.html 815593-1-ref.html
 == 816876-2b.xhtml 816876-2-ref.xhtml
 fuzzy-if(skiaContent,0-1,0-5) == 816948-1.html 816948-1-ref.html
 == 817019-1.html about:blank
-fuzzy-if(skiaContent,0-1,0-5) == 818276-1.html 818276-1-ref.html
+fuzzy-if(skiaContent,0-1,0-5) fails-if(browserIsFission) == 818276-1.html 818276-1-ref.html
 fuzzy-if(asyncPan,0-190,0-510) fuzzy-if(asyncPan&&!layersGPUAccelerated,0-102,0-510) random-if(/^Windows\x20NT\x206\.1/.test(http.oscpu)) == 825999.html 825999-ref.html # Bug 1392106
 == 827577-1a.html 827577-1-ref.html
 == 827577-1b.html 827577-1-ref.html
 == 827799-1.html about:blank
 == 829958.html 829958-ref.html
 fuzzy-if(webrender&&gtkWidget,0-2,0-152400) == 836844-1.html 836844-1-ref.html
-== 841192-1.html 841192-1-ref.html
+fails-if(browserIsFission) == 841192-1.html 841192-1-ref.html
 == 844178.html 844178-ref.html
 fuzzy-if(OSX,0-1,0-364) fuzzy-if(skiaContent,0-1,0-320) == 846144-1.html 846144-1-ref.html
 == 847850-1.html 847850-1-ref.html

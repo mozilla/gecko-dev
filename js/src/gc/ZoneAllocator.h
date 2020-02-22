@@ -78,7 +78,7 @@ class ZoneAllocator : public JS::shadow::Zone,
     // We don't currently check GC triggers here.
 
 #ifdef DEBUG
-    mallocTracker.trackMemory(cell, nbytes, use);
+    mallocTracker.trackGCMemory(cell, nbytes, use);
 #endif
   }
 
@@ -91,49 +91,56 @@ class ZoneAllocator : public JS::shadow::Zone,
     mallocHeapSize.removeBytes(nbytes, wasSwept);
 
 #ifdef DEBUG
-    mallocTracker.untrackMemory(cell, nbytes, use);
+    mallocTracker.untrackGCMemory(cell, nbytes, use);
 #endif
   }
 
   void swapCellMemory(js::gc::Cell* a, js::gc::Cell* b, js::MemoryUse use) {
 #ifdef DEBUG
-    mallocTracker.swapMemory(a, b, use);
+    mallocTracker.swapGCMemory(a, b, use);
 #endif
   }
 
+  void registerNonGCMemory(void* mem, MemoryUse use) {
 #ifdef DEBUG
-  void registerPolicy(js::ZoneAllocPolicy* policy) {
-    return mallocTracker.registerPolicy(policy);
-  }
-  void unregisterPolicy(js::ZoneAllocPolicy* policy) {
-    return mallocTracker.unregisterPolicy(policy);
-  }
-  void movePolicy(js::ZoneAllocPolicy* dst, js::ZoneAllocPolicy* src) {
-    return mallocTracker.movePolicy(dst, src);
-  }
+    return mallocTracker.registerNonGCMemory(mem, use);
 #endif
+  }
+  void unregisterNonGCMemory(void* mem, MemoryUse use) {
+#ifdef DEBUG
+    return mallocTracker.unregisterNonGCMemory(mem, use);
+#endif
+  }
+  void moveOtherMemory(void* dst, void* src, MemoryUse use) {
+#ifdef DEBUG
+    return mallocTracker.moveNonGCMemory(dst, src, use);
+#endif
+  }
 
-  void incPolicyMemory(js::ZoneAllocPolicy* policy, size_t nbytes) {
+  void incNonGCMemory(void* mem, size_t nbytes, MemoryUse use) {
     MOZ_ASSERT(nbytes);
     mallocHeapSize.addBytes(nbytes);
 
 #ifdef DEBUG
-    mallocTracker.incPolicyMemory(policy, nbytes);
+    mallocTracker.incNonGCMemory(mem, nbytes, use);
 #endif
 
     maybeMallocTriggerZoneGC();
   }
-  void decPolicyMemory(js::ZoneAllocPolicy* policy, size_t nbytes,
-                       bool wasSwept) {
+  void decNonGCMemory(void* mem, size_t nbytes, MemoryUse use, bool wasSwept) {
     MOZ_ASSERT(nbytes);
     MOZ_ASSERT_IF(CurrentThreadIsGCSweeping(), wasSwept);
 
     mallocHeapSize.removeBytes(nbytes, wasSwept);
 
 #ifdef DEBUG
-    mallocTracker.decPolicyMemory(policy, nbytes);
+    mallocTracker.decNonGCMemory(mem, nbytes, use);
 #endif
   }
+
+  // Account for allocations that may be referenced by more than one GC thing.
+  bool addSharedMemory(void* mem, size_t nbytes, MemoryUse use);
+  void removeSharedMemory(void* mem, size_t nbytes, MemoryUse use);
 
   void incJitMemory(size_t nbytes) {
     MOZ_ASSERT(nbytes);
@@ -164,36 +171,39 @@ class ZoneAllocator : public JS::shadow::Zone,
 
  public:
   // The size of allocated GC arenas in this zone.
-  js::gc::HeapSize gcHeapSize;
+  gc::HeapSize gcHeapSize;
 
   // Threshold used to trigger GC based on GC heap size.
-  js::gc::GCHeapThreshold gcHeapThreshold;
+  gc::GCHeapThreshold gcHeapThreshold;
 
   // Amount of data to allocate before triggering a new incremental slice for
   // the current GC.
-  js::MainThreadData<size_t> gcDelayBytes;
+  MainThreadData<size_t> gcDelayBytes;
 
   // Amount of malloc data owned by GC things in this zone, including external
   // allocations supplied by JS::AddAssociatedMemory.
-  js::gc::HeapSize mallocHeapSize;
+  gc::HeapSize mallocHeapSize;
 
   // Threshold used to trigger GC based on malloc allocations.
-  js::gc::MallocHeapThreshold mallocHeapThreshold;
+  gc::MallocHeapThreshold mallocHeapThreshold;
 
   // Amount of exectuable JIT code owned by GC things in this zone.
-  js::gc::HeapSize jitHeapSize;
+  gc::HeapSize jitHeapSize;
 
   // Threshold used to trigger GC based on JIT allocations.
-  js::gc::JitHeapThreshold jitHeapThreshold;
+  gc::JitHeapThreshold jitHeapThreshold;
+
+  // Use counts for memory that can be referenced by more than one GC thing.
+  gc::SharedMemoryMap sharedMemoryUseCounts;
 
  private:
 #ifdef DEBUG
   // In debug builds, malloc allocations can be tracked to make debugging easier
   // (possible?) if allocation and free sizes don't balance.
-  js::gc::MemoryTracker mallocTracker;
+  gc::MemoryTracker mallocTracker;
 #endif
 
-  friend class js::gc::GCRuntime;
+  friend class gc::GCRuntime;
 };
 
 /*
@@ -215,42 +225,30 @@ class ZoneAllocPolicy : public MallocProvider<ZoneAllocPolicy> {
 
  public:
   MOZ_IMPLICIT ZoneAllocPolicy(ZoneAllocator* z) : zone_(z) {
-#ifdef DEBUG
-    zone()->registerPolicy(this);
-#endif
+    zone()->registerNonGCMemory(this, MemoryUse::ZoneAllocPolicy);
   }
   MOZ_IMPLICIT ZoneAllocPolicy(JS::Zone* z)
       : ZoneAllocPolicy(ZoneAllocator::from(z)) {}
   ZoneAllocPolicy(ZoneAllocPolicy& other) : ZoneAllocPolicy(other.zone_) {}
   ZoneAllocPolicy(ZoneAllocPolicy&& other) : zone_(other.zone_) {
-#ifdef DEBUG
-    zone()->movePolicy(this, &other);
-#endif
+    zone()->moveOtherMemory(this, &other, MemoryUse::ZoneAllocPolicy);
     other.zone_ = nullptr;
   }
   ~ZoneAllocPolicy() {
-#ifdef DEBUG
     if (zone_) {
-      zone_->unregisterPolicy(this);
+      zone_->unregisterNonGCMemory(this, MemoryUse::ZoneAllocPolicy);
     }
-#endif
   }
 
   ZoneAllocPolicy& operator=(const ZoneAllocPolicy& other) {
-#ifdef DEBUG
-    zone()->unregisterPolicy(this);
-#endif
+    zone()->unregisterNonGCMemory(this, MemoryUse::ZoneAllocPolicy);
     zone_ = other.zone();
-#ifdef DEBUG
-    zone()->registerPolicy(this);
-#endif
+    zone()->registerNonGCMemory(this, MemoryUse::ZoneAllocPolicy);
     return *this;
   }
   ZoneAllocPolicy& operator=(ZoneAllocPolicy&& other) {
-#ifdef DEBUG
-    zone()->unregisterPolicy(this);
-    zone()->movePolicy(this, &other);
-#endif
+    zone()->unregisterNonGCMemory(this, MemoryUse::ZoneAllocPolicy);
+    zone()->moveOtherMemory(this, &other, MemoryUse::ZoneAllocPolicy);
     other.zone_ = nullptr;
     return *this;
   }
@@ -280,7 +278,7 @@ class ZoneAllocPolicy : public MallocProvider<ZoneAllocPolicy> {
   }
   void reportAllocationOverflow() const { zone()->reportAllocationOverflow(); }
   void updateMallocCounter(size_t nbytes) {
-    zone()->incPolicyMemory(this, nbytes);
+    zone()->incNonGCMemory(this, nbytes, MemoryUse::ZoneAllocPolicy);
   }
 
  private:

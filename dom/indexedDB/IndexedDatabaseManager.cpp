@@ -7,7 +7,6 @@
 #include "IndexedDatabaseManager.h"
 
 #include "chrome/common/ipc_channel.h"  // for IPC::Channel::kMaximumMessageSize
-#include "nsIConsoleService.h"
 #include "nsIScriptError.h"
 #include "nsIScriptGlobalObject.h"
 
@@ -61,8 +60,8 @@ using namespace mozilla::ipc;
 
 class FileManagerInfo {
  public:
-  already_AddRefed<FileManager> GetFileManager(PersistenceType aPersistenceType,
-                                               const nsAString& aName) const;
+  MOZ_MUST_USE RefPtr<FileManager> GetFileManager(
+      PersistenceType aPersistenceType, const nsAString& aName) const;
 
   void AddFileManager(FileManager* aFileManager);
 
@@ -207,6 +206,13 @@ void MaxPreloadExtraRecordsPrefChangeCallback(const char* aPrefName,
   // TODO: We could also allow setting a negative value to preload all available
   // records, but this doesn't seem to be too useful in general, and it would
   // require adaptations in ActorsParent.cpp
+}
+
+auto DatabaseNameMatchPredicate(const nsAString* const aName) {
+  MOZ_ASSERT(aName);
+  return [aName](const auto& fileManager) {
+    return fileManager->DatabaseName() == *aName;
+  };
 }
 
 }  // namespace
@@ -677,7 +683,7 @@ void IndexedDatabaseManager::ClearBackgroundActor() {
   mBackgroundActor = nullptr;
 }
 
-already_AddRefed<FileManager> IndexedDatabaseManager::GetFileManager(
+RefPtr<FileManager> IndexedDatabaseManager::GetFileManager(
     PersistenceType aPersistenceType, const nsACString& aOrigin,
     const nsAString& aDatabaseName) {
   AssertIsOnIOThread();
@@ -687,10 +693,7 @@ already_AddRefed<FileManager> IndexedDatabaseManager::GetFileManager(
     return nullptr;
   }
 
-  RefPtr<FileManager> fileManager =
-      info->GetFileManager(aPersistenceType, aDatabaseName);
-
-  return fileManager.forget();
+  return info->GetFileManager(aPersistenceType, aDatabaseName);
 }
 
 void IndexedDatabaseManager::AddFileManager(FileManager* aFileManager) {
@@ -856,7 +859,7 @@ const nsCString& IndexedDatabaseManager::GetLocale() {
   return idbManager->mLocale;
 }
 
-already_AddRefed<FileManager> FileManagerInfo::GetFileManager(
+RefPtr<FileManager> FileManagerInfo::GetFileManager(
     PersistenceType aPersistenceType, const nsAString& aName) const {
   AssertIsOnIOThread();
 
@@ -864,11 +867,9 @@ already_AddRefed<FileManager> FileManagerInfo::GetFileManager(
 
   const auto end = managers.cend();
   const auto foundIt =
-      std::find_if(managers.cbegin(), end, [&aName](const auto& fileManager) {
-        return fileManager->DatabaseName() == aName;
-      });
+      std::find_if(managers.cbegin(), end, DatabaseNameMatchPredicate(&aName));
 
-  return foundIt != end ? RefPtr<FileManager>{*foundIt}.forget() : nullptr;
+  return foundIt != end ? *foundIt : nullptr;
 }
 
 void FileManagerInfo::AddFileManager(FileManager* aFileManager) {
@@ -919,9 +920,7 @@ void FileManagerInfo::InvalidateAndRemoveFileManager(
   auto& managers = GetArray(aPersistenceType);
   const auto end = managers.cend();
   const auto foundIt =
-      std::find_if(managers.cbegin(), end, [&aName](const auto& fileManager) {
-        return fileManager->DatabaseName() == aName;
-      });
+      std::find_if(managers.cbegin(), end, DatabaseNameMatchPredicate(&aName));
 
   if (foundIt != end) {
     (*foundIt)->Invalidate();

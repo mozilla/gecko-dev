@@ -30,10 +30,8 @@
 #include "nsIProgressEventSink.h"
 #include "nsIRadioGroupContainer.h"
 #include "nsIScriptObjectPrincipal.h"
-#include "nsIScriptGlobalObject.h"  // for member (in nsCOMPtr)
-#include "nsIServiceManager.h"
-#include "nsIURI.h"  // for use in inline functions
-#include "nsIUUIDGenerator.h"
+#include "nsIScriptGlobalObject.h"   // for member (in nsCOMPtr)
+#include "nsIURI.h"                  // for use in inline functions
 #include "nsIWebProgressListener.h"  // for nsIWebProgressListener
 #include "nsIWeakReferenceUtils.h"   // for nsWeakPtr
 #include "nsPIDOMWindow.h"           // for use in inline functions
@@ -44,13 +42,13 @@
 #include "nsURIHashKey.h"
 #include "mozilla/UseCounter.h"
 #include "mozilla/WeakPtr.h"
-#include "mozilla/StaticPresData.h"
 #include "Units.h"
 #include "nsContentListDeclarations.h"
 #include "nsExpirationTracker.h"
 #include "nsClassHashtable.h"
 #include "ReferrerInfo.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/CallState.h"
 #include "mozilla/CORSMode.h"
 #include "mozilla/dom/ContentBlockingLog.h"
 #include "mozilla/dom/DispatcherTrait.h"
@@ -60,7 +58,6 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/NotNull.h"
 #include "mozilla/SegmentedVector.h"
-#include "mozilla/ServoBindingTypes.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
@@ -88,7 +85,6 @@ class imgIRequest;
 class nsCachableElementsByNameNodeList;
 class nsCommandManager;
 class nsContentList;
-class nsIDocShell;
 class nsDocShell;
 class nsDOMNavigationTiming;
 class nsFrameLoader;
@@ -134,6 +130,7 @@ class nsIAppWindow;
 class nsXULPrototypeDocument;
 class nsXULPrototypeElement;
 class PermissionDelegateHandler;
+class nsIPermissionDelegateHandler;
 struct nsFont;
 
 namespace mozilla {
@@ -292,7 +289,7 @@ class DocHeaderData {
 };
 
 class ExternalResourceMap {
-  typedef bool (*SubDocEnumFunc)(Document& aDocument, void* aData);
+  typedef CallState (*SubDocEnumFunc)(Document& aDocument, void* aData);
 
  public:
   /**
@@ -1998,10 +1995,6 @@ class Document : public nsINode,
    * Style sheets are ordered, most significant last.
    */
 
-  StyleSheetList* StyleSheets() {
-    return &DocumentOrShadowRoot::EnsureDOMStyleSheets();
-  }
-
   void InsertSheetAt(size_t aIndex, StyleSheet&);
 
   /**
@@ -2183,7 +2176,7 @@ class Document : public nsINode,
   // Do the "fullscreen element ready check" from the fullscreen spec.
   // It returns true if the given element is allowed to go into fullscreen.
   // It is responsive to dispatch "fullscreenerror" event when necessary.
-  bool FullscreenElementReadyCheck(const FullscreenRequest&);
+  bool FullscreenElementReadyCheck(FullscreenRequest&);
 
   // This is called asynchronously by Document::AsyncRequestFullscreen()
   // to move this document into fullscreen mode if allowed.
@@ -2289,22 +2282,11 @@ class Document : public nsINode,
 
   // ScreenOrientation related APIs
 
-  void SetCurrentOrientation(OrientationType aType, uint16_t aAngle) {
-    mCurrentOrientationType = aType;
-    mCurrentOrientationAngle = aAngle;
-  }
-
-  uint16_t CurrentOrientationAngle() const { return mCurrentOrientationAngle; }
-  OrientationType CurrentOrientationType() const {
-    return mCurrentOrientationType;
-  }
   void ClearOrientationPendingPromise();
   bool SetOrientationPendingPromise(Promise* aPromise);
   Promise* GetOrientationPendingPromise() const {
     return mOrientationPendingPromise;
   }
-
-  void SetRDMPaneOrientation(OrientationType aType, uint16_t aAngle);
 
   //----------------------------------------------------------------------
 
@@ -2348,9 +2330,7 @@ class Document : public nsINode,
   void SetReadyStateInternal(ReadyState, bool aUpdateTimingInformation = true);
   ReadyState GetReadyStateEnum() { return mReadyState; }
 
-  void SetAncestorLoading(bool aAncestorIsLoading);
-  void NotifyLoading(const bool& aCurrentParentIsLoading,
-                     bool aNewParentIsLoading, const ReadyState& aCurrentState,
+  void NotifyLoading(bool aNewParentIsLoading, const ReadyState& aCurrentState,
                      ReadyState aNewState);
 
   // notify that a content node changed state.  This must happen under
@@ -2591,10 +2571,11 @@ class Document : public nsINode,
 
   /**
    * Enumerate all subdocuments.
-   * The enumerator callback should return true to continue enumerating, or
-   * false to stop.  This will never get passed a null aDocument.
+   * The enumerator callback should return CallState::Continue to continue
+   * enumerating, or CallState::Stop to stop.  This will never get passed a null
+   * aDocument.
    */
-  typedef bool (*SubDocEnumFunc)(Document&, void* aData);
+  typedef CallState (*SubDocEnumFunc)(Document&, void* aData);
   void EnumerateSubDocuments(SubDocEnumFunc aCallback, void* aData);
 
   /**
@@ -2906,8 +2887,9 @@ class Document : public nsINode,
 
   /**
    * Enumerate the external resource documents associated with this document.
-   * The enumerator callback should return true to continue enumerating, or
-   * false to stop.  This callback will never get passed a null aDocument.
+   * The enumerator callback should return CallState::Continue to continue
+   * enumerating, or CallState::Stop to stop.  This callback will never get
+   * passed a null aDocument.
    */
   void EnumerateExternalResources(SubDocEnumFunc aCallback, void* aData);
 
@@ -3674,7 +3656,6 @@ class Document : public nsINode,
 
   mozilla::dom::HTMLAllCollection* All();
 
-  static bool IsUnprefixedFullscreenEnabled(JSContext* aCx, JSObject* aObject);
   static bool DocumentSupportsL10n(JSContext* aCx, JSObject* aObject);
   static bool IsWebAnimationsEnabled(JSContext* aCx, JSObject* aObject);
   static bool IsWebAnimationsEnabled(CallerType aCallerType);
@@ -4051,6 +4032,8 @@ class Document : public nsINode,
   virtual bool UseWidthDeviceWidthFallbackViewport() const;
 
  private:
+  bool IsErrorPage() const;
+
   void InitializeLocalization(nsTArray<nsString>& aResourceIds);
 
   // Takes the bits from mStyleUseCounters if appropriate, and sets them in
@@ -4198,6 +4181,8 @@ class Document : public nsINode,
 
   void SetPrototypeDocument(nsXULPrototypeDocument* aPrototype);
 
+  nsIPermissionDelegateHandler* PermDelegateHandler();
+
   // Returns true if we use overlay scrollbars on the system wide or on the
   // given document.
   static bool UseOverlayScrollbars(const Document* aDocument);
@@ -4205,6 +4190,8 @@ class Document : public nsINode,
   static bool HasRecentlyStartedForegroundLoads();
 
   static bool AutomaticStorageAccessCanBeGranted(nsIPrincipal* aPrincipal);
+
+  already_AddRefed<Promise> AddCertException(bool aIsTemporary);
 
  protected:
   void DoUpdateSVGUseElementShadowTrees();
@@ -5248,9 +5235,6 @@ class Document : public nsINode,
   // http://www.w3.org/TR/screen-orientation/
   RefPtr<Promise> mOrientationPendingPromise;
 
-  uint16_t mCurrentOrientationAngle;
-  OrientationType mCurrentOrientationType;
-
   nsTArray<RefPtr<nsFrameLoader>> mInitializableFrameLoaders;
   nsTArray<nsCOMPtr<nsIRunnable>> mFrameLoaderFinalizers;
   RefPtr<nsRunnableMethod<Document>> mFrameLoaderRunner;
@@ -5300,13 +5284,6 @@ class Document : public nsINode,
   // attributes in Servo mode. This list contains all elements which need lazy
   // resolution.
   nsTHashtable<nsPtrHashKey<SVGElement>> mLazySVGPresElements;
-
-  // Most documents will only use one (or very few) language groups. Rather
-  // than have the overhead of a hash lookup, we simply look along what will
-  // typically be a very short (usually of length 1) linked list. There are 31
-  // language groups, so in the worst case scenario we'll need to traverse 31
-  // link items.
-  LangGroupFontPrefs mLangGroupFontPrefs;
 
   nsTHashtable<nsRefPtrHashKey<nsAtom>> mLanguagesUsed;
 
@@ -5496,12 +5473,6 @@ nsresult NS_NewDOMDocument(
     const nsAString& aQualifiedName, mozilla::dom::DocumentType* aDoctype,
     nsIURI* aDocumentURI, nsIURI* aBaseURI, nsIPrincipal* aPrincipal,
     bool aLoadedAsData, nsIGlobalObject* aEventObject, DocumentFlavor aFlavor);
-
-// This is used only for xbl documents created from the startup cache.
-// Non-cached documents are created in the same manner as xml documents.
-nsresult NS_NewXBLDocument(mozilla::dom::Document** aInstancePtrResult,
-                           nsIURI* aDocumentURI, nsIURI* aBaseURI,
-                           nsIPrincipal* aPrincipal);
 
 nsresult NS_NewPluginDocument(mozilla::dom::Document** aInstancePtrResult);
 

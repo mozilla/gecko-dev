@@ -16,6 +16,10 @@
 #  include "mozilla/SandboxBrokerPolicyFactory.h"
 #endif
 
+#if defined(XP_WIN)
+#  include "mozilla/WinDllServices.h"
+#endif
+
 #ifdef MOZ_GECKO_PROFILER
 #  include "ProfilerParent.h"
 #endif
@@ -32,7 +36,7 @@ RDDChild::RDDChild(RDDProcessHost* aHost) : mHost(aHost) {
 
 RDDChild::~RDDChild() { MOZ_COUNT_DTOR(RDDChild); }
 
-bool RDDChild::Init(bool aStartMacSandbox) {
+bool RDDChild::Init() {
   Maybe<FileDescriptor> brokerFd;
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
@@ -52,7 +56,7 @@ bool RDDChild::Init(bool aStartMacSandbox) {
 
   nsTArray<GfxVarUpdate> updates = gfxVars::FetchNonDefaultVars();
 
-  SendInit(updates, brokerFd, aStartMacSandbox);
+  SendInit(updates, brokerFd);
 
 #ifdef MOZ_GECKO_PROFILER
   Unused << SendInitProfiler(ProfilerParent::CreateForProcess(OtherPid()));
@@ -101,6 +105,24 @@ mozilla::ipc::IPCResult RDDChild::RecvFinishMemoryReport(
     mMemoryReportRequest = nullptr;
   }
   return IPC_OK();
+}
+
+mozilla::ipc::IPCResult RDDChild::RecvGetModulesTrust(
+    ModulePaths&& aModPaths, bool aRunAtNormalPriority,
+    GetModulesTrustResolver&& aResolver) {
+#if defined(XP_WIN)
+  RefPtr<DllServices> dllSvc(DllServices::Get());
+  dllSvc->GetModulesTrust(std::move(aModPaths), aRunAtNormalPriority)
+      ->Then(
+          GetMainThreadSerialEventTarget(), __func__,
+          [aResolver](ModulesMapResult&& aResult) {
+            aResolver(Some(ModulesMapResult(std::move(aResult))));
+          },
+          [aResolver](nsresult aRv) { aResolver(Nothing()); });
+  return IPC_OK();
+#else
+  return IPC_FAIL(this, "Unsupported on this platform");
+#endif  // defined(XP_WIN)
 }
 
 void RDDChild::ActorDestroy(ActorDestroyReason aWhy) {

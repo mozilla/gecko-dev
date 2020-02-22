@@ -12,7 +12,6 @@
 #include "nsIContentSecurityPolicy.h"
 #include "nsNetUtil.h"
 #include "mozilla/dom/nsCSPContext.h"
-#include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsStringFwd.h"
 
@@ -220,6 +219,8 @@ TEST(CSPParser, Directives)
       "script-src 'nonce-foo' 'unsafe-inline'" },
     { "script-src 'nonce-foo' 'strict-dynamic' 'unsafe-inline' https:  ",
       "script-src 'nonce-foo' 'strict-dynamic' 'unsafe-inline' https:" },
+    { "script-src 'nonce-foo' 'strict-dynamic' 'unsafe-inline' 'report-sample' https:  ",
+      "script-src 'nonce-foo' 'strict-dynamic' 'unsafe-inline' 'report-sample' https:" },
     { "default-src 'sha256-siVR8' 'strict-dynamic' 'unsafe-inline' https:  ",
       "default-src 'sha256-siVR8' 'unsafe-inline' https:" },
     { "worker-src https://example.com",

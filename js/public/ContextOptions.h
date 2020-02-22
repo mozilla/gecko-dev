@@ -27,6 +27,9 @@ class JS_PUBLIC_API ContextOptions {
         wasmCranelift_(false),
         wasmGc_(false),
         testWasmAwaitTier2_(false),
+#ifdef ENABLE_WASM_BIGINT
+        enableWasmBigInt_(false),
+#endif
         throwOnAsmJSValidationFailure_(false),
         disableIon_(false),
         asyncStack_(true),
@@ -35,7 +38,8 @@ class JS_PUBLIC_API ContextOptions {
         werror_(false),
         strictMode_(false),
         extraWarnings_(false),
-        fuzzing_(false) {}
+        fuzzing_(false) {
+  }
 
   bool asmJS() const { return asmJS_; }
   ContextOptions& setAsmJS(bool flag) {
@@ -90,6 +94,14 @@ class JS_PUBLIC_API ContextOptions {
     testWasmAwaitTier2_ = flag;
     return *this;
   }
+
+#ifdef ENABLE_WASM_BIGINT
+  bool isWasmBigIntEnabled() const { return enableWasmBigInt_; }
+  ContextOptions& setWasmBigIntEnabled(bool flag) {
+    enableWasmBigInt_ = flag;
+    return *this;
+  }
+#endif
 
   bool wasmGc() const { return wasmGc_; }
   // Defined out-of-line because it depends on a compile-time option
@@ -188,6 +200,9 @@ class JS_PUBLIC_API ContextOptions {
   bool wasmCranelift_ : 1;
   bool wasmGc_ : 1;
   bool testWasmAwaitTier2_ : 1;
+#ifdef ENABLE_WASM_BIGINT
+  bool enableWasmBigInt_ : 1;
+#endif
   bool throwOnAsmJSValidationFailure_ : 1;
   bool disableIon_ : 1;
   bool asyncStack_ : 1;

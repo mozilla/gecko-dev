@@ -17,8 +17,6 @@
 #include "nsContentUtils.h"
 #include "nsCORSListenerProxy.h"
 #include "nsIStreamListener.h"
-#include "nsIURIFixup.h"
-#include "nsIImageLoadingContent.h"
 #include "nsIRedirectHistoryEntry.h"
 #include "nsReadableUtils.h"
 
@@ -98,7 +96,7 @@ bool nsContentSecurityManager::AllowTopLevelNavigationToDataURI(
   // Redirecting to a toplevel data: URI is not allowed, hence we make
   // sure the RedirectChain is empty.
   if (!loadInfo->GetLoadTriggeredFromExternal() &&
-      nsContentUtils::IsSystemPrincipal(loadInfo->TriggeringPrincipal()) &&
+      loadInfo->TriggeringPrincipal()->IsSystemPrincipal() &&
       loadInfo->RedirectChain().IsEmpty()) {
     return true;
   }
@@ -189,7 +187,7 @@ nsresult nsContentSecurityManager::CheckFTPSubresourceLoad(
   // Allow the system principal to load everything. This is meant to
   // temporarily fix downloads and pdf.js.
   nsIPrincipal* triggeringPrincipal = loadInfo->TriggeringPrincipal();
-  if (nsContentUtils::IsSystemPrincipal(triggeringPrincipal)) {
+  if (triggeringPrincipal->IsSystemPrincipal()) {
     return NS_OK;
   }
 
@@ -289,7 +287,7 @@ static nsresult DoCheckLoadURIChecks(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
     RefPtr<Document> doc;
     aLoadInfo->GetLoadingDocument(getter_AddRefs(doc));
     return nsContentUtils::PrincipalAllowsL10n(
-               aLoadInfo->TriggeringPrincipal(),
+               *aLoadInfo->TriggeringPrincipal(),
                doc ? doc->GetDocumentURI() : nullptr)
                ? NS_OK
                : NS_ERROR_DOM_BAD_URI;
@@ -311,7 +309,8 @@ static nsresult DoCheckLoadURIChecks(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
   // the LoadingPrincipal when SEC_ALLOW_CROSS_ORIGIN_* security flags are set,
   // to allow, e.g. user stylesheets to load chrome:// URIs.
   return nsContentUtils::GetSecurityManager()->CheckLoadURIWithPrincipal(
-      aLoadInfo->TriggeringPrincipal(), aURI, aLoadInfo->CheckLoadURIFlags());
+      aLoadInfo->TriggeringPrincipal(), aURI, aLoadInfo->CheckLoadURIFlags(),
+      aLoadInfo->GetInnerWindowID());
 }
 
 static bool URIHasFlags(nsIURI* aURI, uint32_t aURIFlags) {
@@ -331,7 +330,11 @@ static nsresult DoSOPChecks(nsIURI* aURI, nsILoadInfo* aLoadInfo,
     return DoCheckLoadURIChecks(aURI, aLoadInfo);
   }
 
-  NS_ENSURE_FALSE(NS_HasBeenCrossOrigin(aChannel, true), NS_ERROR_DOM_BAD_URI);
+  if (NS_HasBeenCrossOrigin(aChannel, true)) {
+    NS_SetRequestBlockingReason(aLoadInfo,
+                                nsILoadInfo::BLOCKING_REASON_NOT_SAME_ORIGIN);
+    return NS_ERROR_DOM_BAD_URI;
+  }
 
   return NS_OK;
 }
@@ -344,7 +347,7 @@ static nsresult DoCORSChecks(nsIChannel* aChannel, nsILoadInfo* aLoadInfo,
   // No need to set up CORS if TriggeringPrincipal is the SystemPrincipal.
   // For example, allow user stylesheets to load XBL from external files
   // without requiring CORS.
-  if (nsContentUtils::IsSystemPrincipal(aLoadInfo->TriggeringPrincipal())) {
+  if (aLoadInfo->TriggeringPrincipal()->IsSystemPrincipal()) {
     return NS_OK;
   }
 
@@ -594,7 +597,7 @@ static nsresult DoContentSecurityChecks(nsIChannel* aChannel,
 
 static void LogPrincipal(nsIPrincipal* aPrincipal,
                          const nsAString& aPrincipalName) {
-  if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
+  if (aPrincipal && aPrincipal->IsSystemPrincipal()) {
     MOZ_LOG(sCSMLog, LogLevel::Debug,
             ("  %s: SystemPrincipal\n",
              NS_ConvertUTF16toUTF8(aPrincipalName).get()));
@@ -757,22 +760,23 @@ static void DebugDoContentSecurityCheck(nsIChannel* aChannel,
   }
 }
 
-#ifdef EARLY_BETA_OR_EARLIER
-// Assert that we never use the SystemPrincipal to load remote documents
-// i.e., HTTP, HTTPS, FTP URLs
-static void AssertSystemPrincipalMustNotLoadRemoteDocuments(
+/* static */
+nsresult nsContentSecurityManager::CheckSystemPrincipalLoads(
     nsIChannel* aChannel) {
+  // Assert that we never use the SystemPrincipal to load remote documents
+  // i.e., HTTP, HTTPS, FTP URLs
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
 
   // bail out, if we're not loading with a SystemPrincipal
-  if (!nsContentUtils::IsSystemPrincipal(loadInfo->LoadingPrincipal())) {
-    return;
+  if (!loadInfo->LoadingPrincipal() ||
+      !loadInfo->LoadingPrincipal()->IsSystemPrincipal()) {
+    return NS_OK;
   }
   nsContentPolicyType contentPolicyType =
       loadInfo->GetExternalContentPolicyType();
   if ((contentPolicyType != nsIContentPolicy::TYPE_DOCUMENT) &&
       (contentPolicyType != nsIContentPolicy::TYPE_SUBDOCUMENT)) {
-    return;
+    return NS_OK;
   }
   nsCOMPtr<nsIURI> finalURI;
   NS_GetFinalChannelURI(aChannel, getter_AddRefs(finalURI));
@@ -780,16 +784,16 @@ static void AssertSystemPrincipalMustNotLoadRemoteDocuments(
   if (!nsContentUtils::SchemeIs(finalURI, "http") &&
       !nsContentUtils::SchemeIs(finalURI, "https") &&
       !nsContentUtils::SchemeIs(finalURI, "ftp")) {
-    return;
+    return NS_OK;
   }
 
   // FIXME The discovery feature in about:addons uses the SystemPrincpal.
   // We should remove the exception for AMO with bug 1544011.
   // We should remove the exception for Firefox Accounts with bug 1561318.
   static nsAutoCString sDiscoveryPrePath;
-#  ifdef ANDROID
+#ifdef ANDROID
   static nsAutoCString sFxaSPrePath;
-#  endif
+#endif
   static bool recvdPrefValues = false;
   if (!recvdPrefValues) {
     nsAutoCString discoveryURLString;
@@ -802,7 +806,7 @@ static void AssertSystemPrincipalMustNotLoadRemoteDocuments(
     if (discoveryURL) {
       discoveryURL->GetPrePath(sDiscoveryPrePath);
     }
-#  ifdef ANDROID
+#ifdef ANDROID
     nsAutoCString fxaURLString;
     Preferences::GetCString("identity.fxaccounts.remote.webchannel.uri",
                             fxaURLString);
@@ -811,34 +815,42 @@ static void AssertSystemPrincipalMustNotLoadRemoteDocuments(
     if (fxaURL) {
       fxaURL->GetPrePath(sFxaSPrePath);
     }
-#  endif
+#endif
     recvdPrefValues = true;
   }
   nsAutoCString requestedPrePath;
   finalURI->GetPrePath(requestedPrePath);
 
   if (requestedPrePath.Equals(sDiscoveryPrePath)) {
-    return;
+    return NS_OK;
   }
-#  ifdef ANDROID
+#ifdef ANDROID
   if (requestedPrePath.Equals(sFxaSPrePath)) {
-    return;
+    return NS_OK;
   }
-#  endif
+#endif
+  nsAutoCString requestedURL;
+  finalURI->GetAsciiSpec(requestedURL);
+  MOZ_LOG(
+      sCSMLog, LogLevel::Verbose,
+      ("SystemPrincipal must not load remote documents. URL: %s", requestedURL)
+          .get());
   if (xpc::AreNonLocalConnectionsDisabled()) {
     bool disallowSystemPrincipalRemoteDocuments = Preferences::GetBool(
         "security.disallow_non_local_systemprincipal_in_tests");
     if (disallowSystemPrincipalRemoteDocuments) {
       // our own mochitest needs NS_ASSERTION instead of MOZ_ASSERT
       NS_ASSERTION(false, "SystemPrincipal must not load remote documents.");
-      return;
+      aChannel->Cancel(NS_ERROR_CONTENT_BLOCKED);
+      return NS_ERROR_CONTENT_BLOCKED;
     }
     // but other mochitest are exempt from this
-    return;
+    return NS_OK;
   }
-  MOZ_RELEASE_ASSERT(false, "SystemPrincipal must not load remote documents.");
+  MOZ_ASSERT(false, "SystemPrincipal must not load remote documents.");
+  aChannel->Cancel(NS_ERROR_CONTENT_BLOCKED);
+  return NS_ERROR_CONTENT_BLOCKED;
 }
-#endif
 
 /*
  * Based on the security flags provided in the loadInfo of the channel,
@@ -866,9 +878,8 @@ nsresult nsContentSecurityManager::doContentSecurityCheck(
     DebugDoContentSecurityCheck(aChannel, loadInfo);
   }
 
-#ifdef EARLY_BETA_OR_EARLIER
-  AssertSystemPrincipalMustNotLoadRemoteDocuments(aChannel);
-#endif
+  nsresult rv = CheckSystemPrincipalLoads(aChannel);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   // if dealing with a redirected channel then we have already installed
   // streamlistener and redirect proxies and so we are done.
@@ -878,7 +889,7 @@ nsresult nsContentSecurityManager::doContentSecurityCheck(
 
   // make sure that only one of the five security flags is set in the loadinfo
   // e.g. do not require same origin and allow cross origin at the same time
-  nsresult rv = ValidateSecurityFlags(loadInfo);
+  rv = ValidateSecurityFlags(loadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (loadInfo->GetSecurityMode() ==
@@ -949,7 +960,7 @@ nsContentSecurityManager::AsyncOnChannelRedirect(
       nsIScriptSecurityManager::LOAD_IS_AUTOMATIC_DOCUMENT_REPLACEMENT |
       nsIScriptSecurityManager::DISALLOW_SCRIPT;
   rv = nsContentUtils::GetSecurityManager()->CheckLoadURIWithPrincipal(
-      oldPrincipal, newURI, flags);
+      oldPrincipal, newURI, flags, loadInfo->GetInnerWindowID());
   NS_ENSURE_SUCCESS(rv, rv);
 
   aCb->OnRedirectVerifyCallback(NS_OK);
@@ -981,9 +992,9 @@ nsresult nsContentSecurityManager::CheckChannel(nsIChannel* aChannel) {
                nsIContentPolicy::TYPE_DOCUMENT);
     nsIPrincipal* loadingPrincipal = loadInfo->LoadingPrincipal();
 
-    // It doesn't matter what we pass for the third, data-inherits, argument.
+    // It doesn't matter what we pass for the second, data-inherits, argument.
     // Any protocol which inherits won't pay attention to cookies anyway.
-    rv = loadingPrincipal->CheckMayLoad(uri, false, false);
+    rv = loadingPrincipal->CheckMayLoad(uri, false);
     if (NS_FAILED(rv)) {
       AddLoadFlags(aChannel, nsIRequest::LOAD_ANONYMOUS);
     }
@@ -1003,7 +1014,7 @@ nsresult nsContentSecurityManager::CheckChannel(nsIChannel* aChannel) {
 
   // Allow subresource loads if TriggeringPrincipal is the SystemPrincipal.
   // For example, allow user stylesheets to load XBL from external files.
-  if (nsContentUtils::IsSystemPrincipal(loadInfo->TriggeringPrincipal()) &&
+  if (loadInfo->TriggeringPrincipal()->IsSystemPrincipal() &&
       loadInfo->GetExternalContentPolicyType() !=
           nsIContentPolicy::TYPE_DOCUMENT &&
       loadInfo->GetExternalContentPolicyType() !=
@@ -1049,32 +1060,5 @@ nsContentSecurityManager::PerformSecurityCheck(
   NS_ENSURE_SUCCESS(rv, rv);
 
   inAndOutListener.forget(outStreamListener);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsContentSecurityManager::IsOriginPotentiallyTrustworthy(
-    nsIPrincipal* aPrincipal, bool* aIsTrustWorthy) {
-  MOZ_ASSERT(NS_IsMainThread());
-  NS_ENSURE_ARG_POINTER(aPrincipal);
-  NS_ENSURE_ARG_POINTER(aIsTrustWorthy);
-
-  if (aPrincipal->IsSystemPrincipal()) {
-    *aIsTrustWorthy = true;
-    return NS_OK;
-  }
-  *aIsTrustWorthy = false;
-  if (aPrincipal->GetIsNullPrincipal()) {
-    return NS_OK;
-  }
-
-  MOZ_ASSERT(aPrincipal->GetIsContentPrincipal(),
-             "Nobody is expected to call us with an nsIExpandedPrincipal");
-
-  nsCOMPtr<nsIURI> uri;
-  nsresult rv = aPrincipal->GetURI(getter_AddRefs(uri));
-  NS_ENSURE_SUCCESS(rv, rv);
-  *aIsTrustWorthy = nsMixedContentBlocker::IsPotentiallyTrustworthyOrigin(uri);
-
   return NS_OK;
 }

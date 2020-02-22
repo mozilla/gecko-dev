@@ -165,17 +165,17 @@ void RegExpObject::trace(JSTracer* trc) {
 }
 
 static const JSClassOps RegExpObjectClassOps = {
-    nullptr, /* addProperty */
-    nullptr, /* delProperty */
-    nullptr, /* enumerate */
-    nullptr, /* newEnumerate */
-    nullptr, /* resolve */
-    nullptr, /* mayResolve */
-    nullptr, /* finalize */
-    nullptr, /* call */
-    nullptr, /* hasInstance */
-    nullptr, /* construct */
-    RegExpObject::trace,
+    nullptr,              // addProperty
+    nullptr,              // delProperty
+    nullptr,              // enumerate
+    nullptr,              // newEnumerate
+    nullptr,              // resolve
+    nullptr,              // mayResolve
+    nullptr,              // finalize
+    nullptr,              // call
+    nullptr,              // hasInstance
+    nullptr,              // construct
+    RegExpObject::trace,  // trace
 };
 
 static const ClassSpec RegExpObjectClassSpec = {
@@ -1293,15 +1293,6 @@ RegExpShared* RegExpZone::get(JSContext* cx, HandleAtom source,
   }
 
   return shared;
-}
-
-RegExpShared* RegExpZone::get(JSContext* cx, HandleAtom atom, JSString* opt) {
-  RegExpFlags flags = RegExpFlag::NoFlags;
-  if (opt && !ParseRegExpFlags(cx, opt, &flags)) {
-    return nullptr;
-  }
-
-  return get(cx, atom, flags);
 }
 
 size_t RegExpZone::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) {

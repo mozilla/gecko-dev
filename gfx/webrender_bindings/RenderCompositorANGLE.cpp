@@ -30,6 +30,12 @@
 #include <dcomp.h>
 #include <dxgi1_2.h>
 
+// Flag for PrintWindow() that is defined in Winuser.h. It is defined since
+// Windows 8.1. This allows PrintWindow to capture window content that is
+// rendered with DirectComposition.
+#undef PW_RENDERFULLCONTENT
+#define PW_RENDERFULLCONTENT 0x00000002
+
 namespace mozilla {
 namespace wr {
 
@@ -273,7 +279,12 @@ void RenderCompositorANGLE::CreateSwapChainForDCompIfPossible(
 
   HWND hwnd = mWidget->AsWindows()->GetCompositorHwnd();
   if (!hwnd) {
-    gfxCriticalNote << "Compositor window was not created ";
+    // When DirectComposition or DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL is used,
+    // compositor window needs to exist.
+    if (gfx::gfxVars::UseWebRenderDCompWin() ||
+        gfx::gfxVars::UseWebRenderFlipSequentialWin()) {
+      gfxCriticalNote << "Compositor window was not created";
+    }
     return;
   }
 
@@ -409,7 +420,7 @@ bool RenderCompositorANGLE::BeginFrame() {
 RenderedFrameId RenderCompositorANGLE::EndFrame(
     const FfiVec<DeviceIntRect>& aDirtyRects) {
   RenderedFrameId frameId = GetNextRenderFrameId();
-  InsertPresentWaitQuery(frameId);
+  InsertGraphicsCommandsFinishedWaitQuery(frameId);
 
   if (!UseCompositor()) {
     if (mWidget->AsWindows()->HasFxrOutputHandler()) {
@@ -487,7 +498,7 @@ bool RenderCompositorANGLE::WaitForGPU() {
   //   Wait for query #2.
   //
   // This ensures we're done reading textures before swapping buffers.
-  return WaitForPreviousPresentQuery();
+  return WaitForPreviousGraphicsCommandsFinishedQuery();
 }
 
 bool RenderCompositorANGLE::ResizeBufferIfNeeded() {
@@ -648,7 +659,8 @@ RefPtr<ID3D11Query> RenderCompositorANGLE::GetD3D11Query() {
   return query;
 }
 
-void RenderCompositorANGLE::InsertPresentWaitQuery(RenderedFrameId aFrameId) {
+void RenderCompositorANGLE::InsertGraphicsCommandsFinishedWaitQuery(
+    RenderedFrameId aFrameId) {
   RefPtr<ID3D11Query> query;
   query = GetD3D11Query();
   if (!query) {
@@ -659,7 +671,7 @@ void RenderCompositorANGLE::InsertPresentWaitQuery(RenderedFrameId aFrameId) {
   mWaitForPresentQueries.emplace(aFrameId, query);
 }
 
-bool RenderCompositorANGLE::WaitForPreviousPresentQuery() {
+bool RenderCompositorANGLE::WaitForPreviousGraphicsCommandsFinishedQuery() {
   size_t waitLatency = mUseTripleBuffering ? 3 : 2;
 
   while (mWaitForPresentQueries.size() >= waitLatency) {
@@ -698,7 +710,7 @@ RenderedFrameId RenderCompositorANGLE::GetLastCompletedFrameId() {
 
 RenderedFrameId RenderCompositorANGLE::UpdateFrameId() {
   RenderedFrameId frameId = GetNextRenderFrameId();
-  InsertPresentWaitQuery(frameId);
+  InsertGraphicsCommandsFinishedWaitQuery(frameId);
   return frameId;
 }
 
@@ -712,7 +724,7 @@ bool RenderCompositorANGLE::IsContextLost() {
 }
 
 bool RenderCompositorANGLE::UseCompositor() {
-  if (!mDCLayerTree || !StaticPrefs::gfx_webrender_compositor_AtStartup()) {
+  if (!mDCLayerTree || !gfx::gfxVars::UseWebRenderCompositor()) {
     return false;
   }
   return true;
@@ -738,7 +750,7 @@ void RenderCompositorANGLE::CompositorEndFrame() {
   mDCLayerTree->CompositorEndFrame();
 }
 
-void RenderCompositorANGLE::Bind(wr::NativeSurfaceId aId,
+void RenderCompositorANGLE::Bind(wr::NativeTileId aId,
                                  wr::DeviceIntPoint* aOffset, uint32_t* aFboId,
                                  wr::DeviceIntRect aDirtyRect) {
   mDCLayerTree->Bind(aId, aOffset, aFboId, aDirtyRect);
@@ -747,13 +759,22 @@ void RenderCompositorANGLE::Bind(wr::NativeSurfaceId aId,
 void RenderCompositorANGLE::Unbind() { mDCLayerTree->Unbind(); }
 
 void RenderCompositorANGLE::CreateSurface(wr::NativeSurfaceId aId,
-                                          wr::DeviceIntSize aSize,
-                                          bool aIsOpaque) {
-  mDCLayerTree->CreateSurface(aId, aSize, aIsOpaque);
+                                          wr::DeviceIntSize aTileSize) {
+  mDCLayerTree->CreateSurface(aId, aTileSize);
 }
 
 void RenderCompositorANGLE::DestroySurface(NativeSurfaceId aId) {
   mDCLayerTree->DestroySurface(aId);
+}
+
+void RenderCompositorANGLE::CreateTile(wr::NativeSurfaceId aId, int aX, int aY,
+                                       bool aIsOpaque) {
+  mDCLayerTree->CreateTile(aId, aX, aY, aIsOpaque);
+}
+
+void RenderCompositorANGLE::DestroyTile(wr::NativeSurfaceId aId, int aX,
+                                        int aY) {
+  mDCLayerTree->DestroyTile(aId, aX, aY);
 }
 
 void RenderCompositorANGLE::AddSurface(wr::NativeSurfaceId aId,
@@ -765,7 +786,7 @@ void RenderCompositorANGLE::AddSurface(wr::NativeSurfaceId aId,
 void RenderCompositorANGLE::InitializeUsePartialPresent() {
   if (UseCompositor() || !mSwapChain1 ||
       mWidget->AsWindows()->HasFxrOutputHandler() ||
-      StaticPrefs::gfx_webrender_max_partial_present_rects_AtStartup() <= 0) {
+      gfx::gfxVars::WebRenderMaxPartialPresentRects() <= 0) {
     mUsePartialPresent = false;
   } else {
     mUsePartialPresent = true;
@@ -780,7 +801,72 @@ uint32_t RenderCompositorANGLE::GetMaxPartialPresentRects() {
   if (!mUsePartialPresent) {
     return 0;
   }
-  return StaticPrefs::gfx_webrender_max_partial_present_rects_AtStartup();
+  return gfx::gfxVars::WebRenderMaxPartialPresentRects();
+}
+
+bool RenderCompositorANGLE::MaybeReadback(
+    const gfx::IntSize& aReadbackSize, const wr::ImageFormat& aReadbackFormat,
+    const Range<uint8_t>& aReadbackBuffer) {
+  MOZ_ASSERT(aReadbackFormat == wr::ImageFormat::BGRA8);
+
+  if (!UseCompositor()) {
+    return false;
+  }
+
+  HDC nulldc = ::GetDC(NULL);
+  HDC dc = ::CreateCompatibleDC(nulldc);
+  ::ReleaseDC(nullptr, nulldc);
+  if (!dc) {
+    gfxCriticalError() << "CreateCompatibleDC failed";
+    return false;
+  }
+
+  BITMAPV4HEADER header;
+  memset(&header, 0, sizeof(BITMAPV4HEADER));
+  header.bV4Size = sizeof(BITMAPV4HEADER);
+  header.bV4Width = aReadbackSize.width;
+  header.bV4Height = -LONG(aReadbackSize.height);  // top-to-buttom DIB
+  header.bV4Planes = 1;
+  header.bV4BitCount = 32;
+  header.bV4V4Compression = BI_BITFIELDS;
+  header.bV4RedMask = 0x00FF0000;
+  header.bV4GreenMask = 0x0000FF00;
+  header.bV4BlueMask = 0x000000FF;
+  header.bV4AlphaMask = 0xFF000000;
+
+  void* readbackBits = nullptr;
+  HBITMAP bitmap =
+      ::CreateDIBSection(dc, reinterpret_cast<BITMAPINFO*>(&header),
+                         DIB_RGB_COLORS, &readbackBits, nullptr, 0);
+  if (!bitmap) {
+    ::DeleteDC(dc);
+    gfxCriticalError() << "CreateDIBSection failed";
+    return false;
+  }
+
+  ::SelectObject(dc, bitmap);
+
+  UINT flags = PW_CLIENTONLY | PW_RENDERFULLCONTENT;
+  HWND hwnd = mWidget->AsWindows()->GetHwnd();
+
+  mDCLayerTree->WaitForCommitCompletion();
+
+  BOOL result = ::PrintWindow(hwnd, dc, flags);
+  if (!result) {
+    ::DeleteObject(bitmap);
+    ::DeleteDC(dc);
+    gfxCriticalError() << "PrintWindow failed";
+    return false;
+  }
+
+  ::GdiFlush();
+
+  memcpy(&aReadbackBuffer[0], readbackBits, aReadbackBuffer.length());
+
+  ::DeleteObject(bitmap);
+  ::DeleteDC(dc);
+
+  return true;
 }
 
 }  // namespace wr

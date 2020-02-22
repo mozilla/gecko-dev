@@ -23,7 +23,7 @@
 #include "nsQueryObject.h"
 
 static const char* kPageSetupDialogURL =
-    "chrome://global/content/printPageSetup.xul";
+    "chrome://global/content/printPageSetup.xhtml";
 
 using namespace mozilla;
 using namespace mozilla::widget;
@@ -63,13 +63,12 @@ nsPrintDialogServiceWin::Init() {
 
 NS_IMETHODIMP
 nsPrintDialogServiceWin::Show(nsPIDOMWindowOuter* aParent,
-                              nsIPrintSettings* aSettings,
-                              nsIWebBrowserPrint* aWebBrowserPrint) {
+                              nsIPrintSettings* aSettings) {
   NS_ENSURE_ARG(aParent);
   HWND hWnd = GetHWNDForDOMWindow(aParent);
   NS_ASSERTION(hWnd, "Couldn't get native window for PRint Dialog!");
 
-  return NativeShowPrintDialog(hWnd, aWebBrowserPrint, aSettings);
+  return NativeShowPrintDialog(hWnd, aSettings);
 }
 
 NS_IMETHODIMP

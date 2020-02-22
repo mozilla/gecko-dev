@@ -6,6 +6,14 @@
 
 var EXPORTED_SYMBOLS = ["Network"];
 
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+
+XPCOMUtils.defineLazyGlobalGetters(this, ["URL"]);
+
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+
 const { Domain } = ChromeUtils.import(
   "chrome://remote/content/domains/Domain.jsm"
 );
@@ -76,11 +84,78 @@ class Network extends Domain {
   }
 
   /**
+   * Returns all browser cookies for the current URL.
+   *
+   * @param {Object} options
+   * @param {Array<string>=} urls
+   *     The list of URLs for which applicable cookies will be fetched.
+   *     Defaults to the currently open URL.
+   *
+   * @return {Array<Cookie>}
+   *     Array of cookie objects.
+   */
+  // https://cs.chromium.org/chromium/src/content/browser/devtools/protocol/network_handler.cc?type=cs&q=+ComputeCookieURLs&sq=package:chromium&g=0&l=1115
+  async getCookies(options = {}) {
+    // Bug 1605354 - Add support for options.urls
+    const urls = [this.session.target.url];
+
+    const cookies = [];
+    for (let url of urls) {
+      url = new URL(url);
+
+      const secureProtocol = ["https:", "wss:"].includes(url.protocol);
+
+      const cookiesFound = Services.cookies.getCookiesWithOriginAttributes(
+        JSON.stringify({}),
+        url.hostname
+      );
+
+      for (const cookie of cookiesFound) {
+        // Reject secure cookies for non-secure protocols
+        if (cookie.isSecure && !secureProtocol) {
+          continue;
+        }
+
+        // Reject cookies which do not match the given path
+        if (!url.pathname.startsWith(cookie.path)) {
+          continue;
+        }
+
+        const data = {
+          name: cookie.name,
+          value: cookie.value,
+          domain: cookie.host,
+          path: cookie.path,
+          expires: cookie.isSession ? -1 : cookie.expiry,
+          // The size is the combined length of both the cookie name and value
+          size: cookie.name.length + cookie.value.length,
+          httpOnly: cookie.isHttpOnly,
+          secure: cookie.isSecure,
+          session: cookie.isSession,
+        };
+
+        if (cookie.sameSite) {
+          const sameSiteMap = new Map([
+            [Ci.nsICookie.SAMESITE_LAX, "Lax"],
+            [Ci.nsICookie.SAMESITE_STRICT, "Strict"],
+          ]);
+
+          data.sameSite = sameSiteMap.get(cookie.sameSite);
+        }
+
+        cookies.push(data);
+      }
+    }
+
+    return { cookies };
+  }
+
+  /**
    * Allows overriding user agent with the given string.
    *
    * Redirected to Emulation.setUserAgentOverride.
    */
-  setUserAgentOverride(options) {
+  setUserAgentOverride(options = {}) {
     const { id } = this.session;
     this.session.execute(id, "Emulation", "setUserAgentOverride", options);
   }
@@ -124,7 +199,7 @@ class Network extends Domain {
       initiator: undefined,
       redirectResponse: undefined,
       type: LOAD_CAUSE_STRINGS[causeType] || "unknown",
-      frameId: topFrame.outerWindowID,
+      frameId: topFrame.outerWindowID.toString(),
       hasUserGesture: undefined,
     });
   }

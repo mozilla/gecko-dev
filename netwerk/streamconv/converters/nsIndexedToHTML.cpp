@@ -13,15 +13,10 @@
 #include "nsStringStream.h"
 #include "nsIFile.h"
 #include "nsIFileURL.h"
-#include "nsIURIMutator.h"
 #include "nsEscape.h"
 #include "nsIDirIndex.h"
 #include "nsURLHelper.h"
-#include "nsIPrefService.h"
-#include "nsIPrefBranch.h"
-#include "nsIPrefLocalizedString.h"
 #include "nsIStringBundle.h"
-#include "nsITextToSubURI.h"
 #include "nsDirIndexParser.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsString.h"
@@ -93,6 +88,12 @@ nsIndexedToHTML::AsyncConvertData(const char* aFromType, const char* aToType,
                                   nsIStreamListener* aListener,
                                   nsISupports* aCtxt) {
   return Init(aListener);
+}
+
+NS_IMETHODIMP
+nsIndexedToHTML::GetConvertedType(const nsACString& aFromType,
+                                  nsACString& aToType) {
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP

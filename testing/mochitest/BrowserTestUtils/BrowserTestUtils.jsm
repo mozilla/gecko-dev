@@ -26,12 +26,11 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { TestUtils } = ChromeUtils.import(
   "resource://testing-common/TestUtils.jsm"
 );
-const { ContentTask } = ChromeUtils.import(
-  "resource://testing-common/ContentTask.jsm"
-);
+const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
+  ContentTask: "resource://testing-common/ContentTask.jsm",
   E10SUtils: "resource://gre/modules/E10SUtils.jsm",
 });
 
@@ -854,7 +853,7 @@ var BrowserTestUtils = {
 
     // We cannot use the regular BrowserTestUtils helper for waiting here, since that
     // would try to insert the preloaded browser, which would only break things.
-    await ContentTask.spawn(gBrowser.preloadedBrowser, null, async () => {
+    await ContentTask.spawn(gBrowser.preloadedBrowser, [], async () => {
       await ContentTaskUtils.waitForCondition(() => {
         return (
           this.content.document &&
@@ -1641,13 +1640,6 @@ var BrowserTestUtils = {
     browsingContext
   ) {
     let extra = {};
-    let KeyValueParser = {};
-    if (AppConstants.MOZ_CRASHREPORTER) {
-      ChromeUtils.import(
-        "resource://gre/modules/KeyValueParser.jsm",
-        KeyValueParser
-      );
-    }
 
     if (!browser.isRemoteBrowser) {
       throw new Error("<xul:browser> needs to be remote in order to crash");
@@ -1718,19 +1710,23 @@ var BrowserTestUtils = {
         if (dumpID) {
           removalPromise = Services.crashmanager
             .ensureCrashIsPresent(dumpID)
-            .then(() => {
+            .then(async () => {
               let minidumpDirectory = getMinidumpDirectory();
               let extrafile = minidumpDirectory.clone();
               extrafile.append(dumpID + ".extra");
               if (extrafile.exists()) {
-                dump(`\nNo .extra file for dumpID: ${dumpID}\n`);
                 if (AppConstants.MOZ_CRASHREPORTER) {
-                  extra = KeyValueParser.parseKeyValuePairsFromFile(extrafile);
+                  let extradata = await OS.File.read(extrafile.path, {
+                    encoding: "utf-8",
+                  });
+                  extra = JSON.parse(extradata);
                 } else {
                   dump(
                     "\nCrashReporter not enabled - will not return any extra data\n"
                   );
                 }
+              } else {
+                dump(`\nNo .extra file for dumpID: ${dumpID}\n`);
               }
 
               if (shouldClearMinidumps) {
@@ -1812,6 +1808,34 @@ var BrowserTestUtils = {
           (!value && element.hasAttribute(attr)) ||
           (value && element.getAttribute(attr) === value)
         ) {
+          resolve();
+          mut.disconnect();
+        }
+      });
+
+      mut.observe(element, { attributeFilter: [attr] });
+    });
+  },
+
+  /**
+   * Returns a promise that is resolved when element loses an attribute.
+   * @param {String} attr
+   *        The attribute to wait for
+   * @param {Element} element
+   *        The element which should lose the attribute
+   *
+   * @returns {Promise}
+   */
+  waitForAttributeRemoval(attr, element) {
+    if (!element.hasAttribute(attr)) {
+      return Promise.resolve();
+    }
+
+    let MutationObserver = element.ownerGlobal.MutationObserver;
+    return new Promise(resolve => {
+      dump("Waiting for removal\n");
+      let mut = new MutationObserver(mutations => {
+        if (!element.hasAttribute(attr)) {
           resolve();
           mut.disconnect();
         }
@@ -2055,7 +2079,7 @@ var BrowserTestUtils = {
    */
   async promiseAlertDialogOpen(
     buttonAction,
-    uri = "chrome://global/content/commonDialog.xul",
+    uri = "chrome://global/content/commonDialog.xhtml",
     func
   ) {
     let win = await this.domWindowOpened(null, async win => {
@@ -2072,8 +2096,8 @@ var BrowserTestUtils = {
       return win;
     }
 
-    let doc = win.document.documentElement;
-    doc.getButton(buttonAction).click();
+    let dialog = win.document.querySelector("dialog");
+    dialog.getButton(buttonAction).click();
 
     return win;
   },
@@ -2093,7 +2117,7 @@ var BrowserTestUtils = {
    */
   async promiseAlertDialog(
     buttonAction,
-    uri = "chrome://global/content/commonDialog.xul",
+    uri = "chrome://global/content/commonDialog.xhtml",
     func
   ) {
     let win = await this.promiseAlertDialogOpen(buttonAction, uri, func);

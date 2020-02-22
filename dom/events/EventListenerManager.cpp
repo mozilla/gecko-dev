@@ -19,7 +19,6 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
-#include "mozilla/StaticPrefs_full_screen_api.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/EventCallbackDebuggerNotification.h"
 #include "mozilla/dom/Element.h"
@@ -44,11 +43,8 @@
 #include "nsIContent.h"
 #include "nsIContentSecurityPolicy.h"
 #include "mozilla/dom/Document.h"
-#include "nsIDOMEventListener.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsISupports.h"
-#include "nsISupportsPrimitives.h"
-#include "nsIXPConnect.h"
 #include "nsJSUtils.h"
 #include "nsNameSpaceManager.h"
 #include "nsPIDOMWindow.h"
@@ -650,48 +646,45 @@ bool EventListenerManager::ListenerCanHandle(const Listener* aListener,
   if (aEvent->mMessage == eUnidentifiedEvent) {
     return aListener->mTypeAtom == aEvent->mSpecifiedEventType;
   }
-  if (MOZ_UNLIKELY(!StaticPrefs::full_screen_api_unprefix_enabled() &&
-                   aEvent->IsTrusted() &&
-                   (aEventMessage == eFullscreenChange ||
-                    aEventMessage == eFullscreenError))) {
-    // If unprefixed Fullscreen API is not enabled, don't dispatch it
-    // to the content.
-    if (!aEvent->mFlags.mInSystemGroup && !aListener->mIsChrome) {
-      return false;
-    }
-  }
   MOZ_ASSERT(mIsMainThreadELM);
   return aListener->mEventMessage == aEventMessage;
 }
 
-static bool DefaultToPassiveTouchListeners() {
-  static bool sDefaultToPassiveTouchListeners = false;
-  static bool sIsPrefCached = false;
-
-  if (!sIsPrefCached) {
-    sIsPrefCached = true;
-    Preferences::AddBoolVarCache(
-        &sDefaultToPassiveTouchListeners,
-        "dom.event.default_to_passive_touch_listeners");
+static bool IsDefaultPassiveWhenOnRoot(EventMessage aMessage) {
+  if (aMessage == eTouchStart || aMessage == eTouchMove) {
+    return StaticPrefs::dom_event_default_to_passive_touch_listeners();
   }
+  if (aMessage == eWheel || aMessage == eLegacyMouseLineOrPageScroll ||
+      aMessage == eLegacyMousePixelScroll) {
+    return StaticPrefs::dom_event_default_to_passive_wheel_listeners();
+  }
+  return false;
+}
 
-  return sDefaultToPassiveTouchListeners;
+static bool IsRootEventTaget(EventTarget* aTarget) {
+  if (nsCOMPtr<nsPIDOMWindowInner> win = do_QueryInterface(aTarget)) {
+    return true;
+  }
+  nsCOMPtr<nsINode> node = do_QueryInterface(aTarget);
+  if (!node) {
+    return false;
+  }
+  Document* doc = node->OwnerDoc();
+  return node == doc || node == doc->GetRootElement() || node == doc->GetBody();
 }
 
 void EventListenerManager::MaybeMarkPassive(EventMessage aMessage,
                                             EventListenerFlags& aFlags) {
-  if ((aMessage == eTouchStart || aMessage == eTouchMove) && mIsMainThreadELM &&
-      DefaultToPassiveTouchListeners()) {
-    nsCOMPtr<nsINode> node;
-    nsCOMPtr<nsPIDOMWindowInner> win;
-    if ((win = GetTargetAsInnerWindow()) ||
-        ((node = do_QueryInterface(mTarget)) &&
-         (node == node->OwnerDoc() ||
-          node == node->OwnerDoc()->GetRootElement() ||
-          node == node->OwnerDoc()->GetBody()))) {
-      aFlags.mPassive = true;
-    }
+  if (!mIsMainThreadELM) {
+    return;
   }
+  if (!IsDefaultPassiveWhenOnRoot(aMessage)) {
+    return;
+  }
+  if (!IsRootEventTaget(mTarget)) {
+    return;
+  }
+  aFlags.mPassive = true;
 }
 
 void EventListenerManager::AddEventListenerByType(
@@ -1717,7 +1710,8 @@ bool EventListenerManager::HasApzAwareListeners() {
 }
 
 bool EventListenerManager::IsApzAwareListener(Listener* aListener) {
-  return !aListener->mFlags.mPassive && IsApzAwareEvent(aListener->mTypeAtom);
+  return !aListener->mFlags.mPassive && mIsMainThreadELM &&
+         IsApzAwareEvent(aListener->mTypeAtom);
 }
 
 bool EventListenerManager::IsApzAwareEvent(nsAtom* aEvent) {

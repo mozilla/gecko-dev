@@ -170,8 +170,8 @@ bool CompositorBridgeParentBase::AllocUnsafeShmem(
   return PCompositorBridgeParent::AllocUnsafeShmem(aSize, aType, aShmem);
 }
 
-void CompositorBridgeParentBase::DeallocShmem(ipc::Shmem& aShmem) {
-  PCompositorBridgeParent::DeallocShmem(aShmem);
+bool CompositorBridgeParentBase::DeallocShmem(ipc::Shmem& aShmem) {
+  return PCompositorBridgeParent::DeallocShmem(aShmem);
 }
 
 static inline MessageLoop* CompositorLoop() {
@@ -258,6 +258,18 @@ inline void CompositorBridgeParent::ForEachIndirectLayerTree(
     LayerTreeState* state = &it->second;
     if (state->mParent == this) {
       aCallback(state, it->first);
+    }
+  }
+}
+
+/*static*/ template <typename Lambda>
+inline void CompositorBridgeParent::ForEachWebRenderBridgeParent(
+    const Lambda& aCallback) {
+  sIndirectLayerTreesLock->AssertCurrentThreadOwns();
+  for (auto it : sIndirectLayerTrees) {
+    LayerTreeState* state = &it.second;
+    if (state->mWrBridge) {
+      aCallback(state->mWrBridge);
     }
   }
 }
@@ -1996,6 +2008,52 @@ void CompositorBridgeParent::AccumulateMemoryReport(wr::MemoryReport* aReport) {
   }
 }
 
+/*static*/
+void CompositorBridgeParent::InitializeStatics() {
+  gfxVars::SetAllowSacrificingSubpixelAAListener(&UpdateQualitySettings);
+  gfxVars::SetWebRenderDebugFlagsListener(&UpdateDebugFlags);
+}
+
+/*static*/
+void CompositorBridgeParent::UpdateQualitySettings() {
+  if (!CompositorThreadHolder::IsInCompositorThread()) {
+    if (CompositorLoop()) {
+      CompositorLoop()->PostTask(
+          NewRunnableFunction("CompositorBridgeParent::UpdateQualitySettings",
+                              &CompositorBridgeParent::UpdateQualitySettings));
+    }
+
+    // If there is no compositor loop, e.g. due to shutdown, then we can
+    // safefully just ignore this request.
+    return;
+  }
+
+  MonitorAutoLock lock(*sIndirectLayerTreesLock);
+  ForEachWebRenderBridgeParent([&](WebRenderBridgeParent* wrBridge) -> void {
+    wrBridge->UpdateQualitySettings();
+  });
+}
+
+/*static*/
+void CompositorBridgeParent::UpdateDebugFlags() {
+  if (!CompositorThreadHolder::IsInCompositorThread()) {
+    if (CompositorLoop()) {
+      CompositorLoop()->PostTask(
+          NewRunnableFunction("CompositorBridgeParent::UpdateDebugFlags",
+                              &CompositorBridgeParent::UpdateDebugFlags));
+    }
+
+    // If there is no compositor loop, e.g. due to shutdown, then we can
+    // safefully just ignore this request.
+    return;
+  }
+
+  MonitorAutoLock lock(*sIndirectLayerTreesLock);
+  ForEachWebRenderBridgeParent([&](WebRenderBridgeParent* wrBridge) -> void {
+    wrBridge->UpdateDebugFlags();
+  });
+}
+
 RefPtr<WebRenderBridgeParent> CompositorBridgeParent::GetWebRenderBridgeParent()
     const {
   return mWrBridge;
@@ -2844,6 +2902,8 @@ mozilla::ipc::IPCResult CompositorBridgeParent::RecvEndRecordingToMemory(
         },
         [resolve{aResolve}]() { resolve(Nothing()); });
   }
+
+  mHaveCompositionRecorder = false;
 
   return IPC_OK();
 }

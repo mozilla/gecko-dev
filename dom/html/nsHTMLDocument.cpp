@@ -6,7 +6,6 @@
 
 #include "nsHTMLDocument.h"
 
-#include "nsIContentPolicy.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/StaticPrefs_intl.h"
@@ -17,9 +16,7 @@
 #include "nsPrintfCString.h"
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
-#include "nsIContentSecurityPolicy.h"
 #include "nsGlobalWindowInner.h"
-#include "nsIDocumentLoader.h"
 #include "nsIHTMLContentSink.h"
 #include "nsIXMLContentSink.h"
 #include "nsHTMLParts.h"
@@ -30,48 +27,33 @@
 #include "nsDOMString.h"
 #include "nsIStreamListener.h"
 #include "nsIURI.h"
-#include "nsIURIMutator.h"
-#include "nsIIOService.h"
 #include "nsNetUtil.h"
 #include "nsIContentViewer.h"
 #include "nsDocShell.h"
 #include "nsDocShellLoadTypes.h"
-#include "nsIWebNavigation.h"
-#include "nsIBaseWindow.h"
 #include "nsIScriptContext.h"
-#include "nsIXPConnect.h"
 #include "nsContentList.h"
 #include "nsError.h"
 #include "nsIPrincipal.h"
 #include "nsJSPrincipals.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsAttrName.h"
 
 #include "nsNetCID.h"
-#include "nsIServiceManager.h"
-#include "nsIConsoleService.h"
-#include "nsIComponentManager.h"
 #include "nsParserCIID.h"
 #include "mozilla/parser/PrototypeDocumentParser.h"
 #include "mozilla/dom/PrototypeDocumentContentSink.h"
 #include "nsNameSpaceManager.h"
 #include "nsGenericHTMLElement.h"
 #include "mozilla/css/Loader.h"
-#include "nsIHttpChannel.h"
-#include "nsIFile.h"
 #include "nsFrameSelection.h"
 
 #include "nsContentUtils.h"
 #include "nsJSUtils.h"
 #include "DocumentInlines.h"
-#include "nsIDocumentEncoder.h"  //for outputting selection
 #include "nsICachingChannel.h"
 #include "nsIContentViewer.h"
 #include "nsIScriptElement.h"
-#include "nsIScriptError.h"
-#include "nsIMutableArray.h"
 #include "nsArrayUtils.h"
-#include "nsIEffectiveTLDService.h"
 
 // AHMED 12-2
 #include "nsBidiUtils.h"
@@ -93,18 +75,15 @@
 #include "nsHtml5TreeOpExecutor.h"
 #include "nsHtml5Parser.h"
 #include "nsSandboxFlags.h"
-#include "nsIImageDocument.h"
 #include "mozilla/dom/HTMLBodyElement.h"
 #include "mozilla/dom/HTMLDocumentBinding.h"
 #include "mozilla/dom/nsCSPContext.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/dom/ShadowIncludingTreeIterator.h"
 #include "nsCharsetSource.h"
-#include "nsIStringBundle.h"
 #include "nsFocusManager.h"
 #include "nsIFrame.h"
 #include "nsIContent.h"
-#include "nsIStructuredCloneContainer.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
 #include "mozilla/Unused.h"
@@ -309,7 +288,8 @@ void nsHTMLDocument::TryParentCharset(nsIDocShell* aDocShell,
     return;
   }
   if (kCharsetFromParentForced == parentSource ||
-      kCharsetFromUserForced == parentSource) {
+      kCharsetFromUserForced == parentSource ||
+      kCharsetFromUserForcedAutoDetection == parentSource) {
     if (WillIgnoreCharsetOverride() ||
         !IsAsciiCompatible(aEncoding) ||  // if channel said UTF-16
         !IsAsciiCompatible(parentCharset)) {
@@ -446,9 +426,7 @@ nsresult nsHTMLDocument::StartDocumentLoad(const char* aCommand,
 
   bool html = contentType.EqualsLiteral(TEXT_HTML);
   bool xhtml = !html && (contentType.EqualsLiteral(APPLICATION_XHTML_XML) ||
-                         contentType.EqualsLiteral(APPLICATION_WAPXHTML_XML) ||
-                         contentType.EqualsLiteral(APPLICATION_CACHED_XUL) ||
-                         contentType.EqualsLiteral(TEXT_XUL));
+                         contentType.EqualsLiteral(APPLICATION_WAPXHTML_XML));
   mIsPlainText =
       !html && !xhtml && nsContentUtils::IsPlainTextType(contentType);
   if (!(html || xhtml || mIsPlainText || viewSource)) {
@@ -487,9 +465,6 @@ nsresult nsHTMLDocument::StartDocumentLoad(const char* aCommand,
   if (NS_FAILED(rv)) {
     return rv;
   }
-
-  // Store the security info for future use.
-  aChannel->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
 
   nsCOMPtr<nsIURI> uri;
   rv = aChannel->GetURI(getter_AddRefs(uri));

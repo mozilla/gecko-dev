@@ -721,7 +721,7 @@ class WasmTokenStream {
           *ref = AstRef(token.index());
           break;
         }
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
       default:
         generateError(token, error);
         return false;
@@ -920,7 +920,7 @@ WasmToken WasmTokenStream::next() {
       if (!IsWasmDigit(*cur_)) {
         break;
       }
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case '0':
     case '1':
     case '2':
@@ -938,10 +938,10 @@ WasmToken WasmTokenStream::next() {
         return WasmToken(WasmToken::Align, begin, cur_);
       }
       if (consume(u"anyfunc")) {
-        return WasmToken(WasmToken::ValueType, ValType::FuncRef, begin, cur_);
+        return WasmToken(WasmToken::ValueType, RefType::func(), begin, cur_);
       }
       if (consume(u"anyref")) {
-        return WasmToken(WasmToken::ValueType, ValType::AnyRef, begin, cur_);
+        return WasmToken(WasmToken::ValueType, RefType::any(), begin, cur_);
       }
       if (consume(u"atomic.")) {
         if (consume(u"wake") || consume(u"notify")) {
@@ -1023,7 +1023,7 @@ WasmToken WasmTokenStream::next() {
       }
 
       if (consume(u"funcref")) {
-        return WasmToken(WasmToken::ValueType, ValType::FuncRef, begin, cur_);
+        return WasmToken(WasmToken::ValueType, RefType::func(), begin, cur_);
       }
 
       if (consume(u"func")) {
@@ -2160,6 +2160,9 @@ WasmToken WasmTokenStream::next() {
       if (consume(u"nop")) {
         return WasmToken(WasmToken::Nop, begin, cur_);
       }
+      if (consume(u"nullref")) {
+        return WasmToken(WasmToken::ValueType, RefType::null(), begin, cur_);
+      }
       break;
 
     case 'o':
@@ -2991,7 +2994,7 @@ static AstConst* ParseFloatLiteral(WasmParseContext& c, WasmToken token) {
 
 static AstConst* ParseConst(WasmParseContext& c, WasmToken constToken) {
   WasmToken val = c.ts.get();
-  switch (constToken.valueType().code()) {
+  switch (constToken.valueType().kind()) {
     case ValType::I32: {
       switch (val.kind()) {
         case WasmToken::Index:
@@ -4649,9 +4652,9 @@ static bool ParseMemory(WasmParseContext& c) {
 }
 
 #ifdef ENABLE_WASM_GC
-// Custom section for experimental work.  The size of this section should always
-// be 1 byte, and that byte is a nonzero varint7 carrying the version number
-// being opted into.
+// Custom section for experimental work.  The size of this section should
+// always be 1 byte, and that byte is a nonzero varint7 carrying the version
+// number being opted into.
 static bool ParseGcFeatureOptIn(WasmParseContext& c) {
   WasmToken token;
   if (!c.ts.getIf(WasmToken::Index, &token)) {
@@ -4712,18 +4715,22 @@ static bool ParseGlobalType(WasmParseContext& c, AstValType* type,
 static bool ParseElemType(WasmParseContext& c, TableKind* tableKind) {
   WasmToken token;
   if (c.ts.getIf(WasmToken::ValueType, &token)) {
-    if (token.valueType() == ValType::FuncRef) {
+    if (token.valueType().isFuncRef()) {
       *tableKind = TableKind::FuncRef;
       return true;
     }
 #ifdef ENABLE_WASM_REFTYPES
-    if (token.valueType() == ValType::AnyRef) {
+    if (token.valueType().isAnyRef()) {
       *tableKind = TableKind::AnyRef;
+      return true;
+    }
+    if (token.valueType().isNullRef()) {
+      *tableKind = TableKind::NullRef;
       return true;
     }
 #endif
   }
-  c.ts.generateError(token, "'funcref' or 'anyref' required", c.error);
+  c.ts.generateError(token, "generic reference type required", c.error);
   return false;
 }
 
@@ -5026,25 +5033,30 @@ static bool ParseTable(WasmParseContext& c, WasmToken token) {
 
   AstElemSegment* segment =
       new (c.lifo) AstElemSegment(AstElemSegmentKind::Active, AstRef(name),
-                                  zero, ValType::FuncRef, std::move(elems));
+                                  zero, RefType::func(), std::move(elems));
   return segment && c.module->append(segment);
 }
 
 static bool TryParseElemType(WasmParseContext& c, bool* isFunc, ValType* ty) {
   if (c.ts.getIf(WasmToken::Func)) {
     *isFunc = true;
-    *ty = ValType::FuncRef;
+    *ty = RefType::func();
     return true;
   }
 
   WasmToken token = c.ts.peek();
-  if (token.kind() == WasmToken::ValueType &&
-      (token.valueType() == ValType::FuncRef ||
-       token.valueType() == ValType::AnyRef)) {
-    c.ts.get();
-    *isFunc = false;
-    *ty = token.valueType();
-    return true;
+  if (token.kind() == WasmToken::ValueType) {
+    switch (token.valueType().refTypeKind()) {
+      case RefType::Func:
+      case RefType::Any:
+      case RefType::Null:
+        c.ts.get();
+        *isFunc = false;
+        *ty = token.valueType();
+        return true;
+      case RefType::TypeIndex:
+        break;
+    }
   }
 
   return false;
@@ -5055,7 +5067,7 @@ static AstElemSegment* ParseElemSegment(WasmParseContext& c) {
   // <init-expr> is any <expr> or (offset <const>).
   // <table-use> is (table <n>) or just <n> (an extension).
   // <fnref> is a naked function reference (index or name)
-  // <elem-type> is funcref or anyref
+  // <elem-type> is funcref or anyref or nullref
   //
   // Active initializer for table 0 which must be table-of-functions, this is
   // sugar:
@@ -5064,8 +5076,8 @@ static AstElemSegment* ParseElemSegment(WasmParseContext& c) {
   // Active initializer for a given table of functions:
   //   (elem <table-use> <init-expr> func <fnref> ...)
   //
-  // Active initializer for a given table of functions, allowing null.  Note the
-  // parens are required also around ref.null:
+  // Active initializer for a given table of functions, allowing null.  Note
+  // the parens are required also around ref.null:
   //   (elem <table-use> <init-expr> <elem-type>
   //         "(" (ref.func <fnref>|ref.null) ")" ...)
   //
@@ -5078,7 +5090,7 @@ static AstElemSegment* ParseElemSegment(WasmParseContext& c) {
 
   AstRef targetTable = AstRef(0);
   AstExpr* offsetIfActive = nullptr;
-  ValType elemType = ValType::FuncRef;
+  ValType elemType = RefType::func();
   bool haveTableref = false;
   AstElemSegmentKind kind;
 
@@ -5099,8 +5111,8 @@ static AstElemSegment* ParseElemSegment(WasmParseContext& c) {
     haveTableref = true;
   }
 
-  // The order of clauses matters because ParseInitializerExpression changes the
-  // state of the token stream, we can't recover after that fails.
+  // The order of clauses matters because ParseInitializerExpression changes
+  // the state of the token stream, we can't recover after that fails.
 
   bool nakedFnrefs = false;
   if (haveTableref) {
@@ -6086,7 +6098,7 @@ static bool ResolveModule(LifoAlloc& lifo, AstModule* module,
     switch (imp->kind()) {
       case DefinitionKind::Function:
         if (!r.registerFuncName(imp->name(), lastFuncIndex++)) {
-          return r.fail("duplicate import");
+          return r.fail("duplicate function import");
         }
         if (!r.resolveSignature(imp->funcType())) {
           return false;
@@ -6094,7 +6106,7 @@ static bool ResolveModule(LifoAlloc& lifo, AstModule* module,
         break;
       case DefinitionKind::Global:
         if (!r.registerGlobalName(imp->name(), lastGlobalIndex++)) {
-          return r.fail("duplicate import");
+          return r.fail("duplicate global import");
         }
         if (!ResolveType(r, imp->global().type())) {
           return false;
@@ -6102,12 +6114,12 @@ static bool ResolveModule(LifoAlloc& lifo, AstModule* module,
         break;
       case DefinitionKind::Memory:
         if (!r.registerMemoryName(imp->name(), lastMemoryIndex++)) {
-          return r.fail("duplicate import");
+          return r.fail("duplicate memory import");
         }
         break;
       case DefinitionKind::Table:
         if (!r.registerTableName(imp->name(), lastTableIndex++)) {
-          return r.fail("duplicate import");
+          return r.fail("duplicate table import");
         }
         break;
     }
@@ -6124,7 +6136,7 @@ static bool ResolveModule(LifoAlloc& lifo, AstModule* module,
 
   for (AstGlobal* global : module->globals()) {
     if (!r.registerGlobalName(global->name(), lastGlobalIndex++)) {
-      return r.fail("duplicate import");
+      return r.fail("duplicate global import");
     }
     if (!ResolveType(r, global->type())) {
       return false;
@@ -6139,7 +6151,7 @@ static bool ResolveModule(LifoAlloc& lifo, AstModule* module,
       continue;
     }
     if (!r.registerTableName(table.name, lastTableIndex++)) {
-      return r.fail("duplicate import");
+      return r.fail("duplicate table import");
     }
   }
 
@@ -6148,7 +6160,7 @@ static bool ResolveModule(LifoAlloc& lifo, AstModule* module,
       continue;
     }
     if (!r.registerMemoryName(memory.name, lastMemoryIndex++)) {
-      return r.fail("duplicate import");
+      return r.fail("duplicate memory import");
     }
   }
 
@@ -6328,7 +6340,7 @@ static bool EncodeCallIndirect(Encoder& e, AstCallIndirect& c) {
 }
 
 static bool EncodeConst(Encoder& e, AstConst& c) {
-  switch (c.val().type().code()) {
+  switch (c.val().type().kind()) {
     case ValType::I32:
       return e.writeOp(Op::I32Const) && e.writeVarS32(c.val().i32());
     case ValType::I64:
@@ -6963,6 +6975,11 @@ static bool EncodeTableLimits(Encoder& e, const Limits& limits,
         return false;
       }
       break;
+    case TableKind::NullRef:
+      if (!e.writeVarU32(uint32_t(TypeCode::NullRef))) {
+        return false;
+      }
+      break;
     default:
       MOZ_CRASH("Unexpected table kind");
   }
@@ -7367,9 +7384,9 @@ static bool EncodeDataCountSection(Encoder& e, AstModule& module) {
 }
 
 static bool EncodeElemSegment(Encoder& e, AstElemSegment& segment) {
-  // There are three bits that control the encoding of an element segment for up
-  // to eight possible encodings. We try to select the encoding for an element
-  // segment that takes the least amount of space.  We can use various
+  // There are three bits that control the encoding of an element segment for
+  // up to eight possible encodings. We try to select the encoding for an
+  // element segment that takes the least amount of space.  We can use various
   // compressed encodings if some or all of these are true:
   //
   // - the selected element type is FuncRef
@@ -7389,10 +7406,9 @@ static bool EncodeElemSegment(Encoder& e, AstElemSegment& segment) {
     }
   }
 
-  ElemSegmentPayload payload =
-      hasRefNull || segment.elemType() != ValType::FuncRef
-          ? ElemSegmentPayload::ElemExpression
-          : ElemSegmentPayload::ExternIndex;
+  ElemSegmentPayload payload = hasRefNull || !segment.elemType().isFuncRef()
+                                   ? ElemSegmentPayload::ElemExpression
+                                   : ElemSegmentPayload::ExternIndex;
 
   ElemSegmentKind kind;
   switch (segment.kind()) {

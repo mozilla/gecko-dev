@@ -36,24 +36,27 @@ class MediaControlService final : public nsIObserver {
 
   static RefPtr<MediaControlService> GetService();
 
-  RefPtr<MediaController> GetOrCreateControllerById(const uint64_t aId) const;
-  RefPtr<MediaController> GetControllerById(const uint64_t aId) const;
+  MediaController* GetOrCreateControllerById(const uint64_t aId) const;
+  MediaController* GetControllerById(const uint64_t aId) const;
   AudioFocusManager& GetAudioFocusManager() { return mAudioFocusManager; }
   MediaControlKeysEventSource* GetMediaControlKeysEventSource() {
     return mMediaControlKeysManager;
   }
 
-  void AddMediaController(const RefPtr<MediaController>& aController);
-  void RemoveMediaController(const RefPtr<MediaController>& aController);
+  void AddMediaController(MediaController* aController);
+  void RemoveMediaController(MediaController* aController);
   uint64_t GetControllersNum() const;
 
-  already_AddRefed<MediaController> GetLastAddedController();
+  MediaController* GetLastAddedController() const;
 
   // This event is used to generate a media event indicating media controller
   // amount changed.
   MediaEventSource<uint64_t>& MediaControllerAmountChangedEvent() {
     return mMediaControllerAmountChangedEvent;
   }
+
+  // This is used for testing only, to generate fake media control keys events.
+  void GenerateMediaControlKeysTestEvent(MediaControlKeysEvent aEvent);
 
  private:
   MediaControlService();
@@ -62,16 +65,13 @@ class MediaControlService final : public nsIObserver {
   void Init();
   void Shutdown();
 
-  void PlayAllControllers() const;
-  void PauseAllControllers() const;
-  void StopAllControllers() const;
   void ShutdownAllControllers() const;
 
   nsDataHashtable<nsUint64HashKey, RefPtr<MediaController>> mControllers;
   nsTArray<uint64_t> mControllerHistory;
   AudioFocusManager mAudioFocusManager;
   RefPtr<MediaControlKeysManager> mMediaControlKeysManager;
-  RefPtr<MediaControlKeysEventListener> mMediaKeysHandlder;
+  RefPtr<MediaControlKeysEventListener> mMediaKeysHandler;
   MediaEventProducer<uint64_t> mMediaControllerAmountChangedEvent;
 };
 

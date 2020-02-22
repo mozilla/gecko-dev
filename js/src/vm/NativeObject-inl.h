@@ -70,7 +70,8 @@ inline void NativeObject::addDenseElementType(JSContext* cx, uint32_t index,
   // Avoid a slow AddTypePropertyId call if the type is the same as the type
   // of the previous element.
   TypeSet::Type thisType = TypeSet::GetValueType(val);
-  if (index == 0 || TypeSet::GetValueType(elements_[index - 1]) != thisType) {
+  if (index == 0 || elements_[index - 1].isMagic() ||
+      TypeSet::GetValueType(elements_[index - 1]) != thisType) {
     AddTypePropertyId(cx, this, JSID_VOID, thisType);
   }
 }
@@ -117,6 +118,9 @@ inline void NativeObject::markDenseElementsNotPacked(JSContext* cx) {
 
 inline void NativeObject::elementsRangeWriteBarrierPost(uint32_t start,
                                                         uint32_t count) {
+  if (!isTenured()) {
+    return;
+  }
   for (size_t i = 0; i < count; i++) {
     const Value& v = elements_[start + i];
     if (v.isGCThing()) {

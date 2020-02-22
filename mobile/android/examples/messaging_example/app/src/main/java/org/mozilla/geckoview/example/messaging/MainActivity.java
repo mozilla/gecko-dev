@@ -31,7 +31,9 @@ public class MainActivity extends AppCompatActivity {
 
         WebExtension.MessageDelegate messageDelegate = new WebExtension.MessageDelegate() {
             @Nullable
-            public GeckoResult<Object> onMessage(final @NonNull Object message,
+            @Override
+            public GeckoResult<Object> onMessage(final @NonNull String nativeApp,
+                                                 final @NonNull Object message,
                                                  final @NonNull WebExtension.MessageSender sender) {
                 if (message instanceof JSONObject) {
                     JSONObject json = (JSONObject) message;
@@ -51,7 +53,8 @@ public class MainActivity extends AppCompatActivity {
         WebExtension extension = new WebExtension(
                 "resource://android/assets/messaging/",
                 "myextension",
-                WebExtension.Flags.ALLOW_CONTENT_MESSAGING);
+                WebExtension.Flags.ALLOW_CONTENT_MESSAGING,
+                sRuntime.getWebExtensionController());
 
         sRuntime.registerWebExtension(extension).exceptionally(e -> {
             Log.e("MessageDelegate", "Error registering WebExtension", e);

@@ -25,40 +25,62 @@ const {
 } = require("devtools/client/shared/workers-listener.js");
 
 type Dependencies = {
-  threadFront: ThreadFront,
-  tabTarget: Target,
   actions: typeof Actions,
   debuggerClient: DebuggerClient,
 };
 
 let actions: typeof Actions;
 let isInterrupted: boolean;
+let threadFrontListeners: WeakMap<ThreadFront, Array<Function>>;
+let workersListener: Object;
 
 function addThreadEventListeners(thread: ThreadFront) {
+  const removeListeners = [];
   Object.keys(clientEvents).forEach(eventName => {
-    thread.on(eventName, clientEvents[eventName].bind(null, thread));
+    // EventEmitter.on returns a function that removes the event listener.
+    removeListeners.push(
+      thread.on(eventName, clientEvents[eventName].bind(null, thread))
+    );
   });
+  threadFrontListeners.set(thread, removeListeners);
+}
+
+function removeThreadEventListeners(thread: ThreadFront) {
+  const removeListeners = threadFrontListeners.get(thread) || [];
+  for (const removeListener of removeListeners) {
+    removeListener();
+  }
 }
 
 function attachAllTargets(currentTarget: Target) {
-  return prefs.fission && currentTarget.chrome && !currentTarget.isAddon;
+  return prefs.fission && currentTarget.isParentProcess;
 }
 
 function setupEvents(dependencies: Dependencies) {
-  const { tabTarget, threadFront, debuggerClient } = dependencies;
+  const { debuggerClient } = dependencies;
   actions = dependencies.actions;
   sourceQueue.initialize(actions);
 
-  addThreadEventListeners(threadFront);
-  tabTarget.on("workerListChanged", () => threadListChanged("worker"));
-  debuggerClient.mainRoot.on("processListChanged", () =>
-    threadListChanged("contentProcess")
-  );
+  debuggerClient.mainRoot.on("processListChanged", threadListChanged);
 
-  if (features.windowlessServiceWorkers || attachAllTargets(tabTarget)) {
-    const workersListener = new WorkersListener(debuggerClient.mainRoot);
-    workersListener.addListener(() => threadListChanged("worker"));
+  workersListener = new WorkersListener(debuggerClient.mainRoot);
+
+  threadFrontListeners = new WeakMap();
+}
+
+function setupEventsTopTarget(targetFront: Target) {
+  targetFront.on("workerListChanged", threadListChanged);
+  addThreadEventListeners(targetFront.threadFront);
+
+  if (features.windowlessServiceWorkers || attachAllTargets(targetFront)) {
+    workersListener.addListener(threadListChanged);
   }
+}
+
+function removeEventsTopTarget(targetFront: Target) {
+  targetFront.off("workerListChanged", threadListChanged);
+  removeThreadEventListeners(targetFront.threadFront);
+  workersListener.removeListener();
 }
 
 async function paused(threadFront: ThreadFront, packet: PausedPacket) {
@@ -114,8 +136,8 @@ function newSource(threadFront: ThreadFront, { source }: SourcePacket) {
   });
 }
 
-function threadListChanged(type) {
-  actions.updateThreads(type);
+function threadListChanged() {
+  actions.updateThreads();
 }
 
 function replayFramePositions(
@@ -132,4 +154,11 @@ const clientEvents = {
   replayFramePositions,
 };
 
-export { setupEvents, clientEvents, addThreadEventListeners, attachAllTargets };
+export {
+  removeEventsTopTarget,
+  setupEvents,
+  setupEventsTopTarget,
+  clientEvents,
+  addThreadEventListeners,
+  attachAllTargets,
+};

@@ -7,26 +7,25 @@ use api::{YuvColorSpace, YuvFormat, ColorDepth, ColorRange, PremultipliedColorF}
 use api::units::*;
 use crate::clip::{ClipDataStore, ClipNodeFlags, ClipNodeRange, ClipItemKind, ClipStore};
 use crate::clip_scroll_tree::{ClipScrollTree, ROOT_SPATIAL_NODE_INDEX, SpatialNodeIndex, CoordinateSystemId};
-use crate::composite::{CompositeState, CompositeTile, CompositeTileSurface};
+use crate::composite::{CompositeState};
 use crate::glyph_rasterizer::GlyphFormat;
 use crate::gpu_cache::{GpuBlockData, GpuCache, GpuCacheHandle, GpuCacheAddress};
 use crate::gpu_types::{BrushFlags, BrushInstance, PrimitiveHeaders, ZBufferId, ZBufferIdGenerator};
-use crate::gpu_types::{ClipMaskInstance, SplitCompositeInstance};
+use crate::gpu_types::{ClipMaskInstance, SplitCompositeInstance, BrushShaderKind};
 use crate::gpu_types::{PrimitiveInstanceData, RasterizationSpace, GlyphInstance};
 use crate::gpu_types::{PrimitiveHeader, PrimitiveHeaderIndex, TransformPaletteId, TransformPalette};
 use crate::internal_types::{FastHashMap, SavedTargetIndex, Swizzle, TextureSource, Filter};
-use crate::picture::{Picture3DContext, PictureCompositeMode, PicturePrimitive, TileSurface};
+use crate::picture::{Picture3DContext, PictureCompositeMode, PicturePrimitive};
 use crate::prim_store::{DeferredResolve, EdgeAaSegmentMask, PrimitiveInstanceKind, PrimitiveVisibilityIndex, PrimitiveVisibilityMask};
 use crate::prim_store::{VisibleGradientTile, PrimitiveInstance, PrimitiveOpacity, SegmentInstanceIndex};
 use crate::prim_store::{BrushSegment, ClipMaskKind, ClipTaskIndex, VECS_PER_SEGMENT, SpaceMapper};
 use crate::prim_store::image::ImageSource;
-use crate::render_backend::DataStores;
 use crate::render_target::RenderTargetContext;
 use crate::render_task_graph::{RenderTaskId, RenderTaskGraph};
 use crate::render_task::RenderTaskAddress;
 use crate::renderer::{BlendMode, ImageBufferKind, ShaderColorMode};
 use crate::renderer::{BLOCKS_PER_UV_RECT, MAX_VERTEX_TEXTURE_WIDTH};
-use crate::resource_cache::{CacheItem, GlyphFetchResult, ImageRequest, ResourceCache, ImageProperties};
+use crate::resource_cache::{CacheItem, GlyphFetchResult, ImageRequest, ResourceCache};
 use smallvec::SmallVec;
 use std::{f32, i32, usize};
 use crate::util::{project_rect, TransformedRectKind};
@@ -68,6 +67,22 @@ pub enum BatchKind {
     SplitComposite,
     TextRun(GlyphFormat),
     Brush(BrushBatchKind),
+}
+
+impl BatchKind {
+    fn shader_kind(&self) -> BrushShaderKind {
+        match self {
+            BatchKind::Brush(BrushBatchKind::Solid) => BrushShaderKind::Solid,
+            BatchKind::Brush(BrushBatchKind::Image(..)) => BrushShaderKind::Image,
+            BatchKind::Brush(BrushBatchKind::LinearGradient) => BrushShaderKind::LinearGradient,
+            BatchKind::Brush(BrushBatchKind::RadialGradient) => BrushShaderKind::RadialGradient,
+            BatchKind::Brush(BrushBatchKind::Blend) => BrushShaderKind::Blend,
+            BatchKind::Brush(BrushBatchKind::MixBlend { .. }) => BrushShaderKind::MixBlend,
+            BatchKind::Brush(BrushBatchKind::YuvImage(..)) => BrushShaderKind::Yuv,
+            BatchKind::TextRun(..) => BrushShaderKind::Text,
+            _ => BrushShaderKind::None,
+        }
+    }
 }
 
 /// Optional textures that can be used as a source in the shaders.
@@ -575,7 +590,7 @@ impl BatchBuilder {
         clip_task_address: RenderTaskAddress,
         brush_flags: BrushFlags,
         prim_header_index: PrimitiveHeaderIndex,
-        user_data: i32,
+        resource_address: i32,
         prim_vis_mask: PrimitiveVisibilityMask,
     ) {
         for batcher in &mut self.batchers {
@@ -589,7 +604,8 @@ impl BatchBuilder {
                     render_task_address,
                     brush_flags,
                     prim_header_index,
-                    user_data,
+                    resource_address,
+                    brush_kind: batch_key.kind.shader_kind(),
                 };
 
                 batcher.push_single_instance(
@@ -1206,42 +1222,14 @@ impl BatchBuilder {
                                     .expect("bug: unable to map clip rect");
                                 let device_clip_rect = (world_clip_rect * ctx.global_device_pixel_scale).round();
                                 let z_id = composite_state.z_generator.next();
-                                for key in &tile_cache.tiles_to_draw {
-                                    let tile = &tile_cache.tiles[key];
-                                    if !tile.is_visible {
-                                        // This can occur when a tile is found to be occluded during frame building.
-                                        continue;
-                                    }
-                                    let device_rect = (tile.world_rect * ctx.global_device_pixel_scale).round();
-                                    let dirty_rect = (tile.world_dirty_rect * ctx.global_device_pixel_scale).round();
-                                    let surface = tile.surface.as_ref().expect("no tile surface set!");
 
-                                    let (surface, is_opaque) = match surface {
-                                        TileSurface::Color { color } => {
-                                            (CompositeTileSurface::Color { color: *color }, true)
-                                        }
-                                        TileSurface::Clear => {
-                                            (CompositeTileSurface::Clear, false)
-                                        }
-                                        TileSurface::Texture { descriptor, .. } => {
-                                            let surface = descriptor.resolve(ctx.resource_cache);
-                                            (
-                                                CompositeTileSurface::Texture { surface },
-                                                tile.is_opaque || tile_cache.is_opaque(),
-                                            )
-                                        }
-                                    };
-
-                                    let tile = CompositeTile {
-                                        surface,
-                                        rect: device_rect,
-                                        dirty_rect,
-                                        clip_rect: device_clip_rect,
-                                        z_id,
-                                    };
-
-                                    composite_state.push_tile(tile, is_opaque);
-                                }
+                                composite_state.push_surface(
+                                    tile_cache,
+                                    device_clip_rect,
+                                    z_id,
+                                    ctx.global_device_pixel_scale,
+                                    ctx.resource_cache,
+                                );
                             }
                             PictureCompositeMode::Filter(ref filter) => {
                                 assert!(filter.is_visible());
@@ -2675,46 +2663,6 @@ impl BrushBatchParameters {
                     specific_resource_address,
                 }
             ),
-        }
-    }
-}
-
-impl PrimitiveInstance {
-    pub fn is_cacheable(
-        &self,
-        data_stores: &DataStores,
-        resource_cache: &ResourceCache,
-    ) -> bool {
-        let image_key = match self.kind {
-            PrimitiveInstanceKind::Image { data_handle, .. } => {
-                let image_data = &data_stores.image[data_handle].kind;
-                image_data.key
-            }
-            PrimitiveInstanceKind::YuvImage { data_handle, .. } => {
-                let yuv_image_data =
-                    &data_stores.yuv_image[data_handle].kind;
-                yuv_image_data.yuv_key[0]
-            }
-            PrimitiveInstanceKind::Picture { .. } |
-            PrimitiveInstanceKind::TextRun { .. } |
-            PrimitiveInstanceKind::LineDecoration { .. } |
-            PrimitiveInstanceKind::NormalBorder { .. } |
-            PrimitiveInstanceKind::ImageBorder { .. } |
-            PrimitiveInstanceKind::Rectangle { .. } |
-            PrimitiveInstanceKind::LinearGradient { .. } |
-            PrimitiveInstanceKind::RadialGradient { .. } |
-            PrimitiveInstanceKind::PushClipChain |
-            PrimitiveInstanceKind::PopClipChain |
-            PrimitiveInstanceKind::Clear { .. } |
-            PrimitiveInstanceKind::Backdrop { .. } => {
-                return true;
-            }
-        };
-        match resource_cache.get_image_properties(image_key) {
-            Some(ImageProperties { external_image: Some(_), .. }) => {
-                false
-            }
-            _ => true
         }
     }
 }

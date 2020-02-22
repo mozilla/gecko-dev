@@ -3,19 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use api::ColorF;
-use api::units::{DeviceRect, DeviceIntSize, DeviceIntRect, DeviceIntPoint, WorldRect, DevicePixelScale};
+use api::units::{DeviceRect, DeviceIntSize, DeviceIntRect, DeviceIntPoint, WorldRect, DevicePixelScale, DevicePoint};
 use crate::gpu_types::{ZBufferId, ZBufferIdGenerator};
-use crate::picture::{ResolvedSurfaceTexture};
+use crate::picture::{ResolvedSurfaceTexture, TileId, TileCacheInstance, TileSurface};
+use crate::resource_cache::ResourceCache;
 use std::{ops, u64};
-use std::sync::atomic::{AtomicU64, Ordering};
 
 /*
  Types and definitions related to compositing picture cache tiles
  and/or OS compositor integration.
  */
-
-// Counter for generating unique native surface ids
-static NEXT_NATIVE_SURFACE_ID: AtomicU64 = AtomicU64::new(0);
 
 /// Describes details of an operation to apply to a native surface
 #[derive(Debug, Clone)]
@@ -23,10 +20,19 @@ static NEXT_NATIVE_SURFACE_ID: AtomicU64 = AtomicU64::new(0);
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub enum NativeSurfaceOperationDetails {
     CreateSurface {
-        size: DeviceIntSize,
+        id: NativeSurfaceId,
+        tile_size: DeviceIntSize,
+    },
+    DestroySurface {
+        id: NativeSurfaceId,
+    },
+    CreateTile {
+        id: NativeTileId,
         is_opaque: bool,
     },
-    DestroySurface,
+    DestroyTile {
+        id: NativeTileId,
+    }
 }
 
 /// Describes an operation to apply to a native surface
@@ -34,7 +40,6 @@ pub enum NativeSurfaceOperationDetails {
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct NativeSurfaceOperation {
-    pub id: NativeSurfaceId,
     pub details: NativeSurfaceOperationDetails,
 }
 
@@ -62,6 +67,7 @@ pub struct CompositeTile {
     pub clip_rect: DeviceRect,
     pub dirty_rect: DeviceRect,
     pub z_id: ZBufferId,
+    pub tile_id: TileId,
 }
 
 /// Public interface specified in `RendererOptions` that configures
@@ -133,6 +139,35 @@ struct Occluder {
     device_rect: DeviceIntRect,
 }
 
+/// Describes the properties that identify a tile composition uniquely.
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+#[derive(PartialEq, Clone)]
+pub struct CompositeSurfaceDescriptor {
+    pub slice: usize,
+    pub surface_id: Option<NativeSurfaceId>,
+    pub offset: DevicePoint,
+    pub clip_rect: DeviceRect,
+}
+
+/// Describes surface properties used to composite a frame. This
+/// is used to compare compositions between frames.
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+#[derive(PartialEq, Clone)]
+pub struct CompositeDescriptor {
+    pub surfaces: Vec<CompositeSurfaceDescriptor>,
+}
+
+impl CompositeDescriptor {
+    /// Construct an empty descriptor.
+    pub fn empty() -> Self {
+        CompositeDescriptor {
+            surfaces: Vec::new(),
+        }
+    }
+}
+
 /// The list of tiles to be drawn this frame
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
@@ -140,9 +175,6 @@ pub struct CompositeState {
     // TODO(gw): Consider splitting up CompositeState into separate struct types depending
     //           on the selected compositing mode. Many of the fields in this state struct
     //           are only applicable to either Native or Draw compositing mode.
-    /// List of tiles to be drawn by the native compositor. These are added in draw order
-    /// and not separated by kind (opacity is a property of the native surface).
-    pub native_tiles: Vec<CompositeTile>,
     /// List of opaque tiles to be drawn by the Draw compositor.
     pub opaque_tiles: Vec<CompositeTile>,
     /// List of alpha tiles to be drawn by the Draw compositor.
@@ -158,9 +190,6 @@ pub struct CompositeState {
     // it gives us the ability to partial present for any non-scroll
     // case as a simple win (e.g. video, animation etc).
     pub dirty_rects_are_valid: bool,
-    /// List of OS native surface create / destroy operations to
-    /// apply when render occurs.
-    pub native_surface_updates: Vec<NativeSurfaceOperation>,
     /// The kind of compositor for picture cache tiles (e.g. drawn by WR, or OS compositor)
     pub compositor_kind: CompositorKind,
     /// Picture caching may be disabled dynamically, based on debug flags, pinch zoom etc.
@@ -169,6 +198,8 @@ pub struct CompositeState {
     global_device_pixel_scale: DevicePixelScale,
     /// List of registered occluders
     occluders: Vec<Occluder>,
+    /// Description of the surfaces and properties that are being composited.
+    pub descriptor: CompositeDescriptor,
 }
 
 impl CompositeState {
@@ -189,54 +220,17 @@ impl CompositeState {
         }
 
         CompositeState {
-            native_tiles: Vec::new(),
             opaque_tiles: Vec::new(),
             alpha_tiles: Vec::new(),
             clear_tiles: Vec::new(),
             z_generator: ZBufferIdGenerator::new(0),
             dirty_rects_are_valid: true,
-            native_surface_updates: Vec::new(),
             compositor_kind,
             picture_caching_is_enabled,
             global_device_pixel_scale,
             occluders: Vec::new(),
+            descriptor: CompositeDescriptor::empty(),
         }
-    }
-
-    /// Queue up allocation of a new OS native compositor surface with the
-    /// specified id and dimensions.
-    pub fn create_surface(
-        &mut self,
-        size: DeviceIntSize,
-        is_opaque: bool,
-    ) -> NativeSurfaceId {
-        let id = NativeSurfaceId(NEXT_NATIVE_SURFACE_ID.fetch_add(1, Ordering::Relaxed));
-
-        self.native_surface_updates.push(
-            NativeSurfaceOperation {
-                id,
-                details: NativeSurfaceOperationDetails::CreateSurface {
-                    size,
-                    is_opaque,
-                }
-            }
-        );
-
-        id
-    }
-
-    /// Queue up destruction of an existing native OS surface. This is used when
-    /// a picture cache tile is dropped or resized.
-    pub fn destroy_surface(
-        &mut self,
-        id: NativeSurfaceId,
-    ) {
-        self.native_surface_updates.push(
-            NativeSurfaceOperation {
-                id,
-                details: NativeSurfaceOperationDetails::DestroySurface,
-            }
-        );
     }
 
     /// Register an occluder during picture cache updates that can be
@@ -285,23 +279,87 @@ impl CompositeState {
         ref_area == cover_area
     }
 
+    /// Add a picture cache to be composited
+    pub fn push_surface(
+        &mut self,
+        tile_cache: &TileCacheInstance,
+        device_clip_rect: DeviceRect,
+        z_id: ZBufferId,
+        global_device_pixel_scale: DevicePixelScale,
+        resource_cache: &ResourceCache,
+    ) {
+        let mut visible_tile_count = 0;
+
+        for key in &tile_cache.tiles_to_draw {
+            let tile = &tile_cache.tiles[key];
+            if !tile.is_visible {
+                // This can occur when a tile is found to be occluded during frame building.
+                continue;
+            }
+
+            visible_tile_count += 1;
+
+            let device_rect = (tile.world_rect * global_device_pixel_scale).round();
+            let dirty_rect = (tile.world_dirty_rect * global_device_pixel_scale).round();
+            let surface = tile.surface.as_ref().expect("no tile surface set!");
+
+            let (surface, is_opaque) = match surface {
+                TileSurface::Color { color } => {
+                    (CompositeTileSurface::Color { color: *color }, true)
+                }
+                TileSurface::Clear => {
+                    (CompositeTileSurface::Clear, false)
+                }
+                TileSurface::Texture { descriptor, .. } => {
+                    let surface = descriptor.resolve(resource_cache, tile_cache.current_tile_size);
+                    (
+                        CompositeTileSurface::Texture { surface },
+                        tile.is_opaque || tile_cache.is_opaque(),
+                    )
+                }
+            };
+
+            let tile = CompositeTile {
+                surface,
+                rect: device_rect,
+                dirty_rect,
+                clip_rect: device_clip_rect,
+                z_id,
+                tile_id: tile.id,
+            };
+
+            self.push_tile(tile, is_opaque);
+        }
+
+        if visible_tile_count > 0 {
+            self.descriptor.surfaces.push(
+                CompositeSurfaceDescriptor {
+                    slice: tile_cache.slice,
+                    surface_id: tile_cache.native_surface_id,
+                    offset: tile_cache.device_position,
+                    clip_rect: device_clip_rect,
+                }
+            );
+        }
+    }
+
     /// Add a tile to the appropriate array, depending on tile properties and compositor mode.
-    pub fn push_tile(
+    fn push_tile(
         &mut self,
         tile: CompositeTile,
         is_opaque: bool,
     ) {
-        match (self.compositor_kind, &tile.surface) {
-            (CompositorKind::Draw { .. }, CompositeTileSurface::Color { .. }) => {
+        match tile.surface {
+            CompositeTileSurface::Color { .. } => {
                 // Color tiles are, by definition, opaque. We might support non-opaque color
                 // tiles if we ever find pages that have a lot of these.
                 self.opaque_tiles.push(tile);
             }
-            (CompositorKind::Draw { .. }, CompositeTileSurface::Clear) => {
+            CompositeTileSurface::Clear => {
                 // Clear tiles have a special bucket
                 self.clear_tiles.push(tile);
             }
-            (CompositorKind::Draw { .. }, CompositeTileSurface::Texture { .. }) => {
+            CompositeTileSurface::Texture { .. } => {
                 // Texture surfaces get bucketed by opaque/alpha, for z-rejection
                 // on the Draw compositor mode.
                 if is_opaque {
@@ -309,20 +367,6 @@ impl CompositeState {
                 } else {
                     self.alpha_tiles.push(tile);
                 }
-            }
-            (CompositorKind::Native { .. }, CompositeTileSurface::Color { .. }) => {
-                // Native compositor doesn't (yet) support color surfaces.
-                unreachable!();
-            }
-            (CompositorKind::Native { .. }, CompositeTileSurface::Clear) => {
-                // Native compositor doesn't support color surfaces.
-                unreachable!();
-            }
-            (CompositorKind::Native { .. }, CompositeTileSurface::Texture { .. }) => {
-                // Native tiles are supplied to the OS compositor in draw order,
-                // since there is no z-buffer involved (opacity is supplied as part
-                // of the surface properties).
-                self.native_tiles.push(tile);
             }
         }
     }
@@ -338,6 +382,25 @@ pub struct NativeSurfaceId(pub u64);
 impl NativeSurfaceId {
     /// A special id for the native surface that is used for debug / profiler overlays.
     pub const DEBUG_OVERLAY: NativeSurfaceId = NativeSurfaceId(u64::MAX);
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+pub struct NativeTileId {
+    pub surface_id: NativeSurfaceId,
+    pub x: i32,
+    pub y: i32,
+}
+
+impl NativeTileId {
+    /// A special id for the native surface that is used for debug / profiler overlays.
+    pub const DEBUG_OVERLAY: NativeTileId = NativeTileId {
+        surface_id: NativeSurfaceId::DEBUG_OVERLAY,
+        x: 0,
+        y: 0,
+    };
 }
 
 /// Information about a bound surface that the native compositor
@@ -366,12 +429,10 @@ pub struct NativeSurfaceInfo {
 /// composited by the OS compositor, rather than drawn via WR batches.
 pub trait Compositor {
     /// Create a new OS compositor surface with the given properties.
-    /// The surface is allocated but not placed in the visual tree.
     fn create_surface(
         &mut self,
         id: NativeSurfaceId,
-        size: DeviceIntSize,
-        is_opaque: bool,
+        tile_size: DeviceIntSize,
     );
 
     /// Destroy the surface with the specified id. WR may call this
@@ -383,6 +444,19 @@ pub trait Compositor {
     fn destroy_surface(
         &mut self,
         id: NativeSurfaceId,
+    );
+
+    /// Create a new OS compositor tile with the given properties.
+    fn create_tile(
+        &mut self,
+        id: NativeTileId,
+        is_opaque: bool,
+    );
+
+    /// Destroy an existing compositor tile.
+    fn destroy_tile(
+        &mut self,
+        id: NativeTileId,
     );
 
     /// Bind this surface such that WR can issue OpenGL commands
@@ -398,7 +472,7 @@ pub trait Compositor {
     /// affect the coordinates of the returned origin).
     fn bind(
         &mut self,
-        id: NativeSurfaceId,
+        id: NativeTileId,
         dirty_rect: DeviceIntRect,
     ) -> NativeSurfaceInfo;
 

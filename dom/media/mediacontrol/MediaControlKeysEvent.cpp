@@ -13,19 +13,7 @@
 namespace mozilla {
 namespace dom {
 
-static const char* ToMediaControlKeysEventStr(MediaControlKeysEvent aKeyEvent) {
-  switch (aKeyEvent) {
-    case MediaControlKeysEvent::ePlayPause:
-      return "PlayPause";
-    case MediaControlKeysEvent::eNext:
-      return "Next";
-    case MediaControlKeysEvent::ePrev:
-      return "Prev";
-    default:
-      MOZ_ASSERT_UNREACHABLE("Invalid action.");
-  }
-  return "Unknown";
-}
+using PlaybackState = MediaControlKeysEventSource::PlaybackState;
 
 // avoid redefined macro in unified build
 #undef LOG_SOURCE
@@ -39,19 +27,28 @@ static const char* ToMediaControlKeysEventStr(MediaControlKeysEvent aKeyEvent) {
           ("MediaControlKeysHandler=%p, " msg, this, \
            ToMediaControlKeysEventStr(key), ##__VA_ARGS__));
 
-NS_IMPL_ISUPPORTS0(MediaControlKeysHandler)
-
 void MediaControlKeysHandler::OnKeyPressed(MediaControlKeysEvent aKeyEvent) {
   LOG_KEY("OnKeyPressed '%s'", aKeyEvent);
-  switch (aKeyEvent) {
-    case MediaControlKeysEvent::ePlayPause: {
-      RefPtr<MediaControlService> service = MediaControlService::GetService();
-      MOZ_ASSERT(service);
-      RefPtr<MediaController> controller = service->GetLastAddedController();
-      if (!controller) {
-        return;
-      }
 
+  RefPtr<MediaControlService> service = MediaControlService::GetService();
+  MOZ_ASSERT(service);
+  RefPtr<MediaController> controller = service->GetLastAddedController();
+  if (!controller) {
+    return;
+  }
+
+  switch (aKeyEvent) {
+    case MediaControlKeysEvent::ePlay:
+      if (!controller->IsPlaying()) {
+        controller->Play();
+      }
+      return;
+    case MediaControlKeysEvent::ePause:
+      if (controller->IsPlaying()) {
+        controller->Pause();
+      }
+      return;
+    case MediaControlKeysEvent::ePlayPause: {
       if (controller->IsPlaying()) {
         controller->Pause();
       } else {
@@ -59,17 +56,20 @@ void MediaControlKeysHandler::OnKeyPressed(MediaControlKeysEvent aKeyEvent) {
       }
       return;
     }
-    case MediaControlKeysEvent::eNext:
-    case MediaControlKeysEvent::ePrev:
+    case MediaControlKeysEvent::ePrevTrack:
+    case MediaControlKeysEvent::eNextTrack:
+    case MediaControlKeysEvent::eSeekBackward:
+    case MediaControlKeysEvent::eSeekForward:
       // TODO : implement related controller functions.
+      return;
+    case MediaControlKeysEvent::eStop:
+      controller->Stop();
       return;
     default:
       MOZ_ASSERT_UNREACHABLE("Error : undefined event!");
       return;
   }
 }
-
-NS_IMPL_ISUPPORTS0(MediaControlKeysEventSource)
 
 void MediaControlKeysEventSource::AddListener(
     MediaControlKeysEventListener* aListener) {
@@ -92,6 +92,18 @@ size_t MediaControlKeysEventSource::GetListenersNum() const {
 void MediaControlKeysEventSource::Close() {
   LOG_SOURCE("Close source");
   mListeners.Clear();
+}
+
+void MediaControlKeysEventSource::SetPlaybackState(PlaybackState aState) {
+  if (mPlaybackState == aState) {
+    return;
+  }
+  LOG_SOURCE("SetPlaybackState '%s'", ToPlaybackStateEventStr(aState));
+  mPlaybackState = aState;
+}
+
+PlaybackState MediaControlKeysEventSource::GetPlaybackState() const {
+  return mPlaybackState;
 }
 
 }  // namespace dom

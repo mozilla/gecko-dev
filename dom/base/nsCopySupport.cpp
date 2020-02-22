@@ -8,8 +8,6 @@
 #include "nsIDocumentEncoder.h"
 #include "nsISupports.h"
 #include "nsIContent.h"
-#include "nsIComponentManager.h"
-#include "nsIServiceManager.h"
 #include "nsIClipboard.h"
 #include "nsIFormControl.h"
 #include "nsWidgetsCID.h"
@@ -23,7 +21,6 @@
 
 #include "nsIDocShell.h"
 #include "nsIContentViewerEdit.h"
-#include "nsIClipboardHelper.h"
 #include "nsISelectionController.h"
 
 #include "nsPIDOMWindow.h"
@@ -32,8 +29,6 @@
 #include "nsGkAtoms.h"
 #include "nsIFrame.h"
 #include "nsIURI.h"
-#include "nsIURIMutator.h"
-#include "nsISimpleEnumerator.h"
 #include "nsGenericHTMLElement.h"
 
 // image copy stuff
@@ -806,9 +801,8 @@ bool nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
     return false;
   }
 
-  nsCOMPtr<nsIDocShell> docShell = piWindow->GetDocShell();
-  const bool chromeShell =
-      docShell && docShell->ItemType() == nsIDocShellTreeItem::typeChrome;
+  BrowsingContext* bc = piWindow->GetBrowsingContext();
+  const bool chromeShell = bc && bc->IsChrome();
 
   // next, fire the cut, copy or paste event
   bool doDefault = true;

@@ -168,7 +168,7 @@ var gSync = {
       return;
     }
     // We start with every menuitem hidden (except for the "setup sync" state),
-    // so that we don't need to init the sync UI on windows like pageInfo.xul
+    // so that we don't need to init the sync UI on windows like pageInfo.xhtml
     // (see bug 1384856).
     // maybeUpdateUIState() also optimizes for this - if we should be in the
     // "setup sync" state, that function assumes we are already in it and
@@ -387,7 +387,6 @@ var gSync = {
 
     if (!gFxaToolbarAccessed) {
       Services.prefs.setBoolPref("identity.fxaccounts.toolbar.accessed", true);
-      document.documentElement.removeAttribute("fxa_avatar_badged");
     }
 
     this.enableSendTabIfValidTab();
@@ -499,7 +498,9 @@ var gSync = {
       fxaMenuAccountButtonEl.setAttribute("closemenu", "none");
 
       headerTitle = state.email;
-      headerDescription = this.fxaStrings.GetStringFromName("account.settings");
+      headerDescription = this.fxaStrings.GetStringFromName(
+        "account.accountSettings"
+      );
 
       panelTitle = state.displayName ? state.displayName : panelTitle;
     }

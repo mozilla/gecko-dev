@@ -13,6 +13,48 @@ exclude: true
 
 ⚠️  breaking change
 
+## v73
+- Added [`WebExtensionController.install`][73.1] and [`uninstall`][73.2] to
+  manage installed extensions
+- ⚠️ Renamed `ScreenLength.VIEWPORT_WIDTH`, `ScreenLength.VIEWPORT_HEIGHT`,
+  `ScreenLength.fromViewportWidth` and `ScreenLength.fromViewportHeight` to
+  [`ScreenLength.VISUAL_VIEWPORT_WIDTH`][73.3],
+  [`ScreenLength.VISUAL_VIEWPORT_HEIGHT`][73.4],
+  [`ScreenLength.fromVisualViewportWidth`][73.5] and
+  [`ScreenLength.fromVisualViewportHeight`][73.6] respectively.
+- Added the [`LoginStorage`][73.7] API. Apps may handle login fetch requests now by
+  attaching a [`LoginStorage.Delegate`][73.8] via
+  [`GeckoRuntime#setLoginStorageDelegate`][73.9]
+  ([bug 1602881]({{bugzilla}}1602881))
+- ⚠️ [`WebExtension`][69.5]'s constructor now requires a `WebExtensionController`
+  instance.
+- Added [`GeckoResult.allOf`][73.10] for consuming a list of results.
+- Added [`WebExtensionController.list`][73.11] to list all installed extensions.
+- Added [`GeckoSession.PermissionDelegate#PERMISSION_AUTOPLAY_AUDIBLE`][73.12] and
+  [`GeckoSession.PermissionDelegate#PERMISSION_AUTOPLAY_INAUDIBLE`][73.13]. These control
+  autoplay permissions for audible and inaudible videos.
+  ([bug 1577596]({{bugzilla}}1577596))
+- Added [`LoginStorage.Delegate.onLoginSave`][73.14] for login storage save
+  requests and [`GeckoSession.PromptDelegate.onLoginStoragePrompt`][73.15] for
+  login storage prompts.
+  ([bug 1599873]({{bugzilla}}1599873))
+
+[73.1]: {{javadoc_uri}}/WebExtensionController.html#install-java.lang.String-
+[73.2]: {{javadoc_uri}}/WebExtensionController.html#uninstall-org.mozilla.geckoview.WebExtension-
+[73.3]: {{javadoc_uri}}/ScreenLength.html#VISUAL_VIEWPORT_WIDTH
+[73.4]: {{javadoc_uri}}/ScreenLength.html#VISUAL_VIEWPORT_HEIGHT
+[73.5]: {{javadoc_uri}}/ScreenLength.html#fromVisualViewportWidth-double-
+[73.6]: {{javadoc_uri}}/ScreenLength.html#fromVisualViewportHeight-double-
+[73.7]: {{javadoc_uri}}/LoginStorage.html
+[73.8]: {{javadoc_uri}}/LoginStorage.Delegate.html
+[73.9]: {{javadoc_uri}}/GeckoRuntime.html#setLoginStorageDelegate-org.mozilla.geckoview.LoginStorage.Delegate-
+[73.10]: {{javadoc_uri}}/GeckoResult.html#allOf-java.util.List-
+[73.11]: {{javadoc_uri}}/WebExtensionController.html#list--
+[73.12]: {{javadoc_uri}}/GeckoSession.PermissionDelegate.html#PERMISSION_AUTOPLAY_AUDIBLE
+[73.13]: {{javadoc_uri}}/GeckoSession.PermissionDelegate.html#PERMISSION_AUTOPLAY_INAUDIBLE
+[73.14]: {{javadoc_uri}}/LoginStorage.Delegate.html#onLoginSave-org.mozilla.geckoview.LoginStorage.LoginEntry-
+[73.15]: {{javadoc_uri}}/GeckoSession.PromptDelegate.html#onLoginStoragePrompt-org.mozilla.geckoview.GeckoSession-org.mozilla.geckoview.GeckoSession.PromptDelegate.LoginStoragePrompt-
+
 ## v72
 - Added [`GeckoSession.NavigationDelegate.LoadRequest#hasUserGesture`][72.1]. This indicates
   if a load was requested while a user gesture was active (e.g., a tap).
@@ -51,6 +93,12 @@ exclude: true
 - Added ['GeckoWebExecutor#FETCH_FLAGS_STREAM_FAILURE_TEST'][72.22], which is a new
   flag used to immediately fail when reading a `WebResponse` body.
   ([bug 1594905]({{bugzilla}}1594905))
+- Changed [`CrashReporter#sendCrashReport(Context, File, JSONObject)`][72.23] to
+  accept a JSON object instead of a Map. Said object also includes the
+  application name that was previously passed as the fourth argument to the
+  method, which was thus removed.
+- Added WebXR device access permission support, [`PERMISSION_PERSISTENT_XR`][72.24].
+  ([bug 1599927]({{bugzilla}}1599927))
 
 [72.1]: {{javadoc_uri}}/GeckoSession.NavigationDelegate.LoadRequest#hasUserGesture-
 [72.2]: {{javadoc_uri}}/Autofill.html
@@ -74,7 +122,10 @@ exclude: true
 [72.20]: https://developer.android.com/reference/java/lang/String
 [72.21]: {{javadoc_uri}}/WebExtension.Icon.html
 [72.22]: {{javadoc_uri}}/GeckoWebExecutor.html#FETCH_FLAGS_STREAM_FAILURE_TEST
+[72.23]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport-android.content.Context-java.io.File-org.json.JSONObject-
+[72.24]: {{javadoc_uri}}/GeckoSession.PermissionDelegate.html#PERMISSION_PERSISTENT_XR
 
+=
 ## v71
 - Added a content blocking flag for blocked social cookies to [`ContentBlocking`][70.17].
   ([bug 1584479]({{bugzilla}}1584479))
@@ -471,4 +522,4 @@ exclude: true
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport-android.content.Context-android.os.Bundle-java.lang.String-
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 40acc9e29d33b23b72a345047ed1f6d4695b8c65
+[api-version]: 2a944df46a5560f6b45f421536fd3051f9c32885

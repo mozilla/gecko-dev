@@ -550,6 +550,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     const actor = new ObjectActor(
       object,
       {
+        thread: this.parentActor.threadActor,
         getGripDepth: () => this._gripDepth,
         incrementGripDepth: () => this._gripDepth++,
         decrementGripDepth: () => this._gripDepth--,
@@ -1145,6 +1146,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       url: request.url,
       selectedNodeActor: request.selectedNodeActor,
       selectedObjectActor: request.selectedObjectActor,
+      eager: request.eager,
     };
     const { mapped } = request;
 
@@ -1345,7 +1347,8 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     cursor,
     frameActorId,
     selectedNodeActor,
-    authorizedEvaluations
+    authorizedEvaluations,
+    expressionVars = []
   ) {
     let dbgObject = null;
     let environment = null;
@@ -1392,6 +1395,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
         webconsoleActor: this,
         selectedNodeActor,
         authorizedEvaluations,
+        expressionVars,
       });
 
       if (result === null) {
@@ -1678,8 +1682,9 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
         lineNumber: s.line,
         columnNumber: s.column,
         functionName: s.functionDisplayName,
+        asyncCause: s.asyncCause ? s.asyncCause : undefined,
       });
-      s = s.parent;
+      s = s.parent || s.asyncParent;
     }
     return stack;
   },

@@ -7,6 +7,7 @@
 #define mozilla_net_SocketProcessChild_h
 
 #include "mozilla/net/PSocketProcessChild.h"
+#include "mozilla/ipc/InputStreamUtils.h"
 #include "nsRefPtrHashtable.h"
 
 namespace mozilla {
@@ -20,7 +21,9 @@ class SocketProcessBridgeParent;
 
 // The IPC actor implements PSocketProcessChild in child process.
 // This is allocated and kept alive by SocketProcessImpl.
-class SocketProcessChild final : public PSocketProcessChild {
+class SocketProcessChild final
+    : public PSocketProcessChild,
+      public mozilla::ipc::ChildToParentStreamActorManager {
  public:
   SocketProcessChild();
   ~SocketProcessChild();
@@ -47,13 +50,26 @@ class SocketProcessChild final : public PSocketProcessChild {
 
   PWebrtcTCPSocketChild* AllocPWebrtcTCPSocketChild(const Maybe<TabId>& tabId);
   bool DeallocPWebrtcTCPSocketChild(PWebrtcTCPSocketChild* aActor);
-  PDNSRequestChild* AllocPDNSRequestChild(
-      const nsCString& aHost, const OriginAttributes& aOriginAttributes,
-      const uint32_t& aFlags);
-  bool DeallocPDNSRequestChild(PDNSRequestChild*);
+
+  already_AddRefed<PHttpTransactionChild> AllocPHttpTransactionChild();
+
+  PFileDescriptorSetChild* AllocPFileDescriptorSetChild(
+      const FileDescriptor& fd);
+  bool DeallocPFileDescriptorSetChild(PFileDescriptorSetChild* aActor);
+
+  PChildToParentStreamChild* AllocPChildToParentStreamChild();
+  bool DeallocPChildToParentStreamChild(PChildToParentStreamChild* aActor);
+  PParentToChildStreamChild* AllocPParentToChildStreamChild();
+  bool DeallocPParentToChildStreamChild(PParentToChildStreamChild* aActor);
 
   void CleanUp();
   void DestroySocketProcessBridgeParent(ProcessId aId);
+
+  PChildToParentStreamChild* SendPChildToParentStreamConstructor(
+      PChildToParentStreamChild* aActor) override;
+  PFileDescriptorSetChild* SendPFileDescriptorSetConstructor(
+      const FileDescriptor& aFD) override;
+  already_AddRefed<PHttpConnectionMgrChild> AllocPHttpConnectionMgrChild();
 
  private:
   // Mapping of content process id and the SocketProcessBridgeParent.

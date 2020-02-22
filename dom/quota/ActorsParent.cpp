@@ -8,19 +8,15 @@
 
 #include "mozIStorageConnection.h"
 #include "mozIStorageService.h"
-#include "mozIThirdPartyUtil.h"
-#include "nsIObjectInputStream.h"
+#include "nsIBinaryInputStream.h"
 #include "nsIObjectOutputStream.h"
 #include "nsIFile.h"
 #include "nsIFileStreams.h"
 #include "nsIObserverService.h"
-#include "nsIPermissionManager.h"
 #include "nsIPlatformInfo.h"
 #include "nsIPrincipal.h"
 #include "nsIRunnable.h"
-#include "nsISimpleEnumerator.h"
 #include "nsIScriptObjectPrincipal.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsISupportsPrimitives.h"
 #include "nsITimer.h"
 #include "nsIURI.h"
@@ -1133,6 +1129,7 @@ class OriginOperationBase : public BackgroundThreadObject, public Runnable {
 
  protected:
   bool mNeedsQuotaManagerInit;
+  bool mNeedsStorageInit;
 
  public:
   void NoteActorDestroyed() {
@@ -1155,7 +1152,8 @@ class OriginOperationBase : public BackgroundThreadObject, public Runnable {
         mResultCode(NS_OK),
         mState(State_Initial),
         mActorDestroyed(false),
-        mNeedsQuotaManagerInit(false) {}
+        mNeedsQuotaManagerInit(false),
+        mNeedsStorageInit(false) {}
 
   // Reference counted.
   virtual ~OriginOperationBase() {
@@ -1540,10 +1538,9 @@ class ResetOrClearOp final : public QuotaRequestBase {
   const bool mClear;
 
  public:
-  explicit ResetOrClearOp(bool aClear)
-      : QuotaRequestBase(/* aExclusive */ true), mClear(aClear) {
-    AssertIsOnOwningThread();
-  }
+  explicit ResetOrClearOp(bool aClear);
+
+  bool Init(Quota* aQuota) override;
 
  private:
   ~ResetOrClearOp() {}
@@ -5184,10 +5181,6 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
     Client::Type clientType;
     bool ok = Client::TypeFromText(leafName, clientType, fallible);
     if (!ok) {
-      UNKNOWN_FILE_WARNING(leafName);
-      REPORT_TELEMETRY_INIT_ERR(kQuotaInternalError, Ori_UnexpectedClient);
-      RECORD_IN_NIGHTLY(statusKeeper, NS_ERROR_UNEXPECTED);
-
       // Our upgrade process should have attempted to delete the deprecated
       // client directory and failed to upgrade if it could not be deleted. So
       // if we're here, either a) there's a bug in our code or b) a user copied
@@ -5204,10 +5197,13 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
           CONTINUE_IN_NIGHTLY_RETURN_IN_OTHERS(rv);
         }
 
-        MOZ_DIAGNOSTIC_ASSERT(true, "Found a deprecated client");
+        MOZ_DIAGNOSTIC_ASSERT(false, "Found a deprecated client");
       }
 
-      CONTINUE_IN_NIGHTLY_RETURN_IN_OTHERS(NS_ERROR_UNEXPECTED);
+      // Unknown directories during initialization are now allowed. Just warn if
+      // we find them.
+      UNKNOWN_FILE_WARNING(leafName);
+      continue;
     }
 
     UsageInfo usageInfo;
@@ -7375,7 +7371,7 @@ nsresult QuotaManager::GetInfoFromPrincipal(nsIPrincipal* aPrincipal,
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
 
-  if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
+  if (aPrincipal->IsSystemPrincipal()) {
     GetInfoForChrome(aSuffix, aGroup, aOrigin);
     return NS_OK;
   }
@@ -8330,7 +8326,7 @@ nsresult OriginOperationBase::DirectoryWork() {
 
   nsresult rv;
 
-  if (mNeedsQuotaManagerInit) {
+  if (mNeedsStorageInit) {
     rv = quotaManager->EnsureStorageIsInitialized();
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
@@ -8935,6 +8931,7 @@ bool QuotaUsageRequestBase::Init(Quota* aQuota) {
   MOZ_ASSERT(aQuota);
 
   mNeedsQuotaManagerInit = true;
+  mNeedsStorageInit = true;
 
   return true;
 }
@@ -9019,10 +9016,9 @@ nsresult QuotaUsageRequestBase::GetUsageForOrigin(
       Client::Type clientType;
       bool ok = Client::TypeFromText(leafName, clientType, fallible);
       if (!ok) {
+        // Unknown directories during getting usage for an origin (even for an
+        // uninitialized origin) are now allowed. Just warn if we find them.
         UNKNOWN_FILE_WARNING(leafName);
-        if (!initialized) {
-          return NS_ERROR_UNEXPECTED;
-        }
         continue;
       }
 
@@ -9295,6 +9291,7 @@ GetOriginUsageOp::GetOriginUsageOp(const UsageRequestParams& aParams)
 
   // Overwrite OriginOperationBase default values.
   mNeedsQuotaManagerInit = true;
+  mNeedsStorageInit = true;
 }
 
 nsresult GetOriginUsageOp::DoDirectoryWork(QuotaManager* aQuotaManager) {
@@ -9361,6 +9358,7 @@ bool QuotaRequestBase::Init(Quota* aQuota) {
   MOZ_ASSERT(aQuota);
 
   mNeedsQuotaManagerInit = true;
+  mNeedsStorageInit = true;
 
   return true;
 }
@@ -9492,6 +9490,22 @@ void InitStorageAndOriginOp::GetResponse(RequestResponse& aResponse) {
   response.created() = mCreated;
 
   aResponse = response;
+}
+
+ResetOrClearOp::ResetOrClearOp(bool aClear)
+    : QuotaRequestBase(/* aExclusive */ true), mClear(aClear) {
+  AssertIsOnOwningThread();
+
+  // Overwrite OriginOperationBase default values.
+  mNeedsQuotaManagerInit = true;
+  mNeedsStorageInit = mClear;
+}
+
+bool ResetOrClearOp::Init(Quota* aQuota) {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(aQuota);
+
+  return true;
 }
 
 void ResetOrClearOp::DeleteFiles(QuotaManager* aQuotaManager) {
@@ -10079,6 +10093,7 @@ EstimateOp::EstimateOp(const RequestParams& aParams)
 
   // Overwrite OriginOperationBase default values.
   mNeedsQuotaManagerInit = true;
+  mNeedsStorageInit = true;
 }
 
 nsresult EstimateOp::DoDirectoryWork(QuotaManager* aQuotaManager) {
@@ -10130,6 +10145,7 @@ bool ListOriginsOp::Init(Quota* aQuota) {
   MOZ_ASSERT(aQuota);
 
   mNeedsQuotaManagerInit = true;
+  mNeedsStorageInit = true;
 
   return true;
 }

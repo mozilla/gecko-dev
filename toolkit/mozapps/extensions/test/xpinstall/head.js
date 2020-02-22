@@ -8,8 +8,8 @@ const RELATIVE_DIR = "toolkit/mozapps/extensions/test/xpinstall/";
 
 const TESTROOT = "http://example.com/browser/" + RELATIVE_DIR;
 const TESTROOT2 = "http://example.org/browser/" + RELATIVE_DIR;
-const PROMPT_URL = "chrome://global/content/commonDialog.xul";
-const ADDONS_URL = "chrome://mozapps/content/extensions/extensions.xul";
+const PROMPT_URL = "chrome://global/content/commonDialog.xhtml";
+const ADDONS_URL = "chrome://mozapps/content/extensions/extensions.xhtml";
 const PREF_LOGGING_ENABLED = "extensions.logging.enabled";
 const PREF_INSTALL_REQUIREBUILTINCERTS =
   "extensions.install.requireBuiltInCerts";
@@ -219,13 +219,14 @@ var Harness = {
   windowReady(window) {
     if (window.document.location.href == PROMPT_URL) {
       var promptType = window.args.promptType;
+      let dialog = window.document.getElementById("commonDialog");
       switch (promptType) {
         case "alert":
         case "alertCheck":
         case "confirmCheck":
         case "confirm":
         case "confirmEx":
-          window.document.documentElement.acceptDialog();
+          dialog.acceptDialog();
           break;
         case "promptUserAndPass":
           // This is a login dialog, hopefully an authentication prompt
@@ -236,12 +237,12 @@ var Harness = {
               window.document.getElementById("loginTextbox").value = auth[0];
               window.document.getElementById("password1Textbox").value =
                 auth[1];
-              window.document.documentElement.acceptDialog();
+              dialog.acceptDialog();
             } else {
-              window.document.documentElement.cancelDialog();
+              dialog.cancelDialog();
             }
           } else {
-            window.document.documentElement.cancelDialog();
+            dialog.cancelDialog();
           }
           break;
         default:

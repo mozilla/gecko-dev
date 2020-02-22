@@ -28,7 +28,6 @@
 #include "nsIDOMChromeWindow.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptObjectPrincipal.h"
-#include "nsITimer.h"
 #include "mozilla/EventListenerManager.h"
 #include "nsIPrincipal.h"
 #include "nsSize.h"
@@ -41,6 +40,7 @@
 #include "mozilla/dom/StorageEvent.h"
 #include "mozilla/dom/StorageEventBinding.h"
 #include "mozilla/dom/UnionTypes.h"
+#include "mozilla/CallState.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/GuardObjects.h"
@@ -368,10 +368,13 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   // Inner windows only.
   virtual void SetHasGamepadEventListener(bool aHasGamepad = true) override;
-  void NotifyVREventListenerAdded();
+  void NotifyHasXRSession();
   bool HasUsedVR() const;
   bool IsVRContentDetected() const;
   bool IsVRContentPresenting() const;
+  void RequestXRPermission();
+  void OnXRPermissionRequestAllow();
+  void OnXRPermissionRequestCancel();
 
   using EventTarget::EventListenerAdded;
   virtual void EventListenerAdded(nsAtom* aType) override;
@@ -518,6 +521,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   // Inner windows only.
   // Called to inform that the set of active VR displays has changed.
   void NotifyActiveVRDisplaysChanged();
+  void NotifyDetectXRRuntimesCompleted();
   void NotifyPresentationGenerationChanged(uint32_t aDisplayID);
 
   void DispatchVRDisplayActivate(uint32_t aDisplayID,
@@ -1031,36 +1035,25 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   bool IsPopupSpamWindow();
 
  private:
-  // A type that methods called by CallOnChildren can return.  If Stop
-  // is returned then CallOnChildren will stop calling further children.
-  // If Continue is returned then CallOnChildren will keep calling further
-  // children.
-  enum class CallState {
-    Continue,
-    Stop,
-  };
-
   // Call the given method on the immediate children of this window.  The
   // CallState returned by the last child method invocation is returned or
   // CallState::Continue if the method returns void.
   template <typename Method, typename... Args>
-  CallState CallOnChildren(Method aMethod, Args&... aArgs);
+  mozilla::CallState CallOnInProcessChildren(Method aMethod, Args&... aArgs);
 
   // Helper to convert a void returning child method into an implicit
   // CallState::Continue value.
   template <typename Return, typename Method, typename... Args>
-  typename std::enable_if<std::is_void<Return>::value,
-                          nsGlobalWindowInner::CallState>::type
+  typename std::enable_if<std::is_void<Return>::value, mozilla::CallState>::type
   CallChild(nsGlobalWindowInner* aWindow, Method aMethod, Args&... aArgs) {
     (aWindow->*aMethod)(aArgs...);
-    return nsGlobalWindowInner::CallState::Continue;
+    return mozilla::CallState::Continue;
   }
 
   // Helper that passes through the CallState value from a child method.
   template <typename Return, typename Method, typename... Args>
-  typename std::enable_if<
-      std::is_same<Return, nsGlobalWindowInner::CallState>::value,
-      nsGlobalWindowInner::CallState>::type
+  typename std::enable_if<std::is_same<Return, mozilla::CallState>::value,
+                          mozilla::CallState>::type
   CallChild(nsGlobalWindowInner* aWindow, Method aMethod, Args&... aArgs) {
     return (aWindow->*aMethod)(aArgs...);
   }
@@ -1068,8 +1061,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   void FreezeInternal();
   void ThawInternal();
 
-  CallState ShouldReportForServiceWorkerScopeInternal(const nsACString& aScope,
-                                                      bool* aResultOut);
+  mozilla::CallState ShouldReportForServiceWorkerScopeInternal(
+      const nsACString& aScope, bool* aResultOut);
 
  public:
   // Timeout Functions
@@ -1281,14 +1274,35 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   // Indicates whether this window wants gamepad input events
   bool mHasGamepad : 1;
 
-  // Indicates whether this window wants VR events
-  bool mHasVREvents : 1;
+  // Indicates whether this window has content that has an XR session
+  // An XR session results in enumeration and activation of XR devices.
+  bool mHasXRSession : 1;
 
   // Indicates whether this window wants VRDisplayActivate events
   bool mHasVRDisplayActivateEvents : 1;
+
+  // Indicates that a request for XR runtime detection has been
+  // requested, but has not yet been resolved
+  bool mXRRuntimeDetectionInFlight : 1;
+
+  // Indicates that an XR permission request has been requested
+  // but has not yet been resolved.
+  bool mXRPermissionRequestInFlight : 1;
+
+  // Indicates that an XR permission request has been granted.
+  // The page should not request permission multiple times.
+  bool mXRPermissionGranted : 1;
+
+  // True if this was the currently-active inner window for a BrowsingContext at
+  // the time it was discarded.
+  bool mWasCurrentInnerWindow : 1;
+  void SetWasCurrentInnerWindow() { mWasCurrentInnerWindow = true; }
+  bool WasCurrentInnerWindow() const override { return mWasCurrentInnerWindow; }
+
+  bool mHasSeenGamepadInput : 1;
+
   nsCheapSet<nsUint32HashKey> mGamepadIndexSet;
   nsRefPtrHashtable<nsUint32HashKey, mozilla::dom::Gamepad> mGamepads;
-  bool mHasSeenGamepadInput;
 
   RefPtr<nsScreen> mScreen;
 

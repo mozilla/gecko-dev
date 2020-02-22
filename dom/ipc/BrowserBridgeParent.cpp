@@ -137,12 +137,9 @@ void BrowserBridgeParent::Destroy() {
   }
 }
 
-IPCResult BrowserBridgeParent::RecvShow(const ScreenIntSize& aSize,
-                                        const bool& aParentIsActive,
-                                        const nsSizeMode& aSizeMode) {
+IPCResult BrowserBridgeParent::RecvShow(const OwnerShowInfo& aOwnerInfo) {
   mBrowserParent->AttachLayerManager();
-  Unused << mBrowserParent->SendShow(aSize, mBrowserParent->GetShowInfo(),
-                                     aParentIsActive, aSizeMode);
+  Unused << mBrowserParent->SendShow(mBrowserParent->GetShowInfo(), aOwnerInfo);
   return IPC_OK();
 }
 
@@ -225,9 +222,9 @@ IPCResult BrowserBridgeParent::RecvSetIsUnderHiddenEmbedderElement(
   return IPC_OK();
 }
 
+#ifdef ACCESSIBILITY
 IPCResult BrowserBridgeParent::RecvSetEmbedderAccessible(
     PDocAccessibleParent* aDoc, uint64_t aID) {
-#ifdef ACCESSIBILITY
   mEmbedderAccessibleDoc = static_cast<a11y::DocAccessibleParent*>(aDoc);
   mEmbedderAccessibleID = aID;
   if (auto embeddedBrowser = GetBrowserParent()) {
@@ -241,9 +238,9 @@ IPCResult BrowserBridgeParent::RecvSetEmbedderAccessible(
                                           /* aCreating */ false);
     }
   }
-#endif
   return IPC_OK();
 }
+#endif
 
 void BrowserBridgeParent::ActorDestroy(ActorDestroyReason aWhy) { Destroy(); }
 

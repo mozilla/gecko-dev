@@ -170,6 +170,7 @@ XDRResult XDRState<mode>::codeCharsZ(XDRTranscodeString<char16_t>& buffer) {
 template <XDRMode mode>
 static XDRResult VersionCheck(XDRState<mode>* xdr) {
   JS::BuildIdCharVector buildId;
+  uint8_t profileSize = 0;
   MOZ_ASSERT(GetBuildId);
   if (!GetBuildId(&buildId)) {
     ReportOutOfMemory(xdr->cx());
@@ -180,9 +181,11 @@ static XDRResult VersionCheck(XDRState<mode>* xdr) {
   uint32_t buildIdLength;
   if (mode == XDR_ENCODE) {
     buildIdLength = buildId.length();
+    profileSize = sizeof(uintptr_t);
   }
 
   MOZ_TRY(xdr->codeUint32(&buildIdLength));
+  MOZ_TRY(xdr->codeUint8(&profileSize));
 
   if (mode == XDR_DECODE && buildIdLength != buildId.length()) {
     return xdr->fail(JS::TranscodeResult_Failure_BadBuildId);
@@ -192,6 +195,12 @@ static XDRResult VersionCheck(XDRState<mode>* xdr) {
     MOZ_TRY(xdr->codeBytes(buildId.begin(), buildIdLength));
   } else {
     JS::BuildIdCharVector decodedBuildId;
+
+    // Checks to make sure we are not decoding profiles of a
+    // different size than what was encoded.
+    if (profileSize != sizeof(uintptr_t)) {
+      return xdr->fail(JS::TranscodeResult_Failure_BadDecode);
+    }
 
     // buildIdLength is already checked against the length of current
     // buildId.
@@ -208,6 +217,22 @@ static XDRResult VersionCheck(XDRState<mode>* xdr) {
     }
   }
 
+  return Ok();
+}
+
+template <XDRMode mode>
+XDRResult XDRState<mode>::codeModuleObject(MutableHandleModuleObject modp) {
+#ifdef DEBUG
+  auto sanityCheck = mozilla::MakeScopeExit(
+      [&] { MOZ_ASSERT(validateResultCode(cx(), resultCode())); });
+#endif
+  if (mode == XDR_DECODE) {
+    modp.set(nullptr);
+  } else {
+    MOZ_ASSERT(modp->status() < MODULE_STATUS_INSTANTIATING);
+  }
+
+  MOZ_TRY(XDRModuleObject(this, modp));
   return Ok();
 }
 
@@ -268,10 +293,10 @@ XDRResult XDRState<mode>::codeFunction(MutableHandleFunction funp,
     funp.set(nullptr);
   } else if (getTreeKey(funp) != AutoXDRTree::noKey) {
     MOZ_ASSERT(sourceObject);
-    scope = funp->nonLazyScript()->enclosingScope();
+    scope = funp->enclosingScope();
   } else {
     MOZ_ASSERT(!sourceObject);
-    MOZ_ASSERT(funp->nonLazyScript()->enclosingScope()->is<GlobalScope>());
+    MOZ_ASSERT(funp->enclosingScope()->is<GlobalScope>());
   }
 
   MOZ_TRY(VersionCheck(this));

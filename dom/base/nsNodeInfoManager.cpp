@@ -10,6 +10,7 @@
 
 #include "nsNodeInfoManager.h"
 
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/NodeInfo.h"
@@ -19,7 +20,6 @@
 #include "nsString.h"
 #include "nsAtom.h"
 #include "nsIPrincipal.h"
-#include "nsIURI.h"
 #include "nsContentUtils.h"
 #include "nsReadableUtils.h"
 #include "nsGkAtoms.h"
@@ -305,7 +305,7 @@ void nsNodeInfoManager::RemoveNodeInfo(NodeInfo* aNodeInfo) {
 }
 
 static bool IsSystemOrAddonPrincipal(nsIPrincipal* aPrincipal) {
-  return nsContentUtils::IsSystemPrincipal(aPrincipal) ||
+  return aPrincipal->IsSystemPrincipal() ||
          BasePrincipal::Cast(aPrincipal)->AddonPolicy();
 }
 
@@ -346,8 +346,8 @@ bool nsNodeInfoManager::InternalMathMLEnabled() {
   // If the mathml.disabled pref. is true, convert all MathML nodes into
   // disabled MathML nodes by swapping the namespace.
   nsNameSpaceManager* nsmgr = nsNameSpaceManager::GetInstance();
-  bool conclusion = ((nsmgr && !nsmgr->mMathMLDisabled) ||
-                     nsContentUtils::IsSystemPrincipal(mPrincipal));
+  bool conclusion =
+      ((nsmgr && !nsmgr->mMathMLDisabled) || mPrincipal->IsSystemPrincipal());
   mMathMLEnabled = Some(conclusion);
   return conclusion;
 }

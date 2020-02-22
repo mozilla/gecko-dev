@@ -12,7 +12,12 @@ const {
 
 const { threadSpec } = require("devtools/shared/specs/thread");
 
-loader.lazyRequireGetter(this, "ObjectFront", "devtools/shared/fronts/object");
+loader.lazyRequireGetter(
+  this,
+  "ObjectFront",
+  "devtools/shared/fronts/object",
+  true
+);
 loader.lazyRequireGetter(this, "FrameFront", "devtools/shared/fronts/frame");
 loader.lazyRequireGetter(
   this,
@@ -253,7 +258,12 @@ class ThreadFront extends FrontClassWithSpec(threadSpec) {
       return this._pauseGrips[grip.actor];
     }
 
-    const objectFront = new ObjectFront(this.client, grip);
+    const objectFront = new ObjectFront(
+      this.conn,
+      this.targetFront,
+      this,
+      grip
+    );
     this._pauseGrips[grip.actor] = objectFront;
     return objectFront;
   }

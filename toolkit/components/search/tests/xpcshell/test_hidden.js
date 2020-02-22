@@ -4,7 +4,7 @@
 const kUrlPref = "geoSpecificDefaults.url";
 
 add_task(async function setup() {
-  await useTestEngines("data", "search-extensions");
+  await useTestEngines("simple-engines");
 
   // Geo specific defaults won't be fetched if there's no country code.
   Services.prefs.setCharPref(
@@ -38,8 +38,11 @@ add_task(async function async_init() {
   let engines = await Services.search.getEngines();
   Assert.equal(engines.length, 1);
 
-  // The default test jar engine has been hidden.
-  let engine = Services.search.getEngineByName("bug645970");
+  // The default test engines have been hidden.
+  let engine = Services.search.getEngineByName("basic");
+  Assert.equal(engine, null);
+
+  engine = Services.search.getEngineByName("Simple Engine");
   Assert.equal(engine, null);
 
   // The hidden engine is visible.
@@ -74,10 +77,13 @@ add_task(async function invalid_engine() {
   await asyncReInit({ waitForRegionFetch: true });
 
   let engines = await Services.search.getEngines();
-  Assert.equal(engines.length, 1);
+  Assert.equal(engines.length, 2);
 
-  // The default test jar engine is visible.
-  let engine = Services.search.getEngineByName("bug645970");
+  // The default test engines are visible.
+  let engine = Services.search.getEngineByName("basic");
+  Assert.notEqual(engine, null);
+
+  engine = Services.search.getEngineByName("basic");
   Assert.notEqual(engine, null);
 
   // The hidden engine is... hidden.

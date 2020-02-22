@@ -115,7 +115,7 @@
 
 // paint forcing
 #include <stdio.h>
-
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/Telemetry.h"
@@ -160,41 +160,32 @@ class nsDocViewerSelectionListener final : public nsISelectionListener {
   // nsISelectionListerner interface
   NS_DECL_NSISELECTIONLISTENER
 
-  nsDocViewerSelectionListener()
-      : mDocViewer(nullptr), mSelectionWasCollapsed(true) {}
-
-  nsresult Init(nsDocumentViewer* aDocViewer);
+  explicit nsDocViewerSelectionListener(nsDocumentViewer* aDocViewer)
+      : mDocViewer(aDocViewer), mSelectionWasCollapsed(true) {}
 
   void Disconnect() { mDocViewer = nullptr; }
 
  protected:
-  virtual ~nsDocViewerSelectionListener() {}
+  virtual ~nsDocViewerSelectionListener() = default;
 
   nsDocumentViewer* mDocViewer;
   bool mSelectionWasCollapsed;
 };
 
-/** editor Implementation of the FocusListener interface
- */
+/** editor Implementation of the FocusListener interface */
 class nsDocViewerFocusListener final : public nsIDOMEventListener {
  public:
-  /** default constructor
-   */
-  nsDocViewerFocusListener();
+  explicit nsDocViewerFocusListener(nsDocumentViewer* aDocViewer)
+      : mDocViewer(aDocViewer) {}
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMEVENTLISTENER
 
-  nsresult Init(nsDocumentViewer* aDocViewer);
-
   void Disconnect() { mDocViewer = nullptr; }
 
  protected:
-  /** default destructor
-   */
-  virtual ~nsDocViewerFocusListener();
+  virtual ~nsDocViewerFocusListener() = default;
 
- private:
   nsDocumentViewer* mDocViewer;
 };
 
@@ -388,6 +379,9 @@ class nsDocumentViewer final : public nsIContentViewer,
 
   nsresult SyncParentSubDocMap();
 
+  void RemoveFocusListener();
+  void ReinitializeFocusListener();
+
   mozilla::dom::Selection* GetDocumentSelection();
 
   void DestroyPresShell();
@@ -525,11 +519,11 @@ class AutoPrintEventDispatcher {
     }
   }
 
-  static bool CollectDocuments(Document& aDocument, void* aData) {
+  static CallState CollectDocuments(Document& aDocument, void* aData) {
     static_cast<nsTArray<nsCOMPtr<Document>>*>(aData)->AppendElement(
         &aDocument);
     aDocument.EnumerateSubDocuments(CollectDocuments, aData);
-    return true;
+    return CallState::Continue;
   }
 
   nsCOMPtr<Document> mTop;
@@ -655,9 +649,7 @@ nsDocumentViewer::~nsDocumentViewer() {
     mSelectionListener->Disconnect();
   }
 
-  if (mFocusListener) {
-    mFocusListener->Disconnect();
-  }
+  RemoveFocusListener();
 
   // XXX(?) Revoke pending invalidate events
 }
@@ -676,6 +668,29 @@ void nsDocumentViewer::LoadStart(Document* aDocument) {
 
   if (!mDocument) {
     mDocument = aDocument;
+  }
+}
+
+void nsDocumentViewer::RemoveFocusListener() {
+  if (RefPtr<nsDocViewerFocusListener> oldListener = mFocusListener.forget()) {
+    oldListener->Disconnect();
+    if (mDocument) {
+      mDocument->RemoveEventListener(NS_LITERAL_STRING("focus"), oldListener,
+                                     false);
+      mDocument->RemoveEventListener(NS_LITERAL_STRING("blur"), oldListener,
+                                     false);
+    }
+  }
+}
+
+void nsDocumentViewer::ReinitializeFocusListener() {
+  RemoveFocusListener();
+  mFocusListener = new nsDocViewerFocusListener(this);
+  if (mDocument) {
+    mDocument->AddEventListener(NS_LITERAL_STRING("focus"), mFocusListener,
+                                false, false);
+    mDocument->AddEventListener(NS_LITERAL_STRING("blur"), mFocusListener,
+                                false, false);
   }
 }
 
@@ -771,19 +786,19 @@ nsresult nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow) {
     //
     // Note that we are flushing before we add mPresShell as an observer
     // to avoid bogus notifications.
-
     mDocument->FlushPendingNotifications(FlushType::ContentAndNotify);
   }
 
   mPresShell->BeginObservingDocument();
 
   // Initialize our view manager
-  int32_t p2a = mPresContext->AppUnitsPerDevPixel();
-  MOZ_ASSERT(
-      p2a ==
-      mPresContext->DeviceContext()->AppUnitsPerDevPixelAtUnitFullZoom());
 
   {
+    int32_t p2a = mPresContext->AppUnitsPerDevPixel();
+    MOZ_ASSERT(
+        p2a ==
+        mPresContext->DeviceContext()->AppUnitsPerDevPixelAtUnitFullZoom());
+
     nscoord width = p2a * mBounds.width;
     nscoord height = p2a * mBounds.height;
 
@@ -794,7 +809,6 @@ nsresult nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow) {
     mPresContext->SetOverrideDPPX(mOverrideDPPX);
   }
 
-  p2a = mPresContext->AppUnitsPerDevPixel();  // zoom may have changed it
   if (aDoInitialReflow) {
     RefPtr<PresShell> presShell = mPresShell;
     // Initial reflow
@@ -804,13 +818,7 @@ nsresult nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow) {
   // now register ourselves as a selection listener, so that we get
   // called when the selection changes in the window
   if (!mSelectionListener) {
-    nsDocViewerSelectionListener* selectionListener =
-        new nsDocViewerSelectionListener();
-
-    selectionListener->Init(this);
-
-    // mSelectionListener is a owning reference
-    mSelectionListener = selectionListener;
+    mSelectionListener = new nsDocViewerSelectionListener(this);
   }
 
   RefPtr<mozilla::dom::Selection> selection = GetDocumentSelection();
@@ -820,36 +828,7 @@ nsresult nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow) {
 
   selection->AddSelectionListener(mSelectionListener);
 
-  // Save old listener so we can unregister it
-  RefPtr<nsDocViewerFocusListener> oldFocusListener = mFocusListener;
-  if (oldFocusListener) {
-    oldFocusListener->Disconnect();
-  }
-
-  // focus listener
-  //
-  // now register ourselves as a focus listener, so that we get called
-  // when the focus changes in the window
-  nsDocViewerFocusListener* focusListener = new nsDocViewerFocusListener();
-
-  focusListener->Init(this);
-
-  // mFocusListener is a strong reference
-  mFocusListener = focusListener;
-
-  if (mDocument) {
-    mDocument->AddEventListener(NS_LITERAL_STRING("focus"), mFocusListener,
-                                false, false);
-    mDocument->AddEventListener(NS_LITERAL_STRING("blur"), mFocusListener,
-                                false, false);
-
-    if (oldFocusListener) {
-      mDocument->RemoveEventListener(NS_LITERAL_STRING("focus"),
-                                     oldFocusListener, false);
-      mDocument->RemoveEventListener(NS_LITERAL_STRING("blur"),
-                                     oldFocusListener, false);
-    }
-  }
+  ReinitializeFocusListener();
 
   if (aDoInitialReflow && mDocument) {
     nsCOMPtr<Document> document = mDocument;
@@ -1095,7 +1074,7 @@ nsDocumentViewer::LoadComplete(nsresult aStatus) {
       if (os) {
         nsIPrincipal* principal = d->NodePrincipal();
         os->NotifyObservers(ToSupports(d),
-                            nsContentUtils::IsSystemPrincipal(principal)
+                            principal->IsSystemPrincipal()
                                 ? "chrome-document-loaded"
                                 : "content-document-loaded",
                             nullptr);
@@ -1595,14 +1574,7 @@ nsDocumentViewer::Open(nsISupports* aState, nsISHEntry* aSHEntry) {
 
   SyncParentSubDocMap();
 
-  if (mFocusListener && mDocument) {
-    // The focus listener may have been disconnected.
-    mFocusListener->Init(this);
-    mDocument->AddEventListener(NS_LITERAL_STRING("focus"), mFocusListener,
-                                false, false);
-    mDocument->AddEventListener(NS_LITERAL_STRING("blur"), mFocusListener,
-                                false, false);
-  }
+  ReinitializeFocusListener();
 
   // XXX re-enable image animations once that works correctly
 
@@ -1682,21 +1654,13 @@ nsDocumentViewer::Close(nsISHEntry* aSHEntry) {
     if (!mSHEntry && mDocument) mDocument->RemovedFromDocShell();
   }
 
-  if (mFocusListener) {
-    mFocusListener->Disconnect();
-    if (mDocument) {
-      mDocument->RemoveEventListener(NS_LITERAL_STRING("focus"), mFocusListener,
-                                     false);
-      mDocument->RemoveEventListener(NS_LITERAL_STRING("blur"), mFocusListener,
-                                     false);
-    }
-  }
-
+  RemoveFocusListener();
   return NS_OK;
 }
 
 static void DetachContainerRecurse(nsIDocShell* aShell) {
   // Unhook this docshell's presentation
+  aShell->SynchronizeLayoutHistoryState();
   nsCOMPtr<nsIContentViewer> viewer;
   aShell->GetContentViewer(getter_AddRefs(viewer));
   if (viewer) {
@@ -1824,6 +1788,7 @@ nsDocumentViewer::Destroy() {
     // and shEntry has no window state at this point we'll be ok; we just won't
     // cache ourselves.
     shEntry->SyncPresentationState();
+    shEntry->SynchronizeLayoutHistoryState();
 
     // Shut down accessibility for the document before we start to tear it down.
 #ifdef ACCESSIBILITY
@@ -2696,12 +2661,12 @@ void nsDocumentViewer::PropagateToPresContextsHelper(CallChildFunc aChildFunc,
 
     if (mDocument) {
       mDocument->EnumerateExternalResources(
-          [](Document& aDoc, void* aClosure) -> bool {
+          [](Document& aDoc, void* aClosure) -> CallState {
             auto* closure = static_cast<ResourceDocClosure*>(aClosure);
             if (nsPresContext* pc = aDoc.GetPresContext()) {
               closure->mFunc(pc, closure->mParentClosure);
             }
-            return true;
+            return CallState::Continue;
           },
           &resourceDocClosure);
     }
@@ -3168,23 +3133,25 @@ nsresult nsDocumentViewer::GetContentSizeInternal(int32_t* aWidth,
   nsIFrame* root = presShell->GetRootFrame();
   NS_ENSURE_TRUE(root, NS_ERROR_FAILURE);
 
-  nscoord prefWidth;
+  WritingMode wm = root->GetWritingMode();
+
+  nscoord prefISize;
   {
     RefPtr<gfxContext> rcx(presShell->CreateReferenceRenderingContext());
-    prefWidth = root->GetPrefISize(rcx);
-  }
-  if (prefWidth > aMaxWidth) {
-    prefWidth = aMaxWidth;
+    nscoord maxISize = wm.IsVertical() ? aMaxHeight : aMaxWidth;
+    prefISize = std::min(root->GetPrefISize(rcx), maxISize);
   }
 
   // We should never intentionally get here with this sentinel value, but it's
   // possible that a document with huge sizes might inadvertently have a
-  // prefWidth that exactly matches NS_UNCONSTRAINEDSIZE.
+  // prefISize that exactly matches NS_UNCONSTRAINEDSIZE.
   // Just bail if that happens.
-  NS_ENSURE_TRUE(prefWidth != NS_UNCONSTRAINEDSIZE, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(prefISize != NS_UNCONSTRAINEDSIZE, NS_ERROR_FAILURE);
 
-  nsresult rv = presShell->ResizeReflow(prefWidth, aMaxHeight,
-                                        ResizeReflowOptions::BSizeLimit);
+  nscoord height = wm.IsVertical() ? prefISize : aMaxHeight;
+  nscoord width = wm.IsVertical() ? aMaxWidth : prefISize;
+  nsresult rv =
+      presShell->ResizeReflow(width, height, ResizeReflowOptions::BSizeLimit);
   NS_ENSURE_SUCCESS(rv, rv);
 
   RefPtr<nsPresContext> presContext = GetPresContext();
@@ -3239,11 +3206,6 @@ nsDocumentViewer::GetContentSizeConstrained(int32_t aMaxWidth,
 }
 
 NS_IMPL_ISUPPORTS(nsDocViewerSelectionListener, nsISelectionListener)
-
-nsresult nsDocViewerSelectionListener::Init(nsDocumentViewer* aDocViewer) {
-  mDocViewer = aDocViewer;
-  return NS_OK;
-}
 
 /*
  * GetPopupNode, GetPopupLinkNode and GetPopupImageNode are helpers
@@ -3415,10 +3377,6 @@ NS_IMETHODIMP nsDocViewerSelectionListener::NotifySelectionChanged(
 // nsDocViewerFocusListener
 NS_IMPL_ISUPPORTS(nsDocViewerFocusListener, nsIDOMEventListener)
 
-nsDocViewerFocusListener::nsDocViewerFocusListener() : mDocViewer(nullptr) {}
-
-nsDocViewerFocusListener::~nsDocViewerFocusListener() {}
-
 nsresult nsDocViewerFocusListener::HandleEvent(Event* aEvent) {
   NS_ENSURE_STATE(mDocViewer);
 
@@ -3448,11 +3406,6 @@ nsresult nsDocViewerFocusListener::HandleEvent(Event* aEvent) {
     }
   }
 
-  return NS_OK;
-}
-
-nsresult nsDocViewerFocusListener::Init(nsDocumentViewer* aDocViewer) {
-  mDocViewer = aDocViewer;
   return NS_OK;
 }
 

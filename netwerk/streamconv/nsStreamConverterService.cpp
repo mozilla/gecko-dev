@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsComponentManagerUtils.h"
 #include "nsStreamConverterService.h"
 #include "nsIComponentRegistrar.h"
 #include "nsAutoPtr.h"
@@ -349,6 +350,25 @@ nsStreamConverterService::CanConvert(const char* aFromType, const char* aToType,
 
   delete converterChain;
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsStreamConverterService::ConvertedType(const nsACString& aFromType,
+                                        nsACString& aOutToType) {
+  // first determine whether we can even handle this conversion
+  // build a CONTRACTID
+  nsAutoCString contractID;
+  contractID.AssignLiteral(NS_ISTREAMCONVERTER_KEY "?from=");
+  contractID.Append(aFromType);
+  contractID.AppendLiteral("&to=*/*");
+  const char* cContractID = contractID.get();
+
+  nsresult rv;
+  nsCOMPtr<nsIStreamConverter> converter(do_CreateInstance(cContractID, &rv));
+  if (NS_SUCCEEDED(rv)) {
+    return converter->GetConvertedType(aFromType, aOutToType);
+  }
+  return rv;
 }
 
 NS_IMETHODIMP

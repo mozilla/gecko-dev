@@ -16,7 +16,6 @@
 #include "nsUnicharUtils.h"
 #include "nsGkAtoms.h"
 #include "txLog.h"
-#include "nsIConsoleService.h"
 #include "nsNameSpaceManager.h"
 #include "txStringUtils.h"
 #include "txURIUtils.h"
@@ -220,9 +219,9 @@ nsresult txMozillaXMLOutput::endDocument(nsresult aResult) {
     if (win) {
       nsCOMPtr<nsIRefreshURI> refURI = do_QueryInterface(win->GetDocShell());
       if (refURI) {
-        refURI->SetupRefreshURIFromHeader(mDocument->GetDocBaseURI(),
-                                          mDocument->NodePrincipal(),
-                                          mRefreshString);
+        refURI->SetupRefreshURIFromHeader(
+            mDocument->GetDocBaseURI(), mDocument->NodePrincipal(),
+            mDocument->InnerWindowID(), mRefreshString);
       }
     }
   }

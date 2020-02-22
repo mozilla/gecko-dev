@@ -575,15 +575,15 @@ exports.ToolboxButtons = [
     ),
     isTargetSupported: target => target.isLocalTab && !target.canRewind,
     onClick(event, toolbox) {
-      const tab = toolbox.target.tab;
+      const tab = toolbox.target.localTab;
       const browserWindow = tab.ownerDocument.defaultView;
       ResponsiveUIManager.toggle(browserWindow, tab, { trigger: "toolbox" });
     },
     isChecked(toolbox) {
-      if (!toolbox.target.tab) {
+      if (!toolbox.target.localTab) {
         return false;
       }
-      return ResponsiveUIManager.isActiveForTab(toolbox.target.tab);
+      return ResponsiveUIManager.isActiveForTab(toolbox.target.localTab);
     },
     setup(toolbox, onChange) {
       ResponsiveUIManager.on("on", onChange);

@@ -119,11 +119,14 @@ const previewers = {
         grip.userDisplayName = hooks.createValueGrip(userDisplayName.value);
       }
 
+      grip.isAsync = obj.isAsyncFunction;
+      grip.isGenerator = obj.isGeneratorFunction;
+
       if (obj.script) {
         grip.location = {
           url: obj.script.url,
           line: obj.script.startLine,
-          column: obj.script.startColumn
+          column: obj.script.startColumn,
         };
       }
 
@@ -224,7 +227,10 @@ const previewers = {
       }
 
       const items = (grip.preview.items = []);
-      for (const item of PropertyIterators.enumSetEntries(objectActor, /* forPreview */ true)) {
+      for (const item of PropertyIterators.enumSetEntries(
+        objectActor,
+        /* forPreview */ true
+      )) {
         items.push(item);
         if (items.length == OBJECT_PREVIEW_MAX_ITEMS) {
           break;
@@ -237,7 +243,10 @@ const previewers = {
 
   WeakSet: [
     function(objectActor, grip) {
-      const enumEntries = PropertyIterators.enumWeakSetEntries(objectActor, /* forPreview */ true);
+      const enumEntries = PropertyIterators.enumWeakSetEntries(
+        objectActor,
+        /* forPreview */ true
+      );
 
       grip.preview = {
         kind: "ArrayLike",
@@ -278,7 +287,10 @@ const previewers = {
       }
 
       const entries = (grip.preview.entries = []);
-      for (const entry of PropertyIterators.enumMapEntries(objectActor, /* forPreview */ true)) {
+      for (const entry of PropertyIterators.enumMapEntries(
+        objectActor,
+        /* forPreview */ true
+      )) {
         entries.push(entry);
         if (entries.length == OBJECT_PREVIEW_MAX_ITEMS) {
           break;
@@ -291,7 +303,10 @@ const previewers = {
 
   WeakMap: [
     function(objectActor, grip) {
-      const enumEntries = PropertyIterators.enumWeakMapEntries(objectActor, /* forPreview */ true);
+      const enumEntries = PropertyIterators.enumWeakMapEntries(
+        objectActor,
+        /* forPreview */ true
+      );
 
       grip.preview = {
         kind: "MapLike",
@@ -425,7 +440,6 @@ function wrappedPrimitivePreviewer(
   return true;
 }
 
-// eslint-disable-next-line complexity
 function GenericObject(
   objectActor,
   grip,
@@ -437,40 +451,20 @@ function GenericObject(
     return false;
   }
 
-  let i = 0,
-    names = [],
-    symbols = [];
   const preview = (grip.preview = {
     kind: "Object",
     ownProperties: Object.create(null),
     ownSymbols: [],
   });
 
-  try {
-    if (ObjectUtils.isStorage(obj)) {
-      // local and session storage cannot be iterated over using
-      // Object.getOwnPropertyNames() because it skips keys that are duplicated
-      // on the prototype e.g. "key", "getKeys" so we need to gather the real
-      // keys using the storage.key() function.
-      for (let j = 0; j < rawObj.length; j++) {
-        names.push(rawObj.key(j));
-      }
-    } else if (isReplaying) {
-      // When replaying we can access a batch of properties for use in generating
-      // the preview. This avoids needing to enumerate all properties.
-      names = obj.getEnumerableOwnPropertyNamesForPreview();
-    } else {
-      names = obj.getOwnPropertyNames();
-    }
-    symbols = obj.getOwnPropertySymbols();
-  } catch (ex) {
-    // Calling getOwnPropertyNames() on some wrapped native prototypes is not
-    // allowed: "cannot modify properties of a WrappedNative". See bug 952093.
-  }
+  const names = ObjectUtils.getPropNamesFromObject(obj, rawObj);
+  const symbols = ObjectUtils.getSafeOwnPropertySymbols(obj);
+
   preview.ownPropertiesLength = names.length;
   preview.ownSymbolsLength = symbols.length;
 
-  let length;
+  let length,
+    i = 0;
   if (specialStringBehavior) {
     length = DevToolsUtils.getProperty(obj, "length");
     if (typeof length != "number") {
@@ -546,7 +540,10 @@ previewers.Object = [
       return true;
     }
 
-    const previewLength = Math.min(OBJECT_PREVIEW_MAX_ITEMS, grip.preview.length);
+    const previewLength = Math.min(
+      OBJECT_PREVIEW_MAX_ITEMS,
+      grip.preview.length
+    );
     grip.preview.items = [];
     for (let i = 0; i < previewLength; i++) {
       const desc = obj.getOwnPropertyDescriptor(i);
@@ -771,7 +768,6 @@ previewers.Object = [
     return true;
   },
 
-  // eslint-disable-next-line complexity
   function DOMEvent({ obj, hooks }, grip, rawObj) {
     if (isWorker || !rawObj || !Event.isInstance(rawObj)) {
       return false;
@@ -788,45 +784,17 @@ previewers.Object = [
       preview.target = hooks.createValueGrip(target);
     }
 
-    const props = [];
-    if (
-      obj.class == "MouseEvent" ||
-      obj.class == "DragEvent" ||
-      obj.class == "PointerEvent" ||
-      obj.class == "SimpleGestureEvent" ||
-      obj.class == "WheelEvent"
-    ) {
-      props.push("buttons", "clientX", "clientY", "layerX", "layerY");
-    } else if (obj.class == "KeyboardEvent") {
-      const modifiers = [];
-      if (rawObj.altKey) {
-        modifiers.push("Alt");
-      }
-      if (rawObj.ctrlKey) {
-        modifiers.push("Control");
-      }
-      if (rawObj.metaKey) {
-        modifiers.push("Meta");
-      }
-      if (rawObj.shiftKey) {
-        modifiers.push("Shift");
-      }
+    if (obj.class == "KeyboardEvent") {
       preview.eventKind = "key";
-      preview.modifiers = modifiers;
-
-      props.push("key", "charCode", "keyCode");
-    } else if (obj.class == "TransitionEvent") {
-      props.push("propertyName", "pseudoElement");
-    } else if (obj.class == "AnimationEvent") {
-      props.push("animationName", "pseudoElement");
-    } else if (obj.class == "ClipboardEvent") {
-      props.push("clipboardData");
+      preview.modifiers = ObjectUtils.getModifiersForEvent(rawObj);
     }
+
+    const props = ObjectUtils.getPropsForEvent(obj.class);
 
     // Add event-specific properties.
     for (const prop of props) {
       let value = rawObj[prop];
-      if (value && (typeof value == "object" || typeof value == "function")) {
+      if (ObjectUtils.isObjectOrFunction(value)) {
         // Skip properties pointing to objects.
         if (hooks.getGripDepth() > 1) {
           continue;

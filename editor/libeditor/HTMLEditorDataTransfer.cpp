@@ -41,9 +41,9 @@
 #include "nsIClipboard.h"
 #include "nsIContent.h"
 #include "mozilla/dom/Document.h"
+#include "nsIDocumentEncoder.h"
 #include "nsIFile.h"
 #include "nsIInputStream.h"
-#include "nsIMIMEService.h"
 #include "nsNameSpaceManager.h"
 #include "nsINode.h"
 #include "nsIParserUtils.h"
@@ -52,7 +52,6 @@
 #include "nsISupportsPrimitives.h"
 #include "nsISupportsUtils.h"
 #include "nsITransferable.h"
-#include "nsIURI.h"
 #include "nsIVariant.h"
 #include "nsLinebreakConverter.h"
 #include "nsLiteralString.h"
@@ -1329,13 +1328,16 @@ nsresult HTMLEditor::InsertFromTransferable(nsITransferable* transferable,
 
 static void GetStringFromDataTransfer(DataTransfer* aDataTransfer,
                                       const nsAString& aType, int32_t aIndex,
-                                      nsAString& aOutputString) {
+                                      nsString& aOutputString) {
   nsCOMPtr<nsIVariant> variant;
   aDataTransfer->GetDataAtNoSecurityCheck(aType, aIndex,
                                           getter_AddRefs(variant));
-  if (variant) {
-    variant->GetAsAString(aOutputString);
+  if (!variant) {
+    MOZ_ASSERT(aOutputString.IsEmpty());
+    return;
   }
+  variant->GetAsAString(aOutputString);
+  nsContentUtils::PlatformToDOMLineBreaks(aOutputString);
 }
 
 nsresult HTMLEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,

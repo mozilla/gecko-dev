@@ -7,31 +7,94 @@
 #ifndef DOM_MEDIA_MEDIACONTROL_MEDIACONTROLUTILS_H_
 #define DOM_MEDIA_MEDIACONTROL_MEDIACONTROLUTILS_H_
 
-#include "mozilla/Logging.h"
 #include "MediaController.h"
+#include "MediaControlKeysEvent.h"
+#include "mozilla/dom/ChromeUtilsBinding.h"
+#include "mozilla/Logging.h"
 
 extern mozilla::LazyLogModule gMediaControlLog;
 
 namespace mozilla {
 namespace dom {
 
-inline const char* ToMediaControlActionsStr(MediaControlActions aAction) {
-  switch (aAction) {
-    case MediaControlActions::ePlay:
-      return "Play";
-    case MediaControlActions::ePause:
+inline const char* ToMediaControlKeysEventStr(MediaControlKeysEvent aKeyEvent) {
+  switch (aKeyEvent) {
+    case MediaControlKeysEvent::ePause:
       return "Pause";
-    case MediaControlActions::eStop:
+    case MediaControlKeysEvent::ePlay:
+      return "Play";
+    case MediaControlKeysEvent::ePlayPause:
+      return "Play & pause";
+    case MediaControlKeysEvent::ePrevTrack:
+      return "Previous track";
+    case MediaControlKeysEvent::eNextTrack:
+      return "Next track";
+    case MediaControlKeysEvent::eSeekBackward:
+      return "Seek backward";
+    case MediaControlKeysEvent::eSeekForward:
+      return "Seek forward";
+    case MediaControlKeysEvent::eStop:
       return "Stop";
     default:
       MOZ_ASSERT_UNREACHABLE("Invalid action.");
+      return "Unknown";
   }
-  return "UNKNOWN";
 }
 
-void NotifyMediaStarted(uint64_t aWindowID);
-void NotifyMediaStopped(uint64_t aWindowID);
-void NotifyMediaAudibleChanged(uint64_t aWindowID, bool aAudible);
+inline MediaControlKeysEvent
+ConvertMediaControlKeysTestEventToMediaControlKeysEvent(
+    MediaControlKeysTestEvent aEvent) {
+  switch (aEvent) {
+    case MediaControlKeysTestEvent::Play:
+      return MediaControlKeysEvent::ePlay;
+    case MediaControlKeysTestEvent::Pause:
+      return MediaControlKeysEvent::ePause;
+    case MediaControlKeysTestEvent::PlayPause:
+      return MediaControlKeysEvent::ePlayPause;
+    case MediaControlKeysTestEvent::PrevTrack:
+      return MediaControlKeysEvent::ePrevTrack;
+    case MediaControlKeysTestEvent::NextTrack:
+      return MediaControlKeysEvent::eNextTrack;
+    case MediaControlKeysTestEvent::SeekBackward:
+      return MediaControlKeysEvent::eSeekBackward;
+    case MediaControlKeysTestEvent::SeekForward:
+      return MediaControlKeysEvent::eSeekForward;
+    default:
+      MOZ_ASSERT(aEvent == MediaControlKeysTestEvent::Stop);
+      return MediaControlKeysEvent::eStop;
+  }
+}
+
+inline const char* ToPlaybackStateEventStr(
+    MediaControlKeysEventSource::PlaybackState aState) {
+  switch (aState) {
+    case MediaControlKeysEventSource::PlaybackState::ePlayed:
+      return "Played";
+    case MediaControlKeysEventSource::PlaybackState::ePaused:
+      return "Paused";
+    default:
+      MOZ_ASSERT_UNREACHABLE("Invalid playback state.");
+      return "Unknown";
+  }
+}
+
+inline const char* ToControlledMediaStateStr(ControlledMediaState aState) {
+  switch (aState) {
+    case ControlledMediaState::eStarted:
+      return "started";
+    case ControlledMediaState::ePlayed:
+      return "played";
+    case ControlledMediaState::ePaused:
+      return "paused";
+    case ControlledMediaState::eStopped:
+      return "stopped";
+    default:
+      MOZ_ASSERT_UNREACHABLE("Invalid media state.");
+      return "Unknown";
+  }
+}
+
+BrowsingContext* GetAliveTopBrowsingContext(BrowsingContext* aBC);
 
 }  // namespace dom
 }  // namespace mozilla

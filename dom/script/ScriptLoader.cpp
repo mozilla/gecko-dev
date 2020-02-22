@@ -14,6 +14,7 @@
 #include "prsystem.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "js/Array.h"  // JS::GetArrayLength
 #include "js/CompilationAndEvaluation.h"
 #include "js/MemoryFunctions.h"
 #include "js/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
@@ -39,7 +40,6 @@
 #include "nsGlobalWindowInner.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptContext.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsIPrincipal.h"
 #include "nsJSPrincipals.h"
 #include "nsContentPolicyUtils.h"
@@ -55,7 +55,6 @@
 #include "nsContentUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsAutoPtr.h"
-#include "nsIXPConnect.h"
 #include "nsError.h"
 #include "nsThreadUtils.h"
 #include "nsDocShellCID.h"
@@ -327,7 +326,7 @@ nsresult ScriptLoader::CheckContentPolicy(Document* aDocument,
     nsCOMPtr<Element> element = do_QueryInterface(aContext);
     if (element && element->IsHTMLElement()) {
       nsAutoString cspNonce;
-      element->GetAttribute(NS_LITERAL_STRING("nonce"), cspNonce);
+      element->GetAttr(nsGkAtoms::nonce, cspNonce);
       secCheckLoadInfo->SetCspNonce(cspNonce);
     }
   }
@@ -672,7 +671,7 @@ static nsresult ResolveRequestedModules(ModuleLoadRequest* aRequest,
   MOZ_ASSERT(requestedModules);
 
   uint32_t length;
-  if (!JS_GetArrayLength(cx, requestedModules, &length)) {
+  if (!JS::GetArrayLength(cx, requestedModules, &length)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1325,7 +1324,7 @@ nsresult ScriptLoader::StartLoad(ScriptLoadRequest* aRequest) {
     nsCOMPtr<Element> element = do_QueryInterface(context);
     if (element && element->IsHTMLElement()) {
       nsAutoString cspNonce;
-      element->GetAttribute(NS_LITERAL_STRING("nonce"), cspNonce);
+      element->GetAttr(nsGkAtoms::nonce, cspNonce);
       nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
       loadInfo->SetCspNonce(cspNonce);
     }
@@ -2374,8 +2373,6 @@ void ScriptLoader::ProcessDynamicImport(ModuleLoadRequest* aRequest) {
   if (NS_FAILED(rv)) {
     FinishDynamicImport(aRequest, rv);
   }
-
-  return;
 }
 
 void ScriptLoader::FireScriptAvailable(nsresult aResult,
@@ -3515,6 +3512,9 @@ void ScriptLoader::HandleLoadError(ScriptLoadRequest* aRequest,
       if (aRequest->isInList()) {
         RefPtr<ScriptLoadRequest> req = mDynamicImportRequests.Steal(aRequest);
         modReq->Cancel();
+        // FinishDynamicImport must happen exactly once for each dynamic import
+        // request. If the load is aborted we do it when we remove the request
+        // from mDynamicImportRequests.
         FinishDynamicImport(modReq, aResult);
       }
     } else {
@@ -3717,8 +3717,12 @@ void ScriptLoader::ParsingComplete(bool aTerminated) {
     for (ScriptLoadRequest* req = mDynamicImportRequests.getFirst(); req;
          req = req->getNext()) {
       req->Cancel();
+      // FinishDynamicImport must happen exactly once for each dynamic import
+      // request. If the load is aborted we do it when we remove the request
+      // from mDynamicImportRequests.
       FinishDynamicImport(req->AsModuleRequest(), NS_ERROR_ABORT);
     }
+    mDynamicImportRequests.Clear();
 
     if (mParserBlockingRequest) {
       mParserBlockingRequest->Cancel();

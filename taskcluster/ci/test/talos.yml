@@ -12,6 +12,7 @@ job-defaults:
             linux64-ccov/.*: 3
             default: default
     variants: ['fission']
+    fission-tier: 2
     virtualization:
         by-test-platform:
             windows10-64-ccov/.*: virtual
@@ -32,6 +33,11 @@ job-defaults:
                     - talos/linux64_config_taskcluster.py
                 default:
                     - talos/linux_config.py
+    fission-run-on-projects:
+        by-test-platform:
+            linux64-shippable-qr/opt: ['mozilla-central']
+            windows10-64-shippable-qr/opt: ['mozilla-central']
+            default: []
 
 talos-bcv:
     description: "Talos basic compositor video"

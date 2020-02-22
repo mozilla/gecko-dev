@@ -431,66 +431,6 @@ syms::
 include $(MOZILLA_DIR)/config/makefiles/target_binaries.mk
 endif
 
-##############################################
-ifneq (1,$(NO_PROFILE_GUIDED_OPTIMIZE))
-ifdef MOZ_1TIER_PGO
-ifeq ($(OS_ARCH)_$(GNU_CC), WINNT_)
-# When building with PGO, we have to make sure to re-link
-# in the MOZ_PROFILE_USE phase if we linked in the
-# MOZ_PROFILE_GENERATE phase. We'll touch this pgo.relink
-# file in the link rule in the GENERATE phase to indicate
-# that we need a relink.
-ifdef SHARED_LIBRARY
-$(SHARED_LIBRARY): pgo.relink
-endif
-ifdef PROGRAM
-$(PROGRAM): pgo.relink
-endif
-
-# In the second pass, we need to merge the pgc files into the pgd file.
-# The compiler would do this for us automatically if they were in the right
-# place, but they're in dist/bin.
-ifneq (,$(SHARED_LIBRARY)$(PROGRAM))
-export::
-ifdef PROGRAM
-	$(PYTHON) $(MOZILLA_DIR)/build/win32/pgomerge.py \
-	  $(PROGRAM:$(BIN_SUFFIX)=) $(DIST)/bin
-endif
-ifdef SHARED_LIBRARY
-	$(PYTHON) $(MOZILLA_DIR)/build/win32/pgomerge.py \
-	  $(patsubst $(DLL_PREFIX)%$(DLL_SUFFIX),%,$(SHARED_LIBRARY)) $(DIST)/bin
-endif
-endif # SHARED_LIBRARY || PROGRAM
-endif # WINNT_
-endif # MOZ_PROFILE_USE
-ifdef MOZ_PROFILE_GENERATE
-# Clean up profiling data during PROFILE_GENERATE phase
-export::
-ifeq ($(OS_ARCH)_$(GNU_CC), WINNT_)
-	$(foreach pgd,$(wildcard *.pgd),pgomgr -clear $(pgd);)
-else
-ifdef GNU_CC
-	-$(RM) *.gcda
-endif
-endif
-endif
-
-ifdef MOZ_1TIER_PGO
-ifneq (,$(MOZ_PROFILE_GENERATE)$(MOZ_PROFILE_USE))
-ifneq (,$(filter target,$(MAKECMDGOALS)))
-ifdef GNU_CC
-# Force rebuilding libraries and programs in both passes because each
-# pass uses different object files.
-$(PROGRAM) $(SHARED_LIBRARY) $(LIBRARY) $(WASM_LIBRARY): FORCE
-endif
-endif
-endif
-endif
-
-endif # NO_PROFILE_GUIDED_OPTIMIZE
-
-##############################################
-
 clean clobber realclean clobber_all::
 	-$(RM) $(ALL_TRASH)
 	-$(RM) -r $(ALL_TRASH_DIRS)
@@ -522,7 +462,7 @@ $(PROGRAM): $(PROGOBJS) $(STATIC_LIBS) $(EXTRA_DEPS) $(RESFILE) $(GLOBAL_DEPS) $
 	$(REPORT_BUILD)
 	@$(RM) $@.manifest
 ifeq (_WINNT,$(GNU_CC)_$(OS_ARCH))
-	$(LINKER) -NOLOGO -OUT:$@ -PDB:$(LINK_PDBFILE) -IMPLIB:$(basename $(@F)).lib $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(MOZ_PROGRAM_LDFLAGS) $($(notdir $@)_$(OBJS_VAR_SUFFIX)) $(RESFILE) $(STATIC_LIBS) $(SHARED_LIBS) $(OS_LIBS)
+	$(LINKER) -NOLOGO -OUT:$@ -PDB:$(LINK_PDBFILE) -IMPLIB:$(basename $(@F)).lib $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(MOZ_PROGRAM_LDFLAGS) $($(notdir $@)_OBJS) $(RESFILE) $(STATIC_LIBS) $(SHARED_LIBS) $(OS_LIBS)
 ifdef MSMANIFEST_TOOL
 	@if test -f $@.manifest; then \
 		if test -f '$(srcdir)/$(notdir $@).manifest'; then \
@@ -537,13 +477,8 @@ ifdef MSMANIFEST_TOOL
 		$(MT) -NOLOGO -MANIFEST '$(srcdir_rel)/$(notdir $@).manifest' -OUTPUTRESOURCE:$@\;1; \
 	fi
 endif	# MSVC with manifest tool
-ifdef MOZ_PROFILE_GENERATE
-# touch it a few seconds into the future to work around FAT's
-# 2-second granularity
-	touch -t `date +%Y%m%d%H%M.%S -d 'now+5seconds'` pgo.relink
-endif
 else # !WINNT || GNU_CC
-	$(call EXPAND_CC_OR_CXX,$@) -o $@ $(COMPUTED_CXX_LDFLAGS) $(PGO_CFLAGS) $($(notdir $@)_$(OBJS_VAR_SUFFIX)) $(RESFILE) $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(STATIC_LIBS) $(MOZ_PROGRAM_LDFLAGS) $(SHARED_LIBS) $(OS_LIBS)
+	$(call EXPAND_CC_OR_CXX,$@) -o $@ $(COMPUTED_CXX_LDFLAGS) $(PGO_CFLAGS) $($(notdir $@)_OBJS) $(RESFILE) $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(STATIC_LIBS) $(MOZ_PROGRAM_LDFLAGS) $(SHARED_LIBS) $(OS_LIBS)
 	$(call py_action,check_binary,--target $@)
 endif # WINNT && !GNU_CC
 
@@ -594,7 +529,7 @@ endif
 $(SIMPLE_PROGRAMS): %$(BIN_SUFFIX): %.$(OBJ_SUFFIX) $(STATIC_LIBS) $(EXTRA_DEPS) $(GLOBAL_DEPS)
 	$(REPORT_BUILD)
 ifeq (_WINNT,$(GNU_CC)_$(OS_ARCH))
-	$(LINKER) -nologo -out:$@ -pdb:$(LINK_PDBFILE) $($@_$(OBJS_VAR_SUFFIX)) $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(MOZ_PROGRAM_LDFLAGS) $(STATIC_LIBS) $(SHARED_LIBS) $(OS_LIBS)
+	$(LINKER) -nologo -out:$@ -pdb:$(LINK_PDBFILE) $($@_OBJS) $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(MOZ_PROGRAM_LDFLAGS) $(STATIC_LIBS) $(SHARED_LIBS) $(OS_LIBS)
 ifdef MSMANIFEST_TOOL
 	@if test -f $@.manifest; then \
 		$(MT) -NOLOGO -MANIFEST $@.manifest -OUTPUTRESOURCE:$@\;1; \
@@ -604,7 +539,7 @@ ifdef MSMANIFEST_TOOL
 	fi
 endif	# MSVC with manifest tool
 else
-	$(call EXPAND_CC_OR_CXX,$@) $(COMPUTED_CXX_LDFLAGS) $(PGO_CFLAGS) -o $@ $($@_$(OBJS_VAR_SUFFIX)) $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(STATIC_LIBS) $(MOZ_PROGRAM_LDFLAGS) $(SHARED_LIBS) $(OS_LIBS)
+	$(call EXPAND_CC_OR_CXX,$@) $(COMPUTED_CXX_LDFLAGS) $(PGO_CFLAGS) -o $@ $($@_OBJS) $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(STATIC_LIBS) $(MOZ_PROGRAM_LDFLAGS) $(SHARED_LIBS) $(OS_LIBS)
 	$(call py_action,check_binary,--target $@)
 endif # WINNT && !GNU_CC
 
@@ -633,7 +568,7 @@ endif
 $(LIBRARY): $(OBJS) $(STATIC_LIBS) $(EXTRA_DEPS) $(GLOBAL_DEPS)
 	$(REPORT_BUILD)
 	$(RM) $(REAL_LIBRARY)
-	$(AR) $(AR_FLAGS) $($@_$(OBJS_VAR_SUFFIX))
+	$(AR) $(AR_FLAGS) $($@_OBJS)
 
 $(WASM_ARCHIVE): $(CWASMOBJS) $(CPPWASMOBJS) $(STATIC_LIBS) $(EXTRA_DEPS) $(GLOBAL_DEPS)
 	$(REPORT_BUILD_VERBOSE)
@@ -674,7 +609,7 @@ $(SHARED_LIBRARY): $(OBJS) $(RESFILE) $(STATIC_LIBS) $(EXTRA_DEPS) $(GLOBAL_DEPS
 ifndef INCREMENTAL_LINKER
 	$(RM) $@
 endif
-	$(MKSHLIB) $($@_$(OBJS_VAR_SUFFIX)) $(RESFILE) $(LDFLAGS) $(STATIC_LIBS) $(SHARED_LIBS) $(EXTRA_DSO_LDOPTS) $(MOZ_GLUE_LDFLAGS) $(OS_LIBS)
+	$(MKSHLIB) $($@_OBJS) $(RESFILE) $(LDFLAGS) $(STATIC_LIBS) $(SHARED_LIBS) $(EXTRA_DSO_LDOPTS) $(MOZ_GLUE_LDFLAGS) $(OS_LIBS)
 	$(call py_action,check_binary,--target $@)
 
 ifeq (_WINNT,$(GNU_CC)_$(OS_ARCH))
@@ -694,9 +629,6 @@ ifdef EMBED_MANIFEST_AT
 	fi
 endif   # EMBED_MANIFEST_AT
 endif	# MSVC with manifest tool
-ifdef MOZ_PROFILE_GENERATE
-	touch -t `date +%Y%m%d%H%M.%S -d 'now+5seconds'` pgo.relink
-endif
 endif	# WINNT && !GCC
 	chmod +x $@
 ifdef ENABLE_STRIP

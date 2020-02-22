@@ -18,7 +18,6 @@ from itertools import chain
 from mozbuild.preprocessor import Preprocessor
 from mozbuild.util import (
     FileAvoidWrite,
-    ensure_bytes,
     ensure_unicode,
 )
 from mozpack.executables import (
@@ -76,6 +75,14 @@ else:
             raise TypeError('mismatched path types!')
 
 
+# Helper function; ensures we always open files with the correct encoding when
+# opening them in text mode.
+def _open(path, mode='r'):
+    if six.PY3 and 'b' not in mode:
+        return open(path, mode, encoding='utf-8')
+    return open(path, mode)
+
+
 class Dest(object):
     '''
     Helper interface for BaseFile.copy. The interface works as follows:
@@ -95,17 +102,21 @@ class Dest(object):
     def name(self):
         return self.path
 
-    def read(self, length=-1):
+    def read(self, length=-1, mode='rb'):
         if self.mode != 'r':
-            self.file = open(self.path, 'rb')
+            self.file = _open(self.path, mode)
             self.mode = 'r'
         return self.file.read(length)
 
-    def write(self, data):
+    def write(self, data, mode='wb'):
         if self.mode != 'w':
-            self.file = open(self.path, 'wb')
+            self.file = _open(self.path, mode)
             self.mode = 'w'
-        return self.file.write(data)
+        if 'b' in mode:
+            to_write = six.ensure_binary(data)
+        else:
+            to_write = six.ensure_text(data)
+        return self.file.write(to_write)
 
     def exists(self):
         return os.path.exists(self.path)
@@ -200,6 +211,13 @@ class BaseFile(object):
 
         if can_skip_content_check:
             if getattr(self, 'path', None) and getattr(dest, 'path', None):
+                # The destination directory must exist, or CopyFile will fail.
+                destdir = os.path.dirname(dest.path)
+                try:
+                    os.makedirs(destdir)
+                except OSError as e:
+                    if e.errno != errno.EEXIST:
+                        raise
                 _copyfile(self.path, dest.path)
                 shutil.copystat(self.path, dest.path)
             else:
@@ -209,7 +227,7 @@ class BaseFile(object):
                 shutil.copyfileobj(self.open(), dest)
             return True
 
-        src = self.open()
+        src = self.open('rb')
         copy_content = b''
         while True:
             dest_content = dest.read(32768)
@@ -219,7 +237,8 @@ class BaseFile(object):
                 break
             # If the read content differs between origin and destination,
             # write what was read up to now, and copy the remainder.
-            if dest_content != src_content:
+            if (six.ensure_binary(dest_content) !=
+                six.ensure_binary(src_content)):
                 dest.write(copy_content)
                 shutil.copyfileobj(src, dest)
                 break
@@ -227,14 +246,14 @@ class BaseFile(object):
             shutil.copystat(self.path, dest.path)
         return True
 
-    def open(self):
+    def open(self, mode='rb'):
         '''
         Return a file-like object allowing to read() the content of the
         associated file. This is meant to be overloaded in subclasses to return
         a custom file-like object.
         '''
         assert self.path is not None
-        return open(self.path, 'rb')
+        return _open(self.path, mode=mode)
 
     def read(self):
         raise NotImplementedError('BaseFile.read() not implemented. Bug 1170329.')
@@ -282,7 +301,7 @@ class File(BaseFile):
 
     def read(self):
         '''Return the contents of the file.'''
-        with open(self.path, 'rb') as fh:
+        with _open(self.path, 'rb') as fh:
             return fh.read()
 
     def size(self):
@@ -536,8 +555,8 @@ class PreprocessedFile(BaseFile):
         pp = Preprocessor(defines=self.defines, marker=self.marker)
         pp.setSilenceDirectiveWarnings(self.silence_missing_directive_warnings)
 
-        with open(self.path, 'rU') as input:
-            with open(os.devnull, 'w') as output:
+        with _open(self.path, 'rU') as input:
+            with _open(os.devnull, 'w') as output:
                 pp.processFile(input=input, output=output)
 
         # This always yields at least self.path.
@@ -568,7 +587,7 @@ class PreprocessedFile(BaseFile):
         # dependencies from that file to our list.
         if self.depfile and os.path.exists(self.depfile):
             target = mozpath.normpath(dest.name)
-            with open(self.depfile, 'rb') as fileobj:
+            with _open(self.depfile, 'rt') as fileobj:
                 for rule in makeutil.read_dep_makefile(fileobj):
                     if target in rule.targets():
                         pp_deps.update(rule.dependencies())
@@ -592,7 +611,7 @@ class PreprocessedFile(BaseFile):
         pp = Preprocessor(defines=self.defines, marker=self.marker)
         pp.setSilenceDirectiveWarnings(self.silence_missing_directive_warnings)
 
-        with open(self.path, 'rU') as input:
+        with _open(self.path, 'rU') as input:
             pp.processFile(input=input, output=dest, depfile=deps_out)
 
         dest.close()
@@ -609,19 +628,23 @@ class GeneratedFile(BaseFile):
 
     def __init__(self, content):
         self._content = content
+        self._mode = 'rb'
 
     @property
     def content(self):
+        ensure = (six.ensure_binary if 'b' in self._mode else six.ensure_text)
         if inspect.isfunction(self._content):
-            self._content = self._content()
-        return self._content
+            self._content = ensure(self._content())
+        return ensure(self._content)
 
     @content.setter
     def content(self, content):
         self._content = content
 
-    def open(self):
-        return BytesIO(self.content)
+    def open(self, mode='rb'):
+        self._mode = mode
+        return (BytesIO(self.content) if 'b' in self._mode
+                else six.StringIO(self.content))
 
     def read(self):
         return self.content
@@ -644,7 +667,7 @@ class DeflatedFile(BaseFile):
         assert isinstance(file, JarFileReader)
         self.file = file
 
-    def open(self):
+    def open(self, mode='rb'):
         self.file.seek(0)
         return self.file
 
@@ -659,11 +682,11 @@ class ExtractedTarFile(GeneratedFile):
         assert isinstance(info, TarInfo)
         assert isinstance(tar, TarFile)
         GeneratedFile.__init__(self, tar.extractfile(info).read())
-        self._mode = self.normalize_mode(info.mode)
+        self._unix_mode = self.normalize_mode(info.mode)
 
     @property
     def mode(self):
-        return self._mode
+        return self._unix_mode
 
     def read(self):
         return self.content
@@ -713,17 +736,17 @@ class ManifestFile(BaseFile):
         else:
             self._entries.remove(entry)
 
-    def open(self):
+    def open(self, mode='rt'):
         '''
         Return a file-like object allowing to read() the serialized content of
         the manifest.
         '''
-        return BytesIO(
-            ensure_bytes(
-                ''.join(
-                    '%s\n' % e.rebase(self._base)
-                    for e in chain(self._entries, self._interfaces)
-                )))
+        content = ''.join(
+            '%s\n' % e.rebase(self._base)
+            for e in chain(self._entries, self._interfaces))
+        if 'b' in mode:
+            return BytesIO(six.ensure_binary(content))
+        return six.StringIO(six.ensure_text(content))
 
     def __iter__(self):
         '''
@@ -748,13 +771,18 @@ class MinifiedProperties(BaseFile):
         assert isinstance(file, BaseFile)
         self._file = file
 
-    def open(self):
+    def open(self, mode='r'):
         '''
         Return a file-like object allowing to read() the minified content of
         the properties file.
         '''
-        return BytesIO(b''.join(l for l in self._file.open().readlines()
-                                if not l.startswith(b'#')))
+        content = ''.join(
+            l for l in [
+                six.ensure_text(s) for s in self._file.open(mode).readlines()
+            ] if not l.startswith('#'))
+        if 'b' in mode:
+            return BytesIO(six.ensure_binary(content))
+        return six.StringIO(content)
 
 
 class MinifiedJavaScript(BaseFile):
@@ -767,19 +795,19 @@ class MinifiedJavaScript(BaseFile):
         self._file = file
         self._verify_command = verify_command
 
-    def open(self):
-        output = BytesIO()
-        minify = JavascriptMinify(self._file.open(), output, quote_chars="'\"`")
+    def open(self, mode='r'):
+        output = six.StringIO()
+        minify = JavascriptMinify(self._file.open('r'), output, quote_chars="'\"`")
         minify.minify()
         output.seek(0)
 
         if not self._verify_command:
             return output
 
-        input_source = self._file.open().read()
+        input_source = self._file.open('r').read()
         output_source = output.getvalue()
 
-        with NamedTemporaryFile() as fh1, NamedTemporaryFile() as fh2:
+        with NamedTemporaryFile('w+') as fh1, NamedTemporaryFile('w+') as fh2:
             fh1.write(input_source)
             fh2.write(output_source)
             fh1.flush()
@@ -788,7 +816,8 @@ class MinifiedJavaScript(BaseFile):
             try:
                 args = list(self._verify_command)
                 args.extend([fh1.name, fh2.name])
-                subprocess.check_output(args, stderr=subprocess.STDOUT)
+                subprocess.check_output(args, stderr=subprocess.STDOUT,
+                                        universal_newlines=True)
             except subprocess.CalledProcessError as e:
                 errors.warn('JS minification verification failed for %s:' %
                             (getattr(self._file, 'path', '<unknown>')))
@@ -1123,7 +1152,8 @@ class MercurialFile(BaseFile):
     """File class for holding data from Mercurial."""
 
     def __init__(self, client, rev, path):
-        self._content = client.cat([path], rev=rev)
+        self._content = client.cat([six.ensure_binary(path)],
+                                   rev=six.ensure_binary(rev))
 
     def read(self):
         return self._content
@@ -1162,16 +1192,18 @@ class MercurialRevisionFinder(BaseFinder):
             self._client = hglib.open(path=repo, encoding=b'utf-8')
         finally:
             os.chdir(oldcwd)
-        self._rev = rev if rev is not None else b'.'
+        self._rev = rev if rev is not None else '.'
         self._files = OrderedDict()
 
         # Immediately populate the list of files in the repo since nearly every
         # operation requires this list.
-        out = self._client.rawcommand([b'files', b'--rev', str(self._rev)])
+        out = self._client.rawcommand([
+            b'files', b'--rev', six.ensure_binary(self._rev),
+        ])
         for relpath in out.splitlines():
             # Mercurial may use \ as path separator on Windows. So use
             # normpath().
-            self._files[mozpath.normpath(relpath)] = None
+            self._files[six.ensure_text(mozpath.normpath(relpath))] = None
 
     def _find(self, pattern):
         if self._recognize_repo_paths:

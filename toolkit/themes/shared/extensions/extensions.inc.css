@@ -323,39 +323,6 @@ button.warning {
   margin-inline-start: 28px;
 }
 
-/*** discover view ***/
-
-.discover-spacer-before,
-.discover-spacer-after {
-  -moz-box-flex: 1;
-}
-
-#discover-error .alert {
-  max-width: 45em;
-  -moz-box-flex: 1;
-}
-
-.discover-logo {
-  list-style-image: url("chrome://mozapps/skin/extensions/discover-logo.png");
-  margin-inline-end: 15px;
-}
-
-.discover-title {
-  font-weight: bold;
-  font-size: 24px;
-  font-family: MetaWebPro-Book, "Trebuchet MS", sans-serif;
-  margin: 0 0 15px 0;
-}
-
-.discover-description {
-  text-align: justify;
-  margin: 0 0 15px 0;
-}
-
-.discover-footer {
-  text-align: justify;
-}
-
 
 /*** list ***/
 
@@ -808,28 +775,6 @@ button.warning {
   margin-inline-end: 5px;
 }
 
-#detail-grid {
-  margin-bottom: 2em;
-}
-
-#detail-grid > columns > column:first-child {
-  min-width: 15em;
-  max-width: 25em;
-}
-
-.detail-row[first-row="true"],
-.detail-row-complex[first-row="true"] {
-  border-top: none;
-}
-
-.detail-row,
-.detail-row-complex {
-  border-top: 1px solid var(--in-content-box-border-color);
-  -moz-box-align: center;
-  min-height: 35px;
-  line-height: 20px;
-}
-
 .inline-options-browser {
   margin-top: 2em;
 }
@@ -851,18 +796,6 @@ button.warning {
   display: none;
 }
 
-.detail-row-footer {
-  padding-bottom: 6px;
-}
-
-.detail-row-footer > .preferences-description {
-  margin-inline-start: 6px;
-  margin-top: 0;
-  margin-bottom: 0;
-  /* card-width - card-padding - description-margins */
-  width: calc(664px - 32px - 11px);
-  color: var(--in-content-deemphasized-text);
-}
 
 /*** creator ***/
 

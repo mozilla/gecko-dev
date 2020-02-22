@@ -36,6 +36,11 @@ ChromeUtils.defineModuleGetter(
   "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm"
 );
+ChromeUtils.defineModuleGetter(
+  this,
+  "SiteSpecificBrowserService",
+  "resource:///modules/SiteSpecificBrowserService.jsm"
+);
 
 const ACTION_ID_BOOKMARK = "bookmark";
 const ACTION_ID_PIN_TAB = "pinTab";
@@ -345,26 +350,6 @@ var PageActions = {
     this._updateIDsPinnedToUrlbarForAction(action);
     for (let bpa of allBrowserPageActions()) {
       bpa.placeActionInUrlbar(action);
-    }
-  },
-
-  logTelemetry(type, action, node = null) {
-    if (type == "used") {
-      type =
-        node && node.closest("#urlbar-container")
-          ? "urlbar_used"
-          : "panel_used";
-    }
-    let histogramID = "FX_PAGE_ACTION_" + type.toUpperCase();
-    try {
-      let histogram = Services.telemetry.getHistogramById(histogramID);
-      if (action._isMozillaAction) {
-        histogram.add(action.labelForHistogram);
-      } else {
-        histogram.add("other");
-      }
-    } catch (ex) {
-      Cu.reportError(ex);
     }
   },
 
@@ -1276,6 +1261,20 @@ if (Services.prefs.getBoolPref("identity.fxaccounts.enabled")) {
       browserPageActions(panelViewNode).sendToDevice.onShowingSubview(
         panelViewNode
       );
+    },
+  });
+}
+
+if (SiteSpecificBrowserService.isEnabled) {
+  gBuiltInActions.push({
+    id: "launchSSB",
+    // Hardcoded for now. Localization tracked in bug 1602528.
+    title: "Launch Site Specific Browser",
+    onLocationChange(browserWindow) {
+      browserPageActions(browserWindow).launchSSB.updateState();
+    },
+    onCommand(event, buttonNode) {
+      browserPageActions(buttonNode).launchSSB.onCommand(event, buttonNode);
     },
   });
 }

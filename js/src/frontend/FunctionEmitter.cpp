@@ -333,7 +333,7 @@ bool FunctionEmitter::emitTopLevelFunction(unsigned index) {
 
     JS::Rooted<ModuleObject*> module(bce_->cx,
                                      bce_->sc->asModuleContext()->module());
-    if (!module->noteFunctionDeclaration(bce_->cx, name_, fun_)) {
+    if (!module->noteFunctionDeclaration(bce_->cx, name_, index)) {
       return false;
     }
     return true;
@@ -482,7 +482,7 @@ bool FunctionScriptEmitter::prepareForBody() {
     }
   }
 
-  if (funbox_->kind() == FunctionFlags::FunctionKind::ClassConstructor) {
+  if (funbox_->isClassConstructor()) {
     if (!funbox_->isDerivedClassConstructor()) {
       if (!bce_->emitInitializeInstanceFields()) {
         //          [stack]
@@ -746,8 +746,6 @@ bool FunctionScriptEmitter::initScript() {
   if (!JSScript::fullyInitFromEmitter(bce_->cx, bce_->script, bce_)) {
     return false;
   }
-
-  bce_->tellDebuggerAboutCompiledScript(bce_->cx);
 
 #ifdef DEBUG
   state_ = State::End;

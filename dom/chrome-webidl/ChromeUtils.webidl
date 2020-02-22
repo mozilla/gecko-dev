@@ -453,6 +453,10 @@ partial namespace ChromeUtils {
   // Set the current tab which any record/replay logging in the UI process will
   // be associated with.
   void recordReplaySetActiveTab(nsISupports? tab);
+
+  // This is used to generate fake media control keys event in testing.
+  [ChromeOnly]
+  void generateMediaControlKeysTestEvent(MediaControlKeysTestEvent aEvent);
 };
 
 /*
@@ -473,6 +477,9 @@ enum WebIDLProcType {
  "rdd",
  "socket",
  "remoteSandboxBroker",
+#ifdef MOZ_ENABLE_FORKSERVER
+ "forkServer",
+#endif
  "unknown",
 };
 
@@ -683,4 +690,16 @@ enum PopupBlockerState {
   "openBlocked",
   "openAbused",
   "openOverridden",
+};
+
+// Keep this in sync with MediaControlKeysEvent in MediaControlKeysEvent.h!
+enum MediaControlKeysTestEvent {
+  "play",
+  "pause",
+  "playPause",
+  "prevTrack",
+  "nextTrack",
+  "seekBackward",
+  "seekForward",
+  "stop",
 };

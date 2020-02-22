@@ -235,77 +235,6 @@ void WindowGlobalChild::Destroy() {
   }
 }
 
-mozilla::ipc::IPCResult WindowGlobalChild::RecvLoadURIInChild(
-    nsDocShellLoadState* aLoadState, bool aSetNavigating) {
-  mWindowGlobal->GetDocShell()->LoadURI(aLoadState, aSetNavigating);
-  if (aSetNavigating) {
-    mWindowGlobal->GetBrowserChild()->NotifyNavigationFinished();
-  }
-
-#ifdef MOZ_CRASHREPORTER
-  if (CrashReporter::GetEnabled()) {
-    nsCOMPtr<nsIURI> annotationURI;
-
-    nsresult rv = NS_MutateURI(aLoadState->URI())
-                      .SetUserPass(EmptyCString())
-                      .Finalize(annotationURI);
-
-    if (NS_FAILED(rv)) {
-      // Ignore failures on about: URIs.
-      annotationURI = aLoadState->URI();
-    }
-
-    CrashReporter::AnnotateCrashReport(CrashReporter::Annotation::URL,
-                                       annotationURI->GetSpecOrDefault());
-  }
-#endif
-
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult WindowGlobalChild::RecvInternalLoadInChild(
-    nsDocShellLoadState* aLoadState, bool aTakeFocus) {
-  nsDocShell::Cast(mWindowGlobal->GetDocShell())
-      ->InternalLoad(aLoadState, nullptr, nullptr);
-
-  if (aTakeFocus) {
-    if (nsCOMPtr<nsPIDOMWindowOuter> domWin =
-            mBrowsingContext->GetDOMWindow()) {
-      nsFocusManager::FocusWindow(domWin);
-    }
-  }
-
-#ifdef MOZ_CRASHREPORTER
-  if (CrashReporter::GetEnabled()) {
-    nsCOMPtr<nsIURI> annotationURI;
-
-    nsresult rv = NS_MutateURI(aLoadState->URI())
-                      .SetUserPass(EmptyCString())
-                      .Finalize(annotationURI);
-
-    if (NS_FAILED(rv)) {
-      // Ignore failures on about: URIs.
-      annotationURI = aLoadState->URI();
-    }
-
-    CrashReporter::AnnotateCrashReport(CrashReporter::Annotation::URL,
-                                       annotationURI->GetSpecOrDefault());
-  }
-#endif
-
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult WindowGlobalChild::RecvDisplayLoadError(
-    const nsAString& aURI) {
-  bool didDisplayLoadError = false;
-  mWindowGlobal->GetDocShell()->DisplayLoadError(
-      NS_ERROR_MALFORMED_URI, nullptr, PromiseFlatString(aURI).get(), nullptr,
-      &didDisplayLoadError);
-  mWindowGlobal->GetBrowserChild()->NotifyNavigationFinished();
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult WindowGlobalChild::RecvMakeFrameLocal(
     dom::BrowsingContext* aFrameContext, uint64_t aPendingSwitchId) {
   MOZ_DIAGNOSTIC_ASSERT(XRE_IsContentProcess());
@@ -426,19 +355,23 @@ mozilla::ipc::IPCResult WindowGlobalChild::RecvGetSecurityInfo(
 }
 
 IPCResult WindowGlobalChild::RecvRawMessage(
-    const JSWindowActorMessageMeta& aMeta, const ClonedMessageData& aData) {
+    const JSWindowActorMessageMeta& aMeta, const ClonedMessageData& aData,
+    const ClonedMessageData& aStack) {
   StructuredCloneData data;
   data.BorrowFromClonedMessageDataForChild(aData);
-  ReceiveRawMessage(aMeta, std::move(data));
+  StructuredCloneData stack;
+  stack.BorrowFromClonedMessageDataForChild(aStack);
+  ReceiveRawMessage(aMeta, std::move(data), std::move(stack));
   return IPC_OK();
 }
 
 void WindowGlobalChild::ReceiveRawMessage(const JSWindowActorMessageMeta& aMeta,
-                                          StructuredCloneData&& aData) {
+                                          StructuredCloneData&& aData,
+                                          StructuredCloneData&& aStack) {
   RefPtr<JSWindowActorChild> actor =
       GetActor(aMeta.actorName(), IgnoreErrors());
   if (actor) {
-    actor->ReceiveRawMessage(aMeta, std::move(aData));
+    actor->ReceiveRawMessage(aMeta, std::move(aData), std::move(aStack));
   }
 }
 

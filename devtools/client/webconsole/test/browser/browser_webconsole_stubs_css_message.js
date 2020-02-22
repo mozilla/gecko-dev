@@ -63,12 +63,12 @@ add_task(async function() {
 async function generateCssMessageStubs() {
   const stubs = new Map();
   const toolbox = await openNewTabAndToolbox(TEST_URI, "webconsole");
+  const webConsoleFront = await toolbox.target.getFront("console");
 
   for (const code of getCommands()) {
     const received = new Promise(resolve => {
       /* CSS errors are considered as pageError on the server */
-      toolbox.target.activeConsole.on("pageError", function onPacket(packet) {
-        toolbox.target.activeConsole.off("pageError", onPacket);
+      webConsoleFront.once("pageError", function onPacket(packet) {
         info(
           "Received css message: pageError " +
             JSON.stringify(packet, null, "\t")
@@ -80,7 +80,9 @@ async function generateCssMessageStubs() {
       });
     });
 
-    await ContentTask.spawn(gBrowser.selectedBrowser, code, function(subCode) {
+    await SpecialPowers.spawn(gBrowser.selectedBrowser, [code], function(
+      subCode
+    ) {
       content.docShell.cssErrorReportingEnabled = true;
       const style = content.document.createElement("style");
       style.append(content.document.createTextNode(subCode));

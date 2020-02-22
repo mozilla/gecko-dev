@@ -32,6 +32,7 @@ module.exports = {
       "client/framework/**",
       "client/shared/*.jsm",
       "client/shared/widgets/*.jsm",
+      "client/storage/VariablesView.jsm",
     ],
     "rules": {
       "consistent-return": "off",
@@ -48,6 +49,8 @@ module.exports = {
       "client/framework/**",
       "client/shared/*.jsm",
       "client/shared/widgets/*.jsm",
+      "client/storage/VariablesView.jsm",
+      "shared/webconsole/test/*.html",
     ],
     "rules": {
       "mozilla/no-aArgs": "off",
@@ -63,6 +66,7 @@ module.exports = {
     "files": [
       "client/framework/**",
       "client/shared/widgets/*.jsm",
+      "client/storage/VariablesView.jsm",
     ],
     "rules": {
       "no-shadow": "off",
@@ -86,6 +90,12 @@ module.exports = {
     // For all server files, prevent requiring devtools/client modules.
     "files": [
       "server/**",
+      // The rule also applies to all `shared` files, with the exception of
+      // shared/fronts.
+      // This first pattern matches files in a shared subfolder other than "fronts".
+      "shared/!(fronts)/**",
+      // This second pattern matches files directly under shared.
+      "shared/*.**",
     ],
     "rules": {
       "mozilla/reject-some-requires": ["error", "^(resource\://)?devtools/client"],

@@ -41,7 +41,6 @@
 #include "mozilla/PresShellForwards.h"
 #include "prclist.h"
 #include "nsThreadUtils.h"
-#include "nsIMessageManager.h"
 #include "Units.h"
 #include "prenv.h"
 #include "mozilla/StaticPresData.h"
@@ -356,7 +355,7 @@ class nsPresContext : public nsISupports,
 
   nsISupports* GetContainerWeak() const;
 
-  nsIDocShell* GetDocShell() const;
+  nsDocShell* GetDocShell() const;
 
   /**
    * Get the visible area associated with this presentation context.
@@ -1061,8 +1060,8 @@ class nsPresContext : public nsISupports,
   // aData here is a pointer to a double that holds the CSS to device-pixel
   // scale factor from the parent, which will be applied to the subdocument's
   // device context instead of retrieving a scale from the widget.
-  static bool UIResolutionChangedSubdocumentCallback(mozilla::dom::Document&,
-                                                     void* aData);
+  static mozilla::CallState UIResolutionChangedSubdocumentCallback(
+      mozilla::dom::Document&, void* aData);
 
   void SetImgAnimations(nsIContent* aParent, uint16_t aMode);
   void SetSMILAnimations(mozilla::dom::Document* aDoc, uint16_t aNewMode,
@@ -1078,10 +1077,10 @@ class nsPresContext : public nsISupports,
 
   void UpdateCharSet(NotNull<const Encoding*> aCharSet);
 
-  static bool NotifyDidPaintSubdocumentCallback(mozilla::dom::Document&,
-                                                void* aData);
-  static bool NotifyRevokingDidPaintSubdocumentCallback(mozilla::dom::Document&,
-                                                        void* aData);
+  static mozilla::CallState NotifyDidPaintSubdocumentCallback(
+      mozilla::dom::Document&, void* aData);
+  static mozilla::CallState NotifyRevokingDidPaintSubdocumentCallback(
+      mozilla::dom::Document&, void* aData);
 
  public:
   // Used by the PresShell to force a reflow when some aspect of font info

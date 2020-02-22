@@ -8,7 +8,6 @@
 #define nsCSPUtils_h___
 
 #include "nsCOMPtr.h"
-#include "nsIContentPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIURI.h"
 #include "nsLiteralString.h"
@@ -321,7 +320,8 @@ class nsCSPKeywordSrc : public nsCSPBaseSrc {
 
   inline void invalidate() const override {
     // keywords that need to invalidated
-    if (mKeyword == CSP_SELF || mKeyword == CSP_UNSAFE_INLINE) {
+    if (mKeyword == CSP_SELF || mKeyword == CSP_UNSAFE_INLINE ||
+        mKeyword == CSP_REPORT_SAMPLE) {
       mInvalidated = true;
     }
   }

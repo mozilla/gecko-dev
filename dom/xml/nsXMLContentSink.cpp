@@ -11,7 +11,6 @@
 #include "nsIContent.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
-#include "nsIDocShell.h"
 #include "nsIStyleSheetLinkingElement.h"
 #include "nsHTMLParts.h"
 #include "nsCRT.h"
@@ -22,21 +21,16 @@
 #include "nsDocElementCreatedNotificationRunner.h"
 #include "nsIScriptContext.h"
 #include "nsNameSpaceManager.h"
-#include "nsIServiceManager.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIContentViewer.h"
 #include "prtime.h"
 #include "mozilla/Logging.h"
 #include "nsRect.h"
-#include "nsIWebNavigation.h"
 #include "nsIScriptElement.h"
 #include "nsStyleLinkElement.h"
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
-#include "nsICookieService.h"
-#include "nsIPrompt.h"
 #include "nsIChannel.h"
-#include "nsIPrincipal.h"
 #include "nsXMLPrettyPrinter.h"
 #include "nsNodeInfoManager.h"
 #include "nsContentCreatorFunctions.h"
@@ -691,8 +685,9 @@ nsresult nsXMLContentSink::MaybeProcessXSLTLink(
 
   // Do security check
   nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
-  rv = secMan->CheckLoadURIWithPrincipal(
-      mDocument->NodePrincipal(), url, nsIScriptSecurityManager::ALLOW_CHROME);
+  rv = secMan->CheckLoadURIWithPrincipal(mDocument->NodePrincipal(), url,
+                                         nsIScriptSecurityManager::ALLOW_CHROME,
+                                         mDocument->InnerWindowID());
   NS_ENSURE_SUCCESS(rv, NS_OK);
 
   nsCOMPtr<nsILoadInfo> secCheckLoadInfo =

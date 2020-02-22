@@ -32,6 +32,7 @@ const fakeViews = [{
 
 let fakeDeviceInitParams = {
     supportsImmersive: true,
+    supportedModes: ["inline", "immersive-vr"],
     views: fakeViews,
     viewerOrigin: IDENTITY_TRANSFORM,
     supportedFeatures: ALL_FEATURES
@@ -76,7 +77,7 @@ let testFunction = function(session, fakeDeviceController, t) {
         counter++;
       }
 
-      session.requestAnimationFrame(onFrame);
+      session.requestAnimationFrame(t.step_func(onFrame));
   }));
 };
 

@@ -511,32 +511,6 @@ decorate_task(
   }
 );
 
-// test init() in dev mode
-decorate_task(
-  withPrefEnv({
-    set: [
-      ["datareporting.healthreport.uploadEnabled", true], // telemetry enabled
-      ["app.normandy.dev_mode", true],
-      ["app.normandy.first_run", false],
-    ],
-  }),
-  withStub(RecipeRunner, "run"),
-  withStub(RecipeRunner, "registerTimer"),
-  withStub(RecipeRunner._remoteSettingsClientForTesting, "sync"),
-  async function testInitDevMode(runStub, registerTimerStub, syncStub) {
-    await RecipeRunner.init();
-    ok(
-      runStub.called,
-      "RecipeRunner.run should be called immediately when in dev mode"
-    );
-    ok(registerTimerStub.called, "RecipeRunner.init should register a timer");
-    ok(
-      syncStub.called,
-      "RecipeRunner.init should sync remote settings in dev mode"
-    );
-  }
-);
-
 // Test init() during normal operation
 decorate_task(
   withPrefEnv({
@@ -558,6 +532,32 @@ decorate_task(
   }
 );
 
+// test init() in dev mode
+decorate_task(
+  withPrefEnv({
+    set: [
+      ["datareporting.healthreport.uploadEnabled", true], // telemetry enabled
+      ["app.normandy.dev_mode", true],
+    ],
+  }),
+  withStub(RecipeRunner, "run"),
+  withStub(RecipeRunner, "registerTimer"),
+  withStub(RecipeRunner._remoteSettingsClientForTesting, "sync"),
+  async function testInitDevMode(runStub, registerTimerStub, syncStub) {
+    await RecipeRunner.init();
+    Assert.deepEqual(
+      runStub.args,
+      [[{ trigger: "devMode" }]],
+      "RecipeRunner.run should be called immediately when in dev mode"
+    );
+    ok(registerTimerStub.called, "RecipeRunner.init should register a timer");
+    ok(
+      syncStub.called,
+      "RecipeRunner.init should sync remote settings in dev mode"
+    );
+  }
+);
+
 // Test init() first run
 decorate_task(
   withPrefEnv({
@@ -565,7 +565,6 @@ decorate_task(
       ["datareporting.healthreport.uploadEnabled", true], // telemetry enabled
       ["app.normandy.dev_mode", false],
       ["app.normandy.first_run", true],
-      ["app.normandy.api_url", "https://example.com"],
     ],
   }),
   withStub(RecipeRunner, "run"),
@@ -573,7 +572,11 @@ decorate_task(
   withStub(RecipeRunner, "watchPrefs"),
   async function testInitFirstRun(runStub, registerTimerStub, watchPrefsStub) {
     await RecipeRunner.init();
-    ok(runStub.called, "RecipeRunner.run is called immediately on first run");
+    Assert.deepEqual(
+      runStub.args,
+      [[{ trigger: "firstRun" }]],
+      "RecipeRunner.run is called immediately on first run"
+    );
     ok(
       !Services.prefs.getBoolPref("app.normandy.first_run"),
       "On first run, the first run pref is set to false"
@@ -591,6 +594,31 @@ decorate_task(
   }
 );
 
+// Test that new build IDs trigger immediate recipe runs
+decorate_task(
+  withPrefEnv({
+    set: [
+      ["datareporting.healthreport.uploadEnabled", true], // telemetry enabled
+      ["app.normandy.last_seen_buildid", "not-the-current-buildid"],
+    ],
+  }),
+  withStub(RecipeRunner, "run"),
+  withStub(RecipeRunner, "registerTimer"),
+  withStub(RecipeRunner, "watchPrefs"),
+  async function testInitFirstRun(runStub, registerTimerStub, watchPrefsStub) {
+    await RecipeRunner.init();
+    Assert.deepEqual(
+      runStub.args,
+      [[{ trigger: "newBuildID" }]],
+      "RecipeRunner.run is called immediately on a new build ID"
+    );
+    ok(
+      registerTimerStub.called,
+      "RecipeRunner.registerTimer registers a timer"
+    );
+  }
+);
+
 // Test that prefs are watched correctly
 decorate_task(
   withPrefEnv({
@@ -598,7 +626,6 @@ decorate_task(
       ["app.normandy.dev_mode", false],
       ["app.normandy.first_run", false],
       ["app.normandy.enabled", true],
-      ["app.normandy.api_url", "https://example.com"], // starts with "https://"
     ],
   }),
   withStub(RecipeRunner, "run"),
@@ -688,7 +715,10 @@ decorate_task(
 
 decorate_task(
   withPrefEnv({
-    set: [["features.normandy-remote-settings.enabled", false]],
+    set: [
+      ["features.normandy-remote-settings.enabled", false],
+      ["app.normandy.onsync_skew_sec", 0],
+    ],
   }),
   withStub(RecipeRunner, "run"),
   async function testRunOnSyncRemoteSettings(runStub) {
@@ -748,6 +778,27 @@ decorate_task(
 );
 
 decorate_task(
+  withPrefEnv({
+    set: [
+      ["features.normandy-remote-settings.enabled", true],
+      ["app.normandy.onsync_skew_sec", 600], // 10 minutes, much longer than the test will take to run
+    ],
+  }),
+  withStub(RecipeRunner, "run"),
+  async function testOnSyncRunDelayed(runStub) {
+    ok(
+      !RecipeRunner._syncSkewTimeout,
+      "precondition: No timer should be active"
+    );
+    const rsClient = RecipeRunner._remoteSettingsClientForTesting;
+    await rsClient.emit("sync", {});
+    ok(runStub.notCalled, "run() should be not called yet");
+    ok(RecipeRunner._syncSkewTimeout, "A timer should be set");
+    clearInterval(RecipeRunner._syncSkewTimeout); // cleanup
+  }
+);
+
+decorate_task(
   withStub(RecipeRunner, "loadRecipes"),
   async function testRunCanRunOnlyOnce(loadRecipesStub) {
     loadRecipesStub.returns(
@@ -768,6 +819,7 @@ decorate_task(
       ["features.normandy-remote-settings.enabled", true],
       // Enable update timer logs.
       ["app.update.log", true],
+      ["app.normandy.onsync_skew_sec", 0],
     ],
   }),
   withStub(RecipeRunner, "loadRecipes"),
@@ -779,6 +831,17 @@ decorate_task(
     reportRecipeStub
   ) {
     loadRecipesStub.returns(Promise.resolve([]));
+
+    // Mark any existing timer as having run just now.
+    for (const { value } of Services.catMan.enumerateCategory("update-timer")) {
+      const timerID = value.split(",")[2];
+      console.log(`Mark timer ${timerID} as ran recently`);
+      // See https://searchfox.org/mozilla-central/rev/11cfa0462/toolkit/components/timermanager/UpdateTimerManager.jsm#8
+      const timerLastUpdatePref = `app.update.lastUpdateTime.${timerID}`;
+      const lastUpdateTime = Math.round(Date.now() / 1000);
+      Services.prefs.setIntPref(timerLastUpdatePref, lastUpdateTime);
+    }
+
     // Set a timer interval as small as possible so that the UpdateTimerManager
     // will pick the recipe runner as the most imminent timer to run on `notify()`.
     Services.prefs.setIntPref("app.normandy.run_interval_seconds", 1);

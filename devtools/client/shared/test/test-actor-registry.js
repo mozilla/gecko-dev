@@ -12,7 +12,7 @@
   const { fetch } = require("devtools/shared/DevToolsUtils");
 
   const TEST_URL_ROOT =
-    "http://example.com/browser/devtools/client/shared/test/";
+    "chrome://mochitests/content/browser/devtools/client/shared/test/";
   const ACTOR_URL = TEST_URL_ROOT + "test-actor.js";
 
   // Register a test actor that can operate on the remote document
@@ -53,7 +53,7 @@
   // Spawn an instance of the test actor for the given toolbox
   exports.getTestActor = async function(toolbox) {
     const client = toolbox.target.client;
-    return getTestActor(client, toolbox.target.tab, toolbox);
+    return getTestActor(client, toolbox.target.localTab, toolbox);
   };
 
   // Sometimes, we need the test actor before opening or without a toolbox then just

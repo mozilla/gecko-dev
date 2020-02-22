@@ -133,8 +133,12 @@ some kinds, ``-j`` also matches against ``build_platform``.
 test_chunk
 ==========
 
-This is the chunk number of a chunked test suite (talos or unittest).  Note
-that this is a string!
+This is the chunk number of a chunked test suite. Note that this is a string!
+
+test_manifests
+==============
+
+A list of the test manifests that run in this task.
 
 e10s
 ====
@@ -327,6 +331,10 @@ disable-build-signing
 =====================
 Some GeckoView-only tasks produce APKs, but not APKs that should be
 signed.  Set this to ``true`` to disable APK signing.
+
+enable-build-signing
+====================
+We enable build-signing for ``shippable``, ``nightly``, and ``enable-build-signing`` tasks.
 
 run-visual-metrics
 ==================

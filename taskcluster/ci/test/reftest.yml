@@ -14,11 +14,12 @@ job-defaults:
         by-test-platform:
             linux64/debug: ['fission', 'serviceworker']
             default: ['fission']
+    fission-tier: 2
     run-on-projects:
         by-test-platform:
             android-hw-.*-qr/debug: ['try', 'mozilla-central']
-            android-hw-.*-qr/opt: ['try', 'mozilla-central', 'mozilla-inbound', 'autoland']
-            windows10-aarch64/opt: ['try']
+            android-hw-.*-qr/opt: ['try', 'mozilla-central', 'autoland']
+            windows10-aarch64/opt: ['try', 'mozilla-central']
             default: built-projects
     mozharness:
         script:
@@ -129,6 +130,14 @@ reftest:
             windows10-aarch64.*: 2
             android-hw-.*-qr/.*: 2
             default: default
+    fission-tier:
+        by-test-platform:
+            linux64-qr/debug: 1
+            default: 2
+    fission-run-on-projects:
+        by-test-platform:
+            linux64-qr/debug: ['trunk']
+            default: []
 
 reftest-gpu:
     description: "Reftest GPU run"

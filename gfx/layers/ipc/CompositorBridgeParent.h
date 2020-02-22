@@ -32,7 +32,7 @@
 #include "mozilla/layers/CompositorOptions.h"
 #include "mozilla/layers/CompositorVsyncSchedulerOwner.h"
 #include "mozilla/layers/GeckoContentController.h"
-#include "mozilla/layers/ISurfaceAllocator.h"  // for ShmemAllocator
+#include "mozilla/layers/ISurfaceAllocator.h"  // for IShmemAllocator
 #include "mozilla/layers/LayersMessages.h"     // for TargetConfig
 #include "mozilla/layers/MetricsSharingController.h"
 #include "mozilla/layers/PCompositorBridgeTypes.h"
@@ -106,7 +106,7 @@ struct ScopedLayerTreeRegistration {
 
 class CompositorBridgeParentBase : public PCompositorBridgeParent,
                                    public HostIPCAllocator,
-                                   public ShmemAllocator,
+                                   public mozilla::ipc::IShmemAllocator,
                                    public MetricsSharingController {
   friend class PCompositorBridgeParent;
 
@@ -149,7 +149,7 @@ class CompositorBridgeParentBase : public PCompositorBridgeParent,
   virtual void RegisterPayloads(LayerTransactionParent* aLayerTree,
                                 const nsTArray<CompositionPayload>& aPayload) {}
 
-  ShmemAllocator* AsShmemAllocator() override { return this; }
+  IShmemAllocator* AsShmemAllocator() override { return this; }
 
   CompositorBridgeParentBase* AsCompositorBridgeParentBase() override {
     return this;
@@ -170,14 +170,14 @@ class CompositorBridgeParentBase : public PCompositorBridgeParent,
   void SendAsyncMessage(
       const nsTArray<AsyncParentMessageData>& aMessage) override;
 
-  // ShmemAllocator
+  // IShmemAllocator
   bool AllocShmem(size_t aSize,
                   mozilla::ipc::SharedMemory::SharedMemoryType aType,
                   mozilla::ipc::Shmem* aShmem) override;
   bool AllocUnsafeShmem(size_t aSize,
                         mozilla::ipc::SharedMemory::SharedMemoryType aType,
                         mozilla::ipc::Shmem* aShmem) override;
-  void DeallocShmem(mozilla::ipc::Shmem& aShmem) override;
+  bool DeallocShmem(mozilla::ipc::Shmem& aShmem) override;
 
   // MetricsSharingController
   NS_IMETHOD_(MozExternalRefCountType) AddRef() override {
@@ -288,6 +288,14 @@ class CompositorBridgeParentBase : public PCompositorBridgeParent,
   virtual mozilla::ipc::IPCResult RecvInitPCanvasParent(
       Endpoint<PCanvasParent>&& aEndpoint) = 0;
   virtual mozilla::ipc::IPCResult RecvReleasePCanvasParent() = 0;
+
+  virtual mozilla::ipc::IPCResult RecvSupportsAsyncDXGISurface(bool* value) {
+    return IPC_FAIL_NO_REASON(this);
+  }
+  virtual mozilla::ipc::IPCResult RecvPreferredDXGIAdapter(
+      DxgiAdapterDesc* desc) {
+    return IPC_FAIL_NO_REASON(this);
+  }
 
   bool mCanSend;
 
@@ -510,6 +518,11 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
   void InvalidateRemoteLayers();
 
   /**
+   * Initialize statics.
+   */
+  static void InitializeStatics();
+
+  /**
    * Returns a pointer to the CompositorBridgeParent corresponding to the given
    * ID.
    */
@@ -695,6 +708,16 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
   static void DeallocateLayerTreeId(LayersId aId);
 
   /**
+   * Notify the compositor the quality settings have been updated.
+   */
+  static void UpdateQualitySettings();
+
+  /**
+   * Notify the compositor the debug flags have been updated.
+   */
+  static void UpdateDebugFlags();
+
+  /**
    * Wrap the data structure to be sent over IPC.
    */
   Maybe<CollectedFramesParams> WrapCollectedFrames(CollectedFrames&& aFrames);
@@ -773,6 +796,11 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
   // Callback should take (LayerTreeState* aState, const LayersId& aLayersId)
   template <typename Lambda>
   inline void ForEachIndirectLayerTree(const Lambda& aCallback);
+
+  // The indirect layer tree lock must be held before calling this function.
+  // Callback should take (LayerTreeState* aState, const LayersId& aLayersId)
+  template <typename Lambda>
+  static inline void ForEachWebRenderBridgeParent(const Lambda& aCallback);
 
   RefPtr<HostLayerManager> mLayerManager;
   RefPtr<Compositor> mCompositor;

@@ -16,7 +16,7 @@
 #include "GeckoProfiler.h"
 #include "TouchManager.h"
 #include "Units.h"
-#include "ZoomConstraintsClient.h"
+#include "Visibility.h"
 #include "gfxPoint.h"
 #include "mozilla/ArenaObjectID.h"
 #include "mozilla/Attributes.h"
@@ -43,7 +43,6 @@
 #include "nsFrameState.h"
 #include "nsHashKeys.h"
 #include "nsIContent.h"
-#include "nsIImageLoadingContent.h"
 #include "nsIObserver.h"
 #include "nsISelectionController.h"
 #include "nsIWidget.h"
@@ -99,6 +98,7 @@ struct RangePaintInfo;
 class ReflowCountMgr;
 #endif
 class WeakFrame;
+class ZoomConstraintsClient;
 
 template <class E>
 class nsCOMArray;
@@ -176,7 +176,7 @@ class PresShell final : public nsStubDocumentObserver,
   typedef nsTHashtable<nsPtrHashKey<nsIFrame>> VisibleFrames;
 
  public:
-  PresShell();
+  explicit PresShell(Document* aDocument);
 
   // nsISupports
   NS_DECL_ISUPPORTS
@@ -237,7 +237,7 @@ class PresShell final : public nsStubDocumentObserver,
   static nsAccessibilityService* GetAccessibilityService();
 #endif  // #ifdef ACCESSIBILITY
 
-  void Init(Document*, nsPresContext*, nsViewManager*);
+  void Init(nsPresContext*, nsViewManager*);
 
   /**
    * All callers are responsible for calling |Destroy| after calling
@@ -732,7 +732,7 @@ class PresShell final : public nsStubDocumentObserver,
   /**
    * Reconstruct frames for all elements in the document
    */
-  void ReconstructFrames();
+  MOZ_CAN_RUN_SCRIPT void ReconstructFrames();
 
   /**
    * See if reflow verification is enabled. To enable reflow verification add
@@ -1164,7 +1164,7 @@ class PresShell final : public nsStubDocumentObserver,
    */
   bool HasHandledUserInput() const { return mHasHandledUserInput; }
 
-  void FireResizeEvent();
+  MOZ_CAN_RUN_SCRIPT void FireResizeEvent();
 
   void NativeAnonymousContentRemoved(nsIContent* aAnonContent);
 
@@ -2080,15 +2080,10 @@ class PresShell final : public nsStubDocumentObserver,
     struct MOZ_STACK_CLASS EventTargetData final {
       EventTargetData() = delete;
       EventTargetData(const EventTargetData& aOther) = delete;
-      EventTargetData(PresShell* aPresShell, nsIFrame* aFrameToHandleEvent)
-          : mPresShell(aPresShell), mFrame(aFrameToHandleEvent) {}
-
-      void SetPresShellAndFrame(PresShell* aPresShell,
-                                nsIFrame* aFrameToHandleEvent) {
-        mPresShell = aPresShell;
-        mFrame = aFrameToHandleEvent;
-        mContent = nullptr;
+      explicit EventTargetData(nsIFrame* aFrameToHandleEvent) {
+        SetFrameAndComputePresShell(aFrameToHandleEvent);
       }
+
       void SetFrameAndComputePresShell(nsIFrame* aFrameToHandleEvent);
       void SetFrameAndComputePresShellAndContent(nsIFrame* aFrameToHandleEvent,
                                                  WidgetGUIEvent* aGUIEvent);
@@ -2139,7 +2134,7 @@ class PresShell final : public nsStubDocumentObserver,
       void UpdateTouchEventTarget(WidgetGUIEvent* aGUIEvent);
 
       RefPtr<PresShell> mPresShell;
-      nsIFrame* mFrame;
+      nsIFrame* mFrame = nullptr;
       nsCOMPtr<nsIContent> mContent;
       nsCOMPtr<nsIContent> mOverrideClickTarget;
     };
@@ -2818,8 +2813,11 @@ class PresShell final : public nsStubDocumentObserver,
 
   // These are the same Document and PresContext owned by the DocViewer.
   // we must share ownership.
-  RefPtr<Document> mDocument;
-  RefPtr<nsPresContext> mPresContext;
+  // mDocument and mPresContext should've never been cleared nor swapped with
+  // another instance while PresShell instance is alive so that it's safe to
+  // call their can-run- script methods without local RefPtr variables.
+  RefPtr<Document> const mDocument;
+  RefPtr<nsPresContext> const mPresContext;
   // The document's style set owns it but we maintain a ref, may be null.
   RefPtr<StyleSheet> mPrefStyleSheet;
   UniquePtr<nsCSSFrameConstructor> mFrameConstructor;

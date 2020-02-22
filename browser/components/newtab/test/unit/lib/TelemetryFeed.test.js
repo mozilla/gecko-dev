@@ -244,6 +244,18 @@ describe("TelemetryFeed", () => {
         );
       });
     });
+    it("should set a scalar for deletion-request", () => {
+      sandbox.spy(Services.telemetry, "scalarSet");
+
+      instance.init();
+
+      assert.calledOnce(Services.telemetry.scalarSet);
+      assert.calledWith(
+        Services.telemetry.scalarSet,
+        "deletion.request.impression_id",
+        instance._impressionId
+      );
+    });
   });
   describe("#handleEvent", () => {
     it("should dispatch a TAB_PINNED_EVENT", () => {
@@ -907,6 +919,18 @@ describe("TelemetryFeed", () => {
     it("should call applySnippetsPolicy if action equals to snippets_user_event", async () => {
       const data = {
         action: "snippets_user_event",
+        event: "IMPRESSION",
+        message_id: "snippets_message_01",
+      };
+      sandbox.stub(instance, "applySnippetsPolicy");
+      const action = ac.ASRouterUserEvent(data);
+      await instance.createASRouterEvent(action);
+
+      assert.calledOnce(instance.applySnippetsPolicy);
+    });
+    it("should call applySnippetsPolicy if action equals to snippets_local_testing_user_event", async () => {
+      const data = {
+        action: "snippets_local_testing_user_event",
         event: "IMPRESSION",
         message_id: "snippets_message_01",
       };
@@ -1681,6 +1705,48 @@ describe("TelemetryFeed", () => {
 
       assert.calledOnce(global.Cu.reportError);
       assert.notCalled(instance.sendStructuredIngestionEvent);
+    });
+    it("should not send telemetry for Nightly release snippets", async () => {
+      sandbox.stub(ASRouterPreferences, "useReleaseSnippets").get(() => true);
+      const data = {
+        action: "snippets_user_event",
+        event: "IMPRESSION",
+        message_id: "12345",
+      };
+      instance = new TelemetryFeed();
+      sandbox.spy(instance, "sendStructuredIngestionEvent");
+
+      await instance.handleASRouterUserEvent({ data });
+
+      assert.notCalled(instance.sendStructuredIngestionEvent);
+    });
+    it("should send telemetry for regular channel snippets", async () => {
+      sandbox.stub(ASRouterPreferences, "useReleaseSnippets").get(() => false);
+      const data = {
+        action: "snippets_user_event",
+        event: "IMPRESSION",
+        message_id: "12345",
+      };
+      instance = new TelemetryFeed();
+      sandbox.spy(instance, "sendStructuredIngestionEvent");
+
+      await instance.handleASRouterUserEvent({ data });
+
+      assert.calledOnce(instance.sendStructuredIngestionEvent);
+    });
+    it("should send telemetry for test snippets", async () => {
+      sandbox.stub(ASRouterPreferences, "useReleaseSnippets").get(() => true);
+      const data = {
+        action: "snippets_local_testing_user_event",
+        event: "IMPRESSION",
+        message_id: "12345",
+      };
+      instance = new TelemetryFeed();
+      sandbox.spy(instance, "sendStructuredIngestionEvent");
+
+      await instance.handleASRouterUserEvent({ data });
+
+      assert.calledOnce(instance.sendStructuredIngestionEvent);
     });
   });
 });

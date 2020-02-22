@@ -486,6 +486,7 @@ WebrtcVideoConduit::WebrtcVideoConduit(
       mVideoStatsTimer(NS_NewTimer()) {
   mCall->RegisterConduit(this);
   mRecvStreamConfig.renderer = this;
+  mRecvStreamConfig.rtcp_event_observer = this;
 }
 
 WebrtcVideoConduit::~WebrtcVideoConduit() {
@@ -814,6 +815,7 @@ MediaConduitErrorCode WebrtcVideoConduit::ConfigureSendMediaCodec(
     const VideoCodecConfig* codecConfig) {
   MOZ_ASSERT(NS_IsMainThread());
   MutexAutoLock lock(mMutex);
+  mUpdateResolution = true;
 
   CSFLogDebug(LOGTAG, "%s for %s", __FUNCTION__,
               codecConfig ? codecConfig->mName.c_str() : "<null>");
@@ -1781,19 +1783,17 @@ void WebrtcVideoConduit::SelectSendResolution(unsigned short width,
       ConstrainPreservingAspectRatio(max_width, max_height, &width, &height);
     }
 
+    int max_fs = mSinkWantsPixelCount;
     // Limit resolution to max-fs
-    const auto& wants = mVideoBroadcaster.wants();
     if (mCurSendCodecConfig->mEncodingConstraints.maxFs) {
       // max-fs is in macroblocks, convert to pixels
-      int max_fs(mCurSendCodecConfig->mEncodingConstraints.maxFs * (16 * 16));
-      if (max_fs > wants.max_pixel_count) {
-        max_fs = wants.max_pixel_count;
-      }
-      if (max_fs != 0) {
-        mVideoAdapter->OnResolutionFramerateRequest(
-            rtc::Optional<int>(), max_fs, std::numeric_limits<int>::max());
-      }
+      max_fs = std::min(
+          max_fs,
+          static_cast<int>(mCurSendCodecConfig->mEncodingConstraints.maxFs *
+                           (16 * 16)));
     }
+    mVideoAdapter->OnResolutionFramerateRequest(
+        rtc::Optional<int>(), max_fs, std::numeric_limits<int>::max());
   }
 
   unsigned int framerate = SelectSendFrameRate(
@@ -1816,13 +1816,12 @@ void WebrtcVideoConduit::AddOrUpdateSink(
         NS_NewRunnableFunction("WebrtcVideoConduit::UpdateSink",
                                [this, self = RefPtr<WebrtcVideoConduit>(this),
                                 sink, wants = std::move(wants)]() {
-                                 if (mRegisteredSinks.Contains(sink)) {
-                                   AddOrUpdateSink(sink, wants);
-                                 }
+                                 AddOrUpdateSinkNotLocked(sink, wants);
                                }));
     return;
   }
 
+  mMutex.AssertCurrentThreadOwns();
   if (!mRegisteredSinks.Contains(sink)) {
     mRegisteredSinks.AppendElement(sink);
   }
@@ -1830,17 +1829,32 @@ void WebrtcVideoConduit::AddOrUpdateSink(
   OnSinkWantsChanged(mVideoBroadcaster.wants());
 }
 
+void WebrtcVideoConduit::AddOrUpdateSinkNotLocked(
+    rtc::VideoSinkInterface<webrtc::VideoFrame>* sink,
+    const rtc::VideoSinkWants& wants) {
+  MutexAutoLock lock(mMutex);
+  AddOrUpdateSink(sink, wants);
+}
+
 void WebrtcVideoConduit::RemoveSink(
     rtc::VideoSinkInterface<webrtc::VideoFrame>* sink) {
   MOZ_ASSERT(NS_IsMainThread());
+  mMutex.AssertCurrentThreadOwns();
 
   mRegisteredSinks.RemoveElement(sink);
   mVideoBroadcaster.RemoveSink(sink);
   OnSinkWantsChanged(mVideoBroadcaster.wants());
 }
 
+void WebrtcVideoConduit::RemoveSinkNotLocked(
+    rtc::VideoSinkInterface<webrtc::VideoFrame>* sink) {
+  MutexAutoLock lock(mMutex);
+  RemoveSink(sink);
+}
+
 void WebrtcVideoConduit::OnSinkWantsChanged(const rtc::VideoSinkWants& wants) {
   MOZ_ASSERT(NS_IsMainThread());
+  mMutex.AssertCurrentThreadOwns();
 
   if (mLockScaling) {
     return;
@@ -1854,17 +1868,8 @@ void WebrtcVideoConduit::OnSinkWantsChanged(const rtc::VideoSinkWants& wants) {
     return;
   }
 
-  // limit sink wants based upon max-fs constraint
-  int max_fs = mCurSendCodecConfig->mEncodingConstraints.maxFs * (16 * 16);
-  int max_pixel_count = wants.max_pixel_count;
-
-  if (max_fs > 0) {
-    // max_fs was explicitly set by signaling and needs to be accounted for
-    max_pixel_count = std::min(max_pixel_count, max_fs);
-  }
-
-  mVideoAdapter->OnResolutionFramerateRequest(
-      rtc::Optional<int>(), max_pixel_count, std::numeric_limits<int>::max());
+  mSinkWantsPixelCount = wants.max_pixel_count;
+  mUpdateResolution = true;
 }
 
 MediaConduitErrorCode WebrtcVideoConduit::SendVideoFrame(
@@ -1884,15 +1889,18 @@ MediaConduitErrorCode WebrtcVideoConduit::SendVideoFrame(
                   this, __FUNCTION__, mSendStreamConfig.rtp.ssrcs.front(),
                   mSendStreamConfig.rtp.ssrcs.front());
 
-    if (frame.width() != mLastWidth || frame.height() != mLastHeight) {
+    if (mUpdateResolution || frame.width() != mLastWidth ||
+        frame.height() != mLastHeight) {
       // See if we need to recalculate what we're sending.
       CSFLogVerbose(LOGTAG, "%s: call SelectSendResolution with %ux%u",
                     __FUNCTION__, frame.width(), frame.height());
       MOZ_ASSERT(frame.width() != 0 && frame.height() != 0);
       // Note coverity will flag this since it thinks they can be 0
+      MOZ_ASSERT(mCurSendCodecConfig);
 
       mLastWidth = frame.width();
       mLastHeight = frame.height();
+      mUpdateResolution = false;
       SelectSendResolution(frame.width(), frame.height());
     }
 
@@ -2283,6 +2291,34 @@ uint64_t WebrtcVideoConduit::MozVideoLatencyAvg() {
   mTransportMonitor.AssertCurrentThreadIn();
 
   return mVideoLatencyAvg / sRoundingPadding;
+}
+
+void WebrtcVideoConduit::OnRtcpBye() {
+  RefPtr<WebrtcVideoConduit> self = this;
+  NS_DispatchToMainThread(media::NewRunnableFrom([self]() mutable {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (self->mRtcpEventObserver) {
+      self->mRtcpEventObserver->OnRtcpBye();
+    }
+    return NS_OK;
+  }));
+}
+
+void WebrtcVideoConduit::OnRtcpTimeout() {
+  RefPtr<WebrtcVideoConduit> self = this;
+  NS_DispatchToMainThread(media::NewRunnableFrom([self]() mutable {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (self->mRtcpEventObserver) {
+      self->mRtcpEventObserver->OnRtcpTimeout();
+    }
+    return NS_OK;
+  }));
+}
+
+void WebrtcVideoConduit::SetRtcpEventObserver(
+    mozilla::RtcpEventObserver* observer) {
+  MOZ_ASSERT(NS_IsMainThread());
+  mRtcpEventObserver = observer;
 }
 
 uint64_t WebrtcVideoConduit::CodecPluginID() {

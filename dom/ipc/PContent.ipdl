@@ -103,6 +103,9 @@ using mozilla::Telemetry::ScalarAction from "mozilla/TelemetryComms.h";
 using mozilla::Telemetry::KeyedScalarAction from "mozilla/TelemetryComms.h";
 using mozilla::Telemetry::DynamicScalarDefinition from "mozilla/TelemetryComms.h";
 using mozilla::Telemetry::ChildEventData from "mozilla/TelemetryComms.h";
+using moveonly mozilla::UntrustedModulesData from "mozilla/UntrustedModulesData.h";
+using moveonly mozilla::ModulePaths from "mozilla/UntrustedModulesData.h";
+using moveonly mozilla::ModulesMapResult from "mozilla/UntrustedModulesData.h";
 using mozilla::Telemetry::DiscardedData from "mozilla/TelemetryComms.h";
 using mozilla::CrossProcessMutexHandle from "mozilla/ipc/CrossProcessMutex.h";
 using refcounted class mozilla::dom::BrowsingContext from "mozilla/dom/BrowsingContext.h";
@@ -112,7 +115,9 @@ using base::SharedMemoryHandle from "base/shared_memory.h";
 using mozilla::ipc::SharedMemoryBasic::Handle from "mozilla/ipc/SharedMemoryBasic.h";
 using mozilla::fontlist::Pointer from "SharedFontList.h";
 using gfxSparseBitSet from "gfxFontUtils.h";
-using mozilla::dom::MediaControlActions from "ipc/MediaControlIPC.h";
+using mozilla::dom::MediaControlKeysEvent from "ipc/MediaControlIPC.h";
+using mozilla::dom::ControlledMediaState from "ipc/MediaControlIPC.h";
+using refcounted class nsDocShellLoadState from "nsDocShellLoadState.h";
 
 union ChromeRegistryItem
 {
@@ -339,6 +344,12 @@ union PSHEntryOrSharedID
   uint64_t;
 };
 
+struct KeyValuePair
+{
+    nsString key;
+    nsString value;
+};
+
 /**
  * The PContent protocol is a top-level protocol between the UI process
  * and a content process. There is exactly one PContentParent/PContentChild pair
@@ -474,6 +485,12 @@ child:
                               bool minimizeMemoryUsage,
                               FileDescriptor? DMDFile);
     async RequestPerformanceMetrics(nsID aID);
+
+    /**
+     * Used by third-party modules telemetry (aka "untrusted modules" telemetry)
+     * to pull data from content processes.
+     */
+    async GetUntrustedModulesData() returns (UntrustedModulesData? data);
 
     /**
      * Communication between the PuppetBidiKeyboard and the actual
@@ -840,10 +857,11 @@ child:
     async StartDelayedAutoplayMediaComponents(BrowsingContext aContext);
 
     /**
-     * This method is used to apply the media action to outer window in the
-     * content process, such as play, pause, stop ..e.t.c.
+     * This method is used to dispatch MediaControlKeysEvent to content process
+     * in order to control media within a specific browsing context tree.
      */
-    async UpdateMediaAction(BrowsingContext aContext, MediaControlActions aAction);
+    async UpdateMediaControlKeysEvent(BrowsingContext aContext,
+                                      MediaControlKeysEvent aEvent);
 
     // Begin subscribing to a new BrowsingContextGroup, sending down the current
     // value for every individual BrowsingContext.
@@ -857,6 +875,12 @@ child:
     async DestroySHEntrySharedState(uint64_t aID);
 
     async EvictContentViewers(uint64_t[] aToEvictSharedStateIDs);
+
+    async LoadURI(BrowsingContext aContext, nsDocShellLoadState aLoadState, bool aSetNavigating);
+
+    async InternalLoad(BrowsingContext aContext, nsDocShellLoadState aLoadState, bool aTakeFocus);
+
+    async DisplayLoadError(BrowsingContext aContext, nsString aURI);
 
 parent:
     async InitBackground(Endpoint<PBackgroundParent> aEndpoint);
@@ -1180,9 +1204,12 @@ parent:
      *       principals that can live in the content process should
      *       provided.
      */
-    async PContentPermissionRequest(PermissionRequest[] aRequests, Principal aPrincipal,
-                                    Principal aTopLevelPrincipal, bool aIsHandlingUserInput,
-                                    bool aDocumentHasUserInput, uint64_t aPageLoadTimestamp, TabId tabId);
+    async PContentPermissionRequest(PermissionRequest[] aRequests,
+                                    Principal aPrincipal,
+                                    Principal aTopLevelPrincipal,
+                                    bool aIsHandlingUserInput,
+                                    bool aMaybeUnsafePermissionDelegate,
+                                    TabId tabId);
 
     async ShutdownProfile(nsCString aProfile);
 
@@ -1455,6 +1482,14 @@ parent:
     async AddPerformanceMetrics(nsID aID, PerformanceInfo[] aMetrics);
 
     /*
+     * Adds a certificate exception for the given hostname and port.
+     */
+    async AddCertException(nsCString aSerializedCert, uint32_t aFlags,
+                           nsCString aHostName, int32_t aPort,
+                           bool aIsTemporary)
+          returns (nsresult success);
+
+    /*
      * Determines whether storage access can be granted automatically by the
      * storage access API without showing a user prompt.
      */
@@ -1468,23 +1503,35 @@ parent:
     async FirstPartyStorageAccessGrantedForOrigin(Principal aParentPrincipal,
                                                   Principal aTrackingPrincipal,
                                                   nsCString aTrackingOrigin,
-                                                  nsCString aGrantedOrigin,
                                                   int aAllowMode)
           returns (bool unused);
 
     async StoreUserInteractionAsPermission(Principal aPrincipal);
 
    /**
-    * When media started or stopped in content process, we have to notify the
-    * chrome process in order to know which tab is playing media.
+    * When media element's controlled state changed in the content process, we
+    * have to notify the chrome process in order to update the status of the
+    * corresponding media controller, which is used to control all media in the
+    * certain tab. We would use the browsing context to find the corresponding
+    * controller.
     */
-    async NotifyMediaActiveChanged(BrowsingContext aContext, bool aActive);
+    async NotifyMediaStateChanged(BrowsingContext aContext,
+                                  ControlledMediaState aState);
 
    /**
     * When media became audible or inaudible in content process, we have to
     * notify chrome process in order to which tab is audible.
     */
     async NotifyMediaAudibleChanged(BrowsingContext aContext, bool aAudible);
+
+    /**
+     * Due to sandboxing, a child process's UntrustedModulesProcessor cannot
+     * obtain enough information about a DLL file to determine its
+     * trustworthiness. This API asks the chrome process to perform that
+     * evaluation.
+     */
+    async GetModulesTrust(ModulePaths aModPaths, bool aRunAtNormalPriority)
+        returns (ModulesMapResult? modMapResult);
 
 both:
     async ScriptError(nsString message, nsString sourceName, nsString sourceLine,
@@ -1557,6 +1604,14 @@ both:
     async WindowBlur(BrowsingContext aContext);
     async WindowPostMessage(BrowsingContext aContext, ClonedMessageData aMessage,
                             PostMessageData aData);
+
+    /**
+     * Move sessionStorage data between parent and content processes. See
+     * SessionStorageManager documentation for more details.
+     */
+    async SessionStorageData(BrowsingContext aTop, nsCString aOriginAttrs,
+                             nsCString aOriginKey, KeyValuePair[] aDefaultData,
+                             KeyValuePair[] aSessionData);
 };
 
 }

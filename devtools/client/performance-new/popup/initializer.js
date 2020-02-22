@@ -48,15 +48,22 @@ const {
   getRecordingPreferencesFromBrowser,
   setRecordingPreferencesOnBrowser,
   getSymbolsFromThisBrowser,
-} = ChromeUtils.import(
-  "resource://devtools/client/performance-new/popup/background.jsm.js"
-);
+} =
+  /** @type {import("resource://devtools/client/performance-new/popup/background.jsm.js")} */
+  (ChromeUtils.import(
+    "resource://devtools/client/performance-new/popup/background.jsm.js"
+  ));
 
 const { receiveProfile } = require("devtools/client/performance-new/browser");
 
-const Perf = require("devtools/client/performance-new/components/Perf");
 const ReactDOM = require("devtools/client/shared/vendor/react-dom");
 const React = require("devtools/client/shared/vendor/react");
+const DevToolsAndPopup = React.createFactory(
+  require("devtools/client/performance-new/components/DevToolsAndPopup")
+);
+const ProfilerEventHandling = React.createFactory(
+  require("devtools/client/performance-new/components/ProfilerEventHandling")
+);
 const createStore = require("devtools/client/shared/redux/create-store");
 const reducers = require("devtools/client/performance-new/store/reducers");
 const actions = require("devtools/client/performance-new/store/actions");
@@ -65,19 +72,18 @@ const {
   ActorReadyGeckoProfilerInterface,
 } = require("devtools/shared/performance-new/gecko-profiler-interface");
 
-const { LightweightThemeManager } = ChromeUtils.import(
-  "resource://gre/modules/LightweightThemeManager.jsm"
-);
-
 /* Force one of our two themes depending on what theme the browser is
  * currently using. This might be different from the selected theme in
  * the devtools panel. By forcing a theme here, we're unaffected by
  * the devtools setting when we show the popup.
  */
-document.documentElement.setAttribute(
-  "force-theme",
-  isCurrentThemeDark() ? "dark" : "light"
-);
+{
+  const popupWindow = /** @type {PopupWindow} */ (window);
+  document.documentElement.setAttribute(
+    "force-theme",
+    popupWindow.gIsDarkMode ? "dark" : "light"
+  );
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   gInit();
@@ -105,12 +111,21 @@ async function gInit() {
       // The popup doesn't need to support remote symbol tables from the debuggee.
       // Only get the symbols from this browser.
       getSymbolTableGetter: () => getSymbolsFromThisBrowser,
-      isPopup: true,
+      pageContext: "popup",
     })
   );
 
   ReactDOM.render(
-    React.createElement(Provider, { store }, React.createElement(Perf)),
+    React.createElement(
+      Provider,
+      { store },
+      React.createElement(
+        React.Fragment,
+        null,
+        ProfilerEventHandling(),
+        DevToolsAndPopup()
+      )
+    ),
     document.querySelector("#root")
   );
 
@@ -134,17 +149,4 @@ function resizeWindow() {
       gResizePopup(document.body.clientHeight);
     }
   });
-}
-
-/**
- * Return true if the current (non-devtools) theme is the built in
- * dark theme.
- */
-function isCurrentThemeDark() {
-  const DARK_THEME_ID = "firefox-compact-dark@mozilla.org";
-  return (
-    LightweightThemeManager.themeData &&
-    LightweightThemeManager.themeData.theme &&
-    LightweightThemeManager.themeData.theme.id === DARK_THEME_ID
-  );
 }

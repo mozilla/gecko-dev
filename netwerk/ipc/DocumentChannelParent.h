@@ -23,30 +23,35 @@ class DocumentChannelParent final : public ADocumentChannelBridge,
  public:
   NS_INLINE_DECL_REFCOUNTING(DocumentChannelParent, override);
 
-  explicit DocumentChannelParent(const dom::PBrowserOrId& aIframeEmbedding,
+  explicit DocumentChannelParent(dom::BrowserParent* aBrowser,
                                  nsILoadContext* aLoadContext,
-                                 PBOverrideStatus aOverrideStatus) {
-    mParent = new DocumentLoadListener(aIframeEmbedding, aLoadContext,
-                                       aOverrideStatus, this);
-  }
-  bool Init(const DocumentChannelCreationArgs& aArgs);
+                                 PBOverrideStatus aOverrideStatus);
+
+  bool Init(dom::BrowserParent* aBrowser,
+            const DocumentChannelCreationArgs& aArgs);
 
   // PDocumentChannelParent
   bool RecvCancel(const nsresult& aStatus) {
-    mParent->Cancel(aStatus);
+    if (mParent) {
+      mParent->Cancel(aStatus);
+    }
     return true;
   }
   void ActorDestroy(ActorDestroyReason aWhy) override {
-    mParent->DocumentChannelBridgeDisconnected();
-    mParent = nullptr;
+    if (mParent) {
+      mParent->DocumentChannelBridgeDisconnected();
+      mParent = nullptr;
+    }
   }
 
  private:
   // DocumentChannelListener
-  void DisconnectChildListeners(nsresult aStatus) override {
+  void DisconnectChildListeners(nsresult aStatus,
+                                nsresult aLoadGroupStatus) override {
     if (CanSend()) {
-      Unused << SendDisconnectChildListeners(aStatus);
+      Unused << SendDisconnectChildListeners(aStatus, aLoadGroupStatus);
     }
+    mParent = nullptr;
   }
 
   void Delete() override {
@@ -70,7 +75,7 @@ class DocumentChannelParent final : public ADocumentChannelBridge,
   RefPtr<PDocumentChannelParent::RedirectToRealChannelPromise>
   RedirectToRealChannel(uint32_t aRedirectFlags, uint32_t aLoadFlags) override;
 
-  ~DocumentChannelParent() = default;
+  ~DocumentChannelParent();
 
   RefPtr<DocumentLoadListener> mParent;
 };

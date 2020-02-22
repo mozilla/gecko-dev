@@ -39,6 +39,7 @@
 #include "gc/FreeOp.h"
 #include "gc/Policy.h"
 #include "jit/AtomicOperations.h"
+#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/ArrayBuffer.h"  // JS::{IsArrayBufferObject,GetArrayBufferData,GetArrayBuffer{ByteLength,Data}}
 #include "js/CharacterEncoding.h"
 #include "js/PropertySpec.h"
@@ -445,8 +446,18 @@ static const JSClass sCABIClass = {"CABI",
 // This exists to give said prototypes a class of "CType", and to provide
 // reserved slots for stashing various other prototype objects.
 static const JSClassOps sCTypeProtoClassOps = {
-    nullptr, nullptr, nullptr,           nullptr, nullptr,
-    nullptr, nullptr, ConstructAbstract, nullptr, ConstructAbstract};
+    nullptr,            // addProperty
+    nullptr,            // delProperty
+    nullptr,            // enumerate
+    nullptr,            // newEnumerate
+    nullptr,            // resolve
+    nullptr,            // mayResolve
+    nullptr,            // finalize
+    ConstructAbstract,  // call
+    nullptr,            // hasInstance
+    ConstructAbstract,  // construct
+    nullptr,            // trace
+};
 static const JSClass sCTypeProtoClass = {
     "CType", JSCLASS_HAS_RESERVED_SLOTS(CTYPEPROTO_SLOTS),
     &sCTypeProtoClassOps};
@@ -455,42 +466,55 @@ static const JSClass sCTypeProtoClass = {
 // of CTypes. This exists to give said prototypes a class of "CData".
 static const JSClass sCDataProtoClass = {"CData", 0};
 
-static const JSClassOps sCTypeClassOps = {nullptr,
-                                          nullptr,
-                                          nullptr,
-                                          nullptr,
-                                          nullptr,
-                                          nullptr,
-                                          CType::Finalize,
-                                          CType::ConstructData,
-                                          CType::HasInstance,
-                                          CType::ConstructData,
-                                          CType::Trace};
+static const JSClassOps sCTypeClassOps = {
+    nullptr,               // addProperty
+    nullptr,               // delProperty
+    nullptr,               // enumerate
+    nullptr,               // newEnumerate
+    nullptr,               // resolve
+    nullptr,               // mayResolve
+    CType::Finalize,       // finalize
+    CType::ConstructData,  // call
+    CType::HasInstance,    // hasInstance
+    CType::ConstructData,  // construct
+    CType::Trace,          // trace
+};
 static const JSClass sCTypeClass = {
     "CType",
     JSCLASS_HAS_RESERVED_SLOTS(CTYPE_SLOTS) | JSCLASS_FOREGROUND_FINALIZE,
     &sCTypeClassOps};
 
 static const JSClassOps sCDataClassOps = {
-    nullptr, nullptr,           nullptr,         nullptr,
-    nullptr, nullptr,           CData::Finalize, FunctionType::Call,
-    nullptr, FunctionType::Call};
+    nullptr,             // addProperty
+    nullptr,             // delProperty
+    nullptr,             // enumerate
+    nullptr,             // newEnumerate
+    nullptr,             // resolve
+    nullptr,             // mayResolve
+    CData::Finalize,     // finalize
+    FunctionType::Call,  // call
+    nullptr,             // hasInstance
+    FunctionType::Call,  // construct
+    nullptr,             // trace
+};
 static const JSClass sCDataClass = {
     "CData",
     JSCLASS_HAS_RESERVED_SLOTS(CDATA_SLOTS) | JSCLASS_FOREGROUND_FINALIZE,
     &sCDataClassOps};
 
-static const JSClassOps sCClosureClassOps = {nullptr,
-                                             nullptr,
-                                             nullptr,
-                                             nullptr,
-                                             nullptr,
-                                             nullptr,
-                                             CClosure::Finalize,
-                                             nullptr,
-                                             nullptr,
-                                             nullptr,
-                                             CClosure::Trace};
+static const JSClassOps sCClosureClassOps = {
+    nullptr,             // addProperty
+    nullptr,             // delProperty
+    nullptr,             // enumerate
+    nullptr,             // newEnumerate
+    nullptr,             // resolve
+    nullptr,             // mayResolve
+    CClosure::Finalize,  // finalize
+    nullptr,             // call
+    nullptr,             // hasInstance
+    nullptr,             // construct
+    CClosure::Trace,     // trace
+};
 static const JSClass sCClosureClass = {
     "CClosure",
     JSCLASS_HAS_RESERVED_SLOTS(CCLOSURE_SLOTS) | JSCLASS_FOREGROUND_FINALIZE,
@@ -507,13 +531,19 @@ static const JSClass sCDataFinalizerProtoClass = {"CDataFinalizer", 0};
  * Instances of CDataFinalizer have both private data (with type
  * |CDataFinalizer::Private|) and slots (see |CDataFinalizerSlots|).
  */
-static const JSClassOps sCDataFinalizerClassOps = {nullptr,
-                                                   nullptr,
-                                                   nullptr,
-                                                   nullptr,
-                                                   nullptr,
-                                                   nullptr,
-                                                   CDataFinalizer::Finalize};
+static const JSClassOps sCDataFinalizerClassOps = {
+    nullptr,                   // addProperty
+    nullptr,                   // delProperty
+    nullptr,                   // enumerate
+    nullptr,                   // newEnumerate
+    nullptr,                   // resolve
+    nullptr,                   // mayResolve
+    CDataFinalizer::Finalize,  // finalize
+    nullptr,                   // call
+    nullptr,                   // hasInstance
+    nullptr,                   // construct
+    nullptr,                   // trace
+};
 static const JSClass sCDataFinalizerClass = {
     "CDataFinalizer",
     JSCLASS_HAS_PRIVATE | JSCLASS_HAS_RESERVED_SLOTS(CDATAFINALIZER_SLOTS) |
@@ -675,7 +705,18 @@ static const JSClass sInt64ProtoClass = {"Int64", 0};
 static const JSClass sUInt64ProtoClass = {"UInt64", 0};
 
 static const JSClassOps sInt64ClassOps = {
-    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, Int64Base::Finalize};
+    nullptr,              // addProperty
+    nullptr,              // delProperty
+    nullptr,              // enumerate
+    nullptr,              // newEnumerate
+    nullptr,              // resolve
+    nullptr,              // mayResolve
+    Int64Base::Finalize,  // finalize
+    nullptr,              // call
+    nullptr,              // hasInstance
+    nullptr,              // construct
+    nullptr,              // trace
+};
 
 static const JSClass sInt64Class = {
     "Int64",
@@ -3504,7 +3545,7 @@ static bool ImplicitConvert(JSContext* cx, HandleValue val,
         if (cls == ESClass::Array) {
           // Convert each element of the array by calling ImplicitConvert.
           uint32_t sourceLength;
-          if (!JS_GetArrayLength(cx, valObj, &sourceLength) ||
+          if (!JS::GetArrayLength(cx, valObj, &sourceLength) ||
               targetLength != size_t(sourceLength)) {
             MOZ_ASSERT(!funObj);
             return ArrayLengthMismatch(cx, targetLength, targetType,
@@ -5791,7 +5832,7 @@ bool StructType::Create(JSContext* cx, unsigned argc, Value* vp) {
     if (!arr) {
       isArray = false;
     } else {
-      if (!JS_IsArrayObject(cx, arr, &isArray)) {
+      if (!JS::IsArrayObject(cx, arr, &isArray)) {
         return false;
       }
     }
@@ -5815,7 +5856,7 @@ bool StructType::DefineInternal(JSContext* cx, JSObject* typeObj_,
   RootedObject fieldsObj(cx, fieldsObj_);
 
   uint32_t len;
-  MOZ_ALWAYS_TRUE(JS_GetArrayLength(cx, fieldsObj, &len));
+  MOZ_ALWAYS_TRUE(JS::GetArrayLength(cx, fieldsObj, &len));
 
   // Get the common prototype for CData objects of this type from
   // ctypes.CType.prototype.
@@ -6070,7 +6111,7 @@ bool StructType::Define(JSContext* cx, unsigned argc, Value* vp) {
   if (!arg.isObject()) {
     isArray = false;
   } else {
-    if (!JS_IsArrayObject(cx, arg, &isArray)) {
+    if (!JS::IsArrayObject(cx, arg, &isArray)) {
       return false;
     }
   }
@@ -6211,7 +6252,7 @@ JSObject* StructType::BuildFieldsArray(JSContext* cx, JSObject* obj) {
       return nullptr;
   }
 
-  RootedObject fieldsProp(cx, JS_NewArrayObject(cx, fieldsVec));
+  RootedObject fieldsProp(cx, JS::NewArrayObject(cx, fieldsVec));
   if (!fieldsProp) {
     return nullptr;
   }
@@ -6729,7 +6770,7 @@ bool FunctionType::Create(JSContext* cx, unsigned argc, Value* vp) {
     if (!args[2].isObject()) {
       isArray = false;
     } else {
-      if (!JS_IsArrayObject(cx, args[2], &isArray)) {
+      if (!JS::IsArrayObject(cx, args[2], &isArray)) {
         return false;
       }
     }
@@ -6741,7 +6782,7 @@ bool FunctionType::Create(JSContext* cx, unsigned argc, Value* vp) {
     arrayObj = &args[2].toObject();
 
     uint32_t len;
-    MOZ_ALWAYS_TRUE(JS_GetArrayLength(cx, arrayObj, &len));
+    MOZ_ALWAYS_TRUE(JS::GetArrayLength(cx, arrayObj, &len));
 
     if (!argTypes.resize(len)) {
       JS_ReportOutOfMemory(cx);
@@ -7092,7 +7133,7 @@ bool FunctionType::ArgTypesGetter(JSContext* cx, const JS::CallArgs& args) {
       vec[i].setObject(*fninfo->mArgTypes[i]);
     }
 
-    argTypes = JS_NewArrayObject(cx, vec);
+    argTypes = JS::NewArrayObject(cx, vec);
     if (!argTypes) {
       return false;
     }

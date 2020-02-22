@@ -33,9 +33,14 @@
   scope.loader = browserLoader.loader;
 }
 
-const Perf = require("devtools/client/performance-new/components/Perf");
 const ReactDOM = require("devtools/client/shared/vendor/react-dom");
 const React = require("devtools/client/shared/vendor/react");
+const DevToolsAndPopup = React.createFactory(
+  require("devtools/client/performance-new/components/DevToolsAndPopup")
+);
+const ProfilerEventHandling = React.createFactory(
+  require("devtools/client/performance-new/components/ProfilerEventHandling")
+);
 const createStore = require("devtools/client/shared/redux/create-store");
 const selectors = require("devtools/client/performance-new/store/selectors");
 const reducers = require("devtools/client/performance-new/store/reducers");
@@ -93,7 +98,7 @@ async function gInit(perfFront, preferenceFront) {
       receiveProfile,
       recordingPreferences,
       supportedFeatures,
-      isPopup: false,
+      pageContext: "devtools",
 
       // Go ahead and hide the implementation details for the component on how the
       // preference information is stored
@@ -120,7 +125,16 @@ async function gInit(perfFront, preferenceFront) {
   );
 
   ReactDOM.render(
-    React.createElement(Provider, { store }, React.createElement(Perf)),
+    React.createElement(
+      Provider,
+      { store },
+      React.createElement(
+        React.Fragment,
+        null,
+        ProfilerEventHandling(),
+        DevToolsAndPopup()
+      )
+    ),
     document.querySelector("#root")
   );
 }

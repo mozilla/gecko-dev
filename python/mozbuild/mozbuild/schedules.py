@@ -60,10 +60,9 @@ EXCLUSIVE_COMPONENTS = [
     'xpcshell',
     'xpcshell-coverage',
     'web-platform-tests',
+    'web-platform-tests-crashtests',
     'web-platform-tests-reftests',
     'web-platform-tests-wdspec',
-    # Thunderbird test suites
-    'mozmill',
 ]
 EXCLUSIVE_COMPONENTS = sorted(EXCLUSIVE_COMPONENTS)
 ALL_COMPONENTS = INCLUSIVE_COMPONENTS + EXCLUSIVE_COMPONENTS

@@ -35,11 +35,11 @@ fails == border-breaking-004-cols.xhtml border-breaking-002-cols.ref.xhtml
 == content-inserted-009.xhtml content-inserted-002.ref.xhtml
 == dynamic-abspos-overflow-01-cols.xhtml dynamic-abspos-overflow-01-cols.ref.xhtml
 == float-clear-000.html float-clear-000.ref.html
-asserts(4-4) fails == float-clear-001.html float-clear-000.ref.html # Bug 1574046
+== float-clear-001.html float-clear-000.ref.html
 == float-clear-002.html float-clear-000.ref.html
 fails == float-clear-003.html float-clear-000.ref.html
 == float-clear-000-print.html float-clear-000-print.ref.html
-asserts(1-1) == float-clear-001-print.html float-clear-000-print.ref.html # Bug 1574046
+== float-clear-001-print.html float-clear-000-print.ref.html
 == float-clear-002-print.html float-clear-000-print.ref.html
 == float-clear-003-print.html float-clear-000-print.ref.html
 fails == float-continuations-000.html float-continuations-000.ref.html
@@ -122,7 +122,9 @@ fuzzy-if(cocoaWidget,0-1,0-5000) == 745025-1.html 745025-1-ref.html
 == 1409585-1.html 1409585-1-ref.html
 == 1411799-1.html 1411799-1-ref.html
 == 1420528-1.html 1420528-1-ref.html
-pref(layout.css.column-span.enabled,true) == 1420528-1.html 1420528-1-ref.html
+== 1420528-1.html 1420528-1-ref.html
+== 1427141-1.html 1427141-ref.html
+== 1427141-2.html 1427141-ref.html
 == 1468654-1.html 1468654-1-ref.html
 == 1596310.html 1596310-ref.html
 
@@ -157,3 +159,17 @@ pref(layout.css.column-span.enabled,true) == 1420528-1.html 1420528-1-ref.html
 == fieldset-00J-grid.html fieldset-00J-ref.html
 == fieldset-00K.html fieldset-00K-ref.html
 == fieldset-00L.html fieldset-00L-ref.html
+
+== block-max-height-001.html block-max-height-001-ref.html
+== block-max-height-002.html block-max-height-001-ref.html
+== block-min-height-001.html block-min-height-001-ref.html
+== block-min-height-002.html block-min-height-001-ref.html
+
+== bfc-001.html bfc-001-ref.html
+== bfc-002.html bfc-001-ref.html
+== bfc-003.html bfc-001-ref.html
+fails == bfc-004.html bfc-004-ref.html # bug 1602484
+== bfc-005.html bfc-004-ref.html
+== bfc-006.html bfc-006-ref.html
+== bfc-007.html bfc-006-ref.html
+== bfc-008.html bfc-006-ref.html

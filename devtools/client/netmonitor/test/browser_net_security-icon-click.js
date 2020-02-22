@@ -22,7 +22,7 @@ add_task(async function() {
     "https://example.com" + CORS_SJS_PATH + "?request_1"
   );
 
-  is(store.getState().requests.requests.size, 2, "Two events event logged.");
+  is(store.getState().requests.requests.length, 2, "Two events event logged.");
 
   await clickAndTestSecurityIcon();
 
@@ -48,7 +48,9 @@ add_task(async function() {
 
   async function performRequestAndWait(url) {
     const wait = waitForNetworkEvents(monitor, 1);
-    await ContentTask.spawn(tab.linkedBrowser, { url }, async function(args) {
+    await SpecialPowers.spawn(tab.linkedBrowser, [{ url }], async function(
+      args
+    ) {
       content.wrappedJSObject.performRequests(1, args.url);
     });
     return wait;

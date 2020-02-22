@@ -17,7 +17,6 @@
 #include "mozilla/MemoryReporting.h"
 
 #include "gc/Barrier.h"
-#include "gc/Heap.h"
 #include "gc/Marking.h"
 #include "gc/ZoneAllocator.h"
 #include "js/AllocPolicy.h"
@@ -256,9 +255,6 @@ class RegExpZone {
   }
 
   RegExpShared* get(JSContext* cx, HandleAtom source, JS::RegExpFlags flags);
-
-  /* Like 'get', but compile 'maybeOpt' (if non-null). */
-  RegExpShared* get(JSContext* cx, HandleAtom source, JSString* maybeOpt);
 
 #ifdef DEBUG
   void clear() { set_.clear(); }

@@ -31,8 +31,8 @@ function test_pause_frame() {
     Assert.equal(args[0].class, "Object");
     Assert.ok(!!objActor);
 
-    const objClient = gThreadFront.pauseGrip(args[0]);
-    Assert.ok(objClient.valid);
+    const objectFront = gThreadFront.pauseGrip(args[0]);
+    Assert.ok(objectFront.valid);
 
     // Make a bogus request to the grip actor.  Should get
     // unrecognized-packet-type (and not no-such-actor).
@@ -42,9 +42,9 @@ function test_pause_frame() {
       ok(false, "bogusRequest should throw");
     } catch (e) {
       ok(true, "bogusRequest thrown");
-      Assert.ok(!!e.match(/unrecognizedPacketType/));
+      Assert.ok(!!e.message.match(/unrecognizedPacketType/));
     }
-    Assert.ok(objClient.valid);
+    Assert.ok(objectFront.valid);
 
     gThreadFront.resume().then(async function() {
       // Now that we've resumed, should get no-such-actor for the
@@ -55,9 +55,9 @@ function test_pause_frame() {
         ok(false, "bogusRequest should throw");
       } catch (e) {
         ok(true, "bogusRequest thrown");
-        Assert.ok(!!e.match(/noSuchActor/));
+        Assert.ok(!!e.message.match(/noSuchActor/));
       }
-      Assert.ok(!objClient.valid);
+      Assert.ok(!objectFront.valid);
       threadFrontTestFinished();
     });
   });

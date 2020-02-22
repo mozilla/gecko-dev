@@ -12,7 +12,6 @@
 #include "mozilla/EventForwards.h"
 #include "mozilla/dom/IDBRequestBinding.h"
 #include "mozilla/DOMEventTargetHelper.h"
-#include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 
 #define PRIVATE_IDBREQUEST_IID                       \
@@ -65,18 +64,19 @@ class IDBRequest : public DOMEventTargetHelper {
  public:
   class ResultCallback;
 
-  static already_AddRefed<IDBRequest> Create(JSContext* aCx,
-                                             IDBDatabase* aDatabase,
-                                             IDBTransaction* aTransaction);
+  static MOZ_MUST_USE RefPtr<IDBRequest> Create(JSContext* aCx,
+                                                IDBDatabase* aDatabase,
+                                                IDBTransaction* aTransaction);
 
-  static already_AddRefed<IDBRequest> Create(JSContext* aCx,
-                                             IDBObjectStore* aSource,
-                                             IDBDatabase* aDatabase,
-                                             IDBTransaction* aTransaction);
+  static MOZ_MUST_USE RefPtr<IDBRequest> Create(JSContext* aCx,
+                                                IDBObjectStore* aSource,
+                                                IDBDatabase* aDatabase,
+                                                IDBTransaction* aTransaction);
 
-  static already_AddRefed<IDBRequest> Create(JSContext* aCx, IDBIndex* aSource,
-                                             IDBDatabase* aDatabase,
-                                             IDBTransaction* aTransaction);
+  static MOZ_MUST_USE RefPtr<IDBRequest> Create(JSContext* aCx,
+                                                IDBIndex* aSource,
+                                                IDBDatabase* aDatabase,
+                                                IDBTransaction* aTransaction);
 
   static void CaptureCaller(JSContext* aCx, nsAString& aFilename,
                             uint32_t* aLineNo, uint32_t* aColumn);
@@ -189,9 +189,9 @@ class IDBOpenDBRequest final : public IDBRequest {
   bool mIncreasedActiveDatabaseCount;
 
  public:
-  static already_AddRefed<IDBOpenDBRequest> Create(JSContext* aCx,
-                                                   IDBFactory* aFactory,
-                                                   nsIGlobalObject* aGlobal);
+  static MOZ_MUST_USE RefPtr<IDBOpenDBRequest> Create(JSContext* aCx,
+                                                      IDBFactory* aFactory,
+                                                      nsIGlobalObject* aGlobal);
 
   bool IsFileHandleDisabled() const { return mFileHandleDisabled; }
 

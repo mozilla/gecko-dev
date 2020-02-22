@@ -44,7 +44,6 @@ mailing address.
 
 #include "imgFrame.h"
 #include "mozilla/EndianUtils.h"
-#include "nsIInputStream.h"
 #include "RasterImage.h"
 #include "SurfacePipeFactory.h"
 
@@ -191,7 +190,12 @@ nsresult nsGIFDecoder2::BeginImageFrame(const IntRect& aFrameRect,
     // The first frame may be displayed progressively.
     pipeFlags |= SurfacePipeFlags::PROGRESSIVE_DISPLAY;
 
-    format = hasTransparency ? SurfaceFormat::OS_RGBA : SurfaceFormat::OS_RGBX;
+    // Only allow opaque surfaces if we are decoding a single image without
+    // transparency. For an animation, there isn't much benefit to RGBX given
+    // the current frame is constantly changing, and there are many risks
+    // since BlendAnimationFilter is able to clear rows of data.
+    format = hasTransparency || animParams ? SurfaceFormat::OS_RGBA
+                                           : SurfaceFormat::OS_RGBX;
   } else {
     format = SurfaceFormat::OS_RGBA;
   }
@@ -232,6 +236,10 @@ void nsGIFDecoder2::EndImageFrame() {
   // always refers to the frame in mImage we're currently decoding,
   // even if some of them weren't decoded properly and thus are blank.
   mGIFStruct.images_decoded++;
+
+  // Reset graphic control extension parameters that we shouldn't reuse
+  // between frames.
+  mGIFStruct.delay_time = 0;
 
   // Tell the superclass we finished a frame
   PostFrameStop(opacity);
@@ -650,7 +658,7 @@ nsGIFDecoder2::ReadGraphicControlExtension(const char* aData) {
   }
 
   mGIFStruct.delay_time = LittleEndian::readUint16(aData + 1) * 10;
-  if (mGIFStruct.delay_time > 0) {
+  if (!HasAnimation() && mGIFStruct.delay_time > 0) {
     PostIsAnimated(FrameTimeout::FromRawMilliseconds(mGIFStruct.delay_time));
   }
 

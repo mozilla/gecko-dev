@@ -11,6 +11,7 @@ const BAD_LISTENER =
 const eventListeners = Symbol("EventEmitter/listeners");
 const onceOriginalListener = Symbol("EventEmitter/once-original-listener");
 const handler = Symbol("EventEmitter/event-handler");
+loader.lazyRequireGetter(this, "flags", "devtools/shared/flags");
 
 class EventEmitter {
   constructor() {
@@ -27,6 +28,8 @@ class EventEmitter {
    *    The type of event.
    * @param {Function|Object} listener
    *    The listener that processes the event.
+   * @returns {Function}
+   *    A function that removes the listener when called.
    */
   static on(target, type, listener) {
     if (typeof listener !== "function" && !isEventHandler(listener)) {
@@ -44,6 +47,8 @@ class EventEmitter {
     } else {
       events.set(type, new Set([listener]));
     }
+
+    return () => EventEmitter.off(target, type, listener);
   }
 
   /**
@@ -252,7 +257,7 @@ class EventEmitter {
   }
 
   on(...args) {
-    EventEmitter.on(this, ...args);
+    return EventEmitter.on(this, ...args);
   }
 
   off(...args) {
@@ -269,6 +274,12 @@ class EventEmitter {
 
   emit(...args) {
     EventEmitter.emit(this, ...args);
+  }
+
+  emitForTests(...args) {
+    if (flags.testing) {
+      EventEmitter.emit(this, ...args);
+    }
   }
 }
 

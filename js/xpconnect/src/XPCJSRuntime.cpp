@@ -20,13 +20,12 @@
 #include "mozJSComponentLoader.h"
 #include "nsAutoPtr.h"
 #include "nsNetUtil.h"
+#include "nsContentSecurityUtils.h"
 
 #include "nsExceptionHandler.h"
 #include "nsIMemoryInfoDumper.h"
 #include "nsIMemoryReporter.h"
 #include "nsIObserverService.h"
-#include "nsIDebug2.h"
-#include "nsIDocShell.h"
 #include "mozilla/dom/Document.h"
 #include "nsIRunnable.h"
 #include "nsIPlatformInfo.h"
@@ -35,6 +34,7 @@
 #include "nsScriptSecurityManager.h"
 #include "nsThreadPool.h"
 #include "nsWindowSizes.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Services.h"
@@ -71,7 +71,6 @@
 #include "GeckoProfiler.h"
 #include "NodeUbiReporting.h"
 #include "nsIInputStream.h"
-#include "nsIXULRuntime.h"
 #include "nsJSPrincipals.h"
 
 #ifdef XP_WIN
@@ -3072,6 +3071,10 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
   JS_AddWeakPointerCompartmentCallback(cx, WeakPointerCompartmentCallback,
                                        this);
   JS_SetWrapObjectCallbacks(cx, &WrapObjectCallbacks);
+  if (XRE_IsE10sParentProcess()) {
+    JS::SetFilenameValidationCallback(
+        nsContentSecurityUtils::ValidateScriptFilename);
+  }
   js::SetPreserveWrapperCallback(cx, PreserveWrapper);
   JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipals);
   JS_SetAccumulateTelemetryCallback(cx, AccumulateTelemetryCallback);
@@ -3272,8 +3275,7 @@ void XPCJSRuntime::RemoveGCCallback(xpcGCCallback cb) {
 
 JSObject* XPCJSRuntime::GetUAWidgetScope(JSContext* cx,
                                          nsIPrincipal* principal) {
-  MOZ_ASSERT(!nsContentUtils::IsSystemPrincipal(principal),
-             "Running UA Widget in chrome");
+  MOZ_ASSERT(!principal->IsSystemPrincipal(), "Running UA Widget in chrome");
 
   RootedObject scope(cx);
   do {

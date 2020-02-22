@@ -5,6 +5,7 @@
 
 EXPORTS.mozilla.dom += [
     'AudioFocusManager.h',
+    'ContentMediaController.h',
     'MediaControlKeysEvent.h',
     'MediaControlKeysManager.h',
     'MediaController.h',
@@ -17,16 +18,9 @@ EXPORTS.ipc += [
     'MediaControlIPC.h',
 ]
 
-if CONFIG['MOZ_APPLEMEDIA']:
-  EXPORTS += [
-      'MediaHardwareKeysEventSourceMac.h',
-  ]
-  UNIFIED_SOURCES += [
-      'MediaHardwareKeysEventSourceMac.mm',
-  ]
-
 UNIFIED_SOURCES += [
     'AudioFocusManager.cpp',
+    'ContentMediaController.cpp',
     'MediaControlKeysEvent.cpp',
     'MediaControlKeysManager.cpp',
     'MediaController.cpp',

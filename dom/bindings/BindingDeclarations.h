@@ -315,6 +315,30 @@ class Optional<nsAString> {
   const nsAString* mStr;
 };
 
+template <>
+class Optional<nsACString> {
+ public:
+  Optional() : mStr(nullptr) {}
+
+  bool WasPassed() const { return !!mStr; }
+
+  void operator=(const nsACString* str) {
+    MOZ_ASSERT(str);
+    mStr = str;
+  }
+  const nsACString& Value() const {
+    MOZ_ASSERT(WasPassed());
+    return *mStr;
+  }
+
+ private:
+  // Forbid copy-construction and assignment
+  Optional(const Optional& other) = delete;
+  const Optional& operator=(const Optional& other) = delete;
+
+  const nsACString* mStr;
+};
+
 template <typename T>
 inline void ImplCycleCollectionUnlink(Optional<T>& aField) {
   if (aField.WasPassed()) {
@@ -407,6 +431,8 @@ template <typename T>
 class Sequence : public FallibleTArray<T> {
  public:
   Sequence() : FallibleTArray<T>() {}
+  MOZ_IMPLICIT Sequence(FallibleTArray<T>&& aArray) : FallibleTArray<T>(std::move(aArray)) {}
+  MOZ_IMPLICIT Sequence(nsTArray<T>&& aArray) : FallibleTArray<T>(std::move(aArray)) {}
 };
 
 inline nsWrapperCache* GetWrapperCache(nsWrapperCache* cache) { return cache; }

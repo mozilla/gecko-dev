@@ -28,7 +28,7 @@ fn main() {
 
     // Configure isa targets cfg.
     let isa_targets = meta::isa::Isa::all()
-        .into_iter()
+        .iter()
         .cloned()
         .filter(|isa| {
             let env_key = format!("CARGO_FEATURE_{}", isa.to_string().to_uppercase());
@@ -61,7 +61,7 @@ fn main() {
         process::exit(1);
     }
 
-    if let Ok(_) = env::var("CRANELIFT_VERBOSE") {
+    if env::var("CRANELIFT_VERBOSE").is_ok() {
         for isa in &isas {
             println!("cargo:warning=Includes support for {} ISA", isa.to_string());
         }

@@ -16,15 +16,17 @@ add_task(async function() {
   store.dispatch(Actions.batchEnable(false));
 
   const wait = waitForNetworkEvents(monitor, 2);
-  await ContentTask.spawn(tab.linkedBrowser, HTTPS_REDIRECT_SJS, async function(
-    url
-  ) {
-    content.wrappedJSObject.performRequests(1, url);
-  });
+  await SpecialPowers.spawn(
+    tab.linkedBrowser,
+    [HTTPS_REDIRECT_SJS],
+    async function(url) {
+      content.wrappedJSObject.performRequests(1, url);
+    }
+  );
   await wait;
 
   is(
-    store.getState().requests.requests.size,
+    store.getState().requests.requests.length,
     2,
     "There were two requests due to redirect."
   );

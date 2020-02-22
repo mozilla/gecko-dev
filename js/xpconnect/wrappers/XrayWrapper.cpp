@@ -9,7 +9,9 @@
 #include "WrapperFactory.h"
 
 #include "nsDependentString.h"
+#include "nsIConsoleService.h"
 #include "nsIScriptError.h"
+#include "nsIXPConnect.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ScriptSettings.h"
 
@@ -1165,13 +1167,19 @@ static void ExpandoObjectFinalize(JSFreeOp* fop, JSObject* obj) {
   NS_RELEASE(principal);
 }
 
-const JSClassOps XrayExpandoObjectClassOps = {nullptr,
-                                              nullptr,
-                                              nullptr,
-                                              nullptr,
-                                              nullptr,
-                                              nullptr,
-                                              ExpandoObjectFinalize};
+const JSClassOps XrayExpandoObjectClassOps = {
+    nullptr,                // addProperty
+    nullptr,                // delProperty
+    nullptr,                // enumerate
+    nullptr,                // newEnumerate
+    nullptr,                // resolve
+    nullptr,                // mayResolve
+    ExpandoObjectFinalize,  // finalize
+    nullptr,                // call
+    nullptr,                // hasInstance
+    nullptr,                // construct
+    nullptr,                // trace
+};
 
 bool XrayTraits::expandoObjectMatchesConsumer(JSContext* cx,
                                               HandleObject expandoObject,

@@ -10,7 +10,7 @@ const {
   FrontClassWithSpec,
   registerFront,
 } = require("devtools/shared/protocol");
-const { TargetMixin } = require("./target-mixin");
+const { TargetMixin } = require("devtools/shared/fronts/targets/target-mixin");
 
 class BrowsingContextTargetFront extends TargetMixin(
   FrontClassWithSpec(browsingContextTargetSpec)
@@ -138,7 +138,8 @@ class BrowsingContextTargetFront extends TargetMixin(
       response = await super.detach();
     } catch (e) {
       console.warn(
-        `Error while detaching the browsing context target front: ${e.message}`
+        "Error while detaching the browsing context target front:",
+        e
       );
     }
 

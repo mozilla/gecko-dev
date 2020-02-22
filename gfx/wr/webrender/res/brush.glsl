@@ -46,10 +46,52 @@
 ///   other brush types don't use it.
 ///
 
+#ifdef WR_FEATURE_MULTI_BRUSH
+flat varying int v_brush_kind;
+#endif
+
+// A few varying slots for the brushes to use.
+// Using these instead of adding dedicated varyings avoids using a high
+// number of varyings in the multi-brush shader.
+flat varying vec4 flat_varying_vec4_0;
+flat varying vec4 flat_varying_vec4_1;
+flat varying vec4 flat_varying_vec4_2;
+flat varying vec4 flat_varying_vec4_3;
+flat varying vec4 flat_varying_vec4_4;
+
+flat varying ivec4 flat_varying_ivec4_0;
+
+varying vec4 varying_vec4_0;
+varying vec4 varying_vec4_1;
+
+flat varying HIGHP_FS_ADDRESS int flat_varying_highp_int_address_0;
 
 #ifdef WR_VERTEX_SHADER
 
-void brush_vs(
+#define FWD_DECLARE_VS_FUNCTION(name)   \
+void name(                              \
+    VertexInfo vi,                      \
+    int prim_address,                   \
+    RectWithSize local_rect,            \
+    RectWithSize segment_rect,          \
+    ivec4 prim_user_data,               \
+    int specific_resource_address,      \
+    mat4 transform,                     \
+    PictureTask pic_task,               \
+    int brush_flags,                    \
+    vec4 segment_data                   \
+);
+
+// Forward-declare all brush vertex entry points.
+FWD_DECLARE_VS_FUNCTION(image_brush_vs)
+FWD_DECLARE_VS_FUNCTION(solid_brush_vs)
+FWD_DECLARE_VS_FUNCTION(blend_brush_vs)
+FWD_DECLARE_VS_FUNCTION(mix_blend_brush_vs)
+FWD_DECLARE_VS_FUNCTION(linear_gradient_brush_vs)
+FWD_DECLARE_VS_FUNCTION(radial_gradient_brush_vs)
+FWD_DECLARE_VS_FUNCTION(yuv_brush_vs)
+
+void multi_brush_vs(
     VertexInfo vi,
     int prim_address,
     RectWithSize local_rect,
@@ -59,7 +101,8 @@ void brush_vs(
     mat4 transform,
     PictureTask pic_task,
     int brush_flags,
-    vec4 segment_data
+    vec4 texel_rect,
+    int brush_kind
 );
 
 #define VECS_PER_SEGMENT                    2
@@ -75,8 +118,8 @@ void brush_vs(
 void main(void) {
     // Load the brush instance from vertex attributes.
     Instance instance = decode_instance_attributes();
-    int edge_flags = (instance.flags >> 16) & 0xff;
-    int brush_flags = (instance.flags >> 24) & 0xff;
+    int edge_flags = instance.flags & 0xff;
+    int brush_flags = (instance.flags >> 8) & 0xff;
     PrimitiveHeader ph = fetch_prim_header(instance.prim_header_address);
 
     // Fetch the segment of this brush primitive we are drawing.
@@ -86,8 +129,18 @@ void main(void) {
         segment_rect = ph.local_rect;
         segment_data = vec4(0.0);
     } else {
+        // This contraption is needed by the Mac GLSL compiler which falls
+        // over (generating garbage values) if:
+        // - we use a variable insead of the ACTUAL_VECS_PER_BRUSH define,
+        // - this compile time condition is done inside of vecs_per_brush.
+        #ifdef WR_FEATURE_MULTI_BRUSH
+        #define ACTUAL_VECS_PER_BRUSH vecs_per_brush(instance.brush_kind)
+        #else
+        #define ACTUAL_VECS_PER_BRUSH VECS_PER_SPECIFIC_BRUSH
+        #endif
+
         int segment_address = ph.specific_prim_address +
-                              VECS_PER_SPECIFIC_BRUSH +
+                              ACTUAL_VECS_PER_BRUSH +
                               instance.segment_index * VECS_PER_SEGMENT;
 
         vec4[2] segment_info = fetch_from_gpu_cache_2(segment_address);
@@ -146,25 +199,43 @@ void main(void) {
 #ifdef WR_FEATURE_ALPHA_PASS
     write_clip(
         vi.world_pos,
-        vi.snap_offset,
         clip_area
     );
 #endif
 
     // Run the specific brush VS code to write interpolators.
-    brush_vs(
+#ifdef WR_FEATURE_MULTI_BRUSH
+    v_brush_kind = instance.brush_kind;
+    multi_brush_vs(
         vi,
         ph.specific_prim_address,
         ph.local_rect,
         segment_rect,
         ph.user_data,
-        instance.user_data,
+        instance.resource_address,
+        transform.m,
+        pic_task,
+        brush_flags,
+        segment_data,
+        instance.brush_kind
+    );
+#else
+    WR_BRUSH_VS_FUNCTION(
+        vi,
+        ph.specific_prim_address,
+        ph.local_rect,
+        segment_rect,
+        ph.user_data,
+        instance.resource_address,
         transform.m,
         pic_task,
         brush_flags,
         segment_data
     );
+#endif
+
 }
+
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
@@ -176,14 +247,28 @@ struct Fragment {
 #endif
 };
 
-Fragment brush_fs();
+// Foward-declare all brush entry-points.
+Fragment image_brush_fs();
+Fragment solid_brush_fs();
+Fragment blend_brush_fs();
+Fragment mix_blend_brush_fs();
+Fragment linear_gradient_brush_fs();
+Fragment radial_gradient_brush_fs();
+Fragment yuv_brush_fs();
+Fragment multi_brush_fs(int brush_kind);
 
 void main(void) {
 #ifdef WR_FEATURE_DEBUG_OVERDRAW
     oFragColor = WR_DEBUG_OVERDRAW_COLOR;
 #else
+
     // Run the specific brush FS code to output the color.
-    Fragment frag = brush_fs();
+#ifdef WR_FEATURE_MULTI_BRUSH
+    Fragment frag = multi_brush_fs(v_brush_kind);
+#else
+    Fragment frag = WR_BRUSH_FS_FUNCTION();
+#endif
+
 
 #ifdef WR_FEATURE_ALPHA_PASS
     // Apply the clip mask

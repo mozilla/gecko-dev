@@ -23,7 +23,6 @@
 #include "mozilla/layers/MLGDeviceD3D11.h"
 #include "mozilla/layers/PaintThread.h"
 #include "nsExceptionHandler.h"
-#include "nsIGfxInfo.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
 
@@ -309,9 +308,6 @@ bool DeviceManagerDx::CreateCanvasDevice() {
 }
 
 void DeviceManagerDx::CreateDirectCompositionDevice() {
-// Currently, MinGW build environment does not handle IDCompositionDesktopDevice
-// and IDCompositionDevice2
-#if !defined(__MINGW32__)
   if (!gfxVars::UseWebRenderDCompWin()) {
     return;
   }
@@ -351,7 +347,6 @@ void DeviceManagerDx::CreateDirectCompositionDevice() {
   }
 
   mDirectCompositionDevice = compositionDevice;
-#endif
 }
 
 void DeviceManagerDx::ImportDeviceInfo(const D3D11DeviceStatus& aDeviceStatus) {
@@ -1143,13 +1138,10 @@ RefPtr<ID3D11Device> DeviceManagerDx::GetCanvasDevice() {
   return mCanvasDevice;
 }
 
-// Currently, MinGW build environment does not handle IDCompositionDevice2
-#if !defined(__MINGW32__)
 RefPtr<IDCompositionDevice2> DeviceManagerDx::GetDirectCompositionDevice() {
   MutexAutoLock lock(mDeviceLock);
   return mDirectCompositionDevice;
 }
-#endif
 
 unsigned DeviceManagerDx::GetCompositorFeatureLevel() const {
   if (!mDeviceStatus) {
@@ -1231,12 +1223,7 @@ bool DeviceManagerDx::CanUseP016() {
 
 bool DeviceManagerDx::CanUseDComp() {
   MutexAutoLock lock(mDeviceLock);
-// Currently, MinGW build environment does not handle IDCompositionDevice2
-#if !defined(__MINGW32__)
   return !!mDirectCompositionDevice;
-#else
-  return false;
-#endif
 }
 
 void DeviceManagerDx::InitializeDirectDraw() {

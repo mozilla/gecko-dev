@@ -17,23 +17,17 @@
 #include "nsNetUtil.h"
 
 #include "nsIStreamListener.h"
-#include "nsIComponentManager.h"
-#include "nsIServiceManager.h"
 #include "nsIURI.h"
 #include "nsIScriptContext.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIPrincipal.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsIWindowMediator.h"
 #include "nsPIDOMWindow.h"
-#include "nsIConsoleService.h"
 #include "nsEscape.h"
 #include "nsIWebNavigation.h"
 #include "nsIDocShell.h"
 #include "nsIContentViewer.h"
-#include "nsIXPConnect.h"
 #include "nsContentUtils.h"
 #include "nsJSUtils.h"
 #include "nsThreadUtils.h"
@@ -45,6 +39,7 @@
 #include "nsIWritablePropertyBag2.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsSandboxFlags.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/PopupBlocker.h"
@@ -270,7 +265,7 @@ nsresult nsJSThunk::EvaluateScript(
   }
 
   // Fail if someone tries to execute in a global with system principal.
-  if (nsContentUtils::IsSystemPrincipal(objectPrincipal)) {
+  if (objectPrincipal->IsSystemPrincipal()) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
@@ -486,6 +481,14 @@ nsJSChannel::Cancel(nsresult aStatus) {
     mStreamChannel->Cancel(aStatus);
   }
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsJSChannel::GetCanceled(bool* aCanceled) {
+  nsresult status = NS_ERROR_FAILURE;
+  GetStatus(&status);
+  *aCanceled = NS_FAILED(status);
   return NS_OK;
 }
 

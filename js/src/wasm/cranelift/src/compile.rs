@@ -29,12 +29,12 @@ use cranelift_codegen::ir::{self, constant::ConstantOffset, stackslot::StackSize
 use cranelift_codegen::isa::TargetIsa;
 use cranelift_codegen::CodegenResult;
 use cranelift_codegen::Context;
-use cranelift_wasm::{FuncIndex, FuncTranslator, WasmResult, ModuleTranslationState};
+use cranelift_wasm::{FuncIndex, FuncTranslator, ModuleTranslationState, WasmResult};
 
 use crate::bindings;
 use crate::isa::make_isa;
 use crate::utils::DashResult;
-use crate::wasm2clif::{init_sig, native_pointer_size, TransEnv};
+use crate::wasm2clif::{init_sig, TransEnv, POINTER_SIZE, TRAP_THROW_REPORTED};
 
 // Namespace for user-defined functions.
 const USER_FUNCTION_NAMESPACE: u32 = 0;
@@ -413,6 +413,7 @@ impl<'a, 'b> BatchCompiler<'a, 'b> {
             ir::TrapCode::BadConversionToInteger => bindings::Trap::InvalidConversionToInteger,
             ir::TrapCode::Interrupt => bindings::Trap::CheckInterrupt,
             ir::TrapCode::UnreachableCodeReached => bindings::Trap::Unreachable,
+            ir::TrapCode::User(x) if x == TRAP_THROW_REPORTED => bindings::Trap::ThrowReported,
             ir::TrapCode::User(_) => panic!("Uncovered trap code {}", code),
         };
 
@@ -521,7 +522,7 @@ impl<'a> RelocSink for EmitEnv<'a> {
                 let sym = index.into();
 
                 // The symbolic access patch address points *after* the stored pointer.
-                let offset = offset + native_pointer_size() as u32;
+                let offset = offset + POINTER_SIZE as u32;
                 self.metadata
                     .push(bindings::MetadataEntry::symbolic_access(offset, sym));
             }
@@ -542,7 +543,7 @@ impl<'a> RelocSink for EmitEnv<'a> {
                 };
 
                 // The symbolic access patch address points *after* the stored pointer.
-                let offset = offset + native_pointer_size() as u32;
+                let offset = offset + POINTER_SIZE as u32;
                 self.metadata
                     .push(bindings::MetadataEntry::symbolic_access(offset, sym));
             }

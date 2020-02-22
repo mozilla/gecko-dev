@@ -235,20 +235,6 @@ class UrlbarInput {
   }
 
   /**
-   * Shortens the given value, usually by removing http:// and trailing slashes,
-   * such that calling nsIURIFixup::createFixupURI with the result will produce
-   * the same URI.
-   *
-   * @param {string} val
-   *   The string to be trimmed if it appears to be URI
-   * @returns {string}
-   *   The trimmed string
-   */
-  trimValue(val) {
-    return UrlbarPrefs.get("trimURLs") ? BrowserUtils.trimURL(val) : val;
-  }
-
-  /**
    * Applies styling to the text in the urlbar input, depending on the text.
    */
   formatValue() {
@@ -414,10 +400,19 @@ class UrlbarInput {
     try {
       new URL(url);
     } catch (ex) {
+      // This is not a URL, so it must be a search or a keyword.
+
+      // TODO (Bug 1604927): If the urlbar results are restricted to a specific
+      // engine, here we must search with that specific engine; indeed the
+      // docshell wouldn't know about our engine restriction.
+      // Also remember to invoke this._recordSearch, after replacing url with
+      // the appropriate engine submission url.
+
       let browser = this.window.gBrowser.selectedBrowser;
       let lastLocationChange = browser.lastLocationChange;
-
       UrlbarUtils.getShortcutOrURIAndPostData(url).then(data => {
+        // Because this happens asynchronously, we must verify that the browser
+        // location did not change in the meanwhile.
         if (
           where != "current" ||
           browser.lastLocationChange == lastLocationChange
@@ -427,6 +422,7 @@ class UrlbarInput {
           this._loadURL(data.url, where, openParams, null, browser);
         }
       });
+      // Bail out, because we will handle the _loadURL call asynchronously.
       return;
     }
 
@@ -718,9 +714,6 @@ class UrlbarInput {
     }
     this._resultForCurrentValue = result;
 
-    // Also update userTypedValue. See bug 287996.
-    this.window.gBrowser.userTypedValue = this.value;
-
     // The value setter clobbers the actiontype attribute, so update this after
     // that.
     if (result) {
@@ -762,6 +755,7 @@ class UrlbarInput {
     // selection and it's the autofill placeholder value, then do autofill.
     if (
       !isPlaceholderSelected &&
+      !this._autofillIgnoresSelection &&
       (this.selectionStart != this.selectionEnd ||
         this.selectionEnd != this._lastSearchString.length)
     ) {
@@ -795,6 +789,9 @@ class UrlbarInput {
    *
    * @param {boolean} [options.allowAutofill]
    *   Whether or not to allow providers to include autofill results.
+   * @param {boolean} [options.autofillIgnoresSelection]
+   *   Normally we autofill only if the cursor is at the end of the string,
+   *   if this is set we'll autofill regardless of selection.
    * @param {string} [options.searchString]
    *   The search string.  If not given, the current input value is used.
    *   Otherwise, the current input value must start with this value.
@@ -811,6 +808,7 @@ class UrlbarInput {
    */
   startQuery({
     allowAutofill = true,
+    autofillIgnoresSelection = false,
     searchString = null,
     resetSearchState = true,
     event = null,
@@ -830,6 +828,7 @@ class UrlbarInput {
       return;
     }
 
+    this._autofillIgnoresSelection = autofillIgnoresSelection;
     if (resetSearchState) {
       this._resetSearchState();
     }
@@ -992,7 +991,6 @@ class UrlbarInput {
       this._toolbar.setAttribute("urlbar-exceeds-toolbar-bounds", "true");
     }
     this.setAttribute("breakout-extend", "true");
-    this.view.reOpen();
 
     // Enable the animation only after the first extend call to ensure it
     // doesn't run when opening a new window.
@@ -1082,16 +1080,13 @@ class UrlbarInput {
       val = originalUrl.displaySpec;
     }
 
-    val = allowTrim ? this.trimValue(val) : val;
+    val = allowTrim ? this._trimValue(val) : val;
 
     this.valueIsTyped = false;
     this._resultForCurrentValue = null;
     this.inputField.value = val;
     this.formatValue();
     this.removeAttribute("actiontype");
-    if (!this.view.isOpen) {
-      this.view.clear();
-    }
 
     // Dispatch ValueChange event for accessibility.
     let event = this.document.createEvent("Events");
@@ -1174,20 +1169,33 @@ class UrlbarInput {
     return allowAutofill;
   }
 
+  _checkForRtlText(value) {
+    let directionality = this.window.windowUtils.getDirectionFromText(value);
+    if (directionality == this.window.windowUtils.DIRECTION_RTL) {
+      this.setAttribute("rtltext", "true");
+      return true;
+    }
+    this.removeAttribute("rtltext");
+    return false;
+  }
+
   _updateTextOverflow() {
     if (!this._overflowing) {
       this.removeAttribute("textoverflow");
       return;
     }
 
+    let isRTL = this._checkForRtlText(this.value);
+
     this.window.promiseDocumentFlushed(() => {
       // Check overflow again to ensure it didn't change in the meantime.
       let input = this.inputField;
       if (input && this._overflowing) {
-        let side =
-          input.scrollLeft && input.scrollLeft == input.scrollLeftMax
-            ? "start"
-            : "end";
+        let side = isRTL ? "left" : "right";
+        if (input.scrollLeft == input.scrollLeftMax) {
+          side = isRTL == !input.scrollLeft ? "left" : "right";
+        }
+
         this.window.requestAnimationFrame(() => {
           // And check once again, since we might have stopped overflowing
           // since the promiseDocumentFlushed callback fired.
@@ -1277,10 +1285,10 @@ class UrlbarInput {
     // Just the beginning of the URL is selected, or we want a decoded
     // url. First check for a trimmed value.
     let spec = uri.displaySpec;
-    let trimmedSpec = this.trimValue(spec);
+    let trimmedSpec = this._trimValue(spec);
     if (spec != trimmedSpec) {
-      // Prepend the portion that trimValue removed from the beginning.
-      // This assumes trimValue will only truncate the URL at
+      // Prepend the portion that _trimValue removed from the beginning.
+      // This assumes _trimValue will only truncate the URL at
       // the beginning or end (or both).
       let trimmedSegments = spec.split(trimmedSpec);
       selectedVal = trimmedSegments[0] + selectedVal;
@@ -1355,6 +1363,20 @@ class UrlbarInput {
       "urlbar",
       details
     );
+  }
+
+  /**
+   * Shortens the given value, usually by removing http:// and trailing slashes,
+   * such that calling nsIURIFixup::createFixupURI with the result will produce
+   * the same URI.
+   *
+   * @param {string} val
+   *   The string to be trimmed if it appears to be URI
+   * @returns {string}
+   *   The trimmed string
+   */
+  _trimValue(val) {
+    return UrlbarPrefs.get("trimURLs") ? BrowserUtils.trimURL(val) : val;
   }
 
   /**
@@ -1683,7 +1705,7 @@ class UrlbarInput {
     // We cannot count every blur events after a missed engagement as abandoment
     // because the user may have clicked on some view element that executes
     // a command causing a focus change. For example opening preferences from
-    // the oneoff settings button, or from a contextual tip button.
+    // the oneoff settings button.
     // For now we detect that case by discarding the event on command, but we
     // may want to figure out a more robust way to detect abandonment.
     this.controller.engagementEvent.record(event, {
@@ -1693,13 +1715,13 @@ class UrlbarInput {
     this.removeAttribute("focused");
     this.endLayoutExtend();
 
+    if (this._autofillPlaceholder && this.window.gBrowser.userTypedValue) {
+      // Restore value to the last typed one, removing any autofilled portion.
+      this.value = this.window.gBrowser.userTypedValue;
+    }
+
     this.formatValue();
     this._resetSearchState();
-
-    // Clear selection unless we are switching application windows.
-    if (this.document.activeElement != this.inputField) {
-      this.selectionStart = this.selectionEnd = 0;
-    }
 
     // In certain cases, like holding an override key and confirming an entry,
     // we don't key a keyup event for the override key, thus we make this
@@ -1761,6 +1783,7 @@ class UrlbarInput {
     // We handle mouse-based expansion events separately in _on_click.
     if (this._focusedViaMousedown) {
       this._focusedViaMousedown = false;
+      this.view.maybeReopen();
     } else {
       this.startLayoutExtend();
       if (this.inputField.hasAttribute("refocused-by-panel")) {
@@ -1808,6 +1831,12 @@ class UrlbarInput {
           break;
         }
 
+        // Clear any previous selection unless we are focused, to ensure it
+        // doesn't affect drag selection.
+        if (this._focusedViaMousedown) {
+          this.selectionStart = this.selectionEnd = 0;
+        }
+
         if (event.detail == 2 && UrlbarPrefs.get("doubleClickSelectsAll")) {
           this.editor.selectAll();
           event.preventDefault();
@@ -1842,9 +1871,13 @@ class UrlbarInput {
           this._mousedownOnUrlbarDescendant = false;
           break;
         }
-
-        // Close the view when clicking on toolbars and other UI pieces that might
-        // not automatically remove focus from the input.
+        // Don't close the view when clicking on a tab; we may want to keep the
+        // view open on tab switch, and the TabSelect event arrived earlier.
+        if (event.target.closest("tab")) {
+          break;
+        }
+        // Close the view when clicking on toolbars and other UI pieces that
+        // might not automatically remove focus from the input.
         // Respect the autohide preference for easier inspecting/debugging via
         // the browser toolbox.
         if (!UrlbarPrefs.get("ui.popup.disable_autohide")) {
@@ -1875,14 +1908,17 @@ class UrlbarInput {
 
     if (value) {
       this.setAttribute("usertyping", "true");
+      this._checkForRtlText(value);
     } else {
       this.removeAttribute("usertyping");
     }
     this.removeAttribute("actiontype");
 
-    if (!value && this.view.isOpen) {
-      this.view.close();
+    if (!this.view.isOpen || !value) {
       this.view.clear();
+    }
+    if (this.view.isOpen && !value) {
+      this.view.close();
       return;
     }
 

@@ -1,3 +1,5 @@
+from __future__ import absolute_import, print_function
+
 import argparse
 import os
 from collections import OrderedDict
@@ -259,6 +261,12 @@ class ReftestArgumentsParser(argparse.ArgumentParser):
                           dest="enable_webrender",
                           default=False,
                           help="Enable the WebRender compositor in Gecko.")
+
+        self.add_argument("--headless",
+                          action="store_true",
+                          dest="headless",
+                          default=False,
+                          help="Run tests in headless mode.")
 
         mozlog.commandline.add_logging_group(self)
 

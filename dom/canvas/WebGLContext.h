@@ -40,9 +40,7 @@
 #include "WebGLStrongTypes.h"
 
 // Generated
-#include "nsIDOMEventListener.h"
 #include "nsICanvasRenderingContextInternal.h"
-#include "nsIObserver.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "nsWrapperCache.h"
 #include "nsLayoutUtils.h"
@@ -1636,6 +1634,8 @@ class WebGLContext : public nsICanvasRenderingContextInternal,
   // ES3:
   uint32_t mGLMinProgramTexelOffset = 0;
   uint32_t mGLMaxProgramTexelOffset = 0;
+
+  uint32_t mGLUniformBufferOffsetAlignment = 1;
 
   uint32_t mGLMaxViewportDims[2];
 

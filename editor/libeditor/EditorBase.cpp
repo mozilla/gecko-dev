@@ -79,11 +79,9 @@
 #include "nsAtom.h"                    // for nsAtom
 #include "nsIContent.h"                // for nsIContent
 #include "mozilla/dom/Document.h"      // for Document
-#include "nsIDOMEventListener.h"       // for nsIDOMEventListener
 #include "nsIDocumentStateListener.h"  // for nsIDocumentStateListener
 #include "nsIEditActionListener.h"     // for nsIEditActionListener
 #include "nsIEditorObserver.h"         // for nsIEditorObserver
-#include "nsIEditorSpellCheck.h"       // for nsIEditorSpellCheck
 #include "nsIFrame.h"                  // for nsIFrame
 #include "nsIInlineSpellChecker.h"     // for nsIInlineSpellChecker, etc.
 #include "nsNameSpaceManager.h"        // for kNameSpaceID_None, etc.
@@ -2195,11 +2193,11 @@ void EditorBase::NotifyEditorObservers(
         }
       }
 
-      if (!mDispatchInputEvent) {
+      if (!mDispatchInputEvent || IsEditActionAborted()) {
         return;
       }
 
-      FireInputEvent();
+      DispatchInputEvent();
       break;
     case eNotifyEditorObserversOfBefore:
       if (NS_WARN_IF(mIsInEditSubAction)) {
@@ -2227,13 +2225,14 @@ void EditorBase::NotifyEditorObservers(
   }
 }
 
-void EditorBase::FireInputEvent() {
+void EditorBase::DispatchInputEvent() {
   RefPtr<DataTransfer> dataTransfer = GetInputEventDataTransfer();
-  FireInputEvent(GetEditAction(), GetInputEventData(), dataTransfer);
+  DispatchInputEvent(GetEditAction(), GetInputEventData(), dataTransfer);
 }
 
-void EditorBase::FireInputEvent(EditAction aEditAction, const nsAString& aData,
-                                DataTransfer* aDataTransfer) {
+void EditorBase::DispatchInputEvent(EditAction aEditAction,
+                                    const nsAString& aData,
+                                    DataTransfer* aDataTransfer) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
   // We don't need to dispatch multiple input events if there is a pending
@@ -5047,7 +5046,7 @@ nsresult EditorBase::ToggleTextDirectionAsAction(nsIPrincipal* aPrincipal) {
 
   // XXX When we don't change the text direction, do we really need to
   //     dispatch input event?
-  FireInputEvent();
+  DispatchInputEvent();
 
   return NS_OK;
 }
@@ -5088,7 +5087,7 @@ void EditorBase::SwitchTextDirectionTo(TextDirection aTextDirection) {
 
   // XXX When we don't change the text direction, do we really need to
   //     dispatch input event?
-  FireInputEvent();
+  DispatchInputEvent();
 }
 
 nsresult EditorBase::SetTextDirectionTo(TextDirection aTextDirection) {
@@ -5462,7 +5461,8 @@ EditorBase::AutoEditActionDataSetter::AutoEditActionDataSetter(
     : mEditorBase(const_cast<EditorBase&>(aEditorBase)),
       mParentData(aEditorBase.mEditActionData),
       mData(VoidString()),
-      mTopLevelEditSubAction(EditSubAction::eNone) {
+      mTopLevelEditSubAction(EditSubAction::eNone),
+      mAborted(false) {
   // If we're nested edit action, copies necessary data from the parent.
   if (mParentData) {
     mSelection = mParentData->mSelection;
@@ -5630,7 +5630,7 @@ nsresult EditorBase::TopLevelEditSubActionData::AddRangeToChangedRange(
 
   bool disconnected = false;
   int16_t relation = mChangedRange->StartRef().IsSet()
-                         ? nsContentUtils::ComparePoints(
+                         ? nsContentUtils::ComparePoints_Deprecated(
                                mChangedRange->StartRef(),
                                aStart.ToRawRangeBoundary(), &disconnected)
                          : 1;
@@ -5648,9 +5648,9 @@ nsresult EditorBase::TopLevelEditSubActionData::AddRangeToChangedRange(
   }
 
   relation = mChangedRange->EndRef().IsSet()
-                 ? nsContentUtils::ComparePoints(mChangedRange->EndRef(),
-                                                 aEnd.ToRawRangeBoundary(),
-                                                 &disconnected)
+                 ? nsContentUtils::ComparePoints_Deprecated(
+                       mChangedRange->EndRef(), aEnd.ToRawRangeBoundary(),
+                       &disconnected)
                  : 1;
   if (NS_WARN_IF(disconnected)) {
     return NS_ERROR_FAILURE;

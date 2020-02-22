@@ -175,7 +175,6 @@
       <li><a href="about:license#sunsoft">SunSoft License</a></li>
       <li><a href="about:license#superfasthash">SuperFastHash License</a></li>
       <li><a href="about:license#synstructure">synstructure License</a></li>
-      <li><a href="about:license#udis86">udis86 License</a></li>
       <li><a href="about:license#unicase">unicase License</a></li>
       <li><a href="about:license#unicode">Unicode License</a></li>
       <li><a href="about:license#ucal">University of California License</a></li>
@@ -2286,7 +2285,13 @@ licences.
 
     <h1><a id="apache"></a>Apache License 2.0</h1>
 
-    <p>This license applies to various files in the Mozilla codebase.</p>
+    <p>This license applies to various files in the Mozilla codebase including, but not limited to:<br/>
+      <code>devtools/client/netmonitor/src/components/websockets/parsers/signalr/HandshakeProtocol.js</code><br/>
+      <code>devtools/client/netmonitor/src/components/websockets/parsers/signalr/IHubProtocol.js</code><br/>
+      <code>devtools/client/netmonitor/src/components/websockets/parsers/signalr/JSONHubProtocol.js</code><br/>
+      <code>devtools/client/netmonitor/src/components/websockets/parsers/signalr/TextMessageFormat.js</code><br/>
+      <code>devtools/client/netmonitor/src/components/websockets/parsers/signalr/Utils.js</code><br/>
+    </p>
 
 <pre>
                                  Apache License
@@ -2933,7 +2938,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 See the individual LICENSE files for copyright owners.</p>
 
 <pre>
-Redistribution and use in source and binary forms, with or without 
+Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
@@ -2944,7 +2949,7 @@ met:
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
 
-3. Neither the name of the copyright holder nor the names of its 
+3. Neither the name of the copyright holder nor the names of its
    contributors may be used to endorse or promote products derived from
    this software without specific prior written permission.
 
@@ -6391,38 +6396,6 @@ THE SOFTWARE.
 
     <hr>
 
-    <h1><a id="udis86"></a>udis86 License</h1>
-
-    <p>This license applies to files in the directory
-    <code>toolkit/recordreplay/udis86</code>.</p>
-
-<pre>
-Copyright (c) 2002-2012, Vivek Thampi <vivek.mt@gmail.com>
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-</pre>
-
-    <hr>
-
     <h1><a id="unicase"></a>unicase License</h1>
 
     <p>This license applies to files in the directory
@@ -7095,6 +7068,7 @@ THE SOFTWARE.
 
     <p>This license applies to certain files in the directories
       <code>js/src/irregexp</code>,
+      <code>js/src/new-regexp</code>,
       <code>js/src/builtin</code>,
       <code>js/src/jit/arm</code> and
       <code>js/src/jit/mips</code>.

@@ -17,8 +17,8 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/gfx/DeviceManagerDx.h"
 #include "mozilla/gfx/Logging.h"
+#include "mozilla/SSE.h"
 #include "nsExceptionHandler.h"
-#include "nsICrashReporter.h"
 #include "nsPrintfCString.h"
 #include "jsapi.h"
 #include <intrin.h>
@@ -32,8 +32,6 @@ using namespace mozilla::widget;
 #ifdef DEBUG
 NS_IMPL_ISUPPORTS_INHERITED(GfxInfo, GfxInfoBase, nsIGfxInfoDebug)
 #endif
-
-static const uint32_t allWindowsVersions = 0xffffffff;
 
 GfxInfo::GfxInfo()
     : mWindowsVersion(0), mActiveGPUIndex(0), mHasDualGPU(false) {}
@@ -1099,7 +1097,7 @@ static inline bool DetectBrokenAVX() {
   }
 
   const unsigned AVX_CTRL_BITS = (1 << 1) | (1 << 2);
-  return (_xgetbv(0) & AVX_CTRL_BITS) != AVX_CTRL_BITS;
+  return (xgetbv(0) & AVX_CTRL_BITS) != AVX_CTRL_BITS;
 }
 #endif
 
@@ -1251,6 +1249,18 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
         DRIVER_BETWEEN_INCLUSIVE_START, V(8, 982, 0, 0), V(8, 983, 0, 0),
         "FEATURE_FAILURE_BUG_783517_ATI", "!= 8.982.*.*");
+
+    /*
+     *  Bug 1599981 - crashes in AMD driver on Windows 10
+     */
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows10,
+        (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorAMD),
+        (nsAString&)GfxDriverInfo::GetDriverVendor(DriverVendorAll),
+        (GfxDeviceFamily*)GfxDriverInfo::GetDeviceFamily(RadeonCaicos),
+        nsIGfxInfo::FEATURE_DIRECT3D_11_LAYERS,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_LESS_THAN,
+        V(15, 301, 1901, 0), "FEATURE_FAILURE_BUG_1599981");
 
     /* OpenGL on any ATI/AMD hardware is discouraged
      * See:
@@ -1867,6 +1877,18 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_LESS_THAN,
         V(21, 20, 16, 4590), "Intel driver >= 21.20.16.4590");
 #endif
+
+    ////////////////////////////////////
+    // FEATURE_WEBRENDER_COMPOSITOR
+
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows10,
+        (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorIntel),
+        (nsAString&)GfxDriverInfo::GetDriverVendor(DriverVendorAll),
+        (GfxDeviceFamily*)GfxDriverInfo::GetDeviceFamily(IntelHD520),
+        nsIGfxInfo::FEATURE_WEBRENDER_COMPOSITOR,
+        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_LESS_THAN_OR_EQUAL,
+        V(25, 20, 100, 6472), "FEATURE_FAILURE_BUG_1602511");
   }
   return *sDriverInfo;
 }

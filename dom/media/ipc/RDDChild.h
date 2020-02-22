@@ -34,7 +34,7 @@ class RDDChild final : public PRDDChild,
   explicit RDDChild(RDDProcessHost* aHost);
   ~RDDChild();
 
-  bool Init(bool aStartMacSandbox);
+  bool Init();
 
   void OnCompositorUnexpectedShutdown() override;
   void OnVarChanged(const GfxVarUpdate& aVar) override;
@@ -43,6 +43,9 @@ class RDDChild final : public PRDDChild,
 
   mozilla::ipc::IPCResult RecvAddMemoryReport(const MemoryReport& aReport);
   mozilla::ipc::IPCResult RecvFinishMemoryReport(const uint32_t& aGeneration);
+  mozilla::ipc::IPCResult RecvGetModulesTrust(
+      ModulePaths&& aModPaths, bool aRunAtNormalPriority,
+      GetModulesTrustResolver&& aResolver);
 
   bool SendRequestMemoryReport(const uint32_t& aGeneration,
                                const bool& aAnonymize,

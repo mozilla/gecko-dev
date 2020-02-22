@@ -8,15 +8,12 @@
 #include "GlobalKeyListener.h"
 #include "nsIContent.h"
 #include "nsAtom.h"
-#include "nsIServiceManager.h"
 #include "nsGkAtoms.h"
 #include "nsFocusManager.h"
-#include "nsIURI.h"
 #include "nsNetUtil.h"
 #include "nsContentUtils.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDocShell.h"
-#include "nsISelectionController.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/HTMLEditor.h"
@@ -652,12 +649,12 @@ bool XULKeySetGlobalKeyListener::IsExecutableElement(Element* aElement) const {
   }
 
   nsAutoString value;
-  aElement->GetAttribute(NS_LITERAL_STRING("disabled"), value);
+  aElement->GetAttr(nsGkAtoms::disabled, value);
   if (value.EqualsLiteral("true")) {
     return false;
   }
 
-  aElement->GetAttribute(NS_LITERAL_STRING("oncommand"), value);
+  aElement->GetAttr(nsGkAtoms::oncommand, value);
   return !value.IsEmpty();
 }
 

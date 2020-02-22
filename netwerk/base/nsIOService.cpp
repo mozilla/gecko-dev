@@ -15,7 +15,6 @@
 #include "nsErrorService.h"
 #include "netCore.h"
 #include "nsIObserverService.h"
-#include "nsIPrefService.h"
 #include "nsXPCOM.h"
 #include "nsIProxiedProtocolHandler.h"
 #include "nsIProxyInfo.h"
@@ -28,18 +27,15 @@
 #include "nsIConsoleService.h"
 #include "nsIUploadChannel2.h"
 #include "nsXULAppAPI.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsIProtocolProxyCallback.h"
 #include "nsICancelable.h"
 #include "nsINetworkLinkService.h"
-#include "nsPISocketTransportService.h"
 #include "nsAsyncRedirectVerifyHelper.h"
 #include "nsURLHelper.h"
 #include "nsIProtocolProxyService2.h"
 #include "MainThreadUtils.h"
 #include "nsINode.h"
 #include "nsIWidget.h"
-#include "nsIHttpChannel.h"
 #include "nsThreadUtils.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/net/NeckoCommon.h"
@@ -449,6 +445,22 @@ bool nsIOService::SocketProcessReady() {
   return mSocketProcess && mSocketProcess->IsConnected();
 }
 
+static bool sUseSocketProcess = false;
+static bool sUseSocketProcessChecked = false;
+
+bool nsIOService::UseSocketProcess() {
+  if (sUseSocketProcessChecked) {
+    return sUseSocketProcess;
+  }
+
+  sUseSocketProcessChecked = true;
+  if (Preferences::GetBool("network.process.enabled")) {
+    sUseSocketProcess = Preferences::GetBool(
+        "network.http.network_access_on_socket_process.enabled", true);
+  }
+  return sUseSocketProcess;
+}
+
 // static
 void nsIOService::NotifySocketProcessPrefsChanged(const char* aName,
                                                   void* aSelf) {
@@ -623,6 +635,27 @@ nsresult nsIOService::AsyncOnChannelRedirect(
         helper->DelegateOnChannelRedirect(entries[i], oldChan, newChan, flags);
     if (NS_FAILED(rv)) return rv;
   }
+
+  nsCOMPtr<nsIHttpChannel> httpChan(do_QueryInterface(oldChan));
+
+  // Collect the redirection from HTTP(S) only.
+  if (httpChan) {
+    MOZ_ASSERT(NS_IsMainThread());
+    nsCOMPtr<nsIURI> newURI;
+    newChan->GetURI(getter_AddRefs(newURI));
+    MOZ_ASSERT(newURI);
+
+    nsAutoCString scheme;
+    newURI->GetScheme(scheme);
+    MOZ_ASSERT(!scheme.IsEmpty());
+
+    Telemetry::AccumulateCategoricalKeyed(
+        scheme,
+        oldChan->IsDocument()
+            ? Telemetry::LABELS_NETWORK_HTTP_REDIRECT_TO_SCHEME::topLevel
+            : Telemetry::LABELS_NETWORK_HTTP_REDIRECT_TO_SCHEME::subresource);
+  }
+
   return NS_OK;
 }
 

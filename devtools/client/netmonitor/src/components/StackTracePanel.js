@@ -10,7 +10,9 @@ const {
 } = require("devtools/client/shared/vendor/react");
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
-const { fetchNetworkUpdatePacket } = require("../utils/request-utils");
+const {
+  fetchNetworkUpdatePacket,
+} = require("devtools/client/netmonitor/src/utils/request-utils");
 
 const { div } = dom;
 
@@ -49,7 +51,7 @@ class StackTracePanel extends Component {
   componentWillReceiveProps(nextProps) {
     const { request, connector } = nextProps;
     // If we're not dealing with a new request, bail out.
-    if (this.props.request && this.props.request.actor === request.actor) {
+    if (this.props.request && this.props.request.id === request.id) {
       return;
     }
     fetchNetworkUpdatePacket(connector.requestData, request, ["stackTrace"]);

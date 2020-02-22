@@ -6,10 +6,13 @@
 #ifndef WEBGPU_TYPES_H_
 #define WEBGPU_TYPES_H_
 
+#include <cstdint>
+
 namespace mozilla {
 namespace webgpu {
 
 typedef uint64_t RawId;
+typedef uint64_t BufferAddress;
 
 }  // namespace webgpu
 

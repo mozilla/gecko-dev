@@ -69,6 +69,7 @@
 
 #include "AudioChannelService.h"
 #include "mozilla/dom/PromiseDebugging.h"
+#include "mozilla/dom/nsMixedContentBlocker.h"
 
 #ifdef MOZ_XUL
 #  include "nsXULPopupManager.h"
@@ -252,9 +253,6 @@ nsresult nsLayoutStatics::Initialize() {
 
   nsPermissionManager::Startup();
 
-  nsCookieService::AppClearDataObserverInit();
-  nsApplicationCacheService::AppClearDataObserverInit();
-
 #ifdef MOZ_XUL
   nsMenuBarListener::InitializeStatics();
 #endif
@@ -372,6 +370,7 @@ void nsLayoutStatics::Shutdown() {
 
   nsAttrValue::Shutdown();
   nsContentUtils::Shutdown();
+  nsMixedContentBlocker::Shutdown();
   GlobalStyleSheetCache::Shutdown();
 
   ShutdownJSEnvironment();

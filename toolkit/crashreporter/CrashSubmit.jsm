@@ -12,10 +12,6 @@ const { XPCOMUtils } = ChromeUtils.import(
 const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
-const {
-  parseKeyValuePairs,
-  parseKeyValuePairsFromFileAsync,
-} = ChromeUtils.import("resource://gre/modules/KeyValueParser.jsm");
 XPCOMUtils.defineLazyGlobalGetters(this, [
   "File",
   "FormData",
@@ -31,6 +27,7 @@ const FAILED = "failed";
 const SUBMITTING = "submitting";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SUBMISSION_REGEX = /^bp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // TODO: this is still synchronous; need an async INI parser to make it async
 function parseINIStrings(path) {
@@ -129,34 +126,24 @@ function getPendingMinidump(id) {
 }
 
 async function synthesizeExtraFile(extra) {
-  let data =
+  let url =
     "ServerURL=https://crash-reports.webreplay.io:8002/submit?id=" +
     Services.appinfo.ID +
     "&version=" +
     Services.appinfo.version +
     "&buildid=" +
-    Services.appinfo.appBuildID +
-    "\n" +
-    "Vendor=" +
-    Services.appinfo.vendor +
-    "\n" +
-    "ProductName=" +
-    Services.appinfo.name +
-    "\n" +
-    "ProductID=" +
-    Services.appinfo.ID +
-    "\n" +
-    "Version=" +
-    Services.appinfo.version +
-    "\n" +
-    "BuildID=" +
-    Services.appinfo.appBuildID +
-    "\n" +
-    "ReleaseChannel=" +
-    AppConstants.MOZ_UPDATE_CHANNEL +
-    "\n";
+    Services.appinfo.appBuildID;
+  let data = {
+    ServerURL: url,
+    Vendor: Services.appinfo.vendor,
+    ProductName: Services.appinfo.name,
+    ProductID: Services.appinfo.ID,
+    Version: Services.appinfo.version,
+    BuildID: Services.appinfo.appBuildID,
+    ReleaseChannel: AppConstants.MOZ_UPDATE_CHANNEL,
+  };
 
-  await OS.File.writeAtomic(extra, data, { encoding: "utf-8" });
+  await OS.File.writeAtomic(extra, JSON.stringify(data), { encoding: "utf-8" });
 }
 
 async function writeSubmittedReportAsync(crashID, viewURL) {
@@ -227,6 +214,24 @@ Submitter.prototype = {
     }
   },
 
+  parseResponse: function Submitter_parseResponse(response) {
+    let parsedResponse = {};
+
+    for (let line of response.split("\n")) {
+      let data = line.split("=");
+
+      if (
+        (data.length == 2 &&
+          (data[0] == "CrashID" && SUBMISSION_REGEX.test(data[1]))) ||
+        data[0] == "ViewURL"
+      ) {
+        parsedResponse[data[0]] = data[1];
+      }
+    }
+
+    return parsedResponse;
+  },
+
   submitForm: function Submitter_submitForm() {
     if (!("ServerURL" in this.extraKeyVals)) {
       return false;
@@ -262,10 +267,6 @@ Submitter.prototype = {
         formData.append(name, value);
       }
     }
-    if (this.noThrottle) {
-      // tell the server not to throttle this, since it was manually submitted
-      formData.append("Throttleable", "0");
-    }
 
     const promises = [];
 
@@ -275,7 +276,7 @@ Submitter.prototype = {
     xhr.addEventListener("readystatechange", evt => {
       if (xhr.readyState == 4) {
         let ret =
-          xhr.status === 200 ? parseKeyValuePairs(xhr.responseText) : {};
+          xhr.status === 200 ? this.parseResponse(xhr.responseText) : {};
         let submitted = !!ret.CrashID;
         let p = Promise.resolve();
 
@@ -309,13 +310,9 @@ Submitter.prototype = {
     let id = this.id;
 
     if (this.recordSubmission) {
-      p = p
-        .then(() => {
-          return manager.ensureCrashIsPresent(id);
-        })
-        .then(() => {
-          return manager.addSubmissionAttempt(id, submissionID, new Date());
-        });
+      p = p.then(() => {
+        return manager.addSubmissionAttempt(id, submissionID, new Date());
+      });
     }
     p.then(() => {
       xhr.send(formData);
@@ -355,6 +352,10 @@ Submitter.prototype = {
   },
 
   submit: async function Submitter_submit() {
+    if (this.recordSubmission) {
+      await Services.crashmanager.ensureCrashIsPresent(this.id);
+    }
+
     let [dump, extra, memory] = getPendingMinidump(this.id);
     let [dumpExists, extraExists, memoryExists] = await Promise.all([
       OS.File.exists(dump),
@@ -376,7 +377,9 @@ Submitter.prototype = {
     this.extra = extra;
     this.memory = memoryExists ? memory : null;
 
-    let extraKeyVals = await parseKeyValuePairsFromFileAsync(extra);
+    let decoder = new TextDecoder();
+    let extraData = await OS.File.read(extra);
+    let extraKeyVals = JSON.parse(decoder.decode(extraData));
 
     for (let key in extraKeyVals) {
       if (!(key in this.extraKeyVals)) {

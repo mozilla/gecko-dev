@@ -266,30 +266,23 @@ var Policies = {
                   log.error(`Unable to add certificate - ${certfile.path}`);
                 }
               }
-              let now = Date.now() / 1000;
               if (cert) {
-                gCertDB.asyncVerifyCertAtTime(
-                  cert,
-                  0x0008 /* certificateUsageSSLCA */,
-                  0,
-                  null,
-                  now,
-                  (aPRErrorCode, aVerifiedChain, aHasEVPolicy) => {
-                    if (aPRErrorCode == Cr.NS_OK) {
-                      // Certificate is already installed.
-                      return;
-                    }
-                    try {
-                      gCertDB.addCert(certFile, "CT,CT,");
-                    } catch (e) {
-                      // It might be PEM instead of DER.
-                      gCertDB.addCertFromBase64(
-                        pemToBase64(certFile),
-                        "CT,CT,"
-                      );
-                    }
-                  }
-                );
+                if (
+                  gCertDB.isCertTrusted(
+                    cert,
+                    Ci.nsIX509Cert.CA_CERT,
+                    Ci.nsIX509CertDB.TRUSTED_SSL
+                  )
+                ) {
+                  // Certificate is already installed.
+                  return;
+                }
+                try {
+                  gCertDB.addCert(certFile, "CT,CT,");
+                } catch (e) {
+                  // It might be PEM instead of DER.
+                  gCertDB.addCertFromBase64(pemToBase64(certFile), "CT,CT,");
+                }
               }
             };
             reader.readAsBinaryString(file);
@@ -401,6 +394,7 @@ var Policies = {
         blockAboutPage(manager, "about:devtools");
         blockAboutPage(manager, "about:debugging");
         blockAboutPage(manager, "about:devtools-toolbox");
+        blockAboutPage(manager, "about:profiling");
       }
     },
   },
@@ -697,6 +691,9 @@ var Policies = {
           param.Fingerprinting,
           param.Locked
         );
+      }
+      if ("Exceptions" in param) {
+        addAllowDenyPermissions("trackingprotection", param.Exceptions);
       }
     },
   },
@@ -1089,7 +1086,7 @@ var Policies = {
     onBeforeUIStartup(manager, param) {
       if (!param) {
         blockAboutPage(manager, "about:logins", true);
-        gBlockedChromePages.push("passwordManager.xul");
+        gBlockedChromePages.push("passwordManager.xhtml");
         setAndLockPref("pref.privacy.disable_button.view_passwords", true);
       }
       setAndLockPref("signon.rememberSignons", param);
@@ -1778,7 +1775,7 @@ function blockAboutPage(manager, feature, neededOnContentProcess = false) {
   gBlockedChromePages.push(fileName);
   if (feature == "about:config") {
     // Hide old page until it is removed
-    gBlockedChromePages.push("config.xul");
+    gBlockedChromePages.push("config.xhtml");
   }
 }
 

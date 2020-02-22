@@ -330,14 +330,14 @@ void ActiveLayerTracker::NotifyOffsetRestyle(nsIFrame* aFrame) {
 /* static */
 void ActiveLayerTracker::NotifyAnimated(nsIFrame* aFrame,
                                         nsCSSPropertyID aProperty,
-                                        const nsAString& aNewValue,
+                                        const nsACString& aNewValue,
                                         nsDOMCSSDeclaration* aDOMCSSDecl) {
   LayerActivity* layerActivity = GetLayerActivityForUpdate(aFrame);
   uint8_t& mutationCount = layerActivity->RestyleCountForProperty(aProperty);
   if (mutationCount != 0xFF) {
     nsAutoString oldValue;
     aDOMCSSDecl->GetPropertyValue(aProperty, oldValue);
-    if (aNewValue != oldValue) {
+    if (NS_ConvertUTF16toUTF8(oldValue) != aNewValue) {
       // We know this is animated, so just hack the mutation count.
       mutationCount = 0xFF;
     }
@@ -378,7 +378,7 @@ static bool IsPresContextInScriptAnimationCallback(
 
 /* static */
 void ActiveLayerTracker::NotifyInlineStyleRuleModified(
-    nsIFrame* aFrame, nsCSSPropertyID aProperty, const nsAString& aNewValue,
+    nsIFrame* aFrame, nsCSSPropertyID aProperty, const nsACString& aNewValue,
     nsDOMCSSDeclaration* aDOMCSSDecl) {
   if (IsPresContextInScriptAnimationCallback(aFrame->PresContext())) {
     NotifyAnimated(aFrame, aProperty, aNewValue, aDOMCSSDecl);
@@ -499,14 +499,14 @@ bool ActiveLayerTracker::IsStyleAnimated(
   const nsCSSPropertyIDSet transformSet =
       nsCSSPropertyIDSet::TransformLikeProperties();
   if ((styleFrame && (styleFrame->StyleDisplay()->mWillChange.bits &
-                      StyleWillChangeBits_TRANSFORM)) &&
+                      StyleWillChangeBits::TRANSFORM)) &&
       aPropertySet.Intersects(transformSet) &&
       (!aBuilder ||
        aBuilder->IsInWillChangeBudget(aFrame, aFrame->GetSize()))) {
     return true;
   }
   if ((aFrame->StyleDisplay()->mWillChange.bits &
-       StyleWillChangeBits_OPACITY) &&
+       StyleWillChangeBits::OPACITY) &&
       aPropertySet.Intersects(nsCSSPropertyIDSet::OpacityProperties()) &&
       (!aBuilder ||
        aBuilder->IsInWillChangeBudget(aFrame, aFrame->GetSize()))) {
@@ -535,11 +535,20 @@ bool ActiveLayerTracker::IsStyleAnimated(
       return true;
     }
   }
-  if (aPropertySet.Intersects(transformSet) &&
-      aFrame->Combines3DTransformWithAncestors()) {
-    return IsStyleAnimated(aBuilder, aFrame->GetParent(), aPropertySet);
+
+  if (nsLayoutUtils::HasEffectiveAnimation(aFrame, aPropertySet)) {
+    return true;
   }
-  return nsLayoutUtils::HasEffectiveAnimation(aFrame, aPropertySet);
+
+  if (!aPropertySet.Intersects(transformSet) ||
+      !aFrame->Combines3DTransformWithAncestors()) {
+    return false;
+  }
+
+  // For preserve-3d, we check if there is any transform animation on its parent
+  // frames in the 3d rendering context. If there is one, this function will
+  // return true.
+  return IsStyleAnimated(aBuilder, aFrame->GetParent(), aPropertySet);
 }
 
 /* static */

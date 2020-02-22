@@ -88,10 +88,6 @@ class ContentDelegateTest : BaseSessionTest() {
     @Test fun crashContent() {
         // This test doesn't make sense without multiprocess
         assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
-        // Cannot test x86 debug builds due to Gecko's "ah_crap_handler"
-        // that waits for debugger to attach during a SIGSEGV.
-        assumeThat(sessionRule.env.isDebugBuild && sessionRule.env.isX86,
-                   equalTo(false))
 
         mainSession.loadUri(CONTENT_CRASH_URL)
         mainSession.waitUntilCalled(object : Callbacks.ContentDelegate {
@@ -118,10 +114,6 @@ class ContentDelegateTest : BaseSessionTest() {
     @Test fun crashContent_tapAfterCrash() {
         // This test doesn't make sense without multiprocess
         assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
-        // Cannot test x86 debug builds due to Gecko's "ah_crap_handler"
-        // that waits for debugger to attach during a SIGSEGV.
-        assumeThat(sessionRule.env.isDebugBuild && sessionRule.env.isX86,
-                   equalTo(false))
 
         mainSession.delegateUntilTestEnd(object : Callbacks.ContentDelegate {
             override fun onCrash(session: GeckoSession) {
@@ -143,10 +135,6 @@ class ContentDelegateTest : BaseSessionTest() {
     @Test fun crashContentMultipleSessions() {
         // This test doesn't make sense without multiprocess
         assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
-        // Cannot test x86 debug builds due to Gecko's "ah_crap_handler"
-        // that waits for debugger to attach during a SIGSEGV.
-        assumeThat(sessionRule.env.isDebugBuild && sessionRule.env.isX86,
-                   equalTo(false))
 
         // XXX we need to make sure all sessions in a given content process receive onCrash().
         // If we add multiple content processes, this test will need to be fixed to ensure the
@@ -323,9 +311,9 @@ class ContentDelegateTest : BaseSessionTest() {
                 assertThat("short_name should match", manifest.getString("short_name"), equalTo("app"))
                 assertThat("display should match", manifest.getString("display"), equalTo("standalone"))
 
-                // The color here is "cadetblue" converted to hex.
-                assertThat("theme_color should match", manifest.getString("theme_color"), equalTo("#5f9ea0"))
-                assertThat("background_color should match", manifest.getString("background_color"), equalTo("#c0feee"))
+                // The color here is "cadetblue" converted to #aarrggbb.
+                assertThat("theme_color should match", manifest.getString("theme_color"), equalTo("#ff5f9ea0"))
+                assertThat("background_color should match", manifest.getString("background_color"), equalTo("#eec0ffee"))
                 assertThat("start_url should match", manifest.getString("start_url"), endsWith("/assets/www/start/index.html"))
 
                 val icon = manifest.getJSONArray("icons").getJSONObject(0);

@@ -11,6 +11,8 @@
 
 #include "mozilla/MemoryReporting.h"
 
+#include "jstypes.h"  // JS_PUBLIC_API
+
 #include "ds/TraceableFifo.h"
 #include "gc/Memory.h"
 #include "js/CharacterEncoding.h"
@@ -26,6 +28,8 @@
 #include "vm/ErrorReporting.h"
 #include "vm/MallocProvider.h"
 #include "vm/Runtime.h"
+
+struct JS_PUBLIC_API JSContext;
 
 struct DtoaState;
 
@@ -147,8 +151,8 @@ enum class InterruptReason : uint32_t {
  * A JSContext encapsulates the thread local state used when using the JS
  * runtime.
  */
-struct JSContext : public JS::RootingContext,
-                   public js::MallocProvider<JSContext> {
+struct JS_PUBLIC_API JSContext : public JS::RootingContext,
+                                 public js::MallocProvider<JSContext> {
   JSContext(JSRuntime* runtime, const JS::ContextOptions& options);
   ~JSContext();
 
@@ -298,10 +302,6 @@ struct JSContext : public JS::RootingContext,
   }
   js::PropertyName* emptyString() { return runtime_->emptyString; }
   JSFreeOp* defaultFreeOp() { return &defaultFreeOp_.ref(); }
-  void* stackLimitAddress(JS::StackKind kind) {
-    return &nativeStackLimit[kind];
-  }
-  void* stackLimitAddressForJitCode(JS::StackKind kind);
   uintptr_t stackLimit(JS::StackKind kind) { return nativeStackLimit[kind]; }
   uintptr_t stackLimitForJitCode(JS::StackKind kind);
   size_t gcSystemPageSize() { return js::gc::SystemPageSize(); }
@@ -816,21 +816,11 @@ struct JSContext : public JS::RootingContext,
    */
   inline bool runningWithTrustedPrincipals();
 
-  JS_FRIEND_API size_t
-  sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
   void trace(JSTracer* trc);
 
   inline js::RuntimeCaches& caches();
-
- private:
-  /*
-   * The allocation code calls the function to indicate either OOM failure
-   * when p is null or that a memory pressure counter has reached some
-   * threshold when p is not null. The function takes the pointer and not
-   * a boolean flag to minimize the amount of code in its inlined callers.
-   */
-  JS_FRIEND_API void checkMallocGCPressure(void* p);
 
  public:
   using InterruptCallbackVector =
@@ -1115,8 +1105,6 @@ extern void ReportIsNotDefined(JSContext* cx, HandleId id);
  * Report an attempt to access the property of a null or undefined value (v).
  */
 extern void ReportIsNullOrUndefined(JSContext* cx, int spindex, HandleValue v);
-
-extern void ReportMissingArg(JSContext* cx, js::HandleValue v, unsigned arg);
 
 /*
  * Report error using js_DecompileValueGenerator(cx, spindex, v, fallback) as

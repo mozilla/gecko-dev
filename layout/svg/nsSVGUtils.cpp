@@ -24,6 +24,7 @@
 #include "nsGkAtoms.h"
 #include "nsIContent.h"
 #include "nsIFrame.h"
+#include "nsIFrameInlines.h"
 #include "nsLayoutUtils.h"
 #include "nsPresContext.h"
 #include "nsStyleStruct.h"
@@ -543,7 +544,7 @@ class MixModeBlender {
       gfxContextMatrixAutoSaveRestore matrixAutoSaveRestore(mSourceCtx);
       mSourceCtx->Multiply(aTransform);
       nsRect overflowRect = mFrame->GetVisualOverflowRectRelativeToSelf();
-      if (mFrame->IsFrameOfType(nsIFrame::eSVGGeometry) ||
+      if (mFrame->IsSVGGeometryFrameOrSubclass() ||
           nsSVGUtils::IsInSVGTextSubtree(mFrame)) {
         // Unlike containers, leaf frames do not include GetPosition() in
         // GetCanvasTM().
@@ -604,7 +605,7 @@ void nsSVGUtils::PaintFrameWithEffects(nsIFrame* aFrame, gfxContext& aContext,
     // We don't do this optimization for nondisplay SVG since nondisplay
     // SVG doesn't maintain bounds/overflow rects.
     nsRect overflowRect = aFrame->GetVisualOverflowRectRelativeToSelf();
-    if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry) ||
+    if (aFrame->IsSVGGeometryFrameOrSubclass() ||
         nsSVGUtils::IsInSVGTextSubtree(aFrame)) {
       // Unlike containers, leaf frames do not include GetPosition() in
       // GetCanvasTM().
@@ -1120,7 +1121,7 @@ gfxPoint nsSVGUtils::FrameSpaceInCSSPxToUserSpaceOffset(nsIFrame* aFrame) {
   }
 
   // Leaf frames apply their own offset inside their user space.
-  if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry) ||
+  if (aFrame->IsSVGGeometryFrameOrSubclass() ||
       nsSVGUtils::IsInSVGTextSubtree(aFrame)) {
     return nsLayoutUtils::RectToGfxRect(aFrame->GetRect(),
                                         AppUnitsPerCSSPixel())
@@ -1560,10 +1561,10 @@ uint16_t nsSVGUtils::GetGeometryHitTestFlags(nsIFrame* aFrame) {
   uint16_t flags = 0;
 
   switch (aFrame->StyleUI()->mPointerEvents) {
-    case NS_STYLE_POINTER_EVENTS_NONE:
+    case StylePointerEvents::None:
       break;
-    case NS_STYLE_POINTER_EVENTS_AUTO:
-    case NS_STYLE_POINTER_EVENTS_VISIBLEPAINTED:
+    case StylePointerEvents::Auto:
+    case StylePointerEvents::Visiblepainted:
       if (aFrame->StyleVisibility()->IsVisible()) {
         if (!aFrame->StyleSVG()->mFill.kind.IsNone())
           flags |= SVG_HIT_TEST_FILL;
@@ -1573,34 +1574,34 @@ uint16_t nsSVGUtils::GetGeometryHitTestFlags(nsIFrame* aFrame) {
           flags |= SVG_HIT_TEST_CHECK_MRECT;
       }
       break;
-    case NS_STYLE_POINTER_EVENTS_VISIBLEFILL:
+    case StylePointerEvents::Visiblefill:
       if (aFrame->StyleVisibility()->IsVisible()) {
         flags |= SVG_HIT_TEST_FILL;
       }
       break;
-    case NS_STYLE_POINTER_EVENTS_VISIBLESTROKE:
+    case StylePointerEvents::Visiblestroke:
       if (aFrame->StyleVisibility()->IsVisible()) {
         flags |= SVG_HIT_TEST_STROKE;
       }
       break;
-    case NS_STYLE_POINTER_EVENTS_VISIBLE:
+    case StylePointerEvents::Visible:
       if (aFrame->StyleVisibility()->IsVisible()) {
         flags |= SVG_HIT_TEST_FILL | SVG_HIT_TEST_STROKE;
       }
       break;
-    case NS_STYLE_POINTER_EVENTS_PAINTED:
+    case StylePointerEvents::Painted:
       if (!aFrame->StyleSVG()->mFill.kind.IsNone()) flags |= SVG_HIT_TEST_FILL;
       if (!aFrame->StyleSVG()->mStroke.kind.IsNone())
         flags |= SVG_HIT_TEST_STROKE;
       if (aFrame->StyleSVG()->mStrokeOpacity) flags |= SVG_HIT_TEST_CHECK_MRECT;
       break;
-    case NS_STYLE_POINTER_EVENTS_FILL:
+    case StylePointerEvents::Fill:
       flags |= SVG_HIT_TEST_FILL;
       break;
-    case NS_STYLE_POINTER_EVENTS_STROKE:
+    case StylePointerEvents::Stroke:
       flags |= SVG_HIT_TEST_STROKE;
       break;
-    case NS_STYLE_POINTER_EVENTS_ALL:
+    case StylePointerEvents::All:
       flags |= SVG_HIT_TEST_FILL | SVG_HIT_TEST_STROKE;
       break;
     default:

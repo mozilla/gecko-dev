@@ -271,6 +271,10 @@ void AndroidDataEncoder::ProcessOutput(Sample::GlobalRef&& aSample,
   }
   AssertOnTaskQueue();
 
+  if (!mJavaEncoder) {
+    return;
+  }
+
   AutoRelease releaseSample(mJavaEncoder, aSample);
 
   BufferInfo::LocalRef info = aSample->Info();
@@ -373,12 +377,12 @@ RefPtr<MediaDataEncoder::EncodePromise> AndroidDataEncoder::ProcessDrain() {
       mInputBufferInfo->Set(0, 0, -1, MediaCodec::BUFFER_FLAG_END_OF_STREAM);
       mJavaEncoder->Input(nullptr, mInputBufferInfo, nullptr);
       mDrainState = DrainState::DRAINING;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case DrainState::DRAINING:
       if (mEncodedData.IsEmpty()) {
         return mDrainPromise.Ensure(__func__);  // Pending promise.
       }
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case DrainState::DRAINED:
       if (mEncodedData.Length() > 0) {
         EncodedData pending;

@@ -17,7 +17,6 @@
 #include "nsIApplicationCacheChannel.h"
 #include "nsIChannelWithDivertableParentListener.h"
 #include "nsIProtocolProxyCallback.h"
-#include "nsIStreamTransportService.h"
 #include "nsIHttpAuthenticableChannel.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsIThreadRetargetableRequest.h"
@@ -27,14 +26,12 @@
 #include "ADivertableParentChannel.h"
 #include "AutoClose.h"
 #include "nsIStreamListener.h"
-#include "nsISupportsPrimitives.h"
 #include "nsICorsPreflightCallback.h"
 #include "AlternateServices.h"
 #include "nsIRaceCacheWithNetwork.h"
 #include "mozilla/extensions/PStreamFilterParent.h"
 #include "mozilla/Mutex.h"
 #include "nsIProcessSwitchRequestor.h"
-#include "nsIRemoteTab.h"
 
 class nsDNSPrefetch;
 class nsICancelable;
@@ -603,7 +600,7 @@ class nsHttpChannel final : public HttpBaseChannel,
  private:
   nsCOMPtr<nsICancelable> mProxyRequest;
 
-  RefPtr<nsInputStreamPump> mTransactionPump;
+  nsCOMPtr<nsIRequest> mTransactionPump;
   RefPtr<HttpTransactionShell> mTransaction;
 
   uint64_t mLogicalOffset;
@@ -654,7 +651,7 @@ class nsHttpChannel final : public HttpBaseChannel,
 
   // Gets computed during ComputeCrossOriginOpenerPolicyMismatch so we have
   // the channel's policy even if we don't know policy initiator.
-  Maybe<nsILoadInfo::CrossOriginOpenerPolicy> mComputedCrossOriginOpenerPolicy;
+  nsILoadInfo::CrossOriginOpenerPolicy mComputedCrossOriginOpenerPolicy;
 
   bool mCacheOpenWithPriority;
   uint32_t mCacheQueueSizeWhenOpen;

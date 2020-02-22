@@ -23,8 +23,8 @@ class PerftestResultsHandler(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, gecko_profile=False, power_test=False,
-                 cpu_test=False, memory_test=False, app=None, with_conditioned_profile=False,
-                 **kwargs):
+                 cpu_test=False, memory_test=False, app=None,
+                 no_conditioned_profile=False, **kwargs):
         self.gecko_profile = gecko_profile
         self.power_test = power_test
         self.cpu_test = cpu_test
@@ -34,9 +34,10 @@ class PerftestResultsHandler(object):
         self.page_timeout_list = []
         self.images = []
         self.supporting_data = None
+        self.fission_enabled = kwargs.get('extra_prefs', {}).get('fission.autostart', False)
         self.browser_version = None
         self.browser_name = None
-        self.with_conditioned_profile = with_conditioned_profile
+        self.no_conditioned_profile = no_conditioned_profile
 
     @abstractmethod
     def add(self, new_result_json):
@@ -175,8 +176,10 @@ class RaptorResultsHandler(PerftestResultsHandler):
         # add to results
         LOG.info("received results in RaptorResultsHandler.add")
         new_result = RaptorTestResult(new_result_json)
-        if self.with_conditioned_profile:
-            new_result.extra_options.append('condprof')
+        if self.no_conditioned_profile:
+            new_result.extra_options.append('nocondprof')
+        if self.fission_enabled:
+            new_result.extra_options.append('fission')
         self.results.append(new_result)
 
     def summarize_and_output(self, test_config, tests, test_names):
@@ -236,7 +239,7 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
         # not using control server with bt
         pass
 
-    def parse_browsertime_json(self, raw_btresults):
+    def parse_browsertime_json(self, raw_btresults, page_cycles, cold, browser_cycles):
         """
         Receive a json blob that contains the results direct from the browsertime tool. Parse
         out the values that we wish to use and add those to our result object. That object will
@@ -385,9 +388,25 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
 
         results = []
 
+        # Do some preliminary results validation. When running cold page-load, the results will
+        # be all in one entry already, as browsertime groups all cold page-load iterations in
+        # one results entry with all replicates within. When running warm page-load, there will
+        # be one results entry for every warm page-load iteration; with one single replicate
+        # inside each.
+        if cold:
+            if len(raw_btresults) == 0:
+                raise MissingResultsError("Missing results for all cold browser cycles.")
+        else:
+            if len(raw_btresults) != int(page_cycles):
+                raise MissingResultsError("Missing results for at least 1 warm page-cycle.")
+
+        # now parse out the values
         for raw_result in raw_btresults:
             if not raw_result['browserScripts']:
-                raise ValueError("Browsertime produced no measurements.")
+                raise MissingResultsError("Browsertime cycle produced no measurements.")
+
+            if raw_result['browserScripts'][0].get('timings') is None:
+                raise MissingResultsError("Browsertime cycle is missing all timings")
 
             # Desktop chrome doesn't have `browser` scripts data available for now
             bt_browser = raw_result['browserScripts'][0].get('browser', None)
@@ -406,8 +425,8 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
             else:
                 # extracting values from browserScripts and statistics
                 for bt, raptor in conversion:
-                    # skip fnbpaint measurement on chrome
-                    if self.app and 'chrome' in self.app.lower() and bt == 'fnbpaint':
+                    # chrome we just measure fcp and loadtime; skip fnbpaint and dcf
+                    if self.app and 'chrome' in self.app.lower() and bt in ('fnbpaint', 'dcf'):
                         continue
 
                     # chrome currently uses different names (and locations) for some metrics
@@ -424,7 +443,8 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
                             bt_result['measurements'][bt] = []
                         val = _get_raptor_val(cycle['timings'], raptor)
                         if not val:
-                            continue
+                            raise MissingResultsError("Browsertime cycle missing {} measurement"
+                                                      .format(raptor))
                         bt_result['measurements'][bt].append(val)
 
                     # let's add the browsertime statistics; we'll use those for overall values
@@ -439,7 +459,7 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
 
         return results
 
-    def _extract_vmetrics(self, browsertime_json, browsertime_results):
+    def _extract_vmetrics(self, test_name, browsertime_json, browsertime_results):
         # The visual metrics task expects posix paths.
         def _normalized_join(*args):
             path = os.path.join(*args)
@@ -453,7 +473,8 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
             # mapping expected by the visual metrics task
             vfiles = res.get("files", {}).get("video", [])
             return [{"json_location": _normalized_join(reldir, "browsertime.json"),
-                     "video_location": _normalized_join(reldir, vfile)}
+                     "video_location": _normalized_join(reldir, vfile),
+                     "test_name": test_name}
                     for vfile in vfiles]
 
         vmetrics = []
@@ -494,6 +515,7 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
         run_local = test_config.get('run_local', False)
 
         for test in tests:
+            test_name = test['name']
             bt_res_json = os.path.join(self.result_dir_for_test(test), 'browsertime.json')
             if os.path.exists(bt_res_json):
                 LOG.info("found browsertime results at %s" % bt_res_json)
@@ -511,11 +533,14 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
                 raise
 
             if not run_local:
-                video_files = self._extract_vmetrics(bt_res_json, raw_btresults)
+                video_files = self._extract_vmetrics(test_name, bt_res_json, raw_btresults)
                 if video_files:
                     video_jobs.extend(video_files)
 
-            for new_result in self.parse_browsertime_json(raw_btresults):
+            for new_result in self.parse_browsertime_json(raw_btresults,
+                                                          test['page_cycles'],
+                                                          test['cold'],
+                                                          test['browser_cycles']):
 
                 def _new_pageload_result(new_result):
                     # add additional info not from the browsertime json
@@ -535,9 +560,19 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
                     # `extra_options` will be populated with Gecko profiling flags in
                     # the future.
                     new_result['extra_options'] = []
+                    if self.no_conditioned_profile:
+                        new_result['extra_options'].append('nocondprof')
+                    if self.fission_enabled:
+                        new_result['extra_options'].append('fission')
 
-                    if self.with_conditioned_profile:
-                        new_result['extra_options'].append('condprof')
+                    # TODO: Once Bug 1593198 is fixed remove this part
+                    # Currently perfherder doesn't split data / recognize 'application` and for
+                    # browsertime tests we don't use the browser name in the test name as we use
+                    # simplified test INIs; therefore in order to differentiate in perfherder
+                    # between browsers/apps, until Bug 1593198 is fixed, we must add the app name
+                    # to the perfherder data extraOptions fields
+                    if self.app != "firefox":
+                        new_result['extra_options'].append(self.app)
 
                     return new_result
 
@@ -589,12 +624,34 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
         if not self.gecko_profile:
             validate_success = self._validate_treeherder_data(output, out_perfdata)
 
-        # Dumping the video list for the visual metrics task at the root of
-        # the browsertime results dir.
+        # Dumping the video list and application metadata for the visual metrics task at the
+        # root of the browsertime results dir.
         if len(video_jobs) > 0:
             jobs_file = os.path.join(self.result_dir(), "jobs.json")
             LOG.info("Writing %d video jobs into %s" % (len(video_jobs), jobs_file))
             with open(jobs_file, "w") as f:
                 f.write(json.dumps({"jobs": video_jobs}))
 
+            # file that will contain browser application data so vismet task can grab it
+            # and use it inside its perfherder data output; at this point the version is
+            # not available for all apps/browsers so if it doesn't exist just set it to 'n/a'
+            if self.browser_version is None:
+                self.browser_version = "n/a"
+
+            app_data = {
+                'application': {
+                    'name': self.browser_name,
+                    'version': self.browser_version,
+                },
+            }
+
+            app_file = os.path.join(self.result_dir(), "application.json")
+            LOG.info("Writing application data {} into {}".format(app_data, app_file))
+            with open(app_file, "w") as f:
+                f.write(json.dumps(app_data))
+
         return success and validate_success
+
+
+class MissingResultsError(Exception):
+    pass

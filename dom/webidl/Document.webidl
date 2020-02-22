@@ -23,6 +23,7 @@ interface URI;
 interface nsIDocShell;
 interface nsILoadGroup;
 interface nsIReferrerInfo;
+interface nsIPermissionDelegateHandler;
 interface XULCommandDispatcher;
 
 enum VisibilityState { "hidden", "visible" };
@@ -287,24 +288,22 @@ partial interface Document {
 partial interface Document {
   // Note: Per spec the 'S' in these two is lowercase, but the "Moz"
   // versions have it uppercase.
-  [LenientSetter, Unscopable, Func="Document::IsUnprefixedFullscreenEnabled"]
+  [LenientSetter, Unscopable]
   readonly attribute boolean fullscreen;
   [BinaryName="fullscreen"]
   readonly attribute boolean mozFullScreen;
-  [LenientSetter, Func="Document::IsUnprefixedFullscreenEnabled", NeedsCallerType]
+  [LenientSetter, NeedsCallerType]
   readonly attribute boolean fullscreenEnabled;
   [BinaryName="fullscreenEnabled", NeedsCallerType]
   readonly attribute boolean mozFullScreenEnabled;
 
-  [Throws, Func="Document::IsUnprefixedFullscreenEnabled"]
+  [Throws]
   Promise<void> exitFullscreen();
   [Throws, BinaryName="exitFullscreen"]
   Promise<void> mozCancelFullScreen();
 
   // Events handlers
-  [Func="Document::IsUnprefixedFullscreenEnabled"]
   attribute EventHandler onfullscreenchange;
-  [Func="Document::IsUnprefixedFullscreenEnabled"]
   attribute EventHandler onfullscreenerror;
 };
 
@@ -318,12 +317,14 @@ partial interface Document {
   attribute EventHandler onpointerlockerror;
 };
 
+// Mozilla-internal document extensions specific to error pages.
 partial interface Document {
+  [Func="Document::CallerIsTrustedAboutCertError"]
+  Promise<any> addCertException(boolean isTemporary);
+
   [Func="Document::CallerIsTrustedAboutCertError", Throws]
   FailedCertSecurityInfo getFailedCertSecurityInfo();
-};
 
-partial interface Document {
   [Func="Document::CallerIsTrustedAboutNetError", Throws]
   NetErrorInfo getNetErrorInfo();
 };
@@ -622,16 +623,6 @@ partial interface Document {
     readonly attribute FeaturePolicy featurePolicy;
 };
 
-/**
- * Document extensions to support devtools.
- */
-partial interface Document {
-  // Extension to give chrome JS the ability to set the window screen
-  // orientation while in RDM.
-  [ChromeOnly]
-  void setRDMPaneOrientation(OrientationType type, float rotationAngle);
-};
-
 // Extension to give chrome JS the ability to specify a non-default keypress
 // event model.
 partial interface Document {
@@ -685,4 +676,10 @@ partial interface Document {
 partial interface Document {
   [ChromeOnly, BinaryName="setUserHasInteracted"]
   void userInteractionForTesting();
+};
+
+// Extension for permission delegation.
+partial interface Document {
+  [Pref="permissions.delegation.enabled", ChromeOnly, Pure]
+  readonly attribute nsIPermissionDelegateHandler permDelegateHandler;
 };

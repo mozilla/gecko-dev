@@ -20,8 +20,8 @@ var tests = [
   },
   // about:neterror
   {
-    url: "data:application/vnd.mozilla.xul+xml,",
-    title: "data:application/vnd.mozilla.xul+xml,",
+    url: "data:application/xhtml+xml,",
+    title: "data:application/xhtml+xml,",
     isError: true,
   },
   // about:certerror
@@ -85,7 +85,7 @@ add_task(async function check_default_bookmark_title() {
   await promiseLoaded;
 
   // The offline mode test is only good if the page failed to load.
-  await ContentTask.spawn(browser, null, function() {
+  await SpecialPowers.spawn(browser, [], function() {
     Assert.equal(
       content.document.documentURI.substring(0, 14),
       "about:neterror",

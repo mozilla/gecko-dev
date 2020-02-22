@@ -32,7 +32,7 @@ loader.lazyRequireGetter(
 loader.lazyImporter(
   this,
   "VariablesView",
-  "resource://devtools/client/shared/widgets/VariablesView.jsm"
+  "resource://devtools/client/storage/VariablesView.jsm"
 );
 
 /**
@@ -79,21 +79,15 @@ const ITEM_NAME_MAX_LENGTH = 32;
 /**
  * StorageUI is controls and builds the UI of the Storage Inspector.
  *
- * @param {Front} front
- *        Front for the storage actor
- * @param {Target} target
- *        Interface for the page we're debugging
  * @param {Window} panelWin
  *        Window of the toolbox panel to populate UI in.
  */
 class StorageUI {
-  constructor(front, target, panelWin, toolbox) {
+  constructor(panelWin, toolbox) {
     EventEmitter.decorate(this);
-    this._target = target;
     this._window = panelWin;
     this._panelDoc = panelWin.document;
     this._toolbox = toolbox;
-    this.front = front;
     this.storageTypes = null;
     this.sidebarToggledOpen = null;
     this.shouldLoadMoreItems = true;
@@ -142,46 +136,8 @@ class StorageUI {
       this.searchBox.focus();
     });
 
-    this.front
-      .listStores()
-      .then(storageTypes => {
-        // When we are in the browser console we list indexedDBs internal to
-        // Firefox e.g. defined inside a .jsm. Because there is no way before this
-        // point to know whether or not we are inside the browser toolbox we have
-        // already fetched the hostnames of these databases.
-        //
-        // If we are not inside the browser toolbox we need to delete these
-        // hostnames.
-        if (!this._target.chrome && storageTypes.indexedDB) {
-          const hosts = storageTypes.indexedDB.hosts;
-          const newHosts = {};
-
-          for (const [host, dbs] of Object.entries(hosts)) {
-            if (SAFE_HOSTS_PREFIXES_REGEX.test(host)) {
-              newHosts[host] = dbs;
-            }
-          }
-
-          storageTypes.indexedDB.hosts = newHosts;
-        }
-
-        this.populateStorageTree(storageTypes);
-      })
-      .catch(e => {
-        if (!this._toolbox || this._toolbox._destroyer) {
-          // The toolbox is in the process of being destroyed... in this case throwing here
-          // is expected and normal so let's ignore the error.
-          return;
-        }
-
-        // The toolbox is open so the error is unexpected and real so let's log it.
-        console.error(e);
-      });
-
     this.onEdit = this.onEdit.bind(this);
-    this.front.on("stores-update", this.onEdit);
     this.onCleared = this.onCleared.bind(this);
-    this.front.on("stores-cleared", this.onCleared);
 
     this.handleKeypress = this.handleKeypress.bind(this);
     this._panelDoc.addEventListener("keypress", this.handleKeypress);
@@ -279,6 +235,81 @@ class StorageUI {
     this._treePopupDelete.addEventListener("command", this.onRemoveTreeItem);
   }
 
+  get currentTarget() {
+    return this._toolbox.targetList.targetFront;
+  }
+
+  async init() {
+    const { targetList } = this._toolbox;
+    this._onTargetAvailable = this._onTargetAvailable.bind(this);
+    this._onTargetDestroyed = this._onTargetDestroyed.bind(this);
+    await targetList.watchTargets(
+      [targetList.TYPES.FRAME],
+      this._onTargetAvailable,
+      this._onTargetDestroyed
+    );
+  }
+
+  async _onTargetAvailable({ type, targetFront, isTopLevel }) {
+    // Only support top level target and navigation to new processes.
+    // i.e. ignore additional targets created for remote <iframes>
+    if (!isTopLevel) {
+      return;
+    }
+
+    this.front = await targetFront.getFront("storage");
+    this.front.on("stores-update", this.onEdit);
+    this.front.on("stores-cleared", this.onCleared);
+    try {
+      const storageTypes = await this.front.listStores();
+      // When we are in the browser console we list indexedDBs internal to
+      // Firefox e.g. defined inside a .jsm. Because there is no way before this
+      // point to know whether or not we are inside the browser toolbox we have
+      // already fetched the hostnames of these databases.
+      //
+      // If we are not inside the browser toolbox we need to delete these
+      // hostnames.
+      if (!targetFront.chrome && storageTypes.indexedDB) {
+        const hosts = storageTypes.indexedDB.hosts;
+        const newHosts = {};
+
+        for (const [host, dbs] of Object.entries(hosts)) {
+          if (SAFE_HOSTS_PREFIXES_REGEX.test(host)) {
+            newHosts[host] = dbs;
+          }
+        }
+
+        storageTypes.indexedDB.hosts = newHosts;
+      }
+
+      this.populateStorageTree(storageTypes);
+    } catch (e) {
+      if (!this._toolbox || this._toolbox._destroyer) {
+        // The toolbox is in the process of being destroyed... in this case throwing here
+        // is expected and normal so let's ignore the error.
+        return;
+      }
+
+      // The toolbox is open so the error is unexpected and real so let's log it.
+      console.error(e);
+    }
+  }
+
+  _onTargetDestroyed({ type, targetFront, isTopLevel }) {
+    // Only support top level target and navigation to new processes.
+    // i.e. ignore additional targets created for remote <iframes>
+    if (!isTopLevel) {
+      return;
+    }
+
+    this.table.clear();
+    this.hideSidebar();
+    this.tree.clear();
+
+    this.front.off("stores-update", this.onEdit);
+    this.front.off("stores-cleared", this.onCleared);
+  }
+
   set animationsEnabled(value) {
     this._panelDoc.documentElement.classList.toggle("no-animate", !value);
   }
@@ -289,8 +320,6 @@ class StorageUI {
     this.table.off(TableWidget.EVENTS.CELL_EDIT, this.editItem);
     this.table.destroy();
 
-    this.front.off("stores-update", this.onEdit);
-    this.front.off("stores-cleared", this.onCleared);
     this._panelDoc.removeEventListener("keypress", this.handleKeypress);
     this.searchBox.removeEventListener("input", this.filterItems);
     this.searchBox = null;
@@ -719,19 +748,20 @@ class StorageUI {
           }
         }
 
-        this.actorSupportsAddItem = await this._target.actorHasMethod(
+        const target = this.currentTarget;
+        this.actorSupportsAddItem = await target.actorHasMethod(
           type,
           "addItem"
         );
-        this.actorSupportsRemoveItem = await this._target.actorHasMethod(
+        this.actorSupportsRemoveItem = await target.actorHasMethod(
           type,
           "removeItem"
         );
-        this.actorSupportsRemoveAll = await this._target.actorHasMethod(
+        this.actorSupportsRemoveAll = await target.actorHasMethod(
           type,
           "removeAll"
         );
-        this.actorSupportsRemoveAllSessionCookies = await this._target.actorHasMethod(
+        this.actorSupportsRemoveAllSessionCookies = await target.actorHasMethod(
           type,
           "removeAllSessionCookies"
         );
@@ -1067,9 +1097,13 @@ class StorageUI {
       }
 
       if (!columnName) {
-        console.error(
-          "Unable to localize table header type:" + type + " key:" + f.name
-        );
+        // Private fields are only displayed when running tests so there is no
+        // need to log an error if they are not localized.
+        if (!f.private) {
+          console.error(
+            "Unable to localize table header type:" + type + " key:" + f.name
+          );
+        }
       } else {
         columns[f.name] = columnName;
       }

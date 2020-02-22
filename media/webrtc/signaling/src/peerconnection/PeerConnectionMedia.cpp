@@ -14,12 +14,8 @@
 #include "signaling/src/jsep/JsepTransport.h"
 
 #include "nsContentUtils.h"
-#include "nsIURI.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsICancelable.h"
 #include "nsIIDNService.h"
 #include "nsILoadInfo.h"
-#include "nsIContentPolicy.h"
 #include "nsIProxyInfo.h"
 #include "nsIPrincipal.h"
 #include "mozilla/LoadInfo.h"
@@ -73,7 +69,7 @@ void PeerConnectionMedia::StunAddrsHandler::OnStunAddrsAvailable(
              (int)addrs.Length());
   if (pcm_) {
     pcm_->mStunAddrs = addrs;
-    pcm_->mLocalAddrsCompleted = true;
+    pcm_->mLocalAddrsRequestState = STUN_ADDR_REQUEST_COMPLETE;
     pcm_->FlushIceCtxOperationQueueIfReady();
     // If parent process returns 0 STUN addresses, change ICE connection
     // state to failed.
@@ -92,7 +88,7 @@ PeerConnectionMedia::PeerConnectionMedia(PeerConnectionImpl* parent)
       mSTSThread(mParent->GetSTSThread()),
       mForceProxy(false),
       mStunAddrsRequest(nullptr),
-      mLocalAddrsCompleted(false),
+      mLocalAddrsRequestState(STUN_ADDR_REQUEST_NONE),
       mTargetForDefaultLocalAddressLookupIsSet(false),
       mDestroyed(false) {
   if (XRE_IsContentProcess()) {
@@ -111,10 +107,14 @@ PeerConnectionMedia::~PeerConnectionMedia() {
 }
 
 void PeerConnectionMedia::InitLocalAddrs() {
+  if (mLocalAddrsRequestState == STUN_ADDR_REQUEST_PENDING) {
+    return;
+  }
   if (mStunAddrsRequest) {
+    mLocalAddrsRequestState = STUN_ADDR_REQUEST_PENDING;
     mStunAddrsRequest->SendGetStunAddrs();
   } else {
-    mLocalAddrsCompleted = true;
+    mLocalAddrsRequestState = STUN_ADDR_REQUEST_COMPLETE;
   }
 }
 
@@ -481,8 +481,8 @@ void PeerConnectionMedia::FlushIceCtxOperationQueueIfReady() {
   ASSERT_ON_THREAD(mMainThread);
 
   if (IsIceCtxReady()) {
-    for (auto& mQueuedIceCtxOperation : mQueuedIceCtxOperations) {
-      mQueuedIceCtxOperation->Run();
+    for (auto& queuedIceCtxOperation : mQueuedIceCtxOperations) {
+      queuedIceCtxOperation->Run();
     }
     mQueuedIceCtxOperations.clear();
   }
@@ -501,6 +501,14 @@ void PeerConnectionMedia::PerformOrEnqueueIceCtxOperation(
 
 void PeerConnectionMedia::GatherIfReady() {
   ASSERT_ON_THREAD(mMainThread);
+
+  // Init local addrs here so that if we re-gather after an ICE restart
+  // resulting from changing WiFi networks, we get new local addrs.
+  // Otherwise, we would reuse the addrs from the original WiFi network
+  // and the ICE restart will fail.
+  if (!mStunAddrs.Length()) {
+    InitLocalAddrs();
+  }
 
   // If we had previously queued gathering or ICE start, unqueue them
   mQueuedIceCtxOperations.clear();

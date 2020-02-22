@@ -29,8 +29,6 @@
 #include "mozilla/Telemetry.h"
 #include "GeckoProfiler.h"
 
-#include "nsIWindowsRegKey.h"
-#include "nsIFile.h"
 #include "plbase64.h"
 #include "nsIXULRuntime.h"
 #include "imgLoader.h"
@@ -2020,18 +2018,6 @@ void gfxWindowsPlatform::BuildContentDeviceData(ContentDeviceData* aOut) {
     DeviceManagerDx* dm = DeviceManagerDx::Get();
     dm->ExportDeviceInfo(&aOut->d3d11());
   }
-}
-
-bool gfxWindowsPlatform::SupportsPluginDirectDXGIDrawing() {
-  // Ensure devices initialization for plugin's DXGISurface. The devices are
-  // lazily initialized with WebRender to reduce memory usage.
-  EnsureDevicesInitialized();
-
-  DeviceManagerDx* dm = DeviceManagerDx::Get();
-  if (!dm->GetContentDevice() || !dm->TextureSharingWorks()) {
-    return false;
-  }
-  return true;
 }
 
 bool gfxWindowsPlatform::CheckVariationFontSupport() {

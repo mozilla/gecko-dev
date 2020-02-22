@@ -5,9 +5,11 @@
 
 "use strict";
 
-const { EVENTS } = require("../constants");
+const { EVENTS } = require("devtools/client/netmonitor/src/constants");
 const { CurlUtils } = require("devtools/client/shared/curl");
-const { fetchHeaders } = require("../utils/request-utils");
+const {
+  fetchHeaders,
+} = require("devtools/client/netmonitor/src/utils/request-utils");
 
 /**
  * This object is responsible for fetching additional HTTP
@@ -453,11 +455,16 @@ class FirefoxDataProvider {
   /**
    * The "webSocketClosed" message type handler.
    *
+   * @param {number} httpChannelId
    * @param {boolean} wasClean
    * @param {number} code
    * @param {string} reason
    */
-  async onWebSocketClosed(wasClean, code, reason) {}
+  async onWebSocketClosed(httpChannelId, wasClean, code, reason) {
+    if (this.actionsEnabled && this.actions.closeConnection) {
+      await this.actions.closeConnection(httpChannelId, wasClean, code, reason);
+    }
+  }
 
   /**
    * The "frameSent" message type handler.

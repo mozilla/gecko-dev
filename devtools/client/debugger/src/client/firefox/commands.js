@@ -32,6 +32,7 @@ import type {
   Grip,
   ThreadFront,
   ObjectFront,
+  ExpressionResult,
   SourcesPacket,
 } from "./types";
 
@@ -51,26 +52,27 @@ let eventBreakpoints: ?EventListenerActiveList;
 const CALL_STACK_PAGE_SIZE = 1000;
 
 type Dependencies = {
-  threadFront: ThreadFront,
-  tabTarget: Target,
   debuggerClient: DebuggerClient,
 };
 
 function setupCommands(dependencies: Dependencies) {
-  currentThreadFront = dependencies.threadFront;
-  currentTarget = dependencies.tabTarget;
   debuggerClient = dependencies.debuggerClient;
   targets = {};
   sourceActors = {};
   breakpoints = {};
 }
 
-function createObjectFront(grip: Grip) {
+function setupCommandsTopTarget(targetFront: Target) {
+  currentTarget = targetFront;
+  currentThreadFront = targetFront.threadFront;
+}
+
+function createObjectFront(grip: Grip): ObjectFront {
   if (!grip.actor) {
     throw new Error("Actor is missing");
   }
 
-  return debuggerClient.createObjectFront(grip);
+  return debuggerClient.createObjectFront(grip, currentThreadFront);
 }
 
 async function loadObjectProperties(root: Node) {
@@ -229,13 +231,11 @@ function maybeGenerateLogGroupId(options) {
   return options;
 }
 
-function maybeClearLogpoint(location: BreakpointLocation) {
+async function maybeClearLogpoint(location: BreakpointLocation) {
   const bp = breakpoints[locationKey(location)];
-  if (bp && bp.options.logGroupId && currentTarget.activeConsole) {
-    currentTarget.activeConsole.emit(
-      "clearLogpointMessages",
-      bp.options.logGroupId
-    );
+  if (bp && bp.options.logGroupId && currentTarget) {
+    const consoleFront = await currentTarget.getFront("console");
+    consoleFront.emit("clearLogpointMessages", bp.options.logGroupId);
   }
 }
 
@@ -261,7 +261,10 @@ function removeBreakpoint(location: PendingLocation) {
   return forEachThread(thread => thread.removeBreakpoint(location));
 }
 
-async function evaluateInFrame(script: Script, options: EvaluateParam) {
+function evaluateInFrame(
+  script: Script,
+  options: EvaluateParam
+): Promise<{ result: ExpressionResult }> {
   return evaluate(script, options);
 }
 
@@ -271,34 +274,39 @@ async function evaluateExpressions(scripts: Script[], options: EvaluateParam) {
 
 type EvaluateParam = { thread: string, frameId: ?FrameId };
 
-function evaluate(
+async function evaluate(
   script: ?Script,
   { thread, frameId }: EvaluateParam = {}
-): Promise<{ result: Grip | null }> {
+): Promise<{ result: ExpressionResult }> {
   const params = { thread, frameActor: frameId };
   if (!currentTarget || !script) {
-    return Promise.resolve({ result: null });
+    return { result: null };
   }
 
   const target = thread ? lookupTarget(thread) : currentTarget;
-  const console = target.activeConsole;
-  if (!console) {
-    return Promise.resolve({ result: null });
+  const consoleFront = await target.getFront("console");
+  if (!consoleFront) {
+    return { result: null };
   }
 
-  return console.evaluateJSAsync(script, params);
+  return consoleFront.evaluateJSAsync(script, params);
 }
 
-function autocomplete(
+async function autocomplete(
   input: string,
   cursor: number,
   frameId: ?string
 ): Promise<mixed> {
-  if (!currentTarget || !currentTarget.activeConsole || !input) {
-    return Promise.resolve({});
+  if (!currentTarget || !input) {
+    return {};
   }
+  const consoleFront = await currentTarget.getFront("console");
+  if (!consoleFront) {
+    return {};
+  }
+
   return new Promise(resolve => {
-    currentTarget.activeConsole.autocomplete(
+    consoleFront.autocomplete(
       input,
       cursor,
       result => resolve(result),
@@ -539,23 +547,6 @@ function fetchAncestorFramePositions(index: number) {
   currentThreadFront.fetchAncestorFramePositions(index);
 }
 
-function waitForSourceActor(
-  thread: string,
-  sourceActor: string
-): Promise<void> {
-  return new Promise(resolve => {
-    const listener = ({ source }) => {
-      if (source.actor == sourceActor) {
-        threadFront.off("newSource", listener);
-        resolve();
-      }
-    };
-
-    const threadFront = lookupThreadFront(thread);
-    threadFront.on("newSource", listener);
-  });
-}
-
 const clientCommands = {
   autocomplete,
   blackBox,
@@ -606,7 +597,6 @@ const clientCommands = {
   getFrontByID,
   timeWarp,
   fetchAncestorFramePositions,
-  waitForSourceActor,
 };
 
-export { setupCommands, clientCommands };
+export { setupCommands, setupCommandsTopTarget, clientCommands };

@@ -35,7 +35,6 @@
 #include "nsFlexContainerFrame.h"
 #include "nsFocusManager.h"
 #include "nsIScriptGlobalObject.h"
-#include "nsIURL.h"
 #include "nsContainerFrame.h"
 #include "nsIAnonymousContentCreator.h"
 #include "nsPresContext.h"
@@ -43,7 +42,6 @@
 #include "nsString.h"
 #include "nsUnicharUtils.h"
 #include "nsDOMCID.h"
-#include "nsIServiceManager.h"
 #include "nsDOMCSSAttrDeclaration.h"
 #include "nsNameSpaceManager.h"
 #include "nsContentList.h"
@@ -51,7 +49,6 @@
 #include "nsDOMTokenList.h"
 #include "nsError.h"
 #include "nsDOMString.h"
-#include "nsIScriptSecurityManager.h"
 #include "mozilla/dom/AnimatableBinding.h"
 #include "mozilla/dom/FeaturePolicyUtils.h"
 #include "mozilla/dom/HTMLDivElement.h"
@@ -103,16 +100,11 @@
 #include "nsGkAtoms.h"
 #include "ChildIterator.h"
 
-#include "nsIDOMEventListener.h"
-#include "nsIWebNavigation.h"
-#include "nsIBaseWindow.h"
 #include "nsIWidget.h"
 
 #include "nsNodeInfoManager.h"
-#include "nsICategoryManager.h"
 #include "nsGenericHTMLElement.h"
 #include "nsContentCreatorFunctions.h"
-#include "nsIControllers.h"
 #include "nsView.h"
 #include "nsViewManager.h"
 #include "nsIScrollableFrame.h"
@@ -164,7 +156,6 @@
 #include "nsIAutoCompletePopup.h"
 
 #include "nsISpeculativeConnect.h"
-#include "nsIIOService.h"
 #include "nsBlockFrame.h"
 
 #include "DOMMatrix.h"
@@ -1843,7 +1834,7 @@ void Element::SetSMILOverrideStyleDeclaration(DeclarationBlock& aDeclaration) {
   // that's been detached since the previous animation sample.)
   if (Document* doc = GetComposedDoc()) {
     if (PresShell* presShell = doc->GetPresShell()) {
-      presShell->RestyleForAnimation(this, StyleRestyleHint_RESTYLE_SMIL);
+      presShell->RestyleForAnimation(this, RestyleHint::RESTYLE_SMIL);
     }
   }
 }
@@ -2814,7 +2805,7 @@ void Element::GetEventTargetParentForLinks(EventChainPreVisitor& aVisitor) {
     // Set the status bar similarly for mouseover and focus
     case eMouseOver:
       aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case eFocus: {
       InternalFocusEvent* focusEvent = aVisitor.mEvent->AsFocusEvent();
       if (!focusEvent || !focusEvent->mIsRefocus) {
@@ -2829,7 +2820,7 @@ void Element::GetEventTargetParentForLinks(EventChainPreVisitor& aVisitor) {
     }
     case eMouseOut:
       aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case eBlur: {
       nsresult rv = LeaveLink(aVisitor.mPresContext);
       if (NS_SUCCEEDED(rv)) {

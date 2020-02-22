@@ -18,6 +18,11 @@ add_task(async function test_geo_permission_prompt() {
   await testPrompt(PermissionUI.GeolocationPermissionPrompt);
 });
 
+// Tests that XRPermissionPrompt works as expected
+add_task(async function test_xr_permission_prompt() {
+  await testPrompt(PermissionUI.XRPermissionPrompt);
+});
+
 // Tests that DesktopNotificationPermissionPrompt works as expected
 add_task(async function test_desktop_notification_permission_prompt() {
   Services.prefs.setBoolPref(
@@ -105,15 +110,9 @@ async function testPrompt(Prompt) {
         Prompt == PermissionUI.DesktopNotificationPermissionPrompt;
       let isPersistentStoragePrompt =
         Prompt == PermissionUI.PersistentStoragePermissionPrompt;
-      let isStorageAccessPrompt =
-        Prompt == PermissionUI.StorageAccessPermissionPrompt;
 
       let expectedSecondaryActionsCount =
-        isNotificationPrompt ||
-        isPersistentStoragePrompt ||
-        isStorageAccessPrompt
-          ? 2
-          : 1;
+        isNotificationPrompt || isPersistentStoragePrompt ? 2 : 1;
       Assert.equal(
         notification.secondaryActions.length,
         expectedSecondaryActionsCount,

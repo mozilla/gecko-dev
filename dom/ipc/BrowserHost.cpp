@@ -207,6 +207,16 @@ BrowserHost::NotifyResolutionChanged(void) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+BrowserHost::NotifyThemeChanged(void) {
+  if (!mRoot) {
+    return NS_OK;
+  }
+  VisitAll(
+      [](BrowserParent* aBrowserParent) { aBrowserParent->ThemeChanged(); });
+  return NS_OK;
+}
+
 /* void deprioritize (); */
 NS_IMETHODIMP
 BrowserHost::Deprioritize(void) {
@@ -300,17 +310,6 @@ BrowserHost::GetHasBeforeUnload(bool* aHasBeforeUnload) {
       });
 
   *aHasBeforeUnload = result;
-  return NS_OK;
-}
-
-/* readonly attribute Element ownerElement; */
-NS_IMETHODIMP
-BrowserHost::GetOwnerElement(mozilla::dom::Element** aOwnerElement) {
-  if (!mRoot) {
-    *aOwnerElement = nullptr;
-    return NS_OK;
-  }
-  *aOwnerElement = mRoot->GetOwnerElement();
   return NS_OK;
 }
 

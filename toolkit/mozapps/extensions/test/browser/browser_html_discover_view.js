@@ -294,7 +294,6 @@ add_task(async function setup() {
         "extensions.getAddons.discovery.api_url",
         `http://${AMO_TEST_HOST}/discoapi`,
       ],
-      ["extensions.htmlaboutaddons.discover.enabled", true],
       // Disable non-discopane recommendations to avoid unexpected discovery
       // API requests.
       ["extensions.htmlaboutaddons.recommendations.enabled", false],
@@ -821,6 +820,33 @@ add_task(async function csp_img_src() {
 
   apiHandler.unblockResponses();
   await cspPromise;
+
+  await closeView(win);
+});
+
+add_task(async function checkDiscopaneNotice() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.discovery.enabled", true],
+      ["datareporting.healthreport.uploadEnabled", true],
+      ["extensions.htmlaboutaddons.recommendations.enabled", true],
+      ["extensions.recommendations.hideNotice", false],
+    ],
+  });
+
+  let win = await loadInitialView("extension");
+  let messageBar = win.document.querySelector("message-bar.discopane-notice");
+  ok(messageBar, "Recommended notice should exist in extensions view");
+  await switchToDiscoView(win);
+  messageBar = win.document.querySelector("message-bar.discopane-notice");
+  ok(messageBar, "Recommended notice should exist in disco view");
+
+  messageBar.closeButton.click();
+  messageBar = win.document.querySelector("message-bar.discopane-notice");
+  ok(!messageBar, "Recommended notice should not exist in disco view");
+  await switchToNonDiscoView(win);
+  messageBar = win.document.querySelector("message-bar.discopane-notice");
+  ok(!messageBar, "Recommended notice should not exist in extensions view");
 
   await closeView(win);
 });

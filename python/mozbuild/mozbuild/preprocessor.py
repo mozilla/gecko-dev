@@ -324,14 +324,14 @@ class Preprocessor:
         for cmd, level in (
             ('define', 0),
             ('undef', 0),
-            ('if', sys.maxint),
-            ('ifdef', sys.maxint),
-            ('ifndef', sys.maxint),
+            ('if', sys.maxsize),
+            ('ifdef', sys.maxsize),
+            ('ifndef', sys.maxsize),
             ('else', 1),
             ('elif', 1),
             ('elifdef', 1),
             ('elifndef', 1),
-            ('endif', sys.maxint),
+            ('endif', sys.maxsize),
             ('expand', 0),
             ('literal', 0),
             ('filter', 0),
@@ -509,7 +509,9 @@ class Preprocessor:
                     self.processFile(input=input, output=out)
             if depfile:
                 mk = Makefile()
-                mk.create_rule([options.output]).add_dependencies(self.includes)
+                mk.create_rule(
+                    [six.ensure_text(options.output)]
+                ).add_dependencies(self.includes)
                 mk.dump(depfile)
                 depfile.close()
 
@@ -730,9 +732,7 @@ class Preprocessor:
         current = dict(self.filters)
         for f in filters:
             current[f] = getattr(self, 'filter_' + f)
-        filterNames = current.keys()
-        filterNames.sort()
-        self.filters = [(fn, current[fn]) for fn in filterNames]
+        self.filters = [(fn, current[fn]) for fn in sorted(current.keys())]
         return
 
     def do_unfilter(self, args):
@@ -741,9 +741,7 @@ class Preprocessor:
         for f in filters:
             if f in current:
                 del current[f]
-        filterNames = current.keys()
-        filterNames.sort()
-        self.filters = [(fn, current[fn]) for fn in filterNames]
+        self.filters = [(fn, current[fn]) for fn in sorted(current.keys())]
         return
 
     # Filters
@@ -820,7 +818,7 @@ class Preprocessor:
         else:
             abspath = os.path.abspath(args.name)
             self.curdir = os.path.dirname(abspath)
-            self.includes.add(abspath)
+            self.includes.add(six.ensure_text(abspath))
             if self.topobjdir and path_starts_with(abspath, self.topobjdir):
                 abspath = '$OBJDIR' + abspath[len(self.topobjdir):]
             elif self.topsrcdir and path_starts_with(abspath, self.topsrcdir):

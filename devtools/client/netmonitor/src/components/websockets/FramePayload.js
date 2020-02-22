@@ -37,7 +37,9 @@ const {
 const Accordion = createFactory(
   require("devtools/client/shared/components/Accordion")
 );
-const RawData = createFactory(require("./RawData"));
+const RawData = createFactory(
+  require("devtools/client/netmonitor/src/components/websockets/RawData")
+);
 loader.lazyGetter(this, "JSONPreview", function() {
   return createFactory(
     require("devtools/client/netmonitor/src/components/JSONPreview")
@@ -236,9 +238,7 @@ class FramePayload extends Component {
             },
           ],
         },
-        header: `${this.state.formattedDataTitle} (${getFormattedSize(
-          this.state.payload.length
-        )})`,
+        header: `${this.state.formattedDataTitle}`,
         id: "ws-frame-formattedData",
         opened: true,
       });

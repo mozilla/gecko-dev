@@ -73,21 +73,25 @@ const stateManager = {
       case "uninstalled":
         break;
       case "disabled":
-        rollout.setSetting(TRR_MODE_PREF, 0);
+        await rollout.setSetting(TRR_MODE_PREF, 0);
         break;
       case "manuallyDisabled":
-        browser.experiments.preferences.clearUserPref(DOH_SELF_ENABLED_PREF);
+        await browser.experiments.preferences.clearUserPref(
+          DOH_SELF_ENABLED_PREF
+        );
         break;
       case "UIOk":
-        rollout.setSetting(DOH_SELF_ENABLED_PREF, true);
+        await rollout.setSetting(DOH_SELF_ENABLED_PREF, true);
         break;
       case "enabled":
-        rollout.setSetting(TRR_MODE_PREF, 2);
-        rollout.setSetting(DOH_SELF_ENABLED_PREF, true);
+        await rollout.setSetting(TRR_MODE_PREF, 2);
+        await rollout.setSetting(DOH_SELF_ENABLED_PREF, true);
         break;
       case "UIDisabled":
-        rollout.setSetting(TRR_MODE_PREF, 5);
-        browser.experiments.preferences.clearUserPref(DOH_SELF_ENABLED_PREF);
+        await rollout.setSetting(TRR_MODE_PREF, 5);
+        await browser.experiments.preferences.clearUserPref(
+          DOH_SELF_ENABLED_PREF
+        );
         break;
     }
 
@@ -189,16 +193,10 @@ const stateManager = {
     return !doorhangerShown;
   },
 
-  async showDoorHangerAndEnableDoH() {
-    browser.experiments.doorhanger.onDoorhangerAccept.addListener(
-      rollout.doorhangerAcceptListener
-    );
+  async showDoorhanger() {
+    rollout.addDoorhangerListeners();
 
-    browser.experiments.doorhanger.onDoorhangerDecline.addListener(
-      rollout.doorhangerDeclineListener
-    );
-
-    await browser.experiments.doorhanger.show({
+    let doorhangerShown = await browser.experiments.doorhanger.show({
       name: browser.i18n.getMessage("doorhangerName"),
       text: "<> " + browser.i18n.getMessage("doorhangerBody"),
       okLabel: browser.i18n.getMessage("doorhangerButtonOk"),
@@ -209,9 +207,15 @@ const stateManager = {
       ),
     });
 
-    // By default, enable DoH when showing the doorhanger,
-    // if heuristics returned no reason to not run.
-    await stateManager.setState("enabled");
+    if (!doorhangerShown) {
+      // The profile was created after the go-live date of the privacy statement
+      // that included DoH. Treat it as accepted.
+      log("Profile is new, doorhanger not shown.");
+      await stateManager.setState("UIOk");
+      await stateManager.rememberDoorhangerDecision("NewProfile");
+      await stateManager.rememberDoorhangerShown();
+      rollout.removeDoorhangerListeners();
+    }
   },
 };
 
@@ -227,11 +231,32 @@ const rollout = {
     return this._isTesting;
   },
 
+  addDoorhangerListeners() {
+    browser.experiments.doorhanger.onDoorhangerAccept.addListener(
+      rollout.doorhangerAcceptListener
+    );
+
+    browser.experiments.doorhanger.onDoorhangerDecline.addListener(
+      rollout.doorhangerDeclineListener
+    );
+  },
+
+  removeDoorhangerListeners() {
+    browser.experiments.doorhanger.onDoorhangerAccept.removeListener(
+      rollout.doorhangerAcceptListener
+    );
+
+    browser.experiments.doorhanger.onDoorhangerDecline.removeListener(
+      rollout.doorhangerDeclineListener
+    );
+  },
+
   async doorhangerAcceptListener(tabId) {
     log("Doorhanger accepted on tab", tabId);
     await stateManager.setState("UIOk");
     await stateManager.rememberDoorhangerDecision("UIOk");
     await stateManager.rememberDoorhangerShown();
+    rollout.removeDoorhangerListeners();
   },
 
   async doorhangerDeclineListener(tabId) {
@@ -243,16 +268,23 @@ const rollout = {
     browser.experiments.heuristics.sendHeuristicsPing("disable_doh", results);
     await stateManager.rememberDisableHeuristics();
     await stateManager.rememberDoorhangerShown();
+    rollout.removeDoorhangerListeners();
   },
 
   async heuristics(evaluateReason) {
+    let shouldRunHeuristics = await stateManager.shouldRunHeuristics();
+
+    if (!shouldRunHeuristics) {
+      return;
+    }
+
     // Run heuristics defined in heuristics.js and experiments/heuristics/api.js
     let results;
 
     if (await rollout.isTesting()) {
       results = await browser.experiments.preferences.getCharPref(
         MOCK_HEURISTICS_PREF,
-        "disable_doh"
+        `{ "test": "disable_doh" }`
       );
       results = JSON.parse(results);
     } else {
@@ -270,7 +302,14 @@ const rollout = {
     results.evaluateReason = evaluateReason;
     browser.experiments.heuristics.sendHeuristicsPing(decision, results);
 
-    return decision;
+    if (decision === "disable_doh") {
+      await stateManager.setState("disabled");
+    } else {
+      await stateManager.setState("enabled");
+      if (await stateManager.shouldShowDoorhanger()) {
+        await stateManager.showDoorhanger();
+      }
+    }
   },
 
   async getSetting(name, defaultValue) {
@@ -347,9 +386,6 @@ const rollout = {
   async trrModePrefHasUserValue(event, results) {
     results.evaluateReason = event;
 
-    // Reset skipHeuristicsCheck
-    await this.setSetting(DOH_SKIP_HEURISTICS_PREF, false);
-
     // This confirms if a user has modified DoH (via the TRR_MODE_PREF) outside of the addon
     // This runs only on the FIRST time that add-on is enabled and if the stored pref
     // mismatches the current pref (Meaning something outside of the add-on has changed it)
@@ -363,6 +399,7 @@ const rollout = {
       );
 
       browser.experiments.preferences.clearUserPref(DOH_SELF_ENABLED_PREF);
+      await this.setSetting(DOH_SKIP_HEURISTICS_PREF, true);
       await stateManager.rememberDisableHeuristics();
     }
   },
@@ -370,8 +407,15 @@ const rollout = {
   async enterprisePolicyCheck(event, results) {
     results.evaluateReason = event;
 
-    // Reset skipHeuristicsCheck
-    await this.setSetting(DOH_SKIP_HEURISTICS_PREF, false);
+    // Check if trrModePrefHasUserValue determined to not enable add-on on first run
+    let skipHeuristicsCheck = await rollout.getSetting(
+      DOH_SKIP_HEURISTICS_PREF,
+      false
+    );
+
+    if (skipHeuristicsCheck) {
+      return;
+    }
 
     // Check for Policies before running the rest of the heuristics
     let policyEnableDoH = await browser.experiments.heuristics.checkEnterprisePolicies();
@@ -467,95 +511,73 @@ const rollout = {
       await this.enterprisePolicyCheck("startup", results);
     }
 
-    if (await stateManager.shouldRunHeuristics()) {
-      await this.runStartupHeuristics();
+    if (!(await stateManager.shouldRunHeuristics())) {
+      return;
+    }
+
+    let networkStatus = (await browser.networkStatus.getLinkInfo()).status;
+    let captiveState = "unknown";
+    try {
+      captiveState = await browser.captivePortal.getState();
+    } catch (e) {
+      // Captive Portal Service is disabled.
+    }
+
+    if (networkStatus == "up" && captiveState != "locked_portal") {
+      await rollout.heuristics("startup");
     }
 
     // Listen for network change events to run heuristics again
-    browser.networkStatus.onConnectionChanged.addListener(async () => {
-      log("onConnectionChanged");
-
-      let linkInfo = await browser.networkStatus.getLinkInfo();
-      if (linkInfo.status !== "up") {
-        log("Link down.");
-        if (rollout.networkSettledTimeout) {
-          log("Canceling queued heuristics run.");
-          clearTimeout(rollout.networkSettledTimeout);
-          rollout.networkSettledTimeout = null;
-        }
-        return;
-      }
-
-      log("Queing a heuristics run in 60s, will cancel if network fluctuates.");
-      let gracePeriod = (await rollout.isTesting()) ? 0 : 60000;
-      rollout.networkSettledTimeout = setTimeout(async () => {
-        log("No network fluctuation for 60 seconds, running heuristics.");
-        // Only run the heuristics if user hasn't explicitly enabled/disabled DoH
-        let shouldRunHeuristics = await stateManager.shouldRunHeuristics();
-        let shouldShowDoorhanger = await stateManager.shouldShowDoorhanger();
-
-        if (!shouldRunHeuristics) {
-          return;
-        }
-
-        const netChangeDecision = await rollout.heuristics("netChange");
-
-        if (netChangeDecision === "disable_doh") {
-          await stateManager.setState("disabled");
-        } else if (shouldShowDoorhanger) {
-          await stateManager.showDoorHangerAndEnableDoH();
-        } else {
-          await stateManager.setState("enabled");
-        }
-      }, gracePeriod);
-    });
+    browser.networkStatus.onConnectionChanged.addListener(
+      rollout.onConnectionChanged
+    );
 
     // Listen to the captive portal when it unlocks
-    browser.captivePortal.onConnectivityAvailable.addListener(async () => {
-      log("Captive portal onConnectivityAvailable, running heuristics.");
-      if (rollout.networkSettledTimeout) {
-        log("Canceling queued heuristics run.");
-        clearTimeout(rollout.networkSettledTimeout);
-        rollout.networkSettledTimeout = null;
-      }
-
-      let shouldRunHeuristics = await stateManager.shouldRunHeuristics();
-
-      if (!shouldRunHeuristics) {
-        return;
-      }
-
-      await this.runStartupHeuristics();
-    });
+    try {
+      browser.captivePortal.onStateChange.addListener(
+        rollout.onCaptiveStateChanged
+      );
+    } catch (e) {
+      // Captive Portal Service is disabled.
+    }
   },
 
-  async runStartupHeuristics() {
-    let decision = await this.heuristics("startup");
-    let shouldShowDoorhanger = await stateManager.shouldShowDoorhanger();
-    if (decision === "disable_doh") {
-      await stateManager.setState("disabled");
+  async onConnectionChanged({ status }) {
+    log("onConnectionChanged", status);
 
-      // If the heuristics say to enable DoH, determine if the doorhanger
-      // should be shown
-    } else if (shouldShowDoorhanger) {
-      await stateManager.showDoorHangerAndEnableDoH();
-    } else {
-      // Doorhanger has been shown before and did not opt-out
-      await stateManager.setState("enabled");
+    if (status != "up") {
+      return;
+    }
+
+    let captiveState = "unknown";
+    try {
+      captiveState = await browser.captivePortal.getState();
+    } catch (e) {
+      // Captive Portal Service is disabled.
+    }
+
+    if (captiveState == "locked_portal") {
+      return;
+    }
+
+    // The network is up and we don't know that we're in a locked portal.
+    // Run heuristics. If we detect a portal later, we'll run heuristics again
+    // when it's unlocked. In that case, this run will likely have failed.
+    await rollout.heuristics("netchange");
+  },
+
+  async onCaptiveStateChanged({ state }) {
+    log("onCaptiveStateChanged", state);
+    // unlocked_portal means we were previously in a locked portal and then
+    // network access was granted.
+    if (state == "unlocked_portal") {
+      await rollout.heuristics("netchange");
     }
   },
 };
 
 const setup = {
   async start() {
-    DEBUG = await browser.experiments.preferences.getBoolPref(
-      DOH_DEBUG_PREF,
-      false
-    );
-
-    // Run Migration First, to continue to run rest of start up logic
-    await rollout.migrateLocalStoragePrefs();
-
     const isAddonDisabled = await rollout.getSetting(DOH_DISABLED_PREF, false);
     const runAddonPref = await rollout.getSetting(DOH_ENABLED_PREF, false);
     const runAddonBypassPref = await rollout.getSetting(
@@ -591,21 +613,54 @@ const setup = {
     ) {
       rollout.init();
     } else {
-      log(
-        "Disabled, aborting! Watching `doh-rollout.enabled` pref for change event"
-      );
-      // Listen for changes to the enabled pref. TODO: Also listen after init
-      // and properly handle the value of enabled changing to false.
-      browser.experiments.preferences.onPrefChanged.addListener(
-        function listener() {
-          browser.experiments.preferences.onPrefChanged.removeListener(
-            listener
-          );
-          setup.start();
-        }
-      );
+      log("Disabled, aborting!");
     }
   },
 };
 
-setup.start();
+(async () => {
+  DEBUG = await browser.experiments.preferences.getBoolPref(
+    DOH_DEBUG_PREF,
+    false
+  );
+
+  // Run Migration First, to continue to run rest of start up logic
+  await rollout.migrateLocalStoragePrefs();
+
+  log("Watching `doh-rollout.enabled` pref");
+  browser.experiments.preferences.onPrefChanged.addListener(async () => {
+    let enabled = await rollout.getSetting(DOH_ENABLED_PREF, false);
+    if (enabled) {
+      setup.start();
+    } else {
+      // Reset the TRR mode if we were running normally with no user-interference.
+      if (await stateManager.shouldRunHeuristics()) {
+        await stateManager.setState("disabled");
+      }
+
+      // Remove our listeners.
+      browser.networkStatus.onConnectionChanged.removeListener(
+        rollout.onConnectionChanged
+      );
+
+      try {
+        browser.captivePortal.onStateChange.removeListener(
+          rollout.onCaptiveStateChanged
+        );
+      } catch (e) {
+        // Captive Portal Service is disabled.
+      }
+    }
+  });
+
+  if (await rollout.getSetting(DOH_ENABLED_PREF, false)) {
+    await setup.start();
+  } else if (
+    (await rollout.getSetting(DOH_DONE_FIRST_RUN_PREF, false)) &&
+    (await stateManager.shouldRunHeuristics())
+  ) {
+    // We previously had turned on DoH, and now after a restart we've been
+    // rolled back. Reset TRR mode.
+    await stateManager.setState("disabled");
+  }
+})();

@@ -13,6 +13,7 @@ typedef uint32_t HashNumber;
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "js/Array.h"
 #include "js/ArrayBuffer.h"
 #include "js/CompilationAndEvaluation.h"
 #include "js/CompileOptions.h"
@@ -25,6 +26,7 @@ typedef uint32_t HashNumber;
 #include "js/PropertySpec.h"
 #include "js/SourceText.h"
 #include "js/StructuredClone.h"
+#include "js/ValueArray.h"
 #include "js/Warnings.h"
 
 // Replacements for types that are too difficult for rust-bindgen.

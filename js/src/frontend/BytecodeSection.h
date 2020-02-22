@@ -14,14 +14,18 @@
 #include <stddef.h>  // ptrdiff_t, size_t
 #include <stdint.h>  // uint16_t, int32_t, uint32_t
 
-#include "jstypes.h"                   // JS_PUBLIC_API
-#include "NamespaceImports.h"          // ValueVector
+#include "jstypes.h"           // JS_PUBLIC_API
+#include "NamespaceImports.h"  // ValueVector
+
+#include "frontend/AbstractScope.h"    // AbstractScope
 #include "frontend/BytecodeOffset.h"   // BytecodeOffset
 #include "frontend/JumpList.h"         // JumpTarget
 #include "frontend/NameCollections.h"  // AtomIndexMap, PooledMapPtr
 #include "frontend/ObjLiteral.h"       // ObjLiteralCreationData
+#include "frontend/ParseInfo.h"        // ParseInfo
 #include "frontend/ParseNode.h"        // BigIntLiteral
 #include "frontend/SourceNotes.h"      // jssrcnote
+#include "frontend/Stencil.h"          // Stencils
 #include "gc/Barrier.h"                // GCPtrObject, GCPtrScope, GCPtrValue
 #include "gc/Rooting.h"                // JS::Rooted
 #include "js/GCVariant.h"              // GCPolicy<mozilla::Variant>
@@ -44,8 +48,8 @@ class BigIntLiteral;
 class ObjectBox;
 
 struct MOZ_STACK_CLASS GCThingList {
-  using ListType = mozilla::Variant<StackGCCellPtr, BigIntCreationData,
-                                    ObjLiteralCreationData, RegExpCreationData>;
+  using ListType = mozilla::Variant<JS::GCCellPtr, BigIntIndex,
+                                    ObjLiteralCreationData, RegExpIndex>;
   JS::RootedVector<ListType> vector;
 
   // Last emitted object.
@@ -58,8 +62,7 @@ struct MOZ_STACK_CLASS GCThingList {
 
   MOZ_MUST_USE bool append(Scope* scope, uint32_t* index) {
     *index = vector.length();
-    if (!vector.append(
-            mozilla::AsVariant(StackGCCellPtr(JS::GCCellPtr(scope))))) {
+    if (!vector.append(mozilla::AsVariant(JS::GCCellPtr(scope)))) {
       return false;
     }
     if (!firstScopeIndex) {
@@ -70,19 +73,17 @@ struct MOZ_STACK_CLASS GCThingList {
   MOZ_MUST_USE bool append(BigIntLiteral* literal, uint32_t* index) {
     *index = vector.length();
     if (literal->isDeferred()) {
-      return vector.append(mozilla::AsVariant(literal->creationData()));
+      return vector.append(mozilla::AsVariant(literal->index()));
     }
-    return vector.append(
-        mozilla::AsVariant(StackGCCellPtr(JS::GCCellPtr(literal->value()))));
+    return vector.append(mozilla::AsVariant(JS::GCCellPtr(literal->value())));
   }
   MOZ_MUST_USE bool append(RegExpLiteral* literal, uint32_t* index) {
     *index = vector.length();
     if (literal->isDeferred()) {
-      return vector.append(
-          mozilla::AsVariant(std::move(literal->creationData())));
+      return vector.append(mozilla::AsVariant(literal->index()));
     }
-    return vector.append(mozilla::AsVariant(
-        StackGCCellPtr(JS::GCCellPtr(literal->objbox()->object()))));
+    return vector.append(
+        mozilla::AsVariant(JS::GCCellPtr(literal->objbox()->object())));
   }
   MOZ_MUST_USE bool append(ObjLiteralCreationData&& objlit, uint32_t* index) {
     *index = vector.length();
@@ -91,14 +92,16 @@ struct MOZ_STACK_CLASS GCThingList {
   MOZ_MUST_USE bool append(ObjectBox* obj, uint32_t* index);
 
   uint32_t length() const { return vector.length(); }
-  MOZ_MUST_USE bool finish(JSContext* cx, mozilla::Span<JS::GCCellPtr> array);
+  MOZ_MUST_USE bool finish(JSContext* cx, ParseInfo& parseInfo,
+                           mozilla::Span<JS::GCCellPtr> array);
   void finishInnerFunctions();
 
-  Scope* getScope(size_t index) const {
-    return &vector[index].get().as<StackGCCellPtr>().get().as<Scope>();
+  AbstractScope getScope(size_t index) const {
+    auto& elem = vector[index].get();
+    return AbstractScope(&elem.as<JS::GCCellPtr>().as<Scope>());
   }
 
-  Scope* firstScope() const {
+  AbstractScope firstScope() const {
     MOZ_ASSERT(firstScopeIndex.isSome());
     return getScope(*firstScopeIndex);
   }
@@ -392,13 +395,9 @@ class PerScriptData {
 } /* namespace js */
 
 namespace JS {
-template <>
-struct GCPolicy<js::frontend::BigIntCreationData>
-    : JS::IgnoreGCPolicy<js::frontend::BigIntCreationData> {};
-
-template <>
-struct GCPolicy<js::frontend::RegExpCreationData>
-    : JS::IgnoreGCPolicy<js::frontend::RegExpCreationData> {};
+template <typename T>
+struct GCPolicy<js::frontend::TypedIndex<T>>
+    : JS::IgnoreGCPolicy<js::frontend::TypedIndex<T>> {};
 }  // namespace JS
 
 #endif /* frontend_BytecodeSection_h */

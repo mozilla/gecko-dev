@@ -19,6 +19,7 @@
 #include "IDBTransaction.h"
 #include "IndexedDatabase.h"
 #include "IndexedDatabaseInlines.h"
+#include "js/Array.h"  // JS::NewArrayObject, JS::SetArrayLength
 #include <mozIIPCBlobInputStream.h>
 #include "mozilla/BasicEvents.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
@@ -153,6 +154,12 @@ class MOZ_STACK_CLASS AutoSetCurrentTransaction final {
   ThreadLocal* mThreadLocal;
 
  public:
+  AutoSetCurrentTransaction(const AutoSetCurrentTransaction&) = delete;
+  AutoSetCurrentTransaction(AutoSetCurrentTransaction&&) = delete;
+  AutoSetCurrentTransaction& operator=(const AutoSetCurrentTransaction&) =
+      delete;
+  AutoSetCurrentTransaction& operator=(AutoSetCurrentTransaction&&) = delete;
+
   explicit AutoSetCurrentTransaction(IDBTransaction* aTransaction)
       : mTransaction(aTransaction),
         mPreviousTransaction(nullptr),
@@ -395,7 +402,7 @@ class MOZ_STACK_CLASS ResultHelper final : public IDBRequest::ResultCallback {
   nsresult GetResult(JSContext* aCx,
                      const nsTArray<StructuredCloneReadInfo>* aCloneInfos,
                      JS::MutableHandle<JS::Value> aResult) {
-    JS::Rooted<JSObject*> array(aCx, JS_NewArrayObject(aCx, 0));
+    JS::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
     if (NS_WARN_IF(!array)) {
       IDB_REPORT_INTERNAL_ERR();
       return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
@@ -404,7 +411,7 @@ class MOZ_STACK_CLASS ResultHelper final : public IDBRequest::ResultCallback {
     if (!aCloneInfos->IsEmpty()) {
       const uint32_t count = aCloneInfos->Length();
 
-      if (NS_WARN_IF(!JS_SetArrayLength(aCx, array, count))) {
+      if (NS_WARN_IF(!JS::SetArrayLength(aCx, array, count))) {
         IDB_REPORT_INTERNAL_ERR();
         return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
       }
@@ -443,7 +450,7 @@ class MOZ_STACK_CLASS ResultHelper final : public IDBRequest::ResultCallback {
 
   nsresult GetResult(JSContext* aCx, const nsTArray<Key>* aKeys,
                      JS::MutableHandle<JS::Value> aResult) {
-    JS::Rooted<JSObject*> array(aCx, JS_NewArrayObject(aCx, 0));
+    JS::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
     if (NS_WARN_IF(!array)) {
       IDB_REPORT_INTERNAL_ERR();
       return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
@@ -452,7 +459,7 @@ class MOZ_STACK_CLASS ResultHelper final : public IDBRequest::ResultCallback {
     if (!aKeys->IsEmpty()) {
       const uint32_t count = aKeys->Length();
 
-      if (NS_WARN_IF(!JS_SetArrayLength(aCx, array, count))) {
+      if (NS_WARN_IF(!JS::SetArrayLength(aCx, array, count))) {
         IDB_REPORT_INTERNAL_ERR();
         return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
       }
@@ -532,9 +539,7 @@ auto DeserializeStructuredCloneFiles(
         RefPtr<Blob> blob = Blob::Create(aDatabase->GetOwnerGlobal(), blobImpl);
         MOZ_ASSERT(blob);
 
-        const DebugOnly<StructuredCloneFile*> file =
-            files.EmplaceBack(StructuredCloneFile::eBlob, std::move(blob));
-        MOZ_ASSERT(file);
+        files.EmplaceBack(StructuredCloneFile::eBlob, std::move(blob));
 
         break;
       }
@@ -546,9 +551,7 @@ auto DeserializeStructuredCloneFiles(
 
         switch (blobOrMutableFile.type()) {
           case BlobOrMutableFile::Tnull_t: {
-            const DebugOnly<StructuredCloneFile*> file =
-                files.EmplaceBack(StructuredCloneFile::eMutableFile);
-            MOZ_ASSERT(file);
+            files.EmplaceBack(StructuredCloneFile::eMutableFile);
 
             break;
           }
@@ -564,9 +567,7 @@ auto DeserializeStructuredCloneFiles(
                 static_cast<IDBMutableFile*>(actor->GetDOMObject());
             MOZ_ASSERT(mutableFile);
 
-            const DebugOnly<StructuredCloneFile*> file =
-                files.EmplaceBack(mutableFile);
-            MOZ_ASSERT(file);
+            files.EmplaceBack(mutableFile);
 
             actor->ReleaseDOMObject();
 
@@ -593,15 +594,12 @@ auto DeserializeStructuredCloneFiles(
               Blob::Create(aDatabase->GetOwnerGlobal(), blobImpl);
           MOZ_ASSERT(blob);
 
-          const DebugOnly<StructuredCloneFile*> file = files.EmplaceBack(
-              StructuredCloneFile::eStructuredClone, std::move(blob));
-          MOZ_ASSERT(file);
+          files.EmplaceBack(StructuredCloneFile::eStructuredClone,
+                            std::move(blob));
         } else {
           MOZ_ASSERT(blobOrMutableFile.type() == BlobOrMutableFile::Tnull_t);
 
-          const DebugOnly<StructuredCloneFile*> file =
-              files.EmplaceBack(StructuredCloneFile::eStructuredClone);
-          MOZ_ASSERT(file);
+          files.EmplaceBack(StructuredCloneFile::eStructuredClone);
         }
 
         break;
@@ -611,9 +609,7 @@ auto DeserializeStructuredCloneFiles(
       case StructuredCloneFile::eWasmCompiled: {
         MOZ_ASSERT(blobOrMutableFile.type() == BlobOrMutableFile::Tnull_t);
 
-        const DebugOnly<StructuredCloneFile*> file =
-            files.EmplaceBack(serializedFile.type());
-        MOZ_ASSERT(file);
+        files.EmplaceBack(serializedFile.type());
 
         // Don't set mBlob, support for storing WebAssembly.Modules has been
         // removed in bug 1469395. Support for de-serialization of
@@ -639,6 +635,8 @@ StructuredCloneReadInfo DeserializeStructuredCloneReadInfo(
                                       /* aForPreprocess */ false),
       aDatabase, aSerialized.hasPreprocessInfo()};
 }
+
+// TODO: Remove duplication between DispatchErrorEvent and DispatchSucessEvent.
 
 void DispatchErrorEvent(IDBRequest* aRequest, nsresult aErrorCode,
                         IDBTransaction* aTransaction = nullptr,
@@ -670,6 +668,10 @@ void DispatchErrorEvent(IDBRequest* aRequest, nsresult aErrorCode,
     asct.emplace(aTransaction);
   }
 
+  if (transaction && transaction->IsInactive()) {
+    transaction->TransitionToActive();
+  }
+
   if (transaction) {
     IDB_LOG_MARK_CHILD_TRANSACTION_REQUEST(
         "Firing %s event with error 0x%x", "%s (0x%x)",
@@ -689,22 +691,25 @@ void DispatchErrorEvent(IDBRequest* aRequest, nsresult aErrorCode,
     return;
   }
 
-  MOZ_ASSERT(!transaction || transaction->CanAcceptRequests() ||
+  MOZ_ASSERT(!transaction || transaction->IsActive() ||
              transaction->IsAborted());
 
-  // Do not abort the transaction here if this request is failed due to the
-  // abortion of its transaction to ensure that the correct error cause of
-  // the abort event be set in IDBTransaction::FireCompleteOrAbortEvents()
-  // later.
-  if (transaction && transaction->CanAcceptRequests() &&
-      aErrorCode != NS_ERROR_DOM_INDEXEDDB_ABORT_ERR) {
-    WidgetEvent* const internalEvent = aEvent->WidgetEventPtr();
-    MOZ_ASSERT(internalEvent);
+  if (transaction && transaction->IsActive()) {
+    transaction->TransitionToInactive();
 
-    if (internalEvent->mFlags.mExceptionWasRaised) {
-      transaction->Abort(NS_ERROR_DOM_INDEXEDDB_ABORT_ERR);
-    } else if (doDefault) {
-      transaction->Abort(request);
+    // Do not abort the transaction here if this request is failed due to the
+    // abortion of its transaction to ensure that the correct error cause of
+    // the abort event be set in IDBTransaction::FireCompleteOrAbortEvents()
+    // later.
+    if (aErrorCode != NS_ERROR_DOM_INDEXEDDB_ABORT_ERR) {
+      WidgetEvent* const internalEvent = aEvent->WidgetEventPtr();
+      MOZ_ASSERT(internalEvent);
+
+      if (internalEvent->mFlags.mExceptionWasRaised) {
+        transaction->Abort(NS_ERROR_DOM_INDEXEDDB_ABORT_ERR);
+      } else if (doDefault) {
+        transaction->Abort(request);
+      }
     }
   }
 }
@@ -739,7 +744,10 @@ void DispatchSuccessEvent(ResultHelper* aResultHelper,
   request->SetResultCallback(aResultHelper);
 
   MOZ_ASSERT(aEvent);
-  MOZ_ASSERT_IF(transaction, transaction->CanAcceptRequests());
+
+  if (transaction && transaction->IsInactive()) {
+    transaction->TransitionToActive();
+  }
 
   if (transaction) {
     IDB_LOG_MARK_CHILD_TRANSACTION_REQUEST(
@@ -753,7 +761,7 @@ void DispatchSuccessEvent(ResultHelper* aResultHelper,
   }
 
   MOZ_ASSERT_IF(transaction,
-                transaction->CanAcceptRequests() && !transaction->IsAborted());
+                transaction->IsActive() && !transaction->IsAborted());
 
   IgnoredErrorResult rv;
   request->DispatchEvent(*aEvent, rv);
@@ -764,7 +772,9 @@ void DispatchSuccessEvent(ResultHelper* aResultHelper,
   WidgetEvent* const internalEvent = aEvent->WidgetEventPtr();
   MOZ_ASSERT(internalEvent);
 
-  if (transaction && transaction->CanAcceptRequests()) {
+  if (transaction && transaction->IsActive()) {
+    transaction->TransitionToInactive();
+
     if (internalEvent->mFlags.mExceptionWasRaised) {
       transaction->Abort(NS_ERROR_DOM_INDEXEDDB_ABORT_ERR);
     } else {
@@ -1199,7 +1209,7 @@ class MOZ_STACK_CLASS FileHandleResultHelper final
   }
 };
 
-already_AddRefed<File> ConvertActorToFile(
+MOZ_MUST_USE RefPtr<File> ConvertActorToFile(
     IDBFileHandle* aFileHandle, const FileRequestGetFileResponse& aResponse) {
   auto* const actor = static_cast<PendingIPCBlobChild*>(aResponse.fileChild());
 
@@ -1222,9 +1232,7 @@ already_AddRefed<File> ConvertActorToFile(
   const RefPtr<BlobImpl> blobImplSnapshot =
       new BlobImplSnapshot(blobImpl, static_cast<IDBFileHandle*>(aFileHandle));
 
-  RefPtr<File> file =
-      File::Create(mutableFile->GetOwnerGlobal(), blobImplSnapshot);
-  return file.forget();
+  return File::Create(mutableFile->GetOwnerGlobal(), blobImplSnapshot);
 }
 
 void DispatchFileHandleErrorEvent(IDBFileRequest* aFileRequest,
@@ -1789,7 +1797,7 @@ mozilla::ipc::IPCResult BackgroundFactoryRequestChild::RecvBlocked(
 
 BackgroundDatabaseChild::BackgroundDatabaseChild(
     const DatabaseSpec& aSpec, BackgroundFactoryRequestChild* aOpenRequestActor)
-    : mSpec(new DatabaseSpec(aSpec)),
+    : mSpec(MakeUnique<DatabaseSpec>(aSpec)),
       mOpenRequestActor(aOpenRequestActor),
       mDatabase(nullptr) {
   // Can't assert owning thread here because IPDL has not yet set our manager!
@@ -1841,13 +1849,13 @@ void BackgroundDatabaseChild::EnsureDOMObject() {
       static_cast<BackgroundFactoryChild*>(Manager())->GetDOMObject();
   MOZ_ASSERT(factory);
 
-  mTemporaryStrongDatabase = IDBDatabase::Create(request, factory, this, mSpec);
+  mTemporaryStrongDatabase =
+      IDBDatabase::Create(request, factory, this, std::move(mSpec));
 
   MOZ_ASSERT(mTemporaryStrongDatabase);
   mTemporaryStrongDatabase->AssertIsOnOwningThread();
 
   mDatabase = mTemporaryStrongDatabase;
-  mSpec.forget();
 
   mOpenRequestActor->SetDatabaseActor(this);
 }
@@ -2958,7 +2966,7 @@ nsresult BackgroundRequestChild::PreprocessHelper::Init(
   // We use a TaskQueue here in order to be sure that the events are dispatched
   // in the correct order. This is not guaranteed in case we use the I/O thread
   // directly.
-  mTaskQueue = new TaskQueue(target.forget());
+  mTaskQueue = MakeRefPtr<TaskQueue>(target.forget());
   mTaskQueueEventTarget = mTaskQueue->WrapAsEventTarget();
 
   ErrorResult errorResult;
@@ -3428,10 +3436,9 @@ void BackgroundCursorChild::SendContinueInternal(
     // This is accompanied by invalidating cached entries at proper locations to
     // make it correct. To avoid this, further changes are necessary, see Bug
     // 1580499.
-    nsCOMPtr<nsIRunnable> continueRunnable = new DelayedActionRunnable(
-        this, &BackgroundCursorChild::CompleteContinueRequestFromCache);
-    MOZ_ALWAYS_TRUE(
-        NS_SUCCEEDED(NS_DispatchToCurrentThread(continueRunnable.forget())));
+    MOZ_ALWAYS_SUCCEEDS(
+        NS_DispatchToCurrentThread(MakeAndAddRef<DelayedActionRunnable>(
+            this, &BackgroundCursorChild::CompleteContinueRequestFromCache)));
 
     // TODO: Could we preload further entries in the background when the size of
     // mCachedResponses falls under some threshold? Or does the response
@@ -3578,10 +3585,10 @@ void BackgroundCursorChild::HandleResponse(const void_t& aResponse) {
   DispatchSuccessEvent(&helper);
 
   if (!mCursor) {
-    nsCOMPtr<nsIRunnable> deleteRunnable = new DelayedActionRunnable(
-        this, &BackgroundCursorChild::SendDeleteMeInternal);
     MOZ_ALWAYS_SUCCEEDS(this->GetActorEventTarget()->Dispatch(
-        deleteRunnable.forget(), NS_DISPATCH_NORMAL));
+        MakeAndAddRef<DelayedActionRunnable>(
+            this, &BackgroundCursorChild::SendDeleteMeInternal),
+        NS_DISPATCH_NORMAL));
   }
 }
 

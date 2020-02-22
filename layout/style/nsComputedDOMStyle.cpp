@@ -45,7 +45,6 @@
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/RestyleManager.h"
 #include "mozilla/ViewportFrame.h"
-#include "imgIRequest.h"
 #include "nsLayoutUtils.h"
 #include "nsCSSKeywords.h"
 #include "nsDisplayList.h"
@@ -360,12 +359,11 @@ nsresult nsComputedDOMStyle::GetPropertyValue(const nsCSSPropertyID aPropID,
   // This is mostly to avoid code duplication with GetPropertyCSSValue(); if
   // perf ever becomes an issue here (doubtful), we can look into changing
   // this.
-  return GetPropertyValue(
-      NS_ConvertASCIItoUTF16(nsCSSProps::GetStringValue(aPropID)), aValue);
+  return GetPropertyValue(nsCSSProps::GetStringValue(aPropID), aValue);
 }
 
 nsresult nsComputedDOMStyle::SetPropertyValue(const nsCSSPropertyID aPropID,
-                                              const nsAString& aValue,
+                                              const nsACString& aValue,
                                               nsIPrincipal* aSubjectPrincipal) {
   return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR;
 }
@@ -399,7 +397,7 @@ uint32_t nsComputedDOMStyle::Length() {
 css::Rule* nsComputedDOMStyle::GetParentRule() { return nullptr; }
 
 NS_IMETHODIMP
-nsComputedDOMStyle::GetPropertyValue(const nsAString& aPropertyName,
+nsComputedDOMStyle::GetPropertyValue(const nsACString& aPropertyName,
                                      nsAString& aReturn) {
   aReturn.Truncate();
 
@@ -422,7 +420,7 @@ nsComputedDOMStyle::GetPropertyValue(const nsAString& aPropertyName,
 
   if (!entry) {
     MOZ_ASSERT(nsCSSProps::IsCustomPropertyName(aPropertyName));
-    const nsAString& name =
+    const nsACString& name =
         Substring(aPropertyName, CSS_CUSTOM_NAME_PREFIX_LENGTH);
     Servo_GetCustomPropertyValue(mComputedStyle, &name, &aReturn);
     return NS_OK;
@@ -602,18 +600,18 @@ nsMargin nsComputedDOMStyle::GetAdjustedValuesForBoxSizing() {
   return adjustment;
 }
 
-static void AddImageURL(nsIURI& aURI, nsTArray<nsString>& aURLs) {
-  nsAutoCString spec;
+static void AddImageURL(nsIURI& aURI, nsTArray<nsCString>& aURLs) {
+  nsCString spec;
   nsresult rv = aURI.GetSpec(spec);
   if (NS_FAILED(rv)) {
     return;
   }
 
-  aURLs.AppendElement(NS_ConvertUTF8toUTF16(spec));
+  aURLs.AppendElement(std::move(spec));
 }
 
 static void AddImageURL(const StyleComputedUrl& aURL,
-                        nsTArray<nsString>& aURLs) {
+                        nsTArray<nsCString>& aURLs) {
   if (aURL.IsLocalRef()) {
     return;
   }
@@ -624,18 +622,18 @@ static void AddImageURL(const StyleComputedUrl& aURL,
 }
 
 static void AddImageURL(const nsStyleImageRequest& aRequest,
-                        nsTArray<nsString>& aURLs) {
+                        nsTArray<nsCString>& aURLs) {
   AddImageURL(aRequest.GetImageValue(), aURLs);
 }
 
-static void AddImageURL(const nsStyleImage& aImage, nsTArray<nsString>& aURLs) {
+static void AddImageURL(const nsStyleImage& aImage, nsTArray<nsCString>& aURLs) {
   if (auto* urlValue = aImage.GetURLValue()) {
     AddImageURL(*urlValue, aURLs);
   }
 }
 
 static void AddImageURL(const StyleShapeSource& aShapeSource,
-                        nsTArray<nsString>& aURLs) {
+                        nsTArray<nsCString>& aURLs) {
   switch (aShapeSource.GetType()) {
     case StyleShapeSourceType::Image:
       AddImageURL(aShapeSource.ShapeImage(), aURLs);
@@ -646,7 +644,7 @@ static void AddImageURL(const StyleShapeSource& aShapeSource,
 }
 
 static void AddImageURLs(const nsStyleImageLayers& aLayers,
-                         nsTArray<nsString>& aURLs) {
+                         nsTArray<nsCString>& aURLs) {
   for (auto i : IntegerRange(aLayers.mLayers.Length())) {
     AddImageURL(aLayers.mLayers[i].mImage, aURLs);
   }
@@ -654,7 +652,7 @@ static void AddImageURLs(const nsStyleImageLayers& aLayers,
 
 static void CollectImageURLsForProperty(nsCSSPropertyID aProp,
                                         const ComputedStyle& aStyle,
-                                        nsTArray<nsString>& aURLs) {
+                                        nsTArray<nsCString>& aURLs) {
   if (nsCSSProps::IsShorthand(aProp)) {
     CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, aProp,
                                          CSSEnabledState::ForAllContent) {
@@ -694,8 +692,8 @@ static void CollectImageURLsForProperty(nsCSSPropertyID aProp,
   }
 }
 
-void nsComputedDOMStyle::GetCSSImageURLs(const nsAString& aPropertyName,
-                                         nsTArray<nsString>& aImageURLs,
+void nsComputedDOMStyle::GetCSSImageURLs(const nsACString& aPropertyName,
+                                         nsTArray<nsCString>& aImageURLs,
                                          mozilla::ErrorResult& aRv) {
   nsCSSPropertyID prop = nsCSSProps::LookupProperty(aPropertyName);
   if (prop == eCSSProperty_UNKNOWN) {
@@ -1126,33 +1124,32 @@ void nsComputedDOMStyle::ClearCurrentStyleSources() {
 }
 
 NS_IMETHODIMP
-nsComputedDOMStyle::RemoveProperty(const nsAString& aPropertyName,
+nsComputedDOMStyle::RemoveProperty(const nsACString& aPropertyName,
                                    nsAString& aReturn) {
   return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR;
 }
 
-void nsComputedDOMStyle::GetPropertyPriority(const nsAString& aPropertyName,
+void nsComputedDOMStyle::GetPropertyPriority(const nsACString& aPropertyName,
                                              nsAString& aReturn) {
   aReturn.Truncate();
 }
 
 NS_IMETHODIMP
-nsComputedDOMStyle::SetProperty(const nsAString& aPropertyName,
-                                const nsAString& aValue,
+nsComputedDOMStyle::SetProperty(const nsACString& aPropertyName,
+                                const nsACString& aValue,
                                 const nsAString& aPriority,
                                 nsIPrincipal* aSubjectPrincipal) {
   return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR;
 }
 
 void nsComputedDOMStyle::IndexedGetter(uint32_t aIndex, bool& aFound,
-                                       nsAString& aPropName) {
+                                       nsACString& aPropName) {
   ComputedStyleMap* map = GetComputedStyleMap();
   uint32_t length = map->Length();
 
   if (aIndex < length) {
     aFound = true;
-    CopyASCIItoUTF16(nsCSSProps::GetStringValue(map->PropertyAt(aIndex)),
-                     aPropName);
+    aPropName.Assign(nsCSSProps::GetStringValue(map->PropertyAt(aIndex)));
     return;
   }
 
@@ -1169,10 +1166,10 @@ void nsComputedDOMStyle::IndexedGetter(uint32_t aIndex, bool& aFound,
   const uint32_t index = aIndex - length;
   if (index < count) {
     aFound = true;
-    nsString varName;
-    Servo_GetCustomPropertyNameAt(mComputedStyle, index, &varName);
     aPropName.AssignLiteral("--");
-    aPropName.Append(varName);
+    if (nsAtom* atom = Servo_GetCustomPropertyNameAt(mComputedStyle, index)) {
+      aPropName.Append(nsAtomCString(atom));
+    }
   } else {
     aFound = false;
   }
@@ -1837,7 +1834,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetTextDecoration() {
   const nsStyleTextReset* textReset = StyleTextReset();
   RefPtr<nsDOMCSSValueList> valueList = GetROCSSValueList(false);
 
-  if (textReset->mTextDecorationLine != StyleTextDecorationLine_NONE) {
+  if (textReset->mTextDecorationLine != StyleTextDecorationLine::NONE) {
     valueList->AppendCSSValue(
         getPropertyValue(eCSSProperty_text_decoration_line));
   }

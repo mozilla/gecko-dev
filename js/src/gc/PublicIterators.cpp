@@ -86,19 +86,18 @@ static void TraverseInnerLazyScriptsForLazyScript(
     JSContext* cx, void* data, LazyScript* enclosingLazyScript,
     IterateLazyScriptCallback lazyScriptCallback,
     const JS::AutoRequireNoGC& nogc) {
-  for (JSFunction* fun : enclosingLazyScript->innerFunctions()) {
-    // LazyScript::CreateForXDR temporarily initializes innerFunctions with
-    // its own function, but it should be overwritten with correct
-    // inner functions before getting inserted into parent's innerFunctions.
-    MOZ_ASSERT(fun != enclosingLazyScript->function());
+  for (JS::GCCellPtr gcThing : enclosingLazyScript->gcthings()) {
+    if (!gcThing.is<JSObject>()) {
+      continue;
+    }
+
+    JSFunction* fun = &gcThing.as<JSObject>().as<JSFunction>();
 
     if (!fun->isInterpretedLazy()) {
       return;
     }
 
     LazyScript* lazyScript = fun->lazyScript();
-    MOZ_ASSERT(lazyScript->hasEnclosingScope() ||
-               lazyScript->hasEnclosingLazyScript());
     MOZ_ASSERT_IF(lazyScript->hasEnclosingLazyScript(),
                   lazyScript->enclosingLazyScript() == enclosingLazyScript);
 

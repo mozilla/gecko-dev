@@ -48,6 +48,34 @@ static inline SymbolicAddress ToSymbolicAddress(BD_SymbolicAddress bd) {
       return SymbolicAddress::MemoryGrow;
     case BD_SymbolicAddress::MemorySize:
       return SymbolicAddress::MemorySize;
+    case BD_SymbolicAddress::MemoryCopy:
+      return SymbolicAddress::MemCopy;
+    case BD_SymbolicAddress::MemoryCopyShared:
+      return SymbolicAddress::MemCopyShared;
+    case BD_SymbolicAddress::DataDrop:
+      return SymbolicAddress::DataDrop;
+    case BD_SymbolicAddress::MemoryFill:
+      return SymbolicAddress::MemFill;
+    case BD_SymbolicAddress::MemoryFillShared:
+      return SymbolicAddress::MemFillShared;
+    case BD_SymbolicAddress::MemoryInit:
+      return SymbolicAddress::MemInit;
+    case BD_SymbolicAddress::TableCopy:
+      return SymbolicAddress::TableCopy;
+    case BD_SymbolicAddress::ElemDrop:
+      return SymbolicAddress::ElemDrop;
+    case BD_SymbolicAddress::TableFill:
+      return SymbolicAddress::TableFill;
+    case BD_SymbolicAddress::TableGet:
+      return SymbolicAddress::TableGet;
+    case BD_SymbolicAddress::TableGrow:
+      return SymbolicAddress::TableGrow;
+    case BD_SymbolicAddress::TableInit:
+      return SymbolicAddress::TableInit;
+    case BD_SymbolicAddress::TableSet:
+      return SymbolicAddress::TableSet;
+    case BD_SymbolicAddress::TableSize:
+      return SymbolicAddress::TableSize;
     case BD_SymbolicAddress::FloorF32:
       return SymbolicAddress::FloorF;
     case BD_SymbolicAddress::FloorF64:
@@ -316,6 +344,10 @@ TypeCode env_unpack(BD_ValType valType) {
   return TypeCode(UnpackTypeCodeType(PackedTypeCode(valType.packed)));
 }
 
+bool env_uses_shared_memory(const CraneliftModuleEnvironment* wrapper) {
+  return wrapper->env->usesSharedMemory();
+}
+
 const FuncTypeWithId* env_function_signature(
     const CraneliftModuleEnvironment* wrapper, size_t funcIndex) {
   return wrapper->env->funcTypes[funcIndex];
@@ -489,7 +521,7 @@ bool global_isIndirect(const GlobalDesc* global) {
 BD_ConstantValue global_constantValue(const GlobalDesc* global) {
   Val value(global->constantValue());
   BD_ConstantValue v;
-  v.t = TypeCode(value.type().code());
+  v.t = TypeCode(value.type().kind());
   switch (v.t) {
     case TypeCode::I32:
       v.u.i32 = value.i32();
@@ -510,7 +542,7 @@ BD_ConstantValue global_constantValue(const GlobalDesc* global) {
 }
 
 TypeCode global_type(const GlobalDesc* global) {
-  return TypeCode(global->type().code());
+  return UnpackTypeCodeType(global->type().packed());
 }
 
 size_t global_tlsOffset(const GlobalDesc* global) {

@@ -19,17 +19,10 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
-#include "nsIAsyncVerifyRedirectCallback.h"
-#include "nsICachingChannel.h"
-#include "nsIChannelEventSink.h"
 #include "nsIContentPolicy.h"
-#include "nsIContentSecurityPolicy.h"
 #include "mozilla/dom/Document.h"
-#include "nsIHttpChannel.h"
-#include "nsIInterfaceRequestor.h"
 #include "nsILoadGroup.h"
 #include "nsIObserver.h"
-#include "nsIStreamListener.h"
 #include "nsISupportsImpl.h"
 #include "nsISupportsPrimitives.h"
 #include "nsMappedAttributes.h"
@@ -419,7 +412,7 @@ void HTMLTrackElement::UnbindFromTree(bool aNullParent) {
   nsGenericHTMLElement::UnbindFromTree(aNullParent);
 }
 
-uint16_t HTMLTrackElement::ReadyState() const {
+TextTrackReadyState HTMLTrackElement::ReadyState() const {
   if (!mTrack) {
     return TextTrackReadyState::NotLoaded;
   }
@@ -427,7 +420,7 @@ uint16_t HTMLTrackElement::ReadyState() const {
   return mTrack->ReadyState();
 }
 
-void HTMLTrackElement::SetReadyState(uint16_t aReadyState) {
+void HTMLTrackElement::SetReadyState(TextTrackReadyState aReadyState) {
   if (ReadyState() == aReadyState) {
     return;
   }
@@ -441,6 +434,8 @@ void HTMLTrackElement::SetReadyState(uint16_t aReadyState) {
       case TextTrackReadyState::FailedToLoad:
         LOG("dispatch 'error' event");
         DispatchTrackRunnable(NS_LITERAL_STRING("error"));
+        break;
+      default:
         break;
     }
     mTrack->SetReadyState(aReadyState);

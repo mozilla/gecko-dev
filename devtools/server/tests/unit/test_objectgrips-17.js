@@ -49,79 +49,71 @@ async function testPrincipal(options, globalPrincipal, debuggeeHasXrays) {
   }
 }
 
-function test({ threadFront, debuggee }, testOptions) {
+async function test({ threadFront, debuggee }, testOptions) {
   const { global } = testOptions;
-  return new Promise(function(resolve) {
-    threadFront.once("paused", async function(packet) {
-      // Get the grips.
-      const [
-        proxyGrip,
-        inheritsProxyGrip,
-        inheritsProxy2Grip,
-      ] = packet.frame.arguments;
+  const packet = await executeOnNextTickAndWaitForPause(eval_code, threadFront);
+  // Get the grips.
+  const [
+    proxyGrip,
+    inheritsProxyGrip,
+    inheritsProxy2Grip,
+  ] = packet.frame.arguments;
 
-      // Check the grip of the proxy object.
-      check_proxy_grip(debuggee, testOptions, proxyGrip);
+  // Check the grip of the proxy object.
+  check_proxy_grip(debuggee, testOptions, proxyGrip);
 
-      // Check the target and handler slots of the proxy object.
-      const proxyClient = threadFront.pauseGrip(proxyGrip);
-      const proxySlots = await proxyClient.getProxySlots();
-      check_proxy_slots(debuggee, testOptions, proxyGrip, proxySlots);
+  // Check the target and handler slots of the proxy object.
+  const proxyClient = threadFront.pauseGrip(proxyGrip);
+  const proxySlots = await proxyClient.getProxySlots();
+  check_proxy_slots(debuggee, testOptions, proxyGrip, proxySlots);
 
-      // Check the prototype and properties of the proxy object.
-      const proxyResponse = await proxyClient.getPrototypeAndProperties();
-      check_properties(testOptions, proxyResponse.ownProperties, true, false);
-      check_prototype(
-        debuggee,
-        testOptions,
-        proxyResponse.prototype,
-        true,
-        false
-      );
+  // Check the prototype and properties of the proxy object.
+  const proxyResponse = await proxyClient.getPrototypeAndProperties();
+  check_properties(testOptions, proxyResponse.ownProperties, true, false);
+  check_prototype(debuggee, testOptions, proxyResponse.prototype, true, false);
 
-      // Check the prototype and properties of the object which inherits from the proxy.
-      const inheritsProxyClient = threadFront.pauseGrip(inheritsProxyGrip);
-      const inheritsProxyResponse = await inheritsProxyClient.getPrototypeAndProperties();
-      check_properties(
-        testOptions,
-        inheritsProxyResponse.ownProperties,
-        false,
-        false
-      );
-      check_prototype(
-        debuggee,
-        testOptions,
-        inheritsProxyResponse.prototype,
-        false,
-        false
-      );
+  // Check the prototype and properties of the object which inherits from the proxy.
+  const inheritsProxyClient = threadFront.pauseGrip(inheritsProxyGrip);
+  const inheritsProxyResponse = await inheritsProxyClient.getPrototypeAndProperties();
+  check_properties(
+    testOptions,
+    inheritsProxyResponse.ownProperties,
+    false,
+    false
+  );
+  check_prototype(
+    debuggee,
+    testOptions,
+    inheritsProxyResponse.prototype,
+    false,
+    false
+  );
 
-      // The prototype chain was not iterated if the object was inaccessible, so now check
-      // another object which inherits from the proxy, but was created in the debuggee.
-      const inheritsProxy2Client = threadFront.pauseGrip(inheritsProxy2Grip);
-      const inheritsProxy2Response = await inheritsProxy2Client.getPrototypeAndProperties();
-      check_properties(
-        testOptions,
-        inheritsProxy2Response.ownProperties,
-        false,
-        true
-      );
-      check_prototype(
-        debuggee,
-        testOptions,
-        inheritsProxy2Response.prototype,
-        false,
-        true
-      );
+  // The prototype chain was not iterated if the object was inaccessible, so now check
+  // another object which inherits from the proxy, but was created in the debuggee.
+  const inheritsProxy2Client = threadFront.pauseGrip(inheritsProxy2Grip);
+  const inheritsProxy2Response = await inheritsProxy2Client.getPrototypeAndProperties();
+  check_properties(
+    testOptions,
+    inheritsProxy2Response.ownProperties,
+    false,
+    true
+  );
+  check_prototype(
+    debuggee,
+    testOptions,
+    inheritsProxy2Response.prototype,
+    false,
+    true
+  );
 
-      // Check that none of the above ran proxy traps.
-      strictEqual(global.trapDidRun, false, "No proxy trap did run.");
+  // Check that none of the above ran proxy traps.
+  strictEqual(global.trapDidRun, false, "No proxy trap did run.");
 
-      // Resume the debugger and finish the current test.
-      await threadFront.resume();
-      resolve();
-    });
+  // Resume the debugger and finish the current test.
+  await threadFront.resume();
 
+  function eval_code() {
     // Create objects in `global`, and debug them in `debuggee`. They may get various
     // kinds of security wrappers, or no wrapper at all.
     // To detect that no proxy trap runs, the proxy handler should define all possible
@@ -142,7 +134,7 @@ function test({ threadFront, debuggee }, testOptions) {
       var inheritsProxy2 = Object.create(data.proxy, {x:{value:1}});
       stopMe(data.proxy, data.inheritsProxy, inheritsProxy2);
     `);
-  });
+  }
 }
 
 function check_proxy_grip(debuggee, testOptions, grip) {
@@ -207,9 +199,13 @@ function check_proxy_slots(debuggee, testOptions, grip, proxySlots) {
     );
   } else if (global === debuggee) {
     const { proxyTarget, proxyHandler } = proxySlots;
-    strictEqual(proxyTarget.type, "object", "There is a [[ProxyTarget]] grip.");
     strictEqual(
-      proxyHandler.type,
+      proxyTarget.getGrip().type,
+      "object",
+      "There is a [[ProxyTarget]] grip."
+    );
+    strictEqual(
+      proxyHandler.getGrip().type,
       "object",
       "There is a [[ProxyHandler]] grip."
     );
@@ -253,12 +249,16 @@ function check_prototype(
   if (isOpaque && !globalIsInvisible && !createdInDebuggee) {
     // The object is or inherits from a proxy with opaque security wrappers.
     // The debuggee sees `Object.prototype` when retrieving the prototype.
-    strictEqual(proto.class, "Object", "The prototype has a Object class.");
+    strictEqual(
+      proto.getGrip().class,
+      "Object",
+      "The prototype has a Object class."
+    );
   } else if (isProxy && isOpaque && globalIsInvisible) {
     // The object is a proxy with opaque security wrappers in an invisible global.
     // The debuggee sees an inaccessible `Object.prototype` when retrieving the prototype.
     strictEqual(
-      proto.class,
+      proto.getGrip().class,
       "InvisibleToDebugger: Object",
       "The prototype has an InvisibleToDebugger class."
     );
@@ -271,7 +271,7 @@ function check_prototype(
     check_proxy_grip(
       debuggee,
       { global, isOpaque, subsumes, globalIsInvisible },
-      proto
+      proto.getGrip()
     );
   } else {
     // The debuggee is not allowed to access the object. It sees a null prototype.

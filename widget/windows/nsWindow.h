@@ -23,7 +23,6 @@
 #include "gfxWindowsSurface.h"
 #include "nsWindowDbg.h"
 #include "cairo.h"
-#include "nsITimer.h"
 #include "nsRegion.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/Maybe.h"
@@ -277,6 +276,9 @@ class nsWindow final : public nsWindowBase {
   void ForcePresent();
   bool TouchEventShouldStartDrag(mozilla::EventMessage aEventMessage,
                                  LayoutDeviceIntPoint aEventPoint);
+
+  void SetSmallIcon(HICON aIcon);
+  void SetBigIcon(HICON aIcon);
 
   /**
    * AssociateDefaultIMC() associates or disassociates the default IMC for

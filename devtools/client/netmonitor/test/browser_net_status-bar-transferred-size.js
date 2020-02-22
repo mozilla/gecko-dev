@@ -42,7 +42,7 @@ add_task(async () => {
   is(cachedItemsInUI, 1, "Number of cached requests displayed is correct");
 
   const state = store.getState();
-  const totalRequestsCount = state.requests.requests.size;
+  const totalRequestsCount = state.requests.requests.length;
   const requestsSummary = getDisplayedRequestsSummary(state);
   info(`Current requests: ${requestsSummary.count} of ${totalRequestsCount}.`);
 
@@ -66,7 +66,7 @@ add_task(async () => {
 
   async function performRequestsAndWait() {
     const wait = waitForNetworkEvents(monitor, 2);
-    await ContentTask.spawn(tab.linkedBrowser, {}, async function() {
+    await SpecialPowers.spawn(tab.linkedBrowser, [], async function() {
       content.wrappedJSObject.performOneCachedRequest();
     });
     await wait;

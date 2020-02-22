@@ -10,6 +10,7 @@
 #include <functional>
 
 #include "mozilla/net/NeckoChannelParams.h"
+#include "nsDOMNavigationTiming.h"
 #include "nsDataHashtable.h"
 #include "nsIChildChannel.h"
 
@@ -19,13 +20,16 @@ namespace dom {
 class ChildProcessChannelListener final {
   NS_INLINE_DECL_REFCOUNTING(ChildProcessChannelListener)
 
-  using Callback = std::function<void(
-      nsIChildChannel*, nsTArray<net::DocumentChannelRedirect>&&)>;
+  using Callback = std::function<void(nsIChildChannel*,
+                                      nsTArray<net::DocumentChannelRedirect>&&,
+                                      uint32_t, nsDOMNavigationTiming*)>;
 
   void RegisterCallback(uint64_t aIdentifier, Callback&& aCallback);
 
   void OnChannelReady(nsIChildChannel* aChannel, uint64_t aIdentifier,
-                      nsTArray<net::DocumentChannelRedirect>&& aRedirects);
+                      nsTArray<net::DocumentChannelRedirect>&& aRedirects,
+                      uint32_t aLoadStateLoadFlags,
+                      nsDOMNavigationTiming* aTiming);
 
   static already_AddRefed<ChildProcessChannelListener> GetSingleton();
 
@@ -35,6 +39,8 @@ class ChildProcessChannelListener final {
   struct CallbackArgs {
     nsCOMPtr<nsIChildChannel> mChannel;
     nsTArray<net::DocumentChannelRedirect> mRedirects;
+    uint32_t mLoadStateLoadFlags;
+    RefPtr<nsDOMNavigationTiming> mTiming;
   };
 
   // TODO Backtrack.

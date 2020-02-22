@@ -28,7 +28,6 @@
 #include "mozilla/dom/Document.h"
 #include "nsIContentInlines.h"       // for nsINode::IsEditable()
 #include "nsIEditor.h"               // for nsIEditor, etc.
-#include "nsIObserver.h"             // for NS_DECL_NSIOBSERVER, etc.
 #include "nsIPlaintextEditor.h"      // for nsIPlaintextEditor, etc.
 #include "nsISelectionController.h"  // for nsISelectionController constants
 #include "nsISelectionListener.h"    // for nsISelectionListener
@@ -833,6 +832,9 @@ class EditorBase : public nsIEditor,
         SettingDataTransfer aSettingDataTransfer, int32_t aClipboardType);
     dom::DataTransfer* GetDataTransfer() const { return mDataTransfer; }
 
+    void Abort() { mAborted = true; }
+    bool IsAborted() const { return mAborted; }
+
     void SetTopLevelEditSubAction(EditSubAction aEditSubAction,
                                   EDirection aDirection = eNone) {
       mTopLevelEditSubAction = aEditSubAction;
@@ -986,6 +988,8 @@ class EditorBase : public nsIEditor,
 
     EDirection mDirectionOfTopLevelEditSubAction;
 
+    bool mAborted;
+
     AutoEditActionDataSetter() = delete;
     AutoEditActionDataSetter(const AutoEditActionDataSetter& aOther) = delete;
   };
@@ -1008,6 +1012,11 @@ class EditorBase : public nsIEditor,
 
   bool IsTopLevelEditSubActionDataAvailable() const {
     return mEditActionData && !!GetTopLevelEditSubAction();
+  }
+
+  bool IsEditActionAborted() const {
+    MOZ_ASSERT(mEditActionData);
+    return mEditActionData->IsAborted();
   }
 
   /**
@@ -2204,14 +2213,13 @@ class EditorBase : public nsIEditor,
   nsresult DetermineCurrentDirection();
 
   /**
-   * FireInputEvent() dispatches an "input" event synchronously or
+   * DispatchInputEvent() dispatches an "input" event synchronously or
    * asynchronously if it's not safe to dispatch.
    */
-  MOZ_CAN_RUN_SCRIPT
-  void FireInputEvent();
-  MOZ_CAN_RUN_SCRIPT
-  void FireInputEvent(EditAction aEditAction, const nsAString& aData,
-                      dom::DataTransfer* aDataTransfer);
+  MOZ_CAN_RUN_SCRIPT void DispatchInputEvent();
+  MOZ_CAN_RUN_SCRIPT void DispatchInputEvent(EditAction aEditAction,
+                                             const nsAString& aData,
+                                             dom::DataTransfer* aDataTransfer);
 
   /**
    * Called after a transaction is done successfully.

@@ -18,6 +18,7 @@ const createDummyRecommendation = ({
 }) => {
   let recommendation = {
     template,
+    groups: ["mochitest-group"],
     content: {
       layout: layout || "addon_recommendation",
       category,
@@ -334,6 +335,53 @@ add_task(async function test_cfr_notification_show() {
     0,
     "Should have removed the notification"
   );
+});
+
+add_task(async function test_cfr_notification_minimize() {
+  // addRecommendation checks that scheme starts with http and host matches
+  let browser = gBrowser.selectedBrowser;
+  await BrowserTestUtils.loadURI(browser, "http://example.com/");
+  await BrowserTestUtils.browserLoaded(browser, false, "http://example.com/");
+
+  let response = await trigger_cfr_panel(browser, "example.com");
+  Assert.ok(
+    response,
+    "Should return true if addRecommendation checks were successful"
+  );
+
+  await BrowserTestUtils.waitForCondition(
+    () => gURLBar.hasAttribute("cfr-recommendation-state"),
+    "Wait for the notification to show up and have a state"
+  );
+  Assert.ok(
+    gURLBar.getAttribute("cfr-recommendation-state") === "expanded",
+    "CFR recomendation state is correct"
+  );
+
+  gURLBar.focus();
+
+  await BrowserTestUtils.waitForCondition(
+    () => gURLBar.getAttribute("cfr-recommendation-state") === "collapsed",
+    "After urlbar focus the CFR notification should collapse"
+  );
+
+  // Open the panel and click to dismiss to ensure cleanup
+  const showPanel = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popupshown"
+  );
+  // Open the panel
+  document.getElementById("contextual-feature-recommendation").click();
+  await showPanel;
+
+  let hidePanel = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popuphidden"
+  );
+  document
+    .getElementById("contextual-feature-recommendation-notification")
+    .button.click();
+  await hidePanel;
 });
 
 add_task(async function test_cfr_addon_install() {
@@ -883,4 +931,15 @@ add_task(async function test_cfr_notification_keyboard() {
   EventUtils.synthesizeKey("KEY_Escape");
   await hidden;
   Assert.ok(true, "Panel hidden after Escape pressed");
+});
+
+add_task(function test_updateCycleForProviders() {
+  Services.prefs
+    .getChildList("browser.newtabpage.activity-stream.asrouter.providers.")
+    .forEach(provider => {
+      const prefValue = JSON.parse(Services.prefs.getStringPref(provider, ""));
+      if (prefValue.type === "remote-settings") {
+        Assert.ok(prefValue.updateCycleInMs);
+      }
+    });
 });

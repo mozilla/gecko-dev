@@ -123,6 +123,7 @@ EXPORTS += [
 EXPORTS.js += [
     '../public/AllocationRecording.h',
     '../public/AllocPolicy.h',
+    '../public/Array.h',
     '../public/ArrayBuffer.h',
     '../public/BinASTFormat.h',
     '../public/BuildId.h',
@@ -143,6 +144,7 @@ EXPORTS.js += [
     '../public/GCAPI.h',
     '../public/GCHashTable.h',
     '../public/GCPolicyAPI.h',
+    '../public/GCTypeMacros.h',
     '../public/GCVariant.h',
     '../public/GCVector.h',
     '../public/HashTable.h',
@@ -198,6 +200,7 @@ EXPORTS.js += [
     '../public/UniquePtr.h',
     '../public/Utility.h',
     '../public/Value.h',
+    '../public/ValueArray.h',
     '../public/Vector.h',
     '../public/Warnings.h',
     '../public/WeakMapPtr.h',
@@ -249,6 +252,7 @@ UNIFIED_SOURCES += [
     'builtin/TestingFunctions.cpp',
     'builtin/TypedObject.cpp',
     'builtin/WeakMapObject.cpp',
+    'builtin/WeakRefObject.cpp',
     'builtin/WeakSetObject.cpp',
     'ds/Bitmap.cpp',
     'ds/LifoAlloc.cpp',
@@ -445,7 +449,7 @@ DIRS += [
     'gc',
     'jit',
     'wasm',
-]
+] + (['new-regexp'] if CONFIG['ENABLE_NEW_REGEXP'] else [])
 
 if CONFIG['JS_JITSPEW']:
     DIRS += ['zydis']

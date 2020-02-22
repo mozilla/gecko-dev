@@ -28,7 +28,8 @@ nt::LoaderAPI* ModuleLoadFrame::sLoaderAPI;
 using GetNtLoaderAPIFn = decltype(&mozilla::GetNtLoaderAPI);
 
 /* static */
-void ModuleLoadFrame::StaticInit(nt::LoaderObserver* aNewObserver) {
+nt::LoaderAPI::InitDllBlocklistOOPFnPtr ModuleLoadFrame::StaticInit(
+    nt::LoaderObserver* aNewObserver) {
   const auto pGetNtLoaderAPI = reinterpret_cast<GetNtLoaderAPIFn>(
       ::GetProcAddress(::GetModuleHandleW(nullptr), "GetNtLoaderAPI"));
   if (!pGetNtLoaderAPI) {
@@ -36,10 +37,12 @@ void ModuleLoadFrame::StaticInit(nt::LoaderObserver* aNewObserver) {
     // the launcher process blocklist.
     gFallbackLoaderAPI.SetObserver(aNewObserver);
     sLoaderAPI = &gFallbackLoaderAPI;
-    return;
+    return nullptr;
   }
 
   sLoaderAPI = pGetNtLoaderAPI(aNewObserver);
+  MOZ_ASSERT(sLoaderAPI);
+  return sLoaderAPI->GetDllBlocklistInitFn();
 }
 
 ModuleLoadFrame::ModuleLoadFrame(PCUNICODE_STRING aRequestedDllName)
@@ -76,7 +79,7 @@ ModuleLoadFrame::~ModuleLoadFrame() {
 
 void ModuleLoadFrame::SetLoadStatus(NTSTATUS aNtStatus, HANDLE aHandle) {
   mDllLoadStatus = aNtStatus;
-  void* baseAddr = mozilla::nt::PEHeaders::HModuleToBaseAddr(
+  void* baseAddr = mozilla::nt::PEHeaders::HModuleToBaseAddr<void*>(
       reinterpret_cast<HMODULE>(aHandle));
   mLoadInfo.mBaseAddr = baseAddr;
   if (!mAlreadyLoaded) {

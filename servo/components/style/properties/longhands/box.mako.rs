@@ -55,6 +55,9 @@ impl computed_value::T {
     pub fn is_absolutely_positioned(self) -> bool {
         matches!(self, Self::Absolute | Self::Fixed)
     }
+    pub fn is_relative(self) -> bool {
+        self == Self::Relative
+    }
 }
 </%helpers:single_keyword>
 
@@ -470,13 +473,15 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
 )}
 
-% for axis in ["x", "y"]:
+% for (axis, logical) in ALL_AXES:
     ${helpers.predefined_type(
         "overscroll-behavior-" + axis,
         "OverscrollBehavior",
         "computed::OverscrollBehavior::Auto",
         engines="gecko",
         needs_context=False,
+        logical_group="overscroll-behavior",
+        logical=logical,
         gecko_pref="layout.css.overscroll-behavior.enabled",
         spec="https://wicg.github.io/overscroll-behavior/#overscroll-behavior-properties",
         animation_value_type="discrete",
@@ -491,6 +496,7 @@ ${helpers.single_keyword(
     engines="gecko",
     spec="https://drafts.fxtf.org/compositing/#isolation",
     flags="CREATES_STACKING_CONTEXT",
+    gecko_enum_prefix="StyleIsolation",
     animation_value_type="discrete",
 )}
 

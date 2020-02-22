@@ -4,12 +4,20 @@
 
 "use strict";
 
-const { PureComponent } = require("devtools/client/shared/vendor/react");
+const {
+  createFactory,
+  PureComponent,
+} = require("devtools/client/shared/vendor/react");
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 
-const { getStr } = require("../utils/l10n");
-const Types = require("../types");
+const { getStr } = require("devtools/client/responsive/utils/l10n");
+const { parseUserAgent } = require("devtools/client/responsive/utils/ua");
+const Types = require("devtools/client/responsive/types");
+
+const DeviceInfo = createFactory(
+  require("devtools/client/responsive/components/DeviceInfo")
+);
 
 loader.lazyRequireGetter(
   this,
@@ -50,8 +58,21 @@ class DeviceSelector extends PureComponent {
     for (const type of devices.types) {
       for (const device of devices[type]) {
         if (device.displayed) {
+          const { browser, os } = parseUserAgent(device.userAgent);
+          let label = device.name;
+          if (os) {
+            label += ` ${os.name}`;
+            if (os.version) {
+              label += ` ${os.version}`;
+            }
+          }
+          const image = browser
+            ? `chrome://devtools/skin/images/browsers/${browser.name.toLowerCase()}.svg`
+            : " ";
+
           menuItems.push({
-            label: device.name,
+            label,
+            image,
             type: "checkbox",
             checked: selectedDevice === device.name,
             click: () => {
@@ -81,20 +102,61 @@ class DeviceSelector extends PureComponent {
     });
   }
 
-  render() {
+  createTitle(device) {
+    if (!device) {
+      return null;
+    }
+
+    const { browser, os } = parseUserAgent(device.userAgent);
+    let title = device.name;
+    if (os) {
+      title += ` ${os.name}`;
+      if (os.version) {
+        title += ` ${os.version}`;
+      }
+    }
+    if (browser) {
+      title += ` ${browser.name} ${browser.version}`;
+    }
+
+    return title;
+  }
+
+  getSelectedDevice() {
     const { devices, selectedDevice } = this.props;
+
+    if (!selectedDevice) {
+      return null;
+    }
+
+    for (const type of devices.types) {
+      for (const device of devices[type]) {
+        if (selectedDevice === device.name) {
+          return device;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  render() {
+    const { devices } = this.props;
+
+    const device = this.getSelectedDevice();
+    const title = this.createTitle(device);
 
     return dom.button(
       {
         id: "device-selector",
         className: "devtools-button devtools-dropdown-button",
         disabled: devices.listState !== Types.loadableState.LOADED,
-        title: selectedDevice,
+        title,
         onClick: this.onShowDeviceMenu,
       },
       dom.span(
         { className: "title" },
-        selectedDevice || getStr("responsive.responsiveMode")
+        device ? DeviceInfo({ device }) : getStr("responsive.responsiveMode")
       )
     );
   }

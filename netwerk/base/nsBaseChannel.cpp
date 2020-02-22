@@ -12,7 +12,6 @@
 #include "nsUnknownDecoder.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsMimeTypes.h"
-#include "nsIHttpChannel.h"
 #include "nsIChannelEventSink.h"
 #include "nsIStreamConverterService.h"
 #include "nsChannelClassifier.h"
@@ -23,6 +22,7 @@
 #include "LoadInfo.h"
 #include "nsServiceManagerUtils.h"
 #include "nsRedirectHistoryEntry.h"
+#include "mozilla/BasePrincipal.h"
 
 using namespace mozilla;
 
@@ -64,7 +64,8 @@ nsBaseChannel::nsBaseChannel()
       mStatus(NS_OK),
       mContentDispositionHint(UINT32_MAX),
       mContentLength(-1),
-      mWasOpened(false) {
+      mWasOpened(false),
+      mCanceled(false) {
   mContentType.AssignLiteral(UNKNOWN_CONTENT_TYPE);
 }
 
@@ -391,11 +392,16 @@ nsBaseChannel::GetStatus(nsresult* status) {
 NS_IMETHODIMP
 nsBaseChannel::Cancel(nsresult status) {
   // Ignore redundant cancelation
-  if (NS_FAILED(mStatus)) return NS_OK;
+  if (mCanceled) {
+    return NS_OK;
+  }
 
+  mCanceled = true;
   mStatus = status;
 
-  if (mRequest) mRequest->Cancel(status);
+  if (mRequest) {
+    mRequest->Cancel(status);
+  }
 
   return NS_OK;
 }
@@ -654,7 +660,8 @@ nsBaseChannel::AsyncOpen(nsIStreamListener* aListener) {
           mLoadInfo->GetInitialSecurityCheckDone() ||
           (mLoadInfo->GetSecurityMode() ==
                nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL &&
-           nsContentUtils::IsSystemPrincipal(mLoadInfo->LoadingPrincipal())),
+           mLoadInfo->LoadingPrincipal() &&
+           mLoadInfo->LoadingPrincipal()->IsSystemPrincipal()),
       "security flags in loadInfo but doContentSecurityCheck() not called");
 
   NS_ENSURE_TRUE(mURI, NS_ERROR_NOT_INITIALIZED);
@@ -939,6 +946,11 @@ nsBaseChannel::CheckListenerChain() {
   }
 
   return listener->CheckListenerChain();
+}
+
+NS_IMETHODIMP nsBaseChannel::GetCanceled(bool* aCanceled) {
+  *aCanceled = mCanceled;
+  return NS_OK;
 }
 
 void nsBaseChannel::SetupNeckoTarget() {

@@ -10,7 +10,6 @@
 #include "AppWindow.h"
 
 // Helper Classes
-#include "nsIServiceManager.h"
 #include "nsAutoPtr.h"
 
 // Interfaces needed to be included
@@ -20,7 +19,6 @@
 #include "nsIEmbeddingSiteWindow.h"
 #include "nsIPrompt.h"
 #include "nsIAuthPrompt.h"
-#include "nsIWindowMediator.h"
 #include "nsIXULBrowserWindow.h"
 #include "nsIPrincipal.h"
 #include "nsIURIFixup.h"
@@ -97,7 +95,6 @@ NS_INTERFACE_MAP_BEGIN(nsContentTreeOwner)
   NS_INTERFACE_MAP_ENTRY(nsIDocShellTreeOwner)
   NS_INTERFACE_MAP_ENTRY(nsIBaseWindow)
   NS_INTERFACE_MAP_ENTRY(nsIWebBrowserChrome)
-  NS_INTERFACE_MAP_ENTRY(nsIWebBrowserChrome2)
   NS_INTERFACE_MAP_ENTRY(nsIWebBrowserChrome3)
   NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
   NS_INTERFACE_MAP_ENTRY(nsIWindowProvider)
@@ -236,7 +233,7 @@ nsContentTreeOwner::SetPersistence(bool aPersistPosition, bool aPersistSize,
   if (!docShellElement) return NS_ERROR_FAILURE;
 
   nsAutoString persistString;
-  docShellElement->GetAttribute(NS_LITERAL_STRING("persist"), persistString);
+  docShellElement->GetAttr(nsGkAtoms::persist, persistString);
 
   bool saveString = false;
   int32_t index;
@@ -304,7 +301,7 @@ nsContentTreeOwner::GetPersistence(bool* aPersistPosition, bool* aPersistSize,
   if (!docShellElement) return NS_ERROR_FAILURE;
 
   nsAutoString persistString;
-  docShellElement->GetAttribute(NS_LITERAL_STRING("persist"), persistString);
+  docShellElement->GetAttr(nsGkAtoms::persist, persistString);
 
   // data structure doesn't quite match the question, but it's close enough
   // for what we want (since this method is never actually called...)
@@ -395,44 +392,20 @@ NS_IMETHODIMP nsContentTreeOwner::ReloadInFreshProcess(
 }
 
 //*****************************************************************************
-// nsContentTreeOwner::nsIWebBrowserChrome2
+// nsContentTreeOwner::nsIWebBrowserChrome
 //*****************************************************************************
 
-NS_IMETHODIMP nsContentTreeOwner::SetStatusWithContext(
-    uint32_t aStatusType, const nsAString& aStatusText,
-    nsISupports* aStatusContext) {
-  // We only allow the status to be set from the primary content shell
-  if (!mPrimary && aStatusType != STATUS_LINK) return NS_OK;
-
+NS_IMETHODIMP nsContentTreeOwner::SetLinkStatus(const nsAString& aStatusText) {
   NS_ENSURE_STATE(mAppWindow);
 
   nsCOMPtr<nsIXULBrowserWindow> xulBrowserWindow;
   mAppWindow->GetXULBrowserWindow(getter_AddRefs(xulBrowserWindow));
 
   if (xulBrowserWindow) {
-    switch (aStatusType) {
-      case STATUS_LINK: {
-        nsCOMPtr<dom::Element> element = do_QueryInterface(aStatusContext);
-        xulBrowserWindow->SetOverLink(aStatusText, element);
-        break;
-      }
-    }
+    xulBrowserWindow->SetOverLink(aStatusText);
   }
 
   return NS_OK;
-}
-
-//*****************************************************************************
-// nsContentTreeOwner::nsIWebBrowserChrome
-//*****************************************************************************
-
-NS_IMETHODIMP nsContentTreeOwner::SetStatus(uint32_t aStatusType,
-                                            const char16_t* aStatus) {
-  return SetStatusWithContext(
-      aStatusType,
-      aStatus ? static_cast<const nsString&>(nsDependentString(aStatus))
-              : EmptyString(),
-      nullptr);
 }
 
 NS_IMETHODIMP nsContentTreeOwner::SetChromeFlags(uint32_t aChromeFlags) {
@@ -733,28 +706,6 @@ nsContentTreeOwner::ProvideWindow(
 //*****************************************************************************
 // nsContentTreeOwner: Accessors
 //*****************************************************************************
-
-#if defined(XP_MACOSX)
-class nsContentTitleSettingEvent : public Runnable {
- public:
-  nsContentTitleSettingEvent(dom::Element* dse, const nsAString& wtm)
-      : Runnable("nsContentTitleSettingEvent"),
-        mElement(dse),
-        mTitleDefault(wtm) {}
-
-  NS_IMETHOD Run() override {
-    ErrorResult rv;
-    mElement->SetAttribute(NS_LITERAL_STRING("titledefault"), mTitleDefault,
-                           rv);
-    mElement->RemoveAttribute(NS_LITERAL_STRING("titlemodifier"), rv);
-    return NS_OK;
-  }
-
- private:
-  nsCOMPtr<dom::Element> mElement;
-  nsString mTitleDefault;
-};
-#endif
 
 void nsContentTreeOwner::AppWindow(mozilla::AppWindow* aAppWindow) {
   mAppWindow = aAppWindow;

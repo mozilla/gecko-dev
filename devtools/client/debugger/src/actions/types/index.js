@@ -69,7 +69,7 @@ type AddTabAction = {|
   +url: string,
   +framework?: string,
   +isOriginal?: boolean,
-  +sourceId?: string,
+  +sourceId: string,
 |};
 
 type UpdateTabAction = {|
@@ -77,7 +77,7 @@ type UpdateTabAction = {|
   +url: string,
   +framework?: string,
   +isOriginal?: boolean,
-  +sourceId?: string,
+  +sourceId: string,
 |};
 
 type NavigateAction =
@@ -153,6 +153,12 @@ export type DebuggeeAction =
       +type: "REMOVE_THREADS",
       +cx: Context,
       +threads: Array<ThreadId>,
+    |}
+  | {|
+      +type: "UPDATE_SERVICE_WORKER_STATUS",
+      +cx: Context,
+      +thread: string,
+      +status: string,
     |}
   | {|
       +type: "SELECT_THREAD",

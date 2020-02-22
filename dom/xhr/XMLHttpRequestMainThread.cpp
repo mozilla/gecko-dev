@@ -11,6 +11,7 @@
 #  include <unistd.h>
 #endif
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/BlobURLProtocolHandler.h"
@@ -51,8 +52,6 @@
 #include "nsIAuthPrompt.h"
 #include "nsIAuthPrompt2.h"
 #include "nsIClassOfService.h"
-#include "nsIOutputStream.h"
-#include "nsISupportsPrimitives.h"
 #include "nsISupportsPriority.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsStreamUtils.h"
@@ -61,20 +60,15 @@
 #include "nsIUploadChannel2.h"
 #include "nsXPCOM.h"
 #include "nsIDOMEventListener.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsIVariant.h"
 #include "nsVariant.h"
 #include "nsIScriptError.h"
-#include "nsIStreamConverterService.h"
 #include "nsICachingChannel.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsError.h"
-#include "nsIStorageStream.h"
 #include "nsIPromptFactory.h"
 #include "nsIWindowWatcher.h"
 #include "nsIConsoleService.h"
-#include "nsIContentSecurityPolicy.h"
 #include "nsAsyncRedirectVerifyHelper.h"
 #include "nsStringBuffer.h"
 #include "nsIFileChannel.h"
@@ -1350,7 +1344,7 @@ XMLHttpRequestMainThread::GetCurrentJARChannel() {
 }
 
 bool XMLHttpRequestMainThread::IsSystemXHR() const {
-  return mIsSystem || nsContentUtils::IsSystemPrincipal(mPrincipal);
+  return mIsSystem || mPrincipal->IsSystemPrincipal();
 }
 
 bool XMLHttpRequestMainThread::InUploadPhase() const {
@@ -2030,7 +2024,7 @@ XMLHttpRequestMainThread::OnStartRequest(nsIRequest* request) {
       mResponseXML->SetSuppressParserErrorConsoleMessages(true);
     }
 
-    if (nsContentUtils::IsSystemPrincipal(mPrincipal)) {
+    if (mPrincipal->IsSystemPrincipal()) {
       mResponseXML->ForceEnableXULXBL();
     }
 
@@ -2382,7 +2376,7 @@ nsresult XMLHttpRequestMainThread::CreateChannel() {
 
   nsSecurityFlags secFlags;
   nsLoadFlags loadFlags = nsIRequest::LOAD_BACKGROUND;
-  if (nsContentUtils::IsSystemPrincipal(mPrincipal)) {
+  if (mPrincipal->IsSystemPrincipal()) {
     // When chrome is loading we want to make sure to sandbox any potential
     // result document. We also want to allow cross-origin loads.
     secFlags = nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL |

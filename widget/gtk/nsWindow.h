@@ -23,7 +23,6 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "nsIDragService.h"
-#include "nsITimer.h"
 #include "nsGkAtoms.h"
 #include "nsRefPtrHashtable.h"
 #include "nsIFrame.h"
@@ -87,6 +86,16 @@ class TimeStamp;
 class CurrentX11TimeGetter;
 
 }  // namespace mozilla
+
+class OpaqueRegionState {
+ public:
+  OpaqueRegionState() : mRect({-1, -1, -1, -1}), mSubtractedCorners(false){};
+  bool NeedsUpdate(GdkRectangle& aNewRect, bool aNewSubtractedCorners);
+
+ private:
+  GdkRectangle mRect;
+  bool mSubtractedCorners;
+};
 
 class nsWindow final : public nsBaseWidget {
  public:
@@ -251,7 +260,8 @@ class nsWindow final : public nsBaseWidget {
   void GrabPointer(guint32 aTime);
   void ReleaseGrabs(void);
 
-  void UpdateClientOffset();
+  void UpdateClientOffsetFromFrameExtents();
+  void UpdateClientOffsetFromCSDWindow();
 
   void DispatchContextMenuEventFromMouseEvent(uint16_t domButton,
                                               GdkEventButton* aEvent);
@@ -393,6 +403,9 @@ class nsWindow final : public nsBaseWidget {
   nsresult SetSystemFont(const nsCString& aFontName) override;
   nsresult GetSystemFont(nsCString& aFontName) override;
 
+  nsresult SetPrefersReducedMotionOverrideForTest(bool aValue) final;
+  nsresult ResetPrefersReducedMotionOverrideForTest() final;
+
   typedef enum {
     CSD_SUPPORT_SYSTEM,  // CSD including shadows
     CSD_SUPPORT_CLIENT,  // CSD without shadows
@@ -481,11 +494,17 @@ class nsWindow final : public nsBaseWidget {
   void ClearCachedResources();
   nsIWidgetListener* GetListener();
 
-  void UpdateClientOffsetForCSDWindow();
+#ifdef MOZ_WAYLAND
+  void UpdateTopLevelOpaqueRegionWayland(bool aSubtractCorners);
+#endif
+  void UpdateTopLevelOpaqueRegionGtk(bool aSubtractCorners);
+  void UpdatePopupOpaqueRegion(const LayoutDeviceIntRegion& aOpaqueRegion);
 
   nsWindow* GetTransientForWindowIfPopup();
   bool IsHandlingTouchSequence(GdkEventSequence* aSequence);
 
+  void ResizeInt(int aX, int aY, int aWidth, int aHeight, bool aMove,
+                 bool aRepaint);
   void NativeMoveResizeWaylandPopup(GdkPoint* aPosition, GdkRectangle* aSize);
 
   GtkTextDirection GetTextDirection();
@@ -541,6 +560,8 @@ class nsWindow final : public nsBaseWidget {
   // Window titlebar rendering mode, CSD_SUPPORT_NONE if it's disabled
   // for this window.
   CSDSupportLevel mCSDSupportLevel;
+  // Use dedicated GdkWindow for mContainer
+  bool mDrawToContainer;
   // If true, draw our own window titlebar.
   bool mDrawInTitlebar;
   // Draw titlebar with :backdrop css state (inactive/unfocused).
@@ -623,6 +644,13 @@ class nsWindow final : public nsBaseWidget {
   // Remember the last sizemode so that we can restore it when
   // leaving fullscreen
   nsSizeMode mLastSizeMode;
+  // We can't detect size state changes correctly so set this flag
+  // to force update mBounds after a size state change from a configure
+  // event.
+  bool mBoundsAreValid;
+
+  // Used to track opaque region changes for toplevel windows.
+  OpaqueRegionState mToplevelOpaqueRegionState;
 
   static bool DragInProgress(void);
 
@@ -645,6 +673,8 @@ class nsWindow final : public nsBaseWidget {
   void ForceTitlebarRedraw();
 
   void SetPopupWindowDecoration(bool aShowOnTaskbar);
+
+  void ApplySizeConstraints(void);
 
   bool IsMainMenuWindow();
   GtkWidget* ConfigureWaylandPopupWindows();

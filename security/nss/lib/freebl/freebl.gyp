@@ -117,6 +117,24 @@
       ]
     },
     {
+      'target_name': 'gcm-aes-arm32-neon_c_lib',
+      'type': 'static_library',
+      'sources': [
+        'gcm-arm32-neon.c'
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports'
+      ],
+      'cflags': [
+        '-mfpu=neon',
+        '<@(softfp_cflags)',
+      ],
+      'cflags_mozilla': [
+        '-mfpu=neon',
+        '<@(softfp_cflags)',
+      ]
+    },
+    {
       'target_name': 'gcm-aes-aarch64_c_lib',
       'type': 'static_library',
       'sources': [
@@ -163,11 +181,13 @@
         [ 'target_arch=="arm"', {
           'cflags': [
             '-march=armv8-a',
-            '-mfpu=crypto-neon-fp-armv8'
+            '-mfpu=crypto-neon-fp-armv8',
+            '<@(softfp_cflags)',
           ],
           'cflags_mozilla': [
             '-march=armv8-a',
-            '-mfpu=crypto-neon-fp-armv8'
+            '-mfpu=crypto-neon-fp-armv8',
+            '<@(softfp_cflags)',
           ],
         }, 'target_arch=="arm64" or target_arch=="aarch64"', {
           'cflags': [
@@ -210,6 +230,11 @@
         }, 'disable_arm_hw_aes==0 and (target_arch=="arm" or target_arch=="arm64" or target_arch=="aarch64")', {
           'dependencies': [
             'armv8_c_lib'
+          ],
+        }],
+        [ 'target_arch=="arm"', {
+          'dependencies': [
+            'gcm-aes-arm32-neon_c_lib',
           ],
         }],
         [ 'target_arch=="arm64" or target_arch=="aarch64"', {
@@ -263,6 +288,11 @@
             'armv8_c_lib',
           ],
         }],
+        [ 'target_arch=="arm"', {
+          'dependencies': [
+            'gcm-aes-arm32-neon_c_lib',
+          ],
+        }],
         [ 'target_arch=="arm64" or target_arch=="aarch64"', {
           'dependencies': [
             'gcm-aes-aarch64_c_lib',
@@ -291,7 +321,7 @@
             'intel-gcm-wrap_c_lib',
           ],
         }],
-        [ 'OS=="win" and cc_is_clang==1', {
+        [ 'OS=="win" and (target_arch=="ia32" or target_arch=="x64") and cc_is_clang==1', {
           'dependencies': [
             'intel-gcm-wrap_c_lib',
           ],
@@ -422,6 +452,11 @@
           },
         },
       }],
+      [ 'OS=="win" and (target_arch=="arm64" or target_arch=="aarch64") and disable_arm_hw_aes==0', {
+        'defines': [
+          'USE_HW_AES',
+        ],
+      }],
       [ 'cc_use_gnu_ld==1 and OS=="win" and target_arch=="x64"', {
         # mingw x64
         'defines': [
@@ -501,6 +536,11 @@
         ],
       }, {
         'have_int128_support%': 0,
+      }],
+      [ 'target_arch=="arm"', {
+        # When the compiler uses the softfloat ABI, we want to use the compatible softfp ABI when enabling NEON for these objects.
+        # Confusingly, __SOFTFP__ is the name of the define for the softfloat ABI, not for the softfp ABI.
+        'softfp_cflags': '<!(${CC:-cc} -o - -E -dM - ${CFLAGS} < /dev/null | grep __SOFTFP__ > /dev/null && echo -mfloat-abi=softfp || true)',
       }],
     ],
   }

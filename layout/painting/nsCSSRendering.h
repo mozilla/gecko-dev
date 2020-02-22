@@ -11,7 +11,6 @@
 
 #include "gfxBlur.h"
 #include "gfxContext.h"
-#include "imgIContainer.h"
 #include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/TypedEnumBits.h"
@@ -599,7 +598,7 @@ struct nsCSSRendering {
     // Which line will be painted. The value can be
     // UNDERLINE or OVERLINE or LINE_THROUGH.
     mozilla::StyleTextDecorationLine decoration =
-        mozilla::StyleTextDecorationLine_UNDERLINE;
+        mozilla::StyleTextDecorationLine::UNDERLINE;
     // The style of the decoration line such as
     // NS_STYLE_TEXT_DECORATION_STYLE_*.
     uint8_t style = NS_STYLE_TEXT_DECORATION_STYLE_NONE;

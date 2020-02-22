@@ -7,23 +7,16 @@
 #include "ServiceWorkerManager.h"
 
 #include "nsAutoPtr.h"
-#include "nsIConsoleService.h"
 #include "nsIEffectiveTLDService.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsIStreamLoader.h"
 #include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
-#include "nsIHttpHeaderVisitor.h"
 #include "nsINamed.h"
 #include "nsINetworkInterceptController.h"
 #include "nsIMutableArray.h"
-#include "nsIScriptError.h"
-#include "nsISimpleEnumerator.h"
 #include "nsITimer.h"
 #include "nsIUploadChannel2.h"
 #include "nsServiceManagerUtils.h"
 #include "nsDebug.h"
-#include "nsISupportsPrimitives.h"
 #include "nsIPermissionManager.h"
 #include "nsXULAppAPI.h"
 
@@ -95,8 +88,6 @@ using namespace mozilla::ipc;
 
 namespace mozilla {
 namespace dom {
-
-#define CLEAR_ORIGIN_DATA "clear-origin-attributes-data"
 
 static_assert(
     nsIHttpChannelInternal::CORS_MODE_SAME_ORIGIN ==
@@ -266,13 +257,15 @@ bool ServiceWorkersAreCrossProcess() {
   return ServiceWorkerParentInterceptEnabled() && XRE_IsE10sParentProcess();
 }
 
-const char* GetXPCOMShutdownTopic() {
+const char* GetStartShutdownTopic() {
   if (ServiceWorkersAreCrossProcess()) {
     return "profile-change-teardown";
   }
 
   return NS_XPCOM_SHUTDOWN_OBSERVER_ID;
 }
+
+constexpr char kFinishShutdownTopic[] = "profile-before-change-qm";
 
 already_AddRefed<nsIAsyncShutdownClient> GetAsyncShutdownBarrier() {
   AssertIsOnMainThread();
@@ -356,7 +349,7 @@ void ServiceWorkerManager::Init(ServiceWorkerRegistrar* aRegistrar) {
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (obs) {
     DebugOnly<nsresult> rv;
-    rv = obs->AddObserver(this, GetXPCOMShutdownTopic(), false /* ownsWeak */);
+    rv = obs->AddObserver(this, GetStartShutdownTopic(), false /* ownsWeak */);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
   }
 
@@ -366,12 +359,6 @@ void ServiceWorkerManager::Init(ServiceWorkerRegistrar* aRegistrar) {
     nsTArray<ServiceWorkerRegistrationData> data;
     aRegistrar->GetRegistrations(data);
     LoadRegistrations(data);
-
-    if (obs) {
-      DebugOnly<nsresult> rv;
-      rv = obs->AddObserver(this, CLEAR_ORIGIN_DATA, false /* ownsWeak */);
-      MOZ_ASSERT(NS_SUCCEEDED(rv));
-    }
   }
 
   PBackgroundChild* actorChild = BackgroundChild::GetOrCreateForCurrentThread();
@@ -513,7 +500,9 @@ void ServiceWorkerManager::MaybeStartShutdown() {
     for (auto& registrationEntry : dataPtr->mInfos) {
       registrationEntry.GetData()->ShutdownWorkers();
     }
-    dataPtr->mInfos.Clear();
+
+    // ServiceWorkerCleanup may try to unregister registrations, so don't clear
+    // mInfos.
   }
 
   for (auto& entry : mControlledClients) {
@@ -530,11 +519,21 @@ void ServiceWorkerManager::MaybeStartShutdown() {
 
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (obs) {
-    obs->RemoveObserver(this, GetXPCOMShutdownTopic());
+    obs->RemoveObserver(this, GetStartShutdownTopic());
 
-    if (XRE_IsParentProcess()) {
-      obs->RemoveObserver(this, CLEAR_ORIGIN_DATA);
+    if (ServiceWorkersAreCrossProcess()) {
+      obs->AddObserver(this, kFinishShutdownTopic, false);
+      return;
     }
+  }
+
+  MaybeFinishShutdown();
+}
+
+void ServiceWorkerManager::MaybeFinishShutdown() {
+  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+  if (obs) {
+    obs->RemoveObserver(this, kFinishShutdownTopic);
   }
 
   if (!mActor) {
@@ -929,8 +928,12 @@ class GetRegistrationsRunnable final : public Runnable {
         break;
       }
 
-      rv = principal->CheckMayLoad(scopeURI, true /* report */,
-                                   false /* allowIfInheritsPrincipal */);
+      // Unfortunately we don't seem to have an obvious window id here; in
+      // particular ClientInfo does not have one, and neither do service worker
+      // registrations, as far as I can tell.
+      rv = principal->CheckMayLoadWithReporting(
+          scopeURI, false /* allowIfInheritsPrincipal */,
+          0 /* innerWindowID */);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         continue;
       }
@@ -992,8 +995,11 @@ class GetRegistrationRunnable final : public Runnable {
       return NS_OK;
     }
 
-    rv = principal->CheckMayLoad(uri, true /* report */,
-                                 false /* allowIfInheritsPrinciple */);
+    // Unfortunately we don't seem to have an obvious window id here; in
+    // particular ClientInfo does not have one, and neither do service worker
+    // registrations, as far as I can tell.
+    rv = principal->CheckMayLoadWithReporting(
+        uri, false /* allowIfInheritsPrincipal */, 0 /* innerWindowID */);
     if (NS_FAILED(rv)) {
       mPromise->Reject(NS_ERROR_DOM_SECURITY_ERR, __func__);
       return NS_OK;
@@ -1060,7 +1066,7 @@ nsresult ServiceWorkerManager::SendPushEvent(
 
   RefPtr<ServiceWorkerRegistrationInfo> registration =
       GetRegistration(serviceWorker->Principal(), aScope);
-  MOZ_DIAGNOSTIC_ASSERT(registration);
+  MOZ_RELEASE_ASSERT(registration);
 
   return serviceWorker->WorkerPrivate()->SendPushEvent(aMessageId, aData,
                                                        registration);
@@ -2684,6 +2690,41 @@ ServiceWorkerManager::GetAllRegistrations(nsIArray** aResult) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+ServiceWorkerManager::RemoveRegistrationsByOriginAttributes(
+    const nsAString& aPattern) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(NS_IsMainThread());
+
+  MOZ_ASSERT(!aPattern.IsEmpty());
+
+  OriginAttributesPattern pattern;
+  MOZ_ALWAYS_TRUE(pattern.Init(aPattern));
+
+  for (auto it1 = mRegistrationInfos.Iter(); !it1.Done(); it1.Next()) {
+    ServiceWorkerManager::RegistrationDataPerPrincipal* data = it1.UserData();
+
+    // We can use iteration because ForceUnregister (and Unregister) are
+    // async. Otherwise doing some R/W operations on an hashtable during
+    // iteration will crash.
+    for (auto it2 = data->mInfos.Iter(); !it2.Done(); it2.Next()) {
+      ServiceWorkerRegistrationInfo* reg = it2.UserData();
+
+      MOZ_ASSERT(reg);
+      MOZ_ASSERT(reg->Principal());
+
+      bool matches = pattern.Matches(reg->Principal()->OriginAttributesRef());
+      if (!matches) {
+        continue;
+      }
+
+      ForceUnregister(data, reg);
+    }
+  }
+
+  return NS_OK;
+}
+
 // MUST ONLY BE CALLED FROM Remove(), RemoveAll() and RemoveAllRegistrations()!
 void ServiceWorkerManager::ForceUnregister(
     RegistrationDataPerPrincipal* aRegistrationData,
@@ -2771,34 +2812,6 @@ void ServiceWorkerManager::PropagateRemoveAll() {
   mActor->SendPropagateRemoveAll();
 }
 
-void ServiceWorkerManager::RemoveAllRegistrations(
-    OriginAttributesPattern* aPattern) {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  MOZ_ASSERT(aPattern);
-
-  for (auto it1 = mRegistrationInfos.Iter(); !it1.Done(); it1.Next()) {
-    ServiceWorkerManager::RegistrationDataPerPrincipal* data = it1.UserData();
-
-    // We can use iteration because ForceUnregister (and Unregister) are
-    // async. Otherwise doing some R/W operations on an hashtable during
-    // iteration will crash.
-    for (auto it2 = data->mInfos.Iter(); !it2.Done(); it2.Next()) {
-      ServiceWorkerRegistrationInfo* reg = it2.UserData();
-
-      MOZ_ASSERT(reg);
-      MOZ_ASSERT(reg->Principal());
-
-      bool matches = aPattern->Matches(reg->Principal()->OriginAttributesRef());
-      if (!matches) {
-        continue;
-      }
-
-      ForceUnregister(data, reg);
-    }
-  }
-}
-
 NS_IMETHODIMP
 ServiceWorkerManager::AddListener(nsIServiceWorkerManagerListener* aListener) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -2829,17 +2842,13 @@ ServiceWorkerManager::RemoveListener(
 NS_IMETHODIMP
 ServiceWorkerManager::Observe(nsISupports* aSubject, const char* aTopic,
                               const char16_t* aData) {
-  if (strcmp(aTopic, CLEAR_ORIGIN_DATA) == 0) {
-    MOZ_ASSERT(XRE_IsParentProcess());
-    OriginAttributesPattern pattern;
-    MOZ_ALWAYS_TRUE(pattern.Init(nsAutoString(aData)));
-
-    RemoveAllRegistrations(&pattern);
+  if (strcmp(aTopic, GetStartShutdownTopic()) == 0) {
+    MaybeStartShutdown();
     return NS_OK;
   }
 
-  if (strcmp(aTopic, GetXPCOMShutdownTopic()) == 0) {
-    MaybeStartShutdown();
+  if (strcmp(aTopic, kFinishShutdownTopic) == 0) {
+    MaybeFinishShutdown();
     return NS_OK;
   }
 

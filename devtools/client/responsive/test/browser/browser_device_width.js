@@ -7,45 +7,47 @@ const TEST_URL =
   'data:text/html;charset=utf-8,<iframe id="subframe" ' +
   'width="200" height="200"></iframe>';
 
-addRDMTask(TEST_URL, async function({ ui, manager }) {
-  await pushPref("devtools.responsive.metaViewport.enabled", true);
+addRDMTask(
+  TEST_URL,
+  async function({ ui, manager }) {
+    ok(ui, "An instance of the RDM should be attached to the tab.");
+    await setViewportSizeAndAwaitReflow(ui, manager, 110, 500);
 
-  ok(ui, "An instance of the RDM should be attached to the tab.");
-  await setViewportSizeAndAwaitReflow(ui, manager, 110, 500);
+    info("Checking initial width/height properties.");
+    await doInitialChecks(ui, 110);
 
-  info("Checking initial width/height properties.");
-  await doInitialChecks(ui, 110);
+    info("Checking initial width/height with meta viewport on");
+    await setTouchAndMetaViewportSupport(ui, true);
+    await doInitialChecks(ui, 980);
+    await setTouchAndMetaViewportSupport(ui, false);
 
-  info("Checking initial width/height with meta viewport on");
-  await setTouchAndMetaViewportSupport(ui, true);
-  await doInitialChecks(ui, 440);
-  await setTouchAndMetaViewportSupport(ui, false);
+    info("Changing the RDM size");
+    await setViewportSizeAndAwaitReflow(ui, manager, 90, 500);
 
-  info("Changing the RDM size");
-  await setViewportSizeAndAwaitReflow(ui, manager, 90, 500);
+    info("Checking for screen props");
+    await checkScreenProps(ui);
 
-  info("Checking for screen props");
-  await checkScreenProps(ui);
+    info("Checking for screen props with meta viewport on");
+    await setTouchAndMetaViewportSupport(ui, true);
+    await checkScreenProps(ui);
+    await setTouchAndMetaViewportSupport(ui, false);
 
-  info("Checking for screen props with meta viewport on");
-  await setTouchAndMetaViewportSupport(ui, true);
-  await checkScreenProps(ui);
-  await setTouchAndMetaViewportSupport(ui, false);
+    info("Checking for subframe props");
+    await checkSubframeProps(ui);
 
-  info("Checking for subframe props");
-  await checkSubframeProps(ui);
+    info("Checking for subframe props with meta viewport on");
+    await setTouchAndMetaViewportSupport(ui, true);
+    await checkSubframeProps(ui);
+    await setTouchAndMetaViewportSupport(ui, false);
 
-  info("Checking for subframe props with meta viewport on");
-  await setTouchAndMetaViewportSupport(ui, true);
-  await checkSubframeProps(ui);
-  await setTouchAndMetaViewportSupport(ui, false);
+    info("Changing the RDM size using input keys");
+    await setViewportSizeWithInputKeys(ui);
 
-  info("Changing the RDM size using input keys");
-  await setViewportSizeWithInputKeys(ui);
-
-  info("Checking for screen props once again.");
-  await checkScreenProps2(ui);
-});
+    info("Checking for screen props once again.");
+    await checkScreenProps2(ui);
+  },
+  true
+);
 
 async function setViewportSizeWithInputKeys(ui) {
   const width = 320,
@@ -142,7 +144,7 @@ async function checkSubframeProps(ui) {
 }
 
 function grabContentInfo(ui) {
-  return ContentTask.spawn(ui.getViewportBrowser(), {}, async function() {
+  return SpecialPowers.spawn(ui.getViewportBrowser(), [], async function() {
     return {
       screen: {
         width: content.screen.width,
@@ -157,7 +159,7 @@ function grabContentInfo(ui) {
 }
 
 function grabContentSubframeInfo(ui) {
-  return ContentTask.spawn(ui.getViewportBrowser(), {}, async function() {
+  return SpecialPowers.spawn(ui.getViewportBrowser(), [], async function() {
     const subframe = content.document.getElementById("subframe");
     const win = subframe.contentWindow;
     return {

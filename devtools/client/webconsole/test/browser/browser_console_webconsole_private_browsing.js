@@ -27,7 +27,9 @@ add_task(async function() {
   await pushPref("devtools.browserconsole.contentMessages", true);
   await addTab(NON_PRIVATE_TEST_URI);
 
-  const privateWindow = await openNewBrowserWindow({ private: true });
+  const privateWindow = await BrowserTestUtils.openNewBrowserWindow({
+    private: true,
+  });
   ok(PrivateBrowsingUtils.isWindowPrivate(privateWindow), "window is private");
   const privateBrowser = privateWindow.gBrowser;
   privateBrowser.selectedTab = BrowserTestUtils.addTab(
@@ -80,7 +82,7 @@ add_task(async function() {
     hud,
     NON_PRIVATE_MESSAGE
   );
-  ContentTask.spawn(gBrowser.selectedBrowser, NON_PRIVATE_MESSAGE, function(
+  SpecialPowers.spawn(gBrowser.selectedBrowser, [NON_PRIVATE_MESSAGE], function(
     msg
   ) {
     content.console.log(msg);
@@ -124,7 +126,7 @@ add_task(async function() {
 });
 
 function logPrivateMessages(browser) {
-  ContentTask.spawn(browser, null, () => content.wrappedJSObject.logMessages());
+  SpecialPowers.spawn(browser, [], () => content.wrappedJSObject.logMessages());
 }
 
 function assertNoPrivateMessages(hud) {

@@ -9,8 +9,6 @@
 #include "nsArray.h"
 #include "nsDocShellEditorData.h"
 #include "nsIContentViewer.h"
-#include "nsIDocShell.h"
-#include "nsIDocShellTreeItem.h"
 #include "mozilla/dom/Document.h"
 #include "nsILayoutHistoryState.h"
 #include "nsIWebNavigation.h"
@@ -41,7 +39,8 @@ SHEntrySharedParentState::SHEntrySharedParentState(nsIWeakReference* aSHistory,
       mIsFrameNavigation(false),
       mSticky(true),
       mDynamicallyCreated(false),
-      mExpired(false) {}
+      mExpired(false),
+      mSaveLayoutState(true) {}
 
 SHEntrySharedParentState::~SHEntrySharedParentState() {}
 
@@ -51,6 +50,7 @@ void SHEntrySharedParentState::CopyFrom(SHEntrySharedParentState* aEntry) {
   mPrincipalToInherit = aEntry->mPrincipalToInherit;
   mStoragePrincipalToInherit = aEntry->mStoragePrincipalToInherit;
   mCsp = aEntry->mCsp;
+  mSaveLayoutState = aEntry->mSaveLayoutState;
   mContentType.Assign(aEntry->mContentType);
   mIsFrameNavigation = aEntry->mIsFrameNavigation;
   mSticky = aEntry->mSticky;

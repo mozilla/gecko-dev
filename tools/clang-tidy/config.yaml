@@ -18,7 +18,8 @@ platforms:
   - win64
 # Minimum clang-tidy version that is required for all the following checkers
 # to work properly.
-package_version: "9.0.0"
+# This is also used by 'mach clang-format'
+package_version: "9.0.1"
 clang_checkers:
   - name: -*
     publish: !!bool no
@@ -126,6 +127,8 @@ clang_checkers:
     reliability: high
   - name: cppcoreguidelines-narrowing-conversions
     reliability: high
+  - name: cppcoreguidelines-pro-type-member-init
+    reliability: medium
   - name: misc-non-copyable-objects
     reliability: high
   - name: misc-redundant-expression
@@ -139,6 +142,8 @@ clang_checkers:
       - win32
       - win64
     reliability: medium
+  - name: modernize-concat-nested-namespaces
+    reliability: high
   - name: modernize-deprecated-ios-base-aliases
     reliability: high
   - name: modernize-loop-convert
@@ -181,6 +186,8 @@ clang_checkers:
       - linux64
       - macosx64
     reliability: high
+    # Disable as the test does not support C++17 yet
+    publish: !!bool no
   - name: performance-inefficient-string-concatenation
     reliability: high
   - name: performance-inefficient-vector-operation

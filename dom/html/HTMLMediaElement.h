@@ -15,14 +15,13 @@
 #include "MediaPlaybackDelayPolicy.h"
 #include "MediaPromiseDefs.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsIObserver.h"
 #include "mozilla/CORSMode.h"
 #include "DecoderTraits.h"
-#include "nsIAudioChannelAgent.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/StateWatching.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/dom/HTMLMediaElementBinding.h"
+#include "mozilla/dom/MediaControlKeysEvent.h"
 #include "mozilla/dom/MediaDebugInfoBinding.h"
 #include "mozilla/dom/MediaKeys.h"
 #include "mozilla/dom/TextTrackManager.h"
@@ -162,6 +161,8 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   NS_IMPL_FROMNODE_HELPER(HTMLMediaElement,
                           IsAnyOfHTMLElements(nsGkAtoms::video,
                                               nsGkAtoms::audio))
+
+  NS_DECL_ADDSIZEOFEXCLUDINGTHIS
 
   // EventTarget
   void GetEventTargetParent(EventChainPreVisitor& aVisitor) override;
@@ -533,6 +534,10 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   }
 
   already_AddRefed<Promise> Play(ErrorResult& aRv);
+  void Play() {
+    IgnoredErrorResult dummy;
+    RefPtr<Promise> toBeIgnored = Play(dummy);
+  }
 
   void Pause(ErrorResult& aRv);
   void Pause() { Pause(IgnoreErrors()); }
@@ -754,6 +759,7 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   class MediaStreamTrackListener;
   class FirstFrameListener;
   class ShutdownObserver;
+  class MediaControlEventListener;
 
   MediaDecoderOwner::NextFrameStatus NextFrameStatus();
 
@@ -1164,11 +1170,11 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   void SetVolumeInternal();
 
   /**
-   * Suspend (if aPauseForInactiveDocument) or resume element playback and
-   * resource download.  If aSuspendEvents is true, event delivery is
-   * suspended (and events queued) until the element is resumed.
+   * Suspend or resume element playback and resource download.  When we suspend
+   * playback, event delivery would also be suspended (and events queued) until
+   * the element is resumed.
    */
-  void SuspendOrResumeElement(bool aPauseElement, bool aSuspendEvents);
+  void SuspendOrResumeElement(bool aSuspendElement);
 
   // Get the HTMLMediaElement object if the decoder is being used from an
   // HTML media element, and null otherwise.
@@ -1217,9 +1223,6 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   // Recomputes ready state and fires events as necessary based on current
   // state.
   void UpdateReadyStateInternal();
-
-  // Determine if the element should be paused because of suspend conditions.
-  bool ShouldElementBePaused();
 
   // Create or destroy the captured stream.
   void AudioCaptureTrackChange(bool aCapture);
@@ -1330,6 +1333,10 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   // When the doc is blocked permanantly, we would dispatch event to notify
   // front-end side to show blocking icon.
   void MaybeNotifyAutoplayBlocked();
+
+  // When playing state change, we have to notify MediaControl in the chrome
+  // process in order to keep its playing state correct.
+  void NotifyMediaControlPlaybackStateChanged();
 
   // The current decoder. Load() has been called on this decoder.
   // At most one of mDecoder and mSrcStream can be non-null.
@@ -1604,11 +1611,10 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   // to raise the 'waiting' event as per 4.7.1.8 in HTML 5 specification.
   bool mPlayingBeforeSeek = false;
 
-  // True iff this element is paused because the document is inactive or has
-  // been suspended by the audio channel service.
-  bool mPausedForInactiveDocumentOrChannel = false;
+  // True if this element is suspended because the document is inactive.
+  bool mSuspendedForInactiveDocument = false;
 
-  // True iff event delivery is suspended (mPausedForInactiveDocumentOrChannel
+  // True if event delivery is suspended (mSuspendedForInactiveDocument
   // must also be true).
   bool mEventDeliveryPaused = false;
 
@@ -1831,7 +1837,8 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   bool mInitialized = false;
 
   // True if user has called load(), seek() or element has started playing
-  // before. It's *only* use for checking autoplay policy
+  // before. It's *only* use for `click-to-play` blocking autoplay policy.
+  // In addition, we would reset this once media aborts current load.
   bool mIsBlessed = false;
 
   // True if the first frame has been successfully loaded.
@@ -1902,6 +1909,12 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   RefPtr<ResumeDelayedPlaybackAgent> mResumeDelayedPlaybackAgent;
   MozPromiseRequestHolder<ResumeDelayedPlaybackAgent::ResumePromise>
       mResumePlaybackRequest;
+
+  // We use MediaControlEventListener to listen media control keys event, which
+  // would play or pause media element according to different events.
+  void StartListeningMediaControlEventIfNeeded();
+  void StopListeningMediaControlEventIfNeeded();
+  RefPtr<MediaControlEventListener> mMediaControlEventListener;
 };
 
 // Check if the context is chrome or has the debugger or tabs permission

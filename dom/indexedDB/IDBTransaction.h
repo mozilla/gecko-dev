@@ -7,10 +7,10 @@
 #ifndef mozilla_dom_idbtransaction_h__
 #define mozilla_dom_idbtransaction_h__
 
+#include "FlippedOnce.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/IDBTransactionBinding.h"
 #include "mozilla/DOMEventTargetHelper.h"
-#include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIRunnable.h"
 #include "nsString.h"
@@ -102,7 +102,7 @@ class IDBTransaction final : public DOMEventTargetHelper, public nsIRunnable {
   const uint32_t mColumn;
 
   ReadyState mReadyState = ReadyState::Active;
-  bool mStarted = false;
+  FlippedOnce<false> mStarted;
   const Mode mMode;
 
   bool mCreating;    ///< Set between successful creation until the transaction
@@ -110,12 +110,12 @@ class IDBTransaction final : public DOMEventTargetHelper, public nsIRunnable {
   bool mRegistered;  ///< Whether mDatabase->RegisterTransaction() has been
                      ///< called (which may not be the case if construction was
                      ///< incomplete).
-  bool mAbortedByScript;
+  FlippedOnce<false> mAbortedByScript;
   bool mNotedActiveTransaction;
 
 #ifdef DEBUG
-  bool mSentCommitOrAbort;
-  bool mFiredCompleteOrAbort;
+  FlippedOnce<false> mSentCommitOrAbort;
+  FlippedOnce<false> mFiredCompleteOrAbort;
 #endif
 
  public:
@@ -173,6 +173,18 @@ class IDBTransaction final : public DOMEventTargetHelper, public nsIRunnable {
            mReadyState == ReadyState::Finished;
   }
 
+  bool IsActive() const {
+    AssertIsOnOwningThread();
+
+    return mReadyState == ReadyState::Active;
+  }
+
+  bool IsInactive() const {
+    AssertIsOnOwningThread();
+
+    return mReadyState == ReadyState::Inactive;
+  }
+
   bool IsFinished() const {
     AssertIsOnOwningThread();
 
@@ -190,32 +202,47 @@ class IDBTransaction final : public DOMEventTargetHelper, public nsIRunnable {
     return NS_FAILED(mAbortCode);
   }
 
-  auto TemporarilyProceedToInactive() {
-    AssertIsOnOwningThread();
+  template <ReadyState OriginalState, ReadyState TemporaryState>
+  class AutoRestoreState {
+   public:
+    explicit AutoRestoreState(IDBTransaction& aOwner) : mOwner { aOwner }
+#ifdef DEBUG
+    , mSavedPendingRequestCount { mOwner.mPendingRequestCount }
+#endif
+    {
+      mOwner.AssertIsOnOwningThread();
+      MOZ_ASSERT(mOwner.mReadyState == OriginalState);
+      mOwner.mReadyState = TemporaryState;
+    }
+
+    ~AutoRestoreState() {
+      mOwner.AssertIsOnOwningThread();
+      MOZ_ASSERT(mOwner.mReadyState == TemporaryState);
+      MOZ_ASSERT(mOwner.mPendingRequestCount == mSavedPendingRequestCount);
+
+      mOwner.mReadyState = OriginalState;
+    }
+
+   private:
+    IDBTransaction& mOwner;
+#ifdef DEBUG
+    const uint32_t mSavedPendingRequestCount;
+#endif
+  };
+
+  AutoRestoreState<ReadyState::Inactive, ReadyState::Active>
+  TemporarilyTransitionToActive();
+  AutoRestoreState<ReadyState::Active, ReadyState::Inactive>
+  TemporarilyTransitionToInactive();
+
+  void TransitionToActive() {
+    MOZ_ASSERT(mReadyState == ReadyState::Inactive);
+    mReadyState = ReadyState::Active;
+  }
+
+  void TransitionToInactive() {
     MOZ_ASSERT(mReadyState == ReadyState::Active);
     mReadyState = ReadyState::Inactive;
-
-    struct AutoRestoreState {
-      IDBTransaction& mOwner;
-#ifdef DEBUG
-      uint32_t mSavedPendingRequestCount;
-#endif
-
-      ~AutoRestoreState() {
-        mOwner.AssertIsOnOwningThread();
-        MOZ_ASSERT(mOwner.mReadyState == ReadyState::Inactive);
-        MOZ_ASSERT(mOwner.mPendingRequestCount == mSavedPendingRequestCount);
-
-        mOwner.mReadyState = ReadyState::Active;
-      }
-    };
-
-    return AutoRestoreState{*this
-#ifdef DEBUG
-                            ,
-                            mPendingRequestCount
-#endif
-    };
   }
 
   nsresult AbortCode() const {
@@ -299,6 +326,8 @@ class IDBTransaction final : public DOMEventTargetHelper, public nsIRunnable {
 
   MOZ_MUST_USE RefPtr<IDBObjectStore> ObjectStore(const nsAString& aName,
                                                   ErrorResult& aRv);
+
+  void Commit(ErrorResult& aRv);
 
   void Abort(ErrorResult& aRv);
 

@@ -8,8 +8,6 @@
 #include "nsString.h"
 #include "nsIStringBundle.h"
 #include "nsStringBundleService.h"
-#include "nsISupportsPrimitives.h"
-#include "nsIMutableArray.h"
 #include "nsArrayEnumerator.h"
 #include "nscore.h"
 #include "nsMemory.h"
@@ -22,7 +20,6 @@
 #include "nsCOMArray.h"
 #include "nsTextFormatter.h"
 #include "nsErrorService.h"
-#include "nsICategoryManager.h"
 #include "nsContentUtils.h"
 #include "nsPersistentProperties.h"
 #include "nsQueryObject.h"
@@ -69,7 +66,6 @@ static const char kContentBundles[][52] = {
     "chrome://global/locale/commonDialogs.properties",
     "chrome://global/locale/css.properties",
     "chrome://global/locale/dom/dom.properties",
-    "chrome://global/locale/intl.properties",
     "chrome://global/locale/layout/HtmlForm.properties",
     "chrome://global/locale/layout/htmlparser.properties",
     "chrome://global/locale/layout_errors.properties",

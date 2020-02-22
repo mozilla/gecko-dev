@@ -11,7 +11,7 @@ ChromeUtils.defineModuleGetter(
 
 function openLibrary(callback, aLeftPaneRoot) {
   let library = window.openDialog(
-    "chrome://browser/content/places/places.xul",
+    "chrome://browser/content/places/places.xhtml",
     "",
     "chrome,toolbar=yes,dialog=no,resizable",
     aLeftPaneRoot
@@ -266,7 +266,7 @@ var withBookmarksDialog = async function(
   } finally {
     if (!closed && autoCancel) {
       info("withBookmarksDialog: canceling the dialog");
-      doc.documentElement.cancelDialog();
+      doc.getElementById("bookmarkproperties").cancelDialog();
       await closePromise;
     }
     // Give the dialog a little time to close itself.
@@ -292,7 +292,7 @@ var openContextMenuForContentSelector = async function(browser, selector) {
     document.getElementById("contentAreaContextMenu"),
     "popupshown"
   );
-  await ContentTask.spawn(browser, { selector }, async function(args) {
+  await SpecialPowers.spawn(browser, [{ selector }], async function(args) {
     let doc = content.document;
     let elt = doc.querySelector(args.selector);
     dump(`openContextMenuForContentSelector: found ${elt}\n`);

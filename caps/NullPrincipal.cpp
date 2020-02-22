@@ -19,7 +19,6 @@
 #include "nsIClassInfoImpl.h"
 #include "nsNetCID.h"
 #include "nsError.h"
-#include "nsIScriptSecurityManager.h"
 #include "ContentPrincipal.h"
 #include "nsScriptSecurityManager.h"
 #include "pratom.h"
@@ -134,6 +133,11 @@ NS_IMETHODIMP
 NullPrincipal::GetURI(nsIURI** aURI) {
   nsCOMPtr<nsIURI> uri = mURI;
   uri.forget(aURI);
+  return NS_OK;
+}
+NS_IMETHODIMP
+NullPrincipal::GetIsOriginPotentiallyTrustworthy(bool* aResult) {
+  *aResult = false;
   return NS_OK;
 }
 

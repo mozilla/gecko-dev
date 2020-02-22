@@ -20,10 +20,14 @@
 #elif defined(XP_WIN)
 #  include "nsWinRemoteServer.h"
 #  include "nsWinRemoteClient.h"
+#elif defined(XP_DARWIN)
+#  include "nsMacRemoteServer.h"
+#  include "nsMacRemoteClient.h"
 #endif
 #include "nsRemoteService.h"
 
 #include "nsAutoPtr.h"
+#include "nsIObserverService.h"
 #include "nsString.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/ModuleUtils.h"
@@ -106,6 +110,8 @@ RemoteResult nsRemoteService::StartClient(const char* aDesktopStartupID) {
   }
 #elif defined(XP_WIN)
   client = new nsWinRemoteClient();
+#elif defined(XP_DARWIN)
+  client = new nsMacRemoteClient();
 #else
   return REMOTE_NOT_FOUND;
 #endif
@@ -153,6 +159,8 @@ void nsRemoteService::StartupServer() {
   }
 #elif defined(XP_WIN)
   mRemoteServer = MakeUnique<nsWinRemoteServer>();
+#elif defined(XP_DARWIN)
+  mRemoteServer = MakeUnique<nsMacRemoteServer>();
 #else
   return;
 #endif

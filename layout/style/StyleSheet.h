@@ -52,6 +52,7 @@ class DocumentOrShadowRoot;
 class MediaList;
 class ShadowRoot;
 class SRIMetadata;
+struct CSSStyleSheetInit;
 }  // namespace dom
 
 enum class StyleSheetState : uint8_t {
@@ -68,10 +69,12 @@ enum class StyleSheetState : uint8_t {
   ForcedUniqueInner = 1 << 2,
   // Whether this stylesheet has suffered any modification to the rules via
   // CSSOM.
-  //
-  // FIXME(emilio): I think as of right now we also set this flag for normal
-  // @import rules, which looks very fishy.
   ModifiedRules = 1 << 3,
+  // Same flag, but devtools clears it in some specific situations.
+  //
+  // Used to control whether devtools shows the rule in its authored form or
+  // not.
+  ModifiedRulesForDevtools = 1 << 4,
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(StyleSheetState)
@@ -89,6 +92,10 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
  public:
   StyleSheet(css::SheetParsingMode aParsingMode, CORSMode aCORSMode,
              const dom::SRIMetadata& aIntegrity);
+
+  static already_AddRefed<StyleSheet> Constructor(const dom::GlobalObject&,
+                                                  const dom::CSSStyleSheetInit&,
+                                                  ErrorResult&);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(StyleSheet)
@@ -212,16 +219,15 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
 
   bool HasModifiedRules() const { return bool(mState & State::ModifiedRules); }
 
-  void ClearModifiedRules() { mState &= ~State::ModifiedRules; }
+  bool HasModifiedRulesForDevtools() const {
+    return bool(mState & State::ModifiedRulesForDevtools);
+  }
 
   bool HasUniqueInner() const { return Inner().mSheets.Length() == 1; }
 
   void AssertHasUniqueInner() const { MOZ_ASSERT(HasUniqueInner()); }
 
   void EnsureUniqueInner();
-
-  // Append all of this sheet's child sheets to aArray.
-  void AppendAllChildSheets(nsTArray<StyleSheet*>& aArray);
 
   // style sheet owner info
   enum AssociationMode : uint8_t {
@@ -264,16 +270,19 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   }
   dom::CSSImportRule* GetOwnerRule() const { return mOwnerRule; }
 
-  void PrependStyleSheet(StyleSheet* aSheet);
+  void AppendStyleSheet(StyleSheet&);
 
-  // Prepend a stylesheet to the child list without calling WillDirty.
-  void PrependStyleSheetSilently(StyleSheet* aSheet);
+  // Append a stylesheet to the child list without calling WillDirty.
+  void AppendStyleSheetSilently(StyleSheet&);
 
-  StyleSheet* GetFirstChild() const;
-  StyleSheet* GetMostRecentlyAddedChildSheet() const {
-    // New child sheet can only be prepended into the linked list of
-    // child sheets, so the most recently added one is always the first.
-    return GetFirstChild();
+  const nsTArray<RefPtr<StyleSheet>>& ChildSheets() const {
+#ifdef DEBUG
+    for (StyleSheet* child : Inner().mChildren) {
+      MOZ_ASSERT(child->GetParentSheet());
+      MOZ_ASSERT(child->GetParentSheet()->mInner == mInner);
+    }
+#endif
+    return Inner().mChildren;
   }
 
   // Principal() never returns a null pointer.
@@ -350,6 +359,8 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   int32_t AddRule(const nsAString& aSelector, const nsAString& aBlock,
                   const dom::Optional<uint32_t>& aIndex,
                   nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv);
+  already_AddRefed<dom::Promise> Replace(const nsAString& aText, ErrorResult&);
+  void ReplaceSync(const nsAString& aText, ErrorResult&);
 
   // WebIDL miscellaneous bits
   inline dom::ParentObject GetParentObject() const;
@@ -374,13 +385,6 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   // Find the ID of the owner inner window.
   uint64_t FindOwningWindowInnerID() const;
 
-  template <typename Func>
-  void EnumerateChildSheets(Func aCallback) {
-    for (StyleSheet* child = GetFirstChild(); child; child = child->mNext) {
-      aCallback(child);
-    }
-  }
-
   // Copy the contents of this style sheet into the shared memory buffer managed
   // by aBuilder.  Returns the pointer into the buffer that the sheet contents
   // were stored at.  (The returned pointer is to an Arc<Locked<Rules>> value.)
@@ -396,7 +400,14 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   // This is true for any User Agent sheets once they are complete.
   bool IsReadOnly() const;
 
+  // Removes a stylesheet from its parent sheet child list, if any.
+  void RemoveFromParent();
+
  private:
+  void SetModifiedRules() {
+    mState |= State::ModifiedRules | State::ModifiedRulesForDevtools;
+  }
+
   // Returns the ShadowRoot that contains this stylesheet or our ancestor
   // stylesheet, if any.
   //
@@ -450,16 +461,6 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
 
   void ApplicableStateChanged(bool aApplicable);
 
-  struct ChildSheetListBuilder {
-    RefPtr<StyleSheet>* sheetSlot;
-    StyleSheet* parent;
-
-    void SetParentLinks(StyleSheet* aSheet);
-
-    static void ReparentChildList(StyleSheet* aPrimarySheet,
-                                  StyleSheet* aFirstChild);
-  };
-
   void UnparentChildren();
 
   void LastRelease();
@@ -484,6 +485,8 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
 
   StyleSheet* mParent;  // weak ref
 
+  RefPtr<dom::Document> mConstructorDocument;
+
   nsString mTitle;
 
   // weak ref; parents maintain this for their children
@@ -492,8 +495,6 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   dom::CSSImportRule* mOwnerRule;  // weak ref
 
   RefPtr<dom::MediaList> mMedia;
-
-  RefPtr<StyleSheet> mNext;
 
   // mParsingMode controls access to nonstandard style constructs that
   // are not safe for use on the public Web but necessary in UA sheets

@@ -41,8 +41,7 @@ class MediaEngineWebRTCMicrophoneSource : public MediaEngineSource {
   nsString GetGroupId() const override;
 
   nsresult Allocate(const dom::MediaTrackConstraints& aConstraints,
-                    const MediaEnginePrefs& aPrefs,
-                    const ipc::PrincipalInfo& aPrincipalInfo,
+                    const MediaEnginePrefs& aPrefs, uint64_t aWindowID,
                     const char** aOutBadConstraint) override;
   nsresult Deallocate() override;
   void SetTrack(const RefPtr<SourceMediaTrack>& aTrack,
@@ -151,6 +150,7 @@ class AudioInputProcessing : public AudioDataListener {
   void NotifyOutputData(MediaTrackGraphImpl* aGraph, AudioDataValue* aBuffer,
                         size_t aFrames, TrackRate aRate,
                         uint32_t aChannels) override;
+  void NotifyStarted(MediaTrackGraphImpl* aGraph) override;
   void NotifyInputData(MediaTrackGraphImpl* aGraph,
                        const AudioDataValue* aBuffer, size_t aFrames,
                        TrackRate aRate, uint32_t aChannels) override;
@@ -278,8 +278,7 @@ class MediaEngineWebRTCAudioCaptureSource : public MediaEngineSource {
   nsCString GetUUID() const override;
   nsString GetGroupId() const override;
   nsresult Allocate(const dom::MediaTrackConstraints& aConstraints,
-                    const MediaEnginePrefs& aPrefs,
-                    const ipc::PrincipalInfo& aPrincipalInfo,
+                    const MediaEnginePrefs& aPrefs, uint64_t aWindowID,
                     const char** aOutBadConstraint) override {
     // Nothing to do here, everything is managed in MediaManager.cpp
     return NS_OK;

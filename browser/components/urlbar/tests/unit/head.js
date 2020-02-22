@@ -43,13 +43,17 @@ const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
  *          required options.
  */
 function createContext(searchString = "foo", properties = {}) {
-  let context = new UrlbarQueryContext({
-    allowAutofill: UrlbarPrefs.get("autoFill"),
-    isPrivate: true,
-    maxResults: UrlbarPrefs.get("maxRichResults"),
-    searchString,
-  });
-  return Object.assign(context, properties);
+  return new UrlbarQueryContext(
+    Object.assign(
+      {
+        allowAutofill: UrlbarPrefs.get("autoFill"),
+        isPrivate: true,
+        maxResults: UrlbarPrefs.get("maxRichResults"),
+        searchString,
+      },
+      properties
+    )
+  );
 }
 
 /**
@@ -175,6 +179,13 @@ async function addTestEngine(basename, httpServer = undefined) {
   httpServer.registerDirectory("/", do_get_cwd());
   let dataUrl =
     "http://localhost:" + httpServer.identity.primaryPort + "/data/";
+
+  // Before initializing the search service, set the geo IP url pref to a dummy
+  // string.  When the search service is initialized, it contacts the URI named
+  // in this pref, causing unnecessary error logs.
+  let geoPref = "browser.search.geoip.url";
+  Services.prefs.setCharPref(geoPref, "");
+  registerCleanupFunction(() => Services.prefs.clearUserPref(geoPref));
 
   info("Adding engine: " + basename);
   return new Promise(resolve => {

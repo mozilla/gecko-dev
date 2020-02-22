@@ -16,6 +16,7 @@ export interface PanelWindow {
   gTarget?: any;
   gInit(perfFront: any, preferenceFront: any): void;
   gDestroy(): void;
+  gReportReady?(): void
 }
 
 /**
@@ -55,6 +56,8 @@ export interface PerfFront {
   isActive: () => MaybePromise<boolean>;
   isSupportedPlatform: () => MaybePromise<boolean>;
   isLockedForPrivateBrowsing: () => MaybePromise<boolean>;
+  on: (type: string, listener: () => void) => void;
+  off: (type: string, listener: () => void) => void;
   /**
    * This method was was added in Firefox 72.
    */
@@ -92,6 +95,11 @@ export type RecordingState =
   | "other-is-recording"
   // Profiling is not available when in private browsing mode.
   | "locked-by-private-browsing";
+
+// We are currently migrating to a new UX workflow with about:profiling.
+// This type provides an easy way to change the implementation based
+// on context.
+export type PageContext = "popup" | "devtools" | "aboutprofiling";
 
 export interface State {
   recordingState: RecordingState;
@@ -202,9 +210,8 @@ export interface InitializedValues {
   receiveProfile: ReceiveProfile;
   // A function to set the recording settings.
   setRecordingPreferences: SetRecordingPreferences;
-  // A boolean value that sets lets the UI know if it is in the popup window
-  // or inside of devtools.
-  isPopup: boolean;
+  // Determine the current page context.
+  pageContext: PageContext;
   // The popup and devtools panel use different codepaths for getting symbol tables.
   getSymbolTableGetter: (profile: object) => GetSymbolTableCallback;
   // The list of profiler features that the current target supports. Note that
@@ -257,7 +264,7 @@ export type Action =
       perfFront: PerfFront;
       receiveProfile: ReceiveProfile;
       setRecordingPreferences: SetRecordingPreferences;
-      isPopup: boolean;
+      pageContext: PageContext;
       recordingSettingsFromPreferences: RecordingStateFromPreferences;
       getSymbolTableGetter: (profile: object) => GetSymbolTableCallback;
       supportedFeatures: string[] | null;
@@ -267,7 +274,7 @@ export interface InitializeStoreValues {
   perfFront: PerfFront;
   receiveProfile: ReceiveProfile;
   setRecordingPreferences: SetRecordingPreferences;
-  isPopup: boolean;
+  pageContext: PageContext;
   recordingPreferences: RecordingStateFromPreferences;
   supportedFeatures: string[] | null;
   getSymbolTableGetter: (profile: object) => GetSymbolTableCallback;
@@ -355,4 +362,19 @@ export interface PerformancePref {
  */
 export interface PopupWindow extends Window {
   gResizePopup?: (height: number) => void;
+  gIsDarkMode?: boolean;
+}
+
+/**
+ * Scale a number value.
+ */
+export type NumberScaler = (value: number) => number;
+
+/**
+ * A collection of functions to scale numbers.
+ */
+export interface ScaleFunctions {
+  fromFractionToValue: NumberScaler,
+  fromValueToFraction: NumberScaler,
+  fromFractionToSingleDigitValue: NumberScaler,
 }

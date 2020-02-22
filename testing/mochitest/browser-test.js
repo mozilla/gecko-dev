@@ -97,7 +97,7 @@ function testInit() {
 
     Services.ww.openWindow(
       window,
-      "chrome://mochikit/content/browser-harness.xul",
+      "chrome://mochikit/content/browser-harness.xhtml",
       "browserTest",
       "chrome,centerscreen,dialog=no,resizable,titlebar,toolbar=no,width=800,height=600",
       sstring
@@ -217,32 +217,25 @@ function Tester(aTests, structuredLogger, aCallback) {
 
   this.MemoryStats = simpleTestScope.MemoryStats;
   this.ContentTask = ChromeUtils.import(
-    "resource://testing-common/ContentTask.jsm",
-    null
+    "resource://testing-common/ContentTask.jsm"
   ).ContentTask;
   this.BrowserTestUtils = ChromeUtils.import(
-    "resource://testing-common/BrowserTestUtils.jsm",
-    null
+    "resource://testing-common/BrowserTestUtils.jsm"
   ).BrowserTestUtils;
   this.TestUtils = ChromeUtils.import(
-    "resource://testing-common/TestUtils.jsm",
-    null
+    "resource://testing-common/TestUtils.jsm"
   ).TestUtils;
   this.Promise = ChromeUtils.import(
-    "resource://gre/modules/Promise.jsm",
-    null
+    "resource://gre/modules/Promise.jsm"
   ).Promise;
   this.PromiseTestUtils = ChromeUtils.import(
-    "resource://testing-common/PromiseTestUtils.jsm",
-    null
+    "resource://testing-common/PromiseTestUtils.jsm"
   ).PromiseTestUtils;
   this.Assert = ChromeUtils.import(
-    "resource://testing-common/Assert.jsm",
-    null
+    "resource://testing-common/Assert.jsm"
   ).Assert;
   this.PerTestCoverageUtils = ChromeUtils.import(
-    "resource://testing-common/PerTestCoverageUtils.jsm",
-    null
+    "resource://testing-common/PerTestCoverageUtils.jsm"
   ).PerTestCoverageUtils;
 
   this.PromiseTestUtils.init();
@@ -1299,16 +1292,29 @@ function testScope(aTester, aTest, expected) {
       self.record(condition, name);
     }
   };
-  this.record = function test_record(condition, name, ex, stack) {
-    aTest.addResult(
-      new testResult({
-        name,
-        pass: condition,
-        ex,
-        stack: stack || Components.stack.caller,
-        allowFailure: aTest.allowFailure,
-      })
-    );
+  this.record = function test_record(condition, name, ex, stack, expected) {
+    if (expected == "fail") {
+      aTest.addResult(
+        new testResult({
+          name,
+          pass: !condition,
+          todo: true,
+          ex,
+          stack: stack || Components.stack.caller,
+          allowFailure: aTest.allowFailure,
+        })
+      );
+    } else {
+      aTest.addResult(
+        new testResult({
+          name,
+          pass: condition,
+          ex,
+          stack: stack || Components.stack.caller,
+          allowFailure: aTest.allowFailure,
+        })
+      );
+    }
   };
   this.is = function test_is(a, b, name) {
     self.record(

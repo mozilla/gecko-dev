@@ -462,6 +462,18 @@ class MOZ_STACK_CLASS TryNoteIter {
   const JSTryNote* operator*() const { return tn_; }
 };
 
+class NoOpTryNoteFilter {
+ public:
+  explicit NoOpTryNoteFilter() = default;
+  bool operator()(const JSTryNote*) { return true; }
+};
+
+class TryNoteIterAll : public TryNoteIter<NoOpTryNoteFilter> {
+ public:
+  TryNoteIterAll(JSContext* cx, JSScript* script, jsbytecode* pc)
+      : TryNoteIter(cx, script, pc, NoOpTryNoteFilter()) {}
+};
+
 bool HandleClosingGeneratorReturn(JSContext* cx, AbstractFramePtr frame,
                                   bool ok);
 
@@ -482,9 +494,6 @@ JSObject* LambdaArrow(JSContext* cx, HandleFunction fun, HandleObject parent,
 
 bool SetObjectElement(JSContext* cx, HandleObject obj, HandleValue index,
                       HandleValue value, bool strict);
-bool SetObjectElement(JSContext* cx, HandleObject obj, HandleValue index,
-                      HandleValue value, bool strict, HandleScript script,
-                      jsbytecode* pc);
 
 bool SetObjectElementWithReceiver(JSContext* cx, HandleObject obj,
                                   HandleValue index, HandleValue value,
@@ -630,7 +639,7 @@ enum class CheckIsCallableKind : uint8_t { IteratorReturn };
 
 bool ThrowCheckIsCallable(JSContext* cx, CheckIsCallableKind kind);
 
-bool ThrowUninitializedThis(JSContext* cx, AbstractFramePtr frame);
+bool ThrowUninitializedThis(JSContext* cx);
 
 bool ThrowInitializedThis(JSContext* cx);
 

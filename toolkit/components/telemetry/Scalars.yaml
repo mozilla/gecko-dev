@@ -7,6 +7,23 @@
 
 # The following section contains the accessibility scalars.
 a11y:
+  sitezoom:
+    bug_numbers:
+      - 1590485
+    description: >
+      Boolean tracking if the user has the site-specific zoom enabled or disabled.
+    expires: "78"
+    kind: boolean
+    notification_emails:
+      - accessibility@mozilla.com
+      - mreschenberg@mozilla.com
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+    release_channel_collection: opt-out
+    keyed: false
+
   backplate:
     bug_numbers:
       - 1539212
@@ -1352,13 +1369,14 @@ mathml:
     bug_numbers:
       - 1362187
       - 1538985
+      - 1590350
     description: >
       The number of documents that contained enabled MathML elements.
-    expires: "73"
+    expires: never
     kind: uint
     notification_emails:
       - emilio@mozilla.com
-      - fredw@igalia.com
+      - fred.wang@free.fr
       - dev-tech-layout@lists.mozilla.org
     release_channel_collection: opt-out
     products:
@@ -2343,80 +2361,6 @@ devtools.changesview:
     record_in_processes:
       - 'main'
 
-  copy_all_changes:
-    bug_numbers:
-      - 1532583
-    description: >
-      Number of times the Copy All Changes button is used in the Changes panel.
-    expires: "73"
-    kind: uint
-    notification_emails:
-      - dev-developer-tools@lists.mozilla.org
-      - mbalfanz@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-      - 'geckoview'
-    record_in_processes:
-      - 'main'
-
-  copy_rule:
-    bug_numbers:
-      - 1532583
-    description: >
-      Number of times the Copy Rule button is used in the Changes panel.
-    expires: "73"
-    kind: uint
-    notification_emails:
-      - dev-developer-tools@lists.mozilla.org
-      - mbalfanz@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-      - 'geckoview'
-    record_in_processes:
-      - 'main'
-
-  contextmenu_copy_declaration:
-    bug_numbers:
-      - 1532583
-    description: >
-      Number of times the Copy Declaration option is picked from the Changes panel
-      context menu.
-    expires: "73"
-    kind: uint
-    notification_emails:
-      - dev-developer-tools@lists.mozilla.org
-      - mbalfanz@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-      - 'geckoview'
-    record_in_processes:
-      - 'main'
-
-  contextmenu_copy_rule:
-    bug_numbers:
-      - 1532583
-    description: >
-      Number of times the Copy Rule option is picked from the Changes panel
-      context menu.
-    expires: "73"
-    kind: uint
-    notification_emails:
-      - dev-developer-tools@lists.mozilla.org
-      - mbalfanz@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-      - 'fennec'
-      - 'geckoview'
-    record_in_processes:
-      - 'main'
-
 dom.event:
   confluence_load_count:
     bug_numbers:
@@ -2958,7 +2902,7 @@ gfx.adapter:
     description: >
       Graphics adapter device identification
       This is a temporary workaround for some early telemetry system issues. See Bug 1601091 for more information
-    expires: "74"
+    expires: "76"
     kind: string
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
@@ -3080,7 +3024,7 @@ gfx:
     description: >
       Name of the graphics compositor in use. possible values are "opengl, d3d11, client, webrender or basic".
       This is a temporary workaround for some early telemetry system issues. See Bug 1601091 for more information
-    expires: "74"
+    expires: "76"
     kind: string
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
@@ -4668,9 +4612,10 @@ encoding:
       - 840476
       - 1513473
       - 1554592
+      - 1603047
     description: >-
       Whether the Text Encoding menu was used to override an encoding in this subsession.
-    expires: "72"
+    expires: "79"
     kind: boolean
     notification_emails:
       - hsivonen@mozilla.com
@@ -5035,6 +4980,61 @@ firstStartup:
     products:
       - 'firefox'
       - 'thunderbird'
+    record_in_processes:
+      - main
+
+# The following section is for the "deletion-request" ping (bug 1585410). All the
+# extra identifiers other than `client_id` could be added here.
+deletion.request:
+  impression_id:
+    bug_numbers:
+      - 1602064
+    description: >
+      An identifier used by user interaction pings in Pocket/newtab and Messaging System.
+    expires: never
+    kind: string
+    notification_emails:
+      - najiang@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+    record_into_store:
+      - 'deletion-request'
+
+fxrPC:
+  isFirstRun:
+    bug_numbers:
+      - 1603539
+    description: >
+      Determine if this user is first time to run Firefox Reality PC.
+    expires: "79"
+    kind: boolean
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+      - 'gpu'
+
+policies:
+  count:
+    bug_numbers:
+      - 1432897
+    description: >-
+      A uint with the number of active enterprise policies, collected once at
+      startup.
+    expires: never
+    kind: uint
+    notification_emails:
+      - mkaply@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
     record_in_processes:
       - main
 
@@ -5494,6 +5494,26 @@ telemetry.test:
       - 'main'
     record_into_store:
       - 'sync'
+
+  impression_id_only:
+    bug_numbers:
+      - 1602064
+    description: >
+      This is a test uint type with only the deletion-request store.
+    expires: never
+    kind: string
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+      - najiang@mozilla.com
+    products:
+      - 'firefox'
+      - 'fennec'
+      - 'geckoview'
+      - 'thunderbird'
+    record_in_processes:
+      - 'main'
+    record_into_store:
+      - 'deletion-request'
 
   multiple_stores:
     bug_numbers:

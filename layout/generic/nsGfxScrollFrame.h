@@ -176,6 +176,8 @@ class ScrollFrameHelper : public nsIReflowCallback {
   nsRect GetScrollRange(nscoord aWidth, nscoord aHeight) const;
   nsSize GetVisualViewportSize() const;
   nsPoint GetVisualViewportOffset() const;
+  nsRect GetVisualScrollRange() const;
+  nsRect GetScrollRangeForUserInputEvents() const;
 
   /**
    * Return the 'optimal viewing region' as a rect suitable for use by
@@ -207,9 +209,6 @@ class ScrollFrameHelper : public nsIReflowCallback {
   }
 
   bool IsProcessingScrollEvent() const { return mProcessingScrollEvent; }
-
- protected:
-  nsRect GetVisualScrollRange() const;
 
  public:
   static void AsyncScrollCallback(ScrollFrameHelper* aInstance,
@@ -333,6 +332,8 @@ class ScrollFrameHelper : public nsIReflowCallback {
    */
   nsRect GetUnsnappedScrolledRectInternal(const nsRect& aScrolledOverflowArea,
                                           const nsSize& aScrollPortSize) const;
+
+  uint32_t GetAvailableScrollingDirectionsForUserInputEvents() const;
 
   uint32_t GetScrollbarVisibility() const {
     return (mHasVerticalScrollbar ? nsIScrollableFrame::VERTICAL : 0) |
@@ -864,6 +865,9 @@ class nsHTMLScrollFrame : public nsContainerFrame,
       const final {
     return mHelper.GetOverscrollBehaviorInfo();
   }
+  uint32_t GetAvailableScrollingDirectionsForUserInputEvents() const final {
+    return mHelper.GetAvailableScrollingDirectionsForUserInputEvents();
+  }
   uint32_t GetScrollbarVisibility() const final {
     return mHelper.GetScrollbarVisibility();
   }
@@ -902,6 +906,12 @@ class nsHTMLScrollFrame : public nsContainerFrame,
   }
   nsPoint GetVisualViewportOffset() const final {
     return mHelper.GetVisualViewportOffset();
+  }
+  nsRect GetVisualScrollRange() const final {
+    return mHelper.GetVisualScrollRange();
+  }
+  nsRect GetScrollRangeForUserInputEvents() const final {
+    return mHelper.GetScrollRangeForUserInputEvents();
   }
   nsSize GetLineScrollAmount() const final {
     return mHelper.GetLineScrollAmount();
@@ -1323,6 +1333,9 @@ class nsXULScrollFrame final : public nsBoxFrame,
       const final {
     return mHelper.GetOverscrollBehaviorInfo();
   }
+  uint32_t GetAvailableScrollingDirectionsForUserInputEvents() const final {
+    return mHelper.GetAvailableScrollingDirectionsForUserInputEvents();
+  }
   uint32_t GetScrollbarVisibility() const final {
     return mHelper.GetScrollbarVisibility();
   }
@@ -1361,6 +1374,12 @@ class nsXULScrollFrame final : public nsBoxFrame,
   }
   nsPoint GetVisualViewportOffset() const final {
     return mHelper.GetVisualViewportOffset();
+  }
+  nsRect GetVisualScrollRange() const final {
+    return mHelper.GetVisualScrollRange();
+  }
+  nsRect GetScrollRangeForUserInputEvents() const final {
+    return mHelper.GetScrollRangeForUserInputEvents();
   }
   nsSize GetLineScrollAmount() const final {
     return mHelper.GetLineScrollAmount();

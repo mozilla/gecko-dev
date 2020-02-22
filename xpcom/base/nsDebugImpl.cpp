@@ -424,7 +424,7 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
     case NS_ASSERT_STACK_AND_ABORT:
       nsTraceRefcnt::WalkTheStack(stderr);
       // Fall through to abort
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case NS_ASSERT_ABORT:
       Abort(buf.buffer);
@@ -438,7 +438,7 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
 }
 
 static void Abort(const char* aMsg) {
-  NoteIntentionalCrash(XRE_GeckoProcessTypeToString(XRE_GetProcessType()));
+  NoteIntentionalCrash(XRE_GetProcessTypeString());
   mozalloc_abort(aMsg);
 }
 

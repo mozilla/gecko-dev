@@ -535,13 +535,14 @@ function dispatch(fn) {
   };
 }
 
-let getPageSourceFn = dispatch(getPageSource);
 let getActiveElementFn = dispatch(getActiveElement);
+let getBrowsingContextIdFn = dispatch(getBrowsingContextId);
 let getElementAttributeFn = dispatch(getElementAttribute);
 let getElementPropertyFn = dispatch(getElementProperty);
 let getElementTextFn = dispatch(getElementText);
 let getElementTagNameFn = dispatch(getElementTagName);
 let getElementRectFn = dispatch(getElementRect);
+let getPageSourceFn = dispatch(getPageSource);
 let getScreenshotRectFn = dispatch(getScreenshotRect);
 let isElementEnabledFn = dispatch(isElementEnabled);
 let findElementContentFn = dispatch(findElementContent);
@@ -577,6 +578,7 @@ function startListeners() {
   addMessageListener("Marionette:findElementContent", findElementContentFn);
   addMessageListener("Marionette:findElementsContent", findElementsContentFn);
   addMessageListener("Marionette:getActiveElement", getActiveElementFn);
+  addMessageListener("Marionette:getBrowsingContextId", getBrowsingContextIdFn);
   addMessageListener("Marionette:getElementAttribute", getElementAttributeFn);
   addMessageListener("Marionette:getElementProperty", getElementPropertyFn);
   addMessageListener("Marionette:getElementRect", getElementRectFn);
@@ -622,6 +624,10 @@ function deregister() {
     findElementsContentFn
   );
   removeMessageListener("Marionette:getActiveElement", getActiveElementFn);
+  removeMessageListener(
+    "Marionette:getBrowsingContextId",
+    getBrowsingContextIdFn
+  );
   removeMessageListener(
     "Marionette:getElementAttribute",
     getElementAttributeFn
@@ -1287,6 +1293,24 @@ function getActiveElement() {
 }
 
 /**
+ * Return the current browsing context id.
+ *
+ * @param {boolean=} topContext
+ *     If set to true use the window's top-level browsing context,
+ *     otherwise the one from the currently selected frame. Defaults to false.
+ *
+ * @return {number}
+ *     Id of the browsing context.
+ */
+function getBrowsingContextId(topContext = false) {
+  if (topContext) {
+    return content.docShell.browsingContext.id;
+  }
+
+  return curContainer.frame.docShell.browsingContext.id;
+}
+
+/**
  * Send click event to element.
  *
  * @param {number} commandID
@@ -1653,7 +1677,7 @@ function switchToFrame(msg) {
  *     The area to take a snapshot from
  */
 function getScreenshotRect({ el, full = true, scroll = true } = {}) {
-  let win = curContainer.frame;
+  let win = el ? curContainer.frame : content;
 
   let rect;
 
@@ -1663,8 +1687,8 @@ function getScreenshotRect({ el, full = true, scroll = true } = {}) {
     }
     rect = getElementRect(el);
   } else if (full) {
-    let clientRect = win.document.documentElement.getBoundingClientRect();
-    rect = new DOMRect(0, 0, clientRect.width, clientRect.height);
+    const docEl = win.document.documentElement;
+    rect = new DOMRect(0, 0, docEl.scrollWidth, docEl.scrollHeight);
   } else {
     // viewport
     rect = new DOMRect(
@@ -1744,6 +1768,16 @@ async function reftestWait(url, remote) {
     logger.info("Emitted TestRendered event");
     await reftestWaitRemoved(win, root);
     await paintComplete(win, remote);
+  }
+  if (
+    win.innerWidth < document.documentElement.scrollWidth ||
+    win.innerHeight < document.documentElement.scrollHeight
+  ) {
+    logger.warn(
+      `${url} overflows viewport (width: ${
+        document.documentElement.scrollWidth
+      }, height: ${document.documentElement.scrollHeight})`
+    );
   }
 }
 

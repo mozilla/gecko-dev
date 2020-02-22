@@ -94,20 +94,7 @@ class RootFront extends FrontClassWithSpec(rootSpec) {
       // List service worker registrations
       ({ registrations } = await this.listServiceWorkerRegistrations());
 
-      // List workers from the Parent process
-      ({ workers } = await this.listWorkers());
-
-      // And then from the Child processes
-      const { processes } = await this.listProcesses();
-      for (const processDescriptorFront of processes) {
-        // Ignore parent process
-        if (processDescriptorFront.isParent) {
-          continue;
-        }
-        const front = await processDescriptorFront.getTarget();
-        const response = await front.listWorkers();
-        workers = workers.concat(response.workers);
-      }
+      workers = await this.listAllWorkerTargets();
     } catch (e) {
       // Something went wrong, maybe our client is disconnected?
     }
@@ -119,8 +106,14 @@ class RootFront extends FrontClassWithSpec(rootSpec) {
     };
 
     registrations.forEach(front => {
-      const { activeWorker, waitingWorker, installingWorker } = front;
-      const newestWorker = activeWorker || waitingWorker || installingWorker;
+      const {
+        activeWorker,
+        waitingWorker,
+        installingWorker,
+        evaluatingWorker,
+      } = front;
+      const newestWorker =
+        activeWorker || waitingWorker || installingWorker || evaluatingWorker;
 
       // All the information is simply mirrored from the registration front.
       // However since registering workers will fetch similar information from the worker
@@ -178,8 +171,10 @@ class RootFront extends FrontClassWithSpec(rootSpec) {
           });
 
           if (registration) {
-            // XXX: Race, sometimes a ServiceWorkerRegistrationInfo doesn't
-            // have a scriptSpec, but its associated WorkerDebugger does.
+            // Before bug 1595964, URLs were not available for registrations
+            // whose worker's main script is being evaluated. Now, URLs are
+            // always available, and this test deals with older servers.
+            // @backward-compatibility: remove in Firefox 75
             if (!registration.url) {
               registration.name = registration.url = front.url;
             }
@@ -212,6 +207,28 @@ class RootFront extends FrontClassWithSpec(rootSpec) {
     });
 
     return result;
+  }
+
+  /** Get the target fronts for all worker threads running in any process. */
+  async listAllWorkerTargets() {
+    // List workers from the Parent process
+    let { workers } = await this.listWorkers();
+
+    // And then from the Child processes
+    const { processes } = await this.listProcesses();
+    for (const processDescriptorFront of processes) {
+      // Ignore parent process
+      if (processDescriptorFront.isParent) {
+        continue;
+      }
+      const front = await processDescriptorFront.getTarget();
+      if (front) {
+        const response = await front.listWorkers();
+        workers = workers.concat(response.workers);
+      }
+    }
+
+    return workers;
   }
 
   async listProcesses() {

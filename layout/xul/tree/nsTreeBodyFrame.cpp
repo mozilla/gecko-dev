@@ -44,7 +44,6 @@
 #include "nsWidgetsCID.h"
 #include "nsIFrameInlines.h"
 #include "nsBoxFrame.h"
-#include "nsIURL.h"
 #include "nsBoxLayoutState.h"
 #include "nsTreeContentView.h"
 #include "nsTreeUtils.h"
@@ -52,7 +51,6 @@
 #include "nsITheme.h"
 #include "imgIRequest.h"
 #include "imgIContainer.h"
-#include "imgILoader.h"
 #include "mozilla/dom/NodeInfo.h"
 #include "nsContentUtils.h"
 #include "nsLayoutUtils.h"
@@ -3458,22 +3456,22 @@ ImgDrawResult nsTreeBodyFrame::PaintText(
 
   nscoord offset;
   nscoord size;
-  if (decorations &
-      (StyleTextDecorationLine_OVERLINE | StyleTextDecorationLine_UNDERLINE)) {
+  if (decorations & (StyleTextDecorationLine::OVERLINE |
+                     StyleTextDecorationLine::UNDERLINE)) {
     fontMet->GetUnderline(offset, size);
-    if (decorations & StyleTextDecorationLine_OVERLINE) {
+    if (decorations & StyleTextDecorationLine::OVERLINE) {
       nsRect r(textRect.x, textRect.y, textRect.width, size);
       Rect devPxRect = NSRectToSnappedRect(r, appUnitsPerDevPixel, *drawTarget);
       drawTarget->FillRect(devPxRect, color);
     }
-    if (decorations & StyleTextDecorationLine_UNDERLINE) {
+    if (decorations & StyleTextDecorationLine::UNDERLINE) {
       nsRect r(textRect.x, textRect.y + baseline - offset, textRect.width,
                size);
       Rect devPxRect = NSRectToSnappedRect(r, appUnitsPerDevPixel, *drawTarget);
       drawTarget->FillRect(devPxRect, color);
     }
   }
-  if (decorations & StyleTextDecorationLine_LINE_THROUGH) {
+  if (decorations & StyleTextDecorationLine::LINE_THROUGH) {
     fontMet->GetStrikeout(offset, size);
     nsRect r(textRect.x, textRect.y + baseline - offset, textRect.width, size);
     Rect devPxRect = NSRectToSnappedRect(r, appUnitsPerDevPixel, *drawTarget);

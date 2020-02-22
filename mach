@@ -32,7 +32,6 @@ py2commands="
     cramtest
     crashtest
     devtools-css-db
-    doc
     doctor
     empty-makefiles
     file-info
@@ -101,6 +100,7 @@ py2commands="
     wpt-metadata-merge
     wpt-metadata-summary
     wpt-serve
+    wpt-test-paths
     wpt-unittest
     wpt-update
     xpcshell-test
@@ -127,6 +127,10 @@ if [ "$first_arg" = "help" ]; then
     # When running `./mach help <command>`, the correct Python for <command>
     # needs to be used.
     first_arg=$2
+elif [ "$first_arg" = "mach-completion" ]; then
+    # When running `./mach mach-completion /path/to/mach <command>`, the
+    # correct Python for <command> needs to be used.
+    first_arg=$3
 fi
 
 if [ -z "$first_arg" ]; then

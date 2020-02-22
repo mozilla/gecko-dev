@@ -4,7 +4,6 @@
 
 package org.mozilla.geckoview.test
 
-import android.support.test.InstrumentationRegistry
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoResult
@@ -24,35 +23,15 @@ import android.support.test.runner.AndroidJUnit4
 import org.hamcrest.MatcherAssert
 import org.hamcrest.Matchers.*
 import org.json.JSONObject
-import org.junit.After
-import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule
-import org.mozilla.geckoview.test.util.HttpBin
 import org.mozilla.geckoview.test.util.UiThreadUtils
-import java.net.URI
 
 @RunWith(AndroidJUnit4::class)
 @MediumTest
 class NavigationDelegateTest : BaseSessionTest() {
-    companion object {
-        val TEST_ENDPOINT: String = "http://localhost:4242"
-    }
-
-    lateinit var server: HttpBin
-
-    @Before
-    fun setup() {
-        server = HttpBin(InstrumentationRegistry.getTargetContext(), URI.create(TEST_ENDPOINT))
-        server.start()
-    }
-
-    @After
-    fun cleanup() {
-        server.stop()
-    }
 
     fun testLoadErrorWithErrorPage(testUri: String, expectedCategory: Int,
                                    expectedError: Int,
@@ -163,6 +142,16 @@ class NavigationDelegateTest : BaseSessionTest() {
         testLoadExpectError("file:///test.mozilla",
                 WebRequestError.ERROR_CATEGORY_URI,
                 WebRequestError.ERROR_FILE_NOT_FOUND)
+
+        val promise = mainSession.evaluatePromiseJS("document.addCertException(false)")
+        var exceptionCaught = false
+        try {
+            val result = promise.value as Boolean
+            assertThat("Promise should not resolve", result, equalTo(false))
+        } catch (e: GeckoSessionTestRule.RejectedPromiseException) {
+            exceptionCaught = true;
+        }
+        assertThat("document.addCertException failed with exception", exceptionCaught, equalTo(true))
     }
 
     @Test fun loadUnknownHost() {
@@ -184,14 +173,32 @@ class NavigationDelegateTest : BaseSessionTest() {
     }
 
     @Test fun loadUntrusted() {
-        val uri = if (sessionRule.env.isAutomation) {
-            "https://expired.example.com/"
+        val host = if (sessionRule.env.isAutomation) {
+            "expired.example.com"
         } else {
-            "https://expired.badssl.com/"
+            "expired.badssl.com"
         }
+        val uri = "https://$host/"
         testLoadExpectError(uri,
                 WebRequestError.ERROR_CATEGORY_SECURITY,
                 WebRequestError.ERROR_SECURITY_BAD_CERT)
+
+        mainSession.waitForJS("document.addCertException(false)")
+        mainSession.delegateDuringNextWait(
+                object : Callbacks.ProgressDelegate, Callbacks.NavigationDelegate, Callbacks.ContentDelegate {
+                    @AssertCalled(count = 1, order = [1])
+                    override fun onPageStart(session: GeckoSession, url: String) {
+                        assertThat("URI should be " + uri, url, equalTo(uri))
+                    }
+
+                    @AssertCalled(count = 1, order = [2])
+                    override fun onPageStop(session: GeckoSession, success: Boolean) {
+                        assertThat("Load should succeed", success, equalTo(true))
+                        sessionRule.removeCertOverride(host, -1)
+                    }
+                })
+        mainSession.evaluateJS("location.reload()")
+        mainSession.waitForPageStop()
     }
 
     @Test fun loadUnknownProtocol() {

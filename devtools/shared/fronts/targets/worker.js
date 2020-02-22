@@ -9,7 +9,7 @@ const {
   FrontClassWithSpec,
   registerFront,
 } = require("devtools/shared/protocol");
-const { TargetMixin } = require("./target-mixin");
+const { TargetMixin } = require("devtools/shared/fronts/targets/target-mixin");
 
 class WorkerTargetFront extends TargetMixin(
   FrontClassWithSpec(workerTargetSpec)
@@ -47,6 +47,10 @@ class WorkerTargetFront extends TargetMixin(
     return this.url.split("/").pop();
   }
 
+  get isServiceWorker() {
+    return this.type === Ci.nsIWorkerDebugger.TYPE_SERVICE;
+  }
+
   async attach() {
     if (this._attach) {
       return this._attach;
@@ -54,16 +58,17 @@ class WorkerTargetFront extends TargetMixin(
     this._attach = (async () => {
       const response = await super.attach();
 
-      const isServiceWorker = this.type === Ci.nsIWorkerDebugger.TYPE_SERVICE;
-      if (isServiceWorker && this.getTrait("isParentInterceptEnabled")) {
+      if (this.isServiceWorker && this.getTrait("isParentInterceptEnabled")) {
         // In parentIntercept mode, the worker target actor cannot call the APIs needed
         // to prevent the worker from shutting down. Instead call attachDebugger on the
         // registration because the ServiceWorkerRegistration actor lives in the parent
         // process.
         // TODO: Cleanup after Bug 1496997 lands (no need to check
         // isParentInterceptEnabled trait)
-        this.registration = await this._getRegistration();
-        await this.registration.preventShutdown();
+        this.registration = await this._getRegistrationIfActive();
+        if (this.registration) {
+          await this.registration.preventShutdown();
+        }
       }
 
       this._url = response.url;
@@ -87,9 +92,7 @@ class WorkerTargetFront extends TargetMixin(
     try {
       response = await super.detach();
     } catch (e) {
-      console.warn(
-        `Error while detaching the worker target front: ${e.message}`
-      );
+      console.warn("Error while detaching the worker target front:", e);
     }
 
     if (this.registration) {
@@ -100,12 +103,12 @@ class WorkerTargetFront extends TargetMixin(
     return response;
   }
 
-  async _getRegistration() {
+  async _getRegistrationIfActive() {
     const {
       registrations,
     } = await this.client.mainRoot.listServiceWorkerRegistrations();
-    return registrations.find(registrationFront => {
-      return this.id === registrationFront.activeWorker.id;
+    return registrations.find(({ activeWorker }) => {
+      return activeWorker && this.id === activeWorker.id;
     });
   }
 

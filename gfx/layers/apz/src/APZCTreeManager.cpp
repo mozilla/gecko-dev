@@ -728,9 +728,19 @@ void APZCTreeManager::SampleForWebRender(wr::TransactionWrapper& aTxn,
     LayoutDevicePoint asyncScrollDelta = -layerTranslation / zoom;
     aTxn.UpdateScrollPosition(wr::AsPipelineId(apzc->GetGuid().mLayersId),
                               apzc->GetGuid().mScrollId,
-                              wr::ToRoundedLayoutPoint(asyncScrollDelta));
+                              wr::ToLayoutPoint(asyncScrollDelta));
 
     apzc->ReportCheckerboard(aSampleTime);
+
+#if defined(MOZ_WIDGET_ANDROID)
+    // Send the root frame metrics to java through the UIController
+    RefPtr<UiCompositorControllerParent> uiController =
+        UiCompositorControllerParent::GetFromRootLayerTreeId(mRootLayersId);
+    if (uiController &&
+        apzc->UpdateRootFrameMetricsIfChanged(mLastRootMetrics)) {
+      uiController->NotifyUpdateScreenMetrics(mLastRootMetrics);
+    }
+#endif
   }
 
   // Now collect all the async transforms needed for the scrollthumbs.
@@ -1568,7 +1578,7 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
       }
       break;
     }
-    case PINCHGESTURE_INPUT: {  // note: no one currently sends these
+    case PINCHGESTURE_INPUT: {
       PinchGestureInput& pinchInput = aEvent.AsPinchGestureInput();
       HitTestResult hit = GetTargetAPZC(pinchInput.mFocusPoint);
       aEvent.mLayersId = hit.mLayersId;
@@ -1577,6 +1587,12 @@ APZEventResult APZCTreeManager::ReceiveInputEvent(InputData& aEvent) {
       if (hit.mTargetApzc) {
         MOZ_ASSERT(hitResult != CompositorHitTestInvisibleToHit);
 
+        if (!hit.mTargetApzc->IsRootContent()) {
+          hit.mTargetApzc = FindZoomableApzc(hit.mTargetApzc);
+        }
+      }
+
+      if (hit.mTargetApzc) {
         ScreenToScreenMatrix4x4 outTransform =
             GetScreenToApzcTransform(hit.mTargetApzc) *
             GetApzcToGeckoTransform(hit.mTargetApzc);

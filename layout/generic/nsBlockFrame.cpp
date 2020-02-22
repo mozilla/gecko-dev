@@ -167,6 +167,74 @@ static bool LineHasVisibleInlineContent(nsLineBox* aLine) {
   return false;
 }
 
+/**
+ * Iterates through the frame's in-flow children and
+ * unions the visual overflow of all text frames which
+ * participate in the line aFrame belongs to.
+ * If a child of aFrame is not a text frame,
+ * we recurse with the child as the aFrame argument.
+ * If aFrame isn't a line participant, we skip it entirely
+ * and return an empty rect.
+ * The resulting nsRect is offset relative to the parent of aFrame.
+ */
+static nsRect GetFrameTextArea(nsIFrame* aFrame,
+                               nsDisplayListBuilder* aBuilder) {
+  nsRect textArea;
+  if (aFrame->IsTextFrame()) {
+    textArea = aFrame->GetVisualOverflowRect();
+  } else if (aFrame->IsFrameOfType(nsIFrame::eLineParticipant)) {
+    for (nsIFrame* kid : aFrame->PrincipalChildList()) {
+      nsRect kidTextArea = GetFrameTextArea(kid, aBuilder);
+      textArea.OrWith(kidTextArea);
+    }
+  }
+  // add aFrame's position to keep textArea relative to aFrame's parent
+  return textArea + aFrame->GetPosition();
+}
+
+/**
+ * Iterates through the line's children and
+ * unions the visual overflow of all text frames.
+ * GetFrameTextArea unions and returns the visual overflow
+ * from all line-participating text frames within the given child.
+ * The nsRect returned from GetLineTextArea is offset
+ * relative to the given line.
+ */
+static nsRect GetLineTextArea(nsLineBox* aLine,
+                              nsDisplayListBuilder* aBuilder) {
+  nsRect textArea;
+  nsIFrame* kid = aLine->mFirstChild;
+  int32_t n = aLine->GetChildCount();
+  while (n-- > 0) {
+    nsRect kidTextArea = GetFrameTextArea(kid, aBuilder);
+    textArea.OrWith(kidTextArea);
+    kid = kid->GetNextSibling();
+  }
+
+  return textArea;
+}
+
+/**
+ * Starting with aFrame, iterates upward through parent frames and checks for
+ * non-transparent background colors. If one is found, we use that as our
+ * backplate color. Otheriwse, we use the default background color from
+ * our high contrast theme.
+ */
+static nscolor GetBackplateColor(nsIFrame* aFrame) {
+  for (nsIFrame* frame = aFrame; frame; frame = frame->GetParent()) {
+    auto* bg = frame->StyleBackground();
+    if (bg->IsTransparent(frame)) {
+      continue;
+    }
+    nscolor backgroundColor = bg->BackgroundColor(frame);
+    if (NS_GET_A(backgroundColor) != 0) {
+      return backgroundColor;
+    }
+    break;
+  }
+  return aFrame->PresContext()->DefaultBackgroundColor();
+}
+
 #ifdef DEBUG
 #  include "nsBlockDebugFlags.h"
 
@@ -1840,7 +1908,8 @@ void nsBlockFrame::ComputeFinalSize(const ReflowInput& aReflowInput,
     // its reflow method, because that method just resolves "auto" BSize values
     // to one line-height rather than by measuring its contents' BSize.)
     nscoord contentBSize = 0;
-    nscoord autoBSize = aReflowInput.ApplyMinMaxBSize(contentBSize);
+    nscoord autoBSize =
+        aReflowInput.ApplyMinMaxBSize(contentBSize, aState.mConsumedBSize);
     aMetrics.mCarriedOutBEndMargin.Zero();
     autoBSize += borderPadding.BStartEnd(wm);
     finalSize.BSize(wm) = autoBSize;
@@ -1848,23 +1917,56 @@ void nsBlockFrame::ComputeFinalSize(const ReflowInput& aReflowInput,
     nscoord contentBSize = blockEndEdgeOfChildren - borderPadding.BStart(wm);
     nscoord lineClampedContentBSize =
         ApplyLineClamp(aReflowInput, this, contentBSize);
-    nscoord autoBSize = aReflowInput.ApplyMinMaxBSize(lineClampedContentBSize);
+    nscoord autoBSize = aReflowInput.ApplyMinMaxBSize(lineClampedContentBSize,
+                                                      aState.mConsumedBSize);
     if (autoBSize != contentBSize) {
       // Our min-block-size, max-block-size, or -webkit-line-clamp value made
       // our bsize change.  Don't carry out our kids' block-end margins.
       aMetrics.mCarriedOutBEndMargin.Zero();
     }
-    autoBSize += borderPadding.BStart(wm) + borderPadding.BEnd(wm);
-    finalSize.BSize(wm) = autoBSize;
+    nscoord bSize = autoBSize + borderPadding.BStartEnd(wm);
+    if (MOZ_UNLIKELY(autoBSize > contentBSize &&
+                     bSize > aReflowInput.AvailableBSize() &&
+                     aReflowInput.AvailableBSize() != NS_UNCONSTRAINEDSIZE)) {
+      // Applying `min-size` made us overflow our available size.
+      // Clamp it and report that we're Incomplete.
+      bSize = aReflowInput.AvailableBSize();
+      aState.mReflowStatus.SetIncomplete();
+    }
+    finalSize.BSize(wm) = bSize;
   } else {
     NS_ASSERTION(aReflowInput.AvailableBSize() != NS_UNCONSTRAINEDSIZE,
                  "Shouldn't be incomplete if availableBSize is UNCONSTRAINED.");
-    finalSize.BSize(wm) =
-        std::max(aState.mBCoord, aReflowInput.AvailableBSize());
+    if (aState.mBCoord == nscoord_MAX) {
+      // FIXME bug 1574046.
+      // This should never happen, but it does. nsFloatManager::ClearFloats
+      // returns |nscoord_MAX| when DONT_CLEAR_PUSHED_FLOATS is false.
+      blockEndEdgeOfChildren = aState.mBCoord = aReflowInput.AvailableBSize();
+    }
+    nscoord bSize = std::max(aState.mBCoord, aReflowInput.AvailableBSize());
     if (aReflowInput.AvailableBSize() == NS_UNCONSTRAINEDSIZE) {
       // This should never happen, but it does. See bug 414255
-      finalSize.BSize(wm) = aState.mBCoord;
+      bSize = aState.mBCoord;
     }
+    const nscoord maxBSize = aReflowInput.ComputedMaxBSize();
+    if (maxBSize != NS_UNCONSTRAINEDSIZE &&
+        // FIXME: wallpaper for bug 1603088
+        !(Style()->GetPseudoType() == PseudoStyleType::columnContent ||
+          Style()->GetPseudoType() == PseudoStyleType::columnSet) &&
+        aState.mConsumedBSize + bSize - borderPadding.BStart(wm) > maxBSize) {
+      nscoord bEnd = std::max(0, maxBSize - aState.mConsumedBSize) +
+                     borderPadding.BStart(wm);
+      // Note that |borderPadding| has GetSkipSides applied, so we ask
+      // aReflowInput for the actual value we'd use on a last fragment here:
+      bEnd += aReflowInput.ComputedLogicalBorderPadding().BEnd(wm);
+      if (bEnd <= aReflowInput.AvailableBSize()) {
+        // We actually fit after applying `max-size` so we should be
+        // Overflow-Incomplete instead.
+        bSize = bEnd;
+        aState.mReflowStatus.SetOverflowIncomplete();
+      }
+    }
+    finalSize.BSize(wm) = bSize;
   }
 
   if (IS_TRUE_OVERFLOW_CONTAINER(this)) {
@@ -3591,9 +3693,7 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowInput& aState,
       // Calculate the multicol containing block's block size so that the
       // children with percentage block size get correct percentage basis.
       const ReflowInput* cbReflowInput =
-          StaticPrefs::layout_css_column_span_enabled()
-              ? aState.mReflowInput.mParentReflowInput->mCBReflowInput
-              : aState.mReflowInput.mCBReflowInput;
+          aState.mReflowInput.mParentReflowInput->mCBReflowInput;
       MOZ_ASSERT(cbReflowInput->mFrame->StyleColumn()->IsColumnContainerStyle(),
                  "Get unexpected reflow input of multicol containing block!");
 
@@ -4545,7 +4645,12 @@ void nsBlockFrame::SplitFloat(BlockReflowInput& aState, nsIFrame* aFloat,
   }
 
   aState.AppendPushedFloatChain(nextInFlow);
-  aState.mReflowStatus.SetOverflowIncomplete();
+  if (MOZ_LIKELY(!HasAnyStateBits(NS_BLOCK_FLOAT_MGR)) ||
+      MOZ_UNLIKELY(IS_TRUE_OVERFLOW_CONTAINER(this))) {
+    aState.mReflowStatus.SetOverflowIncomplete();
+  } else {
+    aState.mReflowStatus.SetIncomplete();
+  }
 }
 
 static nsFloatCache* GetLastFloat(nsLineBox* aLine) {
@@ -6899,6 +7004,10 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     nscoord lastY = INT32_MIN;
     nscoord lastYMost = INT32_MIN;
     nsRect curBackplateArea;
+    Maybe<nscolor> backplateColor;
+    if (shouldDrawBackplate) {
+      backplateColor = Some(GetBackplateColor(this));
+    }
     // A frame's display list cannot contain more than one copy of a
     // given display item unless the items are uniquely identifiable.
     // Because backplate occasionally requires multiple
@@ -6923,8 +7032,8 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                    "if this master switch is off, curBackplateArea "
                    "must be empty and we shouldn't get here");
         aLists.BorderBackground()->AppendNewToTop<nsDisplaySolidColor>(
-            aBuilder, this, curBackplateArea,
-            PresContext()->DefaultBackgroundColor(), backplateIndex);
+            aBuilder, this, curBackplateArea, backplateColor.value(),
+            backplateIndex);
         backplateIndex++;
 
         curBackplateArea = nsRect();
@@ -6938,7 +7047,8 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
         lastYMost = lineArea.YMost();
         if (lineInLine && shouldDrawBackplate &&
             LineHasVisibleInlineContent(line)) {
-          nsRect lineBackplate = lineArea + aBuilder->ToReferenceFrame(this);
+          nsRect lineBackplate = GetLineTextArea(line, aBuilder) +
+                                 aBuilder->ToReferenceFrame(this);
           if (curBackplateArea.IsEmpty()) {
             curBackplateArea = lineBackplate;
           } else {
@@ -6954,8 +7064,8 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     }
     if (!curBackplateArea.IsEmpty()) {
       aLists.BorderBackground()->AppendNewToTop<nsDisplaySolidColor>(
-          aBuilder, this, curBackplateArea,
-          PresContext()->DefaultBackgroundColor(), backplateIndex);
+          aBuilder, this, curBackplateArea, backplateColor.value(),
+          backplateIndex);
     }
   }
 
@@ -7134,6 +7244,21 @@ void nsBlockFrame::ChildIsDirty(nsIFrame* aChild) {
 
 void nsBlockFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
                         nsIFrame* aPrevInFlow) {
+  // These are all the block specific frame bits, they are copied from
+  // the prev-in-flow to a newly created next-in-flow, except for the
+  // NS_BLOCK_FLAGS_NON_INHERITED_MASK bits below.
+  constexpr nsFrameState NS_BLOCK_FLAGS_MASK =
+      NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS |
+      NS_BLOCK_CLIP_PAGINATED_OVERFLOW | NS_BLOCK_HAS_FIRST_LETTER_STYLE |
+      NS_BLOCK_FRAME_HAS_OUTSIDE_MARKER | NS_BLOCK_HAS_FIRST_LETTER_CHILD |
+      NS_BLOCK_FRAME_HAS_INSIDE_MARKER;
+
+  // This is the subset of NS_BLOCK_FLAGS_MASK that is NOT inherited
+  // by default.  They should only be set on the first-in-flow.
+  constexpr nsFrameState NS_BLOCK_FLAGS_NON_INHERITED_MASK =
+      NS_BLOCK_FRAME_HAS_OUTSIDE_MARKER | NS_BLOCK_HAS_FIRST_LETTER_CHILD |
+      NS_BLOCK_FRAME_HAS_INSIDE_MARKER;
+
   if (aPrevInFlow) {
     // Copy over the inherited block frame bits from the prev-in-flow.
     RemoveStateBits(NS_BLOCK_FLAGS_MASK);
@@ -7167,7 +7292,7 @@ void nsBlockFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
         GetWritingMode().IsVerticalSideways() !=
             GetParent()->GetWritingMode().IsVerticalSideways())) ||
       StyleDisplay()->IsContainPaint() || StyleDisplay()->IsContainLayout() ||
-      (StaticPrefs::layout_css_column_span_enabled() && IsColumnSpan())) {
+      IsColumnSpan()) {
     AddStateBits(NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS);
   }
 

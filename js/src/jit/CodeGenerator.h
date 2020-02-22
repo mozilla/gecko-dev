@@ -60,7 +60,6 @@ class OutOfLineRegExpSearcher;
 class OutOfLineRegExpTester;
 class OutOfLineRegExpPrototypeOptimizable;
 class OutOfLineRegExpInstanceOptimizable;
-class OutOfLineLambdaArrow;
 class OutOfLineNaNToZero;
 class OutOfLineZeroIfNaN;
 class OutOfLineTypedArrayIndexToInt32;
@@ -120,8 +119,6 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   void visitOutOfLineRegExpInstanceOptimizable(
       OutOfLineRegExpInstanceOptimizable* ool);
 
-  void visitOutOfLineLambdaArrow(OutOfLineLambdaArrow* ool);
-
   void visitOutOfLineTypeOfV(OutOfLineTypeOfV* ool);
 
   template <SwitchTableType tableType>
@@ -163,10 +160,6 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   void emitCallInvokeFunction(LInstruction* call, Register callereg,
                               bool isConstructing, bool ignoresReturnValue,
                               uint32_t argc, uint32_t unusedStack);
-  void emitCallInvokeFunctionShuffleNewTarget(LCallKnown* call,
-                                              Register calleeReg,
-                                              uint32_t numFormals,
-                                              uint32_t unusedStack);
   template <typename T>
   void emitApplyGeneric(T* apply);
   template <typename T>
@@ -226,10 +219,8 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   void loadOutermostJSScript(Register reg);
 
 #ifdef DEBUG
-  void emitAssertResultV(const ValueOperand output,
-                         const TemporaryTypeSet* typeset);
-  void emitAssertGCThingResult(Register input, MIRType type,
-                               const TemporaryTypeSet* typeset);
+  void emitAssertResultV(const ValueOperand output, const MDefinition* mir);
+  void emitAssertGCThingResult(Register input, const MDefinition* mir);
 #endif
 
 #ifdef DEBUG

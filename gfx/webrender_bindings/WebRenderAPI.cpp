@@ -70,14 +70,27 @@ class NewRenderer : public RendererEvent {
     *mUseDComp = compositor->UseDComp();
     *mUseTripleBuffering = compositor->UseTripleBuffering();
 
+    // Only allow the panic on GL error functionality in nightly builds,
+    // since it (deliberately) crashes the GPU process if any GL call
+    // returns an error code.
+    bool panic_on_gl_error = false;
+#ifdef NIGHTLY_BUILD
+    panic_on_gl_error =
+        StaticPrefs::gfx_webrender_panic_on_gl_error_AtStartup();
+#endif
+
     bool allow_texture_swizzling = gfx::gfxVars::UseGLSwizzle();
     bool isMainWindow = true;  // TODO!
     bool supportLowPriorityTransactions = isMainWindow;
+    bool supportLowPriorityThreadpool =
+        supportLowPriorityTransactions &&
+        StaticPrefs::gfx_webrender_enable_low_priority_pool();
     bool supportPictureCaching = isMainWindow;
     wr::Renderer* wrRenderer = nullptr;
     if (!wr_window_new(
             aWindowId, mSize.width, mSize.height,
-            supportLowPriorityTransactions, allow_texture_swizzling,
+            supportLowPriorityTransactions, supportLowPriorityThreadpool,
+            allow_texture_swizzling,
             StaticPrefs::gfx_webrender_picture_caching() &&
                 supportPictureCaching,
 #ifdef NIGHTLY_BUILD
@@ -92,14 +105,16 @@ class NewRenderer : public RendererEvent {
             aRenderThread.GetShaders()
                 ? aRenderThread.GetShaders()->RawShaders()
                 : nullptr,
-            aRenderThread.ThreadPool().Raw(), &WebRenderMallocSizeOf,
+            aRenderThread.ThreadPool().Raw(),
+            aRenderThread.ThreadPoolLP().Raw(), &WebRenderMallocSizeOf,
             &WebRenderMallocEnclosingSizeOf, (uint32_t)wr::RenderRoot::Default,
             compositor->ShouldUseNativeCompositor() ? compositor.get()
                                                     : nullptr,
             compositor->GetMaxUpdateRects(),
             compositor->GetMaxPartialPresentRects(), mDocHandle, &wrRenderer,
             mMaxTextureSize,
-            StaticPrefs::gfx_webrender_enable_gpu_markers_AtStartup())) {
+            StaticPrefs::gfx_webrender_enable_gpu_markers_AtStartup(),
+            panic_on_gl_error)) {
       // wr_window_new puts a message into gfxCriticalNote if it returns false
       return;
     }
@@ -348,7 +363,6 @@ WebRenderAPI::WebRenderAPI(wr::DocumentHandle* aHandle, wr::WindowId aId,
       mUseDComp(aUseDComp),
       mUseTripleBuffering(aUseTripleBuffering),
       mSyncHandle(aSyncHandle),
-      mDebugFlags({0}),
       mRenderRoot(aRenderRoot) {}
 
 WebRenderAPI::~WebRenderAPI() {
@@ -371,14 +385,10 @@ WebRenderAPI::~WebRenderAPI() {
 }
 
 void WebRenderAPI::UpdateDebugFlags(uint32_t aFlags) {
-  if (mDebugFlags.bits != aFlags) {
-    mDebugFlags.bits = aFlags;
-    wr_api_set_debug_flags(mDocHandle, mDebugFlags);
-  }
+  wr_api_set_debug_flags(mDocHandle, wr::DebugFlags{aFlags});
 }
 
 void WebRenderAPI::SendTransaction(TransactionBuilder& aTxn) {
-  UpdateDebugFlags(gfx::gfxVars::WebRenderDebugFlags());
   wr_api_send_transaction(mDocHandle, aTxn.Raw(), aTxn.UseSceneBuilderThread());
 }
 
@@ -390,8 +400,6 @@ void WebRenderAPI::SendTransactions(
     return;
   }
 
-  aApis[RenderRoot::Default]->UpdateDebugFlags(
-      gfx::gfxVars::WebRenderDebugFlags());
   AutoTArray<DocumentHandle*, kRenderRootCount> documentHandles;
   AutoTArray<Transaction*, kRenderRootCount> txns;
   Maybe<bool> useSceneBuilderThread;
@@ -827,6 +835,11 @@ void TransactionBuilder::AddFontInstance(
 
 void TransactionBuilder::DeleteFontInstance(wr::FontInstanceKey aKey) {
   wr_resource_updates_delete_font_instance(mTxn, aKey);
+}
+
+void TransactionBuilder::UpdateQualitySettings(
+    bool aAllowSacrificingSubpixelAA) {
+  wr_transaction_set_quality_settings(mTxn, aAllowSacrificingSubpixelAA);
 }
 
 class FrameStartTime : public RendererEvent {

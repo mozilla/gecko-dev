@@ -23,7 +23,6 @@
 #include "nsContentCreatorFunctions.h"
 #include "nsError.h"
 #include "nsFocusManager.h"
-#include "nsIComponentManager.h"
 #include "nsIConstraintValidation.h"
 #include "nsIControllers.h"
 #include "mozilla/dom/Document.h"
@@ -31,7 +30,6 @@
 #include "nsIFormControl.h"
 #include "nsIForm.h"
 #include "nsIFrame.h"
-#include "nsISupportsPrimitives.h"
 #include "nsITextControlFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsLinebreakConverter.h"
@@ -237,6 +235,7 @@ nsFrameSelection* HTMLTextAreaElement::GetConstFrameSelection() {
 }
 
 nsresult HTMLTextAreaElement::BindToFrame(nsTextControlFrame* aFrame) {
+  MOZ_ASSERT(!nsContentUtils::IsSafeToRunScript());
   MOZ_ASSERT(mState);
   return mState->BindToFrame(aFrame);
 }

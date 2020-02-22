@@ -7,6 +7,10 @@ use std::ffi::{CStr, CString};
 use std::ffi::OsString;
 #[cfg(target_os = "windows")]
 use std::os::windows::ffi::OsStringExt;
+#[cfg(target_os = "windows")]
+use winapi::um::processthreadsapi::{SetThreadPriority,GetCurrentThread};
+#[cfg(target_os = "windows")]
+use winapi::um::winbase::{SetThreadAffinityMask};
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 use std::os::unix::ffi::OsStringExt;
 use std::io::Cursor;
@@ -29,7 +33,7 @@ use webrender::{
     BinaryRecorder, Compositor, DebugFlags, Device,
     NativeSurfaceId, PipelineInfo, ProfilerHooks, RecordedFrameHandle, Renderer, RendererOptions, RendererStats,
     SceneBuilderHooks, ShaderPrecacheFlags, Shaders, ThreadListener, UploadMethod, VertexUsageHint,
-    WrShaders, set_profiler_hooks, CompositorConfig, NativeSurfaceInfo
+    WrShaders, set_profiler_hooks, CompositorConfig, NativeSurfaceInfo, NativeTileId
 };
 use thread_profiler::register_thread_with_profiler;
 use moz2d_renderer::Moz2dBlobImageHandler;
@@ -38,6 +42,7 @@ use rayon;
 use num_cpus;
 use euclid::SideOffsets2D;
 use nsstring::nsAString;
+//linux only//use thread_priority::*;
 
 #[cfg(target_os = "macos")]
 use core_foundation::string::CFString;
@@ -103,7 +108,6 @@ type WrYuvColorSpace = YuvColorSpace;
 type WrColorDepth = ColorDepth;
 /// cbindgen:field-names=[mNamespace, mHandle]
 type WrColorRange = ColorRange;
-
 
 #[repr(C)]
 pub struct WrSpaceAndClip {
@@ -352,10 +356,21 @@ pub struct WrImageDescriptor {
     pub height: i32,
     pub stride: i32,
     pub opacity: OpacityType,
+    pub prefer_compositor_surface: bool,
 }
 
 impl<'a> Into<ImageDescriptor> for &'a WrImageDescriptor {
     fn into(self) -> ImageDescriptor {
+        let mut flags = ImageDescriptorFlags::empty();
+
+        if self.opacity == OpacityType::Opaque {
+            flags |= ImageDescriptorFlags::IS_OPAQUE;
+        }
+
+        if self.prefer_compositor_surface {
+            flags |= ImageDescriptorFlags::PREFER_COMPOSITOR_SURFACE;
+        }
+
         ImageDescriptor {
             size: DeviceIntSize::new(self.width, self.height),
             stride: if self.stride != 0 {
@@ -364,9 +379,8 @@ impl<'a> Into<ImageDescriptor> for &'a WrImageDescriptor {
                 None
             },
             format: self.format,
-            is_opaque: self.opacity == OpacityType::Opaque,
             offset: 0,
-            allow_mipmaps: false,
+            flags,
         }
     }
 }
@@ -1043,18 +1057,35 @@ impl ThreadListener for GeckoProfilerThreadListener {
 pub struct WrThreadPool(Arc<rayon::ThreadPool>);
 
 #[no_mangle]
-pub unsafe extern "C" fn wr_thread_pool_new() -> *mut WrThreadPool {
+pub unsafe extern "C" fn wr_thread_pool_new(low_priority: bool) -> *mut WrThreadPool {
     // Clamp the number of workers between 1 and 8. We get diminishing returns
     // with high worker counts and extra overhead because of rayon and font
     // management.
     let num_threads = num_cpus::get().max(2).min(8);
 
+    let priority_tag = if low_priority { "LP" } else { "" };
+
     let worker = rayon::ThreadPoolBuilder::new()
-        .thread_name(|idx|{ format!("WRWorker#{}", idx) })
+        .thread_name(move |idx|{ format!("WRWorker{}#{}", priority_tag, idx) })
         .num_threads(num_threads)
-        .start_handler(|idx| {
+        .start_handler(move |idx| {
+            #[cfg(target_os = "windows")]
+            {
+                SetThreadPriority(
+                    GetCurrentThread(),
+                    if low_priority {
+                        -1 /* THREAD_PRIORITY_BELOW_NORMAL */
+                    } else {
+                        0 /* THREAD_PRIORITY_NORMAL */
+                    });
+                SetThreadAffinityMask(GetCurrentThread(), 1usize << idx);
+            }
+            /*let thread_id = thread_native_id();
+            set_thread_priority(thread_id,
+                if low_priority { ThreadPriority::Min } else { ThreadPriority::Max },
+                ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal));*/
             wr_register_thread_local_arena();
-            let name = format!("WRWorker#{}", idx);
+            let name = format!("WRWorker{}#{}",priority_tag, idx);
             register_thread_with_profiler(name.clone());
             gecko_profiler_register_thread(CString::new(name).unwrap().as_ptr());
         })
@@ -1159,23 +1190,46 @@ fn wr_device_new(gl_context: *mut c_void, pc: Option<&mut WrProgramCache>)
       None => None,
     };
 
-    Device::new(gl, resource_override_path, upload_method, cached_programs, false, true, true, None, false)
+    Device::new(
+        gl,
+        resource_override_path,
+        upload_method,
+        cached_programs,
+        false,
+        true,
+        true,
+        None,
+        false,
+        false,
+    )
 }
 
 extern "C" {
     fn wr_compositor_create_surface(
         compositor: *mut c_void,
         id: NativeSurfaceId,
-        size: DeviceIntSize,
-        is_opaque: bool,
+        tile_size: DeviceIntSize,
     );
     fn wr_compositor_destroy_surface(
         compositor: *mut c_void,
         id: NativeSurfaceId,
     );
-    fn wr_compositor_bind(
+    fn wr_compositor_create_tile(
         compositor: *mut c_void,
         id: NativeSurfaceId,
+        x: i32,
+        y: i32,
+        is_opaque: bool,
+    );
+    fn wr_compositor_destroy_tile(
+        compositor: *mut c_void,
+        id: NativeSurfaceId,
+        x: i32,
+        y: i32,
+    );
+    fn wr_compositor_bind(
+        compositor: *mut c_void,
+        id: NativeTileId,
         offset: &mut DeviceIntPoint,
         fbo_id: &mut u32,
         dirty_rect: DeviceIntRect,
@@ -1197,15 +1251,13 @@ impl Compositor for WrCompositor {
     fn create_surface(
         &mut self,
         id: NativeSurfaceId,
-        size: DeviceIntSize,
-        is_opaque: bool,
+        tile_size: DeviceIntSize,
     ) {
         unsafe {
             wr_compositor_create_surface(
                 self.0,
                 id,
-                size,
-                is_opaque,
+                tile_size,
             );
         }
     }
@@ -1222,9 +1274,39 @@ impl Compositor for WrCompositor {
         }
     }
 
+    fn create_tile(
+        &mut self,
+        id: NativeTileId,
+        is_opaque: bool,
+    ) {
+        unsafe {
+            wr_compositor_create_tile(
+                self.0,
+                id.surface_id,
+                id.x,
+                id.y,
+                is_opaque,
+            );
+        }
+    }
+
+    fn destroy_tile(
+        &mut self,
+        id: NativeTileId,
+    ) {
+        unsafe {
+            wr_compositor_destroy_tile(
+                self.0,
+                id.surface_id,
+                id.x,
+                id.y,
+            );
+        }
+    }
+
     fn bind(
         &mut self,
-        id: NativeSurfaceId,
+        id: NativeTileId,
         dirty_rect: DeviceIntRect,
     ) -> NativeSurfaceInfo {
         let mut surface_info = NativeSurfaceInfo {
@@ -1295,6 +1377,7 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
                                 window_width: i32,
                                 window_height: i32,
                                 support_low_priority_transactions: bool,
+                                support_low_priority_threadpool: bool,
                                 allow_texture_swizzling: bool,
                                 enable_picture_caching: bool,
                                 start_debug_server: bool,
@@ -1303,6 +1386,7 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
                                 program_cache: Option<&mut WrProgramCache>,
                                 shaders: Option<&mut WrShaders>,
                                 thread_pool: *mut WrThreadPool,
+                                thread_pool_low_priority: *mut WrThreadPool,
                                 size_of_op: VoidPtrToSizeFn,
                                 enclosing_size_of_op: VoidPtrToSizeFn,
                                 document_id: u32,
@@ -1312,7 +1396,8 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
                                 out_handle: &mut *mut DocumentHandle,
                                 out_renderer: &mut *mut Renderer,
                                 out_max_texture_size: *mut i32,
-                                enable_gpu_markers: bool)
+                                enable_gpu_markers: bool,
+                                panic_on_gl_error: bool)
                                 -> bool {
     assert!(unsafe { is_in_render_thread() });
 
@@ -1336,6 +1421,13 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
 
     let workers = unsafe {
         Arc::clone(&(*thread_pool).0)
+    };
+    let workers_low_priority = unsafe {
+        if support_low_priority_threadpool {
+            Arc::clone(&(*thread_pool_low_priority).0)
+        } else {
+            Arc::clone(&(*thread_pool).0)
+        }
     };
 
     let upload_method = if unsafe { is_glcontext_angle(gl_context) } {
@@ -1380,7 +1472,7 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
         support_low_priority_transactions,
         allow_texture_swizzling,
         recorder: recorder,
-        blob_image_handler: Some(Box::new(Moz2dBlobImageHandler::new(workers.clone()))),
+        blob_image_handler: Some(Box::new(Moz2dBlobImageHandler::new(workers.clone(), workers_low_priority.clone()))),
         workers: Some(workers.clone()),
         thread_listener: Some(Box::new(GeckoProfilerThreadListener::new())),
         size_of_op: Some(size_of_op),
@@ -1411,6 +1503,7 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
         surface_origin_is_top_left,
         compositor_config,
         enable_gpu_markers,
+        panic_on_gl_error,
         ..Default::default()
     };
 
@@ -1748,6 +1841,16 @@ pub extern "C" fn wr_transaction_set_is_transform_async_zooming(
     is_zooming: bool
 ) {
     txn.set_is_transform_async_zooming(is_zooming, PropertyBindingId::new(animation_id));
+}
+
+#[no_mangle]
+pub extern "C" fn wr_transaction_set_quality_settings(
+    txn: &mut Transaction,
+    allow_sacrificing_subpixel_aa: bool
+) {
+    txn.set_quality_settings(QualitySettings {
+        allow_sacrificing_subpixel_aa
+    });
 }
 
 #[no_mangle]

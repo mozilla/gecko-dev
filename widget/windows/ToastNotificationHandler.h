@@ -9,7 +9,6 @@
 #include <windows.ui.notifications.h>
 #include <windows.data.xml.dom.h>
 #include <wrl.h>
-#include "imgIContainer.h"
 #include "nsCOMPtr.h"
 #include "nsIAlertsService.h"
 #include "nsICancelable.h"
@@ -45,6 +44,8 @@ class ToastNotificationHandler final
   nsresult InitAlertAsync(nsIAlertNotification* aAlert);
 
   void OnWriteBitmapFinished(nsresult rv);
+
+  void UnregisterHandler();
 
  protected:
   virtual ~ToastNotificationHandler();

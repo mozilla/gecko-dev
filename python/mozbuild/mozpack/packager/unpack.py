@@ -81,7 +81,7 @@ class UnpackFinder(BaseFinder):
             if is_manifest(p):
                 m = self.files[p] if self.files.contains(p) \
                     else ManifestFile(base)
-                for e in parse_manifest(self.base, p, f.open()):
+                for e in parse_manifest(self.base, p, f.open('rt')):
                     m.add(self._handle_manifest_entry(e, jars))
                 if self.files.contains(p):
                     continue
@@ -145,7 +145,7 @@ class UnpackFinder(BaseFinder):
         jar = JarReader(fileobj=file.open())
         self.compressed = max(self.compressed, jar.compression)
         if jar.last_preloaded:
-            jarlog = jar.entries.keys()
+            jarlog = list(jar.entries.keys())
             self.jarlogs[path] = jarlog[:jarlog.index(jar.last_preloaded) + 1]
         return jar
 

@@ -29,6 +29,12 @@ namespace base {
 struct FileDescriptor;
 }
 
+namespace mozilla {
+namespace ipc {
+class MiniTransceiver;
+}
+}
+
 class FileDescriptorSet;
 
 namespace IPC {
@@ -59,6 +65,7 @@ class Message : public Pickle {
     NORMAL_PRIORITY = 0,
     INPUT_PRIORITY = 1,
     HIGH_PRIORITY = 2,
+    MEDIUMHIGH_PRIORITY = 3,
   };
 
   enum MessageCompression {
@@ -332,6 +339,7 @@ class Message : public Pickle {
 #ifdef FUZZING
   friend class mozilla::ipc::Faulty;
 #endif
+  friend class mozilla::ipc::MiniTransceiver;
 
 #ifdef MOZ_TASK_TRACER
   void TaskTracerDispatch();

@@ -6,22 +6,16 @@
 #include "nsOfflineCacheUpdate.h"
 
 #include "nsCURILoader.h"
-#include "nsIApplicationCacheContainer.h"
 #include "nsIApplicationCacheChannel.h"
 #include "nsIApplicationCacheService.h"
 #include "nsICachingChannel.h"
 #include "nsIContent.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/OfflineResourceListBinding.h"
-#include "nsIDocumentLoader.h"
 #include "mozilla/dom/Document.h"
-#include "nsIObserverService.h"
 #include "nsIURL.h"
-#include "nsIURIMutator.h"
-#include "nsIWebProgress.h"
 #include "nsICryptoHash.h"
 #include "nsICacheEntry.h"
-#include "nsIPermissionManager.h"
 #include "nsIPrincipal.h"
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
@@ -1457,6 +1451,11 @@ void nsOfflineCacheUpdate::LoadCompleted(nsOfflineCacheUpdateItem* aItem) {
     // Obsolete this cache group if one of these is returned.
     uint16_t status;
     rv = mManifestItem->GetStatus(&status);
+    if (NS_FAILED(rv)) {
+      NotifyState(nsIOfflineCacheUpdateObserver::STATE_ERROR);
+      Finish();
+      return;
+    }
     if (status == 404 || status == 410) {
       LogToConsole("Offline cache manifest removed, cache cleared",
                    mManifestItem);

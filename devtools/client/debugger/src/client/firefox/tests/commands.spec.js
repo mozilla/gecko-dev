@@ -20,7 +20,7 @@ function makeDependencies() {
   return {
     debuggerClient: (null: any),
     supportsWasm: true,
-    tabTarget: (null: any),
+    currentTarget: (null: any),
   };
 }
 
@@ -42,7 +42,6 @@ function makeGrip(actor = "") {
     sealed: false,
     optimizedOut: false,
     type: "",
-    release: () => Promise.resolve(),
   };
 }
 

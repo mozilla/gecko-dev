@@ -68,15 +68,6 @@ using CallTargets = Vector<JSFunction*, 6, JitAllocPolicy>;
 // -----
 // Loops complicate this a bit:
 //
-// * In the bytecode, most loops currently start with a jump to the loop
-//   condition because the condition is emitted after the loop body. This is the
-//   only case where IonBuilder follows a forward branch immediately and later
-//   'jumps back' to compile the loop body. The LoopState class is used to track
-//   this.
-//
-//   Bug 1598548 aims to change the bytecode for these loops so that all loops
-//   can be compiled in order.
-//
 // * Because of IonBuilder's single pass design, we sometimes have to 'restart'
 //   a loop when we find new types for locals, arguments, or stack slots while
 //   compiling the loop body. When this happens the loop has to be recompiled
@@ -169,46 +160,12 @@ using PendingEdgesMap =
 
 // LoopState stores information about a loop that's being compiled to MIR.
 class LoopState {
- public:
-  enum class State {
-    // Compiling a do-while loop or for-loop without condition. These loops
-    // can be simply compiled from first bytecode op to last so they do not
-    // require state changes.
-    DoWhileLike,
-
-    // Compiling the condition of a while/for-in/for-of/for loop. When the
-    // backedge is reached, the state is changed to WhileLikeBody and the loop
-    // body is compiled.
-    WhileLikeCond,
-
-    // Compiling the body of a while/for-in/for-of/for loop. This includes the
-    // update clause of a for-loop.
-    WhileLikeBody,
-  };
-
- private:
-  State state_;
   MBasicBlock* header_ = nullptr;
-  jsbytecode* loopEntry_ = nullptr;
-  jsbytecode* loopHead_ = nullptr;
-  jsbytecode* successorStart_ = nullptr;
 
  public:
-  LoopState(State state, MBasicBlock* header, jsbytecode* loopEntry,
-            jsbytecode* loopHead, jsbytecode* successorStart)
-      : state_(state),
-        header_(header),
-        loopEntry_(loopEntry),
-        loopHead_(loopHead),
-        successorStart_(successorStart) {}
+  explicit LoopState(MBasicBlock* header) : header_(header) {}
 
-  State state() const { return state_; }
   MBasicBlock* header() const { return header_; }
-  jsbytecode* loopEntry() const { return loopEntry_; }
-  jsbytecode* loopHead() const { return loopHead_; }
-  jsbytecode* successorStart() const { return successorStart_; }
-
-  void setState(State state) { state_ = state; }
 };
 using LoopStateStack = Vector<LoopState, 4, JitAllocPolicy>;
 
@@ -259,10 +216,7 @@ class IonBuilder : public MIRGenerator,
                                        InliningTargets& targets,
                                        uint32_t maxTargets);
 
-  AbortReasonOr<Ok> analyzeNewLoopTypes(MBasicBlock* entry,
-                                        jsbytecode* loopHeadPc, bool isForIn,
-                                        jsbytecode* loopStartPc,
-                                        jsbytecode* loopStopPc);
+  AbortReasonOr<Ok> analyzeNewLoopTypes(MBasicBlock* entry);
   AbortReasonOr<Ok> analyzeNewLoopTypesForLocation(
       MBasicBlock* entry, const BytecodeLocation loc,
       const mozilla::Maybe<BytecodeLocation>& last_,
@@ -278,12 +232,9 @@ class IonBuilder : public MIRGenerator,
       MBasicBlock* at, size_t stackDepth, jsbytecode* pc,
       MBasicBlock* maybePredecessor = nullptr);
   AbortReasonOr<MBasicBlock*> newOsrPreheader(MBasicBlock* header,
-                                              jsbytecode* loopEntry,
-                                              jsbytecode* beforeLoopEntry);
+                                              jsbytecode* loopHead);
   AbortReasonOr<MBasicBlock*> newPendingLoopHeader(MBasicBlock* predecessor,
-                                                   jsbytecode* pc, bool osr,
-                                                   bool canOsr,
-                                                   unsigned stackPhiCount);
+                                                   jsbytecode* pc, bool osr);
 
   AbortReasonOr<MBasicBlock*> newBlock(MBasicBlock* predecessor,
                                        jsbytecode* pc) {
@@ -292,14 +243,7 @@ class IonBuilder : public MIRGenerator,
 
   AbortReasonOr<Ok> addPendingEdge(const PendingEdge& edge, jsbytecode* target);
 
-  AbortReasonOr<Ok> startLoop(LoopState::State initState,
-                              jsbytecode* beforeLoopEntry,
-                              jsbytecode* loopEntry, jsbytecode* loopHead,
-                              jsbytecode* backjump, bool isForIn,
-                              uint32_t stackPhiCount);
-  AbortReasonOr<Ok> visitDoWhileLoop(jssrcnote* sn);
-  AbortReasonOr<Ok> visitForLoop(jssrcnote* sn);
-  AbortReasonOr<Ok> visitWhileOrForInOrForOfLoop(jssrcnote* sn);
+  AbortReasonOr<Ok> jsop_loophead();
 
   AbortReasonOr<Ok> visitJumpTarget(JSOp op);
   AbortReasonOr<Ok> visitTest(JSOp op, bool* restarted);
@@ -326,6 +270,8 @@ class IonBuilder : public MIRGenerator,
                                            TemporaryTypeSet* typeSet);
   AbortReasonOr<Ok> maybeAddOsrTypeBarriers();
 
+  AbortReasonOr<Ok> emitLoopHeadInstructions(jsbytecode* pc);
+
   // Restarts processing of a loop if the type information at its header was
   // incomplete.
   AbortReasonOr<Ok> restartLoop(MBasicBlock* header);
@@ -338,7 +284,7 @@ class IonBuilder : public MIRGenerator,
   AbortReasonOr<Ok> resumeAfter(MInstruction* ins);
   AbortReasonOr<Ok> maybeInsertResume();
 
-  void insertRecompileCheck();
+  void insertRecompileCheck(jsbytecode* pc);
 
   bool usesEnvironmentChain();
 
@@ -662,9 +608,17 @@ class IonBuilder : public MIRGenerator,
       bool* emitted, MDefinition* obj, MDefinition* index,
       TypedObjectPrediction objTypeReprs, MDefinition* value,
       TypedObjectPrediction elemTypeReprs, uint32_t elemSize);
-  AbortReasonOr<Ok> initializeArrayElement(
-      MDefinition* obj, size_t index, MDefinition* value,
+
+  AbortReasonOr<Ok> initArrayElemTryFastPath(bool* emitted, MDefinition* obj,
+                                             MDefinition* id,
+                                             MDefinition* value);
+
+  AbortReasonOr<Ok> initArrayElementFastPath(
+      MNewArray* obj, MDefinition* id, MDefinition* value,
       bool addResumePointAndIncrementInitializedLength);
+
+  AbortReasonOr<Ok> initArrayElement(MDefinition* obj, MDefinition* id,
+                                     MDefinition* value);
 
   // jsop_getelem() helpers.
   AbortReasonOr<Ok> getElemTryDense(bool* emitted, MDefinition* obj,
@@ -777,7 +731,6 @@ class IonBuilder : public MIRGenerator,
   AbortReasonOr<Ok> jsop_andor(JSOp op);
   AbortReasonOr<Ok> jsop_dup2();
   AbortReasonOr<Ok> jsop_goto(bool* restarted);
-  AbortReasonOr<Ok> jsop_loopentry(bool* restarted);
   AbortReasonOr<Ok> jsop_loophead(jsbytecode* pc);
   AbortReasonOr<Ok> jsop_compare(JSOp op);
   AbortReasonOr<Ok> jsop_compare(JSOp op, MDefinition* left,
@@ -1248,7 +1201,6 @@ class IonBuilder : public MIRGenerator,
   uint32_t typeArrayHint;
   uint32_t* bytecodeTypeMap;
 
-  GSNCache gsn;
   jsbytecode* pc;
   jsbytecode* nextpc = nullptr;
 

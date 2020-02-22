@@ -26,7 +26,7 @@ add_task(async function() {
   store.dispatch(Actions.batchEnable(false));
 
   let wait = waitForNetworkEvents(monitor, 1);
-  await ContentTask.spawn(tab.linkedBrowser, HTML_LONG_URL, async function(
+  await SpecialPowers.spawn(tab.linkedBrowser, [HTML_LONG_URL], async function(
     url
   ) {
     content.wrappedJSObject.performRequests(1, url);
@@ -42,7 +42,7 @@ add_task(async function() {
   verifyRequestItemTarget(
     document,
     getDisplayedRequests(store.getState()),
-    getSortedRequests(store.getState()).get(0),
+    getSortedRequests(store.getState())[0],
     "GET",
     CONTENT_TYPE_SJS + "?fmt=html-long",
     {

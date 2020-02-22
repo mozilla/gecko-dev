@@ -207,6 +207,7 @@ function checkPendingBreakpoints(cx: Context, sourceId: string) {
 
     // load the source text if there is a pending breakpoint for it
     await dispatch(loadSourceText({ cx, source }));
+
     await dispatch(setBreakableLines(cx, source.id));
 
     await Promise.all(
@@ -282,6 +283,7 @@ export function newOriginalSources(sourceInfo: Array<OriginalSourceData>) {
         introductionType: undefined,
         isExtension: false,
         extensionName: null,
+        isOriginal: true,
       });
     }
 
@@ -314,8 +316,8 @@ export function newGeneratedSources(sourceInfo: Array<GeneratedSourceData>) {
     const newSourcesObj = {};
     const newSourceActors: Array<SourceActor> = [];
 
-    for (const { thread, source, id } of sourceInfo) {
-      const newId = id || makeSourceId(source);
+    for (const { thread, isServiceWorker, source, id } of sourceInfo) {
+      const newId = id || makeSourceId(source, isServiceWorker);
 
       if (!getSource(getState(), newId) && !newSourcesObj[newId]) {
         newSourcesObj[newId] = {
@@ -330,6 +332,7 @@ export function newGeneratedSources(sourceInfo: Array<GeneratedSourceData>) {
           isWasm:
             !!supportsWasm(getState()) && source.introductionType === "wasm",
           isExtension: (source.url && isUrlExtension(source.url)) || false,
+          isOriginal: false,
         };
       }
 
@@ -410,13 +413,13 @@ function checkNewSources(cx, sources: Source[]) {
 }
 
 export function ensureSourceActor(thread: string, sourceActor: SourceActorId) {
-  return async function({ getState, client }: ThunkArgs) {
+  return async function({ dispatch, getState, client }: ThunkArgs) {
     await sourceQueue.flush();
     if (hasSourceActor(getState(), sourceActor)) {
       return Promise.resolve();
     }
 
-    await client.waitForSourceActor(thread, sourceActor);
-    return sourceQueue.flush();
+    const sources = await client.fetchThreadSources(thread);
+    await dispatch(newGeneratedSources(sources));
   };
 }

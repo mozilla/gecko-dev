@@ -14,6 +14,13 @@ job-defaults:
         by-test-platform:
             linux64/debug: ['fission', 'serviceworker']
             default: ['fission']
+    fission-run-on-projects:
+        by-test-platform:
+            linux64-qr/debug: ['trunk']
+            linux64-qr/opt: ['mozilla-central']
+            windows10-64-qr/opt: ['mozilla-central']
+            default: []
+    fission-tier: 2
     mozharness:
         script: web_platform_tests.py
         config:
@@ -41,7 +48,7 @@ web-platform-tests:
     chunks:
         by-test-platform:
             android.*: 18
-            linux64-asan/opt: 18
+            linux64-asan/opt: 24
             linux64-ccov/debug: 24
             linux64-ccov/opt: 24
             linux.*/debug: 18
@@ -58,7 +65,7 @@ web-platform-tests:
     e10s: true
     run-on-projects:
         by-test-platform:
-            windows10-aarch64/opt: ['try']
+            windows10-aarch64/opt: ['try', 'mozilla-central']
             .*-qr/.*: ['release', 'try']  # skip on integration branches due to high load
             default: built-projects
     tier:
@@ -95,7 +102,7 @@ web-platform-tests-reftests:
     e10s: true
     run-on-projects:
         by-test-platform:
-            windows10-aarch64/opt: ['try']
+            windows10-aarch64/opt: ['try', 'mozilla-central']
             default: built-projects
     tier:
         by-test-platform:
@@ -121,7 +128,7 @@ web-platform-tests-wdspec:
             - --test-type=wdspec
     run-on-projects:
         by-test-platform:
-            windows10-aarch64/opt: ['try']
+            windows10-aarch64/opt: ['try', 'mozilla-central']
             .*-qr/.*: ['release', 'try']
             default: built-projects
     tier:
@@ -151,6 +158,29 @@ web-platform-tests-wdspec-headless:
                 default:
                     - --test-type=wdspec
                     - --headless
+
+web-platform-tests-crashtests:
+    description: "Web platform crashtests run"
+    suite:
+        name: web-platform-tests-crashtests
+    schedules-component: web-platform-tests-crashtests
+    treeherder-symbol: W(Wc)
+    chunks: 1
+    mozharness:
+        extra-options:
+            - --test-type=crashtest
+    run-on-projects:
+        by-test-platform:
+            windows10-aarch64/opt: ['try', 'mozilla-central']
+            .*-qr/.*: ['release', 'try']
+            default: built-projects
+    tier:
+        by-test-platform:
+            linux64-asan/opt: 2
+            windows10-aarch64.*: 2
+            .*-qr/.*: 2  # can't be tier-1 if it's not running on integration branches
+            linux64-ccov/opt: 3
+            default: default
 
 test-verify-wpt:
     description: "Extra verification of web-platform tests modified on this push"

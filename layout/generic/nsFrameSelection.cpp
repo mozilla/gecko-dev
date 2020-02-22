@@ -12,6 +12,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoRestore.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/HTMLEditor.h"
 #include "mozilla/PresShell.h"
@@ -30,7 +31,6 @@
 #include "nsTableCellFrame.h"
 #include "nsIScrollableFrame.h"
 #include "nsCCUncollectableMarker.h"
-#include "nsIDocumentEncoder.h"
 #include "nsTextFragment.h"
 #include <algorithm>
 #include "nsContentUtils.h"
@@ -54,7 +54,6 @@ static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TextEvents.h"
 
-#include "nsITimer.h"
 // notifications
 #include "mozilla/dom/Document.h"
 
@@ -62,8 +61,6 @@ static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
 #include "nsCopySupport.h"
 #include "nsIClipboard.h"
 #include "nsIFrameInlines.h"
-
-#include "nsIBidiKeyboard.h"
 
 #include "nsError.h"
 #include "mozilla/AutoCopyListener.h"
@@ -603,8 +600,7 @@ void nsFrameSelection::Init(mozilla::PresShell* aPresShell,
                               : StaticPrefs::dom_select_events_enabled();
 
   Document* doc = aPresShell->GetDocument();
-  if (initSelectEvents ||
-      (doc && nsContentUtils::IsSystemPrincipal(doc->NodePrincipal()))) {
+  if (initSelectEvents || (doc && doc->NodePrincipal()->IsSystemPrincipal())) {
     int8_t index = GetIndexFromSelectionType(SelectionType::eNormal);
     if (mDomSelections[index]) {
       mDomSelections[index]->EnableSelectionChangeEvent();
@@ -1056,10 +1052,10 @@ bool nsFrameSelection::AdjustForMaintainedSelection(nsIContent* aContent,
   int32_t rangeStartOffset = mMaintainRange->StartOffset();
   int32_t rangeEndOffset = mMaintainRange->EndOffset();
 
-  int32_t relToStart = nsContentUtils::ComparePoints(
+  int32_t relToStart = nsContentUtils::ComparePoints_Deprecated(
       rangeStartNode, rangeStartOffset, aContent, aOffset);
-  int32_t relToEnd = nsContentUtils::ComparePoints(rangeEndNode, rangeEndOffset,
-                                                   aContent, aOffset);
+  int32_t relToEnd = nsContentUtils::ComparePoints_Deprecated(
+      rangeEndNode, rangeEndOffset, aContent, aOffset);
 
   // If aContent/aOffset is inside the maintained selection, or if it is on the
   // "anchor" side of the maintained selection, we need to do something.
@@ -1142,7 +1138,7 @@ void nsFrameSelection::HandleDrag(nsIFrame* aFrame, const nsPoint& aPoint) {
   if (mMaintainRange && mMaintainedAmount != eSelectNoAmount) {
     nsINode* rangenode = mMaintainRange->GetStartContainer();
     int32_t rangeOffset = mMaintainRange->StartOffset();
-    int32_t relativePosition = nsContentUtils::ComparePoints(
+    int32_t relativePosition = nsContentUtils::ComparePoints_Deprecated(
         rangenode, rangeOffset, offsets.content, offsets.offset);
 
     nsDirection direction = relativePosition > 0 ? eDirPrevious : eDirNext;

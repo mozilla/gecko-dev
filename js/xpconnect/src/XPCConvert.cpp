@@ -22,6 +22,7 @@
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/CharacterEncoding.h"
 #include "js/MemoryFunctions.h"
 
@@ -192,7 +193,7 @@ bool XPCConvert::NativeData2JS(JSContext* cx, MutableHandleValue d,
     case nsXPTType::T_CHAR_STR: {
       const char* p = *static_cast<const char* const*>(s);
       arrlen = p ? strlen(p) : 0;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     }
     case nsXPTType::T_PSTRING_SIZE_IS: {
       const char* p = *static_cast<const char* const*>(s);
@@ -223,7 +224,7 @@ bool XPCConvert::NativeData2JS(JSContext* cx, MutableHandleValue d,
     case nsXPTType::T_WCHAR_STR: {
       const char16_t* p = *static_cast<const char16_t* const*>(s);
       arrlen = p ? nsCharTraits<char16_t>::length(p) : 0;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     }
     case nsXPTType::T_PWSTRING_SIZE_IS: {
       const char16_t* p = *static_cast<const char16_t* const*>(s);
@@ -1380,7 +1381,7 @@ bool XPCConvert::NativeArray2JS(JSContext* cx, MutableHandleValue d,
                                 nsresult* pErr) {
   MOZ_ASSERT(buf || count == 0, "Must have buf or 0 elements");
 
-  RootedObject array(cx, JS_NewArrayObject(cx, count));
+  RootedObject array(cx, JS::NewArrayObject(cx, count));
   if (!array) {
     return false;
   }
@@ -1511,8 +1512,8 @@ bool XPCConvert::JSArray2Native(JSContext* cx, JS::HandleValue aJSVal,
   // If jsarray is not a TypedArrayObject, check for an Array object.
   uint32_t length = 0;
   bool isArray = false;
-  if (!JS_IsArrayObject(cx, jsarray, &isArray) || !isArray ||
-      !JS_GetArrayLength(cx, jsarray, &length)) {
+  if (!JS::IsArrayObject(cx, jsarray, &isArray) || !isArray ||
+      !JS::GetArrayLength(cx, jsarray, &length)) {
     if (pErr) {
       *pErr = NS_ERROR_XPC_CANT_CONVERT_OBJECT_TO_ARRAY;
     }

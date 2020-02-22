@@ -173,6 +173,11 @@ impl WritingMode {
         self.intersects(WritingMode::VERTICAL)
     }
 
+    #[inline]
+    pub fn is_horizontal(&self) -> bool {
+        !self.is_vertical()
+    }
+
     /// Assuming .is_vertical(), does the block direction go left to right?
     #[inline]
     pub fn is_vertical_lr(&self) -> bool {
@@ -199,6 +204,20 @@ impl WritingMode {
     #[inline]
     pub fn is_upright(&self) -> bool {
         self.intersects(WritingMode::UPRIGHT)
+    }
+
+    /// https://drafts.csswg.org/css-writing-modes/#logical-to-physical
+    ///
+    /// | Return  | line-left is… | line-right is… |
+    /// |---------|---------------|----------------|
+    /// | `true`  | inline-start  | inline-end     |
+    /// | `false` | inline-end    | inline-start   |
+    #[inline]
+    pub fn line_left_is_inline_start(&self) -> bool {
+        // https://drafts.csswg.org/css-writing-modes/#inline-start
+        // “For boxes with a used direction value of ltr, this means the line-left side.
+        //  For boxes with a used direction value of rtl, this means the line-right side.”
+        self.is_bidi_ltr()
     }
 
     #[inline]
@@ -449,7 +468,7 @@ impl<T: Zero> LogicalSize<T> {
     }
 }
 
-impl<T: Copy> LogicalSize<T> {
+impl<T> LogicalSize<T> {
     #[inline]
     pub fn new(mode: WritingMode, inline: T, block: T) -> LogicalSize<T> {
         LogicalSize {
@@ -467,7 +486,9 @@ impl<T: Copy> LogicalSize<T> {
             LogicalSize::new(mode, size.width, size.height)
         }
     }
+}
 
+impl<T: Copy> LogicalSize<T> {
     #[inline]
     pub fn width(&self, mode: WritingMode) -> T {
         self.debug_writing_mode.check(mode);
@@ -841,7 +862,7 @@ impl<T: Zero> LogicalMargin<T> {
     }
 }
 
-impl<T: Copy> LogicalMargin<T> {
+impl<T> LogicalMargin<T> {
     #[inline]
     pub fn new(
         mode: WritingMode,
@@ -857,11 +878,6 @@ impl<T: Copy> LogicalMargin<T> {
             inline_start: inline_start,
             debug_writing_mode: DebugWritingMode::new(mode),
         }
-    }
-
-    #[inline]
-    pub fn new_all_same(mode: WritingMode, value: T) -> LogicalMargin<T> {
-        LogicalMargin::new(mode, value, value, value, value)
     }
 
     #[inline]
@@ -897,6 +913,13 @@ impl<T: Copy> LogicalMargin<T> {
             }
         }
         LogicalMargin::new(mode, block_start, inline_end, block_end, inline_start)
+    }
+}
+
+impl<T: Copy> LogicalMargin<T> {
+    #[inline]
+    pub fn new_all_same(mode: WritingMode, value: T) -> LogicalMargin<T> {
+        LogicalMargin::new(mode, value, value, value, value)
     }
 
     #[inline]

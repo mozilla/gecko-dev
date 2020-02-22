@@ -39,7 +39,7 @@ struct ImageCompositeNotificationInfo;
  */
 class ImageBridgeParent final : public PImageBridgeParent,
                                 public CompositableParentManager,
-                                public ShmemAllocator {
+                                public mozilla::ipc::IShmemAllocator {
  public:
   typedef nsTArray<CompositableOperation> EditArray;
   typedef nsTArray<OpDestroy> OpDestroyArray;
@@ -60,7 +60,7 @@ class ImageBridgeParent final : public PImageBridgeParent,
   static bool CreateForContent(Endpoint<PImageBridgeParent>&& aEndpoint);
   static void Shutdown();
 
-  ShmemAllocator* AsShmemAllocator() override { return this; }
+  IShmemAllocator* AsShmemAllocator() override { return this; }
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
@@ -100,7 +100,7 @@ class ImageBridgeParent final : public PImageBridgeParent,
 
   MessageLoop* GetMessageLoop() const { return mMessageLoop; }
 
-  // ShmemAllocator
+  // IShmemAllocator
 
   bool AllocShmem(size_t aSize, ipc::SharedMemory::SharedMemoryType aType,
                   ipc::Shmem* aShmem) override;
@@ -108,7 +108,7 @@ class ImageBridgeParent final : public PImageBridgeParent,
   bool AllocUnsafeShmem(size_t aSize, ipc::SharedMemory::SharedMemoryType aType,
                         ipc::Shmem* aShmem) override;
 
-  void DeallocShmem(ipc::Shmem& aShmem) override;
+  bool DeallocShmem(ipc::Shmem& aShmem) override;
 
   bool IsSameProcess() const override;
 
@@ -120,6 +120,20 @@ class ImageBridgeParent final : public PImageBridgeParent,
   bool UsesImageBridge() const override { return true; }
 
   bool IPCOpen() const override { return !mClosed; }
+
+  // See PluginInstanceParent for details on the Windows async plugin
+  // rendering protocol.
+  mozilla::ipc::IPCResult RecvMakeAsyncPluginSurfaces(
+      SurfaceFormat aFormat, IntSize aSize, SurfaceDescriptorPlugin* aSD);
+  mozilla::ipc::IPCResult RecvUpdateAsyncPluginSurface(
+      const SurfaceDescriptorPlugin& aSD);
+  mozilla::ipc::IPCResult RecvReadbackAsyncPluginSurface(
+      const SurfaceDescriptorPlugin& aSD, SurfaceDescriptor* aResult);
+  mozilla::ipc::IPCResult RecvRemoveAsyncPluginSurface(
+      const SurfaceDescriptorPlugin& aSD, bool aIsFrontSurface);
+
+  RefPtr<TextureHost> LookupTextureHost(
+      const SurfaceDescriptorPlugin& aDescriptor);
 
  protected:
   void Bind(Endpoint<PImageBridgeParent>&& aEndpoint);
@@ -142,6 +156,28 @@ class ImageBridgeParent final : public PImageBridgeParent,
   static ImageBridgeMap sImageBridges;
 
   RefPtr<CompositorThreadHolder> mCompositorThreadHolder;
+
+#if defined(OS_WIN)
+  // Owns a pair of textures used to double-buffer a plugin async rendering
+  // instance.
+  struct PluginTextureDatas {
+    UniquePtr<D3D11TextureData> mPluginTextureData;
+    UniquePtr<D3D11TextureData> mDisplayTextureData;
+
+    PluginTextureDatas(UniquePtr<D3D11TextureData>&& aPluginTextureData,
+                       UniquePtr<D3D11TextureData>&& aDisplayTextureData);
+
+    ~PluginTextureDatas();
+
+    PluginTextureDatas(const PluginTextureDatas& o) = delete;
+    PluginTextureDatas& operator=(const PluginTextureDatas& o) = delete;
+
+    bool IsValid() { return mPluginTextureData && mDisplayTextureData; }
+  };
+
+  HashMap<WindowsHandle, RefPtr<TextureHost>> mGPUVideoTextureHosts;
+  HashMap<WindowsHandle, UniquePtr<PluginTextureDatas>> mPluginTextureDatas;
+#endif  // defined(OS_WIN)
 };
 
 }  // namespace layers

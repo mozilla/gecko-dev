@@ -2307,7 +2307,7 @@ bool ASTSerializer::statement(ParseNode* pn, MutableHandleValue dst) {
       if (!pn->isKind(ParseNodeKind::StatementList)) {
         return statement(pn, dst);
       }
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case ParseNodeKind::StatementList:
       return blockStatement(&pn->as<ListNode>(), dst);
@@ -3184,7 +3184,8 @@ bool ASTSerializer::literal(ParseNode* pn, MutableHandleValue dst) {
       break;
 
     case ParseNodeKind::RegExpExpr: {
-      RootedObject re1(cx, pn->as<RegExpLiteral>().getOrCreate(cx));
+      RootedObject re1(
+          cx, pn->as<RegExpLiteral>().getOrCreate(cx, parser->getParseInfo()));
       LOCAL_ASSERT(re1 && re1->is<RegExpObject>());
 
       RootedObject re2(cx, CloneRegExpObject(cx, re1.as<RegExpObject>()));
@@ -3201,7 +3202,7 @@ bool ASTSerializer::literal(ParseNode* pn, MutableHandleValue dst) {
       break;
 
     case ParseNodeKind::BigIntExpr: {
-      BigInt* x = pn->as<BigIntLiteral>().getOrCreateBigInt(cx);
+      BigInt* x = pn->as<BigIntLiteral>().getOrCreate(cx);
       cx->check(x);
       val.setBigInt(x);
       break;
@@ -3669,8 +3670,7 @@ static bool reflect_parse(JSContext* cx, uint32_t argc, Value* vp) {
 
   Parser<FullParseHandler, char16_t> parser(
       cx, options, chars.begin().get(), chars.length(),
-      /* foldConstants = */ false, parseInfo, nullptr, nullptr, sourceObject,
-      target);
+      /* foldConstants = */ false, parseInfo, nullptr, nullptr, sourceObject);
   if (!parser.checkOptions()) {
     return false;
   }
@@ -3705,7 +3705,7 @@ static bool reflect_parse(JSContext* cx, uint32_t argc, Value* vp) {
     pn = pn->as<ModuleNode>().body();
   }
 
-  if (!parser.publishDeferredItems()) {
+  if (!parser.publishDeferredFunctions()) {
     return false;
   }
 

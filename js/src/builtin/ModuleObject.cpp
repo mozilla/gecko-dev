@@ -691,29 +691,29 @@ void ModuleNamespaceObject::ProxyHandler::finalize(JSFreeOp* fop,
 ///////////////////////////////////////////////////////////////////////////
 // FunctionDeclaration
 
-FunctionDeclaration::FunctionDeclaration(HandleAtom name, HandleFunction fun)
-    : name(name), fun(fun) {}
+FunctionDeclaration::FunctionDeclaration(HandleAtom name, uint32_t funIndex)
+    : name(name), funIndex(funIndex) {}
 
 void FunctionDeclaration::trace(JSTracer* trc) {
   TraceEdge(trc, &name, "FunctionDeclaration name");
-  TraceEdge(trc, &fun, "FunctionDeclaration fun");
 }
 
 ///////////////////////////////////////////////////////////////////////////
 // ModuleObject
 
 /* static */ const JSClassOps ModuleObject::classOps_ = {
-    nullptr, /* addProperty */
-    nullptr, /* delProperty */
-    nullptr, /* enumerate   */
-    nullptr, /* newEnumerate */
-    nullptr, /* resolve     */
-    nullptr, /* mayResolve  */
-    ModuleObject::finalize,
-    nullptr, /* call        */
-    nullptr, /* hasInstance */
-    nullptr, /* construct   */
-    ModuleObject::trace};
+    nullptr,                 // addProperty
+    nullptr,                 // delProperty
+    nullptr,                 // enumerate
+    nullptr,                 // newEnumerate
+    nullptr,                 // resolve
+    nullptr,                 // mayResolve
+    ModuleObject::finalize,  // finalize
+    nullptr,                 // call
+    nullptr,                 // hasInstance
+    nullptr,                 // construct
+    ModuleObject::trace,     // trace
+};
 
 /* static */ const JSClass ModuleObject::class_ = {
     "Module",
@@ -995,9 +995,9 @@ void ModuleObject::trace(JSTracer* trc, JSObject* obj) {
 }
 
 bool ModuleObject::noteFunctionDeclaration(JSContext* cx, HandleAtom name,
-                                           HandleFunction fun) {
+                                           uint32_t funIndex) {
   FunctionDeclarationVector* funDecls = functionDeclarations();
-  if (!funDecls->emplaceBack(name, fun)) {
+  if (!funDecls->emplaceBack(name, funIndex)) {
     ReportOutOfMemory(cx);
     return false;
   }
@@ -1024,12 +1024,12 @@ bool ModuleObject::instantiateFunctionDeclarations(JSContext* cx,
   }
 
   RootedModuleEnvironmentObject env(cx, &self->initialEnvironment());
-  RootedFunction fun(cx);
   RootedObject obj(cx);
   RootedValue value(cx);
-
+  RootedFunction fun(cx);
   for (const auto& funDecl : *funDecls) {
-    fun = funDecl.fun;
+    uint32_t funIndex = funDecl.funIndex;
+    fun.set(self->script()->getFunction(funIndex));
     obj = Lambda(cx, fun, env);
     if (!obj) {
       return false;
@@ -1096,6 +1096,18 @@ ModuleNamespaceObject* ModuleObject::createNamespace(JSContext* cx,
 
   self->initReservedSlot(NamespaceSlot, ObjectValue(*ns));
   return ns;
+}
+
+/* static */
+bool ModuleObject::createEnvironment(JSContext* cx, HandleModuleObject self) {
+  RootedModuleEnvironmentObject env(cx,
+                                    ModuleEnvironmentObject::create(cx, self));
+  if (!env) {
+    return false;
+  }
+
+  self->setInitialEnvironment(env);
+  return true;
 }
 
 static bool InvokeSelfHostedMethod(JSContext* cx, HandleModuleObject self,
@@ -1247,28 +1259,31 @@ bool ModuleBuilder::buildTables() {
 }
 
 bool ModuleBuilder::initModule() {
-  RootedArrayObject requestedModules(cx_, createArray(requestedModules_));
+  RootedArrayObject requestedModules(cx_,
+                                     js::CreateArray(cx_, requestedModules_));
   if (!requestedModules) {
     return false;
   }
 
-  RootedArrayObject importEntries(cx_, createArray(importEntries_));
+  RootedArrayObject importEntries(cx_, createArrayFromHashMap(importEntries_));
   if (!importEntries) {
     return false;
   }
 
-  RootedArrayObject localExportEntries(cx_, createArray(localExportEntries_));
+  RootedArrayObject localExportEntries(
+      cx_, js::CreateArray(cx_, localExportEntries_));
   if (!localExportEntries) {
     return false;
   }
 
-  RootedArrayObject indirectExportEntries(cx_,
-                                          createArray(indirectExportEntries_));
+  RootedArrayObject indirectExportEntries(
+      cx_, js::CreateArray(cx_, indirectExportEntries_));
   if (!indirectExportEntries) {
     return false;
   }
 
-  RootedArrayObject starExportEntries(cx_, createArray(starExportEntries_));
+  RootedArrayObject starExportEntries(cx_,
+                                      js::CreateArray(cx_, starExportEntries_));
   if (!starExportEntries) {
     return false;
   }
@@ -1623,9 +1638,10 @@ bool ModuleBuilder::maybeAppendRequestedModule(HandleAtom specifier,
 }
 
 template <typename T>
-ArrayObject* ModuleBuilder::createArray(const JS::Rooted<GCVector<T>>& vector) {
+ArrayObject* js::CreateArray(JSContext* cx,
+                             const JS::Rooted<GCVector<T>>& vector) {
   uint32_t length = vector.length();
-  RootedArrayObject array(cx_, NewDenseFullyAllocatedArray(cx_, length));
+  RootedArrayObject array(cx, NewDenseFullyAllocatedArray(cx, length));
   if (!array) {
     return nullptr;
   }
@@ -1639,7 +1655,7 @@ ArrayObject* ModuleBuilder::createArray(const JS::Rooted<GCVector<T>>& vector) {
 }
 
 template <typename K, typename V>
-ArrayObject* ModuleBuilder::createArray(
+ArrayObject* ModuleBuilder::createArrayFromHashMap(
     const JS::Rooted<GCHashMap<K, V>>& map) {
   uint32_t length = map.count();
   RootedArrayObject array(cx_, NewDenseFullyAllocatedArray(cx_, length));
@@ -1798,3 +1814,298 @@ bool js::FinishDynamicModuleImport(JSContext* cx,
   RootedValue value(cx, ObjectValue(*ns));
   return PromiseObject::resolve(cx, promise, value);
 }
+
+template <XDRMode mode>
+XDRResult js::XDRExportEntries(XDRState<mode>* xdr,
+                               MutableHandleArrayObject vec) {
+  JSContext* cx = xdr->cx();
+  Rooted<GCVector<ExportEntryObject*>> expVec(cx);
+  RootedExportEntryObject expObj(cx);
+  RootedAtom exportName(cx);
+  RootedAtom moduleRequest(cx);
+  RootedAtom importName(cx);
+  RootedAtom localName(cx);
+
+  uint32_t length = 0;
+  uint32_t lineNumber = 0;
+  uint32_t columnNumber = 0;
+
+  if (mode == XDR_ENCODE) {
+    length = vec->length();
+  }
+  MOZ_TRY(xdr->codeUint32(&length));
+  for (uint32_t i = 0; i < length; i++) {
+    if (mode == XDR_ENCODE) {
+      expObj = &vec->getDenseElement(i).toObject().as<ExportEntryObject>();
+
+      exportName = expObj->exportName();
+      moduleRequest = expObj->moduleRequest();
+      importName = expObj->importName();
+      localName = expObj->localName();
+      lineNumber = expObj->lineNumber();
+      columnNumber = expObj->columnNumber();
+    }
+
+    MOZ_TRY(XDRAtomOrNull(xdr, &exportName));
+    MOZ_TRY(XDRAtomOrNull(xdr, &moduleRequest));
+    MOZ_TRY(XDRAtomOrNull(xdr, &importName));
+    MOZ_TRY(XDRAtomOrNull(xdr, &localName));
+
+    MOZ_TRY(xdr->codeUint32(&lineNumber));
+    MOZ_TRY(xdr->codeUint32(&columnNumber));
+
+    if (mode == XDR_DECODE) {
+      expObj.set(ExportEntryObject::create(cx, exportName, moduleRequest,
+                                           importName, localName, lineNumber,
+                                           columnNumber));
+      if (!expObj) {
+        return xdr->fail(JS::TranscodeResult_Throw);
+      }
+      if (!expVec.append(expObj)) {
+        return xdr->fail(JS::TranscodeResult_Throw);
+      }
+    }
+  }
+
+  if (mode == XDR_DECODE) {
+    RootedArrayObject expArr(cx, js::CreateArray(cx, expVec));
+    if (!expArr) {
+      return xdr->fail(JS::TranscodeResult_Throw);
+    }
+    vec.set(expArr);
+  }
+
+  return Ok();
+}
+
+template <XDRMode mode>
+XDRResult js::XDRRequestedModuleObject(
+    XDRState<mode>* xdr, MutableHandleRequestedModuleObject reqObj) {
+  JSContext* cx = xdr->cx();
+  RootedAtom moduleSpecifier(cx);
+  uint32_t lineNumber = 0;
+  uint32_t columnNumber = 0;
+  if (mode == XDR_ENCODE) {
+    moduleSpecifier = reqObj->moduleSpecifier();
+    lineNumber = reqObj->lineNumber();
+    columnNumber = reqObj->columnNumber();
+  }
+
+  MOZ_TRY(XDRAtom(xdr, &moduleSpecifier));
+  MOZ_TRY(xdr->codeUint32(&lineNumber));
+  MOZ_TRY(xdr->codeUint32(&columnNumber));
+
+  if (mode == XDR_DECODE) {
+    reqObj.set(RequestedModuleObject::create(cx, moduleSpecifier, lineNumber,
+                                             columnNumber));
+    if (!reqObj) {
+      return xdr->fail(JS::TranscodeResult_Throw);
+    }
+  }
+
+  return Ok();
+}
+
+template <XDRMode mode>
+XDRResult js::XDRImportEntryObject(XDRState<mode>* xdr,
+                                   MutableHandleImportEntryObject impObj) {
+  JSContext* cx = xdr->cx();
+  RootedAtom moduleRequest(cx);
+  RootedAtom importName(cx);
+  RootedAtom localName(cx);
+  uint32_t lineNumber = 0;
+  uint32_t columnNumber = 0;
+  if (mode == XDR_ENCODE) {
+    moduleRequest = impObj->moduleRequest();
+    importName = impObj->importName();
+    localName = impObj->localName();
+    lineNumber = impObj->lineNumber();
+    columnNumber = impObj->columnNumber();
+  }
+
+  MOZ_TRY(XDRAtomOrNull(xdr, &moduleRequest));
+  MOZ_TRY(XDRAtomOrNull(xdr, &importName));
+  MOZ_TRY(XDRAtomOrNull(xdr, &localName));
+  MOZ_TRY(xdr->codeUint32(&lineNumber));
+  MOZ_TRY(xdr->codeUint32(&columnNumber));
+
+  if (mode == XDR_DECODE) {
+    impObj.set(ImportEntryObject::create(cx, moduleRequest, importName,
+                                         localName, lineNumber, columnNumber));
+    if (!impObj) {
+      return xdr->fail(JS::TranscodeResult_Throw);
+    }
+  }
+
+  return Ok();
+}
+
+template <XDRMode mode>
+XDRResult js::XDRModuleObject(XDRState<mode>* xdr,
+                              MutableHandleModuleObject modp) {
+  JSContext* cx = xdr->cx();
+  RootedModuleObject module(cx, modp);
+
+  RootedScope enclosingScope(cx);
+  RootedScript script(cx);
+
+  RootedArrayObject requestedModules(cx);
+  RootedArrayObject importEntries(cx);
+  RootedArrayObject localExportEntries(cx);
+  RootedArrayObject indirectExportEntries(cx);
+  RootedArrayObject starExportEntries(cx);
+  // funcDecls points to data traced by the ModuleObject,
+  // but is itself heap-allocated so we don't need to
+  // worry about rooting it again here.
+  FunctionDeclarationVector* funcDecls;
+
+  uint32_t requestedModulesLength = 0;
+  uint32_t importEntriesLength = 0;
+  uint32_t funcDeclLength = 0;
+
+  if (mode == XDR_ENCODE) {
+    module = modp.get();
+
+    script.set(module->script());
+    enclosingScope.set(module->enclosingScope());
+    MOZ_ASSERT(!enclosingScope->as<GlobalScope>().hasBindings());
+
+    requestedModules = &module->requestedModules();
+    importEntries = &module->importEntries();
+    localExportEntries = &module->localExportEntries();
+    indirectExportEntries = &module->indirectExportEntries();
+    starExportEntries = &module->starExportEntries();
+    funcDecls = module->functionDeclarations();
+
+    requestedModulesLength = requestedModules->length();
+    importEntriesLength = importEntries->length();
+    funcDeclLength = funcDecls->length();
+  }
+
+  /* ScriptSourceObject slot - ScriptSourceObject is created in XDRScript and is
+   * set when init is called. */
+  if (mode == XDR_DECODE) {
+    enclosingScope.set(&cx->global()->emptyGlobalScope());
+    module.set(ModuleObject::create(cx));
+    if (!module) {
+      return xdr->fail(JS::TranscodeResult_Throw);
+    }
+  }
+
+  /* Script slot */
+  MOZ_TRY(XDRScript(xdr, enclosingScope, nullptr, module, &script));
+
+  if (mode == XDR_DECODE) {
+    module->init(script);
+  }
+
+  /* Environment Slot */
+  if (mode == XDR_DECODE) {
+    if (!ModuleObject::createEnvironment(cx, module)) {
+      return xdr->fail(JS::TranscodeResult_Throw);
+    }
+  }
+
+  /* Namespace Slot, Status Slot, EvaluationErrorSlot, MetaObject - Initialized
+   * at instantiation */
+
+  /* RequestedModules slot */
+  RootedRequestedModuleVector reqVec(cx, GCVector<RequestedModuleObject*>(cx));
+  RootedRequestedModuleObject reqObj(cx);
+  MOZ_TRY(xdr->codeUint32(&requestedModulesLength));
+  for (uint32_t i = 0; i < requestedModulesLength; i++) {
+    if (mode == XDR_ENCODE) {
+      reqObj = &module->requestedModules()
+                    .getDenseElement(i)
+                    .toObject()
+                    .as<RequestedModuleObject>();
+    }
+    MOZ_TRY(XDRRequestedModuleObject(xdr, &reqObj));
+    if (mode == XDR_DECODE) {
+      if (!reqVec.append(reqObj)) {
+        return xdr->fail(JS::TranscodeResult_Throw);
+      }
+    }
+  }
+  if (mode == XDR_DECODE) {
+    RootedArrayObject reqArr(cx, js::CreateArray(cx, reqVec));
+    if (!reqArr) {
+      return xdr->fail(JS::TranscodeResult_Throw);
+    }
+    requestedModules.set(reqArr);
+  }
+
+  /* ImportEntries slot */
+  RootedImportEntryVector impVec(cx, GCVector<ImportEntryObject*>(cx));
+  RootedImportEntryObject impObj(cx);
+  MOZ_TRY(xdr->codeUint32(&importEntriesLength));
+  for (uint32_t i = 0; i < importEntriesLength; i++) {
+    if (mode == XDR_ENCODE) {
+      impObj = &module->importEntries()
+                    .getDenseElement(i)
+                    .toObject()
+                    .as<ImportEntryObject>();
+    }
+    MOZ_TRY(XDRImportEntryObject(xdr, &impObj));
+    if (mode == XDR_DECODE) {
+      if (!impVec.append(impObj)) {
+        return xdr->fail(JS::TranscodeResult_Throw);
+      }
+    }
+  }
+
+  if (mode == XDR_DECODE) {
+    RootedArrayObject impArr(cx, js::CreateArray(cx, impVec));
+    if (!impArr) {
+      return xdr->fail(JS::TranscodeResult_Throw);
+    }
+    importEntries.set(impArr);
+  }
+
+  /* LocalExportEntries slot */
+  MOZ_TRY(XDRExportEntries(xdr, &localExportEntries));
+  /* IndirectExportEntries slot */
+  MOZ_TRY(XDRExportEntries(xdr, &indirectExportEntries));
+  /* StarExportEntries slot */
+  MOZ_TRY(XDRExportEntries(xdr, &starExportEntries));
+
+  /* FunctionDeclarations slot */
+  RootedAtom funcName(cx);
+  uint32_t funIndex = 0;
+  MOZ_TRY(xdr->codeUint32(&funcDeclLength));
+  for (uint32_t i = 0; i < funcDeclLength; i++) {
+    if (mode == XDR_ENCODE) {
+      FunctionDeclaration fd = (*funcDecls)[i];
+      funcName = fd.name;
+      funIndex = fd.funIndex;
+    }
+
+    MOZ_TRY(XDRAtom(xdr, &funcName));
+    MOZ_TRY(xdr->codeUint32(&funIndex));
+
+    if (mode == XDR_DECODE) {
+      FunctionDeclaration funcDecl(funcName, funIndex);
+      if (!module->functionDeclarations()->append(funcDecl)) {
+        ReportOutOfMemory(cx);
+        return xdr->fail(JS::TranscodeResult_Throw);
+      }
+    }
+  }
+
+  /* ImportBindings slot, DFSIndex slot, DFSAncestorIndex slot -
+   * Initialized at instantiation */
+  if (mode == XDR_DECODE) {
+    module->initImportExportData(requestedModules, importEntries,
+                                 localExportEntries, indirectExportEntries,
+                                 starExportEntries);
+  }
+
+  modp.set(module);
+  return Ok();
+}
+
+template XDRResult js::XDRModuleObject(XDRState<XDR_ENCODE>* xdr,
+                                       MutableHandleModuleObject scriptp);
+
+template XDRResult js::XDRModuleObject(XDRState<XDR_DECODE>* xdr,
+                                       MutableHandleModuleObject scriptp);

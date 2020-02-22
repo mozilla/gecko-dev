@@ -25,7 +25,9 @@ const Services = require("Services");
 const focusManager = Services.focus;
 const { KeyCodes } = require("devtools/client/shared/keycodes");
 const EventEmitter = require("devtools/shared/event-emitter");
-const { findMostRelevantCssPropertyIndex } = require("./suggestion-picker");
+const {
+  findMostRelevantCssPropertyIndex,
+} = require("devtools/client/shared/suggestion-picker");
 
 loader.lazyRequireGetter(
   this,
@@ -1699,6 +1701,13 @@ InplaceEditor.prototype = {
    * @return {Boolean} true if the input has a single line of text
    */
   _isSingleLine: function() {
+    if (!this.multiline) {
+      // Checking the inputCharDimensions.height only makes sense with multiline
+      // editors, because the textarea is directly sized using
+      // inputCharDimensions (see _updateSize()).
+      // By definition if !this.multiline, then we are in single line mode.
+      return true;
+    }
     const inputRect = this.input.getBoundingClientRect();
     return inputRect.height < 2 * this.inputCharDimensions.height;
   },

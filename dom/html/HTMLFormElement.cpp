@@ -7,6 +7,7 @@
 #include "mozilla/dom/HTMLFormElement.h"
 
 #include "jsapi.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/ContentEvents.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventStates.h"
@@ -32,7 +33,6 @@
 #include "nsCOMArray.h"
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
-#include "nsIMutableArray.h"
 #include "mozilla/BinarySearch.h"
 #include "nsQueryObject.h"
 
@@ -43,7 +43,6 @@
 #include "mozilla/Telemetry.h"
 #include "nsIFormSubmitObserver.h"
 #include "nsIObserverService.h"
-#include "nsICategoryManager.h"
 #include "nsCategoryManagerUtils.h"
 #include "nsISimpleEnumerator.h"
 #include "nsRange.h"
@@ -56,7 +55,6 @@
 #include "nsIPrompt.h"
 #include "nsISecurityUITelemetry.h"
 #include "nsIStringBundle.h"
-#include "nsIProtocolHandler.h"
 
 // radio buttons
 #include "mozilla/dom/HTMLInputElement.h"
@@ -71,8 +69,6 @@
 #include "nsIConstraintValidation.h"
 
 #include "nsSandboxFlags.h"
-
-#include "nsIContentSecurityPolicy.h"
 
 // images
 #include "mozilla/dom/HTMLImageElement.h"
@@ -294,6 +290,32 @@ void HTMLFormElement::Submit(ErrorResult& aRv) {
   }
 
   aRv = DoSubmitOrReset(nullptr, eFormSubmit);
+}
+
+// https://html.spec.whatwg.org/multipage/forms.html#dom-form-requestsubmit
+void HTMLFormElement::RequestSubmit(nsGenericHTMLElement* aSubmitter,
+                                    ErrorResult& aRv) {
+  // 1. If submitter is not null, then:
+  if (aSubmitter) {
+    nsCOMPtr<nsIFormControl> fc = do_QueryObject(aSubmitter);
+
+    // 1.1. If submitter is not a submit button, then throw a TypeError.
+    if (!fc || !fc->IsSubmitControl()) {
+      aRv.ThrowTypeError<MSG_NOT_SUBMIT_BUTTON>();
+      return;
+    }
+
+    // 1.2. If submitter's form owner is not this form element, then throw a
+    //      "NotFoundError" DOMException.
+    if (fc->GetFormElement() != this) {
+      aRv.Throw(NS_ERROR_DOM_NOT_FOUND_ERR);
+      return;
+    }
+  }
+
+  // 2. Otherwise, set submitter to this form element.
+  // 3. Submit this form element, from submitter.
+  MaybeSubmit(aSubmitter);
 }
 
 void HTMLFormElement::Reset() {
@@ -1637,7 +1659,8 @@ nsresult HTMLFormElement::GetActionURL(nsIURI** aActionURL,
   nsIScriptSecurityManager* securityManager =
       nsContentUtils::GetSecurityManager();
   rv = securityManager->CheckLoadURIWithPrincipal(
-      NodePrincipal(), actionURL, nsIScriptSecurityManager::STANDARD);
+      NodePrincipal(), actionURL, nsIScriptSecurityManager::STANDARD,
+      OwnerDoc()->InnerWindowID());
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Potentially the page uses the CSP directive 'upgrade-insecure-requests'. In

@@ -18,6 +18,8 @@
 #  include <wininet.h>
 #endif
 
+#include "js/Array.h"  // JS::GetArrayLength
+#include "mozilla/Logging.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/StaticPrefs_extensions.h"
 
@@ -81,7 +83,7 @@ nsresult RegexEval(const nsAString& aPattern, const nsAString& aString,
   // Now we know we have a result, and we need to extract it so we can read it.
   uint32_t length;
   JS::RootedObject regexResultObj(cx, &regexResult.toObject());
-  if (!JS_GetArrayLength(cx, regexResultObj, &length)) {
+  if (!JS::GetArrayLength(cx, regexResultObj, &length)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
   MOZ_LOG(sCSMLog, LogLevel::Verbose, ("Regex Matched %i strings", length));
@@ -134,7 +136,7 @@ nsString OptimizeFileName(const nsAString& aFileName) {
 }
 
 /*
- * FilenameToEvalType takes a fileName and returns a Pair of strings.
+ * FilenameToFilenameType takes a fileName and returns a Pair of strings.
  * The First entry is a string indicating the type of fileName
  * The Second entry is a Maybe<string> that can contain additional details to
  * report.
@@ -146,11 +148,13 @@ nsString OptimizeFileName(const nsAString& aFileName) {
  */
 
 /* static */
-FilenameType nsContentSecurityUtils::FilenameToEvalType(
+FilenameTypeAndDetails nsContentSecurityUtils::FilenameToFilenameType(
     const nsString& fileName) {
   // These are strings because the Telemetry Events API only accepts strings
   static NS_NAMED_LITERAL_CSTRING(kChromeURI, "chromeuri");
   static NS_NAMED_LITERAL_CSTRING(kResourceURI, "resourceuri");
+  static NS_NAMED_LITERAL_CSTRING(kBlobUri, "bloburi");
+  static NS_NAMED_LITERAL_CSTRING(kDataUri, "dataurl");
   static NS_NAMED_LITERAL_CSTRING(kSingleString, "singlestring");
   static NS_NAMED_LITERAL_CSTRING(kMozillaExtension, "mozillaextension");
   static NS_NAMED_LITERAL_CSTRING(kOtherExtension, "otherextension");
@@ -171,15 +175,23 @@ FilenameType nsContentSecurityUtils::FilenameToEvalType(
 
   // resource:// and chrome://
   if (StringBeginsWith(fileName, NS_LITERAL_STRING("chrome://"))) {
-    return FilenameType(kChromeURI, Some(fileName));
+    return FilenameTypeAndDetails(kChromeURI, Some(fileName));
   }
   if (StringBeginsWith(fileName, NS_LITERAL_STRING("resource://"))) {
-    return FilenameType(kResourceURI, Some(fileName));
+    return FilenameTypeAndDetails(kResourceURI, Some(fileName));
+  }
+
+  // blob: and data:
+  if (StringBeginsWith(fileName, NS_LITERAL_STRING("blob:"))) {
+    return FilenameTypeAndDetails(kBlobUri, Nothing());
+  }
+  if (StringBeginsWith(fileName, NS_LITERAL_STRING("data:"))) {
+    return FilenameTypeAndDetails(kDataUri, Nothing());
   }
 
   if (!NS_IsMainThread()) {
     // We can't do Regex matching off the main thread; so just report.
-    return FilenameType(kOtherWorker, Nothing());
+    return FilenameTypeAndDetails(kOtherWorker, Nothing());
   }
 
   // Extension
@@ -188,7 +200,7 @@ FilenameType nsContentSecurityUtils::FilenameToEvalType(
   nsresult rv = RegexEval(kExtensionRegex, fileName, /* aOnlyMatch = */ false,
                           regexMatch, &regexResults);
   if (NS_FAILED(rv)) {
-    return FilenameType(kRegexFailure, Nothing());
+    return FilenameTypeAndDetails(kRegexFailure, Nothing());
   }
   if (regexMatch) {
     nsCString type =
@@ -197,26 +209,27 @@ FilenameType nsContentSecurityUtils::FilenameToEvalType(
             : kOtherExtension;
     auto& extensionNameAndPath =
         Substring(regexResults[0], ArrayLength("extensions/") - 1);
-    return FilenameType(type, Some(OptimizeFileName(extensionNameAndPath)));
+    return FilenameTypeAndDetails(type,
+                                  Some(OptimizeFileName(extensionNameAndPath)));
   }
 
   // Single File
   rv = RegexEval(kSingleFileRegex, fileName, /* aOnlyMatch = */ true,
                  regexMatch);
   if (NS_FAILED(rv)) {
-    return FilenameType(kRegexFailure, Nothing());
+    return FilenameTypeAndDetails(kRegexFailure, Nothing());
   }
   if (regexMatch) {
-    return FilenameType(kSingleString, Some(fileName));
+    return FilenameTypeAndDetails(kSingleString, Some(fileName));
   }
 
   // Suspected userChromeJS script
   rv = RegexEval(kUCJSRegex, fileName, /* aOnlyMatch = */ true, regexMatch);
   if (NS_FAILED(rv)) {
-    return FilenameType(kRegexFailure, Nothing());
+    return FilenameTypeAndDetails(kRegexFailure, Nothing());
   }
   if (regexMatch) {
-    return FilenameType(kSuspectedUserChromeJS, Nothing());
+    return FilenameTypeAndDetails(kSuspectedUserChromeJS, Nothing());
   }
 
 #if defined(XP_WIN)
@@ -236,14 +249,16 @@ FilenameType nsContentSecurityUtils::FilenameToEvalType(
         sanitizedPathAndScheme.Append(NS_LITERAL_STRING("://.../"));
         sanitizedPathAndScheme.Append(strSanitizedPath);
       }
-      return FilenameType(kSanitizedWindowsURL, Some(sanitizedPathAndScheme));
+      return FilenameTypeAndDetails(kSanitizedWindowsURL,
+                                    Some(sanitizedPathAndScheme));
     } else {
-      return FilenameType(kSanitizedWindowsPath, Some(strSanitizedPath));
+      return FilenameTypeAndDetails(kSanitizedWindowsPath,
+                                    Some(strSanitizedPath));
     }
   }
 #endif
 
-  return FilenameType(kOther, Nothing());
+  return FilenameTypeAndDetails(kOther, Nothing());
 }
 
 class EvalUsageNotificationRunnable final : public Runnable {
@@ -274,6 +289,11 @@ class EvalUsageNotificationRunnable final : public Runnable {
   uint32_t mLineNumber;
   uint32_t mColumnNumber;
 };
+
+// The Web Extension process pref may be toggled during a session, at which
+// point stuff may be loaded in the parent process but we would send telemetry
+// for it. Avoid this by observing if the pref ever was disabled.
+static bool sWebExtensionsRemoteWasEverDisabled = false;
 
 /* static */
 bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
@@ -361,9 +381,16 @@ bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
 
   if (XRE_IsE10sParentProcess() &&
       !StaticPrefs::extensions_webextensions_remote()) {
+    sWebExtensionsRemoteWasEverDisabled = true;
     MOZ_LOG(sCSMLog, LogLevel::Debug,
             ("Allowing eval() in parent process because the web extension "
              "process is disabled"));
+    return true;
+  }
+  if (XRE_IsE10sParentProcess() && sWebExtensionsRemoteWasEverDisabled) {
+    MOZ_LOG(sCSMLog, LogLevel::Debug,
+            ("Allowing eval() in parent process because the web extension "
+             "process was disabled at some point"));
     return true;
   }
 
@@ -461,12 +488,13 @@ void nsContentSecurityUtils::NotifyEvalUsage(bool aIsSystemPrincipal,
       aIsSystemPrincipal ? Telemetry::EventID::Security_Evalusage_Systemcontext
                          : Telemetry::EventID::Security_Evalusage_Parentprocess;
 
-  FilenameType fileNameType = FilenameToEvalType(aFileNameA);
+  FilenameTypeAndDetails fileNameTypeAndDetails =
+      FilenameToFilenameType(aFileNameA);
   mozilla::Maybe<nsTArray<EventExtraEntry>> extra;
-  if (fileNameType.second().isSome()) {
+  if (fileNameTypeAndDetails.second().isSome()) {
     extra = Some<nsTArray<EventExtraEntry>>({EventExtraEntry{
         NS_LITERAL_CSTRING("fileinfo"),
-        NS_ConvertUTF16toUTF8(fileNameType.second().value())}});
+        NS_ConvertUTF16toUTF8(fileNameTypeAndDetails.second().value())}});
   } else {
     extra = Nothing();
   }
@@ -474,7 +502,8 @@ void nsContentSecurityUtils::NotifyEvalUsage(bool aIsSystemPrincipal,
     sTelemetryEventEnabled = true;
     Telemetry::SetEventRecordingEnabled(NS_LITERAL_CSTRING("security"), true);
   }
-  Telemetry::RecordEvent(eventType, mozilla::Some(fileNameType.first()), extra);
+  Telemetry::RecordEvent(eventType,
+                         mozilla::Some(fileNameTypeAndDetails.first()), extra);
 
   // Report an error to console
   nsCOMPtr<nsIConsoleService> console(
@@ -676,3 +705,112 @@ void nsContentSecurityUtils::AssertAboutPageHasCSP(Document* aDocument) {
              "about: page must not contain a CSP including 'unsafe-inline'");
 }
 #endif
+
+/* static */
+bool nsContentSecurityUtils::ValidateScriptFilename(const char* aFilename,
+                                                    bool aIsSystemRealm) {
+  static Maybe<bool> sGeneralConfigFilenameSet;
+  // If the pref is permissive, allow everything
+  if (StaticPrefs::security_allow_parent_unrestricted_js_loads()) {
+    return true;
+  }
+
+  // If we're not in the parent process allow everything (presently)
+  if (!XRE_IsE10sParentProcess()) {
+    return true;
+  }
+
+  // We only perform a check of this preference on the Main Thread
+  // (because a String-based preference check is only safe on Main Thread.)
+  // The consequence of this is that if a user is using userChromeJS _and_
+  // the scripts they use start a worker - we will enter this function,
+  // skip over this pref check that would normally cause us to allow the
+  // load - and we will block it.
+  // While not ideal, we do not officially support userChromeJS, and hopefully
+  // the usage of workers is even lower than userChromeJS usage.
+  if (NS_IsMainThread()) {
+    // This preference is a file used for autoconfiguration of Firefox
+    // by administrators. It will also run in the parent process and throw
+    // assumptions about what can run where out of the window.
+    if (!sGeneralConfigFilenameSet.isSome()) {
+      nsAutoString jsConfigPref;
+      Preferences::GetString("general.config.filename", jsConfigPref);
+      sGeneralConfigFilenameSet.emplace(!jsConfigPref.IsEmpty());
+    }
+    if (sGeneralConfigFilenameSet.value()) {
+      MOZ_LOG(sCSMLog, LogLevel::Debug,
+              ("Allowing a javascript load of %s because "
+               "general.config.filename is set",
+               aFilename));
+      return true;
+    }
+  }
+
+  if (XRE_IsE10sParentProcess() &&
+      !StaticPrefs::extensions_webextensions_remote()) {
+    sWebExtensionsRemoteWasEverDisabled = true;
+    MOZ_LOG(sCSMLog, LogLevel::Debug,
+            ("Allowing a javascript load of %s because the web extension "
+             "process is disabled.",
+             aFilename));
+    return true;
+  }
+  if (XRE_IsE10sParentProcess() && sWebExtensionsRemoteWasEverDisabled) {
+    MOZ_LOG(sCSMLog, LogLevel::Debug,
+            ("Allowing a javascript load of %s because the web extension "
+             "process was disabled at some point.",
+             aFilename));
+    return true;
+  }
+
+  NS_ConvertUTF8toUTF16 filenameU(aFilename);
+  if (StringBeginsWith(filenameU, NS_LITERAL_STRING("chrome://"))) {
+    // If it's a chrome:// url, allow it
+    return true;
+  }
+  if (StringBeginsWith(filenameU, NS_LITERAL_STRING("resource://"))) {
+    // If it's a resource:// url, allow it
+    return true;
+  }
+  if (StringBeginsWith(filenameU, NS_LITERAL_STRING("file://"))) {
+    // We will temporarily allow all file:// URIs through for now
+    return true;
+  }
+  if (StringBeginsWith(filenameU, NS_LITERAL_STRING("jar:file://"))) {
+    // We will temporarily allow all jar URIs through for now
+    return true;
+  }
+
+  // Log to MOZ_LOG
+  MOZ_LOG(sCSMLog, LogLevel::Info,
+          ("ValidateScriptFilename System:%i %s\n", (aIsSystemRealm ? 1 : 0),
+           aFilename));
+
+  // Send Telemetry
+  FilenameTypeAndDetails fileNameTypeAndDetails =
+      FilenameToFilenameType(filenameU);
+
+  Telemetry::EventID eventType =
+      Telemetry::EventID::Security_Javascriptload_Parentprocess;
+
+  mozilla::Maybe<nsTArray<EventExtraEntry>> extra;
+  if (fileNameTypeAndDetails.second().isSome()) {
+    extra = Some<nsTArray<EventExtraEntry>>({EventExtraEntry{
+        NS_LITERAL_CSTRING("fileinfo"),
+        NS_ConvertUTF16toUTF8(fileNameTypeAndDetails.second().value())}});
+  } else {
+    extra = Nothing();
+  }
+
+  if (!sTelemetryEventEnabled.exchange(true)) {
+    sTelemetryEventEnabled = true;
+    Telemetry::SetEventRecordingEnabled(NS_LITERAL_CSTRING("security"), true);
+  }
+  Telemetry::RecordEvent(eventType,
+                         mozilla::Some(fileNameTypeAndDetails.first()), extra);
+
+  // Presently we are not enforcing any restrictions for the script filename,
+  // we're only reporting Telemetry. In the future we will assert in debug
+  // builds and return false to prevent execution in non-debug builds.
+  return true;
+}

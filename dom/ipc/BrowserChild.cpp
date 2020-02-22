@@ -83,18 +83,15 @@
 #include "nsIBrowserDOMWindow.h"
 #include "nsIClassifiedChannel.h"
 #include "DocumentInlines.h"
-#include "nsIDocShellTreeOwner.h"
-#include "nsIDOMChromeWindow.h"
 #include "nsFocusManager.h"
 #include "EventStateManager.h"
 #include "nsIDocShell.h"
 #include "nsIFrame.h"
+#include "nsISecureBrowserUI.h"
 #include "nsIURI.h"
 #include "nsIURIMutator.h"
-#include "nsIURIFixup.h"
 #include "nsIWebBrowser.h"
 #include "nsIWebProgress.h"
-#include "nsIXULRuntime.h"
 #include "nsPIDOMWindow.h"
 #include "nsPIWindowRoot.h"
 #include "nsPointerHashKeys.h"
@@ -118,8 +115,6 @@
 #include "nsColorPickerProxy.h"
 #include "nsContentPermissionHelper.h"
 #include "nsNetUtil.h"
-#include "nsIPermissionManager.h"
-#include "nsIURILoader.h"
 #include "nsIScriptError.h"
 #include "mozilla/EventForwards.h"
 #include "nsDeviceContext.h"
@@ -130,11 +125,9 @@
 #include "nsISHEntry.h"
 #include "nsISHistory.h"
 #include "nsQueryObject.h"
-#include "nsIHttpChannel.h"
 #include "mozilla/dom/DocGroup.h"
 #include "nsString.h"
 #include "nsStringStream.h"
-#include "nsISupportsPrimitives.h"
 #include "mozilla/Telemetry.h"
 #include "nsDocShellLoadState.h"
 #include "nsWebBrowser.h"
@@ -283,7 +276,7 @@ class BrowserChild::DelayedDeleteRunnable final : public Runnable,
   }
 
   NS_IMETHOD GetPriority(uint32_t* aPriority) override {
-    *aPriority = mReadyToDelete ? nsIRunnablePriority::PRIORITY_INPUT
+    *aPriority = mReadyToDelete ? nsIRunnablePriority::PRIORITY_INPUT_HIGH
                                 : nsIRunnablePriority::PRIORITY_NORMAL;
     return NS_OK;
   }
@@ -664,7 +657,6 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(BrowserChild)
   NS_INTERFACE_MAP_ENTRY(nsIWebBrowserChrome)
-  NS_INTERFACE_MAP_ENTRY(nsIWebBrowserChrome2)
   NS_INTERFACE_MAP_ENTRY(nsIEmbeddingSiteWindow)
   NS_INTERFACE_MAP_ENTRY(nsIWebBrowserChromeFocus)
   NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
@@ -680,15 +672,6 @@ NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(BrowserChild)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(BrowserChild)
-
-NS_IMETHODIMP
-BrowserChild::SetStatus(uint32_t aStatusType, const char16_t* aStatus) {
-  return SetStatusWithContext(
-      aStatusType,
-      aStatus ? static_cast<const nsString&>(nsDependentString(aStatus))
-              : EmptyString(),
-      nullptr);
-}
 
 NS_IMETHODIMP
 BrowserChild::GetChromeFlags(uint32_t* aChromeFlags) {
@@ -773,12 +756,10 @@ BrowserChild::IsWindowModal(bool* aRetVal) {
 }
 
 NS_IMETHODIMP
-BrowserChild::SetStatusWithContext(uint32_t aStatusType,
-                                   const nsAString& aStatusText,
-                                   nsISupports* aStatusContext) {
+BrowserChild::SetLinkStatus(const nsAString& aStatusText) {
   // We can only send the status after the ipc machinery is set up
   if (IPCOpen()) {
-    SendSetStatus(aStatusType, nsString(aStatusText));
+    SendSetLinkStatus(nsString(aStatusText));
   }
   return NS_OK;
 }
@@ -814,7 +795,9 @@ BrowserChild::SetDimensions(uint32_t aFlags, int32_t aX, int32_t aY,
     aFlags |= nsIEmbeddingSiteWindow::DIM_FLAGS_IGNORE_CY;
   }
 
-  Unused << SendSetDimensions(aFlags, aX, aY, aCx, aCy);
+  double scale = mPuppetWidget ? mPuppetWidget->GetDefaultScale().scale : 1.0;
+
+  Unused << SendSetDimensions(aFlags, aX, aY, aCx, aCy, scale);
 
   return NS_OK;
 }
@@ -1070,14 +1053,14 @@ mozilla::ipc::IPCResult BrowserChild::RecvSkipBrowsingContextDetach(
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvLoadURL(const nsCString& aURI,
-                                                  const ShowInfo& aInfo) {
+                                                  const ParentShowInfo& aInfo) {
   if (!mDidLoadURLInit) {
     mDidLoadURLInit = true;
     if (!InitBrowserChildMessageManager()) {
       return IPC_FAIL_NO_REASON(this);
     }
 
-    ApplyShowInfo(aInfo);
+    ApplyParentShowInfo(aInfo);
   }
 
   LoadURIOptions loadURIOptions;
@@ -1105,14 +1088,14 @@ mozilla::ipc::IPCResult BrowserChild::RecvLoadURL(const nsCString& aURI,
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvResumeLoad(
-    const uint64_t& aPendingSwitchID, const ShowInfo& aInfo) {
+    const uint64_t& aPendingSwitchID, const ParentShowInfo& aInfo) {
   if (!mDidLoadURLInit) {
     mDidLoadURLInit = true;
     if (!InitBrowserChildMessageManager()) {
       return IPC_FAIL_NO_REASON(this);
     }
 
-    ApplyShowInfo(aInfo);
+    ApplyParentShowInfo(aInfo);
   }
 
   nsresult rv = WebNavigation()->ResumeRedirectedLoad(aPendingSwitchID, -1);
@@ -1123,12 +1106,13 @@ mozilla::ipc::IPCResult BrowserChild::RecvResumeLoad(
   return IPC_OK();
 }
 
-void BrowserChild::DoFakeShow(const ShowInfo& aShowInfo) {
-  RecvShow(ScreenIntSize(0, 0), aShowInfo, mParentIsActive, nsSizeMode_Normal);
+void BrowserChild::DoFakeShow(const ParentShowInfo& aParentShowInfo) {
+  OwnerShowInfo ownerInfo{ScreenIntSize(), mParentIsActive, nsSizeMode_Normal};
+  RecvShow(aParentShowInfo, ownerInfo);
   mDidFakeShow = true;
 }
 
-void BrowserChild::ApplyShowInfo(const ShowInfo& aInfo) {
+void BrowserChild::ApplyParentShowInfo(const ParentShowInfo& aInfo) {
   // Even if we already set real show info, the dpi / rounding & scale may still
   // be invalid (if BrowserParent wasn't able to get widget it would just send
   // 0). So better to always set up-to-date values here.
@@ -1181,13 +1165,11 @@ void BrowserChild::ApplyShowInfo(const ShowInfo& aInfo) {
   mIsTransparent = aInfo.isTransparent();
 }
 
-mozilla::ipc::IPCResult BrowserChild::RecvShow(const ScreenIntSize& aSize,
-                                               const ShowInfo& aInfo,
-                                               const bool& aParentIsActive,
-                                               const nsSizeMode& aSizeMode) {
+mozilla::ipc::IPCResult BrowserChild::RecvShow(
+    const ParentShowInfo& aParentInfo, const OwnerShowInfo& aOwnerInfo) {
   bool res = true;
 
-  mPuppetWidget->SetSizeMode(aSizeMode);
+  mPuppetWidget->SetSizeMode(aOwnerInfo.sizeMode());
   if (!mDidFakeShow) {
     nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(WebNavigation());
     if (!baseWindow) {
@@ -1199,8 +1181,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvShow(const ScreenIntSize& aSize,
     res = InitBrowserChildMessageManager();
   }
 
-  ApplyShowInfo(aInfo);
-  RecvParentActivated(aParentIsActive);
+  ApplyParentShowInfo(aParentInfo);
+  RecvParentActivated(aOwnerInfo.parentWindowIsActive());
 
   if (!res) {
     return IPC_FAIL_NO_REASON(this);
@@ -2190,6 +2172,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvPasteTransferable(
   return IPC_OK();
 }
 
+#ifdef ACCESSIBILITY
 a11y::PDocAccessibleChild* BrowserChild::AllocPDocAccessibleChild(
     PDocAccessibleChild*, const uint64_t&, const uint32_t&,
     const IAccessibleHolder&) {
@@ -2199,11 +2182,10 @@ a11y::PDocAccessibleChild* BrowserChild::AllocPDocAccessibleChild(
 
 bool BrowserChild::DeallocPDocAccessibleChild(
     a11y::PDocAccessibleChild* aChild) {
-#ifdef ACCESSIBILITY
   delete static_cast<mozilla::a11y::DocAccessibleChild*>(aChild);
-#endif
   return true;
 }
+#endif
 
 PColorPickerChild* BrowserChild::AllocPColorPickerChild(const nsString&,
                                                         const nsString&) {

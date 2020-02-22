@@ -19,22 +19,83 @@
 ##
 # Linux platforms (matching /linux.*/)
 
-linux32-shippable/opt:
+linux1804-32-shippable/opt:
     build-platform: linux-shippable/opt
     test-sets:
         - linux32-tests
 
+linux1804-64/opt:
+    build-platform: linux64/opt
+    test-sets:
+        - awsy
+        - linux1804-tests
+
+linux1804-64/debug:
+    build-platform: linux64/debug
+    test-sets:
+        - linux1804-tests
+
+linux1804-64-shippable/opt:
+    build-platform: linux64-shippable/opt
+    test-sets:
+        - awsy
+        - linux1804-tests
+
+linux1804-64-devedition/opt:
+    build-platform: linux64-devedition-nightly/opt
+    test-sets:
+        - linux1804-tests
+
+linux1804-64-asan/opt:
+    build-platform: linux64-asan/opt
+    test-sets:
+        - linux1804-tests
+
+linux1804-64-stylo-sequential/opt:
+    build-platform: linux64/opt
+    test-sets:
+        - awsy-stylo-sequential
+
+linux1804-64-qr/opt:
+    build-platform: linux64/opt
+    test-sets:
+        - awsy
+        - linux1804-qr-tests
+
+linux1804-64-shippable-qr/opt:
+    build-platform: linux64-shippable/opt
+    test-sets:
+        - awsy
+        - linux1804-qr-tests
+
+linux1804-64-qr/debug:
+    build-platform: linux64/debug
+    test-sets:
+        - linux1804-qr-tests
+
+# Disabled temporarily due to Bug 1602863
+# linux1804-64-asan-qr/opt:
+#     build-platform: linux64-asan/opt
+#     test-sets:
+#         - linux-qr-smoketests
+
+# Temporarily disabled as ccov still runs on ubuntu1604, Bug 1606861
+# linux1804-64-ccov/opt:
+#     build-platform: linux64-ccov/opt
+#     test-sets:
+#         - awsy
+#         - linux1804-tests
+
 linux64/debug:
     build-platform: linux64/debug
     test-sets:
-        - common-tests
+        - linux-common-tests
         - web-platform-tests
-        - marionette-media-tests
 
 linux64/opt:
     build-platform: linux64/opt
     test-sets:
-        - common-tests
+        - linux-common-tests
         - web-platform-tests
         - opt-only-tests
         - desktop-screenshot-capture
@@ -45,18 +106,16 @@ linux64/opt:
         - raptor-firefox
         - browsertime
         - raptor-fetch-firefox
-        - marionette-media-tests
 
 linux64-shippable/opt:
     build-platform: linux64-shippable/opt
     test-sets:
-        - common-tests
+        - linux-common-tests
         - web-platform-tests
         - web-platform-tests-wdspec-headless
         - opt-only-tests
         - desktop-screenshot-capture
         - talos
-        - awsy
         - mochitest-headless
         - marionette-headless
         - linux-talos-flex
@@ -73,7 +132,7 @@ linux64-shippable/opt:
 linux64-devedition/opt:
     build-platform: linux64-devedition-nightly/opt
     test-sets:
-        - common-tests
+        - linux-common-tests
         - web-platform-tests
         - opt-only-tests
         - desktop-screenshot-capture
@@ -82,7 +141,7 @@ linux64-devedition/opt:
 linux64-asan/opt:
     build-platform: linux64-asan/opt
     test-sets:
-        - common-tests
+        - linux-common-tests
         - web-platform-tests
 
 # Stylo sequential runs check memory and performance when using a single thread.
@@ -97,26 +156,27 @@ linux64-qr/opt:
     test-sets:
         - linux-qr-tests
         - talos
-        - awsy
         - web-platform-tests
         - raptor-firefox
         - browsertime
         - raptor-fetch-firefox
+
 linux64-shippable-qr/opt:
     build-platform: linux64-shippable/opt
     test-sets:
         - linux-qr-tests
         - talos
-        - awsy
         - web-platform-tests
         - raptor-firefox
         - browsertime
         - raptor-fetch-firefox
+
 linux64-qr/debug:
     build-platform: linux64/debug
     test-sets:
         - linux-qr-tests
         - web-platform-tests
+
 linux64-asan-qr/opt:
     build-platform: linux64-asan/opt
     test-sets:
@@ -125,7 +185,7 @@ linux64-asan-qr/opt:
 linux64-ccov/opt:
     build-platform: linux64-ccov/opt
     test-sets:
-        - common-tests
+        - linux-common-tests
         - web-platform-tests
         - awsy
         - talos
@@ -196,7 +256,6 @@ windows10-64/debug:
         - marionette-gpu-tests
         - windows-tests
         - web-platform-tests
-        - marionette-media-tests
 
 windows10-64/opt:
     build-platform: win64/opt
@@ -209,7 +268,6 @@ windows10-64/opt:
         - web-platform-tests
         - raptor-firefox
         - browsertime
-        - marionette-media-tests
 
 windows10-aarch64/opt:
     build-platform: win64-aarch64-shippable/opt
@@ -321,7 +379,6 @@ macosx1014-64-shippable/opt:
         - browsertime
         - raptor-firefox-power
         - raptor-profiling
-        - marionette-media-tests
         - web-platform-tests-wdspec-headless
         - talos-profiling
 
@@ -329,7 +386,6 @@ macosx1014-64/debug:
     build-platform: macosx64/debug
     test-sets:
         - macosx1014-64-tests
-        - marionette-media-tests
 
 macosx1014-64-devedition/opt:
     build-platform: macosx64-devedition-nightly/opt

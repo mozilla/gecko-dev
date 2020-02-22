@@ -9,6 +9,9 @@ const EventEmitter = require("devtools/shared/event-emitter");
 const { ReplayInspector } = require("RecordReplayControl").module;
 const { isNodeValid } = require("./utils/markup");
 const {
+  isNodeValid,
+} = require("devtools/server/actors/highlighters/utils/markup");
+const {
   getAdjustedQuads,
   getWindowDimensions,
 } = require("devtools/shared/layout/utils");

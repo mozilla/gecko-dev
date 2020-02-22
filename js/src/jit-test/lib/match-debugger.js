@@ -27,7 +27,7 @@ class DebuggerObjectPattern extends Match.Pattern {
       for (const name of actual.getOwnPropertyNames()) {
         const desc = actual.getOwnPropertyDescriptor(name);
         if (!('value' in desc)) {
-          throw new Match.MatchError(`Debugger.Object referent has non-value property ${uneval(name)}`);
+          throw new Match.MatchError(`Debugger.Object referent has non-value property ${JSON.stringify(name)}`);
         }
         lifted[name] = desc.value;
       }
@@ -47,3 +47,18 @@ class DebuggerObjectPattern extends Match.Pattern {
   }
 }
 
+// The Debugger API guarantees that various sorts of meta-objects are 1:1 with
+// their referents, so it's often useful to check that two objects are === in
+// patterns.
+class DebuggerIdentical extends Match.Pattern {
+  constructor(expected) {
+    super();
+    this.expected = expected;
+  }
+
+  match(actual) {
+    if (actual !== this.expected) {
+      throw new Pattern.MatchError(`Expected exact value ${uneval(this.expected)}, got ${uneval(actual)}`);
+    }
+  }
+}

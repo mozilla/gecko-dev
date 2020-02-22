@@ -31,7 +31,8 @@ static JSObject* CreateAsyncFunction(JSContext* cx, JSProtoKey key) {
 
   HandlePropertyName name = cx->names().AsyncFunction;
   return NewFunctionWithProto(cx, AsyncFunctionConstructor, 1,
-                              FunctionFlags::NATIVE_CTOR, nullptr, name, proto);
+                              FunctionFlags::NATIVE_CTOR, nullptr, name, proto,
+                              gc::AllocKind::FUNCTION, SingletonObject);
 }
 
 static JSObject* CreateAsyncFunctionPrototype(JSContext* cx, JSProtoKey key) {
@@ -187,17 +188,17 @@ const JSClass AsyncFunctionGeneratorObject::class_ = {
 };
 
 const JSClassOps AsyncFunctionGeneratorObject::classOps_ = {
-    nullptr,                                  /* addProperty */
-    nullptr,                                  /* delProperty */
-    nullptr,                                  /* enumerate */
-    nullptr,                                  /* newEnumerate */
-    nullptr,                                  /* resolve */
-    nullptr,                                  /* mayResolve */
-    nullptr,                                  /* finalize */
-    nullptr,                                  /* call */
-    nullptr,                                  /* hasInstance */
-    nullptr,                                  /* construct */
-    CallTraceMethod<AbstractGeneratorObject>, /* trace */
+    nullptr,                                   // addProperty
+    nullptr,                                   // delProperty
+    nullptr,                                   // enumerate
+    nullptr,                                   // newEnumerate
+    nullptr,                                   // resolve
+    nullptr,                                   // mayResolve
+    nullptr,                                   // finalize
+    nullptr,                                   // call
+    nullptr,                                   // hasInstance
+    nullptr,                                   // construct
+    CallTraceMethod<AbstractGeneratorObject>,  // trace
 };
 
 AsyncFunctionGeneratorObject* AsyncFunctionGeneratorObject::create(

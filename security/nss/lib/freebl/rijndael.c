@@ -20,8 +20,7 @@
 #include "gcm.h"
 #include "mpi.h"
 
-#if (!defined(IS_LITTLE_ENDIAN) && !defined(NSS_X86_OR_X64)) || \
-    (defined(__arm__) && !defined(__ARM_NEON) && !defined(__ARM_NEON__))
+#if !defined(IS_LITTLE_ENDIAN) && !defined(NSS_X86_OR_X64)
 // not test yet on big endian platform of arm
 #undef USE_HW_AES
 #endif
@@ -989,7 +988,7 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
             break;
         case NSS_AES_CTR:
             cx->worker_cx = CTR_CreateContext(cx, cx->worker, iv);
-#if defined(USE_HW_AES) && defined(_MSC_VER)
+#if defined(USE_HW_AES) && defined(_MSC_VER) && defined(NSS_X86_OR_X64)
             if (aesni_support() && (keysize % 8) == 0) {
                 cx->worker = (freeblCipherFunc)CTR_Update_HW_AES;
             } else

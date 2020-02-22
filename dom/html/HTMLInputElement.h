@@ -20,7 +20,6 @@
 #include "mozilla/dom/UnionTypes.h"
 #include "nsGenericHTMLElement.h"
 #include "nsImageLoadingContent.h"
-#include "nsITimer.h"
 #include "nsCOMPtr.h"
 #include "nsIConstraintValidation.h"
 #include "nsIFilePicker.h"
@@ -233,7 +232,7 @@ class HTMLInputElement final : public TextControlElement,
     return GetEditorState();
   }
   virtual nsresult BindToFrame(nsTextControlFrame* aFrame) override;
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual void UnbindFromFrame(
+  MOZ_CAN_RUN_SCRIPT virtual void UnbindFromFrame(
       nsTextControlFrame* aFrame) override;
   MOZ_CAN_RUN_SCRIPT virtual nsresult CreateEditor() override;
   virtual void UpdateOverlayTextVisibility(bool aNotify) override;
@@ -246,7 +245,7 @@ class HTMLInputElement final : public TextControlElement,
   virtual void InitializeKeyboardEventListeners() override;
   virtual void OnValueChanged(bool aNotify, ValueChangeKind) override;
   virtual void GetValueFromSetRangeText(nsAString& aValue) override;
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual nsresult SetValueFromSetRangeText(
+  MOZ_CAN_RUN_SCRIPT virtual nsresult SetValueFromSetRangeText(
       const nsAString& aValue) override;
   virtual bool HasCachedSelection() override;
 
@@ -696,22 +695,28 @@ class HTMLInputElement final : public TextControlElement,
   void Select();
 
   Nullable<uint32_t> GetSelectionStart(ErrorResult& aRv);
-  void SetSelectionStart(const Nullable<uint32_t>& aValue, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void SetSelectionStart(const Nullable<uint32_t>& aValue,
+                                            ErrorResult& aRv);
 
   Nullable<uint32_t> GetSelectionEnd(ErrorResult& aRv);
-  void SetSelectionEnd(const Nullable<uint32_t>& aValue, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void SetSelectionEnd(const Nullable<uint32_t>& aValue,
+                                          ErrorResult& aRv);
 
   void GetSelectionDirection(nsAString& aValue, ErrorResult& aRv);
-  void SetSelectionDirection(const nsAString& aValue, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void SetSelectionDirection(const nsAString& aValue,
+                                                ErrorResult& aRv);
 
-  void SetSelectionRange(uint32_t aStart, uint32_t aEnd,
-                         const Optional<nsAString>& direction,
-                         ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void SetSelectionRange(
+      uint32_t aStart, uint32_t aEnd, const Optional<nsAString>& direction,
+      ErrorResult& aRv);
 
-  void SetRangeText(const nsAString& aReplacement, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void SetRangeText(const nsAString& aReplacement,
+                                       ErrorResult& aRv);
 
-  void SetRangeText(const nsAString& aReplacement, uint32_t aStart,
-                    uint32_t aEnd, SelectionMode aSelectMode, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void SetRangeText(const nsAString& aReplacement,
+                                       uint32_t aStart, uint32_t aEnd,
+                                       SelectionMode aSelectMode,
+                                       ErrorResult& aRv);
 
   bool Allowdirs() const {
     return HasAttr(kNameSpaceID_None, nsGkAtoms::allowdirs);
@@ -832,7 +837,7 @@ class HTMLInputElement final : public TextControlElement,
   /**
    * GetEditor() is for webidl bindings.
    */
-  nsIEditor* GetEditor();
+  MOZ_CAN_RUN_SCRIPT nsIEditor* GetEditor();
 
   bool IsInputEventTarget() const { return IsSingleLineTextControl(false); }
 
@@ -869,7 +874,7 @@ class HTMLInputElement final : public TextControlElement,
   bool HasBeenTypePassword() { return mHasBeenTypePassword; }
 
  protected:
-  virtual ~HTMLInputElement();
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual ~HTMLInputElement();
 
   virtual JSObject* WrapNode(JSContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
@@ -1089,10 +1094,10 @@ class HTMLInputElement final : public TextControlElement,
    */
   bool DoesAutocompleteApply() const;
 
-  void FreeData();
+  MOZ_CAN_RUN_SCRIPT void FreeData();
   TextControlState* GetEditorState() const;
 
-  mozilla::TextEditor* GetTextEditorFromState();
+  MOZ_CAN_RUN_SCRIPT mozilla::TextEditor* GetTextEditorFromState();
 
   /**
    * Manages the internal data storage across type changes.

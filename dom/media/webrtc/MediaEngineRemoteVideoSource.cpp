@@ -10,7 +10,6 @@
 #include "MediaTrackConstraints.h"
 #include "mozilla/ErrorNames.h"
 #include "mozilla/RefPtr.h"
-#include "nsIPrefService.h"
 #include "Tracing.h"
 #include "VideoFrameUtils.h"
 #include "VideoUtils.h"
@@ -192,8 +191,7 @@ nsString MediaEngineRemoteVideoSource::GetGroupId() const {
 
 nsresult MediaEngineRemoteVideoSource::Allocate(
     const MediaTrackConstraints& aConstraints, const MediaEnginePrefs& aPrefs,
-    const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
-    const char** aOutBadConstraint) {
+    uint64_t aWindowID, const char** aOutBadConstraint) {
   LOG("%s", __PRETTY_FUNCTION__);
   AssertIsOnOwningThread();
 
@@ -216,7 +214,7 @@ nsresult MediaEngineRemoteVideoSource::Allocate(
 
   if (camera::GetChildAndCall(&camera::CamerasChild::AllocateCaptureDevice,
                               mCapEngine, mUniqueId.get(), kMaxUniqueIdLength,
-                              mCaptureIndex, aPrincipalInfo)) {
+                              mCaptureIndex, aWindowID)) {
     return NS_ERROR_FAILURE;
   }
 

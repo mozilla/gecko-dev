@@ -39,17 +39,20 @@ UNSUPPORTED_FEATURES = set([
     "Intl.DisplayNames",
     "Intl.Segmenter",
     "WeakRef",
-    "FinalizationGroup",
     "optional-chaining",
     "top-level-await",
 ])
 FEATURE_CHECK_NEEDED = {
     "Atomics": "!this.hasOwnProperty('Atomics')",
+    "FinalizationGroup": "!this.hasOwnProperty('FinalizationGroup')",
     "SharedArrayBuffer": "!this.hasOwnProperty('SharedArrayBuffer')",
 }
 RELEASE_OR_BETA = set([
     "Intl.NumberFormat-unified",
     "Intl.DateTimeFormat-fractionalSecondDigits",
+    "Promise.any",
+    "AggregateError",
+    "String.prototype.replaceAll",
 ])
 
 

@@ -192,7 +192,7 @@ ParserSharedBase::~ParserSharedBase() {
 
 ParserBase::ParserBase(JSContext* cx, const ReadOnlyCompileOptions& options,
                        bool foldConstants, ParseInfo& parseInfo,
-                       ScriptSourceObject* sourceObject, ParseGoal parseGoal)
+                       ScriptSourceObject* sourceObject)
     : ParserSharedBase(cx, parseInfo, sourceObject,
                        ParserSharedBase::Kind::Parser),
       anyChars(cx, options, this),
@@ -204,7 +204,6 @@ ParserBase::ParserBase(JSContext* cx, const ReadOnlyCompileOptions& options,
       isUnexpectedEOF_(false),
       awaitHandling_(AwaitIsName),
       inParametersOfAsyncFunction_(false),
-      parseGoal_(uint8_t(parseGoal)),
       treeHolder_(parseInfo.treeHolder) {
 }
 
@@ -222,10 +221,8 @@ template <class ParseHandler>
 PerHandlerParser<ParseHandler>::PerHandlerParser(
     JSContext* cx, const ReadOnlyCompileOptions& options, bool foldConstants,
     ParseInfo& parserInfo, LazyScript* lazyOuterFunction,
-    ScriptSourceObject* sourceObject, ParseGoal parseGoal,
-    void* internalSyntaxParser)
-    : ParserBase(cx, options, foldConstants, parserInfo, sourceObject,
-                 parseGoal),
+    ScriptSourceObject* sourceObject, void* internalSyntaxParser)
+    : ParserBase(cx, options, foldConstants, parserInfo, sourceObject),
       handler_(cx, parserInfo.allocScope.alloc(), lazyOuterFunction),
       internalSyntaxParser_(internalSyntaxParser) {}
 
@@ -234,9 +231,9 @@ GeneralParser<ParseHandler, Unit>::GeneralParser(
     JSContext* cx, const ReadOnlyCompileOptions& options, const Unit* units,
     size_t length, bool foldConstants, ParseInfo& parserInfo,
     SyntaxParser* syntaxParser, LazyScript* lazyOuterFunction,
-    ScriptSourceObject* sourceObject, ParseGoal parseGoal)
+    ScriptSourceObject* sourceObject)
     : Base(cx, options, foldConstants, parserInfo, syntaxParser,
-           lazyOuterFunction, sourceObject, parseGoal),
+           lazyOuterFunction, sourceObject),
       tokenStream(cx, options, units, length) {}
 
 template <typename Unit>
@@ -797,13 +794,13 @@ bool GeneralParser<ParseHandler, Unit>::noteDeclaredName(
         return false;
       }
 
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case DeclarationKind::Import:
       // Module code is always strict, so 'let' is always a keyword and never a
       // name.
       MOZ_ASSERT(name != cx_->names().let);
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case DeclarationKind::SimpleCatchParameter:
     case DeclarationKind::CatchParameter: {
@@ -1729,9 +1726,6 @@ bool PerHandlerParser<FullParseHandler>::finishFunction(
   return true;
 }
 
-static bool EmitLazyScript(JSContext* cx, FunctionBox* funbox,
-                           HandleScriptSourceObject, ParseGoal parseGoal);
-
 template <>
 bool PerHandlerParser<SyntaxParseHandler>::finishFunction(
     bool isStandaloneFunction /* = false */,
@@ -1743,6 +1737,15 @@ bool PerHandlerParser<SyntaxParseHandler>::finishFunction(
 
   if (!finishFunctionScopes(isStandaloneFunction)) {
     return false;
+  }
+
+  // Elide nullptr sentinels from end of binding list. These are inserted for
+  // each scope regardless of if any bindings are actually closed over.
+  {
+    AtomVector& COB = pc_->closedOverBindingsForLazy();
+    while (!COB.empty() && (COB.back() == nullptr)) {
+      COB.popBack();
+    }
   }
 
   // There are too many bindings or inner functions to be saved into the
@@ -1758,50 +1761,23 @@ bool PerHandlerParser<SyntaxParseHandler>::finishFunction(
   FunctionBox* funbox = pc_->functionBox();
   funbox->synchronizeArgCount();
 
-  // Use a ScopeExit to ensure the data is released on eager or error paths.
-  // The funbox is in a LifoAlloc and will not have it's destructor called so
-  // we need to be careful about ownership.
-  auto cleanupGuard =
-      mozilla::MakeScopeExit([funbox]() { funbox->lazyScriptData().reset(); });
-
-  // Emplace the data required for the lazy script here. It will
-  // be emitted before the rest of script emission.
-  funbox->lazyScriptData().emplace(cx_);
-  if (!funbox->lazyScriptData()->init(cx_, pc_->closedOverBindingsForLazy(),
-                                      pc_->innerFunctionBoxesForLazy,
-                                      pc_->sc()->strict())) {
+  LazyScriptCreationData data(cx_);
+  if (!data.init(cx_, pc_->closedOverBindingsForLazy(),
+                 pc_->innerFunctionBoxesForLazy, pc_->sc()->strict())) {
     return false;
   }
 
   // If we can defer the LazyScript creation, we are now done.
   if (parseInfo_.isDeferred()) {
-    cleanupGuard.release();
+    // Move data into funbox
+    MOZ_ASSERT(funbox->functionCreationData());
+    funbox->functionCreationData()->lazyScriptData =
+        mozilla::Some(std::move(data));
     return true;
   }
 
   // Eager Function tree mode, emit the lazy script now.
-  return EmitLazyScript(cx_, funbox, sourceObject_, parseGoal());
-}
-
-bool ParserBase::publishLazyScripts(FunctionTree* root) {
-  if (root) {
-    auto visitor = [](ParserBase* parser, FunctionTree* tree) {
-      FunctionBox* funbox = tree->funbox();
-      if (!funbox) {
-        return true;
-      }
-
-      // No lazy script data, so not a lazy function.
-      if (!funbox->lazyScriptData().isSome()) {
-        return true;
-      }
-
-      return EmitLazyScript(parser->cx_, funbox, parser->sourceObject_,
-                            parser->parseGoal());
-    };
-    return root->visitRecursively(this->cx_, this, visitor);
-  }
-  return true;
+  return data.create(cx_, funbox, sourceObject_);
 }
 
 bool ParserBase::publishDeferredFunctions(FunctionTree* root) {
@@ -1823,33 +1799,35 @@ bool ParserBase::publishDeferredFunctions(FunctionTree* root) {
       }
 
       funbox->initializeFunction(fun);
-      funbox->functionCreationData().reset();
-      return true;
+
+      mozilla::Maybe<LazyScriptCreationData> data =
+          std::move(funbox->functionCreationData()->lazyScriptData);
+      if (!data) {
+        return true;
+      }
+
+      return data->create(parser->cx_, funbox, parser->sourceObject_);
     };
     return root->visitRecursively(this->cx_, this, visitor);
   }
   return true;
 }
 
-static bool EmitLazyScript(JSContext* cx, FunctionBox* funbox,
-                           HandleScriptSourceObject sourceObject,
-                           ParseGoal parseGoal) {
-  LazyScriptCreationData& data = *funbox->lazyScriptData();
-
+bool LazyScriptCreationData::create(JSContext* cx, FunctionBox* funbox,
+                                    HandleScriptSourceObject sourceObject) {
   Rooted<JSFunction*> function(cx, funbox->function());
   MOZ_ASSERT(function);
   LazyScript* lazy = LazyScript::Create(
-      cx, function, sourceObject, data.closedOverBindings,
-      data.innerFunctionBoxes, funbox->bufStart, funbox->bufEnd,
-      funbox->toStringStart, funbox->toStringEnd, funbox->startLine,
-      funbox->startColumn, parseGoal);
+      cx, function, sourceObject, closedOverBindings, innerFunctionBoxes,
+      funbox->sourceStart, funbox->sourceEnd, funbox->toStringStart,
+      funbox->toStringEnd, funbox->startLine, funbox->startColumn);
   if (!lazy) {
     return false;
   }
 
   // Flags that need to be copied into the JSScript when we do the full
   // parse.
-  if (data.strict) {
+  if (strict) {
     lazy->setStrict();
   }
   lazy->setGeneratorKind(funbox->generatorKind());
@@ -1858,7 +1836,7 @@ static bool EmitLazyScript(JSContext* cx, FunctionBox* funbox,
     lazy->setHasRest();
   }
   if (funbox->isLikelyConstructorWrapper()) {
-    lazy->setLikelyConstructorWrapper();
+    lazy->setIsLikelyConstructorWrapper();
   }
   if (funbox->isDerivedClassConstructor()) {
     lazy->setIsDerivedClassConstructor();
@@ -1870,7 +1848,22 @@ static bool EmitLazyScript(JSContext* cx, FunctionBox* funbox,
     lazy->setShouldDeclareArguments();
   }
   if (funbox->hasThisBinding()) {
-    lazy->setHasThisBinding();
+    lazy->setFunctionHasThisBinding();
+  }
+  if (funbox->hasExtensibleScope()) {
+    lazy->setFunHasExtensibleScope();
+  }
+  if (funbox->hasMappedArgsObj()) {
+    lazy->setHasMappedArgsObj();
+  }
+  if (funbox->hasCallSiteObj()) {
+    lazy->setHasCallSiteObj();
+  }
+  if (funbox->argumentsHasLocalBinding()) {
+    lazy->setArgumentsHasVarBinding();
+  }
+  if (funbox->hasModuleGoal()) {
+    lazy->setHasModuleGoal();
   }
 
   // Flags that need to copied back into the parser when we do the full
@@ -1880,13 +1873,10 @@ static bool EmitLazyScript(JSContext* cx, FunctionBox* funbox,
   function->initLazyScript(lazy);
   funbox->setIsInterpretedLazy(true);
 
-  if (data.fieldInitializers) {
-    lazy->setFieldInitializers(*data.fieldInitializers);
+  if (fieldInitializers) {
+    lazy->setFieldInitializers(*fieldInitializers);
   }
 
-  // In order to allow asserting that we published all lazy script data,
-  // reset the lazyScriptData here, now that it's no longer needed.
-  funbox->lazyScriptData().reset();
   return true;
 }
 
@@ -2112,12 +2102,17 @@ GeneralParser<ParseHandler, Unit>::functionBody(InHandling inHandling,
   return finishLexicalScope(pc_->varScope(), body, ScopeKind::FunctionLexical);
 }
 
-FunctionCreationData GenerateFunctionCreationData(
-    HandleAtom atom, FunctionSyntaxKind kind, GeneratorKind generatorKind,
-    FunctionAsyncKind asyncKind, bool isSelfHosting /* = false */,
-    bool inFunctionBox /* = false */) {
-  gc::AllocKind allocKind = gc::AllocKind::FUNCTION;
-  FunctionFlags flags;
+FunctionCreationData::FunctionCreationData(HandleAtom atom,
+                                           FunctionSyntaxKind kind,
+                                           GeneratorKind generatorKind,
+                                           FunctionAsyncKind asyncKind,
+                                           bool isSelfHosting /* = false */,
+                                           bool inFunctionBox /* = false */)
+    : atom(atom),
+      kind(kind),
+      generatorKind(generatorKind),
+      asyncKind(asyncKind),
+      isSelfHosting(isSelfHosting) {
   bool isExtendedUnclonedSelfHostedFunctionName =
       isSelfHosting && atom && IsExtendedUnclonedSelfHostedFunctionName(atom);
   MOZ_ASSERT_IF(isExtendedUnclonedSelfHostedFunctionName, !inFunctionBox);
@@ -2139,7 +2134,7 @@ FunctionCreationData GenerateFunctionCreationData(
       break;
     case FunctionSyntaxKind::ClassConstructor:
     case FunctionSyntaxKind::DerivedClassConstructor:
-      flags = FunctionFlags::INTERPRETED_CLASS_CONSTRUCTOR;
+      flags = FunctionFlags::INTERPRETED_CLASS_CTOR;
       allocKind = gc::AllocKind::FUNCTION_EXTENDED;
       break;
     case FunctionSyntaxKind::Getter:
@@ -2160,9 +2155,6 @@ FunctionCreationData GenerateFunctionCreationData(
                    ? FunctionFlags::INTERPRETED_NORMAL
                    : FunctionFlags::INTERPRETED_GENERATOR_OR_ASYNC);
   }
-
-  return FunctionCreationData{atom,      kind,  generatorKind, asyncKind,
-                              allocKind, flags, isSelfHosting};
 }
 
 HandleAtom FunctionCreationData::getAtom(JSContext* cx) const {
@@ -2191,7 +2183,7 @@ JSFunction* AllocNewFunction(JSContext* cx,
   }
   if (data.isSelfHosting) {
     fun->setIsSelfHostedBuiltin();
-    MOZ_ASSERT(!fun->isInterpretedLazy());
+    MOZ_ASSERT(fun->hasScript());
   }
   return fun;
 }
@@ -2624,14 +2616,12 @@ bool Parser<FullParseHandler, Unit>::skipLazyInnerFunction(
     return false;
   }
 
-  BaseScript* base = fun->baseScript();
-  if (base->needsHomeObject()) {
-    funbox->setNeedsHomeObject();
-  }
+  funbox->initFromLazyFunction(fun);
+  MOZ_ASSERT(fun->baseScript()->hasEnclosingLazyScript());
 
-  PropagateTransitiveParseFlags(base, pc_->sc());
+  PropagateTransitiveParseFlags(funbox, pc_->sc());
 
-  if (!tokenStream.advance(base->sourceEnd())) {
+  if (!tokenStream.advance(funbox->sourceEnd)) {
     return false;
   }
 
@@ -2688,6 +2678,8 @@ bool GeneralParser<ParseHandler, Unit>::taggedTemplate(
     return false;
   }
   handler_.addList(tagArgsList, callSiteObjNode);
+
+  pc_->sc()->setHasCallSiteObj();
 
   while (true) {
     if (!appendToCallSiteObj(callSiteObjNode)) {
@@ -2762,10 +2754,7 @@ void FunctionTree::dump(JSContext* cx, FunctionTree& node, int indent) {
     fprintf(stderr, " ");
   }
 
-  fprintf(stderr, "(*) %p %s", node.funbox_,
-          node.funbox_
-              ? (node.funbox_->lazyScriptData().isSome() ? "Lazy" : "Eager")
-              : "Nil");
+  fprintf(stderr, "(*) %p ", node.funbox_);
   if (node.funbox_ && node.funbox_->explicitName()) {
     UniqueChars bytes = AtomToPrintableString(cx, node.funbox_->explicitName());
     fprintf(stderr, " %s\n", bytes ? bytes.get() : "<nobytes>");
@@ -2798,9 +2787,9 @@ GeneralParser<ParseHandler, Unit>::functionDefinition(
   }
 
   Rooted<FunctionCreationData> fcd(
-      cx_, GenerateFunctionCreationData(funName, kind, generatorKind, asyncKind,
-                                        options().selfHostingMode,
-                                        pc_->isFunctionBox()));
+      cx_,
+      FunctionCreationData(funName, kind, generatorKind, asyncKind,
+                           options().selfHostingMode, pc_->isFunctionBox()));
 
   // Speculatively parse using the directives of the parent parsing context.
   // If a directive is encountered (e.g., "use strict") that changes how the
@@ -2832,7 +2821,8 @@ GeneralParser<ParseHandler, Unit>::functionDefinition(
     MOZ_ASSERT_IF(directives.asmJS(), newDirectives.asmJS());
     directives = newDirectives;
 
-    tokenStream.seek(start);
+    // Rewind to retry parsing with new directives applied.
+    tokenStream.rewind(start);
 
     // functionFormalParametersAndBody may have already set body before
     // failing.
@@ -2840,6 +2830,22 @@ GeneralParser<ParseHandler, Unit>::functionDefinition(
   }
 
   return funNode;
+}
+
+template <typename Unit>
+bool Parser<FullParseHandler, Unit>::advancePastSyntaxParsedFunction(
+    AutoKeepAtoms& keepAtoms, SyntaxParser* syntaxParser) {
+  MOZ_ASSERT(getSyntaxParser() == syntaxParser);
+
+  // Advance this parser over tokens processed by the syntax parser.
+  Position currentSyntaxPosition(keepAtoms_, syntaxParser->tokenStream);
+  if (!tokenStream.fastForward(currentSyntaxPosition, syntaxParser->anyChars)) {
+    return false;
+  }
+
+  anyChars.adoptState(syntaxParser->anyChars);
+  tokenStream.adoptState(syntaxParser->tokenStream);
+  return true;
 }
 
 template <typename Unit>
@@ -2868,9 +2874,17 @@ bool Parser<FullParseHandler, Unit>::trySyntaxParseInnerFunction(
 
     UsedNameTracker::RewindToken token = usedNames_.getRewindToken();
 
-    // Move the syntax parser to the current position in the stream.
+    // Move the syntax parser to the current position in the stream.  In the
+    // common case this seeks forward, but it'll also seek backward *at least*
+    // when arrow functions appear inside arrow function argument defaults
+    // (because we rewind to reparse arrow functions once we're certain they're
+    // arrow functions):
+    //
+    //   var x = (y = z => 2) => q;
+    //   //           ^ we first seek to here to syntax-parse this function
+    //   //      ^ then we seek back to here to syntax-parse the outer function
     Position currentPosition(keepAtoms_, tokenStream);
-    if (!syntaxParser->tokenStream.seek(currentPosition, anyChars)) {
+    if (!syntaxParser->tokenStream.seekTo(currentPosition, anyChars)) {
       return false;
     }
 
@@ -2903,9 +2917,7 @@ bool Parser<FullParseHandler, Unit>::trySyntaxParseInnerFunction(
       return false;
     }
 
-    // Advance this parser over tokens processed by the syntax parser.
-    Position currentSyntaxPosition(keepAtoms_, syntaxParser->tokenStream);
-    if (!tokenStream.seek(currentSyntaxPosition, syntaxParser->anyChars)) {
+    if (!advancePastSyntaxParsedFunction(keepAtoms_, syntaxParser)) {
       return false;
     }
 
@@ -3088,6 +3100,7 @@ FunctionNode* Parser<FullParseHandler, Unit>::standaloneLazyFunction(
     return null();
   }
   funbox->initFromLazyFunction(fun);
+  funbox->initWithEnclosingScope(fun);
 
   Directives newDirectives = directives;
   SourceParseContext funpc(this, funbox, &newDirectives);
@@ -6534,7 +6547,7 @@ GeneralParser<ParseHandler, Unit>::yieldExpression(InHandling inHandling) {
     case TokenKind::Mul:
       kind = ParseNodeKind::YieldStarExpr;
       tokenStream.consumeKnownToken(TokenKind::Mul, TokenStream::SlashIsRegExp);
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     default:
       exprNode = assignExpr(inHandling, YieldIsKeyword, TripledotProhibited);
       if (!exprNode) {
@@ -7215,7 +7228,7 @@ bool GeneralParser<ParseHandler, Unit>::finishClassConstructor(
       ctorbox->function()->baseScript()->setToStringEnd(classEndOffset);
 
       if (numFields > 0) {
-        ctorbox->function()->baseScript()->setHasThisBinding();
+        ctorbox->function()->baseScript()->setFunctionHasThisBinding();
       }
     } else {
       // There should not be any non-lazy script yet.
@@ -7397,7 +7410,7 @@ GeneralParser<ParseHandler, Unit>::synthesizeConstructor(
           : FunctionSyntaxKind::ClassConstructor;
 
   Rooted<FunctionCreationData> data(
-      cx_, GenerateFunctionCreationData(
+      cx_, FunctionCreationData(
                className, functionSyntaxKind, GeneratorKind::NotGenerator,
                FunctionAsyncKind::SyncFunction, options().selfHostingMode,
                pc_->isFunctionBox()));
@@ -7567,7 +7580,7 @@ GeneralParser<ParseHandler, Unit>::fieldInitializerOpt(
   }
 
   Rooted<FunctionCreationData> data(
-      cx_, GenerateFunctionCreationData(
+      cx_, FunctionCreationData(
                nullptr, FunctionSyntaxKind::Method, GeneratorKind::NotGenerator,
                FunctionAsyncKind::SyncFunction, options().selfHostingMode,
                pc_->isFunctionBox()));
@@ -8667,7 +8680,8 @@ typename ParseHandler::Node GeneralParser<ParseHandler, Unit>::assignExpr(
   }
 
   if (isArrow) {
-    tokenStream.seek(start);
+    // Rewind to reparse as an arrow function.
+    tokenStream.rewind(start);
 
     TokenKind next;
     if (!tokenStream.getToken(&next, TokenStream::SlashIsRegExp)) {
@@ -9002,7 +9016,7 @@ typename ParseHandler::Node GeneralParser<ParseHandler, Unit>::unaryExpr(
       }
     }
 
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     default: {
       Node expr =
@@ -9642,22 +9656,16 @@ RegExpLiteral* Parser<FullParseHandler, Unit>::newRegExp() {
       }
     }
 
-    // With RegExpCreationData stack allocated, it is responsible for cleanup
-    // until the data is moved into, after the potentially OOMing operations
-    // are done, at which point the responsibility for cleanup becomes the
-    // deferred allocation list, stored in the ParseInfo.
-    RegExpCreationData data;
-    if (!data.init(cx_, range, flags)) {
+    RegExpIndex index(this->parseInfo_.regExpData.length());
+    if (!this->parseInfo_.regExpData.emplaceBack()) {
       return nullptr;
     }
 
-    RegExpLiteral* node = handler_.newRegExp(pos());
-    if (!node) {
+    if (!this->parseInfo_.regExpData[index].init(cx_, range, flags)) {
       return nullptr;
     }
 
-    node->init(std::move(data));
-    return node;
+    return handler_.newRegExp(index, pos());
   }
 
   Rooted<RegExpObject*> reobj(cx_);
@@ -9706,22 +9714,18 @@ BigIntLiteral* Parser<FullParseHandler, Unit>::newBigInt() {
   const auto& chars = tokenStream.getCharBuffer();
 
   if (this->parseInfo_.isDeferred()) {
-    BigIntCreationData data;
-    if (!data.init(this->cx_, chars)) {
+    BigIntIndex index(this->parseInfo_.bigIntData.length());
+    if (!this->parseInfo_.bigIntData.emplaceBack()) {
+      return null();
+    }
+
+    if (!this->parseInfo_.bigIntData[index].init(this->cx_, chars)) {
       return null();
     }
 
     // Should the operations below fail, the buffer held by data will
-    // be cleaned up by the destructor.
-    BigIntLiteral* lit = handler_.newBigInt(pos());
-    if (!lit) {
-      return null();
-    }
-    // Now that possible OOMs are done, move data into Lit. After this
-    // point responsibility for cleanup lies with the cleanup of the
-    // ParseInfo's deferred allocations list.
-    lit->init(std::move(data));
-    return lit;
+    // be cleaned up by the ParseInfo destructor.
+    return handler_.newBigInt(index, this->parseInfo_, pos());
   }
 
   mozilla::Range<const char16_t> source(chars.begin(), chars.length());

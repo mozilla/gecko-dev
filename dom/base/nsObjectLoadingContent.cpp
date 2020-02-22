@@ -16,6 +16,7 @@
 #include "nsIContent.h"
 #include "nsIContentInlines.h"
 #include "nsIDocShell.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/BindContext.h"
 #include "mozilla/dom/Document.h"
 #include "nsIExternalProtocolHandler.h"
@@ -28,12 +29,8 @@
 #include "nsJSNPRuntime.h"
 #include "nsINestedURI.h"
 #include "nsScriptSecurityManager.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsIStreamConverterService.h"
 #include "nsIURILoader.h"
 #include "nsIURL.h"
-#include "nsIWebNavigation.h"
-#include "nsIWebNavigationInfo.h"
 #include "nsIScriptChannel.h"
 #include "nsIBlocklistService.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
@@ -65,7 +62,6 @@
 
 #include "nsObjectLoadingContent.h"
 #include "mozAutoDocUpdate.h"
-#include "nsIContentSecurityPolicy.h"
 #include "GeckoProfiler.h"
 #include "nsPluginFrame.h"
 #include "nsWrapperCacheInlines.h"
@@ -826,7 +822,7 @@ void nsObjectLoadingContent::GetNestedParams(
     RefPtr<Element> element = allParams->Item(i);
 
     nsAutoString name;
-    element->GetAttribute(NS_LITERAL_STRING("name"), name);
+    element->GetAttr(nsGkAtoms::name, name);
 
     if (name.IsEmpty()) continue;
 
@@ -845,8 +841,8 @@ void nsObjectLoadingContent::GetNestedParams(
 
     if (parent == ourElement) {
       MozPluginParameter param;
-      element->GetAttribute(NS_LITERAL_STRING("name"), param.mName);
-      element->GetAttribute(NS_LITERAL_STRING("value"), param.mValue);
+      element->GetAttr(nsGkAtoms::name, param.mName);
+      element->GetAttr(nsGkAtoms::value, param.mValue);
 
       param.mName.Trim(" \n\r\t\b", true, true, false);
       param.mValue.Trim(" \n\r\t\b", true, true, false);
@@ -3031,7 +3027,7 @@ bool nsObjectLoadingContent::ShouldPlay(FallbackType& aReason) {
   // we really should do is disable plugins entirely in pages that use the
   // system principal, i.e. in chrome pages. That way the click-to-play code
   // here wouldn't matter at all. Bug 775301 is tracking this.
-  if (!nsContentUtils::IsSystemPrincipal(topDoc->NodePrincipal())) {
+  if (!topDoc->NodePrincipal()->IsSystemPrincipal()) {
     nsAutoCString permissionString;
     rv = pluginHost->GetPermissionStringForType(
         mContentType, nsPluginHost::eExcludeNone, permissionString);

@@ -20,7 +20,6 @@
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ScopeExit.h"
-#include "nsAutoPtr.h"
 #include "nsPIDOMWindow.h"
 #include "nsQueryObject.h"
 #include "nsServiceManagerUtils.h"
@@ -107,14 +106,7 @@ IDBTransaction::IDBTransaction(IDBDatabase* const aDatabase,
       mMode(aMode),
       mCreating(false),
       mRegistered(false),
-      mAbortedByScript(false),
-      mNotedActiveTransaction(false)
-#ifdef DEBUG
-      ,
-      mSentCommitOrAbort(false),
-      mFiredCompleteOrAbort(false)
-#endif
-{
+      mNotedActiveTransaction(false) {
   MOZ_ASSERT(aDatabase);
   aDatabase->AssertIsOnOwningThread();
 
@@ -237,8 +229,7 @@ RefPtr<IDBTransaction> IDBTransaction::Create(
     if (NS_WARN_IF(!workerRef)) {
       // Silence the destructor assertion if we never made this object live.
 #ifdef DEBUG
-      MOZ_ASSERT(!transaction->mSentCommitOrAbort);
-      transaction->mSentCommitOrAbort = true;
+      transaction->mSentCommitOrAbort.Flip();
 #endif
       return nullptr;
     }
@@ -342,8 +333,7 @@ void IDBTransaction::OnNewRequest() {
 
   if (!mPendingRequestCount) {
     MOZ_ASSERT(ReadyState::Active == mReadyState);
-    MOZ_ASSERT(!mStarted);
-    mStarted = true;
+    mStarted.Flip();
   }
 
   ++mPendingRequestCount;
@@ -352,7 +342,7 @@ void IDBTransaction::OnNewRequest() {
 void IDBTransaction::OnRequestFinished(
     const bool aRequestCompletedSuccessfully) {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(mReadyState == ReadyState::Active ||
+  MOZ_ASSERT(mReadyState == ReadyState::Inactive ||
              mReadyState == ReadyState::Finished);
   MOZ_ASSERT_IF(mReadyState == ReadyState::Finished, !NS_SUCCEEDED(mAbortCode));
   MOZ_ASSERT(mPendingRequestCount);
@@ -360,7 +350,7 @@ void IDBTransaction::OnRequestFinished(
   --mPendingRequestCount;
 
   if (!mPendingRequestCount) {
-    if (mReadyState == ReadyState::Active) {
+    if (mReadyState == ReadyState::Inactive) {
       mReadyState = ReadyState::Committing;
     }
 
@@ -374,8 +364,7 @@ void IDBTransaction::OnRequestFinished(
       // Don't try to send any more messages to the parent if the request actor
       // was killed.
 #ifdef DEBUG
-      MOZ_ASSERT(!mSentCommitOrAbort);
-      mSentCommitOrAbort = true;
+      mSentCommitOrAbort.Flip();
 #endif
       IDB_LOG_MARK_CHILD_TRANSACTION(
           "Request actor was killed, transaction will be aborted",
@@ -388,7 +377,6 @@ void IDBTransaction::SendCommit() {
   AssertIsOnOwningThread();
   MOZ_ASSERT(NS_SUCCEEDED(mAbortCode));
   MOZ_ASSERT(IsCommittingOrFinished());
-  MOZ_ASSERT(!mSentCommitOrAbort);
   MOZ_ASSERT(!mPendingRequestCount);
 
   // Don't do this in the macro because we always need to increment the serial
@@ -402,7 +390,7 @@ void IDBTransaction::SendCommit() {
   DoWithTransactionChild([](auto& actor) { actor.SendCommit(); });
 
 #ifdef DEBUG
-  mSentCommitOrAbort = true;
+  mSentCommitOrAbort.Flip();
 #endif
 }
 
@@ -410,7 +398,6 @@ void IDBTransaction::SendAbort(const nsresult aResultCode) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(NS_FAILED(aResultCode));
   MOZ_ASSERT(IsCommittingOrFinished());
-  MOZ_ASSERT(!mSentCommitOrAbort);
 
   // Don't do this in the macro because we always need to increment the serial
   // number to keep in sync with the parent.
@@ -424,7 +411,7 @@ void IDBTransaction::SendAbort(const nsresult aResultCode) {
       [aResultCode](auto& actor) { actor.SendAbort(aResultCode); });
 
 #ifdef DEBUG
-  mSentCommitOrAbort = true;
+  mSentCommitOrAbort.Flip();
 #endif
 }
 
@@ -456,6 +443,18 @@ bool IDBTransaction::CanAcceptRequests() const {
   // other requests to be made if this transaction is currently running.
   return mReadyState == ReadyState::Active &&
          (!mStarted || mCreating || GetCurrent() == this);
+}
+
+IDBTransaction::AutoRestoreState<IDBTransaction::ReadyState::Inactive,
+                                 IDBTransaction::ReadyState::Active>
+IDBTransaction::TemporarilyTransitionToActive() {
+  return AutoRestoreState<ReadyState::Inactive, ReadyState::Active>{*this};
+}
+
+IDBTransaction::AutoRestoreState<IDBTransaction::ReadyState::Active,
+                                 IDBTransaction::ReadyState::Inactive>
+IDBTransaction::TemporarilyTransitionToInactive() {
+  return AutoRestoreState<ReadyState::Active, ReadyState::Inactive>{*this};
 }
 
 void IDBTransaction::GetCallerLocation(nsAString& aFilename,
@@ -596,7 +595,7 @@ void IDBTransaction::AbortInternal(const nsresult aAbortCode,
   MOZ_ASSERT(!IsCommittingOrFinished());
 
   const bool isVersionChange = mMode == Mode::VersionChange;
-  const bool needToSendAbort = mReadyState == ReadyState::Active && !mStarted;
+  const bool needToSendAbort = mReadyState == ReadyState::Inactive && !mStarted;
 
   mAbortCode = aAbortCode;
   mReadyState = ReadyState::Finished;
@@ -694,6 +693,7 @@ void IDBTransaction::Abort(const nsresult aErrorCode) {
   AbortInternal(aErrorCode, DOMException::Create(aErrorCode));
 }
 
+// Specified by https://w3c.github.io/IndexedDB/#dom-idbtransaction-abort.
 void IDBTransaction::Abort(ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
@@ -702,10 +702,24 @@ void IDBTransaction::Abort(ErrorResult& aRv) {
     return;
   }
 
+  mReadyState = ReadyState::Inactive;
+
   AbortInternal(NS_ERROR_DOM_INDEXEDDB_ABORT_ERR, nullptr);
 
-  MOZ_ASSERT(!mAbortedByScript);
-  mAbortedByScript = true;
+  mAbortedByScript.Flip();
+}
+
+// Specified by https://w3c.github.io/IndexedDB/#dom-idbtransaction-commit.
+void IDBTransaction::Commit(ErrorResult& aRv) {
+  AssertIsOnOwningThread();
+
+  if (IsCommittingOrFinished()) {
+    aRv = NS_ERROR_DOM_INDEXEDDB_NOT_ALLOWED_ERR;
+    return;
+  }
+
+  // TODO
+  aRv = NS_ERROR_NOT_IMPLEMENTED;
 }
 
 void IDBTransaction::FireCompleteOrAbortEvents(const nsresult aResult) {
@@ -715,7 +729,7 @@ void IDBTransaction::FireCompleteOrAbortEvents(const nsresult aResult) {
   mReadyState = ReadyState::Finished;
 
 #ifdef DEBUG
-  mFiredCompleteOrAbort = true;
+  mFiredCompleteOrAbort.Flip();
 #endif
 
   // Make sure we drop the WorkerRef when this function completes.
@@ -957,8 +971,12 @@ IDBTransaction::Run() {
   // We're back at the event loop, no longer newborn.
   mCreating = false;
 
+  MOZ_ASSERT_IF(mReadyState == ReadyState::Finished, IsAborted());
+
   // Maybe commit if there were no requests generated.
-  if (mReadyState == ReadyState::Active && !mStarted) {
+  if (!mStarted && mReadyState != ReadyState::Finished) {
+    MOZ_ASSERT(mReadyState == ReadyState::Inactive ||
+               mReadyState == ReadyState::Active);
     mReadyState = ReadyState::Finished;
 
     SendCommit();

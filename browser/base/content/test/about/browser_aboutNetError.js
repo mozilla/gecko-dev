@@ -30,6 +30,7 @@ function resetPrefs() {
   Services.prefs.clearUserPref("security.tls.version.min");
   Services.prefs.clearUserPref("security.tls.version.max");
   Services.prefs.clearUserPref("security.tls.version.enable-deprecated");
+  Services.prefs.clearUserPref("security.certerrors.tls.version.show-override");
 }
 
 add_task(async function resetToDefaultConfig() {
@@ -70,7 +71,7 @@ add_task(async function resetToDefaultConfig() {
     TLS12_PAGE
   );
 
-  await ContentTask.spawn(browser, null, async function() {
+  await SpecialPowers.spawn(browser, [], async function() {
     const doc = content.document;
     ok(
       doc.documentURI.startsWith("about:neterror"),
@@ -124,7 +125,7 @@ add_task(async function checkLearnMoreLink() {
 
   const baseURL = Services.urlFormatter.formatURLPref("app.support.baseURL");
 
-  await ContentTask.spawn(browser, baseURL, function(_baseURL) {
+  await SpecialPowers.spawn(browser, [baseURL], function(_baseURL) {
     const doc = content.document;
     ok(
       doc.documentURI.startsWith("about:neterror"),
@@ -176,7 +177,7 @@ add_task(async function checkEnable10() {
     TLS10_PAGE
   );
 
-  await ContentTask.spawn(browser, null, async function() {
+  await SpecialPowers.spawn(browser, [], async function() {
     const doc = content.document;
     ok(
       doc.documentURI.startsWith("about:neterror"),
@@ -227,7 +228,7 @@ add_task(async function dontOffer10WhenAlreadyEnabled() {
   info("Loading and waiting for the net error");
   await pageLoaded;
 
-  await ContentTask.spawn(browser, null, async function() {
+  await SpecialPowers.spawn(browser, [], async function() {
     const doc = content.document;
     ok(
       doc.documentURI.startsWith("about:neterror"),
@@ -245,6 +246,49 @@ add_task(async function dontOffer10WhenAlreadyEnabled() {
     ok(
       ContentTaskUtils.is_visible(prefResetButton),
       "prefResetButton should be visible"
+    );
+  });
+
+  resetPrefs();
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+});
+
+add_task(async function overrideUIPref() {
+  info("TLS 1.0 override option isn't shown when the pref is set to false");
+
+  Services.prefs.setIntPref("security.tls.version.min", 3);
+  Services.prefs.setIntPref("security.tls.version.max", 3);
+  Services.prefs.setBoolPref(
+    "security.certerrors.tls.version.show-override",
+    false
+  );
+
+  let browser;
+  let pageLoaded;
+  await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    () => {
+      gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, TLS10_PAGE);
+      browser = gBrowser.selectedBrowser;
+      pageLoaded = BrowserTestUtils.waitForErrorPage(browser);
+    },
+    false
+  );
+
+  info("Loading and waiting for the net error");
+  await pageLoaded;
+
+  await ContentTask.spawn(browser, null, async function() {
+    const doc = content.document;
+    ok(
+      doc.documentURI.startsWith("about:neterror"),
+      "Should be showing error page"
+    );
+
+    const enableTls10Button = doc.getElementById("enableTls10Button");
+    ok(
+      !ContentTaskUtils.is_visible(enableTls10Button),
+      "Option to re-enable TLS 1.0 is not visible"
     );
   });
 

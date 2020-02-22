@@ -20,8 +20,6 @@
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Unused.h"
 #include "nsContentUtils.h"
-#include "nsIAppShell.h"
-#include "nsIObserver.h"
 #include "nsPrintfCString.h"
 #include "nsServiceManagerUtils.h"
 #include "nsWidgetsCID.h"
@@ -60,6 +58,15 @@ void ForwardedInputTrack::RemoveInput(MediaInputPort* aPort) {
   TRACK_LOG(LogLevel::Debug,
             ("ForwardedInputTrack %p removing input %p", this, aPort));
   MOZ_ASSERT(aPort == mInputPort);
+
+  for (const auto& listener : mOwnedDirectListeners) {
+    MediaTrack* source = mInputPort->GetSource();
+    TRACK_LOG(LogLevel::Debug,
+              ("ForwardedInputTrack %p removing direct listener "
+               "%p. Forwarding to input track %p.",
+               this, listener.get(), aPort->GetSource()));
+    source->RemoveDirectListenerImpl(listener);
+  }
   mInputPort = nullptr;
   ProcessedMediaTrack::RemoveInput(aPort);
 }

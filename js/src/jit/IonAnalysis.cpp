@@ -18,6 +18,7 @@
 #include "jit/LIR.h"
 #include "jit/Lowering.h"
 #include "jit/MIRGraph.h"
+#include "util/CheckedArithmetic.h"
 #include "vm/RegExpObject.h"
 #include "vm/SelfHosting.h"
 
@@ -1828,9 +1829,6 @@ bool TypeAnalyzer::adjustPhiInputs(MPhi* phi) {
           // Convert int32 operands to double.
           replacement = MToDouble::New(alloc(), in);
         } else if (phiType == MIRType::Float32) {
-          MOZ_ASSERT(in->canProduceFloat32() ||
-                     (in->resultTypeSet() && in->resultTypeSet()->empty()));
-
           if (in->type() == MIRType::Int32 || in->type() == MIRType::Double) {
             replacement = MToFloat32::New(alloc(), in);
           } else {
@@ -1876,10 +1874,13 @@ bool TypeAnalyzer::adjustPhiInputs(MPhi* phi) {
       continue;
     }
 
-    // The input is being explicitly unboxed, so sneak past and grab
-    // the original box.
-    if (in->isUnbox() && phi->typeIncludes(in->toUnbox()->input())) {
-      in = in->toUnbox()->input();
+    // The input is being explicitly unboxed, so sneak past and grab the
+    // original box. Don't bother optimizing if magic values are involved.
+    if (in->isUnbox()) {
+      MDefinition* unboxInput = in->toUnbox()->input();
+      if (!IsMagicType(unboxInput->type()) && phi->typeIncludes(unboxInput)) {
+        in = in->toUnbox()->input();
+      }
     }
 
     if (in->type() != MIRType::Value) {

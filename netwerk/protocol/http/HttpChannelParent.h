@@ -14,7 +14,6 @@
 #include "mozilla/net/NeckoCommon.h"
 #include "mozilla/net/NeckoParent.h"
 #include "mozilla/MozPromise.h"
-#include "nsIObserver.h"
 #include "nsIParentRedirectingChannel.h"
 #include "nsIProgressEventSink.h"
 #include "nsIChannelEventSink.h"
@@ -23,6 +22,7 @@
 #include "nsIAuthPromptProvider.h"
 #include "mozilla/dom/ipc/IdType.h"
 #include "nsIDeprecationWarner.h"
+#include "nsIMultiPartChannel.h"
 
 class nsICacheEntry;
 
@@ -60,7 +60,8 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
                                 public HttpChannelSecurityWarningReporter,
                                 public nsIAsyncVerifyRedirectReadyCallback,
                                 public nsIChannelEventSink,
-                                public nsIRedirectResultListener {
+                                public nsIRedirectResultListener,
+                                public nsIMultiPartChannelListener {
   virtual ~HttpChannelParent();
 
  public:
@@ -76,6 +77,7 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
   NS_DECL_NSIASYNCVERIFYREDIRECTREADYCALLBACK
   NS_DECL_NSICHANNELEVENTSINK
   NS_DECL_NSIREDIRECTRESULTLISTENER
+  NS_DECL_NSIMULTIPARTCHANNELLISTENER
 
   NS_DECLARE_STATIC_IID_ACCESSOR(HTTP_CHANNEL_PARENT_IID)
 
@@ -348,6 +350,13 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
   uint8_t mCacheNeedFlowControlInitialized : 1;
   uint8_t mNeedFlowControl : 1;
   uint8_t mSuspendedForFlowControl : 1;
+
+  // Set to true if we get OnStartRequest called with an nsIMultiPartChannel,
+  // and expect multiple OnStartRequest calls.
+  // When this happens we send OnTransportAndData and OnStopRequest over
+  // PHttpChannel instead of PHttpBackgroundChannel to make synchronizing all
+  // the parts easier.
+  uint8_t mIsMultiPart : 1;
 
   // Number of events to wait before actually invoking AsyncOpen on the main
   // channel. For each asynchronous step required before InvokeAsyncOpen, should

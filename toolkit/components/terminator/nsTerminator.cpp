@@ -28,7 +28,6 @@
 #include "nsAppDirectoryServiceDefs.h"
 
 #include "nsIObserverService.h"
-#include "nsIPrefService.h"
 #include "nsExceptionHandler.h"
 #include "GeckoProfiler.h"
 #include "nsThreadUtils.h"
@@ -179,7 +178,7 @@ void RunWatchdog(void* arg) {
       continue;
     }
 
-    NoteIntentionalCrash(XRE_GeckoProcessTypeToString(XRE_GetProcessType()));
+    NoteIntentionalCrash(XRE_GetProcessTypeString());
 
     // The shutdown steps are not completed yet. Let's report the last one.
     if (!sShutdownNotified) {

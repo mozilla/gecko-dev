@@ -18,6 +18,31 @@ ChromeUtils.defineModuleGetter(
   "resource://testing-common/Assert.jsm"
 );
 
+// Note: When updating the set of globals exposed to sandboxes by
+// default, please also update the ESLint plugin rule defined in
+// import-content-task-globals.js.
+const SANDBOX_GLOBALS = [
+  "Blob",
+  "ChromeUtils",
+  "TextDecoder",
+  "TextEncoder",
+  "URL",
+];
+const EXTRA_IMPORTS = {
+  EventUtils: "resource://specialpowers/SpecialPowersEventUtils.jsm",
+  Services: "resource://gre/modules/Services.jsm",
+};
+
+let expectFail = false;
+function expectingFail(fn) {
+  try {
+    expectFail = true;
+    fn();
+  } finally {
+    expectFail = false;
+  }
+}
+
 class SpecialPowersSandbox {
   constructor(name, reportCallback, opts = {}) {
     this.name = name;
@@ -28,7 +53,7 @@ class SpecialPowersSandbox {
     this.sandbox = Cu.Sandbox(
       Cu.getGlobalForObject({}),
       Object.assign(
-        { wantGlobalProperties: ["ChromeUtils"] },
+        { wantGlobalProperties: SANDBOX_GLOBALS },
         opts.sandboxOptions
       )
     );
@@ -42,6 +67,40 @@ class SpecialPowersSandbox {
         configurable: true,
       });
     }
+
+    let imports = {
+      ...EXTRA_IMPORTS,
+      ...opts.imports,
+    };
+    for (let [symbol, url] of Object.entries(imports)) {
+      ChromeUtils.defineModuleGetter(this.sandbox, symbol, url);
+    }
+
+    // Note: When updating the set of globals exposed to sandboxes by
+    // default, please also update the ESLint plugin rule defined in
+    // import-content-task-globals.js.
+    Object.assign(this.sandbox, {
+      BrowsingContext,
+      InspectorUtils,
+      ok: (...args) => {
+        this.Assert.ok(...args);
+      },
+      is: (...args) => {
+        this.Assert.equal(...args);
+      },
+      isnot: (...args) => {
+        this.Assert.notEqual(...args);
+      },
+      todo: (...args) => {
+        expectingFail(() => this.Assert.ok(...args));
+      },
+      todo_is: (...args) => {
+        expectingFail(() => this.Assert.equal(...args));
+      },
+      info: info => {
+        this.reportCallback({ info });
+      },
+    });
   }
 
   get Assert() {
@@ -66,6 +125,7 @@ class SpecialPowersSandbox {
       diag,
       passed: !err,
       stack: stack && stack.formattedStack,
+      expectFail,
     });
   }
 

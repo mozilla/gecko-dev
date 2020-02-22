@@ -6,6 +6,7 @@
 
 #include "mozilla/LoadInfo.h"
 
+#include "js/Array.h"  // JS::NewArrayObject
 #include "mozilla/Assertions.h"
 #include "mozilla/ExpandedPrincipal.h"
 #include "mozilla/dom/ClientIPCTypes.h"
@@ -25,7 +26,6 @@
 #include "nsIDocShell.h"
 #include "mozilla/dom/Document.h"
 #include "nsCookiePermission.h"
-#include "nsICookieService.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsISupportsImpl.h"
 #include "nsISupportsUtils.h"
@@ -292,7 +292,7 @@ LoadInfo::LoadInfo(
         aLoadingContext->OwnerDoc()->GetLoadContext();
     nsCOMPtr<nsIDocShell> docShell = aLoadingContext->OwnerDoc()->GetDocShell();
     if (loadContext && docShell &&
-        docShell->ItemType() == nsIDocShellTreeItem::typeContent) {
+        docShell->GetBrowsingContext()->IsContent()) {
       bool usePrivateBrowsing;
       nsresult rv = loadContext->GetUsePrivateBrowsing(&usePrivateBrowsing);
       if (NS_SUCCEEDED(rv)) {
@@ -307,7 +307,7 @@ LoadInfo::LoadInfo(
   if (aLoadingContext) {
     nsCOMPtr<nsIDocShell> docShell = aLoadingContext->OwnerDoc()->GetDocShell();
     if (docShell) {
-      if (docShell->ItemType() == nsIDocShellTreeItem::typeChrome) {
+      if (docShell->GetBrowsingContext()->IsChrome()) {
         MOZ_ASSERT(mOriginAttributes.mPrivateBrowsingId == 0,
                    "chrome docshell shouldn't have mPrivateBrowsingId set.");
       }
@@ -404,7 +404,7 @@ LoadInfo::LoadInfo(nsPIDOMWindowOuter* aOuterWindow,
                         mAncestorOuterWindowIDs.Length());
 
 #ifdef DEBUG
-  if (docShell->ItemType() == nsIDocShellTreeItem::typeChrome) {
+  if (docShell->GetBrowsingContext()->IsChrome()) {
     MOZ_ASSERT(mOriginAttributes.mPrivateBrowsingId == 0,
                "chrome docshell shouldn't have mPrivateBrowsingId set.");
   }
@@ -1150,7 +1150,8 @@ LoadInfo::AppendRedirectHistoryEntry(nsIRedirectHistoryEntry* aEntry,
 NS_IMETHODIMP
 LoadInfo::GetRedirects(JSContext* aCx, JS::MutableHandle<JS::Value> aRedirects,
                        const RedirectHistoryArray& aArray) {
-  JS::Rooted<JSObject*> redirects(aCx, JS_NewArrayObject(aCx, aArray.Length()));
+  JS::Rooted<JSObject*> redirects(aCx,
+                                  JS::NewArrayObject(aCx, aArray.Length()));
   NS_ENSURE_TRUE(redirects, NS_ERROR_OUT_OF_MEMORY);
 
   JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));

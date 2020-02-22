@@ -8,6 +8,7 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AsyncEventDispatcher.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/dom/Date.h"
 #include "mozilla/dom/Directory.h"
@@ -37,7 +38,6 @@
 #include "nsPIDOMWindow.h"
 #include "nsRepeatService.h"
 #include "nsContentCID.h"
-#include "nsIComponentManager.h"
 #include "mozilla/dom/ProgressEvent.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
@@ -49,7 +49,6 @@
 #include "nsITextControlFrame.h"
 #include "nsIFrame.h"
 #include "nsRangeFrame.h"
-#include "nsIServiceManager.h"
 #include "nsError.h"
 #include "nsIEditor.h"
 #include "nsAttrValueOrString.h"
@@ -102,8 +101,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/TextUtils.h"
-
-#include "nsIIDNService.h"
 
 #include <limits>
 
@@ -2187,8 +2184,7 @@ HTMLInputElement* HTMLInputElement::GetOwnerNumberControl() {
 
 void HTMLInputElement::SetUserInput(const nsAString& aValue,
                                     nsIPrincipal& aSubjectPrincipal) {
-  if (mType == NS_FORM_INPUT_FILE &&
-      !nsContentUtils::IsSystemPrincipal(&aSubjectPrincipal)) {
+  if (mType == NS_FORM_INPUT_FILE && !aSubjectPrincipal.IsSystemPrincipal()) {
     return;
   }
 
@@ -2264,6 +2260,7 @@ nsFrameSelection* HTMLInputElement::GetConstFrameSelection() {
 }
 
 nsresult HTMLInputElement::BindToFrame(nsTextControlFrame* aFrame) {
+  MOZ_ASSERT(!nsContentUtils::IsSafeToRunScript());
   TextControlState* state = GetEditorState();
   if (state) {
     return state->BindToFrame(aFrame);
@@ -3890,7 +3887,7 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
                   break;  // If we are submitting, do not send click event
                 }
                 // else fall through and treat Space like click...
-                MOZ_FALLTHROUGH;
+                [[fallthrough]];
               }
               case NS_FORM_INPUT_BUTTON:
               case NS_FORM_INPUT_RESET:
@@ -3912,7 +3909,7 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
               case NS_VK_UP:
               case NS_VK_LEFT:
                 isMovingBack = true;
-                MOZ_FALLTHROUGH;
+                [[fallthrough]];
               case NS_VK_DOWN:
               case NS_VK_RIGHT:
                 // Arrow key pressed, focus+select prev/next radio button

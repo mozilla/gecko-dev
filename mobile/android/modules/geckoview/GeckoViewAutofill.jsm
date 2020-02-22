@@ -45,6 +45,11 @@ class GeckoViewAutofill {
   }
 
   _getInfo(aElement, aParent, aRoot, aUsernameField) {
+    if (!this._autofillInfos) {
+      this._autofillInfos = new WeakMap();
+      this._autofillElements = new Map();
+    }
+
     let info = this._autofillInfos.get(aElement);
     if (info) {
       return info;
@@ -98,6 +103,15 @@ class GeckoViewAutofill {
 
     if (aElement === aUsernameField) {
       info.autofillhint = "username"; // AUTOFILL.HINT.USERNAME
+    } else if (aElement instanceof window.HTMLInputElement) {
+      // Using autocomplete attribute if it is email.
+      const autocompleteInfo = aElement.getAutocompleteInfo();
+      if (autocompleteInfo) {
+        const autocompleteAttr = autocompleteInfo.fieldName;
+        if (autocompleteAttr == "email") {
+          info.type = "email";
+        }
+      }
     }
 
     this._autofillInfos.set(aElement, info);
@@ -107,7 +121,7 @@ class GeckoViewAutofill {
 
   _updateInfoValues(aElements) {
     if (!this._autofillInfos) {
-      return;
+      return [];
     }
 
     const updated = [];
@@ -156,11 +170,6 @@ class GeckoViewAutofill {
 
     this._autofillTasks.delete(aFormLike.rootElement);
 
-    if (!this._autofillInfos) {
-      this._autofillInfos = new WeakMap();
-      this._autofillElements = new Map();
-    }
-
     const window = aFormLike.rootElement.ownerGlobal;
     // Get password field to get better form data via LoginManagerChild.
     let passwordField;
@@ -192,7 +201,11 @@ class GeckoViewAutofill {
     rootInfo.children = aFormLike.elements
       .filter(
         element =>
-          !usernameField || element.type != "text" || element == usernameField
+          !usernameField ||
+          element.type != "text" ||
+          element == usernameField ||
+          (element.getAutocompleteInfo() &&
+            element.getAutocompleteInfo().fieldName == "email")
       )
       .map(element => {
         sendFocusEvent |= element === focusedElement;

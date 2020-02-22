@@ -1078,21 +1078,18 @@ void BaseLocalIter::settle() {
 
   MOZ_ASSERT(argsIter_.done());
   if (index_ < locals_.length()) {
-    switch (locals_[index_].code()) {
+    switch (locals_[index_].kind()) {
       case ValType::I32:
       case ValType::I64:
       case ValType::F32:
       case ValType::F64:
       case ValType::Ref:
-      case ValType::FuncRef:
-      case ValType::AnyRef:
         // TODO/AnyRef-boxing: With boxed immediates and strings, the
         // debugger must be made aware that AnyRef != Pointer.
         ASSERT_ANYREF_IS_JSOBJECT;
         mirType_ = ToMIRType(locals_[index_]);
         frameOffset_ = pushLocal(MIRTypeToSize(mirType_));
         break;
-      case ValType::NullRef:
       default:
         MOZ_CRASH("Compiler bug: Unexpected local type");
     }
@@ -2055,7 +2052,7 @@ struct Stk {
   }
   static Stk StackResult(ValType type, uint32_t offs) {
     Kind k;
-    switch (type.code()) {
+    switch (type.kind()) {
       case ValType::I32:
         k = Stk::MemI32;
         break;
@@ -2068,13 +2065,9 @@ struct Stk {
       case ValType::F64:
         k = Stk::MemF64;
         break;
-      case ValType::FuncRef:
-      case ValType::AnyRef:
       case ValType::Ref:
         k = Stk::MemRef;
         break;
-      case ValType::NullRef:
-        MOZ_CRASH("unexpected nullref stack result");
     }
     Stk s;
     s.setOffs(k, offs);
@@ -2965,7 +2958,7 @@ class BaseCompiler final : public BaseCompilerInterface {
       if (!result.inRegister()) {
         return;
       }
-      switch (result.type().code()) {
+      switch (result.type().kind()) {
         case ValType::I32:
           needI32(RegI32(result.gpr()));
           break;
@@ -2982,13 +2975,9 @@ class BaseCompiler final : public BaseCompilerInterface {
             needF64(RegF64(result.fpr()));
           }
           break;
-        case ValType::FuncRef:
-        case ValType::AnyRef:
         case ValType::Ref:
           needRef(RegPtr(result.gpr()));
           break;
-        case ValType::NullRef:
-          MOZ_CRASH("unexpected nullref result");
       }
     }
   }
@@ -3005,7 +2994,7 @@ class BaseCompiler final : public BaseCompilerInterface {
       if (!result.inRegister()) {
         return;
       }
-      switch (result.type().code()) {
+      switch (result.type().kind()) {
         case ValType::I32:
           freeI32(RegI32(result.gpr()));
           break;
@@ -3022,13 +3011,9 @@ class BaseCompiler final : public BaseCompilerInterface {
             freeF64(RegF64(result.fpr()));
           }
           break;
-        case ValType::FuncRef:
-        case ValType::AnyRef:
         case ValType::Ref:
           freeRef(RegPtr(result.gpr()));
           break;
-        case ValType::NullRef:
-          MOZ_CRASH("unexpected nullref result");
       }
     }
   }
@@ -3054,7 +3039,7 @@ class BaseCompiler final : public BaseCompilerInterface {
       if (!result.inRegister()) {
         return;
       }
-      switch (result.type().code()) {
+      switch (result.type().kind()) {
         case ValType::I32:
           MOZ_ASSERT(isAvailableI32(RegI32(result.gpr())));
           break;
@@ -3067,13 +3052,9 @@ class BaseCompiler final : public BaseCompilerInterface {
         case ValType::F64:
           MOZ_ASSERT(isAvailableF64(RegF64(result.fpr())));
           break;
-        case ValType::FuncRef:
-        case ValType::AnyRef:
         case ValType::Ref:
           MOZ_ASSERT(isAvailableRef(RegPtr(result.gpr())));
           break;
-        case ValType::NullRef:
-          MOZ_CRASH("unexpected nullref result");
       }
     }
 #endif
@@ -4005,7 +3986,7 @@ class BaseCompiler final : public BaseCompilerInterface {
         sync();
         break;
       }
-      switch (result.type().code()) {
+      switch (result.type().kind()) {
         case ValType::I32:
           popI32(RegI32(result.gpr()));
           break;
@@ -4018,13 +3999,9 @@ class BaseCompiler final : public BaseCompilerInterface {
         case ValType::F64:
           popF64(RegF64(result.fpr()));
           break;
-        case ValType::FuncRef:
-        case ValType::AnyRef:
         case ValType::Ref:
           popRef(RegPtr(result.gpr()));
           break;
-        default:
-          MOZ_CRASH("bad result type");
       }
     }
   }
@@ -4221,7 +4198,7 @@ class BaseCompiler final : public BaseCompilerInterface {
     for (; !iter.done(); iter.prev()) {
       const ABIResult& result = iter.cur();
       MOZ_ASSERT(result.inRegister());
-      switch (result.type().code()) {
+      switch (result.type().kind()) {
         case ValType::I32:
           pushI32(RegI32(result.gpr()));
           break;
@@ -4234,13 +4211,9 @@ class BaseCompiler final : public BaseCompilerInterface {
         case ValType::F64:
           pushF64(RegF64(result.fpr()));
           break;
-        case ValType::FuncRef:
-        case ValType::AnyRef:
         case ValType::Ref:
           pushRef(RegPtr(result.gpr()));
           break;
-        case ValType::NullRef:
-          MOZ_CRASH("unexpected nullref result");
       }
     }
   }
@@ -4402,6 +4375,13 @@ class BaseCompiler final : public BaseCompilerInterface {
   }
 
   void assertStackInvariants() const {
+    if (deadCode_) {
+      // Nonlocal control flow can pass values in stack locations in a way that
+      // isn't accounted for by the value stack.  In dead code, which occurs
+      // after unconditional non-local control flow, there is no invariant to
+      // assert.
+      return;
+    }
     size_t size = 0;
     for (const Stk& v : stk_) {
       switch (v.kind()) {
@@ -4425,13 +4405,7 @@ class BaseCompiler final : public BaseCompilerInterface {
           break;
       }
     }
-    if (deadCode_) {
-      // Some stack allocation may be used to pass values along control flow
-      // edges without being accounted for on the value stack.
-      MOZ_ASSERT(size <= fr.dynamicHeight());
-    } else {
-      MOZ_ASSERT(size == fr.dynamicHeight());
-    }
+    MOZ_ASSERT(size == fr.dynamicHeight());
   }
 
 #endif
@@ -4488,9 +4462,10 @@ class BaseCompiler final : public BaseCompilerInterface {
 
     const ValTypeVector& argTys = env_.funcTypes[func_.index]->args();
 
-    size_t nInboundStackArgBytes = StackArgAreaSizeUnaligned(argTys);
-    MOZ_ASSERT(nInboundStackArgBytes % sizeof(void*) == 0);
-    stackMapGenerator_.numStackArgWords = nInboundStackArgBytes / sizeof(void*);
+    size_t numInboundStackArgBytes = StackArgAreaSizeUnaligned(argTys);
+    MOZ_ASSERT(numInboundStackArgBytes % sizeof(void*) == 0);
+    stackMapGenerator_.numStackArgWords =
+        numInboundStackArgBytes / sizeof(void*);
 
     MOZ_ASSERT(stackMapGenerator_.machineStackTracker.length() == 0);
     if (!stackMapGenerator_.machineStackTracker.pushNonGCPointers(
@@ -4506,7 +4481,7 @@ class BaseCompiler final : public BaseCompilerInterface {
         continue;
       }
       uint32_t offset = argLoc.offsetFromArgBase();
-      MOZ_ASSERT(offset < nInboundStackArgBytes);
+      MOZ_ASSERT(offset < numInboundStackArgBytes);
       MOZ_ASSERT(offset % sizeof(void*) == 0);
       stackMapGenerator_.machineStackTracker.setGCPointer(offset /
                                                           sizeof(void*));
@@ -4654,7 +4629,7 @@ class BaseCompiler final : public BaseCompilerInterface {
     if (!ret) {
       return;
     }
-    switch (ret.ref().code()) {
+    switch (ret.ref().kind()) {
       case ValType::I32:
         masm.store32(RegI32(ReturnReg), resultsAddress);
         break;
@@ -4668,13 +4643,8 @@ class BaseCompiler final : public BaseCompilerInterface {
         masm.storeFloat32(RegF32(ReturnFloat32Reg), resultsAddress);
         break;
       case ValType::Ref:
-      case ValType::FuncRef:
-      case ValType::AnyRef:
         masm.storePtr(RegPtr(ReturnReg), resultsAddress);
         break;
-      case ValType::NullRef:
-      default:
-        MOZ_CRASH("Function return type");
     }
   }
 
@@ -4687,7 +4657,7 @@ class BaseCompiler final : public BaseCompilerInterface {
     if (!ret) {
       return;
     }
-    switch (ret.ref().code()) {
+    switch (ret.ref().kind()) {
       case ValType::I32:
         masm.load32(resultsAddress, RegI32(ReturnReg));
         break;
@@ -4701,13 +4671,8 @@ class BaseCompiler final : public BaseCompilerInterface {
         masm.loadFloat32(resultsAddress, RegF32(ReturnFloat32Reg));
         break;
       case ValType::Ref:
-      case ValType::FuncRef:
-      case ValType::AnyRef:
         masm.loadPtr(resultsAddress, RegPtr(ReturnReg));
         break;
-      case ValType::NullRef:
-      default:
-        MOZ_CRASH("Function return type");
     }
   }
 
@@ -4911,7 +4876,7 @@ class BaseCompiler final : public BaseCompilerInterface {
   // info we read.
 
   void passArg(ValType type, const Stk& arg, FunctionCall* call) {
-    switch (type.code()) {
+    switch (type.kind()) {
       case ValType::I32: {
         ABIArg argLoc = call->abi.next(MIRType::Int32);
         if (argLoc.kind() == ABIArg::Stack) {
@@ -4965,7 +4930,7 @@ class BaseCompiler final : public BaseCompilerInterface {
 #  elif defined(JS_CODEGEN_MIPS32)
             ScratchF64 scratch(*this);
             loadF64(arg, scratch);
-            MOZ_ASSERT(MOZ_LITTLE_ENDIAN);
+            MOZ_ASSERT(MOZ_LITTLE_ENDIAN());
             masm.moveFromDoubleLo(scratch, argLoc.evenGpr());
             masm.moveFromDoubleHi(scratch, argLoc.oddGpr());
             break;
@@ -5016,9 +4981,7 @@ class BaseCompiler final : public BaseCompilerInterface {
         }
         break;
       }
-      case ValType::Ref:
-      case ValType::FuncRef:
-      case ValType::AnyRef: {
+      case ValType::Ref: {
         ABIArg argLoc = call->abi.next(MIRType::RefOrNull);
         if (argLoc.kind() == ABIArg::Stack) {
           ScratchPtr scratch(*this);
@@ -5030,10 +4993,6 @@ class BaseCompiler final : public BaseCompilerInterface {
         }
         break;
       }
-      case ValType::NullRef:
-        MOZ_CRASH("NullRef not expressible");
-      default:
-        MOZ_CRASH("Function argument type");
     }
   }
 
@@ -5774,10 +5733,10 @@ class BaseCompiler final : public BaseCompilerInterface {
       switch (access.type()) {
         case Scalar::Float64:
           *temp3 = needI32();
-          MOZ_FALLTHROUGH;
+          [[fallthrough]];
         case Scalar::Float32:
           *temp2 = needI32();
-          MOZ_FALLTHROUGH;
+          [[fallthrough]];
         default:
           *temp1 = needI32();
           break;
@@ -8434,7 +8393,7 @@ void BaseCompiler::emitBranchSetup(BranchState* b) {
       break;
     }
     case LatentOp::Compare: {
-      switch (latentType_.code()) {
+      switch (latentType_.kind()) {
         case ValType::I32: {
           if (popConstI32(&b->i32.imm)) {
             b->i32.lhs = popI32();
@@ -8465,7 +8424,7 @@ void BaseCompiler::emitBranchSetup(BranchState* b) {
       break;
     }
     case LatentOp::Eqz: {
-      switch (latentType_.code()) {
+      switch (latentType_.kind()) {
         case ValType::I32: {
           latentIntCmp_ = Assembler::Equal;
           b->i32.lhs = popI32();
@@ -8494,7 +8453,7 @@ void BaseCompiler::emitBranchSetup(BranchState* b) {
 }
 
 void BaseCompiler::emitBranchPerform(BranchState* b) {
-  switch (latentType_.code()) {
+  switch (latentType_.kind()) {
     case ValType::I32: {
       if (b->i32.rhsImm) {
         jumpConditionalWithResults(b, latentIntCmp_, b->i32.lhs,
@@ -9077,7 +9036,6 @@ void BaseCompiler::pushReturnValueOfCall(const FunctionCall& call,
 
 void BaseCompiler::pushReturnValueOfCall(const FunctionCall& call,
                                          ValType type) {
-  MOZ_ASSERT(type.code() != ValType::NullRef);
   pushReturnValueOfCall(call, ToMIRType(type));
 }
 
@@ -9423,7 +9381,7 @@ bool BaseCompiler::emitGetLocal() {
   // until needed, until they may be affected by a store, or until a
   // sync.  This is intended to reduce register pressure.
 
-  switch (locals_[slot].code()) {
+  switch (locals_[slot].kind()) {
     case ValType::I32:
       pushLocalI32(slot);
       break;
@@ -9437,13 +9395,8 @@ bool BaseCompiler::emitGetLocal() {
       pushLocalF32(slot);
       break;
     case ValType::Ref:
-    case ValType::FuncRef:
-    case ValType::AnyRef:
       pushLocalRef(slot);
       break;
-    case ValType::NullRef:
-    default:
-      MOZ_CRASH("Local variable type");
   }
 
   return true;
@@ -9456,7 +9409,7 @@ bool BaseCompiler::emitSetOrTeeLocal(uint32_t slot) {
   }
 
   bceLocalIsUpdated(slot);
-  switch (locals_[slot].code()) {
+  switch (locals_[slot].kind()) {
     case ValType::I32: {
       RegI32 rv = popI32();
       syncLocal(slot);
@@ -9501,9 +9454,7 @@ bool BaseCompiler::emitSetOrTeeLocal(uint32_t slot) {
       }
       break;
     }
-    case ValType::Ref:
-    case ValType::FuncRef:
-    case ValType::AnyRef: {
+    case ValType::Ref: {
       RegPtr rv = popRef();
       syncLocal(slot);
       fr.storeLocalPtr(rv, localFromSlot(slot, MIRType::RefOrNull));
@@ -9514,9 +9465,6 @@ bool BaseCompiler::emitSetOrTeeLocal(uint32_t slot) {
       }
       break;
     }
-    case ValType::NullRef:
-    default:
-      MOZ_CRASH("Local variable type");
   }
 
   return true;
@@ -9554,7 +9502,7 @@ bool BaseCompiler::emitGetGlobal() {
 
   if (global.isConstant()) {
     LitVal value = global.constantValue();
-    switch (value.type().code()) {
+    switch (value.type().kind()) {
       case ValType::I32:
         pushI32(value.i32());
         break;
@@ -9568,19 +9516,15 @@ bool BaseCompiler::emitGetGlobal() {
         pushF64(value.f64());
         break;
       case ValType::Ref:
-      case ValType::FuncRef:
-      case ValType::AnyRef:
         pushRef(intptr_t(value.ref().forCompiledCode()));
         break;
-      case ValType::NullRef:
-        MOZ_CRASH("NullRef not expressible");
       default:
         MOZ_CRASH("Global constant type");
     }
     return true;
   }
 
-  switch (global.type().code()) {
+  switch (global.type().kind()) {
     case ValType::I32: {
       RegI32 rv = needI32();
       ScratchI32 tmp(*this);
@@ -9609,17 +9553,13 @@ bool BaseCompiler::emitGetGlobal() {
       pushF64(rv);
       break;
     }
-    case ValType::Ref:
-    case ValType::FuncRef:
-    case ValType::AnyRef: {
+    case ValType::Ref: {
       RegPtr rv = needRef();
       ScratchI32 tmp(*this);
       masm.loadPtr(addressOfGlobalVar(global, tmp), rv);
       pushRef(rv);
       break;
     }
-    case ValType::NullRef:
-      MOZ_CRASH("NullRef not expressible");
     default:
       MOZ_CRASH("Global variable type");
       break;
@@ -9640,7 +9580,7 @@ bool BaseCompiler::emitSetGlobal() {
 
   const GlobalDesc& global = env_.globals[id];
 
-  switch (global.type().code()) {
+  switch (global.type().kind()) {
     case ValType::I32: {
       RegI32 rv = popI32();
       ScratchI32 tmp(*this);
@@ -9669,9 +9609,7 @@ bool BaseCompiler::emitSetGlobal() {
       freeF64(rv);
       break;
     }
-    case ValType::Ref:
-    case ValType::FuncRef:
-    case ValType::AnyRef: {
+    case ValType::Ref: {
       RegPtr valueAddr(PreBarrierReg);
       needRef(valueAddr);
       {
@@ -9687,8 +9625,6 @@ bool BaseCompiler::emitSetGlobal() {
       freeRef(rv);
       break;
     }
-    case ValType::NullRef:
-      MOZ_CRASH("NullRef not expressible");
     default:
       MOZ_CRASH("Global variable type");
       break;
@@ -9801,11 +9737,12 @@ RegI32 BaseCompiler::popMemoryAccess(MemoryAccessDesc* access,
 }
 
 void BaseCompiler::pushHeapBase() {
-#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64)
+#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64) || \
+    defined(JS_CODEGEN_MIPS64)
   RegI64 heapBase = needI64();
   moveI64(RegI64(Register64(HeapReg)), heapBase);
   pushI64(heapBase);
-#elif defined(JS_CODEGEN_ARM)
+#elif defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS32)
   RegI32 heapBase = needI32();
   moveI32(RegI32(HeapReg), heapBase);
   pushI32(heapBase);
@@ -9842,7 +9779,7 @@ bool BaseCompiler::loadCommon(MemoryAccessDesc* access, AccessCheck check,
   RegI32 tls, temp1, temp2, temp3;
   needLoadTemps(*access, &temp1, &temp2, &temp3);
 
-  switch (type.code()) {
+  switch (type.kind()) {
     case ValType::I32: {
       RegI32 rp = popMemoryAccess(access, &check);
 #ifdef JS_CODEGEN_ARM
@@ -9933,7 +9870,7 @@ bool BaseCompiler::storeCommon(MemoryAccessDesc* access, AccessCheck check,
   RegI32 tls;
   RegI32 temp = needStoreTemp(*access, resultType);
 
-  switch (resultType.code()) {
+  switch (resultType.kind()) {
     case ValType::I32: {
       RegI32 rv = popI32();
       RegI32 rp = popMemoryAccess(access, &check);
@@ -10026,7 +9963,7 @@ bool BaseCompiler::emitSelect(bool typed) {
   BranchState b(&done);
   emitBranchSetup(&b);
 
-  switch (NonBottomToValType(type).code()) {
+  switch (type.valType().kind()) {
     case ValType::I32: {
       RegI32 r, rs;
       pop2xI32(&r, &rs);
@@ -10094,10 +10031,7 @@ bool BaseCompiler::emitSelect(bool typed) {
       pushF64(r);
       break;
     }
-    case ValType::Ref:
-    case ValType::NullRef:
-    case ValType::FuncRef:
-    case ValType::AnyRef: {
+    case ValType::Ref: {
       RegPtr r, rs;
       pop2xRef(&r, &rs);
       emitBranchPerform(&b);
@@ -10236,7 +10170,7 @@ bool BaseCompiler::emitInstanceCall(uint32_t lineOrBytecode,
         t = ValType::I64;
         break;
       case MIRType::RefOrNull:
-        t = ValType::AnyRef;
+        t = RefType::any();
         break;
       case MIRType::Pointer:
         // Instance function args can now be uninterpreted pointers (eg, for
@@ -10626,7 +10560,7 @@ bool BaseCompiler::emitWait(ValType type, uint32_t byteSize) {
     return true;
   }
 
-  switch (type.code()) {
+  switch (type.kind()) {
     case ValType::I32:
       if (!emitInstanceCall(lineOrBytecode, SASigWaitI32)) {
         return false;
@@ -11286,7 +11220,7 @@ bool BaseCompiler::emitStructNew() {
   uint32_t fieldNo = structType.fields_.length();
   while (fieldNo-- > 0) {
     uint32_t offs = structType.fields_[fieldNo].offset;
-    switch (structType.fields_[fieldNo].type.code()) {
+    switch (structType.fields_[fieldNo].type.kind()) {
       case ValType::I32: {
         RegI32 r = popI32();
         masm.store32(r, Address(rdata, offs));
@@ -11311,9 +11245,7 @@ bool BaseCompiler::emitStructNew() {
         freeF64(r);
         break;
       }
-      case ValType::Ref:
-      case ValType::FuncRef:
-      case ValType::AnyRef: {
+      case ValType::Ref: {
         RegPtr value = popRef();
         masm.storePtr(value, Address(rdata, offs));
 
@@ -11361,8 +11293,6 @@ bool BaseCompiler::emitStructNew() {
         masm.bind(&skipBarrier);
         break;
       }
-      case ValType::NullRef:
-        MOZ_CRASH("NullRef not expressible");
       default: {
         MOZ_CRASH("Unexpected field type");
       }
@@ -11404,7 +11334,7 @@ bool BaseCompiler::emitStructGet() {
   }
 
   uint32_t offs = structType.fields_[fieldIndex].offset;
-  switch (structType.fields_[fieldIndex].type.code()) {
+  switch (structType.fields_[fieldIndex].type.kind()) {
     case ValType::I32: {
       RegI32 r = needI32();
       masm.load32(Address(rp, offs), r);
@@ -11429,16 +11359,11 @@ bool BaseCompiler::emitStructGet() {
       pushF64(r);
       break;
     }
-    case ValType::Ref:
-    case ValType::FuncRef:
-    case ValType::AnyRef: {
+    case ValType::Ref: {
       RegPtr r = needRef();
       masm.loadPtr(Address(rp, offs), r);
       pushRef(r);
       break;
-    }
-    case ValType::NullRef: {
-      MOZ_CRASH("NullRef not expressible");
     }
     default: {
       MOZ_CRASH("Unexpected field type");
@@ -11478,7 +11403,7 @@ bool BaseCompiler::emitStructSet() {
     needRef(valueAddr);
   }
 
-  switch (structType.fields_[fieldIndex].type.code()) {
+  switch (structType.fields_[fieldIndex].type.kind()) {
     case ValType::I32:
       ri = popI32();
       break;
@@ -11492,12 +11417,8 @@ bool BaseCompiler::emitStructSet() {
       rd = popF64();
       break;
     case ValType::Ref:
-    case ValType::FuncRef:
-    case ValType::AnyRef:
       rr = popRef();
       break;
-    case ValType::NullRef:
-      MOZ_CRASH("NullRef not expressible");
     default:
       MOZ_CRASH("Unexpected field type");
   }
@@ -11514,7 +11435,7 @@ bool BaseCompiler::emitStructSet() {
   }
 
   uint32_t offs = structType.fields_[fieldIndex].offset;
-  switch (structType.fields_[fieldIndex].type.code()) {
+  switch (structType.fields_[fieldIndex].type.kind()) {
     case ValType::I32: {
       masm.store32(ri, Address(rp, offs));
       freeI32(ri);
@@ -11535,9 +11456,7 @@ bool BaseCompiler::emitStructSet() {
       freeF64(rd);
       break;
     }
-    case ValType::Ref:
-    case ValType::FuncRef:
-    case ValType::AnyRef: {
+    case ValType::Ref: {
       masm.computeEffectiveAddress(Address(rp, offs), valueAddr);
       // emitBarrieredStore consumes valueAddr
       if (!emitBarrieredStore(Some(rp), valueAddr, rr)) {
@@ -11545,9 +11464,6 @@ bool BaseCompiler::emitStructSet() {
       }
       freeRef(rr);
       break;
-    }
-    case ValType::NullRef: {
-      MOZ_CRASH("NullRef not expressible");
     }
     default: {
       MOZ_CRASH("Unexpected field type");
@@ -11572,13 +11488,15 @@ bool BaseCompiler::emitStructNarrow() {
     return true;
   }
 
-  // Currently not supported by struct.narrow validation.
-  MOZ_ASSERT(inputType != ValType::FuncRef);
-  MOZ_ASSERT(outputType != ValType::FuncRef);
+  // struct.narrow validation ensures that these hold.
+
+  MOZ_ASSERT(inputType.isAnyRef() || env_.isStructType(inputType));
+  MOZ_ASSERT(outputType.isAnyRef() || env_.isStructType(outputType));
+  MOZ_ASSERT_IF(outputType.isAnyRef(), inputType.isAnyRef());
 
   // AnyRef -> AnyRef is a no-op, just leave the value on the stack.
 
-  if (inputType == ValType::AnyRef && outputType == ValType::AnyRef) {
+  if (inputType.isAnyRef() && outputType.isAnyRef()) {
     return true;
   }
 
@@ -11586,11 +11504,11 @@ bool BaseCompiler::emitStructNarrow() {
 
   // AnyRef -> (ref T) must first unbox; leaves rp or null
 
-  bool mustUnboxAnyref = inputType == ValType::AnyRef;
+  bool mustUnboxAnyref = inputType.isAnyRef();
 
   // Dynamic downcast (ref T) -> (ref U), leaves rp or null
   const StructType& outputStruct =
-      env_.types[outputType.refTypeIndex()].structType();
+      env_.types[outputType.refType().typeIndex()].structType();
 
   pushI32(mustUnboxAnyref);
   pushI32(outputStruct.moduleIndex_);
@@ -12286,7 +12204,7 @@ bool BaseCompiler::emitBody() {
           return iter_.unrecognizedOpcode(&op);
         }
         CHECK_NEXT(
-            emitComparison(emitCompareRef, ValType::AnyRef, Assembler::Equal));
+            emitComparison(emitCompareRef, RefType::any(), Assembler::Equal));
 #endif
 #ifdef ENABLE_WASM_REFTYPES
       case uint16_t(Op::RefFunc):
@@ -12296,8 +12214,7 @@ bool BaseCompiler::emitBody() {
         CHECK_NEXT(emitRefNull());
         break;
       case uint16_t(Op::RefIsNull):
-        CHECK_NEXT(
-            emitConversion(emitRefIsNull, ValType::AnyRef, ValType::I32));
+        CHECK_NEXT(emitConversion(emitRefIsNull, RefType::any(), ValType::I32));
         break;
 #endif
 

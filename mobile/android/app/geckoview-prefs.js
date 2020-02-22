@@ -71,8 +71,5 @@ pref("ui.android.mouse_as_touch", 2);
 // Fenix is currently not whitelisted for Web Authentication
 pref("security.webauth.webauthn_enable_android_fido2", false);
 
-// Enable login manager handling and events.
-pref("signon.rememberSignons", true);
-
-// Disable login manager storage.
-pref("signon.storeSignons", false);
+// Enable autoplay permission prompts
+pref("media.geckoview.autoplay.request", true);

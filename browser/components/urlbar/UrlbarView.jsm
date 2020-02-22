@@ -10,7 +10,6 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 XPCOMUtils.defineLazyModuleGetters(this, {
-  UrlbarContextualTip: "resource:///modules/UrlbarContextualTip.jsm",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
   UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.jsm",
   UrlbarUtils: "resource:///modules/UrlbarUtils.jsm",
@@ -53,76 +52,10 @@ class UrlbarView {
     this._rows.addEventListener("overflow", this);
     this._rows.addEventListener("underflow", this);
 
-    this.window.addEventListener("deactivate", this);
     this.window.gBrowser.tabContainer.addEventListener("TabSelect", this);
 
     this.controller.setView(this);
     this.controller.addQueryListener(this);
-  }
-
-  /**
-   * Sets the icon, title, button's title, and link's title
-   * for the contextual tip. If a contextual tip has not
-   * been created, then it will be created.
-   *
-   * @param {object} details
-   * @param {string} details.title
-   *   Main title displayed by the contextual tip.
-   * @param {string} [details.buttonTitle]
-   *   Title of the button on the contextual tip.
-   *   If omitted then the button will be hidden.
-   * @param {string} [details.linkTitle]
-   *   Title of the link on the contextual tip.
-   *   If omitted then the link will be hidden.
-   * @param {string} [details.iconStyle]
-   *   A non-empty string of styles to add to the icon's style attribute.
-   *   These styles set CSS variables to URLs of images;
-   *   the CSS variables responsible for the icon's background image are
-   *   the variable names containing `--webextension-contextual-tip-icon`
-   *   in `browser/base/content/browser.css`.
-   *   If ommited, no changes are made to the icon.
-   */
-  setContextualTip(details) {
-    if (!this.contextualTip) {
-      this.contextualTip = new UrlbarContextualTip(this);
-    }
-    this.contextualTip.set(details);
-
-    // Disable one off search buttons from appearing if
-    // the contextual tip is the only item in the urlbar view.
-    if (this.visibleRowCount == 0) {
-      this._enableOrDisableOneOffSearches(false);
-    }
-
-    this._openPanel();
-  }
-
-  /**
-   * Hides the contextual tip.
-   */
-  hideContextualTip() {
-    if (this.contextualTip) {
-      this.contextualTip.hide();
-
-      // When the pending query has finished and there's 0 results then
-      // close the urlbar view.
-      this.input.lastQueryContextPromise.then(() => {
-        if (this.visibleRowCount == 0) {
-          this.close();
-        }
-      });
-    }
-  }
-
-  /**
-   * Removes the contextual tip from the DOM.
-   */
-  removeContextualTip() {
-    if (!this.contextualTip) {
-      return;
-    }
-    this.contextualTip.remove();
-    this.contextualTip = null;
   }
 
   get oneOffSearchButtons() {
@@ -427,15 +360,34 @@ class UrlbarView {
     this.window.removeEventListener("resize", this);
 
     this.controller.notify(this.controller.NOTIFICATIONS.VIEW_CLOSE);
-    if (this.contextualTip) {
-      this.contextualTip.hide();
-    }
   }
 
-  reOpen() {
-    if (this._rows.firstElementChild) {
-      this._openPanel();
+  maybeReopen() {
+    // Reopen if we have cached results and the input is focused, unless the
+    // search string is empty or different. We don't restore the empty search
+    // because this is supposed to restore the search status when the user
+    // abandoned a search engagement, just opening the dropdown is not
+    // considered a sufficient engagement.
+    if (
+      this.input.megabar &&
+      this._rows.firstElementChild &&
+      this.input.focused &&
+      this.input.value &&
+      this._queryContext.searchString == this.input.value &&
+      this.input.getAttribute("pageproxystate") != "valid"
+    ) {
+      // In some cases where we can move across tabs with an open panel.
+      if (!this.isOpen) {
+        this._openPanel();
+      }
+      this.input.startQuery({
+        autofillIgnoresSelection: true,
+        searchString: this.input.value,
+        allowAutofill: this._queryContext.allowAutofill,
+      });
+      return true;
     }
+    return false;
   }
 
   // UrlbarController listener methods.
@@ -1355,7 +1307,7 @@ class UrlbarView {
   }
 
   _enableOrDisableRowWrap() {
-    if (getBoundsWithoutFlushing(this.input.textbox).width <= 425) {
+    if (getBoundsWithoutFlushing(this.input.textbox).width <= 500) {
       this._rows.setAttribute("wrap", "true");
     } else {
       this._rows.removeAttribute("wrap");
@@ -1502,20 +1454,15 @@ class UrlbarView {
     this.close();
   }
 
-  _on_deactivate() {
-    // When switching to another browser window, open tabs, history or other
-    // data sources are likely to change, so make sure we don't re-show stale
-    // results when switching back.
-    if (!UrlbarPrefs.get("ui.popup.disable_autohide")) {
-      this.clear();
-    }
-  }
-
   _on_TabSelect() {
+    // A TabSelect doesn't always change urlbar focus, so we must try to reopen
+    // here too, not just on focus.
+    if (this.maybeReopen()) {
+      return;
+    }
     // The input may retain focus when switching tabs in which case we
     // need to close the view explicitly.
     this.close();
-    this.clear();
   }
 }
 

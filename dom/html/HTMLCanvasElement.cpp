@@ -13,6 +13,7 @@
 #include "MediaTrackGraph.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Base64.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/dom/CanvasCaptureMediaStream.h"
 #include "mozilla/dom/CanvasRenderingContext2D.h"
@@ -34,10 +35,7 @@
 #include "nsContentUtils.h"
 #include "nsDisplayList.h"
 #include "nsDOMJSUtils.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsITimer.h"
-#include "nsIWritablePropertyBag2.h"
-#include "nsIXPConnect.h"
 #include "nsJSUtils.h"
 #include "nsLayoutUtils.h"
 #include "nsMathUtils.h"
@@ -850,7 +848,7 @@ already_AddRefed<File> HTMLCanvasElement::MozGetAsFile(
   OwnerDoc()->WarnOnceAbout(Document::eMozGetAsFile);
 
   // do a trust check if this is a write-only canvas
-  if (mWriteOnly && !nsContentUtils::IsSystemPrincipal(&aSubjectPrincipal)) {
+  if (mWriteOnly && !aSubjectPrincipal.IsSystemPrincipal()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return nullptr;
   }
@@ -986,7 +984,7 @@ bool HTMLCanvasElement::CallerCanRead(JSContext* aCx) {
     return true;
   }
 
-  return nsContentUtils::PrincipalHasPermission(prin,
+  return nsContentUtils::PrincipalHasPermission(*prin,
                                                 nsGkAtoms::all_urlsPermission);
 }
 

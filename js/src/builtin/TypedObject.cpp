@@ -207,14 +207,19 @@ const JSClass js::TypedProto::class_ = {
  * distinguish which scalar type object this actually is.
  */
 
-static const JSClassOps ScalarTypeDescrClassOps = {nullptr, /* addProperty */
-                                                   nullptr, /* delProperty */
-                                                   nullptr, /* enumerate */
-                                                   nullptr, /* newEnumerate */
-                                                   nullptr, /* resolve */
-                                                   nullptr, /* mayResolve */
-                                                   TypeDescr::finalize,
-                                                   ScalarTypeDescr::call};
+static const JSClassOps ScalarTypeDescrClassOps = {
+    nullptr,                // addProperty
+    nullptr,                // delProperty
+    nullptr,                // enumerate
+    nullptr,                // newEnumerate
+    nullptr,                // resolve
+    nullptr,                // mayResolve
+    TypeDescr::finalize,    // finalize
+    ScalarTypeDescr::call,  // call
+    nullptr,                // hasInstance
+    nullptr,                // construct
+    nullptr,                // trace
+};
 
 const JSClass js::ScalarTypeDescr::class_ = {
     "Scalar",
@@ -361,14 +366,18 @@ TypeDescr* GlobalObject::getOrCreateReferenceTypeDescr(
  */
 
 static const JSClassOps ReferenceTypeDescrClassOps = {
-    nullptr, /* addProperty */
-    nullptr, /* delProperty */
-    nullptr, /* enumerate */
-    nullptr, /* newEnumerate */
-    nullptr, /* resolve */
-    nullptr, /* mayResolve */
-    TypeDescr::finalize,
-    ReferenceTypeDescr::call};
+    nullptr,                   // addProperty
+    nullptr,                   // delProperty
+    nullptr,                   // enumerate
+    nullptr,                   // newEnumerate
+    nullptr,                   // resolve
+    nullptr,                   // mayResolve
+    TypeDescr::finalize,       // finalize
+    ReferenceTypeDescr::call,  // call
+    nullptr,                   // hasInstance
+    nullptr,                   // construct
+    nullptr,                   // trace
+};
 
 const JSClass js::ReferenceTypeDescr::class_ = {
     "Reference",
@@ -501,16 +510,19 @@ static TypedProto* CreatePrototypeObjectForComplexTypeInstance(
                                              SingletonObject);
 }
 
-static const JSClassOps ArrayTypeDescrClassOps = {nullptr, /* addProperty */
-                                                  nullptr, /* delProperty */
-                                                  nullptr, /* enumerate */
-                                                  nullptr, /* newEnumerate */
-                                                  nullptr, /* resolve */
-                                                  nullptr, /* mayResolve */
-                                                  TypeDescr::finalize,
-                                                  nullptr, /* call */
-                                                  nullptr, /* hasInstance */
-                                                  TypedObject::construct};
+static const JSClassOps ArrayTypeDescrClassOps = {
+    nullptr,                 // addProperty
+    nullptr,                 // delProperty
+    nullptr,                 // enumerate
+    nullptr,                 // newEnumerate
+    nullptr,                 // resolve
+    nullptr,                 // mayResolve
+    TypeDescr::finalize,     // finalize
+    nullptr,                 // call
+    nullptr,                 // hasInstance
+    TypedObject::construct,  // construct
+    nullptr,                 // trace
+};
 
 const JSClass ArrayTypeDescr::class_ = {
     "ArrayType",
@@ -742,16 +754,19 @@ bool ArrayMetaTypeDescr::construct(JSContext* cx, unsigned argc, Value* vp) {
  * StructType class
  */
 
-static const JSClassOps StructTypeDescrClassOps = {nullptr, /* addProperty */
-                                                   nullptr, /* delProperty */
-                                                   nullptr, /* enumerate */
-                                                   nullptr, /* newEnumerate */
-                                                   nullptr, /* resolve */
-                                                   nullptr, /* mayResolve */
-                                                   TypeDescr::finalize,
-                                                   StructTypeDescr::call,
-                                                   nullptr, /* hasInstance */
-                                                   TypedObject::construct};
+static const JSClassOps StructTypeDescrClassOps = {
+    nullptr,                 // addProperty
+    nullptr,                 // delProperty
+    nullptr,                 // enumerate
+    nullptr,                 // newEnumerate
+    nullptr,                 // resolve
+    nullptr,                 // mayResolve
+    TypeDescr::finalize,     // finalize
+    StructTypeDescr::call,   // call
+    nullptr,                 // hasInstance
+    TypedObject::construct,  // construct
+    nullptr,                 // trace
+};
 
 const JSClass StructTypeDescr::class_ = {
     "StructType",
@@ -2212,15 +2227,15 @@ size_t InlineTypedObject::obj_moved(JSObject* dst, JSObject* src) {
  */
 
 const ObjectOps TypedObject::objectOps_ = {
-    TypedObject::obj_lookupProperty,
-    TypedObject::obj_defineProperty,
-    TypedObject::obj_hasProperty,
-    TypedObject::obj_getProperty,
-    TypedObject::obj_setProperty,
-    TypedObject::obj_getOwnPropertyDescriptor,
-    TypedObject::obj_deleteProperty,
-    nullptr, /* getElements */
-    nullptr, /* thisValue */
+    TypedObject::obj_lookupProperty,            // lookupProperty
+    TypedObject::obj_defineProperty,            // defineProperty
+    TypedObject::obj_hasProperty,               // hasProperty
+    TypedObject::obj_getProperty,               // getProperty
+    TypedObject::obj_setProperty,               // setProperty
+    TypedObject::obj_getOwnPropertyDescriptor,  // getOwnPropertyDescriptor
+    TypedObject::obj_deleteProperty,            // deleteProperty
+    nullptr,                                    // getElements
+    nullptr,                                    // funToString
 };
 
 #define DEFINE_TYPEDOBJ_CLASS(Name, Trace, Moved)                            \

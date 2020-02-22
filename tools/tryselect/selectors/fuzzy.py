@@ -43,9 +43,9 @@ TASK_DURATION_TAG_FILE = os.path.join(get_state_dir(
 TARGET_TASK_FILTERS = (
     '.*-ccov\/.*',
     'windows10-aarch64/opt.*',
+    '.*win64-aarch64-laptop.*',
     'android-hw.*',
     '.*android-geckoview-docs.*',
-    '.*win64-aarch64-laptop.*',
 )
 
 
@@ -245,7 +245,6 @@ class FuzzyParser(BaseTryParser):
         'artifact',
         'browsertime',
         'chemspill-prio',
-        'debian-buster',
         'ubuntu-bionic',
         'disable-pgo',
         'env',

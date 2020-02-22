@@ -8,7 +8,7 @@ const { PureComponent } = require("devtools/client/shared/vendor/react");
 const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 
-const Types = require("../types");
+const Types = require("devtools/client/inspector/compatibility/types");
 
 const ICONS = {
   firefox: {
@@ -38,10 +38,6 @@ const ICONS = {
   edge: {
     src: "chrome://devtools/skin/images/browsers/edge.svg",
     isMobileIconNeeded: false,
-  },
-  edge_mobile: {
-    src: "chrome://devtools/skin/images/browsers/edge.svg",
-    isMobileIconNeeded: true,
   },
 };
 

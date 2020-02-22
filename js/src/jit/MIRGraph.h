@@ -44,8 +44,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock> {
   MOZ_MUST_USE bool init();
   void copySlots(MBasicBlock* from);
   MOZ_MUST_USE bool inherit(TempAllocator& alloc, size_t stackDepth,
-                            MBasicBlock* maybePred, uint32_t popped,
-                            unsigned stackPhiCount = 0);
+                            MBasicBlock* maybePred, uint32_t popped);
   MOZ_MUST_USE bool inheritResumePoint(MBasicBlock* pred);
   void assertUsesAreNotWithin(MUseIterator use, MUseIterator end);
 
@@ -123,8 +122,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock> {
   static MBasicBlock* NewPendingLoopHeader(MIRGraph& graph,
                                            const CompileInfo& info,
                                            MBasicBlock* pred,
-                                           BytecodeSite* site,
-                                           unsigned loopStateSlots);
+                                           BytecodeSite* site);
   static MBasicBlock* NewSplitEdge(MIRGraph& graph, MBasicBlock* pred,
                                    size_t predEdgeIdx, MBasicBlock* succ);
 
@@ -581,17 +579,12 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock> {
 
   // Hit count
   enum class HitState {
-    // Not hit information is attached to this basic block.
+    // No hit information is attached to this basic block.
     NotDefined,
 
     // The hit information is a raw counter. Note that due to inlining this
     // counter is not guaranteed to be consistent over the graph.
     Count,
-
-    // The hit information is a frequency, which is a form of normalized
-    // counter, where a hit-count can be compared against any previous block
-    // in the graph.
-    Frequency
   };
   HitState getHitState() const { return hitState_; }
   void setHitCount(uint64_t count) {

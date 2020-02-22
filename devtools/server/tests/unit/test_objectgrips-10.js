@@ -4,75 +4,70 @@
 
 "use strict";
 
-var gDebuggee;
-var gThreadFront;
-
 // Test that closures can be inspected.
 
 add_task(
-  threadFrontTest(
-    async ({ threadFront, debuggee }) => {
-      gThreadFront = threadFront;
-      gDebuggee = debuggee;
-      test_object_grip();
-    },
-    { waitForFinish: true }
-  )
-);
+  threadFrontTest(async ({ threadFront, debuggee }) => {
+    const packet = await executeOnNextTickAndWaitForPause(
+      () => evalCode(debuggee),
+      threadFront
+    );
 
-function test_object_grip() {
-  gThreadFront.once("paused", async function(packet) {
     const environment = await packet.frame.getEnvironment();
     const person = environment.bindings.variables.person;
 
     Assert.equal(person.value.class, "Object");
 
-    const personClient = gThreadFront.pauseGrip(person.value);
-    let response = await personClient.getPrototypeAndProperties();
-    Assert.equal(response.ownProperties.getName.value.class, "Function");
+    const personFront = threadFront.pauseGrip(person.value);
+    const { ownProperties } = await personFront.getPrototypeAndProperties();
+    Assert.equal(ownProperties.getName.value.getGrip().class, "Function");
+    Assert.equal(ownProperties.getAge.value.getGrip().class, "Function");
+    Assert.equal(ownProperties.getFoo.value.getGrip().class, "Function");
 
-    Assert.equal(response.ownProperties.getAge.value.class, "Function");
+    const getNameFront = ownProperties.getName.value;
+    const getAgeFront = ownProperties.getAge.value;
+    const getFooFront = ownProperties.getFoo.value;
 
-    Assert.equal(response.ownProperties.getFoo.value.class, "Function");
-
-    const getNameClient = gThreadFront.pauseGrip(
-      response.ownProperties.getName.value
-    );
-    const getAgeClient = gThreadFront.pauseGrip(
-      response.ownProperties.getAge.value
-    );
-    const getFooClient = gThreadFront.pauseGrip(
-      response.ownProperties.getFoo.value
-    );
-
-    response = await getNameClient.getScope();
+    let response = await getNameFront.getScope();
     let bindings = await response.scope.bindings();
     Assert.equal(bindings.arguments[0].name.value, "Bob");
 
-    response = await getAgeClient.getScope();
+    response = await getAgeFront.getScope();
     bindings = await response.scope.bindings();
     Assert.equal(bindings.arguments[1].age.value, 58);
 
-    response = await getFooClient.getScope();
+    response = await getFooFront.getScope();
     bindings = await response.scope.bindings();
     Assert.equal(bindings.variables.foo.value, 10);
 
-    await gThreadFront.resume();
-    threadFrontTestFinished();
-  });
+    await threadFront.resume();
+  })
+);
 
+function evalCode(debuggee) {
   /* eslint-disable */
-  gDebuggee.eval("(" + function () {
-    var PersonFactory = function (name, age) {
-      var foo = 10;
-      return {
-        getName: function () { return name; },
-        getAge: function () { return age; },
-        getFoo: function () { foo = Date.now(); return foo; }
-      };
-    };
-    var person = new PersonFactory("Bob", 58);
-    debugger;
-  } + ")()");
+  debuggee.eval(
+    "(" +
+      function() {
+        var PersonFactory = function(name, age) {
+          var foo = 10;
+          return {
+            getName: function() {
+              return name;
+            },
+            getAge: function() {
+              return age;
+            },
+            getFoo: function() {
+              foo = Date.now();
+              return foo;
+            },
+          };
+        };
+        var person = new PersonFactory("Bob", 58);
+        debugger;
+      } +
+      ")()"
+  );
   /* eslint-enable */
 }

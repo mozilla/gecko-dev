@@ -21,7 +21,6 @@
 #include "nsNetUtil.h"
 #include "mozilla/net/DNS.h"
 #include "nsISocketTransport.h"
-#include "nsISSLSocketControl.h"
 #include "mozilla/Services.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/net/DashboardTypes.h"
@@ -34,7 +33,6 @@
 #include <algorithm>
 #include "mozilla/ChaosMode.h"
 #include "mozilla/Unused.h"
-#include "nsIURI.h"
 #include "nsIXPConnect.h"
 
 #include "mozilla/Move.h"
@@ -368,10 +366,11 @@ nsHttpConnectionMgr::Observe(nsISupports* subject, const char* topic,
 
 //-----------------------------------------------------------------------------
 
-nsresult nsHttpConnectionMgr::AddTransaction(nsHttpTransaction* trans,
+nsresult nsHttpConnectionMgr::AddTransaction(HttpTransactionShell* trans,
                                              int32_t priority) {
   LOG(("nsHttpConnectionMgr::AddTransaction [trans=%p %d]\n", trans, priority));
-  return PostEvent(&nsHttpConnectionMgr::OnMsgNewTransaction, priority, trans);
+  return PostEvent(&nsHttpConnectionMgr::OnMsgNewTransaction, priority,
+                   trans->AsHttpTransaction());
 }
 
 class NewTransactionData : public ARefBase {
@@ -393,43 +392,44 @@ class NewTransactionData : public ARefBase {
 };
 
 nsresult nsHttpConnectionMgr::AddTransactionWithStickyConn(
-    nsHttpTransaction* trans, int32_t priority,
-    nsHttpTransaction* transWithStickyConn) {
+    HttpTransactionShell* trans, int32_t priority,
+    HttpTransactionShell* transWithStickyConn) {
   LOG(
       ("nsHttpConnectionMgr::AddTransactionWithStickyConn "
        "[trans=%p %d transWithStickyConn=%p]\n",
        trans, priority, transWithStickyConn));
   RefPtr<NewTransactionData> data =
-      new NewTransactionData(trans, priority, transWithStickyConn);
+      new NewTransactionData(trans->AsHttpTransaction(), priority,
+                             transWithStickyConn->AsHttpTransaction());
   return PostEvent(&nsHttpConnectionMgr::OnMsgNewTransactionWithStickyConn, 0,
                    data);
 }
 
-nsresult nsHttpConnectionMgr::RescheduleTransaction(nsHttpTransaction* trans,
+nsresult nsHttpConnectionMgr::RescheduleTransaction(HttpTransactionShell* trans,
                                                     int32_t priority) {
   LOG(("nsHttpConnectionMgr::RescheduleTransaction [trans=%p %d]\n", trans,
        priority));
   return PostEvent(&nsHttpConnectionMgr::OnMsgReschedTransaction, priority,
-                   trans);
+                   trans->AsHttpTransaction());
 }
 
 void nsHttpConnectionMgr::UpdateClassOfServiceOnTransaction(
-    nsHttpTransaction* trans, uint32_t classOfService) {
+    HttpTransactionShell* trans, uint32_t classOfService) {
   LOG(
       ("nsHttpConnectionMgr::UpdateClassOfServiceOnTransaction [trans=%p "
        "classOfService=%" PRIu32 "]\n",
        trans, static_cast<uint32_t>(classOfService)));
   Unused << PostEvent(
       &nsHttpConnectionMgr::OnMsgUpdateClassOfServiceOnTransaction,
-      static_cast<int32_t>(classOfService), trans);
+      static_cast<int32_t>(classOfService), trans->AsHttpTransaction());
 }
 
-nsresult nsHttpConnectionMgr::CancelTransaction(nsHttpTransaction* trans,
+nsresult nsHttpConnectionMgr::CancelTransaction(HttpTransactionShell* trans,
                                                 nsresult reason) {
   LOG(("nsHttpConnectionMgr::CancelTransaction [trans=%p reason=%" PRIx32 "]\n",
        trans, static_cast<uint32_t>(reason)));
   return PostEvent(&nsHttpConnectionMgr::OnMsgCancelTransaction,
-                   static_cast<int32_t>(reason), trans);
+                   static_cast<int32_t>(reason), trans->AsHttpTransaction());
 }
 
 nsresult nsHttpConnectionMgr::PruneDeadConnections() {
@@ -627,9 +627,15 @@ nsresult nsHttpConnectionMgr::UpdateRequestTokenBucket(
 }
 
 nsresult nsHttpConnectionMgr::ClearConnectionHistory() {
+  return PostEvent(&nsHttpConnectionMgr::OnMsgClearConnectionHistory, 0,
+                   nullptr);
+}
+
+void nsHttpConnectionMgr::OnMsgClearConnectionHistory(int32_t,
+                                                      ARefBase* param) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  LOG(("nsHttpConnectionMgr::ClearConnectionHistory"));
+  LOG(("nsHttpConnectionMgr::OnMsgClearConnectionHistory"));
 
   for (auto iter = mCT.Iter(); !iter.Done(); iter.Next()) {
     RefPtr<nsConnectionEntry> ent = iter.Data();
@@ -640,8 +646,6 @@ nsresult nsHttpConnectionMgr::ClearConnectionHistory() {
       iter.Remove();
     }
   }
-
-  return NS_OK;
 }
 
 nsresult nsHttpConnectionMgr::CloseIdleConnection(nsHttpConnection* conn) {
@@ -1237,6 +1241,11 @@ bool nsHttpConnectionMgr::AtActiveConnectionLimit(nsConnectionEntry* ent,
                                                   uint32_t caps) {
   nsHttpConnectionInfo* ci = ent->mConnInfo;
   uint32_t totalCount = TotalActiveConnections(ent);
+
+  if (ci->IsHttp3()) {
+    return totalCount > 0;
+  }
+
   uint32_t maxPersistConns = MaxPersistConnections(ent);
 
   LOG(
@@ -5631,6 +5640,8 @@ void nsHttpConnectionMgr::MoveToWildCardConnEntry(
     }
   }
 }
+
+nsHttpConnectionMgr* nsHttpConnectionMgr::AsHttpConnectionMgr() { return this; }
 
 }  // namespace net
 }  // namespace mozilla

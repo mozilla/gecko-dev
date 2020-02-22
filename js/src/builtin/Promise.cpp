@@ -15,7 +15,6 @@
 #include "jsexn.h"
 #include "jsfriendapi.h"
 
-#include "gc/Heap.h"
 #include "js/Debug.h"
 #include "js/ForOfIterator.h"  // JS::ForOfIterator
 #include "js/PropertySpec.h"
@@ -616,13 +615,32 @@ static bool AbruptRejectPromise(JSContext* cx, CallArgs& args,
 }
 
 enum ReactionRecordSlots {
-  // The promise for which this record provides a reaction handler.
-  // Matches the [[Capability]].[[Promise]] field from the spec.
+  // This is the promise-like object that gets resolved with the result of this
+  // reaction, if any. If this reaction record was created with .then or .catch,
+  // this is the promise that .then or .catch returned.
   //
-  // The slot value is either an object, but not necessarily a built-in
-  // Promise object, or null. The latter case is only possible for async
-  // generator functions, in which case the REACTION_FLAG_ASYNC_GENERATOR
-  // flag must be set.
+  // The spec says that a PromiseReaction record has a [[Capability]] field
+  // whose value is either undefined or a PromiseCapability record, but we just
+  // store the PromiseCapability's fields directly in this object. This is the
+  // capability's [[Promise]] field; its [[Resolve]] and [[Reject]] fields are
+  // stored in ReactionRecordSlot_Resolve and ReactionRecordSlot_Reject.
+  //
+  // This can be 'null' in reaction records created for a few situations:
+  //
+  // - When you resolve one promise to another. When you pass a promise P1 to
+  //   the 'fulfill' function of a promise P2, so that resolving P1 resolves P2
+  //   in the same way, P1 gets a reaction record with the
+  //   REACTION_FLAG_DEFAULT_RESOLVING_HANDLER flag set and whose
+  //   ReactionRecordSlot_GeneratorOrPromiseToResolve slot holds P2.
+  //
+  // - When you await a promise. When an async function or generator awaits a
+  //   value V, then the await expression generates an internal promise P,
+  //   resolves it to V, and then gives P a reaction record with the
+  //   REACTION_FLAG_ASYNC_FUNCTION or REACTION_FLAG_ASYNC_GENERATOR flag set
+  //   and whose ReactionRecordSlot_GeneratorOrPromiseToResolve slot holds the
+  //   generator object. (Typically V is a promise, so resolving P to V gives V
+  //   a REACTION_FLAGS_DEFAULT_RESOLVING_HANDLER reaction record as described
+  //   above.)
   ReactionRecordSlot_Promise = 0,
 
   // The [[Handler]] field(s) of a PromiseReaction record. We create a
@@ -1258,11 +1276,7 @@ static MOZ_MUST_USE bool ResolvePromise(JSContext* cx,
 
   // Step 7 of FulfillPromise.
   // Step 8 of RejectPromise.
-  if (reactionsVal.isObject()) {
-    return TriggerPromiseReactions(cx, reactionsVal, state, valueOrReason);
-  }
-
-  return true;
+  return TriggerPromiseReactions(cx, reactionsVal, state, valueOrReason);
 }
 
 // ES2016, 25.4.1.7.
@@ -1514,6 +1528,52 @@ static MOZ_MUST_USE bool RejectMaybeWrappedPromise(JSContext* cx,
   return ResolvePromise(cx, promise, reason, JS::PromiseState::Rejected);
 }
 
+// Apply f to a mutable handle on each member of a collection of reactions, like
+// that stored in PromiseSlot_ReactionsOrResult on a pending promise. When the
+// reaction record is wrapped, we pass the wrapper, without dereferencing it. If
+// f returns false, then we stop the iteration immediately and return false.
+// Otherwise, we return true.
+//
+// There are several different representations for collections:
+//
+// - We represent an empty collection of reactions as an 'undefined' value.
+//
+// - We represent a collection containing a single reaction simply as the given
+//   PromiseReactionRecord object, possibly wrapped.
+//
+// - We represent a collection of two or more reactions as a dense array of
+//   possibly-wrapped PromiseReactionRecords.
+//
+template <typename F>
+static bool ForEachReaction(JSContext* cx, HandleValue reactionsVal, F f) {
+  if (reactionsVal.isUndefined()) {
+    return true;
+  }
+
+  RootedObject reactions(cx, &reactionsVal.toObject());
+  RootedObject reaction(cx);
+
+  if (reactions->is<PromiseReactionRecord>() || IsWrapper(reactions) ||
+      JS_IsDeadWrapper(reactions)) {
+    return f(&reactions);
+  }
+
+  HandleNativeObject reactionsList = reactions.as<NativeObject>();
+  uint32_t reactionsCount = reactionsList->getDenseInitializedLength();
+  MOZ_ASSERT(reactionsCount > 1, "Reactions list should be created lazily");
+
+  for (uint32_t i = 0; i < reactionsCount; i++) {
+    const Value& reactionVal = reactionsList->getDenseElement(i);
+    MOZ_RELEASE_ASSERT(reactionVal.isObject());
+    reaction = &reactionVal.toObject();
+    if (!f(&reaction)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // ES2016, 25.4.1.8.
 static MOZ_MUST_USE bool TriggerPromiseReactions(JSContext* cx,
                                                  HandleValue reactionsVal,
@@ -1522,28 +1582,9 @@ static MOZ_MUST_USE bool TriggerPromiseReactions(JSContext* cx,
   MOZ_ASSERT(state == JS::PromiseState::Fulfilled ||
              state == JS::PromiseState::Rejected);
 
-  RootedObject reactions(cx, &reactionsVal.toObject());
-
-  if (reactions->is<PromiseReactionRecord>() || IsWrapper(reactions) ||
-      JS_IsDeadWrapper(reactions)) {
-    return EnqueuePromiseReactionJob(cx, reactions, valueOrReason, state);
-  }
-
-  HandleNativeObject reactionsList = reactions.as<NativeObject>();
-  uint32_t reactionsCount = reactionsList->getDenseInitializedLength();
-  MOZ_ASSERT(reactionsCount > 1, "Reactions list should be created lazily");
-
-  RootedObject reaction(cx);
-  for (uint32_t i = 0; i < reactionsCount; i++) {
-    const Value& reactionVal = reactionsList->getDenseElement(i);
-    MOZ_RELEASE_ASSERT(reactionVal.isObject());
-    reaction = &reactionVal.toObject();
-    if (!EnqueuePromiseReactionJob(cx, reaction, valueOrReason, state)) {
-      return false;
-    }
-  }
-
-  return true;
+  return ForEachReaction(cx, reactionsVal, [&](MutableHandleObject reaction) {
+    return EnqueuePromiseReactionJob(cx, reaction, valueOrReason, state);
+  });
 }
 
 // Implements PromiseReactionJob optimized for the case when the reaction
@@ -4247,11 +4288,8 @@ MOZ_MUST_USE bool js::AsyncFunctionReturned(
 template <typename T>
 static MOZ_MUST_USE bool InternalAwait(JSContext* cx, HandleValue value,
                                        HandleObject resultPromise,
-                                       HandleValue onFulfilled,
-                                       HandleValue onRejected, T extraStep) {
-  MOZ_ASSERT(onFulfilled.isInt32());
-  MOZ_ASSERT(onRejected.isInt32());
-
+                                       PromiseHandler onFulfilled,
+                                       PromiseHandler onRejected, T extraStep) {
   Rooted<PromiseObject*> unwrappedPromise(cx);
   if (cx->realm()->creationOptions().getAwaitFixEnabled()) {
     // Step 2: Let promise be ? PromiseResolve(%Promise%, « value »).
@@ -4284,11 +4322,13 @@ static MOZ_MUST_USE bool InternalAwait(JSContext* cx, HandleValue value,
   // Steps 3-8 of the spec create onFulfilled and onRejected functions.
 
   // Step 9: Perform ! PerformPromiseThen(promise, onFulfilled, onRejected).
+  RootedValue onFulfilledValue(cx, Int32Value(onFulfilled));
+  RootedValue onRejectedValue(cx, Int32Value(onRejected));
   Rooted<PromiseCapability> resultCapability(cx);
   resultCapability.promise().set(resultPromise);
   Rooted<PromiseReactionRecord*> reaction(
-      cx, NewReactionRecord(cx, resultCapability, onFulfilled, onRejected,
-                            IncumbentGlobalObject::Yes));
+      cx, NewReactionRecord(cx, resultCapability, onFulfilledValue,
+                            onRejectedValue, IncumbentGlobalObject::Yes));
   if (!reaction) {
     return false;
   }
@@ -4303,17 +4343,12 @@ static MOZ_MUST_USE bool InternalAwait(JSContext* cx, HandleValue value,
 MOZ_MUST_USE JSObject* js::AsyncFunctionAwait(
     JSContext* cx, Handle<AsyncFunctionGeneratorObject*> genObj,
     HandleValue value) {
-  // Steps 4-9.
-  RootedValue onFulfilled(
-      cx, Int32Value(PromiseHandlerAsyncFunctionAwaitedFulfilled));
-  RootedValue onRejected(
-      cx, Int32Value(PromiseHandlerAsyncFunctionAwaitedRejected));
-
-  // Steps 2-3, 10.
   auto extra = [&](Handle<PromiseReactionRecord*> reaction) {
     reaction->setIsAsyncFunction(genObj);
   };
-  if (!InternalAwait(cx, value, nullptr, onFulfilled, onRejected, extra)) {
+  if (!InternalAwait(cx, value, nullptr,
+                     PromiseHandlerAsyncFunctionAwaitedFulfilled,
+                     PromiseHandlerAsyncFunctionAwaitedRejected, extra)) {
     return nullptr;
   }
   return genObj->promise();
@@ -4324,17 +4359,12 @@ MOZ_MUST_USE JSObject* js::AsyncFunctionAwait(
 MOZ_MUST_USE bool js::AsyncGeneratorAwait(
     JSContext* cx, Handle<AsyncGeneratorObject*> asyncGenObj,
     HandleValue value) {
-  // Steps 4-9.
-  RootedValue onFulfilled(
-      cx, Int32Value(PromiseHandlerAsyncGeneratorAwaitedFulfilled));
-  RootedValue onRejected(
-      cx, Int32Value(PromiseHandlerAsyncGeneratorAwaitedRejected));
-
-  // Steps 2-3, 10.
   auto extra = [&](Handle<PromiseReactionRecord*> reaction) {
     reaction->setIsAsyncGenerator(asyncGenObj);
   };
-  return InternalAwait(cx, value, nullptr, onFulfilled, onRejected, extra);
+  return InternalAwait(cx, value, nullptr,
+                       PromiseHandlerAsyncGeneratorAwaitedFulfilled,
+                       PromiseHandlerAsyncGeneratorAwaitedRejected, extra);
 }
 
 // https://tc39.github.io/ecma262/#sec-%asyncfromsynciteratorprototype%.next
@@ -4513,11 +4543,10 @@ bool js::AsyncFromSyncIteratorMethod(JSContext* cx, CallArgs& args,
   //         Iterator Value Unwrap Functions.
   // Step 8: Let onFulfilled be CreateBuiltinFunction(steps, « [[Done]] »).
   // Step 9: Set onFulfilled.[[Done]] to done.
-  RootedValue onFulfilled(
-      cx,
-      Int32Value(done ? PromiseHandlerAsyncFromSyncIteratorValueUnwrapDone
-                      : PromiseHandlerAsyncFromSyncIteratorValueUnwrapNotDone));
-  RootedValue onRejected(cx, Int32Value(PromiseHandlerThrower));
+  PromiseHandler onFulfilled =
+      done ? PromiseHandlerAsyncFromSyncIteratorValueUnwrapDone
+           : PromiseHandlerAsyncFromSyncIteratorValueUnwrapNotDone;
+  PromiseHandler onRejected = PromiseHandlerThrower;
 
   // Steps 5 and 10 are identical to some steps in Await; we have a utility
   // function InternalAwait() that implements the idiom.
@@ -4711,12 +4740,11 @@ static MOZ_MUST_USE bool AsyncGeneratorResumeNext(
           // Step 10.b.i.7: Let onRejected be CreateBuiltinFunction(
           //                stepsRejected, « [[Generator]] »).
           // Step 10.b.i.8: Set onRejected.[[Generator]] to generator.
-          static constexpr int32_t ResumeNextReturnFulfilled =
+          //
+          const PromiseHandler onFulfilled =
               PromiseHandlerAsyncGeneratorResumeNextReturnFulfilled;
-          static constexpr int32_t ResumeNextReturnRejected =
+          const PromiseHandler onRejected =
               PromiseHandlerAsyncGeneratorResumeNextReturnRejected;
-          RootedValue onFulfilled(cx, Int32Value(ResumeNextReturnFulfilled));
-          RootedValue onRejected(cx, Int32Value(ResumeNextReturnRejected));
 
           // These steps are nearly identical to some steps in Await;
           // InternalAwait() implements the idiom.
@@ -4766,13 +4794,10 @@ static MOZ_MUST_USE bool AsyncGeneratorResumeNext(
       // State_AwaitingYieldReturn.
       generator->setAwaitingYieldReturn();
 
-      static constexpr int32_t YieldReturnAwaitedFulfilled =
+      const PromiseHandler onFulfilled =
           PromiseHandlerAsyncGeneratorYieldReturnAwaitedFulfilled;
-      static constexpr int32_t YieldReturnAwaitedRejected =
+      const PromiseHandler onRejected =
           PromiseHandlerAsyncGeneratorYieldReturnAwaitedRejected;
-
-      RootedValue onFulfilled(cx, Int32Value(YieldReturnAwaitedFulfilled));
-      RootedValue onRejected(cx, Int32Value(YieldReturnAwaitedRejected));
 
       auto extra = [&](Handle<PromiseReactionRecord*> reaction) {
         reaction->setIsAsyncGenerator(generator);
@@ -5263,79 +5288,103 @@ bool PromiseObject::dependentPromises(JSContext* cx,
     return true;
   }
 
+  uint32_t valuesIndex = 0;
   RootedValue reactionsVal(cx, reactions());
 
-  // If no reactions are pending, we don't have list and are done.
-  if (reactionsVal.isNullOrUndefined()) {
-    return true;
-  }
+  return ForEachReaction(cx, reactionsVal, [&](MutableHandleObject obj) {
+    if (IsProxy(obj)) {
+      obj.set(UncheckedUnwrap(obj));
+    }
 
-  RootedObject reactionsObj(cx, &reactionsVal.toObject());
-
-  // If only a single reaction exists, it's stored directly instead of in a
-  // list. In that case, `reactionsObj` might be a wrapper, which we can
-  // always safely unwrap.
-  if (IsProxy(reactionsObj)) {
-    reactionsObj = UncheckedUnwrap(reactionsObj);
-    if (JS_IsDeadWrapper(reactionsObj)) {
+    if (JS_IsDeadWrapper(obj)) {
       JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                                 JSMSG_DEAD_OBJECT);
       return false;
     }
-    MOZ_RELEASE_ASSERT(reactionsObj->is<PromiseReactionRecord>());
-  }
 
-  if (reactionsObj->is<PromiseReactionRecord>()) {
+    MOZ_RELEASE_ASSERT(obj->is<PromiseReactionRecord>());
+    Rooted<PromiseReactionRecord*> reaction(cx,
+                                            &obj->as<PromiseReactionRecord>());
+
     // Not all reactions have a Promise on them.
-    RootedObject promiseObj(
-        cx, reactionsObj->as<PromiseReactionRecord>().promise());
-    if (!promiseObj) {
-      return true;
-    }
+    RootedObject promiseObj(cx, reaction->promise());
+    if (promiseObj) {
+      if (!values.growBy(1)) {
+        return false;
+      }
 
-    if (!values.growBy(1)) {
-      return false;
+      values[valuesIndex++].setObject(*promiseObj);
     }
+    return true;
+  });
+}
 
-    values[0].setObject(*promiseObj);
+bool PromiseObject::forEachReactionRecord(
+    JSContext* cx, PromiseReactionRecordBuilder& builder) {
+  if (state() != JS::PromiseState::Pending) {
+    // Promise was resolved, so no reaction records are present.
     return true;
   }
 
-  MOZ_RELEASE_ASSERT(reactionsObj->is<NativeObject>());
-  HandleNativeObject reactions = reactionsObj.as<NativeObject>();
+  RootedValue reactionsVal(cx, reactions());
+  if (reactionsVal.isNullOrUndefined()) {
+    // No reaction records are attached to this promise.
+    return true;
+  }
 
-  uint32_t len = reactions->getDenseInitializedLength();
-  MOZ_ASSERT(len >= 2);
+  return ForEachReaction(cx, reactionsVal, [&](MutableHandleObject obj) {
+    if (IsProxy(obj)) {
+      obj.set(UncheckedUnwrap(obj));
+    }
 
-  uint32_t valuesIndex = 0;
-  Rooted<PromiseReactionRecord*> reaction(cx);
-  for (uint32_t i = 0; i < len; i++) {
-    JSObject* element = &reactions->getDenseElement(i).toObject();
-    if (IsProxy(element)) {
-      element = UncheckedUnwrap(element);
-      if (JS_IsDeadWrapper(element)) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                  JSMSG_DEAD_OBJECT);
+    if (JS_IsDeadWrapper(obj)) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_DEAD_OBJECT);
+      return false;
+    }
+
+    Rooted<PromiseReactionRecord*> reaction(cx,
+                                            &obj->as<PromiseReactionRecord>());
+    MOZ_ASSERT(reaction->targetState() == JS::PromiseState::Pending);
+
+    if (reaction->isAsyncFunction()) {
+      Rooted<AsyncFunctionGeneratorObject*> generator(
+          cx, reaction->asyncFunctionGenerator());
+      if (!builder.asyncFunction(cx, generator)) {
+        return false;
+      }
+    } else if (reaction->isAsyncGenerator()) {
+      Rooted<AsyncGeneratorObject*> generator(cx, reaction->asyncGenerator());
+      if (!builder.asyncGenerator(cx, generator)) {
+        return false;
+      }
+    } else if (reaction->isDefaultResolvingHandler()) {
+      Rooted<PromiseObject*> promise(cx, reaction->defaultResolvingPromise());
+      if (!builder.direct(cx, promise)) {
+        return false;
+      }
+    } else {
+      RootedObject resolve(cx);
+      RootedObject reject(cx);
+      RootedObject result(cx, reaction->promise());
+
+      Value v = reaction->getFixedSlot(ReactionRecordSlot_OnFulfilled);
+      if (v.isObject()) {
+        resolve = &v.toObject();
+      }
+
+      v = reaction->getFixedSlot(ReactionRecordSlot_OnRejected);
+      if (v.isObject()) {
+        reject = &v.toObject();
+      }
+
+      if (!builder.then(cx, resolve, reject, result)) {
         return false;
       }
     }
 
-    MOZ_RELEASE_ASSERT(element->is<PromiseReactionRecord>());
-    reaction = &element->as<PromiseReactionRecord>();
-
-    // Not all reactions have a Promise on them.
-    RootedObject promiseObj(cx, reaction->promise());
-    if (!promiseObj) {
-      continue;
-    }
-    if (!values.growBy(1)) {
-      return false;
-    }
-
-    values[valuesIndex++].setObject(*promiseObj);
-  }
-
-  return true;
+    return true;
+  });
 }
 
 /* static */

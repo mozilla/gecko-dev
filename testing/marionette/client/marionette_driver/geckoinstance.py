@@ -70,9 +70,7 @@ class GeckoInstance(object):
         "extensions.getAddons.cache.enabled": False,
         # Disable intalling any distribution add-ons
         "extensions.installDistroAddons": False,
-        # Disable extensions compatibility dialogue.
-        # Removed in Firefox 61.
-        "extensions.showMismatchUI": False,
+
         # Turn off extension updates so they don't bother tests
         "extensions.update.enabled": False,
         "extensions.update.notifyUser": False,
@@ -562,9 +560,6 @@ class DesktopInstance(GeckoInstance):
 
         # Don't check for the default web browser during startup
         "browser.shell.checkDefaultBrowser": False,
-
-        # Disable e10s by default
-        "browser.tabs.remote.autostart": False,
 
         # Needed for branded builds to prevent opening a second tab on startup
         "browser.startup.homepage_override.mstone": "ignore",

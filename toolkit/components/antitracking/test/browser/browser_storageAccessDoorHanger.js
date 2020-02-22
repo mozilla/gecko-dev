@@ -6,7 +6,6 @@ Services.scriptloader.loadSubScript(CHROME_BASE + "head.js", this);
 
 const BLOCK = 0;
 const ALLOW = 1;
-const ALLOW_ON_ANY_SITE = 2;
 
 async function testDoorHanger(
   choice,
@@ -129,12 +128,6 @@ async function testDoorHanger(
             .type.startsWith("3rdPartyStorage^") &&
           subject.principal.origin == new URL(topPage).origin &&
           data == "added";
-      } else if (choice == ALLOW_ON_ANY_SITE) {
-        result =
-          subject &&
-          subject.QueryInterface(Ci.nsIPermission).type == "cookie" &&
-          subject.principal.origin == "https://tracking.example.org" &&
-          data == "added";
       }
       return result;
     });
@@ -169,8 +162,6 @@ async function testDoorHanger(
       }
     } else if (choice == ALLOW) {
       await clickSecondaryAction(choice - 1);
-    } else if (choice == ALLOW_ON_ANY_SITE) {
-      await clickSecondaryAction(choice - 1);
     }
     if (choice != BLOCK) {
       await permChanged;
@@ -178,9 +169,9 @@ async function testDoorHanger(
   });
 
   let url = TEST_3RD_PARTY_PAGE + "?disableWaitUntilPermission";
-  let ct = ContentTask.spawn(
+  let ct = SpecialPowers.spawn(
     browser,
-    { page: url, callback: runChecks.toString(), choice, useEscape },
+    [{ page: url, callback: runChecks.toString(), choice, useEscape }],
     async function(obj) {
       await new content.Promise(resolve => {
         let ifr = content.document.createElement("iframe");
@@ -290,14 +281,6 @@ async function runRound(topPage, showPrompt, maxConcurrent) {
     await preparePermissionsFromOtherSites(topPage);
     await testDoorHanger(ALLOW, showPrompt, false, topPage, maxConcurrent);
     await cleanUp();
-    await preparePermissionsFromOtherSites(topPage);
-    await testDoorHanger(
-      ALLOW_ON_ANY_SITE,
-      showPrompt,
-      false,
-      topPage,
-      maxConcurrent
-    );
   } else {
     await preparePermissionsFromOtherSites(topPage);
     await testDoorHanger(ALLOW, showPrompt, false, topPage, maxConcurrent);

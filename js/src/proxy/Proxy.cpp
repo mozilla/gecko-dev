@@ -731,27 +731,34 @@ size_t js::proxy_ObjectMoved(JSObject* obj, JSObject* old) {
 }
 
 const JSClassOps js::ProxyClassOps = {
-    nullptr,            /* addProperty */
-    nullptr,            /* delProperty */
-    nullptr,            /* enumerate   */
-    nullptr,            /* newEnumerate */
-    nullptr,            /* resolve     */
-    nullptr,            /* mayResolve  */
-    proxy_Finalize,     /* finalize    */
-    nullptr,            /* call        */
-    Proxy::hasInstance, /* hasInstance */
-    nullptr,            /* construct   */
-    ProxyObject::trace, /* trace       */
+    nullptr,             // addProperty
+    nullptr,             // delProperty
+    nullptr,             // enumerate
+    nullptr,             // newEnumerate
+    nullptr,             // resolve
+    nullptr,             // mayResolve
+    proxy_Finalize,      // finalize
+    nullptr,             // call
+    Proxy::hasInstance,  // hasInstance
+    nullptr,             // construct
+    ProxyObject::trace,  // trace
 };
 
-const ClassExtension js::ProxyClassExtension = {proxy_ObjectMoved};
+const ClassExtension js::ProxyClassExtension = {
+    proxy_ObjectMoved,  // objectMovedOp
+};
 
 const ObjectOps js::ProxyObjectOps = {
-    proxy_LookupProperty, Proxy::defineProperty,
-    Proxy::has,           Proxy::get,
-    Proxy::set,           Proxy::getOwnPropertyDescriptor,
-    proxy_DeleteProperty, Proxy::getElements,
-    Proxy::fun_toString};
+    proxy_LookupProperty,             // lookupProperty
+    Proxy::defineProperty,            // defineProperty
+    Proxy::has,                       // hasProperty
+    Proxy::get,                       // getProperty
+    Proxy::set,                       // setProperty
+    Proxy::getOwnPropertyDescriptor,  // getOwnPropertyDescriptor
+    proxy_DeleteProperty,             // deleteProperty
+    Proxy::getElements,               // getElements
+    Proxy::fun_toString,              // funToString
+};
 
 static const JSFunctionSpec proxy_static_methods[] = {
     JS_FN("revocable", proxy_revocable, 2, 0), JS_FS_END};

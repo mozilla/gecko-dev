@@ -85,12 +85,15 @@ class RenderCompositor {
   // Interface for wr::Compositor
   virtual void CompositorBeginFrame() {}
   virtual void CompositorEndFrame() {}
-  virtual void Bind(wr::NativeSurfaceId aId, wr::DeviceIntPoint* aOffset,
+  virtual void Bind(wr::NativeTileId aId, wr::DeviceIntPoint* aOffset,
                     uint32_t* aFboId, wr::DeviceIntRect aDirtyRect) {}
   virtual void Unbind() {}
-  virtual void CreateSurface(wr::NativeSurfaceId aId, wr::DeviceIntSize aSize,
-                             bool aIsOpaque) {}
+  virtual void CreateSurface(wr::NativeSurfaceId aId,
+                             wr::DeviceIntSize aTileSize) {}
   virtual void DestroySurface(NativeSurfaceId aId) {}
+  virtual void CreateTile(wr::NativeSurfaceId, int32_t aX, int32_t aY,
+                          bool aIsOpaque) {}
+  virtual void DestroyTile(wr::NativeSurfaceId, int32_t aX, int32_t aY) {}
   virtual void AddSurface(wr::NativeSurfaceId aId, wr::DeviceIntPoint aPosition,
                           wr::DeviceIntRect aClipRect) {}
 
@@ -101,6 +104,14 @@ class RenderCompositor {
 
   // Whether the surface origin is top-left.
   virtual bool SurfaceOriginIsTopLeft() { return false; }
+
+  // Does readback if wr_renderer_readback() could not get correct WR rendered
+  // result. It could happen when WebRender renders to multiple overlay layers.
+  virtual bool MaybeReadback(const gfx::IntSize& aReadbackSize,
+                             const wr::ImageFormat& aReadbackFormat,
+                             const Range<uint8_t>& aReadbackBuffer) {
+    return false;
+  }
 
  protected:
   // We default this to 2, so that mLatestRenderFrameId.Prev() is always valid.

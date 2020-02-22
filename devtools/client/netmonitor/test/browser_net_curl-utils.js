@@ -23,18 +23,20 @@ add_task(async function() {
   store.dispatch(Actions.batchEnable(false));
 
   const wait = waitForNetworkEvents(monitor, 6);
-  await ContentTask.spawn(tab.linkedBrowser, SIMPLE_SJS, async function(url) {
+  await SpecialPowers.spawn(tab.linkedBrowser, [SIMPLE_SJS], async function(
+    url
+  ) {
     content.wrappedJSObject.performRequests(url);
   });
   await wait;
 
   const requests = {
-    get: getSortedRequests(store.getState()).get(0),
-    post: getSortedRequests(store.getState()).get(1),
-    postJson: getSortedRequests(store.getState()).get(2),
-    patch: getSortedRequests(store.getState()).get(3),
-    multipart: getSortedRequests(store.getState()).get(4),
-    multipartForm: getSortedRequests(store.getState()).get(5),
+    get: getSortedRequests(store.getState())[0],
+    post: getSortedRequests(store.getState())[1],
+    postJson: getSortedRequests(store.getState())[2],
+    patch: getSortedRequests(store.getState())[3],
+    multipart: getSortedRequests(store.getState())[4],
+    multipartForm: getSortedRequests(store.getState())[5],
   };
 
   let data = await createCurlData(requests.get, getLongString, requestData);

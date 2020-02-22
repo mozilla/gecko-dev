@@ -2085,6 +2085,7 @@ class IDLType(IDLObject):
         'domstring',
         'bytestring',
         'usvstring',
+        'utf8string',
         'jsstring',
         'object',
         'date',
@@ -2104,14 +2105,14 @@ class IDLType(IDLObject):
         IDLObject.__init__(self, location)
         self.name = name
         self.builtin = False
-        self.clamp = False
         self.treatNullAsEmpty = False
-        self.enforceRange = False
+        self._clamp = False
+        self._enforceRange = False
         self._extendedAttrDict = {}
 
     def __eq__(self, other):
         return (other and self.builtin == other.builtin and self.name == other.name and
-                          self.clamp == other.clamp and self.enforceRange == other.enforceRange and
+                          self._clamp == other.hasClamp() and self._enforceRange == other.hasEnforceRange() and
                           self.treatNullAsEmpty == other.treatNullAsEmpty)
 
     def __ne__(self, other):
@@ -2145,6 +2146,9 @@ class IDLType(IDLObject):
         return False
 
     def isUSVString(self):
+        return False
+
+    def isUTF8String(self):
         return False
 
     def isJSString(self):
@@ -2229,6 +2233,12 @@ class IDLType(IDLObject):
 
     def isJSONType(self):
         return False
+
+    def hasClamp(self):
+        return self._clamp
+
+    def hasEnforceRange(self):
+        return self._enforceRange
 
     def tag(self):
         assert False  # Override me!
@@ -2337,10 +2347,7 @@ class IDLNullableType(IDLParametrizedType):
         assert not innerType.isVoid()
         assert not innerType == BuiltinTypes[IDLBuiltinType.Types.any]
 
-        name = innerType.name
-        if innerType.isComplete():
-            name += "OrNull"
-        IDLParametrizedType.__init__(self, location, name, innerType)
+        IDLParametrizedType.__init__(self, location, None, innerType)
 
     def __eq__(self, other):
         return isinstance(other, IDLNullableType) and self.inner == other.inner
@@ -2374,6 +2381,9 @@ class IDLNullableType(IDLParametrizedType):
 
     def isUSVString(self):
         return self.inner.isUSVString()
+
+    def isUTF8String(self):
+        return self.inner.isUTF8String()
 
     def isJSString(self):
         return self.inner.isJSString()
@@ -2437,11 +2447,23 @@ class IDLNullableType(IDLParametrizedType):
     def isJSONType(self):
         return self.inner.isJSONType()
 
+    def hasClamp(self):
+        return self.inner.hasClamp()
+
+    def hasEnforceRange(self):
+        return self.inner.hasEnforceRange()
+
+    def isComplete(self):
+        return self.name is not None
+
     def tag(self):
         return self.inner.tag()
 
     def complete(self, scope):
-        self.inner = self.inner.complete(scope)
+        if not self.inner.isComplete():
+            self.inner = self.inner.complete(scope)
+        assert self.inner.isComplete()
+
         if self.inner.nullable():
             raise WebIDLError("The inner type of a nullable type must not be "
                               "a nullable type",
@@ -2451,6 +2473,10 @@ class IDLNullableType(IDLParametrizedType):
                 raise WebIDLError("The inner type of a nullable type must not "
                                   "be a union type that itself has a nullable "
                                   "type as a member type", [self.location])
+        if self.inner.isDOMString():
+            if self.inner.treatNullAsEmpty:
+                raise WebIDLError("[TreatNullAs] not allowed on a nullable DOMString",
+                                  [self.location, self.inner.location])
 
         self.name = self.inner.name + "OrNull"
         return self
@@ -2463,6 +2489,13 @@ class IDLNullableType(IDLParametrizedType):
             # Can't tell which type null should become
             return False
         return self.inner.isDistinguishableFrom(other)
+
+    def withExtendedAttributes(self, attrs):
+        # See https://github.com/heycam/webidl/issues/827#issuecomment-565131350
+        # Allowing extended attributes to apply to a nullable type is an intermediate solution.
+        # A potential longer term solution is to introduce a null type and get rid of nullables.
+        # For example, we could do `([Clamp] long or null) foo` in the future.
+        return IDLNullableType(self.location, self.inner.withExtendedAttributes(attrs))
 
 
 class IDLSequenceType(IDLParametrizedType):
@@ -2497,6 +2530,9 @@ class IDLSequenceType(IDLParametrizedType):
         return False
 
     def isUSVString(self):
+        return False
+
+    def isUTF8String(self):
         return False
 
     def isJSString(self):
@@ -2755,6 +2791,9 @@ class IDLTypedefType(IDLType):
     def isUSVString(self):
         return self.inner.isUSVString()
 
+    def isUTF8String(self):
+        return self.inner.isUTF8String()
+
     def isJSString(self):
         return self.inner.isJSString()
 
@@ -2886,6 +2925,9 @@ class IDLWrapperType(IDLType):
         return False
 
     def isUSVString(self):
+        return False
+
+    def isUTF8String(self):
         return False
 
     def isJSString(self):
@@ -3091,6 +3133,7 @@ class IDLBuiltinType(IDLType):
         'domstring',
         'bytestring',
         'usvstring',
+        'utf8string',
         'jsstring',
         'object',
         'date',
@@ -3129,6 +3172,7 @@ class IDLBuiltinType(IDLType):
         Types.domstring: IDLType.Tags.domstring,
         Types.bytestring: IDLType.Tags.bytestring,
         Types.usvstring: IDLType.Tags.usvstring,
+        Types.utf8string: IDLType.Tags.utf8string,
         Types.jsstring: IDLType.Tags.jsstring,
         Types.object: IDLType.Tags.object,
         Types.date: IDLType.Tags.date,
@@ -3162,18 +3206,18 @@ class IDLBuiltinType(IDLType):
         self._clamped = None
         self._rangeEnforced = None
         self._withTreatNullAs = None
-        if self.isNumeric():
+        if self.isInteger():
             if clamp:
-                self.clamp = True
+                self._clamp = True
                 self.name = "Clamped" + self.name
                 self._extendedAttrDict["Clamp"] = True
             elif enforceRange:
-                self.enforceRange = True
+                self._enforceRange = True
                 self.name = "RangeEnforced" + self.name
                 self._extendedAttrDict["EnforceRange"] = True
         elif clamp or enforceRange:
-            raise WebIDLError("Non-numeric types cannot be [Clamp] or [EnforceRange]", attrLocation)
-        if self.isDOMString():
+            raise WebIDLError("Non-integer types cannot be [Clamp] or [EnforceRange]", attrLocation)
+        if self.isDOMString() or self.isUTF8String():
             if treatNullAsEmpty:
                 self.treatNullAsEmpty = True
                 self.name = "NullIsEmpty" + self.name
@@ -3215,6 +3259,7 @@ class IDLBuiltinType(IDLType):
         return (self._typeTag == IDLBuiltinType.Types.domstring or
                 self._typeTag == IDLBuiltinType.Types.bytestring or
                 self._typeTag == IDLBuiltinType.Types.usvstring or
+                self._typeTag == IDLBuiltinType.Types.utf8string or
                 self._typeTag == IDLBuiltinType.Types.jsstring)
 
     def isByteString(self):
@@ -3225,6 +3270,9 @@ class IDLBuiltinType(IDLType):
 
     def isUSVString(self):
         return self._typeTag == IDLBuiltinType.Types.usvstring
+
+    def isUTF8String(self):
+        return self._typeTag == IDLBuiltinType.Types.utf8string
 
     def isJSString(self):
         return self._typeTag == IDLBuiltinType.Types.jsstring
@@ -3348,7 +3396,7 @@ class IDLBuiltinType(IDLType):
                 if not attribute.noArguments():
                     raise WebIDLError("[Clamp] must take no arguments",
                                       [attribute.location])
-                if ret.enforceRange or self.enforceRange:
+                if ret.hasEnforceRange() or self._enforceRange:
                     raise WebIDLError("[EnforceRange] and [Clamp] are mutually exclusive",
                                       [self.location, attribute.location])
                 ret = self.clamped([self.location, attribute.location])
@@ -3356,13 +3404,13 @@ class IDLBuiltinType(IDLType):
                 if not attribute.noArguments():
                     raise WebIDLError("[EnforceRange] must take no arguments",
                                       [attribute.location])
-                if ret.clamp or self.clamp:
+                if ret.hasClamp() or self._clamp:
                     raise WebIDLError("[EnforceRange] and [Clamp] are mutually exclusive",
                                       [self.location, attribute.location])
                 ret = self.rangeEnforced([self.location, attribute.location])
             elif identifier == "TreatNullAs":
-                if not self.isDOMString():
-                    raise WebIDLError("[TreatNullAs] only allowed on DOMStrings",
+                if not (self.isDOMString() or self.isUTF8String()):
+                    raise WebIDLError("[TreatNullAs] only allowed on DOMStrings and UTF8Strings",
                                       [self.location, attribute.location])
                 assert not self.nullable()
                 if not attribute.hasValue():
@@ -3431,6 +3479,9 @@ BuiltinTypes = {
     IDLBuiltinType.Types.usvstring:
         IDLBuiltinType(BuiltinLocation("<builtin type>"), "USVString",
                        IDLBuiltinType.Types.usvstring),
+    IDLBuiltinType.Types.utf8string:
+        IDLBuiltinType(BuiltinLocation("<builtin type>"), "UTF8String",
+                       IDLBuiltinType.Types.utf8string),
     IDLBuiltinType.Types.jsstring:
         IDLBuiltinType(BuiltinLocation("<builtin type>"), "JSString",
                        IDLBuiltinType.Types.jsstring),
@@ -3600,8 +3651,9 @@ class IDLValue(IDLObject):
             # TreatNullAsEmpty is a different type for resolution reasons,
             # however once you have a value it doesn't matter
             return self
-        elif self.type.isString() and (type.isByteString() or type.isJSString()):
-            # Allow ByteStrings and JSStrings to use a default value like DOMString.
+        elif self.type.isString() and (type.isByteString() or type.isJSString() or type.isUTF8String()):
+            # Allow ByteStrings, UTF8String, and JSStrings to use a default
+            # value like DOMString.
             # No coercion is required as Codegen.py will handle the
             # extra steps. We want to make sure that our string contains
             # only valid characters, so we check that here.
@@ -4294,7 +4346,7 @@ class IDLAttribute(IDLInterfaceMember):
             assert not isinstance(t.name, IDLUnresolvedIdentifier)
             self.type = t
 
-        if self.readonly and (self.type.clamp or self.type.enforceRange or self.type.treatNullAsEmpty):
+        if self.readonly and (self.type.hasClamp() or self.type.hasEnforceRange() or self.type.treatNullAsEmpty):
             raise WebIDLError("A readonly attribute cannot be [Clamp] or [EnforceRange]",
                               [self.location])
         if self.type.isDictionary() and not self.getExtendedAttribute("Cached"):
@@ -5462,7 +5514,9 @@ class IDLConstructor(IDLMethod):
             identifier == "ChromeOnly" or
             identifier == "NewObject" or
             identifier == "SecureContext" or
-            identifier == "Throws"):
+            identifier == "Throws" or
+            identifier == "Func" or
+            identifier == "Pref"):
             IDLMethod.handleExtendedAttribute(self, attr)
         elif identifier == "HTMLConstructor":
             if not attr.noArguments():
@@ -5667,6 +5721,7 @@ class Tokenizer(object):
         "ByteString": "BYTESTRING",
         "USVString": "USVSTRING",
         "JSString": "JSSTRING",
+        "UTF8String": "UTF8STRING",
         "any": "ANY",
         "boolean": "BOOLEAN",
         "byte": "BYTE",
@@ -6930,6 +6985,7 @@ class Parser(Tokenizer):
                   | DOMSTRING
                   | BYTESTRING
                   | USVSTRING
+                  | UTF8STRING
                   | JSSTRING
                   | PROMISE
                   | ANY
@@ -7201,6 +7257,12 @@ class Parser(Tokenizer):
             BuiltinStringType : USVSTRING
         """
         p[0] = IDLBuiltinType.Types.usvstring
+
+    def p_BuiltinStringTypeUTF8String(self, p):
+        """
+            BuiltinStringType : UTF8STRING
+        """
+        p[0] = IDLBuiltinType.Types.utf8string
 
     def p_BuiltinStringTypeJSString(self, p):
         """

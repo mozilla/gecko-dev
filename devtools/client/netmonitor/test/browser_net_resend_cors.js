@@ -24,7 +24,9 @@ add_task(async function() {
 
   info("Waiting for OPTIONS, then POST");
   const wait = waitForNetworkEvents(monitor, 2);
-  await ContentTask.spawn(tab.linkedBrowser, requestUrl, async function(url) {
+  await SpecialPowers.spawn(tab.linkedBrowser, [requestUrl], async function(
+    url
+  ) {
     content.wrappedJSObject.performRequests(
       url,
       "triggering/preflight",
@@ -34,9 +36,7 @@ add_task(async function() {
   await wait;
 
   const METHODS = ["OPTIONS", "POST"];
-  const ITEMS = METHODS.map((val, i) =>
-    getSortedRequests(store.getState()).get(i)
-  );
+  const ITEMS = METHODS.map((val, i) => getSortedRequests(store.getState())[i]);
 
   // Check the requests that were sent
   ITEMS.forEach((item, i) => {
@@ -62,7 +62,7 @@ add_task(async function() {
       return item.requestHeaders && item.responseHeaders;
     });
 
-    const { size } = getSortedRequests(store.getState());
+    const { length } = getSortedRequests(store.getState());
 
     info("Cloning the selected request into a custom clone");
     store.dispatch(Actions.cloneSelectedRequest());
@@ -71,7 +71,7 @@ add_task(async function() {
     store.dispatch(Actions.sendCustomRequest(connector));
 
     await waitUntil(
-      () => getSortedRequests(store.getState()).size === size + 1
+      () => getSortedRequests(store.getState()).length === length + 1
     );
   }
 

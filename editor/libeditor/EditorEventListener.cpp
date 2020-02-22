@@ -27,24 +27,20 @@
 #include "nsDebug.h"         // for NS_ENSURE_TRUE, etc.
 #include "nsFocusManager.h"  // for nsFocusManager
 #include "nsGkAtoms.h"       // for nsGkAtoms, nsGkAtoms::input
-#include "nsIClipboard.h"    // for nsIClipboard, etc.
 #include "nsIContent.h"      // for nsIContent
 #include "nsIController.h"   // for nsIController
 #include "nsID.h"
 #include "mozilla/dom/DOMStringList.h"
 #include "mozilla/dom/DataTransfer.h"
 #include "mozilla/dom/DragEvent.h"
-#include "mozilla/dom/Document.h"    // for Document
-#include "nsIFocusManager.h"         // for nsIFocusManager
-#include "nsIFormControl.h"          // for nsIFormControl, etc.
-#include "nsINode.h"                 // for nsINode, ::NODE_IS_EDITABLE, etc.
-#include "nsIPlaintextEditor.h"      // for nsIPlaintextEditor, etc.
-#include "nsISelectionController.h"  // for nsISelectionController, etc.
-#include "nsITransferable.h"         // for kFileMime, kHTMLMime, etc.
-#include "nsIWidget.h"               // for nsIWidget
-#include "nsLiteralString.h"         // for NS_LITERAL_STRING
-#include "nsPIWindowRoot.h"          // for nsPIWindowRoot
-#include "nsPrintfCString.h"         // for nsPrintfCString
+#include "mozilla/dom/Document.h"  // for Document
+#include "nsIFormControl.h"        // for nsIFormControl, etc.
+#include "nsINode.h"               // for nsINode, ::NODE_IS_EDITABLE, etc.
+#include "nsIPlaintextEditor.h"    // for nsIPlaintextEditor, etc.
+#include "nsIWidget.h"             // for nsIWidget
+#include "nsLiteralString.h"       // for NS_LITERAL_STRING
+#include "nsPIWindowRoot.h"        // for nsPIWindowRoot
+#include "nsPrintfCString.h"       // for nsPrintfCString
 #include "nsRange.h"
 #include "nsServiceManagerUtils.h"  // for do_GetService
 #include "nsString.h"               // for nsAutoString
@@ -406,7 +402,7 @@ EditorEventListener::HandleEvent(Event* aEvent) {
       if (widgetMouseEvent->mButton != MouseButton::eLeft) {
         return NS_OK;
       }
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     }
     // auxclick
     case eMouseAuxClick: {
@@ -739,6 +735,23 @@ nsresult EditorEventListener::DragOver(DragEvent* aDragEvent) {
   if (dropParent->IsEditable() && CanDrop(aDragEvent)) {
     aDragEvent->PreventDefault();  // consumed
 
+    // If we handle the dragged item, we need should adjust drop effect here
+    // because once DataTransfer is retrieved, DragEvent has initialized it
+    // with nsContentUtils::SetDataTransferInEvent() but it does not check
+    // whether the content is movable or not.
+    DataTransfer* dataTransfer = aDragEvent->GetDataTransfer();
+    MOZ_ASSERT(dataTransfer);
+    if (dataTransfer->DropEffectInt() == nsIDragService::DRAGDROP_ACTION_MOVE) {
+      nsCOMPtr<nsINode> dragSource = dataTransfer->GetMozSourceNode();
+      if (dragSource && !dragSource->IsEditable()) {
+        // In this case, we shouldn't allow "move" because the drag source
+        // isn't editable.
+        dataTransfer->SetDropEffectInt(nsContentUtils::FilterDropEffect(
+            nsIDragService::DRAGDROP_ACTION_COPY,
+            dataTransfer->EffectAllowedInt()));
+      }
+    }
+
     if (!mCaret) {
       return NS_OK;
     }
@@ -755,6 +768,9 @@ nsresult EditorEventListener::DragOver(DragEvent* aDragEvent) {
     // This is needed when dropping on an input, to prevent the editor for
     // the editable parent from receiving the event.
     aDragEvent->StopPropagation();
+    DataTransfer* dataTransfer = aDragEvent->GetDataTransfer();
+    MOZ_ASSERT(dataTransfer);
+    dataTransfer->SetDropEffectInt(nsIDragService::DRAGDROP_ACTION_NONE);
   }
 
   if (mCaret) {

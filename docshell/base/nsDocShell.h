@@ -28,14 +28,11 @@
 #include "nsIDeprecationWarner.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
-#include "nsIDOMStorageManager.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsILoadContext.h"
 #include "nsILoadURIDelegate.h"
 #include "nsINetworkInterceptController.h"
 #include "nsIRefreshURI.h"
-#include "nsIScrollable.h"
-#include "nsIRemoteTab.h"
 #include "nsIWebNavigation.h"
 #include "nsIWebPageDescriptor.h"
 #include "nsIWebProgressListener.h"
@@ -58,6 +55,7 @@
 #include "Units.h"
 
 #include "mozilla/ObservedDocShell.h"
+#include "mozilla/ScrollbarPreferences.h"
 #include "mozilla/TimelineConsumers.h"
 #include "mozilla/TimelineMarker.h"
 
@@ -118,13 +116,11 @@ class nsDocShell final : public nsDocLoader,
                          public nsIDocShell,
                          public nsIWebNavigation,
                          public nsIBaseWindow,
-                         public nsIScrollable,
                          public nsIRefreshURI,
                          public nsIWebProgressListener,
                          public nsIWebPageDescriptor,
                          public nsIAuthPromptProvider,
                          public nsILoadContext,
-                         public nsIDOMStorageManager,
                          public nsINetworkInterceptController,
                          public nsIDeprecationWarner,
                          public mozilla::SupportsWeakPtr<nsDocShell> {
@@ -193,7 +189,6 @@ class nsDocShell final : public nsDocLoader,
   NS_DECL_NSIDOCSHELLTREEITEM
   NS_DECL_NSIWEBNAVIGATION
   NS_DECL_NSIBASEWINDOW
-  NS_DECL_NSISCROLLABLE
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSIWEBPROGRESSLISTENER
   NS_DECL_NSIREFRESHURI
@@ -201,8 +196,6 @@ class nsDocShell final : public nsDocLoader,
   NS_DECL_NSIAUTHPROMPTPROVIDER
   NS_DECL_NSINETWORKINTERCEPTCONTROLLER
   NS_DECL_NSIDEPRECATIONWARNER
-
-  NS_FORWARD_SAFE_NSIDOMSTORAGEMANAGER(TopSessionStorageManager())
 
   // Create a new nsDocShell object, initializing it.
   static already_AddRefed<nsDocShell> Create(
@@ -213,6 +206,27 @@ class nsDocShell final : public nsDocLoader,
     // Need this here because otherwise nsIWebNavigation::Stop
     // overrides the docloader's Stop()
     return nsDocLoader::Stop();
+  }
+
+  mozilla::ScrollbarPreference ScrollbarPreference() const {
+    return mScrollbarPref;
+  }
+  void SetScrollbarPreference(mozilla::ScrollbarPreference);
+
+  /*
+   * The size, in CSS pixels, of the margins for the <body> of an HTML document
+   * in this docshell; used to implement the marginwidth attribute on HTML
+   * <frame>/<iframe> elements.  A value smaller than zero indicates that the
+   * attribute was not set.
+   */
+  const mozilla::CSSIntSize& GetFrameMargins() const { return mFrameMargins; }
+
+  bool UpdateFrameMargins(const mozilla::CSSIntSize& aMargins) {
+    if (mFrameMargins == aMargins) {
+      return false;
+    }
+    mFrameMargins = aMargins;
+    return true;
   }
 
   /**
@@ -541,11 +555,8 @@ class nsDocShell final : public nsDocLoader,
   nsDocShell(mozilla::dom::BrowsingContext* aBrowsingContext,
              uint64_t aContentWindowID);
 
-  // Security checks to prevent frameset spoofing. See comments at
-  // implementation sites.
-  static bool CanAccessItem(nsIDocShellTreeItem* aTargetItem,
-                            nsIDocShellTreeItem* aAccessingItem,
-                            bool aConsiderOpener = true);
+  // Security check to prevent frameset spoofing. See comments at
+  // implementation site.
   static bool ValidateOrigin(nsIDocShellTreeItem* aOriginTreeItem,
                              nsIDocShellTreeItem* aTargetTreeItem);
 
@@ -994,7 +1005,6 @@ class nsDocShell final : public nsDocLoader,
                            bool aCheckIfUnloadFired = true);
   uint32_t GetInheritedFrameType();
   nsIScrollableFrame* GetRootScrollFrame();
-  nsIDOMStorageManager* TopSessionStorageManager();
   nsIChannel* GetCurrentDocChannel();
   nsresult EnsureScriptEnvironment();
   nsresult EnsureEditorData();
@@ -1096,7 +1106,6 @@ class nsDocShell final : public nsDocLoader,
   nsCOMPtr<nsIPrincipal> mParentCharsetPrincipal;
   nsCOMPtr<nsIMutableArray> mRefreshURIList;
   nsCOMPtr<nsIMutableArray> mSavedRefreshURIList;
-  nsCOMPtr<nsIDOMStorageManager> mSessionStorageManager;
   uint64_t mContentWindowID;
   nsCOMPtr<nsIContentViewer> mContentViewer;
   nsCOMPtr<nsIWidget> mParentWidget;
@@ -1188,15 +1197,14 @@ class nsDocShell final : public nsDocLoader,
 
   RefPtr<mozilla::dom::EventTarget> mChromeEventHandler;
 
-  nsIntPoint mDefaultScrollbarPref;  // persistent across doc loads
+  mozilla::ScrollbarPreference mScrollbarPref;  // persistent across doc loads
 
   eCharsetReloadState mCharsetReloadState;
 
   mozilla::hal::ScreenOrientation mOrientationLock;
 
   int32_t mParentCharsetSource;
-  int32_t mMarginWidth;
-  int32_t mMarginHeight;
+  mozilla::CSSIntSize mFrameMargins;
 
   // This can either be a content docshell or a chrome docshell.
   const int32_t mItemType;

@@ -410,16 +410,19 @@ XRE_API(bool, XRE_SetRemoteExceptionHandler,
 XRE_API(bool, XRE_SetRemoteExceptionHandler, (const char* aPipe))
 #endif
 
-namespace mozilla {
-namespace gmp {
-class GMPLoader;
-}  // namespace gmp
-}  // namespace mozilla
-
 XRE_API(nsresult, XRE_InitChildProcess,
         (int aArgc, char* aArgv[], const XREChildData* aChildData))
 
+/**
+ * Return the GeckoProcessType of the current process.
+ */
 XRE_API(GeckoProcessType, XRE_GetProcessType, ())
+
+/**
+ * Return the string representation of the GeckoProcessType of the current
+ * process.
+ */
+XRE_API(const char*, XRE_GetProcessTypeString, ())
 
 /**
  * Returns true when called in the e10s parent process.  Does *NOT* return true
@@ -505,5 +508,11 @@ XRE_API(int, XRE_XPCShellMain,
 XRE_API(void, XRE_LibFuzzerSetDriver, (LibFuzzerDriver))
 
 #endif  // LIBFUZZER
+
+#ifdef MOZ_ENABLE_FORKSERVER
+
+XRE_API(int, XRE_ForkServer, (int* aArgc, char*** aArgv))
+
+#endif // MOZ_ENABLE_FORKSERVER
 
 #endif  // _nsXULAppAPI_h__

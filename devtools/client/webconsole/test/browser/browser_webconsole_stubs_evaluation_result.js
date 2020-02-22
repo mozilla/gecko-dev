@@ -6,6 +6,7 @@
 const {
   STUBS_UPDATE_ENV,
   getCleanedPacket,
+  getSerializedPacket,
   getStubFilePath,
   writeStubsToFile,
 } = require("devtools/client/webconsole/test/browser/stub-generator-helpers");
@@ -35,18 +36,16 @@ add_task(async function() {
     "browser_webconsole_stubs_evaluation_result.js --headless " +
     "--setenv WEBCONSOLE_STUBS_UPDATE=true`";
 
-  if (generatedStubs.size !== existingStubs.stubPackets.size) {
+  if (generatedStubs.size !== existingStubs.rawPackets.size) {
     ok(false, FAILURE_MSG);
     return;
   }
 
   let failed = false;
   for (const [key, packet] of generatedStubs) {
-    const packetStr = JSON.stringify(packet, null, 2);
-    const existingPacketStr = JSON.stringify(
-      existingStubs.stubPackets.get(key),
-      null,
-      2
+    const packetStr = getSerializedPacket(packet);
+    const existingPacketStr = getSerializedPacket(
+      existingStubs.rawPackets.get(key)
     );
     is(packetStr, existingPacketStr, `"${key}" packet has expected value`);
     failed = failed || packetStr !== existingPacketStr;
@@ -57,18 +56,19 @@ add_task(async function() {
   } else {
     ok(true, "Stubs are up to date");
   }
+
+  await closeTabAndToolbox();
 });
 
 async function generateEvaluationResultStubs() {
   const stubs = new Map();
   const toolbox = await openNewTabAndToolbox(TEST_URI, "webconsole");
-
+  const webConsoleFront = await toolbox.target.getFront("console");
   for (const [key, code] of getCommands()) {
-    const packet = await toolbox.target.activeConsole.evaluateJSAsync(code);
+    const packet = await webConsoleFront.evaluateJSAsync(code);
     stubs.set(key, getCleanedPacket(key, packet));
   }
 
-  await closeTabAndToolbox();
   return stubs;
 }
 

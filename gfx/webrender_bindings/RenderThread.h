@@ -32,6 +32,9 @@ namespace mozilla {
 namespace gl {
 class GLContext;
 }  // namespace gl
+namespace layers {
+class SurfacePool;
+}  // namespace layers
 namespace wr {
 
 typedef MozPromise<MemoryReport, bool, true> MemoryReportPromise;
@@ -44,7 +47,7 @@ class RenderThread;
 /// process.
 class WebRenderThreadPool {
  public:
-  WebRenderThreadPool();
+  explicit WebRenderThreadPool(bool low_priority);
 
   ~WebRenderThreadPool();
 
@@ -230,6 +233,10 @@ class RenderThread final {
   /// Can be called from any thread.
   WebRenderThreadPool& ThreadPool() { return mThreadPool; }
 
+  /// Thread pool for low priority scene building
+  /// Can be called from any thread.
+  WebRenderThreadPool& ThreadPoolLP() { return mThreadPoolLP; }
+
   /// Returns the cache used to serialize shader programs to disk, if enabled.
   ///
   /// Can only be called from the render thread.
@@ -246,8 +253,9 @@ class RenderThread final {
 
   /// Can only be called from the render thread.
   gl::GLContext* SharedGL();
-
   void ClearSharedGL();
+  RefPtr<layers::SurfacePool> SharedSurfacePool();
+  void ClearSharedSurfacePool();
 
   /// Can only be called from the render thread.
   void HandleDeviceReset(const char* aWhere, bool aNotify);
@@ -288,6 +296,7 @@ class RenderThread final {
   base::Thread* const mThread;
 
   WebRenderThreadPool mThreadPool;
+  WebRenderThreadPool mThreadPoolLP;
 
   UniquePtr<WebRenderProgramCache> mProgramCache;
   UniquePtr<WebRenderShaders> mShaders;
@@ -295,6 +304,8 @@ class RenderThread final {
   // An optional shared GLContext to be used for all
   // windows.
   RefPtr<gl::GLContext> mSharedGL;
+
+  RefPtr<layers::SurfacePool> mSurfacePool;
 
   std::map<wr::WindowId, UniquePtr<RendererOGL>> mRenderers;
   std::map<wr::WindowId, UniquePtr<layers::WebRenderCompositionRecorder>>

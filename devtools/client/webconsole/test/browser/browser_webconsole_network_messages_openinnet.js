@@ -55,7 +55,7 @@ add_task(async function task() {
   info("console panel open again.");
 
   // Fire an XHR request.
-  await ContentTask.spawn(gBrowser.selectedBrowser, null, function() {
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], function() {
     content.wrappedJSObject.testXhrGet();
   });
 
@@ -90,7 +90,7 @@ const {
 
 function waitForRequestData(store, fields, i) {
   return waitUntil(() => {
-    const item = getSortedRequests(store.getState()).get(i);
+    const item = getSortedRequests(store.getState())[i];
     if (!item) {
       return false;
     }

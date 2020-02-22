@@ -10,7 +10,10 @@ Test decoding a simple message
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css">
   <script type="application/javascript">
+"use strict";
+
 window.onload = function() {
+
   const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
 
   const QR = require("devtools/shared/qrcode/index");
@@ -30,16 +33,16 @@ window.onload = function() {
   (async function () {
     let result = await QR.decodeFromURI(testImage);
     is(result, "HELLO", "Decoded data URI result matches");
-    let canvas = await drawToCanvas(testImage);
+    const canvas = await drawToCanvas(testImage);
     result = QR.decodeFromCanvas(canvas);
     is(result, "HELLO", "Decoded canvas result matches");
   })().then(SimpleTest.finish, ok.bind(null, false));
 
   function drawToCanvas(src) {
     return new Promise(resolve => {
-      let canvas = document.createElement("canvas");
-      let context = canvas.getContext("2d");
-      let image = new Image();
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      const image = new Image();
 
       image.onload = () => {
         canvas.width = image.width;

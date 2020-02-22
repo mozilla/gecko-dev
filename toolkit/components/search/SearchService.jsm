@@ -781,7 +781,7 @@ SearchService.prototype = {
     } catch (ex) {
       this._initRV = ex.result !== undefined ? ex.result : Cr.NS_ERROR_FAILURE;
       SearchUtils.log(
-        "_init: failure initializng search: " + ex + "\n" + ex.stack
+        "_init: failure initializing search: " + ex + "\n" + ex.stack
       );
     }
     gInitialized = true;
@@ -1184,7 +1184,7 @@ SearchService.prototype = {
           return !cache.builtInEngineList.find(details => {
             return (
               engine.webExtension.id == details.id &&
-              engine.webExtension.locales[0] == details.locale
+              engine.webExtension.locale == details.locale
             );
           });
         };
@@ -1289,8 +1289,8 @@ SearchService.prototype = {
     SearchUtils.log("_loadEnginesFromConfig");
     let engines = [];
     for (let config of engineConfigs) {
-      let newEngines = await this.makeEnginesFromConfig(config, isReload);
-      engines = engines.concat(newEngines);
+      let engine = await this.makeEngineFromConfig(config, isReload);
+      engines.push(engine);
     }
     return engines;
   },
@@ -1834,9 +1834,8 @@ SearchService.prototype = {
 
     const defaultEngine = engines[0];
     function getLocale(engineInfo) {
-      return "webExtension" in engineInfo &&
-        "locales" in engineInfo.webExtension
-        ? engineInfo.webExtension.locales[0]
+      return "webExtension" in engineInfo && "locale" in engineInfo.webExtension
+        ? engineInfo.webExtension.locale
         : SearchUtils.DEFAULT_TAG;
     }
     this._searchDefault = {
@@ -2561,12 +2560,12 @@ SearchService.prototype = {
    *   webExtensionId etc.
    * @param {boolean} isReload (optional)
    *   Is being called as part of maybeReloadEngines.
-   * @returns {Array}
-   *   Returns an array of nsISearchEngine objects.
+   * @returns {nsISearchEngine}
+   *   Returns the search engine object.
    */
-  async makeEnginesFromConfig(config, isReload = false) {
+  async makeEngineFromConfig(config, isReload = false) {
     if (SearchUtils.loggingEnabled) {
-      SearchUtils.log("makeEnginesFromConfig: " + JSON.stringify(config));
+      SearchUtils.log("makeEngineFromConfig: " + JSON.stringify(config));
     }
     let id = config.webExtension.id;
     let policy = WebExtensionPolicy.getByID(id);
@@ -2588,57 +2587,55 @@ SearchService.prototype = {
     // Modern Config encodes params as objects whereas they are
     // strings in webExtensions, stringify them here.
     if ("params" in config) {
-      [
+      for (const key of [
         "searchUrlGetParams",
         "searchUrlPostParams",
         "suggestUrlGetParams",
         "suggestUrlPostParams",
-      ].forEach(key => {
+      ]) {
         if (key in config.params) {
-          params[key] = new URLSearchParams(config.params[key]).toString();
+          params[key] = new URLSearchParams(
+            config.params[key].map(kv => [kv.name, kv.value])
+          ).toString();
         }
-      });
+      }
     }
 
     if ("telemetryId" in config) {
       params.telemetryId = config.telemetryId;
     }
 
-    let locales =
-      "locales" in config.webExtension
-        ? config.webExtension.locales
-        : [SearchUtils.DEFAULT_TAG];
+    let locale =
+      "locale" in config.webExtension
+        ? config.webExtension.locale
+        : SearchUtils.DEFAULT_TAG;
 
-    let engines = [];
-    for (let locale of locales) {
-      let manifest = policy.extension.manifest;
-      if (locale != "default") {
-        manifest = await policy.extension.getLocalizedManifest(locale);
-      }
-
-      let engineParams = await Services.search.getEngineParams(
-        policy.extension,
-        manifest,
-        locale,
-        params
-      );
-
-      let engine = new SearchEngine({
-        name: engineParams.name,
-        readOnly: engineParams.isBuiltin,
-        sanitizeName: true,
-      });
-      engine._initFromMetadata(engineParams.name, engineParams);
-      engine._loadPath = "[other]addEngineWithDetails";
-      if (engineParams.extensionID) {
-        engine._loadPath += ":" + engineParams.extensionID;
-      }
-      if (isReload && this._engines.has(engine.name)) {
-        engine._engineToUpdate = this._engines.get(engine.name);
-      }
-      engines.push(engine);
+    let manifest = policy.extension.manifest;
+    if (locale != "default") {
+      manifest = await policy.extension.getLocalizedManifest(locale);
     }
-    return engines;
+
+    let engineParams = await Services.search.getEngineParams(
+      policy.extension,
+      manifest,
+      locale,
+      params
+    );
+
+    let engine = new SearchEngine({
+      name: engineParams.name,
+      readOnly: engineParams.isBuiltin,
+      sanitizeName: true,
+    });
+    engine._initFromMetadata(engineParams.name, engineParams);
+    engine._loadPath = "[other]addEngineWithDetails";
+    if (engineParams.extensionID) {
+      engine._loadPath += ":" + engineParams.extensionID;
+    }
+    if (isReload && this._engines.has(engine.name)) {
+      engine._engineToUpdate = this._engines.get(engine.name);
+    }
+    return engine;
   },
 
   async _installExtensionEngine(extension, locales, initEngine, isReload) {
@@ -2717,7 +2714,7 @@ SearchService.prototype = {
     if (locale != SearchUtils.DEFAULT_TAG) {
       shortName += "-" + locale;
     }
-    if ("telemetryId" in engineParams) {
+    if ("telemetryId" in engineParams && engineParams.telemetryId) {
       shortName = engineParams.telemetryId;
     }
 

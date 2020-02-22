@@ -58,17 +58,17 @@ using mozilla::Maybe;
 using mozilla::Some;
 
 const JSClassOps DebuggerScript::classOps_ = {
-    nullptr,                         /* addProperty */
-    nullptr,                         /* delProperty */
-    nullptr,                         /* enumerate   */
-    nullptr,                         /* newEnumerate */
-    nullptr,                         /* resolve     */
-    nullptr,                         /* mayResolve  */
-    nullptr,                         /* finalize    */
-    nullptr,                         /* call        */
-    nullptr,                         /* hasInstance */
-    nullptr,                         /* construct   */
-    CallTraceMethod<DebuggerScript>, /* trace */
+    nullptr,                          // addProperty
+    nullptr,                          // delProperty
+    nullptr,                          // enumerate
+    nullptr,                          // newEnumerate
+    nullptr,                          // resolve
+    nullptr,                          // mayResolve
+    nullptr,                          // finalize
+    nullptr,                          // call
+    nullptr,                          // hasInstance
+    nullptr,                          // construct
+    CallTraceMethod<DebuggerScript>,  // trace
 };
 
 const JSClass DebuggerScript::class_ = {
@@ -133,8 +133,6 @@ static JSScript* DelazifyScript(JSContext* cx, Handle<LazyScript*> lazyScript) {
 
   // JSFunction::getOrCreateScript requires the enclosing script not to be
   // lazified.
-  MOZ_ASSERT(lazyScript->hasEnclosingLazyScript() ||
-             lazyScript->hasEnclosingScope());
   if (lazyScript->hasEnclosingLazyScript()) {
     Rooted<LazyScript*> enclosingLazyScript(cx,
                                             lazyScript->enclosingLazyScript());
@@ -533,6 +531,28 @@ static bool PushFunctionScript(JSContext* cx, Debugger* dbg, HandleFunction fun,
   return wrapped && NewbornArrayPush(cx, array, ObjectValue(*wrapped));
 }
 
+static bool PushInnerFunctions(JSContext* cx, Debugger* dbg, HandleObject array,
+                               mozilla::Span<const JS::GCCellPtr> gcThings) {
+  RootedFunction fun(cx);
+
+  for (JS::GCCellPtr gcThing : gcThings) {
+    if (!gcThing.is<JSObject>()) {
+      continue;
+    }
+
+    JSObject* obj = &gcThing.as<JSObject>();
+    if (obj->is<JSFunction>()) {
+      fun = &obj->as<JSFunction>();
+
+      if (!PushFunctionScript(cx, dbg, fun, array)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 bool DebuggerScript::CallData::getChildScripts() {
   if (!ensureScriptMaybeLazy()) {
     return false;
@@ -544,31 +564,15 @@ bool DebuggerScript::CallData::getChildScripts() {
     return false;
   }
 
-  RootedFunction fun(cx);
   if (obj->getReferent().is<JSScript*>()) {
     RootedScript script(cx, obj->getReferent().as<JSScript*>());
-    for (JS::GCCellPtr gcThing : script->gcthings()) {
-      if (!gcThing.is<JSObject>()) {
-        continue;
-      }
-
-      JSObject* obj = &gcThing.as<JSObject>();
-      if (obj->is<JSFunction>()) {
-        fun = &obj->as<JSFunction>();
-
-        if (!PushFunctionScript(cx, dbg, fun, result)) {
-          return false;
-        }
-      }
+    if (!PushInnerFunctions(cx, dbg, result, script->gcthings())) {
+      return false;
     }
   } else {
     Rooted<LazyScript*> lazy(cx, obj->getReferent().as<LazyScript*>());
-
-    for (const GCPtrFunction& innerFun : lazy->innerFunctions()) {
-      fun = innerFun;
-      if (!PushFunctionScript(cx, dbg, fun, result)) {
-        return false;
-      }
+    if (!PushInnerFunctions(cx, dbg, result, lazy->gcthings())) {
+      return false;
     }
   }
 
@@ -1195,7 +1199,7 @@ class FlowGraphSummary {
         // because we only report offsets of entry points which have
         // valid incoming edges.
         for (const JSTryNote& tn : script->trynotes()) {
-          if (tn.start == r.frontOffset() + 1) {
+          if (tn.start == r.frontOffset() + JSOP_TRY_LENGTH) {
             uint32_t catchOffset = tn.start + tn.length;
             if (tn.kind == JSTRY_CATCH || tn.kind == JSTRY_FINALLY) {
               addEdge(lineno, column, catchOffset);
@@ -1602,6 +1606,7 @@ static bool BytecodeIsEffectful(JSOp op) {
     case JSOP_STRICTEVAL:
     case JSOP_INT8:
     case JSOP_UINT16:
+    case JSOP_RESUMEKIND:
     case JSOP_GETGNAME:
     case JSOP_GETNAME:
     case JSOP_GETINTRINSIC:
@@ -1667,7 +1672,6 @@ static bool BytecodeIsEffectful(JSOp op) {
     case JSOP_IS_CONSTRUCTING:
     case JSOP_OPTIMIZE_SPREADCALL:
     case JSOP_IMPORTMETA:
-    case JSOP_LOOPENTRY:
     case JSOP_INSTRUMENTATION_ACTIVE:
     case JSOP_INSTRUMENTATION_CALLBACK:
     case JSOP_INSTRUMENTATION_SCRIPT_ID:
@@ -1694,6 +1698,7 @@ static bool BytecodeIsEffectful(JSOp op) {
     case JSOP_ISGENCLOSING:
     case JSOP_FINALYIELDRVAL:
     case JSOP_RESUME:
+    case JSOP_CHECK_RESUMEKIND:
     case JSOP_AFTERYIELD:
     case JSOP_AWAIT:
     case JSOP_TRYSKIPAWAIT:
@@ -1706,10 +1711,6 @@ static bool BytecodeIsEffectful(JSOp op) {
     case JSOP_RETSUB:
     case JSOP_THROWMSG:
     case JSOP_FORCEINTERPRETER:
-    case JSOP_UNUSED71:
-    case JSOP_UNUSED106:
-    case JSOP_UNUSED120:
-    case JSOP_UNUSED149:
     case JSOP_LIMIT:
       return false;
   }
@@ -1727,7 +1728,7 @@ bool DebuggerScript::CallData::getEffectfulOffsets() {
   if (!result) {
     return false;
   }
-  for (BytecodeRangeWithPosition r(cx, script); !r.empty(); r.popFront()) {
+  for (BytecodeRange r(cx, script); !r.empty(); r.popFront()) {
     if (BytecodeIsEffectful(r.frontOpcode())) {
       if (!NewbornArrayPush(cx, result, NumberValue(r.frontOffset()))) {
         return false;

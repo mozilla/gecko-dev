@@ -143,7 +143,7 @@ const UNSAFE_IMPL_SYNC_TYPES: &'static [&'static str] = &[
 /// Flags passed through bindgen directly to Clang.
 const EXTRA_CLANG_FLAGS: &'static [&'static str] = &[
     "-x", "c++",
-    "-std=gnu++14",
+    "-std=gnu++17",
     "-fno-sized-deallocation",
     "-fno-aligned-new",
     "-DRUST_BINDGEN",
@@ -359,7 +359,7 @@ const WHITELIST_FUNCTIONS: &'static [&'static str] = &[
     "JS_GlobalObjectTraceHook",
     "JS::HideScriptedCaller",
     "JS::InitRealmStandardClasses",
-    "JS_IsArrayObject",
+    "JS::IsArrayObject",
     "JS_IsExceptionPending",
     "JS_IsGlobalObject",
     "JS::IsCallable",
@@ -367,7 +367,7 @@ const WHITELIST_FUNCTIONS: &'static [&'static str] = &[
     "JS_LinkConstructorAndPrototype",
     "JS_MayResolveStandardClass",
     "JS::NewArrayBuffer",
-    "JS_NewArrayObject",
+    "JS::NewArrayObject",
     "JS_NewContext",
     "JS_NewFloat32Array",
     "JS_NewFloat64Array",

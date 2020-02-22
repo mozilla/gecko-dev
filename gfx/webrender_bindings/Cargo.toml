@@ -17,7 +17,7 @@ gleam = "0.6.14"
 log = "0.4"
 nsstring = { path = "../../xpcom/rust/nsstring" }
 bincode = "1.0"
-uuid = { version = "0.7", features = ["v4"] }
+uuid = { version = "0.8", features = ["v4"] }
 fxhash = "0.2.1"
 
 [dependencies.webrender]
@@ -29,6 +29,7 @@ features = ["capture", "serialize_program"]
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.9"
 dirs = "1.0"
+winapi = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.6"

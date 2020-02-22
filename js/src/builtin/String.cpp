@@ -444,10 +444,18 @@ static bool str_resolve(JSContext* cx, HandleObject obj, HandleId id,
 }
 
 static const JSClassOps StringObjectClassOps = {
-    nullptr,                /* addProperty */
-    nullptr,                /* delProperty */
-    str_enumerate, nullptr, /* newEnumerate */
-    str_resolve,   str_mayResolve};
+    nullptr,         // addProperty
+    nullptr,         // delProperty
+    str_enumerate,   // enumerate
+    nullptr,         // newEnumerate
+    str_resolve,     // resolve
+    str_mayResolve,  // mayResolve
+    nullptr,         // finalize
+    nullptr,         // call
+    nullptr,         // hasInstance
+    nullptr,         // construct
+    nullptr,         // trace
+};
 
 const JSClass StringObject::class_ = {
     js_String_str,
@@ -1802,25 +1810,25 @@ static const TextChar* FirstCharMatcherUnrolled(const TextChar* text,
   switch ((textend - t) & 7) {
     case 0:
       if (*t++ == pat) return t - 1;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case 7:
       if (*t++ == pat) return t - 1;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case 6:
       if (*t++ == pat) return t - 1;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case 5:
       if (*t++ == pat) return t - 1;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case 4:
       if (*t++ == pat) return t - 1;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case 3:
       if (*t++ == pat) return t - 1;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case 2:
       if (*t++ == pat) return t - 1;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case 1:
       if (*t++ == pat) return t - 1;
   }

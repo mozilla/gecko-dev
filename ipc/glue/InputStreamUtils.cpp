@@ -17,13 +17,16 @@
 #include "mozilla/InputStreamLengthHelper.h"
 #include "mozilla/SlicedInputStream.h"
 #include "mozilla/InputStreamLengthWrapper.h"
+#include "nsBufferedStreams.h"
 #include "nsComponentManagerUtils.h"
 #include "nsDebug.h"
+#include "nsFileStreams.h"
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
 #include "nsID.h"
+#include "nsIMIMEInputStream.h"
+#include "nsIMultiplexInputStream.h"
 #include "nsIPipe.h"
-#include "nsIXULRuntime.h"
 #include "nsMIMEInputStream.h"
 #include "nsMultiplexInputStream.h"
 #include "nsNetCID.h"
@@ -120,7 +123,8 @@ void SerializeInputStreamAsPipeInternal(nsIInputStream* aInputStream,
 void InputStreamHelper::SerializeInputStream(
     nsIInputStream* aInputStream, InputStreamParams& aParams,
     nsTArray<FileDescriptor>& aFileDescriptors, bool aDelayedStart,
-    uint32_t aMaxSize, uint32_t* aSizeUsed, ContentChild* aManager) {
+    uint32_t aMaxSize, uint32_t* aSizeUsed,
+    ParentToChildStreamActorManager* aManager) {
   SerializeInputStreamInternal(aInputStream, aParams, aFileDescriptors,
                                aDelayedStart, aMaxSize, aSizeUsed, aManager);
 }
@@ -128,54 +132,22 @@ void InputStreamHelper::SerializeInputStream(
 void InputStreamHelper::SerializeInputStream(
     nsIInputStream* aInputStream, InputStreamParams& aParams,
     nsTArray<FileDescriptor>& aFileDescriptors, bool aDelayedStart,
-    uint32_t aMaxSize, uint32_t* aSizeUsed, PBackgroundChild* aManager) {
+    uint32_t aMaxSize, uint32_t* aSizeUsed,
+    ChildToParentStreamActorManager* aManager) {
   SerializeInputStreamInternal(aInputStream, aParams, aFileDescriptors,
                                aDelayedStart, aMaxSize, aSizeUsed, aManager);
 }
 
-void InputStreamHelper::SerializeInputStream(
+void InputStreamHelper::SerializeInputStreamAsPipe(
     nsIInputStream* aInputStream, InputStreamParams& aParams,
-    nsTArray<FileDescriptor>& aFileDescriptors, bool aDelayedStart,
-    uint32_t aMaxSize, uint32_t* aSizeUsed, ContentParent* aManager) {
-  SerializeInputStreamInternal(aInputStream, aParams, aFileDescriptors,
-                               aDelayedStart, aMaxSize, aSizeUsed, aManager);
-}
-
-void InputStreamHelper::SerializeInputStream(
-    nsIInputStream* aInputStream, InputStreamParams& aParams,
-    nsTArray<FileDescriptor>& aFileDescriptors, bool aDelayedStart,
-    uint32_t aMaxSize, uint32_t* aSizeUsed, PBackgroundParent* aManager) {
-  SerializeInputStreamInternal(aInputStream, aParams, aFileDescriptors,
-                               aDelayedStart, aMaxSize, aSizeUsed, aManager);
-}
-
-void InputStreamHelper::SerializeInputStreamAsPipe(nsIInputStream* aInputStream,
-                                                   InputStreamParams& aParams,
-                                                   bool aDelayedStart,
-                                                   ContentChild* aManager) {
-  SerializeInputStreamAsPipeInternal(aInputStream, aParams, aDelayedStart,
-                                     aManager);
-}
-
-void InputStreamHelper::SerializeInputStreamAsPipe(nsIInputStream* aInputStream,
-                                                   InputStreamParams& aParams,
-                                                   bool aDelayedStart,
-                                                   PBackgroundChild* aManager) {
-  SerializeInputStreamAsPipeInternal(aInputStream, aParams, aDelayedStart,
-                                     aManager);
-}
-
-void InputStreamHelper::SerializeInputStreamAsPipe(nsIInputStream* aInputStream,
-                                                   InputStreamParams& aParams,
-                                                   bool aDelayedStart,
-                                                   ContentParent* aManager) {
+    bool aDelayedStart, ParentToChildStreamActorManager* aManager) {
   SerializeInputStreamAsPipeInternal(aInputStream, aParams, aDelayedStart,
                                      aManager);
 }
 
 void InputStreamHelper::SerializeInputStreamAsPipe(
     nsIInputStream* aInputStream, InputStreamParams& aParams,
-    bool aDelayedStart, PBackgroundParent* aManager) {
+    bool aDelayedStart, ChildToParentStreamActorManager* aManager) {
   SerializeInputStreamAsPipeInternal(aInputStream, aParams, aDelayedStart,
                                      aManager);
 }
@@ -325,25 +297,39 @@ already_AddRefed<nsIInputStream> InputStreamHelper::DeserializeInputStream(
   nsCOMPtr<nsIIPCSerializableInputStream> serializable;
 
   switch (aParams.type()) {
-    case InputStreamParams::TStringInputStreamParams:
-      serializable = do_CreateInstance(kStringInputStreamCID);
-      break;
+    case InputStreamParams::TStringInputStreamParams: {
+      nsCOMPtr<nsIInputStream> stream;
+      NS_NewCStringInputStream(getter_AddRefs(stream), EmptyCString());
+      serializable = do_QueryInterface(stream);
+    } break;
 
-    case InputStreamParams::TFileInputStreamParams:
-      serializable = do_CreateInstance(kFileInputStreamCID);
-      break;
+    case InputStreamParams::TFileInputStreamParams: {
+      nsCOMPtr<nsIFileInputStream> stream;
+      nsFileInputStream::Create(nullptr, NS_GET_IID(nsIFileInputStream),
+                                getter_AddRefs(stream));
+      serializable = do_QueryInterface(stream);
+    } break;
 
-    case InputStreamParams::TBufferedInputStreamParams:
-      serializable = do_CreateInstance(kBufferedInputStreamCID);
-      break;
+    case InputStreamParams::TBufferedInputStreamParams: {
+      nsCOMPtr<nsIBufferedInputStream> stream;
+      nsBufferedInputStream::Create(nullptr, NS_GET_IID(nsIBufferedInputStream),
+                                    getter_AddRefs(stream));
+      serializable = do_QueryInterface(stream);
+    } break;
 
-    case InputStreamParams::TMIMEInputStreamParams:
-      serializable = do_CreateInstance(kMIMEInputStreamCID);
-      break;
+    case InputStreamParams::TMIMEInputStreamParams: {
+      nsCOMPtr<nsIMIMEInputStream> stream;
+      nsMIMEInputStreamConstructor(nullptr, NS_GET_IID(nsIMIMEInputStream),
+                                   getter_AddRefs(stream));
+      serializable = do_QueryInterface(stream);
+    } break;
 
-    case InputStreamParams::TMultiplexInputStreamParams:
-      serializable = do_CreateInstance(kMultiplexInputStreamCID);
-      break;
+    case InputStreamParams::TMultiplexInputStreamParams: {
+      nsCOMPtr<nsIMultiplexInputStream> stream;
+      nsMultiplexInputStreamConstructor(
+          nullptr, NS_GET_IID(nsIMultiplexInputStream), getter_AddRefs(stream));
+      serializable = do_QueryInterface(stream);
+    } break;
 
     case InputStreamParams::TSlicedInputStreamParams:
       serializable = new SlicedInputStream();

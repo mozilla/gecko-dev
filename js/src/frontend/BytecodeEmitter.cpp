@@ -26,7 +26,8 @@
 #include "jsnum.h"    // NumberToAtom
 #include "jstypes.h"  // JS_BIT
 
-#include "ds/Nestable.h"                         // Nestable
+#include "ds/Nestable.h"  // Nestable
+#include "frontend/AbstractScope.h"
 #include "frontend/BytecodeControlStructures.h"  // NestableControl, BreakableControl, LabelControl, LoopControl, TryFinallyControl
 #include "frontend/CallOrNewEmitter.h"           // CallOrNewEmitter
 #include "frontend/CForEmitter.h"                // CForEmitter
@@ -64,8 +65,7 @@
 #include "vm/Opcodes.h"   // JSOP_*
 #include "wasm/AsmJS.h"   // IsAsmJSModule
 
-#include "debugger/DebugAPI-inl.h"  // DebugAPI
-#include "vm/JSObject-inl.h"        // JSObject
+#include "vm/JSObject-inl.h"  // JSObject
 
 using namespace js;
 using namespace js::frontend;
@@ -180,7 +180,7 @@ Maybe<NameLocation> BytecodeEmitter::locationOfNameBoundInScope(
 Maybe<NameLocation> BytecodeEmitter::locationOfNameBoundInFunctionScope(
     JSAtom* name, EmitterScope* source) {
   EmitterScope* funScope = source;
-  while (!funScope->scope(this)->is<FunctionScope>()) {
+  while (!funScope->scope(this).is<FunctionScope>()) {
     funScope = funScope->enclosingInFrame();
   }
   return source->locationBoundInScope(name, funScope);
@@ -406,22 +406,6 @@ bool BytecodeEmitter::emitJump(JSOp op, JumpList* jump) {
     if (!emitJumpTarget(&fallthrough)) {
       return false;
     }
-  }
-  return true;
-}
-
-bool BytecodeEmitter::emitBackwardJump(JSOp op, JumpTarget target,
-                                       JumpList* jump,
-                                       JumpTarget* fallthrough) {
-  if (!emitJumpNoFallthrough(op, jump)) {
-    return false;
-  }
-  patchJumpsToTarget(*jump, target);
-
-  // Unconditionally create a fallthrough for closing iterators, and as a
-  // target for break statements.
-  if (!emitJumpTarget(fallthrough)) {
-    return false;
   }
   return true;
 }
@@ -806,10 +790,6 @@ bool NonLocalExitControl::prepareForNonLocalJump(NestableControl* target) {
         }
 
         // The iterator and the current value are on the stack.
-        if (!bce_->emit1(JSOP_POP)) {
-          //        [stack] ... ITER
-          return false;
-        }
         if (!bce_->emit1(JSOP_ENDITER)) {
           //        [stack] ...
           return false;
@@ -873,7 +853,7 @@ bool BytecodeEmitter::emitGoto(NestableControl* target, JumpList* jumplist,
   return emitJump(JSOP_GOTO, jumplist);
 }
 
-Scope* BytecodeEmitter::innermostScope() const {
+AbstractScope BytecodeEmitter::innermostScope() const {
   return innermostEmitterScope()->scope(this);
 }
 
@@ -1253,7 +1233,7 @@ restart:
     // Any subexpression of a comma expression could be effectful.
     case ParseNodeKind::CommaExpr:
       MOZ_ASSERT(!pn->as<ListNode>().empty());
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     // Subcomponents of a literal may be effectful.
     case ParseNodeKind::ArrayExpr:
     case ParseNodeKind::ObjectExpr:
@@ -1566,7 +1546,7 @@ bool BytecodeEmitter::needsImplicitThis() {
   // Otherwise see if the current point is under a 'with'.
   for (EmitterScope* es = innermostEmitterScope(); es;
        es = es->enclosingInFrame()) {
-    if (es->scope(this)->kind() == ScopeKind::With) {
+    if (es->scope(this).kind() == ScopeKind::With) {
       return true;
     }
   }
@@ -1584,14 +1564,14 @@ bool BytecodeEmitter::emitThisEnvironmentCallee() {
 
   // We have to load the callee from the environment chain.
   unsigned numHops = 0;
-  for (ScopeIter si(innermostScope()); si; si++) {
-    if (si.hasSyntacticEnvironment() && si.scope()->is<FunctionScope>()) {
-      JSFunction* fun = si.scope()->as<FunctionScope>().canonicalFunction();
-      if (!fun->isArrow()) {
+  for (AbstractScopeIter si(innermostScope()); si; si++) {
+    if (si.hasSyntacticEnvironment() &&
+        si.abstractScope().is<FunctionScope>()) {
+      if (!si.abstractScope().isArrow()) {
         break;
       }
     }
-    if (si.scope()->hasEnvironment()) {
+    if (si.abstractScope().hasEnvironment()) {
       numHops++;
     }
   }
@@ -1615,20 +1595,6 @@ bool BytecodeEmitter::emitSuperBase() {
   }
 
   return emit1(JSOP_SUPERBASE);
-}
-
-void BytecodeEmitter::tellDebuggerAboutCompiledScript(JSContext* cx) {
-  // Note: when parsing off thread the resulting scripts need to be handed to
-  // the debugger after rejoining to the main thread.
-  if (cx->isHelperThreadContext()) {
-    return;
-  }
-
-  // Lazy scripts are never top level (despite always being invoked with a
-  // nullptr parent), and so the hook should never be fired.
-  if (emitterMode != LazyFunction && !parent) {
-    DebugAPI::onNewScript(cx, script);
-  }
 }
 
 void BytecodeEmitter::reportNeedMoreArgsError(ParseNode* pn,
@@ -2339,6 +2305,10 @@ bool BytecodeEmitter::emitYieldOp(JSOp op) {
   return emitJumpTargetOp(JSOP_AFTERYIELD, &unusedOffset);
 }
 
+bool BytecodeEmitter::emitPushResumeKind(GeneratorResumeKind kind) {
+  return emit2(JSOP_RESUMEKIND, uint8_t(kind));
+}
+
 bool BytecodeEmitter::emitSetThis(BinaryNode* setThisNode) {
   // ParseNodeKind::SetThis is used to update |this| after a super() call
   // in a derived class constructor.
@@ -2521,8 +2491,6 @@ bool BytecodeEmitter::emitScript(ParseNode* body) {
     return false;
   }
 
-  tellDebuggerAboutCompiledScript(cx);
-
   return true;
 }
 
@@ -2535,8 +2503,7 @@ bool BytecodeEmitter::emitFunctionScript(FunctionNode* funNode,
   AutoFrontendTraceLog traceLog(cx, TraceLogger_BytecodeEmission,
                                 parser->errorReporter(), funbox);
 
-  MOZ_ASSERT((fieldInitializers_.valid) ==
-             (funbox->kind() == FunctionFlags::FunctionKind::ClassConstructor));
+  MOZ_ASSERT(fieldInitializers_.valid == funbox->isClassConstructor());
 
   setScriptStartOffsetIfUnset(paramsBody->pn_pos.begin);
 
@@ -4606,7 +4573,8 @@ bool BytecodeEmitter::emitCallSiteObject(CallSiteNode* callSiteObj) {
     return false;
   }
 
-  hasCallSiteObj = true;
+  MOZ_ASSERT(sc->hasCallSiteObj());
+
   return emitObjectPairOp(objbox1, objbox2, JSOP_CALLSITEOBJ);
 }
 
@@ -5178,37 +5146,39 @@ bool BytecodeEmitter::emitAsyncIterator() {
 bool BytecodeEmitter::emitSpread(bool allowSelfHosted) {
   LoopControl loopInfo(this, StatementKind::Spread);
 
-  // Jump down to the loop condition to minimize overhead assuming at least
-  // one iteration, as the other loop forms do.  Annotate so IonMonkey can
-  // find the loop-closing jump.
-  unsigned noteIndex;
-  if (!newSrcNote(SRC_FOR_OF, &noteIndex)) {
-    return false;
-  }
-
-  // Jump down to the loop condition to minimize overhead, assuming at least
-  // one iteration.  (This is also what we do for loops; whether this
-  // assumption holds for spreads is an unanswered question.)
-  if (!loopInfo.emitEntryJump(this)) {
-    //              [stack] NEXT ITER ARR I (during the goto)
-    return false;
-  }
-
   if (!loopInfo.emitLoopHead(this, Nothing())) {
     //              [stack] NEXT ITER ARR I
     return false;
   }
 
-  // When we enter the goto above, we have NEXT ITER ARR I on the stack. But
-  // when we reach this point on the loop backedge (if spreading produces at
-  // least one value), we've additionally pushed a RESULT iteration value.
-  // Increment manually to reflect this.
-  bytecodeSection().setStackDepth(bytecodeSection().stackDepth() + 1);
-
   {
 #ifdef DEBUG
     auto loopDepth = bytecodeSection().stackDepth();
 #endif
+
+    // Spread operations can't contain |continue|, so don't bother setting loop
+    // and enclosing "update" offsets, as we do with for-loops.
+
+    if (!emitDupAt(3, 2)) {
+      //            [stack] NEXT ITER ARR I NEXT
+      return false;
+    }
+    if (!emitIteratorNext(Nothing(), IteratorKind::Sync, allowSelfHosted)) {
+      //            [stack] NEXT ITER ARR I RESULT
+      return false;
+    }
+    if (!emit1(JSOP_DUP)) {
+      //            [stack] NEXT ITER ARR I RESULT RESULT
+      return false;
+    }
+    if (!emitAtomOp(cx->names().done, JSOP_GETPROP)) {
+      //            [stack] NEXT ITER ARR I RESULT DONE
+      return false;
+    }
+    if (!emitJump(JSOP_IFNE, &loopInfo.breaks)) {
+      //            [stack] NEXT ITER ARR I RESULT
+      return false;
+    }
 
     // Emit code to assign result.value to the iteration variable.
     if (!emitAtomOp(cx->names().value, JSOP_GETPROP)) {
@@ -5220,56 +5190,21 @@ bool BytecodeEmitter::emitSpread(bool allowSelfHosted) {
       return false;
     }
 
-    MOZ_ASSERT(bytecodeSection().stackDepth() == loopDepth - 1);
-
-    // Spread operations can't contain |continue|, so don't bother setting loop
-    // and enclosing "update" offsets, as we do with for-loops.
-
-    // COME FROM the beginning of the loop to here.
-    if (!loopInfo.emitLoopEntry(this, Nothing())) {
-      //            [stack] NEXT ITER ARR I
-      return false;
-    }
-
-    if (!emitDupAt(3, 2)) {
-      //            [stack] NEXT ITER ARR I NEXT
-      return false;
-    }
-    if (!emitIteratorNext(Nothing(), IteratorKind::Sync, allowSelfHosted)) {
-      //            [stack] ITER ARR I RESULT
-      return false;
-    }
-    if (!emit1(JSOP_DUP)) {
-      //            [stack] NEXT ITER ARR I RESULT RESULT
-      return false;
-    }
-    if (!emitAtomOp(cx->names().done, JSOP_GETPROP)) {
-      //            [stack] NEXT ITER ARR I RESULT DONE
-      return false;
-    }
-
-    if (!loopInfo.emitLoopEnd(this, JSOP_IFEQ)) {
-      //            [stack] NEXT ITER ARR I RESULT
+    if (!loopInfo.emitLoopEnd(this, JSOP_GOTO, JSTRY_FOR_OF)) {
+      //            [stack] NEXT ITER ARR (I+1)
       return false;
     }
 
     MOZ_ASSERT(bytecodeSection().stackDepth() == loopDepth);
   }
 
-  // Let Ion know where the closing jump of this loop is.
-  if (!setSrcNoteOffset(noteIndex, SrcNote::ForOf::BackJumpOffset,
-                        loopInfo.loopEndOffsetFromEntryJump())) {
-    return false;
-  }
+  // When we leave the loop body and jump to this point, the result value is
+  // still on the stack. Account for that by updating the stack depth
+  // manually.
+  bytecodeSection().setStackDepth(bytecodeSection().stackDepth() + 1);
 
-  // No breaks or continues should occur in spreads.
-  MOZ_ASSERT(!loopInfo.breaks.offset.valid());
+  // No continues should occur in spreads.
   MOZ_ASSERT(!loopInfo.continues.offset.valid());
-
-  if (!addTryNote(JSTRY_FOR_OF, bytecodeSection().stackDepth(),
-                  loopInfo.headOffset(), loopInfo.breakTargetOffset())) {
-    return false;
-  }
 
   if (!emit2(JSOP_PICK, 4)) {
     //              [stack] ITER ARR FINAL_INDEX RESULT NEXT
@@ -5600,9 +5535,26 @@ bool BytecodeEmitter::emitCStyleFor(
     }
   }
 
-  if (!cfor.emitBody(
-          cond ? CForEmitter::Cond::Present : CForEmitter::Cond::Missing,
-          getOffsetForLoop(forBody))) {
+  if (!cfor.emitCond(cond ? Some(cond->pn_pos.begin) : Nothing())) {
+    //              [stack]
+    return false;
+  }
+
+  if (cond) {
+    if (!updateSourceCoordNotes(cond->pn_pos.begin)) {
+      return false;
+    }
+    if (!markStepBreakpoint()) {
+      return false;
+    }
+    if (!emitTree(cond)) {
+      //            [stack] VAL
+      return false;
+    }
+  }
+
+  if (!cfor.emitBody(cond ? CForEmitter::Cond::Present
+                          : CForEmitter::Cond::Missing)) {
     //              [stack]
     return false;
   }
@@ -5633,27 +5585,7 @@ bool BytecodeEmitter::emitCStyleFor(
     }
   }
 
-  if (!cfor.emitCond(Some(forNode->pn_pos.begin),
-                     cond ? Some(cond->pn_pos.begin) : Nothing(),
-                     Some(forNode->pn_pos.end))) {
-    //              [stack]
-    return false;
-  }
-
-  if (cond) {
-    if (!updateSourceCoordNotes(cond->pn_pos.begin)) {
-      return false;
-    }
-    if (!markStepBreakpoint()) {
-      return false;
-    }
-    if (!emitTree(cond)) {
-      //            [stack] VAL
-      return false;
-    }
-  }
-
-  if (!cfor.emitEnd()) {
+  if (!cfor.emitEnd(Some(forNode->pn_pos.begin))) {
     //              [stack]
     return false;
   }
@@ -5685,7 +5617,7 @@ MOZ_NEVER_INLINE bool BytecodeEmitter::emitFunction(
   FunctionBox* funbox = funNode->funbox();
 
   MOZ_ASSERT((classContentsIfConstructor != nullptr) ==
-             (funbox->kind() == FunctionFlags::FunctionKind::ClassConstructor));
+             funbox->isClassConstructor());
 
   //                [stack]
 
@@ -5714,8 +5646,13 @@ MOZ_NEVER_INLINE bool BytecodeEmitter::emitFunction(
       }
 
       if (classContentsIfConstructor) {
-        funbox->setFieldInitializers(
-            setupFieldInitializers(classContentsIfConstructor));
+        mozilla::Maybe<FieldInitializers> fieldInitializers =
+            setupFieldInitializers(classContentsIfConstructor);
+        if (!fieldInitializers) {
+          ReportAllocationOverflow(cx);
+          return false;
+        }
+        funbox->setFieldInitializers(*fieldInitializers);
       }
 
       return true;
@@ -5736,9 +5673,10 @@ MOZ_NEVER_INLINE bool BytecodeEmitter::emitFunction(
     Rooted<ScriptSourceObject*> sourceObject(cx, script->sourceObject());
     RootedFunction fun(cx, funbox->function());
     RootedScript innerScript(
-        cx, JSScript::Create(cx, fun, options, sourceObject, funbox->bufStart,
-                             funbox->bufEnd, funbox->toStringStart,
-                             funbox->toStringEnd));
+        cx, JSScript::Create(cx, fun, options, sourceObject,
+                             funbox->sourceStart, funbox->sourceEnd,
+                             funbox->toStringStart, funbox->toStringEnd,
+                             funbox->startLine, funbox->startColumn));
     if (!innerScript) {
       return false;
     }
@@ -5749,15 +5687,22 @@ MOZ_NEVER_INLINE bool BytecodeEmitter::emitFunction(
       nestedMode = BytecodeEmitter::Normal;
     }
 
-    FieldInitializers fieldInitializers = FieldInitializers::Invalid();
+    mozilla::Maybe<FieldInitializers> fieldInitializers;
     if (classContentsIfConstructor) {
       fieldInitializers = setupFieldInitializers(classContentsIfConstructor);
+      if (!fieldInitializers) {
+        ReportAllocationOverflow(cx);
+        return false;
+      }
+    } else {
+      // The BCE requires passing some value even if not used.
+      fieldInitializers = Some(FieldInitializers::Invalid());
     }
 
     BytecodeEmitter bce2(this, parser, funbox, innerScript,
                          /* lazyScript = */ nullptr, funbox->startLine,
                          funbox->startColumn, parseInfo, nestedMode,
-                         fieldInitializers);
+                         *fieldInitializers);
     if (!bce2.init(funNode->pn_pos)) {
       return false;
     }
@@ -5770,7 +5715,7 @@ MOZ_NEVER_INLINE bool BytecodeEmitter::emitFunction(
     // fieldInitializers are copied to the JSScript inside BytecodeEmitter
 
     if (funbox->isLikelyConstructorWrapper()) {
-      innerScript->setLikelyConstructorWrapper();
+      innerScript->setIsLikelyConstructorWrapper();
     }
 
     if (!fe.emitNonLazyEnd()) {
@@ -5828,17 +5773,10 @@ bool BytecodeEmitter::emitWhile(BinaryNode* whileNode) {
   ParseNode* bodyNode = whileNode->right();
 
   WhileEmitter wh(this);
-  if (!wh.emitBody(Some(whileNode->pn_pos.begin), getOffsetForLoop(bodyNode),
-                   Some(whileNode->pn_pos.end))) {
-    return false;
-  }
-
-  if (!emitTree(bodyNode)) {
-    return false;
-  }
 
   ParseNode* condNode = whileNode->left();
-  if (!wh.emitCond(getOffsetForLoop(condNode))) {
+  if (!wh.emitCond(Some(whileNode->pn_pos.begin), getOffsetForLoop(condNode),
+                   Some(whileNode->pn_pos.end))) {
     return false;
   }
 
@@ -5849,6 +5787,13 @@ bool BytecodeEmitter::emitWhile(BinaryNode* whileNode) {
     return false;
   }
   if (!emitTree(condNode)) {
+    return false;
+  }
+
+  if (!wh.emitBody()) {
+    return false;
+  }
+  if (!emitTree(bodyNode)) {
     return false;
   }
 
@@ -6112,10 +6057,15 @@ bool BytecodeEmitter::emitInitialYield(UnaryNode* yieldNode) {
   }
 
   if (!emitYieldOp(JSOP_INITIALYIELD)) {
+    //              [stack] RVAL GENERATOR RESUMEKIND
     return false;
   }
-
+  if (!emit1(JSOP_CHECK_RESUMEKIND)) {
+    //              [stack] RVAL
+    return false;
+  }
   if (!emit1(JSOP_POP)) {
+    //              [stack]
     return false;
   }
 
@@ -6171,6 +6121,11 @@ bool BytecodeEmitter::emitYield(UnaryNode* yieldNode) {
   }
 
   if (!emitYieldOp(JSOP_YIELD)) {
+    //              [stack] YIELDRESULT GENERATOR RESUMEKIND
+    return false;
+  }
+
+  if (!emit1(JSOP_CHECK_RESUMEKIND)) {
     //              [stack] YIELDRESULT
     return false;
   }
@@ -6221,6 +6176,10 @@ bool BytecodeEmitter::emitAwaitInScope(EmitterScope& currentScope) {
     return false;
   }
   if (!emitYieldOp(JSOP_AWAIT)) {
+    //              [stack] RESOLVED GENERATOR RESUMEKIND
+    return false;
+  }
+  if (!emit1(JSOP_CHECK_RESUMEKIND)) {
     //              [stack] RESOLVED
     return false;
   }
@@ -6264,423 +6223,390 @@ bool BytecodeEmitter::emitYieldStar(ParseNode* iter) {
   }
 
   // Step 6.
-  // Initial send value is undefined.
+  // Start with NormalCompletion(undefined).
   if (!emit1(JSOP_UNDEFINED)) {
     //              [stack] NEXT ITER RECEIVED
     return false;
   }
-
-  int32_t savedDepthTemp;
-  int32_t startDepth = bytecodeSection().stackDepth();
-  MOZ_ASSERT(startDepth >= 3);
-
-  TryEmitter tryCatch(this, TryEmitter::Kind::TryCatchFinally,
-                      TryEmitter::ControlKind::NonSyntactic);
-  if (!tryCatch.emitJumpOverCatchAndFinally()) {
-    //              [stack] NEXT ITER RESULT
+  if (!emitPushResumeKind(GeneratorResumeKind::Next)) {
+    //              [stack] NEXT ITER RECEIVED RESUMEKIND
     return false;
   }
 
-  JumpTarget tryStart;
-  if (!emitJumpTarget(&tryStart)) {
-    //              [stack] NEXT ITER RESULT
+  const int32_t startDepth = bytecodeSection().stackDepth();
+  MOZ_ASSERT(startDepth >= 4);
+
+  // Step 7 is a loop.
+  LoopControl loopInfo(this, StatementKind::YieldStar);
+  if (!loopInfo.emitLoopHead(this, Nothing())) {
+    //              [stack] NEXT ITER RECEIVED RESUMEKIND
     return false;
   }
 
-  if (iterKind == IteratorKind::Async) {
-    // Step 7.a.vi.
-    // Step 7.b.ii.7.
-    // Step 7.c.ix.
-    //   Call to IteratorValue.
-    if (!emitAtomOp(cx->names().value, JSOP_GETPROP)) {
-      //            [stack] NEXT ITER RESULT
-      return false;
-    }
-  }
-
-  if (!tryCatch.emitTry()) {
-    //              [stack] NEXT ITER RESULT
-    return false;
-  }
-
-  MOZ_ASSERT(bytecodeSection().stackDepth() == startDepth);
-
-  // Step 7.a.vi.
-  // Step 7.b.ii.7.
-  // Step 7.c.ix.
-  //   25.5.3.7 AsyncGeneratorYield, step 5.
-  if (iterKind == IteratorKind::Async) {
-    if (!emitAwaitInInnermostScope()) {
-      //            [stack] NEXT ITER RESULT
-      return false;
-    }
-  }
-
-  // Steps 7.a.vi-vii.
-  // Steps 7.b.ii.7-8.
-  // Steps 7.c.ix-x.
-  // Load the generator object.
-  if (!emitGetDotGeneratorInInnermostScope()) {
-    //              [stack] NEXT ITER RESULT GENOBJ
-    return false;
-  }
-
-  // Yield RESULT as-is, without re-boxing.
-  if (!emitYieldOp(JSOP_YIELD)) {
-    //              [stack] NEXT ITER RECEIVED
-    return false;
-  }
-
-  if (!tryCatch.emitCatch()) {
-    //              [stack] NEXT ITER RESULT EXCEPTION
-    return false;
-  }
-
-  // The exception was already pushed by emitCatch().
-  MOZ_ASSERT(bytecodeSection().stackDepth() == startDepth + 1);
-
-  if (!emitDupAt(2)) {
-    //              [stack] NEXT ITER RESULT EXCEPTION ITER
-    return false;
-  }
+  // Step 7.a. Check for Normal completion.
   if (!emit1(JSOP_DUP)) {
-    //              [stack] NEXT ITER RESULT EXCEPTION ITER ITER
+    //              [stack] NEXT ITER RECEIVED RESUMEKIND RESUMEKIND
     return false;
   }
-  if (!emitAtomOp(cx->names().throw_, JSOP_CALLPROP)) {
-    //              [stack] NEXT ITER RESULT EXCEPTION ITER THROW
+  if (!emitPushResumeKind(GeneratorResumeKind::Next)) {
+    //              [stack] NEXT ITER RECEIVED RESUMEKIND RESUMEKIND NORMAL
     return false;
   }
-
-  savedDepthTemp = bytecodeSection().stackDepth();
-  InternalIfEmitter ifThrowMethodIsNotDefined(this);
-  if (!emitPushNotUndefinedOrNull()) {
-    //              [stack] NEXT ITER RESULT EXCEPTION ITER THROW
-    //                    NOT-UNDEF-OR-NULL
+  if (!emit1(JSOP_STRICTEQ)) {
+    //              [stack] NEXT ITER RECEIVED RESUMEKIND IS_NORMAL
     return false;
   }
 
-  if (!ifThrowMethodIsNotDefined.emitThenElse()) {
-    //              [stack] NEXT ITER RESULT EXCEPTION ITER THROW
-    return false;
-  }
-
-  //                [stack] NEXT ITER OLDRESULT EXCEPTION ITER THROW
-
-  // Step 7.b.ii.1.
-  // RESULT = ITER.throw(EXCEPTION)
-  if (!emit1(JSOP_SWAP)) {
-    //              [stack] NEXT ITER OLDRESULT EXCEPTION THROW ITER
-    return false;
-  }
-  if (!emit2(JSOP_PICK, 2)) {
-    //              [stack] NEXT ITER OLDRESULT THROW ITER EXCEPTION
-    return false;
-  }
-  if (!emitCall(JSOP_CALL, 1, iter)) {
-    //              [stack] NEXT ITER OLDRESULT RESULT
-    return false;
-  }
-
-  // Step 7.b.ii.2.
-  if (iterKind == IteratorKind::Async) {
-    if (!emitAwaitInInnermostScope()) {
-      //            [stack] NEXT ITER OLDRESULT RESULT
-      return false;
-    }
-  }
-
-  // Step 7.b.ii.4.
-  if (!emitCheckIsObj(CheckIsObjectKind::IteratorThrow)) {
-    //              [stack] NEXT ITER OLDRESULT RESULT
-    return false;
-  }
-  if (!emit1(JSOP_SWAP)) {
-    //              [stack] NEXT ITER RESULT OLDRESULT
-    return false;
-  }
-  if (!emit1(JSOP_POP)) {
-    //              [stack] NEXT ITER RESULT
-    return false;
-  }
-  MOZ_ASSERT(bytecodeSection().stackDepth() == startDepth);
-
-  JumpList checkResult;
-  // Note that there is no GOSUB to the finally block here. If the iterator has
-  // a "throw" method, it does not perform IteratorClose.
-  if (!emitJump(JSOP_GOTO, &checkResult)) {
-    //              [stack] NEXT ITER RESULT
-    //              [stack] # goto checkResult
-    return false;
-  }
-
-  bytecodeSection().setStackDepth(savedDepthTemp);
-  if (!ifThrowMethodIsNotDefined.emitElse()) {
-    //              [stack] NEXT ITER RESULT EXCEPTION ITER THROW
-    return false;
-  }
-
-  if (!emit1(JSOP_POP)) {
-    //              [stack] NEXT ITER RESULT EXCEPTION ITER
-    return false;
-  }
-  // Steps 7.b.iii.1-4.
-  //
-  // If the iterator does not have a "throw" method, it calls IteratorClose
-  // and then throws a TypeError.
-  if (!emitIteratorCloseInInnermostScope(iterKind)) {
-    //              [stack] NEXT ITER RESULT EXCEPTION
-    return false;
-  }
-  // Steps 7.b.iii.5-6.
-  if (!emitUint16Operand(JSOP_THROWMSG, JSMSG_ITERATOR_NO_THROW)) {
-    //              [stack] NEXT ITER RESULT EXCEPTION
-    //              [stack] # throw
-    return false;
-  }
-
-  bytecodeSection().setStackDepth(savedDepthTemp);
-  if (!ifThrowMethodIsNotDefined.emitEnd()) {
-    return false;
-  }
-
-  bytecodeSection().setStackDepth(startDepth);
-  if (!tryCatch.emitFinally()) {
-    return false;
-  }
-
-  // Step 7.c.i.
-  //
-  // Call iterator.return() for receiving a "forced return" completion from
-  // the generator.
-
-  InternalIfEmitter ifGeneratorClosing(this);
-  if (!emit1(JSOP_ISGENCLOSING)) {
-    //              [stack] NEXT ITER RESULT FTYPE FVALUE CLOSING
-    return false;
-  }
-  if (!ifGeneratorClosing.emitThen()) {
-    //              [stack] NEXT ITER RESULT FTYPE FVALUE
-    return false;
-  }
-
-  // Step 7.c.ii.
-  //
-  // Get the "return" method.
-  if (!emitDupAt(3)) {
-    //              [stack] NEXT ITER RESULT FTYPE FVALUE ITER
-    return false;
-  }
-  if (!emit1(JSOP_DUP)) {
-    //              [stack] NEXT ITER RESULT FTYPE FVALUE ITER ITER
-    return false;
-  }
-  if (!emitAtomOp(cx->names().return_, JSOP_CALLPROP)) {
-    //              [stack] NEXT ITER RESULT FTYPE FVALUE ITER RET
-    return false;
-  }
-
-  // Step 7.c.iii.
-  //
-  // Do nothing if "return" is undefined or null.
-  InternalIfEmitter ifReturnMethodIsDefined(this);
-  if (!emitPushNotUndefinedOrNull()) {
-    //              [stack] NEXT ITER RESULT FTYPE FVALUE ITER RET
-    //                    NOT-UNDEF-OR-NULL
-    return false;
-  }
-
-  // Step 7.c.iv.
-  //
-  // Call "return" with the argument passed to Generator.prototype.return,
-  // which is currently in rval.value.
-  if (!ifReturnMethodIsDefined.emitThenElse()) {
-    //              [stack] NEXT ITER OLDRESULT FTYPE FVALUE ITER RET
-    return false;
-  }
-  if (!emit1(JSOP_SWAP)) {
-    //              [stack] NEXT ITER OLDRESULT FTYPE FVALUE RET ITER
-    return false;
-  }
-  if (!emit1(JSOP_GETRVAL)) {
-    //              [stack] NEXT ITER OLDRESULT FTYPE FVALUE RET ITER RVAL
-    return false;
-  }
-  if (needsIteratorResult) {
-    if (!emitAtomOp(cx->names().value, JSOP_GETPROP)) {
-      //            [stack] NEXT ITER OLDRESULT FTYPE FVALUE RET ITER
-      //                  VALUE
-      return false;
-    }
-  }
-  if (!emitCall(JSOP_CALL, 1)) {
-    //              [stack] NEXT ITER OLDRESULT FTYPE FVALUE RESULT
-    return false;
-  }
-
-  // Step 7.c.v.
-  if (iterKind == IteratorKind::Async) {
-    if (!emitAwaitInInnermostScope()) {
-      //            [stack] ... FTYPE FVALUE RESULT
-      return false;
-    }
-  }
-
-  // Step 7.c.vi.
-  if (!emitCheckIsObj(CheckIsObjectKind::IteratorReturn)) {
-    //              [stack] NEXT ITER OLDRESULT FTYPE FVALUE RESULT
-    return false;
-  }
-
-  // Steps 7.c.vii-x.
-  //
-  // Check if the returned object from iterator.return() is done. If not,
-  // continuing yielding.
-  InternalIfEmitter ifReturnDone(this);
-  if (!emit1(JSOP_DUP)) {
-    //              [stack] NEXT ITER OLDRESULT FTYPE FVALUE RESULT RESULT
-    return false;
-  }
-  if (!emitAtomOp(cx->names().done, JSOP_GETPROP)) {
-    //              [stack] NEXT ITER OLDRESULT FTYPE FVALUE RESULT DONE
-    return false;
-  }
-  if (!ifReturnDone.emitThenElse()) {
-    //              [stack] NEXT ITER OLDRESULT FTYPE FVALUE RESULT
-    return false;
-  }
-  if (!emitAtomOp(cx->names().value, JSOP_GETPROP)) {
-    //              [stack] NEXT ITER OLDRESULT FTYPE FVALUE VALUE
-    return false;
-  }
-  if (needsIteratorResult) {
-    if (!emitPrepareIteratorResult()) {
-      //            [stack] NEXT ITER OLDRESULT FTYPE FVALUE VALUE RESULT
-      return false;
-    }
-    if (!emit1(JSOP_SWAP)) {
-      //            [stack] NEXT ITER OLDRESULT FTYPE FVALUE RESULT VALUE
-      return false;
-    }
-    if (!emitFinishIteratorResult(true)) {
-      //            [stack] NEXT ITER OLDRESULT FTYPE FVALUE RESULT
-      return false;
-    }
-  }
-  if (!emit1(JSOP_SETRVAL)) {
-    //              [stack] NEXT ITER OLDRESULT FTYPE FVALUE
-    return false;
-  }
-  savedDepthTemp = bytecodeSection().stackDepth();
-  if (!ifReturnDone.emitElse()) {
-    //              [stack] NEXT ITER OLDRESULT FTYPE FVALUE RESULT
-    return false;
-  }
-  if (!emit2(JSOP_UNPICK, 3)) {
-    //              [stack] NEXT ITER RESULT OLDRESULT FTYPE FVALUE
-    return false;
-  }
-  if (!emitPopN(3)) {
-    //              [stack] NEXT ITER RESULT
+  InternalIfEmitter ifKind(this);
+  if (!ifKind.emitThenElse()) {
+    //              [stack] NEXT ITER RECEIVED RESUMEKIND
     return false;
   }
   {
-    // goto tryStart;
-    JumpList beq;
-    JumpTarget breakTarget;
-    if (!emitBackwardJump(JSOP_GOTO, tryStart, &beq, &breakTarget)) {
+    if (!emit1(JSOP_POP)) {
+      //            [stack] NEXT ITER RECEIVED
+      return false;
+    }
+
+    // Step 7.a.i.
+    // result = iter.next(received)
+    if (!emit2(JSOP_UNPICK, 2)) {
+      //            [stack] RECEIVED NEXT ITER
+      return false;
+    }
+    if (!emit1(JSOP_DUP2)) {
+      //            [stack] RECEIVED NEXT ITER NEXT ITER
+      return false;
+    }
+    if (!emit2(JSOP_PICK, 4)) {
+      //            [stack] NEXT ITER NEXT ITER RECEIVED
+      return false;
+    }
+    if (!emitCall(JSOP_CALL, 1, iter)) {
       //            [stack] NEXT ITER RESULT
       return false;
     }
-  }
-  bytecodeSection().setStackDepth(savedDepthTemp);
-  if (!ifReturnDone.emitEnd()) {
-    return false;
+
+    // Step 7.a.ii.
+    if (iterKind == IteratorKind::Async) {
+      if (!emitAwaitInInnermostScope()) {
+        //          [stack] NEXT ITER RESULT
+        return false;
+      }
+    }
+
+    // Step 7.a.iii.
+    if (!emitCheckIsObj(CheckIsObjectKind::IteratorNext)) {
+      //            [stack] NEXT ITER RESULT
+      return false;
+    }
+
+    // Bytecode for steps 7.a.iv-vii is emitted after the ifKind if-else because
+    // it's shared with other branches.
   }
 
-  if (!ifReturnMethodIsDefined.emitElse()) {
-    //              [stack] NEXT ITER RESULT FTYPE FVALUE ITER RET
+  // Step 7.b. Check for Throw completion.
+  if (!ifKind.emitElseIf(Nothing())) {
+    //              [stack] NEXT ITER RECEIVED RESUMEKIND
     return false;
   }
-  if (!emitPopN(2)) {
-    //              [stack] NEXT ITER RESULT FTYPE FVALUE
+  if (!emit1(JSOP_DUP)) {
+    //              [stack] NEXT ITER RECEIVED RESUMEKIND RESUMEKIND
     return false;
   }
-  if (iterKind == IteratorKind::Async) {
+  if (!emitPushResumeKind(GeneratorResumeKind::Throw)) {
+    //              [stack] NEXT ITER RECEIVED RESUMEKIND RESUMEKIND THROW
+    return false;
+  }
+  if (!emit1(JSOP_STRICTEQ)) {
+    //              [stack] NEXT ITER RECEIVED RESUMEKIND IS_THROW
+    return false;
+  }
+  if (!ifKind.emitThenElse()) {
+    //              [stack] NEXT ITER RECEIVED RESUMEKIND
+    return false;
+  }
+  {
+    if (!emit1(JSOP_POP)) {
+      //            [stack] NEXT ITER RECEIVED
+      return false;
+    }
+    // Step 7.b.i.
+    if (!emitDupAt(1)) {
+      //            [stack] NEXT ITER RECEIVED ITER
+      return false;
+    }
+    if (!emit1(JSOP_DUP)) {
+      //            [stack] NEXT ITER RECEIVED ITER ITER
+      return false;
+    }
+    if (!emitAtomOp(cx->names().throw_, JSOP_CALLPROP)) {
+      //            [stack] NEXT ITER RECEIVED ITER THROW
+      return false;
+    }
+
+    // Step 7.b.ii.
+    InternalIfEmitter ifThrowMethodIsNotDefined(this);
+    if (!emitPushNotUndefinedOrNull()) {
+      //            [stack] NEXT ITER RECEIVED ITER THROW
+      //            [stack]   NOT-UNDEF-OR_NULL
+      return false;
+    }
+
+    if (!ifThrowMethodIsNotDefined.emitThenElse()) {
+      //            [stack] NEXT ITER RECEIVED ITER THROW
+      return false;
+    }
+
+    // Step 7.b.ii.1.
+    // RESULT = ITER.throw(EXCEPTION)
+    if (!emit1(JSOP_SWAP)) {
+      //            [stack] NEXT ITER RECEIVED THROW ITER
+      return false;
+    }
+    if (!emit2(JSOP_PICK, 2)) {
+      //            [stack] NEXT ITER THROW ITER RECEIVED
+      return false;
+    }
+    if (!emitCall(JSOP_CALL, 1, iter)) {
+      //            [stack] NEXT ITER RESULT
+      return false;
+    }
+
+    // Step 7.b.ii.2.
+    if (iterKind == IteratorKind::Async) {
+      if (!emitAwaitInInnermostScope()) {
+        //          [stack] NEXT ITER RESULT
+        return false;
+      }
+    }
+
+    // Step 7.b.ii.4.
+    if (!emitCheckIsObj(CheckIsObjectKind::IteratorThrow)) {
+      //            [stack] NEXT ITER RESULT
+      return false;
+    }
+
+    // Bytecode for steps 7.b.ii.5-8 is emitted after the ifKind if-else because
+    // it's shared with other branches.
+
+    // Step 7.b.iii.
+    if (!ifThrowMethodIsNotDefined.emitElse()) {
+      //            [stack] NEXT ITER RECEIVED ITER THROW
+      return false;
+    }
+    if (!emit1(JSOP_POP)) {
+      //            [stack] NEXT ITER RECEIVED ITER
+      return false;
+    }
+
+    // Steps 7.b.iii.1-4.
+    //
+    // If the iterator does not have a "throw" method, it calls IteratorClose
+    // and then throws a TypeError.
+    if (!emitIteratorCloseInInnermostScope(iterKind)) {
+      //            [stack] NEXT ITER RECEIVED ITER
+      return false;
+    }
+    // Steps 7.b.iii.5-6.
+    if (!emitUint16Operand(JSOP_THROWMSG, JSMSG_ITERATOR_NO_THROW)) {
+      //            [stack] NEXT ITER RECEIVED ITER
+      //            [stack] # throw
+      return false;
+    }
+
+    if (!ifThrowMethodIsNotDefined.emitEnd()) {
+      return false;
+    }
+  }
+
+  // Step 7.c. It must be a Return completion.
+  if (!ifKind.emitElse()) {
+    //              [stack] NEXT ITER RECEIVED RESUMEKIND
+    return false;
+  }
+  {
+    if (!emit1(JSOP_POP)) {
+      //            [stack] NEXT ITER RECEIVED
+      return false;
+    }
+
+    // Step 7.c.i.
+    //
+    // Call iterator.return() for receiving a "forced return" completion from
+    // the generator.
+
+    // Step 7.c.ii.
+    //
+    // Get the "return" method.
+    if (!emitDupAt(1)) {
+      //            [stack] NEXT ITER RECEIVED ITER
+      return false;
+    }
+    if (!emit1(JSOP_DUP)) {
+      //            [stack] NEXT ITER RECEIVED ITER ITER
+      return false;
+    }
+    if (!emitAtomOp(cx->names().return_, JSOP_CALLPROP)) {
+      //            [stack] NEXT ITER RECEIVED ITER RET
+      return false;
+    }
+
+    // Step 7.c.iii.
+    //
+    // Do nothing if "return" is undefined or null.
+    InternalIfEmitter ifReturnMethodIsDefined(this);
+    if (!emitPushNotUndefinedOrNull()) {
+      //            [stack] NEXT ITER RECEIVED ITER RET NOT-UNDEF-OR_NULL
+      return false;
+    }
+
+    // Step 7.c.iv.
+    //
+    // Call "return" with the argument passed to Generator.prototype.return.
+    if (!ifReturnMethodIsDefined.emitThenElse()) {
+      //            [stack] NEXT ITER RECEIVED ITER RET
+      return false;
+    }
+    if (!emit1(JSOP_SWAP)) {
+      //            [stack] NEXT ITER RECEIVED RET ITER
+      return false;
+    }
+    if (!emit2(JSOP_PICK, 2)) {
+      //            [stack] NEXT ITER RET ITER RECEIVED
+      return false;
+    }
+    if (needsIteratorResult) {
+      if (!emitAtomOp(cx->names().value, JSOP_GETPROP)) {
+        //          [stack] NEXT ITER RET ITER VAL
+        return false;
+      }
+    }
+    if (!emitCall(JSOP_CALL, 1)) {
+      //            [stack] NEXT ITER RESULT
+      return false;
+    }
+
+    // Step 7.c.v.
+    if (iterKind == IteratorKind::Async) {
+      if (!emitAwaitInInnermostScope()) {
+        //          [stack] NEXT ITER RESULT
+        return false;
+      }
+    }
+
+    // Step 7.c.vi.
+    if (!emitCheckIsObj(CheckIsObjectKind::IteratorReturn)) {
+      //            [stack] NEXT ITER RESULT
+      return false;
+    }
+
+    // Check if the returned object from iterator.return() is done. If not,
+    // continue yielding.
+
+    // Steps 7.c.vii-viii.
+    InternalIfEmitter ifReturnDone(this);
+    if (!emit1(JSOP_DUP)) {
+      //            [stack] NEXT ITER RESULT RESULT
+      return false;
+    }
+    if (!emitAtomOp(cx->names().done, JSOP_GETPROP)) {
+      //            [stack] NEXT ITER RESULT DONE
+      return false;
+    }
+    if (!ifReturnDone.emitThenElse()) {
+      //            [stack] NEXT ITER RESULT
+      return false;
+    }
+
+    // Step 7.c.viii.1.
+    if (!emitAtomOp(cx->names().value, JSOP_GETPROP)) {
+      //            [stack] NEXT ITER VALUE
+      return false;
+    }
+    if (needsIteratorResult) {
+      if (!emitPrepareIteratorResult()) {
+        //          [stack] NEXT ITER VALUE RESULT
+        return false;
+      }
+      if (!emit1(JSOP_SWAP)) {
+        //          [stack] NEXT ITER RESULT VALUE
+        return false;
+      }
+      if (!emitFinishIteratorResult(true)) {
+        //          [stack] NEXT ITER RESULT
+        return false;
+      }
+    }
+
+    if (!ifReturnDone.emitElse()) {
+      //            [stack] NEXT ITER RESULT
+      return false;
+    }
+
+    // Jump to continue label for steps 7.c.ix-x.
+    if (!emitJump(JSOP_GOTO, &loopInfo.continues)) {
+      //            [stack] NEXT ITER RESULT
+      return false;
+    }
+
+    if (!ifReturnDone.emitEnd()) {
+      //            [stack] NEXT ITER RESULT
+      return false;
+    }
+
+    // Step 7.c.iii.
+    if (!ifReturnMethodIsDefined.emitElse()) {
+      //            [stack] NEXT ITER RECEIVED ITER RET
+      return false;
+    }
+    if (!emitPopN(2)) {
+      //            [stack] NEXT ITER RECEIVED
+      return false;
+    }
+    if (iterKind == IteratorKind::Async) {
+      // Step 7.c.iii.1.
+      if (!emitAwaitInInnermostScope()) {
+        //          [stack] NEXT ITER RECEIVED
+        return false;
+      }
+    }
+    if (!ifReturnMethodIsDefined.emitEnd()) {
+      //            [stack] NEXT ITER RECEIVED
+      return false;
+    }
+
+    // Perform a "forced generator return".
+    //
     // Step 7.c.iii.2.
-    if (!emit1(JSOP_GETRVAL)) {
-      //            [stack] NEXT ITER RESULT FTYPE FVALUE RVAL
+    // Step 7.c.viii.2.
+    if (!emitGetDotGeneratorInInnermostScope()) {
+      //            [stack] NEXT ITER RESULT GENOBJ
       return false;
     }
-    if (!emitAwaitInInnermostScope()) {
-      //            [stack] NEXT ITER RESULT FTYPE FVALUE NEWRVAL
+    if (!emitPushResumeKind(GeneratorResumeKind::Return)) {
+      //            [stack] NEXT ITER RESULT GENOBJ RESUMEKIND
       return false;
     }
-    if (!emit1(JSOP_SETRVAL)) {
-      //            [stack] NEXT ITER RESULT FTYPE FVALUE
+    if (!emit1(JSOP_CHECK_RESUMEKIND)) {
+      //            [stack] NEXT ITER RESULT GENOBJ RESUMEKIND
       return false;
     }
   }
-  if (!ifReturnMethodIsDefined.emitEnd()) {
-    return false;
-  }
 
-  if (!ifGeneratorClosing.emitEnd()) {
-    return false;
-  }
-
-  if (!tryCatch.emitEnd()) {
-    return false;
-  }
-
-  //                [stack] NEXT ITER RECEIVED
-
-  // Step 7.a.i.
-  // After the try-catch-finally block: send the received value to the iterator.
-  // result = iter.next(received)
-  if (!emit2(JSOP_UNPICK, 2)) {
-    //              [stack] RECEIVED NEXT ITER
-    return false;
-  }
-  if (!emit1(JSOP_DUP2)) {
-    //              [stack] RECEIVED NEXT ITER NEXT ITER
-    return false;
-  }
-  if (!emit2(JSOP_PICK, 4)) {
-    //              [stack] NEXT ITER NEXT ITER RECEIVED
-    return false;
-  }
-  if (!emitCall(JSOP_CALL, 1, iter)) {
+  if (!ifKind.emitEnd()) {
     //              [stack] NEXT ITER RESULT
     return false;
   }
 
-  // Step 7.a.ii.
-  if (iterKind == IteratorKind::Async) {
-    if (!emitAwaitInInnermostScope()) {
-      //            [stack] NEXT ITER RESULT
-      return false;
-    }
-  }
-
-  // Step 7.a.iii.
-  if (!emitCheckIsObj(CheckIsObjectKind::IteratorNext)) {
-    //              [stack] NEXT ITER RESULT
-    return false;
-  }
-  MOZ_ASSERT(bytecodeSection().stackDepth() == startDepth);
-
+  // Shared tail for Normal/Throw completions.
+  //
   // Steps 7.a.iv-v.
   // Steps 7.b.ii.5-6.
-  if (!emitJumpTargetAndPatch(checkResult)) {
-    //              [stack] NEXT ITER RESULT
-    //              [stack] # checkResult:
-    return false;
-  }
-
+  //
   //                [stack] NEXT ITER RESULT
 
-  // if (!result.done) goto tryStart;
+  // if (result.done) break;
   if (!emit1(JSOP_DUP)) {
     //              [stack] NEXT ITER RESULT RESULT
     return false;
@@ -6689,16 +6615,58 @@ bool BytecodeEmitter::emitYieldStar(ParseNode* iter) {
     //              [stack] NEXT ITER RESULT DONE
     return false;
   }
-  // if (!DONE) goto tryStart;
-  {
-    JumpList beq;
-    JumpTarget breakTarget;
-    if (!emitBackwardJump(JSOP_IFEQ, tryStart, &beq, &breakTarget)) {
+  if (!emitJump(JSOP_IFNE, &loopInfo.breaks)) {
+    //              [stack] NEXT ITER RESULT
+    return false;
+  }
+
+  // Steps 7.a.vi-vii.
+  // Steps 7.b.ii.7-8.
+  // Steps 7.c.ix-x.
+  if (!loopInfo.emitContinueTarget(this)) {
+    //              [stack] NEXT ITER RESULT
+    return false;
+  }
+  if (iterKind == IteratorKind::Async) {
+    if (!emitAtomOp(cx->names().value, JSOP_GETPROP)) {
+      //            [stack] NEXT ITER RESULT
+      return false;
+    }
+    if (!emitAwaitInInnermostScope()) {
       //            [stack] NEXT ITER RESULT
       return false;
     }
   }
+  if (!emitGetDotGeneratorInInnermostScope()) {
+    //              [stack] NEXT ITER RESULT GENOBJ
+    return false;
+  }
+  if (!emitYieldOp(JSOP_YIELD)) {
+    //              [stack] NEXT ITER RVAL GENOBJ RESUMEKIND
+    return false;
+  }
+  if (!emit1(JSOP_SWAP)) {
+    //              [stack] NEXT ITER RVAL RESUMEKIND GENOBJ
+    return false;
+  }
+  if (!emit1(JSOP_POP)) {
+    //              [stack] NEXT ITER RVAL RESUMEKIND
+    return false;
+  }
+  if (!loopInfo.emitLoopEnd(this, JSOP_GOTO, JSTRY_LOOP)) {
+    //              [stack] NEXT ITER RVAL RESUMEKIND
+    return false;
+  }
 
+  // Jumps to this point have 3 (instead of 4) values on the stack.
+  MOZ_ASSERT(bytecodeSection().stackDepth() == startDepth);
+  bytecodeSection().setStackDepth(startDepth - 1);
+
+  //                [stack] NEXT ITER RESULT
+
+  // Step 7.a.v.1.
+  // Step 7.b.ii.6.a.
+  //
   // result.value
   if (!emit2(JSOP_UNPICK, 2)) {
     //              [stack] RESULT NEXT ITER
@@ -6713,7 +6681,7 @@ bool BytecodeEmitter::emitYieldStar(ParseNode* iter) {
     return false;
   }
 
-  MOZ_ASSERT(bytecodeSection().stackDepth() == startDepth - 2);
+  MOZ_ASSERT(bytecodeSection().stackDepth() == startDepth - 3);
 
   return true;
 }
@@ -7050,21 +7018,29 @@ bool BytecodeEmitter::emitSelfHostedResumeGenerator(BinaryNode* callNode) {
 
   ParseNode* genNode = argsList->head();
   if (!emitTree(genNode)) {
+    //              [stack] GENERATOR
     return false;
   }
 
   ParseNode* valNode = genNode->pn_next;
   if (!emitTree(valNode)) {
+    //              [stack] GENERATOR VALUE
     return false;
   }
 
   ParseNode* kindNode = valNode->pn_next;
   MOZ_ASSERT(kindNode->isKind(ParseNodeKind::StringExpr));
-  uint8_t operand = uint8_t(AbstractGeneratorObject::getResumeKind(
-      cx, kindNode->as<NameNode>().atom()));
+  GeneratorResumeKind kind =
+      AtomToResumeKind(cx, kindNode->as<NameNode>().atom());
   MOZ_ASSERT(!kindNode->pn_next);
 
-  if (!emit2(JSOP_RESUME, operand)) {
+  if (!emitPushResumeKind(kind)) {
+    //              [stack] GENERATOR VALUE RESUMEKIND
+    return false;
+  }
+
+  if (!emit1(JSOP_RESUME)) {
+    //              [stack] RVAL
     return false;
   }
 
@@ -7179,7 +7155,6 @@ bool BytecodeEmitter::isRestParameter(ParseNode* expr) {
   }
 
   FunctionBox* funbox = sc->asFunctionBox();
-  RootedFunction fun(cx, funbox->function());
   if (!funbox->hasRest()) {
     return false;
   }
@@ -7958,11 +7933,6 @@ bool BytecodeEmitter::emitPropertyList(ListNode* obj, PropertyEmitter& pe,
 
       if (propVal->is<FunctionNode>() &&
           propVal->as<FunctionNode>().funbox()->needsHomeObject()) {
-        MOZ_ASSERT(propVal->as<FunctionNode>()
-                       .funbox()
-                       ->function()
-                       ->allowSuperProperty());
-
         if (!pe.emitInitHomeObject()) {
           //        [stack] CTOR? OBJ CTOR? KEY? FUN
           return false;
@@ -8267,7 +8237,7 @@ bool BytecodeEmitter::emitObjLiteralValue(ObjLiteralCreationData* data,
   return true;
 }
 
-FieldInitializers BytecodeEmitter::setupFieldInitializers(
+mozilla::Maybe<FieldInitializers> BytecodeEmitter::setupFieldInitializers(
     ListNode* classMembers) {
   size_t numFields = 0;
   for (ParseNode* propdef : classMembers->contents()) {
@@ -8279,7 +8249,11 @@ FieldInitializers BytecodeEmitter::setupFieldInitializers(
       }
     }
   }
-  return FieldInitializers(numFields);
+  // If there are more initializers than can be represented, return invalid.
+  if (numFields > FieldInitializers::MaxInitializers) {
+    return Nothing();
+  }
+  return Some(FieldInitializers(numFields));
 }
 
 // Purpose of .fieldKeys:
@@ -8348,9 +8322,13 @@ bool BytecodeEmitter::emitCreateFieldKeys(ListNode* obj) {
 bool BytecodeEmitter::emitCreateFieldInitializers(ClassEmitter& ce,
                                                   ListNode* obj) {
   //          [stack] HOMEOBJ HERITAGE?
-  FieldInitializers fieldInitializers = setupFieldInitializers(obj);
-  MOZ_ASSERT(fieldInitializers.valid);
-  size_t numFields = fieldInitializers.numFieldInitializers;
+  mozilla::Maybe<FieldInitializers> fieldInitializers =
+      setupFieldInitializers(obj);
+  if (!fieldInitializers) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
+  size_t numFields = fieldInitializers->numFieldInitializers;
 
   if (numFields == 0) {
     return true;
@@ -8369,7 +8347,7 @@ bool BytecodeEmitter::emitCreateFieldInitializers(ClassEmitter& ce,
           return false;
         }
         if (initializer->funbox()->needsHomeObject()) {
-          MOZ_ASSERT(initializer->funbox()->function()->allowSuperProperty());
+          MOZ_ASSERT(initializer->funbox()->allowSuperProperty());
           if (!ce.emitFieldInitializerHomeObject()) {
             //          [stack] CTOR OBJ ARRAY LAMBDA
             return false;
@@ -8395,7 +8373,7 @@ const FieldInitializers& BytecodeEmitter::findFieldInitializersForCall() {
   for (BytecodeEmitter* current = this; current; current = current->parent) {
     if (current->sc->isFunctionBox()) {
       FunctionBox* box = current->sc->asFunctionBox();
-      if (box->kind() == FunctionFlags::FunctionKind::ClassConstructor) {
+      if (box->isClassConstructor()) {
         const FieldInitializers& fieldInitializers =
             current->getFieldInitializers();
         MOZ_ASSERT(fieldInitializers.valid);
@@ -8404,14 +8382,12 @@ const FieldInitializers& BytecodeEmitter::findFieldInitializersForCall() {
     }
   }
 
-  for (ScopeIter si(innermostScope()); si; si++) {
-    if (si.scope()->is<FunctionScope>()) {
-      JSFunction* fun = si.scope()->as<FunctionScope>().canonicalFunction();
-      if (fun->kind() == FunctionFlags::FunctionKind::ClassConstructor) {
+  for (AbstractScopeIter si(innermostScope()); si; si++) {
+    if (si.abstractScope().is<FunctionScope>()) {
+      JSFunction* fun = si.abstractScope().canonicalFunction();
+      if (fun->isClassConstructor()) {
         const FieldInitializers& fieldInitializers =
-            fun->isInterpretedLazy()
-                ? fun->lazyScript()->getFieldInitializers()
-                : fun->nonLazyScript()->getFieldInitializers();
+            fun->baseScript()->getFieldInitializers();
         MOZ_ASSERT(fieldInitializers.valid);
         return fieldInitializers;
       }
@@ -9172,8 +9148,8 @@ bool BytecodeEmitter::emitClass(
       return false;
     }
   } else {
-    if (!ce.emitInitDefaultConstructor(Some(classNode->pn_pos.begin),
-                                       Some(classNode->pn_pos.end))) {
+    if (!ce.emitInitDefaultConstructor(classNode->pn_pos.begin,
+                                       classNode->pn_pos.end)) {
       //            [stack] CTOR HOMEOBJ
       return false;
     }
@@ -9629,7 +9605,7 @@ bool BytecodeEmitter::emitTree(
       if (!markStepBreakpoint()) {
         return false;
       }
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case ParseNodeKind::VoidExpr:
     case ParseNodeKind::NotExpr:
     case ParseNodeKind::BitNotExpr:

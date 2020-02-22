@@ -8,11 +8,8 @@
 #include "nsJSEnvironment.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptObjectPrincipal.h"
-#include "nsIDOMChromeWindow.h"
 #include "nsPIDOMWindow.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsDOMCID.h"
-#include "nsIServiceManager.h"
 #include "nsIXPConnect.h"
 #include "nsCOMPtr.h"
 #include "nsISupportsPrimitives.h"
@@ -23,10 +20,8 @@
 #include "nsIDocShellTreeItem.h"
 #include "nsPresContext.h"
 #include "nsIConsoleService.h"
-#include "nsIScriptError.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsIPrompt.h"
 #include "nsIObserverService.h"
 #include "nsITimer.h"
 #include "nsAtom.h"
@@ -35,7 +30,6 @@
 #include "nsIContent.h"
 #include "nsCycleCollector.h"
 #include "nsXPCOMCIDInternal.h"
-#include "nsIXULRuntime.h"
 #include "nsTextFormatter.h"
 #ifdef XP_WIN
 #  include <process.h>
@@ -46,12 +40,11 @@
 #include "xpcpublic.h"
 
 #include "jsapi.h"
+#include "js/Array.h"  // JS::NewArrayObject
 #include "js/PropertySpec.h"
 #include "js/SliceBudget.h"
 #include "js/Wrapper.h"
 #include "nsIArray.h"
-#include "nsIObjectInputStream.h"
-#include "nsIObjectOutputStream.h"
 #include "WrapperFactory.h"
 #include "nsGlobalWindow.h"
 #include "mozilla/AutoRestore.h"
@@ -90,7 +83,6 @@
 #include "nsCycleCollectionNoteRootCallback.h"
 #include "GeckoProfiler.h"
 #include "mozilla/IdleTaskRunner.h"
-#include "nsIDocShell.h"
 #include "nsViewManager.h"
 #include "mozilla/EventStateManager.h"
 
@@ -737,7 +729,7 @@ nsresult nsJSContext::SetProperty(JS::Handle<JSObject*> aTarget,
     }
   }
 
-  JS::Rooted<JSObject*> array(cx, ::JS_NewArrayObject(cx, args));
+  JS::Rooted<JSObject*> array(cx, JS::NewArrayObject(cx, args));
   if (!array) {
     return NS_ERROR_FAILURE;
   }
@@ -1890,7 +1882,7 @@ static bool CCRunnerFired(TimeStamp aDeadline) {
       MOZ_ASSERT(!didDoWork);
 
       sCCRunnerState = CCRunnerState::LateTimer;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
 
     case CCRunnerState::LateTimer:
       if (!ShouldTriggerCC(suspected)) {
@@ -2146,7 +2138,6 @@ void nsJSContext::MaybePokeCC() {
   }
 
   if (ShouldTriggerCC(nsCycleCollector_suspectedCount())) {
-
     // We can kill some objects before running forgetSkippable.
     nsCycleCollector_dispatchDeferredDeletion();
 

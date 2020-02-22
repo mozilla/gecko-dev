@@ -74,8 +74,6 @@
 #include "nsCOMPtr.h"
 #include "nsReadableUtils.h"
 #include "nsPageSequenceFrame.h"
-#include "nsIPermissionManager.h"
-#include "nsIMozBrowserFrame.h"
 #include "nsCaret.h"
 #include "mozilla/AccessibleCaretEventHub.h"
 #include "nsFrameManager.h"
@@ -170,7 +168,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 #include "nsCanvasFrame.h"
-#include "nsIImageLoadingContent.h"
 #include "nsImageFrame.h"
 #include "nsIScreen.h"
 #include "nsIScreenManager.h"
@@ -198,6 +195,7 @@
 #include "nsClassHashtable.h"
 #include "nsHashKeys.h"
 #include "VisualViewport.h"
+#include "ZoomConstraintsClient.h"
 
 #ifdef MOZ_TASK_TRACER
 #  include "GeckoTaskTracer.h"
@@ -772,8 +770,9 @@ bool PresShell::AccessibleCaretEnabled(nsIDocShell* aDocShell) {
   return false;
 }
 
-PresShell::PresShell()
-    : mViewManager(nullptr),
+PresShell::PresShell(Document* aDocument)
+    : mDocument(aDocument),
+      mViewManager(nullptr),
       mFrameManager(nullptr),
       mAutoWeakFrames(nullptr),
 #ifdef ACCESSIBILITY
@@ -842,6 +841,7 @@ PresShell::PresShell()
       mForceUseLegacyNonPrimaryDispatch(false),
       mInitializedWithClickEventDispatchingBlacklist(false) {
   MOZ_LOG(gLog, LogLevel::Debug, ("PresShell::PresShell this=%p", this));
+  MOZ_ASSERT(aDocument);
 
 #ifdef MOZ_REFLOW_PERF
   mReflowCountMgr = MakeUnique<ReflowCountMgr>();
@@ -912,18 +912,12 @@ PresShell::~PresShell() {
  * Note this can't be merged into our constructor because caret initialization
  * calls AddRef() on us.
  */
-void PresShell::Init(Document* aDocument, nsPresContext* aPresContext,
-                     nsViewManager* aViewManager) {
-  MOZ_ASSERT(aDocument, "null ptr");
-  MOZ_ASSERT(aPresContext, "null ptr");
-  MOZ_ASSERT(aViewManager, "null ptr");
-  MOZ_ASSERT(!mDocument, "already initialized");
+void PresShell::Init(nsPresContext* aPresContext, nsViewManager* aViewManager) {
+  MOZ_ASSERT(mDocument);
+  MOZ_ASSERT(aPresContext);
+  MOZ_ASSERT(aViewManager);
+  MOZ_ASSERT(!mViewManager, "already initialized");
 
-  if (!aDocument || !aPresContext || !aViewManager || mDocument) {
-    return;
-  }
-
-  mDocument = aDocument;
   mViewManager = aViewManager;
 
   // mDocument is now set.  It might have a display document whose "need layout/
@@ -942,7 +936,14 @@ void PresShell::Init(Document* aDocument, nsPresContext* aPresContext,
   mViewManager->SetPresShell(this);
 
   // Bind the context to the presentation shell.
-  mPresContext = aPresContext;
+  // FYI: We cannot initialize mPresContext in the constructor because we
+  //      cannot call AttachPresShell() in it and once we initialize
+  //      mPresContext, other objects may refer refresh driver or restyle
+  //      manager via mPresContext and that causes hitting MOZ_ASSERT in some
+  //      places.  Therefore, we should initialize mPresContext here with
+  //      const_cast hack since we want to guarantee that mPresContext lives
+  //      as long as the PresShell.
+  const_cast<RefPtr<nsPresContext>&>(mPresContext) = aPresContext;
   mPresContext->AttachPresShell(this);
 
   mPresContext->DeviceContext()->InitFontCache();
@@ -978,10 +979,11 @@ void PresShell::Init(Document* aDocument, nsPresContext* aPresContext,
 #endif
   // set up selection to be displayed in document
   // Don't enable selection for print media
-  nsPresContext::nsPresContextType type = aPresContext->Type();
+  nsPresContext::nsPresContextType type = mPresContext->Type();
   if (type != nsPresContext::eContext_PrintPreview &&
-      type != nsPresContext::eContext_Print)
+      type != nsPresContext::eContext_Print) {
     SetDisplaySelection(nsISelectionController::SELECTION_DISABLED);
+  }
 
   if (gMaxRCProcessingTime == -1) {
     gMaxRCProcessingTime =
@@ -4178,8 +4180,9 @@ void PresShell::CharacterDataChanged(nsIContent* aContent,
   mFrameConstructor->CharacterDataChanged(aContent, aInfo);
 }
 
-void PresShell::ContentStateChanged(Document* aDocument, nsIContent* aContent,
-                                    EventStates aStateMask) {
+MOZ_CAN_RUN_SCRIPT_BOUNDARY void PresShell::ContentStateChanged(
+    Document* aDocument, nsIContent* aContent, EventStates aStateMask) {
+  MOZ_ASSERT(!nsContentUtils::IsSafeToRunScript());
   MOZ_ASSERT(!mIsDocumentGone, "Unexpected ContentStateChanged");
   MOZ_ASSERT(aDocument == mDocument, "Unexpected aDocument");
 
@@ -4338,8 +4341,6 @@ void PresShell::ReconstructFrames() {
     // Nothing to do here
     return;
   }
-
-  RefPtr<PresShell> kungFuDeathGrip(this);
 
   // Have to make sure that the content notifications are flushed before we
   // start messing with the frame model; otherwise we can get content doubling.
@@ -6323,7 +6324,7 @@ nsIFrame* PresShell::EventHandler::GetNearestFrameContainingPresShell(
   return frame;
 }
 
-static bool FlushThrottledStyles(Document& aDocument, void* aData) {
+static CallState FlushThrottledStyles(Document& aDocument, void* aData) {
   PresShell* presShell = aDocument.GetPresShell();
   if (presShell && presShell->IsVisible()) {
     if (nsPresContext* presContext = presShell->GetPresContext()) {
@@ -6332,7 +6333,7 @@ static bool FlushThrottledStyles(Document& aDocument, void* aData) {
   }
 
   aDocument.EnumerateSubDocuments(FlushThrottledStyles, nullptr);
-  return true;
+  return CallState::Continue;
 }
 
 bool PresShell::CanDispatchEvent(const WidgetGUIEvent* aEvent) const {
@@ -6597,7 +6598,7 @@ nsresult PresShell::EventHandler::HandleEventUsingCoordinates(
   // be used instead below. Also keep using the root frame if we're dealing
   // with a window-level mouse exit event since we want to start sending
   // mouse out events at the root EventStateManager.
-  EventTargetData eventTargetData(mPresShell, rootFrameToHandleEvent);
+  EventTargetData eventTargetData(rootFrameToHandleEvent);
   if (!isCaptureRetargeted && !isWindowLevelMouseExit &&
       !pointerCapturingContent) {
     if (!ComputeEventTargetFrameAndPresShellAtEventPoint(
@@ -7482,7 +7483,7 @@ Element* PresShell::EventHandler::ComputeFocusedEventTargetElement(
       if (aGUIEvent->mMessage == eKeyUp) {
         sLastKeyDownEventTargetElement = nullptr;
       }
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     default:
       return eventTargetElement;
   }
@@ -7621,16 +7622,6 @@ class MOZ_RAII AutoEventHandler final {
       PresShell::ReleaseCapturingContent();
       PresShell::AllowMouseCapture(true);
     }
-    if (aDocument && NeedsToResetFocusManagerMouseButtonHandlingState()) {
-      nsFocusManager* fm = nsFocusManager::GetFocusManager();
-      NS_ENSURE_TRUE_VOID(fm);
-      // If it's in modal state, mouse button event handling may be nested.
-      // E.g., a modal dialog is opened at mousedown or mouseup event handler
-      // and the dialog is clicked.  Therefore, we should store current
-      // mouse button event handling document if nsFocusManager already has it.
-      mMouseButtonEventHandlingDocument =
-          fm->SetMouseButtonHandlingDocument(aDocument);
-    }
     if (NeedsToUpdateCurrentMouseBtnState()) {
       WidgetMouseEvent* mouseEvent = mEvent->AsMouseEvent();
       if (mouseEvent) {
@@ -7643,28 +7634,17 @@ class MOZ_RAII AutoEventHandler final {
     if (mEvent->mMessage == eMouseDown) {
       PresShell::AllowMouseCapture(false);
     }
-    if (NeedsToResetFocusManagerMouseButtonHandlingState()) {
-      nsFocusManager* fm = nsFocusManager::GetFocusManager();
-      NS_ENSURE_TRUE_VOID(fm);
-      RefPtr<Document> document =
-          fm->SetMouseButtonHandlingDocument(mMouseButtonEventHandlingDocument);
-    }
     if (NeedsToUpdateCurrentMouseBtnState()) {
       EventStateManager::sCurrentMouseBtn = MouseButton::eNotPressed;
     }
   }
 
  protected:
-  bool NeedsToResetFocusManagerMouseButtonHandlingState() const {
-    return mEvent->mMessage == eMouseDown || mEvent->mMessage == eMouseUp;
-  }
-
   bool NeedsToUpdateCurrentMouseBtnState() const {
     return mEvent->mMessage == eMouseDown || mEvent->mMessage == eMouseUp ||
            mEvent->mMessage == ePointerDown || mEvent->mMessage == ePointerUp;
   }
 
-  RefPtr<Document> mMouseButtonEventHandlingDocument;
   WidgetEvent* mEvent;
 };
 
@@ -8005,7 +7985,7 @@ void PresShell::EventHandler::RecordEventPreparationPerformance(
     case eMouseUp:
       Telemetry::AccumulateTimeDelta(Telemetry::INPUT_EVENT_QUEUED_CLICK_MS,
                                      aEvent->mTimeStamp);
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case ePointerDown:
     case ePointerUp:
       GetPresContext()->RecordInteractionTime(
@@ -8834,11 +8814,11 @@ static void FreezeElement(nsISupports* aSupports, void* /* unused */) {
   }
 }
 
-static bool FreezeSubDocument(Document& aDocument, void*) {
+static CallState FreezeSubDocument(Document& aDocument, void*) {
   if (PresShell* presShell = aDocument.GetPresShell()) {
     presShell->Freeze();
   }
-  return true;
+  return CallState::Continue;
 }
 
 void PresShell::Freeze() {
@@ -8904,11 +8884,11 @@ static void ThawElement(nsISupports* aSupports, void* aShell) {
   }
 }
 
-static bool ThawSubDocument(Document& aDocument, void* aData) {
+static CallState ThawSubDocument(Document& aDocument, void* aData) {
   if (PresShell* presShell = aDocument.GetPresShell()) {
     presShell->Thaw();
   }
-  return true;
+  return CallState::Continue;
 }
 
 void PresShell::Thaw() {
@@ -8981,7 +8961,11 @@ void PresShell::WillDoReflow() {
 
 void PresShell::DidDoReflow(bool aInterruptible) {
   HandlePostedReflowCallbacks(aInterruptible);
+  if (mIsDestroying) {
+    return;
+  }
 
+  nsAutoScriptBlocker scriptBlocker;
   AutoAssertNoFlush noReentrantFlush(*this);
   if (nsCOMPtr<nsIDocShell> docShell = mPresContext->GetDocShell()) {
     DOMHighResTimeStamp now = GetPerformanceNowUnclamped();
@@ -10393,11 +10377,12 @@ void PresShell::QueryIsActive() {
 }
 
 // Helper for propagating mIsActive changes to external resources
-static bool SetExternalResourceIsActive(Document& aDocument, void* aClosure) {
+static CallState SetExternalResourceIsActive(Document& aDocument,
+                                             void* aClosure) {
   if (PresShell* presShell = aDocument.GetPresShell()) {
     presShell->SetIsActive(*static_cast<bool*>(aClosure));
   }
-  return true;
+  return CallState::Continue;
 }
 
 static void SetPluginIsActive(nsISupports* aSupports, void* aClosure) {
@@ -10654,24 +10639,25 @@ void PresShell::ResetVisualViewportSize() {
 
 bool PresShell::SetVisualViewportOffset(const nsPoint& aScrollOffset,
                                         const nsPoint& aPrevLayoutScrollPos) {
-  bool didChange = false;
-  if (GetVisualViewportOffset() != aScrollOffset) {
-    nsPoint prevOffset = GetVisualViewportOffset();
-    mVisualViewportOffset = Some(aScrollOffset);
-    didChange = true;
+  nsPoint prevOffset = GetVisualViewportOffset();
+  if (prevOffset == aScrollOffset) {
+    return false;
+  }
 
-    if (auto* window = nsGlobalWindowInner::Cast(mDocument->GetInnerWindow())) {
-      window->VisualViewport()->PostScrollEvent(prevOffset,
-                                                aPrevLayoutScrollPos);
-    }
+  mVisualViewportOffset = Some(aScrollOffset);
 
+  if (auto* window = nsGlobalWindowInner::Cast(mDocument->GetInnerWindow())) {
+    window->VisualViewport()->PostScrollEvent(prevOffset, aPrevLayoutScrollPos);
+  }
+
+  if (IsVisualViewportSizeSet()) {
     if (nsIScrollableFrame* rootScrollFrame =
             GetRootScrollFrameAsScrollable()) {
-      ScrollAnchorContainer* container = rootScrollFrame->Anchor();
-      container->UserScrolled();
+      rootScrollFrame->Anchor()->UserScrolled();
     }
   }
-  return didChange;
+
+  return true;
 }
 
 void PresShell::ScrollToVisual(const nsPoint& aVisualViewportOffset,
@@ -11054,7 +11040,7 @@ bool PresShell::EventHandler::EventTargetData::MaybeRetargetToActiveDocument(
     return false;
   }
 
-  SetPresShellAndFrame(activePresShell, activePresShell->GetRootFrame());
+  SetFrameAndComputePresShell(activePresShell->GetRootFrame());
   return true;
 }
 
@@ -11179,11 +11165,11 @@ PresShell::EventHandler::HandlingTimeAccumulator::~HandlingTimeAccumulator() {
   }
 }
 
-static bool EndPaintHelper(Document& aDocument, void* aData) {
+static CallState EndPaintHelper(Document& aDocument, void* aData) {
   if (PresShell* presShell = aDocument.GetPresShell()) {
     presShell->EndPaint();
   }
-  return true;
+  return CallState::Continue;
 }
 
 void PresShell::EndPaint() {

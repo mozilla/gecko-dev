@@ -12,20 +12,16 @@
 #include "nsIPrincipal.h"
 #include "nsJSPrincipals.h"
 #include "nsIScriptObjectPrincipal.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsIServiceManager.h"
-#include "nsIArray.h"
 #include "nsIURI.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "nsString.h"
-#include "nsIConsoleService.h"
-#include "nsIScriptError.h"
 #include "nsDOMCID.h"
 #include "nsNodeInfoManager.h"
 #include "nsContentUtils.h"
 #include "nsCCUncollectableMarker.h"
 #include "xpcpublic.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "nsXULPrototypeCache.h"
 #include "mozilla/DeclarationBlock.h"
@@ -263,8 +259,7 @@ nsXULPrototypeDocument::Write(nsIObjectOutputStream* aStream) {
 
 #ifdef DEBUG
   // XXX Worrisome if we're caching things without system principal.
-  if (!nsContentUtils::IsSystemPrincipal(
-          mNodeInfoManager->DocumentPrincipal())) {
+  if (!mNodeInfoManager->DocumentPrincipal()->IsSystemPrincipal()) {
     NS_WARNING("Serializing document without system principal");
   }
 #endif

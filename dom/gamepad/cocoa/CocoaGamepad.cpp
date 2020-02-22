@@ -92,7 +92,7 @@ class Gamepad {
     axes.Clear();
     mSuperIndex = -1;
   }
-  void init(IOHIDDeviceRef device);
+  void init(IOHIDDeviceRef device, bool defaultRemapper);
   void ReportChanged(uint8_t* report, CFIndex report_length);
   size_t WriteOutputReport(const std::vector<uint8_t>& aReport) const;
 
@@ -119,12 +119,12 @@ class Gamepad {
   std::vector<uint8_t> mInputReport;
 };
 
-void Gamepad::init(IOHIDDeviceRef device) {
+void Gamepad::init(IOHIDDeviceRef aDevice, bool aDefaultRemapper) {
   clear();
-  mDevice = device;
+  mDevice = aDevice;
 
   CFArrayRef elements =
-      IOHIDDeviceCopyMatchingElements(device, nullptr, kIOHIDOptionsTypeNone);
+      IOHIDDeviceCopyMatchingElements(aDevice, nullptr, kIOHIDOptionsTypeNone);
   CFIndex n = CFArrayGetCount(elements);
   for (CFIndex i = 0; i < n; i++) {
     IOHIDElementRef element =
@@ -134,7 +134,8 @@ void Gamepad::init(IOHIDDeviceRef device) {
 
     if (usagePage == kDesktopUsagePage && usage >= kAxisUsageMin &&
         usage <= kAxisUsageMax) {
-      Axis axis = {static_cast<int>(usage - kAxisUsageMin),
+      Axis axis = {aDefaultRemapper ? int(axes.Length())
+                                    : static_cast<int>(usage - kAxisUsageMin),
                    element,
                    usagePage,
                    usage,
@@ -146,7 +147,8 @@ void Gamepad::init(IOHIDDeviceRef device) {
                IOHIDElementGetLogicalMax(element) -
                        IOHIDElementGetLogicalMin(element) ==
                    7) {
-      Axis axis = {static_cast<int>(usage - kAxisUsageMin),
+      Axis axis = {aDefaultRemapper ? int(axes.Length())
+                                    : static_cast<int>(usage - kAxisUsageMin),
                    element,
                    usagePage,
                    usage,
@@ -273,7 +275,6 @@ void DarwinGamepadService::DeviceAdded(IOHIDDeviceRef device) {
     slot = mGamepads.size();
     mGamepads.push_back(Gamepad());
   }
-  mGamepads[slot].init(device);
 
   // Gather some identifying information
   CFNumberRef vendorIdRef =
@@ -291,8 +292,12 @@ void DarwinGamepadService::DeviceAdded(IOHIDDeviceRef device) {
   char buffer[256];
   sprintf(buffer, "%x-%x-%s", vendorId, productId, product_name);
 
-  RefPtr<GamepadRemapper> remapper = GetGamepadRemapper(vendorId, productId);
+  bool defaultRemapper = false;
+  RefPtr<GamepadRemapper> remapper =
+      GetGamepadRemapper(vendorId, productId, defaultRemapper);
   MOZ_ASSERT(remapper);
+  mGamepads[slot].init(device, defaultRemapper);
+
   remapper->SetAxisCount(mGamepads[slot].numAxes());
   remapper->SetButtonCount(mGamepads[slot].numButtons());
 
@@ -328,6 +333,9 @@ void DarwinGamepadService::DeviceRemoved(IOHIDDeviceRef device) {
   }
   for (size_t i = 0; i < mGamepads.size(); i++) {
     if (mGamepads[i] == device) {
+      IOHIDDeviceRegisterInputReportCallback(
+          device, mGamepads[i].mInputReport.data(), 0, NULL, &mGamepads[i]);
+
       service->RemoveGamepad(mGamepads[i].mSuperIndex);
       mGamepads[i].clear();
       return;
@@ -339,7 +347,7 @@ void DarwinGamepadService::DeviceRemoved(IOHIDDeviceRef device) {
 void DarwinGamepadService::ReportChangedCallback(
     void* context, IOReturn result, void* sender, IOHIDReportType report_type,
     uint32_t report_id, uint8_t* report, CFIndex report_length) {
-  if (context && report_type == kIOHIDReportTypeInput) {
+  if (context && report_type == kIOHIDReportTypeInput && report_length) {
     reinterpret_cast<Gamepad*>(context)->ReportChanged(report, report_length);
   }
 }

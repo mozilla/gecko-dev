@@ -656,12 +656,14 @@ static const JSClassOps XPC_WN_NoHelper_JSClassOps = {
     nullptr,                            // mayResolve
     XPC_WN_NoHelper_Finalize,           // finalize
     nullptr,                            // call
-    nullptr,                            // construct
     nullptr,                            // hasInstance
+    nullptr,                            // construct
     XPCWrappedNative::Trace,            // trace
 };
 
-const js::ClassExtension XPC_WN_JSClassExtension = {WrappedNativeObjectMoved};
+const js::ClassExtension XPC_WN_JSClassExtension = {
+    WrappedNativeObjectMoved,  // objectMovedOp
+};
 
 const JSClass XPC_WN_NoHelper_JSClass = {
     "XPCWrappedNative_NoHelper",
@@ -1098,13 +1100,14 @@ static const JSClassOps XPC_WN_Proto_JSClassOps = {
     nullptr,                                  // mayResolve
     XPC_WN_Proto_Finalize,                    // finalize
     nullptr,                                  // call
-    nullptr,                                  // construct
     nullptr,                                  // hasInstance
+    nullptr,                                  // construct
     nullptr,                                  // trace
 };
 
 static const js::ClassExtension XPC_WN_Proto_ClassExtension = {
-    XPC_WN_Proto_ObjectMoved};
+    XPC_WN_Proto_ObjectMoved,  // objectMovedOp
+};
 
 const JSClass XPC_WN_Proto_JSClass = {
     "XPC_WN_Proto_JSClass",       XPC_WRAPPER_FLAGS,
@@ -1187,13 +1190,14 @@ static const JSClassOps XPC_WN_Tearoff_JSClassOps = {
     nullptr,                            // mayResolve
     XPC_WN_TearOff_Finalize,            // finalize
     nullptr,                            // call
-    nullptr,                            // construct
     nullptr,                            // hasInstance
+    nullptr,                            // construct
     nullptr,                            // trace
 };
 
 static const js::ClassExtension XPC_WN_Tearoff_JSClassExtension = {
-    XPC_WN_TearOff_ObjectMoved};
+    XPC_WN_TearOff_ObjectMoved,  // objectMovedOp
+};
 
 const JSClass XPC_WN_Tearoff_JSClass = {
     "WrappedNative_TearOff",

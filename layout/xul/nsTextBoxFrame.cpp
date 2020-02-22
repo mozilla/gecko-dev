@@ -26,7 +26,6 @@
 #include "nsBoxLayoutState.h"
 #include "nsMenuBarListener.h"
 #include "nsString.h"
-#include "nsIServiceManager.h"
 #include "nsITheme.h"
 #include "nsUnicharUtils.h"
 #include "nsContentUtils.h"
@@ -371,11 +370,11 @@ void nsTextBoxFrame::DrawText(gfxContext& aRenderingContext,
   uint8_t strikeStyle = 0;
 
   // Begin with no decorations
-  auto decorations = StyleTextDecorationLine_NONE;
+  auto decorations = StyleTextDecorationLine::NONE;
   // A mask of all possible line decorations.
-  auto decorMask = StyleTextDecorationLine_UNDERLINE |
-                   StyleTextDecorationLine_OVERLINE |
-                   StyleTextDecorationLine_LINE_THROUGH;
+  auto decorMask = StyleTextDecorationLine::UNDERLINE |
+                   StyleTextDecorationLine::OVERLINE |
+                   StyleTextDecorationLine::LINE_THROUGH;
 
   WritingMode wm = GetWritingMode();
   bool vertical = wm.IsVertical();
@@ -388,8 +387,8 @@ void nsTextBoxFrame::DrawText(gfxContext& aRenderingContext,
     }
     const nsStyleTextReset* styleText = context->StyleTextReset();
 
-    if (decorMask &
-        styleText->mTextDecorationLine) {  // a decoration defined here
+    // a decoration defined here
+    if (decorMask & styleText->mTextDecorationLine) {
       nscolor color;
       if (aOverrideColor) {
         color = *aOverrideColor;
@@ -398,27 +397,26 @@ void nsTextBoxFrame::DrawText(gfxContext& aRenderingContext,
       }
       uint8_t style = styleText->mTextDecorationStyle;
 
-      if (StyleTextDecorationLine_UNDERLINE & decorMask &
+      if (StyleTextDecorationLine::UNDERLINE & decorMask &
           styleText->mTextDecorationLine) {
         underColor = color;
         underStyle = style;
-        // TODO(emilio): Could add `operator~` or `remove()` to cbindgen.
-        decorMask.bits &= ~StyleTextDecorationLine_UNDERLINE.bits;
-        decorations |= StyleTextDecorationLine_UNDERLINE;
+        decorMask &= ~StyleTextDecorationLine::UNDERLINE;
+        decorations |= StyleTextDecorationLine::UNDERLINE;
       }
-      if (StyleTextDecorationLine_OVERLINE & decorMask &
+      if (StyleTextDecorationLine::OVERLINE & decorMask &
           styleText->mTextDecorationLine) {
         overColor = color;
         overStyle = style;
-        decorMask.bits &= ~StyleTextDecorationLine_OVERLINE.bits;
-        decorations |= StyleTextDecorationLine_OVERLINE;
+        decorMask &= ~StyleTextDecorationLine::OVERLINE;
+        decorations |= StyleTextDecorationLine::OVERLINE;
       }
-      if (StyleTextDecorationLine_LINE_THROUGH & decorMask &
+      if (StyleTextDecorationLine::LINE_THROUGH & decorMask &
           styleText->mTextDecorationLine) {
         strikeColor = color;
         strikeStyle = style;
-        decorMask.bits &= ~StyleTextDecorationLine_LINE_THROUGH.bits;
-        decorations |= StyleTextDecorationLine_LINE_THROUGH;
+        decorMask &= ~StyleTextDecorationLine::LINE_THROUGH;
+        decorations |= StyleTextDecorationLine::LINE_THROUGH;
       }
     }
   } while (decorMask && (f = nsLayoutUtils::GetParentOrPlaceholderFor(f)));
@@ -461,23 +459,23 @@ void nsTextBoxFrame::DrawText(gfxContext& aRenderingContext,
   // (We don't apply this rule to the access-key underline because we only
   // find out where that is as a side effect of drawing the text, in the
   // general case -- see below.)
-  if (decorations &
-      (StyleTextDecorationLine_OVERLINE | StyleTextDecorationLine_UNDERLINE)) {
+  if (decorations & (StyleTextDecorationLine::OVERLINE |
+                     StyleTextDecorationLine::UNDERLINE)) {
     fontMet->GetUnderline(offset, size);
     params.lineSize.height = presContext->AppUnitsToGfxUnits(size);
-    if ((decorations & StyleTextDecorationLine_UNDERLINE) &&
+    if ((decorations & StyleTextDecorationLine::UNDERLINE) &&
         underStyle != NS_STYLE_TEXT_DECORATION_STYLE_NONE) {
       params.color = underColor;
       params.offset = presContext->AppUnitsToGfxUnits(offset);
-      params.decoration = StyleTextDecorationLine_UNDERLINE;
+      params.decoration = StyleTextDecorationLine::UNDERLINE;
       params.style = underStyle;
       nsCSSRendering::PaintDecorationLine(this, *drawTarget, params);
     }
-    if ((decorations & StyleTextDecorationLine_OVERLINE) &&
+    if ((decorations & StyleTextDecorationLine::OVERLINE) &&
         overStyle != NS_STYLE_TEXT_DECORATION_STYLE_NONE) {
       params.color = overColor;
       params.offset = params.ascent;
-      params.decoration = StyleTextDecorationLine_OVERLINE;
+      params.decoration = StyleTextDecorationLine::OVERLINE;
       params.style = overStyle;
       nsCSSRendering::PaintDecorationLine(this, *drawTarget, params);
     }
@@ -547,13 +545,13 @@ void nsTextBoxFrame::DrawText(gfxContext& aRenderingContext,
 
   // Strikeout is drawn on top of the text, per
   // http://www.w3.org/TR/CSS21/zindex.html point 7.2.1.4.1.1.
-  if ((decorations & StyleTextDecorationLine_LINE_THROUGH) &&
+  if ((decorations & StyleTextDecorationLine::LINE_THROUGH) &&
       strikeStyle != NS_STYLE_TEXT_DECORATION_STYLE_NONE) {
     fontMet->GetStrikeout(offset, size);
     params.color = strikeColor;
     params.lineSize.height = presContext->AppUnitsToGfxUnits(size);
     params.offset = presContext->AppUnitsToGfxUnits(offset);
-    params.decoration = StyleTextDecorationLine_LINE_THROUGH;
+    params.decoration = StyleTextDecorationLine::LINE_THROUGH;
     params.style = strikeStyle;
     nsCSSRendering::PaintDecorationLine(this, *drawTarget, params);
   }

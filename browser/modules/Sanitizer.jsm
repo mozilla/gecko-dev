@@ -123,7 +123,7 @@ var Sanitizer = {
         : parentWindow;
     Services.ww.openWindow(
       win,
-      "chrome://browser/content/sanitize.xul",
+      "chrome://browser/content/sanitize.xhtml",
       "Sanitize",
       "chrome,titlebar,dialog,centerscreen,modal",
       null
@@ -811,9 +811,9 @@ class PrincipalsCollector {
 
     // Let's take the list of unique hosts+OA from cookies.
     progress.step = "principals-cookies";
-    let enumerator = Services.cookies.enumerator;
+    let cookies = Services.cookies.cookies;
     let hosts = new Set();
-    for (let cookie of enumerator) {
+    for (let cookie of cookies) {
       hosts.add(
         cookie.rawHost +
           ChromeUtils.originAttributesToSuffix(cookie.originAttributes)

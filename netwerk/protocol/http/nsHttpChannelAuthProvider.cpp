@@ -7,6 +7,7 @@
 // HttpLog.h should generally be included first
 #include "HttpLog.h"
 
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/Preferences.h"
 #include "nsHttpChannelAuthProvider.h"
 #include "nsNetUtil.h"
@@ -30,7 +31,6 @@
 #include "nsHttpNegotiateAuth.h"
 #include "nsHttpNTLMAuth.h"
 #include "nsServiceManagerUtils.h"
-#include "nsILoadContext.h"
 #include "nsIURL.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Telemetry.h"
@@ -920,7 +920,7 @@ bool nsHttpChannelAuthProvider::BlockPrompt(bool proxyAuth) {
 
   if (!topDoc) {
     nsCOMPtr<nsIPrincipal> triggeringPrinc = loadInfo->TriggeringPrincipal();
-    if (nsContentUtils::IsSystemPrincipal(triggeringPrinc)) {
+    if (triggeringPrinc->IsSystemPrincipal()) {
       nonWebContent = true;
     }
   }

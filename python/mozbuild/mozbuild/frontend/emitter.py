@@ -1032,10 +1032,6 @@ class TreeMetadataEmitter(LoggingMixin):
                 for target_var in ('SOURCES', 'UNIFIED_SOURCES'):
                     for suffix, srcs in ctxt_sources[target_var].items():
                         linkable.sources[suffix] += srcs
-                if no_pgo_sources:
-                    linkable.no_pgo_sources = no_pgo_sources
-                elif no_pgo:
-                    linkable.no_pgo = True
             for host_linkable in host_linkables:
                 for suffix, srcs in ctxt_sources['HOST_SOURCES'].items():
                     host_linkable.sources[suffix] += srcs
@@ -1574,12 +1570,6 @@ class TreeMetadataEmitter(LoggingMixin):
                                                  path, ', '.join(missing)), context)
 
             out_dir = mozpath.join(install_prefix, manifest_reldir)
-            if 'install-to-subdir' in defaults:
-                # This is terrible, but what are you going to do?
-                out_dir = mozpath.join(out_dir, defaults['install-to-subdir'])
-                obj.manifest_obj_relpath = mozpath.join(manifest_reldir,
-                                                        defaults['install-to-subdir'],
-                                                        mozpath.basename(path))
 
             def process_support_files(test):
                 install_info = self._test_files_converter.convert_support_files(

@@ -55,6 +55,12 @@ class ImportEntryObject : public NativeObject {
 
 typedef Rooted<ImportEntryObject*> RootedImportEntryObject;
 typedef Handle<ImportEntryObject*> HandleImportEntryObject;
+typedef Rooted<GCVector<ImportEntryObject*>> RootedImportEntryVector;
+typedef MutableHandle<ImportEntryObject*> MutableHandleImportEntryObject;
+
+template <XDRMode mode>
+XDRResult XDRImportEntryObject(XDRState<mode>* xdr,
+                               MutableHandleImportEntryObject impObj);
 
 class ExportEntryObject : public NativeObject {
  public:
@@ -83,6 +89,9 @@ class ExportEntryObject : public NativeObject {
   uint32_t columnNumber() const;
 };
 
+template <XDRMode mode>
+XDRResult XDRExportEntries(XDRState<mode>* xdr, MutableHandleArrayObject vec);
+
 typedef Rooted<ExportEntryObject*> RootedExportEntryObject;
 typedef Handle<ExportEntryObject*> HandleExportEntryObject;
 
@@ -103,6 +112,13 @@ class RequestedModuleObject : public NativeObject {
 
 typedef Rooted<RequestedModuleObject*> RootedRequestedModuleObject;
 typedef Handle<RequestedModuleObject*> HandleRequestedModuleObject;
+typedef Rooted<GCVector<RequestedModuleObject*>> RootedRequestedModuleVector;
+typedef MutableHandle<RequestedModuleObject*>
+    MutableHandleRequestedModuleObject;
+
+template <XDRMode mode>
+XDRResult XDRRequestedModuleObject(XDRState<mode>* xdr,
+                                   MutableHandleRequestedModuleObject reqObj);
 
 class IndirectBindingMap {
  public:
@@ -209,11 +225,11 @@ typedef Rooted<ModuleNamespaceObject*> RootedModuleNamespaceObject;
 typedef Handle<ModuleNamespaceObject*> HandleModuleNamespaceObject;
 
 struct FunctionDeclaration {
-  FunctionDeclaration(HandleAtom name, HandleFunction fun);
+  FunctionDeclaration(HandleAtom name, uint32_t funIndex);
   void trace(JSTracer* trc);
 
   const HeapPtr<JSAtom*> name;
-  const HeapPtr<JSFunction*> fun;
+  const uint32_t funIndex;
 };
 
 // A vector of function bindings to be instantiated. This can be created in a
@@ -304,7 +320,7 @@ class ModuleObject : public NativeObject {
 
   // For BytecodeEmitter.
   bool noteFunctionDeclaration(JSContext* cx, HandleAtom name,
-                               HandleFunction fun);
+                               uint32_t funIndex);
 
   // For intrinsic_InstantiateModuleFunctionDeclarations.
   static bool instantiateFunctionDeclarations(JSContext* cx,
@@ -319,6 +335,10 @@ class ModuleObject : public NativeObject {
                                                 HandleModuleObject self,
                                                 HandleObject exports);
 
+  static bool createEnvironment(JSContext* cx, HandleModuleObject self);
+
+  FunctionDeclarationVector* functionDeclarations();
+
  private:
   static const JSClassOps classOps_;
 
@@ -326,7 +346,6 @@ class ModuleObject : public NativeObject {
   static void finalize(JSFreeOp* fop, JSObject* obj);
 
   bool hasImportBindings() const;
-  FunctionDeclarationVector* functionDeclarations();
 };
 
 JSObject* GetOrCreateModuleMetaObject(JSContext* cx, HandleObject module);
@@ -339,6 +358,9 @@ JSObject* StartDynamicModuleImport(JSContext* cx, HandleScript script,
 
 bool FinishDynamicModuleImport(JSContext* cx, HandleValue referencingPrivate,
                                HandleString specifier, HandleObject promise);
+
+template <XDRMode mode>
+XDRResult XDRModuleObject(XDRState<mode>* xdr, MutableHandleModuleObject modp);
 
 }  // namespace js
 

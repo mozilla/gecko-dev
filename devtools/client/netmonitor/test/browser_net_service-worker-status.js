@@ -40,7 +40,7 @@ add_task(async function() {
   ];
 
   info("Registering the service worker...");
-  await ContentTask.spawn(tab.linkedBrowser, {}, async function() {
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async function() {
     await content.wrappedJSObject.registerServiceWorker();
   });
 
@@ -67,7 +67,7 @@ add_task(async function() {
 
   let index = 0;
   for (const request of REQUEST_DATA) {
-    const item = getSortedRequests(store.getState()).get(index);
+    const item = getSortedRequests(store.getState())[index];
 
     info(`Verifying request #${index}`);
     await verifyRequestItemTarget(
@@ -100,7 +100,7 @@ add_task(async function() {
   }
 
   info("Unregistering the service worker...");
-  await ContentTask.spawn(tab.linkedBrowser, {}, async function() {
+  await SpecialPowers.spawn(tab.linkedBrowser, [], async function() {
     await content.wrappedJSObject.unregisterServiceWorker();
   });
 

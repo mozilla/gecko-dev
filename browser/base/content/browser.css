@@ -159,17 +159,22 @@ panelview[mainview] > .panel-header {
   }
 }
 
+@supports not -moz-bool-pref("browser.tabs.tabmanager.enabled") {
+  #tabbrowser-tabs:not([overflow="true"]):not([hashiddentabs]) ~ #alltabs-button {
+    display: none;
+  }
+  #tabbrowser-tabs:not([overflow="true"])[using-closing-tabs-spacer] ~ #alltabs-button {
+    /* temporary space to keep a tab's close button under the cursor */
+    display: -moz-box;
+    visibility: hidden;
+  }
+}
 
-#tabbrowser-tabs:not([overflow="true"]):not([hashiddentabs]) ~ #alltabs-button,
 #tabbrowser-tabs[hasadjacentnewtabbutton]:not([overflow="true"]) ~ #new-tab-button,
 #tabbrowser-tabs[overflow="true"] > .tabbrowser-arrowscrollbox > #tabs-newtab-button,
 #tabbrowser-tabs:not([hasadjacentnewtabbutton]) > .tabbrowser-arrowscrollbox > #tabs-newtab-button,
 #TabsToolbar[customizing="true"] #tabs-newtab-button {
-  visibility: collapse;
-}
-
-#tabbrowser-tabs:not([overflow="true"])[using-closing-tabs-spacer] ~ #alltabs-button {
-  visibility: hidden; /* temporary space to keep a tab's close button under the cursor */
+  display: none;
 }
 
 .tabbrowser-tab:not([pinned]) {
@@ -395,42 +400,6 @@ toolbarpaletteitem {
   transition: 0.8s margin-top ease-out;
 }
 
-/* Rule for hiding urlbar's contextual tip and its children */
-
-#urlbar-contextual-tip.hidden,
-#urlbar-contextual-tip-button.hidden,
-#urlbar-contextual-tip-link.hidden {
-  display: none;
-}
-
-/* Rules for the urlbar's contextual tip's icon. */
-
-#urlbar-contextual-tip-icon {
-  background-image: var(--webextension-contextual-tip-icon);
-}
-
-:root[lwt-popup-brighttext] #urlbar-contextual-tip-icon {
-  background-image: var(--webextension-contextual-tip-icon-light);
-}
-
-:root[lwt-popup-darktext] #urlbar-contextual-tip-icon {
-  background-image: var(--webextension-contextual-tip-icon-dark);
-}
-
-@media (min-resolution: 1.1dppx) {
-  #urlbar-contextual-tip-icon {
-    background-image: var(--webextension-contextual-tip-icon-2x);
-  }
-
-  :root[lwt-popup-brighttext] #urlbar-contextual-tip-icon {
-    background-image: var(--webextension-contextual-tip-icon-2x-light);
-  }
-
-  :root[lwt-popup-darktext] #urlbar-contextual-tip-icon {
-    background-image: var(--webextension-contextual-tip-icon-2x-dark);
-  }
-}
-
 /* Rules to help integrate WebExtension buttons */
 
 .webextension-browser-action > .toolbarbutton-badge-stack > .toolbarbutton-icon {
@@ -601,17 +570,20 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   min-width: 1px;
 }
 
-/* Display URLs left-to-right but right aligned in RTL mode. */
+/* Align URLs to the right in RTL mode. */
 #urlbar-input:-moz-locale-dir(rtl) {
-  direction: ltr !important;
   text-align: right !important;
 }
 
-/* Make sure that the location bar's alignment in RTL mode changes according
+/* Make sure that the location bar's alignment changes according
    to the input box direction if the user switches the text direction using
    cmd_switchTextDirection (which applies a dir attribute to the <input>). */
 #urlbar-input[dir=ltr]:-moz-locale-dir(rtl) {
   text-align: left !important;
+}
+
+#urlbar-input[dir=rtl]:-moz-locale-dir(ltr) {
+  text-align: right !important;
 }
 
 /*
@@ -648,23 +620,29 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 
 /* Visible if the urlbar is not focused and it overflows at the start.
    Uses the required-valid trick to check if it contains a value */
-#urlbar[textoverflow="start"][hasrtldomain]:not([focused]) > #urlbar-input-container > .urlbar-input-box > #urlbar-scheme:valid {
+#urlbar[textoverflow="left"][hasrtldomain]:not([focused]) > #urlbar-input-container > .urlbar-input-box > #urlbar-scheme:valid {
   visibility: visible;
 }
 
 /* Fade out URL on overflow
    This mask may be overriden when a Contextual Feature Recommendation is shown,
    see browser/themes/shared/urlbar-searchbar.inc.css for details */
-#urlbar[textoverflow="end"]:not([focused]) > #urlbar-input-container > .urlbar-input-box > #urlbar-input {
+#urlbar[textoverflow="right"]:not([focused]) > #urlbar-input-container > .urlbar-input-box > #urlbar-input {
   mask-image: linear-gradient(to left, transparent, black 3ch);
 }
 
-#urlbar[textoverflow="start"][hasrtldomain]:not([focused]) > #urlbar-input-container > .urlbar-input-box > #urlbar-input {
+#urlbar[textoverflow="left"][rtltext]:not([focused]) > #urlbar-input-container > .urlbar-input-box > #urlbar-input {
+  mask-image: linear-gradient(to right, transparent, black 3ch);
+}
+
+#urlbar[textoverflow="left"][hasrtldomain]:not([focused]) > #urlbar-input-container > .urlbar-input-box > #urlbar-input {
   mask-image: linear-gradient(to right, transparent var(--urlbar-scheme-size), black calc(var(--urlbar-scheme-size) + 3ch));
 }
 
 #urlbar-input {
   mask-repeat: no-repeat;
+  unicode-bidi: plaintext;
+  text-align: match-parent;
 }
 
 /* Apply crisp rendering for favicons at exactly 2dppx resolution */
@@ -1110,7 +1088,7 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
 
 /* Apply crisp rendering for favicons at exactly 2dppx resolution */
 @media (resolution: 2dppx) {
-  #PanelUI-remotetabs-tabslist > toolbarbutton > .toolbarbutton-icon,
+  .PanelUI-remotetabs-clientcontainer > toolbarbutton > .toolbarbutton-icon,
   #PanelUI-recentlyClosedWindows > toolbarbutton > .toolbarbutton-icon,
   #PanelUI-recentlyClosedTabs > toolbarbutton > .toolbarbutton-icon,
   #PanelUI-historyItems > toolbarbutton > .toolbarbutton-icon {

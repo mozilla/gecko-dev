@@ -10,7 +10,6 @@
 #include "nsUnicodeProperties.h"
 #include "nsCRT.h"
 #include "nsIExternalProtocolHandler.h"
-#include "nsIIOService.h"
 #include "nsIURI.h"
 
 #include <algorithm>
@@ -53,7 +52,7 @@ void mozTXTToHTMLConv::EscapeChar(const char16_t ch,
         break;
       }
       // else fall through
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     default:
       aStringToAppendTo += ch;
   }
@@ -94,7 +93,7 @@ void mozTXTToHTMLConv::EscapeStr(nsString& aInString, bool inAttribute) {
           break;
         }
         // else fall through
-        MOZ_FALLTHROUGH;
+        [[fallthrough]];
       default:
         i++;
     }
@@ -456,7 +455,7 @@ bool mozTXTToHTMLConv::FindURL(const char16_t* aInString, int32_t aInLength,
   switch (aInString[pos]) {
     case '@':
       state[RFC2396E] = unchecked;
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case '.':
       state[abbreviated] = unchecked;
       break;
@@ -1215,6 +1214,12 @@ NS_IMETHODIMP
 mozTXTToHTMLConv::AsyncConvertData(const char* aFromType, const char* aToType,
                                    nsIStreamListener* aListener,
                                    nsISupports* aCtxt) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+mozTXTToHTMLConv::GetConvertedType(const nsACString& aFromType,
+                                   nsACString& aToType) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

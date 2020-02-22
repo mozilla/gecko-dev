@@ -14,7 +14,6 @@
 #include "nsCaret.h"
 #include "nsCSSPseudoElements.h"
 #include "nsGenericHTMLElement.h"
-#include "nsIEditor.h"
 #include "nsTextFragment.h"
 #include "nsNameSpaceManager.h"
 #include "nsCheckboxRadioFrame.h"  //for registering accesskeys
@@ -403,6 +402,7 @@ nsTextControlFrame::CreateEmptyAnonymousDivWithTextNode(
 
 nsresult nsTextControlFrame::CreateAnonymousContent(
     nsTArray<ContentInfo>& aElements) {
+  MOZ_ASSERT(!nsContentUtils::IsSafeToRunScript());
   MOZ_ASSERT(mContent, "We should have a content!");
 
   AddStateBits(NS_FRAME_INDEPENDENT_SELECTION);

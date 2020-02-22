@@ -12,16 +12,17 @@ const dom = require("devtools/client/shared/vendor/react-dom-factories");
 const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
 const { connect } = require("devtools/client/shared/vendor/react-redux");
 
-const ResizableViewport = createFactory(require("./ResizableViewport"));
+const ResizableViewport = createFactory(
+  require("devtools/client/responsive/components/ResizableViewport")
+);
 
-const Types = require("../types");
+const Types = require("devtools/client/responsive/types");
 
 class Viewports extends PureComponent {
   static get propTypes() {
     return {
       leftAlignmentEnabled: PropTypes.bool.isRequired,
       onBrowserMounted: PropTypes.func.isRequired,
-      onChangeViewportOrientation: PropTypes.func.isRequired,
       onContentResize: PropTypes.func.isRequired,
       onRemoveDeviceAssociation: PropTypes.func.isRequired,
       doResizeViewport: PropTypes.func.isRequired,
@@ -35,7 +36,6 @@ class Viewports extends PureComponent {
     const {
       leftAlignmentEnabled,
       onBrowserMounted,
-      onChangeViewportOrientation,
       onContentResize,
       onRemoveDeviceAssociation,
       doResizeViewport,
@@ -77,7 +77,6 @@ class Viewports extends PureComponent {
             key: viewport.id,
             leftAlignmentEnabled,
             onBrowserMounted,
-            onChangeViewportOrientation,
             onContentResize,
             onRemoveDeviceAssociation,
             doResizeViewport,

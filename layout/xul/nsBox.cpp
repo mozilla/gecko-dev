@@ -15,7 +15,6 @@
 #include "nsNameSpaceManager.h"
 #include "nsGkAtoms.h"
 #include "nsITheme.h"
-#include "nsIServiceManager.h"
 #include "nsBoxLayout.h"
 #include "FrameLayerBuilder.h"
 #include "mozilla/dom/Attr.h"
@@ -285,7 +284,7 @@ nscoord nsBox::GetXULBoxAscent(nsBoxLayoutState& aState) {
 }
 
 bool nsBox::IsXULCollapsed() {
-  return StyleVisibility()->mVisible == NS_STYLE_VISIBILITY_COLLAPSE;
+  return StyleVisibility()->mVisible == StyleVisibility::Collapse;
 }
 
 nsresult nsIFrame::XULLayout(nsBoxLayoutState& aState) {

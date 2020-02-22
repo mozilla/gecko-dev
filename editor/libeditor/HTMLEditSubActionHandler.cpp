@@ -43,7 +43,6 @@
 #include "nsIContent.h"
 #include "nsID.h"
 #include "nsIFrame.h"
-#include "nsIHTMLAbsPosEditor.h"
 #include "nsINode.h"
 #include "nsLiteralString.h"
 #include "nsRange.h"
@@ -3344,9 +3343,14 @@ nsresult HTMLEditor::DeleteUnnecessaryNodesAndCollapseSelection(
 
   // If we're handling D&D, this is called to delete dragging item from the
   // tree.  In this case, we should move parent blocks if it becomes empty.
-  if (GetEditAction() == EditAction::eDrop) {
-    MOZ_ASSERT(atCaret.GetContainer() == selectionEndPoint.GetContainer());
-    MOZ_ASSERT(atCaret.Offset() == selectionEndPoint.Offset());
+  if (GetEditAction() == EditAction::eDrop ||
+      GetEditAction() == EditAction::eDeleteByDrag) {
+    MOZ_ASSERT((atCaret.GetContainer() == selectionEndPoint.GetContainer() &&
+                atCaret.Offset() == selectionEndPoint.Offset()) ||
+               (atCaret.GetContainer()->GetNextSibling() ==
+                    selectionEndPoint.GetContainer() &&
+                atCaret.IsEndOfContainer() &&
+                selectionEndPoint.IsStartOfContainer()));
     {
       AutoTrackDOMPoint startTracker(RangeUpdaterRef(), &atCaret);
       AutoTrackDOMPoint endTracker(RangeUpdaterRef(), &selectionEndPoint);
@@ -7160,13 +7164,13 @@ nsresult HTMLEditor::MaybeExtendSelectionToHardLineEdgesForBlockEditAction() {
   // start, or new start after old end.  If so then just leave things alone.
 
   int16_t comp;
-  comp = nsContentUtils::ComparePoints(startPoint.ToRawRangeBoundary(),
-                                       newEndPoint.ToRawRangeBoundary());
+  comp = nsContentUtils::ComparePoints_Deprecated(
+      startPoint.ToRawRangeBoundary(), newEndPoint.ToRawRangeBoundary());
   if (comp == 1) {
     return NS_OK;  // New end before old start.
   }
-  comp = nsContentUtils::ComparePoints(newStartPoint.ToRawRangeBoundary(),
-                                       endPoint.ToRawRangeBoundary());
+  comp = nsContentUtils::ComparePoints_Deprecated(
+      newStartPoint.ToRawRangeBoundary(), endPoint.ToRawRangeBoundary());
   if (comp == 1) {
     return NS_OK;  // New start after old end.
   }
@@ -7195,7 +7199,8 @@ EditorDOMPoint HTMLEditor::GetWhiteSpaceEndPoint(
 
   bool isSpace = false, isNBSP = false;
   nsIContent* newContent = aPoint.Container()->AsContent();
-  int32_t newOffset = aPoint.Offset();
+  int32_t newOffset = *aPoint.Offset(
+      RangeBoundaryBase<PT, RT>::OffsetFilter::kValidOrInvalidOffsets);
   while (newContent) {
     int32_t offset = -1;
     nsCOMPtr<nsIContent> content;

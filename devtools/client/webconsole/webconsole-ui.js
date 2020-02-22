@@ -17,6 +17,9 @@ var ChromeUtils = require("ChromeUtils");
 const { BrowserLoader } = ChromeUtils.import(
   "resource://devtools/client/shared/browser-loader.js"
 );
+const {
+  getAdHocFrontOrPrimitiveGrip,
+} = require("devtools/shared/fronts/object");
 
 loader.lazyRequireGetter(
   this,
@@ -36,6 +39,7 @@ loader.lazyRequireGetter(
   "devtools/client/shared/redux/middleware/ignore",
   true
 );
+const ConsoleCommands = require("devtools/client/webconsole/commands.js");
 
 const ZoomKeys = require("devtools/client/shared/zoom-keys");
 
@@ -137,6 +141,14 @@ class WebConsoleUI {
     this._initializer = (async () => {
       this._initUI();
       await this._attachTargets();
+
+      this._commands = new ConsoleCommands({
+        debuggerClient: this.hud.currentTarget.client,
+        proxy: this.getProxy(),
+        threadFront: this.hud.toolbox && this.hud.toolbox.threadFront,
+        currentTarget: this.hud.currentTarget,
+      });
+
       await this.wrapper.init();
 
       const id = WebConsoleUtils.supportsString(this.hudId);
@@ -245,11 +257,15 @@ class WebConsoleUI {
   }
 
   inspectObjectActor(objectActor) {
+    const webConsoleFront = this.webConsoleFront;
     this.wrapper.dispatchMessageAdd(
       {
         helperResult: {
           type: "inspectObject",
-          object: objectActor,
+          object:
+            objectActor && objectActor.getGrip
+              ? objectActor
+              : getAdHocFrontOrPrimitiveGrip(objectActor, webConsoleFront),
         },
       },
       true
@@ -330,7 +346,7 @@ class WebConsoleUI {
    *        to an URL which has to be loaded in a distinct process.
    *        A new top level target is created.
    */
-  async _onTargetAvailable(type, targetFront, isTopLevel) {
+  async _onTargetAvailable({ type, targetFront, isTopLevel }) {
     // This is a top level target. It may update on process switches
     // when navigating to another domain.
     if (isTopLevel) {
@@ -348,8 +364,8 @@ class WebConsoleUI {
       return;
     }
     // Ignore frame targets, except the top level one, which is handled in the previous
-    // block.
-    if (type == this.hud.targetList.TYPES.FRAME) {
+    // block. Also ignore workers as they are not supported yet. (see bug 1592584)
+    if (type != this.hud.targetList.TYPES.PROCESS) {
       return;
     }
     const proxy = new WebConsoleConnectionProxy(this, targetFront);
@@ -363,7 +379,7 @@ class WebConsoleUI {
    * @private
    * See _onTargetAvailable for param's description.
    */
-  _onTargetDestroyed(type, targetFront, isTopLevel) {
+  _onTargetDestroyed({ type, targetFront, isTopLevel }) {
     if (isTopLevel) {
       this.proxy.disconnect();
       this.proxy = null;
@@ -387,7 +403,7 @@ class WebConsoleUI {
     const WebConsoleWrapper = BrowserLoader({
       baseURI: "resource://devtools/client/webconsole/",
       window: this.window,
-    }).require("./webconsole-wrapper");
+    }).require("devtools/client/webconsole/webconsole-wrapper");
 
     this.wrapper = new WebConsoleWrapper(
       this.outputNode,
@@ -478,33 +494,8 @@ class WebConsoleUI {
     }
   }
 
-  /**
-   * Release an actor.
-   *
-   * @private
-   * @param string actor
-   *        The actor ID you want to release.
-   */
-  releaseActor(actor) {
-    const proxy = this.getProxy();
-    if (!proxy) {
-      return null;
-    }
-
-    return proxy.releaseActor(actor);
-  }
-
-  /**
-   * @param {String} expression
-   * @param {Object} options
-   * @returns {Promise}
-   */
-  evaluateJSAsync(expression, options) {
-    return this.getProxy().webConsoleFront.evaluateJSAsync(expression, options);
-  }
-
   getLongString(grip) {
-    this.getProxy().webConsoleFront.getString(grip);
+    return this.getProxy().webConsoleFront.getString(grip);
   }
 
   /**
@@ -568,7 +559,7 @@ class WebConsoleUI {
    *         (or the selected frame if it exists), null if no frame was found.
    *         webConsoleFront is the front for the thread the frame is associated with.
    */
-  getFrameActor() {
+  async getFrameActor() {
     const state = this.hud.getDebuggerFrames();
     if (!state) {
       return { frameActor: null, webConsoleFront: this.webConsoleFront };
@@ -580,9 +571,11 @@ class WebConsoleUI {
       return { frameActor: null, webConsoleFront: this.webConsoleFront };
     }
 
+    const webConsoleFront = await state.target.getFront("console");
+
     return {
       frameActor: grip.actor,
-      webConsoleFront: state.target.activeConsole,
+      webConsoleFront,
     };
   }
 

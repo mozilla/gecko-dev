@@ -22,22 +22,15 @@ const PREFERENCES = [
   ],
   [
     "devtools.browsertoolbox.fission",
-    "Enable the Omniscient Browser Toolbox and Omniscient Browser " +
+    "Enable the Multiprocess Browser Toolbox and Multiprocess Browser " +
       "Console, so that it can see and debug resources from the content " +
       "processes at the same time as resources from the parent process",
   ],
-  // To enable when Bug 1565200 lands.
-  // [
-  //   "devtools.fission.use-js-window-actor",
-  //   "This is a step toward debugging fission iframes in regular toolbox. " +
-  //     "This preference enables using JS Window Actor API instead of the " +
-  //     "Message Manager for RDP internal implementation.",
-  // ],
   [
     "devtools.inspector.use-new-box-model-highlighter",
     "Enables a new highlighter implementation that can simultaneously " +
       "highlight content in the parent and content processes. This allows to " +
-      "use a single highlighter in the Omniscient Browser Toolbox.",
+      "use a single highlighter in the Multiprocess Browser Toolbox.",
   ],
   [
     "devtools.target-switching.enabled",

@@ -9,8 +9,6 @@
 
 #include "prcvar.h"
 #include "prthread.h"
-#include "nsIThread.h"
-#include "nsIRunnable.h"
 
 #include "mozilla/Mutex.h"
 #include "nsCOMPtr.h"
@@ -111,8 +109,7 @@ class MediaEngineRemoteVideoSource : public MediaEngineSource,
   // MediaEngineSource
   dom::MediaSourceEnum GetMediaSource() const override;
   nsresult Allocate(const dom::MediaTrackConstraints& aConstraints,
-                    const MediaEnginePrefs& aPrefs,
-                    const ipc::PrincipalInfo& aPrincipalInfo,
+                    const MediaEnginePrefs& aPrefs, uint64_t aWindowID,
                     const char** aOutBadConstraint) override;
   nsresult Deallocate() override;
   void SetTrack(const RefPtr<SourceMediaTrack>& aTrack,

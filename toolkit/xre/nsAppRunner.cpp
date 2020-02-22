@@ -58,17 +58,11 @@
 #include "prenv.h"
 #include "prtime.h"
 
-#include "nsIAppShellService.h"
 #include "nsIAppStartup.h"
 #include "nsAppStartupNotifier.h"
 #include "nsIMutableArray.h"
-#include "nsICategoryManager.h"
-#include "nsIChromeRegistry.h"
 #include "nsCommandLine.h"
-#include "nsIComponentManager.h"
 #include "nsIComponentRegistrar.h"
-#include "nsIConsoleService.h"
-#include "nsIContentHandler.h"
 #include "nsIDialogParamBlock.h"
 #include "mozilla/ModuleUtils.h"
 #include "nsIIOService.h"
@@ -82,20 +76,17 @@
 #include "nsIServiceManager.h"
 #include "nsIStringBundle.h"
 #include "nsISupportsPrimitives.h"
-#include "nsIToolkitChromeRegistry.h"
 #include "nsIToolkitProfile.h"
+#include "nsIUUIDGenerator.h"
 #include "nsToolkitProfileService.h"
 #include "nsIURI.h"
 #include "nsIURL.h"
 #include "nsIWindowCreator.h"
-#include "nsIWindowMediator.h"
 #include "nsIWindowWatcher.h"
 #include "nsIXULAppInfo.h"
 #include "nsIXULRuntime.h"
 #include "nsPIDOMWindow.h"
-#include "nsIBaseWindow.h"
 #include "nsIWidget.h"
-#include "nsIDocShell.h"
 #include "nsAppShellCID.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/scache/StartupCache.h"
@@ -640,9 +631,10 @@ SYNC_ENUMS(VR, VR)
 SYNC_ENUMS(RDD, RDD)
 SYNC_ENUMS(SOCKET, Socket)
 SYNC_ENUMS(SANDBOX_BROKER, RemoteSandboxBroker)
+SYNC_ENUMS(FORKSERVER, ForkServer)
 
 // .. and ensure that that is all of them:
-static_assert(GeckoProcessType_RemoteSandboxBroker + 1 == GeckoProcessType_End,
+static_assert(GeckoProcessType_ForkServer + 1 == GeckoProcessType_End,
               "Did not find the final GeckoProcessType");
 
 NS_IMETHODIMP
@@ -1804,7 +1796,7 @@ static ReturnAbortOnError ProfileLockedDialog(nsIFile* aProfileDir,
 }
 
 static const char kProfileManagerURL[] =
-    "chrome://mozapps/content/profile/profileSelection.xul";
+    "chrome://mozapps/content/profile/profileSelection.xhtml";
 
 static ReturnAbortOnError ShowProfileManager(
     nsIToolkitProfileService* aProfileSvc, nsINativeAppSupport* aNative) {
@@ -2192,7 +2184,7 @@ static void SubmitDowngradeTelemetry(const nsCString& aLastVersion,
 }
 
 static const char kProfileDowngradeURL[] =
-    "chrome://mozapps/content/profile/profileDowngrade.xul";
+    "chrome://mozapps/content/profile/profileDowngrade.xhtml";
 
 static ReturnAbortOnError CheckDowngrade(nsIFile* aProfileDir,
                                          nsINativeAppSupport* aNative,
@@ -2699,10 +2691,8 @@ static void MOZ_gdk_display_close(GdkDisplay* display) {
     g_free(theme_name);
   }
 
-#    ifdef MOZ_WIDGET_GTK
   // A workaround for https://bugzilla.gnome.org/show_bug.cgi?id=703257
   if (gtk_check_version(3, 9, 8) != NULL) skip_display_close = true;
-#    endif
 
   bool buggyCairoShutdown = cairo_version() < CAIRO_VERSION_ENCODE(1, 4, 0);
 
@@ -4238,6 +4228,7 @@ nsresult XREMain::XRE_mainRun() {
 
 #if defined(XP_WIN)
   RefPtr<mozilla::DllServices> dllServices(mozilla::DllServices::Get());
+  dllServices->StartUntrustedModulesProcessor();
   auto dllServicesDisable =
       MakeScopeExit([&dllServices]() { dllServices->DisableFull(); });
 #endif  // defined(XP_WIN)
@@ -4936,6 +4927,10 @@ nsresult XRE_DeinitCommandLine() {
 
 GeckoProcessType XRE_GetProcessType() {
   return mozilla::startup::sChildProcessType;
+}
+
+const char* XRE_GetProcessTypeString() {
+  return XRE_GeckoProcessTypeToString(XRE_GetProcessType());
 }
 
 bool XRE_IsE10sParentProcess() {

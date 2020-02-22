@@ -12,8 +12,10 @@ const { Provider } = require("devtools/client/shared/vendor/react-redux");
 
 const EventEmitter = require("devtools/shared/event-emitter");
 
-const App = createFactory(require("./components/App"));
-const CurrentTimeTimer = require("./current-time-timer");
+const App = createFactory(
+  require("devtools/client/inspector/animation/components/App")
+);
+const CurrentTimeTimer = require("devtools/client/inspector/animation/current-time-timer");
 
 const {
   updateAnimations,
@@ -23,11 +25,11 @@ const {
   updatePlaybackRates,
   updateSelectedAnimation,
   updateSidebarSize,
-} = require("./actions/animations");
+} = require("devtools/client/inspector/animation/actions/animations");
 const {
   hasAnimationIterationCountInfinite,
   hasRunningAnimation,
-} = require("./utils/utils");
+} = require("devtools/client/inspector/animation/utils/utils");
 
 class AnimationInspector {
   constructor(inspector, win) {
@@ -73,7 +75,7 @@ class AnimationInspector {
     this.onSidebarSelectionChanged = this.onSidebarSelectionChanged.bind(this);
 
     EventEmitter.decorate(this);
-    this.emit = this.emit.bind(this);
+    this.emitForTests = this.emitForTests.bind(this);
 
     this.init();
   }
@@ -89,7 +91,7 @@ class AnimationInspector {
 
     const {
       addAnimationsCurrentTimeListener,
-      emit: emitEventForTest,
+      emitForTests: emitEventForTest,
       getAnimatedPropertyMap,
       getAnimationsCurrentTime,
       getComputedStyle,

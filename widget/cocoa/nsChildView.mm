@@ -36,7 +36,6 @@
 #include "nsFontMetrics.h"
 #include "nsIRollupListener.h"
 #include "nsViewManager.h"
-#include "nsIInterfaceRequestor.h"
 #include "nsIFile.h"
 #include "nsILocalFileMac.h"
 #include "nsGfxCIID.h"
@@ -237,7 +236,6 @@ nsChildView::nsChildView()
       mDrawing(false),
       mIsDispatchPaint(false),
       mPluginFocused{false},
-      mCompositingState("nsChildView::mCompositingState"),
       mOpaqueRegion("nsChildView::mOpaqueRegion"),
       mCurrentPanGestureBelongsToSwipe{false} {}
 
@@ -853,13 +851,12 @@ void nsChildView::SuspendAsyncCATransactions() {
   // accidentally stay suspended indefinitely.
   [mView markLayerForDisplay];
 
-  auto compositingState = mCompositingState.Lock();
-  compositingState->mAsyncCATransactionsSuspended = true;
+  mNativeLayerRoot->SuspendOffMainThreadCommits();
 }
 
 void nsChildView::MaybeScheduleUnsuspendAsyncCATransactions() {
-  auto compositingState = mCompositingState.Lock();
-  if (compositingState->mAsyncCATransactionsSuspended && !mUnsuspendAsyncCATransactionsRunnable) {
+  if (mNativeLayerRoot->AreOffMainThreadCommitsSuspended() &&
+      !mUnsuspendAsyncCATransactionsRunnable) {
     mUnsuspendAsyncCATransactionsRunnable =
         NewCancelableRunnableMethod("nsChildView::MaybeScheduleUnsuspendAsyncCATransactions", this,
                                     &nsChildView::UnsuspendAsyncCATransactions);
@@ -870,14 +867,12 @@ void nsChildView::MaybeScheduleUnsuspendAsyncCATransactions() {
 void nsChildView::UnsuspendAsyncCATransactions() {
   mUnsuspendAsyncCATransactionsRunnable = nullptr;
 
-  auto compositingState = mCompositingState.Lock();
-  compositingState->mAsyncCATransactionsSuspended = false;
-  if (compositingState->mNativeLayerChangesPending) {
-    // We need to call mNativeLayerRoot->ApplyChanges() at the next available
-    // opportunity, and it needs to happen during a CoreAnimation transaction.
+  if (mNativeLayerRoot->UnsuspendOffMainThreadCommits()) {
+    // We need to call mNativeLayerRoot->CommitToScreen() at the next available
+    // opportunity.
     // The easiest way to handle this request is to mark the layer as needing
     // display, because this will schedule a main thread CATransaction, during
-    // which HandleMainThreadCATransaction will call ApplyChanges().
+    // which HandleMainThreadCATransaction will call CommitToScreen().
     [mView markLayerForDisplay];
   }
 }
@@ -1340,16 +1335,18 @@ void nsChildView::EnsureContentLayerForMainThreadPainting() {
     mContentLayer = nullptr;
   }
   if (!mContentLayer) {
-    RefPtr<NativeLayer> contentLayer = mNativeLayerRoot->CreateLayer(size, false);
+    mPoolHandle = SurfacePool::Create(0)->GetHandleForGL(nullptr);
+    RefPtr<NativeLayer> contentLayer = mNativeLayerRoot->CreateLayer(size, false, mPoolHandle);
     mNativeLayerRoot->AppendLayer(contentLayer);
     mContentLayer = contentLayer->AsNativeLayerCA();
+    mContentLayer->SetSurfaceIsFlipped(false);
     mContentLayerInvalidRegion = GetBounds();
   }
 }
 
 void nsChildView::PaintWindowInContentLayer() {
   EnsureContentLayerForMainThreadPainting();
-  mContentLayer->SetSurfaceIsFlipped(false);
+  mPoolHandle->OnBeginFrame();
   RefPtr<DrawTarget> dt = mContentLayer->NextSurfaceAsDrawTarget(
       mContentLayerInvalidRegion.ToUnknownRegion(), gfx::BackendType::SKIA);
   if (!dt) {
@@ -1359,6 +1356,7 @@ void nsChildView::PaintWindowInContentLayer() {
   PaintWindowInDrawTarget(dt, mContentLayerInvalidRegion, dt->GetSize());
   mContentLayer->NotifySurfaceReady();
   mContentLayerInvalidRegion.SetEmpty();
+  mPoolHandle->OnEndFrame();
 }
 
 void nsChildView::HandleMainThreadCATransaction() {
@@ -1379,11 +1377,7 @@ void nsChildView::HandleMainThreadCATransaction() {
   // Apply the changes inside mNativeLayerRoot to the underlying CALayers. Now is a
   // good time to call this because we know we're currently inside a main thread
   // CATransaction.
-  {
-    auto compositingState = mCompositingState.Lock();
-    mNativeLayerRoot->ApplyChanges();
-    compositingState->mNativeLayerChangesPending = false;
-  }
+  mNativeLayerRoot->CommitToScreen();
 
   MaybeScheduleUnsuspendAsyncCATransactions();
 }
@@ -1567,7 +1561,7 @@ InputContext nsChildView::GetInputContext() {
         break;
       }
       // If mTextInputHandler is null, set CLOSED instead...
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     default:
       mInputContext.mIMEState.mOpen = IMEState::CLOSED;
       break;
@@ -1722,23 +1716,7 @@ bool nsChildView::PreRender(WidgetRenderingContext* aContext) {
   return true;
 }
 
-void nsChildView::PostRender(WidgetRenderingContext* aContext) {
-  {  // scope for lock
-    auto compositingState = mCompositingState.Lock();
-    if (compositingState->mAsyncCATransactionsSuspended) {
-      // We should not trigger a CATransactions on this thread. Instead, let the
-      // main thread take care of calling ApplyChanges at an appropriate time.
-      compositingState->mNativeLayerChangesPending = true;
-    } else {
-      // Force a CoreAnimation layer tree update from this thread.
-      [NSAnimationContext beginGrouping];
-      mNativeLayerRoot->ApplyChanges();
-      compositingState->mNativeLayerChangesPending = false;
-      [NSAnimationContext endGrouping];
-    }
-  }
-  mViewTearDownLock.Unlock();
-}
+void nsChildView::PostRender(WidgetRenderingContext* aContext) { mViewTearDownLock.Unlock(); }
 
 RefPtr<layers::NativeLayerRoot> nsChildView::GetNativeLayerRoot() { return mNativeLayerRoot; }
 
@@ -2579,7 +2557,7 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
 
   if (mGeckoChild) {
     if (nsIWidgetListener* listener = mGeckoChild->GetWidgetListener()) {
-      if (PresShell* presShell = listener->GetPresShell()) {
+      if (RefPtr<PresShell> presShell = listener->GetPresShell()) {
         presShell->ReconstructFrames();
       }
     }

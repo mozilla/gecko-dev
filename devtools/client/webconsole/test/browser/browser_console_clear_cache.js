@@ -10,6 +10,9 @@ const TEST_URI = "data:text/html;charset=utf8,Test browser console clear cache";
 
 add_task(async function() {
   await pushPref("devtools.browserconsole.contentMessages", true);
+  // Bug 1605036: Disable Multiprocess Browser Toolbox for now as it introduces intermittent failure in this test
+  await pushPref("devtools.browsertoolbox.fission", false);
+
   await addTab(TEST_URI);
   let hud = await BrowserConsoleManager.toggleBrowserConsole();
   const CACHED_MESSAGE = "CACHED_MESSAGE";
@@ -43,7 +46,7 @@ add_task(async function() {
 
 function logTextToConsole(hud, text) {
   const onMessage = waitForMessage(hud, text);
-  ContentTask.spawn(gBrowser.selectedBrowser, text, function(str) {
+  SpecialPowers.spawn(gBrowser.selectedBrowser, [text], function(str) {
     content.wrappedJSObject.console.log(str);
   });
   return onMessage;

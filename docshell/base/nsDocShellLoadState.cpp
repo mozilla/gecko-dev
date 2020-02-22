@@ -6,12 +6,16 @@
 
 #include "nsDocShellLoadState.h"
 #include "nsIDocShell.h"
-#include "nsIDocShellTreeItem.h"
-#include "nsIScriptSecurityManager.h"
+#include "SHEntryParent.h"
+#include "SHEntryChild.h"
+#include "nsISHEntry.h"
 #include "nsIWebNavigation.h"
 #include "nsIChildChannel.h"
 #include "ReferrerInfo.h"
+#include "mozilla/BasePrincipal.h"
+#include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/LoadURIOptionsBinding.h"
+#include "mozilla/StaticPrefs_fission.h"
 
 #include "mozilla/OriginAttributes.h"
 #include "mozilla/NullPrincipal.h"
@@ -73,6 +77,14 @@ nsDocShellLoadState::nsDocShellLoadState(
   mHeadersStream = aLoadState.HeadersStream();
   mSrcdocData = aLoadState.SrcdocData();
   mResultPrincipalURI = aLoadState.ResultPrincipalURI();
+  if (!aLoadState.SHEntry() || !StaticPrefs::fission_sessionHistoryInParent()) {
+    return;
+  }
+  if (XRE_IsParentProcess()) {
+    mSHEntry = static_cast<LegacySHEntry*>(aLoadState.SHEntry());
+  } else {
+    mSHEntry = static_cast<SHEntryChild*>(aLoadState.SHEntry());
+  }
 }
 
 nsDocShellLoadState::~nsDocShellLoadState() {}
@@ -480,7 +492,8 @@ void nsDocShellLoadState::SetFileName(const nsAString& aFileName) {
 }
 
 nsresult nsDocShellLoadState::SetupInheritingPrincipal(
-    uint32_t aItemType, const mozilla::OriginAttributes& aOriginAttributes) {
+    BrowsingContext::Type aType,
+    const mozilla::OriginAttributes& aOriginAttributes) {
   // We need a principalToInherit.
   //
   // If principalIsExplicit is not set there are 4 possibilities:
@@ -509,8 +522,8 @@ nsresult nsDocShellLoadState::SetupInheritingPrincipal(
   // (4) we dont' pass a principal into the channel, and a principal will be
   //     created later from the channel's internal data.
   mPrincipalToInherit = mTriggeringPrincipal;
-  if (mPrincipalToInherit && aItemType != nsIDocShellTreeItem::typeChrome) {
-    if (nsContentUtils::IsSystemPrincipal(mPrincipalToInherit)) {
+  if (mPrincipalToInherit && aType != BrowsingContext::Type::Chrome) {
+    if (mPrincipalToInherit->IsSystemPrincipal()) {
       if (mPrincipalIsExplicit) {
         return NS_ERROR_DOM_SECURITY_ERR;
       }
@@ -579,8 +592,9 @@ void nsDocShellLoadState::CalculateLoadURIFlags() {
   mLoadFlags = 0;
 
   if (mInheritPrincipal) {
-    MOZ_ASSERT(!nsContentUtils::IsSystemPrincipal(mPrincipalToInherit),
-               "Should not inherit SystemPrincipal");
+    MOZ_ASSERT(
+        !mPrincipalToInherit || !mPrincipalToInherit->IsSystemPrincipal(),
+        "Should not inherit SystemPrincipal");
     mLoadFlags |= nsDocShell::INTERNAL_LOAD_FLAGS_INHERIT_PRINCIPAL;
   }
 
@@ -649,6 +663,18 @@ DocShellLoadStateInit nsDocShellLoadState::Serialize() {
   loadState.HeadersStream() = mHeadersStream;
   loadState.SrcdocData() = mSrcdocData;
   loadState.ResultPrincipalURI() = mResultPrincipalURI;
-
+  if (!mSHEntry || !StaticPrefs::fission_sessionHistoryInParent()) {
+    // Without the pref, we don't have an actor for shentry and thus
+    // we can't serialize it. We could write custom (de)serializers,
+    // but a session history rewrite is on the way anyway.
+    return loadState;
+  }
+  if (XRE_IsParentProcess()) {
+    loadState.SHEntry() = static_cast<CrossProcessSHEntry*>(
+        static_cast<LegacySHEntry*>(mSHEntry.get()));
+  } else {
+    loadState.SHEntry() = static_cast<CrossProcessSHEntry*>(
+        static_cast<SHEntryChild*>(mSHEntry.get()));
+  }
   return loadState;
 }

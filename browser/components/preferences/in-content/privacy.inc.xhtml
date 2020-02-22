@@ -104,30 +104,16 @@
                     <label data-l10n-id="content-blocking-fingerprinters"/>
                   </hbox>
                 </vbox>
-                <vbox class="content-blocking-warning reload-tabs" hidden="true">
-                  <hbox class="indent">
-                    <vbox>
-                      <spacer flex="1"/>
-                      <hbox>
-                        <vbox>
-                          <image class="content-blocking-info-image"/>
-                          <spacer flex="1"/>
-                        </vbox>
-                        <description>
-                          <html:span data-l10n-id="content-blocking-reload-description"></html:span>
-                        </description>
-                      </hbox>
-                      <spacer flex="1"/>
-                    </vbox>
-                    <vbox>
-                      <spacer flex="1"/>
-                      <button class="accessory-button reload-tabs-button"
-                              is="highlightable-button"
-                              data-l10n-id="content-blocking-reload-tabs-button"/>
-                      <spacer flex="1"/>
-                    </vbox>
-                  </hbox>
-                </vbox>
+                <html:div class="content-blocking-warning reload-tabs" hidden="true">
+                  <html:div class="content-blocking-reload-desc-container">
+                    <image class="content-blocking-info-image"/>
+                    <html:span data-l10n-id="content-blocking-reload-description"
+                               class="content-blocking-reload-description" />
+                  </html:div>
+                  <button class="accessory-button reload-tabs-button"
+                          is="highlightable-button"
+                          data-l10n-id="content-blocking-reload-tabs-button"/>
+                </html:div>
               </vbox>
             </vbox>
           </vbox>
@@ -188,30 +174,16 @@
                     <label data-l10n-id="content-blocking-fingerprinters"/>
                   </hbox>
                 </vbox>
-                <vbox class="content-blocking-warning reload-tabs" hidden="true">
-                  <hbox class="indent">
-                    <vbox>
-                      <spacer flex="1"/>
-                      <hbox>
-                        <vbox>
-                          <image class="content-blocking-info-image"/>
-                          <spacer flex="1"/>
-                        </vbox>
-                        <description>
-                          <html:span data-l10n-id="content-blocking-reload-description"></html:span>
-                        </description>
-                      </hbox>
-                      <spacer flex="1"/>
-                    </vbox>
-                    <vbox>
-                      <spacer flex="1"/>
-                      <button class="accessory-button reload-tabs-button"
-                              is="highlightable-button"
-                              data-l10n-id="content-blocking-reload-tabs-button"/>
-                      <spacer flex="1"/>
-                    </vbox>
-                  </hbox>
-                </vbox>
+                <html:div class="content-blocking-warning reload-tabs" hidden="true">
+                  <html:div class="content-blocking-reload-desc-container">
+                    <image class="content-blocking-info-image"/>
+                    <html:span data-l10n-id="content-blocking-reload-description"
+                               class="content-blocking-reload-description" />
+                  </html:div>
+                  <button class="accessory-button reload-tabs-button"
+                          is="highlightable-button"
+                          data-l10n-id="content-blocking-reload-tabs-button"/>
+                </html:div>
                 <vbox class="content-blocking-warning">
                   <vbox class="indent">
                     <hbox>
@@ -304,30 +276,16 @@
                             data-l10n-id="content-blocking-fingerprinters-label"
                             aria-describedby="contentBlockingCustomDesc"/>
                 </hbox>
-              <vbox class="content-blocking-warning reload-tabs" hidden="true">
-                <hbox class="indent">
-                  <vbox>
-                    <spacer flex="1"/>
-                    <hbox>
-                      <vbox>
-                        <image class="content-blocking-info-image"/>
-                        <spacer flex="1"/>
-                      </vbox>
-                      <description>
-                        <html:span data-l10n-id="content-blocking-reload-description"></html:span>
-                      </description>
-                    </hbox>
-                    <spacer flex="1"/>
-                  </vbox>
-                  <vbox>
-                    <spacer flex="1"/>
-                    <button class="accessory-button reload-tabs-button"
-                            is="highlightable-button"
-                            data-l10n-id="content-blocking-reload-tabs-button"/>
-                    <spacer flex="1"/>
-                  </vbox>
-                </hbox>
-              </vbox>
+              <html:div class="content-blocking-warning reload-tabs" hidden="true">
+                <html:div class="content-blocking-reload-desc-container">
+                  <image class="content-blocking-info-image"/>
+                  <html:span data-l10n-id="content-blocking-reload-description"
+                             class="content-blocking-reload-description" />
+                </html:div>
+                <button class="accessory-button reload-tabs-button"
+                        is="highlightable-button"
+                        data-l10n-id="content-blocking-reload-tabs-button"/>
+              </html:div>
               <vbox class="content-blocking-warning">
                 <vbox class="indent">
                   <hbox>
@@ -776,6 +734,30 @@
                 " />
       </hbox>
     </hbox>
+
+    <hbox id="xrSettingsRow" align="center" role="group" aria-labelledby="xrPermissionsLabel">
+      <description flex="1">
+        <image class="xr-icon permission-icon" />
+        <separator orient="vertical" class="thin"/>
+        <label id="xrPermissionsLabel" data-l10n-id="permissions-xr"/>
+      </description>
+      <hbox pack="end">
+        <button id="xrSettingsButton"
+                is="highlightable-button"
+                class="accessory-button"
+                data-l10n-id="permissions-xr-settings"
+                search-l10n-ids="
+                  permissions-remove.label,
+                  permissions-remove-all.label,
+                  permissions-button-cancel.label,
+                  permissions-button-ok.label,
+                  permissions-site-xr-window.title,
+                  permissions-site-xr-desc,
+                  permissions-site-xr-disable-label,
+                  permissions-site-xr-disable-desc,
+                " />
+      </hbox>
+    </hbox>
   </vbox>
 
   <separator flex="1"/>
@@ -859,11 +841,12 @@
         <image class="info-icon-telemetry" flex="1"></image>
       </hbox>
       <hbox align="center" id="dataDescriptionBox" flex="1">
-        <html:span id="telemetryDisabledDescription" class="tail-with-learn-more">You’re no longer allowing Mozilla to capture technical and interaction data. All past data will be deleted within 30 days.</html:span>
+        <html:span id="telemetryDisabledDescription" class="tail-with-learn-more" data-l10n-id="collection-health-report-telemetry-disabled"/>
       </hbox>
       <hbox>
           <button id="telemetryDataDeletionLearnMore"
-                 class="learnMore" is="text-link">Learn more</button>
+                 class="learnMore" is="text-link"
+                 data-l10n-id="collection-health-report-telemetry-disabled-link"/>
       </hbox>
     </hbox>
   </description>

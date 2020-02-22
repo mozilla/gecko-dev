@@ -440,19 +440,18 @@ static inline void* GetStubReturnAddress(JSContext* cx, JSOp op) {
   return code.bailoutReturnAddr(BailoutReturnKind::Call);
 }
 
-static inline jsbytecode* GetNextNonLoopEntryPc(jsbytecode* pc,
-                                                jsbytecode** skippedLoopEntry) {
+static inline jsbytecode* GetNextNonLoopHeadPc(jsbytecode* pc,
+                                               jsbytecode** skippedLoopHead) {
   JSOp op = JSOp(*pc);
   switch (op) {
     case JSOP_GOTO:
       return pc + GET_JUMP_OFFSET(pc);
 
-    case JSOP_LOOPENTRY:
-      *skippedLoopEntry = pc;
+    case JSOP_LOOPHEAD:
+      *skippedLoopHead = pc;
       return GetNextPc(pc);
 
     case JSOP_NOP:
-    case JSOP_LOOPHEAD:
       return GetNextPc(pc);
 
     default:
@@ -467,68 +466,45 @@ static jsbytecode* GetResumePC(JSScript* script, jsbytecode* pc,
     return GetNextPc(pc);
   }
 
-  // If we are resuming at a LOOPENTRY op, resume at the next op to avoid
+  // If we are resuming at a LOOPHEAD op, resume at the next op to avoid
   // a bailout -> enter Ion -> bailout loop with --ion-eager.
   //
   // The algorithm below is the "tortoise and the hare" algorithm. See bug
   // 994444 for more explanation.
-  jsbytecode* skippedLoopEntry = nullptr;
+  jsbytecode* skippedLoopHead = nullptr;
   jsbytecode* fasterPc = pc;
   while (true) {
-    pc = GetNextNonLoopEntryPc(pc, &skippedLoopEntry);
-    fasterPc = GetNextNonLoopEntryPc(fasterPc, &skippedLoopEntry);
-    fasterPc = GetNextNonLoopEntryPc(fasterPc, &skippedLoopEntry);
+    pc = GetNextNonLoopHeadPc(pc, &skippedLoopHead);
+    fasterPc = GetNextNonLoopHeadPc(fasterPc, &skippedLoopHead);
+    fasterPc = GetNextNonLoopHeadPc(fasterPc, &skippedLoopHead);
     if (fasterPc == pc) {
       break;
     }
   }
-  if (skippedLoopEntry && script->trackRecordReplayProgress()) {
+  if (skippedLoopHead && script->trackRecordReplayProgress()) {
     mozilla::recordreplay::AdvanceExecutionProgressCounter();
   }
 
   return pc;
 }
 
-class NoOpTryNoteFilter {
- public:
-  explicit NoOpTryNoteFilter() = default;
-  bool operator()(const JSTryNote*) { return true; }
-};
-
-class TryNoteIterAll : public TryNoteIter<NoOpTryNoteFilter> {
- public:
-  TryNoteIterAll(JSContext* cx, JSScript* script, jsbytecode* pc)
-      : TryNoteIter(cx, script, pc, NoOpTryNoteFilter()) {}
-};
-
 static bool HasLiveStackValueAtDepth(JSContext* cx, HandleScript script,
-                                     jsbytecode* pc, uint32_t stackDepth) {
+                                     jsbytecode* pc, uint32_t stackSlotIndex,
+                                     uint32_t stackDepth) {
+  // Return true iff stackSlotIndex is a stack value that's part of an active
+  // iterator loop instead of a normal expression stack slot.
+
+  MOZ_ASSERT(stackSlotIndex < stackDepth);
+
   for (TryNoteIterAll tni(cx, script, pc); !tni.done(); ++tni) {
     const JSTryNote& tn = **tni;
 
     switch (tn.kind) {
       case JSTRY_FOR_IN:
-        // For-in loops have only the iterator on stack.
-        if (stackDepth == tn.stackDepth) {
-          return true;
-        }
-        break;
-
       case JSTRY_FOR_OF:
-        // For-of loops have the iterator, its next method and the
-        // result.value on stack.
-        // The iterator is below the result.value, the next method below
-        // the iterator.
-        if (stackDepth == tn.stackDepth - 1 ||
-            stackDepth == tn.stackDepth - 2) {
-          return true;
-        }
-        break;
-
       case JSTRY_DESTRUCTURING:
-        // Destructuring code that need to call IteratorClose have both
-        // the iterator and the "done" value on the stack.
-        if (stackDepth == tn.stackDepth || stackDepth == tn.stackDepth - 1) {
+        MOZ_ASSERT(tn.stackDepth <= stackDepth);
+        if (stackSlotIndex < tn.stackDepth) {
           return true;
         }
         break;
@@ -1036,7 +1012,7 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
       // HandleExceptionBaseline.
       MOZ_ASSERT(cx->realm()->isDebuggee());
       if (iter.moreFrames() ||
-          HasLiveStackValueAtDepth(cx, script, pc, i + 1)) {
+          HasLiveStackValueAtDepth(cx, script, pc, i, exprStackSlots)) {
         v = iter.read();
       } else {
         iter.skip();
@@ -2062,7 +2038,7 @@ bool jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg) {
     // Invalid assumption based on baseline code.
     case Bailout_OverflowInvalidate:
       outerScript->setHadOverflowBailout();
-      MOZ_FALLTHROUGH;
+      [[fallthrough]];
     case Bailout_DoubleOutput:
     case Bailout_ObjectIdentityOrTypeGuard:
       HandleBaselineInfoBailout(cx, outerScript, innerScript);

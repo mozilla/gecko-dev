@@ -6,14 +6,12 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#include "nsIServiceManager.h"
-
-#include "nsIConsoleService.h"
 #include "nsICanvasRenderingContextInternal.h"
 #include "nsIHTMLCollection.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/UserActivation.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/StaticPrefs_privacy.h"
 #include "nsIPrincipal.h"
 
@@ -34,7 +32,6 @@
 #include "nsContentUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsPrintfCString.h"
-#include "nsIConsoleService.h"
 #include "jsapi.h"
 
 #define TOPIC_CANVAS_PERMISSIONS_PROMPT "canvas-permissions-prompt"
@@ -60,7 +57,7 @@ bool IsImageExtractionAllowed(Document* aDocument, JSContext* aCx,
   }
 
   // The system principal can always extract canvas data.
-  if (nsContentUtils::IsSystemPrincipal(&aPrincipal)) {
+  if (aPrincipal.IsSystemPrincipal()) {
     return true;
   }
 

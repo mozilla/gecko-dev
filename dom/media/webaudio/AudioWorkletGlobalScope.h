@@ -19,7 +19,9 @@ class AudioWorkletImpl;
 namespace dom {
 
 class AudioWorkletProcessorConstructor;
+class MessagePort;
 class StructuredCloneHolder;
+class UniqueMessagePortId;
 
 class AudioWorkletGlobalScope final : public WorkletGlobalScope {
  public:
@@ -49,7 +51,12 @@ class AudioWorkletGlobalScope final : public WorkletGlobalScope {
   MOZ_CAN_RUN_SCRIPT
   bool ConstructProcessor(const nsAString& aName,
                           NotNull<StructuredCloneHolder*> aSerializedOptions,
+                          UniqueMessagePortId& aPortIdentifier,
                           JS::MutableHandle<JSObject*> aRetProcessor);
+
+  // Returns null if not called during ConstructProcessor() or if the port has
+  // already been taken.
+  RefPtr<MessagePort> TakePortForProcessorCtor();
 
  private:
   ~AudioWorkletGlobalScope() = default;
@@ -66,6 +73,10 @@ class AudioWorkletGlobalScope final : public WorkletGlobalScope {
   typedef nsRefPtrHashtable<nsStringHashKey, AudioWorkletProcessorConstructor>
       NodeNameToProcessorDefinitionMap;
   NodeNameToProcessorDefinitionMap mNameToProcessorMap;
+  // https://webaudio.github.io/web-audio-api/#pending-processor-construction-data-transferred-port
+  // This does not need to be traversed during cycle-collection because it is
+  // only set while this AudioWorkletGlobalScope is on the stack.
+  RefPtr<MessagePort> mPortForProcessor;
 };
 
 }  // namespace dom

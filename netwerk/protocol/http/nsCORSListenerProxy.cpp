@@ -15,12 +15,10 @@
 #include "nsIHttpChannelInternal.h"
 #include "nsError.h"
 #include "nsContentUtils.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsNetUtil.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsMimeTypes.h"
-#include "nsIStreamConverterService.h"
 #include "nsStringStream.h"
 #include "nsGkAtoms.h"
 #include "nsWhitespaceTokenizer.h"
@@ -40,6 +38,7 @@
 #include "nsICorsPreflightCallback.h"
 #include "nsISupportsImpl.h"
 #include "nsHttpChannel.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/NullPrincipal.h"
 #include "nsIHttpHeaderVisitor.h"
@@ -110,8 +109,7 @@ static void LogBlockedRequest(nsIRequest* aRequest, const char* aProperty,
   bool fromChromeContext = false;
   if (channel) {
     nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
-    fromChromeContext =
-        nsContentUtils::IsSystemPrincipal(loadInfo->TriggeringPrincipal());
+    fromChromeContext = loadInfo->TriggeringPrincipal()->IsSystemPrincipal();
   }
 
   // we are passing aProperty as the category so we can link to the
@@ -906,19 +904,19 @@ nsresult nsCORSListenerProxy::UpdateChannel(nsIChannel* aChannel,
   // Check that the uri is ok to load
   uint32_t flags = loadInfo->CheckLoadURIFlags();
   rv = nsContentUtils::GetSecurityManager()->CheckLoadURIWithPrincipal(
-      mRequestingPrincipal, uri, flags);
+      mRequestingPrincipal, uri, flags, loadInfo->GetInnerWindowID());
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (originalURI != uri) {
     rv = nsContentUtils::GetSecurityManager()->CheckLoadURIWithPrincipal(
-        mRequestingPrincipal, originalURI, flags);
+        mRequestingPrincipal, originalURI, flags, loadInfo->GetInnerWindowID());
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   if (!mHasBeenCrossSite &&
-      NS_SUCCEEDED(mRequestingPrincipal->CheckMayLoad(uri, false, false)) &&
-      (originalURI == uri || NS_SUCCEEDED(mRequestingPrincipal->CheckMayLoad(
-                                 originalURI, false, false)))) {
+      NS_SUCCEEDED(mRequestingPrincipal->CheckMayLoad(uri, false)) &&
+      (originalURI == uri ||
+       NS_SUCCEEDED(mRequestingPrincipal->CheckMayLoad(originalURI, false)))) {
     return NS_OK;
   }
 
@@ -1292,7 +1290,7 @@ nsresult nsCORSPreflightListener::CheckPreflightRequestApproved(
   bool succeedded;
   rv = http->GetRequestSucceeded(&succeedded);
   if (NS_FAILED(rv) || !succeedded) {
-    LogBlockedRequest(aRequest, "CORSPreflightDidNotSucceed", nullptr,
+    LogBlockedRequest(aRequest, "CORSPreflightDidNotSucceed2", nullptr,
                       nsILoadInfo::BLOCKING_REASON_CORSPREFLIGHTDIDNOTSUCCEED,
                       parentHttpChannel);
     return NS_ERROR_DOM_BAD_URI;
@@ -1364,7 +1362,7 @@ nsresult nsCORSPreflightListener::CheckPreflightRequestApproved(
       const auto& comparator = nsCaseInsensitiveCStringArrayComparator();
       if (!headers.Contains(mPreflightHeaders[i], comparator)) {
         LogBlockedRequest(
-            aRequest, "CORSMissingAllowHeaderFromPreflight",
+            aRequest, "CORSMissingAllowHeaderFromPreflight2",
             NS_ConvertUTF8toUTF16(mPreflightHeaders[i]).get(),
             nsILoadInfo::BLOCKING_REASON_CORSMISSINGALLOWHEADERFROMPREFLIGHT,
             parentHttpChannel);
@@ -1585,7 +1583,7 @@ void nsCORSListenerProxy::LogBlockedCORSRequest(uint64_t aInnerWindowID,
                                               EmptyString(),  // sourceLine
                                               0,              // lineNumber
                                               0,              // columnNumber
-                                              nsIScriptError::warningFlag,
+                                              nsIScriptError::errorFlag,
                                               aCategory, aInnerWindowID);
   } else {
     nsCString category = PromiseFlatCString(aCategory);
@@ -1594,7 +1592,7 @@ void nsCORSListenerProxy::LogBlockedCORSRequest(uint64_t aInnerWindowID,
                            EmptyString(),  // sourceLine
                            0,              // lineNumber
                            0,              // columnNumber
-                           nsIScriptError::warningFlag, category.get(),
+                           nsIScriptError::errorFlag, category.get(),
                            aPrivateBrowsing,
                            aFromChromeContext);  // From chrome context
   }

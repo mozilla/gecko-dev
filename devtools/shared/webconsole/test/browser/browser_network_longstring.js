@@ -15,7 +15,7 @@ add_task(async function() {
 
   const target = await getTargetForTab(tab);
   const { client } = target;
-  const webConsoleFront = target.activeConsole;
+  const webConsoleFront = await target.getFront("console");
 
   await webConsoleFront.startListeners(["NetworkActivity"]);
 
@@ -51,7 +51,7 @@ add_task(async function() {
     client.on("networkEventUpdate", onNetworkEventUpdate);
   });
 
-  await ContentTask.spawn(gBrowser.selectedBrowser, null, async function() {
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
     content.wrappedJSObject.testXhrPost();
   });
 

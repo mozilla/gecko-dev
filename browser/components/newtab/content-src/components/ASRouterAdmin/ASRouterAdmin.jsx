@@ -383,8 +383,12 @@ export class ASRouterAdminInner extends React.PureComponent {
       pasteFromClipboard: false,
       attributionParameters: {
         source: "addons.mozilla.org",
+        medium: "referral",
         campaign: "non-fx-button",
         content: "iridium@particlecore.github.io",
+        experiment: "ua-onboarding",
+        variation: "chrome",
+        ua: "Google Chrome 123",
       },
     };
   }
@@ -453,6 +457,13 @@ export class ASRouterAdminInner extends React.PureComponent {
 
   resetPref() {
     ASRouterUtils.sendMessage({ type: "RESET_PROVIDER_PREF" });
+  }
+
+  toggleGroups(id, value) {
+    ASRouterUtils.sendMessage({
+      type: "SET_GROUP_STATE",
+      data: { id, value },
+    });
   }
 
   handleExpressionEval() {
@@ -590,18 +601,24 @@ export class ASRouterAdminInner extends React.PureComponent {
   }
 
   renderMessageItem(msg) {
-    const isCurrent = msg.id === this.state.lastMessageId;
-    const isBlocked =
+    const isBlockedByGroup = this.state.groups
+      .filter(group => msg.groups.includes(group.id))
+      .some(group => !group.enabled);
+    const msgProvider = this.state.providers.find(
+      provider => provider.id === msg.provider
+    );
+    const isProviderExcluded =
+      msgProvider.exclude && msgProvider.exclude.includes(msg.id);
+    const isMessageBlocked =
       this.state.messageBlockList.includes(msg.id) ||
       this.state.messageBlockList.includes(msg.campaign);
+    const isBlocked =
+      isMessageBlocked || isBlockedByGroup || isProviderExcluded;
     const impressions = this.state.messageImpressions[msg.id]
       ? this.state.messageImpressions[msg.id].length
       : 0;
 
     let itemClassName = "message-item";
-    if (isCurrent) {
-      itemClassName += " current";
-    }
     if (isBlocked) {
       itemClassName += " blocked";
     }
@@ -630,6 +647,47 @@ export class ASRouterAdminInner extends React.PureComponent {
           <br />({impressions} impressions)
         </td>
         <td className="message-summary">
+          {isBlocked && (
+            <tr>
+              Block reason:
+              {isBlockedByGroup && " Blocked by group"}
+              {isProviderExcluded && " Excluded by provider"}
+              {isMessageBlocked && " Message blocked"}
+            </tr>
+          )}
+          <tr>
+            <pre>{JSON.stringify(msg, null, 2)}</pre>
+          </tr>
+        </td>
+      </tr>
+    );
+  }
+
+  renderWNMessageItem(msg) {
+    const isBlocked =
+      this.state.messageBlockList.includes(msg.id) ||
+      this.state.messageBlockList.includes(msg.campaign);
+    const impressions = this.state.messageImpressions[msg.id]
+      ? this.state.messageImpressions[msg.id].length
+      : 0;
+
+    let itemClassName = "message-item";
+    if (isBlocked) {
+      itemClassName += " blocked";
+    }
+
+    return (
+      <tr className={itemClassName} key={`${msg.id}-${msg.provider}`}>
+        <td className="message-id">
+          <span>
+            {msg.id} <br />
+            <br />({impressions} impressions)
+          </span>
+        </td>
+        <td>
+          <input type="checkbox" value="Show" />
+        </td>
+        <td className="message-summary">
           <pre>{JSON.stringify(msg, null, 2)}</pre>
         </td>
       </tr>
@@ -653,6 +711,22 @@ export class ASRouterAdminInner extends React.PureComponent {
     );
   }
 
+  renderWNMessages() {
+    if (!this.state.messages) {
+      return null;
+    }
+    const messagesToShow = this.state.messages.filter(
+      message => message.provider === "whats-new-panel"
+    );
+    return (
+      <table>
+        <tbody>
+          {messagesToShow.map(msg => this.renderWNMessageItem(msg))}
+        </tbody>
+      </table>
+    );
+  }
+
   renderMessageFilter() {
     if (!this.state.providers) {
       return null;
@@ -660,8 +734,8 @@ export class ASRouterAdminInner extends React.PureComponent {
     return (
       <p>
         {/* eslint-disable-next-line prettier/prettier */}
-      Show messages from{" "}
-      {/* eslint-disable-next-line jsx-a11y/no-onchange */}
+        Show messages from{" "}
+        {/* eslint-disable-next-line jsx-a11y/no-onchange */}
         <select
           value={this.state.messageFilter}
           onChange={this.onChangeMessageFilter}
@@ -936,6 +1010,16 @@ export class ASRouterAdminInner extends React.PureComponent {
     });
   }
 
+  _getGroupImpressionsCount(id, frequency) {
+    if (frequency) {
+      return this.state.groupImpressions[id]
+        ? this.state.groupImpressions[id].length
+        : 0;
+    }
+
+    return "n/a";
+  }
+
   renderPocketStory(story) {
     return (
       <tr className="message-item" key={story.guid}>
@@ -1018,6 +1102,21 @@ export class ASRouterAdminInner extends React.PureComponent {
           </tr>
           <tr>
             <td>
+              <b> Medium </b>
+            </td>
+            <td>
+              {" "}
+              <input
+                type="text"
+                name="medium"
+                placeholder="referral"
+                value={this.state.attributionParameters.medium}
+                onChange={this.onChangeAttributionParameters}
+              />{" "}
+            </td>
+          </tr>
+          <tr>
+            <td>
               <b> Campaign </b>
             </td>
             <td>
@@ -1042,6 +1141,51 @@ export class ASRouterAdminInner extends React.PureComponent {
                 name="content"
                 placeholder="iridium@particlecore.github.io"
                 value={this.state.attributionParameters.content}
+                onChange={this.onChangeAttributionParameters}
+              />{" "}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <b> Experiment </b>
+            </td>
+            <td>
+              {" "}
+              <input
+                type="text"
+                name="experiment"
+                placeholder="ua-onboarding"
+                value={this.state.attributionParameters.experiment}
+                onChange={this.onChangeAttributionParameters}
+              />{" "}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <b> Variation </b>
+            </td>
+            <td>
+              {" "}
+              <input
+                type="text"
+                name="variation"
+                placeholder="chrome"
+                value={this.state.attributionParameters.variation}
+                onChange={this.onChangeAttributionParameters}
+              />{" "}
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <b> User Agent </b>
+            </td>
+            <td>
+              {" "}
+              <input
+                type="text"
+                name="ua"
+                placeholder="Google Chrome 123"
+                value={this.state.attributionParameters.ua}
                 onChange={this.onChangeAttributionParameters}
               />{" "}
             </td>
@@ -1118,9 +1262,26 @@ export class ASRouterAdminInner extends React.PureComponent {
     );
   }
 
+  renderWNPTests() {
+    return (
+      <div>
+        <button>Force What's New Panel</button>
+        <h2>Messages</h2>
+        {this.renderWNMessages()}
+      </div>
+    );
+  }
+
   getSection() {
     const [section] = this.props.location.routes;
     switch (section) {
+      case "wnpanel":
+        return (
+          <React.Fragment>
+            <h2>What's New Panel</h2>
+            {this.renderWNPTests()}
+          </React.Fragment>
+        );
       case "targeting":
         return (
           <React.Fragment>
@@ -1132,6 +1293,35 @@ export class ASRouterAdminInner extends React.PureComponent {
             sites)
             {this.renderTargetingParameters()}
             {this.renderAttributionParamers()}
+          </React.Fragment>
+        );
+      case "groups":
+        return (
+          <React.Fragment>
+            <h2>Message Groups</h2>
+            <table>
+              <thead>
+                <tr className="message-item">
+                  <td>Enabled</td>
+                  <td>Impressions count</td>
+                  <td>Custom frequency</td>
+                </tr>
+              </thead>
+              {this.state.groups &&
+                this.state.groups.map(({ id, enabled, frequency }, index) => (
+                  <Row key={id}>
+                    <td>
+                      <TogglePrefCheckbox
+                        checked={enabled}
+                        pref={id}
+                        onChange={this.toggleGroups}
+                      />
+                    </td>
+                    <td>{this._getGroupImpressionsCount(id, frequency)}</td>
+                    <td>{JSON.stringify(frequency, null, 2)}</td>
+                  </Row>
+                ))}
+            </table>
           </React.Fragment>
         );
       case "pocket":
@@ -1197,7 +1387,13 @@ export class ASRouterAdminInner extends React.PureComponent {
               <a href="#devtools">General</a>
             </li>
             <li>
+              <a href="#devtools-wnpanel">What's New Panel</a>
+            </li>
+            <li>
               <a href="#devtools-targeting">Targeting</a>
+            </li>
+            <li>
+              <a href="#devtools-groups">Message Groups</a>
             </li>
             <li>
               <a href="#devtools-pocket">Pocket</a>

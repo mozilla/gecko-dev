@@ -59,7 +59,7 @@ add_task(async function() {
  */
 function assertRequestCount(store, count) {
   is(
-    store.getState().requests.requests.size,
+    store.getState().requests.requests.length,
     count,
     "There should be correct number of requests"
   );
@@ -70,7 +70,9 @@ function assertRequestCount(store, count) {
  */
 async function performRequestAndWait(tab, monitor) {
   const wait = waitForNetworkEvents(monitor, 1);
-  await ContentTask.spawn(tab.linkedBrowser, SIMPLE_SJS, async function(url) {
+  await SpecialPowers.spawn(tab.linkedBrowser, [SIMPLE_SJS], async function(
+    url
+  ) {
     await content.wrappedJSObject.performRequests(url);
   });
   await wait;
@@ -81,7 +83,9 @@ async function performRequestAndWait(tab, monitor) {
  */
 async function performPausedRequest(connector, tab, monitor) {
   const wait = connector.connector.webConsoleFront.once("networkEvent");
-  await ContentTask.spawn(tab.linkedBrowser, SIMPLE_SJS, async function(url) {
+  await SpecialPowers.spawn(tab.linkedBrowser, [SIMPLE_SJS], async function(
+    url
+  ) {
     await content.wrappedJSObject.performRequests(url);
   });
   await wait;

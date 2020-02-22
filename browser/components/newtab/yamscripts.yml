@@ -23,7 +23,6 @@ scripts:
     pre: rimraf $npm_package_config_mc_dir/browser/components/newtab/
     bundle: => bundle
     copy: rsync --exclude-from .mcignore -a . $npm_package_config_mc_dir/browser/components/newtab/
-    fluentExport: cpx "$npm_package_config_locales_dir/*.ftl" $npm_package_config_mc_dir/browser/locales/$npm_package_config_default_locale/browser/newtab/
     copyPingCentre: cpx "ping-centre/PingCentre.jsm" $npm_package_config_mc_dir/browser/modules
 
 # builduplift: Build and export to mozilla central for uplifts without exporting strings to browser/locales
@@ -47,9 +46,9 @@ scripts:
     copyFluent: =>buildmc:fluentExport -- -w
     copyPingCentre: =>buildmc:copyPingCentre -- -w
     watch: =>watchmc
-    
+
 # watchmc: same as startmc, without the copy behavior which is not needed when working directly from mozilla-central
-  watchmc: 
+  watchmc:
     _parallel: true
     webpack: =>bundle:webpack -- --env.development -w
     css: =>bundle:css && =>bundle:css -- --source-map-embed --source-map-contents -w
@@ -57,7 +56,6 @@ scripts:
   # importmc: Import changes from mc to github repo
   importmc:
     src: rsync --exclude-from .mcignore -a $npm_package_config_mc_dir/browser/components/newtab/ .
-    ftl: rsync -a $npm_package_config_mc_dir/browser/locales/$npm_package_config_default_locale/browser/newtab/ $npm_package_config_locales_dir
 
   testmc:
     lint: =>lint

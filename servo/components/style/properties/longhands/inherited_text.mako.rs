@@ -156,7 +156,6 @@ ${helpers.predefined_type(
     "TextAlign",
     "computed::TextAlign::Start",
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text/#propdef-text-align",
     servo_restyle_damage = "reflow",
@@ -343,6 +342,7 @@ ${helpers.single_keyword(
     engines="gecko",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-ruby/#ruby-position-property",
+    gecko_enum_prefix="StyleRubyPosition",
 )}
 
 // CSS Writing Modes Module Level 3
@@ -389,6 +389,18 @@ ${helpers.predefined_type(
     gecko_pref="layout.css.text-underline-offset.enabled",
     has_effect_on_gecko_scrollbars=False,
     spec="https://drafts.csswg.org/css-text-decor-4/#underline-offset",
+)}
+
+// text underline position
+${helpers.predefined_type(
+    "text-underline-position",
+    "TextUnderlinePosition",
+    "computed::TextUnderlinePosition::AUTO",
+    engines="gecko",
+    animation_value_type="discrete",
+    gecko_pref="layout.css.text-underline-position.enabled",
+    has_effect_on_gecko_scrollbars=False,
+    spec="https://drafts.csswg.org/css-text-decor-3/#text-underline-position-property",
 )}
 
 // text decoration skip ink
