@@ -222,7 +222,7 @@ Submitter.prototype = {
 
       if (
         (data.length == 2 &&
-          (data[0] == "CrashID" && SUBMISSION_REGEX.test(data[1]))) ||
+          (data[0] == "CrashID" && true/*SUBMISSION_REGEX.test(data[1])*/)) ||
         data[0] == "ViewURL"
       ) {
         parsedResponse[data[0]] = data[1];
@@ -264,7 +264,7 @@ Submitter.prototype = {
     // add the data
     for (let [name, value] of Object.entries(this.extraKeyVals)) {
       if (permittedKeys.includes(name)) {
-        formData.append(name, value);
+        formData.append(name, JSON.stringify(value));
       }
     }
 

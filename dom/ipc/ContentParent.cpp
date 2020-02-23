@@ -838,10 +838,6 @@ Maybe<ContentParent::RecordReplayState> ContentParent::GetRecordReplayState(
     aRecordingFile.AssignLiteral("*");
   }
   if (!aRecordingFile.IsEmpty()) {
-    if (aRecordingFile.EqualsLiteral("*") &&
-        !CreateTemporaryRecordingFile(aRecordingFile)) {
-      return Nothing();
-    }
     return Some(eRecording);
   }
   return Some(eNotRecordingOrReplaying);

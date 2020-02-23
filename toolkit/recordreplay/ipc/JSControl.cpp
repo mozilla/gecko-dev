@@ -1494,7 +1494,7 @@ static bool RecordReplay_FindScriptHits(JSContext* aCx, unsigned aArgc,
     }
   }
 
-  JSObject* array = JS_NewArrayObject(aCx, values);
+  JSObject* array = NewArrayObject(aCx, values);
   if (!array) {
     return false;
   }
@@ -1574,7 +1574,7 @@ static bool RecordReplay_FindChangeFrames(JSContext* aCx, unsigned aArgc,
     }
   }
 
-  JSObject* array = JS_NewArrayObject(aCx, values);
+  JSObject* array = NewArrayObject(aCx, values);
   if (!array) {
     return false;
   }
