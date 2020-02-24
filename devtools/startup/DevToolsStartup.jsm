@@ -564,6 +564,8 @@ DevToolsStartup.prototype = {
       return;
     }
 
+    runTestScript();
+
     let id = "recording-button";
     let item = {
       id: id,
@@ -1528,6 +1530,18 @@ const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetters(this, {
   E10SUtils: "resource://gre/modules/E10SUtils.jsm",
 });
+
+async function runTestScript() {
+  var env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+  const script = env.get("WEBREPLAY_TEST_SCRIPT");
+  if (!script) {
+    return;
+  }
+
+  const contents = await OS.File.read(script);
+  const text = new TextDecoder("utf-8").decode(contents);
+  eval(text);
+}
 
 function reloadAndRecordTab(gBrowser) {
   let url = gBrowser.currentURI.spec;
