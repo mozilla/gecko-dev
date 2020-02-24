@@ -405,7 +405,12 @@ void Recording::NewContents(const uint8_t* aContents, size_t aSize,
 
     BuildId currentBuildId;
     GetCurrentBuildId(&currentBuildId);
-    MOZ_RELEASE_ASSERT(currentBuildId.Matches(header->mBuildId));
+
+    if (!currentBuildId.Matches(header->mBuildId)) {
+      Print("Error: Build ID Mismatch, expected %s, got %s\n",
+            currentBuildId.mContents, header->mBuildId.mContents);
+      MOZ_CRASH("Build ID Mismatch");
+    }
   }
 
   mContents.append(aContents, aSize);
@@ -414,6 +419,14 @@ void Recording::NewContents(const uint8_t* aContents, size_t aSize,
     MOZ_RELEASE_ASSERT(offset + sizeof(ChunkDescriptor) <= aSize);
     ChunkDescriptor* desc = (ChunkDescriptor*)(aContents + offset);
     offset += sizeof(ChunkDescriptor);
+
+    if (offset + desc->mChunk.mCompressedSize > aSize) {
+      // We might only have part of the last chunk, if we are replaying in the
+      // cloud and have only received part of the recording. We will still have
+      // enough of the recording to replay everything covered by the recording
+      // summary that was most recently added, however.
+      break;
+    }
 
     Stream* stream = OpenStream((StreamName)desc->mName, desc->mNameIndex);
     stream->mChunks.append(desc->mChunk);
