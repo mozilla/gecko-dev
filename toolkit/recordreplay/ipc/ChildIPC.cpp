@@ -483,6 +483,9 @@ static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
       AddExternalCallOutput(nmsg.mTag, nmsg.BinaryData(), nmsg.BinaryDataSize());
       return;
     }
+    case MessageType::ScanData:
+      js::AddScanDataMessage(std::move(aMsg));
+      return;
     default:
       break;
   }
@@ -1057,6 +1060,13 @@ void SendRecordingData(size_t aStart, const uint8_t* aData, size_t aSize) {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   RecordingDataMessage* msg =
       RecordingDataMessage::New(gForkId, aStart, (const char*)aData, aSize);
+  gChannel->SendMessage(std::move(*msg));
+  free(msg);
+}
+
+void SendScanDataToRoot(const char* aData, size_t aSize) {
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
+  ScanDataMessage* msg = ScanDataMessage::New(gForkId, 0, aData, aSize);
   gChannel->SendMessage(std::move(*msg));
   free(msg);
 }

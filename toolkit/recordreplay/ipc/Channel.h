@@ -110,6 +110,9 @@ namespace recordreplay {
   /* Get recording data that is stored in the root process. */ \
   _Macro(UpdateRecordingFromRoot)                              \
                                                                \
+  /* Send scan data for decoding in the root process. */       \
+  _Macro(ScanData)                                             \
+                                                               \
   /* Messages sent in both directions. */                      \
                                                                \
   /* Send recording data from a recording process to the middleman, or from the */ \
@@ -310,6 +313,9 @@ typedef BinaryMessage<MessageType::ExternalCallRequest>
 // to the last request is unavailable.
 typedef BinaryMessage<MessageType::ExternalCallResponse>
     ExternalCallResponseMessage;
+
+// The tag is not used.
+typedef BinaryMessage<MessageType::ScanData> ScanDataMessage;
 
 // The tag is the start offset of the recording data needed.
 typedef BinaryMessage<MessageType::RecordingData> RecordingDataMessage;

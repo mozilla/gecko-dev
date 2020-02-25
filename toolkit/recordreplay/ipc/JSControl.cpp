@@ -1188,6 +1188,8 @@ enum ChangeFrameKind {
   NumChangeFrameKinds
 };
 
+static void MaybeIncorporateScanData();
+
 struct ScriptHitInfo {
   // Information about a location where a script offset has been hit.
   struct ScriptHit {
@@ -1196,6 +1198,7 @@ struct ScriptHitInfo {
 
     ScriptHit(uint32_t aFrameIndex, ProgressCounter aProgress)
         : mFrameIndex(aFrameIndex), mProgress(aProgress) {
+      static_assert(sizeof(ScriptHit) == 8, "Unexpected size");
       MOZ_RELEASE_ASSERT(aFrameIndex < 1 << 16);
       MOZ_RELEASE_ASSERT(aProgress < uint64_t(1) << 48);
     }
@@ -1210,7 +1213,9 @@ struct ScriptHitInfo {
     uint32_t mOffset;
 
     ScriptHitKey(uint32_t aScript, uint32_t aOffset)
-        : mScript(aScript), mOffset(aOffset) {}
+        : mScript(aScript), mOffset(aOffset) {
+      static_assert(sizeof(ScriptHitKey) == 8);
+    }
 
     typedef ScriptHitKey Lookup;
 
@@ -1234,7 +1239,9 @@ struct ScriptHitInfo {
 
     AnyScriptHit(uint32_t aScript, uint32_t aFrameIndex,
                  ProgressCounter aProgress)
-        : mScript(aScript), mFrameIndex(aFrameIndex), mProgress(aProgress) {}
+        : mScript(aScript), mFrameIndex(aFrameIndex), mProgress(aProgress) {
+      static_assert(sizeof(AnyScriptHit) == 16);
+    }
   };
 
   typedef InfallibleVector<AnyScriptHit, 128> AnyScriptHitVector;
@@ -1242,11 +1249,67 @@ struct ScriptHitInfo {
   struct CheckpointInfo {
     ScriptHitMap mTable;
     AnyScriptHitVector mChangeFrames[NumChangeFrameKinds];
+    InfallibleVector<char> mPaintData;
+
+    void WriteContents(BufferStream& aStream) {
+      aStream.WriteScalar32(mTable.count());
+      for (auto iter = mTable.iter(); !iter.done(); iter.next()) {
+        aStream.WriteBytes(&iter.get().key(), sizeof(ScriptHitKey));
+
+        ScriptHitVector* hits = iter.get().value();
+        aStream.WriteScalar32(hits->length());
+        aStream.WriteBytes(hits->begin(), hits->length() * sizeof(ScriptHit));
+      }
+
+      for (const auto& vector : mChangeFrames) {
+        aStream.WriteScalar32(vector.length());
+        aStream.WriteBytes(vector.begin(), vector.length() * sizeof(AnyScriptHit));
+      }
+
+      aStream.WriteScalar32(mPaintData.length());
+      aStream.WriteBytes(mPaintData.begin(), mPaintData.length());
+    }
+
+    void ReadContents(BufferStream& aStream) {
+      MOZ_RELEASE_ASSERT(mTable.empty());
+      size_t count = aStream.ReadScalar32();
+      for (size_t i = 0; i < count; i++) {
+        ScriptHitKey key(0, 0);
+        aStream.ReadBytes(&key, sizeof(ScriptHitKey));
+
+        size_t numHits = aStream.ReadScalar32();
+        ScriptHitVector* hits = new ScriptHitVector();
+        hits->appendN(ScriptHit(0, 0), numHits);
+        aStream.ReadBytes(hits->begin(), hits->length() * sizeof(ScriptHit));
+
+        ScriptHitMap::AddPtr p = mTable.lookupForAdd(key);
+        MOZ_RELEASE_ASSERT(!p);
+        if (!mTable.add(p, key, hits)) {
+          MOZ_CRASH("ReadContents");
+        }
+      }
+
+      for (auto& vector : mChangeFrames) {
+        MOZ_RELEASE_ASSERT(vector.empty());
+        size_t numChangeFrames = aStream.ReadScalar32();
+        vector.appendN(AnyScriptHit(0, 0, 0), numChangeFrames);
+        aStream.ReadBytes(vector.begin(), vector.length() * sizeof(AnyScriptHit));
+      }
+
+      MOZ_RELEASE_ASSERT(mPaintData.empty());
+      size_t paintDataLength = aStream.ReadScalar32();
+      mPaintData.appendN(0, paintDataLength);
+      aStream.ReadBytes(mPaintData.begin(), paintDataLength);
+    }
   };
 
   InfallibleVector<CheckpointInfo*, 1024> mInfo;
 
-  CheckpointInfo* GetInfo(uint32_t aCheckpoint) {
+  CheckpointInfo* GetInfo(uint32_t aCheckpoint, bool aIncorporateData = true) {
+    if (aIncorporateData) {
+      MaybeIncorporateScanData();
+    }
+
     while (aCheckpoint >= mInfo.length()) {
       mInfo.append(nullptr);
     }
@@ -1291,6 +1354,32 @@ struct ScriptHitInfo {
     MOZ_RELEASE_ASSERT(aWhich < NumChangeFrameKinds);
     return &info->mChangeFrames[aWhich];
   }
+
+  InfallibleVector<char>& GetPaintData(uint32_t aCheckpoint) {
+    return GetInfo(aCheckpoint)->mPaintData;
+  }
+
+  void WriteContents(InfallibleVector<char>& aData) {
+    BufferStream stream(&aData);
+
+    for (size_t i = 0; i < mInfo.length(); i++) {
+      CheckpointInfo* info = mInfo[i];
+      if (info) {
+        stream.WriteScalar32(i);
+        info->WriteContents(stream);
+      }
+    }
+  }
+
+  void ReadContents(const char* aData, size_t aSize) {
+    BufferStream stream(aData, aSize);
+
+    while (!stream.IsEmpty()) {
+      size_t checkpoint = stream.ReadScalar32();
+      CheckpointInfo* info = GetInfo(checkpoint, /* aIncorporateData */ false);
+      info->ReadContents(stream);
+    }
+  }
 };
 
 static ScriptHitInfo* gScriptHits;
@@ -1300,6 +1389,10 @@ static JSString* gMainAtom;
 static JSString* gEntryAtom;
 static JSString* gBreakpointAtom;
 static JSString* gExitAtom;
+
+// Messages containing scan data which should be incorporated into this procdess.
+// This is accessed off thread and protected by gMonitor.
+static StaticInfallibleVector<Message::UniquePtr> gPendingScanDataMessages;
 
 static void InitializeScriptHits() {
   gScriptHits = new ScriptHitInfo();
@@ -1313,6 +1406,22 @@ static void InitializeScriptHits() {
   gExitAtom = JS_AtomizeAndPinString(cx, "exit");
 
   MOZ_RELEASE_ASSERT(gMainAtom && gEntryAtom && gBreakpointAtom && gExitAtom);
+}
+
+void AddScanDataMessage(Message::UniquePtr aMsg) {
+  MonitorAutoLock lock(*child::gMonitor);
+  gPendingScanDataMessages.append(std::move(aMsg));
+}
+
+static void MaybeIncorporateScanData() {
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
+  MonitorAutoLock lock(*child::gMonitor);
+  for (const auto& msg : gPendingScanDataMessages) {
+    MOZ_RELEASE_ASSERT(msg->mType == MessageType::ScanData);
+    const auto& nmsg = static_cast<const ScanDataMessage&>(*msg);
+    gScriptHits->ReadContents(nmsg.BinaryData(), nmsg.BinaryDataSize());
+  }
+  gPendingScanDataMessages.clear();
 }
 
 static bool gScanningScripts;
@@ -1460,6 +1569,66 @@ static bool RecordReplay_InstrumentationCallback(JSContext* aCx, unsigned aArgc,
 
   JS_ReportErrorASCII(aCx, "Unexpected kind");
   return false;
+}
+
+static bool RecordReplay_SetScannedPaintData(JSContext* aCx, unsigned aArgc,
+                                             Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isNumber() || !args.get(1).isString()) {
+    JS_ReportErrorASCII(aCx, "Bad parameters");
+    return false;
+  }
+
+  uint32_t checkpoint = args.get(0).toNumber();
+
+  nsAutoCString paintData;
+  ConvertJSStringToCString(aCx, args.get(1).toString(), paintData);
+
+  InfallibleVector<char>& data = gScriptHits->GetPaintData(checkpoint);
+  MOZ_RELEASE_ASSERT(data.length() == 0);
+  data.append(paintData.BeginReading(), paintData.Length());
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool RecordReplay_CopyScanDataToRoot(JSContext* aCx, unsigned aArgc,
+                                            Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  InfallibleVector<char> data;
+  gScriptHits->WriteContents(data);
+
+  child::SendScanDataToRoot(data.begin(), data.length());
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool RecordReplay_GetScannedPaintData(JSContext* aCx, unsigned aArgc,
+                                             Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isNumber()) {
+    JS_ReportErrorASCII(aCx, "Bad parameters");
+    return false;
+  }
+
+  uint32_t checkpoint = args.get(0).toNumber();
+
+  InfallibleVector<char>& data = gScriptHits->GetPaintData(checkpoint);
+  if (data.length()) {
+    JSString* str = JS_NewStringCopyN(aCx, data.begin(), data.length());
+    if (!str) {
+      return false;
+    }
+    args.rval().setString(str);
+  } else {
+    args.rval().setNull();
+  }
+
+  return true;
 }
 
 static bool RecordReplay_FindScriptHits(JSContext* aCx, unsigned aArgc,
@@ -1636,6 +1805,9 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("onResumeFrame", RecordReplay_OnChangeFrame<ChangeFrameResume>, 2, 0),
     JS_FN("instrumentationCallback", RecordReplay_InstrumentationCallback, 3,
           0),
+    JS_FN("setScannedPaintData", RecordReplay_SetScannedPaintData, 2, 0),
+    JS_FN("copyScanDataToRoot", RecordReplay_CopyScanDataToRoot, 0, 0),
+    JS_FN("getScannedPaintData", RecordReplay_GetScannedPaintData, 1, 0),
     JS_FN("findScriptHits", RecordReplay_FindScriptHits, 3, 0),
     JS_FN("findChangeFrames", RecordReplay_FindChangeFrames, 3, 0),
     JS_FN("getenv", RecordReplay_GetEnv, 1, 0),

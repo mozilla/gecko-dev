@@ -32,6 +32,7 @@ class BufferStream {
     mOutput->append((char*)aData, aSize);
   }
 
+  void WriteScalar32(uint32_t aValue) { WriteBytes(&aValue, sizeof(aValue)); }
   void WriteScalar(size_t aValue) { WriteBytes(&aValue, sizeof(aValue)); }
 
   void ReadBytes(void* aData, size_t aSize) {
@@ -42,6 +43,12 @@ class BufferStream {
       mInput += aSize;
       mInputSize -= aSize;
     }
+  }
+
+  uint32_t ReadScalar32() {
+    uint32_t rv;
+    ReadBytes(&rv, sizeof(rv));
+    return rv;
   }
 
   size_t ReadScalar() {

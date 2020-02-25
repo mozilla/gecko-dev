@@ -98,6 +98,9 @@ void OnMouseEvent(const TimeDuration& aTime, const char* aType, int32_t aX, int3
 void BeginIdleTime();
 void EndIdleTime();
 
+// Incorporate scan data into this process.
+void AddScanDataMessage(Message::UniquePtr aMsg);
+
 // Utilities.
 
 JSString* ConvertStringToJSString(JSContext* aCx, const nsAString& aString);
