@@ -476,6 +476,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       end: { line: endLine = Infinity, column: endColumn = Infinity } = {},
     } = query || {};
 
+    const seen = new Set();
     const rv = [];
     addMatchingScripts(scripts);
     return rv;
@@ -506,7 +507,8 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
 
     function addMatchingScripts(childScripts) {
       for (const script of childScripts) {
-        if (scriptMatches(script)) {
+        if (scriptMatches(script) && !seen.has(script)) {
+          seen.add(script);
           rv.push(script);
           addMatchingScripts(script.getChildScripts());
         }
