@@ -2464,8 +2464,8 @@ bool DebuggerScript::CallData::setInstrumentationId() {
   if (obj->getInstrumentationId().isUndefined()) {
     obj->setReservedSlot(INSTRUMENTATION_ID_SLOT, args.get(0));
   } else if (obj->getInstrumentationId() != args.get(0)) {
-    JS_ReportErrorASCII(cx, "Script instrumentation ID mismatch");
-    return false;
+    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+    fprintf(stderr, "ReplayWarning: Script instrumentation ID mismatch\n");
   }
 
   args.rval().setUndefined();
