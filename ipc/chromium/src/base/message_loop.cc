@@ -362,7 +362,10 @@ void MessageLoop::PostIdleTask(already_AddRefed<nsIRunnable> task) {
 // Possibly called on a background thread!
 void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
                                   int delay_ms) {
+  mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper BEGIN");
+
   if (nsIEventTarget* target = pump_->GetXPCOMThread()) {
+    mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper #1");
     nsresult rv;
     if (delay_ms) {
       rv = target->DelayedDispatch(std::move(task), delay_ms);
@@ -372,6 +375,8 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
     MOZ_ALWAYS_SUCCEEDS(rv);
     return;
   }
+
+  mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper #2");
 
   // Tasks should only be queued before or during the Run loop, not after.
   MOZ_ASSERT(!shutting_down_);
@@ -411,6 +416,8 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
   // ScheduleWork outside of incoming_queue_lock_.
 
   pump->ScheduleWork();
+
+  mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper DONE");
 }
 
 void MessageLoop::SetNestableTasksAllowed(bool allowed) {
@@ -485,6 +492,10 @@ void MessageLoop::ReloadWorkQueue() {
   // Acquire all we can from the inter-thread queue with one lock acquisition.
   {
     mozilla::MutexAutoLock lock(incoming_queue_lock_);
+
+    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue %d",
+                                              (int) incoming_queue_.size());
+
     if (incoming_queue_.empty()) return;
     std::swap(incoming_queue_, work_queue_);
     DCHECK(incoming_queue_.empty());
