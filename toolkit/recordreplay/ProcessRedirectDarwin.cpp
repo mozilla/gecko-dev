@@ -2323,6 +2323,7 @@ static SystemRedirection gSystemRedirections[] = {
     {"dlclose", nullptr, Preamble_Veto<0>},
     {"dlopen", nullptr, Preamble_dlopen},
     {"dlsym", nullptr, Preamble_dlsym},
+    {"dlerror", RR_CStringRval},
     {"fclose", RR_SaveRvalHadErrorNegative},
     {"fflush", RR_SaveRvalHadErrorNegative},
     {"fprintf", RR_SaveRvalHadErrorNegative},
