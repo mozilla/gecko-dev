@@ -137,6 +137,8 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       const PingMessage& nmsg = (const PingMessage&)*aMsg;
       uint64_t total =
           *ExecutionProgressCounter() + Thread::TotalEventProgress();
+      nsPrintfCString log("PingResponse %u %llu", nmsg.mId, total);
+      PrintLog(NS_ConvertUTF8toUTF16(log));
       gChannel->SendMessage(PingResponseMessage(gForkId, nmsg.mId, total));
       break;
     }
