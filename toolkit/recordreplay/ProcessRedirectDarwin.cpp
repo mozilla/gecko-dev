@@ -668,14 +668,14 @@ static PreambleResult Preamble_sysctlbyname(CallArguments* aArguments) {
 }
 
 static PreambleResult Preamble_syscall(CallArguments* aArguments) {
-  // Allow getting the current thread's id after diverging from the recording.
-  MOZ_RELEASE_ASSERT(HasDivergedFromRecording());
-  auto callid = aArguments->Arg<0, size_t>();
-
-  if (callid == SYS_thread_selfid) {
-    return PreambleResult::PassThrough;
+  if (IsReplaying() && !AreThreadEventsPassedThrough()) {
+    Thread* thread = Thread::Current();
+    if (!thread->IsMainThread()) {
+      aArguments->Rval<uintptr_t>() = thread->GetThreadSelfId();
+      return PreambleResult::Veto;
+    }
   }
-  return PreambleResult::Redirect;
+  return PreambleResult::PassThrough;
 }
 
 static PreambleResult Preamble___workq_kernreturn(CallArguments* aArguments) {
@@ -2270,8 +2270,8 @@ static SystemRedirection gSystemRedirections[] = {
     {"sysctlbyname", RR_SaveRvalHadErrorNegative<RR_sysctl<1>>,
      Preamble_sysctlbyname, nullptr, Preamble_SetError},
     {"__mac_syscall", RR_SaveRvalHadErrorNegative},
-    {"syscall", RR_SaveRvalHadErrorNegative, nullptr, nullptr,
-     Preamble_syscall},
+    {"syscall", nullptr, Preamble_syscall},
+    {"mach_thread_self", nullptr, Preamble_mach_thread_self},
     {"getaudit_addr",
      RR_SaveRvalHadErrorNegative<RR_OutParam<0, auditinfo_addr_t>>},
     {"umask", RR_ScalarRval},

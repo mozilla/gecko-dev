@@ -115,11 +115,12 @@ class Thread {
   // ID for this thread used by the system.
   NativeThreadId mNativeId;
 
-  // On macOS, any thread ID given by mach_thread_self. This originates from the
-  // recording and does not correspond with a system resource when replaying.
-  // It is stored here so that we can provide a consistent ID after the process
-  // forks and we diverge from the recording.
+  // On macOS, any thread ID given by mach_thread_self or SYS_thread_selfid.
+  // This originates from the recording and does not correspond with a system
+  // resource when replaying. It is stored here so that we can provide a
+  // consistent ID after the process forks and we diverge from the recording.
   uintptr_t mMachId;
+  uintptr_t mThreadSelfId;
 
   // Stream with events for the thread. This is only used on the thread itself.
   Stream* mEvents;
@@ -234,10 +235,9 @@ class Thread {
            !HasDivergedFromRecording();
   }
 
-  // Get the macOS mach identifier for this thread.
-  uintptr_t GetMachId() const {
-    return mMachId;
-  }
+  // Get alternate identifiers for this thread.
+  uintptr_t GetMachId() const { return mMachId; }
+  uintptr_t GetThreadSelfId() const { return mThreadSelfId; }
 
   // The actual start routine at the root of all recorded threads, and of all
   // threads when replaying.

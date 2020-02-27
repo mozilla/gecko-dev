@@ -50,6 +50,7 @@ void Thread::BindToCurrent() {
     MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
 
     mMachId = RecordReplayValue(IsRecording() ? mach_thread_self() : 0);
+    mThreadSelfId = RecordReplayValue(IsRecording() ? syscall(SYS_thread_selfid) : 0);
   }
 }
 
