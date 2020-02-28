@@ -1463,6 +1463,15 @@ function _loadURI(browser, uri, params = {}) {
     uri = "about:blank";
   }
 
+  // Watch out when loading recording URLs.
+  const LoadRecordingPrefix = "https://view.webreplay.io/";
+  if (uri.startsWith(LoadRecordingPrefix)) {
+    Services.cpmm.sendAsyncMessage(
+      "RecordingLoading",
+      uri.substring(LoadRecordingPrefix.length)
+    );
+  }
+
   let { triggeringPrincipal, referrerInfo, postData, userContextId, csp } =
     params || {};
   let loadFlags =
@@ -5450,7 +5459,7 @@ var XULBrowserWindow = {
         const value = gBrowser.selectedBrowser.getAttribute("replayExecution");
         const match = /^webreplay:\/\/(.*)/.exec(value);
         if (match) {
-          aLocationURI = Services.io.newURI(`about:webreplay?recording=${match[1]}`);
+          aLocationURI = Services.io.newURI(`https://view.webreplay.io/${match[1]}`);
         }
       }
 

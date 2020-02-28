@@ -1266,7 +1266,7 @@ class UrlbarInput {
       const value = gBrowser.selectedBrowser.getAttribute("replayExecution");
       const match = /^webreplay:\/\/(.*)/.exec(value);
       if (match) {
-        uri = Services.io.newURI(`about:webreplay?recording=${match[1]}`);
+        uri = Services.io.newURI(`https://view.webreplay.io/${match[1]}`);
       }
     }
 

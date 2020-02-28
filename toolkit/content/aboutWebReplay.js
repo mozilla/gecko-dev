@@ -63,20 +63,18 @@ async function showRecordings() {
   container.innerHTML = "";
 
   for (const { uuid, url, title, date, duration } of gRecordings) {
-    const recordingUrl = `about:webreplay?recording=${uuid}`;
+    const recordingUrl = `https://view.webreplay.io/${uuid}`;
     const newRow = document.importNode(template.content, true);
     newRow.querySelector(".recording-title").innerText = title;
     newRow.querySelector(".recording-url").innerText = url;
     newRow.querySelector(".recording-start").innerText = formatTime(date);
     newRow.querySelector(".recording-duration").innerText = formatDuration(duration);
-    newRow.querySelector(".recording").addEventListener("click", e => {
-      document.location = recordingUrl;
-    });
+    newRow.querySelector(".recording").href = recordingUrl;
     const copylink = newRow.querySelector(".copylink");
     copylink.addEventListener("click", e => {
       navigator.clipboard.writeText(recordingUrl);
       copylink.innerText = "Copied!";
-      if (gLastCopyLink) {
+      if (gLastCopyLink && gLastCopyLink != copylink) {
         gLastCopyLink.innerText = "Copy Link";
       }
       gLastCopyLink = copylink;
@@ -98,40 +96,8 @@ function showError(kind) {
   document.querySelector(".error-message").setAttribute("data-l10n-id", kind);
 }
 
-function cloudStatusToFatalError(status) {
-  // Not all cloud status options are exposed in about:webreplay errors.
-  switch (status) {
-    case "cloudUpdateNeeded.label": return "CloudUpdateNeeded";
-    case "cloudUpdateDownloading.label": return "CloudUpdateDownloading";
-    case "cloudUpdateDownloaded.label": return "CloudUpdateDownloaded";
-    case "cloudUpdateManualDownload.label": return "CloudUpdateManualDownload";
-  }
-  return "CloudNotConnected";
-}
-
 window.onload = async function() {
   let match;
-
-  if (match = /recording=(.*)/.exec(window.location)) {
-    const status = ChromeUtils.getCloudReplayStatus();
-    if (status) {
-      window.location = `about:webreplay?error=${cloudStatusToFatalError(status)}`;
-      return;
-    }
-
-    const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
-    const tab = gBrowser.selectedTab;
-    gBrowser.selectedTab = gBrowser.addWebTab(null, {
-      replayExecution: `webreplay://${match[1]}`,
-      index: tab._tPos + 1,
-    });
-    gBrowser.removeTab(tab);
-
-    const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
-    const { gDevToolsBrowser } = require("devtools/client/framework/devtools-browser");
-    gDevToolsBrowser.toggleToolboxCommand(gBrowser, Cu.now());
-    return;
-  }
 
   if (match = /error=(.*)/.exec(window.location)) {
     showError(match[1]);

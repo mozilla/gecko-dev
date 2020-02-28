@@ -51,6 +51,7 @@
 #include "mozilla/dom/ClientSource.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/ContentFrameMessageManager.h"
+#include "mozilla/dom/ContentProcessMessageManager.h"
 #include "mozilla/dom/DocGroup.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLAnchorElement.h"
@@ -12288,6 +12289,29 @@ nsresult nsDocShell::OnLinkClickSync(
   // fall back to using doc->NodePrincipal() as the triggeringPrincipal.
   nsCOMPtr<nsIPrincipal> triggeringPrincipal =
       aTriggeringPrincipal ? aTriggeringPrincipal : aContent->NodePrincipal();
+
+  // Notify parent process when loading recordings.
+  const char* spec = aURI->GetSpecOrDefault().get();
+  const char webreplayPrefix[] = "https://view.webreplay.io/";
+  if (!strncmp(spec, webreplayPrefix, sizeof(webreplayPrefix) - 1)) {
+    const char* recordingName = spec + sizeof(webreplayPrefix) - 1;
+    ContentProcessMessageManager* cpmm = ContentProcessMessageManager::Get();
+    if (cpmm) {
+      AutoSafeJSContext cx;
+      JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+      JSString* str = JS_NewStringCopyZ(cx, recordingName);
+      MOZ_RELEASE_ASSERT(str);
+
+      JS::RootedValue contents(cx, JS::StringValue(str)), transfers(cx);
+      JS::RootedObject objects(cx);
+      ErrorResult error;
+      cpmm->SendAsyncMessage(cx, NS_LITERAL_STRING("RecordingLoading"),
+                             contents, objects,
+                             triggeringPrincipal, transfers, error);
+      MOZ_RELEASE_ASSERT(!error.Failed());
+    }
+  }
 
   nsCOMPtr<nsIContentSecurityPolicy> csp = aCsp;
   if (!csp) {

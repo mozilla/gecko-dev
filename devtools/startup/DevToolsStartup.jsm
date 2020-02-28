@@ -1377,10 +1377,7 @@ function createRecordingButton() {
       const saveRecordingItem = addItem("saveRecording.label", async event => {
         preventClose();
 
-        const { generateUUID } = Cc["@mozilla.org/uuid-generator;1"].getService(
-          Ci.nsIUUIDGenerator
-        );
-        const uuid = generateUUID().toString();
+        const uuid = newRecordingUUID();
 
         if (!saveRecording(uuid)) {
           return;
@@ -1408,7 +1405,7 @@ function createRecordingButton() {
           return;
         }
 
-        navigator.clipboard.writeText(`about:webreplay?recording=${uuid}`);
+        navigator.clipboard.writeText(`https://view.webreplay.io/${uuid}`);
 
         await addRecordingDescription({
           ...description,
@@ -1427,7 +1424,7 @@ function createRecordingButton() {
 
         const uuid = lastUploadedData && lastUploadedData.uuid;
         if (uuid) {
-          navigator.clipboard.writeText(`about:webreplay?recording=${uuid}`);
+          navigator.clipboard.writeText(`https://view.webreplay.io/${uuid}`);
         }
       });
 
@@ -1528,6 +1525,35 @@ function createRecordingButton() {
       cloudRecordingWaiters[uuid]({ duration });
       uploadDataCallback();
     }
+  });
+
+  Services.ppmm.addMessageListener("RecordingLoading", {
+    receiveMessage(msg) {
+      const uuid = sanitizeUUID(msg.data);
+      const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+      const currentTab = gBrowser.selectedTab;
+
+      const status = ChromeUtils.getCloudReplayStatus();
+      if (status) {
+        const url = `about:webreplay?error=${cloudStatusToFatalError(status)}`;
+        gBrowser.selectedTab = gBrowser.addTrustedTab(url, {
+          index: currentTab._tPos + 1,
+        });
+      } else {
+        gBrowser.selectedTab = gBrowser.addWebTab(null, {
+          replayExecution: `webreplay://${uuid}`,
+          index: currentTab._tPos + 1,
+        });
+      }
+
+      gBrowser.removeTab(currentTab);
+
+      if (!status) {
+        const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
+        const { gDevToolsBrowser } = require("devtools/client/framework/devtools-browser");
+        gDevToolsBrowser.toggleToolboxCommand(gBrowser, Cu.now());
+      }
+    },
   });
 }
 
@@ -1652,6 +1678,50 @@ function viewRecordings() {
 function formatBytes(bytes) {
   const MB = bytes / (1 << 20);
   return `${((MB * 100) | 0) / 100} MB`;
+}
+
+function newRecordingUUID() {
+  const { generateUUID } = Cc["@mozilla.org/uuid-generator;1"].getService(
+    Ci.nsIUUIDGenerator
+  );
+  const uuid = generateUUID().toString();
+
+  // Remove leading/trailing {}
+  return uuid.substring(1, uuid.length - 2);
+}
+
+function sanitizeUUID(uuid) {
+  // UUIDs can come from links on random pages, so restrict them to the expected
+  // length and character set.
+  let rv = "";
+  for (let i = 0; i < Math.min(uuid.length, 40); i++) {
+    const char = uuid.charCodeAt(i);
+    if (
+      (char >= charCode('0') && char <= charCode('9')) ||
+      (char >= charCode('a') && char <= charCode('f')) ||
+      char == charCode('-')
+    ) {
+      rv += uuid[i];
+    } else {
+      rv += "x";
+    }
+  }
+  return rv;
+
+  function charCode(char) {
+    return char.charCodeAt(0);
+  }
+}
+
+function cloudStatusToFatalError(status) {
+  // Not all cloud status options are exposed in about:webreplay errors.
+  switch (status) {
+    case "cloudUpdateNeeded.label": return "CloudUpdateNeeded";
+    case "cloudUpdateDownloading.label": return "CloudUpdateDownloading";
+    case "cloudUpdateDownloaded.label": return "CloudUpdateDownloaded";
+    case "cloudUpdateManualDownload.label": return "CloudUpdateManualDownload";
+  }
+  return "CloudNotConnected";
 }
 
 var EXPORTED_SYMBOLS = ["DevToolsStartup"];

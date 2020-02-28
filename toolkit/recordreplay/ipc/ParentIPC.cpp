@@ -142,7 +142,10 @@ void EnsureUIStateInitialized() {
 }
 
 void GetWebReplayJS(nsAutoCString& aControlJS, nsAutoCString& aReplayJS) {
-  MOZ_RELEASE_ASSERT(gControlJS.length() && gReplayJS.length());
+  if (!gControlJS.length() || !gReplayJS.length()) {
+    fprintf(stderr, "Control/Replay JS not set, crashing...\n");
+    MOZ_CRASH("Control/Replay JS not set");
+  }
 
   aControlJS.SetLength(gControlJS.length());
   memcpy(aControlJS.BeginWriting(), gControlJS.begin(), gControlJS.length());
