@@ -33,9 +33,7 @@ type OwnProps = {};
 
 type State = {
   scrubbing: boolean,
-  percentage: number,
-  displayedLocation: any,
-  displayedFrame: Frame,
+  scrubbingProgress: number, // [0, 100]
 };
 
 function isSameLocation(
@@ -71,9 +69,7 @@ class FrameTimeline extends Component<Props, State> {
 
   state = {
     scrubbing: false,
-    percentage: 0,
-    displayedLocation: null,
-    displayedFrame: {},
+    scrubbingProgress: 0,
   };
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -99,37 +95,26 @@ class FrameTimeline extends Component<Props, State> {
   getProgress(clientX: number) {
     const { width, left } = getBoundingClientRect(this._timeline);
     const progress = ((clientX - left) / width) * 100;
-
-    if (progress < 0) {
-      return 0;
-    } else if (progress > 99) {
-      return 99;
-    }
-
-    return progress;
+    return Math.min(Math.max(progress, 0), 100);
   }
 
-  getPosition(percentage: ?number) {
+  getPosition(progress: ?number) {
     const { framePositions } = this.props;
     if (!framePositions) {
       return;
     }
 
-    if (!percentage) {
-      percentage = this.state.percentage;
-    }
-
     const displayIndex = Math.floor(
-      (percentage / 100) * framePositions.positions.length
+      (progress / 100) * framePositions.positions.length
     );
 
     return framePositions.positions[displayIndex];
   }
 
-  displayPreview(percentage: number) {
+  displayPreview(progress: number) {
     const { previewLocation } = this.props;
 
-    const position = this.getPosition(percentage);
+    const position = this.getPosition(progress);
 
     if (position) {
       previewLocation(position.location);
@@ -138,7 +123,7 @@ class FrameTimeline extends Component<Props, State> {
 
   onMouseDown = (event: SyntheticMouseEvent<>) => {
     const progress = this.getProgress(event.clientX);
-    this.setState({ scrubbing: true, percentage: progress });
+    this.setState({ scrubbing: true, scrubbingProgress: progress });
   };
 
   onMouseUp = (event: MouseEvent) => {
@@ -146,11 +131,7 @@ class FrameTimeline extends Component<Props, State> {
 
     const progress = this.getProgress(event.clientX);
     const position = this.getPosition(progress);
-    this.setState({
-      scrubbing: false,
-      percentage: progress,
-      displayedLocation: selectedLocation,
-    });
+    this.setState({ scrubbing: false });
 
     if (position) {
       seekToPosition(position.point);
@@ -158,22 +139,22 @@ class FrameTimeline extends Component<Props, State> {
   };
 
   onMouseMove = (event: MouseEvent) => {
-    const percentage = this.getProgress(event.clientX);
+    const progress = this.getProgress(event.clientX);
 
-    this.displayPreview(percentage);
-    this.setState({ percentage });
+    this.displayPreview(progress);
+    this.setState({ scrubbingProgress: progress });
   };
 
-  getProgressForNewFrame() {
+  getVisibleProgress() {
+    const { scrubbing, scrubbingProgress } = this.state;
     const { framePositions, selectedLocation, selectedFrame } = this.props;
-    this.setState({
-      displayedLocation: selectedLocation,
-      displayedFrame: selectedFrame,
-    });
-    let progress = 0;
 
     if (!framePositions) {
-      return progress;
+      return 0;
+    }
+
+    if (scrubbing || !selectedLocation) {
+      return scrubbingProgress;
     }
 
     const index = framePositions.positions.findIndex(pos =>
@@ -181,35 +162,12 @@ class FrameTimeline extends Component<Props, State> {
       isSameLocation(pos.generatedLocation, selectedLocation)
     );
 
-    if (index != -1) {
-      progress = Math.floor((index / framePositions.positions.length) * 100);
-      this.setState({ percentage: progress });
+    if (index == -1) {
+      // This shouldn't happen.
+      return 0;
     }
 
-    return progress;
-  }
-
-  getVisibleProgress() {
-    const {
-      percentage,
-      displayedLocation,
-      displayedFrame,
-      scrubbing,
-    } = this.state;
-    const { selectedLocation, selectedFrame } = this.props;
-
-    let progress = percentage;
-
-    if (
-      !isEqual(displayedLocation, selectedLocation) &&
-      selectedFrame &&
-      displayedFrame.index !== selectedFrame.index &&
-      !scrubbing
-    ) {
-      progress = this.getProgressForNewFrame();
-    }
-
-    return progress;
+    return Math.floor((index / framePositions.positions.length) * 100);
   }
 
   renderMarker() {
