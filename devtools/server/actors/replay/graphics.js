@@ -34,6 +34,7 @@ function setupContents(window) {
   canvas.style.position = "absolute";
   window.document.body.style.margin = "0px";
   window.document.body.prepend(canvas);
+  window.document.setSuppressedEventListener(ev => mouseEventListener(window, ev));
 }
 
 function getCanvas(window) {
@@ -70,8 +71,91 @@ function drawClick(cx, x, y) {
   cx.stroke();
 }
 
+function drawSmallWarning(cx, canvas) {
+  cx.lineWidth = 2;
+  cx.strokeStyle = "black";
+  cx.fillStyle = "red";
+  cx.beginPath();
+  cx.arc(canvas.width - 35, 35, 20, 0, 2 * Math.PI);
+  cx.fill();
+  cx.stroke();
+
+  /*
+  cx.fillStyle = "black";
+  cx.font = "35px sans-serif";
+  cx.fillText("!", canvas.width - 40, 45);
+  */
+
+  cx.lineWidth = 5;
+  cx.beginPath();
+  cx.moveTo(canvas.width - 35, 40);
+  cx.lineTo(canvas.width - 35, 20);
+  cx.stroke();
+
+  cx.fillStyle = "black";
+  cx.beginPath();
+  cx.arc(canvas.width - 35, 46, 3, 0, 2 * Math.PI);
+  cx.fill();
+}
+
+function drawFullWarning(cx, canvas) {
+  cx.lineWidth = 2;
+  cx.strokeStyle = "black";
+  cx.fillStyle = "red";
+  cx.fillRect(canvas.width - 340, 15, 325, 40);
+  cx.strokeRect(canvas.width - 340, 15, 325, 40);
+
+  cx.fillStyle = "black";
+  cx.font = "28px sans-serif";
+  cx.fillText("Graphics might be wrong", canvas.width - 330, 45, 305);
+}
+
+function mouseEventListener(window, event) {
+  if (!window.lastUpdate.warning) {
+    return;
+  }
+
+  const canvas = getCanvas(window);
+
+  if (event.type == "mousemove") {
+    // Get coordinates relative to the canvas origin.
+    const x = event.clientX * window.devicePixelRatio;
+    const y = event.clientY * window.devicePixelRatio;
+
+    if (window.mouseHoveringOverWarning) {
+      if (x < canvas.width - 340 ||
+          y < 15 ||
+          x > canvas.width - 15 ||
+          y > 55) {
+        Services.cpmm.sendAsyncMessage("RecordReplayHidePointer");
+        window.mouseHoveringOverWarning = false;
+        refreshCanvas(window);
+      }
+    } else {
+      const distanceX = x - (canvas.width - 35);
+      const distanceY = y - 35;
+      const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+      if (distance < 20) {
+        Services.cpmm.sendAsyncMessage("RecordReplayShowPointer");
+        window.mouseHoveringOverWarning = true;
+        refreshCanvas(window);
+      }
+    }
+  } else if (event.type == "mouseup") {
+    if (window.mouseHoveringOverWarning) {
+      Services.cpmm.sendAsyncMessage("RecordReplayWarningClicked");
+      window.mouseHoveringOverWarning = false;
+      refreshCanvas(window);
+    }
+  }
+}
+
 function updateWindowCanvas(window, buffer, width, height,
-                            cursorX, cursorY, clickX, clickY) {
+                            cursorX, cursorY, clickX, clickY, warning) {
+  window.lastUpdate = {
+    buffer, width, height, cursorX, cursorY, clickX, clickY, warning
+  };
+
   // Make sure the window has a canvas filling the screen.
   const canvas = getCanvas(window);
 
@@ -103,6 +187,23 @@ function updateWindowCanvas(window, buffer, width, height,
   if (clickX >= 0 && clickY >= 0) {
     drawClick(cx, clickX, clickY);
   }
+
+  if (warning) {
+    if (window.mouseHoveringOverWarning) {
+      drawFullWarning(cx, canvas);
+    } else {
+      drawSmallWarning(cx, canvas);
+    }
+  }
+}
+
+function refreshCanvas(window) {
+  const {
+    buffer, width, height, cursorX, cursorY, clickX, clickY, warning
+  } = window.lastUpdate;
+
+  updateWindowCanvas(window, buffer, width, height,
+                     cursorX, cursorY, clickX, clickY, warning);
 }
 
 function clearWindowCanvas(window) {
@@ -116,15 +217,15 @@ function clearWindowCanvas(window) {
 // to draw.
 // eslint-disable-next-line no-unused-vars
 function UpdateCanvas(buffer, width, height,
-                      cursorX, cursorY, clickX, clickY) {
+                      cursorX, cursorY, clickX, clickY, warning) {
   try {
     // Paint to all windows we can find. Hopefully there is only one.
     for (const window of Services.ww.getWindowEnumerator()) {
       updateWindowCanvas(window, buffer, width, height,
-                         cursorX, cursorY, clickX, clickY);
+                         cursorX, cursorY, clickX, clickY, warning);
     }
   } catch (e) {
-    dump(`Middleman Graphics UpdateCanvas Exception: ${e}\n`);
+    console.error(`Middleman Graphics UpdateCanvas Exception: ${e}\n`);
   }
 }
 
@@ -135,7 +236,17 @@ function ClearCanvas() {
       clearWindowCanvas(window);
     }
   } catch (e) {
-    dump(`Middleman Graphics ClearCanvas Exception: ${e}\n`);
+    console.error(`Middleman Graphics ClearCanvas Exception: ${e}\n`);
+  }
+}
+
+function RestoreSuppressedEventListener() {
+  try {
+    for (const window of Services.ww.getWindowEnumerator()) {
+      window.document.setSuppressedEventListener(ev => mouseEventListener(window, ev));
+    }
+  } catch (e) {
+    console.error(`Middleman Graphics RestoreSuppressedEventListener Exception: ${e}\n`);
   }
 }
 

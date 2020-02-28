@@ -1272,7 +1272,7 @@ function createRecordingButton() {
         return;
       }
 
-      const { gBrowser, navigator } = Services.wm.getMostRecentWindow("navigator:browser");
+      const { gBrowser, navigator, setCursor } = Services.wm.getMostRecentWindow("navigator:browser");
       const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
       const replaying = gBrowser.selectedBrowser.hasAttribute("replayExecution");
 
@@ -1518,6 +1518,7 @@ function createRecordingButton() {
     return new Promise(resolve => (cloudRecordingWaiters[uuid] = resolve));
   }
 
+  // Update UI when a recording finishes being saved.
   Services.ppmm.addMessageListener("RecordingSaved", {
     receiveMessage(msg) {
       const { uuid, duration } = msg.data;
@@ -1527,6 +1528,8 @@ function createRecordingButton() {
     }
   });
 
+  // Update the browser when a recording is being loaded in the current tab,
+  // to start replaying.
   Services.ppmm.addMessageListener("RecordingLoading", {
     receiveMessage(msg) {
       const uuid = sanitizeUUID(msg.data);
@@ -1553,6 +1556,37 @@ function createRecordingButton() {
         const { gDevToolsBrowser } = require("devtools/client/framework/devtools-browser");
         gDevToolsBrowser.toggleToolboxCommand(gBrowser, Cu.now());
       }
+    },
+  });
+
+  // Update UI when hovering over a graphics warning in the current tab.
+  Services.ppmm.addMessageListener("RecordReplayShowPointer", {
+    receiveMessage() {
+      const window = Services.wm.getMostRecentWindow("navigator:browser");
+      if (window) {
+        window.setCursor("pointer");
+      }
+    },
+  });
+
+  // Update UI when stopping hovering over the graphics warning.
+  Services.ppmm.addMessageListener("RecordReplayHidePointer", {
+    receiveMessage() {
+      const window = Services.wm.getMostRecentWindow("navigator:browser");
+      if (window) {
+        window.setCursor("default");
+      }
+    },
+  });
+
+  // Open a new tab when clicking on the graphics warning.
+  Services.ppmm.addMessageListener("RecordReplayWarningClicked", {
+    receiveMessage() {
+      const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+      const tab = gBrowser.selectedTab;
+      gBrowser.selectedTab = gBrowser.addWebTab("https://webreplay.io/graphicsWarning.html", {
+        index: tab._tPos + 1,
+      });
     },
   });
 }

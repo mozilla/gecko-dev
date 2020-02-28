@@ -83,6 +83,12 @@ static void GatherDependentCalls(
   }
 }
 
+static AtomicBool gUnhandledExternalCall;
+
+bool HadUnhandledExternalCall() {
+  return gUnhandledExternalCall;
+}
+
 bool OnExternalCall(size_t aCallId, CallArguments* aArguments, bool aDiverged) {
   MOZ_RELEASE_ASSERT(IsReplaying());
 
@@ -119,6 +125,7 @@ bool OnExternalCall(size_t aCallId, CallArguments* aArguments, bool aDiverged) {
           delete call;
           return false;
         }
+        gUnhandledExternalCall = true;
         call->mOutputUnavailable = true;
         ExternalCallContext ncx(call, aArguments,
                                 ExternalCallPhase::RestoreOutput);
@@ -185,6 +192,7 @@ bool OnExternalCall(size_t aCallId, CallArguments* aArguments, bool aDiverged) {
 
   if (call->mOutputUnavailable) {
     Print("ExternalCall OutputUnavailable: %s %s\n", redirection.mName, messageName);
+    gUnhandledExternalCall = true;
   } else {
     // Decode the external call's output.
     BufferStream outputStream(outputData.begin(), outputData.length());

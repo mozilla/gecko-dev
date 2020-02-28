@@ -9,6 +9,6 @@
 interface rrIGraphics : nsISupports {
   void UpdateCanvas(in jsval buffer, in long width, in long height,
                     in long cursorX, in long cursorY,
-                    in long clickX, in long clickY);
+                    in long clickX, in long clickY, in boolean warning);
   void ClearCanvas();
 };

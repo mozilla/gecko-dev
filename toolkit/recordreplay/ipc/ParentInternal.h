@@ -96,13 +96,16 @@ void UpdateGraphicsAfterPaint(const PaintMessage& aMsg);
 // some replaying child.
 void UpdateGraphicsAfterRepaint(const nsACString& imageData,
                                 int aCursorX, int aCursorY,
-                                int aClickX, int aClickY);
+                                int aClickX, int aClickY, bool aWarning);
 
 // Restore the graphics last painted by the main child.
 void RestoreMainGraphics();
 
 // Clear any graphics painted in the UI process.
 void ClearGraphics();
+
+// Restore the listener for suppressed events on the canvas.
+void RestoreSuppressedEventListener();
 
 // ID for the mach message sent from a child process to the middleman to
 // request a port for the graphics shmem.

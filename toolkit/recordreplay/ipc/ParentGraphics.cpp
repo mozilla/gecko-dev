@@ -93,10 +93,14 @@ static void InitGraphicsSandbox() {
 // Buffer used to transform graphics memory, if necessary.
 static void* gBufferMemory;
 
+// Last ArrayBuffer object used for rendering;
+static PersistentRootedObject* gLastBuffer;
+
 static void UpdateMiddlemanCanvas(size_t aWidth, size_t aHeight, size_t aStride,
                                   void* aData,
                                   int aCursorX = -1, int aCursorY = -1,
-                                  int aClickX = -1, int aClickY = -1) {
+                                  int aClickX = -1, int aClickY = -1,
+                                  bool aWarning = false) {
   // Make sure the width and height are appropriately sized.
   CheckedInt<size_t> scaledWidth = CheckedInt<size_t>(aWidth) * 4;
   CheckedInt<size_t> scaledHeight = CheckedInt<size_t>(aHeight) * aStride;
@@ -125,6 +129,13 @@ static void UpdateMiddlemanCanvas(size_t aWidth, size_t aHeight, size_t aStride,
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
+  // The graphics module always needs the last buffer to be usable. Now that we
+  // are doing a new render, the last buffer can be detached from its contents.
+  if (gLastBuffer && *gLastBuffer) {
+    MOZ_ALWAYS_TRUE(JS::DetachArrayBuffer(cx, *gLastBuffer));
+    *gLastBuffer = nullptr;
+  }
+
   // Create an ArrayBuffer whose contents are the externally-provided |memory|.
   JS::Rooted<JSObject*> bufferObject(cx);
   bufferObject =
@@ -135,14 +146,15 @@ static void UpdateMiddlemanCanvas(size_t aWidth, size_t aHeight, size_t aStride,
 
   // Call into the graphics module to update the canvas it manages.
   if (NS_FAILED(gGraphics->UpdateCanvas(buffer, aWidth, aHeight,
-                                        aCursorX, aCursorY, aClickX, aClickY))) {
+                                        aCursorX, aCursorY, aClickX, aClickY,
+                                        aWarning))) {
     MOZ_CRASH("UpdateMiddlemanCanvas");
   }
 
-  // Manually detach this ArrayBuffer once this update completes, as the
-  // JS::NewArrayBufferWithUserOwnedContents API mandates.  (The API also
-  // guarantees that this call always succeeds.)
-  MOZ_ALWAYS_TRUE(JS::DetachArrayBuffer(cx, bufferObject));
+  if (!gLastBuffer) {
+    gLastBuffer = new PersistentRootedObject(cx);
+  }
+  *gLastBuffer = bufferObject;
 }
 
 // The dimensions of the data in the graphics shmem buffer.
@@ -168,9 +180,12 @@ void UpdateGraphicsAfterPaint(const PaintMessage& aMsg) {
   UpdateMiddlemanCanvas(aMsg.mWidth, aMsg.mHeight, stride, gGraphicsMemory);
 }
 
+// Map holding the data from the last paint alive.
+gfx::DataSourceSurface::ScopedMap* gLastMap;
+
 void UpdateGraphicsAfterRepaint(const nsACString& aImageData,
                                 int aCursorX, int aCursorY,
-                                int aClickX, int aClickY) {
+                                int aClickX, int aClickY, bool aWarning) {
   if (!gGraphics) {
     InitGraphicsSandbox();
   }
@@ -185,12 +200,17 @@ void UpdateGraphicsAfterRepaint(const nsACString& aImageData,
 
   RefPtr<gfx::DataSourceSurface> dataSurface = surface->GetDataSurface();
 
-  gfx::DataSourceSurface::ScopedMap map(dataSurface,
-                                        gfx::DataSourceSurface::READ);
+  auto* map = new gfx::DataSourceSurface::ScopedMap(dataSurface,
+                                                    gfx::DataSourceSurface::READ);
 
   UpdateMiddlemanCanvas(surface->GetSize().width, surface->GetSize().height,
-                        map.GetStride(), map.GetData(),
-                        aCursorX, aCursorY, aClickX, aClickY);
+                        map->GetStride(), map->GetData(),
+                        aCursorX, aCursorY, aClickX, aClickY, aWarning);
+
+  if (gLastMap) {
+    delete gLastMap;
+  }
+  gLastMap = map;
 }
 
 void RestoreMainGraphics() {
@@ -214,6 +234,19 @@ void ClearGraphics() {
 
   if (NS_FAILED(gGraphics->ClearCanvas())) {
     MOZ_CRASH("ClearGraphics");
+  }
+}
+
+void RestoreSuppressedEventListener() {
+  if (!gGraphics) {
+    return;
+  }
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  if (NS_FAILED(gGraphics->ClearCanvas())) {
+    MOZ_CRASH("RestoreSuppressedEventListener");
   }
 }
 

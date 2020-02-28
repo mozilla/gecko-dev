@@ -400,7 +400,10 @@ static bool Middleman_HadRepaint(JSContext* aCx, unsigned aArgc, Value* aVp) {
     clickY = args.get(4).toNumber();
   }
 
-  parent::UpdateGraphicsAfterRepaint(dataBinary, cursorX, cursorY, clickX, clickY);
+  bool warning = ToBoolean(args.get(5));
+
+  parent::UpdateGraphicsAfterRepaint(dataBinary, cursorX, cursorY,
+                                     clickX, clickY, warning);
 
   args.rval().setUndefined();
   return true;
@@ -421,6 +424,16 @@ static bool Middleman_ClearGraphics(JSContext* aCx, unsigned aArgc,
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
   parent::ClearGraphics();
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool Middleman_RestoreSuppressedEventListener(JSContext* aCx, unsigned aArgc,
+                                                     Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  parent::RestoreSuppressedEventListener();
 
   args.rval().setUndefined();
   return true;
@@ -1078,6 +1091,13 @@ static bool RecordReplay_GetGraphics(JSContext* aCx, unsigned aArgc, Value* aVp)
   }
 
   args.rval().setString(str);
+  return true;
+}
+
+static bool RecordReplay_HadUnhandledExternalCall(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  args.rval().setBoolean(HadUnhandledExternalCall());
   return true;
 }
 
@@ -1760,9 +1780,10 @@ static const JSFunctionSpec gMiddlemanMethods[] = {
     JS_FN("spawnReplayingChild", Middleman_SpawnReplayingChild, 1, 0),
     JS_FN("sendManifest", Middleman_SendManifest, 3, 0),
     JS_FN("ping", Middleman_Ping, 3, 0),
-    JS_FN("hadRepaint", Middleman_HadRepaint, 5, 0),
+    JS_FN("hadRepaint", Middleman_HadRepaint, 6, 0),
     JS_FN("restoreMainGraphics", Middleman_RestoreMainGraphics, 0, 0),
     JS_FN("clearGraphics", Middleman_ClearGraphics, 0, 0),
+    JS_FN("restoreSuppressedEventListener", Middleman_RestoreSuppressedEventListener, 0, 0),
     JS_FN("inRepaintStressMode", Middleman_InRepaintStressMode, 0, 0),
     JS_FN("createCheckpointInRecording", Middleman_CreateCheckpointInRecording,
           1, 0),
@@ -1795,6 +1816,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("getRecordingSummary", RecordReplay_GetRecordingSummary, 0, 0),
     JS_FN("getContent", RecordReplay_GetContent, 1, 0),
     JS_FN("getGraphics", RecordReplay_GetGraphics, 1, 0),
+    JS_FN("hadUnhandledExternalCall", RecordReplay_HadUnhandledExternalCall, 0, 0),
     JS_FN("isScanningScripts", RecordReplay_IsScanningScripts, 0, 0),
     JS_FN("setScanningScripts", RecordReplay_SetScanningScripts, 1, 0),
     JS_FN("getFrameDepth", RecordReplay_GetFrameDepth, 0, 0),

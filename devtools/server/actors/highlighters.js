@@ -486,6 +486,10 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
     document.setSuppressedEventListener(
       callback ? { handleEvent: callback } : null
     );
+
+    if (isReplaying && !callback) {
+      require("RecordReplayControl").restoreSuppressedEventListener();
+    }
   },
 
   _startPickerListeners: function() {

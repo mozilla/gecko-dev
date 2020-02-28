@@ -464,6 +464,11 @@ void EX_SystemOutput(ExternalCallContext& aCx, const void** aOutput,
 
 void InitializeExternalCalls();
 
+// Whether we have diverged from the recording and encountered a call whose
+// outputs could not be determined. If true, the graphics warning will be shown
+// when painting the graphics collected by this process.
+bool HadUnhandledExternalCall();
+
 }  // namespace recordreplay
 }  // namespace mozilla
 
