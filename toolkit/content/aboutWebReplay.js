@@ -24,6 +24,16 @@ function formatDuration(duration) {
   return `${(duration / MsPerSecond) | 0} seconds`;
 }
 
+// Maximum number of characters to print for titles and URLs.
+const MaxStringLength = 50;
+
+function formatString(string) {
+  if (string.length > MaxStringLength) {
+    return string.substring(0, MaxStringLength - 3) + "...";
+  }
+  return string;
+}
+
 // See also DevToolsStartup.jsm
 function getRecordingsPath() {
   let dir = Services.dirsvc.get("UAppData", Ci.nsIFile);
@@ -65,8 +75,8 @@ async function showRecordings() {
   for (const { uuid, url, title, date, duration } of gRecordings) {
     const recordingUrl = `https://view.webreplay.io/${uuid}`;
     const newRow = document.importNode(template.content, true);
-    newRow.querySelector(".recording-title").innerText = title;
-    newRow.querySelector(".recording-url").innerText = url;
+    newRow.querySelector(".recording-title").innerText = formatString(title);
+    newRow.querySelector(".recording-url").innerText = formatString(url);
     newRow.querySelector(".recording-start").innerText = formatTime(date);
     newRow.querySelector(".recording-duration").innerText = formatDuration(duration);
     newRow.querySelector(".recording").href = recordingUrl;
