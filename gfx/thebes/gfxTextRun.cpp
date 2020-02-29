@@ -1915,6 +1915,11 @@ gfxFont* gfxFontGroup::GetDefaultFont() {
     return mDefaultFont.get();
   }
 
+  if (mozilla::recordreplay::HasDivergedFromRecording()) {
+    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+    fprintf(stderr, "gfxFontGroup::GetDefaultFont %d BEGIN\n", getpid());
+  }
+
   gfxPlatformFontList* pfl = gfxPlatformFontList::PlatformFontList();
   FontFamily family = pfl->GetDefaultFont(&mStyle);
   MOZ_ASSERT(!family.IsNull(),
@@ -1934,8 +1939,21 @@ gfxFont* gfxFontGroup::GetDefaultFont() {
   } else {
     fe = family.mUnshared->FindFontForStyle(mStyle);
   }
+
+  if (mozilla::recordreplay::HasDivergedFromRecording()) {
+    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+    fprintf(stderr, "gfxFontGroup::GetDefaultFont %d #1 %d %p\n",
+            getpid(), family.mIsShared, fe);
+  }
+
   if (fe) {
     mDefaultFont = fe->FindOrMakeFont(&mStyle);
+  }
+
+  if (mozilla::recordreplay::HasDivergedFromRecording()) {
+    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+    fprintf(stderr, "gfxFontGroup::GetDefaultFont %d #2 %p\n",
+            getpid(), (void*)mDefaultFont);
   }
 
   uint32_t numInits, loaderState;
