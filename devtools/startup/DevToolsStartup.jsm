@@ -1450,11 +1450,11 @@ function createRecordingButton() {
             if (lastSaved) {
               const numer = formatBytes(Math.min(received, lastSaved.length));
               const denom = formatBytes(lastSaved.length);
-              label = `Saving… ${numer} / ${denum}`;
+              label = `Saving… ${numer} / ${denom}`;
             } else {
               const numer = formatBytes(received);
               const denom = formatBytes(sent);
-              label = `Uploading… ${numer} / ${denum}`;
+              label = `Uploading… ${numer} / ${denom}`;
             }
             uploadedDataItem.setAttribute("label", label);
             savedRecordingItem.setAttribute("hidden", true);
