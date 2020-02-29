@@ -304,7 +304,7 @@ void GCRuntime::attemptLastDitchGC(JSContext* cx) {
   // size limit. Try to perform an all-compartments, non-incremental, shrinking
   // GC and wait for it to finish.
 
-  if (cx->isHelperThreadContext()) {
+  if (cx->isHelperThreadContext() || mozilla::recordreplay::IsRecordingOrReplaying()) {
     return;
   }
 
