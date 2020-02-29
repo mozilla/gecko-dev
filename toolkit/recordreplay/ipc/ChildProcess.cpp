@@ -191,21 +191,23 @@ void ChildProcessInfo::OnCrash(size_t aForkId, const char* aWhy) {
   CrashReporter::AnnotateCrashReport(
       CrashReporter::Annotation::RecordReplayError, nsAutoCString(aWhy));
 
-  if (!IsRecording()) {
-    if (!UseCloudForReplayingProcesses()) {
-      // Notify the parent when a replaying process crashes so that a report can
-      // be generated.
-      dom::ContentChild::GetSingleton()->SendGenerateReplayCrashReport(GetId());
-    }
-
-    // Continue execution if we were able to recover from the crash.
-    if (js::RecoverFromCrash(GetId(), aForkId)) {
-      return;
-    }
+  if (IsRecording()) {
+    // Shut down cleanly so that we don't mask the report with our own crash.
+    Shutdown();
   }
 
-  // Shut down cleanly so that we don't mask the report with our own crash.
-  Shutdown();
+  if (!UseCloudForReplayingProcesses()) {
+    // Notify the parent when a replaying process crashes so that a report can
+    // be generated.
+    dom::ContentChild::GetSingleton()->SendGenerateReplayCrashReport(GetId());
+  }
+
+  // Continue execution if we were able to recover from the crash.
+  if (js::RecoverFromCrash(GetId(), aForkId)) {
+    return;
+  }
+
+  MOZ_CRASH("Crash recovery failed");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
