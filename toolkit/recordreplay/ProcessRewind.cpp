@@ -125,8 +125,8 @@ void EnsureNotDivergedFromRecording(const Maybe<int>& aCallId) {
   if (HasDivergedFromRecording()) {
     MOZ_RELEASE_ASSERT(gUnhandledDivergeAllowed);
 
-    PrintSpew("Unhandled recording divergence: %s\n",
-              aCallId.isSome() ? GetRedirection(aCallId.ref()).mName : "");
+    Print("Unhandled recording divergence: %s\n",
+          aCallId.isSome() ? GetRedirection(aCallId.ref()).mName : "");
 
     child::ReportUnhandledDivergence();
     Unreachable();

@@ -2333,7 +2333,7 @@ static SystemRedirection gSystemRedirections[] = {
     {"fseek", RR_SaveRvalHadErrorNegative},
     {"ftell", RR_SaveRvalHadErrorNegative},
     {"fwrite", RR_ScalarRval},
-    {"printf", RR_SaveRvalHadErrorNegative},
+    {"printf", RR_SaveRvalHadErrorNegative, nullptr, nullptr, Preamble_Veto<0>},
     {"setvbuf", RR_ScalarRval},
     {"getenv", RR_CStringRval, Preamble_getenv, nullptr, Preamble_Veto<0>},
     {"localtime_r",
