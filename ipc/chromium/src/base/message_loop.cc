@@ -362,6 +362,8 @@ void MessageLoop::PostIdleTask(already_AddRefed<nsIRunnable> task) {
 // Possibly called on a background thread!
 void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
                                   int delay_ms) {
+  MOZ_RELEASE_ASSERT(!mozilla::recordreplay::AreThreadEventsPassedThrough());
+
   mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper BEGIN");
 
   if (nsIEventTarget* target = pump_->GetXPCOMThread()) {
