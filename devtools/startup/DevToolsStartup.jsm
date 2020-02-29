@@ -1383,12 +1383,6 @@ function createRecordingButton() {
           return;
         }
 
-        if (lastUploadedData) {
-          // Assume the uploaded data is associated with the recording we are saving.
-          lastUploadedData.uuid = uuid;
-          uploadDataCallback();
-        }
-
         saveRecordingItem.setAttribute("disabled", true);
         CustomizableUI.clearSubview(recordingItems);
         CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
@@ -1422,8 +1416,8 @@ function createRecordingButton() {
       const savedRecordingItem = addItem("recordingSaveFinished.label", () => {
         preventClose();
 
-        const uuid = lastUploadedData && lastUploadedData.uuid;
-        if (uuid) {
+        if (lastUploadedData && lastUploadedData.lastSaved) {
+          const { uuid } = lastUploadedData.lastSaved;
           navigator.clipboard.writeText(`https://view.webreplay.io/${uuid}`);
         }
       });
@@ -1446,14 +1440,22 @@ function createRecordingButton() {
 
       uploadDataCallback = function() {
         if (lastUploadedData) {
-          const { uuid, sent, received } = lastUploadedData;
+          const { lastSaved, sent, received } = lastUploadedData;
 
-          if (uuid && savedRecordings.has(uuid)) {
+          if (lastSaved && savedRecordings.has(lastSaved.uuid)) {
             savedRecordingItem.setAttribute("hidden", false);
             uploadedDataItem.setAttribute("hidden", true);
           } else {
-            const fraction = `${formatBytes(received)} / ${formatBytes(sent)}`;
-            const label = `${uuid ? "Saving" : "Uploading"}… ${fraction}`;
+            let label;
+            if (lastSaved) {
+              const numer = formatBytes(Math.min(received, lastSaved.length));
+              const denom = formatBytes(lastSaved.length);
+              label = `Saving… ${numer} / ${denum}`;
+            } else {
+              const numer = formatBytes(received);
+              const denom = formatBytes(sent);
+              label = `Uploading… ${numer} / ${denum}`;
+            }
             uploadedDataItem.setAttribute("label", label);
             savedRecordingItem.setAttribute("hidden", true);
             uploadedDataItem.setAttribute("hidden", false);
