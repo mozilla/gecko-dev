@@ -11,4 +11,5 @@ interface rrIGraphics : nsISupports {
                     in long cursorX, in long cursorY,
                     in long clickX, in long clickY, in boolean warning);
   void ClearCanvas();
+  void RestoreSuppressedEventListener();
 };

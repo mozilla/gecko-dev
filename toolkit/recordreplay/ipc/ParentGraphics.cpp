@@ -245,7 +245,7 @@ void RestoreSuppressedEventListener() {
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  if (NS_FAILED(gGraphics->ClearCanvas())) {
+  if (NS_FAILED(gGraphics->RestoreSuppressedEventListener())) {
     MOZ_CRASH("RestoreSuppressedEventListener");
   }
 }

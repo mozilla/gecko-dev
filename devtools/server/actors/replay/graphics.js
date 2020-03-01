@@ -251,4 +251,4 @@ function RestoreSuppressedEventListener() {
 }
 
 // eslint-disable-next-line no-unused-vars
-var EXPORTED_SYMBOLS = ["UpdateCanvas", "ClearCanvas"];
+var EXPORTED_SYMBOLS = ["UpdateCanvas", "ClearCanvas", "RestoreSuppressedEventListener"];
