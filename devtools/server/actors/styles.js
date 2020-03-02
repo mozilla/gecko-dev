@@ -2140,7 +2140,8 @@ function getRuleText(initialText, line, column) {
   while (true) {
     const token = lexer.nextToken();
     if (!token) {
-      throw new Error("couldn't find start of the rule");
+      // When replaying we might not be able to fetch the full text.
+      return { offset: 0, text: "" };
     }
     if (token.tokenType === "symbol" && token.text === "{") {
       break;
@@ -2253,7 +2254,12 @@ function getTextAtLineColumn(text, line, column) {
     const rx = new RegExp(
       "(?:[^\\r\\n\\f]*(?:\\r\\n|\\n|\\r|\\f)){" + (line - 1) + "}"
     );
-    offset = rx.exec(text)[0].length;
+    try {
+      offset = rx.exec(text)[0].length;
+    } catch (e) {
+      // When replaying we might not be able to fetch the full text.
+      offset = 0;
+    }
   } else {
     offset = 0;
   }

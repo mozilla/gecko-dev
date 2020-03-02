@@ -788,23 +788,22 @@ static bool FetchContent(JSContext* aCx, HandleString aURL,
     }
   }
 
-  if (best) {
-    aContentType.set(JS_NewStringCopyZ(aCx, best->mContentType));
-
-    MOZ_ASSERT(best->mContent8.length() == 0 || best->mContent16.length() == 0,
-               "should have content data of only one type");
-
-    aContent.set(best->mContent8.length() > 0
-                     ? JS_NewStringCopyUTF8N(
-                           aCx, JS::UTF8Chars(best->mContent8.begin(),
-                                              best->mContent8.length()))
-                     : JS_NewUCStringCopyN(aCx, best->mContent16.begin(),
-                                           best->mContent16.length()));
-  } else {
-    aContentType.set(JS_NewStringCopyZ(aCx, "text/plain"));
-    aContent.set(
-        JS_NewStringCopyZ(aCx, "Could not find record/replay content"));
+  if (!best) {
+    JS_ReportErrorASCII(aCx, "Could not find record/replay content");
+    return false;
   }
+
+  aContentType.set(JS_NewStringCopyZ(aCx, best->mContentType));
+
+  MOZ_ASSERT(best->mContent8.length() == 0 || best->mContent16.length() == 0,
+             "should have content data of only one type");
+
+  aContent.set(best->mContent8.length() > 0
+                   ? JS_NewStringCopyUTF8N(
+                         aCx, JS::UTF8Chars(best->mContent8.begin(),
+                                            best->mContent8.length()))
+                   : JS_NewUCStringCopyN(aCx, best->mContent16.begin(),
+                                         best->mContent16.length()));
 
   return aContentType && aContent;
 }
