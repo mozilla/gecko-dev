@@ -332,15 +332,8 @@ void ChromeRegistered() {
 
 static void LogFromUIProcess(const nsACString& aText);
 
-void AddToLog(bool aIncludePrefix, const nsAString& aText) {
+void AddToLog(const nsAString& aText, bool aIncludePrefix /* = true */) {
   if (!gLoggingEnabled) {
-    return;
-  }
-
-  if (XRE_IsParentProcess()) {
-    double elapsed = (TimeStamp::Now() - gStartupTime).ToSeconds();
-    nsPrintfCString text("[UI %.2f] %s\n", elapsed, NS_ConvertUTF16toUTF8(aText).get());
-    LogFromUIProcess(text);
     return;
   }
 
@@ -349,16 +342,22 @@ void AddToLog(bool aIncludePrefix, const nsAString& aText) {
     return;
   }
 
-  MOZ_RELEASE_ASSERT(IsMiddleman());
-
   nsCString text;
   if (aIncludePrefix) {
     double elapsed = (TimeStamp::Now() - gStartupTime).ToSeconds();
-    text = nsPrintfCString("[Control %.2f] %s\n", elapsed,
-                           NS_ConvertUTF16toUTF8(aText).get());
+    text = nsPrintfCString("[%s %.2f] %s\n",
+                           XRE_IsParentProcess() ? "UI" : "Control",
+                           elapsed, NS_ConvertUTF16toUTF8(aText).get());
   } else {
     text = NS_ConvertUTF16toUTF8(aText);
   }
+
+  if (XRE_IsParentProcess()) {
+    LogFromUIProcess(text);
+    return;
+  }
+
+  MOZ_RELEASE_ASSERT(IsMiddleman());
 
   for (const auto& child : gReplayingChildren) {
     if (child) {
@@ -571,6 +570,9 @@ static bool DisconnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
 
   ConnectionChannel* info = GetConnectionChannel(aCx, args.get(0));
   if (info) {
+    info->mParent = nullptr;
+    delete info->mChannel;
+    info->mChannel = nullptr;
     info->mConnected = false;
   } else {
     JS_ClearPendingException(aCx);
@@ -581,16 +583,6 @@ static bool DisconnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
 }
 
 static void LogFromUIProcess(const nsACString& aText) {
-  // If there is any active replay connection, include the logged text
-  // with that connection's remote log.
-  for (const auto& info : gConnectionChannels) {
-    if (info.mConnected) {
-      MOZ_RELEASE_ASSERT(info.mParent && info.mChannel);
-      Unused << info.mParent->SendRecordReplayLog(NS_ConvertUTF8toUTF16(aText));
-      return;
-    }
-  }
-
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 

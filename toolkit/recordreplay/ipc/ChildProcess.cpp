@@ -92,7 +92,7 @@ void ChildProcessInfo::OnIncomingMessage(const Message& aMsg) {
     }
     case MessageType::LogText: {
       const auto& nmsg = static_cast<const LogTextMessage&>(aMsg);
-      AddToLog(false, NS_ConvertUTF8toUTF16(nsCString(nmsg.BinaryData())));
+      AddToLog(NS_ConvertUTF8toUTF16(nsCString(nmsg.BinaryData())), false);
       break;
     }
     default:

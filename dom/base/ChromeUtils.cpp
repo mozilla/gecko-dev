@@ -1195,7 +1195,7 @@ void ChromeUtils::RecordReplayLog(const GlobalObject& aGlobal,
   if (XRE_IsParentProcess() ||
       recordreplay::IsMiddleman() ||
       recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::parent::AddToLog(true, aText);
+    recordreplay::parent::AddToLog(aText);
   }
 }
 

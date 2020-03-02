@@ -93,7 +93,7 @@ void CreateReplayingCloudProcess(dom::ContentParent* aParent, uint32_t aChannelI
 void ContentParentDestroyed(dom::ContentParent* aParent);
 
 // This can be called in parent, middleman, and recording/replaying processes.
-void AddToLog(bool aIncludePrefix, const nsAString& aText);
+void AddToLog(const nsAString& aText, bool aIncludePrefix = true);
 
 }  // namespace parent
 }  // namespace recordreplay

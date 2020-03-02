@@ -33,10 +33,11 @@ function onMainThreadMessage({ data }) {
       break;
     case "log":
       doLog(data.text);
+      break;
     default:
       PostError(`Unknown event kind ${data.kind}`);
   }
-});
+}
 
 function openServerSocket() {
   gServerSocket = new WebSocket(gServerAddress);
@@ -105,6 +106,10 @@ async function onServerMessage(evt) {
   }
 }
 
+// How much time to give a new connection to establish itself before closing it
+// and reattempting to connect.
+const SocketTimeoutMs = 5000;
+
 async function doConnect(id, channelId) {
   if (gConnections[id]) {
     PostError(`Duplicate connection ID ${id}`);
@@ -139,6 +144,12 @@ async function doConnect(id, channelId) {
   socket.onmessage = evt => onMessage(id, evt);
   socket.onerror = evt => onError(id, evt);
 
+  setTimeout(() => {
+    if (!connection.connected) {
+      socket.close();
+    }
+  }, SocketTimeoutMs);
+
   await new Promise(resolve => (connection.openWaiter = resolve));
 
   while (gConnections[id]) {
@@ -169,7 +180,7 @@ function onOpen(id) {
   gConnections[id].openWaiter();
 }
 
-function onClose(id, evt) {
+function onClose(id) {
   postMessage({ kind: "disconnected", id });
   gConnections[id] = null;
 }
@@ -211,8 +222,8 @@ function onError(id, evt) {
   PostError("ReplaySocketError", id);
 }
 
-function PostError(why) {
-  postMessage({ kind: "error", why: why.toString() });
+function PostError(why, id) {
+  postMessage({ kind: "error", why: why.toString(), id });
 }
 
 function doLog(text) {
