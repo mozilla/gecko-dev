@@ -11,32 +11,30 @@ const gConnections = [];
 let gServerAddress;
 let gBuildId;
 
-self.addEventListener("message", function({ data }) {
-  switch (data.type) {
+self.addEventListener("message", msg => {
+  try {
+    onMainThreadMessage(msg);
+  } catch (e) {
+    PostError(e);
+  }
+});
+
+function onMainThreadMessage({ data }) {
+  switch (data.kind) {
     case "initialize":
-      try {
-        gServerAddress = data.address;
-        gBuildId = data.buildId;
-        openServerSocket();
-      } catch (e) {
-        ThrowError(e);
-      }
+      gServerAddress = data.address;
+      gBuildId = data.buildId;
+      openServerSocket();
     case "connect":
-      try {
-        doConnect(data.id, data.channelId);
-      } catch (e) {
-        ThrowError(e);
-      }
+      doConnect(data.id, data.channelId);
       break;
     case "send":
-      try {
-        doSend(data.id, data.buf);
-      } catch (e) {
-        ThrowError(e);
-      }
+      doSend(data.id, data.buf);
       break;
+    case "log":
+      doLog(data.text);
     default:
-      ThrowError(`Unknown event type ${type}`);
+      PostError(`Unknown event kind ${data.kind}`);
   }
 });
 
@@ -48,26 +46,32 @@ function openServerSocket() {
   gServerSocket.onerror = onServerError;
 }
 
+// Status of the cloud server connection.
+let gStatus = "cloudInitialize.label";
+
 function updateStatus(status) {
+  gStatus = status;
   postMessage({ kind: "updateStatus", status });
 }
 
-function onServerOpen(evt) {
-  const msg = { kind: "initialize", buildId: gBuildId };
+function sendMessageToCloudServer(msg) {
   gServerSocket.send(JSON.stringify(msg));
+}
+
+function onServerOpen(evt) {
+  sendMessageToCloudServer({ kind: "initialize", buildId: gBuildId });
   updateStatus("cloudInitialize.label");
 }
 
 function onServerClose() {
-  dump(`CloudServer Connection Closed\n`);
-
   updateStatus("cloudReconnecting.label");
-  setTimeout(openServerSocket, 5000);
+  setTimeout(openServerSocket, 3000);
+  doLog(`CloudServer Connection Closed\n`);
 }
 
 function onServerError(evt) {
-  dump(`CloudServer Connection Error\n`);
   updateStatus("cloudError.label");
+  doLog(`CloudServer Connection Error\n`);
 }
 
 async function onServerMessage(evt) {
@@ -75,11 +79,11 @@ async function onServerMessage(evt) {
     const data = JSON.parse(evt.data);
     switch (data.kind) {
       case "modules": {
-        const { controlJS, replayJS, updateNeeded, updateWanted } = data;
+        const { sessionId, controlJS, replayJS, updateNeeded, updateWanted } = data;
         if (updateNeeded) {
           updateStatus("cloudUpdateNeeded.label");
         } else {
-          postMessage({ kind: "loaded", controlJS, replayJS });
+          postMessage({ kind: "loaded", sessionId, controlJS, replayJS });
           updateStatus("");
         }
         if (updateNeeded || updateWanted) {
@@ -97,24 +101,36 @@ async function onServerMessage(evt) {
         break;
     }
   } catch (e) {
-    ThrowError(e);
+    PostError(e);
   }
 }
 
 async function doConnect(id, channelId) {
   if (gConnections[id]) {
-    ThrowError(`Duplicate connection ID ${id}`);
+    PostError(`Duplicate connection ID ${id}`);
   }
-  const connection = { outgoing: [] };
+  const connection = {
+    // Messages to send to the replayer.
+    outgoing: [],
+
+    // Whether the replayer connection is fully established. When set,
+    // parent process logs will go to the replayer instead of the main server.
+    connected: false,
+
+    // Resolve hook for any promise waiting on the socke to connect.
+    connectWaiter: null,
+
+    // Resolve hook for any promise waiting on new outgoing messages.
+    sendWaiter: null,
+  };
   gConnections[id] = connection;
 
-  const msg = { kind: "connect", id };
-  gServerSocket.send(JSON.stringify(msg));
+  sendMessageToCloudServer({ kind: "connect", id });
 
   const address = await new Promise(resolve => (connection.connectWaiter = resolve));
 
   if (!/^wss?:\/\//.test(address)) {
-    ThrowError(`Invalid websocket address ${text}`);
+    PostError(`Invalid websocket address ${text}`);
   }
 
   const socket = new WebSocket(address);
@@ -131,7 +147,7 @@ async function doConnect(id, channelId) {
       try {
         socket.send(buf);
       } catch (e) {
-        ThrowError(`Send error ${e}`);
+        PostError(`Send error ${e}`);
       }
     } else {
       await new Promise(resolve => (connection.sendWaiter = resolve));
@@ -154,6 +170,7 @@ function onOpen(id) {
 }
 
 function onClose(id, evt) {
+  postMessage({ kind: "disconnected", id });
   gConnections[id] = null;
 }
 
@@ -177,6 +194,12 @@ let gMessageWaiter = null;
 })();
 
 function onMessage(id, evt) {
+  // When we have heard back from the replayer, we are fully connected to it.
+  if (!gConnections[id].connected) {
+    gConnections[id].connected = true;
+    postMessage({ kind: "connected", id });
+  }
+
   gMessages.push({ id, promise: evt.data.arrayBuffer() });
   if (gMessageWaiter) {
     gMessageWaiter();
@@ -185,10 +208,17 @@ function onMessage(id, evt) {
 }
 
 function onError(id, evt) {
-  ThrowError(`Socket error ${evt}`);
+  PostError("ReplaySocketError", id);
 }
 
-function ThrowError(msg) {
-  dump(`Connection Worker Error: ${msg}\n`);
-  throw new Error(msg);
+function PostError(why) {
+  postMessage({ kind: "error", why: why.toString() });
+}
+
+function doLog(text) {
+  if (gStatus) {
+    sendMessageToCloudServer({ kind: "log", text });
+  } else {
+    postMessage({ kind: "logOffline", text });
+  }
 }

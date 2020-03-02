@@ -206,8 +206,7 @@ class ChromeUtils {
 
   static void RecordReplayLog(const GlobalObject& aGlobal,
                               const nsAString& aText);
-  static void RecordReplaySetActiveTab(const GlobalObject& aGlobal,
-                                       nsISupports* aTab);
+  static void RecordReplayLog(const nsAString& aText);
 
   static void GenerateMediaControlKeysTestEvent(
       const GlobalObject& aGlobal, MediaControlKeysTestEvent aEvent);

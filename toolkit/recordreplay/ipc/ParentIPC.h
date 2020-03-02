@@ -15,6 +15,9 @@
 #include "mozilla/ipc/Shmem.h"
 
 namespace mozilla {
+
+namespace dom { class ContentParent; }
+
 namespace recordreplay {
 namespace parent {
 
@@ -82,13 +85,14 @@ void GetArgumentsForChildProcess(base::ProcessId aMiddlemanPid,
 // Return whether to create replaying processes on a remote machine.
 bool UseCloudForReplayingProcesses();
 
-// Create a replaying process on a remote machine. aProcessId is the pid of the
-// middleman process which the replaying process will connect to, and aChannelId
+// Create a replaying process on a remote machine for aParent. aChannelId
 // is the ID (unique for each middleman) of the resulting channel.
-void CreateReplayingCloudProcess(base::ProcessId aProcessId,
-                                 uint32_t aChannelId);
+void CreateReplayingCloudProcess(dom::ContentParent* aParent, uint32_t aChannelId);
 
-// This can be called in middleman and recording/replaying processes.
+// Notify when a content parent is being destroyed.
+void ContentParentDestroyed(dom::ContentParent* aParent);
+
+// This can be called in parent, middleman, and recording/replaying processes.
 void AddToLog(bool aIncludePrefix, const nsAString& aText);
 
 }  // namespace parent

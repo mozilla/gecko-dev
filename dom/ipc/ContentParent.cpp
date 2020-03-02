@@ -1968,7 +1968,7 @@ mozilla::ipc::IPCResult ContentParent::RecvCreateReplayingProcess(
   }
 
   if (recordreplay::parent::UseCloudForReplayingProcesses()) {
-    recordreplay::parent::CreateReplayingCloudProcess(Pid(), aChannelId);
+    recordreplay::parent::CreateReplayingCloudProcess(this, aChannelId);
     return IPC_OK();
   }
 
@@ -2442,6 +2442,8 @@ ContentParent::ContentParent(ContentParent* aOpener,
 }
 
 ContentParent::~ContentParent() {
+  recordreplay::parent::ContentParentDestroyed(this);
+
   if (mForceKillTimer) {
     mForceKillTimer->Cancel();
   }

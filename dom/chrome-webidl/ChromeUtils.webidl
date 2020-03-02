@@ -450,10 +450,6 @@ partial namespace ChromeUtils {
   // and must not contain identifying information about the user or visited site.
   void recordReplayLog(DOMString text);
 
-  // Set the current tab which any record/replay logging in the UI process will
-  // be associated with.
-  void recordReplaySetActiveTab(nsISupports? tab);
-
   // This is used to generate fake media control keys event in testing.
   [ChromeOnly]
   void generateMediaControlKeysTestEvent(MediaControlKeysTestEvent aEvent);

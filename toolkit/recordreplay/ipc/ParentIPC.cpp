@@ -12,6 +12,7 @@
 #include "base/task.h"
 #include "ipc/Channel.h"
 #include "js/Proxy.h"
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ContentProcessMessageManager.h"
 #include "ChildInternal.h"
 #include "InfallibleVector.h"
@@ -33,6 +34,12 @@ const char* parent::CurrentFirefoxVersion() {
 }
 
 namespace parent {
+
+// Used in parent and middleman processes.
+static TimeStamp gStartupTime;
+
+// Used in all processes.
+AtomicBool gLoggingEnabled;
 
 ///////////////////////////////////////////////////////////////////////////////
 // UI Process State
@@ -77,6 +84,17 @@ static StaticInfallibleVector<char> gReplayJS;
 static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 static bool MessageCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
+static bool ConnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
+static bool DisconnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
+
+static const JSFunctionSpec gCallbacks[] = {
+  JS_FN("updateStatus", StatusCallback, 1, 0),
+  JS_FN("loadedJS", LoadedCallback, 3, 0),
+  JS_FN("onMessage", MessageCallback, 2, 0),
+  JS_FN("onConnected", ConnectedCallback, 1, 0),
+  JS_FN("onDisconnected", DisconnectedCallback, 1, 0),
+  JS_FS_END
+};
 
 static nsString gCloudReplayStatus;
 
@@ -90,7 +108,21 @@ bool UseCloudForReplayingProcesses() {
   return cloudServer.Length() != 0;
 }
 
+static bool gUIStateInitialized;
+
 void EnsureUIStateInitialized() {
+  if (gUIStateInitialized) {
+    return;
+  }
+  gUIStateInitialized = true;
+  MOZ_RELEASE_ASSERT(!gConnection);
+
+  gStartupTime = TimeStamp::Now();
+
+  if (Preferences::GetBool("devtools.recordreplay.logging.enabled")) {
+    gLoggingEnabled = true;
+  }
+
   const char* sourcesPath = getenv("WEBREPLAY_SOURCES");
   if (sourcesPath && gControlJS.empty()) {
     ReadFileSync(nsPrintfCString("%s/control.js", sourcesPath), gControlJS);
@@ -101,10 +133,6 @@ void EnsureUIStateInitialized() {
     if (!sourcesPath) {
       gCloudReplayStatus.AssignLiteral("cloudNotSet.label");
     }
-    return;
-  }
-
-  if (gConnection) {
     return;
   }
 
@@ -119,23 +147,17 @@ void EnsureUIStateInitialized() {
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
-  JSFunction* fun;
 
-  fun = JS_NewFunction(cx, StatusCallback, 3, 0, "StatusCallback");
-  MOZ_RELEASE_ASSERT(fun);
-  JS::RootedValue statusCallback(cx, JS::ObjectValue(*(JSObject*)fun));
+  JS::RootedObject callbacks(cx, JS_NewObject(cx, nullptr));
+  MOZ_RELEASE_ASSERT(callbacks);
 
-  fun = JS_NewFunction(cx, LoadedCallback, 2, 0, "LoadedCallback");
-  MOZ_RELEASE_ASSERT(fun);
-  JS::RootedValue loadedCallback(cx, JS::ObjectValue(*(JSObject*)fun));
+  if (!JS_DefineFunctions(cx, callbacks, gCallbacks)) {
+    MOZ_CRASH("EnsureUIStateInitialized");
+  }
 
-  fun = JS_NewFunction(cx, MessageCallback, 2, 0, "MessageCallback");
-  MOZ_RELEASE_ASSERT(fun);
-  JS::RootedValue messageCallback(cx, JS::ObjectValue(*(JSObject*)fun));
-
-  if (NS_FAILED(gConnection->Initialize(cloudServer, statusCallback,
-                                        loadedCallback, messageCallback))) {
-    MOZ_CRASH("CreateReplayingCloudProcess");
+  JS::RootedValue callbacksValue(cx, JS::ObjectValue(*callbacks));
+  if (NS_FAILED(gConnection->Initialize(cloudServer, callbacksValue))) {
+    MOZ_CRASH("EnsureUIStateInitialized");
   }
 
   gCloudReplayStatus.AssignLiteral("cloudConnecting.label");
@@ -220,17 +242,24 @@ static void ExtractJSString(JSContext* aCx, JSString* aString,
   aBuffer.append(dataChars, dataLength);
 }
 
+// ID which has been assigned to this browser session by the cloud server.
+nsAutoCString gSessionId;
+
 static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  if (!args.get(0).isString() || !args.get(1).isString()) {
+  if (!args.get(0).isString() ||
+      !args.get(1).isString() ||
+      !args.get(2).isString()) {
     JS_ReportErrorASCII(aCx, "Expected strings");
     return false;
   }
 
+  js::ConvertJSStringToCString(aCx, args.get(0).toString(), gSessionId);
+
   if (!getenv("WEBREPLAY_SOURCES")) {
-    ExtractJSString(aCx, args.get(0).toString(), gControlJS);
-    ExtractJSString(aCx, args.get(1).toString(), gReplayJS);
+    ExtractJSString(aCx, args.get(1).toString(), gControlJS);
+    ExtractJSString(aCx, args.get(2).toString(), gReplayJS);
   }
 
   args.rval().setUndefined();
@@ -276,8 +305,6 @@ void SpawnReplayingChild(size_t aChannelId) {
 
 static bool gChromeRegistered;
 
-AtomicBool gLoggingEnabled;
-
 void ChromeRegistered() {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   MOZ_RELEASE_ASSERT(IsMiddleman());
@@ -303,10 +330,17 @@ void ChromeRegistered() {
   js::SetupMiddlemanControl(recordingChildId);
 }
 
-static TimeStamp gStartupTime;
+static void LogFromUIProcess(const nsACString& aText);
 
 void AddToLog(bool aIncludePrefix, const nsAString& aText) {
   if (!gLoggingEnabled) {
+    return;
+  }
+
+  if (XRE_IsParentProcess()) {
+    double elapsed = (TimeStamp::Now() - gStartupTime).ToSeconds();
+    nsPrintfCString text("[UI %.2f] %s\n", elapsed, NS_ConvertUTF16toUTF8(aText).get());
+    LogFromUIProcess(text);
     return;
   }
 
@@ -376,7 +410,20 @@ void SaveCloudRecording(const nsAString& aUUID) {
 // Cloud Processes
 ///////////////////////////////////////////////////////////////////////////////
 
-static StaticInfallibleVector<Channel*> gConnectionChannels;
+// In the UI process, all replayer cloud connections in existence.
+struct ConnectionChannel {
+  // ContentParent hosting the middleman.
+  dom::ContentParent* mParent = nullptr;
+
+  // Channel for sending messages to the middleman.
+  Channel* mChannel = nullptr;
+
+  // Whether this connection is established, and can be used for logging
+  // messages originating from this process.
+  bool mConnected = false;
+};
+
+static StaticInfallibleVector<ConnectionChannel> gConnectionChannels;
 
 class SendMessageToCloudRunnable : public Runnable {
  public:
@@ -413,16 +460,25 @@ class SendMessageToCloudRunnable : public Runnable {
   }
 };
 
+static ConnectionChannel* GetConnectionChannel(JSContext* aCx,
+                                               JS::HandleValue aValue) {
+  if (!aValue.isNumber()) {
+    JS_ReportErrorASCII(aCx, "Expected number");
+    return nullptr;
+  }
+  size_t id = aValue.toNumber();
+  if (id >= gConnectionChannels.length() || !gConnectionChannels[id].mChannel) {
+    JS_ReportErrorASCII(aCx, "Bad connection channel ID");
+    return nullptr;
+  }
+  return &gConnectionChannels[id];
+}
+
 static bool MessageCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  if (!args.get(0).isNumber()) {
-    JS_ReportErrorASCII(aCx, "Expected number");
-    return false;
-  }
-  size_t id = args.get(0).toNumber();
-  if (id >= gConnectionChannels.length() || !gConnectionChannels[id]) {
-    JS_ReportErrorASCII(aCx, "Bad connection channel ID");
+  ConnectionChannel* info = GetConnectionChannel(aCx, args.get(0));
+  if (!info) {
     return false;
   }
 
@@ -442,7 +498,7 @@ static bool MessageCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
                                     &isSharedMemory, &ptr);
 
     if (ptr) {
-      Channel* channel = gConnectionChannels[id];
+      Channel* channel = info->mChannel;
       channel->SendMessageData((const char*) ptr, length);
       sentData = true;
     }
@@ -456,8 +512,7 @@ static bool MessageCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return true;
 }
 
-void CreateReplayingCloudProcess(base::ProcessId aProcessId,
-                                 uint32_t aChannelId) {
+void CreateReplayingCloudProcess(dom::ContentParent* aParent, uint32_t aChannelId) {
   MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
   MOZ_RELEASE_ASSERT(gConnection);
 
@@ -469,17 +524,79 @@ void CreateReplayingCloudProcess(base::ProcessId aProcessId,
     MOZ_CRASH("CreateReplayingCloudProcess");
   }
 
+  base::ProcessId pid = aParent->Pid();
+
   Channel* channel = new Channel(
       aChannelId, Channel::Kind::ParentCloud,
       [=](Message::UniquePtr aMsg) {
         RefPtr<SendMessageToCloudRunnable> runnable =
           new SendMessageToCloudRunnable(connectionId, std::move(aMsg));
         NS_DispatchToMainThread(runnable);
-      }, aProcessId);
+      }, pid);
   while ((size_t)connectionId >= gConnectionChannels.length()) {
-    gConnectionChannels.append(nullptr);
+    gConnectionChannels.emplaceBack();
   }
-  gConnectionChannels[connectionId] = channel;
+  ConnectionChannel& info = gConnectionChannels[connectionId];
+  info.mParent = aParent;
+  info.mChannel = channel;
+}
+
+void ContentParentDestroyed(dom::ContentParent* aParent) {
+  for (auto& info : gConnectionChannels) {
+    if (info.mParent == aParent) {
+      info.mParent = nullptr;
+      delete info.mChannel;
+      info.mChannel = nullptr;
+      info.mConnected = false;
+    }
+  }
+}
+
+static bool ConnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  ConnectionChannel* info = GetConnectionChannel(aCx, args.get(0));
+  if (!info) {
+    return false;
+  }
+
+  info->mConnected = true;
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool DisconnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  ConnectionChannel* info = GetConnectionChannel(aCx, args.get(0));
+  if (info) {
+    info->mConnected = false;
+  } else {
+    JS_ClearPendingException(aCx);
+  }
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static void LogFromUIProcess(const nsACString& aText) {
+  // If there is any active replay connection, include the logged text
+  // with that connection's remote log.
+  for (const auto& info : gConnectionChannels) {
+    if (info.mConnected) {
+      MOZ_RELEASE_ASSERT(info.mParent && info.mChannel);
+      Unused << info.mParent->SendRecordReplayLog(NS_ConvertUTF8toUTF16(aText));
+      return;
+    }
+  }
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  if (NS_FAILED(gConnection->AddToLog(aText))) {
+    MOZ_CRASH("LogFromUIProcess");
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

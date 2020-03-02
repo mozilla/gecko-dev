@@ -1189,28 +1189,14 @@ void ChromeUtils::SetCloudReplayStatusCallback(const GlobalObject& aGlobal,
   recordreplay::parent::SetCloudReplayStatusCallback(aCallback);
 }
 
-static RefPtr<ContentParent> gActiveContentParent;
-
 /* static */
 void ChromeUtils::RecordReplayLog(const GlobalObject& aGlobal,
                                   const nsAString& aText) {
-  if (XRE_IsParentProcess()) {
-    if (gActiveContentParent) {
-      double elapsed = gActiveContentParent->TimeSinceLaunch().ToSeconds();
-      nsPrintfCString text("[UI %.2f] %s\n", elapsed, NS_ConvertUTF16toUTF8(aText).get());
-      Unused << gActiveContentParent->SendRecordReplayLog(NS_ConvertUTF8toUTF16(text));
-    }
-  } else if (recordreplay::IsMiddleman() ||
-             recordreplay::IsRecordingOrReplaying()) {
+  if (XRE_IsParentProcess() ||
+      recordreplay::IsMiddleman() ||
+      recordreplay::IsRecordingOrReplaying()) {
     recordreplay::parent::AddToLog(true, aText);
   }
-}
-
-/* static */
-void ChromeUtils::RecordReplaySetActiveTab(const GlobalObject& aGlobal,
-                                           nsISupports* aTab) {
-  BrowserHost* host = (BrowserHost*)(void*)aTab;
-  gActiveContentParent = host ? host->GetContentParent() : nullptr;
 }
 
 void ChromeUtils::GenerateMediaControlKeysTestEvent(

@@ -58,8 +58,7 @@ extern Monitor* gMonitor;
 // Whether there is a currently active recording child.
 extern bool gActiveChildIsRecording;
 
-// Whether logging has been enabled in this process.
-// This is used in both the middleman and child processes.
+// Whether logging has been enabled in this process, used in all processes.
 extern AtomicBool gLoggingEnabled;
 
 ///////////////////////////////////////////////////////////////////////////////

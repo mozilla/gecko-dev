@@ -5653,16 +5653,6 @@ var XULBrowserWindow = {
   },
 
   updateRecordingButton() {
-    const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
-    const replaying = gBrowser.selectedBrowser.hasAttribute("replayExecution");
-
-    if (recording || replaying) {
-      const remoteTab = gBrowser.selectedTab.linkedBrowser.frameLoader.remoteTab;
-      ChromeUtils.recordReplaySetActiveTab(remoteTab);
-    } else {
-      ChromeUtils.recordReplaySetActiveTab(null);
-    }
-
     const recordingButton = document.getElementById("recording-button");
     if (recordingButton) {
       recordingButton.refreshStatus();
