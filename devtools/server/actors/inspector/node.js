@@ -469,9 +469,11 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
   writeAttrs: function() {
     // If the node has no attributes or this.rawNode is the document node and a
     // node with `name="attributes"` exists in the DOM we need to bail.
+    // When replaying elements are not accessed as direct properties on the
+    // document so we don't need to worry about the latter case.
     if (
       !this.rawNode.attributes ||
-      !(this.rawNode.attributes instanceof NamedNodeMap)
+      (!isReplaying && !(this.rawNode.attributes instanceof NamedNodeMap))
     ) {
       return undefined;
     }

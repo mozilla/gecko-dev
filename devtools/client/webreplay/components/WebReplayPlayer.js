@@ -540,6 +540,9 @@ class WebReplayPlayer extends Component {
     const time = this.getMouseTime(e);
 
     let checkpoint = binarySearch(1, gCheckpoints.length, checkpoint => {
+      if (!gCheckpoints[checkpoint]) {
+        throw new Error(`Missing checkpoint ${checkpoint}`);
+      }
       return time - gCheckpoints[checkpoint].time;
     });
 
