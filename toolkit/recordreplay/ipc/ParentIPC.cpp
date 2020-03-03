@@ -544,7 +544,6 @@ void ContentParentDestroyed(dom::ContentParent* aParent) {
   for (auto& info : gConnectionChannels) {
     if (info.mParent == aParent) {
       info.mParent = nullptr;
-      delete info.mChannel;
       info.mChannel = nullptr;
       info.mConnected = false;
     }
@@ -571,7 +570,6 @@ static bool DisconnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
   ConnectionChannel* info = GetConnectionChannel(aCx, args.get(0));
   if (info) {
     info->mParent = nullptr;
-    delete info->mChannel;
     info->mChannel = nullptr;
     info->mConnected = false;
   } else {
