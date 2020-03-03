@@ -57,6 +57,9 @@ void ManifestStart(const CharBuffer& aContents);
 // Setup the middleman control state.
 void SetupMiddlemanControl(const Maybe<size_t>& aRecordingChildId);
 
+// Set the status of a cloud connection.
+void SetConnectionStatus(uint32_t aChannelId, const nsCString& aStatus);
+
 // Handle incoming messages from a child process.
 void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
                              const ManifestFinishedMessage& aMsg);

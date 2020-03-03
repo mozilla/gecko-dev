@@ -111,7 +111,7 @@ function drawFullWarning(cx, canvas) {
 }
 
 function mouseEventListener(window, event) {
-  if (!window.lastUpdate.warning) {
+  if (window.lastUpdate && !window.lastUpdate.warning) {
     return;
   }
 
@@ -206,11 +206,25 @@ function refreshCanvas(window) {
                      cursorX, cursorY, clickX, clickY, warning);
 }
 
-function clearWindowCanvas(window) {
+function clearWindowCanvas(window, message) {
   const canvas = getCanvas(window);
 
   const cx = canvas.getContext("2d");
   cx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (message) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const scale = window.devicePixelRatio;
+    if (scale != 1) {
+      canvas.style.transform = `scale(${1 / scale})`;
+    }
+
+    cx.font = `${25 * scale}px sans-serif`;
+    const messageWidth = cx.measureText(message).width;
+    cx.fillText(message, (canvas.width - messageWidth) / 2, canvas.height / 2);
+  }
 }
 
 // Entry point for when we have some new graphics data from the child process
@@ -230,10 +244,10 @@ function UpdateCanvas(buffer, width, height,
 }
 
 // eslint-disable-next-line no-unused-vars
-function ClearCanvas() {
+function ClearCanvas(message) {
   try {
     for (const window of Services.ww.getWindowEnumerator()) {
-      clearWindowCanvas(window);
+      clearWindowCanvas(window, message);
     }
   } catch (e) {
     console.error(`Middleman Graphics ClearCanvas Exception: ${e}\n`);

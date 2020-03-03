@@ -148,6 +148,22 @@ void SetupMiddlemanControl(const Maybe<size_t>& aRecordingChildId) {
   }
 }
 
+void SetConnectionStatus(uint32_t aChannelId, const nsCString& aStatus) {
+  MOZ_RELEASE_ASSERT(IsInitialized());
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  JS::AutoValueArray<3> args(cx);
+  args[0].setInt32(aChannelId);
+  args[1].setString(ConvertStringToJSString(cx, NS_ConvertUTF8toUTF16(aStatus)));
+
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "SetConnectionStatus", args, &rv)) {
+    MOZ_CRASH("SetConnectionStatus");
+  }
+}
+
 static void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
                                     size_t aForkId, const char* aBuffer,
                                     size_t aBufferSize) {
@@ -371,7 +387,7 @@ static bool Middleman_HadRepaint(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
   if (!args.get(0).isString()) {
-    parent::ClearGraphics();
+    parent::ClearGraphics(NS_LITERAL_STRING(""));
 
     args.rval().setUndefined();
     return true;
@@ -423,7 +439,19 @@ static bool Middleman_ClearGraphics(JSContext* aCx, unsigned aArgc,
                                     Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  parent::ClearGraphics();
+  nsString message;
+  if (args.hasDefined(0)) {
+    if (!args.get(0).isString()) {
+      JS_ReportErrorASCII(aCx, "Expected string or undefined as first argument");
+      return false;
+    }
+
+    nsAutoCString str;
+    ConvertJSStringToCString(aCx, args.get(0).toString(), str);
+    message = NS_ConvertUTF8toUTF16(str);
+  }
+
+  parent::ClearGraphics(message);
 
   args.rval().setUndefined();
   return true;
@@ -1781,7 +1809,7 @@ static const JSFunctionSpec gMiddlemanMethods[] = {
     JS_FN("ping", Middleman_Ping, 3, 0),
     JS_FN("hadRepaint", Middleman_HadRepaint, 6, 0),
     JS_FN("restoreMainGraphics", Middleman_RestoreMainGraphics, 0, 0),
-    JS_FN("clearGraphics", Middleman_ClearGraphics, 0, 0),
+    JS_FN("clearGraphics", Middleman_ClearGraphics, 1, 0),
     JS_FN("restoreSuppressedEventListener", Middleman_RestoreSuppressedEventListener, 0, 0),
     JS_FN("inRepaintStressMode", Middleman_InRepaintStressMode, 0, 0),
     JS_FN("createCheckpointInRecording", Middleman_CreateCheckpointInRecording,

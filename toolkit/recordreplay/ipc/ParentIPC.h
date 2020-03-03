@@ -95,6 +95,9 @@ void ContentParentDestroyed(dom::ContentParent* aParent);
 // This can be called in parent, middleman, and recording/replaying processes.
 void AddToLog(const nsAString& aText, bool aIncludePrefix = true);
 
+// Set the connection status of a cloud replaying status connection.
+void SetConnectionStatus(uint32_t aChannelId, const nsCString& aStatus);
+
 }  // namespace parent
 }  // namespace recordreplay
 }  // namespace mozilla

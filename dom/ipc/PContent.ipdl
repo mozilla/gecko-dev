@@ -628,6 +628,7 @@ child:
                                     uintptr_t sharedUASheetAddress);
 
     async SetWebReplayJS(nsCString controlJS, nsCString replayJS);
+    async SetWebReplayConnectionStatus(uint32_t channelId, nsCString status);
 
     // Notify child that last-pb-context-exited notification was observed
     async LastPrivateDocShellDestroyed();

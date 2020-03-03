@@ -572,6 +572,9 @@ class ContentChild final
   mozilla::ipc::IPCResult RecvSetWebReplayJS(const nsCString& aControlJS,
                                              const nsCString& aReplayJS);
 
+  mozilla::ipc::IPCResult RecvSetWebReplayConnectionStatus(uint32_t aChannelId,
+                                                           const nsCString& aStatus);
+
   mozilla::ipc::IPCResult RecvProvideAnonymousTemporaryFile(
       const uint64_t& aID, const FileDescOrError& aFD);
 

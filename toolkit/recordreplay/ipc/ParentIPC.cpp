@@ -410,9 +410,18 @@ struct ConnectionChannel {
   // Channel for sending messages to the middleman.
   Channel* mChannel = nullptr;
 
-  // Whether this connection is established, and can be used for logging
-  // messages originating from this process.
+  // Per-middleman ID of this channel.
+  uint32_t mChannelId = 0;
+
+  // Whether this connection is established.
   bool mConnected = false;
+
+  void Clear() {
+    mParent = nullptr;
+    mChannel = nullptr;
+    mChannelId = 0;
+    mConnected = false;
+  }
 };
 
 static StaticInfallibleVector<ConnectionChannel> gConnectionChannels;
@@ -531,14 +540,13 @@ void CreateReplayingCloudProcess(dom::ContentParent* aParent, uint32_t aChannelI
   ConnectionChannel& info = gConnectionChannels[connectionId];
   info.mParent = aParent;
   info.mChannel = channel;
+  info.mChannelId = aChannelId;
 }
 
 void ContentParentDestroyed(dom::ContentParent* aParent) {
   for (auto& info : gConnectionChannels) {
     if (info.mParent == aParent) {
-      info.mParent = nullptr;
-      info.mChannel = nullptr;
-      info.mConnected = false;
+      info.Clear();
     }
   }
 }
@@ -551,7 +559,11 @@ static bool ConnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
     return false;
   }
 
-  info->mConnected = true;
+  if (!info->mConnected) {
+    info->mConnected = true;
+    Unused << info->mParent->SendSetWebReplayConnectionStatus(
+        info->mChannelId, NS_LITERAL_CSTRING("connected"));
+  }
 
   args.rval().setUndefined();
   return true;
@@ -562,9 +574,9 @@ static bool DisconnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
 
   ConnectionChannel* info = GetConnectionChannel(aCx, args.get(0));
   if (info) {
-    info->mParent = nullptr;
-    info->mChannel = nullptr;
-    info->mConnected = false;
+    Unused << info->mParent->SendSetWebReplayConnectionStatus(
+        info->mChannelId, NS_LITERAL_CSTRING("disconnected"));
+    info->Clear();
   } else {
     JS_ClearPendingException(aCx);
   }
@@ -580,6 +592,10 @@ static void LogFromUIProcess(const nsACString& aText) {
   if (NS_FAILED(gConnection->AddToLog(aText))) {
     MOZ_CRASH("LogFromUIProcess");
   }
+}
+
+void SetConnectionStatus(uint32_t aChannelId, const nsCString& aStatus) {
+  js::SetConnectionStatus(aChannelId, aStatus);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

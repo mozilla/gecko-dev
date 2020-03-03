@@ -101,7 +101,7 @@ void UpdateGraphicsAfterRepaint(const nsACString& imageData,
 void RestoreMainGraphics();
 
 // Clear any graphics painted in the UI process.
-void ClearGraphics();
+void ClearGraphics(const nsAString& aMessage);
 
 // Restore the listener for suppressed events on the canvas.
 void RestoreSuppressedEventListener();

@@ -78,17 +78,16 @@ function onMessage(evt) {
     case "connected":
       ChromeUtils.recordReplayLog(`RecordReplayConnected ${gSessionId}`);
       gCallbacks.onConnected(evt.data.id);
-      ChromeUtils.recordReplayLog(`RecordReplayConnected ${gSessionId}`);
       break;
     case "disconnected":
-      gCallbacks.onDisconnected(evt.data.id);
       ChromeUtils.recordReplayLog(`RecordReplayDisconnected ${gSessionId}`);
+      gCallbacks.onDisconnected(evt.data.id);
       break;
     case "error":
+      ChromeUtils.recordReplayLog(`RecordReplaySocketError ${gSessionId} ${evt.data.why}`);
       if (evt.data.id) {
         gCallbacks.onDisconnected(evt.data.id);
       }
-      ChromeUtils.recordReplayLog(`RecordReplaySocketError ${gSessionId} ${evt.data.why}`);
       break;
     case "logOffline":
       addToOfflineLog(evt.data.text);

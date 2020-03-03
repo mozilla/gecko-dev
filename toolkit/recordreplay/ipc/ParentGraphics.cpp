@@ -224,15 +224,15 @@ void RestoreMainGraphics() {
                         gGraphicsMemory);
 }
 
-void ClearGraphics() {
+void ClearGraphics(const nsAString& aMessage) {
   if (!gGraphics) {
-    return;
+    InitGraphicsSandbox();
   }
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  if (NS_FAILED(gGraphics->ClearCanvas())) {
+  if (NS_FAILED(gGraphics->ClearCanvas(aMessage))) {
     MOZ_CRASH("ClearGraphics");
   }
 }
