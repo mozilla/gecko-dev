@@ -8,6 +8,7 @@
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
+const { setTimeout } = Components.utils.import('resource://gre/modules/Timer.jsm');
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
@@ -32,7 +33,7 @@ function Initialize(address, callbacks) {
     try {
       onMessage(evt);
     } catch (e) {
-      ChromeUtils.recordReplayLog(`RecordReplaySocketError ${evt.data.why}`);
+      ChromeUtils.recordReplayLog(`RecordReplaySocketError ${e}`);
     }
   });
   gCallbacks = callbacks;
@@ -49,14 +50,23 @@ function onMessage(evt) {
   switch (evt.data.kind) {
     case "updateStatus":
       gCallbacks.updateStatus(evt.data.status);
-      if (!evt.data.status.length) {
-        flushOfflineLog();
-      }
       break;
     case "loaded": {
-      const { sessionId, controlJS, replayJS } = evt.data;
+      let { sessionId, controlJS, replayJS, updateNeeded, updateWanted } = evt.data;
+
       gSessionId = sessionId;
-      gCallbacks.loadedJS(sessionId, controlJS, replayJS);
+      flushOfflineLog();
+
+      if (updateNeeded) {
+        gCallbacks.updateStatus("cloudUpdateNeeded.label");
+      } else {
+        gCallbacks.updateStatus("");
+        gCallbacks.loadedJS(controlJS, replayJS);
+      }
+
+      if (updateNeeded || updateWanted) {
+        downloadUpdate(updateNeeded);
+      }
       break;
     }
     case "message":
@@ -64,9 +74,6 @@ function onMessage(evt) {
       break;
     case "connectionFailed":
       Services.cpmm.sendAsyncMessage("RecordReplayCriticalError", { kind: "CloudSpawnError" });
-      break;
-    case "downloadUpdate":
-      downloadUpdate(evt.data.updateNeeded);
       break;
     case "connected":
       ChromeUtils.recordReplayLog(`RecordReplayConnected ${gSessionId}`);
@@ -164,7 +171,7 @@ function offlineLogPath() {
     OS.File.makeDir(dir.path);
   }
 
-  dir.append("offlineLog.txt");
+  dir.append("offlineLog.log");
   return dir.path;
 }
 
@@ -190,12 +197,14 @@ async function waitForOfflineLogContents() {
 
 async function addToOfflineLog(text) {
   await waitForOfflineLogContents();
-  offlineLogContents += text;
+  offlineLogContents += `Offline ${gSessionId} ${text}`;
 
   if (!hasOfflineLogFlushTimer) {
     hasOfflineLogFlushTimer = true;
     setTimeout(() => {
-      OS.File.writeAtomic(offlineLogPath(), offlineLogContents);
+      if (offlineLogContents.length) {
+        OS.File.writeAtomic(offlineLogPath(), offlineLogContents);
+      }
       hasOfflineLogFlushTimer = false;
     }, 500);
   }
@@ -205,8 +214,9 @@ async function flushOfflineLog() {
   await waitForOfflineLogContents();
 
   if (offlineLogContents.length) {
-    OS.File.writeAtomic(offlineLogPath(), "");
     AddToLog(offlineLogContents);
+    offlineLogContents = "";
+    OS.File.remove(offlineLogPath());
   }
 }
 

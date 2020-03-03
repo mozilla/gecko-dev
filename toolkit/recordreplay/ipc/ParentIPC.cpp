@@ -242,24 +242,17 @@ static void ExtractJSString(JSContext* aCx, JSString* aString,
   aBuffer.append(dataChars, dataLength);
 }
 
-// ID which has been assigned to this browser session by the cloud server.
-nsAutoCString gSessionId;
-
 static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  if (!args.get(0).isString() ||
-      !args.get(1).isString() ||
-      !args.get(2).isString()) {
+  if (!args.get(0).isString() || !args.get(1).isString()) {
     JS_ReportErrorASCII(aCx, "Expected strings");
     return false;
   }
 
-  js::ConvertJSStringToCString(aCx, args.get(0).toString(), gSessionId);
-
   if (!getenv("WEBREPLAY_SOURCES")) {
-    ExtractJSString(aCx, args.get(1).toString(), gControlJS);
-    ExtractJSString(aCx, args.get(2).toString(), gReplayJS);
+    ExtractJSString(aCx, args.get(0).toString(), gControlJS);
+    ExtractJSString(aCx, args.get(1).toString(), gReplayJS);
   }
 
   args.rval().setUndefined();

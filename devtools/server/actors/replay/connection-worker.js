@@ -47,11 +47,10 @@ function openServerSocket() {
   gServerSocket.onerror = onServerError;
 }
 
-// Status of the cloud server connection.
-let gStatus = "cloudInitialize.label";
+// Whether log messages can be sent to the cloud server.
+let gConnected = false;
 
 function updateStatus(status) {
-  gStatus = status;
   postMessage({ kind: "updateStatus", status });
 }
 
@@ -65,12 +64,14 @@ function onServerOpen(evt) {
 }
 
 function onServerClose() {
+  gConnected = false;
   updateStatus("cloudReconnecting.label");
   setTimeout(openServerSocket, 3000);
   doLog(`CloudServer Connection Closed\n`);
 }
 
 function onServerError(evt) {
+  gConnected = false;
   updateStatus("cloudError.label");
   doLog(`CloudServer Connection Error\n`);
 }
@@ -81,15 +82,8 @@ async function onServerMessage(evt) {
     switch (data.kind) {
       case "modules": {
         const { sessionId, controlJS, replayJS, updateNeeded, updateWanted } = data;
-        if (updateNeeded) {
-          updateStatus("cloudUpdateNeeded.label");
-        } else {
-          postMessage({ kind: "loaded", sessionId, controlJS, replayJS });
-          updateStatus("");
-        }
-        if (updateNeeded || updateWanted) {
-          postMessage({ kind: "downloadUpdate", updateNeeded });
-        }
+        gConnected = true;
+        postMessage({ kind: "loaded", sessionId, controlJS, replayJS, updateNeeded, updateWanted });
         break;
       }
       case "connectionAddress": {
@@ -227,7 +221,7 @@ function PostError(why, id) {
 }
 
 function doLog(text) {
-  if (gStatus) {
+  if (gConnected) {
     sendMessageToCloudServer({ kind: "log", text });
   } else {
     postMessage({ kind: "logOffline", text });
