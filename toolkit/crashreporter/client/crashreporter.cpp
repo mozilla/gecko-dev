@@ -737,7 +737,29 @@ int main(int argc, char** argv) {
     string sendURL = extraData.get("ServerURL", kEmptyJsonString).asString();
     // we don't need to actually send these
     extraData.removeMember("ServerURL");
-    extraData.removeMember("StackTraces");
+    //extraData.removeMember("StackTraces");
+
+    {
+      const char* permittedKeys[] = {
+        "RecordReplay",
+        "MozCrashReason",
+        "BuildID",
+        "StackTraces",
+      };
+
+      Json::Value::Members names = extraData.getMemberNames();
+      for (size_t i = 0; i < names.size(); i++) {
+        bool found = false;
+        for (const char* permitted : permittedKeys) {
+          if (!strcmp(permitted, names[i].c_str())) {
+            found = true;
+          }
+        }
+        if (!found) {
+          extraData.removeMember(names[i].c_str());
+        }
+      }
+    }
 
     extraData["Throttleable"] = "1";
 
@@ -788,10 +810,10 @@ int main(int argc, char** argv) {
     }
 
     StringTable files;
-    files["upload_file_minidump"] = gReporterDumpFile;
-    if (!gMemoryFile.empty()) {
-      files["memory_report"] = gMemoryFile;
-    }
+    //files["upload_file_minidump"] = gReporterDumpFile;
+    //if (!gMemoryFile.empty()) {
+    //  files["memory_report"] = gMemoryFile;
+    //}
 
     if (!UIShowCrashUI(files, extraData, sendURL, restartArgs)) {
       DeleteDump();
