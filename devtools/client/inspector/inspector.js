@@ -504,6 +504,8 @@ Inspector.prototype = {
       return promise.reject("navigated");
     }
 
+    this._showMarkupLoading();
+
     // If available, set either the previously selected node or the body
     // as default selected, else set documentElement
     return walker
@@ -1443,6 +1445,9 @@ Inspector.prototype = {
     const button = this._markupFrame.contentDocument.getElementById("pause-button");
     button.hidden = true;
 
+    const loading = this._markupFrame.contentDocument.getElementById("loading");
+    loading.hidden = true;
+
     if (!this.markup) {
       return;
     }
@@ -1481,6 +1486,9 @@ Inspector.prototype = {
   },
 
   async onNoMarkup() {
+    const loading = this._markupFrame.contentDocument.getElementById("loading");
+    loading.hidden = true;
+
     if (this.currentTarget.isReplayEnabled()) {
       const dbg = await this._getDebugger();
 
@@ -1488,6 +1496,14 @@ Inspector.prototype = {
       button.hidden = false;
       button.addEventListener("click", () => dbg.interrupt());
     }
+  },
+
+  _showMarkupLoading() {
+    const loading = this._markupFrame.contentDocument.getElementById("loading");
+    loading.hidden = false;
+
+    const button = this._markupFrame.contentDocument.getElementById("pause-button");
+    button.hidden = true;
   },
 
   _selectionCssSelectors: null,
@@ -1865,7 +1881,8 @@ Inspector.prototype = {
       destroyPromise = promise.resolve();
     }
 
-    this._markupBox.style.visibility = "hidden";
+    // Allow showing loading message.
+    //this._markupBox.style.visibility = "hidden";
 
     return destroyPromise;
   },

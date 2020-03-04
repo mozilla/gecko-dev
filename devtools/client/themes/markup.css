@@ -443,3 +443,12 @@ ul.children + .tag-line::before {
   color: var(--theme-contrast-color);
   cursor: pointer;
 }
+
+#loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  font-size: large;
+  color: var(--theme-contrast-color);
+}
