@@ -37,14 +37,9 @@ const { ReplayInspector } = require("RecordReplayControl").module;
  * @param {DOMWindow} win
  * @returns {DOMWindowUtils}
  */
-const utilsCache = new WeakMap();
 function utilsFor(win) {
-  // XXXbz Given that we now have a direct getter for the DOMWindowUtils, is
-  // this weakmap cache path any faster than just calling the getter?
-  if (!utilsCache.has(win)) {
-    utilsCache.set(win, win.windowUtils);
-  }
-  return utilsCache.get(win);
+  // N.B. utils cache is not valid to use when replaying and has been removed.
+  return win.windowUtils;
 }
 
 /**

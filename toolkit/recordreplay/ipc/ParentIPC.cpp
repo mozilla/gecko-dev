@@ -586,6 +586,10 @@ static bool DisconnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
 }
 
 static void LogFromUIProcess(const nsACString& aText) {
+  if (!gConnection) {
+    return;
+  }
+
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 

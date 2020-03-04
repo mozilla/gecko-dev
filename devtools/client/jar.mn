@@ -105,6 +105,7 @@ devtools.jar:
     skin/widgets.css (themes/widgets.css)
     skin/rules.css (themes/rules.css)
     skin/images/cloud-recordings.svg (themes/images/cloud-recordings.svg)
+    skin/images/inspector-pause.svg (themes/images/inspector-pause.svg)
     skin/images/command-paintflashing.svg (themes/images/command-paintflashing.svg)
     skin/images/command-screenshot.svg (themes/images/command-screenshot.svg)
     skin/images/command-responsivemode.svg (themes/images/command-responsivemode.svg)

@@ -430,3 +430,16 @@ ul.children + .tag-line::before {
 .doctype {
   font-style: italic;
 }
+
+#pause-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  width: 30px;
+  height: 30px;
+
+  background: url("chrome://devtools/skin/images/inspector-pause.svg") no-repeat;
+  color: var(--theme-contrast-color);
+  cursor: pointer;
+}

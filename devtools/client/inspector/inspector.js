@@ -222,10 +222,7 @@ Inspector.prototype = {
 
     // When replaying, we need to listen to changes in the target's pause state.
     if (this.currentTarget.isReplayEnabled()) {
-      let dbg = this._toolbox.getPanel("jsdebugger");
-      if (!dbg) {
-        dbg = await this._toolbox.loadTool("jsdebugger");
-      }
+      const dbg = await this._getDebugger();
       this._replayResumed = !dbg.isPaused();
 
       this.currentTarget.threadFront.on("paused", this.handleThreadPaused);
@@ -246,6 +243,11 @@ Inspector.prototype = {
     this._markupBox = this.panelDoc.getElementById("markup-box");
 
     return this._deferredOpen();
+  },
+
+  _getDebugger() {
+    const dbg = this._toolbox.getPanel("jsdebugger");
+    return dbg || this._toolbox.loadTool("jsdebugger");
   },
 
   async _onTargetAvailable({ type, targetFront, isTopLevel }) {
@@ -276,6 +278,8 @@ Inspector.prototype = {
     // Then move the rest to onNewRoot and always call onNewRoot from here.
     if (this.isReady) {
       this.onNewRoot();
+    } else {
+      this.once("ready", this.onNewRoot);
     }
   },
 
@@ -1387,9 +1391,20 @@ Inspector.prototype = {
       this.setupToolbar();
     };
     this._pendingSelection = onNodeSelected;
+
+    const onNoSelectedNode = () => {
+      if (this._pendingSelection != onNodeSelected) {
+        return;
+      }
+      this._pendingSelection = null;
+
+      this.once("markuploaded", this.onNoMarkup);
+      this._initMarkup();
+    };
+
     this._getDefaultNodeForSelection().then(
       onNodeSelected,
-      this._handleRejectionIfNotDestroyed
+      onNoSelectedNode,
     );
   },
 
@@ -1415,6 +1430,9 @@ Inspector.prototype = {
    * highlighter state.
    */
   async onMarkupLoaded() {
+    const button = this._markupFrame.contentDocument.getElementById("pause-button");
+    button.hidden = true;
+
     if (!this.markup) {
       return;
     }
@@ -1449,6 +1467,16 @@ Inspector.prototype = {
         histogram.add(delay);
       }
       delete this._newRootStart;
+    }
+  },
+
+  async onNoMarkup() {
+    if (this.currentTarget.isReplayEnabled()) {
+      const dbg = await this._getDebugger();
+
+      const button = this._markupFrame.contentDocument.getElementById("pause-button");
+      button.hidden = false;
+      button.addEventListener("click", () => dbg.interrupt());
     }
   },
 

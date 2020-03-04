@@ -171,6 +171,11 @@ DebuggerPanel.prototype = {
     return this._selectors.getIsPaused(this._getState(), thread);
   },
 
+  interrupt() {
+    const cx = this._selectors.getThreadContext(this._getState());
+    this._actions.breakOnNext(cx);
+  },
+
   selectSourceURL(url, line, column) {
     const cx = this._selectors.getContext(this._getState());
     return this._actions.selectSourceURL(cx, url, { line, column });
