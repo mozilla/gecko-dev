@@ -167,6 +167,7 @@ var generateRequestHandlers = function(actorSpec, actorProto) {
             throw ex;
           }
           response.from = this.actorID;
+          response.packetId = packet.packetId;
           // If spec.release has been specified, destroy the object.
           if (spec.release) {
             try {

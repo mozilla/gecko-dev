@@ -209,6 +209,7 @@ function load(loader, module) {
       );
     }
     // Otherwise just re-throw everything else which should have a stack
+    dump(`BaseLoaderError ${module.uri}\n`);
     throw error;
   }
 

@@ -658,6 +658,12 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
     };
   },
 
+  async ensureDOMLoaded() {
+    if (isReplaying && ReplayInspector.isPaused()) {
+      await ReplayInspector.ensureDOMLoaded();
+    }
+  },
+
   /**
    * Return the document node that contains the given node,
    * or the root node if no node is specified.

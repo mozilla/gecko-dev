@@ -500,10 +500,20 @@ Inspector.prototype = {
       return pendingSelection !== this._pendingSelection || this._replayResumed;
     };
 
+    if (hasNavigated()) {
+      return promise.reject("navigated");
+    }
+
     // If available, set either the previously selected node or the body
     // as default selected, else set documentElement
     return walker
-      .getRootNode()
+      .ensureDOMLoaded()
+      .then(() => {
+        if (hasNavigated()) {
+          return promise.reject("navigated");
+        }
+        return walker.getRootNode();
+      })
       .then(node => {
         if (hasNavigated()) {
           return promise.reject(

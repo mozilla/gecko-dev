@@ -128,6 +128,13 @@ const gCheckpoints = [
   { point: FirstCheckpointExecutionPoint, time: 0, widgetEvents: [] },
 ];
 
+function checkpointInfo(checkpoint) {
+  if (!gCheckpoints[checkpoint]) {
+    console.error(`WebReplayPlayer missing checkpoint ${checkpoint}`);
+  }
+  return gCheckpoints[checkpoint];
+}
+
 function executionPointTime(point) {
   let previousInfo = gCheckpoints[point.checkpoint];
   if (!previousInfo) {
@@ -383,7 +390,7 @@ class WebReplayPlayer extends Component {
 
     if (widgetEvents !== undefined) {
       for (const event of widgetEvents) {
-        gCheckpoints[event.point.checkpoint].widgetEvents.push(event);
+        checkpointInfo(event.point.checkpoint).widgetEvents.push(event);
       }
     }
 
@@ -542,14 +549,11 @@ class WebReplayPlayer extends Component {
     const time = this.getMouseTime(e);
 
     let checkpoint = binarySearch(1, gCheckpoints.length, checkpoint => {
-      if (!gCheckpoints[checkpoint]) {
-        throw new Error(`Missing checkpoint ${checkpoint}`);
-      }
-      return time - gCheckpoints[checkpoint].time;
+      return time - checkpointInfo(checkpoint).time;
     });
 
-    let closestPoint = gCheckpoints[checkpoint].point;
-    let closestTime = gCheckpoints[checkpoint].time;
+    let closestPoint = checkpointInfo(checkpoint).point;
+    let closestTime = checkpointInfo(checkpoint).time;
 
     function newPoint(info) {
       if (Math.abs(time - info.time) < Math.abs(time - closestTime)) {
@@ -558,9 +562,9 @@ class WebReplayPlayer extends Component {
       }
     }
 
-    gCheckpoints[checkpoint].widgetEvents.forEach(newPoint);
+    checkpointInfo(checkpoint).widgetEvents.forEach(newPoint);
     if (checkpoint + 1 < gCheckpoints.length) {
-      newPoint(gCheckpoints[checkpoint + 1]);
+      newPoint(checkpointInfo(checkpoint + 1));
     }
 
     if (!hoverPoint || !pointEquals(closestPoint, hoverPoint)) {
@@ -644,7 +648,7 @@ class WebReplayPlayer extends Component {
       checkpoint--;
     }
 
-    let newPoint = gCheckpoints[checkpoint].point;
+    let newPoint = checkpointInfo(checkpoint).point;
     if (pointPrecedes(newPoint, this.state.zoomStartpoint)) {
       newPoint = this.state.zoomStartpoint;
     }
@@ -658,7 +662,7 @@ class WebReplayPlayer extends Component {
       return;
     }
 
-    let nextPoint = gCheckpoints[point.checkpoint + 1].point;
+    let nextPoint = checkpointInfo(point.checkpoint + 1).point;
     if (pointPrecedes(this.state.zoomEndpoint, nextPoint)) {
       nextPoint = this.state.zoomEndpoint;
     }
@@ -672,9 +676,9 @@ class WebReplayPlayer extends Component {
     }
 
     const time = executionPointTime(point);
-    let nextPoint = gCheckpoints[point.checkpoint + 1].point;
+    let nextPoint = checkpointInfo(point.checkpoint + 1).point;
 
-    const { widgetEvents } = gCheckpoints[point.checkpoint];
+    const { widgetEvents } = checkpointInfo(point.checkpoint);
     for (const event of widgetEvents) {
       if (pointPrecedes(point, event.point) && event.time >= time + 100) {
         nextPoint = event.point;

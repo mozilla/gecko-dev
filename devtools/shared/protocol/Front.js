@@ -14,6 +14,8 @@ var {
 } = require("devtools/shared/platform/stack");
 const defer = require("devtools/shared/defer");
 
+let gNextPacketId = 1;
+
 /**
  * Base class for client-side actor fronts.
  *
@@ -206,12 +208,16 @@ class Front extends Pool {
   request(packet) {
     //dump(`SEND_REQUEST ${this.actorID} ${JSON.stringify(packet)}\n`);
 
+    const packetId = gNextPacketId++;
+    packet.packetId = packetId;
+
     const deferred = defer();
     // Save packet basics for debugging
     const { to, type } = packet;
     this._requests.push({
       deferred,
       to: to || this.actorID,
+      packetId,
       type,
       stack: getStack(),
     });
@@ -266,7 +272,14 @@ class Front extends Pool {
       throw err;
     }
 
-    const { deferred, stack } = this._requests.shift();
+    const { deferred, packetId, stack } = this._requests.shift();
+    if (packet.packetId && packetId != packet.packetId) {
+      const msg = `Packet ID mismatch ${this.actorID} ${packetId} ${packet.packetId}`;
+      const err = Error(msg);
+      console.error(err);
+      throw err;
+    }
+
     callFunctionWithAsyncStack(
       () => {
         if (packet.error) {
