@@ -40,10 +40,15 @@ add_task(async function() {
 
   await interrupt(dbg);
 
+  // Wait for the markup's root node to appear...
+  await waitForTime(500);
+
   nodeFront = await getNodeFront("#maindiv", inspector);
-  await waitFor(
-    () => inspector.markup && getContainerForNodeFront(nodeFront, inspector)
-  );
+
+  await waitFor(() => {
+    return inspector.markup && getContainerForNodeFront(nodeFront, inspector);
+  });
+
   let container = getContainerForNodeFront(nodeFront, inspector);
 
   ok(
@@ -55,9 +60,9 @@ add_task(async function() {
   await rewindToLine(dbg, 9);
 
   nodeFront = await getNodeFront("#maindiv", inspector);
-  await waitFor(
-    () => inspector.markup && getContainerForNodeFront(nodeFront, inspector)
-  );
+  await waitFor(() => {
+    return inspector.markup && getContainerForNodeFront(nodeFront, inspector);
+  });
   container = getContainerForNodeFront(nodeFront, inspector);
   ok(
     container.editor.textEditor.textNode.state.value == "HELLO",

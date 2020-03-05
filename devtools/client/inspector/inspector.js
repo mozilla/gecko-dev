@@ -1499,11 +1499,13 @@ Inspector.prototype = {
   },
 
   _showMarkupLoading() {
-    const loading = this._markupFrame.contentDocument.getElementById("loading");
-    loading.hidden = false;
+    if (this.currentTarget.isReplayEnabled() && this._markupFrame) {
+      const loading = this._markupFrame.contentDocument.getElementById("loading");
+      loading.hidden = false;
 
-    const button = this._markupFrame.contentDocument.getElementById("pause-button");
-    button.hidden = true;
+      const button = this._markupFrame.contentDocument.getElementById("pause-button");
+      button.hidden = true;
+    }
   },
 
   _selectionCssSelectors: null,

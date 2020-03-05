@@ -336,7 +336,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   // Request handlers
-  onAttach: function({ options }) {
+  onAttach: function({ options, packetId }) {
     if (this.state === "exited") {
       return {
         error: "exited",
@@ -409,7 +409,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       // Send the response to the attach request now (rather than
       // returning it), because we're going to start a nested event
       // loop here.
-      this.conn.send({ from: this.actorID });
+      this.conn.send({ from: this.actorID, packetId });
       this.emit("paused", packet);
 
       // Start a nested event loop.
@@ -972,7 +972,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       // onStep is called with 'this' set to the current frame.
       // NOTE: we need to clear the stepping hooks when we are
       // no longer waiting for an async step to occur.
-      if (this.hasOwnProperty("waitingOnStep") && !this.waitingOnStep) {
+      if (!isReplaying && this.hasOwnProperty("waitingOnStep") && !this.waitingOnStep) {
         delete this.waitingOnStep;
         this.onStep = undefined;
         this.onPop = undefined;
@@ -1337,13 +1337,20 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     return stepFrame;
   },
 
-  frames: function(start, count) {
+  frames: async function(start, count) {
     if (this.state !== "paused") {
       return {
         error: "wrongState",
         message:
           "Stack frames are only available while the debuggee is paused.",
       };
+    }
+
+    if (isReplaying) {
+      const waitPromise = this.dbg.replayWaitForFrames();
+      if (waitPromise) {
+        await waitPromise;
+      }
     }
 
     // Find the starting frame...
@@ -1497,7 +1504,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   /**
    * Handle a protocol request to pause the debuggee.
    */
-  onInterrupt: function({ when }) {
+  onInterrupt: function({ when, packetId }) {
     if (this.state == "exited") {
       return { type: "exited" };
     } else if (this.state == "paused") {
@@ -1542,7 +1549,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       // Send the response to the interrupt request now (rather than
       // returning it), because we're going to start a nested event loop
       // here.
-      this.conn.send({ from: this.actorID, type: "interrupt" });
+      this.conn.send({ from: this.actorID, type: "interrupt", packetId });
       this.emit("paused", packet);
 
       // Start a nested event loop.

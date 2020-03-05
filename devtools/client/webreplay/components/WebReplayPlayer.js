@@ -369,6 +369,15 @@ class WebReplayPlayer extends Component {
       widgetEvents,
     } = status;
 
+    // We need to wait for the initial full status information before
+    // processing partial status update messages.
+    if (
+      !gCheckpoints[FirstCheckpointId] &&
+      (!checkpoints || checkpoints[0].point.checkpoint != FirstCheckpointId)
+    ) {
+      return;
+    }
+
     const newState = {};
 
     if (recording !== undefined && recording != this.state.recording) {

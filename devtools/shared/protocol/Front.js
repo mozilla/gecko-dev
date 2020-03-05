@@ -206,10 +206,10 @@ class Front extends Pool {
    * Send a two-way request on the connection.
    */
   request(packet) {
-    //dump(`SEND_REQUEST ${this.actorID} ${JSON.stringify(packet)}\n`);
-
     const packetId = gNextPacketId++;
     packet.packetId = packetId;
+
+    //dump(`SEND_REQUEST ${this.actorID} ${JSON.stringify(packet)}\n`);
 
     const deferred = defer();
     // Save packet basics for debugging
@@ -220,6 +220,7 @@ class Front extends Pool {
       packetId,
       type,
       stack: getStack(),
+      response: null,
     });
     this.send(packet);
     return deferred.promise;
@@ -264,41 +265,53 @@ class Front extends Pool {
     }
 
     // Remaining packets must be responses.
-    if (this._requests.length === 0) {
-      const msg =
-        "Unexpected packet " + this.actorID + ", " + JSON.stringify(packet);
-      const err = Error(msg);
-      console.error(err);
-      throw err;
+
+    if (!packet.packetId) {
+      this.throwError(`Packet missing ID ${this.actorID} ${JSON.stringify(packet)}`);
     }
 
-    const { deferred, packetId, stack } = this._requests.shift();
-    if (packet.packetId && packetId != packet.packetId) {
-      const msg = `Packet ID mismatch ${this.actorID} ${packetId} ${packet.packetId}`;
-      const err = Error(msg);
-      console.error(err);
-      throw err;
-    }
-
-    callFunctionWithAsyncStack(
-      () => {
-        if (packet.error) {
-          let message;
-          if (packet.error && packet.message) {
-            message =
-              "Protocol error (" + packet.error + "): " + packet.message;
-          } else {
-            message = packet.error;
-          }
-          const packetError = new Error(message);
-          deferred.reject(packetError);
-        } else {
-          deferred.resolve(packet);
+    let found;
+    for (let i = 0; i < this._requests.length; i++) {
+      if (this._requests[i].packetId == packet.packetId) {
+        if (found) {
+          this.throwError(`Duplicate packet response`);
         }
-      },
-      stack,
-      "DevTools RDP"
-    );
+        found = true;
+        this._requests[i].response = packet;
+      }
+    }
+    if (!found) {
+      this.throwError(`Unknown packet ID`);
+    }
+
+    while (this._requests.length && this._requests[0].response) {
+      const { deferred, stack, response } = this._requests.shift();
+      callFunctionWithAsyncStack(
+        () => {
+          if (response.error) {
+            let message;
+            if (response.error && response.message) {
+              message =
+                "Protocol error (" + response.error + "): " + response.message;
+            } else {
+              message = response.error;
+            }
+            const packetError = new Error(message);
+            deferred.reject(packetError);
+          } else {
+            deferred.resolve(response);
+          }
+        },
+        stack,
+        "DevTools RDP"
+      );
+    }
+  }
+
+  throwError(msg) {
+    const error = new Error(msg);
+    console.error(error);
+    throw error;
   }
 
   hasRequests() {

@@ -240,7 +240,7 @@ DebuggerServerConnection.prototype = {
     };
   },
 
-  _queueResponse: function(from, type, responseOrPromise) {
+  _queueResponse: function(from, type, responseOrPromise, packetId) {
     const pendingResponse =
       this._actorResponses.get(from) || Promise.resolve(null);
     const responsePromise = pendingResponse
@@ -259,6 +259,7 @@ DebuggerServerConnection.prototype = {
           response.from = from;
         }
 
+        response.packetId = packetId;
         this.transport.send(response);
       })
       .catch(error => {
@@ -395,7 +396,7 @@ DebuggerServerConnection.prototype = {
 
     // There will not be a return value if a bulk reply is sent.
     if (ret) {
-      this._queueResponse(packet.to, packet.type, ret);
+      this._queueResponse(packet.to, packet.type, ret, packet.packetId);
     }
   },
 

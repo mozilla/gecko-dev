@@ -84,16 +84,31 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
     const threadActor = this.threadActor;
     const form = {
       actor: this.actorID,
-      type: this.frame.type,
       asyncCause: this.frame.onStack ? null : "await",
 
       // This should expand with "dead" when we support SavedFrames.
       state: this.frame.onStack ? "on-stack" : "suspended",
     };
 
+    if (this.frame.script) {
+      const location = this.threadActor.sources.getFrameLocation(this.frame);
+      form.where = {
+        actor: location.sourceActor.actorID,
+        line: location.line,
+        column: location.column,
+      };
+    }
+
+    if (this.frame.replayingMinimal) {
+      // The rest of the frame data is not available yet.
+      return form;
+    }
+
     if (this.depth) {
       form.depth = this.depth;
     }
+
+    form.type = this.frame.type;
 
     if (this.frame.type != "wasmcall") {
       form.this = createValueGrip(
@@ -105,15 +120,6 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
 
     form.displayName = formatDisplayName(this.frame);
     form.arguments = this._args();
-
-    if (this.frame.script) {
-      const location = this.threadActor.sources.getFrameLocation(this.frame);
-      form.where = {
-        actor: location.sourceActor.actorID,
-        line: location.line,
-        column: location.column,
-      };
-    }
 
     if (!this.frame.older) {
       form.oldest = true;

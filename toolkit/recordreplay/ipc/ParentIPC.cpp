@@ -587,6 +587,7 @@ static bool DisconnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
 
 static void LogFromUIProcess(const nsACString& aText) {
   if (!gConnection) {
+    fprintf(stderr, "%s", nsCString(aText).get());
     return;
   }
 
