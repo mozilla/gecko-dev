@@ -12,7 +12,7 @@ import {
 
 import { mapFrames, fetchFrames } from ".";
 import { removeBreakpoint } from "../breakpoints";
-import { evaluateExpressions } from "../expressions";
+import { evaluateExpressions, markEvaluatedExpressionsAsLoading } from "../expressions";
 import { selectLocation } from "../sources";
 import assert from "../../utils/assert";
 
@@ -41,6 +41,8 @@ export function paused(pauseInfo: Pause) {
     if (frame) {
       await dispatch(selectLocation(cx, frame.location));
     }
+
+    await dispatch(markEvaluatedExpressionsAsLoading(cx));
 
     await dispatch(fetchFrames(cx));
 

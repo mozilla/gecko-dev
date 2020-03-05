@@ -1355,9 +1355,14 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     }
 
     if (isReplaying) {
-      const waitPromise = this.dbg.replayWaitForFrames();
+      const waitPromise = this.dbg.replayWaitForPauseData();
       if (waitPromise) {
+        const pauseCounter = this.dbg.replayPauseCounter();
         await waitPromise;
+        if (pauseCounter != this.dbg.replayPauseCounter()) {
+          // The debugger has unpaused and the result isn't needed anymore.
+          return { frames: [] };
+        }
       }
     }
 

@@ -1137,9 +1137,21 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    *         The evaluation response packet.
    */
   // eslint-disable-next-line complexity
-  evaluateJS: function(request) {
+  evaluateJS: async function(request) {
     const input = request.text;
     const timestamp = Date.now();
+
+    if (isReplaying) {
+      if (!this.dbg.isPaused()) {
+        return { input, result: { unavailable: true } };
+      }
+
+      const pauseCounter = this.dbg.replayPauseCounter();
+      await this.dbg.replayWaitForPauseComplete();
+      if (pauseCounter != this.dbg.replayPauseCounter()) {
+        return { input, result: { unavailable: true } };
+      }
+    }
 
     const evalOptions = {
       frameActor: request.frameActor,

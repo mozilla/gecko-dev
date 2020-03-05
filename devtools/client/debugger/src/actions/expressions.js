@@ -132,6 +132,15 @@ export function evaluateExpressions(cx: ThreadContext) {
   };
 }
 
+export function markEvaluatedExpressionsAsLoading(cx: ThreadContext) {
+  return async function({ dispatch, getState, client }: ThunkArgs) {
+    const expressions = getExpressions(getState());
+    const inputs = expressions.map(({ input }) => input);
+    const results = inputs.map(() => null);
+    dispatch({ type: "EVALUATE_EXPRESSIONS", cx, inputs, results });
+  };
+}
+
 function evaluateExpression(cx: ThreadContext, expression: Expression) {
   return async function({ dispatch, getState, client, sourceMaps }: ThunkArgs) {
     if (!expression.input) {
