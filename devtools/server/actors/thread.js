@@ -11,6 +11,7 @@ const { ActorPool } = require("devtools/server/actors/common");
 const { createValueGrip } = require("devtools/server/actors/object/utils");
 const { ActorClassWithSpec, Actor } = require("devtools/shared/protocol");
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
+const ChromeUtils = require("ChromeUtils");
 const { assert, dumpn, reportException } = DevToolsUtils;
 const { threadSpec } = require("devtools/shared/specs/thread");
 const {
@@ -1100,6 +1101,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       rewinding,
     });
 
+    if (isReplaying) {
+      await this.youngestFrame.ensureMinimalOlderFrame();
+    }
+
     // Make sure there is still a frame on the stack if we are to continue
     // stepping.
     const stepFrame = this._getNextStepFrame(this.youngestFrame, rewinding);
@@ -1129,11 +1134,13 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
         // Fall through.
         case "finish":
           if (rewinding) {
+            await stepFrame.ensureMinimalOlderFrame();
             let olderFrame = stepFrame.older;
             while (
               olderFrame &&
               (!olderFrame.script || this.sources.isFrameBlackBoxed(olderFrame))
             ) {
+              await olderFrame.ensureMinimalOlderFrame();
               olderFrame = olderFrame.older;
             }
             if (olderFrame) {
@@ -1229,6 +1236,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       this.doResume({ resumeLimit, rewind });
       return {};
     } catch (error) {
+      ChromeUtils.recordReplayLog(`ThreadActor.onResume Error: ${error}`);
       return error instanceof Error
         ? {
             error: "unknownError",

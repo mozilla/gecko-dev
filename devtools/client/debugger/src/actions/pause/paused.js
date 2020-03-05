@@ -38,6 +38,10 @@ export function paused(pauseInfo: Pause) {
     const cx = getThreadContext(getState());
     assert(cx.thread == thread, "Thread mismatch");
 
+    if (frame) {
+      await dispatch(selectLocation(cx, frame.location));
+    }
+
     await dispatch(fetchFrames(cx));
 
     const hiddenBreakpoint = getHiddenBreakpoint(getState());

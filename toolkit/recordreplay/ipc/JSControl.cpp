@@ -1232,6 +1232,7 @@ enum ChangeFrameKind {
   ChangeFrameEnter,
   ChangeFrameExit,
   ChangeFrameResume,
+  ChangeFrameCall,
   NumChangeFrameKinds
 };
 
@@ -1281,12 +1282,16 @@ struct ScriptHitInfo {
 
   struct AnyScriptHit {
     uint32_t mScript;
-    uint32_t mFrameIndex;
-    ProgressCounter mProgress;
+    uint32_t mOffset;
+    uint32_t mFrameIndex : 16;
+    ProgressCounter mProgress : 48;
 
-    AnyScriptHit(uint32_t aScript, uint32_t aFrameIndex,
+    AnyScriptHit() {}
+
+    AnyScriptHit(uint32_t aScript, uint32_t aOffset, uint32_t aFrameIndex,
                  ProgressCounter aProgress)
-        : mScript(aScript), mFrameIndex(aFrameIndex), mProgress(aProgress) {
+        : mScript(aScript), mOffset(aOffset), mFrameIndex(aFrameIndex),
+          mProgress(aProgress) {
       static_assert(sizeof(AnyScriptHit) == 16);
     }
   };
@@ -1339,7 +1344,7 @@ struct ScriptHitInfo {
       for (auto& vector : mChangeFrames) {
         MOZ_RELEASE_ASSERT(vector.empty());
         size_t numChangeFrames = aStream.ReadScalar32();
-        vector.appendN(AnyScriptHit(0, 0, 0), numChangeFrames);
+        vector.appendN(AnyScriptHit(), numChangeFrames);
         aStream.ReadBytes(vector.begin(), vector.length() * sizeof(AnyScriptHit));
       }
 
@@ -1351,6 +1356,10 @@ struct ScriptHitInfo {
   };
 
   InfallibleVector<CheckpointInfo*, 1024> mInfo;
+
+  // When scanning the recording, this has the last breakpoint hit on a script
+  // at each frame depth.
+  InfallibleVector<AnyScriptHit, 256> mLastHits;
 
   CheckpointInfo* GetInfo(uint32_t aCheckpoint, bool aIncorporateData = true) {
     if (aIncorporateData) {
@@ -1387,13 +1396,28 @@ struct ScriptHitInfo {
 
     ScriptHitVector* hits = p->value();
     hits->append(ScriptHit(aFrameIndex, aProgress));
+
+    while (aFrameIndex >= mLastHits.length()) {
+      mLastHits.emplaceBack();
+    }
+    AnyScriptHit& lastHit = mLastHits[aFrameIndex];
+    lastHit.mScript = aScript;
+    lastHit.mOffset = aOffset;
+    lastHit.mFrameIndex = aFrameIndex;
+    lastHit.mProgress = aProgress;
+  }
+
+  const AnyScriptHit& LastHit(uint32_t aFrameIndex) {
+    MOZ_RELEASE_ASSERT(aFrameIndex < mLastHits.length());
+    return mLastHits[aFrameIndex];
   }
 
   void AddChangeFrame(uint32_t aCheckpoint, uint32_t aWhich, uint32_t aScript,
-                      uint32_t aFrameIndex, ProgressCounter aProgress) {
+                      uint32_t aOffset, uint32_t aFrameIndex,
+                      ProgressCounter aProgress) {
     CheckpointInfo* info = GetInfo(aCheckpoint);
     MOZ_RELEASE_ASSERT(aWhich < NumChangeFrameKinds);
-    info->mChangeFrames[aWhich].emplaceBack(aScript, aFrameIndex, aProgress);
+    info->mChangeFrames[aWhich].emplaceBack(aScript, aOffset, aFrameIndex, aProgress);
   }
 
   AnyScriptHitVector* FindChangeFrames(uint32_t aCheckpoint, uint32_t aWhich) {
@@ -1566,7 +1590,16 @@ static bool RecordReplay_OnChangeFrame(JSContext* aCx, unsigned aArgc,
   }
 
   uint32_t frameIndex = gFrameDepth - 1;
-  gScriptHits->AddChangeFrame(GetLastCheckpoint(), Kind, script, frameIndex,
+
+  if (Kind == ChangeFrameEnter && frameIndex) {
+    // Find the last breakpoint hit in the calling frame.
+    const ScriptHitInfo::AnyScriptHit& lastHit = gScriptHits->LastHit(frameIndex - 1);
+    gScriptHits->AddChangeFrame(GetLastCheckpoint(), ChangeFrameCall,
+                                lastHit.mScript, lastHit.mOffset,
+                                lastHit.mFrameIndex, lastHit.mProgress);
+  }
+
+  gScriptHits->AddChangeFrame(GetLastCheckpoint(), Kind, script, 0, frameIndex,
                               gProgressCounter);
 
   if (Kind == ChangeFrameExit) {
@@ -1783,6 +1816,8 @@ static bool RecordReplay_FindChangeFrames(JSContext* aCx, unsigned aArgc,
           !JS_DefineProperty(aCx, hitObject, "progress", (double)hit.mProgress,
                              JSPROP_ENUMERATE) ||
           !JS_DefineProperty(aCx, hitObject, "frameIndex", hit.mFrameIndex,
+                             JSPROP_ENUMERATE) ||
+          !JS_DefineProperty(aCx, hitObject, "offset", hit.mOffset,
                              JSPROP_ENUMERATE) ||
           !values.append(ObjectValue(*hitObject))) {
         return false;
