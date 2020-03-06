@@ -30,9 +30,9 @@ import type { ThunkArgs } from "../types";
  */
 export function paused(pauseInfo: Pause) {
   return async function({ dispatch, getState, client, sourceMaps }: ThunkArgs) {
-    const { thread, frame, why } = pauseInfo;
+    const { thread, frame, why, executionPoint } = pauseInfo;
 
-    dispatch({ type: "PAUSED", thread, why, frame });
+    dispatch({ type: "PAUSED", thread, why, executionPoint, frame });
 
     // Get a context capturing the newly paused and selected thread.
     const cx = getThreadContext(getState());

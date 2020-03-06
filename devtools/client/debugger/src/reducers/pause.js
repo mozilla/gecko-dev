@@ -68,6 +68,7 @@ type ThreadPauseState = {
     },
   },
   selectedFrameId: ?string,
+  executionPoint: ExecutionPoint,
 
   // Scope items that have been expanded in the current pause.
   expandedScopes: Set<string>,
@@ -134,6 +135,7 @@ const resumedPauseState = {
     mappings: {},
   },
   selectedFrameId: null,
+  executionPoint: null,
   why: null,
   inlinePreview: {},
 };
@@ -194,7 +196,7 @@ function update(
     }
 
     case "PAUSED": {
-      const { thread, frame, why } = action;
+      const { thread, frame, why, executionPoint } = action;
 
       state = {
         ...state,
@@ -213,6 +215,7 @@ function update(
         framesLoading: true,
         frameScopes: { ...resumedPauseState.frameScopes },
         why,
+        executionPoint,
       });
     }
 
@@ -646,6 +649,10 @@ export function getSelectedFrameId(state: State, thread: ThreadId) {
 export function getTopFrame(state: State, thread: ThreadId) {
   const frames = getFrames(state, thread);
   return frames && frames[0];
+}
+
+export function getThreadExecutionPoint(state: State, thread: ThreadId) {
+  return getThreadPauseState(state.pause, thread).executionPoint;
 }
 
 export function getSkipPausing(state: State) {

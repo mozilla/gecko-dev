@@ -77,6 +77,7 @@ export function createPause(thread: string, packet: PausedPacket): any {
     ...packet,
     thread,
     frame: createFrame(thread, packet.frame),
+    executionPoint: packet.executionPoint,
   };
 }
 

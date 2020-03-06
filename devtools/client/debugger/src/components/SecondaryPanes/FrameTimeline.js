@@ -12,6 +12,7 @@ import {
   getFramePositions,
   getSelectedFrame,
   getThreadContext,
+  getThreadExecutionPoint,
 } from "../../selectors";
 import type { SourceLocation, Frame } from "../../types";
 
@@ -28,6 +29,7 @@ type Props = {
   previewLocation: typeof actions.previewPausedLocationBySourceId,
   seekToPosition: typeof actions.seekToPosition,
   selectedFrame: Frame,
+  executionPoint: any,
 };
 type OwnProps = {};
 
@@ -147,24 +149,30 @@ class FrameTimeline extends Component<Props, State> {
 
   getVisibleProgress() {
     const { scrubbing, scrubbingProgress } = this.state;
-    const { framePositions, selectedLocation, selectedFrame } = this.props;
+    const { framePositions, selectedLocation, selectedFrame, executionPoint } = this.props;
 
     if (!framePositions) {
       return 0;
     }
 
-    if (scrubbing || !selectedLocation) {
+    if (scrubbing || !selectedLocation || !executionPoint) {
       return scrubbingProgress;
     }
 
-    const index = framePositions.positions.findIndex(pos =>
-      isSameLocation(pos.location, selectedLocation) ||
-      isSameLocation(pos.generatedLocation, selectedLocation)
-    );
-
-    if (index == -1) {
-      // This shouldn't happen.
-      return 0;
+    let index = 0;
+    for (let i = 0; i < framePositions.positions.length; i++) {
+      const { location, generatedLocation, point } = framePositions.positions[i];
+      if (
+        executionPoint.progress < point.progress ||
+        (executionPoint.progress == point.progress &&
+         executionPoint.position.frameIndex < point.position.frameIndex)
+      ) {
+        break;
+      }
+      if (isSameLocation(location, selectedLocation) ||
+          isSameLocation(generatedLocation, selectedLocation)) {
+        index = i;
+      }
     }
 
     return Math.floor((index / framePositions.positions.length) * 100);
@@ -226,15 +234,15 @@ class FrameTimeline extends Component<Props, State> {
 }
 
 const mapStateToProps = state => {
-  const selectedFrame: Frame = (getSelectedFrame(
-    state,
-    getThreadContext(state).thread
-  ): any);
+  const thread = getThreadContext(state).thread;
+  const selectedFrame = getSelectedFrame(state, thread);
+  const executionPoint = getThreadExecutionPoint(state, thread);
 
   return {
     framePositions: getFramePositions(state),
     selectedLocation: getSelectedLocation(state),
     selectedFrame,
+    executionPoint,
   };
 };
 
