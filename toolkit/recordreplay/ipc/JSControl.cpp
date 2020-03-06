@@ -383,11 +383,23 @@ static bool Middleman_Ping(JSContext* aCx, unsigned aArgc, Value* aVp) {
   return true;
 }
 
-static bool Middleman_HadRepaint(JSContext* aCx, unsigned aArgc, Value* aVp) {
+static bool Middleman_PaintGraphics(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
+  nsAutoCString options;
+  if (args.get(1).isObject()) {
+    RootedObject obj(aCx, &args.get(1).toObject());
+
+    CharBuffer optionsBuffer;
+    if (!ToJSONMaybeSafely(aCx, obj, FillCharBufferCallback, &optionsBuffer)) {
+      return false;
+    }
+
+    options = NS_ConvertUTF16toUTF8(nsString(optionsBuffer.begin(), optionsBuffer.length()));
+  }
+
   if (!args.get(0).isString()) {
-    parent::ClearGraphics(NS_LITERAL_STRING(""));
+    parent::ClearGraphics(options);
 
     args.rval().setUndefined();
     return true;
@@ -404,22 +416,7 @@ static bool Middleman_HadRepaint(JSContext* aCx, unsigned aArgc, Value* aVp) {
     return false;
   }
 
-  int cursorX = -1, cursorY = -1;
-  if (args.get(1).isNumber() && args.get(2).isNumber()) {
-    cursorX = args.get(1).toNumber();
-    cursorY = args.get(2).toNumber();
-  }
-
-  int clickX = -1, clickY = -1;
-  if (args.get(3).isNumber() && args.get(4).isNumber()) {
-    clickX = args.get(3).toNumber();
-    clickY = args.get(4).toNumber();
-  }
-
-  bool warning = ToBoolean(args.get(5));
-
-  parent::UpdateGraphicsAfterRepaint(dataBinary, cursorX, cursorY,
-                                     clickX, clickY, warning);
+  parent::PaintGraphics(dataBinary, options);
 
   args.rval().setUndefined();
   return true;
@@ -430,28 +427,6 @@ static bool Middleman_RestoreMainGraphics(JSContext* aCx, unsigned aArgc,
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
   parent::RestoreMainGraphics();
-
-  args.rval().setUndefined();
-  return true;
-}
-
-static bool Middleman_ClearGraphics(JSContext* aCx, unsigned aArgc,
-                                    Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  nsString message;
-  if (args.hasDefined(0)) {
-    if (!args.get(0).isString()) {
-      JS_ReportErrorASCII(aCx, "Expected string or undefined as first argument");
-      return false;
-    }
-
-    nsAutoCString str;
-    ConvertJSStringToCString(aCx, args.get(0).toString(), str);
-    message = NS_ConvertUTF8toUTF16(str);
-  }
-
-  parent::ClearGraphics(message);
 
   args.rval().setUndefined();
   return true;
@@ -1842,9 +1817,8 @@ static const JSFunctionSpec gMiddlemanMethods[] = {
     JS_FN("spawnReplayingChild", Middleman_SpawnReplayingChild, 1, 0),
     JS_FN("sendManifest", Middleman_SendManifest, 3, 0),
     JS_FN("ping", Middleman_Ping, 3, 0),
-    JS_FN("hadRepaint", Middleman_HadRepaint, 6, 0),
+    JS_FN("paintGraphics", Middleman_PaintGraphics, 2, 0),
     JS_FN("restoreMainGraphics", Middleman_RestoreMainGraphics, 0, 0),
-    JS_FN("clearGraphics", Middleman_ClearGraphics, 1, 0),
     JS_FN("restoreSuppressedEventListener", Middleman_RestoreSuppressedEventListener, 0, 0),
     JS_FN("inRepaintStressMode", Middleman_InRepaintStressMode, 0, 0),
     JS_FN("createCheckpointInRecording", Middleman_CreateCheckpointInRecording,

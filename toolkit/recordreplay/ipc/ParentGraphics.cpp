@@ -97,10 +97,7 @@ static void* gBufferMemory;
 static PersistentRootedObject* gLastBuffer;
 
 static void UpdateMiddlemanCanvas(size_t aWidth, size_t aHeight, size_t aStride,
-                                  void* aData,
-                                  int aCursorX = -1, int aCursorY = -1,
-                                  int aClickX = -1, int aClickY = -1,
-                                  bool aWarning = false) {
+                                  void* aData, const nsACString& aOptions) {
   // Make sure the width and height are appropriately sized.
   CheckedInt<size_t> scaledWidth = CheckedInt<size_t>(aWidth) * 4;
   CheckedInt<size_t> scaledHeight = CheckedInt<size_t>(aHeight) * aStride;
@@ -145,9 +142,7 @@ static void UpdateMiddlemanCanvas(size_t aWidth, size_t aHeight, size_t aStride,
   JS::Rooted<JS::Value> buffer(cx, JS::ObjectValue(*bufferObject));
 
   // Call into the graphics module to update the canvas it manages.
-  if (NS_FAILED(gGraphics->UpdateCanvas(buffer, aWidth, aHeight,
-                                        aCursorX, aCursorY, aClickX, aClickY,
-                                        aWarning))) {
+  if (NS_FAILED(gGraphics->UpdateCanvas(buffer, aWidth, aHeight, aOptions))) {
     MOZ_CRASH("UpdateMiddlemanCanvas");
   }
 
@@ -177,15 +172,14 @@ void UpdateGraphicsAfterPaint(const PaintMessage& aMsg) {
 
   size_t stride = layers::ImageDataSerializer::ComputeRGBStride(gSurfaceFormat,
                                                                 aMsg.mWidth);
-  UpdateMiddlemanCanvas(aMsg.mWidth, aMsg.mHeight, stride, gGraphicsMemory);
+  UpdateMiddlemanCanvas(aMsg.mWidth, aMsg.mHeight, stride, gGraphicsMemory,
+                        nsCString());
 }
 
 // Map holding the data from the last paint alive.
 gfx::DataSourceSurface::ScopedMap* gLastMap;
 
-void UpdateGraphicsAfterRepaint(const nsACString& aImageData,
-                                int aCursorX, int aCursorY,
-                                int aClickX, int aClickY, bool aWarning) {
+void PaintGraphics(const nsACString& aImageData, const nsACString& aOptions) {
   if (!gGraphics) {
     InitGraphicsSandbox();
   }
@@ -204,13 +198,25 @@ void UpdateGraphicsAfterRepaint(const nsACString& aImageData,
                                                     gfx::DataSourceSurface::READ);
 
   UpdateMiddlemanCanvas(surface->GetSize().width, surface->GetSize().height,
-                        map->GetStride(), map->GetData(),
-                        aCursorX, aCursorY, aClickX, aClickY, aWarning);
+                        map->GetStride(), map->GetData(), aOptions);
 
   if (gLastMap) {
     delete gLastMap;
   }
   gLastMap = map;
+}
+
+void ClearGraphics(const nsACString& aOptions) {
+  if (!gGraphics) {
+    InitGraphicsSandbox();
+  }
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  if (NS_FAILED(gGraphics->ClearCanvas(aOptions))) {
+    MOZ_CRASH("ClearGraphics");
+  }
 }
 
 void RestoreMainGraphics() {
@@ -221,20 +227,7 @@ void RestoreMainGraphics() {
   size_t stride = layers::ImageDataSerializer::ComputeRGBStride(
       gSurfaceFormat, gLastPaintWidth);
   UpdateMiddlemanCanvas(gLastPaintWidth, gLastPaintHeight, stride,
-                        gGraphicsMemory);
-}
-
-void ClearGraphics(const nsAString& aMessage) {
-  if (!gGraphics) {
-    InitGraphicsSandbox();
-  }
-
-  AutoSafeJSContext cx;
-  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
-
-  if (NS_FAILED(gGraphics->ClearCanvas(aMessage))) {
-    MOZ_CRASH("ClearGraphics");
-  }
+                        gGraphicsMemory, nsCString());
 }
 
 void RestoreSuppressedEventListener() {

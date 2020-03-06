@@ -110,6 +110,18 @@ function drawFullWarning(cx, canvas) {
   cx.fillText("Graphics might be wrong", canvas.width - 330, 45, 305);
 }
 
+function drawLoadingMessage(cx, canvas) {
+  cx.lineWidth = 2;
+  cx.strokeStyle = "black";
+  cx.fillStyle = "white";
+  cx.fillRect(canvas.width - 165, 15, 150, 40);
+  cx.strokeRect(canvas.width - 165, 15, 150, 40);
+
+  cx.fillStyle = "black";
+  cx.font = "28px sans-serif";
+  cx.fillText("Loading…", canvas.width - 155, 45, 130);
+}
+
 function mouseEventListener(window, event) {
   if (window.lastUpdate && !window.lastUpdate.warning) {
     return;
@@ -150,11 +162,42 @@ function mouseEventListener(window, event) {
   }
 }
 
-function updateWindowCanvas(window, buffer, width, height,
-                            cursorX, cursorY, clickX, clickY, warning) {
-  window.lastUpdate = {
-    buffer, width, height, cursorX, cursorY, clickX, clickY, warning
-  };
+function drawOptions(cx, window, canvas, options) {
+  if (!options) {
+    return;
+  }
+
+  const {
+    cursorX, cursorY, clickX, clickY, warning, loading, message
+  } = JSON.parse(options);
+
+  if (cursorX >= 0 && cursorY >= 0) {
+    drawCursor(cx, cursorX, cursorY);
+  }
+
+  if (clickX >= 0 && clickY >= 0) {
+    drawClick(cx, clickX, clickY);
+  }
+
+  if (loading) {
+    drawLoadingMessage(cx, canvas);
+  } else if (warning) {
+    if (window.mouseHoveringOverWarning) {
+      drawFullWarning(cx, canvas);
+    } else {
+      drawSmallWarning(cx, canvas);
+    }
+  }
+
+  if (message) {
+    cx.font = `${25 * window.devicePixelRatio}px sans-serif`;
+    const messageWidth = cx.measureText(message).width;
+    cx.fillText(message, (canvas.width - messageWidth) / 2, canvas.height / 2);
+  }
+}
+
+function updateWindowCanvas(window, buffer, width, height, options) {
+  window.lastUpdate = { buffer, width, height, options };
 
   // Make sure the window has a canvas filling the screen.
   const canvas = getCanvas(window);
@@ -180,63 +223,48 @@ function updateWindowCanvas(window, buffer, width, height,
   imageData.data.set(graphicsData);
   cx.putImageData(imageData, 0, 0);
 
-  if (cursorX >= 0 && cursorY >= 0) {
-    drawCursor(cx, cursorX, cursorY);
-  }
-
-  if (clickX >= 0 && clickY >= 0) {
-    drawClick(cx, clickX, clickY);
-  }
-
-  if (warning) {
-    if (window.mouseHoveringOverWarning) {
-      drawFullWarning(cx, canvas);
-    } else {
-      drawSmallWarning(cx, canvas);
-    }
-  }
+  drawOptions(cx, window, canvas, options);
 }
 
-function refreshCanvas(window) {
-  const {
-    buffer, width, height, cursorX, cursorY, clickX, clickY, warning
-  } = window.lastUpdate;
-
-  updateWindowCanvas(window, buffer, width, height,
-                     cursorX, cursorY, clickX, clickY, warning);
-}
-
-function clearWindowCanvas(window, message) {
+function clearWindowCanvas(window, options) {
+  window.lastUpdate = { options };
   const canvas = getCanvas(window);
+
+  const scale = window.devicePixelRatio;
+
+  canvas.width = window.innerWidth * scale;
+  canvas.height = window.innerHeight * scale;
+
+  if (scale != 1) {
+    canvas.style.transform = `
+      scale(${1 / scale})
+      translate(-${canvas.width / scale}px, -${canvas.height / scale}px)
+    `;
+  }
 
   const cx = canvas.getContext("2d");
   cx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (message) {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+  drawOptions(cx, window, canvas, options);
+}
 
-    const scale = window.devicePixelRatio;
-    if (scale != 1) {
-      canvas.style.transform = `scale(${1 / scale})`;
-    }
-
-    cx.font = `${25 * scale}px sans-serif`;
-    const messageWidth = cx.measureText(message).width;
-    cx.fillText(message, (canvas.width - messageWidth) / 2, canvas.height / 2);
+function refreshCanvas(window) {
+  const { buffer, width, height, options } = window.lastUpdate;
+  if (buffer) {
+    updateWindowCanvas(window, buffer, width, height, options);
+  } else {
+    clearWindowCanvas(window, options);
   }
 }
 
 // Entry point for when we have some new graphics data from the child process
 // to draw.
 // eslint-disable-next-line no-unused-vars
-function UpdateCanvas(buffer, width, height,
-                      cursorX, cursorY, clickX, clickY, warning) {
+function UpdateCanvas(buffer, width, height, options) {
   try {
     // Paint to all windows we can find. Hopefully there is only one.
     for (const window of Services.ww.getWindowEnumerator()) {
-      updateWindowCanvas(window, buffer, width, height,
-                         cursorX, cursorY, clickX, clickY, warning);
+      updateWindowCanvas(window, buffer, width, height, options);
     }
   } catch (e) {
     console.error(`Middleman Graphics UpdateCanvas Exception: ${e}\n`);
@@ -244,10 +272,10 @@ function UpdateCanvas(buffer, width, height,
 }
 
 // eslint-disable-next-line no-unused-vars
-function ClearCanvas(message) {
+function ClearCanvas(options) {
   try {
     for (const window of Services.ww.getWindowEnumerator()) {
-      clearWindowCanvas(window, message);
+      clearWindowCanvas(window, options);
     }
   } catch (e) {
     console.error(`Middleman Graphics ClearCanvas Exception: ${e}\n`);

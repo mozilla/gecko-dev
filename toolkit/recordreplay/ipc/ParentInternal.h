@@ -91,17 +91,14 @@ void SendGraphicsMemoryToChild();
 // main child.
 void UpdateGraphicsAfterPaint(const PaintMessage& aMsg);
 
-// Update the graphics painted in the UI process after a repaint happened in
-// some replaying child.
-void UpdateGraphicsAfterRepaint(const nsACString& imageData,
-                                int aCursorX, int aCursorY,
-                                int aClickX, int aClickY, bool aWarning);
+// Update the graphics painted in the UI process according to some paint data.
+void PaintGraphics(const nsACString& aImageData, const nsACString& aOptions);
+
+// Clear any graphics painted in the UI process.
+void ClearGraphics(const nsACString& aOptions);
 
 // Restore the graphics last painted by the main child.
 void RestoreMainGraphics();
-
-// Clear any graphics painted in the UI process.
-void ClearGraphics(const nsAString& aMessage);
 
 // Restore the listener for suppressed events on the canvas.
 void RestoreSuppressedEventListener();

@@ -8,8 +8,7 @@
 [scriptable, uuid(941b2e20-8558-4881-b5ad-dc3a1f2d9678)]
 interface rrIGraphics : nsISupports {
   void UpdateCanvas(in jsval buffer, in long width, in long height,
-                    in long cursorX, in long cursorY,
-                    in long clickX, in long clickY, in boolean warning);
-  void ClearCanvas(in AString message);
+                    in ACString options);
+  void ClearCanvas(in ACString options);
   void RestoreSuppressedEventListener();
 };
