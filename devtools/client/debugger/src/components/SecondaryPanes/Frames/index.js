@@ -23,6 +23,7 @@ import {
   getCallStackFrames,
   getCurrentThread,
   getThreadContext,
+  getFramesLoading,
 } from "../../../selectors";
 
 import "./Frames.css";
@@ -36,6 +37,7 @@ type OwnProps = {|
 type Props = {
   cx: ThreadContext,
   frames: Array<Frame>,
+  framesLoading: boolean,
   frameworkGroupingOn: boolean,
   selectedFrame: Object,
   selectFrame: typeof actions.selectFrame,
@@ -195,13 +197,13 @@ class Frames extends Component<Props, State> {
   }
 
   render() {
-    const { frames, disableFrameTruncate } = this.props;
+    const { frames, framesLoading, disableFrameTruncate } = this.props;
 
     if (!frames) {
       return (
         <div className="pane frames">
           <div className="pane-info empty">
-            {L10N.getStr("callStack.notPaused")}
+          {L10N.getStr(framesLoading ? "callStack.loading" : "callStack.notPaused")}
           </div>
         </div>
       );
@@ -209,8 +211,8 @@ class Frames extends Component<Props, State> {
 
     return (
       <div className="pane frames">
-        {this.renderFrames(frames)}
-        {disableFrameTruncate ? null : this.renderToggleButton(frames)}
+        {this.renderFrames(frames || [])}
+        {disableFrameTruncate ? null : this.renderToggleButton(frames || [])}
       </div>
     );
   }
@@ -221,6 +223,7 @@ Frames.contextTypes = { l10n: PropTypes.object };
 const mapStateToProps = state => ({
   cx: getThreadContext(state),
   frames: getCallStackFrames(state),
+  framesLoading: getFramesLoading(state, getCurrentThread(state)),
   frameworkGroupingOn: getFrameworkGroupingState(state),
   selectedFrame: getSelectedFrame(state, getCurrentThread(state)),
   disableFrameTruncate: false,

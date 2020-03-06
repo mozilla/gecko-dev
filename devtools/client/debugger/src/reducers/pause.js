@@ -502,6 +502,11 @@ export function getCurrentThreadFrames(state: State) {
   return framesLoading ? null : frames;
 }
 
+export function getFramesLoading(state: State, thread: ThreadId) {
+  const { frames, framesLoading } = getThreadPauseState(state.pause, thread);
+  return frames && framesLoading;
+}
+
 function getGeneratedFrameId(frameId: string): string {
   if (frameId.includes("-originalFrame")) {
     // The mapFrames can add original stack frames -- get generated frameId.

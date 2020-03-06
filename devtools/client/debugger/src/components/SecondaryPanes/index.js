@@ -29,6 +29,7 @@ import {
   getSkipPausing,
   shouldLogEventBreakpoints,
   getCanRewind,
+  getFramesLoading,
 } from "../../selectors";
 
 import AccessibleImage from "../shared/AccessibleImage";
@@ -95,6 +96,7 @@ type Props = {
   cx: ThreadContext,
   expressions: List<Expression>,
   hasFrames: boolean,
+  framesLoading: boolean,
   horizontal: boolean,
   breakpoints: Object,
   selectedFrame: ?Frame,
@@ -420,7 +422,7 @@ class SecondaryPanes extends Component<Props, State> {
 
   getStartItems(): AccordionPaneItem[] {
     const items: AccordionPaneItem[] = [];
-    const { horizontal, hasFrames, canRewind } = this.props;
+    const { horizontal, hasFrames, framesLoading, canRewind } = this.props;
 
     if (horizontal) {
       if (features.workers && this.props.workers.length > 0) {
@@ -437,6 +439,8 @@ class SecondaryPanes extends Component<Props, State> {
       if (horizontal) {
         items.push(this.getScopeItem());
       }
+    } else if (framesLoading) {
+      items.push(this.getCallStackItem());
     }
 
     if (features.xhrBreakpoints && !canRewind) {
@@ -561,6 +565,7 @@ const mapStateToProps = state => {
     cx: getThreadContext(state),
     expressions: getExpressions(state),
     hasFrames: !!getTopFrame(state, thread),
+    framesLoading: getFramesLoading(state, thread),
     breakpoints: getBreakpointsList(state),
     breakpointsDisabled: getBreakpointsDisabled(state),
     isWaitingOnBreak: getIsWaitingOnBreak(state, thread),
