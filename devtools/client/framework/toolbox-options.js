@@ -314,7 +314,7 @@ OptionsPanel.prototype = {
     };
 
     // Clean up any existent default tools content.
-    for (const label of defaultToolsBox.querySelectorAll("label")) {
+    for (const label of defaultToolsBox.querySelectorAll("div")) {
       label.remove();
     }
 
@@ -334,7 +334,7 @@ OptionsPanel.prototype = {
     defaultToolsBox.insertBefore(fragment, toolsNotSupportedLabelNode);
 
     // Clean up any existent additional tools content.
-    for (const label of additionalToolsBox.querySelectorAll("label")) {
+    for (const label of additionalToolsBox.querySelectorAll("div")) {
       label.remove();
     }
 
