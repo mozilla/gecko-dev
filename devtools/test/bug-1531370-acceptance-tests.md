@@ -77,10 +77,10 @@
 5. Click through each row of the corresponding checkbox (Enable .., Show .., etc ..) and ensure the rows do not toggle the check boxes
 
 ## Running Test Cases (for test driven development)
-- [ ] Dynamically generated elements (Default Developer Tools) &nbsp; &nbsp; ... FAILED .. at step 5 
-- [ ] Dynamically generated elements (Available Toolbox Buttons) &nbsp; &nbsp; ... FAILED .. at step 5 
-- [ ] Statically generated elements (Inspector) &nbsp; &nbsp; ... FAILED .. at step 5 
-- [ ] Statically generated elements (Style Editor) &nbsp; &nbsp; ... FAILED .. at step 5 
-- [ ] Statically generated elements (Screenshot Behaviour) &nbsp; &nbsp; ... FAILED .. at step 5 
-- [ ] Statically generated elements (Editor Preferences) &nbsp; &nbsp; ... FAILED .. at step 5 
-- [ ] Statically generated elements (Advanced settings) &nbsp; &nbsp; ... FAILED .. at step 5 
+- [ ] Dynamically generated elements (Default Developer Tools) &nbsp; &nbsp; ... PASSED
+- [ ] Dynamically generated elements (Available Toolbox Buttons) &nbsp; &nbsp; ... PASSED
+- [ ] Statically generated elements (Inspector) &nbsp; &nbsp; ... PASSED
+- [ ] Statically generated elements (Style Editor) &nbsp; &nbsp; ... PASSED
+- [ ] Statically generated elements (Screenshot Behaviour) &nbsp; &nbsp; ... PASSED
+- [ ] Statically generated elements (Editor Preferences) &nbsp; &nbsp; ... PASSED
+- [ ] Statically generated elements (Advanced settings) &nbsp; &nbsp; ... PASSED
