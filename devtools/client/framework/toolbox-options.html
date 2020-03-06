@@ -38,17 +38,17 @@
 
       <fieldset id="inspector-options" class="options-groupbox">
         <legend data-l10n-id="options-context-inspector"></legend>
-        <label data-l10n-id="options-show-user-agent-styles-tooltip">
+        <div data-l10n-id="options-show-user-agent-styles-tooltip">
           <input type="checkbox"
                  data-pref="devtools.inspector.showUserAgentStyles"/>
           <span data-l10n-id="options-show-user-agent-styles-label"></span>
-        </label>
-        <label data-l10n-id="options-collapse-attrs-tooltip">
+        </div>
+        <div data-l10n-id="options-collapse-attrs-tooltip">
           <input type="checkbox"
                  data-pref="devtools.markup.collapseAttributes"/>
           <span data-l10n-id="options-collapse-attrs-label"></span>
-        </label>
-        <label>
+        </div>
+        <div>
           <span data-l10n-id="options-default-color-unit-label"></span>
           <select id="defaultColorUnitMenuList"
                   data-pref="devtools.defaultColorUnit">
@@ -58,57 +58,57 @@
             <option value="rgb" data-l10n-id="options-default-color-unit-rgb"></option>
             <option value="name" data-l10n-id="options-default-color-unit-name"></option>
           </select>
-        </label>
+        </div>
       </fieldset>
 
       <fieldset id="styleeditor-options" class="options-groupbox">
         <legend data-l10n-id="options-styleeditor-label"></legend>
-        <label data-l10n-id="options-stylesheet-autocompletion-tooltip">
+        <div data-l10n-id="options-stylesheet-autocompletion-tooltip">
           <input type="checkbox"
                  data-pref="devtools.styleeditor.autocompletion-enabled"/>
           <span data-l10n-id="options-stylesheet-autocompletion-label"></span>
-        </label>
+        </div>
       </fieldset>
 
       <fieldset id="screenshot-options" class="options-groupbox">
         <legend data-l10n-id="options-screenshot-label"></legend>
-        <label data-l10n-id="options-screenshot-clipboard-tooltip">
+        <div data-l10n-id="options-screenshot-clipboard-tooltip">
           <input type="checkbox"
                  id="devtools-screenshot-clipboard"
                  data-pref="devtools.screenshot.clipboard.enabled"/>
           <span data-l10n-id="options-screenshot-clipboard-label"></span>
-        </label>
-        <label data-l10n-id="options-screenshot-audio-tooltip">
+        </div>
+        <div data-l10n-id="options-screenshot-audio-tooltip">
           <input type="checkbox"
                  id="devtools-screenshot-audio"
                  data-pref="devtools.screenshot.audio.enabled"/>
           <span data-l10n-id="options-screenshot-audio-label"></span>
-        </label>
+        </div>
       </fieldset>
     </div>
 
     <div class="options-vertical-pane">
       <fieldset id="sourceeditor-options" class="options-groupbox">
         <legend data-l10n-id="options-sourceeditor-label"></legend>
-        <label data-l10n-id="options-sourceeditor-detectindentation-tooltip">
+        <div data-l10n-id="options-sourceeditor-detectindentation-tooltip">
           <input type="checkbox"
                  id="devtools-sourceeditor-detectindentation"
                  data-pref="devtools.editor.detectindentation"/>
           <span data-l10n-id="options-sourceeditor-detectindentation-label"></span>
-        </label>
-        <label data-l10n-id="options-sourceeditor-autoclosebrackets-tooltip">
+        </div>
+        <div data-l10n-id="options-sourceeditor-autoclosebrackets-tooltip">
           <input type="checkbox"
                  id="devtools-sourceeditor-autoclosebrackets"
                  data-pref="devtools.editor.autoclosebrackets"/>
           <span data-l10n-id="options-sourceeditor-autoclosebrackets-label"></span>
-        </label>
-        <label data-l10n-id="options-sourceeditor-expandtab-tooltip">
+        </div>
+        <div data-l10n-id="options-sourceeditor-expandtab-tooltip">
           <input type="checkbox"
                  id="devtools-sourceeditor-expandtab"
                  data-pref="devtools.editor.expandtab"/>
           <span data-l10n-id="options-sourceeditor-expandtab-label"></span>
-        </label>
-        <label>
+        </div>
+        <div>
           <span data-l10n-id="options-sourceeditor-tabsize-label"></span>
           <select id="devtools-sourceeditor-tabsize-select"
                   data-pref="devtools.editor.tabsize">
@@ -116,8 +116,8 @@
             <option label="4">4</option>
             <option label="8">8</option>
           </select>
-        </label>
-        <label>
+        </div>
+        <div>
           <span data-l10n-id="options-sourceeditor-keybinding-label"></span>
           <select id="devtools-sourceeditor-keybinding-select"
                   data-pref="devtools.editor.keymap">
@@ -126,49 +126,49 @@
             <option value="emacs">Emacs</option>
             <option value="sublime">Sublime Text</option>
           </select>
-        </label>
+        </div>
       </fieldset>
 
       <fieldset id="context-options" class="options-groupbox">
         <legend data-l10n-id="options-context-advanced-settings"></legend>
-          <label data-l10n-id="options-source-maps-tooltip">
+          <div data-l10n-id="options-source-maps-tooltip">
             <input type="checkbox"
                    data-pref="devtools.source-map.client-service.enabled"/>
             <span data-l10n-id="options-source-maps-label"></span>
-          </label>
-         <label data-l10n-id="options-show-platform-data-tooltip">
+          </div>
+         <div data-l10n-id="options-show-platform-data-tooltip">
             <input type="checkbox"
                    id="devtools-show-gecko-data"
                    data-pref="devtools.performance.ui.show-platform-data"/>
             <span data-l10n-id="options-show-platform-data-label"></span>
-          </label>
-          <label data-l10n-id="options-disable-http-cache-tooltip">
+         </div>
+          <div data-l10n-id="options-disable-http-cache-tooltip">
             <input type="checkbox"
                    id="devtools-disable-cache"
                    data-pref="devtools.cache.disabled"/>
             <span data-l10n-id="options-disable-http-cache-label"></span>
-          </label>
-          <label data-l10n-id="options-disable-javascript-tooltip">
+          </div>
+          <div data-l10n-id="options-disable-javascript-tooltip">
             <input type="checkbox"
                    id="devtools-disable-javascript"/>
             <span data-l10n-id="options-disable-javascript-label"></span>
-          </label>
-          <label data-l10n-id="options-enable-service-workers-http-tooltip">
+          </div>
+          <div data-l10n-id="options-enable-service-workers-http-tooltip">
             <input type="checkbox"
                    id="devtools-enable-serviceWorkersTesting"
                    data-pref="devtools.serviceWorkers.testing.enabled"/>
             <span data-l10n-id="options-enable-service-workers-http-label"></span>
-          </label>
-          <label data-l10n-id="options-enable-chrome-tooltip">
+          </div>
+          <div data-l10n-id="options-enable-chrome-tooltip">
             <input type="checkbox"
                    data-pref="devtools.chrome.enabled"/>
             <span data-l10n-id="options-enable-chrome-label"></span>
-          </label>
-          <label data-l10n-id="options-enable-remote-tooltip">
+          </div>
+          <div data-l10n-id="options-enable-remote-tooltip">
             <input type="checkbox"
                    data-pref="devtools.debugger.remote-enabled"/>
             <span data-l10n-id="options-enable-remote-label"></span>
-          </label>
+          </div>
           <span class="options-citation-label theme-comment"
                 id="triggers-page-refresh-label" data-l10n-id="options-context-triggers-page-refresh"
           ></span>
