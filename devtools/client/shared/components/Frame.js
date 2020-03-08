@@ -70,6 +70,7 @@ class Frame extends Component {
     super(props);
     this._locationChanged = this._locationChanged.bind(this);
     this.getSourceForClick = this.getSourceForClick.bind(this);
+    this.frameAndSourceMapped = this.frameAndSourceMapped.bind(this);
   }
 
   componentWillMount() {
@@ -123,7 +124,15 @@ class Frame extends Component {
     };
   }
 
+  frameAndSourceMapped(state) {
+    if (state && state.isSourceMapped && state.frame) {
+      return true;
+    }
+    return false;
+  }
+
   // eslint-disable-next-line complexity
+
   render() {
     let frame, isSourceMapped;
     const {
@@ -136,7 +145,8 @@ class Frame extends Component {
       messageSource,
     } = this.props;
 
-    if (this.state && this.state.isSourceMapped && this.state.frame) {
+    const frameMapping = this.frameAndSourceMapped(this.state);
+    if (frameMapping) {
       frame = this.state.frame;
       isSourceMapped = this.state.isSourceMapped;
     } else {
