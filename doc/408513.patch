@@ -1,0 +1,13 @@
+diff --git a/toolkit/locales/en-US/chrome/mozapps/profile/profileSelection.properties b/toolkit/locales/en-US/chrome/mozapps/profile/profileSelection.properties
+index 9a0511466b03..4d9802a15110 100644
+--- a/toolkit/locales/en-US/chrome/mozapps/profile/profileSelection.properties
++++ b/toolkit/locales/en-US/chrome/mozapps/profile/profileSelection.properties
+@@ -7,7 +7,7 @@
+ # Application not responding
+ # LOCALIZATION NOTE (restartTitle, restartMessageNoUnlocker, restartMessageUnlocker, restartMessageNoUnlockerMac, restartMessageUnlockerMac): Messages displayed when the application is running but is not responding to commands. %S is the application name.
+ restartTitle=Close %S
+-restartMessageNoUnlocker=%S is already running, but is not responding. To open a new window, you must first close the existing %S process, or restart your system.You can also try restarting %S with a different user profile.
++restartMessageNoUnlocker=%S is already running, but is not responding. To open a new window, you must first close the existing %S process, or restart your system.\nYou can also try restarting with a different user profile.
+ restartMessageUnlocker=%S is already running, but is not responding. The old %S process must be closed to open a new window.
+ restartMessageNoUnlockerMac=A copy of %S is already open. Only one copy of %S can be open at a time.
+ restartMessageUnlockerMac=A copy of %S is already open. The running copy of %S will quit in order to open this one.
