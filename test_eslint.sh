@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # if you already have firefox built once before
-#./mach build faster
+./mach build faster
 
 # if you have  never built firefox, can take hours
 #./mach build
