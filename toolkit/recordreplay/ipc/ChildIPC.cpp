@@ -717,13 +717,14 @@ void SetWebReplayJS(const nsCString& aControlJS, const nsCString& aReplayJS) {
 
 void PrintLog(const nsAString& aText) {
   double elapsed = (CurrentTime() - gStartTime) / 1e6;
-  nsPrintfCString buf("[#%lu:%lu %.2f] %s\n", GetId(), gForkId, elapsed,
-                      NS_ConvertUTF16toUTF8(aText).get());
+  NS_ConvertUTF16toUTF8 ntext(aText);
   if (IsRecording()) {
+    nsPrintfCString buf("[Recording %.2f] %s\n", elapsed, ntext.get());
     UniquePtr<Message> msg(LogTextMessage::New(
         0, 0, buf.BeginReading(), buf.Length() + 1));
     gChannel->SendMessage(std::move(*msg));
   } else {
+    nsPrintfCString buf("[#%lu %.2f] %s\n", gForkId, elapsed, ntext.get());
     DirectPrint(buf.get());
   }
 }

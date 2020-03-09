@@ -135,15 +135,15 @@ async function doConnect(id, channelId) {
   }
 
   // Eventually this ID will include credentials.
-  const id = (Math.random() * 1e9) | 0;
+  const sessionId = (Math.random() * 1e9) | 0;
 
-  const socket = new WebSocket(`${address}/connect?id=${id}`);
+  const socket = new WebSocket(`${address}/connect?id=${sessionId}`);
   socket.onopen = evt => onOpen(id);
   socket.onclose = evt => onClose(id);
   socket.onmessage = evt => onMessage(id, evt);
   socket.onerror = evt => onError(id);
 
-  const bulkSocket = new WebSocket(`${address}/connect?id=${id}&bulk=true`);
+  const bulkSocket = new WebSocket(`${address}/connect?id=${sessionId}&bulk=true`);
   bulkSocket.onopen = evt => onOpen(id, true);
   bulkSocket.onclose = evt => onClose(id);
   bulkSocket.onmessage = evt => onMessage(id, evt, true);
@@ -220,6 +220,14 @@ function onClose(id, bulk) {
   gConnections[id] = null;
 }
 
+function arrayToString(arr) {
+  let str = "";
+  for (const n of arr) {
+    str += String.fromCharCode(n);
+  }
+  return escape(str);
+}
+
 // Buffers containing incomplete messages.
 const partialMessages = new Map();
 
@@ -244,7 +252,10 @@ function extractCompleteMessages(id, bulk, data) {
       }
       break;
     }
-    messages.push(new Uint8Array(data.buffer, offset, info.size));
+    // Copy the message into its own ArrayBuffer.
+    const msg = new Uint8Array(info.size);
+    msg.set(new Uint8Array(data.buffer, offset, info.size));
+    messages.push(msg.buffer);
     offset += info.size;
   }
   return messages;
@@ -263,9 +274,8 @@ let gMessageWaiter = null;
       const { id, bulk, promise } = gMessages.shift();
       const buf = await promise;
       const messages = extractCompleteMessages(id, bulk, new Uint8Array(buf));
-      if (messages.length) {
-        // Send these all at once so that the underlying ABO is only cloned once.
-        postMessage({ kind: "messages", id, messages });
+      for (const msg of messages) {
+        postMessage({ kind: "message", id, buf: msg });
       }
     } else {
       await new Promise(resolve => (gMessageWaiter = resolve));

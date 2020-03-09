@@ -1388,7 +1388,9 @@ Inspector.prototype = {
     this.walker.reloadRoot();
 
     const onNodeSelected = async defaultNode => {
-      await this._waitForMarkupNotLoading();
+      while (this._markupLoading) {
+        await this._waitForMarkupNotLoading();
+      }
 
       // Cancel this promise resolution as a new one had
       // been queued up.
@@ -1407,7 +1409,9 @@ Inspector.prototype = {
     this._pendingSelection = onNodeSelected;
 
     const onNoSelectedNode = async () => {
-      await this._waitForMarkupNotLoading();
+      while (this._markupLoading) {
+        await this._waitForMarkupNotLoading();
+      }
 
       if (this._pendingSelection != onNodeSelected) {
         return;
@@ -1849,15 +1853,13 @@ Inspector.prototype = {
   },
 
   async _waitForMarkupNotLoading() {
-    while (this._markupLoading) {
-      if (!this._markupWaiters) {
-        this._markupWaiters = [];
-      }
-      let resolve;
-      const promise = new Promise(r => (resolve = r));
-      this._markupWaiters.push(resolve);
-      await promise;
+    if (!this._markupWaiters) {
+      this._markupWaiters = [];
     }
+    let resolve;
+    const promise = new Promise(r => (resolve = r));
+    this._markupWaiters.push(resolve);
+    return promise;
   },
 
   _initMarkup: function() {
