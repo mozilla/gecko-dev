@@ -31,7 +31,7 @@ else
 	echo 'frame_02 test failed!'
 fi
 
-if [ -s test_eslint_log.txt ]
+if [ -s test_results/test_eslint_log.txt ]
 then
 	echo 'eslint test failed!'
 else
