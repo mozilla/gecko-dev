@@ -1863,12 +1863,13 @@ Inspector.prototype = {
   },
 
   _initMarkup: function() {
+    ChromeUtils.recordReplayLog(`Inspector InitMarkup ${Error().stack}`);
+
     if (this._markupLoading) {
       throw new Error("initMarkup duplicate\n");
     }
     this._markupLoading = true;
 
-    ChromeUtils.recordReplayLog(`Inspector InitMarkup`);
     if (!this._markupFrame) {
       this._markupFrame = this.panelDoc.createElement("iframe");
       this._markupFrame.setAttribute(
