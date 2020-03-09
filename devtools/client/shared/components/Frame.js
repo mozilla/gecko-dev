@@ -171,8 +171,6 @@ class Frame extends Component {
     return false;
   }
 
-  // eslint-disable-next-line complexity
-
   render() {
     let frame, isSourceMapped;
     const { onClick, showHost, showFullSourceUrl, messageSource } = this.props;
