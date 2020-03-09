@@ -11,6 +11,7 @@
 #include "nsCOMPtr.h"
 #include "nsDocShellLoadState.h"
 #include "mozilla/ScrollbarPreferences.h"
+#include "mozilla/ipc/IPDLParamTraits.h" // Our bug fix for the IPDLParamTraits struct
 
 namespace mozilla {
 namespace ipc {
