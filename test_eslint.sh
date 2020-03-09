@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#install dependencies
+npm install
+
 # if you already have firefox built once before
 ./mach build faster
 
@@ -14,8 +17,8 @@ echo 'Testing eslint...'
 npx eslint ./devtools/client/shared/components/Frame.js > 'test_results/test_eslint_log.txt'
 # test to check if Frame.js still works
 echo 'Running Frame tests...'
-./mach mochitest devtools/client/shared/components/test/chrome/test_frame_01.html >> 'test_results/test_eslint_frame_01.txt'
-./mach mochitest devtools/client/shared/components/test/chrome/test_frame_02.html >> 'test_results/test_eslint_frame_02.txt'
+./mach mochitest devtools/client/shared/components/test/chrome/test_frame_01.html > 'test_results/test_eslint_frame_01.txt'
+./mach mochitest devtools/client/shared/components/test/chrome/test_frame_02.html > 'test_results/test_eslint_frame_02.txt'
 
 if grep -Fxq "Unexpected results: 0" "test_results/test_eslint_frame_01.txt"
 then
