@@ -56,6 +56,8 @@ var Ci = this.require ? require("chrome").Ci : Components.interfaces;
 // not be available (see above), users of this must check it first.
 var Components_ = this.require ? require("chrome").components : Components;
 
+var ChromeUtils = this.require ? require("ChromeUtils") : ChromeUtils;
+
 // If Cu is defined, use it to lazily define the FinalizationWitnessService.
 if (Cu) {
   // If we're in a devtools module environment, ChromeUtils won't exist.
@@ -993,6 +995,8 @@ Handler.prototype = {
           "Full stack: " + ("stack" in ex ? ex.stack : "not available") + "\n"
         );
         dump("*************************\n");
+
+        ChromeUtils.recordReplayLog(`Error: Uncaught rejection ${ex} ${ex.stack}`);
       }
 
       // Additionally, reject the next promise.

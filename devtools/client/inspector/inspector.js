@@ -1387,7 +1387,9 @@ Inspector.prototype = {
     this._destroyMarkup();
     this.walker.reloadRoot();
 
-    const onNodeSelected = defaultNode => {
+    const onNodeSelected = async defaultNode => {
+      await this._waitForMarkupNotLoading();
+
       // Cancel this promise resolution as a new one had
       // been queued up.
       if (this._pendingSelection != onNodeSelected) {
@@ -1404,7 +1406,9 @@ Inspector.prototype = {
     };
     this._pendingSelection = onNodeSelected;
 
-    const onNoSelectedNode = () => {
+    const onNoSelectedNode = async () => {
+      await this._waitForMarkupNotLoading();
+
       if (this._pendingSelection != onNodeSelected) {
         return;
       }
@@ -1499,12 +1503,16 @@ Inspector.prototype = {
   },
 
   _showMarkupLoading() {
-    if (this.currentTarget.isReplayEnabled() && this._markupFrame) {
-      const loading = this._markupFrame.contentDocument.getElementById("loading");
-      loading.hidden = false;
+    if (this.currentTarget.isReplayEnabled()) {
+      try {
+        const loading = this._markupFrame.contentDocument.getElementById("loading");
+        loading.hidden = false;
 
-      const button = this._markupFrame.contentDocument.getElementById("pause-button");
-      button.hidden = true;
+        const button = this._markupFrame.contentDocument.getElementById("pause-button");
+        button.hidden = true;
+      } catch (e) {
+        // The markup frame might still be loading.
+      }
     }
   },
 
@@ -1840,7 +1848,25 @@ Inspector.prototype = {
     this.telemetry = null;
   },
 
+  async _waitForMarkupNotLoading() {
+    while (this._markupLoading) {
+      if (!this._markupWaiters) {
+        this._markupWaiters = [];
+      }
+      let resolve;
+      const promise = new Promise(r => (resolve = r));
+      this._markupWaiters.push(resolve);
+      await promise;
+    }
+  },
+
   _initMarkup: function() {
+    if (this._markupLoading) {
+      throw new Error("initMarkup duplicate\n");
+    }
+    this._markupLoading = true;
+
+    ChromeUtils.recordReplayLog(`Inspector InitMarkup`);
     if (!this._markupFrame) {
       this._markupFrame = this.panelDoc.createElement("iframe");
       this._markupFrame.setAttribute(
@@ -1871,6 +1897,11 @@ Inspector.prototype = {
     this._markupBox.style.visibility = "visible";
     this.markup = new MarkupView(this, this._markupFrame, this._toolbox.win);
     this.emit("markuploaded");
+    this._markupLoading = false;
+    if (this._markupWaiters && this._markupWaiters.length) {
+      this._markupWaiters.shift()();
+    }
+    ChromeUtils.recordReplayLog(`Inspector MarkupLoaded`);
   },
 
   _destroyMarkup: function() {

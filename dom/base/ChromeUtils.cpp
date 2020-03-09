@@ -1199,6 +1199,12 @@ void ChromeUtils::RecordReplayLog(const GlobalObject& aGlobal,
   }
 }
 
+/* static */
+void ChromeUtils::RecordReplayLog(const nsAString& aText) {
+  GlobalObject* global = nullptr;
+  RecordReplayLog(*global, aText);
+}
+
 void ChromeUtils::GenerateMediaControlKeysTestEvent(
     const GlobalObject& aGlobal, MediaControlKeysTestEvent aEvent) {
   RefPtr<MediaControlService> service = MediaControlService::GetService();
