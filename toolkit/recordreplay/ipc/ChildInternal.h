@@ -66,7 +66,7 @@ extern Monitor* gMonitor;
 void EnsureRecordingLength(size_t aLength);
 
 // Notify the middleman that the last manifest was finished.
-void ManifestFinished(const js::CharBuffer& aResponse);
+void ManifestFinished(const js::CharBuffer& aResponse, bool aBulk);
 
 // Send messages operating on external calls.
 void SendExternalCallRequest(ExternalCallId aId,

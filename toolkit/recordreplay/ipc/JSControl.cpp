@@ -353,8 +353,13 @@ static bool Middleman_SendManifest(JSContext* aCx, unsigned aArgc, Value* aVp) {
 
   NS_ConvertUTF16toUTF8 buf(manifestBuffer.begin(), manifestBuffer.length());
 
+  bool bulk = ToBoolean(args.get(3));
+
   ManifestStartMessage* msg = ManifestStartMessage::New(
       forkId, 0, buf.get(), buf.Length());
+  if (bulk) {
+    msg->SetBulk();
+  }
   child->SendMessage(std::move(*msg));
   free(msg);
 
@@ -546,6 +551,7 @@ static bool Middleman_UpdateRecording(JSContext* aCx, unsigned aArgc,
 
   UniquePtr<Message> msg(RecordingDataMessage::New(
       0, start, parent::gRecordingContents.begin() + start, size));
+  msg->SetBulk();
   child->SendMessage(std::move(*msg));
 
   args.rval().setUndefined();
@@ -955,7 +961,9 @@ static bool RecordReplay_ManifestFinished(JSContext* aCx, unsigned aArgc,
     }
   }
 
-  child::ManifestFinished(responseBuffer);
+  bool bulk = ToBoolean(args.get(1));
+
+  child::ManifestFinished(responseBuffer, bulk);
 
   args.rval().setUndefined();
   return true;
@@ -1815,7 +1823,7 @@ static bool RecordReplay_FindChangeFrames(JSContext* aCx, unsigned aArgc,
 
 static const JSFunctionSpec gMiddlemanMethods[] = {
     JS_FN("spawnReplayingChild", Middleman_SpawnReplayingChild, 1, 0),
-    JS_FN("sendManifest", Middleman_SendManifest, 3, 0),
+    JS_FN("sendManifest", Middleman_SendManifest, 4, 0),
     JS_FN("ping", Middleman_Ping, 3, 0),
     JS_FN("paintGraphics", Middleman_PaintGraphics, 2, 0),
     JS_FN("restoreMainGraphics", Middleman_RestoreMainGraphics, 0, 0),
@@ -1843,7 +1851,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("setProgressCounter", RecordReplay_SetProgressCounter, 1, 0),
     JS_FN("shouldUpdateProgressCounter",
           RecordReplay_ShouldUpdateProgressCounter, 1, 0),
-    JS_FN("manifestFinished", RecordReplay_ManifestFinished, 1, 0),
+    JS_FN("manifestFinished", RecordReplay_ManifestFinished, 2, 0),
     JS_FN("resumeExecution", RecordReplay_ResumeExecution, 0, 0),
     JS_FN("currentExecutionTime", RecordReplay_CurrentExecutionTime, 0, 0),
     JS_FN("flushRecording", RecordReplay_FlushRecording, 0, 0),

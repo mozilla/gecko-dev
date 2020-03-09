@@ -129,18 +129,24 @@ enum class MessageType {
 #undef DefineEnum
 };
 
+static const size_t BulkFlag = 0x1;
+
 struct Message {
-  MessageType mType;
+  // Any flags on this message.
+  uint8_t mFlags;
 
   // Total message size, including the header.
-  uint32_t mSize;
+  uint32_t mSize : 24;
+
+  // Type of message.
+  MessageType mType;
 
   // Any associated forked process ID for this message.
   uint32_t mForkId;
 
  protected:
   Message(MessageType aType, uint32_t aSize, uint32_t aForkId)
-      : mType(aType), mSize(aSize), mForkId(aForkId) {
+      : mFlags(0), mSize(aSize), mType(aType), mForkId(aForkId) {
     MOZ_RELEASE_ASSERT(mSize >= sizeof(*this));
   }
 
@@ -166,6 +172,10 @@ struct Message {
 #undef EnumToString
           default : return "Unknown";
     }
+  }
+
+  void SetBulk() {
+    mFlags |= BulkFlag;
   }
 
  protected:

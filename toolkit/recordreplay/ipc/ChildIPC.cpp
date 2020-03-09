@@ -1001,7 +1001,7 @@ static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock) {
   }
 }
 
-void ManifestFinished(const js::CharBuffer& aBuffer) {
+void ManifestFinished(const js::CharBuffer& aBuffer, bool aBulk) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   MOZ_RELEASE_ASSERT(gProcessingManifest);
 
@@ -1009,6 +1009,10 @@ void ManifestFinished(const js::CharBuffer& aBuffer) {
 
   ManifestFinishedMessage* msg =
       ManifestFinishedMessage::New(gForkId, 0, converted.get(), converted.Length());
+  if (aBulk) {
+    msg->SetBulk();
+  }
+
   PauseMainThreadAndInvokeCallback([=]() {
     gChannel->SendMessage(std::move(*msg));
     free(msg);

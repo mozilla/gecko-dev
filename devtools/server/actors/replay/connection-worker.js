@@ -112,11 +112,13 @@ async function doConnect(id, channelId) {
     // Messages to send to the replayer.
     outgoing: [],
 
-    // Whether the replayer connection is fully established. When set,
-    // parent process logs will go to the replayer instead of the main server.
+    // Whether the main socket is fully established.
     connected: false,
 
-    // Resolve hook for any promise waiting on the socke to connect.
+    // Whether the bulk socket is open.
+    bulkOpen: false,
+
+    // Resolve hook for any promise waiting on the socket to connect.
     connectWaiter: null,
 
     // Resolve hook for any promise waiting on new outgoing messages.
@@ -132,15 +134,25 @@ async function doConnect(id, channelId) {
     PostError(`Invalid websocket address ${text}`);
   }
 
-  const socket = new WebSocket(address);
-  socket.onopen = evt => onOpen(id, evt);
-  socket.onclose = evt => onClose(id, evt);
+  // Eventually this ID will include credentials.
+  const id = (Math.random() * 1e9) | 0;
+
+  const socket = new WebSocket(`${address}/connect?id=${id}`);
+  socket.onopen = evt => onOpen(id);
+  socket.onclose = evt => onClose(id);
   socket.onmessage = evt => onMessage(id, evt);
-  socket.onerror = evt => onError(id, evt);
+  socket.onerror = evt => onError(id);
+
+  const bulkSocket = new WebSocket(`${address}/connect?id=${id}&bulk=true`);
+  bulkSocket.onopen = evt => onOpen(id, true);
+  bulkSocket.onclose = evt => onClose(id);
+  bulkSocket.onmessage = evt => onMessage(id, evt, true);
+  bulkSocket.onerror = evt => onError(id);
 
   setTimeout(() => {
     if (!connection.connected) {
       socket.close();
+      bulkSocket.close();
     }
   }, SocketTimeoutMs);
 
@@ -150,7 +162,12 @@ async function doConnect(id, channelId) {
     if (connection.outgoing.length) {
       const buf = connection.outgoing.shift();
       try {
-        socket.send(buf);
+        const bulk = checkCompleteMessage(buf);
+        if (bulk && connection.bulkOpen) {
+          bulkSocket.send(buf);
+        } else {
+          socket.send(buf);
+        }
       } catch (e) {
         PostError(`Send error ${e}`);
       }
@@ -158,6 +175,26 @@ async function doConnect(id, channelId) {
       await new Promise(resolve => (connection.sendWaiter = resolve));
     }
   }
+}
+
+function readMessage(msg, offset = 0) {
+  if (offset + 4 > msg.length) {
+    return null;
+  }
+  const bulk = msg[offset];
+  const size = msg[offset + 1] | (msg[offset + 2] << 8) | (msg[offset + 3] << 16);
+  return { bulk, size };
+}
+
+function checkCompleteMessage(buf) {
+  if (buf.byteLength < 4) {
+    PostError(`Message too short`);
+  }
+  const { bulk, size } = readMessage(new Uint8Array(buf));
+  if (size != buf.byteLength) {
+    PostError(`Message not complete`);
+  }
+  return bulk;
 }
 
 function doSend(id, buf) {
@@ -169,14 +206,48 @@ function doSend(id, buf) {
   }
 }
 
-function onOpen(id) {
+function onOpen(id, bulk) {
   // Messages can now be sent to the socket.
-  gConnections[id].openWaiter();
+  if (bulk) {
+    gConnections[id].bulkOpen = true;
+  } else {
+    gConnections[id].openWaiter();
+  }
 }
 
-function onClose(id) {
+function onClose(id, bulk) {
   postMessage({ kind: "disconnected", id });
   gConnections[id] = null;
+}
+
+// Buffers containing incomplete messages.
+const partialMessages = new Map();
+
+function extractCompleteMessages(id, bulk, data) {
+  const key = `${id}:${bulk}`;
+  const oldData = partialMessages.get(key);
+  if (oldData) {
+    partialMessages.delete(key);
+    const newData = new Uint8Array(oldData.length + data.length);
+    newData.set(oldData);
+    newData.set(data, oldData.length);
+    data = newData;
+  }
+
+  const messages = [];
+  let offset = 0;
+  while (true) {
+    const info = readMessage(data, offset);
+    if (!info || offset + info.size > data.length) {
+      if (offset < data.length) {
+        partialMessages.set(key, new Uint8Array(data.buffer, offset));
+      }
+      break;
+    }
+    messages.push(new Uint8Array(data.buffer, offset, info.size));
+    offset += info.size;
+  }
+  return messages;
 }
 
 // Message data must be sent to the main thread in the order it was received.
@@ -189,23 +260,27 @@ let gMessageWaiter = null;
 (async function processMessages() {
   while (true) {
     if (gMessages.length) {
-      const { id, promise } = gMessages.shift();
+      const { id, bulk, promise } = gMessages.shift();
       const buf = await promise;
-      postMessage({ kind: "message", id, buf });
+      const messages = extractCompleteMessages(id, bulk, new Uint8Array(buf));
+      if (messages.length) {
+        // Send these all at once so that the underlying ABO is only cloned once.
+        postMessage({ kind: "messages", id, messages });
+      }
     } else {
       await new Promise(resolve => (gMessageWaiter = resolve));
     }
   }
 })();
 
-function onMessage(id, evt) {
+function onMessage(id, evt, bulk) {
   // When we have heard back from the replayer, we are fully connected to it.
-  if (!gConnections[id].connected) {
+  if (!gConnections[id].connected && !bulk) {
     gConnections[id].connected = true;
     postMessage({ kind: "connected", id });
   }
 
-  gMessages.push({ id, promise: evt.data.arrayBuffer() });
+  gMessages.push({ id, bulk, promise: evt.data.arrayBuffer() });
   if (gMessageWaiter) {
     gMessageWaiter();
     gMessageWaiter = null;
