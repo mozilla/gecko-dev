@@ -123,7 +123,7 @@ namespace recordreplay {
   /* from the middleman to a replaying process. */             \
   _Macro(LogText)
 
-enum class MessageType {
+enum class MessageType : uint16_t {
 #define DefineEnum(Kind) Kind,
   ForEachMessageType(DefineEnum)
 #undef DefineEnum
@@ -132,11 +132,11 @@ enum class MessageType {
 static const size_t BulkFlag = 0x1;
 
 struct Message {
-  // Any flags on this message.
-  uint8_t mFlags;
-
   // Total message size, including the header.
-  uint32_t mSize : 24;
+  uint32_t mSize;
+
+  // Any flags on this message.
+  uint16_t mFlags;
 
   // Type of message.
   MessageType mType;
@@ -146,7 +146,8 @@ struct Message {
 
  protected:
   Message(MessageType aType, uint32_t aSize, uint32_t aForkId)
-      : mFlags(0), mSize(aSize), mType(aType), mForkId(aForkId) {
+      : mSize(aSize), mFlags(0), mType(aType), mForkId(aForkId) {
+    static_assert(sizeof(Message) == 12);
     MOZ_RELEASE_ASSERT(mSize >= sizeof(*this));
   }
 

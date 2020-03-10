@@ -1385,7 +1385,9 @@ Inspector.prototype = {
     this._defaultNode = null;
     this.selection.setNodeFront(null);
     this._destroyMarkup();
-    this.walker.reloadRoot();
+    if (this.walker) {
+      this.walker.reloadRoot();
+    }
 
     const onNodeSelected = async defaultNode => {
       while (this._markupLoading) {

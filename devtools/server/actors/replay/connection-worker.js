@@ -178,11 +178,11 @@ async function doConnect(id, channelId) {
 }
 
 function readMessage(msg, offset = 0) {
-  if (offset + 4 > msg.length) {
+  if (offset + 6 > msg.length) {
     return null;
   }
-  const bulk = msg[offset];
-  const size = msg[offset + 1] | (msg[offset + 2] << 8) | (msg[offset + 3] << 16);
+  const bulk = !!msg[offset + 4];
+  const size = msg[offset] | (msg[offset + 1] << 8) | (msg[offset + 2] << 16) | (msg[offset + 3] << 24);
   return { bulk, size };
 }
 
