@@ -1,0 +1,67 @@
+diff --git a/security/nss/cmd/pk11mode/pk11mode.c b/security/nss/cmd/pk11mode/pk11mode.c
+--- a/security/nss/cmd/pk11mode/pk11mode.c
++++ b/security/nss/cmd/pk11mode/pk11mode.c
+@@ -3635,6 +3635,7 @@ PKM_FindAllObjects(CK_FUNCTION_LIST_PTR 
+         if (CKR_OK != crv) {
+             PKM_Error("C_FindObjects(%lu, , 1, ) returned 0x%08X, %-26s\n",
+                       h, crv, PKM_CK_RVtoStr(crv));
++            free(pTemplate);
+             return crv;
+         }
+ 
+@@ -3671,6 +3672,7 @@ PKM_FindAllObjects(CK_FUNCTION_LIST_PTR 
+                           "%lu) returned 0x%08X, %-26s\n",
+                           h, o, number_of_all_known_attribute_types, crv,
+                           PKM_CK_RVtoStr(crv));
++                free(pTemplate);
+                 return crv;
+         }
+ 
+@@ -3700,6 +3702,7 @@ PKM_FindAllObjects(CK_FUNCTION_LIST_PTR 
+         if ((CK_ATTRIBUTE_PTR)NULL == pT2) {
+             PKM_Error("[pT2 memory allocation of %lu bytes failed]\n",
+                       nAttributes * sizeof(CK_ATTRIBUTE));
++            free(pTemplate);
+             return crv;
+         }
+ 
+@@ -3714,6 +3717,8 @@ PKM_FindAllObjects(CK_FUNCTION_LIST_PTR 
+                     if ((CK_VOID_PTR)NULL == pT2[l].pValue) {
+                         PKM_Error("pValue memory allocation of %lu bytes failed]\n",
+                                   pT2[l].ulValueLen);
++                        free(pt2);
++                        free(pTemplate);
+                         return crv;
+                     }
+                 } else
+@@ -3735,6 +3740,7 @@ PKM_FindAllObjects(CK_FUNCTION_LIST_PTR 
+                 PKM_Error("C_GetAtributeValue(%lu, %lu, {existent attribute"
+                           " types}, %lu) returned 0x%08X, %-26s\n",
+                           h, o, nAttributes, crv, PKM_CK_RVtoStr(crv));
++                free(pTemplate);
+                 return crv;
+         }
+ 
+@@ -3791,6 +3797,7 @@ PKM_FindAllObjects(CK_FUNCTION_LIST_PTR 
+     if (CKR_OK != crv) {
+         PKM_Error("C_FindObjectsFinal(%lu) returned 0x%08X, %-26s\n", h, crv,
+                   PKM_CK_RVtoStr(crv));
++        free(pTemplate);
+         return crv;
+     }
+ 
+@@ -3800,9 +3807,11 @@ PKM_FindAllObjects(CK_FUNCTION_LIST_PTR 
+     if (CKR_OK != crv) {
+         PKM_Error("C_CloseSession(%lu) returned 0x%08X, %-26s\n", h, crv,
+                   PKM_CK_RVtoStr(crv));
+-        return crv;
+-    }
+-
++        free(pTemplate);
++        return crv;
++    }
++
++    free(pTemplate);
+     return crv;
+ }
+ /* session to create, find, and delete a couple session objects */
