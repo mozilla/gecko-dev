@@ -224,9 +224,6 @@ Inspector.prototype = {
     if (this.currentTarget.isReplayEnabled()) {
       const dbg = await this._getDebugger();
       this._replayResumed = !dbg.isPaused();
-
-      this.currentTarget.threadFront.on("paused", this.handleThreadPaused);
-      this.currentTarget.threadFront.on("resumed", this.handleThreadResumed);
     }
 
     await this.toolbox.targetList.watchTargets(
@@ -439,6 +436,8 @@ Inspector.prototype = {
     this.toolbox.on("host-changed", this.onHostChanged);
     this.selection.on("new-node-front", this.onNewSelection);
     this.selection.on("detached-front", this.onDetached);
+    this.currentTarget.threadFront.on("paused", this.handleThreadPaused);
+    this.currentTarget.threadFront.on("resumed", this.handleThreadResumed);
 
     // Log the 3 pane inspector setting on inspector open. The question we want to answer
     // is:
