@@ -82,7 +82,8 @@ void SendExternalCallOutput(ExternalCallId aId,
 // Store graphics data in aData. If aRepaint is set then the graphics will be
 // repainted according to the current state, otherwise the most recently painted
 // graphics will be returned.
-bool GetGraphics(bool aRepaint, nsACString& aData);
+bool GetGraphics(bool aRepaint, const nsACString& aMimeType,
+                 const nsACString& aEncodeOptions, nsACString& aData);
 
 // Return whether a non-main thread is performing a paint.
 bool PaintingInProgress();

@@ -92,7 +92,8 @@ void SendGraphicsMemoryToChild();
 void UpdateGraphicsAfterPaint(const PaintMessage& aMsg);
 
 // Update the graphics painted in the UI process according to some paint data.
-void PaintGraphics(const nsACString& aImageData, const nsACString& aOptions);
+void PaintGraphics(const nsACString& aMimeType, const nsACString& aImageData,
+                   const nsACString& aOptions);
 
 // Clear any graphics painted in the UI process.
 void ClearGraphics(const nsACString& aOptions);

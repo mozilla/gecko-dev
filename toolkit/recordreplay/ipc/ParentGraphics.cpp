@@ -179,7 +179,8 @@ void UpdateGraphicsAfterPaint(const PaintMessage& aMsg) {
 // Map holding the data from the last paint alive.
 gfx::DataSourceSurface::ScopedMap* gLastMap;
 
-void PaintGraphics(const nsACString& aImageData, const nsACString& aOptions) {
+void PaintGraphics(const nsACString& aMimeType, const nsACString& aImageData,
+                   const nsACString& aOptions) {
   if (!gGraphics) {
     InitGraphicsSandbox();
   }
@@ -189,7 +190,7 @@ void PaintGraphics(const nsACString& aImageData, const nsACString& aOptions) {
   MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
 
   RefPtr<gfx::SourceSurface> surface = image::ImageOps::DecodeToSurface(
-      stream.forget(), NS_LITERAL_CSTRING("image/png"), 0);
+      stream.forget(), aMimeType, 0);
   MOZ_RELEASE_ASSERT(surface);
 
   RefPtr<gfx::DataSourceSurface> dataSurface = surface->GetDataSurface();

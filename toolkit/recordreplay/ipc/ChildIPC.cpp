@@ -836,17 +836,20 @@ already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(
   return drawTarget.forget();
 }
 
-bool EncodeGraphics(nsACString& aData) {
+static bool EncodeGraphics(const nsACString& aMimeType,
+                           const nsACString& aEncodeOptions,
+                           nsACString& aData) {
   AutoPassThroughThreadEvents pt;
 
   // Get an image encoder for the media type.
-  nsCString encoderCID("@mozilla.org/image/encoder;2?type=image/png");
+  nsPrintfCString encoderCID("@mozilla.org/image/encoder;2?type=%s",
+                             nsCString(aMimeType).get());
   nsCOMPtr<imgIEncoder> encoder = do_CreateInstance(encoderCID.get());
 
   size_t stride = layers::ImageDataSerializer::ComputeRGBStride(gSurfaceFormat,
                                                                 gPaintWidth);
 
-  nsString options;
+  nsString options = NS_ConvertUTF8toUTF16(aEncodeOptions);
   nsresult rv = encoder->InitFromData(
       (const uint8_t*)gDrawTargetBuffer, stride * gPaintHeight, gPaintWidth,
       gPaintHeight, stride, imgIEncoder::INPUT_FORMAT_HOSTARGB, options);
@@ -923,7 +926,8 @@ void NotifyPaintComplete() {
 // Whether we have repainted since diverging from the recording.
 static bool gDidRepaint;
 
-bool GetGraphics(bool aRepaint, nsACString& aData) {
+bool GetGraphics(bool aRepaint, const nsACString& aMimeType,
+                 const nsACString& aEncodeOptions, nsACString& aData) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   EnsureNonMainThreadsAreSpawned();
@@ -965,7 +969,7 @@ bool GetGraphics(bool aRepaint, nsACString& aData) {
     return false;
   }
 
-  return EncodeGraphics(aData);
+  return EncodeGraphics(aMimeType, aEncodeOptions, aData);
 }
 
 bool PaintingInProgress() {

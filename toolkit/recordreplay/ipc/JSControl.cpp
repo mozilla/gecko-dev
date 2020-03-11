@@ -391,9 +391,14 @@ static bool Middleman_Ping(JSContext* aCx, unsigned aArgc, Value* aVp) {
 static bool Middleman_PaintGraphics(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
+  nsAutoCString mimeType;
+  if (args.get(0).isString()) {
+    ConvertJSStringToCString(aCx, args.get(0).toString(), mimeType);
+  }
+
   nsAutoCString options;
-  if (args.get(1).isObject()) {
-    RootedObject obj(aCx, &args.get(1).toObject());
+  if (args.get(2).isObject()) {
+    RootedObject obj(aCx, &args.get(2).toObject());
 
     CharBuffer optionsBuffer;
     if (!ToJSONMaybeSafely(aCx, obj, FillCharBufferCallback, &optionsBuffer)) {
@@ -403,7 +408,7 @@ static bool Middleman_PaintGraphics(JSContext* aCx, unsigned aArgc, Value* aVp) 
     options = NS_ConvertUTF16toUTF8(nsString(optionsBuffer.begin(), optionsBuffer.length()));
   }
 
-  if (!args.get(0).isString()) {
+  if (!args.get(1).isString()) {
     parent::ClearGraphics(options);
 
     args.rval().setUndefined();
@@ -411,7 +416,7 @@ static bool Middleman_PaintGraphics(JSContext* aCx, unsigned aArgc, Value* aVp) 
   }
 
   nsAutoCString dataCString;
-  ConvertJSStringToCString(aCx, args.get(0).toString(), dataCString);
+  ConvertJSStringToCString(aCx, args.get(1).toString(), dataCString);
 
   nsCString dataBinary;
   nsresult rv = Base64Decode(dataCString, dataBinary);
@@ -421,7 +426,7 @@ static bool Middleman_PaintGraphics(JSContext* aCx, unsigned aArgc, Value* aVp) 
     return false;
   }
 
-  parent::PaintGraphics(dataBinary, options);
+  parent::PaintGraphics(mimeType, dataBinary, options);
 
   args.rval().setUndefined();
   return true;
@@ -1089,8 +1094,19 @@ static bool RecordReplay_GetContent(JSContext* aCx, unsigned aArgc,
 static bool RecordReplay_GetGraphics(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
+  if (!args.get(1).isString() || !args.get(2).isString()) {
+    JS_ReportErrorASCII(aCx, "Expected string arguments");
+    return false;
+  }
+
+  bool repaint = ToBoolean(args.get(0));
+
+  nsAutoCString mimeType, encodeOptions;
+  ConvertJSStringToCString(aCx, args.get(1).toString(), mimeType);
+  ConvertJSStringToCString(aCx, args.get(2).toString(), encodeOptions);
+
   nsCString data;
-  if (!child::GetGraphics(ToBoolean(args.get(0)), data)) {
+  if (!child::GetGraphics(repaint, mimeType, encodeOptions, data)) {
     args.rval().setNull();
     return true;
   }
@@ -1825,7 +1841,7 @@ static const JSFunctionSpec gMiddlemanMethods[] = {
     JS_FN("spawnReplayingChild", Middleman_SpawnReplayingChild, 1, 0),
     JS_FN("sendManifest", Middleman_SendManifest, 4, 0),
     JS_FN("ping", Middleman_Ping, 3, 0),
-    JS_FN("paintGraphics", Middleman_PaintGraphics, 2, 0),
+    JS_FN("paintGraphics", Middleman_PaintGraphics, 3, 0),
     JS_FN("restoreMainGraphics", Middleman_RestoreMainGraphics, 0, 0),
     JS_FN("restoreSuppressedEventListener", Middleman_RestoreSuppressedEventListener, 0, 0),
     JS_FN("inRepaintStressMode", Middleman_InRepaintStressMode, 0, 0),
@@ -1859,7 +1875,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("setRecordingSummary", RecordReplay_SetRecordingSummary, 1, 0),
     JS_FN("getRecordingSummary", RecordReplay_GetRecordingSummary, 0, 0),
     JS_FN("getContent", RecordReplay_GetContent, 1, 0),
-    JS_FN("getGraphics", RecordReplay_GetGraphics, 1, 0),
+    JS_FN("getGraphics", RecordReplay_GetGraphics, 3, 0),
     JS_FN("hadUnhandledExternalCall", RecordReplay_HadUnhandledExternalCall, 0, 0),
     JS_FN("isScanningScripts", RecordReplay_IsScanningScripts, 0, 0),
     JS_FN("setScanningScripts", RecordReplay_SetScanningScripts, 1, 0),
