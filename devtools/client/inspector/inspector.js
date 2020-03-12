@@ -1851,6 +1851,7 @@ Inspector.prototype = {
     this.sidebar = null;
     this.store = null;
     this.telemetry = null;
+    this._pendingSelection = null;
   },
 
   async _waitForMarkupNotLoading() {

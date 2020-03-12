@@ -199,10 +199,12 @@ function checkCompleteMessage(buf) {
 
 function doSend(id, buf) {
   const connection = gConnections[id];
-  connection.outgoing.push(buf);
-  if (connection.sendWaiter) {
-    connection.sendWaiter();
-    connection.sendWaiter = null;
+  if (connection) {
+    connection.outgoing.push(buf);
+    if (connection.sendWaiter) {
+      connection.sendWaiter();
+      connection.sendWaiter = null;
+    }
   }
 }
 
