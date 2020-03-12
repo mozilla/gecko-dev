@@ -1494,6 +1494,7 @@ function createRecordingButton() {
   let cloudStatusUpdatedCallback;
 
   ChromeUtils.setCloudReplayStatusCallback((status, progress, max) => {
+    dump(`CloudReplayStatus ${status}\n`);
     refreshAllRecordingButtons();
     if (cloudStatusUpdatedCallback) {
       cloudStatusUpdatedCallback(status);
