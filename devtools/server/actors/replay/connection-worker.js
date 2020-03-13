@@ -192,7 +192,7 @@ function messageDescription(msg) {
   const { bulk, size } = readMessage(msg);
   let hash = 0;
   for (let i = 0; i < size; i++) {
-    hash = (((hash << 5) - hash) + msg[i]) | 0;
+    hash = (((hash << 5) - hash) + msg[i]) >>> 0;
   }
   return `Size ${size} Bulk ${bulk} Hash ${hash}`;
 }
