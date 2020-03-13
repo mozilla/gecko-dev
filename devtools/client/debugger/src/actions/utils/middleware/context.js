@@ -26,7 +26,7 @@ function validateActionContext(getState, action) {
 function actionLogData(action) {
   switch (action.type) {
     case "COMMAND":
-      return action.command;
+      return " " + action.command;
   }
   return "";
 }
@@ -39,7 +39,9 @@ function context({ dispatch, getState }: ThunkArgs) {
       validateActionContext(getState, action);
     }
 
-    ChromeUtils.recordReplayLog(`Debugger ${action.type} ${actionLogData(action)}`);
+    const data = actionLogData(action);
+    const status = action.status ? ` [${action.status}]` : "";
+    ChromeUtils.recordReplayLog(`Debugger ${action.type}${data}${status}`);
 
     return next(action);
   };
