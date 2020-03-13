@@ -1106,7 +1106,6 @@ Document* nsBulletFrame::GetOurCurrentDoc() const {
 void nsBulletFrame::OnSizeAvailable(imgIRequest* aRequest,
                                     imgIContainer* aImage) {
   if (!aImage) return;
-  if (!aRequest) return;
 
   uint32_t status;
   aRequest->GetImageStatus(&status);

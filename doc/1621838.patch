@@ -1,0 +1,67 @@
+diff --git a/layout/generic/nsBulletFrame.cpp b/layout/generic/nsBulletFrame.cpp
+--- a/layout/generic/nsBulletFrame.cpp
++++ b/layout/generic/nsBulletFrame.cpp
+@@ -1108,17 +1108,16 @@ nsBulletFrame::Notify(imgIRequest* aRequ
+ Document* nsBulletFrame::GetOurCurrentDoc() const {
+   nsIContent* parentContent = GetParent()->GetContent();
+   return parentContent ? parentContent->GetComposedDoc() : nullptr;
+ }
+ 
+ nsresult nsBulletFrame::OnSizeAvailable(imgIRequest* aRequest,
+                                         imgIContainer* aImage) {
+   if (!aImage) return NS_ERROR_INVALID_ARG;
+-  if (!aRequest) return NS_ERROR_INVALID_ARG;
+ 
+   uint32_t status;
+   aRequest->GetImageStatus(&status);
+   if (status & imgIRequest::STATUS_ERROR) {
+     return NS_OK;
+   }
+ 
+   nscoord w, h;
+diff --git a/layout/generic/nsImageFrame.cpp b/layout/generic/nsImageFrame.cpp
+--- a/layout/generic/nsImageFrame.cpp
++++ b/layout/generic/nsImageFrame.cpp
+@@ -678,19 +678,17 @@ nsresult nsImageFrame::Notify(imgIReques
+     return OnLoadComplete(aRequest, status);
+   }
+ 
+   return NS_OK;
+ }
+ 
+ nsresult nsImageFrame::OnSizeAvailable(imgIRequest* aRequest,
+                                        imgIContainer* aImage) {
+-  if (!aImage) {
+-    return NS_ERROR_INVALID_ARG;
+-  }
++  if (!aImage) return NS_ERROR_INVALID_ARG;
+ 
+   /* Get requested animation policy from the pres context:
+    *   normal = 0
+    *   one frame = 1
+    *   one loop = 2
+    */
+   aImage->SetAnimationMode(PresContext()->ImageAnimationMode());
+ 
+diff --git a/layout/style/ImageLoader.cpp b/layout/style/ImageLoader.cpp
+--- a/layout/style/ImageLoader.cpp
++++ b/layout/style/ImageLoader.cpp
+@@ -677,16 +677,18 @@ ImageLoader::Notify(imgIRequest* aReques
+     return OnLoadComplete(aRequest);
+   }
+ 
+   return NS_OK;
+ }
+ 
+ nsresult ImageLoader::OnSizeAvailable(imgIRequest* aRequest,
+                                       imgIContainer* aImage) {
++  if (!aImage) return NS_ERROR_INVALID_ARG;
++
+   nsPresContext* presContext = GetPresContext();
+   if (!presContext) {
+     return NS_OK;
+   }
+ 
+   aImage->SetAnimationMode(presContext->ImageAnimationMode());
+ 
+   FrameSet* frameSet = mRequestToFrameMap.Get(aRequest);

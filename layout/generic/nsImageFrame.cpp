@@ -706,9 +706,7 @@ void nsImageFrame::Notify(imgIRequest* aRequest, int32_t aType,
 
 void nsImageFrame::OnSizeAvailable(imgIRequest* aRequest,
                                    imgIContainer* aImage) {
-  if (!aImage) {
-    return;
-  }
+  if (!aImage) return;
 
   /* Get requested animation policy from the pres context:
    *   normal = 0

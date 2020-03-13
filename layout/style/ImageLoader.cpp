@@ -697,6 +697,8 @@ void ImageLoader::Notify(imgIRequest* aRequest, int32_t aType,
 
 void ImageLoader::OnSizeAvailable(imgIRequest* aRequest,
                                   imgIContainer* aImage) {
+  if (!aImage) return;
+
   nsPresContext* presContext = GetPresContext();
   if (!presContext) {
     return;
