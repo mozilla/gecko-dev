@@ -175,6 +175,16 @@ struct Message {
     }
   }
 
+  uint32_t Hash() const {
+    // Avoid using the usual hash functions so that this can be matched against
+    // hashes computed in JS.
+    uint32_t hash = 0;
+    for (uint32_t i = 0; i < mSize; i++) {
+      hash = (((hash << 5) - hash) + ((const uint8_t*)this)[i]) | 0;
+    }
+    return hash;
+  }
+
   void SetBulk() {
     mFlags |= BulkFlag;
   }

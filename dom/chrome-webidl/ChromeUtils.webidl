@@ -123,6 +123,9 @@ namespace ChromeUtils {
   void releaseAssert(boolean condition,
                      optional DOMString message = "<no message>");
 
+  // In the UI process, how much time has elapsed since initialization.
+  double recordReplayElapsedTime();
+
 #ifdef NIGHTLY_BUILD
 
   /**

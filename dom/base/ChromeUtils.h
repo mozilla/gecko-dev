@@ -208,6 +208,8 @@ class ChromeUtils {
                               const nsAString& aText);
   static void RecordReplayLog(const nsAString& aText);
 
+  static double RecordReplayElapsedTime(const GlobalObject& aGlobal);
+
   static void GenerateMediaControlKeysTestEvent(
       const GlobalObject& aGlobal, MediaControlKeysTestEvent aEvent);
 };

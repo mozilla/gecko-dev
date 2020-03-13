@@ -1200,6 +1200,11 @@ void ChromeUtils::RecordReplayLog(const GlobalObject& aGlobal,
 }
 
 /* static */
+double ChromeUtils::RecordReplayElapsedTime(const GlobalObject& aGlobal) {
+  return recordreplay::parent::ElapsedTime();
+}
+
+/* static */
 void ChromeUtils::RecordReplayLog(const nsAString& aText) {
   GlobalObject* global = nullptr;
   RecordReplayLog(*global, aText);

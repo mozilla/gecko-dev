@@ -162,6 +162,8 @@ async function doConnect(id, channelId) {
     if (connection.outgoing.length) {
       const buf = connection.outgoing.shift();
       try {
+        const elapsed = ChromeUtils.recordReplayElapsedTime();
+        doLog(`SocketSend ${elapsed} ${messageDescription(new Uint8Array(buf))}\n`);
         const bulk = checkCompleteMessage(buf);
         if (bulk && connection.bulkOpen) {
           bulkSocket.send(buf);
@@ -184,6 +186,15 @@ function readMessage(msg, offset = 0) {
   const bulk = !!msg[offset + 4];
   const size = msg[offset] | (msg[offset + 1] << 8) | (msg[offset + 2] << 16) | (msg[offset + 3] << 24);
   return { bulk, size };
+}
+
+function messageDescription(msg) {
+  const { bulk, size } = readMessage(msg);
+  let hash = 0;
+  for (let i = 0; i < size; i++) {
+    hash = (((hash << 5) - hash) + msg[i]) | 0;
+  }
+  return `Size ${size} Bulk ${bulk} Hash ${hash}`;
 }
 
 function checkCompleteMessage(buf) {
@@ -257,6 +268,8 @@ function extractCompleteMessages(id, bulk, data) {
     // Copy the message into its own ArrayBuffer.
     const msg = new Uint8Array(info.size);
     msg.set(new Uint8Array(data.buffer, offset, info.size));
+    const elapsed = ChromeUtils.recordReplayElapsedTime();
+    doLog(`SocketRecv ${elapsed} ${messageDescription(msg)}\n`);
     messages.push(msg.buffer);
     offset += info.size;
   }

@@ -49,6 +49,8 @@ void GetWebReplayJS(nsAutoCString& aControlJS, nsAutoCString& aReplayJS);
 void GetCloudReplayStatus(nsAString& aResult);
 void SetCloudReplayStatusCallback(JS::HandleValue aCallback);
 
+double ElapsedTime();
+
 // Middleman process API
 
 // Get the pid of the UI process.

@@ -1227,7 +1227,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     }
 
     try {
-      ChromeUtils.recordReplayLog(`ThreadActor.resume Start ${resumeLimit} ${rewind}`);
+      ChromeUtils.recordReplayLog(`ThreadActor.resume Start ${JSON.stringify(resumeLimit)} ${rewind}`);
 
       if (resumeLimit) {
         await this._handleResumeLimit({ resumeLimit, rewind });
