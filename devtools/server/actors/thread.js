@@ -1227,6 +1227,8 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     }
 
     try {
+      ChromeUtils.recordReplayLog(`ThreadActor.resume Start`);
+
       if (resumeLimit) {
         await this._handleResumeLimit({ resumeLimit, rewind });
       } else {
@@ -1234,9 +1236,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       }
 
       this.doResume({ resumeLimit, rewind });
+      ChromeUtils.recordReplayLog(`ThreadActor.resume End`);
       return {};
     } catch (error) {
-      ChromeUtils.recordReplayLog(`ThreadActor.onResume Error: ${error}`);
+      ChromeUtils.recordReplayLog(`ThreadActor.resume Error: ${error}`);
       return error instanceof Error
         ? {
             error: "unknownError",
@@ -1355,6 +1358,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     }
 
     if (isReplaying) {
+      ChromeUtils.recordReplayLog(`ThreadActor.frames Start`);
       const waitPromise = this.dbg.replayWaitForPauseData();
       if (waitPromise) {
         const pauseCounter = this.dbg.replayPauseCounter();
@@ -1364,6 +1368,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
           return { frames: [] };
         }
       }
+      ChromeUtils.recordReplayLog(`ThreadActor.frames End`);
     }
 
     // Find the starting frame...

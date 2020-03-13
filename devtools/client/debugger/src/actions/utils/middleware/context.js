@@ -23,6 +23,14 @@ function validateActionContext(getState, action) {
   validateContext(getState(), action.cx);
 }
 
+function actionLogData(action) {
+  switch (action.type) {
+    case "COMMAND":
+      return action.command;
+  }
+  return "";
+}
+
 // Middleware which looks for actions that have a cx property and ignores
 // them if the context is no longer valid.
 function context({ dispatch, getState }: ThunkArgs) {
@@ -31,7 +39,7 @@ function context({ dispatch, getState }: ThunkArgs) {
       validateActionContext(getState, action);
     }
 
-    ChromeUtils.recordReplayLog(`Debugger:${action.type}`);
+    ChromeUtils.recordReplayLog(`Debugger ${action.type} ${actionLogData(action)}`);
 
     return next(action);
   };
