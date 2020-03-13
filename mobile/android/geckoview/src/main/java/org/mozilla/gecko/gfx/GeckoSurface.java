@@ -44,8 +44,8 @@ public final class GeckoSurface extends Surface {
 
         readFromParcel(p);
         mHandle = p.readInt();
-        mIsSingleBuffer = p.readByte() == 1 ? true : false;
-        mIsAvailable = (p.readByte() == 1 ? true : false);
+        mIsSingleBuffer = p.readByte() == 1;
+        mIsAvailable = p.readByte() == 1;
         mMyPid = p.readInt();
 
         dummy.release();
