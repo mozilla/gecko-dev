@@ -104,6 +104,9 @@ async function onServerMessage(evt) {
 // and reattempting to connect.
 const SocketTimeoutMs = 5000;
 
+let totalSent = 0;
+let totalReceived = 0;
+
 async function doConnect(id, channelId) {
   if (gConnections[id]) {
     PostError(`Duplicate connection ID ${id}`);
@@ -162,8 +165,9 @@ async function doConnect(id, channelId) {
     if (connection.outgoing.length) {
       const buf = connection.outgoing.shift();
       try {
-        const elapsed = ChromeUtils.recordReplayElapsedTime();
-        doLog(`SocketSend ${elapsed} ${messageDescription(new Uint8Array(buf))}\n`);
+        totalSent += buf.byteLength;
+        const desc = messageDescription(new Uint8Array(buf));
+        doLog(`SocketSend Elapsed ${elapsedTime()} Total ${totalSent} Message ${desc}\n`);
         const bulk = checkCompleteMessage(buf);
         if (bulk && connection.bulkOpen) {
           bulkSocket.send(buf);
@@ -268,8 +272,9 @@ function extractCompleteMessages(id, bulk, data) {
     // Copy the message into its own ArrayBuffer.
     const msg = new Uint8Array(info.size);
     msg.set(new Uint8Array(data.buffer, offset, info.size));
-    const elapsed = ChromeUtils.recordReplayElapsedTime();
-    doLog(`SocketRecv ${elapsed} ${messageDescription(msg)}\n`);
+    totalReceived += info.size;
+    const desc = messageDescription(msg);
+    doLog(`SocketRecv Elapsed ${elapsedTime()} Total ${totalReceived} Message ${desc}\n`);
     messages.push(msg.buffer);
     offset += info.size;
   }
@@ -326,4 +331,9 @@ function doLog(text) {
   } else {
     postMessage({ kind: "logOffline", text });
   }
+}
+
+function elapsedTime() {
+  const time = ChromeUtils.recordReplayElapsedTime();
+  return ((time * 100) | 0) / 100;
 }
