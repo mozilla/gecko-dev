@@ -180,7 +180,7 @@ struct Message {
     // hashes computed in JS.
     uint32_t hash = 0;
     for (uint32_t i = 0; i < mSize; i++) {
-      hash = (((hash << 5) - hash) + ((const uint8_t*)this)[i]) | 0;
+      hash = ((hash << 5) - hash) + ((const uint8_t*)this)[i];
     }
     return hash;
   }
