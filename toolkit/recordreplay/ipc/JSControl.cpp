@@ -361,8 +361,8 @@ static bool Middleman_SendManifest(JSContext* aCx, unsigned aArgc, Value* aVp) {
     msg->SetBulk();
   }
 
-  nsPrintfCString logMessage("SendManifestHash %lu %u %u\n",
-                             child->GetId(), msg->mSize, msg->Hash());
+  nsPrintfCString logMessage("SendManifestHash %lu %lu %u %u",
+                             child->GetId(), forkId, msg->mSize, msg->Hash());
   dom::ChromeUtils::RecordReplayLog(NS_ConvertUTF8toUTF16(logMessage));
 
   child->SendMessage(std::move(*msg));

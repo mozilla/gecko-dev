@@ -1018,6 +1018,10 @@ void ManifestFinished(const js::CharBuffer& aBuffer, bool aBulk) {
     msg->SetBulk();
   }
 
+  nsPrintfCString logMessage("ManifestFinishedHash %lu %u %u\n",
+                             GetForkId(), msg->mSize, msg->Hash());
+  Print(logMessage.get());
+
   PauseMainThreadAndInvokeCallback([=]() {
     gChannel->SendMessage(std::move(*msg));
     free(msg);
