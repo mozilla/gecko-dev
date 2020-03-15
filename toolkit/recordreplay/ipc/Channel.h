@@ -189,6 +189,10 @@ struct Message {
     mFlags |= BulkFlag;
   }
 
+  bool Bulk() const {
+    return mFlags & BulkFlag;
+  }
+
  protected:
   template <typename T, typename Elem>
   Elem* Data() {

@@ -97,6 +97,8 @@ function onMessage(evt) {
 
 // eslint-disable-next-line no-unused-vars
 function Connect(channelId) {
+  dump(`RecordReplayConnect\n`);
+  ChromeUtils.recordReplayLog(`RecordReplayConnect`);
   const id = gNextConnectionId++;
   gWorker.postMessage({ kind: "connect", id, channelId });
   return id;

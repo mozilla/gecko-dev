@@ -165,20 +165,21 @@ void SetConnectionStatus(uint32_t aChannelId, const nsCString& aStatus) {
 }
 
 static void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
-                                    size_t aForkId, const char* aBuffer,
+                                    size_t aForkId, bool aBulk, const char* aBuffer,
                                     size_t aBufferSize) {
   MOZ_RELEASE_ASSERT(IsInitialized());
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  JS::AutoValueArray<3> args(cx);
+  JS::AutoValueArray<4> args(cx);
   args[0].setInt32(aChild->GetId());
   args[1].setInt32(aForkId);
+  args[2].setBoolean(aBulk);
 
   NS_ConvertUTF8toUTF16 buf(aBuffer, aBufferSize);
 
-  if (aBufferSize && !JS_ParseJSON(cx, buf.get(), buf.Length(), args[2])) {
+  if (aBufferSize && !JS_ParseJSON(cx, buf.get(), buf.Length(), args[3])) {
     MOZ_CRASH("ForwardManifestFinished");
   }
 
@@ -190,7 +191,7 @@ static void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
 
 void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
                              const ManifestFinishedMessage& aMsg) {
-  ForwardManifestFinished(aChild, aMsg.mForkId, aMsg.BinaryData(),
+  ForwardManifestFinished(aChild, aMsg.mForkId, aMsg.Bulk(), aMsg.BinaryData(),
                           aMsg.BinaryDataSize());
 }
 
