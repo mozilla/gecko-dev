@@ -198,7 +198,7 @@ void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
 void ForwardUnhandledDivergence(parent::ChildProcessInfo* aChild,
                                 const UnhandledDivergenceMessage& aMsg) {
   char buf[] = "{\"unhandledDivergence\":true}";
-  ForwardManifestFinished(aChild, aMsg.mForkId, buf, sizeof(buf) - 1);
+  ForwardManifestFinished(aChild, aMsg.mForkId, false, buf, sizeof(buf) - 1);
 }
 
 void ForwardPingResponse(parent::ChildProcessInfo* aChild,
