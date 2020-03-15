@@ -335,5 +335,5 @@ function doLog(text) {
 
 function elapsedTime() {
   const time = ChromeUtils.recordReplayElapsedTime();
-  return ((time * 100) | 0) / 100;
+  return ((time * 1000) | 0) / 1000;
 }
