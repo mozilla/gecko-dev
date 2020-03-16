@@ -9,6 +9,7 @@ var Pipe = CC("@mozilla.org/pipe;1", "nsIPipe", "init");
 function run_test() {
   test_not_initialized();
   test_ends_are_threadsafe();
+  test_nspipe3_search_null_ptr_check();
 }
 
 function test_not_initialized() {
@@ -52,4 +53,16 @@ function test_ends_are_threadsafe() {
   os = p.outputStream.QueryInterface(Ci.nsIClassInfo);
   Assert.ok(Boolean(is.flags & Ci.nsIClassInfo.THREADSAFE));
   Assert.ok(Boolean(os.flags & Ci.nsIClassInfo.THREADSAFE));
+}
+
+
+function test_nspipe3_search_null_ptr_check(){
+  var pipe = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
+  try{
+    pipe.init(true, true, 0, 0xffffffff, null);
+    pipe.inputStream.search(null, false, {}, {});
+  } 
+  catch(e){
+      console.log("error is " + e);
+  }  
 }

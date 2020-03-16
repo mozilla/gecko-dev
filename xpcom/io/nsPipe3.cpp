@@ -1443,12 +1443,26 @@ nsPipeInputStream::Search(const char* aForString, bool aIgnoreCase,
   char* cursor1;
   char* limit1;
   uint32_t index = 0, offset = 0;
+
+  if(aForString == nullptr){
+    return NS_ERROR_UNEXPECTED;
+  }
+
   uint32_t strLen = strlen(aForString);
 
   mPipe->PeekSegment(mReadState, 0, cursor1, limit1);
   if (cursor1 == limit1) {
     *aFound = false;
     *aOffsetSearchedTo = 0;
+
+    if(aFound == nullptr){
+        return NS_ERROR_UNEXPECTED;
+    }
+
+    if(aOffsetSearchedTo == nullptr){
+        return NS_ERROR_UNEXPECTED;
+    }
+
     LOG(("  result [aFound=%u offset=%u]\n", *aFound, *aOffsetSearchedTo));
     return NS_OK;
   }
@@ -1461,6 +1475,15 @@ nsPipeInputStream::Search(const char* aForString, bool aIgnoreCase,
       if (strings_equal(aIgnoreCase, &cursor1[i], aForString, strLen)) {
         *aFound = true;
         *aOffsetSearchedTo = offset + i;
+
+        if(aFound == nullptr){
+            return NS_ERROR_UNEXPECTED;
+        }
+
+        if(aOffsetSearchedTo == nullptr){
+            return NS_ERROR_UNEXPECTED;
+        }
+
         LOG(("  result [aFound=%u offset=%u]\n", *aFound, *aOffsetSearchedTo));
         return NS_OK;
       }
@@ -1478,6 +1501,15 @@ nsPipeInputStream::Search(const char* aForString, bool aIgnoreCase,
     if (cursor2 == limit2) {
       *aFound = false;
       *aOffsetSearchedTo = offset - strLen + 1;
+
+      if(aFound == nullptr){
+          return NS_ERROR_UNEXPECTED;
+      }
+
+      if(aOffsetSearchedTo == nullptr){
+          return NS_ERROR_UNEXPECTED;
+      }
+
       LOG(("  result [aFound=%u offset=%u]\n", *aFound, *aOffsetSearchedTo));
       return NS_OK;
     }
@@ -1495,6 +1527,15 @@ nsPipeInputStream::Search(const char* aForString, bool aIgnoreCase,
           strings_equal(aIgnoreCase, cursor2, strPart2, strPart2Len)) {
         *aFound = true;
         *aOffsetSearchedTo = offset - strPart1Len;
+
+        if(aFound == nullptr){
+            return NS_ERROR_UNEXPECTED;
+        }
+
+        if(aOffsetSearchedTo == nullptr){
+            return NS_ERROR_UNEXPECTED;
+        }
+        
         LOG(("  result [aFound=%u offset=%u]\n", *aFound, *aOffsetSearchedTo));
         return NS_OK;
       }
