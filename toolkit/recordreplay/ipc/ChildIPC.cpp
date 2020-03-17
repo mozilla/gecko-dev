@@ -702,6 +702,15 @@ void SetCrashNote(const char* aNote) {
   }
 }
 
+uint64_t GetMemoryUsage() {
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
+  void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_GetMemoryUsage");
+  if (ptr) {
+    return BitwiseCast<uint64_t(*)()>(ptr)();
+  }
+  return 0;
+}
+
 // In the middleman, JS to send to new replaying processes. This matches up
 // with the control JS running in this process.
 nsCString gReplayJS;

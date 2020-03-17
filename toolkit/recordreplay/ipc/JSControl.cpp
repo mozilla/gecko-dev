@@ -1229,6 +1229,15 @@ static bool RecordReplay_Crash(JSContext* aCx, unsigned aArgc, Value* aVp) {
   MOZ_CRASH("Intentional Crash");
 }
 
+static bool RecordReplay_MemoryUsage(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  uint64_t nbytes = child::GetMemoryUsage();
+
+  args.rval().setNumber((double)nbytes);
+  return true;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Recording/Replaying Script Hit Methods
 ///////////////////////////////////////////////////////////////////////////////
@@ -1904,6 +1913,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("setCrashNote", RecordReplay_SetCrashNote, 1, 0),
     JS_FN("dump", RecordReplay_Dump, 1, 0),
     JS_FN("crash", RecordReplay_Crash, 0, 0),
+    JS_FN("memoryUsage", RecordReplay_MemoryUsage, 0, 0),
     JS_FS_END};
 
 extern "C" {
