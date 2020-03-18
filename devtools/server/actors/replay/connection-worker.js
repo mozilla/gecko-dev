@@ -166,8 +166,9 @@ async function doConnect(id, channelId) {
       const buf = connection.outgoing.shift();
       try {
         totalSent += buf.byteLength;
-        const desc = messageDescription(new Uint8Array(buf));
-        doLog(`SocketSend Elapsed ${elapsedTime()} Total ${totalSent} Message ${desc}\n`);
+        //const desc = messageDescription(new Uint8Array(buf));
+        //doLog(`SocketSend Elapsed ${elapsedTime()} Total ${totalSent} Message ${desc}\n`);
+
         const bulk = checkCompleteMessage(buf);
         if (bulk && connection.bulkOpen) {
           bulkSocket.send(buf);
@@ -272,9 +273,11 @@ function extractCompleteMessages(id, bulk, data) {
     // Copy the message into its own ArrayBuffer.
     const msg = new Uint8Array(info.size);
     msg.set(new Uint8Array(data.buffer, offset, info.size));
+
     totalReceived += info.size;
-    const desc = messageDescription(msg);
-    doLog(`SocketRecv Elapsed ${elapsedTime()} Total ${totalReceived} Message ${desc}\n`);
+    //const desc = messageDescription(msg);
+    //doLog(`SocketRecv Elapsed ${elapsedTime()} Total ${totalReceived} Message ${desc}\n`);
+
     messages.push(msg.buffer);
     offset += info.size;
   }
