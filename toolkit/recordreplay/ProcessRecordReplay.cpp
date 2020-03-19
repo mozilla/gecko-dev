@@ -43,8 +43,6 @@ MOZ_NEVER_INLINE void BusyWait() {
 
 Recording* gRecording;
 
-char* gInitializationFailureMessage;
-
 bool gInitialized;
 ProcessKind gProcessKind;
 char* gRecordingFilename;

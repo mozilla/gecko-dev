@@ -295,12 +295,6 @@ void SetupRecordReplayChannel(int aArgc, char* aArgv[]) {
                          ChannelMessageHandler, gMiddlemanPid);
   gChildId = channelID.ref();
 
-  // If we failed to initialize then report it to the user.
-  if (gInitializationFailureMessage) {
-    ReportFatalError("%s", gInitializationFailureMessage);
-    Unreachable();
-  }
-
   // Wait for the parent to send us the introduction message.
   MonitorAutoLock lock(*gMonitor);
   while (!gIntroductionMessage) {

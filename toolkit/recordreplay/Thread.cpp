@@ -360,26 +360,16 @@ extern "C" {
 
 MOZ_EXPORT void RecordReplayInterface_InternalBeginPassThroughThreadEvents() {
   MOZ_ASSERT(IsRecordingOrReplaying());
-  if (!gInitializationFailureMessage) {
-    Thread::Current()->SetPassThrough(true);
-  }
+  Thread::Current()->SetPassThrough(true);
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalEndPassThroughThreadEvents() {
   MOZ_ASSERT(IsRecordingOrReplaying());
-  if (!gInitializationFailureMessage) {
-    Thread::Current()->SetPassThrough(false);
-  }
+  Thread::Current()->SetPassThrough(false);
 }
 
 MOZ_EXPORT bool RecordReplayInterface_InternalAreThreadEventsPassedThrough() {
   MOZ_ASSERT(IsRecordingOrReplaying());
-
-  // If initialization fails, pass through all thread events until we're able
-  // to report the problem to the middleman and die.
-  if (gInitializationFailureMessage) {
-    return true;
-  }
 
   Thread* thread = Thread::Current();
   return !thread || thread->PassThroughEvents();
