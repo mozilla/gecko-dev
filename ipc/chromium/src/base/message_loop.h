@@ -426,6 +426,8 @@ class MessageLoop : public base::MessagePump::Delegate {
   // Protect access to incoming_queue_.
   mozilla::Mutex incoming_queue_lock_;
 
+  int32_t total_queued_ = 0;
+
   RunState* state_;
   int run_depth_base_;
   bool shutting_down_;

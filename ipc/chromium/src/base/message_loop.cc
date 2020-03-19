@@ -412,6 +412,11 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
   {
     mozilla::MutexAutoLock locked(incoming_queue_lock_);
     incoming_queue_.push(std::move(pending_task));
+
+    total_queued_++;
+    mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper QUEUE %d %d",
+                                              total_queued_, (int) incoming_queue_.size());
+
     pump = pump_;
   }
   // Since the incoming_queue_ may contain a task that destroys this message
@@ -486,6 +491,8 @@ void MessageLoop::AddToDelayedWorkQueue(const PendingTask& pending_task) {
 }
 
 void MessageLoop::ReloadWorkQueue() {
+  MOZ_RELEASE_ASSERT(!mozilla::recordreplay::AreThreadEventsPassedThrough());
+
   // We can improve performance of our loading tasks from incoming_queue_ to
   // work_queue_ by waiting until the last minute (work_queue_ is empty) to
   // load.  That reduces the number of locks-per-task significantly when our
@@ -500,8 +507,8 @@ void MessageLoop::ReloadWorkQueue() {
   {
     mozilla::MutexAutoLock lock(incoming_queue_lock_);
 
-    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD %d",
-                                              (int) incoming_queue_.size());
+    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD %d %d",
+                                              total_queued_, (int) incoming_queue_.size());
 
     if (incoming_queue_.empty()) return;
     std::swap(incoming_queue_, work_queue_);
