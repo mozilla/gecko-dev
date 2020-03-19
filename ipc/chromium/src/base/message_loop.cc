@@ -181,6 +181,8 @@ MessageLoop::MessageLoop(Type type, nsIEventTarget* aEventTarget)
       transient_hang_timeout_(0),
       permanent_hang_timeout_(0),
       next_sequence_num_(0) {
+  MOZ_RELEASE_ASSERT(!mozilla::recordreplay::AreThreadEventsPassedThrough());
+
   DCHECK(!current()) << "should only have one message loop per thread";
   get_tls_ptr().Set(this);
 
@@ -488,6 +490,9 @@ void MessageLoop::ReloadWorkQueue() {
   // work_queue_ by waiting until the last minute (work_queue_ is empty) to
   // load.  That reduces the number of locks-per-task significantly when our
   // queues get large.
+  mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue BEGIN %d",
+                                            work_queue_.empty());
+
   if (!work_queue_.empty())
     return;  // Wait till we *really* need to lock and load.
 
@@ -495,7 +500,7 @@ void MessageLoop::ReloadWorkQueue() {
   {
     mozilla::MutexAutoLock lock(incoming_queue_lock_);
 
-    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue %d",
+    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD %d",
                                               (int) incoming_queue_.size());
 
     if (incoming_queue_.empty()) return;
