@@ -342,6 +342,13 @@ void ResetPid() { gPid = getpid(); }
 bool ReplayingInCloud() { return gReplayingInCloud; }
 const char* InstallDirectory() { return gInstallDirectory; }
 
+void ExtractCloudRecordingName(const char* aFileName, nsAutoCString& aRecordingName) {
+  const char prefix[] = "webreplay://";
+  if (!strncmp(aFileName, prefix, strlen(prefix))) {
+    aRecordingName = nsCString(aFileName + strlen(prefix));
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Record/Replay Assertions
 ///////////////////////////////////////////////////////////////////////////////

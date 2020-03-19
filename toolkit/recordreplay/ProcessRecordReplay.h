@@ -118,6 +118,9 @@ const char* InstallDirectory();
 extern ProcessKind gProcessKind;
 extern char* gRecordingFilename;
 
+// Given a recording filename referring to a cloud recording, get the recording UUID.
+void ExtractCloudRecordingName(const char* aFileName, nsAutoCString& aRecordingName);
+
 ///////////////////////////////////////////////////////////////////////////////
 // Helper Functions
 ///////////////////////////////////////////////////////////////////////////////
@@ -279,6 +282,9 @@ void DirectWrite(FileHandle aFd, const void* aData, size_t aSize);
 
 // Print a string directly to stderr.
 void DirectPrint(const char* aString);
+
+// Get the size of a file handle.
+size_t DirectFileSize(FileHandle aFd);
 
 // Read data from a file, blocking until the read completes.
 size_t DirectRead(FileHandle aFd, void* aData, size_t aSize);

@@ -623,14 +623,6 @@ base::ProcessId ParentProcessId() { return gParentPid; }
 Monitor* gMonitor;
 bool gActiveChildIsRecording;
 
-static void ExtractCloudRecordingName(const char* aFileName,
-                                      nsAutoCString& aRecordingName) {
-  const char prefix[] = "webreplay://";
-  if (!strncmp(aFileName, prefix, strlen(prefix))) {
-    aRecordingName = nsCString(aFileName + strlen(prefix));
-  }
-}
-
 void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
                          const base::SharedMemoryHandle& aPrefsHandle,
                          const ipc::FileDescriptor& aPrefMapHandle) {

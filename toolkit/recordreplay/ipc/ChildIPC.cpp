@@ -684,14 +684,50 @@ void AddPendingRecordingData() {
 
 void SaveCloudRecording(const char* aName) {
   MonitorAutoLock lock(*gMonitor);
+  AutoEnsurePassThroughThreadEvents pt;
+
   static void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_SaveCloudRecording");
-  BitwiseCast<void(*)(const char*, const char*, size_t)>(ptr)(
-      aName, gRecordingContents.begin(), gRecordingContents.length());
+  if (ptr) {
+    BitwiseCast<void(*)(const char*, const char*, size_t)>(ptr)(
+        aName, gRecordingContents.begin(), gRecordingContents.length());
+  } else {
+    // Fallback for offline testing.
+    const char* offlineDir = getenv("WEBREPLAY_OFFLINE");
+    if (!offlineDir) {
+      Print("WEBREPLAY_OFFLINE not set, crashing...\n");
+      MOZ_CRASH("SaveCloudRecording");
+    }
+    nsPrintfCString path("%s/%s", offlineDir, aName);
+
+    FileHandle file = DirectOpenFile(path.get(), /* aWriting */ true);
+    DirectWrite(file, gRecordingContents.begin(), gRecordingContents.length());
+    DirectCloseFile(file);
+  }
 }
 
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize) {
   static void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_LoadCloudRecording");
-  BitwiseCast<void(*)(char**, size_t*)>(ptr)(aBuffer, aSize);
+  if (ptr) {
+    BitwiseCast<void(*)(char**, size_t*)>(ptr)(aBuffer, aSize);
+  } else {
+    // Fallback for offline testing.
+    nsAutoCString recordingName;
+    ExtractCloudRecordingName(gRecordingFilename, recordingName);
+    MOZ_RELEASE_ASSERT(!recordingName.IsEmpty());
+
+    const char* offlineDir = getenv("WEBREPLAY_OFFLINE");
+    if (!offlineDir) {
+      Print("WEBREPLAY_OFFLINE not set, crashing...\n");
+      MOZ_CRASH("SaveCloudRecording");
+    }
+    nsPrintfCString path("%s/%s", offlineDir, recordingName.get());
+
+    FileHandle file = DirectOpenFile(path.get(), /* aWriting */ false);
+    *aSize = DirectFileSize(file);
+    *aBuffer = (char*) malloc(*aSize);
+    DirectRead(file, *aBuffer, *aSize);
+    DirectCloseFile(file);
+  }
 }
 
 void SetCrashNote(const char* aNote) {

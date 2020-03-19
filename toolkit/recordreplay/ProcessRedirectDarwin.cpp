@@ -3503,6 +3503,16 @@ void DirectPrint(const char* aString) {
   DirectWrite(STDERR_FILENO, aString, strlen(aString));
 }
 
+size_t DirectFileSize(FileHandle aFd) {
+  AutoEnsurePassThroughThreadEvents pt;
+
+  struct stat info;
+  int rv = fstat(aFd, &info);
+  MOZ_RELEASE_ASSERT(rv >= 0);
+
+  return info.st_size;
+}
+
 size_t DirectRead(FileHandle aFd, void* aData, size_t aSize) {
   static void* ptr = gOriginal_read ? gOriginal_read : BitwiseCast<void*>(read);
   ssize_t rv = HANDLE_EINTR(CallFunction<int>(ptr, aFd, aData, aSize));
