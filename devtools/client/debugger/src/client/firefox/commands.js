@@ -547,6 +547,10 @@ function fetchAncestorFramePositions(index: number) {
   currentThreadFront.fetchAncestorFramePositions(index);
 }
 
+function pickExecutionPoints(count: number) {
+  return currentThreadFront.pickExecutionPoints(count);
+}
+
 const clientCommands = {
   autocomplete,
   blackBox,
@@ -597,6 +601,7 @@ const clientCommands = {
   getFrontByID,
   timeWarp,
   fetchAncestorFramePositions,
+  pickExecutionPoints,
 };
 
 export { setupCommands, setupCommandsTopTarget, clientCommands };

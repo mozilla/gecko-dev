@@ -2048,6 +2048,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     this.emit("replayPaintFinished", { point });
   },
 
+  pickExecutionPoints(count) {
+    return this.dbg.replayPickExecutionPoints(count);
+  },
+
   /**
    * A function that the engine calls when an exception has been thrown and has
    * propagated to the specified frame.

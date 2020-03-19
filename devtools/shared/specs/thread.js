@@ -219,6 +219,16 @@ const threadSpec = generateActorSpec({
         value: RetVal("array:json"),
       },
     },
+
+    // For testing.
+    pickExecutionPoints: {
+      request: {
+        count: Arg(0, "number"),
+      },
+      response: {
+        points: RetVal("array:json"),
+      },
+    },
   },
 });
 
