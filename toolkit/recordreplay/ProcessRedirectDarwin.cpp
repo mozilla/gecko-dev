@@ -770,9 +770,6 @@ static ssize_t WaitForCvar(pthread_mutex_t* aMutex, pthread_cond_t* aCond,
   }
   lock->Exit(aMutex);
   lock->Enter(aMutex);
-  if (IsReplaying()) {
-    DirectLockMutex(aMutex);
-  }
   if (aRecordReturnValue) {
     return RecordReplayValue(rv);
   }
@@ -898,9 +895,6 @@ static PreambleResult Preamble_pthread_mutex_lock(CallArguments* aArguments) {
   MOZ_RELEASE_ASSERT(rv == 0 || rv == EDEADLK);
   if (rv == 0) {
     lock->Enter(mutex);
-    if (IsReplaying()) {
-      DirectLockMutex(mutex);
-    }
   }
   aArguments->Rval<ssize_t>() = rv;
   return PreambleResult::Veto;
@@ -926,9 +920,6 @@ static PreambleResult Preamble_pthread_mutex_trylock(
   MOZ_RELEASE_ASSERT(rv == 0 || rv == EBUSY);
   if (rv == 0) {
     lock->Enter(mutex);
-    if (IsReplaying()) {
-      DirectLockMutex(mutex);
-    }
   }
   aArguments->Rval<ssize_t>() = rv;
   return PreambleResult::Veto;

@@ -31,18 +31,22 @@ struct LockAcquires {
 
   static const size_t NoNextOwner = 0;
 
-  void ReadAndNotifyNextOwner(Thread* aCurrentThread) {
+  void ReadNextOwner() {
     MOZ_RELEASE_ASSERT(IsReplaying());
     if (mAcquires->AtEnd()) {
       mNextOwner = NoNextOwner;
     } else {
       mNextOwner = mAcquires->ReadScalar();
       if (!mNextOwner) {
-        Print("CRASH ReadAndNotifyNextOwner ZERO_ID\n");
+        Print("Error: ReadNextOwner ZeroId\n");
       }
-      if (mNextOwner != aCurrentThread->Id()) {
-        Thread::Notify(mNextOwner);
-      }
+    }
+  }
+
+  void NotifyNextOwner(Thread* aCurrentThread) {
+    MOZ_RELEASE_ASSERT(IsReplaying());
+    if (mNextOwner != NoNextOwner && mNextOwner != aCurrentThread->Id()) {
+      Thread::Notify(mNextOwner);
     }
   }
 };
@@ -65,7 +69,8 @@ static Lock* CreateNewLock(Thread* aThread, size_t aId) {
   info->mAcquires = gRecording->OpenStream(StreamName::Lock, aId);
 
   if (IsReplaying()) {
-    info->ReadAndNotifyNextOwner(aThread);
+    info->ReadNextOwner();
+    info->NotifyNextOwner(aThread);
   }
 
   return new Lock(aId);
@@ -166,8 +171,8 @@ void Lock::Enter(NativeLock* aNativeLock) {
 
   LockAcquires* acquires = gLockAcquires.Get(mId);
   if (IsRecording()) {
-    thread->Events().CheckInput(acquires->mAcquires->StreamPosition());
     acquires->mAcquires->WriteScalar(thread->Id());
+    thread->Events().CheckInput(acquires->mAcquires->StreamPosition());
   } else {
     // Wait until this thread is next in line to acquire the lock, or until it
     // has been instructed to diverge from the recording.
@@ -178,8 +183,10 @@ void Lock::Enter(NativeLock* aNativeLock) {
     if (!thread->HasDivergedFromRecording()) {
       thread->Events().CheckInput(acquires->mAcquires->StreamPosition());
       if (aNativeLock) {
+        DirectLockMutex(aNativeLock);
         thread->AddOwnedLock(aNativeLock);
       }
+      acquires->ReadNextOwner();
     }
   }
 }
@@ -193,7 +200,7 @@ void Lock::Exit(NativeLock* aNativeLock) {
 
     // Notify the next owner before releasing the lock.
     LockAcquires* acquires = gLockAcquires.Get(mId);
-    acquires->ReadAndNotifyNextOwner(thread);
+    acquires->NotifyNextOwner(thread);
   }
 }
 
@@ -202,7 +209,8 @@ void Lock::LockAcquiresUpdated(size_t aLockId) {
   LockAcquires* acquires = gLockAcquires.MaybeGet(aLockId);
   if (acquires && acquires->mAcquires &&
       acquires->mNextOwner == LockAcquires::NoNextOwner) {
-    acquires->ReadAndNotifyNextOwner(Thread::Current());
+    acquires->ReadNextOwner();
+    acquires->NotifyNextOwner(Thread::Current());
   }
 }
 
