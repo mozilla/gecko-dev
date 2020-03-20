@@ -3436,7 +3436,10 @@ MOZ_EXPORT PlatformSymbol RecordReplayInterface_PlatformSymbols[] = {
 
 const char* SymbolNameRaw(void* aPtr) {
   Dl_info info;
-  return (dladdr(aPtr, &info) && info.dli_sname) ? info.dli_sname : "???";
+  if (dladdr(aPtr, &info) && info.dli_sname && info.dli_fname && strstr(info.dli_fname, "XUL")) {
+    return info.dli_sname;
+  }
+  return "???";
 }
 
 void* DirectAllocateMemory(size_t aSize) {
