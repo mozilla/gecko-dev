@@ -382,7 +382,7 @@ struct ForkedProcess {
 static StaticInfallibleVector<ForkedProcess> gForkedProcesses;
 static FileHandle gForkWriteFd, gForkReadFd;
 static char* gFatalErrorMemory;
-static const size_t FatalErrorMemorySize = PageSize;
+static const size_t FatalErrorMemorySize = PageSize * 4;
 
 static void ForkListenerThread(void*) {
   while (true) {
