@@ -336,6 +336,17 @@ size_t Thread::LockIsOwnedByAnyThread(NativeLock* aNativeLock) {
   return 0;
 }
 
+void Thread::DumpOwnedLocks() {
+  AutoSpinLock lock(gOwnedLockSpinLock);
+  for (size_t id = MainThreadId; id <= MaxThreadId; id++) {
+    Thread* thread = GetById(id);
+    for (NativeLock* nativeLock : thread->mOwnedLocks) {
+      Lock* lock = Lock::Find(nativeLock);
+      Print("OwnedLock: Thread %lu Lock %lu Native %p\n", id, lock->Id(), nativeLock);
+    }
+  }
+}
+
 NativeLock* Thread::LastOwnedLock() {
   return mOwnedLocks.empty() ? nullptr : mOwnedLocks.back();
 }

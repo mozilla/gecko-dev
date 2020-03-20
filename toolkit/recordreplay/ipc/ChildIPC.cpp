@@ -592,6 +592,10 @@ void ReportCrash(const MinidumpInfo& aInfo, void* aFaultingAddress) {
 }
 
 void ReportFatalError(const char* aFormat, ...) {
+  Thread* thread = Thread::Current();
+  Print("FatalErrorStart %lu\n", thread ? thread->Id() : 0);
+  Thread::DumpOwnedLocks();
+
   if (!gFatalErrorMemory) {
     gFatalErrorMemory = new char[4096];
   }
