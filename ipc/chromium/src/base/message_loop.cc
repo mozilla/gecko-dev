@@ -37,6 +37,12 @@
 
 #include "MessagePump.h"
 
+namespace mozilla {
+  namespace recordreplay {
+    size_t ThreadEventPosition();
+  }
+}
+
 using base::Time;
 using base::TimeDelta;
 using base::TimeTicks;
@@ -410,7 +416,19 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
 
   RefPtr<base::MessagePump> pump;
   {
+    size_t threadPosition = 0;
+    if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+      threadPosition = mozilla::recordreplay::ThreadEventPosition();
+    }
+
     mozilla::MutexAutoLock locked(incoming_queue_lock_);
+
+    if (mozilla::recordreplay::IsRecordingOrReplaying() &&
+        !mozilla::recordreplay::HasDivergedFromRecording()) {
+      size_t newPosition = mozilla::recordreplay::ThreadEventPosition();
+      MOZ_RELEASE_ASSERT(newPosition > threadPosition);
+    }
+
     incoming_queue_.push(std::move(pending_task));
 
     total_queued_++;
@@ -505,7 +523,18 @@ void MessageLoop::ReloadWorkQueue() {
 
   // Acquire all we can from the inter-thread queue with one lock acquisition.
   {
+    size_t threadPosition = 0;
+    if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+      threadPosition = mozilla::recordreplay::ThreadEventPosition();
+    }
+
     mozilla::MutexAutoLock lock(incoming_queue_lock_);
+
+    if (mozilla::recordreplay::IsRecordingOrReplaying() &&
+        !mozilla::recordreplay::HasDivergedFromRecording()) {
+      size_t newPosition = mozilla::recordreplay::ThreadEventPosition();
+      MOZ_RELEASE_ASSERT(newPosition > threadPosition);
+    }
 
     mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD %d %d",
                                               total_queued_, (int) incoming_queue_.size());

@@ -166,6 +166,7 @@ void Lock::Enter(NativeLock* aNativeLock) {
 
   LockAcquires* acquires = gLockAcquires.Get(mId);
   if (IsRecording()) {
+    thread->Events().CheckInput(acquires->mAcquires->StreamPosition());
     acquires->mAcquires->WriteScalar(thread->Id());
   } else {
     // Wait until this thread is next in line to acquire the lock, or until it
@@ -174,8 +175,11 @@ void Lock::Enter(NativeLock* aNativeLock) {
            !thread->MaybeDivergeFromRecording()) {
       Thread::Wait();
     }
-    if (!thread->HasDivergedFromRecording() && aNativeLock) {
-      thread->AddOwnedLock(aNativeLock);
+    if (!thread->HasDivergedFromRecording()) {
+      thread->Events().CheckInput(acquires->mAcquires->StreamPosition());
+      if (aNativeLock) {
+        thread->AddOwnedLock(aNativeLock);
+      }
     }
   }
 }
