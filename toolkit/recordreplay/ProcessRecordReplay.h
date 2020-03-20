@@ -125,7 +125,7 @@ void BusyWait();
 static inline void Unreachable() { MOZ_CRASH("Unreachable"); }
 
 // Get the symbol name for a function pointer address, if available.
-const char* SymbolNameRaw(void* aAddress);
+void SymbolNameRaw(void* aAddress, nsAutoCString& aResult);
 
 static inline bool MemoryContains(void* aBase, size_t aSize, void* aPtr,
                                   size_t aPtrSize = 1) {

@@ -428,8 +428,13 @@ MOZ_EXPORT size_t RecordReplayInterface_InternalThingIndex(void* aThing) {
 MOZ_EXPORT const char* RecordReplayInterface_InternalVirtualThingName(
     void* aThing) {
   void* vtable = *(void**)aThing;
-  const char* name = SymbolNameRaw(vtable);
-  return name ? name : "(unknown)";
+  nsAutoCString value;
+  SymbolNameRaw(vtable, value);
+
+  // Leaks... only use this for debugging.
+  char* rv = new char[value.Length() + 1];
+  strcpy(rv, value.get());
+  return rv;
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalHoldJSObject(void* aJSObj) {

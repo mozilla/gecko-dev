@@ -3434,12 +3434,13 @@ MOZ_EXPORT PlatformSymbol RecordReplayInterface_PlatformSymbols[] = {
 // Direct system call API
 ///////////////////////////////////////////////////////////////////////////////
 
-const char* SymbolNameRaw(void* aPtr) {
+void SymbolNameRaw(void* aPtr, nsAutoCString& aResult) {
   Dl_info info;
-  if (dladdr(aPtr, &info) && info.dli_sname && info.dli_fname && strstr(info.dli_fname, "XUL")) {
-    return info.dli_sname;
+  if (dladdr(aPtr, &info) && info.dli_fname && strstr(info.dli_fname, "XUL")) {
+    aResult.AppendPrintf("XUL+%lu", (char*)aPtr - (char*)info.dli_fbase);
+  } else {
+    aResult.AppendPrintf("???");
   }
-  return "???";
 }
 
 void* DirectAllocateMemory(size_t aSize) {
