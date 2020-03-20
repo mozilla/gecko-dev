@@ -1,0 +1,59 @@
+diff -r 9dd52a62f5df -r 80fcece45172 intl/lwbrk/WordBreaker.cpp
+--- a/intl/lwbrk/WordBreaker.cpp	Fri Mar 20 19:30:02 2020 +0200
++++ b/intl/lwbrk/WordBreaker.cpp	Fri Mar 20 14:43:46 2020 -0400
+@@ -54,32 +54,36 @@
+     if (IS_ASCII(c)) {
+       if (ASCII_IS_SPACE(c)) {
+         return kWbClassSpace;
+-      } else if (ASCII_IS_ALPHA(c) || ASCII_IS_DIGIT(c) ||
+-                 (c == '_' && !sStopAtUnderscore)) {
++      }
++      if (ASCII_IS_ALPHA(c) || ASCII_IS_DIGIT(c) ||
++          (c == '_' && !sStopAtUnderscore)) {
+         return kWbClassAlphaLetter;
+-      } else {
+-        return kWbClassPunct;
+       }
+-    } else if (IS_THAI(c)) {
++      return kWbClassPunct;
++    }
++    if (IS_THAI(c)) {
+       return kWbClassThaiLetter;
+-    } else if (c == 0x00A0 /*NBSP*/) {
++    }
++    if (c == 0x00A0 /*NBSP*/) {
+       return kWbClassSpace;
+-    } else {
+-      return kWbClassAlphaLetter;
+     }
+-  } else {
+-    if (IS_HAN(c)) {
+-      return kWbClassHanLetter;
+-    } else if (IS_KATAKANA(c)) {
+-      return kWbClassKatakanaLetter;
+-    } else if (IS_HIRAGANA(c)) {
+-      return kWbClassHiraganaLetter;
+-    } else if (IS_HALFWIDTHKATAKANA(c)) {
+-      return kWbClassHWKatakanaLetter;
+-    } else {
+-      return kWbClassAlphaLetter;
+-    }
++    return kWbClassAlphaLetter;
++  }
++
++  if (IS_HAN(c)) {
++    return kWbClassHanLetter;
++  }
++  if (IS_KATAKANA(c)) {
++    return kWbClassKatakanaLetter;
+   }
++  if (IS_HIRAGANA(c)) {
++    return kWbClassHiraganaLetter;
++  }
++  if (IS_HALFWIDTHKATAKANA(c)) {
++    return kWbClassHWKatakanaLetter;
++  }
++  return kWbClassAlphaLetter;
++
+   return static_cast<WordBreakClass>(0);
+ }
