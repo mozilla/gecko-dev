@@ -424,17 +424,21 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
 
     mozilla::MutexAutoLock locked(incoming_queue_lock_);
 
+    size_t newPosition;
     if (mozilla::recordreplay::IsRecordingOrReplaying() &&
         !mozilla::recordreplay::HasDivergedFromRecording()) {
-      size_t newPosition = mozilla::recordreplay::ThreadEventPosition();
+      newPosition = mozilla::recordreplay::ThreadEventPosition();
       MOZ_RELEASE_ASSERT(newPosition > threadPosition);
     }
 
-    incoming_queue_.push(std::move(pending_task));
+    if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+      total_queued_.AppendPrintf("QUEUE %lu %s", newPosition,
+                                 mozilla::recordreplay::VirtualThingName((void*)pending_task.task));
+    }
+    mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper QUEUE %s %d",
+                                              total_queued_.get(), (int) incoming_queue_.size());
 
-    total_queued_++;
-    mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper QUEUE %d %d",
-                                              total_queued_, (int) incoming_queue_.size());
+    incoming_queue_.push(std::move(pending_task));
 
     pump = pump_;
   }
@@ -538,8 +542,8 @@ void MessageLoop::ReloadWorkQueue() {
 
       size_t lockId, lockPosition;
       mozilla::recordreplay::LastAcquiredLock(&lockId, &lockPosition);
-      mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD %d %d %d %d",
-                                                total_queued_, (int) incoming_queue_.size(),
+      mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD %s %d %d %d",
+                                                total_queued_.get(), (int) incoming_queue_.size(),
                                                 (int) lockId, (int) lockPosition);
     }
 
