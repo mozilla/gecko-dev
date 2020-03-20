@@ -597,7 +597,7 @@ void ReportFatalError(const char* aFormat, ...) {
   Thread::DumpOwnedLocks();
 
   if (!gFatalErrorMemory) {
-    gFatalErrorMemory = new char[4096];
+    gFatalErrorMemory = new char[FatalErrorMemorySize];
   }
 
   va_list ap;
@@ -605,7 +605,8 @@ void ReportFatalError(const char* aFormat, ...) {
   vsnprintf(gFatalErrorMemory, FatalErrorMemorySize - 1, aFormat, ap);
   va_end(ap);
 
-  Print("FatalError: %s\n", gFatalErrorMemory);
+  Print("FatalError:\n");
+  DirectPrint(gFatalErrorMemory);
 
   MOZ_CRASH("ReportFatalError");
 }
