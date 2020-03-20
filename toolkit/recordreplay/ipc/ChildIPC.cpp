@@ -605,8 +605,9 @@ void ReportFatalError(const char* aFormat, ...) {
   vsnprintf(gFatalErrorMemory, FatalErrorMemorySize - 1, aFormat, ap);
   va_end(ap);
 
-  Print("FatalError:\n");
+  Print("BeginFatalError\n");
   DirectPrint(gFatalErrorMemory);
+  Print("EndFatalError\n");
 
   MOZ_CRASH("ReportFatalError");
 }
