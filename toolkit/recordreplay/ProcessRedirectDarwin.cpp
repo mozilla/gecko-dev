@@ -732,11 +732,19 @@ void DirectUnlockMutex(pthread_mutex_t* aMutex, bool aPassThroughEvents) {
   MOZ_RELEASE_ASSERT(rv == 0);
 }
 
+static void CheckMutexLocked(const char* aWhy, pthread_mutex_t* aMutex) {
+  static void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_CheckMutexLocked");
+  if (ptr) {
+    BitwiseCast<void(*)(const char*, void*)>(ptr)(aWhy, aMutex);
+  }
+}
+
 // Handle a redirection which releases a mutex, waits in some way for a cvar,
 // and reacquires the mutex before returning.
 static ssize_t WaitForCvar(pthread_mutex_t* aMutex, pthread_cond_t* aCond,
                            bool aRecordReturnValue,
                            const std::function<ssize_t()>& aCallback) {
+  CheckMutexLocked("WaitForCvar #1", aMutex);
   Lock* lock = Lock::Find(aMutex);
   if (!lock) {
     if (IsReplaying() && !AreThreadEventsPassedThrough()) {
@@ -757,6 +765,7 @@ static ssize_t WaitForCvar(pthread_mutex_t* aMutex, pthread_cond_t* aCond,
         pthread_mutex_unlock(aMutex);
       });
     }
+    CheckMutexLocked("WaitForCvar #2", aMutex);
 
     AutoEnsurePassThroughThreadEvents pt;
     return aCallback();
