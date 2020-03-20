@@ -607,7 +607,7 @@ void ReportFatalError(const char* aFormat, ...) {
 
   Print("BeginFatalError\n");
   DirectPrint(gFatalErrorMemory);
-  Print("EndFatalError\n");
+  DirectPrint("\nEndFatalError\n");
 
   MOZ_CRASH("ReportFatalError");
 }

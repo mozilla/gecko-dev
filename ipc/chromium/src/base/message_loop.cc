@@ -431,7 +431,8 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
       MOZ_RELEASE_ASSERT(newPosition > threadPosition);
     }
 
-    if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    if (mozilla::recordreplay::IsRecordingOrReplaying() &&
+        !mozilla::recordreplay::HasDivergedFromRecording()) {
       size_t lockId, lockPosition;
       mozilla::recordreplay::LastAcquiredLock(&lockId, &lockPosition);
       total_queued_.AppendPrintf("QUEUE %lu %lu %s ", lockId, lockPosition,
