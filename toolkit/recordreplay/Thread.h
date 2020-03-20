@@ -289,6 +289,11 @@ class Thread {
   // Mark changes in the recorded locks which this thread owns.
   void AddOwnedLock(NativeLock* aLock);
   void RemoveOwnedLock(NativeLock* aLock);
+  void MaybeRemoveDestroyedOwnedLock(NativeLock* aLock);
+
+  // For diagnostics.
+  NativeLock* LastOwnedLock();
+  static size_t LockIsOwnedByAnyThread(NativeLock* aNativeLock);
 
   // Release or acquire all locks owned by this thread. This does not affect
   // the set of owned locks.

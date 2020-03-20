@@ -296,11 +296,15 @@ void Thread::Join() {
   }
 }
 
+static SpinLock gOwnedLockSpinLock;
+
 void Thread::AddOwnedLock(NativeLock* aNativeLock) {
+  AutoSpinLock lock(gOwnedLockSpinLock);
   mOwnedLocks.append(aNativeLock);
 }
 
 void Thread::RemoveOwnedLock(NativeLock* aNativeLock) {
+  AutoSpinLock lock(gOwnedLockSpinLock);
   for (int i = mOwnedLocks.length() - 1; i >= 0; i--) {
     if (mOwnedLocks[i] == aNativeLock) {
       mOwnedLocks.erase(&mOwnedLocks[i]);
@@ -308,6 +312,32 @@ void Thread::RemoveOwnedLock(NativeLock* aNativeLock) {
     }
   }
   MOZ_CRASH("RemoveOwnedLock");
+}
+
+void Thread::MaybeRemoveDestroyedOwnedLock(NativeLock* aNativeLock) {
+  AutoSpinLock lock(gOwnedLockSpinLock);
+  for (int i = mOwnedLocks.length() - 1; i >= 0; i--) {
+    if (mOwnedLocks[i] == aNativeLock) {
+      mOwnedLocks.erase(&mOwnedLocks[i]);
+    }
+  }
+}
+
+size_t Thread::LockIsOwnedByAnyThread(NativeLock* aNativeLock) {
+  AutoSpinLock lock(gOwnedLockSpinLock);
+  for (size_t id = MainThreadId; id <= MaxThreadId; id++) {
+    Thread* thread = GetById(id);
+    for (NativeLock* lock : thread->mOwnedLocks) {
+      if (lock == aNativeLock) {
+        return id;
+      }
+    }
+  }
+  return 0;
+}
+
+NativeLock* Thread::LastOwnedLock() {
+  return mOwnedLocks.empty() ? nullptr : mOwnedLocks.back();
 }
 
 void Thread::ReleaseOrAcquireOwnedLocks(OwnedLockState aState) {

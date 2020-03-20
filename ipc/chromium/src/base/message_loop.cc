@@ -40,6 +40,7 @@
 namespace mozilla {
   namespace recordreplay {
     size_t ThreadEventPosition();
+    void LastAcquiredLock(size_t* aId, size_t* aPosition);
   }
 }
 
@@ -534,10 +535,13 @@ void MessageLoop::ReloadWorkQueue() {
         !mozilla::recordreplay::HasDivergedFromRecording()) {
       size_t newPosition = mozilla::recordreplay::ThreadEventPosition();
       MOZ_RELEASE_ASSERT(newPosition > threadPosition);
-    }
 
-    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD %d %d",
-                                              total_queued_, (int) incoming_queue_.size());
+      size_t lockId, lockPosition;
+      mozilla::recordreplay::LastAcquiredLock(&lockId, &lockPosition);
+      mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD %d %d %d %d",
+                                                total_queued_, (int) incoming_queue_.size(),
+                                                (int) lockId, (int) lockPosition);
+    }
 
     if (incoming_queue_.empty()) return;
     std::swap(incoming_queue_, work_queue_);
