@@ -662,5 +662,9 @@ size_t ThreadEventPosition() {
   return Thread::Current()->Events().StreamPosition();
 }
 
+size_t CurrentThreadId() {
+  return Thread::Current()->Id();
+}
+
 }  // namespace recordreplay
 }  // namespace mozilla

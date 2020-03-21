@@ -41,6 +41,7 @@ namespace mozilla {
   namespace recordreplay {
     size_t ThreadEventPosition();
     void LastAcquiredLock(size_t* aId, size_t* aPosition);
+    size_t CurrentThreadId();
   }
 }
 
@@ -440,6 +441,10 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
                                mozilla::recordreplay::VirtualThingName((void*)pending_task.task));
     mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper QUEUE %s %d",
                                               total_queued_.get(), (int) incoming_queue_.size());
+    if (mozilla::recordreplay::IsReplaying() && lockId == 127) {
+      mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+      fprintf(stderr, "QUEUE %d %lu %lu\n", getpid(), mozilla::recordreplay::CurrentThreadId(), lockPosition);
+    }
 
     incoming_queue_.push(std::move(pending_task));
 
@@ -550,6 +555,10 @@ void MessageLoop::ReloadWorkQueue() {
       mozilla::recordreplay::LastAcquiredLock(&lockId, &lockPosition);
     }
     total_queued_.AppendPrintf(" R %lu %lu", lockId, lockPosition);
+    if (mozilla::recordreplay::IsReplaying() && lockId == 127) {
+      mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+      fprintf(stderr, "RELOAD %d %lu %lu\n", getpid(), mozilla::recordreplay::CurrentThreadId(), lockPosition);
+    }
     mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD #1 %s",
                                               total_queued_.get());
     mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD #2 %d %d %d %d %d",
