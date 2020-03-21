@@ -436,8 +436,9 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
         !mozilla::recordreplay::HasDivergedFromRecording()) {
       mozilla::recordreplay::LastAcquiredLock(&lockId, &lockPosition);
     }
-    total_queued_.AppendPrintf("Q %lu %lu %s ", lockId, lockPosition,
-                               mozilla::recordreplay::VirtualThingName((void*)pending_task.task));
+    //total_queued_.AppendPrintf("Q %lu %lu %s ", lockId, lockPosition,
+    //                           mozilla::recordreplay::VirtualThingName((void*)pending_task.task));
+    total_queued_.AppendPrintf(" Q %d", mozilla::recordreplay::HasDivergedFromRecording());
     mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper QUEUE %s %d",
                                               total_queued_.get(), (int) incoming_queue_.size());
 
@@ -549,12 +550,14 @@ void MessageLoop::ReloadWorkQueue() {
         !mozilla::recordreplay::HasDivergedFromRecording()) {
       mozilla::recordreplay::LastAcquiredLock(&lockId, &lockPosition);
     }
-    total_queued_.AppendPrintf("R %lu %lu %d", lockId, lockPosition, (int) incoming_queue_.size());
+    //total_queued_.AppendPrintf("R %lu %lu %d", lockId, lockPosition, (int) incoming_queue_.size());
+    total_queued_.AppendPrintf(" R %d", mozilla::recordreplay::HasDivergedFromRecording());
     mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD #1 %s",
                                               total_queued_.get());
-    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD #2 %d %d %d %d",
+    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD #2 %d %d %d %d %d",
                                               (int) incoming_queue_.size(),
-                                              (int) lockId, (int) lockPosition, (int) total_queued_.Length());
+                                              (int) lockId, (int) lockPosition, (int) total_queued_.Length(),
+                                              strlen(total_queued_.get()));
 
     if (incoming_queue_.empty()) return;
     std::swap(incoming_queue_, work_queue_);
