@@ -550,9 +550,11 @@ void MessageLoop::ReloadWorkQueue() {
       mozilla::recordreplay::LastAcquiredLock(&lockId, &lockPosition);
     }
     total_queued_.AppendPrintf("R %lu %lu %d", lockId, lockPosition, (int) incoming_queue_.size());
-    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD %s %d %d %d",
-                                              total_queued_.get(), (int) incoming_queue_.size(),
-                                              (int) lockId, (int) lockPosition);
+    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD #1 %s",
+                                              total_queued_.get());
+    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD #2 %d %d %d %d",
+                                              (int) incoming_queue_.size(),
+                                              (int) lockId, (int) lockPosition, (int) total_queued_.Length());
 
     if (incoming_queue_.empty()) return;
     std::swap(incoming_queue_, work_queue_);
@@ -585,6 +587,9 @@ bool MessageLoop::DoWork() {
     mozilla::recordreplay::RecordReplayAssert("MessageLoop::DoWork #1");
 
     ReloadWorkQueue();
+
+    mozilla::recordreplay::RecordReplayAssert("MessageLoop::DoWork #1.1 %d", work_queue_.size());
+
     if (work_queue_.empty()) break;
 
     // Execute oldest task.
