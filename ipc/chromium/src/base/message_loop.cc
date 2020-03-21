@@ -437,13 +437,14 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
         !mozilla::recordreplay::HasDivergedFromRecording()) {
       mozilla::recordreplay::LastAcquiredLock(&lockId, &lockPosition);
     }
-    total_queued_.AppendPrintf(" Q %lu %lu %s", lockId, lockPosition,
-                               mozilla::recordreplay::VirtualThingName((void*)pending_task.task));
+    total_queued_.AppendPrintf(" Q %lu %lu", lockId, lockPosition);
     mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper QUEUE %s %d",
                                               total_queued_.get(), (int) incoming_queue_.size());
     if (mozilla::recordreplay::IsReplaying() && lockId == 127) {
       mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-      fprintf(stderr, "QUEUE %d %lu %lu\n", getpid(), mozilla::recordreplay::CurrentThreadId(), lockPosition);
+      fprintf(stderr, "QUEUE %d %lu %lu [%s]\n",
+              getpid(), mozilla::recordreplay::CurrentThreadId(),
+              lockPosition, total_queued_.get());
     }
 
     incoming_queue_.push(std::move(pending_task));
