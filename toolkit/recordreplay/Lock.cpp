@@ -186,11 +186,6 @@ void Lock::Enter(NativeLock* aNativeLock) {
            !thread->MaybeDivergeFromRecording()) {
       Thread::Wait();
     }
-    if (!thread->HasDivergedFromRecording()) {
-      if (aNativeLock) {
-        DirectLockMutex(aNativeLock);
-      }
-    }
   }
   if (aNativeLock) {
     thread->AddOwnedLock(aNativeLock);
