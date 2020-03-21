@@ -54,6 +54,8 @@ function onMessage(evt) {
     case "loaded": {
       let { sessionId, controlJS, replayJS, updateNeeded, updateWanted } = evt.data;
 
+      dump(`DispatcherSessionId ${sessionId}\n`);
+
       gSessionId = sessionId;
       flushOfflineLog();
 
