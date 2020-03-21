@@ -215,10 +215,6 @@ void Thread::SpawnNonRecordedThread(Callback aStart, void* aArgument) {
 /* static */
 void Thread::RespawnAllThreadsAfterFork() {
   MOZ_ASSERT(AreThreadEventsPassedThrough());
-  {
-    AutoEnsurePassThroughThreadEvents pt;
-    Print("Thread::RespawnAllThreadsAfterFork %d\n", getpid());
-  }
   for (size_t id = MainThreadId; id <= MaxThreadId; id++) {
     Thread* thread = GetById(id);
     DirectCloseFile(thread->mNotifyfd);
@@ -300,15 +296,11 @@ void Thread::Join() {
   }
 }
 
-static SpinLock gOwnedLockSpinLock;
-
 void Thread::AddOwnedLock(NativeLock* aNativeLock) {
-  AutoSpinLock lock(gOwnedLockSpinLock);
   mOwnedLocks.append(aNativeLock);
 }
 
 void Thread::RemoveOwnedLock(NativeLock* aNativeLock) {
-  AutoSpinLock lock(gOwnedLockSpinLock);
   for (int i = mOwnedLocks.length() - 1; i >= 0; i--) {
     if (mOwnedLocks[i] == aNativeLock) {
       mOwnedLocks.erase(&mOwnedLocks[i]);
@@ -319,34 +311,9 @@ void Thread::RemoveOwnedLock(NativeLock* aNativeLock) {
 }
 
 void Thread::MaybeRemoveDestroyedOwnedLock(NativeLock* aNativeLock) {
-  AutoSpinLock lock(gOwnedLockSpinLock);
   for (int i = mOwnedLocks.length() - 1; i >= 0; i--) {
     if (mOwnedLocks[i] == aNativeLock) {
       mOwnedLocks.erase(&mOwnedLocks[i]);
-    }
-  }
-}
-
-size_t Thread::LockIsOwnedByAnyThread(NativeLock* aNativeLock) {
-  AutoSpinLock lock(gOwnedLockSpinLock);
-  for (size_t id = MainThreadId; id <= MaxThreadId; id++) {
-    Thread* thread = GetById(id);
-    for (NativeLock* lock : thread->mOwnedLocks) {
-      if (lock == aNativeLock) {
-        return id;
-      }
-    }
-  }
-  return 0;
-}
-
-void Thread::DumpOwnedLocks() {
-  AutoSpinLock lock(gOwnedLockSpinLock);
-  for (size_t id = MainThreadId; id <= MaxThreadId; id++) {
-    Thread* thread = GetById(id);
-    for (NativeLock* nativeLock : thread->mOwnedLocks) {
-      Lock* lock = Lock::Find(nativeLock);
-      Print("OwnedLock: Thread %lu Lock %lu Native %p\n", id, lock->Id(), nativeLock);
     }
   }
 }
@@ -359,10 +326,8 @@ void Thread::ReleaseOrAcquireOwnedLocks(OwnedLockState aState) {
   MOZ_RELEASE_ASSERT(aState != OwnedLockState::None);
   for (NativeLock* lock : mOwnedLocks) {
     if (aState == OwnedLockState::NeedRelease) {
-      Print("ReleaseOwnedLock %d %d %p\n", getpid(), mId, lock);
       DirectUnlockMutex(lock, /* aPassThroughEvents */ false);
     } else {
-      Print("AcquireOwnedLock %d %d %p\n", getpid(), mId, lock);
       DirectLockMutex(lock, /* aPassThroughEvents */ false);
     }
   }
@@ -502,10 +467,6 @@ void Thread::WaitForIdleThreads() {
 void Thread::OperateOnIdleThreadLocks(OwnedLockState aState) {
   MOZ_RELEASE_ASSERT(CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(aState != OwnedLockState::None);
-  {
-    AutoEnsurePassThroughThreadEvents pt;
-    Print("Thread::OperateOnIdleThreadLocks %d %d\n", getpid(), aState);
-  }
   for (size_t i = MainThreadId + 1; i <= MaxThreadId; i++) {
     Thread* thread = GetById(i);
     thread->mOwnedLockState = aState;
@@ -654,14 +615,6 @@ size_t Thread::TotalEventProgress() {
     result += thread->mEvents->StreamPosition();
   }
   return result;
-}
-
-size_t ThreadEventPosition() {
-  return Thread::Current()->Events().StreamPosition();
-}
-
-size_t CurrentThreadId() {
-  return Thread::Current()->Id();
 }
 
 }  // namespace recordreplay

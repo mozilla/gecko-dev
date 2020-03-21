@@ -37,14 +37,6 @@
 
 #include "MessagePump.h"
 
-namespace mozilla {
-  namespace recordreplay {
-    size_t ThreadEventPosition();
-    void LastAcquiredLock(size_t* aId, size_t* aPosition);
-    size_t CurrentThreadId();
-  }
-}
-
 using base::Time;
 using base::TimeDelta;
 using base::TimeTicks;
@@ -374,10 +366,7 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
                                   int delay_ms) {
   MOZ_RELEASE_ASSERT(!mozilla::recordreplay::AreThreadEventsPassedThrough());
 
-  mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper BEGIN");
-
   if (nsIEventTarget* target = pump_->GetXPCOMThread()) {
-    mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper #1");
     nsresult rv;
     if (delay_ms) {
       rv = target->DelayedDispatch(std::move(task), delay_ms);
@@ -387,8 +376,6 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
     MOZ_ALWAYS_SUCCEEDS(rv);
     return;
   }
-
-  mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper #2");
 
   // Tasks should only be queued before or during the Run loop, not after.
   MOZ_ASSERT(!shutting_down_);
@@ -418,39 +405,8 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
 
   RefPtr<base::MessagePump> pump;
   {
-    size_t threadPosition = 0;
-    if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-      threadPosition = mozilla::recordreplay::ThreadEventPosition();
-    }
-
     mozilla::MutexAutoLock locked(incoming_queue_lock_);
-
-    size_t newPosition;
-    if (mozilla::recordreplay::IsRecordingOrReplaying() &&
-        !mozilla::recordreplay::HasDivergedFromRecording()) {
-      newPosition = mozilla::recordreplay::ThreadEventPosition();
-      MOZ_RELEASE_ASSERT(newPosition > threadPosition);
-    }
-
-    size_t lockId = 0, lockPosition = 0;
-    if (mozilla::recordreplay::IsRecordingOrReplaying() &&
-        !mozilla::recordreplay::HasDivergedFromRecording()) {
-      mozilla::recordreplay::LastAcquiredLock(&lockId, &lockPosition);
-    }
-    total_queued_.AppendPrintf(" Q %lu %lu", lockId, lockPosition);
-    mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper QUEUE %s %d",
-                                              total_queued_.get(), (int) incoming_queue_.size());
-    if (mozilla::recordreplay::IsReplaying() && lockId == 127) {
-      mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-      /*
-      fprintf(stderr, "QUEUE %d %lu %lu\n",
-              getpid(), mozilla::recordreplay::CurrentThreadId(),
-              lockPosition);
-      */
-    }
-
     incoming_queue_.push(std::move(pending_task));
-
     pump = pump_;
   }
   // Since the incoming_queue_ may contain a task that destroys this message
@@ -459,8 +415,6 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
   // ScheduleWork outside of incoming_queue_lock_.
 
   pump->ScheduleWork();
-
-  mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper DONE");
 }
 
 void MessageLoop::SetNestableTasksAllowed(bool allowed) {
@@ -496,11 +450,6 @@ void MessageLoop::RunTask(already_AddRefed<nsIRunnable> aTask) {
 }
 
 bool MessageLoop::DeferOrRunPendingTask(PendingTask&& pending_task) {
-  mozilla::recordreplay::RecordReplayAssert("MessageLoop::DeferOrRunPendingTask %d %d %d",
-                                            pending_task.nestable,
-                                            (int)state_->run_depth,
-                                            (int)run_depth_base_);
-
   if (pending_task.nestable || state_->run_depth <= run_depth_base_) {
     RunTask(pending_task.task.forget());
     // Show that we ran a task (Note: a new one might arrive as a
@@ -531,44 +480,12 @@ void MessageLoop::ReloadWorkQueue() {
   // work_queue_ by waiting until the last minute (work_queue_ is empty) to
   // load.  That reduces the number of locks-per-task significantly when our
   // queues get large.
-  mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue BEGIN %d",
-                                            work_queue_.empty());
-
   if (!work_queue_.empty())
     return;  // Wait till we *really* need to lock and load.
 
   // Acquire all we can from the inter-thread queue with one lock acquisition.
   {
-    size_t threadPosition = 0;
-    if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-      threadPosition = mozilla::recordreplay::ThreadEventPosition();
-    }
-
     mozilla::MutexAutoLock lock(incoming_queue_lock_);
-
-    if (mozilla::recordreplay::IsRecordingOrReplaying() &&
-        !mozilla::recordreplay::HasDivergedFromRecording()) {
-      size_t newPosition = mozilla::recordreplay::ThreadEventPosition();
-      MOZ_RELEASE_ASSERT(newPosition > threadPosition);
-    }
-
-    size_t lockId = 0, lockPosition = 0;
-    if (mozilla::recordreplay::IsRecordingOrReplaying() &&
-        !mozilla::recordreplay::HasDivergedFromRecording()) {
-      mozilla::recordreplay::LastAcquiredLock(&lockId, &lockPosition);
-    }
-    total_queued_.AppendPrintf(" R %lu %lu", lockId, lockPosition);
-    if (mozilla::recordreplay::IsReplaying() && lockId == 127) {
-      mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-      //fprintf(stderr, "RELOAD %d %lu %lu\n", getpid(), mozilla::recordreplay::CurrentThreadId(), lockPosition);
-    }
-    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD #1 %s",
-                                              total_queued_.get());
-    mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD #2 %d %d %d %d %d",
-                                              (int) incoming_queue_.size(),
-                                              (int) lockId, (int) lockPosition, (int) total_queued_.Length(),
-                                              strlen(total_queued_.get()));
-
     if (incoming_queue_.empty()) return;
     std::swap(incoming_queue_, work_queue_);
     DCHECK(incoming_queue_.empty());
@@ -589,26 +506,18 @@ bool MessageLoop::DeletePendingTasks() {
 }
 
 bool MessageLoop::DoWork() {
-  mozilla::recordreplay::RecordReplayAssert("MessageLoop::DoWork BEGIN %d", nestable_tasks_allowed_);
-
   if (!nestable_tasks_allowed_) {
     // Task can't be executed right now.
     return false;
   }
 
   for (;;) {
-    mozilla::recordreplay::RecordReplayAssert("MessageLoop::DoWork #1");
-
     ReloadWorkQueue();
-
-    mozilla::recordreplay::RecordReplayAssert("MessageLoop::DoWork #1.1 %d", work_queue_.size());
 
     if (work_queue_.empty()) break;
 
     // Execute oldest task.
     do {
-      mozilla::recordreplay::RecordReplayAssert("MessageLoop::DoWork #2");
-
       PendingTask pending_task = std::move(work_queue_.front());
       work_queue_.pop();
       if (!pending_task.delayed_run_time.is_null()) {
@@ -622,8 +531,6 @@ bool MessageLoop::DoWork() {
       }
     } while (!work_queue_.empty());
   }
-
-  mozilla::recordreplay::RecordReplayAssert("MessageLoop::DoWork DONE");
 
   // Nothing happened.
   return false;

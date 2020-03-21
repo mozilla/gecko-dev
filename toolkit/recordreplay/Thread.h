@@ -291,10 +291,8 @@ class Thread {
   void RemoveOwnedLock(NativeLock* aLock);
   void MaybeRemoveDestroyedOwnedLock(NativeLock* aLock);
 
-  // For diagnostics.
+  // For debugging.
   NativeLock* LastOwnedLock();
-  static size_t LockIsOwnedByAnyThread(NativeLock* aNativeLock);
-  static void DumpOwnedLocks();
 
   // Release or acquire all locks owned by this thread. This does not affect
   // the set of owned locks.
