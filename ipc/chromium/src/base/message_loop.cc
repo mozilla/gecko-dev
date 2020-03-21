@@ -431,13 +431,13 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
       MOZ_RELEASE_ASSERT(newPosition > threadPosition);
     }
 
+    size_t lockId = 0, lockPosition = 0;
     if (mozilla::recordreplay::IsRecordingOrReplaying() &&
         !mozilla::recordreplay::HasDivergedFromRecording()) {
-      size_t lockId, lockPosition;
       mozilla::recordreplay::LastAcquiredLock(&lockId, &lockPosition);
-      total_queued_.AppendPrintf("QUEUE %lu %lu %s ", lockId, lockPosition,
-                                 mozilla::recordreplay::VirtualThingName((void*)pending_task.task));
     }
+    total_queued_.AppendPrintf("QUEUE %lu %lu %s ", lockId, lockPosition,
+                               mozilla::recordreplay::VirtualThingName((void*)pending_task.task));
     mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper QUEUE %s %d",
                                               total_queued_.get(), (int) incoming_queue_.size());
 
