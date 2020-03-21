@@ -781,6 +781,7 @@ static ssize_t WaitForCvar(pthread_mutex_t* aMutex, pthread_cond_t* aCond,
     DirectUnlockMutex(aMutex);
   }
   lock->Enter(aMutex);
+  CheckMutexLocked("WaitForCvar #4", aMutex);
   if (aRecordReturnValue) {
     return RecordReplayValue(rv);
   }
@@ -938,6 +939,8 @@ static PreambleResult Preamble_pthread_mutex_trylock(
 
 static PreambleResult Preamble_pthread_mutex_unlock(CallArguments* aArguments) {
   auto& mutex = aArguments->Arg<0, pthread_mutex_t*>();
+
+  CheckMutexLocked("Preamble_pthread_mutex_unlock", mutex);
 
   Lock* lock = Lock::Find(mutex);
   if (!lock) {

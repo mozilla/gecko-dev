@@ -215,6 +215,10 @@ void Thread::SpawnNonRecordedThread(Callback aStart, void* aArgument) {
 /* static */
 void Thread::RespawnAllThreadsAfterFork() {
   MOZ_ASSERT(AreThreadEventsPassedThrough());
+  {
+    AutoEnsurePassThroughThreadEvents pt;
+    Print("Thread::RespawnAllThreadsAfterFork %d\n", getpid());
+  }
   for (size_t id = MainThreadId; id <= MaxThreadId; id++) {
     Thread* thread = GetById(id);
     DirectCloseFile(thread->mNotifyfd);
@@ -355,8 +359,10 @@ void Thread::ReleaseOrAcquireOwnedLocks(OwnedLockState aState) {
   MOZ_RELEASE_ASSERT(aState != OwnedLockState::None);
   for (NativeLock* lock : mOwnedLocks) {
     if (aState == OwnedLockState::NeedRelease) {
+      Print("ReleaseOwnedLock %d %d %p\n", getpid(), mId, lock);
       DirectUnlockMutex(lock, /* aPassThroughEvents */ false);
     } else {
+      Print("AcquireOwnedLock %d %d %p\n", getpid(), mId, lock);
       DirectLockMutex(lock, /* aPassThroughEvents */ false);
     }
   }
@@ -496,6 +502,10 @@ void Thread::WaitForIdleThreads() {
 void Thread::OperateOnIdleThreadLocks(OwnedLockState aState) {
   MOZ_RELEASE_ASSERT(CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(aState != OwnedLockState::None);
+  {
+    AutoEnsurePassThroughThreadEvents pt;
+    Print("Thread::OperateOnIdleThreadLocks %d %d\n", getpid(), aState);
+  }
   for (size_t i = MainThreadId + 1; i <= MaxThreadId; i++) {
     Thread* thread = GetById(i);
     if (thread->mOwnedLocks.length()) {
