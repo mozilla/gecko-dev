@@ -774,10 +774,12 @@ static ssize_t WaitForCvar(pthread_mutex_t* aMutex, pthread_cond_t* aCond,
   if (IsRecording()) {
     AutoPassThroughThreadEvents pt;
     rv = aCallback();
-  } else {
-    DirectUnlockMutex(aMutex);
   }
   lock->Exit(aMutex);
+  if (IsReplaying()) {
+    CheckMutexLocked("WaitForCvar #3", aMutex);
+    DirectUnlockMutex(aMutex);
+  }
   lock->Enter(aMutex);
   if (aRecordReturnValue) {
     return RecordReplayValue(rv);
