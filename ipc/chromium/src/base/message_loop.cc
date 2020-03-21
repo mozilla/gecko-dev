@@ -436,7 +436,8 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
         !mozilla::recordreplay::HasDivergedFromRecording()) {
       mozilla::recordreplay::LastAcquiredLock(&lockId, &lockPosition);
     }
-    total_queued_.AppendPrintf(" Q %lu %lu", lockId, lockPosition);
+    total_queued_.AppendPrintf(" Q %lu %lu %s", lockId, lockPosition,
+                               mozilla::recordreplay::VirtualThingName((void*)pending_task.task));
     mozilla::recordreplay::RecordReplayAssert("MessageLoop::PostTask_Helper QUEUE %s %d",
                                               total_queued_.get(), (int) incoming_queue_.size());
 

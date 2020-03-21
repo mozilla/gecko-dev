@@ -362,13 +362,13 @@ MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayAssert(
   }
 
   // Add the asserted string to the recording.
-  char text[1024];
-  VsprintfLiteral(text, aFormat, aArgs);
+  nsAutoCString text;
+  text.AppendPrintf(aFormat, aArgs);
 
   // This must be kept in sync with Stream::RecordOrReplayThreadEvent, which
   // peeks at the input string written after the thread event.
-  thread->Events().RecordOrReplayThreadEvent(ThreadEvent::Assert, text);
-  thread->Events().CheckInput(text);
+  thread->Events().RecordOrReplayThreadEvent(ThreadEvent::Assert, text.get());
+  thread->Events().CheckInput(text.get());
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayAssertBytes(
