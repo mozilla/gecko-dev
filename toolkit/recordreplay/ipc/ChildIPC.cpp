@@ -97,6 +97,9 @@ static void FetchCloudRecordingData(char** aBuffer, size_t* aSize);
 // a fork.
 static ReadWriteSpinLock gForkLock;
 
+// Set when the process is shutting down, to suppress error reporting.
+static AtomicBool gExitCalled;
+
 // Processing routine for incoming channel messages.
 static void ChannelMessageHandler(Message::UniquePtr aMsg) {
   AutoReadSpinLock disallowFork(gForkLock);
@@ -144,6 +147,7 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
     }
     case MessageType::Terminate: {
       PrintSpew("Terminate message received, exiting...\n");
+      gExitCalled = true;
       _exit(0);
       break;
     }
@@ -592,6 +596,10 @@ void ReportCrash(const MinidumpInfo& aInfo, void* aFaultingAddress) {
 }
 
 void ReportFatalError(const char* aFormat, ...) {
+  if (gExitCalled) {
+    return;
+  }
+
   if (!gFatalErrorMemory) {
     gFatalErrorMemory = new char[FatalErrorMemorySize];
   }
