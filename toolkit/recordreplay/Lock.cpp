@@ -204,11 +204,13 @@ void Lock::Exit(NativeLock* aNativeLock) {
     LockAcquires* acquires = gLockAcquires.Get(mId);
     acquires->ReadAndNotifyNextOwner(thread);
 
+    /*
     if (mId == 127) {
       AutoEnsurePassThroughThreadEvents pt;
       fprintf(stderr, "READ_NEXT_OWNER %d %lu %lu\n", getpid(), thread->Id(),
               acquires->mAcquires->StreamPosition());
     }
+    */
   }
 }
 
@@ -219,11 +221,13 @@ void Lock::LockAcquiresUpdated(size_t aLockId) {
       acquires->mNextOwner == LockAcquires::NoNextOwner) {
     acquires->ReadAndNotifyNextOwner(Thread::Current());
 
+    /*
     if (aLockId == 127) {
       AutoEnsurePassThroughThreadEvents pt;
       fprintf(stderr, "LOCK_ACQUIRES_UPDATED %d %lu %lu\n", getpid(), Thread::Current()->Id(),
               acquires->mAcquires->StreamPosition());
     }
+    */
   }
 }
 

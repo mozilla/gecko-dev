@@ -508,12 +508,10 @@ void Thread::OperateOnIdleThreadLocks(OwnedLockState aState) {
   }
   for (size_t i = MainThreadId + 1; i <= MaxThreadId; i++) {
     Thread* thread = GetById(i);
-    if (thread->mOwnedLocks.length()) {
-      thread->mOwnedLockState = aState;
-      Notify(i);
-      while (thread->mOwnedLockState != OwnedLockState::None) {
-        WaitNoIdle();
-      }
+    thread->mOwnedLockState = aState;
+    Notify(i);
+    while (thread->mOwnedLockState != OwnedLockState::None) {
+      WaitNoIdle();
     }
   }
 }

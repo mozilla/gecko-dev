@@ -442,9 +442,11 @@ void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
                                               total_queued_.get(), (int) incoming_queue_.size());
     if (mozilla::recordreplay::IsReplaying() && lockId == 127) {
       mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-      fprintf(stderr, "QUEUE %d %lu %lu [%s]\n",
+      /*
+      fprintf(stderr, "QUEUE %d %lu %lu\n",
               getpid(), mozilla::recordreplay::CurrentThreadId(),
-              lockPosition, total_queued_.get());
+              lockPosition);
+      */
     }
 
     incoming_queue_.push(std::move(pending_task));
@@ -558,7 +560,7 @@ void MessageLoop::ReloadWorkQueue() {
     total_queued_.AppendPrintf(" R %lu %lu", lockId, lockPosition);
     if (mozilla::recordreplay::IsReplaying() && lockId == 127) {
       mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-      fprintf(stderr, "RELOAD %d %lu %lu\n", getpid(), mozilla::recordreplay::CurrentThreadId(), lockPosition);
+      //fprintf(stderr, "RELOAD %d %lu %lu\n", getpid(), mozilla::recordreplay::CurrentThreadId(), lockPosition);
     }
     mozilla::recordreplay::RecordReplayAssert("MessageLoop::ReloadWorkQueue RELOAD #1 %s",
                                               total_queued_.get());
