@@ -1218,12 +1218,14 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
    * @param NodeActor baseNode
    * @param string selector
    */
-  querySelector: function(baseNode, selector) {
+  querySelector: async function(baseNode, selector) {
     if (isNodeDead(baseNode)) {
       return {};
     }
 
-    const node = baseNode.rawNode.querySelector(selector);
+    const node = isReplaying
+      ? await baseNode.rawNode.querySelectorAsync(selector)
+      : baseNode.rawNode.querySelector(selector);
     if (!node) {
       return {};
     }
@@ -1238,11 +1240,13 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
    * @param NodeActor baseNode
    * @param string selector
    */
-  querySelectorAll: function(baseNode, selector) {
+  querySelectorAll: async function(baseNode, selector) {
     let nodeList = null;
 
     try {
-      nodeList = baseNode.rawNode.querySelectorAll(selector);
+      nodeList = isReplaying
+        ? await baseNode.rawNode.querySelectorAllAsync(selector)
+        : baseNode.rawNode.querySelectorAll(selector);
     } catch (e) {
       // Bad selector. Do nothing as the selector can come from a searchbox.
     }
