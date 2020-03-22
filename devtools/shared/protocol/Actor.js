@@ -6,6 +6,7 @@
 
 const { extend } = require("devtools/shared/extend");
 var { Pool } = require("devtools/shared/protocol/Pool");
+const { ReplayDebugger } = require("RecordReplayControl").module;
 
 /**
  * Keep track of which actorSpecs have been created. If a replica of a spec
@@ -161,7 +162,13 @@ var generateRequestHandlers = function(actorSpec, actorProto) {
 
           let response;
           try {
+            if (isReplaying) {
+              ReplayDebugger.setCurrentProtocolResponse(`${actorSpec.typeName}.${packet.type}`);
+            }
             response = spec.response.write(retToSend, this);
+            if (isReplaying) {
+              ReplayDebugger.setCurrentProtocolResponse(null);
+            }
           } catch (ex) {
             console.error("Error writing response to: " + spec.name);
             throw ex;
