@@ -59,6 +59,9 @@ add_task(async function() {
   await addBreakpoint(dbg, "doc_inspector_basic.html", 9);
   await rewindToLine(dbg, 9);
 
+  await dbg.toolbox.selectTool("inspector");
+  await waitForTime(100);
+
   nodeFront = await getNodeFront("#maindiv", inspector);
   await waitFor(() => {
     return inspector.markup && getContainerForNodeFront(nodeFront, inspector);
@@ -70,7 +73,6 @@ add_task(async function() {
   );
 
   // Test searching.
-  await dbg.toolbox.selectTool("inspector");
   await focusSearchBoxUsingShortcut(inspector.panelWin);
 
   for (const key of ["S", "T", "U", "F", "F", "VK_RETURN"]) {
