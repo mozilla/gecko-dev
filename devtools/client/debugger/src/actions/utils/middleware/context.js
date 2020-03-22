@@ -27,6 +27,8 @@ function actionLogData(action) {
   switch (action.type) {
     case "COMMAND":
       return " " + action.command;
+    case "PAUSED":
+      return " " + JSON.stringify(action.executionPoint);
   }
   return "";
 }
