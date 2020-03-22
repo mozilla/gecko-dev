@@ -898,7 +898,11 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
    *    hasLast: true if the last child of the node is included in the list.
    *    nodes: Array of NodeActor representing the nodes returned by the request.
    */
-  children: function(node, options = {}) {
+  children: async function(node, options = {}) {
+    if (isReplaying) {
+      await ReplayInspector.waitForChildrenLoaded(node.rawNode);
+    }
+
     const { hasFirst, hasLast, nodes } = this._getChildren(node, options);
     return {
       hasFirst,
