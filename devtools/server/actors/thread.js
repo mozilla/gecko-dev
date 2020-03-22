@@ -1102,7 +1102,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     });
 
     if (isReplaying) {
-      await this.youngestFrame.ensureMinimalOlderFrame();
+      await this.youngestFrame.ensureReadyForStepping();
     }
 
     // Make sure there is still a frame on the stack if we are to continue
@@ -1134,13 +1134,13 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
         // Fall through.
         case "finish":
           if (rewinding) {
-            await stepFrame.ensureMinimalOlderFrame();
+            await stepFrame.ensureReadyForStepping();
             let olderFrame = stepFrame.older;
             while (
               olderFrame &&
               (!olderFrame.script || this.sources.isFrameBlackBoxed(olderFrame))
             ) {
-              await olderFrame.ensureMinimalOlderFrame();
+              await olderFrame.ensureReadyForStepping();
               olderFrame = olderFrame.older;
             }
             if (olderFrame) {
