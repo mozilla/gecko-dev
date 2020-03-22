@@ -391,12 +391,12 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
 
   // Get all toplevel scripts in the source. Transitive child scripts must be
   // found by traversing the child script tree.
-  _getTopLevelDebuggeeScripts() {
+  async _getTopLevelDebuggeeScripts() {
     if (this._scripts) {
       return this._scripts;
     }
 
-    let scripts = this.dbg.findScripts({ source: this._source });
+    let scripts = await this.dbg.findScripts({ source: this._source });
 
     if (!this.isWasm) {
       const topLevel = scripts.filter(script => !script.isFunction);
@@ -426,12 +426,12 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
   // Get toplevel scripts which contain all breakpoint positions for the source.
   // This is different from _scripts if we detected that some scripts have been
   // GC'ed and reparsed the source contents.
-  _getTopLevelBreakpointPositionScripts() {
+  async _getTopLevelBreakpointPositionScripts() {
     if (this._breakpointPositionScripts) {
       return this._breakpointPositionScripts;
     }
 
-    let scripts = this._getTopLevelDebuggeeScripts();
+    let scripts = await this._getTopLevelDebuggeeScripts();
 
     // We need to find all breakpoint positions, even if scripts associated with
     // this source have been GC'ed. We detect this by looking for a script which
@@ -466,10 +466,10 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
 
   // Get all scripts in this source that might include content in the range
   // specified by the given query.
-  _findDebuggeeScripts(query, forBreakpointPositions) {
+  async _findDebuggeeScripts(query, forBreakpointPositions) {
     const scripts = forBreakpointPositions
-      ? this._getTopLevelBreakpointPositionScripts()
-      : this._getTopLevelDebuggeeScripts();
+      ? await this._getTopLevelBreakpointPositionScripts()
+      : await this._getTopLevelDebuggeeScripts();
 
     const {
       start: { line: startLine = 0, column: startColumn = 0 } = {},
@@ -517,7 +517,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
   },
 
   getBreakpointPositions: async function(query) {
-    const scripts = this._findDebuggeeScripts(
+    const scripts = await this._findDebuggeeScripts(
       query,
       /* forBreakpoiontPositions */ true
     );
@@ -700,7 +700,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       // Find all scripts that match the given source actor and line
       // number.
       const query = { start: { line }, end: { line } };
-      const scripts = this._findDebuggeeScripts(query).filter(
+      const scripts = (await this._findDebuggeeScripts(query)).filter(
         script => !actor.hasScript(script)
       );
 
@@ -747,7 +747,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
       // Find all scripts that match the given source actor, line,
       // and column number.
       const query = { start: { line, column }, end: { line, column } };
-      const scripts = this._findDebuggeeScripts(query).filter(
+      const scripts = (await this._findDebuggeeScripts(query)).filter(
         script => !actor.hasScript(script)
       );
 
