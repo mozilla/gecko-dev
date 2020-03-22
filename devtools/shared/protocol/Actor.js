@@ -6,7 +6,11 @@
 
 const { extend } = require("devtools/shared/extend");
 var { Pool } = require("devtools/shared/protocol/Pool");
-const { ReplayDebugger } = require("RecordReplayControl").module;
+
+let ReplayDebugger;
+if (isReplaying) {
+  ReplayDebugger = require("RecordReplayControl").module.ReplayDebugger;
+}
 
 /**
  * Keep track of which actorSpecs have been created. If a replica of a spec
