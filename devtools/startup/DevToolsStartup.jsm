@@ -1595,12 +1595,14 @@ function createRecordingButton() {
 }
 
 function refreshAllRecordingButtons() {
-  for (const w of Services.wm.getEnumerator("navigator:browser")) {
-    const node = w.document.getElementById("recording-button");
-    if (node) {
-      node.refreshStatus();
+  try {
+    for (const w of Services.wm.getEnumerator("navigator:browser")) {
+      const node = w.document.getElementById("recording-button");
+      if (node) {
+        node.refreshStatus();
+      }
     }
-  }
+  } catch (e) {}
 }
 
 // When state changes which affects the recording buttons, we try to update the
