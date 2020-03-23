@@ -671,11 +671,14 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
    *        The node whose document is needed, or null to
    *        return the root.
    */
-  document: function(node) {
+  document: async function(node) {
     if (isReplaying && !ReplayInspector.isPaused()) {
       return null;
     }
     const doc = isNodeDead(node) ? this.rootDoc : nodeDocument(node.rawNode);
+    if (isReplaying) {
+      await doc.replayWaitForContentsLoaded();
+    }
     return this._ref(doc);
   },
 
@@ -900,7 +903,7 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
    */
   children: async function(node, options = {}) {
     if (isReplaying) {
-      await ReplayInspector.waitForChildrenLoaded(node.rawNode);
+      await node.rawNode.replayWaitForChildrenLoaded();
     }
 
     const { hasFirst, hasLast, nodes } = this._getChildren(node, options);
