@@ -119,7 +119,13 @@ function setEditorText(
     const wasmText = { split: () => wasmLines, match: () => false };
     editor.setText(wasmText);
   } else {
-    editor.setText(content.value);
+    const contents = content.value.split(/\r\n?|\n|\u2028|\u2029/).map(line => {
+      if (line.length >= 1000) {
+        return line.substring(0, 1000) + "…";
+      }
+      return line;
+    }).join("\n");
+    editor.setText(contents);
   }
 }
 
