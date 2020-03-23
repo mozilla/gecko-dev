@@ -5593,6 +5593,59 @@ JS_PUBLIC_API bool DescribeScriptedCaller(JSContext* cx, AutoFilename* filename,
   return true;
 }
 
+JS_PUBLIC_API bool DescribeScriptedCallerAtIndex(JSContext* cx, size_t index,
+                                                 AutoFilename* filename,
+                                                 unsigned* lineno, unsigned* column) {
+  if (filename) {
+    filename->reset();
+  }
+  if (lineno) {
+    *lineno = 0;
+  }
+  if (column) {
+    *column = 0;
+  }
+
+  if (!cx->compartment()) {
+    return false;
+  }
+
+  NonBuiltinFrameIter i(cx, cx->realm()->principals());
+  for (; index && !i.done(); ++i, --index) {}
+  if (i.done()) {
+    return false;
+  }
+
+  // If the caller is hidden, the embedding wants us to return false here so
+  // that it can check its own stack (see HideScriptedCaller).
+  if (i.activation()->scriptedCallerIsHidden()) {
+    return false;
+  }
+
+  if (filename) {
+    if (i.isWasm()) {
+      // For Wasm, copy out the filename, there is no script source.
+      UniqueChars copy = DuplicateString(i.filename() ? i.filename() : "");
+      if (!copy) {
+        filename->setUnowned("out of memory");
+      } else {
+        filename->setOwned(std::move(copy));
+      }
+    } else {
+      // All other frames have a script source to read the filename from.
+      filename->setScriptSource(i.scriptSource());
+    }
+  }
+
+  if (lineno) {
+    *lineno = i.computeLine(column);
+  } else if (column) {
+    i.computeLine(column);
+  }
+
+  return true;
+}
+
 // Fast path to get the activation and realm to use for GetScriptedCallerGlobal.
 // If this returns false, the fast path didn't work out and the caller has to
 // use the (much slower) NonBuiltinFrameIter path.

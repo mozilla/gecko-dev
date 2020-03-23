@@ -21,6 +21,7 @@ UNIFIED_SOURCES += [
     'ipc/ParentForwarding.cpp',
     'ipc/ParentGraphics.cpp',
     'ipc/ParentIPC.cpp',
+    'ipc/Watchdog.cpp',
     'Lock.cpp',
     'ProcessRecordReplay.cpp',
     'ProcessRedirect.cpp',
