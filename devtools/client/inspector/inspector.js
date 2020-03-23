@@ -207,6 +207,7 @@ function Inspector(toolbox) {
   this.onSidebarToggle = this.onSidebarToggle.bind(this);
   this.handleThreadPaused = this.handleThreadPaused.bind(this);
   this.handleThreadResumed = this.handleThreadResumed.bind(this);
+  this.handleToolSelected = this.handleToolSelected.bind(this);
   this.onReflowInSelection = this.onReflowInSelection.bind(this);
 }
 
@@ -434,6 +435,7 @@ Inspector.prototype = {
 
     this.walker.on("new-root", this.onNewRoot);
     this.toolbox.on("host-changed", this.onHostChanged);
+    this.toolbox.on("select", this.handleToolSelected);
     this.selection.on("new-node-front", this.onNewSelection);
     this.selection.on("detached-front", this.onDetached);
     this.currentTarget.threadFront.on("paused", this.handleThreadPaused);
@@ -1378,6 +1380,13 @@ Inspector.prototype = {
    * Reset the inspector on new root mutation.
    */
   onNewRoot: function() {
+    // Don't reload the inspector when not selected.
+    if (this.toolbox && this.toolbox.currentToolId != "inspector") {
+      this._hasNewRoot = true;
+      return;
+    }
+    this._hasNewRoot = false;
+
     // Record new-root timing for telemetry
     this._newRootStart = this.panelWin.performance.now();
 
@@ -1443,6 +1452,12 @@ Inspector.prototype = {
   handleThreadResumed() {
     this._replayResumed = true;
     this.onNewRoot();
+  },
+
+  handleToolSelected(id) {
+    if (id == "inspector" && this._hasNewRoot) {
+      this.onNewRoot();
+    }
   },
 
   /**
