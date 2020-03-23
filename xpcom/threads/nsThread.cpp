@@ -1166,7 +1166,7 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
     nsCOMPtr<nsIRunnable> event =
         mEvents->GetEvent(reallyWait, &priority, &mLastEventDelay);
 
-    if (mLastEventDelay.ToMilliseconds() >= LONGTASK_BUSY_WINDOW_MS) {
+    if (mIsMainThread && mLastEventDelay.ToMilliseconds() >= LONGTASK_BUSY_WINDOW_MS) {
       nsPrintfCString msg("LongDelay %s %.3f", EventQueuePriorityToString(priority),
                           mLastEventDelay.ToSeconds());
       dom::ChromeUtils::RecordReplayLog(NS_ConvertUTF8toUTF16(msg));
@@ -1281,8 +1281,10 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
         TimeStamp now = TimeStamp::Now();
         duration = now - mCurrentEventStart;
         if (duration.ToMilliseconds() > LONGTASK_BUSY_WINDOW_MS) {
-          nsPrintfCString msg("LongTask %.3f", duration.ToSeconds());
-          dom::ChromeUtils::RecordReplayLog(NS_ConvertUTF8toUTF16(msg));
+          if (mIsMainThread) {
+            nsPrintfCString msg("LongTask %.3f", duration.ToSeconds());
+            dom::ChromeUtils::RecordReplayLog(NS_ConvertUTF8toUTF16(msg));
+          }
 
           // Idle events (gc...) don't *really* count here
           if (priority != EventQueuePriority::Idle) {
