@@ -225,7 +225,9 @@ void EnsureNonMainThreadsAreSpawned() {
 void ResumeExecution() {
   EnsureNonMainThreadsAreSpawned();
 
-  Print("ResumeExecution\n");
+  if (IsReplaying()) {
+    Print("ResumeExecution\n");
+  }
 
   MonitorAutoLock lock(*gMainThreadCallbackMonitor);
   gMainThreadShouldPause = false;

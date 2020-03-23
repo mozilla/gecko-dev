@@ -56,6 +56,9 @@ static int gRecordingPid;
 // Whether to spew record/replay messages to stderr.
 static bool gSpewEnabled;
 
+// Whether to log extra diagnostic messages.
+static bool gVerbose;
+
 // Whether we are replaying on a cloud machine.
 static bool gReplayingInCloud;
 
@@ -125,6 +128,9 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   gPid = getpid();
   if (TestEnv("MOZ_RECORD_REPLAY_SPEW")) {
     gSpewEnabled = true;
+  }
+  if (TestEnv("WEBREPLAY_VERBOSE")) {
+    gVerbose = true;
   }
 
   InitializeRedirections();
@@ -339,6 +345,8 @@ void ResetPid() { gPid = getpid(); }
 
 bool ReplayingInCloud() { return gReplayingInCloud; }
 const char* InstallDirectory() { return gInstallDirectory; }
+
+bool IsVerbose() { return gVerbose; }
 
 void ExtractCloudRecordingName(const char* aFileName, nsAutoCString& aRecordingName) {
   const char prefix[] = "webreplay://";

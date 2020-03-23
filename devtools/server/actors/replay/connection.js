@@ -39,8 +39,9 @@ function Initialize(address, callbacks) {
   gCallbacks = callbacks;
 
   const buildId = `macOS-${Services.appinfo.appBuildID}`;
+  const verbose = !!getenv("WEBREPLAY_VERBOSE");
 
-  gWorker.postMessage({ kind: "initialize", address, buildId });
+  gWorker.postMessage({ kind: "initialize", address, buildId, verbose });
 }
 
 // ID assigned to this browser session by the cloud server.
@@ -148,10 +149,14 @@ function downloadStatusListener(status, ...args) {
   }
 }
 
+function getenv(name) {
+  const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+  return env.get(name);
+}
+
 function downloadUpdate(updateNeeded) {
   // Allow connecting to the cloud with an unknown build.
-  var env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
-  if (env.get("WEBREPLAY_NO_UPDATE")) {
+  if (getenv("WEBREPLAY_NO_UPDATE")) {
     gCallbacks.updateStatus("");
     return;
   }

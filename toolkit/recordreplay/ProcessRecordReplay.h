@@ -210,6 +210,9 @@ int GetRecordingPid();
 // Update the current pid after a fork.
 void ResetPid();
 
+// Set to enable extra diagnostic logging.
+bool IsVerbose();
+
 typedef Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> AtomicBool;
 
 ///////////////////////////////////////////////////////////////////////////////

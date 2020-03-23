@@ -10,6 +10,7 @@ const gConnections = [];
 
 let gServerAddress;
 let gBuildId;
+let gVerbose;
 
 self.addEventListener("message", msg => {
   try {
@@ -24,6 +25,7 @@ function onMainThreadMessage({ data }) {
     case "initialize":
       gServerAddress = data.address;
       gBuildId = data.buildId;
+      gVerbose = data.verbose;
       openServerSocket();
     case "connect":
       doConnect(data.id, data.channelId);
@@ -140,13 +142,13 @@ async function doConnect(id, channelId) {
   // Eventually this ID will include credentials.
   const sessionId = (Math.random() * 1e9) | 0;
 
-  const socket = new WebSocket(`${address}/connect?id=${sessionId}`);
+  const socket = new WebSocket(`${address}/connect?id=${sessionId}&verbose=${gVerbose}`);
   socket.onopen = evt => onOpen(id);
   socket.onclose = evt => onClose(id);
   socket.onmessage = evt => onMessage(id, evt);
   socket.onerror = evt => onError(id);
 
-  const bulkSocket = new WebSocket(`${address}/connect?id=${sessionId}&bulk=true`);
+  const bulkSocket = new WebSocket(`${address}/connect?id=${sessionId}&bulk=true&verbose=${gVerbose}`);
   bulkSocket.onopen = evt => onOpen(id, true);
   bulkSocket.onclose = evt => onClose(id);
   bulkSocket.onmessage = evt => onMessage(id, evt, true);
@@ -166,8 +168,10 @@ async function doConnect(id, channelId) {
       const buf = connection.outgoing.shift();
       try {
         totalSent += buf.byteLength;
-        //const desc = messageDescription(new Uint8Array(buf));
-        //doLog(`SocketSend Elapsed ${elapsedTime()} Total ${totalSent} Message ${desc}\n`);
+        if (gVerbose) {
+          const desc = messageDescription(new Uint8Array(buf));
+          doLog(`SocketSend Elapsed ${elapsedTime()} Total ${totalSent} Message ${desc}\n`);
+        }
 
         const bulk = checkCompleteMessage(buf);
         if (bulk && connection.bulkOpen) {
@@ -275,8 +279,10 @@ function extractCompleteMessages(id, bulk, data) {
     msg.set(new Uint8Array(data.buffer, offset, info.size));
 
     totalReceived += info.size;
-    //const desc = messageDescription(msg);
-    //doLog(`SocketRecv Elapsed ${elapsedTime()} Total ${totalReceived} Message ${desc}\n`);
+    if (gVerbose) {
+      const desc = messageDescription(msg);
+      doLog(`SocketRecv Elapsed ${elapsedTime()} Total ${totalReceived} Message ${desc}\n`);
+    }
 
     messages.push(msg.buffer);
     offset += info.size;
