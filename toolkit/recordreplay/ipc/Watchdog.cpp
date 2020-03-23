@@ -79,7 +79,7 @@ static void WatchdogMain(void*) {
 }
 
 static bool UseWatchdog() {
-  return XRE_IsParentProcess() || IsMiddleman();
+  return XRE_IsParentProcess() || IsMiddleman() || HasDivergedFromRecording();
 }
 
 void BeginRunEvent(const TimeStamp& aNow) {
@@ -94,6 +94,8 @@ void BeginRunEvent(const TimeStamp& aNow) {
     if (!JS_AddInterruptCallback(cx, InterruptCallback)) {
       MOZ_CRASH("BeginRunEvent");
     }
+
+    AutoEnsurePassThroughThreadEvents pt;
 
     gWatchdogMonitor = new Monitor();
     Thread::SpawnNonRecordedThread(WatchdogMain, nullptr);

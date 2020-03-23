@@ -1240,6 +1240,24 @@ static bool RecordReplay_MemoryUsage(JSContext* aCx, unsigned aArgc, Value* aVp)
   return true;
 }
 
+static bool RecordReplay_BeginWatchdog(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  BeginRunEvent(TimeStamp::Now());
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool RecordReplay_EndWatchdog(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  EndRunEvent();
+
+  args.rval().setUndefined();
+  return true;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Recording/Replaying Script Hit Methods
 ///////////////////////////////////////////////////////////////////////////////
@@ -1916,6 +1934,8 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("dump", RecordReplay_Dump, 1, 0),
     JS_FN("crash", RecordReplay_Crash, 0, 0),
     JS_FN("memoryUsage", RecordReplay_MemoryUsage, 0, 0),
+    JS_FN("beginWatchdog", RecordReplay_BeginWatchdog, 0, 0),
+    JS_FN("endWatchdog", RecordReplay_EndWatchdog, 0, 0),
     JS_FS_END};
 
 extern "C" {

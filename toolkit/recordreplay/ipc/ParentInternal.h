@@ -14,6 +14,12 @@
 
 namespace mozilla {
 namespace recordreplay {
+
+// Used in parent/middleman processes for the main thread's event loop,
+// and in replaying processes while debugging.
+void BeginRunEvent(const TimeStamp& aNow);
+void EndRunEvent();
+
 namespace parent {
 
 // This file has internal declarations for interaction between different
