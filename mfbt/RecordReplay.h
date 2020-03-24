@@ -266,9 +266,11 @@ MFBT_API bool LoadedWithFileURI();
 typedef uint64_t ProgressCounter;
 MFBT_API ProgressCounter* ExecutionProgressCounter();
 
-static inline void AdvanceExecutionProgressCounter() {
-  ++*ExecutionProgressCounter();
-}
+// Value of the progress counter at which JS execution should be interrupted.
+MFBT_API ProgressCounter* ExecutionProgressInterrupt();
+
+// Advance the execution progress counter.
+MFBT_API void AdvanceExecutionProgressCounter();
 
 // Get an identifier for the current execution point which can be used to warp
 // here later.

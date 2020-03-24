@@ -13331,6 +13331,21 @@ void CodeGenerator::visitInterruptCheck(LInterruptCheck* lir) {
   if (lir->mir()->trackRecordReplayProgress()) {
     masm.inc64(
         AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
+    if (mozilla::recordreplay::IsReplaying()) {
+      Label noMatch;
+      masm.push(ReturnReg);
+      masm.loadPtr(AbsoluteAddress(mozilla::recordreplay::ExecutionProgressInterrupt()), ReturnReg);
+      masm.branchPtr(Assembler::NotEqual,
+                     AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()),
+                     ReturnReg,
+                     &noMatch);
+      masm.movePtr(ImmPtr(gen->runtime->addressOfInterruptBits()), ScratchReg);
+      masm.store32(Imm32((uint32_t)InterruptReason::CallbackUrgent), Address(ScratchReg, 0));
+      masm.movePtr(ImmPtr(gen->runtime->addressOfJitStackLimit()), ScratchReg);
+      masm.storePtr(ImmWord(UINTPTR_MAX), Address(ScratchReg, 0));
+      masm.bind(&noMatch);
+      masm.pop(ReturnReg);
+    }
   }
 
   const void* interruptAddr = gen->runtime->addressOfInterruptBits();

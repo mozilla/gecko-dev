@@ -30,6 +30,7 @@ namespace recordreplay {
   Macro(InternalThingIndex, size_t, (void* aThing), (aThing))                  \
   Macro(InternalVirtualThingName, const char*, (void* aThing), (aThing))       \
   Macro(ExecutionProgressCounter, ProgressCounter*, (), ())                    \
+  Macro(ExecutionProgressInterrupt, ProgressCounter*, (), ())                  \
   Macro(NewTimeWarpTarget, ProgressCounter, (), ())                            \
   Macro(ShouldUpdateProgressCounter, bool, (const char* aURL), (aURL))         \
   Macro(DefineRecordReplayControlObject, bool, (void* aCx, void* aObj),        \
@@ -70,7 +71,8 @@ namespace recordreplay {
   Macro(AddContentParseData16,                                                 \
         (const void* aToken, const char16_t* aBuffer, size_t aLength),         \
         (aToken, aBuffer, aLength))                                            \
-  Macro(EndContentParse, (const void* aToken), (aToken))
+  Macro(EndContentParse, (const void* aToken), (aToken))                       \
+  Macro(AdvanceExecutionProgressCounter, (), ())
 // clang-format on
 
 #define DECLARE_SYMBOL(aName, aReturnType, aFormals, _) \
