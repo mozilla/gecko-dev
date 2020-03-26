@@ -1165,7 +1165,7 @@ static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock) {
 
 #undef compress
 
-size_t ManifestFinished(const js::CharBuffer& aBuffer, bool aBulk, bool aCompress) {
+void ManifestFinished(const js::CharBuffer& aBuffer, bool aBulk, bool aCompress) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   MOZ_RELEASE_ASSERT(gProcessingManifest);
 
@@ -1193,8 +1193,6 @@ size_t ManifestFinished(const js::CharBuffer& aBuffer, bool aBulk, bool aCompres
     Print(logMessage.get());
   }
 
-  size_t nbytes = msg->mSize;
-
   PauseMainThreadAndInvokeCallback([=]() {
     gChannel->SendMessage(std::move(*msg));
     free(msg);
@@ -1203,8 +1201,6 @@ size_t ManifestFinished(const js::CharBuffer& aBuffer, bool aBulk, bool aCompres
     gProcessingManifest = false;
     MaybeStartNextManifest(lock);
   });
-
-  return nbytes;
 }
 
 void SendExternalCallRequest(ExternalCallId aId,

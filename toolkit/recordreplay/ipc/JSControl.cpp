@@ -1033,9 +1033,9 @@ static bool RecordReplay_ManifestFinished(JSContext* aCx, unsigned aArgc,
   bool bulk = ToBoolean(args.get(1));
   bool compress = ToBoolean(args.get(2));
 
-  size_t nbytes = child::ManifestFinished(responseBuffer, bulk, compress);
+  child::ManifestFinished(responseBuffer, bulk, compress);
 
-  args.rval().setNumber((double)nbytes);
+  args.rval().setUndefined();
   return true;
 }
 
