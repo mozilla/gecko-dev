@@ -6527,6 +6527,7 @@ function EnsureRecordReplayWatcher() {
       const description = { logId, date: Date.now() };
 
       ChromeUtils.recordReplayLog(`AddRecordReplayLog ${logId}`);
+      dump(`RecordReplayLog ${logId}\n`);
 
       // See also crashes.js
       const dir = Services.dirsvc.get("UAppData", Ci.nsIFile);
