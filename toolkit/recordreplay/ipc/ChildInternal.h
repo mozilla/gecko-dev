@@ -111,7 +111,12 @@ uint64_t GetMemoryUsage();
 
 extern nsCString gReplayJS;
 
+// Handle a child-side log message.
 void PrintLog(const nsAString& aText);
+
+// Access the shared key-value database in the root replaying process.
+void SetSharedKey(const nsAutoCString& aKey, const nsAutoCString& aValue);
+void GetSharedKey(const nsAutoCString& aKey, nsAutoCString& aValue);
 
 }  // namespace child
 }  // namespace recordreplay

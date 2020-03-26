@@ -91,6 +91,7 @@ static bool gWaitingForCallResponse;
 static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock);
 static void SendMessageToForkedProcess(Message::UniquePtr aMsg);
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize);
+static void HandleSharedKeyResponse(const SharedKeyResponseMessage& aMsg);
 
 // Lock which allows non-main threads to prevent forks. Readers are the threads
 // preventing forks from happening, while the writer is the main thread during
@@ -216,6 +217,11 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       gMonitor->NotifyAll();
       break;
     }
+    case MessageType::SharedKeyResponse: {
+      const auto& nmsg = (const SharedKeyResponseMessage&)*aMsg;
+      HandleSharedKeyResponse(nmsg);
+      break;
+    }
     default:
       MOZ_CRASH();
   }
@@ -275,8 +281,6 @@ static void WaitForGraphicsShmem() {
   gGraphicsShmem = (void*)address;
 }
 
-static void InitializeForkListener();
-
 void SetupRecordReplayChannel(int aArgc, char* aArgv[]) {
   MOZ_RELEASE_ASSERT(IsRecordingOrReplaying() &&
                      AreThreadEventsPassedThrough());
@@ -315,6 +319,9 @@ void SetupRecordReplayChannel(int aArgc, char* aArgv[]) {
 
 static double gStartTime;
 
+static void InitializeForkListener();
+static void InitializeSharedDatabase();
+
 void InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv) {
   if (!IsRecordingOrReplaying()) {
     return;
@@ -330,6 +337,7 @@ void InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv) {
       WaitForGraphicsShmem();
     } else {
       InitializeForkListener();
+      InitializeSharedDatabase();
     }
   }
 
@@ -445,6 +453,9 @@ static void SendMessageToForkedProcess(Message::UniquePtr aMsg) {
   gPendingForkMessages.append(std::move(aMsg));
 }
 
+static void HandleSharedKeySet(const SharedKeySetMessage& aMsg);
+static void HandleSharedKeyRequest(const SharedKeyRequestMessage& aMsg);
+
 static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
   // Certain messages from forked processes are intended for this one,
   // instead of the middleman.
@@ -486,6 +497,16 @@ static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
     case MessageType::ScanData:
       js::AddScanDataMessage(std::move(aMsg));
       return;
+    case MessageType::SharedKeySet: {
+      const auto& nmsg = static_cast<const SharedKeySetMessage&>(*aMsg);
+      HandleSharedKeySet(nmsg);
+      return;
+    }
+    case MessageType::SharedKeyRequest: {
+      const auto& nmsg = static_cast<const SharedKeyRequestMessage&>(*aMsg);
+      HandleSharedKeyRequest(nmsg);
+      return;
+    }
     default:
       break;
   }
@@ -776,6 +797,92 @@ void PrintLog(const nsAString& aText) {
     nsPrintfCString buf("[#%lu %.2f] %s\n", gForkId, elapsed, ntext.get());
     DirectPrint(buf.get());
   }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Shared key-value database
+///////////////////////////////////////////////////////////////////////////////
+
+static Monitor* gSharedDatabaseMonitor;
+
+// Used in root replaying process, protected by gSharedDatabaseMonitor.
+typedef std::unordered_map<std::string, std::string> SharedDatabase;
+static SharedDatabase* gSharedDatabase;
+
+// Used in forked replaying processes, protected by gSharedDatabaseMonitor.
+static Maybe<nsAutoCString> gSharedKeyResponse;
+
+static void InitializeSharedDatabase() {
+  gSharedDatabase = new SharedDatabase();
+  gSharedDatabaseMonitor = new Monitor();
+}
+
+static void HandleSharedKeySet(const SharedKeySetMessage& aMsg) {
+  MOZ_RELEASE_ASSERT(gForkId == 0);
+
+  MonitorAutoLock lock(*gSharedDatabaseMonitor);
+
+  std::string key(aMsg.BinaryData(), aMsg.mTag);
+  std::string value(aMsg.BinaryData() + aMsg.mTag, aMsg.BinaryDataSize() - aMsg.mTag);
+  gSharedDatabase->erase(key);
+  gSharedDatabase->insert({ key, value });
+}
+
+static void HandleSharedKeyRequest(const SharedKeyRequestMessage& aMsg) {
+  MOZ_RELEASE_ASSERT(gForkId == 0);
+
+  MonitorAutoLock lock(*gSharedDatabaseMonitor);
+
+  std::string key(aMsg.BinaryData(), aMsg.BinaryDataSize());
+  std::string value;
+
+  const auto& entry = gSharedDatabase->find(key);
+  if (entry != gSharedDatabase->end()) {
+    value = entry->second;
+  }
+
+  Message::UniquePtr response(SharedKeyResponseMessage::New(
+      aMsg.mForkId, 0, value.data(), value.length()));
+  SendMessageToForkedProcess(std::move(response));
+}
+
+void SetSharedKey(const nsAutoCString& aKey, const nsAutoCString& aValue) {
+  MOZ_RELEASE_ASSERT(gForkId != 0);
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+
+  nsAutoCString combined;
+  combined.Append(aKey);
+  combined.Append(aValue);
+  UniquePtr<Message> msg(SharedKeySetMessage::New(
+      gForkId, aKey.Length(), combined.BeginReading(), combined.Length()));
+  gChannel->SendMessage(std::move(*msg));
+}
+
+static void HandleSharedKeyResponse(const SharedKeyResponseMessage& aMsg) {
+  MOZ_RELEASE_ASSERT(gForkId != 0);
+  MOZ_RELEASE_ASSERT(!NS_IsMainThread());
+
+  MonitorAutoLock lock(*gSharedDatabaseMonitor);
+
+  MOZ_RELEASE_ASSERT(gSharedKeyResponse.isNothing());
+  gSharedKeyResponse.emplace(aMsg.BinaryData(), aMsg.BinaryDataSize());
+  gSharedDatabaseMonitor->Notify();
+}
+
+void GetSharedKey(const nsAutoCString& aKey, nsAutoCString& aValue) {
+  MOZ_RELEASE_ASSERT(gForkId != 0);
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+
+  UniquePtr<Message> msg(SharedKeyRequestMessage::New(
+      gForkId, 0, aKey.BeginReading(), aKey.Length()));
+  gChannel->SendMessage(std::move(*msg));
+
+  MonitorAutoLock lock(*gSharedDatabaseMonitor);
+  while (gSharedKeyResponse.isNothing()) {
+    gSharedDatabaseMonitor->Wait();
+  }
+  aValue = *gSharedKeyResponse;
+  gSharedKeyResponse.reset();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

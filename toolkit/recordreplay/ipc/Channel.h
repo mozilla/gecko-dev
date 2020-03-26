@@ -121,7 +121,16 @@ namespace recordreplay {
                                                                \
   /* Send some logging text to print, from the recording process to the middleman or */ \
   /* from the middleman to a replaying process. */             \
-  _Macro(LogText)
+  _Macro(LogText)                                              \
+                                                               \
+  /* Set a value in the root replaying process database. */    \
+  _Macro(SharedKeySet)                                         \
+                                                               \
+  /* Request a value in the root replaying process database. */ \
+  _Macro(SharedKeyRequest)                                     \
+                                                               \
+  /* Response to SharedKeyRequest */                           \
+  _Macro(SharedKeyResponse)
 
 enum class MessageType : uint16_t {
 #define DefineEnum(Kind) Kind,
@@ -361,6 +370,13 @@ typedef BinaryMessage<MessageType::ManifestStart> ManifestStartMessage;
 typedef BinaryMessage<MessageType::ManifestFinished> ManifestFinishedMessage;
 typedef BinaryMessage<MessageType::ReplayJS> ReplayJSMessage;
 typedef BinaryMessage<MessageType::LogText> LogTextMessage;
+
+// The tag is the length of the key, after which the value follows.
+typedef BinaryMessage<MessageType::SharedKeySet> SharedKeySetMessage;
+
+// The tag is not used.
+typedef BinaryMessage<MessageType::SharedKeyRequest> SharedKeyRequestMessage;
+typedef BinaryMessage<MessageType::SharedKeyResponse> SharedKeyResponseMessage;
 
 struct PingMessage : public Message {
   uint32_t mId;

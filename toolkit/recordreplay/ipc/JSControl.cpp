@@ -1327,6 +1327,62 @@ static bool RecordReplay_RequestInterrupt(JSContext* aCx, unsigned aArgc, Value*
   return true;
 }
 
+static bool RecordReplay_SetSharedKey(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isString() || !args.get(1).isString()) {
+    JS_ReportErrorASCII(aCx, "Bad parameters");
+    return false;
+  }
+
+  nsAutoCString key, value;
+  ConvertJSStringToCString(aCx, args.get(0).toString(), key);
+  ConvertJSStringToCString(aCx, args.get(1).toString(), value);
+
+  child::SetSharedKey(key, value);
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool RecordReplay_GetSharedKey(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isString()) {
+    JS_ReportErrorASCII(aCx, "Bad parameter");
+    return false;
+  }
+
+  nsAutoCString key;
+  ConvertJSStringToCString(aCx, args.get(0).toString(), key);
+
+  nsAutoCString value;
+  child::GetSharedKey(key, value);
+
+  args.rval().setString(ConvertStringToJSString(aCx, NS_ConvertUTF8toUTF16(value)));
+  return true;
+}
+
+static bool RecordReplay_DumpToFile(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isString() || !args.get(1).isString()) {
+    JS_ReportErrorASCII(aCx, "Bad parameters");
+    return false;
+  }
+
+  nsAutoCString file, contents;
+  ConvertJSStringToCString(aCx, args.get(0).toString(), file);
+  ConvertJSStringToCString(aCx, args.get(1).toString(), contents);
+
+  FileHandle fd = DirectOpenFile(file.get(), true);
+  DirectWrite(fd, contents.get(), contents.Length());
+  DirectCloseFile(fd);
+
+  args.rval().setUndefined();
+  return true;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Recording/Replaying Script Hit Methods
 ///////////////////////////////////////////////////////////////////////////////
@@ -2006,6 +2062,9 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("beginWatchdog", RecordReplay_BeginWatchdog, 0, 0),
     JS_FN("endWatchdog", RecordReplay_EndWatchdog, 0, 0),
     JS_FN("requestInterrupt", RecordReplay_RequestInterrupt, 1, 0),
+    JS_FN("setSharedKey", RecordReplay_SetSharedKey, 2, 0),
+    JS_FN("getSharedKey", RecordReplay_GetSharedKey, 1, 0),
+    JS_FN("dumpToFile", RecordReplay_DumpToFile, 2, 0),
     JS_FS_END};
 
 extern "C" {
