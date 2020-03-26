@@ -126,19 +126,19 @@ bool CodeGeneratorShared::generatePrologue() {
     masm.inc64(
         AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
     if (mozilla::recordreplay::IsReplaying()) {
+      Register scratch = CallTempReg0;
+
       Label noMatch;
-      masm.push(ReturnReg);
-      masm.loadPtr(AbsoluteAddress(mozilla::recordreplay::ExecutionProgressInterrupt()), ReturnReg);
+      masm.loadPtr(AbsoluteAddress(mozilla::recordreplay::ExecutionProgressInterrupt()), scratch);
       masm.branchPtr(Assembler::NotEqual,
                      AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()),
-                     ReturnReg,
+                     scratch,
                      &noMatch);
-      masm.movePtr(ImmPtr(gen->runtime->addressOfInterruptBits()), ScratchReg);
-      masm.store32(Imm32((uint32_t)InterruptReason::CallbackUrgent), Address(ScratchReg, 0));
-      masm.movePtr(ImmPtr(gen->runtime->addressOfJitStackLimit()), ScratchReg);
-      masm.storePtr(ImmWord(UINTPTR_MAX), Address(ScratchReg, 0));
+      masm.movePtr(ImmPtr(gen->runtime->addressOfInterruptBits()), scratch);
+      masm.store32(Imm32((uint32_t)InterruptReason::CallbackUrgent), Address(scratch, 0));
+      masm.movePtr(ImmPtr(gen->runtime->addressOfJitStackLimit()), scratch);
+      masm.storePtr(ImmWord(UINTPTR_MAX), Address(scratch, 0));
       masm.bind(&noMatch);
-      masm.pop(ReturnReg);
     }
   }
 

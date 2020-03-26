@@ -2256,10 +2256,10 @@ bool BaselineCodeGen<Handler>::emitIncExecutionProgressCounter(
                      AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()),
                      scratch,
                      &noMatch);
-      masm.movePtr(ImmPtr(cx->addressOfInterruptBits()), ScratchReg);
-      masm.store32(Imm32((uint32_t)InterruptReason::CallbackUrgent), Address(ScratchReg, 0));
-      masm.movePtr(ImmPtr(cx->addressOfJitStackLimit()), ScratchReg);
-      masm.storePtr(ImmWord(UINTPTR_MAX), Address(ScratchReg, 0));
+      masm.movePtr(ImmPtr(cx->addressOfInterruptBits()), scratch);
+      masm.store32(Imm32((uint32_t)InterruptReason::CallbackUrgent), Address(scratch, 0));
+      masm.movePtr(ImmPtr(cx->addressOfJitStackLimit()), scratch);
+      masm.storePtr(ImmWord(UINTPTR_MAX), Address(scratch, 0));
       masm.bind(&noMatch);
     }
     return true;
