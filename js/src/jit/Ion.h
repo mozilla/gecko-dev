@@ -275,8 +275,11 @@ bool JitSupportsSimd();
 bool JitSupportsAtomics();
 
 inline bool IsIonEnabled(JSContext* cx) {
+  return false;
+  /*
   return IsBaselineJitEnabled() && JitOptions.ion &&
          !cx->options().disableIon();
+  */
 }
 
 }  // namespace jit
