@@ -8,6 +8,7 @@
 
 #include "mozilla/Base64.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Compression.h"
 #include "mozilla/StaticPtr.h"
 #include "js/CharacterEncoding.h"
 #include "js/Conversions.h"
@@ -202,8 +203,20 @@ static void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
 
 void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
                              const ManifestFinishedMessage& aMsg) {
-  ForwardManifestFinished(aChild, aMsg.mForkId, aMsg.Bulk(), aMsg.BinaryData(),
-                          aMsg.BinaryDataSize());
+  if (aMsg.mTag) {
+    char* buf = new char[aMsg.mTag];
+    size_t written = 0;
+    if (!Compression::LZ4::decompress(aMsg.BinaryData(), aMsg.BinaryDataSize(),
+                                      buf, aMsg.mTag, &written)) {
+      MOZ_CRASH("ForwardManifestFinished decompress failed");
+    }
+    MOZ_RELEASE_ASSERT(written == aMsg.mTag);
+    ForwardManifestFinished(aChild, aMsg.mForkId, aMsg.Bulk(), buf, aMsg.mTag);
+    delete[] buf;
+  } else {
+    ForwardManifestFinished(aChild, aMsg.mForkId, aMsg.Bulk(), aMsg.BinaryData(),
+                            aMsg.BinaryDataSize());
+  }
 }
 
 void ForwardUnhandledDivergence(parent::ChildProcessInfo* aChild,
@@ -1018,10 +1031,11 @@ static bool RecordReplay_ManifestFinished(JSContext* aCx, unsigned aArgc,
   }
 
   bool bulk = ToBoolean(args.get(1));
+  bool compress = ToBoolean(args.get(2));
 
-  child::ManifestFinished(responseBuffer, bulk);
+  size_t nbytes = child::ManifestFinished(responseBuffer, bulk, compress);
 
-  args.rval().setUndefined();
+  args.rval().setNumber((double)nbytes);
   return true;
 }
 
@@ -2027,7 +2041,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("setProgressCounter", RecordReplay_SetProgressCounter, 1, 0),
     JS_FN("shouldUpdateProgressCounter",
           RecordReplay_ShouldUpdateProgressCounter, 1, 0),
-    JS_FN("manifestFinished", RecordReplay_ManifestFinished, 2, 0),
+    JS_FN("manifestFinished", RecordReplay_ManifestFinished, 3, 0),
     JS_FN("resumeExecution", RecordReplay_ResumeExecution, 0, 0),
     JS_FN("currentExecutionTime", RecordReplay_CurrentExecutionTime, 0, 0),
     JS_FN("flushRecording", RecordReplay_FlushRecording, 0, 0),

@@ -16,6 +16,7 @@
 #include "ipc/Channel.h"
 #include "mac/handler/exception_handler.h"
 #include "mozilla/Base64.h"
+#include "mozilla/Compression.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/VsyncDispatcher.h"
@@ -1162,14 +1163,26 @@ static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock) {
   }
 }
 
-void ManifestFinished(const js::CharBuffer& aBuffer, bool aBulk) {
+#undef compress
+
+size_t ManifestFinished(const js::CharBuffer& aBuffer, bool aBulk, bool aCompress) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   MOZ_RELEASE_ASSERT(gProcessingManifest);
 
   NS_ConvertUTF16toUTF8 converted(aBuffer.begin(), aBuffer.length());
 
-  ManifestFinishedMessage* msg =
-      ManifestFinishedMessage::New(gForkId, 0, converted.get(), converted.Length());
+  ManifestFinishedMessage* msg;
+  if (aCompress) {
+    char* compressed = new char[Compression::LZ4::maxCompressedSize(converted.Length())];
+    unsigned length = Compression::LZ4::compress(converted.get(), converted.Length(), compressed);
+    msg = ManifestFinishedMessage::New(gForkId, converted.Length(), compressed, length);
+    delete[] compressed;
+
+    nsPrintfCString log("CompressedMessage %u %u", converted.Length(), length);
+    PrintLog(NS_ConvertUTF8toUTF16(log));
+  } else {
+    msg = ManifestFinishedMessage::New(gForkId, 0, converted.get(), converted.Length());
+  }
   if (aBulk) {
     msg->SetBulk();
   }
@@ -1180,6 +1193,8 @@ void ManifestFinished(const js::CharBuffer& aBuffer, bool aBulk) {
     Print(logMessage.get());
   }
 
+  size_t nbytes = msg->mSize;
+
   PauseMainThreadAndInvokeCallback([=]() {
     gChannel->SendMessage(std::move(*msg));
     free(msg);
@@ -1188,6 +1203,8 @@ void ManifestFinished(const js::CharBuffer& aBuffer, bool aBulk) {
     gProcessingManifest = false;
     MaybeStartNextManifest(lock);
   });
+
+  return nbytes;
 }
 
 void SendExternalCallRequest(ExternalCallId aId,

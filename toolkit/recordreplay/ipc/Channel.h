@@ -367,9 +367,11 @@ struct UpdateRecordingFromRootMessage : public Message {
 
 // The tag is not used.
 typedef BinaryMessage<MessageType::ManifestStart> ManifestStartMessage;
-typedef BinaryMessage<MessageType::ManifestFinished> ManifestFinishedMessage;
 typedef BinaryMessage<MessageType::ReplayJS> ReplayJSMessage;
 typedef BinaryMessage<MessageType::LogText> LogTextMessage;
+
+// The tag is the uncompressed size if the message is compressed.
+typedef BinaryMessage<MessageType::ManifestFinished> ManifestFinishedMessage;
 
 // The tag is the length of the key, after which the value follows.
 typedef BinaryMessage<MessageType::SharedKeySet> SharedKeySetMessage;
