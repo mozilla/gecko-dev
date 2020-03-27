@@ -66,6 +66,9 @@ class ThreadFront extends FrontClassWithSpec(threadSpec) {
 
   _assertPaused(command) {
     if (!this.paused) {
+      require("ChromeUtils").recordReplayLog(
+        `Thread not paused, currently ${this._state} ${Error().stack}`
+      );
       throw Error(
         command + " command sent while not paused. Currently " + this._state
       );
