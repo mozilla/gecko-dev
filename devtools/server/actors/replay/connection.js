@@ -79,15 +79,12 @@ function onMessage(evt) {
       Services.cpmm.sendAsyncMessage("RecordReplayCriticalError", { kind: "CloudSpawnError" });
       break;
     case "connected":
-      ChromeUtils.recordReplayLog(`RecordReplayConnected ${gSessionId}`);
       gCallbacks.onConnected(evt.data.id);
       break;
     case "disconnected":
-      ChromeUtils.recordReplayLog(`RecordReplayDisconnected ${gSessionId}`);
       gCallbacks.onDisconnected(evt.data.id);
       break;
     case "error":
-      ChromeUtils.recordReplayLog(`RecordReplaySocketError ${gSessionId} ${evt.data.why}`);
       if (evt.data.id) {
         gCallbacks.onDisconnected(evt.data.id);
       }
@@ -101,7 +98,6 @@ function onMessage(evt) {
 // eslint-disable-next-line no-unused-vars
 function Connect(channelId) {
   dump(`RecordReplayConnect\n`);
-  ChromeUtils.recordReplayLog(`RecordReplayConnect`);
   const id = gNextConnectionId++;
   gWorker.postMessage({ kind: "connect", id, channelId });
   return id;

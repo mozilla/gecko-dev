@@ -104,12 +104,14 @@ async function onServerMessage(evt) {
 
 // How much time to give a new connection to establish itself before closing it
 // and reattempting to connect.
-const SocketTimeoutMs = 5000;
+const SocketTimeoutMs = 20000;
 
 let totalSent = 0;
 let totalReceived = 0;
 
 async function doConnect(id, channelId) {
+  doLog(`ReplayerConnect ${elapsedTime()}`);
+
   if (gConnections[id]) {
     PostError(`Duplicate connection ID ${id}`);
   }
@@ -156,6 +158,7 @@ async function doConnect(id, channelId) {
 
   setTimeout(() => {
     if (!connection.connected) {
+      doLog(`ReplayerConnectionTimedOut ${elapsedTime()}`);
       socket.close();
       bulkSocket.close();
     }
@@ -238,6 +241,7 @@ function onOpen(id, bulk) {
 }
 
 function onClose(id, bulk) {
+  doLog(`ReplayerDisconnected ${elapsedTime()}`);
   postMessage({ kind: "disconnected", id });
   gConnections[id] = null;
 }
@@ -316,6 +320,7 @@ function onMessage(id, evt, bulk) {
   // When we have heard back from the replayer, we are fully connected to it.
   if (!gConnections[id].connected && !bulk) {
     gConnections[id].connected = true;
+    doLog(`ReplayerConnected ${elapsedTime()}`);
     postMessage({ kind: "connected", id });
   }
 
@@ -327,10 +332,11 @@ function onMessage(id, evt, bulk) {
 }
 
 function onError(id, evt) {
-  PostError("ReplaySocketError", id);
+  PostError("SocketError", id);
 }
 
 function PostError(why, id) {
+  doLog(`ReplayerConnectionError ${why.toString()} ${elapsedTime()}`);
   postMessage({ kind: "error", why: why.toString(), id });
 }
 
