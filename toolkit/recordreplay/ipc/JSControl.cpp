@@ -191,14 +191,9 @@ static void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
 
   NS_ConvertUTF8toUTF16 buf(aBuffer, aBufferSize);
 
-  Print("PARSE_JSON_START %lu\n", buf.Length());
-
   if (aBufferSize && !JS_ParseJSON(cx, buf.get(), buf.Length(), args[3])) {
-    Print("PARSE_JSON_CRASHED\n");
     MOZ_CRASH("ForwardManifestFinished");
   }
-
-  Print("PARSE_JSON_END %lu\n", buf.Length());
 
   RootedValue rv(cx);
   if (!JS_CallFunctionName(cx, *gModuleObject, "ManifestFinished", args, &rv)) {

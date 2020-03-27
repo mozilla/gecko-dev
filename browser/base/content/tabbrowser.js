@@ -6740,6 +6740,7 @@ function EnsureRecordReplayWatcher() {
     receiveMessage(msg) {
       if (gBrowser.selectedBrowser.hasAttribute("recordExecution") ||
           gBrowser.selectedBrowser.hasAttribute("replayExecution")) {
+        dump(`RecordReplayCriticalError ${msg.data.kind}\n`);
         ChromeUtils.recordReplayLog(`RecordReplayCriticalError ${msg.data.kind}`);
         const tab = gBrowser.selectedTab;
         gBrowser.selectedTab = gBrowser.addTrustedTab(`about:webreplay?error=${msg.data.kind}`, {
