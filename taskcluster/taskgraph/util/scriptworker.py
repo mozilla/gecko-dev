@@ -57,10 +57,9 @@ SIGNING_SCOPE_ALIAS_TO_PROJECT = [[
     'all-release-branches', set([
         'mozilla-beta',
         'mozilla-release',
-        'mozilla-esr60',
         'mozilla-esr68',
         'comm-beta',
-        'comm-esr60',
+        'comm-esr68',
     ])
 ]]
 
@@ -95,10 +94,8 @@ BEETMOVER_SCOPE_ALIAS_TO_PROJECT = [[
     'all-release-branches', set([
         'mozilla-beta',
         'mozilla-release',
-        'mozilla-esr60',
         'mozilla-esr68',
         'comm-beta',
-        'comm-esr60',
         'comm-esr68',
     ])
 ]]
@@ -141,12 +138,7 @@ BALROG_SCOPE_ALIAS_TO_PROJECT = [[
 ], [
     'release', set([
         'mozilla-release',
-        'comm-esr60',
         'comm-esr68',
-    ])
-], [
-    'esr60', set([
-        'mozilla-esr60',
     ])
 ], [
     'esr68', set([
@@ -161,7 +153,6 @@ BALROG_SERVER_SCOPES = {
     'aurora': 'balrog:server:aurora',
     'beta': 'balrog:server:beta',
     'release': 'balrog:server:release',
-    'esr60': 'balrog:server:esr',
     'esr68': 'balrog:server:esr',
     'default': 'balrog:server:dep',
 }
@@ -366,10 +357,10 @@ def get_release_config(config):
         if release_config['partial_versions'] == "{}":
             del release_config['partial_versions']
 
-    release_config['version'] = str(config.params['version'])
-    release_config['appVersion'] = str(config.params['app_version'])
+    release_config['version'] = config.params['version']
+    release_config['appVersion'] = config.params['app_version']
 
-    release_config['next_version'] = str(config.params['next_version'])
+    release_config['next_version'] = config.params['next_version']
     release_config['build_number'] = config.params['build_number']
     return release_config
 
@@ -381,31 +372,6 @@ def get_signing_cert_scope_per_platform(build_platform, is_nightly, config):
         return get_signing_cert_scope(config)
     else:
         return add_scope_prefix(config, 'signing:cert:dep-signing')
-
-
-def get_worker_type_for_scope(config, scope):
-    """Get the scriptworker type that will accept the given scope.
-
-    Args:
-        config (TransformConfig): The configuration for the kind being transformed.
-        scope (string): The scope being used.
-
-    Returns:
-        string: The worker-type to use.
-    """
-    for worker_type, scopes in config.graph_config['scriptworker']['worker-types'].items():
-        if scope in scopes:
-            return worker_type
-    raise RuntimeError(
-        "Unsupported scriptworker scope {scope}. (supported scopes: {available_scopes})".format(
-            scope=scope,
-            available_scopes=sorted(
-                scope
-                for scopes in config.graph_config['scriptworker']['worker-types'].values()
-                for scope in scopes
-            ),
-        )
-    )
 
 
 # generate_beetmover_upstream_artifacts {{{1

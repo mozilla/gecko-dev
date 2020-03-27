@@ -150,6 +150,11 @@ void ClearBlobImageResources(WrIdNamespace aNamespace) {
   }
 }
 
+bool HasFontData(WrFontKey aKey) {
+  StaticMutexAutoLock lock(sFontDataTableLock);
+  return sFontDataTable.find(aKey) != sFontDataTable.end();
+}
+
 void AddFontData(WrFontKey aKey, const uint8_t* aData, size_t aSize,
                  uint32_t aIndex, const ArcVecU8* aVec) {
   StaticMutexAutoLock lock(sFontDataTableLock);
@@ -342,7 +347,7 @@ static bool Moz2DRenderCallback(const Range<const uint8_t> aBlob,
                                 const mozilla::wr::LayoutIntRect* aDirtyRect,
                                 Range<uint8_t> aOutput) {
   IntSize size(aRenderRect->size.width, aRenderRect->size.height);
-  AUTO_PROFILER_TRACING("WebRender", "RasterizeSingleBlob", GRAPHICS);
+  AUTO_PROFILER_TRACING_MARKER("WebRender", "RasterizeSingleBlob", GRAPHICS);
   MOZ_RELEASE_ASSERT(size.width > 0 && size.height > 0);
   if (size.width <= 0 || size.height <= 0) {
     return false;

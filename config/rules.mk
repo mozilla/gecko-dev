@@ -465,13 +465,8 @@ ifeq (_WINNT,$(GNU_CC)_$(OS_ARCH))
 	$(LINKER) -NOLOGO -OUT:$@ -PDB:$(LINK_PDBFILE) -IMPLIB:$(basename $(@F)).lib $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(MOZ_PROGRAM_LDFLAGS) $($(notdir $@)_OBJS) $(RESFILE) $(STATIC_LIBS) $(SHARED_LIBS) $(OS_LIBS)
 ifdef MSMANIFEST_TOOL
 	@if test -f $@.manifest; then \
-		if test -f '$(srcdir)/$(notdir $@).manifest'; then \
-			echo 'Embedding manifest from $(srcdir_rel)/$(notdir $@).manifest and $@.manifest'; \
-			$(MT) -NOLOGO -MANIFEST '$(srcdir_rel)/$(notdir $@).manifest' $@.manifest -OUTPUTRESOURCE:$@\;1; \
-		else \
-			echo 'Embedding manifest from $@.manifest'; \
-			$(MT) -NOLOGO -MANIFEST $@.manifest -OUTPUTRESOURCE:$@\;1; \
-		fi; \
+		echo "Manifest in objdir is not supported"; \
+		exit 1; \
 	elif test -f '$(srcdir)/$(notdir $@).manifest'; then \
 		echo 'Embedding manifest from $(srcdir_rel)/$(notdir $@).manifest'; \
 		$(MT) -NOLOGO -MANIFEST '$(srcdir_rel)/$(notdir $@).manifest' -OUTPUTRESOURCE:$@\;1; \
@@ -495,13 +490,8 @@ ifeq (_WINNT,$(GNU_CC)_$(HOST_OS_ARCH))
 	$(HOST_LINKER) -NOLOGO -OUT:$@ -PDB:$(HOST_PDBFILE) $($(notdir $@)_OBJS) $(WIN32_EXE_LDFLAGS) $(HOST_LDFLAGS) $(HOST_LINKER_LIBPATHS) $(HOST_LIBS) $(HOST_EXTRA_LIBS)
 ifdef MSMANIFEST_TOOL
 	@if test -f $@.manifest; then \
-		if test -f '$(srcdir)/$(notdir $@).manifest'; then \
-			echo 'Embedding manifest from $(srcdir_rel)/$(notdir $@).manifest and $@.manifest'; \
-			$(MT) -NOLOGO -MANIFEST '$(srcdir_rel)/$(notdir $@).manifest' $@.manifest -OUTPUTRESOURCE:$@\;1; \
-		else \
-			echo 'Embedding manifest from $@.manifest'; \
-			$(MT) -NOLOGO -MANIFEST $@.manifest -OUTPUTRESOURCE:$@\;1; \
-		fi; \
+		echo "Manifest in objdir is not supported"; \
+		exit 1; \
 	elif test -f '$(srcdir)/$(notdir $@).manifest'; then \
 		echo 'Embedding manifest from $(srcdir_rel)/$(notdir $@).manifest'; \
 		$(MT) -NOLOGO -MANIFEST '$(srcdir_rel)/$(notdir $@).manifest' -OUTPUTRESOURCE:$@\;1; \
@@ -574,10 +564,18 @@ $(WASM_ARCHIVE): $(CWASMOBJS) $(CPPWASMOBJS) $(STATIC_LIBS) $(EXTRA_DEPS) $(GLOB
 	$(REPORT_BUILD_VERBOSE)
 	$(RM) $(WASM_LIBRARY).$(WASM_OBJ_SUFFIX)
 	$(WASM_CXX) $(OUTOPTION)$@ -Wl,--export-all $(WASM_LDFLAGS) $(CWASMOBJS) $(CPPWASMOBJS)
+
+lucet_options := \
+    --bindings $(topsrcdir)/third_party/rust/lucet-wasi/bindings.json \
+    --guard-size 4GiB \
+    --min-reserved-size 4GiB \
+    --max-reserved-size 4GiB \
+    --opt-level 2
+
 $(WASM_LIBRARY): $(WASM_LIBRARY).$(WASM_OBJ_SUFFIX)
 	$(REPORT_BUILD)
 	$(RM) $(WASM_LIBRARY)
-	$(LUCETC) --bindings $(topsrcdir)/third_party/rust/lucet-wasi/bindings.json $(WASM_LIBRARY).$(WASM_OBJ_SUFFIX) --opt-level 2 -o $(WASM_LIBRARY)
+	$(LUCETC) $(lucet_options) $(WASM_LIBRARY).$(WASM_OBJ_SUFFIX) -o $(WASM_LIBRARY)
 
 ifeq ($(OS_ARCH),WINNT)
 # Import libraries are created by the rules creating shared libraries.
@@ -616,13 +614,8 @@ ifeq (_WINNT,$(GNU_CC)_$(OS_ARCH))
 ifdef MSMANIFEST_TOOL
 ifdef EMBED_MANIFEST_AT
 	@if test -f $@.manifest; then \
-		if test -f '$(srcdir)/$@.manifest'; then \
-			echo 'Embedding manifest from $(srcdir_rel)/$@.manifest and $@.manifest'; \
-			$(MT) -NOLOGO -MANIFEST '$(srcdir_rel)/$@.manifest' $@.manifest -OUTPUTRESOURCE:$@\;$(EMBED_MANIFEST_AT); \
-		else \
-			echo 'Embedding manifest from $@.manifest'; \
-			$(MT) -NOLOGO -MANIFEST $@.manifest -OUTPUTRESOURCE:$@\;$(EMBED_MANIFEST_AT); \
-		fi; \
+		echo "Manifest in objdir is not supported"; \
+		exit 1; \
 	elif test -f '$(srcdir)/$@.manifest'; then \
 		echo 'Embedding manifest from $(srcdir_rel)/$@.manifest'; \
 		$(MT) -NOLOGO -MANIFEST '$(srcdir_rel)/$@.manifest' -OUTPUTRESOURCE:$@\;$(EMBED_MANIFEST_AT); \

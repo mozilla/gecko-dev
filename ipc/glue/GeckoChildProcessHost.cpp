@@ -289,7 +289,7 @@ class AndroidProcessLauncher : public PosixProcessLauncher {
  protected:
   virtual RefPtr<ProcessHandlePromise> DoLaunch() override;
   RefPtr<ProcessHandlePromise> LaunchAndroidService(
-      const char* type, const std::vector<std::string>& argv,
+      const GeckoProcessType aType, const std::vector<std::string>& argv,
       const base::file_handle_mapping_vector& fds_to_remap);
 };
 typedef AndroidProcessLauncher ProcessLauncher;
@@ -831,7 +831,8 @@ void BaseProcessLauncher::GetChildLogName(const char* origLogName,
 //
 // Fork server needs a dedicated thread for accessing
 // |ForkServiceChild|.
-#if defined(XP_WIN) || defined(MOZ_WIDGET_ANDROID) || defined(MOZ_ENABLE_FORKSERVER)
+#if defined(XP_WIN) || defined(MOZ_WIDGET_ANDROID) || \
+    defined(MOZ_ENABLE_FORKSERVER)
 
 static mozilla::StaticMutex gIPCLaunchThreadMutex;
 static mozilla::StaticRefPtr<nsIThread> gIPCLaunchThread;
@@ -884,7 +885,8 @@ nsCOMPtr<nsIEventTarget> GetIPCLauncher() {
   return thread;
 }
 
-#else  // defined(XP_WIN) || defined(MOZ_WIDGET_ANDROID) || defined(MOZ_ENABLE_FORKSERVER)
+#else  // defined(XP_WIN) || defined(MOZ_WIDGET_ANDROID) ||
+       // defined(MOZ_ENABLE_FORKSERVER)
 
 // Other platforms use an on-demand thread pool.
 
@@ -1187,7 +1189,7 @@ bool PosixProcessLauncher::DoSetup() {
 
 #if defined(MOZ_WIDGET_ANDROID)
 RefPtr<ProcessHandlePromise> AndroidProcessLauncher::DoLaunch() {
-  return LaunchAndroidService(ChildProcessType(), mChildArgv,
+  return LaunchAndroidService(mProcessType, mChildArgv,
                               mLaunchOptions->fds_to_remap);
 }
 #endif  // MOZ_WIDGET_ANDROID
@@ -1217,6 +1219,10 @@ bool PosixProcessLauncher::DoFinishLaunch() {
 
 #ifdef XP_MACOSX
 bool MacProcessLauncher::DoFinishLaunch() {
+  if (!PosixProcessLauncher::DoFinishLaunch()) {
+    return false;
+  }
+
   // Wait for the child process to send us its 'task_t' data.
   const int kTimeoutMs = 1000000;
 
@@ -1601,7 +1607,7 @@ void GeckoChildProcessHost::GetQueuedMessages(std::queue<IPC::Message>& queue) {
 
 #ifdef MOZ_WIDGET_ANDROID
 RefPtr<ProcessHandlePromise> AndroidProcessLauncher::LaunchAndroidService(
-    const char* type, const std::vector<std::string>& argv,
+    const GeckoProcessType aType, const std::vector<std::string>& argv,
     const base::file_handle_mapping_vector& fds_to_remap) {
   MOZ_RELEASE_ASSERT((2 <= fds_to_remap.size()) && (fds_to_remap.size() <= 5));
   JNIEnv* const env = mozilla::jni::GetEnvForThread();
@@ -1632,6 +1638,7 @@ RefPtr<ProcessHandlePromise> AndroidProcessLauncher::LaunchAndroidService(
     crashAnnotationFd = fds_to_remap[4].first;
   }
 
+  auto type = java::GeckoProcessType::FromInt(aType);
   auto genericResult = java::GeckoProcessManager::Start(
       type, jargs, prefsFd, prefMapFd, ipcFd, crashFd, crashAnnotationFd);
   auto typedResult = java::GeckoResult::LocalRef(std::move(genericResult));

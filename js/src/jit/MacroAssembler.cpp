@@ -748,6 +748,26 @@ void MacroAssembler::nurseryAllocateString(Register result, Register temp,
   storePtr(ImmPtr(zone), Address(result, -js::Nursery::stringHeaderSize()));
 }
 
+// Inline version of Nursery::allocateBigInt.
+void MacroAssembler::nurseryAllocateBigInt(Register result, Register temp,
+                                           Label* fail) {
+  MOZ_ASSERT(IsNurseryAllocable(gc::AllocKind::BIGINT));
+
+  // No explicit check for nursery.isEnabled() is needed, as the comparison
+  // with the nursery's end will always fail in such cases.
+
+  CompileZone* zone = GetJitContext()->realm()->zone();
+  size_t thingSize = gc::Arena::thingSize(gc::AllocKind::BIGINT);
+  size_t totalSize = js::Nursery::bigIntHeaderSize() + thingSize;
+  MOZ_ASSERT(totalSize < INT32_MAX, "Nursery allocation too large");
+  MOZ_ASSERT(totalSize % gc::CellAlignBytes == 0);
+
+  bumpPointerAllocate(
+      result, temp, fail, zone->addressOfBigIntNurseryPosition(),
+      zone->addressOfBigIntNurseryCurrentEnd(), totalSize, thingSize);
+  storePtr(ImmPtr(zone), Address(result, -js::Nursery::bigIntHeaderSize()));
+}
+
 void MacroAssembler::bumpPointerAllocate(Register result, Register temp,
                                          Label* fail, void* posAddr,
                                          const void* curEndAddr,
@@ -817,8 +837,17 @@ void MacroAssembler::newGCFatInlineString(Register result, Register temp,
                  attemptNursery ? gc::DefaultHeap : gc::TenuredHeap, fail);
 }
 
-void MacroAssembler::newGCBigInt(Register result, Register temp, Label* fail) {
+void MacroAssembler::newGCBigInt(Register result, Register temp, Label* fail,
+                                 bool attemptNursery) {
   checkAllocatorState(fail);
+
+  gc::InitialHeap initialHeap =
+      attemptNursery ? gc::DefaultHeap : gc::TenuredHeap;
+  if (shouldNurseryAllocate(gc::AllocKind::BIGINT, initialHeap)) {
+    MOZ_ASSERT(initialHeap == gc::DefaultHeap);
+    return nurseryAllocateBigInt(result, temp, fail);
+  }
+
   freeListAllocate(result, temp, gc::AllocKind::BIGINT, fail);
 }
 
@@ -1210,8 +1239,8 @@ void MacroAssembler::compareStrings(JSOp op, Register left, Register right,
   // If operands point to the same instance, the strings are trivially equal.
   branchPtr(Assembler::NotEqual, left, right,
             IsEqualityOp(op) ? &notPointerEqual : fail);
-  move32(Imm32(op == JSOP_EQ || op == JSOP_STRICTEQ || op == JSOP_LE ||
-               op == JSOP_GE),
+  move32(Imm32(op == JSOp::Eq || op == JSOp::StrictEq || op == JSOp::Le ||
+               op == JSOp::Ge),
          result);
 
   if (IsEqualityOp(op)) {
@@ -1236,7 +1265,7 @@ void MacroAssembler::compareStrings(JSOp op, Register left, Register right,
              result, fail);
 
     bind(&setNotEqualResult);
-    move32(Imm32(op == JSOP_NE || op == JSOP_STRICTNE), result);
+    move32(Imm32(op == JSOp::Ne || op == JSOp::StrictNe), result);
 
     bind(&done);
   }
@@ -1547,7 +1576,9 @@ void MacroAssembler::initializeBigInt64(Scalar::Type type, Register bigInt,
                                         Register64 val) {
   MOZ_ASSERT(Scalar::isBigIntType(type));
 
-  store32(Imm32(0), Address(bigInt, BigInt::offsetOfFlags()));
+  uint32_t flags = BigInt::TYPE_FLAGS;
+
+  store32(Imm32(flags), Address(bigInt, BigInt::offsetOfFlags()));
 
   Label done, nonZero;
   branch64(Assembler::NotEqual, val, Imm64(0), &nonZero);
@@ -1563,7 +1594,7 @@ void MacroAssembler::initializeBigInt64(Scalar::Type type, Register bigInt,
     Label isPositive;
     branch64(Assembler::GreaterThan, val, Imm64(0), &isPositive);
     {
-      store32(Imm32(BigInt::signBitMask()),
+      store32(Imm32(BigInt::signBitMask() | flags),
               Address(bigInt, BigInt::offsetOfFlags()));
       neg64(val);
     }
@@ -1791,21 +1822,43 @@ void MacroAssembler::assertRectifierFrameParentType(Register frameType) {
 }
 
 void MacroAssembler::loadJitCodeRaw(Register func, Register dest) {
-  static_assert(
-      JSScript::offsetOfJitCodeRaw() == LazyScript::offsetOfJitCodeRaw(),
-      "LazyScript and JSScript must use same layout for jitCodeRaw_");
-  static_assert(
-      JSScript::offsetOfJitCodeRaw() ==
-          SelfHostedLazyScript::offsetOfJitCodeRaw(),
-      "SelfHostedLazyScript and JSScript must use same layout for jitCodeRaw_");
+  static_assert(BaseScript::offsetOfJitCodeRaw() ==
+                    SelfHostedLazyScript::offsetOfJitCodeRaw(),
+                "SelfHostedLazyScript and BaseScript must use same layout for "
+                "jitCodeRaw_");
   loadPtr(Address(func, JSFunction::offsetOfScript()), dest);
-  loadPtr(Address(dest, JSScript::offsetOfJitCodeRaw()), dest);
+  loadPtr(Address(dest, BaseScript::offsetOfJitCodeRaw()), dest);
 }
 
-void MacroAssembler::loadJitCodeNoArgCheck(Register func, Register dest) {
+void MacroAssembler::loadJitCodeMaybeNoArgCheck(Register func, Register dest) {
+#ifdef DEBUG
+  {
+    Label ok;
+    int32_t flags =
+        FunctionFlags::INTERPRETED | FunctionFlags::INTERPRETED_LAZY;
+    branchTestFunctionFlags(func, flags, Assembler::NonZero, &ok);
+    assumeUnreachable("Function has no BaseScript!");
+    bind(&ok);
+  }
+#endif
+
+  static_assert(ScriptWarmUpData::JitScriptTag == 0,
+                "Code below depends on tag value");
+  Imm32 tagMask(ScriptWarmUpData::TagMask);
+
+  // Read jitCodeSkipArgCheck. If JitScript is missing, the script may be lazy
+  // so fallback to jitCodeRaw.
+  Label uncompiled, end;
   loadPtr(Address(func, JSFunction::offsetOfScript()), dest);
-  loadJitScript(dest, dest);
+  loadPtr(Address(dest, BaseScript::offsetOfWarmUpData()), dest);
+  branchTestPtr(Assembler::NonZero, dest, tagMask, &uncompiled);
   loadPtr(Address(dest, JitScript::offsetOfJitCodeSkipArgCheck()), dest);
+  jump(&end);
+
+  // Fallback to reading BaseScript::jitCodeRaw.
+  bind(&uncompiled);
+  loadJitCodeRaw(func, dest);
+  bind(&end);
 }
 
 void MacroAssembler::loadBaselineFramePtr(Register framePtr, Register dest) {
@@ -2884,19 +2937,6 @@ void MacroAssembler::loadFunctionLength(Register func, Register funFlags,
                      output);
   }
   bind(&lengthLoaded);
-}
-
-void MacroAssembler::branchIfNotInterpretedConstructor(Register fun,
-                                                       Register scratch,
-                                                       Label* label) {
-  // First, ensure it's a scripted function. It is fine if it is still lazy.
-  branchTestFunctionFlags(
-      fun, FunctionFlags::INTERPRETED | FunctionFlags::INTERPRETED_LAZY,
-      Assembler::Zero, label);
-
-  // Check if the CONSTRUCTOR bit is set.
-  branchTestFunctionFlags(fun, FunctionFlags::CONSTRUCTOR, Assembler::Zero,
-                          label);
 }
 
 void MacroAssembler::branchTestObjGroupNoSpectreMitigations(

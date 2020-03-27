@@ -28,9 +28,7 @@ log = logging.getLogger(__name__)
 
 
 ROOT_URL = os.environ['TASKCLUSTER_ROOT_URL']
-QUEUE_PREFIX = ("https://queue.taskcluster.net/"
-                if ROOT_URL == 'https://taskcluster.net'
-                else ROOT_URL + '/api/queue/')
+QUEUE_PREFIX = ROOT_URL + '/api/queue/'
 ALLOWED_URL_PREFIXES = (
     "http://download.cdn.mozilla.net/pub/mozilla.org/firefox/nightly/",
     "http://download.cdn.mozilla.net/pub/firefox/nightly/",
@@ -45,9 +43,6 @@ STAGING_URL_PREFIXES = (
     "http://ftp.stage.mozaws.net/",
     "https://ftp.stage.mozaws.net/",
 )
-
-DEFAULT_FILENAME_TEMPLATE = "{appName}-{branch}-{version}-{platform}-" \
-                            "{locale}-{from_buildid}-{to_buildid}.partial.mar"
 
 BCJ_OPTIONS = {
     'x86': ['--x86'],
@@ -218,7 +213,6 @@ async def generate_partial(work_env, from_dir, to_dir, dest_mar, mar_data,
     env["MOZ_PRODUCT_VERSION"] = mar_data['version']
     env["MAR_CHANNEL_ID"] = mar_data["MAR_CHANNEL_ID"]
     env['BRANCH'] = mar_data['branch']
-    env['PLATFORM'] = mar_data['platform']
     if use_old_format:
         env['MAR_OLD_FORMAT'] = '1'
     elif 'MAR_OLD_FORMAT' in env:
@@ -292,7 +286,7 @@ def verify_allowed_url(mar, allowed_url_prefixes):
         ))
 
 
-async def manage_partial(partial_def, filename_template, artifacts_dir,
+async def manage_partial(partial_def, artifacts_dir,
                          allowed_url_prefixes, signing_certs, arch=None):
     """Manage the creation of partial mars based on payload."""
 
@@ -359,7 +353,6 @@ async def manage_partial(partial_def, filename_template, artifacts_dir,
                                section="Build", option="SourceStamp"),
         "from_mar": partial_def["from_mar"],
         "to_mar": partial_def["to_mar"],
-        "platform": partial_def["platform"],
         "locale": partial_def["locale"],
     }
 
@@ -375,11 +368,7 @@ async def manage_partial(partial_def, filename_template, artifacts_dir,
     # if branch not set explicitly use repo-name
     mar_data['branch'] = partial_def.get('branch', mar_data['repo'].rstrip('/').split('/')[-1])
 
-    if 'dest_mar' in partial_def:
-        mar_name = partial_def['dest_mar']
-    else:
-        # default to formatted name if not specified
-        mar_name = filename_template.format(**mar_data)
+    mar_name = partial_def['dest_mar']
 
     mar_data['mar'] = mar_name
     dest_mar = os.path.join(work_env.workdir, mar_name)
@@ -419,7 +408,6 @@ async def async_main(args, signing_certs):
                                            ),
                                            kwargs=dict(
                                                partial_def=definition,
-                                               filename_template=args.filename_template,
                                                artifacts_dir=args.artifacts_dir,
                                                allowed_url_prefixes=allowed_url_prefixes,
                                                signing_certs=signing_certs,
@@ -442,8 +430,6 @@ def main():
                         default=strtobool(
                             os.environ.get('FUNSIZE_ALLOW_STAGING_PREFIXES', "false")),
                         help="Allow files from staging buckets.")
-    parser.add_argument("--filename-template",
-                        default=DEFAULT_FILENAME_TEMPLATE)
     parser.add_argument("-q", "--quiet", dest="log_level",
                         action="store_const", const=logging.WARNING,
                         default=logging.DEBUG)

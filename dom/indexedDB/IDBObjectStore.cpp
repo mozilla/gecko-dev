@@ -6,8 +6,11 @@
 
 #include "IDBObjectStore.h"
 
+#include <numeric>
+#include <utility>
+
 #include "FileInfo.h"
-#include "IDBCursor.h"
+#include "IDBCursorType.h"
 #include "IDBDatabase.h"
 #include "IDBEvents.h"
 #include "IDBFactory.h"
@@ -19,42 +22,39 @@
 #include "IndexedDatabase.h"
 #include "IndexedDatabaseInlines.h"
 #include "IndexedDatabaseManager.h"
+#include "KeyPath.h"
+#include "ProfilerHelpers.h"
+#include "ReportInternalError.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
 #include "js/Class.h"
 #include "js/Date.h"
 #include "js/StructuredClone.h"
-#include "KeyPath.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/JSObjectHolder.h"
-#include "mozilla/Move.h"
 #include "mozilla/NullPrincipal.h"
+#include "mozilla/SystemGroup.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/FileBlobImpl.h"
 #include "mozilla/dom/IDBMutableFileBinding.h"
-#include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/IDBObjectStoreBinding.h"
 #include "mozilla/dom/MemoryBlobImpl.h"
 #include "mozilla/dom/StreamBlobImpl.h"
 #include "mozilla/dom/StructuredCloneHolder.h"
 #include "mozilla/dom/StructuredCloneTags.h"
-#include "mozilla/dom/indexedDB/PBackgroundIDBSharedTypes.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerScope.h"
+#include "mozilla/dom/indexedDB/PBackgroundIDBSharedTypes.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
-#include "mozilla/SystemGroup.h"
 #include "nsCOMPtr.h"
 #include "nsIXPConnect.h"
 #include "nsQueryObject.h"
 #include "nsStreamUtils.h"
 #include "nsStringStream.h"
-#include "ProfilerHelpers.h"
-#include "ReportInternalError.h"
-
-#include <numeric>
 
 // Include this last to avoid path problems on Windows.
 #include "ActorsChild.h"
@@ -193,7 +193,8 @@ RefPtr<IDBRequest> GenerateRequest(JSContext* aCx,
 
 bool StructuredCloneWriteCallback(JSContext* aCx,
                                   JSStructuredCloneWriter* aWriter,
-                                  JS::Handle<JSObject*> aObj, void* aClosure) {
+                                  JS::Handle<JSObject*> aObj,
+                                  bool* aSameProcessRequired, void* aClosure) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aWriter);
   MOZ_ASSERT(aClosure);
@@ -352,6 +353,7 @@ bool StructuredCloneWriteCallback(JSContext* aCx,
 bool CopyingStructuredCloneWriteCallback(JSContext* aCx,
                                          JSStructuredCloneWriter* aWriter,
                                          JS::Handle<JSObject*> aObj,
+                                         bool* aSameProcessRequired,
                                          void* aClosure) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aWriter);
@@ -553,7 +555,7 @@ bool ReadBlobOrFile(JSStructuredCloneReader* aReader, uint32_t aTag,
 }
 
 bool ReadWasmModule(JSStructuredCloneReader* aReader, WasmModuleData* aRetval) {
-  static_assert(SCTAG_DOM_WASM == 0xFFFF8006, "Update me!");
+  static_assert(SCTAG_DOM_WASM_MODULE == 0xFFFF8006, "Update me!");
   MOZ_ASSERT(aReader && aRetval);
 
   uint32_t bytecodeIndex;
@@ -733,28 +735,28 @@ class ValueDeserializationHelper {
   }
 };
 
-JSObject* CommonStructuredCloneReadCallback(JSContext* aCx,
-                                            JSStructuredCloneReader* aReader,
-                                            uint32_t aTag, uint32_t aData,
-                                            void* aClosure) {
+JSObject* CommonStructuredCloneReadCallback(
+    JSContext* aCx, JSStructuredCloneReader* aReader,
+    const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag, uint32_t aData,
+    void* aClosure) {
   // We need to statically assert that our tag values are what we expect
   // so that if people accidentally change them they notice.
   static_assert(SCTAG_DOM_BLOB == 0xffff8001 &&
                     SCTAG_DOM_FILE_WITHOUT_LASTMODIFIEDDATE == 0xffff8002 &&
                     SCTAG_DOM_MUTABLEFILE == 0xffff8004 &&
                     SCTAG_DOM_FILE == 0xffff8005 &&
-                    SCTAG_DOM_WASM == 0xffff8006,
+                    SCTAG_DOM_WASM_MODULE == 0xffff8006,
                 "You changed our structured clone tag values and just ate "
                 "everyone's IndexedDB data.  I hope you are happy.");
 
   if (aTag == SCTAG_DOM_FILE_WITHOUT_LASTMODIFIEDDATE ||
       aTag == SCTAG_DOM_BLOB || aTag == SCTAG_DOM_FILE ||
-      aTag == SCTAG_DOM_MUTABLEFILE || aTag == SCTAG_DOM_WASM) {
+      aTag == SCTAG_DOM_MUTABLEFILE || aTag == SCTAG_DOM_WASM_MODULE) {
     auto* const cloneReadInfo = static_cast<StructuredCloneReadInfo*>(aClosure);
 
     JS::Rooted<JSObject*> result(aCx);
 
-    if (aTag == SCTAG_DOM_WASM) {
+    if (aTag == SCTAG_DOM_WASM_MODULE) {
       WasmModuleData data(aData);
       if (NS_WARN_IF(!ReadWasmModule(aReader, &data))) {
         return nullptr;
@@ -817,10 +819,10 @@ JSObject* CommonStructuredCloneReadCallback(JSContext* aCx,
                                                              aTag);
 }
 
-JSObject* CopyingStructuredCloneReadCallback(JSContext* aCx,
-                                             JSStructuredCloneReader* aReader,
-                                             uint32_t aTag, uint32_t aData,
-                                             void* aClosure) {
+JSObject* CopyingStructuredCloneReadCallback(
+    JSContext* aCx, JSStructuredCloneReader* aReader,
+    const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag, uint32_t aData,
+    void* aClosure) {
   MOZ_ASSERT(aTag != SCTAG_DOM_FILE_WITHOUT_LASTMODIFIEDDATE);
 
   if (aTag == SCTAG_DOM_BLOB || aTag == SCTAG_DOM_FILE ||
@@ -1498,7 +1500,7 @@ RefPtr<IDBRequest> IDBObjectStore::AddOrPut(JSContext* aCx,
     return nullptr;
   }
 
-  if (!mTransaction->CanAcceptRequests()) {
+  if (!mTransaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return nullptr;
   }
@@ -1522,7 +1524,7 @@ RefPtr<IDBRequest> IDBObjectStore::AddOrPut(JSContext* aCx,
     return nullptr;
   }
 
-  if (!mTransaction->CanAcceptRequests()) {
+  if (!mTransaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return nullptr;
   }
@@ -1549,10 +1551,10 @@ RefPtr<IDBRequest> IDBObjectStore::AddOrPut(JSContext* aCx,
 
   if (messageSize > kMaxMessageSize) {
     IDB_REPORT_INTERNAL_ERR();
-    aRv.ThrowDOMException(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR,
-                          nsPrintfCString("The serialized value is too large"
-                                          " (size=%zu bytes, max=%zu bytes).",
-                                          messageSize, kMaxMessageSize));
+    aRv.ThrowUnknownError(
+        nsPrintfCString("The serialized value is too large"
+                        " (size=%zu bytes, max=%zu bytes).",
+                        messageSize, kMaxMessageSize));
     return nullptr;
   }
 
@@ -1648,9 +1650,9 @@ RefPtr<IDBRequest> IDBObjectStore::AddOrPut(JSContext* aCx,
     commonParams.fileAddInfos().SwapElements(fileAddInfos);
   }
 
-  const auto& params = aOverwrite
-                           ? RequestParams{ObjectStorePutParams(commonParams)}
-                           : RequestParams{ObjectStoreAddParams(commonParams)};
+  const auto& params =
+      aOverwrite ? RequestParams{ObjectStorePutParams(std::move(commonParams))}
+                 : RequestParams{ObjectStoreAddParams(std::move(commonParams))};
 
   auto request = GenerateRequest(aCx, this);
   MOZ_ASSERT(request);
@@ -1692,7 +1694,7 @@ RefPtr<IDBRequest> IDBObjectStore::GetAllInternal(
     return nullptr;
   }
 
-  if (!mTransaction->CanAcceptRequests()) {
+  if (!mTransaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return nullptr;
   }
@@ -1808,7 +1810,7 @@ RefPtr<IDBRequest> IDBObjectStore::Clear(JSContext* aCx, ErrorResult& aRv) {
     return nullptr;
   }
 
-  if (!mTransaction->CanAcceptRequests()) {
+  if (!mTransaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return nullptr;
   }
@@ -2013,7 +2015,7 @@ RefPtr<IDBRequest> IDBObjectStore::GetInternal(bool aKeyOnly, JSContext* aCx,
     return nullptr;
   }
 
-  if (!mTransaction->CanAcceptRequests()) {
+  if (!mTransaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return nullptr;
   }
@@ -2071,7 +2073,7 @@ RefPtr<IDBRequest> IDBObjectStore::DeleteInternal(JSContext* aCx,
     return nullptr;
   }
 
-  if (!mTransaction->CanAcceptRequests()) {
+  if (!mTransaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return nullptr;
   }
@@ -2129,8 +2131,7 @@ RefPtr<IDBIndex> IDBObjectStore::CreateIndex(
   }
 
   IDBTransaction* const transaction = IDBTransaction::GetCurrent();
-  if (!transaction || transaction != mTransaction ||
-      !transaction->CanAcceptRequests()) {
+  if (!transaction || transaction != mTransaction || !transaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return nullptr;
   }
@@ -2141,11 +2142,9 @@ RefPtr<IDBIndex> IDBObjectStore::CreateIndex(
       indexes.cbegin(), end,
       [&aName](const auto& index) { return aName == index.name(); });
   if (foundIt != end) {
-    aRv.ThrowDOMException(
-        NS_ERROR_DOM_INDEXEDDB_CONSTRAINT_ERR,
-        nsPrintfCString("Index named '%s' already exists at index '%zu'",
-                        NS_ConvertUTF16toUTF8(aName).get(),
-                        foundIt.GetIndex()));
+    aRv.ThrowConstraintError(nsPrintfCString(
+        "Index named '%s' already exists at index '%zu'",
+        NS_ConvertUTF16toUTF8(aName).get(), foundIt.GetIndex()));
     return nullptr;
   }
 
@@ -2235,8 +2234,7 @@ void IDBObjectStore::DeleteIndex(const nsAString& aName, ErrorResult& aRv) {
   }
 
   IDBTransaction* transaction = IDBTransaction::GetCurrent();
-  if (!transaction || transaction != mTransaction ||
-      !transaction->CanAcceptRequests()) {
+  if (!transaction || transaction != mTransaction || !transaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return;
   }
@@ -2302,7 +2300,7 @@ RefPtr<IDBRequest> IDBObjectStore::Count(JSContext* aCx,
     return nullptr;
   }
 
-  if (!mTransaction->CanAcceptRequests()) {
+  if (!mTransaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return nullptr;
   }
@@ -2354,7 +2352,7 @@ RefPtr<IDBRequest> IDBObjectStore::OpenCursorInternal(
     return nullptr;
   }
 
-  if (!mTransaction->CanAcceptRequests()) {
+  if (!mTransaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return nullptr;
   }
@@ -2376,11 +2374,8 @@ RefPtr<IDBRequest> IDBObjectStore::OpenCursorInternal(
     optionalKeyRange.emplace(std::move(serializedKeyRange));
   }
 
-  const IDBCursor::Direction direction =
-      IDBCursor::ConvertDirection(aDirection);
-
   const CommonOpenCursorParams commonParams = {
-      objectStoreId, std::move(optionalKeyRange), direction};
+      objectStoreId, std::move(optionalKeyRange), aDirection};
 
   // TODO: It would be great if the IPDL generator created a constructor
   // accepting a CommonOpenCursorParams by value or rvalue reference.
@@ -2399,7 +2394,7 @@ RefPtr<IDBRequest> IDBObjectStore::OpenCursorInternal(
         request->LoggingSerialNumber(),
         IDB_LOG_STRINGIFY(mTransaction->Database()),
         IDB_LOG_STRINGIFY(mTransaction), IDB_LOG_STRINGIFY(this),
-        IDB_LOG_STRINGIFY(keyRange), IDB_LOG_STRINGIFY(direction));
+        IDB_LOG_STRINGIFY(keyRange), IDB_LOG_STRINGIFY(aDirection));
   } else {
     IDB_LOG_MARK_CHILD_TRANSACTION_REQUEST(
         "database(%s).transaction(%s).objectStore(%s)."
@@ -2408,11 +2403,15 @@ RefPtr<IDBRequest> IDBObjectStore::OpenCursorInternal(
         request->LoggingSerialNumber(),
         IDB_LOG_STRINGIFY(mTransaction->Database()),
         IDB_LOG_STRINGIFY(mTransaction), IDB_LOG_STRINGIFY(this),
-        IDB_LOG_STRINGIFY(keyRange), IDB_LOG_STRINGIFY(direction));
+        IDB_LOG_STRINGIFY(keyRange), IDB_LOG_STRINGIFY(aDirection));
   }
 
-  BackgroundCursorChild* const actor =
-      new BackgroundCursorChild(request, this, direction);
+  BackgroundCursorChildBase* const actor =
+      aKeysOnly ? static_cast<BackgroundCursorChildBase*>(
+                      new BackgroundCursorChild<IDBCursorType::ObjectStoreKey>(
+                          request, this, aDirection))
+                : new BackgroundCursorChild<IDBCursorType::ObjectStore>(
+                      request, this, aDirection);
 
   // TODO: This is necessary to preserve request ordering only. Proper
   // sequencing of requests should be done in a more sophisticated manner that
@@ -2505,8 +2504,7 @@ void IDBObjectStore::SetName(const nsAString& aName, ErrorResult& aRv) {
   }
 
   IDBTransaction* transaction = IDBTransaction::GetCurrent();
-  if (!transaction || transaction != mTransaction ||
-      !transaction->CanAcceptRequests()) {
+  if (!transaction || transaction != mTransaction || !transaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return;
   }

@@ -66,6 +66,11 @@ loader.lazyRequireGetter(
   "ResponsiveUIManager",
   "devtools/client/responsive/manager"
 );
+loader.lazyRequireGetter(
+  this,
+  "PICKER_TYPES",
+  "devtools/shared/picker-constants"
+);
 
 exports.menuitems = [
   {
@@ -151,17 +156,26 @@ exports.menuitems = [
       // Similarly, enable them when the color picker is done picking.
       if (
         ResponsiveUIManager.isActiveForTab(target.localTab) &&
-        target.actorHasMethod("emulation", "setElementPickerState")
+        target.actorHasMethod("responsive", "setElementPickerState")
       ) {
         const ui = ResponsiveUIManager.getResponsiveUIForTab(target.localTab);
-        await ui.emulationFront.setElementPickerState(true);
+        await ui.responsiveFront.setElementPickerState(
+          true,
+          PICKER_TYPES.EYEDROPPER
+        );
 
         inspectorFront.once("color-picked", async () => {
-          await ui.emulationFront.setElementPickerState(false);
+          await ui.responsiveFront.setElementPickerState(
+            false,
+            PICKER_TYPES.EYEDROPPER
+          );
         });
 
         inspectorFront.once("color-pick-canceled", async () => {
-          await ui.emulationFront.setElementPickerState(false);
+          await ui.responsiveFront.setElementPickerState(
+            false,
+            PICKER_TYPES.EYEDROPPER
+          );
         });
       }
 

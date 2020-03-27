@@ -8,27 +8,13 @@
 
 #include <utility>
 
-#include "nsAutoPtr.h"
-#include "nsContentUtils.h"
-#include "nsIConsoleReportCollector.h"
-#include "nsINetworkInterceptController.h"
-#include "nsIScriptError.h"
-#include "mozilla/Encoding.h"
-#include "nsContentPolicyUtils.h"
-#include "nsContentUtils.h"
-#include "nsComponentManagerUtils.h"
-#include "nsServiceManagerUtils.h"
-#include "nsStreamUtils.h"
-#include "nsNetCID.h"
-#include "nsNetUtil.h"
-#include "nsSerializationHelper.h"
-#include "nsQueryObject.h"
 #include "ServiceWorker.h"
 #include "ServiceWorkerManager.h"
-
+#include "js/Conversions.h"
+#include "js/TypeDecls.h"
+#include "mozilla/Encoding.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/LoadInfo.h"
-#include "mozilla/Move.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/BodyUtil.h"
 #include "mozilla/dom/Client.h"
@@ -40,15 +26,25 @@
 #include "mozilla/dom/PushMessageDataBinding.h"
 #include "mozilla/dom/PushUtil.h"
 #include "mozilla/dom/Request.h"
+#include "mozilla/dom/Response.h"
 #include "mozilla/dom/ServiceWorkerOp.h"
 #include "mozilla/dom/TypedArray.h"
-#include "mozilla/dom/Response.h"
-#include "mozilla/dom/WorkerScope.h"
 #include "mozilla/dom/WorkerPrivate.h"
+#include "mozilla/dom/WorkerScope.h"
 #include "mozilla/net/NeckoChannelParams.h"
-
-#include "js/Conversions.h"
-#include "js/TypeDecls.h"
+#include "nsAutoPtr.h"
+#include "nsComponentManagerUtils.h"
+#include "nsContentPolicyUtils.h"
+#include "nsContentUtils.h"
+#include "nsIConsoleReportCollector.h"
+#include "nsINetworkInterceptController.h"
+#include "nsIScriptError.h"
+#include "nsNetCID.h"
+#include "nsNetUtil.h"
+#include "nsQueryObject.h"
+#include "nsSerializationHelper.h"
+#include "nsServiceManagerUtils.h"
+#include "nsStreamUtils.h"
 #include "xpcpublic.h"
 
 using namespace mozilla;
@@ -122,7 +118,6 @@ FetchEvent::FetchEvent(EventTarget* aOwner)
     : ExtendableEvent(aOwner),
       mPreventDefaultLineNumber(0),
       mPreventDefaultColumnNumber(0),
-      mIsReload(false),
       mWaitToRespond(false) {}
 
 FetchEvent::~FetchEvent() {}
@@ -158,7 +153,6 @@ already_AddRefed<FetchEvent> FetchEvent::Constructor(
   e->mRequest = aOptions.mRequest;
   e->mClientId = aOptions.mClientId;
   e->mResultingClientId = aOptions.mResultingClientId;
-  e->mIsReload = aOptions.mIsReload;
   return e.forget();
 }
 

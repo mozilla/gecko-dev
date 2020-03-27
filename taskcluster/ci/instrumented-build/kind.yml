@@ -48,6 +48,7 @@ jobs:
                 - builds/releng_base_linux_32_builds.py
             mozconfig-variant: profile-generate
             tooltool-downloads: public
+        run-on-projects: ['try', 'release']
         fetches:
             toolchain:
                 - linux64-binutils
@@ -82,7 +83,7 @@ jobs:
                 - linux64-cbindgen
                 - linux64-nasm
                 - linux64-node
-                - lucetc
+                - linux64-lucetc
                 - wasi-sysroot
 
     macosx64-shippable/opt:
@@ -90,7 +91,7 @@ jobs:
         shipping-phase: build
         shipping-product: firefox
         treeherder:
-            platform: macosx64-shippable/opt
+            platform: osx-shippable/opt
         worker-type: b-linux
         worker:
             max-run-time: 7200

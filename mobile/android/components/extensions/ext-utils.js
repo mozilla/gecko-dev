@@ -14,7 +14,12 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/GeckoViewTab.jsm"
 );
 
-/* globals EventDispatcher */
+ChromeUtils.defineModuleGetter(
+  this,
+  "mobileWindowTracker",
+  "resource://gre/modules/GeckoViewWebExtension.jsm"
+);
+
 var { EventDispatcher } = ChromeUtils.import(
   "resource://gre/modules/Messaging.jsm"
 );
@@ -90,6 +95,13 @@ class BrowserProgressListener {
   }
 
   onLocationChange(webProgress, request, locationURI, flags) {
+    const window = this.browser.ownerGlobal;
+    // GeckoView windows can become popups at any moment, so we need to check
+    // here
+    if (!windowTracker.isBrowserWindow(window)) {
+      return;
+    }
+
     this.delegate("onLocationChange", webProgress, request, locationURI, flags);
   }
   onStateChange(webProgress, request, stateFlags, status) {
@@ -122,7 +134,7 @@ class WindowTracker extends WindowTrackerBase {
   }
 
   get topWindow() {
-    return Services.wm.getMostRecentWindow(WINDOW_TYPE);
+    return mobileWindowTracker.topWindow;
   }
 
   get topNonPBWindow() {
@@ -253,9 +265,19 @@ class TabTracker extends TabTrackerBase {
         windowId: -1,
       };
     }
+
+    const windowId = windowTracker.getId(window);
+
+    if (!windowTracker.isBrowserWindow(window)) {
+      return {
+        windowId,
+        tabId: -1,
+      };
+    }
+
     return {
+      windowId,
       tabId: this.getId(window.BrowserApp.selectedTab),
-      windowId: windowTracker.getId(window),
     };
   }
 

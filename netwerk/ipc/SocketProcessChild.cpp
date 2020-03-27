@@ -7,6 +7,7 @@
 #include "SocketProcessLogging.h"
 
 #include "base/task.h"
+#include "InputChannelThrottleQueueChild.h"
 #include "HttpTransactionChild.h"
 #include "HttpConnectionMgrChild.h"
 #include "mozilla/Assertions.h"
@@ -21,6 +22,7 @@
 #include "mozilla/Preferences.h"
 #include "nsDebugImpl.h"
 #include "nsIDNSService.h"
+#include "nsIHttpActivityObserver.h"
 #include "nsThreadManager.h"
 #include "ProcessUtils.h"
 #include "SocketProcessBridgeParent.h"
@@ -67,11 +69,11 @@ void CGSShutdownServerConnections();
 
 bool SocketProcessChild::Init(base::ProcessId aParentPid,
                               const char* aParentBuildID, MessageLoop* aIOLoop,
-                              IPC::Channel* aChannel) {
+                              UniquePtr<IPC::Channel> aChannel) {
   if (NS_WARN_IF(NS_FAILED(nsThreadManager::get().Init()))) {
     return false;
   }
-  if (NS_WARN_IF(!Open(aChannel, aParentPid, aIOLoop))) {
+  if (NS_WARN_IF(!Open(std::move(aChannel), aParentPid, aIOLoop))) {
     return false;
   }
   // This must be sent before any IPDL message, which may hit sentinel
@@ -299,6 +301,24 @@ SocketProcessChild::AllocPHttpConnectionMgrChild() {
   }
 
   return nullptr;
+}
+
+mozilla::ipc::IPCResult
+SocketProcessChild::RecvOnHttpActivityDistributorActivated(
+    const bool& aIsActivated) {
+  if (nsCOMPtr<nsIHttpActivityObserver> distributor =
+          services::GetActivityDistributor()) {
+    distributor->SetIsActive(aIsActivated);
+  }
+  return IPC_OK();
+}
+already_AddRefed<PInputChannelThrottleQueueChild>
+SocketProcessChild::AllocPInputChannelThrottleQueueChild(
+    const uint32_t& aMeanBytesPerSecond, const uint32_t& aMaxBytesPerSecond) {
+  RefPtr<InputChannelThrottleQueueChild> p =
+      new InputChannelThrottleQueueChild();
+  p->Init(aMeanBytesPerSecond, aMaxBytesPerSecond);
+  return p.forget();
 }
 
 }  // namespace net

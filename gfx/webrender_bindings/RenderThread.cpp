@@ -454,7 +454,7 @@ void RenderThread::UpdateAndRender(
     const Maybe<gfx::IntSize>& aReadbackSize,
     const Maybe<wr::ImageFormat>& aReadbackFormat,
     const Maybe<Range<uint8_t>>& aReadbackBuffer, bool aHadSlowFrame) {
-  AUTO_PROFILER_TRACING("Paint", "Composite", GRAPHICS);
+  AUTO_PROFILER_TRACING_MARKER("Paint", "Composite", GRAPHICS);
   MOZ_ASSERT(IsInRenderThread());
   MOZ_ASSERT(aRender || aReadbackBuffer.isNothing());
 
@@ -493,7 +493,8 @@ void RenderThread::UpdateAndRender(
 
   if (latestFrameId.IsValid()) {
     auto recorderIt = mCompositionRecorders.find(aWindowId);
-    if (recorderIt != mCompositionRecorders.end()) {
+    if (recorderIt != mCompositionRecorders.end() &&
+        renderer->EnsureAsyncScreenshot()) {
       recorderIt->second->MaybeRecordFrame(renderer->GetRenderer(), info.get());
     }
   }
@@ -930,7 +931,8 @@ static already_AddRefed<gl::GLContext> CreateGLContextANGLE() {
   }
 
   auto* egl = gl::GLLibraryEGL::Get();
-  auto flags = gl::CreateContextFlags::PREFER_ES3;
+  gl::CreateContextFlags flags = gl::CreateContextFlags::PREFER_ES3 |
+                                 gl::CreateContextFlags::PREFER_ROBUSTNESS;
 
   if (egl->IsExtensionSupported(
           gl::GLLibraryEGL::MOZ_create_context_provoking_vertex_dont_care)) {

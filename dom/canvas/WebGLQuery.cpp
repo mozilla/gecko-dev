@@ -7,6 +7,7 @@
 
 #include "GLContext.h"
 #include "mozilla/dom/WebGL2RenderingContextBinding.h"
+#include "mozilla/StaticPrefs_webgl.h"
 #include "nsContentUtils.h"
 #include "WebGLContext.h"
 
@@ -21,16 +22,14 @@ static GLuint GenQuery(gl::GLContext* gl) {
 }
 
 WebGLQuery::WebGLQuery(WebGLContext* webgl)
-    : WebGLRefCountedObject(webgl),
+    : WebGLContextBoundObject(webgl),
       mGLName(GenQuery(mContext->gl)),
       mTarget(0),
-      mActiveSlot(nullptr) {
-  mContext->mQueries.insertBack(this);
-}
+      mActiveSlot(nullptr) {}
 
-void WebGLQuery::Delete() {
+WebGLQuery::~WebGLQuery() {
+  if (!mContext) return;
   mContext->gl->fDeleteQueries(1, &mGLName);
-  LinkedListElement<WebGLQuery>::removeFrom(mContext->mQueries);
 }
 
 ////
@@ -53,14 +52,7 @@ static GLenum TargetForDriver(const gl::GLContext* gl, GLenum target) {
   return LOCAL_GL_SAMPLES_PASSED;
 }
 
-void WebGLQuery::BeginQuery(GLenum target, WebGLRefPtr<WebGLQuery>& slot) {
-  if (mTarget && target != mTarget) {
-    mContext->ErrorInvalidOperation("Queries cannot change targets.");
-    return;
-  }
-
-  ////
-
+void WebGLQuery::BeginQuery(GLenum target, RefPtr<WebGLQuery>& slot) {
   mTarget = target;
   mActiveSlot = &slot;
   *mActiveSlot = this;
@@ -91,8 +83,7 @@ void WebGLQuery::EndQuery() {
   availRunnable->mQueries.push_back(this);
 }
 
-void WebGLQuery::GetQueryParameter(GLenum pname,
-                                   JS::MutableHandleValue retval) const {
+Maybe<double> WebGLQuery::GetQueryParameter(GLenum pname) const {
   switch (pname) {
     case LOCAL_GL_QUERY_RESULT_AVAILABLE:
     case LOCAL_GL_QUERY_RESULT:
@@ -100,16 +91,18 @@ void WebGLQuery::GetQueryParameter(GLenum pname,
 
     default:
       mContext->ErrorInvalidEnumInfo("pname", pname);
-      return;
+      return Nothing();
   }
 
   if (!mTarget) {
     mContext->ErrorInvalidOperation("Query has never been active.");
-    return;
+    return Nothing();
   }
 
-  if (mActiveSlot)
-    return mContext->ErrorInvalidOperation("Query is still active.");
+  if (mActiveSlot) {
+    mContext->ErrorInvalidOperation("Query is still active.");
+    return Nothing();
+  }
 
   // End of validation
   ////
@@ -119,9 +112,9 @@ void WebGLQuery::GetQueryParameter(GLenum pname,
       (mCanBeAvailable || StaticPrefs::webgl_allow_immediate_queries());
   if (!canBeAvailable) {
     if (pname == LOCAL_GL_QUERY_RESULT_AVAILABLE) {
-      retval.set(JS::BooleanValue(false));
+      return Some(false);
     }
-    return;
+    return Nothing();
   }
 
   const auto& gl = mContext->gl;
@@ -130,8 +123,7 @@ void WebGLQuery::GetQueryParameter(GLenum pname,
   switch (pname) {
     case LOCAL_GL_QUERY_RESULT_AVAILABLE:
       gl->fGetQueryObjectuiv(mGLName, pname, (GLuint*)&val);
-      retval.set(JS::BooleanValue(bool(val)));
-      return;
+      return Some(static_cast<bool>(val));
 
     case LOCAL_GL_QUERY_RESULT:
       switch (mTarget) {
@@ -154,43 +146,17 @@ void WebGLQuery::GetQueryParameter(GLenum pname,
         case LOCAL_GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN:
         case LOCAL_GL_TIME_ELAPSED_EXT:
         case LOCAL_GL_TIMESTAMP_EXT:
-          retval.set(JS::NumberValue(val));
-          break;
-
-        default:
-          MOZ_CRASH("Bad `mTarget`.");
+          return Some(val);
       }
-      return;
+      MOZ_CRASH("Bad `mTarget`.");
 
     default:
       MOZ_CRASH("Bad `pname`.");
   }
 }
 
-bool WebGLQuery::IsQuery() const {
-  MOZ_ASSERT(!IsDeleted());
-
-  if (!mTarget) return false;
-
-  return true;
-}
-
-void WebGLQuery::DeleteQuery() {
-  MOZ_ASSERT(!IsDeleteRequested());
-
-  if (mActiveSlot) {
-    EndQuery();
-  }
-
-  RequestDelete();
-}
-
-void WebGLQuery::QueryCounter(GLenum target) {
-  if (target != LOCAL_GL_TIMESTAMP_EXT) {
-    mContext->ErrorInvalidEnum("`target` must be TIMESTAMP_EXT.");
-    return;
-  }
-
+void WebGLQuery::QueryCounter() {
+  const GLenum target = LOCAL_GL_TIMESTAMP_EXT;
   if (mTarget && target != mTarget) {
     mContext->ErrorInvalidOperation("Queries cannot change targets.");
     return;
@@ -205,17 +171,5 @@ void WebGLQuery::QueryCounter(GLenum target) {
   const auto& availRunnable = mContext->EnsureAvailabilityRunnable();
   availRunnable->mQueries.push_back(this);
 }
-
-////
-
-JSObject* WebGLQuery::WrapObject(JSContext* cx,
-                                 JS::Handle<JSObject*> givenProto) {
-  return dom::WebGLQuery_Binding::Wrap(cx, this, givenProto);
-}
-
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(WebGLQuery)
-
-NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(WebGLQuery, AddRef)
-NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(WebGLQuery, Release)
 
 }  // namespace mozilla

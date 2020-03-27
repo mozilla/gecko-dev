@@ -39,13 +39,13 @@
 #include "mozilla/dom/HTMLTextAreaElement.h"
 #include "mozilla/dom/Text.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "nsNumberControlFrame.h"
 #include "nsFrameSelection.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/ShortcutKeys.h"
 #include "mozilla/KeyEventHandler.h"
 #include "mozilla/dom/KeyboardEvent.h"
+#include "mozilla/ScrollTypes.h"
 
 namespace mozilla {
 
@@ -216,9 +216,9 @@ class MOZ_RAII AutoRestoreEditorState final {
     // appearing the method in profile.  So, this class should check if it's
     // necessary to call.
     uint32_t flags = mSavedFlags;
-    flags &= ~(nsIPlaintextEditor::eEditorDisabledMask);
-    flags &= ~(nsIPlaintextEditor::eEditorReadonlyMask);
-    flags |= nsIPlaintextEditor::eEditorDontEchoPassword;
+    flags &= ~(nsIEditor::eEditorDisabledMask);
+    flags &= ~(nsIEditor::eEditorReadonlyMask);
+    flags |= nsIEditor::eEditorDontEchoPassword;
     if (mSavedFlags != flags) {
       mTextEditor->SetFlags(flags);
     }
@@ -686,8 +686,8 @@ TextInputSelectionController::CompleteScroll(bool aForward) {
   if (!mScrollFrame) {
     return NS_ERROR_NOT_INITIALIZED;
   }
-  mScrollFrame->ScrollBy(nsIntPoint(0, aForward ? 1 : -1),
-                         nsIScrollableFrame::WHOLE, ScrollMode::Instant);
+  mScrollFrame->ScrollBy(nsIntPoint(0, aForward ? 1 : -1), ScrollUnit::WHOLE,
+                         ScrollMode::Instant);
   return NS_OK;
 }
 
@@ -734,8 +734,8 @@ TextInputSelectionController::ScrollPage(bool aForward) {
   if (!mScrollFrame) {
     return NS_ERROR_NOT_INITIALIZED;
   }
-  mScrollFrame->ScrollBy(nsIntPoint(0, aForward ? 1 : -1),
-                         nsIScrollableFrame::PAGES, ScrollMode::Smooth);
+  mScrollFrame->ScrollBy(nsIntPoint(0, aForward ? 1 : -1), ScrollUnit::PAGES,
+                         ScrollMode::Smooth);
   return NS_OK;
 }
 
@@ -744,8 +744,8 @@ TextInputSelectionController::ScrollLine(bool aForward) {
   if (!mScrollFrame) {
     return NS_ERROR_NOT_INITIALIZED;
   }
-  mScrollFrame->ScrollBy(nsIntPoint(0, aForward ? 1 : -1),
-                         nsIScrollableFrame::LINES, ScrollMode::Smooth);
+  mScrollFrame->ScrollBy(nsIntPoint(0, aForward ? 1 : -1), ScrollUnit::LINES,
+                         ScrollMode::Smooth);
   return NS_OK;
 }
 
@@ -754,8 +754,8 @@ TextInputSelectionController::ScrollCharacter(bool aRight) {
   if (!mScrollFrame) {
     return NS_ERROR_NOT_INITIALIZED;
   }
-  mScrollFrame->ScrollBy(nsIntPoint(aRight ? 1 : -1, 0),
-                         nsIScrollableFrame::LINES, ScrollMode::Smooth);
+  mScrollFrame->ScrollBy(nsIntPoint(aRight ? 1 : -1, 0), ScrollUnit::LINES,
+                         ScrollMode::Smooth);
   return NS_OK;
 }
 
@@ -1209,6 +1209,19 @@ class MOZ_STACK_CLASS AutoTextControlHandlingState {
     mTextInputListener->SetValueChanged(mSetValueFlags &
                                         TextControlState::eSetValue_Notify);
     mEditActionHandled = false;
+    // Even if falling back to `TextControlState::SetValueWithoutTextEditor()`
+    // due to editor destruction, it shouldn't dispatch "beforeinput" event
+    // anymore.  Therefore, we should mark that we've already dispatched
+    // "beforeinput" event.
+    WillDispatchBeforeInputEvent();
+  }
+
+  /**
+   * WillDispatchBeforeInputEvent() is called immediately before dispatching
+   * "beforeinput" event in `TextControlState`.
+   */
+  void WillDispatchBeforeInputEvent() {
+    mBeforeInputEventHasBeenDispatched = true;
   }
 
   /**
@@ -1282,6 +1295,9 @@ class MOZ_STACK_CLASS AutoTextControlHandlingState {
         ->mTextControlFrame.IsAlive();
   }
   bool HasEditActionHandled() const { return mEditActionHandled; }
+  bool HasBeforeInputEventDispatched() const {
+    return mBeforeInputEventHasBeenDispatched;
+  }
   bool Is(TextControlAction aTextControlAction) const {
     return mTextControlAction == aTextControlAction;
   }
@@ -1346,6 +1362,7 @@ class MOZ_STACK_CLASS AutoTextControlHandlingState {
   bool mTextControlStateDestroyed = false;
   bool mEditActionHandled = false;
   bool mPreareEditorLater = false;
+  bool mBeforeInputEventHasBeenDispatched = false;
 };
 
 /*****************************************************************************
@@ -1703,20 +1720,20 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
   PresShell* presShell = presContext->GetPresShell();
 
   // Setup the editor flags
-  uint32_t editorFlags = nsIPlaintextEditor::eEditorPlaintextMask;
+  uint32_t editorFlags = nsIEditor::eEditorPlaintextMask;
   if (IsSingleLineTextControl()) {
-    editorFlags |= nsIPlaintextEditor::eEditorSingleLineMask;
+    editorFlags |= nsIEditor::eEditorSingleLineMask;
   }
   if (IsPasswordTextControl()) {
-    editorFlags |= nsIPlaintextEditor::eEditorPasswordMask;
+    editorFlags |= nsIEditor::eEditorPasswordMask;
   }
 
   // All nsTextControlFrames are widgets
-  editorFlags |= nsIPlaintextEditor::eEditorWidgetMask;
+  editorFlags |= nsIEditor::eEditorWidgetMask;
 
   // Spell check is diabled at creation time. It is enabled once
   // the editor comes into focus.
-  editorFlags |= nsIPlaintextEditor::eEditorSkipSpellCheck;
+  editorFlags |= nsIEditor::eEditorSkipSpellCheck;
 
   bool shouldInitializeEditor = false;
   RefPtr<TextEditor> newTextEditor;  // the editor that we might create
@@ -1750,7 +1767,7 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
 
     // Don't lose application flags in the process.
     if (newTextEditor->IsMailEditor()) {
-      editorFlags |= nsIPlaintextEditor::eEditorMailMask;
+      editorFlags |= nsIEditor::eEditorMailMask;
     }
   }
 
@@ -1849,19 +1866,19 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
   }
 
   // Set max text field length
-  newTextEditor->SetMaxTextLength(GetMaxLength());
+  newTextEditor->SetMaxTextLength(mTextCtrlElement->UsedMaxLength());
 
   editorFlags = newTextEditor->Flags();
 
   // Check if the readonly attribute is set.
   if (mTextCtrlElement->HasAttr(kNameSpaceID_None, nsGkAtoms::readonly)) {
-    editorFlags |= nsIPlaintextEditor::eEditorReadonlyMask;
+    editorFlags |= nsIEditor::eEditorReadonlyMask;
   }
 
   // Check if the disabled attribute is set.
   // TODO: call IsDisabled() here!
   if (mTextCtrlElement->HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
-    editorFlags |= nsIPlaintextEditor::eEditorDisabledMask;
+    editorFlags |= nsIEditor::eEditorDisabledMask;
   }
 
   // Disable the selection if necessary.
@@ -1933,8 +1950,7 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
   }
 
   // Restore our selection after being bound to a new frame
-  HTMLInputElement* number = GetParentNumberControl(mBoundFrame);
-  if (number ? number->IsSelectionCached() : mSelectionCached) {
+  if (mSelectionCached) {
     if (mRestoringSelection) {  // paranoia
       mRestoringSelection->Revoke();
     }
@@ -1951,11 +1967,7 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
   // happens before our RestoreSelectionState runs, it looks like we'll lose our
   // selection info, because we will think we don't have it cached and try to
   // read it from the selection controller, which will not have it yet.
-  if (number) {
-    number->ClearSelectionCached();
-  } else {
-    mSelectionCached = false;
-  }
+  mSelectionCached = false;
 
   return preparingEditor.IsTextControlStateDestroyed()
              ? NS_ERROR_NOT_INITIALIZED
@@ -1964,27 +1976,6 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
 
 void TextControlState::FinishedRestoringSelection() {
   mRestoringSelection = nullptr;
-}
-
-bool TextControlState::IsSelectionCached() const {
-  if (mBoundFrame) {
-    HTMLInputElement* number = GetParentNumberControl(mBoundFrame);
-    if (number) {
-      return number->IsSelectionCached();
-    }
-  }
-  return mSelectionCached;
-}
-
-TextControlState::SelectionProperties&
-TextControlState::GetSelectionProperties() {
-  if (mBoundFrame) {
-    HTMLInputElement* number = GetParentNumberControl(mBoundFrame);
-    if (number) {
-      return number->GetSelectionProperties();
-    }
-  }
-  return mSelectionProperties;
 }
 
 void TextControlState::SyncUpSelectionPropertiesBeforeDestruction() {
@@ -2354,31 +2345,6 @@ void TextControlState::SetRangeText(const nsAString& aReplacement,
   // The instance may have already been deleted here.
 }
 
-HTMLInputElement* TextControlState::GetParentNumberControl(
-    nsFrame* aFrame) const {
-  MOZ_ASSERT(aFrame);
-  nsIContent* content = aFrame->GetContent();
-  MOZ_ASSERT(content);
-  nsIContent* parent = content->GetParent();
-  if (!parent) {
-    return nullptr;
-  }
-  nsIContent* parentOfParent = parent->GetParent();
-  if (!parentOfParent) {
-    return nullptr;
-  }
-  HTMLInputElement* input = HTMLInputElement::FromNode(parentOfParent);
-  if (!input) {
-    return nullptr;
-  }
-  // This function might be called during frame reconstruction as a result
-  // of changing the input control's type from number to something else. In
-  // that situation, the type of the control has changed, but its frame has
-  // not been reconstructed yet.  So we need to check the type of the input
-  // control in addition to the type of the frame.
-  return (input->ControlType() == NS_FORM_INPUT_NUMBER) ? input : nullptr;
-}
-
 void TextControlState::DestroyEditor() {
   // notify the editor that we are going away
   if (mEditorInitialized) {
@@ -2433,15 +2399,7 @@ void TextControlState::UnbindFromFrame(nsTextControlFrame* aFrame) {
     props.SetStart(start);
     props.SetEnd(end);
     props.SetDirection(direction);
-    HTMLInputElement* number = GetParentNumberControl(aFrame);
-    if (number) {
-      // If we are inside a number control, cache the selection on the
-      // parent control, because this text editor state will be destroyed
-      // together with the native anonymous text control.
-      number->SetSelectionCached();
-    } else {
-      mSelectionCached = true;
-    }
+    mSelectionCached = true;
   }
 
   // Destroy our editor
@@ -2519,17 +2477,6 @@ void TextControlState::UnbindFromFrame(nsTextControlFrame* aFrame) {
     // TODO Find something better to do if this fails...
     NS_WARNING_ASSERTION(ok, "SetValue() couldn't allocate memory");
   }
-}
-
-int32_t TextControlState::GetMaxLength() {
-  if (NS_WARN_IF(!mTextCtrlElement)) {
-    return -1;
-  }
-
-  const nsAttrValue* attr =
-      mTextCtrlElement->GetParsedAttr(nsGkAtoms::maxlength);
-  return attr && attr->Type() == nsAttrValue::eInteger ? attr->GetIntegerValue()
-                                                       : -1;
 }
 
 void TextControlState::GetValue(nsAString& aValue, bool aIgnoreWrap) const {
@@ -2651,6 +2598,11 @@ bool TextControlState::SetValue(const nsAString& aValue,
   // Note that if this may be called during reframe of the editor.  In such
   // case, we shouldn't commit composition.  Therefore, when this is called
   // for internal processing, we shouldn't commit the composition.
+  // TODO: In strictly speaking, we should move committing composition into
+  //       editor because if "beforeinput" for this setting value is canceled,
+  //       we shouldn't commit composition.  However, in Firefox, we never
+  //       call this via `setUserInput` during composition.  Therefore, the
+  //       bug must not be reproducible actually.
   if (aFlags & (eSetValue_BySetUserInput | eSetValue_ByContent)) {
     if (EditorHasComposition()) {
       // When this is called recursively, there shouldn't be composition.
@@ -2871,10 +2823,10 @@ bool TextControlState::SetValueWithTextEditor(
   if (selection) {
     // Since we don't use undo transaction, we don't need to store
     // selection state.  SetText will set selection to tail.
-    // Note that textEditor will collapse selection to the end.
-    // Therefore, it's safe to use RemoveAllRangesTemporarily()
-    // here.
-    selection->RemoveAllRangesTemporarily();
+    IgnoredErrorResult ignoredError;
+    selection->RemoveAllRanges(ignoredError);
+    NS_WARNING_ASSERTION(!ignoredError.Failed(),
+                         "Selection::RemoveAllRanges() failed, but ignored");
   }
 
   // In this case, we makes the editor stop dispatching "input"
@@ -2918,53 +2870,114 @@ bool TextControlState::SetValueWithoutTextEditor(
   // OnValueChanged below still need to be called.
   if (!mValue->Equals(aHandlingSetValue.GetSettingValue()) ||
       !StaticPrefs::dom_input_skip_cursor_move_for_same_value_set()) {
-    if (!mValue->Assign(aHandlingSetValue.GetSettingValue(), fallible)) {
-      return false;
-    }
-
-    // Since we have no editor we presumably have cached selection state.
-    if (IsSelectionCached()) {
-      MOZ_ASSERT(AreFlagsNotDemandingContradictingMovements(
-          aHandlingSetValue.GetSetValueFlags()));
-
-      SelectionProperties& props = GetSelectionProperties();
-      if (aHandlingSetValue.GetSetValueFlags() &
-          eSetValue_MoveCursorToEndIfValueChanged) {
-        props.SetStart(aHandlingSetValue.GetSettingValue().Length());
-        props.SetEnd(aHandlingSetValue.GetSettingValue().Length());
-        props.SetDirection(nsITextControlFrame::eForward);
-      } else if (aHandlingSetValue.GetSetValueFlags() &
-                 eSetValue_MoveCursorToBeginSetSelectionDirectionForward) {
-        props.SetStart(0);
-        props.SetEnd(0);
-        props.SetDirection(nsITextControlFrame::eForward);
-      } else {
-        // Make sure our cached selection position is not outside the new
-        // value.
-        props.SetStart(std::min(props.GetStart(),
-                                aHandlingSetValue.GetSettingValue().Length()));
-        props.SetEnd(std::min(props.GetEnd(),
-                              aHandlingSetValue.GetSettingValue().Length()));
+    bool handleSettingValue = true;
+    // If `SetValue()` call is nested, `GetSettingValue()` result will be
+    // modified.  So, we need to store input event data value before
+    // dispatching beforeinput event.
+    nsString inputEventData(aHandlingSetValue.GetSettingValue());
+    if ((aHandlingSetValue.GetSetValueFlags() & eSetValue_BySetUserInput) &&
+        StaticPrefs::dom_input_events_beforeinput_enabled() &&
+        !aHandlingSetValue.HasBeforeInputEventDispatched()) {
+      // This probably occurs when session restorer sets the old value with
+      // `setUserInput`.  If so, we need to dispatch "beforeinput" event of
+      // "insertReplacementText" for conforming to the spec.  However, the
+      // spec does NOT treat the session restoring case.  Therefore, if this
+      // breaks session restorere in a lot of web apps, we should probably
+      // stop dispatching it or make it non-cancelable.
+      MOZ_ASSERT(aHandlingSetValue.GetTextControlElement());
+      MOZ_ASSERT(!aHandlingSetValue.GetSettingValue().IsVoid());
+      aHandlingSetValue.WillDispatchBeforeInputEvent();
+      nsEventStatus status = nsEventStatus_eIgnore;
+      DebugOnly<nsresult> rvIgnored = nsContentUtils::DispatchInputEvent(
+          MOZ_KnownLive(aHandlingSetValue.GetTextControlElement()),
+          eEditorBeforeInput, EditorInputType::eInsertReplacementText, nullptr,
+          nsContentUtils::InputEventOptions(inputEventData), &status);
+      NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
+                           "Failed to dispatch beforeinput event");
+      if (status == nsEventStatus_eConsumeNoDefault) {
+        return true;  // "beforeinput" event was canceled.
+      }
+      // If we were destroyed by "beforeinput" event listeners, probably, we
+      // don't need to keep handling it.
+      if (aHandlingSetValue.IsTextControlStateDestroyed()) {
+        return true;
+      }
+      // Even if "beforeinput" event was not canceled, its listeners may do
+      // something.  If it causes creating `TextEditor` and bind this to a
+      // frame, we need to use the path, but `TextEditor` shouldn't fire
+      // "beforeinput" event again.  Therefore, we need to prevent editor
+      // to dispatch it.
+      if (mTextEditor && mBoundFrame) {
+        AutoInputEventSuppresser suppressInputEvent(mTextEditor);
+        if (!SetValueWithTextEditor(aHandlingSetValue)) {
+          return false;
+        }
+        // If we were destroyed by "beforeinput" event listeners, probably, we
+        // don't need to keep handling it.
+        if (aHandlingSetValue.IsTextControlStateDestroyed()) {
+          return true;
+        }
+        handleSettingValue = false;
       }
     }
 
-    // Update the frame display if needed
-    if (mBoundFrame) {
-      mBoundFrame->UpdateValueDisplay(true);
+    if (handleSettingValue) {
+      if (!mValue->Assign(aHandlingSetValue.GetSettingValue(), fallible)) {
+        return false;
+      }
+
+      // Since we have no editor we presumably have cached selection state.
+      if (IsSelectionCached()) {
+        MOZ_ASSERT(AreFlagsNotDemandingContradictingMovements(
+            aHandlingSetValue.GetSetValueFlags()));
+
+        SelectionProperties& props = GetSelectionProperties();
+        if (aHandlingSetValue.GetSetValueFlags() &
+            eSetValue_MoveCursorToEndIfValueChanged) {
+          props.SetStart(aHandlingSetValue.GetSettingValue().Length());
+          props.SetEnd(aHandlingSetValue.GetSettingValue().Length());
+          props.SetDirection(nsITextControlFrame::eForward);
+        } else if (aHandlingSetValue.GetSetValueFlags() &
+                   eSetValue_MoveCursorToBeginSetSelectionDirectionForward) {
+          props.SetStart(0);
+          props.SetEnd(0);
+          props.SetDirection(nsITextControlFrame::eForward);
+        } else {
+          // Make sure our cached selection position is not outside the new
+          // value.
+          props.SetStart(std::min(
+              props.GetStart(), aHandlingSetValue.GetSettingValue().Length()));
+          props.SetEnd(std::min(props.GetEnd(),
+                                aHandlingSetValue.GetSettingValue().Length()));
+        }
+      }
+
+      // Update the frame display if needed
+      if (mBoundFrame) {
+        mBoundFrame->UpdateValueDisplay(true);
+      }
     }
 
     // If this is called as part of user input, we need to dispatch "input"
     // event with "insertReplacementText" since web apps may want to know
     // the user operation which changes editor value with a built-in function
     // like autocomplete, password manager, session restore, etc.
+    // XXX Should we stop dispatching `input` event if the text control
+    //     element has already removed from the DOM tree by a `beforeinput`
+    //     event listener?
     if (aHandlingSetValue.GetSetValueFlags() & eSetValue_BySetUserInput) {
       MOZ_ASSERT(aHandlingSetValue.GetTextControlElement());
+
+      // Update validity state before dispatching "input" event for its
+      // listeners like `EditorBase::NotifyEditorObservers()`.
+      aHandlingSetValue.GetTextControlElement()->OnValueChanged(
+          true, ValueChangeKind::UserInteraction);
+
       MOZ_ASSERT(!aHandlingSetValue.GetSettingValue().IsVoid());
       DebugOnly<nsresult> rvIgnored = nsContentUtils::DispatchInputEvent(
           MOZ_KnownLive(aHandlingSetValue.GetTextControlElement()),
-          EditorInputType::eInsertReplacementText, nullptr,
-          nsContentUtils::InputEventOptions(
-              aHandlingSetValue.GetSettingValue()));
+          eEditorInput, EditorInputType::eInsertReplacementText, nullptr,
+          nsContentUtils::InputEventOptions(inputEventData));
       NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
                            "Failed to dispatch input event");
     }
@@ -3013,8 +3026,7 @@ void TextControlState::InitializeKeyboardEventListeners() {
                                     TrustedEventsAtSystemGroupBubble());
   }
 
-  mSelCon->SetScrollableFrame(
-      do_QueryFrame(mBoundFrame->PrincipalChildList().FirstChild()));
+  mSelCon->SetScrollableFrame(mBoundFrame->GetScrollTargetFrame());
 }
 
 void TextControlState::ValueWasChanged(bool aNotify) {

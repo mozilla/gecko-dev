@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from voluptuous import Optional, Required
 
+from six import text_type
 from taskgraph.loader.single_dep import schema
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.transforms.task import task_description_schema
@@ -16,8 +17,7 @@ from taskgraph.util.attributes import copy_attributes_from_dependent_job
 from taskgraph.util.scriptworker import (generate_beetmover_artifact_map,
                                          generate_beetmover_upstream_artifacts,
                                          get_beetmover_bucket_scope,
-                                         get_beetmover_action_scope,
-                                         get_worker_type_for_scope)
+                                         get_beetmover_action_scope)
 from taskgraph.util.treeherder import replace_group
 
 
@@ -25,10 +25,10 @@ transforms = TransformSequence()
 
 beetmover_description_schema = schema.extend({
     # depname is used in taskref's to identify the taskID of the unsigned things
-    Required('depname', default='build'): basestring,
+    Required('depname', default='build'): text_type,
 
     # unique label to describe this beetmover task, defaults to {dep.label}-beetmover
-    Optional('label'): basestring,
+    Optional('label'): text_type,
 
     # treeherder is allowed here to override any defaults we use for beetmover.  See
     # taskcluster/taskgraph/transforms/task.py for the schema details, and the
@@ -36,7 +36,7 @@ beetmover_description_schema = schema.extend({
     Optional('treeherder'): task_description_schema['treeherder'],
 
     # locale is passed only for l10n beetmoving
-    Optional('locale'): basestring,
+    Optional('locale'): text_type,
 
     Required('shipping-phase'): task_description_schema['shipping-phase'],
     Optional('shipping-product'): task_description_schema['shipping-product'],
@@ -99,7 +99,7 @@ def make_task_description(config, jobs):
         task = {
             'label': label,
             'description': description,
-            'worker-type': get_worker_type_for_scope(config, bucket_scope),
+            'worker-type': 'beetmover',
             'scopes': [bucket_scope, action_scope],
             'dependencies': dependencies,
             'attributes': attributes,
@@ -130,9 +130,9 @@ def craft_release_properties(config, job):
 
     return {
         'app-name': app_name,
-        'app-version': str(params['app_version']),
+        'app-version': params['app_version'],
         'branch': params['project'],
-        'build-id': str(params['moz_build_date']),
+        'build-id': params['moz_build_date'],
         'hash-type': 'sha512',
         'platform': build_platform,
     }

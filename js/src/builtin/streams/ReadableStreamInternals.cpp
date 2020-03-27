@@ -15,7 +15,6 @@
 
 #include "jsfriendapi.h"  // js::AssertSameCompartment
 
-#include "builtin/Promise.h"                           // js::PromiseObject
 #include "builtin/streams/ReadableStreamController.h"  // js::ReadableStreamController{,CancelSteps}
 #include "builtin/streams/ReadableStreamReader.h"  // js::ReadableStream{,Default}Reader, js::ForAuthorCodeBool
 #include "gc/AllocKind.h"   // js::gc::AllocKind
@@ -26,14 +25,15 @@
 #include "js/RootingAPI.h"  // JS::Handle, JS::Rooted
 #include "js/Stream.h"  // JS::ReadableStreamUnderlyingSource, JS::ReadableStreamMode
 #include "js/Value.h"  // JS::Value, JS::{Boolean,Object}Value, JS::UndefinedHandleValue
-#include "vm/JSContext.h"     // JSContext
-#include "vm/JSFunction.h"    // JSFunction, js::NewNativeFunction
-#include "vm/NativeObject.h"  // js::NativeObject
-#include "vm/ObjectGroup.h"   // js::GenericObject
-#include "vm/Realm.h"         // JS::Realm
-#include "vm/StringType.h"    // js::PropertyName
+#include "vm/JSContext.h"      // JSContext
+#include "vm/JSFunction.h"     // JSFunction, js::NewNativeFunction
+#include "vm/NativeObject.h"   // js::NativeObject
+#include "vm/ObjectGroup.h"    // js::GenericObject
+#include "vm/PromiseObject.h"  // js::PromiseObject
+#include "vm/Realm.h"          // JS::Realm
+#include "vm/StringType.h"     // js::PropertyName
 
-#include "builtin/streams/MiscellaneousOperations-inl.h"  // js::{Reject,Resolve}UnwrappedPromiseWithUndefined, js::SetPromiseIsHandled
+#include "builtin/streams/MiscellaneousOperations-inl.h"  // js::{Reject,Resolve}UnwrappedPromiseWithUndefined, js::SetSettledPromiseIsHandled
 #include "builtin/streams/ReadableStreamReader-inl.h"  // js::js::UnwrapReaderFromStream{,NoThrow}
 #include "vm/Compartment-inl.h"                        // JS::Compartment::wrap
 #include "vm/JSContext-inl.h"                          // JSContext::check
@@ -64,7 +64,7 @@ using JS::Value;
  * places as the standard, but the effect is the same. See the comment on
  * `ReadableStreamReader::forAuthorCode()`.
  */
-MOZ_MUST_USE JSObject* js::ReadableStreamAddReadOrReadIntoRequest(
+MOZ_MUST_USE js::PromiseObject* js::ReadableStreamAddReadOrReadIntoRequest(
     JSContext* cx, Handle<ReadableStream*> unwrappedStream) {
   // Step 1: Assert: ! IsReadableStream{BYOB,Default}Reader(stream.[[reader]])
   //         is true.
@@ -83,7 +83,7 @@ MOZ_MUST_USE JSObject* js::ReadableStreamAddReadOrReadIntoRequest(
                 unwrappedStream->readable());
 
   // Step 3: Let promise be a new promise.
-  Rooted<JSObject*> promise(cx, PromiseObject::createSkippingExecutor(cx));
+  Rooted<PromiseObject*> promise(cx, PromiseObject::createSkippingExecutor(cx));
   if (!promise) {
     return nullptr;
   }
@@ -124,14 +124,15 @@ MOZ_MUST_USE JSObject* js::ReadableStreamCancel(
   // Step 1: Set stream.[[disturbed]] to true.
   unwrappedStream->setDisturbed();
 
-  // Step 2: If stream.[[state]] is "closed", return a new promise resolved
-  //         with undefined.
+  // Step 2: If stream.[[state]] is "closed", return a promise resolved with
+  //         undefined.
   if (unwrappedStream->closed()) {
-    return PromiseObject::unforgeableResolve(cx, UndefinedHandleValue);
+    return PromiseObject::unforgeableResolveWithNonPromise(
+        cx, UndefinedHandleValue);
   }
 
-  // Step 3: If stream.[[state]] is "errored", return a new promise rejected
-  //         with stream.[[storedError]].
+  // Step 3: If stream.[[state]] is "errored", return a promise rejected with
+  //         stream.[[storedError]].
   if (unwrappedStream->errored()) {
     Rooted<Value> storedError(cx, unwrappedStream->storedError());
     if (!cx->compartment()->wrap(cx, &storedError)) {
@@ -155,8 +156,8 @@ MOZ_MUST_USE JSObject* js::ReadableStreamCancel(
     return nullptr;
   }
 
-  // Step 6: Return the result of transforming sourceCancelPromise with a
-  //         fulfillment handler that returns undefined.
+  // Step 6: Return the result of reacting to sourceCancelPromise with a
+  //         fulfillment step that returns undefined.
   Handle<PropertyName*> funName = cx->names().empty;
   Rooted<JSFunction*> returnUndefined(
       cx, NewNativeFunction(cx, ReturnUndefined, 0, funName,
@@ -353,7 +354,7 @@ MOZ_MUST_USE bool js::ReadableStreamErrorInternal(
   // 3.8.5 ReadableStreamReaderGenericRelease step 6 sets
   // stream.[[reader]] to undefined.
   Rooted<JSObject*> closedPromise(cx, unwrappedReader->closedPromise());
-  SetPromiseIsHandled(cx, closedPromise.as<PromiseObject>());
+  SetSettledPromiseIsHandled(cx, closedPromise.as<PromiseObject>());
 
   if (unwrappedStream->mode() == JS::ReadableStreamMode::ExternalSource) {
     // Make sure we're in the stream's compartment.

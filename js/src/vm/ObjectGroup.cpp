@@ -187,8 +187,8 @@ bool ObjectGroup::useSingletonForClone(JSFunction* fun) {
 bool ObjectGroup::useSingletonForNewObject(JSContext* cx, JSScript* script,
                                            jsbytecode* pc) {
   /*
-   * Make a heuristic guess at a use of JSOP_NEW that the constructed object
-   * should have a fresh group. We do this when the NEW is immediately
+   * Make a heuristic guess at a use of JSOp::New that the constructed object
+   * should have a fresh group. We do this when the New is immediately
    * followed by a simple assignment to an object's .prototype field.
    * This is designed to catch common patterns for subclassing in JS:
    *
@@ -206,11 +206,11 @@ bool ObjectGroup::useSingletonForNewObject(JSContext* cx, JSScript* script,
   if (script->isGenerator() || script->isAsync()) {
     return false;
   }
-  if (JSOp(*pc) != JSOP_NEW) {
+  if (JSOp(*pc) != JSOp::New) {
     return false;
   }
-  pc += JSOP_NEW_LENGTH;
-  if (JSOp(*pc) != JSOP_SETPROP) {
+  pc += JSOpLength_New;
+  if (JSOp(*pc) != JSOp::SetProp) {
     return false;
   }
   return script->getName(pc) == cx->names().prototype;
@@ -1454,7 +1454,7 @@ ObjectGroup* ObjectGroup::allocationSiteGroup(
     return nullptr;
   }
 
-  if (JSOp(*pc) == JSOP_NEWOBJECT) {
+  if (JSOp(*pc) == JSOp::NewObject) {
     // Keep track of the preliminary objects with this group, so we can try
     // to use an unboxed layout for the object once some are allocated.
     Shape* shape = script->getObject(pc)->as<PlainObject>().lastProperty();

@@ -389,8 +389,9 @@ void Animation::UpdatePlaybackRate(double aPlaybackRate) {
     //   moving. Once we get a start time etc. we'll update the playback rate
     //   then.
     //
-    // All we need to do is update observers so that, e.g. DevTools, report the
-    // right information.
+    // However we still need to update the relevance and effect set as well as
+    // notifying observers.
+    UpdateEffect(PostRestyleMode::Never);
     if (IsRelevant()) {
       MutationObservers::NotifyAnimationChanged(this);
     }
@@ -750,7 +751,9 @@ void Animation::SetCurrentTimeAsDouble(const Nullable<double>& aCurrentTime,
                                        ErrorResult& aRv) {
   if (aCurrentTime.IsNull()) {
     if (!GetCurrentTimeAsDuration().IsNull()) {
-      aRv.Throw(NS_ERROR_DOM_TYPE_ERR);
+      aRv.ThrowTypeError(
+          u"Current time is resolved but trying to set it to an unresolved "
+          u"time");
     }
     return;
   }

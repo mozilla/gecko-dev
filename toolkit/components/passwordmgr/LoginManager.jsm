@@ -386,6 +386,17 @@ LoginManager.prototype = {
   },
 
   /**
+   * Record that the password of a saved login was used (e.g. submitted or copied).
+   */
+  recordPasswordUse(login) {
+    log.debug(
+      "Recording password use",
+      login.QueryInterface(Ci.nsILoginMetaInfo).guid
+    );
+    this._storage.recordPasswordUse(login);
+  },
+
+  /**
    * Get a dump of all stored logins. Used by the login manager UI.
    *
    * @return {nsILoginInfo[]} - If there are no logins, the array is empty.
@@ -460,6 +471,11 @@ LoginManager.prototype = {
 
   async searchLoginsAsync(matchData) {
     log.debug("searchLoginsAsync:", matchData);
+
+    if (!matchData.origin) {
+      throw new Error("searchLoginsAsync: An `origin` is required");
+    }
+
     return this._storage.searchLoginsAsync(matchData);
   },
 

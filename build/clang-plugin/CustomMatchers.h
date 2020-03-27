@@ -306,6 +306,18 @@ AST_MATCHER(QualType, isSmartPtrToRefCounted) {
   return D && hasCustomAttribute<moz_is_smartptr_to_refcounted>(D);
 }
 
+AST_MATCHER(ClassTemplateSpecializationDecl, isSmartPtrToRefCountedDecl) {
+  auto *D = dyn_cast_or_null<CXXRecordDecl>(Node.getSpecializedTemplate()->getTemplatedDecl());
+  if (!D) {
+    return false;
+  }
+
+  D = D->getCanonicalDecl();
+
+  return D && hasCustomAttribute<moz_is_smartptr_to_refcounted>(D);
+}
+
+
 AST_MATCHER(CXXRecordDecl, hasBaseClasses) {
   const CXXRecordDecl *Decl = Node.getCanonicalDecl();
 
@@ -333,6 +345,19 @@ AST_MATCHER(CXXDefaultArgExpr, isNullDefaultArg) {
   const Expr *Expr = Node.getExpr();
   return Expr && Expr->isNullPointerConstant(Finder->getASTContext(),
                                              Expr::NPC_NeverValueDependent);
+}
+
+AST_MATCHER(UsingDirectiveDecl, isUsingNamespaceMozillaJava) {
+  const NamespaceDecl *Namespace = Node.getNominatedNamespace();
+  const std::string &FQName = Namespace->getQualifiedNameAsString();
+
+  static const char NAMESPACE[] = "mozilla::java";
+  static const char PREFIX[] = "mozilla::java::";
+
+  // We match both the `mozilla::java` namespace itself as well as any other
+  // namespaces contained within the `mozilla::java` namespace.
+  return !FQName.compare(NAMESPACE) ||
+         !FQName.compare(0, sizeof(PREFIX) - 1, PREFIX);
 }
 
 } // namespace ast_matchers

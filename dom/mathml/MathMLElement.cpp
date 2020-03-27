@@ -797,8 +797,8 @@ void MathMLElement::MapMathMLAttributesInto(
       !aDecls.PropertyIsSet(eCSSProperty_direction)) {
     nsAutoString str(value->GetStringValue());
     static const char dirs[][4] = {"ltr", "rtl"};
-    static const int32_t dirValues[MOZ_ARRAY_LENGTH(dirs)] = {
-        NS_STYLE_DIRECTION_LTR, NS_STYLE_DIRECTION_RTL};
+    static const StyleDirection dirValues[MOZ_ARRAY_LENGTH(dirs)] = {
+        StyleDirection::Ltr, StyleDirection::Rtl};
     for (uint32_t i = 0; i < ArrayLength(dirs); ++i) {
       if (str.LowerCaseEqualsASCII(dirs[i])) {
         aDecls.SetKeywordValue(eCSSProperty_direction, dirValues[i]);
@@ -1002,7 +1002,7 @@ void MathMLElement::RecompileScriptEventListeners() {
 
     nsAutoString value;
     GetAttr(kNameSpaceID_None, attr, value);
-    SetEventHandler(attr, value, true);
+    SetEventHandler(GetEventNameForAttr(attr), value, true);
   }
 }
 
@@ -1018,7 +1018,7 @@ nsresult MathMLElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
   if (aNamespaceID == kNameSpaceID_None) {
     if (!aValue && IsEventAttributeName(aName)) {
       if (EventListenerManager* manager = GetExistingListenerManager()) {
-        manager->RemoveEventHandler(aName);
+        manager->RemoveEventHandler(GetEventNameForAttr(aName));
       }
     }
   }
@@ -1051,7 +1051,7 @@ nsresult MathMLElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
     if (IsEventAttributeName(aName) && aValue) {
       MOZ_ASSERT(aValue->Type() == nsAttrValue::eString,
                  "Expected string value for script body");
-      SetEventHandler(aName, aValue->GetStringValue());
+      SetEventHandler(GetEventNameForAttr(aName), aValue->GetStringValue());
     }
   }
 

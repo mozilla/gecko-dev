@@ -280,7 +280,7 @@ class MozbuildObject(ProcessExecutionMixin):
         # the environment variable, which has an impact on autodetection (when
         # path is MozconfigLoader.AUTODETECT), and memoization wouldn't account
         # for it without the explicit (unused) argument.
-        out = six.BytesIO()
+        out = six.StringIO()
         env = os.environ
         if path and path != MozconfigLoader.AUTODETECT:
             env = dict(env)
@@ -917,7 +917,7 @@ class MachCommandBase(MozbuildObject):
             self._ensure_state_subdir_exists('.')
             logfile = self._get_state_filename('last_log.json')
             try:
-                fd = open(logfile, "wb")
+                fd = open(logfile, 'wt')
                 self.log_manager.add_json_handler(fd)
             except Exception as e:
                 self.log(logging.WARNING, 'mach', {'error': str(e)},

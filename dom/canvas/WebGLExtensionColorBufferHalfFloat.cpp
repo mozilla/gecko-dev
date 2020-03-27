@@ -45,8 +45,6 @@ void WebGLExtensionColorBufferHalfFloat::OnSetExplicit() {
   SetRenderable(webgl::FormatRenderableState::Explicit());
 }
 
-WebGLExtensionColorBufferHalfFloat::~WebGLExtensionColorBufferHalfFloat() {}
-
 bool WebGLExtensionColorBufferHalfFloat::IsSupported(
     const WebGLContext* webgl) {
   if (webgl->IsWebGL2()) return false;
@@ -55,8 +53,5 @@ bool WebGLExtensionColorBufferHalfFloat::IsSupported(
   return gl->IsSupported(gl::GLFeature::renderbuffer_color_half_float) &&
          gl->IsSupported(gl::GLFeature::frag_color_float);
 }
-
-IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionColorBufferHalfFloat,
-                          EXT_color_buffer_half_float)
 
 }  // namespace mozilla

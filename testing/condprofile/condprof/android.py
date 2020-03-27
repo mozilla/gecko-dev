@@ -14,7 +14,7 @@ import attr
 from arsenic.services import Geckodriver, free_port, subprocess_based_service
 from mozdevice import ADBDevice, ADBError
 
-from condprof.util import write_yml_file, LOG, _PREFS, ERROR, BaseEnv
+from condprof.util import write_yml_file, LOG, DEFAULT_PREFS, ERROR, BaseEnv
 
 
 # XXX most of this code should migrate into mozdevice - see Bug 1574849
@@ -59,7 +59,15 @@ class AndroidDevice:
     def get_logcat(self):
         if not self.device:
             return None
-        return self.device.get_logcat()
+        # we don't want to have ADBCommand dump the command
+        # in the debug stream so we reduce its verbosity here
+        # temporarely
+        old_verbose = self.device._verbose
+        self.device._verbose = False
+        try:
+            return self.device.get_logcat()
+        finally:
+            self.device._verbose = old_verbose
 
     def prepare(self, profile, logfile):
         self._set_adb_logger(logfile)
@@ -100,7 +108,7 @@ class AndroidDevice:
         # creating the yml file
         yml_data = {
             "args": ["-marionette", "-profile", self.remote_profile],
-            "prefs": _PREFS,
+            "prefs": DEFAULT_PREFS,
             "env": {"LOG_VERBOSE": 1, "R_LOG_LEVEL": 6, "MOZ_LOG": ""},
         }
 
@@ -142,7 +150,11 @@ class AndroidDevice:
 
     def stop_browser(self):
         LOG("Stopping %s" % self.app_name)
-        self.device.stop_application(self.app_name, root=True)
+        try:
+            self.device.stop_application(self.app_name, root=True)
+        except ADBError:
+            LOG("Could not stop the application using force-stop")
+
         time.sleep(5)
         if self.device.process_exist(self.app_name):
             LOG("%s still running, trying SIGKILL" % self.app_name)
@@ -187,7 +199,15 @@ class AndroidGeckodriver(Geckodriver):
         await self._check_version()
         LOG("Running Webdriver on port %d" % port)
         LOG("Running Marionette on port 2828")
-        pargs = [self.binary, "-vv", "--port", str(port), "--marionette-port", "2828"]
+        pargs = [
+            self.binary,
+            "--log",
+            "trace",
+            "--port",
+            str(port),
+            "--marionette-port",
+            "2828",
+        ]
         LOG("Connecting on Android device")
         pargs.append("--connect-existing")
         return await subprocess_based_service(
@@ -209,32 +229,32 @@ class AndroidEnv(BaseEnv):
         return "%s-%s" % (self.device_name, app)
 
     def dump_logs(self):
+        LOG("Dumping Android logs")
         try:
             logcat = self.device.get_logcat()
-        # ValueError will cover all cases of Unicode encode/decode errors
-        except (ADBError, ValueError):
-            ERROR("logcat call failure")
-            return
-
-        if logcat:
-            # local path, not using posixpath
-            logfile = os.path.join(self.archive, "logcat.log")
-            LOG("Writing logcat at %s" % logfile)
-            with open(logfile, "wb") as f:
-                for line in logcat:
-                    f.write(line.encode("utf8") + b"\n")
-        else:
-            LOG("logcat came back empty")
+            if logcat:
+                # local path, not using posixpath
+                logfile = os.path.join(self.archive, "logcat.log")
+                LOG("Writing logcat at %s" % logfile)
+                with open(logfile, "wb") as f:
+                    for line in logcat:
+                        f.write(line.encode("utf8", errors="replace") + b"\n")
+            else:
+                LOG("logcat came back empty")
+        except Exception:
+            ERROR("Could not extract the logcat")
 
     @contextlib.contextmanager
     def get_browser(self):
         yield
 
-    def get_browser_args(self, headless):
+    def get_browser_args(self, headless, prefs=None):
         options = []
         if headless:
             options.append("-headless")
-        return {"moz:firefoxOptions": {"args": options}}
+        if prefs is None:
+            prefs = {}
+        return {"moz:firefoxOptions": {"args": options, "prefs": prefs}}
 
     def prepare(self, logfile):
         self.device.prepare(self.profile, logfile)

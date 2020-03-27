@@ -69,37 +69,27 @@ Maybe<ImageInfo> ImageInfo::NextMip(const GLenum target) const {
 
 ////////////////////////////////////////
 
-JSObject* WebGLTexture::WrapObject(JSContext* cx,
-                                   JS::Handle<JSObject*> givenProto) {
-  return dom::WebGLTexture_Binding::Wrap(cx, this, givenProto);
-}
-
 WebGLTexture::WebGLTexture(WebGLContext* webgl, GLuint tex)
-    : WebGLRefCountedObject(webgl),
+    : WebGLContextBoundObject(webgl),
       mGLName(tex),
       mTarget(LOCAL_GL_NONE),
       mFaceCount(0),
       mImmutable(false),
       mImmutableLevelCount(0),
       mBaseMipmapLevel(0),
-      mMaxMipmapLevel(1000) {
-  mContext->mTextures.insertBack(this);
-}
+      mMaxMipmapLevel(1000) {}
 
-void WebGLTexture::Delete() {
+WebGLTexture::~WebGLTexture() {
   for (auto& cur : mImageInfoArr) {
     cur = webgl::ImageInfo();
   }
   InvalidateCaches();
 
+  if (!mContext) return;
   mContext->gl->fDeleteTextures(1, &mGLName);
-
-  LinkedListElement<WebGLTexture>::removeFrom(mContext->mTextures);
 }
 
 size_t WebGLTexture::MemoryUsage() const {
-  if (IsDeleted()) return 0;
-
   size_t accum = 0;
   for (const auto& cur : mImageInfoArr) {
     accum += cur.MemoryUsage();
@@ -687,12 +677,6 @@ void WebGLTexture::ClampLevelBaseAndMax() {
 // GL calls
 
 bool WebGLTexture::BindTexture(TexTarget texTarget) {
-  if (IsDeleted()) {
-    mContext->ErrorInvalidOperation(
-        "bindTexture: Cannot bind a deleted object.");
-    return false;
-  }
-
   const bool isFirstBinding = !mTarget;
   if (!isFirstBinding && mTarget != texTarget) {
     mContext->ErrorInvalidOperation(
@@ -824,22 +808,22 @@ void WebGLTexture::GenerateMipmap() {
   PopulateMipChain(maxLevel);
 }
 
-JS::Value WebGLTexture::GetTexParameter(TexTarget texTarget, GLenum pname) {
+Maybe<double> WebGLTexture::GetTexParameter(GLenum pname) const {
   GLint i = 0;
   GLfloat f = 0.0f;
 
   switch (pname) {
     case LOCAL_GL_TEXTURE_BASE_LEVEL:
-      return JS::NumberValue(mBaseMipmapLevel);
+      return Some(mBaseMipmapLevel);
 
     case LOCAL_GL_TEXTURE_MAX_LEVEL:
-      return JS::NumberValue(mMaxMipmapLevel);
+      return Some(mMaxMipmapLevel);
 
     case LOCAL_GL_TEXTURE_IMMUTABLE_FORMAT:
-      return JS::BooleanValue(mImmutable);
+      return Some(mImmutable);
 
     case LOCAL_GL_TEXTURE_IMMUTABLE_LEVELS:
-      return JS::NumberValue(uint32_t(mImmutableLevelCount));
+      return Some(uint32_t(mImmutableLevelCount));
 
     case LOCAL_GL_TEXTURE_MIN_FILTER:
     case LOCAL_GL_TEXTURE_MAG_FILTER:
@@ -847,15 +831,21 @@ JS::Value WebGLTexture::GetTexParameter(TexTarget texTarget, GLenum pname) {
     case LOCAL_GL_TEXTURE_WRAP_T:
     case LOCAL_GL_TEXTURE_WRAP_R:
     case LOCAL_GL_TEXTURE_COMPARE_MODE:
-    case LOCAL_GL_TEXTURE_COMPARE_FUNC:
-      mContext->gl->fGetTexParameteriv(texTarget.get(), pname, &i);
-      return JS::NumberValue(uint32_t(i));
+    case LOCAL_GL_TEXTURE_COMPARE_FUNC: {
+      MOZ_ASSERT(mTarget);
+      const gl::ScopedBindTexture autoTex(mContext->gl, mGLName, mTarget.get());
+      mContext->gl->fGetTexParameteriv(mTarget.get(), pname, &i);
+      return Some(i);
+    }
 
     case LOCAL_GL_TEXTURE_MAX_ANISOTROPY_EXT:
     case LOCAL_GL_TEXTURE_MAX_LOD:
-    case LOCAL_GL_TEXTURE_MIN_LOD:
-      mContext->gl->fGetTexParameterfv(texTarget.get(), pname, &f);
-      return JS::NumberValue(float(f));
+    case LOCAL_GL_TEXTURE_MIN_LOD: {
+      MOZ_ASSERT(mTarget);
+      const gl::ScopedBindTexture autoTex(mContext->gl, mGLName, mTarget.get());
+      mContext->gl->fGetTexParameterfv(mTarget.get(), pname, &f);
+      return Some(f);
+    }
 
     default:
       MOZ_CRASH("GFX: Unhandled pname.");
@@ -1076,12 +1066,5 @@ void WebGLTexture::Truncate() {
   }
   InvalidateCaches();
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(WebGLTexture)
-
-NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(WebGLTexture, AddRef)
-NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(WebGLTexture, Release)
 
 }  // namespace mozilla

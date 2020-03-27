@@ -8,6 +8,7 @@ var EXPORTED_SYMBOLS = [
   "ExtensionActionHelper",
   "GeckoViewConnection",
   "GeckoViewWebExtension",
+  "mobileWindowTracker",
 ];
 
 const { XPCOMUtils } = ChromeUtils.import(
@@ -16,14 +17,17 @@ const { XPCOMUtils } = ChromeUtils.import(
 const { GeckoViewUtils } = ChromeUtils.import(
   "resource://gre/modules/GeckoViewUtils.jsm"
 );
+const { EventEmitter } = ChromeUtils.import(
+  "resource://gre/modules/EventEmitter.jsm"
+);
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
   EventDispatcher: "resource://gre/modules/Messaging.jsm",
   Extension: "resource://gre/modules/Extension.jsm",
-  ExtensionChild: "resource://gre/modules/ExtensionChild.jsm",
   GeckoViewTabBridge: "resource://gre/modules/GeckoViewTab.jsm",
+  Management: "resource://gre/modules/Extension.jsm",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -100,25 +104,20 @@ class ExtensionActionHelper {
   }
 }
 
-class EmbedderPort extends ExtensionChild.Port {
-  constructor(...args) {
-    super(...args);
+class EmbedderPort {
+  constructor(portId, messenger) {
+    this.id = portId;
+    this.messenger = messenger;
     EventDispatcher.instance.registerListener(this, [
       "GeckoView:WebExtension:PortMessageFromApp",
       "GeckoView:WebExtension:PortDisconnect",
     ]);
   }
-  handleDisconnection() {
-    super.handleDisconnection();
+  close() {
     EventDispatcher.instance.unregisterListener(this, [
       "GeckoView:WebExtension:PortMessageFromApp",
       "GeckoView:WebExtension:PortDisconnect",
     ]);
-  }
-  close() {
-    // Notify listeners that this port is being closed because the context is
-    // gone.
-    this.disconnectByOtherEnd();
   }
   onEvent(aEvent, aData, aCallback) {
     debug`onEvent ${aEvent} ${aData}`;
@@ -129,12 +128,14 @@ class EmbedderPort extends ExtensionChild.Port {
 
     switch (aEvent) {
       case "GeckoView:WebExtension:PortMessageFromApp": {
-        this.postMessage(aData.message);
+        const holder = new StructuredCloneHolder(aData.message);
+        this.messenger.sendPortMessage(this.id, holder);
         break;
       }
 
       case "GeckoView:WebExtension:PortDisconnect": {
-        this.disconnect();
+        this.messenger.sendPortDisconnect(this.id);
+        this.close();
         break;
       }
     }
@@ -142,29 +143,24 @@ class EmbedderPort extends ExtensionChild.Port {
 }
 
 class GeckoViewConnection {
-  constructor(context, sender, target, nativeApp) {
-    this.context = context;
+  constructor(sender, nativeApp) {
     this.sender = sender;
-    this.target = target;
     this.nativeApp = nativeApp;
-    this.allowContentMessaging = GeckoViewWebExtension.extensionScopes.get(
-      sender.extensionId
-    ).allowContentMessaging;
-  }
-
-  _getMessageManager(aTarget) {
-    if (aTarget.frameLoader) {
-      return aTarget.frameLoader.messageManager;
+    const scope = GeckoViewWebExtension.extensionScopes.get(sender.extensionId);
+    this.allowContentMessaging = scope.allowContentMessaging;
+    if (!this.allowContentMessaging && !sender.verified) {
+      throw new Error(`Unexpected messaging sender: ${JSON.stringify(sender)}`);
     }
-    return aTarget;
   }
 
   get dispatcher() {
+    const target = this.sender.actor.browsingContext.top.embedderElement;
+
     if (this.sender.envType === "addon_child") {
       // If this is a WebExtension Page we will have a GeckoSession associated
       // to it and thus a dispatcher.
       const dispatcher = GeckoViewUtils.getDispatcherForWindow(
-        this.target.ownerGlobal
+        target.ownerGlobal
       );
       if (dispatcher) {
         return dispatcher;
@@ -180,7 +176,7 @@ class GeckoViewConnection {
       // If this message came from a content script, send the message to
       // the corresponding tab messenger so that GeckoSession can pick it
       // up.
-      return GeckoViewUtils.getDispatcherForWindow(this.target.ownerGlobal);
+      return GeckoViewUtils.getDispatcherForWindow(target.ownerGlobal);
     }
 
     throw new Error(`Uknown sender envType: ${this.sender.envType}`);
@@ -205,37 +201,32 @@ class GeckoViewConnection {
     });
   }
 
-  onConnect(portId) {
-    const port = new EmbedderPort(
-      this.context,
-      this.target.messageManager,
-      [Services.mm],
-      "",
-      portId,
-      this.sender,
-      this.sender
-    );
-    port.registerOnMessage(holder =>
+  onConnect(portId, messenger) {
+    const port = new EmbedderPort(portId, messenger);
+
+    port.onPortMessage = holder =>
       this._sendMessage({
         type: "GeckoView:WebExtension:PortMessage",
         portId: port.id,
         data: holder.deserialize({}),
-      })
-    );
+      });
 
-    port.registerOnDisconnect(msg =>
+    port.onPortDisconnect = () => {
       EventDispatcher.instance.sendRequest({
         type: "GeckoView:WebExtension:Disconnect",
         sender: this.sender,
         portId: port.id,
-      })
-    );
+      });
+      port.close();
+    };
 
-    return this._sendMessage({
+    this._sendMessage({
       type: "GeckoView:WebExtension:Connect",
       data: {},
       portId: port.id,
     });
+
+    return port;
   }
 }
 
@@ -249,9 +240,11 @@ function exportExtension(aAddon, aPermissions, aSourceURI) {
     icons,
     version,
     optionsURL,
-    optionsBrowserStyle,
+    optionsType,
     isRecommended,
     blocklistState,
+    userDisabled,
+    embedderDisabled,
     isActive,
     isBuiltin,
     id,
@@ -263,17 +256,27 @@ function exportExtension(aAddon, aPermissions, aSourceURI) {
     creatorName = name;
     creatorURL = url;
   }
-  const openOptionsPageInTab =
-    optionsBrowserStyle === AddonManager.OPTIONS_TYPE_TAB;
+  const openOptionsPageInTab = optionsType === AddonManager.OPTIONS_TYPE_TAB;
+  const disabledFlags = [];
+  if (userDisabled) {
+    disabledFlags.push("userDisabled");
+  }
+  if (blocklistState !== Ci.nsIBlocklistService.STATE_NOT_BLOCKED) {
+    disabledFlags.push("blocklistDisabled");
+  }
+  if (embedderDisabled) {
+    disabledFlags.push("appDisabled");
+  }
   return {
     webExtensionId: id,
     locationURI: aSourceURI != null ? aSourceURI.spec : "",
-    isEnabled: isActive,
     isBuiltIn: isBuiltin,
     metaData: {
       permissions: aPermissions ? aPermissions.permissions : [],
       origins: aPermissions ? aPermissions.origins : [],
       description,
+      enabled: isActive,
+      disabledFlags,
       version,
       creatorName,
       creatorURL,
@@ -295,13 +298,13 @@ class ExtensionInstallListener {
   }
 
   onDownloadCancelled(aInstall) {
-    const { error: installError } = aInstall;
-    this.resolve({ installError });
+    const { error: installError, state } = aInstall;
+    this.resolve({ installError, state });
   }
 
   onDownloadFailed(aInstall) {
-    const { error: installError } = aInstall;
-    this.resolve({ installError });
+    const { error: installError, state } = aInstall;
+    this.resolve({ installError, state });
   }
 
   onDownloadEnded() {
@@ -309,22 +312,31 @@ class ExtensionInstallListener {
   }
 
   onInstallCancelled(aInstall) {
-    const { error: installError } = aInstall;
-    this.resolve({ installError });
+    const { error: installError, state } = aInstall;
+    this.resolve({ installError, state });
   }
 
   onInstallFailed(aInstall) {
-    const { error: installError } = aInstall;
-    this.resolve({ installError });
+    const { error: installError, state } = aInstall;
+    this.resolve({ installError, state });
   }
 
   onInstallEnded(aInstall, aAddon) {
-    const extension = exportExtension(
-      aAddon,
-      aAddon.userPermissions,
-      aInstall.sourceURI
-    );
-    this.resolve({ extension });
+    const addonId = aAddon.id;
+    const { sourceURI } = aInstall;
+    const onReady = (name, { id }) => {
+      if (id != addonId) {
+        return;
+      }
+      Management.off("ready", onReady);
+      const extension = exportExtension(
+        aAddon,
+        aAddon.userPermissions,
+        sourceURI
+      );
+      this.resolve({ extension });
+    };
+    Management.on("ready", onReady);
   }
 }
 
@@ -364,6 +376,66 @@ class ExtensionPromptObserver {
 }
 
 new ExtensionPromptObserver();
+
+class MobileWindowTracker extends EventEmitter {
+  constructor() {
+    super();
+    this._topWindow = null;
+  }
+
+  get topWindow() {
+    if (this._topWindow) {
+      return this._topWindow.get();
+    }
+    return null;
+  }
+
+  setTabActive(aWindow, aActive) {
+    const tab = aWindow.BrowserApp.selectedTab;
+    tab.active = aActive;
+
+    if (aActive) {
+      this._topWindow = Cu.getWeakReference(aWindow);
+      this.emit("tab-activated", {
+        windowId: aWindow.windowUtils.outerWindowID,
+        tabId: tab.id,
+      });
+    }
+  }
+}
+
+var mobileWindowTracker = new MobileWindowTracker();
+
+async function updatePromptHandler(aInfo) {
+  const oldPerms = aInfo.existingAddon.userPermissions;
+  if (!oldPerms) {
+    // Updating from a legacy add-on, let it proceed
+    return;
+  }
+
+  const newPerms = aInfo.addon.userPermissions;
+
+  const difference = Extension.comparePermissions(oldPerms, newPerms);
+
+  // If there are no new permissions, just proceed
+  if (!difference.origins.length && !difference.permissions.length) {
+    return;
+  }
+
+  const currentlyInstalled = exportExtension(aInfo.existingAddon, oldPerms);
+  const updatedExtension = exportExtension(aInfo.addon, newPerms);
+  const response = await EventDispatcher.instance.sendRequestForResult({
+    type: "GeckoView:WebExtension:UpdatePrompt",
+    currentlyInstalled,
+    updatedExtension,
+    newPermissions: difference.permissions,
+    newOrigins: difference.origins,
+  });
+
+  if (!response.allow) {
+    throw new Error("Extension update rejected.");
+  }
+}
 
 var GeckoViewWebExtension = {
   async registerWebExtension(aId, aUri, allowContentMessaging, aCallback) {
@@ -495,6 +567,68 @@ var GeckoViewWebExtension = {
     }
   },
 
+  async enableWebExtension(aId, aSource) {
+    const extension = await this.extensionById(aId);
+    if (aSource === "user") {
+      await extension.enable();
+    } else if (aSource === "app") {
+      await extension.setEmbedderDisabled(false);
+    }
+    return exportExtension(
+      extension,
+      extension.userPermissions,
+      /* aSourceURI */ null
+    );
+  },
+
+  async disableWebExtension(aId, aSource) {
+    const extension = await this.extensionById(aId);
+    if (aSource === "user") {
+      await extension.disable();
+    } else if (aSource === "app") {
+      await extension.setEmbedderDisabled(true);
+    }
+    return exportExtension(
+      extension,
+      extension.userPermissions,
+      /* aSourceURI */ null
+    );
+  },
+
+  /**
+   * @return A promise resolved with either an AddonInstall object if an update
+   * is available or null if no update is found.
+   */
+  checkForUpdate(aAddon) {
+    return new Promise(resolve => {
+      const listener = {
+        onUpdateAvailable(aAddon, install) {
+          install.promptHandler = updatePromptHandler;
+          resolve(install);
+        },
+        onNoUpdateAvailable() {
+          resolve(null);
+        },
+      };
+      aAddon.findUpdates(listener, AddonManager.UPDATE_WHEN_USER_REQUESTED);
+    });
+  },
+
+  async updateWebExtension(aId) {
+    const extension = await this.extensionById(aId);
+
+    const install = await this.checkForUpdate(extension);
+    if (!install) {
+      return null;
+    }
+    const promise = new Promise(resolve => {
+      install.addListener(new ExtensionInstallListener(resolve));
+    });
+    install.install();
+    return promise;
+  },
+
+  /* eslint-disable complexity */
   async onEvent(aEvent, aData, aCallback) {
     debug`onEvent ${aEvent} ${aData}`;
 
@@ -629,14 +763,38 @@ var GeckoViewWebExtension = {
       }
 
       case "GeckoView:WebExtension:Enable": {
-        // TODO
-        aCallback.onError(`Not implemented`);
+        try {
+          const { source, webExtensionId } = aData;
+          if (source !== "user" && source !== "app") {
+            throw new Error("Illegal source parameter");
+          }
+          const extension = await this.enableWebExtension(
+            webExtensionId,
+            source
+          );
+          aCallback.onSuccess({ extension });
+        } catch (ex) {
+          debug`Failed enable ${ex}`;
+          aCallback.onError(`Unexpected error: ${ex}`);
+        }
         break;
       }
 
       case "GeckoView:WebExtension:Disable": {
-        // TODO
-        aCallback.onError(`Not implemented`);
+        try {
+          const { source, webExtensionId } = aData;
+          if (source !== "user" && source !== "app") {
+            throw new Error("Illegal source parameter");
+          }
+          const extension = await this.disableWebExtension(
+            webExtensionId,
+            source
+          );
+          aCallback.onSuccess({ extension });
+        } catch (ex) {
+          debug`Failed disable ${ex}`;
+          aCallback.onError(`Unexpected error: ${ex}`);
+        }
         break;
       }
 
@@ -655,8 +813,18 @@ var GeckoViewWebExtension = {
       }
 
       case "GeckoView:WebExtension:Update": {
-        // TODO
-        aCallback.onError(`Not implemented`);
+        try {
+          const { webExtensionId } = aData;
+          const result = await this.updateWebExtension(webExtensionId);
+          if (result === null || result.extension) {
+            aCallback.onSuccess(result);
+          } else {
+            aCallback.onError(result);
+          }
+        } catch (ex) {
+          debug`Failed update ${ex}`;
+          aCallback.onError(`Unexpected error: ${ex}`);
+        }
         break;
       }
     }

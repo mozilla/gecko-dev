@@ -26,6 +26,7 @@
 #  include "mozilla/MemoryReporting.h"
 #  include "mozilla/ServoTypes.h"
 #  include "mozilla/ServoBindingTypes.h"
+#  include "mozilla/Vector.h"
 #  include "nsCSSPropertyID.h"
 #  include "nsCompatibility.h"
 #  include "nsIURI.h"
@@ -50,7 +51,7 @@ struct gfxFontFeature;
 namespace mozilla {
 namespace gfx {
 struct FontVariation;
-}
+}  // namespace gfx
 }  // namespace mozilla
 typedef mozilla::gfx::FontVariation gfxFontVariation;
 
@@ -114,7 +115,13 @@ enum class CallerType : uint32_t;
 
 class Element;
 class Document;
+class ImageTracker;
+
 }  // namespace dom
+
+namespace ipc {
+class ByteBuf;
+}  // namespace ipc
 
 // Replacement for a Rust Box<T> for a non-dynamically-sized-type.
 //
@@ -170,6 +177,7 @@ struct StyleBox {
 // Work-around weird cbindgen renaming / avoiding moving stuff outside its
 // namespace.
 
+using StyleImageTracker = dom::ImageTracker;
 using StyleLoader = css::Loader;
 using StyleLoaderReusableStyleSheets = css::LoaderReusableStyleSheets;
 using StyleCallerType = dom::CallerType;
@@ -199,5 +207,10 @@ using StyleMatrixTransformOperator =
 using StyleAtomicUsize = std::atomic<size_t>;
 
 }  // namespace mozilla
+
+#  ifndef HAVE_64BIT_BUILD
+static_assert(sizeof(void*) == 4, "");
+#    define SERVO_32_BITS 1
+#  endif
 
 #endif

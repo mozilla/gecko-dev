@@ -14,9 +14,10 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Casting.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/Move.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/Vector.h"
+
+#include <utility>
 
 #include "frontend/BinAST-macros.h"
 #include "frontend/BinASTTokenReaderContext.h"
@@ -33,8 +34,7 @@
 using JS::RegExpFlag;
 using JS::RegExpFlags;
 
-namespace js {
-namespace frontend {
+namespace js::frontend {
 
 // Compare a bunch of `uint8_t` values (as returned by the tokenizer_) with
 // a string literal (and ONLY a string literal).
@@ -2130,17 +2130,17 @@ JS::Result<ParseNode*> BinASTParser<Tok>::parseInterfaceCallExpression(
                      parseArguments(FieldContext(
                          BinASTInterfaceAndField::CallExpression__Arguments)));
 
-  auto op = JSOP_CALL;
+  auto op = JSOp::Call;
 
   // Try to optimize funcall and funapply at the bytecode level
   if (PropertyName* prop = handler_.maybeDottedProperty(callee)) {
     if (prop == cx_->names().apply) {
-      op = JSOP_FUNAPPLY;
+      op = JSOp::FunApply;
       if (pc_->isFunctionBox()) {
         pc_->functionBox()->usesApply = true;
       }
     } else if (prop == cx_->names().call) {
-      op = JSOP_FUNCALL;
+      op = JSOp::FunCall;
     }
   }
 
@@ -2153,7 +2153,7 @@ JS::Result<ParseNode*> BinASTParser<Tok>::parseInterfaceCallExpression(
         return raiseMissingDirectEvalInAssertedScope();
       }
 
-      op = pc_->sc()->strict() ? JSOP_STRICTEVAL : JSOP_EVAL;
+      op = pc_->sc()->strict() ? JSOp::StrictEval : JSOp::Eval;
     }
   }
 
@@ -2548,6 +2548,10 @@ BinASTParser<Tok>::parseInterfaceEagerFunctionDeclaration(
 
   forceStrictIfNecessary(funbox, directives);
 
+  if (pc_->isFunctionBox()) {
+    pc_->functionBox()->setHasInnerFunctions();
+  }
+
   // Push a new ParseContext. It will be used to parse `scope`, the arguments,
   // the function.
   BinASTParseContext funpc(cx_, this, funbox, /* newDirectives = */ nullptr);
@@ -2621,6 +2625,10 @@ JS::Result<ParseNode*> BinASTParser<Tok>::parseInterfaceEagerFunctionExpression(
 
   forceStrictIfNecessary(funbox, directives);
 
+  if (pc_->isFunctionBox()) {
+    pc_->functionBox()->setHasInnerFunctions();
+  }
+
   // Push a new ParseContext. It will be used to parse `scope`, the arguments,
   // the function.
   BinASTParseContext funpc(cx_, this, funbox, /* newDirectives = */ nullptr);
@@ -2677,6 +2685,10 @@ JS::Result<ParseNode*> BinASTParser<Tok>::parseInterfaceEagerGetter(
                                           : nullptr));
 
   forceStrictIfNecessary(funbox, directives);
+
+  if (pc_->isFunctionBox()) {
+    pc_->functionBox()->setHasInnerFunctions();
+  }
 
   // Push a new ParseContext. It will be used to parse `scope`, the arguments,
   // the function.
@@ -2750,6 +2762,10 @@ JS::Result<ParseNode*> BinASTParser<Tok>::parseInterfaceEagerMethod(
 
   forceStrictIfNecessary(funbox, directives);
 
+  if (pc_->isFunctionBox()) {
+    pc_->functionBox()->setHasInnerFunctions();
+  }
+
   // Push a new ParseContext. It will be used to parse `scope`, the arguments,
   // the function.
   BinASTParseContext funpc(cx_, this, funbox, /* newDirectives = */ nullptr);
@@ -2811,6 +2827,10 @@ JS::Result<ParseNode*> BinASTParser<Tok>::parseInterfaceEagerSetter(
                                           : nullptr));
 
   forceStrictIfNecessary(funbox, directives);
+
+  if (pc_->isFunctionBox()) {
+    pc_->functionBox()->setHasInnerFunctions();
+  }
 
   // Push a new ParseContext. It will be used to parse `scope`, the arguments,
   // the function.
@@ -3359,6 +3379,10 @@ JS::Result<ParseNode*> BinASTParser<Tok>::parseInterfaceLazyFunctionDeclaration(
 
   forceStrictIfNecessary(funbox, directives);
 
+  if (pc_->isFunctionBox()) {
+    pc_->functionBox()->setHasInnerFunctions();
+  }
+
   BINJS_MOZ_TRY_DECL(result, makeEmptyFunctionNode(start, syntax, funbox));
 
   auto skipStart = contentsSkip.startOffset();
@@ -3417,6 +3441,10 @@ JS::Result<ParseNode*> BinASTParser<Tok>::parseInterfaceLazyFunctionExpression(
                                       syntax, name));
 
   forceStrictIfNecessary(funbox, directives);
+
+  if (pc_->isFunctionBox()) {
+    pc_->functionBox()->setHasInnerFunctions();
+  }
 
   BINJS_MOZ_TRY_DECL(result, makeEmptyFunctionNode(start, syntax, funbox));
 
@@ -5036,5 +5064,4 @@ JS::Result<ParseNode*> BinASTParser<Tok>::parseOptionalStatement(
 template class BinASTParser<BinASTTokenReaderContext>;
 template class BinASTParser<BinASTTokenReaderMultipart>;
 
-}  // namespace frontend
-}  // namespace js
+}  // namespace js::frontend

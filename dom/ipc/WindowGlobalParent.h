@@ -7,15 +7,18 @@
 #ifndef mozilla_dom_WindowGlobalParent_h
 #define mozilla_dom_WindowGlobalParent_h
 
+#include "mozilla/AntiTrackingCommon.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/DOMRect.h"
 #include "mozilla/dom/PWindowGlobalParent.h"
 #include "mozilla/dom/BrowserParent.h"
+#include "mozilla/dom/WindowContext.h"
 #include "nsRefPtrHashtable.h"
 #include "nsWrapperCache.h"
 #include "nsISupports.h"
 #include "mozilla/dom/WindowGlobalActor.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
+#include "mozilla/dom/ContentBlockingLog.h"
 
 class nsIPrincipal;
 class nsIURI;
@@ -36,7 +39,8 @@ class JSWindowActorMessageMeta;
 /**
  * A handle in the parent process to a specific nsGlobalWindowInner object.
  */
-class WindowGlobalParent final : public WindowGlobalActor,
+class WindowGlobalParent final : public WindowContext,
+                                 public WindowGlobalActor,
                                  public PWindowGlobalParent {
   friend class gfx::CrossProcessPaint;
   friend class PWindowGlobalParent;
@@ -44,7 +48,7 @@ class WindowGlobalParent final : public WindowGlobalActor,
  public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(WindowGlobalParent,
-                                                         WindowGlobalActor)
+                                                         WindowContext)
 
   static already_AddRefed<WindowGlobalParent> GetByInnerWindowId(
       uint64_t aInnerWindowId);
@@ -108,12 +112,16 @@ class WindowGlobalParent final : public WindowGlobalActor,
 
   bool IsProcessRoot();
 
+  uint32_t ContentBlockingEvents();
+
+  void GetContentBlockingLog(nsAString& aLog);
+
   bool IsInitialDocument() { return mIsInitialDocument; }
 
   bool HasBeforeUnload() { return mHasBeforeUnload; }
 
   already_AddRefed<mozilla::dom::Promise> DrawSnapshot(
-      const DOMRect* aRect, double aScale, const nsAString& aBackgroundColor,
+      const DOMRect* aRect, double aScale, const nsACString& aBackgroundColor,
       mozilla::ErrorResult& aRv);
 
   already_AddRefed<Promise> GetSecurityInfo(ErrorResult& aRv);
@@ -129,6 +137,14 @@ class WindowGlobalParent final : public WindowGlobalActor,
   nsIGlobalObject* GetParentObject();
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
+
+  void NotifyContentBlockingEvent(
+      uint32_t aEvent, nsIRequest* aRequest, bool aBlocked, nsIURI* aURIHint,
+      const nsTArray<nsCString>& aTrackingFullHashes,
+      const Maybe<AntiTrackingCommon::StorageAccessGrantedReason>& aReason =
+          Nothing());
+
+  ContentBlockingLog* GetContentBlockingLog() { return &mContentBlockingLog; }
 
  protected:
   const nsAString& GetRemoteType() override;
@@ -146,11 +162,13 @@ class WindowGlobalParent final : public WindowGlobalActor,
     return IPC_OK();
   }
   mozilla::ipc::IPCResult RecvSetHasBeforeUnload(bool aHasBeforeUnload);
-  mozilla::ipc::IPCResult RecvBecomeCurrentWindowGlobal();
   mozilla::ipc::IPCResult RecvDestroy();
   mozilla::ipc::IPCResult RecvRawMessage(const JSWindowActorMessageMeta& aMeta,
                                          const ClonedMessageData& aData,
                                          const ClonedMessageData& aStack);
+
+  mozilla::ipc::IPCResult RecvGetContentBlockingEvents(
+      GetContentBlockingEventsResolver&& aResolver);
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
@@ -178,9 +196,19 @@ class WindowGlobalParent final : public WindowGlobalActor,
 
   // True if this window has a "beforeunload" event listener.
   bool mHasBeforeUnload;
+
+  // The log of all content blocking actions taken on the document related to
+  // this WindowGlobalParent. This is only stored on top-level documents and
+  // includes the activity log for all of the nested subdocuments as well.
+  ContentBlockingLog mContentBlockingLog;
 };
 
 }  // namespace dom
 }  // namespace mozilla
+
+inline nsISupports* ToSupports(
+    mozilla::dom::WindowGlobalParent* aWindowGlobal) {
+  return static_cast<mozilla::dom::WindowContext*>(aWindowGlobal);
+}
 
 #endif  // !defined(mozilla_dom_WindowGlobalParent_h)

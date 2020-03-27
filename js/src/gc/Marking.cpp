@@ -57,7 +57,6 @@ using JS::MapTypeToTraceKind;
 
 using mozilla::DebugOnly;
 using mozilla::IntegerRange;
-using mozilla::IsBaseOf;
 using mozilla::IsSame;
 using mozilla::PodCopy;
 
@@ -859,6 +858,18 @@ bool ShouldMark<JSString*>(GCMarker* gcmarker, JSString* str) {
   return str->asTenured().zone()->shouldMarkInZone();
 }
 
+// BigInts can also be in the nursery. See ShouldMark<JSObject*> for comments.
+template <>
+bool ShouldMark<JS::BigInt*>(GCMarker* gcmarker, JS::BigInt* bi) {
+  if (IsOwnedByOtherRuntime(gcmarker->runtime(), bi)) {
+    return false;
+  }
+  if (IsInsideNursery(bi)) {
+    return false;
+  }
+  return bi->asTenured().zone()->shouldMarkInZone();
+}
+
 template <typename T>
 void DoMarking(GCMarker* gcmarker, T* thing) {
   // Do per-type marking precondition checks.
@@ -1086,8 +1097,12 @@ bool js::GCMarker::mark(T* thing) {
 
   MarkColor color =
       TraceKindCanBeGray<T>::value ? markColor() : MarkColor::Black;
-  markCount++;
-  return cell->markIfUnmarked(color);
+  bool marked = cell->markIfUnmarked(color);
+  if (marked) {
+    markCount++;
+  }
+
+  return marked;
 }
 
 /*** Inline, Eager GC Marking ***********************************************/
@@ -1411,8 +1426,7 @@ inline void js::GCMarker::eagerlyMarkChildren(Scope* scope) {
         break;
       }
 
-      case ScopeKind::FunctionBodyVar:
-      case ScopeKind::ParameterExpressionVar: {
+      case ScopeKind::FunctionBodyVar: {
         VarScope::Data& data = scope->as<VarScope>().data();
         names = &data.trailingNames;
         length = data.length;
@@ -2703,13 +2717,13 @@ void GCMarker::repush(JSObject* obj) {
   pushTaggedPtr(obj);
 }
 
-void GCMarker::enterWeakMarkingMode() {
+bool GCMarker::enterWeakMarkingMode() {
   MOZ_ASSERT(runtime()->gc.nursery().isEmpty());
 
   MOZ_ASSERT(weakMapAction() == ExpandWeakMaps);
   MOZ_ASSERT(state != MarkingState::WeakMarking);
   if (state == MarkingState::IterativeMarking) {
-    return;
+    return false;
   }
 
   // During weak marking mode, we maintain a table mapping weak keys to
@@ -2730,25 +2744,28 @@ void GCMarker::enterWeakMarkingMode() {
   while (processMarkQueue() == QueueYielded) {
   };
 
-  for (SweepGroupZonesIter zone(runtime()); !zone.done(); zone.next()) {
-    for (WeakMapBase* m : zone->gcWeakMapList()) {
-      if (m->mapColor) {
-        mozilla::Unused << m->markEntries(this);
-      }
+  return true;
+}
+
+void JS::Zone::enterWeakMarkingMode(GCMarker* marker) {
+  MOZ_ASSERT(marker->isWeakMarking());
+  for (WeakMapBase* m : gcWeakMapList()) {
+    if (m->mapColor) {
+      mozilla::Unused << m->markEntries(marker);
     }
   }
+}
 
 #ifdef DEBUG
-  for (SweepGroupZonesIter zone(runtime()); !zone.done(); zone.next()) {
-    for (auto r = zone->gcWeakKeys().all(); !r.empty(); r.popFront()) {
-      for (auto markable : r.front().value) {
-        MOZ_ASSERT(markable.weakmap->mapColor,
-                   "unmarked weakmaps in weak keys table");
-      }
+void JS::Zone::checkWeakMarkingMode() {
+  for (auto r = gcWeakKeys().all(); !r.empty(); r.popFront()) {
+    for (auto markable : r.front().value) {
+      MOZ_ASSERT(markable.weakmap->mapColor,
+                 "unmarked weakmaps in weak keys table");
     }
   }
-#endif
 }
+#endif
 
 void GCMarker::leaveWeakMarkingMode() {
   MOZ_ASSERT(state == MarkingState::WeakMarking ||
@@ -2951,6 +2968,17 @@ void TenuringTracer::traverse(JSString** strp) {
   }
 }
 
+template <>
+void TenuringTracer::traverse(JS::BigInt** bip) {
+  // We only ever visit the internals of BigInts after moving them to tenured.
+  MOZ_ASSERT(!nursery().isInside(bip));
+
+  Cell** cellp = reinterpret_cast<Cell**>(bip);
+  if (IsInsideNursery(*cellp) && !nursery().getForwardedPointer(cellp)) {
+    *bip = moveToTenured(*bip);
+  }
+}
+
 template <typename T>
 void TenuringTracer::traverse(T* thingp) {
   auto tenured = MapGCThingTyped(*thingp, [this](auto t) {
@@ -2983,6 +3011,7 @@ template void StoreBuffer::MonoTypeBuffer<StoreBuffer::ValueEdge>::trace(
 template void StoreBuffer::MonoTypeBuffer<StoreBuffer::SlotsEdge>::trace(
     TenuringTracer&);
 template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::StringPtrEdge>;
+template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::BigIntPtrEdge>;
 template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::ObjectPtrEdge>;
 }  // namespace gc
 }  // namespace js
@@ -3028,6 +3057,10 @@ static inline void TraceWholeCell(TenuringTracer& mover, JSString* str) {
   str->traceChildren(&mover);
 }
 
+static inline void TraceWholeCell(TenuringTracer& mover, JS::BigInt* bi) {
+  bi->traceChildren(&mover);
+}
+
 static inline void TraceWholeCell(TenuringTracer& mover, JSScript* script) {
   script->traceChildren(&mover);
 }
@@ -3068,6 +3101,9 @@ void js::gc::StoreBuffer::WholeCellBuffer::trace(TenuringTracer& mover) {
         break;
       case JS::TraceKind::String:
         TraceBufferedCells<JSString>(mover, arena, cells);
+        break;
+      case JS::TraceKind::BigInt:
+        TraceBufferedCells<JS::BigInt>(mover, arena, cells);
         break;
       case JS::TraceKind::Script:
         TraceBufferedCells<JSScript>(mover, arena, cells);
@@ -3155,6 +3191,10 @@ inline void js::TenuringTracer::traceSlots(JS::Value* vp, uint32_t nslots) {
 
 void js::TenuringTracer::traceString(JSString* str) {
   str->traceChildren(this);
+}
+
+void js::TenuringTracer::traceBigInt(JS::BigInt* bi) {
+  bi->traceChildren(this);
 }
 
 #ifdef DEBUG
@@ -3403,6 +3443,33 @@ JSString* js::TenuringTracer::moveToTenured(JSString* src) {
   return dst;
 }
 
+inline void js::TenuringTracer::insertIntoBigIntFixupList(
+    RelocationOverlay* entry) {
+  *bigIntTail = entry;
+  bigIntTail = &entry->nextRef();
+  *bigIntTail = nullptr;
+}
+
+JS::BigInt* js::TenuringTracer::moveToTenured(JS::BigInt* src) {
+  MOZ_ASSERT(IsInsideNursery(src));
+  MOZ_ASSERT(!src->zone()->usedByHelperThread());
+
+  AllocKind dstKind = src->getAllocKind();
+  Zone* zone = src->zone();
+  zone->tenuredBigInts++;
+
+  JS::BigInt* dst = allocTenured<JS::BigInt>(zone, dstKind);
+  tenuredSize += moveBigIntToTenured(dst, src, dstKind);
+  tenuredCells++;
+
+  RelocationOverlay* overlay = RelocationOverlay::fromCell(src);
+  overlay->forwardTo(dst);
+  insertIntoBigIntFixupList(overlay);
+
+  gcTracer.tracePromoteToTenured(src, dst);
+  return dst;
+}
+
 void js::Nursery::collectToFixedPoint(TenuringTracer& mover,
                                       TenureCountCache& tenureCounts) {
   for (RelocationOverlay* p = mover.objHead; p; p = p->next()) {
@@ -3420,6 +3487,10 @@ void js::Nursery::collectToFixedPoint(TenuringTracer& mover,
 
   for (RelocationOverlay* p = mover.stringHead; p; p = p->next()) {
     mover.traceString(static_cast<JSString*>(p->forwardingAddress()));
+  }
+
+  for (RelocationOverlay* p = mover.bigIntHead; p; p = p->next()) {
+    mover.traceBigInt(static_cast<JS::BigInt*>(p->forwardingAddress()));
   }
 }
 
@@ -3439,6 +3510,48 @@ size_t js::TenuringTracer::moveStringToTenured(JSString* dst, JSString* src,
     void* chars = src->asLinear().nonInlineCharsRaw();
     nursery().removeMallocedBuffer(chars);
     AddCellMemory(dst, dst->asLinear().allocSize(), MemoryUse::StringContents);
+  }
+
+  return size;
+}
+
+size_t js::TenuringTracer::moveBigIntToTenured(JS::BigInt* dst, JS::BigInt* src,
+                                               AllocKind dstKind) {
+  size_t size = Arena::thingSize(dstKind);
+
+  // At the moment, BigInts always have the same AllocKind between src and
+  // dst. This may change in the future.
+  MOZ_ASSERT(dst->asTenured().getAllocKind() == src->getAllocKind());
+
+  // Copy the Cell contents.
+  MOZ_ASSERT(OffsetToChunkEnd(src) >= ptrdiff_t(size));
+  js_memcpy(dst, src, size);
+
+  MOZ_ASSERT(dst->zone() == src->zone());
+
+  if (src->hasHeapDigits()) {
+    size_t length = dst->digitLength();
+    if (!nursery().isInside(src->heapDigits_)) {
+      nursery().removeMallocedBuffer(src->heapDigits_);
+    } else {
+      Zone* zone = src->zone();
+      {
+        AutoEnterOOMUnsafeRegion oomUnsafe;
+        dst->heapDigits_ = zone->pod_malloc<JS::BigInt::Digit>(length);
+        if (!dst->heapDigits_) {
+          oomUnsafe.crash(sizeof(JS::BigInt::Digit) * length,
+                          "Failed to allocate digits while tenuring.");
+        }
+      }
+
+      PodCopy(dst->heapDigits_, src->heapDigits_, length);
+      nursery().setDirectForwardingPointer(src->heapDigits_, dst->heapDigits_);
+
+      size += length * sizeof(JS::BigInt::Digit);
+    }
+
+    AddCellMemory(dst, length * sizeof(JS::BigInt::Digit),
+                  MemoryUse::BigIntDigits);
   }
 
   return size;
@@ -3502,8 +3615,9 @@ static inline bool ShouldCheckMarkState(JSRuntime* rt, T** thingp) {
 
 template <typename T>
 struct MightBeNurseryAllocated {
-  static const bool value = mozilla::IsBaseOf<JSObject, T>::value ||
-                            mozilla::IsBaseOf<JSString, T>::value;
+  static const bool value = std::is_base_of<JSObject, T>::value ||
+                            std::is_base_of<JSString, T>::value ||
+                            std::is_base_of<JS::BigInt, T>::value;
 };
 
 template <typename T>
@@ -3523,51 +3637,6 @@ bool js::gc::IsMarkedInternal(JSRuntime* rt, T** thingp) {
   }
 
   return (*thingp)->asTenured().isMarkedAny();
-}
-
-template <typename T>
-bool js::gc::IsMarkedBlackInternal(JSRuntime* rt, T** thingp) {
-  if (IsOwnedByOtherRuntime(rt, *thingp)) {
-    return true;
-  }
-
-  if (MightBeNurseryAllocated<T>::value && IsInsideNursery(*thingp)) {
-    MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
-    Cell** cellp = reinterpret_cast<Cell**>(thingp);
-    return Nursery::getForwardedPointer(cellp);
-  }
-
-  if (!ShouldCheckMarkState(rt, thingp)) {
-    return true;
-  }
-
-  return (*thingp)->asTenured().isMarkedBlack();
-}
-
-template <typename T>
-bool js::gc::IsMarkedInternal(JSRuntime* rt, T* thingp) {
-  bool marked = true;
-  auto thing = MapGCThingTyped(*thingp, [rt, &marked](auto t) {
-    marked = IsMarkedInternal(rt, &t);
-    return TaggedPtr<T>::wrap(t);
-  });
-  if (thing.isSome() && thing.value() != *thingp) {
-    *thingp = thing.value();
-  }
-  return marked;
-}
-
-template <typename T>
-bool js::gc::IsMarkedBlackInternal(JSRuntime* rt, T* thingp) {
-  bool marked = true;
-  auto thing = MapGCThingTyped(*thingp, [rt, &marked](auto t) {
-    marked = IsMarkedBlackInternal(rt, &t);
-    return TaggedPtr<T>::wrap(t);
-  });
-  if (thing.isSome() && thing.value() != *thingp) {
-    *thingp = thing.value();
-  }
-  return marked;
 }
 
 bool js::gc::IsAboutToBeFinalizedDuringSweep(TenuredCell& tenured) {
@@ -3688,21 +3757,24 @@ JS_FOR_EACH_PUBLIC_GC_POINTER_TYPE(INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS)
 JS_FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(
     INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS)
 
-#define INSTANTIATE_INTERNAL_MARKING_FUNCTIONS(type)               \
-  template bool IsMarkedInternal(JSRuntime* rt, type* thing);      \
-  template bool IsMarkedBlackInternal(JSRuntime* rt, type* thing); \
+#define INSTANTIATE_INTERNAL_IS_MARKED_FUNCTION(type) \
+  template bool IsMarkedInternal(JSRuntime* rt, type* thing);
+
+#define INSTANTIATE_INTERNAL_IATBF_FUNCTION(type) \
   template bool IsAboutToBeFinalizedInternal(type* thingp);
 
 #define INSTANTIATE_INTERNAL_MARKING_FUNCTIONS_FROM_TRACEKIND(_1, type, _2, \
                                                               _3)           \
-  INSTANTIATE_INTERNAL_MARKING_FUNCTIONS(type*)
+  INSTANTIATE_INTERNAL_IS_MARKED_FUNCTION(type*)                            \
+  INSTANTIATE_INTERNAL_IATBF_FUNCTION(type*)
 
 JS_FOR_EACH_TRACEKIND(INSTANTIATE_INTERNAL_MARKING_FUNCTIONS_FROM_TRACEKIND)
-JS_FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(
-    INSTANTIATE_INTERNAL_MARKING_FUNCTIONS)
 
+JS_FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(INSTANTIATE_INTERNAL_IATBF_FUNCTION)
+
+#undef INSTANTIATE_INTERNAL_IS_MARKED_FUNCTION
+#undef INSTANTIATE_INTERNAL_IATBF_FUNCTION
 #undef INSTANTIATE_INTERNAL_MARKING_FUNCTIONS_FROM_TRACEKIND
-#undef INSTANTIATE_INTERNAL_MARKING_FUNCTIONS
 
 #ifdef DEBUG
 bool CurrentThreadIsGCMarking() { return TlsContext.get()->gcMarking; }
@@ -3884,6 +3956,10 @@ JS_FRIEND_API bool JS::UnmarkGrayGCThingRecursively(JS::GCCellPtr thing) {
 bool js::UnmarkGrayShapeRecursively(Shape* shape) {
   return JS::UnmarkGrayGCThingRecursively(JS::GCCellPtr(shape));
 }
+
+#ifdef DEBUG
+Cell* js::gc::UninlinedForwarded(const Cell* cell) { return Forwarded(cell); }
+#endif
 
 namespace js {
 namespace debug {

@@ -57,7 +57,8 @@ std::ostream& operator<<(
   using PositionChangedResult = AccessibleCaret::PositionChangedResult;
   switch (aResult) {
     AC_PROCESS_ENUM_TO_STREAM(PositionChangedResult::NotChanged);
-    AC_PROCESS_ENUM_TO_STREAM(PositionChangedResult::Changed);
+    AC_PROCESS_ENUM_TO_STREAM(PositionChangedResult::Position);
+    AC_PROCESS_ENUM_TO_STREAM(PositionChangedResult::Zoom);
     AC_PROCESS_ENUM_TO_STREAM(PositionChangedResult::Invisible);
   }
   return aStream;
@@ -174,7 +175,7 @@ void AccessibleCaret::EnsureApzAware() {
 bool AccessibleCaret::IsInPositionFixedSubtree() const {
   for (nsIFrame* f = mImaginaryCaretReferenceFrame.GetFrame(); f;
        f = f->GetParent()) {
-    if (f->StyleDisplay()->mPosition == NS_STYLE_POSITION_FIXED &&
+    if (f->StyleDisplay()->mPosition == StylePositionProperty::Fixed &&
         nsLayoutUtils::IsReallyFixedPos(f)) {
       return true;
     }
@@ -225,19 +226,6 @@ void AccessibleCaret::RemoveCaretElement(Document* aDocument) {
   CaretElement().RemoveEventListener(NS_LITERAL_STRING("touchstart"),
                                      mDummyTouchListener, false);
 
-  // FIXME(emilio): This shouldn't be needed and should be done by
-  // ContentRemoved via RemoveAnonymousContent, but the current setup tears down
-  // the accessible caret manager after the shell has stopped observing the
-  // document, but before the frame tree has gone away. This could clearly be
-  // better...
-  if (nsIFrame* frame = CaretElement().GetPrimaryFrame()) {
-    if (frame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW)) {
-      frame = frame->GetPlaceholderFrame();
-    }
-    nsAutoScriptBlocker scriptBlocker;
-    frame->GetParent()->RemoveFrame(nsIFrame::kPrincipalList, frame);
-  }
-
   aDocument->RemoveAnonymousContent(*mCaretElementHolder, IgnoreErrors());
 }
 
@@ -272,10 +260,11 @@ AccessibleCaret::PositionChangedResult AccessibleCaret::SetPosition(
   nsLayoutUtils::TransformRect(aFrame, CustomContentContainerFrame(),
                                imaginaryCaretRectInContainerFrame);
   const float zoomLevel = GetZoomLevel();
+  const bool isSamePosition = imaginaryCaretRectInContainerFrame.IsEqualEdges(
+      mImaginaryCaretRectInContainerFrame);
+  const bool isSameZoomLevel = FuzzyEqualsMultiplicative(zoomLevel, mZoomLevel);
 
-  if (imaginaryCaretRectInContainerFrame.IsEqualEdges(
-          mImaginaryCaretRectInContainerFrame) &&
-      FuzzyEqualsMultiplicative(zoomLevel, mZoomLevel)) {
+  if (isSamePosition && isSameZoomLevel) {
     return PositionChangedResult::NotChanged;
   }
 
@@ -290,7 +279,8 @@ AccessibleCaret::PositionChangedResult AccessibleCaret::SetPosition(
 
   SetCaretElementStyle(imaginaryCaretRectInContainerFrame, mZoomLevel);
 
-  return PositionChangedResult::Changed;
+  return isSamePosition ? PositionChangedResult::Zoom
+                        : PositionChangedResult::Position;
 }
 
 nsIFrame* AccessibleCaret::CustomContentContainerFrame() const {

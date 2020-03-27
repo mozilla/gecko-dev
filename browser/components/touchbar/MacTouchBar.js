@@ -87,7 +87,7 @@ const kInputTypes = {
 /**
  * An object containing all implemented TouchBarInput objects.
  */
-const kBuiltInInputs = {
+var gBuiltInInputs = {
   Back: {
     title: "back",
     image: "chrome://browser/skin/back.svg",
@@ -164,6 +164,7 @@ const kBuiltInInputs = {
     disabled: true, // Updated when the page is found to be Reader View-able.
   },
   OpenLocation: {
+    key: "open-location",
     title: "open-location",
     image: "chrome://browser/skin/search-glass.svg",
     type: kInputTypes.MAIN_BUTTON,
@@ -237,8 +238,14 @@ const kBuiltInInputs = {
   },
 };
 
+// We create a new flat object to cache strings. Since gBuiltInInputs is a
+// tree, caching/retrieval of localized strings would otherwise require tree
+// traversal.
+var localizedStrings = {};
+
 const kHelperObservers = new Set([
   "bookmark-icon-updated",
+  "fullscreen-painted",
   "reader-mode-available",
   "touchbar-location-change",
   "quit-application",
@@ -260,11 +267,7 @@ class TouchBarHelper {
     // created/destroyed for the urlbar-focus/blur events.
     this._searchPopover = this.getTouchBarInput("SearchPopover");
 
-    // The test machines do not have Touch Bars, so _inputsNotUpdated is never
-    // initialized. This causes problems in the tests.
-    if (Cu.isInAutomation) {
-      this._inputsNotUpdated = new Set();
-    }
+    this._inputsNotUpdated = new Set();
   }
 
   destructor() {
@@ -291,26 +294,42 @@ class TouchBarHelper {
       Ci.nsIMutableArray
     );
 
-    for (let inputName of Object.keys(kBuiltInInputs)) {
-      let input = this.getTouchBarInput(inputName);
-      if (!input) {
-        continue;
-      }
-      layoutItems.appendElement(input);
+    let window = TouchBarHelper.window;
+    if (
+      !window ||
+      !window.isChromeWindow ||
+      window.document.documentElement.getAttribute("windowtype") !=
+        "navigator:browser"
+    ) {
+      return layoutItems;
     }
 
     // Every input must be updated at least once so that all assets (titles,
     // icons) are loaded. We keep track of which inputs haven't updated and
-    // run an update on them after the first location change.
-    this._inputsNotUpdated = new Set(Object.keys(kBuiltInInputs));
-    // This is a temporary workaround until bug 1596723 is resolved.
-    this._inputsNotUpdated.delete("SearchPopover");
+    // run an update on them ASAP.
+    this._inputsNotUpdated.clear();
+
+    for (let inputName of Object.keys(gBuiltInInputs)) {
+      let input = this.getTouchBarInput(inputName);
+      if (!input) {
+        continue;
+      }
+      this._inputsNotUpdated.add(inputName);
+      layoutItems.appendElement(input);
+    }
 
     return layoutItems;
   }
 
   static get window() {
     return BrowserWindowTracker.getTopWindow();
+  }
+
+  get document() {
+    if (!TouchBarHelper.window) {
+      return null;
+    }
+    return TouchBarHelper.window.document;
   }
 
   get isUrlbarFocused() {
@@ -333,27 +352,27 @@ class TouchBarHelper {
       return this._searchPopover;
     }
 
-    if (!inputName || !kBuiltInInputs.hasOwnProperty(inputName)) {
+    if (!inputName || !gBuiltInInputs.hasOwnProperty(inputName)) {
       return null;
     }
 
-    let inputData = kBuiltInInputs[inputName];
+    let inputData = gBuiltInInputs[inputName];
 
     let item = new TouchBarInput(inputData);
 
     // Skip localization if there is already a cached localized title or if
     // no title is needed.
     if (
-      kBuiltInInputs[inputName].hasOwnProperty("localTitle") ||
-      !kBuiltInInputs[inputName].hasOwnProperty("title")
+      !inputData.hasOwnProperty("title") ||
+      localizedStrings[inputData.title]
     ) {
       return item;
     }
 
     // Async l10n fills in the localized input labels after the initial load.
-    this._l10n.formatValue(item.key).then(result => {
+    this._l10n.formatValue(inputData.title).then(result => {
       item.title = result;
-      kBuiltInInputs[inputName].localTitle = result; // Cache result.
+      localizedStrings[inputData.title] = result; // Cache result.
       // Checking TouchBarHelper.window since this callback can fire after all windows are closed.
       if (TouchBarHelper.window) {
         if (this._inputsNotUpdated) {
@@ -371,7 +390,7 @@ class TouchBarHelper {
   /**
    * Fetches a specific Touch Bar Input by name and updates it on the Touch Bar.
    * @param {...*} inputNames
-   *        A key/keys to a value/values in the kBuiltInInputs object in this file.
+   *        A key/keys to a value/values in the gBuiltInInputs object in this file.
    */
   _updateTouchBarInputs(...inputNames) {
     if (!TouchBarHelper.window || !inputNames.length) {
@@ -379,14 +398,13 @@ class TouchBarHelper {
     }
 
     let inputs = [];
-    for (let inputName of new Set(inputNames)) {
+    for (let inputName of new Set([...inputNames, ...this._inputsNotUpdated])) {
       let input = this.getTouchBarInput(inputName);
       if (!input) {
         continue;
       }
-      if (this._inputsNotUpdated) {
-        this._inputsNotUpdated.delete(inputName);
-      }
+
+      this._inputsNotUpdated.delete(inputName);
       inputs.push(input);
     }
 
@@ -423,28 +441,43 @@ class TouchBarHelper {
         this.activeUrl = data;
         // ReaderView button is disabled on every location change since
         // Reader View must determine if the new page can be Reader Viewed.
-        kBuiltInInputs.ReaderView.disabled = !data.startsWith("about:reader");
-        kBuiltInInputs.Back.disabled = !TouchBarHelper.window.gBrowser
+        gBuiltInInputs.ReaderView.disabled = !data.startsWith("about:reader");
+        gBuiltInInputs.Back.disabled = !TouchBarHelper.window.gBrowser
           .canGoBack;
-        kBuiltInInputs.Forward.disabled = !TouchBarHelper.window.gBrowser
+        gBuiltInInputs.Forward.disabled = !TouchBarHelper.window.gBrowser
           .canGoForward;
-        this._updateTouchBarInputs(
-          "ReaderView",
-          "Back",
-          "Forward",
-          ...this._inputsNotUpdated
-        );
+        this._updateTouchBarInputs("ReaderView", "Back", "Forward");
+        break;
+      case "fullscreen-painted":
+        if (TouchBarHelper.window.document.fullscreenElement) {
+          gBuiltInInputs.OpenLocation.title = "touchbar-fullscreen-exit";
+          gBuiltInInputs.OpenLocation.image =
+            "chrome://browser/skin/fullscreen-exit.svg";
+          gBuiltInInputs.OpenLocation.callback = () => {
+            TouchBarHelper.window.windowUtils.exitFullscreen();
+            let telemetry = Services.telemetry.getHistogramById(
+              "TOUCHBAR_BUTTON_PRESSES"
+            );
+            telemetry.add("OpenLocation");
+          };
+        } else {
+          gBuiltInInputs.OpenLocation.title = "open-location";
+          gBuiltInInputs.OpenLocation.image =
+            "chrome://browser/skin/search-glass.svg";
+          gBuiltInInputs.OpenLocation.callback = () =>
+            execCommand("Browser:OpenLocation", "OpenLocation");
+        }
+        this._updateTouchBarInputs("OpenLocation");
         break;
       case "bookmark-icon-updated":
-        data == "starred"
-          ? (kBuiltInInputs.AddBookmark.image =
-              "chrome://browser/skin/bookmark.svg")
-          : (kBuiltInInputs.AddBookmark.image =
-              "chrome://browser/skin/bookmark-hollow.svg");
+        gBuiltInInputs.AddBookmark.image =
+          data == "starred"
+            ? "chrome://browser/skin/bookmark.svg"
+            : "chrome://browser/skin/bookmark-hollow.svg";
         this._updateTouchBarInputs("AddBookmark");
         break;
       case "reader-mode-available":
-        kBuiltInInputs.ReaderView.disabled = false;
+        gBuiltInInputs.ReaderView.disabled = false;
         this._updateTouchBarInputs("ReaderView");
         break;
       case "urlbar-focus":
@@ -468,12 +501,16 @@ class TouchBarHelper {
         );
         break;
       case "intl:app-locales-changed":
-        // On locale change, refresh all inputs after loading new localTitle.
         this._searchPopover = null;
-        for (let input in kBuiltInInputs) {
-          delete input.localTitle;
-        }
-        this._updateTouchBarInputs(...kBuiltInInputs.keys());
+        localizedStrings = {};
+
+        // This event can fire before this._l10n updates to switch languages,
+        // so all the new translations are in the old language. To avoid this,
+        // we need to reinitialize this._l10n.
+        this._l10n = new Localization(["browser/touchbar/touchbar.ftl"]);
+        helperProto._l10n = this._l10n;
+
+        this._updateTouchBarInputs(...Object.keys(gBuiltInInputs));
         break;
       case "quit-application":
         this.destructor();
@@ -516,7 +553,7 @@ helperProto._l10n = new Localization(["browser/touchbar/touchbar.ftl"]);
 class TouchBarInput {
   constructor(input) {
     this._key = input.key || input.title;
-    this._title = input.hasOwnProperty("localTitle") ? input.localTitle : "";
+    this._title = localizedStrings[this._key] || "";
     this._image = input.image;
     this._type = input.type;
     this._callback = input.callback;
@@ -537,7 +574,7 @@ class TouchBarInput {
         initializedChild.type = input.type + "-" + initializedChild.type;
         this._children.push(initializedChild);
         // Skip l10n for inputs without a title or those already localized.
-        if (childData.title && childData.title != "") {
+        if (childData.title && !localizedStrings[childData.title]) {
           toLocalize.push(initializedChild);
         }
       }
@@ -559,12 +596,6 @@ class TouchBarInput {
   }
   set image(image) {
     this._image = image;
-  }
-  // Required as context to load our input icons.
-  get document() {
-    return BrowserWindowTracker.getTopWindow()
-      ? BrowserWindowTracker.getTopWindow().document
-      : null;
   }
   get type() {
     return this._type == "" ? "button" : this._type;
@@ -605,9 +636,14 @@ class TouchBarInput {
 
   /**
    * Apply Fluent l10n to child inputs.
-   * @param {Array} children An array of initialized TouchBarInputs.
+   * @param {Array} children
+   *   An array of initialized TouchBarInputs.
    */
   async _localizeChildren(children) {
+    if (!children || !children.length) {
+      return;
+    }
+
     let titles = await helperProto._l10n.formatValues(
       children.map(child => ({ id: child.key }))
     );
@@ -616,7 +652,9 @@ class TouchBarInput {
     // results in titles match up with the inputs to be localized.
     children.forEach(function(child, index) {
       child.title = titles[index];
+      localizedStrings[child.key] = child.title;
     });
+
     gTouchBarUpdater.updateTouchBarInputs(TouchBarHelper.baseWindow, children);
   }
 }

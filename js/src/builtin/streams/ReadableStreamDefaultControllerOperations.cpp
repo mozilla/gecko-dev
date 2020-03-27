@@ -13,7 +13,6 @@
 
 #include "jsfriendapi.h"  // js::AssertSameCompartment
 
-#include "builtin/Promise.h"  // js::PromiseObject
 #include "builtin/Stream.h"  // js::ReadableByteStreamControllerClearPendingPullIntos
 #include "builtin/streams/MiscellaneousOperations.h"  // js::CreateAlgorithmFromUnderlyingMethod, js::InvokeOrNoop, js::IsMaybeWrapped
 #include "builtin/streams/QueueWithSizes.h"  // js::EnqueueValueWithSize, js::ResetQueue
@@ -26,13 +25,14 @@
 #include "js/RootingAPI.h"             // JS::Handle, JS::Rooted
 #include "js/Stream.h"                 // JS::ReadableStreamUnderlyingSource
 #include "js/Value.h"  // JS::{,Int32,Object}Value, JS::UndefinedHandleValue
-#include "vm/Compartment.h"  // JS::Compartment
-#include "vm/Interpreter.h"  // js::Call, js::GetAndClearExceptionAndStack
-#include "vm/JSContext.h"    // JSContext
-#include "vm/JSObject.h"     // JSObject
-#include "vm/List.h"         // js::ListObject
-#include "vm/Runtime.h"      // JSAtomState
-#include "vm/SavedFrame.h"   // js::SavedFrame
+#include "vm/Compartment.h"    // JS::Compartment
+#include "vm/Interpreter.h"    // js::Call, js::GetAndClearExceptionAndStack
+#include "vm/JSContext.h"      // JSContext
+#include "vm/JSObject.h"       // JSObject
+#include "vm/List.h"           // js::ListObject
+#include "vm/PromiseObject.h"  // js::PromiseObject
+#include "vm/Runtime.h"        // JSAtomState
+#include "vm/SavedFrame.h"     // js::SavedFrame
 
 #include "builtin/streams/HandlerFunction-inl.h"          // js::NewHandler
 #include "builtin/streams/MiscellaneousOperations-inl.h"  // js::PromiseCall

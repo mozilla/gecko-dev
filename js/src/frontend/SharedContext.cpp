@@ -74,9 +74,10 @@ void SharedContext::computeInWith(Scope* scope) {
 }
 
 EvalSharedContext::EvalSharedContext(JSContext* cx, JSObject* enclosingEnv,
+                                     CompilationInfo& compilationInfo,
                                      Scope* enclosingScope,
                                      Directives directives, bool extraWarnings)
-    : SharedContext(cx, Kind::Eval, directives, extraWarnings),
+    : SharedContext(cx, Kind::Eval, compilationInfo, directives, extraWarnings),
       enclosingScope_(cx, enclosingScope),
       bindings(cx) {
   computeAllowSyntax(enclosingScope);
@@ -116,12 +117,15 @@ bool FunctionBox::atomsAreKept() { return cx_->zone()->hasKeptAtoms(); }
 #endif
 
 FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
-                         uint32_t toStringStart, Directives directives,
-                         bool extraWarnings, GeneratorKind generatorKind,
+                         uint32_t toStringStart,
+                         CompilationInfo& compilationInfo,
+                         Directives directives, bool extraWarnings,
+                         GeneratorKind generatorKind,
                          FunctionAsyncKind asyncKind, JSAtom* explicitName,
                          FunctionFlags flags)
     : ObjectBox(nullptr, traceListHead, TraceListNode::NodeType::Function),
-      SharedContext(cx, Kind::FunctionBox, directives, extraWarnings),
+      SharedContext(cx, Kind::FunctionBox, compilationInfo, directives,
+                    extraWarnings),
       enclosingScope_(),
       namedLambdaBindings_(nullptr),
       functionScopeBindings_(nullptr),
@@ -138,7 +142,6 @@ FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
       isAsync_(asyncKind == FunctionAsyncKind::AsyncFunction),
       hasDestructuringArgs(false),
       hasParameterExprs(false),
-      hasDirectEvalInParameterExpr(false),
       hasDuplicateParameters(false),
       useAsm(false),
       isAnnexB(false),
@@ -163,11 +166,13 @@ FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
 
 FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
                          JSFunction* fun, uint32_t toStringStart,
+                         CompilationInfo& compilationInfo,
                          Directives directives, bool extraWarnings,
                          GeneratorKind generatorKind,
                          FunctionAsyncKind asyncKind)
-    : FunctionBox(cx, traceListHead, toStringStart, directives, extraWarnings,
-                  generatorKind, asyncKind, fun->explicitName(), fun->flags()) {
+    : FunctionBox(cx, traceListHead, toStringStart, compilationInfo, directives,
+                  extraWarnings, generatorKind, asyncKind, fun->explicitName(),
+                  fun->flags()) {
   gcThing = fun;
   // Functions created at parse time may be set singleton after parsing and
   // baked into JIT code, so they must be allocated tenured. They are held by
@@ -177,11 +182,14 @@ FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
 
 FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
                          Handle<FunctionCreationData> data,
-                         uint32_t toStringStart, Directives directives,
-                         bool extraWarnings, GeneratorKind generatorKind,
+                         uint32_t toStringStart,
+                         CompilationInfo& compilationInfo,
+                         Directives directives, bool extraWarnings,
+                         GeneratorKind generatorKind,
                          FunctionAsyncKind asyncKind)
-    : FunctionBox(cx, traceListHead, toStringStart, directives, extraWarnings,
-                  generatorKind, asyncKind, data.get().atom, data.get().flags) {
+    : FunctionBox(cx, traceListHead, toStringStart, compilationInfo, directives,
+                  extraWarnings, generatorKind, asyncKind, data.get().atom,
+                  data.get().flags) {
   functionCreationData_.emplace(data);
 }
 
@@ -319,7 +327,7 @@ void FunctionBox::finish() {
   if (isInterpretedLazy()) {
     // Lazy inner functions need to record their enclosing scope for when they
     // eventually are compiled.
-    function()->setEnclosingScope(enclosingScope_.maybeScope());
+    function()->setEnclosingScope(enclosingScope_.getExistingScope());
   } else {
     // Non-lazy inner functions don't use the enclosingScope_ field.
     MOZ_ASSERT(!enclosingScope_);
@@ -327,9 +335,10 @@ void FunctionBox::finish() {
 }
 
 ModuleSharedContext::ModuleSharedContext(JSContext* cx, ModuleObject* module,
+                                         CompilationInfo& compilationInfo,
                                          Scope* enclosingScope,
                                          ModuleBuilder& builder)
-    : SharedContext(cx, Kind::Module, Directives(true), false),
+    : SharedContext(cx, Kind::Module, compilationInfo, Directives(true), false),
       module_(cx, module),
       enclosingScope_(cx, enclosingScope),
       bindings(cx),

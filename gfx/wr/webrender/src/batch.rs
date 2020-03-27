@@ -6,7 +6,7 @@ use api::{AlphaType, ClipMode, ExternalImageType, ImageRendering};
 use api::{YuvColorSpace, YuvFormat, ColorDepth, ColorRange, PremultipliedColorF};
 use api::units::*;
 use crate::clip::{ClipDataStore, ClipNodeFlags, ClipNodeRange, ClipItemKind, ClipStore};
-use crate::clip_scroll_tree::{ClipScrollTree, ROOT_SPATIAL_NODE_INDEX, SpatialNodeIndex, CoordinateSystemId};
+use crate::spatial_tree::{SpatialTree, ROOT_SPATIAL_NODE_INDEX, SpatialNodeIndex, CoordinateSystemId};
 use crate::composite::{CompositeState};
 use crate::glyph_rasterizer::GlyphFormat;
 use crate::gpu_cache::{GpuBlockData, GpuCache, GpuCacheHandle, GpuCacheAddress};
@@ -58,6 +58,7 @@ pub enum BrushBatchKind {
     YuvImage(ImageBufferKind, YuvFormat, ColorDepth, YuvColorSpace, ColorRange),
     RadialGradient,
     LinearGradient,
+    Opacity,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
@@ -79,6 +80,7 @@ impl BatchKind {
             BatchKind::Brush(BrushBatchKind::Blend) => BrushShaderKind::Blend,
             BatchKind::Brush(BrushBatchKind::MixBlend { .. }) => BrushShaderKind::MixBlend,
             BatchKind::Brush(BrushBatchKind::YuvImage(..)) => BrushShaderKind::Yuv,
+            BatchKind::Brush(BrushBatchKind::Opacity) => BrushShaderKind::Opacity,
             BatchKind::TextRun(..) => BrushShaderKind::Text,
             _ => BrushShaderKind::None,
         }
@@ -716,7 +718,7 @@ impl BatchBuilder {
             .get_id(
                 prim_spatial_node_index,
                 root_spatial_node_index,
-                ctx.clip_scroll_tree,
+                ctx.spatial_tree,
             );
 
         // TODO(gw): Calculating this for every primitive is a bit
@@ -1135,7 +1137,7 @@ impl BatchBuilder {
                                     .get_id(
                                         child.spatial_node_index,
                                         root_spatial_node_index,
-                                        ctx.clip_scroll_tree,
+                                        ctx.spatial_tree,
                                     ),
                             };
 
@@ -1208,17 +1210,14 @@ impl BatchBuilder {
                                     ROOT_SPATIAL_NODE_INDEX,
                                     tile_cache.spatial_node_index,
                                     ctx.screen_world_rect,
-                                    ctx.clip_scroll_tree,
+                                    ctx.spatial_tree,
                                 );
-                                let local_tile_clip_rect = LayoutRect::from_untyped(&tile_cache.local_rect.to_untyped());
-                                let local_tile_clip_rect = match local_tile_clip_rect.intersection(&prim_info.combined_local_clip_rect) {
-                                    Some(rect) => rect,
-                                    None => {
-                                        return;
-                                    }
-                                };
+                                // TODO(gw): As a follow up to the valid_rect work, see why we use
+                                //           prim_info.combined_local_clip_rect here instead of the
+                                //           local_clip_rect built in the TileCacheInstance. Perhaps
+                                //           these can be unified or are different for a good reason?
                                 let world_clip_rect = map_local_to_world
-                                    .map(&local_tile_clip_rect)
+                                    .map(&prim_info.combined_local_clip_rect)
                                     .expect("bug: unable to map clip rect");
                                 let device_clip_rect = (world_clip_rect * ctx.global_device_pixel_scale).round();
                                 let z_id = composite_state.z_generator.next();
@@ -1366,25 +1365,44 @@ impl BatchBuilder {
                                             prim_vis_mask,
                                         );
                                     }
+                                    Filter::Opacity(_, amount) => {
+                                        let amount = (amount * 65536.0) as i32;
+
+                                        let (uv_rect_address, textures) = render_tasks.resolve_surface(
+                                            surface_task.expect("bug: surface must be allocated by now"),
+                                            gpu_cache,
+                                        );
+
+                                        let key = BatchKey::new(
+                                            BatchKind::Brush(BrushBatchKind::Opacity),
+                                            BlendMode::PremultipliedAlpha,
+                                            textures,
+                                        );
+
+                                        let prim_header_index = prim_headers.push(&prim_header, z_id, [
+                                            uv_rect_address.as_int(),
+                                            amount,
+                                            0,
+                                            0,
+                                        ]);
+
+                                        self.add_brush_instance_to_batches(
+                                            key,
+                                            batch_features,
+                                            bounding_rect,
+                                            z_id,
+                                            INVALID_SEGMENT_INDEX,
+                                            EdgeAaSegmentMask::empty(),
+                                            clip_task_address.unwrap(),
+                                            brush_flags,
+                                            prim_header_index,
+                                            0,
+                                            prim_vis_mask,
+                                        );
+                                    }
                                     _ => {
-                                        let filter_mode = match filter {
-                                            Filter::Identity => 1, // matches `Contrast(1)`
-                                            Filter::Blur(..) => 0,
-                                            Filter::Contrast(..) => 1,
-                                            Filter::Grayscale(..) => 2,
-                                            Filter::HueRotate(..) => 3,
-                                            Filter::Invert(..) => 4,
-                                            Filter::Saturate(..) => 5,
-                                            Filter::Sepia(..) => 6,
-                                            Filter::Brightness(..) => 7,
-                                            Filter::Opacity(..) => 8,
-                                            Filter::DropShadows(..) => 9,
-                                            Filter::ColorMatrix(..) => 10,
-                                            Filter::SrgbToLinear => 11,
-                                            Filter::LinearToSrgb => 12,
-                                            Filter::ComponentTransfer => unreachable!(),
-                                            Filter::Flood(..) => 14,
-                                        };
+                                        // Must be kept in sync with brush_blend.glsl
+                                        let filter_mode = filter.as_int();
 
                                         let user_data = match filter {
                                             Filter::Identity => 0x10000i32, // matches `Contrast(1)`
@@ -1393,26 +1411,25 @@ impl BatchBuilder {
                                             Filter::Invert(amount) |
                                             Filter::Saturate(amount) |
                                             Filter::Sepia(amount) |
-                                            Filter::Brightness(amount) |
-                                            Filter::Opacity(_, amount) => {
+                                            Filter::Brightness(amount) => {
                                                 (amount * 65536.0) as i32
                                             }
                                             Filter::SrgbToLinear | Filter::LinearToSrgb => 0,
                                             Filter::HueRotate(angle) => {
                                                 (0.01745329251 * angle * 65536.0) as i32
                                             }
-                                            // Go through different paths
-                                            Filter::Blur(..) |
-                                            Filter::DropShadows(..) => {
-                                                unreachable!();
-                                            }
                                             Filter::ColorMatrix(_) => {
                                                 picture.extra_gpu_data_handles[0].as_int(gpu_cache)
                                             }
-                                            Filter::ComponentTransfer => unreachable!(),
                                             Filter::Flood(_) => {
                                                 picture.extra_gpu_data_handles[0].as_int(gpu_cache)
                                             }
+
+                                            // These filters are handled via different paths.
+                                            Filter::ComponentTransfer |
+                                            Filter::Blur(..) |
+                                            Filter::DropShadows(..) |
+                                            Filter::Opacity(..) => unreachable!(),
                                         };
 
                                         let (uv_rect_address, textures) = render_tasks.resolve_surface(
@@ -1454,7 +1471,7 @@ impl BatchBuilder {
                                 // except we store a little more data in the filter mode and
                                 // a gpu cache handle in the user data.
                                 let filter_data = &ctx.data_stores.filter_data[handle];
-                                let filter_mode : i32 = 13 |
+                                let filter_mode : i32 = Filter::ComponentTransfer.as_int() |
                                     ((filter_data.data.r_func.to_int() << 28 |
                                       filter_data.data.g_func.to_int() << 24 |
                                       filter_data.data.b_func.to_int() << 20 |
@@ -2813,7 +2830,7 @@ impl ClipBatcher {
         mask_screen_rect: DeviceIntRect,
         local_clip_rect: LayoutRect,
         clip_spatial_node_index: SpatialNodeIndex,
-        clip_scroll_tree: &ClipScrollTree,
+        spatial_tree: &SpatialTree,
         world_rect: &WorldRect,
         device_pixel_scale: DevicePixelScale,
         gpu_address: GpuCacheAddress,
@@ -2825,7 +2842,7 @@ impl ClipBatcher {
             return false;
         }
 
-        let clip_spatial_node = &clip_scroll_tree
+        let clip_spatial_node = &spatial_tree
             .spatial_nodes[clip_spatial_node_index.0 as usize];
 
         // Only support clips that are axis-aligned to the root coordinate space,
@@ -2837,7 +2854,7 @@ impl ClipBatcher {
 
         // Get the world rect of the clip rectangle. If we can't transform it due
         // to the matrix, just fall back to drawing the entire clip mask.
-        let transform = clip_scroll_tree.get_world_transform(
+        let transform = spatial_tree.get_world_transform(
             clip_spatial_node_index,
         );
         let world_clip_rect = match project_rect(
@@ -2917,7 +2934,7 @@ impl ClipBatcher {
         resource_cache: &ResourceCache,
         gpu_cache: &GpuCache,
         clip_store: &ClipStore,
-        clip_scroll_tree: &ClipScrollTree,
+        spatial_tree: &SpatialTree,
         transforms: &mut TransformPalette,
         clip_data_store: &ClipDataStore,
         actual_rect: DeviceIntRect,
@@ -2935,13 +2952,13 @@ impl ClipBatcher {
             let clip_transform_id = transforms.get_id(
                 clip_node.item.spatial_node_index,
                 ROOT_SPATIAL_NODE_INDEX,
-                clip_scroll_tree,
+                spatial_tree,
             );
 
             let prim_transform_id = transforms.get_id(
                 root_spatial_node_index,
                 ROOT_SPATIAL_NODE_INDEX,
-                clip_scroll_tree,
+                spatial_tree,
             );
 
             let instance = ClipMaskInstance {
@@ -3058,7 +3075,7 @@ impl ClipBatcher {
                             actual_rect,
                             rect,
                             clip_node.item.spatial_node_index,
-                            clip_scroll_tree,
+                            spatial_tree,
                             world_rect,
                             device_pixel_scale,
                             gpu_address,

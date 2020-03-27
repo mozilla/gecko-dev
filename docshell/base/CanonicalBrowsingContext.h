@@ -22,12 +22,18 @@ namespace dom {
 
 class WindowGlobalParent;
 class BrowserParent;
+class MediaController;
+class WindowGlobalParent;
 
 // CanonicalBrowsingContext is a BrowsingContext living in the parent
 // process, with whatever extra data that a BrowsingContext in the
 // parent needs.
 class CanonicalBrowsingContext final : public BrowsingContext {
  public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(CanonicalBrowsingContext,
+                                           BrowsingContext)
+
   static already_AddRefed<CanonicalBrowsingContext> Get(uint64_t aId);
   static CanonicalBrowsingContext* Cast(BrowsingContext* aContext);
   static const CanonicalBrowsingContext* Cast(const BrowsingContext* aContext);
@@ -47,15 +53,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   void GetWindowGlobals(nsTArray<RefPtr<WindowGlobalParent>>& aWindows);
 
-  // Called by WindowGlobalParent to register and unregister window globals.
-  void RegisterWindowGlobal(WindowGlobalParent* aGlobal);
-  void UnregisterWindowGlobal(WindowGlobalParent* aGlobal);
-
   // The current active WindowGlobal.
-  WindowGlobalParent* GetCurrentWindowGlobal() const {
-    return mCurrentWindowGlobal;
-  }
-  void SetCurrentWindowGlobal(WindowGlobalParent* aGlobal);
+  WindowGlobalParent* GetCurrentWindowGlobal() const;
 
   already_AddRefed<WindowGlobalParent> GetEmbedderWindowGlobal() const;
 
@@ -102,18 +101,25 @@ class CanonicalBrowsingContext final : public BrowsingContext {
                                                   uint64_t aPendingSwitchId,
                                                   ErrorResult& aRv);
 
+  // Return a media controller from the top-level browsing context that can
+  // control all media belonging to this browsing context tree. Return nullptr
+  // if the top-level browsing context has been discarded.
+  MediaController* GetMediaController();
+
  protected:
-  void Traverse(nsCycleCollectionTraversalCallback& cb);
-  void Unlink();
+  // Called when the browsing context is being discarded.
+  void CanonicalDiscard();
 
   using Type = BrowsingContext::Type;
   CanonicalBrowsingContext(BrowsingContext* aParent,
                            BrowsingContextGroup* aGroup,
                            uint64_t aBrowsingContextId, uint64_t aProcessId,
-                           Type aType);
+                           Type aType, FieldTuple&& aFields);
 
  private:
   friend class BrowsingContext;
+
+  ~CanonicalBrowsingContext() = default;
 
   class PendingRemotenessChange {
    public:
@@ -147,14 +153,15 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   // have in-flight messages that assume it is still the owner.
   uint64_t mInFlightProcessId = 0;
 
-  // All live window globals within this browsing context.
-  nsTHashtable<nsRefPtrHashKey<WindowGlobalParent>> mWindowGlobals;
-  RefPtr<WindowGlobalParent> mCurrentWindowGlobal;
-
   // The current remoteness change which is in a pending state.
   RefPtr<PendingRemotenessChange> mPendingRemotenessChange;
 
   nsCOMPtr<nsISHistory> mSessionHistory;
+
+  // Tab media controller is used to control all media existing in the same
+  // browsing context tree, so it would only exist in the top level browsing
+  // context.
+  RefPtr<MediaController> mTabMediaController;
 };
 
 }  // namespace dom

@@ -15,6 +15,7 @@
 #  include <chrono>
 #endif
 #include "base/pickle.h"
+#include "base/process_util.h"
 #if defined(MOZ_TELEMETRY_GECKOVIEW)
 #  include "geckoview/TelemetryGeckoViewPersistence.h"
 #endif
@@ -56,6 +57,7 @@
 #include "nsDataHashtable.h"
 #include "nsHashKeys.h"
 #include "nsIDirectoryEnumerator.h"
+#include "nsDirectoryServiceDefs.h"
 #include "nsIFileStreams.h"
 #include "nsIMemoryReporter.h"
 #include "nsISeekableStream.h"
@@ -1165,6 +1167,57 @@ TelemetryImpl::GetIsOfficialTelemetry(bool* ret) {
   return NS_OK;
 }
 
+#if defined(MOZ_FOGOTYPE)
+// The FOGotype API is implemented in Rust and exposed to C++ via a set of
+// C functions with the "fog_" prefix.
+// See toolkit/components/telemetry/fog/*.
+extern "C" {
+nsresult fog_init(const nsAString* dataDir, const nsAString* pingsenderPath);
+}
+
+static void internal_initFogotype(bool aUseTelemetry) {
+  nsCOMPtr<nsIFile> dataDir;
+  nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dataDir));
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Couldn't get temp dir. Bailing on FOGotype.");
+    return;
+  }
+
+  rv = dataDir->AppendNative(nsPrintfCString("fogotype.%d", base::GetCurrentProcId()));
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Couldn't get data dir. Bailing on FOGotype.");
+    return;
+  }
+
+  nsAutoString path;
+  rv = dataDir->GetPath(path);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Couldn't get data path. Bailing on FOGotype.");
+    return;
+  }
+
+  nsCOMPtr<nsIFile> pingsender;
+  rv = NS_GetSpecialDirectory(NS_GRE_BIN_DIR, getter_AddRefs(pingsender));
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Couldn't find pingsender. Bailing on FOGotype");
+    return;
+  }
+#  ifdef XP_WIN
+  pingsender->Append(NS_LITERAL_STRING("pingsender.exe"));
+#  else
+  pingsender->Append(NS_LITERAL_STRING("pingsender"));
+#  endif
+  nsAutoString pingsenderPath;
+  rv = pingsender->GetPath(pingsenderPath);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Couldn't get pingsender path. Bailing on FOGotype.");
+    return;
+  }
+
+  Unused << NS_WARN_IF(NS_FAILED(fog_init(&path, &pingsenderPath)));
+}
+#endif  // defined(MOZ_FOGOTYPE)
+
 already_AddRefed<nsITelemetry> TelemetryImpl::CreateTelemetryInstance() {
   {
     auto lock = sTelemetry.Lock();
@@ -1219,6 +1272,12 @@ already_AddRefed<nsITelemetry> TelemetryImpl::CreateTelemetryInstance() {
   // is Android but not Fennec.
   if (GetCurrentProduct() == SupportedProduct::Geckoview) {
     TelemetryGeckoViewPersistence::InitPersistence();
+  }
+#endif
+
+#if defined(MOZ_FOGOTYPE)
+  if (XRE_IsParentProcess()) {
+    internal_initFogotype(useTelemetry);
   }
 #endif
 
@@ -1935,8 +1994,7 @@ void RecordShutdownEndTimeStamp() {
 // EXTERNALLY VISIBLE FUNCTIONS in mozilla::Telemetry::
 // These are listed in Telemetry.h
 
-namespace mozilla {
-namespace Telemetry {
+namespace mozilla::Telemetry {
 
 // The external API for controlling recording state
 void SetHistogramRecordingEnabled(HistogramID aID, bool aEnabled) {
@@ -2156,8 +2214,7 @@ void RecordOrigin(mozilla::Telemetry::OriginMetricID aId,
 
 void ShutdownTelemetry() { TelemetryImpl::ShutdownTelemetry(); }
 
-}  // namespace Telemetry
-}  // namespace mozilla
+}  // namespace mozilla::Telemetry
 
 NS_IMPL_COMPONENT_FACTORY(nsITelemetry) {
   return TelemetryImpl::CreateTelemetryInstance().downcast<nsISupports>();

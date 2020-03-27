@@ -12,6 +12,7 @@
 
 #include <stddef.h>
 
+// clang-format off
 /*
  * [SMDOC] Bytecode Definitions
  *
@@ -19,14 +20,14 @@
  *
  * To use this header, define a macro of the form:
  *
- *     #define MACRO(op, name, token, length, nuses, ndefs, format) ...
+ *     #define MACRO(op, op_snake, token, length, nuses, ndefs, format) ...
  *
  * Then `FOR_EACH_OPCODE(MACRO)` invokes `MACRO` for every opcode.
  *
  * Field        Description
  * -----        -----------
- * op           Bytecode name, which is the JSOp enumerator name
- * name         C string containing name for disassembler
+ * op           UpperCamelCase form of opcode id
+ * op_snake     snake_case form of opcode id
  * token        Pretty-printer string, or null if ugly
  * length       Number of bytes including any immediate operands
  * nuses        Number of stack slots consumed by bytecode, -1 if variadic
@@ -51,13 +52,13 @@
  *
  * ## Jump instructions
  *
- * Operands named `offset` or `forwardOffset` are jump offsets, the distance in
- * bytes from the start of the current instruction to the start of another
- * instruction in the same script. Operands named `forwardOffset` must be
- * positive.
+ * Operands named `offset`, `forwardOffset`, or `defaultOffset` are jump
+ * offsets, the distance in bytes from the start of the current instruction to
+ * the start of another instruction in the same script. Operands named
+ * `forwardOffset` or `defaultOffset` must be positive.
  *
- * Forward jumps must jump to a `JSOP_JUMPTARGET` instruction.  Backward jumps,
- * indicated by negative offsets, must jump to a `JSOP_LOOPHEAD` instruction.
+ * Forward jumps must jump to a `JSOp::JumpTarget` instruction.  Backward jumps,
+ * indicated by negative offsets, must jump to a `JSOp::LoopHead` instruction.
  * Jump offsets can't be zero.
  *
  * Needless to say, scripts must not contain overlapping instruction sequences
@@ -70,22 +71,22 @@
  * paths into the span must establish that invariant. In practice, this means
  * other code never jumps into the span: the only way in is to execute the
  * bytecode instruction that sets up the invariant (in our example,
- * `JSOP_ITER`).
+ * `JSOp::Iter`).
  *
  * If a script's `trynotes` (see "Try Notes" in JSScript.h) contain a
- * `JSTRY_CATCH` or `JSTRY_FINALLY` span, there must be a `JSOP_TRY`
- * instruction immediately before the span and a `JSOP_JUMPTARGET immediately
- * after it. Instructions must not jump to this `JSOP_JUMPTARGET`. (The VM puts
+ * `JSTRY_CATCH` or `JSTRY_FINALLY` span, there must be a `JSOp::Try`
+ * instruction immediately before the span and a `JSOp::JumpTarget immediately
+ * after it. Instructions must not jump to this `JSOp::JumpTarget`. (The VM puts
  * us there on exception.) Furthermore, the instruction sequence immediately
- * following a `JSTRY_CATCH` span must read `JUMPTARGET; EXCEPTION` or, in
- * non-function scripts, `JUMPTARGET; UNDEFINED; SETRVAL; EXCEPTION`. (These
+ * following a `JSTRY_CATCH` span must read `JumpTarget; Exception` or, in
+ * non-function scripts, `JumpTarget; Undefined; SetRval; Exception`. (These
  * instructions run with an exception pending; other instructions aren't
  * designed to handle that.)
  *
  * Unreachable instructions are allowed, but they have to follow all the rules.
  *
  * Control must not reach the end of a script. (Currently, the last instruction
- * is always JSOP_RETRVAL.)
+ * is always JSOp::RetRval.)
  *
  * ## Other operands
  *
@@ -146,21 +147,21 @@
  *
  *         X's stack depth - `js::StackUses(X)` + `js::StackDefs(X)`
  *
- *     except for `JSOP_CASE` (below).
+ *     except for `JSOp::Case` (below).
  *
  *     X's "successors" are: the next instruction in the script, if
  *     `js::FlowsIntoNext(op)` is true for X's opcode; one or more
- *     `JSOP_JUMPTARGET`s elsewhere, if X is a forward jump or
- *     `JSOP_TABLESWITCH`; and/or a `JSOP_LOOPHEAD` if it's a backward jump.
+ *     `JSOp::JumpTarget`s elsewhere, if X is a forward jump or
+ *     `JSOp::TableSwitch`; and/or a `JSOp::LoopHead` if it's a backward jump.
  *
- * -   `JSOP_CASE` is a special case because its stack behavior is eccentric.
+ * -   `JSOp::Case` is a special case because its stack behavior is eccentric.
  *     The formula above is correct for the next instruction. The jump target
  *     has a stack depth that is 1 less.
  *
- * -   See `JSOP_GOSUB` for another special case.
+ * -   See `JSOp::Gosub` for another special case.
  *
- * -   The `JSOP_JUMPTARGET` instruction immediately following a `JSTRY_CATCH`
- *     or `JSTRY_FINALLY` span has the same stack depth as the `JSOP_TRY`
+ * -   The `JSOp::JumpTarget` instruction immediately following a `JSTRY_CATCH`
+ *     or `JSTRY_FINALLY` span has the same stack depth as the `JSOp::Try`
  *     instruction that precedes the span.
  *
  *     Every instruction covered by the `JSTRY_CATCH` or `JSTRY_FINALLY` span
@@ -201,48 +202,48 @@
  * Many instructions have their own additional rules. These are documented on
  * the various opcodes below (look for the word "must").
  */
+// clang-format on
 
 // clang-format off
 /*
  * SpiderMonkey bytecode categorization (as used in generated documentation):
  *
  * [Index]
- *   [Statements]
- *     Jumps
- *     Switch Statement
- *     For-In Statement
- *     With Statement
- *     Exception Handling
- *     Function
- *     Generator
- *     Debugger
- *   [Variables and Scopes]
- *     Variables
- *     Free Variables
- *     Local Variables
- *     Aliased Variables
- *     Intrinsics
- *     Block-local Scope
- *     This
+ *   [Constants]
+ *   [Expressions]
+ *     Unary operators
+ *     Binary operators
+ *     Conversions
+ *     Other expressions
+ *   [Objects]
+ *     Creating objects
+ *     Defining properties
+ *     Accessing properties
  *     Super
- *     Arguments
- *     Var Scope
- *     Modules
- *   [Operators]
- *     Comparison Operators
- *     Arithmetic Operators
- *     Bitwise Logical Operators
- *     Bitwise Shift Operators
- *     Logical Operators
- *     Special Operators
- *     Stack Operations
- *     Debugger
- *   [Literals]
- *     Constants
- *     Object
- *     Array
- *     RegExp
- *     Class
+ *     Enumeration
+ *     Iteration
+ *     SetPrototype
+ *     Array literals
+ *     RegExp literals
+ *   [Functions]
+ *     Creating functions
+ *     Creating constructors
+ *     Calls
+ *     Generators and async functions
+ *   [Control flow]
+ *     Jump targets
+ *     Jumps
+ *     Return
+ *     Exceptions
+ *   [Variables and scopes]
+ *     Initialization
+ *     Looking up bindings
+ *     Getting binding values
+ *     Setting binding values
+ *     Entering and leaving environments
+ *     Creating and deleting bindings
+ *     Function environment setup
+ *   [Stack operations]
  *   [Other]
  */
 // clang-format on
@@ -252,129 +253,116 @@
     /*
      * Push `undefined`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands:
      *   Stack: => undefined
      */ \
-    MACRO(JSOP_UNDEFINED, js_undefined_str, "", 1, 0, 1, JOF_BYTE) \
+    MACRO(Undefined, undefined, "", 1, 0, 1, JOF_BYTE) \
     /*
      * Push `null`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands:
      *   Stack: => null
      */ \
-    MACRO(JSOP_NULL, js_null_str, js_null_str, 1, 0, 1, JOF_BYTE) \
+    MACRO(Null, null, js_null_str, 1, 0, 1, JOF_BYTE) \
     /*
      * Push a boolean constant.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands:
      *   Stack: => true/false
      */ \
-    MACRO(JSOP_FALSE, js_false_str, js_false_str, 1, 0, 1, JOF_BYTE) \
-    MACRO(JSOP_TRUE, js_true_str, js_true_str, 1, 0, 1, JOF_BYTE) \
+    MACRO(False, false_, js_false_str, 1, 0, 1, JOF_BYTE) \
+    MACRO(True, true_, js_true_str, 1, 0, 1, JOF_BYTE) \
     /*
      * Push the `int32_t` immediate operand as an `Int32Value`.
      *
-     * `JSOP_ZERO`, `JSOP_ONE`, `JSOP_INT8`, `JSOP_UINT16`, and `JSOP_UINT24`
-     * are all compact encodings for `JSOP_INT32`.
+     * `JSOp::Zero`, `JSOp::One`, `JSOp::Int8`, `JSOp::Uint16`, and `JSOp::Uint24`
+     * are all compact encodings for `JSOp::Int32`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands: int32_t val
      *   Stack: => val
      */ \
-    MACRO(JSOP_INT32, "int32", NULL, 5, 0, 1, JOF_INT32) \
+    MACRO(Int32, int32, NULL, 5, 0, 1, JOF_INT32) \
     /*
      * Push the number `0`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands:
      *   Stack: => 0
      */ \
-    MACRO(JSOP_ZERO, "zero", "0", 1, 0, 1, JOF_BYTE) \
+    MACRO(Zero, zero, "0", 1, 0, 1, JOF_BYTE) \
     /*
      * Push the number `1`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands:
      *   Stack: => 1
      */ \
-    MACRO(JSOP_ONE, "one", "1", 1, 0, 1, JOF_BYTE) \
+    MACRO(One, one, "1", 1, 0, 1, JOF_BYTE) \
     /*
      * Push the `int8_t` immediate operand as an `Int32Value`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands: int8_t val
      *   Stack: => val
      */ \
-    MACRO(JSOP_INT8, "int8", NULL, 2, 0, 1, JOF_INT8) \
+    MACRO(Int8, int8, NULL, 2, 0, 1, JOF_INT8) \
     /*
      * Push the `uint16_t` immediate operand as an `Int32Value`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands: uint16_t val
      *   Stack: => val
      */ \
-    MACRO(JSOP_UINT16, "uint16", NULL, 3, 0, 1, JOF_UINT16) \
+    MACRO(Uint16, uint16, NULL, 3, 0, 1, JOF_UINT16) \
     /*
      * Push the `uint24_t` immediate operand as an `Int32Value`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands: uint24_t val
      *   Stack: => val
      */ \
-    MACRO(JSOP_UINT24, "uint24", NULL, 4, 0, 1, JOF_UINT24) \
+    MACRO(Uint24, uint24, NULL, 4, 0, 1, JOF_UINT24) \
     /*
      * Push the 64-bit floating-point immediate operand as a `DoubleValue`.
      *
      * If the operand is a NaN, it must be the canonical NaN (see
      * `JS::detail::CanonicalizeNaN`).
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands: double val
      *   Stack: => val
      */ \
-    MACRO(JSOP_DOUBLE, "double", NULL, 9, 0, 1, JOF_DOUBLE) \
+    MACRO(Double, double_, NULL, 9, 0, 1, JOF_DOUBLE) \
     /*
      * Push the BigInt constant `script->getBigInt(bigIntIndex)`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands: uint32_t bigIntIndex
      *   Stack: => bigint
      */ \
-    MACRO(JSOP_BIGINT, "bigint", NULL, 5, 0, 1, JOF_BIGINT) \
+    MACRO(BigInt, big_int, NULL, 5, 0, 1, JOF_BIGINT) \
     /*
      * Push the string constant `script->getAtom(atomIndex)`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands: uint32_t atomIndex
      *   Stack: => string
      */ \
-    MACRO(JSOP_STRING, "string", NULL, 5, 0, 1, JOF_ATOM) \
+    MACRO(String, string, NULL, 5, 0, 1, JOF_ATOM) \
     /*
      * Push a well-known symbol.
      *
      * `symbol` must be in range for `JS::SymbolCode`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Constants
      *   Operands: uint8_t symbol (the JS::SymbolCode of the symbol to use)
      *   Stack: => symbol
      */ \
-    MACRO(JSOP_SYMBOL, "symbol", NULL, 2, 0, 1, JOF_UINT8) \
+    MACRO(Symbol, symbol, NULL, 2, 0, 1, JOF_UINT8) \
     /*
      * Pop the top value on the stack, discard it, and push `undefined`.
      *
@@ -382,28 +370,28 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-void-operator
      *
-     *   Category: Operators
-     *   Type: Special Operators
+     *   Category: Expressions
+     *   Type: Unary operators
      *   Operands:
      *   Stack: val => undefined
      */ \
-    MACRO(JSOP_VOID, js_void_str, NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(Void, void_, NULL, 1, 1, 1, JOF_BYTE) \
     /*
      * [The `typeof` operator][1].
      *
      * Infallible. The result is always a string that depends on the [type][2]
      * of `val`.
      *
-     * `JSOP_TYPEOF` and `JSOP_TYPEOFEXPR` are the same except
-     * that--amazingly--`JSOP_TYPEOF` affects the behavior of an immediately
-     * *preceding* `JSOP_GETNAME` or `JSOP_GETGNAME` instruction! This is how
+     * `JSOp::Typeof` and `JSOp::TypeofExpr` are the same except
+     * that--amazingly--`JSOp::Typeof` affects the behavior of an immediately
+     * *preceding* `JSOp::GetName` or `JSOp::GetGName` instruction! This is how
      * we implement [`typeof`][1] step 2, making `typeof nonExistingVariable`
      * return `"undefined"` instead of throwing a ReferenceError.
      *
      * In a global scope:
      *
-     * -   `typeof x` compiles to `GETGNAME "x"; TYPEOF`.
-     * -   `typeof (0, x)` compiles to `GETGNAME "x"; TYPEOFEXPR`.
+     * -   `typeof x` compiles to `GetGName "x"; Typeof`.
+     * -   `typeof (0, x)` compiles to `GetGName "x"; TypeofExpr`.
      *
      * Emitting the same bytecode for these two expressions would be a bug.
      * Per spec, the latter throws a ReferenceError if `x` doesn't exist.
@@ -411,13 +399,13 @@
      * [1]: https://tc39.es/ecma262/#sec-typeof-operator
      * [2]: https://tc39.es/ecma262/#sec-ecmascript-language-types
      *
-     *   Category: Operators
-     *   Type: Special Operators
+     *   Category: Expressions
+     *   Type: Unary operators
      *   Operands:
      *   Stack: val => (typeof val)
      */ \
-    MACRO(JSOP_TYPEOF, js_typeof_str, NULL, 1, 1, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
-    MACRO(JSOP_TYPEOFEXPR, "typeofexpr", NULL, 1, 1, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
+    MACRO(Typeof, typeof_, NULL, 1, 1, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
+    MACRO(TypeofExpr, typeof_expr, NULL, 1, 1, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
     /*
      * [The unary `+` operator][1].
      *
@@ -430,12 +418,12 @@
      * [1]: https://tc39.es/ecma262/#sec-unary-plus-operator
      * [2]: https://tc39.es/ecma262/#sec-tonumber
      *
-     *   Category: Operators
-     *   Type: Arithmetic Operators
+     *   Category: Expressions
+     *   Type: Unary operators
      *   Operands:
      *   Stack: val => (+val)
      */ \
-    MACRO(JSOP_POS, "pos", "+ ", 1, 1, 1, JOF_BYTE) \
+    MACRO(Pos, pos, "+ ", 1, 1, 1, JOF_BYTE) \
     /*
      * [The unary `-` operator][1].
      *
@@ -445,12 +433,12 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-unary-minus-operator
      *
-     *   Category: Operators
-     *   Type: Arithmetic Operators
+     *   Category: Expressions
+     *   Type: Unary operators
      *   Operands:
      *   Stack: val => (-val)
      */ \
-    MACRO(JSOP_NEG, "neg", "- ", 1, 1, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Neg, neg, "- ", 1, 1, 1, JOF_BYTE|JOF_IC) \
     /*
      * [The bitwise NOT operator][1] (`~`).
      *
@@ -460,12 +448,12 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-bitwise-not-operator
      *
-     *   Category: Operators
-     *   Type: Bitwise Logical Operators
+     *   Category: Expressions
+     *   Type: Unary operators
      *   Operands:
      *   Stack: val => (~val)
      */ \
-    MACRO(JSOP_BITNOT, "bitnot", "~", 1, 1, 1, JOF_BYTE|JOF_IC) \
+    MACRO(BitNot, bit_not, "~", 1, 1, 1, JOF_BYTE|JOF_IC) \
     /*
      * [The logical NOT operator][1] (`!`).
      *
@@ -476,12 +464,12 @@
      * [1]: https://tc39.es/ecma262/#sec-logical-not-operator
      * [2]: https://tc39.es/ecma262/#sec-toboolean
      *
-     *   Category: Operators
-     *   Type: Logical Operators
+     *   Category: Expressions
+     *   Type: Unary operators
      *   Operands:
      *   Stack: val => (!val)
      */ \
-    MACRO(JSOP_NOT, "not", "!", 1, 1, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
+    MACRO(Not, not_, "!", 1, 1, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
     /*
      * [Binary bitwise operations][1] (`|`, `^`, `&`).
      *
@@ -491,14 +479,14 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-binary-bitwise-operators
      *
-     *   Category: Operators
-     *   Type: Bitwise Logical Operators
+     *   Category: Expressions
+     *   Type: Binary operators
      *   Operands:
      *   Stack: lval, rval => (lval OP rval)
      */ \
-    MACRO(JSOP_BITOR, "bitor", "|",  1, 2, 1, JOF_BYTE|JOF_IC) \
-    MACRO(JSOP_BITXOR, "bitxor", "^", 1, 2, 1, JOF_BYTE|JOF_IC) \
-    MACRO(JSOP_BITAND, "bitand", "&", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(BitOr, bit_or, "|",  1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(BitXor, bit_xor, "^", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(BitAnd, bit_and, "&", 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
      * Loose equality operators (`==` and `!=`).
      *
@@ -510,13 +498,13 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-abstract-equality-comparison
      *
-     *   Category: Operators
-     *   Type: Comparison Operators
+     *   Category: Expressions
+     *   Type: Binary operators
      *   Operands:
      *   Stack: lval, rval => (lval OP rval)
      */ \
-    MACRO(JSOP_EQ, "eq", "==", 1, 2, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
-    MACRO(JSOP_NE, "ne", "!=", 1, 2, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
+    MACRO(Eq, eq, "==", 1, 2, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
+    MACRO(Ne, ne, "!=", 1, 2, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
     /*
      * Strict equality operators (`===` and `!==`).
      *
@@ -528,13 +516,13 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-strict-equality-comparison
      *
-     *   Category: Operators
-     *   Type: Comparison Operators
+     *   Category: Expressions
+     *   Type: Binary operators
      *   Operands:
      *   Stack: lval, rval => (lval OP rval)
      */ \
-    MACRO(JSOP_STRICTEQ, "stricteq", "===", 1, 2, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
-    MACRO(JSOP_STRICTNE, "strictne", "!==", 1, 2, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
+    MACRO(StrictEq, strict_eq, "===", 1, 2, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
+    MACRO(StrictNe, strict_ne, "!==", 1, 2, 1, JOF_BYTE|JOF_DETECTING|JOF_IC) \
     /*
      * Relative operators (`<`, `>`, `<=`, `>=`).
      *
@@ -546,15 +534,15 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-relational-operators-runtime-semantics-evaluation
      *
-     *   Category: Operators
-     *   Type: Comparison Operators
+     *   Category: Expressions
+     *   Type: Binary operators
      *   Operands:
      *   Stack: lval, rval => (lval OP rval)
      */ \
-    MACRO(JSOP_LT, "lt", "<",  1, 2, 1, JOF_BYTE|JOF_IC) \
-    MACRO(JSOP_GT, "gt", ">",  1, 2, 1, JOF_BYTE|JOF_IC) \
-    MACRO(JSOP_LE, "le", "<=", 1, 2, 1, JOF_BYTE|JOF_IC) \
-    MACRO(JSOP_GE, "ge", ">=", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Lt, lt, "<",  1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Gt, gt, ">",  1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Le, le, "<=", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Ge, ge, ">=", 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
      * [The `instanceof` operator][1].
      *
@@ -564,12 +552,12 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-instanceofoperator
      *
-     *   Category: Operators
-     *   Type: Special Operators
+     *   Category: Expressions
+     *   Type: Binary operators
      *   Operands:
      *   Stack: value, target => (value instanceof target)
      */ \
-    MACRO(JSOP_INSTANCEOF, js_instanceof_str, js_instanceof_str, 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Instanceof, instanceof, js_instanceof_str, 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
      * [The `in` operator][1].
      *
@@ -581,12 +569,12 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-relational-operators-runtime-semantics-evaluation
      *
-     *   Category: Operators
-     *   Type: Special Operators
+     *   Category: Expressions
+     *   Type: Binary operators
      *   Operands:
      *   Stack: id, obj => (id in obj)
      */ \
-    MACRO(JSOP_IN, js_in_str, js_in_str, 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(In, in_, js_in_str, 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
      * [Bitwise shift operators][1] (`<<`, `>>`, `>>>`).
      *
@@ -598,14 +586,14 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-bitwise-shift-operators
      *
-     *   Category: Operators
-     *   Type: Bitwise Shift Operators
+     *   Category: Expressions
+     *   Type: Binary operators
      *   Operands:
      *   Stack: lval, rval => (lval OP rval)
      */ \
-    MACRO(JSOP_LSH, "lsh", "<<", 1, 2, 1, JOF_BYTE|JOF_IC) \
-    MACRO(JSOP_RSH, "rsh", ">>", 1, 2, 1, JOF_BYTE|JOF_IC) \
-    MACRO(JSOP_URSH, "ursh", ">>>", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Lsh, lsh, "<<", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Rsh, rsh, ">>", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Ursh, ursh, ">>>", 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
      * [The binary `+` operator][1].
      *
@@ -617,12 +605,12 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-addition-operator-plus-runtime-semantics-evaluation
      *
-     *   Category: Operators
-     *   Type: Arithmetic Operators
+     *   Category: Expressions
+     *   Type: Binary operators
      *   Operands:
      *   Stack: lval, rval => (lval + rval)
      */ \
-    MACRO(JSOP_ADD, "add", "+", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Add, add, "+", 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
      * [The binary `-` operator][1].
      *
@@ -634,29 +622,29 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-subtraction-operator-minus-runtime-semantics-evaluation
      *
-     *   Category: Operators
-     *   Type: Arithmetic Operators
+     *   Category: Expressions
+     *   Type: Binary operators
      *   Operands:
      *   Stack: lval, rval => (lval - rval)
      */ \
-    MACRO(JSOP_SUB, "sub", "-", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Sub, sub, "-", 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
      * Add or subtract 1.
      *
      * `val` must already be a numeric value, such as the result of
-     * `JSOP_TONUMERIC`.
+     * `JSOp::ToNumeric`.
      *
      * Implements: [The `++` and `--` operators][1], step 3 of each algorithm.
      *
      * [1]: https://tc39.es/ecma262/#sec-postfix-increment-operator
      *
-     *   Category: Operators
-     *   Type: Arithmetic Operators
+     *   Category: Expressions
+     *   Type: Binary operators
      *   Operands:
      *   Stack: val => (val +/- 1)
      */ \
-    MACRO(JSOP_INC, "inc", NULL, 1, 1, 1, JOF_BYTE|JOF_IC) \
-    MACRO(JSOP_DEC, "dec", NULL, 1, 1, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Inc, inc, NULL, 1, 1, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Dec, dec, NULL, 1, 1, 1, JOF_BYTE|JOF_IC) \
     /*
      * [The multiplicative operators][1] (`*`, `/`, `%`).
      *
@@ -668,14 +656,14 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-multiplicative-operators-runtime-semantics-evaluation
      *
-     *   Category: Operators
-     *   Type: Arithmetic Operators
+     *   Category: Expressions
+     *   Type: Binary operators
      *   Operands:
      *   Stack: lval, rval => (lval OP rval)
      */ \
-    MACRO(JSOP_MUL, "mul", "*", 1, 2, 1, JOF_BYTE|JOF_IC) \
-    MACRO(JSOP_DIV, "div", "/", 1, 2, 1, JOF_BYTE|JOF_IC) \
-    MACRO(JSOP_MOD, "mod", "%", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Mul, mul, "*", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Div, div, "/", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Mod, mod, "%", 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
      * [The exponentiation operator][1] (`**`).
      *
@@ -688,12 +676,12 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-exp-operator
      *
-     *   Category: Operators
-     *   Type: Arithmetic Operators
+     *   Category: Expressions
+     *   Type: Binary operators
      *   Operands:
      *   Stack: lval, rval => (lval ** rval)
      */ \
-    MACRO(JSOP_POW, "pow", "**", 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Pow, pow, "**", 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
      * Convert a value to a property key.
      *
@@ -703,7 +691,7 @@
      * array indices are strings, whereas for us they are integers.
      *
      * This is used for code like `++obj[index]`, which must do both a
-     * `JSOP_GETELEM` and a `JSOP_SETELEM` with the same property key. Both
+     * `JSOp::GetElem` and a `JSOp::SetElem` with the same property key. Both
      * instructions would convert `index` to a property key for us, but the
      * spec says to convert it only once.
      *
@@ -712,50 +700,50 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-topropertykey
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Expressions
+     *   Type: Conversions
      *   Operands:
      *   Stack: propertyNameValue => propertyKey
      */ \
-    MACRO(JSOP_TOID, "toid", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(ToId, to_id, NULL, 1, 1, 1, JOF_BYTE) \
     /*
      * Convert a value to a numeric value (a Number or BigInt).
      *
      * Implements: [ToNumeric][1](val).
      *
      * Note: This is used to implement [`++` and `--`][2]. Surprisingly, it's
-     * not possible to get the right behavior using `JSOP_ADD` and `JSOP_SUB`
-     * alone. For one thing, `JSOP_ADD` sometimes does string concatenation,
+     * not possible to get the right behavior using `JSOp::Add` and `JSOp::Sub`
+     * alone. For one thing, `JSOp::Add` sometimes does string concatenation,
      * while `++` always does numeric addition. More fundamentally, the result
      * of evaluating `--x` is ToNumeric(old value of `x`), a value that the
-     * sequence `GETLOCAL "x"; ONE; SUB; SETLOCAL "x"` does not give us.
+     * sequence `GetLocal "x"; One; Sub; SetLocal "x"` does not give us.
      *
      * [1]: https://tc39.es/ecma262/#sec-tonumeric
      * [2]: https://tc39.es/ecma262/#sec-postfix-increment-operator
      *
-     *   Category: Operators
-     *   Type: Arithmetic Operators
+     *   Category: Expressions
+     *   Type: Conversions
      *   Operands:
      *   Stack: val => ToNumeric(val)
      */ \
-    MACRO(JSOP_TONUMERIC, "tonumeric", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(ToNumeric, to_numeric, NULL, 1, 1, 1, JOF_BYTE) \
     /*
      * Convert a value to a string.
      *
      * Implements: [ToString][1](val).
      *
      * Note: This is used in code for template literals, like `${x}${y}`. Each
-     * substituted value must be converted using ToString. `JSOP_ADD` by itself
+     * substituted value must be converted using ToString. `JSOp::Add` by itself
      * would do a slightly wrong kind of conversion (hint="number" rather than
      * hint="string").
      *
      * [1]: https://tc39.es/ecma262/#sec-tostring
      *
-     *   Category: Other
-     *   Operands:
+     *   Category: Expressions
+     *   Type: Conversions
      *   Stack: val => ToString(val)
      */ \
-    MACRO(JSOP_TOSTRING, "tostring", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(ToString, to_string, NULL, 1, 1, 1, JOF_BYTE) \
     /*
      * Push the global `this` value. Not to be confused with the `globalThis`
      * property on the global.
@@ -763,12 +751,12 @@
      * This must be used only in scopes where `this` refers to the global
      * `this`.
      *
-     *   Category: Variables and Scopes
-     *   Type: This
+     *   Category: Expressions
+     *   Type: Other expressions
      *   Operands:
      *   Stack: => this
      */ \
-    MACRO(JSOP_GLOBALTHIS, "globalthis", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(GlobalThis, global_this, NULL, 1, 0, 1, JOF_BYTE) \
     /*
      * Push the value of `new.target`.
      *
@@ -782,12 +770,12 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-getnewtarget
      *
-     *   Category: Variables and Scopes
-     *   Type: Arguments
+     *   Category: Expressions
+     *   Type: Other expressions
      *   Operands:
      *   Stack: => new.target
      */ \
-    MACRO(JSOP_NEWTARGET, "newtarget", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(NewTarget, new_target, NULL, 1, 0, 1, JOF_BYTE) \
     /*
      * Dynamic import of the module specified by the string value on the top of
      * the stack.
@@ -796,59 +784,59 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-import-calls
      *
-     *   Category: Variables and Scopes
-     *   Type: Modules
+     *   Category: Expressions
+     *   Type: Other expressions
      *   Operands:
      *   Stack: moduleId => promise
      */ \
-    MACRO(JSOP_DYNAMIC_IMPORT, "dynamic-import", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(DynamicImport, dynamic_import, NULL, 1, 1, 1, JOF_BYTE) \
     /*
      * Push the `import.meta` object.
      *
      * This must be used only in module code.
      *
-     *   Category: Variables and Scopes
-     *   Type: Modules
+     *   Category: Expressions
+     *   Type: Other expressions
      *   Operands:
      *   Stack: => import.meta
      */ \
-    MACRO(JSOP_IMPORTMETA, "importmeta", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(ImportMeta, import_meta, NULL, 1, 0, 1, JOF_BYTE) \
     /*
      * Create and push a new object with no properties.
      *
      * (This opcode has 4 unused bytes so it can be easily turned into
-     * `JSOP_NEWOBJECT` during bytecode generation.)
+     * `JSOp::NewObject` during bytecode generation.)
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Creating objects
      *   Operands: uint32_t _unused
      *   Stack: => obj
      */ \
-    MACRO(JSOP_NEWINIT, "newinit", NULL, 5, 0, 1, JOF_UINT32|JOF_IC) \
+    MACRO(NewInit, new_init, NULL, 5, 0, 1, JOF_UINT32|JOF_IC) \
     /*
      * Create and push a new object of a predetermined shape.
      *
      * The new object has the shape of the template object
-     * `script->getObject(baseobjIndex)`. Subsequent `INITPROP` instructions
+     * `script->getObject(baseobjIndex)`. Subsequent `InitProp` instructions
      * must fill in all slots of the new object before it is used in any other
      * way.
      *
-     * For `JSOP_NEWOBJECT`, the new object has a group based on the allocation
+     * For `JSOp::NewObject`, the new object has a group based on the allocation
      * site (or a new group if the template's group is a singleton). For
-     * `JSOP_NEWOBJECT_WITHGROUP`, the new object has the same group as the
+     * `JSOp::NewObjectWithGroup`, the new object has the same group as the
      * template object.
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Creating objects
      *   Operands: uint32_t baseobjIndex
      *   Stack: => obj
      */ \
-    MACRO(JSOP_NEWOBJECT, "newobject", NULL, 5, 0, 1, JOF_OBJECT|JOF_IC) \
-    MACRO(JSOP_NEWOBJECT_WITHGROUP, "newobjectwithgroup", NULL, 5, 0, 1, JOF_OBJECT|JOF_IC) \
+    MACRO(NewObject, new_object, NULL, 5, 0, 1, JOF_OBJECT|JOF_IC) \
+    MACRO(NewObjectWithGroup, new_object_with_group, NULL, 5, 0, 1, JOF_OBJECT|JOF_IC) \
     /*
      * Push a preconstructed object.
      *
-     * Going one step further than `JSOP_NEWOBJECT`, this instruction doesn't
+     * Going one step further than `JSOp::NewObject`, this instruction doesn't
      * just reuse the shape--it actually pushes the preconstructed object
      * `script->getObject(objectIndex)` right onto the stack. The object must
      * be a singleton `PlainObject` or `ArrayObject`.
@@ -860,23 +848,23 @@
      * There's a shell-only option, `newGlobal({cloneSingletons: true})`, that
      * makes this instruction do a deep copy of the object. A few tests use it.
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Creating objects
      *   Operands: uint32_t objectIndex
      *   Stack: => obj
      */ \
-    MACRO(JSOP_OBJECT, "object", NULL, 5, 0, 1, JOF_OBJECT) \
+    MACRO(Object, object, NULL, 5, 0, 1, JOF_OBJECT) \
     /*
      * Create and push a new ordinary object with the provided [[Prototype]].
      *
      * This is used to create the `.prototype` object for derived classes.
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Creating objects
      *   Operands:
      *   Stack: proto => obj
      */ \
-    MACRO(JSOP_OBJWITHPROTO, "objwithproto", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(ObjWithProto, obj_with_proto, NULL, 1, 1, 1, JOF_BYTE) \
     /*
      * Define a data property on an object.
      *
@@ -889,14 +877,14 @@
      *    [1]: https://tc39.es/ecma262/#sec-createdatapropertyorthrow
      *    [2]: https://tc39.es/ecma262/#sec-object-initializer-runtime-semantics-propertydefinitionevaluation
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Defining properties
      *   Operands: uint32_t nameIndex
      *   Stack: obj, val => obj
      */ \
-    MACRO(JSOP_INITPROP, "initprop", NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
+    MACRO(InitProp, init_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
     /*
-     * Like `JSOP_INITPROP`, but define a non-enumerable property.
+     * Like `JSOp::InitProp`, but define a non-enumerable property.
      *
      * This is used to define class methods.
      *
@@ -905,14 +893,14 @@
      *
      *    [1]: https://tc39.es/ecma262/#sec-method-definitions-runtime-semantics-propertydefinitionevaluation
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Defining properties
      *   Operands: uint32_t nameIndex
      *   Stack: obj, val => obj
      */ \
-    MACRO(JSOP_INITHIDDENPROP, "inithiddenprop", NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
+    MACRO(InitHiddenProp, init_hidden_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
     /*
-     * Like `JSOP_INITPROP`, but define a non-enumerable, non-writable,
+     * Like `JSOp::InitProp`, but define a non-enumerable, non-writable,
      * non-configurable property.
      *
      * This is used to define the `.prototype` property on classes.
@@ -922,12 +910,12 @@
      *
      *    [1]: https://tc39.es/ecma262/#sec-makeconstructor
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Defining properties
      *   Operands: uint32_t nameIndex
      *   Stack: obj, val => obj
      */ \
-    MACRO(JSOP_INITLOCKEDPROP, "initlockedprop", NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
+    MACRO(InitLockedProp, init_locked_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
     /*
      * Define a data property on `obj` with property key `id` and value `val`.
      *
@@ -935,62 +923,62 @@
      * object literals like `{0: val}` and `{[id]: val}`, and methods like
      * `*[Symbol.iterator]() {}`.
      *
-     * `JSOP_INITHIDDENELEM` is the same but defines a non-enumerable property,
+     * `JSOp::InitHiddenElem` is the same but defines a non-enumerable property,
      * for class methods.
      *
      *    [1]: https://tc39.es/ecma262/#sec-createdatapropertyorthrow
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Defining properties
      *   Operands:
      *   Stack: obj, id, val => obj
      */ \
-    MACRO(JSOP_INITELEM, "initelem", NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
-    MACRO(JSOP_INITHIDDENELEM, "inithiddenelem", NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
+    MACRO(InitElem, init_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
+    MACRO(InitHiddenElem, init_hidden_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
     /*
      * Define an accessor property on `obj` with the given `getter`.
      * `nameIndex` gives the property name.
      *
-     * `JSOP_INITHIDDENPROP_GETTER` is the same but defines a non-enumerable
+     * `JSOp::InitHiddenPropGetter` is the same but defines a non-enumerable
      * property, for getters in classes.
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Defining properties
      *   Operands: uint32_t nameIndex
      *   Stack: obj, getter => obj
      */ \
-    MACRO(JSOP_INITPROP_GETTER, "initprop_getter", NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING) \
-    MACRO(JSOP_INITHIDDENPROP_GETTER, "inithiddenprop_getter", NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitPropGetter, init_prop_getter, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitHiddenPropGetter, init_hidden_prop_getter, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING) \
     /*
      * Define an accessor property on `obj` with property key `id` and the given `getter`.
      *
      * This is used to implement getters like `get [id]() {}` or `get 0() {}`.
      *
-     * `JSOP_INITHIDDENELEM_GETTER` is the same but defines a non-enumerable
+     * `JSOp::InitHiddenElemGetter` is the same but defines a non-enumerable
      * property, for getters in classes.
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Defining properties
      *   Operands:
      *   Stack: obj, id, getter => obj
      */ \
-    MACRO(JSOP_INITELEM_GETTER, "initelem_getter", NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING) \
-    MACRO(JSOP_INITHIDDENELEM_GETTER, "inithiddenelem_getter", NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitElemGetter, init_elem_getter, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitHiddenElemGetter, init_hidden_elem_getter, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING) \
     /*
      * Define an accessor property on `obj` with the given `setter`.
      *
      * This is used to implement ordinary setters like `set foo(v) {}`.
      *
-     * `JSOP_INITHIDDENPROP_SETTER` is the same but defines a non-enumerable
+     * `JSOp::InitHiddenPropSetter` is the same but defines a non-enumerable
      * property, for setters in classes.
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Defining properties
      *   Operands: uint32_t nameIndex
      *   Stack: obj, setter => obj
      */ \
-    MACRO(JSOP_INITPROP_SETTER, "initprop_setter", NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING) \
-    MACRO(JSOP_INITHIDDENPROP_SETTER, "inithiddenprop_setter", NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitPropSetter, init_prop_setter, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitHiddenPropSetter, init_hidden_prop_setter, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPINIT|JOF_DETECTING) \
     /*
      * Define an accesssor property on `obj` with property key `id` and the
      * given `setter`.
@@ -998,21 +986,21 @@
      * This is used to implement setters with computed property keys or numeric
      * keys.
      *
-     * `JSOP_INITHIDDENELEM_SETTER` is the same but defines a non-enumerable
+     * `JSOp::InitHiddenElemSetter` is the same but defines a non-enumerable
      * property, for setters in classes.
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Defining properties
      *   Operands:
      *   Stack: obj, id, setter => obj
      */ \
-    MACRO(JSOP_INITELEM_SETTER, "initelem_setter", NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING) \
-    MACRO(JSOP_INITHIDDENELEM_SETTER, "inithiddenelem_setter", NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitElemSetter, init_elem_setter, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitHiddenElemSetter, init_hidden_elem_setter, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING) \
     /*
      * Get the value of the property `obj.name`. This can call getters and
      * proxy traps.
      *
-     * `JSOP_CALLPROP` is exactly like `JSOP_GETPROP` but hints to the VM that we're
+     * `JSOp::CallProp` is exactly like `JSOp::GetProp` but hints to the VM that we're
      * getting a method in order to call it.
      *
      * Implements: [GetV][1], [GetValue][2] step 5.
@@ -1020,17 +1008,17 @@
      * [1]: https://tc39.es/ecma262/#sec-getv
      * [2]: https://tc39.es/ecma262/#sec-getvalue
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Accessing properties
      *   Operands: uint32_t nameIndex
      *   Stack: obj => obj[name]
      */ \
-    MACRO(JSOP_GETPROP, "getprop", NULL, 5, 1, 1, JOF_ATOM|JOF_PROP|JOF_TYPESET|JOF_IC) \
-    MACRO(JSOP_CALLPROP, "callprop", NULL, 5, 1, 1, JOF_ATOM|JOF_PROP|JOF_TYPESET|JOF_IC) \
+    MACRO(GetProp, get_prop, NULL, 5, 1, 1, JOF_ATOM|JOF_PROP|JOF_TYPESET|JOF_IC) \
+    MACRO(CallProp, call_prop, NULL, 5, 1, 1, JOF_ATOM|JOF_PROP|JOF_TYPESET|JOF_IC) \
     /*
      * Get the value of the property `obj[key]`.
      *
-     * `JSOP_CALLELEM` is exactly like `JSOP_GETELEM` but hints to the VM that
+     * `JSOp::CallElem` is exactly like `JSOp::GetElem` but hints to the VM that
      * we're getting a method in order to call it.
      *
      * Implements: [GetV][1], [GetValue][2] step 5.
@@ -1038,25 +1026,25 @@
      * [1]: https://tc39.es/ecma262/#sec-getv
      * [2]: https://tc39.es/ecma262/#sec-getvalue
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Accessing properties
      *   Operands:
      *   Stack: obj, key => obj[key]
      */ \
-    MACRO(JSOP_GETELEM, "getelem", NULL, 1, 2, 1, JOF_BYTE|JOF_ELEM|JOF_TYPESET|JOF_IC) \
-    MACRO(JSOP_CALLELEM, "callelem", NULL, 1, 2, 1, JOF_BYTE|JOF_ELEM|JOF_TYPESET|JOF_IC) \
+    MACRO(GetElem, get_elem, NULL, 1, 2, 1, JOF_BYTE|JOF_ELEM|JOF_TYPESET|JOF_IC) \
+    MACRO(CallElem, call_elem, NULL, 1, 2, 1, JOF_BYTE|JOF_ELEM|JOF_TYPESET|JOF_IC) \
     /*
      * Push the value of `obj.length`.
      *
      * `nameIndex` must be the index of the atom `"length"`. This then behaves
-     * exactly like `JSOP_GETPROP`.
+     * exactly like `JSOp::GetProp`.
      *
-     *   Category: Literals
-     *   Type: Array
+     *   Category: Objects
+     *   Type: Accessing properties
      *   Operands: uint32_t nameIndex
      *   Stack: obj => obj.length
      */ \
-    MACRO(JSOP_LENGTH, "length", NULL, 5, 1, 1, JOF_ATOM|JOF_PROP|JOF_TYPESET|JOF_IC) \
+    MACRO(Length, length, NULL, 5, 1, 1, JOF_ATOM|JOF_PROP|JOF_TYPESET|JOF_IC) \
     /*
      * Non-strict assignment to a property, `obj.name = val`.
      *
@@ -1068,23 +1056,23 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-putvalue
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Accessing properties
      *   Operands: uint32_t nameIndex
      *   Stack: obj, val => val
      */ \
-    MACRO(JSOP_SETPROP, "setprop", NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY|JOF_IC) \
+    MACRO(SetProp, set_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY|JOF_IC) \
     /*
-     * Like `JSOP_SETPROP`, but for strict mode code. Throw a TypeError if
+     * Like `JSOp::SetProp`, but for strict mode code. Throw a TypeError if
      * `obj[key]` exists but is non-writable, if it's an accessor property with
      * no setter, or if `obj` is a primitive value.
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Accessing properties
      *   Operands: uint32_t nameIndex
      *   Stack: obj, val => val
      */ \
-    MACRO(JSOP_STRICTSETPROP, "strict-setprop", NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT|JOF_IC) \
+    MACRO(StrictSetProp, strict_set_prop, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT|JOF_IC) \
     /*
      * Non-strict assignment to a property, `obj[key] = val`.
      *
@@ -1092,23 +1080,23 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-putvalue
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Accessing properties
      *   Operands:
      *   Stack: obj, key, val => val
      */ \
-    MACRO(JSOP_SETELEM, "setelem", NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY|JOF_IC) \
+    MACRO(SetElem, set_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY|JOF_IC) \
     /*
-     * Like `JSOP_SETELEM`, but for strict mode code. Throw a TypeError if
+     * Like `JSOp::SetElem`, but for strict mode code. Throw a TypeError if
      * `obj[key]` exists but is non-writable, if it's an accessor property with
      * no setter, or if `obj` is a primitive value.
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Accessing properties
      *   Operands:
      *   Stack: obj, key, val => val
      */ \
-    MACRO(JSOP_STRICTSETELEM, "strict-setelem", NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT|JOF_IC) \
+    MACRO(StrictSetElem, strict_set_elem, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT|JOF_IC) \
     /*
      * Delete a property from `obj`. Push true on success, false if the
      * property existed but could not be deleted. This implements `delete
@@ -1120,22 +1108,22 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-delete-operator-runtime-semantics-evaluation
      *
-     *   Category: Operators
-     *   Type: Special Operators
+     *   Category: Objects
+     *   Type: Accessing properties
      *   Operands: uint32_t nameIndex
      *   Stack: obj => succeeded
      */ \
-    MACRO(JSOP_DELPROP, "delprop", NULL, 5, 1, 1, JOF_ATOM|JOF_PROP|JOF_CHECKSLOPPY) \
+    MACRO(DelProp, del_prop, NULL, 5, 1, 1, JOF_ATOM|JOF_PROP|JOF_CHECKSLOPPY) \
     /*
-     * Like `JSOP_DELPROP`, but for strict mode code. Push `true` on success,
+     * Like `JSOp::DelProp`, but for strict mode code. Push `true` on success,
      * else throw a TypeError.
      *
-     *   Category: Operators
-     *   Type: Special Operators
+     *   Category: Objects
+     *   Type: Accessing properties
      *   Operands: uint32_t nameIndex
      *   Stack: obj => succeeded
      */ \
-    MACRO(JSOP_STRICTDELPROP, "strict-delprop", NULL, 5, 1, 1, JOF_ATOM|JOF_PROP|JOF_CHECKSTRICT) \
+    MACRO(StrictDelProp, strict_del_prop, NULL, 5, 1, 1, JOF_ATOM|JOF_PROP|JOF_CHECKSTRICT) \
     /*
      * Delete the property `obj[key]` and push `true` on success, `false`
      * if the property existed but could not be deleted.
@@ -1146,60 +1134,60 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-delete-operator-runtime-semantics-evaluation
      *
-     *   Category: Operators
-     *   Type: Special Operators
+     *   Category: Objects
+     *   Type: Accessing properties
      *   Operands:
      *   Stack: obj, key => succeeded
      */ \
-    MACRO(JSOP_DELELEM, "delelem", NULL, 1, 2, 1, JOF_BYTE|JOF_ELEM|JOF_CHECKSLOPPY) \
+    MACRO(DelElem, del_elem, NULL, 1, 2, 1, JOF_BYTE|JOF_ELEM|JOF_CHECKSLOPPY) \
     /*
-     * Like `JSOP_DELELEM, but for strict mode code. Push `true` on success,
+     * Like `JSOp::DelElem, but for strict mode code. Push `true` on success,
      * else throw a TypeError.
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Accessing properties
      *   Operands:
      *   Stack: obj, key => succeeded
      */ \
-    MACRO(JSOP_STRICTDELELEM, "strict-delelem", NULL, 1, 2, 1, JOF_BYTE|JOF_ELEM|JOF_CHECKSTRICT) \
+    MACRO(StrictDelElem, strict_del_elem, NULL, 1, 2, 1, JOF_BYTE|JOF_ELEM|JOF_CHECKSTRICT) \
     /*
      * Push true if `obj` has an own property `id`.
      *
-     * Note that `obj` is the top value, like `JSOP_IN`.
+     * Note that `obj` is the top value, like `JSOp::In`.
      *
      * This opcode is not used for normal JS. Self-hosted code uses it by
      * calling the intrinsic `hasOwn(id, obj)`. For example,
      * `Object.prototype.hasOwnProperty` is implemented this way (see
      * js/src/builtin/Object.js).
      *
-     *   Category: Other
-     *   Type:
+     *   Category: Objects
+     *   Type: Accessing properties
      *   Operands:
      *   Stack: id, obj => (obj.hasOwnProperty(id))
      */ \
-    MACRO(JSOP_HASOWN, "hasown", NULL, 1, 2, 1, JOF_BYTE|JOF_IC) \
+    MACRO(HasOwn, has_own, NULL, 1, 2, 1, JOF_BYTE|JOF_IC) \
     /*
      * Push the SuperBase of the method `callee`. The SuperBase is
-     * `callee`.[[HomeObject]].[[GetPrototypeOf]](), the object where `super`
+     * `callee.[[HomeObject]].[[GetPrototypeOf]]()`, the object where `super`
      * property lookups should begin.
      *
      * `callee` must be a function that has a HomeObject that's an object,
-     * typically produced by `JSOP_CALLEE` or `JSOP_ENVCALLEE`.
+     * typically produced by `JSOp::Callee` or `JSOp::EnvCallee`.
      *
      * Implements: [GetSuperBase][1], except that instead of the environment,
      * the argument supplies the callee.
      *
      * [1]: https://tc39.es/ecma262/#sec-getsuperbase
      *
-     *   Category: Variables and Scopes
+     *   Category: Objects
      *   Type: Super
      *   Operands:
      *   Stack: callee => superBase
      */ \
-    MACRO(JSOP_SUPERBASE, "superbase", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(SuperBase, super_base, NULL, 1, 1, 1, JOF_BYTE) \
     /*
      * Get the value of `receiver.name`, starting the property search at `obj`.
-     * In spec terms, obj.[[Get]](name, receiver).
+     * In spec terms, `obj.[[Get]](name, receiver)`.
      *
      * Implements: [GetValue][1] for references created by [`super.name`][2].
      * The `receiver` is `this` and `obj` is the SuperBase of the enclosing
@@ -1208,15 +1196,15 @@
      * [1]: https://tc39.es/ecma262/#sec-getvalue
      * [2]: https://tc39.es/ecma262/#sec-super-keyword-runtime-semantics-evaluation
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Super
      *   Operands: uint32_t nameIndex
      *   Stack: receiver, obj => super.name
      */ \
-    MACRO(JSOP_GETPROP_SUPER, "getprop-super", NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_TYPESET|JOF_IC) \
+    MACRO(GetPropSuper, get_prop_super, NULL, 5, 2, 1, JOF_ATOM|JOF_PROP|JOF_TYPESET|JOF_IC) \
     /*
      * Get the value of `receiver[key]`, starting the property search at `obj`.
-     * In spec terms, obj.[[Get]](key, receiver).
+     * In spec terms, `obj.[[Get]](key, receiver)`.
      *
      * Implements: [GetValue][1] for references created by [`super[key]`][2]
      * (where the `receiver` is `this` and `obj` is the SuperBase of the enclosing
@@ -1226,15 +1214,15 @@
      * [2]: https://tc39.es/ecma262/#sec-super-keyword-runtime-semantics-evaluation
      * [3]: https://tc39.es/ecma262/#sec-reflect.get
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Super
      *   Operands:
      *   Stack: receiver, key, obj => super[key]
      */ \
-    MACRO(JSOP_GETELEM_SUPER, "getelem-super", NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_TYPESET|JOF_IC) \
+    MACRO(GetElemSuper, get_elem_super, NULL, 1, 3, 1, JOF_BYTE|JOF_ELEM|JOF_TYPESET|JOF_IC) \
     /*
      * Assign `val` to `receiver.name`, starting the search for an existing
-     * property at `obj`. In spec terms, obj.[[Set]](name, val, receiver).
+     * property at `obj`. In spec terms, `obj.[[Set]](name, val, receiver)`.
      *
      * Implements: [PutValue][1] for references created by [`super.name`][2] in
      * non-strict code. The `receiver` is `this` and `obj` is the SuperBase of
@@ -1243,24 +1231,24 @@
      * [1]: https://tc39.es/ecma262/#sec-putvalue
      * [2]: https://tc39.es/ecma262/#sec-super-keyword-runtime-semantics-evaluation
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Super
      *   Operands: uint32_t nameIndex
      *   Stack: receiver, obj, val => val
      */ \
-    MACRO(JSOP_SETPROP_SUPER, "setprop-super", NULL, 5, 3, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY) \
+    MACRO(SetPropSuper, set_prop_super, NULL, 5, 3, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY) \
     /*
-     * Like `JSOP_SETPROP_SUPER`, but for strict mode code.
+     * Like `JSOp::SetPropSuper`, but for strict mode code.
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Super
      *   Operands: uint32_t nameIndex
      *   Stack: receiver, obj, val => val
      */ \
-    MACRO(JSOP_STRICTSETPROP_SUPER, "strictsetprop-super", NULL, 5, 3, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT) \
+    MACRO(StrictSetPropSuper, strict_set_prop_super, NULL, 5, 3, 1, JOF_ATOM|JOF_PROP|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT) \
     /*
      * Assign `val` to `receiver[key]`, strating the search for an existing
-     * property at `obj`. In spec terms, obj.[[Set]](key, val, receiver).
+     * property at `obj`. In spec terms, `obj.[[Set]](key, val, receiver)`.
      *
      * Implements: [PutValue][1] for references created by [`super[key]`][2] in
      * non-strict code. The `receiver` is `this` and `obj` is the SuperBase of
@@ -1269,21 +1257,21 @@
      * [1]: https://tc39.es/ecma262/#sec-putvalue
      * [2]: https://tc39.es/ecma262/#sec-super-keyword-runtime-semantics-evaluation
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Super
      *   Operands:
      *   Stack: receiver, key, obj, val => val
      */ \
-    MACRO(JSOP_SETELEM_SUPER, "setelem-super", NULL, 1, 4, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY) \
+    MACRO(SetElemSuper, set_elem_super, NULL, 1, 4, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY) \
     /*
-     * Like `JSOP_SETELEM_SUPER`, but for strict mode code.
+     * Like `JSOp::SetElemSuper`, but for strict mode code.
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: Super
      *   Operands:
      *   Stack: receiver, key, obj, val => val
      */ \
-    MACRO(JSOP_STRICTSETELEM_SUPER, "strict-setelem-super", NULL, 1, 4, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT) \
+    MACRO(StrictSetElemSuper, strict_set_elem_super, NULL, 1, 4, 1, JOF_BYTE|JOF_ELEM|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT) \
     /*
      * Set up a for-in loop by pushing a `PropertyIteratorObject` over the
      * enumerable properties of `val`.
@@ -1296,142 +1284,170 @@
      * If `val` is null or undefined, this pushes an empty iterator.
      *
      * The `iter` object pushed by this instruction must not be used or removed
-     * from the stack except by `JSOP_MOREITER` and `JSOP_ENDITER`, or by error
+     * from the stack except by `JSOp::MoreIter` and `JSOp::EndIter`, or by error
      * handling.
      *
      * The script's `JSScript::trynotes()` must mark the body of the `for-in`
      * loop, i.e. exactly those instructions that begin executing with `iter`
      * on the stack, starting with the next instruction (always
-     * `JSOP_LOOPHEAD`). Code must not jump into or out of this region: control
-     * can enter only by executing `JSOP_ITER` and can exit only by executing a
-     * `JSOP_ENDITER` or by exception unwinding. (A `JSOP_ENDITER` is always
+     * `JSOp::LoopHead`). Code must not jump into or out of this region: control
+     * can enter only by executing `JSOp::Iter` and can exit only by executing a
+     * `JSOp::EndIter` or by exception unwinding. (A `JSOp::EndIter` is always
      * emitted at the end of the loop, and extra copies are emitted on "exit
      * slides", where a `break`, `continue`, or `return` statement exits the
      * loop.)
      *
      * Typically a single try note entry marks the contiguous chunk of bytecode
-     * from the instruction after `JSOP_ITER` to `JSOP_ENDITER` (inclusive);
+     * from the instruction after `JSOp::Iter` to `JSOp::EndIter` (inclusive);
      * but if that range contains any instructions on exit slides, after a
-     * `JSOP_ENDITER`, then those must be correctly noted as *outside* the
+     * `JSOp::EndIter`, then those must be correctly noted as *outside* the
      * loop.
      *
      * [1]: https://tc39.es/ecma262/#sec-runtime-semantics-forin-div-ofheadevaluation-tdznames-expr-iterationkind
      * [2]: https://tc39.es/ecma262/#sec-enumerate-object-properties
      *
-     *   Category: Statements
-     *   Type: For-In Statement
+     *   Category: Objects
+     *   Type: Enumeration
      *   Operands:
      *   Stack: val => iter
      */ \
-    MACRO(JSOP_ITER, "iter", NULL, 1, 1, 1, JOF_BYTE|JOF_IC) \
+    MACRO(Iter, iter, NULL, 1, 1, 1, JOF_BYTE|JOF_IC) \
     /*
-     * Pushes the next iterated value onto the stack. If no value is available,
-     * MagicValue(JS_NO_ITER_VALUE) is pushed.
+     * Get the next property name for a for-in loop.
      *
-     *   Category: Statements
-     *   Type: For-In Statement
+     * `iter` must be a `PropertyIteratorObject` produced by `JSOp::Iter`.  This
+     * pushes the property name for the next loop iteration, or
+     * `MagicValue(JS_NO_ITER_VALUE)` if there are no more enumerable
+     * properties to iterate over. The magic value must be used only by
+     * `JSOp::IsNoIter` and `JSOp::EndIter`.
+     *
+     *   Category: Objects
+     *   Type: Enumeration
      *   Operands:
-     *   Stack: iter => iter, val
+     *   Stack: iter => iter, name
      */ \
-    MACRO(JSOP_MOREITER, "moreiter", NULL, 1, 1, 2, JOF_BYTE) \
+    MACRO(MoreIter, more_iter, NULL, 1, 1, 2, JOF_BYTE) \
     /*
-     * Pushes a boolean indicating whether the value on top of the stack is
-     * MagicValue(JS_NO_ITER_VALUE).
+     * Test whether the value on top of the stack is
+     * `MagicValue(JS_NO_ITER_VALUE)` and push the boolean result.
      *
-     *   Category: Statements
-     *   Type: For-In Statement
+     *   Category: Objects
+     *   Type: Enumeration
      *   Operands:
-     *   Stack: val => val, res
+     *   Stack: val => val, done
      */ \
-    MACRO(JSOP_ISNOITER, "isnoiter", NULL, 1, 1, 2, JOF_BYTE) \
+    MACRO(IsNoIter, is_no_iter, NULL, 1, 1, 2, JOF_BYTE) \
     /*
-     * NOP opcode to hint to IonBuilder that the value on top of the stack is
-     * the (likely string) key in a for-in loop.
+     * No-op instruction to hint to IonBuilder that the value on top of the
+     * stack is the (likely string) key in a for-in loop.
      *
-     *   Category: Other
+     *   Category: Objects
+     *   Type: Enumeration
      *   Operands:
      *   Stack: val => val
      */ \
-    MACRO(JSOP_ITERNEXT, "iternext", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(IterNext, iter_next, NULL, 1, 1, 1, JOF_BYTE) \
     /*
-     * Exits a for-in loop by popping the iteration value and the iterator
-     * object from the stack and closing the iterator object.
+     * Exit a for-in loop, closing the iterator.
      *
-     *   Category: Statements
-     *   Type: For-In Statement
+     * `iter` must be a `PropertyIteratorObject` pushed by `JSOp::Iter`.
+     *
+     *   Category: Objects
+     *   Type: Enumeration
      *   Operands:
      *   Stack: iter, iterval =>
      */ \
-    MACRO(JSOP_ENDITER, "enditer", NULL, 1, 2, 0, JOF_BYTE) \
+    MACRO(EndIter, end_iter, NULL, 1, 2, 0, JOF_BYTE) \
     /*
-     * Checks that the top value on the stack is an object, and throws a
-     * TypeError if not. The operand 'kind' is used only to generate an
-     * appropriate error message.
+     * Check that the top value on the stack is an object, and throw a
+     * TypeError if not. `kind` is used only to generate an appropriate error
+     * message. It must be in range for `js::CheckIsObjectKind`.
      *
-     *   Category: Statements
-     *   Type: Generator
+     * Implements: [GetIterator][1] step 5, [IteratorNext][2] step 3. Both
+     * operations call a JS method which scripts can define however they want,
+     * so they check afterwards that the method returned an object.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-getiterator
+     * [2]: https://tc39.es/ecma262/#sec-iteratornext
+     *
+     *   Category: Objects
+     *   Type: Iteration
      *   Operands: uint8_t kind
      *   Stack: result => result
      */ \
-    MACRO(JSOP_CHECKISOBJ, "checkisobj", NULL, 2, 1, 1, JOF_UINT8) \
+    MACRO(CheckIsObj, check_is_obj, NULL, 2, 1, 1, JOF_UINT8) \
     /*
-     * Checks that the top value on the stack is callable, and throws a
-     * TypeError if not. The operand 'kind' is used only to generate an
-     * appropriate error message.
+     * Check that the top value on the stack is callable, and throw a TypeError
+     * if not. The operand `kind` is used only to generate an appropriate error
+     * message. It must be in range for `js::CheckIsCallableKind`.
      *
-     *   Category: Statements
-     *   Type: Function
+     *   Category: Objects
+     *   Type: Iteration
      *   Operands: uint8_t kind
      *   Stack: obj => obj
      */ \
-    MACRO(JSOP_CHECKISCALLABLE, "checkiscallable", NULL, 2, 1, 1, JOF_UINT8) \
+    MACRO(CheckIsCallable, check_is_callable, NULL, 2, 1, 1, JOF_UINT8) \
     /*
-     * Throw if the value on the stack is not coerscible to an object (is
-     * |null| or |undefined|).
+     * Throw a TypeError if `val` is `null` or `undefined`.
      *
-     *   Category: Literals
-     *   Type: Object
+     * Implements: [RequireObjectCoercible][1]. But most instructions that
+     * require an object will perform this check for us, so of the dozens of
+     * calls to RequireObjectCoercible in the spec, we need this instruction
+     * only for [destructuring assignment][2] and [initialization][3].
+     *
+     * [1]: https://tc39.es/ecma262/#sec-requireobjectcoercible
+     * [2]: https://tc39.es/ecma262/#sec-runtime-semantics-destructuringassignmentevaluation
+     * [3]: https://tc39.es/ecma262/#sec-destructuring-binding-patterns-runtime-semantics-bindinginitialization
+     *
+     *   Category: Objects
+     *   Type: Iteration
      *   Operands:
      *   Stack: val => val
      */ \
-    MACRO(JSOP_CHECKOBJCOERCIBLE, "checkobjcoercible", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(CheckObjCoercible, check_obj_coercible, NULL, 1, 1, 1, JOF_BYTE) \
     /*
-     * Pops the iterator and its next method from the top of the stack, and
-     * create async iterator from it and push the async iterator back onto the
-     * stack.
+     * Create and push an async iterator wrapping the sync iterator `iter`.
+     * `next` should be `iter`'s `.next` method.
      *
-     *   Category: Statements
-     *   Type: Generator
+     * Implements: [CreateAsyncToSyncIterator][1]. The spec says this operation
+     * takes one argument, but that argument is a Record with two relevant
+     * fields, `[[Iterator]]` and `[[NextMethod]]`.
+     *
+     * Used for `for await` loops.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-createasyncfromsynciterator
+     *
+     *   Category: Objects
+     *   Type: Iteration
      *   Operands:
      *   Stack: iter, next => asynciter
      */ \
-    MACRO(JSOP_TOASYNCITER, "toasynciter", NULL, 1, 2, 1, JOF_BYTE) \
+    MACRO(ToAsyncIter, to_async_iter, NULL, 1, 2, 1, JOF_BYTE) \
     /*
      * Set the prototype of `obj`.
      *
-     * `obj` must be an object. This is used to implement object literals like
-     * `{__proto__: protoVal}`.
+     * `obj` must be an object.
      *
      * Implements: [B.3.1 __proto__ Property Names in Object Initializers][1], step 7.a.
      *
      * [1]: https://tc39.es/ecma262/#sec-__proto__-property-names-in-object-initializers
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Objects
+     *   Type: SetPrototype
      *   Operands:
      *   Stack: obj, protoVal => obj
      */ \
-    MACRO(JSOP_MUTATEPROTO, "mutateproto", NULL, 1, 2, 1, JOF_BYTE) \
+    MACRO(MutateProto, mutate_proto, NULL, 1, 2, 1, JOF_BYTE) \
     /*
      * Create and push a new Array object with the given `length`,
      * preallocating enough memory to hold that many elements.
      *
-     *   Category: Literals
-     *   Type: Array
+     *   Category: Objects
+     *   Type: Array literals
      *   Operands: uint32_t length
      *   Stack: => array
      */ \
-    MACRO(JSOP_NEWARRAY, "newarray", NULL, 5, 0, 1, JOF_UINT32|JOF_IC) \
+    MACRO(NewArray, new_array, NULL, 5, 0, 1, JOF_UINT32|JOF_IC) \
     /*
      * Initialize an array element `array[index]` with value `val`.
      *
@@ -1439,20 +1455,20 @@
      *
      * This never calls setters or proxy traps.
      *
-     * `array` must be an Array object created by `JSOP_NEWARRAY` with length >
-     * `index`, and never used except by `JSOP_INITELEM_ARRAY`.
+     * `array` must be an Array object created by `JSOp::NewArray` with length >
+     * `index`, and never used except by `JSOp::InitElemArray`.
      *
      * Implements: [ArrayAccumulation][1], the third algorithm, step 4, in the
      * common case where *nextIndex* is known.
      *
      * [1]: https://tc39.es/ecma262/#sec-runtime-semantics-arrayaccumulation
      *
-     *   Category: Literals
-     *   Type: Array
+     *   Category: Objects
+     *   Type: Array literals
      *   Operands: uint32_t index
      *   Stack: array, val => array
      */ \
-    MACRO(JSOP_INITELEM_ARRAY, "initelem_array", NULL, 5, 2, 1, JOF_UINT32|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
+    MACRO(InitElemArray, init_elem_array, NULL, 5, 2, 1, JOF_UINT32|JOF_ELEM|JOF_PROPINIT|JOF_DETECTING|JOF_IC) \
     /*
      * Initialize an array element `array[index++]` with value `val`.
      *
@@ -1462,15 +1478,15 @@
      *
      * This never calls setters or proxy traps.
      *
-     * `array` must be an Array object created by `JSOP_NEWARRAY` and never used
-     * except by `JSOP_INITELEM_ARRAY` and `JSOP_INITELEM_INC`.
+     * `array` must be an Array object created by `JSOp::NewArray` and never used
+     * except by `JSOp::InitElemArray` and `JSOp::InitElemInc`.
      *
      * `index` must be an integer, `0 <= index <= INT32_MAX`. If `index` is
      * `INT32_MAX`, this throws a RangeError.
      *
      * This instruction is used when an array literal contains a
-     * *SpreadElement*. In `[a, ...b, c]`, `INITELEM_ARRAY 0` is used to put
-     * `a` into the array, but `INITELEM_INC` is used for the elements of `b`
+     * *SpreadElement*. In `[a, ...b, c]`, `InitElemArray 0` is used to put
+     * `a` into the array, but `InitElemInc` is used for the elements of `b`
      * and for `c`.
      *
      * Implements: Several steps in [ArrayAccumulation][1] that call
@@ -1478,25 +1494,25 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-runtime-semantics-arrayaccumulation
      *
-     *   Category: Literals
-     *   Type: Array
+     *   Category: Objects
+     *   Type: Array literals
      *   Operands:
      *   Stack: array, index, val => array, (index + 1)
      */ \
-    MACRO(JSOP_INITELEM_INC, "initelem_inc", NULL, 1, 3, 2, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_IC) \
+    MACRO(InitElemInc, init_elem_inc, NULL, 1, 3, 2, JOF_BYTE|JOF_ELEM|JOF_PROPINIT|JOF_IC) \
     /*
      * Push `MagicValue(JS_ELEMENTS_HOLE)`, representing an *Elision* in an
      * array literal (like the missing property 0 in the array `[, 1]`).
      *
-     * This magic value must be used only by `JSOP_INITELEM_ARRAY` or
-     * `JSOP_INITELEM_INC`.
+     * This magic value must be used only by `JSOp::InitElemArray` or
+     * `JSOp::InitElemInc`.
      *
-     *   Category: Literals
-     *   Type: Array
+     *   Category: Objects
+     *   Type: Array literals
      *   Operands:
      *   Stack: => hole
      */ \
-    MACRO(JSOP_HOLE, "hole", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(Hole, hole, NULL, 1, 0, 1, JOF_BYTE) \
     /*
      * Create and push a new array that shares the elements of a template
      * object.
@@ -1506,14 +1522,14 @@
      *
      * This is an optimization. This single instruction implements an entire
      * array literal, saving run time, code, and memory compared to
-     * `JSOP_NEWARRAY` and a series of `JSOP_INITELEM` instructions.
+     * `JSOp::NewArray` and a series of `JSOp::InitElem` instructions.
      *
-     *   Category: Literals
-     *   Type: Array
+     *   Category: Objects
+     *   Type: Array literals
      *   Operands: uint32_t objectIndex
      *   Stack: => array
      */ \
-    MACRO(JSOP_NEWARRAY_COPYONWRITE, "newarray_copyonwrite", NULL, 5, 0, 1, JOF_OBJECT) \
+    MACRO(NewArrayCopyOnWrite, new_array_copy_on_write, NULL, 5, 0, 1, JOF_OBJECT) \
     /*
      * Clone and push a new RegExp object.
      *
@@ -1521,277 +1537,327 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-regular-expression-literals-runtime-semantics-evaluation
      *
-     *   Category: Literals
-     *   Type: RegExp
+     *   Category: Objects
+     *   Type: RegExp literals
      *   Operands: uint32_t regexpIndex
      *   Stack: => regexp
      */ \
-    MACRO(JSOP_REGEXP, "regexp", NULL, 5, 0, 1, JOF_REGEXP) \
+    MACRO(RegExp, reg_exp, NULL, 5, 0, 1, JOF_REGEXP) \
     /*
-     * Pushes a closure for a named or anonymous function expression onto the
-     * stack.
+     * Push a function object.
      *
-     *   Category: Statements
-     *   Type: Function
+     * This clones the function unless it's a singleton; see
+     * `CanReuseFunctionForClone`. The new function inherits the current
+     * environment chain.
+     *
+     * Used to create most JS functions. Notable exceptions are arrow functions
+     * and derived or default class constructors.
+     *
+     * The function indicated by `funcIndex` must be a non-arrow function.
+     *
+     * Implements: [InstantiateFunctionObject][1], [Evaluation for
+     * *FunctionExpression*][2], and so on.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-function-definitions-runtime-semantics-instantiatefunctionobject
+     * [2]: https://tc39.es/ecma262/#sec-function-definitions-runtime-semantics-evaluation
+     *
+     *   Category: Functions
+     *   Type: Creating functions
      *   Operands: uint32_t funcIndex
-     *   Stack: => obj
+     *   Stack: => fn
      */ \
-    MACRO(JSOP_LAMBDA, "lambda", NULL, 5, 0, 1, JOF_OBJECT) \
+    MACRO(Lambda, lambda, NULL, 5, 0, 1, JOF_OBJECT) \
     /*
-     * Pops the top of stack value as 'new.target', pushes an arrow function
-     * with lexical 'new.target' onto the stack.
+     * Push a new arrow function.
      *
-     *   Category: Statements
-     *   Type: Function
+     * `newTarget` matters only if the arrow function uses the expression
+     * `new.target`. It should be the current value of `new.target`, so that
+     * the arrow function inherits `new.target` from the enclosing scope. (If
+     * `new.target` is illegal here, the value doesn't matter; use `null`.)
+     *
+     * The function indicated by `funcIndex` must be an arrow function.
+     *
+     *   Category: Functions
+     *   Type: Creating functions
      *   Operands: uint32_t funcIndex
-     *   Stack: new.target => obj
+     *   Stack: newTarget => arrowFn
      */ \
-    MACRO(JSOP_LAMBDA_ARROW, "lambda_arrow", NULL, 5, 1, 1, JOF_OBJECT) \
+    MACRO(LambdaArrow, lambda_arrow, NULL, 5, 1, 1, JOF_OBJECT) \
     /*
-     * Pops the top two values on the stack as 'name' and 'fun', defines the
-     * name of 'fun' to 'name' with prefix if any, and pushes 'fun' back onto
-     * the stack.
+     * Set the name of a function.
      *
-     *   Category: Statements
-     *   Type: Function
+     * `fun` must be a function object. `name` must be a string, Int32 value,
+     * or symbol (like the result of `JSOp::ToId`).
+     *
+     * Implements: [SetFunctionName][1], used e.g. to name methods with
+     * computed property names.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-setfunctionname
+     *
+     *   Category: Functions
+     *   Type: Creating functions
      *   Operands: uint8_t prefixKind
      *   Stack: fun, name => fun
      */ \
-    MACRO(JSOP_SETFUNNAME, "setfunname", NULL, 2, 2, 1, JOF_UINT8) \
+    MACRO(SetFunName, set_fun_name, NULL, 2, 2, 1, JOF_UINT8) \
     /*
      * Initialize the home object for functions with super bindings.
      *
-     * This opcode takes the function and the object to be the home object,
-     * does the set, and leaves the function on the stack.
-     *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Functions
+     *   Type: Creating functions
      *   Operands:
      *   Stack: fun, homeObject => fun
      */ \
-    MACRO(JSOP_INITHOMEOBJECT, "inithomeobject", NULL, 1, 2, 1, JOF_BYTE) \
+    MACRO(InitHomeObject, init_home_object, NULL, 1, 2, 1, JOF_BYTE) \
     /*
-     * Ensures the result of a class's heritage expression is either null or a
-     * constructor.
+     * Throw a TypeError if `baseClass` isn't either `null` or a constructor.
      *
-     *   Category: Literals
-     *   Type: Object
+     * Implements: [ClassDefinitionEvaluation][1] step 6.f.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-runtime-semantics-classdefinitionevaluation
+     *
+     *   Category: Functions
+     *   Type: Creating constructors
      *   Operands:
-     *   Stack: heritage => heritage
+     *   Stack: baseClass => baseClass
      */ \
-    MACRO(JSOP_CHECKCLASSHERITAGE, "checkclassheritage", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(CheckClassHeritage, check_class_heritage, NULL, 1, 1, 1, JOF_BYTE) \
     /*
-     * Pushes a clone of a function with a given [[Prototype]] onto the stack.
+     * Like `JSOp::Lambda`, but using `proto` as the new function's
+     * `[[Prototype]]` (or `%FunctionPrototype%` if `proto` is `null`).
      *
-     *   Category: Statements
-     *   Type: Function
+     * `proto` must be either a constructor or `null`. We use
+     * `JSOp::CheckClassHeritage` to check.
+     *
+     * This is used to create the constructor for a derived class.
+     *
+     * Implements: [ClassDefinitionEvaluation][1] steps 6.e.ii, 6.g.iii, and
+     * 12 for derived classes.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-runtime-semantics-classdefinitionevaluation
+     *
+     *   Category: Functions
+     *   Type: Creating constructors
      *   Operands: uint32_t funcIndex
      *   Stack: proto => obj
      */ \
-    MACRO(JSOP_FUNWITHPROTO, "funwithproto", NULL, 5, 1, 1, JOF_OBJECT) \
+    MACRO(FunWithProto, fun_with_proto, NULL, 5, 1, 1, JOF_OBJECT) \
     /*
-     * Push a default constructor for a base class literal.
+     * Create and push a default constructor for a base class.
      *
-     * The sourceStart/sourceEnd offsets are the start/end offsets of the class
-     * definition in the source buffer and are used for toString().
+     * A default constructor behaves like `constructor() {}`.
      *
-     *   Category: Literals
-     *   Type: Class
+     * Implements: [ClassDefinitionEvaluation for *ClassTail*][1], steps
+     * 10.b. and 12-17.
+     *
+     * The `sourceStart`/`sourceEnd` offsets are the start/end offsets of the
+     * class definition in the source buffer and are used for `toString()`.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-runtime-semantics-classdefinitionevaluation
+     *
+     *   Category: Functions
+     *   Type: Creating constructors
      *   Operands: uint32_t nameIndex, uint32_t sourceStart, uint32_t sourceEnd
      *   Stack: => constructor
      */ \
-    MACRO(JSOP_CLASSCONSTRUCTOR, "classconstructor", NULL, 13, 0, 1, JOF_CLASS_CTOR) \
+    MACRO(ClassConstructor, class_constructor, NULL, 13, 0, 1, JOF_CLASS_CTOR) \
     /*
-     * Push a default constructor for a derived class literal.
+     * Create and push a default constructor for a derived class.
      *
-     * The sourceStart/sourceEnd offsets are the start/end offsets of the class
-     * definition in the source buffer and are used for toString().
+     * A default derived-class constructor behaves like
+     * `constructor(...args) { super(...args); }`.
      *
-     *   Category: Literals
-     *   Type: Class
+     * Implements: [ClassDefinitionEvaluation for *ClassTail*][1], steps
+     * 10.a. and 12-17.
+     *
+     * The `sourceStart`/`sourceEnd` offsets are the start/end offsets of the
+     * class definition in the source buffer and are used for `toString()`.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-runtime-semantics-classdefinitionevaluation
+     *
+     *   Category: Functions
+     *   Type: Creating constructors
      *   Operands: uint32_t nameIndex, uint32_t sourceStart, uint32_t sourceEnd
      *   Stack: proto => constructor
      */ \
-    MACRO(JSOP_DERIVEDCONSTRUCTOR, "derivedconstructor", NULL, 13, 1, 1, JOF_CLASS_CTOR) \
+    MACRO(DerivedConstructor, derived_constructor, NULL, 13, 1, 1, JOF_CLASS_CTOR) \
     /*
      * Pushes the current global's builtin prototype for a given proto key.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Functions
+     *   Type: Creating constructors
      *   Operands: uint8_t kind
      *   Stack: => %BuiltinPrototype%
      */ \
-    MACRO(JSOP_BUILTINPROTO, "builtinproto", NULL, 2, 0, 1, JOF_UINT8) \
+    MACRO(BuiltinProto, builtin_proto, NULL, 2, 0, 1, JOF_UINT8) \
     /*
-     * Invokes 'callee' with 'this' and 'args', pushes return value onto the
-     * stack.
+     * Invoke `callee` with `this` and `args`, and push the return value. Throw
+     * a TypeError if `callee` isn't a function.
      *
-     *   Category: Statements
-     *   Type: Function
+     * `JSOp::CallIter` is used for implicit calls to @@iterator methods, to
+     * ensure error messages are formatted with `JSMSG_NOT_ITERABLE` ("x is not
+     * iterable") rather than `JSMSG_NOT_FUNCTION` ("x[Symbol.iterator] is not
+     * a function"). The `argc` operand must be 0 for this variation.
+     *
+     * `JSOp::FunApply` hints to the VM that this is likely a call to the
+     * builtin method `Function.prototype.apply`, an easy optimization target.
+     *
+     * `JSOp::FunCall` similarly hints to the VM that the callee is likely
+     * `Function.prototype.call`.
+     *
+     * `JSOp::CallIgnoresRv` hints to the VM that the return value is ignored.
+     * This allows alternate faster implementations to be used that avoid
+     * unnecesary allocations.
+     *
+     * Implements: [EvaluateCall][1] steps 4, 5, and 7.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-evaluatecall
+     *
+     *   Category: Functions
+     *   Type: Calls
      *   Operands: uint16_t argc
      *   Stack: callee, this, args[0], ..., args[argc-1] => rval
-     *   nuses: (argc+2)
      */ \
-    MACRO(JSOP_CALL, "call", NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
+    MACRO(Call, call, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
+    MACRO(CallIter, call_iter, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
+    MACRO(FunApply, fun_apply, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
+    MACRO(FunCall, fun_call, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
+    MACRO(CallIgnoresRv, call_ignores_rv, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
     /*
-     * Like JSOP_CALL, but used as part of for-of and destructuring bytecode to
-     * provide better error messages.
+     * Like `JSOp::Call`, but the arguments are provided in an array rather than
+     * a span of stack slots. Used to implement spread-call syntax:
+     * `f(...args)`.
      *
-     *   Category: Statements
-     *   Type: Function
-     *   Operands: uint16_t argc (must be 0)
-     *   Stack: callee, this => rval
-     *   nuses: 2
-     */ \
-    MACRO(JSOP_CALLITER, "calliter", NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
-    /*
-     * Invokes 'callee' with 'this' and 'args', pushes return value onto the
-     * stack.
+     * `args` must be an Array object containing the actual arguments. The
+     * array must be packed (dense and free of holes; see IsPackedArray).
+     * This can be ensured by creating the array with `JSOp::NewArray` and
+     * populating it using `JSOp::InitElemArray`.
      *
-     * This is for 'f.apply'.
-     *
-     *   Category: Statements
-     *   Type: Function
-     *   Operands: uint16_t argc
-     *   Stack: callee, this, args[0], ..., args[argc-1] => rval
-     *   nuses: (argc+2)
-     */ \
-    MACRO(JSOP_FUNAPPLY, "funapply", NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
-    /*
-     * Invokes 'callee' with 'this' and 'args', pushes return value onto the
-     * stack.
-     *
-     * If 'callee' is determined to be the canonical 'Function.prototype.call'
-     * function, then this operation is optimized to directly call 'callee'
-     * with 'args[0]' as 'this', and the remaining arguments as formal args to
-     * 'callee'.
-     *
-     * Like JSOP_FUNAPPLY but for 'f.call' instead of 'f.apply'.
-     *
-     *   Category: Statements
-     *   Type: Function
-     *   Operands: uint16_t argc
-     *   Stack: callee, this, args[0], ..., args[argc-1] => rval
-     *   nuses: (argc+2)
-     */ \
-    MACRO(JSOP_FUNCALL, "funcall", NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
-    /*
-     * Like JSOP_CALL, but tells the function that the return value is ignored.
-     * stack.
-     *
-     *   Category: Statements
-     *   Type: Function
-     *   Operands: uint16_t argc
-     *   Stack: callee, this, args[0], ..., args[argc-1] => rval
-     *   nuses: (argc+2)
-     */ \
-    MACRO(JSOP_CALL_IGNORES_RV, "call-ignores-rv", NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
-    /*
-     * spreadcall variant of JSOP_CALL.
-     *
-     * Invokes 'callee' with 'this' and 'args', pushes the return value onto
-     * the stack.
-     *
-     * 'args' is an Array object which contains actual arguments.
-     *
-     *   Category: Statements
-     *   Type: Function
+     *   Category: Functions
+     *   Type: Calls
      *   Operands:
      *   Stack: callee, this, args => rval
      */ \
-    MACRO(JSOP_SPREADCALL, "spreadcall", NULL, 1, 3, 1, JOF_BYTE|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
+    MACRO(SpreadCall, spread_call, NULL, 1, 3, 1, JOF_BYTE|JOF_INVOKE|JOF_SPREAD|JOF_TYPESET|JOF_IC) \
     /*
-     * Pops the top stack value, pushes the value and a boolean value that
-     * indicates whether the spread operation for the value can be optimized in
-     * spread call.
+     * Push true if `arr` is an array object that can be passed directly as the
+     * `args` argument to `JSOp::SpreadCall`.
      *
-     *   Category: Statements
-     *   Type: Function
+     * This instruction and the branch around the iterator loop are emitted
+     * only when `arr` is itself a rest parameter, as in `(...arr) =>
+     * f(...arr)`, a strong hint that it's a packed Array whose prototype is
+     * `Array.prototype`.
+     *
+     * See `js::OptimizeSpreadCall`.
+     *
+     *   Category: Functions
+     *   Type: Calls
      *   Operands:
      *   Stack: arr => arr, optimized
      */ \
-    MACRO(JSOP_OPTIMIZE_SPREADCALL, "optimize-spreadcall", NULL, 1, 1, 2, JOF_BYTE) \
+    MACRO(OptimizeSpreadCall, optimize_spread_call, NULL, 1, 1, 2, JOF_BYTE) \
     /*
-     * Invokes 'eval' with 'args' and pushes return value onto the stack.
+     * Perform a direct eval in the current environment if `callee` is the
+     * builtin `eval` function, otherwise follow same behaviour as `JSOp::Call`.
      *
-     * If 'eval' in global scope is not original one, invokes the function with
-     * 'this' and 'args', and pushes return value onto the stack.
+     * All direct evals use one of the JSOp::*Eval instructions here and these
+     * opcodes are only used when the syntactic conditions for a direct eval
+     * are met. If the builtin `eval` function is called though other means, it
+     * becomes an indirect eval.
      *
-     *   Category: Statements
-     *   Type: Function
+     * Direct eval causes all bindings in *enclosing* non-global scopes to be
+     * marked "aliased". The optimization that puts bindings in stack slots has
+     * to prove that the bindings won't need to be captured by closures or
+     * accessed using `JSOp::{Get,Bind,Set,Del}Name` instructions. Direct eval
+     * makes that analysis impossible.
+     *
+     * Implements: [Function Call Evaluation][1], steps 5-7 and 9, when the
+     * syntactic critera for direct eval in step 6 are all met.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-function-calls-runtime-semantics-evaluation
+     *
+     *   Category: Functions
+     *   Type: Calls
      *   Operands: uint16_t argc
      *   Stack: callee, this, args[0], ..., args[argc-1] => rval
-     *   nuses: (argc+2)
      */ \
-    MACRO(JSOP_EVAL, "eval", NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_CHECKSLOPPY|JOF_IC) \
+    MACRO(Eval, eval, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_CHECKSLOPPY|JOF_IC) \
     /*
-     * spreadcall variant of JSOP_EVAL
+     * Spread-call variant of `JSOp::Eval`.
      *
-     * Invokes 'eval' with 'args' and pushes the return value onto the stack.
+     * See `JSOp::SpreadCall` for restrictions on `args`.
      *
-     * If 'eval' in global scope is not original one, invokes the function with
-     * 'this' and 'args', and pushes return value onto the stack.
-     *
-     *   Category: Statements
-     *   Type: Function
+     *   Category: Functions
+     *   Type: Calls
      *   Operands:
      *   Stack: callee, this, args => rval
      */ \
-    MACRO(JSOP_SPREADEVAL, "spreadeval", NULL, 1, 3, 1, JOF_BYTE|JOF_INVOKE|JOF_TYPESET|JOF_CHECKSLOPPY|JOF_IC) \
+    MACRO(SpreadEval, spread_eval, NULL, 1, 3, 1, JOF_BYTE|JOF_INVOKE|JOF_SPREAD|JOF_TYPESET|JOF_CHECKSLOPPY|JOF_IC) \
     /*
-     * Invokes 'eval' with 'args' and pushes return value onto the stack.
+     * Like `JSOp::Eval`, but for strict mode code.
      *
-     * If 'eval' in global scope is not original one, invokes the function with
-     * 'this' and 'args', and pushes return value onto the stack.
-     *
-     *   Category: Statements
-     *   Type: Function
+     *   Category: Functions
+     *   Type: Calls
      *   Operands: uint16_t argc
-     *   Stack: callee, this, args[0], ..., args[argc-1] => rval
-     *   nuses: (argc+2)
+     *   Stack: evalFn, this, args[0], ..., args[argc-1] => rval
      */ \
-    MACRO(JSOP_STRICTEVAL, "strict-eval", NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_CHECKSTRICT|JOF_IC) \
+    MACRO(StrictEval, strict_eval, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_CHECKSTRICT|JOF_IC) \
     /*
-     * spreadcall variant of JSOP_EVAL
+     * Spread-call variant of `JSOp::StrictEval`.
      *
-     * Invokes 'eval' with 'args' and pushes the return value onto the stack.
+     * See `JSOp::SpreadCall` for restrictions on `args`.
      *
-     * If 'eval' in global scope is not original one, invokes the function with
-     * 'this' and 'args', and pushes return value onto the stack.
-     *
-     *   Category: Statements
-     *   Type: Function
+     *   Category: Functions
+     *   Type: Calls
      *   Operands:
      *   Stack: callee, this, args => rval
      */ \
-    MACRO(JSOP_STRICTSPREADEVAL, "strict-spreadeval", NULL, 1, 3, 1, JOF_BYTE|JOF_INVOKE|JOF_TYPESET|JOF_CHECKSTRICT|JOF_IC) \
+    MACRO(StrictSpreadEval, strict_spread_eval, NULL, 1, 3, 1, JOF_BYTE|JOF_INVOKE|JOF_SPREAD|JOF_TYPESET|JOF_CHECKSTRICT|JOF_IC) \
     /*
-     * Pushes the implicit 'this' value for calls to the associated name onto
-     * the stack.
+     * Push the implicit `this` value for an unqualified function call, like
+     * `foo()`. `nameIndex` gives the name of the function we're calling.
      *
-     *   Category: Variables and Scopes
-     *   Type: This
+     * The result is always `undefined` except when the name refers to a `with`
+     * binding.  For example, in `with (date) { getFullYear(); }`, the
+     * implicit `this` passed to `getFullYear` is `date`, not `undefined`.
+     *
+     * This walks the run-time environment chain looking for the environment
+     * record that contains the function. If the function call is not inside a
+     * `with` statement, use `JSOp::GImplicitThis` instead. If the function call
+     * definitely refers to a local binding, use `JSOp::Undefined`.
+     *
+     * Implements: [EvaluateCall][1] step 1.b. But not entirely correctly.
+     * See [bug 1166408][2].
+     *
+     * [1]: https://tc39.es/ecma262/#sec-evaluatecall
+     * [2]: https://bugzilla.mozilla.org/show_bug.cgi?id=1166408
+     *
+     *   Category: Functions
+     *   Type: Calls
      *   Operands: uint32_t nameIndex
      *   Stack: => this
      */ \
-    MACRO(JSOP_IMPLICITTHIS, "implicitthis", "", 5, 0, 1, JOF_ATOM) \
+    MACRO(ImplicitThis, implicit_this, "", 5, 0, 1, JOF_ATOM) \
     /*
-     * Pushes the implicit 'this' value for calls to the associated name onto
-     * the stack; only used when the implicit this might be derived from a
-     * non-syntactic scope (instead of the global itself).
+     * Like `JSOp::ImplicitThis`, but the name must not be bound in any local
+     * environments.
      *
-     * Note that code evaluated via the Debugger API uses DebugEnvironmentProxy
-     * objects on its scope chain, which are non-syntactic environments that
-     * refer to syntactic environments. As a result, the binding we want may be
-     * held by a syntactic environments such as CallObject or
-     * VarEnvrionmentObject.
+     * The result is always `undefined` except when the name refers to a
+     * binding in a non-syntactic `with` environment.
      *
-     *   Category: Variables and Scopes
-     *   Type: This
+     * Note: The frontend has to emit `JSOp::GImplicitThis` (and not
+     * `JSOp::Undefined`) for global unqualified function calls, even when
+     * `CompileOptions::nonSyntacticScope == false`, because later
+     * `js::CloneGlobalScript` can be called with `ScopeKind::NonSyntactic` to
+     * clone the script into a non-syntactic environment, with the bytecode
+     * reused, unchanged.
+     *
+     *   Category: Functions
+     *   Type: Calls
      *   Operands: uint32_t nameIndex
      *   Stack: => this
      */ \
-    MACRO(JSOP_GIMPLICITTHIS, "gimplicitthis", "", 5, 0, 1, JOF_ATOM) \
+    MACRO(GImplicitThis, g_implicit_this, "", 5, 0, 1, JOF_ATOM) \
     /*
      * Push the call site object for a tagged template call.
      *
@@ -1806,191 +1872,200 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-gettemplateobject
      *
-     *   Category: Literals
-     *   Type: Object
+     *   Category: Functions
+     *   Type: Calls
      *   Operands: uint32_t objectIndex
-     *   Stack: => obj
+     *   Stack: => callSiteObj
      */ \
-    MACRO(JSOP_CALLSITEOBJ, "callsiteobj", NULL, 5, 0, 1, JOF_OBJECT) \
+    MACRO(CallSiteObj, call_site_obj, NULL, 5, 0, 1, JOF_OBJECT) \
     /*
-     * Pushes 'JS_IS_CONSTRUCTING'
+     * Push `MagicValue(JS_IS_CONSTRUCTING)`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     * This magic value is a required argument to the `JSOp::New` and
+     * `JSOp::SuperCall` instructions and must not be used any other way.
+     *
+     *   Category: Functions
+     *   Type: Calls
      *   Operands:
      *   Stack: => JS_IS_CONSTRUCTING
      */ \
-    MACRO(JSOP_IS_CONSTRUCTING, "is-constructing", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(IsConstructing, is_constructing, NULL, 1, 0, 1, JOF_BYTE) \
     /*
-     * Invokes 'callee' as a constructor with 'this' and 'args', pushes return
-     * value onto the stack.
+     * Invoke `callee` as a constructor with `args` and `newTarget`, and push
+     * the return value. Throw a TypeError if `callee` isn't a constructor.
      *
-     *   Category: Statements
-     *   Type: Function
+     * `isConstructing` must be the value pushed by `JSOp::IsConstructing`.
+     *
+     * `JSOp::SuperCall` behaves exactly like `JSOp::New`, but is used for
+     * *SuperCall* expressions, to allow JITs to distinguish them from `new`
+     * expressions.
+     *
+     * Implements: [EvaluateConstruct][1] steps 7 and 8.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-evaluatenew
+     *
+     *   Category: Functions
+     *   Type: Calls
      *   Operands: uint16_t argc
-     *   Stack: callee, this, args[0], ..., args[argc-1], newTarget => rval
-     *   nuses: (argc+3)
+     *   Stack: callee, isConstructing, args[0], ..., args[argc-1], newTarget => rval
      */ \
-    MACRO(JSOP_NEW, "new", NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_IC|JOF_IC) \
+    MACRO(New, new_, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_CONSTRUCT|JOF_TYPESET|JOF_IC|JOF_IC) \
+    MACRO(SuperCall, super_call, NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_CONSTRUCT|JOF_TYPESET|JOF_IC) \
     /*
-     * spreadcall variant of JSOP_NEW
+     * Spread-call variant of `JSOp::New`.
      *
-     * Invokes 'callee' as a constructor with 'this' and 'args', pushes the
-     * return value onto the stack.
+     * Invokes `callee` as a constructor with `args` and `newTarget`, and
+     * pushes the return value onto the stack.
      *
-     *   Category: Statements
-     *   Type: Function
+     * `isConstructing` must be the value pushed by `JSOp::IsConstructing`.
+     * See `JSOp::SpreadCall` for restrictions on `args`.
+     *
+     * `JSOp::SpreadSuperCall` behaves exactly like `JSOp::SpreadNew`, but is
+     * used for *SuperCall* expressions.
+     *
+     *   Category: Functions
+     *   Type: Calls
      *   Operands:
-     *   Stack: callee, this, args, newTarget => rval
+     *   Stack: callee, isConstructing, args, newTarget => rval
      */ \
-    MACRO(JSOP_SPREADNEW, "spreadnew", NULL, 1, 4, 1, JOF_BYTE|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
+    MACRO(SpreadNew, spread_new, NULL, 1, 4, 1, JOF_BYTE|JOF_INVOKE|JOF_CONSTRUCT|JOF_SPREAD|JOF_TYPESET|JOF_IC) \
+    MACRO(SpreadSuperCall, spread_super_call, NULL, 1, 4, 1, JOF_BYTE|JOF_INVOKE|JOF_CONSTRUCT|JOF_SPREAD|JOF_TYPESET|JOF_IC) \
     /*
-     * Push the function to invoke with |super()|. This is the prototype of the
-     * function passed in as |callee|.
+     * Push the prototype of `callee` in preparation for calling `super()`.
      *
-     *   Category: Variables and Scopes
-     *   Type: Super
+     * `callee` must be a derived class constructor.
+     *
+     * Implements: [GetSuperConstructor][1], steps 4-7.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-getsuperconstructor
+     *
+     *   Category: Functions
+     *   Type: Calls
      *   Operands:
      *   Stack: callee => superFun
      */ \
-    MACRO(JSOP_SUPERFUN, "superfun", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(SuperFun, super_fun, NULL, 1, 1, 1, JOF_BYTE) \
     /*
-     * Behaves exactly like JSOP_NEW, but allows JITs to distinguish the two
-     * cases.
+     * Throw a ReferenceError if `thisval` is not
+     * `MagicValue(JS_UNINITIALIZED_LEXICAL)`. Used in derived class
+     * constructors to prohibit calling `super` more than once.
      *
-     *   Category: Statements
-     *   Type: Function
-     *   Operands: uint16_t argc
-     *   Stack: callee, this, args[0], ..., args[argc-1], newTarget => rval
-     *   nuses: (argc+3)
-     */ \
-    MACRO(JSOP_SUPERCALL, "supercall", NULL, 3, -1, 1, JOF_ARGC|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
-    /*
-     * spreadcall variant of JSOP_SUPERCALL.
+     * Implements: [BindThisValue][1], step 3.
      *
-     * Behaves exactly like JSOP_SPREADNEW.
+     * [1]: https://tc39.es/ecma262/#sec-bindthisvalue
      *
-     *   Category: Statements
-     *   Type: Function
+     *   Category: Functions
+     *   Type: Calls
      *   Operands:
-     *   Stack: callee, this, args, newTarget => rval
+     *   Stack: thisval => thisval
      */ \
-    MACRO(JSOP_SPREADSUPERCALL, "spreadsupercall", NULL, 1, 4, 1, JOF_BYTE|JOF_INVOKE|JOF_TYPESET|JOF_IC) \
-    /*
-     * Throw an exception if the value on top of the stack is not the TDZ
-     * MagicValue. Used in derived class constructors.
-     *
-     *   Category: Variables and Scopes
-     *   Type: This
-     *   Operands:
-     *   Stack: this => this
-     */ \
-    MACRO(JSOP_CHECKTHISREINIT, "checkthisreinit", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(CheckThisReinit, check_this_reinit, NULL, 1, 1, 1, JOF_BYTE) \
     /*
      * Initializes generator frame, creates a generator and pushes it on the
      * stack.
      *
-     *   Category: Statements
-     *   Type: Generator
+     *   Category: Functions
+     *   Type: Generators and async functions
      *   Operands:
      *   Stack: => generator
      */ \
-    MACRO(JSOP_GENERATOR, "generator", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(Generator, generator, NULL, 1, 0, 1, JOF_BYTE) \
     /*
      * Pops the generator from the top of the stack, suspends it and stops
      * execution.
      *
-     * When resuming execution, JSOP_RESUME pushes the rval, gen and resumeKind
+     * When resuming execution, JSOp::Resume pushes the rval, gen and resumeKind
      * values. resumeKind is the GeneratorResumeKind stored as int32.
      *
-     *   Category: Statements
-     *   Type: Generator
+     *   Category: Functions
+     *   Type: Generators and async functions
      *   Operands: uint24_t resumeIndex
      *   Stack: gen => rval, gen, resumeKind
      */ \
-    MACRO(JSOP_INITIALYIELD, "initialyield", NULL, 4, 1, 3, JOF_RESUMEINDEX) \
+    MACRO(InitialYield, initial_yield, NULL, 4, 1, 3, JOF_RESUMEINDEX) \
     /*
      * Bytecode emitted after 'yield' expressions. This is useful for the
-     * Debugger and AbstractGeneratorObject::isAfterYieldOrAwait. It's treated
-     * as jump target op so that the Baseline Interpreter can efficiently
-     * restore the frame's interpreterICEntry when resuming a generator.
+     * Debugger and `AbstractGeneratorObject::isAfterYieldOrAwait`. It's
+     * treated as jump target op so that the Baseline Interpreter can
+     * efficiently restore the frame's interpreterICEntry when resuming a
+     * generator.
      *
-     *   Category: Statements
-     *   Type: Generator
+     *   Category: Functions
+     *   Type: Generators and async functions
      *   Operands: uint32_t icIndex
      *   Stack: =>
      */ \
-    MACRO(JSOP_AFTERYIELD, "afteryield", NULL, 5, 0, 0, JOF_ICINDEX) \
+    MACRO(AfterYield, after_yield, NULL, 5, 0, 0, JOF_ICINDEX) \
     /*
      * Pops the generator and suspends and closes it. Yields the value in the
      * frame's return value slot.
      *
-     *   Category: Statements
-     *   Type: Generator
+     *   Category: Functions
+     *   Type: Generators and async functions
      *   Operands:
      *   Stack: gen =>
      */ \
-    MACRO(JSOP_FINALYIELDRVAL, "finalyieldrval", NULL, 1, 1, 0, JOF_BYTE) \
+    MACRO(FinalYieldRval, final_yield_rval, NULL, 1, 1, 0, JOF_BYTE) \
     /*
      * Pops the generator and the return value 'rval1', stops execution and
      * returns 'rval1'.
      *
-     * When resuming execution, JSOP_RESUME pushes the rval2, gen and resumeKind
+     * When resuming execution, JSOp::Resume pushes the rval2, gen and resumeKind
      * values.
      *
-     *   Category: Statements
-     *   Type: Generator
+     *   Category: Functions
+     *   Type: Generators and async functions
      *   Operands: uint24_t resumeIndex
      *   Stack: rval1, gen => rval2, gen, resumeKind
      */ \
-    MACRO(JSOP_YIELD, "yield", NULL, 4, 2, 3, JOF_RESUMEINDEX) \
+    MACRO(Yield, yield, NULL, 4, 2, 3, JOF_RESUMEINDEX) \
     /*
      * Pushes a boolean indicating whether the top of the stack is
-     * MagicValue(JS_GENERATOR_CLOSING).
+     * `MagicValue(JS_GENERATOR_CLOSING)`.
      *
-     *   Category: Statements
-     *   Type: For-In Statement
+     *   Category: Functions
+     *   Type: Generators and async functions
      *   Operands:
      *   Stack: val => val, res
      */ \
-    MACRO(JSOP_ISGENCLOSING, "isgenclosing", NULL, 1, 1, 2, JOF_BYTE) \
+    MACRO(IsGenClosing, is_gen_closing, NULL, 1, 1, 2, JOF_BYTE) \
     /*
      * Pops the top two values 'value' and 'gen' from the stack, then starts
      * "awaiting" for 'value' to be resolved, which will then resume the
      * execution of 'gen'. Pushes the async function promise on the stack, so
      * that it'll be returned to the caller on the very first "await".
      *
-     *   Category: Statements
-     *   Type: Generator
+     *   Category: Functions
+     *   Type: Generators and async functions
      *   Operands:
      *   Stack: value, gen => promise
      */ \
-    MACRO(JSOP_ASYNCAWAIT, "async-await", NULL, 1, 2, 1, JOF_BYTE) \
+    MACRO(AsyncAwait, async_await, NULL, 1, 2, 1, JOF_BYTE) \
     /*
      * Pops the top two values 'valueOrReason' and 'gen' from the stack, then
      * pushes the promise resolved with 'valueOrReason'. `gen` must be the
      * internal generator object created in async functions. The pushed promise
      * is the async function's result promise, which is stored in `gen`.
      *
-     *   Category: Statements
-     *   Type: Generator
+     *   Category: Functions
+     *   Type: Generators and async functions
      *   Operands: uint8_t fulfillOrReject
      *   Stack: valueOrReason, gen => promise
      */ \
-    MACRO(JSOP_ASYNCRESOLVE, "async-resolve", NULL, 2, 2, 1, JOF_UINT8) \
+    MACRO(AsyncResolve, async_resolve, NULL, 2, 2, 1, JOF_UINT8) \
     /*
      * Pops the generator and the return value 'promise', stops execution and
      * returns 'promise'.
      *
-     * When resuming execution, JSOP_RESUME pushes the resolved, gen and
+     * When resuming execution, JSOp::Resume pushes the resolved, gen and
      * resumeKind values. resumeKind is the GeneratorResumeKind stored as int32.
      *
-     *   Category: Statements
-     *   Type: Generator
+     *   Category: Functions
+     *   Type: Generators and async functions
      *   Operands: uint24_t resumeIndex
      *   Stack: promise, gen => resolved, gen, resumeKind
      */ \
-    MACRO(JSOP_AWAIT, "await", NULL, 4, 2, 3, JOF_RESUMEINDEX) \
+    MACRO(Await, await, NULL, 4, 2, 3, JOF_RESUMEINDEX) \
     /*
      * Pops the top of stack value as 'value', checks if the await for 'value'
      * can be skipped. If the await operation can be skipped and the resolution
@@ -1998,1033 +2073,1441 @@
      * 'true' onto the stack. Otherwise, pushes 'value' and 'false' on the
      * stack.
      *
-     *   Category: Statements
-     *   Type: Function
+     *   Category: Functions
+     *   Type: Generators and async functions
      *   Operands:
      *   Stack: value => value_or_resolved, canskip
      */ \
-    MACRO(JSOP_TRYSKIPAWAIT, "tryskipawait", NULL, 1, 1, 2, JOF_BYTE) \
+    MACRO(TrySkipAwait, try_skip_await, NULL, 1, 1, 2, JOF_BYTE) \
     /*
      * Pushes one of the GeneratorResumeKind values as Int32Value.
      *
-     *   Category: Statements
-     *   Type: Generator
-     *   Operands: resumeKind (GeneratorResumeKind)
+     *   Category: Functions
+     *   Type: Generators and async functions
+     *   Operands: GeneratorResumeKind resumeKind (encoded as uint8_t)
      *   Stack: => resumeKind
      */ \
-    MACRO(JSOP_RESUMEKIND, "resumekind", NULL, 2, 0, 1, JOF_UINT8) \
+    MACRO(ResumeKind, resume_kind, NULL, 2, 0, 1, JOF_UINT8) \
     /*
      * Pops the generator and resumeKind values. resumeKind is the
      * GeneratorResumeKind stored as int32. If resumeKind is Next, continue
      * execution. If resumeKind is Throw or Return, these completions are
      * handled by throwing an exception. See GeneratorThrowOrReturn.
      *
-     *   Category: Statements
-     *   Type: Generator
+     *   Category: Functions
+     *   Type: Generators and async functions
      *   Operands:
      *   Stack: rval, gen, resumeKind => rval
      */ \
-    MACRO(JSOP_CHECK_RESUMEKIND, "check-resumekind", NULL, 1, 3, 1, JOF_BYTE) \
+    MACRO(CheckResumeKind, check_resume_kind, NULL, 1, 3, 1, JOF_BYTE) \
     /*
      * Pops the generator, argument and resumeKind from the stack, pushes a new
      * generator frame and resumes execution of it. Pushes the return value
      * after the generator yields.
      *
-     *   Category: Statements
-     *   Type: Generator
+     *   Category: Functions
+     *   Type: Generators and async functions
      *   Operands:
      *   Stack: gen, val, resumeKind => rval
      */ \
-    MACRO(JSOP_RESUME, "resume", NULL, 1, 3, 1, JOF_BYTE|JOF_INVOKE) \
+    MACRO(Resume, resume, NULL, 1, 3, 1, JOF_BYTE|JOF_INVOKE) \
     /*
-     * This opcode is a no-op and it indicates the location of a jump
-     * instruction target. Some other opcodes act as jump targets as well, see
-     * BytecodeIsJumpTarget. The IC index is used by the Baseline interpreter.
+     * No-op instruction marking the target of a jump instruction.
      *
-     *   Category: Other
+     * This instruction and a few others (see `js::BytecodeIsJumpTarget`) are
+     * jump target instructions. The Baseline Interpreter uses these
+     * instructions to sync the frame's `interpreterICEntry` after a jump. Ion
+     * uses them to find block boundaries when translating bytecode to MIR.
+     *
+     *   Category: Control flow
+     *   Type: Jump targets
      *   Operands: uint32_t icIndex
      *   Stack: =>
      */ \
-    MACRO(JSOP_JUMPTARGET, "jumptarget", NULL, 5, 0, 0, JOF_ICINDEX) \
+    MACRO(JumpTarget, jump_target, NULL, 5, 0, 0, JOF_ICINDEX) \
     /*
-     * This opcode is the target of the backwards jump for some loop.
+     * Marks the target of the backwards jump for some loop.
      *
-     * The depthHint value is a loop depth hint for Ion. It starts at 1 and
+     * This is a jump target instruction (see `JSOp::JumpTarget`). Additionally,
+     * it checks for interrupts and handles JIT tiering.
+     *
+     * The `depthHint` operand is a loop depth hint for Ion. It starts at 1 and
      * deeply nested loops all have the same value.
      *
-     * See JSOP_JUMPTARGET for the icIndex operand.
+     * For the convenience of the JITs, scripts must not start with this
+     * instruction. See bug 1602390.
      *
-     *   Category: Statements
-     *   Type: Jumps
+     *   Category: Control flow
+     *   Type: Jump targets
      *   Operands: uint32_t icIndex, uint8_t depthHint
      *   Stack: =>
      */ \
-    MACRO(JSOP_LOOPHEAD, "loophead", NULL, 6, 0, 0, JOF_LOOPHEAD) \
+    MACRO(LoopHead, loop_head, NULL, 6, 0, 0, JOF_LOOPHEAD) \
     /*
-     * Jumps to a 32-bit offset from the current bytecode.
+     * Jump to a 32-bit offset from the current bytecode.
      *
-     *   Category: Statements
+     * See "Jump instructions" above for details.
+     *
+     *   Category: Control flow
      *   Type: Jumps
      *   Operands: int32_t offset
      *   Stack: =>
      */ \
-    MACRO(JSOP_GOTO, "goto", NULL, 5, 0, 0, JOF_JUMP) \
+    MACRO(Goto, goto_, NULL, 5, 0, 0, JOF_JUMP) \
     /*
-     * Pops the top of stack value, converts it into a boolean, if the result
-     * is 'false', jumps to a 32-bit offset from the current bytecode.
+     * If ToBoolean(`cond`) is false, jumps to a 32-bit offset from the current
+     * instruction.
      *
-     * The idea is that a sequence like
-     * JSOP_ZERO; JSOP_ZERO; JSOP_EQ; JSOP_IFEQ; JSOP_RETURN;
-     * reads like a nice linear sequence that will execute the return.
+     *   Category: Control flow
+     *   Type: Jumps
+     *   Operands: int32_t forwardOffset
+     *   Stack: cond =>
+     */ \
+    MACRO(IfEq, if_eq, NULL, 5, 1, 0, JOF_JUMP|JOF_DETECTING|JOF_IC) \
+    /*
+     * If ToBoolean(`cond`) is true, jump to a 32-bit offset from the current
+     * instruction.
      *
-     *   Category: Statements
+     * `offset` may be positive or negative. This is the instruction used at the
+     * end of a do-while loop to jump back to the top.
+     *
+     *   Category: Control flow
      *   Type: Jumps
      *   Operands: int32_t offset
      *   Stack: cond =>
      */ \
-    MACRO(JSOP_IFEQ, "ifeq", NULL, 5, 1, 0, JOF_JUMP|JOF_DETECTING|JOF_IC) \
+    MACRO(IfNe, if_ne, NULL, 5, 1, 0, JOF_JUMP|JOF_IC) \
     /*
-     * Pops the top of stack value, converts it into a boolean, if the result
-     * is 'true', jumps to a 32-bit offset from the current bytecode.
+     * Short-circuit for logical AND.
      *
-     *   Category: Statements
-     *   Type: Jumps
-     *   Operands: int32_t offset
-     *   Stack: cond =>
-     */ \
-    MACRO(JSOP_IFNE, "ifne", NULL, 5, 1, 0, JOF_JUMP|JOF_IC) \
-    /*
-     * Converts the top of stack value into a boolean, if the result is
-     * 'false', jumps to a 32-bit offset from the current bytecode.
+     * If ToBoolean(`cond`) is false, jump to a 32-bit offset from the current
+     * instruction. The value remains on the stack.
      *
-     *   Category: Statements
+     *   Category: Control flow
      *   Type: Jumps
-     *   Operands: int32_t offset
+     *   Operands: int32_t forwardOffset
      *   Stack: cond => cond
      */ \
-    MACRO(JSOP_AND, "and", NULL, 5, 1, 1, JOF_JUMP|JOF_DETECTING|JOF_IC) \
+    MACRO(And, and_, NULL, 5, 1, 1, JOF_JUMP|JOF_DETECTING|JOF_IC) \
     /*
-     * Converts the top of stack value into a boolean, if the result is 'true',
-     * jumps to a 32-bit offset from the current bytecode.
+     * Short-circuit for logical OR.
      *
-     *   Category: Statements
+     * If ToBoolean(`cond`) is true, jump to a 32-bit offset from the current
+     * instruction. The value remains on the stack.
+     *
+     *   Category: Control flow
      *   Type: Jumps
-     *   Operands: int32_t offset
+     *   Operands: int32_t forwardOffset
      *   Stack: cond => cond
      */ \
-    MACRO(JSOP_OR, "or", NULL, 5, 1, 1, JOF_JUMP|JOF_DETECTING|JOF_IC) \
+    MACRO(Or, or_, NULL, 5, 1, 1, JOF_JUMP|JOF_DETECTING|JOF_IC) \
     /*
-     * If the value on top of the stack is not null or undefined, jumps to a 32-bit offset from the
-     * current bytecode.
+     * Short-circuiting for nullish coalescing.
      *
-     *   Category: Statements
+     * If `val` is not null or undefined, jump to a 32-bit offset from the
+     * current instruction.
+     *
+     *   Category: Control flow
      *   Type: Jumps
-     *   Operands: int32_t offset
-     *   Stack: cond => cond
+     *   Operands: int32_t forwardOffset
+     *   Stack: val => val
      */ \
-    MACRO(JSOP_COALESCE, "coalesce", NULL, 5, 1, 1, JOF_JUMP|JOF_DETECTING) \
-    /*
-     * Pops the top two values on the stack as 'val' and 'cond'. If 'cond' is
-     * 'true', jumps to a 32-bit offset from the current bytecode, re-pushes
-     * 'val' onto the stack if 'false'.
+    MACRO(Coalesce, coalesce, NULL, 5, 1, 1, JOF_JUMP|JOF_DETECTING) \
+     /*
+     * Like `JSOp::IfNe` ("jump if true"), but if the branch is taken,
+     * pop and discard an additional stack value.
      *
-     *   Category: Statements
-     *   Type: Switch Statement
-     *   Operands: int32_t offset
-     *   Stack: val, cond => val(if !cond)
+     * This is used to implement `switch` statements when the
+     * `JSOp::TableSwitch` optimization is not possible. The switch statement
+     *
+     *     switch (expr) {
+     *         case A: stmt1;
+     *         case B: stmt2;
+     *     }
+     *
+     * compiles to this bytecode:
+     *
+     *         # dispatch code - evaluate expr, check it against each `case`,
+     *         # jump to the right place in the body or to the end.
+     *         <expr>
+     *         Dup; <A>; StrictEq; Case L1; JumpTarget
+     *         Dup; <B>; StrictEq; Case L2; JumpTarget
+     *         Default LE
+     *
+     *         # body code
+     *     L1: JumpTarget; <stmt1>
+     *     L2: JumpTarget; <stmt2>
+     *     LE: JumpTarget
+     *
+     * This opcode is weird: it's the only one whose ndefs varies depending on
+     * which way a conditional branch goes. We could implement switch
+     * statements using `JSOp::IfNe` and `JSOp::Pop`, but that would also be
+     * awkward--putting the `JSOp::Pop` inside the `switch` body would
+     * complicate fallthrough.
+     *
+     *   Category: Control flow
+     *   Type: Jumps
+     *   Operands: int32_t forwardOffset
+     *   Stack: val, cond => val (if !cond)
      */ \
-    MACRO(JSOP_CASE, "case", NULL, 5, 2, 1, JOF_JUMP) \
+    MACRO(Case, case_, NULL, 5, 2, 1, JOF_JUMP) \
     /*
-     * This appears after all cases in a JSOP_CONDSWITCH, whether there is a
-     * 'default:' label in the switch statement or not. Pop the switch operand
-     * from the stack and jump to a 32-bit offset from the current bytecode.
-     * offset from the current bytecode.
+     * Like `JSOp::Goto`, but pop and discard an additional stack value.
      *
-     *   Category: Statements
-     *   Type: Switch Statement
-     *   Operands: int32_t offset
+     * This appears after all cases for a non-optimized `switch` statement. If
+     * there's a `default:` label, it jumps to that point in the body;
+     * otherwise it jumps to the next statement.
+     *
+     *   Category: Control flow
+     *   Type: Jumps
+     *   Operands: int32_t forwardOffset
      *   Stack: lval =>
      */ \
-    MACRO(JSOP_DEFAULT, "default", NULL, 5, 1, 0, JOF_JUMP) \
+    MACRO(Default, default_, NULL, 5, 1, 0, JOF_JUMP) \
     /*
-     * Pops the top of stack value as 'i', if 'low <= i <= high',
-     * jumps to a 32-bit offset: offset is stored in the script's resumeOffsets
-     *                           list at index 'firstResumeIndex + (i - low)'
-     * jumps to a 32-bit offset: 'len' from the current bytecode otherwise
+     * Optimized switch-statement dispatch, used when all `case` labels are
+     * small integer constants.
      *
-     *   Category: Statements
-     *   Type: Switch Statement
-     *   Operands: int32_t len, int32_t low, int32_t high,
+     * If `low <= i <= high`, jump to the instruction at the offset given by
+     * `script->resumeOffsets()[firstResumeIndex + i - low]`, in bytes from the
+     * start of the current script's bytecode. Otherwise, jump to the
+     * instruction at `defaultOffset` from the current instruction. All of
+     * these offsets must be in range for the current script and must point to
+     * `JSOp::JumpTarget` instructions.
+     *
+     * The following inequalities must hold: `low <= high` and
+     * `firstResumeIndex + high - low < resumeOffsets().size()`.
+     *
+     *   Category: Control flow
+     *   Type: Jumps
+     *   Operands: int32_t defaultOffset, int32_t low, int32_t high,
      *             uint24_t firstResumeIndex
      *   Stack: i =>
-     *   len: len
      */ \
-    MACRO(JSOP_TABLESWITCH, "tableswitch", NULL, 16, 1, 0, JOF_TABLESWITCH|JOF_DETECTING) \
+    MACRO(TableSwitch, table_switch, NULL, 16, 1, 0, JOF_TABLESWITCH|JOF_DETECTING) \
     /*
-     * Pops the top of stack value as 'rval', stops interpretation of current
-     * script and returns 'rval'.
+     * Return `rval`.
      *
-     *   Category: Statements
-     *   Type: Function
+     * This must not be used in derived class constructors. Instead use
+     * `JSOp::SetRval`, `JSOp::CheckReturn`, and `JSOp::RetRval`.
+     *
+     *   Category: Control flow
+     *   Type: Return
      *   Operands:
      *   Stack: rval =>
      */ \
-    MACRO(JSOP_RETURN, "return", NULL, 1, 1, 0, JOF_BYTE) \
+    MACRO(Return, return_, NULL, 1, 1, 0, JOF_BYTE) \
     /*
-     * Pushes stack frame's 'rval' onto the stack.
+     * Push the current stack frame's `returnValue`. If no `JSOp::SetRval`
+     * instruction has been executed in this stack frame, this is `undefined`.
      *
-     *   Category: Statements
-     *   Type: Function
+     * Every stack frame has a `returnValue` slot, used by top-level scripts,
+     * generators, async functions, and derived class constructors. Plain
+     * functions usually use `JSOp::Return` instead.
+     *
+     *   Category: Control flow
+     *   Type: Return
      *   Operands:
      *   Stack: => rval
      */ \
-    MACRO(JSOP_GETRVAL, "getrval", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(GetRval, get_rval, NULL, 1, 0, 1, JOF_BYTE) \
     /*
-     * Pops the top of stack value as 'rval', sets the return value in stack
-     * frame as 'rval'.
+     * Store `rval` in the current stack frame's `returnValue` slot.
      *
-     *   Category: Statements
-     *   Type: Function
+     *   Category: Control flow
+     *   Type: Return
      *   Operands:
      *   Stack: rval =>
      */ \
-    MACRO(JSOP_SETRVAL, "setrval", NULL, 1, 1, 0, JOF_BYTE) \
+    MACRO(SetRval, set_rval, NULL, 1, 1, 0, JOF_BYTE) \
     /*
-     * Stops interpretation and returns value set by JSOP_SETRVAL. When not
-     * set, returns 'undefined'.
+     * Stop execution and return the current stack frame's `returnValue`. If no
+     * `JSOp::SetRval` instruction has been executed in this stack frame, this
+     * is `undefined`.
      *
-     * Also emitted at end of script so interpreter don't need to check if
-     * opcode is still in script range.
+     * Also emitted at end of every script so consumers don't need to worry
+     * about running off the end.
      *
-     *   Category: Statements
-     *   Type: Function
+     * If the current script is a derived class constructor, `returnValue` must
+     * be an object. The script can use `JSOp::CheckReturn` to ensure this.
+     *
+     *   Category: Control flow
+     *   Type: Return
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(JSOP_RETRVAL, "retrval", NULL, 1, 0, 0, JOF_BYTE) \
+    MACRO(RetRval, ret_rval, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * Check if a derived class constructor has a valid return value and 'this'
-     * value before it returns. If the return value is not an object, stores
-     * the 'this' value to the return value slot.
+     * Check the return value in a derived class constructor.
      *
-     *   Category: Variables and Scopes
-     *   Type: This
+     * -   If the current stack frame's `returnValue` is an object, do nothing.
+     *
+     * -   Otherwise, if the `returnValue` is undefined and `thisval` is an
+     *     object, store `thisval` in the `returnValue` slot.
+     *
+     * -   Otherwise, throw a TypeError.
+     *
+     * This is exactly what has to happen when a derived class constructor
+     * returns. `thisval` should be the current value of `this`, or
+     * `MagicValue(JS_UNINITIALIZED_LEXICAL)` if `this` is uninitialized.
+     *
+     * Implements: [The [[Construct]] internal method of JS functions][1],
+     * steps 13 and 15.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-ecmascript-function-objects-construct-argumentslist-newtarget
+     *
+     *   Category: Control flow
+     *   Type: Return
      *   Operands:
-     *   Stack: this =>
+     *   Stack: thisval =>
      */ \
-    MACRO(JSOP_CHECKRETURN, "checkreturn", NULL, 1, 1, 0, JOF_BYTE) \
+    MACRO(CheckReturn, check_return, NULL, 1, 1, 0, JOF_BYTE) \
     /*
-     * Pops the top of stack value as 'v', sets pending exception as 'v', then
-     * raises error.
+     * Throw `exc`. (ノಠ益ಠ)ノ彡┴──┴
      *
-     *   Category: Statements
-     *   Type: Exception Handling
+     * This sets the pending exception to `exc` and jumps to error-handling
+     * code. If we're in a `try` block, error handling adjusts the stack and
+     * environment chain and resumes execution at the top of the `catch` or
+     * `finally` block. Otherwise it starts unwinding the stack.
+     *
+     * Implements: [*ThrowStatement* Evaluation][1], step 3.
+     *
+     * This is also used in for-of loops. If the body of the loop throws an
+     * exception, we catch it, close the iterator, then use `JSOp::Throw` to
+     * rethrow.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-throw-statement-runtime-semantics-evaluation
+     *
+     *   Category: Control flow
+     *   Type: Exceptions
      *   Operands:
-     *   Stack: v =>
+     *   Stack: exc =>
      */ \
-    MACRO(JSOP_THROW, js_throw_str, NULL, 1, 1, 0, JOF_BYTE) \
+    MACRO(Throw, throw_, NULL, 1, 1, 0, JOF_BYTE) \
     /*
-     * Sometimes we know when emitting that an operation will always throw.
+     * Create and throw an Error object.
      *
-     * Throws the indicated JSMSG.
+     * Sometimes we know at emit time that an operation always throws. For
+     * example, `delete super.prop;` is allowed in methods, but always throws a
+     * ReferenceError.
      *
-     *   Category: Statements
-     *   Type: Exception Handling
+     * `msgNumber` must be one of the error codes listed in js/src/js.msg; it
+     * determines the `.message` and [[Prototype]] of the new Error object. The
+     * number of arguments in the error message must be 0.
+     *
+     *   Category: Control flow
+     *   Type: Exceptions
      *   Operands: uint16_t msgNumber
      *   Stack: =>
      */ \
-    MACRO(JSOP_THROWMSG, "throwmsg", NULL, 3, 0, 0, JOF_UINT16) \
+    MACRO(ThrowMsg, throw_msg, NULL, 3, 0, 0, JOF_UINT16) \
     /*
-     * Throws a runtime TypeError for invalid assignment to 'const'. The
-     * environment coordinate is used for better error messages.
+     * Throw a TypeError for invalid assignment to a `const`. The environment
+     * coordinate is used to get the variable name for the error message.
      *
-     *   Category: Variables and Scopes
-     *   Type: Aliased Variables
+     *   Category: Control flow
+     *   Type: Exceptions
      *   Operands: uint8_t hops, uint24_t slot
      *   Stack: v => v
      */ \
-    MACRO(JSOP_THROWSETALIASEDCONST, "throwsetaliasedconst", NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_DETECTING) \
+    MACRO(ThrowSetAliasedConst, throw_set_aliased_const, NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_DETECTING) \
     /*
-     * Throws a runtime TypeError for invalid assignment to the callee in a
-     * named lambda, which is always a 'const' binding. This is a different
-     * bytecode than JSOP_SETCONST because the named lambda callee, if not
-     * closed over, does not have a frame slot to look up the name with for the
-     * error message.
+     * Throw a TypeError for invalid assignment to the callee binding in a named
+     * lambda, which is always a `const` binding. This is a different bytecode
+     * than `JSOp::ThrowSetConst` because the named lambda callee, if not closed
+     * over, does not have a frame slot to look up the name with for the error
+     * message.
      *
-     *   Category: Variables and Scopes
-     *   Type: Local Variables
+     *   Category: Control flow
+     *   Type: Exceptions
      *   Operands:
      *   Stack: v => v
      */ \
-    MACRO(JSOP_THROWSETCALLEE, "throwsetcallee", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(ThrowSetCallee, throw_set_callee, NULL, 1, 1, 1, JOF_BYTE) \
     /*
-     * Throws a runtime TypeError for invalid assignment to 'const'. The
-     * localno is used for better error messages.
+     * Throws a runtime TypeError for invalid assignment to an optimized
+     * `const` binding. `localno` is used to get the variable name for the
+     * error message.
      *
-     *   Category: Variables and Scopes
-     *   Type: Local Variables
+     *   Category: Control flow
+     *   Type: Exceptions
      *   Operands: uint24_t localno
      *   Stack: v => v
      */ \
-    MACRO(JSOP_THROWSETCONST, "throwsetconst", NULL, 4, 1, 1, JOF_LOCAL|JOF_NAME|JOF_DETECTING) \
+    MACRO(ThrowSetConst, throw_set_const, NULL, 4, 1, 1, JOF_LOCAL|JOF_NAME|JOF_DETECTING) \
     /*
-     * This no-op appears at the top of the bytecode for a 'TryStatement'.
+     * No-op instruction that marks the top of the bytecode for a
+     * *TryStatement*.
      *
-     * The jumpAtEndOffset operand is the offset (relative to the current op) of
-     * the JSOP_GOTO at the end of the try-block body. This is used by bytecode
-     * analysis and JIT compilation.
+     * The `jumpAtEndOffset` operand is the offset (relative to the current op)
+     * of the `JSOp::Goto` at the end of the try-block body. This is used by
+     * bytecode analysis and JIT compilation.
      *
      * Location information for catch/finally blocks is stored in a side table,
-     * 'script->trynotes()'.
+     * `script->trynotes()`.
      *
-     *   Category: Statements
-     *   Type: Exception Handling
+     *   Category: Control flow
+     *   Type: Exceptions
      *   Operands: int32_t jumpAtEndOffset
      *   Stack: =>
      */ \
-    MACRO(JSOP_TRY, "try", NULL, 5, 0, 0, JOF_CODE_OFFSET) \
+    MACRO(Try, try_, NULL, 5, 0, 0, JOF_CODE_OFFSET) \
     /*
-     * No-op used by the exception unwinder to determine the correct
-     * environment to unwind to when performing IteratorClose due to
+     * No-op instruction used by the exception unwinder to determine the
+     * correct environment to unwind to when performing IteratorClose due to
      * destructuring.
      *
-     *   Category: Other
+     *   Category: Control flow
+     *   Type: Exceptions
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(JSOP_TRY_DESTRUCTURING, "try-destructuring", NULL, 1, 0, 0, JOF_BYTE) \
+    MACRO(TryDestructuring, try_destructuring, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * Pushes the current pending exception onto the stack and clears the
-     * pending exception. This is only emitted at the beginning of code for a
-     * catch-block, so it is known that an exception is pending. It is used to
-     * implement catch-blocks and 'yield*'.
+     * Push and clear the pending exception. ┬──┬◡ﾉ(° -°ﾉ)
      *
-     *   Category: Statements
-     *   Type: Exception Handling
+     * This must be used only in the fixed sequence of instructions following a
+     * `JSTRY_CATCH` span (see "Bytecode Invariants" above), as that's the only
+     * way instructions would run with an exception pending.
+     *
+     * Used to implement catch-blocks, including the implicit ones generated as
+     * part of for-of iteration.
+     *
+     *   Category: Control flow
+     *   Type: Exceptions
      *   Operands:
      *   Stack: => exception
      */ \
-    MACRO(JSOP_EXCEPTION, "exception", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(Exception, exception, NULL, 1, 0, 1, JOF_BYTE) \
     /*
-     * Pushes a resumeIndex (stored as 24-bit operand) on the stack.
+     * Push `resumeIndex`.
      *
-     * Resume indexes are used for ops like JSOP_YIELD and JSOP_GOSUB.
-     * JSScript and BaselineScript have lists of resume entries (one for each
-     * resumeIndex); this lets the JIT resume at these ops from JIT code.
+     * This value must be used only by `JSOp::Gosub`, `JSOp::Finally`, and `JSOp::Retsub`.
      *
-     *   Category: Other
+     *   Category: Control flow
+     *   Type: Exceptions
      *   Operands: uint24_t resumeIndex
      *   Stack: => resumeIndex
      */ \
-    MACRO(JSOP_RESUMEINDEX, "resume-index", NULL, 4, 0, 1, JOF_RESUMEINDEX) \
+    MACRO(ResumeIndex, resume_index, NULL, 4, 0, 1, JOF_RESUMEINDEX) \
     /*
-     * This opcode is used for entering a 'finally' block. Jumps to a 32-bit
-     * offset from the current pc.
+     * Jump to the start of a `finally` block.
      *
-     * Note: this op doesn't actually push/pop any values, but it has a use
-     * count of 2 (for the 'false' + resumeIndex values pushed by preceding
-     * bytecode ops) because the 'finally' entry point does not expect these
-     * values on the stack. See also JSOP_FINALLY (it has a def count of 2).
+     * `JSOp::Gosub` is unusual: if the finally block finishes normally, it will
+     * reach the `JSOp::Retsub` instruction at the end, and control then
+     * "returns" to the `JSOp::Gosub` and picks up at the next instruction, like
+     * a function call but within a single script and stack frame. (It's named
+     * after the thing in BASIC.)
      *
-     * When the execution resumes from 'finally' block, those stack values are
-     * popped.
+     * We need this because a `try` block can terminate in several different
+     * ways: control can flow off the end, return, throw an exception, `break`
+     * with or without a label, or `continue`. Exceptions are handled
+     * separately; but all those success paths are written as bytecode, and
+     * each one needs to run the `finally` block before continuing with
+     * whatever they were doing. They use `JSOp::Gosub` for this. It is thus
+     * normal for multiple `Gosub` instructions in a script to target the same
+     * `finally` block.
      *
-     *   Category: Statements
-     *   Type: Exception Handling
-     *   Operands: int32_t offset
+     * Rules: `forwardOffset` must be positive and must target a
+     * `JSOp::JumpTarget` instruction followed by `JSOp::Finally`. The
+     * instruction immediately following `JSOp::Gosub` in the script must be a
+     * `JSOp::JumpTarget` instruction, and `resumeIndex` must be the index into
+     * `script->resumeOffsets()` that points to that instruction.
+     *
+     * Note: This op doesn't actually push or pop any values. Its use count of
+     * 2 is a lie to make the stack depth math work for this very odd control
+     * flow instruction.
+     *
+     * `JSOp::Gosub` is considered to have two "successors": the target of
+     * `offset`, which is the actual next instruction to run; and the
+     * instruction immediately following `JSOp::Gosub`, even though it won't run
+     * until later. We define the successor graph this way in order to support
+     * knowing the stack depth at that instruction without first reading the
+     * whole `finally` block.
+     *
+     * The stack depth at that instruction is, as it happens, the current stack
+     * depth minus 2. So this instruction gets nuses == 2.
+     *
+     * Unfortunately there is a price to be paid in horribleness. When
+     * `JSOp::Gosub` runs, it leaves two values on the stack that the stack
+     * depth math doesn't know about. It jumps to the finally block, where
+     * `JSOp::Finally` again does nothing to the stack, but with a bogus def
+     * count of 2, restoring balance to the accounting. If `JSOp::Retsub` is
+     * reached, it pops the two values (for real this time) and control
+     * resumes at the instruction that follows JSOp::Gosub in memory.
+     *
+     *   Category: Control flow
+     *   Type: Exceptions
+     *   Operands: int32_t forwardOffset
      *   Stack: false, resumeIndex =>
      */ \
-    MACRO(JSOP_GOSUB, "gosub", NULL, 5, 2, 0, JOF_JUMP) \
+    MACRO(Gosub, gosub, NULL, 5, 2, 0, JOF_JUMP) \
     /*
-     * This opcode has a def count of 2, but these values are already on the
-     * stack (they're pushed by JSOP_GOSUB).
+     * No-op instruction that marks the start of a `finally` block. This has a
+     * def count of 2, but the values are already on the stack (they're
+     * actually left on the stack by `JSOp::Gosub`).
      *
-     *   Category: Statements
-     *   Type: Exception Handling
+     * These two values must not be used except by `JSOp::Retsub`.
+     *
+     *   Category: Control flow
+     *   Type: Exceptions
      *   Operands:
      *   Stack: => false, resumeIndex
      */ \
-    MACRO(JSOP_FINALLY, "finally", NULL, 1, 0, 2, JOF_BYTE) \
+    MACRO(Finally, finally, NULL, 1, 0, 2, JOF_BYTE) \
     /*
-     * This opcode is used for returning from a 'finally' block.
+     * Jump back to the next instruction, or rethrow an exception, at the end
+     * of a `finally` block. See `JSOp::Gosub` for the explanation.
      *
-     * Pops the top two values on the stack as 'rval' and 'lval'. Then:
-     * - If 'lval' is true, throws 'rval'.
-     * - If 'lval' is false, jumps to the resumeIndex stored in 'lval'.
+     * If `throwing` is true, throw `v`. Otherwise, `v` must be a resume index;
+     * jump to the corresponding offset within the script.
      *
-     *   Category: Statements
-     *   Type: Exception Handling
+     * The two values popped must be the ones notionally pushed by
+     * `JSOp::Finally`.
+     *
+     *   Category: Control flow
+     *   Type: Exceptions
      *   Operands:
-     *   Stack: lval, rval =>
+     *   Stack: throwing, v =>
      */ \
-    MACRO(JSOP_RETSUB, "retsub", NULL, 1, 2, 0, JOF_BYTE) \
+    MACRO(Retsub, retsub, NULL, 1, 2, 0, JOF_BYTE) \
     /*
-     * Pushes a JS_UNINITIALIZED_LEXICAL value onto the stack, representing an
-     * uninitialized lexical binding.
+     * Push `MagicValue(JS_UNINITIALIZED_LEXICAL)`, a magic value used to mark
+     * a binding as uninitialized.
      *
-     * This opcode is used with the JSOP_INITLEXICAL opcode.
+     * This magic value must be used only by `JSOp::Init*Lexical`.
      *
-     *   Category: Literals
-     *   Type: Constants
+     *   Category: Variables and scopes
+     *   Type: Initialization
      *   Operands:
      *   Stack: => uninitialized
      */ \
-    MACRO(JSOP_UNINITIALIZED, "uninitialized", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(Uninitialized, uninitialized, NULL, 1, 0, 1, JOF_BYTE) \
     /*
-     * Initializes an uninitialized local lexical binding with the top of stack
-     * value.
+     * Initialize an optimized local lexical binding; or mark it as
+     * uninitialized.
      *
-     *   Category: Variables and Scopes
-     *   Type: Local Variables
+     * This stores the value `v` in the fixed slot `localno` in the current
+     * stack frame. If `v` is the magic value produced by `JSOp::Uninitialized`,
+     * this marks the binding as uninitialized. Otherwise this initializes the
+     * binding with value `v`.
+     *
+     * Implements: [CreateMutableBinding][1] step 3, substep "record that it is
+     * uninitialized", and [InitializeBinding][2], for optimized locals. (Note:
+     * this is how `const` bindings are initialized.)
+     *
+     * [1]: https://tc39.es/ecma262/#sec-declarative-environment-records-createmutablebinding-n-d
+     * [2]: https://tc39.es/ecma262/#sec-declarative-environment-records-initializebinding-n-v
+     *
+     *   Category: Variables and scopes
+     *   Type: Initialization
      *   Operands: uint24_t localno
      *   Stack: v => v
      */ \
-    MACRO(JSOP_INITLEXICAL, "initlexical", NULL, 4, 1, 1, JOF_LOCAL|JOF_NAME|JOF_DETECTING) \
+    MACRO(InitLexical, init_lexical, NULL, 4, 1, 1, JOF_LOCAL|JOF_NAME|JOF_DETECTING) \
     /*
-     * Initializes an uninitialized global lexical binding with the top of
-     * stack value.
+     * Initialize a global lexical binding; or mark it as uninitialized.
      *
-     *   Category: Variables and Scopes
-     *   Type: Free Variables
+     * Like `JSOp::InitLexical` but for global lexicals.
+     *
+     *   Category: Variables and scopes
+     *   Type: Initialization
      *   Operands: uint32_t nameIndex
      *   Stack: val => val
      */ \
-    MACRO(JSOP_INITGLEXICAL, "initglexical", NULL, 5, 1, 1, JOF_ATOM|JOF_NAME|JOF_PROPINIT|JOF_GNAME|JOF_IC) \
+    MACRO(InitGLexical, init_g_lexical, NULL, 5, 1, 1, JOF_ATOM|JOF_NAME|JOF_PROPINIT|JOF_GNAME|JOF_IC) \
     /*
-     * Initializes an uninitialized aliased lexical binding with the top of
-     * stack value.
+     * Initialize an aliased lexical binding; or mark it as uninitialized.
      *
-     *   Category: Variables and Scopes
-     *   Type: Aliased Variables
+     * Like `JSOp::InitLexical` but for aliased bindings.
+     *
+     * Note: There is no even-less-optimized `InitName` instruction because JS
+     * doesn't need it. We always know statically which binding we're
+     * initializing.
+     *
+     * `hops` is usually 0, but in `function f(a=eval("var b;")) { }`, the
+     * argument `a` is initialized from inside a nested scope, so `hops == 1`.
+     *
+     *   Category: Variables and scopes
+     *   Type: Initialization
      *   Operands: uint8_t hops, uint24_t slot
      *   Stack: v => v
      */ \
-    MACRO(JSOP_INITALIASEDLEXICAL, "initaliasedlexical", NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_PROPINIT|JOF_DETECTING) \
+    MACRO(InitAliasedLexical, init_aliased_lexical, NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_PROPINIT|JOF_DETECTING) \
     /*
-     * Checks if the value of the local variable is the
-     * JS_UNINITIALIZED_LEXICAL magic, throwing an error if so.
+     * Throw a ReferenceError if the optimized local `localno` is
+     * uninitialized.
      *
-     *   Category: Variables and Scopes
-     *   Type: Local Variables
+     * `localno` must be the number of a fixed slot in the current stack frame
+     * previously initialized or marked uninitialized using `JSOp::InitLexical`.
+     *
+     * Typically used before `JSOp::GetLocal` or `JSOp::SetLocal`.
+     *
+     * Implements: [GetBindingValue][1] step 3 and [SetMutableBinding][2] step
+     * 4 for declarative Environment Records.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-declarative-environment-records-getbindingvalue-n-s
+     * [2]: https://tc39.es/ecma262/#sec-declarative-environment-records-setmutablebinding-n-v-s
+     *
+     *   Category: Variables and scopes
+     *   Type: Initialization
      *   Operands: uint24_t localno
      *   Stack: =>
      */ \
-    MACRO(JSOP_CHECKLEXICAL, "checklexical", NULL, 4, 0, 0, JOF_LOCAL|JOF_NAME) \
+    MACRO(CheckLexical, check_lexical, NULL, 4, 0, 0, JOF_LOCAL|JOF_NAME) \
     /*
-     * Checks if the value of the aliased variable is the
-     * JS_UNINITIALIZED_LEXICAL magic, throwing an error if so.
+     * Like `JSOp::CheckLexical` but for aliased bindings.
      *
-     *   Category: Variables and Scopes
-     *   Type: Aliased Variables
+     * Note: There are no `CheckName` or `CheckGName` instructions because
+     * they're unnecessary. `JSOp::{Get,Set}{Name,GName}` all check for
+     * uninitialized lexicals and throw if needed.
+     *
+     *   Category: Variables and scopes
+     *   Type: Initialization
      *   Operands: uint8_t hops, uint24_t slot
      *   Stack: =>
      */ \
-    MACRO(JSOP_CHECKALIASEDLEXICAL, "checkaliasedlexical", NULL, 5, 0, 0, JOF_ENVCOORD|JOF_NAME) \
+    MACRO(CheckAliasedLexical, check_aliased_lexical, NULL, 5, 0, 0, JOF_ENVCOORD|JOF_NAME) \
     /*
-     * Throw if the value on top of the stack is the TDZ MagicValue. Used in
-     * derived class constructors.
+     * Throw a ReferenceError if the value on top of the stack is
+     * `MagicValue(JS_UNINITIALIZED_LEXICAL)`. Used in derived class
+     * constructors to check `this` (which needs to be initialized before use,
+     * by calling `super()`).
      *
-     *   Category: Variables and Scopes
-     *   Type: This
+     * Implements: [GetThisBinding][1] step 3.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-function-environment-records-getthisbinding
+     *
+     *   Category: Variables and scopes
+     *   Type: Initialization
      *   Operands:
      *   Stack: this => this
      */ \
-    MACRO(JSOP_CHECKTHIS, "checkthis", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(CheckThis, check_this, NULL, 1, 1, 1, JOF_BYTE) \
     /*
-     * Pushes the global environment onto the stack if the script doesn't have
-     * a non-syntactic global scope. Otherwise will act like JSOP_BINDNAME.
+     * Push the global environment onto the stack, unless the script has a
+     * non-syntactic global scope. In that case, this acts like JSOp::BindName.
      *
-     * 'nameIndex' is only used when acting like JSOP_BINDNAME.
+     * `nameIndex` is only used when acting like JSOp::BindName.
      *
-     *   Category: Variables and Scopes
-     *   Type: Free Variables
+     *   Category: Variables and scopes
+     *   Type: Looking up bindings
      *   Operands: uint32_t nameIndex
      *   Stack: => global
      */ \
-    MACRO(JSOP_BINDGNAME, "bindgname", NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_GNAME|JOF_IC) \
+    MACRO(BindGName, bind_g_name, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_GNAME|JOF_IC) \
     /*
-     * Looks up name on the environment chain and pushes the environment which
-     * contains the name onto the stack. If not found, pushes global lexical
-     * environment onto the stack.
+     * Look up a name on the environment chain and push the environment which
+     * contains a binding for that name. If no such binding exists, push the
+     * global lexical environment.
      *
-     *   Category: Variables and Scopes
-     *   Type: Variables
+     *   Category: Variables and scopes
+     *   Type: Looking up bindings
      *   Operands: uint32_t nameIndex
      *   Stack: => env
      */ \
-    MACRO(JSOP_BINDNAME, "bindname", NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_IC) \
+    MACRO(BindName, bind_name, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_IC) \
     /*
-     * Looks up name on the environment chain and pushes its value onto the
-     * stack.
+     * Find a binding on the environment chain and push its value.
      *
-     *   Category: Variables and Scopes
-     *   Type: Variables
+     * If the binding is an uninitialized lexical, throw a ReferenceError. If
+     * no such binding exists, throw a ReferenceError unless the next
+     * instruction is `JSOp::Typeof`, in which case push `undefined`.
+     *
+     * Implements: [ResolveBinding][1] followed by [GetValue][2]
+     * (adjusted hackily for `typeof`).
+     *
+     * This is the fallback `Get` instruction that handles all unoptimized
+     * cases. Optimized instructions follow.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-resolvebinding
+     * [2]: https://tc39.es/ecma262/#sec-getvalue
+     *
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
      *   Operands: uint32_t nameIndex
      *   Stack: => val
      */ \
-    MACRO(JSOP_GETNAME, "getname", NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_TYPESET|JOF_IC) \
+    MACRO(GetName, get_name, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_TYPESET|JOF_IC) \
     /*
-     * Looks up name on global environment and pushes its value onto the stack,
-     * unless the script has a non-syntactic global scope, in which case it
-     * acts just like JSOP_NAME.
+     * Find a global binding and push its value.
      *
-     * Free variable references that must either be found on the global or a
-     * ReferenceError.
+     * This searches the global lexical environment and, failing that, the
+     * global object. (Unlike most declarative environments, the global lexical
+     * environment can gain more bindings after compilation, possibly shadowing
+     * global object properties.)
      *
-     *   Category: Variables and Scopes
-     *   Type: Free Variables
+     * This is an optimized version of `JSOp::GetName` that skips all local
+     * scopes, for use when the name doesn't refer to any local binding.
+     * `NonSyntacticVariablesObject`s break this optimization, so if the
+     * current script has a non-syntactic global scope, this acts like
+     * `JSOp::GetName`.
+     *
+     * Like `JSOp::GetName`, this throws a ReferenceError if no such binding is
+     * found (unless the next instruction is `JSOp::Typeof`) or if the binding
+     * is an uninitialized lexical.
+     *
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
      *   Operands: uint32_t nameIndex
      *   Stack: => val
      */ \
-    MACRO(JSOP_GETGNAME, "getgname", NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_TYPESET|JOF_GNAME|JOF_IC) \
+    MACRO(GetGName, get_g_name, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_TYPESET|JOF_GNAME|JOF_IC) \
     /*
-     * Fast get op for function arguments and local variables.
+     * Push the value of an argument that is stored in the stack frame
+     * or in an `ArgumentsObject`.
      *
-     * Pushes 'arguments[argno]' onto the stack.
-     *
-     *   Category: Variables and Scopes
-     *   Type: Arguments
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
      *   Operands: uint16_t argno
      *   Stack: => arguments[argno]
      */ \
-    MACRO(JSOP_GETARG, "getarg", NULL, 3, 0, 1, JOF_QARG|JOF_NAME) \
+    MACRO(GetArg, get_arg, NULL, 3, 0, 1, JOF_QARG|JOF_NAME) \
     /*
-     * Pushes the value of local variable onto the stack.
+     * Push the value of an optimized local variable.
      *
-     *   Category: Variables and Scopes
-     *   Type: Local Variables
+     * If the variable is an uninitialized lexical, push
+     * `MagicValue(JS_UNINIITALIZED_LEXICAL)`.
+     *
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
      *   Operands: uint24_t localno
      *   Stack: => val
      */ \
-    MACRO(JSOP_GETLOCAL, "getlocal", NULL, 4, 0, 1, JOF_LOCAL|JOF_NAME) \
+    MACRO(GetLocal, get_local, NULL, 4, 0, 1, JOF_LOCAL|JOF_NAME) \
     /*
-     * Pushes aliased variable onto the stack.
+     * Push the value of an aliased binding.
      *
-     * An "aliased variable" is a var, let, or formal arg that is aliased.
-     * Sources of aliasing include: nested functions accessing the vars of an
-     * enclosing function, function statements that are conditionally executed,
-     * 'eval', 'with', and 'arguments'. All of these cases require creating a
-     * CallObject to own the aliased variable.
+     * Local bindings that aren't closed over or dynamically accessed are
+     * stored in stack slots. Global and `with` bindings are object properties.
+     * All other bindings are called "aliased" and stored in
+     * `EnvironmentObject`s.
      *
-     * An ALIASEDVAR opcode contains the following immediates:
-     *  uint8 hops: the number of environment objects to skip to find the
-     *               EnvironmentObject containing the variable being accessed
-     *  uint24 slot: the slot containing the variable in the EnvironmentObject
-     *               (this 'slot' does not include RESERVED_SLOTS).
+     * Where possible, `Aliased` instructions are used to access aliased
+     * bindings.  (There's no difference in meaning between `AliasedVar` and
+     * `AliasedLexical`.) Each of these instructions has operands `hops` and
+     * `slot` that encode an [`EnvironmentCoordinate`][1], directions to the
+     * binding from the current environment object.
      *
-     *   Category: Variables and Scopes
-     *   Type: Aliased Variables
+     * `hops` and `slot` must be valid for the current scope.
+     *
+     * `Aliased` instructions can't be used when there's a dynamic scope (due
+     * to non-strict `eval` or `with`) that might shadow the aliased binding.
+     *
+     * [1]: https://searchfox.org/mozilla-central/search?q=symbol:T_js%3A%3AEnvironmentCoordinate
+     *
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
      *   Operands: uint8_t hops, uint24_t slot
      *   Stack: => aliasedVar
      */ \
-    MACRO(JSOP_GETALIASEDVAR, "getaliasedvar", NULL, 5, 0, 1, JOF_ENVCOORD|JOF_NAME|JOF_TYPESET|JOF_IC) \
+    MACRO(GetAliasedVar, get_aliased_var, NULL, 5, 0, 1, JOF_ENVCOORD|JOF_NAME|JOF_TYPESET|JOF_IC) \
     /*
-     * Gets the value of a module import by name and pushes it onto the stack.
+     * Get the value of a module import by name and pushes it onto the stack.
      *
-     *   Category: Variables and Scopes
-     *   Type: Variables
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
      *   Operands: uint32_t nameIndex
      *   Stack: => val
      */ \
-    MACRO(JSOP_GETIMPORT, "getimport", NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_TYPESET|JOF_IC) \
+    MACRO(GetImport, get_import, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_TYPESET|JOF_IC) \
     /*
-     * Pops an environment, gets the value of a bound name on it. If the name
-     * is not bound to the environment, throw a ReferenceError. Used in
-     * conjunction with BINDNAME.
+     * Get the value of a binding from the environment `env`. If the name is
+     * not bound in `env`, throw a ReferenceError.
      *
-     *   Category: Literals
-     *   Type: Object
+     * `env` must be an environment currently on the environment chain, pushed
+     * by `JSOp::BindName`.
+     *
+     * Note: `JSOp::BindName` and `JSOp::GetBoundName` are the two halves of the
+     * `JSOp::GetName` operation: finding and reading a variable. This
+     * decomposed version is needed to implement the compound assignment and
+     * increment/decrement operators, which get and then set a variable. The
+     * spec says the variable lookup is done only once. If we did the lookup
+     * twice, there would be observable bugs, thanks to dynamic scoping. We
+     * could set the wrong variable or call proxy traps incorrectly.
+     *
+     * Implements: [GetValue][1] steps 4 and 6.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-getvalue
+     *
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
      *   Operands: uint32_t nameIndex
      *   Stack: env => v
      */ \
-    MACRO(JSOP_GETBOUNDNAME, "getboundname", NULL, 5, 1, 1, JOF_ATOM|JOF_NAME|JOF_TYPESET|JOF_IC) \
+    MACRO(GetBoundName, get_bound_name, NULL, 5, 1, 1, JOF_ATOM|JOF_NAME|JOF_TYPESET|JOF_IC) \
     /*
-     * Pushes the value of the intrinsic onto the stack.
+     * Push the value of an intrinsic onto the stack.
      *
-     * Intrinsic names are emitted instead of JSOP_*NAME ops when the
-     * 'CompileOptions' flag 'selfHostingMode' is set.
+     * Non-standard. Intrinsics are slots in the intrinsics holder object (see
+     * `GlobalObject::getIntrinsicsHolder`), which is used in lieu of global
+     * bindings in self-hosting code.
      *
-     * They are used in self-hosted code to access other self-hosted values and
-     * intrinsic functions the runtime doesn't give client JS code access to.
-     *
-     *   Category: Variables and Scopes
-     *   Type: Intrinsics
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
      *   Operands: uint32_t nameIndex
      *   Stack: => intrinsic[name]
      */ \
-    MACRO(JSOP_GETINTRINSIC, "getintrinsic", NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_TYPESET|JOF_IC) \
+    MACRO(GetIntrinsic, get_intrinsic, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_TYPESET|JOF_IC) \
     /*
-     * Pushes current callee onto the stack.
+     * Pushes the currently executing function onto the stack.
      *
-     * Used for named function expression self-naming, if lightweight.
+     * The current script must be a function script.
      *
-     *   Category: Variables and Scopes
-     *   Type: Arguments
+     * Used to implement `super`. This is also used sometimes as a minor
+     * optimization when a named function expression refers to itself by name:
+     *
+     *     f = function fac(n) {  ... fac(n - 1) ... };
+     *
+     * This lets us optimize away a lexical environment that contains only the
+     * binding for `fac`, unless it's otherwise observable (via `with`, `eval`,
+     * or a nested closure).
+     *
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
      *   Operands:
      *   Stack: => callee
      */ \
-    MACRO(JSOP_CALLEE, "callee", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(Callee, callee, NULL, 1, 0, 1, JOF_BYTE) \
     /*
      * Load the callee stored in a CallObject on the environment chain. The
      * numHops operand is the number of environment objects to skip on the
      * environment chain.
      *
-     *   Category: Variables and Scopes
-     *   Type: Arguments
+     *   Category: Variables and scopes
+     *   Type: Getting binding values
      *   Operands: uint8_t numHops
      *   Stack: => callee
      */ \
-    MACRO(JSOP_ENVCALLEE, "envcallee", NULL, 2, 0, 1, JOF_UINT8) \
+    MACRO(EnvCallee, env_callee, NULL, 2, 0, 1, JOF_UINT8) \
     /*
-     * Pops an environment and value from the stack, assigns value to the given
-     * name, and pushes the value back on the stack
+     * Assign `val` to the binding in `env` with the name given by `nameIndex`.
+     * Throw a ReferenceError if the binding is an uninitialized lexical.
+     * This can call setters and/or proxy traps.
      *
-     *   Category: Variables and Scopes
-     *   Type: Variables
-     *   Operands: uint32_t nameIndex
-     *   Stack: env, val => val
-     */ \
-    MACRO(JSOP_SETNAME, "setname", NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY|JOF_IC) \
-    /*
-     * Assign `val` to the binding in `env` with the name given by `nameIndex`,
-     * then push `val` back onto the stack. If assignment failed, throw a
-     * TypeError.
+     * `env` must be an environment currently on the environment chain,
+     * pushed by `JSOp::BindName`.
      *
-     * `env` must be an environment currently on the environment chain.
+     * This is the fallback `Set` instruction that handles all unoptimized
+     * cases. Optimized instructions follow.
      *
-     * Implements: [PutValue][1] step 7 for strict mode code.
+     * Implements: [PutValue][1] steps 5 and 7 for unoptimized bindings.
+     *
+     * Note: `JSOp::BindName` and `JSOp::SetName` are the two halves of simple
+     * assignment: finding and setting a variable. They are two separate
+     * instructions because, per spec, the "finding" part happens before
+     * evaluating the right-hand side of the assignment, and the "setting" part
+     * after. Optimized cases don't need a `Bind` instruction because the
+     * "finding" is done statically.
      *
      * [1]: https://tc39.es/ecma262/#sec-putvalue
      *
-     *   Category: Variables and Scopes
-     *   Type: Variables
+     *   Category: Variables and scopes
+     *   Type: Setting binding values
      *   Operands: uint32_t nameIndex
      *   Stack: env, val => val
      */ \
-    MACRO(JSOP_STRICTSETNAME, "strict-setname", NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT|JOF_IC) \
+    MACRO(SetName, set_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSLOPPY|JOF_IC) \
     /*
-     * Pops the top two values on the stack as 'val' and 'env', sets property
-     * of 'env' as 'val' and pushes 'val' back on the stack.
+     * Like `JSOp::SetName`, but throw a TypeError if there is no binding for
+     * the specified name in `env`, or if the binding is immutable (a `const`
+     * or read-only property).
      *
-     * 'env' should be the global lexical environment unless the script has a
-     * non-syntactic global scope, in which case acts like JSOP_SETNAME.
+     * Implements: [PutValue][1] steps 5 and 7 for strict mode code.
      *
-     *   Category: Variables and Scopes
-     *   Type: Free Variables
+     * [1]: https://tc39.es/ecma262/#sec-putvalue
+     *
+     *   Category: Variables and scopes
+     *   Type: Setting binding values
      *   Operands: uint32_t nameIndex
      *   Stack: env, val => val
      */ \
-    MACRO(JSOP_SETGNAME, "setgname", NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_GNAME|JOF_CHECKSLOPPY|JOF_IC) \
+    MACRO(StrictSetName, strict_set_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_CHECKSTRICT|JOF_IC) \
     /*
-     * Pops the top two values on the stack as 'val' and 'env', sets property
-     * of 'env' as 'val' and pushes 'val' back on the stack. Throws a TypeError
-     * if the set fails, per strict mode semantics.
+     * Like `JSOp::SetName`, but for assigning to globals. `env` must be an
+     * environment pushed by `JSOp::BindGName`.
      *
-     * 'env' should be the global lexical environment unless the script has a
-     * non-syntactic global scope, in which case acts like JSOP_STRICTSETNAME.
-     *
-     *   Category: Variables and Scopes
-     *   Type: Free Variables
+     *   Category: Variables and scopes
+     *   Type: Setting binding values
      *   Operands: uint32_t nameIndex
      *   Stack: env, val => val
      */ \
-    MACRO(JSOP_STRICTSETGNAME, "strict-setgname", NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_GNAME|JOF_CHECKSTRICT|JOF_IC) \
+    MACRO(SetGName, set_g_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_GNAME|JOF_CHECKSLOPPY|JOF_IC) \
     /*
-     * Fast set op for function arguments and local variables.
+     * Like `JSOp::StrictSetGName`, but for assigning to globals. `env` must be
+     * an environment pushed by `JSOp::BindGName`.
      *
-     * Sets 'arguments[argno]' as the top of stack value.
+     *   Category: Variables and scopes
+     *   Type: Setting binding values
+     *   Operands: uint32_t nameIndex
+     *   Stack: env, val => val
+     */ \
+    MACRO(StrictSetGName, strict_set_g_name, NULL, 5, 2, 1, JOF_ATOM|JOF_NAME|JOF_PROPSET|JOF_DETECTING|JOF_GNAME|JOF_CHECKSTRICT|JOF_IC) \
+    /*
+     * Assign `val` to an argument binding that's stored in the stack frame or
+     * in an `ArgumentsObject`.
      *
-     *   Category: Variables and Scopes
-     *   Type: Arguments
+     *   Category: Variables and scopes
+     *   Type: Setting binding values
      *   Operands: uint16_t argno
-     *   Stack: v => v
+     *   Stack: val => val
      */ \
-    MACRO(JSOP_SETARG, "setarg", NULL, 3, 1, 1, JOF_QARG|JOF_NAME) \
+    MACRO(SetArg, set_arg, NULL, 3, 1, 1, JOF_QARG|JOF_NAME) \
     /*
-     * Stores the top stack value to the given local.
+     * Assign to an optimized local binding.
      *
-     *   Category: Variables and Scopes
-     *   Type: Local Variables
+     *   Category: Variables and scopes
+     *   Type: Setting binding values
      *   Operands: uint24_t localno
      *   Stack: v => v
      */ \
-    MACRO(JSOP_SETLOCAL, "setlocal", NULL, 4, 1, 1, JOF_LOCAL|JOF_NAME|JOF_DETECTING) \
+    MACRO(SetLocal, set_local, NULL, 4, 1, 1, JOF_LOCAL|JOF_NAME|JOF_DETECTING) \
     /*
-     * Sets aliased variable as the top of stack value.
+     * Assign to an aliased binding.
      *
-     *   Category: Variables and Scopes
-     *   Type: Aliased Variables
+     * Implements: [SetMutableBinding for declarative Environment Records][1],
+     * in certain cases where it's known that the binding exists, is mutable,
+     * and has been initialized.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-declarative-environment-records-setmutablebinding-n-v-s
+     *
+     *   Category: Variables and scopes
+     *   Type: Setting binding values
      *   Operands: uint8_t hops, uint24_t slot
-     *   Stack: v => v
+     *   Stack: val => val
      */ \
-    MACRO(JSOP_SETALIASEDVAR, "setaliasedvar", NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_PROPSET|JOF_DETECTING) \
+    MACRO(SetAliasedVar, set_aliased_var, NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_PROPSET|JOF_DETECTING) \
     /*
-     * Stores the top stack value in the specified intrinsic.
+     * Assign to an intrinsic.
      *
-     *   Category: Variables and Scopes
-     *   Type: Intrinsics
+     * Nonstandard. Intrinsics are used in lieu of global bindings in self-
+     * hosted code. The value is actually stored in the intrinsics holder
+     * object, `GlobalObject::getIntrinsicsHolder`. (Self-hosted code doesn't
+     * have many global `var`s, but it has many `function`s.)
+     *
+     *   Category: Variables and scopes
+     *   Type: Setting binding values
      *   Operands: uint32_t nameIndex
      *   Stack: val => val
      */ \
-    MACRO(JSOP_SETINTRINSIC, "setintrinsic", NULL, 5, 1, 1, JOF_ATOM|JOF_NAME|JOF_DETECTING) \
+    MACRO(SetIntrinsic, set_intrinsic, NULL, 5, 1, 1, JOF_ATOM|JOF_NAME|JOF_DETECTING) \
     /*
-     * Pushes lexical environment onto the env chain.
+     * Push a lexical environment onto the environment chain.
      *
-     *   Category: Variables and Scopes
-     *   Type: Block-local Scope
+     * The `LexicalScope` indicated by `lexicalScopeIndex` determines the shape
+     * of the new `LexicalEnvironmentObject`. All bindings in the new
+     * environment are marked as uninitialized.
+     *
+     * Implements: [Evaluation of *Block*][1], steps 1-4.
+     *
+     * #### Fine print for environment chain instructions
+     *
+     * The following rules for `JSOp::{Push,Pop}LexicalEnv` also apply to
+     * `JSOp::{Push,Pop}VarEnv` and `JSOp::{Enter,Leave}With`.
+     *
+     * Each `JSOp::PopLexicalEnv` instruction matches a particular
+     * `JSOp::PushLexicalEnv` instruction in the same script and must have the
+     * same scope and stack depth as the instruction immediately after that
+     * `PushLexicalEnv`.
+     *
+     * `JSOp::PushLexicalEnv` enters a scope that extends to some set of
+     * instructions in the script. Code must not jump into or out of this
+     * region: control can enter only by executing `PushLexicalEnv` and can
+     * exit only by executing a `PopLexicalEnv` or by exception unwinding. (A
+     * `JSOp::PopLexicalEnv` is always emitted at the end of the block, and
+     * extra copies are emitted on "exit slides", where a `break`, `continue`,
+     * or `return` statement exits the scope.)
+     *
+     * The script's `JSScript::scopeNotes()` must identify exactly which
+     * instructions begin executing in this scope. Typically this means a
+     * single entry marking the contiguous chunk of bytecode from the
+     * instruction after `JSOp::PushLexicalEnv` to `JSOp::PopLexicalEnv`
+     * (inclusive); but if that range contains any instructions on exit slides,
+     * after a `JSOp::PopLexicalEnv`, then those must be correctly noted as
+     * *outside* the scope.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-block-runtime-semantics-evaluation
+     *
+     *   Category: Variables and scopes
+     *   Type: Entering and leaving environments
      *   Operands: uint32_t lexicalScopeIndex
      *   Stack: =>
      */ \
-    MACRO(JSOP_PUSHLEXICALENV, "pushlexicalenv", NULL, 5, 0, 0, JOF_SCOPE) \
+    MACRO(PushLexicalEnv, push_lexical_env, NULL, 5, 0, 0, JOF_SCOPE) \
     /*
-     * Pops lexical environment from the env chain.
+     * Pop a lexical environment from the environment chain.
      *
-     *   Category: Variables and Scopes
-     *   Type: Block-local Scope
+     * See `JSOp::PushLexicalEnv` for the fine print.
+     *
+     *   Category: Variables and scopes
+     *   Type: Entering and leaving environments
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(JSOP_POPLEXICALENV, "poplexicalenv", NULL, 1, 0, 0, JOF_BYTE) \
+    MACRO(PopLexicalEnv, pop_lexical_env, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * The opcode to assist the debugger.
+     * No-op instruction that indicates leaving an optimized lexical scope.
      *
-     *   Category: Statements
-     *   Type: Debugger
+     * If all bindings in a lexical scope are optimized into stack slots, then
+     * the runtime environment objects for that scope are optimized away. No
+     * `JSOp::{Push,Pop}LexicalEnv` instructions are emitted. However, the
+     * debugger still needs to be notified when control exits a scope; that's
+     * what this instruction does.
+     *
+     * The last instruction in a lexical scope, as indicated by scope notes,
+     * must be either this instruction (if the scope is optimized) or
+     * `JSOp::PopLexicalEnv` (if not).
+     *
+     *   Category: Variables and scopes
+     *   Type: Entering and leaving environments
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(JSOP_DEBUGLEAVELEXICALENV, "debugleavelexicalenv", NULL, 1, 0, 0, JOF_BYTE) \
+    MACRO(DebugLeaveLexicalEnv, debug_leave_lexical_env, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * Recreates the current block on the env chain with a fresh block with
-     * uninitialized bindings. This operation implements the behavior of
-     * inducing a fresh lexical environment for every iteration of a for-in/of
-     * loop whose loop-head has a (captured) lexical declaration.
+     * Recreate the current block on the environment chain with a fresh block
+     * with uninitialized bindings. This implements the behavior of inducing a
+     * fresh lexical environment for every iteration of a for-in/of loop whose
+     * loop-head has a (captured) lexical declaration.
      *
-     *   Category: Variables and Scopes
-     *   Type: Block-local Scope
+     *   Category: Variables and scopes
+     *   Type: Entering and leaving environments
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(JSOP_RECREATELEXICALENV, "recreatelexicalenv", NULL, 1, 0, 0, JOF_BYTE) \
+    MACRO(RecreateLexicalEnv, recreate_lexical_env, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * Replaces the current block on the env chain with a fresh block that
-     * copies all the bindings in the block. This operation implements the
-     * behavior of inducing a fresh lexical environment for every iteration of
-     * a for(let ...; ...; ...) loop, if any declarations induced by such a
+     * Replace the current block on the environment chain with a fresh block
+     * that copies all the bindings in the block. This implements the behavior
+     * of inducing a fresh lexical environment for every iteration of a
+     * `for(let ...; ...; ...)` loop, if any declarations induced by such a
      * loop are captured within the loop.
      *
-     *   Category: Variables and Scopes
-     *   Type: Block-local Scope
+     *   Category: Variables and scopes
+     *   Type: Entering and leaving environments
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(JSOP_FRESHENLEXICALENV, "freshenlexicalenv", NULL, 1, 0, 0, JOF_BYTE) \
+    MACRO(FreshenLexicalEnv, freshen_lexical_env, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * Pushes a var environment onto the env chain.
+     * Push a var environment onto the environment chain.
      *
-     *   Category: Variables and Scopes
-     *   Type: Var Scope
+     * Like `JSOp::PushLexicalEnv`, but pushes a `VarEnvironmentObject` rather
+     * than a `LexicalEnvironmentObject`. The difference is that non-strict
+     * direct `eval` can add bindings to a var environment; see `VarScope` in
+     * Scope.h.
+     *
+     * See `JSOp::PushLexicalEnv` for the fine print.
+     *
+     * Implements: Places in the spec where the VariableEnvironment is set:
+     *
+     * -   The bit in [PerformEval][1] where, in strict direct eval, the new
+     *     eval scope is taken as *varEnv* and becomes "*runningContext*'s
+     *     VariableEnvironment".
+     *
+     * -   The weird scoping rules for functions with default parameter
+     *     expressions, as specified in [FunctionDeclarationInstantiation][2]
+     *     step 28 ("NOTE: A separate Environment Record is needed...") and
+     *     [IteratorBindingInitialization for *FormalParameter* and
+     *     *FormalRestParameter*][3].
+     *
+     * Note: The spec also pushes a new VariableEnvironment on entry to every
+     * function, but the VM takes care of that as part of pushing the stack
+     * frame, before the function script starts to run, so `JSOp::PushVarEnv` is
+     * not needed.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-performeval
+     * [2]: https://tc39.es/ecma262/#sec-functiondeclarationinstantiation
+     * [3]: https://tc39.es/ecma262/#sec-function-definitions-runtime-semantics-iteratorbindinginitialization
+     *
+     *   Category: Variables and scopes
+     *   Type: Entering and leaving environments
      *   Operands: uint32_t scopeIndex
      *   Stack: =>
      */ \
-    MACRO(JSOP_PUSHVARENV, "pushvarenv", NULL, 5, 0, 0, JOF_SCOPE) \
+    MACRO(PushVarEnv, push_var_env, NULL, 5, 0, 0, JOF_SCOPE) \
     /*
-     * Pops a var environment from the env chain.
+     * Pop a `VarEnvironmentObject` from the environment chain.
      *
-     *   Category: Variables and Scopes
-     *   Type: Var Scope
+     * See `JSOp::PushLexicalEnv` for the fine print.
+     *
+     *   Category: Variables and scopes
+     *   Type: Entering and leaving environments
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(JSOP_POPVARENV, "popvarenv", NULL, 1, 0, 0, JOF_BYTE) \
+    MACRO(PopVarEnv, pop_var_env, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * Pops the top of stack value, converts it to an object, and adds a
-     * 'WithEnvironmentObject' wrapping that object to the environment chain.
+     * Push a `WithEnvironmentObject` wrapping ToObject(`val`) to the
+     * environment chain.
      *
-     * There is a matching JSOP_LEAVEWITH instruction later. All name
-     * lookups between the two that may need to consult the With object
-     * are deoptimized.
+     * Implements: [Evaluation of `with` statements][1], steps 2-6.
      *
-     *   Category: Statements
-     *   Type: With Statement
+     * Operations that may need to consult a WithEnvironment can't be correctly
+     * implemented using optimized instructions like `JSOp::GetLocal`. A script
+     * must use the deoptimized `JSOp::GetName`, `BindName`, `SetName`, and
+     * `DelName` instead. Since those instructions don't work correctly with
+     * optimized locals and arguments, all bindings in scopes enclosing a
+     * `with` statement are marked as "aliased" and deoptimized too.
+     *
+     * See `JSOp::PushLexicalEnv` for the fine print.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-with-statement-runtime-semantics-evaluation
+     *
+     *   Category: Variables and scopes
+     *   Type: Entering and leaving environments
      *   Operands: uint32_t staticWithIndex
      *   Stack: val =>
      */ \
-    MACRO(JSOP_ENTERWITH, "enterwith", NULL, 5, 1, 0, JOF_SCOPE) \
+    MACRO(EnterWith, enter_with, NULL, 5, 1, 0, JOF_SCOPE) \
     /*
-     * Pops the environment chain object pushed by JSOP_ENTERWITH.
+     * Pop a `WithEnvironmentObject` from the environment chain.
      *
-     *   Category: Statements
-     *   Type: With Statement
+     * See `JSOp::PushLexicalEnv` for the fine print.
+     *
+     * Implements: [Evaluation of `with` statements][1], step 8.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-with-statement-runtime-semantics-evaluation
+     *
+     *   Category: Variables and scopes
+     *   Type: Entering and leaving environments
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(JSOP_LEAVEWITH, "leavewith", NULL, 1, 0, 0, JOF_BYTE) \
+    MACRO(LeaveWith, leave_with, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * Pushes the nearest 'var' environment.
+     * Push the current VariableEnvironment (the environment on the environment
+     * chain designated to receive new variables).
      *
-     *   Category: Variables and Scopes
-     *   Type: Free Variables
+     * Implements: [Annex B.3.3.1, changes to FunctionDeclarationInstantiation
+     * for block-level functions][1], step 1.a.ii.3.a, and similar steps in
+     * other Annex B.3.3 algorithms, when setting the function's second binding
+     * can't be optimized.
+     *
+     * [1]: https://tc39.es/ecma262/#sec-web-compat-functiondeclarationinstantiation
+     *
+     *   Category: Variables and scopes
+     *   Type: Creating and deleting bindings
      *   Operands:
      *   Stack: => env
      */ \
-    MACRO(JSOP_BINDVAR, "bindvar", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(BindVar, bind_var, NULL, 1, 0, 1, JOF_BYTE) \
     /*
-     * Defines the new binding on the frame's current variables-object (the
-     * environment on the environment chain designated to receive new
-     * variables).
+     * Create a new binding on the current VariableEnvironment (the environment
+     * on the environment chain designated to receive new variables).
      *
-     * Throws if the current variables-object is the global object and a
-     * binding with the same name exists on the global lexical environment.
+     * `JSOp::Def{Var,Let,Const,Fun}` instructions must appear in the script
+     * before anything else that might add bindings to the environment, and
+     * only once per binding. There must be a correct entry for the new binding
+     * in `script->bodyScope()`. (All this ensures that at run time, there is
+     * no existing conflicting binding. We check before running the script, in
+     * `js::CheckGlobalOrEvalDeclarationConflicts`.)
+     *
+     * Throw a SyntaxError if the current VariableEnvironment is the global
+     * environment and a binding with the same name exists on the global
+     * lexical environment.
      *
      * This is used for global scripts and also in some cases for function
      * scripts where use of dynamic scoping inhibits optimization.
      *
-     *   Category: Variables and Scopes
-     *   Type: Variables
+     *   Category: Variables and scopes
+     *   Type: Creating and deleting bindings
      *   Operands: uint32_t nameIndex
      *   Stack: =>
      */ \
-    MACRO(JSOP_DEFVAR, "defvar", NULL, 5, 0, 0, JOF_ATOM) \
+    MACRO(DefVar, def_var, NULL, 5, 0, 0, JOF_ATOM) \
     /*
-     * Defines the given function on the current scope.
+     * Create a new binding for the given function on the current scope.
      *
-     * This is used for global scripts and also in some cases for function
-     * scripts where use of dynamic scoping inhibits optimization.
+     * `fun` must be a function object with an explicit name. The new
+     * variable's name is `fun->explicitName()`, and its value is `fun`. In
+     * global scope, this creates a new property on the global object.
      *
-     *   Category: Variables and Scopes
-     *   Type: Variables
+     * Implements: The body of the loop in [GlobalDeclarationInstantiation][1]
+     * step 17 ("For each Parse Node *f* in *functionsToInitialize*...") and
+     * the corresponding loop in [EvalDeclarationInstantiation][2].
+     *
+     * [1]: https://tc39.es/ecma262/#sec-globaldeclarationinstantiation
+     * [2]: https://tc39.es/ecma262/#sec-evaldeclarationinstantiation
+     *
+     *   Category: Variables and scopes
+     *   Type: Creating and deleting bindings
      *   Operands:
      *   Stack: fun =>
      */ \
-    MACRO(JSOP_DEFFUN, "deffun", NULL, 1, 1, 0, JOF_BYTE) \
+    MACRO(DefFun, def_fun, NULL, 1, 1, 0, JOF_BYTE) \
     /*
-     * Defines the new mutable binding on global lexical environment.
-     *
-     * Throws if a binding with the same name already exists on the
+     * Create a new mutable binding in the global lexical environment. Throw a
+     * SyntaxError if a binding with the same name already exists on that
      * environment, or if a var binding with the same name exists on the
      * global.
      *
-     *   Category: Variables and Scopes
-     *   Type: Variables
+     *   Category: Variables and scopes
+     *   Type: Creating and deleting bindings
      *   Operands: uint32_t nameIndex
      *   Stack: =>
      */ \
-    MACRO(JSOP_DEFLET, "deflet", NULL, 5, 0, 0, JOF_ATOM) \
+    MACRO(DefLet, def_let, NULL, 5, 0, 0, JOF_ATOM) \
     /*
-     * Defines the new constant binding on global lexical environment.
+     * Create a new constant binding in the global lexical environment.
      *
-     * Throws if a binding with the same name already exists on the
-     * environment, or if a var binding with the same name exists on the
+     * Throw a SyntaxError if a binding with the same name already exists in
+     * that environment, or if a var binding with the same name exists on the
      * global.
      *
-     *   Category: Variables and Scopes
-     *   Type: Variables
+     *   Category: Variables and scopes
+     *   Type: Creating and deleting bindings
      *   Operands: uint32_t nameIndex
      *   Stack: =>
      */ \
-    MACRO(JSOP_DEFCONST, "defconst", NULL, 5, 0, 0, JOF_ATOM) \
+    MACRO(DefConst, def_const, NULL, 5, 0, 0, JOF_ATOM) \
     /*
-     * Looks up name on the environment chain and deletes it, pushes 'true'
-     * onto the stack if succeeded (if the property was present and deleted or
-     * if the property wasn't present in the first place), 'false' if not.
+     * Look up a variable on the environment chain and delete it. Push `true`
+     * on success (if a binding was deleted, or if no such binding existed in
+     * the first place), `false` otherwise (most kinds of bindings can't be
+     * deleted).
      *
-     * Strict mode code should never contain this opcode.
+     * Implements: [`delete` *Identifier*][1], which [is a SyntaxError][2] in
+     * strict mode code.
      *
-     *   Category: Variables and Scopes
-     *   Type: Variables
+     *    [1]: https://tc39.es/ecma262/#sec-delete-operator-runtime-semantics-evaluation
+     *    [2]: https://tc39.es/ecma262/#sec-delete-operator-static-semantics-early-errors
+     *
+     *   Category: Variables and scopes
+     *   Type: Creating and deleting bindings
      *   Operands: uint32_t nameIndex
      *   Stack: => succeeded
      */ \
-    MACRO(JSOP_DELNAME, "delname", NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_CHECKSLOPPY) \
+    MACRO(DelName, del_name, NULL, 5, 0, 1, JOF_ATOM|JOF_NAME|JOF_CHECKSLOPPY) \
     /*
-     * Pushes the 'arguments' object for the current function activation.
+     * Create and push the `arguments` object for the current function activation.
      *
-     * If 'JSScript' is not marked 'needsArgsObj', then a
-     * JS_OPTIMIZED_ARGUMENTS magic value is pushed. Otherwise, a proper
-     * arguments object is constructed and pushed.
+     * When it exists, `arguments` is stored in an ordinary local variable.
+     * `JSOp::Arguments` is used in function preludes, to populate that variable
+     * before the function body runs, *not* each time `arguments` appears in a
+     * function.
      *
-     * This opcode requires that the function does not have rest parameter.
+     * If a function clearly doesn't use `arguments`, we optimize it away when
+     * emitting bytecode. The function's script won't use `JSOp::Arguments` at
+     * all.
      *
-     *   Category: Variables and Scopes
-     *   Type: Arguments
+     * The current script must be a function script. This instruction must
+     * execute at most once per function activation.
+     *
+     * #### Optimized arguments
+     *
+     * If `script->needsArgsObj()` is false, no ArgumentsObject is created.
+     * Instead, `MagicValue(JS_OPTIMIZED_ARGUMENTS)` is pushed.
+     *
+     * This optimization imposes no restrictions on bytecode. Rather,
+     * `js::jit::AnalyzeArgumentsUsage` examines the bytecode and enables the
+     * optimization only if all uses of `arguments` are optimizable.  Each
+     * execution engine must know what the analysis considers optimizable and
+     * cope with the magic value when it is used in those ways.
+     *
+     * Example 1: `arguments[0]` is supported; therefore the interpreter's
+     * implementation of `JSOp::GetElem` checks for optimized arguments (see
+     * `GetElemOptimizedArguments`).
+     *
+     * Example 2: `f.apply(this, arguments)` is supported; therefore our
+     * implementation of `Function.prototype.apply` checks for optimized
+     * arguments (`see js::fun_apply`), and all `JSOp::FunApply` implementations
+     * must check for cases where `f.apply` turns out to be any other function
+     * (see `GuardFunApplyArgumentsOptimization`).
+     *
+     * It's not documented anywhere exactly which opcodes support
+     * `JS_OPTIMIZED_ARGUMENTS`; see the source of `AnalyzeArgumentsUsage`.
+     *
+     *   Category: Variables and scopes
+     *   Type: Function environment setup
      *   Operands:
      *   Stack: => arguments
      */ \
-    MACRO(JSOP_ARGUMENTS, "arguments", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(Arguments, arguments, NULL, 1, 0, 1, JOF_BYTE) \
     /*
-     * Creates rest parameter array for current function call, and pushes it
-     * onto the stack.
+     * Create and push the rest parameter array for current function call.
      *
-     *   Category: Variables and Scopes
-     *   Type: Arguments
+     * This must appear only in function scripts.
+     *
+     *   Category: Variables and scopes
+     *   Type: Function environment setup
      *   Operands:
      *   Stack: => rest
      */ \
-    MACRO(JSOP_REST, "rest", NULL, 1, 0, 1, JOF_BYTE|JOF_TYPESET|JOF_IC) \
+    MACRO(Rest, rest, NULL, 1, 0, 1, JOF_BYTE|JOF_TYPESET|JOF_IC) \
     /*
-     * Determines the 'this' value for current function frame and pushes it
-     * onto the stack. Emitted in the prologue of functions with a
-     * this-binding.
+     * Determines the `this` value for current function frame and pushes it
+     * onto the stack.
      *
-     *   Category: Variables and Scopes
-     *   Type: This
+     * In functions, `this` is stored in a local variable. This instruction is
+     * used in the function prologue to get the value to initialize that
+     * variable.  (This doesn't apply to arrow functions, becauses they don't
+     * have a `this` binding; also, `this` is optimized away if it's unused.)
+     *
+     * Functions that have a `this` binding have a local variable named
+     * `".this"`, which is initialized using this instruction in the function
+     * prologue.
+     *
+     *   Category: Variables and scopes
+     *   Type: Function environment setup
      *   Operands:
      *   Stack: => this
      */ \
-    MACRO(JSOP_FUNCTIONTHIS, "functionthis", NULL, 1, 0, 1, JOF_BYTE) \
+    MACRO(FunctionThis, function_this, NULL, 1, 0, 1, JOF_BYTE) \
     /*
-     * Pops the top value off the stack.
+     * Pop the top value from the stack and discard it.
      *
-     *   Category: Operators
-     *   Type: Stack Operations
+     *   Category: Stack operations
      *   Operands:
      *   Stack: v =>
      */ \
-    MACRO(JSOP_POP, "pop", NULL, 1, 1, 0, JOF_BYTE) \
+    MACRO(Pop, pop, NULL, 1, 1, 0, JOF_BYTE) \
     /*
-     * Pops the top 'n' values from the stack.
+     * Pop the top `n` values from the stack. `n` must be <= the current stack
+     * depth.
      *
-     *   Category: Operators
-     *   Type: Stack Operations
+     *   Category: Stack operations
      *   Operands: uint16_t n
      *   Stack: v[n-1], ..., v[1], v[0] =>
-     *   nuses: n
      */ \
-    MACRO(JSOP_POPN, "popn", NULL, 3, -1, 0, JOF_UINT16) \
+    MACRO(PopN, pop_n, NULL, 3, -1, 0, JOF_UINT16) \
     /*
-     * Pushes a copy of the top value on the stack.
+     * Push a copy of the top value on the stack.
      *
-     *   Category: Operators
-     *   Type: Stack Operations
+     *   Category: Stack operations
      *   Operands:
      *   Stack: v => v, v
      */ \
-    MACRO(JSOP_DUP, "dup", NULL, 1, 1, 2, JOF_BYTE) \
+    MACRO(Dup, dup, NULL, 1, 1, 2, JOF_BYTE) \
     /*
-     * Duplicates the top two values on the stack.
+     * Duplicate the top two values on the stack.
      *
-     *   Category: Operators
-     *   Type: Stack Operations
+     *   Category: Stack operations
      *   Operands:
      *   Stack: v1, v2 => v1, v2, v1, v2
      */ \
-    MACRO(JSOP_DUP2, "dup2", NULL, 1, 2, 4, JOF_BYTE) \
+    MACRO(Dup2, dup2, NULL, 1, 2, 4, JOF_BYTE) \
     /*
-     * Duplicates the Nth value from the top onto the stack.
+     * Push a copy of the nth value from the top of the stack.
      *
-     *   Category: Operators
-     *   Type: Stack Operations
+     * `n` must be less than the current stack depth.
+     *
+     *   Category: Stack operations
      *   Operands: uint24_t n
      *   Stack: v[n], v[n-1], ..., v[1], v[0] =>
      *          v[n], v[n-1], ..., v[1], v[0], v[n]
      */ \
-    MACRO(JSOP_DUPAT, "dupat", NULL, 4, 0, 1, JOF_UINT24) \
+    MACRO(DupAt, dup_at, NULL, 4, 0, 1, JOF_UINT24) \
     /*
-     * Swaps the top two values on the stack. This is useful for things like
-     * post-increment/decrement.
+     * Swap the top two values on the stack.
      *
-     *   Category: Operators
-     *   Type: Stack Operations
+     *   Category: Stack operations
      *   Operands:
      *   Stack: v1, v2 => v2, v1
      */ \
-    MACRO(JSOP_SWAP, "swap", NULL, 1, 2, 2, JOF_BYTE) \
+    MACRO(Swap, swap, NULL, 1, 2, 2, JOF_BYTE) \
     /*
-     * Picks the nth element from the stack and moves it to the top of the
-     * stack.
+     * Pick the nth element from the stack and move it to the top of the stack.
      *
-     *   Category: Operators
-     *   Type: Stack Operations
+     *   Category: Stack operations
      *   Operands: uint8_t n
      *   Stack: v[n], v[n-1], ..., v[1], v[0] => v[n-1], ..., v[1], v[0], v[n]
      */ \
-    MACRO(JSOP_PICK, "pick", NULL, 2, 0, 0, JOF_UINT8) \
+    MACRO(Pick, pick, NULL, 2, 0, 0, JOF_UINT8) \
     /*
-     * Moves the top of the stack value under the nth element of the stack.
-     * Note: n must NOT be 0.
+     * Move the top of the stack value under the `n`th element of the stack.
+     * `n` must not be 0.
      *
-     *   Category: Operators
-     *   Type: Stack Operations
+     *   Category: Stack operations
      *   Operands: uint8_t n
      *   Stack: v[n], v[n-1], ..., v[1], v[0] => v[0], v[n], v[n-1], ..., v[1]
      */ \
-    MACRO(JSOP_UNPICK, "unpick", NULL, 2, 0, 0, JOF_UINT8) \
+    MACRO(Unpick, unpick, NULL, 2, 0, 0, JOF_UINT8) \
     /*
-     * No operation is performed.
+     * Do nothing. This is used when we need distinct bytecode locations for
+     * various mechanisms.
      *
      *   Category: Other
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(JSOP_NOP, "nop", NULL, 1, 0, 0, JOF_BYTE) \
+    MACRO(Nop, nop, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * Embedded lineno to speedup 'pc->line' mapping.
+     * No-op instruction used to speed up pc-to-line mapping.
      *
      *   Category: Other
      *   Operands: uint32_t lineno
      *   Stack: =>
      */ \
-    MACRO(JSOP_LINENO, "lineno", NULL, 5, 0, 0, JOF_UINT32) \
+    MACRO(Lineno, lineno, NULL, 5, 0, 0, JOF_UINT32) \
     /*
-     * No-op used by the decompiler to produce nicer error messages about
-     * destructuring code.
+     * No-op instruction used by the decompiler to produce nicer error messages
+     * about destructuring code.
      *
      *   Category: Other
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(JSOP_NOP_DESTRUCTURING, "nop-destructuring", NULL, 1, 0, 0, JOF_BYTE) \
+    MACRO(NopDestructuring, nop_destructuring, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * No-op bytecode only emitted in some self-hosted functions. Not handled
-     * by the JITs or Baseline Interpreter so the script always runs in the C++
-     * interpreter.
+     * No-op instruction only emitted in some self-hosted functions. Not
+     * handled by the JITs or Baseline Interpreter so the script always runs in
+     * the C++ interpreter.
      *
      *   Category: Other
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(JSOP_FORCEINTERPRETER, "forceinterpreter", NULL, 1, 0, 0, JOF_BYTE) \
+    MACRO(ForceInterpreter, force_interpreter, NULL, 1, 0, 0, JOF_BYTE) \
     /*
-     * Examines the top stack value, asserting that it's either a self-hosted
-     * function or a self-hosted intrinsic. This opcode does nothing in a
-     * non-debug build.
+     * Examine the top stack value, asserting that it's either a self-hosted
+     * function or a self-hosted intrinsic. This does nothing in a non-debug
+     * build.
      *
      *   Category: Other
      *   Operands:
      *   Stack: checkVal => checkVal
      */ \
-    MACRO(JSOP_DEBUGCHECKSELFHOSTED, "debug-checkselfhosted", NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(DebugCheckSelfHosted, debug_check_self_hosted, NULL, 1, 1, 1, JOF_BYTE) \
     /*
-     * Pushes a boolean indicating if instrumentation is active.
-     *   Category: Other
-     *   Operands:
-     *   Stack: => val
-     */ \
-    MACRO(JSOP_INSTRUMENTATION_ACTIVE, "instrumentationActive", NULL, 1, 0, 1, JOF_BYTE) \
-    /*
-     * Pushes the instrumentation callback for the current realm.
-     *   Category: Other
-     *   Operands:
-     *   Stack: => val
-     */ \
-    MACRO(JSOP_INSTRUMENTATION_CALLBACK, "instrumentationCallback", NULL, 1, 0, 1, JOF_BYTE) \
-    /*
-     * Pushes the current script's instrumentation ID.
-     *   Category: Other
-     *   Operands:
-     *   Stack: => val
-     */ \
-    MACRO(JSOP_INSTRUMENTATION_SCRIPT_ID, "instrumentationScriptId", NULL, 1, 0, 1, JOF_BYTE) \
-    /*
-     * Invokes debugger.
+     * Push a boolean indicating if instrumentation is active.
      *
-     *   Category: Statements
-     *   Type: Debugger
+     *   Category: Other
+     *   Operands:
+     *   Stack: => val
+     */ \
+    MACRO(InstrumentationActive, instrumentation_active, NULL, 1, 0, 1, JOF_BYTE) \
+    /*
+     * Push the instrumentation callback for the current realm.
+     *
+     *   Category: Other
+     *   Operands:
+     *   Stack: => val
+     */ \
+    MACRO(InstrumentationCallback, instrumentation_callback, NULL, 1, 0, 1, JOF_BYTE) \
+    /*
+     * Push the current script's instrumentation ID.
+     *
+     *   Category: Other
+     *   Operands:
+     *   Stack: => val
+     */ \
+    MACRO(InstrumentationScriptId, instrumentation_script_id, NULL, 1, 0, 1, JOF_BYTE) \
+    /*
+     * Break in the debugger, if one is attached. Otherwise this is a no-op.
+     *
+     * The [`Debugger` API][1] offers a way to hook into this instruction.
+     *
+     * Implements: [Evaluation for *DebuggerStatement*][2].
+     *
+     * [1]: https://developer.mozilla.org/en-US/docs/Tools/Debugger-API/Debugger
+     * [2]: https://tc39.es/ecma262/#sec-debugger-statement-runtime-semantics-evaluation
+     *
+     *   Category: Other
      *   Operands:
      *   Stack: =>
      */ \
-    MACRO(JSOP_DEBUGGER, "debugger", NULL, 1, 0, 0, JOF_BYTE)
+    MACRO(Debugger, debugger, NULL, 1, 0, 0, JOF_BYTE)
 
 // clang-format on
 
@@ -3059,20 +3542,22 @@ namespace js {
 // clang-format off
 #define PLUS_ONE(...) \
     + 1
+constexpr int JSOP_LIMIT = 0 FOR_EACH_OPCODE(PLUS_ONE);
+#undef PLUS_ONE
+
 #define TRAILING_VALUE_AND_VALUE_PLUS_ONE(val) \
     val) && (val + 1 ==
-static_assert((0 FOR_EACH_OPCODE(PLUS_ONE) ==
+static_assert((JSOP_LIMIT ==
                FOR_EACH_TRAILING_UNUSED_OPCODE(TRAILING_VALUE_AND_VALUE_PLUS_ONE)
                256),
               "trailing unused opcode values monotonically increase "
               "from JSOP_LIMIT to 255");
 #undef TRAILING_VALUE_AND_VALUE_PLUS_ONE
-#undef PLUS_ONE
 // clang-format on
 
-// Define JSOP_*_LENGTH constants for all ops.
-#define DEFINE_LENGTH_CONSTANT(op, name, image, len, ...) \
-  constexpr size_t op##_LENGTH = len;
+// Define JSOpLength_* constants for all ops.
+#define DEFINE_LENGTH_CONSTANT(op, op_snake, image, len, ...) \
+  constexpr size_t JSOpLength_##op = len;
 FOR_EACH_OPCODE(DEFINE_LENGTH_CONSTANT)
 #undef DEFINE_LENGTH_CONSTANT
 

@@ -896,10 +896,16 @@ fn unconditionally_remove_file(path: &Path) -> Result<(), SecurityStateError> {
 }
 
 fn remove_db(path: &Path) -> Result<(), SecurityStateError> {
+    // Remove LMDB-related files.
     let db = path.join("data.mdb");
     unconditionally_remove_file(&db)?;
     let lock = path.join("lock.mdb");
     unconditionally_remove_file(&lock)?;
+
+    // Remove SafeMode-related files.
+    let db = path.join("data.safe.bin");
+    unconditionally_remove_file(&db)?;
+
     Ok(())
 }
 
@@ -1115,7 +1121,7 @@ impl CertStorage {
             _ => return Err(SecurityStateError::from("could not QI to nsIPrefBranch")),
         };
 
-        for pref in int_prefs.into_iter() {
+        for pref in int_prefs.iter() {
             let pref_nscstr = &nsCStr::from(pref.to_owned()) as &nsACString;
             let rv = (*prefs).AddObserverImpl(pref_nscstr, self.coerce::<nsIObserver>(), false);
             match read_int_pref(pref) {

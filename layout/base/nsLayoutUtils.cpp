@@ -1099,7 +1099,8 @@ static bool GetDisplayPortImpl(
     result = GetDisplayPortFromRectData(aContent, rectData, aMultiplier);
   } else if (isDisplayportSuppressed ||
              nsLayoutUtils::ShouldDisableApzForElement(aContent)) {
-    DisplayPortMarginsPropertyData noMargins(ScreenMargin(), 1, /*painted=*/false);
+    DisplayPortMarginsPropertyData noMargins(ScreenMargin(), 1,
+                                             /*painted=*/false);
     result = GetDisplayPortFromMarginsData(aContent, &noMargins, aMultiplier);
   } else {
     result = GetDisplayPortFromMarginsData(aContent, marginsData, aMultiplier);
@@ -1143,8 +1144,7 @@ bool nsLayoutUtils::GetDisplayPort(
   bool usingDisplayPort =
       GetDisplayPortImpl(aContent, aResult, multiplier,
                          MaxSizeExceededBehaviour::Assert, aOutPainted);
-  if (aResult && usingDisplayPort &&
-      aRelativeTo == RelativeTo::ScrollFrame) {
+  if (aResult && usingDisplayPort && aRelativeTo == RelativeTo::ScrollFrame) {
     TranslateFromScrollPortToScrollFrame(aContent, aResult);
   }
   return usingDisplayPort;
@@ -1382,8 +1382,8 @@ bool nsLayoutUtils::GetHighResolutionDisplayPort(nsIContent* aContent,
 }
 
 void nsLayoutUtils::RemoveDisplayPort(nsIContent* aContent) {
-  aContent->DeleteProperty(nsGkAtoms::DisplayPort);
-  aContent->DeleteProperty(nsGkAtoms::DisplayPortMargins);
+  aContent->RemoveProperty(nsGkAtoms::DisplayPort);
+  aContent->RemoveProperty(nsGkAtoms::DisplayPortMargins);
 }
 
 void nsLayoutUtils::NotifyPaintSkipTransaction(ViewID aScrollId) {
@@ -2018,7 +2018,7 @@ bool nsLayoutUtils::IsFixedPosFrameInDisplayPort(const nsIFrame* aFrame) {
   // their pages!
   nsIFrame* parent = aFrame->GetParent();
   if (!parent || parent->GetParent() ||
-      aFrame->StyleDisplay()->mPosition != NS_STYLE_POSITION_FIXED) {
+      aFrame->StyleDisplay()->mPosition != StylePositionProperty::Fixed) {
     return false;
   }
   return ViewportHasDisplayPort(aFrame->PresContext());
@@ -2076,7 +2076,7 @@ nsIScrollableFrame* nsLayoutUtils::GetNearestScrollableFrame(nsIFrame* aFrame,
       }
     }
     if ((aFlags & SCROLLABLE_FIXEDPOS_FINDS_ROOT) &&
-        f->StyleDisplay()->mPosition == NS_STYLE_POSITION_FIXED &&
+        f->StyleDisplay()->mPosition == StylePositionProperty::Fixed &&
         nsLayoutUtils::IsReallyFixedPos(f)) {
       return f->PresShell()->GetRootScrollFrameAsScrollable();
     }
@@ -2088,11 +2088,11 @@ nsIScrollableFrame* nsLayoutUtils::GetNearestScrollableFrame(nsIFrame* aFrame,
 nsRect nsLayoutUtils::GetScrolledRect(nsIFrame* aScrolledFrame,
                                       const nsRect& aScrolledFrameOverflowArea,
                                       const nsSize& aScrollPortSize,
-                                      uint8_t aDirection) {
+                                      StyleDirection aDirection) {
   WritingMode wm = aScrolledFrame->GetWritingMode();
   // Potentially override the frame's direction to use the direction found
   // by ScrollFrameHelper::GetScrolledFrameDir()
-  wm.SetDirectionFromBidiLevel(aDirection == NS_STYLE_DIRECTION_RTL ? 1 : 0);
+  wm.SetDirectionFromBidiLevel(aDirection == StyleDirection::Rtl ? 1 : 0);
 
   nscoord x1 = aScrolledFrameOverflowArea.x,
           x2 = aScrolledFrameOverflowArea.XMost(),
@@ -2346,7 +2346,7 @@ void nsLayoutUtils::GetContainerAndOffsetAtEvent(PresShell* aPresShell,
   }
 }
 
-static void ConstrainToCoordValues(float& aStart, float& aSize) {
+void nsLayoutUtils::ConstrainToCoordValues(float& aStart, float& aSize) {
   MOZ_ASSERT(aSize >= 0);
 
   // Here we try to make sure that the resulting nsRect will continue to cover
@@ -2386,12 +2386,12 @@ static void ConstrainToCoordValues(gfxFloat& aVal) {
     aVal = nscoord_MAX;
 }
 
-static void ConstrainToCoordValues(gfxFloat& aStart, gfxFloat& aSize) {
+void nsLayoutUtils::ConstrainToCoordValues(gfxFloat& aStart, gfxFloat& aSize) {
   gfxFloat max = aStart + aSize;
 
   // Clamp the end points to within nscoord range
-  ConstrainToCoordValues(aStart);
-  ConstrainToCoordValues(max);
+  ::ConstrainToCoordValues(aStart);
+  ::ConstrainToCoordValues(max);
 
   aSize = max - aStart;
   // If the width if still greater than the max nscoord, then bring both
@@ -2408,45 +2408,6 @@ static void ConstrainToCoordValues(gfxFloat& aStart, gfxFloat& aSize) {
 
     aStart -= excess;
     aSize = nscoord_MIN;
-  }
-}
-
-nsRect nsLayoutUtils::RoundGfxRectToAppRect(const Rect& aRect, float aFactor) {
-  // Get a new Rect whose units are app units by scaling by the specified
-  // factor.
-  Rect scaledRect = aRect;
-  scaledRect.ScaleRoundOut(aFactor);
-
-  // We now need to constrain our results to the max and min values for coords.
-  ConstrainToCoordValues(scaledRect.x, scaledRect.width);
-  ConstrainToCoordValues(scaledRect.y, scaledRect.height);
-
-  // Now typecast everything back.  This is guaranteed to be safe.
-  if (aRect.IsEmpty()) {
-    return nsRect(nscoord(scaledRect.X()), nscoord(scaledRect.Y()), 0, 0);
-  } else {
-    return nsRect(nscoord(scaledRect.X()), nscoord(scaledRect.Y()),
-                  nscoord(scaledRect.Width()), nscoord(scaledRect.Height()));
-  }
-}
-
-nsRect nsLayoutUtils::RoundGfxRectToAppRect(const gfxRect& aRect,
-                                            float aFactor) {
-  // Get a new gfxRect whose units are app units by scaling by the specified
-  // factor.
-  gfxRect scaledRect = aRect;
-  scaledRect.ScaleRoundOut(aFactor);
-
-  // We now need to constrain our results to the max and min values for coords.
-  ConstrainToCoordValues(scaledRect.x, scaledRect.width);
-  ConstrainToCoordValues(scaledRect.y, scaledRect.height);
-
-  // Now typecast everything back.  This is guaranteed to be safe.
-  if (aRect.IsEmpty()) {
-    return nsRect(nscoord(scaledRect.X()), nscoord(scaledRect.Y()), 0, 0);
-  } else {
-    return nsRect(nscoord(scaledRect.X()), nscoord(scaledRect.Y()),
-                  nscoord(scaledRect.Width()), nscoord(scaledRect.Height()));
   }
 }
 
@@ -3542,7 +3503,7 @@ void PrintHitTestInfoStatsInternal(nsDisplayList* aList, int& aTotal,
       aHitTest++;
 
       const auto& hitTestInfo =
-          static_cast<nsDisplayHitTestInfoItem*>(i)->HitTestFlags();
+          static_cast<nsDisplayHitTestInfoBase*>(i)->HitTestFlags();
 
       if (hitTestInfo.size() > 1) {
         aSpecial++;
@@ -3914,7 +3875,7 @@ nsresult nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext,
 
   {
     AUTO_PROFILER_LABEL_CATEGORY_PAIR(GRAPHICS_DisplayListBuilding);
-    AUTO_PROFILER_TRACING("Paint", "DisplayList", GRAPHICS);
+    AUTO_PROFILER_TRACING_MARKER("Paint", "DisplayList", GRAPHICS);
     PerfStats::AutoMetricRecording<PerfStats::Metric::DisplayListBuilding>
         autoRecording;
 
@@ -4208,7 +4169,7 @@ nsresult nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext,
   builder->Check();
 
   {
-    AUTO_PROFILER_TRACING("Paint", "DisplayListResources", GRAPHICS);
+    AUTO_PROFILER_TRACING_MARKER("Paint", "DisplayListResources", GRAPHICS);
 
     builder->EndFrame();
 
@@ -6550,11 +6511,11 @@ SamplingFilter nsLayoutUtils::GetSamplingFilterForFrame(nsIFrame* aForFrame) {
   }
 
   switch (sc->StyleVisibility()->mImageRendering) {
-    case NS_STYLE_IMAGE_RENDERING_OPTIMIZESPEED:
+    case StyleImageRendering::Optimizespeed:
       return SamplingFilter::POINT;
-    case NS_STYLE_IMAGE_RENDERING_OPTIMIZEQUALITY:
+    case StyleImageRendering::Optimizequality:
       return SamplingFilter::LINEAR;
-    case NS_STYLE_IMAGE_RENDERING_CRISP_EDGES:
+    case StyleImageRendering::CrispEdges:
       return SamplingFilter::POINT;
     default:
       return defaultFilter;
@@ -7233,7 +7194,7 @@ static bool NonZeroCorner(const LengthPercentage& aLength) {
 
 /* static */
 bool nsLayoutUtils::HasNonZeroCorner(const BorderRadius& aCorners) {
-  NS_FOR_CSS_HALF_CORNERS(corner) {
+  for (const auto corner : mozilla::AllPhysicalHalfCorners()) {
     if (NonZeroCorner(aCorners.Get(corner))) return true;
   }
   return false;
@@ -7278,7 +7239,7 @@ bool nsLayoutUtils::HasNonZeroCornerOnSide(const BorderRadius& aCorners,
   static_assert(eCornerBottomLeftY / 2 == eCornerBottomLeft,
                 "Check for Non Zero on side");
 
-  NS_FOR_CSS_HALF_CORNERS(corner) {
+  for (const auto corner : mozilla::AllPhysicalHalfCorners()) {
     // corner is a "half corner" value, so dividing by two gives us a
     // "full corner" value.
     if (NonZeroCorner(aCorners.Get(corner)) &&
@@ -7506,7 +7467,7 @@ nsDeviceContext* nsLayoutUtils::GetDeviceContextForScreenInfo(
 
 /* static */
 bool nsLayoutUtils::IsReallyFixedPos(const nsIFrame* aFrame) {
-  MOZ_ASSERT(aFrame->StyleDisplay()->mPosition == NS_STYLE_POSITION_FIXED,
+  MOZ_ASSERT(aFrame->StyleDisplay()->mPosition == StylePositionProperty::Fixed,
              "IsReallyFixedPos called on non-'position:fixed' frame");
   return MayBeReallyFixedPos(aFrame);
 }
@@ -9029,7 +8990,7 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
     if (void* paintRequestTime =
             aContent->GetProperty(nsGkAtoms::paintRequestTime)) {
       metrics.SetPaintRequestTime(*static_cast<TimeStamp*>(paintRequestTime));
-      aContent->DeleteProperty(nsGkAtoms::paintRequestTime);
+      aContent->RemoveProperty(nsGkAtoms::paintRequestTime);
     }
     scrollId = nsLayoutUtils::FindOrCreateIDFor(aContent);
     nsRect dp;

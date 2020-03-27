@@ -61,7 +61,6 @@ UNITTEST_ALIASES = {
     'crashtest-e10s': alias_prefix('crashtest-e10s'),
     'e10s': alias_contains('e10s'),
     'firefox-ui-functional': alias_prefix('firefox-ui-functional'),
-    'firefox-ui-functional-e10s': alias_prefix('firefox-ui-functional-e10s'),
     'gaia-js-integration': alias_contains('gaia-js-integration'),
     'gtest': alias_prefix('gtest'),
     'jittest': alias_prefix('jittest'),
@@ -69,7 +68,6 @@ UNITTEST_ALIASES = {
     'jsreftest': alias_prefix('jsreftest'),
     'jsreftest-e10s': alias_prefix('jsreftest-e10s'),
     'marionette': alias_prefix('marionette'),
-    'marionette-e10s': alias_prefix('marionette-e10s'),
     'mochitest': alias_prefix('mochitest'),
     'mochitests': alias_prefix('mochitest'),
     'mochitest-e10s': alias_prefix('mochitest-e10s'),
@@ -122,30 +120,22 @@ UNITTEST_PLATFORM_PRETTY_NAMES = {
         'linux32',
         'linux64',
         'linux64-asan',
-        'linux64-stylo-sequential'
+        'linux1804-64',
+        'linux1804-64-asan'
     ],
     'x64': [
         'linux64',
         'linux64-asan',
-        'linux64-stylo-sequential'
+        'linux1804-64',
+        'linux1804-64-asan'
     ],
     'Android 7.0 Moto G5 32bit': ['android-hw-g5-7.0-arm7-api-16'],
     'Android 8.0 Google Pixel 2 32bit': ['android-hw-p2-8.0-arm7-api-16'],
     'Android 8.0 Google Pixel 2 64bit': ['android-hw-p2-8.0-android-aarch64'],
     '10.14': ['macosx1014-64'],
-    # other commonly-used substrings for platforms not yet supported with
-    # in-tree taskgraphs:
-    # '10.10.5': [..TODO..],
-    # '10.6': [..TODO..],
-    # '10.8': [..TODO..],
-    # 'Android 2.3 API9': [..TODO..],
     'Windows 7':  ['windows7-32'],
     'Windows 7 VM':  ['windows7-32-vm'],
-    'Windows 8':  ['windows8-64'],
     'Windows 10':  ['windows10-64'],
-    # 'Windows XP': [..TODO..],
-    # 'win32': [..TODO..],
-    # 'win64': [..TODO..],
 }
 
 TEST_CHUNK_SUFFIX = re.compile('(.*)-([0-9]+)$')

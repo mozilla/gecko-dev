@@ -51,6 +51,7 @@
 #include "mozilla/dom/ProcessingInstruction.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/txMozillaXSLTProcessor.h"
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/LoadInfo.h"
 
 using namespace mozilla;
@@ -169,6 +170,13 @@ nsresult nsXMLContentSink::MaybePrettyPrint() {
     mPrettyPrintXML = false;
 
     return NS_OK;
+  }
+
+  {
+    // Try to perform a microtask checkpoint; this avoids always breaking
+    // pretty-printing if webextensions insert new content right after the
+    // document loads.
+    nsAutoMicroTask mt;
   }
 
   // stop observing in order to avoid crashing when replacing content
@@ -845,10 +853,8 @@ bool nsXMLContentSink::SetDocElement(int32_t aNameSpaceID, nsAtom* aTagName,
 
   // check for root elements that needs special handling for
   // prettyprinting
-  if ((aNameSpaceID == kNameSpaceID_XBL && aTagName == nsGkAtoms::bindings) ||
-      (aNameSpaceID == kNameSpaceID_XSLT &&
-       (aTagName == nsGkAtoms::stylesheet ||
-        aTagName == nsGkAtoms::transform))) {
+  if (aNameSpaceID == kNameSpaceID_XSLT &&
+      (aTagName == nsGkAtoms::stylesheet || aTagName == nsGkAtoms::transform)) {
     mPrettyPrintHasSpecialRoot = true;
     if (mPrettyPrintXML) {
       // In this case, disable script execution, stylesheet

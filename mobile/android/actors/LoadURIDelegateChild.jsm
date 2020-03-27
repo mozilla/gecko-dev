@@ -13,6 +13,34 @@ var EXPORTED_SYMBOLS = ["LoadURIDelegateChild"];
 
 // Implements nsILoadURIDelegate.
 class LoadURIDelegateChild extends GeckoViewActorChild {
+  /** Returns true if this docShell is of type Content, false otherwise. */
+  get isContentWindow() {
+    if (!this.docShell) {
+      return false;
+    }
+
+    // Some WebExtension windows are tagged as content but really they are not
+    // for us (e.g. the remote debugging window or the background extension
+    // page).
+    const browser = this.browsingContext.top.embedderElement;
+    if (browser) {
+      const viewType = browser.getAttribute("webextension-view-type");
+      if (viewType) {
+        debug`webextension-view-type: ${viewType}`;
+        return false;
+      }
+      const debugTarget = browser.getAttribute(
+        "webextension-addon-debug-target"
+      );
+      if (debugTarget) {
+        debug`webextension-addon-debug-target: ${debugTarget}`;
+        return false;
+      }
+    }
+
+    return this.docShell.itemType == this.docShell.typeContent;
+  }
+
   // nsILoadURIDelegate.
   loadURI(aUri, aWhere, aFlags, aTriggeringPrincipal) {
     debug`loadURI: uri=${aUri && aUri.spec}
@@ -20,6 +48,11 @@ class LoadURIDelegateChild extends GeckoViewActorChild {
                     tp=${aTriggeringPrincipal &&
                       aTriggeringPrincipal.URI &&
                       aTriggeringPrincipal.URI.spec}`;
+    if (!this.isContentWindow) {
+      debug`loadURI: not a content window`;
+      // This is an internal Gecko window, nothing to do
+      return false;
+    }
 
     return LoadURIDelegate.load(
       this.contentWindow,
@@ -36,6 +69,12 @@ class LoadURIDelegateChild extends GeckoViewActorChild {
     debug`handleLoadError: uri=${aUri && aUri.spec}
                              displaySpec=${aUri && aUri.displaySpec}
                              error=${aError}`;
+    if (!this.isContentWindow) {
+      // This is an internal Gecko window, nothing to do
+      debug`handleLoadError: not a content window`;
+      return null;
+    }
+
     if (aUri && LoadURIDelegate.isSafeBrowsingError(aError)) {
       const message = {
         type: "GeckoView:ContentBlocked",

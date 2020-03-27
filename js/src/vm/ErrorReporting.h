@@ -7,9 +7,8 @@
 #ifndef vm_ErrorReporting_h
 #define vm_ErrorReporting_h
 
-#include "mozilla/Move.h"
-
 #include <stdarg.h>
+#include <utility>
 
 #include "jsapi.h"        // for JSErrorNotes, JSErrorReport
 #include "jsfriendapi.h"  // for ScriptEnvironmentPreparer
@@ -84,9 +83,15 @@ extern void CallWarningReporter(JSContext* cx, JSErrorReport* report);
  * Report a compile error during script processing prior to execution of the
  * script.
  */
-extern void ReportCompileError(JSContext* cx, ErrorMetadata&& metadata,
-                               UniquePtr<JSErrorNotes> notes, unsigned flags,
-                               unsigned errorNumber, va_list* args);
+extern void ReportCompileErrorLatin1(JSContext* cx, ErrorMetadata&& metadata,
+                                     UniquePtr<JSErrorNotes> notes,
+                                     unsigned flags, unsigned errorNumber,
+                                     va_list* args);
+
+extern void ReportCompileErrorUTF8(JSContext* cx, ErrorMetadata&& metadata,
+                                   UniquePtr<JSErrorNotes> notes,
+                                   unsigned flags, unsigned errorNumber,
+                                   va_list* args);
 
 /**
  * Report a compile warning during script processing prior to execution of the

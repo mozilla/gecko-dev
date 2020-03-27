@@ -11,10 +11,10 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/GuardObjects.h"
 #include "mozilla/LinkedList.h"
-#include "mozilla/Move.h"
 #include "mozilla/TypeTraits.h"
 
 #include <type_traits>
+#include <utility>
 
 #include "jspubtd.h"
 
@@ -214,10 +214,15 @@ JS_FRIEND_API void HeapObjectPostWriteBarrier(JSObject** objp, JSObject* prev,
                                               JSObject* next);
 JS_FRIEND_API void HeapStringPostWriteBarrier(JSString** objp, JSString* prev,
                                               JSString* next);
+JS_FRIEND_API void HeapBigIntPostWriteBarrier(JS::BigInt** bip,
+                                              JS::BigInt* prev,
+                                              JS::BigInt* next);
 JS_FRIEND_API void HeapObjectWriteBarriers(JSObject** objp, JSObject* prev,
                                            JSObject* next);
 JS_FRIEND_API void HeapStringWriteBarriers(JSString** objp, JSString* prev,
                                            JSString* next);
+JS_FRIEND_API void HeapBigIntWriteBarriers(JS::BigInt** bip, JS::BigInt* prev,
+                                           JS::BigInt* next);
 JS_FRIEND_API void HeapScriptWriteBarriers(JSScript** objp, JSScript* prev,
                                            JSScript* next);
 
@@ -526,6 +531,22 @@ class TenuredHeap : public js::HeapBase<T, TenuredHeap<T>> {
   uintptr_t bits;
 };
 
+// std::swap uses a stack temporary, which prevents classes like Heap<T>
+// from being declared MOZ_HEAP_CLASS.
+template <typename T>
+void swap(TenuredHeap<T>& aX, TenuredHeap<T>& aY) {
+  T tmp = aX;
+  aX = aY;
+  aY = tmp;
+}
+
+template <typename T>
+void swap(Heap<T>& aX, Heap<T>& aY) {
+  T tmp = aX;
+  aX = aY;
+  aY = tmp;
+}
+
 static MOZ_ALWAYS_INLINE bool ObjectIsMarkedGray(
     const JS::TenuredHeap<JSObject*>& obj) {
   return ObjectIsMarkedGray(obj.unbarrieredGetPtr());
@@ -748,6 +769,15 @@ struct BarrierMethods<JSString*>
     : public detail::PtrBarrierMethodsBase<JSString> {
   static void postWriteBarrier(JSString** vp, JSString* prev, JSString* next) {
     JS::HeapStringPostWriteBarrier(vp, prev, next);
+  }
+};
+
+template <>
+struct BarrierMethods<JS::BigInt*>
+    : public detail::PtrBarrierMethodsBase<JS::BigInt> {
+  static void postWriteBarrier(JS::BigInt** vp, JS::BigInt* prev,
+                               JS::BigInt* next) {
+    JS::HeapBigIntPostWriteBarrier(vp, prev, next);
   }
 };
 
@@ -1410,29 +1440,7 @@ void CallTraceCallbackOnNonHeap(T* v, const TraceCallbacks& aCallbacks,
 }
 
 } /* namespace gc */
-} /* namespace js */
 
-// mozilla::Swap uses a stack temporary, which prevents classes like Heap<T>
-// from being declared MOZ_HEAP_CLASS.
-namespace mozilla {
-
-template <typename T>
-inline void Swap(JS::Heap<T>& aX, JS::Heap<T>& aY) {
-  T tmp = aX;
-  aX = aY;
-  aY = tmp;
-}
-
-template <typename T>
-inline void Swap(JS::TenuredHeap<T>& aX, JS::TenuredHeap<T>& aY) {
-  T tmp = aX;
-  aX = aY;
-  aY = tmp;
-}
-
-} /* namespace mozilla */
-
-namespace js {
 namespace detail {
 
 // DefineComparisonOps is a trait which selects which wrapper classes to define

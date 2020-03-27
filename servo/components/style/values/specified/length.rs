@@ -7,9 +7,9 @@
 //! [length]: https://drafts.csswg.org/css-values/#lengths
 
 use super::{AllowQuirks, Number, Percentage, ToComputedValue};
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::font_metrics::{FontMetrics, FontMetricsOrientation};
 use crate::parser::{Parse, ParserContext};
-use crate::properties::computed_value_flags::ComputedValueFlags;
 use crate::values::computed::{self, CSSPixelLength, Context};
 use crate::values::generics::length as generics;
 use crate::values::generics::length::{
@@ -71,10 +71,6 @@ pub enum FontBaseSize {
     CurrentStyle,
     /// Use the inherited font-size.
     InheritedStyle,
-    /// Use the inherited font-size, but strip em units.
-    ///
-    /// FIXME(emilio): This is very complex, and should go away.
-    InheritedStyleButStripEmUnits,
 }
 
 impl FontBaseSize {
@@ -82,7 +78,7 @@ impl FontBaseSize {
     pub fn resolve(&self, context: &Context) -> computed::Length {
         match *self {
             FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size().size(),
-            FontBaseSize::InheritedStyleButStripEmUnits | FontBaseSize::InheritedStyle => {
+            FontBaseSize::InheritedStyle => {
                 context.style().get_parent_font().clone_font_size().size()
             },
         }
@@ -144,11 +140,7 @@ impl FontRelativeLength {
                     }
                 }
 
-                if base_size == FontBaseSize::InheritedStyleButStripEmUnits {
-                    (Zero::zero(), length)
-                } else {
-                    (reference_font_size, length)
-                }
+                (reference_font_size, length)
             },
             FontRelativeLength::Ex(length) => {
                 if context.for_non_inherited_property.is_some() {
@@ -214,7 +206,7 @@ impl FontRelativeLength {
                 //     element, the rem units refer to the property's initial
                 //     value.
                 //
-                let reference_size = if context.is_root_element || context.in_media_query {
+                let reference_size = if context.builder.is_root_element || context.in_media_query {
                     reference_font_size
                 } else {
                     computed::Length::new(context.device().root_font_size().to_f32_px())
@@ -599,11 +591,11 @@ impl Length {
                     value,
                 ))))
             },
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => input
-                .parse_nested_block(|input| {
-                    CalcNode::parse_length(context, input, num_context)
-                        .map(|calc| Length::Calc(Box::new(calc)))
-                }),
+            Token::Function(ref name) => {
+                let function = CalcNode::math_function(name, location)?;
+                let calc = CalcNode::parse_length(context, input, num_context, function)?;
+                Ok(Length::Calc(Box::new(calc)))
+            },
             ref token => return Err(location.new_unexpected_token_error(token.clone())),
         }
     }
@@ -822,10 +814,9 @@ impl LengthPercentage {
                     return Ok(LengthPercentage::Length(NoCalcLength::from_px(value)));
                 }
             },
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = input.parse_nested_block(|i| {
-                    CalcNode::parse_length_or_percentage(context, i, num_context)
-                })?;
+            Token::Function(ref name) => {
+                let function = CalcNode::math_function(name, location)?;
+                let calc = CalcNode::parse_length_or_percentage(context, input, num_context, function)?;
                 Ok(LengthPercentage::Calc(Box::new(calc)))
             },
             _ => return Err(location.new_unexpected_token_error(token.clone())),

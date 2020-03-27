@@ -17,8 +17,8 @@
 #include "TimingStruct.h"
 #include "Http2Push.h"
 #include "mozilla/net/DNS.h"
+#include "mozilla/net/NeckoChannelParams.h"
 #include "ARefBase.h"
-#include "AlternateServices.h"
 
 //-----------------------------------------------------------------------------
 
@@ -66,7 +66,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   }
 
   nsIEventTarget* ConsumerTarget() { return mConsumerTarget; }
-  nsISupports* HttpChannel() { return mChannel; }
 
   // Called to set/find out if the transaction generated a complete response.
   void SetResponseIsComplete() { mResponseIsComplete = true; }
@@ -139,6 +138,11 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   void OnProxyConnectComplete(int32_t aResponseCode) override;
 
+  // This is only called by Http2PushedStream::TryOnPush when a new pushed
+  // stream is available. The newly added stream will be taken by another
+  // transaction.
+  void OnPush(Http2PushedStreamWrapper* aStream);
+
  private:
   friend class DeleteHttpTransaction;
   virtual ~nsHttpTransaction();
@@ -183,6 +187,11 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   // WOULD_BLOCK.
   bool ShouldThrottle();
 
+  void NotifyTransactionObserver(nsresult reason);
+
+  already_AddRefed<Http2PushedStreamWrapper> TakePushedStreamById(
+      uint32_t aStreamId);
+
  private:
   class UpdateSecurityCallbacks : public Runnable {
    public:
@@ -213,7 +222,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   nsCOMPtr<nsIAsyncOutputStream> mPipeOut;
   nsCOMPtr<nsIRequestContext> mRequestContext;
 
-  nsCOMPtr<nsISupports> mChannel;
+  uint64_t mChannelId;
   nsCOMPtr<nsIHttpActivityObserver> mActivityDistributor;
 
   nsCString mReqHeaderBuf;  // flattened request headers
@@ -389,7 +398,8 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
  private:
   RefPtr<ASpdySession> mTunnelProvider;
-  RefPtr<TransactionObserver> mTransactionObserver;
+  TransactionObserverFunc mTransactionObserver;
+  TransactionObserverResult mTransactionObserverResult;
   NetAddr mSelfAddr;
   NetAddr mPeerAddr;
   bool mResolvedByTRR;
@@ -411,6 +421,10 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   HttpTrafficCategory mTrafficCategory;
   bool mThroughCaptivePortal;
   int32_t mProxyConnectResponseCode;
+
+  OnPushCallback mOnPushCallback;
+  nsDataHashtable<nsUint32HashKey, RefPtr<Http2PushedStreamWrapper>>
+      mIDToStreamMap;
 };
 
 }  // namespace net

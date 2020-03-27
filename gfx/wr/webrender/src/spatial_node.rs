@@ -6,7 +6,7 @@
 use api::{ExternalScrollId, PipelineId, PropertyBinding, PropertyBindingId, ReferenceFrameKind, ScrollClamping, ScrollLocation};
 use api::{TransformStyle, ScrollSensitivity, StickyOffsetBounds};
 use api::units::*;
-use crate::clip_scroll_tree::{CoordinateSystem, CoordinateSystemId, SpatialNodeIndex, TransformUpdateState};
+use crate::spatial_tree::{CoordinateSystem, CoordinateSystemId, SpatialNodeIndex, TransformUpdateState};
 use euclid::{Point2D, Vector2D, SideOffsets2D};
 use crate::scene::SceneProperties;
 use crate::util::{LayoutFastTransform, MatrixHelpers, ScaleOffset, TransformedRectKind, PointHelpers};
@@ -27,7 +27,7 @@ pub enum SpatialNodeType {
     ReferenceFrame(ReferenceFrameInfo),
 }
 
-/// Contains information common among all types of ClipScrollTree nodes.
+/// Contains information common among all types of SpatialTree nodes.
 #[derive(Clone, Debug)]
 pub struct SpatialNode {
     /// The scale/offset of the viewport for this spatial node, relative to the
@@ -300,7 +300,6 @@ impl SpatialNode {
         match self.node_type {
             SpatialNodeType::ReferenceFrame(info) if !info.invertible => {
                 self.mark_uninvertible(state);
-                return;
             }
             _ => self.invertible = true,
         }
@@ -700,8 +699,12 @@ impl SpatialNode {
                     }
 
                     // Assume animations start at the identity transform for snapping purposes.
+                    // We still want to incorporate the reference frame offset however.
                     // TODO(aosmond): Is there a better known starting point?
-                    PropertyBinding::Binding(..) => ScaleOffset::identity(),
+                    PropertyBinding::Binding(..) => {
+                        let origin_offset = info.origin_in_parent_reference_frame;
+                        ScaleOffset::from_offset(origin_offset.to_untyped())
+                    }
                 }
             }
             _ => ScaleOffset::identity(),
@@ -875,10 +878,10 @@ fn test_cst_perspective_relative_scroll() {
     // since wrench doesn't understand external scroll ids. When wrench
     // supports this, we could also verify with a reftest.
 
-    use crate::clip_scroll_tree::ClipScrollTree;
+    use crate::spatial_tree::SpatialTree;
     use euclid::approxeq::ApproxEq;
 
-    let mut cst = ClipScrollTree::new();
+    let mut cst = SpatialTree::new();
     let pipeline_id = PipelineId::dummy();
     let ext_scroll_id = ExternalScrollId(1, pipeline_id);
     let transform = LayoutTransform::create_perspective(100.0);

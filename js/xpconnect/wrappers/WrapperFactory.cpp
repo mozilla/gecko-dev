@@ -80,8 +80,7 @@ JSObject* WrapperFactory::CreateXrayWaiver(JSContext* cx, HandleObject obj,
   // Add the new waiver to the map. It's important that we only ever have
   // one waiver for the lifetime of the target object.
   if (!scope->mWaiverWrapperMap) {
-    scope->mWaiverWrapperMap =
-        JSObject2JSObjectMap::newMap(XPC_WRAPPER_MAP_LENGTH);
+    scope->mWaiverWrapperMap = mozilla::MakeUnique<JSObject2JSObjectMap>();
   }
   if (!scope->mWaiverWrapperMap->Add(cx, obj, waiver)) {
     return nullptr;
@@ -387,8 +386,7 @@ static void DEBUG_CheckUnwrapSafety(HandleObject obj,
     // The JS engine should have returned a dead wrapper in this case and we
     // shouldn't even get here.
     MOZ_ASSERT_UNREACHABLE("CheckUnwrapSafety called for a dead wrapper");
-  } else if (AccessCheck::isChrome(targetCompartment) ||
-             xpc::IsUniversalXPConnectEnabled(targetCompartment)) {
+  } else if (AccessCheck::isChrome(targetCompartment)) {
     // If the caller is chrome (or effectively so), unwrap should always be
     // allowed, but we might have a CrossOriginObjectWrapper here which allows
     // it dynamically.
@@ -531,15 +529,8 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
   // First, handle the special cases.
   //
 
-  // If UniversalXPConnect is enabled, this is just some dumb mochitest. Use
-  // a vanilla CCW.
-  if (targetCompartmentPrivate->universalXPConnectEnabled) {
-    CrashIfNotInAutomation();
-    wrapper = &CrossCompartmentWrapper::singleton;
-  }
-
   // Let the SpecialPowers scope make its stuff easily accessible to content.
-  else if (originRealmPrivate->forcePermissiveCOWs) {
+  if (originRealmPrivate->forcePermissiveCOWs) {
     CrashIfNotInAutomation();
     wrapper = &CrossCompartmentWrapper::singleton;
   }

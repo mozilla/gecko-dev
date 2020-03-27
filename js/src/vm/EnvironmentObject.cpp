@@ -245,8 +245,7 @@ CallObject* CallObject::createHollowForDebug(JSContext* cx,
 
   RootedScript script(cx, callee->nonLazyScript());
   Rooted<FunctionScope*> scope(cx, &script->bodyScope()->as<FunctionScope>());
-  RootedShape shape(cx, FunctionScope::getEmptyEnvironmentShape(
-                            cx, scope->hasParameterExprs()));
+  RootedShape shape(cx, FunctionScope::getEmptyEnvironmentShape(cx));
   if (!shape) {
     return nullptr;
   }
@@ -1907,7 +1906,7 @@ class DebugEnvironmentProxyHandler : public BaseProxyHandler {
 
   /*
    * If the value of |this| is requested before the this-binding has been
-   * initialized by JSOP_FUNCTIONTHIS, the this-binding will be |undefined|.
+   * initialized by JSOp::FunctionThis, the this-binding will be |undefined|.
    * In that case, we have to call createMissingThis to initialize the
    * this-binding.
    *
@@ -3386,13 +3385,13 @@ static bool GetThisValueForDebuggerEnvironmentIterMaybeOptimizedOut(
     if (ei.withinInitialFrame()) {
       MOZ_ASSERT(pc, "must have PC if there is an initial frame");
 
-      // Figure out if we executed JSOP_FUNCTIONTHIS and set it.
+      // Figure out if we executed JSOp::FunctionThis and set it.
       bool executedInitThisOp = false;
       if (script->functionHasThisBinding()) {
         for (jsbytecode* it = script->code(); it < script->codeEnd();
              it = GetNextPc(it)) {
-          if (*it == JSOP_FUNCTIONTHIS) {
-            // The next op after JSOP_FUNCTIONTHIS always sets it.
+          if (JSOp(*it) == JSOp::FunctionThis) {
+            // The next op after JSOp::FunctionThis always sets it.
             executedInitThisOp = pc > GetNextPc(it);
             break;
           }
@@ -3402,7 +3401,7 @@ static bool GetThisValueForDebuggerEnvironmentIterMaybeOptimizedOut(
       if (!executedInitThisOp) {
         AbstractFramePtr initialFrame = ei.initialFrame();
         // Either we're yet to initialize the this-binding
-        // (JSOP_FUNCTIONTHIS), or the script does not have a this-binding
+        // (JSOp::FunctionThis), or the script does not have a this-binding
         // (because it doesn't use |this|).
 
         // If our this-argument is an object, or we're in strict mode,
@@ -3415,7 +3414,7 @@ static bool GetThisValueForDebuggerEnvironmentIterMaybeOptimizedOut(
         // We didn't initialize the this-binding yet. Determine the
         // correct |this| value for this frame (box primitives if not
         // in strict mode), and assign it to the this-argument slot so
-        // JSOP_FUNCTIONTHIS will use it and not box a second time.
+        // JSOp::FunctionThis will use it and not box a second time.
         if (!GetFunctionThis(cx, initialFrame, res)) {
           return false;
         }
@@ -3663,10 +3662,8 @@ static bool CheckVarNameConflictsInEnv(JSContext* cx, HandleScript script,
 
   if (env->isSyntactic() && !env->isGlobal() &&
       env->scope().kind() == ScopeKind::SimpleCatch) {
-    // Annex B.3.5 allows redeclaring simple (non-destructured) catch
-    // parameters with var declarations, except when it appears in a
-    // for-of. The for-of allowance is computed in
-    // Parser::isVarRedeclaredInEval.
+    // Annex B.3.5 allows redeclaring simple (non-destructured) catch parameters
+    // with var declarations.
     return true;
   }
 
@@ -3674,6 +3671,17 @@ static bool CheckVarNameConflictsInEnv(JSContext* cx, HandleScript script,
   for (BindingIter bi(script); bi; bi++) {
     name = bi.name()->asPropertyName();
     if (!CheckVarNameConflict(cx, env, name)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+static bool CheckArgumentsRedeclaration(JSContext* cx, HandleScript script) {
+  for (BindingIter bi(script); bi; bi++) {
+    if (bi.name() == cx->names().arguments) {
+      ReportRuntimeRedeclaration(cx, cx->names().arguments, "let");
       return false;
     }
   }
@@ -3703,6 +3711,30 @@ static bool CheckEvalDeclarationConflicts(JSContext* cx, HandleScript script,
     obj = obj->enclosingEnvironment();
   }
 
+  // Check for redeclared "arguments" in function parameter expressions.
+  //
+  // Direct eval in function parameter expressions isn't allowed to redeclare
+  // the implicit "arguments" bindings:
+  //   function f(a = eval("var arguments;")) {}
+  //
+  // |varObj| isn't a CallObject when the direct eval occurs in the function
+  // body and the extra function body var scope is present. The extra var scope
+  // is present iff the function has parameter expressions. So when we test
+  // that |varObj| is a CallObject and function parameter expressions are
+  // present, we can pinpoint the direct eval location to be in a function
+  // parameter expression. Additionally we must ensure the function isn't an
+  // arrow function, because arrow functions don't have an implicit "arguments"
+  // binding.
+  if (script->isDirectEvalInFunction() && varObj->is<CallObject>()) {
+    JSFunction* fun = &varObj->as<CallObject>().callee();
+    JSScript* funScript = fun->nonLazyScript();
+    if (funScript->functionHasParameterExprs() && !fun->isArrow()) {
+      if (!CheckArgumentsRedeclaration(cx, script)) {
+        return false;
+      }
+    }
+  }
+
   // Step 8.
   //
   // Check that global functions may be declared.
@@ -3729,16 +3761,12 @@ bool js::CheckGlobalOrEvalDeclarationConflicts(JSContext* cx,
   RootedObject varObj(cx, &GetVariablesObject(envChain));
 
   if (script->isForEval()) {
-    // Strict eval and eval in parameter default expressions have their
-    // own call objects.
+    // Strict eval has its own call objects.
     //
     // Non-strict eval may introduce 'var' bindings that conflict with
     // lexical bindings in an enclosing lexical scope.
     if (!script->bodyScope()->hasEnvironment()) {
-      MOZ_ASSERT(
-          !script->strict() &&
-          (!script->enclosingScope()->is<FunctionScope>() ||
-           !script->enclosingScope()->as<FunctionScope>().hasParameterExprs()));
+      MOZ_ASSERT(!script->strict());
       if (!CheckEvalDeclarationConflicts(cx, script, envChain, varObj)) {
         return false;
       }
@@ -3845,15 +3873,15 @@ static bool RemoveReferencedNames(JSContext* cx, HandleScript script,
     PropertyName* name;
 
     switch (loc.getOp()) {
-      case JSOP_GETNAME:
-      case JSOP_SETNAME:
-      case JSOP_STRICTSETNAME:
+      case JSOp::GetName:
+      case JSOp::SetName:
+      case JSOp::StrictSetName:
         name = script->getName(loc.toRawBytecode());
         break;
 
-      case JSOP_GETGNAME:
-      case JSOP_SETGNAME:
-      case JSOP_STRICTSETGNAME:
+      case JSOp::GetGName:
+      case JSOp::SetGName:
+      case JSOp::StrictSetGName:
         if (script->hasNonSyntacticScope()) {
           name = script->getName(loc.toRawBytecode());
         } else {
@@ -3861,8 +3889,8 @@ static bool RemoveReferencedNames(JSContext* cx, HandleScript script,
         }
         break;
 
-      case JSOP_GETALIASEDVAR:
-      case JSOP_SETALIASEDVAR:
+      case JSOp::GetAliasedVar:
+      case JSOp::SetAliasedVar:
         name = EnvironmentCoordinateNameSlow(script, loc.toRawBytecode());
         break;
 

@@ -5,17 +5,17 @@
 
 #include "FilteredContentIterator.h"
 
-#include "mozilla/ContentIterator.h"
-#include "mozilla/Move.h"
-#include "mozilla/mozalloc.h"
-#include "mozilla/dom/AbstractRange.h"
+#include <utility>
 
+#include "mozilla/ContentIterator.h"
+#include "mozilla/dom/AbstractRange.h"
+#include "mozilla/mozalloc.h"
+#include "nsAtom.h"
 #include "nsComponentManagerUtils.h"
 #include "nsComposeTxtSrvFilter.h"
 #include "nsContentUtils.h"
 #include "nsDebug.h"
 #include "nsError.h"
-#include "nsAtom.h"
 #include "nsIContent.h"
 #include "nsINode.h"
 #include "nsISupportsBase.h"
@@ -48,7 +48,7 @@ nsresult FilteredContentIterator::Init(nsINode* aRoot) {
   mDirection = eForward;
   mCurrentIterator = &mPreIterator;
 
-  mRange = new nsRange(aRoot);
+  mRange = nsRange::Create(aRoot);
   mRange->SelectNode(*aRoot, IgnoreErrors());
 
   nsresult rv = mPreIterator.Init(mRange);

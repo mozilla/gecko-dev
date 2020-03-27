@@ -22,18 +22,19 @@
 #ifndef mozilla_Span_h
 #define mozilla_Span_h
 
-#include "mozilla/Array.h"
-#include "mozilla/Assertions.h"
-#include "mozilla/Casting.h"
-#include "mozilla/IntegerTypeTraits.h"
-#include "mozilla/Move.h"
-#include "mozilla/TypeTraits.h"
-#include "mozilla/UniquePtr.h"
-
 #include <algorithm>
 #include <array>
 #include <cstring>
 #include <iterator>
+#include <limits>
+#include <utility>
+
+#include "mozilla/Array.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/Casting.h"
+#include "mozilla/IntegerTypeTraits.h"
+#include "mozilla/TypeTraits.h"
+#include "mozilla/UniquePtr.h"
 
 namespace mozilla {
 
@@ -52,7 +53,7 @@ inline constexpr T narrow_cast(U&& u) {
 // and reserving a magic value that realistically doesn't occur in
 // compile-time-constant Span sizes makes things a lot less messy in terms of
 // comparison between signed and unsigned.
-constexpr const size_t dynamic_extent = mozilla::MaxValue<size_t>::value;
+constexpr const size_t dynamic_extent = std::numeric_limits<size_t>::max();
 
 template <class ElementType, size_t Extent = dynamic_extent>
 class Span;
@@ -378,17 +379,16 @@ class Span {
 
   // [Span.cons], Span constructors, copy, assignment, and destructor
   // "Dependent" is needed to make "span_details::enable_if_t<(Dependent ||
-  //   Extent == 0 || Extent == mozilla::MaxValue<size_t>::value)>" SFINAE,
-  // since "span_details::enable_if_t<(Extent == 0 || Extent ==
-  //   mozilla::MaxValue<size_t>::value)>" is ill-formed when Extent is neither
-  //   of the extreme values.
+  //   Extent == 0 || Extent == dynamic_extent)>" SFINAE,
+  // since
+  // "span_details::enable_if_t<(Extent == 0 || Extent == dynamic_extent)>" is
+  // ill-formed when Extent is neither of the extreme values.
   /**
    * Constructor with no args.
    */
   template <bool Dependent = false,
-            class = span_details::enable_if_t<
-                (Dependent || Extent == 0 ||
-                 Extent == mozilla::MaxValue<size_t>::value)>>
+            class = span_details::enable_if_t<(Dependent || Extent == 0 ||
+                                               Extent == dynamic_extent)>>
   constexpr Span() : storage_(nullptr, span_details::extent_type<0>()) {}
 
   /**
@@ -718,9 +718,8 @@ class Span {
           data_(elements ? elements
                          : reinterpret_cast<pointer>(alignof(element_type))) {
       const size_t extentSize = ExtentType::size();
-      MOZ_RELEASE_ASSERT(
-          (!elements && extentSize == 0) ||
-          (elements && extentSize != mozilla::MaxValue<size_t>::value));
+      MOZ_RELEASE_ASSERT((!elements && extentSize == 0) ||
+                         (elements && extentSize != dynamic_extent));
     }
 
     constexpr pointer data() const { return data_; }

@@ -26,7 +26,6 @@
 #include "mozilla/dom/PGamepadTestChannelParent.h"
 #include "mozilla/dom/MediaTransportParent.h"
 #include "mozilla/dom/MessagePortParent.h"
-#include "mozilla/dom/PendingIPCBlobParent.h"
 #include "mozilla/dom/ServiceWorkerActors.h"
 #include "mozilla/dom/ServiceWorkerManagerParent.h"
 #include "mozilla/dom/ServiceWorkerRegistrar.h"
@@ -113,8 +112,7 @@ class TestParent final : public mozilla::ipc::PBackgroundTestParent {
 
 }  // namespace
 
-namespace mozilla {
-namespace ipc {
+namespace mozilla::ipc {
 
 using mozilla::dom::BroadcastChannelParent;
 using mozilla::dom::ContentParent;
@@ -475,21 +473,6 @@ BackgroundParentImpl::AllocPIdleSchedulerParent() {
   AssertIsOnBackgroundThread();
   RefPtr<IdleSchedulerParent> actor = new IdleSchedulerParent();
   return actor.forget();
-}
-
-mozilla::dom::PPendingIPCBlobParent*
-BackgroundParentImpl::AllocPPendingIPCBlobParent(const IPCBlob& aBlob) {
-  MOZ_CRASH("PPendingIPCBlobParent actors should be manually constructed!");
-}
-
-bool BackgroundParentImpl::DeallocPPendingIPCBlobParent(
-    mozilla::dom::PPendingIPCBlobParent* aActor) {
-  AssertIsInMainOrSocketProcess();
-  AssertIsOnBackgroundThread();
-  MOZ_ASSERT(aActor);
-
-  delete aActor;
-  return true;
 }
 
 mozilla::dom::PRemoteWorkerParent*
@@ -1321,8 +1304,7 @@ BackgroundParentImpl::SendPFileDescriptorSetConstructor(
   return PBackgroundParent::SendPFileDescriptorSetConstructor(aFD);
 }
 
-}  // namespace ipc
-}  // namespace mozilla
+}  // namespace mozilla::ipc
 
 void TestParent::ActorDestroy(ActorDestroyReason aWhy) {
   mozilla::ipc::AssertIsInMainOrSocketProcess();

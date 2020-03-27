@@ -11,7 +11,6 @@
 #include "mozilla/Casting.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
 
 #include "jspubtd.h"
@@ -198,10 +197,6 @@ typedef void (*JSSetUseCounterCallback)(JSObject* obj, JSUseCounter counter);
 
 extern JS_FRIEND_API void JS_SetSetUseCounterCallback(
     JSContext* cx, JSSetUseCounterCallback callback);
-
-extern JS_FRIEND_API void JS_ReportFirstCompileTime(
-    JS::HandleScript script, mozilla::TimeDuration& parse,
-    mozilla::TimeDuration& emit);
 
 extern JS_FRIEND_API JSPrincipals* JS_GetScriptPrincipals(JSScript* script);
 
@@ -1746,9 +1741,6 @@ extern JS_FRIEND_API JSObject* JS_GetObjectAsArrayBufferView(
  */
 extern JS_FRIEND_API js::Scalar::Type JS_GetArrayBufferViewType(JSObject* obj);
 
-extern JS_FRIEND_API js::Scalar::Type JS_GetSharedArrayBufferViewType(
-    JSObject* obj);
-
 /**
  * Return the number of elements in a typed array.
  *
@@ -2688,6 +2680,20 @@ class JS_FRIEND_API CompartmentTransplantCallback {
 extern JS_FRIEND_API void RemapRemoteWindowProxies(
     JSContext* cx, CompartmentTransplantCallback* callback,
     JS::MutableHandleObject newTarget);
+
+namespace gc {
+
+// API to let the DOM tell us whether we're currently in pageload, so we can
+// change the GC triggers to discourage collection of the atoms zone.
+//
+// This is a temporary measure; bug 1544117 will make this unnecessary.
+
+enum class PerformanceHint { Normal, InPageLoad };
+
+extern JS_FRIEND_API void SetPerformanceHint(JSContext* cx,
+                                             PerformanceHint hint);
+
+} /* namespace gc */
 
 } /* namespace js */
 

@@ -56,13 +56,15 @@ extern mozilla::Atomic<bool, mozilla::Relaxed> gNativeIsLocalhost;
 
 struct nsHostKey {
   const nsCString host;
+  const nsCString mTrrServer;
   uint16_t type;
   uint16_t flags;
   uint16_t af;
   bool pb;
   const nsCString originSuffix;
-  explicit nsHostKey(const nsACString& host, uint16_t type, uint16_t flags,
-                     uint16_t af, bool pb, const nsACString& originSuffix);
+  explicit nsHostKey(const nsACString& host, const nsACString& aTrrServer,
+                     uint16_t type, uint16_t flags, uint16_t af, bool pb,
+                     const nsACString& originSuffix);
   bool operator==(const nsHostKey& other) const;
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
   PLDHashNumber Hash() const;
@@ -81,8 +83,12 @@ class nsHostRecord : public mozilla::LinkedListElement<RefPtr<nsHostRecord>>,
     return 0;
   }
 
+  // Returns the TRR mode encoded by the flags
+  nsIRequest::TRRMode TRRMode();
+
  protected:
   friend class nsHostResolver;
+  friend class mozilla::net::TRR;
 
   explicit nsHostRecord(const nsHostKey& key);
   virtual ~nsHostRecord() = default;
@@ -136,7 +142,12 @@ class nsHostRecord : public mozilla::LinkedListElement<RefPtr<nsHostRecord>>,
   // but a request to refresh it will be made.
   mozilla::TimeStamp mGraceStart;
 
-  mozilla::net::ResolverMode mResolverMode;
+  // The computed TRR mode that is actually used by the request.
+  // It is set in nsHostResolver::NameLookup and is based on the mode of the
+  // default resolver and the TRRMode encoded in the flags.
+  // The mode into account if the TRR service is disabled,
+  // parental controls are on, domain matches exclusion list, etc.
+  nsIRequest::TRRMode mEffectiveTRRMode;
 
   uint16_t mResolving;  // counter of outstanding resolving calls
 
@@ -372,7 +383,8 @@ class AHostResolver {
   virtual LookupStatus CompleteLookupByType(nsHostRecord*, nsresult,
                                             const nsTArray<nsCString>* aResult,
                                             uint32_t aTtl, bool pb) = 0;
-  virtual nsresult GetHostRecord(const nsACString& host, uint16_t type,
+  virtual nsresult GetHostRecord(const nsACString& host,
+                                 const nsACString& aTrrServer, uint16_t type,
                                  uint16_t flags, uint16_t af, bool pb,
                                  const nsCString& originSuffix,
                                  nsHostRecord** result) {
@@ -422,7 +434,8 @@ class nsHostResolver : public nsISupports, public AHostResolver {
    * host lookup cannot be canceled (cancelation can be layered above this by
    * having the callback implementation return without doing anything).
    */
-  nsresult ResolveHost(const nsACString& hostname, uint16_t type,
+  nsresult ResolveHost(const nsACString& hostname, const nsACString& trrServer,
+                       uint16_t type,
                        const mozilla::OriginAttributes& aOriginAttributes,
                        uint16_t flags, uint16_t af,
                        nsResolveHostCallback* callback);
@@ -434,7 +447,8 @@ class nsHostResolver : public nsISupports, public AHostResolver {
    * executes the callback if the callback is still pending with the given
    * status.
    */
-  void DetachCallback(const nsACString& hostname, uint16_t type,
+  void DetachCallback(const nsACString& hostname, const nsACString& trrServer,
+                      uint16_t type,
                       const mozilla::OriginAttributes& aOriginAttributes,
                       uint16_t flags, uint16_t af,
                       nsResolveHostCallback* callback, nsresult status);
@@ -446,7 +460,8 @@ class nsHostResolver : public nsISupports, public AHostResolver {
    * parameters passed to ResolveHost.  If this is the last callback associated
    * with the host record, it is removed from any request queues it might be on.
    */
-  void CancelAsyncRequest(const nsACString& host, uint16_t type,
+  void CancelAsyncRequest(const nsACString& host, const nsACString& trrServer,
+                          uint16_t type,
                           const mozilla::OriginAttributes& aOriginAttributes,
                           uint16_t flags, uint16_t af,
                           nsIDNSListener* aListener, nsresult status);
@@ -484,8 +499,9 @@ class nsHostResolver : public nsISupports, public AHostResolver {
   LookupStatus CompleteLookupByType(nsHostRecord*, nsresult,
                                     const nsTArray<nsCString>* aResult,
                                     uint32_t aTtl, bool pb) override;
-  nsresult GetHostRecord(const nsACString& host, uint16_t type, uint16_t flags,
-                         uint16_t af, bool pb, const nsCString& originSuffix,
+  nsresult GetHostRecord(const nsACString& host, const nsACString& trrServer,
+                         uint16_t type, uint16_t flags, uint16_t af, bool pb,
+                         const nsCString& originSuffix,
                          nsHostRecord** result) override;
   nsresult TrrLookup_unlocked(nsHostRecord*,
                               mozilla::net::TRR* pushedTRR = nullptr) override;
@@ -551,7 +567,6 @@ class nsHostResolver : public nsISupports, public AHostResolver {
   PRTime mCreationTime;
   mozilla::TimeDuration mLongIdleTimeout;
   mozilla::TimeDuration mShortIdleTimeout;
-  bool mSkipTRRWhenParentalControlEnabled;
 
   RefPtr<nsIThreadPool> mResolverThreads;
   RefPtr<mozilla::net::NetworkConnectivityService> mNCS;

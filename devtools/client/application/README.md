@@ -6,7 +6,7 @@ The Application panel is a Firefox Developer Tools panel meant to allow the insp
 
 ### How to enable the Application panel
 
-At the moment, the panel is hidden behind a configuration flag. In order to enable it, type `about:config` in the address bar, look for the `devtools.application.enabled` flag and set it to true. It will then appear as a tab with the rest of the panels within the Developer Tools toolbox.
+At the moment, the panel is shown by default on Nightly builds only, behind a configuration flag. In order to enable it, type `about:config` in the address bar, look for the `devtools.application.enabled` flag and set it to true. It will then appear as a tab with the rest of the panels within the Developer Tools toolbox.
 
 ## Technical overview
 
@@ -28,7 +28,7 @@ The application panel lives in the `devtools/client/application` directory. Insi
 └── test
     ├── browser -> mochitests (e2e/integration)
     ├── node -> Jest unit tests
-    └── unit -> xpcshell unit tests
+    └── xpcshell -> xpcshell unit tests
 ```
 
 ### Panel registration
@@ -159,7 +159,7 @@ Besides the usual DevTools test helpers, the Application panel adds some other h
 
 ### Unit tests with xpcshell
 
-We are using xpcshell unit tests for the **Redux reducers** in `devtools/client/application/test/unit`.
+We are using xpcshell unit tests for the **Redux reducers** in `devtools/client/application/test/xpcshell`.
 
 Other unit tests that don't need Enzyme or other npm modules should be added here too.
 

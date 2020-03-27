@@ -8,12 +8,11 @@ use core::{gfx_select, hub::Token, id};
 
 use std::{marker::PhantomData, slice};
 
+#[cfg(target_os = "macos")]
+use objc::{msg_send, runtime::Object, sel, sel_impl};
+
 pub type RequestAdapterCallback =
     unsafe extern "C" fn(id: id::AdapterId, userdata: *mut std::ffi::c_void);
-pub type BufferMapReadCallback =
-    unsafe extern "C" fn(status: core::resource::BufferMapAsyncStatus, data: *const u8, userdata: *mut u8);
-pub type BufferMapWriteCallback =
-    unsafe extern "C" fn(status: core::resource::BufferMapAsyncStatus, data: *mut u8, userdata: *mut u8);
 
 pub fn wgpu_create_surface(raw_handle: raw_window_handle::RawWindowHandle) -> id::SurfaceId {
     use raw_window_handle::RawWindowHandle as Rwh;
@@ -29,15 +28,24 @@ pub fn wgpu_create_surface(raw_handle: raw_window_handle::RawWindowHandle) -> id
                 .create_surface_from_uiview(h.ui_view, cfg!(debug_assertions)),
         },
         #[cfg(target_os = "macos")]
-        Rwh::MacOS(h) => core::instance::Surface {
-            #[cfg(feature = "vulkan-portability")]
-            vulkan: instance
-                .vulkan
-                .as_ref()
-                .map(|inst| inst.create_surface_from_ns_view(h.ns_view)),
-            metal: instance
-                .metal
-                .create_surface_from_nsview(h.ns_view, cfg!(debug_assertions)),
+        Rwh::MacOS(h) => {
+            let ns_view =
+                if h.ns_view.is_null() {
+                    let ns_window = h.ns_window as *mut Object;
+                    unsafe { msg_send![ns_window, contentView] }
+                } else {
+                    h.ns_view
+                };
+            core::instance::Surface {
+                #[cfg(feature = "vulkan-portability")]
+                vulkan: instance
+                    .vulkan
+                    .as_ref()
+                    .map(|inst| inst.create_surface_from_ns_view(ns_view)),
+                metal: instance
+                    .metal
+                    .create_surface_from_nsview(ns_view, cfg!(debug_assertions)),
+            }
         },
         #[cfg(all(unix, not(target_os = "ios"), not(target_os = "macos")))]
         Rwh::Xlib(h) => core::instance::Surface {
@@ -78,13 +86,26 @@ pub fn wgpu_create_surface(raw_handle: raw_window_handle::RawWindowHandle) -> id
 #[no_mangle]
 pub extern "C" fn wgpu_create_surface_from_xlib(
     display: *mut *const std::ffi::c_void,
-    window: u64,
+    window: libc::c_ulong,
 ) -> id::SurfaceId {
     use raw_window_handle::unix::XlibHandle;
     wgpu_create_surface(raw_window_handle::RawWindowHandle::Xlib(XlibHandle {
         window,
         display: display as *mut _,
         ..XlibHandle::empty()
+    }))
+}
+
+#[cfg(all(unix, not(target_os = "ios"), not(target_os = "macos")))]
+#[no_mangle]
+pub extern "C" fn wgpu_create_surface_from_wayland(
+    surface: *mut std::ffi::c_void,
+    display: *mut std::ffi::c_void,
+) -> id::SurfaceId {
+    use raw_window_handle::unix::WaylandHandle;
+    wgpu_create_surface(raw_window_handle::RawWindowHandle::Wayland(WaylandHandle {
+        surface, display,
+        ..WaylandHandle::empty()
     }))
 }
 
@@ -122,6 +143,9 @@ pub extern "C" fn wgpu_create_surface_from_windows_hwnd(
     ))
 }
 
+/// # Safety
+///
+/// This function is unsafe as it calls an unsafe extern callback.
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_request_adapter_async(
     desc: Option<&core::instance::RequestAdapterOptions>,
@@ -148,8 +172,13 @@ pub extern "C" fn wgpu_adapter_request_device(
     gfx_select!(adapter_id => GLOBAL.adapter_request_device(adapter_id, desc, PhantomData))
 }
 
-pub fn wgpu_adapter_get_info(adapter_id: id::AdapterId) -> core::instance::AdapterInfo {
+pub fn adapter_get_info(adapter_id: id::AdapterId) -> core::instance::AdapterInfo {
     gfx_select!(adapter_id => GLOBAL.adapter_get_info(adapter_id))
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_adapter_destroy(adapter_id: id::AdapterId) {
+    gfx_select!(adapter_id => GLOBAL.adapter_destroy(adapter_id))
 }
 
 #[no_mangle]
@@ -168,6 +197,10 @@ pub extern "C" fn wgpu_device_create_buffer(
     gfx_select!(device_id => GLOBAL.device_create_buffer(device_id, desc, PhantomData))
 }
 
+/// # Safety
+///
+/// This function is unsafe as there is no guarantee that the given pointer
+/// dereferenced in this function is valid.
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_device_create_buffer_mapped(
     device_id: id::DeviceId,
@@ -270,10 +303,24 @@ pub extern "C" fn wgpu_device_create_command_encoder(
 }
 
 #[no_mangle]
+pub extern "C" fn wgpu_command_encoder_destroy(command_encoder_id: id::CommandEncoderId) {
+    gfx_select!(command_encoder_id => GLOBAL.command_encoder_destroy(command_encoder_id))
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_command_buffer_destroy(command_buffer_id: id::CommandBufferId) {
+    gfx_select!(command_buffer_id => GLOBAL.command_buffer_destroy(command_buffer_id))
+}
+
+#[no_mangle]
 pub extern "C" fn wgpu_device_get_queue(device_id: id::DeviceId) -> id::QueueId {
     device_id
 }
 
+/// # Safety
+///
+/// This function is unsafe as there is no guarantee that the given pointer is
+/// valid for `command_buffers_length` elements.
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_queue_submit(
     queue_id: id::QueueId,
@@ -325,16 +372,15 @@ pub extern "C" fn wgpu_buffer_map_read_async(
     buffer_id: id::BufferId,
     start: core::BufferAddress,
     size: core::BufferAddress,
-    callback: BufferMapReadCallback,
+    callback: core::device::BufferMapReadCallback,
     userdata: *mut u8,
 ) {
     let operation = core::resource::BufferMapOperation::Read(
-        start .. start + size,
         Box::new(move |status, data| unsafe {
             callback(status, data, userdata)
         }),
     );
-    gfx_select!(buffer_id => GLOBAL.buffer_map_async(buffer_id, core::resource::BufferUsage::MAP_READ, operation))
+    gfx_select!(buffer_id => GLOBAL.buffer_map_async(buffer_id, core::resource::BufferUsage::MAP_READ, start .. start + size, operation))
 }
 
 #[no_mangle]
@@ -342,16 +388,15 @@ pub extern "C" fn wgpu_buffer_map_write_async(
     buffer_id: id::BufferId,
     start: core::BufferAddress,
     size: core::BufferAddress,
-    callback: BufferMapWriteCallback,
+    callback: core::device::BufferMapWriteCallback,
     userdata: *mut u8,
 ) {
     let operation = core::resource::BufferMapOperation::Write(
-        start .. start + size,
         Box::new(move |status, data| unsafe {
             callback(status, data, userdata)
         }),
     );
-    gfx_select!(buffer_id => GLOBAL.buffer_map_async(buffer_id, core::resource::BufferUsage::MAP_WRITE, operation))
+    gfx_select!(buffer_id => GLOBAL.buffer_map_async(buffer_id, core::resource::BufferUsage::MAP_WRITE, start .. start + size, operation))
 }
 
 #[no_mangle]

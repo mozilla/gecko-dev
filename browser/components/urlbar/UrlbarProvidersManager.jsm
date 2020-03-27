@@ -34,8 +34,11 @@ XPCOMUtils.defineLazyGetter(this, "logger", () =>
 var localProviderModules = {
   UrlbarProviderUnifiedComplete:
     "resource:///modules/UrlbarProviderUnifiedComplete.jsm",
+  UrlbarProviderInterventions:
+    "resource:///modules/UrlbarProviderInterventions.jsm",
   UrlbarProviderPrivateSearch:
     "resource:///modules/UrlbarProviderPrivateSearch.jsm",
+  UrlbarProviderSearchTips: "resource:///modules/UrlbarProviderSearchTips.jsm",
   UrlbarProviderTopSites: "resource:///modules/UrlbarProviderTopSites.jsm",
 };
 
@@ -286,14 +289,23 @@ class Query {
     this.started = true;
 
     // Check which providers should be queried.
-    let providers = this.providers.filter(p => p.isActive(this.context));
-
-    // Check if any of the remaining providers wants to restrict the search.
-    let restrictProviders = providers.filter(p =>
-      p.isRestricting(this.context)
-    );
-    if (restrictProviders.length) {
-      providers = restrictProviders;
+    let providers = [];
+    let maxPriority = -1;
+    for (let provider of this.providers) {
+      if (provider.isActive(this.context)) {
+        let priority = provider.getPriority(this.context);
+        if (priority >= maxPriority) {
+          // The provider's priority is at least as high as the max.
+          if (priority > maxPriority) {
+            // The provider's priority is higher than the max.  Remove all
+            // previously added providers, since their priority is necessarily
+            // lower, by setting length to zero.
+            providers.length = 0;
+            maxPriority = priority;
+          }
+          providers.push(provider);
+        }
+      }
     }
 
     // Start querying providers.

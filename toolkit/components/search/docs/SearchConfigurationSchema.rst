@@ -42,8 +42,7 @@ An engine that is deployed globally could be listed simply as:
       "default": "no",
       "telemetryId": "engine1-telem",
       "webExtension": {
-        "id": "web@ext",
-        "version": "1.0"
+        "id": "web@ext"
       },
       "appliesTo": [{
         "included": {
@@ -64,31 +63,28 @@ located specific regions or with certain locales. For example:
 
     {
       "webExtension": {
-        "id": "web@ext",
-        "version": "1.0"
+        "id": "web@ext"
       },
       "appliesTo": [{
         "included": {
           "region": "us"
         },
         "webExtension": {
-          "id": "web-us@ext",
-          "version": "1.1"
+          "id": "web-us@ext"
         }
       }, {
         "included": {
           "region": "gb"
         },
         "webExtension": {
-          "id": "web-gb@ext",
-          "version": "1.2"
+          "id": "web-gb@ext"
         }
       }]
     }
 
 In this case users identified as being in the US region would use the WebExtension
-with identifier ``web-us@ext``, version 1.1. GB region users would get
-``web-gb@ext`` version 1.2, and all other users would get ``web@ext`` version 1.0.
+with identifier ``web-us@ext``. GB region users would get
+``web-gb@ext``, and all other users would get ``web@ext``.
 
 Special Attributes
 ==================
@@ -104,8 +100,7 @@ configuration object with the users locale. For example:
 
     {
       "webExtension": {
-        "id": "web@ext",
-        "version": "1.0"
+        "id": "web@ext"
       },
       "appliesTo": [{
         "included": {
@@ -126,15 +121,55 @@ depending on the user's locale.
 ---------
 
 You can specify ``"default"`` as a region in the configuration if
-the engine is to be included when no region is specified.
+the engine is to be included when we do not know the user's region.
 
 Application Scoping
 ===================
 
 An engine configuration may be scoped to a particular application.
 
+Name
+----
+
+One or more application names may be specified. Currently the only application
+type supported is ``firefox``. If an application name is specified, then it
+must be matched for the section to apply. If there are no application names
+specified, then the section will match any consumer of the configuration.
+
+In the following example, ``web@ext`` would be included on any consumer
+of the configuration, but ``web1@ext`` would only be included on Firefox desktop.
+
+.. code-block:: js
+
+    {
+      "webExtension": {
+        "id": "web@ext"
+      },
+      "appliesTo": [{
+        "included": {
+          "everywhere": true
+          "application": {
+            "name": []
+          }
+        }
+      ]}
+    },
+    {
+      "webExtension": {
+        "id": "web1@ext"
+      },
+      "appliesTo": [{
+        "included": {
+          "everywhere": true
+          "application": {
+            "name": ["firefox"]
+          }
+        }
+      ]}
+    }
+
 Channel
-=======
+-------
 
 One or more channels may be specified in an array to restrict a configuration
 to just those channels. The current known channels are:
@@ -183,6 +218,51 @@ channels.
       ]}
     }
 
+Version
+-------
+
+Minimum and Maximum versions may be specified to restrict a configuration to
+specific ranges. These may be open-ended. Version comparison is performed
+using `the version comparator`_.
+
+Note: comparison against ``maxVersion`` is a less-than comparison. The
+``maxVersion`` won't be matched directly.
+
+In the following example, ``web@ext`` would be included for any version after
+72.0a1, whereas ``web1@ext`` would be included only between 68.0a1 and 71.x
+version.
+
+.. code-block:: js
+
+    {
+      "webExtension": {
+        "id": "web@ext"
+      },
+      "appliesTo": [{
+        "included": {
+          "everywhere": true
+          "application": {
+            "minVersion": "72.0a1"
+          }
+        }
+      ]}
+    },
+    {
+      "webExtension": {
+        "id": "web1@ext"
+      },
+      "appliesTo": [{
+        "included": {
+          "everywhere": true
+          "default": "yes",
+          "application": {
+            "minVersion": "68.0a1"
+            "maxVersion": "72.0a1"
+          }
+        }
+      ]}
+    }
+
 Experiments
 ===========
 
@@ -197,8 +277,7 @@ Sections which have a ``cohort`` will not be used unless a matching
 
     {
       "webExtension": {
-        "id": "web@ext",
-        "version": "1.0"
+        "id": "web@ext"
       },
       "appliesTo": [{
         "included": {
@@ -213,8 +292,7 @@ Sections which have a ``cohort`` will not be used unless a matching
           "everywhere": true
         },
         "webExtension": {
-          "id": "web-gb@ext",
-          "version": "1.2"
+          "id": "web-gb@ext"
         }
       }]
     }
@@ -241,8 +319,7 @@ property is a tri-state value with states of ``yes``, ``yes-if-no-other`` and
 
     {
       "webExtension": {
-        "id": "engine1@ext",
-        "version": "1.0"
+        "id": "engine1@ext"
       },
       "appliesTo": [{
         "included": {
@@ -258,8 +335,7 @@ property is a tri-state value with states of ``yes``, ``yes-if-no-other`` and
     },
     {
       "webExtension": {
-        "id": "engine2@ext",
-        "version": "1.0"
+        "id": "engine2@ext"
       },
       "appliesTo": [{
         "included": {
@@ -269,8 +345,7 @@ property is a tri-state value with states of ``yes``, ``yes-if-no-other`` and
       }]
     },
       "webExtension": {
-        "id": "engine3@ext",
-        "version": "1.0"
+        "id": "engine3@ext"
       },
       "default": "no"
       "appliesTo": [{
@@ -281,8 +356,7 @@ property is a tri-state value with states of ``yes``, ``yes-if-no-other`` and
     },
     {
       "webExtension": {
-        "id": "engine4@ext",
-        "version": "1.0"
+        "id": "engine4@ext"
       },
       "defaultPrivate": "yes",
       "appliesTo": [{
@@ -325,24 +399,21 @@ Example:
 
     {
       "webExtension": {
-        "id": "engine1@ext",
-        "version": "1.0"
+        "id": "engine1@ext"
       },
       "orderHint": 2000,
       "default": "no",
     },
     {
       "webExtension": {
-        "id": "engine2@ext",
-        "version": "1.0"
+        "id": "engine2@ext"
       },
       "orderHint": 1000,
       "default": "yes"
     },
     {
       "webExtension": {
-        "id": "engine3@ext",
-        "version": "1.0"
+        "id": "engine3@ext"
       },
       "orderHint": 500,
       "default": "no"
@@ -350,30 +421,6 @@ Example:
 
 This would result in the order: ``engine2@ext, engine1@ext, engine3@ext``.
 
-Engine Updates
-==============
-
-Within each engine definition is the extension id and version, for example:
-
-.. code-block:: js
-
-  {
-      "webExtension": {
-        "id": "web@ext",
-        "version": "1.0"
-      },
-    }
-
-To locate an engine to use, the Search Service will look in the following locations (in order):
-
-#. within the user's install of the application.
-#. in the configuration to see if there is an ``attachment`` field.
-
-If the WebExtension is listed in the ``attachment``, then the app will download
-to the user's profile, if it is not already there.
-
-If an application is downloading the WebExtension, or it is not available, then
-it may use an earlier version of the WebExtension until a new one becomes available.
-
 .. _Bug 1542235: https://bugzilla.mozilla.org/show_bug.cgi?id=1542235
 .. _schema itself: https://searchfox.org/mozilla-central/source/toolkit/components/search/schema/
+.. _the version comparator: https://developer.mozilla.org/en-US/docs/Mozilla/Toolkit_version_format

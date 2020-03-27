@@ -121,9 +121,8 @@ class HTMLInputElement;
  * mValue member of the TextControlState object.
  *
  *   * If an editor has been initialized for the control, the value is set and
- * retrievd via the nsIPlaintextEditor interface, and is internally managed by
- * the editor as the native anonymous content tree attached to the control's
- * frame.
+ * retrievd via the nsIEditor interface, and is internally managed by the
+ * editor as the native anonymous content tree attached to the control's frame.
  *
  *   * If the text control state object is unbound from the control's frame, the
  * value is transferred to the mValue member variable, and will be managed there
@@ -276,13 +275,6 @@ class TextControlState final : public SupportsWeakPtr<TextControlState> {
   void GetPreviewText(nsAString& aValue);
   bool GetPreviewVisibility() { return mPreviewVisibility; }
 
-  /**
-   * Get the maxlength attribute
-   * @param aMaxLength the value of the max length attr
-   * @returns false if attr not defined
-   */
-  int32_t GetMaxLength();
-
   void HideSelectionIfBlurred();
 
   struct SelectionProperties {
@@ -321,8 +313,8 @@ class TextControlState final : public SupportsWeakPtr<TextControlState> {
     nsITextControlFrame::SelectionDirection mDirection;
   };
 
-  bool IsSelectionCached() const;
-  SelectionProperties& GetSelectionProperties();
+  bool IsSelectionCached() const { return mSelectionCached; }
+  SelectionProperties& GetSelectionProperties() { return mSelectionProperties; }
   MOZ_CAN_RUN_SCRIPT void SetSelectionProperties(SelectionProperties& aProps);
   void WillInitEagerly() { mSelectionRestoreEagerInit = true; }
   bool HasNeverInitializedBefore() const { return !mEverInited; }
@@ -397,12 +389,6 @@ class TextControlState final : public SupportsWeakPtr<TextControlState> {
       const Maybe<uint32_t>& aSelectionStart = Nothing(),
       const Maybe<uint32_t>& aSelectionEnd = Nothing());
 
-  void UpdateEditableState(bool aNotify) {
-    if (auto* root = GetRootNode()) {
-      root->UpdateEditableState(aNotify);
-    }
-  }
-
  private:
   explicit TextControlState(TextControlElement* aOwningElement);
   MOZ_CAN_RUN_SCRIPT ~TextControlState();
@@ -422,8 +408,6 @@ class TextControlState final : public SupportsWeakPtr<TextControlState> {
   nsresult InitializeRootNode();
 
   void FinishedRestoringSelection();
-
-  HTMLInputElement* GetParentNumberControl(nsFrame* aFrame) const;
 
   bool EditorHasComposition();
 

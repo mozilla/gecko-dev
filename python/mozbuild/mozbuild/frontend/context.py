@@ -27,7 +27,6 @@ from mozbuild.util import (
     ImmutableStrictOrderingOnAppendList,
     KeyedDefaultDict,
     List,
-    ListWithAction,
     memoize,
     memoized_property,
     ReadOnlyKeyedDefaultDict,
@@ -705,29 +704,39 @@ class Path(ContextDerivedValue, six.text_type):
         return Path(self.context, mozpath.join(self, *p))
 
     def __cmp__(self, other):
-        if isinstance(other, Path) and self.srcdir != other.srcdir:
-            return cmp(self.full_path, other.full_path)
-        return cmp(six.text_type(self), other)
+        # We expect this function to never be called to avoid issues in the
+        # switch from Python 2 to 3.
+        raise AssertionError()
 
-    # __cmp__ is not enough because unicode has __eq__, __ne__, etc. defined
-    # and __cmp__ is only used for those when they don't exist.
     def __eq__(self, other):
-        return self.__cmp__(other) == 0
+        if isinstance(other, Path) and self.srcdir != other.srcdir:
+            return self.full_path == other.full_path
+        return six.text_type(self) == other
 
     def __ne__(self, other):
-        return self.__cmp__(other) != 0
+        if isinstance(other, Path) and self.srcdir != other.srcdir:
+            return self.full_path != other.full_path
+        return six.text_type(self) != other
 
     def __lt__(self, other):
-        return self.__cmp__(other) < 0
+        if isinstance(other, Path) and self.srcdir != other.srcdir:
+            return self.full_path < other.full_path
+        return six.text_type(self) < other
 
     def __gt__(self, other):
-        return self.__cmp__(other) > 0
+        if isinstance(other, Path) and self.srcdir != other.srcdir:
+            return self.full_path > other.full_path
+        return six.text_type(self) > other
 
     def __le__(self, other):
-        return self.__cmp__(other) <= 0
+        if isinstance(other, Path) and self.srcdir != other.srcdir:
+            return self.full_path <= other.full_path
+        return six.text_type(self) <= other
 
     def __ge__(self, other):
-        return self.__cmp__(other) >= 0
+        if isinstance(other, Path) and self.srcdir != other.srcdir:
+            return self.full_path >= other.full_path
+        return six.text_type(self) >= other
 
     def __repr__(self):
         return '<%s (%s)%s>' % (self.__class__.__name__, self.srcdir, self)
@@ -996,22 +1005,6 @@ def OrderedPathListWithAction(action):
             super(_OrderedListWithAction, self).__init__(context, action=_action, *args)
 
     return _OrderedListWithAction
-
-
-def TypedListWithAction(typ, action):
-    """Returns a class which behaves as a TypedList with the provided type, but
-    invokes the given given callable with each input and a context as it is
-    read, storing a tuple including the result and the original item.
-
-    This used to extend moz.build reading to make more data available in
-    filesystem-reading mode.
-    """
-    class _TypedListWithAction(ContextDerivedValue, TypedList(typ), ListWithAction):
-        def __init__(self, context, *args):
-            def _action(item):
-                return item, action(context, item)
-            super(_TypedListWithAction, self).__init__(action=_action, *args)
-    return _TypedListWithAction
 
 
 ManifestparserManifestList = OrderedPathListWithAction(read_manifestparser_manifest)
@@ -1511,25 +1504,6 @@ VARIABLES = {
         Values are relative paths. They can be multiple directory levels
         above or below. Use ``..`` for parent directories and ``/`` for path
         delimiters.
-        """
-        ),
-
-    'HAS_MISC_RULE': (
-        bool,
-        bool,
-        """Whether this directory should be traversed in the ``misc`` tier.
-
-        Many ``libs`` rules still exist in Makefile.in files. We highly prefer
-        that these rules exist in the ``misc`` tier/target so that they can be
-        executed concurrently during tier traversal (the ``misc`` tier is
-        fully concurrent).
-
-        Presence of this variable indicates that this directory should be
-        traversed by the ``misc`` tier.
-
-        Please note that converting ``libs`` rules to the ``misc`` tier must
-        be done with care, as there are many implicit dependencies that can
-        break the build in subtle ways.
         """
         ),
 

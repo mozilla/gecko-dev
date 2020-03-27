@@ -198,9 +198,9 @@ void LayerActivityTracker::NotifyExpired(LayerActivity* aObject) {
       f->SchedulePaint(nsIFrame::PAINT_DEFAULT, false);
     }
     f->RemoveStateBits(NS_FRAME_HAS_LAYER_ACTIVITY_PROPERTY);
-    f->DeleteProperty(LayerActivityProperty());
+    f->RemoveProperty(LayerActivityProperty());
   } else {
-    c->DeleteProperty(nsGkAtoms::LayerActivity);
+    c->RemoveProperty(nsGkAtoms::LayerActivity);
   }
 }
 
@@ -239,7 +239,7 @@ void ActiveLayerTracker::TransferActivityToContent(nsIFrame* aFrame,
     return;
   }
   LayerActivity* layerActivity =
-      aFrame->RemoveProperty(LayerActivityProperty());
+      aFrame->TakeProperty(LayerActivityProperty());
   aFrame->RemoveStateBits(NS_FRAME_HAS_LAYER_ACTIVITY_PROPERTY);
   if (!layerActivity) {
     return;
@@ -253,8 +253,8 @@ void ActiveLayerTracker::TransferActivityToContent(nsIFrame* aFrame,
 /* static */
 void ActiveLayerTracker::TransferActivityToFrame(nsIContent* aContent,
                                                  nsIFrame* aFrame) {
-  LayerActivity* layerActivity = static_cast<LayerActivity*>(
-      aContent->UnsetProperty(nsGkAtoms::LayerActivity));
+  auto* layerActivity = static_cast<LayerActivity*>(
+      aContent->TakeProperty(nsGkAtoms::LayerActivity));
   if (!layerActivity) {
     return;
   }

@@ -12,6 +12,7 @@
 #include "nsIURI.h"
 #include "nsIProtocolHandler.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/Preferences.h"
 #include "nsServiceManagerUtils.h"
 
@@ -20,14 +21,12 @@ namespace browser {
 
 NS_IMPL_ISUPPORTS(AboutRedirector, nsIAboutModule)
 
-bool AboutRedirector::sNewTabPageEnabled = false;
-bool AboutRedirector::sAboutLoginsEnabled = false;
-
 static const uint32_t ACTIVITY_STREAM_FLAGS =
     nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::ENABLE_INDEXED_DB |
     nsIAboutModule::URI_MUST_LOAD_IN_CHILD |
     nsIAboutModule::URI_CAN_LOAD_IN_PRIVILEGEDABOUT_PROCESS |
-    nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT;
+    nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
+    nsIAboutModule::ALLOW_UNSANITIZED_CONTENT;
 
 struct RedirEntry {
   const char* id;
@@ -157,37 +156,20 @@ AboutRedirector::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
   nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  static bool sNTPEnabledCacheInited = false;
-  if (!sNTPEnabledCacheInited) {
-    Preferences::AddBoolVarCache(&AboutRedirector::sNewTabPageEnabled,
-                                 "browser.newtabpage.enabled");
-    sNTPEnabledCacheInited = true;
-  }
-
-  static bool sAboutLoginsCacheInited = false;
-  if (!sAboutLoginsCacheInited) {
-    Preferences::AddBoolVarCache(&AboutRedirector::sAboutLoginsEnabled,
-                                 "signon.management.page.enabled");
-    sAboutLoginsCacheInited = true;
-  }
-
   for (auto& redir : kRedirMap) {
     if (!strcmp(path.get(), redir.id)) {
       nsAutoCString url;
 
       // Let the aboutNewTabService decide where to redirect for about:home and
-      // enabled about:newtab. Disabledx about:newtab page uses fallback.
+      // enabled about:newtab. Disabled about:newtab page uses fallback.
       if (path.EqualsLiteral("home") ||
-          (sNewTabPageEnabled && path.EqualsLiteral("newtab"))) {
+          (StaticPrefs::browser_newtabpage_enabled() &&
+           path.EqualsLiteral("newtab"))) {
         nsCOMPtr<nsIAboutNewTabService> aboutNewTabService =
             do_GetService("@mozilla.org/browser/aboutnewtab-service;1", &rv);
         NS_ENSURE_SUCCESS(rv, rv);
         rv = aboutNewTabService->GetDefaultURL(url);
         NS_ENSURE_SUCCESS(rv, rv);
-      }
-
-      if (!sAboutLoginsEnabled && path.EqualsLiteral("logins")) {
-        return NS_ERROR_NOT_AVAILABLE;
       }
 
       if (path.EqualsLiteral("welcome")) {

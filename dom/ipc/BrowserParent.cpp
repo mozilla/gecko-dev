@@ -219,6 +219,7 @@ BrowserParent::BrowserParent(ContentParent* aManager, const TabId& aTabId,
       mHasPresented(false),
       mIsReadyToHandleInputEvents(false),
       mIsMouseEnterIntoWidgetEventSuppressed(false),
+      mIsDestroyingForProcessSwitch(false),
       mIsActiveRecordReplayTab(false) {
   MOZ_ASSERT(aManager);
   // When the input event queue is disabled, we don't need to handle the case
@@ -314,9 +315,11 @@ already_AddRefed<nsILoadContext> BrowserParent::GetLoadContext() {
     bool isPrivate = mChromeFlags & nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW;
     SetPrivateBrowsingAttributes(isPrivate);
     bool useTrackingProtection = false;
-    nsCOMPtr<nsIDocShell> docShell = mFrameElement->OwnerDoc()->GetDocShell();
-    if (docShell) {
-      docShell->GetUseTrackingProtection(&useTrackingProtection);
+    if (mFrameElement) {
+      nsCOMPtr<nsIDocShell> docShell = mFrameElement->OwnerDoc()->GetDocShell();
+      if (docShell) {
+        docShell->GetUseTrackingProtection(&useTrackingProtection);
+      }
     }
     loadContext = new LoadContext(
         GetOwnerElement(), true /* aIsContent */, isPrivate,
@@ -940,8 +943,8 @@ void BrowserParent::MaybeShowFrame() {
   frameLoader->MaybeShowFrame();
 }
 
-bool BrowserParent::Show(const ScreenIntSize& size, bool aParentIsActive) {
-  mDimensions = size;
+bool BrowserParent::Show(const OwnerShowInfo& aOwnerInfo) {
+  mDimensions = aOwnerInfo.size();
   if (mIsDestroyed) {
     return false;
   }
@@ -951,14 +954,8 @@ bool BrowserParent::Show(const ScreenIntSize& size, bool aParentIsActive) {
     return false;
   }
 
-  nsCOMPtr<nsISupports> container = mFrameElement->OwnerDoc()->GetContainer();
-  nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(container);
-  nsCOMPtr<nsIWidget> mainWidget;
-  baseWindow->GetMainWidget(getter_AddRefs(mainWidget));
-  mSizeMode = mainWidget ? mainWidget->SizeMode() : nsSizeMode_Normal;
-
-  OwnerShowInfo ownerInfo(size, aParentIsActive, mSizeMode);
-  Unused << SendShow(GetShowInfo(), ownerInfo);
+  mSizeMode = aOwnerInfo.sizeMode();
+  Unused << SendShow(GetShowInfo(), aOwnerInfo);
   return true;
 }
 
@@ -1337,34 +1334,6 @@ IPCResult BrowserParent::RecvNewWindowGlobal(
   BindPWindowGlobalEndpoint(std::move(aEndpoint), wgp);
   wgp->Init(aInit);
   return IPC_OK();
-}
-
-IPCResult BrowserParent::RecvPBrowserBridgeConstructor(
-    PBrowserBridgeParent* aActor, const nsString& aName,
-    const nsString& aRemoteType, BrowsingContext* aBrowsingContext,
-    const uint32_t& aChromeFlags, const TabId& aTabId) {
-  // The initial about:blank document loaded in the new iframe will have a newly
-  // created null principal. This is done in the parent process so we don't have
-  // to trust a principal from content.
-  nsCOMPtr<nsIPrincipal> initialPrincipal =
-      NullPrincipal::CreateWithInheritedAttributes(OriginAttributesRef(),
-                                                   /* isFirstParty */ false);
-  WindowGlobalInit windowInit = WindowGlobalActor::AboutBlankInitializer(
-      aBrowsingContext, initialPrincipal);
-
-  nsresult rv = static_cast<BrowserBridgeParent*>(aActor)->Init(
-      aName, aRemoteType, windowInit, aChromeFlags, aTabId);
-  if (NS_FAILED(rv)) {
-    return IPC_FAIL(this, "Failed to construct BrowserBridgeParent");
-  }
-  return IPC_OK();
-}
-
-already_AddRefed<PBrowserBridgeParent> BrowserParent::AllocPBrowserBridgeParent(
-    const nsString& aName, const nsString& aRemoteType,
-    BrowsingContext* aBrowsingContext, const uint32_t& aChromeFlags,
-    const TabId& aTabId) {
-  return do_AddRef(new BrowserBridgeParent());
 }
 
 void BrowserParent::SendMouseEvent(const nsAString& aType, float aX, float aY,
@@ -2234,10 +2203,11 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnWindowedPluginKeyEvent(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult BrowserParent::RecvRequestFocus(const bool& aCanRaise) {
+mozilla::ipc::IPCResult BrowserParent::RecvRequestFocus(
+    const bool& aCanRaise, const CallerType aCallerType) {
   LOGBROWSERFOCUS(("RecvRequestFocus %p, aCanRaise: %d", this, aCanRaise));
   if (BrowserBridgeParent* bridgeParent = GetBrowserBridgeParent()) {
-    mozilla::Unused << bridgeParent->SendRequestFocus(aCanRaise);
+    mozilla::Unused << bridgeParent->SendRequestFocus(aCanRaise, aCallerType);
     return IPC_OK();
   }
 
@@ -2245,7 +2215,7 @@ mozilla::ipc::IPCResult BrowserParent::RecvRequestFocus(const bool& aCanRaise) {
     return IPC_OK();
   }
 
-  nsContentUtils::RequestFrameFocus(*mFrameElement, aCanRaise);
+  nsContentUtils::RequestFrameFocus(*mFrameElement, aCanRaise, aCallerType);
   return IPC_OK();
 }
 
@@ -2507,6 +2477,17 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnStateChange(
     const RequestData& aRequestData, const uint32_t aStateFlags,
     const nsresult aStatus,
     const Maybe<WebProgressStateChangeData>& aStateChangeData) {
+  // If we're being destroyed because we're swapping to a new process,
+  // then suppress the generated STATE_STOP state changes, since from
+  // the parent process' perspective we aren't really stop, just changing
+  // where the load is happening.
+  uint32_t stopFlags = nsIWebProgressListener::STATE_STOP |
+                       nsIWebProgressListener::STATE_IS_WINDOW |
+                       nsIWebProgressListener::STATE_IS_NETWORK;
+  if (mIsDestroyingForProcessSwitch && (aStateFlags & stopFlags) == stopFlags) {
+    return IPC_OK();
+  }
+
   nsCOMPtr<nsIBrowser> browser;
   nsCOMPtr<nsIWebProgress> manager;
   nsCOMPtr<nsIWebProgressListener> managerAsListener;
@@ -2671,29 +2652,6 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnSecurityChange(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult BrowserParent::RecvOnContentBlockingEvent(
-    const Maybe<WebProgressData>& aWebProgressData,
-    const RequestData& aRequestData, const uint32_t& aEvent) {
-  nsCOMPtr<nsIBrowser> browser;
-  nsCOMPtr<nsIWebProgress> manager;
-  nsCOMPtr<nsIWebProgressListener> managerAsListener;
-  if (!GetWebProgressListener(getter_AddRefs(browser), getter_AddRefs(manager),
-                              getter_AddRefs(managerAsListener))) {
-    return IPC_OK();
-  }
-
-  nsCOMPtr<nsIWebProgress> webProgress;
-  nsCOMPtr<nsIRequest> request;
-  ReconstructWebProgressAndRequest(manager, aWebProgressData, aRequestData,
-                                   getter_AddRefs(webProgress),
-                                   getter_AddRefs(request));
-
-  Unused << managerAsListener->OnContentBlockingEvent(webProgress, request,
-                                                      aEvent);
-
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult BrowserParent::RecvNavigationFinished() {
   nsCOMPtr<nsIBrowser> browser =
       mFrameElement ? mFrameElement->AsBrowser() : nullptr;
@@ -2701,6 +2659,42 @@ mozilla::ipc::IPCResult BrowserParent::RecvNavigationFinished() {
   if (browser) {
     browser->SetIsNavigating(false);
   }
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult BrowserParent::RecvNotifyContentBlockingEvent(
+    const uint32_t& aEvent, const RequestData& aRequestData,
+    const bool aBlocked, nsIURI* aHintURI,
+    nsTArray<nsCString>&& aTrackingFullHashes,
+    const Maybe<mozilla::AntiTrackingCommon::StorageAccessGrantedReason>&
+        aReason) {
+  MOZ_ASSERT(aRequestData.elapsedLoadTimeMS().isNothing());
+
+  RefPtr<BrowsingContext> bc = GetBrowsingContext();
+
+  if (!bc || bc->IsDiscarded()) {
+    return IPC_OK();
+  }
+
+  // Get the top-level browsing context.
+  bc = bc->Top();
+  RefPtr<dom::WindowGlobalParent> wgp =
+      bc->Canonical()->GetCurrentWindowGlobal();
+
+  // The WindowGlobalParent would be null while running the test
+  // browser_339445.js. This is unexpected and we will address this in a
+  // following bug. For now, we first workaround this issue.
+  if (!wgp) {
+    return IPC_OK();
+  }
+
+  nsCOMPtr<nsIRequest> request = MakeAndAddRef<RemoteWebProgressRequest>(
+      aRequestData.requestURI(), aRequestData.originalRequestURI(),
+      aRequestData.matchedList(), aRequestData.elapsedLoadTimeMS());
+
+  wgp->NotifyContentBlockingEvent(aEvent, request, aBlocked, aHintURI,
+                                  aTrackingFullHashes, aReason);
 
   return IPC_OK();
 }
@@ -3119,7 +3113,7 @@ mozilla::ipc::IPCResult BrowserParent::RecvSetNativeChildOfShareableWindow(
 
 mozilla::ipc::IPCResult BrowserParent::RecvDispatchFocusToTopLevelWindow() {
   if (nsCOMPtr<nsIWidget> widget = GetTopLevelWidget()) {
-    widget->SetFocus(nsIWidget::Raise::No);
+    widget->SetFocus(nsIWidget::Raise::No, CallerType::System);
   }
   return IPC_OK();
 }
@@ -3630,6 +3624,8 @@ class FakeChannel final : public nsIChannel,
   NS_IMETHOD SetLoadGroup(nsILoadGroup*) NO_IMPL;
   NS_IMETHOD SetLoadFlags(nsLoadFlags) NO_IMPL;
   NS_IMETHOD GetLoadFlags(nsLoadFlags*) NO_IMPL;
+  NS_IMETHOD GetTRRMode(nsIRequest::TRRMode* aTRRMode) NO_IMPL;
+  NS_IMETHOD SetTRRMode(nsIRequest::TRRMode aMode) NO_IMPL;
   NS_IMETHOD GetIsDocument(bool*) NO_IMPL;
   NS_IMETHOD GetOriginalURI(nsIURI**) NO_IMPL;
   NS_IMETHOD SetOriginalURI(nsIURI*) NO_IMPL;

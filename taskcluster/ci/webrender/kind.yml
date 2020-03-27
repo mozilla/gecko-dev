@@ -9,7 +9,6 @@ kind-dependencies:
     - build
 
 transforms:
-    - taskgraph.transforms.webrender:transforms
     - taskgraph.transforms.job:transforms
     - taskgraph.transforms.task:transforms
 
@@ -121,7 +120,7 @@ jobs:
             tooltool-downloads: internal
             command: '$HOME/checkouts/gecko/taskcluster/scripts/misc/wrench-macos-build.sh'
         treeherder:
-            platform: macosx64-qr/opt
+            platform: osx-cross/opt
             symbol: WR(B)
         when:
             files-changed:
@@ -151,7 +150,7 @@ jobs:
                 export WRENCH_BINARY=$PWD/wrench-macos/bin/wrench &&
                 ci-scripts/macos-release-tests.sh
         treeherder:
-            platform: macosx64-qr/opt
+            platform: macosx1014-64-qr/opt
             symbol: WR(wrench)
         when:
             files-changed:
@@ -181,7 +180,7 @@ jobs:
             tooltool-downloads: internal
             command: '$HOME/checkouts/gecko/taskcluster/scripts/misc/wr-cargotest-macos-build.sh'
         treeherder:
-            platform: macosx64-qr/debug
+            platform: osx-cross/debug
             symbol: WR(B)
         when:
             files-changed:
@@ -210,7 +209,7 @@ jobs:
                 cd target &&
                 for i in debug/*; do $i; done
         treeherder:
-            platform: macosx64-qr/debug
+            platform: macosx1014-64-qr/debug
             symbol: WR(cargotest)
         when:
             files-changed:
@@ -472,22 +471,3 @@ jobs:
                 - 'gfx/wr/**'
                 - 'testing/mozharness/scripts/android_wrench.py'
                 - 'testing/mozharness/configs/android/wrench.py'
-
-    wrupdater-sync:
-        run-on-projects: ['mozilla-central', 'try']  # the webrender transform enforces this
-        description: Sync webrender to github mirror
-        worker-type: b-linux
-        worker:
-            max-run-time: 3600
-            docker-image: {in-tree: webrender-updater}
-            wrupdater-secrets: true
-        run:
-            using: run-task
-            command: '$GECKO_PATH/gfx/wr/ci-scripts/wrupdater/sync-to-github.sh'
-        treeherder:
-            platform: linux64-qr/opt
-            symbol: WR(sync)
-            tier: 2
-        when:
-            files-changed:
-                - 'gfx/wr/**'

@@ -4,13 +4,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "SocketProcessParent.h"
+#include "SocketProcessLogging.h"
 
 #include "HttpTransactionParent.h"
 #include "SocketProcessHost.h"
+#include "mozilla/dom/MemoryReportRequest.h"
 #include "mozilla/ipc/FileDescriptorSetParent.h"
+#include "mozilla/ipc/IPCStreamAlloc.h"
+#include "mozilla/ipc/PChildToParentStreamParent.h"
+#include "mozilla/ipc/PParentToChildStreamParent.h"
 #include "mozilla/net/DNSRequestParent.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TelemetryIPC.h"
+#include "nsIHttpActivityObserver.h"
 #ifdef MOZ_WEBRTC
 #  include "mozilla/dom/ContentProcessManager.h"
 #  include "mozilla/dom/BrowserParent.h"
@@ -144,32 +150,33 @@ bool SocketProcessParent::DeallocPWebrtcTCPSocketParent(
 }
 
 already_AddRefed<PDNSRequestParent> SocketProcessParent::AllocPDNSRequestParent(
-    const nsCString& aHost, const OriginAttributes& aOriginAttributes,
-    const uint32_t& aFlags) {
+    const nsCString& aHost, const nsCString& aTrrServer, const uint16_t& aType,
+    const OriginAttributes& aOriginAttributes, const uint32_t& aFlags) {
   RefPtr<DNSRequestParent> actor = new DNSRequestParent();
   return actor.forget();
 }
 
 mozilla::ipc::IPCResult SocketProcessParent::RecvPDNSRequestConstructor(
     PDNSRequestParent* aActor, const nsCString& aHost,
+    const nsCString& aTrrServer, const uint16_t& aType,
     const OriginAttributes& aOriginAttributes, const uint32_t& aFlags) {
   static_cast<DNSRequestParent*>(aActor)->DoAsyncResolve(
-      aHost, aOriginAttributes, aFlags);
+      aHost, aTrrServer, aType, aOriginAttributes, aFlags);
   return IPC_OK();
 }
 
-PFileDescriptorSetParent* SocketProcessParent::AllocPFileDescriptorSetParent(
-    const FileDescriptor& aFD) {
-  return new FileDescriptorSetParent(aFD);
+mozilla::ipc::PFileDescriptorSetParent*
+SocketProcessParent::AllocPFileDescriptorSetParent(const FileDescriptor& aFD) {
+  return new mozilla::ipc::FileDescriptorSetParent(aFD);
 }
 
 bool SocketProcessParent::DeallocPFileDescriptorSetParent(
     PFileDescriptorSetParent* aActor) {
-  delete static_cast<FileDescriptorSetParent*>(aActor);
+  delete static_cast<mozilla::ipc::FileDescriptorSetParent*>(aActor);
   return true;
 }
 
-PChildToParentStreamParent*
+mozilla::ipc::PChildToParentStreamParent*
 SocketProcessParent::AllocPChildToParentStreamParent() {
   return mozilla::ipc::AllocPChildToParentStreamParent();
 }
@@ -180,7 +187,7 @@ bool SocketProcessParent::DeallocPChildToParentStreamParent(
   return true;
 }
 
-PParentToChildStreamParent*
+mozilla::ipc::PParentToChildStreamParent*
 SocketProcessParent::AllocPParentToChildStreamParent() {
   MOZ_CRASH("PParentToChildStreamChild actors should be manually constructed!");
 }
@@ -191,18 +198,32 @@ bool SocketProcessParent::DeallocPParentToChildStreamParent(
   return true;
 }
 
-PParentToChildStreamParent*
+mozilla::ipc::PParentToChildStreamParent*
 SocketProcessParent::SendPParentToChildStreamConstructor(
     PParentToChildStreamParent* aActor) {
   MOZ_ASSERT(NS_IsMainThread());
   return PSocketProcessParent::SendPParentToChildStreamConstructor(aActor);
 }
 
-PFileDescriptorSetParent*
+mozilla::ipc::PFileDescriptorSetParent*
 SocketProcessParent::SendPFileDescriptorSetConstructor(
     const FileDescriptor& aFD) {
   MOZ_ASSERT(NS_IsMainThread());
   return PSocketProcessParent::SendPFileDescriptorSetConstructor(aFD);
+}
+
+mozilla::ipc::IPCResult SocketProcessParent::RecvObserveHttpActivity(
+    const HttpActivityArgs& aArgs, const uint32_t& aActivityType,
+    const uint32_t& aActivitySubtype, const PRTime& aTimestamp,
+    const uint64_t& aExtraSizeData, const nsCString& aExtraStringData) {
+  nsCOMPtr<nsIHttpActivityDistributor> activityDistributor =
+      services::GetActivityDistributor();
+  MOZ_ASSERT(activityDistributor);
+
+  Unused << activityDistributor->ObserveActivityWithArgs(
+      aArgs, aActivityType, aActivitySubtype, aTimestamp, aExtraSizeData,
+      aExtraStringData);
+  return IPC_OK();
 }
 
 // To ensure that IPDL is finished before SocketParent gets deleted.

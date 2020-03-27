@@ -1966,9 +1966,6 @@ nsresult nsObjectLoadingContent::LoadObject(bool aNotify, bool aForceLoad,
       LOG(("OBJLC [%p]: Load denied by policy", this));
       mType = eType_Null;
       if (contentPolicy == nsIContentPolicy::REJECT_TYPE) {
-        // XXX(johns) This is assuming that we were rejected by
-        //            nsContentBlocker, which rejects by type if permissions
-        //            reject plugins
         fallbackType = eFallbackUserDisabled;
       } else {
         fallbackType = eFallbackSuppressed;
@@ -2271,7 +2268,6 @@ nsresult nsObjectLoadingContent::OpenChannel() {
   RefPtr<ObjectInterfaceRequestorShim> shim =
       new ObjectInterfaceRequestorShim(this);
 
-  bool isSandBoxed = doc->GetSandboxFlags() & SANDBOXED_ORIGIN;
   bool inherit = nsContentUtils::ChannelShouldInheritPrincipal(
       thisContent->NodePrincipal(), mURI,
       true,    // aInheritForAboutBlank
@@ -2285,9 +2281,6 @@ nsresult nsObjectLoadingContent::OpenChannel() {
   if (inherit && !isURIUniqueOrigin) {
     securityFlags |= nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL;
   }
-  if (isSandBoxed) {
-    securityFlags |= nsILoadInfo::SEC_SANDBOXED;
-  }
 
   nsContentPolicyType contentPolicyType = GetContentPolicyType();
 
@@ -2298,7 +2291,9 @@ nsresult nsObjectLoadingContent::OpenChannel() {
                      shim,     // aCallbacks
                      nsIChannel::LOAD_CALL_CONTENT_SNIFFERS |
                          nsIChannel::LOAD_BYPASS_SERVICE_WORKER |
-                         nsIRequest::LOAD_HTML_OBJECT_DATA);
+                         nsIRequest::LOAD_HTML_OBJECT_DATA,
+                     nullptr,  // aIoService
+                     doc->GetSandboxFlags());
   NS_ENSURE_SUCCESS(rv, rv);
   if (inherit) {
     nsCOMPtr<nsILoadInfo> loadinfo = chan->LoadInfo();
@@ -2610,9 +2605,9 @@ nsNPAPIPluginInstance* nsObjectLoadingContent::ScriptRequestPluginInstance(
   // sort out what the SetupProtoChain callers look like.
   MOZ_ASSERT_IF(nsContentUtils::GetCurrentJSContext(),
                 aCx == nsContentUtils::GetCurrentJSContext());
+  // FIXME(emilio): Doesn't account for UA widgets, but probably doesn't matter?
   bool callerIsContentJS = (nsContentUtils::GetCurrentJSContext() &&
-                            !nsContentUtils::IsCallerChrome() &&
-                            !nsContentUtils::IsCallerContentXBL());
+                            !nsContentUtils::IsCallerChrome());
 
   nsCOMPtr<nsIContent> thisContent =
       do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));

@@ -14,7 +14,6 @@
 #include "jsapi.h"        // JS_ReportErrorNumberASCII, JS_ReportErrorASCII
 #include "jsfriendapi.h"  // js::GetErrorMessage, JSMSG_*
 
-#include "builtin/Promise.h"                          // js::PromiseObject
 #include "builtin/streams/MiscellaneousOperations.h"  // js::PromiseRejectedWithPendingError
 #include "builtin/streams/WritableStream.h"  // js::WritableStream
 #include "builtin/streams/WritableStreamDefaultController.h"  // js::WritableStream::controller
@@ -22,12 +21,13 @@
 #include "builtin/streams/WritableStreamDefaultWriter.h"  // js::WritableStreamDefaultWriter
 #include "builtin/streams/WritableStreamOperations.h"  // js::WritableStream{Abort,CloseQueuedOrInFlight}
 #include "js/Promise.h"                                // JS::PromiseState
-#include "js/Value.h"        // JS::Value, JS::{Int32,Null}Value
-#include "vm/Compartment.h"  // JS::Compartment
-#include "vm/Interpreter.h"  // js::GetAndClearException
-#include "vm/JSContext.h"    // JSContext
+#include "js/Value.h"          // JS::Value, JS::{Int32,Null}Value
+#include "vm/Compartment.h"    // JS::Compartment
+#include "vm/Interpreter.h"    // js::GetAndClearException
+#include "vm/JSContext.h"      // JSContext
+#include "vm/PromiseObject.h"  // js::PromiseObject
 
-#include "builtin/streams/MiscellaneousOperations-inl.h"  // js::ResolveUnwrappedPromiseWithUndefined, js::SetPromiseIsHandled
+#include "builtin/streams/MiscellaneousOperations-inl.h"  // js::ResolveUnwrappedPromiseWithUndefined, js::SetSettledPromiseIsHandled
 #include "builtin/streams/WritableStream-inl.h"  // js::WritableStream::setCloseRequest
 #include "builtin/streams/WritableStreamDefaultWriter-inl.h"  // js::UnwrapStreamFromWriter
 #include "vm/Compartment-inl.h"  // js::UnwrapAnd{DowncastObject,TypeCheckThis}
@@ -185,7 +185,7 @@ static bool EnsurePromiseRejected(
   }
 
   // 4.6.{5,6} step 3: Set writer.[[<field>]].[[PromiseIsHandled]] to true.
-  SetPromiseIsHandled(cx, unwrappedPromise);
+  SetSettledPromiseIsHandled(cx, unwrappedPromise);
   return true;
 }
 

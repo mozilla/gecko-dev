@@ -46,6 +46,8 @@ derive_neq = true
 # This will actually never be defined, but is handy to avoid cbindgen
 # generating Servo-only types.
 "feature = servo" = "CBINDGEN_IS_SERVO"
+"target_pointer_width = 32" = "SERVO_32_BITS"
+"target_pointer_width = 64" = "HAVE_64BIT_BUILD"
 
 [macro_expansion]
 bitflags = true
@@ -75,6 +77,7 @@ include = [
   "ComputedFontStyleDescriptor",
   "ComputedFontWeightRange",
   "ComputedTimingFunction",
+  "ComputedValueFlags",
   "CursorKind",
   "DisplayOutside",
   "DisplayInside",
@@ -167,6 +170,7 @@ include = [
   "ComputedUrl",
   "ComputedImageUrl",
   "UrlOrNone",
+  "ImageUrlOrNone",
   "Filter",
   "Gradient",
   "GridTemplateAreas",
@@ -185,11 +189,17 @@ include = [
   "CounterSetOrReset",
   "CounterIncrement",
   "WritingMode",
-  "VecU8",
   "Content",
   "ContentItem",
+  "AlignSelf",
+  "JustifySelf",
+  "AlignItems",
+  "ComputedJustifyItems",
+  "AlignContent",
+  "JustifyContent",
+  "TransformStyle",
 ]
-item_types = ["enums", "structs", "typedefs", "functions", "constants"]
+item_types = ["enums", "structs", "unions", "typedefs", "functions", "constants"]
 renaming_overrides_prefixing = true
 
 # Prevent some renaming for Gecko types that cbindgen doesn't otherwise understand.
@@ -197,6 +207,7 @@ renaming_overrides_prefixing = true
 "nscolor" = "nscolor"
 "nsAtom" = "nsAtom"
 "nsIURI" = "nsIURI"
+"imgRequestProxy" = "imgRequestProxy"
 "nsCompatibility" = "nsCompatibility"
 "SharedFontList" = "SharedFontList"
 "nsSimpleContentList" = "nsSimpleContentList"
@@ -246,19 +257,58 @@ renaming_overrides_prefixing = true
 "CSSPixelLength" = """
   inline nscoord ToAppUnits() const;
   inline bool IsZero() const;
-  float ToCSSPixels() const { return _0; }
+  CSSCoord ToCSSPixels() const { return _0; }
+  inline void ScaleBy(float);
 """
 
-"LengthPercentage" = """
-  static constexpr inline StyleLengthPercentage Zero();
-  static inline StyleLengthPercentage FromAppUnits(nscoord);
-  static inline StyleLengthPercentage FromPixels(CSSCoord);
-  static inline StyleLengthPercentage FromPercentage(float);
-  inline CSSCoord LengthInCSSPixels() const;
-  inline float Percentage() const;
+"LengthPercentageUnion" = """
+  using Self = StyleLengthPercentageUnion;
+
+  // TODO(emilio): cbindgen should be able to generate these in the body of the
+  // union, but it seems it's only implemented for structs, not unions.
+  static const uint32_t TAG_CALC = StyleLengthPercentageUnion_TAG_CALC;
+  static const uint32_t TAG_LENGTH = StyleLengthPercentageUnion_TAG_LENGTH;
+  static const uint32_t TAG_PERCENTAGE = StyleLengthPercentageUnion_TAG_PERCENTAGE;
+  static const uint32_t TAG_MASK = StyleLengthPercentageUnion_TAG_MASK;
+
+ private:
+  uint32_t Tag() const {
+    return tag.tag & TAG_MASK;
+  }
+
+ public:
+  // We need to do all this manually because cbingen can't reason about unions.
+  inline StyleLengthPercentageUnion();
+  inline StyleLengthPercentageUnion(const Self&);
+  inline ~StyleLengthPercentageUnion();
+  inline Self& operator=(const Self&);
+
+  inline bool operator==(const Self& aOther) const;
+  inline bool operator!=(const Self& aOther) const;
+
+  inline bool IsLength() const;
+  inline bool IsPercentage() const;
+  inline bool IsCalc() const;
+
+  inline const StyleLength& AsLength() const;
+  inline StyleLength& AsLength();
+
+  inline const StylePercentage& AsPercentage() const;
+  inline StylePercentage& AsPercentage();
+
+  inline const StyleCalcLengthPercentage& AsCalc() const;
+  inline StyleCalcLengthPercentage& AsCalc();
+
+  static inline Self Zero();
+  static inline Self FromAppUnits(nscoord);
+  static inline Self FromPixels(CSSCoord);
+  static inline Self FromPercentage(float);
+
+  inline void ScaleLengthsBy(float);
   inline bool HasPercent() const;
   inline bool ConvertsToLength() const;
   inline nscoord ToLength() const;
+  inline CSSCoord ToLengthInCSSPixels() const;
   inline bool ConvertsToPercentage() const;
   inline bool HasLengthAndPercentage() const;
   inline float ToPercentage() const;
@@ -350,6 +400,7 @@ renaming_overrides_prefixing = true
 
 "TextUnderlinePosition" = """
   inline bool IsAuto() const;
+  inline bool IsFromFont() const;
   inline bool IsUnder() const;
   inline bool IsLeft() const;
   inline bool IsRight() const;
@@ -425,6 +476,7 @@ renaming_overrides_prefixing = true
 
   inline StyleOwnedSlice(const StyleOwnedSlice&);
   inline StyleOwnedSlice(StyleOwnedSlice&&);
+  inline explicit StyleOwnedSlice(Vector<T>&&);
 
   inline ~StyleOwnedSlice();
 
@@ -601,7 +653,11 @@ renaming_overrides_prefixing = true
   inline StyleCorsMode CorsMode() const;
   already_AddRefed<nsIURI> ResolveLocalRef(nsIURI* aBase) const;
   already_AddRefed<nsIURI> ResolveLocalRef(const nsIContent* aContent) const;
-  already_AddRefed<imgRequestProxy> LoadImage(mozilla::dom::Document&);
+
+  // Only relevant for images.
+  inline bool IsImageResolved() const;
+  inline imgRequestProxy* GetImage() const;
+  void ResolveImage(dom::Document&, const StyleComputedUrl* aOldImage);
 """
 
 "GenericGradient" = """
@@ -639,18 +695,32 @@ renaming_overrides_prefixing = true
   inline nsRect ToLayoutRect(nscoord aAutoSize = NS_MAXSIZE) const;
 """
 
-"VecU8" = """
-  StyleVecU8(): data(nullptr), length(0), capacity(0) {}
-  StyleVecU8(const StyleVecU8& aOther) = delete;
-  StyleVecU8(StyleVecU8&& aOther)
-    : data(aOther.data), length(aOther.length), capacity(aOther.capacity) {
-    aOther.data = nullptr;
-    aOther.length = 0;
-    aOther.capacity = 0;
-  }
-  StyleVecU8& operator=(StyleVecU8&& aOther) = delete;
-  StyleVecU8& operator=(const StyleVecU8& aOther) = delete;
+"GenericRotate" = """
+public:
+  // The implementation of IPC LayersMessages needs this to be public.
+  StyleGenericRotate(): tag(Tag::None) {}
+"""
 
-  // This type is not safe to return by value. Should be careful.
-  inline ~StyleVecU8();
+"GenericScale" = """
+public:
+  // The implementation of IPC LayersMessages needs this to be public.
+  StyleGenericScale(): tag(Tag::None) {}
+"""
+
+"GenericTranslate" = """
+public:
+  // The implementation of IPC LayersMessages needs this to be public.
+  StyleGenericTranslate(): tag(Tag::None) {}
+"""
+
+"GenericOffsetPath" = """
+public:
+  // The implementation of IPC LayersMessages needs this to be public.
+  StyleGenericOffsetPath(): tag(Tag::None) {}
+"""
+
+"GenericPositionOrAuto" = """
+public:
+  // The implementation of IPC LayersMessages needs this to be public.
+  StyleGenericPositionOrAuto(): tag(Tag::Auto) {}
 """

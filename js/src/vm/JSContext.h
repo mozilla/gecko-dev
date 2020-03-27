@@ -1104,7 +1104,11 @@ extern void ReportIsNotDefined(JSContext* cx, HandleId id);
 /*
  * Report an attempt to access the property of a null or undefined value (v).
  */
-extern void ReportIsNullOrUndefined(JSContext* cx, int spindex, HandleValue v);
+extern void ReportIsNullOrUndefinedForPropertyAccess(JSContext* cx,
+                                                     HandleValue v, int vIndex);
+extern void ReportIsNullOrUndefinedForPropertyAccess(JSContext* cx,
+                                                     HandleValue v, int vIndex,
+                                                     HandleId key);
 
 /*
  * Report error using js_DecompileValueGenerator(cx, spindex, v, fallback) as
@@ -1226,8 +1230,8 @@ class MOZ_RAII AutoKeepAtoms {
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
  public:
-  explicit inline AutoKeepAtoms(JSContext* cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-  inline ~AutoKeepAtoms();
+  explicit AutoKeepAtoms(JSContext* cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+  ~AutoKeepAtoms();
 };
 
 class MOZ_RAII AutoNoteDebuggerEvaluationWithOnNativeCallHook {

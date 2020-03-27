@@ -12,6 +12,7 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/dom/BrowsingContext.h"
+#include "mozilla/dom/DocumentInlines.h"
 
 namespace mozilla {
 namespace dom {
@@ -82,8 +83,7 @@ already_AddRefed<DOMIntersectionObserver> DOMIntersectionObserver::Constructor(
   observer->mRoot = aOptions.mRoot;
 
   if (!observer->SetRootMargin(aOptions.mRootMargin)) {
-    aRv.ThrowDOMException(NS_ERROR_DOM_SYNTAX_ERR,
-                          "rootMargin must be specified in pixels or percent.");
+    aRv.ThrowSyntaxError("rootMargin must be specified in pixels or percent.");
     return nullptr;
   }
 
@@ -131,6 +131,11 @@ void DOMIntersectionObserver::Observe(Element& aTarget) {
   aTarget.RegisterIntersectionObserver(this);
   mObservationTargets.AppendElement(&aTarget);
   Connect();
+  if (mDocument) {
+    if (nsPresContext* pc = mDocument->GetPresContext()) {
+      pc->RefreshDriver()->IntersectionObservationAdded();
+    }
+  }
 }
 
 void DOMIntersectionObserver::Unobserve(Element& aTarget) {
@@ -376,7 +381,7 @@ void DOMIntersectionObserver::Update(Document* aDocument,
   }
 
   nsMargin rootMargin;
-  NS_FOR_CSS_SIDES(side) {
+  for (const auto side : mozilla::AllPhysicalSides()) {
     nscoord basis = side == eSideTop || side == eSideBottom ? rootRect.Height()
                                                             : rootRect.Width();
     rootMargin.Side(side) =

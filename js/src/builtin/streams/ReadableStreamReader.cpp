@@ -13,18 +13,18 @@
 
 #include "jsfriendapi.h"  // JS_ReportErrorNumberASCII, js::GetErrorMessage
 
-#include "builtin/Promise.h"  // js::PromiseObject
 #include "builtin/Stream.h"  // js::ReadableStreamController, js::ReadableStreamControllerPullSteps
 #include "builtin/streams/ReadableStream.h"            // js::ReadableStream
 #include "builtin/streams/ReadableStreamController.h"  // js::ReadableStreamController
 #include "builtin/streams/ReadableStreamInternals.h"  // js::ReadableStream{Cancel,CreateReadResult}
 #include "js/RootingAPI.h"                            // JS::Handle, JS::Rooted
-#include "js/Value.h"        // JS::Value, JS::UndefinedHandleValue
-#include "vm/Interpreter.h"  // js::GetAndClearException
-#include "vm/JSContext.h"    // JSContext
-#include "vm/Runtime.h"      // JSRuntime
+#include "js/Value.h"          // JS::Value, JS::UndefinedHandleValue
+#include "vm/Interpreter.h"    // js::GetAndClearException
+#include "vm/JSContext.h"      // JSContext
+#include "vm/PromiseObject.h"  // js::PromiseObject
+#include "vm/Runtime.h"        // JSRuntime
 
-#include "builtin/streams/MiscellaneousOperations-inl.h"  // js::SetPromiseIsHandled
+#include "builtin/streams/MiscellaneousOperations-inl.h"  // js::SetSettledPromiseIsHandled
 #include "vm/Compartment-inl.h"  // JS::Compartment::wrap, js::UnwrapInternalSlot
 #include "vm/List-inl.h"         // js::StoreNewListInFixedSlot
 #include "vm/Realm-inl.h"        // js::AutoRealm
@@ -86,7 +86,7 @@ MOZ_MUST_USE bool js::ReadableStreamReaderGenericInitialize(
   // Step 3 is moved to the end.
 
   // Step 4: If stream.[[state]] is "readable",
-  Rooted<JSObject*> promise(cx);
+  Rooted<PromiseObject*> promise(cx);
   if (unwrappedStream->readable()) {
     // Step a: Set reader.[[closedPromise]] to a new promise.
     promise = PromiseObject::createSkippingExecutor(cx);
@@ -94,7 +94,8 @@ MOZ_MUST_USE bool js::ReadableStreamReaderGenericInitialize(
     // Step 5: Otherwise, if stream.[[state]] is "closed",
     // Step a: Set reader.[[closedPromise]] to a promise resolved with
     //         undefined.
-    promise = PromiseObject::unforgeableResolve(cx, UndefinedHandleValue);
+    promise = PromiseObject::unforgeableResolveWithNonPromise(
+        cx, UndefinedHandleValue);
   } else {
     // Step 6: Otherwise,
     // Step a: Assert: stream.[[state]] is "errored".
@@ -112,7 +113,7 @@ MOZ_MUST_USE bool js::ReadableStreamReaderGenericInitialize(
     }
 
     // Step c. Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
-    SetPromiseIsHandled(cx, promise.as<PromiseObject>());
+    SetSettledPromiseIsHandled(cx, promise);
   }
 
   if (!promise) {
@@ -210,7 +211,7 @@ MOZ_MUST_USE bool js::ReadableStreamReaderGenericRelease(
   }
 
   // Step 5: Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
-  SetPromiseIsHandled(cx, unwrappedClosedPromise);
+  SetSettledPromiseIsHandled(cx, unwrappedClosedPromise);
 
   // Step 6: Set reader.[[ownerReadableStream]].[[reader]] to undefined.
   unwrappedStream->clearReader();

@@ -18,6 +18,7 @@
 #include "nsIContent.h"
 #include "nsIContentViewer.h"
 #include "nsIDocumentViewerPrint.h"
+#include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/BeforeUnloadEvent.h"
 #include "mozilla/dom/PopupBlocker.h"
 #include "mozilla/dom/Document.h"
@@ -3171,16 +3172,14 @@ nsresult nsDocumentViewer::GetContentSizeInternal(int32_t* aWidth,
 
 NS_IMETHODIMP
 nsDocumentViewer::GetContentSize(int32_t* aWidth, int32_t* aHeight) {
-  // Skip doing this on docshell-less documents for now
-  nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(mContainer);
-  NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_NOT_AVAILABLE);
+  NS_ENSURE_TRUE(mContainer, NS_ERROR_NOT_AVAILABLE);
 
-  nsCOMPtr<nsIDocShellTreeItem> docShellParent;
-  docShellAsItem->GetInProcessSameTypeParent(getter_AddRefs(docShellParent));
+  RefPtr<BrowsingContext> bc = mContainer->GetBrowsingContext();
+  NS_ENSURE_TRUE(bc, NS_ERROR_NOT_AVAILABLE);
 
   // It's only valid to access this from a top frame.  Doesn't work from
   // sub-frames.
-  NS_ENSURE_TRUE(!docShellParent, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(bc->IsTop(), NS_ERROR_FAILURE);
 
   return GetContentSizeInternal(aWidth, aHeight, NS_UNCONSTRAINEDSIZE,
                                 NS_UNCONSTRAINEDSIZE);
@@ -3510,7 +3509,7 @@ NS_IMETHODIMP
 nsDocumentViewer::PrintPreview(nsIPrintSettings* aPrintSettings,
                                mozIDOMWindowProxy* aChildDOMWin,
                                nsIWebProgressListener* aWebProgressListener) {
-#  if defined(NS_PRINTING) && defined(NS_PRINT_PREVIEW)
+#  ifdef NS_PRINT_PREVIEW
   MOZ_ASSERT(IsInitializedForPrintPreview(),
              "For print preview nsIWebBrowserPrint must be from "
              "docshell.initOrReusePrintPreviewViewer!");
@@ -3581,7 +3580,7 @@ nsDocumentViewer::PrintPreview(nsIPrintSettings* aPrintSettings,
   return rv;
 #  else
   return NS_ERROR_FAILURE;
-#  endif
+#  endif  // NS_PRINT_PREVIEW
 }
 
 //----------------------------------------------------------------------
@@ -3707,11 +3706,7 @@ nsDocumentViewer::GetCurrentPrintSettings(
 
 NS_IMETHODIMP
 nsDocumentViewer::GetDocumentName(nsAString& aDocName) {
-#  ifdef NS_PRINTING
   return mPrintJob->GetDocumentName(aDocName);
-#  else
-  return NS_ERROR_FAILURE;
-#  endif
 }
 
 NS_IMETHODIMP
@@ -3720,7 +3715,7 @@ nsDocumentViewer::Cancel() {
   return mPrintJob->Cancel();
 }
 
-#  if defined(NS_PRINTING) && defined(NS_PRINT_PREVIEW)
+#  ifdef NS_PRINT_PREVIEW
 // Reset ESM focus for all descendent doc shells.
 static void ResetFocusState(nsIDocShell* aDocShell) {
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
@@ -3740,7 +3735,7 @@ static void ResetFocusState(nsIDocShell* aDocShell) {
     }
   }
 }
-#  endif  // NS_PRINTING && NS_PRINT_PREVIEW
+#  endif  // NS_PRINT_PREVIEW
 
 NS_IMETHODIMP
 nsDocumentViewer::ExitPrintPreview() {
@@ -3757,7 +3752,7 @@ nsDocumentViewer::ExitPrintPreview() {
     return NS_OK;
   }
 
-#  if defined(NS_PRINTING) && defined(NS_PRINT_PREVIEW)
+#  ifdef NS_PRINT_PREVIEW
   mPrintJob->TurnScriptingOn(true);
   mPrintJob->Destroy();
   mPrintJob = nullptr;
@@ -3775,48 +3770,36 @@ nsDocumentViewer::ExitPrintPreview() {
   SetFullZoom(mPageZoom);
   SetOverrideDPPX(mOverrideDPPX);
   Show();
-#  endif  // NS_PRINTING && NS_PRINT_PREVIEW
+#  endif  // NS_PRINT_PREVIEW
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDocumentViewer::GetPrintPreviewNumPages(int32_t* aPrintPreviewNumPages) {
-#  ifdef NS_PRINTING
   NS_ENSURE_ARG_POINTER(aPrintPreviewNumPages);
   NS_ENSURE_TRUE(mPrintJob, NS_ERROR_FAILURE);
 
   *aPrintPreviewNumPages = mPrintJob->GetPrintPreviewNumPages();
   return *aPrintPreviewNumPages > 0 ? NS_OK : NS_ERROR_FAILURE;
-#  else
-  return NS_ERROR_FAILURE;
-#  endif
 }
 
 NS_IMETHODIMP
 nsDocumentViewer::GetIsIFrameSelected(bool* aIsIFrameSelected) {
-#  ifdef NS_PRINTING
   *aIsIFrameSelected = false;
   NS_ENSURE_TRUE(mPrintJob, NS_ERROR_FAILURE);
 
   *aIsIFrameSelected = mPrintJob->IsIFrameSelected();
   return NS_OK;
-#  else
-  return NS_ERROR_FAILURE;
-#  endif
 }
 
 NS_IMETHODIMP
 nsDocumentViewer::GetIsRangeSelection(bool* aIsRangeSelection) {
-#  ifdef NS_PRINTING
   *aIsRangeSelection = false;
   NS_ENSURE_TRUE(mPrintJob, NS_ERROR_FAILURE);
 
   *aIsRangeSelection = mPrintJob->IsRangeSelection();
   return NS_OK;
-#  else
-  return NS_ERROR_FAILURE;
-#  endif
 }
 
 //----------------------------------------------------------------------------------
@@ -3872,22 +3855,31 @@ void nsDocumentViewer::SetIsPrintingInDocShellTree(
 #endif  // NS_PRINTING
 
 bool nsDocumentViewer::ShouldAttachToTopLevel() {
-  if (!mParentWidget) return false;
+  if (!mParentWidget) {
+    return false;
+  }
 
-  nsCOMPtr<nsIDocShellTreeItem> containerItem(mContainer);
-  if (!containerItem) return false;
+  if (!mContainer) {
+    return false;
+  }
 
   // We always attach when using puppet widgets
-  if (nsIWidget::UsePuppetWidgets()) return true;
+  if (nsIWidget::UsePuppetWidgets()) {
+    return true;
+  }
 
 #if defined(XP_WIN) || defined(MOZ_WIDGET_GTK) || \
     defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_UIKIT)
+  if (!mPresContext) {
+    return false;
+  }
+
   // On windows, in the parent process we also attach, but just to
   // chrome items
   nsWindowType winType = mParentWidget->WindowType();
   if ((winType == eWindowType_toplevel || winType == eWindowType_dialog ||
        winType == eWindowType_invisible) &&
-      containerItem->ItemType() == nsIDocShellTreeItem::typeChrome) {
+      mPresContext->IsChrome()) {
     return true;
   }
 #endif

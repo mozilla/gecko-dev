@@ -79,6 +79,7 @@ pub struct Moz2dBlobImageHandler {
     workers: Arc<ThreadPool>,
     workers_low_priority: Arc<ThreadPool>,
     blob_commands: HashMap<BlobImageKey, BlobCommand>,
+    enable_multithreading: bool,
 }
 
 /// Transmute some bytes into a value.
@@ -507,6 +508,8 @@ struct Moz2dBlobRasterizer {
     workers_low_priority: Arc<ThreadPool>,
     /// Blobs to rasterize.
     blob_commands: HashMap<BlobImageKey, BlobCommand>,
+    ///
+    enable_multithreading: bool,
 }
 
 struct GeckoProfilerMarker {
@@ -549,7 +552,9 @@ impl AsyncBlobImageRasterizer for Moz2dBlobRasterizer {
 
         // If we don't have a lot of blobs it is probably not worth the initial cost
         // of installing work on rayon's thread pool so we do it serially on this thread.
-        let should_parallelize = if low_priority {
+        let should_parallelize = if !self.enable_multithreading {
+            false
+        } else if low_priority {
             requests.len() > 2
         } else {
             // For high priority requests we don't "risk" the potential priority inversion of
@@ -663,6 +668,7 @@ impl BlobImageHandler for Moz2dBlobImageHandler {
             workers: Arc::clone(&self.workers),
             workers_low_priority: Arc::clone(&self.workers_low_priority),
             blob_commands: self.blob_commands.clone(),
+            enable_multithreading: self.enable_multithreading,
         })
     }
 
@@ -689,12 +695,17 @@ impl BlobImageHandler for Moz2dBlobImageHandler {
             self.prepare_request(&blob, resources);
         }
     }
+
+    fn enable_multithreading(&mut self, enable: bool) {
+        self.enable_multithreading = enable;
+    }
 }
 
 use bindings::{WrFontKey, WrFontInstanceKey, WrIdNamespace};
 
 #[allow(improper_ctypes)] // this is needed so that rustc doesn't complain about passing the &Arc<Vec> to an extern function
 extern "C" {
+    fn HasFontData(key: WrFontKey) -> bool;
     fn AddFontData(key: WrFontKey, data: *const u8, size: usize, index: u32, vec: &ArcVecU8);
     fn AddNativeFontHandle(key: WrFontKey, handle: *mut c_void, index: u32);
     fn DeleteFontData(key: WrFontKey);
@@ -719,6 +730,7 @@ impl Moz2dBlobImageHandler {
             blob_commands: HashMap::new(),
             workers: workers,
             workers_low_priority: workers_low_priority,
+            enable_multithreading: true,
         }
     }
 
@@ -760,13 +772,15 @@ impl Moz2dBlobImageHandler {
                 if let Some(instance) = resources.get_font_instance_data(font.font_instance_key) {
                     if !unscaled_fonts.contains(&instance.font_key) {
                         unscaled_fonts.push(instance.font_key);
-                        let template = resources.get_font_data(instance.font_key);
-                        match template {
-                            &FontTemplate::Raw(ref data, ref index) => {
-                                unsafe { AddFontData(instance.font_key, data.as_ptr(), data.len(), *index, data); }
-                            }
-                            &FontTemplate::Native(ref handle) => {
-                                process_native_font_handle(instance.font_key, handle);
+                        if !unsafe { HasFontData(instance.font_key) } {
+                            let template = resources.get_font_data(instance.font_key);
+                            match template {
+                                &FontTemplate::Raw(ref data, ref index) => {
+                                    unsafe { AddFontData(instance.font_key, data.as_ptr(), data.len(), *index, data); }
+                                }
+                                &FontTemplate::Native(ref handle) => {
+                                    process_native_font_handle(instance.font_key, handle);
+                                }
                             }
                         }
                     }

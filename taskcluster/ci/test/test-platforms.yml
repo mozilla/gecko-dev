@@ -28,80 +28,89 @@ linux1804-64/opt:
     build-platform: linux64/opt
     test-sets:
         - awsy
+        - desktop-screenshot-capture
         - linux1804-tests
+        - mochitest-headless
+        - mochitest-valgrind
+        - web-platform-tests-1804
 
 linux1804-64/debug:
     build-platform: linux64/debug
     test-sets:
         - linux1804-tests
+        - web-platform-tests-1804
 
 linux1804-64-shippable/opt:
     build-platform: linux64-shippable/opt
     test-sets:
         - awsy
+        - desktop-screenshot-capture
         - linux1804-tests
+        - marionette-headless
+        - mochitest-headless
+        - mochitest-valgrind
+        - web-platform-tests-1804
+        - web-platform-tests-wdspec-headless
 
 linux1804-64-devedition/opt:
     build-platform: linux64-devedition-nightly/opt
     test-sets:
+        - desktop-screenshot-capture
         - linux1804-tests
+        - mochitest-valgrind
+        - web-platform-tests-1804
 
 linux1804-64-asan/opt:
     build-platform: linux64-asan/opt
     test-sets:
         - linux1804-tests
-
-linux1804-64-stylo-sequential/opt:
-    build-platform: linux64/opt
-    test-sets:
-        - awsy-stylo-sequential
+        - web-platform-tests-1804
 
 linux1804-64-qr/opt:
     build-platform: linux64/opt
     test-sets:
         - awsy
         - linux1804-qr-tests
+        - web-platform-tests-1804
 
 linux1804-64-shippable-qr/opt:
     build-platform: linux64-shippable/opt
     test-sets:
         - awsy
         - linux1804-qr-tests
+        - web-platform-tests-1804
 
 linux1804-64-qr/debug:
     build-platform: linux64/debug
     test-sets:
         - linux1804-qr-tests
+        - web-platform-tests-1804
 
-# Disabled temporarily due to Bug 1602863
-# linux1804-64-asan-qr/opt:
-#     build-platform: linux64-asan/opt
-#     test-sets:
-#         - linux-qr-smoketests
+linux1804-64-asan-qr/opt:
+    build-platform: linux64-asan/opt
+    test-sets:
+        - linux-qr-smoketests
 
-# Temporarily disabled as ccov still runs on ubuntu1604, Bug 1606861
-# linux1804-64-ccov/opt:
-#     build-platform: linux64-ccov/opt
-#     test-sets:
-#         - awsy
-#         - linux1804-tests
+linux1804-64-ccov/opt:
+    build-platform: linux64-ccov/opt
+    test-sets:
+        - awsy
+        - linux1804-ccov-tests
+        - web-platform-tests-1804
+        - ccov-code-coverage-tests
 
 linux64/debug:
     build-platform: linux64/debug
     test-sets:
         - linux-common-tests
-        - web-platform-tests
+        - web-platform-tests-1604
 
 linux64/opt:
     build-platform: linux64/opt
     test-sets:
         - linux-common-tests
-        - web-platform-tests
-        - opt-only-tests
-        - desktop-screenshot-capture
+        - web-platform-tests-1604
         - talos
-        - awsy
-        - mochitest-headless
         - linux-talos-flex
         - raptor-firefox
         - browsertime
@@ -111,13 +120,8 @@ linux64-shippable/opt:
     build-platform: linux64-shippable/opt
     test-sets:
         - linux-common-tests
-        - web-platform-tests
-        - web-platform-tests-wdspec-headless
-        - opt-only-tests
-        - desktop-screenshot-capture
+        - web-platform-tests-1604
         - talos
-        - mochitest-headless
-        - marionette-headless
         - linux-talos-flex
         - raptor-chrome
         - raptor-chromium
@@ -133,30 +137,21 @@ linux64-devedition/opt:
     build-platform: linux64-devedition-nightly/opt
     test-sets:
         - linux-common-tests
-        - web-platform-tests
-        - opt-only-tests
-        - desktop-screenshot-capture
+        - web-platform-tests-1604
 
 # TODO: use 'asan' label here, instead of -asan/opt
 linux64-asan/opt:
     build-platform: linux64-asan/opt
     test-sets:
         - linux-common-tests
-        - web-platform-tests
-
-# Stylo sequential runs check memory and performance when using a single thread.
-linux64-stylo-sequential/opt:
-    build-platform: linux64/opt
-    test-sets:
-        - awsy-stylo-sequential
+        - web-platform-tests-1604
 
 # QR builds just run a subset right now.
 linux64-qr/opt:
     build-platform: linux64/opt
     test-sets:
-        - linux-qr-tests
         - talos
-        - web-platform-tests
+        - web-platform-tests-1604
         - raptor-firefox
         - browsertime
         - raptor-fetch-firefox
@@ -164,9 +159,8 @@ linux64-qr/opt:
 linux64-shippable-qr/opt:
     build-platform: linux64-shippable/opt
     test-sets:
-        - linux-qr-tests
         - talos
-        - web-platform-tests
+        - web-platform-tests-1604
         - raptor-firefox
         - browsertime
         - raptor-fetch-firefox
@@ -174,22 +168,14 @@ linux64-shippable-qr/opt:
 linux64-qr/debug:
     build-platform: linux64/debug
     test-sets:
-        - linux-qr-tests
-        - web-platform-tests
-
-linux64-asan-qr/opt:
-    build-platform: linux64-asan/opt
-    test-sets:
-        - linux-qr-smoketests
+        - web-platform-tests-1604
 
 linux64-ccov/opt:
     build-platform: linux64-ccov/opt
     test-sets:
-        - linux-common-tests
-        - web-platform-tests
-        - awsy
+        - common-tests
+        - web-platform-tests-1604
         - talos
-        - ccov-code-coverage-tests
 
 ##
 # Windows platforms (matching /windows.*/)
@@ -238,8 +224,8 @@ windows7-32-devedition/opt:
         - web-platform-tests
 
 # win64
-windows10-64-ccov/debug:
-    build-platform: win64-ccov/debug
+windows10-64-ccov/opt:
+    build-platform: win64-ccov/opt
     test-sets:
         - awsy
         - desktop-screenshot-capture
@@ -314,7 +300,7 @@ windows10-64-devedition/opt:
 windows10-64-asan/opt:
     build-platform: win64-asan/opt
     test-sets:
-        - common-tests
+        - windows-tests
 
 # QR builds just run a subset right now.
 windows10-64-qr/debug:
@@ -461,19 +447,12 @@ android-hw-g5-7-0-arm7-api-16/pgo:
 android-hw-p2-8-0-arm7-api-16/pgo:
     build-platform: android-api-16-pgo/opt
     test-sets:
-        - android-hw-arm7-browsertime
         - android-hw-arm7-pgo-unittests
-        - android-hw-arm7-raptor
-        - android-hw-arm7-raptor-power
-        - android-hw-arm7-raptor-cpu-memory
-        - android-hw-arm7-raptor-cpu-memory-power
-        - raptor-fetch-geckoview
 
 android-hw-p2-8-0-arm7-api-16/opt:
     build-platform: android-api-16/opt
     test-sets:
         - android-hw-arm7-browsertime
-        - android-hw-arm7-opt-unittests
         - android-hw-arm7-raptor
         - android-hw-arm7-raptor-power
         - android-hw-arm7-raptor-cpu-memory
@@ -485,20 +464,21 @@ android-hw-p2-8-0-arm7-api-16/debug:
     test-sets:
         - android-hw-arm7-debug-unittests
 
-android-hw-p2-8-0-arm7-api-16-qr/opt:
+android-hw-p2-8-0-android-aarch64-qr/opt:
     build-platform: android-api-16/opt
     test-sets:
-        - android-hw-arm7-qr
+        - android-hw-aarch64-qr
 
-android-hw-p2-8-0-arm7-api-16-qr/debug:
-    build-platform: android-api-16/debug
+android-hw-p2-8-0-android-aarch64-qr/debug:
+    build-platform: android-aarch64/debug
     test-sets:
-        - android-hw-arm7-qr
+        - android-hw-aarch64-qr
 
 android-hw-p2-8-0-android-aarch64/opt:
     build-platform: android-aarch64/opt
     test-sets:
         - android-hw-aarch64-browsertime
+        - android-hw-aarch64-opt-unittests
         - android-hw-aarch64-raptor
         - android-hw-aarch64-raptor-power
         - android-hw-aarch64-raptor-cpu-memory
@@ -508,7 +488,13 @@ android-hw-p2-8-0-android-aarch64/pgo:
     build-platform: android-aarch64-pgo/opt
     test-sets:
         - android-hw-aarch64-browsertime
+        - android-hw-aarch64-pgo-unittests
         - android-hw-aarch64-raptor
         - android-hw-aarch64-raptor-power
         - android-hw-aarch64-raptor-cpu-memory
         - android-hw-aarch64-raptor-cpu-memory-power
+
+android-hw-p2-8-0-android-aarch64/debug:
+    build-platform: android-aarch64/debug
+    test-sets:
+        - android-hw-aarch64-debug-unittests

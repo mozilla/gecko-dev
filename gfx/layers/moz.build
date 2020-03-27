@@ -230,6 +230,7 @@ EXPORTS.mozilla.layers += [
     'mlgpu/ShaderDefinitionsMLGPU.h',
     'mlgpu/UtilityMLGPU.h',
     'NativeLayer.h',
+    'OOPCanvasRenderer.h',
     'opengl/CompositingRenderTargetOGL.h',
     'opengl/CompositorOGL.h',
     'opengl/MacIOSurfaceTextureClientOGL.h',
@@ -255,6 +256,7 @@ EXPORTS.mozilla.layers += [
     'UpdateImageHelper.h',
     'wr/AsyncImagePipelineManager.h',
     'wr/ClipManager.h',
+    'wr/DisplayItemCache.h',
     'wr/IpcResourceUpdateQueue.h',
     'wr/RenderRootBoundary.h',
     'wr/RenderRootStateManager.h',
@@ -298,10 +300,12 @@ if CONFIG['MOZ_WAYLAND']:
     EXPORTS.mozilla.layers += [
         'opengl/WaylandDMABUFTextureClientOGL.h',
         'opengl/WaylandDMABUFTextureHostOGL.h',
+        'WaylandDMABUFSurfaceImage.h',
     ]
     SOURCES += [
         'opengl/WaylandDMABUFTextureClientOGL.cpp',
         'opengl/WaylandDMABUFTextureHostOGL.cpp',
+        'WaylandDMABUFSurfaceImage.cpp',
     ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
@@ -411,7 +415,6 @@ UNIFIED_SOURCES += [
     'client/ImageClient.cpp',
     'client/MultiTiledContentClient.cpp',
     'client/SingleTiledContentClient.cpp',
-    'client/TextureClient.cpp',
     'client/TextureClientPool.cpp',
     'client/TextureClientRecycleAllocator.cpp',
     'client/TextureClientSharedSurface.cpp',
@@ -523,6 +526,7 @@ UNIFIED_SOURCES += [
     'TextureWrapperImage.cpp',
     'wr/AsyncImagePipelineManager.cpp',
     'wr/ClipManager.cpp',
+    'wr/DisplayItemCache.cpp',
     'wr/IpcResourceUpdateQueue.cpp',
     'wr/RenderRootStateManager.cpp',
     'wr/RenderRootTypes.cpp',
@@ -545,6 +549,7 @@ UNIFIED_SOURCES += [
 SOURCES += [
     'basic/BasicCompositor.cpp',
     'basic/BasicImageLayer.cpp',
+    'client/TextureClient.cpp',
     'ImageContainer.cpp',
     'PersistentBufferProvider.cpp',
     'protobuf/LayerScopePacket.pb.cc',

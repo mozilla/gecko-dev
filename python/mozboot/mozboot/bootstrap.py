@@ -41,6 +41,9 @@ from mozboot.util import (
     get_state_dir,
 )
 
+# Use distro package to retrieve linux platform information
+import distro
+
 APPLICATION_CHOICE = '''
 Note on Artifact Mode:
 
@@ -172,17 +175,9 @@ download mercurial bundle and use it:
 https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Source_Code/Mercurial/Bundles'''
 
 DEBIAN_DISTROS = (
-    'Debian',
     'debian',
-    'Ubuntu',
-    # Most Linux Mint editions are based on Ubuntu. One is based on Debian.
-    # The difference is reported in dist_id from platform.linux_distribution.
-    # But it doesn't matter since we share a bootstrapper between Debian and
-    # Ubuntu.
-    'Mint',
-    'LinuxMint',
-    'Elementary OS',
-    'Elementary',
+    'ubuntu',
+    'linuxmint',
     'elementary',
     'neon',
 )
@@ -252,35 +247,25 @@ class Bootstrapper(object):
                 'no_system_changes': no_system_changes}
 
         if sys.platform.startswith('linux'):
-            # TODO: don't call `linux_distribution` at all since it's deprecated
-            distro, version, dist_id = platform.linux_distribution()
+            # distro package provides reliable ids for popular distributions so
+            # we use those instead of the full distribution name
+            dist_id, version, codename = distro.linux_distribution(full_distribution_name=False)
 
-            # Read the standard `os-release` configuration
-            if distro == '' and os.path.exists('/etc/os-release'):
-                d = {}
-                for line in open('/etc/os-release'):
-                    k, v = line.rstrip().split("=")
-                    d[k] = v.strip('"')
-                distro = d.get("NAME")
-                version = d.get("VERSION_ID")
-                dist_id = d.get("ID")
-
-            if distro in ('CentOS', 'CentOS Linux', 'Fedora'):
+            if dist_id in ('centos', 'fedora'):
                 cls = CentOSFedoraBootstrapper
-                args['distro'] = distro
-            elif distro in DEBIAN_DISTROS:
+                args['distro'] = dist_id
+            elif dist_id in DEBIAN_DISTROS:
                 cls = DebianBootstrapper
-                args['distro'] = distro
-            elif distro in ('Gentoo Base System', 'Funtoo Linux - baselayout '):
+                args['distro'] = dist_id
+            elif dist_id in ('gentoo', 'funtoo'):
                 cls = GentooBootstrapper
-            elif distro in ('Solus'):
+            elif dist_id in ('solus'):
                 cls = SolusBootstrapper
-            elif os.path.exists('/etc/arch-release'):
-                # Even on archlinux, platform.linux_distribution() returns ['','','']
+            elif dist_id in ('arch') or os.path.exists('/etc/arch-release'):
                 cls = ArchlinuxBootstrapper
             else:
                 raise NotImplementedError('Bootstrap support for this Linux '
-                                          'distro not yet available: ' + distro)
+                                          'distro not yet available: ' + dist_id)
 
             args['version'] = version
             args['dist_id'] = dist_id
@@ -400,6 +385,7 @@ class Bootstrapper(object):
             self.instance.ensure_sccache_packages(state_dir, checkout_root)
             self.instance.ensure_lucetc_packages(state_dir, checkout_root)
             self.instance.ensure_wasi_sysroot_packages(state_dir, checkout_root)
+            self.instance.ensure_dump_syms_packages(state_dir, checkout_root)
 
     def check_telemetry_opt_in(self, state_dir):
         # We can't prompt the user.
@@ -472,7 +458,7 @@ class Bootstrapper(object):
         # If we didn't specify a VCS, and we aren't in an exiting clone,
         # offer a choice
         if not self.vcs:
-            if checkout_type and False:
+            if checkout_type:
                 vcs = checkout_type
             elif self.instance.no_interactive:
                 vcs = "hg"
@@ -635,7 +621,7 @@ def hg_clone_firefox(hg, dest):
     # Strictly speaking, this could overwrite a config based on a template
     # the user has installed. Let's pretend this problem doesn't exist
     # unless someone complains about it.
-    with open(os.path.join(dest, '.hg', 'hgrc'), 'ab') as fh:
+    with open(os.path.join(dest, '.hg', 'hgrc'), 'a') as fh:
         fh.write('[paths]\n')
         fh.write('default = https://hg.mozilla.org/mozilla-unified\n')
         fh.write('\n')

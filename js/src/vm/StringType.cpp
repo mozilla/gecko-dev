@@ -9,7 +9,6 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Casting.h"
 #include "mozilla/EndianUtils.h"
-#include "mozilla/FloatingPoint.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/Latin1.h"
 #include "mozilla/MathAlgorithms.h"
@@ -37,7 +36,7 @@
 #include "util/StringBuffer.h"
 #include "util/Unicode.h"
 #include "vm/GeckoProfiler.h"
-#include "vm/JSFunction.h"
+#include "vm/ToSource.h"  // js::ValueToSource
 
 #include "vm/GeckoProfiler-inl.h"
 #include "vm/JSContext-inl.h"
@@ -51,7 +50,6 @@ using mozilla::AssertedCast;
 using mozilla::AsWritableChars;
 using mozilla::ConvertLatin1toUtf16;
 using mozilla::IsAsciiDigit;
-using mozilla::IsNegativeZero;
 using mozilla::IsSame;
 using mozilla::IsUtf16Latin1;
 using mozilla::LossyConvertUtf16toLatin1;
@@ -1501,10 +1499,6 @@ static inline bool CanStoreCharsAsLatin1(const char16_t* s, size_t length) {
   return IsUtf16Latin1(MakeSpan(s, length));
 }
 
-static bool CanStoreCharsAsLatin1(const Latin1Char* s, size_t length) {
-  MOZ_CRASH("Shouldn't be called for Latin1 chars");
-}
-
 static bool CanStoreCharsAsLatin1(LittleEndianChars chars, size_t length) {
   for (size_t i = 0; i < length; i++) {
     if (chars[i] > JSString::MAX_LATIN1_CHAR) {
@@ -1554,12 +1548,6 @@ static JSLinearString* NewStringDeflated(JSContext* cx, const char16_t* s,
   FillFromCompatible(news.get(), s, n);
 
   return JSLinearString::new_<allowGC>(cx, std::move(news), n);
-}
-
-template <AllowGC allowGC>
-static JSLinearString* NewStringDeflated(JSContext* cx, const Latin1Char* s,
-                                         size_t n) {
-  MOZ_CRASH("Shouldn't be called for Latin1 chars");
 }
 
 static JSLinearString* NewStringDeflatedFromLittleEndianNoGC(
@@ -1618,10 +1606,12 @@ template <typename CharT>
 JSLinearString* js::NewString(JSContext* cx,
                               UniquePtr<CharT[], JS::FreePolicy> chars,
                               size_t length) {
-  if (IsSame<CharT, char16_t>::value &&
-      CanStoreCharsAsLatin1(chars.get(), length)) {
-    // Deflating copies from |chars.get()| and lets |chars| be freed on return.
-    return NewStringDeflated<CanGC>(cx, chars.get(), length);
+  if constexpr (IsSame<CharT, char16_t>::value) {
+    if (CanStoreCharsAsLatin1(chars.get(), length)) {
+      // Deflating copies from |chars.get()| and lets |chars| be freed on
+      // return.
+      return NewStringDeflated<CanGC>(cx, chars.get(), length);
+    }
   }
 
   return NewStringDontDeflate(cx, std::move(chars), length);
@@ -1665,9 +1655,10 @@ template <AllowGC allowGC, typename CharT>
 JSLinearString* js::NewString(JSContext* cx,
                               UniquePtr<CharT[], JS::FreePolicy> chars,
                               size_t length) {
-  if (IsSame<CharT, char16_t>::value &&
-      CanStoreCharsAsLatin1(chars.get(), length)) {
-    return NewStringDeflated<allowGC>(cx, chars.get(), length);
+  if constexpr (IsSame<CharT, char16_t>::value) {
+    if (CanStoreCharsAsLatin1(chars.get(), length)) {
+      return NewStringDeflated<allowGC>(cx, chars.get(), length);
+    }
   }
 
   return NewStringDontDeflate<allowGC>(cx, std::move(chars), length);
@@ -1763,8 +1754,10 @@ JSLinearString* NewLatin1StringZ(JSContext* cx, UniqueChars chars) {
 
 template <AllowGC allowGC, typename CharT>
 JSLinearString* NewStringCopyN(JSContext* cx, const CharT* s, size_t n) {
-  if (IsSame<CharT, char16_t>::value && CanStoreCharsAsLatin1(s, n)) {
-    return NewStringDeflated<allowGC>(cx, s, n);
+  if constexpr (IsSame<CharT, char16_t>::value) {
+    if (CanStoreCharsAsLatin1(s, n)) {
+      return NewStringDeflated<allowGC>(cx, s, n);
+    }
   }
 
   return NewStringCopyNDontDeflate<allowGC>(cx, s, n);
@@ -2240,92 +2233,4 @@ template JSString* js::ToStringSlow<NoGC>(JSContext* cx, const Value& arg);
 
 JS_PUBLIC_API JSString* js::ToStringSlow(JSContext* cx, HandleValue v) {
   return ToStringSlow<CanGC>(cx, v);
-}
-
-/*
- * Convert a JSString to its source expression; returns null after reporting an
- * error, otherwise returns a new string reference. No Handle needed since the
- * input is dead after the GC.
- */
-static JSString* StringToSource(JSContext* cx, JSString* str) {
-  UniqueChars chars = QuoteString(cx, str, '"');
-  if (!chars) {
-    return nullptr;
-  }
-  return NewStringCopyZ<CanGC>(cx, chars.get());
-}
-
-static JSString* SymbolToSource(JSContext* cx, Symbol* symbol) {
-  RootedString desc(cx, symbol->description());
-  SymbolCode code = symbol->code();
-  if (code != SymbolCode::InSymbolRegistry &&
-      code != SymbolCode::UniqueSymbol) {
-    // Well-known symbol.
-    MOZ_ASSERT(uint32_t(code) < JS::WellKnownSymbolLimit);
-    return desc;
-  }
-
-  JSStringBuilder buf(cx);
-  if (code == SymbolCode::InSymbolRegistry ? !buf.append("Symbol.for(")
-                                           : !buf.append("Symbol(")) {
-    return nullptr;
-  }
-  if (desc) {
-    UniqueChars quoted = QuoteString(cx, desc, '"');
-    if (!quoted || !buf.append(quoted.get(), strlen(quoted.get()))) {
-      return nullptr;
-    }
-  }
-  if (!buf.append(')')) {
-    return nullptr;
-  }
-  return buf.finishString();
-}
-
-JSString* js::ValueToSource(JSContext* cx, HandleValue v) {
-  if (!CheckRecursionLimit(cx)) {
-    return nullptr;
-  }
-  cx->check(v);
-
-  if (v.isUndefined()) {
-    return cx->names().void0;
-  }
-  if (v.isString()) {
-    return StringToSource(cx, v.toString());
-  }
-  if (v.isSymbol()) {
-    return SymbolToSource(cx, v.toSymbol());
-  }
-  if (v.isPrimitive()) {
-    /* Special case to preserve negative zero, _contra_ toString. */
-    if (v.isDouble() && IsNegativeZero(v.toDouble())) {
-      static const Latin1Char negativeZero[] = {'-', '0'};
-
-      return NewStringCopyN<CanGC>(cx, negativeZero,
-                                   mozilla::ArrayLength(negativeZero));
-    }
-    return ToString<CanGC>(cx, v);
-  }
-
-  RootedValue fval(cx);
-  RootedObject obj(cx, &v.toObject());
-  if (!GetProperty(cx, obj, obj, cx->names().toSource, &fval)) {
-    return nullptr;
-  }
-  if (IsCallable(fval)) {
-    RootedValue v(cx);
-    if (!js::Call(cx, fval, obj, &v)) {
-      return nullptr;
-    }
-
-    return ToString<CanGC>(cx, v);
-  }
-
-  if (obj->is<JSFunction>()) {
-    RootedFunction fun(cx, &obj->as<JSFunction>());
-    return FunctionToString(cx, fun, true);
-  }
-
-  return ObjectToSource(cx, obj);
 }

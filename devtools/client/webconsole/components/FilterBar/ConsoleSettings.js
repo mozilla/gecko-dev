@@ -29,10 +29,18 @@ loader.lazyGetter(this, "MenuList", function() {
   );
 });
 
+loader.lazyRequireGetter(
+  this,
+  "AppConstants",
+  "resource://gre/modules/AppConstants.jsm",
+  true
+);
+
 class ConsoleSettings extends Component {
   static get propTypes() {
     return {
       dispatch: PropTypes.func.isRequired,
+      eagerEvaluation: PropTypes.bool.isRequired,
       groupWarnings: PropTypes.bool.isRequired,
       hidePersistLogsCheckbox: PropTypes.bool.isRequired,
       hideShowContentMessagesCheckbox: PropTypes.bool.isRequired,
@@ -40,18 +48,21 @@ class ConsoleSettings extends Component {
       showContentMessages: PropTypes.bool.isRequired,
       timestampsVisible: PropTypes.bool.isRequired,
       webConsoleUI: PropTypes.object.isRequired,
+      autocomplete: PropTypes.bool.isRequired,
     };
   }
 
   renderMenuItems() {
     const {
       dispatch,
+      eagerEvaluation,
       groupWarnings,
       hidePersistLogsCheckbox,
       hideShowContentMessagesCheckbox,
       persistLogs,
       showContentMessages,
       timestampsVisible,
+      autocomplete,
     } = this.props;
 
     const items = [];
@@ -124,6 +135,42 @@ class ConsoleSettings extends Component {
         onClick: () => dispatch(actions.warningGroupsToggle()),
       })
     );
+
+    // autocomplete
+    items.push(
+      MenuItem({
+        key: "webconsole-console-settings-menu-item-autocomplete",
+        checked: autocomplete,
+        className:
+          "menu-item webconsole-console-settings-menu-item-autocomplete",
+        label: l10n.getStr(
+          "webconsole.console.settings.menu.item.autocomplete.label"
+        ),
+        tooltip: l10n.getStr(
+          "webconsole.console.settings.menu.item.autocomplete.tooltip"
+        ),
+        onClick: () => dispatch(actions.autocompleteToggle()),
+      })
+    );
+
+    // Eager Evaluation
+    if (AppConstants.NIGHTLY_BUILD) {
+      items.push(
+        MenuItem({
+          key: "webconsole-console-settings-menu-item-eager-evaluation",
+          checked: eagerEvaluation,
+          className:
+            "menu-item webconsole-console-settings-menu-item-eager-evaluation",
+          label: l10n.getStr(
+            "webconsole.console.settings.menu.item.eagerEvaluation.label"
+          ),
+          tooltip: l10n.getStr(
+            "webconsole.console.settings.menu.item.eagerEvaluation.tooltip"
+          ),
+          onClick: () => dispatch(actions.eagerEvaluationToggle()),
+        })
+      );
+    }
 
     return MenuList({ id: "webconsole-console-settings-menu-list" }, items);
   }

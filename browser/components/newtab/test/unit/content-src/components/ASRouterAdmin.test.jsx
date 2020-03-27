@@ -1,7 +1,9 @@
+import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
 import {
   ASRouterAdminInner,
   CollapseToggle,
   DiscoveryStreamAdmin,
+  Personalization,
   ToggleStoryButton,
 } from "content-src/components/ASRouterAdmin/ASRouterAdmin";
 import { GlobalOverrider } from "test/unit/utils";
@@ -103,18 +105,6 @@ describe("ASRouterAdmin", () => {
           .at(0)
           .text(),
         "Targeting Utilities"
-      );
-    });
-    it("should render a pocket section for pocket route", () => {
-      wrapper = shallow(
-        <ASRouterAdminInner location={{ routes: ["pocket"] }} Sections={[]} />
-      );
-      assert.equal(
-        wrapper
-          .find("h2")
-          .at(0)
-          .text(),
-        "Pocket"
       );
     });
     it("should render a DS section for DS route", () => {
@@ -307,28 +297,88 @@ describe("ASRouterAdmin", () => {
 
         assert.lengthOf(wrapper.find(".message-id"), 0);
       });
+      it("should not display Reset All button if provider filter value is set to all or test providers", () => {
+        wrapper.setState({
+          messageFilter: "messageProvider",
+          messages: [
+            {
+              id: "foo",
+              provider: "messageProvider",
+              groups: ["messageProvider"],
+            },
+          ],
+        });
+
+        assert.lengthOf(wrapper.find(".messages-reset"), 1);
+        wrapper.find("select").simulate("change", { target: { value: "all" } });
+
+        assert.lengthOf(wrapper.find(".messages-reset"), 0);
+
+        wrapper
+          .find("select")
+          .simulate("change", { target: { value: "test_local_testing" } });
+        assert.lengthOf(wrapper.find(".messages-reset"), 0);
+      });
+      it("should trigger disable and enable provider on Reset All button click", () => {
+        wrapper.setState({
+          messageFilter: "messageProvider",
+          messages: [
+            {
+              id: "foo",
+              provider: "messageProvider",
+              groups: ["messageProvider"],
+            },
+          ],
+          providerPrefs: [
+            {
+              id: "messageProvider",
+            },
+          ],
+        });
+        wrapper.find(".messages-reset").simulate("click");
+        assert.propertyVal(
+          sendMessageStub.secondCall.args[1],
+          "type",
+          "DISABLE_PROVIDER"
+        );
+
+        assert.propertyVal(
+          sendMessageStub.thirdCall.args[1],
+          "type",
+          "ENABLE_PROVIDER"
+        );
+      });
     });
   });
   describe("#DiscoveryStream", () => {
-    it("should render a DiscoveryStreamAdmin component", () => {
+    let state = {};
+    let dispatch;
+    beforeEach(() => {
+      dispatch = sandbox.stub();
+      state = {
+        config: {
+          enabled: true,
+          layout_endpoint: "",
+        },
+        layout: [],
+        spocs: {
+          frequency_caps: [],
+        },
+        feeds: {
+          data: {},
+        },
+      };
       wrapper = shallow(
         <DiscoveryStreamAdmin
+          dispatch={dispatch}
           otherPrefs={{}}
           state={{
-            config: {
-              enabled: true,
-              layout_endpint: "",
-            },
-            layout: [],
-            spocs: {
-              frequency_caps: [],
-            },
-            feeds: {
-              data: {},
-            },
+            DiscoveryStream: state,
           }}
         />
       );
+    });
+    it("should render a DiscoveryStreamAdmin component", () => {
       assert.equal(
         wrapper
           .find("h3")
@@ -338,29 +388,20 @@ describe("ASRouterAdmin", () => {
       );
     });
     it("should render a spoc in DiscoveryStreamAdmin component", () => {
+      state.spocs = {
+        frequency_caps: [],
+        data: {
+          spocs: [
+            {
+              id: 12345,
+            },
+          ],
+        },
+      };
       wrapper = shallow(
         <DiscoveryStreamAdmin
           otherPrefs={{}}
-          state={{
-            config: {
-              enabled: true,
-              layout_endpint: "",
-            },
-            layout: [],
-            spocs: {
-              frequency_caps: [],
-              data: {
-                spocs: [
-                  {
-                    id: 12345,
-                  },
-                ],
-              },
-            },
-            feeds: {
-              data: {},
-            },
-          }}
+          state={{ DiscoveryStream: state }}
         />
       );
       wrapper.instance().onStoryToggle({ id: 12345 });
@@ -369,7 +410,196 @@ describe("ASRouterAdmin", () => {
       const spocText = pre.text();
       assert.equal(spocText, '{\n  "id": 12345\n}');
     });
+    it("should fire restorePrefDefaults with DISCOVERY_STREAM_CONFIG_RESET_DEFAULTS", () => {
+      wrapper
+        .find("button")
+        .at(0)
+        .simulate("click");
+      assert.calledWith(
+        dispatch,
+        ac.OnlyToMain({
+          type: at.DISCOVERY_STREAM_CONFIG_RESET_DEFAULTS,
+        })
+      );
+    });
+    it("should fire config change with DISCOVERY_STREAM_CONFIG_CHANGE", () => {
+      wrapper
+        .find("button")
+        .at(1)
+        .simulate("click");
+      assert.calledWith(
+        dispatch,
+        ac.OnlyToMain({
+          type: at.DISCOVERY_STREAM_CONFIG_CHANGE,
+          data: { enabled: true, layout_endpoint: "" },
+        })
+      );
+    });
+    it("should fire expireCache with DISCOVERY_STREAM_DEV_EXPIRE_CACHE", () => {
+      wrapper
+        .find("button")
+        .at(2)
+        .simulate("click");
+      assert.calledWith(
+        dispatch,
+        ac.OnlyToMain({
+          type: at.DISCOVERY_STREAM_DEV_EXPIRE_CACHE,
+        })
+      );
+    });
+    it("should fire systemTick with DISCOVERY_STREAM_DEV_SYSTEM_TICK", () => {
+      wrapper
+        .find("button")
+        .at(3)
+        .simulate("click");
+      assert.calledWith(
+        dispatch,
+        ac.OnlyToMain({
+          type: at.DISCOVERY_STREAM_DEV_SYSTEM_TICK,
+        })
+      );
+    });
+    it("should fire idleDaily with DISCOVERY_STREAM_DEV_IDLE_DAILY", () => {
+      wrapper
+        .find("button")
+        .at(4)
+        .simulate("click");
+      assert.calledWith(
+        dispatch,
+        ac.OnlyToMain({
+          type: at.DISCOVERY_STREAM_DEV_IDLE_DAILY,
+        })
+      );
+    });
+    it("should fire syncRemoteSettings with DISCOVERY_STREAM_DEV_SYNC_RS", () => {
+      wrapper
+        .find("button")
+        .at(5)
+        .simulate("click");
+      assert.calledWith(
+        dispatch,
+        ac.OnlyToMain({
+          type: at.DISCOVERY_STREAM_DEV_SYNC_RS,
+        })
+      );
+    });
+    it("should fire setConfigValue with DISCOVERY_STREAM_CONFIG_SET_VALUE", () => {
+      const name = "name";
+      const value = "value";
+      wrapper.instance().setConfigValue(name, value);
+      assert.calledWith(
+        dispatch,
+        ac.OnlyToMain({
+          type: at.DISCOVERY_STREAM_CONFIG_SET_VALUE,
+          data: { name, value },
+        })
+      );
+    });
   });
+
+  describe("#Personalization", () => {
+    let dispatch;
+    beforeEach(() => {
+      dispatch = sandbox.stub();
+      wrapper = shallow(
+        <Personalization
+          dispatch={dispatch}
+          state={{
+            Personalization: {
+              version: 1,
+              lastUpdated: 1000,
+              initialized: true,
+            },
+          }}
+        />
+      );
+    });
+    it("should render with buttons, version, and lastUpdated", () => {
+      assert.equal(
+        wrapper
+          .find("button")
+          .at(0)
+          .text(),
+        "Enable V2 Personalization"
+      );
+      assert.equal(
+        wrapper
+          .find("td")
+          .at(1)
+          .text(),
+        "1"
+      );
+      assert.equal(
+        wrapper
+          .find("td")
+          .at(3)
+          .text(),
+        new Date(1000).toLocaleString()
+      );
+    });
+    it("should render with proper version 2 state", () => {
+      wrapper = shallow(
+        <Personalization
+          dispatch={dispatch}
+          state={{
+            Personalization: {
+              version: 2,
+              lastUpdated: 1000,
+              initialized: true,
+            },
+          }}
+        />
+      );
+      assert.equal(
+        wrapper
+          .find("button")
+          .at(0)
+          .text(),
+        "Enable V1 Personalization"
+      );
+      assert.equal(
+        wrapper
+          .find("td")
+          .at(1)
+          .text(),
+        "2"
+      );
+    });
+    it("should render with no data with no last updated", () => {
+      wrapper = shallow(
+        <Personalization
+          dispatch={dispatch}
+          state={{
+            Personalization: {
+              version: 2,
+              lastUpdated: 0,
+              initialized: true,
+            },
+          }}
+        />
+      );
+      assert.equal(
+        wrapper
+          .find("td")
+          .at(3)
+          .text(),
+        "(no data)"
+      );
+    });
+    it("should fire DISCOVERY_STREAM_PERSONALIZATION_VERSION_TOGGLE with version", () => {
+      wrapper
+        .find("button")
+        .at(0)
+        .simulate("click");
+      assert.calledWith(
+        dispatch,
+        ac.OnlyToMain({
+          type: at.DISCOVERY_STREAM_PERSONALIZATION_VERSION_TOGGLE,
+        })
+      );
+    });
+  });
+
   describe("#ToggleStoryButton", () => {
     it("should fire onClick in toggle button", async () => {
       let result = "";

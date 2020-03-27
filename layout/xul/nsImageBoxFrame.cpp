@@ -51,6 +51,7 @@
 #include "Units.h"
 #include "mozilla/layers/RenderRootStateManager.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
+#include "mozilla/dom/ImageTracker.h"
 
 #if defined(XP_WIN)
 // Undefine LoadImage to prevent naming conflict with Windows.
@@ -63,6 +64,10 @@ using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::image;
 using namespace mozilla::layers;
+
+using mozilla::dom::Element;
+using mozilla::dom::Document;
+using mozilla::dom::ReferrerInfo;
 
 class nsImageBoxFrameEvent : public Runnable {
  public:
@@ -168,6 +173,10 @@ void nsImageBoxFrame::DestroyFrom(nsIFrame* aDestructRoot,
 
     mImageRequest->UnlockImage();
 
+    if (mUseSrcAttr) {
+      PresContext()->Document()->ImageTracker()->Remove(mImageRequest);
+    }
+
     // Release image loader first so that it's refcnt can go to zero
     mImageRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
   }
@@ -209,8 +218,40 @@ void nsImageBoxFrame::StopAnimation() {
   }
 }
 
+// WeakFrame must have heap-only lifetime, so can't be used in a temporary
+// on-stack lambda, even if that lambda then gets moved into a heap member in
+// NS_NewRunnableFunction.  AutoWeakFrame must have stack-only lifetime, so
+// can't be used insde a lambda.  As a result, we can't use
+// NS_NewRunnableFunction here and have to invent our own runnable.
+namespace {
+class UpdateImageRunnable : public Runnable {
+ public:
+  explicit UpdateImageRunnable(nsImageBoxFrame* aFrame)
+      : Runnable("UpdateImageRunnable"), mFrame(aFrame) {}
+
+ protected:
+  NS_IMETHOD Run() override {
+    if (mFrame.IsAlive()) {
+      static_cast<nsImageBoxFrame*>(mFrame.GetFrame())->UpdateImage();
+    }
+    return NS_OK;
+  }
+
+  WeakFrame mFrame;
+};
+}  // anonymous namespace
+
 void nsImageBoxFrame::UpdateImage() {
+  if (!nsContentUtils::IsSafeToRunScript()) {
+    // FIXME: bug 1613524.  Once PageIconProtocolHandler is in C++, we
+    // can remove this indirection.
+    auto runnable = MakeRefPtr<UpdateImageRunnable>(this);
+    nsContentUtils::AddScriptRunner(runnable.forget());
+    return;
+  }
+
   nsPresContext* presContext = PresContext();
+  Document* doc = presContext->Document();
 
   RefPtr<imgRequestProxy> oldImageRequest = mImageRequest;
 
@@ -218,6 +259,9 @@ void nsImageBoxFrame::UpdateImage() {
     nsLayoutUtils::DeregisterImageRequest(presContext, mImageRequest,
                                           &mRequestRegistered);
     mImageRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
+    if (mUseSrcAttr) {
+      doc->ImageTracker()->Remove(mImageRequest);
+    }
     mImageRequest = nullptr;
   }
 
@@ -226,31 +270,34 @@ void nsImageBoxFrame::UpdateImage() {
   mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::src, src);
   mUseSrcAttr = !src.IsEmpty();
   if (mUseSrcAttr) {
-    Document* doc = mContent->GetComposedDoc();
-    if (doc) {
-      nsContentPolicyType contentPolicyType;
-      nsCOMPtr<nsIPrincipal> triggeringPrincipal;
-      uint64_t requestContextID = 0;
-      nsContentUtils::GetContentPolicyTypeForUIImageLoading(
-          mContent, getter_AddRefs(triggeringPrincipal), contentPolicyType,
-          &requestContextID);
+    nsContentPolicyType contentPolicyType;
+    nsCOMPtr<nsIPrincipal> triggeringPrincipal;
+    uint64_t requestContextID = 0;
+    nsContentUtils::GetContentPolicyTypeForUIImageLoading(
+        mContent, getter_AddRefs(triggeringPrincipal), contentPolicyType,
+        &requestContextID);
 
-      nsCOMPtr<nsIURI> uri;
-      nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(uri), src, doc,
-                                                mContent->GetBaseURI());
-      if (uri) {
-        nsCOMPtr<nsIReferrerInfo> referrerInfo = new ReferrerInfo();
-        referrerInfo->InitWithNode(mContent);
+    nsCOMPtr<nsIURI> uri;
+    nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(uri), src, doc,
+                                              mContent->GetBaseURI());
+    if (uri) {
+      nsCOMPtr<nsIReferrerInfo> referrerInfo = new ReferrerInfo();
+      referrerInfo->InitWithNode(mContent);
 
-        nsresult rv = nsContentUtils::LoadImage(
-            uri, mContent, doc, triggeringPrincipal, requestContextID,
-            referrerInfo, mListener, mLoadFlags, EmptyString(),
-            getter_AddRefs(mImageRequest), contentPolicyType);
+      nsresult rv = nsContentUtils::LoadImage(
+          uri, mContent, doc, triggeringPrincipal, requestContextID,
+          referrerInfo, mListener, mLoadFlags, EmptyString(),
+          getter_AddRefs(mImageRequest), contentPolicyType);
 
-        if (NS_SUCCEEDED(rv) && mImageRequest) {
-          nsLayoutUtils::RegisterImageRequestIfAnimated(
-              presContext, mImageRequest, &mRequestRegistered);
-        }
+      if (NS_SUCCEEDED(rv) && mImageRequest) {
+        nsLayoutUtils::RegisterImageRequestIfAnimated(
+            presContext, mImageRequest, &mRequestRegistered);
+
+        // Add to the ImageTracker so that we can find it when media
+        // feature values change (e.g. when the system theme changes)
+        // and invalidate the image.  This allows favicons to respond
+        // to these changes.
+        doc->ImageTracker()->Add(mImageRequest);
       }
     }
   } else if (auto* styleRequest = GetRequestFromStyle()) {

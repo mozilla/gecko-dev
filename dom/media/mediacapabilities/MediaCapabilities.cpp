@@ -5,6 +5,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MediaCapabilities.h"
+
+#include <inttypes.h>
+
+#include <utility>
+
 #include "AllocationPolicy.h"
 #include "Benchmark.h"
 #include "DecoderBenchmark.h"
@@ -15,7 +20,6 @@
 #include "PDMFactory.h"
 #include "VPXDecoder.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/Move.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/dom/DOMMozPromiseRequestHolder.h"
@@ -26,8 +30,6 @@
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/layers/KnowsCompositor.h"
 #include "nsContentUtils.h"
-
-#include <inttypes.h>
 
 static mozilla::LazyLogModule sMediaCapabilitiesLog("MediaCapabilities");
 
@@ -110,7 +112,8 @@ already_AddRefed<Promise> MediaCapabilities::DecodingInfo(
   if (!aConfiguration.mVideo.WasPassed() &&
       !aConfiguration.mAudio.WasPassed()) {
     aRv.ThrowTypeError<MSG_MISSING_REQUIRED_DICTIONARY_MEMBER>(
-        NS_LITERAL_STRING("'audio' or 'video'"));
+        NS_LITERAL_STRING("'audio' or 'video' member of argument of "
+                          "MediaCapabilities.decodingInfo"));
     return nullptr;
   }
 
@@ -456,7 +459,8 @@ already_AddRefed<Promise> MediaCapabilities::EncodingInfo(
   if (!aConfiguration.mVideo.WasPassed() &&
       !aConfiguration.mAudio.WasPassed()) {
     aRv.ThrowTypeError<MSG_MISSING_REQUIRED_DICTIONARY_MEMBER>(
-        NS_LITERAL_STRING("'audio' or 'video'"));
+        NS_LITERAL_STRING("'audio' or 'video' member of argument of "
+                          "MediaCapabilities.encodingInfo"));
     return nullptr;
   }
 
@@ -534,8 +538,11 @@ Maybe<MediaContainerType> MediaCapabilities::CheckAudioConfiguration(
 }
 
 bool MediaCapabilities::CheckTypeForMediaSource(const nsAString& aType) {
-  return NS_SUCCEEDED(MediaSource::IsTypeSupported(
-      aType, nullptr /* DecoderDoctorDiagnostics */));
+  IgnoredErrorResult rv;
+  MediaSource::IsTypeSupported(aType, nullptr /* DecoderDoctorDiagnostics */,
+                               rv);
+
+  return !rv.Failed();
 }
 
 bool MediaCapabilities::CheckTypeForFile(const nsAString& aType) {

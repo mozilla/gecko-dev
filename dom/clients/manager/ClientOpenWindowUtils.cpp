@@ -23,6 +23,7 @@
 #include "nsNetUtil.h"
 #include "nsPIDOMWindow.h"
 #include "nsPIWindowWatcher.h"
+#include "nsPrintfCString.h"
 
 #include "mozilla/dom/nsCSPContext.h"
 
@@ -62,7 +63,9 @@ class WebProgressListener final : public nsIWebProgressListener,
 
     nsCOMPtr<Document> doc = mWindow->GetExtantDoc();
     if (NS_WARN_IF(!doc)) {
-      mPromise->Reject(NS_ERROR_FAILURE, __func__);
+      CopyableErrorResult rv;
+      rv.ThrowInvalidStateError("Document is discarded");
+      mPromise->Reject(rv, __func__);
       mPromise = nullptr;
       return NS_OK;
     }
@@ -75,7 +78,7 @@ class WebProgressListener final : public nsIWebProgressListener,
     nsresult rv = securityManager->CheckSameOriginURI(
         doc->GetOriginalURI(), mBaseURI, false, isPrivateWin);
     if (NS_FAILED(rv)) {
-      mPromise->Resolve(NS_OK, __func__);
+      mPromise->Resolve(CopyableErrorResult(), __func__);
       mPromise = nullptr;
       return NS_OK;
     }
@@ -84,7 +87,10 @@ class WebProgressListener final : public nsIWebProgressListener,
     Maybe<ClientState> state(doc->GetClientState());
 
     if (NS_WARN_IF(info.isNothing() || state.isNothing())) {
-      mPromise->Reject(NS_ERROR_FAILURE, __func__);
+      // XXXbz Can we find a useful error message here?
+      CopyableErrorResult rv;
+      rv.Throw(NS_ERROR_FAILURE);
+      mPromise->Reject(rv, __func__);
       mPromise = nullptr;
       return NS_OK;
     }
@@ -136,7 +142,9 @@ class WebProgressListener final : public nsIWebProgressListener,
  private:
   ~WebProgressListener() {
     if (mPromise) {
-      mPromise->Reject(NS_ERROR_ABORT, __func__);
+      CopyableErrorResult rv;
+      rv.ThrowAbortError("openWindow aborted");
+      mPromise->Reject(rv, __func__);
       mPromise = nullptr;
     }
   }
@@ -150,7 +158,8 @@ class WebProgressListener final : public nsIWebProgressListener,
 NS_IMPL_ISUPPORTS(WebProgressListener, nsIWebProgressListener,
                   nsISupportsWeakReference);
 
-nsresult OpenWindow(const ClientOpenWindowArgs& aArgs, BrowsingContext** aBC) {
+void OpenWindow(const ClientOpenWindowArgs& aArgs, BrowsingContext** aBC,
+                ErrorResult& aRv) {
   MOZ_DIAGNOSTIC_ASSERT(aBC);
 
   // [[1. Let url be the result of parsing url with entry settings object's API
@@ -160,14 +169,16 @@ nsresult OpenWindow(const ClientOpenWindowArgs& aArgs, BrowsingContext** aBC) {
   nsCOMPtr<nsIURI> baseURI;
   nsresult rv = NS_NewURI(getter_AddRefs(baseURI), aArgs.baseURL());
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    // TODO: Improve this error in bug 1412856.
-    return NS_ERROR_DOM_TYPE_ERR;
+    nsPrintfCString err("Invalid base URL \"%s\"", aArgs.baseURL().get());
+    aRv.ThrowTypeError(NS_ConvertUTF8toUTF16(err));
+    return;
   }
 
   rv = NS_NewURI(getter_AddRefs(uri), aArgs.url(), nullptr, baseURI);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    // TODO: Improve this error in bug 1412856.
-    return NS_ERROR_DOM_TYPE_ERR;
+    nsPrintfCString err("Invalid URL \"%s\"", aArgs.url().get());
+    aRv.ThrowTypeError(NS_ConvertUTF8toUTF16(err));
+    return;
   }
 
   nsCOMPtr<nsIPrincipal> principal =
@@ -194,8 +205,8 @@ nsresult OpenWindow(const ClientOpenWindowArgs& aArgs, BrowsingContext** aBC) {
     JS::Rooted<JSObject*> sandbox(cx);
     rv = xpc->CreateSandbox(cx, principal, sandbox.address());
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      // TODO: Improve this error in bug 1412856.
-      return NS_ERROR_DOM_TYPE_ERR;
+      aRv.ThrowTypeError(u"Unable to open window");
+      return;
     }
 
     JSAutoRealm ar(cx, sandbox);
@@ -204,18 +215,23 @@ nsresult OpenWindow(const ClientOpenWindowArgs& aArgs, BrowsingContext** aBC) {
     nsCOMPtr<nsIWindowWatcher> wwatch =
         do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
+      aRv.ThrowTypeError(u"Unable to open window");
+      return;
     }
     nsCOMPtr<nsPIWindowWatcher> pwwatch(do_QueryInterface(wwatch));
-    NS_ENSURE_STATE(pwwatch);
+    if (NS_WARN_IF(!pwwatch)) {
+      aRv.ThrowTypeError(u"Unable to open window");
+      return;
+    }
 
     nsCString spec;
     rv = uri->GetSpec(spec);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
+      aRv.ThrowTypeError(u"Unable to open window");
+      return;
     }
 
-    MOZ_TRY(pwwatch->OpenWindow2(
+    rv = pwwatch->OpenWindow2(
         nullptr, spec.get(), nullptr, nullptr, false, false, true, nullptr,
         // Not a spammy popup; we got permission, we swear!
         /* aIsPopupSpam = */ false,
@@ -224,9 +240,14 @@ nsresult OpenWindow(const ClientOpenWindowArgs& aArgs, BrowsingContext** aBC) {
         // window.
         /* aForceNoOpener = */ false,
         /* aForceNoReferrer = */ false,
-        /* aLoadInfp = */ nullptr, aBC));
+        /* aLoadInfp = */ nullptr, aBC);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      aRv.ThrowTypeError(u"Unable to open window");
+      return;
+    }
+
     MOZ_DIAGNOSTIC_ASSERT(*aBC);
-    return NS_OK;
+    return;
   }
 
   // Find the most recent browser window and open a new tab in it.
@@ -236,23 +257,31 @@ nsresult OpenWindow(const ClientOpenWindowArgs& aArgs, BrowsingContext** aBC) {
     // It is possible to be running without a browser window on Mac OS, so
     // we need to open a new chrome window.
     // TODO(catalinb): open new chrome window. Bug 1218080
-    return NS_ERROR_NOT_AVAILABLE;
+    aRv.ThrowTypeError(u"Unable to open window");
+    return;
   }
 
   nsCOMPtr<nsIDOMChromeWindow> chromeWin = do_QueryInterface(browserWindow);
   if (NS_WARN_IF(!chromeWin)) {
-    return NS_ERROR_FAILURE;
+    // XXXbz Can this actually happen?  Seems unlikely.
+    aRv.ThrowTypeError(u"Unable to open window");
+    return;
   }
 
   nsCOMPtr<nsIBrowserDOMWindow> bwin;
   chromeWin->GetBrowserDOMWindow(getter_AddRefs(bwin));
 
   if (NS_WARN_IF(!bwin)) {
-    return NS_ERROR_FAILURE;
+    aRv.ThrowTypeError(u"Unable to open window");
+    return;
   }
 
-  return bwin->OpenURI(uri, nullptr, nsIBrowserDOMWindow::OPEN_DEFAULTWINDOW,
-                       nsIBrowserDOMWindow::OPEN_NEW, principal, csp, aBC);
+  rv = bwin->OpenURI(uri, nullptr, nsIBrowserDOMWindow::OPEN_DEFAULTWINDOW,
+                     nsIBrowserDOMWindow::OPEN_NEW, principal, csp, aBC);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aRv.ThrowTypeError(u"Unable to open window");
+    return;
+  }
 }
 
 void WaitForLoad(const ClientOpenWindowArgs& aArgs,
@@ -262,12 +291,15 @@ void WaitForLoad(const ClientOpenWindowArgs& aArgs,
 
   RefPtr<ClientOpPromise::Private> promise = aPromise;
 
-  nsFocusManager::FocusWindow(aOuterWindow);
+  nsFocusManager::FocusWindow(aOuterWindow, CallerType::NonSystem);
 
   nsCOMPtr<nsIURI> baseURI;
   nsresult rv = NS_NewURI(getter_AddRefs(baseURI), aArgs.baseURL());
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    promise->Reject(rv, __func__);
+    // Shouldn't really happen, since we passed in the serialization of a URI.
+    CopyableErrorResult result;
+    result.ThrowSyntaxError("Bad URL");
+    promise->Reject(result, __func__);
     return;
   }
 
@@ -275,7 +307,9 @@ void WaitForLoad(const ClientOpenWindowArgs& aArgs,
   nsCOMPtr<nsIWebProgress> webProgress = do_GetInterface(docShell);
 
   if (NS_WARN_IF(!webProgress)) {
-    promise->Reject(NS_ERROR_FAILURE, __func__);
+    CopyableErrorResult rv;
+    rv.ThrowInvalidStateError("No browsing context");
+    promise->Reject(rv, __func__);
     return;
   }
 
@@ -287,7 +321,10 @@ void WaitForLoad(const ClientOpenWindowArgs& aArgs,
   rv = webProgress->AddProgressListener(listener,
                                         nsIWebProgress::NOTIFY_STATE_DOCUMENT);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    promise->Reject(rv, __func__);
+    CopyableErrorResult result;
+    // XXXbz Can we throw something better here?
+    result.Throw(rv);
+    promise->Reject(result, __func__);
     return;
   }
 
@@ -295,7 +332,7 @@ void WaitForLoad(const ClientOpenWindowArgs& aArgs,
   ref->Then(
       aOuterWindow->EventTargetFor(TaskCategory::Other), __func__,
       [listener](const ClientOpResult& aResult) {},
-      [listener](nsresult aResult) {});
+      [listener](const CopyableErrorResult& aResult) {});
 }
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -416,11 +453,12 @@ RefPtr<ClientOpPromise> ClientOpenWindowInCurrentProcess(
 #endif  // MOZ_WIDGET_ANDROID
 
   RefPtr<BrowsingContext> bc;
-  nsresult rv = OpenWindow(aArgs, getter_AddRefs(bc));
+  CopyableErrorResult rv;
+  OpenWindow(aArgs, getter_AddRefs(bc), rv);
 
   nsCOMPtr<nsPIDOMWindowOuter> outerWindow(bc->GetDOMWindow());
 
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  if (NS_WARN_IF(rv.Failed())) {
     promise->Reject(rv, __func__);
     return promise.forget();
   }

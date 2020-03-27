@@ -7,10 +7,11 @@
 #ifndef IPC_ErrorIPCUtils_h
 #define IPC_ErrorIPCUtils_h
 
+#include <utility>
+
 #include "ipc/IPCMessageUtils.h"
-#include "mozilla/ErrorResult.h"
 #include "mozilla/Assertions.h"
-#include "mozilla/Move.h"
+#include "mozilla/ErrorResult.h"
 
 namespace IPC {
 
@@ -48,6 +49,11 @@ struct ParamTraits<mozilla::ErrorResult> {
     } else if (aParam.IsDOMException()) {
       aParam.SerializeDOMExceptionInfo(aMsg);
     }
+  }
+
+  static void Write(Message* aMsg, paramType&& aParam) {
+    Write(aMsg, static_cast<const paramType&>(aParam));
+    aParam.SuppressException();
   }
 
   static bool Read(const Message* aMsg, PickleIterator* aIter,

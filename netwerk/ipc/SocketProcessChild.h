@@ -31,7 +31,7 @@ class SocketProcessChild final
   static SocketProcessChild* GetSingleton();
 
   bool Init(base::ProcessId aParentPid, const char* aParentBuildID,
-            MessageLoop* aIOLoop, IPC::Channel* aChannel);
+            MessageLoop* aIOLoop, UniquePtr<IPC::Channel> aChannel);
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
@@ -70,6 +70,13 @@ class SocketProcessChild final
   PFileDescriptorSetChild* SendPFileDescriptorSetConstructor(
       const FileDescriptor& aFD) override;
   already_AddRefed<PHttpConnectionMgrChild> AllocPHttpConnectionMgrChild();
+
+  mozilla::ipc::IPCResult RecvOnHttpActivityDistributorActivated(
+      const bool& aIsActivated);
+
+  already_AddRefed<PInputChannelThrottleQueueChild>
+  AllocPInputChannelThrottleQueueChild(const uint32_t& aMeanBytesPerSecond,
+                                       const uint32_t& aMaxBytesPerSecond);
 
  private:
   // Mapping of content process id and the SocketProcessBridgeParent.

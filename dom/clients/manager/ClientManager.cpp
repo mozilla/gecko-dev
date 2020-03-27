@@ -181,7 +181,7 @@ RefPtr<ClientOpPromise> ClientManager::StartOp(
   RefPtr<ClientManager> kungFuGrip = this;
 
   MaybeExecute(
-      [aArgs, promise, kungFuGrip](ClientManagerChild* aActor) {
+      [&aArgs, promise, kungFuGrip](ClientManagerChild* aActor) {
         ClientManagerOpChild* actor =
             new ClientManagerOpChild(kungFuGrip, aArgs, promise);
         if (!aActor->SendPClientManagerOpConstructor(actor, aArgs)) {
@@ -189,7 +189,11 @@ RefPtr<ClientOpPromise> ClientManager::StartOp(
           return;
         }
       },
-      [promise] { promise->Reject(NS_ERROR_DOM_INVALID_STATE_ERR, __func__); });
+      [promise] {
+        CopyableErrorResult rv;
+        rv.ThrowInvalidStateError("Client has been destroyed");
+        promise->Reject(rv, __func__);
+      });
 
   return promise.forget();
 }

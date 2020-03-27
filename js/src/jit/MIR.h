@@ -161,6 +161,16 @@ static inline MIRType MIRTypeFromValue(const js::Value& vp) {
    */                                                                          \
   _(IncompleteObject)                                                          \
                                                                                \
+  /* For WebAssembly, there are functions with multiple results.  Instead of   \
+   * having the results defined by one call instruction, they are instead      \
+   * captured in subsequent result capture instructions, because modelling     \
+   * multi-value results in Ion is too complicated.  However since they        \
+   * capture ambient live registers, it would be an error to move an unrelated \
+   * instruction between the call and the result capture.  This flag is used   \
+   * to prevent code motion from moving instructions in invalid ways.          \
+   */                                                                          \
+  _(CallResultCapture)                                                         \
+                                                                               \
   /* The current instruction got discarded from the MIR Graph. This is useful  \
    * when we want to iterate over resume points and instructions, while        \
    * handling instructions which are discarded without reporting to the        \
@@ -1322,7 +1332,7 @@ class MStart : public MNullaryInstruction {
 };
 
 // Instruction marking on entrypoint for on-stack replacement.
-// OSR may occur at loop headers (at JSOP_TRACE).
+// OSR may occur at loop headers (at JSOp::LoopHead).
 // There is at most one MOsrEntry per MIRGraph.
 class MOsrEntry : public MNullaryInstruction {
  protected:
@@ -2713,7 +2723,7 @@ class MCall : public MVariadicInstruction, public CallPolicy::Data {
   // Original value of argc from the bytecode.
   uint32_t numActualArgs_;
 
-  // True if the call is for JSOP_NEW.
+  // True if the call is for JSOp::New.
   bool construct_ : 1;
 
   // True if the caller does not use the return value.
@@ -2722,6 +2732,7 @@ class MCall : public MVariadicInstruction, public CallPolicy::Data {
   bool needsArgCheck_ : 1;
   bool needsClassCheck_ : 1;
   bool maybeCrossRealm_ : 1;
+  bool needsThisCheck_ : 1;
 
   MCall(WrappedFunction* target, uint32_t numActualArgs, bool construct,
         bool ignoresReturnValue)
@@ -2732,7 +2743,8 @@ class MCall : public MVariadicInstruction, public CallPolicy::Data {
         ignoresReturnValue_(ignoresReturnValue),
         needsArgCheck_(true),
         needsClassCheck_(true),
-        maybeCrossRealm_(true) {
+        maybeCrossRealm_(true),
+        needsThisCheck_(false) {
     setResultType(MIRType::Value);
   }
 
@@ -2755,6 +2767,12 @@ class MCall : public MVariadicInstruction, public CallPolicy::Data {
 
   bool maybeCrossRealm() const { return maybeCrossRealm_; }
   void setNotCrossRealm() { maybeCrossRealm_ = false; }
+
+  bool needsThisCheck() const { return needsThisCheck_; }
+  void setNeedsThisCheck() {
+    MOZ_ASSERT(construct_);
+    needsThisCheck_ = true;
+  }
 
   MDefinition* getFunction() const { return getOperand(FunctionOperandIndex); }
   void replaceFunction(MInstruction* newfunc) {
@@ -3225,7 +3243,7 @@ class MCompare : public MBinaryInstruction, public ComparePolicy::Data {
   bool operandsAreNeverNaN() const { return operandsAreNeverNaN_; }
   AliasSet getAliasSet() const override {
     // Strict equality is never effectful.
-    if (jsop_ == JSOP_STRICTEQ || jsop_ == JSOP_STRICTNE) {
+    if (jsop_ == JSOp::StrictEq || jsop_ == JSOp::StrictNe) {
       return AliasSet::None();
     }
     if (compareType_ == Compare_Unknown) {
@@ -3508,7 +3526,7 @@ class MAssertRange : public MUnaryInstruction, public NoTypePolicy::Data {
 };
 
 // Caller-side allocation of |this| for |new|:
-// Given a templateobject, construct |this| for JSOP_NEW
+// Given a templateobject, construct |this| for JSOp::New
 class MCreateThisWithTemplate : public MUnaryInstruction,
                                 public NoTypePolicy::Data {
   gc::InitialHeap initialHeap_;
@@ -3543,7 +3561,7 @@ class MCreateThisWithTemplate : public MUnaryInstruction,
 };
 
 // Caller-side allocation of |this| for |new|:
-// Given a prototype operand, construct |this| for JSOP_NEW.
+// Given a prototype operand, construct |this| for JSOp::New.
 class MCreateThisWithProto : public MTernaryInstruction,
                              public MixPolicy<ObjectPolicy<0>, ObjectPolicy<1>,
                                               ObjectPolicy<2>>::Data {
@@ -6522,14 +6540,12 @@ class MDefFun : public MBinaryInstruction, public ObjectPolicy<0>::Data {
 
 class MRegExp : public MNullaryInstruction {
   CompilerGCPointer<RegExpObject*> source_;
-  bool mustClone_;
   bool hasShared_;
 
   MRegExp(TempAllocator& alloc, CompilerConstraintList* constraints,
           RegExpObject* source, bool hasShared)
       : MNullaryInstruction(classOpcode),
         source_(source),
-        mustClone_(true),
         hasShared_(hasShared) {
     setResultType(MIRType::Object);
     setResultTypeSet(MakeSingletonTypeSet(alloc, constraints, source));
@@ -6539,8 +6555,6 @@ class MRegExp : public MNullaryInstruction {
   INSTRUCTION_HEADER(RegExp)
   TRIVIAL_NEW_WRAPPERS_WITH_ALLOC
 
-  void setDoNotClone() { mustClone_ = false; }
-  bool mustClone() const { return mustClone_; }
   bool hasShared() const { return hasShared_; }
   RegExpObject* source() const { return source_; }
   AliasSet getAliasSet() const override { return AliasSet::None(); }
@@ -6773,8 +6787,6 @@ class MModuleMetadata : public MNullaryInstruction {
   TRIVIAL_NEW_WRAPPERS
 
   JSObject* module() const { return module_; }
-
-  AliasSet getAliasSet() const override { return AliasSet::None(); }
 
   bool appendRoots(MRootList& roots) const override {
     return roots.append(module_);
@@ -10205,7 +10217,7 @@ class MGetFrameArgument : public MUnaryInstruction,
     return congruentIfOperandsEqual(ins);
   }
   AliasSet getAliasSet() const override {
-    // If the script doesn't have any JSOP_SETARG ops, then this instruction is
+    // If the script doesn't have any JSOp::SetArg ops, then this instruction is
     // never aliased.
     if (scriptHasSetArg_) {
       return AliasSet::Load(AliasSet::FrameArgument);
@@ -11956,6 +11968,48 @@ class MWasmStackArg : public MUnaryInstruction, public NoTypePolicy::Data {
   void incrementOffset(uint32_t inc) { spOffset_ += inc; }
 };
 
+template <typename Location>
+class MWasmResultBase : public MNullaryInstruction {
+  Location loc_;
+
+ protected:
+  MWasmResultBase(Opcode op, MIRType type, Location loc)
+      : MNullaryInstruction(op), loc_(loc) {
+    setResultType(type);
+    setCallResultCapture();
+  }
+
+ public:
+  Location loc() { return loc_; }
+};
+
+class MWasmRegisterResult : public MWasmResultBase<Register> {
+  MWasmRegisterResult(MIRType type, Register reg)
+      : MWasmResultBase(classOpcode, type, reg) {}
+
+ public:
+  INSTRUCTION_HEADER(WasmRegisterResult)
+  TRIVIAL_NEW_WRAPPERS
+};
+
+class MWasmFloatRegisterResult : public MWasmResultBase<FloatRegister> {
+  MWasmFloatRegisterResult(MIRType type, FloatRegister reg)
+      : MWasmResultBase(classOpcode, type, reg) {}
+
+ public:
+  INSTRUCTION_HEADER(WasmFloatRegisterResult)
+  TRIVIAL_NEW_WRAPPERS
+};
+
+class MWasmRegister64Result : public MWasmResultBase<Register64> {
+  explicit MWasmRegister64Result(Register64 reg)
+      : MWasmResultBase(classOpcode, MIRType::Int64, reg) {}
+
+ public:
+  INSTRUCTION_HEADER(WasmRegister64Result)
+  TRIVIAL_NEW_WRAPPERS
+};
+
 class MWasmCall final : public MVariadicInstruction, public NoTypePolicy::Data {
   wasm::CallSiteDesc desc_;
   wasm::CalleeDesc callee_;
@@ -11984,13 +12038,13 @@ class MWasmCall final : public MVariadicInstruction, public NoTypePolicy::Data {
 
   static MWasmCall* New(TempAllocator& alloc, const wasm::CallSiteDesc& desc,
                         const wasm::CalleeDesc& callee, const Args& args,
-                        MIRType resultType, uint32_t stackArgAreaSizeUnaligned,
+                        uint32_t stackArgAreaSizeUnaligned,
                         MDefinition* tableIndex = nullptr);
 
   static MWasmCall* NewBuiltinInstanceMethodCall(
       TempAllocator& alloc, const wasm::CallSiteDesc& desc,
       const wasm::SymbolicAddress builtin, wasm::FailureMode failureMode,
-      const ABIArg& instanceArg, const Args& args, MIRType resultType,
+      const ABIArg& instanceArg, const Args& args,
       uint32_t stackArgAreaSizeUnaligned);
 
   size_t numArgs() const { return argRegs_.length(); }
@@ -12081,6 +12135,9 @@ class MRotate : public MBinaryInstruction, public NoTypePolicy::Data {
         isLeftRotate_(isLeftRotate) {
     setMovable();
     setResultType(type);
+    // Prevent reordering.  Although there's no problem eliding call result
+    // definitions, there's also no need, as they cause no codegen.
+    setGuard();
   }
 
  public:

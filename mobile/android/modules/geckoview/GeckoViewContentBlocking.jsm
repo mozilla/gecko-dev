@@ -12,18 +12,24 @@ const { GeckoViewModule } = ChromeUtils.import(
 
 class GeckoViewContentBlocking extends GeckoViewModule {
   onEnable() {
-    this.registerListener(["ContentBlocking:RequestLog"]);
+    const flags = Ci.nsIWebProgress.NOTIFY_CONTENT_BLOCKING;
+    this.progressFilter = Cc[
+      "@mozilla.org/appshell/component/browser-status-filter;1"
+    ].createInstance(Ci.nsIWebProgress);
+    this.progressFilter.addProgressListener(this, flags);
+    this.browser.addProgressListener(this.progressFilter, flags);
 
-    this.messageManager.addMessageListener("ContentBlocking:ExportLog", this);
+    this.registerListener(["ContentBlocking:RequestLog"]);
   }
 
   onDisable() {
-    this.unregisterListener(["ContentBlocking:RequestLog"]);
+    if (this.progressFilter) {
+      this.progressFilter.removeProgressListener(this);
+      this.browser.removeProgressListener(this.progressFilter);
+      delete this.progressFilter;
+    }
 
-    this.messageManager.removeMessageListener(
-      "ContentBlocking:ExportLog",
-      this
-    );
+    this.unregisterListener(["ContentBlocking:RequestLog"]);
   }
 
   // Bundle event handler.
@@ -32,46 +38,27 @@ class GeckoViewContentBlocking extends GeckoViewModule {
 
     switch (aEvent) {
       case "ContentBlocking:RequestLog": {
-        if (!this._requestLogCallbacks) {
-          this._requestLogCallbacks = new Map();
-          this._requestLogId = 0;
-        }
-        this._requestLogCallbacks.set(this._requestLogId, aCallback);
-        this.messageManager.sendAsyncMessage("ContentBlocking:RequestLog", {
-          id: this._requestLogId,
-        });
-        this._requestLogId++;
-        break;
-      }
-    }
-  }
+        let bc = this.browser.browsingContext;
 
-  // Message manager event handler.
-  receiveMessage(aMsg) {
-    debug`receiveMessage: ${aMsg.name}`;
-
-    switch (aMsg.name) {
-      case "ContentBlocking:ExportLog": {
-        if (
-          !this._requestLogCallbacks ||
-          !this._requestLogCallbacks.has(aMsg.data.id)
-        ) {
+        if (!bc) {
           warn`Failed to export content blocking log.`;
-          return;
+          break;
         }
 
-        const callback = this._requestLogCallbacks.get(aMsg.data.id);
+        // Get the top-level browsingContext. The ContentBlockingLog is located
+        // in its current window global.
+        bc = bc.top;
 
-        if (!aMsg.data.log) {
+        const topWindowGlobal = bc.currentWindowGlobal;
+
+        if (!topWindowGlobal) {
           warn`Failed to export content blocking log.`;
-          callback.onError(aMsg.data.error);
-          // Clean up the callback even on a failed response.
-          this._requestLogCallbacks.delete(aMsg.data.id);
-          return;
+          break;
         }
 
-        const res = Object.keys(aMsg.data.log).map(key => {
-          const blockData = aMsg.data.log[key].map(data => {
+        const log = JSON.parse(topWindowGlobal.contentBlockingLog);
+        const res = Object.keys(log).map(key => {
+          const blockData = log[key].map(data => {
             return {
               category: data[0],
               blocked: data[1],
@@ -80,15 +67,50 @@ class GeckoViewContentBlocking extends GeckoViewModule {
           });
           return {
             origin: key,
-            blockData: blockData,
+            blockData,
           };
         });
-        callback.onSuccess({ log: res });
 
-        this._requestLogCallbacks.delete(aMsg.data.id);
+        aCallback.onSuccess({ log: res });
         break;
       }
     }
+  }
+
+  onContentBlockingEvent(aWebProgress, aRequest, aEvent) {
+    debug`onContentBlockingEvent ${aEvent.toString(16)}`;
+
+    if (!(aRequest instanceof Ci.nsIClassifiedChannel)) {
+      return;
+    }
+
+    const channel = aRequest.QueryInterface(Ci.nsIChannel);
+    const uri = channel.URI && channel.URI.spec;
+
+    if (!uri) {
+      return;
+    }
+
+    const classChannel = aRequest.QueryInterface(Ci.nsIClassifiedChannel);
+    const blockedList = classChannel.matchedList || null;
+    let loadedLists = [];
+
+    if (aRequest instanceof Ci.nsIHttpChannel) {
+      loadedLists = classChannel.matchedTrackingLists || [];
+    }
+
+    debug`onContentBlockingEvent matchedList: ${blockedList}`;
+    debug`onContentBlockingEvent matchedTrackingLists: ${loadedLists}`;
+
+    const message = {
+      type: "GeckoView:ContentBlockingEvent",
+      uri,
+      category: aEvent,
+      blockedList,
+      loadedLists,
+    };
+
+    this.eventDispatcher.sendRequest(message);
   }
 }
 

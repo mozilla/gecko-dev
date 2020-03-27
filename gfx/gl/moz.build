@@ -118,6 +118,7 @@ elif gl_provider == 'GLX':
 if CONFIG['MOZ_WAYLAND']:
     SOURCES += [
         'GLContextProviderWayland.cpp',
+        'SharedSurfaceDMABUF.cpp'
     ]
 
 UNIFIED_SOURCES += [
@@ -132,7 +133,6 @@ UNIFIED_SOURCES += [
     'GLLibraryEGL.cpp',
     'GLLibraryLoader.cpp',
     'GLReadTexImageHelper.cpp',
-    'GLScreenBuffer.cpp',
     'GLTextureImage.cpp',
     'GLUploadHelpers.cpp',
     'MozFramebuffer.cpp',
@@ -141,6 +141,9 @@ UNIFIED_SOURCES += [
     'SharedSurfaceEGL.cpp',
     'SharedSurfaceGL.cpp',
     'TextureImageEGL.cpp',
+]
+SOURCES += [
+    'GLScreenBuffer.cpp',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')

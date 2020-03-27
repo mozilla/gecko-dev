@@ -13,7 +13,6 @@
 
 #include "jsapi.h"  // JS_ReportErrorASCII
 
-#include "builtin/Promise.h"  // js::PromiseObject
 #include "builtin/streams/MiscellaneousOperations.h"  // js::CreateAlgorithmFromUnderlyingMethod, js::InvokeOrNoop
 #include "builtin/streams/QueueWithSizes.h"  // js::{EnqueueValueWithSize,QueueIsEmpty,ResetQueue}
 #include "builtin/streams/WritableStream.h"  // js::WritableStream
@@ -23,11 +22,12 @@
 #include "js/Promise.h"     // JS::AddPromiseReactions
 #include "js/RootingAPI.h"  // JS::Handle, JS::Rooted
 #include "js/Value.h"  // JS::{,Int32,Magic,Object}Value, JS::UndefinedHandleValue, JS_WRITABLESTREAM_CLOSE_RECORD
-#include "vm/Compartment.h"  // JS::Compartment
-#include "vm/JSContext.h"    // JSContext
-#include "vm/JSObject.h"     // JSObject
-#include "vm/List.h"         // js::ListObject
-#include "vm/Runtime.h"      // JSAtomState
+#include "vm/Compartment.h"    // JS::Compartment
+#include "vm/JSContext.h"      // JSContext
+#include "vm/JSObject.h"       // JSObject
+#include "vm/List.h"           // js::ListObject
+#include "vm/PromiseObject.h"  // js::PromiseObject
+#include "vm/Runtime.h"        // JSAtomState
 
 #include "builtin/streams/HandlerFunction-inl.h"  // js::TargetFromHandler
 #include "builtin/streams/MiscellaneousOperations-inl.h"  // js::PromiseCall

@@ -252,9 +252,9 @@ nsresult PuppetWidget::ConfigureChildren(
   return NS_OK;
 }
 
-void PuppetWidget::SetFocus(Raise aRaise) {
+void PuppetWidget::SetFocus(Raise aRaise, CallerType aCallerType) {
   if (aRaise == Raise::Yes && mBrowserChild) {
-    mBrowserChild->SendRequestFocus(true);
+    mBrowserChild->SendRequestFocus(true, aCallerType);
   }
 }
 
@@ -1445,9 +1445,6 @@ nsresult PuppetWidget::SetPrefersReducedMotionOverrideForTest(bool aValue) {
     return NS_ERROR_FAILURE;
   }
 
-  nsXPLookAndFeel::GetInstance()->SetPrefersReducedMotionOverrideForTest(
-      aValue);
-
   mBrowserChild->SendSetPrefersReducedMotionOverrideForTest(aValue);
   return NS_OK;
 }
@@ -1457,7 +1454,6 @@ nsresult PuppetWidget::ResetPrefersReducedMotionOverrideForTest() {
     return NS_ERROR_FAILURE;
   }
 
-  nsXPLookAndFeel::GetInstance()->ResetPrefersReducedMotionOverrideForTest();
   mBrowserChild->SendResetPrefersReducedMotionOverrideForTest();
   return NS_OK;
 }

@@ -12,8 +12,10 @@ include protocol PHttpConnectionMgr;
 include protocol PFileDescriptorSet;
 include protocol PChildToParentStream;
 include protocol PParentToChildStream;
+include protocol PInputChannelThrottleQueue;
 
 include MemoryReportTypes;
+include NeckoChannelParams;
 include PBrowserOrId;
 include PrefsTypes;
 
@@ -26,6 +28,7 @@ using mozilla::Telemetry::ChildEventData from "mozilla/TelemetryComms.h";
 using mozilla::Telemetry::DiscardedData from "mozilla/TelemetryComms.h";
 using base::ProcessId from "base/process.h";
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
+using PRTime from "prtime.h";
 
 namespace mozilla {
 namespace net {
@@ -39,6 +42,7 @@ protocol PSocketProcess
   manages PHttpConnectionMgr;
   manages PChildToParentStream;
   manages PParentToChildStream;
+  manages PInputChannelThrottleQueue;
 
 parent:
   async InitCrashReporter(Shmem shmem, NativeThreadId threadId);
@@ -54,9 +58,15 @@ parent:
 
   /* tabId is only required for web-proxy support, which isn't always needed */
   async PWebrtcTCPSocket(TabId? tabId);
-  async PDNSRequest(nsCString hostName, OriginAttributes originAttributes,
-                    uint32_t flags);
+  async PDNSRequest(nsCString hostName, nsCString trrServer, uint16_t type,
+                    OriginAttributes originAttributes, uint32_t flags);
   async PChildToParentStream();
+  async ObserveHttpActivity(HttpActivityArgs aActivityArgs,
+                            uint32_t aActivityType,
+                            uint32_t aActivitySubtype,
+                            PRTime   aTimestamp,
+                            uint64_t aExtraSizeData,
+                            nsCString aExtraStringData);
 
 child:
   async PreferenceUpdate(Pref pref);
@@ -69,9 +79,14 @@ child:
   async InitProfiler(Endpoint<PProfilerChild> aEndpoint);
   // test-only
   async SocketProcessTelemetryPing();
+
   async PHttpTransaction();
   async PParentToChildStream();
   async PHttpConnectionMgr();
+
+  async OnHttpActivityDistributorActivated(bool aIsActivated);
+  async PInputChannelThrottleQueue(uint32_t meanBytesPerSecond,
+                                   uint32_t maxBytesPerSecond);
 
 both:
   async PFileDescriptorSet(FileDescriptor fd);

@@ -268,7 +268,7 @@ class PageloaderTest(Test):
             'format_pagename', 'filters', 'preferences', 'extensions', 'setup', 'cleanup',
             'lower_is_better', 'alert_threshold', 'unit', 'webextensions', 'profile',
             'suite_should_alert', 'subtest_alerts', 'perfherder_framework', 'pdfpaint',
-            'webextensions_folder']
+            'webextensions_folder', 'a11y']
 
 
 class QuantumPageloadTest(PageloaderTest):
@@ -840,6 +840,7 @@ class a11yr(PageloaderTest):
     preferences = {'dom.send_after_paint_to_content': False}
     unit = 'ms'
     alert_threshold = 5.0
+    a11y = True
 
 
 class WebkitBenchmark(PageloaderTest):
@@ -1009,3 +1010,28 @@ class about_preferences_basic(PageloaderTest):
     unit = 'ms'
     lower_is_better = True
     fnbpaint = True
+
+
+@register_test()
+class about_newtab_with_snippets(PageloaderTest):
+    """
+    Load about ActivityStream (about:home and about:newtab) with snippets enabled
+    """
+    tpmanifest = '${talos}/tests/about-newtab/about_newtab.manifest'
+    tpcycles = 25
+    tppagecycles = 1
+    responsiveness = True
+    gecko_profile_interval = 1
+    gecko_profile_entries = 2000000
+    filters = filter.ignore_first.prepare(5) + filter.median.prepare()
+    unit = 'ms'
+    lower_is_better = True
+    fnbpaint = True
+    preferences = {
+            # ensure that snippets are turned on and load the json messages
+            'browser.newtabpage.activity-stream.asrouter.providers.snippets':\
+            '{"id":"snippets","enabled":true,"type":"json","location":\
+            "http://fakedomain/tests/about-newtab/snippets.json",\
+            "updateCycleInMs":14400000}',
+            'browser.newtabpage.activity-stream.feeds.snippets': True
+            }

@@ -175,6 +175,15 @@ class HTMLEditor final : public TextEditor,
   virtual nsresult GetPreferredIMEState(widget::IMEState* aState) override;
 
   /**
+   * GetBackgroundColorState() returns what the background color of the
+   * selection.
+   *
+   * @param aMixed      true if there is more than one font color
+   * @param aOutColor   Color string. "" is returned for none.
+   */
+  nsresult GetBackgroundColorState(bool* aMixed, nsAString& aOutColor);
+
+  /**
    * PasteNoFormatting() pastes content in clipboard without any style
    * information.
    *
@@ -3285,11 +3294,8 @@ class HTMLEditor final : public TextEditor,
    *
    * @param aClipboardType      nsIClipboard::kGlobalClipboard or
    *                            nsIClipboard::kSelectionClipboard.
-   * @param aDispatchPasteEvent true if this should dispatch ePaste event
-   *                            before pasting.  Otherwise, false.
    */
-  MOZ_CAN_RUN_SCRIPT
-  nsresult PasteInternal(int32_t aClipboardType, bool aDispatchPasteEvent);
+  MOZ_CAN_RUN_SCRIPT nsresult PasteInternal(int32_t aClipboardType);
 
   /**
    * InsertWithQuotationsAsSubAction() inserts aQuotedText with appending ">"
@@ -3390,16 +3396,22 @@ class HTMLEditor final : public TextEditor,
   /**
    * RemoveInlinePropertyInternal() removes specified style from `mTypeInState`
    * if `Selection` is collapsed.  Otherwise, removing the style.
-   * XXX Looks like that this has a lot of bugs in HTML mode.
    *
    * @param aProperty           nullptr if you want to remove all inline styles.
    *                            Otherwise, one of the presentation tag names
    *                            which we support in style editor.
    * @param aAttribute          For some aProperty values, need to be set to
    *                            its attribute name.  Otherwise, nullptr.
+   * @param aRemoveRelatedElements      If Yes, this method removes different
+   *                                    name's elements in the block if
+   *                                    necessary.  For example, if aProperty
+   *                                    is nsGkAtoms::b, `<strong>` elements
+   *                                    are also removed.
    */
+  enum class RemoveRelatedElements { Yes, No };
   MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE nsresult
-  RemoveInlinePropertyInternal(nsAtom* aProperty, nsAtom* aAttribute);
+  RemoveInlinePropertyInternal(nsAtom* aProperty, nsAtom* aAttribute,
+                               RemoveRelatedElements aRemoveRelatedElements);
 
   /**
    * ReplaceHeadContentsWithSourceWithTransaction() replaces all children of
@@ -3548,11 +3560,13 @@ class HTMLEditor final : public TextEditor,
 
     RefPtr<dom::BlobImpl> mBlob;
     RefPtr<HTMLEditor> mHTMLEditor;
+    RefPtr<dom::DataTransfer> mDataTransfer;
     nsCOMPtr<Document> mSourceDoc;
     EditorDOMPoint mPointToInsert;
     EditAction mEditAction;
     bool mIsSafe;
     bool mDoDeleteSelection;
+    bool mNeedsToDispatchBeforeInputEvent;
   };
 
   virtual void CreateEventListeners() override;
@@ -4336,7 +4350,7 @@ class HTMLEditor final : public TextEditor,
    */
   already_AddRefed<nsRange> GetChangedRangeForTopLevelEditSubAction() const {
     if (!mChangedRangeForTopLevelEditSubAction) {
-      mChangedRangeForTopLevelEditSubAction = new nsRange(GetDocument());
+      mChangedRangeForTopLevelEditSubAction = nsRange::Create(GetDocument());
     }
     return do_AddRef(mChangedRangeForTopLevelEditSubAction);
   }
@@ -4364,9 +4378,6 @@ class HTMLEditor final : public TextEditor,
   // then, it'll be referred and incremented by
   // GetNextSelectedTableCellElement().
   mutable uint32_t mSelectedCellIndex;
-
-  nsString mLastStyleSheetURL;
-  nsString mLastOverrideStyleSheetURL;
 
   // Maintain a list of associated style sheets and their urls.
   nsTArray<nsString> mStyleSheetURLs;

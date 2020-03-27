@@ -942,6 +942,11 @@ var Impl = {
       // ... and wait for any outstanding async ping activity.
       await this._connectionsBarrier.wait();
 
+      if (AppConstants.platform !== "android") {
+        // No PingSender on Android.
+        TelemetrySend.flushPingSenderBatch();
+      }
+
       // Perform final shutdown operations.
       await TelemetryStorage.shutdown();
     } finally {
@@ -1082,9 +1087,14 @@ var Impl = {
 
         // 6. Send the deletion-request ping.
         this._log.trace("_onUploadPrefChange - Sending deletion-request ping.");
+        const scalars = Telemetry.getSnapshotForScalars(
+          "deletion-request",
+          /* clear */ true
+        );
+
         this.submitExternalPing(
           PING_TYPE_DELETION_REQUEST,
-          {},
+          { scalars },
           { overrideClientId: oldClientId }
         );
         this._deletionRequestPingSubmittedPromise = null;

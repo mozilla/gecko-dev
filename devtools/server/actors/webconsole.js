@@ -632,10 +632,33 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
   },
 
   /**
+   * Preprocess a debugger object (e.g. return the `boundTargetFunction`
+   * debugger object if the given debugger object is a bound function).
+   *
+   * This method is called by both the `inspect` binding implemented
+   * for the webconsole and the one implemented for the devtools API
+   * `browser.devtools.inspectedWindow.eval`.
+   */
+  preprocessDebuggerObject(dbgObj) {
+    // Returns the bound target function on a bound function.
+    if (dbgObj && dbgObj.isBoundFunction && dbgObj.boundTargetFunction) {
+      return dbgObj.boundTargetFunction;
+    }
+
+    return dbgObj;
+  },
+
+  /**
    * This helper is used by the WebExtensionInspectedWindowActor to
    * inspect an object in the developer toolbox.
+   *
+   * NOTE: shared parts related to preprocess the debugger object (between
+   * this function and the `inspect` webconsole command defined in
+   * "devtools/server/actor/webconsole/utils.js") should be added to
+   * the webconsole actors' `preprocessDebuggerObject` method.
    */
   inspectObject(dbgObj, inspectFromAnnotation) {
+    dbgObj = this.preprocessDebuggerObject(dbgObj);
     this.emit("inspectObject", {
       objectActor: this.createValueGrip(dbgObj),
       inspectFromAnnotation,
@@ -1159,16 +1182,18 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       selectedNodeActor: request.selectedNodeActor,
       selectedObjectActor: request.selectedObjectActor,
       eager: request.eager,
+      bindings: request.bindings,
+      lineNumber: request.lineNumber,
     };
     const { mapped } = request;
 
     // Set a flag on the thread actor which indicates an evaluation is being
     // done for the client. This can affect how debugger handlers behave.
-    this.parentActor.threadActor.insideClientEvaluation = true;
+    this.parentActor.threadActor.insideClientEvaluation = evalOptions;
 
     const evalInfo = evalWithDebugger(input, evalOptions, this);
 
-    this.parentActor.threadActor.insideClientEvaluation = false;
+    this.parentActor.threadActor.insideClientEvaluation = null;
 
     const evalResult = evalInfo.result;
     const helperResult = evalInfo.helperResult;
@@ -1310,16 +1335,20 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       }
     }
 
-    if (!awaitResult) {
-      this._lastConsoleInputEvaluation = result;
-    } else {
-      // If we evaluated a top-level await expression, we want to assign its result to the
-      // _lastConsoleInputEvaluation only when the promise resolves, and only if it
-      // resolves. If the promise rejects, we don't re-assign _lastConsoleInputEvaluation,
-      // it will keep its previous value.
-      awaitResult.then(res => {
-        this._lastConsoleInputEvaluation = this.makeDebuggeeValue(res);
-      });
+    // Don't update _lastConsoleInputEvaluation in eager evaluation, as it would interfere
+    // with the $_ command.
+    if (!request.eager) {
+      if (!awaitResult) {
+        this._lastConsoleInputEvaluation = result;
+      } else {
+        // If we evaluated a top-level await expression, we want to assign its result to the
+        // _lastConsoleInputEvaluation only when the promise resolves, and only if it
+        // resolves. If the promise rejects, we don't re-assign _lastConsoleInputEvaluation,
+        // it will keep its previous value.
+        awaitResult.then(res => {
+          this._lastConsoleInputEvaluation = this.makeDebuggeeValue(res);
+        });
+      }
     }
 
     return {
@@ -1574,6 +1603,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       chromeWindow: this.chromeWindow.bind(this),
       makeDebuggeeValue: debuggerGlobal.makeDebuggeeValue.bind(debuggerGlobal),
       createValueGrip: this.createValueGrip.bind(this),
+      preprocessDebuggerObject: this.preprocessDebuggerObject.bind(this),
       sandbox: Object.create(null),
       helperResult: null,
       consoleActor: this,

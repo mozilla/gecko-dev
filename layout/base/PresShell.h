@@ -337,7 +337,7 @@ class PresShell final : public nsStubDocumentObserver,
    * is guaranteed to survive through arbitrary script execution.
    * Calling Initialize can execute arbitrary script.
    */
-  nsresult Initialize();
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult Initialize();
 
   /**
    * Reflow the frame model into a new width and height.  The
@@ -349,6 +349,12 @@ class PresShell final : public nsStubDocumentObserver,
   MOZ_CAN_RUN_SCRIPT nsresult ResizeReflowIgnoreOverride(nscoord aWidth,
                                                          nscoord aHeight,
                                                          ResizeReflowOptions);
+
+  /**
+   * Add this pres shell to the refresh driver to be observed for resize
+   * event if applicable.
+   */
+  void AddResizeEventFlushObserverIfNeeded();
 
  private:
   /**
@@ -477,7 +483,7 @@ class PresShell final : public nsStubDocumentObserver,
 
   void CancelAllPendingReflows();
 
-  void NotifyCounterStylesAreDirty();
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void NotifyCounterStylesAreDirty();
 
   bool FrameIsAncestorOfDirtyRoot(nsIFrame* aFrame) const;
 
@@ -1754,7 +1760,7 @@ class PresShell final : public nsStubDocumentObserver,
   friend class ::nsAutoCauseReflowNotifier;
 
   void WillCauseReflow();
-  void DidCauseReflow();
+  MOZ_CAN_RUN_SCRIPT void DidCauseReflow();
 
   void CancelPostedReflowCallbacks();
   void FlushPendingScrollAnchorAdjustments();
@@ -2051,7 +2057,7 @@ class PresShell final : public nsStubDocumentObserver,
    private:
     static bool InZombieDocument(nsIContent* aContent);
     static nsIFrame* GetNearestFrameContainingPresShell(PresShell* aPresShell);
-    static already_AddRefed<nsIURI> GetDocumentURIToCompareWithBlacklist(
+    static nsIPrincipal* GetDocumentPrincipalToCompareWithBlacklist(
         PresShell& aPresShell);
 
     /**
@@ -2292,13 +2298,16 @@ class PresShell final : public nsStubDocumentObserver,
      * MaybeHandleEventWithAccessibleCaret() may handle aGUIEvent with
      * AccessibleCaretEventHub if it's necessary.
      *
+     * @param aFrameForPresShell The frame for PresShell. See explanation of
+     *                           HandleEvent() for the details.
      * @param aGUIEvent         Event may be handled by AccessibleCaretEventHub.
      * @param aEventStatus      [in/out] EventStatus of aGUIEvent.
      * @return                  true if AccessibleCaretEventHub handled the
      *                          event and caller shouldn't keep handling it.
      */
     MOZ_CAN_RUN_SCRIPT
-    bool MaybeHandleEventWithAccessibleCaret(WidgetGUIEvent* aGUIEvent,
+    bool MaybeHandleEventWithAccessibleCaret(nsIFrame* aFrameForPresShell,
+                                             WidgetGUIEvent* aGUIEvent,
                                              nsEventStatus* aEventStatus);
 
     /**

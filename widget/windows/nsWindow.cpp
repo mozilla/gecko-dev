@@ -58,6 +58,7 @@
 #include "gfxEnv.h"
 #include "gfxPlatform.h"
 
+#include "mozilla/AppShutdown.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/Logging.h"
 #include "mozilla/MathAlgorithms.h"
@@ -333,9 +334,6 @@ static const char* sScreenManagerContractID =
 
 extern mozilla::LazyLogModule gWindowsLog;
 
-// Global used in Show window enumerations.
-static bool gWindowsVisible = false;
-
 // True if we have sent a notification that we are suspending/sleeping.
 static bool gIsSleepMode = false;
 
@@ -573,6 +571,7 @@ nsWindow::nsWindow(bool aIsChildWindow)
   mIconSmall = nullptr;
   mIconBig = nullptr;
   mWnd = nullptr;
+  mLastKillFocusWindow = nullptr;
   mTransitionWnd = nullptr;
   mPaintDC = nullptr;
   mPrevWndProc = nullptr;
@@ -2185,7 +2184,7 @@ bool nsWindow::IsEnabled() const {
  *
  **************************************************************/
 
-void nsWindow::SetFocus(Raise aRaise) {
+void nsWindow::SetFocus(Raise aRaise, mozilla::dom::CallerType aCallerType) {
   if (mWnd) {
 #ifdef WINSTATE_DEBUG_OUTPUT
     if (mWnd == WinUtils::GetTopLevelHWND(mWnd)) {
@@ -3360,8 +3359,9 @@ nsresult nsWindow::MakeFullScreen(bool aFullScreen, nsIScreen* aTargetScreen) {
     taskbarInfo->PrepareFullScreenHWND(mWnd, FALSE);
   }
 
+  OnSizeModeChange(mSizeMode);
+
   if (mWidgetListener) {
-    mWidgetListener->SizeModeChanged(mSizeMode);
     mWidgetListener->FullscreenChanged(aFullScreen);
   }
 
@@ -3774,7 +3774,7 @@ LayerManager* nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
     WinCompositorWidgetInitData initData(
         reinterpret_cast<uintptr_t>(mWnd),
         reinterpret_cast<uintptr_t>(static_cast<nsIWidget*>(this)),
-        mTransparencyMode);
+        mTransparencyMode, mSizeMode);
     // If we're not using the compositor, the options don't actually matter.
     CompositorOptions options(false, false);
     mBasicLayersSurface =
@@ -3816,7 +3816,6 @@ void nsWindow::SetCompositorWidgetDelegate(CompositorWidgetDelegate* delegate) {
     MOZ_ASSERT(mCompositorWidgetDelegate,
                "nsWindow::SetCompositorWidgetDelegate called with a "
                "non-PlatformCompositorWidgetDelegate");
-    mCompositorWidgetDelegate->SetParentWnd(mWnd);
   } else {
     mCompositorWidgetDelegate = nullptr;
   }
@@ -4507,25 +4506,32 @@ bool nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
   return result;
 }
 
-void nsWindow::DispatchFocusToTopLevelWindow(bool aIsActivate) {
-  if (aIsActivate) sJustGotActivate = false;
-  sJustGotDeactivate = false;
-
-  // retrive the toplevel window or dialog
-  HWND curWnd = mWnd;
+HWND nsWindow::GetTopLevelForFocus(HWND aCurWnd) {
+  // retrieve the toplevel window or dialogue
   HWND toplevelWnd = nullptr;
-  while (curWnd) {
-    toplevelWnd = curWnd;
-
-    nsWindow* win = WinUtils::GetNSWindowPtr(curWnd);
+  while (aCurWnd) {
+    toplevelWnd = aCurWnd;
+    nsWindow* win = WinUtils::GetNSWindowPtr(aCurWnd);
     if (win) {
-      nsWindowType wintype = win->WindowType();
-      if (wintype == eWindowType_toplevel || wintype == eWindowType_dialog)
+      if (win->mWindowType == eWindowType_toplevel ||
+          win->mWindowType == eWindowType_dialog) {
         break;
+      }
     }
 
-    curWnd = ::GetParent(curWnd);  // Parent or owner (if has no parent)
+    aCurWnd = ::GetParent(aCurWnd);  // Parent or owner (if has no parent)
   }
+  return toplevelWnd;
+}
+
+void nsWindow::DispatchFocusToTopLevelWindow(bool aIsActivate) {
+  if (aIsActivate) {
+    sJustGotActivate = false;
+  }
+  sJustGotDeactivate = false;
+  mLastKillFocusWindow = nullptr;
+
+  HWND toplevelWnd = GetTopLevelForFocus(mWnd);
 
   if (toplevelWnd) {
     nsWindow* win = WinUtils::GetNSWindowPtr(toplevelWnd);
@@ -4958,22 +4964,6 @@ bool nsWindow::ExternalHandlerProcessMessage(UINT aMessage, WPARAM& aWParam,
   return false;
 }
 
-/**
- * the _exit() call is not a safe way to terminate your own process on
- * Windows, because _exit runs DLL detach callbacks which run static
- * destructors for xul.dll.
- *
- * This method terminates the current process without those issues.
- */
-static void ExitThisProcessSafely() {
-  HANDLE process = GetCurrentProcess();
-  if (TerminateProcess(GetCurrentProcess(), 0)) {
-    // TerminateProcess is asynchronous, so we wait on our own process handle
-    WaitForSingleObject(process, INFINITE);
-  }
-  MOZ_CRASH("Just in case extremis crash in ExitThisProcessSafely.");
-}
-
 // The main windows message processing method.
 bool nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
                               LRESULT* aRetValue) {
@@ -5061,7 +5051,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
         obsServ->NotifyObservers(nullptr, "profile-before-change-qm", context);
         obsServ->NotifyObservers(nullptr, "profile-before-change-telemetry",
                                  context);
-        ExitThisProcessSafely();
+        mozilla::AppShutdown::DoImmediateExit();
       }
       sCanQuit = TRI_UNKNOWN;
       result = true;
@@ -5826,14 +5816,19 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
         if (WA_INACTIVE == fActive) {
           // when minimizing a window, the deactivation and focus events will
           // be fired in the reverse order. Instead, just deactivate right away.
-          if (HIWORD(wParam))
+          // This can also happen when a modal system dialog is opened, so check
+          // if the last window to receive the WM_KILLFOCUS message was this one
+          // or a child of this one.
+          if (HIWORD(wParam) ||
+              (mLastKillFocusWindow &&
+               (GetTopLevelForFocus(mLastKillFocusWindow) == mWnd))) {
             DispatchFocusToTopLevelWindow(false);
-          else
+          } else {
             sJustGotDeactivate = true;
-
-          if (mIsTopWidgetWindow)
+          }
+          if (mIsTopWidgetWindow) {
             mLastKeyboardLayout = KeyboardLayout::GetInstance()->GetLayout();
-
+          }
         } else {
           StopFlashing();
 
@@ -5899,6 +5894,8 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
     case WM_KILLFOCUS:
       if (sJustGotDeactivate) {
         DispatchFocusToTopLevelWindow(false);
+      } else {
+        mLastKillFocusWindow = mWnd;
       }
       break;
 
@@ -6539,8 +6536,7 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS* wp) {
     }
 #endif
 
-    if (mWidgetListener && mSizeMode != previousSizeMode)
-      mWidgetListener->SizeModeChanged(mSizeMode);
+    if (mSizeMode != previousSizeMode) OnSizeModeChange(mSizeMode);
 
     // If window was restored, window activation was bypassed during the
     // SetSizeMode call originating from OnWindowPosChanging to avoid saving
@@ -6678,7 +6674,7 @@ void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info) {
     else
       sizeMode = nsSizeMode_Normal;
 
-    if (mWidgetListener) mWidgetListener->SizeModeChanged(sizeMode);
+    OnSizeModeChange(sizeMode);
 
     UpdateNonClientMargins(sizeMode, false);
   }
@@ -7184,6 +7180,9 @@ void nsWindow::OnDestroy() {
   mWidgetListener = nullptr;
   mAttachedWidgetListener = nullptr;
 
+  if (mWnd == mLastKillFocusWindow) {
+    mLastKillFocusWindow = nullptr;
+  }
   // Unregister notifications from terminal services
   ::WTSUnRegisterSessionNotification(mWnd);
 
@@ -7251,6 +7250,11 @@ void nsWindow::OnDestroy() {
 
 // Send a resize message to the listener
 bool nsWindow::OnResize(const LayoutDeviceIntSize& aSize) {
+  if (mCompositorWidgetDelegate &&
+      !mCompositorWidgetDelegate->OnWindowResize(aSize)) {
+    return false;
+  }
+
   bool result = false;
   if (mWidgetListener) {
     result = mWidgetListener->WindowResized(this, aSize.width, aSize.height);
@@ -7264,6 +7268,16 @@ bool nsWindow::OnResize(const LayoutDeviceIntSize& aSize) {
   }
 
   return result;
+}
+
+void nsWindow::OnSizeModeChange(nsSizeMode aSizeMode) {
+  if (mCompositorWidgetDelegate) {
+    mCompositorWidgetDelegate->OnWindowModeChange(aSizeMode);
+  }
+
+  if (mWidgetListener) {
+    mWidgetListener->SizeModeChanged(aSizeMode);
+  }
 }
 
 bool nsWindow::OnHotKey(WPARAM wParam, LPARAM lParam) { return true; }
@@ -8183,31 +8197,51 @@ nsWindow* nsWindow::GetTopLevelWindow(bool aStopOnDialogOrPopup) {
   }
 }
 
-static BOOL CALLBACK gEnumWindowsProc(HWND hwnd, LPARAM lParam) {
+// Set a flag if hwnd is a (non-popup) visible window from this process,
+// and bail out of the enumeration. Otherwise leave the flag unmodified
+// and continue the enumeration.
+// lParam must be a bool* pointing at the flag to be set.
+static BOOL CALLBACK EnumVisibleWindowsProc(HWND hwnd, LPARAM lParam) {
   DWORD pid;
   ::GetWindowThreadProcessId(hwnd, &pid);
-  if (pid == GetCurrentProcessId() && ::IsWindowVisible(hwnd)) {
-    gWindowsVisible = true;
-    return FALSE;
+  if (pid == ::GetCurrentProcessId() && ::IsWindowVisible(hwnd)) {
+    // Don't count popups as visible windows, since they don't take focus,
+    // in case we only have a popup visible (see bug 1554490 where the gfx
+    // test window is an offscreen popup).
+    nsWindow* window = WinUtils::GetNSWindowPtr(hwnd);
+    if (!window || !window->IsPopup()) {
+      bool* windowsVisible = reinterpret_cast<bool*>(lParam);
+      *windowsVisible = true;
+      return FALSE;
+    }
   }
   return TRUE;
 }
 
+// Determine if it would be ok to activate a window, taking focus.
+// We want to avoid stealing focus from another app (bug 225305).
 bool nsWindow::CanTakeFocus() {
-  gWindowsVisible = false;
-  EnumWindows(gEnumWindowsProc, 0);
-  if (!gWindowsVisible) {
+  HWND fgWnd = ::GetForegroundWindow();
+  if (!fgWnd) {
+    // There is no foreground window, so don't worry about stealing focus.
     return true;
-  } else {
-    HWND fgWnd = ::GetForegroundWindow();
-    if (!fgWnd) {
-      return true;
-    }
-    DWORD pid;
-    GetWindowThreadProcessId(fgWnd, &pid);
-    if (pid == GetCurrentProcessId()) {
-      return true;
-    }
+  }
+  // We can take focus if the current foreground window is already from
+  // this process.
+  DWORD pid;
+  ::GetWindowThreadProcessId(fgWnd, &pid);
+  if (pid == ::GetCurrentProcessId()) {
+    return true;
+  }
+
+  bool windowsVisible = false;
+  ::EnumWindows(EnumVisibleWindowsProc,
+                reinterpret_cast<LPARAM>(&windowsVisible));
+
+  if (!windowsVisible) {
+    // We're probably creating our first visible window, allow that to
+    // take focus.
+    return true;
   }
   return false;
 }
@@ -8459,7 +8493,7 @@ void nsWindow::GetCompositorWidgetInitData(
   *aInitData = WinCompositorWidgetInitData(
       reinterpret_cast<uintptr_t>(mWnd),
       reinterpret_cast<uintptr_t>(static_cast<nsIWidget*>(this)),
-      mTransparencyMode);
+      mTransparencyMode, mSizeMode);
 }
 
 bool nsWindow::SynchronouslyRepaintOnResize() {

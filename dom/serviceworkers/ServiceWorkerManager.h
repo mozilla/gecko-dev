@@ -10,6 +10,7 @@
 #include "nsIServiceWorkerManager.h"
 #include "nsCOMPtr.h"
 
+#include "ServiceWorkerShutdownState.h"
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoRestore.h"
@@ -138,9 +139,11 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
   void DispatchFetchEvent(nsIInterceptedChannel* aChannel, ErrorResult& aRv);
 
   void Update(nsIPrincipal* aPrincipal, const nsACString& aScope,
+              nsCString aNewestWorkerScriptUrl,
               ServiceWorkerUpdateFinishCallback* aCallback);
 
   void UpdateInternal(nsIPrincipal* aPrincipal, const nsACString& aScope,
+                      nsCString&& aNewestWorkerScriptUrl,
                       ServiceWorkerUpdateFinishCallback* aCallback);
 
   void SoftUpdate(const OriginAttributes& aOriginAttributes,
@@ -235,11 +238,11 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
                    const nsString& aLine, uint32_t aLineNumber,
                    uint32_t aColumnNumber, uint32_t aFlags, JSExnType aExnType);
 
-  MOZ_MUST_USE RefPtr<GenericPromise> MaybeClaimClient(
+  MOZ_MUST_USE RefPtr<GenericErrorResultPromise> MaybeClaimClient(
       const ClientInfo& aClientInfo,
       ServiceWorkerRegistrationInfo* aWorkerRegistration);
 
-  MOZ_MUST_USE RefPtr<GenericPromise> MaybeClaimClient(
+  MOZ_MUST_USE RefPtr<GenericErrorResultPromise> MaybeClaimClient(
       const ClientInfo& aClientInfo,
       const ServiceWorkerDescriptor& aServiceWorker);
 
@@ -273,7 +276,8 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
   void NoteInheritedController(const ClientInfo& aClientInfo,
                                const ServiceWorkerDescriptor& aController);
 
-  void BlockShutdownOn(GenericNonExclusivePromise* aPromise);
+  void BlockShutdownOn(GenericNonExclusivePromise* aPromise,
+                       uint32_t aShutdownStateId);
 
   nsresult GetClientRegistration(
       const ClientInfo& aClientInfo,
@@ -282,6 +286,14 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
   void UpdateControlledClient(const ClientInfo& aOldClientInfo,
                               const ClientInfo& aNewClientInfo,
                               const ServiceWorkerDescriptor& aServiceWorker);
+
+  // Returns the shutdown state ID (may be an invalid ID if an
+  // nsIAsyncShutdownBlocker is not used).
+  uint32_t MaybeInitServiceWorkerShutdownProgress() const;
+
+  void ReportServiceWorkerShutdownProgress(
+      uint32_t aShutdownStateId,
+      ServiceWorkerShutdownState::Progress aProgress) const;
 
  private:
   struct RegistrationDataPerPrincipal;
@@ -296,7 +308,7 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
 
   void Init(ServiceWorkerRegistrar* aRegistrar);
 
-  RefPtr<GenericPromise> StartControllingClient(
+  RefPtr<GenericErrorResultPromise> StartControllingClient(
       const ClientInfo& aClientInfo,
       ServiceWorkerRegistrationInfo* aRegistrationInfo,
       bool aControlClientHandle = true);

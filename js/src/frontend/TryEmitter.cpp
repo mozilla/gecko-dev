@@ -12,7 +12,7 @@
 #include "frontend/SharedContext.h"    // StatementKind
 #include "frontend/SourceNotes.h"      // SrcNote, SRC_*
 #include "vm/JSScript.h"               // JSTRY_CATCH, JSTRY_FINALLY
-#include "vm/Opcodes.h"                // JSOP_*
+#include "vm/Opcodes.h"                // JSOp
 
 using namespace js;
 using namespace js::frontend;
@@ -48,7 +48,7 @@ bool TryEmitter::emitTry() {
   // uses this depth to properly unwind the stack and the scope chain.
   depth_ = bce_->bytecodeSection().stackDepth();
 
-  if (!bce_->emitN(JSOP_TRY, 4, &tryOpOffset_)) {
+  if (!bce_->emitN(JSOp::Try, 4, &tryOpOffset_)) {
     return false;
   }
 
@@ -62,21 +62,21 @@ bool TryEmitter::emitTryEnd() {
   MOZ_ASSERT(state_ == State::Try);
   MOZ_ASSERT(depth_ == bce_->bytecodeSection().stackDepth());
 
-  // GOSUB to finally, if present.
+  // Gosub to finally, if present.
   if (hasFinally() && controlInfo_) {
     if (!bce_->emitGoSub(&controlInfo_->gosubs)) {
       return false;
     }
   }
 
-  // Patch the JSOP_TRY offset.
+  // Patch the JSOp::Try offset.
   jsbytecode* trypc = bce_->bytecodeSection().code(tryOpOffset_);
   BytecodeOffsetDiff offset = bce_->bytecodeSection().offset() - tryOpOffset_;
-  MOZ_ASSERT(*trypc == JSOP_TRY);
+  MOZ_ASSERT(JSOp(*trypc) == JSOp::Try);
   SET_CODE_OFFSET(trypc, offset.value());
 
   // Emit jump over catch and/or finally.
-  if (!bce_->emitJump(JSOP_GOTO, &catchAndFinallyJump_)) {
+  if (!bce_->emitJump(JSOp::Goto, &catchAndFinallyJump_)) {
     return false;
   }
 
@@ -100,15 +100,15 @@ bool TryEmitter::emitCatch() {
     // try block:
     //
     //   eval("try { 1; throw 2 } catch(e) {}"); // undefined, not 1
-    if (!bce_->emit1(JSOP_UNDEFINED)) {
+    if (!bce_->emit1(JSOp::Undefined)) {
       return false;
     }
-    if (!bce_->emit1(JSOP_SETRVAL)) {
+    if (!bce_->emit1(JSOp::SetRval)) {
       return false;
     }
   }
 
-  if (!bce_->emit1(JSOP_EXCEPTION)) {
+  if (!bce_->emit1(JSOp::Exception)) {
     return false;
   }
 
@@ -137,7 +137,7 @@ bool TryEmitter::emitCatchEnd() {
     MOZ_ASSERT(bce_->bytecodeSection().stackDepth() == depth_);
 
     // Jump over the finally block.
-    if (!bce_->emitJump(JSOP_GOTO, &catchAndFinallyJump_)) {
+    if (!bce_->emitJump(JSOp::Goto, &catchAndFinallyJump_)) {
       return false;
     }
   }
@@ -192,12 +192,12 @@ bool TryEmitter::emitFinally(
       return false;
     }
   }
-  if (!bce_->emit1(JSOP_FINALLY)) {
+  if (!bce_->emit1(JSOp::Finally)) {
     return false;
   }
 
   if (controlKind_ == ControlKind::Syntactic) {
-    if (!bce_->emit1(JSOP_GETRVAL)) {
+    if (!bce_->emit1(JSOp::GetRval)) {
       return false;
     }
 
@@ -205,10 +205,10 @@ bool TryEmitter::emitFinally(
     // correct value even if there's no other statement before them:
     //
     //   eval("x: try { 1 } finally { break x; }"); // undefined, not 1
-    if (!bce_->emit1(JSOP_UNDEFINED)) {
+    if (!bce_->emit1(JSOp::Undefined)) {
       return false;
     }
-    if (!bce_->emit1(JSOP_SETRVAL)) {
+    if (!bce_->emit1(JSOp::SetRval)) {
       return false;
     }
   }
@@ -227,12 +227,12 @@ bool TryEmitter::emitFinallyEnd() {
   MOZ_ASSERT(state_ == State::Finally);
 
   if (controlKind_ == ControlKind::Syntactic) {
-    if (!bce_->emit1(JSOP_SETRVAL)) {
+    if (!bce_->emit1(JSOp::SetRval)) {
       return false;
     }
   }
 
-  if (!bce_->emit1(JSOP_RETSUB)) {
+  if (!bce_->emit1(JSOp::Retsub)) {
     return false;
   }
 
@@ -254,12 +254,6 @@ bool TryEmitter::emitEnd() {
   }
 
   MOZ_ASSERT(bce_->bytecodeSection().stackDepth() == depth_);
-
-  // ReconstructPCStack needs a NOP here to mark the end of the last
-  // catch block.
-  if (!bce_->emit1(JSOP_NOP)) {
-    return false;
-  }
 
   // Fix up the end-of-try/catch jumps to come here.
   if (!bce_->emitJumpTargetAndPatch(catchAndFinallyJump_)) {

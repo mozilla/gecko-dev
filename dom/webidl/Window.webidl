@@ -159,7 +159,7 @@ typedef OfflineResourceList ApplicationCache;
                     RTCSctpTransport,
                     Sensor,
                     SensorErrorEvent,
-                    _SharedArrayBuffer,
+                    SharedArrayBuffer,
                     styleMedia,
                     StylePropertyMap,
                     StylePropertyMapReadOnly,
@@ -225,7 +225,7 @@ typedef OfflineResourceList ApplicationCache;
   [Throws, CrossOriginCallable, NeedsCallerType] void close();
   [Throws, CrossOriginReadable] readonly attribute boolean closed;
   [Throws] void stop();
-  [Throws, CrossOriginCallable] void focus();
+  [Throws, CrossOriginCallable, NeedsCallerType] void focus();
   [Throws, CrossOriginCallable] void blur();
   [Replaceable, Pref="dom.window.event.enabled"] readonly attribute any event;
 
@@ -548,8 +548,8 @@ partial interface Window {
   [ChromeOnly]
   readonly attribute boolean hasOpenerForInitialContentBrowser;
 
-  [ChromeOnly]
-  WindowGlobalChild? getWindowGlobalChild();
+  [Pure, ChromeOnly]
+  readonly attribute WindowGlobalChild? windowGlobalChild;
 };
 
 Window includes TouchEventHandlers;
@@ -609,7 +609,7 @@ partial interface Window {
   void                      getAttentionWithCycleCount(long aCycleCount);
 
   [Throws, Func="nsGlobalWindowInner::IsPrivilegedChromeWindow"]
-  void                      setCursor(DOMString cursor);
+  void                      setCursor(UTF8String cursor);
 
   [Func="nsGlobalWindowInner::IsPrivilegedChromeWindow"]
   void                      maximize();
@@ -696,7 +696,7 @@ partial interface Window {
   [Throws, Func="nsGlobalWindowInner::IsPrivilegedChromeWindow"]
   Promise<any> promiseDocumentFlushed(PromiseDocumentFlushedCallback callback);
 
-  [Func="IsChromeOrXBL"]
+  [ChromeOnly]
   readonly attribute boolean isChromeWindow;
 };
 
@@ -751,7 +751,7 @@ partial interface Window {
    *
    * Example: ["en-US", "de", "pl", "sr-Cyrl", "zh-Hans-HK"]
    */
-  [Func="IsChromeOrXBLOrUAWidget"]
+  [Func="IsChromeOrUAWidget"]
   sequence<DOMString> getRegionalPrefsLocales();
 
   /**
@@ -768,14 +768,14 @@ partial interface Window {
    *
    * Example: ["en-US"]
    */
-  [Func="IsChromeOrXBLOrUAWidget"]
+  [Func="IsChromeOrUAWidget"]
   sequence<DOMString> getWebExposedLocales();
 
   /**
    * Getter funcion for IntlUtils, which provides helper functions for
    * localization.
    */
-  [Throws, Func="IsChromeOrXBLOrUAWidget"]
+  [Throws, Func="IsChromeOrUAWidget"]
   readonly attribute IntlUtils intlUtils;
 };
 

@@ -18,6 +18,7 @@
 #  include "mozilla/gfx/DeviceManagerDx.h"  // for DeviceManagerDx
 #  include "mozilla/layers/ImageDataSerializer.h"
 #endif
+#include "mozilla/dom/WebGLParent.h"
 #include "mozilla/ipc/Transport.h"           // for Transport
 #include "mozilla/layers/AnimationHelper.h"  // for CompositorAnimationStorage
 #include "mozilla/layers/APZCTreeManagerParent.h"  // for APZCTreeManagerParent
@@ -713,7 +714,7 @@ static inline bool AllowDirectDXGISurfaceDrawing() {
     return false;
   }
 #if defined(XP_WIN)
-  DeviceManagerDx* dm = DeviceManagerDx::Get();
+  gfx::DeviceManagerDx* dm = gfx::DeviceManagerDx::Get();
   MOZ_ASSERT(dm);
   if (!dm || !dm->GetCompositorDevice() || !dm->TextureSharingWorks()) {
     return false;
@@ -738,7 +739,8 @@ mozilla::ipc::IPCResult ContentCompositorBridgeParent::RecvPreferredDXGIAdapter(
     return IPC_FAIL_NO_REASON(this);
   }
 
-  RefPtr<ID3D11Device> device = DeviceManagerDx::Get()->GetCompositorDevice();
+  RefPtr<ID3D11Device> device =
+      gfx::DeviceManagerDx::Get()->GetCompositorDevice();
   if (!device) {
     return IPC_FAIL_NO_REASON(this);
   }
@@ -762,6 +764,14 @@ mozilla::ipc::IPCResult ContentCompositorBridgeParent::RecvPreferredDXGIAdapter(
   *aOutDesc = DxgiAdapterDesc::From(desc);
 #endif
   return IPC_OK();
+}
+
+already_AddRefed<dom::PWebGLParent>
+ContentCompositorBridgeParent::AllocPWebGLParent(
+    const webgl::InitContextDesc& aInitDesc,
+    webgl::InitContextResult* const out) {
+  RefPtr<dom::PWebGLParent> ret = dom::WebGLParent::Create(aInitDesc, out);
+  return ret.forget();
 }
 
 }  // namespace layers

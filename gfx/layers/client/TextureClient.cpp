@@ -14,6 +14,7 @@
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_layers.h"
 #include "mozilla/SystemGroup.h"
+#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/ipc/SharedMemory.h"  // for SharedMemory, etc
 #include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/ISurfaceAllocator.h"
@@ -69,8 +70,7 @@
     } while (0)
 #endif
 
-namespace mozilla {
-namespace layers {
+namespace mozilla::layers {
 
 using namespace mozilla::ipc;
 using namespace mozilla::gl;
@@ -284,7 +284,7 @@ static TextureType GetTextureType(gfx::SurfaceFormat aFormat,
 #ifdef MOZ_WAYLAND
   if ((aLayersBackend == LayersBackend::LAYERS_OPENGL ||
        aLayersBackend == LayersBackend::LAYERS_WR) &&
-      gfxPlatformGtk::GetPlatform()->UseWaylandDMABufSurfaces() &&
+      gfxPlatformGtk::GetPlatform()->UseWaylandDMABufTextures() &&
       aFormat != SurfaceFormat::A8) {
     return TextureType::WaylandDMABUF;
   }
@@ -1906,5 +1906,4 @@ bool MappedYCbCrChannelData::CopyInto(MappedYCbCrChannelData& aDst) {
   return true;
 }
 
-}  // namespace layers
-}  // namespace mozilla
+}  // namespace mozilla::layers

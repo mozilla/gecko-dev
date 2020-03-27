@@ -24,6 +24,10 @@ const BROWSER_SUGGEST_PRIVATE_PREF = "browser.search.suggest.enabled.private";
 const REMOTE_TIMEOUT_PREF = "browser.search.suggest.timeout";
 const REMOTE_TIMEOUT_DEFAULT = 500; // maximum time (ms) to wait before giving up on a remote suggestions
 
+const SEARCH_DATA_TRANSFERRED_SCALAR = "browser.search.data_transferred";
+const SEARCH_TELEMETRY_KEY_PREFIX = "sggt";
+const SEARCH_TELEMETRY_PRIVATE_BROWSING_KEY_SUFFIX = "pb";
+
 XPCOMUtils.defineLazyServiceGetter(
   this,
   "UUIDGenerator",
@@ -64,7 +68,7 @@ function SearchSuggestionController(callback = null) {
   this._callback = callback;
 }
 
-this.SearchSuggestionController.prototype = {
+SearchSuggestionController.prototype = {
   /**
    * The maximum number of local form history results to return. This limit is
    * only enforced if remote results are also returned.
@@ -275,6 +279,36 @@ this.SearchSuggestionController.prototype = {
   },
 
   /**
+   * Report bandwidth used by search activities. It only reports when it matches
+   * search provider information.
+   *
+   * @param {string} engineId the name of the search provider.
+   * @param {boolean} privateMode set to true if this is coming from a private browsing mode request.
+   */
+  _reportBandwidthForEngine(engineId, privateMode) {
+    if (!this._request || !this._request.channel) {
+      return;
+    }
+
+    let channel = ChannelWrapper.get(this._request.channel);
+    let bytesTransferred = channel.requestSize + channel.responseSize;
+    if (bytesTransferred == 0) {
+      return;
+    }
+
+    let telemetryKey = `${SEARCH_TELEMETRY_KEY_PREFIX}-${engineId}`;
+    if (privateMode) {
+      telemetryKey += `-${SEARCH_TELEMETRY_PRIVATE_BROWSING_KEY_SUFFIX}`;
+    }
+
+    Services.telemetry.keyedScalarAdd(
+      SEARCH_DATA_TRANSFERRED_SCALAR,
+      telemetryKey,
+      bytesTransferred
+    );
+  },
+
+  /**
    * Fetch suggestions from the search engine over the network.
    *
    * @param {string} searchTerm
@@ -324,18 +358,22 @@ this.SearchSuggestionController.prototype = {
 
     this._request.mozBackgroundRequest = true; // suppress dialogs and fail silently
 
+    let engineId = engine.identifier || "other";
+
     this._request.addEventListener(
       "load",
-      this._onRemoteLoaded.bind(this, deferredResponse)
+      this._onRemoteLoaded.bind(this, deferredResponse, engineId, privateMode)
     );
-    this._request.addEventListener("error", evt =>
-      deferredResponse.resolve("HTTP error")
-    );
+    this._request.addEventListener("error", evt => {
+      this._reportBandwidthForEngine(engineId, privateMode);
+      deferredResponse.resolve("HTTP error");
+    });
     // Reject for an abort assuming it's always from .stop() in which case we shouldn't return local
     // or remote results for existing searches.
-    this._request.addEventListener("abort", evt =>
-      deferredResponse.reject("HTTP request aborted")
-    );
+    this._request.addEventListener("abort", evt => {
+      this._reportBandwidthForEngine(engineId, privateMode);
+      deferredResponse.reject("HTTP request aborted");
+    });
 
     if (submission.postData) {
       this._request.sendInputStream(submission.postData);
@@ -352,15 +390,21 @@ this.SearchSuggestionController.prototype = {
    *
    * @param {Promise} deferredResponse
    *   The promise to resolve when a response is received.
+   * @param {string} engineId
+   *   The name of the search provider.
+   * @param {boolean} privateMode
+   *   Set to true if this is coming from a private browsing mode request.
    * @private
    */
-  _onRemoteLoaded(deferredResponse) {
+  _onRemoteLoaded(deferredResponse, engineId, privateMode) {
     if (!this._request) {
       deferredResponse.resolve(
         "Got HTTP response after the request was cancelled"
       );
       return;
     }
+
+    this._reportBandwidthForEngine(engineId, privateMode);
 
     let status, serverResults;
     try {
@@ -500,7 +544,7 @@ this.SearchSuggestionController.prototype = {
  * @param {nsISearchEngine} engine - The search engine
  * @returns {boolean} True if the engine offers suggestions and false otherwise.
  */
-this.SearchSuggestionController.engineOffersSuggestions = function(engine) {
+SearchSuggestionController.engineOffersSuggestions = function(engine) {
   return engine.supportsResponseType(SEARCH_RESPONSE_SUGGESTION_JSON);
 };
 
@@ -508,7 +552,7 @@ this.SearchSuggestionController.engineOffersSuggestions = function(engine) {
  * The maximum time (ms) to wait before giving up on a remote suggestions.
  */
 XPCOMUtils.defineLazyPreferenceGetter(
-  this.SearchSuggestionController.prototype,
+  SearchSuggestionController.prototype,
   "remoteTimeout",
   REMOTE_TIMEOUT_PREF,
   REMOTE_TIMEOUT_DEFAULT
@@ -518,7 +562,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
  * Whether or not remote suggestions are turned on.
  */
 XPCOMUtils.defineLazyPreferenceGetter(
-  this.SearchSuggestionController.prototype,
+  SearchSuggestionController.prototype,
   "suggestionsEnabled",
   BROWSER_SUGGEST_PREF,
   true
@@ -528,7 +572,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
  * Whether or not remote suggestions are turned on in private browsing mode.
  */
 XPCOMUtils.defineLazyPreferenceGetter(
-  this.SearchSuggestionController.prototype,
+  SearchSuggestionController.prototype,
   "suggestionsInPrivateBrowsingEnabled",
   BROWSER_SUGGEST_PRIVATE_PREF,
   false

@@ -4,32 +4,30 @@
 
 #include "signaling/src/jsep/JsepSessionImpl.h"
 
-#include <iterator>
-#include <string>
-#include <set>
-#include <bitset>
 #include <stdlib.h>
 
+#include <bitset>
+#include <iterator>
+#include <set>
+#include <string>
+#include <utility>
+
+#include "logging.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/Telemetry.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/net/DataChannelProtocol.h"
+#include "nsDebug.h"
 #include "nspr.h"
 #include "nss.h"
 #include "pk11pub.h"
-#include "nsDebug.h"
-#include "logging.h"
-
-#include "mozilla/Move.h"
-#include "mozilla/UniquePtr.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/Telemetry.h"
 
 #include "webrtc/api/rtpparameters.h"
 
 #include "signaling/src/jsep/JsepTrack.h"
 #include "signaling/src/jsep/JsepTransport.h"
-
 #include "signaling/src/sdp/HybridSdpParser.h"
 #include "signaling/src/sdp/SipccSdp.h"
-
-#include "mozilla/net/DataChannelProtocol.h"
 
 namespace mozilla {
 
@@ -653,7 +651,6 @@ JsepSession::Result JsepSessionImpl::SetLocalDescription(
                        << GetStateStr(mState));
         return dom::PCError::InvalidStateError;
       }
-      mIsOfferer = true;
       break;
     case kJsepStateHaveRemoteOffer:
       if (type != kJsepSdpAnswer && type != kJsepSdpPranswer) {
@@ -737,6 +734,7 @@ JsepSession::Result JsepSessionImpl::SetLocalDescription(
 nsresult JsepSessionImpl::SetLocalDescriptionOffer(UniquePtr<Sdp> offer) {
   MOZ_ASSERT(mState == kJsepStateStable);
   mPendingLocalDescription = std::move(offer);
+  mIsPendingOfferer = Some(true);
   SetState(kJsepStateHaveLocalOffer);
   return NS_OK;
 }
@@ -752,8 +750,9 @@ nsresult JsepSessionImpl::SetLocalDescriptionAnswer(JsepSdpType type,
 
   mCurrentRemoteDescription = std::move(mPendingRemoteDescription);
   mCurrentLocalDescription = std::move(mPendingLocalDescription);
-  MOZ_ASSERT(!mIsOfferer);
-  mWasOffererLastTime = false;
+  MOZ_ASSERT(mIsPendingOfferer.isSome() && !*mIsPendingOfferer);
+  mIsPendingOfferer.reset();
+  mIsCurrentOfferer = Some(false);
 
   SetState(kJsepStateStable);
   return NS_OK;
@@ -794,7 +793,6 @@ JsepSession::Result JsepSessionImpl::SetRemoteDescription(
                        << GetStateStr(mState));
         return dom::PCError::InvalidStateError;
       }
-      mIsOfferer = false;
       break;
     case kJsepStateHaveLocalOffer:
     case kJsepStateHaveRemotePranswer:
@@ -912,9 +910,9 @@ nsresult JsepSessionImpl::HandleNegotiatedSession(
   bool remoteIceLite =
       remote->GetAttributeList().HasAttribute(SdpAttribute::kIceLiteAttribute);
 
-  mIceControlling = remoteIceLite || mIsOfferer;
+  mIceControlling = remoteIceLite || *mIsPendingOfferer;
 
-  const Sdp& answer = mIsOfferer ? *remote : *local;
+  const Sdp& answer = *mIsPendingOfferer ? *remote : *local;
 
   SdpHelper::BundledMids bundledMids;
   nsresult rv = mSdpHelper.GetBundledMids(answer, &bundledMids);
@@ -976,14 +974,14 @@ nsresult JsepSessionImpl::HandleNegotiatedSession(
 nsresult JsepSessionImpl::MakeNegotiatedTransceiver(
     const SdpMediaSection& remote, const SdpMediaSection& local,
     JsepTransceiver* transceiver) {
-  const SdpMediaSection& answer = mIsOfferer ? remote : local;
+  const SdpMediaSection& answer = *mIsPendingOfferer ? remote : local;
 
   bool sending = false;
   bool receiving = false;
 
   // JS could stop the transceiver after the answer was created.
   if (!transceiver->IsStopped()) {
-    if (mIsOfferer) {
+    if (*mIsPendingOfferer) {
       receiving = answer.IsSending();
       sending = answer.IsReceiving();
     } else {
@@ -1117,10 +1115,10 @@ nsresult JsepSessionImpl::FinalizeTransport(const SdpAttributeList& remote,
     UniquePtr<JsepDtlsTransport> dtls = MakeUnique<JsepDtlsTransport>();
     dtls->mFingerprints = remote.GetFingerprint();
     if (!answer.HasAttribute(mozilla::SdpAttribute::kSetupAttribute)) {
-      dtls->mRole = mIsOfferer ? JsepDtlsTransport::kJsepDtlsServer
-                               : JsepDtlsTransport::kJsepDtlsClient;
+      dtls->mRole = *mIsPendingOfferer ? JsepDtlsTransport::kJsepDtlsServer
+                                       : JsepDtlsTransport::kJsepDtlsClient;
     } else {
-      if (mIsOfferer) {
+      if (*mIsPendingOfferer) {
         dtls->mRole = (answer.GetSetup().mRole == SdpSetupAttribute::kActive)
                           ? JsepDtlsTransport::kJsepDtlsServer
                           : JsepDtlsTransport::kJsepDtlsClient;
@@ -1305,6 +1303,7 @@ nsresult JsepSessionImpl::SetRemoteDescriptionOffer(UniquePtr<Sdp> offer) {
   MOZ_ASSERT(mState == kJsepStateStable);
 
   mPendingRemoteDescription = std::move(offer);
+  mIsPendingOfferer = Some(false);
 
   SetState(kJsepStateHaveRemoteOffer);
   return NS_OK;
@@ -1323,8 +1322,9 @@ nsresult JsepSessionImpl::SetRemoteDescriptionAnswer(JsepSdpType type,
 
   mCurrentRemoteDescription = std::move(mPendingRemoteDescription);
   mCurrentLocalDescription = std::move(mPendingLocalDescription);
-  MOZ_ASSERT(mIsOfferer);
-  mWasOffererLastTime = true;
+  MOZ_ASSERT(mIsPendingOfferer.isSome() && *mIsPendingOfferer);
+  mIsPendingOfferer.reset();
+  mIsCurrentOfferer = Some(true);
 
   SetState(kJsepStateStable);
   return NS_OK;
@@ -1673,7 +1673,8 @@ nsresult JsepSessionImpl::ValidateRemoteDescription(const Sdp& description) {
 
     bool differ = mSdpHelper.IceCredentialsDiffer(newMsection, oldMsection);
 
-    if (mIsOfferer && differ && !IsIceRestarting()) {
+    if (mIsPendingOfferer.isSome() && *mIsPendingOfferer && differ &&
+        !IsIceRestarting()) {
       JSEP_SET_ERROR(
           "Remote description indicates ICE restart but offer did not "
           "request ICE restart (new remote description changes either "
@@ -2082,22 +2083,18 @@ nsresult JsepSessionImpl::AddLocalIceCandidate(const std::string& candidate,
                                                std::string* mid,
                                                bool* skipped) {
   mLastError.clear();
+  *skipped = true;
   if (!mCurrentLocalDescription && !mPendingLocalDescription) {
     JSEP_SET_ERROR("Cannot add ICE candidate when there is no local SDP");
     return NS_ERROR_UNEXPECTED;
   }
 
   JsepTransceiver* transceiver = GetTransceiverWithTransport(transportId);
-  *skipped = !transceiver;
-  if (*skipped) {
+  if (!transceiver || !transceiver->IsAssociated()) {
     // mainly here to make some testing less complicated, but also just in case
     return NS_OK;
   }
 
-  MOZ_ASSERT(
-      transceiver->IsAssociated(),
-      "ICE candidate was gathered before the transceiver was associated! "
-      "This should never happen.");
   *level = transceiver->GetLevel();
   *mid = transceiver->GetMid();
 
@@ -2114,6 +2111,7 @@ nsresult JsepSessionImpl::AddLocalIceCandidate(const std::string& candidate,
                                       *level, ufrag);
   }
 
+  *skipped = false;
   return rv;
 }
 
@@ -2198,8 +2196,9 @@ mozilla::Sdp* JsepSessionImpl::GetParsedRemoteDescription(
 }
 
 const Sdp* JsepSessionImpl::GetAnswer() const {
-  return mWasOffererLastTime ? mCurrentRemoteDescription.get()
-                             : mCurrentLocalDescription.get();
+  return (mIsCurrentOfferer.isSome() && *mIsCurrentOfferer)
+             ? mCurrentRemoteDescription.get()
+             : mCurrentLocalDescription.get();
 }
 
 void JsepSessionImpl::SetIceRestarting(bool restarting) {
@@ -2281,7 +2280,7 @@ bool JsepSessionImpl::CheckNegotiationNeeded() const {
       return true;
     }
 
-    if (IsOfferer()) {
+    if (mIsCurrentOfferer.isSome() && *mIsCurrentOfferer) {
       if ((local.GetDirection() != transceiver->mJsDirection) &&
           reverse(remote.GetDirection()) != transceiver->mJsDirection) {
         MOZ_MTLOG(ML_DEBUG, "[" << mName

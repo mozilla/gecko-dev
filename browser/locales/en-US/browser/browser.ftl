@@ -18,21 +18,32 @@ browser-main-window-title = { $mode ->
        *[default] { -brand-full-name }
     }
 
-# This is the default window title in case there is a content
-# title to be displayed.
-#
-# Depending on the $mode, the string will look like this (in en-US):
-#
-# "default" - "Example Title - Mozilla Firefox"
-# "private" - "Example Title - Mozilla Firefox (Private Browsing)"
-#
-# Variables
-#   $mode (String) - "private" in case of a private browsing mode, "default" otherwise.
-#   $title (String) - Content title string.
-browser-main-window-content-title = { $mode ->
-        [private] { $title } - { -brand-full-name } (Private Browsing)
-       *[default] { $title } - { -brand-full-name }
-    }
+## This is the default window title in case there is content
+## title to be displayed.
+##
+## On macOS the title doesn't include the brand name, on all other
+## platforms it does.
+##
+## For example, in private mode on Windows, the title will be:
+## "Example Title - Mozilla Firefox (Private Browsing)"
+##
+## while on macOS in default mode it will be:
+## "Example Title"
+##
+## Variables
+##   $title (String) - Content title string.
+
+browser-main-window-content-title-default = { PLATFORM() ->
+    [macos] { $title }
+   *[other] { $title } - { -brand-full-name }
+}
+
+browser-main-window-content-title-private = { PLATFORM() ->
+    [macos] { $title } - (Private Browsing)
+   *[other] { $title } - { -brand-full-name } (Private Browsing)
+}
+
+##
 
 urlbar-identity-button =
     .aria-label = View site information
@@ -83,6 +94,21 @@ urlbar-addons-notification-anchor =
     .tooltiptext = Open add-on installation message panel
 urlbar-tip-help-icon =
     .title = Get help
+urlbar-search-tips-confirm = Okay, Got It
+# Read out before Urlbar Tip text content so screenreader users know the
+# subsequent text is a tip offered by the browser. It should end in a colon or
+# localized equivalent.
+urlbar-tip-icon-description =
+    .alt = Tip:
+
+## Prompts users to use the Urlbar when they open a new tab or visit the
+## homepage of their default search engine.
+## Variables:
+##  $engineName (String): The name of the user's default search engine. e.g. "Google" or "DuckDuckGo".
+urlbar-search-tips-onboard = Type less, find more: Search { $engineName } right from your address bar.
+urlbar-search-tips-redirect = Start your search here to see suggestions from { $engineName } and your browsing history.
+
+##
 
 urlbar-geolocation-blocked =
     .tooltiptext = You have blocked location information for this website.
@@ -108,6 +134,16 @@ urlbar-midi-blocked =
     .tooltiptext = You have blocked MIDI access for this website.
 urlbar-install-blocked =
     .tooltiptext = You have blocked add-on installation for this website.
+
+# Variables
+#   $shortcut (String) - A keyboard shortcut for the edit bookmark command.
+urlbar-star-edit-bookmark =
+    .tooltiptext = Edit this bookmark ({ $shortcut })
+
+# Variables
+#   $shortcut (String) - A keyboard shortcut for the add bookmark command.
+urlbar-star-add-bookmark =
+    .tooltiptext = Bookmark this page ({ $shortcut })
 
 ## Page Action Context Menu
 
@@ -164,3 +200,50 @@ bookmark-panel-done-button =
 # Cancel/Remove Bookmark buttons.
 bookmark-panel =
     .style = min-width: 23em
+
+## Identity Panel
+
+identity-connection-not-secure = Connection not secure
+identity-connection-secure = Connection secure
+identity-connection-internal = This is a secure { -brand-short-name } page.
+identity-connection-file = This page is stored on your computer.
+identity-extension-page = This page is loaded from an extension.
+identity-active-blocked = { -brand-short-name } has blocked parts of this page that are not secure.
+identity-custom-root = Connection verified by a certificate issuer that is not recognized by Mozilla.
+identity-passive-loaded = Parts of this page are not secure (such as images).
+identity-active-loaded = You have disabled protection on this page.
+identity-weak-encryption = This page uses weak encryption.
+identity-insecure-login-forms = Logins entered on this page could be compromised.
+identity-permissions =
+    .value = Permissions
+identity-permissions-reload-hint = You may need to reload the page for changes to apply.
+identity-permissions-empty = You have not granted this site any special permissions.
+identity-clear-site-data =
+    .label = Clear Cookies and Site Data…
+identity-connection-not-secure-security-view = You are not securely connected to this site.
+identity-connection-verified = You are securely connected to this site.
+identity-ev-owner-label = Certificate issued to:
+identity-description-custom-root = Mozilla does not recognize this certificate issuer. It may have been added from your operating system or by an administrator. <label data-l10n-name="link">Learn More</label>
+identity-remove-cert-exception =
+    .label = Remove Exception
+    .accesskey = R
+identity-description-insecure = Your connection to this site is not private. Information you submit could be viewed by others (like passwords, messages, credit cards, etc.).
+identity-description-insecure-login-forms = The login information you enter on this page is not secure and could be compromised.
+identity-description-weak-cipher-intro = Your connection to this website uses weak encryption and is not private.
+identity-description-weak-cipher-risk = Other people can view your information or modify the website’s behavior.
+identity-description-active-blocked = { -brand-short-name } has blocked parts of this page that are not secure. <label data-l10n-name="link">Learn More</label>
+identity-description-passive-loaded = Your connection is not private and information you share with the site could be viewed by others.
+identity-description-passive-loaded-insecure = This website contains content that is not secure (such as images). <label data-l10n-name="link">Learn More</label>
+identity-description-passive-loaded-mixed = Although { -brand-short-name } has blocked some content, there is still content on the page that is not secure (such as images). <label data-l10n-name="link">Learn More</label>
+identity-description-active-loaded = This website contains content that is not secure (such as scripts) and your connection to it is not private.
+identity-description-active-loaded-insecure = Information you share with this site could be viewed by others (like passwords, messages, credit cards, etc.).
+identity-learn-more =
+    .value = Learn More
+identity-disable-mixed-content-blocking =
+    .label = Disable protection for now
+    .accesskey = D
+identity-enable-mixed-content-blocking =
+    .label = Enable protection
+    .accesskey = E
+identity-more-info-link-text =
+    .label = More Information

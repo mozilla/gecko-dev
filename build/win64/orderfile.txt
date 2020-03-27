@@ -6423,7 +6423,6 @@ NS_CycleCollectorSuspectUsingNursery
 ?AddRef@nsXBLWindowKeyHandler@@UEAAKXZ
 ?InstallKeyboardEventListenersTo@nsXBLWindowKeyHandler@@QEAAXPEAVEventListenerManager@mozilla@@@Z
 ?AddEventListenerByType@EventListenerManager@mozilla@@QEAAXPEAVnsIDOMEventListener@@AEBV?$nsTSubstring@_S@@AEBUEventListenerFlags@2@@Z
-?IsUniversalXPConnectEnabled@xpc@@YA_NPEAUJSContext@@@Z
 ?EventListenerAdded@EventTarget@dom@mozilla@@UEAAXPEAVnsAtom@@@Z
 ?Release@nsXBLWindowKeyHandler@@UEAAKXZ
 ??$NewRunnableMethod@PEAVnsGlobalWindowOuter@@P81@EAAXXZ@mozilla@@YA?AU?$already_AddRefed@V?$nsRunnableMethod@VnsGlobalWindowOuter@@X$00$0A@@@@@PEBD$$QEAPEAVnsGlobalWindowOuter@@P82@EAAXXZ@Z
@@ -6535,7 +6534,7 @@ NS_CycleCollectorSuspectUsingNursery
 ?HasFocus@Document@dom@mozilla@@QEBA_NAEAVErrorResult@3@@Z
 ?GetFocusedWindow@nsFocusManager@@UEAA?AW4nsresult@@PEAPEAVmozIDOMWindowProxy@@@Z
 ?GetCsp@SystemPrincipal@mozilla@@UEAA?AW4nsresult@@PEAPEAVnsIContentSecurityPolicy@@@Z
-?InnerSetNewDocument@nsGlobalWindowInner@@IEAAXPEAUJSContext@@PEAVDocument@dom@mozilla@@@Z
+?InitDocumentDependentState@nsGlobalWindowInner@@IEAAXPEAUJSContext@@@Z
 ?WrapObject@nsINode@@UEAAPEAVJSObject@@PEAUJSContext@@V?$Handle@PEAVJSObject@@@JS@@@Z
 ?WrapNode@nsHTMLDocument@@UEAAPEAVJSObject@@PEAUJSContext@@V?$Handle@PEAVJSObject@@@JS@@@Z
 ?Wrap@HTMLDocument_Binding@dom@mozilla@@YA_NPEAUJSContext@@PEAVnsHTMLDocument@@PEAVnsWrapperCache@@V?$Handle@PEAVJSObject@@@JS@@V?$MutableHandle@PEAVJSObject@@@8@@Z

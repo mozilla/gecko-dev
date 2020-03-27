@@ -42,7 +42,7 @@ GeckoViewStartup.prototype = {
   QueryInterface: ChromeUtils.generateQI([Ci.nsIObserver]),
 
   /* ----------  nsIObserver  ---------- */
-  observe: function(aSubject, aTopic, aData) {
+  observe(aSubject, aTopic, aData) {
     debug`observe: ${aTopic}`;
     switch (aTopic) {
       case "app-startup": {
@@ -110,6 +110,7 @@ GeckoViewStartup.prototype = {
             ged: [
               "ContentBlocking:AddException",
               "ContentBlocking:RemoveException",
+              "ContentBlocking:RemoveExceptionByPrincipal",
               "ContentBlocking:CheckException",
               "ContentBlocking:SaveList",
               "ContentBlocking:RestoreList",

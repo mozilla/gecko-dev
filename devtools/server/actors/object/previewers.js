@@ -189,9 +189,13 @@ const previewers = {
             let value = Cu.unwaiveXrays(desc.value);
             value = ObjectUtils.makeDebuggeeValueIfNeeded(obj, value);
             items.push(hooks.createValueGrip(value));
+          } else if (!desc) {
+            items.push(null);
           } else {
             items.push(hooks.createValueGrip(undefined));
           }
+        } else if (raw && !Object.getOwnPropertyDescriptor(raw, i)) {
+          items.push(null);
         } else {
           // Workers do not have access to Cu, and when recording/replaying we
           // don't have a raw object. In either case we do not need to deal with
@@ -848,72 +852,6 @@ previewers.Object = [
       lineNumber: hooks.createValueGrip(rawObj.lineNumber),
       columnNumber: hooks.createValueGrip(rawObj.columnNumber),
     };
-
-    return true;
-  },
-
-  function PseudoArray({ obj, hooks }, grip, rawObj) {
-    // An object is considered a pseudo-array if all the following apply:
-    // - All its properties are array indices except, optionally, a "length" property.
-    // - At least it has the "0" array index.
-    // - The array indices are consecutive.
-    // - The value of "length", if present, is the number of array indices.
-
-    // Don't generate pseudo array previews when replaying. We don't want to
-    // have to enumerate all the properties in order to determine this.
-    if (isReplaying) {
-      return false;
-    }
-
-    let keys;
-    try {
-      keys = obj.getOwnPropertyNames();
-    } catch (err) {
-      // The above can throw when the debuggee does not subsume the object's
-      // compartment, or for some WrappedNatives like Cu.Sandbox.
-      return false;
-    }
-    let { length } = keys;
-    if (length === 0) {
-      return false;
-    }
-
-    // Array indices should be sorted at the beginning, from smallest to largest.
-    // Other properties should be at the end, so check if the last one is "length".
-    if (keys[length - 1] === "length") {
-      --length;
-      if (length === 0 || length !== DevToolsUtils.getProperty(obj, "length")) {
-        return false;
-      }
-    }
-
-    // Check that the last key is the array index expected at that position.
-    const lastKey = keys[length - 1];
-    if (!ObjectUtils.isArrayIndex(lastKey) || +lastKey !== length - 1) {
-      return false;
-    }
-
-    grip.preview = {
-      kind: "ArrayLike",
-      length: length,
-    };
-
-    // Avoid recursive object grips.
-    if (hooks.getGripDepth() > 1) {
-      return true;
-    }
-
-    const items = (grip.preview.items = []);
-    const numItems = Math.min(OBJECT_PREVIEW_MAX_ITEMS, length);
-
-    for (let i = 0; i < numItems; ++i) {
-      const desc = obj.getOwnPropertyDescriptor(i);
-      if (desc && "value" in desc) {
-        items.push(hooks.createValueGrip(desc.value));
-      } else {
-        items.push(null);
-      }
-    }
 
     return true;
   },

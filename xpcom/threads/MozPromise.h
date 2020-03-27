@@ -14,6 +14,7 @@
 #  include "mozilla/RefPtr.h"
 #  include "mozilla/Tuple.h"
 #  include "mozilla/TypeTraits.h"
+#  include "mozilla/UniquePtr.h"
 #  include "mozilla/Variant.h"
 
 #  include "nsISerialEventTarget.h"
@@ -1350,7 +1351,7 @@ class ProxyRunnable : public CancelableRunnable {
 
  private:
   RefPtr<typename PromiseType::Private> mProxyPromise;
-  nsAutoPtr<MethodCall<PromiseType, MethodType, ThisType, Storages...>>
+  UniquePtr<MethodCall<PromiseType, MethodType, ThisType, Storages...>>
       mMethodCall;
 };
 
@@ -1500,7 +1501,7 @@ static auto InvokeAsync(nsISerialEventTarget* aTarget, const char* aCallerName,
 template <typename Function>
 static auto InvokeAsync(nsISerialEventTarget* aTarget, const char* aCallerName,
                         Function&& aFunction) -> decltype(aFunction()) {
-  static_assert(!IsLvalueReference<Function>::value,
+  static_assert(!std::is_lvalue_reference_v<Function>,
                 "Function object must not be passed by lvalue-ref (to avoid "
                 "unplanned copies); Consider move()ing the object.");
   return detail::InvokeAsync(aTarget, aCallerName,

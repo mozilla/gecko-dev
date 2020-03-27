@@ -7,13 +7,40 @@
 #ifndef nsBaseHashtable_h__
 #define nsBaseHashtable_h__
 
-#include "mozilla/MemoryReporting.h"
-#include "mozilla/Move.h"
-#include "nsTHashtable.h"
-#include "nsDebug.h"
+#include <utility>
 
-template <class KeyClass, class DataType, class UserDataType>
+#include "mozilla/MemoryReporting.h"
+#include "nsDebug.h"
+#include "nsTHashtable.h"
+
+template <class KeyClass, class DataType, class UserDataType, class Converter>
 class nsBaseHashtable;  // forward declaration
+
+/**
+ * Data type conversion helper that is used to wrap and unwrap the specified
+ * DataType.
+ */
+template <class DataType, class UserDataType>
+class nsDefaultConverter {
+ public:
+  /**
+   * Maps the storage DataType to the exposed UserDataType.
+   */
+  static UserDataType Unwrap(DataType& src) { return UserDataType(src); }
+
+  /**
+   * Const ref variant used for example with nsCOMPtr wrappers.
+   */
+  static DataType Wrap(const UserDataType& src) { return DataType(src); }
+
+  /**
+   * Generic conversion, this is useful for things like already_AddRefed.
+   */
+  template <typename U>
+  static DataType Wrap(U&& src) {
+    return std::move(src);
+  }
+};
 
 /**
  * the private nsTHashtable::EntryType class used by nsBaseHashtable
@@ -33,7 +60,8 @@ class nsBaseHashtableET : public KeyClass {
  private:
   DataType mData;
   friend class nsTHashtable<nsBaseHashtableET<KeyClass, DataType>>;
-  template <typename KeyClassX, typename DataTypeX, typename UserDataTypeX>
+  template <typename KeyClassX, typename DataTypeX, typename UserDataTypeX,
+            typename ConverterX>
   friend class nsBaseHashtable;
 
   typedef typename KeyClass::KeyType KeyType;
@@ -52,11 +80,14 @@ class nsBaseHashtableET : public KeyClass {
  * @param KeyClass a wrapper-class for the hashtable key, see nsHashKeys.h
  *   for a complete specification.
  * @param DataType the datatype stored in the hashtable,
- *   for example, uint32_t or nsCOMPtr.  If UserDataType is not the same,
- *   DataType must implicitly cast to UserDataType
+ *   for example, uint32_t or nsCOMPtr.
  * @param UserDataType the user sees, for example uint32_t or nsISupports*
+ * @param Converter that can be used to map from DataType to UserDataType. A
+ *   default converter is provided that assumes implicit conversion is an
+ *   option.
  */
-template <class KeyClass, class DataType, class UserDataType>
+template <class KeyClass, class DataType, class UserDataType,
+          class Converter = nsDefaultConverter<DataType, UserDataType>>
 class nsBaseHashtable
     : protected nsTHashtable<nsBaseHashtableET<KeyClass, DataType>> {
   typedef mozilla::fallible_t fallible_t;
@@ -102,7 +133,7 @@ class nsBaseHashtable
     }
 
     if (aData) {
-      *aData = ent->mData;
+      *aData = Converter::Unwrap(ent->mData);
     }
 
     return true;
@@ -124,7 +155,7 @@ class nsBaseHashtable
       return UserDataType{};
     }
 
-    return ent->mData;
+    return Converter::Unwrap(ent->mData);
   }
 
   /**
@@ -155,7 +186,7 @@ class nsBaseHashtable
       return false;
     }
 
-    ent->mData = aData;
+    ent->mData = Converter::Wrap(aData);
 
     return true;
   }
@@ -177,7 +208,7 @@ class nsBaseHashtable
       return false;
     }
 
-    ent->mData = std::move(aData);
+    ent->mData = Converter::Wrap(std::move(aData));
 
     return true;
   }
@@ -305,7 +336,7 @@ class nsBaseHashtable
       MOZ_ASSERT(mTableGeneration == mTable.GetGeneration());
       MOZ_ASSERT(mEntry);
       if (!mExistingEntry) {
-        mEntry->mData = func();
+        mEntry->mData = Converter::Wrap(func());
 #ifdef DEBUG
         mDidInitNewEntry = true;
 #endif
@@ -379,7 +410,7 @@ class nsBaseHashtable
 
     KeyType Key() const { return static_cast<EntryType*>(Get())->GetKey(); }
     UserDataType UserData() const {
-      return static_cast<EntryType*>(Get())->mData;
+      return Converter::Unwrap(static_cast<EntryType*>(Get())->mData);
     }
     DataType& Data() const { return static_cast<EntryType*>(Get())->mData; }
 

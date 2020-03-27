@@ -416,8 +416,8 @@ bool JSFunction::needsPrototypeProperty() {
    * created eagerly.
    *
    * ES5 15.3.4.5: bound functions don't have a prototype property. The
-   * isBuiltin() test covers this case because bound functions are native
-   * (and thus built-in) functions by definition/construction.
+   * isBuiltin() test covers this case because bound functions are self-hosted
+   * (scripted) built-ins.
    *
    * ES6 9.2.8 MakeConstructor defines the .prototype property on constructors.
    * Generators are not constructors, but they have a .prototype property
@@ -430,6 +430,39 @@ bool JSFunction::needsPrototypeProperty() {
    * - Async functions
    */
   return !isBuiltin() && (isConstructor() || isGenerator());
+}
+
+bool JSFunction::hasNonConfigurablePrototypeDataProperty() {
+  if (!isBuiltin()) {
+    return needsPrototypeProperty();
+  }
+
+  if (isSelfHostedBuiltin()) {
+    // Self-hosted constructors other than bound functions have a
+    // non-configurable .prototype data property. See the MakeConstructible
+    // intrinsic.
+    if (!isConstructor() || isBoundFunction()) {
+      return false;
+    }
+#ifdef DEBUG
+    PropertyName* prototypeName =
+        runtimeFromMainThread()->commonNames->prototype;
+    Shape* shape = lookupPure(prototypeName);
+    MOZ_ASSERT(shape);
+    MOZ_ASSERT(shape->isDataProperty());
+    MOZ_ASSERT(!shape->configurable());
+#endif
+    return true;
+  }
+
+  if (!isConstructor()) {
+    // We probably don't have a .prototype property. Avoid the lookup below.
+    return false;
+  }
+
+  PropertyName* prototypeName = runtimeFromMainThread()->commonNames->prototype;
+  Shape* shape = lookupPure(prototypeName);
+  return shape && shape->isDataProperty() && !shape->configurable();
 }
 
 static bool fun_mayResolve(const JSAtomState& names, jsid id, JSObject*) {
@@ -1225,7 +1258,7 @@ const JSClass JSFunction::class_ = {js_Function_str,
 
 const JSClass* const js::FunctionClassPtr = &JSFunction::class_;
 
-bool JSFunction::isDerivedClassConstructor() {
+bool JSFunction::isDerivedClassConstructor() const {
   bool derived = hasBaseScript() && baseScript()->isDerivedClassConstructor();
   MOZ_ASSERT_IF(derived, isClassConstructor());
   return derived;
@@ -2157,7 +2190,7 @@ bool js::CanReuseScriptForClone(JS::Realm* realm, HandleFunction fun,
   // Don't need to clone the script if newParent is a syntactic scope, since
   // in that case we have some actual scope objects on our scope chain and
   // whatnot; whoever put them there should be responsible for setting our
-  // script's flags appropriately.  We hit this case for JSOP_LAMBDA, for
+  // script's flags appropriately.  We hit this case for JSOp::Lambda, for
   // example.
   if (IsSyntacticEnvironment(newParent)) {
     return true;
@@ -2195,7 +2228,7 @@ static inline JSFunction* NewFunctionClone(JSContext* cx, HandleFunction fun,
   // cloning the function, but since we can't differentiate between both
   // cases here, we'll end up with a momentarily incorrect function name.
   // This will be fixed up in SetFunctionName(), which should happen through
-  // JSOP_SETFUNNAME directly after JSOP_LAMBDA.
+  // JSOp::SetFunName directly after JSOp::Lambda.
   constexpr uint16_t NonCloneableFlags = FunctionFlags::EXTENDED |
                                          FunctionFlags::RESOLVED_LENGTH |
                                          FunctionFlags::RESOLVED_NAME;

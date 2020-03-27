@@ -171,12 +171,12 @@ add_task(async function check_other_error_handling() {
 // ASRouterTargeting.Environment
 add_task(async function check_locale() {
   ok(
-    Services.locale.appLocaleAsLangTag,
-    "Services.locale.appLocaleAsLangTag exists"
+    Services.locale.appLocaleAsBCP47,
+    "Services.locale.appLocaleAsBCP47 exists"
   );
   const message = {
     id: "foo",
-    targeting: `locale == "${Services.locale.appLocaleAsLangTag}"`,
+    targeting: `locale == "${Services.locale.appLocaleAsBCP47}"`,
   };
   is(
     await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
@@ -185,13 +185,13 @@ add_task(async function check_locale() {
   );
 });
 add_task(async function check_localeLanguageCode() {
-  const currentLanguageCode = Services.locale.appLocaleAsLangTag.substr(0, 2);
+  const currentLanguageCode = Services.locale.appLocaleAsBCP47.substr(0, 2);
   is(
     Services.locale.negotiateLanguages(
       [currentLanguageCode],
-      [Services.locale.appLocaleAsLangTag]
+      [Services.locale.appLocaleAsBCP47]
     )[0],
-    Services.locale.appLocaleAsLangTag,
+    Services.locale.appLocaleAsBCP47,
     "currentLanguageCode should resolve to the current locale (e.g en => en-US)"
   );
   const message = {
@@ -656,6 +656,12 @@ add_task(async function checkFrecentSites() {
 });
 
 add_task(async function check_pinned_sites() {
+  // Fresh profiles come with an empty set of pinned websites (pref doesn't
+  // exist). Search shortcut topsites make this test more complicated because
+  // the feature pins a new website on startup. Behaviour can vary when running
+  // with --verify so it's more predictable to clear pins entirely.
+  Services.prefs.clearUserPref("browser.newtabpage.pinned");
+  NewTabUtils.pinnedLinks.resetCache();
   const originalPin = JSON.stringify(NewTabUtils.pinnedLinks.links);
   const sitesToPin = [
     { url: "https://foo.com" },
@@ -710,6 +716,8 @@ add_task(async function check_pinned_sites() {
   sitesToPin.forEach(site => NewTabUtils.pinnedLinks.unpin(site));
 
   await clearHistoryAndBookmarks();
+  Services.prefs.clearUserPref("browser.newtabpage.pinned");
+  NewTabUtils.pinnedLinks.resetCache();
   is(
     JSON.stringify(NewTabUtils.pinnedLinks.links),
     originalPin,
@@ -837,22 +845,6 @@ add_task(async function check_hasAccessedFxAPanel() {
     await ASRouterTargeting.Environment.hasAccessedFxAPanel,
     true,
     "Should detect panel access"
-  );
-});
-
-add_task(async function check_isWhatsNewPanelEnabled() {
-  is(
-    await ASRouterTargeting.Environment.isWhatsNewPanelEnabled,
-    true,
-    "Enabled by default"
-  );
-
-  await pushPrefs(["browser.messaging-system.whatsNewPanel.enabled", false]);
-
-  is(
-    await ASRouterTargeting.Environment.isWhatsNewPanelEnabled,
-    false,
-    "Should update based on pref, e.g., for holdback"
   );
 });
 

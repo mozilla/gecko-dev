@@ -6,7 +6,6 @@
 
 #include "jit/VMFunctions.h"
 
-#include "builtin/Promise.h"
 #include "builtin/String.h"
 #include "builtin/TypedObject.h"
 #include "frontend/BytecodeCompiler.h"
@@ -224,6 +223,11 @@ bool InvokeFunction(JSContext* cx, HandleObject obj, bool constructing,
     }
 
     RootedValue newTarget(cx, argvWithoutThis[argc]);
+
+    // See CreateThisFromIon for why this can be NullValue.
+    if (thisv.isNull()) {
+      thisv.setMagic(JS_IS_CONSTRUCTING);
+    }
 
     // If |this| hasn't been created, or is JS_UNINITIALIZED_LEXICAL,
     // we can use normal construction code without creating an extraneous
@@ -595,7 +599,7 @@ bool SetProperty(JSContext* cx, HandleObject obj, HandlePropertyName name,
 
   JSOp op = JSOp(*pc);
 
-  if (op == JSOP_SETALIASEDVAR || op == JSOP_INITALIASEDLEXICAL) {
+  if (op == JSOp::SetAliasedVar || op == JSOp::InitAliasedLexical) {
     // Aliased var assigns ignore readonly attributes on the property, as
     // required for initializing 'const' closure variables.
     Shape* shape = obj->as<NativeObject>().lookup(cx, name);
@@ -607,8 +611,8 @@ bool SetProperty(JSContext* cx, HandleObject obj, HandlePropertyName name,
   RootedValue receiver(cx, ObjectValue(*obj));
   ObjectOpResult result;
   if (MOZ_LIKELY(!obj->getOpsSetProperty())) {
-    if (op == JSOP_SETNAME || op == JSOP_STRICTSETNAME || op == JSOP_SETGNAME ||
-        op == JSOP_STRICTSETGNAME) {
+    if (op == JSOp::SetName || op == JSOp::StrictSetName ||
+        op == JSOp::SetGName || op == JSOp::StrictSetGName) {
       if (!NativeSetProperty<Unqualified>(cx, obj.as<NativeObject>(), id, value,
                                           receiver, result)) {
         return false;
@@ -682,25 +686,60 @@ bool GetIntrinsicValue(JSContext* cx, HandlePropertyName name,
   return true;
 }
 
-bool CreateThis(JSContext* cx, HandleObject callee, HandleObject newTarget,
-                MutableHandleValue rval) {
+bool CreateThisFromIC(JSContext* cx, HandleObject callee,
+                      HandleObject newTarget, MutableHandleValue rval) {
+  HandleFunction fun = callee.as<JSFunction>();
+  MOZ_ASSERT(fun->isInterpreted());
+  MOZ_ASSERT(fun->isConstructor());
+
+  // CreateThis expects rval to be this magic value.
   rval.set(MagicValue(JS_IS_CONSTRUCTING));
 
-  if (callee->is<JSFunction>()) {
-    RootedFunction fun(cx, &callee->as<JSFunction>());
-    if (fun->isInterpreted() && fun->isConstructor()) {
-      JSScript* script = JSFunction::getOrCreateScript(cx, fun);
-      if (!script) {
-        return false;
-      }
-      if (!js::CreateThis(cx, fun, script, newTarget, GenericObject, rval)) {
-        return false;
-      }
-      MOZ_ASSERT_IF(rval.isObject(),
-                    fun->realm() == rval.toObject().nonCCWRealm());
+  if (!js::CreateThis(cx, fun, newTarget, GenericObject, rval)) {
+    return false;
+  }
+
+  MOZ_ASSERT_IF(rval.isObject(), fun->realm() == rval.toObject().nonCCWRealm());
+  return true;
+}
+
+bool CreateThisFromIon(JSContext* cx, HandleObject callee,
+                       HandleObject newTarget, MutableHandleValue rval) {
+  // Return JS_IS_CONSTRUCTING for cases not supported by the inline call path.
+  rval.set(MagicValue(JS_IS_CONSTRUCTING));
+
+  if (!callee->is<JSFunction>()) {
+    return true;
+  }
+
+  HandleFunction fun = callee.as<JSFunction>();
+  if (!fun->isInterpreted() || !fun->isConstructor()) {
+    return true;
+  }
+
+  // If newTarget is not a function or is a function with a possibly-getter
+  // .prototype property, return NullValue to signal to LCallGeneric that it has
+  // to take the slow path. Note that we return NullValue instead of a
+  // MagicValue only because it's easier and faster to check for in JIT code
+  // (if we returned a MagicValue, JIT code would have to check both the type
+  // tag and the JSWhyMagic payload).
+  if (!fun->constructorNeedsUninitializedThis()) {
+    if (!newTarget->is<JSFunction>()) {
+      rval.setNull();
+      return true;
+    }
+    JSFunction* newTargetFun = &newTarget->as<JSFunction>();
+    if (!newTargetFun->hasNonConfigurablePrototypeDataProperty()) {
+      rval.setNull();
+      return true;
     }
   }
 
+  if (!js::CreateThis(cx, fun, newTarget, GenericObject, rval)) {
+    return false;
+  }
+
+  MOZ_ASSERT_IF(rval.isObject(), fun->realm() == rval.toObject().nonCCWRealm());
   return true;
 }
 
@@ -900,7 +939,7 @@ JSObject* CreateGenerator(JSContext* cx, BaselineFrame* frame) {
 
 bool NormalSuspend(JSContext* cx, HandleObject obj, BaselineFrame* frame,
                    uint32_t frameSize, jsbytecode* pc) {
-  MOZ_ASSERT(*pc == JSOP_YIELD || *pc == JSOP_AWAIT);
+  MOZ_ASSERT(JSOp(*pc) == JSOp::Yield || JSOp(*pc) == JSOp::Await);
 
   uint32_t numValueSlots = frame->numValueSlots(frameSize);
 
@@ -930,7 +969,7 @@ bool NormalSuspend(JSContext* cx, HandleObject obj, BaselineFrame* frame,
 }
 
 bool FinalSuspend(JSContext* cx, HandleObject obj, jsbytecode* pc) {
-  MOZ_ASSERT(*pc == JSOP_FINALYIELDRVAL);
+  MOZ_ASSERT(JSOp(*pc) == JSOp::FinalYieldRval);
   AbstractGeneratorObject::finalSuspend(obj);
   return true;
 }
@@ -939,8 +978,8 @@ bool InterpretResume(JSContext* cx, HandleObject obj, Value* stackValues,
                      MutableHandleValue rval) {
   MOZ_ASSERT(obj->is<AbstractGeneratorObject>());
 
-  // The |stackValues| argument points to the JSOP_RESUME operands on the native
-  // stack. Because the stack grows down, these values are:
+  // The |stackValues| argument points to the JSOp::Resume operands on the
+  // native stack. Because the stack grows down, these values are:
   //
   //   [resumeKind, argument, generator, ..]
 
@@ -960,10 +999,10 @@ bool InterpretResume(JSContext* cx, HandleObject obj, Value* stackValues,
 }
 
 bool DebugAfterYield(JSContext* cx, BaselineFrame* frame) {
-  // The BaselineFrame has just been constructed by JSOP_RESUME in the
+  // The BaselineFrame has just been constructed by JSOp::Resume in the
   // caller. We need to set its debuggee flag as necessary.
   //
-  // If a breakpoint is set on JSOP_AFTERYIELD, or stepping is enabled,
+  // If a breakpoint is set on JSOp::AfterYield, or stepping is enabled,
   // we may already have done this work. Don't fire onEnterFrame again.
   if (frame->script()->isDebuggee() && !frame->isDebuggee()) {
     frame->setIsDebuggee();
@@ -1068,8 +1107,8 @@ bool HandleDebugTrap(JSContext* cx, BaselineFrame* frame, uint8_t* retAddr) {
                DebugAPI::hasBreakpointsAt(script, pc));
   }
 
-  if (*pc == JSOP_AFTERYIELD) {
-    // JSOP_AFTERYIELD will set the frame's debuggee flag and call the
+  if (JSOp(*pc) == JSOp::AfterYield) {
+    // JSOp::AfterYield will set the frame's debuggee flag and call the
     // onEnterFrame handler, but if we set a breakpoint there we have to do
     // it now.
     MOZ_ASSERT(!frame->isDebuggee());
@@ -1357,7 +1396,6 @@ void AssertValidBigIntPtr(JSContext* cx, JS::BigInt* bi) {
   // FIXME: check runtime?
   MOZ_ASSERT(cx->zone() == bi->zone());
   MOZ_ASSERT(bi->isAligned());
-  MOZ_ASSERT(bi->isTenured());
   MOZ_ASSERT(bi->getAllocKind() == gc::AllocKind::BIGINT);
 }
 
@@ -1973,9 +2011,14 @@ bool DoToNumeric(JSContext* cx, HandleValue arg, MutableHandleValue ret) {
   return ToNumeric(cx, ret);
 }
 
-void* AllocateBigIntNoGC(JSContext* cx) {
+void* AllocateBigIntNoGC(JSContext* cx, bool requestMinorGC) {
   AutoUnsafeCallWithABI unsafe;
-  return js::Allocate<BigInt, NoGC>(cx);
+
+  if (requestMinorGC) {
+    cx->nursery().requestMinorGC(JS::GCReason::OUT_OF_NURSERY);
+  }
+
+  return js::AllocateBigInt<NoGC>(cx, gc::TenuredHeap);
 }
 
 template <EqualityKind Kind>

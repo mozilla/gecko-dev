@@ -67,12 +67,6 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::net;
 
-// Create key from baseDomain that will access the default cookie namespace.
-// TODO: When we figure out what the API will look like for nsICookieManager{2}
-// on content processes (see bug 777620), change to use the appropriate app
-// namespace.  For now those IDLs aren't supported on child processes.
-#define DEFAULT_APP_KEY(baseDomain) nsCookieKey(baseDomain, OriginAttributes())
-
 /******************************************************************************
  * nsCookieService impl:
  * useful types & constants
@@ -85,7 +79,7 @@ static StaticRefPtr<nsCookieService> gCookieService;
 #define HTTP_ONLY_PREFIX "#HttpOnly_"
 
 #define COOKIES_FILE "cookies.sqlite"
-#define COOKIES_SCHEMA_VERSION 10
+#define COOKIES_SCHEMA_VERSION 11
 
 // parameter indexes; see |Read|
 #define IDX_NAME 0
@@ -97,10 +91,9 @@ static StaticRefPtr<nsCookieService> gCookieService;
 #define IDX_CREATION_TIME 6
 #define IDX_SECURE 7
 #define IDX_HTTPONLY 8
-#define IDX_BASE_DOMAIN 9
-#define IDX_ORIGIN_ATTRIBUTES 10
-#define IDX_SAME_SITE 11
-#define IDX_RAW_SAME_SITE 12
+#define IDX_ORIGIN_ATTRIBUTES 9
+#define IDX_SAME_SITE 10
+#define IDX_RAW_SAME_SITE 11
 
 static const int64_t kCookiePurgeAge =
     int64_t(30 * 24 * 60 * 60) * PR_USEC_PER_SEC;  // 30 days in microseconds
@@ -1247,7 +1240,9 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
         NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
 
         // Recreate our index.
-        rv = CreateIndex();
+        rv = mDefaultDBState->syncConn->ExecuteSimpleSQL(
+            NS_LITERAL_CSTRING("CREATE INDEX moz_basedomain ON moz_cookies "
+                               "(baseDomain, originAttributes)"));
         NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
 
         COOKIE_LOGSTRING(LogLevel::Debug,
@@ -1279,6 +1274,86 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
 
         COOKIE_LOGSTRING(LogLevel::Debug,
                          ("Upgraded database to schema version 10"));
+      }
+        [[fallthrough]];
+
+      case 10: {
+        // Rename existing table
+        rv = mDefaultDBState->syncConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+            "ALTER TABLE moz_cookies RENAME TO moz_cookies_old"));
+        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
+
+        // Create a new moz_cookies table without the baseDomain field.
+        rv = mDefaultDBState->syncConn->ExecuteSimpleSQL(
+            NS_LITERAL_CSTRING("CREATE TABLE moz_cookies("
+                               "id INTEGER PRIMARY KEY, "
+                               "originAttributes TEXT NOT NULL DEFAULT '', "
+                               "name TEXT, "
+                               "value TEXT, "
+                               "host TEXT, "
+                               "path TEXT, "
+                               "expiry INTEGER, "
+                               "lastAccessed INTEGER, "
+                               "creationTime INTEGER, "
+                               "isSecure INTEGER, "
+                               "isHttpOnly INTEGER, "
+                               "inBrowserElement INTEGER DEFAULT 0, "
+                               "sameSite INTEGER DEFAULT 0, "
+                               "rawSameSite INTEGER DEFAULT 0, "
+                               "CONSTRAINT moz_uniqueid UNIQUE (name, host, "
+                               "path, originAttributes)"
+                               ")"));
+        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
+
+        // Move the data over.
+        rv = mDefaultDBState->syncConn->ExecuteSimpleSQL(
+            NS_LITERAL_CSTRING("INSERT INTO moz_cookies ("
+                               "id, "
+                               "originAttributes, "
+                               "name, "
+                               "value, "
+                               "host, "
+                               "path, "
+                               "expiry, "
+                               "lastAccessed, "
+                               "creationTime, "
+                               "isSecure, "
+                               "isHttpOnly, "
+                               "inBrowserElement, "
+                               "sameSite, "
+                               "rawSameSite "
+                               ") SELECT "
+                               "id, "
+                               "originAttributes, "
+                               "name, "
+                               "value, "
+                               "host, "
+                               "path, "
+                               "expiry, "
+                               "lastAccessed, "
+                               "creationTime, "
+                               "isSecure, "
+                               "isHttpOnly, "
+                               "inBrowserElement, "
+                               "sameSite, "
+                               "rawSameSite "
+                               "FROM moz_cookies_old "
+                               "WHERE baseDomain NOTNULL;"));
+        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
+
+        // Drop the old table
+        rv = mDefaultDBState->syncConn->ExecuteSimpleSQL(
+            NS_LITERAL_CSTRING("DROP TABLE moz_cookies_old;"));
+        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
+
+        // Drop the moz_basedomain index from the database (if it hasn't been
+        // removed already by removing the table).
+        rv = mDefaultDBState->syncConn->ExecuteSimpleSQL(
+            NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_basedomain;"));
+        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
+
+        COOKIE_LOGSTRING(LogLevel::Debug,
+                         ("Upgraded database to schema version 11"));
 
         // No more upgrades. Update the schema version.
         rv =
@@ -1317,7 +1392,6 @@ OpenDBResult nsCookieService::TryInitDB(bool aRecreateDB) {
         rv = mDefaultDBState->syncConn->CreateStatement(
             NS_LITERAL_CSTRING("SELECT "
                                "id, "
-                               "baseDomain, "
                                "originAttributes, "
                                "name, "
                                "value, "
@@ -1465,7 +1539,6 @@ nsresult nsCookieService::InitDBConnInternal() {
   // cache frequently used statements (for insertion, deletion, and updating)
   rv = mDefaultDBState->dbConn->CreateAsyncStatement(
       NS_LITERAL_CSTRING("INSERT INTO moz_cookies ("
-                         "baseDomain, "
                          "originAttributes, "
                          "name, "
                          "value, "
@@ -1479,7 +1552,6 @@ nsresult nsCookieService::InitDBConnInternal() {
                          "sameSite, "
                          "rawSameSite "
                          ") VALUES ("
-                         ":baseDomain, "
                          ":originAttributes, "
                          ":name, "
                          ":value, "
@@ -1522,7 +1594,6 @@ nsresult nsCookieService::CreateTableWorker(const char* aName) {
   command.AppendLiteral(
       " ("
       "id INTEGER PRIMARY KEY, "
-      "baseDomain TEXT, "
       "originAttributes TEXT NOT NULL DEFAULT '', "
       "name TEXT, "
       "value TEXT, "
@@ -1551,14 +1622,7 @@ nsresult nsCookieService::CreateTable() {
   rv = CreateTableWorker("moz_cookies");
   if (NS_FAILED(rv)) return rv;
 
-  return CreateIndex();
-}
-
-nsresult nsCookieService::CreateIndex() {
-  // Create an index on baseDomain.
-  return mDefaultDBState->syncConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "CREATE INDEX moz_basedomain ON moz_cookies (baseDomain, "
-      "originAttributes)"));
+  return NS_OK;
 }
 
 // Sets the schema version and creates the moz_cookies table.
@@ -1962,31 +2026,9 @@ nsresult nsCookieService::GetCookieStringCommon(nsIURI* aHostURI,
 
   aCookie.Truncate();
 
-  // Determine whether the request is foreign. Failure is acceptable.
-  bool isForeign = true;
-
-  if (aChannel) {
-    mThirdPartyUtil->IsThirdPartyChannel(aChannel, aHostURI, &isForeign);
-  }
-
-  bool isTrackingResource = false;
-  bool isSocialTrackingResource = false;
-  bool firstPartyStorageAccessGranted = false;
   uint32_t rejectedReason = 0;
-  nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
-      do_QueryInterface(aChannel);
-  if (classifiedChannel) {
-    isTrackingResource = classifiedChannel->IsTrackingResource();
-    isSocialTrackingResource = classifiedChannel->IsSocialTrackingResource();
-
-    // Check first-party storage access even for non-tracking resources, since
-    // we will need the result when computing the access rights for the reject
-    // foreign cookie behavior mode.
-    if (AntiTrackingCommon::IsFirstPartyStorageAccessGrantedFor(
-            aChannel, aHostURI, &rejectedReason)) {
-      firstPartyStorageAccessGranted = true;
-    }
-  }
+  ThirdPartyAnalysisResult result = mThirdPartyUtil->AnalyzeChannel(
+      aChannel, false, aHostURI, nullptr, &rejectedReason);
 
   OriginAttributes attrs;
   if (aChannel) {
@@ -1997,9 +2039,12 @@ nsresult nsCookieService::GetCookieStringCommon(nsIURI* aHostURI,
   bool isSafeTopLevelNav = NS_IsSafeTopLevelNav(aChannel);
   bool isSameSiteForeign = NS_IsSameSiteForeign(aChannel, aHostURI);
   GetCookieStringInternal(
-      aHostURI, aChannel, isForeign, isTrackingResource,
-      isSocialTrackingResource, firstPartyStorageAccessGranted, rejectedReason,
-      isSafeTopLevelNav, isSameSiteForeign, aHttpBound, attrs, aCookie);
+      aHostURI, aChannel, result.contains(ThirdPartyAnalysis::IsForeign),
+      result.contains(ThirdPartyAnalysis::IsTrackingResource),
+      result.contains(ThirdPartyAnalysis::IsSocialTrackingResource),
+      result.contains(ThirdPartyAnalysis::IsFirstPartyStorageAccessGranted),
+      rejectedReason, isSafeTopLevelNav, isSameSiteForeign, aHttpBound, attrs,
+      aCookie);
   return NS_OK;
 }
 
@@ -2087,31 +2132,9 @@ nsresult nsCookieService::SetCookieStringCommon(nsIURI* aHostURI,
                                                 bool aFromHttp) {
   NS_ENSURE_ARG(aHostURI);
 
-  // Determine whether the request is foreign. Failure is acceptable.
-  bool isForeign = true;
-
-  if (aChannel) {
-    mThirdPartyUtil->IsThirdPartyChannel(aChannel, aHostURI, &isForeign);
-  }
-
-  bool isTrackingResource = false;
-  bool isSocialTrackingResource = false;
-  bool firstPartyStorageAccessGranted = false;
   uint32_t rejectedReason = 0;
-  nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
-      do_QueryInterface(aChannel);
-  if (classifiedChannel) {
-    isTrackingResource = classifiedChannel->IsTrackingResource();
-    isSocialTrackingResource = classifiedChannel->IsSocialTrackingResource();
-
-    // Check first-party storage access even for non-tracking resources, since
-    // we will need the result when computing the access rights for the reject
-    // foreign cookie behavior mode.
-    if (AntiTrackingCommon::IsFirstPartyStorageAccessGrantedFor(
-            aChannel, aHostURI, &rejectedReason)) {
-      firstPartyStorageAccessGranted = true;
-    }
-  }
+  ThirdPartyAnalysisResult result = mThirdPartyUtil->AnalyzeChannel(
+      aChannel, false, aHostURI, nullptr, &rejectedReason);
 
   OriginAttributes attrs;
   if (aChannel) {
@@ -2121,9 +2144,11 @@ nsresult nsCookieService::SetCookieStringCommon(nsIURI* aHostURI,
 
   nsCString cookieString(aCookieHeader);
   SetCookieStringInternal(
-      aHostURI, isForeign, isTrackingResource, isSocialTrackingResource,
-      firstPartyStorageAccessGranted, rejectedReason, cookieString, aServerTime,
-      aFromHttp, attrs, aChannel);
+      aHostURI, result.contains(ThirdPartyAnalysis::IsForeign),
+      result.contains(ThirdPartyAnalysis::IsTrackingResource),
+      result.contains(ThirdPartyAnalysis::IsSocialTrackingResource),
+      result.contains(ThirdPartyAnalysis::IsFirstPartyStorageAccessGranted),
+      rejectedReason, cookieString, aServerTime, aFromHttp, attrs, aChannel);
   return NS_OK;
 }
 
@@ -2169,7 +2194,8 @@ void nsCookieService::SetCookieStringInternal(
   uint32_t rejectedReason = aRejectedReason;
   nsAutoCString hostFromURI;
   aHostURI->GetHost(hostFromURI);
-  CountCookiesFromHost(hostFromURI, &priorCookieCount);
+  CountCookiesFromHostInternal(hostFromURI, aOriginAttrs.mPrivateBrowsingId,
+                               &priorCookieCount);
   CookieStatus cookieStatus = CheckPrefs(
       cookieSettings, aHostURI, aIsForeign, aIsTrackingResource,
       aIsSocialTrackingResource, aFirstPartyStorageAccessGranted, aCookieHeader,
@@ -2572,7 +2598,6 @@ nsCookieService::RemoveNative(const nsACString& aHost, const nsACString& aName,
 // Extract data from a single result row and create an nsCookie.
 mozilla::UniquePtr<CookieStruct> nsCookieService::GetCookieFromRow(
     mozIStorageStatement* aRow) {
-  // Skip reading 'baseDomain' -- up to the caller.
   nsCString name, value, host, path;
   DebugOnly<nsresult> rv = aRow->GetUTF8String(IDX_NAME, name);
   NS_ASSERT_SUCCESS(rv);
@@ -2645,18 +2670,10 @@ void nsCookieService::EnsureReadComplete(bool aInitDBConn) {
 OpenDBResult nsCookieService::Read() {
   MOZ_ASSERT(NS_GetCurrentThread() == mThread);
 
-  // Set up a statement to delete any rows with a nullptr 'baseDomain'
-  // column. This takes care of any cookies set by browsers that don't
-  // understand the 'baseDomain' column, where the database schema version
-  // is from one that does. (This would occur when downgrading.)
-  nsresult rv = mDefaultDBState->syncConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("DELETE FROM moz_cookies WHERE baseDomain ISNULL"));
-  NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
-
   // Read in the data synchronously.
   // see IDX_NAME, etc. for parameter indexes
   nsCOMPtr<mozIStorageStatement> stmt;
-  rv = mDefaultDBState->syncConn->CreateStatement(
+  nsresult rv = mDefaultDBState->syncConn->CreateStatement(
       NS_LITERAL_CSTRING("SELECT "
                          "name, "
                          "value, "
@@ -2667,12 +2684,10 @@ OpenDBResult nsCookieService::Read() {
                          "creationTime, "
                          "isSecure, "
                          "isHttpOnly, "
-                         "baseDomain, "
                          "originAttributes, "
                          "sameSite, "
                          "rawSameSite "
-                         "FROM moz_cookies "
-                         "WHERE baseDomain NOTNULL"),
+                         "FROM moz_cookies"),
       getter_AddRefs(stmt));
 
   NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
@@ -2693,8 +2708,14 @@ OpenDBResult nsCookieService::Read() {
 
     if (!hasResult) break;
 
-    // Make sure we haven't already read the data.
-    stmt->GetUTF8String(IDX_BASE_DOMAIN, baseDomain);
+    stmt->GetUTF8String(IDX_HOST, host);
+
+    rv = GetBaseDomainFromHost(mTLDService, host, baseDomain);
+    if (NS_FAILED(rv)) {
+      COOKIE_LOGSTRING(LogLevel::Debug,
+                       ("Read(): Ignoring invalid host '%s'", host.get()));
+      continue;
+    }
 
     nsAutoCString suffix;
     OriginAttributes attrs;
@@ -2839,7 +2860,7 @@ nsCookieService::ImportCookies(nsIFile* aCookieFile) {
 
     // pre-existing cookies have inIsolatedMozBrowser=false set by default
     // constructor of OriginAttributes().
-    nsCookieKey key = DEFAULT_APP_KEY(baseDomain);
+    nsCookieKey key(baseDomain, OriginAttributes());
 
     // Create a new nsCookie and assign the data. We don't know the cookie
     // creation time, so just use the current time to generate a unique one.
@@ -2970,7 +2991,8 @@ void nsCookieService::GetCookiesForURI(
   // check default prefs
   uint32_t rejectedReason = aRejectedReason;
   uint32_t priorCookieCount = 0;
-  CountCookiesFromHost(hostFromURI, &priorCookieCount);
+  CountCookiesFromHostInternal(hostFromURI, aOriginAttrs.mPrivateBrowsingId,
+                               &priorCookieCount);
   CookieStatus cookieStatus = CheckPrefs(
       cookieSettings, aHostURI, aIsForeign, aIsTrackingResource,
       aIsSocialTrackingResource, aFirstPartyStorageAccessGranted, VoidCString(),
@@ -3603,11 +3625,7 @@ void nsCookieService::AddInternal(const nsCookieKey& aKey, nsCookie* aCookie,
        reject control chars or non-ASCII chars. This is erring on the loose
        side, since there's probably no good reason to enforce this strictness.
 
-    5. cookie <NAME> is optional, where spec requires it. This is a fairly
-       trivial case, but allows the flexibility of setting only a cookie <VALUE>
-       with a blank <NAME> and is required by some sites (see bug 169091).
-
-    6. Attribute "HttpOnly", not covered in the RFCs, is supported
+    5. Attribute "HttpOnly", not covered in the RFCs, is supported
        (see bug 178993).
 
  ** Begin BNF:
@@ -4030,8 +4048,7 @@ CookieStatus nsCookieService::CheckPrefs(
       return STATUS_REJECTED;
     }
 
-    if (aCookieSettings->GetCookieBehavior() ==
-            nsICookieService::BEHAVIOR_LIMIT_FOREIGN &&
+    if (aCookieSettings->GetLimitForeignContexts() &&
         !aFirstPartyStorageAccessGranted && aNumOfCookies == 0) {
       COOKIE_LOGFAILURE(aCookieHeader.IsVoid() ? GET_COOKIE : SET_COOKIE,
                         aHostURI, aCookieHeader, "context is third party");
@@ -4551,6 +4568,15 @@ void nsCookieService::FindStaleCookies(nsCookieEntry* aEntry,
 NS_IMETHODIMP
 nsCookieService::CountCookiesFromHost(const nsACString& aHost,
                                       uint32_t* aCountFromHost) {
+  return CountCookiesFromHostInternal(aHost, 0, aCountFromHost);
+}
+
+nsresult nsCookieService::CountCookiesFromHostInternal(
+    const nsACString& aHost, uint32_t aPrivateBrowsingId,
+    uint32_t* aCountFromHost) {
+  AutoRestore<DBState*> savePrevDBState(mDBState);
+  mDBState = (aPrivateBrowsingId > 0) ? mPrivateDBState : mDefaultDBState;
+
   if (!mDBState) {
     NS_WARNING("No DBState! Profile already closed?");
     return NS_ERROR_NOT_AVAILABLE;
@@ -4567,7 +4593,9 @@ nsCookieService::CountCookiesFromHost(const nsACString& aHost,
   rv = GetBaseDomainFromHost(mTLDService, host, baseDomain);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCookieKey key = DEFAULT_APP_KEY(baseDomain);
+  OriginAttributes attrs;
+  attrs.mPrivateBrowsingId = aPrivateBrowsingId;
+  nsCookieKey key(baseDomain, attrs);
 
   // Return a count of all cookies, including expired.
   nsCookieEntry* entry = mDBState->hostTable.GetEntry(key);
@@ -5030,11 +5058,6 @@ void bindCookieParameters(mozIStorageBindingParamsArray* aParamsArray,
   nsCOMPtr<mozIStorageBindingParams> params;
   DebugOnly<nsresult> rv =
       aParamsArray->NewBindingParams(getter_AddRefs(params));
-  NS_ASSERT_SUCCESS(rv);
-
-  // Bind our values to params
-  rv = params->BindUTF8StringByName(NS_LITERAL_CSTRING("baseDomain"),
-                                    aKey.mBaseDomain);
   NS_ASSERT_SUCCESS(rv);
 
   nsAutoCString suffix;

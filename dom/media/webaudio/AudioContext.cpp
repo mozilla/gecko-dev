@@ -500,8 +500,8 @@ already_AddRefed<OscillatorNode> AudioContext::CreateOscillator(
 already_AddRefed<PeriodicWave> AudioContext::CreatePeriodicWave(
     const Float32Array& aRealData, const Float32Array& aImagData,
     const PeriodicWaveConstraints& aConstraints, ErrorResult& aRv) {
-  aRealData.ComputeLengthAndData();
-  aImagData.ComputeLengthAndData();
+  aRealData.ComputeState();
+  aImagData.ComputeState();
 
   if (aRealData.Length() != aImagData.Length() || aRealData.Length() == 0) {
     aRv.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
@@ -602,19 +602,11 @@ already_AddRefed<Promise> AudioContext::DecodeAudioData(
     return nullptr;
   }
 
-  aBuffer.ComputeLengthAndData();
-
-  if (aBuffer.IsShared()) {
-    // Throw if the object is mapping shared memory (must opt in).
-    aRv.ThrowTypeError<MSG_TYPEDARRAY_IS_SHARED>(
-        NS_LITERAL_STRING("Argument of AudioContext.decodeAudioData"));
-    return nullptr;
-  }
+  aBuffer.ComputeState();
 
   if (!aBuffer.Data()) {
     // Throw if the buffer is detached
-    aRv.ThrowTypeError<MSG_TYPEDARRAY_IS_DETACHED>(
-        NS_LITERAL_STRING("Argument of AudioContext.decodeAudioData"));
+    aRv.ThrowTypeError(u"Buffer argument can't be a detached buffer");
     return nullptr;
   }
 

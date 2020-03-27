@@ -74,12 +74,14 @@ registerCleanupFunction(async function() {
  *        The URL for the tab to be opened.
  * @param Boolean clearJstermHistory
  *        true (default) if the jsterm history should be cleared.
+ * @param String hostId (optional)
+ *        The type of toolbox host to be used.
  * @return Promise
  *         Resolves when the tab has been added, loaded and the toolbox has been opened.
  *         Resolves to the toolbox.
  */
-async function openNewTabAndConsole(url, clearJstermHistory = true) {
-  const toolbox = await openNewTabAndToolbox(url, "webconsole");
+async function openNewTabAndConsole(url, clearJstermHistory = true, hostId) {
+  const toolbox = await openNewTabAndToolbox(url, "webconsole", hostId);
   const hud = toolbox.getCurrentPanel().hud;
 
   if (clearJstermHistory) {
@@ -396,12 +398,30 @@ function loadDocument(url, browser = gBrowser.selectedBrowser) {
   return BrowserTestUtils.browserLoaded(browser);
 }
 
-async function toggleConsoleSetting(hud, node) {
+async function toggleConsoleSetting(hud, selector) {
   const toolbox = hud.toolbox;
   const doc = toolbox ? toolbox.doc : hud.chromeWindow.document;
 
-  const menuItem = doc.querySelector(node);
+  const menuItem = doc.querySelector(selector);
   menuItem.click();
+}
+
+function getConsoleSettingElement(hud, selector) {
+  const toolbox = hud.toolbox;
+  const doc = toolbox ? toolbox.doc : hud.chromeWindow.document;
+
+  return doc.querySelector(selector);
+}
+
+function checkConsoleSettingState(hud, selector, enabled) {
+  const el = getConsoleSettingElement(hud, selector);
+  const checked = el.getAttribute("aria-checked") === "true";
+
+  if (enabled) {
+    ok(checked, "setting is enabled");
+  } else {
+    ok(!checked, "setting is disabled");
+  }
 }
 
 /**
@@ -1154,9 +1174,13 @@ function isReverseSearchInputFocused(hud) {
   return document.activeElement == reverseSearchInput && documentIsFocused;
 }
 
+function getEagerEvaluationElement(hud) {
+  return hud.ui.outputNode.querySelector(".eager-evaluation-result");
+}
+
 async function waitForEagerEvaluationResult(hud, text) {
   await waitUntil(() => {
-    const elem = hud.ui.outputNode.querySelector(".eager-evaluation-result");
+    const elem = getEagerEvaluationElement(hud);
     if (elem) {
       if (text instanceof RegExp) {
         return text.test(elem.innerText);
@@ -1174,7 +1198,8 @@ async function waitForEagerEvaluationResult(hud, text) {
 // input was processed and sent down to the server for evaluating.
 async function waitForNoEagerEvaluationResult(hud) {
   await waitUntil(() => {
-    return !hud.ui.outputNode.querySelector(".eager-evaluation-result");
+    const elem = getEagerEvaluationElement(hud);
+    return elem && elem.innerText == "";
   });
   ok(true, `Eager evaluation result disappeared`);
 }

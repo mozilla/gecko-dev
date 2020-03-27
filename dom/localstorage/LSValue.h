@@ -13,7 +13,8 @@
 class mozIStorageStatement;
 
 namespace IPC {
-  template <typename> struct ParamTraits;
+template <typename>
+struct ParamTraits;
 }
 
 namespace mozilla {
@@ -92,8 +93,8 @@ class LSValue final {
         CopyUTF8toUTF16(aValue.mBuffer, mBuffer);
       }
     }
-    Converter(Converter&& aOther) : mBuffer(aOther.mBuffer) {}
-    ~Converter() {}
+    Converter(Converter&& aOther) = default;
+    ~Converter() = default;
 
     operator const nsString&() const { return mBuffer; }
 
@@ -104,7 +105,7 @@ class LSValue final {
     Converter& operator=(const Converter&&) = delete;
   };
 
-  Converter AsString() const { return Converter(const_cast<LSValue&>(*this)); }
+  Converter AsString() const { return Converter{*this}; }
 };
 
 const LSValue& VoidLSValue();

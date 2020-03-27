@@ -8,6 +8,8 @@ typedef long myLong;
 typedef TestInterface AnotherNameForTestInterface;
 typedef TestInterface? NullableTestInterface;
 typedef CustomEventInit TestDictionaryTypedef;
+typedef ArrayBufferView ArrayBufferViewTypedef;
+typedef [AllowShared] ArrayBufferView AllowSharedArrayBufferViewTypedef;
 
 interface TestExternalInterface;
 
@@ -166,7 +168,6 @@ interface TestInterface {
   constructor(unsigned long num, boolean? boolArg);
   constructor(TestInterface? iface);
   constructor(unsigned long arg1, TestInterface iface);
-  constructor(Date arg1);
   constructor(ArrayBuffer arrayBuf);
   constructor(Uint8Array typedArr);
   // constructor(long arg1, long arg2, (TestInterface or OnlyForUseInConstructor) arg3);
@@ -783,18 +784,6 @@ interface TestInterface {
   attribute (CanvasPattern? or CanvasGradient) writableUnionContainingNull;
   attribute (CanvasPattern or CanvasGradient)? writableNullableUnion;
 
-  // Date types
-  void passDate(Date arg);
-  void passNullableDate(Date? arg);
-  void passOptionalDate(optional Date arg);
-  void passOptionalNullableDate(optional Date? arg);
-  void passOptionalNullableDateWithDefaultValue(optional Date? arg = null);
-  void passDateSequence(sequence<Date> arg);
-  void passNullableDateSequence(sequence<Date?> arg);
-  void passDateRecord(record<DOMString, Date> arg);
-  Date receiveDate();
-  Date? receiveNullableDate();
-
   // Promise types
   void passPromise(Promise<any> arg);
   void passOptionalPromise(optional Promise<any> arg);
@@ -859,11 +848,11 @@ interface TestInterface {
   void exerciseTypedefInterfaces3(YetAnotherNameForTestInterface arg);
 
   // Deprecated methods and attributes
-  [Deprecated="EnablePrivilege"]
+  [Deprecated="Components"]
   attribute byte deprecatedAttribute;
-  [Deprecated="EnablePrivilege"]
+  [Deprecated="Components"]
   byte deprecatedMethod();
-  [Deprecated="EnablePrivilege"]
+  [Deprecated="Components"]
   byte deprecatedMethodWithContext(any arg);
 
   // Static methods and attributes
@@ -875,11 +864,11 @@ interface TestInterface {
   static void assert(boolean arg);
 
   // Deprecated static methods and attributes
-  [Deprecated="EnablePrivilege"]
+  [Deprecated="Components"]
   static attribute byte staticDeprecatedAttribute;
-  [Deprecated="EnablePrivilege"]
+  [Deprecated="Components"]
   static void staticDeprecatedMethod();
-  [Deprecated="EnablePrivilege"]
+  [Deprecated="Components"]
   static void staticDeprecatedMethodWithContext(any arg);
 
   // Overload resolution tests
@@ -890,7 +879,6 @@ interface TestInterface {
   void overload2(optional Dict arg = {});
   void overload2(boolean arg);
   void overload2(DOMString arg);
-  void overload2(Date arg);
   void overload3(TestInterface arg);
   void overload3(TestCallback arg);
   void overload3(boolean arg);
@@ -1048,6 +1036,21 @@ interface TestInterface {
   // [NeedsWindowsUndef] test generation
   [NeedsWindowsUndef]
   const unsigned long NO_ERROR = 0xffffffff;
+
+  // [AllowShared] tests
+  attribute [AllowShared] ArrayBufferViewTypedef allowSharedArrayBufferViewTypedef;
+  attribute [AllowShared] ArrayBufferView allowSharedArrayBufferView;
+  attribute [AllowShared] ArrayBufferView? allowSharedNullableArrayBufferView;
+  attribute [AllowShared] ArrayBuffer allowSharedArrayBuffer;
+  attribute [AllowShared] ArrayBuffer? allowSharedNullableArrayBuffer;
+
+  void passAllowSharedArrayBufferViewTypedef(AllowSharedArrayBufferViewTypedef foo);
+  void passAllowSharedArrayBufferView([AllowShared] ArrayBufferView foo);
+  void passAllowSharedNullableArrayBufferView([AllowShared] ArrayBufferView? foo);
+  void passAllowSharedArrayBuffer([AllowShared] ArrayBuffer foo);
+  void passAllowSharedNullableArrayBuffer([AllowShared] ArrayBuffer? foo);
+  void passUnionArrayBuffer((DOMString or ArrayBuffer) foo);
+  void passUnionAllowSharedArrayBuffer((DOMString or [AllowShared] ArrayBuffer) foo);
 
   // If you add things here, add them to TestExampleGen and TestJSImplGen as well
 };
@@ -1228,6 +1231,15 @@ dictionary DictWithConditionalMembers {
   long chromeOnlyFuncAndPrefControlledMember;
 };
 
+dictionary DictWithAllowSharedMembers {
+  [AllowShared] ArrayBufferView a;
+  [AllowShared] ArrayBufferView? b;
+  [AllowShared] ArrayBuffer c;
+  [AllowShared] ArrayBuffer? d;
+  [AllowShared] ArrayBufferViewTypedef e;
+  AllowSharedArrayBufferViewTypedef f;
+};
+
 [Exposed=Window]
 interface TestIndexedGetterInterface {
   getter long item(unsigned long idx);
@@ -1308,7 +1320,7 @@ interface TestCppKeywordNamedMethodsInterface {
   long volatile();
 };
 
-[Deprecated="EnablePrivilege",
+[Deprecated="Components",
  Exposed=Window]
 interface TestDeprecatedInterface {
   constructor();
@@ -1375,8 +1387,6 @@ interface TestThrowingConstructorInterface {
   constructor(TestInterface? iface);
   [Throws]
   constructor(unsigned long arg1, TestInterface iface);
-  [Throws]
-  constructor(Date arg1);
   [Throws]
   constructor(ArrayBuffer arrayBuf);
   [Throws]

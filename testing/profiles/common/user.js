@@ -36,7 +36,7 @@ user_pref("dom.send_after_paint_to_content", true);
 // Only load extensions from the application and user profile
 // AddonManager.SCOPE_PROFILE + AddonManager.SCOPE_APPLICATION
 user_pref("extensions.enabledScopes", 5);
-user_pref("extensions.legacy.enabled", true);
+user_pref("extensions.experiments.enabled", true);
 // Turn off extension updates so they don't bother tests
 user_pref("extensions.update.enabled", false);
 // Prevent network access for recommendations by default. The payload is {"results":[]}.
@@ -51,7 +51,7 @@ user_pref("hangmonitor.timeout", 0); // no hang monitor
 user_pref("media.gmp-manager.updateEnabled", false);
 // Don't do network connections for mitm priming
 user_pref("security.certerrors.mitm.priming.enabled", false);
-// Make enablePrivilege continue to work for test code. :-(
+// Enable some dangerous features for test code. :-(
 user_pref("security.turn_off_all_security_so_that_viruses_can_take_over_this_computer", true);
 user_pref("xpinstall.signatures.required", false);
 // Prevent Remote Settings to issue non local connections.
@@ -67,3 +67,5 @@ user_pref("media.block-autoplay-until-in-foreground", false);
 user_pref("toolkit.telemetry.coverage.endpoint.base", "http://localhost");
 // Don't ask for a request in testing unless explicitly set this as true.
 user_pref("media.geckoview.autoplay.request", false);
+// user_pref("geo.provider.network.url", "http://localhost/geoip-dummy");
+user_pref("geo.provider-country.network.url", "http://localhost/geoip-dummy");

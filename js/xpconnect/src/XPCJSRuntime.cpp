@@ -7,6 +7,7 @@
 /* Per JSRuntime object */
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/AutoRestore.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/UniquePtr.h"
 
@@ -18,7 +19,6 @@
 #include "XrayWrapper.h"
 #include "WrapperFactory.h"
 #include "mozJSComponentLoader.h"
-#include "nsAutoPtr.h"
 #include "nsNetUtil.h"
 #include "nsContentSecurityUtils.h"
 
@@ -199,16 +199,14 @@ CompartmentPrivate::CompartmentPrivate(
       allowCPOWs(false),
       isUAWidgetCompartment(false),
       hasExclusiveExpandos(false),
-      universalXPConnectEnabled(false),
       wasShutdown(false),
-      mWrappedJSMap(JSObject2WrappedJSMap::newMap(XPC_JS_MAP_LENGTH)),
+      mWrappedJSMap(mozilla::MakeUnique<JSObject2WrappedJSMap>()),
       mScope(std::move(scope)) {
   MOZ_COUNT_CTOR(xpc::CompartmentPrivate);
 }
 
 CompartmentPrivate::~CompartmentPrivate() {
   MOZ_COUNT_DTOR(xpc::CompartmentPrivate);
-  delete mWrappedJSMap;
 }
 
 void CompartmentPrivate::SystemIsBeingShutDown() {
@@ -526,57 +524,6 @@ bool MightBeWebContentCompartment(JS::Compartment* compartment) {
   return !js::IsSystemCompartment(compartment);
 }
 
-bool IsUniversalXPConnectEnabled(JS::Compartment* compartment) {
-  CompartmentPrivate* priv = CompartmentPrivate::Get(compartment);
-  if (!priv) {
-    return false;
-  }
-  return priv->universalXPConnectEnabled;
-}
-
-bool IsUniversalXPConnectEnabled(JSContext* cx) {
-  JS::Compartment* compartment = js::GetContextCompartment(cx);
-  if (!compartment) {
-    return false;
-  }
-  return IsUniversalXPConnectEnabled(compartment);
-}
-
-bool EnableUniversalXPConnect(JSContext* cx) {
-  JS::Compartment* compartment = js::GetContextCompartment(cx);
-  if (!compartment) {
-    return true;
-  }
-  // Never set universalXPConnectEnabled on a chrome compartment - it confuses
-  // the security wrapping code.
-  if (AccessCheck::isChrome(compartment)) {
-    return true;
-  }
-  CompartmentPrivate* priv = CompartmentPrivate::Get(compartment);
-  if (!priv) {
-    return true;
-  }
-  if (priv->universalXPConnectEnabled) {
-    return true;
-  }
-  priv->universalXPConnectEnabled = true;
-
-  // Recompute all the cross-compartment wrappers leaving the newly-privileged
-  // compartment.
-  bool ok = js::RecomputeWrappers(cx, js::SingleCompartment(compartment),
-                                  js::AllCompartments());
-  NS_ENSURE_TRUE(ok, false);
-
-  // The Components object normally isn't defined for unprivileged web content,
-  // but we define it when UniversalXPConnect is enabled to support legacy
-  // tests.
-  Compartment* comp = js::GetContextCompartment(cx);
-  XPCWrappedNativeScope* scope = CompartmentPrivate::Get(comp)->GetScope();
-  MOZ_ASSERT(scope);
-  scope->ForcePrivilegedComponents();
-  return scope->AttachComponentsObject(cx);
-}
-
 bool CompartmentOriginInfo::IsSameOrigin(nsIPrincipal* aOther) const {
   return mOrigin->FastEquals(aOther);
 }
@@ -681,9 +628,10 @@ static void CompartmentDestroyedCallback(JSFreeOp* fop,
   // NB - This callback may be called in JS_DestroyContext, which happens
   // after the XPCJSRuntime has been torn down.
 
-  // Get the current compartment private into an AutoPtr (which will do the
+  // Get the current compartment private into a UniquePtr (which will do the
   // cleanup for us), and null out the private (which may already be null).
-  nsAutoPtr<CompartmentPrivate> priv(CompartmentPrivate::Get(compartment));
+  mozilla::UniquePtr<CompartmentPrivate> priv(
+      CompartmentPrivate::Get(compartment));
   JS_SetCompartmentPrivate(compartment, nullptr);
 }
 
@@ -709,7 +657,7 @@ bool XPCJSRuntime::UsefulToMergeZones() const {
 }
 
 void XPCJSRuntime::TraceNativeBlackRoots(JSTracer* trc) {
-  for (CycleCollectedJSContext* ccx : Contexts()) {
+  if (CycleCollectedJSContext* ccx = GetContext()) {
     auto* cx = static_cast<const XPCJSContext*>(ccx);
     if (AutoMarkingPtr* roots = cx->mAutoRoots) {
       roots->TraceJSAll(trc);
@@ -865,7 +813,7 @@ void XPCJSRuntime::FinalizeCallback(JSFreeOp* fop, JSFinalizeStatus status,
       MOZ_ASSERT(!self->mGCIsRunning, "bad state");
       self->mGCIsRunning = true;
 
-      for (CycleCollectedJSContext* ccx : self->Contexts()) {
+      if (CycleCollectedJSContext* ccx = self->GetContext()) {
         auto* cx = static_cast<const XPCJSContext*>(ccx);
         if (AutoMarkingPtr* roots = cx->mAutoRoots) {
           roots->MarkAfterJSFinalizeAll();
@@ -936,6 +884,14 @@ void XPCJSRuntime::WeakPointerZonesCallback(JSContext* cx, void* data) {
   // triggered by barriers -- to clear out any references to things that are
   // about to be finalized and update any pointers to moved GC things.
   XPCJSRuntime* self = static_cast<XPCJSRuntime*>(data);
+
+  // This callback is always called from within the GC so set the mGCIsRunning
+  // flag to prevent AssertInvalidWrappedJSNotInTable from trying to call back
+  // into the JS API. This has often already been set by FinalizeCallback by the
+  // time we get here, but it may not be if we are doing a shutdown GC or if we
+  // are called for compacting GC.
+  AutoRestore<bool> restoreState(self->mGCIsRunning);
+  self->mGCIsRunning = true;
 
   self->mWrappedJSMap->UpdateWeakPointersAfterGC();
   self->mUAWidgetScopeMap.sweep();
@@ -1128,16 +1084,12 @@ void XPCJSRuntime::Shutdown(JSContext* cx) {
 
   // Clean up and destroy maps. Any remaining entries in mWrappedJSMap will be
   // cleaned up by the weak pointer callbacks.
-  delete mIID2NativeInterfaceMap;
   mIID2NativeInterfaceMap = nullptr;
 
-  delete mClassInfo2NativeSetMap;
   mClassInfo2NativeSetMap = nullptr;
 
-  delete mNativeSetMap;
   mNativeSetMap = nullptr;
 
-  delete mDyingWrappedNativeProtoMap;
   mDyingWrappedNativeProtoMap = nullptr;
 
   // Prevent ~LinkedList assertion failures if we leaked things.
@@ -1148,7 +1100,6 @@ void XPCJSRuntime::Shutdown(JSContext* cx) {
 
 XPCJSRuntime::~XPCJSRuntime() {
   MOZ_COUNT_DTOR_INHERITED(XPCJSRuntime, CycleCollectedJSRuntime);
-  delete mWrappedJSMap;
 }
 
 // If |*anonymizeID| is non-zero and this is a user realm, the name will
@@ -2185,11 +2136,7 @@ class OrphanReporter : public JS::ObjectPrivateVisitor {
 
   virtual size_t sizeOfIncludingThis(nsISupports* aSupports) override {
     nsCOMPtr<nsINode> node = do_QueryInterface(aSupports);
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=773533#c11 explains that we
-    // have to skip XBL elements because they violate certain assumptions.  Yuk.
-    if (!node || node->IsInComposedDoc() ||
-        (node->IsElement() &&
-         node->AsElement()->IsInNamespace(kNameSpaceID_XBL))) {
+    if (!node || node->IsInComposedDoc()) {
       return 0;
     }
 
@@ -2626,7 +2573,7 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
 
   REPORT_BYTES(
       NS_LITERAL_CSTRING("explicit/js-non-window/helper-thread/wasm-compile"),
-      KIND_HEAP, gStats.helperThread.parseTask,
+      KIND_HEAP, gStats.helperThread.wasmCompile,
       "The memory used by Wasm compilations waiting in HelperThreadState.");
 }
 
@@ -2960,15 +2907,13 @@ static const JSWrapObjectCallbacks WrapObjectCallbacks = {
 
 XPCJSRuntime::XPCJSRuntime(JSContext* aCx)
     : CycleCollectedJSRuntime(aCx),
-      mWrappedJSMap(JSObject2WrappedJSMap::newMap(XPC_JS_MAP_LENGTH)),
-      mIID2NativeInterfaceMap(
-          IID2NativeInterfaceMap::newMap(XPC_NATIVE_INTERFACE_MAP_LENGTH)),
-      mClassInfo2NativeSetMap(
-          ClassInfo2NativeSetMap::newMap(XPC_NATIVE_SET_MAP_LENGTH)),
-      mNativeSetMap(NativeSetMap::newMap(XPC_NATIVE_SET_MAP_LENGTH)),
+      mWrappedJSMap(mozilla::MakeUnique<JSObject2WrappedJSMap>()),
+      mIID2NativeInterfaceMap(mozilla::MakeUnique<IID2NativeInterfaceMap>()),
+      mClassInfo2NativeSetMap(mozilla::MakeUnique<ClassInfo2NativeSetMap>()),
+      mNativeSetMap(mozilla::MakeUnique<NativeSetMap>()),
       mWrappedNativeScopes(),
       mDyingWrappedNativeProtoMap(
-          XPCWrappedNativeProtoMap::newMap(XPC_DYING_NATIVE_PROTO_MAP_LENGTH)),
+          mozilla::MakeUnique<XPCWrappedNativeProtoMap>()),
       mGCIsRunning(false),
       mNativesToReleaseArray(),
       mDoingFinalization(false),
@@ -3199,7 +3144,7 @@ void XPCJSRuntime::DebugDump(int16_t depth) {
   XPC_LOG_INDENT();
 
   // iterate wrappers...
-  XPC_LOG_ALWAYS(("mWrappedJSMap @ %p with %d wrappers(s)", mWrappedJSMap,
+  XPC_LOG_ALWAYS(("mWrappedJSMap @ %p with %d wrappers(s)", mWrappedJSMap.get(),
                   mWrappedJSMap->Count()));
   if (depth && mWrappedJSMap->Count()) {
     XPC_LOG_INDENT();
@@ -3208,12 +3153,14 @@ void XPCJSRuntime::DebugDump(int16_t depth) {
   }
 
   XPC_LOG_ALWAYS(("mIID2NativeInterfaceMap @ %p with %d interface(s)",
-                  mIID2NativeInterfaceMap, mIID2NativeInterfaceMap->Count()));
+                  mIID2NativeInterfaceMap.get(),
+                  mIID2NativeInterfaceMap->Count()));
 
   XPC_LOG_ALWAYS(("mClassInfo2NativeSetMap @ %p with %d sets(s)",
-                  mClassInfo2NativeSetMap, mClassInfo2NativeSetMap->Count()));
+                  mClassInfo2NativeSetMap.get(),
+                  mClassInfo2NativeSetMap->Count()));
 
-  XPC_LOG_ALWAYS(("mNativeSetMap @ %p with %d sets(s)", mNativeSetMap,
+  XPC_LOG_ALWAYS(("mNativeSetMap @ %p with %d sets(s)", mNativeSetMap.get(),
                   mNativeSetMap->Count()));
 
   // iterate sets...

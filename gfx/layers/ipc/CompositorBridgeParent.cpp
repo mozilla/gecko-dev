@@ -946,7 +946,7 @@ void CompositorBridgeParent::SetShadowProperties(Layer* aLayer) {
 
 void CompositorBridgeParent::CompositeToTarget(VsyncId aId, DrawTarget* aTarget,
                                                const gfx::IntRect* aRect) {
-  AUTO_PROFILER_TRACING("Paint", "Composite", GRAPHICS);
+  AUTO_PROFILER_TRACING_MARKER("Paint", "Composite", GRAPHICS);
   AUTO_PROFILER_LABEL("CompositorBridgeParent::CompositeToTarget", GRAPHICS);
   PerfStats::AutoMetricRecording<PerfStats::Metric::Compositing> autoRecording;
 
@@ -2012,6 +2012,8 @@ void CompositorBridgeParent::AccumulateMemoryReport(wr::MemoryReport* aReport) {
 void CompositorBridgeParent::InitializeStatics() {
   gfxVars::SetAllowSacrificingSubpixelAAListener(&UpdateQualitySettings);
   gfxVars::SetWebRenderDebugFlagsListener(&UpdateDebugFlags);
+  gfxVars::SetUseWebRenderMultithreadingListener(
+      &UpdateWebRenderMultithreading);
 }
 
 /*static*/
@@ -2051,6 +2053,24 @@ void CompositorBridgeParent::UpdateDebugFlags() {
   MonitorAutoLock lock(*sIndirectLayerTreesLock);
   ForEachWebRenderBridgeParent([&](WebRenderBridgeParent* wrBridge) -> void {
     wrBridge->UpdateDebugFlags();
+  });
+}
+
+/*static*/
+void CompositorBridgeParent::UpdateWebRenderMultithreading() {
+  if (!CompositorThreadHolder::IsInCompositorThread()) {
+    if (CompositorLoop()) {
+      CompositorLoop()->PostTask(NewRunnableFunction(
+          "CompositorBridgeParent::UpdateWebRenderMultithreading",
+          &CompositorBridgeParent::UpdateWebRenderMultithreading));
+    }
+
+    return;
+  }
+
+  MonitorAutoLock lock(*sIndirectLayerTreesLock);
+  ForEachWebRenderBridgeParent([&](WebRenderBridgeParent* wrBridge) -> void {
+    wrBridge->UpdateMultithreading();
   });
 }
 
@@ -2498,6 +2518,13 @@ void CompositorBridgeParent::NotifyWebRenderContextPurge() {
   RefPtr<wr::WebRenderAPI> api =
       mWrBridge->GetWebRenderAPI(wr::RenderRoot::Default);
   api->ClearAllCaches();
+}
+
+void CompositorBridgeParent::NotifyWebRenderDisableNativeCompositor() {
+  MOZ_ASSERT(CompositorLoop() == MessageLoop::current());
+  if (mWrBridge) {
+    mWrBridge->DisableNativeCompositor();
+  }
 }
 
 #if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)

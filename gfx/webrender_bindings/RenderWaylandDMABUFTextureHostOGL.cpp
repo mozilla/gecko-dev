@@ -10,12 +10,11 @@
 #include "mozilla/gfx/Logging.h"
 #include "ScopedGLHelpers.h"
 
-namespace mozilla {
-namespace wr {
+namespace mozilla::wr {
 
 RenderWaylandDMABUFTextureHostOGL::RenderWaylandDMABUFTextureHostOGL(
     WaylandDMABufSurface* aSurface)
-    : mSurface(aSurface), mTextureHandle(0) {
+    : mSurface(aSurface) {
   MOZ_COUNT_CTOR_INHERITED(RenderWaylandDMABUFTextureHostOGL,
                            RenderTextureHostOGL);
 }
@@ -28,15 +27,11 @@ RenderWaylandDMABUFTextureHostOGL::~RenderWaylandDMABUFTextureHostOGL() {
 
 GLuint RenderWaylandDMABUFTextureHostOGL::GetGLHandle(
     uint8_t aChannelIndex) const {
-  MOZ_ASSERT(mSurface);
-  return mTextureHandle;
+  return mSurface->GetGLTexture();
 }
 
 gfx::IntSize RenderWaylandDMABUFTextureHostOGL::GetSize(
     uint8_t aChannelIndex) const {
-  if (!mSurface) {
-    return gfx::IntSize();
-  }
   return gfx::IntSize(mSurface->GetWidth(), mSurface->GetHeight());
 }
 
@@ -58,38 +53,31 @@ wr::WrExternalImage RenderWaylandDMABUFTextureHostOGL::Lock(
     return InvalidToWrExternalImage();
   }
 
-  if (!mTextureHandle) {
+  bool bindTexture = IsFilterUpdateNecessary(aRendering);
+
+  if (!mSurface->GetGLTexture()) {
     if (!mSurface->CreateEGLImage(mGL)) {
       return InvalidToWrExternalImage();
     }
+    bindTexture = true;
+  }
 
-    mGL->fGenTextures(1, &mTextureHandle);
-    // Cache rendering filter.
-    mCachedRendering = aRendering;
-    ActivateBindAndTexParameteri(mGL, LOCAL_GL_TEXTURE0, LOCAL_GL_TEXTURE_2D,
-                                 mTextureHandle, aRendering);
-    mGL->fEGLImageTargetTexture2D(LOCAL_GL_TEXTURE_2D, mSurface->GetEGLImage());
-  } else if (IsFilterUpdateNecessary(aRendering)) {
+  if (bindTexture) {
     // Cache new rendering filter.
     mCachedRendering = aRendering;
     ActivateBindAndTexParameteri(mGL, LOCAL_GL_TEXTURE0, LOCAL_GL_TEXTURE_2D,
-                                 mTextureHandle, aRendering);
+                                 mSurface->GetGLTexture(), aRendering);
   }
 
-  return NativeTextureToWrExternalImage(
-      mTextureHandle, 0, 0, mSurface->GetWidth(), mSurface->GetHeight());
+  return NativeTextureToWrExternalImage(mSurface->GetGLTexture(), 0, 0,
+                                        mSurface->GetWidth(),
+                                        mSurface->GetHeight());
 }
 
 void RenderWaylandDMABUFTextureHostOGL::Unlock() {}
 
 void RenderWaylandDMABUFTextureHostOGL::DeleteTextureHandle() {
-  if (mTextureHandle) {
-    // XXX recycle gl texture, since SharedSurface_EGLImage and
-    // RenderEGLImageTextureHost is not recycled.
-    mGL->fDeleteTextures(1, &mTextureHandle);
-    mTextureHandle = 0;
-  }
+  mSurface->ReleaseEGLImage();
 }
 
-}  // namespace wr
-}  // namespace mozilla
+}  // namespace mozilla::wr

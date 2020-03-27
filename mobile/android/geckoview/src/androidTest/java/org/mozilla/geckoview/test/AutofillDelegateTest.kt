@@ -7,8 +7,8 @@ package org.mozilla.geckoview.test
 import android.graphics.Matrix
 import android.os.Bundle
 import android.os.LocaleList
-import android.support.test.filters.MediumTest
-import android.support.test.runner.AndroidJUnit4
+import androidx.test.filters.MediumTest
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import android.util.Pair
 import android.util.SparseArray
 import android.view.View
@@ -184,13 +184,7 @@ class AutofillDelegateTest : BaseSessionTest() {
         // Wait on the promises and check for correct values.
         for ((key, actual, expected, eventInterface) in promises.map { it.value.asJSList<String>() }) {
             assertThat("Auto-filled value must match ($key)", actual, equalTo(expected))
-
-            // <input type=number> nodes don't get InputEvent events.
-            if (key == "#number1") {
-                assertThat("input type=number event should be dispatched with Event interface", eventInterface, equalTo("Event"))
-            } else {
-                assertThat("input event should be dispatched with InputEvent interface", eventInterface, equalTo("InputEvent"))
-            }
+            assertThat("input event should be dispatched with InputEvent interface", eventInterface, equalTo("InputEvent"))
         }
     }
 

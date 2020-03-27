@@ -26,7 +26,6 @@
 #include "mozilla/dom/FrameLoaderBinding.h"
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/BrowserChild.h"
-#include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/UIEvent.h"
 #include "mozilla/dom/UIEventBinding.h"
 #include "mozilla/dom/UserActivation.h"
@@ -1080,7 +1079,7 @@ bool EventStateManager::LookForAccessKeyAndExecute(
           nsCOMPtr<nsIBrowserChild> child =
               docShell ? docShell->GetBrowserChild() : nullptr;
           if (child) {
-            child->SendRequestFocus(false);
+            child->SendRequestFocus(false, CallerType::System);
           }
         }
 
@@ -1580,7 +1579,7 @@ void EventStateManager::FireContextClick() {
 
       if (formCtrl) {
         allowedToDispatch =
-            formCtrl->IsTextOrNumberControl(/*aExcludePassword*/ false) ||
+            formCtrl->IsTextControl(/*aExcludePassword*/ false) ||
             formCtrl->ControlType() == NS_FORM_INPUT_FILE;
       } else if (mGestureDownContent->IsAnyOfHTMLElements(
                      nsGkAtoms::embed, nsGkAtoms::object, nsGkAtoms::label)) {
@@ -2223,44 +2222,18 @@ nsresult EventStateManager::GetContentViewer(nsIContentViewer** aCv) {
   return NS_OK;
 }
 
-nsresult EventStateManager::ChangeTextSize(int32_t change) {
-  nsCOMPtr<nsIContentViewer> cv;
-  nsresult rv = GetContentViewer(getter_AddRefs(cv));
-  NS_ENSURE_SUCCESS(rv, rv);
+nsresult EventStateManager::ChangeZoom(int32_t change) {
+  MOZ_ASSERT(change == 1 || change == -1, "Can only change by +/- 10%.");
 
-  if (cv) {
-    float textzoom;
-    float zoomMin = ((float)StaticPrefs::zoom_minPercent()) / 100;
-    float zoomMax = ((float)StaticPrefs::zoom_maxPercent()) / 100;
-    cv->GetTextZoom(&textzoom);
-    textzoom += ((float)change) / 10;
-    if (textzoom < zoomMin)
-      textzoom = zoomMin;
-    else if (textzoom > zoomMax)
-      textzoom = zoomMax;
-    cv->SetTextZoom(textzoom);
-  }
-
-  return NS_OK;
-}
-
-nsresult EventStateManager::ChangeFullZoom(int32_t change) {
-  nsCOMPtr<nsIContentViewer> cv;
-  nsresult rv = GetContentViewer(getter_AddRefs(cv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (cv) {
-    float fullzoom;
-    float zoomMin = ((float)StaticPrefs::zoom_minPercent()) / 100;
-    float zoomMax = ((float)StaticPrefs::zoom_maxPercent()) / 100;
-    cv->GetFullZoom(&fullzoom);
-    fullzoom += ((float)change) / 10;
-    if (fullzoom < zoomMin)
-      fullzoom = zoomMin;
-    else if (fullzoom > zoomMax)
-      fullzoom = zoomMax;
-    cv->SetFullZoom(fullzoom);
-  }
+  // Send the zoom change as a chrome event so it will be handled
+  // by the front end actors in the same way as other zoom actions.
+  // This excludes documents hosted in non-browser containers, like
+  // in a WebExtension.
+  nsContentUtils::DispatchChromeEvent(
+      mDocument, ToSupports(mDocument),
+      (change == 1 ? NS_LITERAL_STRING("DoZoomEnlargeBy10")
+                   : NS_LITERAL_STRING("DoZoomReduceBy10")),
+      CanBubble::eYes, Cancelable::eYes);
 
   return NS_OK;
 }
@@ -2281,19 +2254,14 @@ void EventStateManager::DoScrollHistory(int32_t direction) {
 
 void EventStateManager::DoScrollZoom(nsIFrame* aTargetFrame,
                                      int32_t adjustment) {
-  // Exclude form controls and content in chrome docshells.
+  // Exclude content in chrome docshells.
   nsIContent* content = aTargetFrame->GetContent();
   if (content && !nsContentUtils::IsInChromeDocshell(content->OwnerDoc())) {
     // positive adjustment to decrease zoom, negative to increase
     int32_t change = (adjustment > 0) ? -1 : 1;
 
     EnsureDocument(mPresContext);
-    if (Preferences::GetBool("browser.zoom.full") ||
-        content->OwnerDoc()->IsSyntheticDocument()) {
-      ChangeFullZoom(change);
-    } else {
-      ChangeTextSize(change);
-    }
+    ChangeZoom(change);
     nsContentUtils::DispatchChromeEvent(
         mDocument, ToSupports(mDocument),
         NS_LITERAL_STRING("ZoomChangeUsingMouseWheel"), CanBubble::eYes,
@@ -2304,7 +2272,7 @@ void EventStateManager::DoScrollZoom(nsIFrame* aTargetFrame,
 static nsIFrame* GetParentFrameToScroll(nsIFrame* aFrame) {
   if (!aFrame) return nullptr;
 
-  if (aFrame->StyleDisplay()->mPosition == NS_STYLE_POSITION_FIXED &&
+  if (aFrame->StyleDisplay()->mPosition == StylePositionProperty::Fixed &&
       nsLayoutUtils::IsReallyFixedPos(aFrame))
     return aFrame->PresContext()->GetPresShell()->GetRootScrollFrame();
 
@@ -2856,8 +2824,8 @@ void EventStateManager::DoScrollText(nsIScrollableFrame* aScrollableFrame,
 
   nsIntPoint overflow;
   aScrollableFrame->ScrollBy(actualDevPixelScrollAmount,
-                             nsIScrollableFrame::DEVICE_PIXELS, mode, &overflow,
-                             origin, momentum, snapMode);
+                             ScrollUnit::DEVICE_PIXELS, mode, &overflow, origin,
+                             momentum, snapMode);
 
   if (!scrollFrameWeak.IsAlive()) {
     // If the scroll causes changing the layout, we can think that the event
@@ -3136,8 +3104,8 @@ void EventStateManager::PostHandleKeyboardEvent(
   switch (aKeyboardEvent->mKeyNameIndex) {
     case KEY_NAME_INDEX_ZoomIn:
     case KEY_NAME_INDEX_ZoomOut:
-      ChangeFullZoom(
-          aKeyboardEvent->mKeyNameIndex == KEY_NAME_INDEX_ZoomIn ? 1 : -1);
+      ChangeZoom(aKeyboardEvent->mKeyNameIndex == KEY_NAME_INDEX_ZoomIn ? 1
+                                                                        : -1);
       aStatus = nsEventStatus_eConsumeNoDefault;
       break;
     default:
@@ -5874,16 +5842,16 @@ nsresult EventStateManager::DoContentCommandScrollEvent(
   NS_ENSURE_TRUE(presShell, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(aEvent->mScroll.mAmount != 0, NS_ERROR_INVALID_ARG);
 
-  nsIScrollableFrame::ScrollUnit scrollUnit;
+  ScrollUnit scrollUnit;
   switch (aEvent->mScroll.mUnit) {
     case WidgetContentCommandEvent::eCmdScrollUnit_Line:
-      scrollUnit = nsIScrollableFrame::LINES;
+      scrollUnit = ScrollUnit::LINES;
       break;
     case WidgetContentCommandEvent::eCmdScrollUnit_Page:
-      scrollUnit = nsIScrollableFrame::PAGES;
+      scrollUnit = ScrollUnit::PAGES;
       break;
     case WidgetContentCommandEvent::eCmdScrollUnit_Whole:
-      scrollUnit = nsIScrollableFrame::WHOLE;
+      scrollUnit = ScrollUnit::WHOLE;
       break;
     default:
       return NS_ERROR_INVALID_ARG;

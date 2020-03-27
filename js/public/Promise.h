@@ -408,14 +408,20 @@ extern JS_PUBLIC_API bool RejectPromise(JSContext* cx,
                                         JS::HandleValue rejectionValue);
 
 /**
- * Calls the current compartment's original Promise.prototype.then on the
- * given `promise`, with `onResolve` and `onReject` passed as arguments.
+ * Create a Promise with the given fulfill/reject handlers, that will be
+ * fulfilled/rejected with the value/reason that the promise `promise` is
+ * fulfilled/rejected with.
  *
- * Throws a TypeError if `promise` isn't a Promise (or possibly a different
- * error if it's a security wrapper or dead object proxy).
+ * This function basically acts like `promise.then(onFulfilled, onRejected)`,
+ * except that its behavior is unaffected by changes to `Promise`,
+ * `Promise[Symbol.species]`, `Promise.prototype.then`, `promise.constructor`,
+ * `promise.then`, and so on.
  *
- * Asserts that `onFulfilled` and `onRejected` are each either callable or
- * null.
+ * This function throws if `promise` is not a Promise from this or another
+ * realm.
+ *
+ * This function will assert if `onFulfilled` or `onRejected` is non-null and
+ * also not IsCallable.
  */
 extern JS_PUBLIC_API JSObject* CallOriginalPromiseThen(
     JSContext* cx, JS::HandleObject promise, JS::HandleObject onFulfilled,
@@ -424,20 +430,34 @@ extern JS_PUBLIC_API JSObject* CallOriginalPromiseThen(
 /**
  * Unforgeable, optimized version of the JS builtin Promise.prototype.then.
  *
- * Takes a Promise instance and `onResolve`, `onReject` callables to enqueue
- * as reactions for that promise. In difference to Promise.prototype.then,
+ * Takes a Promise instance and nullable `onFulfilled`/`onRejected` callables to
+ * enqueue as reactions for that promise. In contrast to Promise.prototype.then,
  * this doesn't create and return a new Promise instance.
  *
  * Throws a TypeError if `promise` isn't a Promise (or possibly a different
  * error if it's a security wrapper or dead object proxy).
- *
- * Asserts that `onFulfilled` and `onRejected` are each either callable or
- * null.
  */
 extern JS_PUBLIC_API bool AddPromiseReactions(JSContext* cx,
                                               JS::HandleObject promise,
                                               JS::HandleObject onFulfilled,
                                               JS::HandleObject onRejected);
+
+/**
+ * Unforgeable, optimized version of the JS builtin Promise.prototype.then.
+ *
+ * Takes a Promise instance and nullable `onFulfilled`/`onRejected` callables to
+ * enqueue as reactions for that promise. In contrast to Promise.prototype.then,
+ * this doesn't create and return a new Promise instance.
+ *
+ * Throws a TypeError if `promise` isn't a Promise (or possibly a different
+ * error if it's a security wrapper or dead object proxy).
+ *
+ * If `onRejected` is null and `promise` is rejected, this function -- unlike
+ * the function above -- will not report an unhandled rejection.
+ */
+extern JS_PUBLIC_API bool AddPromiseReactionsIgnoringUnhandledRejection(
+    JSContext* cx, JS::HandleObject promise, JS::HandleObject onFulfilled,
+    JS::HandleObject onRejected);
 
 // This enum specifies whether a promise is expected to keep track of
 // information that is useful for embedders to implement user activation

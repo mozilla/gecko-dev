@@ -95,8 +95,8 @@ add_task(async function test_opened_page() {
       "docShell.hasMixedDisplayContentBlocked is available"
     );
     is(
-      typeof docShell.hasTrackingContentBlocked,
-      "boolean",
+      typeof docShell.getHasTrackingContentBlocked,
+      "function",
       "docShell.hasTrackingContentBlocked is available"
     );
 
@@ -160,7 +160,7 @@ add_task(async function test_opened_page() {
 
     const log5 = details.consoleLog[4];
     ok(
-      log5.log[0] === "TypeError: document.access is undefined",
+      log5.log[0].match(/TypeError: .*document\.access is undefined/),
       "Script errors are logged"
     );
     ok(log5.level === "error", "Reports correct log level");

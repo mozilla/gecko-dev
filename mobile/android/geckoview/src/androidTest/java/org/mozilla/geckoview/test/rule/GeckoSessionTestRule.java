@@ -48,7 +48,7 @@ import android.os.Parcel;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.test.InstrumentationRegistry;
+import androidx.test.platform.app.InstrumentationRegistry;
 import android.util.Log;
 import android.util.Pair;
 import android.view.MotionEvent;
@@ -1253,37 +1253,34 @@ public class GeckoSessionTestRule implements TestRule {
     @Override
     public Statement apply(final Statement base, final Description description) {
         return new Statement() {
+            private TestServer mServer;
+
+            private void initTest() {
+                try {
+                    mServer.start(TEST_PORT);
+
+                    RuntimeCreator.setPortDelegate(mPortDelegate);
+                    getRuntime();
+
+                    Log.e(LOGTAG, "====");
+                    Log.e(LOGTAG, "before prepareStatement " + description);
+                    prepareStatement(description);
+                    Log.e(LOGTAG, "after prepareStatement");
+                } catch (final Throwable t) {
+                    // Any error here is not related to a specific test
+                    throw new TestHarnessException(t);
+                }
+            }
+
             @Override
             public void evaluate() throws Throwable {
                 final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
 
-                TestServer server = new TestServer(InstrumentationRegistry.getTargetContext());
+                mServer = new TestServer(InstrumentationRegistry.getInstrumentation().getTargetContext());
 
                 mInstrumentation.runOnMainSync(() -> {
                     try {
-                        server.start(TEST_PORT);
-
-                        RuntimeCreator.setPortDelegate(mPortDelegate);
-
-                        getRuntime();
-
-                        long timeout = env.getDefaultTimeoutMillis() + System.currentTimeMillis();
-                        while (!GeckoThread.isStateAtLeast(GeckoThread.State.PROFILE_READY)) {
-                            if (System.currentTimeMillis() > timeout) {
-                                throw new TimeoutException("Could not startup runtime after "
-                                        + env.getDefaultTimeoutMillis() + ".ms");
-                            }
-                            Log.e(LOGTAG, "GeckoThread not ready, sleeping 1000ms.");
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException ex) {
-                            }
-                        }
-
-                        Log.e(LOGTAG, "====");
-                        Log.e(LOGTAG, "before prepareStatement " + description);
-                        prepareStatement(description);
-                        Log.e(LOGTAG, "after prepareStatement");
+                        initTest();
                         base.evaluate();
                         Log.e(LOGTAG, "after evaluate");
                         performTestEndCheck();
@@ -1294,7 +1291,7 @@ public class GeckoSessionTestRule implements TestRule {
                         exceptionRef.set(t);
                     } finally {
                         try {
-                            server.stop();
+                            mServer.stop();
                             cleanupStatement();
                         } catch (Throwable t) {
                             exceptionRef.compareAndSet(null, t);
@@ -1308,6 +1305,13 @@ public class GeckoSessionTestRule implements TestRule {
                 }
             }
         };
+    }
+
+    /**
+     * This simply sends an empty message to the web content and waits for a reply.
+     */
+    public void waitForRoundTrip(final GeckoSession session) {
+        waitForJS(session, "true");
     }
 
     /**

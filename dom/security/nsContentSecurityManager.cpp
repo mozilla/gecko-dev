@@ -27,6 +27,7 @@
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/Components.h"
 #include "mozilla/Logging.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TelemetryComms.h"
 #include "xpcpublic.h"
@@ -666,7 +667,6 @@ static void LogSecurityFlags(nsSecurityFlags securityFlags) {
       {nsILoadInfo::SEC_COOKIES_SAME_ORIGIN, "SEC_COOKIES_SAME_ORIGIN"},
       {nsILoadInfo::SEC_COOKIES_OMIT, "SEC_COOKIES_OMIT"},
       {nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL, "SEC_FORCE_INHERIT_PRINCIPAL"},
-      {nsILoadInfo::SEC_SANDBOXED, "SEC_SANDBOXED"},
       {nsILoadInfo::SEC_ABOUT_BLANK_INHERITS, "SEC_ABOUT_BLANK_INHERITS"},
       {nsILoadInfo::SEC_ALLOW_CHROME, "SEC_ALLOW_CHROME"},
       {nsILoadInfo::SEC_DISALLOW_SCRIPT, "SEC_DISALLOW_SCRIPT"},
@@ -675,7 +675,7 @@ static void LogSecurityFlags(nsSecurityFlags securityFlags) {
       {nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL_OVERRULE_OWNER,
        "SEC_FORCE_INHERIT_PRINCIPAL_OVERRULE_OWNER"}};
 
-  for (const DebugSecFlagType flag : secTypes) {
+  for (const DebugSecFlagType& flag : secTypes) {
     if (securityFlags & flag.secFlag) {
       MOZ_LOG(sCSMLog, LogLevel::Debug, ("    %s,\n", flag.secTypeStr));
     }
@@ -761,29 +761,60 @@ static void DebugDoContentSecurityCheck(nsIChannel* aChannel,
 }
 
 /* static */
-nsresult nsContentSecurityManager::CheckSystemPrincipalLoads(
+nsresult nsContentSecurityManager::CheckAllowLoadInSystemPrivilegedContext(
     nsIChannel* aChannel) {
-  // Assert that we never use the SystemPrincipal to load remote documents
-  // i.e., HTTP, HTTPS, FTP URLs
+  // Check and assert that we never allow remote documents/scripts (http:,
+  // https:, ...) to load in system privileged contexts.
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
 
-  // bail out, if we're not loading with a SystemPrincipal
+  // nothing to do here if we are not loading a resource into a
+  // system prvileged context.
   if (!loadInfo->LoadingPrincipal() ||
       !loadInfo->LoadingPrincipal()->IsSystemPrincipal()) {
     return NS_OK;
   }
-  nsContentPolicyType contentPolicyType =
-      loadInfo->GetExternalContentPolicyType();
-  if ((contentPolicyType != nsIContentPolicy::TYPE_DOCUMENT) &&
-      (contentPolicyType != nsIContentPolicy::TYPE_SUBDOCUMENT)) {
-    return NS_OK;
-  }
+
   nsCOMPtr<nsIURI> finalURI;
   NS_GetFinalChannelURI(aChannel, getter_AddRefs(finalURI));
-  // bail out, if URL isn't pointing to remote resource
+
+  // nothing to do here if we are not loading a resource using http:, https:,
+  // etc.
   if (!nsContentUtils::SchemeIs(finalURI, "http") &&
       !nsContentUtils::SchemeIs(finalURI, "https") &&
       !nsContentUtils::SchemeIs(finalURI, "ftp")) {
+    return NS_OK;
+  }
+
+  nsContentPolicyType contentPolicyType =
+      loadInfo->GetExternalContentPolicyType();
+
+  // We distinguish between 2 cases:
+  // a) remote scripts
+  //    which should never be loaded into system privileged contexts
+  // b) remote documents/frames
+  //    which generally should also never be loaded into system
+  //    privileged contexts but with some exceptions, like e.g. the
+  //    discoverURL.
+  if (contentPolicyType == nsIContentPolicy::TYPE_SCRIPT) {
+    if (StaticPrefs::
+            dom_security_skip_remote_script_assertion_in_system_priv_context()) {
+      return NS_OK;
+    }
+    nsAutoCString scriptSpec;
+    finalURI->GetSpec(scriptSpec);
+    MOZ_LOG(
+        sCSMLog, LogLevel::Warning,
+        ("Do not load remote scripts into system privileged contexts, url: %s",
+         scriptSpec.get()));
+    MOZ_ASSERT(false,
+               "Do not load remote scripts into system privileged contexts");
+    // Bug 1607673: Do not only assert but cancel the channel and
+    // return NS_ERROR_CONTENT_BLOCKED.
+    return NS_OK;
+  }
+
+  if ((contentPolicyType != nsIContentPolicy::TYPE_DOCUMENT) &&
+      (contentPolicyType != nsIContentPolicy::TYPE_SUBDOCUMENT)) {
     return NS_OK;
   }
 
@@ -831,10 +862,6 @@ nsresult nsContentSecurityManager::CheckSystemPrincipalLoads(
 #endif
   nsAutoCString requestedURL;
   finalURI->GetAsciiSpec(requestedURL);
-  MOZ_LOG(
-      sCSMLog, LogLevel::Verbose,
-      ("SystemPrincipal must not load remote documents. URL: %s", requestedURL)
-          .get());
   if (xpc::AreNonLocalConnectionsDisabled()) {
     bool disallowSystemPrincipalRemoteDocuments = Preferences::GetBool(
         "security.disallow_non_local_systemprincipal_in_tests");
@@ -847,6 +874,10 @@ nsresult nsContentSecurityManager::CheckSystemPrincipalLoads(
     // but other mochitest are exempt from this
     return NS_OK;
   }
+  MOZ_LOG(
+      sCSMLog, LogLevel::Warning,
+      ("SystemPrincipal must not load remote documents. URL: %s", requestedURL)
+          .get());
   MOZ_ASSERT(false, "SystemPrincipal must not load remote documents.");
   aChannel->Cancel(NS_ERROR_CONTENT_BLOCKED);
   return NS_ERROR_CONTENT_BLOCKED;
@@ -878,7 +909,7 @@ nsresult nsContentSecurityManager::doContentSecurityCheck(
     DebugDoContentSecurityCheck(aChannel, loadInfo);
   }
 
-  nsresult rv = CheckSystemPrincipalLoads(aChannel);
+  nsresult rv = CheckAllowLoadInSystemPrivilegedContext(aChannel);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // if dealing with a redirected channel then we have already installed

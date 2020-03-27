@@ -682,6 +682,14 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   DoesWindowSupportProtectedMedia();
 #endif
 
+  // Notify the content blocking event in the parent process. This sends an IPC
+  // message to the BrowserParent in the parent. The BrowserParent will find the
+  // top-level WindowGlobalParent and notify the event from it.
+  void NotifyContentBlockingEvent(
+      uint32_t aEvent, nsIChannel* aChannel, bool aBlocked, nsIURI* aHintURI,
+      const nsTArray<nsCString>& aTrackingFullHashes,
+      const Maybe<AntiTrackingCommon::StorageAccessGrantedReason>& aReason);
+
  protected:
   virtual ~BrowserChild();
 
@@ -702,6 +710,8 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   mozilla::ipc::IPCResult RecvParentActivated(const bool& aActivated);
 
+  mozilla::ipc::IPCResult RecvScrollbarPreferenceChanged(ScrollbarPreference);
+
   mozilla::ipc::IPCResult RecvSetKeyboardIndicators(
       const UIStateChangeType& aShowFocusRings);
 
@@ -718,9 +728,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   mozilla::ipc::IPCResult RecvSetWidgetNativeData(
       const WindowsHandle& aWidgetNativeData);
-
-  mozilla::ipc::IPCResult RecvGetContentBlockingLog(
-      GetContentBlockingLogResolver&& aResolve);
 
  private:
   // Wraps up a JSON object as a structured clone and sends it to the browser

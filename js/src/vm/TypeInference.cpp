@@ -9,13 +9,13 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/Move.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
 
 #include <algorithm>
 #include <new>
+#include <utility>
 
 #include "jsapi.h"
 
@@ -2899,6 +2899,43 @@ void js::AddTypePropertyId(JSContext* cx, ObjectGroup* group, JSObject* obj,
   AddTypePropertyId(cx, group, obj, id, TypeSet::GetValueType(value));
 }
 
+void js::AddMagicTypePropertyId(JSContext* cx, JSObject* obj, jsid id,
+                                JSWhyMagic type) {
+  // Some MagicValues can be stored in environment object slots but are not
+  // exposed to script. We don't want to add MagicValue types to HeapTypeSets
+  // but there's one case we need to handle: Ion can add a freeze constraint to
+  // the global lexical environment (in IonBuilder::testGlobalLexicalBinding) to
+  // guard a lexical binding does not exist, so we need to trigger this
+  // constraint when defining an uninitialized lexical as part of JSOP_DEFLET or
+  // JSOP_DEFCONST.
+  //
+  // Also note that the global lexical is the only environment object for which
+  // we track property types. See CreateEnvironmentObject.
+
+  MOZ_ASSERT(type == JS_UNINITIALIZED_LEXICAL || type == JS_OPTIMIZED_OUT);
+  MOZ_ASSERT(obj->is<EnvironmentObject>());
+
+  if (type != JS_UNINITIALIZED_LEXICAL) {
+    return;
+  }
+
+  id = IdToTypeId(id);
+  if (!TrackPropertyTypes(obj, id)) {
+    return;
+  }
+
+  MOZ_ASSERT(obj->isSingleton());
+  MOZ_ASSERT(obj->is<LexicalEnvironmentObject>());
+  MOZ_ASSERT(obj->as<LexicalEnvironmentObject>().isGlobal());
+
+  AutoEnterAnalysis enter(cx);
+  AutoSweepObjectGroup sweep(obj->group());
+
+  if (HeapTypeSet* types = obj->group()->maybeGetProperty(sweep, id)) {
+    types->markLexicalBindingExists(sweep, cx);
+  }
+}
+
 void ObjectGroup::markPropertyNonData(JSContext* cx, JSObject* obj, jsid id) {
   AutoEnterAnalysis enter(cx);
 
@@ -3416,12 +3453,12 @@ void JitScript::MonitorMagicValueBytecodeType(JSContext* cx, JSScript* script,
   }
 
   // In derived class constructors (including nested arrows/eval)
-  // GETALIASEDVAR can return the magic TDZ value.
+  // GetAliasedVar can return the magic TDZ value.
   MOZ_ASSERT(rval.whyMagic() == JS_UNINITIALIZED_LEXICAL);
   MOZ_ASSERT(script->function() || script->isForEval());
-  MOZ_ASSERT(*GetNextPc(pc) == JSOP_CHECKTHIS ||
-             *GetNextPc(pc) == JSOP_CHECKTHISREINIT ||
-             *GetNextPc(pc) == JSOP_CHECKRETURN);
+  MOZ_ASSERT(JSOp(*GetNextPc(pc)) == JSOp::CheckThis ||
+             JSOp(*GetNextPc(pc)) == JSOp::CheckThisReinit ||
+             JSOp(*GetNextPc(pc)) == JSOp::CheckReturn);
 
   MonitorBytecodeType(cx, script, pc, TypeSet::UnknownType());
 }
@@ -4049,14 +4086,14 @@ bool TypeNewScript::rollbackPartiallyInitializedObjects(JSContext* cx,
     // If not finished, number of properties that have been added.
     uint32_t numProperties = 0;
 
-    // Whether the current SETPROP is within an inner frame which has
+    // Whether the current SetProp is within an inner frame which has
     // finished entirely.
     bool pastProperty = false;
 
     // Index in pcOffsets of the outermost frame.
     int callDepth = pcOffsets.length() - 1;
 
-    // Index in pcOffsets of the frame currently being checked for a SETPROP.
+    // Index in pcOffsets of the frame currently being checked for a SetProp.
     int setpropDepth = callDepth;
 
     size_t i;

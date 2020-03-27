@@ -55,6 +55,8 @@ void JSWindowActor::AfterDestroy() {
 }
 
 void JSWindowActor::InvokeCallback(CallbackFunction callback) {
+  MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
+
   AutoEntryScript aes(GetParentObject(), "JSWindowActor destroy callback");
   JSContext* cx = aes.cx();
   MozJSWindowActorCallbacks callbacksHolder;
@@ -81,6 +83,8 @@ void JSWindowActor::InvokeCallback(CallbackFunction callback) {
 }
 
 nsresult JSWindowActor::QueryInterfaceActor(const nsIID& aIID, void** aPtr) {
+  MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
+
   if (!mWrappedJS) {
     AutoEntryScript aes(GetParentObject(), "JSWindowActor query interface");
     JSContext* cx = aes.cx();
@@ -101,6 +105,8 @@ nsresult JSWindowActor::QueryInterfaceActor(const nsIID& aIID, void** aPtr) {
 }
 
 void JSWindowActor::RejectPendingQueries() {
+  MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
+
   // Take our queries out, in case somehow rejecting promises can trigger
   // additions or removals.
   nsRefPtrHashtable<nsUint64HashKey, Promise> pendingQueries;
@@ -222,6 +228,8 @@ already_AddRefed<Promise> JSWindowActor::SendQuery(
 void JSWindowActor::ReceiveRawMessage(const JSWindowActorMessageMeta& aMetadata,
                                       ipc::StructuredCloneData&& aData,
                                       ipc::StructuredCloneData&& aStack) {
+  MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
+
   AutoEntryScript aes(GetParentObject(), "JSWindowActor message handler");
   JSContext* cx = aes.cx();
 
@@ -265,9 +273,7 @@ void JSWindowActor::ReceiveRawMessage(const JSWindowActorMessageMeta& aMetadata,
       MOZ_ASSERT_UNREACHABLE();
   }
 
-  if (NS_WARN_IF(error.Failed())) {
-    MOZ_ALWAYS_TRUE(error.MaybeSetPendingException(cx));
-  }
+  Unused << error.MaybeSetPendingException(cx);
 }
 
 void JSWindowActor::ReceiveMessageOrQuery(
@@ -304,15 +310,16 @@ void JSWindowActor::ReceiveMessageOrQuery(
   RefPtr<MessageListener> messageListener =
       new MessageListener(self, global, nullptr, nullptr);
   messageListener->ReceiveMessage(argument, &retval, aRv,
-                                  "JSWindowActor receive message");
+                                  "JSWindowActor receive message",
+                                  MessageListener::eRethrowExceptions);
 
   // If we have a promise, resolve or reject it respectively.
   if (promise) {
     if (aRv.Failed()) {
       if (aRv.IsUncatchableException()) {
         aRv.SuppressException();
-        promise->MaybeRejectWithDOMException(
-            NS_ERROR_FAILURE, "Message handler threw uncatchable exception");
+        promise->MaybeRejectWithTimeoutError(
+            "Message handler threw uncatchable exception");
       } else {
         promise->MaybeReject(aRv);
       }

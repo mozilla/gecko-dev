@@ -21,9 +21,9 @@ NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(Buffer, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(Buffer, Release)
 NS_IMPL_CYCLE_COLLECTION_CLASS(Buffer)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Buffer)
+  tmp->Cleanup();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mParent)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
-  tmp->mMapping.reset();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Buffer)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mParent)
@@ -45,10 +45,18 @@ Buffer::Buffer(Device* const aParent, RawId aId, BufferAddress aSize)
 }
 
 Buffer::~Buffer() {
-  if (mParent) {
-    mParent->DestroyBuffer(mId);
-  }
+  Cleanup();
   mozilla::DropJSObjects(this);
+}
+
+void Buffer::Cleanup() {
+  if (mParent) {
+    WebGPUChild* bridge = mParent->mBridge;
+    if (bridge && bridge->IsOpen()) {
+      bridge->DestroyBuffer(mId);
+    }
+  }
+  mMapping.reset();
 }
 
 void Buffer::InitMapping(ipc::Shmem&& aShmem, JSObject* aArrayBuffer) {
@@ -61,8 +69,7 @@ already_AddRefed<dom::Promise> Buffer::MapReadAsync(ErrorResult& aRv) {
     return nullptr;
   }
   if (mMapping) {
-    aRv.ThrowDOMException(NS_ERROR_DOM_INVALID_STATE_ERR,
-                          "Unable to map a buffer that is already mapped");
+    aRv.ThrowInvalidStateError("Unable to map a buffer that is already mapped");
     return nullptr;
   }
   const auto checked = CheckedInt<size_t>(mSize);
@@ -85,8 +92,7 @@ already_AddRefed<dom::Promise> Buffer::MapReadAsync(ErrorResult& aRv) {
         MOZ_ASSERT(aShmem.Size<uint8_t>() == size);
         dom::AutoJSAPI jsapi;
         if (!jsapi.Init(self->GetParentObject())) {
-          promise->MaybeRejectWithDOMException(NS_ERROR_DOM_ABORT_ERR,
-                                               "Owning page was unloaded!");
+          promise->MaybeRejectWithAbortError("Owning page was unloaded!");
           return;
         }
         JS::Rooted<JSObject*> arrayBuffer(
@@ -103,8 +109,7 @@ already_AddRefed<dom::Promise> Buffer::MapReadAsync(ErrorResult& aRv) {
         promise->MaybeResolve(val);
       },
       [promise](const ipc::ResponseRejectReason&) {
-        promise->MaybeRejectWithDOMException(NS_ERROR_DOM_ABORT_ERR,
-                                             "Internal communication error!");
+        promise->MaybeRejectWithAbortError("Internal communication error!");
       });
 
   return promise.forget();

@@ -42,39 +42,40 @@
 
 #include "nsBoxFrame.h"
 
+#include <algorithm>
+#include <utility>
+
 #include "gfxUtils.h"
-#include "mozilla/gfx/2D.h"
-#include "nsBoxLayoutState.h"
-#include "mozilla/dom/Touch.h"
-#include "mozilla/Move.h"
 #include "mozilla/ComputedStyle.h"
+#include "mozilla/EventStateManager.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/dom/Touch.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/gfxVars.h"
+#include "nsBoxLayout.h"
+#include "nsBoxLayoutState.h"
+#include "nsCOMPtr.h"
+#include "nsCSSAnonBoxes.h"
+#include "nsCSSRendering.h"
+#include "nsContainerFrame.h"
+#include "nsDisplayList.h"
+#include "nsGkAtoms.h"
+#include "nsHTMLParts.h"
+#include "nsIContent.h"
+#include "nsIScrollableFrame.h"
+#include "nsITheme.h"
+#include "nsLayoutUtils.h"
+#include "nsNameSpaceManager.h"
 #include "nsPlaceholderFrame.h"
 #include "nsPresContext.h"
-#include "nsCOMPtr.h"
-#include "nsNameSpaceManager.h"
-#include "nsGkAtoms.h"
-#include "nsIContent.h"
-#include "nsHTMLParts.h"
-#include "nsViewManager.h"
-#include "nsView.h"
-#include "nsCSSRendering.h"
-#include "nsBoxLayout.h"
-#include "nsSprocketLayout.h"
-#include "nsIScrollableFrame.h"
-#include "nsWidgetsCID.h"
-#include "nsCSSAnonBoxes.h"
-#include "nsContainerFrame.h"
-#include "nsITheme.h"
-#include "nsTransform2D.h"
-#include "mozilla/EventStateManager.h"
-#include "mozilla/gfx/gfxVars.h"
-#include "nsDisplayList.h"
-#include "mozilla/Preferences.h"
-#include "nsStyleConsts.h"
-#include "nsLayoutUtils.h"
 #include "nsSliderFrame.h"
-#include <algorithm>
+#include "nsSprocketLayout.h"
+#include "nsStyleConsts.h"
+#include "nsTransform2D.h"
+#include "nsView.h"
+#include "nsViewManager.h"
+#include "nsWidgetsCID.h"
 
 // Needed for Print Preview
 
@@ -306,8 +307,9 @@ void nsBoxFrame::GetInitialDirection(bool& aIsNormal) {
     // For horizontal boxes only, we initialize our value based off the CSS
     // 'direction' property. This means that BiDI users will end up with
     // horizontally inverted chrome.
-    aIsNormal = (StyleVisibility()->mDirection ==
-                 NS_STYLE_DIRECTION_LTR);  // If text runs RTL then so do we.
+    //
+    // If text runs RTL then so do we.
+    aIsNormal = StyleVisibility()->mDirection == StyleDirection::Ltr;
     if (GetContent()->IsElement()) {
       Element* element = GetContent()->AsElement();
 
@@ -886,20 +888,6 @@ nsresult nsBoxFrame::AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
 
     PresShell()->FrameNeedsReflow(this, IntrinsicDirty::StyleChange,
                                   NS_FRAME_IS_DIRTY);
-  } else if (aAttribute == nsGkAtoms::ordinal) {
-    nsIFrame* parent = GetParentXULBox(this);
-    // If our parent is not a box, there's not much we can do... but in that
-    // case our ordinal doesn't matter anyway, so that's ok.
-    // Also don't bother with popup frames since they are kept on the
-    // kPopupList and XULRelayoutChildAtOrdinal() only handles
-    // principal children.
-    if (parent && !(GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
-        StyleDisplay()->mDisplay != mozilla::StyleDisplay::MozPopup) {
-      parent->XULRelayoutChildAtOrdinal(this);
-      // XXXldb Should this instead be a tree change on the child or parent?
-      PresShell()->FrameNeedsReflow(parent, IntrinsicDirty::StyleChange,
-                                    NS_FRAME_IS_DIRTY);
-    }
   }
   // If the accesskey changed, register for the new value
   // The old value has been unregistered in nsXULElement::SetAttr
@@ -1049,7 +1037,8 @@ static bool IsBoxOrdinalLEQ(nsIFrame* aFrame1, nsIFrame* aFrame2) {
   // If we've got a placeholder frame, use its out-of-flow frame's ordinal val.
   nsIFrame* aRealFrame1 = nsPlaceholderFrame::GetRealFrameFor(aFrame1);
   nsIFrame* aRealFrame2 = nsPlaceholderFrame::GetRealFrameFor(aFrame2);
-  return aRealFrame1->GetXULOrdinal() <= aRealFrame2->GetXULOrdinal();
+  return aRealFrame1->StyleXUL()->mBoxOrdinal <=
+         aRealFrame2->StyleXUL()->mBoxOrdinal;
 }
 
 void nsBoxFrame::CheckBoxOrder() {
@@ -1075,13 +1064,13 @@ nsresult nsBoxFrame::LayoutChildAt(nsBoxLayoutState& aState, nsIFrame* aBox,
 }
 
 nsresult nsBoxFrame::XULRelayoutChildAtOrdinal(nsIFrame* aChild) {
-  int32_t ord = aChild->GetXULOrdinal();
+  int32_t ord = aChild->StyleXUL()->mBoxOrdinal;
 
   nsIFrame* child = mFrames.FirstChild();
   nsIFrame* newPrevSib = nullptr;
 
   while (child) {
-    if (ord < child->GetXULOrdinal()) {
+    if (ord < child->StyleXUL()->mBoxOrdinal) {
       break;
     }
 

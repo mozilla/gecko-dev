@@ -276,24 +276,31 @@ void RenderCompositorOGL::Unbind() {
 }
 
 void RenderCompositorOGL::CreateSurface(wr::NativeSurfaceId aId,
-                                        wr::DeviceIntSize aTileSize) {
-  Surface surface(aTileSize);
-  mSurfaces.insert({aId, surface});
+                                        wr::DeviceIntSize aTileSize,
+                                        bool aIsOpaque) {
+  MOZ_RELEASE_ASSERT(mSurfaces.find(aId) == mSurfaces.end());
+  mSurfaces.insert({aId, Surface{aTileSize, aIsOpaque}});
 }
 
 void RenderCompositorOGL::DestroySurface(NativeSurfaceId aId) {
-  mSurfaces.erase(aId);
+  auto surfaceCursor = mSurfaces.find(aId);
+  MOZ_RELEASE_ASSERT(surfaceCursor != mSurfaces.end());
+
+  Surface& surface = surfaceCursor->second;
+  for (const auto& iter : surface.mNativeLayers) {
+    mTotalPixelCount -= gfx::IntRect({}, iter.second->GetSize()).Area();
+  }
+
+  mSurfaces.erase(surfaceCursor);
 }
 
-void RenderCompositorOGL::CreateTile(wr::NativeSurfaceId aId, int aX, int aY,
-                                     bool aIsOpaque) {
+void RenderCompositorOGL::CreateTile(wr::NativeSurfaceId aId, int aX, int aY) {
   auto surfaceCursor = mSurfaces.find(aId);
   MOZ_RELEASE_ASSERT(surfaceCursor != mSurfaces.end());
   Surface& surface = surfaceCursor->second;
 
   RefPtr<layers::NativeLayer> layer = mNativeLayerRoot->CreateLayer(
-      IntSize(surface.mTileSize.width, surface.mTileSize.height), aIsOpaque,
-      mSurfacePoolHandle);
+      surface.TileSize(), surface.mIsOpaque, mSurfacePoolHandle);
   surface.mNativeLayers.insert({TileKey(aX, aY), layer});
   mTotalPixelCount += gfx::IntRect({}, layer->GetSize()).Area();
 }

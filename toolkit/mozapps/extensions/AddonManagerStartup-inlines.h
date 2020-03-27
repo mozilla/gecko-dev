@@ -6,12 +6,12 @@
 #ifndef AddonManagerStartup_inlines_h
 #define AddonManagerStartup_inlines_h
 
-#include "jsapi.h"
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
-#include "nsJSUtils.h"
+#include <utility>
 
+#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
+#include "jsapi.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/Move.h"
+#include "nsJSUtils.h"
 
 namespace mozilla {
 
@@ -27,10 +27,7 @@ class MOZ_STACK_CLASS BaseIter {
  public:
   typedef T SelfType;
 
-  PropertyType begin() const {
-    PropertyType elem(Self());
-    return std::move(elem);
-  }
+  PropertyType begin() const { return PropertyType(Self()); }
 
   PropertyType end() const {
     PropertyType elem(Self());
@@ -89,7 +86,7 @@ class MOZ_STACK_CLASS BaseIterElem {
   SelfType End() const {
     SelfType end(mIter);
     end.mIndex = Length();
-    return std::move(end);
+    return end;
   }
 
   void* Context() const { return mIter.Context(); }

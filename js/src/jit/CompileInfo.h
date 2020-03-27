@@ -187,7 +187,7 @@ class CompileInfo {
         mayReadFrameArgsDirectly_(script->mayReadFrameArgsDirectly()),
         trackRecordReplayProgress_(script->trackRecordReplayProgress()),
         inlineScriptTree_(inlineScriptTree) {
-    MOZ_ASSERT_IF(osrPc, JSOp(*osrPc) == JSOP_LOOPHEAD);
+    MOZ_ASSERT_IF(osrPc, JSOp(*osrPc) == JSOp::LoopHead);
 
     // The function here can flow in from anywhere so look up the canonical
     // function to ensure that we do not try to embed a nursery pointer in
@@ -203,8 +203,8 @@ class CompileInfo {
     nargs_ = fun ? fun->nargs() : 0;
     nlocals_ = script->nfixed();
 
-    // An extra slot is needed for global scopes because INITGLEXICAL (stack
-    // depth 1) is compiled as a SETPROP (stack depth 2) on the global lexical
+    // An extra slot is needed for global scopes because InitGLexical (stack
+    // depth 1) is compiled as a SetProp (stack depth 2) on the global lexical
     // scope.
     uint32_t extra = script->isGlobalCode() ? 1 : 0;
     nstack_ = std::max<unsigned>(script->nslots() - script->nfixed(),
@@ -265,7 +265,7 @@ class CompileInfo {
   InlineScriptTree* inlineScriptTree() const { return inlineScriptTree_; }
 
   bool hasOsrAt(jsbytecode* pc) const {
-    MOZ_ASSERT(JSOp(*pc) == JSOP_LOOPHEAD);
+    MOZ_ASSERT(JSOp(*pc) == JSOp::LoopHead);
     return pc == osrPc();
   }
 

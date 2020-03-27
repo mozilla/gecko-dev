@@ -9,7 +9,7 @@ const promise = require("promise");
 const EventEmitter = require("devtools/shared/event-emitter");
 const { executeSoon } = require("devtools/shared/DevToolsUtils");
 const { Toolbox } = require("devtools/client/framework/toolbox");
-const Store = require("devtools/client/inspector/store");
+const createStore = require("devtools/client/inspector/store");
 const InspectorStyleChangeTracker = require("devtools/client/inspector/shared/style-change-tracker");
 
 // Use privileged promise in panel documents to prevent having them to freeze
@@ -67,9 +67,8 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "ObjectFront",
-  "devtools/shared/fronts/object",
-  true
+  "PICKER_TYPES",
+  "devtools/shared/picker-constants"
 );
 
 // This import to chrome code is forbidden according to the inspector specific
@@ -153,29 +152,7 @@ function Inspector(toolbox) {
   this.panelWin = window;
   this.panelWin.inspector = this;
   this.telemetry = toolbox.telemetry;
-  this.store = Store({
-    createObjectFront: object => {
-      return new ObjectFront(
-        this.inspectorFront.conn,
-        this.inspectorFront.targetFront,
-        this.inspectorFront,
-        object
-      );
-    },
-    releaseActor: actor => {
-      if (!actor) {
-        return;
-      }
-      const objFront = toolbox.target.client.getFrontByID(actor);
-      if (objFront) {
-        objFront.release();
-        return;
-      }
-
-      // In case there's no object front, use the client's release method.
-      toolbox.target.client.release(actor).catch(() => {});
-    },
-  });
+  this.store = createStore();
 
   // Map [panel id => panel instance]
   // Stores all the instances of sidebar panels like rule view, computed view, ...
@@ -1947,14 +1924,14 @@ Inspector.prototype = {
   },
 
   startEyeDropperListeners: function() {
-    this.toolbox.tellRDMAboutPickerState(true);
+    this.toolbox.tellRDMAboutPickerState(true, PICKER_TYPES.EYEDROPPER);
     this.inspectorFront.once("color-pick-canceled", this.onEyeDropperDone);
     this.inspectorFront.once("color-picked", this.onEyeDropperDone);
     this.walker.once("new-root", this.onEyeDropperDone);
   },
 
   stopEyeDropperListeners: function() {
-    this.toolbox.tellRDMAboutPickerState(false);
+    this.toolbox.tellRDMAboutPickerState(false, PICKER_TYPES.EYEDROPPER);
     this.inspectorFront.off("color-pick-canceled", this.onEyeDropperDone);
     this.inspectorFront.off("color-picked", this.onEyeDropperDone);
     this.walker.off("new-root", this.onEyeDropperDone);

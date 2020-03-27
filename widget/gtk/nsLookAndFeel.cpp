@@ -292,7 +292,7 @@ nsTArray<LookAndFeelInt> nsLookAndFeel::GetIntCacheImpl() {
 
   for (IntID id : kIdsToCache) {
     lookAndFeelIntCache.AppendElement(
-        LookAndFeelInt{id, {.value = GetInt(id)}});
+        LookAndFeelInt{.id = id, .value = GetInt(id)});
   }
 
   return lookAndFeelIntCache;
@@ -948,8 +948,7 @@ void nsLookAndFeel::ConfigureContentGtkTheme() {
   mozilla::Preferences::GetCString("widget.content.gtk-theme-override",
                                    themeOverride);
   if (!themeOverride.IsEmpty()) {
-      g_object_set(settings, "gtk-theme-name", themeOverride.get(),
-                   nullptr);
+    g_object_set(settings, "gtk-theme-name", themeOverride.get(), nullptr);
     LOG(("ConfigureContentGtkTheme(%s)\n", themeOverride.get()));
   } else {
     LOG(("ConfigureContentGtkTheme(%s)\n", GetGtkTheme().get()));
@@ -1303,6 +1302,8 @@ void nsLookAndFeel::EnsureInit() {
         break;
     }
   }
+
+  RecordTelemetry();
 }
 
 // virtual

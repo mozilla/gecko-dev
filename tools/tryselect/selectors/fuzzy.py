@@ -44,8 +44,11 @@ TARGET_TASK_FILTERS = (
     '.*-ccov\/.*',
     'windows10-aarch64/opt.*',
     '.*win64-aarch64-laptop.*',
+    '.*windows10-64-ref-hw-2017.*',
     'android-hw.*',
     '.*android-geckoview-docs.*',
+    'linux1804-32.*',   # hide linux32 tests - bug 1599197
+    r'linux-.*',  # hide all linux32 tasks by default - bug 1599197
 )
 
 
@@ -253,6 +256,7 @@ class FuzzyParser(BaseTryParser):
         'pernosco',
         'rebuild',
         'visual-metrics-jobs',
+        'worker-overrides',
     ]
 
 

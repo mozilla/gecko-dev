@@ -77,7 +77,7 @@ interface Element : Node {
   [Pure]
   HTMLCollection getElementsByClassName(DOMString classNames);
 
-  [CEReactions, Throws, Pure]
+  [CEReactions, Throws]
   Element? insertAdjacentElement(DOMString where, Element element); // historical
 
   [Throws]
@@ -173,7 +173,7 @@ interface mixin HTMLOrForeignElement {
   // See bug 1575154
   // [CEReactions] attribute boolean autofocus;
   [CEReactions, SetterThrows, Pure] attribute long tabIndex;
-  [Throws] void focus(optional FocusOptions options = {});
+  [Throws, NeedsCallerType] void focus(optional FocusOptions options = {});
   [Throws] void blur();
 };
 

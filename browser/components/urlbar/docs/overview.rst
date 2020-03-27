@@ -158,15 +158,17 @@ implementation details may vary deeply among different providers.
       throw new Error("Trying to access the base class, must be overridden");
     }
     /**
-     * Whether this provider wants to restrict results to just itself.
-     * Other providers won't be invoked, unless this provider doesn't
-     * support the current query.
+     * Gets the provider's priority.  Priorities are numeric values starting at
+     * zero and increasing in value.  Smaller values are lower priorities, and
+     * larger values are higher priorities.  For a given query, `startQuery` is
+     * called on only the active and highest-priority providers.
      * @param {UrlbarQueryContext} queryContext The query context object
-     * @returns {boolean} Whether this provider wants to restrict results.
+     * @returns {number} The provider's priority for the given query.
      * @abstract
      */
-    isRestricting(queryContext) {
-      throw new Error("Trying to access the base class, must be overridden");
+    getPriority(queryContext) {
+      // By default, all providers share the lowest priority.
+      return 0;
     }
     /**
      * Starts querying.
@@ -375,15 +377,26 @@ The following RESULT_TYPEs are supported:
 .. highlight:: JavaScript
 .. code::
 
+    // An open tab.
     // Payload: { icon, url, userContextId }
     TAB_SWITCH: 1,
+    // A search suggestion or engine.
     // Payload: { icon, suggestion, keyword, query, keywordOffer, inPrivateWindow, isPrivateEngine }
     SEARCH: 2,
+    // A common url/title tuple, may be a bookmark with tags.
     // Payload: { icon, url, title, tags }
     URL: 3,
+    // A bookmark keyword.
     // Payload: { icon, url, keyword, postData }
     KEYWORD: 4,
+    // A WebExtension Omnibox result.
     // Payload: { icon, keyword, title, content }
     OMNIBOX: 5,
+    // A tab from another synced device.
     // Payload: { icon, url, device, title }
     REMOTE_TAB: 6,
+    // An actionable message to help the user with their query.
+    // textData and buttonTextData are objects containing an l10n id and args.
+    // If a tip is untranslated it's possible to provide text and buttonText.
+    // Payload: { icon, textData, buttonTextData, [buttonUrl], [helpUrl] }
+    TIP: 7,

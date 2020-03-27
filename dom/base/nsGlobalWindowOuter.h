@@ -470,13 +470,6 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
       Document* aDoc, nsIURI* aPopupURI, const nsAString& aPopupWindowName,
       const nsAString& aPopupWindowFeatures) override;
 
-  virtual void NotifyContentBlockingEvent(
-      unsigned aEvent, nsIChannel* aChannel, bool aBlocked, nsIURI* aURIHint,
-      nsIChannel* aTrackingChannel,
-      const mozilla::Maybe<
-          mozilla::AntiTrackingCommon::StorageAccessGrantedReason>& aReason)
-      override;
-
   void AddSizeOfIncludingThis(nsWindowSizes& aWindowSizes) const;
 
   void AllowScriptsToClose() { mAllowScriptsToClose = true; }
@@ -542,8 +535,8 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   bool GetClosedOuter();
   bool Closed() override;
   void StopOuter(mozilla::ErrorResult& aError);
-  void FocusOuter();
-  nsresult Focus() override;
+  void FocusOuter(mozilla::dom::CallerType aCallerType);
+  nsresult Focus(mozilla::dom::CallerType aCallerType) override;
   void BlurOuter();
   mozilla::dom::WindowProxyHolder GetFramesOuter();
   uint32_t Length();
@@ -567,7 +560,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   already_AddRefed<nsPIDOMWindowOuter> GetInProcessParent() override;
   nsPIDOMWindowOuter* GetInProcessScriptableParent() override;
   nsPIDOMWindowOuter* GetInProcessScriptableParentOrNull() override;
-  mozilla::dom::Element* GetFrameElementOuter(nsIPrincipal& aSubjectPrincipal);
+  mozilla::dom::Element* GetFrameElement(nsIPrincipal& aSubjectPrincipal);
   mozilla::dom::Element* GetFrameElement() override;
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> OpenOuter(
       const nsAString& aUrl, const nsAString& aName, const nsAString& aOptions,
@@ -622,7 +615,6 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
                           mozilla::ErrorResult& aError);
   nsIControllers* GetControllersOuter(mozilla::ErrorResult& aError);
   nsresult GetControllers(nsIControllers** aControllers) override;
-  mozilla::dom::Element* GetRealFrameElementOuter();
   float GetMozInnerScreenXOuter(mozilla::dom::CallerType aCallerType);
   float GetMozInnerScreenYOuter(mozilla::dom::CallerType aCallerType);
   double GetDevicePixelRatioOuter(mozilla::dom::CallerType aCallerType);
@@ -663,7 +655,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   // fact chrome.
   nsIBrowserDOMWindow* GetBrowserDOMWindowOuter();
   void SetBrowserDOMWindowOuter(nsIBrowserDOMWindow* aBrowserWindow);
-  void SetCursorOuter(const nsAString& aCursor, mozilla::ErrorResult& aError);
+  void SetCursorOuter(const nsACString& aCursor, mozilla::ErrorResult& aError);
 
   void GetReturnValueOuter(JSContext* aCx,
                            JS::MutableHandle<JS::Value> aReturnValue,
@@ -816,9 +808,6 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
                         nsISupports* aExtraArgument,
                         nsDocShellLoadState* aLoadState, bool aForceNoOpener,
                         mozilla::dom::BrowsingContext** aReturn);
-
-  // Checks that the channel was loaded by the URI currently loaded in aDoc
-  static bool SameLoadingURI(Document* aDoc, nsIChannel* aChannel);
 
  public:
   // Helper Functions
@@ -1011,11 +1000,14 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
    * @param aCallerInnerWindow [out] Inner window of the caller of
    * postMessage, or null if the incumbent global is not a Window.
    *
-   * @param aCallerDocumentURI [out] The URI of the document of the incumbent
+   * @param aCallerURI [out] The URI of the document of the incumbent
    * global if it's a Window, null otherwise.
    *
    * @param aCallerAgentCluterId [out] If a non-nullptr is passed, it would
    * return the caller's agent cluster id.
+   *
+   * @param aScriptLocation [out] If we do not have a caller's URI, then
+   * use script location as a sourcename for creating an error object.
    *
    * @param aError [out] The error, if any.
    *
@@ -1025,8 +1017,9 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
       JSContext* aCx, const nsAString& aTargetOrigin,
       mozilla::dom::BrowsingContext** aSource, nsAString& aOrigin,
       nsIURI** aTargetOriginURI, nsIPrincipal** aCallerPrincipal,
-      nsGlobalWindowInner** aCallerInnerWindow, nsIURI** aCallerDocumentURI,
-      Maybe<nsID>* aCallerAgentClusterId, mozilla::ErrorResult& aError);
+      nsGlobalWindowInner** aCallerInnerWindow, nsIURI** aCallerURI,
+      Maybe<nsID>* aCallerAgentClusterId, nsACString* aScriptLocation,
+      mozilla::ErrorResult& aError);
 
   // Ask the user if further dialogs should be blocked, if dialogs are currently
   // being abused. This is used in the cases where we have no modifiable UI to
@@ -1052,6 +1045,10 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   friend class nsPIDOMWindowOuter;
 
   mozilla::dom::TabGroup* TabGroupOuter();
+
+  // Like TabGroupOuter, but it is more tolerant of being called at peculiar
+  // times, and it can return null.
+  mozilla::dom::TabGroup* MaybeTabGroupOuter();
 
   void SetIsBackgroundInternal(bool aIsBackground);
 

@@ -8,9 +8,9 @@
 
 #include "mozilla/Atomics.h"
 #include "mozilla/IntegerPrintfMacros.h"
-#include "mozilla/Move.h"
 
 #include <stdio.h>
+#include <utility>
 #ifdef XP_WIN
 #  include <process.h>
 #  define getpid _getpid
@@ -137,7 +137,6 @@ void LCovSource::writeScript(JSScript* script, const char* scriptName) {
     const PCCounts* counts =
         sc->maybeGetPCCounts(script->pcToOffset(script->main()));
     outFNDA_.printf("FNDA:%" PRIu64 ",%s\n", counts->numExec(), scriptName);
-    outFNDA_.put("\n", 1);
 
     // Set the hit count of the pre-main code to 1, if the function ever got
     // visited.
@@ -157,8 +156,8 @@ void LCovSource::writeScript(JSScript* script, const char* scriptName) {
   for (jsbytecode* pc = script->code(); pc != end; pc = GetNextPc(pc)) {
     MOZ_ASSERT(script->code() <= pc && pc < end);
     JSOp op = JSOp(*pc);
-    bool jump = IsJumpOpcode(op) || op == JSOP_TABLESWITCH;
-    bool fallsthrough = BytecodeFallsThrough(op) && op != JSOP_GOSUB;
+    bool jump = IsJumpOpcode(op) || op == JSOp::TableSwitch;
+    bool fallsthrough = BytecodeFallsThrough(op) && op != JSOp::Gosub;
 
     // If the current script & pc has a hit-count report, then update the
     // current number of hits.
@@ -256,7 +255,7 @@ void LCovSource::writeScript(JSScript* script, const char* scriptName) {
 
     // If the current pc corresponds to a pre-computed switch case, then
     // reports branch hits for each case statement.
-    if (jump && op == JSOP_TABLESWITCH) {
+    if (jump && op == JSOp::TableSwitch) {
       // Get the default pc.
       jsbytecode* defaultpc = pc + GET_JUMP_OFFSET(pc);
       MOZ_ASSERT(script->code() <= defaultpc && defaultpc < end);
@@ -392,38 +391,6 @@ LCovRealm::~LCovRealm() {
   while (!sources_.empty()) {
     LCovSource* source = sources_.popCopy();
     source->~LCovSource();
-  }
-}
-
-void LCovRealm::collectCodeCoverageInfo(JSScript* script, const char* name) {
-  // Skip any operation if we already some out-of memory issues.
-  if (outTN_.hadOutOfMemory()) {
-    return;
-  }
-
-  if (script->isUncompleted()) {
-    return;
-  }
-
-  // Get the existing source LCov summary, or create a new one.
-  LCovSource* source = lookupOrAdd(name);
-  if (!source) {
-    return;
-  }
-
-  // Get the formatted name of script to use
-  const char* scriptName = getScriptName(script);
-  if (!scriptName) {
-    outTN_.reportOutOfMemory();
-    return;
-  }
-
-  // Write code coverage data into the LCovSource.
-  source->writeScript(script, scriptName);
-
-  // Propegate OOM from LCovSource.
-  if (source->hadOutOfMemory()) {
-    outTN_.reportOutOfMemory();
   }
 }
 
@@ -683,17 +650,17 @@ bool InitScriptCoverage(JSContext* cx, JSScript* script) {
   return true;
 }
 
-void CollectScriptCoverage(JSScript* script) {
+bool CollectScriptCoverage(JSScript* script, bool finalizing) {
   MOZ_ASSERT(IsLCovEnabled());
 
   ScriptLCovMap* map = script->zone()->scriptLCovMap.get();
   if (!map) {
-    return;
+    return false;
   }
 
   auto p = map->lookup(script);
   if (!p.found()) {
-    return;
+    return false;
   }
 
   LCovSource* source;
@@ -703,7 +670,13 @@ void CollectScriptCoverage(JSScript* script) {
   if (!script->isUncompleted()) {
     source->writeScript(script, scriptName);
   }
-  map->remove(p);
+
+  if (finalizing) {
+    map->remove(p);
+  }
+
+  // Propagate the failure in case caller wants to terminate early.
+  return !source->hadOutOfMemory();
 }
 
 }  // namespace coverage

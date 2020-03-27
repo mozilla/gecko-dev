@@ -28,7 +28,6 @@
 #include "mozilla/dom/Document.h"
 #include "nsIContentInlines.h"       // for nsINode::IsEditable()
 #include "nsIEditor.h"               // for nsIEditor, etc.
-#include "nsIPlaintextEditor.h"      // for nsIPlaintextEditor, etc.
 #include "nsISelectionController.h"  // for nsISelectionController constants
 #include "nsISelectionListener.h"    // for nsISelectionListener
 #include "nsISupportsImpl.h"         // for EditorBase::Release, etc.
@@ -427,6 +426,14 @@ class EditorBase : public nsIEditor,
   virtual dom::EventTarget* GetDOMEventTarget() = 0;
 
   /**
+   * Similar to the setter for wrapWidth, but just sets the editor
+   * internal state without actually changing the content being edited
+   * to wrap at that column.  This should only be used by callers who
+   * are sure that their content is already set up correctly.
+   */
+  void SetWrapColumn(int32_t aWrapColumn) { mWrapColumn = aWrapColumn; }
+
+  /**
    * Accessor methods to flags.
    */
   uint32_t Flags() const { return mFlags; }
@@ -459,60 +466,58 @@ class EditorBase : public nsIEditor,
   }
 
   bool IsPlaintextEditor() const {
-    return (mFlags & nsIPlaintextEditor::eEditorPlaintextMask) != 0;
+    return (mFlags & nsIEditor::eEditorPlaintextMask) != 0;
   }
 
   bool IsSingleLineEditor() const {
-    return (mFlags & nsIPlaintextEditor::eEditorSingleLineMask) != 0;
+    return (mFlags & nsIEditor::eEditorSingleLineMask) != 0;
   }
 
   bool IsPasswordEditor() const {
-    return (mFlags & nsIPlaintextEditor::eEditorPasswordMask) != 0;
+    return (mFlags & nsIEditor::eEditorPasswordMask) != 0;
   }
 
   // FYI: Both IsRightToLeft() and IsLeftToRight() may return false if
   //      the editor inherits the content node's direction.
   bool IsRightToLeft() const {
-    return (mFlags & nsIPlaintextEditor::eEditorRightToLeft) != 0;
+    return (mFlags & nsIEditor::eEditorRightToLeft) != 0;
   }
   bool IsLeftToRight() const {
-    return (mFlags & nsIPlaintextEditor::eEditorLeftToRight) != 0;
+    return (mFlags & nsIEditor::eEditorLeftToRight) != 0;
   }
 
   bool IsReadonly() const {
-    return (mFlags & nsIPlaintextEditor::eEditorReadonlyMask) != 0;
+    return (mFlags & nsIEditor::eEditorReadonlyMask) != 0;
   }
 
   bool IsDisabled() const {
-    return (mFlags & nsIPlaintextEditor::eEditorDisabledMask) != 0;
+    return (mFlags & nsIEditor::eEditorDisabledMask) != 0;
   }
 
   bool IsInputFiltered() const {
-    return (mFlags & nsIPlaintextEditor::eEditorFilterInputMask) != 0;
+    return (mFlags & nsIEditor::eEditorFilterInputMask) != 0;
   }
 
   bool IsMailEditor() const {
-    return (mFlags & nsIPlaintextEditor::eEditorMailMask) != 0;
+    return (mFlags & nsIEditor::eEditorMailMask) != 0;
   }
 
   bool IsWrapHackEnabled() const {
-    return (mFlags & nsIPlaintextEditor::eEditorEnableWrapHackMask) != 0;
+    return (mFlags & nsIEditor::eEditorEnableWrapHackMask) != 0;
   }
 
   bool IsFormWidget() const {
-    return (mFlags & nsIPlaintextEditor::eEditorWidgetMask) != 0;
+    return (mFlags & nsIEditor::eEditorWidgetMask) != 0;
   }
 
-  bool NoCSS() const {
-    return (mFlags & nsIPlaintextEditor::eEditorNoCSSMask) != 0;
-  }
+  bool NoCSS() const { return (mFlags & nsIEditor::eEditorNoCSSMask) != 0; }
 
   bool IsInteractionAllowed() const {
-    return (mFlags & nsIPlaintextEditor::eEditorAllowInteraction) != 0;
+    return (mFlags & nsIEditor::eEditorAllowInteraction) != 0;
   }
 
   bool ShouldSkipSpellCheck() const {
-    return (mFlags & nsIPlaintextEditor::eEditorSkipSpellCheck) != 0;
+    return (mFlags & nsIEditor::eEditorSkipSpellCheck) != 0;
   }
 
   bool IsTabbable() const {
@@ -604,6 +609,20 @@ class EditorBase : public nsIEditor,
    * we have to call this method for focused editor to set selection state.
    */
   void ReinitializeSelection(Element& aElement);
+
+  /**
+   * InsertTextAsAction() inserts aStringToInsert at selection.
+   * Although this method is implementation of nsIEditor.insertText(),
+   * this treats the input is an edit action.  If you'd like to insert text
+   * as part of edit action, you probably should use InsertTextAsSubAction().
+   *
+   * @param aStringToInsert     The string to insert.
+   * @param aPrincipal          Set subject principal if it may be called by
+   *                            JS.  If set to nullptr, will be treated as
+   *                            called by system.
+   */
+  MOZ_CAN_RUN_SCRIPT nsresult InsertTextAsAction(
+      const nsAString& aStringToInsert, nsIPrincipal* aPrincipal = nullptr);
 
  protected:  // May be used by friends.
   class AutoEditActionDataSetter;
@@ -779,11 +798,83 @@ class EditorBase : public nsIEditor,
                              nsIPrincipal* aPrincipal = nullptr);
     ~AutoEditActionDataSetter();
 
-    void UpdateEditAction(EditAction aEditAction) { mEditAction = aEditAction; }
+    void UpdateEditAction(EditAction aEditAction) {
+      MOZ_ASSERT(!mHasTriedToDispatchBeforeInputEvent,
+                 "It's too late to update EditAction since this may have "
+                 "already dispatched a beforeinput event");
+      mEditAction = aEditAction;
+    }
 
-    bool CanHandle() const { return mSelection && mEditorBase.IsInitialized(); }
+    /**
+     * CanHandle() or CanHandleAndHandleBeforeInput() must be called
+     * immediately after creating the instance.  If caller does not need to
+     * handle "beforeinput" event or caller needs to set additional information
+     * the events later, use the former.  Otherwise, use the latter.  If caller
+     * uses the former, it's required to call MaybeDispatchBeforeInputEvent() by
+     * itself.
+     *
+     */
+    MOZ_MUST_USE bool CanHandle() const {
+#ifdef DEBUG
+      mHasCanHandleChecked = true;
+#endif  // #ifdefn DEBUG
+      return mSelection && mEditorBase.IsInitialized();
+    }
+    MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE nsresult
+    CanHandleAndMaybeDispatchBeforeInputEvent() {
+      if (NS_WARN_IF(!CanHandle())) {
+        return NS_ERROR_NOT_INITIALIZED;
+      }
+      return MaybeDispatchBeforeInputEvent();
+    }
+
+    /**
+     * MaybeDispatchBeforeInputEvent() considers whether this instance needs to
+     * dispatch "beforeinput" event or not.  Then,
+     * mHasTriedToDispatchBeforeInputEvent is set to true.
+     *
+     * @return          If this method actually dispatches "beforeinput" event
+     *                  and it's canceled, returns
+     *                  NS_ERROR_EDITOR_ACTION_CANCELED.
+     */
+    MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE nsresult MaybeDispatchBeforeInputEvent();
+
+    /**
+     * MarkAsBeforeInputHasBeenDispatched() should be called only when updating
+     * the DOM occurs asynchronously from user input (e.g., inserting blob
+     * object which is loaded asynchronously) and `beforeinput` has already
+     * been dispatched (always should be so).
+     */
+    void MarkAsBeforeInputHasBeenDispatched() {
+      MOZ_ASSERT(!HasTriedToDispatchBeforeInputEvent());
+      MOZ_ASSERT(mEditAction == EditAction::ePaste ||
+                 mEditAction == EditAction::ePasteAsQuotation ||
+                 mEditAction == EditAction::eDrop);
+      mHasTriedToDispatchBeforeInputEvent = true;
+    }
+
+    /**
+     * NeedsToDispatchBeforeInputEvent() returns true if the edit action
+     * requires to handle "beforeinput" event but not yet dispatched it nor
+     * considered as not dispatched it.
+     */
+    bool NeedsToDispatchBeforeInputEvent() const {
+      return !HasTriedToDispatchBeforeInputEvent() &&
+             NeedsBeforeInputEventHandling(mEditAction);
+    }
+
+    /**
+     * HasTriedToDispatchBeforeInputEvent() returns true if the instance's
+     * MaybeDispatchBeforeInputEvent() has already been called.
+     */
+    bool HasTriedToDispatchBeforeInputEvent() const {
+      return mHasTriedToDispatchBeforeInputEvent;
+    }
+
+    bool IsCanceled() const { return mBeforeInputEventCanceled; }
 
     const RefPtr<Selection>& SelectionRefPtr() const { return mSelection; }
+    nsIPrincipal* GetPrincipal() const { return mPrincipal; }
     EditAction GetEditAction() const { return mEditAction; }
 
     template <typename PT, typename CT>
@@ -801,7 +892,12 @@ class EditorBase : public nsIEditor,
       return mSpellCheckRestartPoint;
     }
 
-    void SetData(const nsAString& aData) { mData = aData; }
+    void SetData(const nsAString& aData) {
+      MOZ_ASSERT(!mHasTriedToDispatchBeforeInputEvent,
+                 "It's too late to set data since this may have already "
+                 "dispatched a beforeinput event");
+      mData = aData;
+    }
     const nsString& GetData() const { return mData; }
 
     void SetColorData(const nsAString& aData);
@@ -946,8 +1042,53 @@ class EditorBase : public nsIEditor,
     }
 
    private:
+    static bool NeedsBeforeInputEventHandling(EditAction aEditAction) {
+      MOZ_ASSERT(aEditAction != EditAction::eNone);
+      switch (aEditAction) {
+        case EditAction::eNone:
+        // If we're not handling edit action, we don't need to handle
+        // "beforeinput" event.
+        case EditAction::eNotEditing:
+        // If raw level transaction API is used, the API user needs to handle
+        // both "beforeinput" event and "input" event if it's necessary.
+        case EditAction::eUnknown:
+        // Hiding/showing password affects only layout so that we don't need
+        // to handle beforeinput event for it.
+        case EditAction::eHidePassword:
+        // We don't need to dispatch "beforeinput" event before
+        // "compositionstart".
+        case EditAction::eStartComposition:
+        // We don't need to let web apps know changing UA stylesheet.
+        case EditAction::eAddOverrideStyleSheet:
+        case EditAction::eRemoveOverrideStyleSheet:
+        // We don't need to let web apps know the mode change.
+        case EditAction::eEnableStyleSheet:
+        case EditAction::eEnableOrDisableCSS:
+        case EditAction::eEnableOrDisableAbsolutePositionEditor:
+        case EditAction::eEnableOrDisableResizer:
+        case EditAction::eEnableOrDisableInlineTableEditingUI:
+        // We don't need to let contents in chrome's editor to know the size
+        // change.
+        case EditAction::eSetWrapWidth:
+        case EditAction::eRewrap:
+        // While resizing or moving element, we update only shadow, i.e.,
+        // don't touch to the DOM in content.  Therefore, we don't need to
+        // dispatch "beforeinput" event.
+        case EditAction::eResizingElement:
+        case EditAction::eMovingElement:
+        // Perhaps, we don't need to dispatch "beforeinput" event for
+        // padding `<br>` element for empty editor because it's internal
+        // handling and it should be occurred by another change.
+        case EditAction::eCreatePaddingBRElementForEmptyEditor:
+          return false;
+        default:
+          return true;
+      }
+    }
+
     EditorBase& mEditorBase;
     RefPtr<Selection> mSelection;
+    nsCOMPtr<nsIPrincipal> mPrincipal;
     // EditAction may be nested, for example, a command may be executed
     // from mutation event listener which is run while editor changes
     // the DOM tree.  In such case, we need to handle edit action separately.
@@ -990,6 +1131,17 @@ class EditorBase : public nsIEditor,
 
     bool mAborted;
 
+    // Set to true when this handles "beforeinput" event dispatching.  Note
+    // that even if "beforeinput" event shouldn't be dispatched for this,
+    // instance, this is set to true when it's considered.
+    bool mHasTriedToDispatchBeforeInputEvent;
+    // Set to true if "beforeinput" event was dispatched and it's canceled.
+    bool mBeforeInputEventCanceled;
+
+#ifdef DEBUG
+    mutable bool mHasCanHandleChecked = false;
+#endif  // #ifdef DEBUG
+
     AutoEditActionDataSetter() = delete;
     AutoEditActionDataSetter(const AutoEditActionDataSetter& aOther) = delete;
   };
@@ -1005,6 +1157,31 @@ class EditorBase : public nsIEditor,
    * necessary for them.  So, if you call them from friend classes, you need
    * to make sure that AutoEditActionDataSetter is created.
    ****************************************************************************/
+
+  bool IsEditActionCanceled() const {
+    MOZ_ASSERT(mEditActionData);
+    return mEditActionData->IsCanceled();
+  }
+
+  bool NeedsToDispatchBeforeInputEvent() const {
+    MOZ_ASSERT(mEditActionData);
+    return mEditActionData->NeedsToDispatchBeforeInputEvent();
+  }
+
+  MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE nsresult MaybeDispatchBeforeInputEvent() {
+    MOZ_ASSERT(mEditActionData);
+    return mEditActionData->MaybeDispatchBeforeInputEvent();
+  }
+
+  void MarkAsBeforeInputHasBeenDispatched() {
+    MOZ_ASSERT(mEditActionData);
+    return mEditActionData->MarkAsBeforeInputHasBeenDispatched();
+  }
+
+  bool HasTriedToDispatchBeforeInputEvent() const {
+    return mEditActionData &&
+           mEditActionData->HasTriedToDispatchBeforeInputEvent();
+  }
 
   bool IsEditActionDataAvailable() const {
     return mEditActionData && mEditActionData->CanHandle();
@@ -1030,6 +1207,11 @@ class EditorBase : public nsIEditor,
   const RefPtr<Selection>& SelectionRefPtr() const {
     MOZ_ASSERT(mEditActionData);
     return mEditActionData->SelectionRefPtr();
+  }
+
+  nsIPrincipal* GetEditActionPrincipal() const {
+    MOZ_ASSERT(mEditActionData);
+    return mEditActionData->GetPrincipal();
   }
 
   /**
@@ -1147,6 +1329,15 @@ class EditorBase : public nsIEditor,
    */
   EditorRawDOMPoint GetCompositionStartPoint() const;
   EditorRawDOMPoint GetCompositionEndPoint() const;
+
+  /**
+   * InsertTextAsSubAction() inserts aStringToInsert at selection.  This
+   * should be used for handling it as an edit sub-action.
+   *
+   * @param aStringToInsert     The string to insert.
+   */
+  MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE nsresult
+  InsertTextAsSubAction(const nsAString& aStringToInsert);
 
   /**
    * InsertTextWithTransaction() inserts aStringToInsert to aPointToInsert or
@@ -1730,6 +1921,14 @@ class EditorBase : public nsIEditor,
   MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE nsresult
   MaybeCreatePaddingBRElementForEmptyEditor();
 
+  /**
+   * MarkElementDirty() sets a special dirty attribute on the element.
+   * Usually this will be called immediately after creating a new node.
+   *
+   * @param aElement    The element for which to insert formatting.
+   */
+  MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE nsresult MarkElementDirty(Element& aElement);
+
   MOZ_CAN_RUN_SCRIPT nsresult DoTransactionInternal(nsITransaction* aTxn);
 
   virtual bool IsBlockNode(nsINode* aNode) const;
@@ -2167,6 +2366,8 @@ class EditorBase : public nsIEditor,
    */
   virtual ~EditorBase();
 
+  int32_t WrapWidth() const { return mWrapColumn; }
+
   /**
    * ToGenericNSResult() computes proper nsresult value for the editor users.
    * This should be used only when public methods return result of internal
@@ -2217,9 +2418,6 @@ class EditorBase : public nsIEditor,
    * asynchronously if it's not safe to dispatch.
    */
   MOZ_CAN_RUN_SCRIPT void DispatchInputEvent();
-  MOZ_CAN_RUN_SCRIPT void DispatchInputEvent(EditAction aEditAction,
-                                             const nsAString& aData,
-                                             dom::DataTransfer* aDataTransfer);
 
   /**
    * Called after a transaction is done successfully.
@@ -2404,6 +2602,12 @@ class EditorBase : public nsIEditor,
   MOZ_CAN_RUN_SCRIPT EditorDOMPoint
   PrepareToInsertBRElement(const EditorDOMPoint& aPointToInsert);
 
+  /**
+   * InsertLineBreakAsSubAction() inserts a line break, i.e., \n if it's
+   * TextEditor or <br> if it's HTMLEditor.
+   */
+  MOZ_CAN_RUN_SCRIPT MOZ_MUST_USE nsresult InsertLineBreakAsSubAction();
+
  private:
   nsCOMPtr<nsISelectionController> mSelectionController;
   RefPtr<Document> mDocument;
@@ -2420,6 +2624,10 @@ class EditorBase : public nsIEditor,
  protected:  // helper classes which may be used by friends
   /**
    * Stack based helper class for calling EditorBase::EndTransactionInternal().
+   * NOTE:  This does not suppress multiple input events.  In most cases,
+   *        only one "input" event should be fired for an edit action rather
+   *        than per edit sub-action.  In such case, you should use
+   *        AutoPlaceholderBatch instead.
    */
   class MOZ_RAII AutoTransactionBatch final {
    public:
@@ -2441,7 +2649,9 @@ class EditorBase : public nsIEditor,
 
   /**
    * Stack based helper class for batching a collection of transactions inside
-   * a placeholder transaction.
+   * a placeholder transaction.  Different from AutoTransactionBatch, this
+   * notifies editor observers of before/end edit action handling, and
+   * dispatches "input" event if it's necessary.
    */
   class MOZ_RAII AutoPlaceholderBatch final {
    public:
@@ -2629,22 +2839,24 @@ class EditorBase : public nsIEditor,
       AutoEditorObserverArray;
   AutoEditorObserverArray mEditorObservers;
   // Listen to overall doc state (dirty or not, just created, etc.).
-  // Document state listener is currently used by EditingSession and
-  // BlueGriffon so that reserving only one is enough (although, this is not
-  // necessary for TextEditor).
+  // Document state listener is currently used by FinderHighlighter and
+  // BlueGriffon so that reserving only one is enough.
   typedef AutoTArray<OwningNonNull<nsIDocumentStateListener>, 1>
       AutoDocumentStateListenerArray;
   AutoDocumentStateListenerArray mDocStateListeners;
 
   // Number of modifications (for undo/redo stack).
   uint32_t mModCount;
-  // Behavior flags. See nsIPlaintextEditor.idl for the flags we use.
+  // Behavior flags. See nsIEditor.idl for the flags we use.
   uint32_t mFlags;
 
   int32_t mUpdateCount;
 
   // Nesting count for batching.
   int32_t mPlaceholderBatch;
+
+  int32_t mWrapColumn;
+  int32_t mNewlineHandling;
 
   // -1 = not initialized
   int8_t mDocDirtyState;

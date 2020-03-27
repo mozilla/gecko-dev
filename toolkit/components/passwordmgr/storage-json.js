@@ -308,6 +308,16 @@ class LoginManagerStorage_json {
     LoginHelper.notifyStorageChanged("modifyLogin", [oldStoredLogin, newLogin]);
   }
 
+  recordPasswordUse(login) {
+    // Update the lastUsed timestamp and increment the use count.
+    let propBag = Cc["@mozilla.org/hash-property-bag;1"].createInstance(
+      Ci.nsIWritablePropertyBag
+    );
+    propBag.setProperty("timeLastUsed", Date.now());
+    propBag.setProperty("timesUsedIncrement", 1);
+    this.modifyLogin(login, propBag);
+  }
+
   async recordBreachAlertDismissal(loginGUID) {
     this._store.ensureDataReady();
     const dismissedBreachAlertsByLoginGUID = this._store._data
@@ -412,18 +422,28 @@ class LoginManagerStorage_json {
 
     let realMatchData = {};
     let options = {};
-    // Convert nsIPropertyBag to normal JS object
-    for (let prop of matchData.enumerator) {
-      switch (prop.name) {
-        // Some property names aren't field names but are special options to affect the search.
-        case "acceptDifferentSubdomains":
-        case "schemeUpgrades": {
-          options[prop.name] = prop.value;
-          break;
-        }
-        default: {
-          realMatchData[prop.name] = prop.value;
-          break;
+
+    matchData.QueryInterface(Ci.nsIPropertyBag2);
+    if (matchData.hasKey("guid")) {
+      // Enforce GUID-based filtering when available, since the origin of the
+      // login may not match the origin of the form in the case of scheme
+      // upgrades.
+      realMatchData = { guid: matchData.getProperty("guid") };
+    } else {
+      // Convert nsIPropertyBag to normal JS object.
+      for (let prop of matchData.enumerator) {
+        switch (prop.name) {
+          // Some property names aren't field names but are special options to
+          // affect the search.
+          case "acceptDifferentSubdomains":
+          case "schemeUpgrades": {
+            options[prop.name] = prop.value;
+            break;
+          }
+          default: {
+            realMatchData[prop.name] = prop.value;
+            break;
+          }
         }
       }
     }

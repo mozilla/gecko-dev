@@ -110,8 +110,6 @@ WebGLExtensionTextureFloat::WebGLExtensionTextureFloat(WebGLContext* webgl)
   fnAdd(webgl::EffectiveFormat::Luminance32FAlpha32F);
 }
 
-WebGLExtensionTextureFloat::~WebGLExtensionTextureFloat() {}
-
 bool WebGLExtensionTextureFloat::IsSupported(const WebGLContext* webgl) {
   if (webgl->IsWebGL2()) return false;
 
@@ -124,7 +122,5 @@ bool WebGLExtensionTextureFloat::IsSupported(const WebGLContext* webgl) {
 
   return true;
 }
-
-IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionTextureFloat, OES_texture_float)
 
 }  // namespace mozilla

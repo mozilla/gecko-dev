@@ -113,7 +113,13 @@ nsresult ShadowRoot::Bind() {
   MOZ_ASSERT(!IsInComposedDoc(), "Forgot to unbind?");
   if (Host()->IsInComposedDoc()) {
     SetIsConnected(true);
-    OwnerDoc()->AddComposedDocShadowRoot(*this);
+    Document* doc = OwnerDoc();
+    doc->AddComposedDocShadowRoot(*this);
+    // If our stylesheets somehow mutated when we were disconnected, we need to
+    // ensure that our style data gets flushed as appropriate.
+    if (mServoStyles && Servo_AuthorStyles_IsDirty(mServoStyles.get())) {
+      doc->RecordShadowStyleChange(*this);
+    }
   }
 
   BindContext context(*this);
@@ -400,8 +406,7 @@ void ShadowRoot::InsertSheetIntoAuthorData(size_t aIndex, StyleSheet& aSheet) {
 
 // FIXME(emilio): This needs to notify document observers and such,
 // presumably.
-void ShadowRoot::StyleSheetApplicableStateChanged(StyleSheet& aSheet,
-                                                  bool aApplicable) {
+void ShadowRoot::StyleSheetApplicableStateChanged(StyleSheet& aSheet) {
   int32_t index = IndexOfSheet(aSheet);
   if (index < 0) {
     // NOTE(emilio): @import sheets are handled in the relevant RuleAdded
@@ -413,7 +418,7 @@ void ShadowRoot::StyleSheetApplicableStateChanged(StyleSheet& aSheet,
                           "It'd better be an @import sheet");
     return;
   }
-  if (aApplicable) {
+  if (aSheet.IsApplicable()) {
     InsertSheetIntoAuthorData(size_t(index), aSheet);
   } else {
     MOZ_ASSERT(mServoStyles);

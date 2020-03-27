@@ -10,6 +10,7 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/StaticPrefs_gfx.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/Types.h"
@@ -137,7 +138,7 @@ struct BlobItemData {
     if (mArray->IsEmpty()) {
       // If the frame is in the process of being destroyed this will fail
       // but that's ok, because the the property will be removed then anyways
-      mFrame->DeleteProperty(BlobGroupDataProperty());
+      mFrame->RemoveProperty(BlobGroupDataProperty());
     }
     mFrame = nullptr;
   }
@@ -1391,6 +1392,31 @@ static mozilla::gfx::IntRect ScaleToOutsidePixelsOffset(
   return rect;
 }
 
+/* This function is the same as the above except that it rounds to the
+ * nearest instead of rounding out. We use it for attempting to compute the
+ * actual pixel bounds of opaque items */
+static mozilla::gfx::IntRect ScaleToNearestPixelsOffset(
+    nsRect aRect, float aXScale, float aYScale, nscoord aAppUnitsPerPixel,
+    LayerPoint aOffset) {
+  mozilla::gfx::IntRect rect;
+  rect.SetNonEmptyBox(
+      NSToIntFloor(NSAppUnitsToFloatPixels(aRect.x, float(aAppUnitsPerPixel)) *
+                       aXScale +
+                   aOffset.x + 0.5),
+      NSToIntFloor(NSAppUnitsToFloatPixels(aRect.y, float(aAppUnitsPerPixel)) *
+                       aYScale +
+                   aOffset.y + 0.5),
+      NSToIntFloor(
+          NSAppUnitsToFloatPixels(aRect.XMost(), float(aAppUnitsPerPixel)) *
+              aXScale +
+          aOffset.x + 0.5),
+      NSToIntFloor(
+          NSAppUnitsToFloatPixels(aRect.YMost(), float(aAppUnitsPerPixel)) *
+              aYScale +
+          aOffset.y + 0.5));
+  return rect;
+}
+
 RenderRootStateManager* WebRenderCommandBuilder::GetRenderRootStateManager(
     wr::RenderRoot aRenderRoot) {
   return mManager->GetRenderRootStateManager(aRenderRoot);
@@ -1518,6 +1544,21 @@ void WebRenderCommandBuilder::DoGroupingForDisplayList(
   mCurrentClipManager->EndList(aSc);
 }
 
+WebRenderCommandBuilder::WebRenderCommandBuilder(
+    WebRenderLayerManager* aManager)
+    : mManager(aManager),
+      mRootStackingContexts(nullptr),
+      mCurrentClipManager(nullptr),
+      mLastAsr(nullptr),
+      mDumpIndent(0),
+      mDoGrouping(false),
+      mContainsSVGGroup(false) {
+  if (XRE_IsContentProcess() &&
+      StaticPrefs::gfx_webrender_enable_item_cache_AtStartup()) {
+    mDisplayItemCache.SetCapacity(10000, 10000);
+  }
+}
+
 void WebRenderCommandBuilder::Destroy() {
   mLastCanvasDatas.Clear();
   ClearCachedResources();
@@ -1561,6 +1602,13 @@ void WebRenderCommandBuilder::BuildWebRenderCommands(
   mLastAsr = nullptr;
   mContainsSVGGroup = false;
   MOZ_ASSERT(mDumpIndent == 0);
+
+  if (mDisplayItemCache.IsEnabled()) {
+    mDisplayItemCache.UpdateState(aDisplayListBuilder->PartialBuildFailed(),
+                                  aBuilder.CurrentPipelineId());
+    aBuilder.SetDisplayListCacheSize(mDisplayItemCache.CurrentCacheSize());
+    // mDisplayItemCache.Stats().Reset();
+  }
 
   {
     nsPresContext* presContext =
@@ -1631,6 +1679,10 @@ void WebRenderCommandBuilder::BuildWebRenderCommands(
   // Remove the user data those are not displayed on the screen and
   // also reset the data to unused for next transaction.
   RemoveUnusedAndResetWebRenderUserData();
+
+  if (mDisplayItemCache.IsEnabled()) {
+    // mDisplayItemCache.Stats().Print();
+  }
 }
 
 bool WebRenderCommandBuilder::ShouldDumpDisplayList(
@@ -1640,6 +1692,37 @@ bool WebRenderCommandBuilder::ShouldDumpDisplayList(
            StaticPrefs::gfx_webrender_dl_dump_parent()) ||
           (XRE_IsContentProcess() &&
            StaticPrefs::gfx_webrender_dl_dump_content()));
+}
+
+void WebRenderCommandBuilder::CreateWebRenderCommands(
+    nsDisplayItem* aItem, mozilla::wr::DisplayListBuilder& aBuilder,
+    mozilla::wr::IpcResourceUpdateQueue& aResources,
+    const StackingContextHelper& aSc,
+    nsDisplayListBuilder* aDisplayListBuilder) {
+  auto* item = aItem->AsPaintedDisplayItem();
+  MOZ_RELEASE_ASSERT(item, "Tried to paint item that cannot be painted");
+
+  if (mDisplayItemCache.ReuseItem(item, aBuilder)) {
+    // No further processing should be needed, since the item was reused.
+    return;
+  }
+
+  mDisplayItemCache.MaybeStartCaching(item, aBuilder);
+
+  aItem->SetPaintRect(aItem->GetBuildingRect());
+  RenderRootStateManager* manager =
+      mManager->GetRenderRootStateManager(aBuilder.GetRenderRoot());
+
+  // Note: this call to CreateWebRenderCommands can recurse back into
+  // this function if the |item| is a wrapper for a sublist.
+  const bool createdWRCommands = aItem->CreateWebRenderCommands(
+      aBuilder, aResources, aSc, manager, aDisplayListBuilder);
+
+  if (!createdWRCommands) {
+    PushItemAsImage(aItem, aBuilder, aResources, aSc, aDisplayListBuilder);
+  }
+
+  mDisplayItemCache.MaybeEndCaching(aBuilder);
 }
 
 void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
@@ -1743,16 +1826,8 @@ void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
         printf_stderr("%s", ss.str().c_str());
       }
 
-      // Note: this call to CreateWebRenderCommands can recurse back into
-      // this function if the |item| is a wrapper for a sublist.
-      item->SetPaintRect(item->GetBuildingRect());
-      RenderRootStateManager* manager =
-          mManager->GetRenderRootStateManager(aBuilder.GetRenderRoot());
-      bool createdWRCommands = item->CreateWebRenderCommands(
-          aBuilder, aResources, aSc, manager, aDisplayListBuilder);
-      if (!createdWRCommands) {
-        PushItemAsImage(item, aBuilder, aResources, aSc, aDisplayListBuilder);
-      }
+      CreateWebRenderCommands(item, aBuilder, aResources, aSc,
+                              aDisplayListBuilder);
 
       if (dumpEnabled) {
         mBuilderDumpIndex[aBuilder.GetRenderRoot()] = aBuilder.Dump(
@@ -2089,8 +2164,9 @@ WebRenderCommandBuilder::GenerateFallbackData(
     nsDisplayItem* aItem, wr::DisplayListBuilder& aBuilder,
     wr::IpcResourceUpdateQueue& aResources, const StackingContextHelper& aSc,
     nsDisplayListBuilder* aDisplayListBuilder, LayoutDeviceRect& aImageRect) {
-  bool useBlobImage = StaticPrefs::gfx_webrender_blob_images() &&
-                      !aItem->MustPaintOnContentSide();
+  const bool paintOnContentSide = aItem->MustPaintOnContentSide();
+  bool useBlobImage =
+      StaticPrefs::gfx_webrender_blob_images() && !paintOnContentSide;
   Maybe<gfx::Color> highlight = Nothing();
   if (StaticPrefs::gfx_webrender_highlight_painted_layers()) {
     highlight = Some(useBlobImage ? gfx::Color(1.0, 0.0, 0.0, 0.5)
@@ -2107,15 +2183,12 @@ WebRenderCommandBuilder::GenerateFallbackData(
   // Blob images will only draw the visible area of the blob so we don't need to
   // clip them here and can just rely on the webrender clipping.
   // TODO We also don't clip native themed widget to avoid over-invalidation
-  // during scrolling. it would be better to support a sort of straming/tiling
+  // during scrolling. It would be better to support a sort of streaming/tiling
   // scheme for large ones but the hope is that we should not have large native
   // themed items.
-  nsRect paintBounds = itemBounds;
-  if (useBlobImage || aItem->MustPaintOnContentSide()) {
-    paintBounds = itemBounds;
-  } else {
-    paintBounds = aItem->GetClippedBounds(aDisplayListBuilder);
-  }
+  nsRect paintBounds = (useBlobImage || paintOnContentSide)
+                           ? itemBounds
+                           : aItem->GetClippedBounds(aDisplayListBuilder);
 
   // nsDisplayItem::Paint() may refer the variables that come from
   // ComputeVisibility(). So we should call ComputeVisibility() before painting.
@@ -2147,15 +2220,40 @@ WebRenderCommandBuilder::GenerateFallbackData(
   auto snappedTrans = LayerIntPoint::Floor(trans);
   LayerPoint residualOffset = trans - snappedTrans;
 
-  auto dtRect = LayerIntRect::FromUnknownRect(
-      ScaleToOutsidePixelsOffset(paintBounds, scale.width, scale.height,
-                                 appUnitsPerDevPixel, residualOffset));
+  nsRegion opaqueRegion = aItem->GetOpaqueRegion(aDisplayListBuilder, &snap);
+  wr::OpacityType opacity = opaqueRegion.Contains(paintBounds)
+                                ? wr::OpacityType::Opaque
+                                : wr::OpacityType::HasAlphaChannel;
 
-  auto visibleRect = LayerIntRect::FromUnknownRect(
-                         ScaleToOutsidePixelsOffset(
-                             aItem->GetBuildingRect(), scale.width,
-                             scale.height, appUnitsPerDevPixel, residualOffset))
-                         .Intersect(dtRect);
+  LayerIntRect dtRect, visibleRect;
+  // If we think the item is opaque we round the bounds
+  // to the nearest pixel instead of rounding them out. If we rounded
+  // out we'd potentially introduce transparent pixels.
+  //
+  // Ideally we'd be able to ask an item its bounds in pixels and whether
+  // they're all opaque. Unfortunately no such API exists so we currently
+  // just hope that we get it right.
+  if (opacity == wr::OpacityType::Opaque && snap) {
+    dtRect = LayerIntRect::FromUnknownRect(
+        ScaleToNearestPixelsOffset(paintBounds, scale.width, scale.height,
+                                   appUnitsPerDevPixel, residualOffset));
+
+    visibleRect = LayerIntRect::FromUnknownRect(
+                      ScaleToNearestPixelsOffset(
+                          aItem->GetBuildingRect(), scale.width, scale.height,
+                          appUnitsPerDevPixel, residualOffset))
+                      .Intersect(dtRect);
+  } else {
+    dtRect = LayerIntRect::FromUnknownRect(
+        ScaleToOutsidePixelsOffset(paintBounds, scale.width, scale.height,
+                                   appUnitsPerDevPixel, residualOffset));
+
+    visibleRect = LayerIntRect::FromUnknownRect(
+                      ScaleToOutsidePixelsOffset(
+                          aItem->GetBuildingRect(), scale.width, scale.height,
+                          appUnitsPerDevPixel, residualOffset))
+                      .Intersect(dtRect);
+  }
 
   auto visibleSize = visibleRect.Size();
   if (visibleSize.IsEmpty()) {
@@ -2174,7 +2272,7 @@ WebRenderCommandBuilder::GenerateFallbackData(
   // is needs to be adjusted by the display item bounds top left.
   visibleRect -= dtRect.TopLeft();
 
-  nsDisplayItemGeometry* geometry = fallbackData->mGeometry;
+  nsDisplayItemGeometry* geometry = fallbackData->mGeometry.get();
 
   bool needPaint = true;
 
@@ -2207,21 +2305,17 @@ WebRenderCommandBuilder::GenerateFallbackData(
   }
 
   if (needPaint || !fallbackData->GetImageKey()) {
-    nsAutoPtr<nsDisplayItemGeometry> newGeometry;
-    newGeometry = aItem->AllocateGeometry(aDisplayListBuilder);
-    fallbackData->mGeometry = std::move(newGeometry);
+    fallbackData->mGeometry =
+        WrapUnique(aItem->AllocateGeometry(aDisplayListBuilder));
 
     gfx::SurfaceFormat format = aItem->GetType() == DisplayItemType::TYPE_MASK
                                     ? gfx::SurfaceFormat::A8
-                                    : gfx::SurfaceFormat::B8G8R8A8;
+                                    : (opacity == wr::OpacityType::Opaque
+                                           ? gfx::SurfaceFormat::B8G8R8X8
+                                           : gfx::SurfaceFormat::B8G8R8A8);
     if (useBlobImage) {
-      bool snapped;
-      nsRegion opaqueRegion =
-          aItem->GetOpaqueRegion(aDisplayListBuilder, &snapped);
       MOZ_ASSERT(!opaqueRegion.IsComplex());
-      wr::OpacityType opacity = opaqueRegion.Contains(paintBounds)
-                                    ? wr::OpacityType::Opaque
-                                    : wr::OpacityType::HasAlphaChannel;
+
       std::vector<RefPtr<ScaledFont>> fonts;
       bool validFonts = true;
       RefPtr<WebRenderDrawEventRecorder> recorder =
@@ -2246,7 +2340,7 @@ WebRenderCommandBuilder::GenerateFallbackData(
       RefPtr<gfx::DrawTarget> dummyDt = gfx::Factory::CreateDrawTarget(
           gfx::BackendType::SKIA, gfx::IntSize(1, 1), format);
       RefPtr<gfx::DrawTarget> dt = gfx::Factory::CreateRecordingDrawTarget(
-          recorder, dummyDt, visibleRect.ToUnknownRect());
+          recorder, dummyDt, (dtRect - dtRect.TopLeft()).ToUnknownRect());
       if (!fallbackData->mBasicLayerManager) {
         fallbackData->mBasicLayerManager =
             new BasicLayerManager(BasicLayerManager::BLM_INACTIVE);
@@ -2572,7 +2666,7 @@ void WebRenderCommandBuilder::RemoveUnusedAndResetWebRenderUserData() {
 
       if (!userDataTable->Count()) {
         frame->RemoveProperty(WebRenderUserDataProperty::Key());
-        delete userDataTable;
+        userDataTable = nullptr;
       }
 
       if (data->GetType() == WebRenderUserData::UserDataType::eCanvas) {

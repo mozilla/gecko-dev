@@ -34,8 +34,12 @@
 #  include "SharedSurfaceGLX.h"
 #endif
 
-namespace mozilla {
-namespace gl {
+#ifdef MOZ_WAYLAND
+#  include "gfxPlatformGtk.h"
+#  include "SharedSurfaceDMABUF.h"
+#endif
+
+namespace mozilla::gl {
 
 using gfx::SurfaceFormat;
 
@@ -59,12 +63,19 @@ UniquePtr<GLScreenBuffer> GLScreenBuffer::Create(GLContext* gl,
 /* static */
 UniquePtr<SurfaceFactory> GLScreenBuffer::CreateFactory(
     GLContext* gl, const SurfaceCaps& caps,
-    KnowsCompositor* compositorConnection, const layers::TextureFlags& flags) {
-  LayersIPCChannel* ipcChannel = compositorConnection->GetTextureForwarder();
-  const layers::LayersBackend backend =
-      compositorConnection->GetCompositorBackendType();
-  const bool useANGLE = compositorConnection->GetCompositorUseANGLE();
+    layers::KnowsCompositor* compositorConnection,
+    const layers::TextureFlags& flags) {
+  const auto& ipcChannel = compositorConnection->GetTextureForwarder();
+  const auto& backend = compositorConnection->GetCompositorBackendType();
+  bool useANGLE = compositorConnection->GetCompositorUseANGLE();
+  return CreateFactory(gl, caps, ipcChannel, backend, useANGLE, flags);
+}
 
+/* static */
+UniquePtr<SurfaceFactory> GLScreenBuffer::CreateFactory(
+    GLContext* gl, const SurfaceCaps& caps,
+    layers::LayersIPCChannel* ipcChannel, layers::LayersBackend backend,
+    bool useANGLE, const layers::TextureFlags& flags) {
   const bool useGl =
       !StaticPrefs::webgl_force_layers_readback() &&
       (backend == layers::LayersBackend::LAYERS_OPENGL ||
@@ -78,6 +89,13 @@ UniquePtr<SurfaceFactory> GLScreenBuffer::CreateFactory(
   if (useGl) {
 #if defined(XP_MACOSX)
     factory = SurfaceFactory_IOSurface::Create(gl, caps, ipcChannel, flags);
+#elif defined(MOZ_WAYLAND)
+    if (gl->GetContextType() == GLContextType::EGL) {
+      if (gfxPlatformGtk::GetPlatform()->UseWaylandDMABufWebGL()) {
+        factory =
+            MakeUnique<SurfaceFactory_DMABUF>(gl, caps, ipcChannel, flags);
+      }
+    }
 #elif defined(MOZ_X11)
     if (sGLXLibrary.UseTextureFromPixmap())
       factory = SurfaceFactory_GLXDrawable::Create(gl, caps, ipcChannel, flags);
@@ -103,11 +121,14 @@ UniquePtr<SurfaceFactory> GLScreenBuffer::CreateFactory(
     // Ensure devices initialization. SharedSurfaceANGLE and
     // SharedSurfaceD3D11Interop use them. The devices are lazily initialized
     // with WebRender to reduce memory usage.
-    gfxPlatform::GetPlatform()->EnsureDevicesInitialized();
+    if (XRE_IsContentProcess()) {
+      gfxPlatform::GetPlatform()->EnsureDevicesInitialized();
+    }
 
     // Enable surface sharing only if ANGLE and compositing devices
     // are both WARP or both not WARP
     gfx::DeviceManagerDx* dm = gfx::DeviceManagerDx::Get();
+    MOZ_ASSERT(dm);
     if (gl->IsANGLE() && (gl->IsWARP() == dm->IsWARP()) &&
         dm->TextureSharingWorks()) {
       factory =
@@ -447,7 +468,8 @@ bool GLScreenBuffer::Attach(SharedSurface* surf, const gfx::IntSize& size) {
 }
 
 bool GLScreenBuffer::Swap(const gfx::IntSize& size) {
-  RefPtr<SharedSurfaceTextureClient> newBack = mFactory->NewTexClient(size);
+  RefPtr<layers::SharedSurfaceTextureClient> newBack =
+      mFactory->NewTexClient(size);
   if (!newBack) return false;
 
   // In the case of DXGL interop, the new surface needs to be acquired before
@@ -510,7 +532,8 @@ bool GLScreenBuffer::PublishFrame(const gfx::IntSize& size) {
 }
 
 bool GLScreenBuffer::Resize(const gfx::IntSize& size) {
-  RefPtr<SharedSurfaceTextureClient> newBack = mFactory->NewTexClient(size);
+  RefPtr<layers::SharedSurfaceTextureClient> newBack =
+      mFactory->NewTexClient(size);
   if (!newBack) return false;
 
   if (!Attach(newBack->Surf(), size)) return false;
@@ -758,5 +781,4 @@ void ReadBuffer::SetReadBuffer(GLenum userMode) const {
   mGL->fReadBuffer(internalMode);
 }
 
-} /* namespace gl */
-} /* namespace mozilla */
+}  // namespace mozilla::gl

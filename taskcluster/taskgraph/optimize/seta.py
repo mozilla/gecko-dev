@@ -136,8 +136,9 @@ class SETA(object):
             # Now rip out from low value things that were high value in opt
             low_value_tasks = set([x for x in low_value_tasks if not new_as_old_is_high_value(x)])
 
-            # ensure no build tasks slipped in, we never want to optimize out those
-            low_value_tasks = set([x for x in low_value_tasks if 'build' not in x])
+            # ensure no non-fuzzing build tasks slipped in, we never want to optimize out those
+            low_value_tasks = set([x for x in low_value_tasks
+                                   if 'build' not in x or 'fuzzing' in x])
 
             # Strip out any duplicates from the above conversions
             low_value_tasks = list(set(low_value_tasks))
@@ -264,7 +265,6 @@ is_low_value_task = SETA().is_low_value_task
 
 
 @register_strategy('seta', args=(10, 60))
-@register_strategy('seta_15_180', args=(15, 180))
 class SkipLowValue(OptimizationStrategy):
 
     def __init__(self, push_interval, time_interval):

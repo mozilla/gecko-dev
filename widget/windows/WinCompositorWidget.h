@@ -28,18 +28,12 @@ class PlatformCompositorWidgetDelegate : public CompositorWidgetDelegate {
   virtual void EnterPresentLock() = 0;
   virtual void LeavePresentLock() = 0;
   virtual void OnDestroyWindow() = 0;
+  virtual bool OnWindowResize(const LayoutDeviceIntSize& aSize) = 0;
+  virtual void OnWindowModeChange(nsSizeMode aSizeMode) = 0;
 
   // Transparency handling.
   virtual void UpdateTransparency(nsTransparencyMode aMode) = 0;
   virtual void ClearTransparentWindow() = 0;
-
-  // If in-process and using software rendering, return the backing transparent
-  // DC.
-  virtual HDC GetTransparentDC() const = 0;
-  virtual void SetParentWnd(const HWND aParentWnd) {}
-  virtual void UpdateCompositorWnd(const HWND aCompositorWnd,
-                                   const HWND aParentWnd) {}
-  virtual void SetRootLayerTreeID(const layers::LayersId& aRootLayerTreeId) {}
 
   // CompositorWidgetDelegate Overrides
 
@@ -54,8 +48,7 @@ class WinCompositorWidgetInitData;
 // the most part it only requires an HWND, however it maintains extra state
 // for transparent windows, as well as for synchronizing WM_SETTEXT messages
 // with the compositor.
-class WinCompositorWidget : public CompositorWidget,
-                            public PlatformCompositorWidgetDelegate {
+class WinCompositorWidget : public CompositorWidget {
  public:
   WinCompositorWidget(const WinCompositorWidgetInitData& aInitData,
                       const layers::CompositorOptions& aOptions);
@@ -63,36 +56,9 @@ class WinCompositorWidget : public CompositorWidget,
 
   // CompositorWidget Overrides
 
-  bool PreRender(WidgetRenderingContext*) override;
-  void PostRender(WidgetRenderingContext*) override;
-  already_AddRefed<gfx::DrawTarget> StartRemoteDrawing() override;
-  void EndRemoteDrawing() override;
-  bool NeedsToDeferEndRemoteDrawing() override;
-  LayoutDeviceIntSize GetClientSize() override;
-  already_AddRefed<gfx::DrawTarget> GetBackBufferDrawTarget(
-      gfx::DrawTarget* aScreenTarget, const gfx::IntRect& aRect,
-      bool* aOutIsCleared) override;
-  already_AddRefed<gfx::SourceSurface> EndBackBufferDrawing() override;
-  bool InitCompositor(layers::Compositor* aCompositor) override;
   uintptr_t GetWidgetKey() override;
   WinCompositorWidget* AsWindows() override { return this; }
-  CompositorWidgetDelegate* AsDelegate() override { return this; }
-  bool IsHidden() const override;
 
-  // PlatformCompositorWidgetDelegate Overrides
-
-  void EnterPresentLock() override;
-  void LeavePresentLock() override;
-  void OnDestroyWindow() override;
-  void UpdateTransparency(nsTransparencyMode aMode) override;
-  void ClearTransparentWindow() override;
-
-  bool RedrawTransparentWindow();
-
-  // Ensure that a transparent surface exists, then return it.
-  RefPtr<gfxASurface> EnsureTransparentSurface();
-
-  HDC GetTransparentDC() const override { return mMemoryDC; }
   HWND GetHwnd() const {
     return mCompositorWnds.mCompositorWnd ? mCompositorWnds.mCompositorWnd
                                           : mWnd;
@@ -104,22 +70,15 @@ class WinCompositorWidget : public CompositorWidget,
   void DestroyCompositorWindow();
   void UpdateCompositorWndSizeIfNecessary();
 
-  mozilla::Mutex& GetTransparentSurfaceLock() {
-    return mTransparentSurfaceLock;
-  }
-
   void RequestFxrOutput();
   bool HasFxrOutputHandler() const { return mFxrHandler != nullptr; }
   FxROutputHandler* GetFxrOutputHandler() const { return mFxrHandler.get(); }
 
-  bool HasGlass() const;
+  virtual bool HasGlass() const = 0;
 
- protected:
- private:
-  HDC GetWindowSurface();
-  void FreeWindowSurface(HDC dc);
-
-  void CreateTransparentSurface(const gfx::IntSize& aSize);
+  virtual void UpdateCompositorWnd(const HWND aCompositorWnd,
+                                   const HWND aParentWnd) = 0;
+  virtual void SetRootLayerTreeID(const layers::LayersId& aRootLayerTreeId) = 0;
 
  protected:
   bool mSetParentCompleted;
@@ -130,21 +89,6 @@ class WinCompositorWidget : public CompositorWidget,
 
   WinCompositorWnds mCompositorWnds;
   LayoutDeviceIntSize mLastCompositorWndSize;
-
-  gfx::CriticalSection mPresentLock;
-
-  // Transparency handling.
-  mozilla::Mutex mTransparentSurfaceLock;
-  mozilla::Atomic<nsTransparencyMode, MemoryOrdering::Relaxed>
-      mTransparencyMode;
-  RefPtr<gfxASurface> mTransparentSurface;
-  HDC mMemoryDC;
-  HDC mCompositeDC;
-
-  // Locked back buffer of BasicCompositor
-  uint8_t* mLockedBackBufferData;
-
-  bool mNotDeferEndRemoteDrawing;
 
   UniquePtr<FxROutputHandler> mFxrHandler;
 };

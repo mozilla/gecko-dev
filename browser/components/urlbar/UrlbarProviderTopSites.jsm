@@ -16,6 +16,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
   PlacesSearchAutocompleteProvider:
     "resource://gre/modules/PlacesSearchAutocompleteProvider.jsm",
+  Services: "resource://gre/modules/Services.jsm",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
   UrlbarProvider: "resource:///modules/UrlbarUtils.jsm",
   UrlbarProviderOpenTabs: "resource:///modules/UrlbarProviderOpenTabs.jsm",
@@ -40,6 +41,12 @@ class ProviderTopSites extends UrlbarProvider {
     // Maps the running queries by queryContext.
     this.queries = new Map();
   }
+
+  get PRIORITY() {
+    // Top sites are prioritized over the UnifiedComplete provider.
+    return 1;
+  }
+
   /**
    * Unique name for the provider, used by the context to filter on providers.
    * Not using a unique name will cause the newest registration to win.
@@ -63,22 +70,28 @@ class ProviderTopSites extends UrlbarProvider {
    * @returns {boolean} Whether this provider should be invoked for the search.
    */
   isActive(queryContext) {
+    // If top sites on new tab are disabled, the pref below will be false, and
+    // activity stream's top sites will be unavailable (an empty array), so we
+    // make this provider inactive.  For empty search strings, we instead show
+    // the most frecent URLs in the user's history from the UnifiedComplete
+    // provider.
     return (
       UrlbarPrefs.get("update1") &&
       UrlbarPrefs.get("openViewOnFocus") &&
-      !queryContext.searchString
+      !queryContext.searchString &&
+      Services.prefs.getBoolPref(
+        "browser.newtabpage.activity-stream.feeds.topsites"
+      )
     );
   }
 
   /**
-   * Whether this provider wants to restrict results to just itself.
-   * Other providers won't be invoked, unless this provider doesn't
-   * support the current query.
+   * Gets the provider's priority.
    * @param {UrlbarQueryContext} queryContext The query context object
-   * @returns {boolean} Whether this provider wants to restrict results.
+   * @returns {number} The provider's priority for the given query.
    */
-  isRestricting(queryContext) {
-    return true;
+  getPriority(queryContext) {
+    return this.PRIORITY;
   }
 
   /**
@@ -108,11 +121,6 @@ class ProviderTopSites extends UrlbarProvider {
       // are stored in `label`, so prefer it.  Search top sites currently
       // don't have titles but `hostname` instead.
       title: link.label || link.title || link.hostname || "",
-      // Default top sites don't have a favicon property.  Instead they
-      // have tippyTopIcon, a 96x96pt image used on the newtab page.
-      // We'll use it as the favicon for now, but ideally default top
-      // sites would have real favicons.  Non-default top sites (i.e.,
-      // those from the user's history) will have favicons.
       favicon: link.favicon || link.tippyTopIcon || null,
     }));
 

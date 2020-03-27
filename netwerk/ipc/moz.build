@@ -7,9 +7,12 @@
 EXPORTS.mozilla.net += [
     'ADocumentChannelBridge.h',
     'ChannelEventQueue.h',
+    'DocumentChannel.h',
     'DocumentChannelChild.h',
     'DocumentChannelParent.h',
     'DocumentLoadListener.h',
+    'InputChannelThrottleQueueChild.h',
+    'InputChannelThrottleQueueParent.h',
     'NeckoChild.h',
     'NeckoCommon.h',
     'NeckoMessageUtils.h',
@@ -25,9 +28,12 @@ EXPORTS.mozilla.net += [
 
 UNIFIED_SOURCES += [
     'ChannelEventQueue.cpp',
+    'DocumentChannel.cpp',
     'DocumentChannelChild.cpp',
     'DocumentChannelParent.cpp',
     'DocumentLoadListener.cpp',
+    'InputChannelThrottleQueueChild.cpp',
+    'InputChannelThrottleQueueParent.cpp',
     'NeckoChild.cpp',
     'NeckoCommon.cpp',
     'NeckoParent.cpp',
@@ -46,6 +52,7 @@ IPDL_SOURCES = [
     'PDataChannel.ipdl',
     'PDocumentChannel.ipdl',
     'PFileChannel.ipdl',
+    'PInputChannelThrottleQueue.ipdl',
     'PNecko.ipdl',
     'PSimpleChannel.ipdl',
     'PSocketProcess.ipdl',

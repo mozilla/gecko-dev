@@ -7,60 +7,55 @@
 // Undefine windows version of LoadImage because our code uses that name.
 #undef LoadImage
 
-#include <algorithm>
-
-#include "ImageLogging.h"
 #include "imgLoader.h"
 
+#include <algorithm>
+#include <utility>
+
+#include "DecoderFactory.h"
+#include "Image.h"
+#include "ImageLogging.h"
+#include "ReferrerInfo.h"
+#include "imgRequestProxy.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/BasePrincipal.h"
+#include "mozilla/ChaosMode.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/Move.h"
+#include "mozilla/LoadInfo.h"
 #include "mozilla/NullPrincipal.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_image.h"
 #include "mozilla/StaticPrefs_network.h"
-#include "mozilla/ChaosMode.h"
-#include "mozilla/LoadInfo.h"
-
-#include "nsImageModule.h"
-#include "imgRequestProxy.h"
-
-#include "nsCOMPtr.h"
-
-#include "nsContentPolicyUtils.h"
-#include "nsContentUtils.h"
-#include "nsNetUtil.h"
-#include "nsNetCID.h"
-#include "nsIProtocolHandler.h"
-#include "nsMimeTypes.h"
-#include "nsStreamUtils.h"
-#include "nsIHttpChannel.h"
-#include "nsICacheInfoChannel.h"
-#include "nsIClassOfService.h"
-#include "nsIInterfaceRequestor.h"
-#include "nsIInterfaceRequestorUtils.h"
-#include "nsIProgressEventSink.h"
-#include "nsIChannelEventSink.h"
-#include "nsIAsyncVerifyRedirectCallback.h"
-#include "nsIFileURL.h"
-#include "nsIFile.h"
-#include "nsCRT.h"
-#include "nsINetworkPredictor.h"
-#include "nsReadableUtils.h"
-#include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/image/ImageMemoryReporter.h"
 #include "mozilla/layers/CompositorManagerChild.h"
-
+#include "nsCOMPtr.h"
+#include "nsCRT.h"
+#include "nsContentPolicyUtils.h"
+#include "nsContentUtils.h"
 #include "nsIApplicationCache.h"
 #include "nsIApplicationCacheContainer.h"
-
+#include "nsIAsyncVerifyRedirectCallback.h"
+#include "nsICacheInfoChannel.h"
+#include "nsIChannelEventSink.h"
+#include "nsIClassOfService.h"
+#include "nsIFile.h"
+#include "nsIFileURL.h"
+#include "nsIHttpChannel.h"
+#include "nsIInterfaceRequestor.h"
+#include "nsIInterfaceRequestorUtils.h"
 #include "nsIMemoryReporter.h"
-#include "DecoderFactory.h"
-#include "Image.h"
+#include "nsINetworkPredictor.h"
+#include "nsIProgressEventSink.h"
+#include "nsIProtocolHandler.h"
+#include "nsImageModule.h"
+#include "nsMimeTypes.h"
+#include "nsNetCID.h"
+#include "nsNetUtil.h"
+#include "nsReadableUtils.h"
+#include "nsStreamUtils.h"
 #include "prtime.h"
-#include "ReferrerInfo.h"
 
 // we want to explore making the document own the load group
 // so we can associate the document URI with the load group.
@@ -87,7 +82,7 @@ class imgMemoryReporter final : public nsIMemoryReporter {
     MOZ_ASSERT(NS_IsMainThread());
 
     layers::CompositorManagerChild* manager =
-        CompositorManagerChild::GetInstance();
+        mozilla::layers::CompositorManagerChild::GetInstance();
     if (!manager || !StaticPrefs::image_mem_debug_reporting()) {
       layers::SharedSurfacesMemoryReport sharedSurfaces;
       FinishCollectReports(aHandleReport, aData, aAnonymize, sharedSurfaces);
@@ -188,6 +183,7 @@ class imgMemoryReporter final : public nsIMemoryReporter {
 
         n += counter.Values().DecodedHeap();
         n += counter.Values().DecodedNonHeap();
+        n += counter.Values().DecodedUnknown();
       }
     }
     return n;
@@ -357,7 +353,9 @@ class imgMemoryReporter final : public nsIMemoryReporter {
       if (counter.CannotSubstitute()) {
         surfacePathPrefix.AppendLiteral("cannot_substitute/");
       }
-      surfacePathPrefix.AppendLiteral("surface(");
+      surfacePathPrefix.AppendLiteral("types=");
+      surfacePathPrefix.AppendInt(counter.Values().SurfaceTypes(), 16);
+      surfacePathPrefix.AppendLiteral("/surface(");
       surfacePathPrefix.AppendInt(counter.Key().Size().width);
       surfacePathPrefix.AppendLiteral("x");
       surfacePathPrefix.AppendInt(counter.Key().Size().height);
@@ -493,6 +491,13 @@ class imgMemoryReporter final : public nsIMemoryReporter {
                 "decoded-nonheap",
                 "Decoded image data which isn't stored on the heap.",
                 aCounter.DecodedNonHeap());
+
+    // We don't know for certain whether or not it is on the heap, so let's
+    // just report it as non-heap for reporting purposes.
+    ReportValue(aHandleReport, aData, KIND_NONHEAP, aPathPrefix,
+                "decoded-unknown",
+                "Decoded image data which is unknown to be on the heap or not.",
+                aCounter.DecodedUnknown());
   }
 
   static void ReportSourceValue(nsIHandleReportCallback* aHandleReport,
@@ -814,9 +819,9 @@ static nsresult NewImageChannel(
     bool* aForcePrincipalCheckForCacheEntry, nsIURI* aURI,
     nsIURI* aInitialDocumentURI, int32_t aCORSMode,
     nsIReferrerInfo* aReferrerInfo, nsILoadGroup* aLoadGroup,
-    const nsCString& aAcceptHeader, nsLoadFlags aLoadFlags,
-    nsContentPolicyType aPolicyType, nsIPrincipal* aTriggeringPrincipal,
-    nsISupports* aRequestingContext, bool aRespectPrivacy) {
+    nsLoadFlags aLoadFlags, nsContentPolicyType aPolicyType,
+    nsIPrincipal* aTriggeringPrincipal, nsISupports* aRequestingContext,
+    bool aRespectPrivacy) {
   MOZ_ASSERT(aResult);
 
   nsresult rv;
@@ -926,10 +931,6 @@ static nsresult NewImageChannel(
   // Initialize HTTP-specific attributes
   newHttpChannel = do_QueryInterface(*aResult);
   if (newHttpChannel) {
-    rv = newHttpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Accept"),
-                                          aAcceptHeader, false);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-
     nsCOMPtr<nsIHttpChannelInternal> httpChannelInternal =
         do_QueryInterface(newHttpChannel);
     NS_ENSURE_TRUE(httpChannelInternal, NS_ERROR_UNEXPECTED);
@@ -1333,10 +1334,6 @@ nsresult imgLoader::InitCache() {
 nsresult imgLoader::Init() {
   InitCache();
 
-  ReadAcceptHeaderPref();
-
-  Preferences::AddWeakObserver(this, "image.http.accept");
-
   return NS_OK;
 }
 
@@ -1349,13 +1346,7 @@ imgLoader::RespectPrivacyNotifications() {
 NS_IMETHODIMP
 imgLoader::Observe(nsISupports* aSubject, const char* aTopic,
                    const char16_t* aData) {
-  // We listen for pref change notifications...
-  if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
-    if (!NS_strcmp(aData, u"image.http.accept")) {
-      ReadAcceptHeaderPref();
-    }
-
-  } else if (strcmp(aTopic, "memory-pressure") == 0) {
+  if (strcmp(aTopic, "memory-pressure") == 0) {
     MinimizeCaches();
   } else if (strcmp(aTopic, "chrome-flush-caches") == 0) {
     MinimizeCaches();
@@ -1377,17 +1368,6 @@ imgLoader::Observe(nsISupports* aSubject, const char* aTopic,
   }
 
   return NS_OK;
-}
-
-void imgLoader::ReadAcceptHeaderPref() {
-  nsAutoCString accept;
-  nsresult rv = Preferences::GetCString("image.http.accept", accept);
-  if (NS_SUCCEEDED(rv)) {
-    mAcceptHeader = accept;
-  } else {
-    mAcceptHeader =
-        IMAGE_PNG "," IMAGE_WILDCARD ";q=0.8," ANY_WILDCARD ";q=0.5";
-  }
 }
 
 NS_IMETHODIMP
@@ -1738,7 +1718,7 @@ bool imgLoader::ValidateRequestWithNewChannel(
   bool forcePrincipalCheck;
   rv = NewImageChannel(getter_AddRefs(newChannel), &forcePrincipalCheck, aURI,
                        aInitialDocumentURI, aCORSMode, aReferrerInfo,
-                       aLoadGroup, mAcceptHeader, aLoadFlags, aLoadPolicyType,
+                       aLoadGroup, aLoadFlags, aLoadPolicyType,
                        aTriggeringPrincipal, aCX, mRespectPrivacy);
   if (NS_FAILED(rv)) {
     return false;
@@ -2251,9 +2231,8 @@ nsresult imgLoader::LoadImage(
     bool forcePrincipalCheck;
     rv = NewImageChannel(getter_AddRefs(newChannel), &forcePrincipalCheck, aURI,
                          aInitialDocumentURI, corsmode, aReferrerInfo,
-                         aLoadGroup, mAcceptHeader, requestFlags,
-                         aContentPolicyType, aTriggeringPrincipal, aContext,
-                         mRespectPrivacy);
+                         aLoadGroup, requestFlags, aContentPolicyType,
+                         aTriggeringPrincipal, aContext, mRespectPrivacy);
     if (NS_FAILED(rv)) {
       return NS_ERROR_FAILURE;
     }

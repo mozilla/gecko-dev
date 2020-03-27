@@ -31,9 +31,10 @@ class MediaHardwareKeysEventSourceMacMediaCenter final
   MediaCenterEventHandler CreatePlayHandler();
   MediaCenterEventHandler CreatePauseHandler();
 
-  virtual bool Open() override;
+  bool Open() override;
   void Close() override;
-  virtual bool IsOpened() const override;
+  bool IsOpened() const override;
+  void SetPlaybackState(dom::PlaybackState aState) override;
 
  private:
   ~MediaHardwareKeysEventSourceMacMediaCenter();

@@ -6,6 +6,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import io
 import os.path
 import json
 from datetime import datetime
@@ -17,10 +18,12 @@ from voluptuous import (
     ALLOW_EXTRA,
     Any,
     Inclusive,
-    PREVENT_EXTRA,
     Required,
     Schema,
 )
+
+import six
+from six import text_type
 
 from . import GECKO
 from .util.attributes import release_level
@@ -32,11 +35,11 @@ class ParameterMismatch(Exception):
 
 @memoize
 def get_head_ref():
-    return get_repository_object(GECKO).head_ref
+    return six.ensure_text(get_repository_object(GECKO).head_ref)
 
 
 def get_contents(path):
-    with open(path, "r") as fh:
+    with io.open(path, "r") as fh:
         contents = fh.readline().rstrip()
     return contents
 
@@ -53,50 +56,50 @@ def get_app_version(product_dir='browser'):
     return get_contents(app_version_path)
 
 
-base_schema = {
-    Required('app_version'): basestring,
-    Required('base_repository'): basestring,
+base_schema = Schema({
+    Required('app_version'): text_type,
+    Required('base_repository'): text_type,
     Required('build_date'): int,
     Required('build_number'): int,
-    Inclusive('comm_base_repository', 'comm'): basestring,
-    Inclusive('comm_head_ref', 'comm'): basestring,
-    Inclusive('comm_head_repository', 'comm'): basestring,
-    Inclusive('comm_head_rev', 'comm'): basestring,
-    Required('do_not_optimize'): [basestring],
-    Required('existing_tasks'): {basestring: basestring},
-    Required('filters'): [basestring],
-    Required('head_ref'): basestring,
-    Required('head_repository'): basestring,
-    Required('head_rev'): basestring,
-    Required('hg_branch'): basestring,
-    Required('level'): basestring,
-    Required('message'): basestring,
-    Required('moz_build_date'): basestring,
-    Required('next_version'): Any(None, basestring),
+    Inclusive('comm_base_repository', 'comm'): text_type,
+    Inclusive('comm_head_ref', 'comm'): text_type,
+    Inclusive('comm_head_repository', 'comm'): text_type,
+    Inclusive('comm_head_rev', 'comm'): text_type,
+    Required('do_not_optimize'): [text_type],
+    Required('existing_tasks'): {text_type: text_type},
+    Required('filters'): [text_type],
+    Required('head_ref'): text_type,
+    Required('head_repository'): text_type,
+    Required('head_rev'): text_type,
+    Required('hg_branch'): text_type,
+    Required('level'): text_type,
+    Required('message'): text_type,
+    Required('moz_build_date'): text_type,
+    Required('next_version'): Any(None, text_type),
     Required('optimize_target_tasks'): bool,
-    Required('owner'): basestring,
-    Required('phabricator_diff'): Any(None, basestring),
-    Required('project'): basestring,
+    Required('owner'): text_type,
+    Required('phabricator_diff'): Any(None, text_type),
+    Required('project'): text_type,
     Required('pushdate'): int,
-    Required('pushlog_id'): basestring,
+    Required('pushlog_id'): text_type,
     Required('release_enable_emefree'): bool,
     Required('release_enable_partners'): bool,
-    Required('release_eta'): Any(None, basestring),
-    Required('release_history'): {basestring: dict},
-    Required('release_partners'): Any(None, [basestring]),
+    Required('release_eta'): Any(None, text_type),
+    Required('release_history'): {text_type: dict},
+    Required('release_partners'): Any(None, [text_type]),
     Required('release_partner_config'): Any(None, dict),
     Required('release_partner_build_number'): int,
-    Required('release_type'): basestring,
-    Required('release_product'): Any(None, basestring),
-    Required('required_signoffs'): [basestring],
+    Required('release_type'): text_type,
+    Required('release_product'): Any(None, text_type),
+    Required('required_signoffs'): [text_type],
     Required('signoff_urls'): dict,
-    Required('target_tasks_method'): basestring,
-    Required('tasks_for'): basestring,
-    Required('try_mode'): Any(None, basestring),
+    Required('target_tasks_method'): text_type,
+    Required('tasks_for'): text_type,
+    Required('try_mode'): Any(None, text_type),
     Required('try_options'): Any(None, dict),
     Required('try_task_config'): dict,
-    Required('version'): basestring,
-}
+    Required('version'): text_type,
+})
 
 
 COMM_PARAMETERS = [
@@ -105,6 +108,17 @@ COMM_PARAMETERS = [
     'comm_head_repository',
     'comm_head_rev',
 ]
+
+
+def extend_parameters_schema(schema):
+    """
+    Extend the schema for parameters to include per-project configuration.
+
+    This should be called by the `taskgraph.register` function in the
+    graph-configuration.
+    """
+    global base_schema
+    base_schema = base_schema.extend(schema)
 
 
 class Parameters(ReadOnlyDict):
@@ -139,7 +153,7 @@ class Parameters(ReadOnlyDict):
             'hg_branch': 'default',
             'level': '3',
             'message': '',
-            'moz_build_date': now.strftime("%Y%m%d%H%M%S"),
+            'moz_build_date': six.ensure_text(now.strftime("%Y%m%d%H%M%S")),
             'next_version': None,
             'optimize_target_tasks': True,
             'owner': 'nobody@mozilla.com',
@@ -179,7 +193,7 @@ class Parameters(ReadOnlyDict):
         return kwargs
 
     def check(self):
-        schema = Schema(base_schema, extra=PREVENT_EXTRA if self.strict else ALLOW_EXTRA)
+        schema = base_schema if self.strict else base_schema.extend({}, extra=ALLOW_EXTRA)
         validate_schema(schema, self.copy(), 'Invalid parameters:')
 
     def __getitem__(self, k):
@@ -200,10 +214,10 @@ class Parameters(ReadOnlyDict):
         Determine the VCS URL for viewing a file in the tree, suitable for
         viewing by a human.
 
-        :param basestring path: The path, relative to the root of the repository.
+        :param text_type path: The path, relative to the root of the repository.
         :param bool pretty: Whether to return a link to a formatted version of the
             file, or the raw file version.
-        :return basestring: The URL displaying the given path.
+        :return text_type: The URL displaying the given path.
         """
         if path.startswith('comm/'):
             path = path[len('comm/'):]

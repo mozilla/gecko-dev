@@ -208,7 +208,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   TabStateCache: "resource:///modules/sessionstore/TabStateCache.jsm",
   TabStateFlusher: "resource:///modules/sessionstore/TabStateFlusher.jsm",
   Utils: "resource://gre/modules/sessionstore/Utils.jsm",
-  ViewSourceBrowser: "resource://gre/modules/ViewSourceBrowser.jsm",
   setTimeout: "resource://gre/modules/Timer.jsm",
 });
 
@@ -3721,6 +3720,7 @@ var SessionStoreInternal = {
       // Make sure that SessionStore knows that this restoration is due
       // to a navigation, as opposed to us restoring a closed window or tab.
       restoreContentReason: RESTORE_TAB_CONTENT_REASON.NAVIGATE_AND_RESTORE,
+      redirectLoadSwitchId: loadArguments.redirectLoadSwitchId,
     };
 
     if (historyIndex >= 0) {
@@ -4129,8 +4129,6 @@ var SessionStoreInternal = {
     }
 
     let tabbrowser = aWindow.gBrowser;
-    let newTabCount = winData.tabs.length;
-    var tabs = [];
 
     // disable smooth scrolling while adding, moving, removing and selecting tabs
     let arrowScrollbox = tabbrowser.tabContainer.arrowScrollbox;
@@ -4157,76 +4155,11 @@ var SessionStoreInternal = {
       this._prefBranch.getBoolPref("sessionstore.restore_tabs_lazily") &&
       this._restore_on_demand;
 
-    for (var t = 0; t < newTabCount; t++) {
-      let tabData = winData.tabs[t];
-
-      let userContextId = tabData.userContextId;
-      let select = t == selectTab - 1;
-      let tab;
-
-      // Re-use existing selected tab if possible to avoid the overhead of
-      // selecting a new tab.
-      if (select && tabbrowser.selectedTab.userContextId == userContextId) {
-        tab = tabbrowser.selectedTab;
-        if (!tabData.pinned) {
-          tabbrowser.unpinTab(tab);
-        }
-        tabbrowser.moveTabToEnd();
-        if (
-          aWindow.gMultiProcessBrowser &&
-          !tab.linkedBrowser.isRemoteBrowser
-        ) {
-          tabbrowser.updateBrowserRemoteness(tab.linkedBrowser, {
-            remoteType: E10SUtils.DEFAULT_REMOTE_TYPE,
-          });
-        }
-      }
-
-      // Add a new tab if needed.
-      if (!tab) {
-        let createLazyBrowser = restoreTabsLazily && !select && !tabData.pinned;
-
-        let url = "about:blank";
-        if (createLazyBrowser && tabData.entries && tabData.entries.length) {
-          // Let tabbrowser know the future URI because progress listeners won't
-          // get onLocationChange notification before the browser is inserted.
-          let activeIndex = (tabData.index || tabData.entries.length) - 1;
-          // Ensure the index is in bounds.
-          activeIndex = Math.min(activeIndex, tabData.entries.length - 1);
-          activeIndex = Math.max(activeIndex, 0);
-          url = tabData.entries[activeIndex].url;
-        }
-
-        // Setting noInitialLabel is a perf optimization. Rendering tab labels
-        // would make resizing the tabs more expensive as we're adding them.
-        // Each tab will get its initial label set in restoreTab.
-        tab = tabbrowser.addTrustedTab(url, {
-          createLazyBrowser,
-          skipAnimation: true,
-          allowInheritPrincipal: true,
-          noInitialLabel: true,
-          userContextId,
-          skipBackgroundNotify: true,
-          bulkOrderedOpen: true,
-        });
-
-        if (select) {
-          let leftoverTab = tabbrowser.selectedTab;
-          tabbrowser.selectedTab = tab;
-          tabbrowser.removeTab(leftoverTab);
-        }
-      }
-
-      tabs.push(tab);
-
-      if (tabData.hidden) {
-        tabbrowser.hideTab(tab, tabData.extData && tabData.extData.hiddenBy);
-      }
-
-      if (tabData.pinned) {
-        tabbrowser.pinTab(tab);
-      }
-    }
+    var tabs = tabbrowser.addMultipleTabs(
+      restoreTabsLazily,
+      selectTab,
+      winData.tabs
+    );
 
     // Move the originally open tabs to the end.
     if (initialTabs) {
@@ -4738,6 +4671,7 @@ var SessionStoreInternal = {
 
     let newFrameloader = aOptions.newFrameloader;
     let replaceBrowsingContext = aOptions.replaceBrowsingContext;
+    let redirectLoadSwitchId = aOptions.redirectLoadSwitchId;
     let isRemotenessUpdate;
     if (aOptions.remoteType !== undefined) {
       // We already have a selected remote type so we update to that.
@@ -4745,6 +4679,7 @@ var SessionStoreInternal = {
         remoteType: aOptions.remoteType,
         newFrameloader,
         replaceBrowsingContext,
+        redirectLoadSwitchId,
       });
     } else {
       isRemotenessUpdate = tabbrowser.updateBrowserRemotenessByURL(
@@ -4753,6 +4688,7 @@ var SessionStoreInternal = {
         {
           newFrameloader,
           replaceBrowsingContext,
+          redirectLoadSwitchId,
         }
       );
     }
@@ -4771,12 +4707,6 @@ var SessionStoreInternal = {
         loadArguments,
         isRemotenessUpdate,
       });
-    }
-
-    // If the restored browser wants to show view source content, start up a
-    // view source browser that will load the required frame script.
-    if (uri && ViewSourceBrowser.isViewSource(uri)) {
-      new ViewSourceBrowser(browser);
     }
 
     browser.messageManager.sendAsyncMessage("SessionStore:restoreTabContent", {

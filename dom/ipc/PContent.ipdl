@@ -111,6 +111,9 @@ using mozilla::CrossProcessMutexHandle from "mozilla/ipc/CrossProcessMutex.h";
 using refcounted class mozilla::dom::BrowsingContext from "mozilla/dom/BrowsingContext.h";
 using mozilla::dom::BrowsingContextTransaction from "mozilla/dom/BrowsingContext.h";
 using mozilla::dom::BrowsingContextInitializer from "mozilla/dom/BrowsingContext.h";
+using refcounted class mozilla::dom::WindowContext from "mozilla/dom/WindowContext.h";
+using mozilla::dom::WindowContextTransaction from "mozilla/dom/WindowContext.h";
+using mozilla::dom::WindowContextInitializer from "mozilla/dom/WindowContext.h";
 using base::SharedMemoryHandle from "base/shared_memory.h";
 using mozilla::ipc::SharedMemoryBasic::Handle from "mozilla/ipc/SharedMemoryBasic.h";
 using mozilla::fontlist::Pointer from "SharedFontList.h";
@@ -118,6 +121,7 @@ using gfxSparseBitSet from "gfxFontUtils.h";
 using mozilla::dom::MediaControlKeysEvent from "ipc/MediaControlIPC.h";
 using mozilla::dom::ControlledMediaState from "ipc/MediaControlIPC.h";
 using refcounted class nsDocShellLoadState from "nsDocShellLoadState.h";
+using mozilla::dom::ServiceWorkerShutdownState::Progress from "mozilla/dom/ServiceWorkerShutdownState.h";
 
 union ChromeRegistryItem
 {
@@ -334,8 +338,10 @@ struct PostMessageData
     nsIURI targetOriginURI;
     nsIPrincipal callerPrincipal;
     nsIPrincipal subjectPrincipal;
-    nsIURI callerDocumentURI;
+    nsIURI callerURI;
     bool isFromPrivateWindow;
+    nsCString scriptLocation;
+    uint64_t innerWindowId;
 };
 
 union PSHEntryOrSharedID
@@ -865,7 +871,8 @@ child:
 
     // Begin subscribing to a new BrowsingContextGroup, sending down the current
     // value for every individual BrowsingContext.
-    async RegisterBrowsingContextGroup(BrowsingContextInitializer[] aInits);
+    async RegisterBrowsingContextGroup(BrowsingContextInitializer[] aInits,
+                                       WindowContextInitializer[] aWindowInits);
 
 #if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
     // Initialize top-level actor for testing content process sandbox.
@@ -1453,7 +1460,7 @@ parent:
      async StoreAndBroadcastBlobURLRegistration(nsCString url, IPCBlob blob,
                                                 Principal principal);
 
-     async UnstoreAndBroadcastBlobURLUnregistration(nsCString url);
+     async UnstoreAndBroadcastBlobURLUnregistration(nsCString url, Principal principal);
 
     /**
      * Messages for communicating child Telemetry to the parent process
@@ -1464,9 +1471,6 @@ parent:
     async UpdateChildKeyedScalars(KeyedScalarAction[] updates);
     async RecordChildEvents(ChildEventData[] events);
     async RecordDiscardedData(DiscardedData data);
-    async RecordOrigin(uint32_t metricId, nsCString origin);
-
-    async ReportContentBlockingLog(IPCStream aJSONStream);
 
     sync GetA11yContentId() returns (uint32_t aContentId);
     async A11yHandlerControl(uint32_t aPid,
@@ -1532,6 +1536,15 @@ parent:
      */
     async GetModulesTrust(ModulePaths aModPaths, bool aRunAtNormalPriority)
         returns (ModulesMapResult? modMapResult);
+
+    /**
+     * Used to route shutdown diagnostic info from the content process
+     * ServiceWorkers to the parent process' ServiceWorkerManager's
+     * ServiceWorkerShutdownBlocker. (The only other actor chain available
+     * for this would be very convoluted and create ordering problems).
+     */
+    async ReportServiceWorkerShutdownProgress(uint32_t aShutdownStateId,
+                                              Progress aProgress);
 
 both:
     async ScriptError(nsString message, nsString sourceName, nsString sourceLine,
@@ -1600,7 +1613,7 @@ both:
                                          BrowsingContext[] aChildren);
 
     async WindowClose(BrowsingContext aContext, bool aTrustedCaller);
-    async WindowFocus(BrowsingContext aContext);
+    async WindowFocus(BrowsingContext aContext, CallerType aCallerType);
     async WindowBlur(BrowsingContext aContext);
     async WindowPostMessage(BrowsingContext aContext, ClonedMessageData aMessage,
                             PostMessageData aData);
@@ -1609,9 +1622,18 @@ both:
      * Move sessionStorage data between parent and content processes. See
      * SessionStorageManager documentation for more details.
      */
-    async SessionStorageData(BrowsingContext aTop, nsCString aOriginAttrs,
+    async SessionStorageData(uint64_t aTopContextId, nsCString aOriginAttrs,
                              nsCString aOriginKey, KeyValuePair[] aDefaultData,
                              KeyValuePair[] aSessionData);
+    async CommitWindowContextTransaction(WindowContext aContext,
+                                         WindowContextTransaction aTransaction,
+                                         uint64_t aEpoch);
+
+child:
+    // NOTE: These methods are only needed on the child, as the parent
+    // WindowContext is managed using the PWindowGlobal actor's lifecycle.
+    async CreateWindowContext(WindowContextInitializer aInit);
+    async DiscardWindowContext(uint64_t aContextId) returns (bool unused);
 };
 
 }

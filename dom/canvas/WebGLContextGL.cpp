@@ -6,18 +6,15 @@
 #include "WebGLContext.h"
 #include "WebGL2Context.h"
 
-#include "WebGLActiveInfo.h"
 #include "WebGLContextUtils.h"
 #include "WebGLBuffer.h"
 #include "WebGLVertexAttribData.h"
 #include "WebGLShader.h"
 #include "WebGLProgram.h"
-#include "WebGLUniformLocation.h"
 #include "WebGLFormats.h"
 #include "WebGLFramebuffer.h"
 #include "WebGLQuery.h"
 #include "WebGLRenderbuffer.h"
-#include "WebGLShaderPrecisionFormat.h"
 #include "WebGLTexture.h"
 #include "WebGLExtensions.h"
 #include "WebGLVertexArray.h"
@@ -51,22 +48,11 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/ImageData.h"
-#include "mozilla/dom/ToJSValue.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtrExtensions.h"
 
 namespace mozilla {
-
-bool WebGLContext::ValidateObject(const char* const argName,
-                                  const WebGLProgram& object) const {
-  return ValidateObject(argName, object, true);
-}
-
-bool WebGLContext::ValidateObject(const char* const argName,
-                                  const WebGLShader& object) const {
-  return ValidateObject(argName, object, true);
-}
 
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
@@ -76,52 +62,46 @@ using namespace mozilla::gl;
 //  WebGL API
 //
 
-void WebGLContext::ActiveTexture(GLenum texture) {
-  const FuncScope funcScope(*this, "activeTexture");
+void WebGLContext::ActiveTexture(uint32_t texUnit) {
+  FuncScope funcScope(*this, "activeTexture");
   if (IsContextLost()) return;
+  funcScope.mBindFailureGuard = true;
 
-  if (texture < LOCAL_GL_TEXTURE0 ||
-      texture >= LOCAL_GL_TEXTURE0 + mGLMaxTextureUnits) {
-    return ErrorInvalidEnum(
-        "Texture unit %d out of range. "
-        "Accepted values range from TEXTURE0 to TEXTURE0 + %d. "
-        "Notice that TEXTURE0 != 0.",
-        texture, mGLMaxTextureUnits);
+  if (texUnit >= Limits().maxTexUnits) {
+    return ErrorInvalidEnum("Texture unit %u out of range (%u).", texUnit,
+                            Limits().maxTexUnits);
   }
 
-  mActiveTexture = texture - LOCAL_GL_TEXTURE0;
-  gl->fActiveTexture(texture);
+  mActiveTexture = texUnit;
+  gl->fActiveTexture(LOCAL_GL_TEXTURE0 + texUnit);
+
+  funcScope.mBindFailureGuard = false;
 }
 
-void WebGLContext::AttachShader(WebGLProgram& program, WebGLShader& shader) {
-  const FuncScope funcScope(*this, "attachShader");
+void WebGLContext::AttachShader(WebGLProgram& prog, WebGLShader& shader) {
+  FuncScope funcScope(*this, "attachShader");
   if (IsContextLost()) return;
+  funcScope.mBindFailureGuard = true;
 
-  if (!ValidateObject("program", program) ||
-      !ValidateObject("shader", shader)) {
-    return;
-  }
+  prog.AttachShader(shader);
 
-  program.AttachShader(&shader);
+  funcScope.mBindFailureGuard = false;
 }
 
 void WebGLContext::BindAttribLocation(WebGLProgram& prog, GLuint location,
-                                      const nsAString& name) {
+                                      const std::string& name) const {
   const FuncScope funcScope(*this, "bindAttribLocation");
   if (IsContextLost()) return;
-
-  if (!ValidateObject("program", prog)) return;
 
   prog.BindAttribLocation(location, name);
 }
 
 void WebGLContext::BindFramebuffer(GLenum target, WebGLFramebuffer* wfb) {
-  const FuncScope funcScope(*this, "bindFramebuffer");
+  FuncScope funcScope(*this, "bindFramebuffer");
   if (IsContextLost()) return;
+  funcScope.mBindFailureGuard = true;
 
   if (!ValidateFramebufferTarget(target)) return;
-
-  if (wfb && !ValidateObject("fb", *wfb)) return;
 
   if (!wfb) {
     gl->fBindFramebuffer(target, 0);
@@ -143,38 +123,9 @@ void WebGLContext::BindFramebuffer(GLenum target, WebGLFramebuffer* wfb) {
       mBoundReadFramebuffer = wfb;
       break;
     default:
-      break;
+      return;
   }
-}
-
-void WebGLContext::BindRenderbuffer(GLenum target, WebGLRenderbuffer* wrb) {
-  const FuncScope funcScope(*this, "bindRenderbuffer");
-  if (IsContextLost()) return;
-
-  if (target != LOCAL_GL_RENDERBUFFER)
-    return ErrorInvalidEnumInfo("target", target);
-
-  if (wrb && !ValidateObject("rb", *wrb)) return;
-
-  // Usually, we would now call into glBindRenderbuffer. However, since we have
-  // to potentially emulate packed-depth-stencil, there's not a specific
-  // renderbuffer that we know we should bind here. Instead, we do all
-  // renderbuffer binding lazily.
-
-  if (wrb) {
-    wrb->mHasBeenBound = true;
-  }
-
-  mBoundRenderbuffer = wrb;
-}
-
-void WebGLContext::BlendEquation(GLenum mode) {
-  const FuncScope funcScope(*this, "blendEquation");
-  if (IsContextLost()) return;
-
-  if (!ValidateBlendEquationEnum(mode, "mode")) return;
-
-  gl->fBlendEquation(mode);
+  funcScope.mBindFailureGuard = false;
 }
 
 void WebGLContext::BlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) {
@@ -240,19 +191,6 @@ static bool ValidateBlendFuncEnums(WebGLContext* webgl, GLenum srcRGB,
   return true;
 }
 
-void WebGLContext::BlendFunc(GLenum sfactor, GLenum dfactor) {
-  const FuncScope funcScope(*this, "blendFunc");
-  if (IsContextLost()) return;
-
-  if (!ValidateBlendFuncEnums(this, sfactor, sfactor, dfactor, dfactor)) return;
-
-  if (!ValidateBlendFuncEnumsCompatibility(sfactor, dfactor,
-                                           "srcRGB and dstRGB"))
-    return;
-
-  gl->fBlendFunc(sfactor, dfactor);
-}
-
 void WebGLContext::BlendFuncSeparate(GLenum srcRGB, GLenum dstRGB,
                                      GLenum srcAlpha, GLenum dstAlpha) {
   const FuncScope funcScope(*this, "blendFuncSeparate");
@@ -295,14 +233,14 @@ GLenum WebGLContext::CheckFramebufferStatus(GLenum target) {
   return fb->CheckFramebufferStatus().get();
 }
 
-already_AddRefed<WebGLProgram> WebGLContext::CreateProgram() {
+RefPtr<WebGLProgram> WebGLContext::CreateProgram() {
   const FuncScope funcScope(*this, "createProgram");
   if (IsContextLost()) return nullptr;
-  RefPtr<WebGLProgram> globj = new WebGLProgram(this);
-  return globj.forget();
+
+  return new WebGLProgram(this);
 }
 
-already_AddRefed<WebGLShader> WebGLContext::CreateShader(GLenum type) {
+RefPtr<WebGLShader> WebGLContext::CreateShader(GLenum type) {
   const FuncScope funcScope(*this, "createShader");
   if (IsContextLost()) return nullptr;
 
@@ -311,8 +249,7 @@ already_AddRefed<WebGLShader> WebGLContext::CreateShader(GLenum type) {
     return nullptr;
   }
 
-  RefPtr<WebGLShader> shader = new WebGLShader(this, type);
-  return shader.forget();
+  return new WebGLShader(this, type);
 }
 
 void WebGLContext::CullFace(GLenum face) {
@@ -324,88 +261,14 @@ void WebGLContext::CullFace(GLenum face) {
   gl->fCullFace(face);
 }
 
-void WebGLContext::DeleteFramebuffer(WebGLFramebuffer* fbuf) {
-  const FuncScope funcScope(*this, "deleteFramebuffer");
-  if (!ValidateDeleteObject(fbuf)) return;
-
-  fbuf->RequestDelete();
-
-  if (mBoundReadFramebuffer == mBoundDrawFramebuffer) {
-    if (mBoundDrawFramebuffer == fbuf) {
-      BindFramebuffer(LOCAL_GL_FRAMEBUFFER,
-                      static_cast<WebGLFramebuffer*>(nullptr));
-    }
-  } else if (mBoundDrawFramebuffer == fbuf) {
-    BindFramebuffer(LOCAL_GL_DRAW_FRAMEBUFFER,
-                    static_cast<WebGLFramebuffer*>(nullptr));
-  } else if (mBoundReadFramebuffer == fbuf) {
-    BindFramebuffer(LOCAL_GL_READ_FRAMEBUFFER,
-                    static_cast<WebGLFramebuffer*>(nullptr));
-  }
-}
-
-void WebGLContext::DeleteRenderbuffer(WebGLRenderbuffer* rbuf) {
-  const FuncScope funcScope(*this, "deleteRenderbuffer");
-  if (!ValidateDeleteObject(rbuf)) return;
-
-  if (mBoundDrawFramebuffer) mBoundDrawFramebuffer->DetachRenderbuffer(rbuf);
-
-  if (mBoundReadFramebuffer) mBoundReadFramebuffer->DetachRenderbuffer(rbuf);
-
-  if (mBoundRenderbuffer == rbuf)
-    BindRenderbuffer(LOCAL_GL_RENDERBUFFER, nullptr);
-
-  rbuf->RequestDelete();
-}
-
-void WebGLContext::DeleteTexture(WebGLTexture* tex) {
-  const FuncScope funcScope(*this, "deleteTexture");
-  if (!ValidateDeleteObject(tex)) return;
-
-  if (mBoundDrawFramebuffer) mBoundDrawFramebuffer->DetachTexture(tex);
-
-  if (mBoundReadFramebuffer) mBoundReadFramebuffer->DetachTexture(tex);
-
-  GLuint activeTexture = mActiveTexture;
-  for (uint32_t i = 0; i < mGLMaxTextureUnits; i++) {
-    if (mBound2DTextures[i] == tex || mBoundCubeMapTextures[i] == tex ||
-        mBound3DTextures[i] == tex || mBound2DArrayTextures[i] == tex) {
-      ActiveTexture(LOCAL_GL_TEXTURE0 + i);
-      BindTexture(tex->Target().get(), nullptr);
-    }
-  }
-  ActiveTexture(LOCAL_GL_TEXTURE0 + activeTexture);
-
-  tex->RequestDelete();
-}
-
-void WebGLContext::DeleteProgram(WebGLProgram* prog) {
-  const FuncScope funcScope(*this, "deleteProgram");
-  if (!ValidateDeleteObject(prog)) return;
-
-  prog->RequestDelete();
-}
-
-void WebGLContext::DeleteShader(WebGLShader* shader) {
-  const FuncScope funcScope(*this, "deleteShader");
-  if (!ValidateDeleteObject(shader)) return;
-
-  shader->RequestDelete();
-}
-
-void WebGLContext::DetachShader(WebGLProgram& program,
-                                const WebGLShader& shader) {
-  const FuncScope funcScope(*this, "detachShader");
+void WebGLContext::DetachShader(WebGLProgram& prog, const WebGLShader& shader) {
+  FuncScope funcScope(*this, "detachShader");
   if (IsContextLost()) return;
+  funcScope.mBindFailureGuard = true;
 
-  // It's valid to attempt to detach a deleted shader, since it's still a
-  // shader.
-  if (!ValidateObject("program", program) ||
-      !ValidateObjectAllowDeleted("shader", shader)) {
-    return;
-  }
+  prog.DetachShader(shader);
 
-  program.DetachShader(&shader);
+  funcScope.mBindFailureGuard = false;
 }
 
 static bool ValidateComparisonEnum(WebGLContext& webgl, const GLenum func) {
@@ -448,198 +311,45 @@ void WebGLContext::DepthRange(GLfloat zNear, GLfloat zFar) {
 
 // -
 
-void WebGLContext::FramebufferAttach(
-    const GLenum target, const GLenum attachEnum, const TexTarget reqTexTarget,
-    const webgl::FbAttachInfo& toAttach) const {
+void WebGLContext::FramebufferAttach(const GLenum target,
+                                     const GLenum attachSlot,
+                                     const GLenum bindImageTarget,
+                                     const webgl::FbAttachInfo& toAttach) {
+  FuncScope funcScope(*this, "framebufferAttach");
+  funcScope.mBindFailureGuard = true;
+  const auto& limits = *mLimits;
+
   if (!ValidateFramebufferTarget(target)) return;
 
-  WebGLFramebuffer* fb = mBoundDrawFramebuffer;
+  auto fb = mBoundDrawFramebuffer;
   if (target == LOCAL_GL_READ_FRAMEBUFFER) {
     fb = mBoundReadFramebuffer;
   }
-  if (!fb) return ErrorInvalidOperation("Cannot modify framebuffer 0.");
+  if (!fb) return;
 
-  // `rb`
-  if (toAttach.rb) {
-    if (!ValidateObject("rb", *toAttach.rb)) return;
-
-    if (!toAttach.rb->mHasBeenBound) {
-      ErrorInvalidOperation(
-          "bindRenderbuffer must be called before"
-          " attachment.");
-      return;
-    }
-  }
+  // `rb` needs no validation.
 
   // `tex`
-  if (toAttach.tex) {
-    if (!ValidateObject("tex", *toAttach.tex)) return;
-    const auto texTarget = toAttach.tex->Target();
-
-    bool targetOk = bool(texTarget);
-    if (reqTexTarget) {
-      targetOk = texTarget == reqTexTarget;
-    }
-    if (!targetOk) {
-      ErrorInvalidOperation("`tex`'s binding target type is not valid.");
-      return;
-    }
-
-    GLint maxMipLevel;
-    GLint maxZLayer;
-    const char* maxMipLevelText;
-    const char* maxZLayerText;
-
-    switch (texTarget.get()) {
-      case LOCAL_GL_TEXTURE_2D:
-        maxMipLevel = FloorLog2(mGLMaxTextureSize);
-        maxMipLevelText = "log2(MAX_TEXTURE_SIZE)";
-        maxZLayer = 1;
-        maxZLayerText = "1";
-        break;
-
-      case LOCAL_GL_TEXTURE_CUBE_MAP:
-        maxMipLevel = FloorLog2(mGLMaxCubeMapTextureSize);
-        maxMipLevelText = "log2(MAX_CUBE_MAP_TEXTURE_SIZE)";
-        maxZLayer = 6;
-        maxZLayerText = "6";
-        break;
-
-      case LOCAL_GL_TEXTURE_3D:
-        maxMipLevel = FloorLog2(mGLMax3DTextureSize);
-        maxMipLevelText = "log2(MAX_3D_TEXTURE_SIZE)";
-        maxZLayer = mGLMax3DTextureSize - 1;
-        maxZLayerText = "MAX_3D_TEXTURE_SIZE";
-        break;
-
-      case LOCAL_GL_TEXTURE_2D_ARRAY:
-        maxMipLevel = FloorLog2(mGLMaxTextureSize);
-        maxMipLevelText = "log2(MAX_TEXTURE_SIZE)";
-        maxZLayer = mGLMaxArrayTextureLayers;
-        maxZLayerText = "MAX_ARRAY_TEXTURE_LAYERS";
-        break;
-
-      default:
-        MOZ_CRASH();
-    }
-    if (!IsWebGL2() &&
-        !IsExtensionEnabled(WebGLExtensionID::OES_fbo_render_mipmap)) {
-      maxMipLevel = 0;
-      maxMipLevelText = "0";
-    }
-
-    if (toAttach.mipLevel < 0)
-      return ErrorInvalidValue("`level` must be >= 0.");
-    if (toAttach.mipLevel > maxMipLevel) {
-      ErrorInvalidValue("`level` must be <= %s.", maxMipLevelText);
-      return;
-    }
-
-    if (toAttach.zLayer < 0) return ErrorInvalidValue("`layer` must be >= 0.");
-    if (toAttach.zLayerCount < 1)
-      return ErrorInvalidValue("`numViews` must be >= 1.");
-    if (AssertedCast<uint32_t>(toAttach.zLayerCount) > mGLMaxMultiviewViews)
-      return ErrorInvalidValue("`numViews` must be <= MAX_VIEWS_OVR.");
-
-    const auto lastZLayer = toAttach.zLayer + toAttach.zLayerCount;
-    if (lastZLayer > maxZLayer) {
-      const char* formatText = "`layer` must be < %s.";
-      if (toAttach.zLayerCount != 1) {
-        formatText = "`layer` + `numViews` must be <= %s.";
-      }
-      ErrorInvalidValue(formatText, maxZLayerText);
-      return;
-    }
+  const auto& tex = toAttach.tex;
+  if (tex) {
+    const auto err = CheckFramebufferAttach(bindImageTarget, tex->mTarget.get(),
+                                            toAttach.mipLevel, toAttach.zLayer,
+                                            toAttach.zLayerCount, limits);
+    if (err) return;
   }
 
-  fb->FramebufferAttach(attachEnum, toAttach);
-}
-
-void WebGLContext::FramebufferRenderbuffer(const GLenum target,
-                                           const GLenum attachEnum,
-                                           const GLenum rbTarget,
-                                           WebGLRenderbuffer* const rb) const {
-  const FuncScope funcScope(*this, "framebufferRenderbuffer");
-  if (IsContextLost()) return;
-
-  if (rbTarget != LOCAL_GL_RENDERBUFFER) {
-    ErrorInvalidEnumArg("rbTarget", rbTarget);
-    return;
+  auto safeToAttach = toAttach;
+  if (!IsWebGL2() &&
+      !IsExtensionEnabled(WebGLExtensionID::OES_fbo_render_mipmap)) {
+    safeToAttach.mipLevel = 0;
+  }
+  if (!IsExtensionEnabled(WebGLExtensionID::OVR_multiview2)) {
+    safeToAttach.isMultiview = false;
   }
 
-  const auto toAttach = webgl::FbAttachInfo{rb};
-  FramebufferAttach(target, attachEnum, 0, toAttach);
-}
+  if (!fb->FramebufferAttach(attachSlot, safeToAttach)) return;
 
-void WebGLContext::FramebufferTexture2D(const GLenum target,
-                                        const GLenum attachEnum,
-                                        const GLenum imageTarget,
-                                        WebGLTexture* const tex,
-                                        const GLint level) const {
-  const FuncScope funcScope(*this, "framebufferTexture2D");
-  if (IsContextLost()) return;
-
-  TexTarget reqTexTarget = LOCAL_GL_TEXTURE_2D;
-  auto toAttach = webgl::FbAttachInfo{nullptr, tex, level, 0};
-  if (toAttach.tex) {
-    switch (imageTarget) {
-      case LOCAL_GL_TEXTURE_2D:
-        break;
-      case LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_X:
-      case LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
-      case LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
-      case LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
-      case LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
-      case LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
-        toAttach.zLayer = imageTarget - LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-        reqTexTarget = LOCAL_GL_TEXTURE_CUBE_MAP;
-        break;
-      default:
-        ErrorInvalidEnumArg("texImageTarget", imageTarget);
-        return;
-    }
-  }
-
-  FramebufferAttach(target, attachEnum, reqTexTarget, toAttach);
-}
-
-void WebGLContext::FramebufferTextureLayer(const GLenum target,
-                                           const GLenum attachEnum,
-                                           WebGLTexture* const tex,
-                                           const GLint mipLevel,
-                                           const GLint zLayer) const {
-  const FuncScope funcScope(*this, "framebufferTextureLayer");
-  if (IsContextLost()) return;
-
-  const auto toAttach = webgl::FbAttachInfo{nullptr, tex, mipLevel, zLayer};
-  if (toAttach.tex) {
-    if (!ValidateObject("tex", *toAttach.tex))
-      return;  // Technically we need to check this first...
-
-    switch (toAttach.tex->Target().get()) {
-      case LOCAL_GL_TEXTURE_3D:
-      case LOCAL_GL_TEXTURE_2D_ARRAY:
-        break;
-      default:
-        ErrorInvalidOperation(
-            "`texture` must be a TEXTURE_3D or"
-            " TEXTURE_2D_ARRAY.");
-        return;
-    }
-  }
-
-  FramebufferAttach(target, attachEnum, 0, toAttach);
-}
-
-void WebGLContext::FramebufferTextureMultiview(
-    const GLenum target, const GLenum attachEnum, WebGLTexture* const tex,
-    const GLint mipLevel, const GLint zLayerBase,
-    const GLsizei numViewLayers) const {
-  if (IsContextLost()) return;
-
-  const auto toAttach = webgl::FbAttachInfo{nullptr,    tex,           mipLevel,
-                                            zLayerBase, numViewLayers, true};
-  FramebufferAttach(target, attachEnum, LOCAL_GL_TEXTURE_2D_ARRAY, toAttach);
+  funcScope.mBindFailureGuard = false;
 }
 
 // -
@@ -659,100 +369,38 @@ void WebGLContext::FrontFace(GLenum mode) {
   gl->fFrontFace(mode);
 }
 
-already_AddRefed<WebGLActiveInfo> WebGLContext::GetActiveAttrib(
-    const WebGLProgram& prog, GLuint index) {
-  const FuncScope funcScope(*this, "getActiveAttrib");
-  if (IsContextLost()) return nullptr;
-
-  if (!ValidateObject("program", prog)) return nullptr;
-
-  return prog.GetActiveAttrib(index);
-}
-
-already_AddRefed<WebGLActiveInfo> WebGLContext::GetActiveUniform(
-    const WebGLProgram& prog, GLuint index) {
-  const FuncScope funcScope(*this, "getActiveUniform");
-  if (IsContextLost()) return nullptr;
-
-  if (!ValidateObject("program", prog)) return nullptr;
-
-  return prog.GetActiveUniform(index);
-}
-
-void WebGLContext::GetAttachedShaders(
-    const WebGLProgram& prog,
-    dom::Nullable<nsTArray<RefPtr<WebGLShader>>>& retval) {
-  retval.SetNull();
-  const FuncScope funcScope(*this, "getAttachedShaders");
-  if (IsContextLost()) return;
-
-  if (!ValidateObject("prog", prog)) return;
-
-  prog.GetAttachedShaders(&retval.SetValue());
-}
-
-GLint WebGLContext::GetAttribLocation(const WebGLProgram& prog,
-                                      const nsAString& name) {
-  const FuncScope funcScope(*this, "getAttribLocation");
-  if (IsContextLost()) return -1;
-
-  if (!ValidateObject("program", prog)) return -1;
-
-  return prog.GetAttribLocation(name);
-}
-
-JS::Value WebGLContext::GetBufferParameter(GLenum target, GLenum pname) {
+Maybe<double> WebGLContext::GetBufferParameter(GLenum target, GLenum pname) {
   const FuncScope funcScope(*this, "getBufferParameter");
-  if (IsContextLost()) return JS::NullValue();
+  if (IsContextLost()) return Nothing();
 
   const auto& slot = ValidateBufferSlot(target);
-  if (!slot) return JS::NullValue();
+  if (!slot) return Nothing();
   const auto& buffer = *slot;
 
   if (!buffer) {
     ErrorInvalidOperation("Buffer for `target` is null.");
-    return JS::NullValue();
+    return Nothing();
   }
 
   switch (pname) {
     case LOCAL_GL_BUFFER_SIZE:
-      return JS::NumberValue(buffer->ByteLength());
+      return Some(buffer->ByteLength());
 
     case LOCAL_GL_BUFFER_USAGE:
-      return JS::NumberValue(buffer->Usage());
+      return Some(buffer->Usage());
 
     default:
       ErrorInvalidEnumInfo("pname", pname);
-      return JS::NullValue();
+      return Nothing();
   }
 }
 
-JS::Value WebGLContext::GetFramebufferAttachmentParameter(JSContext* cx,
-                                                          GLenum target,
-                                                          GLenum attachment,
-                                                          GLenum pname,
-                                                          ErrorResult& rv) {
+Maybe<double> WebGLContext::GetFramebufferAttachmentParameter(
+    WebGLFramebuffer* const fb, GLenum attachment, GLenum pname) const {
   const FuncScope funcScope(*this, "getFramebufferAttachmentParameter");
-  if (IsContextLost()) return JS::NullValue();
+  if (IsContextLost()) return Nothing();
 
-  if (!ValidateFramebufferTarget(target)) return JS::NullValue();
-
-  WebGLFramebuffer* fb;
-  switch (target) {
-    case LOCAL_GL_FRAMEBUFFER:
-    case LOCAL_GL_DRAW_FRAMEBUFFER:
-      fb = mBoundDrawFramebuffer;
-      break;
-
-    case LOCAL_GL_READ_FRAMEBUFFER:
-      fb = mBoundReadFramebuffer;
-      break;
-
-    default:
-      MOZ_CRASH("GFX: Bad target.");
-  }
-
-  if (fb) return fb->GetAttachmentParameter(cx, target, attachment, pname, &rv);
+  if (fb) return fb->GetAttachmentParameter(attachment, pname);
 
   ////////////////////////////////////
 
@@ -760,7 +408,7 @@ JS::Value WebGLContext::GetFramebufferAttachmentParameter(JSContext* cx,
     ErrorInvalidOperation(
         "Querying against the default framebuffer is not"
         " allowed in WebGL 1.");
-    return JS::NullValue();
+    return Nothing();
   }
 
   switch (attachment) {
@@ -773,7 +421,7 @@ JS::Value WebGLContext::GetFramebufferAttachmentParameter(JSContext* cx,
       ErrorInvalidEnum(
           "For the default framebuffer, can only query COLOR, DEPTH,"
           " or STENCIL.");
-      return JS::NullValue();
+      return Nothing();
   }
 
   switch (pname) {
@@ -783,115 +431,106 @@ JS::Value WebGLContext::GetFramebufferAttachmentParameter(JSContext* cx,
           break;
         case LOCAL_GL_DEPTH:
           if (!mOptions.depth) {
-            return JS::Int32Value(LOCAL_GL_NONE);
+            return Some(LOCAL_GL_NONE);
           }
           break;
         case LOCAL_GL_STENCIL:
           if (!mOptions.stencil) {
-            return JS::Int32Value(LOCAL_GL_NONE);
+            return Some(LOCAL_GL_NONE);
           }
           break;
         default:
           ErrorInvalidEnum(
               "With the default framebuffer, can only query COLOR, DEPTH,"
               " or STENCIL for GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE");
-          return JS::NullValue();
+          return Nothing();
       }
-      return JS::Int32Value(LOCAL_GL_FRAMEBUFFER_DEFAULT);
+      return Some(LOCAL_GL_FRAMEBUFFER_DEFAULT);
 
       ////////////////
 
     case LOCAL_GL_FRAMEBUFFER_ATTACHMENT_RED_SIZE:
     case LOCAL_GL_FRAMEBUFFER_ATTACHMENT_GREEN_SIZE:
     case LOCAL_GL_FRAMEBUFFER_ATTACHMENT_BLUE_SIZE:
-      if (attachment == LOCAL_GL_BACK) return JS::NumberValue(8);
-      return JS::NumberValue(0);
+      if (attachment == LOCAL_GL_BACK) return Some(8);
+      return Some(0);
 
     case LOCAL_GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE:
       if (attachment == LOCAL_GL_BACK) {
         if (mOptions.alpha) {
-          return JS::NumberValue(8);
+          return Some(8);
         }
         ErrorInvalidOperation(
             "The default framebuffer doesn't contain an alpha buffer");
-        return JS::NullValue();
+        return Nothing();
       }
-      return JS::NumberValue(0);
+      return Some(0);
 
     case LOCAL_GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE:
       if (attachment == LOCAL_GL_DEPTH) {
         if (mOptions.depth) {
-          return JS::NumberValue(24);
+          return Some(24);
         }
         ErrorInvalidOperation(
             "The default framebuffer doesn't contain an depth buffer");
-        return JS::NullValue();
+        return Nothing();
       }
-      return JS::NumberValue(0);
+      return Some(0);
 
     case LOCAL_GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE:
       if (attachment == LOCAL_GL_STENCIL) {
         if (mOptions.stencil) {
-          return JS::NumberValue(8);
+          return Some(8);
         }
         ErrorInvalidOperation(
             "The default framebuffer doesn't contain an stencil buffer");
-        return JS::NullValue();
+        return Nothing();
       }
-      return JS::NumberValue(0);
+      return Some(0);
 
     case LOCAL_GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE:
       if (attachment == LOCAL_GL_STENCIL) {
         if (mOptions.stencil) {
-          return JS::NumberValue(LOCAL_GL_UNSIGNED_INT);
+          return Some(LOCAL_GL_UNSIGNED_INT);
         }
         ErrorInvalidOperation(
             "The default framebuffer doesn't contain an stencil buffer");
       } else if (attachment == LOCAL_GL_DEPTH) {
         if (mOptions.depth) {
-          return JS::NumberValue(LOCAL_GL_UNSIGNED_NORMALIZED);
+          return Some(LOCAL_GL_UNSIGNED_NORMALIZED);
         }
         ErrorInvalidOperation(
             "The default framebuffer doesn't contain an depth buffer");
       } else {  // LOCAL_GL_BACK
-        return JS::NumberValue(LOCAL_GL_UNSIGNED_NORMALIZED);
+        return Some(LOCAL_GL_UNSIGNED_NORMALIZED);
       }
-      return JS::NullValue();
+      return Nothing();
 
     case LOCAL_GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING:
       if (attachment == LOCAL_GL_STENCIL) {
         if (!mOptions.stencil) {
           ErrorInvalidOperation(
               "The default framebuffer doesn't contain an stencil buffer");
-          return JS::NullValue();
+          return Nothing();
         }
       } else if (attachment == LOCAL_GL_DEPTH) {
         if (!mOptions.depth) {
           ErrorInvalidOperation(
               "The default framebuffer doesn't contain an depth buffer");
-          return JS::NullValue();
+          return Nothing();
         }
       }
-      return JS::NumberValue(LOCAL_GL_LINEAR);
+      return Some(LOCAL_GL_LINEAR);
   }
 
   ErrorInvalidEnumInfo("pname", pname);
-  return JS::NullValue();
+  return Nothing();
 }
 
-JS::Value WebGLContext::GetRenderbufferParameter(GLenum target, GLenum pname) {
+Maybe<double> WebGLContext::GetRenderbufferParameter(
+    const WebGLRenderbuffer& rb, GLenum pname) const {
   const FuncScope funcScope(*this, "getRenderbufferParameter");
-  if (IsContextLost()) return JS::NullValue();
-
-  if (target != LOCAL_GL_RENDERBUFFER) {
-    ErrorInvalidEnumInfo("target", target);
-    return JS::NullValue();
-  }
-
-  if (!mBoundRenderbuffer) {
-    ErrorInvalidOperation("No renderbuffer is bound.");
-    return JS::NullValue();
-  }
+  if (IsContextLost()) return Nothing();
 
   switch (pname) {
     case LOCAL_GL_RENDERBUFFER_SAMPLES:
@@ -908,8 +547,8 @@ JS::Value WebGLContext::GetRenderbufferParameter(GLenum target, GLenum pname) {
     case LOCAL_GL_RENDERBUFFER_STENCIL_SIZE:
     case LOCAL_GL_RENDERBUFFER_INTERNAL_FORMAT: {
       // RB emulation means we have to ask the RB itself.
-      GLint i = mBoundRenderbuffer->GetRenderbufferParameter(target, pname);
-      return JS::Int32Value(i);
+      GLint i = rb.GetRenderbufferParameter(pname);
+      return Some(i);
     }
 
     default:
@@ -917,18 +556,17 @@ JS::Value WebGLContext::GetRenderbufferParameter(GLenum target, GLenum pname) {
   }
 
   ErrorInvalidEnumInfo("pname", pname);
-  return JS::NullValue();
+  return Nothing();
 }
 
-already_AddRefed<WebGLTexture> WebGLContext::CreateTexture() {
+RefPtr<WebGLTexture> WebGLContext::CreateTexture() {
   const FuncScope funcScope(*this, "createTexture");
   if (IsContextLost()) return nullptr;
 
   GLuint tex = 0;
   gl->fGenTextures(1, &tex);
 
-  RefPtr<WebGLTexture> globj = new WebGLTexture(this, tex);
-  return globj.forget();
+  return new WebGLTexture(this, tex);
 }
 
 GLenum WebGLContext::GetError() {
@@ -955,7 +593,7 @@ GLenum WebGLContext::GetError() {
   // UnderlyingGL-side errors, now.
   err = gl->fGetError();
   if (gl->IsContextLost()) {
-    UpdateContextLossStatus();
+    CheckForContextLoss();
     return GetError();
   }
   MOZ_ASSERT(err != LOCAL_GL_CONTEXT_LOST);
@@ -970,50 +608,78 @@ GLenum WebGLContext::GetError() {
   return err;
 }
 
-JS::Value WebGLContext::GetProgramParameter(const WebGLProgram& prog,
-                                            GLenum pname) {
-  const FuncScope funcScope(*this, "getProgramParameter");
-  if (IsContextLost()) return JS::NullValue();
-
-  if (!ValidateObjectAllowDeleted("program", prog)) return JS::NullValue();
-
-  return prog.GetProgramParameter(pname);
-}
-
-void WebGLContext::GetProgramInfoLog(const WebGLProgram& prog,
-                                     nsAString& retval) {
-  retval.SetIsVoid(true);
-  const FuncScope funcScope(*this, "getProgramInfoLog");
-
-  if (IsContextLost()) return;
-
-  if (!ValidateObject("program", prog)) return;
-
-  prog.GetProgramInfoLog(&retval);
-}
-
-JS::Value WebGLContext::GetUniform(JSContext* js, const WebGLProgram& prog,
-                                   const WebGLUniformLocation& loc) {
+webgl::GetUniformData WebGLContext::GetUniform(const WebGLProgram& prog,
+                                               const uint32_t loc) const {
   const FuncScope funcScope(*this, "getUniform");
-  if (IsContextLost()) return JS::NullValue();
+  webgl::GetUniformData ret;
+  [&]() {
+    if (IsContextLost()) return;
 
-  if (!ValidateObject("program", prog)) return JS::NullValue();
+    const auto& info = prog.LinkInfo();
+    if (!info) return;
 
-  if (!ValidateObjectAllowDeleted("location", loc)) return JS::NullValue();
+    const auto locInfo = MaybeFind(info->locationMap, loc);
+    if (!locInfo) return;
 
-  if (!loc.ValidateForProgram(&prog)) return JS::NullValue();
+    ret.type = locInfo->info.info.elemType;
+    switch (ret.type) {
+      case LOCAL_GL_FLOAT:
+      case LOCAL_GL_FLOAT_VEC2:
+      case LOCAL_GL_FLOAT_VEC3:
+      case LOCAL_GL_FLOAT_VEC4:
+      case LOCAL_GL_FLOAT_MAT2:
+      case LOCAL_GL_FLOAT_MAT3:
+      case LOCAL_GL_FLOAT_MAT4:
+      case LOCAL_GL_FLOAT_MAT2x3:
+      case LOCAL_GL_FLOAT_MAT2x4:
+      case LOCAL_GL_FLOAT_MAT3x2:
+      case LOCAL_GL_FLOAT_MAT3x4:
+      case LOCAL_GL_FLOAT_MAT4x2:
+      case LOCAL_GL_FLOAT_MAT4x3:
+        gl->fGetUniformfv(prog.mGLName, loc,
+                          reinterpret_cast<float*>(ret.data));
+        break;
 
-  return loc.GetUniform(js);
-}
+      case LOCAL_GL_INT:
+      case LOCAL_GL_INT_VEC2:
+      case LOCAL_GL_INT_VEC3:
+      case LOCAL_GL_INT_VEC4:
+      case LOCAL_GL_SAMPLER_2D:
+      case LOCAL_GL_SAMPLER_3D:
+      case LOCAL_GL_SAMPLER_CUBE:
+      case LOCAL_GL_SAMPLER_2D_SHADOW:
+      case LOCAL_GL_SAMPLER_2D_ARRAY:
+      case LOCAL_GL_SAMPLER_2D_ARRAY_SHADOW:
+      case LOCAL_GL_SAMPLER_CUBE_SHADOW:
+      case LOCAL_GL_INT_SAMPLER_2D:
+      case LOCAL_GL_INT_SAMPLER_3D:
+      case LOCAL_GL_INT_SAMPLER_CUBE:
+      case LOCAL_GL_INT_SAMPLER_2D_ARRAY:
+      case LOCAL_GL_UNSIGNED_INT_SAMPLER_2D:
+      case LOCAL_GL_UNSIGNED_INT_SAMPLER_3D:
+      case LOCAL_GL_UNSIGNED_INT_SAMPLER_CUBE:
+      case LOCAL_GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+      case LOCAL_GL_BOOL:
+      case LOCAL_GL_BOOL_VEC2:
+      case LOCAL_GL_BOOL_VEC3:
+      case LOCAL_GL_BOOL_VEC4:
+        gl->fGetUniformiv(prog.mGLName, loc,
+                          reinterpret_cast<int32_t*>(ret.data));
+        break;
 
-already_AddRefed<WebGLUniformLocation> WebGLContext::GetUniformLocation(
-    const WebGLProgram& prog, const nsAString& name) {
-  const FuncScope funcScope(*this, "getUniformLocation");
-  if (IsContextLost()) return nullptr;
+      case LOCAL_GL_UNSIGNED_INT:
+      case LOCAL_GL_UNSIGNED_INT_VEC2:
+      case LOCAL_GL_UNSIGNED_INT_VEC3:
+      case LOCAL_GL_UNSIGNED_INT_VEC4:
+        gl->fGetUniformuiv(prog.mGLName, loc,
+                           reinterpret_cast<uint32_t*>(ret.data));
+        break;
 
-  if (!ValidateObject("program", prog)) return nullptr;
-
-  return prog.GetUniformLocation(name);
+      default:
+        MOZ_CRASH("GFX: Invalid elemType.");
+    }
+  }();
+  return ret;
 }
 
 void WebGLContext::Hint(GLenum target, GLenum mode) {
@@ -1047,77 +713,9 @@ void WebGLContext::Hint(GLenum target, GLenum mode) {
 
 // -
 
-bool WebGLContext::IsBuffer(const WebGLBuffer* const obj) {
-  const FuncScope funcScope(*this, "isBuffer");
-  if (!ValidateIsObject(obj)) return false;
-
-  if (obj->IsDeleteRequested()) return false;
-
-  return obj->Content() != WebGLBuffer::Kind::Undefined;
-}
-
-bool WebGLContext::IsFramebuffer(const WebGLFramebuffer* const obj) {
-  const FuncScope funcScope(*this, "isFramebuffer");
-  if (!ValidateIsObject(obj)) return false;
-
-  if (obj->IsDeleteRequested()) return false;
-
-  return obj->mHasBeenBound;
-}
-
-bool WebGLContext::IsProgram(const WebGLProgram* const obj) {
-  const FuncScope funcScope(*this, "isProgram");
-  return ValidateIsObject(obj);
-}
-
-bool WebGLContext::IsQuery(const WebGLQuery* const obj) {
-  const FuncScope funcScope(*this, "isQuery");
-  if (!ValidateIsObject(obj)) return false;
-
-  if (obj->IsDeleteRequested()) return false;
-
-  return bool(obj->Target());
-}
-
-bool WebGLContext::IsRenderbuffer(const WebGLRenderbuffer* const obj) {
-  const FuncScope funcScope(*this, "isRenderbuffer");
-  if (!ValidateIsObject(obj)) return false;
-
-  if (obj->IsDeleteRequested()) return false;
-
-  return obj->mHasBeenBound;
-}
-
-bool WebGLContext::IsShader(const WebGLShader* const obj) {
-  const FuncScope funcScope(*this, "isShader");
-  return ValidateIsObject(obj);
-}
-
-bool WebGLContext::IsTexture(const WebGLTexture* const obj) {
-  const FuncScope funcScope(*this, "isTexture");
-  if (!ValidateIsObject(obj)) return false;
-
-  if (obj->IsDeleteRequested()) return false;
-
-  return bool(obj->Target());
-}
-
-bool WebGLContext::IsVertexArray(const WebGLVertexArray* const obj) {
-  const FuncScope funcScope(*this, "isVertexArray");
-  if (!ValidateIsObject(obj)) return false;
-
-  if (obj->IsDeleteRequested()) return false;
-
-  return obj->mHasBeenBound;
-}
-
-// -
-
 void WebGLContext::LinkProgram(WebGLProgram& prog) {
   const FuncScope funcScope(*this, "linkProgram");
   if (IsContextLost()) return;
-
-  if (!ValidateObject("prog", prog)) return;
 
   prog.LinkProgram();
 
@@ -1144,35 +742,35 @@ void WebGLContext::PixelStorei(GLenum pname, GLint param) {
     uint32_t* pValueSlot = nullptr;
     switch (pname) {
       case LOCAL_GL_UNPACK_IMAGE_HEIGHT:
-        pValueSlot = &mPixelStore_UnpackImageHeight;
+        pValueSlot = &mPixelStore.mUnpackImageHeight;
         break;
 
       case LOCAL_GL_UNPACK_SKIP_IMAGES:
-        pValueSlot = &mPixelStore_UnpackSkipImages;
+        pValueSlot = &mPixelStore.mUnpackSkipImages;
         break;
 
       case LOCAL_GL_UNPACK_ROW_LENGTH:
-        pValueSlot = &mPixelStore_UnpackRowLength;
+        pValueSlot = &mPixelStore.mUnpackRowLength;
         break;
 
       case LOCAL_GL_UNPACK_SKIP_ROWS:
-        pValueSlot = &mPixelStore_UnpackSkipRows;
+        pValueSlot = &mPixelStore.mUnpackSkipRows;
         break;
 
       case LOCAL_GL_UNPACK_SKIP_PIXELS:
-        pValueSlot = &mPixelStore_UnpackSkipPixels;
+        pValueSlot = &mPixelStore.mUnpackSkipPixels;
         break;
 
       case LOCAL_GL_PACK_ROW_LENGTH:
-        pValueSlot = &mPixelStore_PackRowLength;
+        pValueSlot = &mPixelStore.mPackRowLength;
         break;
 
       case LOCAL_GL_PACK_SKIP_ROWS:
-        pValueSlot = &mPixelStore_PackSkipRows;
+        pValueSlot = &mPixelStore.mPackSkipRows;
         break;
 
       case LOCAL_GL_PACK_SKIP_PIXELS:
-        pValueSlot = &mPixelStore_PackSkipPixels;
+        pValueSlot = &mPixelStore.mPackSkipPixels;
         break;
     }
 
@@ -1187,18 +785,18 @@ void WebGLContext::PixelStorei(GLenum pname, GLint param) {
 
   switch (pname) {
     case UNPACK_FLIP_Y_WEBGL:
-      mPixelStore_FlipY = bool(param);
+      mPixelStore.mFlipY = bool(param);
       return;
 
     case UNPACK_PREMULTIPLY_ALPHA_WEBGL:
-      mPixelStore_PremultiplyAlpha = bool(param);
+      mPixelStore.mPremultiplyAlpha = bool(param);
       return;
 
     case UNPACK_COLORSPACE_CONVERSION_WEBGL:
       switch (param) {
         case LOCAL_GL_NONE:
         case BROWSER_DEFAULT_WEBGL:
-          mPixelStore_ColorspaceConversion = param;
+          mPixelStore.mColorspaceConversion = param;
           return;
 
         default:
@@ -1208,7 +806,7 @@ void WebGLContext::PixelStorei(GLenum pname, GLint param) {
 
     case UNPACK_REQUIRE_FASTPATH:
       if (IsExtensionEnabled(WebGLExtensionID::MOZ_debug)) {
-        mPixelStore_RequireFastPath = bool(param);
+        mPixelStore.mRequireFastPath = bool(param);
         return;
       }
       break;
@@ -1221,9 +819,9 @@ void WebGLContext::PixelStorei(GLenum pname, GLint param) {
         case 4:
         case 8:
           if (pname == LOCAL_GL_PACK_ALIGNMENT)
-            mPixelStore_PackAlignment = param;
+            mPixelStore.mPackAlignment = param;
           else if (pname == LOCAL_GL_UNPACK_ALIGNMENT)
-            mPixelStore_UnpackAlignment = param;
+            mPixelStore.mUnpackAlignment = param;
 
           gl->fPixelStorei(pname, param);
           return;
@@ -1238,31 +836,34 @@ void WebGLContext::PixelStorei(GLenum pname, GLint param) {
   }
 
   ErrorInvalidEnumInfo("pname", pname);
+  return;
 }
 
 bool WebGLContext::DoReadPixelsAndConvert(const webgl::FormatInfo* srcFormat,
                                           GLint x, GLint y, GLsizei width,
                                           GLsizei height, GLenum format,
-                                          GLenum destType, void* dest,
-                                          uint32_t destSize,
+                                          GLenum destType, uintptr_t dest,
+                                          uint64_t destSize,
                                           uint32_t rowStride) {
   // On at least Win+NV, we'll get PBO errors if we don't have at least
   // `rowStride * height` bytes available to read into.
-  const auto naiveBytesNeeded = CheckedUint32(rowStride) * height;
+  const auto naiveBytesNeeded = CheckedInt<uint64_t>(rowStride) * height;
   const bool isDangerCloseToEdge =
       (!naiveBytesNeeded.isValid() || naiveBytesNeeded.value() > destSize);
   const bool useParanoidHandling =
       (gl->WorkAroundDriverBugs() && isDangerCloseToEdge &&
        mBoundPixelPackBuffer);
   if (!useParanoidHandling) {
-    gl->fReadPixels(x, y, width, height, format, destType, dest);
+    gl->fReadPixels(x, y, width, height, format, destType,
+                    reinterpret_cast<void*>(dest));
     return true;
   }
 
   // Read everything but the last row.
   const auto bodyHeight = height - 1;
   if (bodyHeight) {
-    gl->fReadPixels(x, y, width, bodyHeight, format, destType, dest);
+    gl->fReadPixels(x, y, width, bodyHeight, format, destType,
+                    reinterpret_cast<void*>(dest));
   }
 
   // Now read the last row.
@@ -1273,65 +874,9 @@ bool WebGLContext::DoReadPixelsAndConvert(const webgl::FormatInfo* srcFormat,
   const auto tailRowOffset = (char*)dest + rowStride * bodyHeight;
   gl->fReadPixels(x, y + bodyHeight, width, 1, format, destType, tailRowOffset);
 
-  gl->fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, mPixelStore_PackAlignment);
-  gl->fPixelStorei(LOCAL_GL_PACK_ROW_LENGTH, mPixelStore_PackRowLength);
-  gl->fPixelStorei(LOCAL_GL_PACK_SKIP_ROWS, mPixelStore_PackSkipRows);
-  return true;
-}
-
-static bool GetJSScalarFromGLType(GLenum type,
-                                  js::Scalar::Type* const out_scalarType) {
-  switch (type) {
-    case LOCAL_GL_BYTE:
-      *out_scalarType = js::Scalar::Int8;
-      return true;
-
-    case LOCAL_GL_UNSIGNED_BYTE:
-      *out_scalarType = js::Scalar::Uint8;
-      return true;
-
-    case LOCAL_GL_SHORT:
-      *out_scalarType = js::Scalar::Int16;
-      return true;
-
-    case LOCAL_GL_HALF_FLOAT:
-    case LOCAL_GL_HALF_FLOAT_OES:
-    case LOCAL_GL_UNSIGNED_SHORT:
-    case LOCAL_GL_UNSIGNED_SHORT_4_4_4_4:
-    case LOCAL_GL_UNSIGNED_SHORT_5_5_5_1:
-    case LOCAL_GL_UNSIGNED_SHORT_5_6_5:
-      *out_scalarType = js::Scalar::Uint16;
-      return true;
-
-    case LOCAL_GL_UNSIGNED_INT:
-    case LOCAL_GL_UNSIGNED_INT_2_10_10_10_REV:
-    case LOCAL_GL_UNSIGNED_INT_5_9_9_9_REV:
-    case LOCAL_GL_UNSIGNED_INT_10F_11F_11F_REV:
-    case LOCAL_GL_UNSIGNED_INT_24_8:
-      *out_scalarType = js::Scalar::Uint32;
-      return true;
-    case LOCAL_GL_INT:
-      *out_scalarType = js::Scalar::Int32;
-      return true;
-
-    case LOCAL_GL_FLOAT:
-      *out_scalarType = js::Scalar::Float32;
-      return true;
-
-    default:
-      return false;
-  }
-}
-
-bool WebGLContext::ReadPixels_SharedPrecheck(CallerType aCallerType,
-                                             ErrorResult& out_error) {
-  if (mCanvasElement && mCanvasElement->IsWriteOnly() &&
-      aCallerType != CallerType::System) {
-    GenerateWarning("readPixels: Not allowed");
-    out_error.Throw(NS_ERROR_DOM_SECURITY_ERR);
-    return false;
-  }
-
+  gl->fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, mPixelStore.mPackAlignment);
+  gl->fPixelStorei(LOCAL_GL_PACK_ROW_LENGTH, mPixelStore.mPackRowLength);
+  gl->fPixelStorei(LOCAL_GL_PACK_SKIP_ROWS, mPixelStore.mPackSkipRows);
   return true;
 }
 
@@ -1348,10 +893,10 @@ bool WebGLContext::ValidatePackSize(uint32_t width, uint32_t height,
   // GLES 3.0.4, p116 (PACK_ functions like UNPACK_)
 
   const auto rowLength =
-      (mPixelStore_PackRowLength ? mPixelStore_PackRowLength : width);
-  const auto skipPixels = mPixelStore_PackSkipPixels;
-  const auto skipRows = mPixelStore_PackSkipRows;
-  const auto alignment = mPixelStore_PackAlignment;
+      (mPixelStore.mPackRowLength ? mPixelStore.mPackRowLength : width);
+  const auto skipPixels = mPixelStore.mPackSkipPixels;
+  const auto skipRows = mPixelStore.mPackSkipRows;
+  const auto alignment = mPixelStore.mPackAlignment;
 
   const auto usedPixelsPerRow = CheckedUint32(skipPixels) + width;
   const auto usedRowsPerImage = CheckedUint32(skipRows) + height;
@@ -1380,60 +925,30 @@ bool WebGLContext::ValidatePackSize(uint32_t width, uint32_t height,
 
 void WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,
                               GLenum format, GLenum type,
-                              const dom::ArrayBufferView& dstView,
-                              GLuint dstElemOffset, CallerType aCallerType,
-                              ErrorResult& out_error) {
+                              const Range<uint8_t>& dest) {
   const FuncScope funcScope(*this, "readPixels");
   if (IsContextLost()) return;
-
-  if (!ReadPixels_SharedPrecheck(aCallerType, out_error)) return;
 
   if (mBoundPixelPackBuffer) {
     ErrorInvalidOperation("PIXEL_PACK_BUFFER must be null.");
     return;
   }
 
-  ////
-
-  js::Scalar::Type reqScalarType;
-  if (!GetJSScalarFromGLType(type, &reqScalarType)) {
-    ErrorInvalidEnumInfo("type", type);
-    return;
-  }
-
-  const auto& viewElemType = dstView.Type();
-  if (viewElemType != reqScalarType) {
-    ErrorInvalidOperation("`pixels` type does not match `type`.");
-    return;
-  }
-
-  ////
-
-  uint8_t* bytes;
-  size_t byteLen;
-  if (!ValidateArrayBufferView(dstView, dstElemOffset, 0,
-                               LOCAL_GL_INVALID_VALUE, &bytes, &byteLen))
-    return;
-
-  ////
-
-  ReadPixelsImpl(x, y, width, height, format, type, bytes, byteLen);
+  ReadPixelsImpl(x, y, width, height, format, type,
+                 reinterpret_cast<uintptr_t>(dest.begin().get()),
+                 dest.length());
 }
 
-void WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,
-                              GLenum format, GLenum type, WebGLsizeiptr offset,
-                              CallerType aCallerType, ErrorResult& out_error) {
+void WebGLContext::ReadPixelsPbo(GLint x, GLint y, GLsizei width,
+                                 GLsizei height, GLenum format, GLenum type,
+                                 uint64_t offset) {
   const FuncScope funcScope(*this, "readPixels");
   if (IsContextLost()) return;
-
-  if (!ReadPixels_SharedPrecheck(aCallerType, out_error)) return;
 
   const auto& buffer = ValidateBufferSelection(LOCAL_GL_PIXEL_PACK_BUFFER);
   if (!buffer) return;
 
   //////
-
-  if (!ValidateNonNegative("offset", offset)) return;
 
   {
     const auto bytesPerType = webgl::BytesPerPixel({LOCAL_GL_RED, type});
@@ -1448,18 +963,18 @@ void WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,
 
   //////
 
-  const auto bytesAvailable = buffer->ByteLength();
-  const auto checkedBytesAfterOffset = CheckedUint32(bytesAvailable) - offset;
-
-  uint32_t bytesAfterOffset = 0;
-  if (checkedBytesAfterOffset.isValid()) {
-    bytesAfterOffset = checkedBytesAfterOffset.value();
+  auto bytesAvailable = buffer->ByteLength();
+  if (offset > bytesAvailable) {
+    ErrorInvalidOperation("`offset` too large for bound PIXEL_PACK_BUFFER.");
+    return;
   }
+  bytesAvailable -= offset;
+
+  // -
 
   const ScopedLazyBind lazyBind(gl, LOCAL_GL_PIXEL_PACK_BUFFER, buffer);
 
-  ReadPixelsImpl(x, y, width, height, format, type, (void*)offset,
-                 bytesAfterOffset);
+  ReadPixelsImpl(x, y, width, height, format, type, offset, bytesAvailable);
 
   buffer->ResetLastUpdateFenceId();
 }
@@ -1569,8 +1084,8 @@ static bool ValidateReadPixelsFormatAndType(
 
 void WebGLContext::ReadPixelsImpl(GLint x, GLint y, GLsizei rawWidth,
                                   GLsizei rawHeight, GLenum packFormat,
-                                  GLenum packType, void* dest,
-                                  uint32_t dataLen) {
+                                  GLenum packType, uintptr_t dest,
+                                  uint64_t availBytes) {
   if (!ValidateNonNegative("width", rawWidth) ||
       !ValidateNonNegative("height", rawHeight)) {
     return;
@@ -1604,7 +1119,7 @@ void WebGLContext::ReadPixelsImpl(GLint x, GLint y, GLsizei rawWidth,
   if (!ValidatePackSize(width, height, bytesPerPixel, &rowStride, &bytesNeeded))
     return;
 
-  if (bytesNeeded > dataLen) {
+  if (bytesNeeded > availBytes) {
     ErrorInvalidOperation("buffer too small");
     return;
   }
@@ -1631,7 +1146,7 @@ void WebGLContext::ReadPixelsImpl(GLint x, GLint y, GLsizei rawWidth,
 
   if (uint32_t(rwWidth) == width && uint32_t(rwHeight) == height) {
     DoReadPixelsAndConvert(srcFormat->format, x, y, width, height, packFormat,
-                           packType, dest, dataLen, rowStride);
+                           packType, dest, bytesNeeded, rowStride);
     return;
   }
 
@@ -1651,57 +1166,43 @@ void WebGLContext::ReadPixelsImpl(GLint x, GLint y, GLsizei rawWidth,
   // Read only the in-bounds pixels.
 
   if (IsWebGL2()) {
-    if (!mPixelStore_PackRowLength) {
+    if (!mPixelStore.mPackRowLength) {
       gl->fPixelStorei(LOCAL_GL_PACK_ROW_LENGTH,
-                       mPixelStore_PackSkipPixels + width);
+                       mPixelStore.mPackSkipPixels + width);
     }
     gl->fPixelStorei(LOCAL_GL_PACK_SKIP_PIXELS,
-                     mPixelStore_PackSkipPixels + writeX);
+                     mPixelStore.mPackSkipPixels + writeX);
     gl->fPixelStorei(LOCAL_GL_PACK_SKIP_ROWS,
-                     mPixelStore_PackSkipRows + writeY);
+                     mPixelStore.mPackSkipRows + writeY);
 
     DoReadPixelsAndConvert(srcFormat->format, readX, readY, rwWidth, rwHeight,
-                           packFormat, packType, dest, dataLen, rowStride);
+                           packFormat, packType, dest, bytesNeeded, rowStride);
 
-    gl->fPixelStorei(LOCAL_GL_PACK_ROW_LENGTH, mPixelStore_PackRowLength);
-    gl->fPixelStorei(LOCAL_GL_PACK_SKIP_PIXELS, mPixelStore_PackSkipPixels);
-    gl->fPixelStorei(LOCAL_GL_PACK_SKIP_ROWS, mPixelStore_PackSkipRows);
+    gl->fPixelStorei(LOCAL_GL_PACK_ROW_LENGTH, mPixelStore.mPackRowLength);
+    gl->fPixelStorei(LOCAL_GL_PACK_SKIP_PIXELS, mPixelStore.mPackSkipPixels);
+    gl->fPixelStorei(LOCAL_GL_PACK_SKIP_ROWS, mPixelStore.mPackSkipRows);
   } else {
     // I *did* say "hilariously slow".
 
-    uint8_t* row = (uint8_t*)dest + writeX * bytesPerPixel;
+    auto row = dest + writeX * bytesPerPixel;
     row += writeY * rowStride;
     for (uint32_t j = 0; j < uint32_t(rwHeight); j++) {
       DoReadPixelsAndConvert(srcFormat->format, readX, readY + j, rwWidth, 1,
-                             packFormat, packType, row, dataLen, rowStride);
+                             packFormat, packType, row, bytesNeeded, rowStride);
       row += rowStride;
     }
   }
 }
 
-void WebGLContext::RenderbufferStorage_base(GLenum target, GLsizei samples,
-                                            GLenum internalFormat,
-                                            GLsizei width, GLsizei height) {
+void WebGLContext::RenderbufferStorageMultisample(WebGLRenderbuffer& rb,
+                                                  uint32_t samples,
+                                                  GLenum internalFormat,
+                                                  uint32_t width,
+                                                  uint32_t height) const {
+  const FuncScope funcScope(*this, "renderbufferStorage(Multisample)?");
   if (IsContextLost()) return;
 
-  if (target != LOCAL_GL_RENDERBUFFER) {
-    ErrorInvalidEnumInfo("target", target);
-    return;
-  }
-
-  if (!mBoundRenderbuffer) {
-    ErrorInvalidOperation("Called on renderbuffer 0.");
-    return;
-  }
-
-  if (!ValidateNonNegative("width", width) ||
-      !ValidateNonNegative("height", height) ||
-      !ValidateNonNegative("samples", samples)) {
-    return;
-  }
-
-  mBoundRenderbuffer->RenderbufferStorage(uint32_t(samples), internalFormat,
-                                          uint32_t(width), uint32_t(height));
+  rb.RenderbufferStorage(samples, internalFormat, width, height);
 }
 
 void WebGLContext::Scissor(GLint x, GLint y, GLsizei width, GLsizei height) {
@@ -1715,20 +1216,6 @@ void WebGLContext::Scissor(GLint x, GLint y, GLsizei width, GLsizei height) {
 
   mScissorRect = {x, y, width, height};
   mScissorRect.Apply(*gl);
-}
-
-void WebGLContext::StencilFunc(GLenum func, GLint ref, GLuint mask) {
-  const FuncScope funcScope(*this, "stencilFunc");
-  if (IsContextLost()) return;
-
-  if (!ValidateComparisonEnum(*this, func)) return;
-
-  mStencilRefFront = ref;
-  mStencilRefBack = ref;
-  mStencilValueMaskFront = mask;
-  mStencilValueMaskBack = mask;
-
-  gl->fStencilFunc(func, ref, mask);
 }
 
 void WebGLContext::StencilFuncSeparate(GLenum face, GLenum func, GLint ref,
@@ -1760,18 +1247,6 @@ void WebGLContext::StencilFuncSeparate(GLenum face, GLenum func, GLint ref,
   gl->fStencilFuncSeparate(face, func, ref, mask);
 }
 
-void WebGLContext::StencilOp(GLenum sfail, GLenum dpfail, GLenum dppass) {
-  const FuncScope funcScope(*this, "stencilOp");
-  if (IsContextLost()) return;
-
-  if (!ValidateStencilOpEnum(sfail, "sfail") ||
-      !ValidateStencilOpEnum(dpfail, "dpfail") ||
-      !ValidateStencilOpEnum(dppass, "dppass"))
-    return;
-
-  gl->fStencilOp(sfail, dpfail, dppass);
-}
-
 void WebGLContext::StencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail,
                                      GLenum dppass) {
   const FuncScope funcScope(*this, "stencilOpSeparate");
@@ -1788,235 +1263,6 @@ void WebGLContext::StencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail,
 ////////////////////////////////////////////////////////////////////////////////
 // Uniform setters.
 
-class ValidateIfSampler {
-  const WebGLUniformLocation* const mLoc;
-  const size_t mDataCount;
-  const GLint* const mData;
-  bool mIsValidatedSampler;
-
- public:
-  ValidateIfSampler(WebGLContext* webgl, WebGLUniformLocation* loc,
-                    size_t dataCount, const GLint* data, bool* const out_error)
-      : mLoc(loc),
-        mDataCount(dataCount),
-        mData(data),
-        mIsValidatedSampler(false) {
-    if (!mLoc->mInfo->mSamplerTexList) {
-      *out_error = false;
-      return;
-    }
-
-    for (size_t i = 0; i < mDataCount; i++) {
-      const auto& val = mData[i];
-      if (val < 0 || uint32_t(val) >= webgl->GLMaxTextureUnits()) {
-        webgl->ErrorInvalidValue(
-            "This uniform location is a sampler, but %d"
-            " is not a valid texture unit.",
-            val);
-        *out_error = true;
-        return;
-      }
-    }
-
-    mIsValidatedSampler = true;
-    *out_error = false;
-  }
-
-  ~ValidateIfSampler() {
-    if (!mIsValidatedSampler) return;
-
-    auto& samplerValues = mLoc->mInfo->mSamplerValues;
-
-    for (size_t i = 0; i < mDataCount; i++) {
-      const size_t curIndex = mLoc->mArrayIndex + i;
-      if (curIndex >= samplerValues.size()) break;
-
-      samplerValues[curIndex] = mData[i];
-    }
-  }
-};
-
-////////////////////
-
-void WebGLContext::Uniform1i(WebGLUniformLocation* loc, GLint a1) {
-  const FuncScope funcScope(*this, "uniform1i");
-  if (!ValidateUniformSetter(loc, 1, webgl::AttribBaseType::Int)) return;
-
-  bool error;
-  const ValidateIfSampler validate(this, loc, 1, &a1, &error);
-  if (error) return;
-
-  gl->fUniform1i(loc->mLoc, a1);
-}
-
-void WebGLContext::Uniform2i(WebGLUniformLocation* loc, GLint a1, GLint a2) {
-  const FuncScope funcScope(*this, "uniform2i");
-  if (!ValidateUniformSetter(loc, 2, webgl::AttribBaseType::Int)) return;
-
-  gl->fUniform2i(loc->mLoc, a1, a2);
-}
-
-void WebGLContext::Uniform3i(WebGLUniformLocation* loc, GLint a1, GLint a2,
-                             GLint a3) {
-  const FuncScope funcScope(*this, "uniform3i");
-  if (!ValidateUniformSetter(loc, 3, webgl::AttribBaseType::Int)) return;
-
-  gl->fUniform3i(loc->mLoc, a1, a2, a3);
-}
-
-void WebGLContext::Uniform4i(WebGLUniformLocation* loc, GLint a1, GLint a2,
-                             GLint a3, GLint a4) {
-  const FuncScope funcScope(*this, "uniform4i");
-  if (!ValidateUniformSetter(loc, 4, webgl::AttribBaseType::Int)) return;
-
-  gl->fUniform4i(loc->mLoc, a1, a2, a3, a4);
-}
-
-//////////
-
-void WebGLContext::Uniform1f(WebGLUniformLocation* loc, GLfloat a1) {
-  const FuncScope funcScope(*this, "uniform1f");
-  if (!ValidateUniformSetter(loc, 1, webgl::AttribBaseType::Float)) return;
-
-  gl->fUniform1f(loc->mLoc, a1);
-}
-
-void WebGLContext::Uniform2f(WebGLUniformLocation* loc, GLfloat a1,
-                             GLfloat a2) {
-  const FuncScope funcScope(*this, "uniform2f");
-  if (!ValidateUniformSetter(loc, 2, webgl::AttribBaseType::Float)) return;
-
-  gl->fUniform2f(loc->mLoc, a1, a2);
-}
-
-void WebGLContext::Uniform3f(WebGLUniformLocation* loc, GLfloat a1, GLfloat a2,
-                             GLfloat a3) {
-  const FuncScope funcScope(*this, "uniform3f");
-  if (!ValidateUniformSetter(loc, 3, webgl::AttribBaseType::Float)) return;
-
-  gl->fUniform3f(loc->mLoc, a1, a2, a3);
-}
-
-void WebGLContext::Uniform4f(WebGLUniformLocation* loc, GLfloat a1, GLfloat a2,
-                             GLfloat a3, GLfloat a4) {
-  const FuncScope funcScope(*this, "uniform4f");
-  if (!ValidateUniformSetter(loc, 4, webgl::AttribBaseType::Float)) return;
-
-  gl->fUniform4f(loc->mLoc, a1, a2, a3, a4);
-}
-
-////////////////////////////////////////
-// Array
-
-static bool ValidateArrOffsetAndCount(WebGLContext* webgl, size_t elemsAvail,
-                                      GLuint elemOffset,
-                                      GLuint elemCountOverride,
-                                      size_t* const out_elemCount) {
-  if (webgl->IsContextLost()) return false;
-
-  if (elemOffset > elemsAvail) {
-    webgl->ErrorInvalidValue("Bad offset into list.");
-    return false;
-  }
-  elemsAvail -= elemOffset;
-
-  if (elemCountOverride) {
-    if (elemCountOverride > elemsAvail) {
-      webgl->ErrorInvalidValue("Bad count override for sub-list.");
-      return false;
-    }
-    elemsAvail = elemCountOverride;
-  }
-
-  *out_elemCount = elemsAvail;
-  return true;
-}
-
-void WebGLContext::UniformNiv(const char* funcName, uint8_t N,
-                              WebGLUniformLocation* loc, const Int32Arr& arr,
-                              GLuint elemOffset, GLuint elemCountOverride) {
-  const FuncScope funcScope(*this, funcName);
-
-  size_t elemCount;
-  if (!ValidateArrOffsetAndCount(this, arr.elemCount, elemOffset,
-                                 elemCountOverride, &elemCount)) {
-    return;
-  }
-  const auto elemBytes = arr.elemBytes + elemOffset;
-
-  uint32_t numElementsToUpload;
-  if (!ValidateUniformArraySetter(loc, N, webgl::AttribBaseType::Int, elemCount,
-                                  &numElementsToUpload)) {
-    return;
-  }
-
-  bool error;
-  const ValidateIfSampler samplerValidator(this, loc, numElementsToUpload,
-                                           elemBytes, &error);
-  if (error) return;
-
-  static const decltype(&gl::GLContext::fUniform1iv) kFuncList[] = {
-      &gl::GLContext::fUniform1iv, &gl::GLContext::fUniform2iv,
-      &gl::GLContext::fUniform3iv, &gl::GLContext::fUniform4iv};
-  const auto func = kFuncList[N - 1];
-
-  (gl->*func)(loc->mLoc, numElementsToUpload, elemBytes);
-}
-
-void WebGLContext::UniformNuiv(const char* funcName, uint8_t N,
-                               WebGLUniformLocation* loc, const Uint32Arr& arr,
-                               GLuint elemOffset, GLuint elemCountOverride) {
-  const FuncScope funcScope(*this, funcName);
-
-  size_t elemCount;
-  if (!ValidateArrOffsetAndCount(this, arr.elemCount, elemOffset,
-                                 elemCountOverride, &elemCount)) {
-    return;
-  }
-  const auto elemBytes = arr.elemBytes + elemOffset;
-
-  uint32_t numElementsToUpload;
-  if (!ValidateUniformArraySetter(loc, N, webgl::AttribBaseType::UInt,
-                                  elemCount, &numElementsToUpload)) {
-    return;
-  }
-  MOZ_ASSERT(!loc->mInfo->mSamplerTexList, "Should not be a sampler.");
-
-  static const decltype(&gl::GLContext::fUniform1uiv) kFuncList[] = {
-      &gl::GLContext::fUniform1uiv, &gl::GLContext::fUniform2uiv,
-      &gl::GLContext::fUniform3uiv, &gl::GLContext::fUniform4uiv};
-  const auto func = kFuncList[N - 1];
-
-  (gl->*func)(loc->mLoc, numElementsToUpload, elemBytes);
-}
-
-void WebGLContext::UniformNfv(const char* funcName, uint8_t N,
-                              WebGLUniformLocation* loc, const Float32Arr& arr,
-                              GLuint elemOffset, GLuint elemCountOverride) {
-  const FuncScope funcScope(*this, funcName);
-
-  size_t elemCount;
-  if (!ValidateArrOffsetAndCount(this, arr.elemCount, elemOffset,
-                                 elemCountOverride, &elemCount)) {
-    return;
-  }
-  const auto elemBytes = arr.elemBytes + elemOffset;
-
-  uint32_t numElementsToUpload;
-  if (!ValidateUniformArraySetter(loc, N, webgl::AttribBaseType::Float,
-                                  elemCount, &numElementsToUpload)) {
-    return;
-  }
-  MOZ_ASSERT(!loc->mInfo->mSamplerTexList, "Should not be a sampler.");
-
-  static const decltype(&gl::GLContext::fUniform1fv) kFuncList[] = {
-      &gl::GLContext::fUniform1fv, &gl::GLContext::fUniform2fv,
-      &gl::GLContext::fUniform3fv, &gl::GLContext::fUniform4fv};
-  const auto func = kFuncList[N - 1];
-
-  (gl->*func)(loc->mLoc, numElementsToUpload, elemBytes);
-}
-
 static inline void MatrixAxBToRowMajor(const uint8_t width,
                                        const uint8_t height,
                                        const float* __restrict srcColMajor,
@@ -2028,121 +1274,126 @@ static inline void MatrixAxBToRowMajor(const uint8_t width,
   }
 }
 
-void WebGLContext::UniformMatrixAxBfv(const char* funcName, uint8_t A,
-                                      uint8_t B, WebGLUniformLocation* loc,
-                                      const bool transpose,
-                                      const Float32Arr& arr, GLuint elemOffset,
-                                      GLuint elemCountOverride) {
-  const FuncScope funcScope(*this, funcName);
+void WebGLContext::UniformData(const uint32_t loc, const bool transpose,
+                               const Range<const uint8_t>& data) const {
+  const FuncScope funcScope(*this, "uniform setter");
+  const auto& link = mActiveProgramLinkInfo;
+  if (!link) return;
 
-  size_t elemCount;
-  if (!ValidateArrOffsetAndCount(this, arr.elemCount, elemOffset,
-                                 elemCountOverride, &elemCount)) {
+  const auto locInfo = MaybeFind(link->locationMap, loc);
+  if (!locInfo) return;
+
+  const auto& validationInfo = locInfo->info;
+  const auto& activeInfo = validationInfo.info;
+  const auto& channels = validationInfo.channelsPerElem;
+  const auto& pfn = validationInfo.pfn;
+
+  // -
+
+  const auto lengthInType = data.length() / sizeof(float);
+  if (!lengthInType || lengthInType % channels != 0) {
+    GenerateError(LOCAL_GL_INVALID_VALUE,
+                  "(uniform %s) `values` length (%u) must be a positive "
+                  "integer multiple of "
+                  "size of %s.",
+                  activeInfo.name.c_str(), lengthInType,
+                  EnumString(activeInfo.elemType).c_str());
     return;
   }
-  const auto elemBytes = arr.elemBytes + elemOffset;
-
-  uint32_t numMatsToUpload;
-  if (!ValidateUniformMatrixArraySetter(loc, A, B, webgl::AttribBaseType::Float,
-                                        elemCount, transpose,
-                                        &numMatsToUpload)) {
+  const auto elemCount = lengthInType / channels;
+  if (elemCount > 1 && !validationInfo.isArray) {
+    GenerateError(
+        LOCAL_GL_INVALID_OPERATION,
+        "(uniform %s) `values` length (%u) must exactle match size of %s.",
+        activeInfo.name.c_str(), lengthInType,
+        EnumString(activeInfo.elemType).c_str());
     return;
   }
-  MOZ_ASSERT(!loc->mInfo->mSamplerTexList, "Should not be a sampler.");
 
-  ////
+  // -
 
-  bool uploadTranspose = transpose;
-  const float* uploadBytes = elemBytes;
-
-  UniqueBuffer temp;
-  if (!transpose && gl->WorkAroundDriverBugs() && gl->IsANGLE() &&
-      gl->IsAtLeast(gl::ContextProfile::OpenGLES, 300)) {
-    // ANGLE is really slow at non-GL-transposed matrices.
-    const size_t kElemsPerMat = A * B;
-
-    temp = malloc(numMatsToUpload * kElemsPerMat * sizeof(float));
-    if (!temp) {
-      ErrorOutOfMemory("Failed to alloc temporary buffer for transposition.");
-      return;
+  const auto& samplerInfo = locInfo->samplerInfo;
+  if (samplerInfo) {
+    const auto idata = reinterpret_cast<const uint32_t*>(data.begin().get());
+    const auto maxTexUnits = GLMaxTextureUnits();
+    for (const auto& val : Range<const uint32_t>(idata, elemCount)) {
+      if (val >= maxTexUnits) {
+        ErrorInvalidValue(
+            "This uniform location is a sampler, but %d"
+            " is not a valid texture unit.",
+            val);
+        return;
+      }
     }
-
-    auto srcItr = (const float*)elemBytes;
-    auto dstItr = (float*)temp.get();
-    const auto srcEnd = srcItr + numMatsToUpload * kElemsPerMat;
-
-    while (srcItr != srcEnd) {
-      MatrixAxBToRowMajor(A, B, srcItr, dstItr);
-      srcItr += kElemsPerMat;
-      dstItr += kElemsPerMat;
-    }
-
-    uploadBytes = (const float*)temp.get();
-    uploadTranspose = true;
   }
 
-  ////
+  // -
 
-  static const decltype(&gl::GLContext::fUniformMatrix2fv) kFuncList[] = {
-      &gl::GLContext::fUniformMatrix2fv,   &gl::GLContext::fUniformMatrix2x3fv,
-      &gl::GLContext::fUniformMatrix2x4fv,
+  // This is a little galaxy-brain, sorry!
+  const auto ptr = static_cast<const void*>(data.begin().get());
+  (*pfn)(*gl, static_cast<GLint>(loc), elemCount, transpose, ptr);
 
-      &gl::GLContext::fUniformMatrix3x2fv, &gl::GLContext::fUniformMatrix3fv,
-      &gl::GLContext::fUniformMatrix3x4fv,
+  // -
 
-      &gl::GLContext::fUniformMatrix4x2fv, &gl::GLContext::fUniformMatrix4x3fv,
-      &gl::GLContext::fUniformMatrix4fv};
-  const auto func = kFuncList[3 * (A - 2) + (B - 2)];
+  if (samplerInfo) {
+    auto& texUnits = samplerInfo->texUnits;
 
-  (gl->*func)(loc->mLoc, numMatsToUpload, uploadTranspose, uploadBytes);
+    const auto srcBegin = reinterpret_cast<const uint32_t*>(data.begin().get());
+    auto destIndex = locInfo->indexIntoUniform;
+    for (const auto& val : Range<const uint32_t>(srcBegin, elemCount)) {
+      if (destIndex >= texUnits.size()) break;
+      texUnits[destIndex] = val;
+      destIndex += 1;
+    }
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 void WebGLContext::UseProgram(WebGLProgram* prog) {
-  const FuncScope funcScope(*this, "useProgram");
+  FuncScope funcScope(*this, "useProgram");
   if (IsContextLost()) return;
+  funcScope.mBindFailureGuard = true;
 
   if (!prog) {
     mCurrentProgram = nullptr;
     mActiveProgramLinkInfo = nullptr;
+    funcScope.mBindFailureGuard = false;
     return;
   }
 
   if (!ValidateObject("prog", *prog)) return;
 
-  if (prog->UseProgram()) {
-    mCurrentProgram = prog;
-    mActiveProgramLinkInfo = mCurrentProgram->LinkInfo();
-  }
+  if (!prog->UseProgram()) return;
+
+  mCurrentProgram = prog;
+  mActiveProgramLinkInfo = mCurrentProgram->LinkInfo();
+
+  funcScope.mBindFailureGuard = false;
 }
 
-void WebGLContext::ValidateProgram(const WebGLProgram& prog) {
+bool WebGLContext::ValidateProgram(const WebGLProgram& prog) const {
   const FuncScope funcScope(*this, "validateProgram");
-  if (IsContextLost()) return;
+  if (IsContextLost()) return false;
 
-  if (!ValidateObject("prog", prog)) return;
-
-  prog.ValidateProgram();
+  return prog.ValidateProgram();
 }
 
-already_AddRefed<WebGLFramebuffer> WebGLContext::CreateFramebuffer() {
+RefPtr<WebGLFramebuffer> WebGLContext::CreateFramebuffer() {
   const FuncScope funcScope(*this, "createFramebuffer");
   if (IsContextLost()) return nullptr;
 
   GLuint fbo = 0;
   gl->fGenFramebuffers(1, &fbo);
 
-  RefPtr<WebGLFramebuffer> globj = new WebGLFramebuffer(this, fbo);
-  return globj.forget();
+  return new WebGLFramebuffer(this, fbo);
 }
 
-already_AddRefed<WebGLRenderbuffer> WebGLContext::CreateRenderbuffer() {
+RefPtr<WebGLRenderbuffer> WebGLContext::CreateRenderbuffer() {
   const FuncScope funcScope(*this, "createRenderbuffer");
   if (IsContextLost()) return nullptr;
 
-  RefPtr<WebGLRenderbuffer> globj = new WebGLRenderbuffer(this);
-  return globj.forget();
+  return new WebGLRenderbuffer(this);
 }
 
 void WebGLContext::Viewport(GLint x, GLint y, GLsizei width, GLsizei height) {
@@ -2154,8 +1405,9 @@ void WebGLContext::Viewport(GLint x, GLint y, GLsizei width, GLsizei height) {
     return;
   }
 
-  width = std::min(width, (GLsizei)mGLMaxViewportDims[0]);
-  height = std::min(height, (GLsizei)mGLMaxViewportDims[1]);
+  const auto& limits = Limits();
+  width = std::min(width, static_cast<GLsizei>(limits.maxViewportDims[0]));
+  height = std::min(height, static_cast<GLsizei>(limits.maxViewportDims[1]));
 
   gl->fViewport(x, y, width, height);
 
@@ -2174,33 +1426,10 @@ void WebGLContext::CompileShader(WebGLShader& shader) {
   shader.CompileShader();
 }
 
-JS::Value WebGLContext::GetShaderParameter(const WebGLShader& shader,
-                                           GLenum pname) {
-  const FuncScope funcScope(*this, "getShaderParameter");
-  if (IsContextLost()) return JS::NullValue();
-
-  if (!ValidateObjectAllowDeleted("shader", shader)) return JS::NullValue();
-
-  return shader.GetShaderParameter(pname);
-}
-
-void WebGLContext::GetShaderInfoLog(const WebGLShader& shader,
-                                    nsAString& retval) {
-  retval.SetIsVoid(true);
-  const FuncScope funcScope(*this, "getShaderInfoLog");
-
-  if (IsContextLost()) return;
-
-  if (!ValidateObject("shader", shader)) return;
-
-  shader.GetShaderInfoLog(&retval);
-}
-
-already_AddRefed<WebGLShaderPrecisionFormat>
-WebGLContext::GetShaderPrecisionFormat(GLenum shadertype,
-                                       GLenum precisiontype) {
+Maybe<webgl::ShaderPrecisionFormat> WebGLContext::GetShaderPrecisionFormat(
+    GLenum shadertype, GLenum precisiontype) const {
   const FuncScope funcScope(*this, "getShaderPrecisionFormat");
-  if (IsContextLost()) return nullptr;
+  if (IsContextLost()) return Nothing();
 
   switch (shadertype) {
     case LOCAL_GL_FRAGMENT_SHADER:
@@ -2208,7 +1437,7 @@ WebGLContext::GetShaderPrecisionFormat(GLenum shadertype,
       break;
     default:
       ErrorInvalidEnumInfo("shadertype", shadertype);
-      return nullptr;
+      return Nothing();
   }
 
   switch (precisiontype) {
@@ -2221,7 +1450,7 @@ WebGLContext::GetShaderPrecisionFormat(GLenum shadertype,
       break;
     default:
       ErrorInvalidEnumInfo("precisiontype", precisiontype);
-      return nullptr;
+      return Nothing();
   }
 
   GLint range[2], precision;
@@ -2236,56 +1465,15 @@ WebGLContext::GetShaderPrecisionFormat(GLenum shadertype,
     gl->fGetShaderPrecisionFormat(shadertype, precisiontype, range, &precision);
   }
 
-  RefPtr<WebGLShaderPrecisionFormat> retShaderPrecisionFormat =
-      new WebGLShaderPrecisionFormat(this, range[0], range[1], precision);
-  return retShaderPrecisionFormat.forget();
+  return Some(webgl::ShaderPrecisionFormat{range[0], range[1], precision});
 }
 
-void WebGLContext::GetShaderSource(const WebGLShader& shader,
-                                   nsAString& retval) {
-  retval.SetIsVoid(true);
-  const FuncScope funcScope(*this, "getShaderSource");
-
-  if (IsContextLost()) return;
-
-  if (!ValidateObject("shader", shader)) return;
-
-  shader.GetShaderSource(&retval);
-}
-
-void WebGLContext::ShaderSource(WebGLShader& shader, const nsAString& source) {
+void WebGLContext::ShaderSource(WebGLShader& shader,
+                                const std::string& source) const {
   const FuncScope funcScope(*this, "shaderSource");
   if (IsContextLost()) return;
 
-  if (!ValidateObject("shader", shader)) return;
-
   shader.ShaderSource(source);
-}
-
-void WebGLContext::LoseContext() {
-  const FuncScope funcScope(*this, "loseContext");
-  if (IsContextLost()) return ErrorInvalidOperation("Context is already lost.");
-
-  ForceLoseContext(true);
-}
-
-void WebGLContext::RestoreContext() {
-  const FuncScope funcScope(*this, "restoreContext");
-  if (!IsContextLost()) return ErrorInvalidOperation("Context is not lost.");
-
-  if (!mLastLossWasSimulated) {
-    return ErrorInvalidOperation(
-        "Context loss was not simulated."
-        " Cannot simulate restore.");
-  }
-  // If we're currently lost, and the last loss was simulated, then
-  // we're currently only simulated-lost, allowing us to call
-  // restoreContext().
-
-  if (!mAllowContextRestore)
-    return ErrorInvalidOperation("Context cannot be restored.");
-
-  ForceRestoreContext();
 }
 
 void WebGLContext::BlendColor(GLfloat r, GLfloat g, GLfloat b, GLfloat a) {

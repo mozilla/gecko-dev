@@ -351,12 +351,13 @@ def load_wpt_tests(xul_tester, requested_paths, excluded_paths, update_manifest=
     from wptrunner import products, testloader, wptcommandline, wpttest, wptlogging
 
     manifest_root = tempfile.gettempdir()
-    path_split = os.path.dirname(xul_tester.js_bin).split(os.path.sep)
-    if path_split[-2:] == ["dist", "bin"]:
-        maybe_root = os.path.join(*path_split[:-2])
-        if os.path.exists(os.path.join(maybe_root, "_tests")):
-            # Assume this is a gecko objdir.
-            manifest_root = maybe_root
+    (maybe_dist, maybe_bin) = os.path.split(os.path.dirname(xul_tester.js_bin))
+    if maybe_bin == "bin":
+        (maybe_root, maybe_dist) = os.path.split(maybe_dist)
+        if maybe_dist == "dist":
+            if os.path.exists(os.path.join(maybe_root, "_tests")):
+                # Assume this is a gecko objdir.
+                manifest_root = maybe_root
 
     logger = wptlogging.setup({}, {})
 
@@ -379,7 +380,7 @@ def load_wpt_tests(xul_tester, requested_paths, excluded_paths, update_manifest=
                 yield item_type, path, tests
 
     run_info_extras = products.load_product(kwargs["config"], "firefox")[-1](**kwargs)
-    run_info = wpttest.get_run_info(kwargs["test_paths"]["/"]["metadata_path"],
+    run_info = wpttest.get_run_info(kwargs["run_info"],
                                     "firefox",
                                     debug=xul_tester.test("isDebugBuild"),
                                     extras=run_info_extras)

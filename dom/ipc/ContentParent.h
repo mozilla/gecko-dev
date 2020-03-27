@@ -545,13 +545,14 @@ class ContentParent final
       ContentParent* aIgnoreThisCP = nullptr);
 
   static void BroadcastBlobURLUnregistration(
-      const nsACString& aURI, ContentParent* aIgnoreThisCP = nullptr);
+      const nsACString& aURI, nsIPrincipal* aPrincipal,
+      ContentParent* aIgnoreThisCP = nullptr);
 
   mozilla::ipc::IPCResult RecvStoreAndBroadcastBlobURLRegistration(
       const nsCString& aURI, const IPCBlob& aBlob, const Principal& aPrincipal);
 
   mozilla::ipc::IPCResult RecvUnstoreAndBroadcastBlobURLUnregistration(
-      const nsCString& aURI);
+      const nsCString& aURI, const Principal& aPrincipal);
 
   mozilla::ipc::IPCResult RecvGetA11yContentId(uint32_t* aContentId);
 
@@ -619,6 +620,11 @@ class ContentParent final
   // document loads.
   nsresult AboutToLoadHttpFtpDocumentForChild(nsIChannel* aChannel);
 
+  // Send Blob URLs for this aPrincipal if they are not already known to this
+  // content process and mark the process to receive any new/revoked Blob URLs
+  // to this content process forever.
+  void TransmitBlobURLsForPrincipal(nsIPrincipal* aPrincipal);
+
   nsresult TransmitPermissionsForPrincipal(nsIPrincipal* aPrincipal);
 
   void OnCompositorDeviceReset() override;
@@ -650,7 +656,8 @@ class ContentParent final
 
   mozilla::ipc::IPCResult RecvWindowClose(BrowsingContext* aContext,
                                           bool aTrustedCaller);
-  mozilla::ipc::IPCResult RecvWindowFocus(BrowsingContext* aContext);
+  mozilla::ipc::IPCResult RecvWindowFocus(BrowsingContext* aContext,
+                                          CallerType aCallerType);
   mozilla::ipc::IPCResult RecvWindowBlur(BrowsingContext* aContext);
   mozilla::ipc::IPCResult RecvWindowPostMessage(
       BrowsingContext* aContext, const ClonedMessageData& aMessage,
@@ -750,6 +757,7 @@ class ContentParent final
 
   // Generate a minidump for the child process and one for the main process
   void GeneratePairedMinidump(const char* aReason);
+  void HandleOrphanedMinidump(nsString* aDumpId);
 
   virtual ~ContentParent();
 
@@ -1062,7 +1070,11 @@ class ContentParent final
   mozilla::ipc::IPCResult RecvPrivateDocShellsExist(const bool& aExist);
 
   mozilla::ipc::IPCResult RecvCommitBrowsingContextTransaction(
-      BrowsingContext* aContext, BrowsingContext::Transaction&& aTransaction,
+      BrowsingContext* aContext,
+      BrowsingContext::BaseTransaction&& aTransaction, uint64_t aEpoch);
+
+  mozilla::ipc::IPCResult RecvCommitWindowContextTransaction(
+      WindowContext* aContext, WindowContext::BaseTransaction&& aTransaction,
       uint64_t aEpoch);
 
   mozilla::ipc::IPCResult RecvFirstIdle();
@@ -1220,9 +1232,13 @@ class ContentParent final
       GetModulesTrustResolver&& aResolver);
 
   mozilla::ipc::IPCResult RecvSessionStorageData(
-      BrowsingContext* aTop, const nsACString& aOriginAttrs,
+      uint64_t aTopContextId, const nsACString& aOriginAttrs,
       const nsACString& aOriginKey, const nsTArray<KeyValuePair>& aDefaultData,
       const nsTArray<KeyValuePair>& aSessionData);
+
+  mozilla::ipc::IPCResult RecvReportServiceWorkerShutdownProgress(
+      uint32_t aShutdownStateId,
+      ServiceWorkerShutdownState::Progress aProgress);
 
   // Notify the ContentChild to enable the input event prioritization when
   // initializing.
@@ -1406,6 +1422,15 @@ class ContentParent final
   nsTHashtable<nsCStringHashKey> mActivePermissionKeys;
 
   nsTArray<nsCString> mBlobURLs;
+
+  // This is intended to be a memory and time efficient means of determining
+  // whether an origin has ever existed in a process so that Blob URL broadcast
+  // doesn't need to transmit every Blob URL to every content process. False
+  // positives are acceptable because receiving a Blob URL does not grant access
+  // to its contents, and the act of creating/revoking a Blob is currently
+  // viewed as an acceptable side-channel leak. In the future bug 1491018 will
+  // moot the need for this structure.
+  nsTArray<uint64_t> mLoadedOriginHashes;
 
   UniquePtr<mozilla::ipc::CrashReporterHost> mCrashReporter;
 

@@ -9,8 +9,9 @@
 #ifndef mozilla_Pair_h
 #define mozilla_Pair_h
 
+#include <utility>
+
 #include "mozilla/Attributes.h"
-#include "mozilla/Move.h"
 #include "mozilla/TypeTraits.h"
 
 namespace mozilla {
@@ -26,13 +27,13 @@ enum StorageType { AsBase, AsMember };
 // The extra conditions on storage for B are necessary so that PairHelper won't
 // ambiguously inherit from either A or B, such that one or the other base class
 // would be inaccessible.
-template <typename A, typename B,
-          detail::StorageType =
-              IsEmpty<A>::value ? detail::AsBase : detail::AsMember,
-          detail::StorageType = IsEmpty<B>::value && !IsBaseOf<A, B>::value &&
-                                        !IsBaseOf<B, A>::value
-                                    ? detail::AsBase
-                                    : detail::AsMember>
+template <
+    typename A, typename B,
+    detail::StorageType = IsEmpty<A>::value ? detail::AsBase : detail::AsMember,
+    detail::StorageType = IsEmpty<B>::value && !std::is_base_of<A, B>::value &&
+                                  !std::is_base_of<B, A>::value
+                              ? detail::AsBase
+                              : detail::AsMember>
 struct PairHelper;
 
 template <typename A, typename B>
@@ -48,8 +49,8 @@ struct PairHelper<A, B, AsMember, AsMember> {
   const B& second() const { return mSecondB; }
 
   void swap(PairHelper& aOther) {
-    Swap(mFirstA, aOther.mFirstA);
-    Swap(mSecondB, aOther.mSecondB);
+    std::swap(mFirstA, aOther.mFirstA);
+    std::swap(mSecondB, aOther.mSecondB);
   }
 
  private:
@@ -70,8 +71,8 @@ struct PairHelper<A, B, AsMember, AsBase> : private B {
   const B& second() const { return *this; }
 
   void swap(PairHelper& aOther) {
-    Swap(mFirstA, aOther.mFirstA);
-    Swap(static_cast<B&>(*this), static_cast<B&>(aOther));
+    std::swap(mFirstA, aOther.mFirstA);
+    std::swap(static_cast<B&>(*this), static_cast<B&>(aOther));
   }
 
  private:
@@ -91,8 +92,8 @@ struct PairHelper<A, B, AsBase, AsMember> : private A {
   const B& second() const { return mSecondB; }
 
   void swap(PairHelper& aOther) {
-    Swap(static_cast<A&>(*this), static_cast<A&>(aOther));
-    Swap(mSecondB, aOther.mSecondB);
+    std::swap(static_cast<A&>(*this), static_cast<A&>(aOther));
+    std::swap(mSecondB, aOther.mSecondB);
   }
 
  private:
@@ -112,8 +113,8 @@ struct PairHelper<A, B, AsBase, AsBase> : private A, private B {
   const B& second() const { return static_cast<B&>(*this); }
 
   void swap(PairHelper& aOther) {
-    Swap(static_cast<A&>(*this), static_cast<A&>(aOther));
-    Swap(static_cast<B&>(*this), static_cast<B&>(aOther));
+    std::swap(static_cast<A&>(*this), static_cast<A&>(aOther));
+    std::swap(static_cast<B&>(*this), static_cast<B&>(aOther));
   }
 };
 
@@ -166,11 +167,6 @@ struct Pair : private detail::PairHelper<A, B> {
   void swap(Pair& aOther) { Base::swap(aOther); }
 };
 
-template <typename A, class B>
-void Swap(Pair<A, B>& aX, Pair<A, B>& aY) {
-  aX.swap(aY);
-}
-
 /**
  * MakePair allows you to construct a Pair instance using type inference. A call
  * like this:
@@ -189,5 +185,14 @@ MakePair(A&& aA, B&& aB) {
 }
 
 }  // namespace mozilla
+
+namespace std {
+
+template <typename A, class B>
+void swap(mozilla::Pair<A, B>& aX, mozilla::Pair<A, B>& aY) {
+  aX.swap(aY);
+}
+
+}  // namespace std
 
 #endif /* mozilla_Pair_h */

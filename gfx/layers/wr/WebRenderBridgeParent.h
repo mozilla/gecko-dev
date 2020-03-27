@@ -105,6 +105,7 @@ class WebRenderBridgeParent final
 
   void UpdateQualitySettings();
   void UpdateDebugFlags();
+  void UpdateMultithreading();
 
   mozilla::ipc::IPCResult RecvEnsureConnected(
       TextureFactoryIdentifier* aTextureFactoryIdentifier,
@@ -316,6 +317,8 @@ class WebRenderBridgeParent final
    * be rejected.
    */
   RefPtr<wr::WebRenderAPI::GetCollectedFramesPromise> GetCollectedFrames();
+
+  void DisableNativeCompositor();
 
  private:
   class ScheduleSharedSurfaceRelease;

@@ -142,7 +142,7 @@ class HTMLInputElement final : public TextControlElement,
   virtual int32_t TabIndexDefault() override;
   using nsGenericHTMLElement::Focus;
   virtual void Blur(ErrorResult& aError) override;
-  virtual void Focus(const FocusOptions& aOptions,
+  virtual void Focus(const FocusOptions& aOptions, const CallerType aCallerType,
                      ErrorResult& aError) override;
 
   // nsINode
@@ -205,11 +205,6 @@ class HTMLInputElement final : public TextControlElement,
   virtual void DoneCreatingElement() override;
 
   virtual EventStates IntrinsicState() const override;
-
-  // Element
- private:
-  virtual void AddStates(EventStates aStates) override;
-  virtual void RemoveStates(EventStates aStates) override;
 
  public:
   // TextControlElement
@@ -307,23 +302,6 @@ class HTMLInputElement final : public TextControlElement,
   static bool ValueAsDateEnabled(JSContext* cx, JSObject* obj);
 
   void MaybeLoadImage();
-
-  void SetSelectionCached() {
-    MOZ_ASSERT(mType == NS_FORM_INPUT_NUMBER);
-    mSelectionCached = true;
-  }
-  bool IsSelectionCached() const {
-    MOZ_ASSERT(mType == NS_FORM_INPUT_NUMBER);
-    return mSelectionCached;
-  }
-  void ClearSelectionCached() {
-    MOZ_ASSERT(mType == NS_FORM_INPUT_NUMBER);
-    mSelectionCached = false;
-  }
-  TextControlState::SelectionProperties& GetSelectionProperties() {
-    MOZ_ASSERT(mType == NS_FORM_INPUT_NUMBER);
-    return mSelectionProperties;
-  }
 
   bool HasPatternAttribute() const { return mHasPatternAttribute; }
 
@@ -554,6 +532,13 @@ class HTMLInputElement final : public TextControlElement,
 
   int32_t MaxLength() const { return GetIntAttr(nsGkAtoms::maxlength, -1); }
 
+  int32_t UsedMaxLength() const final {
+    if (mType == NS_FORM_INPUT_NUMBER) {
+      return -1;
+    }
+    return MaxLength();
+  }
+
   void SetMaxLength(int32_t aValue, ErrorResult& aRv) {
     int32_t minLength = MinLength();
     if (aValue < 0 || (minLength >= 0 && aValue < minLength)) {
@@ -661,9 +646,11 @@ class HTMLInputElement final : public TextControlElement,
                 ErrorResult& aRv);
   void GetValue(nsAString& aValue, CallerType aCallerType);
 
-  Nullable<Date> GetValueAsDate(ErrorResult& aRv);
+  void GetValueAsDate(JSContext* aCx, JS::MutableHandle<JSObject*> aObj,
+                      ErrorResult& aRv);
 
-  void SetValueAsDate(const Nullable<Date>& aDate, ErrorResult& aRv);
+  void SetValueAsDate(JSContext* aCx, JS::Handle<JSObject*> aObj,
+                      ErrorResult& aRv);
 
   double ValueAsNumber() const {
     return DoesValueAsNumberApply() ? GetValueAsDecimal().toDouble()
@@ -808,8 +795,6 @@ class HTMLInputElement final : public TextControlElement,
   double GetMinimumAsDouble() { return GetMinimum().toDouble(); }
   double GetMaximumAsDouble() { return GetMaximum().toDouble(); }
 
-  HTMLInputElement* GetOwnerNumberControl();
-
   void StartNumberControlSpinnerSpin();
   enum SpinnerStopState { eAllowDispatchingEvents, eDisallowDispatchingEvents };
   void StopNumberControlSpinnerSpin(
@@ -835,9 +820,10 @@ class HTMLInputElement final : public TextControlElement,
   bool MozIsTextField(bool aExcludePassword);
 
   /**
-   * GetEditor() is for webidl bindings.
+   * GetEditor() and HasEditor() for webidl bindings.
    */
   MOZ_CAN_RUN_SCRIPT nsIEditor* GetEditor();
+  bool HasEditor();
 
   bool IsInputEventTarget() const { return IsSingleLineTextControl(false); }
 
@@ -1394,6 +1380,13 @@ class HTMLInputElement final : public TextControlElement,
   static bool IsDateTimeInputType(uint8_t aType);
 
   /**
+   * Returns whether getting `.value` as a string should sanitize the value.
+   *
+   * See SanitizeValue.
+   */
+  bool SanitizesOnValueGetter() const;
+
+  /**
    * Returns true if the element should prevent dispatching another DOMActivate.
    * This is used in situations where the anonymous subtree should already have
    * sent a DOMActivate and prevents firing more than once.
@@ -1496,13 +1489,6 @@ class HTMLInputElement final : public TextControlElement,
   nsAutoPtr<DateTimeValue> mDateTimeInputBoxValue;
 
   /**
-   * The selection properties cache for number controls.  This is needed because
-   * the number controls don't recycle their text field, so the normal cache in
-   * TextControlState cannot do its job.
-   */
-  TextControlState::SelectionProperties mSelectionProperties;
-
-  /**
    * The triggering principal for the src attribute.
    */
   nsCOMPtr<nsIPrincipal> mSrcTriggeringPrincipal;
@@ -1510,7 +1496,7 @@ class HTMLInputElement final : public TextControlElement,
   /*
    * InputType object created based on input type.
    */
-  UniquePtr<InputType, DoNotDelete> mInputType;
+  UniquePtr<::InputType, DoNotDelete> mInputType;
 
   // Memory allocated for mInputType, reused when type changes.
   char mInputTypeMem[INPUT_TYPE_SIZE];
@@ -1571,7 +1557,6 @@ class HTMLInputElement final : public TextControlElement,
   bool mNumberControlSpinnerIsSpinning : 1;
   bool mNumberControlSpinnerSpinsUp : 1;
   bool mPickerRunning : 1;
-  bool mSelectionCached : 1;
   bool mIsPreviewEnabled : 1;
   bool mHasBeenTypePassword : 1;
   bool mHasPatternAttribute : 1;

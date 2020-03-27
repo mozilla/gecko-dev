@@ -239,7 +239,8 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
         # not using control server with bt
         pass
 
-    def parse_browsertime_json(self, raw_btresults, page_cycles, cold, browser_cycles):
+    def parse_browsertime_json(self, raw_btresults, page_cycles, cold,
+                               browser_cycles, measure):
         """
         Receive a json blob that contains the results direct from the browsertime tool. Parse
         out the values that we wish to use and add those to our result object. That object will
@@ -425,8 +426,13 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
             else:
                 # extracting values from browserScripts and statistics
                 for bt, raptor in conversion:
+                    if measure is not None and bt not in measure:
+                        continue
                     # chrome we just measure fcp and loadtime; skip fnbpaint and dcf
                     if self.app and 'chrome' in self.app.lower() and bt in ('fnbpaint', 'dcf'):
+                        continue
+                    # fennec doesn't support 'fcp'
+                    if self.app and 'fennec' in self.app.lower() and bt == 'fcp':
                         continue
 
                     # chrome currently uses different names (and locations) for some metrics
@@ -540,7 +546,8 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
             for new_result in self.parse_browsertime_json(raw_btresults,
                                                           test['page_cycles'],
                                                           test['cold'],
-                                                          test['browser_cycles']):
+                                                          test['browser_cycles'],
+                                                          test.get('measure')):
 
                 def _new_pageload_result(new_result):
                     # add additional info not from the browsertime json

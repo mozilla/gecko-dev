@@ -73,28 +73,48 @@ class Device final : public DOMEventTargetHelper {
   GPU_DECL_JS_WRAP(Device)
 
   explicit Device(Adapter* const aParent, RawId aId);
+
   static JSObject* CreateExternalArrayBuffer(JSContext* aCx, size_t aSize,
                                              ipc::Shmem& aShmem);
   RefPtr<MappingPromise> MapBufferForReadAsync(RawId aId, size_t aSize,
                                                ErrorResult& aRv);
   void UnmapBuffer(RawId aId, UniquePtr<ipc::Shmem> aShmem);
-  void DestroyBuffer(RawId aId);
-
- private:
-  Device() = delete;
-  virtual ~Device();
 
   const RefPtr<WebGPUChild> mBridge;
+
+ private:
+  ~Device();
+  void Cleanup();
+
   const RawId mId;
+  bool mValid = true;
   nsString mLabel;
+  const RefPtr<Queue> mQueue;
 
  public:
   void GetLabel(nsAString& aValue) const;
   void SetLabel(const nsAString& aLabel);
 
+  Queue* DefaultQueue() const;
+
   already_AddRefed<Buffer> CreateBuffer(const dom::GPUBufferDescriptor& aDesc);
   void CreateBufferMapped(JSContext* aCx, const dom::GPUBufferDescriptor& aDesc,
                           nsTArray<JS::Value>& aSequence, ErrorResult& aRv);
+
+  already_AddRefed<CommandEncoder> CreateCommandEncoder(
+      const dom::GPUCommandEncoderDescriptor& aDesc);
+
+  already_AddRefed<BindGroupLayout> CreateBindGroupLayout(
+      const dom::GPUBindGroupLayoutDescriptor& aDesc);
+  already_AddRefed<PipelineLayout> CreatePipelineLayout(
+      const dom::GPUPipelineLayoutDescriptor& aDesc);
+  already_AddRefed<BindGroup> CreateBindGroup(
+      const dom::GPUBindGroupDescriptor& aDesc);
+
+  already_AddRefed<ShaderModule> CreateShaderModule(
+      const dom::GPUShaderModuleDescriptor& aDesc);
+  already_AddRefed<ComputePipeline> CreateComputePipeline(
+      const dom::GPUComputePipelineDescriptor& aDesc);
 
   // IMPL_EVENT_HANDLER(uncapturederror)
 };

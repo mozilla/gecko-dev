@@ -144,6 +144,10 @@ class nsIGlobalObject : public nsISupports,
 
   virtual mozilla::Maybe<mozilla::dom::ClientInfo> GetClientInfo() const;
 
+  virtual mozilla::Maybe<nsID> GetAgentClusterId() const;
+
+  virtual bool IsSharedMemoryAllowed() const { return false; }
+
   virtual mozilla::Maybe<mozilla::dom::ServiceWorkerDescriptor> GetController()
       const;
 

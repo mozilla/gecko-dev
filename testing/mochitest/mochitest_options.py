@@ -836,7 +836,7 @@ class MochitestArguments(ArgumentContainer):
             options.extraPrefs.append("browser.tabs.documentchannel=true")
 
         options.leakThresholds = {
-            "default": 5712,
+            "default": options.defaultLeakThreshold,
             "tab": options.defaultLeakThreshold,
             "forkserver": options.defaultLeakThreshold,
             # GMP rarely gets a log, but when it does, it leaks a little.

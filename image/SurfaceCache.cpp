@@ -10,32 +10,33 @@
 #include "SurfaceCache.h"
 
 #include <algorithm>
+#include <utility>
+
+#include "ISurfaceProvider.h"
+#include "Image.h"
+#include "LookupResult.h"
+#include "ShutdownTracker.h"
+#include "gfx2DGlue.h"
+#include "gfxPlatform.h"
+#include "imgFrame.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Likely.h"
-#include "mozilla/Move.h"
 #include "mozilla/Pair.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_image.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Tuple.h"
-#include "nsIMemoryReporter.h"
-#include "gfx2DGlue.h"
-#include "gfxPlatform.h"
-#include "imgFrame.h"
-#include "Image.h"
-#include "ISurfaceProvider.h"
-#include "LookupResult.h"
 #include "nsExpirationTracker.h"
 #include "nsHashKeys.h"
+#include "nsIMemoryReporter.h"
 #include "nsRefPtrHashtable.h"
 #include "nsSize.h"
 #include "nsTArray.h"
 #include "prsystem.h"
-#include "ShutdownTracker.h"
 
 using std::max;
 using std::min;
@@ -196,13 +197,15 @@ class CachedSurface {
             SurfaceMemoryCounter counter(aCachedSurface->GetSurfaceKey(),
                                          aCachedSurface->IsLocked(),
                                          aCachedSurface->CannotSubstitute(),
-                                         aIsFactor2, aMetadata.finished);
+                                         aIsFactor2, aMetadata.mFinished);
 
-            counter.Values().SetDecodedHeap(aMetadata.heap);
-            counter.Values().SetDecodedNonHeap(aMetadata.nonHeap);
-            counter.Values().SetExternalHandles(aMetadata.handles);
-            counter.Values().SetFrameIndex(aMetadata.index);
-            counter.Values().SetExternalId(aMetadata.externalId);
+            counter.Values().SetDecodedHeap(aMetadata.mHeapBytes);
+            counter.Values().SetDecodedNonHeap(aMetadata.mNonHeapBytes);
+            counter.Values().SetDecodedUnknown(aMetadata.mUnknownBytes);
+            counter.Values().SetExternalHandles(aMetadata.mExternalHandles);
+            counter.Values().SetFrameIndex(aMetadata.mIndex);
+            counter.Values().SetExternalId(aMetadata.mExternalId);
+            counter.Values().SetSurfaceTypes(aMetadata.mTypes);
 
             mCounters.AppendElement(counter);
           });

@@ -8,12 +8,12 @@ import sys
 
 import requests
 
-from ..tasks import generate_tasks
+from taskgraph.parameters import Parameters
+from taskgraph.util.taskcluster import find_task_id, get_artifact, get_session
+from taskgraph.util.taskgraph import find_existing_tasks
+
 from ..cli import BaseTryParser
 from ..push import push_to_try
-
-from taskgraph.util.taskgraph import find_existing_tasks_from_previous_kinds
-from taskgraph.util.taskcluster import get_artifact
 
 TASK_TYPES = {
     "linux-signing": [
@@ -29,6 +29,13 @@ TASK_TYPES = {
         "partials-signing-linux64-shippable/opt",
     ],
     "mac-signing": ["build-signing-macosx64-shippable/opt"],
+    "beetmover-candidates": ["beetmover-repackage-linux64-shippable/opt"],
+    "bouncer-submit": ["release-bouncer-sub-firefox"],
+    "balrog-submit": [
+        "release-balrog-submit-toplevel-firefox",
+        "balrog-linux64-shippable/opt",
+    ],
+    "tree": ["release-early-tagging-firefox", "release-version-bump-firefox"],
 }
 
 RELEASE_TO_BRANCH = {
@@ -51,7 +58,7 @@ class ScriptworkerParser(BaseTryParser):
         [
             ["--release-type"],
             {
-                "choices": RELEASE_TO_BRANCH.keys(),
+                "choices": ["nightly"] + RELEASE_TO_BRANCH.keys(),
                 "default": "beta",
                 "help": "Release type to run",
             },
@@ -59,6 +66,7 @@ class ScriptworkerParser(BaseTryParser):
     ]
 
     common_groups = ["push"]
+    task_configs = ["worker-overrides"]
 
 
 def get_releases(branch):
@@ -74,19 +82,17 @@ def get_releases(branch):
     return response.json()
 
 
-def find_existing_tasks(graph_id):
-
-    full_task_graph = generate_tasks(full=True)
-    return find_existing_tasks_from_previous_kinds(
-        full_task_graph, [graph_id], rebuild_kinds=[]
-    )
-
-
-def get_ship_phase_graph(release):
+def get_release_graph(release):
     for phase in release["phases"]:
         if phase["name"] in ("ship_firefox",):
             return phase["actionTaskId"]
     raise Exception("No ship phase.")
+
+
+def get_nightly_graph():
+    return find_task_id(
+        "gecko.v2.mozilla-central.latest.taskgraph.decision-nightly-desktop"
+    )
 
 
 def print_available_task_types():
@@ -95,6 +101,13 @@ def print_available_task_types():
         print(" " * 4 + "{}:".format(task_type))
         for task in tasks:
             print(" " * 8 + "- {}".format(task))
+
+
+def get_hg_file(parameters, path):
+    session = get_session()
+    response = session.get(parameters.file_url(path))
+    response.raise_for_status()
+    return response.content
 
 
 def run(
@@ -109,13 +122,27 @@ def run(
         print_available_task_types()
         sys.exit(0)
 
-    release = get_releases(RELEASE_TO_BRANCH[release_type])[-1]
-    ship_graph = get_ship_phase_graph(release)
-    existing_tasks = find_existing_tasks(ship_graph)
+    if release_type == "nightly":
+        previous_graph = get_nightly_graph()
+    else:
+        release = get_releases(RELEASE_TO_BRANCH[release_type])[-1]
+        previous_graph = get_release_graph(release)
+    existing_tasks = find_existing_tasks([previous_graph])
 
-    files_to_change = {}
+    previous_parameters = Parameters(
+        strict=False, **get_artifact(previous_graph, "public/parameters.yml")
+    )
 
-    ship_parameters = get_artifact(ship_graph, "public/parameters.yml")
+    # Copy L10n configuration from the commit the release we are using was
+    # based on. This *should* ensure that the chunking of L10n tasks is the
+    # same between graphs.
+    files_to_change = {
+        path: get_hg_file(previous_parameters, path)
+        for path in [
+            "browser/locales/l10n-changesets.json",
+            "browser/locales/shipped-locales",
+        ]
+    }
 
     try_config = try_config or {}
     task_config = {
@@ -135,7 +162,7 @@ def run(
         "release_type",
         "version",
     ):
-        task_config["parameters"][param] = ship_parameters[param]
+        task_config["parameters"][param] = previous_parameters[param]
 
     try_config["tasks"] = TASK_TYPES[task_type]
     for label in try_config["tasks"]:

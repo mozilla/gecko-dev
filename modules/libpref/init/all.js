@@ -19,11 +19,7 @@
 // improves readability, particular for conditional blocks that exceed a single
 // screen.
 
-#if MOZ_UPDATE_CHANNEL == release || MOZ_UPDATE_CHANNEL == esr
-  pref("security.tls.version.min", 1);
-#else
-  pref("security.tls.version.min", 3);
-#endif
+pref("security.tls.version.min", 3);
 pref("security.tls.version.max", 4);
 pref("security.tls.version.enable-deprecated", false);
 pref("security.tls.version.fallback-limit", 4);
@@ -204,10 +200,10 @@ pref("security.remote_settings.intermediates.downloads_per_poll", 100);
 pref("security.remote_settings.intermediates.parallel_downloads", 8);
 pref("security.remote_settings.intermediates.signer", "onecrl.content-signature.mozilla.org");
 
-#if defined(RELEASE_OR_BETA) || defined(MOZ_WIDGET_ANDROID)
-  pref("security.remote_settings.crlite_filters.enabled", false);
-#else
+#if defined(EARLY_BETA_OR_EARLIER) && !defined(MOZ_WIDGET_ANDROID)
   pref("security.remote_settings.crlite_filters.enabled", true);
+#else
+  pref("security.remote_settings.crlite_filters.enabled", false);
 #endif
 pref("security.remote_settings.crlite_filters.bucket", "security-state");
 pref("security.remote_settings.crlite_filters.collection", "cert-revocations");
@@ -498,7 +494,7 @@ pref("media.videocontrols.picture-in-picture.video-toggle.always-show", false);
   pref("media.peerconnection.ice.no_host", false);
   pref("media.peerconnection.ice.default_address_only", false);
   // See Bug 1581947 for Android hostname obfuscation
-  #if defined(MOZ_WIDGET_ANDROID) || defined(RELEASE_OR_BETA)
+  #if defined(MOZ_WIDGET_ANDROID)
     pref("media.peerconnection.ice.obfuscate_host_addresses", false);
   #else
     pref("media.peerconnection.ice.obfuscate_host_addresses", true);
@@ -573,14 +569,7 @@ pref("media.video-queue.send-to-compositor-size", 9999);
 // "verbose", "normal" and "" (log disabled).
 pref("media.cubeb.logging_level", "");
 
-// Cubeb sandbox (remoting) control
-#if defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
-  pref("media.audioipc.pool_size", 1);
-  // 64 * 4 kB stack per pool thread.
-  pref("media.audioipc.stack_size", 262144);
-#endif
-
-#if defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
+#if defined(XP_MACOSX)
   pref("media.cubeb.backend", "audiounit-rust");
 #endif
 
@@ -688,6 +677,7 @@ pref("gfx.webrender.debug.new-scene-indicator", false);
 pref("gfx.webrender.debug.show-overdraw", false);
 pref("gfx.webrender.debug.slow-frame-indicator", false);
 pref("gfx.webrender.debug.picture-caching", false);
+pref("gfx.webrender.debug.tile-cache-logging", false);
 pref("gfx.webrender.debug.primitives", false);
 pref("gfx.webrender.debug.small-screen", false);
 pref("gfx.webrender.debug.obscure-images", false);
@@ -811,13 +801,13 @@ pref("toolkit.telemetry.debugSlowSql", false);
 // Whether to use the unified telemetry behavior, requires a restart.
 pref("toolkit.telemetry.unified", true);
 // AsyncShutdown delay before crashing in case of shutdown freeze
-#ifndef MOZ_ASAN
+#if !defined(MOZ_ASAN) && !defined(MOZ_TSAN)
   pref("toolkit.asyncshutdown.crash_timeout", 60000); // 1 minute
 #else
-  // MOZ_ASAN builds can be considerably slower. Extending the grace period
+  // ASan and TSan builds can be considerably slower. Extend the grace period
   // of both asyncshutdown and the terminator.
   pref("toolkit.asyncshutdown.crash_timeout", 180000); // 3 minutes
-#endif // MOZ_ASAN
+#endif // !defined(MOZ_ASAN) && !defined(MOZ_TSAN)
 // Extra logging for AsyncShutdown barriers and phases
 pref("toolkit.asyncshutdown.log", false);
 
@@ -856,6 +846,9 @@ pref("devtools.recordreplay.cloudServer", "wss://dispatch.webreplay.io:8000");
 // profiler.firefox.com, or in tests. This isn't exposed directly to the user.
 pref("devtools.performance.recording.ui-base-url", "https://profiler.firefox.com");
 
+// The preset to use for the recording settings. If set to "custom" then the pref
+// values below will be used.
+pref("devtools.performance.recording.preset", "web-developer");
 // Profiler buffer size. It is the maximum number of 8-bytes entries in the
 // profiler's buffer. 10000000 is ~80mb.
 pref("devtools.performance.recording.entries", 10000000);
@@ -1005,7 +998,7 @@ pref("dom.storage.enabled", true);
 // See bug 1517090 for enabling this on Nightly.
 // See bug 1534736 for changing it to EARLY_BETA_OR_EARLIER.
 // See bug 1539835 for enabling this unconditionally.
-// See bug 1608449 for disabling this in 73.
+// See bug 1617997 for disabling this in 74.
 pref("dom.storage.next_gen", false);
 pref("dom.storage.shadow_writes", true);
 pref("dom.storage.snapshot_prefill", 16384);
@@ -1204,7 +1197,7 @@ pref("javascript.options.mem.gc_max_empty_chunk_count", 30);
 
 pref("javascript.options.showInConsole", false);
 
-#if defined(NIGHTLY_BUILD)
+#ifdef EARLY_BETA_OR_EARLIER
 pref("javascript.options.shared_memory", true);
 #else
 pref("javascript.options.shared_memory", false);
@@ -1953,8 +1946,6 @@ pref("network.http.spdy.bug1563538", true);
 pref("network.http.spdy.bug1563695", true);
 pref("network.http.spdy.bug1556491", true);
 
-pref("permissions.default.image",           1); // 1-Accept, 2-Deny, 3-dontAcceptForeign
-
 pref("network.proxy.type",                  5);
 pref("network.proxy.ftp",                   "");
 pref("network.proxy.ftp_port",              0);
@@ -1965,7 +1956,6 @@ pref("network.proxy.ssl_port",              0);
 pref("network.proxy.socks",                 "");
 pref("network.proxy.socks_port",            0);
 pref("network.proxy.socks_version",         5);
-pref("network.proxy.socks_remote_dns",      false);
 pref("network.proxy.proxy_over_tls",        true);
 pref("network.proxy.no_proxies_on",         "");
 // Set true to allow resolving proxy for localhost
@@ -2274,16 +2264,6 @@ pref("security.directory",              "");
 // security-sensitive dialogs should delay button enabling. In milliseconds.
 pref("security.dialog_enable_delay", 1000);
 pref("security.notification_enable_delay", 500);
-
-#if defined(DEBUG)
-  // For testing purposes only: Flipping this pref to true allows
-  // to skip the assertion that every about page ships with a CSP.
-  pref("csp.skip_about_page_has_csp_assert", false);
-  // For testing purposes only: Flipping this pref to true allows
-  // to skip the allowlist for about: pages and do not ship with a
-  // CSP and NS_ASSERT right away.
-  pref("csp.skip_about_page_csp_allowlist_and_assert", false);
-#endif
 
 #ifdef EARLY_BETA_OR_EARLIER
   // Disallow web documents loaded with the SystemPrincipal
@@ -2700,7 +2680,7 @@ pref("dom.ipc.plugins.reportCrashURL", true);
 pref("dom.ipc.plugins.forcedirect.enabled", true);
 
 // Enable multi by default.
-#if !defined(MOZ_ASAN)
+#if !defined(MOZ_ASAN) && !defined(MOZ_TSAN)
   pref("dom.ipc.processCount", 8);
 #else
   pref("dom.ipc.processCount", 4);
@@ -2778,7 +2758,7 @@ pref("browser.tabs.remote.separatePrivilegedMozillaWebContentProcess", false);
 
 // The domains we will isolate into the Mozilla Content Process. Comma-separated
 // full domains: any subdomains of the domains listed will also be allowed.
-pref("browser.tabs.remote.separatedMozillaDomains", "addons.cdn.mozilla.net,addons.mozilla.org,accounts.firefox.com");
+pref("browser.tabs.remote.separatedMozillaDomains", "addons.mozilla.org,accounts.firefox.com");
 
 // Default font types and sizes by locale
 pref("font.default.ar", "sans-serif");
@@ -4041,12 +4021,33 @@ pref("network.psl.onUpdate_notify", false);
   pref("widget.content.gtk-theme-override", "");
 #endif
 #ifdef MOZ_WAYLAND
-  pref("widget.wayland_dmabuf_backend.enabled", false);
   pref("widget.wayland_vsync.enabled", false);
 #endif
 
-// Timeout for outbound network geolocation provider XHR
-pref("geo.wifi.xhr.timeout", 60000);
+// All the Geolocation preferences are here.
+//
+#ifndef EARLY_BETA_OR_EARLIER
+  pref("geo.provider.network.url", "https://www.googleapis.com/geolocation/v1/geolocate?key=%GOOGLE_LOCATION_SERVICE_API_KEY%");
+#else
+  // Use MLS on Nightly and early Beta.
+  pref("geo.provider.network.url", "https://location.services.mozilla.com/v1/geolocate?key=%MOZILLA_API_KEY%");
+#endif
+
+// Timeout for outbound network geolocation provider.
+pref("geo.provider.network.timeout", 60000);
+
+#ifdef XP_MACOSX
+  pref("geo.provider.use_corelocation", true);
+#endif
+
+// Set to false if things are really broken.
+#ifdef XP_WIN
+  pref("geo.provider.ms-windows-location", true);
+#endif
+
+#if defined(MOZ_WIDGET_GTK) && defined(MOZ_GPSD)
+  pref("geo.provider.use_gpsd", true);
+#endif
 
 // Enable/Disable the device storage API for content
 pref("device.storage.enabled", false);
@@ -4062,7 +4063,7 @@ pref("xpinstall.whitelist.required", true);
 pref("xpinstall.signatures.required", false);
 pref("extensions.langpacks.signatures.required", false);
 pref("extensions.webExtensionsMinPlatformVersion", "42.0a1");
-pref("extensions.legacy.enabled", true);
+pref("extensions.experiments.enabled", true);
 
 // Other webextensions prefs
 pref("extensions.webextensions.keepStorageOnUninstall", false);
@@ -4974,3 +4975,6 @@ pref("dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled", false
 #else
 pref("dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled", false, locked);
 #endif
+
+// Whether to start the private browsing mode at application startup
+pref("browser.privatebrowsing.autostart", false);

@@ -608,7 +608,7 @@ TokenStreamSpecific<Unit, AnyCharsAccess>::TokenStreamSpecific(
 bool TokenStreamAnyChars::checkOptions() {
   // Constrain starting columns to half of the range of a signed 32-bit value,
   // to avoid overflow.
-  if (options().column >= mozilla::MaxValue<int32_t>::value / 2 + 1) {
+  if (options().column >= std::numeric_limits<int32_t>::max() / 2 + 1) {
     reportErrorNoOffset(JSMSG_BAD_COLUMN_NUMBER);
     return false;
   }
@@ -630,8 +630,8 @@ void TokenStreamAnyChars::reportErrorNoOffsetVA(unsigned errorNumber,
   ErrorMetadata metadata;
   computeErrorMetadataNoOffset(&metadata);
 
-  ReportCompileError(cx, std::move(metadata), nullptr, JSREPORT_ERROR,
-                     errorNumber, args);
+  ReportCompileErrorLatin1(cx, std::move(metadata), nullptr, JSREPORT_ERROR,
+                           errorNumber, args);
 }
 
 // Use the fastest available getc.
@@ -1047,8 +1047,8 @@ MOZ_COLD void TokenStreamChars<Utf8Unit, AnyCharsAccess>::internalEncodingError(
       break;
     }
 
-    ReportCompileError(anyChars.cx, std::move(err), std::move(notes),
-                       JSREPORT_ERROR, errorNumber, &args);
+    ReportCompileErrorLatin1(anyChars.cx, std::move(err), std::move(notes),
+                             JSREPORT_ERROR, errorNumber, &args);
   } while (false);
 
   va_end(args);
@@ -2412,6 +2412,18 @@ template <typename Unit, class AnyCharsAccess>
 MOZ_MUST_USE MOZ_ALWAYS_INLINE bool
 TokenStreamSpecific<Unit, AnyCharsAccess>::matchInteger(
     IsIntegerUnit isIntegerUnit, int32_t* nextUnit) {
+  int32_t unit = getCodeUnit();
+  if (!isIntegerUnit(unit)) {
+    *nextUnit = unit;
+    return true;
+  }
+  return matchIntegerAfterFirstDigit(isIntegerUnit, nextUnit);
+}
+
+template <typename Unit, class AnyCharsAccess>
+MOZ_MUST_USE MOZ_ALWAYS_INLINE bool
+TokenStreamSpecific<Unit, AnyCharsAccess>::matchIntegerAfterFirstDigit(
+    IsIntegerUnit isIntegerUnit, int32_t* nextUnit) {
   int32_t unit;
   while (true) {
     unit = getCodeUnit();
@@ -2446,7 +2458,7 @@ MOZ_MUST_USE bool TokenStreamSpecific<Unit, AnyCharsAccess>::decimalNumber(
 
   // Consume integral component digits.
   if (IsAsciiDigit(unit)) {
-    if (!matchInteger(IsAsciiDigit, &unit)) {
+    if (!matchIntegerAfterFirstDigit(IsAsciiDigit, &unit)) {
       return false;
     }
   }
@@ -2492,7 +2504,7 @@ MOZ_MUST_USE bool TokenStreamSpecific<Unit, AnyCharsAccess>::decimalNumber(
       }
 
       // Consume exponential digits.
-      if (!matchInteger(IsAsciiDigit, &unit)) {
+      if (!matchIntegerAfterFirstDigit(IsAsciiDigit, &unit)) {
         return false;
       }
     }
@@ -2893,7 +2905,7 @@ MOZ_MUST_USE bool TokenStreamSpecific<Unit, AnyCharsAccess>::getTokenInternal(
         // one past the '0x'
         numStart = this->sourceUnits.addressOfNextCodeUnit() - 1;
 
-        if (!matchInteger(IsAsciiHexDigit, &unit)) {
+        if (!matchIntegerAfterFirstDigit(IsAsciiHexDigit, &unit)) {
           return badToken();
         }
       } else if (unit == 'b' || unit == 'B') {
@@ -2909,7 +2921,7 @@ MOZ_MUST_USE bool TokenStreamSpecific<Unit, AnyCharsAccess>::getTokenInternal(
         // one past the '0b'
         numStart = this->sourceUnits.addressOfNextCodeUnit() - 1;
 
-        if (!matchInteger(IsAsciiBinary, &unit)) {
+        if (!matchIntegerAfterFirstDigit(IsAsciiBinary, &unit)) {
           return badToken();
         }
       } else if (unit == 'o' || unit == 'O') {
@@ -2925,7 +2937,7 @@ MOZ_MUST_USE bool TokenStreamSpecific<Unit, AnyCharsAccess>::getTokenInternal(
         // one past the '0o'
         numStart = this->sourceUnits.addressOfNextCodeUnit() - 1;
 
-        if (!matchInteger(IsAsciiOctal, &unit)) {
+        if (!matchIntegerAfterFirstDigit(IsAsciiOctal, &unit)) {
           return badToken();
         }
       } else if (IsAsciiDigit(unit)) {
@@ -3030,13 +3042,13 @@ MOZ_MUST_USE bool TokenStreamSpecific<Unit, AnyCharsAccess>::getTokenInternal(
     // smallest type possible to assist the C++ compiler.
     switch (AssertedCast<uint8_t>(CodeUnitValue(toUnit(unit)))) {
       case '.':
-        unit = getCodeUnit();
-        if (IsAsciiDigit(unit)) {
+        if (IsAsciiDigit(peekCodeUnit())) {
           return decimalNumber('.', start,
-                               this->sourceUnits.addressOfNextCodeUnit() - 2,
+                               this->sourceUnits.addressOfNextCodeUnit() - 1,
                                modifier, ttp);
         }
 
+        unit = getCodeUnit();
         if (unit == '.') {
           if (matchCodeUnit('.')) {
             simpleKind = TokenKind::TripleDot;
@@ -3134,7 +3146,23 @@ MOZ_MUST_USE bool TokenStreamSpecific<Unit, AnyCharsAccess>::getTokenInternal(
         break;
 
       case '?':
-        simpleKind = matchCodeUnit('?') ? TokenKind::Coalesce : TokenKind::Hook;
+        if (matchCodeUnit('.')) {
+          unit = getCodeUnit();
+          if (IsAsciiDigit(unit)) {
+            // if the code unit is followed by a number, for example it has the
+            // following form `<...> ?.5 <..> then it should be treated as a
+            // ternary rather than as an optional chain
+            simpleKind = TokenKind::Hook;
+            ungetCodeUnit(unit);
+            ungetCodeUnit('.');
+          } else {
+            ungetCodeUnit(unit);
+            simpleKind = TokenKind::OptionalChain;
+          }
+        } else {
+          simpleKind =
+              matchCodeUnit('?') ? TokenKind::Coalesce : TokenKind::Hook;
+        }
         break;
 
       case '!':

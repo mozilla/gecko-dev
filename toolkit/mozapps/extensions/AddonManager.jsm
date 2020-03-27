@@ -286,6 +286,7 @@ function webAPIForAddon(addon) {
  */
 function BrowserListener(aBrowser, aInstallingPrincipal, aInstall) {
   this.browser = aBrowser;
+  this.messageManager = this.browser.messageManager;
   this.principal = aInstallingPrincipal;
   this.install = aInstall;
 
@@ -327,7 +328,7 @@ BrowserListener.prototype = {
   },
 
   observe(subject, topic, data) {
-    if (subject != this.browser.messageManager) {
+    if (subject != this.messageManager) {
       return;
     }
 
@@ -3306,6 +3307,7 @@ var AddonManagerInternal = {
         hash: options.hash,
         telemetryInfo: {
           source: AddonManager.getInstallSourceFromHost(options.sourceHost),
+          sourceURL: options.sourceURL,
           method: "amWebAPI",
         },
       }).then(install => {
@@ -3331,7 +3333,13 @@ var AddonManagerInternal = {
         );
         install.addListener(listener);
 
-        this.installs.set(id, { install, target, listener, installPromise });
+        this.installs.set(id, {
+          install,
+          target,
+          listener,
+          installPromise,
+          messageManager: target.messageManager,
+        });
 
         let result = { id };
         this.copyProps(install, result);
@@ -3409,7 +3417,7 @@ var AddonManagerInternal = {
 
     clearInstallsFrom(mm) {
       for (let [id, info] of this.installs) {
-        if (info.target.messageManager == mm) {
+        if (info.messageManager == mm) {
           this.forgetInstall(id);
         }
       }
@@ -4751,10 +4759,10 @@ AMTelemetry = {
   },
 };
 
-this.AddonManager.init();
+AddonManager.init();
 
 // Setup the AMTelemetry once the AddonManager has been started.
-this.AddonManager.addManagerListener(AMTelemetry);
+AddonManager.addManagerListener(AMTelemetry);
 
 // load the timestamps module into AddonManagerInternal
 ChromeUtils.import(

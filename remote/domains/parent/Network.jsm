@@ -84,6 +84,60 @@ class Network extends Domain {
   }
 
   /**
+   * Deletes browser cookies with matching name and url or domain/path pair.
+   *
+   * @param {Object} options
+   * @param {string} name
+   *     Name of the cookies to remove.
+   * @param {string=} url
+   *     If specified, deletes all the cookies with the given name
+   *     where domain and path match provided URL.
+   * @param {string=} domain
+   *     If specified, deletes only cookies with the exact domain.
+   * @param {string=} path
+   *     If specified, deletes only cookies with the exact path.
+   */
+  async deleteCookies(options = {}) {
+    const { domain, name, path = "/", url } = options;
+
+    if (typeof name != "string") {
+      throw new TypeError("name: string value expected");
+    }
+
+    if (!url && !domain) {
+      throw new TypeError(
+        "At least one of the url and domain needs to be specified"
+      );
+    }
+
+    // Retrieve host. Check domain first because it has precedence.
+    let hostname = domain || "";
+    if (hostname.length == 0) {
+      const cookieURL = new URL(url);
+      if (!["http:", "https:"].includes(cookieURL.protocol)) {
+        throw new TypeError("An http or https url must be specified");
+      }
+      hostname = cookieURL.hostname;
+    }
+
+    const cookiesFound = Services.cookies.getCookiesWithOriginAttributes(
+      JSON.stringify({}),
+      hostname
+    );
+
+    for (const cookie of cookiesFound) {
+      if (cookie.name == name && cookie.path.startsWith(path)) {
+        Services.cookies.remove(
+          cookie.host,
+          cookie.name,
+          cookie.path,
+          cookie.originAttributes
+        );
+      }
+    }
+  }
+
+  /**
    * Returns all browser cookies for the current URL.
    *
    * @param {Object} options
@@ -94,7 +148,6 @@ class Network extends Domain {
    * @return {Array<Cookie>}
    *     Array of cookie objects.
    */
-  // https://cs.chromium.org/chromium/src/content/browser/devtools/protocol/network_handler.cc?type=cs&q=+ComputeCookieURLs&sq=package:chromium&g=0&l=1115
   async getCookies(options = {}) {
     // Bug 1605354 - Add support for options.urls
     const urls = [this.session.target.url];
@@ -111,12 +164,12 @@ class Network extends Domain {
       );
 
       for (const cookie of cookiesFound) {
-        // Reject secure cookies for non-secure protocols
+        // Ignore secure cookies for non-secure protocols
         if (cookie.isSecure && !secureProtocol) {
           continue;
         }
 
-        // Reject cookies which do not match the given path
+        // Ignore cookies which do not match the given path
         if (!url.pathname.startsWith(cookie.path)) {
           continue;
         }
@@ -148,6 +201,26 @@ class Network extends Domain {
     }
 
     return { cookies };
+  }
+
+  /**
+   * Toggles ignoring cache for each request. If true, cache will not be used.
+   *
+   * @param {Object} options
+   * @param {boolean} options.cacheDisabled
+   *     Cache disabled state.
+   */
+  async setCacheDisabled(options = {}) {
+    const { cacheDisabled = false } = options;
+
+    const { INHIBIT_CACHING, LOAD_BYPASS_CACHE, LOAD_NORMAL } = Ci.nsIRequest;
+
+    let loadFlags = LOAD_NORMAL;
+    if (cacheDisabled) {
+      loadFlags = LOAD_BYPASS_CACHE | INHIBIT_CACHING;
+    }
+
+    await this.executeInChild("_updateLoadFlags", loadFlags);
   }
 
   /**
@@ -199,7 +272,7 @@ class Network extends Domain {
       initiator: undefined,
       redirectResponse: undefined,
       type: LOAD_CAUSE_STRINGS[causeType] || "unknown",
-      frameId: topFrame.outerWindowID.toString(),
+      frameId: topFrame.browsingContext.id.toString(),
       hasUserGesture: undefined,
     });
   }

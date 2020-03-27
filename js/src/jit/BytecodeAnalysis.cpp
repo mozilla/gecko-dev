@@ -52,7 +52,7 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
     uint32_t offset = it.bytecodeToOffset(script_);
 
     JitSpew(JitSpew_BaselineOp, "Analyzing op @ %u (end=%u): %s",
-            unsigned(offset), unsigned(script_->length()), CodeName[op]);
+            unsigned(offset), unsigned(script_->length()), CodeName(op));
 
     // If this bytecode info has not yet been initialized, it's not reachable.
     if (!infos_[offset].initialized) {
@@ -79,7 +79,7 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
     MOZ_ASSERT(stackDepth <= BytecodeInfo::MAX_STACK_DEPTH);
 
     switch (op) {
-      case JSOP_TABLESWITCH: {
+      case JSOp::TableSwitch: {
         uint32_t defaultOffset = it.getTableSwitchDefaultOffset(script_);
         int32_t low = it.getTableSwitchLow();
         int32_t high = it.getTableSwitchHigh();
@@ -99,9 +99,9 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
         break;
       }
 
-      case JSOP_TRY: {
+      case JSOp::Try: {
         for (const JSTryNote& tn : script_->trynotes()) {
-          if (tn.start == offset + JSOP_TRY_LENGTH &&
+          if (tn.start == offset + JSOpLength_Try &&
               (tn.kind == JSTRY_CATCH || tn.kind == JSTRY_FINALLY)) {
             uint32_t catchOrFinallyOffset = tn.start + tn.length;
             infos_[catchOrFinallyOffset].init(stackDepth);
@@ -109,11 +109,11 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
           }
         }
 
-        // Get the pc of the last instruction in the try block. It's a JSOP_GOTO
-        // to jump over the catch/finally blocks.
+        // Get the pc of the last instruction in the try block. It's a
+        // JSOp::Goto to jump over the catch/finally blocks.
         BytecodeLocation endOfTryLoc(script_,
                                      it.toRawBytecode() + it.codeOffset());
-        MOZ_ASSERT(endOfTryLoc.is(JSOP_GOTO));
+        MOZ_ASSERT(endOfTryLoc.is(JSOp::Goto));
 
         BytecodeLocation afterTryLoc(
             script_, endOfTryLoc.toRawBytecode() + endOfTryLoc.jumpOffset());
@@ -139,7 +139,7 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
         break;
       }
 
-      case JSOP_LOOPHEAD:
+      case JSOp::LoopHead:
         for (size_t i = 0; i < catchFinallyRanges.length(); i++) {
           if (catchFinallyRanges[i].contains(offset)) {
             infos_[offset].loopHeadInCatchOrFinally = true;
@@ -155,14 +155,14 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
     if (jump) {
       // Case instructions do not push the lvalue back when branching.
       uint32_t newStackDepth = stackDepth;
-      if (it.is(JSOP_CASE)) {
+      if (it.is(JSOp::Case)) {
         newStackDepth--;
       }
 
       uint32_t targetOffset = it.getJumpTargetOffset(script_);
 
-      // If this is a backedge, the target JSOP_LOOPHEAD must have been analyzed
-      // already.
+      // If this is a backedge, the target JSOp::LoopHead must have been
+      // analyzed already.
       MOZ_ASSERT_IF(targetOffset < offset, infos_[targetOffset].initialized);
 
       infos_[targetOffset].init(newStackDepth);
@@ -208,40 +208,40 @@ IonBytecodeInfo js::jit::AnalyzeBytecodeForIon(JSContext* cx,
   for (jsbytecode* pc = script->code(); pc < pcEnd; pc = GetNextPc(pc)) {
     JSOp op = JSOp(*pc);
     switch (op) {
-      case JSOP_SETARG:
+      case JSOp::SetArg:
         result.modifiesArguments = true;
         break;
 
-      case JSOP_GETNAME:
-      case JSOP_BINDNAME:
-      case JSOP_BINDVAR:
-      case JSOP_SETNAME:
-      case JSOP_STRICTSETNAME:
-      case JSOP_DELNAME:
-      case JSOP_GETALIASEDVAR:
-      case JSOP_SETALIASEDVAR:
-      case JSOP_LAMBDA:
-      case JSOP_LAMBDA_ARROW:
-      case JSOP_DEFFUN:
-      case JSOP_DEFVAR:
-      case JSOP_DEFLET:
-      case JSOP_DEFCONST:
-      case JSOP_PUSHLEXICALENV:
-      case JSOP_POPLEXICALENV:
-      case JSOP_IMPLICITTHIS:
+      case JSOp::GetName:
+      case JSOp::BindName:
+      case JSOp::BindVar:
+      case JSOp::SetName:
+      case JSOp::StrictSetName:
+      case JSOp::DelName:
+      case JSOp::GetAliasedVar:
+      case JSOp::SetAliasedVar:
+      case JSOp::Lambda:
+      case JSOp::LambdaArrow:
+      case JSOp::DefFun:
+      case JSOp::DefVar:
+      case JSOp::DefLet:
+      case JSOp::DefConst:
+      case JSOp::PushLexicalEnv:
+      case JSOp::PopLexicalEnv:
+      case JSOp::ImplicitThis:
         result.usesEnvironmentChain = true;
         break;
 
-      case JSOP_GETGNAME:
-      case JSOP_SETGNAME:
-      case JSOP_STRICTSETGNAME:
-      case JSOP_GIMPLICITTHIS:
+      case JSOp::GetGName:
+      case JSOp::SetGName:
+      case JSOp::StrictSetGName:
+      case JSOp::GImplicitThis:
         if (script->hasNonSyntacticScope()) {
           result.usesEnvironmentChain = true;
         }
         break;
 
-      case JSOP_FINALLY:
+      case JSOp::Finally:
         result.hasTryFinally = true;
         break;
 

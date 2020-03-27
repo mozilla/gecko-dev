@@ -18,8 +18,8 @@ import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.Setting
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.WithDisplay
 import org.mozilla.geckoview.test.util.Callbacks
 
-import android.support.test.filters.MediumTest
-import android.support.test.runner.AndroidJUnit4
+import androidx.test.filters.MediumTest
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.hamcrest.MatcherAssert
 import org.hamcrest.Matchers.*
 import org.json.JSONObject
@@ -1000,6 +1000,17 @@ class NavigationDelegateTest : BaseSessionTest() {
                 return null
             }
         })
+    }
+
+    @Test(expected = GeckoSessionTestRule.RejectedPromiseException::class)
+    fun onNewSession_rejectLocal() {
+        // Disable popup blocker.
+        sessionRule.setPrefsUntilTestEnd(mapOf("dom.disable_open_during_load" to false))
+
+        sessionRule.session.loadTestPath(NEW_SESSION_HTML_PATH)
+        sessionRule.session.waitForPageStop()
+
+        sessionRule.session.evaluateJS("window.open('file:///data/local/tmp', '_blank')")
     }
 
     @Test fun onNewSession_calledForTargetBlankLink() {

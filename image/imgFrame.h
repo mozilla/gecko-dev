@@ -7,13 +7,14 @@
 #ifndef mozilla_image_imgFrame_h
 #define mozilla_image_imgFrame_h
 
+#include <utility>
+
+#include "AnimationParams.h"
+#include "MainThreadUtils.h"
+#include "gfxDrawable.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Monitor.h"
-#include "mozilla/Move.h"
-#include "AnimationParams.h"
-#include "gfxDrawable.h"
-#include "MainThreadUtils.h"
 
 namespace mozilla {
 namespace image {
@@ -181,21 +182,12 @@ class imgFrame {
   void FinalizeSurface();
   already_AddRefed<SourceSurface> GetSourceSurface();
 
-  struct AddSizeOfCbData {
+  struct AddSizeOfCbData : public SourceSurface::SizeOfInfo {
     AddSizeOfCbData()
-        : heap(0),
-          nonHeap(0),
-          handles(0),
-          index(0),
-          externalId(0),
-          finished(false) {}
+        : SourceSurface::SizeOfInfo(), mIndex(0), mFinished(false) {}
 
-    size_t heap;
-    size_t nonHeap;
-    size_t handles;
-    size_t index;
-    uint64_t externalId;
-    bool finished;
+    size_t mIndex;
+    bool mFinished;
   };
 
   typedef std::function<void(AddSizeOfCbData& aMetadata)> AddSizeOfCb;

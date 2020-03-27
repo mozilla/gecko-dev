@@ -90,6 +90,9 @@ class LoginEntry {
   }
 }
 
+// Sync with LoginStorage.Delegate.UsedField in LoginStorage.java.
+const UsedField = { PASSWORD: 1 };
+
 const GeckoViewLoginStorage = {
   /**
    * Delegates login entry fetching for the given domain to the attached
@@ -112,11 +115,36 @@ const GeckoViewLoginStorage = {
     });
   },
 
+  /**
+   * Delegates login entry saving to the attached LoginStorage GeckoView delegate.
+   * Call this when a new login entry or a new password for an existing login
+   * entry has been submitted.
+   *
+   * @param aLogin The {LoginEntry} to be saved.
+   */
   onLoginSave(aLogin) {
     debug`onLoginSave ${aLogin}`;
 
     EventDispatcher.instance.sendRequest({
       type: "GeckoView:LoginStorage:Save",
+      login: aLogin,
+    });
+  },
+
+  /**
+   * Delegates login entry password usage to the attached LoginStorage GeckoView
+   * delegate.
+   * Call this when the password of an existing login entry, as returned by
+   * fetchLogins, has been used for autofill.
+   *
+   * @param aLogin The {LoginEntry} whose password was used.
+   */
+  onLoginPasswordUsed(aLogin) {
+    debug`onLoginUsed ${aLogin}`;
+
+    EventDispatcher.instance.sendRequest({
+      type: "GeckoView:LoginStorage:Used",
+      usedFields: UsedField.PASSWORD,
       login: aLogin,
     });
   },

@@ -175,7 +175,7 @@ void MacroAssemblerCompat::handleFailureWithHandlerTail(
   Br(x0);
 
   // If we found a finally block, this must be a baseline frame.
-  // Push two values expected by JSOP_RETSUB: BooleanValue(true)
+  // Push two values expected by JSOp::Retsub: BooleanValue(true)
   // and the exception.
   bind(&finally);
   ARMRegister exception = x1;
@@ -982,11 +982,16 @@ void MacroAssembler::branchValueIsNurseryCellImpl(Condition cond,
   MOZ_ASSERT(temp != ScratchReg &&
              temp != ScratchReg2);  // Both may be used internally.
 
-  Label done, checkAddress, checkObjectAddress;
+  Label done, checkAddress, checkObjectAddress, checkStringAddress;
   bool testNursery = (cond == Assembler::Equal);
   branchTestObject(Assembler::Equal, value, &checkObjectAddress);
-  branchTestString(Assembler::NotEqual, value, testNursery ? &done : label);
+  branchTestString(Assembler::Equal, value, &checkStringAddress);
+  branchTestBigInt(Assembler::NotEqual, value, testNursery ? &done : label);
 
+  unboxBigInt(value, temp);
+  jump(&checkAddress);
+
+  bind(&checkStringAddress);
   unboxString(value, temp);
   jump(&checkAddress);
 
@@ -1180,7 +1185,7 @@ void MacroAssembler::wasmTruncateFloat32ToInt32(FloatRegister input_,
 void MacroAssembler::wasmTruncateDoubleToUInt64(
     FloatRegister input_, Register64 output_, bool isSaturating,
     Label* oolEntry, Label* oolRejoin, FloatRegister tempDouble) {
-  MOZ_ASSERT(tempDouble == InvalidFloatReg);
+  MOZ_ASSERT(tempDouble.isInvalid());
 
   ARMRegister output(output_.reg, 64);
   ARMFPRegister input(input_, 64);
@@ -1196,7 +1201,7 @@ void MacroAssembler::wasmTruncateDoubleToUInt64(
 void MacroAssembler::wasmTruncateFloat32ToUInt64(
     FloatRegister input_, Register64 output_, bool isSaturating,
     Label* oolEntry, Label* oolRejoin, FloatRegister tempDouble) {
-  MOZ_ASSERT(tempDouble == InvalidFloatReg);
+  MOZ_ASSERT(tempDouble.isInvalid());
 
   ARMRegister output(output_.reg, 64);
   ARMFPRegister input(input_, 32);
@@ -1212,7 +1217,7 @@ void MacroAssembler::wasmTruncateFloat32ToUInt64(
 void MacroAssembler::wasmTruncateDoubleToInt64(
     FloatRegister input_, Register64 output_, bool isSaturating,
     Label* oolEntry, Label* oolRejoin, FloatRegister tempDouble) {
-  MOZ_ASSERT(tempDouble == InvalidFloatReg);
+  MOZ_ASSERT(tempDouble.isInvalid());
 
   ARMRegister output(output_.reg, 64);
   ARMFPRegister input(input_, 64);

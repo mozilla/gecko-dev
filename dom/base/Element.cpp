@@ -296,13 +296,26 @@ void Element::UpdateState(bool aNotify) {
 }  // namespace mozilla
 
 void nsIContent::UpdateEditableState(bool aNotify) {
-  nsIContent* parent = GetParent();
+  if (IsInNativeAnonymousSubtree()) {
+    // Don't propagate the editable flag into native anonymous subtrees.
+    if (IsRootOfNativeAnonymousSubtree()) {
+      return;
+    }
 
-  // Don't implicitly set the flag on the root of a native anonymous subtree.
-  // This needs to be set explicitly, see for example
-  // nsTextControlFrame::CreateRootNode().
-  SetEditableFlag(parent && parent->HasFlag(NODE_IS_EDITABLE) &&
-                  !IsRootOfNativeAnonymousSubtree());
+    // We allow setting the flag on NAC (explicitly, see
+    // nsTextControlFrame::CreateAnonymousContent for example), but not
+    // unsetting it.
+    //
+    // Otherwise, just the act of binding the NAC subtree into our non-anonymous
+    // parent would clear the flag, which is not good. As we shouldn't move NAC
+    // around, this is fine.
+    if (HasFlag(NODE_IS_EDITABLE)) {
+      return;
+    }
+  }
+
+  nsIContent* parent = GetParent();
+  SetEditableFlag(parent && parent->HasFlag(NODE_IS_EDITABLE));
 }
 
 namespace mozilla {
@@ -336,7 +349,8 @@ int32_t Element::TabIndex() {
   return TabIndexDefault();
 }
 
-void Element::Focus(const FocusOptions& aOptions, ErrorResult& aError) {
+void Element::Focus(const FocusOptions& aOptions, CallerType aCallerType,
+                    ErrorResult& aError) {
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
   // Also other browsers seem to have the hack to not re-focus (and flush) when
   // the element is already focused.
@@ -348,9 +362,13 @@ void Element::Focus(const FocusOptions& aOptions, ErrorResult& aError) {
     if (fm->CanSkipFocus(this)) {
       fm->NeedsFlushBeforeEventHandling(this);
     } else {
-      aError = fm->SetFocus(
-          this, nsIFocusManager::FLAG_BYELEMENTFOCUS |
-                    nsFocusManager::FocusOptionsToFocusManagerFlags(aOptions));
+      uint32_t fmFlags =
+          nsIFocusManager::FLAG_BYELEMENTFOCUS |
+          nsFocusManager::FocusOptionsToFocusManagerFlags(aOptions);
+      if (aCallerType == CallerType::NonSystem) {
+        fmFlags = nsIFocusManager::FLAG_NONSYSTEMCALLER | fmFlags;
+      }
+      aError = fm->SetFocus(this, fmFlags);
     }
   }
 }
@@ -450,7 +468,7 @@ void Element::UnlockStyleStates(EventStates aStates) {
   locks->mLocks &= ~aStates;
 
   if (locks->mLocks.IsEmpty()) {
-    DeleteProperty(nsGkAtoms::lockedStyleStates);
+    RemoveProperty(nsGkAtoms::lockedStyleStates);
     ClearHasLockedStyleStates();
     delete locks;
   } else {
@@ -464,7 +482,7 @@ void Element::UnlockStyleStates(EventStates aStates) {
 void Element::ClearStyleStateLocks() {
   StyleStateLocks locks = LockedStyleStates();
 
-  DeleteProperty(nsGkAtoms::lockedStyleStates);
+  RemoveProperty(nsGkAtoms::lockedStyleStates);
   ClearHasLockedStyleStates();
 
   NotifyStyleStateChange(locks.mLocks);
@@ -1730,14 +1748,14 @@ void Element::UnbindFromTree(bool aNullParent) {
   //
   // FIXME (Bug 522599): Need a test for this.
   if (MayHaveAnimations()) {
-    DeleteProperty(nsGkAtoms::transitionsOfBeforeProperty);
-    DeleteProperty(nsGkAtoms::transitionsOfAfterProperty);
-    DeleteProperty(nsGkAtoms::transitionsOfMarkerProperty);
-    DeleteProperty(nsGkAtoms::transitionsProperty);
-    DeleteProperty(nsGkAtoms::animationsOfBeforeProperty);
-    DeleteProperty(nsGkAtoms::animationsOfAfterProperty);
-    DeleteProperty(nsGkAtoms::animationsOfMarkerProperty);
-    DeleteProperty(nsGkAtoms::animationsProperty);
+    RemoveProperty(nsGkAtoms::transitionsOfBeforeProperty);
+    RemoveProperty(nsGkAtoms::transitionsOfAfterProperty);
+    RemoveProperty(nsGkAtoms::transitionsOfMarkerProperty);
+    RemoveProperty(nsGkAtoms::transitionsProperty);
+    RemoveProperty(nsGkAtoms::animationsOfBeforeProperty);
+    RemoveProperty(nsGkAtoms::animationsOfAfterProperty);
+    RemoveProperty(nsGkAtoms::animationsOfMarkerProperty);
+    RemoveProperty(nsGkAtoms::animationsProperty);
     if (document) {
       if (nsPresContext* presContext = document->GetPresContext()) {
         // We have to clear all pending restyle requests for the animations on
@@ -2170,15 +2188,15 @@ nsresult Element::SetAttr(int32_t aNamespaceID, nsAtom* aName, nsAtom* aPrefix,
     return OnAttrSetButNotChanged(aNamespaceID, aName, value, aNotify);
   }
 
-  if (aNotify) {
-    MutationObservers::NotifyAttributeWillChange(this, aNamespaceID, aName,
-                                                 modType);
-  }
-
   // Hold a script blocker while calling ParseAttribute since that can call
   // out to id-observers
   Document* document = GetComposedDoc();
   mozAutoDocUpdate updateBatch(document, aNotify);
+
+  if (aNotify) {
+    MutationObservers::NotifyAttributeWillChange(this, aNamespaceID, aName,
+                                                 modType);
+  }
 
   nsresult rv = BeforeSetAttr(aNamespaceID, aName, &value, aNotify);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2217,6 +2235,9 @@ nsresult Element::SetParsedAttr(int32_t aNamespaceID, nsAtom* aName,
     return OnAttrSetButNotChanged(aNamespaceID, aName, value, aNotify);
   }
 
+  Document* document = GetComposedDoc();
+  mozAutoDocUpdate updateBatch(document, aNotify);
+
   if (aNotify) {
     MutationObservers::NotifyAttributeWillChange(this, aNamespaceID, aName,
                                                  modType);
@@ -2227,8 +2248,6 @@ nsresult Element::SetParsedAttr(int32_t aNamespaceID, nsAtom* aName,
 
   PreIdMaybeChange(aNamespaceID, aName, &value);
 
-  Document* document = GetComposedDoc();
-  mozAutoDocUpdate updateBatch(document, aNotify);
   return SetAttrAndNotify(aNamespaceID, aName, aPrefix,
                           oldValueSet ? &oldValue : nullptr, aParsedValue,
                           nullptr, modType, hasListeners, aNotify,
@@ -2695,8 +2714,9 @@ void Element::List(FILE* out, int32_t aIndent, const nsCString& aPrefix) const {
   fprintf(out, " state=[%llx]",
           static_cast<unsigned long long>(State().GetInternalValue()));
   fprintf(out, " flags=[%08x]", static_cast<unsigned int>(GetFlags()));
-  if (IsCommonAncestorForRangeInSelection()) {
-    const LinkedList<nsRange>* ranges = GetExistingCommonAncestorRanges();
+  if (IsClosestCommonInclusiveAncestorForRangeInSelection()) {
+    const LinkedList<nsRange>* ranges =
+        GetExistingClosestCommonInclusiveAncestorRanges();
     int32_t count = 0;
     if (ranges) {
       // Can't use range-based iteration on a const LinkedList, unfortunately.
@@ -3604,9 +3624,8 @@ void Element::SetOrRemoveNullableStringAttr(nsAtom* aName,
 }
 
 Directionality Element::GetComputedDirectionality() const {
-  nsIFrame* frame = GetPrimaryFrame();
-  if (frame) {
-    return frame->StyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR
+  if (nsIFrame* frame = GetPrimaryFrame()) {
+    return frame->StyleVisibility()->mDirection == StyleDirection::Ltr
                ? eDir_LTR
                : eDir_RTL;
   }
@@ -4208,6 +4227,23 @@ void Element::AssertInvariantsOnNodeInfoChange() {
   }
 }
 #endif
+
+// static
+nsAtom* Element::GetEventNameForAttr(nsAtom* aAttr) {
+  if (aAttr == nsGkAtoms::onwebkitanimationend) {
+    return nsGkAtoms::onwebkitAnimationEnd;
+  }
+  if (aAttr == nsGkAtoms::onwebkitanimationiteration) {
+    return nsGkAtoms::onwebkitAnimationIteration;
+  }
+  if (aAttr == nsGkAtoms::onwebkitanimationstart) {
+    return nsGkAtoms::onwebkitAnimationStart;
+  }
+  if (aAttr == nsGkAtoms::onwebkittransitionend) {
+    return nsGkAtoms::onwebkitTransitionEnd;
+  }
+  return aAttr;
+}
 
 }  // namespace dom
 }  // namespace mozilla

@@ -387,6 +387,11 @@ bool IDBFileHandle::CheckStateAndArgumentsForRead(uint64_t aSize,
     return false;
   }
 
+  if (aSize > UINT32_MAX) {
+    aRv.ThrowTypeError(u"Data size for read is too large.");
+    return false;
+  }
+
   return true;
 }
 
@@ -516,7 +521,7 @@ RefPtr<IDBFileRequest> IDBFileHandle::WriteOrAppend(const ArrayBuffer& aValue,
     return nullptr;
   }
 
-  aValue.ComputeLengthAndData();
+  aValue.ComputeState();
 
   uint64_t dataLength = aValue.Length();
   ;
@@ -550,7 +555,7 @@ RefPtr<IDBFileRequest> IDBFileHandle::WriteOrAppend(
     return nullptr;
   }
 
-  aValue.ComputeLengthAndData();
+  aValue.ComputeState();
 
   uint64_t dataLength = aValue.Length();
   ;

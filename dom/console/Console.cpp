@@ -284,6 +284,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
 
  protected:
   JSObject* CustomReadHandler(JSContext* aCx, JSStructuredCloneReader* aReader,
+                              const JS::CloneDataPolicy& aCloneDataPolicy,
                               uint32_t aTag, uint32_t aIndex) override {
     AssertIsOnMainThread();
 
@@ -308,10 +309,10 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
   }
 
   bool CustomWriteHandler(JSContext* aCx, JSStructuredCloneWriter* aWriter,
-                          JS::Handle<JSObject*> aObj) override {
+                          JS::Handle<JSObject*> aObj,
+                          bool* aSameProcessScopeRequired) override {
     RefPtr<Blob> blob;
-    if (NS_SUCCEEDED(UNWRAP_OBJECT(Blob, aObj, blob)) &&
-        blob->Impl()->MayBeClonedToOtherThreads()) {
+    if (NS_SUCCEEDED(UNWRAP_OBJECT(Blob, aObj, blob))) {
       if (NS_WARN_IF(!JS_WriteUint32Pair(aWriter, CONSOLE_TAG_BLOB,
                                          mClonedData.mBlobs.Length()))) {
         return false;
@@ -1572,9 +1573,11 @@ void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
   // We do this only in workers for now.
   NotifyHandler(aCx, aData, callData);
 
-  RefPtr<ConsoleCallDataWorkerRunnable> runnable =
-      new ConsoleCallDataWorkerRunnable(this, callData);
-  Unused << NS_WARN_IF(!runnable->Dispatch(aCx));
+  if (StaticPrefs::dom_worker_console_dispatch_events_to_main_thread()) {
+    RefPtr<ConsoleCallDataWorkerRunnable> runnable =
+        new ConsoleCallDataWorkerRunnable(this, callData);
+    Unused << NS_WARN_IF(!runnable->Dispatch(aCx));
+  }
 }
 
 // We store information to lazily compute the stack in the reserved slots of

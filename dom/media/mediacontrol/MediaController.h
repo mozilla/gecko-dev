@@ -8,7 +8,7 @@
 #define DOM_MEDIA_MEDIACONTROL_MEDIACONTROLLER_H_
 
 #include "ContentMediaController.h"
-#include "MediaControlKeysEvent.h"
+#include "MediaEventSource.h"
 #include "nsDataHashtable.h"
 #include "nsISupportsImpl.h"
 
@@ -16,6 +16,17 @@ namespace mozilla {
 namespace dom {
 
 class BrowsingContext;
+enum class MediaControlKeysEvent : uint32_t;
+
+// This is used to indicate current media playback state for media controller.
+// For those platforms which have virtual control interface, we have to update
+// the playback state correctly in order to show the correct control icon on the
+// interface.
+enum class PlaybackState : uint8_t {
+  ePlaying,
+  ePaused,
+  eStopped,
+};
 
 /**
  * MediaController is a class, which is used to control all media within a tab.
@@ -50,12 +61,23 @@ class MediaController final {
   void Play();
   void Pause();
   void Stop();
+  void PrevTrack();
+  void NextTrack();
+  void SeekBackward();
+  void SeekForward();
+
+  // Calling this method explicitly would mark this controller as deprecated,
+  // then calling any its method won't take any effect.
   void Shutdown();
 
   uint64_t Id() const;
-  bool IsPlaying() const;
   bool IsAudible() const;
   uint64_t ControlledMediaNum() const;
+  PlaybackState GetState() const;
+
+  MediaEventSource<PlaybackState>& PlaybackStateChangedEvent() {
+    return mPlaybackStateChangedEvent;
+  }
 
   // These methods are only being used to notify the state changes of controlled
   // media in ContentParent or MediaControlUtils.
@@ -75,11 +97,17 @@ class MediaController final {
   void Activate();
   void Deactivate();
 
+  void SetPlayState(PlaybackState aState);
+
   uint64_t mBrowsingContextId;
-  bool mIsPlaying = false;
   bool mAudible = false;
+  bool mIsRegisteredToService = false;
   int64_t mControlledMediaNum = 0;
   int64_t mPlayingControlledMediaNum = 0;
+  bool mShutdown = false;
+
+  PlaybackState mState = PlaybackState::eStopped;
+  MediaEventProducer<PlaybackState> mPlaybackStateChangedEvent;
 };
 
 }  // namespace dom

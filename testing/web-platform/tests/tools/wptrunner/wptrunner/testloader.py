@@ -5,8 +5,8 @@ from abc import ABCMeta, abstractmethod
 from six.moves.queue import Empty
 from collections import defaultdict, deque
 from multiprocessing import Queue
-from six import iteritems
-from six.moves import xrange
+from six import ensure_binary, iteritems
+from six.moves import range
 
 from . import manifestinclude
 from . import manifestexpected
@@ -51,7 +51,7 @@ class HashChunker(TestChunker):
     def __call__(self, manifest):
         chunk_index = self.chunk_number - 1
         for test_type, test_path, tests in manifest:
-            h = int(hashlib.md5(test_path).hexdigest(), 16)
+            h = int(hashlib.md5(ensure_binary(test_path)).hexdigest(), 16)
             if h % self.total_chunks == chunk_index:
                 yield test_type, test_path, tests
 
@@ -65,7 +65,7 @@ class DirectoryHashChunker(TestChunker):
     def __call__(self, manifest):
         chunk_index = self.chunk_number - 1
         for test_type, test_path, tests in manifest:
-            h = int(hashlib.md5(os.path.dirname(test_path)).hexdigest(), 16)
+            h = int(hashlib.md5(ensure_binary(os.path.dirname(test_path))).hexdigest(), 16)
             if h % self.total_chunks == chunk_index:
                 yield test_type, test_path, tests
 
@@ -208,7 +208,7 @@ class TestLoader(object):
     def load_dir_metadata(self, test_manifest, metadata_path, test_path):
         rv = []
         path_parts = os.path.dirname(test_path).split(os.path.sep)
-        for i in xrange(len(path_parts) + 1):
+        for i in range(len(path_parts) + 1):
             path = os.path.join(metadata_path, os.path.sep.join(path_parts[:i]), "__dir__.ini")
             if path not in self.directory_manifests:
                 self.directory_manifests[path] = manifestexpected.get_dir_manifest(path,
@@ -330,8 +330,8 @@ class SingleTestSource(TestSource):
     def make_queue(cls, tests, **kwargs):
         test_queue = Queue()
         processes = kwargs["processes"]
-        queues = [deque([]) for _ in xrange(processes)]
-        metadatas = [cls.group_metadata(None) for _ in xrange(processes)]
+        queues = [deque([]) for _ in range(processes)]
+        metadatas = [cls.group_metadata(None) for _ in range(processes)]
         for test in tests:
             idx = hash(test.id) % processes
             group = queues[idx]

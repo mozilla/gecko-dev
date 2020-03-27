@@ -10,6 +10,9 @@ import os
 import json
 import hashlib
 import urllib
+from collections import defaultdict
+import time
+import signal
 
 import typing
 from urllib import parse
@@ -85,6 +88,9 @@ class AlternateServerPlayback:
         ctx.master.addons.remove(ctx.master.addons.get("serverplayback"))
         self.flowmap = {}
         self.configured = False
+        self.netlocs = defaultdict(int)
+        self.calls = []
+        self._done = False
 
     def load(self, loader):
         loader.add_option(
@@ -92,6 +98,10 @@ class AlternateServerPlayback:
             typing.Sequence[str],
             [],
             "Replay server responses from a saved file.",
+        )
+        loader.add_option(
+            "upload_dir", str, "",
+            "Upload directory",
         )
 
     def load_flows(self, flows):
@@ -171,6 +181,19 @@ class AlternateServerPlayback:
             self.configured = True
             self.load_files(ctx.options.server_replay_files)
 
+    def done(self):
+        if self._done or not ctx.options.upload_dir:
+            return
+        stats = {"totals": dict(self.netlocs),
+                 "calls": self.calls}
+        path = os.path.normpath(os.path.join(ctx.options.upload_dir,
+                                             "mitm_netlocs.json"))
+        try:
+            with open(path, "w") as f:
+                f.write(json.dumps(stats, indent=2, sort_keys=True))
+        finally:
+            self._done = True
+
     def request(self, f):
         if self.flowmap:
             rflow = self.next_flow(f)
@@ -193,5 +216,25 @@ class AlternateServerPlayback:
                     404, b"", {"content-type": "text/plain"}
                 )
 
+            # collecting stats only if we can dump them (see .done())
+            if ctx.options.upload_dir:
+                parsed_url = urllib.parse.urlparse(parse.unquote(f.request.url))
+                self.netlocs[parsed_url.netloc] += 1
+                self.calls.append({'time': str(time.time()),
+                                   'url': f.request.url,
+                                   'response_status': f.response.status_code})
 
-addons = [AlternateServerPlayback()]
+
+playback = AlternateServerPlayback()
+
+if hasattr(signal, 'SIGBREAK'):
+    # allows the addon to dump the stats even if mitmproxy
+    # does not call done() like on windows termination
+    # for this, the parent process sends CTRL_BREAK_EVENT which
+    # is received as an SIGBREAK event
+    def _shutdown(sig, frame):
+        ctx.master.shutdown()
+
+    signal.signal(signal.SIGBREAK, _shutdown)
+
+addons = [playback]

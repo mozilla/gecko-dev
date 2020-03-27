@@ -117,7 +117,7 @@ exports.Tools = Tools;
 Tools.options = {
   id: "options",
   ordinal: 0,
-  url: "chrome://devtools/content/framework/toolbox-options.xhtml",
+  url: "chrome://devtools/content/framework/toolbox-options.html",
   icon: "chrome://devtools/skin/images/settings.svg",
   bgTheme: "theme-body",
   label: l10n("options.label"),
@@ -459,8 +459,8 @@ Tools.application = {
   label: l10n("application.label"),
   panelLabel: l10n("application.panellabel"),
   tooltip: l10n("application.tooltip"),
-  inMenu: false,
-  hiddenInOptions: true,
+  inMenu: AppConstants.NIGHTLY_BUILD,
+  hiddenInOptions: !AppConstants.NIGHTLY_BUILD,
 
   isTargetSupported: function(target) {
     return target.hasActor("manifest") && !target.canRewind;

@@ -54,7 +54,7 @@ template <typename T>
 static void GetDataFrom(const T& aObject, uint8_t*& aBuffer,
                         uint32_t& aLength) {
   MOZ_ASSERT(!aBuffer);
-  aObject.ComputeLengthAndData();
+  aObject.ComputeState();
   // We use malloc here rather than a FallibleTArray or fallible
   // operator new[] since the gfxUserFontEntry will be calling free
   // on it.
@@ -507,7 +507,7 @@ bool FontFace::SetDescriptor(nsCSSFontDesc aFontDesc, const nsAString& aValue,
   bool changed;
   if (!Servo_FontFaceRule_SetDescriptor(GetData(), aFontDesc, &value, url,
                                         &changed)) {
-    aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+    aRv.ThrowSyntaxError("Invalid font descriptor");
     return false;
   }
 

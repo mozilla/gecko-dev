@@ -21,33 +21,67 @@ async function testInspectingElement(hud) {
   execute(hud, "inspect(document.querySelector('p'))");
   await waitForSelectedElementInInspector(hud.toolbox, "p");
   ok(true, "inspected element is now selected in the inspector");
+
+  info(
+    "Test that inspect selects the node in the inspector in the split console as well"
+  );
+  const onSplitConsoleReady = hud.toolbox.once("split-console");
+  EventUtils.sendKey("ESCAPE", hud.toolbox.win);
+  await onSplitConsoleReady;
+
+  execute(hud, "inspect(document.querySelector('body'))");
+  await waitForSelectedElementInInspector(hud.toolbox, "body");
+  ok(true, "the inspected element is selected in the inspector");
 }
 
 async function testInspectingFunction(hud) {
   info("Test `inspect(test)`");
   execute(hud, "inspect(test)");
-
-  await waitFor(() => {
-    const dbg = hud.toolbox.getPanel("jsdebugger");
-    if (!dbg) {
-      return false;
-    }
-
-    const selectedLocation = dbg._selectors.getSelectedLocation(
-      dbg._getState()
-    );
-
-    if (!selectedLocation) {
-      return false;
-    }
-
-    return (
-      selectedLocation.sourceId.includes("test-simple-function.js") &&
-      selectedLocation.line == 3
-    );
-  });
-
+  await waitFor(expectedSourceSelected("test-simple-function.js", 3));
   ok(true, "inspected function is now selected in the debugger");
+
+  info("Test `inspect(test_mangled)`");
+  execute(hud, "inspect(test_mangled)");
+  await waitFor(
+    expectedSourceSelected("test-mangled-function.js/originalSource-", 3)
+  );
+  ok(true, "inspected source-mapped function is now selected in the debugger");
+
+  info("Test `inspect(test_mangled)` with sourcemaps disabled");
+  SpecialPowers.pushPrefEnv({
+    set: [["devtools.source-map.client-service.enabled", false]],
+  });
+  execute(hud, "inspect(test_mangled)");
+  await waitFor(expectedSourceSelected("test-mangled-function.js", 1));
+  ok(true, "non source-mapped function is now selected in the debugger");
+  SpecialPowers.popPrefEnv();
+
+  info("Test `inspect(test_bound)`");
+  execute(hud, "inspect(test_bound)");
+  await waitFor(expectedSourceSelected("test-simple-function.js", 7));
+  ok(true, "inspected bound target function is now selected in the debugger");
+
+  function expectedSourceSelected(sourceFilename, sourceLine) {
+    return () => {
+      const dbg = hud.toolbox.getPanel("jsdebugger");
+      if (!dbg) {
+        return false;
+      }
+
+      const selectedLocation = dbg._selectors.getSelectedLocation(
+        dbg._getState()
+      );
+
+      if (!selectedLocation) {
+        return false;
+      }
+
+      return (
+        selectedLocation.sourceId.includes(sourceFilename) &&
+        selectedLocation.line == sourceLine
+      );
+    };
+  }
 }
 
 async function waitForSelectedElementInInspector(toolbox, displayName) {

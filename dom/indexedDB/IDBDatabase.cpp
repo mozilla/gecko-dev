@@ -70,10 +70,10 @@ class CancelableRunnableWrapper final : public CancelableRunnable {
   nsCOMPtr<nsIRunnable> mRunnable;
 
  public:
-  explicit CancelableRunnableWrapper(nsIRunnable* aRunnable)
+  explicit CancelableRunnableWrapper(nsCOMPtr<nsIRunnable> aRunnable)
       : CancelableRunnable("dom::CancelableRunnableWrapper"),
-        mRunnable(aRunnable) {
-    MOZ_ASSERT(aRunnable);
+        mRunnable(std::move(aRunnable)) {
+    MOZ_ASSERT(mRunnable);
   }
 
  private:
@@ -208,7 +208,7 @@ RefPtr<IDBDatabase> IDBDatabase::Create(IDBOpenDBRequest* aRequest,
         NS_WARNING("Failed to add additional memory observers!");
       }
 
-      db->mObserver.swap(observer);
+      db->mObserver = std::move(observer);
     }
   }
 
@@ -361,7 +361,7 @@ RefPtr<IDBObjectStore> IDBDatabase::CreateObjectStore(
     return nullptr;
   }
 
-  if (!transaction->CanAcceptRequests()) {
+  if (!transaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return nullptr;
   }
@@ -379,11 +379,9 @@ RefPtr<IDBObjectStore> IDBDatabase::CreateObjectStore(
         return aName == objectStore.metadata().name();
       });
   if (foundIt != end) {
-    aRv.ThrowDOMException(
-        NS_ERROR_DOM_INDEXEDDB_CONSTRAINT_ERR,
-        nsPrintfCString("Object store named '%s' already exists at index '%zu'",
-                        NS_ConvertUTF16toUTF8(aName).get(),
-                        foundIt.GetIndex()));
+    aRv.ThrowConstraintError(nsPrintfCString(
+        "Object store named '%s' already exists at index '%zu'",
+        NS_ConvertUTF16toUTF8(aName).get(), foundIt.GetIndex()));
     return nullptr;
   }
 
@@ -434,7 +432,7 @@ void IDBDatabase::DeleteObjectStore(const nsAString& aName, ErrorResult& aRv) {
     return;
   }
 
-  if (!transaction->CanAcceptRequests()) {
+  if (!transaction->IsActive()) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_TRANSACTION_INACTIVE_ERR);
     return;
   }
@@ -676,12 +674,6 @@ RefPtr<IDBRequest> IDBDatabase::CreateMutableFile(
   return request;
 }
 
-RefPtr<IDBRequest> IDBDatabase::MozCreateFileHandle(
-    JSContext* aCx, const nsAString& aName, const Optional<nsAString>& aType,
-    ErrorResult& aRv) {
-  return CreateMutableFile(aCx, aName, aType, aRv);
-}
-
 void IDBDatabase::RegisterTransaction(IDBTransaction* aTransaction) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aTransaction);
@@ -871,8 +863,7 @@ void IDBDatabase::NoteInactiveTransaction() {
 
   if (!NS_IsMainThread()) {
     // Wrap as a nsICancelableRunnable to make workers happy.
-    RefPtr<Runnable> cancelable = new CancelableRunnableWrapper(runnable);
-    cancelable.swap(runnable);
+    runnable = MakeRefPtr<CancelableRunnableWrapper>(runnable.forget());
   }
 
   MOZ_ALWAYS_SUCCEEDS(
@@ -1082,8 +1073,7 @@ JSObject* IDBDatabase::WrapObject(JSContext* aCx,
 
 NS_IMETHODIMP
 CancelableRunnableWrapper::Run() {
-  nsCOMPtr<nsIRunnable> runnable;
-  mRunnable.swap(runnable);
+  const nsCOMPtr<nsIRunnable> runnable = std::move(mRunnable);
 
   if (runnable) {
     return runnable->Run();

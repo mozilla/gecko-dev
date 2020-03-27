@@ -23,6 +23,7 @@ fuzzy-if(skiaContent,0-2,0-13) == show-value.html show-value-ref.html
 
 # auto width:
 == number-auto-width-1.html number-auto-width-1-ref.html
+== flex.html flex-ref.html
 
 # min-height/max-height tests:
 skip-if(Android) == number-min-height-1.html number-min-height-1-ref.html
@@ -37,7 +38,7 @@ skip-if(Android) == number-max-height-2.html number-max-height-2-ref.html
 fuzzy-if(skiaContent,0-2,0-5) needs-focus == focus-handling.html focus-handling-ref.html
 
 # select
-fuzzy-if(skiaContent,0-1,0-1) fuzzy-if(gtkWidget,0-181,0-722) == number-selected.html number-selected-ref.html
+fuzzy-if(skiaContent,0-1,0-1) == number-selected.html number-selected-ref.html
 
 # pseudo-elements not usable from content:
 == number-pseudo-elements.html number-pseudo-elements-ref.html
@@ -52,4 +53,4 @@ fuzzy(0-128,0-4) == number-reframe-anon-text-field.html number-reframe-anon-text
 == pseudo-classes.html about:blank
 
 # Style inheritance:
-fuzzy-if(gtkWidget,0-255,0-502) == number-style-inheritance.html number-style-inheritance-ref.html # permissive due to Bug 1591613
+== number-style-inheritance.html number-style-inheritance-ref.html

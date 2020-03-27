@@ -177,7 +177,7 @@ async function assertBaseReportData({ reportData, addon }) {
   equal(reportData.appversion, APPVERSION, "Got expected 'appversion'");
   equal(
     reportData.lang,
-    Services.locale.appLocaleAsLangTag,
+    Services.locale.appLocaleAsBCP47,
     "Got expected 'lang'"
   );
   equal(
@@ -299,16 +299,23 @@ add_task(async function test_normalized_addon_install_source_and_method() {
       amInstallTelemetryInfo,
     });
     const {
-      addon_install_source,
       addon_install_method,
+      addon_install_source,
+      addon_install_source_url,
     } = await AbuseReporter.getReportData(addon);
+
     Assert.deepEqual(
-      { addon_install_source, addon_install_method },
       {
-        addon_install_source: expected.source,
-        addon_install_method: expected.method,
+        addon_install_method,
+        addon_install_source,
+        addon_install_source_url,
       },
-      `Got the expected addon_install_method for ${JSON.stringify(
+      {
+        addon_install_method: expected.method,
+        addon_install_source: expected.source,
+        addon_install_source_url: expected.sourceURL,
+      },
+      `Got the expected report data for ${JSON.stringify(
         amInstallTelemetryInfo
       )}`
     );
@@ -342,12 +349,28 @@ add_task(async function test_normalized_addon_install_source_and_method() {
       expect: { source: "distribution", method: null },
     },
     {
-      test: { source: "test-host", method: "installTrigger" },
-      expect: { source: "test_host", method: "installtrigger" },
+      test: {
+        method: "installTrigger",
+        source: "test-host",
+        sourceURL: "http://host.triggered.install/example?test=1",
+      },
+      expect: {
+        method: "installtrigger",
+        source: "test_host",
+        sourceURL: "http://host.triggered.install/example?test=1",
+      },
     },
     {
-      test: { source: "unknown", method: "link" },
-      expect: { source: "unknown", method: "link" },
+      test: {
+        method: "link",
+        source: "unknown",
+        sourceURL: "https://another.host/installExtension?name=ext1",
+      },
+      expect: {
+        method: "link",
+        source: "unknown",
+        sourceURL: "https://another.host/installExtension?name=ext1",
+      },
     },
   ];
 
@@ -822,7 +845,7 @@ add_task(async function test_query_amo_details() {
 
   // Test on the default en-US locale.
   Services.prefs.setCharPref(PREF_REQUIRED_LOCALE, "en-US");
-  let locale = Services.locale.appLocaleAsLangTag;
+  let locale = Services.locale.appLocaleAsBCP47;
   equal(locale, "en-US", "Got the expected app locale set");
 
   let expectedReport = {
@@ -838,7 +861,7 @@ add_task(async function test_query_amo_details() {
 
   // Test with a non-default locale also available in the AMO details.
   Services.prefs.setCharPref(PREF_REQUIRED_LOCALE, "it-IT");
-  locale = Services.locale.appLocaleAsLangTag;
+  locale = Services.locale.appLocaleAsBCP47;
   equal(locale, "it-IT", "Got the expected app locale set");
 
   expectedReport = {
@@ -849,7 +872,7 @@ add_task(async function test_query_amo_details() {
 
   // Test with a non-default locale not available in the AMO details.
   Services.prefs.setCharPref(PREF_REQUIRED_LOCALE, "fr-FR");
-  locale = Services.locale.appLocaleAsLangTag;
+  locale = Services.locale.appLocaleAsBCP47;
   equal(locale, "fr-FR", "Got the expected app locale set");
 
   expectedReport = {

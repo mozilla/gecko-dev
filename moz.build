@@ -28,6 +28,10 @@ with Files('CLOBBER'):
 with Files('*configure*'):
     BUG_COMPONENT = ('Firefox Build System', 'General')
 
+with Files("docs/**"):
+    BUG_COMPONENT = ("Firefox Build System", "Generated Documentation")
+    SCHEDULES.exclusive = ['docs']
+
 with Files('mach'):
     BUG_COMPONENT = ('Firefox Build System', 'Mach Core')
 
@@ -72,33 +76,43 @@ with Files("**/*.md"):
 
 with Files("**/reftest.list"):
     SCHEDULES.inclusive += ['test-verify', 'test-verify-gpu']
+    SCHEDULES.exclusive = ['reftest']
 
 with Files("**/crashtest*.list"):
     SCHEDULES.inclusive += ['test-verify', 'test-verify-gpu']
+    SCHEDULES.exclusive = ['reftest']
 
 with Files("**/mochitest.ini"):
     SCHEDULES.inclusive += ['test-verify', 'test-verify-gpu']
+    SCHEDULES.exclusive = ['mochitest']
 
 with Files("**/browser.ini"):
     SCHEDULES.inclusive += ['test-verify', 'test-verify-gpu']
+    SCHEDULES.exclusive = ['mochitest']
 
 with Files("**/chrome.ini"):
     SCHEDULES.inclusive += ['test-verify', 'test-verify-gpu']
+    SCHEDULES.exclusive = ['mochitest']
 
 with Files("**/xpcshell.ini"):
     SCHEDULES.inclusive += ['test-verify', 'test-verify-gpu']
+    SCHEDULES.exclusive = ['xpcshell']
 
 with Files("**/reftest*/**"):
     SCHEDULES.inclusive += ['test-verify', 'test-verify-gpu']
+    SCHEDULES.exclusive = ['reftest']
 
 with Files("**/crashtest*/**"):
     SCHEDULES.inclusive += ['test-verify', 'test-verify-gpu']
+    SCHEDULES.exclusive = ['reftest']
 
 with Files("**/mochitest*/**"):
     SCHEDULES.inclusive += ['test-verify', 'test-verify-gpu']
+    SCHEDULES.exclusive = ['mochitest']
 
 with Files("**/xpcshell/**"):
     SCHEDULES.inclusive += ['test-verify', 'test-verify-gpu']
+    SCHEDULES.exclusive = ['xpcshell']
 
 with Files("**/tests/**"):
     SCHEDULES.inclusive += ['test-verify', 'test-verify-gpu']
@@ -168,5 +182,7 @@ else:
 OBJDIR_PP_FILES['.cargo'] += ['.cargo/config.in']
 
 DEFINES['top_srcdir'] = TOPSRCDIR
+
+SPHINX_TREES['contributing'] = 'docs/contributing'
 
 include('build/templates.mozbuild')

@@ -134,6 +134,19 @@ const MessageLoaderUtils = {
     return provider.messages;
   },
 
+  async _localJsonLoader(provider) {
+    let payload;
+    try {
+      payload = await (await fetch(provider.location, {
+        credentials: "omit",
+      })).json();
+    } catch (e) {
+      return [];
+    }
+
+    return payload.messages;
+  },
+
   async _remoteLoaderCache(storage) {
     let allCached;
     try {
@@ -276,7 +289,7 @@ const MessageLoaderUtils = {
             options.dispatchToAS
           );
         } else if (RS_PROVIDERS_WITH_L10N.includes(provider.id)) {
-          const locale = Services.locale.appLocaleAsLangTag;
+          const locale = Services.locale.appLocaleAsBCP47;
           const recordId = `${RS_FLUENT_RECORD_PREFIX}-${locale}`;
           const kinto = new KintoHttpClient(
             Services.prefs.getStringPref(RS_SERVER_PREF)
@@ -344,6 +357,8 @@ const MessageLoaderUtils = {
         return this._remoteLoader;
       case "remote-settings":
         return this._remoteSettingsLoader;
+      case "json":
+        return this._localJsonLoader;
       case "local":
       default:
         return this._localLoader;
@@ -526,7 +541,7 @@ class _ASRouter {
       messages: [],
       groups: [],
       errors: [],
-      localeInUse: Services.locale.appLocaleAsLangTag,
+      localeInUse: Services.locale.appLocaleAsBCP47,
     };
     this._triggerHandler = this._triggerHandler.bind(this);
     this._localProviders = localProviders;
@@ -539,6 +554,9 @@ class _ASRouter {
     this.onPrefChange = this.onPrefChange.bind(this);
     this.dispatch = this.dispatch.bind(this);
     this._onLocaleChanged = this._onLocaleChanged.bind(this);
+    this.isUnblockedMessage = this.isUnblockedMessage.bind(this);
+    this.renderWNMessages = this.renderWNMessages.bind(this);
+    this.forceWNPanel = this.forceWNPanel.bind(this);
   }
 
   async onPrefChange(prefName) {
@@ -547,7 +565,7 @@ class _ASRouter {
       const invalidMessages = [];
       const context = this._getMessagesContext();
 
-      for (const msg of this._getUnblockedMessages()) {
+      for (const msg of this.state.messages.filter(this.isUnblockedMessage)) {
         if (!msg.targeting) {
           continue;
         }
@@ -691,6 +709,10 @@ class _ASRouter {
    * @returns bool
    */
   isExcludedByProvider(message) {
+    // preview snippets are never excluded
+    if (message.provider === "preview") {
+      return false;
+    }
     const provider = this.state.providers.find(p => p.id === message.provider);
     if (!provider) {
       return true;
@@ -838,7 +860,7 @@ class _ASRouter {
 
   async _maybeUpdateL10nAttachment() {
     const { localeInUse } = this.state.localeInUse;
-    const newLocale = Services.locale.appLocaleAsLangTag;
+    const newLocale = Services.locale.appLocaleAsBCP47;
     if (newLocale !== localeInUse) {
       const providers = [...this.state.providers];
       let needsUpdate = false;
@@ -1129,6 +1151,18 @@ class _ASRouter {
     return bundle.sort((a, b) => a.order - b.order);
   }
 
+  isUnblockedMessage(message) {
+    let { state } = this;
+    return (
+      !state.messageBlockList.includes(message.id) &&
+      (!message.campaign ||
+        !state.messageBlockList.includes(message.campaign)) &&
+      !state.providerBlockList.includes(message.provider) &&
+      this.hasGroupsEnabled(message.groups) &&
+      !this.isExcludedByProvider(message)
+    );
+  }
+
   // Work out if a message can be shown based on its and its provider's frequency caps.
   isBelowFrequencyCaps(message) {
     const { messageImpressions, groupImpressions } = this.state;
@@ -1197,9 +1231,12 @@ class _ASRouter {
     }
 
     // First, find all messages of same template. These are potential matching targeting candidates
-    let bundledMessagesOfSameTemplate = this._getUnblockedMessages().filter(
+    let bundledMessagesOfSameTemplate = this.state.messages.filter(
       msg =>
-        msg.bundled && msg.template === bundleTemplate && msg.id !== originalId
+        msg.bundled &&
+        msg.template === bundleTemplate &&
+        msg.id !== originalId &&
+        this.isUnblockedMessage(msg)
     );
 
     if (force) {
@@ -1277,18 +1314,6 @@ class _ASRouter {
     return this._localProviders[
       this.state.providers.find(i => i.id === providerID).localProvider
     ];
-  }
-
-  _getUnblockedMessages() {
-    let { state } = this;
-    return state.messages.filter(
-      item =>
-        !state.messageBlockList.includes(item.id) &&
-        (!item.campaign || !state.messageBlockList.includes(item.campaign)) &&
-        !state.providerBlockList.includes(item.provider) &&
-        this.hasGroupsEnabled(item.groups) &&
-        !this.isExcludedByProvider(item)
-    );
   }
 
   /**
@@ -1520,30 +1545,40 @@ class _ASRouter {
     ordered = false,
     returnAll = false,
   }) {
+    let shouldCache;
     const messages =
       candidates ||
-      this._getUnblockedMessages()
-        .filter(m => {
-          if (provider && m.provider !== provider) {
-            return false;
-          }
-          if (template && m.template !== template) {
-            return false;
-          }
-          if (triggerId && !m.trigger) {
-            return false;
-          }
-          if (triggerId && m.trigger.id !== triggerId) {
-            return false;
-          }
+      this.state.messages.filter(m => {
+        if (provider && m.provider !== provider) {
+          return false;
+        }
+        if (template && m.template !== template) {
+          return false;
+        }
+        if (triggerId && !m.trigger) {
+          return false;
+        }
+        if (triggerId && m.trigger.id !== triggerId) {
+          return false;
+        }
+        if (!this.isUnblockedMessage(m)) {
+          return false;
+        }
+        if (!this.isBelowFrequencyCaps(m)) {
+          return false;
+        }
 
-          return true;
-        })
-        .filter(m => this.isBelowFrequencyCaps(m));
+        if (shouldCache !== false) {
+          shouldCache = JEXL_PROVIDER_CACHE.has(m.provider);
+        }
 
-    const shouldCache = messages.every(m =>
-      JEXL_PROVIDER_CACHE.has(m.provider)
-    );
+        return true;
+      });
+
+    if (!messages.length) {
+      return returnAll ? messages : null;
+    }
+
     const context = this._getMessagesContext();
 
     // Find a message that matches the targeting context as well as the trigger context (if one is provided)
@@ -2035,6 +2070,21 @@ class _ASRouter {
     await this._sendMessageToTarget(message, target, trigger);
   }
 
+  renderWNMessages(browserWindow, messageIds) {
+    let messages = messageIds.map(msgId => this.getMessageById(msgId));
+
+    ToolbarPanelHub.forceShowMessage(browserWindow, messages);
+  }
+
+  async forceWNPanel(browserWindow) {
+    await ToolbarPanelHub.enableToolbarButton();
+
+    browserWindow.PanelUI.showSubView(
+      "PanelUI-whatsNew",
+      browserWindow.document.getElementById("whats-new-menu-button")
+    );
+  }
+
   /* eslint-disable complexity */
   async onMessage({ data: action, target }) {
     switch (action.type) {
@@ -2174,6 +2224,12 @@ class _ASRouter {
         break;
       case "FORCE_ATTRIBUTION":
         this.forceAttribution(action.data);
+        break;
+      case "FORCE_WHATSNEW_PANEL":
+        this.forceWNPanel(target.browser.ownerGlobal);
+        break;
+      case "RENDER_WHATSNEW_MESSAGES":
+        this.renderWNMessages(target.browser.ownerGlobal, action.data);
         break;
       default:
         Cu.reportError("Unknown message received");

@@ -25,8 +25,13 @@
 #include "nsIHttpProtocolHandler.h"
 #include "nsIObserver.h"
 #include "nsISpeculativeConnect.h"
+#include "nsDataHashtable.h"
+#ifdef DEBUG
+#  include "nsIOService.h"
+#endif
 
 class nsIHttpChannel;
+class nsIHttpUpgradeListener;
 class nsIPrefBranch;
 class nsICancelable;
 class nsICookieService;
@@ -246,7 +251,11 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   nsHttpAuthCache* AuthCache(bool aPrivate) {
     return aPrivate ? &mPrivateAuthCache : &mAuthCache;
   }
-  nsHttpConnectionMgr* ConnMgr() { return mConnMgr->AsHttpConnectionMgr(); }
+  nsHttpConnectionMgr* ConnMgr() {
+    MOZ_ASSERT_IF(gIOService->UseSocketProcess(), XRE_IsSocketProcess());
+    return mConnMgr->AsHttpConnectionMgr();
+  }
+
   AltSvcCache* AltServiceCache() const {
     MOZ_ASSERT(XRE_IsParentProcess());
     return mAltSvcCache.get();
@@ -459,6 +468,11 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
 
   bool GetThroughCaptivePortal() { return mThroughCaptivePortal; }
 
+  nsresult CompleteUpgrade(HttpTransactionShell* aTrans,
+                           nsIHttpUpgradeListener* aUpgradeListener);
+
+  nsresult DoShiftReloadConnectionCleanup(nsHttpConnectionInfo* aCI = nullptr);
+
  private:
   nsHttpHandler();
 
@@ -559,6 +573,8 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   uint8_t mQoSBits;
 
   bool mEnforceAssocReq;
+
+  nsCString mImageAcceptHeader;
 
   nsCString mAcceptLanguages;
   nsCString mHttpAcceptEncodings;
@@ -772,8 +788,12 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   TimeStamp mLastActiveTabLoadOptimizationHit;
 
   Mutex mSpdyBlacklistLock;
+
  public:
   MOZ_MUST_USE nsresult NewChannelId(uint64_t& channelId);
+  void AddHttpChannel(uint64_t aId, nsISupports* aChannel);
+  void RemoveHttpChannel(uint64_t aId);
+  nsWeakPtr GetWeakHttpChannel(uint64_t aId);
 
   void BlacklistSpdy(const nsHttpConnectionInfo* ci);
   MOZ_MUST_USE bool IsSpdyBlacklisted(const nsHttpConnectionInfo* ci);
@@ -782,6 +802,9 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   nsTHashtable<nsCStringHashKey> mBlacklistedSpdyOrigins;
 
   bool mThroughCaptivePortal;
+
+  // The mapping of channel id and the weak pointer of nsHttpChannel.
+  nsDataHashtable<nsUint64HashKey, nsWeakPtr> mIDToHttpChannelMap;
 };
 
 extern StaticRefPtr<nsHttpHandler> gHttpHandler;

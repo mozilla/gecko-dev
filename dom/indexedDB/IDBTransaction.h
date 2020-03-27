@@ -10,6 +10,7 @@
 #include "FlippedOnce.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/IDBTransactionBinding.h"
+#include "mozilla/dom/quota/CheckedUnsafePtr.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIRunnable.h"
@@ -33,7 +34,7 @@ class IDBRequest;
 class StrongWorkerRef;
 
 namespace indexedDB {
-class BackgroundCursorChild;
+class PBackgroundIDBCursorChild;
 class BackgroundRequestChild;
 class BackgroundTransactionChild;
 class BackgroundVersionChangeTransactionChild;
@@ -43,8 +44,10 @@ class OpenCursorParams;
 class RequestParams;
 }  // namespace indexedDB
 
-class IDBTransaction final : public DOMEventTargetHelper, public nsIRunnable {
-  friend class indexedDB::BackgroundCursorChild;
+class IDBTransaction final
+    : public DOMEventTargetHelper,
+      public nsIRunnable,
+      public SupportsCheckedUnsafePtr<CheckIf<DiagnosticAssertEnabled>> {
   friend class indexedDB::BackgroundRequestChild;
 
  public:
@@ -105,17 +108,16 @@ class IDBTransaction final : public DOMEventTargetHelper, public nsIRunnable {
   FlippedOnce<false> mStarted;
   const Mode mMode;
 
-  bool mCreating;    ///< Set between successful creation until the transaction
-                     ///< has run on the event-loop.
   bool mRegistered;  ///< Whether mDatabase->RegisterTransaction() has been
                      ///< called (which may not be the case if construction was
                      ///< incomplete).
   FlippedOnce<false> mAbortedByScript;
   bool mNotedActiveTransaction;
+  FlippedOnce<false> mSentCommitOrAbort;
 
 #ifdef DEBUG
-  FlippedOnce<false> mSentCommitOrAbort;
   FlippedOnce<false> mFiredCompleteOrAbort;
+  FlippedOnce<false> mWasExplicitlyCommitted;
 #endif
 
  public:
@@ -159,12 +161,10 @@ class IDBTransaction final : public DOMEventTargetHelper, public nsIRunnable {
   indexedDB::BackgroundRequestChild* StartRequest(
       IDBRequest* aRequest, const indexedDB::RequestParams& aParams);
 
-  void OpenCursor(indexedDB::BackgroundCursorChild* aBackgroundActor,
+  void OpenCursor(indexedDB::PBackgroundIDBCursorChild* aBackgroundActor,
                   const indexedDB::OpenCursorParams& aParams);
 
   void RefreshSpec(bool aMayDelete);
-
-  bool CanAcceptRequests() const;
 
   bool IsCommittingOrFinished() const {
     AssertIsOnOwningThread();
@@ -201,6 +201,10 @@ class IDBTransaction final : public DOMEventTargetHelper, public nsIRunnable {
     AssertIsOnOwningThread();
     return NS_FAILED(mAbortCode);
   }
+
+#ifdef DEBUG
+  bool WasExplicitlyCommitted() const { return mWasExplicitlyCommitted; }
+#endif
 
   template <ReadyState OriginalState, ReadyState TemporaryState>
   class AutoRestoreState {
@@ -313,6 +317,8 @@ class IDBTransaction final : public DOMEventTargetHelper, public nsIRunnable {
   NS_DECL_NSIRUNNABLE
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(IDBTransaction, DOMEventTargetHelper)
 
+  void CommitIfNotStarted();
+
   // nsWrapperCache
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
@@ -354,7 +360,7 @@ class IDBTransaction final : public DOMEventTargetHelper, public nsIRunnable {
 
   void AbortInternal(nsresult aAbortCode, RefPtr<DOMException> aError);
 
-  void SendCommit();
+  void SendCommit(bool aAutoCommit);
 
   void SendAbort(nsresult aResultCode);
 
@@ -362,10 +368,13 @@ class IDBTransaction final : public DOMEventTargetHelper, public nsIRunnable {
 
   void MaybeNoteInactiveTransaction();
 
+  // TODO consider making private again, or move to the right place
+ public:
   void OnNewRequest();
 
   void OnRequestFinished(bool aRequestCompletedSuccessfully);
 
+ private:
   template <typename Func>
   auto DoWithTransactionChild(const Func& aFunc) const;
 

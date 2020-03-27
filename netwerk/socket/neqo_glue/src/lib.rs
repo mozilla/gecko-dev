@@ -181,6 +181,16 @@ pub extern "C" fn neqo_http3conn_process_output(conn: &mut NeqoHttp3Conn) -> u64
 }
 
 #[no_mangle]
+pub extern "C" fn neqo_http3conn_process_timer(conn: &mut NeqoHttp3Conn) {
+    conn.conn.process_timer(Instant::now());
+}
+
+#[no_mangle]
+pub extern "C" fn neqo_http3conn_has_data_to_send(conn: &mut NeqoHttp3Conn) -> bool {
+    !conn.packets_to_send.is_empty()
+}
+
+#[no_mangle]
 pub extern "C" fn neqo_http3conn_get_data_to_send(
     conn: &mut NeqoHttp3Conn,
     packet: &mut ThinVec<u8>,
@@ -471,6 +481,7 @@ pub enum Http3Event {
     },
     RequestsCreatable,
     AuthenticationNeeded,
+    ZeroRttRejected,
     ConnectionConnected,
     GoawayReceived,
     ConnectionClosing {
@@ -522,6 +533,7 @@ impl From<Http3ClientEvent> for Http3Event {
             }
             Http3ClientEvent::RequestsCreatable => Http3Event::RequestsCreatable,
             Http3ClientEvent::AuthenticationNeeded => Http3Event::AuthenticationNeeded,
+            Http3ClientEvent::ZeroRttRejected => Http3Event::ZeroRttRejected,
             Http3ClientEvent::GoawayReceived => Http3Event::GoawayReceived,
             Http3ClientEvent::StateChange(state) => match state {
                 Http3State::Connected => Http3Event::ConnectionConnected,

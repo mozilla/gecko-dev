@@ -10,7 +10,7 @@
 
 const {
   parsePacketsWithFronts,
-} = require("devtools/client/webconsole/test/browser/stub-generator-helpers");
+} = require("chrome://mochitests/content/browser/devtools/client/webconsole/test/browser/stub-generator-helpers");
 const { prepareMessage } = require("devtools/client/webconsole/utils/messages");
 const {
   ConsoleMessage,
@@ -155,7 +155,8 @@ rawPackets.set(`inspect({a: 1})`, {
         }
       },
       "actorID": "server0.conn0.child1/obj28"
-    }
+    },
+    "forceExpandInConsole": false
   },
   "input": "inspect({a: 1})",
   "result": {

@@ -217,10 +217,10 @@ static const Register RabaldrScratchI32 = Register::FromCode(15);
 // passing in any ABI we use.  Argregs tend to be low-numbered; register 30
 // should be safe.
 
-static constexpr FloatRegister RabaldrScratchF32 =
-    FloatRegister(30, FloatRegisters::Single);
-static constexpr FloatRegister RabaldrScratchF64 =
-    FloatRegister(30, FloatRegisters::Double);
+static constexpr FloatRegister RabaldrScratchF32{FloatRegisters::s30,
+                                                 FloatRegisters::Single};
+static constexpr FloatRegister RabaldrScratchF64{FloatRegisters::d30,
+                                                 FloatRegisters::Double};
 
 static_assert(RabaldrScratchF32 != ScratchFloat32Reg, "Too busy");
 static_assert(RabaldrScratchF64 != ScratchDoubleReg, "Too busy");
@@ -299,42 +299,50 @@ struct RegTypeOf<MIRType::Double> {
 
 struct RegI32 : public Register {
   RegI32() : Register(Register::Invalid()) {}
-  explicit RegI32(Register reg) : Register(reg) {}
-  bool isValid() const { return *this != Invalid(); }
-  bool isInvalid() const { return !isValid(); }
-  static RegI32 Invalid() { return RegI32(Register::Invalid()); }
+  explicit RegI32(Register reg) : Register(reg) {
+    MOZ_ASSERT(reg != Invalid());
+  }
+  bool isInvalid() const { return *this == Invalid(); }
+  bool isValid() const { return !isInvalid(); }
+  static RegI32 Invalid() { return RegI32(); }
 };
 
 struct RegI64 : public Register64 {
   RegI64() : Register64(Register64::Invalid()) {}
-  explicit RegI64(Register64 reg) : Register64(reg) {}
-  bool isValid() const { return *this != Invalid(); }
-  bool isInvalid() const { return !isValid(); }
-  static RegI64 Invalid() { return RegI64(Register64::Invalid()); }
+  explicit RegI64(Register64 reg) : Register64(reg) {
+    MOZ_ASSERT(reg != Invalid());
+  }
+  bool isInvalid() const { return *this == Invalid(); }
+  bool isValid() const { return !isInvalid(); }
+  static RegI64 Invalid() { return RegI64(); }
 };
 
 struct RegPtr : public Register {
   RegPtr() : Register(Register::Invalid()) {}
-  explicit RegPtr(Register reg) : Register(reg) {}
-  bool isValid() const { return *this != Invalid(); }
-  bool isInvalid() const { return !isValid(); }
-  static RegPtr Invalid() { return RegPtr(Register::Invalid()); }
+  explicit RegPtr(Register reg) : Register(reg) {
+    MOZ_ASSERT(reg != Invalid());
+  }
+  bool isInvalid() const { return *this == Invalid(); }
+  bool isValid() const { return !isInvalid(); }
+  static RegPtr Invalid() { return RegPtr(); }
 };
 
 struct RegF32 : public FloatRegister {
   RegF32() : FloatRegister() {}
-  explicit RegF32(FloatRegister reg) : FloatRegister(reg) {}
-  bool isValid() const { return *this != Invalid(); }
-  bool isInvalid() const { return !isValid(); }
-  static RegF32 Invalid() { return RegF32(InvalidFloatReg); }
+  explicit RegF32(FloatRegister reg) : FloatRegister(reg) {
+    MOZ_ASSERT(isSingle());
+  }
+  bool isValid() const { return !isInvalid(); }
+  static RegF32 Invalid() { return RegF32(); }
 };
 
 struct RegF64 : public FloatRegister {
   RegF64() : FloatRegister() {}
-  explicit RegF64(FloatRegister reg) : FloatRegister(reg) {}
-  bool isValid() const { return *this != Invalid(); }
-  bool isInvalid() const { return !isValid(); }
-  static RegF64 Invalid() { return RegF64(InvalidFloatReg); }
+  explicit RegF64(FloatRegister reg) : FloatRegister(reg) {
+    MOZ_ASSERT(isDouble());
+  }
+  bool isValid() const { return !isInvalid(); }
+  static RegF64 Invalid() { return RegF64(); }
 };
 
 struct AnyReg {
@@ -981,47 +989,58 @@ using ScratchI8 = ScratchI32;
 // The stack frame has four parts ("below" means at lower addresses):
 //
 //  - the Frame element;
-//  - the Local area, including the DebugFrame element; allocated below the
-//    header with various forms of alignment;
+//  - the Local area, including the DebugFrame element and possibly a spilled
+//    pointer to stack results, if any; allocated below the header with various
+//    forms of alignment;
 //  - the Dynamic area, comprising the temporary storage the compiler uses for
 //    register spilling, allocated below the Local area;
 //  - the Arguments area, comprising memory allocated for outgoing calls,
 //    allocated below the Dynamic area.
 //
-//                 +============================+
-//                 |    Incoming arg            |
-//                 |    ...                     |
-// --------------  +============================+
-//                 |    Frame (fixed size)      |
-// --------------  +============================+ <-------------------- FP
-//          ^      |    DebugFrame (optional)   |    ^                ^^
-//          |      +----------------------------+    |                ||
-//    localSize    |    Local (static size)     |    |                ||
-//          |      |    ...                     |    |        framePushed
-//          v      |    (padding)               |    |                ||
-// --------------  +============================+ currentStackHeight  ||
-//          ^      |    Dynamic (variable size) |    |                ||
-//   dynamicSize   |    ...                     |    |                ||
-//          v      |    ...                     |    v                ||
-// --------------  |    (free space, sometimes) | ---------           v|
-//                 +============================+ <----- SP not-during calls
-//                 |    Arguments (sometimes)   |                      |
-//                 |    ...                     |                      v
-//                 +============================+ <----- SP during calls
+//                +==============================+
+//                |    Incoming stack arg        |
+//                |    ...                       |
+// -------------  +==============================+
+//                |    Frame (fixed size)        |
+// -------------  +==============================+ <-------------------- FP
+//         ^      |    DebugFrame (optional)     |    ^  ^             ^^
+//   localSize    |    Register arg local        |    |  |             ||
+//         |      |    ...                       |    |  |     framePushed
+//         |      |    Register stack result ptr?|    |  |             ||
+//         |      |    Non-arg local             |    |  |             ||
+//         |      |    ...                       |    |  |             ||
+//         |      +------------------------------+    |  |             ||
+//         v      |    (padding)                 |    |  v             ||
+// -------------  +==============================+ currentStackHeight  ||
+//         ^      |    Dynamic (variable size)   |    |                ||
+//  dynamicSize   |    ...                       |    |                ||
+//         v      |    ...                       |    v                ||
+// -------------  |    (free space, sometimes)   | ---------           v|
+//                +==============================+ <----- SP not-during calls
+//                |    Arguments (sometimes)     |                      |
+//                |    ...                       |                      v
+//                +==============================+ <----- SP during calls
 //
 // The Frame is addressed off the stack pointer.  masm.framePushed() is always
 // correct, and masm.getStackPointer() + masm.framePushed() always addresses the
 // Frame, with the DebugFrame optionally below it.
 //
-// The Local area (including the DebugFrame) is laid out by BaseLocalIter and is
-// allocated and deallocated by standard prologue and epilogue functions that
-// manipulate the stack pointer, but it is accessed via BaseStackFrame.
+// The Local area (including the DebugFrame and, if needed, the spilled value of
+// the stack results area pointer) is laid out by BaseLocalIter and is allocated
+// and deallocated by standard prologue and epilogue functions that manipulate
+// the stack pointer, but it is accessed via BaseStackFrame.
 //
 // The Dynamic area is maintained by and accessed via BaseStackFrame.  On some
 // systems (such as ARM64), the Dynamic memory may be allocated in chunks
 // because the SP needs a specific alignment, and in this case there will
 // normally be some free space directly above the SP.  The stack height does not
 // include the free space, it reflects the logically used space only.
+//
+// The Dynamic area is where space for stack results is allocated when calling
+// functions that return results on the stack.  If a function has stack results,
+// a pointer to the low address of the stack result area is passed as an
+// additional argument, according to the usual ABI.  See
+// ABIResultIter::HasStackResults.
 //
 // The Arguments area is allocated and deallocated via BaseStackFrame (see
 // comments later) but is accessed directly off the stack pointer.
@@ -1032,19 +1051,19 @@ using ScratchI8 = ScratchI32;
 // The implementation of BaseLocalIter is the property of the BaseStackFrame.
 // But it is also exposed for eg the debugger to use.
 
-BaseLocalIter::BaseLocalIter(const ValTypeVector& locals, size_t argsLength,
-                             bool debugEnabled)
+BaseLocalIter::BaseLocalIter(const ValTypeVector& locals,
+                             const ArgTypeVector& args, bool debugEnabled)
     : locals_(locals),
-      argsLength_(argsLength),
-      argsRange_(locals.begin(), argsLength),
-      argsIter_(argsRange_),
+      args_(args),
+      argsIter_(args_),
       index_(0),
       localSize_(debugEnabled ? DebugFrame::offsetOfFrame() : 0),
       reservedSize_(localSize_),
-      frameOffset_(UINT32_MAX),
+      frameOffset_(INT32_MAX),
+      stackResultPointerOffset_(INT32_MAX),
       mirType_(MIRType::Undefined),
       done_(false) {
-  MOZ_ASSERT(argsLength <= locals.length());
+  MOZ_ASSERT(args.lengthWithoutStackResults() <= locals.length());
   settle();
 }
 
@@ -1055,10 +1074,15 @@ int32_t BaseLocalIter::pushLocal(size_t nbytes) {
 }
 
 void BaseLocalIter::settle() {
-  if (index_ < argsLength_) {
-    MOZ_ASSERT(!argsIter_.done());
+  if (!argsIter_.done()) {
     mirType_ = argsIter_.mirType();
     switch (mirType_) {
+      case MIRType::Pointer:
+        // The pointer to stack results is handled like any other argument:
+        // either addressed in place if it is passed on the stack, or we spill
+        // it in the frame if it's in a register.
+        MOZ_ASSERT(args_.isSyntheticStackResultPointerArg(index_));
+        [[fallthrough]];
       case MIRType::Int32:
       case MIRType::Int64:
       case MIRType::Double:
@@ -1073,10 +1097,17 @@ void BaseLocalIter::settle() {
       default:
         MOZ_CRASH("Argument type");
     }
-    return;
+    if (mirType_ == MIRType::Pointer) {
+      stackResultPointerOffset_ = frameOffset();
+      // Advance past the synthetic stack result pointer argument and fall
+      // through to the next case.
+      argsIter_++;
+      MOZ_ASSERT(argsIter_.done());
+    } else {
+      return;
+    }
   }
 
-  MOZ_ASSERT(argsIter_.done());
   if (index_ < locals_.length()) {
     switch (locals_[index_].kind()) {
       case ValType::I32:
@@ -1124,6 +1155,33 @@ class StackHeight {
     return height == rhs.height;
   }
   bool operator!=(StackHeight rhs) const { return !(*this == rhs); }
+};
+
+// Abstraction for where multi-value results go on the machine stack.
+
+class StackResultsLoc {
+  uint32_t bytes_;
+  size_t count_;
+  Maybe<uint32_t> height_;
+
+ public:
+  StackResultsLoc() : bytes_(0), count_(0){};
+  StackResultsLoc(uint32_t bytes, size_t count, uint32_t height)
+      : bytes_(bytes), count_(count), height_(Some(height)) {
+    MOZ_ASSERT(bytes != 0);
+    MOZ_ASSERT(count != 0);
+    MOZ_ASSERT(height != 0);
+  }
+
+  uint32_t bytes() const { return bytes_; }
+  uint32_t count() const { return count_; }
+  uint32_t height() const { return height_.value(); }
+
+  bool hasStackResults() const { return bytes() != 0; }
+  StackResults stackResults() const {
+    return hasStackResults() ? StackResults::HasStackResults
+                             : StackResults::NoStackResults;
+  }
 };
 
 // Abstraction of the baseline compiler's stack frame (except for the Frame /
@@ -1472,6 +1530,9 @@ class BaseStackFrame final : public BaseStackFrameAllocator {
   // Patch point where we check for stack overflow.
   CodeOffset stackAddOffset_;
 
+  // Low byte offset of pointer to stack results, if any.
+  Maybe<int32_t> stackResultsPtrOffset_;
+
   // Low byte offset of local area for true locals (not parameters).
   uint32_t varLow_;
 
@@ -1563,14 +1624,14 @@ class BaseStackFrame final : public BaseStackFrameAllocator {
   using LocalVector = Vector<Local, 16, SystemAllocPolicy>;
 
   // Initialize `localInfo` based on the types of `locals` and `args`.
-  bool setupLocals(const ValTypeVector& locals, const ValTypeVector& args,
+  bool setupLocals(const ValTypeVector& locals, const ArgTypeVector& args,
                    bool debugEnabled, LocalVector* localInfo) {
     if (!localInfo->reserve(locals.length())) {
       return false;
     }
 
     DebugOnly<uint32_t> index = 0;
-    BaseLocalIter i(locals, args.length(), debugEnabled);
+    BaseLocalIter i(locals, args, debugEnabled);
     varLow_ = i.reservedSize();
     for (; !i.done() && i.index() < args.length(); i++) {
       MOZ_ASSERT(i.isArg());
@@ -1590,6 +1651,10 @@ class BaseStackFrame final : public BaseStackFrameAllocator {
     }
 
     setLocalSize(AlignBytes(varHigh_, WasmStackAlignment));
+
+    if (args.hasSyntheticStackResultPointerArg()) {
+      stackResultsPtrOffset_ = Some(i.stackResultPointerOffset());
+    }
 
     return true;
   }
@@ -1648,6 +1713,31 @@ class BaseStackFrame final : public BaseStackFrameAllocator {
 
   // Offset off of sp_ for `local`.
   int32_t localOffset(const Local& local) { return localOffset(local.offs); }
+
+  // The incoming stack result area pointer is for stack results of the function
+  // being compiled.
+  void loadIncomingStackResultAreaPtr(RegPtr reg) {
+    masm.loadPtr(Address(sp_, stackOffset(stackResultsPtrOffset_.value())),
+                 reg);
+  }
+  void storeIncomingStackResultAreaPtr(RegPtr reg) {
+    // If we get here, that means the pointer to the stack results area was
+    // passed in as a register, and therefore it will be spilled below the
+    // frame, so the offset is a positive height.
+    MOZ_ASSERT(stackResultsPtrOffset_.value() > 0);
+    masm.storePtr(reg,
+                  Address(sp_, stackOffset(stackResultsPtrOffset_.value())));
+  }
+
+  // An outgoing stack result area pointer is for stack results of callees of
+  // the function being compiled.
+  void computeOutgoingStackResultAreaPtr(const StackResultsLoc& results,
+                                         RegPtr dest) {
+    MOZ_ASSERT(results.height() <= masm.framePushed());
+    uint32_t offsetFromSP = masm.framePushed() - results.height();
+    masm.movePtr(AsRegister(sp_), dest);
+    masm.addPtr(Imm32(offsetFromSP), dest);
+  }
 
  private:
   // Offset off of sp_ for a local with offset `offset` from Frame.
@@ -1851,6 +1941,29 @@ class BaseStackFrame final : public BaseStackFrameAllocator {
       masm.load32(Address(sp_, srcOffset), temp);
       masm.store32(temp, Address(sp_, destOffset));
     }
+  }
+
+  // Copy results from the top of the current stack frame to an area of memory,
+  // and pop the stack accordingly.  `dest` is the address of the low byte of
+  // that memory.
+  void popStackResultsToMemory(Register dest, uint32_t bytes, Register temp) {
+    MOZ_ASSERT(bytes <= currentStackHeight());
+    MOZ_ASSERT(bytes % sizeof(uint32_t) == 0);
+    uint32_t srcOffset = stackOffset(currentStackHeight());
+    uint32_t destOffset = 0;
+    while (bytes >= sizeof(intptr_t)) {
+      masm.loadPtr(Address(sp_, srcOffset), temp);
+      masm.storePtr(temp, Address(dest, destOffset));
+      destOffset += sizeof(intptr_t);
+      srcOffset += sizeof(intptr_t);
+      bytes -= sizeof(intptr_t);
+    }
+    if (bytes) {
+      MOZ_ASSERT(bytes == sizeof(uint32_t));
+      masm.load32(Address(sp_, srcOffset), temp);
+      masm.store32(temp, Address(dest, destOffset));
+    }
+    popBytes(bytes);
   }
 
   void storeImmediateToStack(int32_t imm, uint32_t destHeight, Register temp) {
@@ -2307,7 +2420,7 @@ struct StackMapGenerator {
   // trapExitLayoutNumWords_, which together comprise a description of the
   // layout and are created by GenerateTrapExitMachineState().
   MOZ_MUST_USE bool generateStackmapEntriesForTrapExit(
-      const ValTypeVector& args, ExitStubMapVector* extras) {
+      const ArgTypeVector& args, ExitStubMapVector* extras) {
     return GenerateStackmapEntriesForTrapExit(args, trapExitLayout_,
                                               trapExitLayoutNumWords_, extras);
   }
@@ -4460,12 +4573,10 @@ class BaseCompiler final : public BaseCompilerInterface {
     // as to determine which of them are both in-memory and pointer-typed, and
     // add entries to machineStackTracker as appropriate.
 
-    const ValTypeVector& argTys = env_.funcTypes[func_.index]->args();
-
-    size_t numInboundStackArgBytes = StackArgAreaSizeUnaligned(argTys);
-    MOZ_ASSERT(numInboundStackArgBytes % sizeof(void*) == 0);
-    stackMapGenerator_.numStackArgWords =
-        numInboundStackArgBytes / sizeof(void*);
+    ArgTypeVector args(funcType());
+    size_t inboundStackArgBytes = StackArgAreaSizeUnaligned(args);
+    MOZ_ASSERT(inboundStackArgBytes % sizeof(void*) == 0);
+    stackMapGenerator_.numStackArgWords = inboundStackArgBytes / sizeof(void*);
 
     MOZ_ASSERT(stackMapGenerator_.machineStackTracker.length() == 0);
     if (!stackMapGenerator_.machineStackTracker.pushNonGCPointers(
@@ -4473,18 +4584,17 @@ class BaseCompiler final : public BaseCompilerInterface {
       return false;
     }
 
-    for (ABIArgIter<const ValTypeVector> i(argTys); !i.done(); i++) {
+    // Identify GC-managed pointers passed on the stack.
+    for (ABIArgIter i(args); !i.done(); i++) {
       ABIArg argLoc = *i;
-      const ValType& ty = argTys[i.index()];
-      MOZ_ASSERT(ToMIRType(ty) != MIRType::Pointer);
-      if (argLoc.kind() != ABIArg::Stack || !ty.isReference()) {
-        continue;
+      if (argLoc.kind() == ABIArg::Stack &&
+          args[i.index()] == MIRType::RefOrNull) {
+        uint32_t offset = argLoc.offsetFromArgBase();
+        MOZ_ASSERT(offset < inboundStackArgBytes);
+        MOZ_ASSERT(offset % sizeof(void*) == 0);
+        stackMapGenerator_.machineStackTracker.setGCPointer(offset /
+                                                            sizeof(void*));
       }
-      uint32_t offset = argLoc.offsetFromArgBase();
-      MOZ_ASSERT(offset < numInboundStackArgBytes);
-      MOZ_ASSERT(offset % sizeof(void*) == 0);
-      stackMapGenerator_.machineStackTracker.setGCPointer(offset /
-                                                          sizeof(void*));
     }
 
     GenerateFunctionPrologue(
@@ -4538,7 +4648,6 @@ class BaseCompiler final : public BaseCompilerInterface {
 
     fr.checkStack(ABINonArgReg0, BytecodeOffset(func_.lineOrBytecode));
 
-    const ValTypeVector& args = funcType().args();
     ExitStubMapVector extras;
     if (!stackMapGenerator_.generateStackmapEntriesForTrapExit(args, &extras)) {
       return false;
@@ -4570,11 +4679,17 @@ class BaseCompiler final : public BaseCompilerInterface {
     }
 
     // Copy arguments from registers to stack.
-    for (ABIArgIter<const ValTypeVector> i(args); !i.done(); i++) {
+    for (ABIArgIter i(args); !i.done(); i++) {
       if (!i->argInRegister()) {
         continue;
       }
-      Local& l = localInfo_[i.index()];
+      if (args.isSyntheticStackResultPointerArg(i.index())) {
+        // The synthetic stack result area parameter was passed in a register.
+        // Store it to the stack.
+        fr.storeIncomingStackResultAreaPtr(RegPtr(i->gpr()));
+        continue;
+      }
+      Local& l = localInfo_[args.naturalIndex(i.index())];
       switch (i.mirType()) {
         case MIRType::Int32:
           fr.storeLocalI32(RegI32(i->gpr()), l);
@@ -4620,59 +4735,90 @@ class BaseCompiler final : public BaseCompilerInterface {
     return true;
   }
 
-  void saveResult() {
+  void popStackReturnValues(const ResultType& resultType) {
+    uint32_t bytes = ABIResultIter::MeasureStackBytes(resultType);
+    if (bytes == 0) {
+      return;
+    }
+    Register target = ABINonArgReturnReg0;
+    Register temp = ABINonArgReturnReg1;
+    fr.loadIncomingStackResultAreaPtr(RegPtr(target));
+    fr.popStackResultsToMemory(target, bytes, temp);
+  }
+
+  void saveRegisterReturnValues(const ResultType& resultType) {
     MOZ_ASSERT(env_.debugEnabled());
     size_t debugFrameOffset = masm.framePushed() - DebugFrame::offsetOfFrame();
     Address resultsAddress(masm.getStackPointer(),
                            debugFrameOffset + DebugFrame::offsetOfResults());
-    Maybe<ValType> ret = funcType().ret();
-    if (!ret) {
-      return;
-    }
-    switch (ret.ref().kind()) {
-      case ValType::I32:
-        masm.store32(RegI32(ReturnReg), resultsAddress);
+
+    for (ABIResultIter i(resultType); !i.done(); i.next()) {
+      const ABIResult result = i.cur();
+      if (!result.inRegister()) {
+#ifdef DEBUG
+        for (i.next(); !i.done(); i.next()) {
+          MOZ_ASSERT(!i.cur().inRegister());
+        }
+#endif
         break;
-      case ValType::I64:
-        masm.store64(RegI64(ReturnReg64), resultsAddress);
-        break;
-      case ValType::F64:
-        masm.storeDouble(RegF64(ReturnDoubleReg), resultsAddress);
-        break;
-      case ValType::F32:
-        masm.storeFloat32(RegF32(ReturnFloat32Reg), resultsAddress);
-        break;
-      case ValType::Ref:
-        masm.storePtr(RegPtr(ReturnReg), resultsAddress);
-        break;
+      }
+      MOZ_ASSERT(i.index() == 0,
+                 "debug frame only has space for one stored register result");
+      switch (result.type().kind()) {
+        case ValType::I32:
+          masm.store32(RegI32(result.gpr()), resultsAddress);
+          break;
+        case ValType::I64:
+          masm.store64(RegI64(result.gpr64()), resultsAddress);
+          break;
+        case ValType::F64:
+          masm.storeDouble(RegF64(result.fpr()), resultsAddress);
+          break;
+        case ValType::F32:
+          masm.storeFloat32(RegF32(result.fpr()), resultsAddress);
+          break;
+        case ValType::Ref:
+          masm.storePtr(RegPtr(result.gpr()), resultsAddress);
+          break;
+      }
     }
   }
 
-  void restoreResult() {
+  void restoreRegisterReturnValues(const ResultType& resultType) {
     MOZ_ASSERT(env_.debugEnabled());
     size_t debugFrameOffset = masm.framePushed() - DebugFrame::offsetOfFrame();
     Address resultsAddress(masm.getStackPointer(),
                            debugFrameOffset + DebugFrame::offsetOfResults());
-    Maybe<ValType> ret = funcType().ret();
-    if (!ret) {
-      return;
-    }
-    switch (ret.ref().kind()) {
-      case ValType::I32:
-        masm.load32(resultsAddress, RegI32(ReturnReg));
+
+    for (ABIResultIter i(resultType); !i.done(); i.next()) {
+      const ABIResult result = i.cur();
+      if (!result.inRegister()) {
+#ifdef DEBUG
+        for (i.next(); !i.done(); i.next()) {
+          MOZ_ASSERT(!i.cur().inRegister());
+        }
+#endif
         break;
-      case ValType::I64:
-        masm.load64(resultsAddress, RegI64(ReturnReg64));
-        break;
-      case ValType::F64:
-        masm.loadDouble(resultsAddress, RegF64(ReturnDoubleReg));
-        break;
-      case ValType::F32:
-        masm.loadFloat32(resultsAddress, RegF32(ReturnFloat32Reg));
-        break;
-      case ValType::Ref:
-        masm.loadPtr(resultsAddress, RegPtr(ReturnReg));
-        break;
+      }
+      MOZ_ASSERT(i.index() == 0,
+                 "debug frame only has space for one stored register result");
+      switch (result.type().kind()) {
+        case ValType::I32:
+          masm.load32(resultsAddress, RegI32(result.gpr()));
+          break;
+        case ValType::I64:
+          masm.load64(resultsAddress, RegI64(result.gpr64()));
+          break;
+        case ValType::F64:
+          masm.loadDouble(resultsAddress, RegF64(result.fpr()));
+          break;
+        case ValType::F32:
+          masm.loadFloat32(resultsAddress, RegF32(result.fpr()));
+          break;
+        case ValType::Ref:
+          masm.loadPtr(resultsAddress, RegPtr(result.gpr()));
+          break;
+      }
     }
   }
 
@@ -4695,6 +4841,10 @@ class BaseCompiler final : public BaseCompilerInterface {
 
     masm.bind(&returnLabel_);
 
+    ResultType resultType(ResultType::Vector(funcType().results()));
+
+    popStackReturnValues(resultType);
+
     if (env_.debugEnabled()) {
       // If a return type is a ref, we need to note that in the stack maps
       // generated here.  Note that this assumes that DebugFrame::result* and
@@ -4710,7 +4860,7 @@ class BaseCompiler final : public BaseCompilerInterface {
       }
       // Store and reload the return value from DebugFrame::return so that
       // it can be clobbered, and/or modified by the debug trap.
-      saveResult();
+      saveRegisterReturnValues(resultType);
       insertBreakablePoint(CallSiteDesc::Breakpoint);
       if (!createStackMap("debug: breakpoint", refDebugFrame)) {
         return false;
@@ -4719,7 +4869,7 @@ class BaseCompiler final : public BaseCompilerInterface {
       if (!createStackMap("debug: leave frame", refDebugFrame)) {
         return false;
       }
-      restoreResult();
+      restoreRegisterReturnValues(resultType);
     }
 
     GenerateFunctionEpilogue(masm, fr.fixedAllocSize(), &offsets_);
@@ -7072,8 +7222,23 @@ class BaseCompiler final : public BaseCompilerInterface {
   MOZ_MUST_USE bool emitBrTable();
   MOZ_MUST_USE bool emitDrop();
   MOZ_MUST_USE bool emitReturn();
+
+  enum class CalleeOnStack {
+    // After the arguments to the call, there is a callee pushed onto value
+    // stack.  This is only the case for callIndirect.  To get the arguments to
+    // the call, emitCallArgs has to reach one element deeper into the value
+    // stack, to skip the callee.
+    True,
+
+    // No callee on the stack.
+    False
+  };
+
   MOZ_MUST_USE bool emitCallArgs(const ValTypeVector& args,
-                                 FunctionCall* baselineCall);
+                                 const StackResultsLoc& results,
+                                 FunctionCall* baselineCall,
+                                 CalleeOnStack calleeOnStack);
+
   MOZ_MUST_USE bool emitCall();
   MOZ_MUST_USE bool emitCallIndirect();
   MOZ_MUST_USE bool emitUnaryMathBuiltinCall(SymbolicAddress callee,
@@ -7102,8 +7267,12 @@ class BaseCompiler final : public BaseCompilerInterface {
   void endIfThenElse(ResultType type);
 
   void doReturn(ContinuationKind kind);
-  void pushReturnValueOfCall(const FunctionCall& call, ValType type);
   void pushReturnValueOfCall(const FunctionCall& call, MIRType type);
+
+  bool pushStackResultsForCall(const ResultType& type, RegPtr temp,
+                               StackResultsLoc* loc);
+  void popStackResultsAfterCall(const StackResultsLoc& results,
+                                uint32_t stackArgBytes);
 
   void emitCompareI32(Assembler::Condition compareOp, ValType compareType);
   void emitCompareI64(Assembler::Condition compareOp, ValType compareType);
@@ -8985,14 +9154,40 @@ bool BaseCompiler::emitReturn() {
 }
 
 bool BaseCompiler::emitCallArgs(const ValTypeVector& argTypes,
-                                FunctionCall* baselineCall) {
+                                const StackResultsLoc& results,
+                                FunctionCall* baselineCall,
+                                CalleeOnStack calleeOnStack) {
   MOZ_ASSERT(!deadCode_);
 
-  startCallArgs(StackArgAreaSizeUnaligned(argTypes), baselineCall);
+  ArgTypeVector args(argTypes, results.stackResults());
+  uint32_t naturalArgCount = argTypes.length();
+  uint32_t abiArgCount = args.length();
+  startCallArgs(StackArgAreaSizeUnaligned(args), baselineCall);
 
-  uint32_t numArgs = argTypes.length();
-  for (size_t i = 0; i < numArgs; ++i) {
-    passArg(argTypes[i], peek(numArgs - 1 - i), baselineCall);
+  // Args are deeper on the stack than the stack result area, if any.
+  size_t argsDepth = results.count();
+  // They're deeper than the callee too, for callIndirect.
+  if (calleeOnStack == CalleeOnStack::True) {
+    argsDepth++;
+  }
+
+  for (size_t i = 0; i < abiArgCount; ++i) {
+    if (args.isNaturalArg(i)) {
+      size_t naturalIndex = args.naturalIndex(i);
+      size_t stackIndex = naturalArgCount - 1 - naturalIndex + argsDepth;
+      passArg(argTypes[naturalIndex], peek(stackIndex), baselineCall);
+    } else {
+      // The synthetic stack result area pointer.
+      ABIArg argLoc = baselineCall->abi.next(MIRType::Pointer);
+      if (argLoc.kind() == ABIArg::Stack) {
+        ScratchPtr scratch(*this);
+        fr.computeOutgoingStackResultAreaPtr(results, scratch);
+        masm.storePtr(scratch, Address(masm.getStackPointer(),
+                                       argLoc.offsetFromArgBase()));
+      } else {
+        fr.computeOutgoingStackResultAreaPtr(results, RegPtr(argLoc.gpr()));
+      }
+    }
   }
 
   masm.loadWasmTlsRegFromFrame();
@@ -9034,9 +9229,71 @@ void BaseCompiler::pushReturnValueOfCall(const FunctionCall& call,
   }
 }
 
-void BaseCompiler::pushReturnValueOfCall(const FunctionCall& call,
-                                         ValType type) {
-  pushReturnValueOfCall(call, ToMIRType(type));
+bool BaseCompiler::pushStackResultsForCall(const ResultType& type, RegPtr temp,
+                                           StackResultsLoc* loc) {
+  if (!ABIResultIter::HasStackResults(type)) {
+    return true;
+  }
+
+  // This method is the only one in the class that can increase stk_.length() by
+  // an unbounded amount, so it's the only one that requires an allocation.
+  // (The general case is handled in emitBody.)
+  if (!stk_.reserve(stk_.length() + type.length())) {
+    return false;
+  }
+
+  // Measure stack results.
+  ABIResultIter i(type);
+  size_t count = 0;
+  for (; !i.done(); i.next()) {
+    if (i.cur().onStack()) {
+      count++;
+    }
+  }
+  uint32_t bytes = i.stackBytesConsumedSoFar();
+
+  // Reserve space for the stack results.
+  uint32_t height = fr.prepareStackResultArea(fr.stackHeight(), bytes);
+
+  // Push Stk values onto the value stack, and zero out Ref values.
+  for (i.switchToPrev(); !i.done(); i.prev()) {
+    const ABIResult& result = i.cur();
+    if (result.onStack()) {
+      Stk v = captureStackResult(result, bytes);
+      push(v);
+      if (v.kind() == Stk::MemRef) {
+        stackMapGenerator_.memRefsOnStk++;
+        if (sizeof(intptr_t) == sizeof(int32_t)) {
+          fr.storeImmediateToStack(int32_t(0), v.offs(), temp);
+        } else {
+          fr.storeImmediateToStack(int64_t(0), v.offs(), temp);
+        }
+      }
+    }
+  }
+
+  *loc = StackResultsLoc(bytes, count, height);
+
+  return true;
+}
+
+// After a call, some results may be written to the stack result locations that
+// are pushed on the machine stack after any stack args.  If there are stack
+// args and stack results, these results need to be shuffled down, as the args
+// are "consumed" by the call.
+void BaseCompiler::popStackResultsAfterCall(const StackResultsLoc& results,
+                                            uint32_t stackArgBytes) {
+  if (results.bytes() != 0) {
+    popValueStackBy(results.count());
+    if (stackArgBytes != 0) {
+      uint32_t srcHeight = results.height();
+      MOZ_ASSERT(srcHeight >= stackArgBytes + results.bytes());
+      uint32_t destHeight = srcHeight - stackArgBytes;
+
+      fr.shuffleStackResultsTowardFP(srcHeight, destHeight, results.bytes(),
+                                     ABINonArgReturnVolatileReg);
+    }
+  }
 }
 
 // For now, always sync() at the beginning of the call to easily save live
@@ -9071,13 +9328,20 @@ bool BaseCompiler::emitCall() {
   bool import = env_.funcIsImport(funcIndex);
 
   uint32_t numArgs = funcType.args().length();
-  size_t stackSpace = stackConsumed(numArgs);
+  size_t stackArgBytes = stackConsumed(numArgs);
+
+  ResultType resultType(ResultType::Vector(funcType.results()));
+  StackResultsLoc results;
+  if (!pushStackResultsForCall(resultType, RegPtr(ABINonArgReg0), &results)) {
+    return false;
+  }
 
   FunctionCall baselineCall(lineOrBytecode);
   beginCall(baselineCall, UseABI::Wasm,
             import ? InterModule::True : InterModule::False);
 
-  if (!emitCallArgs(funcType.args(), &baselineCall)) {
+  if (!emitCallArgs(funcType.args(), results, &baselineCall,
+                    CalleeOnStack::False)) {
     return false;
   }
 
@@ -9093,13 +9357,14 @@ bool BaseCompiler::emitCall() {
     return false;
   }
 
-  endCall(baselineCall, stackSpace);
+  popStackResultsAfterCall(results, stackArgBytes);
+
+  endCall(baselineCall, stackArgBytes);
 
   popValueStackBy(numArgs);
 
-  if (funcType.ret()) {
-    pushReturnValueOfCall(baselineCall, funcType.ret().ref());
-  }
+  captureResultRegisters(resultType);
+  pushBlockResults(resultType);
 
   return true;
 }
@@ -9125,35 +9390,38 @@ bool BaseCompiler::emitCallIndirect() {
 
   // Stack: ... arg1 .. argn callee
 
-  uint32_t numArgs = funcType.args().length();
-  size_t stackSpace = stackConsumed(numArgs + 1);
+  uint32_t numArgs = funcType.args().length() + 1;
+  size_t stackArgBytes = stackConsumed(numArgs);
 
-  // The arguments must be at the stack top for emitCallArgs, so pop the
-  // callee if it is on top.  Note this only pops the compiler's stack,
-  // not the CPU stack.
-
-  Stk callee = stk_.popCopy();
+  ResultType resultType(ResultType::Vector(funcType.results()));
+  StackResultsLoc results;
+  if (!pushStackResultsForCall(resultType, RegPtr(ABINonArgReg0), &results)) {
+    return false;
+  }
 
   FunctionCall baselineCall(lineOrBytecode);
   beginCall(baselineCall, UseABI::Wasm, InterModule::True);
 
-  if (!emitCallArgs(funcType.args(), &baselineCall)) {
+  if (!emitCallArgs(funcType.args(), results, &baselineCall,
+                    CalleeOnStack::True)) {
     return false;
   }
 
+  const Stk& callee = peek(results.count());
   CodeOffset raOffset =
       callIndirect(funcTypeIndex, tableIndex, callee, baselineCall);
   if (!createStackMap("emitCallIndirect", raOffset)) {
     return false;
   }
 
-  endCall(baselineCall, stackSpace);
+  popStackResultsAfterCall(results, stackArgBytes);
+
+  endCall(baselineCall, stackArgBytes);
 
   popValueStackBy(numArgs);
 
-  if (funcType.ret()) {
-    pushReturnValueOfCall(baselineCall, funcType.ret().ref());
-  }
+  captureResultRegisters(resultType);
+  pushBlockResults(resultType);
 
   return true;
 }
@@ -9198,11 +9466,13 @@ bool BaseCompiler::emitUnaryMathBuiltinCall(SymbolicAddress callee,
   ValType retType = operandType;
   uint32_t numArgs = signature.length();
   size_t stackSpace = stackConsumed(numArgs);
+  StackResultsLoc noStackResults;
 
   FunctionCall baselineCall(lineOrBytecode);
   beginCall(baselineCall, UseABI::Builtin, InterModule::False);
 
-  if (!emitCallArgs(signature, &baselineCall)) {
+  if (!emitCallArgs(signature, noStackResults, &baselineCall,
+                    CalleeOnStack::False)) {
     return false;
   }
 
@@ -9215,7 +9485,7 @@ bool BaseCompiler::emitUnaryMathBuiltinCall(SymbolicAddress callee,
 
   popValueStackBy(numArgs);
 
-  pushReturnValueOfCall(baselineCall, retType);
+  pushReturnValueOfCall(baselineCall, ToMIRType(retType));
 
   return true;
 }
@@ -12612,8 +12882,8 @@ bool BaseCompiler::init() {
     return false;
   }
 
-  if (!fr.setupLocals(locals_, funcType().args(), env_.debugEnabled(),
-                      &localInfo_)) {
+  ArgTypeVector args(funcType());
+  if (!fr.setupLocals(locals_, args, env_.debugEnabled(), &localInfo_)) {
     return false;
   }
 
@@ -12733,9 +13003,9 @@ bool js::wasm::BaselineCompileFunctions(const ModuleEnvironment& env,
 bool js::wasm::IsValidStackMapKey(bool debugEnabled, const uint8_t* nextPC) {
 #  if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)
   const uint8_t* insn = nextPC;
-  return (insn[-2] == 0x0F && insn[-1] == 0x0B) ||  // ud2
-         (insn[-2] == 0xFF && insn[-1] == 0xD0) ||  // call *%{rax,eax}
-         insn[-5] == 0xE8 ||                        // call simm32
+  return (insn[-2] == 0x0F && insn[-1] == 0x0B) ||           // ud2
+         (insn[-2] == 0xFF && (insn[-1] & 0xF8) == 0xD0) ||  // call *%r_
+         insn[-5] == 0xE8 ||                                 // call simm32
          (debugEnabled && insn[-5] == 0x0F && insn[-4] == 0x1F &&
           insn[-3] == 0x44 && insn[-2] == 0x00 &&
           insn[-1] == 0x00);  // nop_five

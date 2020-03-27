@@ -34,6 +34,8 @@ WindowGlobalInit WindowGlobalActor::AboutBlankInitializer(
 void WindowGlobalActor::ConstructActor(const nsAString& aName,
                                        JS::MutableHandleObject aActor,
                                        ErrorResult& aRv) {
+  MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
+
   JSWindowActor::Type actorType = GetSide();
   MOZ_ASSERT_IF(actorType == JSWindowActor::Type::Parent,
                 XRE_IsParentProcess());
@@ -115,22 +117,19 @@ void WindowGlobalActor::ConstructActor(const nsAString& aName,
     return;
   }
 
+  if (NS_WARN_IF(!ctor.isObject())) {
+    nsPrintfCString message("Could not find actor constructor '%s'",
+                            NS_ConvertUTF16toUTF8(ctorName).get());
+    aRv.ThrowNotFoundError(message);
+    return;
+  }
+
   // Invoke the constructor loaded from the module.
   if (!JS::Construct(cx, ctor, JS::HandleValueArray::empty(), aActor)) {
     aRv.NoteJSContextException(cx);
     return;
   }
 }
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WindowGlobalActor)
-  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
-
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(WindowGlobalActor)
-
-NS_IMPL_CYCLE_COLLECTING_ADDREF(WindowGlobalActor)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(WindowGlobalActor)
 
 }  // namespace dom
 }  // namespace mozilla

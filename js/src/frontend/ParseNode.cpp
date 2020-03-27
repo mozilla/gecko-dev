@@ -12,6 +12,7 @@
 #include "jsnum.h"
 
 #include "frontend/Parser.h"
+#include "vm/BigIntType.h"
 #include "vm/RegExpObject.h"
 
 #include "vm/JSContext-inl.h"
@@ -404,7 +405,7 @@ BigInt* BigIntLiteral::getOrCreate(JSContext* cx) {
     return value();
   }
   Deferred& deferred = data_.as<Deferred>();
-  return deferred.parseInfo.bigIntData[deferred.index].createBigInt(cx);
+  return deferred.compilationInfo.bigIntData[deferred.index].createBigInt(cx);
 }
 
 bool BigIntLiteral::isZero() {
@@ -412,10 +413,22 @@ bool BigIntLiteral::isZero() {
     return box()->value()->isZero();
   }
   Deferred& deferred = data_.as<Deferred>();
-  return deferred.parseInfo.bigIntData[deferred.index].isZero();
+  return deferred.compilationInfo.bigIntData[deferred.index].isZero();
 }
 
 BigInt* BigIntLiteral::value() { return box()->value(); }
+
+JSAtom* BigIntLiteral::toAtom(JSContext* cx) {
+  RootedBigInt bi(cx, getOrCreate(cx));
+  if (!bi) {
+    return nullptr;
+  }
+  return BigIntToAtom<CanGC>(cx, bi);
+}
+
+JSAtom* NumericLiteral::toAtom(JSContext* cx) const {
+  return NumberToAtom(cx, value());
+}
 
 RegExpObject* RegExpCreationData::createRegExp(JSContext* cx) const {
   MOZ_ASSERT(buf_);
@@ -423,12 +436,12 @@ RegExpObject* RegExpCreationData::createRegExp(JSContext* cx) const {
                                            TenuredObject);
 }
 
-RegExpObject* RegExpLiteral::getOrCreate(JSContext* cx,
-                                         ParseInfo& parseInfo) const {
+RegExpObject* RegExpLiteral::getOrCreate(
+    JSContext* cx, CompilationInfo& compilationInfo) const {
   if (data_.is<ObjectBox*>()) {
     return &objbox()->object()->as<RegExpObject>();
   }
-  return parseInfo.regExpData[data_.as<RegExpIndex>()].createRegExp(cx);
+  return compilationInfo.regExpData[data_.as<RegExpIndex>()].createRegExp(cx);
 }
 
 FunctionBox* ObjectBox::asFunctionBox() {

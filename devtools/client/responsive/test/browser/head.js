@@ -129,32 +129,48 @@ var closeRDM = async function(tab, options) {
 };
 
 /**
- * Adds a new test task that adds a tab with the given URL, opens responsive
- * design mode, runs the given generator, closes responsive design mode, and
- * removes the tab. If includeBrowserEmbeddedUI is truthy, the task will be
- * run a second time with the devtools.responsive.browserUI.enabled pref set.
+ * Adds a new test task that adds a tab with the given URL, awaits the
+ * rdmPreTask (if provided), opens responsive design mode, awaits the rdmTask,
+ * closes responsive design mode, awaits the rdmPostTask (if provided), and
+ * removes the tab. If includeBrowserEmbeddedUI is truthy, the sequence will
+ * be repeated with the devtools.responsive.browserUI.enabled pref set.
  *
  * Example usage:
  *
- *   addRDMTask(
+ *   addRDMTaskWithPreAndPost(
  *     TEST_URL,
- *     async function ({ ui, manager, browser, usingBrowserUI }) {
- *       // Your tests go here...
+ *     async function preTask({ browser, usingBrowserUI }) {
+ *       // Your pre-task goes here...
+ *     },
+ *     async function task({ ui, manager, browser, usingBrowserUI }) {
+ *       // Your task goes here...
+ *     },
+ *     async function postTask({ browser, usingBrowserUI }) {
+ *       // Your post-task goes here...
  *     },
  *     true
  *   );
  */
-function addRDMTask(rdmUrl, rdmTask, includeBrowserEmbeddedUI) {
+function addRDMTaskWithPreAndPost(
+  rdmURL,
+  rdmPreTask,
+  rdmTask,
+  rdmPostTask,
+  includeBrowserEmbeddedUI
+) {
   // Define a task setup function that can work with our without the
   // browser embedded UI.
-  function taskSetup(url, task) {
+  function taskSetup(url, preTask, task, postTask, usingBrowserUI) {
     add_task(async function() {
+      await SpecialPowers.pushPrefEnv({
+        set: [["devtools.responsive.browserUI.enabled", usingBrowserUI]],
+      });
       const tab = await addTab(url);
-      const { ui, manager } = await openRDM(tab);
-      const usingBrowserUI = Services.prefs.getBoolPref(
-        "devtools.responsive.browserUI.enabled"
-      );
       const browser = tab.linkedBrowser;
+      if (preTask) {
+        await preTask({ browser, usingBrowserUI });
+      }
+      const { ui, manager } = await openRDM(tab);
       try {
         await task({ ui, manager, browser, usingBrowserUI });
       } catch (err) {
@@ -168,28 +184,50 @@ function addRDMTask(rdmUrl, rdmTask, includeBrowserEmbeddedUI) {
       }
 
       await closeRDM(tab);
+      if (postTask) {
+        await postTask({ browser, usingBrowserUI });
+      }
       await removeTab(tab);
+
+      // Flush prefs to not only undo our earlier change, but also undo
+      // any changes made by the tasks.
+      await SpecialPowers.flushPrefEnv();
     });
   }
 
   // Call the task setup function without using the browser UI pref.
-  const oldPrefValue = Services.prefs.getBoolPref(
-    "devtools.responsive.browserUI.enabled"
-  );
-  Services.prefs.setBoolPref("devtools.responsive.browserUI.enabled", false);
-
-  taskSetup(rdmUrl, rdmTask);
+  taskSetup(rdmURL, rdmPreTask, rdmTask, rdmPostTask, false);
 
   if (includeBrowserEmbeddedUI) {
-    // Set the pref and then call the task setup function again.
-    Services.prefs.setBoolPref("devtools.responsive.browserUI.enabled", true);
-
-    taskSetup(rdmUrl, rdmTask);
+    // Call it again with the browser UI pref on.
+    taskSetup(rdmURL, rdmPreTask, rdmTask, rdmPostTask, true);
   }
+}
 
-  Services.prefs.setBoolPref(
-    "devtools.responsive.browserUI.enabled",
-    oldPrefValue
+/**
+ * This is a simplified version of addRDMTaskWithPreAndPost. Adds a new test
+ * task that adds a tab with the given URL, opens responsive design mode,
+ * closes responsive design mode, and removes the tab. If
+ * includeBrowserEmbeddedUI is truthy, the sequence will be repeated with the
+ * devtools.responsive.browserUI.enabled pref set.
+ *
+ * Example usage:
+ *
+ *   addRDMTask(
+ *     TEST_URL,
+ *     async function task({ ui, manager, browser, usingBrowserUI }) {
+ *       // Your task goes here...
+ *     },
+ *     true
+ *   );
+ */
+function addRDMTask(rdmURL, rdmTask, includeBrowserEmbeddedUI) {
+  addRDMTaskWithPreAndPost(
+    rdmURL,
+    undefined,
+    rdmTask,
+    undefined,
+    includeBrowserEmbeddedUI
   );
 }
 
@@ -329,7 +367,8 @@ async function testViewportResize(
   expectedViewportSize,
   expectedHandleMove
 ) {
-  const win = ui.toolWindow;
+  const win = ui.getBrowserWindow();
+
   const resized = waitForViewportResizeTo(ui, ...expectedViewportSize);
   const startRect = dragElementBy(selector, ...moveBy, win);
   await resized;
@@ -543,7 +582,7 @@ async function testTouchEventsOverride(ui, expected) {
   const { document } = ui.toolWindow;
   const touchButton = document.getElementById("touch-simulation-button");
 
-  const flag = await ui.emulationFront.getTouchEventsOverride();
+  const flag = await ui.responsiveFront.getTouchEventsOverride();
   is(
     flag === Ci.nsIDocShell.TOUCHEVENTS_OVERRIDE_ENABLED,
     expected,
@@ -577,9 +616,7 @@ function testViewportDeviceMenuLabel(ui, expectedDeviceName) {
 }
 
 async function toggleTouchSimulation(ui) {
-  // XXX: Fix this helper to obtain the correct RDM toolbar window depending on
-  // whether or not the new browser UI is enabled.
-  const { document } = ui.toolWindow;
+  const { document } = ui.getBrowserWindow();
   const touchButton = document.getElementById("touch-simulation-button");
   const changed = once(ui, "touch-simulation-changed");
   const loaded = waitForViewportLoad(ui);
@@ -834,7 +871,7 @@ function promiseRDMZoom(ui, browser, zoom) {
 
     const zoomComplete = BrowserTestUtils.waitForEvent(
       browser,
-      "PostFullZoomChange"
+      "FullZoomResolutionStable"
     );
     ZoomManager.setZoomForBrowser(browser, zoom);
 

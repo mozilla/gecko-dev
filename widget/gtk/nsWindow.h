@@ -152,7 +152,7 @@ class nsWindow final : public nsBaseWidget {
   void SetZIndex(int32_t aZIndex) override;
   virtual void SetSizeMode(nsSizeMode aMode) override;
   virtual void Enable(bool aState) override;
-  virtual void SetFocus(Raise) override;
+  virtual void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
   virtual LayoutDeviceIntRect GetScreenBounds() override;
   virtual LayoutDeviceIntRect GetClientBounds() override;
   virtual LayoutDeviceIntSize GetClientSize() override;
@@ -240,6 +240,7 @@ class nsWindow final : public nsBaseWidget {
 
 #ifdef MOZ_WAYLAND
   void SetEGLNativeWindowSize(const LayoutDeviceIntSize& aEGLWindowSize);
+  static nsWindow* GetFocusedWindow();
 #endif
 
   RefPtr<mozilla::gfx::VsyncSource> GetVsyncSource() override;
@@ -426,6 +427,8 @@ class nsWindow final : public nsBaseWidget {
 #endif
   bool IsRemoteContent() { return HasRemoteContent(); }
   static void HideWaylandOpenedPopups();
+  void NativeMoveResizeWaylandPopupCB(const GdkRectangle* aFinalSize,
+                                      bool aFlippedX, bool aFlippedY);
 
  protected:
   virtual ~nsWindow();
@@ -678,11 +681,15 @@ class nsWindow final : public nsBaseWidget {
 
   bool IsMainMenuWindow();
   GtkWidget* ConfigureWaylandPopupWindows();
+  void PauseRemoteRenderer();
   void HideWaylandWindow();
   void HideWaylandTooltips();
   void HideWaylandPopupAndAllChildren();
   void CleanupWaylandPopups();
   GtkWindow* GetCurrentTopmostWindow();
+  GtkWindow* GetCurrentWindow();
+  GtkWindow* GetTopmostWindow();
+  bool IsWidgetOverflowWindow();
 
   /**
    * |mIMContext| takes all IME related stuff.

@@ -1791,7 +1791,7 @@ bool js::NativeDefineProperty(JSContext* cx, HandleNativeObject obj,
     return false;
   }
   if (redundant) {
-    // In cases involving JSOP_NEWOBJECT and JSOP_INITPROP, obj can have a
+    // In cases involving JSOp::NewObject and JSOp::InitProp, obj can have a
     // type for this property that doesn't match the value in the slot.
     // Update the type here, even though this DefineProperty call is
     // otherwise a no-op. (See bug 1125624 comment 13.)
@@ -2316,9 +2316,9 @@ static MOZ_ALWAYS_INLINE bool GetExistingProperty(
     JSScript* script = cx->currentScript(&pc);
     if (script && script->hasJitScript()) {
       switch (JSOp(*pc)) {
-        case JSOP_GETPROP:
-        case JSOP_CALLPROP:
-        case JSOP_LENGTH:
+        case JSOp::GetProp:
+        case JSOp::CallProp:
+        case JSOp::Length:
           script->jitScript()->noteAccessedGetter(script->pcToOffset(pc));
           break;
         default:
@@ -2365,7 +2365,7 @@ static bool Detecting(JSContext* cx, JSScript* script, jsbytecode* pc) {
   BytecodeIterator endIter = BytecodeIterator(script->endLocation());
 
   // Skip over jump targets and duplication operations.
-  while (scriptIterator->isJumpTarget() || scriptIterator->is(JSOP_DUP)) {
+  while (scriptIterator->isJumpTarget() || scriptIterator->is(JSOp::Dup)) {
     if (++scriptIterator == endIter) {
       // If we are at the end of the script, we cannot be detecting
       // the property.
@@ -2380,7 +2380,7 @@ static bool Detecting(JSContext* cx, JSScript* script, jsbytecode* pc) {
   }
 
   // Special case: Do not warn if we are checking whether the property is null.
-  if (scriptIterator->is(JSOP_NULL)) {
+  if (scriptIterator->is(JSOp::Null)) {
     if (++scriptIterator == endIter) {
       return false;
     }
@@ -2390,8 +2390,8 @@ static bool Detecting(JSContext* cx, JSScript* script, jsbytecode* pc) {
 
   // Special case #2: Do not warn if we are checking whether the property is
   // undefined.
-  if (scriptIterator->is(JSOP_GETGNAME) || scriptIterator->is(JSOP_GETNAME) ||
-      scriptIterator->is(JSOP_UNDEFINED)) {
+  if (scriptIterator->is(JSOp::GetGName) || scriptIterator->is(JSOp::GetName) ||
+      scriptIterator->is(JSOp::Undefined)) {
     // If we using the result of a variable lookup to use in the comparison
     // against the property and that lookup does not result in 'undefined',
     // the type of subsequent operations do not matter -- we always warn.
@@ -2453,7 +2453,7 @@ static bool GetNonexistentProperty(JSContext* cx, HandleId id,
     return true;
   }
 
-  if (*pc != JSOP_GETPROP && *pc != JSOP_GETELEM) {
+  if (JSOp(*pc) != JSOp::GetProp && JSOp(*pc) != JSOp::GetElem) {
     return true;
   }
 
@@ -2470,7 +2470,7 @@ static bool GetNonexistentProperty(JSContext* cx, HandleId id,
   }
 
   // Do not warn about tests like (obj[prop] == undefined).
-  pc += CodeSpec[*pc].length;
+  pc += GetBytecodeLength(pc);
   if (Detecting(cx, script, pc)) {
     return true;
   }
@@ -2666,8 +2666,8 @@ bool js::GetNameBoundInEnvironment(JSContext* cx, HandleObject envArg,
   // HasProperty from HasBinding: both are implemented as a HasPropertyOp
   // hook on a WithEnvironmentObject.
   //
-  // In the case of attempting to get the value of a binding already looked
-  // up via BINDNAME, calling HasProperty on the WithEnvironmentObject is
+  // In the case of attempting to get the value of a binding already looked up
+  // via JSOp::BindName, calling HasProperty on the WithEnvironmentObject is
   // equivalent to calling HasBinding a second time. This results in the
   // incorrect behavior of performing the @@unscopables check again.
   RootedObject env(cx, MaybeUnwrapWithEnvironment(envArg));

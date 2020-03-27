@@ -8,8 +8,9 @@
 #define jit_shared_CodeGenerator_shared_h
 
 #include "mozilla/Alignment.h"
-#include "mozilla/Move.h"
 #include "mozilla/TypeTraits.h"
+
+#include <utility>
 
 #include "jit/JitcodeMap.h"
 #include "jit/JitFrames.h"
@@ -226,7 +227,7 @@ class CodeGeneratorShared : public LElementVisitor {
 
   template <typename T>
   inline size_t allocateIC(const T& cache) {
-    static_assert(mozilla::IsBaseOf<IonIC, T>::value,
+    static_assert(std::is_base_of<IonIC, T>::value,
                   "T must inherit from IonIC");
     size_t index;
     masm.propagateOOM(

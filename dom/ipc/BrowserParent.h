@@ -7,32 +7,33 @@
 #ifndef mozilla_dom_BrowserParent_h
 #define mozilla_dom_BrowserParent_h
 
-#include "js/TypeDecls.h"
+#include <utility>
+
 #include "LiveResizeListener.h"
+#include "Units.h"
+#include "js/TypeDecls.h"
 #include "mozilla/ContentCache.h"
-#include "mozilla/dom/ipc/IdType.h"
+#include "mozilla/EventForwards.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/dom/BrowserBridgeParent.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/PBrowserParent.h"
 #include "mozilla/dom/PContent.h"
 #include "mozilla/dom/PFilePickerParent.h"
 #include "mozilla/dom/TabContext.h"
-#include "mozilla/EventForwards.h"
-#include "mozilla/dom/File.h"
+#include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/gfx/CrossProcessPaint.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layout/RemoteLayerTreeOwner.h"
-#include "mozilla/RefPtr.h"
-#include "mozilla/Move.h"
 #include "nsCOMPtr.h"
 #include "nsIAuthPromptProvider.h"
 #include "nsIBrowserDOMWindow.h"
 #include "nsIDOMEventListener.h"
 #include "nsIKeyEventInPluginCallback.h"
+#include "nsIWidget.h"
 #include "nsIXULBrowserWindow.h"
 #include "nsRefreshDriver.h"
 #include "nsWeakReference.h"
-#include "Units.h"
-#include "nsIWidget.h"
 
 class nsFrameLoader;
 class nsIContent;
@@ -316,9 +317,12 @@ class BrowserParent final : public PBrowserParent,
       const RequestData& aRequestData, const uint32_t aState,
       const Maybe<WebProgressSecurityChangeData>& aSecurityChangeData);
 
-  mozilla::ipc::IPCResult RecvOnContentBlockingEvent(
-      const Maybe<WebProgressData>& aWebProgressData,
-      const RequestData& aRequestData, const uint32_t& aEvent);
+  mozilla::ipc::IPCResult RecvNotifyContentBlockingEvent(
+      const uint32_t& aEvent, const RequestData& aRequestData,
+      const bool aBlocked, nsIURI* aHintURI,
+      nsTArray<nsCString>&& aTrackingFullHashes,
+      const Maybe<mozilla::AntiTrackingCommon::StorageAccessGrantedReason>&
+          aReason);
 
   mozilla::ipc::IPCResult RecvNavigationFinished();
 
@@ -421,7 +425,8 @@ class BrowserParent final : public PBrowserParent,
   mozilla::ipc::IPCResult RecvOnWindowedPluginKeyEvent(
       const NativeEventData& aKeyEventData);
 
-  mozilla::ipc::IPCResult RecvRequestFocus(const bool& aCanRaise);
+  mozilla::ipc::IPCResult RecvRequestFocus(const bool& aCanRaise,
+                                           const CallerType aCallerType);
 
   mozilla::ipc::IPCResult RecvLookUpDictionary(
       const nsString& aText, nsTArray<mozilla::FontRange>&& aFontRangeArray,
@@ -489,16 +494,6 @@ class BrowserParent final : public PBrowserParent,
       ManagedEndpoint<PWindowGlobalParent>&& aEndpoint,
       const WindowGlobalInit& aInit);
 
-  already_AddRefed<PBrowserBridgeParent> AllocPBrowserBridgeParent(
-      const nsString& aPresentationURL, const nsString& aRemoteType,
-      BrowsingContext* aBrowsingContext, const uint32_t& aChromeFlags,
-      const TabId& aTabId);
-
-  virtual mozilla::ipc::IPCResult RecvPBrowserBridgeConstructor(
-      PBrowserBridgeParent* aActor, const nsString& aPresentationURL,
-      const nsString& aRemoteType, BrowsingContext* aBrowsingContext,
-      const uint32_t& aChromeFlags, const TabId& aTabId) override;
-
   mozilla::ipc::IPCResult RecvIsWindowSupportingProtectedMedia(
       const uint64_t& aOuterWindowID,
       IsWindowSupportingProtectedMediaResolver&& aResolve);
@@ -515,7 +510,7 @@ class BrowserParent final : public PBrowserParent,
   bool AttachLayerManager();
   void MaybeShowFrame();
 
-  bool Show(const ScreenIntSize& aSize, bool aParentIsActive);
+  bool Show(const OwnerShowInfo&);
 
   void UpdateDimensions(const nsIntRect& aRect, const ScreenIntSize& aSize);
 
@@ -746,6 +741,8 @@ class BrowserParent final : public PBrowserParent,
                           uint32_t aPresShellId);
   void StopApzAutoscroll(nsViewID aScrollId, uint32_t aPresShellId);
 
+  void SetDestroyingForProcessSwitch() { mIsDestroyingForProcessSwitch = true; }
+
  protected:
   friend BrowserBridgeParent;
   friend BrowserHost;
@@ -933,51 +930,56 @@ class BrowserParent final : public PBrowserParent,
 #endif
 
   // Cached value indicating the docshell active state of the remote browser.
-  bool mDocShellIsActive;
+  bool mDocShellIsActive : 1;
 
   // When true, we've initiated normal shutdown and notified our managing
   // PContent.
-  bool mMarkedDestroying;
+  bool mMarkedDestroying : 1;
   // When true, the BrowserParent is invalid and we should not send IPC messages
   // anymore.
-  bool mIsDestroyed;
+  bool mIsDestroyed : 1;
   // True if the cursor changes from the BrowserChild should change the widget
   // cursor.  This happens whenever the cursor is in the tab's region.
-  bool mTabSetsCursor;
+  bool mTabSetsCursor : 1;
 
   // If this flag is set, then the tab's layers will be preserved even when
   // the tab's docshell is inactive.
-  bool mPreserveLayers;
+  bool mPreserveLayers : 1;
 
   // Holds the most recent value passed to the RenderLayers function. This
   // does not necessarily mean that the layers have finished rendering
   // and have uploaded - for that, use mHasLayers.
-  bool mRenderLayers;
+  bool mRenderLayers : 1;
 
   // Whether this is active for the ProcessPriorityManager or not.
-  bool mActiveInPriorityManager;
+  bool mActiveInPriorityManager : 1;
 
   // True if the compositor has reported that the BrowserChild has uploaded
   // layers.
-  bool mHasLayers;
+  bool mHasLayers : 1;
 
   // True if this BrowserParent has had its layer tree sent to the compositor
   // at least once.
-  bool mHasPresented;
+  bool mHasPresented : 1;
 
   // True when the remote browser is created and ready to handle input events.
-  bool mIsReadyToHandleInputEvents;
+  bool mIsReadyToHandleInputEvents : 1;
 
   // True if we suppress the eMouseEnterIntoWidget event due to the BrowserChild
   // was not ready to handle it. We will resend it when the next time we fire a
   // mouse event and the BrowserChild is ready.
-  bool mIsMouseEnterIntoWidgetEventSuppressed;
+  bool mIsMouseEnterIntoWidgetEventSuppressed : 1;
+
+  // Set to true if we're currently in the middle of replacing this
+  // BrowserParent with a new one connected to a different process, and we
+  // should ignore nsIWebProgressListener stop requests.
+  bool mIsDestroyingForProcessSwitch : 1;
 
   // How many record/replay tabs have active docshells in this process.
   static size_t gNumActiveRecordReplayTabs;
 
   // Whether this tab is contributing to gNumActiveRecordReplayTabs.
-  bool mIsActiveRecordReplayTab;
+  bool mIsActiveRecordReplayTab : 1;
 
   // Update whether this is an active record/replay tab.
   void SetIsActiveRecordReplayTab(bool aIsActive);

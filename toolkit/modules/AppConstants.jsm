@@ -1,5 +1,6 @@
 #filter substitution
 #include @TOPOBJDIR@/source-repo.h
+#include @TOPOBJDIR@/buildid.h
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -278,6 +279,13 @@ this.AppConstants = Object.freeze({
     return result;
   },
 
+  MOZ_ALLOW_ADDON_SIDELOAD:
+#ifdef MOZ_ALLOW_ADDON_SIDELOAD
+  true,
+#else
+  false,
+#endif
+
   MOZ_ALLOW_LEGACY_EXTENSIONS:
 #ifdef MOZ_ALLOW_LEGACY_EXTENSIONS
   true,
@@ -312,6 +320,7 @@ this.AppConstants = Object.freeze({
   MOZ_APP_NAME: "@MOZ_APP_NAME@",
   MOZ_APP_VERSION: "@MOZ_APP_VERSION@",
   MOZ_APP_VERSION_DISPLAY: "@MOZ_APP_VERSION_DISPLAY@",
+  MOZ_BUILDID: "@MOZ_BUILDID@",
   MOZ_BUILD_APP: "@MOZ_BUILD_APP@",
   MOZ_MACBUNDLE_NAME: "@MOZ_MACBUNDLE_NAME@",
   MOZ_UPDATE_CHANNEL: "@MOZ_UPDATE_CHANNEL@",

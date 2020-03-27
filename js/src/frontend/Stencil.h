@@ -7,27 +7,46 @@
 #ifndef frontend_Stencil_h
 #define frontend_Stencil_h
 
-#include "gc/AllocKind.h"
-#include "gc/Rooting.h"
-#include "js/RegExpFlags.h"
-#include "vm/BigIntType.h"
-#include "vm/JSFunction.h"
-#include "vm/JSScript.h"
+#include "mozilla/Assertions.h"  // MOZ_ASSERT, MOZ_RELEASE_ASSERT
+#include "mozilla/Maybe.h"       // mozilla::{Maybe, Nothing}
+#include "mozilla/Range.h"       // mozilla::Range
+#include "mozilla/Span.h"        // mozilla::Span
+
+#include <stdint.h>  // char16_t, uint8_t, uint32_t
+#include <stdlib.h>  // size_t
+
+#include "frontend/AbstractScope.h"      // AbstractScope, ScopeIndex
+#include "frontend/NameAnalysisTypes.h"  // {AtomVector, FunctionBoxVector}
+#include "frontend/TypedIndex.h"         // TypedIndex
+#include "gc/AllocKind.h"                // gc::AllocKind
+#include "gc/Barrier.h"                  // HeapPtr, GCPtrAtom
+#include "gc/Rooting.h"  // HandleAtom, HandleModuleObject, HandleScriptSourceObject, MutableHandleScope
+#include "js/RegExpFlags.h"  // JS::RegExpFlags
+#include "js/RootingAPI.h"   // Handle
+#include "js/UniquePtr.h"    // UniquePtr
+#include "js/Utility.h"      // JS::FreePolicy, UniqueTwoByteChars
+#include "js/Vector.h"       // js::Vector
+#include "util/Text.h"       // DuplicateString
+#include "vm/BigIntType.h"   // ParseBigIntLiteral
+#include "vm/JSFunction.h"   // FunctionFlags
+#include "vm/JSScript.h"  // GeneratorKind, FunctionAsyncKind, ScopeNote, JSTryNote, FieldInitializers
+#include "vm/Runtime.h"  // ReportOutOfMemory
+#include "vm/Scope.h"  // BaseScopeData, FunctionScope, LexicalScope, VarScope, GlobalScope, EvalScope, ModuleScope
+#include "vm/ScopeKind.h"  // ScopeKind
+
+struct JSContext;
+class JSAtom;
+class JSFunction;
+class JSTracer;
 
 namespace js {
+
+class Shape;
+
 namespace frontend {
 
-// TypedIndex allows discrimination in variants between different
-// index types. Used as a typesafe index for various stencil arrays.
-template <typename Tag>
-struct TypedIndex {
-  explicit TypedIndex(uint32_t index) : index(index){};
-
-  uint32_t index = 0;
-
-  // For Vector::operator[]
-  operator size_t() const { return index; }
-};
+struct ParseInfo;
+class FunctionBox;
 
 // [SMDOC] Script Stencil (Frontend Representation)
 //
@@ -117,9 +136,29 @@ struct FunctionCreationData {
 
   bool isSelfHosting = false;
 
+  // If Some(), calls JSFunction::setTypeForScriptedFunction when
+  // this Function is created.
+  mozilla::Maybe<bool> typeForScriptedFunction;
+
   mozilla::Maybe<LazyScriptCreationData> lazyScriptData;
 
   HandleAtom getAtom(JSContext* cx) const;
+
+  void setInferredName(JSAtom* name) {
+    MOZ_ASSERT(!atom);
+    MOZ_ASSERT(name);
+    MOZ_ASSERT(!flags.hasGuessedAtom());
+    atom = name;
+    flags.setInferredName();
+  }
+
+  JSAtom* inferredName() const {
+    MOZ_ASSERT(flags.hasInferredName());
+    MOZ_ASSERT(atom);
+    return atom;
+  }
+
+  bool hasInferredName() const { return flags.hasInferredName(); }
 
   void trace(JSTracer* trc) {
     TraceNullableRoot(trc, &atom, "FunctionCreationData atom");
@@ -189,7 +228,227 @@ class BigIntCreationData {
 
 using BigIntIndex = TypedIndex<BigIntCreationData>;
 
+class ScopeCreationData {
+  friend class js::AbstractScope;
+  friend class js::GCMarker;
+
+  // The enclosing scope if it exists
+  AbstractScope enclosing_;
+
+  // The kind determines data_.
+  ScopeKind kind_;
+
+  // If there are any aliased bindings, the shape for the
+  // EnvironmentObject. Otherwise nullptr.
+  HeapPtr<Shape*> environmentShape_ = {};
+
+  // Once we've produced a scope from a scope creation data, there may still be
+  // AbstractScopes refering to this ScopeCreationData, and if reification is
+  // requested multiple times, we should return the same scope rather than
+  // creating multiple sopes.
+  //
+  // As well, any queries that require data() to answer must be redirected to
+  // the scope once the scope has been reified, as the ScopeCreationData loses
+  // ownership of the data on reification.
+  HeapPtr<Scope*> scope_ = {};
+
+  // For FunctionScopes we need the funbox; nullptr otherwise.
+  frontend::FunctionBox* funbox_ = nullptr;
+
+  UniquePtr<BaseScopeData> data_;
+
+ public:
+  ScopeCreationData(JSContext* cx, ScopeKind kind,
+                    Handle<AbstractScope> enclosing,
+                    UniquePtr<BaseScopeData> data = {},
+                    Shape* environmentShape = nullptr,
+                    frontend::FunctionBox* funbox = nullptr)
+      : enclosing_(enclosing),
+        kind_(kind),
+        environmentShape_(environmentShape),
+        funbox_(funbox),
+        data_(std::move(data)) {}
+
+  ScopeKind kind() const { return kind_; }
+  AbstractScope enclosing() { return enclosing_; }
+  bool getOrCreateEnclosingScope(JSContext* cx, MutableHandleScope scope) {
+    return enclosing_.getOrCreateScope(cx, scope);
+  }
+
+  // FunctionScope
+  static bool create(JSContext* cx, frontend::CompilationInfo& compilationInfo,
+                     Handle<FunctionScope::Data*> dataArg,
+                     bool hasParameterExprs, bool needsEnvironment,
+                     frontend::FunctionBox* funbox,
+                     Handle<AbstractScope> enclosing, ScopeIndex* index);
+
+  // LexicalScope
+  static bool create(JSContext* cx, frontend::CompilationInfo& compilationInfo,
+                     ScopeKind kind, Handle<LexicalScope::Data*> dataArg,
+                     uint32_t firstFrameSlot, Handle<AbstractScope> enclosing,
+                     ScopeIndex* index);
+  // VarScope
+  static bool create(JSContext* cx, frontend::CompilationInfo& compilationInfo,
+                     ScopeKind kind, Handle<VarScope::Data*> dataArg,
+                     uint32_t firstFrameSlot, bool needsEnvironment,
+                     Handle<AbstractScope> enclosing, ScopeIndex* index);
+
+  // GlobalScope
+  static bool create(JSContext* cx, frontend::CompilationInfo& compilationInfo,
+                     ScopeKind kind, Handle<GlobalScope::Data*> dataArg,
+                     ScopeIndex* index);
+
+  // EvalScope
+  static bool create(JSContext* cx, frontend::CompilationInfo& compilationInfo,
+                     ScopeKind kind, Handle<EvalScope::Data*> dataArg,
+                     Handle<AbstractScope> enclosing, ScopeIndex* index);
+
+  // ModuleScope
+  static bool create(JSContext* cx, frontend::CompilationInfo& compilationInfo,
+                     Handle<ModuleScope::Data*> dataArg,
+                     HandleModuleObject module, Handle<AbstractScope> enclosing,
+                     ScopeIndex* index);
+
+  // WithScope
+  static bool create(JSContext* cx, frontend::CompilationInfo& compilationInfo,
+                     Handle<AbstractScope> enclosing, ScopeIndex* index);
+
+  bool hasEnvironment() const {
+    return Scope::hasEnvironment(kind(), environmentShape_);
+  }
+
+  // Valid for functions;
+  bool isArrow() const;
+  JSFunction* canonicalFunction() const;
+
+  bool hasScope() const { return scope_ != nullptr; }
+
+  Scope* getScope() const {
+    MOZ_ASSERT(hasScope());
+    return scope_;
+  }
+
+  Scope* createScope(JSContext* cx);
+
+  void trace(JSTracer* trc);
+
+  uint32_t nextFrameSlot() const;
+
+ private:
+  // Non owning reference to data
+  template <typename SpecificScopeType>
+  typename SpecificScopeType::Data& data() const {
+    MOZ_ASSERT(data_.get());
+    return *static_cast<typename SpecificScopeType::Data*>(data_.get());
+  }
+
+  // Transfer ownership into a new UniquePtr.
+  template <typename SpecificScopeType>
+  UniquePtr<typename SpecificScopeType::Data> releaseData() {
+    return UniquePtr<typename SpecificScopeType::Data>(
+        static_cast<typename SpecificScopeType::Data*>(data_.release()));
+  }
+
+  template <typename SpecificScopeType>
+  Scope* createSpecificScope(JSContext* cx);
+
+  template <typename SpecificScopeType>
+  uint32_t nextFrameSlot() const {
+    // If a scope has been allocated for the ScopeCreationData we no longer own
+    // data, so defer to scope
+    if (hasScope()) {
+      return getScope()->template as<SpecificScopeType>().nextFrameSlot();
+    }
+    return data<SpecificScopeType>().nextFrameSlot;
+  }
+};
+
+// Data used to instantiate the non-lazy script.
+class ScriptStencil {
+ public:
+  // See `BaseScript::{lineno_,column_}`.
+  unsigned lineno = 0;
+  unsigned column = 0;
+
+  // See `initAtomMap` method.
+  uint32_t natoms = 0;
+
+  // See `finishGCThings` method.
+  uint32_t ngcthings = 0;
+
+  // See `finishResumeOffsets` method.
+  uint32_t numResumeOffsets = 0;
+
+  // See `finishScopeNotes` method.
+  uint32_t numScopeNotes = 0;
+
+  // See `finishTryNotes` method.
+  uint32_t numTryNotes = 0;
+
+  // See `ImmutableScriptData`.
+  uint32_t mainOffset = 0;
+  uint32_t nfixed = 0;
+  uint32_t nslots = 0;
+  uint32_t bodyScopeIndex = 0;
+  uint32_t numICEntries = 0;
+  uint32_t numBytecodeTypeSets = 0;
+
+  // `See BaseScript::ImmutableFlags`.
+  bool strict = false;
+  bool bindingsAccessedDynamically = false;
+  bool hasCallSiteObj = false;
+  bool isForEval = false;
+  bool isModule = false;
+  bool isFunction = false;
+  bool hasNonSyntacticScope = false;
+  bool needsFunctionEnvironmentObjects = false;
+  bool hasModuleGoal = false;
+
+  // FIXME: Create Stencil structs for the following fields, instead of
+  //        relying on the data owned by BytecodeEmitter.
+
+  mozilla::Span<const jsbytecode> code;
+  mozilla::Span<const jssrcnote> notes;
+
+  js::frontend::FunctionBox* functionBox = nullptr;
+
+  // Store all GC things into `gcthings`.
+  // `gcthings.Length()` is `this.ngcthings`.
+  virtual bool finishGCThings(JSContext* cx,
+                              mozilla::Span<JS::GCCellPtr> gcthings) const = 0;
+
+  // Store all atoms into `atoms`
+  // `atoms` is the pointer to `this.natoms`-length array of `GCPtrAtom`.
+  virtual void initAtomMap(GCPtrAtom* atoms) const = 0;
+
+  // Store all resume offsets into `resumeOffsets`
+  // `resumeOffsets.Length()` is `this.numResumeOffsets`.
+  virtual void finishResumeOffsets(
+      mozilla::Span<uint32_t> resumeOffsets) const = 0;
+
+  // Store all scope notes into `scopeNotes`.
+  // `scopeNotes.Length()` is `this.numScopeNotes`.
+  virtual void finishScopeNotes(mozilla::Span<ScopeNote> scopeNotes) const = 0;
+
+  // Store all try notes into `tryNotes`.
+  // `tryNotes.Length()` is `this.numTryNotes`.
+  virtual void finishTryNotes(mozilla::Span<JSTryNote> tryNotes) const = 0;
+
+  // Call `FunctionBox::finish` for all inner functions.
+  virtual void finishInnerFunctions() const = 0;
+};
+
 } /* namespace frontend */
 } /* namespace js */
 
+namespace JS {
+template <>
+struct GCPolicy<js::frontend::ScopeCreationData*> {
+  static void trace(JSTracer* trc, js::frontend::ScopeCreationData** data,
+                    const char* name) {
+    (*data)->trace(trc);
+  }
+};
+
+}  // namespace JS
 #endif /* frontend_Stencil_h */

@@ -2,7 +2,7 @@
  * @licstart The following is the entire license notice for the
  * Javascript code in this page
  *
- * Copyright 2019 Mozilla Foundation
+ * Copyright 2020 Mozilla Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -329,37 +329,51 @@ const ViewOnLoad = {
   PREVIOUS: 0,
   INITIAL: 1
 };
-const DefaultExternalServices = {
-  updateFindControlState(data) {},
 
-  updateFindMatchesCount(data) {},
-
-  initPassiveLoading(callbacks) {},
-
-  fallback(data, callback) {},
-
-  reportTelemetry(data) {},
-
-  createDownloadManager(options) {
-    throw new Error("Not implemented: createDownloadManager");
-  },
-
-  createPreferences() {
-    throw new Error("Not implemented: createPreferences");
-  },
-
-  createL10n(options) {
-    throw new Error("Not implemented: createL10n");
-  },
-
-  supportsIntegratedFind: false,
-  supportsDocumentFonts: true,
-  supportsDocumentColors: true,
-  supportedMouseWheelZoomModifierKeys: {
-    ctrlKey: true,
-    metaKey: true
+class DefaultExternalServices {
+  constructor() {
+    throw new Error("Cannot initialize DefaultExternalServices.");
   }
-};
+
+  static updateFindControlState(data) {}
+
+  static updateFindMatchesCount(data) {}
+
+  static initPassiveLoading(callbacks) {}
+
+  static fallback(data, callback) {}
+
+  static reportTelemetry(data) {}
+
+  static createDownloadManager(options) {
+    throw new Error("Not implemented: createDownloadManager");
+  }
+
+  static createPreferences() {
+    throw new Error("Not implemented: createPreferences");
+  }
+
+  static createL10n(options) {
+    throw new Error("Not implemented: createL10n");
+  }
+
+  static get supportsIntegratedFind() {
+    return (0, _pdfjsLib.shadow)(this, "supportsIntegratedFind", false);
+  }
+
+  static get supportsDocumentFonts() {
+    return (0, _pdfjsLib.shadow)(this, "supportsDocumentFonts", true);
+  }
+
+  static get supportedMouseWheelZoomModifierKeys() {
+    return (0, _pdfjsLib.shadow)(this, "supportedMouseWheelZoomModifierKeys", {
+      ctrlKey: true,
+      metaKey: true
+    });
+  }
+
+}
+
 exports.DefaultExternalServices = DefaultExternalServices;
 const PDFViewerApplication = {
   initialBookmark: document.location.hash.substring(1),
@@ -442,9 +456,14 @@ const PDFViewerApplication = {
       return undefined;
     }
 
-    const waitOn = [];
     const hash = document.location.hash.substring(1);
-    const hashParams = (0, _ui_utils.parseQueryString)(hash);
+
+    if (!hash) {
+      return undefined;
+    }
+
+    const hashParams = (0, _ui_utils.parseQueryString)(hash),
+          waitOn = [];
 
     if ("disableworker" in hashParams && hashParams["disableworker"] === "true") {
       waitOn.push(loadFakeWorker());
@@ -472,10 +491,6 @@ const PDFViewerApplication = {
 
     if ("webgl" in hashParams) {
       _app_options.AppOptions.set("enableWebGL", hashParams["webgl"] === "true");
-    }
-
-    if ("useonlycsszoom" in hashParams) {
-      _app_options.AppOptions.set("useOnlyCssZoom", hashParams["useonlycsszoom"] === "true");
     }
 
     if ("verbosity" in hashParams) {
@@ -696,10 +711,6 @@ const PDFViewerApplication = {
 
   get supportsDocumentFonts() {
     return this.externalServices.supportsDocumentFonts;
-  },
-
-  get supportsDocumentColors() {
-    return this.externalServices.supportsDocumentColors;
   },
 
   get loadingBar() {
@@ -1264,17 +1275,23 @@ const PDFViewerApplication = {
       const KNOWN_GENERATORS = ["acrobat distiller", "acrobat pdfwriter", "adobe livecycle", "adobe pdf library", "adobe photoshop", "ghostscript", "tcpdf", "cairo", "dvipdfm", "dvips", "pdftex", "pdfkit", "itext", "prince", "quarkxpress", "mac os x", "microsoft", "openoffice", "oracle", "luradocument", "pdf-xchange", "antenna house", "aspose.cells", "fpdf"];
 
       if (info.Producer) {
-        KNOWN_GENERATORS.some(function (generator, s, i) {
-          if (!generator.includes(s)) {
+        const producer = info.Producer.toLowerCase();
+        KNOWN_GENERATORS.some(function (generator) {
+          if (!producer.includes(generator)) {
             return false;
           }
 
-          generatorId = s.replace(/[ .\-]/g, "_");
+          generatorId = generator.replace(/[ .\-]/g, "_");
           return true;
-        }.bind(null, info.Producer.toLowerCase()));
+        });
       }
 
-      const formType = !info.IsAcroFormPresent ? null : info.IsXFAPresent ? "xfa" : "acroform";
+      let formType = null;
+
+      if (info.IsAcroFormPresent) {
+        formType = info.IsXFAPresent ? "xfa" : "acroform";
+      }
+
       this.externalServices.reportTelemetry({
         type: "documentInfo",
         version: versionId,
@@ -1444,7 +1461,6 @@ const PDFViewerApplication = {
     eventBus.on("beforeprint", _boundEvents.beforePrint);
     eventBus.on("afterprint", _boundEvents.afterPrint);
     eventBus.on("pagerendered", webViewerPageRendered);
-    eventBus.on("textlayerrendered", webViewerTextLayerRendered);
     eventBus.on("updateviewarea", webViewerUpdateViewarea);
     eventBus.on("pagechanging", webViewerPageChanging);
     eventBus.on("scalechanging", webViewerScaleChanging);
@@ -1532,7 +1548,6 @@ const PDFViewerApplication = {
     eventBus.off("beforeprint", _boundEvents.beforePrint);
     eventBus.off("afterprint", _boundEvents.afterPrint);
     eventBus.off("pagerendered", webViewerPageRendered);
-    eventBus.off("textlayerrendered", webViewerTextLayerRendered);
     eventBus.off("updateviewarea", webViewerUpdateViewarea);
     eventBus.off("pagechanging", webViewerPageChanging);
     eventBus.off("scalechanging", webViewerScaleChanging);
@@ -1605,8 +1620,7 @@ function loadAndEnablePDFBug(enabledTabs) {
   return (0, _pdfjsLib.loadScript)(appConfig.debuggerScriptPath).then(function () {
     PDFBug.enable(enabledTabs);
     PDFBug.init({
-      OPS: _pdfjsLib.OPS,
-      createObjectURL: _pdfjsLib.createObjectURL
+      OPS: _pdfjsLib.OPS
     }, appConfig.mainContainer);
   });
 }
@@ -1705,15 +1719,6 @@ function webViewerPageRendered(evt) {
   });
 }
 
-function webViewerTextLayerRendered(evt) {
-  if (evt.numTextDivs > 0 && !PDFViewerApplication.supportsDocumentColors) {
-    PDFViewerApplication.l10n.get("document_colors_not_allowed", null, "PDF documents are not allowed to use their own colors: " + "'Allow pages to choose their own colors' " + "is deactivated in the browser.").then(msg => {
-      console.error(msg);
-    });
-    PDFViewerApplication.fallback();
-  }
-}
-
 function webViewerPageMode({
   mode
 }) {
@@ -1762,12 +1767,19 @@ function webViewerNamedAction(evt) {
   }
 }
 
-function webViewerPresentationModeChanged(evt) {
-  const {
-    active,
-    switchInProgress
-  } = evt;
-  PDFViewerApplication.pdfViewer.presentationModeState = switchInProgress ? _ui_utils.PresentationModeState.CHANGING : active ? _ui_utils.PresentationModeState.FULLSCREEN : _ui_utils.PresentationModeState.NORMAL;
+function webViewerPresentationModeChanged({
+  active,
+  switchInProgress
+}) {
+  let state = _ui_utils.PresentationModeState.NORMAL;
+
+  if (switchInProgress) {
+    state = _ui_utils.PresentationModeState.CHANGING;
+  } else if (active) {
+    state = _ui_utils.PresentationModeState.FULLSCREEN;
+  }
+
+  PDFViewerApplication.pdfViewer.presentationModeState = state;
 }
 
 function webViewerSidebarViewChanged(evt) {
@@ -3579,7 +3591,7 @@ function GrabToPan(options) {
   this._onmousedown = this._onmousedown.bind(this);
   this._onmousemove = this._onmousemove.bind(this);
   this._endPan = this._endPan.bind(this);
-  var overlay = this.overlay = document.createElement("div");
+  const overlay = this.overlay = document.createElement("div");
   overlay.className = "grab-to-pan-grabbing";
 }
 
@@ -3642,7 +3654,7 @@ GrabToPan.prototype = {
     this.element.addEventListener("scroll", this._endPan, true);
     event.preventDefault();
     event.stopPropagation();
-    var focusedElement = document.activeElement;
+    const focusedElement = document.activeElement;
 
     if (focusedElement && !focusedElement.contains(event.target)) {
       focusedElement.blur();
@@ -3657,10 +3669,10 @@ GrabToPan.prototype = {
       return;
     }
 
-    var xDiff = event.clientX - this.clientXStart;
-    var yDiff = event.clientY - this.clientYStart;
-    var scrollTop = this.scrollTopStart - yDiff;
-    var scrollLeft = this.scrollLeftStart - xDiff;
+    const xDiff = event.clientX - this.clientXStart;
+    const yDiff = event.clientY - this.clientYStart;
+    const scrollTop = this.scrollTopStart - yDiff;
+    const scrollLeft = this.scrollLeftStart - xDiff;
 
     if (this.element.scrollTo) {
       this.element.scrollTo({
@@ -3684,9 +3696,9 @@ GrabToPan.prototype = {
     this.overlay.remove();
   }
 };
-var matchesSelector;
+let matchesSelector;
 ["webkitM", "mozM", "msM", "oM", "m"].some(function (prefix) {
-  var name = prefix + "atches";
+  let name = prefix + "atches";
 
   if (name in document.documentElement) {
     matchesSelector = name;
@@ -3700,10 +3712,10 @@ var matchesSelector;
 
   return matchesSelector;
 });
-var isNotIEorIsIE10plus = !document.documentMode || document.documentMode > 9;
-var chrome = window.chrome;
-var isChrome15OrOpera15plus = chrome && (chrome.webstore || chrome.app);
-var isSafari6plus = /Apple/.test(navigator.vendor) && /Version\/([6-9]\d*|[1-5]\d+)/.test(navigator.userAgent);
+const isNotIEorIsIE10plus = !document.documentMode || document.documentMode > 9;
+const chrome = window.chrome;
+const isChrome15OrOpera15plus = chrome && (chrome.webstore || chrome.app);
+const isSafari6plus = /Apple/.test(navigator.vendor) && /Version\/([6-9]\d*|[1-5]\d+)/.test(navigator.userAgent);
 
 function isLeftMouseReleased(event) {
   if ("buttons" in event && isNotIEorIsIE10plus) {
@@ -7966,9 +7978,8 @@ class PDFThumbnailView {
     this.l10n = l10n;
     const anchor = document.createElement("a");
     anchor.href = linkService.getAnchorUrl("#page=" + id);
-    this.l10n.get("thumb_page_title", {
-      page: id
-    }, "Page {{page}}").then(msg => {
+
+    this._thumbPageTitle.then(msg => {
       anchor.title = msg;
     });
 
@@ -8087,30 +8098,27 @@ class PDFThumbnailView {
       return;
     }
 
-    const id = this.renderingId;
     const className = "thumbnailImage";
 
     if (this.disableCanvasToImageConversion) {
-      this.canvas.id = id;
       this.canvas.className = className;
-      this.l10n.get("thumb_page_canvas", {
-        page: this.pageId
-      }, "Thumbnail of Page {{page}}").then(msg => {
+
+      this._thumbPageCanvas.then(msg => {
         this.canvas.setAttribute("aria-label", msg);
       });
+
       this.div.setAttribute("data-loaded", true);
       this.ring.appendChild(this.canvas);
       return;
     }
 
     const image = document.createElement("img");
-    image.id = id;
     image.className = className;
-    this.l10n.get("thumb_page_canvas", {
-      page: this.pageId
-    }, "Thumbnail of Page {{page}}").then(msg => {
+
+    this._thumbPageCanvas.then(msg => {
       image.setAttribute("aria-label", msg);
     });
+
     image.style.width = this.canvasWidth + "px";
     image.style.height = this.canvasHeight + "px";
     image.src = this.canvas.toDataURL();
@@ -8239,15 +8247,22 @@ class PDFThumbnailView {
     this._convertCanvasToImage();
   }
 
-  get pageId() {
-    return this.pageLabel !== null ? this.pageLabel : this.id;
+  get _thumbPageTitle() {
+    return this.l10n.get("thumb_page_title", {
+      page: this.pageLabel !== null ? this.pageLabel : this.id
+    }, "Page {{page}}");
+  }
+
+  get _thumbPageCanvas() {
+    return this.l10n.get("thumb_page_canvas", {
+      page: this.pageLabel !== null ? this.pageLabel : this.id
+    }, "Thumbnail of Page {{page}}");
   }
 
   setPageLabel(label) {
     this.pageLabel = typeof label === "string" ? label : null;
-    this.l10n.get("thumb_page_title", {
-      page: this.pageId
-    }, "Page {{page}}").then(msg => {
+
+    this._thumbPageTitle.then(msg => {
       this.anchor.title = msg;
     });
 
@@ -8255,13 +8270,11 @@ class PDFThumbnailView {
       return;
     }
 
-    this.l10n.get("thumb_page_canvas", {
-      page: this.pageId
-    }, "Thumbnail of Page {{page}}").then(ariaLabel => {
+    this._thumbPageCanvas.then(msg => {
       if (this.image) {
-        this.image.setAttribute("aria-label", ariaLabel);
+        this.image.setAttribute("aria-label", msg);
       } else if (this.disableCanvasToImageConversion && this.canvas) {
-        this.canvas.setAttribute("aria-label", ariaLabel);
+        this.canvas.setAttribute("aria-label", msg);
       }
     });
   }
@@ -9009,7 +9022,7 @@ class BaseViewer {
         height = 0,
         widthScale,
         heightScale;
-    const changeOrientation = pageView.rotation % 180 === 0 ? false : true;
+    const changeOrientation = pageView.rotation % 180 !== 0;
     const pageWidth = (changeOrientation ? pageView.height : pageView.width) / pageView.scale / _ui_utils.CSS_UNITS;
     const pageHeight = (changeOrientation ? pageView.width : pageView.height) / pageView.scale / _ui_utils.CSS_UNITS;
     let scale = 0;
@@ -10018,7 +10031,11 @@ class PDFPageView {
     };
     const viewport = this.viewport;
     const canvas = document.createElement("canvas");
-    canvas.id = this.renderingId;
+    this.l10n.get("page_canvas", {
+      page: this.id
+    }, "Page {{page}}").then(msg => {
+      canvas.setAttribute("aria-label", msg);
+    });
     canvas.setAttribute("hidden", "hidden");
     let isCanvasHidden = true;
 
@@ -11279,11 +11296,11 @@ __webpack_require__(34);
 
 var _pdfjsLib = __webpack_require__(4);
 
+var _app = __webpack_require__(1);
+
 var _preferences = __webpack_require__(35);
 
 var _ui_utils = __webpack_require__(2);
-
-var _app = __webpack_require__(1);
 
 ;
 
@@ -11493,16 +11510,16 @@ class FirefoxComDataRangeTransport extends _pdfjsLib.PDFDataRangeTransport {
 
 }
 
-_app.PDFViewerApplication.externalServices = {
-  updateFindControlState(data) {
+class FirefoxExternalServices extends _app.DefaultExternalServices {
+  static updateFindControlState(data) {
     FirefoxCom.request("updateFindControlState", data);
-  },
+  }
 
-  updateFindMatchesCount(data) {
+  static updateFindMatchesCount(data) {
     FirefoxCom.request("updateFindMatchesCount", data);
-  },
+  }
 
-  initPassiveLoading(callbacks) {
+  static initPassiveLoading(callbacks) {
     let pdfDataRangeTransport;
     window.addEventListener("message", function windowMessage(e) {
       if (e.source !== null) {
@@ -11557,50 +11574,47 @@ _app.PDFViewerApplication.externalServices = {
       }
     });
     FirefoxCom.requestSync("initPassiveLoading", null);
-  },
+  }
 
-  fallback(data, callback) {
+  static fallback(data, callback) {
     FirefoxCom.request("fallback", data, callback);
-  },
+  }
 
-  reportTelemetry(data) {
+  static reportTelemetry(data) {
     FirefoxCom.request("reportTelemetry", JSON.stringify(data));
-  },
+  }
 
-  createDownloadManager(options) {
+  static createDownloadManager(options) {
     return new DownloadManager(options);
-  },
+  }
 
-  createPreferences() {
+  static createPreferences() {
     return new FirefoxPreferences();
-  },
+  }
 
-  createL10n(options) {
+  static createL10n(options) {
     const mozL10n = document.mozL10n;
     return new MozL10n(mozL10n);
-  },
+  }
 
-  get supportsIntegratedFind() {
+  static get supportsIntegratedFind() {
     const support = FirefoxCom.requestSync("supportsIntegratedFind");
     return (0, _pdfjsLib.shadow)(this, "supportsIntegratedFind", support);
-  },
+  }
 
-  get supportsDocumentFonts() {
+  static get supportsDocumentFonts() {
     const support = FirefoxCom.requestSync("supportsDocumentFonts");
     return (0, _pdfjsLib.shadow)(this, "supportsDocumentFonts", support);
-  },
+  }
 
-  get supportsDocumentColors() {
-    const support = FirefoxCom.requestSync("supportsDocumentColors");
-    return (0, _pdfjsLib.shadow)(this, "supportsDocumentColors", support);
-  },
-
-  get supportedMouseWheelZoomModifierKeys() {
+  static get supportedMouseWheelZoomModifierKeys() {
     const support = FirefoxCom.requestSync("supportedMouseWheelZoomModifierKeys");
     return (0, _pdfjsLib.shadow)(this, "supportedMouseWheelZoomModifierKeys", support);
   }
 
-};
+}
+
+_app.PDFViewerApplication.externalServices = FirefoxExternalServices;
 document.mozL10n.setExternalLocalizerServices({
   getLocale() {
     return FirefoxCom.requestSync("getLocale", null);

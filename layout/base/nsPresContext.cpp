@@ -30,6 +30,7 @@
 #include "mozilla/ServoStyleSet.h"
 #include "nsIContent.h"
 #include "nsIFrame.h"
+#include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "nsIPrintSettings.h"
@@ -87,6 +88,7 @@
 #include "mozilla/dom/PerformanceTiming.h"
 #include "mozilla/layers/APZThreadUtils.h"
 #include "MobileViewportManager.h"
+#include "mozilla/dom/ImageTracker.h"
 
 // Needed for Start/Stop of Image Animation
 #include "imgIContainer.h"
@@ -635,18 +637,14 @@ nsresult nsPresContext::Init(nsDeviceContext* aDeviceContext) {
         "How did we end up with a presshell if our parent doesn't "
         "have one?");
     if (parent && parent->GetPresContext()) {
-      nsCOMPtr<nsIDocShellTreeItem> ourItem = mDocument->GetDocShell();
-      if (ourItem) {
-        nsCOMPtr<nsIDocShellTreeItem> parentItem;
-        ourItem->GetInProcessSameTypeParent(getter_AddRefs(parentItem));
-        if (parentItem) {
-          Element* containingElement =
-              parent->FindContentForSubDocument(mDocument);
-          if (!containingElement->IsXULElement() ||
-              !containingElement->HasAttr(kNameSpaceID_None,
-                                          nsGkAtoms::forceOwnRefreshDriver)) {
-            mRefreshDriver = parent->GetPresContext()->RefreshDriver();
-          }
+      dom::BrowsingContext* ourItem = mDocument->GetBrowsingContext();
+      if (ourItem && !ourItem->IsTop()) {
+        Element* containingElement =
+            parent->FindContentForSubDocument(mDocument);
+        if (!containingElement->IsXULElement() ||
+            !containingElement->HasAttr(kNameSpaceID_None,
+                                        nsGkAtoms::forceOwnRefreshDriver)) {
+          mRefreshDriver = parent->GetPresContext()->RefreshDriver();
         }
       }
     }
@@ -1522,7 +1520,14 @@ static CallState MediaFeatureValuesChangedAllDocumentsCallback(
 
 void nsPresContext::MediaFeatureValuesChangedAllDocuments(
     const MediaFeatureChange& aChange) {
+  // Handle the media feature value change in this document.
   MediaFeatureValuesChanged(aChange);
+
+  // Propagate the media feature value change down to any SVG images the
+  // document is using.
+  mDocument->ImageTracker()->MediaFeatureValuesChangedAllDocuments(aChange);
+
+  // And then into any subdocuments.
   mDocument->EnumerateSubDocuments(
       MediaFeatureValuesChangedAllDocumentsCallback,
       const_cast<MediaFeatureChange*>(&aChange));
@@ -2548,7 +2553,7 @@ void nsPresContext::UpdateDynamicToolbarOffset(ScreenIntCoord aOffset) {
   // is including the area covered by the dynamic toolbar.
   if (mDynamicToolbarHeight == 0 || aOffset == -mDynamicToolbarMaxHeight) {
     mPresShell->MarkFixedFramesForReflow(IntrinsicDirty::Resize);
-    mRefreshDriver->AddResizeEventFlushObserver(mPresShell);
+    mPresShell->AddResizeEventFlushObserverIfNeeded();
   }
 
   mDynamicToolbarHeight = mDynamicToolbarMaxHeight + aOffset;

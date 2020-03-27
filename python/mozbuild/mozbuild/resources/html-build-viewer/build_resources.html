@@ -21,6 +21,12 @@ svg {
   shape-rendering: crispEdges;
 }
 
+.grid {
+  stroke: gray;
+  stroke-dasharray: 3, 2;
+  opacity: 0.4;
+}
+
 .area {
   fill: steelblue;
 }
@@ -128,6 +134,7 @@ function BuildResources(data) {
     this.resources.push(entry);
   }.bind(this));
 
+  this.virt_fields = virt_fields;
   this.cpu_times_fields = [];
 
   // Filter out CPU fields that have no values.
@@ -203,12 +210,38 @@ BuildResources.prototype = Object.freeze({
   },
 });
 
-function updateResourcesGraph() {
-  //var selected = document.getElementById("resourceType");
-  //var what = selected[selected.selectedIndex].value;
-  var what = "cpu";
+function format_percent(d, i) {
+  return d + "%";
+}
 
-  renderResources("resource_graph", currentResources, what);
+function updateResourcesGraph() {
+  renderResources("cpu_graph", currentResources, 400, "cpu_times_fields", "cpu_times_percents", 100, format_percent, [
+    ["nice", "#0d9fff"],
+    ["irq", "#ff0d9f"],
+    ["softirq", "#ff0d9f"],
+    ["steal", "#000000"],
+    ["guest", "#000000"],
+    ["guest_nice", "#000000"],
+    ["system", "#f69a5c"],
+    ["iowait", "#ff0d25"],
+    ["user", "#5cb9f6"],
+    ["idle", "#e1e1e1"],
+  ]);
+  // On macos, there doesn't seem to be a combination of values that sums up to
+  // the total, so just use the percentage. Only macos has a "wired" value.
+  if ('wired' in currentResources.resources[0].virt) {
+    renderResources("mem_graph", currentResources, 200, "virt_fields", "virt", 100, format_percent, [
+      ["percent", "#5cb9f6"],
+    ]);
+  } else {
+    renderResources("mem_graph", currentResources, 200, "virt_fields", "virt", currentResources.resources[0].virt['total'], d3.format("s"), [
+      ["used", "#5cb9f6"],
+      ["buffers", "#f65c5c"],
+      ["cached", "#f69a5c"],
+      ["free", "#e1e1e1"],
+    ]);
+  }
+  renderTimeline("tiers", currentResources);
   document.getElementById("wall_time").innerHTML = Math.round(currentResources.duration * 100) / 100;
   document.getElementById("start_date").innerHTML = currentResources.startDate.toISOString();
   document.getElementById("end_date").innerHTML = currentResources.endDate.toISOString();
@@ -231,12 +264,12 @@ function renderKey(key) {
   });
 }
 
-function renderResources(id, resources, what) {
+function renderResources(id, resources, height, fields_attr, data_attr, max_value, tick_format, layers) {
   document.getElementById(id).innerHTML = "";
 
   var margin = {top: 20, right: 20, bottom: 20, left: 50};
   var width = window.innerWidth - 50 - margin.left - margin.right;
-  var height = 400 - margin.top - margin.bottom;
+  var height = height - margin.top - margin.bottom;
 
   var x = d3.scale.linear()
     .range([0, width])
@@ -244,7 +277,7 @@ function renderResources(id, resources, what) {
     ;
   var y = d3.scale.linear()
     .range([height, 0])
-    .domain([0, 1])
+    .domain([0, max_value])
     ;
 
   var xAxis = d3.svg.axis()
@@ -254,7 +287,7 @@ function renderResources(id, resources, what) {
   var yAxis = d3.svg.axis()
     .scale(y)
     .orient("left")
-    .tickFormat(d3.format(".0%"))
+    .tickFormat(tick_format)
     ;
 
   var area = d3.svg.area()
@@ -269,19 +302,8 @@ function renderResources(id, resources, what) {
 
   // Manually control the layer order because we want it consistent and want
   // to inject some sanity.
-  var layers = [
-    ["nice", "#0d9fff"],
-    ["irq", "#ff0d9f"],
-    ["softirq", "#ff0d9f"],
-    ["steal", "#000000"],
-    ["guest", "#000000"],
-    ["guest_nice", "#000000"],
-    ["system", "#f69a5c"],
-    ["iowait", "#ff0d25"],
-    ["user", "#5cb9f6"],
-    ["idle", "#e1e1e1"],
-  ].filter(function (l) {
-    return resources.cpu_times_fields.indexOf(l[0]) != -1;
+  var layers = layers.filter(function (l) {
+    return resources[fields_attr].indexOf(l[0]) != -1;
   });
 
   // Draw a legend.
@@ -330,7 +352,7 @@ function renderResources(id, resources, what) {
       values: resources.resources.map(function (d) {
         return {
           start: d.start,
-          y: d.cpu_times_percents[layer[0]] / 100,
+          y: d[data_attr][layer[0]],
         };
       }),
     };
@@ -355,17 +377,40 @@ function renderResources(id, resources, what) {
     ;
 
   svg.append("g")
+    .attr("class", "x grid")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis.tickSize(-height, 0, 0).tickFormat(""))
+    ;
+
+  svg.append("g")
     .attr("class", "y axis")
     .call(yAxis)
     ;
 
+  svg.append("g")
+    .attr("class", "y grid")
+    .call(yAxis.tickSize(-width, 0, 0).tickFormat(""))
+    ;
+}
+
+function renderTimeline(id, resources) {
+  document.getElementById(id).innerHTML = "";
+
+  var margin = {top: 20, right: 20, bottom: 20, left: 50};
+  var width = window.innerWidth - 50 - margin.left - margin.right;
+  var height = 400 - margin.top - margin.bottom;
+
+  var x = d3.scale.linear()
+    .range([0, width])
+    .domain(d3.extent(resources.resources, function (d) { return d.start; }))
+    ;
   // Now we render a timeline of sorts of the tiers
   // There is a row of rectangles that visualize divisions between the
   // different items. We use the same x scale as the resource graph so times
   // line up properly.
   svg = d3.select("#" + id).append("svg")
     .attr("width", width + margin.left + margin.right)
-    .attr("height", 100 + margin.top + margin.bottom)
+    .attr("height", 100)
     .append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
     ;
@@ -415,13 +460,13 @@ function renderResources(id, resources, what) {
       var e = d3.event;
       x_offset = 10;
 
-      if (e.pageX > window.innerWidth / 2) {
+      if (e.clientX > window.innerWidth / 2) {
         x_offset = -150;
       }
 
       d3.select("#tooltip")
-        .style("left", (e.pageX + x_offset) + "px")
-        .style("top", (e.pageY + 10) + "px")
+        .style("left", (e.clientX + x_offset) + "px")
+        .style("top", (e.clientY + 10) + "px")
         ;
     })
     ;
@@ -462,18 +507,12 @@ document.addEventListener("DOMContentLoaded", function() {
       </table>
     </div>
 
-    <!--
-    <select id="resourceType" onchange="updateResourcesGraph();">
-      <option value="cpu">CPU</option>
-      <option value="io_count">Disk I/O Count</option>
-      <option value="io_bytes">Disk I/O Bytes</option>
-      <option value="io_time">Disk I/O Time</option>
-      <option value="virt">Memory</option>
-    </select>
-    -->
-
     <select id="list" style="display: none"></select>
-    <div id="resource_graph"></div>
+    <h4>CPU</h4>
+    <div id="cpu_graph"></div>
+    <h4>Memory</h4>
+    <div id="mem_graph"></div>
+    <div id="tiers"></div>
     <div id="summary" style="padding-top: 20px">
       <table border="0">
         <tr><td>Wall Time (s)</td><td id="wall_time"></td></tr>

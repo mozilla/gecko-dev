@@ -12,17 +12,16 @@
 #ifndef mozilla_Utf8_h
 #define mozilla_Utf8_h
 
-#include "mozilla/Casting.h"            // for mozilla::AssertedCast
-#include "mozilla/IntegerTypeTraits.h"  // for mozilla::MaxValue
-#include "mozilla/Likely.h"             // for MOZ_UNLIKELY
-#include "mozilla/Maybe.h"              // for mozilla::Maybe
-#include "mozilla/Span.h"               // for mozilla::Span
+#include "mozilla/Casting.h"    // for mozilla::AssertedCast
+#include "mozilla/Likely.h"     // for MOZ_UNLIKELY
+#include "mozilla/Maybe.h"      // for mozilla::Maybe
+#include "mozilla/Span.h"       // for mozilla::Span
 #include "mozilla/TextUtils.h"  // for mozilla::IsAscii and via Latin1.h for
                                 // encoding_rs_mem.h and MOZ_HAS_JSRUST.
 #include "mozilla/Tuple.h"      // for mozilla::Tuple
 #include "mozilla/Types.h"      // for MFBT_API
 
-#include <limits.h>  // for CHAR_BIT
+#include <limits>    // for CHAR_BIT / std::numeric_limits
 #include <stddef.h>  // for size_t
 #include <stdint.h>  // for uint8_t
 
@@ -380,7 +379,7 @@ inline mozilla::Maybe<size_t> ConvertUtf8toUtf16WithoutReplacement(
     mozilla::Span<const char> aSource, mozilla::Span<char16_t> aDest) {
   size_t written = encoding_mem_convert_utf8_to_utf16_without_replacement(
       aSource.Elements(), aSource.Length(), aDest.Elements(), aDest.Length());
-  if (MOZ_UNLIKELY(written == mozilla::MaxValue<size_t>::value)) {
+  if (MOZ_UNLIKELY(written == std::numeric_limits<size_t>::max())) {
     return mozilla::Nothing();
   }
   return mozilla::Some(written);

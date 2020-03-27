@@ -75,6 +75,10 @@ enum class StyleSheetState : uint8_t {
   // Used to control whether devtools shows the rule in its authored form or
   // not.
   ModifiedRulesForDevtools = 1 << 4,
+  // Whether modifications to the sheet are currently disallowed.
+  // This flag is set during the async Replace() function to ensure
+  // that the sheet is not modified until the promise is resolved.
+  ModificationDisallowed = 1 << 5,
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(StyleSheetState)
@@ -107,6 +111,8 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
 
   // Parses a stylesheet. The load data argument corresponds to the
   // SheetLoadData for this stylesheet.
+  // NOTE: ParseSheet can run synchronously or asynchronously
+  //       based on the result of `AllowParallelParse`
   RefPtr<StyleSheetParsePromise> ParseSheet(css::Loader&,
                                             const nsACString& aBytes,
                                             css::SheetLoadData&);
@@ -116,8 +122,10 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   void FinishAsyncParse(
       already_AddRefed<RawServoStyleSheetContents> aSheetContents);
 
-  // Similar to the above, but guarantees that parsing will be performed
-  // synchronously.
+  // Similar to `ParseSheet`, but guarantees that
+  // parsing will be performed synchronously.
+  // NOTE: ParseSheet can still run synchronously.
+  //       This is not a strict alternative.
   //
   // The load data may be null sometimes.
   void ParseSheetSync(
@@ -125,7 +133,7 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
       css::SheetLoadData* aLoadData, uint32_t aLineNumber,
       css::LoaderReusableStyleSheets* aReusableSheets = nullptr);
 
-  nsresult ReparseSheet(const nsAString& aInput);
+  void ReparseSheet(const nsACString& aInput, ErrorResult& aRv);
 
   const RawServoStyleSheetContents* RawContents() const {
     return Inner().mContents;
@@ -308,7 +316,7 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   }
 
   void SetTitle(const nsAString& aTitle) { mTitle = aTitle; }
-  void SetMedia(dom::MediaList* aMedia);
+  void SetMedia(already_AddRefed<dom::MediaList> aMedia);
 
   // Get this style sheet's CORS mode
   CORSMode GetCORSMode() const { return Inner().mCORSMode; }
@@ -360,7 +368,18 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
                   const dom::Optional<uint32_t>& aIndex,
                   nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv);
   already_AddRefed<dom::Promise> Replace(const nsAString& aText, ErrorResult&);
-  void ReplaceSync(const nsAString& aText, ErrorResult&);
+  void ReplaceSync(const nsACString& aText, ErrorResult&);
+  bool ModificationDisallowed() const {
+    return bool(mState & State::ModificationDisallowed);
+  }
+
+  // True if the sheet was created through the Constructable StyleSheets API
+  bool IsConstructed() const { return !!mConstructorDocument; }
+
+  // Ture if the sheet's constructor document matches the given document
+  bool ConstructorDocumentMatches(dom::Document* document) const {
+    return mConstructorDocument == document;
+  }
 
   // WebIDL miscellaneous bits
   inline dom::ParentObject GetParentObject() const;
@@ -466,9 +485,9 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   void LastRelease();
 
   // Return success if the subject principal subsumes the principal of our
-  // inner, error otherwise.  This will also succeed if the subject has
-  // UniversalXPConnect or if access is allowed by CORS.  In the latter case,
-  // it will set the principal of the inner to the subject principal.
+  // inner, error otherwise.  This will also succeed if access is allowed by
+  // CORS.  In that case, it will set the principal of the inner to the
+  // subject principal.
   void SubjectSubsumesInnerPrincipal(nsIPrincipal& aSubjectPrincipal,
                                      ErrorResult& aRv);
 

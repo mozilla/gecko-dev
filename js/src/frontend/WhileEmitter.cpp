@@ -26,7 +26,7 @@ bool WhileEmitter::emitCond(const Maybe<uint32_t>& whilePos,
   // line note before the loop, so that the debugger sees a single entry point.
   // This way, if there is a breakpoint on the line, it will only fire once; and
   // "next"ing will skip the whole loop. However, for the multi-line case we
-  // want to emit the line note for the JSOP_LOOPHEAD, so that "cont" stops on
+  // want to emit the line note for the JSOp::LoopHead, so that "cont" stops on
   // each iteration -- but without a stop before the first iteration.
   if (whilePos && endPos &&
       bce_->parser->errorReporter().lineAt(*whilePos) ==
@@ -34,8 +34,8 @@ bool WhileEmitter::emitCond(const Maybe<uint32_t>& whilePos,
     if (!bce_->updateSourceCoordNotes(*whilePos)) {
       return false;
     }
-    // Emit a NOP to ensure the source position is not part of the loop.
-    if (!bce_->emit1(JSOP_NOP)) {
+    // Emit a Nop to ensure the source position is not part of the loop.
+    if (!bce_->emit1(JSOp::Nop)) {
       return false;
     }
   }
@@ -55,7 +55,7 @@ bool WhileEmitter::emitCond(const Maybe<uint32_t>& whilePos,
 bool WhileEmitter::emitBody() {
   MOZ_ASSERT(state_ == State::Cond);
 
-  if (!bce_->emitJump(JSOP_IFEQ, &loopInfo_->breaks)) {
+  if (!bce_->emitJump(JSOp::IfEq, &loopInfo_->breaks)) {
     return false;
   }
 
@@ -76,7 +76,7 @@ bool WhileEmitter::emitEnd() {
     return false;
   }
 
-  if (!loopInfo_->emitLoopEnd(bce_, JSOP_GOTO, JSTRY_LOOP)) {
+  if (!loopInfo_->emitLoopEnd(bce_, JSOp::Goto, JSTRY_LOOP)) {
     return false;
   }
 

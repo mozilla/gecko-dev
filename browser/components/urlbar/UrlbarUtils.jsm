@@ -91,7 +91,9 @@ var UrlbarUtils = {
     // Payload: { url, icon, device, title }
     REMOTE_TAB: 6,
     // An actionable message to help the user with their query.
-    // Payload: { text, buttonText, data, [buttonUrl], [helpUrl] }
+    // textData and buttonTextData are objects containing an l10n id and args.
+    // If a tip is untranslated it's possible to provide text and buttonText.
+    // Payload: { icon, textData, buttonTextData, [buttonUrl], [helpUrl] }
     TIP: 7,
   },
 
@@ -296,18 +298,45 @@ var UrlbarUtils = {
     let hits = new Array(str.length).fill(
       highlightType == this.HIGHLIGHT.SUGGESTED ? 1 : 0
     );
-    for (let { lowerCaseValue } of tokens) {
+    for (let { lowerCaseValue: needle } of tokens) {
       // Ideally we should never hit the empty token case, but just in case
       // the `needle` check protects us from an infinite loop.
-      for (let index = 0, needle = lowerCaseValue; index >= 0 && needle; ) {
+      if (!needle) {
+        continue;
+      }
+      let index = 0;
+      let found = false;
+      // First try a diacritic-sensitive search.
+      for (;;) {
         index = str.indexOf(needle, index);
-        if (index >= 0) {
-          hits.fill(
-            highlightType == this.HIGHLIGHT.SUGGESTED ? 0 : 1,
-            index,
-            index + needle.length
-          );
-          index += needle.length;
+        if (index < 0) {
+          break;
+        }
+        hits.fill(
+          highlightType == this.HIGHLIGHT.SUGGESTED ? 0 : 1,
+          index,
+          index + needle.length
+        );
+        index += needle.length;
+        found = true;
+      }
+      // If that fails to match anything, try a (computationally intensive)
+      // diacritic-insensitive search.
+      if (!found) {
+        const options = { sensitivity: "base" };
+        index = 0;
+        while (index < str.length) {
+          let hay = str.substr(index, needle.length);
+          if (needle.localeCompare(hay, [], options) == 0) {
+            hits.fill(
+              highlightType == this.HIGHLIGHT.SUGGESTED ? 0 : 1,
+              index,
+              index + needle.length
+            );
+            index += needle.length;
+          } else {
+            index++;
+          }
         }
       }
     }
@@ -661,15 +690,17 @@ class UrlbarProvider {
   }
 
   /**
-   * Whether this provider wants to restrict results to just itself.
-   * Other providers won't be invoked, unless this provider doesn't
-   * support the current query.
+   * Gets the provider's priority.  Priorities are numeric values starting at
+   * zero and increasing in value.  Smaller values are lower priorities, and
+   * larger values are higher priorities.  For a given query, `startQuery` is
+   * called on only the active and highest-priority providers.
    * @param {UrlbarQueryContext} queryContext The query context object
-   * @returns {boolean} Whether this provider wants to restrict results.
+   * @returns {number} The provider's priority for the given query.
    * @abstract
    */
-  isRestricting(queryContext) {
-    throw new Error("Trying to access the base class, must be overridden");
+  getPriority(queryContext) {
+    // By default, all providers share the lowest priority.
+    return 0;
   }
 
   /**

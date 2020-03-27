@@ -57,6 +57,7 @@
 #include "mozilla/dom/DocumentFragment.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/DOMExceptionBinding.h"
+#include "mozilla/dom/DOMSecurityMonitor.h"
 #include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ElementInlines.h"
@@ -2006,12 +2007,7 @@ bool nsContentUtils::InProlog(nsINode* aNode) {
 
 bool nsContentUtils::IsCallerChrome() {
   MOZ_ASSERT(NS_IsMainThread());
-  if (SubjectPrincipal() == sSystemPrincipal) {
-    return true;
-  }
-
-  // If the check failed, look for UniversalXPConnect on the cx compartment.
-  return xpc::IsUniversalXPConnectEnabled(GetCurrentJSContext());
+  return SubjectPrincipal() == sSystemPrincipal;
 }
 
 #ifdef FUZZING
@@ -2143,24 +2139,6 @@ void nsContentUtils::CalcRoundedWindowSizeForResistingFingerprinting(
 bool nsContentUtils::ThreadsafeIsCallerChrome() {
   return NS_IsMainThread() ? IsCallerChrome()
                            : IsCurrentThreadRunningChromeWorker();
-}
-
-bool nsContentUtils::IsCallerContentXBL() {
-  JSContext* cx = GetCurrentJSContext();
-  if (!cx) return false;
-
-  JS::Realm* realm = JS::GetCurrentRealmOrNull(cx);
-  if (!realm) return false;
-
-  // For remote XUL, we run XBL in the XUL scope. Given that we care about
-  // compat and not security for remote XUL, just always claim to be XBL.
-  if (!xpc::AllowContentXBLScope(realm)) {
-    MOZ_ASSERT(
-        nsContentUtils::AllowXULXBLForPrincipal(xpc::GetRealmPrincipal(realm)));
-    return true;
-  }
-
-  return false;
 }
 
 bool nsContentUtils::IsCallerUAWidget() {
@@ -2303,8 +2281,8 @@ nsINode* nsContentUtils::Retarget(nsINode* aTargetA, nsINode* aTargetB) {
 }
 
 // static
-nsresult nsContentUtils::GetAncestors(nsINode* aNode,
-                                      nsTArray<nsINode*>& aArray) {
+nsresult nsContentUtils::GetInclusiveAncestors(nsINode* aNode,
+                                               nsTArray<nsINode*>& aArray) {
   while (aNode) {
     aArray.AppendElement(aNode);
     aNode = aNode->GetParentNode();
@@ -2313,7 +2291,7 @@ nsresult nsContentUtils::GetAncestors(nsINode* aNode,
 }
 
 // static
-nsresult nsContentUtils::GetAncestorsAndOffsets(
+nsresult nsContentUtils::GetInclusiveAncestorsAndOffsets(
     nsINode* aNode, int32_t aOffset, nsTArray<nsIContent*>* aAncestorNodes,
     nsTArray<int32_t>* aAncestorOffsets) {
   NS_ENSURE_ARG_POINTER(aNode);
@@ -4063,7 +4041,8 @@ nsresult nsContentUtils::DispatchTrustedEvent(
     Document* aDoc, nsISupports* aTarget, const nsAString& aEventName,
     CanBubble aCanBubble, Cancelable aCancelable, Composed aComposed,
     bool* aDefaultAction) {
-  MOZ_ASSERT(!aEventName.EqualsLiteral("input"),
+  MOZ_ASSERT(!aEventName.EqualsLiteral("input") &&
+                 !aEventName.EqualsLiteral("beforeinput"),
              "Use DispatchInputEvent() instead");
   return DispatchEvent(aDoc, aTarget, aEventName, aCanBubble, aCancelable,
                        aComposed, Trusted::eYes, aDefaultAction);
@@ -4145,10 +4124,14 @@ nsContentUtils::InputEventOptions::InputEventOptions(
 }
 
 // static
-nsresult nsContentUtils::DispatchInputEvent(Element* aEventTargetElement,
-                                            EditorInputType aEditorInputType,
-                                            TextEditor* aTextEditor,
-                                            const InputEventOptions& aOptions) {
+nsresult nsContentUtils::DispatchInputEvent(
+    Element* aEventTargetElement, EventMessage aEventMessage,
+    EditorInputType aEditorInputType, TextEditor* aTextEditor,
+    const InputEventOptions& aOptions,
+    nsEventStatus* aEventStatus /* = nullptr */) {
+  MOZ_ASSERT(aEventMessage == eEditorInput ||
+             aEventMessage == eEditorBeforeInput);
+
   if (NS_WARN_IF(!aEventTargetElement)) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -4156,7 +4139,8 @@ nsresult nsContentUtils::DispatchInputEvent(Element* aEventTargetElement,
   // If this is called from editor, the instance should be set to aTextEditor.
   // Otherwise, we need to look for an editor for aEventTargetElement.
   // However, we don't need to do it for HTMLEditor since nobody shouldn't
-  // dispatch "input" event for HTMLEditor except HTMLEditor itself.
+  // dispatch "beforeinput" nor "input" event for HTMLEditor except HTMLEditor
+  // itself.
   bool useInputEvent = false;
   if (aTextEditor) {
     useInputEvent = true;
@@ -4178,18 +4162,8 @@ nsresult nsContentUtils::DispatchInputEvent(Element* aEventTargetElement,
   }
 #endif  // #ifdef DEBUG
 
-  // If the event target is an <input> element, we need to update
-  // validationMessage value before dispatching "input" event because
-  // "input" event listener may need to check it.
-  HTMLInputElement* inputElement =
-      HTMLInputElement::FromNode(aEventTargetElement);
-  if (inputElement) {
-    MOZ_KnownLive(inputElement)->MaybeUpdateAllValidityStates(true);
-    // XXX Should we stop dispatching "input" event if the target is removed
-    //     from the DOM tree?
-  }
-
   if (!useInputEvent) {
+    MOZ_ASSERT(aEventMessage == eEditorInput);
     MOZ_ASSERT(aEditorInputType == EditorInputType::eUnknown);
     // Dispatch "input" event with Event instance.
     WidgetEvent widgetEvent(true, eUnidentifiedEvent);
@@ -4231,7 +4205,12 @@ nsresult nsContentUtils::DispatchInputEvent(Element* aEventTargetElement,
   }
 
   // Dispatch "input" event with InputEvent instance.
-  InternalEditorInputEvent inputEvent(true, eEditorInput, widget);
+  InternalEditorInputEvent inputEvent(true, aEventMessage, widget);
+
+  inputEvent.mFlags.mCancelable =
+      aEventMessage == eEditorBeforeInput &&
+      IsCancelableBeforeInputEvent(aEditorInputType);
+  MOZ_ASSERT(!inputEvent.mFlags.mCancelable || aEventStatus);
 
   // Using same time as old event dispatcher in EditorBase for backward
   // compatibility.
@@ -4243,8 +4222,7 @@ nsresult nsContentUtils::DispatchInputEvent(Element* aEventTargetElement,
   // Otherwise, i.e., editor hasn't been created for the element yet,
   // we should set isComposing to false since the element can never has
   // composition without editor.
-  inputEvent.mIsComposing =
-      aTextEditor ? !!aTextEditor->GetComposition() : false;
+  inputEvent.mIsComposing = aTextEditor && aTextEditor->GetComposition();
 
   if (!aTextEditor || !aTextEditor->AsHTMLEditor()) {
     if (IsDataAvailableOnTextEditor(aEditorInputType)) {
@@ -4283,9 +4261,26 @@ nsresult nsContentUtils::DispatchInputEvent(Element* aEventTargetElement,
 
   inputEvent.mInputType = aEditorInputType;
 
-  (new AsyncEventDispatcher(aEventTargetElement, inputEvent))
-      ->RunDOMEventWhenSafe();
-  return NS_OK;
+  if (!IsSafeToRunScript()) {
+    // If we cannot dispatch an event right now, we cannot make it cancelable.
+    NS_ASSERTION(
+        !inputEvent.mFlags.mCancelable,
+        "Cancelable beforeinput event dispatcher should run when it's safe");
+    inputEvent.mFlags.mCancelable = false;
+    (new AsyncEventDispatcher(aEventTargetElement, inputEvent))
+        ->RunDOMEventWhenSafe();
+    return NS_OK;
+  }
+
+  // If we're running xpcshell tests, we fail to get presShell here.
+  // Even in such case, we need to dispatch "input" event without widget.
+  RefPtr<nsPresContext> presContext =
+      aEventTargetElement->OwnerDoc()->GetPresContext();
+  nsresult rv = EventDispatcher::Dispatch(aEventTargetElement, presContext,
+                                          &inputEvent, nullptr, aEventStatus);
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "Dispatching `beforeinput` or `input` event failed");
+  return rv;
 }
 
 nsresult nsContentUtils::DispatchChromeEvent(
@@ -4313,7 +4308,8 @@ nsresult nsContentUtils::DispatchChromeEvent(
   return err.StealNSResult();
 }
 
-void nsContentUtils::RequestFrameFocus(Element& aFrameElement, bool aCanRaise) {
+void nsContentUtils::RequestFrameFocus(Element& aFrameElement, bool aCanRaise,
+                                       CallerType aCallerType) {
   RefPtr<Element> target = &aFrameElement;
   bool defaultAction = true;
   if (aCanRaise) {
@@ -4333,6 +4329,10 @@ void nsContentUtils::RequestFrameFocus(Element& aFrameElement, bool aCanRaise) {
   uint32_t flags = nsIFocusManager::FLAG_NOSCROLL;
   if (aCanRaise) {
     flags |= nsIFocusManager::FLAG_RAISE;
+  }
+
+  if (aCallerType == CallerType::NonSystem) {
+    flags |= nsIFocusManager::FLAG_NONSYSTEMCALLER;
   }
 
   fm->SetFocus(target, flags);
@@ -4764,7 +4764,7 @@ already_AddRefed<DocumentFragment> nsContentUtils::CreateContextualFragment(
 
   RefPtr<DocumentFragment> frag;
   aRv = ParseFragmentXML(aFragment, document, tagStack, aPreventScriptExecution,
-                         getter_AddRefs(frag));
+                         -1, getter_AddRefs(frag));
   return frag.forget();
 }
 
@@ -4778,13 +4778,48 @@ void nsContentUtils::DropFragmentParsers() {
 /* static */
 void nsContentUtils::XPCOMShutdown() { nsContentUtils::DropFragmentParsers(); }
 
+/* Helper function to compuate Sanitization Flags for ParseFramentHTML/XML */
+uint32_t computeSanitizationFlags(nsIPrincipal* aPrincipal, int32_t aFlags) {
+  uint32_t sanitizationFlags = 0;
+  if (aPrincipal->IsSystemPrincipal()) {
+    if (aFlags < 0) {
+      // if this is a chrome-privileged document and no explicit flags
+      // were passed, then use this sanitization flags.
+      sanitizationFlags = nsIParserUtils::SanitizerAllowStyle |
+                          nsIParserUtils::SanitizerAllowComments |
+                          nsIParserUtils::SanitizerDropForms |
+                          nsIParserUtils::SanitizerLogRemovals;
+    } else {
+      // if the caller explicitly passes flags, then we use those
+      // flags but additionally drop forms.
+      sanitizationFlags = aFlags | nsIParserUtils::SanitizerDropForms;
+    }
+  } else if (aFlags >= 0) {
+    // aFlags by default is -1 and is only ever non equal to -1 if the
+    // caller of ParseFragmentHTML/ParseFragmentXML is
+    // ParserUtils::ParseFragment(). Only in that case we should use
+    // the sanitization flags passed within aFlags.
+    sanitizationFlags = aFlags;
+  }
+  return sanitizationFlags;
+}
+
 /* static */
-nsresult nsContentUtils::ParseFragmentHTML(const nsAString& aSourceBuffer,
-                                           nsIContent* aTargetNode,
-                                           nsAtom* aContextLocalName,
-                                           int32_t aContextNamespace,
-                                           bool aQuirks,
-                                           bool aPreventScriptExecution) {
+bool AllowsUnsanitizedContentForAboutNewTab(nsIPrincipal* aPrincipal) {
+  if (StaticPrefs::dom_about_newtab_sanitization_enabled() ||
+      !aPrincipal->SchemeIs("about")) {
+    return false;
+  }
+  uint32_t aboutModuleFlags = 0;
+  aPrincipal->GetAboutModuleFlags(&aboutModuleFlags);
+  return aboutModuleFlags & nsIAboutModule::ALLOW_UNSANITIZED_CONTENT;
+}
+
+/* static */
+nsresult nsContentUtils::ParseFragmentHTML(
+    const nsAString& aSourceBuffer, nsIContent* aTargetNode,
+    nsAtom* aContextLocalName, int32_t aContextNamespace, bool aQuirks,
+    bool aPreventScriptExecution, int32_t aFlags) {
   AutoTimelineMarker m(aTargetNode->OwnerDoc()->GetDocShell(), "Parse HTML");
 
   if (nsContentUtils::sFragmentParsingActive) {
@@ -4798,14 +4833,35 @@ nsresult nsContentUtils::ParseFragmentHTML(const nsAString& aSourceBuffer,
     // Now sHTMLFragmentParser owns the object
   }
 
+  nsCOMPtr<nsIPrincipal> nodePrincipal = aTargetNode->NodePrincipal();
+
+#ifdef DEBUG
+  // aFlags should always be -1 unless the caller of ParseFragmentHTML
+  // is ParserUtils::ParseFragment() which is the only caller that intends
+  // sanitization. For all other callers we need to ensure to call
+  // AuditParsingOfHTMLXMLFragments.
+  if (aFlags < 0) {
+    DOMSecurityMonitor::AuditParsingOfHTMLXMLFragments(nodePrincipal,
+                                                       aSourceBuffer);
+  }
+#endif
+
   nsIContent* target = aTargetNode;
 
-  // If this is a chrome-privileged document, create a fragment first, and
-  // sanitize it before insertion.
   RefPtr<DocumentFragment> fragment;
-  if (aTargetNode->NodePrincipal()->IsSystemPrincipal()) {
-    fragment = new DocumentFragment(aTargetNode->OwnerDoc()->NodeInfoManager());
-    target = fragment;
+  // We sanitize if the fragment occurs in a system privileged
+  // context, an about: page, or if there are explicit sanitization flags.
+  // Please note that about:blank and about:srcdoc inherit the security
+  // context from the embedding context and hence are not loaded using
+  // an about: scheme principal.
+  bool shouldSanitize = nodePrincipal->IsSystemPrincipal() ||
+                        nodePrincipal->SchemeIs("about") || aFlags >= 0;
+  if (shouldSanitize) {
+    if (!AllowsUnsanitizedContentForAboutNewTab(nodePrincipal)) {
+      fragment =
+          new DocumentFragment(aTargetNode->OwnerDoc()->NodeInfoManager());
+      target = fragment;
+    }
   }
 
   nsresult rv = sHTMLFragmentParser->ParseFragment(
@@ -4814,13 +4870,11 @@ nsresult nsContentUtils::ParseFragmentHTML(const nsAString& aSourceBuffer,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (fragment) {
+    uint32_t sanitizationFlags =
+        computeSanitizationFlags(nodePrincipal, aFlags);
     // Don't fire mutation events for nodes removed by the sanitizer.
     nsAutoScriptBlockerSuppressNodeRemoved scriptBlocker;
-
-    nsTreeSanitizer sanitizer(nsIParserUtils::SanitizerAllowStyle |
-                              nsIParserUtils::SanitizerAllowComments |
-                              nsIParserUtils::SanitizerDropForms |
-                              nsIParserUtils::SanitizerLogRemovals);
+    nsTreeSanitizer sanitizer(sanitizationFlags);
     sanitizer.Sanitize(fragment);
 
     ErrorResult error;
@@ -4857,6 +4911,7 @@ nsresult nsContentUtils::ParseFragmentXML(const nsAString& aSourceBuffer,
                                           Document* aDocument,
                                           nsTArray<nsString>& aTagStack,
                                           bool aPreventScriptExecution,
+                                          int32_t aFlags,
                                           DocumentFragment** aReturn) {
   AutoTimelineMarker m(aDocument->GetDocShell(), "Parse XML");
 
@@ -4895,16 +4950,33 @@ nsresult nsContentUtils::ParseFragmentXML(const nsAString& aSourceBuffer,
   sXMLFragmentParser->Reset();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // If this is a chrome-privileged document, sanitize the fragment before
-  // returning.
-  if (aDocument->NodePrincipal()->IsSystemPrincipal()) {
+  nsCOMPtr<nsIPrincipal> nodePrincipal = aDocument->NodePrincipal();
+
+#ifdef DEBUG
+  // aFlags should always be -1 unless the caller of ParseFragmentXML
+  // is ParserUtils::ParseFragment() which is the only caller that intends
+  // sanitization. For all other callers we need to ensure to call
+  // AuditParsingOfHTMLXMLFragments.
+  if (aFlags < 0) {
+    DOMSecurityMonitor::AuditParsingOfHTMLXMLFragments(nodePrincipal,
+                                                       aSourceBuffer);
+  }
+#endif
+
+  // We sanitize if the fragment occurs in a system privileged
+  // context, an about: page, or if there are explicit sanitization flags.
+  // Please note that about:blank and about:srcdoc inherit the security
+  // context from the embedding context and hence are not loaded using
+  // an about: scheme principal.
+  bool shouldSanitize = nodePrincipal->IsSystemPrincipal() ||
+                        nodePrincipal->SchemeIs("about") || aFlags >= 0;
+
+  if (shouldSanitize) {
+    uint32_t sanitizationFlags =
+        computeSanitizationFlags(nodePrincipal, aFlags);
     // Don't fire mutation events for nodes removed by the sanitizer.
     nsAutoScriptBlockerSuppressNodeRemoved scriptBlocker;
-
-    nsTreeSanitizer sanitizer(nsIParserUtils::SanitizerAllowStyle |
-                              nsIParserUtils::SanitizerAllowComments |
-                              nsIParserUtils::SanitizerDropForms |
-                              nsIParserUtils::SanitizerLogRemovals);
+    nsTreeSanitizer sanitizer(sanitizationFlags);
     sanitizer.Sanitize(*aReturn);
   }
 
@@ -5911,7 +5983,7 @@ bool nsContentUtils::CheckMayLoad(nsIPrincipal* aPrincipal,
 
 /* static */
 bool nsContentUtils::CanAccessNativeAnon() {
-  return LegacyIsCallerChromeOrNativeCode() || IsCallerContentXBL();
+  return LegacyIsCallerChromeOrNativeCode();
 }
 
 /* static */
@@ -6523,9 +6595,10 @@ bool nsContentUtils::ChannelShouldInheritPrincipal(
 }
 
 /* static */
-bool nsContentUtils::IsCutCopyAllowed(nsIPrincipal& aSubjectPrincipal) {
-  if (StaticPrefs::dom_allow_cut_copy() &&
-      UserActivation::IsHandlingUserInput()) {
+bool nsContentUtils::IsCutCopyAllowed(Document* aDocument,
+                                      nsIPrincipal& aSubjectPrincipal) {
+  if (StaticPrefs::dom_allow_cut_copy() && aDocument &&
+      aDocument->HasValidTransientUserGestureActivation()) {
     return true;
   }
 
@@ -9376,7 +9449,7 @@ bool nsContentUtils::AttemptLargeAllocationLoad(nsIHttpChannel* aChannel) {
   nsIDocShell* docShell = outer->GetDocShell();
   BrowsingContext* browsingContext = docShell->GetBrowsingContext();
   bool isOnlyToplevelBrowsingContext =
-      !browsingContext->GetParent() &&
+      browsingContext->IsTop() &&
       browsingContext->Group()->Toplevels().Length() == 1;
   if (!isOnlyToplevelBrowsingContext) {
     outer->SetLargeAllocStatus(LargeAllocStatus::NOT_ONLY_TOPLEVEL_IN_TABGROUP);

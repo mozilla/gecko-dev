@@ -139,7 +139,6 @@ a {
   border-bottom-width: 0;
 }
 
-
 /*
  * By default, prevent any element in message to overflow.
  * We exclude network messages as it may cause issues in the network detail panel.
@@ -241,7 +240,8 @@ a {
   margin-inline-end: calc(11px - var(--console-icon-horizontal-offset));
 }
 
-.message > .icon {
+.message > .icon,
+.eager-evaluation-result > .icon {
   flex: none;
   align-self: flex-start;
   /* Width and height must be a multiples of 2px to avoid blurry images.
@@ -499,10 +499,6 @@ html #webconsole-notificationbox {
   fill: var(--theme-icon-checked-color);
 }
 
-.eager-evaluation-result * {
-  color: var(--theme-comment) !important;
-}
-
 .webconsole-app .cm-auto-complete-shadow-text::after {
   content: attr(title);
   color: var(--theme-comment);
@@ -546,14 +542,6 @@ html #webconsole-notificationbox {
   display: flex;
   height: 1.25em;
   line-height: 1.25em;
-}
-
-/* Do not mirror the twisty because container force to ltr
- * (theme-twisty still used in network request details)
- */
-.message .theme-twisty:dir(rtl),
-.message .theme-twisty:-moz-locale-dir(rtl) {
-  transform: none;
 }
 
 .cm-s-mozilla a[class] {
@@ -774,15 +762,22 @@ a.learn-more-link.webconsole-learn-more-link {
   font-style: inherit;
 }
 
+.webconsole-app .message.network .network-monitor .empty-notice {
+  font-size: 16px;
+}
+
 .network.message .network-info {
   display: none;
-  margin-block-start: 6px;
-  margin-block-end: 2px;
+  margin-block: 6px 2px;
   border: solid 1px var(--theme-splitter-color);
 }
 
 .network.message.open .network-info {
   display: block;
+}
+
+:root:dir(rtl) .network.message.open .network-info {
+  direction: rtl;
 }
 
 .network.message .network-info .panels {

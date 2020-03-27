@@ -28,6 +28,7 @@ const { AddonManager, AddonManagerPrivate } = ChromeUtils.import(
 );
 
 XPCOMUtils.defineLazyModuleGetters(this, {
+  AddonSettings: "resource://gre/modules/addons/AddonSettings.jsm",
   AppConstants: "resource://gre/modules/AppConstants.jsm",
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
   Dictionary: "resource://gre/modules/Extension.jsm",
@@ -80,7 +81,6 @@ const PREF_LANGPACK_SIGNATURES = "extensions.langpacks.signatures.required";
 const PREF_INSTALL_DISTRO_ADDONS = "extensions.installDistroAddons";
 const PREF_BRANCH_INSTALLED_ADDON = "extensions.installedDistroAddon.";
 const PREF_SYSTEM_ADDON_SET = "extensions.systemAddonSet";
-const PREF_ALLOW_LEGACY = "extensions.legacy.enabled";
 
 const PREF_EM_LAST_APP_BUILD_ID = "extensions.lastAppBuildId";
 
@@ -1440,6 +1440,12 @@ var XPIStates = {
 
         let xpiState = loc.get(id);
         if (!xpiState) {
+          // If the location is not supported for sideloading, skip new
+          // addons.  We handle this here so changes for existing sideloads
+          // will function.
+          if (!loc.isSystem && !(loc.scope & AddonSettings.SCOPES_SIDELOAD)) {
+            continue;
+          }
           logger.debug("New add-on ${id} in ${loc}", { id, loc: loc.name });
 
           changed = true;
@@ -2382,7 +2388,6 @@ var XPIProvider = {
         Services.prefs.addObserver(PREF_XPI_SIGNATURES_REQUIRED, this);
       }
       Services.prefs.addObserver(PREF_LANGPACK_SIGNATURES, this);
-      Services.prefs.addObserver(PREF_ALLOW_LEGACY, this);
       Services.obs.addObserver(this, NOTIFICATION_FLUSH_PERMISSIONS);
 
       this.checkForChanges(aAppChanged, aOldAppVersion, aOldPlatformVersion);
@@ -3090,7 +3095,6 @@ var XPIProvider = {
         switch (aData) {
           case PREF_XPI_SIGNATURES_REQUIRED:
           case PREF_LANGPACK_SIGNATURES:
-          case PREF_ALLOW_LEGACY:
             XPIDatabase.updateAddonAppDisabledStates();
             break;
         }

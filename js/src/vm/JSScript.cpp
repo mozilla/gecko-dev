@@ -557,7 +557,6 @@ static XDRResult XDRScope(XDRState<mode>* xdr, js::PrivateScriptData* data,
       MOZ_TRY(FunctionScope::XDR(xdr, fun, enclosing, scope));
       break;
     case ScopeKind::FunctionBodyVar:
-    case ScopeKind::ParameterExpressionVar:
       MOZ_TRY(VarScope::XDR(xdr, scopeKind, enclosing, scope));
       break;
     case ScopeKind::Lexical:
@@ -688,7 +687,7 @@ void js::BaseScript::finalize(JSFreeOp* fop) {
     JSScript* script = static_cast<JSScript*>(this);
 
     if (coverage::IsLCovEnabled()) {
-      coverage::CollectScriptCoverage(script);
+      coverage::CollectScriptCoverage(script, true);
     }
 
     fop->runtime()->geckoProfiler().onScriptFinalized(script);
@@ -1133,8 +1132,8 @@ XDRResult js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
     if (!isFunctionScript && script->treatAsRunOnce() && script->hasRunOnce()) {
       // This is a toplevel or eval script that's runOnce.  We want to
       // make sure that we're not XDR-saving an object we emitted for
-      // JSOP_OBJECT that then got modified.  So throw if we're not
-      // cloning in JSOP_OBJECT or if we ever didn't clone in it in the
+      // JSOp::Object that then got modified.  So throw if we're not
+      // cloning in JSOp::Object or if we ever didn't clone in it in the
       // past.
       Realm* realm = cx->realm();
       if (!realm->creationOptions().cloneSingletons() ||
@@ -3926,8 +3925,7 @@ UniqueChars js::FormatIntroducedFilename(JSContext* cx, const char* filename,
 }
 
 bool ScriptSource::initFromOptions(JSContext* cx,
-                                   const ReadOnlyCompileOptions& options,
-                                   const Maybe<uint32_t>& parameterListEnd) {
+                                   const ReadOnlyCompileOptions& options) {
   MOZ_ASSERT(!filename_);
   MOZ_ASSERT(!introducerFilename_);
 
@@ -3936,7 +3934,8 @@ bool ScriptSource::initFromOptions(JSContext* cx,
   startLine_ = options.lineno;
   introductionType_ = options.introductionType;
   setIntroductionOffset(options.introductionOffset);
-  parameterListEnd_ = parameterListEnd.isSome() ? parameterListEnd.value() : 0;
+  // The parameterListEnd_ is initialized later by setParameterListEnd, before
+  // we expose any scripts that use this ScriptSource to the debugger.
 
   if (options.hasIntroductionInfo) {
     MOZ_ASSERT(options.introductionType != nullptr);
@@ -4266,9 +4265,11 @@ PrivateScriptData* PrivateScriptData::new_(JSContext* cx, uint32_t ngcthings) {
   return new (raw) PrivateScriptData(ngcthings);
 }
 
-/* static */ bool PrivateScriptData::InitFromEmitter(
-    JSContext* cx, js::HandleScript script, frontend::BytecodeEmitter* bce) {
-  uint32_t ngcthings = bce->perScriptData().gcThingList().length();
+/* static */
+bool PrivateScriptData::InitFromStencil(
+    JSContext* cx, js::HandleScript script,
+    const frontend::ScriptStencil& stencil) {
+  uint32_t ngcthings = stencil.ngcthings;
 
   // Create and initialize PrivateScriptData
   if (!JSScript::createPrivateScriptData(cx, script, ngcthings)) {
@@ -4277,8 +4278,7 @@ PrivateScriptData* PrivateScriptData::new_(JSContext* cx, uint32_t ngcthings) {
 
   js::PrivateScriptData* data = script->data_;
   if (ngcthings) {
-    if (!bce->perScriptData().gcThingList().finish(cx, bce->parseInfo,
-                                                   data->gcthings())) {
+    if (!stencil.finishGCThings(cx, data->gcthings())) {
       return false;
     }
   }
@@ -4372,6 +4372,14 @@ JSScript* JSScript::Create(JSContext* cx, HandleObject functionOrGlobal,
     return nullptr;
   }
 
+  // Propagate flags.
+  if (lazy->isLikelyConstructorWrapper()) {
+    script->setIsLikelyConstructorWrapper();
+  }
+  if (lazy->hasBeenCloned()) {
+    script->setHasBeenCloned();
+  }
+
   script->setFlag(MutableFlags::TrackRecordReplayProgress,
                   ShouldTrackRecordReplayProgress(script));
 
@@ -4422,39 +4430,6 @@ bool JSScript::createPrivateScriptData(JSContext* cx, HandleScript script,
   return true;
 }
 
-static void InitAtomMap(frontend::AtomIndexMap& indices, GCPtrAtom* atoms) {
-  for (frontend::AtomIndexMap::Range r = indices.all(); !r.empty();
-       r.popFront()) {
-    JSAtom* atom = r.front().key();
-    uint32_t index = r.front().value();
-    MOZ_ASSERT(index < indices.count());
-    atoms[index].init(atom);
-  }
-}
-
-static bool NeedsFunctionEnvironmentObjects(frontend::BytecodeEmitter* bce) {
-  // See JSFunction::needsCallObject()
-  js::AbstractScope bodyScope = bce->bodyScope();
-  if (bodyScope.kind() == js::ScopeKind::Function) {
-    if (bodyScope.hasEnvironment()) {
-      return true;
-    }
-  }
-
-  // See JSScript::maybeNamedLambdaScope()
-  js::AbstractScope outerScope = bce->outermostScope();
-  if (outerScope.kind() == js::ScopeKind::NamedLambda ||
-      outerScope.kind() == js::ScopeKind::StrictNamedLambda) {
-    MOZ_ASSERT(bce->sc->asFunctionBox()->isNamedLambda());
-
-    if (outerScope.hasEnvironment()) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 void JSScript::initFromFunctionBox(frontend::FunctionBox* funbox) {
   setFlag(ImmutableFlags::FunHasExtensibleScope, funbox->hasExtensibleScope());
   setFlag(ImmutableFlags::NeedsHomeObject, funbox->needsHomeObject());
@@ -4482,8 +4457,8 @@ void JSScript::initFromFunctionBox(frontend::FunctionBox* funbox) {
 }
 
 /* static */
-bool JSScript::fullyInitFromEmitter(JSContext* cx, HandleScript script,
-                                    frontend::BytecodeEmitter* bce) {
+bool JSScript::fullyInitFromStencil(JSContext* cx, HandleScript script,
+                                    const frontend::ScriptStencil& stencil) {
   MOZ_ASSERT(!script->data_, "JSScript already initialized");
 
   // If initialization fails, we must call BaseScript::freeSharedData in order
@@ -4493,46 +4468,37 @@ bool JSScript::fullyInitFromEmitter(JSContext* cx, HandleScript script,
       mozilla::MakeScopeExit([&] { script->freeSharedData(); });
 
   /* The counts of indexed things must be checked during code generation. */
-  MOZ_ASSERT(bce->perScriptData().atomIndices()->count() <= INDEX_LIMIT);
-  MOZ_ASSERT(bce->perScriptData().gcThingList().length() <= INDEX_LIMIT);
-
-  uint64_t nslots =
-      bce->maxFixedSlots +
-      static_cast<uint64_t>(bce->bytecodeSection().maxStackDepth());
-  if (nslots > UINT32_MAX) {
-    bce->reportError(nullptr, JSMSG_NEED_DIET, js_script_str);
-    return false;
-  }
-
-  MOZ_ASSERT(script->lineno_ == bce->firstLine);
-  MOZ_ASSERT(script->column_ == bce->firstColumn);
+  MOZ_ASSERT(stencil.natoms <= INDEX_LIMIT);
+  MOZ_ASSERT(stencil.ngcthings <= INDEX_LIMIT);
+  MOZ_ASSERT(script->lineno_ == stencil.lineno);
+  MOZ_ASSERT(script->column_ == stencil.column);
 
   // Initialize script flags from BytecodeEmitter
-  script->setFlag(ImmutableFlags::Strict, bce->sc->strict());
+  script->setFlag(ImmutableFlags::Strict, stencil.strict);
   script->setFlag(ImmutableFlags::BindingsAccessedDynamically,
-                  bce->sc->bindingsAccessedDynamically());
-  script->setFlag(ImmutableFlags::HasCallSiteObj, bce->sc->hasCallSiteObj());
-  script->setFlag(ImmutableFlags::IsForEval, bce->sc->isEvalContext());
-  script->setFlag(ImmutableFlags::IsModule, bce->sc->isModuleContext());
-  script->setFlag(ImmutableFlags::IsFunction, bce->sc->isFunctionBox());
+                  stencil.bindingsAccessedDynamically);
+  script->setFlag(ImmutableFlags::HasCallSiteObj, stencil.hasCallSiteObj);
+  script->setFlag(ImmutableFlags::IsForEval, stencil.isForEval);
+  script->setFlag(ImmutableFlags::IsModule, stencil.isModule);
+  script->setFlag(ImmutableFlags::IsFunction, stencil.isFunction);
   script->setFlag(ImmutableFlags::HasNonSyntacticScope,
-                  bce->outermostScope().hasOnChain(ScopeKind::NonSyntactic));
+                  stencil.hasNonSyntacticScope);
   script->setFlag(ImmutableFlags::NeedsFunctionEnvironmentObjects,
-                  NeedsFunctionEnvironmentObjects(bce));
-  script->setFlag(ImmutableFlags::HasModuleGoal, bce->sc->hasModuleGoal());
+                  stencil.needsFunctionEnvironmentObjects);
+  script->setFlag(ImmutableFlags::HasModuleGoal, stencil.hasModuleGoal);
 
   // Initialize script flags from FunctionBox
-  if (bce->sc->isFunctionBox()) {
-    script->initFromFunctionBox(bce->sc->asFunctionBox());
+  if (stencil.isFunction) {
+    script->initFromFunctionBox(stencil.functionBox);
   }
 
   // Create and initialize PrivateScriptData
-  if (!PrivateScriptData::InitFromEmitter(cx, script, bce)) {
+  if (!PrivateScriptData::InitFromStencil(cx, script, stencil)) {
     return false;
   }
 
   // Create and initialize RuntimeScriptData/ImmutableScriptData
-  if (!RuntimeScriptData::InitFromEmitter(cx, script, bce, nslots)) {
+  if (!RuntimeScriptData::InitFromStencil(cx, script, stencil)) {
     return false;
   }
   if (!script->shareScriptData(cx)) {
@@ -4542,8 +4508,8 @@ bool JSScript::fullyInitFromEmitter(JSContext* cx, HandleScript script,
   // NOTE: JSScript is now constructed and should be linked in.
 
   // Link JSFunction to this JSScript.
-  if (bce->sc->isFunctionBox()) {
-    JSFunction* fun = bce->sc->asFunctionBox()->function();
+  if (stencil.isFunction) {
+    JSFunction* fun = stencil.functionBox->function();
     if (fun->isInterpretedLazy()) {
       fun->setUnlazifiedScript(script);
     } else {
@@ -4555,7 +4521,7 @@ bool JSScript::fullyInitFromEmitter(JSContext* cx, HandleScript script,
   // Part of the parse result – the scope containing each inner function – must
   // be stored in the inner function itself. Do this now that compilation is
   // complete and can no longer fail.
-  bce->perScriptData().gcThingList().finishInnerFunctions();
+  stencil.finishInnerFunctions();
 
 #ifdef JS_STRUCTURED_SPEW
   // We want this to happen after line number initialization to allow filtering
@@ -4589,10 +4555,16 @@ void JSScript::assertValidJumpTargets() const {
       MOZ_ASSERT(mainLoc <= target && target < endLoc);
       MOZ_ASSERT(target.isJumpTarget());
 
-      // All backward jumps must be to a JSOP_LOOPHEAD op. This is an invariant
+      // All backward jumps must be to a JSOp::LoopHead op. This is an invariant
       // we want to maintain to simplify JIT compilation and bytecode analysis.
-      MOZ_ASSERT_IF(target < loc, target.is(JSOP_LOOPHEAD));
+      MOZ_ASSERT_IF(target < loc, target.is(JSOp::LoopHead));
       MOZ_ASSERT_IF(target < loc, IsBackedgePC(loc.toRawBytecode()));
+
+      // All forward jumps must be to a JSOp::JumpTarget op.
+      MOZ_ASSERT_IF(target > loc, target.is(JSOp::JumpTarget));
+
+      // Jumps must not cross scope boundaries.
+      MOZ_ASSERT(loc.innermostScope(this) == target.innermostScope(this));
 
       // Check fallthrough of conditional jump instructions.
       if (loc.fallsThrough()) {
@@ -4603,12 +4575,12 @@ void JSScript::assertValidJumpTargets() const {
     }
 
     // Check table switch case labels.
-    if (loc.is(JSOP_TABLESWITCH)) {
+    if (loc.is(JSOp::TableSwitch)) {
       BytecodeLocation target = loc.getJumpTarget();
 
       // Default target.
       MOZ_ASSERT(mainLoc <= target && target < endLoc);
-      MOZ_ASSERT(target.isJumpTarget());
+      MOZ_ASSERT(target.is(JSOp::JumpTarget));
 
       int32_t low = loc.getTableSwitchLow();
       int32_t high = loc.getTableSwitchHigh();
@@ -4617,7 +4589,7 @@ void JSScript::assertValidJumpTargets() const {
         BytecodeLocation switchCase(this,
                                     tableSwitchCasePC(loc.toRawBytecode(), i));
         MOZ_ASSERT(mainLoc <= switchCase && switchCase < endLoc);
-        MOZ_ASSERT(switchCase.isJumpTarget());
+        MOZ_ASSERT(switchCase.is(JSOp::JumpTarget));
       }
     }
   }
@@ -4629,8 +4601,8 @@ void JSScript::assertValidJumpTargets() const {
     }
 
     jsbytecode* tryStart = offsetToPC(tn.start);
-    jsbytecode* tryPc = tryStart - JSOP_TRY_LENGTH;
-    MOZ_ASSERT(JSOp(*tryPc) == JSOP_TRY);
+    jsbytecode* tryPc = tryStart - JSOpLength_Try;
+    MOZ_ASSERT(JSOp(*tryPc) == JSOp::Try);
 
     jsbytecode* tryTarget = tryStart + tn.length;
     MOZ_ASSERT(main() <= tryTarget && tryTarget < codeEnd());
@@ -4835,20 +4807,20 @@ void js::DescribeScriptedCallerForDirectEval(JSContext* cx, HandleScript script,
                                              bool* mutedErrors) {
   MOZ_ASSERT(script->containsPC(pc));
 
-  static_assert(JSOP_SPREADEVAL_LENGTH == JSOP_STRICTSPREADEVAL_LENGTH,
+  static_assert(JSOpLength_SpreadEval == JSOpLength_StrictSpreadEval,
                 "next op after a spread must be at consistent offset");
-  static_assert(JSOP_EVAL_LENGTH == JSOP_STRICTEVAL_LENGTH,
+  static_assert(JSOpLength_Eval == JSOpLength_StrictEval,
                 "next op after a direct eval must be at consistent offset");
 
-  MOZ_ASSERT(JSOp(*pc) == JSOP_EVAL || JSOp(*pc) == JSOP_STRICTEVAL ||
-             JSOp(*pc) == JSOP_SPREADEVAL ||
-             JSOp(*pc) == JSOP_STRICTSPREADEVAL);
+  MOZ_ASSERT(JSOp(*pc) == JSOp::Eval || JSOp(*pc) == JSOp::StrictEval ||
+             JSOp(*pc) == JSOp::SpreadEval ||
+             JSOp(*pc) == JSOp::StrictSpreadEval);
 
   bool isSpread =
-      (JSOp(*pc) == JSOP_SPREADEVAL || JSOp(*pc) == JSOP_STRICTSPREADEVAL);
+      (JSOp(*pc) == JSOp::SpreadEval || JSOp(*pc) == JSOp::StrictSpreadEval);
   jsbytecode* nextpc =
-      pc + (isSpread ? JSOP_SPREADEVAL_LENGTH : JSOP_EVAL_LENGTH);
-  MOZ_ASSERT(*nextpc == JSOP_LINENO);
+      pc + (isSpread ? JSOpLength_SpreadEval : JSOpLength_Eval);
+  MOZ_ASSERT(JSOp(*nextpc) == JSOp::Lineno);
 
   *file = script->filename();
   *linenop = GET_UINT32(nextpc);
@@ -5013,7 +4985,7 @@ bool PrivateScriptData::Clone(JSContext* cx, HandleScript src, HandleScript dst,
       bigint = &gcThing.as<BigInt>();
       BigInt* clone = bigint;
       if (cx->zone() != bigint->zone()) {
-        clone = BigInt::copy(cx, bigint);
+        clone = BigInt::copy(cx, bigint, gc::TenuredHeap);
         if (!clone) {
           return false;
         }
@@ -5193,25 +5165,25 @@ JSScript* js::CloneScriptIntoFunction(
   return dst;
 }
 
-/* static */ bool ImmutableScriptData::InitFromEmitter(
-    JSContext* cx, js::HandleScript script, frontend::BytecodeEmitter* bce,
-    uint32_t nslots) {
-  size_t codeLength = bce->bytecodeSection().code().length();
+/* static */
+bool ImmutableScriptData::InitFromStencil(
+    JSContext* cx, js::HandleScript script,
+    const frontend::ScriptStencil& stencil) {
+  size_t codeLength = stencil.code.Length();
   MOZ_RELEASE_ASSERT(codeLength <= frontend::MaxBytecodeLength);
 
   // There are 1-4 copies of SN_MAKE_TERMINATOR appended after the source
   // notes. These are a combination of sentinel and padding values.
   static_assert(frontend::MaxSrcNotesLength <= UINT32_MAX - CodeNoteAlign,
                 "Length + CodeNoteAlign shouldn't overflow UINT32_MAX");
-  size_t noteLength = bce->bytecodeSection().notes().length();
+  size_t noteLength = stencil.notes.Length();
   MOZ_RELEASE_ASSERT(noteLength <= frontend::MaxSrcNotesLength);
 
   size_t nullLength = ComputeNotePadding(codeLength, noteLength);
 
-  uint32_t numResumeOffsets =
-      bce->bytecodeSection().resumeOffsetList().length();
-  uint32_t numScopeNotes = bce->bytecodeSection().scopeNoteList().length();
-  uint32_t numTryNotes = bce->bytecodeSection().tryNoteList().length();
+  uint32_t numResumeOffsets = stencil.numResumeOffsets;
+  uint32_t numScopeNotes = stencil.numScopeNotes;
+  uint32_t numTryNotes = stencil.numTryNotes;
 
   // Allocate ImmutableScriptData
   if (!script->createImmutableScriptData(
@@ -5222,47 +5194,44 @@ JSScript* js::CloneScriptIntoFunction(
   js::ImmutableScriptData* data = script->immutableScriptData();
 
   // Initialize POD fields
-  data->mainOffset = bce->mainOffset();
-  data->nfixed = bce->maxFixedSlots;
-  data->nslots = nslots;
-  data->bodyScopeIndex = bce->bodyScopeIndex;
-  data->numICEntries = bce->bytecodeSection().numICEntries();
-  data->numBytecodeTypeSets =
-      std::min<uint32_t>(uint32_t(JSScript::MaxBytecodeTypeSets),
-                         bce->bytecodeSection().numTypeSets());
+  data->mainOffset = stencil.mainOffset;
+  data->nfixed = stencil.nfixed;
+  data->nslots = stencil.nslots;
+  data->bodyScopeIndex = stencil.bodyScopeIndex;
+  data->numICEntries = stencil.numICEntries;
+  data->numBytecodeTypeSets = std::min<uint32_t>(
+      uint32_t(JSScript::MaxBytecodeTypeSets), stencil.numBytecodeTypeSets);
 
-  if (bce->sc->isFunctionBox()) {
-    data->funLength = bce->sc->asFunctionBox()->length;
+  if (stencil.isFunction) {
+    data->funLength = stencil.functionBox->length;
   }
 
   // Initialize trailing arrays
-  std::copy_n(bce->bytecodeSection().code().begin(), codeLength, data->code());
-  std::copy_n(bce->bytecodeSection().notes().begin(), noteLength,
-              data->notes());
+  std::copy_n(stencil.code.data(), codeLength, data->code());
+  std::copy_n(stencil.notes.data(), noteLength, data->notes());
   std::fill_n(data->notes() + noteLength, nullLength, SRC_NULL);
 
-  bce->bytecodeSection().resumeOffsetList().finish(data->resumeOffsets());
-  bce->bytecodeSection().scopeNoteList().finish(data->scopeNotes());
-  bce->bytecodeSection().tryNoteList().finish(data->tryNotes());
+  stencil.finishResumeOffsets(data->resumeOffsets());
+  stencil.finishScopeNotes(data->scopeNotes());
+  stencil.finishTryNotes(data->tryNotes());
 
   return true;
 }
 
-/* static */ bool RuntimeScriptData::InitFromEmitter(
-    JSContext* cx, js::HandleScript script, frontend::BytecodeEmitter* bce,
-    uint32_t nslots) {
-  uint32_t natoms = bce->perScriptData().atomIndices()->count();
-
+/* static */
+bool RuntimeScriptData::InitFromStencil(
+    JSContext* cx, js::HandleScript script,
+    const frontend::ScriptStencil& stencil) {
   // Allocate RuntimeScriptData
-  if (!script->createScriptData(cx, natoms)) {
+  if (!script->createScriptData(cx, stencil.natoms)) {
     return false;
   }
   js::RuntimeScriptData* data = script->sharedData();
 
   // Initialize trailing arrays
-  InitAtomMap(*bce->perScriptData().atomIndices(), data->atoms());
+  stencil.initAtomMap(data->atoms());
 
-  return ImmutableScriptData::InitFromEmitter(cx, script, bce, nslots);
+  return ImmutableScriptData::InitFromStencil(cx, script, stencil);
 }
 
 void RuntimeScriptData::traceChildren(JSTracer* trc) {
@@ -5352,7 +5321,7 @@ size_t JSScript::calculateLiveFixed(jsbytecode* pc) {
   return nlivefixed;
 }
 
-Scope* JSScript::lookupScope(jsbytecode* pc) {
+Scope* JSScript::lookupScope(jsbytecode* pc) const {
   MOZ_ASSERT(containsPC(pc));
 
   size_t offset = pc - code();
@@ -5401,7 +5370,7 @@ Scope* JSScript::lookupScope(jsbytecode* pc) {
   return scope;
 }
 
-Scope* JSScript::innermostScope(jsbytecode* pc) {
+Scope* JSScript::innermostScope(jsbytecode* pc) const {
   if (Scope* scope = lookupScope(pc)) {
     return scope;
   }
@@ -5440,11 +5409,11 @@ void js::SetFrameArgumentsObject(JSContext* cx, AbstractFramePtr frame,
      * is assigned to.
      */
     jsbytecode* pc = script->code();
-    while (*pc != JSOP_ARGUMENTS) {
+    while (JSOp(*pc) != JSOp::Arguments) {
       pc += GetBytecodeLength(pc);
     }
-    pc += JSOP_ARGUMENTS_LENGTH;
-    MOZ_ASSERT(*pc == JSOP_SETALIASEDVAR);
+    pc += JSOpLength_Arguments;
+    MOZ_ASSERT(JSOp(*pc) == JSOp::SetAliasedVar);
 
     // Note that here and below, it is insufficient to only check for
     // JS_OPTIMIZED_ARGUMENTS, as Ion could have optimized out the

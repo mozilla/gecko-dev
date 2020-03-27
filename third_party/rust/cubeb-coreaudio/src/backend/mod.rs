@@ -194,7 +194,7 @@ fn create_device_info(id: AudioDeviceID, devtype: DeviceType) -> Result<device_i
     assert_ne!(id, kAudioObjectSystemObject);
 
     let mut info = device_info {
-        id: id,
+        id,
         flags: match devtype {
             DeviceType::INPUT => device_flags::DEV_INPUT,
             DeviceType::OUTPUT => device_flags::DEV_OUTPUT,
@@ -328,9 +328,9 @@ fn get_volume(unit: AudioUnit) -> Result<f32> {
 }
 
 fn minimum_resampling_input_frames(input_rate: f64, output_rate: f64, output_frames: i64) -> i64 {
-    assert_ne!(input_rate, 0_f64);
-    assert_ne!(output_rate, 0_f64);
-    if input_rate == output_rate {
+    assert!(!approx_eq!(f64, input_rate, 0_f64));
+    assert!(!approx_eq!(f64, output_rate, 0_f64));
+    if approx_eq!(f64, input_rate, output_rate) {
         return output_frames;
     }
     (input_rate * output_frames as f64 / output_rate).ceil() as i64
@@ -383,6 +383,12 @@ extern "C" fn audiounit_input_callback(
             user_ptr as *const AudioUnitStream
         );
 
+        // `flags` and `tstamp` must be non-null so they can be casted into the references.
+        assert!(!flags.is_null());
+        let flags = unsafe { &mut (*flags) };
+        assert!(!tstamp.is_null());
+        let tstamp = unsafe { &(*tstamp) };
+
         // Create the AudioBufferList to store input.
         let mut input_buffer_list = AudioBufferList::default();
         input_buffer_list.mBuffers[0].mDataByteSize =
@@ -392,7 +398,7 @@ extern "C" fn audiounit_input_callback(
             stm.core_stream_data.input_desc.mChannelsPerFrame;
         input_buffer_list.mNumberBuffers = 1;
 
-        assert!(!stm.core_stream_data.input_unit.is_null());
+        debug_assert!(!stm.core_stream_data.input_unit.is_null());
         let status = audio_unit_render(
             stm.core_stream_data.input_unit,
             flags,
@@ -524,7 +530,8 @@ extern "C" fn audiounit_input_callback(
     // If the input (input-only stream) or the output is drained (duplex stream),
     // cancel this callback.
     if stm.draining.load(Ordering::SeqCst) {
-        assert!(stop_audiounit(stm.core_stream_data.input_unit).is_ok());
+        let r = stop_audiounit(stm.core_stream_data.input_unit);
+        assert!(r.is_ok());
         // Only fire state-changed callback for input-only stream.
         // The state-changed callback for the duplex stream is fired in the output callback.
         if stm.core_stream_data.output_unit.is_null() {
@@ -532,21 +539,20 @@ extern "C" fn audiounit_input_callback(
         }
     }
 
-    let status = match handle {
+    match handle {
         ErrorHandle::Reinit => {
             stm.reinit_async();
             NO_ERR
         }
         ErrorHandle::Return(s) => s,
-    };
-    status
+    }
 }
 
 fn host_time_to_ns(host_time: u64) -> u64 {
     let mut rv: f64 = host_time as f64;
     rv *= HOST_TIME_TO_NS_RATIO.0 as f64;
     rv /= HOST_TIME_TO_NS_RATIO.1 as f64;
-    return rv as u64;
+    rv as u64
 }
 
 fn compute_output_latency(stm: &AudioUnitStream, host_time: u64) -> u32 {
@@ -611,7 +617,8 @@ extern "C" fn audiounit_output_callback(
     if stm.draining.load(Ordering::SeqCst) {
         // Cancel the output callback only. For duplex stream,
         // the input callback will be cancelled in its own callback.
-        assert!(stop_audiounit(stm.core_stream_data.output_unit).is_ok());
+        let r = stop_audiounit(stm.core_stream_data.output_unit);
+        assert!(r.is_ok());
         stm.notify_state_changed(State::Drained);
         audiounit_make_silent(&mut buffers[0]);
         return NO_ERR;
@@ -718,13 +725,14 @@ extern "C" fn audiounit_output_callback(
         }
 
         if outframes < 0 || outframes > i64::from(output_frames) {
-            *stm.shutdown.get_mut() = true;
+            stm.shutdown.store(true, Ordering::SeqCst);
             stm.core_stream_data.stop_audiounits();
             audiounit_make_silent(&mut buffers[0]);
             return (NO_ERR, Some(State::Error));
         }
 
-        *stm.draining.get_mut() = outframes < i64::from(output_frames);
+        stm.draining
+            .store(outframes < i64::from(output_frames), Ordering::SeqCst);
         stm.frames_played
             .store(stm.frames_queued, atomic::Ordering::SeqCst);
         stm.frames_queued += outframes as u64;
@@ -745,8 +753,8 @@ extern "C" fn audiounit_output_callback(
                 )
             };
             let start = frames_to_bytes(outframes as usize);
-            for i in start..out_bytes.len() {
-                out_bytes[i] = 0;
+            for byte in out_bytes.iter_mut().skip(start) {
+                *byte = 0;
             }
         }
 
@@ -792,7 +800,7 @@ extern "C" fn audiounit_property_listener_callback(
         );
         return NO_ERR;
     }
-    *stm.switching_device.get_mut() = true;
+    stm.switching_device.store(true, Ordering::SeqCst);
 
     cubeb_log!(
         "({:p}) Audio device changed, {} events.",
@@ -830,7 +838,7 @@ extern "C" fn audiounit_property_listener_callback(
                     .contains(device_flags::DEV_SYSTEM_DEFAULT)
                 {
                     cubeb_log!("It's the default input device, ignore the event");
-                    *stm.switching_device.get_mut() = false;
+                    stm.switching_device.store(false, Ordering::SeqCst);
                     return NO_ERR;
                 }
             }
@@ -847,7 +855,7 @@ extern "C" fn audiounit_property_listener_callback(
                     i,
                     addr.mSelector
                 );
-                *stm.switching_device.get_mut() = false;
+                stm.switching_device.store(false, Ordering::SeqCst);
                 return NO_ERR;
             }
         }
@@ -923,7 +931,7 @@ fn audiounit_get_preferred_channel_layout(output_unit: AudioUnit) -> Vec<mixer::
         kAudioUnitScope_Output,
         AU_OUT_BUS,
         &mut size,
-        ptr::null_mut(),
+        None,
     );
     if rv != NO_ERR {
         cubeb_log!(
@@ -932,7 +940,7 @@ fn audiounit_get_preferred_channel_layout(output_unit: AudioUnit) -> Vec<mixer::
         );
         return Vec::new();
     }
-    assert!(size > 0);
+    debug_assert!(size > 0);
 
     let mut layout = make_sized_audio_channel_layout(size);
     rv = audio_unit_get_property(
@@ -965,7 +973,7 @@ fn audiounit_get_current_channel_layout(output_unit: AudioUnit) -> Vec<mixer::Ch
         kAudioUnitScope_Output,
         AU_OUT_BUS,
         &mut size,
-        ptr::null_mut(),
+        None,
     );
     if rv != NO_ERR {
         cubeb_log!(
@@ -975,7 +983,7 @@ fn audiounit_get_current_channel_layout(output_unit: AudioUnit) -> Vec<mixer::Ch
         // This property isn't known before macOS 10.12, attempt another method.
         return audiounit_get_preferred_channel_layout(output_unit);
     }
-    assert!(size > 0);
+    debug_assert!(size > 0);
 
     let mut layout = make_sized_audio_channel_layout(size);
     rv = audio_unit_get_property(
@@ -1223,6 +1231,7 @@ fn set_buffer_size(
     }
 }
 
+#[allow(clippy::mutex_atomic)] // The mutex needs to be fed into Condvar::wait_timeout.
 fn set_buffer_size_sync(unit: AudioUnit, devtype: DeviceType, frames: u32) -> Result<()> {
     let current_frames = get_buffer_size(unit, devtype).map_err(|e| {
         cubeb_log!(
@@ -1389,7 +1398,7 @@ fn get_range_of_sample_rates(
 ) -> std::result::Result<(f64, f64), String> {
     let result = get_ranges_of_device_sample_rate(devid, devtype);
     if let Err(e) = result {
-        return Err(format!("status {}", e).to_string());
+        return Err(format!("status {}", e));
     }
     let rates = result.unwrap();
     if rates.is_empty() {
@@ -1645,7 +1654,7 @@ fn audiounit_get_devices_of_type(devtype: DeviceType) -> Vec<AudioObjectID> {
     devices.retain(|&device| {
         if let Ok(uid) = get_device_global_uid(device) {
             let uid = uid.into_string();
-            uid != PRIVATE_AGGREGATE_DEVICE_NAME
+            !uid.contains(PRIVATE_AGGREGATE_DEVICE_NAME)
         } else {
             // Fail to get device uid.
             true
@@ -1763,9 +1772,7 @@ impl DevicesData {
     }
 
     fn is_empty(&self) -> bool {
-        self.changed_callback == None
-            && self.callback_user_ptr == ptr::null_mut()
-            && self.devices.is_empty()
+        self.changed_callback == None && self.callback_user_ptr.is_null() && self.devices.is_empty()
     }
 }
 
@@ -2135,7 +2142,7 @@ impl ContextOps for AudioUnitContext {
                     cubeb_log!("Fail to create device info for input.");
                     e
                 })?;
-            let stm_params = StreamParams::from(unsafe { (*params.as_ptr()) });
+            let stm_params = StreamParams::from(unsafe { *params.as_ptr() });
             Some((stm_params, in_device))
         } else {
             None
@@ -2147,7 +2154,7 @@ impl ContextOps for AudioUnitContext {
                     cubeb_log!("Fail to create device info for output.");
                     e
                 })?;
-            let stm_params = StreamParams::from(unsafe { (*params.as_ptr()) });
+            let stm_params = StreamParams::from(unsafe { *params.as_ptr() });
             Some((stm_params, out_device))
         } else {
             None
@@ -2343,7 +2350,7 @@ impl<'ctx> CoreStreamData<'ctx> {
     fn start_audiounits(&self) -> Result<()> {
         // Only allowed to be called after the stream is initialized
         // and before the stream is destroyed.
-        assert!(!self.input_unit.is_null() || !self.output_unit.is_null());
+        debug_assert!(!self.input_unit.is_null() || !self.output_unit.is_null());
 
         if !self.input_unit.is_null() {
             start_audiounit(self.input_unit)?;
@@ -2356,10 +2363,12 @@ impl<'ctx> CoreStreamData<'ctx> {
 
     fn stop_audiounits(&self) {
         if !self.input_unit.is_null() {
-            assert!(stop_audiounit(self.input_unit).is_ok());
+            let r = stop_audiounit(self.input_unit);
+            assert!(r.is_ok());
         }
         if !self.output_unit.is_null() {
-            assert!(stop_audiounit(self.output_unit).is_ok());
+            let r = stop_audiounit(self.output_unit);
+            assert!(r.is_ok());
         }
     }
 
@@ -2386,6 +2395,7 @@ impl<'ctx> CoreStreamData<'ctx> {
             && !is_device_a_type_of(self.output_device.id, DeviceType::INPUT)
     }
 
+    #[allow(clippy::cognitive_complexity)] // TODO: Refactoring.
     fn setup(&mut self) -> Result<()> {
         if self
             .input_stream_params
@@ -2433,6 +2443,12 @@ impl<'ctx> CoreStreamData<'ctx> {
 
         // Configure I/O stream
         if self.has_input() {
+            cubeb_log!(
+                "({:p}) Initialize input by device info: {:?}",
+                self.stm_ptr,
+                in_dev_info
+            );
+
             self.input_unit = create_audiounit(&in_dev_info).map_err(|e| {
                 cubeb_log!("({:p}) AudioUnit creation for input failed.", self.stm_ptr);
                 e
@@ -2572,6 +2588,12 @@ impl<'ctx> CoreStreamData<'ctx> {
         }
 
         if self.has_output() {
+            cubeb_log!(
+                "({:p}) Initialize output by device info: {:?}",
+                self.stm_ptr,
+                out_dev_info
+            );
+
             self.output_unit = create_audiounit(&out_dev_info).map_err(|e| {
                 cubeb_log!("({:p}) AudioUnit creation for output failed.", self.stm_ptr);
                 e
@@ -2622,6 +2644,13 @@ impl<'ctx> CoreStreamData<'ctx> {
             );
             self.output_hw_rate = output_hw_desc.mSampleRate;
             let hw_channels = output_hw_desc.mChannelsPerFrame;
+            if hw_channels == 0 {
+                cubeb_log!(
+                    "({:p}) Output hardware has no output channel! Bail out.",
+                    self.stm_ptr
+                );
+                return Err(Error::device_unavailable());
+            }
 
             self.device_layout = audiounit_get_current_channel_layout(self.output_unit);
 
@@ -2732,14 +2761,14 @@ impl<'ctx> CoreStreamData<'ctx> {
         };
 
         let resampler_input_params = if self.has_input() {
-            let mut params = unsafe { (*(self.input_stream_params.as_ptr())) };
+            let mut params = unsafe { *(self.input_stream_params.as_ptr()) };
             params.rate = self.input_hw_rate as u32;
             Some(params)
         } else {
             None
         };
         let resampler_output_params = if self.has_output() {
-            let params = unsafe { (*(self.output_stream_params.as_ptr())) };
+            let params = unsafe { *(self.output_stream_params.as_ptr()) };
             Some(params)
         } else {
             None
@@ -3037,6 +3066,8 @@ impl<'ctx> Drop for CoreStreamData<'ctx> {
 // #[repr(C)] is used to prevent any padding from being added in the beginning of the AudioUnitStream.
 #[repr(C)]
 #[derive(Debug)]
+// Allow exposing this private struct in public interfaces when running tests.
+#[cfg_attr(test, allow(private_in_public))]
 struct AudioUnitStream<'ctx> {
     context: &'ctx mut AudioUnitContext,
     user_ptr: *mut c_void,
@@ -3136,7 +3167,7 @@ impl<'ctx> AudioUnitStream<'ctx> {
             self.core_stream_data.stop_audiounits();
         }
 
-        assert!(
+        debug_assert!(
             !self.core_stream_data.input_unit.is_null()
                 || !self.core_stream_data.output_unit.is_null()
         );
@@ -3207,8 +3238,8 @@ impl<'ctx> AudioUnitStream<'ctx> {
             }
         }
 
-        if vol_rv.is_ok() {
-            set_volume(self.core_stream_data.output_unit, vol_rv.unwrap());
+        if let Ok(volume) = vol_rv {
+            set_volume(self.core_stream_data.output_unit, volume);
         }
 
         // If the stream was running, start it again.
@@ -3259,8 +3290,8 @@ impl<'ctx> AudioUnitStream<'ctx> {
                     stm_ptr
                 );
             }
-            *stm_guard.switching_device.get_mut() = false;
-            *stm_guard.reinit_pending.get_mut() = false;
+            stm_guard.switching_device.store(false, Ordering::SeqCst);
+            stm_guard.reinit_pending.store(false, Ordering::SeqCst);
         });
     }
 
@@ -3271,7 +3302,30 @@ impl<'ctx> AudioUnitStream<'ctx> {
     }
 
     fn destroy(&mut self) {
-        *self.destroy_pending.get_mut() = true;
+        if self
+            .core_stream_data
+            .uninstall_system_changed_callback()
+            .is_err()
+        {
+            cubeb_log!(
+                "({:p}) Could not uninstall the system changed callback",
+                self as *const AudioUnitStream
+            );
+        }
+
+        if self
+            .core_stream_data
+            .uninstall_device_changed_callback()
+            .is_err()
+        {
+            cubeb_log!(
+                "({:p}) Could not uninstall all device change listeners",
+                self as *const AudioUnitStream
+            );
+        }
+
+        // Execute the stream destroy work.
+        self.destroy_pending.store(true, Ordering::SeqCst);
 
         let queue = self.context.serial_queue;
 
@@ -3285,7 +3339,7 @@ impl<'ctx> AudioUnitStream<'ctx> {
             // CoreAudio framework that is used by the data callback.
             if !self.shutdown.load(Ordering::SeqCst) {
                 self.core_stream_data.stop_audiounits();
-                *self.shutdown.get_mut() = true;
+                self.shutdown.store(true, Ordering::SeqCst);
             }
 
             self.destroy_internal();
@@ -3303,8 +3357,8 @@ impl<'ctx> Drop for AudioUnitStream<'ctx> {
 
 impl<'ctx> StreamOps for AudioUnitStream<'ctx> {
     fn start(&mut self) -> Result<()> {
-        *self.shutdown.get_mut() = false;
-        *self.draining.get_mut() = false;
+        self.shutdown.store(false, Ordering::SeqCst);
+        self.draining.store(false, Ordering::SeqCst);
 
         // Execute start in serial queue to avoid racing with destroy or reinit.
         let queue = self.context.serial_queue;
@@ -3328,7 +3382,7 @@ impl<'ctx> StreamOps for AudioUnitStream<'ctx> {
         Ok(())
     }
     fn stop(&mut self) -> Result<()> {
-        *self.shutdown.get_mut() = true;
+        self.shutdown.store(true, Ordering::SeqCst);
 
         // Execute stop in serial queue to avoid racing with destroy or reinit.
         let queue = self.context.serial_queue;
@@ -3383,10 +3437,10 @@ impl<'ctx> StreamOps for AudioUnitStream<'ctx> {
 
         let mut device: Box<ffi::cubeb_device> = Box::new(ffi::cubeb_device::default());
 
-        let input_name = input_name.unwrap_or(CString::default());
+        let input_name = input_name.unwrap_or_default();
         device.input_name = input_name.into_raw();
 
-        let output_name = output_name.unwrap_or(CString::default());
+        let output_name = output_name.unwrap_or_default();
         device.output_name = output_name.into_raw();
 
         Ok(unsafe { DeviceRef::from_ptr(Box::into_raw(device)) })

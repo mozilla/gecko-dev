@@ -1771,11 +1771,11 @@ bool js::intrinsic_GetElemBaseForLambda(JSContext* cx, unsigned argc,
   jsbytecode* pc = script->code();
 
   /*
-   * JSOP_GETALIASEDVAR tells us exactly where to find the base object 'b'.
+   * JSOp::GetAliasedVar tells us exactly where to find the base object 'b'.
    * Rule out the (unlikely) possibility of a function with environment
    * objects since it would make our environment walk off.
    */
-  if (JSOp(*pc) != JSOP_GETALIASEDVAR || fun->needsSomeEnvironmentObject()) {
+  if (JSOp(*pc) != JSOp::GetAliasedVar || fun->needsSomeEnvironmentObject()) {
     return true;
   }
   EnvironmentCoordinate ec(pc);
@@ -1784,22 +1784,22 @@ bool js::intrinsic_GetElemBaseForLambda(JSContext* cx, unsigned argc,
     env = &env->enclosingEnvironment().as<EnvironmentObject>();
   }
   Value b = env->aliasedBinding(ec);
-  pc += JSOP_GETALIASEDVAR_LENGTH;
+  pc += JSOpLength_GetAliasedVar;
 
   /* Look for 'a' to be the lambda's first argument. */
-  if (JSOp(*pc) != JSOP_GETARG || GET_ARGNO(pc) != 0) {
+  if (JSOp(*pc) != JSOp::GetArg || GET_ARGNO(pc) != 0) {
     return true;
   }
-  pc += JSOP_GETARG_LENGTH;
+  pc += JSOpLength_GetArg;
 
   /* 'b[a]' */
-  if (JSOp(*pc) != JSOP_GETELEM) {
+  if (JSOp(*pc) != JSOp::GetElem) {
     return true;
   }
-  pc += JSOP_GETELEM_LENGTH;
+  pc += JSOpLength_GetElem;
 
   /* 'return b[a]' */
-  if (JSOp(*pc) != JSOP_RETURN) {
+  if (JSOp(*pc) != JSOp::Return) {
     return true;
   }
 

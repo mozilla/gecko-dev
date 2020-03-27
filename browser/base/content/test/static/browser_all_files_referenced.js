@@ -32,11 +32,10 @@ var gExceptionPaths = [
 
   // These resources are referenced using relative paths from html files.
   "resource://payments/",
-  "resource://normandy-content/shield-content-frame.js",
-  "resource://normandy-content/shield-content-process.js",
 
   // https://github.com/mozilla/activity-stream/issues/3053
   "resource://activity-stream/data/content/tippytop/images/",
+  "resource://activity-stream/data/content/tippytop/favicons/",
   // These resources are referenced by messages delivered through Remote Settings
   "resource://activity-stream/data/content/assets/remote/",
 
@@ -171,6 +170,11 @@ var whitelist = [
     file: "chrome://browser/locale/taskbar.properties",
     platforms: ["linux", "macosx"],
   },
+  // Bug 1619090 to clean up platform-specific crypto
+  {
+    file: "resource://gre/modules/OSCrypto.jsm",
+    platforms: ["linux", "macosx"],
+  },
   // Bug 1356031 (only used by devtools)
   { file: "chrome://global/skin/icons/error-16.png" },
   // Bug 1344267
@@ -210,6 +214,12 @@ var whitelist = [
     isFromDevTools: true,
   },
   { file: "chrome://devtools/skin/images/next.svg", isFromDevTools: true },
+  // Feature gates are available but not used yet - Bug 1479127
+  { file: "resource://featuregates/FeatureGate.jsm" },
+  {
+    file: "resource://featuregates/FeatureGateImplementation.jsm",
+  },
+  { file: "resource://featuregates/feature_definitions.json" },
   // Bug 1526672
   {
     file: "resource://app/localization/en-US/browser/touchbar/touchbar.ftl",
@@ -220,6 +230,9 @@ var whitelist = [
 
   // Bug 1559554
   { file: "chrome://browser/content/aboutlogins/aboutLoginsUtils.js" },
+
+  // Referenced from the screenshots webextension
+  { file: "resource://app/localization/en-US/browser/screenshots.ftl" },
 ];
 
 if (AppConstants.NIGHTLY_BUILD && AppConstants.platform != "win") {

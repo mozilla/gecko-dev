@@ -78,18 +78,14 @@ struct SerializedStructuredCloneBuffer final {
   SerializedStructuredCloneBuffer()
       : data(JS::StructuredCloneScope::Unassigned) {}
 
-  SerializedStructuredCloneBuffer(const SerializedStructuredCloneBuffer& aOther)
-      : SerializedStructuredCloneBuffer() {
-    *this = aOther;
-  }
-
+  SerializedStructuredCloneBuffer(SerializedStructuredCloneBuffer&&) = default;
   SerializedStructuredCloneBuffer& operator=(
-      const SerializedStructuredCloneBuffer& aOther) {
-    data.Clear();
-    data.initScope(aOther.data.scope());
-    MOZ_RELEASE_ASSERT(data.Append(aOther.data), "out of memory");
-    return *this;
-  }
+      SerializedStructuredCloneBuffer&&) = default;
+
+  SerializedStructuredCloneBuffer(const SerializedStructuredCloneBuffer&) =
+      delete;
+  SerializedStructuredCloneBuffer& operator=(
+      const SerializedStructuredCloneBuffer& aOther) = delete;
 
   bool operator==(const SerializedStructuredCloneBuffer& aOther) const {
     // The copy assignment operator and the equality operator are
@@ -1312,6 +1308,10 @@ static bool ReadParams(const Message* aMsg, PickleIterator* aIter, T0& aArg,
                                                (__VA_ARGS__)));              \
     }                                                                        \
   };
+
+#define DEFINE_IPC_SERIALIZER_WITHOUT_FIELDS(Type) \
+  template <>                                      \
+  struct ParamTraits<Type> : public EmptyStructSerializer<Type> {};
 
 } /* namespace IPC */
 

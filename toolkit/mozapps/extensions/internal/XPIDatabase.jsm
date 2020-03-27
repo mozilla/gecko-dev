@@ -103,6 +103,7 @@ const PENDING_INSTALL_METADATA = [
   "targetApplications",
   "userDisabled",
   "softDisabled",
+  "embedderDisabled",
   "existingAddonID",
   "sourceURI",
   "releaseNotesURI",
@@ -129,6 +130,7 @@ const PROP_JSON_FIELDS = [
   "active",
   "userDisabled",
   "appDisabled",
+  "embedderDisabled",
   "pendingUninstall",
   "installDate",
   "updateDate",
@@ -159,8 +161,6 @@ const PROP_JSON_FIELDS = [
   "recommendationState",
   "rootURI",
 ];
-
-const LEGACY_TYPES = new Set(["extension"]);
 
 const SIGNED_TYPES = new Set(["extension", "locale", "theme"]);
 
@@ -275,6 +275,7 @@ class AddonInternal {
     this.userDisabled = false;
     this.appDisabled = false;
     this.softDisabled = false;
+    this.embedderDisabled = false;
     this.blocklistState = Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
     this.blocklistURL = null;
     this.sourceURI = null;
@@ -453,7 +454,12 @@ class AddonInternal {
   }
 
   get disabled() {
-    return this.userDisabled || this.appDisabled || this.softDisabled;
+    return (
+      this.userDisabled ||
+      this.appDisabled ||
+      this.softDisabled ||
+      this.embedderDisabled
+    );
   }
 
   get isPlatformCompatible() {
@@ -587,7 +593,10 @@ class AddonInternal {
     }
 
     if (this.inDatabase && updateDatabase) {
-      XPIDatabase.updateAddonDisabledState(this, userDisabled, softDisabled);
+      XPIDatabase.updateAddonDisabledState(this, {
+        userDisabled,
+        softDisabled,
+      });
       XPIDatabase.saveChanges();
     } else {
       this.appDisabled = !XPIDatabase.isUsableAddon(this);
@@ -611,7 +620,7 @@ class AddonInternal {
       if (this.location.isSystem && !allowSystemAddons) {
         throw new Error(`Cannot disable system add-on ${this.id}`);
       }
-      await XPIDatabase.updateAddonDisabledState(this, val);
+      await XPIDatabase.updateAddonDisabledState(this, { userDisabled: val });
     } else {
       this.userDisabled = val;
       // When enabling remove the softDisabled flag
@@ -695,15 +704,28 @@ class AddonInternal {
     }
 
     // Add-ons that are in locked install locations, or are pending uninstall
-    // cannot be upgraded or uninstalled
-    if (!this.location.locked && !this.pendingUninstall) {
+    // cannot be uninstalled or upgraded.  One caveat is extensions sideloaded
+    // from non-profile locations. Since Firefox 73(?), new sideloaded extensions
+    // from outside the profile have not been installed so any such extensions
+    // must be from an older profile. Users may uninstall such an extension which
+    // removes the related state from this profile but leaves the actual file alone
+    // (since it is outside this profile and may be in use in other profiles)
+    let changesAllowed = !this.location.locked && !this.pendingUninstall;
+    if (changesAllowed) {
       // System add-on upgrades are triggered through a different mechanism (see updateSystemAddons())
       let isSystem = this.location.isSystem;
       // Add-ons that are installed by a file link cannot be upgraded.
       if (!this.location.isLinkedAddon(this.id) && !isSystem) {
         permissions |= AddonManager.PERM_CAN_UPGRADE;
       }
+    }
 
+    // We allow uninstall of legacy sideloaded extensions, even when in locked locations,
+    // but we do not remove the addon file in that case.
+    let isLegacySideload =
+      this.foreignInstall &&
+      !(this.location.scope & AddonSettings.SCOPES_SIDELOAD);
+    if (changesAllowed || isLegacySideload) {
       permissions |= AddonManager.PERM_API_CAN_UNINSTALL;
       if (!this.location.isBuiltin) {
         permissions |= AddonManager.PERM_CAN_UNINSTALL;
@@ -739,6 +761,7 @@ class AddonInternal {
   propagateDisabledState(oldAddon) {
     if (oldAddon) {
       this.userDisabled = oldAddon.userDisabled;
+      this.embedderDisabled = oldAddon.embedderDisabled;
       this.softDisabled = oldAddon.softDisabled;
       this.blocklistState = oldAddon.blocklistState;
     }
@@ -1065,6 +1088,57 @@ AddonWrapper = class {
     return addon.softDisabled || addon.userDisabled;
   }
 
+  /**
+   * Get the embedderDisabled property for this addon.
+   *
+   * This is intended for embedders of Gecko like GeckoView apps to control
+   * which addons are usable on their app.
+   *
+   * @returns {boolean}
+   */
+  get embedderDisabled() {
+    if (!AddonSettings.IS_EMBEDDED) {
+      return undefined;
+    }
+
+    return addonFor(this).embedderDisabled;
+  }
+
+  /**
+   * Set the embedderDisabled property for this addon.
+   *
+   * This is intended for embedders of Gecko like GeckoView apps to control
+   * which addons are usable on their app.
+   *
+   * Embedders can disable addons for various reasons, e.g. the addon is not
+   * compatible with their implementation of the WebExtension API.
+   *
+   * When an addon is embedderDisabled it will behave like it was appDisabled.
+   *
+   * @param {boolean} val
+   *        whether this addon should be embedder disabled or not.
+   */
+  async setEmbedderDisabled(val) {
+    if (!AddonSettings.IS_EMBEDDED) {
+      throw new Error("Setting embedder disabled while not embedding.");
+    }
+
+    let addon = addonFor(this);
+    if (addon.embedderDisabled == val) {
+      return val;
+    }
+
+    if (addon.inDatabase) {
+      await XPIDatabase.updateAddonDisabledState(addon, {
+        embedderDisabled: val,
+      });
+    } else {
+      addon.embedderDisabled = val;
+    }
+
+    return val;
+  }
+
   enable(options = {}) {
     const { allowSystemAddons = false } = options;
     return addonFor(this).setUserDisabled(false, allowSystemAddons);
@@ -1085,10 +1159,10 @@ AddonWrapper = class {
       // When softDisabling a theme just enable the active theme
       if (addon.type === "theme" && val && !addon.userDisabled) {
         if (addon.isWebExtension) {
-          XPIDatabase.updateAddonDisabledState(addon, undefined, val);
+          XPIDatabase.updateAddonDisabledState(addon, { softDisabled: val });
         }
       } else {
-        XPIDatabase.updateAddonDisabledState(addon, undefined, val);
+        XPIDatabase.updateAddonDisabledState(addon, { softDisabled: val });
       }
     } else if (!addon.userDisabled) {
       // Only set softDisabled if not already disabled
@@ -1173,8 +1247,10 @@ AddonWrapper = class {
     logger.debug(`reloading add-on ${addon.id}`);
 
     if (!this.temporarilyInstalled) {
-      await XPIDatabase.updateAddonDisabledState(addon, true);
-      await XPIDatabase.updateAddonDisabledState(addon, false);
+      await XPIDatabase.updateAddonDisabledState(addon, { userDisabled: true });
+      await XPIDatabase.updateAddonDisabledState(addon, {
+        userDisabled: false,
+      });
     } else {
       // This function supports re-installing an existing add-on.
       await AddonManager.installTemporaryAddon(addon._sourceBundle);
@@ -1856,13 +1932,19 @@ this.XPIDatabase = {
         if (!aId && theme.id == DEFAULT_THEME_ID) {
           enableTheme = theme;
         } else if (theme.id != aId && !theme.pendingUninstall) {
-          this.updateAddonDisabledState(theme, true, undefined, true);
+          this.updateAddonDisabledState(theme, {
+            userDisabled: true,
+            becauseSelecting: true,
+          });
         }
       }
     }
 
     if (enableTheme) {
-      await this.updateAddonDisabledState(enableTheme, false, undefined, true);
+      await this.updateAddonDisabledState(enableTheme, {
+        userDisabled: false,
+        becauseSelecting: true,
+      });
     }
   },
 
@@ -2077,18 +2159,16 @@ this.XPIDatabase = {
    * @returns {boolean} Whether the addon should be disabled for being legacy
    */
   isDisabledLegacy(addon) {
+    // We still have tests that use a legacy addon type, allow them
+    // if we're in automation.  Otherwise, disable if not a webextension.
+    if (!Cu.isInAutomation) {
+      return !addon.isWebExtension;
+    }
+
     return (
-      !AddonSettings.ALLOW_LEGACY_EXTENSIONS &&
       !addon.isWebExtension &&
-      LEGACY_TYPES.has(addon.type) &&
-      // Legacy add-ons are allowed in the system location.
-      !addon.location.isSystem &&
-      // Legacy extensions may be installed temporarily in
-      // non-release builds.
-      !(
-        AppConstants.MOZ_ALLOW_LEGACY_EXTENSIONS && addon.location.isTemporary
-      ) &&
-      // Properly signed legacy extensions are allowed.
+      addon.type === "extension" &&
+      // Test addons are privileged unless forced otherwise.
       addon.signedState !== AddonManager.SIGNEDSTATE_PRIVILEGED
     );
   },
@@ -2388,13 +2468,17 @@ this.XPIDatabase = {
    *
    * @param {AddonInternal} aAddon
    *        The AddonInternal to update
-   * @param {boolean?} [aUserDisabled]
+   * @param {Object} properties - Properties to set on the addon
+   * @param {boolean?} [properties.userDisabled]
    *        Value for the userDisabled property. If undefined the value will
    *        not change
-   * @param {boolean?} [aSoftDisabled]
+   * @param {boolean?} [properties.softDisabled]
    *        Value for the softDisabled property. If undefined the value will
    *        not change. If true this will force userDisabled to be true
-   * @param {boolean?} [aBecauseSelecting]
+   * @param {boolean?} [properties.embedderDisabled]
+   *        Value for the embedderDisabled property. If undefined the value will
+   *        not change.
+   * @param {boolean?} [properties.becauseSelecting]
    *        True if we're disabling this add-on because we're selecting
    *        another.
    * @returns {Promise<boolean?>}
@@ -2406,44 +2490,52 @@ this.XPIDatabase = {
    */
   async updateAddonDisabledState(
     aAddon,
-    aUserDisabled,
-    aSoftDisabled,
-    aBecauseSelecting
+    { userDisabled, softDisabled, embedderDisabled, becauseSelecting } = {}
   ) {
     if (!aAddon.inDatabase) {
       throw new Error("Can only update addon states for installed addons.");
     }
-    if (aUserDisabled !== undefined && aSoftDisabled !== undefined) {
+    if (userDisabled !== undefined && softDisabled !== undefined) {
       throw new Error(
         "Cannot change userDisabled and softDisabled at the same time"
       );
     }
 
-    if (aUserDisabled === undefined) {
-      aUserDisabled = aAddon.userDisabled;
-    } else if (!aUserDisabled) {
+    if (userDisabled === undefined) {
+      userDisabled = aAddon.userDisabled;
+    } else if (!userDisabled) {
       // If enabling the add-on then remove softDisabled
-      aSoftDisabled = false;
+      softDisabled = false;
     }
 
     // If not changing softDisabled or the add-on is already userDisabled then
     // use the existing value for softDisabled
-    if (aSoftDisabled === undefined || aUserDisabled) {
-      aSoftDisabled = aAddon.softDisabled;
+    if (softDisabled === undefined || userDisabled) {
+      softDisabled = aAddon.softDisabled;
+    }
+
+    if (!AddonSettings.IS_EMBEDDED) {
+      // If embedderDisabled was accidentally set somehow, this will revert it
+      // back to false.
+      embedderDisabled = false;
+    } else if (embedderDisabled === undefined) {
+      embedderDisabled = aAddon.embedderDisabled;
     }
 
     let appDisabled = !this.isUsableAddon(aAddon);
     // No change means nothing to do here
     if (
-      aAddon.userDisabled == aUserDisabled &&
+      aAddon.userDisabled == userDisabled &&
       aAddon.appDisabled == appDisabled &&
-      aAddon.softDisabled == aSoftDisabled
+      aAddon.softDisabled == softDisabled &&
+      aAddon.embedderDisabled == embedderDisabled
     ) {
       return undefined;
     }
 
     let wasDisabled = aAddon.disabled;
-    let isDisabled = aUserDisabled || aSoftDisabled || appDisabled;
+    let isDisabled =
+      userDisabled || softDisabled || appDisabled || embedderDisabled;
 
     // If appDisabled changes but addon.disabled doesn't,
     // no onDisabling/onEnabling is sent - so send a onPropertyChanged.
@@ -2451,9 +2543,10 @@ this.XPIDatabase = {
 
     // Update the properties in the database.
     this.setAddonProperties(aAddon, {
-      userDisabled: aUserDisabled,
+      userDisabled,
       appDisabled,
-      softDisabled: aSoftDisabled,
+      softDisabled,
+      embedderDisabled,
     });
 
     let wrapper = aAddon.wrapper;
@@ -2502,7 +2595,7 @@ this.XPIDatabase = {
       if (!isDisabled) {
         AddonManagerPrivate.notifyAddonChanged(aAddon.id, aAddon.type);
         this.updateXPIStates(aAddon);
-      } else if (isDisabled && !aBecauseSelecting) {
+      } else if (isDisabled && !becauseSelecting) {
         AddonManagerPrivate.notifyAddonChanged(null, "theme");
       }
     }

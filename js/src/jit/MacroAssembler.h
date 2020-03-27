@@ -1322,7 +1322,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline void branchIfFunctionHasNoJitEntry(Register fun, bool isConstructing,
                                             Label* label);
-  inline void branchIfFunctionHasNoScript(Register fun, Label* label);
   inline void branchIfInterpreted(Register fun, bool isConstructing,
                                   Label* label);
 
@@ -1339,9 +1338,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void branchFunctionKind(Condition cond,
                                  FunctionFlags::FunctionKind kind, Register fun,
                                  Register scratch, Label* label);
-
-  void branchIfNotInterpretedConstructor(Register fun, Register scratch,
-                                         Label* label);
 
   inline void branchIfObjectEmulatesUndefined(Register objReg, Register scratch,
                                               Label* slowCheck, Label* label);
@@ -1536,6 +1532,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                Label* label)
       DEFINED_ON(arm, arm64, mips32, mips64, x86_shared);
 
+  inline void branchTestBigInt(Condition cond, const Address& address,
+                               Label* label) PER_SHARED_ARCH;
   inline void branchTestBigInt(Condition cond, const BaseIndex& address,
                                Label* label) PER_SHARED_ARCH;
   inline void branchTestBigInt(Condition cond, const ValueOperand& value,
@@ -2864,6 +2862,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                              gc::AllocKind allocKind, Label* fail);
   void allocateString(Register result, Register temp, gc::AllocKind allocKind,
                       gc::InitialHeap initialHeap, Label* fail);
+  void nurseryAllocateBigInt(Register result, Register temp, Label* fail);
   void allocateNonObject(Register result, Register temp,
                          gc::AllocKind allocKind, Label* fail);
   void copySlotsFromTemplate(Register obj,
@@ -2901,7 +2900,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void newGCFatInlineString(Register result, Register temp, Label* fail,
                             bool attemptNursery);
 
-  void newGCBigInt(Register result, Register temp, Label* fail);
+  void newGCBigInt(Register result, Register temp, Label* fail,
+                   bool attemptNursery);
 
   // Compares two strings for equality based on the JSOP.
   // This checks for identical pointers, atoms and length and fails for
@@ -3016,8 +3016,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   Vector<CodeOffset, 0, SystemAllocPolicy> profilerCallSites_;
 
  public:
-  void loadJitCodeRaw(Register callee, Register dest);
-  void loadJitCodeNoArgCheck(Register callee, Register dest);
+  void loadJitCodeRaw(Register func, Register dest);
+  void loadJitCodeMaybeNoArgCheck(Register func, Register dest);
 
   void loadBaselineFramePtr(Register framePtr, Register dest);
 
@@ -3265,19 +3265,19 @@ inline void MacroAssembler::implicitPop(uint32_t bytes) {
 
 static inline Assembler::DoubleCondition JSOpToDoubleCondition(JSOp op) {
   switch (op) {
-    case JSOP_EQ:
-    case JSOP_STRICTEQ:
+    case JSOp::Eq:
+    case JSOp::StrictEq:
       return Assembler::DoubleEqual;
-    case JSOP_NE:
-    case JSOP_STRICTNE:
+    case JSOp::Ne:
+    case JSOp::StrictNe:
       return Assembler::DoubleNotEqualOrUnordered;
-    case JSOP_LT:
+    case JSOp::Lt:
       return Assembler::DoubleLessThan;
-    case JSOP_LE:
+    case JSOp::Le:
       return Assembler::DoubleLessThanOrEqual;
-    case JSOP_GT:
+    case JSOp::Gt:
       return Assembler::DoubleGreaterThan;
-    case JSOP_GE:
+    case JSOp::Ge:
       return Assembler::DoubleGreaterThanOrEqual;
     default:
       MOZ_CRASH("Unexpected comparison operation");
@@ -3290,38 +3290,38 @@ static inline Assembler::DoubleCondition JSOpToDoubleCondition(JSOp op) {
 static inline Assembler::Condition JSOpToCondition(JSOp op, bool isSigned) {
   if (isSigned) {
     switch (op) {
-      case JSOP_EQ:
-      case JSOP_STRICTEQ:
+      case JSOp::Eq:
+      case JSOp::StrictEq:
         return Assembler::Equal;
-      case JSOP_NE:
-      case JSOP_STRICTNE:
+      case JSOp::Ne:
+      case JSOp::StrictNe:
         return Assembler::NotEqual;
-      case JSOP_LT:
+      case JSOp::Lt:
         return Assembler::LessThan;
-      case JSOP_LE:
+      case JSOp::Le:
         return Assembler::LessThanOrEqual;
-      case JSOP_GT:
+      case JSOp::Gt:
         return Assembler::GreaterThan;
-      case JSOP_GE:
+      case JSOp::Ge:
         return Assembler::GreaterThanOrEqual;
       default:
         MOZ_CRASH("Unrecognized comparison operation");
     }
   } else {
     switch (op) {
-      case JSOP_EQ:
-      case JSOP_STRICTEQ:
+      case JSOp::Eq:
+      case JSOp::StrictEq:
         return Assembler::Equal;
-      case JSOP_NE:
-      case JSOP_STRICTNE:
+      case JSOp::Ne:
+      case JSOp::StrictNe:
         return Assembler::NotEqual;
-      case JSOP_LT:
+      case JSOp::Lt:
         return Assembler::Below;
-      case JSOP_LE:
+      case JSOp::Le:
         return Assembler::BelowOrEqual;
-      case JSOP_GT:
+      case JSOp::Gt:
         return Assembler::Above;
-      case JSOP_GE:
+      case JSOp::Ge:
         return Assembler::AboveOrEqual;
       default:
         MOZ_CRASH("Unrecognized comparison operation");

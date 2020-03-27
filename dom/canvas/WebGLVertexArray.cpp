@@ -14,19 +14,9 @@
 
 namespace mozilla {
 
-JSObject* WebGLVertexArray::WrapObject(JSContext* cx,
-                                       JS::Handle<JSObject*> givenProto) {
-  return dom::WebGLVertexArrayObject_Binding::Wrap(cx, this, givenProto);
-}
-
-WebGLVertexArray::WebGLVertexArray(WebGLContext* const webgl, const GLuint name)
-    : WebGLRefCountedObject(webgl),
-      mGLName(name),
-      mAttribs(mContext->mGLMaxVertexAttribs) {
-  mContext->mVertexArrays.insertBack(this);
-}
-
-WebGLVertexArray::~WebGLVertexArray() { MOZ_ASSERT(IsDeleted()); }
+WebGLVertexArray::WebGLVertexArray(WebGLContext* const webgl)
+    : WebGLContextBoundObject(webgl),
+      mAttribs(mContext->Limits().maxVertexAttribs) {}
 
 WebGLVertexArray* WebGLVertexArray::Create(WebGLContext* webgl) {
   WebGLVertexArray* array;
@@ -37,37 +27,5 @@ WebGLVertexArray* WebGLVertexArray::Create(WebGLContext* webgl) {
   }
   return array;
 }
-
-void WebGLVertexArray::Delete() {
-  DeleteImpl();
-
-  LinkedListElement<WebGLVertexArray>::removeFrom(mContext->mVertexArrays);
-  mElementArrayBuffer = nullptr;
-  mAttribs.clear();
-}
-
-// -
-
-inline void ImplCycleCollectionTraverse(
-    nsCycleCollectionTraversalCallback& callback,
-    const std::vector<WebGLVertexAttribData>& field, const char* name,
-    uint32_t flags = 0) {
-  for (auto& cur : field) {
-    ImplCycleCollectionTraverse(callback, cur.mBuf, name, flags);
-  }
-}
-
-inline void ImplCycleCollectionUnlink(
-    std::vector<WebGLVertexAttribData>& field) {
-  for (auto& cur : field) {
-    cur.mBuf = nullptr;
-  }
-}
-
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(WebGLVertexArray, mAttribs,
-                                      mElementArrayBuffer)
-
-NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(WebGLVertexArray, AddRef)
-NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(WebGLVertexArray, Release)
 
 }  // namespace mozilla

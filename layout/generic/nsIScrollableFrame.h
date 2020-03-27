@@ -77,6 +77,12 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
   virtual mozilla::ScrollStyles GetScrollStyles() const = 0;
 
   /**
+   * Returns whether this scroll frame is for a text control element with no
+   * scrollbars (for <input>, basically).
+   */
+  virtual bool IsForTextControlWithNoScrollbars() const = 0;
+
+  /**
    * Get the overscroll-behavior styles.
    */
   virtual mozilla::layers::OverscrollBehaviorInfo GetOverscrollBehaviorInfo()
@@ -283,10 +289,6 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    */
   virtual CSSIntPoint GetScrollPositionCSSPixels() = 0;
   /**
-   * When scrolling by a relative amount, we can choose various units.
-   */
-  enum ScrollUnit { DEVICE_PIXELS, LINES, PAGES, WHOLE };
-  /**
    * @note This method might destroy the frame, pres shell and other objects.
    * Modifies the current scroll position by aDelta units given by aUnit,
    * clamping it to GetScrollRange. If WHOLE is specified as the unit,
@@ -296,8 +298,8 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    * to bring it back into the legal range). This is never negative. The
    * values are in device pixels.
    */
-  virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
-                        nsIntPoint* aOverflow = nullptr,
+  virtual void ScrollBy(nsIntPoint aDelta, mozilla::ScrollUnit aUnit,
+                        ScrollMode aMode, nsIntPoint* aOverflow = nullptr,
                         nsAtom* aOrigin = nullptr,
                         ScrollMomentum aMomentum = NOT_MOMENTUM,
                         nsIScrollbarMediator::ScrollSnapMode aSnap =

@@ -9,10 +9,11 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Casting.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/Move.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Vector.h"
+
+#include <utility>
 
 #include "frontend/BinAST-macros.h"
 #include "frontend/BinASTParser.h"
@@ -22,7 +23,6 @@
 #include "frontend/ParseNode.h"
 #include "frontend/Parser.h"
 #include "frontend/SharedContext.h"
-
 #include "js/Result.h"
 #include "vm/RegExpObject.h"
 
@@ -74,8 +74,7 @@
 //
 // They should be treated lazily (whenever we open a subscope), like bindings.
 
-namespace js {
-namespace frontend {
+namespace js::frontend {
 
 using UsedNamePtr = UsedNameTracker::UsedNameMap::Ptr;
 
@@ -83,14 +82,15 @@ using UsedNamePtr = UsedNameTracker::UsedNameMap::Ptr;
 
 template <typename Tok>
 BinASTParserPerTokenizer<Tok>::BinASTParserPerTokenizer(
-    JSContext* cx, ParseInfo& parseInfo,
+    JSContext* cx, CompilationInfo& compilationInfo,
     const JS::ReadOnlyCompileOptions& options,
     HandleScriptSourceObject sourceObject,
     Handle<LazyScript*> lazyScript /* = nullptr */)
-    : BinASTParserBase(cx, parseInfo, sourceObject),
+    : BinASTParserBase(cx, compilationInfo, sourceObject),
       options_(options),
       lazyScript_(cx, lazyScript),
-      handler_(cx, parseInfo.allocScope.alloc(), nullptr, SourceKind::Binary),
+      handler_(cx, compilationInfo.allocScope.alloc(), nullptr,
+               SourceKind::Binary),
       variableDeclarationKind_(VariableDeclarationKind::Var),
       treeHolder_(cx) {
   MOZ_ASSERT_IF(lazyScript_, lazyScript_->isBinAST());
@@ -279,7 +279,8 @@ JS::Result<FunctionBox*> BinASTParserPerTokenizer<Tok>::buildFunctionBox(
   }
 
   auto* funbox = alloc_.new_<FunctionBox>(
-      cx_, traceListHead_, fun, /* toStringStart = */ 0, *directives,
+      cx_, traceListHead_, fun, /* toStringStart = */ 0, getCompilationInfo(),
+      *directives,
       /* extraWarning = */ false, generatorKind, functionAsyncKind);
   if (MOZ_UNLIKELY(!funbox)) {
     return raiseOOM();
@@ -789,7 +790,7 @@ BinASTParserPerTokenizer<Tok>::asFinalParser() {
   // Same as GeneralParser::asFinalParser, verify the inheritance to
   // make sure the static downcast works.
   static_assert(
-      mozilla::IsBaseOf<BinASTParserPerTokenizer<Tok>, FinalParser>::value,
+      std::is_base_of<BinASTParserPerTokenizer<Tok>, FinalParser>::value,
       "inheritance relationship required by the static_cast<> below");
 
   return static_cast<FinalParser*>(this);
@@ -799,7 +800,7 @@ template <typename Tok>
 inline const typename BinASTParserPerTokenizer<Tok>::FinalParser*
 BinASTParserPerTokenizer<Tok>::asFinalParser() const {
   static_assert(
-      mozilla::IsBaseOf<BinASTParserPerTokenizer<Tok>, FinalParser>::value,
+      std::is_base_of<BinASTParserPerTokenizer<Tok>, FinalParser>::value,
       "inheritance relationship required by the static_cast<> below");
 
   return static_cast<const FinalParser*>(this);
@@ -811,5 +812,4 @@ BinASTParserPerTokenizer<Tok>::asFinalParser() const {
 template class BinASTParserPerTokenizer<BinASTTokenReaderContext>;
 template class BinASTParserPerTokenizer<BinASTTokenReaderMultipart>;
 
-}  // namespace frontend
-}  // namespace js
+}  // namespace js::frontend

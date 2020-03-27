@@ -12,7 +12,6 @@
 #include "mozilla/GuardObjects.h"      // for MOZ_GUARD_OBJECT_NOTIFIER_PARAM
 #include "mozilla/HashTable.h"         // for HashSet<>::Range, HashMapEntry
 #include "mozilla/Maybe.h"             // for Maybe, Nothing, Some
-#include "mozilla/Move.h"              // for std::move
 #include "mozilla/RecordReplay.h"      // for IsMiddleman
 #include "mozilla/ScopeExit.h"         // for MakeScopeExit, ScopeExit
 #include "mozilla/ThreadLocal.h"       // for ThreadLocal
@@ -27,13 +26,13 @@
 #include <stddef.h>    // for size_t
 #include <stdint.h>    // for uint32_t, uint64_t, int32_t
 #include <string.h>    // for strlen, strcmp
+#include <utility>     // for std::move
 
 #include "jsapi.h"        // for CallArgs, CallArgsFromVp
 #include "jsfriendapi.h"  // for GetErrorMessage
 #include "jstypes.h"      // for JS_PUBLIC_API
 
 #include "builtin/Array.h"               // for NewDenseFullyAllocatedArray
-#include "builtin/Promise.h"             // for PromiseObject
 #include "debugger/DebugAPI.h"           // for ResumeMode, DebugAPI
 #include "debugger/DebuggerMemory.h"     // for DebuggerMemory
 #include "debugger/DebugScript.h"        // for DebugScript
@@ -43,7 +42,6 @@
 #include "debugger/Object.h"             // for DebuggerObject
 #include "debugger/Script.h"             // for DebuggerScript
 #include "debugger/Source.h"             // for DebuggerSource
-#include "frontend/BytecodeCompiler.h"   // for CreateScriptSourceObject
 #include "frontend/NameAnalysisTypes.h"  // for ParseGoal, ParseGoal::Script
 #include "frontend/ParseContext.h"       // for UsedNameTracker
 #include "frontend/Parser.h"             // for Parser
@@ -96,6 +94,7 @@
 #include "vm/JSObject.h"              // for JSObject, RequireObject
 #include "vm/ObjectGroup.h"           // for TenuredObject
 #include "vm/ObjectOperations.h"      // for DefineDataProperty
+#include "vm/PromiseObject.h"         // for js::PromiseObject
 #include "vm/ProxyObject.h"           // for ProxyObject, JSObject::is
 #include "vm/Realm.h"                 // for AutoRealm, Realm
 #include "vm/Runtime.h"               // for ReportOutOfMemory, JSRuntime
@@ -636,7 +635,7 @@ bool Debugger::getFrame(JSContext* cx, const FrameIter& iter,
 
       // If no AbstractGeneratorObject exists yet, we create a Debugger.Frame
       // below anyway, and Debugger::onNewGenerator() will associate it
-      // with the AbstractGeneratorObject later when we hit JSOP_GENERATOR.
+      // with the AbstractGeneratorObject later when we hit JSOp::Generator.
     }
 
     if (!frame) {
@@ -969,6 +968,10 @@ bool DebugAPI::slowPathOnLeaveFrame(JSContext* cx, AbstractFramePtr frame,
       Debugger* dbg = Debugger::fromChildJSObject(frameobj);
       EnterDebuggeeNoExecute nx(cx, *dbg, adjqi);
 
+      // Removing a global from a Debugger's debuggee set kills all of that
+      // Debugger's D.Fs in that global. This means that one D.F's onPop can
+      // kill the next D.F. So we have to check whether frameobj is still "on
+      // the stack".
       if (frameobj->isOnStack() && frameobj->onPopHandler()) {
         OnPopHandler* handler = frameobj->onPopHandler();
 
@@ -1030,7 +1033,7 @@ bool DebugAPI::slowPathOnLeaveFrame(JSContext* cx, AbstractFramePtr frame,
 /* static */
 bool DebugAPI::slowPathOnNewGenerator(JSContext* cx, AbstractFramePtr frame,
                                       Handle<AbstractGeneratorObject*> genObj) {
-  // This is called from JSOP_GENERATOR, after default parameter expressions
+  // This is called from JSOp::Generator, after default parameter expressions
   // are evaluated and well after onEnterFrame, so Debugger.Frame objects for
   // `frame` may already have been exposed to debugger code. The
   // AbstractGeneratorObject for this generator call, though, has just been
@@ -1797,21 +1800,21 @@ Completion Completion::fromJSFramePop(JSContext* cx, AbstractFramePtr frame,
   // an `onStep` handler, which looks almost the same.
   //
   // GetGeneratorObjectForFrame can return nullptr even when a generator
-  // object does exist, if the frame is paused between the GENERATOR and
-  // SETALIASEDVAR opcodes. But by checking the opcode first we eliminate that
+  // object does exist, if the frame is paused between the Generator and
+  // SetAliasedVar opcodes. But by checking the opcode first we eliminate that
   // possibility, so it's fine to call genObj->isClosed().
   Rooted<AbstractGeneratorObject*> generatorObj(
       cx, GetGeneratorObjectForFrame(cx, frame));
-  switch (*pc) {
-    case JSOP_INITIALYIELD:
+  switch (JSOp(*pc)) {
+    case JSOp::InitialYield:
       MOZ_ASSERT(!generatorObj->isClosed());
       return Completion(InitialYield(generatorObj));
 
-    case JSOP_YIELD:
+    case JSOp::Yield:
       MOZ_ASSERT(!generatorObj->isClosed());
       return Completion(Yield(generatorObj, frame.returnValue()));
 
-    case JSOP_AWAIT:
+    case JSOp::Await:
       MOZ_ASSERT(!generatorObj->isClosed());
       return Completion(Await(generatorObj, frame.returnValue()));
 
@@ -2116,7 +2119,7 @@ ResumeMode Debugger::fireEnterFrame(JSContext* cx, MutableHandleValue vp) {
 
 #if DEBUG
   // Assert that the hook won't be able to re-enter the generator.
-  if (iter.hasScript() && *iter.pc() == JSOP_AFTERYIELD) {
+  if (iter.hasScript() && JSOp(*iter.pc()) == JSOp::AfterYield) {
     auto* genObj = GetGeneratorObjectForFrame(cx, iter.abstractFramePtr());
     MOZ_ASSERT(genObj->isRunning());
   }
@@ -2140,6 +2143,19 @@ ResumeMode Debugger::fireEnterFrame(JSContext* cx, MutableHandleValue vp) {
 
 ResumeMode Debugger::fireNativeCall(JSContext* cx, const CallArgs& args,
                                     CallReason reason, MutableHandleValue vp) {
+  // The onNativeCall hook is fired when self hosted functions are called,
+  // and any other self hosted function or C++ native that is directly called
+  // by the self hosted function is considered to be part of the same
+  // native call.
+  //
+  // We check this immediately before calling the hook to avoid unnecessary
+  // calls to cx->currentScript(), which can be expensive when the top frame
+  // is in jitcode.
+  JSScript* script = cx->currentScript();
+  if (script && script->selfHosted()) {
+    return ResumeMode::Continue;
+  }
+
   RootedObject hook(cx, getHook(OnNativeCall));
   MOZ_ASSERT(hook);
   MOZ_ASSERT(hook->isCallable());
@@ -2487,7 +2503,7 @@ bool DebugAPI::onTrap(JSContext* cx) {
 bool DebugAPI::onSingleStep(JSContext* cx) {
   FrameIter iter(cx);
 
-  // We may be stepping over a JSOP_EXCEPTION, that pushes the context's
+  // We may be stepping over a JSOp::Exception, that pushes the context's
   // pending exception for a 'catch' clause to handle. Don't let the onStep
   // handlers mess with that (other than by returning a resumption value).
   JS::AutoSaveExceptionState savedExc(cx);
@@ -5906,18 +5922,16 @@ bool Debugger::isCompilableUnit(JSContext* cx, unsigned argc, Value* vp) {
 
   CompileOptions options(cx);
   LifoAllocScope allocScope(&cx->tempLifoAlloc());
-  frontend::ParseInfo parseInfo(cx, allocScope);
-
-  RootedScriptSourceObject sourceObject(
-      cx, frontend::CreateScriptSourceObject(cx, options, Nothing()));
-  if (!sourceObject) {
+  frontend::CompilationInfo compilationInfo(cx, allocScope, options);
+  if (!compilationInfo.init(cx)) {
     return false;
   }
 
   JS::AutoSuppressWarningReporter suppressWarnings(cx);
   frontend::Parser<frontend::FullParseHandler, char16_t> parser(
       cx, options, chars.twoByteChars(), length,
-      /* foldConstants = */ true, parseInfo, nullptr, nullptr, sourceObject);
+      /* foldConstants = */ true, compilationInfo, nullptr, nullptr,
+      compilationInfo.sourceObject);
   if (!parser.checkOptions() || !parser.parse()) {
     // We ran into an error. If it was because we ran out of memory we report
     // it in the usual way.

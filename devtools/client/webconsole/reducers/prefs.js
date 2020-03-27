@@ -4,7 +4,9 @@
 "use strict";
 
 const {
+  EAGER_EVALUATION_TOGGLE,
   WARNING_GROUPS_TOGGLE,
+  AUTOCOMPLETE_TOGGLE,
 } = require("devtools/client/webconsole/constants");
 
 const PrefState = overrides =>
@@ -14,19 +16,29 @@ const PrefState = overrides =>
         logLimit: 1000,
         sidebarToggle: false,
         groupWarnings: false,
+        autocomplete: false,
+        eagerEvaluation: false,
         historyCount: 50,
       },
       overrides
     )
   );
 
+const dict = {
+  [EAGER_EVALUATION_TOGGLE]: "eagerEvaluation",
+  [WARNING_GROUPS_TOGGLE]: "groupWarnings",
+  [AUTOCOMPLETE_TOGGLE]: "autocomplete",
+};
+
 function prefs(state = PrefState(), action) {
-  if (action.type === WARNING_GROUPS_TOGGLE) {
+  const pref = dict[action.type];
+  if (pref) {
     return {
       ...state,
-      groupWarnings: !state.groupWarnings,
+      [pref]: !state[pref],
     };
   }
+
   return state;
 }
 

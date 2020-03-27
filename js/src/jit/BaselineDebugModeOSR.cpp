@@ -207,7 +207,7 @@ static void SpewPatchBaselineFrame(const uint8_t* oldReturnAddress,
           "Patch return %p -> %p on BaselineJS frame (%s:%u:%u) from %s at %s",
           oldReturnAddress, newReturnAddress, script->filename(),
           script->lineno(), script->column(),
-          RetAddrEntryKindToString(frameKind), CodeName[(JSOp)*pc]);
+          RetAddrEntryKindToString(frameKind), CodeName(JSOp(*pc)));
 }
 
 static void PatchBaselineFramesForDebugMode(
@@ -232,7 +232,7 @@ static void PatchBaselineFramesForDebugMode(
   //  E. From the debug trap handler.
   //  F. From the debug prologue.
   //  G. From the debug epilogue.
-  //  H. From a JSOP_AFTERYIELD instruction.
+  //  H. From a JSOp::AfterYield instruction.
   //
   // In general, we patch the return address from VM calls and ICs to the
   // corresponding entry in the recompiled BaselineScript. For entries that are

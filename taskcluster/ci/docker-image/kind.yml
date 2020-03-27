@@ -243,12 +243,12 @@ jobs:
     webrender:
         symbol: I(webrender)
         parent: debian9-base
+    wgpu:
+        symbol: I(wgpu)
+        parent: debian9-base
     condprof:
         symbol: I(condprof)
-        parent: debian10-test
-    webrender-updater:
-        symbol: I(wrupdater)
-        parent: debian9-base
+        parent: ubuntu1804-test
     visual-metrics:
         symbol: I(visual-metrics)
         parent: debian9-base

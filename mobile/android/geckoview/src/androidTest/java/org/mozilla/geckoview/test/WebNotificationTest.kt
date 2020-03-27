@@ -1,7 +1,7 @@
 package org.mozilla.geckoview.test
 
-import android.support.test.filters.MediumTest
-import android.support.test.runner.AndroidJUnit4
+import androidx.test.filters.MediumTest
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.hamcrest.Matchers.*
 import org.junit.Before
 import org.junit.Test
@@ -20,6 +20,8 @@ class WebNotificationTest : BaseSessionTest() {
     @Before fun setup() {
         mainSession.loadTestPath(HELLO_HTML_PATH)
         mainSession.waitForPageStop()
+
+        sessionRule.setPrefsUntilTestEnd(mapOf("dom.webnotifications.requireuserinteraction" to false))
 
         // Grant "desktop notification" permission
         mainSession.delegateUntilTestEnd(object : Callbacks.PermissionDelegate {

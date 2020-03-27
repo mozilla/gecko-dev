@@ -108,8 +108,8 @@ var connect = async function() {
   await gClient.connect();
 
   appendStatusMessage("Get root form for toolbox");
-  const front = await gClient.mainRoot.getMainProcess();
-  await openToolbox(front);
+  const mainProcessTargetFront = await gClient.mainRoot.getMainProcess();
+  await openToolbox(mainProcessTargetFront);
 };
 
 // Certain options should be toggled since we can assume chrome debugging here
@@ -186,12 +186,11 @@ function onDebugBrowserToolbox() {
   BrowserToolboxLauncher.init();
 }
 
-async function openToolbox(target) {
-  const form = target.targetForm;
+async function openToolbox(targetFront) {
+  const form = targetFront.targetForm;
   appendStatusMessage(
     `Create toolbox target: ${JSON.stringify({ form }, null, 2)}`
   );
-  const frame = document.getElementById("toolbox-iframe");
 
   // Remember the last panel that was used inside of this profile.
   // But if we are testing, then it should always open the debugger panel.
@@ -200,22 +199,18 @@ async function openToolbox(target) {
     Services.prefs.getCharPref("devtools.toolbox.selectedTool", "jsdebugger")
   );
 
-  const toolboxOptions = { customIframe: frame };
+  const toolboxOptions = { doc: document };
   appendStatusMessage(`Show toolbox with ${selectedTool} selected`);
-  const toolbox = await gDevTools.showToolbox(
-    target,
+
+  gToolbox = await gDevTools.showToolbox(
+    targetFront,
     selectedTool,
-    Toolbox.HostType.CUSTOM,
+    Toolbox.HostType.BROWSERTOOLBOX,
     toolboxOptions
   );
-  toolbox.setBrowserToolbox(true);
-  await onNewToolbox(toolbox);
-}
 
-async function onNewToolbox(toolbox) {
-  gToolbox = toolbox;
   bindToolboxHandlers();
-  raise();
+  gToolbox.raise();
 
   // Enable some testing features if the browser toolbox test pref is set.
   if (
@@ -225,11 +220,11 @@ async function onNewToolbox(toolbox) {
     )
   ) {
     // setup a server so that the test can evaluate messages in this process.
-    installTestingServer(toolbox);
+    installTestingServer();
   }
 }
 
-function installTestingServer(toolbox) {
+function installTestingServer() {
   // Install a DebuggerServer in this process and inform the server of its
   // location. Tests operating on the browser toolbox run in the server
   // (the firefox parent process) and can connect to this new server using
@@ -278,33 +273,7 @@ function updateBadgeText(paused) {
 
 function onUnload() {
   window.removeEventListener("unload", onUnload);
-  window.removeEventListener("message", onMessage);
   gToolbox.destroy();
-}
-
-function onMessage(event) {
-  if (!event.data) {
-    return;
-  }
-  const msg = event.data;
-  switch (msg.name) {
-    case "toolbox-raise":
-      raise();
-      break;
-    case "toolbox-title":
-      setTitle(msg.data.value);
-      break;
-  }
-}
-
-window.addEventListener("message", onMessage);
-
-function raise() {
-  window.focus();
-}
-
-function setTitle(title) {
-  document.title = title;
 }
 
 function quitApp() {

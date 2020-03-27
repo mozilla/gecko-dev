@@ -13,6 +13,7 @@
 #include "base/task.h"           // for NewRunnableMethod, etc
 #include "mozilla/StaticPrefs_layers.h"
 #include "mozilla/dom/TabGroup.h"
+#include "mozilla/dom/WebGLChild.h"
 #include "mozilla/layers/CompositorManagerChild.h"
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/APZChild.h"
@@ -34,7 +35,6 @@
 #include "mozilla/mozalloc.h"  // for operator new, etc
 #include "mozilla/Telemetry.h"
 #include "gfxConfig.h"
-#include "nsAutoPtr.h"
 #include "nsDebug.h"          // for NS_WARNING
 #include "nsISupportsImpl.h"  // for MOZ_COUNT_CTOR, etc
 #include "nsTArray.h"         // for nsTArray, nsTArray_Impl
@@ -1060,6 +1060,8 @@ bool CompositorBridgeChild::DeallocPAPZCTreeManagerChild(
   return true;
 }
 
+// -
+
 void CompositorBridgeChild::WillEndTransaction() { ResetShmemCounter(); }
 
 PWebRenderBridgeChild* CompositorBridgeChild::AllocPWebRenderBridgeChild(
@@ -1091,7 +1093,7 @@ bool CompositorBridgeChild::DeallocPWebGPUChild(webgpu::PWebGPUChild* aActor) {
 
 void CompositorBridgeChild::ClearSharedFrameMetricsData(LayersId aLayersId) {
   for (auto iter = mFrameMetricsTable.Iter(); !iter.Done(); iter.Next()) {
-    nsAutoPtr<SharedFrameMetricsData>& data = iter.Data();
+    auto data = iter.UserData();
     if (data->GetLayersId() == aLayersId) {
       iter.Remove();
     }

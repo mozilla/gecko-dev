@@ -319,6 +319,18 @@
     "releaseChannelCollection": "opt-out",
     "bug_numbers": [1080160, 1529352, 1580129]
   },
+  "COMPOSITE_SWAP_TIME" : {
+    "record_in_processes": ["main", "gpu"],
+    "products": ["firefox", "fennec", "geckoview", "geckoview_streaming"],
+    "alert_emails": ["gfx-telemetry-alerts@mozilla.com", "jmuizelaar@mozilla.com"],
+    "expires_in_version": "never",
+    "description": "Time to do swap/present/commit in 100 microseconds",
+    "kind": "exponential",
+    "high": 1000,
+    "n_buckets": 50,
+    "releaseChannelCollection": "opt-out",
+    "bug_numbers": [1612511]
+  },
   "COMPOSITE_FRAME_ROUNDTRIP_TIME" : {
     "record_in_processes": ["main", "content", "gpu"],
     "products": ["firefox", "fennec", "geckoview"],
@@ -1712,7 +1724,7 @@
   },
   "SCROLL_PRESENT_LATENCY": {
     "record_in_processes": ["main", "gpu"],
-    "products": ["firefox", "fennec", "geckoview"],
+    "products": ["firefox", "geckoview_streaming"],
     "alert_emails": [ "perfteam@mozilla.com", "sefeng@mozilla.com", "vchin@mozilla.com" ],
     "expires_in_version": "never",
     "kind": "exponential",
@@ -1721,7 +1733,7 @@
     "high": 20000,
     "n_buckets": 100,
     "description": "Time between receiving a scroll event on the event loop and compositing its result onto the screen (ms)",
-    "bug_numbers": [ 1500465 ]
+    "bug_numbers": [1500465, 1604818]
   },
   "CANVAS_2D_USED": {
     "record_in_processes": ["main", "content"],
@@ -2492,17 +2504,6 @@
     "description": "Count of the HTTP redirection that triggered by top-level document or by subresource, keyed by the URL scheme redirected to.",
     "labels": ["topLevel", "subresource"]
   },
-  "NETWORK_CROSS_ORIGIN_STYLESHEET_CONTENT_TYPE": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["necko@mozilla.com", "vgosu@mozilla.com"],
-    "bug_numbers": [1531405],
-    "expires_in_version": "75",
-    "releaseChannelCollection": "opt-out",
-    "kind": "categorical",
-    "description": "Records whether a Content-Type header was present when loading a cross origin stylesheet, and if it was parsed successfully.",
-    "labels": ["NoHeader", "EmptyHeader", "FailedToParse", "ParsedTextCSS", "ParsedOther"]
-  },
   "HTTP_AUTH_DIALOG_STATS_3": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "geckoview"],
@@ -2523,27 +2524,6 @@
     "n_values": 8,
     "releaseChannelCollection": "opt-out",
     "description": "Recorded once for each HTTP 401 response. The value records the type of authentication and the TLS-enabled status. (0=basic/clear, 1=basic/tls, 2=digest/clear, 3=digest/tls, 4=ntlm/clear, 5=ntlm/tls, 6=negotiate/clear, 7=negotiate/tls)"
-  },
-  "HTTP_AUTH_CONFIRM_PROMPT": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "geckoview"],
-    "alert_emails": ["seceng-telemetry@mozilla.com", "pbz@mozilla.com"],
-    "bug_numbers": [1594613],
-    "expires_in_version": "75",
-    "kind": "categorical",
-    "releaseChannelCollection": "opt-out",
-    "description": "Number of Automatic/Superfluous auth warning prompts shown. Prompts are counted even if disabled by pref.",
-    "labels": ["Automatic", "Superfluous"]
-  },
-  "HTTP_AUTH_USERINFO_URI": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "geckoview"],
-    "alert_emails": ["seceng-telemetry@mozilla.com", "pbz@mozilla.com"],
-    "bug_numbers": [1594613],
-    "expires_in_version": "75",
-    "kind": "boolean",
-    "releaseChannelCollection": "opt-out",
-    "description": "Counts http auth connections with (true) / without (false) userinfo in URI"
   },
   "HTTP_CHILD_OMT_STATS": {
     "record_in_processes": ["content"],
@@ -3130,13 +3110,26 @@
     "kind": "boolean",
     "description": "Fraction of sockets that used a nsConnectionEntry with history - size 300."
   },
-  "HTTP_CACHE_DISPOSITION_2_V2": {
+  "HTTP_CACHE_DISPOSITION_3": {
     "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "geckoview"],
+    "products": ["firefox", "geckoview"],
+    "alert_emails": ["necko@mozilla.com", "mnovotny@mozilla.com"],
+    "bug_numbers": [1611185],
     "expires_in_version": "never",
-    "kind": "enumerated",
-    "n_values": 5,
-    "description": "HTTP Cache v2 Hit, Reval, Failed-Reval, Miss"
+    "kind": "categorical",
+    "labels": ["Unresolved", "Hit", "HitViaReval", "MissedViaReval", "Missed", "Unknown"],
+    "keyed": true,
+    "keys": [
+      "ALL",
+      "UNKNOWN",
+      "OTHER",
+      "JAVASCRIPT",
+      "IMAGE",
+      "MEDIA",
+      "STYLESHEET",
+      "WASM"
+    ],
+    "description": "HTTP Cache v2 hit/miss stats keyed by content type."
   },
   "HTTP_CACHE_ENTRY_RELOAD_TIME": {
     "record_in_processes": ["main", "content"],
@@ -3913,6 +3906,18 @@
     "bug_numbers": [1434852],
     "n_buckets": 50,
     "description": "Time for a completed TRR resolution (msec)"
+  },
+  "DNS_TRR_PROCESSING_TIME": {
+    "record_in_processes": ["main"],
+    "products": ["firefox", "fennec", "geckoview"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 1000,
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["necko@mozilla.com"],
+    "bug_numbers": [1608114],
+    "n_buckets": 50,
+    "description": "Time from the last received byte of the response until we have notified the consumer with a DNS record (msec)"
   },
   "DNS_NATIVE_LOOKUP_TIME": {
     "record_in_processes": ["main"],
@@ -6972,14 +6977,14 @@
     "alert_emails": ["tdsmith@mozilla.com"]
   },
   "FX_PAGE_LOAD_MS_2": {
-    "record_in_processes": ["main", "content"],
+    "record_in_processes": ["main"],
     "products": ["firefox", "fennec", "geckoview"],
     "expires_in_version": "never",
     "kind": "linear",
     "high": 10000,
     "n_buckets": 200,
-    "description": "Firefox: Time taken to load a page (ms). This includes all static contents, no dynamic content. Loading of about: pages is not counted.",
-    "bug_numbers": [1504247],
+    "description": "Firefox: Time taken to load a page (ms). This includes all static contents, no dynamic content. Page reloads and loading of about: pages are not included.",
+    "bug_numbers": [1504247, 1549519],
     "alert_emails": ["tdsmith@mozilla.com", "perfteam@mozilla.com", "product-metrics-telemetry-alerts@mozilla.com"],
     "releaseChannelCollection": "opt-out"
   },
@@ -7064,9 +7069,9 @@
   "FX_MIGRATION_SOURCE_BROWSER": {
     "record_in_processes": ["main"],
     "products": ["firefox"],
-    "bug_numbers": [731025],
-    "alert_emails": ["gijs@mozilla.com"],
-    "expires_in_version": "65",
+    "bug_numbers": [731025, 1523179],
+    "alert_emails": ["gijs@mozilla.com", "MattN+telemetry@mozilla.com"],
+    "expires_in_version": "80",
     "kind": "enumerated",
     "n_values": 15,
     "releaseChannelCollection": "opt-out",
@@ -7264,11 +7269,12 @@
     "products": ["firefox", "fennec", "geckoview"],
     "alert_emails": ["mconley@mozilla.com", "astevenson@mozilla.com"],
     "bug_numbers": [1560590],
-    "expires_in_version": "74",
+    "expires_in_version": "78",
     "kind": "exponential",
     "high": 10000,
     "n_buckets": 100,
-    "description": "The length of time (in seconds) that a Picture-in-Picture window was open."
+    "description": "The length of time (in seconds) that a Picture-in-Picture window was open.",
+    "releaseChannelCollection": "opt-out"
   },
   "INPUT_EVENT_RESPONSE_MS": {
     "record_in_processes": ["main", "content"],
@@ -7565,7 +7571,7 @@
     "kind": "enumerated",
     "n_values": 14,
     "releaseChannelCollection": "opt-out",
-    "bug_numbers": [775825],
+    "bug_numbers": [775825, 1617631],
     "description": "Firefox: The type of the selected result in the URL bar popup. See BrowserUsageTelemetry.jsm:URLBAR_SELECTED_RESULT_TYPES for the result types."
   },
   "FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE": {
@@ -7577,7 +7583,7 @@
     "n_values": 14,
     "keyed": true,
     "releaseChannelCollection": "opt-out",
-    "bug_numbers": [1345834],
+    "bug_numbers": [1345834, 1617631],
     "description": "Firefox: The index of the selected result in the URL bar popup by the type of the selected result in the URL bar popup. See BrowserUsageTelemetry.jsm:URLBAR_SELECTED_RESULT_TYPES for the result types."
   },
   "FX_URLBAR_SELECTED_RESULT_METHOD": {
@@ -9031,13 +9037,6 @@
     "kind": "boolean",
     "description": "If we are on Windows and neither the Windows countryCode nor the geoip countryCode indicates we are in the US, set to false if they both agree on the value or true otherwise"
   },
-  "ENABLE_PRIVILEGE_EVER_CALLED": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "expires_in_version": "never",
-    "kind": "flag",
-    "description": "Whether enablePrivilege has ever been called during the current session"
-  },
   "TOUCH_ENABLED_DEVICE": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec", "geckoview"],
@@ -9097,8 +9096,9 @@
   "PDF_VIEWER_DOCUMENT_VERSION_2": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox"],
-    "expires_in_version": "75",
+    "expires_in_version": "84",
     "alert_emails": ["bdahl@mozilla.com"],
+    "releaseChannelCollection": "opt-out",
     "bug_numbers": [1566882],
     "kind": "categorical",
     "labels": ["other", "v1_0", "v1_1", "v1_2", "v1_3", "v1_4", "v1_5", "v1_6", "v1_7", "v1_8", "v1_9", "v2_0", "v2_1", "v2_2", "v2_3"],
@@ -9107,8 +9107,9 @@
   "PDF_VIEWER_DOCUMENT_GENERATOR_2": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox"],
-    "expires_in_version": "75",
+    "expires_in_version": "84",
     "alert_emails": ["bdahl@mozilla.com"],
+    "releaseChannelCollection": "opt-out",
     "bug_numbers": [1566882],
     "kind": "categorical",
     "labels": ["acrobat_distiller", "acrobat_pdfwriter", "adobe_livecycle", "adobe_pdf_library", "adobe_photoshop", "ghostscript", "tcpdf", "cairo", "dvipdfm", "dvips", "pdftex", "pdfkit", "itext", "prince", "quarkxpress", "mac_os_x", "microsoft", "openoffice", "oracle", "luradocument", "pdf_xchange", "antenna_house", "aspose_cells", "fpdf"],
@@ -9117,8 +9118,9 @@
   "PDF_VIEWER_DOCUMENT_SIZE_KB": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox"],
-    "expires_in_version": "75",
+    "expires_in_version": "84",
     "alert_emails": ["bdahl@mozilla.com"],
+    "releaseChannelCollection": "opt-out",
     "bug_numbers": [1566882],
     "kind": "exponential",
     "low": 2,
@@ -9129,8 +9131,9 @@
   "PDF_VIEWER_FONT_TYPES_2": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox"],
-    "expires_in_version": "75",
+    "expires_in_version": "84",
     "alert_emails": ["bdahl@mozilla.com"],
+    "releaseChannelCollection": "opt-out",
     "bug_numbers": [1566882],
     "kind": "categorical",
     "labels": ["UNKNOWN", "TYPE1", "TYPE1C", "CIDFONTTYPE0", "CIDFONTTYPE0C", "TRUETYPE", "CIDFONTTYPE2", "TYPE3", "OPENTYPE", "TYPE0", "MMTYPE1"],
@@ -9139,8 +9142,9 @@
   "PDF_VIEWER_EMBED_2": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox"],
-    "expires_in_version": "75",
+    "expires_in_version": "84",
     "alert_emails": ["bdahl@mozilla.com"],
+    "releaseChannelCollection": "opt-out",
     "bug_numbers": [1566882],
     "kind": "categorical",
     "labels": ["object_embed", "iframe"],
@@ -9149,8 +9153,9 @@
   "PDF_VIEWER_FORM_2": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox"],
-    "expires_in_version": "75",
+    "expires_in_version": "84",
     "alert_emails": ["bdahl@mozilla.com"],
+    "releaseChannelCollection": "opt-out",
     "bug_numbers": [1566882],
     "kind": "categorical",
     "labels": ["acroform", "xfa"],
@@ -9159,8 +9164,9 @@
   "PDF_VIEWER_STREAM_TYPES_2": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox"],
-    "expires_in_version": "75",
+    "expires_in_version": "84",
     "alert_emails": ["bdahl@mozilla.com"],
+    "releaseChannelCollection": "opt-out",
     "bug_numbers": [1566882],
     "kind": "categorical",
     "labels": ["UNKNOWN", "FLATE", "LZW", "DCT", "JPX", "JBIG", "A85", "AHX", "CCF", "RLX"],
@@ -9170,6 +9176,7 @@
     "record_in_processes": ["main", "content"],
     "products": ["firefox"],
     "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
     "bug_numbers": [1566882],
     "kind": "exponential",
     "alert_emails": ["bdahl@mozilla.com"],
@@ -9376,11 +9383,11 @@
   "MEDIA_MKV_CANPLAY_REQUESTED": {
     "record_in_processes": ["content"],
     "products": ["firefox", "geckoview"],
-    "alert_emails": ["bvandyk@mozilla.com"],
-    "expires_in_version": "74",
+    "alert_emails": ["bvandyk@mozilla.com", "drno@ohlmeier.org"],
+    "expires_in_version": "88",
     "kind": "boolean",
     "description": "Reports a true value when a page requests canPlayType for a matroska media type.",
-    "bug_numbers": [1429986, 1570634]
+    "bug_numbers": [1429986, 1570634, 1606206]
   },
   "MEDIA_MP4_PARSE_SAMPLE_DESCRIPTION_ENTRIES_HAVE_MULTIPLE_CODECS": {
     "record_in_processes": ["main", "content"],
@@ -9425,8 +9432,8 @@
     "record_in_processes": ["content", "socket"],
     "products": ["firefox", "geckoview"],
     "alert_emails": ["webrtc-dtls-telemetry-alerts@mozilla.com", "nohlmeier@mozilla.com"],
-    "bug_numbers": [1484024, 1570634],
-    "expires_in_version": "74",
+    "bug_numbers": [1484024, 1570634, 1607283],
+    "expires_in_version": "80",
     "kind": "enumerated",
     "n_values": 14,
     "description": "The DTLS cipher (as integer) negotiated for a RTCPeerConnection. See TransportLayerDtls::RecordCipherTelemetry for the meaning of the values"
@@ -9435,21 +9442,11 @@
     "record_in_processes": ["content", "socket"],
     "products": ["firefox", "geckoview"],
     "alert_emails": ["webrtc-dtls-telemetry-alerts@mozilla.com", "nohlmeier@mozilla.com"],
-    "bug_numbers": [1491511, 1570634],
-    "expires_in_version": "74",
+    "bug_numbers": [1491511, 1570634, 1607283],
+    "expires_in_version": "80",
     "kind": "categorical",
     "labels": ["Unknown", "Aes128CmHmacSha1_80", "Aes128CmHmacSha1_32", "AeadAes128Gcm", "AeadAes256Gcm"],
     "description": "The SRTP cipher (as label) negotiated for a RTCPeerConnection."
-  },
-  "WEBRTC_DTLS_PROTOCOL_VERSION": {
-    "record_in_processes": ["content", "socket"],
-    "products": ["firefox", "geckoview"],
-    "alert_emails": ["webrtc-dtls-telemetry-alerts@mozilla.com", "nohlmeier@mozilla.com"],
-    "bug_numbers": [1491511, 1570634],
-    "expires_in_version": "74",
-    "kind": "categorical",
-    "labels": ["Unknown", "Dtls_version_1_0", "Dtls_version_1_2", "Dtls_version_1_3"],
-    "description": "The DTLS protocol version (as label) negotiated for a RTCPeerConnection."
   },
   "WEBRTC_AVSYNC_WHEN_AUDIO_LAGS_VIDEO_MS": {
     "record_in_processes": ["main", "content"],
@@ -11052,71 +11049,6 @@
     "n_values": 160,
     "description": "The longest hash match between a newly added entry and all the existing entries."
   },
-  "NETWORK_CACHE_ISOLATION_SIZE_INCREASE" : {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["necko@mozilla.com", "mnovotny@mozilla.com"],
-    "bug_numbers": [1506534],
-    "expires_in_version": "74",
-    "kind": "exponential",
-    "high": 200,
-    "keyed": true,
-    "keys": [
-      "ALL",
-      "UNKNOWN",
-      "OTHER",
-      "JAVASCRIPT",
-      "IMAGE",
-      "MEDIA",
-      "STYLESHEET",
-      "WASM"
-    ],
-    "n_buckets": 100,
-    "description": "Percentage increase of cache size that would be caused by first party isolation without deduplication keyed by content type."
-  },
-  "NETWORK_CACHE_ISOLATION_ENTRY_COUNT_INCREASE" : {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["necko@mozilla.com", "mnovotny@mozilla.com"],
-    "bug_numbers": [1506534],
-    "expires_in_version": "74",
-    "kind": "exponential",
-    "high": 200,
-    "keyed": true,
-    "keys": [
-      "ALL",
-      "UNKNOWN",
-      "OTHER",
-      "JAVASCRIPT",
-      "IMAGE",
-      "MEDIA",
-      "STYLESHEET",
-      "WASM"
-    ],
-    "n_buckets": 100,
-    "description": "Percentage increase of cache entry count that would be caused by first party isolation without deduplication keyed by content type."
-  },
-  "NETWORK_CACHE_ISOLATION_UNIQUE_SITE_ACCESS_COUNT" : {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["necko@mozilla.com", "mnovotny@mozilla.com"],
-    "bug_numbers": [1506534],
-    "expires_in_version": "74",
-    "kind": "exponential",
-    "high": 1000,
-    "keyed": true,
-    "keys": [
-      "UNKNOWN",
-      "OTHER",
-      "JAVASCRIPT",
-      "IMAGE",
-      "MEDIA",
-      "STYLESHEET",
-      "WASM"
-    ],
-    "n_buckets": 100,
-    "description": "Number of unique sites accessing the cache entry keyed by content type."
-  },
   "NETWORK_CACHE_SIZE" : {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec", "geckoview"],
@@ -11632,35 +11564,35 @@
   "CRLITE_RESULT": {
     "record_in_processes": ["main"],
     "products": ["firefox"],
-    "expires_in_version": "75",
+    "expires_in_version": "86",
     "kind": "categorical",
     "labels": ["FilterNotAvailable", "IssuerNotEnrolled", "CertificateTooNew", "CertificateValid", "CertificateRevoked", "LibraryFailure"],
     "description": "The result of looking up revocation information for a TLS server certificate in CRLite.",
-    "bug_numbers": [1586855],
+    "bug_numbers": [1586855, 1607765],
     "releaseChannelCollection": "opt-out",
     "alert_emails": ["dkeeler@mozilla.com", "jcj@mozilla.com", "seceng-telemetry@mozilla.com"]
   },
   "CRLITE_FASTER_THAN_OCSP_MS": {
     "record_in_processes": ["main"],
     "products": ["firefox"],
-    "expires_in_version": "75",
+    "expires_in_version": "86",
     "kind": "exponential",
     "high": 20000,
     "n_buckets": 50,
     "description": "If both a CRLite lookup and OCSP request are made, how many milliseconds faster was CRLite?",
-    "bug_numbers": [1602641],
+    "bug_numbers": [1602641, 1607765],
     "releaseChannelCollection": "opt-out",
     "alert_emails": ["dkeeler@mozilla.com", "jcj@mozilla.com", "seceng-telemetry@mozilla.com"]
   },
   "OCSP_FASTER_THAN_CRLITE_MS": {
     "record_in_processes": ["main"],
     "products": ["firefox"],
-    "expires_in_version": "75",
+    "expires_in_version": "86",
     "kind": "exponential",
     "high": 20000,
     "n_buckets": 50,
     "description": "If both a CRLite lookup and OCSP request are made, how many milliseconds faster was OCSP?",
-    "bug_numbers": [1602641],
+    "bug_numbers": [1602641, 1607765],
     "releaseChannelCollection": "opt-out",
     "alert_emails": ["dkeeler@mozilla.com", "jcj@mozilla.com", "seceng-telemetry@mozilla.com"]
   },
@@ -12143,56 +12075,56 @@
     "record_in_processes": ["content"],
     "products": ["firefox", "geckoview"],
     "alert_emails": ["jya@mozilla.com", "drno@ohlmeier.org"],
-    "expires_in_version": "74",
+    "expires_in_version": "88",
     "description": "Percentage of total time spent *not* fully decoding video while element is hidden (simulated, even when feature is not enabled). Keyed by audio presence and by height ranges (boundaries: 240. 480, 576, 720, 1080, 2160), e.g.: 'V,0<h<=240', 'AV,h>2160'; and 'All' will accumulate all percentages. This is reported whenever an HTML Media Element is suspended or resumed, such as when the page is unloaded.",
     "keyed": true,
     "kind": "linear",
     "high": 100,
     "n_buckets": 50,
-    "bug_numbers": [1293145, 1570634]
+    "bug_numbers": [1293145, 1570634, 1606206]
   },
   "VIDEO_INTER_KEYFRAME_AVERAGE_MS" : {
     "record_in_processes": ["content"],
     "products": ["firefox", "geckoview"],
     "alert_emails": ["jya@mozilla.com", "drno@ohlmeier.org"],
-    "expires_in_version": "74",
+    "expires_in_version": "88",
     "description": "Average interval between video keyframes in played videos, in milliseconds. Keyed by audio presence and by height ranges (boundaries: 240. 480, 576, 720, 1080, 2160), e.g.: 'V,0<h<=240', 'AV,h>2160'; and 'All' will accumulate all percentages. This is reported whenever an HTML Media Element is suspended or resumed, such as when the page is unloaded.",
     "keyed": true,
     "kind": "exponential",
     "high": 60000,
     "n_buckets": 100,
-    "bug_numbers": [1289668, 1570634]
+    "bug_numbers": [1289668, 1570634, 1606206]
   },
   "VIDEO_INTER_KEYFRAME_MAX_MS" : {
     "record_in_processes": ["content"],
     "products": ["firefox", "geckoview"],
     "alert_emails": ["jya@mozilla.com", "drno@ohlmeier.org"],
-    "expires_in_version": "74",
+    "expires_in_version": "88",
     "description": "Maximum interval between video keyframes in played videos, in milliseconds; '0' means only 1 keyframe found. Keyed by audio presence and by height ranges (boundaries: 240. 480, 576, 720, 1080, 2160), e.g.: 'V,0<h<=240', 'AV,h>2160'; and 'All' will accumulate all percentages. This is reported whenever an HTML Media Element is suspended or resumed, such as when the page is unloaded.",
     "keyed": true,
     "kind": "exponential",
     "high": 60000,
     "n_buckets": 100,
-    "bug_numbers": [1289668, 1570634]
+    "bug_numbers": [1289668, 1570634, 1606206]
   },
   "VIDEO_SUSPEND_RECOVERY_TIME_MS" : {
     "record_in_processes": ["content"],
     "products": ["firefox", "geckoview"],
     "alert_emails": ["jya@mozilla.com", "drno@ohlmeier.org"],
-    "expires_in_version": "74",
+    "expires_in_version": "88",
     "description": "Time taken for a video to resume after decoding was suspended, in milliseconds. Keyed by audio presence, hw acceleration, and by height ranges (boundaries: 240. 480, 720, 1080, 2160), e.g.: 'V,0-240', 'AV(hw),2160+'; and 'All' will accumulate all percentages.",
     "keyed": true,
     "kind": "exponential",
     "high": 10000,
     "n_buckets": 100,
-    "bug_numbers": [1294349, 1570634]
+    "bug_numbers": [1294349, 1570634, 1606206]
   },
   "VIDEO_VP9_BENCHMARK_FPS": {
     "record_in_processes": ["content"],
     "products": ["firefox", "geckoview"],
     "alert_emails": ["jya@mozilla.com", "drno@ohlmeier.org"],
-    "expires_in_version": "74",
-    "bug_numbers": [1230265, 1570634],
+    "expires_in_version": "88",
+    "bug_numbers": [1230265, 1570634, 1606206],
     "kind": "linear",
     "high": 1000,
     "n_buckets": 100,
@@ -13017,87 +12949,6 @@
     "labels": ["Used", "RejectedByPolicy", "RequestMismatch", "LoadError", "NotUsed"],
     "description": "Whether a preloaded script was used or the reason it was not used."
   },
-  "DOM_SCRIPT_LOAD_INCREMENTAL_RATIO": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["nicolas.b.pierron@mozilla.com"],
-    "expires_in_version": "75",
-    "kind": "linear",
-    "low": 2,
-    "high": 100,
-    "n_buckets": 99,
-    "bug_numbers": [1573904],
-    "description": "Ratio of JavaScript-text bytes transferred incrementally compared to the total number of bytes transferred."
-  },
-  "DOM_SCRIPT_LOAD_INCREMENTAL_AVG_TRANSFER_RATE": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["nicolas.b.pierron@mozilla.com"],
-    "expires_in_version": "75",
-    "kind": "exponential",
-    "low": 1,
-    "high": 1000000,
-    "n_buckets": 60,
-    "bug_numbers": [1573904],
-    "description": "Speed at which JavaScript-text bytes are transferred incrementally, measured between the first onIncremantalData call and the onStreamComplete call (in character/ms)."
-  },
-  "DOM_SCRIPT_IS_STREAMED": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["nicolas.b.pierron@mozilla.com"],
-    "expires_in_version": "75",
-    "kind": "boolean",
-    "bug_numbers": [1579876],
-    "description": "Count whether JS scripts are streamed or not. Useful for interpreting DOM_SCRIPT_LOAD_* telemetry."
-  },
-  "DOM_SCRIPT_LOAD_STREAM_TIME_PERCENT": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["nicolas.b.pierron@mozilla.com"],
-    "expires_in_version": "75",
-    "kind": "linear",
-    "low": 2,
-    "high": 100,
-    "n_buckets": 99,
-    "bug_numbers": [1579876],
-    "description": "Percent of time spent streaming bytes while loading a JS Script."
-  },
-  "DOM_SCRIPT_LOAD_PARSE_TIME_PERCENT": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["nicolas.b.pierron@mozilla.com"],
-    "expires_in_version": "75",
-    "kind": "linear",
-    "low": 2,
-    "high": 100,
-    "n_buckets": 99,
-    "bug_numbers": [1579876],
-    "description": "Percent of time spent syntax-parsing and full-parsing the top-level script, while loading a JS script."
-  },
-  "DOM_SCRIPT_LOAD_EMIT_TIME_PERCENT": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["nicolas.b.pierron@mozilla.com"],
-    "expires_in_version": "75",
-    "kind": "linear",
-    "low": 2,
-    "high": 100,
-    "n_buckets": 99,
-    "bug_numbers": [1579876],
-    "description": "Percent of time spent emitting bytecode for the top-level script, while loading a JS script."
-  },
-  "DOM_SCRIPT_LOAD_STREAMPARSE_ESTIMATE_PERCENT": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["nicolas.b.pierron@mozilla.com"],
-    "expires_in_version": "75",
-    "kind": "linear",
-    "low": 2,
-    "high": 100,
-    "n_buckets": 99,
-    "bug_numbers": [1579876],
-    "description": "Estimated percent of time taken use a streaming parser compared to not using a streaming parser."
-  },
   "VIDEO_DROPPED_FRAMES_PROPORTION" : {
     "record_in_processes": ["content"],
     "products": ["firefox", "geckoview"],
@@ -13318,10 +13169,10 @@
     "record_in_processes": ["content"],
     "products": ["firefox", "geckoview"],
     "alert_emails": ["alwu@mozilla.com"],
-    "expires_in_version": "74",
+    "expires_in_version": "88",
     "kind": "enumerated",
     "n_values": 10,
-    "bug_numbers": [1280644, 1570634],
+    "bug_numbers": [1280644, 1570634, 1606206],
     "description": "Number of the use of the subtitles kind track. 0=Subtitles, 1=Captions, 2=Descriptions, 3=Chapters, 4=Metadata, 5=Undefined Error",
     "releaseChannelCollection": "opt-out"
   },
@@ -14714,7 +14565,7 @@
     "kind": "exponential",
     "high": 1000,
     "n_buckets": 50,
-    "description": "WebRender scene swap time in milliseconds"
+    "description": "WebRender scene swap time in miliseconds"
   },
   "WR_FRAMEBUILD_TIME": {
     "record_in_processes": ["main", "gpu"],
@@ -14763,11 +14614,11 @@
       "nohlmeier@mozilla.com",
       "padenot@mozilla.com"
     ],
-    "expires_in_version": "74",
+    "expires_in_version": "88",
     "kind": "linear",
     "high": 60,
     "n_buckets": 10,
-    "bug_numbers": [1490074, 1570634],
+    "bug_numbers": [1490074, 1570634, 1606206],
     "description": "How long the AudioContext would become audible since it was created, time unit is seconds.",
     "releaseChannelCollection": "opt-out"
   },
@@ -14778,10 +14629,10 @@
       "alwu@mozilla.com",
       "nohlmeier@mozilla.com"
     ],
-    "expires_in_version": "74",
+    "expires_in_version": "88",
     "kind": "categorical",
     "labels": ["allow", "blockAudible", "blockAll"],
-    "bug_numbers": [1567302],
+    "bug_numbers": [1567302, 1606206],
     "description": "counts the number of times a user changed the default autoplay behavior to each setting during a subsession.",
     "releaseChannelCollection": "opt-out"
   },
@@ -14815,18 +14666,6 @@
     "bug_numbers": [1525156],
     "description": "The number of times autoplay media (audio and video), which has been blocked by autoplay policy, played exactly 7 seconds or more, or less than 7 seconds after it has been resumed from the blocked state. If media's duration is less than 7 seconds and it played to the end before user pauses it, it would be in another category which is different from 'play >= 7 seconds' and 'play < 7 seconds'.",
     "releaseChannelCollection": "opt-out"
-  },
-  "QM_REPOSITORIES_INITIALIZATION_TIME": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "expires_in_version": "75",
-    "bug_numbers": [1481716, 1523682, 1580238],
-    "kind": "exponential",
-    "high": 30000,
-    "n_buckets": 30,
-    "releaseChannelCollection": "opt-out",
-    "alert_emails": ["ttung@mozilla.com"],
-    "description": "Time (ms) for the QuotaManager to initialize repositories."
   },
   "QM_REPOSITORIES_INITIALIZATION_TIME_V2": {
     "record_in_processes": ["main"],
@@ -15078,8 +14917,8 @@
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "geckoview"],
     "alert_emails": ["opettay@mozilla.com" ],
-    "bug_numbers": [1554292, 1566485],
-    "expires_in_version": "74",
+    "bug_numbers": [1554292, 1566485, 1606208],
+    "expires_in_version": "80",
     "kind": "exponential",
     "high": 60000,
     "n_buckets": 100,
@@ -15098,30 +14937,6 @@
     "high": 100,
     "n_buckets": 12,
     "description": "Percentages of times for phases in an expensive refresh tick relative to the time spent in the entire tick (REFRESH_DRIVER_TICK)."
-  },
-  "HYPHENATION_MEMORY": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["jkew@mozilla.com"],
-    "bug_numbers": [1568514],
-    "expires_in_version": "74",
-    "kind": "exponential",
-    "high": 8000,
-    "n_buckets": 100,
-    "releaseChannelCollection": "opt-out",
-    "description": "Total per-process memory used by loaded auto-hyphenation tables (KB)."
-  },
-  "HYPHENATION_LOAD_TIME": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "geckoview"],
-    "alert_emails": ["jkew@mozilla.com"],
-    "bug_numbers": [1568514],
-    "expires_in_version": "74",
-    "kind": "exponential",
-    "high": 1000,
-    "n_buckets": 100,
-    "releaseChannelCollection": "opt-out",
-    "description": "How many milliseconds it took to load a hyphenation resource."
   },
   "PRESSHELL_REQS_PER_STYLE_FLUSH": {
     "record_in_processes": ["main", "content"],

@@ -89,10 +89,6 @@ class BlobImpl : public nsISupports {
                                nsACString& aContentType,
                                nsACString& aCharset) = 0;
 
-  virtual nsresult GetMutable(bool* aMutable) const = 0;
-
-  virtual nsresult SetMutable(bool aMutable) = 0;
-
   virtual void SetLazyData(const nsAString& aName,
                            const nsAString& aContentType, uint64_t aLength,
                            int64_t aLastModifiedDate) = 0;
@@ -108,9 +104,6 @@ class BlobImpl : public nsISupports {
   // Returns true if the BlobImpl is backed by an nsIFile and the underlying
   // file is a directory.
   virtual bool IsDirectory() const { return false; }
-
-  // True if this implementation can be sent to other threads.
-  virtual bool MayBeClonedToOtherThreads() const { return true; }
 
  protected:
   virtual ~BlobImpl() {}

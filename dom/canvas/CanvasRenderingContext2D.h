@@ -381,7 +381,7 @@ class CanvasRenderingContext2D final : public nsICanvasRenderingContextInternal,
   }
 
   void DrawWindow(nsGlobalWindowInner& aWindow, double aX, double aY, double aW,
-                  double aH, const nsAString& aBgColor, uint32_t aFlags,
+                  double aH, const nsACString& aBgColor, uint32_t aFlags,
                   mozilla::ErrorResult& aError);
 
   // Eventually this should be deprecated. Keeping for now to keep the binding
@@ -561,7 +561,7 @@ class CanvasRenderingContext2D final : public nsICanvasRenderingContextInternal,
                        Style aWhichStyle);
 
   // Returns whether a color was successfully parsed.
-  bool ParseColor(const nsAString& aString, nscolor* aColor);
+  bool ParseColor(const nsACString& aString, nscolor* aColor);
 
   static void StyleColorToString(const nscolor& aColor, nsAString& aStr);
 
@@ -878,10 +878,12 @@ class CanvasRenderingContext2D final : public nsICanvasRenderingContextInternal,
   /**
    * Implementation of the fillText, strokeText, and measure functions with
    * the operation abstracted to a flag.
+   * Returns a TextMetrics object _only_ if the operation is measure;
+   * drawing operations (fill or stroke) always return nullptr.
    */
-  nsresult DrawOrMeasureText(const nsAString& aText, float aX, float aY,
-                             const Optional<double>& aMaxWidth,
-                             TextDrawOperation aOp, float* aWidth);
+  TextMetrics* DrawOrMeasureText(const nsAString& aText, float aX, float aY,
+                                 const Optional<double>& aMaxWidth,
+                                 TextDrawOperation aOp, ErrorResult& aError);
 
   // A clip or a transform, recorded and restored in order.
   struct ClipState {

@@ -97,11 +97,7 @@ class MOZ_STACK_CLASS AutoSavePendingResult {
 // static
 const nsXPTInterfaceInfo* nsXPCWrappedJS::GetInterfaceInfo(REFNSIID aIID) {
   const nsXPTInterfaceInfo* info = nsXPTInterfaceInfo::ByIID(aIID);
-  if (!info) {
-    return nullptr;
-  }
-
-  if (info->IsBuiltinClass() || !nsXPConnect::IsISupportsDescendant(info)) {
+  if (!info || info->IsBuiltinClass()) {
     return nullptr;
   }
 
@@ -147,14 +143,6 @@ JSObject* nsXPCWrappedJS::CallQueryInterfaceOnJSObject(JSContext* cx,
       XPCJSRuntime::Get()->GetStringID(XPCJSContext::IDX_QUERY_INTERFACE);
   if (!JS_GetPropertyById(cx, jsobj, funid, &fun) || fun.isPrimitive()) {
     return nullptr;
-  }
-
-  // Ensure that we are asking for a non-builtinclass interface
-  if (!aIID.Equals(NS_GET_IID(nsISupports))) {
-    const nsXPTInterfaceInfo* info = nsXPTInterfaceInfo::ByIID(aIID);
-    if (!info || info->IsBuiltinClass()) {
-      return nullptr;
-    }
   }
 
   dom::MozQueryInterface* mozQI = nullptr;
@@ -314,11 +302,26 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
     return NS_OK;
   }
 
-  // We can't have a cached wrapper.
-  if (aIID.Equals(NS_GET_IID(nsWrapperCache))) {
-    *aInstancePtr = nullptr;
-    return NS_NOINTERFACE;
+  // Ensure that we are asking for a non-builtinclass interface, and avoid even
+  // setting up our AutoEntryScript if we are.  Don't bother doing that check
+  // if our IID is nsISupports: we know that's not builtinclass, and we QI to
+  // it a _lot_.
+  if (!aIID.Equals(NS_GET_IID(nsISupports))) {
+    const nsXPTInterfaceInfo* info = nsXPTInterfaceInfo::ByIID(aIID);
+    if (!info || info->IsBuiltinClass()) {
+      MOZ_ASSERT(!aIID.Equals(NS_GET_IID(nsISupportsWeakReference)),
+                 "Later code for nsISupportsWeakReference is being skipped");
+      MOZ_ASSERT(!aIID.Equals(NS_GET_IID(nsISimpleEnumerator)),
+                 "Later code for nsISimpleEnumerator is being skipped");
+      MOZ_ASSERT(!aIID.Equals(NS_GET_IID(nsINamed)),
+                 "Later code for nsINamed is being skipped");
+      *aInstancePtr = nullptr;
+      return NS_NOINTERFACE;
+    }
   }
+
+  MOZ_ASSERT(!aIID.Equals(NS_GET_IID(nsWrapperCache)),
+             "Where did we get non-builtinclass interface info for this??");
 
   // QI on an XPCWrappedJS can run script, so we need an AutoEntryScript.
   // This is inherently Gecko-specific.

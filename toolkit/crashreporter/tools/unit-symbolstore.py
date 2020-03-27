@@ -469,17 +469,17 @@ class TestFunctional(HelperMixin, unittest.TestCase):
             self.skip_test = True
         if buildconfig.substs.get('ENABLE_STRIP'):
             self.skip_test = True
+        # Bug 1608146.
+        if buildconfig.substs.get('MOZ_CODE_COVERAGE'):
+            self.skip_test = True
         self.topsrcdir = buildconfig.topsrcdir
         self.script_path = os.path.join(self.topsrcdir, 'toolkit',
                                         'crashreporter', 'tools',
                                         'symbolstore.py')
         if target_platform() == 'WINNT':
-            if buildconfig.substs['WIN_DIA_SDK_BIN_DIR']:
-                self.dump_syms = os.path.join(buildconfig.topobjdir,
-                                              'dist', 'host', 'bin',
-                                              'dump_syms.exe')
-            else:
-                self.skip_test = True
+            fetches_dir = os.environ.get('MOZ_FETCHES_DIR')
+            self.dump_syms = os.path.join(fetches_dir, 'dump_syms',
+                                          'dump_syms.exe')
             self.target_bin = os.path.join(buildconfig.topobjdir,
                                            'dist', 'bin',
                                            'firefox.exe')

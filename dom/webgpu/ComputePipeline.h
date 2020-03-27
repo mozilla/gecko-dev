@@ -19,9 +19,13 @@ class ComputePipeline final : public ObjectBase, public ChildOf<Device> {
   GPU_DECL_CYCLE_COLLECTION(ComputePipeline)
   GPU_DECL_JS_WRAP(ComputePipeline)
 
+  ComputePipeline(Device* const aParent, RawId aId);
+
+  const RawId mId;
+
  private:
-  ComputePipeline() = delete;
-  virtual ~ComputePipeline();
+  ~ComputePipeline();
+  void Cleanup();
 };
 
 }  // namespace webgpu

@@ -18,10 +18,7 @@ struct gfxFontStyle;
 
 struct LookAndFeelInt {
   int32_t id;
-  union {
-    int32_t value;
-    nscolor colorValue;
-  };
+  int32_t value;
 };
 
 namespace mozilla {
@@ -534,6 +531,10 @@ class LookAndFeel {
    * or not.
    */
   static void SetShouldRetainCacheForTest(bool aValue);
+
+  static void SetPrefersReducedMotionOverrideForTest(bool aValue);
+
+  static void ResetPrefersReducedMotionOverrideForTest();
 };
 
 }  // namespace mozilla

@@ -11,8 +11,7 @@
 #include "mozilla/webrender/WebRenderAPI.h"
 #include "GLContextEGL.h"
 
-namespace mozilla {
-namespace layers {
+namespace mozilla::layers {
 
 WaylandDMABUFTextureHostOGL::WaylandDMABUFTextureHostOGL(
     TextureFlags aFlags, const SurfaceDescriptor& aDesc)
@@ -25,9 +24,6 @@ WaylandDMABUFTextureHostOGL::WaylandDMABUFTextureHostOGL(
 
 WaylandDMABUFTextureHostOGL::~WaylandDMABUFTextureHostOGL() {
   MOZ_COUNT_DTOR(WaylandDMABUFTextureHostOGL);
-  if (mProvider) {
-    DeallocateDeviceData();
-  }
 }
 
 bool WaylandDMABUFTextureHostOGL::Lock() {
@@ -48,23 +44,12 @@ bool WaylandDMABUFTextureHostOGL::Lock() {
 
 void WaylandDMABUFTextureHostOGL::Unlock() {}
 
-void WaylandDMABUFTextureHostOGL::DeallocateDeviceData() {
-  mTextureSource = nullptr;
-  if (mSurface) {
-    mSurface->ReleaseEGLImage();
-  }
-}
-
 void WaylandDMABUFTextureHostOGL::SetTextureSourceProvider(
     TextureSourceProvider* aProvider) {
   if (!aProvider || !aProvider->GetGLContext()) {
-    DeallocateDeviceData();
+    mTextureSource = nullptr;
     mProvider = nullptr;
     return;
-  }
-
-  if (mProvider != aProvider) {
-    DeallocateDeviceData();
   }
 
   mProvider = aProvider;
@@ -75,7 +60,6 @@ void WaylandDMABUFTextureHostOGL::SetTextureSourceProvider(
 }
 
 gfx::SurfaceFormat WaylandDMABUFTextureHostOGL::GetFormat() const {
-  MOZ_ASSERT(mTextureSource);
   return mTextureSource ? mTextureSource->GetFormat()
                         : gfx::SurfaceFormat::UNKNOWN;
 }
@@ -135,5 +119,4 @@ void WaylandDMABUFTextureHostOGL::PushDisplayItems(
                      !(mFlags & TextureFlags::NON_PREMULTIPLIED));
 }
 
-}  // namespace layers
-}  // namespace mozilla
+}  // namespace mozilla::layers

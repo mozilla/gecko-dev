@@ -161,7 +161,7 @@ GVAutoplayPermissionRequest::Cancel() {
   const RStatus status = GetRequestStatus(mContext, mType);
   REQUEST_LOG("Cancel, current status=%s", ToGVRequestStatusStr(status));
   MOZ_ASSERT(status == RStatus::ePENDING || status == RStatus::eUNKNOWN);
-  if (status == RStatus::ePENDING) {
+  if ((status == RStatus::ePENDING) && !mContext->IsDiscarded()) {
     SetRequestStatus(RStatus::eDENIED);
   }
   mContext = nullptr;
@@ -194,8 +194,8 @@ void GVAutoplayPermissionRequestor::AskForPermissionIfNeeded(
   }
 
   // The request is used for content permission, so it's no need to create a
-  // content request in parent process.
-  if (XRE_IsParentProcess()) {
+  // content request in parent process if we're in e10s.
+  if (XRE_IsE10sParentProcess()) {
     return;
   }
 

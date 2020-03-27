@@ -6,6 +6,7 @@
 
 #include "ContentBlockingLog.h"
 
+#include "nsITrackingDBService.h"
 #include "nsStringStream.h"
 #include "nsTArray.h"
 #include "mozilla/dom/ContentChild.h"
@@ -97,27 +98,107 @@ static bool IsReportingEnabled() {
 
 static void ReportOriginSingleHash(OriginMetricID aId,
                                    const nsACString& aOrigin) {
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 
   LOG("ReportOriginSingleHash metric=%s",
       Telemetry::MetricIDToString[static_cast<uint32_t>(aId)]);
   LOG("ReportOriginSingleHash origin=%s", PromiseFlatCString(aOrigin).get());
 
-  if (XRE_IsParentProcess()) {
-    Telemetry::RecordOrigin(aId, aOrigin);
-    return;
+  Telemetry::RecordOrigin(aId, aOrigin);
+}
+
+Maybe<uint32_t> ContentBlockingLog::RecordLogParent(
+    const nsACString& aOrigin, uint32_t aType, bool aBlocked,
+    const Maybe<AntiTrackingCommon::StorageAccessGrantedReason>& aReason,
+    const nsTArray<nsCString>& aTrackingFullHashes) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+
+  uint32_t events = GetContentBlockingEventsInLog();
+
+  bool blockedValue = aBlocked;
+  bool unblocked = false;
+
+  switch (aType) {
+    case nsIWebProgressListener::STATE_COOKIES_LOADED:
+      MOZ_ASSERT(!aBlocked,
+                 "We don't expected to see blocked STATE_COOKIES_LOADED");
+      [[fallthrough]];
+
+    case nsIWebProgressListener::STATE_COOKIES_LOADED_TRACKER:
+      MOZ_ASSERT(
+          !aBlocked,
+          "We don't expected to see blocked STATE_COOKIES_LOADED_TRACKER");
+      [[fallthrough]];
+
+    case nsIWebProgressListener::STATE_COOKIES_LOADED_SOCIALTRACKER:
+      MOZ_ASSERT(!aBlocked,
+                 "We don't expected to see blocked "
+                 "STATE_COOKIES_LOADED_SOCIALTRACKER");
+      // Note that the logic in these branches are the logical negation of the
+      // logic in other branches, since the Document API we have is phrased
+      // in "loaded" terms as opposed to "blocked" terms.
+      blockedValue = !aBlocked;
+      [[fallthrough]];
+
+    case nsIWebProgressListener::STATE_BLOCKED_TRACKING_CONTENT:
+    case nsIWebProgressListener::STATE_LOADED_LEVEL_1_TRACKING_CONTENT:
+    case nsIWebProgressListener::STATE_LOADED_LEVEL_2_TRACKING_CONTENT:
+    case nsIWebProgressListener::STATE_BLOCKED_FINGERPRINTING_CONTENT:
+    case nsIWebProgressListener::STATE_LOADED_FINGERPRINTING_CONTENT:
+    case nsIWebProgressListener::STATE_BLOCKED_CRYPTOMINING_CONTENT:
+    case nsIWebProgressListener::STATE_LOADED_CRYPTOMINING_CONTENT:
+    case nsIWebProgressListener::STATE_BLOCKED_SOCIALTRACKING_CONTENT:
+    case nsIWebProgressListener::STATE_LOADED_SOCIALTRACKING_CONTENT:
+    case nsIWebProgressListener::STATE_COOKIES_BLOCKED_BY_PERMISSION:
+    case nsIWebProgressListener::STATE_COOKIES_BLOCKED_ALL:
+    case nsIWebProgressListener::STATE_COOKIES_BLOCKED_FOREIGN:
+      RecordLogInternal(aOrigin, aType, blockedValue);
+      break;
+
+    case nsIWebProgressListener::STATE_COOKIES_BLOCKED_TRACKER:
+    case nsIWebProgressListener::STATE_COOKIES_BLOCKED_SOCIALTRACKER:
+      RecordLogInternal(aOrigin, aType, blockedValue, aReason,
+                        aTrackingFullHashes);
+      break;
+
+    default:
+      // Ignore nsIWebProgressListener::STATE_BLOCKED_UNSAFE_CONTENT;
+      break;
   }
 
-  dom::ContentChild* contentChild = dom::ContentChild::GetSingleton();
-  if (NS_WARN_IF(!contentChild)) {
-    return;
+  if (!aBlocked) {
+    unblocked = (events & aType) != 0;
   }
 
-  Unused << contentChild->SendRecordOrigin(static_cast<uint32_t>(aId),
-                                           nsCString(aOrigin));
+  const uint32_t oldEvents = events;
+  if (blockedValue) {
+    events |= aType;
+  } else if (unblocked) {
+    events &= ~aType;
+  }
+
+  if (events == oldEvents
+#ifdef ANDROID
+      // GeckoView always needs to notify about blocked trackers,
+      // since the GeckoView API always needs to report the URI and
+      // type of any blocked tracker. We use a platform-dependent code
+      // path here because reporting this notification on desktop
+      // platforms isn't necessary and doing so can have a big
+      // performance cost.
+      && aType != nsIWebProgressListener::STATE_BLOCKED_TRACKING_CONTENT
+#endif
+  ) {
+    // Avoid dispatching repeated notifications when nothing has
+    // changed
+    return Nothing();
+  }
+
+  return Some(events);
 }
 
 void ContentBlockingLog::ReportLog(nsIPrincipal* aFirstPartyPrincipal) {
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aFirstPartyPrincipal);
 
@@ -129,23 +210,13 @@ void ContentBlockingLog::ReportLog(nsIPrincipal* aFirstPartyPrincipal) {
     return;
   }
 
-  dom::ContentChild* contentChild = dom::ContentChild::GetSingleton();
-  if (NS_WARN_IF(!contentChild)) {
+  nsCOMPtr<nsITrackingDBService> trackingDBService =
+      do_GetService("@mozilla.org/tracking-db-service;1");
+  if (NS_WARN_IF(!trackingDBService)) {
     return;
   }
 
-  nsAutoCString json = Stringify();
-
-  nsCOMPtr<nsIInputStream> stream;
-  nsresult rv = NS_NewCStringInputStream(getter_AddRefs(stream), json);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-
-  AutoIPCStream ipcStream;
-  ipcStream.Serialize(stream, contentChild);
-
-  Unused << contentChild->SendReportContentBlockingLog(ipcStream.TakeValue());
+  trackingDBService->RecordContentBlockingLog(Stringify());
 }
 
 void ContentBlockingLog::ReportOrigins() {

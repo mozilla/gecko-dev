@@ -43,7 +43,7 @@ inline bool IsIgnorableCharacter(char16_t ch) {
 //    part of a word, and are otherwise punctuation.
 
 inline bool IsConditionalPunctuation(char ch) {
-  return (ch == '\'' ||       // RIGHT SINGLE QUOTATION MARK
+  return (ch == '\'' ||                    // RIGHT SINGLE QUOTATION MARK
           ch == static_cast<char>(0xB7));  // MIDDLE DOT
 }
 
@@ -369,27 +369,25 @@ nsresult mozInlineSpellWordUtil::MakeRange(NodeOffset aBegin, NodeOffset aEnd,
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  RefPtr<nsRange> range = new nsRange(aBegin.mNode);
-  nsresult rv = range->SetStartAndEnd(aBegin.mNode, aBegin.mOffset, aEnd.mNode,
-                                      aEnd.mOffset);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+  ErrorResult error;
+  RefPtr<nsRange> range = nsRange::Create(aBegin.mNode, aBegin.mOffset,
+                                          aEnd.mNode, aEnd.mOffset, error);
+  if (NS_WARN_IF(error.Failed())) {
+    return error.StealNSResult();
   }
+  MOZ_ASSERT(range);
   range.forget(aRange);
-
   return NS_OK;
 }
 
 // static
 already_AddRefed<nsRange> mozInlineSpellWordUtil::MakeRange(
     const NodeOffsetRange& aRange) {
-  RefPtr<nsRange> range = new nsRange(aRange.Begin().Node());
-  nsresult rv =
-      range->SetStartAndEnd(aRange.Begin().Node(), aRange.Begin().Offset(),
-                            aRange.End().Node(), aRange.End().Offset());
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return nullptr;
-  }
+  IgnoredErrorResult ignoredError;
+  RefPtr<nsRange> range =
+      nsRange::Create(aRange.Begin().Node(), aRange.Begin().Offset(),
+                      aRange.End().Node(), aRange.End().Offset(), ignoredError);
+  NS_WARNING_ASSERTION(!ignoredError.Failed(), "Creating a range failed");
   return range.forget();
 }
 
@@ -610,7 +608,8 @@ bool WordSplitState<T>::ShouldSkipWord(int32_t aStart, int32_t aLength) const {
 
   // check to see if the word contains a digit
   for (int32_t i = aStart; i < last; i++) {
-    if (mozilla::unicode::GetGenCategory(GetUnicharAt(i)) == nsUGenCategory::kNumber) {
+    if (mozilla::unicode::GetGenCategory(GetUnicharAt(i)) ==
+        nsUGenCategory::kNumber) {
       return true;
     }
   }

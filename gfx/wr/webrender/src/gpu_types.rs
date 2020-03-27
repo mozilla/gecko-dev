@@ -4,7 +4,7 @@
 
 use api::{DocumentLayer, PremultipliedColorF};
 use api::units::*;
-use crate::clip_scroll_tree::{ClipScrollTree, ROOT_SPATIAL_NODE_INDEX, SpatialNodeIndex};
+use crate::spatial_tree::{SpatialTree, ROOT_SPATIAL_NODE_INDEX, SpatialNodeIndex};
 use crate::gpu_cache::{GpuCacheAddress, GpuDataRequest};
 use crate::internal_types::FastHashMap;
 use crate::prim_store::EdgeAaSegmentMask;
@@ -81,6 +81,7 @@ pub enum BrushShaderKind {
     Blend           = 6,
     MixBlend        = 7,
     Yuv             = 8,
+    Opacity         = 9,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -402,16 +403,22 @@ bitflags! {
     #[derive(MallocSizeOf)]
     pub struct BrushFlags: u8 {
         /// Apply perspective interpolation to UVs
-        const PERSPECTIVE_INTERPOLATION = 0x1;
+        const PERSPECTIVE_INTERPOLATION = 1;
         /// Do interpolation relative to segment rect,
         /// rather than primitive rect.
-        const SEGMENT_RELATIVE = 0x2;
+        const SEGMENT_RELATIVE = 2;
         /// Repeat UVs horizontally.
-        const SEGMENT_REPEAT_X = 0x4;
+        const SEGMENT_REPEAT_X = 4;
         /// Repeat UVs vertically.
-        const SEGMENT_REPEAT_Y = 0x8;
+        const SEGMENT_REPEAT_Y = 8;
+        /// Horizontally follow border-image-repeat: round.
+        const SEGMENT_REPEAT_X_ROUND = 16;
+        /// Vertically follow border-image-repeat: round.
+        const SEGMENT_REPEAT_Y_ROUND = 32;
+        /// Middle (fill) area of a border-image-repeat.
+        const SEGMENT_NINEPATCH_MIDDLE = 64;
         /// The extra segment data is a texel rect.
-        const SEGMENT_TEXEL_RECT = 0x10;
+        const SEGMENT_TEXEL_RECT = 128;
     }
 }
 
@@ -555,7 +562,7 @@ impl TransformPalette {
         &mut self,
         child_index: SpatialNodeIndex,
         parent_index: SpatialNodeIndex,
-        clip_scroll_tree: &ClipScrollTree,
+        spatial_tree: &SpatialTree,
     ) -> usize {
         if parent_index == ROOT_SPATIAL_NODE_INDEX {
             child_index.0 as usize
@@ -573,7 +580,7 @@ impl TransformPalette {
             *self.map
                 .entry(key)
                 .or_insert_with(|| {
-                    let transform = clip_scroll_tree.get_relative_transform(
+                    let transform = spatial_tree.get_relative_transform(
                         child_index,
                         parent_index,
                     )
@@ -599,12 +606,12 @@ impl TransformPalette {
         &mut self,
         from_index: SpatialNodeIndex,
         to_index: SpatialNodeIndex,
-        clip_scroll_tree: &ClipScrollTree,
+        spatial_tree: &SpatialTree,
     ) -> TransformPaletteId {
         let index = self.get_index(
             from_index,
             to_index,
-            clip_scroll_tree,
+            spatial_tree,
         );
         let transform_kind = self.metadata[index].transform_kind as u32;
         TransformPaletteId(

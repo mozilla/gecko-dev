@@ -122,7 +122,6 @@ react_dom__WEBPACK_IMPORTED_MODULE_6___default.a.hydrate(react__WEBPACK_IMPORTED
   store: store
 }, react__WEBPACK_IMPORTED_MODULE_5___default.a.createElement(content_src_components_Base_Base__WEBPACK_IMPORTED_MODULE_1__["Base"], {
   isFirstrun: global.document.location.href === "about:welcome",
-  locale: global.document.documentElement.lang,
   strings: global.gActivityStreamStrings
 })), document.getElementById("root"));
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(1)))
@@ -194,7 +193,7 @@ const globalImportContext = typeof Window === "undefined" ? BACKGROUND_PROCESS :
 // }
 const actionTypes = {};
 
-for (const type of ["ADDONS_INFO_REQUEST", "ADDONS_INFO_RESPONSE", "ARCHIVE_FROM_POCKET", "AS_ROUTER_INITIALIZED", "AS_ROUTER_PREF_CHANGED", "AS_ROUTER_TARGETING_UPDATE", "AS_ROUTER_TELEMETRY_USER_EVENT", "BLOCK_URL", "BOOKMARK_URL", "CLEAR_PREF", "COPY_DOWNLOAD_LINK", "DELETE_BOOKMARK_BY_ID", "DELETE_FROM_POCKET", "DELETE_HISTORY_URL", "DIALOG_CANCEL", "DIALOG_OPEN", "DISCOVERY_STREAM_CONFIG_CHANGE", "DISCOVERY_STREAM_CONFIG_RESET_DEFAULTS", "DISCOVERY_STREAM_CONFIG_SETUP", "DISCOVERY_STREAM_CONFIG_SET_VALUE", "DISCOVERY_STREAM_FEEDS_UPDATE", "DISCOVERY_STREAM_FEED_UPDATE", "DISCOVERY_STREAM_IMPRESSION_STATS", "DISCOVERY_STREAM_LAYOUT_RESET", "DISCOVERY_STREAM_LAYOUT_UPDATE", "DISCOVERY_STREAM_LINK_BLOCKED", "DISCOVERY_STREAM_LOADED_CONTENT", "DISCOVERY_STREAM_RETRY_FEED", "DISCOVERY_STREAM_SPOCS_CAPS", "DISCOVERY_STREAM_SPOCS_ENDPOINT", "DISCOVERY_STREAM_SPOCS_FILL", "DISCOVERY_STREAM_SPOCS_PLACEMENTS", "DISCOVERY_STREAM_SPOCS_UPDATE", "DISCOVERY_STREAM_SPOC_BLOCKED", "DISCOVERY_STREAM_SPOC_IMPRESSION", "DOWNLOAD_CHANGED", "FAKE_FOCUS_SEARCH", "FILL_SEARCH_TERM", "HANDOFF_SEARCH_TO_AWESOMEBAR", "HIDE_PRIVACY_INFO", "HIDE_SEARCH", "INIT", "NEW_TAB_INIT", "NEW_TAB_INITIAL_STATE", "NEW_TAB_LOAD", "NEW_TAB_REHYDRATED", "NEW_TAB_STATE_REQUEST", "NEW_TAB_UNLOAD", "OPEN_DOWNLOAD_FILE", "OPEN_LINK", "OPEN_NEW_WINDOW", "OPEN_PRIVATE_WINDOW", "OPEN_WEBEXT_SETTINGS", "PLACES_BOOKMARK_ADDED", "PLACES_BOOKMARK_REMOVED", "PLACES_HISTORY_CLEARED", "PLACES_LINKS_CHANGED", "PLACES_LINK_BLOCKED", "PLACES_LINK_DELETED", "PLACES_SAVED_TO_POCKET", "POCKET_CTA", "POCKET_LINK_DELETED_OR_ARCHIVED", "POCKET_LOGGED_IN", "POCKET_WAITING_FOR_SPOC", "PREFS_INITIAL_VALUES", "PREF_CHANGED", "PREVIEW_REQUEST", "PREVIEW_REQUEST_CANCEL", "PREVIEW_RESPONSE", "REMOVE_DOWNLOAD_FILE", "RICH_ICON_MISSING", "SAVE_SESSION_PERF_DATA", "SAVE_TO_POCKET", "SCREENSHOT_UPDATED", "SECTION_DEREGISTER", "SECTION_DISABLE", "SECTION_ENABLE", "SECTION_MOVE", "SECTION_OPTIONS_CHANGED", "SECTION_REGISTER", "SECTION_UPDATE", "SECTION_UPDATE_CARD", "SETTINGS_CLOSE", "SETTINGS_OPEN", "SET_PREF", "SHOW_DOWNLOAD_FILE", "SHOW_FIREFOX_ACCOUNTS", "SHOW_PRIVACY_INFO", "SHOW_SEARCH", "SKIPPED_SIGNIN", "SNIPPETS_BLOCKLIST_CLEARED", "SNIPPETS_BLOCKLIST_UPDATED", "SNIPPETS_DATA", "SNIPPETS_PREVIEW_MODE", "SNIPPETS_RESET", "SNIPPET_BLOCKED", "SUBMIT_EMAIL", "SUBMIT_SIGNIN", "SYSTEM_TICK", "TELEMETRY_IMPRESSION_STATS", "TELEMETRY_PERFORMANCE_EVENT", "TELEMETRY_UNDESIRED_EVENT", "TELEMETRY_USER_EVENT", "TOP_SITES_CANCEL_EDIT", "TOP_SITES_CLOSE_SEARCH_SHORTCUTS_MODAL", "TOP_SITES_EDIT", "TOP_SITES_INSERT", "TOP_SITES_OPEN_SEARCH_SHORTCUTS_MODAL", "TOP_SITES_PIN", "TOP_SITES_PREFS_UPDATED", "TOP_SITES_UNPIN", "TOP_SITES_UPDATED", "TOTAL_BOOKMARKS_REQUEST", "TOTAL_BOOKMARKS_RESPONSE", "TRAILHEAD_ENROLL_EVENT", "UNINIT", "UPDATE_PINNED_SEARCH_SHORTCUTS", "UPDATE_SEARCH_SHORTCUTS", "UPDATE_SECTION_PREFS", "WEBEXT_CLICK", "WEBEXT_DISMISS"]) {
+for (const type of ["ADDONS_INFO_REQUEST", "ADDONS_INFO_RESPONSE", "ARCHIVE_FROM_POCKET", "AS_ROUTER_INITIALIZED", "AS_ROUTER_PREF_CHANGED", "AS_ROUTER_TARGETING_UPDATE", "AS_ROUTER_TELEMETRY_USER_EVENT", "BLOCK_URL", "BOOKMARK_URL", "CLEAR_PREF", "COPY_DOWNLOAD_LINK", "DELETE_BOOKMARK_BY_ID", "DELETE_FROM_POCKET", "DELETE_HISTORY_URL", "DIALOG_CANCEL", "DIALOG_OPEN", "DISCOVERY_STREAM_CONFIG_CHANGE", "DISCOVERY_STREAM_CONFIG_RESET", "DISCOVERY_STREAM_CONFIG_RESET_DEFAULTS", "DISCOVERY_STREAM_CONFIG_SETUP", "DISCOVERY_STREAM_CONFIG_SET_VALUE", "DISCOVERY_STREAM_DEV_EXPIRE_CACHE", "DISCOVERY_STREAM_DEV_IDLE_DAILY", "DISCOVERY_STREAM_DEV_SYNC_RS", "DISCOVERY_STREAM_DEV_SYSTEM_TICK", "DISCOVERY_STREAM_FEEDS_UPDATE", "DISCOVERY_STREAM_FEED_UPDATE", "DISCOVERY_STREAM_IMPRESSION_STATS", "DISCOVERY_STREAM_LAYOUT_RESET", "DISCOVERY_STREAM_LAYOUT_UPDATE", "DISCOVERY_STREAM_LINK_BLOCKED", "DISCOVERY_STREAM_LOADED_CONTENT", "DISCOVERY_STREAM_PERSONALIZATION_INIT", "DISCOVERY_STREAM_PERSONALIZATION_LAST_UPDATED", "DISCOVERY_STREAM_PERSONALIZATION_VERSION", "DISCOVERY_STREAM_PERSONALIZATION_VERSION_TOGGLE", "DISCOVERY_STREAM_RETRY_FEED", "DISCOVERY_STREAM_SPOCS_CAPS", "DISCOVERY_STREAM_SPOCS_ENDPOINT", "DISCOVERY_STREAM_SPOCS_FILL", "DISCOVERY_STREAM_SPOCS_PLACEMENTS", "DISCOVERY_STREAM_SPOCS_UPDATE", "DISCOVERY_STREAM_SPOC_BLOCKED", "DISCOVERY_STREAM_SPOC_IMPRESSION", "DOWNLOAD_CHANGED", "FAKE_FOCUS_SEARCH", "FILL_SEARCH_TERM", "HANDOFF_SEARCH_TO_AWESOMEBAR", "HIDE_PRIVACY_INFO", "HIDE_SEARCH", "INIT", "NEW_TAB_INIT", "NEW_TAB_INITIAL_STATE", "NEW_TAB_LOAD", "NEW_TAB_REHYDRATED", "NEW_TAB_STATE_REQUEST", "NEW_TAB_UNLOAD", "OPEN_DOWNLOAD_FILE", "OPEN_LINK", "OPEN_NEW_WINDOW", "OPEN_PRIVATE_WINDOW", "OPEN_WEBEXT_SETTINGS", "PLACES_BOOKMARK_ADDED", "PLACES_BOOKMARK_REMOVED", "PLACES_HISTORY_CLEARED", "PLACES_LINKS_CHANGED", "PLACES_LINK_BLOCKED", "PLACES_LINK_DELETED", "PLACES_SAVED_TO_POCKET", "POCKET_CTA", "POCKET_LINK_DELETED_OR_ARCHIVED", "POCKET_LOGGED_IN", "POCKET_WAITING_FOR_SPOC", "PREFS_INITIAL_VALUES", "PREF_CHANGED", "PREVIEW_REQUEST", "PREVIEW_REQUEST_CANCEL", "PREVIEW_RESPONSE", "REMOVE_DOWNLOAD_FILE", "RICH_ICON_MISSING", "SAVE_SESSION_PERF_DATA", "SAVE_TO_POCKET", "SCREENSHOT_UPDATED", "SECTION_DEREGISTER", "SECTION_DISABLE", "SECTION_ENABLE", "SECTION_MOVE", "SECTION_OPTIONS_CHANGED", "SECTION_REGISTER", "SECTION_UPDATE", "SECTION_UPDATE_CARD", "SETTINGS_CLOSE", "SETTINGS_OPEN", "SET_PREF", "SHOW_DOWNLOAD_FILE", "SHOW_FIREFOX_ACCOUNTS", "SHOW_PRIVACY_INFO", "SHOW_SEARCH", "SKIPPED_SIGNIN", "SNIPPETS_BLOCKLIST_CLEARED", "SNIPPETS_BLOCKLIST_UPDATED", "SNIPPETS_DATA", "SNIPPETS_PREVIEW_MODE", "SNIPPETS_RESET", "SNIPPET_BLOCKED", "SUBMIT_EMAIL", "SUBMIT_SIGNIN", "SYSTEM_TICK", "TELEMETRY_IMPRESSION_STATS", "TELEMETRY_PERFORMANCE_EVENT", "TELEMETRY_UNDESIRED_EVENT", "TELEMETRY_USER_EVENT", "TOP_SITES_CANCEL_EDIT", "TOP_SITES_CLOSE_SEARCH_SHORTCUTS_MODAL", "TOP_SITES_EDIT", "TOP_SITES_INSERT", "TOP_SITES_OPEN_SEARCH_SHORTCUTS_MODAL", "TOP_SITES_PIN", "TOP_SITES_PREFS_UPDATED", "TOP_SITES_UNPIN", "TOP_SITES_UPDATED", "TOTAL_BOOKMARKS_REQUEST", "TOTAL_BOOKMARKS_RESPONSE", "TRAILHEAD_ENROLL_EVENT", "UNINIT", "UPDATE_PINNED_SEARCH_SHORTCUTS", "UPDATE_SEARCH_SHORTCUTS", "UPDATE_SECTION_PREFS", "WEBEXT_CLICK", "WEBEXT_DISMISS"]) {
   actionTypes[type] = type;
 } // These are acceptable actions for AS Router messages to have. They can show up
 // as call-to-action buttons in snippets, onboarding tour, etc.
@@ -566,7 +565,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react_redux__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(28);
 /* harmony import */ var react_redux__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(react_redux__WEBPACK_IMPORTED_MODULE_4__);
 /* harmony import */ var content_src_components_DiscoveryStreamBase_DiscoveryStreamBase__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(31);
-/* harmony import */ var content_src_components_ErrorBoundary_ErrorBoundary__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(47);
+/* harmony import */ var content_src_components_ErrorBoundary_ErrorBoundary__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(48);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(9);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_7___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_7__);
 /* harmony import */ var content_src_components_Search_Search__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(76);
@@ -708,9 +707,10 @@ class BaseContent extends react__WEBPACK_IMPORTED_MODULE_7___default.a.PureCompo
     const prefs = props.Prefs.values;
     const isDiscoveryStream = props.DiscoveryStream.config && props.DiscoveryStream.config.enabled;
     let filteredSections = props.Sections;
+    const pocketEnabled = prefs["feeds.section.topstories"];
     const noSectionsEnabled = !prefs["feeds.topsites"] && filteredSections.filter(section => section.enabled).length === 0;
     const searchHandoffEnabled = prefs["improvesearch.handoffToAwesomebar"];
-    const outerClassName = ["outer-wrapper", isDiscoveryStream && "ds-outer-wrapper-search-alignment", isDiscoveryStream && "ds-outer-wrapper-breakpoint-override", prefs.showSearch && this.state.fixedSearch && !noSectionsEnabled && "fixed-search", prefs.showSearch && noSectionsEnabled && "only-search"].filter(v => v).join(" ");
+    const outerClassName = ["outer-wrapper", isDiscoveryStream && pocketEnabled && "ds-outer-wrapper-search-alignment", isDiscoveryStream && "ds-outer-wrapper-breakpoint-override", prefs.showSearch && this.state.fixedSearch && !noSectionsEnabled && "fixed-search", prefs.showSearch && noSectionsEnabled && "only-search"].filter(v => v).join(" ");
     return react__WEBPACK_IMPORTED_MODULE_7___default.a.createElement("div", null, react__WEBPACK_IMPORTED_MODULE_7___default.a.createElement("div", {
       className: outerClassName
     }, react__WEBPACK_IMPORTED_MODULE_7___default.a.createElement("main", null, prefs.showSearch && react__WEBPACK_IMPORTED_MODULE_7___default.a.createElement("div", {
@@ -726,7 +726,9 @@ class BaseContent extends react__WEBPACK_IMPORTED_MODULE_7___default.a.PureCompo
       className: `body-wrapper${initialized ? " on" : ""}`
     }, isDiscoveryStream ? react__WEBPACK_IMPORTED_MODULE_7___default.a.createElement(content_src_components_ErrorBoundary_ErrorBoundary__WEBPACK_IMPORTED_MODULE_6__["ErrorBoundary"], {
       className: "borderless-error"
-    }, react__WEBPACK_IMPORTED_MODULE_7___default.a.createElement(content_src_components_DiscoveryStreamBase_DiscoveryStreamBase__WEBPACK_IMPORTED_MODULE_5__["DiscoveryStreamBase"], null)) : react__WEBPACK_IMPORTED_MODULE_7___default.a.createElement(content_src_components_Sections_Sections__WEBPACK_IMPORTED_MODULE_9__["Sections"], null), react__WEBPACK_IMPORTED_MODULE_7___default.a.createElement(PrefsButton, {
+    }, react__WEBPACK_IMPORTED_MODULE_7___default.a.createElement(content_src_components_DiscoveryStreamBase_DiscoveryStreamBase__WEBPACK_IMPORTED_MODULE_5__["DiscoveryStreamBase"], {
+      locale: props.App.locale
+    })) : react__WEBPACK_IMPORTED_MODULE_7___default.a.createElement(content_src_components_Sections_Sections__WEBPACK_IMPORTED_MODULE_9__["Sections"], null), react__WEBPACK_IMPORTED_MODULE_7___default.a.createElement(PrefsButton, {
       onClick: this.openPreferences
     })), react__WEBPACK_IMPORTED_MODULE_7___default.a.createElement(content_src_components_ConfirmDialog_ConfirmDialog__WEBPACK_IMPORTED_MODULE_3__["ConfirmDialog"], null))));
   }
@@ -749,6 +751,7 @@ const Base = Object(react_redux__WEBPACK_IMPORTED_MODULE_4__["connect"])(state =
 __webpack_require__.r(__webpack_exports__);
 /* WEBPACK VAR INJECTION */(function(global) {/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ToggleStoryButton", function() { return ToggleStoryButton; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TogglePrefCheckbox", function() { return TogglePrefCheckbox; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Personalization", function() { return Personalization; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DiscoveryStreamAdmin", function() { return DiscoveryStreamAdmin; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ASRouterAdminInner", function() { return ASRouterAdminInner; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CollapseToggle", function() { return CollapseToggle; });
@@ -840,12 +843,47 @@ class TogglePrefCheckbox extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
   }
 
 }
+class Personalization extends react__WEBPACK_IMPORTED_MODULE_4___default.a.PureComponent {
+  constructor(props) {
+    super(props);
+    this.togglePersonalizationVersion = this.togglePersonalizationVersion.bind(this);
+  }
+
+  togglePersonalizationVersion() {
+    this.props.dispatch(common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__["actionCreators"].OnlyToMain({
+      type: common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__["actionTypes"].DISCOVERY_STREAM_PERSONALIZATION_VERSION_TOGGLE
+    }));
+  }
+
+  render() {
+    const {
+      lastUpdated,
+      version,
+      initialized
+    } = this.props.state.Personalization;
+    return react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(react__WEBPACK_IMPORTED_MODULE_4___default.a.Fragment, null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("button", {
+      className: "button",
+      onClick: this.togglePersonalizationVersion
+    }, version === 1 ? "Enable V2 Personalization" : "Enable V1 Personalization"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("table", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("tbody", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(Row, null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", {
+      className: "min"
+    }, "Personalization version"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", null, version)), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(Row, null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", {
+      className: "min"
+    }, "Personalization Last Updated"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", null, relativeTime(lastUpdated) || "(no data)")), version === 2 ? react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(Row, null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", {
+      className: "min"
+    }, "Personalization V2 Initialized"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", null, initialized ? "true" : "false")) : null)));
+  }
+
+}
 class DiscoveryStreamAdmin extends react__WEBPACK_IMPORTED_MODULE_4___default.a.PureComponent {
   constructor(props) {
     super(props);
     this.restorePrefDefaults = this.restorePrefDefaults.bind(this);
     this.setConfigValue = this.setConfigValue.bind(this);
     this.expireCache = this.expireCache.bind(this);
+    this.refreshCache = this.refreshCache.bind(this);
+    this.idleDaily = this.idleDaily.bind(this);
+    this.systemTick = this.systemTick.bind(this);
+    this.syncRemoteSettings = this.syncRemoteSettings.bind(this);
     this.changeEndpointVariant = this.changeEndpointVariant.bind(this);
     this.onStoryToggle = this.onStoryToggle.bind(this);
     this.state = {
@@ -869,18 +907,40 @@ class DiscoveryStreamAdmin extends react__WEBPACK_IMPORTED_MODULE_4___default.a.
     }));
   }
 
-  expireCache() {
+  refreshCache() {
     const {
       config
-    } = this.props.state;
+    } = this.props.state.DiscoveryStream;
     this.props.dispatch(common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__["actionCreators"].OnlyToMain({
       type: common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__["actionTypes"].DISCOVERY_STREAM_CONFIG_CHANGE,
       data: config
     }));
   }
 
+  dispatchSimpleAction(type) {
+    this.props.dispatch(common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__["actionCreators"].OnlyToMain({
+      type
+    }));
+  }
+
+  systemTick() {
+    this.dispatchSimpleAction(common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__["actionTypes"].DISCOVERY_STREAM_DEV_SYSTEM_TICK);
+  }
+
+  expireCache() {
+    this.dispatchSimpleAction(common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__["actionTypes"].DISCOVERY_STREAM_DEV_EXPIRE_CACHE);
+  }
+
+  idleDaily() {
+    this.dispatchSimpleAction(common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__["actionTypes"].DISCOVERY_STREAM_DEV_IDLE_DAILY);
+  }
+
+  syncRemoteSettings() {
+    this.dispatchSimpleAction(common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__["actionTypes"].DISCOVERY_STREAM_DEV_SYNC_RS);
+  }
+
   changeEndpointVariant(event) {
-    const endpoint = this.props.state.config.layout_endpoint;
+    const endpoint = this.props.state.DiscoveryStream.config.layout_endpoint;
 
     if (endpoint) {
       this.setConfigValue("layout_endpoint", endpoint.replace(/layout_variant=.+/, `layout_variant=${event.target.value}`));
@@ -896,7 +956,7 @@ class DiscoveryStreamAdmin extends react__WEBPACK_IMPORTED_MODULE_4___default.a.
   }
 
   isCurrentVariant(id) {
-    const endpoint = this.props.state.config.layout_endpoint;
+    const endpoint = this.props.state.DiscoveryStream.config.layout_endpoint;
     const isMatch = endpoint && !!endpoint.match(`layout_variant=${id}`);
     return isMatch;
   }
@@ -904,7 +964,7 @@ class DiscoveryStreamAdmin extends react__WEBPACK_IMPORTED_MODULE_4___default.a.
   renderFeedData(url) {
     const {
       feeds
-    } = this.props.state;
+    } = this.props.state.DiscoveryStream;
     const feed = feeds.data[url].data;
     return react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(react__WEBPACK_IMPORTED_MODULE_4___default.a.Fragment, null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("h4", null, "Feed url: ", url), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("table", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("tbody", null, feed.recommendations.map(story => this.renderStoryData(story)))));
   }
@@ -912,14 +972,14 @@ class DiscoveryStreamAdmin extends react__WEBPACK_IMPORTED_MODULE_4___default.a.
   renderFeedsData() {
     const {
       feeds
-    } = this.props.state;
+    } = this.props.state.DiscoveryStream;
     return react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(react__WEBPACK_IMPORTED_MODULE_4___default.a.Fragment, null, Object.keys(feeds.data).map(url => this.renderFeedData(url)));
   }
 
   renderSpocs() {
     const {
       spocs
-    } = this.props.state;
+    } = this.props.state.DiscoveryStream;
     let spocsData = [];
 
     if (spocs.data && spocs.data.spocs && spocs.data.spocs.length) {
@@ -967,7 +1027,7 @@ class DiscoveryStreamAdmin extends react__WEBPACK_IMPORTED_MODULE_4___default.a.
   renderFeed(feed) {
     const {
       feeds
-    } = this.props.state;
+    } = this.props.state.DiscoveryStream;
 
     if (!feed.url) {
       return null;
@@ -986,14 +1046,26 @@ class DiscoveryStreamAdmin extends react__WEBPACK_IMPORTED_MODULE_4___default.a.
       config,
       lastUpdated,
       layout
-    } = this.props.state;
+    } = this.props.state.DiscoveryStream;
     return react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("div", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("button", {
       className: "button",
       onClick: this.restorePrefDefaults
     }, "Restore Pref Defaults"), " ", react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("button", {
       className: "button",
+      onClick: this.refreshCache
+    }, "Refresh Cache"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("br", null), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("button", {
+      className: "button",
       onClick: this.expireCache
-    }, "Expire Cache"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("table", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("tbody", null, prefToggles.map(pref => react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(Row, {
+    }, "Expire Cache"), " ", react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("button", {
+      className: "button",
+      onClick: this.systemTick
+    }, "Trigger System Tick"), " ", react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("button", {
+      className: "button",
+      onClick: this.idleDaily
+    }, "Trigger Idle Daily"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("br", null), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("button", {
+      className: "button",
+      onClick: this.syncRemoteSettings
+    }, "Sync Remote Settings"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("table", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("tbody", null, prefToggles.map(pref => react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(Row, {
       key: pref
     }, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(TogglePrefCheckbox, {
       checked: config[pref],
@@ -1025,7 +1097,12 @@ class DiscoveryStreamAdmin extends react__WEBPACK_IMPORTED_MODULE_4___default.a.
     }, row.components.map((component, componentIndex) => react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("div", {
       key: `component-${componentIndex}`,
       className: "ds-component"
-    }, this.renderComponent(row.width, component))))), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("h3", null, "Feeds Data"), this.renderFeedsData(), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("h3", null, "Spocs"), this.renderSpocs());
+    }, this.renderComponent(row.width, component))))), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("h3", null, "Personalization"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(Personalization, {
+      dispatch: this.props.dispatch,
+      state: {
+        Personalization: this.props.state.Personalization
+      }
+    }), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("h3", null, "Spocs"), this.renderSpocs(), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("h3", null, "Feeds Data"), this.renderFeedsData());
   }
 
 }
@@ -1036,6 +1113,7 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
     this.handleEnabledToggle = this.handleEnabledToggle.bind(this);
     this.handleUserPrefToggle = this.handleUserPrefToggle.bind(this);
     this.onChangeMessageFilter = this.onChangeMessageFilter.bind(this);
+    this.handleClearAllImpressionsByProvider = this.handleClearAllImpressionsByProvider.bind(this);
     this.findOtherBundledMessagesOfSameTemplate = this.findOtherBundledMessagesOfSameTemplate.bind(this);
     this.handleExpressionEval = this.handleExpressionEval.bind(this);
     this.onChangeTargetingParameters = this.onChangeTargetingParameters.bind(this);
@@ -1044,8 +1122,12 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
     this.onCopyTargetingParams = this.onCopyTargetingParams.bind(this);
     this.onPasteTargetingParams = this.onPasteTargetingParams.bind(this);
     this.onNewTargetingParams = this.onNewTargetingParams.bind(this);
+    this.handleUpdateWNMessages = this.handleUpdateWNMessages.bind(this);
+    this.handleForceWNP = this.handleForceWNP.bind(this);
+    this.pushWNMessage = this.pushWNMessage.bind(this);
     this.state = {
       messageFilter: "all",
+      WNMessages: [],
       evaluationStatus: {},
       trailhead: {},
       stringTargetingParameters: null,
@@ -1127,6 +1209,20 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
     return () => _asrouter_asrouter_content__WEBPACK_IMPORTED_MODULE_1__["ASRouterUtils"].overrideMessage(id);
   }
 
+  handleUpdateWNMessages() {
+    let messages = this.state.WNMessages;
+    _asrouter_asrouter_content__WEBPACK_IMPORTED_MODULE_1__["ASRouterUtils"].sendMessage({
+      type: "RENDER_WHATSNEW_MESSAGES",
+      data: messages
+    });
+  }
+
+  handleForceWNP() {
+    _asrouter_asrouter_content__WEBPACK_IMPORTED_MODULE_1__["ASRouterUtils"].sendMessage({
+      type: "FORCE_WHATSNEW_PANEL"
+    });
+  }
+
   expireCache() {
     _asrouter_asrouter_content__WEBPACK_IMPORTED_MODULE_1__["ASRouterUtils"].sendMessage({
       type: "EXPIRE_QUERY_CACHE"
@@ -1197,6 +1293,36 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
         stringTargetingParameters: updatedParameters,
         targetingParametersError
       };
+    });
+  }
+
+  handleClearAllImpressionsByProvider() {
+    const providerId = this.state.messageFilter;
+
+    if (!providerId) {
+      return;
+    }
+
+    const userPrefInfo = this.state.userPrefs;
+    const isUserEnabled = providerId in userPrefInfo ? userPrefInfo[providerId] : true;
+    _asrouter_asrouter_content__WEBPACK_IMPORTED_MODULE_1__["ASRouterUtils"].sendMessage({
+      type: "DISABLE_PROVIDER",
+      data: providerId
+    });
+
+    if (!isUserEnabled) {
+      _asrouter_asrouter_content__WEBPACK_IMPORTED_MODULE_1__["ASRouterUtils"].sendMessage({
+        type: "SET_PROVIDER_USER_PREF",
+        data: {
+          id: providerId,
+          value: true
+        }
+      });
+    }
+
+    _asrouter_asrouter_content__WEBPACK_IMPORTED_MODULE_1__["ASRouterUtils"].sendMessage({
+      type: "ENABLE_PROVIDER",
+      data: providerId
     });
   }
 
@@ -1338,6 +1464,24 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
     }, isBlocked && react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("tr", null, "Block reason:", isBlockedByGroup && " Blocked by group", isProviderExcluded && " Excluded by provider", isMessageBlocked && " Message blocked"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("tr", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("pre", null, JSON.stringify(msg, null, 2)))));
   }
 
+  pushWNMessage(event, msg) {
+    let ele = event.target;
+
+    if (ele.checked) {
+      this.setState(prevState => ({
+        WNMessages: prevState.WNMessages.concat(msg)
+      }));
+    } else if (!ele.checked && this.state.WNMessages.length === 1) {
+      this.setState({
+        WNMessages: []
+      });
+    } else {
+      this.setState(prevState => ({
+        WNMessages: prevState.WNMessages.splice(prevState.WNMessages.indexOf(msg), 1)
+      }));
+    }
+  }
+
   renderWNMessageItem(msg) {
     const isBlocked = this.state.messageBlockList.includes(msg.id) || this.state.messageBlockList.includes(msg.campaign);
     const impressions = this.state.messageImpressions[msg.id] ? this.state.messageImpressions[msg.id].length : 0;
@@ -1354,7 +1498,10 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
       className: "message-id"
     }, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("span", null, msg.id, " ", react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("br", null), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("br", null), "(", impressions, " impressions)")), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("input", {
       type: "checkbox",
-      value: "Show"
+      id: `${msg.id} checkbox`,
+      name: `${msg.id} checkbox` // eslint-disable-next-line react/jsx-no-bind
+      ,
+      onClick: e => this.pushWNMessage(e, msg.id)
     })), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", {
       className: "message-summary"
     }, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("pre", null, JSON.stringify(msg, null, 2))));
@@ -1383,7 +1530,7 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
       return null;
     }
 
-    return react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("p", null, "Show messages from", " ", react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("select", {
+    return react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("p", null, "Show messages from ", react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("select", {
       value: this.state.messageFilter,
       onChange: this.onChangeMessageFilter
     }, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("option", {
@@ -1391,7 +1538,10 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
     }, "all providers"), this.state.providers.map(provider => react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("option", {
       key: provider.id,
       value: provider.id
-    }, provider.id))));
+    }, provider.id))), this.state.messageFilter !== "all" && !this.state.messageFilter.includes("_local_testing") ? react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("button", {
+      className: "button messages-reset",
+      onClick: this.handleClearAllImpressionsByProvider
+    }, "Reset All") : null);
   }
 
   renderTableHead() {
@@ -1567,24 +1717,6 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
     return "n/a";
   }
 
-  renderPocketStory(story) {
-    return react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("tr", {
-      className: "message-item",
-      key: story.guid
-    }, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", {
-      className: "message-id"
-    }, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("span", null, story.guid, " ", react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("br", null))), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", {
-      className: "message-summary"
-    }, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("pre", null, JSON.stringify(story, null, 2))));
-  }
-
-  renderPocketStories() {
-    const {
-      rows
-    } = this.props.Sections.find(Section => Section.id === "topstories") || {};
-    return react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("table", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("tbody", null, rows && rows.map(story => this.renderPocketStory(story))));
-  }
-
   renderDiscoveryStream() {
     const {
       config
@@ -1688,7 +1820,17 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
   }
 
   renderWNPTests() {
-    return react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("div", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("button", null, "Force What's New Panel"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("h2", null, "Messages"), this.renderWNMessages());
+    return react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("div", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("p", {
+      className: "helpLink"
+    }, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("span", {
+      className: "icon icon-small-spacer icon-info"
+    }), " ", react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("span", null, "To correctly render selected messages, please check \"Disable Popup Auto-Hide\" in the browser toolbox, or set", " ", react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("i", null, "ui.popup.disable_autohide"), " to ", react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("b", null, "true"), " in", " ", react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("i", null, "about:config"), ".")), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("div", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("button", {
+      className: "ASRouterButton primary button",
+      onClick: this.handleForceWNP
+    }, "Open What's New Panel"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("button", {
+      className: "ASRouterButton secondary button",
+      onClick: this.handleUpdateWNMessages
+    }, "Render Selected Messages"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("h2", null, "Messages"), this.renderWNMessages()));
   }
 
   getSection() {
@@ -1719,12 +1861,12 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
           onChange: this.toggleGroups
         })), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", null, this._getGroupImpressionsCount(id, frequency)), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("td", null, JSON.stringify(frequency, null, 2))))));
 
-      case "pocket":
-        return react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(react__WEBPACK_IMPORTED_MODULE_4___default.a.Fragment, null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("h2", null, "Pocket"), this.renderPocketStories());
-
       case "ds":
         return react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(react__WEBPACK_IMPORTED_MODULE_4___default.a.Fragment, null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("h2", null, "Discovery Stream"), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(DiscoveryStreamAdmin, {
-          state: this.props.DiscoveryStream,
+          state: {
+            DiscoveryStream: this.props.DiscoveryStream,
+            Personalization: this.props.Personalization
+          },
           otherPrefs: this.props.Prefs.values,
           dispatch: this.props.dispatch
         }));
@@ -1755,8 +1897,6 @@ class ASRouterAdminInner extends react__WEBPACK_IMPORTED_MODULE_4___default.a.Pu
     }, "Targeting")), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("li", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("a", {
       href: "#devtools-groups"
     }, "Message Groups")), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("li", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("a", {
-      href: "#devtools-pocket"
-    }, "Pocket")), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("li", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("a", {
       href: "#devtools-ds"
     }, "Discovery Stream")), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("li", null, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("a", {
       href: "#devtools-errors"
@@ -1845,6 +1985,7 @@ const _ASRouterAdmin = props => react__WEBPACK_IMPORTED_MODULE_4___default.a.cre
 const ASRouterAdmin = Object(react_redux__WEBPACK_IMPORTED_MODULE_2__["connect"])(state => ({
   Sections: state.Sections,
   DiscoveryStream: state.DiscoveryStream,
+  Personalization: state.Personalization,
   Prefs: state.Prefs
 }))(_ASRouterAdmin);
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(1)))
@@ -1977,7 +2118,8 @@ const ASRouterUtils = {
         return {
           url: endpoint.href,
           snippetId: params.get("snippetId"),
-          theme: this.getPreviewTheme()
+          theme: this.getPreviewTheme(),
+          dir: this.getPreviewDir()
         };
       } catch (e) {}
     }
@@ -1987,6 +2129,10 @@ const ASRouterUtils = {
 
   getPreviewTheme() {
     return new URLSearchParams(global.location.href.slice(global.location.href.indexOf("theme"))).get("theme");
+  },
+
+  getPreviewDir() {
+    return new URLSearchParams(global.location.href.slice(global.location.href.indexOf("dir"))).get("dir");
   }
 
 }; // Note: nextProps/prevProps refer to props passed to <ImpressionsWrapper />, not <ASRouterUISurface />
@@ -2229,6 +2375,11 @@ class ASRouterUISurface extends react__WEBPACK_IMPORTED_MODULE_6___default.a.Pur
           data: content_src_lib_constants__WEBPACK_IMPORTED_MODULE_5__["NEWTAB_DARK_THEME"]
         }
       }));
+    }
+
+    if (endpoint && endpoint.dir === "rtl") {
+      //Set `dir = rtl` on the HTML
+      this.props.document.dir = "rtl";
     }
 
     ASRouterUtils.addListener(this.onMessageFromParent);
@@ -2946,7 +3097,8 @@ class Trailhead extends react__WEBPACK_IMPORTED_MODULE_4___default.a.PureCompone
       fxaEndpoint: this.props.fxaEndpoint,
       UTMTerm: UTMTerm,
       flowParams: this.props.flowParams,
-      onClose: this.closeModal
+      onClose: this.closeModal,
+      showSignInLink: true
     }))), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("button", {
       className: "trailheadStart",
       "data-l10n-id": content.skipButton.string_id,
@@ -2999,7 +3151,6 @@ class ModalOverlayWrapper extends react__WEBPACK_IMPORTED_MODULE_0___default.a.P
     this.header = this.props.document.getElementById("header-asrouter-container");
 
     if (this.header) {
-      this.header.classList.add("modal-scroll");
       this.props.document.getElementById("root").classList.add("modal-height");
     }
   }
@@ -3009,7 +3160,6 @@ class ModalOverlayWrapper extends react__WEBPACK_IMPORTED_MODULE_0___default.a.P
     this.props.document.body.classList.remove("modal-open");
 
     if (this.header) {
-      this.header.classList.remove("modal-scroll");
       this.props.document.getElementById("root").classList.remove("modal-height");
     }
   }
@@ -3024,11 +3174,11 @@ class ModalOverlayWrapper extends react__WEBPACK_IMPORTED_MODULE_0___default.a.P
       className += ` ${props.innerClassName}`;
     }
 
-    return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(react__WEBPACK_IMPORTED_MODULE_0___default.a.Fragment, null, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
+    return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
       className: "modalOverlayOuter active",
       onKeyDown: this.onKeyDown,
       role: "presentation"
-    }), react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
+    }, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
       className: className,
       "aria-labelledby": props.headerId,
       id: props.id,
@@ -3942,7 +4092,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DiscoveryStreamBase", function() { return DiscoveryStreamBase; });
 /* harmony import */ var common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
 /* harmony import */ var content_src_components_DiscoveryStreamComponents_CardGrid_CardGrid__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(32);
-/* harmony import */ var content_src_components_CollapsibleSection_CollapsibleSection__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(46);
+/* harmony import */ var content_src_components_CollapsibleSection_CollapsibleSection__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(47);
 /* harmony import */ var react_redux__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(28);
 /* harmony import */ var react_redux__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(react_redux__WEBPACK_IMPORTED_MODULE_3__);
 /* harmony import */ var content_src_components_DiscoveryStreamComponents_DSDismiss_DSDismiss__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(52);
@@ -4210,7 +4360,7 @@ class _DiscoveryStreamBase extends react__WEBPACK_IMPORTED_MODULE_13___default.a
       state: this.props.DiscoveryStream,
       prefs: this.props.Prefs.values,
       rollCache,
-      lang: this.props.document.documentElement.lang
+      locale: this.props.locale
     });
     const {
       config,
@@ -4335,7 +4485,7 @@ const DiscoveryStreamBase = Object(react_redux__WEBPACK_IMPORTED_MODULE_3__["con
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CardGrid", function() { return CardGrid; });
 /* harmony import */ var _DSCard_DSCard_jsx__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(33);
-/* harmony import */ var _DSEmptyState_DSEmptyState_jsx__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(45);
+/* harmony import */ var _DSEmptyState_DSEmptyState_jsx__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(46);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(9);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_2__);
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -4439,9 +4589,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_4__);
 /* harmony import */ var _SafeAnchor_SafeAnchor__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(41);
 /* harmony import */ var _DSContextFooter_DSContextFooter_jsx__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(42);
+/* harmony import */ var _FluentOrText_FluentOrText_jsx__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(45);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -4496,7 +4648,14 @@ const CTAButtonMeta = ({
   className: "info-wrap"
 }, react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("p", {
   className: "source clamp"
-}, sponsor ? sponsor : source, context && ` · Sponsored`), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("header", {
+}, context && react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement(_FluentOrText_FluentOrText_jsx__WEBPACK_IMPORTED_MODULE_7__["FluentOrText"], {
+  message: {
+    id: `newtab-label-sponsored`,
+    values: {
+      sponsorOrSource: sponsor ? sponsor : source
+    }
+  }
+}), !context && (sponsor ? sponsor : source)), react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("header", {
   className: "title clamp"
 }, title), excerpt && react__WEBPACK_IMPORTED_MODULE_4___default.a.createElement("p", {
   className: "excerpt clamp"
@@ -6019,6 +6178,52 @@ module.exports = ReactTransitionGroup;
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "FluentOrText", function() { return FluentOrText; });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(9);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * Set text on a child element/component depending on if the message is already
+ * translated plain text or a fluent id with optional args.
+ */
+
+class FluentOrText extends react__WEBPACK_IMPORTED_MODULE_0___default.a.PureComponent {
+  render() {
+    // Ensure we have a single child to attach attributes
+    const {
+      children,
+      message
+    } = this.props;
+    const child = children ? react__WEBPACK_IMPORTED_MODULE_0___default.a.Children.only(children) : react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("span", null); // For a string message, just use it as the child's text
+
+    let grandChildren = message;
+    let extraProps; // Convert a message object to set desired fluent-dom attributes
+
+    if (typeof message === "object") {
+      const args = message.args || message.values;
+      extraProps = {
+        "data-l10n-args": args && JSON.stringify(args),
+        "data-l10n-id": message.id || message.string_id
+      }; // Use original children potentially with data-l10n-name attributes
+
+      grandChildren = child.props.children;
+    } // Add the message to the child via fluent attributes or text node
+
+
+    return react__WEBPACK_IMPORTED_MODULE_0___default.a.cloneElement(child, extraProps, grandChildren);
+  }
+
+}
+
+/***/ }),
+/* 46 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DSEmptyState", function() { return DSEmptyState; });
 /* harmony import */ var common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(9);
@@ -6118,15 +6323,15 @@ class DSEmptyState extends react__WEBPACK_IMPORTED_MODULE_1___default.a.PureComp
 }
 
 /***/ }),
-/* 46 */
+/* 47 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* WEBPACK VAR INJECTION */(function(global) {/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CollapsibleSection", function() { return CollapsibleSection; });
 /* harmony import */ var common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
-/* harmony import */ var content_src_components_ErrorBoundary_ErrorBoundary__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(47);
-/* harmony import */ var content_src_components_FluentOrText_FluentOrText__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(49);
+/* harmony import */ var content_src_components_ErrorBoundary_ErrorBoundary__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(48);
+/* harmony import */ var content_src_components_FluentOrText_FluentOrText__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(45);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(9);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_3__);
 /* harmony import */ var content_src_components_SectionMenu_SectionMenu__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(50);
@@ -6407,14 +6612,14 @@ CollapsibleSection.defaultProps = {
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(1)))
 
 /***/ }),
-/* 47 */
+/* 48 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ErrorBoundaryFallback", function() { return ErrorBoundaryFallback; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ErrorBoundary", function() { return ErrorBoundary; });
-/* harmony import */ var content_src_components_A11yLinkButton_A11yLinkButton__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(48);
+/* harmony import */ var content_src_components_A11yLinkButton_A11yLinkButton__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(49);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(9);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_1__);
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -6494,7 +6699,7 @@ ErrorBoundary.defaultProps = {
 };
 
 /***/ }),
-/* 48 */
+/* 49 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6521,52 +6726,6 @@ function A11yLinkButton(props) {
   }, props, {
     className: className
   }), props.children);
-}
-
-/***/ }),
-/* 49 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "FluentOrText", function() { return FluentOrText; });
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(9);
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-/**
- * Set text on a child element/component depending on if the message is already
- * translated plain text or a fluent id with optional args.
- */
-
-class FluentOrText extends react__WEBPACK_IMPORTED_MODULE_0___default.a.PureComponent {
-  render() {
-    // Ensure we have a single child to attach attributes
-    const {
-      children,
-      message
-    } = this.props;
-    const child = children ? react__WEBPACK_IMPORTED_MODULE_0___default.a.Children.only(children) : react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("span", null); // For a string message, just use it as the child's text
-
-    let grandChildren = message;
-    let extraProps; // Convert a message object to set desired fluent-dom attributes
-
-    if (typeof message === "object") {
-      const args = message.args || message.values;
-      extraProps = {
-        "data-l10n-args": args && JSON.stringify(args),
-        "data-l10n-id": message.id || message.string_id
-      }; // Use original children potentially with data-l10n-name attributes
-
-      grandChildren = child.props.children;
-    } // Add the message to the child via fluent attributes or text node
-
-
-    return react__WEBPACK_IMPORTED_MODULE_0___default.a.cloneElement(child, extraProps, grandChildren);
-  }
-
 }
 
 /***/ }),
@@ -6897,7 +7056,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(9);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _SafeAnchor_SafeAnchor__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(41);
-/* harmony import */ var content_src_components_FluentOrText_FluentOrText__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(49);
+/* harmony import */ var content_src_components_FluentOrText_FluentOrText__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(45);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6983,12 +7142,12 @@ class DSPrivacyModal extends react__WEBPACK_IMPORTED_MODULE_0___default.a.PureCo
     }, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("h3", {
       "data-l10n-id": "newtab-privacy-modal-header"
     }), react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("p", {
-      "data-l10n-id": "newtab-privacy-modal-paragraph"
+      "data-l10n-id": "newtab-privacy-modal-paragraph-2"
     }), react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("a", {
       className: "modal-link modal-link-privacy",
       "data-l10n-id": "newtab-privacy-modal-link",
       onClick: this.onLearnLinkClick,
-      href: "https://www.mozilla.org/en-US/privacy/firefox/"
+      href: "https://help.getpocket.com/article/1142-firefox-new-tab-recommendations-faq"
     }), react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("button", {
       className: "modal-link modal-link-manage",
       onClick: this.onManageLinkClick
@@ -7091,7 +7250,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Hero", function() { return Hero; });
 /* harmony import */ var _DSCard_DSCard_jsx__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(33);
 /* harmony import */ var common_Actions_jsm__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2);
-/* harmony import */ var _DSEmptyState_DSEmptyState_jsx__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(45);
+/* harmony import */ var _DSEmptyState_DSEmptyState_jsx__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(46);
 /* harmony import */ var _DSImage_DSImage_jsx__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(34);
 /* harmony import */ var _DSLinkMenu_DSLinkMenu__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(35);
 /* harmony import */ var _DiscoveryStreamImpressionStats_ImpressionStats__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(40);
@@ -7288,7 +7447,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
 /* harmony import */ var react_redux__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(28);
 /* harmony import */ var react_redux__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_redux__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var _DSEmptyState_DSEmptyState_jsx__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(45);
+/* harmony import */ var _DSEmptyState_DSEmptyState_jsx__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(46);
 /* harmony import */ var _DSImage_DSImage_jsx__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(34);
 /* harmony import */ var _DSLinkMenu_DSLinkMenu__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(35);
 /* harmony import */ var _DiscoveryStreamImpressionStats_ImpressionStats__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(40);
@@ -7532,9 +7691,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Sections", function() { return Sections; });
 /* harmony import */ var common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
 /* harmony import */ var content_src_components_Card_Card__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(60);
-/* harmony import */ var content_src_components_CollapsibleSection_CollapsibleSection__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(46);
+/* harmony import */ var content_src_components_CollapsibleSection_CollapsibleSection__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(47);
 /* harmony import */ var content_src_components_ComponentPerfTimer_ComponentPerfTimer__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(62);
-/* harmony import */ var content_src_components_FluentOrText_FluentOrText__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(49);
+/* harmony import */ var content_src_components_FluentOrText_FluentOrText__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(45);
 /* harmony import */ var react_redux__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(28);
 /* harmony import */ var react_redux__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(react_redux__WEBPACK_IMPORTED_MODULE_5__);
 /* harmony import */ var content_src_components_MoreRecommendations_MoreRecommendations__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(64);
@@ -8747,7 +8906,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TopSites", function() { return TopSites; });
 /* harmony import */ var common_Actions_jsm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
 /* harmony import */ var _TopSitesConstants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(68);
-/* harmony import */ var content_src_components_CollapsibleSection_CollapsibleSection__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(46);
+/* harmony import */ var content_src_components_CollapsibleSection_CollapsibleSection__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(47);
 /* harmony import */ var content_src_components_ComponentPerfTimer_ComponentPerfTimer__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(62);
 /* harmony import */ var react_redux__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(28);
 /* harmony import */ var react_redux__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(react_redux__WEBPACK_IMPORTED_MODULE_4__);
@@ -9890,7 +10049,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(9);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _SafeAnchor_SafeAnchor__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(41);
-/* harmony import */ var content_src_components_FluentOrText_FluentOrText__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(49);
+/* harmony import */ var content_src_components_FluentOrText_FluentOrText__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(45);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9980,7 +10139,7 @@ const selectLayoutRender = ({
   state = {},
   prefs = {},
   rollCache = [],
-  lang = ""
+  locale = ""
 }) => {
   const {
     layout,
@@ -10041,7 +10200,7 @@ const selectLayoutRender = ({
     filterArray.push("TopSites");
   }
 
-  if (!lang.startsWith("en-")) {
+  if (!locale.startsWith("en-")) {
     filterArray.push("Navigation");
   }
 
@@ -14097,11 +14256,13 @@ class Dedupe {
 
 const TOP_SITES_DEFAULT_ROWS = 1;
 const TOP_SITES_MAX_SITES_PER_ROW = 8;
+const PREF_PERSONALIZATION_VERSION = "discoverystream.personalization.version";
 const dedupe = new Dedupe(site => site && site.url);
 const INITIAL_STATE = {
   App: {
     // Have we received real data from the app yet?
-    initialized: false
+    initialized: false,
+    locale: ""
   },
   ASRouter: {
     initialized: false
@@ -14161,6 +14322,11 @@ const INITIAL_STATE = {
       blocked: [],
       placements: []
     }
+  },
+  Personalization: {
+    version: 1,
+    lastUpdated: null,
+    initialized: false
   },
   Search: {
     // When search hand-off is enabled, we render a big button that is styled to
@@ -14701,6 +14867,37 @@ function Pocket(prevState = INITIAL_STATE.Pocket, action) {
   }
 }
 
+function Personalization(prevState = INITIAL_STATE.Personalization, action) {
+  switch (action.type) {
+    case Actions["actionTypes"].DISCOVERY_STREAM_PERSONALIZATION_VERSION:
+      return { ...prevState,
+        version: action.data.version
+      };
+
+    case Actions["actionTypes"].DISCOVERY_STREAM_PERSONALIZATION_LAST_UPDATED:
+      return { ...prevState,
+        lastUpdated: action.data.lastUpdated
+      };
+
+    case Actions["actionTypes"].DISCOVERY_STREAM_PERSONALIZATION_INIT:
+      return { ...prevState,
+        initialized: true
+      };
+
+    case Actions["actionTypes"].PREF_CHANGED:
+      if (action.data.name === PREF_PERSONALIZATION_VERSION) {
+        return { ...prevState,
+          version: action.data.value
+        };
+      }
+
+      return prevState;
+
+    default:
+      return prevState;
+  }
+}
+
 function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
   // Return if action data is empty, or spocs or feeds data is not loaded
   const isNotReady = () => !action.data || !prevState.spocs.loaded || !prevState.feeds.loaded;
@@ -14938,6 +15135,7 @@ var reducers = {
   Dialog,
   Sections,
   Pocket,
+  Personalization,
   DiscoveryStream,
   Search
 };
@@ -15234,7 +15432,7 @@ __webpack_require__.r(__webpack_exports__);
 var Actions = __webpack_require__(2);
 
 // EXTERNAL MODULE: ./content-src/components/A11yLinkButton/A11yLinkButton.jsx
-var A11yLinkButton = __webpack_require__(48);
+var A11yLinkButton = __webpack_require__(49);
 
 // EXTERNAL MODULE: external "React"
 var external_React_ = __webpack_require__(9);

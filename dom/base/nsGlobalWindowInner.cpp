@@ -44,6 +44,7 @@
 #include "mozilla/dom/VisualViewport.h"
 #include "mozilla/dom/WindowProxyHolder.h"
 #include "mozilla/IntegerPrintfMacros.h"
+#include "mozilla/Result.h"
 #if defined(MOZ_WIDGET_ANDROID)
 #  include "mozilla/dom/WindowOrientationObserver.h"
 #endif
@@ -75,6 +76,7 @@
 // Helper Classes
 #include "nsJSUtils.h"
 #include "jsapi.h"
+#include "jsfriendapi.h"
 #include "js/Warnings.h"  // JS::WarnASCII
 #include "js/Wrapper.h"
 #include "nsCharSeparatedTokenizer.h"
@@ -846,6 +848,7 @@ nsGlobalWindowInner::nsGlobalWindowInner(nsGlobalWindowOuter* aOuterWindow,
       mXRPermissionGranted(false),
       mWasCurrentInnerWindow(false),
       mHasSeenGamepadInput(false),
+      mHintedWasLoading(false),
       mSuspendDepth(0),
       mFreezeDepth(0),
 #ifdef DEBUG
@@ -955,6 +958,7 @@ void nsGlobalWindowInner::Init() {
 
 nsGlobalWindowInner::~nsGlobalWindowInner() {
   AssertIsOnMainThread();
+  MOZ_ASSERT(!mHintedWasLoading);
 
   if (IsChromeWindow()) {
     MOZ_ASSERT(mCleanMessageManager,
@@ -975,8 +979,6 @@ nsGlobalWindowInner::~nsGlobalWindowInner() {
   FreeInnerObjects();
 
   if (sInnerWindowsById) {
-    MOZ_ASSERT(sInnerWindowsById->Get(mWindowID),
-               "This window should be in the hash table");
     sInnerWindowsById->Remove(mWindowID);
   }
 
@@ -1227,6 +1229,8 @@ void nsGlobalWindowInner::FreeInnerObjects() {
   mWindowGlobalChild = nullptr;
 
   mIntlUtils = nullptr;
+
+  HintIsLoading(false);
 }
 
 //*****************************************************************************
@@ -1376,6 +1380,11 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindowInner)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindowInner)
+  tmp->ClearWeakReferences();
+  if (sInnerWindowsById) {
+    sInnerWindowsById->Remove(tmp->mWindowID);
+  }
+
   JSObject* wrapper = tmp->GetWrapperPreserveColor();
   if (wrapper) {
     // Mark our realm as dead, so the JS engine won't hand out our
@@ -1535,18 +1544,16 @@ void nsGlobalWindowInner::TraceGlobalJSObject(JSTracer* aTrc) {
   TraceWrapper(aTrc, "active window global");
 }
 
-void nsGlobalWindowInner::InnerSetNewDocument(JSContext* aCx,
-                                              Document* aDocument) {
-  MOZ_ASSERT(aDocument);
+void nsGlobalWindowInner::InitDocumentDependentState(JSContext* aCx) {
+  MOZ_ASSERT(mDoc);
 
   if (MOZ_LOG_TEST(gDOMLeakPRLogInner, LogLevel::Debug)) {
-    nsIURI* uri = aDocument->GetDocumentURI();
+    nsIURI* uri = mDoc->GetDocumentURI();
     MOZ_LOG(gDOMLeakPRLogInner, LogLevel::Debug,
             ("DOMWINDOW %p SetNewDocument %s", this,
              uri ? uri->GetSpecOrDefault().get() : ""));
   }
 
-  mDoc = aDocument;
   mFocusedElement = nullptr;
   mLocalStorage = nullptr;
   mSessionStorage = nullptr;
@@ -1580,7 +1587,7 @@ void nsGlobalWindowInner::InnerSetNewDocument(JSContext* aCx,
 #endif
 
 #ifdef DEBUG
-  mLastOpenedURI = aDocument->GetDocumentURI();
+  mLastOpenedURI = mDoc->GetDocumentURI();
 #endif
 
   Telemetry::Accumulate(Telemetry::INNERWINDOWS_WITH_MUTATION_LISTENERS,
@@ -2389,9 +2396,6 @@ bool nsGlobalWindowInner::CrossOriginIsolated() const {
   if (!cc ||
       !StringBeginsWith(cc->GetRemoteType(),
                         NS_LITERAL_STRING(WITH_COOP_COEP_REMOTE_TYPE_PREFIX))) {
-#if !defined(ANDROID)
-    MOZ_DIAGNOSTIC_ASSERT(false, "COOP+COEP not in webCOOP+COEP process");
-#endif
     return false;
   }
 
@@ -2546,6 +2550,19 @@ void nsGlobalWindowInner::SetActiveLoadingState(bool aIsLoading) {
   if (!nsGlobalWindowInner::Cast(this)->IsChromeWindow()) {
     mTimeoutManager->SetLoading(aIsLoading);
   }
+
+  HintIsLoading(aIsLoading);
+}
+
+void nsGlobalWindowInner::HintIsLoading(bool aIsLoading) {
+  // Hint to tell the JS GC to use modified triggers during pageload.
+  if (mHintedWasLoading != aIsLoading) {
+    using namespace js::gc;
+    SetPerformanceHint(danger::GetJSContext(), aIsLoading
+                                                   ? PerformanceHint::InPageLoad
+                                                   : PerformanceHint::Normal);
+    mHintedWasLoading = aIsLoading;
+  }
 }
 
 // nsISpeechSynthesisGetter
@@ -2690,7 +2707,6 @@ const InterfaceShimEntry kInterfaceShimMap[] = {
     {"nsIDOMUIEvent", "UIEvent"},
     {"nsIDOMHTMLMediaElement", "HTMLMediaElement"},
     {"nsIDOMRange", "Range"},
-    {"nsIDOMSVGLength", "SVGLength"},
     // Think about whether Ci.nsINodeFilter can just go away for websites!
     {"nsIDOMNodeFilter", "NodeFilter"},
     {"nsIDOMXPathResult", "XPathResult"}};
@@ -3450,13 +3466,13 @@ void nsGlobalWindowInner::Prompt(const nsAString& aMessage,
       aError, );
 }
 
-void nsGlobalWindowInner::Focus(ErrorResult& aError) {
-  FORWARD_TO_OUTER_OR_THROW(FocusOuter, (), aError, );
+void nsGlobalWindowInner::Focus(CallerType aCallerType, ErrorResult& aError) {
+  FORWARD_TO_OUTER_OR_THROW(FocusOuter, (aCallerType), aError, );
 }
 
-nsresult nsGlobalWindowInner::Focus() {
+nsresult nsGlobalWindowInner::Focus(CallerType aCallerType) {
   ErrorResult rv;
-  Focus(rv);
+  Focus(aCallerType, rv);
 
   return rv.StealNSResult();
 }
@@ -3641,8 +3657,7 @@ void nsGlobalWindowInner::ScrollByLines(int32_t numLines,
                                 ? ScrollMode::SmoothMsd
                                 : ScrollMode::Instant;
 
-    sf->ScrollBy(nsIntPoint(0, numLines), nsIScrollableFrame::LINES,
-                 scrollMode);
+    sf->ScrollBy(nsIntPoint(0, numLines), ScrollUnit::LINES, scrollMode);
   }
 }
 
@@ -3658,8 +3673,7 @@ void nsGlobalWindowInner::ScrollByPages(int32_t numPages,
                                 ? ScrollMode::SmoothMsd
                                 : ScrollMode::Instant;
 
-    sf->ScrollBy(nsIntPoint(0, numPages), nsIScrollableFrame::PAGES,
-                 scrollMode);
+    sf->ScrollBy(nsIntPoint(0, numPages), ScrollUnit::PAGES, scrollMode);
   }
 }
 
@@ -3825,20 +3839,12 @@ void nsGlobalWindowInner::NotifyDOMWindowThawed(nsGlobalWindowInner* aWindow) {
 
 Element* nsGlobalWindowInner::GetFrameElement(nsIPrincipal& aSubjectPrincipal,
                                               ErrorResult& aError) {
-  FORWARD_TO_OUTER_OR_THROW(GetFrameElementOuter, (aSubjectPrincipal), aError,
+  FORWARD_TO_OUTER_OR_THROW(GetFrameElement, (aSubjectPrincipal), aError,
                             nullptr);
 }
 
 Element* nsGlobalWindowInner::GetRealFrameElement(ErrorResult& aError) {
-  FORWARD_TO_OUTER_OR_THROW(GetRealFrameElementOuter, (), aError, nullptr);
-}
-
-/**
- * nsIGlobalWindow::GetFrameElement (when called from C++) is just a wrapper
- * around GetRealFrameElement.
- */
-Element* nsGlobalWindowInner::GetFrameElement() {
-  return GetRealFrameElement(IgnoreErrors());
+  FORWARD_TO_OUTER_OR_THROW(GetFrameElement, (), aError, nullptr);
 }
 
 void nsGlobalWindowInner::UpdateCommands(const nsAString& anAction,
@@ -5259,6 +5265,8 @@ void nsGlobalWindowInner::FreezeInternal() {
   MOZ_DIAGNOSTIC_ASSERT(IsCurrentInnerWindow());
   MOZ_DIAGNOSTIC_ASSERT(IsSuspended());
 
+  HintIsLoading(false);
+
   CallOnInProcessChildren(&nsGlobalWindowInner::FreezeInternal);
 
   mFreezeDepth += 1;
@@ -5429,10 +5437,11 @@ Maybe<ClientState> nsGlobalWindowInner::GetClientState() const {
   MOZ_ASSERT(NS_IsMainThread());
   Maybe<ClientState> clientState;
   if (mClientSource) {
-    ClientState state;
-    nsresult rv = mClientSource->SnapshotState(&state);
-    if (NS_SUCCEEDED(rv)) {
-      clientState.emplace(state);
+    Result<ClientState, ErrorResult> res = mClientSource->SnapshotState();
+    if (res.isOk()) {
+      clientState.emplace(res.unwrap());
+    } else {
+      res.unwrapErr().SuppressException();
     }
   }
   return clientState;
@@ -5880,7 +5889,6 @@ bool nsGlobalWindowInner::RunTimeoutHandler(Timeout* aTimeout,
 
 #ifdef MOZ_GECKO_PROFILER
   if (profiler_can_accept_markers()) {
-    nsCOMPtr<nsIDocShell> docShell = GetDocShell();
     nsCString str;
     TimeDuration originalInterval = timeout->When() - timeout->SubmitTime();
     str.Append(reason);
@@ -5890,9 +5898,9 @@ bool nsGlobalWindowInner::RunTimeoutHandler(Timeout* aTimeout,
     nsCString handlerDescription;
     timeout->mScriptHandler->GetDescription(handlerDescription);
     str.Append(handlerDescription);
-    AUTO_PROFILER_TEXT_MARKER_DOCSHELL_CAUSE("setTimeout callback", str, JS,
-                                             docShell,
-                                             timeout->TakeProfilerBacktrace());
+    AUTO_PROFILER_TEXT_MARKER_CAUSE("setTimeout callback", str, JS,
+                                    Some(mWindowID),
+                                    timeout->TakeProfilerBacktrace());
   }
 #endif
 
@@ -6727,7 +6735,7 @@ already_AddRefed<nsWindowRoot> nsGlobalWindowInner::GetWindowRoot(
   FORWARD_TO_OUTER_OR_THROW(GetWindowRootOuter, (), aError, nullptr);
 }
 
-void nsGlobalWindowInner::SetCursor(const nsAString& aCursor,
+void nsGlobalWindowInner::SetCursor(const nsACString& aCursor,
                                     ErrorResult& aError) {
   FORWARD_TO_OUTER_OR_THROW(SetCursorOuter, (aCursor, aError), aError, );
 }
@@ -7055,24 +7063,19 @@ already_AddRefed<Promise> nsGlobalWindowInner::CreateImageBitmap(
                              Some(gfx::IntRect(aSx, aSy, aSw, aSh)), aRv);
 }
 
-mozilla::dom::TabGroup* nsGlobalWindowInner::TabGroupInner() {
+mozilla::dom::TabGroup* nsGlobalWindowInner::MaybeTabGroupInner() {
   // If we don't have a TabGroup yet, try to get it from the outer window and
   // cache it.
   if (!mTabGroup) {
     nsGlobalWindowOuter* outer = GetOuterWindowInternal();
-    // This will never be called without either an outer window, or a cached tab
-    // group. This is because of the following:
-    // * This method is only called on inner windows
-    // * This method is called as a document is attached to it's script global
-    //   by the document
-    // * Inner windows are created in nsGlobalWindowInner::SetNewDocument, which
-    //   immediately sets a document, which will call this method, causing
-    //   the TabGroup to be cached.
-    MOZ_RELEASE_ASSERT(
-        outer, "Inner window without outer window has no cached tab group!");
-    mTabGroup = outer->TabGroup();
+    if (!outer) {
+      return nullptr;
+    }
+    mTabGroup = outer->MaybeTabGroup();
+    if (!mTabGroup) {
+      return nullptr;
+    }
   }
-  MOZ_ASSERT(mTabGroup);
 
 #ifdef DEBUG
   nsGlobalWindowOuter* outer = GetOuterWindowInternal();
@@ -7080,6 +7083,24 @@ mozilla::dom::TabGroup* nsGlobalWindowInner::TabGroupInner() {
 #endif
 
   return mTabGroup;
+}
+
+mozilla::dom::TabGroup* nsGlobalWindowInner::TabGroupInner() {
+  // This will never be called without either an outer window, or a cached tab
+  // group. This is because of the following:
+  // * This method is only called on inner windows
+  // * This method is called as a document is attached to its script global
+  //   by the document
+  // * Inner windows are created in nsGlobalWindowInner::SetNewDocument, which
+  //   immediately sets a document, which will call this method, causing
+  //   the TabGroup to be cached.
+  MOZ_RELEASE_ASSERT(
+      mTabGroup || GetOuterWindowInternal(),
+      "Inner window without outer window has no cached tab group!");
+
+  mozilla::dom::TabGroup* tabGroup = MaybeTabGroupInner();
+  MOZ_RELEASE_ASSERT(tabGroup);
+  return tabGroup;
 }
 
 nsresult nsGlobalWindowInner::Dispatch(
@@ -7207,6 +7228,10 @@ void nsGlobalWindowInner::StorageAccessGranted() {
 
 mozilla::dom::TabGroup* nsPIDOMWindowInner::TabGroup() {
   return nsGlobalWindowInner::Cast(this)->TabGroupInner();
+}
+
+mozilla::dom::TabGroup* nsPIDOMWindowInner::MaybeTabGroup() {
+  return nsGlobalWindowInner::Cast(this)->MaybeTabGroupInner();
 }
 
 /* static */

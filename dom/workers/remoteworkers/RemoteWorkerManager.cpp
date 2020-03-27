@@ -37,12 +37,27 @@ bool IsServiceWorker(const RemoteWorkerData& aData) {
          OptionalServiceWorkerData::TServiceWorkerData;
 }
 
-void TransmitPermissionsForPrincipalInfo(ContentParent* aContentParent,
-                                         const PrincipalInfo& aPrincipalInfo) {
+// Respecting COOP and COEP requires processing headers in the parent
+// process in order to choose an appropriate content process, but the
+// workers' ScriptLoader processes headers in content processes. An
+// intermediary step that provides security guarantees is to simply never
+// allow SharedWorkers and ServiceWorkers to exist in a COOP+COEP process.
+// The ultimate goal is to allow these worker types to be put in such
+// processes based on their script response headers.
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1595206
+bool IsServiceWorkerRemoteType(const nsAString& aRemoteType) {
+  return IsWebRemoteType(aRemoteType) && !IsWebCoopCoepRemoteType(aRemoteType);
+}
+
+void TransmitPermissionsAndBlobURLsForPrincipalInfo(
+    ContentParent* aContentParent, const PrincipalInfo& aPrincipalInfo) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aContentParent);
 
   nsCOMPtr<nsIPrincipal> principal = PrincipalInfoToPrincipal(aPrincipalInfo);
+
+  aContentParent->TransmitBlobURLsForPrincipal(principal);
+
   MOZ_ALWAYS_SUCCEEDS(
       aContentParent->TransmitPermissionsForPrincipal(principal));
 }
@@ -90,17 +105,38 @@ void RemoteWorkerManager::RegisterActor(RemoteWorkerServiceParent* aActor) {
   MOZ_ASSERT(!mChildActors.Contains(aActor));
   mChildActors.AppendElement(aActor);
 
+  nsTArray<Pending> unlaunched;
+
+  RefPtr<ContentParent> contentParent =
+      BackgroundParent::GetContentParent(aActor->Manager());
+  auto scopeExit = MakeScopeExit(
+      [&] { NS_ReleaseOnMainThreadSystemGroup(contentParent.forget()); });
+  const auto& remoteType = contentParent->GetRemoteType();
+
   if (!mPendings.IsEmpty()) {
     // Flush pending launching.
-    for (const Pending& p : mPendings) {
+    for (Pending& p : mPendings) {
+      if (p.mController->IsTerminated()) {
+        continue;
+      }
+
+      if (IsServiceWorker(p.mData) && !IsServiceWorkerRemoteType(remoteType)) {
+        unlaunched.AppendElement(std::move(p));
+        continue;
+      }
+
       LaunchInternal(p.mController, aActor, p.mData);
     }
 
-    mPendings.Clear();
+    std::swap(mPendings, unlaunched);
 
-    // We don't need to keep this manager alive manually. The Actor is doing it
-    // for us.
-    Release();
+    // AddRef is called when the first Pending object is added to mPendings, so
+    // the balancing Release is called when the last Pending object is removed.
+    // RemoteWorkerServiceParents will hold strong references to
+    // RemoteWorkerManager.
+    if (mPendings.IsEmpty()) {
+      Release();
+    }
   }
 }
 
@@ -251,15 +287,7 @@ RemoteWorkerManager::SelectTargetActorForServiceWorker(
                    RefPtr<ContentParent>&& aContentParent) {
     const auto& remoteType = aContentParent->GetRemoteType();
 
-    // Respecting COOP and COEP requires processing headers in the parent
-    // process in order to choose an appropriate content process, but the
-    // workers' ScriptLoader processes headers in content processes. An
-    // intermediary step that provides security guarantees is to simply never
-    // allow SharedWorkers and ServiceWorkers to exist in a COOP+COEP process.
-    // The ultimate goal is to allow these worker types to be put in such
-    // processes based on their script response headers.
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=1595206
-    if (IsWebRemoteType(remoteType) && !IsWebCoopCoepRemoteType(remoteType)) {
+    if (IsServiceWorkerRemoteType(remoteType)) {
       auto lock = aContentParent->mRemoteWorkerActorData.Lock();
 
       if (lock->mCount || !lock->mShutdownStarted) {
@@ -271,7 +299,8 @@ RemoteWorkerManager::SelectTargetActorForServiceWorker(
         nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
             __func__, [contentParent = std::move(aContentParent),
                        principalInfo = aData.principalInfo()] {
-              TransmitPermissionsForPrincipalInfo(contentParent, principalInfo);
+              TransmitPermissionsAndBlobURLsForPrincipalInfo(contentParent,
+                                                             principalInfo);
             });
 
         MOZ_ALWAYS_SUCCEEDS(
@@ -351,17 +380,55 @@ void RemoteWorkerManager::LaunchNewContentProcess(
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
-  // This runnable will spawn a new process if it doesn't exist yet.
-  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-      __func__, [isServiceWorker = IsServiceWorker(aData),
-                 principalInfo = aData.principalInfo()] {
-        RefPtr<ContentParent> contentParent =
-            ContentParent::GetNewOrUsedBrowserProcess(
-                nullptr, NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE));
+  nsCOMPtr<nsISerialEventTarget> bgEventTarget =
+      GetCurrentThreadSerialEventTarget();
 
-        if (isServiceWorker) {
-          TransmitPermissionsForPrincipalInfo(contentParent, principalInfo);
-        }
+  using CallbackParamType = ContentParent::LaunchPromise::ResolveOrRejectValue;
+
+  // A new content process must be requested on the main thread. On success,
+  // the success callback will also run on the main thread. On failure, however,
+  // the failure callback must be run on the background thread - it uses
+  // RemoteWorkerManager, and RemoteWorkerManager isn't threadsafe, so the
+  // promise callback will just dispatch the "real" failure callback to the
+  // background thread.
+  auto processLaunchCallback = [isServiceWorker = IsServiceWorker(aData),
+                                principalInfo = aData.principalInfo(),
+                                bgEventTarget = std::move(bgEventTarget),
+                                self = RefPtr<RemoteWorkerManager>(this)](
+                                   const CallbackParamType& aValue) mutable {
+    if (aValue.IsResolve()) {
+      if (isServiceWorker) {
+        TransmitPermissionsAndBlobURLsForPrincipalInfo(aValue.ResolveValue(),
+                                                       principalInfo);
+      }
+
+      // The failure callback won't run, and we're on the main thread, so
+      // we need to properly release the thread-unsafe RemoteWorkerManager.
+      NS_ProxyRelease(__func__, bgEventTarget, self.forget());
+    } else {
+      // The "real" failure callback.
+      nsCOMPtr<nsIRunnable> r =
+          NS_NewRunnableFunction(__func__, [self = std::move(self)] {
+            auto pendings = std::move(self->mPendings);
+            for (const auto& pending : pendings) {
+              pending.mController->CreationFailed();
+            }
+          });
+
+      bgEventTarget->Dispatch(r.forget(), NS_DISPATCH_NORMAL);
+    }
+  };
+
+  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
+      __func__, [callback = std::move(processLaunchCallback)]() mutable {
+        ContentParent::GetNewOrUsedBrowserProcessAsync(
+            /* aFrameElement = */ nullptr,
+            /* aRemoteType = */ NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE))
+            ->Then(GetCurrentThreadSerialEventTarget(), __func__,
+                   [callback = std::move(callback)](
+                       const CallbackParamType& aValue) mutable {
+                     callback(aValue);
+                   });
       });
 
   nsCOMPtr<nsIEventTarget> target =

@@ -26,6 +26,8 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ErrorNames.h"
 #include "mozilla/LoadContext.h"
+#include "mozilla/Result.h"
+#include "mozilla/ResultExtensions.h"
 #include "mozilla/SystemGroup.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -285,6 +287,29 @@ already_AddRefed<nsIAsyncShutdownClient> GetAsyncShutdownBarrier() {
   return barrier.forget();
 }
 
+Result<nsCOMPtr<nsIPrincipal>, nsresult> ScopeToPrincipal(
+    nsIURI* aScopeURI, const OriginAttributes& aOriginAttributes) {
+  MOZ_ASSERT(aScopeURI);
+
+  nsCOMPtr<nsIPrincipal> principal =
+      BasePrincipal::CreateContentPrincipal(aScopeURI, aOriginAttributes);
+  if (NS_WARN_IF(!principal)) {
+    return Err(NS_ERROR_FAILURE);
+  }
+
+  return principal;
+}
+
+Result<nsCOMPtr<nsIPrincipal>, nsresult> ScopeToPrincipal(
+    const nsACString& aScope, const OriginAttributes& aOriginAttributes) {
+  MOZ_ASSERT(nsContentUtils::IsAbsoluteURL(aScope));
+
+  nsCOMPtr<nsIURI> scopeURI;
+  MOZ_TRY(NS_NewURI(getter_AddRefs(scopeURI), aScope));
+
+  return ScopeToPrincipal(scopeURI, aOriginAttributes);
+}
+
 }  // namespace
 
 //////////////////////////
@@ -322,8 +347,8 @@ ServiceWorkerManager::~ServiceWorkerManager() {
   }
 }
 
-void ServiceWorkerManager::BlockShutdownOn(
-    GenericNonExclusivePromise* aPromise) {
+void ServiceWorkerManager::BlockShutdownOn(GenericNonExclusivePromise* aPromise,
+                                           uint32_t aShutdownStateId) {
   AssertIsOnMainThread();
 
   // This may be called when in non-e10s mode with parent-intercept enabled.
@@ -334,7 +359,7 @@ void ServiceWorkerManager::BlockShutdownOn(
   MOZ_ASSERT(mShutdownBlocker);
   MOZ_ASSERT(aPromise);
 
-  mShutdownBlocker->WaitOnPromise(aPromise);
+  mShutdownBlocker->WaitOnPromise(aPromise, aShutdownStateId);
 }
 
 void ServiceWorkerManager::Init(ServiceWorkerRegistrar* aRegistrar) {
@@ -377,13 +402,13 @@ void ServiceWorkerManager::Init(ServiceWorkerRegistrar* aRegistrar) {
   mActor = static_cast<ServiceWorkerManagerChild*>(actor);
 }
 
-RefPtr<GenericPromise> ServiceWorkerManager::StartControllingClient(
+RefPtr<GenericErrorResultPromise> ServiceWorkerManager::StartControllingClient(
     const ClientInfo& aClientInfo,
     ServiceWorkerRegistrationInfo* aRegistrationInfo,
     bool aControlClientHandle) {
   MOZ_DIAGNOSTIC_ASSERT(aRegistrationInfo->GetActive());
 
-  RefPtr<GenericPromise> promise;
+  RefPtr<GenericErrorResultPromise> promise;
   RefPtr<ServiceWorkerManager> self(this);
 
   const ServiceWorkerDescriptor& active =
@@ -397,7 +422,7 @@ RefPtr<GenericPromise> ServiceWorkerManager::StartControllingClient(
     if (aControlClientHandle) {
       promise = entry.Data()->mClientHandle->Control(active);
     } else {
-      promise = GenericPromise::CreateAndResolve(false, __func__);
+      promise = GenericErrorResultPromise::CreateAndResolve(false, __func__);
     }
 
     entry.Data()->mRegistrationInfo = aRegistrationInfo;
@@ -415,12 +440,12 @@ RefPtr<GenericPromise> ServiceWorkerManager::StartControllingClient(
         SystemGroup::EventTargetFor(TaskCategory::Other), __func__,
         [](bool) {
           // do nothing on success
-          return GenericPromise::CreateAndResolve(true, __func__);
+          return GenericErrorResultPromise::CreateAndResolve(true, __func__);
         },
-        [self, aClientInfo](nsresult aRv) {
+        [self, aClientInfo](const CopyableErrorResult& aRv) {
           // failed to control, forget about this client
           self->StopControllingClient(aClientInfo);
-          return GenericPromise::CreateAndReject(aRv, __func__);
+          return GenericErrorResultPromise::CreateAndReject(aRv, __func__);
         });
   }
 
@@ -430,7 +455,7 @@ RefPtr<GenericPromise> ServiceWorkerManager::StartControllingClient(
   if (aControlClientHandle) {
     promise = clientHandle->Control(active);
   } else {
-    promise = GenericPromise::CreateAndResolve(false, __func__);
+    promise = GenericErrorResultPromise::CreateAndResolve(false, __func__);
   }
 
   aRegistrationInfo->StartControllingClient();
@@ -451,12 +476,12 @@ RefPtr<GenericPromise> ServiceWorkerManager::StartControllingClient(
       SystemGroup::EventTargetFor(TaskCategory::Other), __func__,
       [](bool) {
         // do nothing on success
-        return GenericPromise::CreateAndResolve(true, __func__);
+        return GenericErrorResultPromise::CreateAndResolve(true, __func__);
       },
-      [self, aClientInfo](nsresult aRv) {
+      [self, aClientInfo](const CopyableErrorResult& aRv) {
         // failed to control, forget about this client
         self->StopControllingClient(aClientInfo);
-        return GenericPromise::CreateAndReject(aRv, __func__);
+        return GenericErrorResultPromise::CreateAndReject(aRv, __func__);
       });
 }
 
@@ -550,9 +575,9 @@ void ServiceWorkerManager::MaybeFinishShutdown() {
 
 class ServiceWorkerResolveWindowPromiseOnRegisterCallback final
     : public ServiceWorkerJob::Callback {
-  RefPtr<ServiceWorkerRegistrationPromise::Private> mPromise;
-
-  ~ServiceWorkerResolveWindowPromiseOnRegisterCallback() {}
+ public:
+  NS_INLINE_DECL_REFCOUNTING(
+      ServiceWorkerResolveWindowPromiseOnRegisterCallback, override)
 
   virtual void JobFinished(ServiceWorkerJob* aJob,
                            ErrorResult& aStatus) override {
@@ -560,7 +585,7 @@ class ServiceWorkerResolveWindowPromiseOnRegisterCallback final
     MOZ_ASSERT(aJob);
 
     if (aStatus.Failed()) {
-      mPromise->Reject(std::move(aStatus), __func__);
+      mPromiseHolder.Reject(CopyableErrorResult(aStatus), __func__);
       return;
     }
 
@@ -569,17 +594,24 @@ class ServiceWorkerResolveWindowPromiseOnRegisterCallback final
         static_cast<ServiceWorkerRegisterJob*>(aJob);
     RefPtr<ServiceWorkerRegistrationInfo> reg = registerJob->GetRegistration();
 
-    mPromise->Resolve(reg->Descriptor(), __func__);
+    mPromiseHolder.Resolve(reg->Descriptor(), __func__);
   }
 
- public:
-  ServiceWorkerResolveWindowPromiseOnRegisterCallback()
-      : mPromise(new ServiceWorkerRegistrationPromise::Private(__func__)) {}
+  virtual void JobDiscarded(ErrorResult& aStatus) override {
+    MOZ_ASSERT(NS_IsMainThread());
 
-  RefPtr<ServiceWorkerRegistrationPromise> Promise() const { return mPromise; }
+    mPromiseHolder.Reject(CopyableErrorResult(aStatus), __func__);
+  }
 
-  NS_INLINE_DECL_REFCOUNTING(
-      ServiceWorkerResolveWindowPromiseOnRegisterCallback, override)
+  RefPtr<ServiceWorkerRegistrationPromise> Promise() {
+    MOZ_ASSERT(NS_IsMainThread());
+    return mPromiseHolder.Ensure(__func__);
+  }
+
+ private:
+  ~ServiceWorkerResolveWindowPromiseOnRegisterCallback() = default;
+
+  MozPromiseHolder<ServiceWorkerRegistrationPromise> mPromiseHolder;
 };
 
 namespace {
@@ -708,29 +740,30 @@ class SoftUpdateRunnable final : public CancelableRunnable {
   RefPtr<GenericPromise::Private> mPromise;
 };
 
-// This runnable is used for 3 different tasks:
-// - to postpone the Update() until the IPC SWM actor is created
-//   (aType == ePostpone)
+// This runnable is used for 2 different tasks:
 // - to call the 'real' Update when the ServiceWorkerUpdaterChild is
 //   notified by the parent (aType == eSuccess)
 // - an error must be propagated (aType == eFailure)
 class UpdateRunnable final : public CancelableRunnable {
  public:
   enum Type {
-    ePostpone,
     eSuccess,
     eFailure,
   };
 
   UpdateRunnable(nsIPrincipal* aPrincipal, const nsACString& aScope,
+                 nsCString aNewestWorkerScriptUrl,
                  ServiceWorkerUpdateFinishCallback* aCallback, Type aType,
                  GenericPromise::Private* aPromise)
       : CancelableRunnable("dom::ServiceWorkerManager::UpdateRunnable"),
         mPrincipal(aPrincipal),
         mScope(aScope),
+        mNewestWorkerScriptUrl(std::move(aNewestWorkerScriptUrl)),
         mCallback(aCallback),
         mType(aType),
-        mPromise(aPromise) {}
+        mPromise(aPromise) {
+    MOZ_ASSERT_IF(mType == eSuccess, !mNewestWorkerScriptUrl.IsEmpty());
+  }
 
   NS_IMETHOD Run() override {
     MOZ_ASSERT(NS_IsMainThread());
@@ -740,11 +773,6 @@ class UpdateRunnable final : public CancelableRunnable {
       return NS_ERROR_FAILURE;
     }
 
-    if (mType == ePostpone) {
-      swm->Update(mPrincipal, mScope, mCallback);
-      return NS_OK;
-    }
-
     MOZ_ASSERT(mPromise);
 
     RefPtr<PromiseResolverCallback> callback =
@@ -752,7 +780,8 @@ class UpdateRunnable final : public CancelableRunnable {
     mPromise = nullptr;
 
     if (mType == eSuccess) {
-      swm->UpdateInternal(mPrincipal, mScope, callback);
+      swm->UpdateInternal(mPrincipal, mScope, std::move(mNewestWorkerScriptUrl),
+                          callback);
       return NS_OK;
     }
 
@@ -775,6 +804,7 @@ class UpdateRunnable final : public CancelableRunnable {
 
   nsCOMPtr<nsIPrincipal> mPrincipal;
   const nsCString mScope;
+  nsCString mNewestWorkerScriptUrl;
   RefPtr<ServiceWorkerUpdateFinishCallback> mCallback;
   Type mType;
 
@@ -819,21 +849,26 @@ RefPtr<ServiceWorkerRegistrationPromise> ServiceWorkerManager::Register(
   nsCOMPtr<nsIURI> scopeURI;
   nsresult rv = NS_NewURI(getter_AddRefs(scopeURI), aScopeURL);
   if (NS_FAILED(rv)) {
-    return ServiceWorkerRegistrationPromise::CreateAndReject(
-        CopyableErrorResult(rv), __func__);
+    // Odd, since it was serialiazed from an nsIURI.
+    CopyableErrorResult err;
+    err.ThrowInvalidStateError("Scope URL cannot be parsed");
+    return ServiceWorkerRegistrationPromise::CreateAndReject(err, __func__);
   }
 
   nsCOMPtr<nsIURI> scriptURI;
   rv = NS_NewURI(getter_AddRefs(scriptURI), aScriptURL);
   if (NS_FAILED(rv)) {
-    return ServiceWorkerRegistrationPromise::CreateAndReject(
-        CopyableErrorResult(rv), __func__);
+    // Odd, since it was serialiazed from an nsIURI.
+    CopyableErrorResult err;
+    err.ThrowInvalidStateError("Script URL cannot be parsed");
+    return ServiceWorkerRegistrationPromise::CreateAndReject(err, __func__);
   }
 
-  rv = ServiceWorkerScopeAndScriptAreValid(aClientInfo, scopeURI, scriptURI);
-  if (NS_FAILED(rv)) {
+  IgnoredErrorResult err;
+  ServiceWorkerScopeAndScriptAreValid(aClientInfo, scopeURI, scriptURI, err);
+  if (err.Failed()) {
     return ServiceWorkerRegistrationPromise::CreateAndReject(
-        CopyableErrorResult(rv), __func__);
+        CopyableErrorResult(std::move(err)), __func__);
   }
 
   // If the previous validation step passed then we must have a principal.
@@ -1059,14 +1094,24 @@ nsresult ServiceWorkerManager::SendPushEvent(
     return NS_ERROR_INVALID_ARG;
   }
 
-  ServiceWorkerInfo* serviceWorker = GetActiveWorkerInfoForScope(attrs, aScope);
-  if (NS_WARN_IF(!serviceWorker)) {
+  nsCOMPtr<nsIPrincipal> principal;
+  MOZ_TRY_VAR(principal, ScopeToPrincipal(aScope, attrs));
+
+  // The registration handling a push notification must have an exact scope
+  // match. This will try to find an exact match, unlike how fetch may find the
+  // registration with the longest scope that's a prefix of the fetched URL.
+  RefPtr<ServiceWorkerRegistrationInfo> registration =
+      GetRegistration(principal, aScope);
+  if (NS_WARN_IF(!registration)) {
     return NS_ERROR_FAILURE;
   }
 
-  RefPtr<ServiceWorkerRegistrationInfo> registration =
-      GetRegistration(serviceWorker->Principal(), aScope);
-  MOZ_RELEASE_ASSERT(registration);
+  MOZ_DIAGNOSTIC_ASSERT(registration->Scope().Equals(aScope));
+
+  ServiceWorkerInfo* serviceWorker = registration->GetActive();
+  if (NS_WARN_IF(!serviceWorker)) {
+    return NS_ERROR_FAILURE;
+  }
 
   return serviceWorker->WorkerPrivate()->SendPushEvent(aMessageId, aData,
                                                        registration);
@@ -1232,8 +1277,14 @@ ServiceWorkerInfo* ServiceWorkerManager::GetActiveWorkerInfoForScope(
   if (NS_FAILED(rv)) {
     return nullptr;
   }
-  nsCOMPtr<nsIPrincipal> principal =
-      BasePrincipal::CreateContentPrincipal(scopeURI, aOriginAttributes);
+
+  auto result = ScopeToPrincipal(scopeURI, aOriginAttributes);
+  if (NS_WARN_IF(result.isErr())) {
+    return nullptr;
+  }
+
+  auto principal = result.unwrap();
+
   RefPtr<ServiceWorkerRegistrationInfo> registration =
       GetServiceWorkerRegistrationInfo(principal, scopeURI);
   if (!registration) {
@@ -1248,7 +1299,7 @@ namespace {
 class UnregisterJobCallback final : public ServiceWorkerJob::Callback {
   nsCOMPtr<nsIServiceWorkerUnregisterCallback> mCallback;
 
-  ~UnregisterJobCallback() {}
+  ~UnregisterJobCallback() { MOZ_ASSERT(!mCallback); }
 
  public:
   explicit UnregisterJobCallback(nsIServiceWorkerUnregisterCallback* aCallback)
@@ -1260,6 +1311,9 @@ class UnregisterJobCallback final : public ServiceWorkerJob::Callback {
   void JobFinished(ServiceWorkerJob* aJob, ErrorResult& aStatus) override {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aJob);
+    MOZ_ASSERT(mCallback);
+
+    auto scopeExit = MakeScopeExit([&]() { mCallback = nullptr; });
 
     if (aStatus.Failed()) {
       mCallback->UnregisterFailed();
@@ -1270,6 +1324,14 @@ class UnregisterJobCallback final : public ServiceWorkerJob::Callback {
     RefPtr<ServiceWorkerUnregisterJob> unregisterJob =
         static_cast<ServiceWorkerUnregisterJob*>(aJob);
     mCallback->UnregisterSucceeded(unregisterJob->GetResult());
+  }
+
+  void JobDiscarded(ErrorResult&) override {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(mCallback);
+
+    mCallback->UnregisterFailed();
+    mCallback = nullptr;
   }
 
   NS_INLINE_DECL_REFCOUNTING(UnregisterJobCallback, override)
@@ -1511,11 +1573,10 @@ void ServiceWorkerManager::LoadRegistration(
   registration->SetLastUpdateTime(aRegistration.lastUpdateTime());
 
   nsLoadFlags importsLoadFlags = nsIChannel::LOAD_BYPASS_SERVICE_WORKER;
-  importsLoadFlags |=
-      aRegistration.updateViaCache() ==
-              static_cast<uint16_t>(ServiceWorkerUpdateViaCache::None)
-          ? nsIRequest::LOAD_NORMAL
-          : nsIRequest::VALIDATE_ALWAYS;
+  if (aRegistration.updateViaCache() !=
+      static_cast<uint16_t>(ServiceWorkerUpdateViaCache::None)) {
+    importsLoadFlags |= nsIRequest::VALIDATE_ALWAYS;
+  }
 
   const nsCString& currentWorkerURL = aRegistration.currentWorkerURL();
   if (!currentWorkerURL.IsEmpty()) {
@@ -1683,9 +1744,8 @@ void ServiceWorkerManager::AddScopeAndRegistration(
 
   MOZ_ASSERT(!scopeKey.IsEmpty());
 
-  RegistrationDataPerPrincipal* data =
-      swm->mRegistrationInfos.LookupForAdd(scopeKey).OrInsert(
-          []() { return new RegistrationDataPerPrincipal(); });
+  const auto& data = swm->mRegistrationInfos.LookupForAdd(scopeKey).OrInsert(
+      []() { return new RegistrationDataPerPrincipal(); });
 
   for (uint32_t i = 0; i < data->mOrderedScopes.Length(); ++i) {
     const nsCString& current = data->mOrderedScopes[i];
@@ -1902,18 +1962,16 @@ class ContinueDispatchFetchEventRunnable : public Runnable {
   RefPtr<ServiceWorkerPrivate> mServiceWorkerPrivate;
   nsCOMPtr<nsIInterceptedChannel> mChannel;
   nsCOMPtr<nsILoadGroup> mLoadGroup;
-  bool mIsReload;
 
  public:
   ContinueDispatchFetchEventRunnable(
       ServiceWorkerPrivate* aServiceWorkerPrivate,
-      nsIInterceptedChannel* aChannel, nsILoadGroup* aLoadGroup, bool aIsReload)
+      nsIInterceptedChannel* aChannel, nsILoadGroup* aLoadGroup)
       : Runnable(
             "dom::ServiceWorkerManager::ContinueDispatchFetchEventRunnable"),
         mServiceWorkerPrivate(aServiceWorkerPrivate),
         mChannel(aChannel),
-        mLoadGroup(aLoadGroup),
-        mIsReload(aIsReload) {
+        mLoadGroup(aLoadGroup) {
     MOZ_ASSERT(aServiceWorkerPrivate);
     MOZ_ASSERT(aChannel);
   }
@@ -1984,7 +2042,7 @@ class ContinueDispatchFetchEventRunnable : public Runnable {
     }
 
     rv = mServiceWorkerPrivate->SendFetchEvent(mChannel, mLoadGroup, clientId,
-                                               resultingClientId, mIsReload);
+                                               resultingClientId);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       HandleError();
     }
@@ -2150,8 +2208,7 @@ void ServiceWorkerManager::DispatchFetchEvent(nsIInterceptedChannel* aChannel,
 
   RefPtr<ContinueDispatchFetchEventRunnable> continueRunnable =
       new ContinueDispatchFetchEventRunnable(serviceWorker->WorkerPrivate(),
-                                             aChannel, loadGroup,
-                                             loadInfo->GetIsDocshellReload());
+                                             aChannel, loadGroup);
 
   // When this service worker was registered, we also sent down the permissions
   // for the runnable. They should have arrived by now, but we still need to
@@ -2230,7 +2287,7 @@ void ServiceWorkerManager::UpdateControlledClient(
 
   RefPtr<ServiceWorkerManager> self = this;
 
-  RefPtr<GenericPromise> p =
+  RefPtr<GenericErrorResultPromise> p =
       StartControllingClient(aNewClientInfo, registration);
   p->Then(
       SystemGroup::EventTargetFor(TaskCategory::Other), __func__,
@@ -2240,7 +2297,7 @@ void ServiceWorkerManager::UpdateControlledClient(
       },
       // Controlling the new ClientInfo fail, do nothing.
       // Probably need to call LoadInfo::ClearController
-      [](nsresult aRv) {});
+      [](const CopyableErrorResult& aRv) {});
 }
 
 void ServiceWorkerManager::SoftUpdate(const OriginAttributes& aOriginAttributes,
@@ -2277,7 +2334,7 @@ namespace {
 class UpdateJobCallback final : public ServiceWorkerJob::Callback {
   RefPtr<ServiceWorkerUpdateFinishCallback> mCallback;
 
-  ~UpdateJobCallback() = default;
+  ~UpdateJobCallback() { MOZ_ASSERT(!mCallback); }
 
  public:
   explicit UpdateJobCallback(ServiceWorkerUpdateFinishCallback* aCallback)
@@ -2289,6 +2346,9 @@ class UpdateJobCallback final : public ServiceWorkerJob::Callback {
   void JobFinished(ServiceWorkerJob* aJob, ErrorResult& aStatus) override {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aJob);
+    MOZ_ASSERT(mCallback);
+
+    auto scopeExit = MakeScopeExit([&]() { mCallback = nullptr; });
 
     if (aStatus.Failed()) {
       mCallback->UpdateFailed(aStatus);
@@ -2300,6 +2360,14 @@ class UpdateJobCallback final : public ServiceWorkerJob::Callback {
         static_cast<ServiceWorkerUpdateJob*>(aJob);
     RefPtr<ServiceWorkerRegistrationInfo> reg = updateJob->GetRegistration();
     mCallback->UpdateSucceeded(reg);
+  }
+
+  void JobDiscarded(ErrorResult& aStatus) override {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(mCallback);
+
+    mCallback->UpdateFailed(aStatus);
+    mCallback = nullptr;
   }
 
   NS_INLINE_DECL_REFCOUNTING(UpdateJobCallback, override)
@@ -2316,20 +2384,15 @@ void ServiceWorkerManager::SoftUpdateInternal(
     return;
   }
 
-  nsCOMPtr<nsIURI> scopeURI;
-  nsresult rv = NS_NewURI(getter_AddRefs(scopeURI), aScope);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  auto result = ScopeToPrincipal(aScope, aOriginAttributes);
+  if (NS_WARN_IF(result.isErr())) {
     return;
   }
 
-  nsCOMPtr<nsIPrincipal> principal =
-      BasePrincipal::CreateContentPrincipal(scopeURI, aOriginAttributes);
-  if (NS_WARN_IF(!principal)) {
-    return;
-  }
+  auto principal = result.unwrap();
 
   nsAutoCString scopeKey;
-  rv = PrincipalToScopeKey(principal, scopeKey);
+  nsresult rv = PrincipalToScopeKey(principal, scopeKey);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -2373,22 +2436,27 @@ void ServiceWorkerManager::SoftUpdateInternal(
 
 void ServiceWorkerManager::Update(
     nsIPrincipal* aPrincipal, const nsACString& aScope,
+    nsCString aNewestWorkerScriptUrl,
     ServiceWorkerUpdateFinishCallback* aCallback) {
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!aNewestWorkerScriptUrl.IsEmpty());
 
   if (ServiceWorkerParentInterceptEnabled()) {
-    UpdateInternal(aPrincipal, aScope, aCallback);
+    UpdateInternal(aPrincipal, aScope, std::move(aNewestWorkerScriptUrl),
+                   aCallback);
     return;
   }
 
   RefPtr<GenericPromise::Private> promise =
       new GenericPromise::Private(__func__);
 
-  RefPtr<CancelableRunnable> successRunnable = new UpdateRunnable(
-      aPrincipal, aScope, aCallback, UpdateRunnable::eSuccess, promise);
+  RefPtr<CancelableRunnable> successRunnable =
+      new UpdateRunnable(aPrincipal, aScope, std::move(aNewestWorkerScriptUrl),
+                         aCallback, UpdateRunnable::eSuccess, promise);
 
-  RefPtr<CancelableRunnable> failureRunnable = new UpdateRunnable(
-      aPrincipal, aScope, aCallback, UpdateRunnable::eFailure, promise);
+  RefPtr<CancelableRunnable> failureRunnable =
+      new UpdateRunnable(aPrincipal, aScope, EmptyCString(), aCallback,
+                         UpdateRunnable::eFailure, promise);
 
   ServiceWorkerUpdaterChild* actor =
       new ServiceWorkerUpdaterChild(promise, successRunnable, failureRunnable);
@@ -2399,9 +2467,11 @@ void ServiceWorkerManager::Update(
 
 void ServiceWorkerManager::UpdateInternal(
     nsIPrincipal* aPrincipal, const nsACString& aScope,
+    nsCString&& aNewestWorkerScriptUrl,
     ServiceWorkerUpdateFinishCallback* aCallback) {
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aCallback);
+  MOZ_ASSERT(!aNewestWorkerScriptUrl.IsEmpty());
 
   nsAutoCString scopeKey;
   nsresult rv = PrincipalToScopeKey(aPrincipal, scopeKey);
@@ -2422,39 +2492,39 @@ void ServiceWorkerManager::UpdateInternal(
     return;
   }
 
-  RefPtr<ServiceWorkerInfo> newest = registration->Newest();
-  MOZ_DIAGNOSTIC_ASSERT(newest,
-                        "The Update algorithm should have been aborted already "
-                        "if there wasn't a newest worker");
-
   RefPtr<ServiceWorkerJobQueue> queue = GetOrCreateJobQueue(scopeKey, aScope);
 
-  // "Invoke Update algorithm, or its equivalent, with client, registration as
-  // its argument."
+  // "Let job be the result of running Create Job with update, registration’s
+  // scope url, newestWorker’s script url, promise, and the context object’s
+  // relevant settings object."
   RefPtr<ServiceWorkerUpdateJob> job = new ServiceWorkerUpdateJob(
-      aPrincipal, registration->Scope(), newest->ScriptSpec(),
+      aPrincipal, registration->Scope(), std::move(aNewestWorkerScriptUrl),
       registration->GetUpdateViaCache());
 
   RefPtr<UpdateJobCallback> cb = new UpdateJobCallback(aCallback);
   job->AppendResultCallback(cb);
 
+  // "Invoke Schedule Job with job."
   queue->ScheduleJob(job);
 }
 
-RefPtr<GenericPromise> ServiceWorkerManager::MaybeClaimClient(
+RefPtr<GenericErrorResultPromise> ServiceWorkerManager::MaybeClaimClient(
     const ClientInfo& aClientInfo,
     ServiceWorkerRegistrationInfo* aWorkerRegistration) {
   MOZ_DIAGNOSTIC_ASSERT(aWorkerRegistration);
 
   if (!aWorkerRegistration->GetActive()) {
-    return GenericPromise::CreateAndReject(NS_ERROR_DOM_INVALID_STATE_ERR,
-                                           __func__);
+    CopyableErrorResult rv;
+    rv.ThrowInvalidStateError("Worker is not active");
+    return GenericErrorResultPromise::CreateAndReject(rv, __func__);
   }
 
   // Same origin check
   nsCOMPtr<nsIPrincipal> principal(aClientInfo.GetPrincipal());
   if (!aWorkerRegistration->Principal()->Equals(principal)) {
-    return GenericPromise::CreateAndReject(NS_ERROR_DOM_SECURITY_ERR, __func__);
+    CopyableErrorResult rv;
+    rv.ThrowSecurityError("Worker is for a different origin");
+    return GenericErrorResultPromise::CreateAndReject(rv, __func__);
   }
 
   // The registration that should be controlling the client
@@ -2467,18 +2537,18 @@ RefPtr<GenericPromise> ServiceWorkerManager::MaybeClaimClient(
 
   if (aWorkerRegistration != matchingRegistration ||
       aWorkerRegistration == controllingRegistration) {
-    return GenericPromise::CreateAndResolve(true, __func__);
+    return GenericErrorResultPromise::CreateAndResolve(true, __func__);
   }
 
   return StartControllingClient(aClientInfo, aWorkerRegistration);
 }
 
-RefPtr<GenericPromise> ServiceWorkerManager::MaybeClaimClient(
+RefPtr<GenericErrorResultPromise> ServiceWorkerManager::MaybeClaimClient(
     const ClientInfo& aClientInfo,
     const ServiceWorkerDescriptor& aServiceWorker) {
   nsCOMPtr<nsIPrincipal> principal = aServiceWorker.GetPrincipal();
   if (!principal) {
-    return GenericPromise::CreateAndResolve(false, __func__);
+    return GenericErrorResultPromise::CreateAndResolve(false, __func__);
   }
 
   RefPtr<ServiceWorkerRegistrationInfo> registration =
@@ -2490,7 +2560,7 @@ RefPtr<GenericPromise> ServiceWorkerManager::MaybeClaimClient(
   // are done.  The fix for this is to move the SWM to the parent process
   // so there are no consistency errors.
   if (NS_WARN_IF(!registration) || NS_WARN_IF(!registration->GetActive())) {
-    return GenericPromise::CreateAndResolve(false, __func__);
+    return GenericErrorResultPromise::CreateAndResolve(false, __func__);
   }
 
   return MaybeClaimClient(aClientInfo, registration);
@@ -2538,7 +2608,8 @@ void ServiceWorkerManager::UpdateClientControllers(
   // Fire event after iterating mControlledClients is done to prevent
   // modification by reentering from the event handlers during iteration.
   for (auto& handle : handleList) {
-    RefPtr<GenericPromise> p = handle->Control(activeWorker->Descriptor());
+    RefPtr<GenericErrorResultPromise> p =
+        handle->Control(activeWorker->Descriptor());
 
     RefPtr<ServiceWorkerManager> self = this;
 
@@ -2549,7 +2620,7 @@ void ServiceWorkerManager::UpdateClientControllers(
         [](bool) {
           // do nothing on success
         },
-        [self, clientInfo = handle->Info()](nsresult aRv) {
+        [self, clientInfo = handle->Info()](const CopyableErrorResult& aRv) {
           // failed to control, forget about this client
           self->StopControllingClient(clientInfo);
         });
@@ -3117,6 +3188,21 @@ void ServiceWorkerManager::RemoveOrphanedRegistration(
   MOZ_ASSERT(mOrphanedRegistrations.has(aRegistration));
 
   mOrphanedRegistrations.remove(aRegistration);
+}
+
+uint32_t ServiceWorkerManager::MaybeInitServiceWorkerShutdownProgress() const {
+  if (!mShutdownBlocker) {
+    return ServiceWorkerShutdownBlocker::kInvalidShutdownStateId;
+  }
+
+  return mShutdownBlocker->CreateShutdownState();
+}
+
+void ServiceWorkerManager::ReportServiceWorkerShutdownProgress(
+    uint32_t aShutdownStateId,
+    ServiceWorkerShutdownState::Progress aProgress) const {
+  MOZ_ASSERT(mShutdownBlocker);
+  mShutdownBlocker->ReportShutdownProgress(aShutdownStateId, aProgress);
 }
 
 }  // namespace dom

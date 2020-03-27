@@ -6,4 +6,5 @@ DIRS += [
     'socket-io',
     'sockjs',
     'signalr',
+    'wamp',
 ]

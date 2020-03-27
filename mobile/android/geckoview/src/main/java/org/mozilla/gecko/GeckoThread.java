@@ -9,6 +9,7 @@ import org.mozilla.gecko.annotation.RobocopTarget;
 import org.mozilla.gecko.annotation.WrapForJNI;
 import org.mozilla.gecko.mozglue.GeckoLoader;
 import org.mozilla.gecko.process.GeckoProcessManager;
+import org.mozilla.gecko.process.GeckoProcessType;
 import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.geckoview.BuildConfig;
@@ -448,13 +449,8 @@ public class GeckoThread extends Thread {
         initGeckoEnvironment();
 
         if ((mInitInfo.flags & FLAG_PRELOAD_CHILD) != 0) {
-            ThreadUtils.postToBackgroundThread(new Runnable() {
-                @Override
-                public void run() {
-                    // Preload the content ("tab") child process.
-                    GeckoProcessManager.getInstance().preload("tab");
-                }
-            });
+            // Preload the content ("tab") child process.
+            GeckoProcessManager.getInstance().preload(GeckoProcessType.CONTENT);
         }
 
         if ((mInitInfo.flags & FLAG_DEBUGGING) != 0) {

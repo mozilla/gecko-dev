@@ -7,6 +7,7 @@ Transform the beetmover task into an actual task description.
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from six import text_type
 from taskgraph.loader.multi_dep import schema
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.transforms.beetmover import craft_release_properties
@@ -18,10 +19,9 @@ from taskgraph.util.scriptworker import (generate_beetmover_artifact_map,
                                          generate_beetmover_upstream_artifacts,
                                          generate_beetmover_partials_artifact_map,
                                          get_beetmover_bucket_scope,
-                                         get_beetmover_action_scope,
-                                         get_worker_type_for_scope)
+                                         get_beetmover_action_scope)
 from taskgraph.util.taskcluster import get_artifact_prefix
-from taskgraph.util.treeherder import replace_group
+from taskgraph.util.treeherder import replace_group, inherit_treeherder_from_dep
 from taskgraph.transforms.task import task_description_schema
 from voluptuous import Required, Optional
 
@@ -32,10 +32,10 @@ logger = logging.getLogger(__name__)
 
 beetmover_description_schema = schema.extend({
     # depname is used in taskref's to identify the taskID of the unsigned things
-    Required('depname', default='build'): basestring,
+    Required('depname', default='build'): text_type,
 
     # unique label to describe this beetmover task, defaults to {dep.label}-beetmover
-    Required('label'): basestring,
+    Required('label'): text_type,
 
     # treeherder is allowed here to override any defaults we use for beetmover.  See
     # taskcluster/taskgraph/transforms/task.py for the schema details, and the
@@ -45,7 +45,7 @@ beetmover_description_schema = schema.extend({
     Optional('attributes'): task_description_schema['attributes'],
 
     # locale is passed only for l10n beetmoving
-    Optional('locale'): basestring,
+    Optional('locale'): text_type,
     Required('shipping-phase'): task_description_schema['shipping-phase'],
     # Optional until we fix asan (run_on_projects?)
     Optional('shipping-product'): task_description_schema['shipping-product'],
@@ -61,7 +61,7 @@ def make_task_description(config, jobs):
         dep_job = job['primary-dependency']
         attributes = dep_job.attributes
 
-        treeherder = job.get('treeherder', {})
+        treeherder = inherit_treeherder_from_dep(job, dep_job)
         upstream_symbol = dep_job.task['extra']['treeherder']['symbol']
         if 'build' in job['dependent-tasks']:
             upstream_symbol = job['dependent-tasks']['build'].task['extra']['treeherder']['symbol']
@@ -69,12 +69,6 @@ def make_task_description(config, jobs):
             'symbol',
             replace_group(upstream_symbol, 'BMR')
         )
-        dep_th_platform = dep_job.task.get('extra', {}).get(
-            'treeherder', {}).get('machine', {}).get('platform', '')
-        treeherder.setdefault('platform',
-                              "{}/opt".format(dep_th_platform))
-        treeherder.setdefault('tier', 1)
-        treeherder.setdefault('kind', 'build')
         label = job['label']
         description = (
             "Beetmover submission for locale '{locale}' for build '"
@@ -123,7 +117,7 @@ def make_task_description(config, jobs):
         task = {
             'label': label,
             'description': description,
-            'worker-type': get_worker_type_for_scope(config, bucket_scope),
+            'worker-type': 'beetmover',
             'scopes': [bucket_scope, action_scope],
             'dependencies': dependencies,
             'attributes': attributes,

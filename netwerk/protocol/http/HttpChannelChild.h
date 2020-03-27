@@ -145,7 +145,8 @@ class HttpChannelChild final : public PHttpChannelChild,
       const bool& aApplyConversion, const bool& aIsResolvedByTRR,
       const ResourceTimingStructArgs& aTiming,
       const bool& aAllRedirectsSameOrigin, const Maybe<uint32_t>& aMultiPartID,
-      const bool& aIsLastPartOfMultiPart) override;
+      const bool& aIsLastPartOfMultiPart,
+      const nsILoadInfo::CrossOriginOpenerPolicy& aOpenerPolicy) override;
   mozilla::ipc::IPCResult RecvOnTransportAndData(
       const nsresult& aChannelStatus, const nsresult& aTransportStatus,
       const uint64_t& aOffset, const uint32_t& aCount,
@@ -193,14 +194,6 @@ class HttpChannelChild final : public PHttpChannelChild,
 
   mozilla::ipc::IPCResult RecvOverrideReferrerInfoDuringBeginConnect(
       nsIReferrerInfo* aReferrerInfo) override;
-
-  mozilla::ipc::IPCResult RecvNotifyChannelClassifierProtectionDisabled(
-      const uint32_t& aAcceptedReason) override;
-
-  mozilla::ipc::IPCResult RecvNotifyCookieAllowed() override;
-
-  mozilla::ipc::IPCResult RecvNotifyCookieBlocked(
-      const uint32_t& aRejectedReason) override;
 
   mozilla::ipc::IPCResult RecvNotifyClassificationFlags(
       const uint32_t& aClassificationFlags, const bool& aIsThirdParty) override;
@@ -510,7 +503,8 @@ class HttpChannelChild final : public PHttpChannelChild,
       const bool& deliveringAltData, const bool& aApplyConversion,
       const bool& aIsResolvedByTRR, const ResourceTimingStructArgs& aTiming,
       const bool& aAllRedirectsSameOrigin, const Maybe<uint32_t>& aMultiPartID,
-      const bool& aIsLastPartOfMultiPart);
+      const bool& aIsLastPartOfMultiPart,
+      const nsILoadInfo::CrossOriginOpenerPolicy& aOpenerPolicy);
   void MaybeDivertOnData(const nsCString& data, const uint64_t& offset,
                          const uint32_t& count);
   void OnTransportAndData(const nsresult& channelStatus, const nsresult& status,

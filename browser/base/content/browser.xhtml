@@ -62,9 +62,11 @@
   <link rel="localization" href="toolkit/global/textActions.ftl"/>
   <link rel="localization" href="browser/browser.ftl"/>
   <link rel="localization" href="browser/browserContext.ftl"/>
+  <link rel="localization" href="browser/browserSets.ftl"/>
   <link rel="localization" href="browser/menubar.ftl"/>
   <link rel="localization" href="browser/protectionsPanel.ftl"/>
   <link rel="localization" href="browser/appmenu.ftl"/>
+  <link rel="localization" href="preview/interventions.ftl"/>
 
   <title
     data-l10n-id="browser-main-window-title"
@@ -199,6 +201,9 @@
     <tooltip id="aHTMLTooltip" page="true"/>
     <tooltip id="remoteBrowserTooltip"/>
 
+    <menupopup id="new-tab-button-popup"
+               onpopupshowing="return CreateContainerTabMenu(event);"
+               onclick="checkForMiddleClick(this, event);"/>
     <!-- for search and content formfill/pw manager -->
 
     <panel is="autocomplete-richlistbox-popup"
@@ -682,7 +687,7 @@
 # shared with other top level windows in macWindow.inc.xhtml.
 #include browser-menubar.inc
         </toolbaritem>
-        <spacer flex="1" skipintoolbarset="true" ordinal="1000"/>
+        <spacer flex="1" skipintoolbarset="true" style="-moz-box-ordinal-group: 1000;"/>
 #include titlebar-items.inc.xhtml
       </toolbar>
 
@@ -1133,7 +1138,7 @@
       </toolbaritem>
 
       <hbox id="window-controls" hidden="true" pack="end" skipintoolbarset="true"
-            ordinal="1000">
+            style="-moz-box-ordinal-group: 1000;">
         <toolbarbutton id="minimize-button"
                        tooltiptext="&fullScreenMinimize.tooltip;"
                        oncommand="window.minimize();"/>
@@ -1338,7 +1343,7 @@
                    class="chromeclass-toolbar-additional"
                    title="&searchItem.title;"
                    align="center"
-                   flex="100"
+                   flex="175"
                    persist="width">
         <toolbartabstop/>
         <searchbar id="searchbar" flex="1"/>

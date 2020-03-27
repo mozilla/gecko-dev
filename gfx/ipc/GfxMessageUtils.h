@@ -1232,7 +1232,7 @@ struct IPDLParamTraits<gfx::PaintFragment> {
   }
 };
 
-} /* namespace ipc */
-} /* namespace mozilla */
+}  // namespace ipc
+}  // namespace mozilla
 
 #endif /* __GFXMESSAGEUTILS_H__ */

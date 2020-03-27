@@ -3383,18 +3383,18 @@ void CodeGenerator::visitBinaryValueCache(LBinaryValueCache* lir) {
   JSOp jsop = JSOp(*lir->mirRaw()->toInstruction()->resumePoint()->pc());
 
   switch (jsop) {
-    case JSOP_ADD:
-    case JSOP_SUB:
-    case JSOP_MUL:
-    case JSOP_DIV:
-    case JSOP_MOD:
-    case JSOP_POW:
-    case JSOP_BITAND:
-    case JSOP_BITOR:
-    case JSOP_BITXOR:
-    case JSOP_LSH:
-    case JSOP_RSH:
-    case JSOP_URSH: {
+    case JSOp::Add:
+    case JSOp::Sub:
+    case JSOp::Mul:
+    case JSOp::Div:
+    case JSOp::Mod:
+    case JSOp::Pow:
+    case JSOp::BitAnd:
+    case JSOp::BitOr:
+    case JSOp::BitXor:
+    case JSOp::Lsh:
+    case JSOp::Rsh:
+    case JSOp::Ursh: {
       IonBinaryArithIC ic(liveRegs, lhs, rhs, output);
       addIC(lir, allocateIC(ic));
       return;
@@ -3415,14 +3415,14 @@ void CodeGenerator::visitBinaryBoolCache(LBinaryBoolCache* lir) {
   JSOp jsop = JSOp(*lir->mirRaw()->toInstruction()->resumePoint()->pc());
 
   switch (jsop) {
-    case JSOP_LT:
-    case JSOP_LE:
-    case JSOP_GT:
-    case JSOP_GE:
-    case JSOP_EQ:
-    case JSOP_NE:
-    case JSOP_STRICTEQ:
-    case JSOP_STRICTNE: {
+    case JSOp::Lt:
+    case JSOp::Le:
+    case JSOp::Gt:
+    case JSOp::Ge:
+    case JSOp::Eq:
+    case JSOp::Ne:
+    case JSOp::StrictEq:
+    case JSOp::StrictNe: {
       IonCompareIC ic(liveRegs, lhs, rhs, output);
       addIC(lir, allocateIC(ic));
       return;
@@ -4055,16 +4055,6 @@ void CodeGenerator::visitGetPropertyPolymorphicT(
   emitGetPropertyPolymorphic(ins, obj, temp, output);
 }
 
-template <typename T>
-static void EmitUnboxedPreBarrier(MacroAssembler& masm, T address,
-                                  JSValueType type) {
-  if (type == JSVAL_TYPE_OBJECT) {
-    masm.guardedCallPreBarrier(address, MIRType::Object);
-  } else if (type == JSVAL_TYPE_STRING) {
-    masm.guardedCallPreBarrier(address, MIRType::String);
-  }
-}
-
 void CodeGenerator::emitSetPropertyPolymorphic(
     LInstruction* ins, Register obj, Register scratch,
     const ConstantOrRegister& value) {
@@ -4221,12 +4211,25 @@ void CodeGenerator::visitHomeObjectSuperBase(LHomeObjectSuperBase* lir) {
   Register homeObject = ToRegister(lir->homeObject());
   Register output = ToRegister(lir->output());
 
-  using Fn = JSObject* (*)(JSContext*, HandleObject);
-  OutOfLineCode* ool = oolCallVM<Fn, HomeObjectSuperBase>(
-      lir, ArgList(homeObject), StoreRegisterTo(output));
+  using Fn = bool (*)(JSContext*);
+  OutOfLineCode* ool =
+      oolCallVM<Fn, ThrowHomeObjectNotObject>(lir, ArgList(), StoreNothing());
 
   masm.loadObjProto(homeObject, output);
-  masm.branchPtr(Assembler::BelowOrEqual, output, ImmWord(1), ool->entry());
+
+#ifdef DEBUG
+  // We won't encounter a lazy proto, because the prototype is guaranteed to
+  // either be a JSFunction or a PlainObject, and only proxy objects can have a
+  // lazy proto.
+  MOZ_ASSERT(uintptr_t(TaggedProto::LazyProto) == 1);
+
+  Label proxyCheckDone;
+  masm.branchPtr(Assembler::NotEqual, output, ImmWord(1), &proxyCheckDone);
+  masm.assumeUnreachable("Unexpected lazy proto in JSOp::SuperBase");
+  masm.bind(&proxyCheckDone);
+#endif
+
+  masm.branchPtr(Assembler::Equal, output, ImmWord(0), ool->entry());
   masm.bind(ool->rejoin());
 }
 
@@ -4558,9 +4561,11 @@ void CodeGenerator::visitPostWriteBarrierCommon(LPostBarrierType* lir,
     } else {
       MOZ_ASSERT(lir->mir()->value()->type() == MIRType::Object);
     }
-  } else {
-    MOZ_ASSERT(nurseryType == MIRType::String);
+  } else if (nurseryType == MIRType::String) {
     MOZ_ASSERT(lir->mir()->value()->type() == MIRType::String);
+  } else {
+    MOZ_ASSERT(nurseryType == MIRType::BigInt);
+    MOZ_ASSERT(lir->mir()->value()->type() == MIRType::BigInt);
   }
   masm.branchPtrInNurseryChunk(Assembler::Equal, value, temp, ool->entry());
 
@@ -4586,8 +4591,8 @@ void CodeGenerator::visitPostWriteBarrierCommonV(LPostBarrierType* lir,
   maybeEmitGlobalBarrierCheck(lir->object(), ool);
 
   ValueOperand value = ToValue(lir, LPostBarrierType::Input);
-  // Bug 1386094 - most callers only need to check for object or string, not
-  // both.
+  // Bug 1386094 - most callers only need to check for object, string, or
+  // bigint, not all three.
   masm.branchValueIsNurseryCell(Assembler::Equal, value, temp, ool->entry());
 
   masm.bind(ool->rejoin());
@@ -4601,6 +4606,11 @@ void CodeGenerator::visitPostWriteBarrierO(LPostWriteBarrierO* lir) {
 void CodeGenerator::visitPostWriteBarrierS(LPostWriteBarrierS* lir) {
   auto ool = new (alloc()) OutOfLineCallPostWriteBarrier(lir, lir->object());
   visitPostWriteBarrierCommon<LPostWriteBarrierS, MIRType::String>(lir, ool);
+}
+
+void CodeGenerator::visitPostWriteBarrierBI(LPostWriteBarrierBI* lir) {
+  auto ool = new (alloc()) OutOfLineCallPostWriteBarrier(lir, lir->object());
+  visitPostWriteBarrierCommon<LPostWriteBarrierBI, MIRType::BigInt>(lir, ool);
 }
 
 void CodeGenerator::visitPostWriteBarrierV(LPostWriteBarrierV* lir) {
@@ -4680,6 +4690,14 @@ void CodeGenerator::visitPostWriteElementBarrierS(
       OutOfLineCallPostWriteElementBarrier(lir, lir->object(), lir->index());
   visitPostWriteBarrierCommon<LPostWriteElementBarrierS, MIRType::String>(lir,
                                                                           ool);
+}
+
+void CodeGenerator::visitPostWriteElementBarrierBI(
+    LPostWriteElementBarrierBI* lir) {
+  auto ool = new (alloc())
+      OutOfLineCallPostWriteElementBarrier(lir, lir->object(), lir->index());
+  visitPostWriteBarrierCommon<LPostWriteElementBarrierBI, MIRType::BigInt>(lir,
+                                                                           ool);
 }
 
 void CodeGenerator::visitPostWriteElementBarrierV(
@@ -5006,31 +5024,46 @@ void CodeGenerator::visitCallGeneric(LCallGeneric* call) {
                             nargsreg, calleereg, &invoke);
   }
 
-  // Guard that calleereg is an interpreted function with a JSScript or a
-  // wasm function.
-  // If we are constructing, also ensure the callee is a constructor.
+  // Guard that callee allows the [[Call]] or [[Construct]] operation required.
   if (call->mir()->isConstructing()) {
-    masm.branchIfNotInterpretedConstructor(calleereg, nargsreg, &invoke);
+    masm.branchTestFunctionFlags(calleereg, FunctionFlags::CONSTRUCTOR,
+                                 Assembler::Zero, &invoke);
   } else {
-    // See visitCallKnown.
-    if (call->mir()->needsArgCheck()) {
-      masm.branchIfFunctionHasNoJitEntry(calleereg, /* isConstructing */ false,
-                                         &invoke);
-    } else {
-      masm.branchIfFunctionHasNoScript(calleereg, &invoke);
-    }
     masm.branchFunctionKind(Assembler::Equal, FunctionFlags::ClassConstructor,
                             calleereg, objreg, &invoke);
   }
 
-  if (call->mir()->maybeCrossRealm()) {
-    masm.switchToObjectRealm(calleereg, objreg);
+  // Use the slow path if CreateThis was unable to create the |this| object.
+  if (call->mir()->needsThisCheck()) {
+    MOZ_ASSERT(call->mir()->isConstructing());
+    Address thisAddr(masm.getStackPointer(), unusedStack);
+    masm.branchTestNull(Assembler::Equal, thisAddr, &invoke);
+  } else {
+#ifdef DEBUG
+    if (call->mir()->isConstructing()) {
+      Address thisAddr(masm.getStackPointer(), unusedStack);
+      Label ok;
+      masm.branchTestNull(Assembler::NotEqual, thisAddr, &ok);
+      masm.assumeUnreachable("Unexpected null this-value");
+      masm.bind(&ok);
+    }
+#endif
   }
 
+  // Load jitCodeRaw for callee if exists. See visitCallKnown.
   if (call->mir()->needsArgCheck()) {
+    masm.branchIfFunctionHasNoJitEntry(calleereg, call->mir()->isConstructing(),
+                                       &invoke);
     masm.loadJitCodeRaw(calleereg, objreg);
   } else {
-    masm.loadJitCodeNoArgCheck(calleereg, objreg);
+    // If we are using the jitCodeNoArgCheck entry point, the canonical targets
+    // are known, but due to lambda cloning we may still see lazy versions.
+    masm.loadJitCodeMaybeNoArgCheck(calleereg, objreg);
+  }
+
+  // Target may be a different realm even if same compartment.
+  if (call->mir()->maybeCrossRealm()) {
+    masm.switchToObjectRealm(calleereg, nargsreg);
   }
 
   // Nestle the StackPointer up to the argument vector.
@@ -5127,6 +5160,8 @@ void CodeGenerator::visitCallKnown(LCallKnown* call) {
 
   MOZ_ASSERT_IF(target->isClassConstructor(), call->isConstructing());
 
+  MOZ_ASSERT(!call->mir()->needsThisCheck());
+
   if (call->mir()->maybeCrossRealm()) {
     masm.switchToObjectRealm(calleereg, objreg);
   }
@@ -5141,15 +5176,7 @@ void CodeGenerator::visitCallKnown(LCallKnown* call) {
     // NOTE: We checked that canonical function script had a valid JitScript.
     // This will not be tossed without all Ion code being tossed first.
 
-    Label uncompiled, end;
-    masm.branchIfFunctionHasNoScript(calleereg, &uncompiled);
-    masm.loadJitCodeNoArgCheck(calleereg, objreg);
-    masm.jump(&end);
-
-    // jitCodeRaw is still valid even if uncompiled.
-    masm.bind(&uncompiled);
-    masm.loadJitCodeRaw(calleereg, objreg);
-    masm.bind(&end);
+    masm.loadJitCodeMaybeNoArgCheck(calleereg, objreg);
   }
 
   // Nestle the StackPointer up to the argument vector.
@@ -6183,7 +6210,7 @@ static void DumpTrackedSite(const BytecodeSite* site) {
   unsigned column = 0;
   unsigned lineNumber = PCToLineNumber(site->script(), site->pc(), &column);
   JitSpew(JitSpew_OptimizationTracking, "Types for %s at %s:%u:%u",
-          CodeName[JSOp(*site->pc())], site->script()->filename(), lineNumber,
+          CodeName(JSOp(*site->pc())), site->script()->filename(), lineNumber,
           column);
 #endif
 }
@@ -6642,7 +6669,7 @@ void CodeGenerator::visitNewTypedArrayFromArrayBuffer(
   callVM<Fn, js::NewTypedArrayWithTemplateAndBuffer>(lir);
 }
 
-// Out-of-line object allocation for JSOP_NEWOBJECT.
+// Out-of-line object allocation for JSOp::NewObject.
 class OutOfLineNewObject : public OutOfLineCodeBase<CodeGenerator> {
   LNewObject* lir_;
 
@@ -6973,7 +7000,7 @@ void CodeGenerator::visitCreateThis(LCreateThis* lir) {
 
   using Fn = bool (*)(JSContext * cx, HandleObject callee,
                       HandleObject newTarget, MutableHandleValue rval);
-  callVM<Fn, jit::CreateThis>(lir);
+  callVM<Fn, jit::CreateThisFromIon>(lir);
 }
 
 void CodeGenerator::visitCreateThisWithProto(LCreateThisWithProto* lir) {
@@ -7408,8 +7435,12 @@ void CodeGenerator::visitGetNextEntryForIterator(
   }
 }
 
-template <size_t Defs>
-void CodeGenerator::emitWasmCallBase(LWasmCallBase<Defs>* lir) {
+// The point of these is to inform Ion of where these values already are; they
+// don't generate code.
+void CodeGenerator::visitWasmRegisterResult(LWasmRegisterResult* lir) {}
+void CodeGenerator::visitWasmRegisterPairResult(LWasmRegisterPairResult* lir) {}
+
+void CodeGenerator::visitWasmCall(LWasmCall* lir) {
   MWasmCall* mir = lir->mir();
   bool needsBoundsCheck = lir->needsBoundsCheck();
 
@@ -7480,16 +7511,6 @@ void CodeGenerator::emitWasmCallBase(LWasmCallBase<Defs>* lir) {
   } else {
     MOZ_ASSERT(!switchRealm);
   }
-}
-
-void CodeGenerator::visitWasmCall(LWasmCall* ins) { emitWasmCallBase(ins); }
-
-void CodeGenerator::visitWasmCallVoid(LWasmCallVoid* ins) {
-  emitWasmCallBase(ins);
-}
-
-void CodeGenerator::visitWasmCallI64(LWasmCallI64* ins) {
-  emitWasmCallBase(ins);
 }
 
 void CodeGenerator::visitWasmLoadSlot(LWasmLoadSlot* ins) {
@@ -8049,47 +8070,47 @@ void CodeGenerator::visitBinaryV(LBinaryV* lir) {
   using Fn = bool (*)(JSContext*, MutableHandleValue, MutableHandleValue,
                       MutableHandleValue);
   switch (lir->jsop()) {
-    case JSOP_ADD:
+    case JSOp::Add:
       callVM<Fn, js::AddValues>(lir);
       break;
 
-    case JSOP_SUB:
+    case JSOp::Sub:
       callVM<Fn, js::SubValues>(lir);
       break;
 
-    case JSOP_MUL:
+    case JSOp::Mul:
       callVM<Fn, js::MulValues>(lir);
       break;
 
-    case JSOP_DIV:
+    case JSOp::Div:
       callVM<Fn, js::DivValues>(lir);
       break;
 
-    case JSOP_MOD:
+    case JSOp::Mod:
       callVM<Fn, js::ModValues>(lir);
       break;
 
-    case JSOP_BITAND:
+    case JSOp::BitAnd:
       callVM<Fn, js::BitAnd>(lir);
       break;
 
-    case JSOP_BITOR:
+    case JSOp::BitOr:
       callVM<Fn, js::BitOr>(lir);
       break;
 
-    case JSOP_BITXOR:
+    case JSOp::BitXor:
       callVM<Fn, js::BitXor>(lir);
       break;
 
-    case JSOP_LSH:
+    case JSOp::Lsh:
       callVM<Fn, js::BitLsh>(lir);
       break;
 
-    case JSOP_RSH:
+    case JSOp::Rsh:
       callVM<Fn, js::BitRsh>(lir);
       break;
 
-    case JSOP_URSH:
+    case JSOp::Ursh:
       callVM<Fn, js::UrshValues>(lir);
       break;
 
@@ -8105,28 +8126,28 @@ void CodeGenerator::emitCompareS(LInstruction* lir, JSOp op, Register left,
   OutOfLineCode* ool = nullptr;
 
   using Fn = bool (*)(JSContext*, HandleString, HandleString, bool*);
-  if (op == JSOP_EQ || op == JSOP_STRICTEQ) {
+  if (op == JSOp::Eq || op == JSOp::StrictEq) {
     ool = oolCallVM<Fn, jit::StringsEqual<EqualityKind::Equal>>(
         lir, ArgList(left, right), StoreRegisterTo(output));
-  } else if (op == JSOP_NE || op == JSOP_STRICTNE) {
+  } else if (op == JSOp::Ne || op == JSOp::StrictNe) {
     ool = oolCallVM<Fn, jit::StringsEqual<EqualityKind::NotEqual>>(
         lir, ArgList(left, right), StoreRegisterTo(output));
-  } else if (op == JSOP_LT) {
+  } else if (op == JSOp::Lt) {
     ool = oolCallVM<Fn, jit::StringsCompare<ComparisonKind::LessThan>>(
         lir, ArgList(left, right), StoreRegisterTo(output));
-  } else if (op == JSOP_LE) {
-    // Push the operands in reverse order for JSOP_LE:
+  } else if (op == JSOp::Le) {
+    // Push the operands in reverse order for JSOp::Le:
     // - |left <= right| is implemented as |right >= left|.
     ool =
         oolCallVM<Fn, jit::StringsCompare<ComparisonKind::GreaterThanOrEqual>>(
             lir, ArgList(right, left), StoreRegisterTo(output));
-  } else if (op == JSOP_GT) {
-    // Push the operands in reverse order for JSOP_GT:
+  } else if (op == JSOp::Gt) {
+    // Push the operands in reverse order for JSOp::Gt:
     // - |left > right| is implemented as |right < left|.
     ool = oolCallVM<Fn, jit::StringsCompare<ComparisonKind::LessThan>>(
         lir, ArgList(right, left), StoreRegisterTo(output));
   } else {
-    MOZ_ASSERT(op == JSOP_GE);
+    MOZ_ASSERT(op == JSOp::Ge);
     ool =
         oolCallVM<Fn, jit::StringsCompare<ComparisonKind::GreaterThanOrEqual>>(
             lir, ArgList(left, right), StoreRegisterTo(output));
@@ -8139,7 +8160,7 @@ void CodeGenerator::emitCompareS(LInstruction* lir, JSOp op, Register left,
 
 void CodeGenerator::visitCompareStrictS(LCompareStrictS* lir) {
   JSOp op = lir->mir()->jsop();
-  MOZ_ASSERT(op == JSOP_STRICTEQ || op == JSOP_STRICTNE);
+  MOZ_ASSERT(op == JSOp::StrictEq || op == JSOp::StrictNe);
 
   const ValueOperand leftV = ToValue(lir, LCompareStrictS::Lhs);
   Register right = ToRegister(lir->right());
@@ -8148,7 +8169,7 @@ void CodeGenerator::visitCompareStrictS(LCompareStrictS* lir) {
   Label string, done;
 
   masm.branchTestString(Assembler::Equal, leftV, &string);
-  masm.move32(Imm32(op == JSOP_STRICTNE), output);
+  masm.move32(Imm32(op == JSOp::StrictNe), output);
   masm.jump(&done);
 
   masm.bind(&string);
@@ -8179,35 +8200,35 @@ void CodeGenerator::visitCompareVM(LCompareVM* lir) {
   using Fn =
       bool (*)(JSContext*, MutableHandleValue, MutableHandleValue, bool*);
   switch (lir->mir()->jsop()) {
-    case JSOP_EQ:
+    case JSOp::Eq:
       callVM<Fn, jit::LooselyEqual<EqualityKind::Equal>>(lir);
       break;
 
-    case JSOP_NE:
+    case JSOp::Ne:
       callVM<Fn, jit::LooselyEqual<EqualityKind::NotEqual>>(lir);
       break;
 
-    case JSOP_STRICTEQ:
+    case JSOp::StrictEq:
       callVM<Fn, jit::StrictlyEqual<EqualityKind::Equal>>(lir);
       break;
 
-    case JSOP_STRICTNE:
+    case JSOp::StrictNe:
       callVM<Fn, jit::StrictlyEqual<EqualityKind::NotEqual>>(lir);
       break;
 
-    case JSOP_LT:
+    case JSOp::Lt:
       callVM<Fn, jit::LessThan>(lir);
       break;
 
-    case JSOP_LE:
+    case JSOp::Le:
       callVM<Fn, jit::LessThanOrEqual>(lir);
       break;
 
-    case JSOP_GT:
+    case JSOp::Gt:
       callVM<Fn, jit::GreaterThan>(lir);
       break;
 
-    case JSOP_GE:
+    case JSOp::Ge:
       callVM<Fn, jit::GreaterThanOrEqual>(lir);
       break;
 
@@ -8225,7 +8246,7 @@ void CodeGenerator::visitIsNullOrLikeUndefinedV(LIsNullOrLikeUndefinedV* lir) {
   const ValueOperand value = ToValue(lir, LIsNullOrLikeUndefinedV::Value);
   Register output = ToRegister(lir->output());
 
-  if (op == JSOP_EQ || op == JSOP_NE) {
+  if (op == JSOp::Eq || op == JSOp::Ne) {
     MOZ_ASSERT(
         lir->mir()->lhs()->type() != MIRType::Object ||
             lir->mir()->operandMightEmulateUndefined(),
@@ -8279,18 +8300,18 @@ void CodeGenerator::visitIsNullOrLikeUndefinedV(LIsNullOrLikeUndefinedV* lir) {
 
     // It's not null or undefined, and if it's an object it doesn't
     // emulate undefined, so it's not like undefined.
-    masm.move32(Imm32(op == JSOP_NE), output);
+    masm.move32(Imm32(op == JSOp::Ne), output);
     masm.jump(&done);
 
     masm.bind(nullOrLikeUndefined);
-    masm.move32(Imm32(op == JSOP_EQ), output);
+    masm.move32(Imm32(op == JSOp::Eq), output);
 
     // Both branches meet here.
     masm.bind(&done);
     return;
   }
 
-  MOZ_ASSERT(op == JSOP_STRICTEQ || op == JSOP_STRICTNE);
+  MOZ_ASSERT(op == JSOp::StrictEq || op == JSOp::StrictNe);
 
   Assembler::Condition cond = JSOpToCondition(compareType, op);
   if (compareType == MCompare::Compare_Null) {
@@ -8310,18 +8331,18 @@ void CodeGenerator::visitIsNullOrLikeUndefinedAndBranchV(
   const ValueOperand value =
       ToValue(lir, LIsNullOrLikeUndefinedAndBranchV::Value);
 
-  if (op == JSOP_EQ || op == JSOP_NE) {
+  if (op == JSOp::Eq || op == JSOp::Ne) {
     MBasicBlock* ifTrue;
     MBasicBlock* ifFalse;
 
-    if (op == JSOP_EQ) {
+    if (op == JSOp::Eq) {
       ifTrue = lir->ifTrue();
       ifFalse = lir->ifFalse();
     } else {
       // Swap branches.
       ifTrue = lir->ifFalse();
       ifFalse = lir->ifTrue();
-      op = JSOP_EQ;
+      op = JSOp::Eq;
     }
 
     MOZ_ASSERT(
@@ -8368,7 +8389,7 @@ void CodeGenerator::visitIsNullOrLikeUndefinedAndBranchV(
     }
   }
 
-  MOZ_ASSERT(op == JSOP_STRICTEQ || op == JSOP_STRICTNE);
+  MOZ_ASSERT(op == JSOp::StrictEq || op == JSOp::StrictNe);
 
   Assembler::Condition cond = JSOpToCondition(compareType, op);
   if (compareType == MCompare::Compare_Null) {
@@ -8386,8 +8407,9 @@ void CodeGenerator::visitIsNullOrLikeUndefinedT(LIsNullOrLikeUndefinedT* lir) {
   MOZ_ASSERT(lhsType == MIRType::Object || lhsType == MIRType::ObjectOrNull);
 
   JSOp op = lir->mir()->jsop();
-  MOZ_ASSERT(lhsType == MIRType::ObjectOrNull || op == JSOP_EQ || op == JSOP_NE,
-             "Strict equality should have been folded");
+  MOZ_ASSERT(
+      lhsType == MIRType::ObjectOrNull || op == JSOp::Eq || op == JSOp::Ne,
+      "Strict equality should have been folded");
 
   MOZ_ASSERT(lhsType == MIRType::ObjectOrNull ||
                  lir->mir()->operandMightEmulateUndefined(),
@@ -8397,7 +8419,7 @@ void CodeGenerator::visitIsNullOrLikeUndefinedT(LIsNullOrLikeUndefinedT* lir) {
   Register objreg = ToRegister(lir->input());
   Register output = ToRegister(lir->output());
 
-  if ((op == JSOP_EQ || op == JSOP_NE) &&
+  if ((op == JSOp::Eq || op == JSOp::Ne) &&
       lir->mir()->operandMightEmulateUndefined()) {
     OutOfLineTestObjectWithLabels* ool =
         new (alloc()) OutOfLineTestObjectWithLabels();
@@ -8415,11 +8437,11 @@ void CodeGenerator::visitIsNullOrLikeUndefinedT(LIsNullOrLikeUndefinedT* lir) {
 
     Label done;
 
-    masm.move32(Imm32(op == JSOP_NE), output);
+    masm.move32(Imm32(op == JSOp::Ne), output);
     masm.jump(&done);
 
     masm.bind(emulatesUndefined);
-    masm.move32(Imm32(op == JSOP_EQ), output);
+    masm.move32(Imm32(op == JSOp::Eq), output);
     masm.bind(&done);
   } else {
     MOZ_ASSERT(lhsType == MIRType::ObjectOrNull);
@@ -8428,11 +8450,11 @@ void CodeGenerator::visitIsNullOrLikeUndefinedT(LIsNullOrLikeUndefinedT* lir) {
 
     masm.branchTestPtr(Assembler::Zero, objreg, objreg, &isNull);
 
-    masm.move32(Imm32(op == JSOP_NE || op == JSOP_STRICTNE), output);
+    masm.move32(Imm32(op == JSOp::Ne || op == JSOp::StrictNe), output);
     masm.jump(&done);
 
     masm.bind(&isNull);
-    masm.move32(Imm32(op == JSOP_EQ || op == JSOP_STRICTEQ), output);
+    masm.move32(Imm32(op == JSOp::Eq || op == JSOp::StrictEq), output);
 
     masm.bind(&done);
   }
@@ -8448,8 +8470,9 @@ void CodeGenerator::visitIsNullOrLikeUndefinedAndBranchT(
   MOZ_ASSERT(lhsType == MIRType::Object || lhsType == MIRType::ObjectOrNull);
 
   JSOp op = lir->cmpMir()->jsop();
-  MOZ_ASSERT(lhsType == MIRType::ObjectOrNull || op == JSOP_EQ || op == JSOP_NE,
-             "Strict equality should have been folded");
+  MOZ_ASSERT(
+      lhsType == MIRType::ObjectOrNull || op == JSOp::Eq || op == JSOp::Ne,
+      "Strict equality should have been folded");
 
   MOZ_ASSERT(lhsType == MIRType::ObjectOrNull ||
                  lir->cmpMir()->operandMightEmulateUndefined(),
@@ -8459,7 +8482,7 @@ void CodeGenerator::visitIsNullOrLikeUndefinedAndBranchT(
   MBasicBlock* ifTrue;
   MBasicBlock* ifFalse;
 
-  if (op == JSOP_EQ || op == JSOP_STRICTEQ) {
+  if (op == JSOp::Eq || op == JSOp::StrictEq) {
     ifTrue = lir->ifTrue();
     ifFalse = lir->ifFalse();
   } else {
@@ -8470,7 +8493,7 @@ void CodeGenerator::visitIsNullOrLikeUndefinedAndBranchT(
 
   Register input = ToRegister(lir->getOperand(0));
 
-  if ((op == JSOP_EQ || op == JSOP_NE) &&
+  if ((op == JSOp::Eq || op == JSOp::Ne) &&
       lir->cmpMir()->operandMightEmulateUndefined()) {
     OutOfLineTestObject* ool = new (alloc()) OutOfLineTestObject();
     addOutOfLineCode(ool, lir->cmpMir());
@@ -10249,32 +10272,6 @@ void CodeGenerator::visitRest(LRest* lir) {
            false, ToRegister(lir->output()));
 }
 
-// A stackmap creation helper.  Create a stackmap from a vector of booleans.
-// The caller owns the resulting stackmap.
-
-typedef Vector<bool, 128, SystemAllocPolicy> StackMapBoolVector;
-
-static wasm::StackMap* ConvertStackMapBoolVectorToStackMap(
-    const StackMapBoolVector& vec, bool hasRefs) {
-  wasm::StackMap* stackMap = wasm::StackMap::create(vec.length());
-  if (!stackMap) {
-    return nullptr;
-  }
-
-  bool hasRefsObserved = false;
-  size_t i = 0;
-  for (bool b : vec) {
-    if (b) {
-      stackMap->setBit(i);
-      hasRefsObserved = true;
-    }
-    i++;
-  }
-  MOZ_RELEASE_ASSERT(hasRefs == hasRefsObserved);
-
-  return stackMap;
-}
-
 // Create a stackmap from the given safepoint, with the structure:
 //
 //   <reg dump area, if trap>
@@ -10317,7 +10314,7 @@ static bool CreateStackMapFromLSafepoint(LSafepoint& safepoint,
   // contain 128 or fewer words, heap allocation is avoided in the majority of
   // cases.  vec[0] is for the lowest address in the map, vec[N-1] is for the
   // highest address in the map.
-  StackMapBoolVector vec;
+  wasm::StackMapBoolVector vec;
 
   // Keep track of whether we've actually seen any refs.
   bool hasRefs = false;
@@ -10394,7 +10391,8 @@ static bool CreateStackMapFromLSafepoint(LSafepoint& safepoint,
 
   // Convert vec into a wasm::StackMap.
   MOZ_ASSERT(vec.length() * sizeof(void*) == nTotalBytes);
-  wasm::StackMap* stackMap = ConvertStackMapBoolVectorToStackMap(vec, hasRefs);
+  wasm::StackMap* stackMap =
+      wasm::ConvertStackMapBoolVectorToStackMap(vec, hasRefs);
   if (!stackMap) {
     return false;
   }
@@ -10418,134 +10416,9 @@ static bool CreateStackMapFromLSafepoint(LSafepoint& safepoint,
   return true;
 }
 
-// Generate a stackmap for a function's stack-overflow-at-entry trap, with
-// the structure:
-//
-//    <reg dump area>
-//    |       ++ <space reserved before trap, if any>
-//    |               ++ <space for Frame>
-//    |                       ++ <inbound arg area>
-//    |                                           |
-//    Lowest Addr                                 Highest Addr
-//
-// The caller owns the resulting stackmap.  This assumes a grow-down stack.
-//
-// For non-debug builds, if the stackmap would contain no pointers, no
-// stackmap is created, and nullptr is returned.  For a debug build, a
-// stackmap is always created and returned.
-//
-// The "space reserved before trap" is the space reserved by
-// MacroAssembler::wasmReserveStackChecked, in the case where the frame is
-// "small", as determined by that function.
-static bool CreateStackMapForFunctionEntryTrap(
-    const wasm::ValTypeVector& argTypes, const MachineState& trapExitLayout,
-    size_t trapExitLayoutWords, size_t nBytesReservedBeforeTrap,
-    size_t nInboundStackArgBytes, wasm::StackMap** result) {
-  // Ensure this is defined on all return paths.
-  *result = nullptr;
-
-  // The size of the wasm::Frame itself.
-  const size_t nFrameBytes = sizeof(wasm::Frame);
-
-  // The size of the register dump (trap) area.
-  const size_t trapExitLayoutBytes = trapExitLayoutWords * sizeof(void*);
-
-  // This is the total number of bytes covered by the map.
-  const DebugOnly<size_t> nTotalBytes = trapExitLayoutBytes +
-                                        nBytesReservedBeforeTrap + nFrameBytes +
-                                        nInboundStackArgBytes;
-
-  // Create the stackmap initially in this vector.  Since most frames will
-  // contain 128 or fewer words, heap allocation is avoided in the majority of
-  // cases.  vec[0] is for the lowest address in the map, vec[N-1] is for the
-  // highest address in the map.
-  StackMapBoolVector vec;
-
-  // Keep track of whether we've actually seen any refs.
-  bool hasRefs = false;
-
-  // REG DUMP AREA
-  wasm::ExitStubMapVector trapExitExtras;
-  if (!GenerateStackmapEntriesForTrapExit(
-          argTypes, trapExitLayout, trapExitLayoutWords, &trapExitExtras)) {
-    return false;
-  }
-  MOZ_ASSERT(trapExitExtras.length() == trapExitLayoutWords);
-
-  if (!vec.appendN(false, trapExitLayoutWords)) {
-    return false;
-  }
-  for (size_t i = 0; i < trapExitLayoutWords; i++) {
-    vec[i] = trapExitExtras[i];
-    hasRefs |= vec[i];
-  }
-
-  // SPACE RESERVED BEFORE TRAP
-  MOZ_ASSERT(nBytesReservedBeforeTrap % sizeof(void*) == 0);
-  if (!vec.appendN(false, nBytesReservedBeforeTrap / sizeof(void*))) {
-    return false;
-  }
-
-  // SPACE FOR FRAME
-  if (!vec.appendN(false, nFrameBytes / sizeof(void*))) {
-    return false;
-  }
-
-  // INBOUND ARG AREA
-  MOZ_ASSERT(nInboundStackArgBytes % sizeof(void*) == 0);
-  const size_t numStackArgWords = nInboundStackArgBytes / sizeof(void*);
-
-  const size_t wordsSoFar = vec.length();
-  if (!vec.appendN(false, numStackArgWords)) {
-    return false;
-  }
-
-  for (ABIArgIter<const wasm::ValTypeVector> i(argTypes); !i.done(); i++) {
-    ABIArg argLoc = *i;
-    const wasm::ValType& ty = argTypes[i.index()];
-    MOZ_ASSERT(ToMIRType(ty) != MIRType::Pointer);
-    if (argLoc.kind() != ABIArg::Stack || !ty.isReference()) {
-      continue;
-    }
-    uint32_t offset = argLoc.offsetFromArgBase();
-    MOZ_ASSERT(offset < nInboundStackArgBytes);
-    MOZ_ASSERT(offset % sizeof(void*) == 0);
-    vec[wordsSoFar + offset / sizeof(void*)] = true;
-    hasRefs = true;
-  }
-
-#ifndef DEBUG
-  // We saw no references, and this is a non-debug build, so don't bother
-  // building the stackmap.
-  if (!hasRefs) {
-    return true;
-  }
-#endif
-
-  // Convert vec into a wasm::StackMap.
-  MOZ_ASSERT(vec.length() * sizeof(void*) == nTotalBytes);
-  wasm::StackMap* stackMap = ConvertStackMapBoolVectorToStackMap(vec, hasRefs);
-  if (!stackMap) {
-    return false;
-  }
-  stackMap->setExitStubWords(trapExitLayoutWords);
-
-  stackMap->setFrameOffsetFromTop(nFrameBytes / sizeof(void*) +
-                                  numStackArgWords);
-#ifdef DEBUG
-  for (uint32_t i = 0; i < nFrameBytes / sizeof(void*); i++) {
-    MOZ_ASSERT(stackMap->getBit(stackMap->numMappedWords -
-                                stackMap->frameOffsetFromTop + i) == 0);
-  }
-#endif
-
-  *result = stackMap;
-  return true;
-}
-
 bool CodeGenerator::generateWasm(wasm::FuncTypeIdDesc funcTypeId,
                                  wasm::BytecodeOffset trapOffset,
-                                 const wasm::ValTypeVector& argTypes,
+                                 const wasm::ArgTypeVector& argTypes,
                                  const MachineState& trapExitLayout,
                                  size_t trapExitLayoutNumWords,
                                  wasm::FuncOffsets* offsets,
@@ -11113,7 +10986,7 @@ void CodeGenerator::visitCallGetElement(LCallGetElement* lir) {
   pushArg(ToValue(lir, LCallGetElement::RhsInput));
   pushArg(ToValue(lir, LCallGetElement::LhsInput));
 
-  JSOp op = JSOp(*lir->mir()->resumePoint()->pc());
+  uint8_t op = *lir->mir()->resumePoint()->pc();
   pushArg(Imm32(op));
 
   using Fn =
@@ -13783,11 +13656,6 @@ static void BoundFunctionName(MacroAssembler& masm, Register target,
   masm.branchTestPtr(Assembler::NonZero, output, output, &hasName);
   {
     masm.bind(&guessed);
-
-    // Unnamed class expression don't have a name property. To avoid
-    // looking it up from the prototype chain, we take the slow path here.
-    masm.branchFunctionKind(Assembler::Equal, FunctionFlags::ClassConstructor,
-                            target, output, slowPath);
 
     // An absent name property defaults to the empty string.
     masm.movePtr(ImmGCPtr(names.empty), output);

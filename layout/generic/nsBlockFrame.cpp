@@ -473,8 +473,7 @@ nsILineIterator* nsBlockFrame::GetLineIterator() {
   if (!it) return nullptr;
 
   const nsStyleVisibility* visibility = StyleVisibility();
-  nsresult rv =
-      it->Init(mLines, visibility->mDirection == NS_STYLE_DIRECTION_RTL);
+  nsresult rv = it->Init(mLines, visibility->mDirection == StyleDirection::Rtl);
   if (NS_FAILED(rv)) {
     delete it;
     return nullptr;
@@ -1275,6 +1274,12 @@ void nsBlockFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
   }
 #endif
 
+  // ColumnSetWrapper's children depend on ColumnSetWrapper's block-size or
+  // max-block-size because both affect the children's available block-size.
+  if (IsColumnSetWrapperFrame()) {
+    AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
+  }
+
   const ReflowInput* reflowInput = &aReflowInput;
   WritingMode wm = aReflowInput.GetWritingMode();
   nscoord consumedBSize = ConsumedBSize(wm);
@@ -1950,9 +1955,6 @@ void nsBlockFrame::ComputeFinalSize(const ReflowInput& aReflowInput,
     }
     const nscoord maxBSize = aReflowInput.ComputedMaxBSize();
     if (maxBSize != NS_UNCONSTRAINEDSIZE &&
-        // FIXME: wallpaper for bug 1603088
-        !(Style()->GetPseudoType() == PseudoStyleType::columnContent ||
-          Style()->GetPseudoType() == PseudoStyleType::columnSet) &&
         aState.mConsumedBSize + bSize - borderPadding.BStart(wm) > maxBSize) {
       nscoord bEnd = std::max(0, maxBSize - aState.mConsumedBSize) +
                      borderPadding.BStart(wm);
@@ -2019,7 +2021,7 @@ void nsBlockFrame::ComputeFinalSize(const ReflowInput& aReflowInput,
   if (blockEndEdgeOfChildren != finalSize.BSize(wm) - borderPadding.BEnd(wm)) {
     SetProperty(BlockEndEdgeOfChildrenProperty(), blockEndEdgeOfChildren);
   } else {
-    DeleteProperty(BlockEndEdgeOfChildrenProperty());
+    RemoveProperty(BlockEndEdgeOfChildrenProperty());
   }
 
   aMetrics.SetSize(wm, finalSize);
@@ -2232,14 +2234,14 @@ void nsBlockFrame::MarkLineDirty(LineIterator aLine,
  * Test whether lines are certain to be aligned left so that we can make
  * resizing optimizations
  */
-static inline bool IsAlignedLeft(uint8_t aAlignment, uint8_t aDirection,
+static inline bool IsAlignedLeft(uint8_t aAlignment, StyleDirection aDirection,
                                  uint8_t aUnicodeBidi, nsIFrame* aFrame) {
   return nsSVGUtils::IsInSVGTextSubtree(aFrame) ||
          NS_STYLE_TEXT_ALIGN_LEFT == aAlignment ||
          (((NS_STYLE_TEXT_ALIGN_START == aAlignment &&
-            NS_STYLE_DIRECTION_LTR == aDirection) ||
+            StyleDirection::Ltr == aDirection) ||
            (NS_STYLE_TEXT_ALIGN_END == aAlignment &&
-            NS_STYLE_DIRECTION_RTL == aDirection)) &&
+            StyleDirection::Rtl == aDirection)) &&
           !(NS_STYLE_UNICODE_BIDI_PLAINTEXT & aUnicodeBidi));
 }
 
@@ -5347,7 +5349,7 @@ nsBlockFrame::FrameLines* nsBlockFrame::RemoveOverflowLines() {
   if (!HasOverflowLines()) {
     return nullptr;
   }
-  FrameLines* prop = RemoveProperty(OverflowLinesProperty());
+  FrameLines* prop = TakeProperty(OverflowLinesProperty());
   NS_ASSERTION(
       prop && !prop->mLines.empty() &&
               prop->mLines.front()->GetChildCount() == 0
@@ -5360,7 +5362,7 @@ nsBlockFrame::FrameLines* nsBlockFrame::RemoveOverflowLines() {
 
 void nsBlockFrame::DestroyOverflowLines() {
   NS_ASSERTION(HasOverflowLines(), "huh?");
-  FrameLines* prop = RemoveProperty(OverflowLinesProperty());
+  FrameLines* prop = TakeProperty(OverflowLinesProperty());
   NS_ASSERTION(prop && prop->mLines.empty(),
                "value should always be stored but empty when destroying");
   RemoveStateBits(NS_BLOCK_HAS_OVERFLOW_LINES);
@@ -5469,7 +5471,7 @@ nsFrameList* nsBlockFrame::RemovePushedFloats() {
   if (!HasPushedFloats()) {
     return nullptr;
   }
-  nsFrameList* result = RemoveProperty(PushedFloatProperty());
+  nsFrameList* result = TakeProperty(PushedFloatProperty());
   RemoveStateBits(NS_BLOCK_HAS_PUSHED_FLOATS);
   NS_ASSERTION(result, "value should always be non-empty when state set");
   return result;
@@ -7139,7 +7141,7 @@ void nsBlockFrame::ClearLineCursor() {
     return;
   }
 
-  DeleteProperty(LineCursorProperty());
+  RemoveProperty(LineCursorProperty());
   RemoveStateBits(NS_BLOCK_HAS_LINE_CURSOR);
 }
 

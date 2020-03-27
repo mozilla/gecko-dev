@@ -8,8 +8,9 @@
 
 #include "mozilla/BinarySearch.h"
 #include "mozilla/IntegerPrintfMacros.h"
-#include "mozilla/Move.h"
 #include "mozilla/ScopeExit.h"
+
+#include <utility>
 
 #include "jit/BaselineIC.h"
 #include "jit/BytecodeAnalysis.h"
@@ -702,7 +703,7 @@ void jit::JitSpewBaselineICStats(JSScript* script, const char* dumpReason) {
     unsigned int line = PCToLineNumber(script, pc, &column);
 
     spew->beginObject();
-    spew->property("op", CodeName[*pc]);
+    spew->property("op", CodeName(JSOp(*pc)));
     spew->property("pc", pcOffset);
     spew->property("line", line);
     spew->property("column", column);

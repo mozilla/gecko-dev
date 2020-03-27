@@ -18,7 +18,6 @@ XPIDL_SOURCES += [
     'nsIMemoryInfoDumper.idl',
     'nsIMemoryReporter.idl',
     'nsIMessageLoop.idl',
-    'nsIMutable.idl',
     'nsISecurityConsoleMessage.idl',
     'nsISupports.idl',
     'nsIUUIDGenerator.idl',
@@ -102,6 +101,7 @@ if CONFIG['OS_ARCH'] == 'WINNT':
         ]
 
 EXPORTS.mozilla += [
+    'AppShutdown.h',
     'AutoRestore.h',
     'AvailableMemoryTracker.h',
     'ClearOnShutdown.h',
@@ -125,6 +125,7 @@ EXPORTS.mozilla += [
     'nsMemoryInfoDumper.h',
     'NSPRLogModulesParser.h',
     'OwningNonNull.h',
+    'ShutdownPhase.h',
     'SizeOfState.h',
     'StaticLocalPtr.h',
     'StaticMonitor.h',
@@ -145,6 +146,7 @@ SOURCES += [
 SOURCES['nsDebugImpl.cpp'].no_pgo = True
 
 UNIFIED_SOURCES += [
+    'AppShutdown.cpp',
     'AvailableMemoryTracker.cpp',
     'ClearOnShutdown.cpp',
     'CycleCollectedJSContext.cpp',

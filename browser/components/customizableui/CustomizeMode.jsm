@@ -102,7 +102,7 @@ function closeGlobalTab() {
   if (win.gBrowser.browsers.length == 1) {
     win.BrowserOpenTab();
   }
-  win.gBrowser.removeTab(gTab);
+  win.gBrowser.removeTab(gTab, { animate: true });
   gTab = null;
 }
 
@@ -377,6 +377,8 @@ CustomizeMode.prototype = {
 
       this._wrapToolbarItemSync(CustomizableUI.AREA_TABSTRIP);
 
+      this.document.documentElement.setAttribute("customizing", true);
+
       let customizableToolbars = document.querySelectorAll(
         "toolbar[customizable=true]:not([autohide=true]):not([collapsed=true])"
       );
@@ -385,8 +387,6 @@ CustomizeMode.prototype = {
       }
 
       this._updateOverflowPanelArrowOffset();
-
-      await this._doTransition(true);
 
       // Let everybody in this window know that we're about to customize.
       CustomizableUI.dispatchToolboxEvent("customizationstarting", {}, window);
@@ -472,10 +472,10 @@ CustomizeMode.prototype = {
     AddonManager.removeAddonListener(this);
     CustomizableUI.removeListener(this);
 
-    this.document.removeEventListener("keypress", this);
-
     let window = this.window;
     let document = this.document;
+
+    document.removeEventListener("keypress", this);
 
     this.togglePong(false);
 
@@ -486,27 +486,29 @@ CustomizeMode.prototype = {
 
     this._transitioning = true;
 
+    this._depopulatePalette();
+
+    // We need to set this._customizing to false and remove the `customizing`
+    // attribute before removing the tab or else
+    // XULBrowserWindow.onLocationChange might think that we're still in
+    // customization mode and need to exit it for a second time.
+    this._customizing = false;
+    document.documentElement.removeAttribute("customizing");
+
+    if (this.browser.selectedTab == gTab) {
+      closeGlobalTab();
+    }
+
+    let customizer = document.getElementById("customization-container");
+    let browser = document.getElementById("browser");
+    customizer.hidden = true;
+    browser.collapsed = false;
+
+    window.gNavToolbox.removeEventListener("toolbarvisibilitychange", this);
+
+    this._teardownPaletteDragging();
+
     (async () => {
-      await this.depopulatePalette();
-
-      await this._doTransition(false);
-
-      if (this.browser.selectedTab == gTab) {
-        if (gTab.linkedBrowser.currentURI.spec == "about:blank") {
-          closeGlobalTab();
-        } else {
-          unregisterGlobalTab();
-        }
-      }
-      let customizer = document.getElementById("customization-container");
-      let browser = document.getElementById("browser");
-      customizer.hidden = true;
-      browser.collapsed = false;
-
-      window.gNavToolbox.removeEventListener("toolbarvisibilitychange", this);
-
-      this._teardownPaletteDragging();
-
       await this._unwrapToolbarItems();
 
       // And drop all area references.
@@ -524,11 +526,6 @@ CustomizeMode.prototype = {
       document.getElementById("nav-bar-overflow-button").disabled = false;
       let panelContextMenu = document.getElementById(kPanelItemContextMenu);
       this._previousPanelContextMenuParent.appendChild(panelContextMenu);
-
-      // We need to set this._customizing to false before removing the tab
-      // or the TabSelect event handler will think that we are exiting
-      // customization mode for a second time.
-      this._customizing = false;
 
       let customizableToolbars = document.querySelectorAll(
         "toolbar[customizable=true]:not([autohide=true])"
@@ -553,40 +550,6 @@ CustomizeMode.prototype = {
       log.error("Error exiting customize mode", e);
       this._handler.isExitingCustomizeMode = false;
     });
-  },
-
-  /**
-   * The customize mode transition has 4 phases when entering:
-   * 1) Pre-customization mode
-   *    This is the starting phase of the browser.
-   * 2) LWT swapping
-   *    This is where we swap some of the lightweight theme styles in order
-   *    to make them work in customize mode. We set/unset a customization-
-   *    lwtheme attribute iff we're using a lightweight theme.
-   * 3) customize-entering
-   *    This phase is a transition, optimized for smoothness.
-   * 4) customize-entered
-   *    After the transition completes, this phase draws all of the
-   *    expensive detail that isn't necessary during the second phase.
-   *
-   * Exiting customization mode has a similar set of phases, but in reverse
-   * order - customize-entered, customize-exiting, remove LWT swapping,
-   * pre-customization mode.
-   *
-   * When in the customize-entering, customize-entered, or customize-exiting
-   * phases, there is a "customizing" attribute set on the main-window to simplify
-   * excluding certain styles while in any phase of customize mode.
-   */
-  _doTransition(aEntering) {
-    let docEl = this.document.documentElement;
-    if (aEntering) {
-      docEl.setAttribute("customizing", true);
-      docEl.setAttribute("customize-entered", true);
-    } else {
-      docEl.removeAttribute("customizing");
-      docEl.removeAttribute("customize-entered");
-    }
-    return Promise.resolve();
   },
 
   /**
@@ -886,33 +849,29 @@ CustomizeMode.prototype = {
     return wrapper;
   },
 
-  depopulatePalette() {
-    return (async () => {
-      this.visiblePalette.hidden = true;
-      let paletteChild = this.visiblePalette.firstElementChild;
-      let nextChild;
-      while (paletteChild) {
-        nextChild = paletteChild.nextElementSibling;
-        let itemId = paletteChild.firstElementChild.id;
-        if (CustomizableUI.isSpecialWidget(itemId)) {
-          this.visiblePalette.removeChild(paletteChild);
-        } else {
-          // XXXunf Currently this doesn't destroy the (now unused) node in the
-          //       API provider case. It would be good to do so, but we need to
-          //       keep strong refs to it in CustomizableUI (can't iterate of
-          //       WeakMaps), and there's the question of what behavior
-          //       wrappers should have if consumers keep hold of them.
-          let unwrappedPaletteItem = await this.deferredUnwrapToolbarItem(
-            paletteChild
-          );
-          this._stowedPalette.appendChild(unwrappedPaletteItem);
-        }
-
-        paletteChild = nextChild;
+  _depopulatePalette() {
+    this.visiblePalette.hidden = true;
+    let paletteChild = this.visiblePalette.firstElementChild;
+    let nextChild;
+    while (paletteChild) {
+      nextChild = paletteChild.nextElementSibling;
+      let itemId = paletteChild.firstElementChild.id;
+      if (CustomizableUI.isSpecialWidget(itemId)) {
+        this.visiblePalette.removeChild(paletteChild);
+      } else {
+        // XXXunf Currently this doesn't destroy the (now unused) node in the
+        //       API provider case. It would be good to do so, but we need to
+        //       keep strong refs to it in CustomizableUI (can't iterate of
+        //       WeakMaps), and there's the question of what behavior
+        //       wrappers should have if consumers keep hold of them.
+        let unwrappedPaletteItem = this.unwrapToolbarItem(paletteChild);
+        this._stowedPalette.appendChild(unwrappedPaletteItem);
       }
-      this.visiblePalette.hidden = false;
-      this.window.gNavToolbox.palette = this._stowedPalette;
-    })().catch(log.error);
+
+      paletteChild = nextChild;
+    }
+    this.visiblePalette.hidden = false;
+    this.window.gNavToolbox.palette = this._stowedPalette;
   },
 
   isCustomizableItem(aNode) {
@@ -1237,7 +1196,7 @@ CustomizeMode.prototype = {
     let btn = this.$("customization-reset-button");
     btn.disabled = true;
     return (async () => {
-      await this.depopulatePalette();
+      this._depopulatePalette();
       await this._unwrapToolbarItems();
 
       CustomizableUI.reset();
@@ -1260,7 +1219,7 @@ CustomizeMode.prototype = {
     this.resetting = true;
 
     return (async () => {
-      await this.depopulatePalette();
+      this._depopulatePalette();
       await this._unwrapToolbarItems();
 
       CustomizableUI.undoReset();

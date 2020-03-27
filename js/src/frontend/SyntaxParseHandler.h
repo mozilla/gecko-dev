@@ -42,11 +42,10 @@ class SyntaxParseHandler {
   //          this class.  The |lastAtom| field above is safe because
   //          SyntaxParseHandler only appears as a field in
   //          PerHandlerParser<SyntaxParseHandler>, and that class inherits
-  //          from ParserBase which contains an AutoKeepAtoms field that
-  //          prevents atoms from being moved around while the AutoKeepAtoms
-  //          lives -- which is as long as ParserBase lives, which is longer
-  //          than the PerHandlerParser<SyntaxParseHandler> that inherits
-  //          from it will live.
+  //          from ParserBase which contains a reference to a CompilationInfo,
+  //          which has an AutoKeepAtoms field that prevents atoms from being
+  //          moved around while the AutoKeepAtoms lives -- which is longer
+  //          than the lifetime of any of the parser classes.
 
  public:
   enum Node {
@@ -76,6 +75,8 @@ class SyntaxParseHandler {
     // noticed).
     NodeFunctionCall,
 
+    NodeOptionalFunctionCall,
+
     // Node representing normal names which don't require any special
     // casing.
     NodeName,
@@ -89,7 +90,9 @@ class SyntaxParseHandler {
     NodePotentialAsyncKeyword,
 
     NodeDottedProperty,
+    NodeOptionalDottedProperty,
     NodeElement,
+    NodeOptionalElement,
 
     // Destructuring target patterns can't be parenthesized: |([a]) = [3];|
     // must be a syntax error.  (We can't use NodeGeneric instead of these
@@ -149,6 +152,10 @@ class SyntaxParseHandler {
 
   bool isPropertyAccess(Node node) {
     return node == NodeDottedProperty || node == NodeElement;
+  }
+
+  bool isOptionalPropertyAccess(Node node) {
+    return node == NodeOptionalDottedProperty || node == NodeOptionalElement;
   }
 
   bool isFunctionCall(Node node) {
@@ -291,6 +298,10 @@ class SyntaxParseHandler {
     return NodeFunctionCall;
   }
 
+  CallNodeType newOptionalCall(Node callee, Node args, JSOp callOp) {
+    return NodeOptionalFunctionCall;
+  }
+
   CallNodeType newSuperCall(Node callee, Node args, bool isSpread) {
     return NodeGeneric;
   }
@@ -369,6 +380,9 @@ class SyntaxParseHandler {
     return NodeGeneric;
   }
   UnaryNodeType newAwaitExpression(uint32_t begin, Node value) {
+    return NodeGeneric;
+  }
+  UnaryNodeType newOptionalChain(uint32_t begin, Node value) {
     return NodeGeneric;
   }
 
@@ -478,8 +492,17 @@ class SyntaxParseHandler {
     return NodeDottedProperty;
   }
 
+  PropertyAccessType newOptionalPropertyAccess(Node expr, NameNodeType key) {
+    return NodeOptionalDottedProperty;
+  }
+
   PropertyByValueType newPropertyByValue(Node lhs, Node index, uint32_t end) {
     return NodeElement;
+  }
+
+  PropertyByValueType newOptionalPropertyByValue(Node lhs, Node index,
+                                                 uint32_t end) {
+    return NodeOptionalElement;
   }
 
   MOZ_MUST_USE bool setupCatchScope(LexicalScopeNodeType lexicalScope,
@@ -670,7 +693,7 @@ class SyntaxParseHandler {
     // |this|.  It's not really eligible for the funapply/funcall
     // optimizations as they're currently implemented (assuming a single
     // value is used for both retrieval and |this|).
-    if (node != NodeDottedProperty) {
+    if (node != NodeDottedProperty && node != NodeOptionalDottedProperty) {
       return nullptr;
     }
     return lastAtom->asPropertyName();

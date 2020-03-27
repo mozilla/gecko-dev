@@ -238,7 +238,6 @@ class JSTerm extends Component {
       this.editor = new Editor({
         autofocus: true,
         enableCodeFolding: false,
-        autoCloseBrackets: false,
         lineNumbers: this.props.editorMode,
         lineWrapping: true,
         mode: {
@@ -655,7 +654,7 @@ class JSTerm extends Component {
       });
     }
 
-    this.emit("set-input-value");
+    this.emitForTests("set-input-value");
   }
 
   /**
@@ -1151,6 +1150,9 @@ class JSTerm extends Component {
     }
 
     this.editor.setAutoCompletionText(suffix);
+
+    // Eager evaluation results incorporate the current autocomplete suffix.
+    this.terminalInputChanged(this.lastInputValue + suffix);
   }
 
   getAutoCompletionText() {
@@ -1208,6 +1210,7 @@ class JSTerm extends Component {
 
   destroy() {
     this.autocompleteUpdate.cancel();
+    this.terminalInputChanged.cancel();
 
     if (this.autocompletePopup) {
       this.autocompletePopup.destroy();

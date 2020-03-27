@@ -527,7 +527,7 @@ class GetUserMediaWindowListener {
         auto req = MakeRefPtr<GetUserMediaRequest>(
             globalWindow, VoidString(), VoidString(),
             UserActivation::IsHandlingUserInput());
-        obs->NotifyObservers(req, "recording-device-stopped", nullptr);
+        obs->NotifyWhenScriptSafe(req, "recording-device-stopped", nullptr);
       }
       return;
     }
@@ -589,7 +589,7 @@ class GetUserMediaWindowListener {
         auto req = MakeRefPtr<GetUserMediaRequest>(
             window, removedRawId, removedSourceType,
             UserActivation::IsHandlingUserInput());
-        obs->NotifyObservers(req, "recording-device-stopped", nullptr);
+        obs->NotifyWhenScriptSafe(req, "recording-device-stopped", nullptr);
       }
     }
 
@@ -616,7 +616,7 @@ class GetUserMediaWindowListener {
         auto req = MakeRefPtr<GetUserMediaRequest>(
             window, removedRawId, removedSourceType,
             UserActivation::IsHandlingUserInput());
-        obs->NotifyObservers(req, "recording-device-stopped", nullptr);
+        obs->NotifyWhenScriptSafe(req, "recording-device-stopped", nullptr);
       }
     }
     if (mInactiveListeners.Length() == 0 && mActiveListeners.Length() == 0) {
@@ -839,7 +839,8 @@ MediaDevice::MediaDevice(const RefPtr<MediaEngineSource>& aSource,
       mName(aName),
       mID(aID),
       mGroupID(aGroupID),
-      mRawID(aRawID) {
+      mRawID(aRawID),
+      mRawName(aName) {
   MOZ_ASSERT(mSource);
 }
 
@@ -858,7 +859,8 @@ MediaDevice::MediaDevice(const RefPtr<AudioDeviceInfo>& aAudioDeviceInfo,
       mName(mSinkInfo->Name()),
       mID(aID),
       mGroupID(aGroupID),
-      mRawID(aRawID) {
+      mRawID(aRawID),
+      mRawName(mSinkInfo->Name()) {
   // For now this ctor is used only for Audiooutput.
   // It could be used for Audioinput and Videoinput
   // when we do not instantiate a MediaEngineSource
@@ -869,16 +871,22 @@ MediaDevice::MediaDevice(const RefPtr<AudioDeviceInfo>& aAudioDeviceInfo,
 
 MediaDevice::MediaDevice(const RefPtr<MediaDevice>& aOther, const nsString& aID,
                          const nsString& aGroupID, const nsString& aRawID)
+    : MediaDevice(aOther, aID, aGroupID, aRawID, aOther->mName) {}
+
+MediaDevice::MediaDevice(const RefPtr<MediaDevice>& aOther, const nsString& aID,
+                         const nsString& aGroupID, const nsString& aRawID,
+                         const nsString& aName)
     : mSource(aOther->mSource),
       mSinkInfo(aOther->mSinkInfo),
       mKind(aOther->mKind),
       mScary(aOther->mScary),
       mIsFake(aOther->mIsFake),
       mType(aOther->mType),
-      mName(aOther->mName),
+      mName(aName),
       mID(aID),
       mGroupID(aGroupID),
-      mRawID(aRawID) {
+      mRawID(aRawID),
+      mRawName(aOther->mRawName) {
   MOZ_ASSERT(aOther);
 }
 
@@ -962,6 +970,13 @@ NS_IMETHODIMP
 MediaDevice::GetName(nsAString& aName) {
   MOZ_ASSERT(NS_IsMainThread());
   aName.Assign(mName);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+MediaDevice::GetRawName(nsAString& aName) {
+  MOZ_ASSERT(NS_IsMainThread());
+  aName.Assign(mRawName);
   return NS_OK;
 }
 
@@ -2137,6 +2152,7 @@ nsresult MediaManager::NotifyRecordingStatusChange(
   NS_ConvertUTF8toUTF16 requestURL(pageURL);
 
   props->SetPropertyAsAString(NS_LITERAL_STRING("requestURL"), requestURL);
+  props->SetPropertyAsInterface(NS_LITERAL_STRING("window"), aWindow);
 
   obs->NotifyObservers(static_cast<nsIPropertyBag2*>(props),
                        "recording-device-events", nullptr);
@@ -2231,8 +2247,7 @@ static bool IsFullyActive(nsPIDOMWindowInner* aWindow) {
     if (context->IsTopLevelWindow()) {
       return true;
     }
-    nsCOMPtr<Element> frameElement =
-        nsGlobalWindowOuter::Cast(context)->GetRealFrameElementOuter();
+    nsCOMPtr<Element> frameElement = context->GetFrameElement();
     if (!frameElement) {
       return false;
     }
@@ -2916,7 +2931,12 @@ void MediaManager::AnonymizeDevices(MediaDeviceSet& aDevices,
       groupId.AppendInt(aWindowId);
       AnonymizeId(groupId, aOriginKey);
 
-      device = new MediaDevice(device, id, groupId, rawId);
+      nsString name;
+      device->GetName(name);
+      if (name.Find(NS_LITERAL_STRING("AirPods")) != -1) {
+        name = NS_LITERAL_STRING("AirPods");
+      }
+      device = new MediaDevice(device, id, groupId, rawId, name);
     }
   }
 }
@@ -3407,7 +3427,7 @@ void MediaManager::RemoveWindowID(uint64_t aWindowId) {
   nsString data = NS_ConvertUTF8toUTF16(windowBuffer);
 
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
-  obs->NotifyObservers(nullptr, "recording-window-ended", data.get());
+  obs->NotifyWhenScriptSafe(nullptr, "recording-window-ended", data.get());
   LOG("Sent recording-window-ended for window %" PRIu64 " (outer %" PRIu64 ")",
       aWindowId, outerID);
 }
@@ -3820,7 +3840,8 @@ NS_IMETHODIMP
 MediaManager::MediaCaptureWindowState(nsIDOMWindow* aCapturedWindow,
                                       uint16_t* aCamera, uint16_t* aMicrophone,
                                       uint16_t* aScreen, uint16_t* aWindow,
-                                      uint16_t* aBrowser) {
+                                      uint16_t* aBrowser,
+                                      bool aIncludeDescendants) {
   MOZ_ASSERT(NS_IsMainThread());
 
   CaptureState camera = CaptureState::Off;
@@ -3831,9 +3852,9 @@ MediaManager::MediaCaptureWindowState(nsIDOMWindow* aCapturedWindow,
 
   nsCOMPtr<nsPIDOMWindowInner> piWin = do_QueryInterface(aCapturedWindow);
   if (piWin) {
-    IterateWindowListeners(
-        piWin, [&camera, &microphone, &screen, &window,
-                &browser](const RefPtr<GetUserMediaWindowListener>& aListener) {
+    auto combineCaptureState =
+        [&camera, &microphone, &screen, &window,
+         &browser](const RefPtr<GetUserMediaWindowListener>& aListener) {
           camera = CombineCaptureState(
               camera, aListener->CapturingSource(MediaSourceEnum::Camera));
           microphone = CombineCaptureState(
@@ -3845,7 +3866,18 @@ MediaManager::MediaCaptureWindowState(nsIDOMWindow* aCapturedWindow,
               window, aListener->CapturingSource(MediaSourceEnum::Window));
           browser = CombineCaptureState(
               browser, aListener->CapturingSource(MediaSourceEnum::Browser));
-        });
+        };
+
+    if (aIncludeDescendants) {
+      IterateWindowListeners(piWin, combineCaptureState);
+    } else {
+      uint64_t windowID = piWin->WindowID();
+      RefPtr<GetUserMediaWindowListener> listener = GetWindowListener(windowID);
+      // listener might have been destroyed.
+      if (listener) {
+        combineCaptureState(listener);
+      }
+    }
   }
 
   *aCamera = FromCaptureState(camera);
@@ -3925,21 +3957,6 @@ void MediaManager::IterateWindowListeners(nsPIDOMWindowInner* aWindow,
           IterateWindowListeners(innerChild, aCallback);
         }
       }
-    }
-  }
-}
-
-void MediaManager::StopMediaStreams() {
-  nsCOMPtr<nsIArray> array;
-  GetActiveMediaCaptureWindows(getter_AddRefs(array));
-  uint32_t len;
-  array->GetLength(&len);
-  for (uint32_t i = 0; i < len; i++) {
-    nsCOMPtr<nsPIDOMWindowInner> win;
-    array->QueryElementAt(i, NS_GET_IID(nsPIDOMWindowInner),
-                          getter_AddRefs(win));
-    if (win) {
-      OnNavigation(win->WindowID());
     }
   }
 }

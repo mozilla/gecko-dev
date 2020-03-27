@@ -187,7 +187,7 @@ class SecondaryPanes extends Component<Props, State> {
 
     const buttons = [];
 
-    if (expressions.size) {
+    if (expressions.length) {
       buttons.push(
         debugBtn(
           evt => {
@@ -302,6 +302,7 @@ class SecondaryPanes extends Component<Props, State> {
             type="checkbox"
             checked={logEventBreakpoints ? "checked" : ""}
             onChange={e => this.props.toggleEventLogging()}
+            onKeyDown={e => e.stopPropagation()}
           />
           {L10N.getStr("eventlisteners.log")}
         </label>
@@ -349,7 +350,7 @@ class SecondaryPanes extends Component<Props, State> {
     return {
       header: L10N.getStr("callStack.header"),
       className: "call-stack-pane",
-      component: <Frames />,
+      component: <Frames panel="debugger" />,
       opened: prefs.callStackVisible,
       onToggle: opened => {
         prefs.callStackVisible = opened;

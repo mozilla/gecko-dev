@@ -1,7 +1,7 @@
 package org.mozilla.geckoview.test
 
-import android.support.test.filters.MediumTest
-import android.support.test.runner.AndroidJUnit4
+import androidx.test.filters.MediumTest
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.not
 import org.junit.Before
@@ -21,6 +21,8 @@ class OpenWindowTest : BaseSessionTest() {
 
     @Before
     fun setup() {
+        sessionRule.setPrefsUntilTestEnd(mapOf("dom.webnotifications.requireuserinteraction" to false))
+
         // Grant "desktop notification" permission
         mainSession.delegateUntilTestEnd(object : Callbacks.PermissionDelegate {
             override fun onContentPermissionRequest(session: GeckoSession, uri: String?, type: Int, callback: GeckoSession.PermissionDelegate.Callback) {

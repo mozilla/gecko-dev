@@ -43,15 +43,15 @@ void wr_compositor_bind(void* aCompositor, wr::NativeTileId aId,
 }
 
 void wr_compositor_create_surface(void* aCompositor, wr::NativeSurfaceId aId,
-                                  wr::DeviceIntSize aTileSize) {
+                                  wr::DeviceIntSize aTileSize, bool aIsOpaque) {
   RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
-  compositor->CreateSurface(aId, aTileSize);
+  compositor->CreateSurface(aId, aTileSize, aIsOpaque);
 }
 
 void wr_compositor_create_tile(void* aCompositor, wr::NativeSurfaceId aId,
-                               int32_t aX, int32_t aY, bool aIsOpaque) {
+                               int32_t aX, int32_t aY) {
   RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
-  compositor->CreateTile(aId, aX, aY, aIsOpaque);
+  compositor->CreateTile(aId, aX, aY);
 }
 
 void wr_compositor_destroy_tile(void* aCompositor, wr::NativeSurfaceId aId,
@@ -68,6 +68,11 @@ void wr_compositor_destroy_surface(void* aCompositor, NativeSurfaceId aId) {
 void wr_compositor_end_frame(void* aCompositor) {
   RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
   compositor->CompositorEndFrame();
+}
+
+void wr_compositor_enable_native_compositor(void* aCompositor, bool aEnable) {
+  RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
+  compositor->EnableNativeCompositor(aEnable);
 }
 
 void wr_compositor_unbind(void* aCompositor) {

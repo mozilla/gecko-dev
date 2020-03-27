@@ -10,7 +10,6 @@
 #include "mozilla/Casting.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/Move.h"
 #include "mozilla/Span.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/TextUtils.h"
@@ -22,6 +21,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <utility>
 
 #if defined(XP_UNIX) && !defined(XP_DARWIN)
 #  include <time.h>
@@ -76,6 +76,7 @@
 #include "vm/Iteration.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
+#include "vm/PromiseObject.h"  // js::PromiseObject, js::PromiseSlot_*
 #include "vm/ProxyObject.h"
 #include "vm/SavedStacks.h"
 #include "vm/Stack.h"
@@ -438,6 +439,12 @@ static bool GetBuildConfiguration(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   args.rval().setObject(*info);
+  return true;
+}
+
+static bool IsLCovEnabled(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  args.rval().setBoolean(coverage::IsLCovEnabled());
   return true;
 }
 
@@ -3374,10 +3381,8 @@ static mozilla::Maybe<JS::StructuredCloneScope> ParseCloneScope(
     return scope;
   }
 
-  if (StringEqualsLiteral(scopeStr, "SameProcessSameThread")) {
-    scope.emplace(JS::StructuredCloneScope::SameProcessSameThread);
-  } else if (StringEqualsLiteral(scopeStr, "SameProcessDifferentThread")) {
-    scope.emplace(JS::StructuredCloneScope::SameProcessDifferentThread);
+  if (StringEqualsLiteral(scopeStr, "SameProcess")) {
+    scope.emplace(JS::StructuredCloneScope::SameProcess);
   } else if (StringEqualsLiteral(scopeStr, "DifferentProcess")) {
     scope.emplace(JS::StructuredCloneScope::DifferentProcess);
   } else if (StringEqualsLiteral(scopeStr, "DifferentProcessForIndexedDB")) {
@@ -3415,7 +3420,8 @@ bool js::testingFunc_serialize(JSContext* cx, unsigned argc, Value* vp) {
       }
 
       if (StringEqualsLiteral(poli, "allow")) {
-        policy.allowSharedMemory();
+        policy.allowSharedMemoryObjects();
+        policy.allowIntraClusterClonableSharedObjects();
       } else if (StringEqualsLiteral(poli, "deny")) {
         // default
       } else {
@@ -3443,8 +3449,7 @@ bool js::testingFunc_serialize(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   if (!clonebuf) {
-    clonebuf.emplace(JS::StructuredCloneScope::SameProcessSameThread, nullptr,
-                     nullptr);
+    clonebuf.emplace(JS::StructuredCloneScope::SameProcess, nullptr, nullptr);
   }
 
   if (!clonebuf->write(cx, args.get(0), args.get(1), policy)) {
@@ -3473,7 +3478,7 @@ static bool Deserialize(JSContext* cx, unsigned argc, Value* vp) {
   JS::CloneDataPolicy policy;
   JS::StructuredCloneScope scope =
       obj->isSynthetic() ? JS::StructuredCloneScope::DifferentProcess
-                         : JS::StructuredCloneScope::SameProcessSameThread;
+                         : JS::StructuredCloneScope::SameProcess;
   if (args.get(1).isObject()) {
     RootedObject opts(cx, &args[1].toObject());
     if (!opts) {
@@ -3496,7 +3501,8 @@ static bool Deserialize(JSContext* cx, unsigned argc, Value* vp) {
       }
 
       if (StringEqualsLiteral(poli, "allow")) {
-        policy.allowSharedMemory();
+        policy.allowSharedMemoryObjects();
+        policy.allowIntraClusterClonableSharedObjects();
       } else if (StringEqualsLiteral(poli, "deny")) {
         // default
       } else {
@@ -4514,16 +4520,6 @@ static bool SetLazyParsingDisabled(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool SetDeferredParserAlloc(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-
-  bool enable = !args.hasDefined(0) || ToBoolean(args[0]);
-  cx->realm()->behaviors().setDeferredParserAlloc(enable);
-
-  args.rval().setUndefined();
-  return true;
-}
-
 static bool SetDiscardSource(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -4800,6 +4796,11 @@ static bool GetLcovInfo(JSContext* cx, unsigned argc, Value* vp) {
 
   if (args.length() > 1) {
     JS_ReportErrorASCII(cx, "Wrong number of arguments");
+    return false;
+  }
+
+  if (!coverage::IsLCovEnabled()) {
+    JS_ReportErrorASCII(cx, "Coverage not enabled for process.");
     return false;
   }
 
@@ -6258,6 +6259,10 @@ static const JSFunctionSpecWithHelp TestingFunctions[] = {
 "  Return an object describing some of the configuration options SpiderMonkey\n"
 "  was built with."),
 
+    JS_FN_HELP("isLcovEnabled", ::IsLCovEnabled, 0, 0,
+"getBuildConfiguration()",
+"  Return true if JS LCov support is enabled."),
+
     JS_FN_HELP("hasChild", HasChild, 0, 0,
 "hasChild(parent, child)",
 "  Return true if |child| is a child of |parent|, as determined by a call to\n"
@@ -6729,10 +6734,10 @@ gc::ZealModeHelpText),
 "  clone buffer object. 'policy' may be an options hash. Valid keys:\n"
 "    'SharedArrayBuffer' - either 'allow' or 'deny' (the default)\n"
 "      to specify whether SharedArrayBuffers may be serialized.\n"
-"    'scope' - SameProcessSameThread, SameProcessDifferentThread,\n"
-"      DifferentProcess, or DifferentProcessForIndexedDB. Determines how some\n"
-"      values will be serialized. Clone buffers may only be deserialized with a\n"
-"      compatible scope. NOTE - For DifferentProcess/DifferentProcessForIndexedDB,\n"
+"    'scope' - SameProcess, DifferentProcess, or\n"
+"      DifferentProcessForIndexedDB. Determines how some values will be\n"
+"      serialized. Clone buffers may only be deserialized with a compatible\n"
+"      scope. NOTE - For DifferentProcess/DifferentProcessForIndexedDB,\n"
 "      must also set SharedArrayBuffer:'deny' if data contains any shared memory\n"
 "      object."),
 
@@ -6743,10 +6748,10 @@ gc::ZealModeHelpText),
 "    'SharedArrayBuffer' - either 'allow' or 'deny' (the default)\n"
 "      to specify whether SharedArrayBuffers may be serialized.\n"
 "    'scope', which limits the clone buffers that are considered\n"
-"  valid. Allowed values: 'SameProcessSameThread', 'SameProcessDifferentThread',\n"
-"  'DifferentProcess', and 'DifferentProcessForIndexedDB'. So for example, a\n"
+"  valid. Allowed values: ''SameProcess', 'DifferentProcess',\n"
+"  and 'DifferentProcessForIndexedDB'. So for example, a\n"
 "  DifferentProcessForIndexedDB clone buffer may be deserialized in any scope, but\n"
-"  a SameProcessSameThread clone buffer cannot be deserialized in a\n"
+"  a SameProcess clone buffer cannot be deserialized in a\n"
 "  DifferentProcess scope."),
 
     JS_FN_HELP("detachArrayBuffer", DetachArrayBuffer, 1, 0,
@@ -6884,10 +6889,6 @@ gc::ZealModeHelpText),
 "setLazyParsingDisabled(bool)",
 "  Explicitly disable lazy parsing in the current compartment.  The default is that lazy "
 "  parsing is not explicitly disabled."),
-
-    JS_FN_HELP("setDeferredParserAlloc", SetDeferredParserAlloc, 1, 0,
-"setDeferredParserAlloc(bool)",
-"  Enable or disable the parser's deferred alloc support"),
 
     JS_FN_HELP("setDiscardSource", SetDiscardSource, 1, 0,
 "setDiscardSource(bool)",

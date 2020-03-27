@@ -220,8 +220,8 @@ void ParseContext::Scope::removeCatchParameters(ParseContext* pc,
 
 ParseContext::ParseContext(JSContext* cx, ParseContext*& parent,
                            SharedContext* sc, ErrorReporter& errorReporter,
-                           ParseInfo& parseInfo, Directives* newDirectives,
-                           bool isFull)
+                           CompilationInfo& compilationInfo,
+                           Directives* newDirectives, bool isFull)
     : Nestable<ParseContext>(&parent),
       traceLog_(sc->cx_,
                 isFull ? TraceLogger_ParsingFull : TraceLogger_ParsingSyntax,
@@ -237,7 +237,7 @@ ParseContext::ParseContext(JSContext* cx, ParseContext*& parent,
       newDirectives(newDirectives),
       lastYieldOffset(NoYieldOffset),
       lastAwaitOffset(NoAwaitOffset),
-      scriptId_(parseInfo.usedNames.nextScriptId()),
+      scriptId_(compilationInfo.usedNames.nextScriptId()),
       isStandaloneFunctionBody_(false),
       superScopeNeedsHomeObject_(false) {
   if (isFunctionBox()) {
@@ -245,15 +245,14 @@ ParseContext::ParseContext(JSContext* cx, ParseContext*& parent,
     // FunctionBoxes that get added to the tree in an AsmJS compilation
     // don't have a long enough lifespan, as AsmJS marks the lifo allocator
     // inside the ModuleValidator, and frees it again when that dies.
-    if (parseInfo.isDeferred() &&
-        !this->functionBox()->useAsmOrInsideUseAsm()) {
-      tree.emplace(parseInfo.treeHolder);
+    if (!this->functionBox()->useAsmOrInsideUseAsm()) {
+      tree.emplace(compilationInfo.treeHolder);
     }
 
     if (functionBox()->isNamedLambda()) {
-      namedLambdaScope_.emplace(cx, parent, parseInfo.usedNames);
+      namedLambdaScope_.emplace(cx, parent, compilationInfo.usedNames);
     }
-    functionScope_.emplace(cx, parent, parseInfo.usedNames);
+    functionScope_.emplace(cx, parent, compilationInfo.usedNames);
   }
 }
 
@@ -353,10 +352,6 @@ Maybe<DeclarationKind> ParseContext::isVarRedeclaredInEval(
 
   // In the case of eval, we also need to check enclosing VM scopes to see
   // if the var declaration is allowed in the context.
-  //
-  // This check is necessary in addition to
-  // js::CheckEvalDeclarationConflicts because we only know during parsing
-  // if a var is bound by for-of.
   js::Scope* enclosingScope = sc()->compilationEnclosingScope();
   js::Scope* varScope = EvalScope::nearestVarScopeForDirectEval(enclosingScope);
   MOZ_ASSERT(varScope);
@@ -509,7 +504,7 @@ bool ParseContext::declareFunctionThis(const UsedNameTracker& usedNames,
     return true;
   }
 
-  // Derived class constructors emit JSOP_CHECKRETURN, which requires
+  // Derived class constructors emit JSOp::CheckReturn, which requires
   // '.this' to be bound.
   FunctionBox* funbox = functionBox();
   HandlePropertyName dotThis = sc()->cx_->names().dotThis;

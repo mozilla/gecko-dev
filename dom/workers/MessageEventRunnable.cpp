@@ -21,7 +21,7 @@ MessageEventRunnable::MessageEventRunnable(WorkerPrivate* aWorkerPrivate,
                                            TargetAndBusyBehavior aBehavior)
     : WorkerDebuggeeRunnable(aWorkerPrivate, aBehavior),
       StructuredCloneHolder(CloningSupported, TransferringSupported,
-                            StructuredCloneScope::SameProcessDifferentThread) {}
+                            StructuredCloneScope::SameProcess) {}
 
 bool MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
                                             WorkerPrivate* aWorkerPrivate,
@@ -66,7 +66,11 @@ bool MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
       parent->GetClientInfo()->AgentClusterId().isSome() &&
       parent->GetClientInfo()->AgentClusterId()->Equals(
           aWorkerPrivate->AgentClusterId())) {
-    cloneDataPolicy.allowSharedMemory();
+    cloneDataPolicy.allowIntraClusterClonableSharedObjects();
+  }
+
+  if (aWorkerPrivate->IsSharedMemoryAllowed()) {
+    cloneDataPolicy.allowSharedMemoryObjects();
   }
 
   Read(parent, aCx, &messageData, cloneDataPolicy, rv);

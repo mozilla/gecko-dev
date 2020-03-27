@@ -38,6 +38,11 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
+  "RecommendationProviderSwitcher",
+  "resource://activity-stream/lib/RecommendationProviderSwitcher.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
   "PlacesFeed",
   "resource://activity-stream/lib/PlacesFeed.jsm"
 );
@@ -610,6 +615,12 @@ const FEEDS_DATA = [
     value: true,
   },
   {
+    name: "recommendationproviderswitcher",
+    factory: () => new RecommendationProviderSwitcher(),
+    title: "Handles switching between two types of personality providers",
+    value: true,
+  },
+  {
     name: "discoverystreamfeed",
     factory: () => new DiscoveryStreamFeed(),
     title: "Handles new pocket ui for the new tab page",
@@ -664,7 +675,9 @@ this.ActivityStream = class ActivityStream {
         this.feeds,
         ac.BroadcastToContent({
           type: at.INIT,
-          data: {},
+          data: {
+            locale: this.locale,
+          },
         }),
         { type: at.UNINIT }
       );
@@ -734,7 +747,7 @@ this.ActivityStream = class ActivityStream {
       this.geo = "";
     }
 
-    this.locale = Services.locale.appLocaleAsLangTag;
+    this.locale = Services.locale.appLocaleAsBCP47;
 
     // Update the pref config of those with dynamic values
     for (const pref of PREFS_CONFIG.keys()) {

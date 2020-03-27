@@ -248,7 +248,6 @@ class ZoneList {
   ZoneList& operator=(const ZoneList& other) = delete;
 };
 
-void SweepFinalizationGroups(GCParallelTask* task);
 void SweepWeakRefs(GCParallelTask* task);
 
 class GCRuntime {
@@ -261,6 +260,9 @@ class GCRuntime {
   void finish();
 
   JS::HeapState heapState() const { return heapState_; }
+
+  void freezeSelfHostingZone();
+  bool isSelfHostingZoneFrozen() const { return selfHostingZoneFrozen; }
 
   inline bool hasZealMode(ZealMode mode);
   inline void clearZealMode(ZealMode mode);
@@ -279,6 +281,8 @@ class GCRuntime {
   void resetParameter(JSGCParamKey key, AutoLockGC& lock);
   uint32_t getParameter(JSGCParamKey key);
   uint32_t getParameter(JSGCParamKey key, const AutoLockGC& lock);
+
+  void setPerformanceHint(PerformanceHint hint);
 
   MOZ_MUST_USE bool triggerGC(JS::GCReason reason);
   // Check whether to trigger a zone GC after allocating GC cells. During an
@@ -535,6 +539,9 @@ class GCRuntime {
   template <AllowGC allowGC>
   JSString* tryNewNurseryString(JSContext* cx, size_t thingSize,
                                 AllocKind kind);
+  template <AllowGC allowGC>
+  JS::BigInt* tryNewNurseryBigInt(JSContext* cx, size_t thingSize,
+                                  AllocKind kind);
   static TenuredCell* refillFreeListInGC(Zone* zone, AllocKind thingKind);
 
   void setParallelAtomsAllocEnabled(bool enabled);
@@ -698,8 +705,8 @@ class GCRuntime {
   void updateAtomsBitmap();
   void sweepDebuggerOnMainThread(JSFreeOp* fop);
   void sweepJitDataOnMainThread(JSFreeOp* fop);
+  void sweepFinalizationGroupsOnMainThread();
   void sweepFinalizationGroups(Zone* zone);
-  friend void SweepFinalizationGroups(GCParallelTask* task);
   void queueFinalizationGroupForCleanup(FinalizationGroupObject* group);
   void sweepWeakRefs(Zone* zone);
   friend void SweepWeakRefs(GCParallelTask* task);
@@ -732,6 +739,7 @@ class GCRuntime {
   void endCompactPhase();
   void sweepTypesAfterCompacting(Zone* zone);
   void sweepZoneAfterCompacting(MovingTracer* trc, Zone* zone);
+  bool canRelocateZone(Zone* zone) const;
   MOZ_MUST_USE bool relocateArenas(Zone* zone, JS::GCReason reason,
                                    Arena*& relocatedListOut,
                                    SliceBudget& sliceBudget);
@@ -750,6 +758,7 @@ class GCRuntime {
   void releaseRelocatedArenasWithoutUnlocking(Arena* arenaList,
                                               const AutoLockGC& lock);
   void finishCollection();
+  IncrementalProgress joinSweepMarkTask();
 
 #ifdef JS_GC_ZEAL
   void computeNonIncrementalMarkingForValidation(AutoGCSession& session);
@@ -845,8 +854,6 @@ class GCRuntime {
   MainThreadData<VerifyPreTracer*> verifyPreData;
 
  private:
-  UnprotectedData<bool> chunkAllocationSinceLastGC;
-
   MainThreadData<mozilla::TimeStamp> lastGCStartTime_;
   MainThreadData<mozilla::TimeStamp> lastGCEndTime_;
 
@@ -860,6 +867,12 @@ class GCRuntime {
   mozilla::Atomic<size_t, mozilla::ReleaseAcquire,
                   mozilla::recordreplay::Behavior::DontPreserve>
       numActiveZoneIters;
+
+  /*
+   * The self hosting zone is collected once after initialization. We don't
+   * allow allocation after this point and we don't collect it again.
+   */
+  WriteOnceData<bool> selfHostingZoneFrozen;
 
   /* During shutdown, the GC needs to clean up every possible object. */
   MainThreadData<bool> cleanUpEverything;
@@ -1092,6 +1105,9 @@ class GCRuntime {
   /* Always preserve JIT code during GCs, for testing. */
   MainThreadData<bool> alwaysPreserveCode;
 
+  /* Count of the number of zones that are currently in page load. */
+  MainThreadData<size_t> inPageLoadCount;
+
   MainThreadData<bool> lowMemoryState;
 
   /* Synchronize GC heap access among GC helper threads and the main thread. */
@@ -1130,6 +1146,9 @@ class GCRuntime {
   }
   const void* addressOfStringNurseryCurrentEnd() {
     return nursery_.refNoCheck().addressOfCurrentStringEnd();
+  }
+  const void* addressOfBigIntNurseryCurrentEnd() {
+    return nursery_.refNoCheck().addressOfCurrentBigIntEnd();
   }
   uint32_t* addressOfNurseryAllocCount() {
     return stats().addressOfAllocsSinceMinorGCNursery();

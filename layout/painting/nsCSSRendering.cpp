@@ -117,7 +117,7 @@ struct InlineBackgroundData {
       // of frames that are to the left (if this is an LTR block) or right
       // (if it's RTL) of the current one.
       bool isRtlBlock = (mLineContainer->StyleVisibility()->mDirection ==
-                         NS_STYLE_DIRECTION_RTL);
+                         StyleDirection::Rtl);
       nscoord curOffset = mVertical ? aFrame->GetOffsetTo(mLineContainer).y
                                     : aFrame->GetOffsetTo(mLineContainer).x;
 
@@ -607,8 +607,9 @@ void nsCSSRendering::ComputePixelRadii(const nscoord* aAppUnitsRadii,
                                        nscoord aAppUnitsPerPixel,
                                        RectCornerRadii* oBorderRadii) {
   Float radii[8];
-  NS_FOR_CSS_HALF_CORNERS(corner)
-  radii[corner] = Float(aAppUnitsRadii[corner]) / aAppUnitsPerPixel;
+  for (const auto corner : mozilla::AllPhysicalHalfCorners()) {
+    radii[corner] = Float(aAppUnitsRadii[corner]) / aAppUnitsPerPixel;
+  }
 
   (*oBorderRadii)[C_TL] = Size(radii[eCornerTopLeftX], radii[eCornerTopLeftY]);
   (*oBorderRadii)[C_TR] =
@@ -630,7 +631,7 @@ static Maybe<nsStyleBorder> GetBorderIfVisited(const ComputedStyle& aStyle) {
 
   result.emplace(*aStyle.StyleBorder());
   auto& newBorder = result.ref();
-  NS_FOR_CSS_SIDES(side) {
+  for (const auto side : mozilla::AllPhysicalSides()) {
     nscolor color = aStyle.GetVisitedDependentColor(
         nsStyleBorder::BorderColorFieldFor(side));
     newBorder.BorderColorFor(side) = StyleColor::FromColor(color);
@@ -715,9 +716,7 @@ ImgDrawResult nsCSSRendering::CreateWebRenderCommandsForBorderWithStyleBorder(
     return ImgDrawResult::NOT_SUPPORTED;
   }
 
-  if (aStyleBorder.mBorderImageRepeatH == StyleBorderImageRepeat::Round ||
-      aStyleBorder.mBorderImageRepeatH == StyleBorderImageRepeat::Space ||
-      aStyleBorder.mBorderImageRepeatV == StyleBorderImageRepeat::Round ||
+  if (aStyleBorder.mBorderImageRepeatH == StyleBorderImageRepeat::Space ||
       aStyleBorder.mBorderImageRepeatV == StyleBorderImageRepeat::Space) {
     return ImgDrawResult::NOT_SUPPORTED;
   }
@@ -802,7 +801,7 @@ static nsCSSBorderRenderer ConstructBorderRenderer(
   nscolor borderColors[4];
 
   // pull out styles, colors
-  NS_FOR_CSS_SIDES(i) {
+  for (const auto i : mozilla::AllPhysicalSides()) {
     borderStyles[i] = aStyleBorder.GetBorderStyle(i);
     borderColors[i] = aStyleBorder.BorderColorFor(i).CalcColor(*aStyle);
   }
@@ -1980,7 +1979,7 @@ static bool IsOpaqueBorderEdge(const nsStyleBorder& aBorder,
  * Returns true if all border edges are either missing or opaque.
  */
 static bool IsOpaqueBorder(const nsStyleBorder& aBorder) {
-  NS_FOR_CSS_SIDES(i) {
+  for (const auto i : mozilla::AllPhysicalSides()) {
     if (!IsOpaqueBorderEdge(aBorder, i)) {
       return false;
     }
@@ -2542,21 +2541,6 @@ ImgDrawResult nsCSSRendering::PaintStyleImageLayerWithSC(
 
   MOZ_ASSERT((aParams.layer < 0) ||
              (layers.mImageCount > uint32_t(aParams.layer)));
-  bool drawAllLayers = (aParams.layer < 0);
-
-  // Ensure we get invalidated for loads of the image.  We need to do
-  // this here because this might be the only code that knows about the
-  // association of the style data with the frame.
-  if (aBackgroundSC != aParams.frame->Style()) {
-    uint32_t startLayer =
-        drawAllLayers ? layers.mImageCount - 1 : aParams.layer;
-    uint32_t count = drawAllLayers ? layers.mImageCount : 1;
-    NS_FOR_VISIBLE_IMAGE_LAYERS_BACK_TO_FRONT_WITH_RANGE(i, layers, startLayer,
-                                                         count) {
-      aParams.frame->AssociateImage(layers.mLayers[i].mImage, &aParams.presCtx,
-                                    0);
-    }
-  }
 
   // The background color is rendered over the entire dirty area,
   // even if the image isn't.
@@ -2574,6 +2558,7 @@ ImgDrawResult nsCSSRendering::PaintStyleImageLayerWithSC(
 
   ImgDrawResult result = ImgDrawResult::SUCCESS;
   StyleGeometryBox currentBackgroundClip = StyleGeometryBox::BorderBox;
+  const bool drawAllLayers = (aParams.layer < 0);
   uint32_t count = drawAllLayers
                        ? layers.mImageCount  // iterate all image layers.
                        : layers.mImageCount -
@@ -2692,11 +2677,6 @@ nsCSSRendering::BuildWebRenderDisplayItemsForStyleImageLayerWithSC(
       PrepareImageLayer(&aParams.presCtx, aParams.frame, aParams.paintFlags,
                         paintBorderArea, clipState.mBGClipArea, layer, nullptr);
   result &= state.mImageRenderer.PrepareResult();
-
-  // Ensure we get invalidated for loads and animations of the image.
-  // We need to do this here because this might be the only code that
-  // knows about the association of the style data with the frame.
-  aParams.frame->AssociateImage(layer.mImage, &aParams.presCtx, 0);
 
   if (!state.mFillArea.IsEmpty()) {
     return state.mImageRenderer.BuildWebRenderDisplayItemsForLayer(
@@ -4081,6 +4061,16 @@ void nsCSSRendering::PaintDecorationLine(
   int32_t spacingOffset = isRTL ? aParams.glyphRange.Length() - 1 : 0;
   gfxTextRun::GlyphRunIterator iter(textRun, aParams.glyphRange, isRTL);
 
+  // For any glyph run where we don't actually do skipping, we'll need to
+  // advance the current position by its width.
+  // (For runs we do process, CreateTextBlob will update the position.)
+  auto currentGlyphRunAdvance = [&]() {
+    return textRun->GetAdvanceWidth(
+               gfxTextRun::Range(iter.GetStringStart(), iter.GetStringEnd()),
+               aParams.provider) /
+           appUnitsPerDevPixel;
+  };
+
   while (iter.NextRun()) {
     if (iter.GetGlyphRun()->mOrientation ==
             mozilla::gfx::ShapedTextFlags::TEXT_ORIENT_VERTICAL_UPRIGHT ||
@@ -4092,11 +4082,7 @@ void nsCSSRendering::PaintDecorationLine(
       // We also don't apply skip-ink to CJK text runs because many fonts
       // have an underline that looks really bad if this is done
       // (see https://bugzilla.mozilla.org/show_bug.cgi?id=1573249).
-      textPos.fX +=
-          textRun->GetAdvanceWidth(
-              gfxTextRun::Range(iter.GetStringStart(), iter.GetStringEnd()),
-              aParams.provider) /
-          appUnitsPerDevPixel;
+      textPos.fX += currentGlyphRunAdvance();
       continue;
     }
 
@@ -4105,6 +4091,7 @@ void nsCSSRendering::PaintDecorationLine(
     // because old macOS (10.9) may crash trying to retrieve glyph paths
     // that don't exist.
     if (font->GetFontEntry()->HasFontTable(TRUETYPE_TAG('s', 'b', 'i', 'x'))) {
+      textPos.fX += currentGlyphRunAdvance();
       continue;
     }
 
@@ -4123,6 +4110,7 @@ void nsCSSRendering::PaintDecorationLine(
                        (float)appUnitsPerDevPixel, textPos, spacingOffset);
 
     if (!textBlob) {
+      textPos.fX += currentGlyphRunAdvance();
       continue;
     }
 
@@ -4617,8 +4605,8 @@ gfxRect nsCSSRendering::GetTextDecorationRectInternal(
   // to physical coords, and move the decoration rect to the calculated
   // offset from baseline.
   if (aParams.vertical) {
-    Swap(r.x, r.y);
-    Swap(r.width, r.height);
+    std::swap(r.x, r.y);
+    std::swap(r.width, r.height);
     // line-upwards in vertical mode = physical-right, so we /add/ offset
     // to baseline. Except in sideways-lr mode, where line-upwards will be
     // physical leftwards.

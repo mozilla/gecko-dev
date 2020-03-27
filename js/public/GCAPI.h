@@ -463,10 +463,10 @@ namespace JS {
   D(INCREMENTAL_ALLOC_TRIGGER, 27)         \
   D(FULL_CELL_PTR_STR_BUFFER, 28)          \
   D(TOO_MUCH_JIT_CODE, 29)                 \
+  D(FULL_CELL_PTR_BIGINT_BUFFER, 30)       \
+  D(INIT_SELF_HOSTING, 31)                 \
                                            \
   /* These are reserved for future use. */ \
-  D(RESERVED6, 30)                         \
-  D(RESERVED7, 31)                         \
   D(RESERVED8, 32)                         \
                                            \
   /* Reasons from Firefox */               \
@@ -1099,6 +1099,12 @@ extern JS_PUBLIC_API void RunIdleTimeGCTask(JSRuntime* rt);
 
 extern JS_PUBLIC_API void SetHostCleanupFinalizationGroupCallback(
     JSContext* cx, JSHostCleanupFinalizationGroupCallback cb, void* data);
+
+/**
+ * Clear kept alive objects in JS WeakRef.
+ * https://tc39.es/proposal-weakrefs/#sec-clear-kept-objects
+ */
+extern JS_PUBLIC_API void ClearKeptObjects(JSContext* cx);
 
 }  // namespace JS
 

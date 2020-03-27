@@ -41,6 +41,9 @@ doesn't only contain trivial geometry, it can also store another
 [stacking_contexts]: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
 */
 
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::unreadable_literal, clippy::new_without_default, clippy::too_many_arguments))]
+
+
 // Cribbed from the |matches| crate, for simplicity.
 macro_rules! matches {
     ($expression:expr, $($pattern:tt)+) => {
@@ -81,7 +84,7 @@ mod box_shadow;
 #[cfg(any(feature = "capture", feature = "replay"))]
 mod capture;
 mod clip;
-mod clip_scroll_tree;
+mod spatial_tree;
 mod composite;
 mod debug_colors;
 mod debug_font_data;
@@ -218,3 +221,6 @@ pub use crate::screen_capture::{AsyncScreenshotHandle, RecordedFrameHandle};
 pub use crate::shade::{Shaders, WrShaders};
 pub use api as webrender_api;
 pub use webrender_build::shader::ProgramSourceDigest;
+pub use crate::picture::{TileDescriptor, TileId, InvalidationReason, PrimitiveCompareResult};
+pub use crate::picture::{TileNode, TileNodeKind, TileSerializer, TileCacheInstanceSerializer, TileOffset, TileCacheLoggerUpdateLists};
+pub use crate::intern::{Update,UpdateKind};

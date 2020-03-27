@@ -46,7 +46,7 @@ pub struct BlobImageKey(pub ImageKey);
 
 impl BlobImageKey {
     /// Interpret this blob image as an image for a display item.
-    pub fn as_image(&self) -> ImageKey {
+    pub fn as_image(self) -> ImageKey {
         self.0
     }
 }
@@ -251,10 +251,6 @@ bitflags! {
         ///
         /// See https://github.com/servo/webrender/pull/2555/
         const ALLOW_MIPMAPS = 2;
-        /// This is used as a performance hint - this image may be promoted to a native
-        /// compositor surface under certain (implementation specific) conditions. This
-        /// is typically used for large videos, and canvas elements.
-        const PREFER_COMPOSITOR_SURFACE = 4;
     }
 }
 
@@ -324,12 +320,6 @@ impl ImageDescriptor {
     /// Returns true if this descriptor allows mipmaps
     pub fn allow_mipmaps(&self) -> bool {
         self.flags.contains(ImageDescriptorFlags::ALLOW_MIPMAPS)
-    }
-
-    /// Returns true if this descriptor wants to be drawn as a native
-    /// compositor surface.
-    pub fn prefer_compositor_surface(&self) -> bool {
-        self.flags.contains(ImageDescriptorFlags::PREFER_COMPOSITOR_SURFACE)
     }
 }
 
@@ -419,6 +409,9 @@ pub trait BlobImageHandler: Send {
     /// A hook to let the handler clean up any state related a given namespace before the
     /// resource cache deletes them.
     fn clear_namespace(&mut self, namespace: IdNamespace);
+
+    /// Whether to allow rendering blobs on multiple threads.
+    fn enable_multithreading(&mut self, enable: bool);
 }
 
 /// A group of rasterization requests to execute synchronously on the scene builder thread.

@@ -16,7 +16,6 @@
 #include "mozilla/dom/indexedDB/ActorsParent.h"
 #include "mozilla/dom/indexedDB/PBackgroundIDBDatabaseParent.h"
 #include "mozilla/dom/IPCBlobUtils.h"
-#include "mozilla/dom/PendingIPCBlobParent.h"
 #include "mozilla/dom/quota/MemoryOutputStream.h"
 #include "nsAutoPtr.h"
 #include "nsComponentManagerUtils.h"
@@ -307,6 +306,9 @@ class FileHandleOp {
  protected:
   nsCOMPtr<nsIEventTarget> mOwningEventTarget;
   RefPtr<FileHandle> mFileHandle;
+#ifdef DEBUG
+  bool mEnqueued;
+#endif
 
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(FileHandleOp)
@@ -335,7 +337,12 @@ class FileHandleOp {
  protected:
   FileHandleOp(FileHandle* aFileHandle)
       : mOwningEventTarget(GetCurrentThreadSerialEventTarget()),
-        mFileHandle(aFileHandle) {
+        mFileHandle(aFileHandle)
+#ifdef DEBUG
+        ,
+        mEnqueued(false)
+#endif
+  {
     AssertIsOnOwningThread();
     MOZ_ASSERT(aFileHandle);
   }
@@ -560,20 +567,6 @@ class FlushOp final : public NormalFileHandleOp {
   ~FlushOp() {}
 
   virtual nsresult DoFileWork(FileHandle* aFileHandle) override;
-
-  virtual void GetResponse(FileRequestResponse& aResponse) override;
-};
-
-class GetFileOp final : public GetMetadataOp {
-  friend class FileHandle;
-
-  PBackgroundParent* mBackgroundParent;
-
- private:
-  // Only created by FileHandle.
-  GetFileOp(FileHandle* aFileHandle, const FileRequestParams& aParams);
-
-  ~GetFileOp() {}
 
   virtual void GetResponse(FileRequestResponse& aResponse) override;
 };
@@ -1407,6 +1400,11 @@ bool FileHandle::VerifyRequestParams(const FileRequestParams& aParams) const {
         return false;
       }
 
+      if (NS_WARN_IF(params.size() > UINT32_MAX)) {
+        ASSERT_UNLESS_FUZZING();
+        return false;
+      }
+
       break;
     }
 
@@ -1455,10 +1453,6 @@ bool FileHandle::VerifyRequestParams(const FileRequestParams& aParams) const {
         return false;
       }
 
-      break;
-    }
-
-    case FileRequestParams::TFileRequestGetFileParams: {
       break;
     }
 
@@ -1618,10 +1612,6 @@ PBackgroundFileRequestParent* FileHandle::AllocPBackgroundFileRequestParent(
       actor = new FlushOp(this, aParams);
       break;
 
-    case FileRequestParams::TFileRequestGetFileParams:
-      actor = new GetFileOp(this, aParams);
-      break;
-
     default:
       MOZ_CRASH("Should never get here!");
   }
@@ -1672,6 +1662,10 @@ void FileHandleOp::Enqueue() {
   MOZ_ASSERT(fileHandleThreadPool);
 
   fileHandleThreadPool->Enqueue(mFileHandle, this, false);
+
+#ifdef DEBUG
+  mEnqueued = true;
+#endif
 
   mFileHandle->NoteActiveRequest();
 }
@@ -1725,7 +1719,7 @@ bool NormalFileHandleOp::Init(FileHandle* aFileHandle) {
 void NormalFileHandleOp::Cleanup() {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mFileHandle);
-  MOZ_ASSERT_IF(!IsActorDestroyed(), mResponseSent);
+  MOZ_ASSERT_IF(mEnqueued && !IsActorDestroyed(), mResponseSent);
 
   mFileHandle = nullptr;
 }
@@ -2168,34 +2162,6 @@ nsresult FlushOp::DoFileWork(FileHandle* aFileHandle) {
 void FlushOp::GetResponse(FileRequestResponse& aResponse) {
   AssertIsOnOwningThread();
   aResponse = FileRequestFlushResponse();
-}
-
-GetFileOp::GetFileOp(FileHandle* aFileHandle, const FileRequestParams& aParams)
-    : GetMetadataOp(aFileHandle, FileRequestGetMetadataParams(true, true)),
-      mBackgroundParent(aFileHandle->GetBackgroundParent()) {
-  MOZ_ASSERT(aParams.type() == FileRequestParams::TFileRequestGetFileParams);
-  MOZ_ASSERT(mBackgroundParent);
-}
-
-void GetFileOp::GetResponse(FileRequestResponse& aResponse) {
-  AssertIsOnOwningThread();
-
-  RefPtr<BlobImpl> blobImpl = mFileHandle->GetMutableFile()->CreateBlobImpl();
-  MOZ_ASSERT(blobImpl);
-
-  PendingIPCBlobParent* actor =
-      PendingIPCBlobParent::Create(mBackgroundParent, blobImpl);
-  if (NS_WARN_IF(!actor)) {
-    // This can only fail if the child has crashed.
-    aResponse = NS_ERROR_DOM_FILEHANDLE_UNKNOWN_ERR;
-    return;
-  }
-
-  FileRequestGetFileResponse response;
-  response.fileParent() = actor;
-  response.metadata() = mMetadata;
-
-  aResponse = response;
 }
 
 }  // namespace dom

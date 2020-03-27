@@ -29,20 +29,12 @@ class CreateURLRunnable : public WorkerMainThreadRunnable {
         mBlobImpl(aBlobImpl),
         mURL(aURL) {
     MOZ_ASSERT(aBlobImpl);
-
-    DebugOnly<bool> isMutable;
-    MOZ_ASSERT(NS_SUCCEEDED(aBlobImpl->GetMutable(&isMutable)));
-    MOZ_ASSERT(!isMutable);
   }
 
   bool MainThreadRun() override {
     using namespace mozilla::ipc;
 
     AssertIsOnMainThread();
-
-    DebugOnly<bool> isMutable;
-    MOZ_ASSERT(NS_SUCCEEDED(mBlobImpl->GetMutable(&isMutable)));
-    MOZ_ASSERT(!isMutable);
 
     nsCOMPtr<nsIPrincipal> principal = mWorkerPrivate->GetPrincipal();
 
@@ -54,24 +46,6 @@ class CreateURLRunnable : public WorkerMainThreadRunnable {
       NS_WARNING("Failed to add data entry for the blob!");
       SetDOMStringToNull(mURL);
       return false;
-    }
-
-    if (!mWorkerPrivate->IsSharedWorker() &&
-        !mWorkerPrivate->IsServiceWorker()) {
-      // Walk up to top worker object.
-      WorkerPrivate* wp = mWorkerPrivate;
-      while (WorkerPrivate* parent = wp->GetParent()) {
-        wp = parent;
-      }
-
-      nsCOMPtr<nsIScriptContext> sc = wp->GetScriptContext();
-      // We could not have a ScriptContext in JSM code. In this case, we leak.
-      if (sc) {
-        nsCOMPtr<nsIGlobalObject> global = sc->GetGlobalObject();
-        MOZ_ASSERT(global);
-
-        global->RegisterHostObjectURI(url);
-      }
     }
 
     mURL = NS_ConvertUTF8toUTF16(url);
@@ -105,24 +79,6 @@ class RevokeURLRunnable : public WorkerMainThreadRunnable {
         NS_SUCCEEDED(principal->Subsumes(urlPrincipal, &subsumes)) &&
         subsumes) {
       BlobURLProtocolHandler::RemoveDataEntry(url);
-    }
-
-    if (!mWorkerPrivate->IsSharedWorker() &&
-        !mWorkerPrivate->IsServiceWorker()) {
-      // Walk up to top worker object.
-      WorkerPrivate* wp = mWorkerPrivate;
-      while (WorkerPrivate* parent = wp->GetParent()) {
-        wp = parent;
-      }
-
-      nsCOMPtr<nsIScriptContext> sc = wp->GetScriptContext();
-      // We could not have a ScriptContext in JSM code. In this case, we leak.
-      if (sc) {
-        nsCOMPtr<nsIGlobalObject> global = sc->GetGlobalObject();
-        MOZ_ASSERT(global);
-
-        global->UnregisterHostObjectURI(url);
-      }
     }
 
     return true;
@@ -163,11 +119,6 @@ void URLWorker::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
   RefPtr<BlobImpl> blobImpl = aBlob.Impl();
   MOZ_ASSERT(blobImpl);
 
-  aRv = blobImpl->SetMutable(false);
-  if (NS_WARN_IF(aRv.Failed())) {
-    return;
-  }
-
   RefPtr<CreateURLRunnable> runnable =
       new CreateURLRunnable(workerPrivate, blobImpl, aResult);
 
@@ -176,12 +127,10 @@ void URLWorker::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
     return;
   }
 
-  if (workerPrivate->IsSharedWorker() || workerPrivate->IsServiceWorker()) {
-    WorkerGlobalScope* scope = workerPrivate->GlobalScope();
-    MOZ_ASSERT(scope);
+  WorkerGlobalScope* scope = workerPrivate->GlobalScope();
+  MOZ_ASSERT(scope);
 
-    scope->RegisterHostObjectURI(NS_ConvertUTF16toUTF8(aResult));
-  }
+  scope->RegisterHostObjectURI(NS_ConvertUTF16toUTF8(aResult));
 }
 
 /* static */
@@ -198,12 +147,10 @@ void URLWorker::RevokeObjectURL(const GlobalObject& aGlobal,
     return;
   }
 
-  if (workerPrivate->IsSharedWorker() || workerPrivate->IsServiceWorker()) {
-    WorkerGlobalScope* scope = workerPrivate->GlobalScope();
-    MOZ_ASSERT(scope);
+  WorkerGlobalScope* scope = workerPrivate->GlobalScope();
+  MOZ_ASSERT(scope);
 
-    scope->UnregisterHostObjectURI(NS_ConvertUTF16toUTF8(aUrl));
-  }
+  scope->UnregisterHostObjectURI(NS_ConvertUTF16toUTF8(aUrl));
 }
 
 /* static */

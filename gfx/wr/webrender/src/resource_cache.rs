@@ -400,7 +400,7 @@ impl ImageResult {
                 entry.mark_unused(texture_cache);
             },
             ImageResult::Multi(ref mut entries) => {
-                for (_, entry) in &mut entries.resources {
+                for entry in entries.resources.values_mut() {
                     entry.mark_unused(texture_cache);
                 }
             },
@@ -554,6 +554,13 @@ impl ResourceCache {
 
     pub fn max_texture_size(&self) -> i32 {
         self.texture_cache.max_texture_size()
+    }
+
+    pub fn enable_multithreading(&mut self, enable: bool) {
+        self.glyph_rasterizer.enable_multithreading(enable);
+        if let Some(ref mut handler) = self.blob_image_handler {
+            handler.enable_multithreading(enable);
+        }
     }
 
     fn should_tile(limit: i32, descriptor: &ImageDescriptor, data: &CachedImageData) -> bool {
@@ -786,17 +793,15 @@ impl ResourceCache {
                     _ => {}
                 }
 
-            } else {
-                if let RasterizedBlob::NonTiled(ref mut queue) = *image {
-                    // If our new rasterized rect overwrites items in the queue, discard them.
-                    queue.retain(|img| {
-                        !data.rasterized_rect.contains_rect(&img.rasterized_rect)
-                    });
+            } else if let RasterizedBlob::NonTiled(ref mut queue) = *image {
+                // If our new rasterized rect overwrites items in the queue, discard them.
+                queue.retain(|img| {
+                    !data.rasterized_rect.contains_rect(&img.rasterized_rect)
+                });
 
-                    queue.push(data);
-                } else {
-                    *image = RasterizedBlob::NonTiled(vec![data]);
-                }
+                queue.push(data);
+            } else {
+                *image = RasterizedBlob::NonTiled(vec![data]);
             }
         }
     }
@@ -937,7 +942,7 @@ impl ResourceCache {
                                     tile,
                                 ).into();
 
-                                rect.intersection(&tile_rect).unwrap_or(DeviceIntRect::zero())
+                                rect.intersection(&tile_rect).unwrap_or_else(DeviceIntRect::zero)
                             })
                         }
                         (None, Some(..)) => DirtyRect::All,
@@ -1020,7 +1025,7 @@ impl ResourceCache {
 
         match (image.valid_tiles_after_bounds_change, valid_tiles_after_bounds_change) {
             (Some(old), Some(ref mut new)) => {
-                *new = new.intersection(&old).unwrap_or(TileRange::zero());
+                *new = new.intersection(&old).unwrap_or_else(TileRange::zero);
             }
             (Some(old), None) => {
                 valid_tiles_after_bounds_change = Some(old);
@@ -1779,6 +1784,7 @@ impl ResourceCache {
     pub fn create_compositor_surface(
         &mut self,
         tile_size: DeviceIntSize,
+        is_opaque: bool,
     ) -> NativeSurfaceId {
         let id = NativeSurfaceId(NEXT_NATIVE_SURFACE_ID.fetch_add(1, Ordering::Relaxed));
 
@@ -1787,6 +1793,7 @@ impl ResourceCache {
                 details: NativeSurfaceOperationDetails::CreateSurface {
                     id,
                     tile_size,
+                    is_opaque,
                 },
             }
         );
@@ -1813,13 +1820,11 @@ impl ResourceCache {
     pub fn create_compositor_tile(
         &mut self,
         id: NativeTileId,
-        is_opaque: bool,
     ) {
         self.pending_native_surface_updates.push(
             NativeSurfaceOperation {
                 details: NativeSurfaceOperationDetails::CreateTile {
                     id,
-                    is_opaque,
                 },
             }
         );

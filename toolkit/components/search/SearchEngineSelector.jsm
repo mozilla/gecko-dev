@@ -6,6 +6,7 @@
 
 var EXPORTED_SYMBOLS = ["SearchEngineSelector"];
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
@@ -18,11 +19,44 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 });
 
 const EXT_SEARCH_PREFIX = "resource://search-extensions/";
-const ENGINE_CONFIG_URL = `${EXT_SEARCH_PREFIX}engines.json`;
+const DEFAULT_CONFIG_URL = `${EXT_SEARCH_PREFIX}engines.json`;
+const ENGINE_CONFIG_PREF = "search.config.url";
+
 const USER_LOCALE = "$USER_LOCALE";
 
 function log(str) {
   SearchUtils.log("SearchEngineSelector " + str + "\n");
+}
+
+function getAppInfo(key) {
+  let value = null;
+  try {
+    // Services.appinfo is often null in tests.
+    value = Services.appinfo[key].toLowerCase();
+  } catch (e) {}
+  return value;
+}
+
+function hasAppKey(config, key) {
+  return "application" in config && key in config.application;
+}
+
+function sectionExcludes(config, key, value) {
+  return hasAppKey(config, key) && !config.application[key].includes(value);
+}
+
+function belowMinVersion(config, version) {
+  return (
+    hasAppKey(config, "minVersion") &&
+    Services.vc.compare(version, config.application.minVersion) < 0
+  );
+}
+
+function aboveMaxVersion(config, version) {
+  return (
+    hasAppKey(config, "maxVersion") &&
+    Services.vc.compare(version, config.application.maxVersion) > 0
+  );
 }
 
 /**
@@ -34,8 +68,9 @@ class SearchEngineSelector {
   /**
    * @param {string} url - Location of the configuration.
    */
-  async init(url = ENGINE_CONFIG_URL) {
-    this.configuration = await this.getEngineConfiguration(url);
+  async init(url = DEFAULT_CONFIG_URL) {
+    let configUrl = Services.prefs.getStringPref(ENGINE_CONFIG_PREF, url);
+    this.configuration = await this.getEngineConfiguration(configUrl);
   }
 
   /**
@@ -56,8 +91,12 @@ class SearchEngineSelector {
    *   details for the engine which should be the default in Private Browsing mode.
    */
   fetchEngineConfiguration(locale, region, channel) {
-    log(`fetchEngineConfiguration ${region}:${locale}:${channel}`);
     let cohort = Services.prefs.getCharPref("browser.search.cohort", null);
+    let name = getAppInfo("name");
+    let version = getAppInfo("version");
+    log(
+      `fetchEngineConfiguration ${region}:${locale}:${channel}:${cohort}:${name}:${version}`
+    );
     let engines = [];
     const lcLocale = locale.toLowerCase();
     const lcRegion = region.toLowerCase();
@@ -68,9 +107,10 @@ class SearchEngineSelector {
           return false;
         }
         if (
-          "application" in section &&
-          "channel" in section.application &&
-          !section.application.channel.includes(channel)
+          sectionExcludes(section, "channel", channel) ||
+          sectionExcludes(section, "name", name) ||
+          belowMinVersion(section, version) ||
+          aboveMaxVersion(section, version)
         ) {
           return false;
         }
@@ -160,7 +200,10 @@ class SearchEngineSelector {
     }
 
     if (SearchUtils.loggingEnabled) {
-      log("fetchEngineConfiguration: " + JSON.stringify(result));
+      log(
+        "fetchEngineConfiguration: " +
+          result.engines.map(e => e.webExtension.id)
+      );
     }
     return result;
   }

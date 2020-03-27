@@ -10,14 +10,12 @@ cp $1/AUTHORS .
 cp $1/LICENSE .
 cp $1/README.md .
 cp $1/include/cubeb/cubeb.h include
-cp $1/src/android/audiotrack_definitions.h src/android
 cp $1/src/android/sles_definitions.h src/android
 cp $1/src/cubeb-internal.h src
 cp $1/src/cubeb-speex-resampler.h src
 cp $1/src/cubeb.c src
 cp $1/src/cubeb_alsa.c src
 cp $1/src/cubeb_array_queue.h src
-cp $1/src/cubeb_audiotrack.c src
 cp $1/src/cubeb_audiounit.cpp src
 cp $1/src/cubeb_jack.cpp src
 cp $1/src/cubeb_log.cpp src
@@ -30,7 +28,6 @@ cp $1/src/cubeb-jni.h src
 cp $1/src/android/cubeb-output-latency.h src/android
 cp $1/src/android/cubeb_media_library.h src/android
 cp $1/src/cubeb_osx_run_loop.h src
-cp $1/src/cubeb_pulse.c src
 cp $1/src/cubeb_resampler.cpp src
 cp $1/src/cubeb_resampler.h src
 cp $1/src/cubeb_resampler_internal.h src
@@ -87,9 +84,5 @@ else
   echo "Remember to update moz.yaml with the version details."
 fi
 
-echo "Applying disable-assert.patch on top of $rev"
-patch -p3 < disable-assert.patch
 echo "Applying disable-iaudioclient3.patch on top of $rev"
 patch -p3 < disable-iaudioclient3.patch
-echo "Applying revert-optimization.patch on top of $rev"
-patch -p1 < revert-optimization.patch

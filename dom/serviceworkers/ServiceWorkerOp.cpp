@@ -24,6 +24,7 @@
 #include "nsThreadUtils.h"
 
 #include "ServiceWorkerCloneData.h"
+#include "ServiceWorkerShutdownState.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/DebugOnly.h"
@@ -333,6 +334,8 @@ bool ServiceWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
         GetCurrentThreadSerialEventTarget(), __func__,
         [self](
             const GenericNonExclusivePromise::ResolveOrRejectValue& aResult) {
+          MaybeReportServiceWorkerShutdownProgress(self->mArgs, true);
+
           MOZ_ASSERT(!self->mPromiseHolder.IsEmpty());
 
           if (NS_WARN_IF(aResult.IsReject())) {
@@ -348,6 +351,8 @@ bool ServiceWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
 
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
       __func__, [self = std::move(self), owner = std::move(owner)]() mutable {
+        MaybeReportServiceWorkerShutdownProgress(self->mArgs);
+
         auto lock = owner->mState.Lock();
         auto& state = lock.ref();
 
@@ -383,9 +388,9 @@ bool ServiceWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
 void ServiceWorkerOp::Cancel() { RejectAll(NS_ERROR_DOM_ABORT_ERR); }
 
 ServiceWorkerOp::ServiceWorkerOp(
-    const ServiceWorkerOpArgs& aArgs,
+    ServiceWorkerOpArgs&& aArgs,
     std::function<void(const ServiceWorkerOpResult&)>&& aCallback)
-    : mArgs(aArgs) {
+    : mArgs(std::move(aArgs)) {
   MOZ_ASSERT(RemoteWorkerService::Thread()->IsOnCurrentThread());
 
   RefPtr<ServiceWorkerOpPromise> promise = mPromiseHolder.Ensure(__func__);
@@ -504,10 +509,11 @@ class UpdateServiceWorkerStateOp final : public ServiceWorkerOp {
       MOZ_ASSERT(aWorkerPrivate);
       aWorkerPrivate->AssertIsOnWorkerThread();
       MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
-      MOZ_ASSERT(mOwner);
 
-      Unused << mOwner->Exec(aCx, aWorkerPrivate);
-      mOwner = nullptr;
+      if (mOwner) {
+        Unused << mOwner->Exec(aCx, aWorkerPrivate);
+        mOwner = nullptr;
+      }
 
       return true;
     }
@@ -925,9 +931,9 @@ class MessageEventOp final : public ExtendableEventOp {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MessageEventOp, override)
 
-  MessageEventOp(const ServiceWorkerOpArgs& aArgs,
+  MessageEventOp(ServiceWorkerOpArgs&& aArgs,
                  std::function<void(const ServiceWorkerOpResult&)>&& aCallback)
-      : ExtendableEventOp(aArgs, std::move(aCallback)),
+      : ExtendableEventOp(std::move(aArgs), std::move(aCallback)),
         mData(new ServiceWorkerCloneData()) {
     mData->CopyFromClonedMessageDataForBackgroundChild(
         mArgs.get_ServiceWorkerMessageEventOpArgs().clonedData());
@@ -1530,7 +1536,6 @@ nsresult FetchEventOp::DispatchFetchEvent(JSContext* aCx,
   fetchEventInit.mRequest = request;
   fetchEventInit.mBubbles = false;
   fetchEventInit.mCancelable = true;
-  fetchEventInit.mIsReload = args.isReload();
 
   /**
    * TODO: only expose the FetchEvent.clientId on subresource requests for
@@ -1628,7 +1633,7 @@ nsresult FetchEventOp::DispatchFetchEvent(JSContext* aCx,
 }
 
 /* static */ already_AddRefed<ServiceWorkerOp> ServiceWorkerOp::Create(
-    const ServiceWorkerOpArgs& aArgs,
+    ServiceWorkerOpArgs&& aArgs,
     std::function<void(const ServiceWorkerOpResult&)>&& aCallback) {
   MOZ_ASSERT(RemoteWorkerService::Thread()->IsOnCurrentThread());
 
@@ -1636,32 +1641,36 @@ nsresult FetchEventOp::DispatchFetchEvent(JSContext* aCx,
 
   switch (aArgs.type()) {
     case ServiceWorkerOpArgs::TServiceWorkerCheckScriptEvaluationOpArgs:
-      op = MakeRefPtr<CheckScriptEvaluationOp>(aArgs, std::move(aCallback));
+      op = MakeRefPtr<CheckScriptEvaluationOp>(std::move(aArgs),
+                                               std::move(aCallback));
       break;
     case ServiceWorkerOpArgs::TServiceWorkerUpdateStateOpArgs:
-      op = MakeRefPtr<UpdateServiceWorkerStateOp>(aArgs, std::move(aCallback));
+      op = MakeRefPtr<UpdateServiceWorkerStateOp>(std::move(aArgs),
+                                                  std::move(aCallback));
       break;
     case ServiceWorkerOpArgs::TServiceWorkerTerminateWorkerOpArgs:
-      op = MakeRefPtr<TerminateServiceWorkerOp>(aArgs, std::move(aCallback));
+      op = MakeRefPtr<TerminateServiceWorkerOp>(std::move(aArgs),
+                                                std::move(aCallback));
       break;
     case ServiceWorkerOpArgs::TServiceWorkerLifeCycleEventOpArgs:
-      op = MakeRefPtr<LifeCycleEventOp>(aArgs, std::move(aCallback));
+      op = MakeRefPtr<LifeCycleEventOp>(std::move(aArgs), std::move(aCallback));
       break;
     case ServiceWorkerOpArgs::TServiceWorkerPushEventOpArgs:
-      op = MakeRefPtr<PushEventOp>(aArgs, std::move(aCallback));
+      op = MakeRefPtr<PushEventOp>(std::move(aArgs), std::move(aCallback));
       break;
     case ServiceWorkerOpArgs::TServiceWorkerPushSubscriptionChangeEventOpArgs:
-      op = MakeRefPtr<PushSubscriptionChangeEventOp>(aArgs,
+      op = MakeRefPtr<PushSubscriptionChangeEventOp>(std::move(aArgs),
                                                      std::move(aCallback));
       break;
     case ServiceWorkerOpArgs::TServiceWorkerNotificationEventOpArgs:
-      op = MakeRefPtr<NotificationEventOp>(aArgs, std::move(aCallback));
+      op = MakeRefPtr<NotificationEventOp>(std::move(aArgs),
+                                           std::move(aCallback));
       break;
     case ServiceWorkerOpArgs::TServiceWorkerMessageEventOpArgs:
-      op = MakeRefPtr<MessageEventOp>(aArgs, std::move(aCallback));
+      op = MakeRefPtr<MessageEventOp>(std::move(aArgs), std::move(aCallback));
       break;
     case ServiceWorkerOpArgs::TServiceWorkerFetchEventOpArgs:
-      op = MakeRefPtr<FetchEventOp>(aArgs, std::move(aCallback));
+      op = MakeRefPtr<FetchEventOp>(std::move(aArgs), std::move(aCallback));
       break;
     default:
       MOZ_CRASH("Unknown Service Worker operation!");

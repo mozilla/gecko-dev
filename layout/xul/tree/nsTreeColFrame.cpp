@@ -84,7 +84,7 @@ void nsDisplayXULTreeColSplitterTarget::HitTest(
   }
 
   // Swap left and right for RTL trees in order to find the correct splitter
-  if (mFrame->StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+  if (mFrame->StyleVisibility()->mDirection == StyleDirection::Rtl) {
     bool tmp = left;
     left = right;
     right = tmp;
@@ -127,7 +127,7 @@ nsresult nsTreeColFrame::AttributeChanged(int32_t aNameSpaceID,
   nsresult rv =
       nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 
-  if (aAttribute == nsGkAtoms::ordinal || aAttribute == nsGkAtoms::primary) {
+  if (aAttribute == nsGkAtoms::primary) {
     InvalidateColumns();
   }
 

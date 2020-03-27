@@ -342,7 +342,10 @@ uint16_t SVGSVGElement::ZoomAndPan() {
 void SVGSVGElement::SetZoomAndPan(uint16_t aZoomAndPan, ErrorResult& rv) {
   if (aZoomAndPan == SVG_ZOOMANDPAN_DISABLE ||
       aZoomAndPan == SVG_ZOOMANDPAN_MAGNIFY) {
-    mEnumAttributes[ZOOMANDPAN].SetBaseValue(aZoomAndPan, this);
+    ErrorResult nestedRv;
+    mEnumAttributes[ZOOMANDPAN].SetBaseValue(aZoomAndPan, this, nestedRv);
+    MOZ_ASSERT(!nestedRv.Failed(),
+               "We already validated our aZoomAndPan value!");
     return;
   }
 
@@ -577,7 +580,7 @@ const SVGPreserveAspectRatio* SVGSVGElement::GetPreserveAspectRatioProperty()
 }
 
 bool SVGSVGElement::ClearPreserveAspectRatioProperty() {
-  void* valPtr = UnsetProperty(nsGkAtoms::overridePreserveAspectRatio);
+  void* valPtr = TakeProperty(nsGkAtoms::overridePreserveAspectRatio);
   bool didHaveProperty = !!valPtr;
   delete static_cast<SVGPreserveAspectRatio*>(valPtr);
   return didHaveProperty;

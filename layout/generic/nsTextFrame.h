@@ -255,7 +255,7 @@ class nsTextFrame : public nsFrame {
     // Setting a non-fluid continuation might affect our flow length (they're
     // quite rare so we assume it always does) so we delete our cached value:
     if (GetContent()->HasFlag(NS_HAS_FLOWLENGTH_PROPERTY)) {
-      GetContent()->DeleteProperty(nsGkAtoms::flowlength);
+      GetContent()->RemoveProperty(nsGkAtoms::flowlength);
       GetContent()->UnsetFlags(NS_HAS_FLOWLENGTH_PROPERTY);
     }
   }
@@ -277,7 +277,7 @@ class nsTextFrame : public nsFrame {
       // Changing from non-fluid to fluid continuation might affect our flow
       // length, so we delete our cached value:
       if (GetContent()->HasFlag(NS_HAS_FLOWLENGTH_PROPERTY)) {
-        GetContent()->DeleteProperty(nsGkAtoms::flowlength);
+        GetContent()->RemoveProperty(nsGkAtoms::flowlength);
         GetContent()->UnsetFlags(NS_HAS_FLOWLENGTH_PROPERTY);
       }
     }
@@ -332,14 +332,15 @@ class nsTextFrame : public nsFrame {
   /**
    * This is called only on the primary text frame. It indicates that
    * the selection state of the given character range has changed.
-   * Text in the range is unconditionally invalidated
+   * Frames corresponding to the character range are unconditionally invalidated
    * (Selection::Repaint depends on this).
-   * @param aSelected true if the selection has been added to the range,
-   * false otherwise
-   * @param aType the type of selection added or removed
+   * @param aStart start of character range.
+   * @param aEnd end (exclusive) of character range.
+   * @param aSelected true iff the character range is now selected.
+   * @param aType the type of the changed selection.
    */
-  void SetSelectedRange(uint32_t aStart, uint32_t aEnd, bool aSelected,
-                        SelectionType aSelectionType);
+  void SelectionStateChanged(uint32_t aStart, uint32_t aEnd, bool aSelected,
+                             SelectionType aSelectionType);
 
   FrameSearchResult PeekOffsetNoAmount(bool aForward, int32_t* aOffset) final;
   FrameSearchResult PeekOffsetCharacter(
@@ -861,7 +862,7 @@ class nsTextFrame : public nsFrame {
     nscoord mBaselineOffset;
 
     // This represents the offset from the initial position of the underline
-    const mozilla::StyleTextDecorationLength mTextUnderlineOffset;
+    const mozilla::LengthPercentageOrAuto mTextUnderlineOffset;
 
     // for CSS property text-decoration-thickness, the width refers to the
     // thickness of the decoration line
@@ -875,7 +876,7 @@ class nsTextFrame : public nsFrame {
 
     LineDecoration(nsIFrame* const aFrame, const nscoord aOff,
                    mozilla::StyleTextUnderlinePosition aUnderlinePosition,
-                   const mozilla::StyleTextDecorationLength& aUnderlineOffset,
+                   const mozilla::LengthPercentageOrAuto& aUnderlineOffset,
                    const mozilla::StyleTextDecorationLength& aDecThickness,
                    const nscolor aColor, const uint8_t aStyle)
         : mFrame(aFrame),

@@ -27,7 +27,6 @@
 #include "mozilla/dom/FileSystemTaskBase.h"
 #include "mozilla/dom/IPCBlobInputStreamChild.h"
 #include "mozilla/dom/PMediaTransportChild.h"
-#include "mozilla/dom/PendingIPCBlobChild.h"
 #include "mozilla/dom/TemporaryIPCBlobChild.h"
 #include "mozilla/dom/cache/ActorUtils.h"
 #include "mozilla/dom/indexedDB/PBackgroundIDBFactoryChild.h"
@@ -81,8 +80,7 @@ class TestChild final : public mozilla::ipc::PBackgroundTestChild {
 
 }  // namespace
 
-namespace mozilla {
-namespace ipc {
+namespace mozilla::ipc {
 
 using mozilla::dom::UDPSocketChild;
 using mozilla::net::PUDPSocketChild;
@@ -312,17 +310,6 @@ bool BackgroundChildImpl::DeallocPBackgroundStorageChild(
   return true;
 }
 
-dom::PPendingIPCBlobChild* BackgroundChildImpl::AllocPPendingIPCBlobChild(
-    const IPCBlob& aBlob) {
-  return new dom::PendingIPCBlobChild(aBlob);
-}
-
-bool BackgroundChildImpl::DeallocPPendingIPCBlobChild(
-    dom::PPendingIPCBlobChild* aActor) {
-  delete aActor;
-  return true;
-}
-
 dom::PRemoteWorkerChild* BackgroundChildImpl::AllocPRemoteWorkerChild(
     const RemoteWorkerData& aData) {
   RefPtr<dom::RemoteWorkerChild> agent = new dom::RemoteWorkerChild(aData);
@@ -469,8 +456,7 @@ bool BackgroundChildImpl::DeallocPUDPSocketChild(PUDPSocketChild* child) {
 dom::PBroadcastChannelChild* BackgroundChildImpl::AllocPBroadcastChannelChild(
     const PrincipalInfo& aPrincipalInfo, const nsCString& aOrigin,
     const nsString& aChannel) {
-  RefPtr<dom::BroadcastChannelChild> agent =
-      new dom::BroadcastChannelChild(aOrigin);
+  RefPtr<dom::BroadcastChannelChild> agent = new dom::BroadcastChannelChild();
   return agent.forget().take();
 }
 
@@ -769,8 +755,7 @@ PFileDescriptorSetChild* BackgroundChildImpl::SendPFileDescriptorSetConstructor(
   return PBackgroundChild::SendPFileDescriptorSetConstructor(aFD);
 }
 
-}  // namespace ipc
-}  // namespace mozilla
+}  // namespace mozilla::ipc
 
 mozilla::ipc::IPCResult TestChild::Recv__delete__(const nsCString& aTestArg) {
   MOZ_RELEASE_ASSERT(aTestArg == mTestArg,

@@ -119,7 +119,7 @@ iris-2.0:
     fetch:
         type: git
         repo: https://github.com/mozilla/iris_firefox
-        revision: 597f3517ec018b201250945d1f8cd38bef112ae1
+        revision: a91a1cb88a16b0ee4d30f0dfc165d2cacf48b10c
 
 isl-0.15:
     description: ISL 0.15 source code
@@ -264,12 +264,12 @@ wine-3.0.3:
             sig-url: "{url}.sign"
             key-path: build/unix/build-gcc/DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D.key
 
-cbindgen-0.12.0:
+cbindgen-0.13.0:
     description: cbindgen source code
     fetch:
         type: git
         repo: https://github.com/eqrion/cbindgen
-        revision: 38fda6b7785a09721d45ed723b14b118b46ae711
+        revision: 5e667158a144e59c221327d12cfc9f7f1c0e744b
 
 cctools-port:
     description: cctools-port source code
@@ -342,7 +342,7 @@ sccache:
         type: git
         repo: https://github.com/mozilla/sccache
         # 0.2.12 release + a handful of fixes
-        revision: 2a89cd6922469416d297f3fd9029d4d0a2686e3c
+        revision: e59cc28cf37254e182ede79070384f8166b52f8e
 
 openssl-1.1.0g:
     description: openssl 1.1.0g source code

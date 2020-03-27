@@ -31,11 +31,6 @@ class BrowserBridgeParent : public PBrowserBridgeParent {
 
   BrowserBridgeParent();
 
-  // Initialize this actor after performing startup.
-  nsresult Init(const nsString& aPresentationURL, const nsString& aRemoteType,
-                const WindowGlobalInit& aWindowInit, uint32_t aChromeFlags,
-                TabId aTabId);
-
   nsresult InitWithProcess(ContentParent* aContentParent,
                            const nsString& aPresentationURL,
                            const WindowGlobalInit& aWindowInit,
@@ -67,6 +62,7 @@ class BrowserBridgeParent : public PBrowserBridgeParent {
   friend class PBrowserBridgeParent;
 
   mozilla::ipc::IPCResult RecvShow(const OwnerShowInfo&);
+  mozilla::ipc::IPCResult RecvScrollbarPreferenceChanged(ScrollbarPreference);
   mozilla::ipc::IPCResult RecvLoadURL(const nsCString& aUrl);
   mozilla::ipc::IPCResult RecvResumeLoad(uint64_t aPendingSwitchID);
   mozilla::ipc::IPCResult RecvUpdateDimensions(

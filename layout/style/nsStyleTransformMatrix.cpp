@@ -116,11 +116,11 @@ void TransformReferenceBox::EnsureDimensionsAreCached() {
   mHeight = rect.Height();
 }
 
-void TransformReferenceBox::Init(const nsSize& aDimensions) {
+void TransformReferenceBox::Init(const nsRect& aDimensions) {
   MOZ_ASSERT(!mFrame && !mIsCached);
 
-  mX = 0;
-  mY = 0;
+  mX = aDimensions.x;
+  mY = aDimensions.y;
   mWidth = aDimensions.width;
   mHeight = aDimensions.height;
   mIsCached = true;
@@ -533,7 +533,7 @@ static void ProcessScale(Matrix4x4& aMatrix, const StyleScale& aScale,
 
 Matrix4x4 ReadTransforms(const StyleTranslate& aTranslate,
                          const StyleRotate& aRotate, const StyleScale& aScale,
-                         const Maybe<MotionPathData>& aMotion,
+                         const Maybe<ResolvedMotionPathData>& aMotion,
                          const StyleTransform& aTransform,
                          TransformReferenceBox& aRefBox,
                          float aAppUnitsPerMatrixUnit) {

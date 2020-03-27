@@ -8,50 +8,50 @@
 #ifndef mozilla_net_HttpBaseChannel_h
 #define mozilla_net_HttpBaseChannel_h
 
+#include <utility>
+
 #include "mozilla/Atomics.h"
-#include "nsHttp.h"
+#include "mozilla/IntegerPrintfMacros.h"
+#include "mozilla/Tuple.h"
+#include "mozilla/dom/DOMTypes.h"
+#include "mozilla/dom/ReferrerInfo.h"
+#include "mozilla/net/ChannelEventQueue.h"
+#include "mozilla/net/DNS.h"
+#include "mozilla/net/NeckoCommon.h"
+#include "mozilla/net/PrivateBrowsingChannel.h"
 #include "nsAutoPtr.h"
+#include "nsCOMArray.h"
+#include "nsCOMPtr.h"
 #include "nsHashPropertyBag.h"
-#include "nsProxyInfo.h"
+#include "nsHttp.h"
+#include "nsHttpConnectionInfo.h"
+#include "nsHttpHandler.h"
 #include "nsHttpRequestHead.h"
 #include "nsHttpResponseHead.h"
-#include "nsHttpConnectionInfo.h"
-#include "nsIConsoleReportCollector.h"
-#include "nsIEncodedChannel.h"
-#include "nsIHttpChannel.h"
-#include "nsHttpHandler.h"
-#include "nsIHttpChannelInternal.h"
-#include "nsIForcePendingChannel.h"
-#include "nsIFormPOSTActionChannel.h"
-#include "nsIUploadChannel2.h"
-#include "nsIProgressEventSink.h"
-#include "nsIURI.h"
-#include "nsIStringEnumerator.h"
-#include "nsISupportsPriority.h"
+#include "nsIApplicationCache.h"
 #include "nsIClassOfService.h"
 #include "nsIClassifiedChannel.h"
-#include "nsIApplicationCache.h"
-#include "nsIResumableChannel.h"
-#include "nsITraceableChannel.h"
-#include "nsILoadInfo.h"
-#include "mozilla/net/NeckoCommon.h"
-#include "nsThreadUtils.h"
-#include "mozilla/net/PrivateBrowsingChannel.h"
-#include "mozilla/net/DNS.h"
-#include "nsITimedChannel.h"
+#include "nsIConsoleReportCollector.h"
+#include "nsIEncodedChannel.h"
+#include "nsIForcePendingChannel.h"
+#include "nsIFormPOSTActionChannel.h"
 #include "nsIHttpChannel.h"
+#include "nsIHttpChannelInternal.h"
+#include "nsILoadInfo.h"
+#include "nsIProgressEventSink.h"
+#include "nsIResumableChannel.h"
 #include "nsISecurityConsoleMessage.h"
-#include "nsCOMArray.h"
-#include "mozilla/net/ChannelEventQueue.h"
-#include "mozilla/Move.h"
-#include "mozilla/Tuple.h"
+#include "nsIStringEnumerator.h"
+#include "nsISupportsPriority.h"
 #include "nsIThrottledInputChannel.h"
-#include "nsTArray.h"
-#include "nsCOMPtr.h"
-#include "mozilla/IntegerPrintfMacros.h"
+#include "nsITimedChannel.h"
+#include "nsITraceableChannel.h"
+#include "nsIURI.h"
+#include "nsIUploadChannel2.h"
+#include "nsProxyInfo.h"
 #include "nsStringEnumerator.h"
-#include "mozilla/dom/ReferrerInfo.h"
-#include "mozilla/dom/DOMTypes.h"
+#include "nsTArray.h"
+#include "nsThreadUtils.h"
 
 #define HTTP_BASE_CHANNEL_IID                        \
   {                                                  \
@@ -139,6 +139,8 @@ class HttpBaseChannel : public nsHashPropertyBag,
   NS_IMETHOD SetLoadGroup(nsILoadGroup* aLoadGroup) override;
   NS_IMETHOD GetLoadFlags(nsLoadFlags* aLoadFlags) override;
   NS_IMETHOD SetLoadFlags(nsLoadFlags aLoadFlags) override;
+  NS_IMETHOD GetTRRMode(nsIRequest::TRRMode* aTRRMode) override;
+  NS_IMETHOD SetTRRMode(nsIRequest::TRRMode aTRRMode) override;
   NS_IMETHOD SetDocshellUserAgentOverride();
 
   // nsIChannel
@@ -312,6 +314,8 @@ class HttpBaseChannel : public nsHashPropertyBag,
   NS_IMETHOD CancelByURLClassifier(nsresult aErrorCode) override;
   virtual void SetIPv4Disabled(void) override;
   virtual void SetIPv6Disabled(void) override;
+  NS_IMETHOD GetCrossOriginOpenerPolicy(
+      nsILoadInfo::CrossOriginOpenerPolicy* aCrossOriginOpenerPolicy) override;
   NS_IMETHOD ComputeCrossOriginOpenerPolicy(
       nsILoadInfo::CrossOriginOpenerPolicy aInitiatorPolicy,
       nsILoadInfo::CrossOriginOpenerPolicy* aOutPolicy) override;
@@ -699,6 +703,10 @@ class HttpBaseChannel : public nsHashPropertyBag,
   // copied from the transaction before we null out mTransaction
   // so that the timing can still be queried from OnStopRequest
   TimingStruct mTransactionTimings;
+
+  // Gets computed during ComputeCrossOriginOpenerPolicyMismatch so we have
+  // the channel's policy even if we don't know policy initiator.
+  nsILoadInfo::CrossOriginOpenerPolicy mComputedCrossOriginOpenerPolicy;
 
   uint64_t mStartPos;
   uint64_t mTransferSize;

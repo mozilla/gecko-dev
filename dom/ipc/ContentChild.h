@@ -120,7 +120,7 @@ class ContentChild final
                                bool* aWindowIsNew, BrowsingContext** aReturn);
 
   bool Init(MessageLoop* aIOLoop, base::ProcessId aParentPid,
-            const char* aParentBuildID, IPC::Channel* aChannel,
+            const char* aParentBuildID, UniquePtr<IPC::Channel> aChannel,
             uint64_t aChildID, bool aIsForBrowser);
 
   void InitXPCOM(const XPCOMInitData& aXPCOMInit,
@@ -161,10 +161,6 @@ class ContentChild final
   static void AppendProcessId(nsACString& aName);
 
   static void UpdateCookieStatus(nsIChannel* aChannel);
-
-  static already_AddRefed<RemoteBrowser> CreateBrowser(
-      nsFrameLoader* aFrameLoader, const TabContext& aContext,
-      const nsString& aRemoteType, BrowsingContext* aBrowsingContext);
 
   mozilla::ipc::IPCResult RecvInitGMPService(
       Endpoint<PGMPServiceChild>&& aGMPService);
@@ -701,7 +697,7 @@ class ContentChild final
       nsTArray<uint64_t>&& aToEvictSharedStateIDs);
 
   mozilla::ipc::IPCResult RecvSessionStorageData(
-      BrowsingContext* aTop, const nsACString& aOriginAttrs,
+      uint64_t aTopContextId, const nsACString& aOriginAttrs,
       const nsACString& aOriginKey, const nsTArray<KeyValuePair>& aDefaultData,
       const nsTArray<KeyValuePair>& aSessionData);
 
@@ -754,19 +750,30 @@ class ContentChild final
       BrowsingContext* aContext, BrowsingContext::Children&& aChildren);
 
   mozilla::ipc::IPCResult RecvRegisterBrowsingContextGroup(
-      nsTArray<BrowsingContext::IPCInitializer>&& aInits);
+      nsTArray<BrowsingContext::IPCInitializer>&& aInits,
+      nsTArray<WindowContext::IPCInitializer>&& aWindowInits);
 
   mozilla::ipc::IPCResult RecvWindowClose(BrowsingContext* aContext,
                                           bool aTrustedCaller);
-  mozilla::ipc::IPCResult RecvWindowFocus(BrowsingContext* aContext);
+  mozilla::ipc::IPCResult RecvWindowFocus(BrowsingContext* aContext,
+                                          CallerType aCallerType);
   mozilla::ipc::IPCResult RecvWindowBlur(BrowsingContext* aContext);
   mozilla::ipc::IPCResult RecvWindowPostMessage(
       BrowsingContext* aContext, const ClonedMessageData& aMessage,
       const PostMessageData& aData);
 
   mozilla::ipc::IPCResult RecvCommitBrowsingContextTransaction(
-      BrowsingContext* aContext, BrowsingContext::Transaction&& aTransaction,
+      BrowsingContext* aContext,
+      BrowsingContext::BaseTransaction&& aTransaction, uint64_t aEpoch);
+
+  mozilla::ipc::IPCResult RecvCommitWindowContextTransaction(
+      WindowContext* aContext, WindowContext::BaseTransaction&& aTransaction,
       uint64_t aEpoch);
+
+  mozilla::ipc::IPCResult RecvCreateWindowContext(
+      WindowContext::IPCInitializer&& aInit);
+  mozilla::ipc::IPCResult RecvDiscardWindowContext(
+      uint64_t aContextId, DiscardWindowContextResolver&& aResolve);
 
   mozilla::ipc::IPCResult RecvScriptError(
       const nsString& aMessage, const nsString& aSourceName,

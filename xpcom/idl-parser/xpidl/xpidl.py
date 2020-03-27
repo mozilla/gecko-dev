@@ -704,6 +704,9 @@ class Interface(object):
                 raise IDLError("interface '%s' is not builtinclass but derives from "
                                "builtinclass '%s'" %
                                (self.name, self.base), self.location)
+        elif self.name != 'nsISupports':
+            raise IDLError("Interface '%s' must inherit from nsISupports" %
+                           self.name, self.location)
 
         for member in self.members:
             member.resolve(self)
@@ -943,7 +946,7 @@ class CEnum(object):
         return "%s::%s " % (self.iface.name, self.basename)
 
     def rustType(self, calltype):
-        raise RustNoncompat('cenums unimplemented')
+        return "%s u%d" % ('*mut' if 'out' in calltype else '', self.width)
 
     def __str__(self):
         body = ', '.join('%s = %s' % v for v in self.variants)

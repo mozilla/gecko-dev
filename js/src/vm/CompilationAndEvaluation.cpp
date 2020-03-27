@@ -18,9 +18,9 @@
 #include "jstypes.h"      // JS_PUBLIC_API
 
 #include "frontend/BytecodeCompilation.h"  // frontend::CompileGlobalScript
+#include "frontend/CompilationInfo.h"      // for frontened::CompilationInfo
 #include "frontend/FullParseHandler.h"     // frontend::FullParseHandler
 #include "frontend/ParseContext.h"         // frontend::UsedNameTracker
-#include "frontend/ParseInfo.h"            // for frontened::ParseInfo
 #include "frontend/Parser.h"       // frontend::Parser, frontend::ParseGoal
 #include "js/CharacterEncoding.h"  // JS::UTF8Chars, JS::UTF8CharsToNewTwoByteCharsZ
 #include "js/RootingAPI.h"         // JS::Rooted
@@ -67,10 +67,15 @@ static JSScript* CompileSourceBuffer(JSContext* cx,
   CHECK_THREAD(cx);
 
   LifoAllocScope allocScope(&cx->tempLifoAlloc());
-  frontend::ParseInfo parseInfo(cx, allocScope);
+  frontend::CompilationInfo compilationInfo(cx, allocScope, options);
+  if (!compilationInfo.init(cx)) {
+    return nullptr;
+  }
 
-  frontend::GlobalScriptInfo info(cx, parseInfo, options, scopeKind);
-  return frontend::CompileGlobalScript(info, srcBuf);
+  frontend::GlobalSharedContext globalsc(
+      cx, scopeKind, compilationInfo, compilationInfo.directives,
+      compilationInfo.options.extraWarningsOption);
+  return frontend::CompileGlobalScript(compilationInfo, globalsc, srcBuf);
 }
 
 static JSScript* CompileUtf8Inflating(JSContext* cx,
@@ -217,26 +222,23 @@ JS_PUBLIC_API bool JS_Utf8BufferIsCompilableUnit(JSContext* cx,
   // our caller doesn't try to collect more buffered source.
   bool result = true;
 
-  using frontend::CreateScriptSourceObject;
+  using frontend::CompilationInfo;
   using frontend::FullParseHandler;
   using frontend::ParseGoal;
-  using frontend::ParseInfo;
   using frontend::Parser;
 
   CompileOptions options(cx);
   LifoAllocScope allocScope(&cx->tempLifoAlloc());
-  ParseInfo parseInfo(cx, allocScope);
-
-  Rooted<ScriptSourceObject*> sourceObject(cx);
-  sourceObject = CreateScriptSourceObject(cx, options, mozilla::Nothing());
-  if (!sourceObject) {
+  CompilationInfo compilationInfo(cx, allocScope, options);
+  if (!compilationInfo.init(cx)) {
     return false;
   }
 
   JS::AutoSuppressWarningReporter suppressWarnings(cx);
-  Parser<FullParseHandler, char16_t> parser(
-      cx, options, chars.get(), length,
-      /* foldConstants = */ true, parseInfo, nullptr, nullptr, sourceObject);
+  Parser<FullParseHandler, char16_t> parser(cx, options, chars.get(), length,
+                                            /* foldConstants = */ true,
+                                            compilationInfo, nullptr, nullptr,
+                                            compilationInfo.sourceObject);
   if (!parser.checkOptions() || !parser.parse()) {
     // We ran into an error. If it was because we ran out of source, we
     // return false so our caller knows to try to collect more buffered
@@ -549,10 +551,15 @@ static bool EvaluateSourceBuffer(JSContext* cx, ScopeKind scopeKind,
   RootedScript script(cx);
   {
     LifoAllocScope allocScope(&cx->tempLifoAlloc());
-    frontend::ParseInfo parseInfo(cx, allocScope);
+    frontend::CompilationInfo compilationInfo(cx, allocScope, options);
+    if (!compilationInfo.init(cx)) {
+      return false;
+    }
 
-    frontend::GlobalScriptInfo info(cx, parseInfo, options, scopeKind);
-    script = frontend::CompileGlobalScript(info, srcBuf);
+    frontend::GlobalSharedContext globalsc(
+        cx, scopeKind, compilationInfo, compilationInfo.directives,
+        compilationInfo.options.extraWarningsOption);
+    script = frontend::CompileGlobalScript(compilationInfo, globalsc, srcBuf);
     if (!script) {
       return false;
     }

@@ -11,17 +11,50 @@
 #ifdef ACCESSIBILITY
 #  include "mozilla/a11y/DocAccessibleChild.h"
 #endif
-#include "Layers.h"
-#include "ContentChild.h"
+#include <algorithm>
+#include <utility>
+
 #include "BrowserParent.h"
+#include "ClientLayerManager.h"
+#include "ContentChild.h"
+#include "DocumentInlines.h"
+#include "EventStateManager.h"
+#include "FrameLayerBuilder.h"
+#include "Layers.h"
+#include "MMPrinter.h"
+#include "PermissionMessageUtils.h"
+#include "PuppetWidget.h"
+#include "StructuredCloneData.h"
+#include "UnitTransforms.h"
+#include "Units.h"
+#include "VRManagerChild.h"
+#include "ipc/nsGUIEventIPC.h"
 #include "js/JSON.h"
-#include "mozilla/Preferences.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/BrowserElementParent.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/EventListenerManager.h"
+#include "mozilla/IMEStateManager.h"
+#include "mozilla/LookAndFeel.h"
+#include "mozilla/MouseEvents.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/PresShell.h"
+#include "mozilla/ProcessHangMonitor.h"
+#include "mozilla/ResultExtensions.h"
+#include "mozilla/ScopeExit.h"
+#include "mozilla/Services.h"
+#include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/StaticPrefs_layout.h"
+#include "mozilla/StaticPtr.h"
+#include "mozilla/Telemetry.h"
+#include "mozilla/TextEvents.h"
+#include "mozilla/TouchEvents.h"
+#include "mozilla/Unused.h"
 #include "mozilla/dom/BrowserBridgeChild.h"
 #include "mozilla/dom/DataTransfer.h"
+#include "mozilla/dom/DocGroup.h"
+#include "mozilla/dom/Element.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/JSWindowActorChild.h"
 #include "mozilla/dom/LoadURIOptionsBinding.h"
@@ -31,19 +64,19 @@
 #include "mozilla/dom/PBrowser.h"
 #include "mozilla/dom/PaymentRequestChild.h"
 #include "mozilla/dom/SessionStoreListener.h"
+#include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/dom/WindowProxyHolder.h"
 #include "mozilla/gfx/CrossProcessPaint.h"
+#include "mozilla/gfx/Matrix.h"
 #include "mozilla/gfx/gfxVars.h"
-#include "mozilla/IMEStateManager.h"
 #include "mozilla/ipc/BackgroundUtils.h"
-#include "mozilla/ipc/IPCStreamUtils.h"
 #include "mozilla/ipc/URIUtils.h"
-#include "mozilla/layers/APZChild.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
 #include "mozilla/layers/APZCTreeManagerChild.h"
+#include "mozilla/layers/APZChild.h"
 #include "mozilla/layers/APZEventState.h"
-#include "mozilla/layers/ContentProcessController.h"
 #include "mozilla/layers/CompositorBridgeChild.h"
+#include "mozilla/layers/ContentProcessController.h"
 #include "mozilla/layers/DoubleTapToZoom.h"
 #include "mozilla/layers/IAPZCTreeManager.h"
 #include "mozilla/layers/ImageBridgeChild.h"
@@ -53,87 +86,51 @@
 #include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/plugins/PPluginWidgetChild.h"
 #include "mozilla/recordreplay/ParentIPC.h"
-#include "mozilla/LookAndFeel.h"
-#include "mozilla/MouseEvents.h"
-#include "mozilla/Move.h"
-#include "mozilla/PresShell.h"
-#include "mozilla/ProcessHangMonitor.h"
-#include "mozilla/ResultExtensions.h"
-#include "mozilla/ScopeExit.h"
-#include "mozilla/Services.h"
-#include "mozilla/StaticPtr.h"
-#include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/StaticPrefs_layout.h"
-#include "mozilla/TextEvents.h"
-#include "mozilla/TouchEvents.h"
-#include "mozilla/Unused.h"
-#include "Units.h"
 #include "nsBrowserStatusFilter.h"
+#include "nsColorPickerProxy.h"
+#include "nsCommandParams.h"
+#include "nsContentPermissionHelper.h"
 #include "nsContentUtils.h"
-#include "nsQueryActor.h"
+#include "nsDeviceContext.h"
 #include "nsDocShell.h"
+#include "nsDocShellLoadState.h"
 #include "nsEmbedCID.h"
-#include "nsGlobalWindow.h"
-#include <algorithm>
 #include "nsExceptionHandler.h"
 #include "nsFilePickerProxy.h"
-#include "mozilla/dom/Element.h"
+#include "nsFocusManager.h"
 #include "nsGlobalWindow.h"
 #include "nsIBaseWindow.h"
 #include "nsIBrowserDOMWindow.h"
 #include "nsIClassifiedChannel.h"
-#include "DocumentInlines.h"
-#include "nsFocusManager.h"
-#include "EventStateManager.h"
 #include "nsIDocShell.h"
 #include "nsIFrame.h"
+#include "nsILoadContext.h"
+#include "nsISHEntry.h"
+#include "nsISHistory.h"
+#include "nsIScriptError.h"
 #include "nsISecureBrowserUI.h"
 #include "nsIURI.h"
 #include "nsIURIMutator.h"
+#include "nsIWeakReferenceUtils.h"
 #include "nsIWebBrowser.h"
 #include "nsIWebProgress.h"
+#include "nsLayoutUtils.h"
+#include "nsNetUtil.h"
 #include "nsPIDOMWindow.h"
 #include "nsPIWindowRoot.h"
 #include "nsPointerHashKeys.h"
-#include "nsLayoutUtils.h"
 #include "nsPrintfCString.h"
+#include "nsQueryActor.h"
+#include "nsQueryObject.h"
+#include "nsSandboxFlags.h"
+#include "nsString.h"
 #include "nsTHashtable.h"
 #include "nsThreadManager.h"
 #include "nsThreadUtils.h"
 #include "nsViewManager.h"
-#include "nsIWeakReferenceUtils.h"
-#include "nsWindowWatcher.h"
-#include "PermissionMessageUtils.h"
-#include "PuppetWidget.h"
-#include "StructuredCloneData.h"
 #include "nsViewportInfo.h"
-#include "nsILoadContext.h"
-#include "ipc/nsGUIEventIPC.h"
-#include "mozilla/gfx/Matrix.h"
-#include "UnitTransforms.h"
-#include "ClientLayerManager.h"
-#include "nsColorPickerProxy.h"
-#include "nsContentPermissionHelper.h"
-#include "nsNetUtil.h"
-#include "nsIScriptError.h"
-#include "mozilla/EventForwards.h"
-#include "nsDeviceContext.h"
-#include "nsSandboxFlags.h"
-#include "FrameLayerBuilder.h"
-#include "VRManagerChild.h"
-#include "nsCommandParams.h"
-#include "nsISHEntry.h"
-#include "nsISHistory.h"
-#include "nsQueryObject.h"
-#include "mozilla/dom/DocGroup.h"
-#include "nsString.h"
-#include "nsStringStream.h"
-#include "mozilla/Telemetry.h"
-#include "nsDocShellLoadState.h"
 #include "nsWebBrowser.h"
-#include "mozilla/dom/WindowGlobalChild.h"
-#include "MMPrinter.h"
-#include "mozilla/ResultExtensions.h"
+#include "nsWindowWatcher.h"
 
 #ifdef XP_WIN
 #  include "mozilla/plugins/PluginWidgetChild.h"
@@ -1107,7 +1104,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvResumeLoad(
 }
 
 void BrowserChild::DoFakeShow(const ParentShowInfo& aParentShowInfo) {
-  OwnerShowInfo ownerInfo{ScreenIntSize(), mParentIsActive, nsSizeMode_Normal};
+  OwnerShowInfo ownerInfo{ScreenIntSize(), ScrollbarPreference::Auto,
+                          mParentIsActive, nsSizeMode_Normal};
   RecvShow(aParentShowInfo, ownerInfo);
   mDidFakeShow = true;
 }
@@ -1133,15 +1131,6 @@ void BrowserChild::ApplyParentShowInfo(const ParentShowInfo& aInfo) {
 
   nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation());
   if (docShell) {
-    nsCOMPtr<nsIDocShellTreeItem> item = do_GetInterface(docShell);
-    if (IsMozBrowser()) {
-      // B2G allows window.name to be set by changing the name attribute on the
-      // <iframe mozbrowser> element. window.open calls cause this attribute to
-      // be set to the correct value. A normal <xul:browser> element has no such
-      // attribute. The data we get here comes from reading the attribute, so we
-      // shouldn't trust it for <xul:browser> elements.
-      item->SetName(aInfo.name());
-    }
     docShell->SetFullscreenAllowed(aInfo.fullscreenAllowed());
     if (aInfo.isPrivate()) {
       nsCOMPtr<nsILoadContext> context = do_GetInterface(docShell);
@@ -1183,6 +1172,9 @@ mozilla::ipc::IPCResult BrowserChild::RecvShow(
 
   ApplyParentShowInfo(aParentInfo);
   RecvParentActivated(aOwnerInfo.parentWindowIsActive());
+  if (!mIsTopLevel) {
+    RecvScrollbarPreferenceChanged(aOwnerInfo.scrollbarPreference());
+  }
 
   if (!res) {
     return IPC_FAIL_NO_REASON(this);
@@ -1206,6 +1198,16 @@ mozilla::ipc::IPCResult BrowserChild::RecvInitRendering(
     const CompositorOptions& aCompositorOptions, const bool& aLayersConnected) {
   mLayersConnected = Some(aLayersConnected);
   InitRenderingState(aTextureFactoryIdentifier, aLayersId, aCompositorOptions);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult BrowserChild::RecvScrollbarPreferenceChanged(
+    ScrollbarPreference aPreference) {
+  MOZ_ASSERT(!mIsTopLevel,
+             "Scrollbar visibility should be derived from chrome flags for "
+             "top-level windows");
+  nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation());
+  nsDocShell::Cast(docShell)->SetScrollbarPreference(aPreference);
   return IPC_OK();
 }
 
@@ -2643,7 +2645,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvNavigateByKey(
                     nsIFocusManager::FLAG_BYKEY, getter_AddRefs(result));
     }
 
-    SendRequestFocus(false);
+    SendRequestFocus(false, CallerType::System);
   }
 
   return IPC_OK();
@@ -2972,8 +2974,8 @@ BrowserChild::SetWebBrowserChrome(nsIWebBrowserChrome3* aWebBrowserChrome) {
   return NS_OK;
 }
 
-void BrowserChild::SendRequestFocus(bool aCanFocus) {
-  PBrowserChild::SendRequestFocus(aCanFocus);
+void BrowserChild::SendRequestFocus(bool aCanFocus, CallerType aCallerType) {
+  PBrowserChild::SendRequestFocus(aCanFocus, aCallerType);
 }
 
 void BrowserChild::EnableDisableCommands(
@@ -3313,35 +3315,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvSetOriginAttributes(
 mozilla::ipc::IPCResult BrowserChild::RecvSetWidgetNativeData(
     const WindowsHandle& aWidgetNativeData) {
   mWidgetNativeData = aWidgetNativeData;
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult BrowserChild::RecvGetContentBlockingLog(
-    GetContentBlockingLogResolver&& aResolve) {
-  dom::ContentChild* contentChild = dom::ContentChild::GetSingleton();
-  if (NS_WARN_IF(!contentChild)) {
-    return IPC_OK();
-  }
-
-  bool success = false;
-  nsAutoCString result;
-
-  if (nsCOMPtr<Document> doc = GetTopLevelDocument()) {
-    result = doc->GetContentBlockingLog()->Stringify();
-    success = true;
-  }
-
-  nsCOMPtr<nsIInputStream> stream;
-  nsresult rv = NS_NewCStringInputStream(getter_AddRefs(stream), result);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    success = false;
-  }
-
-  AutoIPCStream ipcStream;
-  ipcStream.Serialize(stream, contentChild);
-
-  aResolve(
-      Tuple<const IPCStream&, const bool&>(ipcStream.TakeValue(), success));
   return IPC_OK();
 }
 
@@ -3835,18 +3808,11 @@ NS_IMETHODIMP BrowserChild::OnSecurityChange(nsIWebProgress* aWebProgress,
 NS_IMETHODIMP BrowserChild::OnContentBlockingEvent(nsIWebProgress* aWebProgress,
                                                    nsIRequest* aRequest,
                                                    uint32_t aEvent) {
-  if (!IPCOpen() || !mShouldSendWebProgressEventsToParent) {
-    return NS_OK;
-  }
-
-  Maybe<WebProgressData> webProgressData;
-  RequestData requestData;
-  nsresult rv = PrepareProgressListenerData(aWebProgress, aRequest,
-                                            webProgressData, requestData);
-  NS_ENSURE_SUCCESS(rv, rv);
-  Unused << SendOnContentBlockingEvent(webProgressData, requestData, aEvent);
-
-  return NS_OK;
+  // The OnContentBlockingEvent only happenes in the parent process. It should
+  // not be seen in the content process.
+  MOZ_DIAGNOSTIC_ASSERT(
+      false, "OnContentBlockingEvent should not be seen in content process.");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP BrowserChild::OnProgressChange64(nsIWebProgress* aWebProgress,
@@ -4009,6 +3975,25 @@ BrowserChild::DoesWindowSupportProtectedMedia() {
           });
 }
 #endif
+
+void BrowserChild::NotifyContentBlockingEvent(
+    uint32_t aEvent, nsIChannel* aChannel, bool aBlocked, nsIURI* aHintURI,
+    const nsTArray<nsCString>& aTrackingFullHashes,
+    const Maybe<mozilla::AntiTrackingCommon::StorageAccessGrantedReason>&
+        aReason) {
+  if (!IPCOpen()) {
+    return;
+  }
+
+  Maybe<WebProgressData> webProgressData;
+  RequestData requestData;
+  nsresult rv = PrepareProgressListenerData(nullptr, aChannel, webProgressData,
+                                            requestData);
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  Unused << SendNotifyContentBlockingEvent(
+      aEvent, requestData, aBlocked, aHintURI, aTrackingFullHashes, aReason);
+}
 
 BrowserChildMessageManager::BrowserChildMessageManager(
     BrowserChild* aBrowserChild)

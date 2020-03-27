@@ -251,7 +251,8 @@ inline void AssignFromStringBuffer(nsStringBuffer* buffer, size_t len,
   buffer->ToString(len, dest);
 }
 
-template <typename T, typename std::enable_if_t<std::is_same<typename T::char_type, char16_t>::value>* = nullptr>
+template <typename T, typename std::enable_if_t<std::is_same<
+                          typename T::char_type, char16_t>::value>* = nullptr>
 inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
   size_t len = JS::GetStringLength(s);
   static_assert(js::MaxStringLength < (1 << 30),
@@ -285,7 +286,8 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
 }
 
 // Specialization for UTF8String.
-template <typename T, typename std::enable_if_t<std::is_same<typename T::char_type, char>::value>* = nullptr>
+template <typename T, typename std::enable_if_t<std::is_same<
+                          typename T::char_type, char>::value>* = nullptr>
 inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
   using namespace mozilla;
   CheckedInt<size_t> bufLen(JS::GetStringLength(s));
@@ -335,13 +337,14 @@ inline void AssignJSLinearString(nsAString& dest, JSLinearString* s) {
   js::CopyLinearStringChars(dest.BeginWriting(), s, len);
 }
 
-class nsAutoJSString : public nsAutoString {
+template <typename T>
+class nsTAutoJSString : public nsTAutoString<T> {
  public:
   /**
-   * nsAutoJSString should be default constructed, which leaves it empty
+   * nsTAutoJSString should be default constructed, which leaves it empty
    * (this->IsEmpty()), and initialized with one of the init() methods below.
    */
-  nsAutoJSString() {}
+  nsTAutoJSString() {}
 
   bool init(JSContext* aContext, JSString* str) {
     return AssignJSString(aContext, *this, str);
@@ -371,7 +374,12 @@ class nsAutoJSString : public nsAutoString {
 
   bool init(const JS::Value& v);
 
-  ~nsAutoJSString() {}
+  ~nsTAutoJSString() = default;
 };
+
+using nsAutoJSString = nsTAutoJSString<char16_t>;
+
+// Note that this is guaranteed to be UTF-8.
+using nsAutoJSCString = nsTAutoJSString<char>;
 
 #endif /* nsJSUtils_h__ */

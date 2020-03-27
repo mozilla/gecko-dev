@@ -8,9 +8,9 @@
 #define MASKLAYERIMAGECACHE_H_
 
 #include "DisplayItemClip.h"
-#include "nsAutoPtr.h"
 #include "nsPresContext.h"
 #include "mozilla/gfx/Matrix.h"
+#include "mozilla/UniquePtr.h"
 
 namespace mozilla {
 
@@ -56,7 +56,7 @@ class MaskLayerImageCache {
                 aPresContext->AppUnitsToGfxUnits(aRRect.mRect.width),
                 aPresContext->AppUnitsToGfxUnits(aRRect.mRect.height)) {
       MOZ_COUNT_CTOR(PixelRoundedRect);
-      NS_FOR_CSS_HALF_CORNERS(corner) {
+      for (const auto corner : mozilla::AllPhysicalHalfCorners()) {
         mRadii[corner] =
             aPresContext->AppUnitsToGfxUnits(aRRect.mRadii[corner]);
       }
@@ -64,7 +64,9 @@ class MaskLayerImageCache {
 
     PixelRoundedRect(const PixelRoundedRect& aPRR) : mRect(aPRR.mRect) {
       MOZ_COUNT_CTOR(PixelRoundedRect);
-      NS_FOR_CSS_HALF_CORNERS(corner) { mRadii[corner] = aPRR.mRadii[corner]; }
+      for (const auto corner : mozilla::AllPhysicalHalfCorners()) {
+        mRadii[corner] = aPRR.mRadii[corner];
+      }
     }
 
     ~PixelRoundedRect() { MOZ_COUNT_DTOR(PixelRoundedRect); }
@@ -89,7 +91,7 @@ class MaskLayerImageCache {
         return false;
       }
 
-      NS_FOR_CSS_HALF_CORNERS(corner) {
+      for (const auto corner : mozilla::AllPhysicalHalfCorners()) {
         if (mRadii[corner] != aOther.mRadii[corner]) {
           return false;
         }
@@ -240,10 +242,10 @@ class MaskLayerImageCache {
     enum { ALLOW_MEMMOVE = true };
 
     bool operator==(const MaskLayerImageEntry& aOther) const {
-      return KeyEquals(aOther.mKey);
+      return KeyEquals(aOther.mKey.get());
     }
 
-    nsAutoPtr<const MaskLayerImageKey> mKey;
+    mozilla::UniquePtr<const MaskLayerImageKey> mKey;
     RefPtr<ImageContainer> mContainer;
   };
 

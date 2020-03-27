@@ -362,7 +362,7 @@ class RefreshDriverTimer {
 
     LOG("[%p] ticking drivers...", this);
     // RD is short for RefreshDriver
-    AUTO_PROFILER_TRACING("Paint", "RefreshDriverTick", GRAPHICS);
+    AUTO_PROFILER_TRACING_MARKER("Paint", "RefreshDriverTick", GRAPHICS);
 
     TickRefreshDrivers(aId, now, mContentRefreshDrivers);
     TickRefreshDrivers(aId, now, mRootRefreshDrivers);
@@ -1168,6 +1168,7 @@ nsRefreshDriver::nsRefreshDriver(nsPresContext* aPresContext)
       mSkippedPaints(false),
       mResizeSuppressed(false),
       mNotifyDOMContentFlushed(false),
+      mNeedToUpdateIntersectionObservations(false),
       mWarningThreshold(REFRESH_WAIT_WARNING) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mPresContext,
@@ -1333,7 +1334,7 @@ bool nsRefreshDriver::AddImageRequest(imgIRequest* aRequest) {
   if (delay == 0) {
     mRequests.PutEntry(aRequest);
   } else {
-    ImageStartData* start = mStartTable.LookupForAdd(delay).OrInsert(
+    const auto& start = mStartTable.LookupForAdd(delay).OrInsert(
         []() { return new ImageStartData(); });
     start->mEntries.PutEntry(aRequest);
   }
@@ -1644,6 +1645,8 @@ void nsRefreshDriver::UpdateIntersectionObservations() {
     doc->UpdateIntersectionObservations();
     doc->ScheduleIntersectionObserverNotification();
   }
+
+  mNeedToUpdateIntersectionObservations = false;
 }
 
 void nsRefreshDriver::DispatchAnimationEvents() {
@@ -1724,8 +1727,9 @@ void nsRefreshDriver::RunFrameRequestCallbacks(TimeStamp aNowTime) {
   mFrameRequestCallbackDocs.Clear();
 
   if (!frameRequestCallbacks.IsEmpty()) {
-    AUTO_PROFILER_TRACING_DOCSHELL("Paint", "Scripts", GRAPHICS,
-                                   GetDocShell(mPresContext));
+    AUTO_PROFILER_TRACING_MARKER_DOCSHELL("Paint",
+                                          "requestAnimationFrame callbacks",
+                                          GRAPHICS, GetDocShell(mPresContext));
     for (const DocumentFrameCallbacks& docCallbacks : frameRequestCallbacks) {
       // XXXbz Bug 863140: GetInnerWindow can return the outer
       // window in some cases.
@@ -1875,6 +1879,7 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
   RefPtr<PresShell> presShell = mPresContext->GetPresShell();
   if (!presShell ||
       (!HasObservers() && !HasImageRequests() &&
+       !mNeedToUpdateIntersectionObservations &&
        mVisualViewportResizeEvents.IsEmpty() && mScrollEvents.IsEmpty() &&
        mVisualViewportScrollEvents.IsEmpty())) {
     // Things are being destroyed, or we no longer have any observers.
@@ -1908,7 +1913,8 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
 
   mResizeSuppressed = false;
 
-  AutoRestore<bool> restoreInRefresh(mInRefresh);
+  bool oldInRefresh = mInRefresh;
+  auto restoreInRefresh = MakeScopeExit([&] { mInRefresh = oldInRefresh; });
   mInRefresh = true;
 
   AutoRestore<TimeStamp> restoreTickStart(mTickStart);

@@ -376,12 +376,15 @@ nsresult ServiceWorkerPrivateImpl::CheckScriptEvaluation(
           return;
         }
 
-        RefPtr<GenericNonExclusivePromise> promise = self->ShutdownInternal();
-
         RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
         MOZ_ASSERT(swm);
 
-        swm->BlockShutdownOn(promise);
+        auto shutdownStateId = swm->MaybeInitServiceWorkerShutdownProgress();
+
+        RefPtr<GenericNonExclusivePromise> promise =
+            self->ShutdownInternal(shutdownStateId);
+
+        swm->BlockShutdownOn(promise, shutdownStateId);
 
         promise->Then(
             GetCurrentThreadSerialEventTarget(), __func__,
@@ -573,7 +576,7 @@ ServiceWorkerPrivateImpl::PendingFetchEvent::~PendingFetchEvent() {
 nsresult ServiceWorkerPrivateImpl::SendFetchEvent(
     RefPtr<ServiceWorkerRegistrationInfo> aRegistration,
     nsCOMPtr<nsIInterceptedChannel> aChannel, const nsAString& aClientId,
-    const nsAString& aResultingClientId, bool aIsReload) {
+    const nsAString& aResultingClientId) {
   AssertIsOnMainThread();
   MOZ_ASSERT(mOuter);
   MOZ_ASSERT(aRegistration);
@@ -598,7 +601,7 @@ nsresult ServiceWorkerPrivateImpl::SendFetchEvent(
   // FetchEventOpChild will fill in the IPCInternalRequest.
   ServiceWorkerFetchEventOpArgs args(
       mOuter->mInfo->ScriptSpec(), IPCInternalRequest(), nsString(aClientId),
-      nsString(aResultingClientId), aIsReload,
+      nsString(aResultingClientId),
       nsContentUtils::IsNonSubresourceRequest(channel));
 
   if (mOuter->mInfo->State() == ServiceWorkerState::Activating) {
@@ -674,15 +677,18 @@ void ServiceWorkerPrivateImpl::Shutdown() {
                "All Service Workers should start shutting down before the "
                "ServiceWorkerManager does!");
 
-    RefPtr<GenericNonExclusivePromise> promise = ShutdownInternal();
-    swm->BlockShutdownOn(promise);
+    auto shutdownStateId = swm->MaybeInitServiceWorkerShutdownProgress();
+
+    RefPtr<GenericNonExclusivePromise> promise =
+        ShutdownInternal(shutdownStateId);
+    swm->BlockShutdownOn(promise, shutdownStateId);
   }
 
   MOZ_ASSERT(WorkerIsDead());
 }
 
-RefPtr<GenericNonExclusivePromise>
-ServiceWorkerPrivateImpl::ShutdownInternal() {
+RefPtr<GenericNonExclusivePromise> ServiceWorkerPrivateImpl::ShutdownInternal(
+    uint32_t aShutdownStateId) {
   AssertIsOnMainThread();
   MOZ_ASSERT(mControllerChild);
 
@@ -701,7 +707,7 @@ ServiceWorkerPrivateImpl::ShutdownInternal() {
       new GenericNonExclusivePromise::Private(__func__);
 
   Unused << ExecServiceWorkerOp(
-      ServiceWorkerTerminateWorkerOpArgs(),
+      ServiceWorkerTerminateWorkerOpArgs(aShutdownStateId),
       [promise](ServiceWorkerOpResult&& aResult) {
         MOZ_ASSERT(aResult.type() == ServiceWorkerOpResult::Tnsresult);
         promise->Resolve(true, __func__);

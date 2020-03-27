@@ -43,7 +43,6 @@ nsFrameLoaderOwner::GetBrowsingContext() {
 
 bool nsFrameLoaderOwner::UseRemoteSubframes() {
   RefPtr<Element> owner = do_QueryObject(this);
-  MOZ_ASSERT(this);
 
   nsILoadContext* loadContext = owner->OwnerDoc()->GetLoadContext();
   MOZ_DIAGNOSTIC_ASSERT(loadContext);
@@ -70,8 +69,9 @@ bool nsFrameLoaderOwner::ShouldPreserveBrowsingContext(
 }
 
 void nsFrameLoaderOwner::ChangeRemotenessCommon(
-    bool aPreserveContext, const nsAString& aRemoteType,
-    std::function<void()>& aFrameLoaderInit, mozilla::ErrorResult& aRv) {
+    bool aPreserveContext, bool aSwitchingInProgressLoad,
+    const nsAString& aRemoteType, std::function<void()>& aFrameLoaderInit,
+    mozilla::ErrorResult& aRv) {
   RefPtr<mozilla::dom::BrowsingContext> bc;
   bool networkCreated = false;
 
@@ -108,7 +108,7 @@ void nsFrameLoaderOwner::ChangeRemotenessCommon(
       // Preserve the networkCreated status, as nsDocShells created after a
       // process swap may shouldn't change their dynamically-created status.
       networkCreated = mFrameLoader->IsNetworkCreated();
-      mFrameLoader->Destroy();
+      mFrameLoader->Destroy(aSwitchingInProgressLoad);
       mFrameLoader = nullptr;
     }
 
@@ -192,6 +192,7 @@ void nsFrameLoaderOwner::ChangeRemoteness(
   };
 
   ChangeRemotenessCommon(ShouldPreserveBrowsingContext(aOptions),
+                         aOptions.mSwitchingInProgressLoad,
                          aOptions.mRemoteType, frameLoaderInit, rv);
 }
 
@@ -213,6 +214,6 @@ void nsFrameLoaderOwner::ChangeRemotenessWithBridge(BrowserBridgeChild* aBridge,
   // NOTE: We always use the DEFAULT_REMOTE_TYPE here, because we don't actually
   // know the real remote type, and don't need to, as we're a content process.
   ChangeRemotenessCommon(
-      /* preserve */ true, NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE),
-      frameLoaderInit, rv);
+      /* preserve */ true, /* switching in progress load */ true,
+      NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE), frameLoaderInit, rv);
 }

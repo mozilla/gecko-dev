@@ -21,8 +21,7 @@
     }                                                \
   }
 
-namespace mozilla {
-namespace jsdebugger {
+namespace mozilla::jsdebugger {
 
 NS_IMPL_ISUPPORTS(JSDebugger, IJSDebugger)
 
@@ -72,5 +71,4 @@ JSDebugger::AddClass(JS::Handle<JS::Value> global, JSContext* cx) {
   return NS_OK;
 }
 
-}  // namespace jsdebugger
-}  // namespace mozilla
+}  // namespace mozilla::jsdebugger

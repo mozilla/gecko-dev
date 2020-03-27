@@ -60,6 +60,11 @@ skip-if(!this.hasOwnProperty('addIntlExtras')) include test262/intl402/ListForma
 skip-if(!this.hasOwnProperty("Atomics")) include test262/built-ins/Atomics/jstests.list
 skip-if(!this.hasOwnProperty("SharedArrayBuffer")) include test262/built-ins/SharedArrayBuffer/jstests.list
 
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1611782
+skip-if(release_or_beta) script test262/intl402/RelativeTimeFormat/constructor/constructor/options-throwing-getters.js
+skip-if(release_or_beta) script test262/intl402/RelativeTimeFormat/constructor/constructor/options-order.js
+skip-if(release_or_beta) script test262/intl402/RelativeTimeFormat/constructor/constructor/options-numberingSystem-invalid.js
+
 
 #####################################
 # Test262 tests disabled on browser #
@@ -451,6 +456,19 @@ skip script test262/intl402/Locale/proto-from-ctor-realm.js
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1277801
 skip script test262/built-ins/String/prototype/replaceAll/searchValue-replacer-RegExp-call.js
 
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1610512
+skip script test262/intl402/NumberFormat/prototype/formatToParts/signDisplay-en-US.js
+skip script test262/intl402/NumberFormat/prototype/formatToParts/signDisplay-zh-TW.js
+skip script test262/intl402/NumberFormat/prototype/formatToParts/signDisplay-ja-JP.js
+skip script test262/intl402/NumberFormat/prototype/formatToParts/signDisplay-ko-KR.js
+skip script test262/intl402/NumberFormat/prototype/formatToParts/signDisplay-de-DE.js
+skip script test262/intl402/NumberFormat/prototype/format/signDisplay-en-US.js
+skip script test262/intl402/NumberFormat/prototype/format/signDisplay-zh-TW.js
+skip script test262/intl402/NumberFormat/prototype/format/signDisplay-ja-JP.js
+skip script test262/intl402/NumberFormat/prototype/format/signDisplay-ko-KR.js
+skip script test262/intl402/NumberFormat/prototype/format/signDisplay-de-DE.js
+skip script test262/intl402/NumberFormat/prototype/format/signDisplay-rounding.js
+
 
 ###########################################################
 # Tests disabled due to issues in test262 importer script #
@@ -483,75 +501,14 @@ skip script test262/built-ins/AggregateError/newtarget-proto-fallback.js
 # hour-cycle to "h24", which isn't allowed per the above CLDR data.
 skip script test262/intl402/DateTimeFormat/prototype/resolvedOptions/hourCycle-default.js
 
+# https://github.com/tc39/test262/pull/2464 only added a new test, but didn't
+# update the existing tests.
+skip script test262/language/statements/class/subclass/class-definition-null-proto-super.js
+skip script test262/language/expressions/super/call-proto-not-ctor.js
 
-####################################################
-# Enable most FinalizationGroup tests in the shell #
-####################################################
+# Tests expects RangeError, but should instead expect TypeError.
+skip script test262/intl402/NumberFormat/constructor-order.js
 
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/proto-from-ctor-realm.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/returns-new-object-from-constructor.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/length.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype-from-newtarget-abrupt.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/target-not-callable-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/gc-has-one-chance-to-call-cleanupCallback.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/instance-extensible.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/newtarget-prototype-is-not-object.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/constructor.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/constructor.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/unregister/length.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/unregister/this-not-object-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/unregister/custom-this.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/unregister/name.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/unregister/unregisterToken-not-object-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/unregister/unregister.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/unregister/prop-desc.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/unregister/this-does-not-have-internal-cells-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/unregisterToken-same-as-holdings.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/length.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/this-not-object-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/holdings-any-value-type.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/target-not-object-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/custom-this.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/return-undefined.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/name.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/unregisterToken-not-object-or-undefined-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/prop-desc.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/unregisterToken-same-as-target.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/return-undefined-register-itself.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/holdings-same-as-target.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/unregisterToken-same-as-holdings-and-target.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/register/this-does-not-have-internal-target-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/Symbol.toStringTag.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/proto.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/prop-desc.js
-skip script test262/built-ins/FinalizationGroup/prototype/cleanupSome/iterator-dynamic.js # Test out of date WRT spec.
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/length.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/iterator-holdings-multiple-values.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/this-not-object-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/custom-this.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/poisoned-callback-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/cleanup-prevented-with-unregister.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/return-undefined.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/name.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/callback-not-callable-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/cleanupcallback-iterator-proto.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/prop-desc.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/this-does-not-have-internal-cells-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/callback-iterator-proto.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/return-undefined-with-gc.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype/cleanupSome/cleanup-prevented-with-reference.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/unnaffected-by-poisoned-cleanupCallback.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype-from-newtarget-custom.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/name.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/proto.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/undefined-newtarget-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prop-desc.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/prototype-from-newtarget.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/FinalizationGroupCleanupIteratorPrototype/next-job-not-active-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/FinalizationGroupCleanupIteratorPrototype/next-prop-desc.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/FinalizationGroupCleanupIteratorPrototype/next-missing-internal-throws.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/FinalizationGroupCleanupIteratorPrototype/next-name.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/FinalizationGroupCleanupIteratorPrototype/next-length.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/FinalizationGroupCleanupIteratorPrototype/Symbol.toStringTag.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/FinalizationGroupCleanupIteratorPrototype/proto.js
-shell-option(--enable-weak-refs) script test262/built-ins/FinalizationGroup/FinalizationGroupCleanupIteratorPrototype/next-not-object-throws.js
+# DST issues, bug 1620825.
+skip script test262/built-ins/Date/parse/without-utc-offset.js
+

@@ -16,9 +16,11 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/HTMLEditor.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/ScrollTypes.h"
 #include "mozilla/StaticPrefs_dom.h"
 
 #include "nsCOMPtr.h"
+#include "nsDebug.h"
 #include "nsString.h"
 #include "nsISelectionListener.h"
 #include "nsContentCID.h"
@@ -195,11 +197,11 @@ struct MOZ_RAII AutoPrepareFocusRange {
     }
     bool userSelection = aSelection->mUserInitiated;
 
-    nsTArray<RangeData>& ranges = aSelection->mRanges;
+    nsTArray<StyledRange>& ranges = aSelection->mRanges;
     if (!userSelection || (!aContinueSelection && aMultipleSelection)) {
       // Scripted command or the user is starting a new explicit multi-range
       // selection.
-      for (RangeData& entry : ranges) {
+      for (StyledRange& entry : ranges) {
         entry.mRange->SetIsGenerated(false);
       }
       return;
@@ -1052,26 +1054,40 @@ bool nsFrameSelection::AdjustForMaintainedSelection(nsIContent* aContent,
   int32_t rangeStartOffset = mMaintainRange->StartOffset();
   int32_t rangeEndOffset = mMaintainRange->EndOffset();
 
-  int32_t relToStart = nsContentUtils::ComparePoints_Deprecated(
+  const Maybe<int32_t> relToStart = nsContentUtils::ComparePoints(
       rangeStartNode, rangeStartOffset, aContent, aOffset);
-  int32_t relToEnd = nsContentUtils::ComparePoints_Deprecated(
+  if (NS_WARN_IF(!relToStart)) {
+    // Potentially handle this properly when Selection across Shadow DOM
+    // boundary is implemented
+    // (https://bugzilla.mozilla.org/show_bug.cgi?id=1607497).
+    return false;
+  }
+
+  const Maybe<int32_t> relToEnd = nsContentUtils::ComparePoints(
       rangeEndNode, rangeEndOffset, aContent, aOffset);
+  if (NS_WARN_IF(!relToEnd)) {
+    // Potentially handle this properly when Selection across Shadow DOM
+    // boundary is implemented
+    // (https://bugzilla.mozilla.org/show_bug.cgi?id=1607497).
+    return false;
+  }
 
   // If aContent/aOffset is inside the maintained selection, or if it is on the
   // "anchor" side of the maintained selection, we need to do something.
-  if ((relToStart < 0 && relToEnd > 0) ||
-      (relToStart > 0 && mDomSelections[index]->GetDirection() == eDirNext) ||
-      (relToEnd < 0 && mDomSelections[index]->GetDirection() == eDirPrevious)) {
+  if ((*relToStart < 0 && *relToEnd > 0) ||
+      (*relToStart > 0 && mDomSelections[index]->GetDirection() == eDirNext) ||
+      (*relToEnd < 0 &&
+       mDomSelections[index]->GetDirection() == eDirPrevious)) {
     // Set the current range to the maintained range.
     mDomSelections[index]->ReplaceAnchorFocusRange(mMaintainRange);
-    if (relToStart < 0 && relToEnd > 0) {
+    if (*relToStart < 0 && *relToEnd > 0) {
       // We're inside the maintained selection, just keep it selected.
       return true;
     }
     // Reverse the direction of the selection so that the anchor will be on the
     // far side of the maintained selection, relative to aContent/aOffset.
-    mDomSelections[index]->SetDirection(relToStart > 0 ? eDirPrevious
-                                                       : eDirNext);
+    mDomSelections[index]->SetDirection(*relToStart > 0 ? eDirPrevious
+                                                        : eDirNext);
   }
   return false;
 }
@@ -1138,10 +1154,16 @@ void nsFrameSelection::HandleDrag(nsIFrame* aFrame, const nsPoint& aPoint) {
   if (mMaintainRange && mMaintainedAmount != eSelectNoAmount) {
     nsINode* rangenode = mMaintainRange->GetStartContainer();
     int32_t rangeOffset = mMaintainRange->StartOffset();
-    int32_t relativePosition = nsContentUtils::ComparePoints_Deprecated(
+    const Maybe<int32_t> relativePosition = nsContentUtils::ComparePoints(
         rangenode, rangeOffset, offsets.content, offsets.offset);
+    if (NS_WARN_IF(!relativePosition)) {
+      // Potentially handle this properly when Selection across Shadow DOM
+      // boundary is implemented
+      // (https://bugzilla.mozilla.org/show_bug.cgi?id=1607497).
+      return;
+    }
 
-    nsDirection direction = relativePosition > 0 ? eDirPrevious : eDirNext;
+    nsDirection direction = *relativePosition > 0 ? eDirPrevious : eDirNext;
     nsSelectionAmount amount = mMaintainedAmount;
     if (amount == eSelectBeginLine && direction == eDirNext)
       amount = eSelectEndLine;
@@ -1238,9 +1260,13 @@ nsresult nsFrameSelection::TakeFocus(nsIContent* aNewFocus,
       // non-anchor/focus collapsed ranges.
       mDomSelections[index]->RemoveCollapsedRanges();
 
-      RefPtr<nsRange> newRange = new nsRange(aNewFocus);
-
-      newRange->CollapseTo(aNewFocus, aContentOffset);
+      ErrorResult error;
+      RefPtr<nsRange> newRange = nsRange::Create(
+          aNewFocus, aContentOffset, aNewFocus, aContentOffset, error);
+      if (NS_WARN_IF(error.Failed())) {
+        return error.StealNSResult();
+      }
+      MOZ_ASSERT(newRange);
       mDomSelections[index]->AddRangeAndSelectFramesAndNotifyListeners(
           *newRange, IgnoreErrors());
       mBatching = batching;
@@ -1744,7 +1770,7 @@ nsresult nsFrameSelection::PageMove(bool aForward, bool aExtend,
                                 ? ScrollMode::Instant
                                 : ScrollMode::Smooth;
     scrollableFrame->ScrollBy(nsIntPoint(0, aForward ? 1 : -1),
-                              nsIScrollableFrame::PAGES, scrollMode);
+                              ScrollUnit::PAGES, scrollMode);
   }
 
   // Finally, scroll selection into view if requested.
@@ -1951,9 +1977,8 @@ static bool IsCell(nsIContent* aContent) {
   return aContent->IsAnyOfHTMLElements(nsGkAtoms::td, nsGkAtoms::th);
 }
 
-nsITableCellLayout* nsFrameSelection::GetCellLayout(
-    nsIContent* aCellContent) const {
-  NS_ENSURE_TRUE(mPresShell, nullptr);
+// static
+nsITableCellLayout* nsFrameSelection::GetCellLayout(nsIContent* aCellContent) {
   nsITableCellLayout* cellLayoutObject =
       do_QueryFrame(aCellContent->GetPrimaryFrame());
   return cellLayoutObject;
@@ -2613,6 +2638,7 @@ nsRange* nsFrameSelection::GetNextCellRange() {
   return range;
 }
 
+// static
 nsresult nsFrameSelection::GetCellIndexes(nsIContent* aCell, int32_t& aRowIndex,
                                           int32_t& aColIndex) {
   if (!aCell) return NS_ERROR_NULL_POINTER;
@@ -2667,14 +2693,14 @@ nsresult nsFrameSelection::CreateAndAddRange(nsINode* aContainer,
     return NS_ERROR_NULL_POINTER;
   }
 
-  RefPtr<nsRange> range = new nsRange(aContainer);
-
   // Set range around child at given offset
-  nsresult rv =
-      range->SetStartAndEnd(aContainer, aOffset, aContainer, aOffset + 1);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+  ErrorResult error;
+  RefPtr<nsRange> range =
+      nsRange::Create(aContainer, aOffset, aContainer, aOffset + 1, error);
+  if (NS_WARN_IF(error.Failed())) {
+    return error.StealNSResult();
   }
+  MOZ_ASSERT(range);
 
   int8_t index = GetIndexFromSelectionType(SelectionType::eNormal);
   if (!mDomSelections[index]) return NS_ERROR_NULL_POINTER;

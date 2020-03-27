@@ -266,7 +266,6 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["extensions.blocklist.url", { what: RECORD_PREF_VALUE }],
   ["extensions.formautofill.addresses.enabled", { what: RECORD_PREF_VALUE }],
   ["extensions.formautofill.creditCards.enabled", { what: RECORD_PREF_VALUE }],
-  ["extensions.legacy.enabled", { what: RECORD_PREF_VALUE }],
   ["extensions.strictCompatibility", { what: RECORD_PREF_VALUE }],
   ["extensions.update.enabled", { what: RECORD_PREF_VALUE }],
   ["extensions.update.url", { what: RECORD_PREF_VALUE }],
@@ -358,7 +357,7 @@ function enforceBoolean(aValue) {
  */
 function getBrowserLocale() {
   try {
-    return Services.locale.appLocaleAsLangTag;
+    return Services.locale.appLocaleAsBCP47;
   } catch (e) {
     return null;
   }

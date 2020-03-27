@@ -280,7 +280,9 @@ RefPtr<ClientOpPromise> ClientManagerService::Navigate(
   ClientSourceParent* source =
       FindSource(aArgs.target().id(), aArgs.target().principalInfo());
   if (!source) {
-    return ClientOpPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
+    CopyableErrorResult rv;
+    rv.ThrowInvalidStateError("Unknown client");
+    return ClientOpPromise::CreateAndReject(rv, __func__);
   }
 
   PClientManagerParent* manager = source->Manager();
@@ -303,7 +305,9 @@ RefPtr<ClientOpPromise> ClientManagerService::Navigate(
   PClientNavigateOpParent* result =
       manager->SendPClientNavigateOpConstructor(op, args);
   if (!result) {
-    promise->Reject(NS_ERROR_FAILURE, __func__);
+    CopyableErrorResult rv;
+    rv.ThrowInvalidStateError("Client is aborted");
+    promise->Reject(rv, __func__);
   }
 
   return promise.forget();
@@ -362,7 +366,9 @@ class PromiseListHolder final {
             self->ProcessCompletion();
           }
         },
-        [self](nsresult aResult) { self->ProcessCompletion(); });
+        [self](const CopyableErrorResult& aResult) {
+          self->ProcessCompletion();
+        });
   }
 
   void MaybeFinish() {
@@ -436,17 +442,30 @@ RefPtr<ClientOpPromise> ClaimOnMainThread(
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
       __func__, [promise, clientInfo = std::move(aClientInfo),
                  desc = std::move(aDescriptor)]() {
-        auto scopeExit = MakeScopeExit(
-            [&] { promise->Reject(NS_ERROR_DOM_INVALID_STATE_ERR, __func__); });
+        auto scopeExit = MakeScopeExit([&] {
+          // This will truncate the URLs if they have embedded nulls, if that
+          // can happen, but for // our purposes here that's OK.
+          nsPrintfCString err(
+              "Service worker at <%s> can't claim Client at <%s>",
+              desc.ScriptURL().get(), clientInfo.URL().get());
+          CopyableErrorResult rv;
+          rv.ThrowInvalidStateError(err);
+          promise->Reject(rv, __func__);
+        });
 
         RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
         NS_ENSURE_TRUE_VOID(swm);
 
-        RefPtr<GenericPromise> inner = swm->MaybeClaimClient(clientInfo, desc);
+        RefPtr<GenericErrorResultPromise> inner =
+            swm->MaybeClaimClient(clientInfo, desc);
         inner->Then(
             SystemGroup::EventTargetFor(TaskCategory::Other), __func__,
-            [promise](bool aResult) { promise->Resolve(NS_OK, __func__); },
-            [promise](nsresult aRv) { promise->Reject(aRv, __func__); });
+            [promise](bool aResult) {
+              promise->Resolve(CopyableErrorResult(), __func__);
+            },
+            [promise](const CopyableErrorResult& aRv) {
+              promise->Reject(aRv, __func__);
+            });
 
         scopeExit.release();
       });
@@ -516,7 +535,9 @@ RefPtr<ClientOpPromise> ClientManagerService::GetInfoAndState(
   ClientSourceParent* source = FindSource(aArgs.id(), aArgs.principalInfo());
 
   if (!source) {
-    return ClientOpPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
+    CopyableErrorResult rv;
+    rv.ThrowInvalidStateError("Unknown client");
+    return ClientOpPromise::CreateAndReject(rv, __func__);
   }
 
   if (!source->ExecutionReady()) {
@@ -530,7 +551,9 @@ RefPtr<ClientOpPromise> ClientManagerService::GetInfoAndState(
               self->FindSource(aArgs.id(), aArgs.principalInfo());
 
           if (!source) {
-            return ClientOpPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
+            CopyableErrorResult rv;
+            rv.ThrowInvalidStateError("Unknown client");
+            return ClientOpPromise::CreateAndReject(rv, __func__);
           }
 
           return source->StartOp(aArgs);
@@ -594,7 +617,9 @@ class OpenWindowRunnable final : public Runnable {
     // But starting a process can failure for any number of reasons. Reject the
     // promise if we could not.
     if (!targetProcess) {
-      mPromise->Reject(NS_ERROR_ABORT, __func__);
+      CopyableErrorResult rv;
+      rv.ThrowAbortError("Opening window aborted");
+      mPromise->Reject(rv, __func__);
       mPromise = nullptr;
       return NS_OK;
     }

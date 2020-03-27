@@ -125,6 +125,7 @@ EXPORTS.js += [
     '../public/AllocPolicy.h',
     '../public/Array.h',
     '../public/ArrayBuffer.h',
+    '../public/ArrayBufferMaybeShared.h',
     '../public/BinASTFormat.h',
     '../public/BuildId.h',
     '../public/CallArgs.h',
@@ -229,6 +230,7 @@ UNIFIED_SOURCES += [
     'builtin/ReflectParse.cpp',
     'builtin/Stream.cpp',
     'builtin/streams/MiscellaneousOperations.cpp',
+    'builtin/streams/PipeToState.cpp',
     'builtin/streams/PullIntoDescriptor.cpp',
     'builtin/streams/QueueingStrategies.cpp',
     'builtin/streams/QueueWithSizes.cpp',
@@ -292,6 +294,7 @@ UNIFIED_SOURCES += [
     'vm/Activation.cpp',
     'vm/ArgumentsObject.cpp',
     'vm/ArrayBufferObject.cpp',
+    'vm/ArrayBufferObjectMaybeShared.cpp',
     'vm/ArrayBufferViewObject.cpp',
     'vm/AsyncFunction.cpp',
     'vm/AsyncIteration.cpp',
@@ -333,10 +336,12 @@ UNIFIED_SOURCES += [
     'vm/Modules.cpp',
     'vm/NativeObject.cpp',
     'vm/ObjectGroup.cpp',
+    'vm/OffThreadPromiseRuntimeState.cpp',
     'vm/OffThreadScriptCompilation.cpp',
     'vm/PIC.cpp',
     'vm/Printer.cpp',
     'vm/Probes.cpp',
+    'vm/PromiseLookup.cpp',
     'vm/ProxyObject.cpp',
     'vm/Realm.cpp',
     'vm/ReceiverGuard.cpp',
@@ -355,6 +360,7 @@ UNIFIED_SOURCES += [
     'vm/SymbolType.cpp',
     'vm/TaggedProto.cpp',
     'vm/Time.cpp',
+    'vm/ToSource.cpp',
     'vm/TypedArrayObject.cpp',
     'vm/TypeInference.cpp',
     'vm/UbiNode.cpp',
@@ -440,7 +446,14 @@ if CONFIG['MOZ_VTUNE']:
         'vtune/jitprofiling.c',
         'vtune/VTuneWrapper.cpp',
     ]
-    SOURCES['vtune/ittnotify_static.c'].flags += ['-Wno-varargs', '-Wno-unknown-pragmas']
+    SOURCES['vtune/ittnotify_static.c'].flags += [
+        '-Wno-varargs',
+        '-Wno-unknown-pragmas'
+    ]
+    if CONFIG['CC_TYPE'] == 'gcc':
+        SOURCES['vtune/ittnotify_static.c'].flags += [
+            '-Wno-stringop-overflow'
+        ]
 
 DIRS += [
     'build',

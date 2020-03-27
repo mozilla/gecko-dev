@@ -13,6 +13,55 @@ exclude: true
 
 ⚠️  breaking change
 
+## v74
+- Added [`WebExtensionController.enable`][74.1] and [`disable`][74.2] to
+  enable and disable extensions.
+  ([bug 1599585]({{bugzilla}}1599585))
+- ⚠️ Added ['GeckoSession.ProgressDelegate.SecurityInformation#certificate'][74.3], which is the
+  full server certificate in use, if any. The other certificate-related fields were removed.
+  ([bug 1508730]({{bugzilla}}1508730))
+- Added ['WebResponse#isSecure'][74.4], which indicates whether or not the response was
+  delivered over a secure connection.
+  ([bug 1508730]({{bugzilla}}1508730))
+- Added ['WebResponse#certificate'][74.5], which is the server certificate used for the
+  response, if any.
+  ([bug 1508730]({{bugzilla}}1508730))
+- Added ['WebRequestError#certificate'][74.6], which is the server certificate used in the
+  failed request, if any.
+  ([bug 1508730]({{bugzilla}}1508730))
+- ⚠️ Updated [`ContentBlockingController`][74.7] to use new representation for content blocking
+  exceptions and to add better support for removing exceptions. This deprecates [`ExceptionList`][74.8]
+  and [`restoreExceptionList`][74.9] with the intent to remove them in 76.
+  ([bug 1587552]({{bugzilla}}1587552))
+- Added [`GeckoSession.ContentDelegate.onMetaViewportFitChange`][74.10]. This exposes `viewport-fit` value that is CSS Round Display Level 1. ([bug 1574307]({{bugzilla}}1574307))
+- Extended [`LoginStorage.Delegate`][74.11] with [`onLoginUsed`][74.12] to
+  report when existing login entries are used for autofill.
+  ([bug 1610353]({{bugzilla}}1610353))
+- Added ['WebExtensionController#setTabActive'][74.13], which is used to notify extensions about
+  tab changes
+  ([bug 1597793]({{bugzilla}}1597793))
+- Added ['WebExtension.metaData.optionsUrl'][74.14] and ['WebExtension.metaData.openOptionsPageInTab'][74.15],
+  which is the addon metadata necessary to show their option pages.
+  ([bug 1598792]({{bugzilla}}1598792))
+- Added [`WebExtensionController.update`][74.16] to update extensions. ([bug 1599581]({{bugzilla}}1599581))
+
+[74.1]: {{javadoc_uri}}/WebExtensionController.html#enable-org.mozilla.geckoview.WebExtension-int-
+[74.2]: {{javadoc_uri}}/WebExtensionController.html#disable-org.mozilla.geckoview.WebExtension-int-
+[74.3]: {{javadoc_uri}}/GeckoSession.ProgressDelegate.SecurityInformation.html#certificate
+[74.4]: {{javadoc_uri}}/WebResponse.html#isSecure
+[74.5]: {{javadoc_uri}}/WebResponse.html#certificate
+[74.6]: {{javadoc_uri}}/WebRequestError.html#certificate
+[74.7]: {{javadoc_uri}}/ContentBlockingController.html
+[74.8]: {{javadoc_uri}}/ContentBlockingController.ExceptionList.html
+[74.9]: {{javadoc_uri}}/ContentBlockingController.html#restoreExceptionList-org.mozilla.geckoview.ContentBlockingController.ExceptionList-
+[74.10]: {{javadoc_uri}}/GeckoSession.ContentDelegate.html#onMetaViewportFitChange-org.mozilla.geckoview.GeckoSession-java.lang.String-
+[74.11]: {{javadoc_uri}}/LoginStorage.Delegate.html
+[74.12]: {{javadoc_uri}}/LoginStorage.Delegate.html#onLoginUsed-org.mozilla.geckoview.LoginStorage.LoginEntry-int-
+[74.13]: {{javadoc_uri}}/WebExtensionController.html#setTabActive
+[74.14]: {{javadoc_uri}}/WebExtension.MetaData.html#optionsUrl
+[74.15]: {{javadoc_uri}}/WebExtension.MetaData.html#openOptionsPageInTab
+[74.16]: {{javadoc_uri}}/WebExtensionController.html#update-org.mozilla.geckoview.WebExtension-int-
+
 ## v73
 - Added [`WebExtensionController.install`][73.1] and [`uninstall`][73.2] to
   manage installed extensions
@@ -522,4 +571,4 @@ exclude: true
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport-android.content.Context-android.os.Bundle-java.lang.String-
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 2a944df46a5560f6b45f421536fd3051f9c32885
+[api-version]: e7913b3fec18f7edb75b81e6bebfb7860ab57c91

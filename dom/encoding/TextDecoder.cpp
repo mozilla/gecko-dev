@@ -50,7 +50,7 @@ void TextDecoder::Decode(Span<const uint8_t> aInput, const bool aStream,
 
   CheckedInt<size_t> needed = mDecoder->MaxUTF16BufferLength(aInput.Length());
   if (!needed.isValid() ||
-      needed.value() > MaxValue<nsAString::size_type>::value) {
+      needed.value() > std::numeric_limits<nsAString::size_type>::max()) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
@@ -107,12 +107,12 @@ void TextDecoder::Decode(const Optional<ArrayBufferViewOrArrayBuffer>& aBuffer,
   uint8_t* data;
   uint32_t length;
   if (buf.IsArrayBufferView()) {
-    buf.GetAsArrayBufferView().ComputeLengthAndData();
+    buf.GetAsArrayBufferView().ComputeState();
     data = buf.GetAsArrayBufferView().Data();
     length = buf.GetAsArrayBufferView().Length();
   } else {
     MOZ_ASSERT(buf.IsArrayBuffer());
-    buf.GetAsArrayBuffer().ComputeLengthAndData();
+    buf.GetAsArrayBuffer().ComputeState();
     data = buf.GetAsArrayBuffer().Data();
     length = buf.GetAsArrayBuffer().Length();
   }

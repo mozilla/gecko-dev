@@ -8,8 +8,9 @@
 
 #include "mozilla/Assertions.h"  // for AssertionConditionType
 #include "mozilla/HashTable.h"   // for HashMapEntry, HashTable<>::Ptr, HashMap
-#include "mozilla/Move.h"        // for std::move
 #include "mozilla/UniquePtr.h"   // for UniquePtr
+
+#include <utility>  // for std::move
 
 #include "jsapi.h"
 
@@ -259,7 +260,7 @@ bool DebugScript::incrementGeneratorObserverCount(JSContext* cx,
 
   // It is our caller's responsibility, before bumping the generator observer
   // count, to make sure that the baseline code includes the necessary
-  // JSOP_AFTERYIELD instrumentation by calling
+  // JSOp::AfterYield instrumentation by calling
   // {ensure,update}ExecutionObservabilityOfScript.
   MOZ_ASSERT_IF(script->hasBaselineScript(),
                 script->baselineScript()->hasDebugInstrumentation());

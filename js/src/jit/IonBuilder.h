@@ -52,7 +52,7 @@ using CallTargets = Vector<JSFunction*, 6, JitAllocPolicy>;
 //
 // Forward branches
 // ----------------
-// Most branches in the bytecode are forward branches to a JSOP_JUMPTARGET
+// Most branches in the bytecode are forward branches to a JSOp::JumpTarget
 // instruction that we have not inspected yet. We compile them in two phases:
 //
 // 1) When compiling the source instruction: the MBasicBlock is terminated
@@ -60,7 +60,7 @@ using CallTargets = Vector<JSFunction*, 6, JitAllocPolicy>;
 //    a PendingEdge instance to the PendingEdges list for the target bytecode
 //    location.
 //
-// 2) When finally compiling the JSOP_JUMPTARGET: IonBuilder::visitJumpTarget
+// 2) When finally compiling the JSOp::JumpTarget: IonBuilder::visitJumpTarget
 //    creates the target block and uses the list of PendingEdges to 'link' the
 //    blocks.
 //
@@ -79,11 +79,11 @@ using CallTargets = Vector<JSFunction*, 6, JitAllocPolicy>;
 // Unreachable/dead code
 // ---------------------
 // Some bytecode instructions never fall through to the next instruction, for
-// example JSOP_RETURN, JSOP_GOTO, or JSOP_THROW. Code after such instructions
-// is guaranteed to be dead so IonBuilder skips it until it gets to a jump
-// target instruction with pending edges.
+// example JSOp::Return, JSOp::Goto, or JSOp::Throw. Code after such
+// instructions is guaranteed to be dead so IonBuilder skips it until it gets to
+// a jump target instruction with pending edges.
 //
-// Note: The frontend may generate unnecessary JSOP_JUMPTARGET instructions we
+// Note: The frontend may generate unnecessary JSOp::JumpTarget instructions we
 // can ignore when they have no incoming pending edges.
 //
 // Try-catch
@@ -121,9 +121,9 @@ class PendingEdge {
  private:
   MBasicBlock* block_;
   Kind kind_;
-  JSOp testOp_ = JSOP_LIMIT;
+  JSOp testOp_ = JSOp::Undefined;
 
-  PendingEdge(MBasicBlock* block, Kind kind, JSOp testOp = JSOP_LIMIT)
+  PendingEdge(MBasicBlock* block, Kind kind, JSOp testOp = JSOp::Undefined)
       : block_(block), kind_(kind), testOp_(testOp) {}
 
  public:
@@ -346,8 +346,10 @@ class IonBuilder : public MIRGenerator,
   MDefinition* createThisScripted(MDefinition* callee, MDefinition* newTarget);
   MDefinition* createThisScriptedSingleton(JSFunction* target);
   MDefinition* createThisScriptedBaseline(MDefinition* callee);
+  MDefinition* createThisSlow(MDefinition* callee, MDefinition* newTarget,
+                              bool inlining);
   MDefinition* createThis(JSFunction* target, MDefinition* callee,
-                          MDefinition* newTarget);
+                          MDefinition* newTarget, bool inlining);
   MInstruction* createNamedLambdaObject(MDefinition* callee,
                                         MDefinition* envObj);
   AbortReasonOr<MInstruction*> createCallObject(MDefinition* callee,
@@ -1149,6 +1151,7 @@ class IonBuilder : public MIRGenerator,
     rootList_ = &rootList;
   }
   void clearForBackEnd();
+  void checkNurseryCell(gc::Cell* cell);
   JSObject* checkNurseryObject(JSObject* obj);
 
   JSScript* script() const { return script_; }
@@ -1405,7 +1408,7 @@ class CallInfo {
   MDefinition* newTargetArg_;
   MDefinitionVector args_;
   // If non-empty, this corresponds to the stack prior any implicit inlining
-  // such as before JSOP_FUNAPPLY.
+  // such as before JSOp::FunApply.
   MDefinitionVector priorArgs_;
 
   bool constructing_ : 1;
@@ -1427,7 +1430,7 @@ class CallInfo {
         constructing_(constructing),
         ignoresReturnValue_(ignoresReturnValue),
         setter_(false),
-        apply_(JSOp(*pc) == JSOP_FUNAPPLY) {}
+        apply_(JSOp(*pc) == JSOp::FunApply) {}
 
   MOZ_MUST_USE bool init(CallInfo& callInfo) {
     MOZ_ASSERT(constructing_ == callInfo.constructing());
@@ -1498,7 +1501,7 @@ class CallInfo {
   void popCallStack(MBasicBlock* current) { current->popn(numFormals()); }
 
   AbortReasonOr<Ok> pushCallStack(MIRGenerator* mir, MBasicBlock* current) {
-    // Ensure sufficient space in the slots: needed for inlining from FUNAPPLY.
+    // Ensure sufficient space in the slots: needed for inlining from FunApply.
     if (apply_) {
       uint32_t depth = current->stackDepth() + numFormals();
       if (depth > current->nslots()) {

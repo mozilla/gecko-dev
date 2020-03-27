@@ -1742,7 +1742,7 @@ nsresult WebSocketImpl::InitializeConnection(
   rv = wsChannel->InitLoadInfoNative(
       doc, doc ? doc->NodePrincipal() : aPrincipal, aPrincipal, aCookieSettings,
       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
-      nsIContentPolicy::TYPE_WEBSOCKET);
+      nsIContentPolicy::TYPE_WEBSOCKET, 0);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   if (!mRequestedProtocolList.IsEmpty()) {
@@ -2247,7 +2247,7 @@ void WebSocket::Send(Blob& aData, ErrorResult& aRv) {
 void WebSocket::Send(const ArrayBuffer& aData, ErrorResult& aRv) {
   AssertIsOnTargetThread();
 
-  aData.ComputeLengthAndData();
+  aData.ComputeState();
 
   static_assert(sizeof(*aData.Data()) == 1, "byte-sized data required");
 
@@ -2261,7 +2261,7 @@ void WebSocket::Send(const ArrayBuffer& aData, ErrorResult& aRv) {
 void WebSocket::Send(const ArrayBufferView& aData, ErrorResult& aRv) {
   AssertIsOnTargetThread();
 
-  aData.ComputeLengthAndData();
+  aData.ComputeState();
 
   static_assert(sizeof(*aData.Data()) == 1, "byte-sized data required");
 
@@ -2543,6 +2543,16 @@ WebSocketImpl::SetLoadFlags(nsLoadFlags aLoadFlags) {
 
   // we won't change the load flags at all.
   return NS_OK;
+}
+
+NS_IMETHODIMP
+WebSocketImpl::GetTRRMode(nsIRequest::TRRMode* aTRRMode) {
+  return GetTRRModeImpl(aTRRMode);
+}
+
+NS_IMETHODIMP
+WebSocketImpl::SetTRRMode(nsIRequest::TRRMode aTRRMode) {
+  return SetTRRModeImpl(aTRRMode);
 }
 
 namespace {

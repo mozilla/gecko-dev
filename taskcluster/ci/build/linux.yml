@@ -37,7 +37,7 @@ linux64/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-plain/opt:
@@ -75,7 +75,7 @@ linux64-plain/opt:
             - linux64-nasm
             - linux64-node
             - linux64-cbindgen
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-fuzzing/debug:
@@ -83,6 +83,8 @@ linux64-fuzzing/debug:
     index:
         product: firefox
         job-name: linux64-fuzzing-debug
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: linux64/debug
         symbol: Bf
@@ -115,7 +117,7 @@ linux64-fuzzing/debug:
             - linux64-rust-size
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64/debug:
@@ -153,7 +155,7 @@ linux64/debug:
             - linux64-rust-size
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-plain/debug:
@@ -191,7 +193,7 @@ linux64-plain/debug:
             - linux64-nasm
             - linux64-node
             - linux64-cbindgen
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-devedition-nightly/opt:
@@ -236,7 +238,7 @@ linux64-devedition-nightly/opt:
             - linux64-cbindgen
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-base-toolchains/opt:
@@ -273,7 +275,7 @@ linux64-base-toolchains/opt:
             - linux64-sccache
             - linux64-nasm-2.13.02
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-base-toolchains/debug:
@@ -312,7 +314,7 @@ linux64-base-toolchains/debug:
             - linux64-sccache
             - linux64-nasm-2.13.02
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-base-toolchains-clang/opt:
@@ -348,7 +350,7 @@ linux64-base-toolchains-clang/opt:
             - linux64-cbindgen
             - linux64-nasm-2.13.02
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-base-toolchains-clang/debug:
@@ -386,7 +388,7 @@ linux64-base-toolchains-clang/debug:
             - linux64-cbindgen
             - linux64-nasm-2.13.02
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux/opt:
@@ -414,7 +416,7 @@ linux/opt:
         secrets: true
         tooltool-downloads: public
         need-xvfb: true
-    run-on-projects: ['mozilla-central', 'try']
+    run-on-projects: ['try', 'release']
     fetches:
         toolchain:
             - linux64-binutils
@@ -425,7 +427,7 @@ linux/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux/debug:
@@ -454,6 +456,7 @@ linux/debug:
         mozconfig-variant: debug
         tooltool-downloads: public
         need-xvfb: true
+    run-on-projects: ['try', 'release']
     fetches:
         toolchain:
             - linux64-binutils
@@ -464,7 +467,7 @@ linux/debug:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux-rusttests/opt:
@@ -494,7 +497,7 @@ linux-rusttests/opt:
         mozconfig-variant: rusttests
         tooltool-downloads: public
         keep-artifacts: false
-    run-on-projects: ['trunk', 'try']
+    run-on-projects: ['try', 'mozilla-central']
     fetches:
         toolchain:
             - linux64-binutils
@@ -504,7 +507,7 @@ linux-rusttests/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux-rusttests/debug:
@@ -534,7 +537,7 @@ linux-rusttests/debug:
         mozconfig-variant: rusttests-debug
         tooltool-downloads: public
         keep-artifacts: false
-    run-on-projects: ['trunk', 'try']
+    run-on-projects: ['try', 'mozilla-central']
     fetches:
         toolchain:
             - linux64-binutils
@@ -544,7 +547,7 @@ linux-rusttests/debug:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux-devedition-nightly/opt:
@@ -590,7 +593,7 @@ linux-devedition-nightly/opt:
             - linux64-cbindgen
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux-shippable/opt:
@@ -623,6 +626,7 @@ linux-shippable/opt:
         secrets: true
         tooltool-downloads: public
         need-xvfb: true
+    run-on-projects: ['try', 'release']
     fetches:
         toolchain:
             - linux64-binutils
@@ -632,7 +636,7 @@ linux-shippable/opt:
             - linux64-cbindgen
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux-reproduced/opt:
@@ -646,8 +650,6 @@ linux-reproduced/opt:
     treeherder:
         platform: linux32-shippable/opt
         symbol: Bpgo(repr)
-    # Limited to trunk until bug 1596350 is fixed.
-    run-on-projects: ['trunk', 'try']
     worker-type: b-linux
     worker:
         docker-image: {in-tree: debian7-i386-build}
@@ -665,6 +667,9 @@ linux-reproduced/opt:
         secrets: true
         tooltool-downloads: public
         need-xvfb: true
+    # Original comment: Limited to trunk until bug 1596350 is fixed.
+    # Addendum: Do not run on autoland, Bug 1599197
+    run-on-projects: ['try', 'mozilla-central', 'comm-central']
     fetches:
         toolchain:
             - linux64-binutils
@@ -674,7 +679,7 @@ linux-reproduced/opt:
             - linux64-cbindgen
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-asan/opt:
@@ -713,7 +718,7 @@ linux64-asan/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-tsan/opt:
@@ -751,7 +756,7 @@ linux64-tsan/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-tsan-fuzzing/opt:
@@ -789,7 +794,7 @@ linux64-tsan-fuzzing/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-asan-fuzzing/opt:
@@ -828,7 +833,7 @@ linux64-asan-fuzzing/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-asan-fuzzing-ccov/opt:
@@ -867,7 +872,7 @@ linux64-asan-fuzzing-ccov/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-fuzzing-ccov/opt:
@@ -909,7 +914,7 @@ linux64-fuzzing-ccov/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-asan-reporter-nightly/opt:
@@ -949,6 +954,8 @@ linux64-asan-reporter-nightly/opt:
         need-xvfb: true
         mar-channel-id:
             firefox-mozilla-central-asan
+        accepted-mar-channel-ids:
+            firefox-mozilla-central-asan
     fetches:
         toolchain:
             - linux64-binutils
@@ -958,7 +965,7 @@ linux64-asan-reporter-nightly/opt:
             - linux64-cbindgen
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-asan/debug:
@@ -997,7 +1004,7 @@ linux64-asan/debug:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-shippable/opt:
@@ -1038,7 +1045,7 @@ linux64-shippable/opt:
             - linux64-cbindgen
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-noopt/debug:
@@ -1068,7 +1075,7 @@ linux64-noopt/debug:
         tooltool-downloads: public
         keep-artifacts: false
         need-xvfb: true
-    run-on-projects: ['trunk', 'try']
+    run-on-projects: ['mozilla-central', 'try']
     fetches:
         toolchain:
             - linux64-binutils
@@ -1079,7 +1086,7 @@ linux64-noopt/debug:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-rusttests/opt:
@@ -1108,7 +1115,7 @@ linux64-rusttests/opt:
         mozconfig-variant: rusttests
         tooltool-downloads: public
         keep-artifacts: false
-    run-on-projects: ['trunk', 'try']
+    run-on-projects: ['mozilla-central', 'try']
     fetches:
         toolchain:
             - linux64-binutils
@@ -1118,7 +1125,7 @@ linux64-rusttests/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-rusttests/debug:
@@ -1157,7 +1164,7 @@ linux64-rusttests/debug:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-tup/opt:
@@ -1198,7 +1205,7 @@ linux64-tup/opt:
             - linux64-tup
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-ccov/opt:
@@ -1213,6 +1220,10 @@ linux64-ccov/opt:
     run-on-projects: ['mozilla-central', 'try']
     worker-type: b-linux
     worker:
+        artifacts:
+            - name: public/code-coverage-grcov.zip
+              path: /builds/worker/workspace/build/src/obj-firefox/code-coverage-grcov.zip
+              type: file
         max-run-time: 7200
         env:
             MOZ_LOW_PARALLELISM_BUILD: '1'
@@ -1240,7 +1251,7 @@ linux64-ccov/opt:
             - linux64-nasm
             - linux64-node
             - linux64-grcov
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-add-on-devel/opt:
@@ -1267,7 +1278,7 @@ linux64-add-on-devel/opt:
         mozconfig-variant: add-on-devel
         tooltool-downloads: public
         need-xvfb: true
-    run-on-projects: ['mozilla-beta', 'mozilla-release', 'mozilla-esr45']
+    run-on-projects: ['mozilla-beta', 'mozilla-release']
     fetches:
         toolchain:
             - linux64-binutils
@@ -1278,7 +1289,7 @@ linux64-add-on-devel/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-aarch64/opt:
@@ -1318,7 +1329,7 @@ linux64-aarch64/opt:
             - linux64-cbindgen
             - linux64-sccache
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux-gcp/debug:
@@ -1350,6 +1361,7 @@ linux-gcp/debug:
         mozconfig-variant: debug
         tooltool-downloads: public
         need-xvfb: true
+    run-on-projects: ['try', 'release']
     fetches:
         toolchain:
             - linux64-binutils
@@ -1360,7 +1372,7 @@ linux-gcp/debug:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux-gcp/opt:
@@ -1390,7 +1402,7 @@ linux-gcp/opt:
         secrets: true
         tooltool-downloads: public
         need-xvfb: true
-    run-on-projects: ['mozilla-central', 'try']
+    run-on-projects: ['try', 'release']
     fetches:
         toolchain:
             - linux64-binutils
@@ -1401,7 +1413,7 @@ linux-gcp/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-gcp/debug:
@@ -1442,7 +1454,7 @@ linux64-gcp/debug:
             - linux64-rust-size
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot
 
 linux64-gcp/opt:
@@ -1482,5 +1494,5 @@ linux64-gcp/opt:
             - linux64-sccache
             - linux64-nasm
             - linux64-node
-            - lucetc
+            - linux64-lucetc
             - wasi-sysroot

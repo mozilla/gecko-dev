@@ -7,20 +7,21 @@
 #ifndef mozilla_dom_Promise_h
 #define mozilla_dom_Promise_h
 
-#include "mozilla/Attributes.h"
-#include "mozilla/ErrorResult.h"
-#include "mozilla/Move.h"
-#include "mozilla/TimeStamp.h"
-#include "mozilla/TypeTraits.h"
-#include "mozilla/dom/BindingDeclarations.h"
-#include "nsCycleCollectionParticipant.h"
-#include "mozilla/dom/PromiseBinding.h"
-#include "mozilla/dom/ToJSValue.h"
-#include "mozilla/WeakPtr.h"
-#include "nsWrapperCache.h"
-#include "nsAutoPtr.h"
+#include <utility>
+
 #include "js/TypeDecls.h"
 #include "jspubtd.h"
+#include "mozilla/Attributes.h"
+#include "mozilla/ErrorResult.h"
+#include "mozilla/TimeStamp.h"
+#include "mozilla/TypeTraits.h"
+#include "mozilla/WeakPtr.h"
+#include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/PromiseBinding.h"
+#include "mozilla/dom/ToJSValue.h"
+#include "nsAutoPtr.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsWrapperCache.h"
 
 class nsIGlobalObject;
 
@@ -114,16 +115,20 @@ class Promise : public nsISupports, public SupportsWeakPtr<Promise> {
   void MaybeRejectWithClone(JSContext* aCx, JS::Handle<JS::Value> aValue);
 
   // Facilities for rejecting with various spec-defined exception values.
-  inline void MaybeRejectWithDOMException(nsresult rv,
-                                          const nsACString& aMessage) {
-    ErrorResult res;
-    res.ThrowDOMException(rv, aMessage);
-    MaybeReject(res);
+#define DOMEXCEPTION(name, err)                                   \
+  inline void MaybeRejectWith##name(const nsACString& aMessage) { \
+    ErrorResult res;                                              \
+    res.Throw##name(aMessage);                                    \
+    MaybeReject(res);                                             \
+  }                                                               \
+  template <int N>                                                \
+  void MaybeRejectWith##name(const char(&aMessage)[N]) {          \
+    MaybeRejectWith##name(nsLiteralCString(aMessage));            \
   }
-  template <int N>
-  void MaybeRejectWithDOMException(nsresult rv, const char (&aMessage)[N]) {
-    MaybeRejectWithDOMException(rv, nsLiteralCString(aMessage));
-  }
+
+#include "mozilla/dom/DOMExceptionNames.h"
+
+#undef DOMEXCEPTION
 
   template <ErrNum errorNumber, typename... Ts>
   void MaybeRejectWithTypeError(Ts&&... aMessageArgs) {
@@ -272,6 +277,16 @@ class Promise : public nsISupports, public SupportsWeakPtr<Promise> {
   PromiseState State() const;
 
  protected:
+  // Legacy method for throwing DOMExceptions.  Only used by media code at this
+  // point, via DetailedPromise.  Do NOT add new uses!  When this is removed,
+  // remove the friend declaration in ErrorResult.h.
+  inline void MaybeRejectWithDOMException(nsresult rv,
+                                          const nsACString& aMessage) {
+    ErrorResult res;
+    res.ThrowDOMException(rv, aMessage);
+    MaybeReject(res);
+  }
+
   struct PromiseCapability;
 
   // Do NOT call this unless you're Promise::Create or

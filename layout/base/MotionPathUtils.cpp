@@ -19,6 +19,8 @@
 
 namespace mozilla {
 
+using nsStyleTransformMatrix::TransformReferenceBox;
+
 RayReferenceData::RayReferenceData(const nsIFrame* aFrame) {
   // We use GetContainingBlock() for now. TYLin said this function is buggy in
   // modern CSS layout, but is ok for most cases.
@@ -192,7 +194,7 @@ static CSSCoord ComputeRayUsedDistance(const RayFunction& aRay,
                                        const StyleOffsetRotate& aRotate,
                                        const StylePositionOrAuto& aAnchor,
                                        const CSSPoint& aTransformOrigin,
-                                       const CSSSize& aSize,
+                                       TransformReferenceBox& aRefBox,
                                        const CSSCoord& aPathLength) {
   CSSCoord usedDistance = aDistance.ResolveToCSSPixels(aPathLength);
   if (!aRay.contain) {
@@ -208,16 +210,18 @@ static CSSCoord ComputeRayUsedDistance(const RayFunction& aRay,
   // "Contained within the path" means the rectangle is inside a circle whose
   // radius is |aPathLength|.
   CSSPoint usedAnchor = aTransformOrigin;
+  CSSSize size =
+      CSSPixel::FromAppUnits(nsSize(aRefBox.Width(), aRefBox.Height()));
   if (!aAnchor.IsAuto()) {
     const StylePosition& anchor = aAnchor.AsPosition();
-    usedAnchor.x = anchor.horizontal.ResolveToCSSPixels(aSize.width);
-    usedAnchor.y = anchor.vertical.ResolveToCSSPixels(aSize.height);
+    usedAnchor.x = anchor.horizontal.ResolveToCSSPixels(size.width);
+    usedAnchor.y = anchor.vertical.ResolveToCSSPixels(size.height);
   }
   AutoTArray<gfx::Point, 4> vertices = {
       {-usedAnchor.x, -usedAnchor.y},
-      {aSize.width - usedAnchor.x, -usedAnchor.y},
-      {aSize.width - usedAnchor.x, aSize.height - usedAnchor.y},
-      {-usedAnchor.x, aSize.height - usedAnchor.y}};
+      {size.width - usedAnchor.x, -usedAnchor.y},
+      {size.width - usedAnchor.x, size.height - usedAnchor.y},
+      {-usedAnchor.x, size.height - usedAnchor.y}};
 
   ApplyRotationAndMoveRayToXAxis(aRotate, aRay.angle, vertices);
 
@@ -330,11 +334,31 @@ static CSSCoord ComputeRayUsedDistance(const RayFunction& aRay,
 }
 
 /* static */
-Maybe<MotionPathData> MotionPathUtils::ResolveMotionPath(
+CSSPoint MotionPathUtils::ComputeAnchorPointAdjustment(const nsIFrame& aFrame) {
+  if (!aFrame.HasAnyStateBits(NS_FRAME_SVG_LAYOUT)) {
+    return {};
+  }
+
+  auto transformBox = aFrame.StyleDisplay()->mTransformBox;
+  if (transformBox == StyleGeometryBox::ViewBox ||
+      transformBox == StyleGeometryBox::BorderBox) {
+    return {};
+  }
+
+  if (aFrame.IsFrameOfType(nsIFrame::eSVGContainer)) {
+    nsRect boxRect = nsLayoutUtils::ComputeGeometryBox(
+        const_cast<nsIFrame*>(&aFrame), StyleGeometryBox::FillBox);
+    return CSSPoint::FromAppUnits(boxRect.TopLeft());
+  }
+  return CSSPoint::FromAppUnits(aFrame.GetPosition());
+}
+
+/* static */
+Maybe<ResolvedMotionPathData> MotionPathUtils::ResolveMotionPath(
     const OffsetPathData& aPath, const LengthPercentage& aDistance,
     const StyleOffsetRotate& aRotate, const StylePositionOrAuto& aAnchor,
-    const CSSPoint& aTransformOrigin, const CSSSize& aFrameSize,
-    const Maybe<CSSPoint>& aFramePosition) {
+    const CSSPoint& aTransformOrigin, TransformReferenceBox& aRefBox,
+    const CSSPoint& aAnchorPointAdjustment) {
   if (aPath.IsNone()) {
     return Nothing();
   }
@@ -346,7 +370,7 @@ Maybe<MotionPathData> MotionPathUtils::ResolveMotionPath(
   if (aPath.IsPath()) {
     const auto& path = aPath.AsPath();
     if (!path.mGfxPath) {
-      NS_WARNING("could not get a valid gfx path");
+      // Empty gfx::Path means it is path('') (i.e. empty path string).
       return Nothing();
     }
 
@@ -383,7 +407,7 @@ Maybe<MotionPathData> MotionPathUtils::ResolveMotionPath(
         ComputeRayPathLength(ray.mRay->size, ray.mRay->angle, ray.mData);
     CSSCoord usedDistance =
         ComputeRayUsedDistance(*ray.mRay, aDistance, aRotate, aAnchor,
-                               aTransformOrigin, aFrameSize, pathLength);
+                               aTransformOrigin, aRefBox, pathLength);
 
     // 0deg pointing up and positive angles representing clockwise rotation.
     directionAngle =
@@ -415,99 +439,78 @@ Maybe<MotionPathData> MotionPathUtils::ResolveMotionPath(
   if (!aAnchor.IsAuto()) {
     const auto& pos = aAnchor.AsPosition();
     anchorPoint = nsStyleTransformMatrix::Convert2DPosition(
-        pos.horizontal, pos.vertical, aFrameSize);
+        pos.horizontal, pos.vertical, aRefBox);
     // We need this value to shift the origin from transform-origin to
     // offset-anchor (and vice versa).
     // See nsStyleTransformMatrix::ReadTransform for more details.
     shift = (anchorPoint - aTransformOrigin).ToUnknownPoint();
   }
 
-  // SVG frames (unlike other frames) have a reference box that can be (and
-  // typically is) offset from the TopLeft() of the frame.
-  // In motion path, we have to make sure the object is aligned with offset-path
-  // when using content area, so we should tweak the anchor point by the offset.
-  if (aFramePosition) {
-    anchorPoint.x += aFramePosition->x;
-    anchorPoint.y += aFramePosition->y;
-  }
+  anchorPoint += aAnchorPointAdjustment;
 
-  return Some(
-      MotionPathData{point - anchorPoint.ToUnknownPoint(), angle, shift});
+  return Some(ResolvedMotionPathData{point - anchorPoint.ToUnknownPoint(),
+                                     angle, shift});
 }
 
 static OffsetPathData GenerateOffsetPathData(const nsIFrame* aFrame) {
   const StyleOffsetPath& path = aFrame->StyleDisplay()->mOffsetPath;
   switch (path.tag) {
     case StyleOffsetPath::Tag::Path: {
+      const StyleSVGPathData& pathData = path.AsPath();
       RefPtr<gfx::Path> gfxPath =
           aFrame->GetProperty(nsIFrame::OffsetPathCache());
-      MOZ_ASSERT(gfxPath,
-                 "Should have a valid cached gfx::Path for offset-path");
-      return OffsetPathData::Path(path.AsPath(), gfxPath.forget());
+      MOZ_ASSERT(
+          gfxPath || pathData._0.IsEmpty(),
+          "Should have a valid cached gfx::Path or an empty path string");
+      return OffsetPathData::Path(pathData, gfxPath.forget());
     }
     case StyleOffsetPath::Tag::Ray:
       return OffsetPathData::Ray(path.AsRay(), RayReferenceData(aFrame));
     case StyleOffsetPath::Tag::None:
+      return OffsetPathData::None();
     default:
+      MOZ_ASSERT_UNREACHABLE("Unknown offset-path");
       return OffsetPathData::None();
   }
 }
 
 /* static*/
-Maybe<MotionPathData> MotionPathUtils::ResolveMotionPath(
-    const nsIFrame* aFrame) {
+Maybe<ResolvedMotionPathData> MotionPathUtils::ResolveMotionPath(
+    const nsIFrame* aFrame, TransformReferenceBox& aRefBox) {
   MOZ_ASSERT(aFrame);
 
   const nsStyleDisplay* display = aFrame->StyleDisplay();
-
-  // Note: This may need to be updated if we support more transform-box.
-  Maybe<CSSPoint> tweakForSVG;
-  if (aFrame->HasAnyStateBits(NS_FRAME_SVG_LAYOUT) &&
-      display->mTransformBox != StyleGeometryBox::ViewBox &&
-      display->mTransformBox != StyleGeometryBox::BorderBox) {
-    if (aFrame->IsFrameOfType(nsIFrame::eSVGContainer)) {
-      nsRect boxRect = nsLayoutUtils::ComputeGeometryBox(
-          const_cast<nsIFrame*>(aFrame), StyleGeometryBox::FillBox);
-      tweakForSVG = Some(CSSPoint::FromAppUnits(nsPoint{boxRect.x, boxRect.y}));
-    } else {
-      tweakForSVG = Some(CSSPoint::FromAppUnits(aFrame->GetPosition()));
-    }
-  }
-
-  nsStyleTransformMatrix::TransformReferenceBox refBox(aFrame);
 
   // FIXME: It's possible to refactor the calculation of transform-origin, so we
   // could calculate from the caller, and reuse the value in nsDisplayList.cpp.
   CSSPoint transformOrigin = nsStyleTransformMatrix::Convert2DPosition(
       display->mTransformOrigin.horizontal, display->mTransformOrigin.vertical,
-      refBox);
+      aRefBox);
 
-  return ResolveMotionPath(
-      GenerateOffsetPathData(aFrame), display->mOffsetDistance,
-      display->mOffsetRotate, display->mOffsetAnchor, transformOrigin,
-      CSSSize::FromAppUnits(nsSize(refBox.Width(), refBox.Height())),
-      tweakForSVG);
+  return ResolveMotionPath(GenerateOffsetPathData(aFrame),
+                           display->mOffsetDistance, display->mOffsetRotate,
+                           display->mOffsetAnchor, transformOrigin, aRefBox,
+                           ComputeAnchorPointAdjustment(*aFrame));
 }
 
 static OffsetPathData GenerateOffsetPathData(
-    const StyleOffsetPath& aPath, const layers::TransformData& aTransformData,
+    const StyleOffsetPath& aPath, const RayReferenceData& aRayReferenceData,
     gfx::Path* aCachedMotionPath) {
   switch (aPath.tag) {
     case StyleOffsetPath::Tag::Path: {
-      const StyleSVGPathData& svgPathData = aPath.AsPath();
+      const StyleSVGPathData& pathData = aPath.AsPath();
       // If aCachedMotionPath is valid, we have a fixed path.
       // This means we have pre-built it already and no need to update.
       RefPtr<gfx::Path> path = aCachedMotionPath;
       if (!path) {
         RefPtr<gfx::PathBuilder> builder =
             MotionPathUtils::GetCompositorPathBuilder();
-        path = MotionPathUtils::BuildPath(svgPathData, builder);
+        path = MotionPathUtils::BuildPath(pathData, builder);
       }
-      return OffsetPathData::Path(svgPathData, path.forget());
+      return OffsetPathData::Path(pathData, path.forget());
     }
     case StyleOffsetPath::Tag::Ray:
-      return OffsetPathData::Ray(aPath.AsRay(),
-                                 aTransformData.motionPathRayReferenceData());
+      return OffsetPathData::Ray(aPath.AsRay(), aRayReferenceData);
     case StyleOffsetPath::Tag::None:
     default:
       return OffsetPathData::None();
@@ -515,108 +518,35 @@ static OffsetPathData GenerateOffsetPathData(
 }
 
 /* static */
-Maybe<MotionPathData> MotionPathUtils::ResolveMotionPath(
+Maybe<ResolvedMotionPathData> MotionPathUtils::ResolveMotionPath(
     const StyleOffsetPath* aPath, const StyleLengthPercentage* aDistance,
     const StyleOffsetRotate* aRotate, const StylePositionOrAuto* aAnchor,
-    const layers::TransformData& aTransformData, gfx::Path* aCachedMotionPath) {
+    const Maybe<layers::MotionPathData>& aMotionPathData,
+    TransformReferenceBox& aRefBox, gfx::Path* aCachedMotionPath) {
   if (!aPath) {
     return Nothing();
   }
 
+  MOZ_ASSERT(aMotionPathData);
+
   auto zeroOffsetDistance = LengthPercentage::Zero();
   auto autoOffsetRotate = StyleOffsetRotate{true, StyleAngle::Zero()};
   auto autoOffsetAnchor = StylePositionOrAuto::Auto();
-  Maybe<CSSPoint> framePosition =
-      Some(aTransformData.motionPathFramePosition());
-
-  return MotionPathUtils::ResolveMotionPath(
-      GenerateOffsetPathData(*aPath, aTransformData, aCachedMotionPath),
+  return ResolveMotionPath(
+      GenerateOffsetPathData(*aPath, aMotionPathData->rayReferenceData(),
+                             aCachedMotionPath),
       aDistance ? *aDistance : zeroOffsetDistance,
       aRotate ? *aRotate : autoOffsetRotate,
-      aAnchor ? *aAnchor : autoOffsetAnchor, aTransformData.motionPathOrigin(),
-      CSSSize::FromAppUnits(aTransformData.bounds().Size()),
-      // The frame position is (0, 0) if we don't have to tweak, so using
-      // Some() is fine.
-      Some(aTransformData.motionPathFramePosition()));
+      aAnchor ? *aAnchor : autoOffsetAnchor, aMotionPathData->origin(), aRefBox,
+      aMotionPathData->anchorAdjustment());
 }
 
 /* static */
-nsTArray<layers::PathCommand>
-MotionPathUtils::NormalizeAndConvertToPathCommands(
+StyleSVGPathData MotionPathUtils::NormalizeSVGPathData(
     const StyleSVGPathData& aPath) {
-  // Normalization
   StyleSVGPathData n;
   Servo_SVGPathData_Normalize(&aPath, &n);
-
-  auto asPoint = [](const StyleCoordPair& aPair) {
-    return gfx::Point(aPair._0, aPair._1);
-  };
-
-  // Converstion
-  nsTArray<layers::PathCommand> commands;
-  for (const StylePathCommand& command : n._0.AsSpan()) {
-    switch (command.tag) {
-      case StylePathCommand::Tag::ClosePath:
-        commands.AppendElement(mozilla::null_t());
-        break;
-      case StylePathCommand::Tag::MoveTo: {
-        const auto& p = command.AsMoveTo().point;
-        commands.AppendElement(layers::MoveTo(asPoint(p)));
-        break;
-      }
-      case StylePathCommand::Tag::LineTo: {
-        const auto& p = command.AsLineTo().point;
-        commands.AppendElement(layers::LineTo(asPoint(p)));
-        break;
-      }
-      case StylePathCommand::Tag::HorizontalLineTo: {
-        const auto& h = command.AsHorizontalLineTo();
-        commands.AppendElement(layers::HorizontalLineTo(h.x));
-        break;
-      }
-      case StylePathCommand::Tag::VerticalLineTo: {
-        const auto& v = command.AsVerticalLineTo();
-        commands.AppendElement(layers::VerticalLineTo(v.y));
-        break;
-      }
-      case StylePathCommand::Tag::CurveTo: {
-        const auto& curve = command.AsCurveTo();
-        commands.AppendElement(layers::CurveTo(asPoint(curve.control1),
-                                               asPoint(curve.control2),
-                                               asPoint(curve.point)));
-        break;
-      }
-      case StylePathCommand::Tag::SmoothCurveTo: {
-        const auto& curve = command.AsSmoothCurveTo();
-        commands.AppendElement(layers::SmoothCurveTo(asPoint(curve.control2),
-                                                     asPoint(curve.point)));
-        break;
-      }
-      case StylePathCommand::Tag::QuadBezierCurveTo: {
-        const auto& curve = command.AsQuadBezierCurveTo();
-        commands.AppendElement(layers::QuadBezierCurveTo(
-            asPoint(curve.control1), asPoint(curve.point)));
-        break;
-      }
-      case StylePathCommand::Tag::SmoothQuadBezierCurveTo: {
-        const auto& curve = command.AsSmoothCurveTo();
-        commands.AppendElement(
-            layers::SmoothQuadBezierCurveTo(asPoint(curve.point)));
-        break;
-      }
-      case StylePathCommand::Tag::EllipticalArc: {
-        const auto& arc = command.AsEllipticalArc();
-        gfx::Point point = asPoint(arc.point);
-        commands.AppendElement(layers::EllipticalArc(arc.rx, arc.ry, arc.angle,
-                                                     arc.large_arc_flag._0,
-                                                     arc.sweep_flag._0, point));
-        break;
-      }
-      case StylePathCommand::Tag::Unknown:
-        MOZ_ASSERT_UNREACHABLE("Unsupported path command");
-    }
-  }
-  return commands;
+  return n;
 }
 
 /* static */

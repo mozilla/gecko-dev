@@ -4,20 +4,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "HTMLEditor.h"
+#include <algorithm>
+#include <utility>
 
 #include "HTMLEditUtils.h"
+#include "HTMLEditor.h"
 #include "WSRunObject.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/CSSEditUtils.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/ContentIterator.h"
-#include "mozilla/CSSEditUtils.h"
 #include "mozilla/EditAction.h"
 #include "mozilla/EditorDOMPoint.h"
 #include "mozilla/EditorUtils.h"
 #include "mozilla/MathAlgorithms.h"
-#include "mozilla/Move.h"
-#include "mozilla/mozalloc.h"
 #include "mozilla/OwningNonNull.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/RangeUtils.h"
@@ -29,8 +29,10 @@
 #include "mozilla/dom/RangeBinding.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/dom/StaticRange.h"
+#include "mozilla/mozalloc.h"
 #include "nsAString.h"
 #include "nsAlgorithm.h"
+#include "nsAtom.h"
 #include "nsCRT.h"
 #include "nsCRTGlue.h"
 #include "nsComponentManagerUtils.h"
@@ -38,7 +40,6 @@
 #include "nsDebug.h"
 #include "nsError.h"
 #include "nsGkAtoms.h"
-#include "nsAtom.h"
 #include "nsHTMLDocument.h"
 #include "nsIContent.h"
 #include "nsID.h"
@@ -53,8 +54,6 @@
 #include "nsTextNode.h"
 #include "nsThreadUtils.h"
 #include "nsUnicharUtils.h"
-
-#include <algorithm>
 
 // Workaround for windows headers
 #ifdef SetProp
@@ -704,7 +703,7 @@ EditActionResult HTMLEditor::CanHandleHTMLEditSubAction() const {
     return EditActionCanceled();
   }
 
-  nsINode* commonAncestor = range->GetCommonAncestor();
+  nsINode* commonAncestor = range->GetClosestCommonInclusiveAncestor();
   if (NS_WARN_IF(!commonAncestor)) {
     return EditActionResult(NS_ERROR_FAILURE);
   }
@@ -6957,7 +6956,7 @@ HTMLEditor::GetExtendedRangeToIncludeInvisibleNodes(
 
   // Find current selection common block parent
   Element* commonAncestorBlock =
-      HTMLEditor::GetBlock(*aAbstractRange.GetCommonAncestor());
+      HTMLEditor::GetBlock(*aAbstractRange.GetClosestCommonInclusiveAncestor());
   if (NS_WARN_IF(!commonAncestorBlock)) {
     return nullptr;
   }
@@ -7082,11 +7081,15 @@ nsresult HTMLEditor::MaybeExtendSelectionToHardLineEdgesForBlockEditAction() {
     return NS_ERROR_FAILURE;
   }
 
-  EditorDOMPoint startPoint(range->StartRef());
+  if (NS_WARN_IF(!range->IsPositioned())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  const EditorDOMPoint startPoint(range->StartRef());
   if (NS_WARN_IF(!startPoint.IsSet())) {
     return NS_ERROR_FAILURE;
   }
-  EditorDOMPoint endPoint(range->EndRef());
+  const EditorDOMPoint endPoint(range->EndRef());
   if (NS_WARN_IF(!endPoint.IsSet())) {
     return NS_ERROR_FAILURE;
   }
@@ -7163,15 +7166,25 @@ nsresult HTMLEditor::MaybeExtendSelectionToHardLineEdgesForBlockEditAction() {
   // if the adjusted locations "cross" the old values: i.e., new end before old
   // start, or new start after old end.  If so then just leave things alone.
 
-  int16_t comp;
-  comp = nsContentUtils::ComparePoints_Deprecated(
+  Maybe<int32_t> comp = nsContentUtils::ComparePoints(
       startPoint.ToRawRangeBoundary(), newEndPoint.ToRawRangeBoundary());
-  if (comp == 1) {
+
+  if (NS_WARN_IF(!comp)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (*comp == 1) {
     return NS_OK;  // New end before old start.
   }
-  comp = nsContentUtils::ComparePoints_Deprecated(
-      newStartPoint.ToRawRangeBoundary(), endPoint.ToRawRangeBoundary());
-  if (comp == 1) {
+
+  comp = nsContentUtils::ComparePoints(newStartPoint.ToRawRangeBoundary(),
+                                       endPoint.ToRawRangeBoundary());
+
+  if (NS_WARN_IF(!comp)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (*comp == 1) {
     return NS_OK;  // New start after old end.
   }
 
@@ -7521,12 +7534,11 @@ already_AddRefed<nsRange> HTMLEditor::CreateRangeIncludingAdjuscentWhiteSpaces(
     return nullptr;
   }
 
-  RefPtr<nsRange> range = new nsRange(GetDocument());
-  nsresult rv = range->SetStartAndEnd(startPoint.ToRawRangeBoundary(),
-                                      endPoint.ToRawRangeBoundary());
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return nullptr;
-  }
+  IgnoredErrorResult ignoredError;
+  RefPtr<nsRange> range =
+      nsRange::Create(startPoint.ToRawRangeBoundary(),
+                      endPoint.ToRawRangeBoundary(), ignoredError);
+  NS_WARNING_ASSERTION(!ignoredError.Failed(), "Failed to create a range");
   return range.forget();
 }
 
@@ -7580,12 +7592,11 @@ already_AddRefed<nsRange> HTMLEditor::CreateRangeExtendedToHardLineStartAndEnd(
     return nullptr;
   }
 
-  RefPtr<nsRange> range = new nsRange(GetDocument());
-  nsresult rv = range->SetStartAndEnd(startPoint.ToRawRangeBoundary(),
-                                      endPoint.ToRawRangeBoundary());
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return nullptr;
-  }
+  IgnoredErrorResult ignoredError;
+  RefPtr<nsRange> range =
+      nsRange::Create(startPoint.ToRawRangeBoundary(),
+                      endPoint.ToRawRangeBoundary(), ignoredError);
+  NS_WARNING_ASSERTION(!ignoredError.Failed(), "Failed to create a range");
   return range.forget();
 }
 
@@ -7871,7 +7882,7 @@ Element* HTMLEditor::GetParentListElementAtSelection() const {
 
   for (uint32_t i = 0; i < SelectionRefPtr()->RangeCount(); ++i) {
     nsRange* range = SelectionRefPtr()->GetRangeAt(i);
-    for (nsINode* parent = range->GetCommonAncestor(); parent;
+    for (nsINode* parent = range->GetClosestCommonInclusiveAncestor(); parent;
          parent = parent->GetParentNode()) {
       if (HTMLEditUtils::IsList(parent)) {
         return parent->AsElement();
@@ -9377,37 +9388,47 @@ nsresult HTMLEditor::CacheInlineStyles(nsINode& aNode) {
 nsresult HTMLEditor::GetInlineStyles(nsINode& aNode,
                                      AutoStyleCacheArray& aStyleCacheArray) {
   MOZ_ASSERT(IsEditActionDataAvailable());
+  MOZ_ASSERT(aStyleCacheArray.IsEmpty());
 
   bool useCSS = IsCSSEnabled();
 
-  for (StyleCache& styleCache : aStyleCacheArray) {
+  for (nsStaticAtom* property :
+       {nsGkAtoms::b, nsGkAtoms::i, nsGkAtoms::u, nsGkAtoms::face,
+        nsGkAtoms::size, nsGkAtoms::color, nsGkAtoms::tt, nsGkAtoms::em,
+        nsGkAtoms::strong, nsGkAtoms::dfn, nsGkAtoms::code, nsGkAtoms::samp,
+        nsGkAtoms::var, nsGkAtoms::cite, nsGkAtoms::abbr, nsGkAtoms::acronym,
+        nsGkAtoms::backgroundColor, nsGkAtoms::sub, nsGkAtoms::sup}) {
+    nsStaticAtom *tag, *attribute;
+    if (property == nsGkAtoms::face || property == nsGkAtoms::size ||
+        property == nsGkAtoms::color) {
+      tag = nsGkAtoms::font;
+      attribute = property;
+    } else {
+      tag = property;
+      attribute = nullptr;
+    }
     // If type-in state is set, don't intervene
     bool typeInSet, unused;
-    mTypeInState->GetTypingState(typeInSet, unused, styleCache.mTag,
-                                 styleCache.mAttr, nullptr);
+    mTypeInState->GetTypingState(typeInSet, unused, tag, attribute, nullptr);
     if (typeInSet) {
       continue;
     }
-
     bool isSet = false;
-    nsAutoString outValue;
-    // Don't use CSS for <font size>, we don't support it usefully (bug
-    // 780035)
-    if (!useCSS || (styleCache.mTag == nsGkAtoms::font &&
-                    styleCache.mAttr == nsGkAtoms::size)) {
-      isSet = IsTextPropertySetByContent(&aNode, styleCache.mTag,
-                                         styleCache.mAttr, nullptr, &outValue);
+    nsString value;  // Don't use nsAutoString here because it requires memcpy
+                     // at creating new StyleCache instance.
+    // Don't use CSS for <font size>, we don't support it usefully (bug 780035)
+    if (!useCSS || (property == nsGkAtoms::size)) {
+      isSet =
+          IsTextPropertySetByContent(&aNode, tag, attribute, nullptr, &value);
     } else {
       isSet = CSSEditUtils::IsCSSEquivalentToHTMLInlineStyleSet(
-          &aNode, styleCache.mTag, styleCache.mAttr, outValue,
-          CSSEditUtils::eComputed);
+          &aNode, tag, attribute, value, CSSEditUtils::eComputed);
       if (NS_WARN_IF(Destroyed())) {
         return NS_ERROR_EDITOR_DESTROYED;
       }
     }
     if (isSet) {
-      styleCache.mPresent = true;
-      styleCache.mValue.Assign(outValue);
+      aStyleCacheArray.AppendElement(StyleCache(tag, attribute, value));
     }
   }
   return NS_OK;
@@ -9420,13 +9441,14 @@ nsresult HTMLEditor::ReapplyCachedStyles() {
   // been removed.  If so, add typeinstate for them, so that they will be
   // reinserted when new content is added.
 
+  if (TopLevelEditSubActionDataRef().mCachedInlineStyles->IsEmpty() ||
+      !SelectionRefPtr()->RangeCount()) {
+    return NS_OK;
+  }
+
   // remember if we are in css mode
   bool useCSS = IsCSSEnabled();
 
-  if (!SelectionRefPtr()->RangeCount()) {
-    // Nothing to do
-    return NS_OK;
-  }
   const RangeBoundary& atStartOfSelection =
       SelectionRefPtr()->GetRangeAt(0)->StartRef();
   nsCOMPtr<nsIContent> selNode =
@@ -9434,8 +9456,7 @@ nsresult HTMLEditor::ReapplyCachedStyles() {
               atStartOfSelection.Container()->IsContent()
           ? atStartOfSelection.Container()->AsContent()
           : nullptr;
-  if (!selNode) {
-    // Nothing to do
+  if (NS_WARN_IF(!selNode)) {
     return NS_OK;
   }
 
@@ -9445,49 +9466,49 @@ nsresult HTMLEditor::ReapplyCachedStyles() {
     return rv == NS_ERROR_EDITOR_DESTROYED ? NS_ERROR_EDITOR_DESTROYED : NS_OK;
   }
 
-  for (size_t i = 0; i < styleCacheArrayAtInsertionPoint.Length(); ++i) {
-    StyleCache& styleCacheAtInsertionPoint = styleCacheArrayAtInsertionPoint[i];
-    StyleCache& styleCacheBeforeEdit =
-        TopLevelEditSubActionDataRef().mCachedInlineStyles->ElementAt(i);
-    if (styleCacheBeforeEdit.mPresent) {
-      bool bFirst, bAny, bAll;
-      bFirst = bAny = bAll = false;
-
-      nsAutoString curValue;
-      if (useCSS) {
-        // check computed style first in css case
-        bAny = CSSEditUtils::IsCSSEquivalentToHTMLInlineStyleSet(
-            selNode, styleCacheBeforeEdit.mTag, styleCacheBeforeEdit.mAttr,
-            curValue, CSSEditUtils::eComputed);
-        if (NS_WARN_IF(Destroyed())) {
-          return NS_ERROR_EDITOR_DESTROYED;
-        }
-      }
-      if (!bAny) {
-        // then check typeinstate and html style
-        nsresult rv = GetInlinePropertyBase(
-            *styleCacheBeforeEdit.mTag, styleCacheBeforeEdit.mAttr,
-            &styleCacheBeforeEdit.mValue, &bFirst, &bAny, &bAll, &curValue);
-        if (NS_WARN_IF(Destroyed())) {
-          return NS_ERROR_EDITOR_DESTROYED;
-        }
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-          return rv;
-        }
-      }
-      // This style has disappeared through deletion.  Let's add the styles to
-      // mTypeInState when same style isn't applied to the node already.
-      if ((!bAny ||
-           IsStyleCachePreservingSubAction(GetTopLevelEditSubAction())) &&
-          (!styleCacheAtInsertionPoint.mPresent ||
-           styleCacheAtInsertionPoint.mValue != styleCacheBeforeEdit.mValue)) {
-        mTypeInState->SetProp(styleCacheBeforeEdit.mTag,
-                              styleCacheBeforeEdit.mAttr,
-                              styleCacheBeforeEdit.mValue);
+  for (StyleCache& styleCacheBeforeEdit :
+       *TopLevelEditSubActionDataRef().mCachedInlineStyles) {
+    bool isFirst = false, isAny = false, isAll = false;
+    nsAutoString currentValue;
+    if (useCSS) {
+      // check computed style first in css case
+      isAny = CSSEditUtils::IsCSSEquivalentToHTMLInlineStyleSet(
+          selNode, styleCacheBeforeEdit.Tag(),
+          styleCacheBeforeEdit.GetAttribute(), currentValue,
+          CSSEditUtils::eComputed);
+      if (NS_WARN_IF(Destroyed())) {
+        return NS_ERROR_EDITOR_DESTROYED;
       }
     }
+    if (!isAny) {
+      // then check typeinstate and html style
+      nsresult rv = GetInlinePropertyBase(
+          *styleCacheBeforeEdit.Tag(), styleCacheBeforeEdit.GetAttribute(),
+          &styleCacheBeforeEdit.Value(), &isFirst, &isAny, &isAll,
+          &currentValue);
+      if (NS_WARN_IF(Destroyed())) {
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+    }
+    // This style has disappeared through deletion.  Let's add the styles to
+    // mTypeInState when same style isn't applied to the node already.
+    if (isAny && !IsStyleCachePreservingSubAction(GetTopLevelEditSubAction())) {
+      continue;
+    }
+    AutoStyleCacheArray::index_type index =
+        styleCacheArrayAtInsertionPoint.IndexOf(
+            styleCacheBeforeEdit.Tag(), styleCacheBeforeEdit.GetAttribute());
+    if (index == AutoStyleCacheArray::NoIndex ||
+        styleCacheBeforeEdit.Value() !=
+            styleCacheArrayAtInsertionPoint.ElementAt(index).Value()) {
+      mTypeInState->SetProp(styleCacheBeforeEdit.Tag(),
+                            styleCacheBeforeEdit.GetAttribute(),
+                            styleCacheBeforeEdit.Value());
+    }
   }
-
   return NS_OK;
 }
 

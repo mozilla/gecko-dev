@@ -14,14 +14,20 @@
 namespace mozilla {
 namespace webgpu {
 
-GPU_IMPL_CYCLE_COLLECTION(Adapter, mBridge, mParent)
+GPU_IMPL_CYCLE_COLLECTION(Adapter, mParent, mBridge)
 GPU_IMPL_JS_WRAP(Adapter)
 
 Adapter::Adapter(Instance* const aParent, RawId aId)
-    : ChildOf(aParent), mBridge(aParent->GetBridge()), mId(aId) {}
-Adapter::~Adapter() = default;
+    : ChildOf(aParent), mBridge(aParent->mBridge), mId(aId) {}
 
-WebGPUChild* Adapter::GetBridge() const { return mBridge; }
+Adapter::~Adapter() { Cleanup(); }
+
+void Adapter::Cleanup() {
+  if (mValid && mBridge && mBridge->IsOpen()) {
+    mValid = false;
+    mBridge->DestroyAdapter(mId);
+  }
+}
 
 already_AddRefed<dom::Promise> Adapter::RequestDevice(
     const dom::GPUDeviceDescriptor& aDesc, ErrorResult& aRv) {
@@ -35,8 +41,7 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
     RefPtr<Device> device = new Device(this, id.value());
     promise->MaybeResolve(device);
   } else {
-    promise->MaybeRejectWithDOMException(NS_ERROR_DOM_NOT_SUPPORTED_ERR,
-                                         "Unable to instanciate a Device");
+    promise->MaybeRejectWithNotSupportedError("Unable to instanciate a Device");
   }
 
   return promise.forget();

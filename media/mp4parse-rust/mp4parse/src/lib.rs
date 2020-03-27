@@ -14,9 +14,9 @@ extern crate bitreader;
 extern crate num_traits;
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use bitreader::{BitReader, ReadInto};
+use std::convert::TryInto as _;
 use std::io::{Read, Take};
 use std::io::Cursor;
-use std::cmp;
 use num_traits::Num;
 
 #[cfg(feature = "mp4parse_fallible")]
@@ -36,11 +36,51 @@ use boxes::{BoxType, FourCC};
 mod tests;
 
 // Arbitrary buffer size limit used for raw read_bufs on a box.
-const BUF_SIZE_LIMIT: usize = 1024 * 1024;
+const BUF_SIZE_LIMIT: usize = 10 * 1024 * 1024;
 
 // Max table length. Calculating in worth case for one week long video, one
 // frame per table entry in 30 fps.
 const TABLE_SIZE_LIMIT: u32 = 30 * 60 * 60 * 24 * 7;
+
+/// A trait to indicate a type can be infallibly converted to `u64`.
+/// This should only be implemented for infallible conversions, so only unsigned types are valid.
+trait ToU64 {
+    fn to_u64(self) -> u64;
+}
+
+/// Statically verify that the platform `usize` can fit within a `u64`.
+/// If the size won't fit on the given platform, this will fail at compile time, but if a type
+/// which can fail TryInto<usize> is used, it may panic.
+impl ToU64 for usize {
+    fn to_u64(self) -> u64 {
+        static_assertions::const_assert!(std::mem::size_of::<usize>() <= std::mem::size_of::<u64>());
+        self.try_into().expect("usize -> u64 conversion failed")
+    }
+}
+
+/// A trait to indicate a type can be infallibly converted to `usize`.
+/// This should only be implemented for infallible conversions, so only unsigned types are valid.
+trait ToUsize {
+    fn to_usize(self) -> usize;
+}
+
+/// Statically verify that the given type can fit within a `usize`.
+/// If the size won't fit on the given platform, this will fail at compile time, but if a type
+/// which can fail TryInto<usize> is used, it may panic.
+macro_rules! impl_to_usize_from {
+    ( $from_type:ty ) => {
+        impl ToUsize for $from_type {
+            fn to_usize(self) -> usize {
+                static_assertions::const_assert!(std::mem::size_of::<$from_type>() <= std::mem::size_of::<usize>());
+                self.try_into().expect(concat!(stringify!($from_type), " -> usize conversion failed"))
+            }
+        }
+    }
+}
+
+impl_to_usize_from!(u8);
+impl_to_usize_from!(u16);
+impl_to_usize_from!(u32);
 
 // TODO: vec_push() needs to be replaced when Rust supports fallible memory
 // allocation in raw_vec.
@@ -106,6 +146,12 @@ impl From<std::io::Error> for Error {
 impl From<std::string::FromUtf8Error> for Error {
     fn from(_: std::string::FromUtf8Error) -> Error {
         Error::InvalidData("invalid utf8")
+    }
+}
+
+impl From<std::num::TryFromIntError> for Error {
+    fn from(_: std::num::TryFromIntError) -> Error {
+        Error::Unsupported("integer conversion failed")
     }
 }
 
@@ -329,18 +375,32 @@ pub struct VideoSampleEntry {
     pub protection_info: Vec<ProtectionSchemeInfoBox>,
 }
 
-/// Represent a Video Partition Codec Configuration 'vpcC' box (aka vp9).
+/// Represent a Video Partition Codec Configuration 'vpcC' box (aka vp9). The meaning of each
+/// field is covered in detail in "VP Codec ISO Media File Format Binding".
 #[derive(Debug, Clone)]
 pub struct VPxConfigBox {
+    /// An integer that specifies the VP codec profile.
     profile: u8,
+    /// An integer that specifies a VP codec level all samples conform to the following table.
+    /// For a description of the various levels, please refer to the VP9 Bitstream Specification.
     level: u8,
+    /// An integer that specifies the bit depth of the luma and color components. Valid values
+    /// are 8, 10, and 12.
     pub bit_depth: u8,
-    pub color_space: u8, // Really an enum
+    /// Really an enum defined by the "Colour primaries" section of ISO/IEC 23001-8:2016.
+    pub colour_primaries: u8,
+    /// Really an enum defined by "VP Codec ISO Media File Format Binding".
     pub chroma_subsampling: u8,
-    transfer_function: u8,
-    matrix: Option<u8>, // Available in 'VP Codec ISO Media File Format' version 1 only.
-    video_full_range: bool,
-    pub codec_init: Vec<u8>, // Empty for vp8/vp9.
+    /// Really an enum defined by the "Transfer characteristics" section of ISO/IEC 23001-8:2016.
+    transfer_characteristics: u8,
+    /// Really an enum defined by the "Matrix coefficients" section of ISO/IEC 23001-8:2016.
+    /// Available in 'VP Codec ISO Media File Format' version 1 only.
+    matrix_coefficients: Option<u8>,
+    /// Indicates the black level and range of the luma and chroma signals. 0 = legal range
+    /// (e.g. 16-235 for 8 bit sample depth); 1 = full range (e.g. 0-255 for 8-bit sample depth).
+    video_full_range_flag: bool,
+    /// This is not used for VP8 and VP9 . Intended for binary codec initialization data.
+    pub codec_init: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -710,22 +770,22 @@ pub struct Track {
 
 impl Track {
     fn new(id: usize) -> Track {
-        Track { id: id, ..Default::default() }
+        Track { id, ..Default::default() }
     }
 }
 
-struct BMFFBox<'a, T: 'a + Read> {
+struct BMFFBox<'a, T: 'a> {
     head: BoxHeader,
     content: Take<&'a mut T>,
 }
 
-struct BoxIter<'a, T: 'a + Read> {
+struct BoxIter<'a, T: 'a> {
     src: &'a mut T,
 }
 
 impl<'a, T: Read> BoxIter<'a, T> {
     fn new(src: &mut T) -> BoxIter<T> {
-        BoxIter { src: src }
+        BoxIter { src }
     }
 
     fn next_box(&mut self) -> Result<Option<BMFFBox<T>>> {
@@ -748,8 +808,8 @@ impl<'a, T: Read> Read for BMFFBox<'a, T> {
 }
 
 impl<'a, T: Read> BMFFBox<'a, T> {
-    fn bytes_left(&self) -> usize {
-        self.content.limit() as usize
+    fn bytes_left(&self) -> u64 {
+        self.content.limit()
     }
 
     fn get_header(&self) -> &BoxHeader {
@@ -761,7 +821,7 @@ impl<'a, T: Read> BMFFBox<'a, T> {
     }
 }
 
-impl<'a, T: Read> Drop for BMFFBox<'a, T> {
+impl<'a, T> Drop for BMFFBox<'a, T> {
     fn drop(&mut self) {
         if self.content.limit() > 0 {
             let name: FourCC = From::from(self.head.name);
@@ -790,7 +850,7 @@ fn read_box_header<T: ReadBytesExt>(src: &mut T) -> Result<BoxHeader> {
             size64
         }
         2 ..= 7 => return Err(Error::InvalidData("malformed size")),
-        _ => size32 as u64,
+        _ => u64::from(size32),
     };
     let mut offset = match size32 {
         1 => 4 + 4 + 8,
@@ -800,7 +860,7 @@ fn read_box_header<T: ReadBytesExt>(src: &mut T) -> Result<BoxHeader> {
         if size >= offset + 16 {
             let mut buffer = [0u8; 16];
             let count = src.read(&mut buffer)?;
-            offset += count as u64;
+            offset += count.to_u64();
             if count == 16 {
                 Some(buffer)
             } else {
@@ -816,10 +876,10 @@ fn read_box_header<T: ReadBytesExt>(src: &mut T) -> Result<BoxHeader> {
     };
     assert!(offset <= size);
     Ok(BoxHeader {
-        name: name,
-        size: size,
-        offset: offset,
-        uuid: uuid,
+        name,
+        size,
+        offset,
+        uuid,
     })
 }
 
@@ -830,7 +890,7 @@ fn read_fullbox_extra<T: ReadBytesExt>(src: &mut T) -> Result<(u8, u32)> {
     let flags_b = src.read_u8()?;
     let flags_c = src.read_u8()?;
     Ok((version,
-        (flags_a as u32) << 16 | (flags_b as u32) << 8 | (flags_c as u32)))
+        u32::from(flags_a) << 16 | u32::from(flags_b) << 8 | u32::from(flags_c)))
 }
 
 /// Skip over the entire contents of a box.
@@ -839,7 +899,7 @@ fn skip_box_content<T: Read>(src: &mut BMFFBox<T>) -> Result<()> {
     let to_skip = {
         let header = src.get_header();
         debug!("{:?} (skipped)", header);
-        (header.size - header.offset) as usize
+        header.size.checked_sub(header.offset).expect("header offset > size")
     };
     assert_eq!(to_skip, src.bytes_left());
     skip(src, to_skip)
@@ -919,7 +979,7 @@ fn parse_mvhd<T: Read>(f: &mut BMFFBox<T>) -> Result<(MovieHeaderBox, Option<Med
     if mvhd.timescale == 0 {
         return Err(Error::InvalidData("zero timescale in mdhd"));
     }
-    let timescale = Some(MediaTimeScale(mvhd.timescale as u64));
+    let timescale = Some(MediaTimeScale(u64::from(mvhd.timescale)));
     Ok((mvhd, timescale))
 }
 
@@ -960,7 +1020,7 @@ fn read_moov<T: Read>(f: &mut BMFFBox<T>, context: &mut MediaContext) -> Result<
 }
 
 fn read_pssh<T: Read>(src: &mut BMFFBox<T>) -> Result<ProtectionSystemSpecificHeaderBox> {
-    let len = src.bytes_left();
+    let len = src.bytes_left().try_into()?;
     let mut box_content = read_buf(src, len)?;
     let (system_id, kid, data) = {
         let pssh = &mut Cursor::new(box_content.as_slice());
@@ -978,21 +1038,21 @@ fn read_pssh<T: Read>(src: &mut BMFFBox<T>) -> Result<ProtectionSystemSpecificHe
             }
         }
 
-        let data_size = be_u32_with_limit(pssh)? as usize;
+        let data_size = be_u32_with_limit(pssh)?.to_usize();
         let data = read_buf(pssh, data_size)?;
 
         (system_id, kid, data)
     };
 
     let mut pssh_box = Vec::new();
-    write_be_u32(&mut pssh_box, src.head.size as u32)?;
+    write_be_u32(&mut pssh_box, src.head.size.try_into()?)?;
     pssh_box.extend_from_slice(b"pssh");
     pssh_box.append(&mut box_content);
 
     Ok(ProtectionSystemSpecificHeaderBox {
-        system_id: system_id,
-        kid: kid,
-        data: data,
+        system_id,
+        kid,
+        data,
         box_content: pssh_box,
     })
 }
@@ -1010,7 +1070,7 @@ fn read_mvex<T: Read>(src: &mut BMFFBox<T>) -> Result<MovieExtendsBox> {
         }
     }
     Ok(MovieExtendsBox {
-        fragment_duration: fragment_duration,
+        fragment_duration,
     })
 }
 
@@ -1018,7 +1078,7 @@ fn read_mehd<T: Read>(src: &mut BMFFBox<T>) -> Result<MediaScaledTime> {
     let (version, _) = read_fullbox_extra(src)?;
     let fragment_duration = match version {
         1 => be_u64(src)?,
-        0 => be_u32(src)? as u64,
+        0 => u64::from(be_u32(src)?),
         _ => return Err(Error::InvalidData("unhandled mehd version")),
     };
     Ok(MediaScaledTime(fragment_duration))
@@ -1049,7 +1109,7 @@ fn read_edts<T: Read>(f: &mut BMFFBox<T>, track: &mut Track) -> Result<()> {
         match b.head.name {
             BoxType::EditListBox => {
                 let elst = read_elst(&mut b)?;
-                if elst.edits.len() < 1 {
+                if elst.edits.is_empty() {
                     debug!("empty edit list");
                     continue;
                 }
@@ -1082,6 +1142,7 @@ fn read_edts<T: Read>(f: &mut BMFFBox<T>, track: &mut Track) -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::type_complexity)] // Allow the complex return, maybe rework in future
 fn parse_mdhd<T: Read>(f: &mut BMFFBox<T>, track: &mut Track) -> Result<(MediaHeaderBox, Option<TrackScaledTime<u64>>, Option<TrackTimeScale<u64>>)> {
     let mdhd = read_mdhd(f)?;
     let duration = match mdhd.duration {
@@ -1091,7 +1152,7 @@ fn parse_mdhd<T: Read>(f: &mut BMFFBox<T>, track: &mut Track) -> Result<(MediaHe
     if mdhd.timescale == 0 {
         return Err(Error::InvalidData("zero timescale in mdhd"));
     }
-    let timescale = Some(TrackTimeScale::<u64>(mdhd.timescale as u64, track.id));
+    let timescale = Some(TrackTimeScale::<u64>(u64::from(mdhd.timescale), track.id));
     Ok((mdhd, duration, timescale))
 }
 
@@ -1230,7 +1291,7 @@ fn read_mvhd<T: Read>(src: &mut BMFFBox<T>) -> Result<MovieHeaderBox> {
             if d == std::u32::MAX {
                 std::u64::MAX
             } else {
-                d as u64
+                u64::from(d)
             }
         }
         _ => return Err(Error::InvalidData("unhandled mvhd version")),
@@ -1238,8 +1299,8 @@ fn read_mvhd<T: Read>(src: &mut BMFFBox<T>) -> Result<MovieHeaderBox> {
     // Skip remaining fields.
     skip(src, 80)?;
     Ok(MovieHeaderBox {
-        timescale: timescale,
-        duration: duration,
+        timescale,
+        duration,
     })
 }
 
@@ -1262,7 +1323,7 @@ fn read_tkhd<T: Read>(src: &mut BMFFBox<T>) -> Result<TrackHeaderBox> {
     skip(src, 4)?;
     let duration = match version {
         1 => be_u64(src)?,
-        0 => be_u32(src)? as u64,
+        0 => u64::from(be_u32(src)?),
         _ => return Err(Error::InvalidData("unhandled tkhd version")),
     };
     // Skip uninteresting fields.
@@ -1277,12 +1338,12 @@ fn read_tkhd<T: Read>(src: &mut BMFFBox<T>) -> Result<TrackHeaderBox> {
     let width = be_u32(src)?;
     let height = be_u32(src)?;
     Ok(TrackHeaderBox {
-        track_id: track_id,
-        disabled: disabled,
-        duration: duration,
-        width: width,
-        height: height,
-        matrix: matrix,
+        track_id,
+        disabled,
+        duration,
+        width,
+        height,
+        matrix,
     })
 }
 
@@ -1299,17 +1360,17 @@ fn read_elst<T: Read>(src: &mut BMFFBox<T>) -> Result<EditListBox> {
             }
             0 => {
                 // 32 bit segment duration and media times.
-                (be_u32(src)? as u64, be_i32(src)? as i64)
+                (u64::from(be_u32(src)?), i64::from(be_i32(src)?))
             }
             _ => return Err(Error::InvalidData("unhandled elst version")),
         };
         let media_rate_integer = be_i16(src)?;
         let media_rate_fraction = be_i16(src)?;
         vec_push(&mut edits, Edit {
-            segment_duration: segment_duration,
-            media_time: media_time,
-            media_rate_integer: media_rate_integer,
-            media_rate_fraction: media_rate_fraction,
+            segment_duration,
+            media_time,
+            media_rate_integer,
+            media_rate_fraction,
         })?;
     }
 
@@ -1317,7 +1378,7 @@ fn read_elst<T: Read>(src: &mut BMFFBox<T>) -> Result<EditListBox> {
     skip_box_remain(src)?;
 
     Ok(EditListBox {
-        edits: edits,
+        edits,
     })
 }
 
@@ -1346,7 +1407,7 @@ fn read_mdhd<T: Read>(src: &mut BMFFBox<T>) -> Result<MediaHeaderBox> {
                 if d == std::u32::MAX {
                     std::u64::MAX
                 } else {
-                    d as u64
+                    u64::from(d)
                 }
             };
             (timescale, duration)
@@ -1358,8 +1419,8 @@ fn read_mdhd<T: Read>(src: &mut BMFFBox<T>) -> Result<MediaHeaderBox> {
     skip(src, 4)?;
 
     Ok(MediaHeaderBox {
-        timescale: timescale,
-        duration: duration,
+        timescale,
+        duration,
     })
 }
 
@@ -1369,14 +1430,14 @@ fn read_stco<T: Read>(src: &mut BMFFBox<T>) -> Result<ChunkOffsetBox> {
     let offset_count = be_u32_with_limit(src)?;
     let mut offsets = Vec::new();
     for _ in 0..offset_count {
-        vec_push(&mut offsets, be_u32(src)? as u64)?;
+        vec_push(&mut offsets, u64::from(be_u32(src)?))?;
     }
 
     // Padding could be added in some contents.
     skip_box_remain(src)?;
 
     Ok(ChunkOffsetBox {
-        offsets: offsets,
+        offsets,
     })
 }
 
@@ -1393,7 +1454,7 @@ fn read_co64<T: Read>(src: &mut BMFFBox<T>) -> Result<ChunkOffsetBox> {
     skip_box_remain(src)?;
 
     Ok(ChunkOffsetBox {
-        offsets: offsets,
+        offsets,
     })
 }
 
@@ -1410,7 +1471,7 @@ fn read_stss<T: Read>(src: &mut BMFFBox<T>) -> Result<SyncSampleBox> {
     skip_box_remain(src)?;
 
     Ok(SyncSampleBox {
-        samples: samples,
+        samples,
     })
 }
 
@@ -1424,9 +1485,9 @@ fn read_stsc<T: Read>(src: &mut BMFFBox<T>) -> Result<SampleToChunkBox> {
         let samples_per_chunk = be_u32_with_limit(src)?;
         let sample_description_index = be_u32(src)?;
         vec_push(&mut samples, SampleToChunk {
-            first_chunk: first_chunk,
-            samples_per_chunk: samples_per_chunk,
-            sample_description_index: sample_description_index,
+            first_chunk,
+            samples_per_chunk,
+            sample_description_index,
         })?;
     }
 
@@ -1434,16 +1495,16 @@ fn read_stsc<T: Read>(src: &mut BMFFBox<T>) -> Result<SampleToChunkBox> {
     skip_box_remain(src)?;
 
     Ok(SampleToChunkBox {
-        samples: samples,
+        samples,
     })
 }
 
 fn read_ctts<T: Read>(src: &mut BMFFBox<T>) -> Result<CompositionOffsetBox> {
     let (version, _) = read_fullbox_extra(src)?;
 
-    let counts = be_u32_with_limit(src)?;
+    let counts = u64::from(be_u32_with_limit(src)?);
 
-    if src.bytes_left() < (counts as usize * 8) {
+    if src.bytes_left() < counts.checked_mul(8).expect("counts -> bytes overflow") {
         return Err(Error::InvalidData("insufficient data in 'ctts' box"));
     }
 
@@ -1463,8 +1524,8 @@ fn read_ctts<T: Read>(src: &mut BMFFBox<T>) -> Result<CompositionOffsetBox> {
             }
         };
         vec_push(&mut offsets, TimeOffset {
-            sample_count: sample_count,
-            time_offset: time_offset,
+            sample_count,
+            time_offset,
         })?;
     }
 
@@ -1491,8 +1552,8 @@ fn read_stsz<T: Read>(src: &mut BMFFBox<T>) -> Result<SampleSizeBox> {
     skip_box_remain(src)?;
 
     Ok(SampleSizeBox {
-        sample_size: sample_size,
-        sample_sizes: sample_sizes,
+        sample_size,
+        sample_sizes,
     })
 }
 
@@ -1505,8 +1566,8 @@ fn read_stts<T: Read>(src: &mut BMFFBox<T>) -> Result<TimeToSampleBox> {
         let sample_count = be_u32_with_limit(src)?;
         let sample_delta = be_u32(src)?;
         vec_push(&mut samples, Sample {
-            sample_count: sample_count,
-            sample_delta: sample_delta,
+            sample_count,
+            sample_delta,
         })?;
     }
 
@@ -1514,7 +1575,7 @@ fn read_stts<T: Read>(src: &mut BMFFBox<T>) -> Result<TimeToSampleBox> {
     skip_box_remain(src)?;
 
     Ok(TimeToSampleBox {
-        samples: samples,
+        samples,
     })
 }
 
@@ -1528,52 +1589,73 @@ fn read_vpcc<T: Read>(src: &mut BMFFBox<T>) -> Result<VPxConfigBox> {
 
     let profile = src.read_u8()?;
     let level = src.read_u8()?;
-    let (bit_depth, color_space, chroma_subsampling, transfer_function, matrix, video_full_range) =
-        if version == 0 {
-            let (bit_depth, color_space) = {
-                let byte = src.read_u8()?;
-                ((byte >> 4) & 0x0f, byte & 0x0f)
-            };
-            let (chroma_subsampling, transfer_function, video_full_range) = {
-                let byte = src.read_u8()?;
-                ((byte >> 4) & 0x0f, (byte >> 1) & 0x07, (byte & 1) == 1)
-            };
-            (bit_depth, color_space, chroma_subsampling, transfer_function, None, video_full_range)
-        } else {
-            let (bit_depth, chroma_subsampling, video_full_range) = {
-                let byte = src.read_u8()?;
-                ((byte >> 4) & 0x0f, (byte >> 1) & 0x07, (byte & 1) == 1)
-            };
-            let color_space = src.read_u8()?;
-            let transfer_function = src.read_u8()?;
-            let matrix = src.read_u8()?;
-
-            (bit_depth, color_space, chroma_subsampling, transfer_function, Some(matrix), video_full_range)
+    let (
+        bit_depth,
+        colour_primaries,
+        chroma_subsampling,
+        transfer_characteristics,
+        matrix_coefficients,
+        video_full_range_flag
+    ) = if version == 0 {
+        let (bit_depth, colour_primaries) = {
+            let byte = src.read_u8()?;
+            ((byte >> 4) & 0x0f, byte & 0x0f)
         };
+        // Note, transfer_characteristics was known as transfer_function in v0
+        let (chroma_subsampling, transfer_characteristics, video_full_range_flag) = {
+            let byte = src.read_u8()?;
+            ((byte >> 4) & 0x0f, (byte >> 1) & 0x07, (byte & 1) == 1)
+        };
+        (
+            bit_depth,
+            colour_primaries,
+            chroma_subsampling,
+            transfer_characteristics,
+            None,
+            video_full_range_flag
+        )
+    } else {
+        let (bit_depth, chroma_subsampling, video_full_range_flag) = {
+            let byte = src.read_u8()?;
+            ((byte >> 4) & 0x0f, (byte >> 1) & 0x07, (byte & 1) == 1)
+        };
+        let colour_primaries = src.read_u8()?;
+        let transfer_characteristics = src.read_u8()?;
+        let matrix_coefficients = src.read_u8()?;
+
+        (
+            bit_depth,
+            colour_primaries,
+            chroma_subsampling,
+            transfer_characteristics,
+            Some(matrix_coefficients),
+            video_full_range_flag
+        )
+    };
 
     let codec_init_size = be_u16(src)?;
-    let codec_init = read_buf(src, codec_init_size as usize)?;
+    let codec_init = read_buf(src, codec_init_size.to_usize())?;
 
     // TODO(rillian): validate field value ranges.
     Ok(VPxConfigBox {
-        profile: profile,
-        level: level,
-        bit_depth: bit_depth,
-        color_space: color_space,
-        chroma_subsampling: chroma_subsampling,
-        transfer_function: transfer_function,
-        matrix: matrix,
-        video_full_range: video_full_range,
-        codec_init: codec_init,
+        profile,
+        level,
+        bit_depth,
+        colour_primaries,
+        chroma_subsampling,
+        transfer_characteristics,
+        matrix_coefficients,
+        video_full_range_flag,
+        codec_init,
     })
 }
 
 fn read_av1c<T: Read>(src: &mut BMFFBox<T>) -> Result<AV1ConfigBox> {
     let marker_byte = src.read_u8()?;
-    if !(marker_byte & 0x80 == 0x80) {
+    if marker_byte & 0x80 != 0x80 {
         return Err(Error::Unsupported("missing av1C marker bit"));
     }
-    if !(marker_byte & 0x7f == 0x01) {
+    if marker_byte & 0x7f != 0x01 {
         return Err(Error::Unsupported("missing av1C marker bit"));
     }
     let profile_byte = src.read_u8()?;
@@ -1600,7 +1682,7 @@ fn read_av1c<T: Read>(src: &mut BMFFBox<T>) -> Result<AV1ConfigBox> {
         };
 
     let config_obus_size = src.bytes_left();
-    let config_obus = read_buf(src, config_obus_size as usize)?;
+    let config_obus = read_buf(src, config_obus_size.try_into()?)?;
 
     Ok(AV1ConfigBox {
         profile,
@@ -1621,14 +1703,14 @@ fn read_flac_metadata<T: Read>(src: &mut BMFFBox<T>) -> Result<FLACMetadataBlock
     let temp = src.read_u8()?;
     let block_type = temp & 0x7f;
     let length = be_u24(src)?;
-    if length as usize > src.bytes_left() {
+    if u64::from(length) > src.bytes_left() {
         return Err(Error::InvalidData(
                 "FLACMetadataBlock larger than parent box"));
     }
-    let data = read_buf(src, length as usize)?;
+    let data = read_buf(src, length.to_usize())?;
     Ok(FLACMetadataBlock {
-        block_type: block_type,
-        data: data,
+        block_type,
+        data,
     })
 }
 
@@ -1648,25 +1730,25 @@ fn find_descriptor(data: &[u8], esds: &mut ES_Descriptor) -> Result<()> {
         let mut end: u32 = 0;   // It's u8 without declaration type that is incorrect.
         // MSB of extend_or_len indicates more bytes, up to 4 bytes.
         for _ in 0..4 {
-            if (des.position() as usize) == remains.len() {
+            if des.position() == remains.len().to_u64() {
                 // There's nothing more to read, the 0x80 was actually part of
                 // the content, and not an extension size.
                 end = des.position() as u32;
                 break;
             }
             let extend_or_len = des.read_u8()?;
-            end = (end << 7) + (extend_or_len & 0x7F) as u32;
+            end = (end << 7) + u32::from(extend_or_len & 0x7F);
             if (extend_or_len & 0x80) == 0 {
                 end += des.position() as u32;
                 break;
             }
         };
 
-        if (end as usize) > remains.len() || (end as u64) < des.position() {
+        if end.to_usize() > remains.len() || u64::from(end) < des.position() {
             return Err(Error::InvalidData("Invalid descriptor."));
         }
 
-        let descriptor = &remains[des.position() as usize .. end as usize];
+        let descriptor = &remains[des.position().try_into()? .. end.to_usize()];
 
         match tag {
             ESDESCR_TAG => {
@@ -1683,7 +1765,7 @@ fn find_descriptor(data: &[u8], esds: &mut ES_Descriptor) -> Result<()> {
             },
         }
 
-        remains = &remains[end as usize .. remains.len()];
+        remains = &remains[end.to_usize() .. remains.len()];
     }
 
     Ok(())
@@ -1861,8 +1943,8 @@ fn read_dc_descriptor(data: &[u8], esds: &mut ES_Descriptor) -> Result<()> {
     // Skip uninteresting fields.
     skip(des, 12)?;
 
-    if data.len() > des.position() as usize {
-        find_descriptor(&data[des.position() as usize .. data.len()], esds)?;
+    if data.len().to_u64() > des.position() {
+        find_descriptor(&data[des.position().try_into()? .. data.len()], esds)?;
     }
 
     esds.audio_codec = match object_profile {
@@ -1890,12 +1972,12 @@ fn read_es_descriptor(data: &[u8], esds: &mut ES_Descriptor) -> Result<()> {
     // Url flag, second bit from left most.
     if esds_flags & 0x40 > 0 {
         // Skip uninteresting fields.
-        let skip_es_len: usize = des.read_u8()? as usize + 2;
+        let skip_es_len = u64::from(des.read_u8()?) + 2;
         skip(des, skip_es_len)?;
     }
 
-    if data.len() > des.position() as usize {
-        find_descriptor(&data[des.position() as usize .. data.len()], esds)?;
+    if data.len().to_u64() > des.position() {
+        find_descriptor(&data[des.position().try_into()? .. data.len()], esds)?;
     }
 
     Ok(())
@@ -1906,8 +1988,8 @@ fn read_esds<T: Read>(src: &mut BMFFBox<T>) -> Result<ES_Descriptor> {
 
     // Subtract 4 extra to offset the members of fullbox not accounted for in
     // head.offset
-    let esds_size = src.head.size - src.head.offset - 4;
-    let esds_array = read_buf(src, esds_size as usize)?;
+    let esds_size = src.head.size.checked_sub(src.head.offset + 4).expect("offset invalid");
+    let esds_array = read_buf(src, esds_size.try_into()?)?;
 
     let mut es_data = ES_Descriptor::default();
     find_descriptor(&esds_array, &mut es_data)?;
@@ -1943,8 +2025,8 @@ fn read_dfla<T: Read>(src: &mut BMFFBox<T>) -> Result<FLACSpecificBox> {
                 "FLACSpecificBox STREAMINFO block is the wrong size"));
     }
     Ok(FLACSpecificBox {
-        version: version,
-        blocks: blocks,
+        version,
+        blocks,
     })
 }
 
@@ -1966,24 +2048,24 @@ fn read_dops<T: Read>(src: &mut BMFFBox<T>) -> Result<OpusSpecificBox> {
     } else {
         let stream_count = src.read_u8()?;
         let coupled_count = src.read_u8()?;
-        let channel_mapping = read_buf(src, output_channel_count as usize)?;
+        let channel_mapping = read_buf(src, output_channel_count.to_usize())?;
 
         Some(ChannelMappingTable {
-            stream_count: stream_count,
-            coupled_count: coupled_count,
-            channel_mapping: channel_mapping,
+            stream_count,
+            coupled_count,
+            channel_mapping,
         })
     };
 
     // TODO(kinetik): validate field value ranges.
     Ok(OpusSpecificBox {
-        version: version,
-        output_channel_count: output_channel_count,
-        pre_skip: pre_skip,
-        input_sample_rate: input_sample_rate,
-        output_gain: output_gain,
-        channel_mapping_family: channel_mapping_family,
-        channel_mapping_table: channel_mapping_table,
+        version,
+        output_channel_count,
+        pre_skip,
+        input_sample_rate,
+        output_gain,
+        channel_mapping_family,
+        channel_mapping_table,
     })
 }
 
@@ -2040,15 +2122,15 @@ fn read_alac<T: Read>(src: &mut BMFFBox<T>) -> Result<ALACSpecificBox> {
         return Err(Error::InvalidData("no-zero alac (ALAC) flags"));
     }
 
-    let length = src.bytes_left();
-    if length != 24 && length != 48 {
-        return Err(Error::InvalidData("ALACSpecificBox magic cookie is the wrong size"));
-    }
+    let length = match src.bytes_left() {
+        x @ 24 | x @ 48 => x.try_into().expect("infallible conversion to usize"),
+        _ => return Err(Error::InvalidData("ALACSpecificBox magic cookie is the wrong size")),
+    };
     let data = read_buf(src, length)?;
 
     Ok(ALACSpecificBox {
-        version: version,
-        data: data,
+        version,
+        data,
     })
 }
 
@@ -2068,7 +2150,7 @@ fn read_hdlr<T: Read>(src: &mut BMFFBox<T>) -> Result<HandlerBox> {
     skip_box_remain(src)?;
 
     Ok(HandlerBox {
-        handler_type: handler_type,
+        handler_type,
     })
 }
 
@@ -2115,8 +2197,8 @@ fn read_video_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<SampleEntry>
                     codec_specific.is_some() {
                         return Err(Error::InvalidData("malformed video sample entry"));
                     }
-                let avcc_size = b.head.size - b.head.offset;
-                let avcc = read_buf(&mut b.content, avcc_size as usize)?;
+                let avcc_size = b.head.size.checked_sub(b.head.offset).expect("offset invalid");
+                let avcc = read_buf(&mut b.content, avcc_size.try_into()?)?;
                 debug!("{:?} (avcc)", avcc);
                 // TODO(kinetik): Parse avcC box?  For now we just stash the data.
                 codec_specific = Some(VideoCodecSpecific::AVCConfig(avcc));
@@ -2145,8 +2227,8 @@ fn read_video_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<SampleEntry>
                 let (_, _) = read_fullbox_extra(&mut b.content)?;
                 // Subtract 4 extra to offset the members of fullbox not
                 // accounted for in head.offset
-                let esds_size = b.head.size - b.head.offset - 4;
-                let esds = read_buf(&mut b.content, esds_size as usize)?;
+                let esds_size = b.head.size.checked_sub(b.head.offset + 4).expect("offset invalid");
+                let esds = read_buf(&mut b.content, esds_size.try_into()?)?;
                 codec_specific = Some(VideoCodecSpecific::ESDSConfig(esds));
             }
             BoxType::ProtectionSchemeInformationBox => {
@@ -2167,12 +2249,12 @@ fn read_video_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<SampleEntry>
 
     Ok(codec_specific.map_or(SampleEntry::Unknown,
         |codec_specific| SampleEntry::Video(VideoSampleEntry {
-            codec_type: codec_type,
-            data_reference_index: data_reference_index,
-            width: width,
-            height: height,
-            codec_specific: codec_specific,
-            protection_info: protection_info,
+            codec_type,
+            data_reference_index,
+            width,
+            height,
+            codec_specific,
+            protection_info,
         }))
     )
 }
@@ -2211,13 +2293,13 @@ fn read_audio_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<SampleEntry>
     // Skip uninteresting fields.
     skip(src, 6)?;
 
-    let mut channelcount = be_u16(src)? as u32;
+    let mut channelcount = u32::from(be_u16(src)?);
     let samplesize = be_u16(src)?;
 
     // Skip uninteresting fields.
     skip(src, 4)?;
 
-    let mut samplerate = (be_u32(src)? >> 16) as f64; // 16.16 fixed point;
+    let mut samplerate = f64::from(be_u32(src)? >> 16); // 16.16 fixed point;
 
     match version {
         0 => (),
@@ -2308,13 +2390,13 @@ fn read_audio_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<SampleEntry>
 
     Ok(codec_specific.map_or(SampleEntry::Unknown,
         |codec_specific| SampleEntry::Audio(AudioSampleEntry {
-            codec_type: codec_type,
-            data_reference_index: data_reference_index,
-            channelcount: channelcount,
-            samplesize: samplesize,
-            samplerate: samplerate,
-            codec_specific: codec_specific,
-            protection_info: protection_info,
+            codec_type,
+            data_reference_index,
+            channelcount,
+            samplesize,
+            samplerate,
+            codec_specific,
+            protection_info,
         }))
     )
 }
@@ -2349,7 +2431,7 @@ fn read_stsd<T: Read>(src: &mut BMFFBox<T>, track: &mut Track) -> Result<SampleD
             };
             vec_push(&mut descriptions, description)?;
             check_parser_state!(b.content);
-            if descriptions.len() == description_count as usize {
+            if descriptions.len() == description_count.to_usize() {
                 break;
             }
         }
@@ -2359,7 +2441,7 @@ fn read_stsd<T: Read>(src: &mut BMFFBox<T>, track: &mut Track) -> Result<SampleD
     skip_box_remain(src)?;
 
     Ok(SampleDescriptionBox {
-        descriptions: descriptions,
+        descriptions,
     })
 }
 
@@ -2431,7 +2513,7 @@ fn read_tenc<T: Read>(src: &mut BMFFBox<T>) -> Result<TrackEncryptionBox> {
     let default_constant_iv = match (default_is_encrypted, default_iv_size) {
         (1, 0) => {
             let default_constant_iv_size = src.read_u8()?;
-            Some(read_buf(src, default_constant_iv_size as usize)?)
+            Some(read_buf(src, default_constant_iv_size.to_usize())?)
         },
         _ => None,
     };
@@ -2460,8 +2542,8 @@ fn read_schm<T: Read>(src: &mut BMFFBox<T>) -> Result<SchemeTypeBox> {
     // Null terminated scheme URI may follow, but we don't use it right now.
     skip_box_remain(src)?;
     Ok(SchemeTypeBox {
-        scheme_type: scheme_type,
-        scheme_version: scheme_version,
+        scheme_type,
+        scheme_version,
     })
 }
 
@@ -2511,7 +2593,7 @@ fn read_ilst<T: Read>(src: &mut BMFFBox<T>, meta: &mut MetadataBox) -> Result<()
             BoxType::DateEntry => meta.year = read_ilst_string_data(&mut b)?,
             BoxType::TitleEntry => meta.title = read_ilst_string_data(&mut b)?,
             BoxType::CustomGenreEntry => meta.genre = read_ilst_string_data(&mut b)?
-                .map(|s| Genre::CustomGenre(s)),
+                .map(Genre::CustomGenre),
             BoxType::StandardGenreEntry => meta.genre = read_ilst_u8_data(&mut b)?
                 .and_then(|gnre| Some(Genre::StandardGenre(gnre.get(1).copied()?))),
             BoxType::ComposerEntry => meta.composer = read_ilst_string_data(&mut b)?,
@@ -2625,23 +2707,14 @@ fn read_ilst_multiple_u8_data<T: Read>(src: &mut BMFFBox<T>) -> Result<Vec<Vec<u
 
 fn read_ilst_data<T: Read>(src: &mut BMFFBox<T>) -> Result<Vec<u8>> {
     // Skip past the padding bytes
-    skip(&mut src.content, src.head.offset as usize)?;
-    let size = src.content.limit() as usize;
+    skip(&mut src.content, src.head.offset)?;
+    let size = src.content.limit().try_into()?;
     read_buf(&mut src.content, size)
 }
 
 /// Skip a number of bytes that we don't care to parse.
-fn skip<T: Read>(src: &mut T, mut bytes: usize) -> Result<()> {
-    const BUF_SIZE: usize = 64 * 1024;
-    let mut buf = vec![0; BUF_SIZE];
-    while bytes > 0 {
-        let buf_size = cmp::min(bytes, BUF_SIZE);
-        let len = src.take(buf_size as u64).read(&mut buf)?;
-        if len == 0 {
-            return Err(Error::UnexpectedEOF);
-        }
-        bytes -= len;
-    }
+fn skip<T: Read>(src: &mut T, bytes: u64) -> Result<()> {
+    std::io::copy(&mut src.take(bytes), &mut std::io::sink())?;
     Ok(())
 }
 
@@ -2678,9 +2751,7 @@ fn be_u16<T: ReadBytesExt>(src: &mut T) -> Result<u16> {
 }
 
 fn be_u24<T: ReadBytesExt>(src: &mut T) -> Result<u32> {
-    src.read_uint::<byteorder::BigEndian>(3)
-        .map(|v| v as u32)
-        .map_err(From::from)
+    src.read_u24::<byteorder::BigEndian>().map_err(From::from)
 }
 
 fn be_u32<T: ReadBytesExt>(src: &mut T) -> Result<u32> {

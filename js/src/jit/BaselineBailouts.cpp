@@ -433,8 +433,8 @@ static inline void* GetStubReturnAddress(JSContext* cx, JSOp op) {
   }
 
   // This should be a call op of some kind, now.
-  MOZ_ASSERT(IsCallOp(op) && !IsSpreadCallOp(op));
-  if (IsConstructorCallOp(op)) {
+  MOZ_ASSERT(IsInvokeOp(op) && !IsSpreadOp(op));
+  if (IsConstructOp(op)) {
     return code.bailoutReturnAddr(BailoutReturnKind::New);
   }
   return code.bailoutReturnAddr(BailoutReturnKind::Call);
@@ -444,14 +444,14 @@ static inline jsbytecode* GetNextNonLoopHeadPc(jsbytecode* pc,
                                                jsbytecode** skippedLoopHead) {
   JSOp op = JSOp(*pc);
   switch (op) {
-    case JSOP_GOTO:
+    case JSOp::Goto:
       return pc + GET_JUMP_OFFSET(pc);
 
-    case JSOP_LOOPHEAD:
+    case JSOp::LoopHead:
       *skippedLoopHead = pc;
       return GetNextPc(pc);
 
-    case JSOP_NOP:
+    case JSOp::Nop:
       return GetNextPc(pc);
 
     default:
@@ -466,7 +466,7 @@ static jsbytecode* GetResumePC(JSScript* script, jsbytecode* pc,
     return GetNextPc(pc);
   }
 
-  // If we are resuming at a LOOPHEAD op, resume at the next op to avoid
+  // If we are resuming at a LoopHead op, resume at the next op to avoid
   // a bailout -> enter Ion -> bailout loop with --ion-eager.
   //
   // The algorithm below is the "tortoise and the hare" algorithm. See bug
@@ -849,7 +849,7 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
         builder.valuePointerAtStackOffset(argOffset).set(arg);
       } else if (argsObjAliasesFormals) {
         // When the arguments object aliases the formal arguments, then
-        // JSOP_SETARG mutates the argument object. In such cases, the
+        // JSOp::SetArg mutates the argument object. In such cases, the
         // list of arguments reported by the snapshot are only aliases
         // of argument object slots which are optimized to only store
         // differences compared to arguments which are on the stack.
@@ -886,21 +886,21 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
 
   const JSOp op = JSOp(*pc);
 
-  // Inlining of SPREADCALL-like frames not currently supported.
-  MOZ_ASSERT_IF(IsSpreadCallOp(op), !iter.moreFrames());
+  // Inlining of SpreadCall-like frames not currently supported.
+  MOZ_ASSERT_IF(IsSpreadOp(op), !iter.moreFrames());
 
-  // Fixup inlined JSOP_FUNCALL, JSOP_FUNAPPLY, and accessors on the caller
+  // Fixup inlined JSOp::FunCall, JSOp::FunApply, and accessors on the caller
   // side. On the caller side this must represent like the function wasn't
   // inlined.
   uint32_t pushedSlots = 0;
   RootedValueVector savedCallerArgs(cx);
   bool needToSaveArgs =
-      op == JSOP_FUNAPPLY || IsIonInlinableGetterOrSetterOp(op);
-  if (iter.moreFrames() && (op == JSOP_FUNCALL || needToSaveArgs)) {
+      op == JSOp::FunApply || IsIonInlinableGetterOrSetterOp(op);
+  if (iter.moreFrames() && (op == JSOp::FunCall || needToSaveArgs)) {
     uint32_t inlined_args = 0;
-    if (op == JSOP_FUNCALL) {
+    if (op == JSOp::FunCall) {
       inlined_args = 2 + GET_ARGC(pc) - 1;
-    } else if (op == JSOP_FUNAPPLY) {
+    } else if (op == JSOp::FunApply) {
       inlined_args = 2 + blFrame->numActualArgs();
     } else {
       MOZ_ASSERT(IsIonInlinableGetterOrSetterOp(op));
@@ -920,7 +920,7 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
       }
     }
 
-    if (op == JSOP_FUNCALL) {
+    if (op == JSOp::FunCall) {
       // When funcall got inlined and the native js_fun_call was bypassed,
       // the stack state is incorrect. To restore correctly it must look like
       // js_fun_call was actually called. This means transforming the stack
@@ -945,7 +945,7 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
       // to |js_fun_apply, target, this, argObject|.
       // Since the information is never read, we can just push undefined
       // for all values.
-      if (op == JSOP_FUNAPPLY) {
+      if (op == JSOp::FunApply) {
         JitSpew(JitSpew_BaselineBailouts,
                 "      pushing 4x undefined to fixup funapply");
         if (!builder.writeValue(UndefinedValue(), "StackValue")) {
@@ -974,7 +974,7 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
         // We would love to just save all the arguments and leave them
         // in the stub frame pushed below, but we will lose the inital
         // argument which the function was called with, which we must
-        // leave on the stack. It's pushed as the result of the SETPROP.
+        // leave on the stack. It's pushed as the result of the SetProp.
         Value initialArg = savedCallerArgs[inlined_args - 1];
         JitSpew(JitSpew_BaselineBailouts,
                 "     pushing setter's initial argument");
@@ -1050,8 +1050,8 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
   }
 
   if (reachablePC) {
-    if (op != JSOP_FUNAPPLY || !iter.moreFrames() || resumeAfter) {
-      if (op == JSOP_FUNCALL) {
+    if (op != JSOp::FunApply || !iter.moreFrames() || resumeAfter) {
+      if (op == JSOp::FunCall) {
         // For fun.call(this, ...); the reconstructStackDepth will
         // include the this. When inlining that is not included.
         // So the exprStackSlots will be one less.
@@ -1082,7 +1082,7 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
 #ifdef JS_JITSPEW
   JitSpew(JitSpew_BaselineBailouts,
           "      Resuming %s pc offset %d (op %s) (line %d) of %s:%u:%u",
-          resumeAfter ? "after" : "at", (int)pcOff, CodeName[op],
+          resumeAfter ? "after" : "at", (int)pcOff, CodeName(op),
           PCToLineNumber(script, pc), script->filename(), script->lineno(),
           script->column());
   JitSpew(JitSpew_BaselineBailouts, "      Bailout kind: %s",
@@ -1141,7 +1141,7 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
       }
       snprintf(buf.get(), len, "%s %s %s on line %u of %s:%u",
                BailoutKindString(bailoutKind), resumeAfter ? "after" : "at",
-               CodeName[op], PCToLineNumber(script, pc), filename,
+               CodeName(op), PCToLineNumber(script, pc), filename,
                script->lineno());
       cx->runtime()->geckoProfiler().markEvent(buf.get());
     }
@@ -1216,13 +1216,13 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
   // BaselineJS frame. Arguments are reversed on the BaselineJS frame's stack
   // values.
   MOZ_ASSERT(IsIonInlinableOp(op));
-  bool pushedNewTarget = IsConstructorCallPC(pc);
+  bool pushedNewTarget = IsConstructPC(pc);
   unsigned actualArgc;
   Value callee;
   if (needToSaveArgs) {
-    // For FUNAPPLY or an accessor, the arguments are not on the stack anymore,
+    // For FunApply or an accessor, the arguments are not on the stack anymore,
     // but they are copied in a vector and are written here.
-    if (op == JSOP_FUNAPPLY) {
+    if (op == JSOp::FunApply) {
       actualArgc = blFrame->numActualArgs();
     } else {
       actualArgc = IsSetPropOp(op);
@@ -1248,7 +1248,7 @@ static bool InitFromBailout(JSContext* cx, size_t frameNo, HandleFunction fun,
     }
   } else {
     actualArgc = GET_ARGC(pc);
-    if (op == JSOP_FUNCALL) {
+    if (op == JSOp::FunCall) {
       MOZ_ASSERT(actualArgc > 0);
       actualArgc--;
     }
@@ -1861,7 +1861,7 @@ bool jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg) {
     ICFallbackStub* fallbackStub = icEntry.fallbackStub();
 
     // Not every monitored op has a monitored fallback stub, e.g.
-    // JSOP_NEWOBJECT, which always returns the same type for a
+    // JSOp::NewObject, which always returns the same type for a
     // particular script/pc location.
     if (fallbackStub->isMonitoredFallback()) {
       ICMonitoredFallbackStub* stub = fallbackStub->toMonitoredFallbackStub();

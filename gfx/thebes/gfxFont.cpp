@@ -461,13 +461,6 @@ void gfxFontShaper::MergeFontFeatures(
 
   nsDataHashtable<nsUint32HashKey, uint32_t> mergedFeatures;
 
-  // Ligature features are enabled by default in the generic shaper,
-  // so we explicitly turn them off if necessary (for letter-spacing)
-  if (aDisableLigatures) {
-    mergedFeatures.Put(HB_TAG('l', 'i', 'g', 'a'), 0);
-    mergedFeatures.Put(HB_TAG('c', 'l', 'i', 'g'), 0);
-  }
-
   // add feature values from font
   for (const gfxFontFeature& feature : aFontFeatures) {
     mergedFeatures.Put(feature.mTag, feature.mValue);
@@ -545,9 +538,30 @@ void gfxFontShaper::MergeFontFeatures(
     }
   }
 
-  // add feature values from style rules
-  for (const gfxFontFeature& feature : styleRuleFeatures) {
-    mergedFeatures.Put(feature.mTag, feature.mValue);
+  // Add features that are already resolved to tags & values in the style.
+  if (styleRuleFeatures.IsEmpty()) {
+    // Disable common ligatures if non-zero letter-spacing is in effect.
+    if (aDisableLigatures) {
+      mergedFeatures.Put(HB_TAG('l', 'i', 'g', 'a'), 0);
+      mergedFeatures.Put(HB_TAG('c', 'l', 'i', 'g'), 0);
+    }
+  } else {
+    for (const gfxFontFeature& feature : styleRuleFeatures) {
+      // A dummy feature (0,0) is used as a sentinel to separate features
+      // originating from font-variant-* or other high-level properties from
+      // those directly specified as font-feature-settings. The high-level
+      // features may be overridden by aDisableLigatures, while low-level
+      // features specified directly as tags will come last and therefore
+      // take precedence over everything else.
+      if (feature.mTag) {
+        mergedFeatures.Put(feature.mTag, feature.mValue);
+      } else if (aDisableLigatures) {
+        // Handle ligature-disabling setting at the boundary between high-
+        // and low-level features.
+        mergedFeatures.Put(HB_TAG('l', 'i', 'g', 'a'), 0);
+        mergedFeatures.Put(HB_TAG('c', 'l', 'i', 'g'), 0);
+      }
+    }
   }
 
   if (mergedFeatures.Count() != 0) {
@@ -696,15 +710,18 @@ void gfxShapedText::AdjustAdvancesForSyntheticBold(float aSynBoldOffset,
     CompressedGlyph* glyphData = charGlyphs + i;
     if (glyphData->IsSimpleGlyph()) {
       // simple glyphs ==> just add the advance
-      int32_t advance = glyphData->GetSimpleAdvance() + synAppUnitOffset;
-      if (CompressedGlyph::IsSimpleAdvance(advance)) {
-        glyphData->SetSimpleGlyph(advance, glyphData->GetSimpleGlyph());
-      } else {
-        // rare case, tested by making this the default
-        uint32_t glyphIndex = glyphData->GetSimpleGlyph();
-        glyphData->SetComplex(true, true, 1);
-        DetailedGlyph detail = {glyphIndex, advance, gfx::Point()};
-        SetGlyphs(i, *glyphData, &detail);
+      int32_t advance = glyphData->GetSimpleAdvance();
+      if (advance > 0) {
+        advance += synAppUnitOffset;
+        if (CompressedGlyph::IsSimpleAdvance(advance)) {
+          glyphData->SetSimpleGlyph(advance, glyphData->GetSimpleGlyph());
+        } else {
+          // rare case, tested by making this the default
+          uint32_t glyphIndex = glyphData->GetSimpleGlyph();
+          glyphData->SetComplex(true, true, 1);
+          DetailedGlyph detail = {glyphIndex, advance, gfx::Point()};
+          SetGlyphs(i, *glyphData, &detail);
+        }
       }
     } else {
       // complex glyphs ==> add offset at cluster/ligature boundaries
@@ -715,9 +732,13 @@ void gfxShapedText::AdjustAdvancesForSyntheticBold(float aSynBoldOffset,
           continue;
         }
         if (IsRightToLeft()) {
-          details[0].mAdvance += synAppUnitOffset;
+          if (details[0].mAdvance > 0) {
+            details[0].mAdvance += synAppUnitOffset;
+          }
         } else {
-          details[detailedLength - 1].mAdvance += synAppUnitOffset;
+          if (details[detailedLength - 1].mAdvance > 0) {
+            details[detailedLength - 1].mAdvance += synAppUnitOffset;
+          }
         }
       }
     }
@@ -3786,11 +3807,17 @@ UniquePtr<const gfxFont::Metrics> gfxFont::CreateVerticalMetrics() {
   }
 
   // Get underline thickness from the 'post' table if available.
+  // We also read the underline position, although in vertical-upright mode
+  // this will not be appropriate to use directly (see nsTextFrame.cpp).
   gfxFontEntry::AutoTable postTable(mFontEntry, kPostTableTag);
   if (postTable) {
     const PostTable* post =
         reinterpret_cast<const PostTable*>(hb_blob_get_data(postTable, &len));
     if (len >= offsetof(PostTable, underlineThickness) + sizeof(uint16_t)) {
+      static_assert(offsetof(PostTable, underlinePosition) <
+                        offsetof(PostTable, underlineThickness),
+                    "broken PostTable struct?");
+      SET_SIGNED(underlineOffset, post->underlinePosition);
       SET_UNSIGNED(underlineSize, post->underlineThickness);
       // Also use for strikeout if we didn't find that in OS/2 above.
       if (!metrics->strikeoutSize) {
@@ -3809,10 +3836,7 @@ UniquePtr<const gfxFont::Metrics> gfxFont::CreateVerticalMetrics() {
 
   // Thickness of underline and strikeout may have been read from tables,
   // but in case they were not present, ensure a minimum of 1 pixel.
-  // We synthesize our own positions, as font metrics don't provide these
-  // for vertical layout.
   metrics->underlineSize = std::max(1.0, metrics->underlineSize);
-  metrics->underlineOffset = -metrics->maxDescent - metrics->underlineSize;
 
   metrics->strikeoutSize = std::max(1.0, metrics->strikeoutSize);
   metrics->strikeoutOffset = -0.5 * metrics->strikeoutSize;

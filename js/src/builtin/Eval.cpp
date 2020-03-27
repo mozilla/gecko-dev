@@ -11,7 +11,7 @@
 
 #include "ds/LifoAlloc.h"
 #include "frontend/BytecodeCompilation.h"
-#include "frontend/ParseInfo.h"
+#include "frontend/CompilationInfo.h"
 #include "gc/HashUtil.h"
 #include "js/SourceText.h"
 #include "js/StableStringChars.h"
@@ -119,7 +119,7 @@ class EvalScriptGuard {
   }
 
   void setNewScript(JSScript* script) {
-    // JSScript::initFromEmitter has already called js_CallNewScriptHook.
+    // JSScript::fullyInitFromStencil has already called js_CallNewScriptHook.
     MOZ_ASSERT(!script_ && script);
     script_ = script;
   }
@@ -325,10 +325,16 @@ static bool EvalKernel(JSContext* cx, HandleValue v, EvalType evalType,
     }
 
     LifoAllocScope allocScope(&cx->tempLifoAlloc());
-    frontend::ParseInfo parseInfo(cx, allocScope);
+    frontend::CompilationInfo compilationInfo(cx, allocScope, options);
+    if (!compilationInfo.init(cx)) {
+      return false;
+    }
 
-    frontend::EvalScriptInfo info(cx, parseInfo, options, env, enclosing);
-    RootedScript compiled(cx, frontend::CompileEvalScript(info, srcBuf));
+    frontend::EvalSharedContext evalsc(cx, env, compilationInfo, enclosing,
+                                       compilationInfo.directives,
+                                       options.extraWarningsOption);
+    RootedScript compiled(
+        cx, frontend::CompileEvalScript(compilationInfo, evalsc, env, srcBuf));
     if (!compiled) {
       return false;
     }
@@ -420,10 +426,16 @@ bool js::DirectEvalStringFromIon(JSContext* cx, HandleObject env,
     }
 
     LifoAllocScope allocScope(&cx->tempLifoAlloc());
-    frontend::ParseInfo parseInfo(cx, allocScope);
+    frontend::CompilationInfo compilationInfo(cx, allocScope, options);
+    if (!compilationInfo.init(cx)) {
+      return false;
+    }
 
-    frontend::EvalScriptInfo info(cx, parseInfo, options, env, enclosing);
-    JSScript* compiled = frontend::CompileEvalScript(info, srcBuf);
+    frontend::EvalSharedContext evalsc(cx, env, compilationInfo, enclosing,
+                                       compilationInfo.directives,
+                                       options.extraWarningsOption);
+    JSScript* compiled =
+        frontend::CompileEvalScript(compilationInfo, evalsc, env, srcBuf);
     if (!compiled) {
       return false;
     }
@@ -451,10 +463,10 @@ bool js::DirectEval(JSContext* cx, HandleValue v, MutableHandleValue vp) {
   ScriptFrameIter iter(cx);
   AbstractFramePtr caller = iter.abstractFramePtr();
 
-  MOZ_ASSERT(JSOp(*iter.pc()) == JSOP_EVAL ||
-             JSOp(*iter.pc()) == JSOP_STRICTEVAL ||
-             JSOp(*iter.pc()) == JSOP_SPREADEVAL ||
-             JSOp(*iter.pc()) == JSOP_STRICTSPREADEVAL);
+  MOZ_ASSERT(JSOp(*iter.pc()) == JSOp::Eval ||
+             JSOp(*iter.pc()) == JSOp::StrictEval ||
+             JSOp(*iter.pc()) == JSOp::SpreadEval ||
+             JSOp(*iter.pc()) == JSOp::StrictSpreadEval);
   MOZ_ASSERT(caller.realm() == caller.script()->realm());
 
   RootedObject envChain(cx, caller.environmentChain());
@@ -571,9 +583,7 @@ JS_FRIEND_API bool js::ExecuteInJSMEnvironment(JSContext* cx,
     //      WithEnvironmentObject[target=targetObj]
     //      LexicalEnvironmentObject[this=targetObj] (*)
     //
-    //  (*) This environment intentionally intercepts JSOP_GLOBALTHIS, but
-    //  not JSOP_FUNCTIONTHIS (which instead will fallback to the NSVO). I
-    //  don't make the rules, I just record them.
+    //  (*) This environment intercepts JSOp::GlobalThis.
 
     // Wrap the target objects in WithEnvironments.
     if (!js::CreateObjectsForEnvironmentChain(cx, targetObj, env, &env)) {

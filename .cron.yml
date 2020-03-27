@@ -130,7 +130,6 @@ jobs:
           - mozilla-beta
           - mozilla-release
           - mozilla-esr68
-          - ash
       when:
           - {hour: 10, minute: 0}
 

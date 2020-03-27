@@ -108,6 +108,8 @@ class SharedContext {
 
   Kind kind_;
 
+  CompilationInfo& compilationInfo_;
+
   ThisBinding thisBinding_;
 
  public:
@@ -159,10 +161,11 @@ class SharedContext {
   void computeThisBinding(Scope* scope);
 
  public:
-  SharedContext(JSContext* cx, Kind kind, Directives directives,
-                bool extraWarnings)
+  SharedContext(JSContext* cx, Kind kind, CompilationInfo& compilationInfo,
+                Directives directives, bool extraWarnings)
       : cx_(cx),
         kind_(kind),
+        compilationInfo_(compilationInfo),
         thisBinding_(ThisBinding::Global),
         strictScript(directives.strict()),
         localStrict(false),
@@ -204,6 +207,8 @@ class SharedContext {
     MOZ_ASSERT(kind_ == Kind::FunctionBox);
     return false;
   }
+
+  CompilationInfo& compilationInfo() const { return compilationInfo_; }
 
   ThisBinding thisBinding() const { return thisBinding_; }
 
@@ -247,9 +252,11 @@ class MOZ_STACK_CLASS GlobalSharedContext : public SharedContext {
  public:
   Rooted<GlobalScope::Data*> bindings;
 
-  GlobalSharedContext(JSContext* cx, ScopeKind scopeKind, Directives directives,
+  GlobalSharedContext(JSContext* cx, ScopeKind scopeKind,
+                      CompilationInfo& compilationInfo, Directives directives,
                       bool extraWarnings)
-      : SharedContext(cx, Kind::Global, directives, extraWarnings),
+      : SharedContext(cx, Kind::Global, compilationInfo, directives,
+                      extraWarnings),
         scopeKind_(scopeKind),
         bindings(cx) {
     MOZ_ASSERT(scopeKind == ScopeKind::Global ||
@@ -274,8 +281,8 @@ class MOZ_STACK_CLASS EvalSharedContext : public SharedContext {
   Rooted<EvalScope::Data*> bindings;
 
   EvalSharedContext(JSContext* cx, JSObject* enclosingEnv,
-                    Scope* enclosingScope, Directives directives,
-                    bool extraWarnings);
+                    CompilationInfo& compilationInfo, Scope* enclosingScope,
+                    Directives directives, bool extraWarnings);
 
   Scope* compilationEnclosingScope() const override { return enclosingScope_; }
 };
@@ -314,7 +321,8 @@ class FunctionBox : public ObjectBox, public SharedContext {
   VarScope::Data* extraVarScopeBindings_;
 
   FunctionBox(JSContext* cx, TraceListNode* traceListHead,
-              uint32_t toStringStart, Directives directives, bool extraWarnings,
+              uint32_t toStringStart, CompilationInfo& compilationInfo,
+              Directives directives, bool extraWarnings,
               GeneratorKind generatorKind, FunctionAsyncKind asyncKind,
               JSAtom* explicitName, FunctionFlags flags);
 
@@ -334,13 +342,11 @@ class FunctionBox : public ObjectBox, public SharedContext {
   uint32_t toStringEnd;
   uint16_t length;
 
-  bool isGenerator_ : 1;         /* generator function or async generator */
-  bool isAsync_ : 1;             /* async function or async generator */
-  bool hasDestructuringArgs : 1; /* parameter list contains destructuring
-                                    expression */
-  bool hasParameterExprs : 1;    /* parameter list contains expressions */
-  bool hasDirectEvalInParameterExpr : 1; /* parameter list contains direct eval
-                                          */
+  bool isGenerator_ : 1;           /* generator function or async generator */
+  bool isAsync_ : 1;               /* async function or async generator */
+  bool hasDestructuringArgs : 1;   /* parameter list contains destructuring
+                                      expression */
+  bool hasParameterExprs : 1;      /* parameter list contains expressions */
   bool hasDuplicateParameters : 1; /* parameter list contains duplicate names */
   bool useAsm : 1;                 /* see useAsmOrInsideUseAsm */
   bool isAnnexB : 1;   /* need to emit a synthesized Annex B assignment */
@@ -394,7 +400,7 @@ class FunctionBox : public ObjectBox, public SharedContext {
   // prologue: instead we can analyze how 'arguments' is used (using the
   // simple dataflow analysis in analyzeSSA) to determine that uses of
   // 'arguments' can just read from the stack frame directly. However, the
-  // dataflow analysis only looks at how JSOP_ARGUMENTS is used, so it will
+  // dataflow analysis only looks at how JSOp::Arguments is used, so it will
   // be unsound in several cases. The frontend filters out such cases by
   // setting this flag which eagerly sets script->needsArgsObj to true.
   //
@@ -404,7 +410,7 @@ class FunctionBox : public ObjectBox, public SharedContext {
   bool isDerivedClassConstructor_ : 1;
 
   // Whether this function has a .this binding. If true, we need to emit
-  // JSOP_FUNCTIONTHIS in the prologue to initialize it.
+  // JSOp::FunctionThis in the prologue to initialize it.
   bool hasThisBinding_ : 1;
 
   // Whether this function has nested functions.
@@ -434,13 +440,15 @@ class FunctionBox : public ObjectBox, public SharedContext {
   }
 
   FunctionBox(JSContext* cx, TraceListNode* traceListHead, JSFunction* fun,
-              uint32_t toStringStart, Directives directives, bool extraWarnings,
+              uint32_t toStringStart, CompilationInfo& compilationInfo,
+              Directives directives, bool extraWarnings,
               GeneratorKind generatorKind, FunctionAsyncKind asyncKind);
 
   FunctionBox(JSContext* cx, TraceListNode* traceListHead,
               Handle<FunctionCreationData> data, uint32_t toStringStart,
-              Directives directives, bool extraWarnings,
-              GeneratorKind generatorKind, FunctionAsyncKind asyncKind);
+              CompilationInfo& compilationInfo, Directives directives,
+              bool extraWarnings, GeneratorKind generatorKind,
+              FunctionAsyncKind asyncKind);
 
 #ifdef DEBUG
   bool atomsAreKept();
@@ -519,7 +527,7 @@ class FunctionBox : public ObjectBox, public SharedContext {
     // the enclosingScope_ must have be set correctly during initalization.
 
     MOZ_ASSERT(enclosingScope_);
-    return enclosingScope_.maybeScope();
+    return enclosingScope_.scope();
   }
 
   bool needsCallObjectRegardlessOfBindings() const {
@@ -687,6 +695,39 @@ class FunctionBox : public ObjectBox, public SharedContext {
     }
     MOZ_ASSERT(functionCreationData()->lazyScriptData);
     functionCreationData()->lazyScriptData->fieldInitializers.emplace(fi);
+  }
+
+  bool setTypeForScriptedFunction(JSContext* cx, bool singleton) {
+    if (hasObject()) {
+      RootedFunction fun(cx, function());
+      return JSFunction::setTypeForScriptedFunction(cx, fun, singleton);
+    }
+    functionCreationData()->typeForScriptedFunction.emplace(singleton);
+    return true;
+  }
+
+  void setTreatAsRunOnce() { function()->baseScript()->setTreatAsRunOnce(); }
+
+  void setInferredName(JSAtom* atom) {
+    if (hasObject()) {
+      function()->setInferredName(atom);
+      return;
+    }
+    functionCreationData()->setInferredName(atom);
+  }
+
+  JSAtom* inferredName() const {
+    if (hasObject()) {
+      return function()->inferredName();
+    }
+    return functionCreationData()->inferredName();
+  }
+
+  bool hasInferredName() const {
+    if (hasObject()) {
+      return function()->hasInferredName();
+    }
+    return functionCreationData()->hasInferredName();
   }
 
   void trace(JSTracer* trc) override;

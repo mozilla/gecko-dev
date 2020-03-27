@@ -6,35 +6,35 @@
 
 #include "mozilla/dom/HTMLFormElement.h"
 
+#include <utility>
+
 #include "jsapi.h"
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/BinarySearch.h"
 #include "mozilla/ContentEvents.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/dom/BindContext.h"
-#include "mozilla/dom/nsCSPUtils.h"
-#include "mozilla/dom/nsCSPContext.h"
-#include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/dom/CustomEvent.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/HTMLFormControlsCollection.h"
 #include "mozilla/dom/HTMLFormElementBinding.h"
-#include "mozilla/Move.h"
+#include "mozilla/dom/nsCSPContext.h"
+#include "mozilla/dom/nsCSPUtils.h"
+#include "mozilla/dom/nsMixedContentBlocker.h"
+#include "nsAutoPtr.h"
+#include "nsCOMArray.h"
+#include "nsContentList.h"
+#include "nsContentUtils.h"
+#include "nsError.h"
 #include "nsGkAtoms.h"
 #include "nsHTMLDocument.h"
-#include "nsStyleConsts.h"
-#include "nsPresContext.h"
-#include "mozilla/dom/Document.h"
 #include "nsIFormControlFrame.h"
-#include "nsError.h"
-#include "nsContentUtils.h"
-#include "nsHTMLDocument.h"
 #include "nsInterfaceHashtable.h"
-#include "nsContentList.h"
-#include "nsCOMArray.h"
-#include "nsAutoPtr.h"
-#include "nsTArray.h"
-#include "mozilla/BinarySearch.h"
+#include "nsPresContext.h"
 #include "nsQueryObject.h"
+#include "nsStyleConsts.h"
+#include "nsTArray.h"
 
 // form submission
 #include "HTMLFormSubmissionConstants.h"
@@ -301,7 +301,7 @@ void HTMLFormElement::RequestSubmit(nsGenericHTMLElement* aSubmitter,
 
     // 1.1. If submitter is not a submit button, then throw a TypeError.
     if (!fc || !fc->IsSubmitControl()) {
-      aRv.ThrowTypeError<MSG_NOT_SUBMIT_BUTTON>();
+      aRv.ThrowTypeError(u"The submitter is not a submit button.");
       return;
     }
 
@@ -1754,7 +1754,7 @@ bool HTMLFormElement::ImplicitSubmissionIsDisabled() const {
   uint32_t numDisablingControlsFound = 0;
   uint32_t length = mControls->mElements.Length();
   for (uint32_t i = 0; i < length && numDisablingControlsFound < 2; ++i) {
-    if (mControls->mElements[i]->IsSingleLineTextOrNumberControl(false)) {
+    if (mControls->mElements[i]->IsSingleLineTextControl(false)) {
       numDisablingControlsFound++;
     }
   }
@@ -1767,7 +1767,7 @@ bool HTMLFormElement::IsLastActiveElement(
 
   for (auto* element : Reversed(mControls->mElements)) {
     // XXX How about date/time control?
-    if (element->IsTextOrNumberControl(false) && !element->IsDisabled()) {
+    if (element->IsTextControl(false) && !element->IsDisabled()) {
       return element == aControl;
     }
   }

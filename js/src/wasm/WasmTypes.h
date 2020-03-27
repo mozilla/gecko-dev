@@ -120,7 +120,7 @@ typedef Vector<char, 0, SystemAllocPolicy> UTF8Bytes;
 typedef Vector<Instance*, 0, SystemAllocPolicy> InstanceVector;
 typedef Vector<UniqueChars, 0, SystemAllocPolicy> UniqueCharsVector;
 
-// To call Vector::podResizeToFit, a type must specialize mozilla::IsPod
+// To call Vector::shrinkStorageToFit , a type must specialize mozilla::IsPod
 // which is pretty verbose to do within js::wasm, so factor that process out
 // into a macro.
 
@@ -201,6 +201,61 @@ struct ShareableBytes : ShareableBase<ShareableBytes> {
 
 typedef RefPtr<ShareableBytes> MutableBytes;
 typedef RefPtr<const ShareableBytes> SharedBytes;
+
+// The Opcode compactly and safely represents the primary opcode plus any
+// extension, with convenient predicates and accessors.
+
+class Opcode {
+  uint32_t bits_;
+
+ public:
+  MOZ_IMPLICIT Opcode(Op op) : bits_(uint32_t(op)) {
+    static_assert(size_t(Op::Limit) == 256, "fits");
+    MOZ_ASSERT(size_t(op) < size_t(Op::Limit));
+  }
+  MOZ_IMPLICIT Opcode(MiscOp op)
+      : bits_((uint32_t(op) << 8) | uint32_t(Op::MiscPrefix)) {
+    static_assert(size_t(MiscOp::Limit) <= 0xFFFFFF, "fits");
+    MOZ_ASSERT(size_t(op) < size_t(MiscOp::Limit));
+  }
+  MOZ_IMPLICIT Opcode(ThreadOp op)
+      : bits_((uint32_t(op) << 8) | uint32_t(Op::ThreadPrefix)) {
+    static_assert(size_t(ThreadOp::Limit) <= 0xFFFFFF, "fits");
+    MOZ_ASSERT(size_t(op) < size_t(ThreadOp::Limit));
+  }
+  MOZ_IMPLICIT Opcode(MozOp op)
+      : bits_((uint32_t(op) << 8) | uint32_t(Op::MozPrefix)) {
+    static_assert(size_t(MozOp::Limit) <= 0xFFFFFF, "fits");
+    MOZ_ASSERT(size_t(op) < size_t(MozOp::Limit));
+  }
+
+  bool isOp() const { return bits_ < uint32_t(Op::FirstPrefix); }
+  bool isMisc() const { return (bits_ & 255) == uint32_t(Op::MiscPrefix); }
+  bool isThread() const { return (bits_ & 255) == uint32_t(Op::ThreadPrefix); }
+  bool isMoz() const { return (bits_ & 255) == uint32_t(Op::MozPrefix); }
+
+  Op asOp() const {
+    MOZ_ASSERT(isOp());
+    return Op(bits_);
+  }
+  MiscOp asMisc() const {
+    MOZ_ASSERT(isMisc());
+    return MiscOp(bits_ >> 8);
+  }
+  ThreadOp asThread() const {
+    MOZ_ASSERT(isThread());
+    return ThreadOp(bits_ >> 8);
+  }
+  MozOp asMoz() const {
+    MOZ_ASSERT(isMoz());
+    return MozOp(bits_ >> 8);
+  }
+
+  uint32_t bits() const { return bits_; }
+
+  bool operator==(const Opcode& that) const { return bits_ == that.bits_; }
+  bool operator!=(const Opcode& that) const { return bits_ != that.bits_; }
+};
 
 // A PackedTypeCode represents a TypeCode paired with a refTypeIndex (valid only
 // for TypeCode::Ref).  PackedTypeCode is guaranteed to be POD.  The TypeCode
@@ -1109,6 +1164,60 @@ struct FuncTypeHashPolicy {
   static bool match(const FuncType* lhs, Lookup rhs) { return *lhs == rhs; }
 };
 
+// ArgTypeVector type.
+//
+// Functions usually receive one ABI argument per WebAssembly argument.  However
+// if a function has multiple results and some of those results go to the stack,
+// then it additionally receives a synthetic ABI argument holding a pointer to
+// the stack result area.
+//
+// Given the presence of synthetic arguments, sometimes we need a name for
+// non-synthetic arguments.  We call those "natural" arguments.
+
+enum class StackResults { HasStackResults, NoStackResults };
+
+class ArgTypeVector {
+  const ValTypeVector& args_;
+  bool hasStackResults_;
+
+ public:
+  ArgTypeVector(const ValTypeVector& args, StackResults stackResults)
+      : args_(args),
+        hasStackResults_(stackResults == StackResults::HasStackResults) {}
+  explicit ArgTypeVector(const FuncType& funcType);
+
+  bool hasSyntheticStackResultPointerArg() const { return hasStackResults_; }
+  StackResults stackResults() const {
+    return hasSyntheticStackResultPointerArg() ? StackResults::HasStackResults
+                                               : StackResults::NoStackResults;
+  }
+  size_t lengthWithoutStackResults() const { return args_.length(); }
+  bool isSyntheticStackResultPointerArg(size_t idx) const {
+    // The pointer to stack results area, if present, is a synthetic argument
+    // tacked on at the end.
+    MOZ_ASSERT(idx < length());
+    return idx == args_.length();
+  }
+  bool isNaturalArg(size_t idx) const {
+    return !isSyntheticStackResultPointerArg(idx);
+  }
+  size_t naturalIndex(size_t idx) const {
+    MOZ_ASSERT(isNaturalArg(idx));
+    // Because the synthetic argument, if present, is tacked on the end, an
+    // argument index that isn't synthetic is natural.
+    return idx;
+  }
+
+  size_t length() const { return args_.length() + size_t(hasStackResults_); }
+  jit::MIRType operator[](size_t i) const {
+    MOZ_ASSERT(i < length());
+    if (isSyntheticStackResultPointerArg(i)) {
+      return jit::MIRType::Pointer;
+    }
+    return ToMIRType(args_[naturalIndex(i)]);
+  }
+};
+
 // Structure type.
 //
 // The Module owns a dense array of StructType values that represent the
@@ -1733,7 +1842,7 @@ struct TrapSiteVectorArray
   bool empty() const;
   void clear();
   void swap(TrapSiteVectorArray& rhs);
-  void podResizeToFit();
+  void shrinkStorageToFit();
 
   WASM_DECLARE_SERIALIZABLE(TrapSiteVectorArray)
 };
@@ -2158,6 +2267,7 @@ enum class SymbolicAddress {
   TableSet,
   TableSize,
   FuncRef,
+  PreBarrierFiltering,
   PostBarrier,
   PostBarrierFiltering,
   StructNew,

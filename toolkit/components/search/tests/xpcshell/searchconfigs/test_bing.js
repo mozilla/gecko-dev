@@ -60,9 +60,7 @@ const test = new SearchConfigTest({
             "lij",
             "lo",
             "lt",
-            "mai",
             "mk",
-            "ml",
             "ms",
             "my",
             "nb-NO",
@@ -70,7 +68,6 @@ const test = new SearchConfigTest({
             "nl",
             "nn-NO",
             "oc",
-            "or",
             "pa-IN",
             "pt-BR",
             "rm",
@@ -117,6 +114,8 @@ add_task(async function setup() {
 });
 
 add_task(async function test_searchConfig_bing() {
-  await test.run(false);
   await test.run(true);
+  // Only applies to the default locale fallback for the legacy config.
+  test._config.available.included[0].locales.matches.push("unknown");
+  await test.run(false);
 });

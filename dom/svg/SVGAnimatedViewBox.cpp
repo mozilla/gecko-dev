@@ -6,12 +6,15 @@
 
 #include "SVGAnimatedViewBox.h"
 
-#include "mozilla/Move.h"
+#include "mozAutoDocUpdate.h"
+#include "mozilla/Maybe.h"
+#include <utility>
+
+#include "SVGViewBoxSMILType.h"
 #include "mozilla/SMILValue.h"
 #include "mozilla/SVGContentUtils.h"
 #include "mozilla/dom/SVGRect.h"
 #include "nsCharSeparatedTokenizer.h"
-#include "SVGViewBoxSMILType.h"
 #include "nsTextFormatter.h"
 
 using namespace mozilla::dom;
@@ -121,12 +124,13 @@ void SVGAnimatedViewBox::SetBaseValue(const SVGViewBox& aRect,
     return;
   }
 
-  nsAttrValue emptyOrOldValue = aSVGElement->WillChangeViewBox();
+  mozAutoDocUpdate updateBatch(aSVGElement->GetComposedDoc(), true);
+  nsAttrValue emptyOrOldValue = aSVGElement->WillChangeViewBox(updateBatch);
 
   mBaseVal = aRect;
   mHasBaseVal = true;
 
-  aSVGElement->DidChangeViewBox(emptyOrOldValue);
+  aSVGElement->DidChangeViewBox(emptyOrOldValue, updateBatch);
   if (mAnimVal) {
     aSVGElement->AnimationNeedsResample();
   }
@@ -146,15 +150,17 @@ nsresult SVGAnimatedViewBox::SetBaseValueString(const nsAString& aValue,
     return NS_OK;
   }
 
+  Maybe<mozAutoDocUpdate> updateBatch;
   nsAttrValue emptyOrOldValue;
   if (aDoSetAttr) {
-    emptyOrOldValue = aSVGElement->WillChangeViewBox();
+    updateBatch.emplace(aSVGElement->GetComposedDoc(), true);
+    emptyOrOldValue = aSVGElement->WillChangeViewBox(updateBatch.ref());
   }
   mHasBaseVal = true;
   mBaseVal = viewBox;
 
   if (aDoSetAttr) {
-    aSVGElement->DidChangeViewBox(emptyOrOldValue);
+    aSVGElement->DidChangeViewBox(emptyOrOldValue, updateBatch.ref());
   }
   if (mAnimVal) {
     aSVGElement->AnimationNeedsResample();

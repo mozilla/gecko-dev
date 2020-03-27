@@ -64,7 +64,7 @@ this.add_task = function(taskFn, opts = {}) {
       // Bug 1605722 - Workaround to not hang when waiting for Target events
       await getDiscoveredTargets(client.Target);
 
-      await taskFn(client, CDP, tab);
+      await taskFn({ client, CDP, tab });
 
       if (createTab) {
         // taskFn may resolve within a tick after opening a new tab.
@@ -151,6 +151,23 @@ async function getCDP() {
   };
 
   return window.CDP;
+}
+
+async function getScrollbarSize() {
+  return SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
+    const scrollbarHeight = {};
+    const scrollbarWidth = {};
+
+    content.windowUtils.getScrollbarSize(
+      false,
+      scrollbarWidth,
+      scrollbarHeight
+    );
+    return {
+      width: scrollbarWidth.value,
+      height: scrollbarHeight.value,
+    };
+  });
 }
 
 function getTargets(CDP) {
@@ -248,9 +265,11 @@ function toDataURL(src, doctype = "html") {
 /**
  * Load a given URL in the currently selected tab
  */
-async function loadURL(url) {
+async function loadURL(url, expectedURL = undefined) {
+  expectedURL = expectedURL || url;
+
   const browser = gBrowser.selectedTab.linkedBrowser;
-  const loaded = BrowserTestUtils.browserLoaded(browser, false, url);
+  const loaded = BrowserTestUtils.browserLoaded(browser, false, expectedURL);
 
   BrowserTestUtils.loadURI(browser, url);
   await loaded;

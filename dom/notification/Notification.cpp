@@ -6,22 +6,23 @@
 
 #include "mozilla/dom/Notification.h"
 
+#include <utility>
+
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Components.h"
 #include "mozilla/Encoding.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/JSONWriter.h"
-#include "mozilla/Move.h"
 #include "mozilla/OwningNonNull.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
-
 #include "mozilla/dom/AppNotificationServiceOptionsBinding.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/ContentChild.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/NotificationEvent.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/dom/Promise.h"
@@ -32,22 +33,20 @@
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/dom/WorkerScope.h"
-
 #include "nsAlertsUtils.h"
+#include "nsCRTGlue.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentPermissionHelper.h"
 #include "nsContentUtils.h"
-#include "nsCRTGlue.h"
 #include "nsDOMJSUtils.h"
 #include "nsFocusManager.h"
 #include "nsGlobalWindow.h"
 #include "nsIAlertsService.h"
 #include "nsIContentPermissionPrompt.h"
-#include "mozilla/dom/Document.h"
 #include "nsILoadContext.h"
 #include "nsINotificationStorage.h"
-#include "nsIPermissionManager.h"
 #include "nsIPermission.h"
+#include "nsIPermissionManager.h"
 #include "nsIPushService.h"
 #include "nsIScriptError.h"
 #include "nsIServiceWorkerManager.h"
@@ -290,7 +289,7 @@ class FocusWindowRunnable final : public Runnable {
       return NS_OK;
     }
 
-    nsFocusManager::FocusWindow(mWindow->GetOuterWindow());
+    nsFocusManager::FocusWindow(mWindow->GetOuterWindow(), CallerType::System);
     return NS_OK;
   }
 };
@@ -367,7 +366,7 @@ class ReleaseNotificationRunnable final : public NotificationWorkerRunnable {
 
   nsresult Cancel() override {
     mNotification->ReleaseObject();
-    return NS_OK;
+    return NotificationWorkerRunnable::Cancel();
   }
 };
 
@@ -1116,7 +1115,7 @@ MainThreadNotificationObserver::Observe(nsISupports* aSubject,
 
     bool doDefaultAction = notification->DispatchClickEvent();
     if (doDefaultAction) {
-      nsFocusManager::FocusWindow(window->GetOuterWindow());
+      nsFocusManager::FocusWindow(window->GetOuterWindow(), CallerType::System);
     }
   } else if (!strcmp("alertfinished", aTopic)) {
     notification->UnpersistNotification();
@@ -1308,7 +1307,7 @@ void Notification::ShowInternal() {
   // Transfer ownership to local scope so we can either release it at the end
   // of this function or transfer it to the observer.
   UniquePtr<NotificationRef> ownership;
-  mozilla::Swap(ownership, mTempRef);
+  std::swap(ownership, mTempRef);
   MOZ_ASSERT(ownership->GetNotification() == this);
 
   nsresult rv = PersistNotification();
@@ -1847,7 +1846,7 @@ void Notification::CloseInternal() {
   // of this function. This is relevant when the call is from
   // NotificationTask::Run().
   UniquePtr<NotificationRef> ownership;
-  mozilla::Swap(ownership, mTempRef);
+  std::swap(ownership, mTempRef);
 
   SetAlertName();
   UnpersistNotification();

@@ -21,7 +21,9 @@ struct ServiceWorkerUpdateStateOpArgs {
   ServiceWorkerState state;
 };
 
-struct ServiceWorkerTerminateWorkerOpArgs {};
+struct ServiceWorkerTerminateWorkerOpArgs {
+  uint32_t shutdownStateId;
+};
 
 struct ServiceWorkerLifeCycleEventOpArgs {
   nsString eventName;
@@ -65,7 +67,6 @@ struct ServiceWorkerFetchEventOpArgs {
   IPCInternalRequest internalRequest;
   nsString clientId;
   nsString resultingClientId;
-  bool isReload;
   bool isNonSubresourceRequest;
 };
 

@@ -150,6 +150,7 @@ config = {
         "mochitest-webgl2-core": ["--subsuite=webgl2-core"],
         "mochitest-webgl2-ext": ["--subsuite=webgl2-ext"],
         "mochitest-webgl2-deqp": ["--subsuite=webgl2-deqp"],
+        "mochitest-webgpu": ["--subsuite=webgpu"],
         "mochitest-devtools-chrome": ["--flavor=browser", "--subsuite=devtools", "--chunk-by-runtime"],
         "mochitest-a11y": ["--flavor=a11y", "--disable-e10s"],
         "mochitest-remote": ["--flavor=browser", "--subsuite=remote"],
@@ -157,26 +158,31 @@ config = {
     # local reftest suites
     "all_reftest_suites": {
         "crashtest": {
-            'options': ["--suite=crashtest"],
+            'options': ["--suite=crashtest",
+                        "--topsrcdir=tests/reftest/tests"],
             'tests': ["tests/reftest/tests/testing/crashtest/crashtests.list"]
         },
         "jsreftest": {
-            'options':["--extra-profile-file=tests/jsreftest/tests/user.js",
-                       "--suite=jstestbrowser"],
-            'tests': ["tests/jsreftest/tests/jstests.list"]
+            'options':["--extra-profile-file=tests/jsreftest/tests/js/src/tests/user.js",
+                       "--suite=jstestbrowser",
+                       "--topsrcdir=tests/jsreftest/tests"],
+            'tests': ["tests/jsreftest/tests/js/src/tests/jstests.list"]
         },
         "reftest": {
-            'options': ["--suite=reftest"],
+            'options': ["--suite=reftest",
+                        "--topsrcdir=tests/reftest/tests"],
             'tests': ["tests/reftest/tests/layout/reftests/reftest.list"]
         },
         "reftest-gpu": {
             'options': ["--suite=reftest",
-                        "--setpref=layers.gpu-process.force-enabled=true"],
+                        "--setpref=layers.gpu-process.force-enabled=true",
+                        "--topsrcdir=tests/reftest/tests"],
             'tests': ["tests/reftest/tests/layout/reftests/reftest.list"]
         },
         "reftest-no-accel": {
             "options": ["--suite=reftest",
-                        "--setpref=layers.acceleration.disabled=true"],
+                        "--setpref=layers.acceleration.disabled=true",
+                        "--topsrcdir=tests/reftest/tests"],
             "tests": ["tests/reftest/tests/layout/reftests/reftest.list"]
         },
     },
@@ -268,7 +274,5 @@ config = {
                              "cppunittest": [],
                              "jittest": [],
                              },
-    "minidump_stackwalk_path": "win32-minidump_stackwalk.exe",
-    "minidump_tooltool_manifest_path": "config/tooltool-manifests/win32/releng.manifest",
     "nodejs_path": NODEJS_PATH,
 }

@@ -386,7 +386,7 @@ bool nsFrameMessageManager::GetParamsForMessage(JSContext* aCx,
   JS::RootedValue v(aCx, aValue);
   JS::RootedValue t(aCx, aTransfer);
   ErrorResult rv;
-  aData.Write(aCx, v, t, rv);
+  aData.Write(aCx, v, t, JS::CloneDataPolicy(), rv);
   if (!rv.Failed()) {
     return true;
   }
@@ -867,10 +867,13 @@ void nsFrameMessageManager::SetCallback(MessageManagerCallback* aCallback) {
 
 void nsFrameMessageManager::Close() {
   if (!mClosed) {
-    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-    if (obs) {
-      obs->NotifyObservers(this, "message-manager-close", nullptr);
-    }
+    nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
+        "nsFrameMessageManager::Close", [self = nsCOMPtr<nsISupports>(this)]() {
+          if (nsCOMPtr<nsIObserverService> obs =
+                  mozilla::services::GetObserverService()) {
+            obs->NotifyObservers(self, "message-manager-close", nullptr);
+          }
+        }));
   }
   mClosed = true;
   mCallback = nullptr;
@@ -882,10 +885,14 @@ void nsFrameMessageManager::Disconnect(bool aRemoveFromParent) {
   Close();
 
   if (!mDisconnected) {
-    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-    if (obs) {
-      obs->NotifyObservers(this, "message-manager-disconnect", nullptr);
-    }
+    nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
+        "nsFrameMessageManager::Disconnect",
+        [self = nsCOMPtr<nsISupports>(this)]() {
+          if (nsCOMPtr<nsIObserverService> obs =
+                  mozilla::services::GetObserverService()) {
+            obs->NotifyObservers(self, "message-manager-disconnect", nullptr);
+          }
+        }));
   }
 
   ClearParentManager(aRemoveFromParent);
@@ -988,8 +995,7 @@ struct MessageManagerReferentCount {
 
 }  // namespace
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class MessageManagerReporter final : public nsIMemoryReporter {
   ~MessageManagerReporter() = default;
@@ -1123,8 +1129,7 @@ MessageManagerReporter::CollectReports(nsIHandleReportCallback* aHandleReport,
   return NS_OK;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 already_AddRefed<ChromeMessageBroadcaster>
 nsFrameMessageManager::GetGlobalMessageManager() {

@@ -286,7 +286,7 @@ bool nsCSSBorderRenderer::AreBorderSideFinalStylesSame(
   /* First check if the specified styles and colors are the same for all sides
    */
   int firstStyle = 0;
-  NS_FOR_CSS_SIDES(i) {
+  for (const auto i : mozilla::AllPhysicalSides()) {
     if (firstStyle == i) {
       if ((static_cast<mozilla::SideBits>(1 << i) & aSides) ==
           SideBits::eNone) {
@@ -1246,7 +1246,7 @@ void nsCSSBorderRenderer::DrawBorderSides(mozilla::SideBits aSides) {
   BorderColorStyle borderColorStyleTopLeft[3], borderColorStyleBottomRight[3];
   BorderColorStyle* borderColorStyle = nullptr;
 
-  NS_FOR_CSS_SIDES(i) {
+  for (const auto i : mozilla::AllPhysicalSides()) {
     if ((aSides & static_cast<mozilla::SideBits>(1 << i)) == SideBits::eNone) {
       continue;
     }
@@ -1380,10 +1380,12 @@ void nsCSSBorderRenderer::DrawBorderSides(mozilla::SideBits aSides) {
   Float borderWidths[3][4];
 
   if (borderColorStyleCount == 1) {
-    NS_FOR_CSS_SIDES(i) { borderWidths[0][i] = mBorderWidths[i]; }
+    for (const auto i : mozilla::AllPhysicalSides()) {
+      borderWidths[0][i] = mBorderWidths[i];
+    }
   } else if (borderColorStyleCount == 2) {
     // with 2 color styles, any extra pixel goes to the outside
-    NS_FOR_CSS_SIDES(i) {
+    for (const auto i : mozilla::AllPhysicalSides()) {
       borderWidths[0][i] =
           int32_t(mBorderWidths[i]) / 2 + int32_t(mBorderWidths[i]) % 2;
       borderWidths[1][i] = int32_t(mBorderWidths[i]) / 2;
@@ -1391,7 +1393,7 @@ void nsCSSBorderRenderer::DrawBorderSides(mozilla::SideBits aSides) {
   } else if (borderColorStyleCount == 3) {
     // with 3 color styles, any extra pixel (or lack of extra pixel)
     // goes to the middle
-    NS_FOR_CSS_SIDES(i) {
+    for (const auto i : mozilla::AllPhysicalSides()) {
       if (mBorderWidths[i] == 1.0) {
         borderWidths[0][i] = 1.f;
         borderWidths[1][i] = borderWidths[2][i] = 0.f;
@@ -2555,7 +2557,7 @@ bool nsCSSBorderRenderer::AllBordersSameWidth() {
 }
 
 bool nsCSSBorderRenderer::AllBordersSolid() {
-  NS_FOR_CSS_SIDES(i) {
+  for (const auto i : mozilla::AllPhysicalSides()) {
     if (mBorderStyles[i] == StyleBorderStyle::Solid ||
         mBorderStyles[i] == StyleBorderStyle::None ||
         mBorderStyles[i] == StyleBorderStyle::Hidden) {
@@ -2597,7 +2599,7 @@ void nsCSSBorderRenderer::DrawSingleWidthSolidBorder() {
 
   const twoFloats cornerAdjusts[4] = {
       {+0.5, 0}, {0, +0.5}, {-0.5, 0}, {0, -0.5}};
-  NS_FOR_CSS_SIDES(side) {
+  for (const auto side : mozilla::AllPhysicalSides()) {
     Point firstCorner = rect.CCWCorner(side) + cornerAdjusts[side];
     Point secondCorner = rect.CWCorner(side) + cornerAdjusts[side];
 
@@ -2892,7 +2894,7 @@ void nsCSSBorderRenderer::DrawSolidBorder() {
   strokeRect.Deflate(Margin(mBorderWidths[0] / 2.0, mBorderWidths[1] / 2.0,
                             mBorderWidths[2] / 2.0, mBorderWidths[3] / 2.0));
 
-  NS_FOR_CSS_SIDES(i) {
+  for (const auto i : mozilla::AllPhysicalSides()) {
     // We now draw the current side and the CW corner following it.
     // The CCW corner of this side was already drawn in the previous iteration.
     // The side will be drawn as an explicit stroke, and the CW corner will be
@@ -3100,7 +3102,7 @@ void nsCSSBorderRenderer::DrawBorders() {
   SideBits dashedSides = SideBits::eNone;
   bool forceSeparateCorners = false;
 
-  NS_FOR_CSS_SIDES(i) {
+  for (const auto i : mozilla::AllPhysicalSides()) {
     StyleBorderStyle style = mBorderStyles[i];
     if (style == StyleBorderStyle::Dashed ||
         style == StyleBorderStyle::Dotted) {
@@ -3180,7 +3182,7 @@ void nsCSSBorderRenderer::DrawBorders() {
     // XXX In fact is this optimization even worth the complexity it adds to
     // the code?  1px wide dashed borders are not overly common, and drawing
     // corners for them is not that expensive.
-    NS_FOR_CSS_FULL_CORNERS(corner) {
+    for (const auto corner : mozilla::AllPhysicalCorners()) {
       const mozilla::Side sides[2] = {mozilla::Side(corner), PREV_SIDE(corner)};
 
       if (!IsZeroSize(mBorderRadii[corner])) {
@@ -3197,7 +3199,7 @@ void nsCSSBorderRenderer::DrawBorders() {
     }
 
     // First, the corners
-    NS_FOR_CSS_FULL_CORNERS(corner) {
+    for (const auto corner : mozilla::AllPhysicalCorners()) {
       // if there's no corner, don't do all this work for it
       if (IsZeroSize(mBorderCornerDimensions[corner])) {
         continue;
@@ -3292,7 +3294,7 @@ void nsCSSBorderRenderer::DrawBorders() {
     }
 
     // We're done with the corners, now draw the sides.
-    NS_FOR_CSS_SIDES(side) {
+    for (const auto side : mozilla::AllPhysicalSides()) {
       // if we drew it above, skip it
       if (alreadyDrawnSides & static_cast<mozilla::SideBits>(1 << side)) {
         continue;
@@ -3341,7 +3343,7 @@ void nsCSSBorderRenderer::CreateWebRenderCommands(
   wr::LayoutRect roundedRect = wr::ToLayoutRect(outerRect);
   wr::LayoutRect clipRect = roundedRect;
   wr::BorderSide side[4];
-  NS_FOR_CSS_SIDES(i) {
+  for (const auto i : mozilla::AllPhysicalSides()) {
     side[i] =
         wr::ToBorderSide(ToDeviceColor(mBorderColors[i]), mBorderStyles[i]);
   }
@@ -3385,13 +3387,12 @@ nsCSSBorderImageRenderer::CreateBorderImageRenderer(
     return Nothing();
   }
 
-  // Ensure we get invalidated for loads and animations of the image.
-  // We need to do this here because this might be the only code that
-  // knows about the association of the style data with the frame.
-  // XXX We shouldn't really... since if anybody is passing in a
-  // different style, they'll potentially have the wrong size for the
-  // border too.
-  aForFrame->AssociateImage(aStyleBorder.mBorderImageSource, aPresContext, 0);
+  // We should always get here with the frame's border, but we may construct an
+  // nsStyleBorder from the stack to deal with :visited. We copy the border
+  // image and such from the non-visited one, so there's no need to do anything
+  // with it.
+  MOZ_ASSERT(&aStyleBorder == aForFrame->StyleBorder() ||
+             aForFrame->Style()->GetStyleIfVisited());
 
   nsCSSBorderImageRenderer renderer(aForFrame, aBorderArea, aStyleBorder,
                                     aSkipSides, imgRenderer);
@@ -3584,7 +3585,7 @@ ImgDrawResult nsCSSBorderImageRenderer::CreateWebRenderCommands(
   float outset[4];
   const int32_t appUnitsPerDevPixel =
       aForFrame->PresContext()->AppUnitsPerDevPixel();
-  NS_FOR_CSS_SIDES(i) {
+  for (const auto i : mozilla::AllPhysicalSides()) {
     slice[i] = (float)(mSlice.Side(i)) / appUnitsPerDevPixel;
     widths[i] = (float)(mWidths.Side(i)) / appUnitsPerDevPixel;
 
@@ -3654,6 +3655,28 @@ ImgDrawResult nsCSSBorderImageRenderer::CreateWebRenderCommands(
           Nothing());
       if (key.isNothing()) {
         break;
+      }
+
+      if (mFill) {
+        float epsilon = 0.0001;
+        bool noVerticalBorders = widths[0] <= epsilon && widths[2] < epsilon;
+        bool noHorizontalBorders = widths[1] <= epsilon && widths[3] < epsilon;
+
+        // Border image with no border. It's a little silly but WebRender currently does
+        // not handle this. We could fall back to a blob image but there are reftests that
+        // are sensible to the test going through a blob while the reference doesn't.
+        if (noVerticalBorders && noHorizontalBorders) {
+          aBuilder.PushImage(dest, clip, !aItem->BackfaceIsHidden(), rendering, key.value());
+          break;
+        }
+
+        // Fall-back if we want to fill the middle area and opposite edges are
+        // both empty.
+        // TODO(bug 1609893): moving some of the repetition handling code out
+        // of the image shader will make it easier to handle these cases properly.
+        if (noHorizontalBorders || noVerticalBorders) {
+          return ImgDrawResult::NOT_SUPPORTED;
+        }
       }
 
       wr::WrBorderImage params{
@@ -3793,7 +3816,7 @@ nsCSSBorderImageRenderer::nsCSSBorderImageRenderer(
   // we do them together because the latter can depend on the former.
   nsMargin slice;
   nsMargin border;
-  NS_FOR_CSS_SIDES(s) {
+  for (const auto s : mozilla::AllPhysicalSides()) {
     const auto& slice = aStyleBorder.mBorderImageSlice.offsets.Get(s);
     int32_t imgDimension =
         SideIsVertical(s) ? mImageSize.width : mImageSize.height;

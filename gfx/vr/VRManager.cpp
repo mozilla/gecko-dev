@@ -48,8 +48,7 @@ using namespace mozilla::gfx;
 using namespace mozilla::layers;
 using namespace mozilla::gl;
 
-namespace mozilla {
-namespace gfx {
+namespace mozilla::gfx {
 
 /**
  * When VR content is active, we run the tasks at 1ms
@@ -531,7 +530,7 @@ void VRManager::StartFrame() {
   if (mState != VRManagerState::Active) {
     return;
   }
-  AUTO_PROFILER_TRACING("VR", "GetSensorState", OTHER);
+  AUTO_PROFILER_TRACING_MARKER("VR", "GetSensorState", OTHER);
 
   /**
    * Do not start more VR frames until the last submitted frame is already
@@ -1467,7 +1466,7 @@ void VRManager::SubmitFrameInternal(const layers::SurfaceDescriptor& aTexture,
 #if !defined(MOZ_WIDGET_ANDROID)
   MOZ_ASSERT(mSubmitThread->GetThread() == NS_GetCurrentThread());
 #endif  // !defined(MOZ_WIDGET_ANDROID)
-  AUTO_PROFILER_TRACING("VR", "SubmitFrameAtVRDisplayExternal", OTHER);
+  AUTO_PROFILER_TRACING_MARKER("VR", "SubmitFrameAtVRDisplayExternal", OTHER);
 
   {  // scope lock
     MonitorAutoLock lock(mCurrentSubmitTaskMonitor);
@@ -1531,5 +1530,4 @@ VRManager::Observe(nsISupports* subject, const char* topic,
 
 NS_IMPL_ISUPPORTS(VRManager, nsIObserver)
 
-}  // namespace gfx
-}  // namespace mozilla
+}  // namespace mozilla::gfx

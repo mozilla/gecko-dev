@@ -61,9 +61,6 @@ public class WebExtension {
     // TODO: make public
     final boolean isBuiltIn;
 
-    // TODO: make public
-    final boolean isEnabled;
-
     /** Called whenever a delegate is set or unset on this {@link WebExtension} instance.
     /* package */ interface DelegateController {
         void onMessageDelegate(final String nativeApp, final MessageDelegate delegate);
@@ -113,7 +110,6 @@ public class WebExtension {
         id = bundle.getString("webExtensionId");
         flags = bundle.getInt("webExtensionFlags", 0);
         isBuiltIn = bundle.getBoolean("isBuiltIn", false);
-        isEnabled = bundle.getBoolean("isEnabled", false);
         if (bundle.containsKey("metaData")) {
             metaData = new MetaData(bundle.getBundle("metaData"));
         } else {
@@ -155,7 +151,6 @@ public class WebExtension {
         this.flags = flags;
 
         // TODO:
-        this.isEnabled = false;
         this.isBuiltIn = false;
         this.metaData = null;
     }
@@ -700,8 +695,44 @@ public class WebExtension {
                     }
                     continue;
                 }
-                mIconUris.put(intKey, bundle.getString(key));
+
+                final String value = getIconValue(bundle.get(key));
+                if (value != null) {
+                    mIconUris.put(intKey, value);
+                }
             }
+        }
+
+        private String getIconValue(final Object value) {
+            // The icon value can either be an object containing icons for each theme...
+            if (value instanceof GeckoBundle) {
+                // We don't support theme_icons yet, so let's just return the default value.
+                final GeckoBundle themeIcons = (GeckoBundle) value;
+                final Object defaultIcon = themeIcons.get("default");
+
+                if (!(defaultIcon instanceof String)) {
+                    if (BuildConfig.DEBUG) {
+                        throw new RuntimeException("Unexpected themed_icon value.");
+                    }
+                    Log.e(LOGTAG, "Unexpected themed_icon value.");
+                    return null;
+                }
+
+                return (String) defaultIcon;
+            }
+
+            // ... or just a URL
+            if (value instanceof String) {
+                return (String) value;
+            }
+
+            // We never expect it to be something else, so let's error out here
+            if (BuildConfig.DEBUG) {
+                throw new RuntimeException("Unexpected icon value: " + value);
+            }
+
+            Log.e(LOGTAG, "Unexpected icon value.");
+            return null;
         }
 
         /** Override for tests. */
@@ -1104,6 +1135,8 @@ public class WebExtension {
             public static final int ERROR_UNEXPECTED_ADDON_TYPE = -6;
             /** The extension did not have the expected ID. */
             public static final int ERROR_INCORRECT_ID = -7;
+            /** The extension install was canceled. */
+            public static final int ERROR_USER_CANCELED = -100;
 
             /** For testing. */
             protected ErrorCodes() {}
@@ -1117,7 +1150,8 @@ public class WebExtension {
                 ErrorCodes.ERROR_FILE_ACCESS,
                 ErrorCodes.ERROR_SIGNEDSTATE_REQUIRED,
                 ErrorCodes.ERROR_UNEXPECTED_ADDON_TYPE,
-                ErrorCodes.ERROR_INCORRECT_ID
+                ErrorCodes.ERROR_INCORRECT_ID,
+                ErrorCodes.ERROR_USER_CANCELED,
         })
         /* package */ @interface Codes {}
 
@@ -1223,6 +1257,26 @@ public class WebExtension {
             BlocklistStateFlags.VULNERABLE_NO_UPDATE})
     @interface BlocklistState {}
 
+    public static class DisabledFlags {
+        /** The extension has been disabled by the user */
+        public final static int USER = 1 << 1;
+
+        /** The extension has been disabled by the blocklist. The details of why this extension
+         * was blocked can be found in {@link MetaData#blocklistState}. */
+        public final static int BLOCKLIST = 1 << 2;
+
+        /** The extension has been disabled by the application. To enable the extension you can use
+         * {@link WebExtensionController#enable} passing in
+         * {@link WebExtensionController.EnableSource#APP} as <code>source</code>. */
+        public final static int APP = 1 << 3;
+    }
+
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(flag = true,
+            value = { DisabledFlags.USER, DisabledFlags.BLOCKLIST,
+                      DisabledFlags.APP })
+    @interface EnabledFlags {}
+
     /** Provides information about a {@link WebExtension}. */
     public class MetaData {
         /** Main {@link Icon} branding for this {@link WebExtension}.
@@ -1292,16 +1346,14 @@ public class WebExtension {
           *   manifest.json/options_ui
           * </a>
           */
-        // TODO: Bug 1598792
-        final @Nullable String optionsPageUrl;
+        public final @Nullable String optionsPageUrl;
         /** Whether the options page should be open in a Tab or not.
           *
           * See <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/options_ui#Syntax">
           *   manifest.json/options_ui#Syntax
           * </a>
           */
-        // TODO: Bug 1598792
-        final boolean openOptionsPageInTab;
+        public final boolean openOptionsPageInTab;
         /** Whether or not this is a recommended extension.
           *
           * See <a href="https://blog.mozilla.org/firefox/firefox-recommended-extensions/">
@@ -1324,6 +1376,27 @@ public class WebExtension {
           */
         public final @SignedState int signedState;
 
+        /**
+         * Disabled binary flags for this extension.
+         *
+         * This will be either equal to <code>0</code> if the extension
+         * is enabled or will contain one or more flags from {@link DisabledFlags}.
+         *
+         * e.g. if the extension has been disabled by the user, the value in
+         * {@link DisabledFlags#USER} will be equal to <code>1</code>:
+         *
+         * <pre><code>
+         *     boolean isUserDisabled = metaData.disabledFlags
+         *          &amp; DisabledFlags.USER &gt; 0;
+         * </code></pre>
+         */
+        public final @EnabledFlags int disabledFlags;
+
+        /**
+         * Whether this extension is enabled or not.
+         */
+        public final boolean enabled;
+
         /** Override for testing. */
         protected MetaData() {
             icon = null;
@@ -1340,6 +1413,8 @@ public class WebExtension {
             isRecommended = false;
             blocklistState = BlocklistStateFlags.NOT_BLOCKED;
             signedState = SignedStateFlags.UNKNOWN;
+            disabledFlags = 0;
+            enabled = true;
         }
 
         /* package */ MetaData(final GeckoBundle bundle) {
@@ -1351,10 +1426,11 @@ public class WebExtension {
             creatorUrl = bundle.getString("creatorURL");
             homepageUrl = bundle.getString("homepageURL");
             name = bundle.getString("name");
-            optionsPageUrl = bundle.getString("optionsPageUrl");
+            optionsPageUrl = bundle.getString("optionsPageURL");
             openOptionsPageInTab = bundle.getBoolean("openOptionsPageInTab");
             isRecommended = bundle.getBoolean("isRecommended");
             blocklistState = bundle.getInt("blocklistState", BlocklistStateFlags.NOT_BLOCKED);
+            enabled = bundle.getBoolean("enabled", false);
 
             int signedState = bundle.getInt("signedState", SignedStateFlags.UNKNOWN);
             if (signedState <= SignedStateFlags.LAST) {
@@ -1363,6 +1439,22 @@ public class WebExtension {
                 Log.e(LOGTAG, "Unrecognized signed state: " + signedState);
                 this.signedState = SignedStateFlags.UNKNOWN;
             }
+
+            int disabledFlags = 0;
+            final String[] disabledFlagsString = bundle.getStringArray("disabledFlags");
+
+            for (final String flag : disabledFlagsString) {
+                if (flag.equals("userDisabled")) {
+                    disabledFlags |= DisabledFlags.USER;
+                } else if (flag.equals("blocklistDisabled")) {
+                    disabledFlags |= DisabledFlags.BLOCKLIST;
+                } else if (flag.equals("appDisabled")) {
+                    disabledFlags |= DisabledFlags.APP;
+                } else {
+                    Log.e(LOGTAG, "Unrecognized disabledFlag state: " + flag);
+                }
+            }
+            this.disabledFlags = disabledFlags;
 
             if (bundle.containsKey("icons")) {
                 icon = new Icon(bundle.getBundle("icons"));

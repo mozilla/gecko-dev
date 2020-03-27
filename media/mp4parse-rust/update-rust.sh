@@ -4,7 +4,7 @@
 set -e
 
 # Default version.
-VER="201556d3215310115521eb3a17a9f4ea9c460016"
+VER="3e0f34a2eb53c6d892b5061f76c8290e5d39e920"
 
 # Accept version or commit from the command line.
 if test -n "$1"; then
@@ -27,11 +27,12 @@ cp _upstream/mp4parse/mp4parse/src/*.rs mp4parse/src/
 mkdir -p mp4parse/tests
 cp _upstream/mp4parse/mp4parse/tests/*.rs mp4parse/tests/
 cp _upstream/mp4parse/mp4parse/tests/*.mp4 mp4parse/tests/
-rm -rf mp4parse_capi
+# Remove everything but the cbindgen.toml, since it's needed to configure the
+# creation of the bindings as part of moz.build
+find mp4parse_capi -not -name cbindgen.toml -delete
 mkdir -p mp4parse_capi/src
 cp _upstream/mp4parse/mp4parse_capi/Cargo.toml mp4parse_capi/
 cp _upstream/mp4parse/mp4parse_capi/build.rs mp4parse_capi/
-cp _upstream/mp4parse/mp4parse_capi/include/mp4parse.h ./
 cp _upstream/mp4parse/mp4parse_capi/src/*.rs mp4parse_capi/src/
 rm -rf mp4parse_fallible
 mkdir -p mp4parse_fallible

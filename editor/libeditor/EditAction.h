@@ -134,12 +134,20 @@ enum class EditAction {
   // eRemoveTableColumn indicates to remove cell elements from each row.
   eRemoveTableColumn,
 
-  // eResizeElement indicates that user resizes an element size with dragging
-  // a resizer which is provided by Gecko.
+  // eResizingElement indicates that user starts to resize or keep resizing
+  // with dragging a resizer which is provided by Gecko.
+  eResizingElement,
+
+  // eResizeElement indicates that user resizes an element size with finishing
+  // dragging a resizer which is provided by Gecko.
   eResizeElement,
 
-  // eMoveElement indicates that user moves an element with grabber which is
-  // provided by Gecko.
+  // eMovingElement indicates that user starts to move or keep moving an
+  // element with grabber which is provided by Gecko.
+  eMovingElement,
+
+  // eMoveElement indicates that user finishes moving an element with grabber
+  // which is provided by Gecko.
   eMoveElement,
 
   // The following edit actions are not user's operation.  They are caused
@@ -161,12 +169,6 @@ enum class EditAction {
 
   // eDeleteNode indicates to remove a node form the tree.
   eRemoveNode,
-
-  // eSplitNode indicates to split a node.
-  eSplitNode,
-
-  // eJoinNodes indicates to join 2 nodes.
-  eJoinNodes,
 
   // eInsertBlockElement indicates to insert a block-level element like <div>,
   // <pre>, <li>, <dd> etc.
@@ -303,10 +305,6 @@ enum class EditAction {
 
   // eRemoveOverrideStyleSheet indicates to remove override style sheet.
   eRemoveOverrideStyleSheet,
-
-  // eReplaceOverrideStyleSheet indicates to replace added override style
-  // sheet with new override style sheet.
-  eReplaceOverrideStyleSheet,
 
   // eEnableStyleSheet indicates to apply a style sheet.
   eEnableStyleSheet,

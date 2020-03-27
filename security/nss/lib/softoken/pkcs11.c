@@ -496,6 +496,13 @@ static const struct mechanismList mechanisms[] = {
     { CKM_NSS_PKCS12_PBE_SHA256_HMAC_KEY_GEN, { 32, 32, CKF_GENERATE }, PR_TRUE },
     { CKM_NSS_PKCS12_PBE_SHA384_HMAC_KEY_GEN, { 48, 48, CKF_GENERATE }, PR_TRUE },
     { CKM_NSS_PKCS12_PBE_SHA512_HMAC_KEY_GEN, { 64, 64, CKF_GENERATE }, PR_TRUE },
+    /* ------------------ NIST 800-108 Key Derivations  ------------------- */
+    { CKM_SP800_108_COUNTER_KDF, { 0, CK_MAX, CKF_DERIVE }, PR_TRUE },
+    { CKM_SP800_108_FEEDBACK_KDF, { 0, CK_MAX, CKF_DERIVE }, PR_TRUE },
+    { CKM_SP800_108_DOUBLE_PIPELINE_KDF, { 0, CK_MAX, CKF_DERIVE }, PR_TRUE },
+    { CKM_NSS_SP800_108_COUNTER_KDF_DERIVE_DATA, { 0, CK_MAX, CKF_DERIVE }, PR_TRUE },
+    { CKM_NSS_SP800_108_FEEDBACK_KDF_DERIVE_DATA, { 0, CK_MAX, CKF_DERIVE }, PR_TRUE },
+    { CKM_NSS_SP800_108_DOUBLE_PIPELINE_KDF_DERIVE_DATA, { 0, CK_MAX, CKF_DERIVE }, PR_TRUE },
     /* ------------------ AES Key Wrap (also encrypt)  ------------------- */
     { CKM_NETSCAPE_AES_KEY_WRAP, { 16, 32, CKF_EN_DE_WR_UN }, PR_TRUE },
     { CKM_NETSCAPE_AES_KEY_WRAP_PAD, { 16, 32, CKF_EN_DE_WR_UN }, PR_TRUE },
@@ -2930,12 +2937,14 @@ SFTK_DestroySlotData(SFTKSlot *slot)
 char **
 NSC_ModuleDBFunc(unsigned long function, char *parameters, void *args)
 {
+#ifndef NSS_DISABLE_DBM
     char *secmod = NULL;
     char *appName = NULL;
     char *filename = NULL;
     NSSDBType dbType = NSS_DB_TYPE_NONE;
     PRBool rw;
     static char *success = "Success";
+#endif /* NSS_DISABLE_DBM */
     char **rvstr = NULL;
 
     rvstr = NSSUTIL_DoModuleDBFunction(function, parameters, args);
@@ -2947,6 +2956,7 @@ NSC_ModuleDBFunc(unsigned long function, char *parameters, void *args)
         return NULL;
     }
 
+#ifndef NSS_DISABLE_DBM
     /* The legacy database uses the old dbm, which is only linked with the
      * legacy DB handler, which is only callable from softoken */
 
@@ -3038,6 +3048,7 @@ loser:
         PORT_Free(appName);
     if (filename)
         PORT_Free(filename);
+#endif /* NSS_DISABLE_DBM */
     return rvstr;
 }
 

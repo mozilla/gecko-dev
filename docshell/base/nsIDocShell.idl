@@ -512,12 +512,6 @@ interface nsIDocShell : nsIDocShellTreeItem
    */
   [infallible] readonly attribute boolean hasMixedDisplayContentBlocked;
 
-   /**
-   * This attribute determines whether a document has Tracking Content
-   * that has been blocked from loading.
-   */
-  [infallible] readonly attribute boolean hasTrackingContentBlocked;
-
   /**
    * Disconnects this docshell's editor from its window, and stores the
    * editor data in the open document's session history entry.  This
@@ -1103,16 +1097,12 @@ interface nsIDocShell : nsIDocShellTreeItem
    */
   [infallible] readonly attribute ContentFrameMessageManager messageManager;
 
-  /**
-   * Asynchronously retrieve a JSON string representing a log of the
-   * content blocking events happened so far in the current tab from the
-   * content process.
-   *
-   * This returns a Promise which resolves to a string on success, and is
-   * rejected on failure.  For documentation on the string format, please
-   * see nsISecureBrowserUI.contentBlockingLogJSON.
+   /**
+   * This returns a Promise which resolves to a boolean. True when the
+   * document has Tracking Content that has been blocked from loading, false
+   * otherwise.
    */
-  Promise getContentBlockingLog();
+  Promise getHasTrackingContentBlocked();
 
   /**
    * Return whether this docshell is "attempting to navigate" in the

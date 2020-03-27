@@ -804,13 +804,14 @@ nsresult EventDispatcher::Dispatch(nsISupports* aTarget,
 #ifdef DEBUG
   if (NS_IsMainThread() && aEvent->mMessage != eVoidEvent &&
       !nsContentUtils::IsSafeToRunScript()) {
-    nsCOMPtr<nsINode> node = do_QueryInterface(target);
-    if (!node) {
-      // If the target is not a node, just go ahead and crash. There really
-      // shouldn't be any other event targets in documents that are not being
-      // rendered or scripted.
-      MOZ_CRASH("This is unsafe! Fix the caller!");
-    } else {
+    static const auto warn = [](bool aIsSystem) {
+      if (aIsSystem) {
+        NS_WARNING("Fix the caller!");
+      } else {
+        MOZ_CRASH("This is unsafe! Fix the caller!");
+      }
+    };
+    if (nsCOMPtr<nsINode> node = do_QueryInterface(target)) {
       // If this is a node, it's possible that this is some sort of DOM tree
       // that is never accessed by script (for example an SVG image or XBL
       // binding document or whatnot).  We really only want to warn/assert here
@@ -822,12 +823,10 @@ nsresult EventDispatcher::Dispatch(nsISupports* aTarget,
       nsIGlobalObject* global =
           doc->GetScriptHandlingObject(hasHadScriptHandlingObject);
       if (global || hasHadScriptHandlingObject) {
-        if (nsContentUtils::IsChromeDoc(doc)) {
-          NS_WARNING("Fix the caller!");
-        } else {
-          MOZ_CRASH("This is unsafe! Fix the caller!");
-        }
+        warn(nsContentUtils::IsChromeDoc(doc));
       }
+    } else if (nsCOMPtr<nsIGlobalObject> global = target->GetOwnerGlobal()) {
+      warn(global->PrincipalOrNull()->IsSystemPrincipal());
     }
   }
 
@@ -1238,14 +1237,10 @@ nsresult EventDispatcher::DispatchDOMEvent(nsISupports* aTarget,
       aEventType.LowerCaseEqualsLiteral("mouseevents")) {
     return NS_NewDOMMouseEvent(aOwner, aPresContext, nullptr);
   }
-  if (aEventType.LowerCaseEqualsLiteral("mousescrollevents")) {
-    return NS_NewDOMMouseScrollEvent(aOwner, aPresContext, nullptr);
-  }
   if (aEventType.LowerCaseEqualsLiteral("dragevent")) {
     return NS_NewDOMDragEvent(aOwner, aPresContext, nullptr);
   }
-  if (aEventType.LowerCaseEqualsLiteral("keyboardevent") ||
-      aEventType.LowerCaseEqualsLiteral("keyevents")) {
+  if (aEventType.LowerCaseEqualsLiteral("keyboardevent")) {
     return NS_NewDOMKeyboardEvent(aOwner, aPresContext, nullptr);
   }
   if (aEventType.LowerCaseEqualsLiteral("compositionevent") ||
@@ -1276,18 +1271,12 @@ nsresult EventDispatcher::DispatchDOMEvent(nsISupports* aTarget,
       aEventType.LowerCaseEqualsLiteral("svgevents")) {
     return NS_NewDOMEvent(aOwner, aPresContext, nullptr);
   }
-  if (aEventType.LowerCaseEqualsLiteral("timeevent")) {
-    return NS_NewDOMTimeEvent(aOwner, aPresContext, nullptr);
-  }
   if (aEventType.LowerCaseEqualsLiteral("messageevent")) {
     RefPtr<Event> event = new MessageEvent(aOwner, aPresContext, nullptr);
     return event.forget();
   }
   if (aEventType.LowerCaseEqualsLiteral("beforeunloadevent")) {
     return NS_NewDOMBeforeUnloadEvent(aOwner, aPresContext, nullptr);
-  }
-  if (aEventType.LowerCaseEqualsLiteral("scrollareaevent")) {
-    return NS_NewDOMScrollAreaEvent(aOwner, aPresContext, nullptr);
   }
   if (aEventType.LowerCaseEqualsLiteral("touchevent") &&
       TouchEvent::LegacyAPIEnabled(

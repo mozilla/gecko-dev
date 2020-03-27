@@ -237,7 +237,7 @@ class SendRunnable final : public WorkerThreadProxySyncRunnable,
                const nsAString& aStringBody)
       : WorkerThreadProxySyncRunnable(aWorkerPrivate, aProxy),
         StructuredCloneHolder(CloningSupported, TransferringNotSupported,
-                              StructuredCloneScope::SameProcessDifferentThread),
+                              StructuredCloneScope::SameProcess),
         mStringBody(aStringBody),
         mHasUploadListeners(false) {}
 
@@ -1893,14 +1893,6 @@ void XMLHttpRequestWorker::Send(
     RefPtr<Blob> blob = &aData.Value().GetAsBlob();
     MOZ_ASSERT(blob);
 
-    RefPtr<BlobImpl> blobImpl = blob->Impl();
-    MOZ_ASSERT(blobImpl);
-
-    aRv = blobImpl->SetMutable(false);
-    if (NS_WARN_IF(aRv.Failed())) {
-      return;
-    }
-
     JS::Rooted<JS::Value> value(aCx);
     if (!GetOrCreateDOMReflector(aCx, blob, &value)) {
       aRv.Throw(NS_ERROR_FAILURE);
@@ -1929,14 +1921,6 @@ void XMLHttpRequestWorker::Send(
 
   else if (aData.Value().IsArrayBufferView()) {
     const ArrayBufferView& body = aData.Value().GetAsArrayBufferView();
-
-    if (JS_IsTypedArrayObject(body.Obj()) &&
-        JS_GetTypedArraySharedness(body.Obj())) {
-      // Throw if the object is mapping shared memory (must opt in).
-      aRv.ThrowTypeError<MSG_TYPEDARRAY_IS_SHARED>(
-          NS_LITERAL_STRING("Argument of XMLHttpRequest.send"));
-      return;
-    }
 
     sendRunnable = new SendRunnable(mWorkerPrivate, mProxy, EmptyString());
 

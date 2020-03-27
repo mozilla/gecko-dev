@@ -6,7 +6,7 @@
 
 extern crate serde_bytes;
 
-use crate::channel::{self, MsgSender, Payload, PayloadSender, PayloadSenderHelperMethods};
+use crate::channel::{self, MsgSender, Payload, PayloadSender};
 use peek_poke::PeekPoke;
 use std::cell::Cell;
 use std::fmt;
@@ -910,6 +910,8 @@ bitflags!{
         const SCENE = 0x1;
         ///
         const FRAME = 0x2;
+        ///
+        const TILE_CACHE = 0x4;
     }
 }
 
@@ -953,7 +955,10 @@ pub enum DebugCommand {
     FetchDocuments,
     /// Fetch current passes and batches.
     FetchPasses,
-    /// Fetch clip-scroll tree.
+    // TODO: This should be called FetchClipScrollTree. However, that requires making
+    // changes to webrender's web debugger ui, touching a 4Mb minified file that
+    // is too big to submit through the conventional means.
+    /// Fetch the spatial tree.
     FetchClipScrollTree,
     /// Fetch render tasks.
     FetchRenderTasks,
@@ -965,6 +970,10 @@ pub enum DebugCommand {
     LoadCapture(PathBuf, MsgSender<CapturedDocument>),
     /// Clear cached resources, forcing them to be re-uploaded from templates.
     ClearCaches(ClearCache),
+    /// Enable/disable native compositor usage
+    EnableNativeCompositor(bool),
+    /// Enable/disable parallel job execution with rayon.
+    EnableMultithreading(bool),
     /// Invalidate GPU cache, forcing the update from the CPU mirror.
     InvalidateGpuCache,
     /// Causes the scene builder to pause for a given amount of milliseconds each time it
@@ -975,6 +984,8 @@ pub enum DebugCommand {
     SimulateLongLowPrioritySceneBuild(u32),
     /// Logs transactions to a file for debugging purposes
     SetTransactionLogging(bool),
+    /// Set an override tile size to use for picture caches
+    SetPictureTileSize(Option<DeviceIntSize>),
 }
 
 /// Message sent by the `RenderApi` to the render backend thread.
@@ -1009,7 +1020,7 @@ pub enum ApiMsg {
     /// Flush from the caches anything that isn't necessary, to free some memory.
     MemoryPressure,
     /// Collects a memory report.
-    ReportMemory(MsgSender<MemoryReport>),
+    ReportMemory(MsgSender<Box<MemoryReport>>),
     /// Change debugging options.
     DebugCommand(DebugCommand),
     /// Wakes the render backend's event loop up. Needed when an event is communicated
@@ -1411,6 +1422,8 @@ bitflags! {
         const DISABLE_PICTURE_CACHING = 1 << 27;
         /// If set, dump picture cache invalidation debug to console.
         const INVALIDATION_DBG = 1 << 28;
+        /// Log tile cache to memory for later saving as part of wr-capture
+        const TILE_CACHE_LOGGING_DBG   = 1 << 29;
     }
 }
 
@@ -1538,7 +1551,7 @@ impl RenderApi {
     pub fn report_memory(&self) -> MemoryReport {
         let (tx, rx) = channel::msg_channel().unwrap();
         self.api_sender.send(ApiMsg::ReportMemory(tx)).unwrap();
-        rx.recv().unwrap()
+        *rx.recv().unwrap()
     }
 
     /// Update debugging flags.
@@ -1588,7 +1601,7 @@ impl RenderApi {
     #[doc(hidden)]
     pub fn send_payload(&self, data: &[u8]) {
         self.payload_sender
-            .send_payload(Payload::from_data(data))
+            .send(Payload::from_data(data))
             .unwrap();
     }
 
@@ -1616,7 +1629,7 @@ impl RenderApi {
     pub fn send_transaction(&self, document_id: DocumentId, transaction: Transaction) {
         let (msg, payloads) = transaction.finalize();
         for payload in payloads {
-            self.payload_sender.send_payload(payload).unwrap();
+            self.payload_sender.send(payload).unwrap();
         }
         self.api_sender.send(ApiMsg::UpdateDocuments(vec![document_id], vec![msg])).unwrap();
     }
@@ -1634,9 +1647,9 @@ impl RenderApi {
                     (msgs, document_payloads)
                 });
         for payload in document_payloads.drain(..).flatten() {
-            self.payload_sender.send_payload(payload).unwrap();
+            self.payload_sender.send(payload).unwrap();
         }
-        self.api_sender.send(ApiMsg::UpdateDocuments(document_ids.clone(), msgs)).unwrap();
+        self.api_sender.send(ApiMsg::UpdateDocuments(document_ids, msgs)).unwrap();
     }
 
     /// Does a hit test on display items in the specified document, at the given
@@ -1779,7 +1792,7 @@ impl ZoomFactor {
     }
 
     /// Get the zoom factor as an untyped float.
-    pub fn get(&self) -> f32 {
+    pub fn get(self) -> f32 {
         self.0
     }
 }
@@ -1815,8 +1828,8 @@ pub struct PropertyBindingKey<T> {
 /// Construct a property value from a given key and value.
 impl<T: Copy> PropertyBindingKey<T> {
     ///
-    pub fn with(&self, value: T) -> PropertyValue<T> {
-        PropertyValue { key: *self, value }
+    pub fn with(self, value: T) -> PropertyValue<T> {
+        PropertyValue { key: self, value }
     }
 }
 

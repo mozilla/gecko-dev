@@ -18,6 +18,8 @@
 #include "nsBlockFrame.h"
 #include "nsDeviceContext.h"
 #include "nsError.h"
+#include "nsIFrame.h"
+#include "nsIFrameInlines.h"
 #include "nsImageRenderer.h"
 #include "nsMemory.h"
 
@@ -333,7 +335,7 @@ void nsFloatManager::StoreRegionFor(WritingMode aWM, nsIFrame* aFloat,
   nsRect region = aRegion.GetPhysicalRect(aWM, aContainerSize);
   nsRect rect = aFloat->GetRect();
   if (region.IsEqualEdges(rect)) {
-    aFloat->DeleteProperty(FloatRegionProperty());
+    aFloat->RemoveProperty(FloatRegionProperty());
   } else {
     nsMargin* storedMargin = aFloat->GetProperty(FloatRegionProperty());
     if (!storedMargin) {

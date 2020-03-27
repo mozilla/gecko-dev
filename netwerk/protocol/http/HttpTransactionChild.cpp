@@ -10,6 +10,7 @@
 #include "HttpTransactionChild.h"
 
 #include "mozilla/ipc/IPCStreamUtils.h"
+#include "mozilla/net/InputChannelThrottleQueueChild.h"
 #include "mozilla/net/SocketProcessChild.h"
 #include "nsInputStreamPump.h"
 #include "nsHttpHandler.h"
@@ -20,14 +21,14 @@ namespace mozilla {
 namespace net {
 
 NS_IMPL_ISUPPORTS(HttpTransactionChild, nsIRequestObserver, nsIStreamListener,
-                  nsITransportEventSink);
+                  nsITransportEventSink, nsIThrottledInputChannel);
 
 //-----------------------------------------------------------------------------
 // HttpTransactionChild <public>
 //-----------------------------------------------------------------------------
 
 HttpTransactionChild::HttpTransactionChild()
-    : mCanceled(false), mStatus(NS_OK) {
+    : mCanceled(false), mStatus(NS_OK), mChannelId(0) {
   LOG(("Creating HttpTransactionChild @%p\n", this));
 }
 
@@ -35,79 +36,70 @@ HttpTransactionChild::~HttpTransactionChild() {
   LOG(("Destroying HttpTransactionChild @%p\n", this));
 }
 
-nsProxyInfo* HttpTransactionChild::ProxyInfoCloneArgsToProxyInfo(
-    const nsTArray<ProxyInfoCloneArgs>& aArgs) {
-  nsProxyInfo *pi = nullptr, *first = nullptr, *last = nullptr;
-  for (const ProxyInfoCloneArgs& info : aArgs) {
-    pi = new nsProxyInfo(info.type(), info.host(), info.port(), info.username(),
-                         info.password(), info.flags(), info.timeout(),
-                         info.resolveFlags(), info.proxyAuthorizationHeader(),
-                         info.connectionIsolationKey());
-    if (last) {
-      last->mNext = pi;
-      // |mNext| will be released in |last|'s destructor.
-      NS_IF_ADDREF(last->mNext);
-    } else {
-      first = pi;
-    }
-    last = pi;
+static already_AddRefed<nsIRequestContext> CreateRequestContext(
+    uint64_t aRequestContextID) {
+  if (!aRequestContextID) {
+    return nullptr;
   }
 
-  return first;
-}
-
-// This function needs to be synced with nsHttpConnectionInfo::Clone.
-already_AddRefed<nsHttpConnectionInfo>
-HttpTransactionChild::DeserializeHttpConnectionInfoCloneArgs(
-    const HttpConnectionInfoCloneArgs& aInfoArgs) {
-  nsProxyInfo* pi = ProxyInfoCloneArgsToProxyInfo(aInfoArgs.proxyInfo());
-  RefPtr<nsHttpConnectionInfo> cinfo;
-  if (aInfoArgs.routedHost().IsEmpty()) {
-    cinfo = new nsHttpConnectionInfo(
-        aInfoArgs.host(), aInfoArgs.port(), aInfoArgs.npnToken(),
-        aInfoArgs.username(), aInfoArgs.topWindowOrigin(), pi,
-        aInfoArgs.originAttributes(), aInfoArgs.endToEndSSL(),
-        aInfoArgs.isolated(), aInfoArgs.isHttp3());
-  } else {
-    MOZ_ASSERT(aInfoArgs.endToEndSSL());
-    cinfo = new nsHttpConnectionInfo(
-        aInfoArgs.host(), aInfoArgs.port(), aInfoArgs.npnToken(),
-        aInfoArgs.username(), aInfoArgs.topWindowOrigin(), pi,
-        aInfoArgs.originAttributes(), aInfoArgs.routedHost(),
-        aInfoArgs.routedPort(), aInfoArgs.isolated(), aInfoArgs.isHttp3());
+  nsIRequestContextService* rcsvc = gHttpHandler->GetRequestContextService();
+  if (!rcsvc) {
+    return nullptr;
   }
 
-  // Make sure the anonymous, insecure-scheme, and private flags are transferred
-  cinfo->SetAnonymous(aInfoArgs.anonymous());
-  cinfo->SetPrivate(aInfoArgs.aPrivate());
-  cinfo->SetInsecureScheme(aInfoArgs.insecureScheme());
-  cinfo->SetNoSpdy(aInfoArgs.noSpdy());
-  cinfo->SetBeConservative(aInfoArgs.beConservative());
-  cinfo->SetTlsFlags(aInfoArgs.tlsFlags());
-  cinfo->SetIsTrrServiceChannel(aInfoArgs.isTrrServiceChannel());
-  cinfo->SetTrrDisabled(aInfoArgs.trrDisabled());
-  cinfo->SetIPv4Disabled(aInfoArgs.isIPv4Disabled());
-  cinfo->SetIPv6Disabled(aInfoArgs.isIPv6Disabled());
+  nsCOMPtr<nsIRequestContext> requestContext;
+  rcsvc->GetRequestContext(aRequestContextID, getter_AddRefs(requestContext));
 
-  return cinfo.forget();
+  return requestContext.forget();
 }
 
 nsresult HttpTransactionChild::InitInternal(
     uint32_t caps, const HttpConnectionInfoCloneArgs& infoArgs,
     nsHttpRequestHead* requestHead, nsIInputStream* requestBody,
     uint64_t requestContentLength, bool requestBodyHasHeaders,
-    uint64_t topLevelOuterContentWindowId, uint8_t httpTrafficCategory) {
+    uint64_t topLevelOuterContentWindowId, uint8_t httpTrafficCategory,
+    uint64_t requestContextID, uint32_t classOfService, uint32_t initialRwin,
+    bool responseTimeoutEnabled, uint64_t channelId,
+    const Maybe<H2PushedStreamArg>& aPushedStreamArg) {
   LOG(("HttpTransactionChild::InitInternal [this=%p caps=%x]\n", this, caps));
 
   RefPtr<nsHttpConnectionInfo> cinfo =
-      DeserializeHttpConnectionInfoCloneArgs(infoArgs);
+      nsHttpConnectionInfo::DeserializeHttpConnectionInfoCloneArgs(infoArgs);
+  nsCOMPtr<nsIRequestContext> rc = CreateRequestContext(requestContextID);
+
+  HttpTransactionShell::OnPushCallback pushCallback = nullptr;
+  if (caps & NS_HTTP_ONPUSH_LISTENER) {
+    RefPtr<HttpTransactionChild> self = this;
+    pushCallback = [self](uint32_t aPushedStreamId, const nsACString& aUrl,
+                          const nsACString& aRequestString) {
+      bool res = false;
+      if (self->CanSend()) {
+        res =
+            self->SendOnH2PushStream(aPushedStreamId, PromiseFlatCString(aUrl),
+                                     PromiseFlatCString(aRequestString));
+      }
+      return res ? NS_OK : NS_ERROR_FAILURE;
+    };
+  }
+
+  RefPtr<nsHttpTransaction> transWithPushedStream;
+  uint32_t pushedStreamId = 0;
+  if (aPushedStreamArg) {
+    HttpTransactionChild* transChild = static_cast<HttpTransactionChild*>(
+        aPushedStreamArg.ref().transWithPushedStreamChild());
+    transWithPushedStream = transChild->GetHttpTransaction();
+    pushedStreamId = aPushedStreamArg.ref().pushedStreamId();
+  }
 
   nsresult rv = mTransaction->Init(
       caps, cinfo, requestHead, requestBody, requestContentLength,
       requestBodyHasHeaders, GetCurrentThreadEventTarget(),
       nullptr,  // TODO: security callback, fix in bug 1512479.
       this, topLevelOuterContentWindowId,
-      static_cast<HttpTrafficCategory>(httpTrafficCategory));
+      static_cast<HttpTrafficCategory>(httpTrafficCategory), rc, classOfService,
+      initialRwin, responseTimeoutEnabled, channelId,
+      std::move(mTransactionObserver), std::move(pushCallback),
+      transWithPushedStream, pushedStreamId);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     mTransaction = nullptr;
     return rv;
@@ -154,17 +146,43 @@ mozilla::ipc::IPCResult HttpTransactionChild::RecvInit(
     const nsHttpRequestHead& aReqHeaders, const Maybe<IPCStream>& aRequestBody,
     const uint64_t& aReqContentLength, const bool& aReqBodyIncludesHeaders,
     const uint64_t& aTopLevelOuterContentWindowId,
-    const uint8_t& aHttpTrafficCategory) {
+    const uint8_t& aHttpTrafficCategory, const uint64_t& aRequestContextID,
+    const uint32_t& aClassOfService, const uint32_t& aInitialRwin,
+    const bool& aResponseTimeoutEnabled, const uint64_t& aChannelId,
+    const bool& aHasTransactionObserver,
+    const Maybe<H2PushedStreamArg>& aPushedStreamArg,
+    const mozilla::Maybe<PInputChannelThrottleQueueChild*>& aThrottleQueue) {
   mRequestHead = aReqHeaders;
   if (aRequestBody) {
     mUploadStream = mozilla::ipc::DeserializeIPCStream(aRequestBody);
   }
 
   mTransaction = new nsHttpTransaction();
-  nsresult rv =
-      InitInternal(aCaps, aArgs, &mRequestHead, mUploadStream,
-                   aReqContentLength, aReqBodyIncludesHeaders,
-                   aTopLevelOuterContentWindowId, aHttpTrafficCategory);
+  mChannelId = aChannelId;
+
+  if (aHasTransactionObserver) {
+    nsMainThreadPtrHandle<HttpTransactionChild> handle(
+        new nsMainThreadPtrHolder<HttpTransactionChild>(
+            "HttpTransactionChildProxy", this, false));
+    mTransactionObserver = [handle]() {
+      if (handle->mTransaction) {
+        handle->mTransactionObserverResult.emplace();
+        handle->mTransaction->GetTransactionObserverResult(
+            handle->mTransactionObserverResult.ref());
+      }
+    };
+  }
+
+  if (aThrottleQueue.isSome()) {
+    mThrottleQueue =
+        static_cast<InputChannelThrottleQueueChild*>(aThrottleQueue.ref());
+  }
+
+  nsresult rv = InitInternal(
+      aCaps, aArgs, &mRequestHead, mUploadStream, aReqContentLength,
+      aReqBodyIncludesHeaders, aTopLevelOuterContentWindowId,
+      aHttpTrafficCategory, aRequestContextID, aClassOfService, aInitialRwin,
+      aResponseTimeoutEnabled, aChannelId, aPushedStreamArg);
   if (NS_FAILED(rv)) {
     LOG(("HttpTransactionChild::RecvInit: [this=%p] InitInternal failed!\n",
          this));
@@ -264,6 +282,16 @@ static TimingStructArgs ToTimingStructArgs(TimingStruct aTiming) {
   return args;
 }
 
+// The maximum number of bytes to consider when attempting to sniff.
+// See https://mimesniff.spec.whatwg.org/#reading-the-resource-header.
+static const uint32_t MAX_BYTES_SNIFFED = 1445;
+
+static void GetDataForSniffer(void* aClosure, const uint8_t* aData,
+                              uint32_t aCount) {
+  nsTArray<uint8_t>* outData = static_cast<nsTArray<uint8_t>*>(aClosure);
+  outData->AppendElements(aData, std::min(aCount, MAX_BYTES_SNIFFED));
+}
+
 NS_IMETHODIMP
 HttpTransactionChild::OnStartRequest(nsIRequest* aRequest) {
   LOG(("HttpTransactionChild::OnStartRequest start [this=%p] mTransaction=%p\n",
@@ -294,13 +322,26 @@ HttpTransactionChild::OnStartRequest(nsIRequest* aRequest) {
 
   nsAutoPtr<nsHttpResponseHead> head(mTransaction->TakeResponseHead());
   Maybe<nsHttpResponseHead> optionalHead;
+  nsTArray<uint8_t> dataForSniffer;
   if (head) {
     optionalHead = Some(*head);
+    if (mTransaction->Caps() & NS_HTTP_CALL_CONTENT_SNIFFER) {
+      nsAutoCString contentTypeOptionsHeader;
+      if (head->GetContentTypeOptionsHeader(contentTypeOptionsHeader) &&
+          contentTypeOptionsHeader.EqualsIgnoreCase("nosniff")) {
+        RefPtr<nsInputStreamPump> pump = do_QueryObject(mTransactionPump);
+        pump->PeekStream(GetDataForSniffer, &dataForSniffer);
+      }
+    }
   }
+
+  int32_t proxyConnectResponseCode =
+      mTransaction->GetProxyConnectResponseCode();
 
   Unused << SendOnStartRequest(status, optionalHead, serializedSecurityInfoOut,
                                mTransaction->ProxyConnectFailed(),
-                               ToTimingStructArgs(mTransaction->Timings()));
+                               ToTimingStructArgs(mTransaction->Timings()),
+                               proxyConnectResponseCode, dataForSniffer);
   LOG(("HttpTransactionChild::OnStartRequest end [this=%p]\n", this));
   return NS_OK;
 }
@@ -327,11 +368,11 @@ HttpTransactionChild::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
     responseTrailers.emplace(*headerArray);
   }
 
-  Unused << SendOnStopRequest(aStatus, mTransaction->ResponseIsComplete(),
-                              mTransaction->GetTransferSize(),
-                              ToTimingStructArgs(mTransaction->Timings()),
-                              responseTrailers,
-                              mTransaction->HasStickyConnection());
+  Unused << SendOnStopRequest(
+      aStatus, mTransaction->ResponseIsComplete(),
+      mTransaction->GetTransferSize(),
+      ToTimingStructArgs(mTransaction->Timings()), responseTrailers,
+      mTransaction->HasStickyConnection(), mTransactionObserverResult);
 
   return NS_OK;
 }
@@ -365,12 +406,30 @@ HttpTransactionChild::OnTransportStatus(nsITransport* aTransport,
       if (socketTransport) {
         socketTransport->GetSelfAddr(&selfAddr);
         socketTransport->GetPeerAddr(&peerAddr);
+        socketTransport->ResolvedByTRR(&isTrr);
       }
     }
-    Unused << SendOnNetAddrUpdate(selfAddr, peerAddr);
+    Unused << SendOnNetAddrUpdate(selfAddr, peerAddr, isTrr);
   }
 
   Unused << SendOnTransportStatus(aStatus, aProgress, aProgressMax);
+  return NS_OK;
+}
+
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsIThrottledInputChannel
+//-----------------------------------------------------------------------------
+
+NS_IMETHODIMP
+HttpTransactionChild::SetThrottleQueue(nsIInputChannelThrottleQueue* aQueue) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+HttpTransactionChild::GetThrottleQueue(nsIInputChannelThrottleQueue** aQueue) {
+  nsCOMPtr<nsIInputChannelThrottleQueue> queue =
+      static_cast<nsIInputChannelThrottleQueue*>(mThrottleQueue.get());
+  queue.forget(aQueue);
   return NS_OK;
 }
 

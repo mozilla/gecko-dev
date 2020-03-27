@@ -318,6 +318,9 @@ inline bool WaitForInputIdle(HANDLE aProcess,
       return false;
     }
 
+    // ::WaitForInputIdle() doesn't always set the last-error code on failure
+    ::SetLastError(ERROR_SUCCESS);
+
     DWORD waitResult = ::WaitForInputIdle(aProcess, aTimeoutMs - elapsed);
     if (!waitResult) {
       return true;
@@ -481,6 +484,8 @@ class MOZ_RAII AutoVirtualProtect final {
   explicit operator bool() const { return mError.IsSuccess(); }
 
   WindowsError GetError() const { return mError; }
+
+  DWORD PrevProt() const { return mPrevProt; }
 
   AutoVirtualProtect(const AutoVirtualProtect&) = delete;
   AutoVirtualProtect(AutoVirtualProtect&&) = delete;

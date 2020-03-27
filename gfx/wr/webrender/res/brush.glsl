@@ -90,6 +90,7 @@ FWD_DECLARE_VS_FUNCTION(mix_blend_brush_vs)
 FWD_DECLARE_VS_FUNCTION(linear_gradient_brush_vs)
 FWD_DECLARE_VS_FUNCTION(radial_gradient_brush_vs)
 FWD_DECLARE_VS_FUNCTION(yuv_brush_vs)
+FWD_DECLARE_VS_FUNCTION(opacity_brush_vs)
 
 void multi_brush_vs(
     VertexInfo vi,
@@ -111,7 +112,10 @@ void multi_brush_vs(
 #define BRUSH_FLAG_SEGMENT_RELATIVE             2
 #define BRUSH_FLAG_SEGMENT_REPEAT_X             4
 #define BRUSH_FLAG_SEGMENT_REPEAT_Y             8
-#define BRUSH_FLAG_TEXEL_RECT                  16
+#define BRUSH_FLAG_SEGMENT_REPEAT_X_ROUND      16
+#define BRUSH_FLAG_SEGMENT_REPEAT_Y_ROUND      32
+#define BRUSH_FLAG_SEGMENT_NINEPATCH_MIDDLE    64
+#define BRUSH_FLAG_TEXEL_RECT                 128
 
 #define INVALID_SEGMENT_INDEX                   0xffff
 
@@ -255,6 +259,7 @@ Fragment mix_blend_brush_fs();
 Fragment linear_gradient_brush_fs();
 Fragment radial_gradient_brush_fs();
 Fragment yuv_brush_fs();
+Fragment opacity_brush_fs();
 Fragment multi_brush_fs(int brush_kind);
 
 void main(void) {

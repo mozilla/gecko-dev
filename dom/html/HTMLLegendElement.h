@@ -24,6 +24,7 @@ class HTMLLegendElement final : public nsGenericHTMLElement {
 
   using nsGenericHTMLElement::Focus;
   virtual void Focus(const FocusOptions& aOptions,
+                     const mozilla::dom::CallerType aCallerType,
                      ErrorResult& aError) override;
 
   virtual bool PerformAccesskey(bool aKeyCausesActivation,
@@ -47,6 +48,15 @@ class HTMLLegendElement final : public nsGenericHTMLElement {
     return fieldsetControl ? fieldsetControl->GetFormElement() : nullptr;
   }
 
+  enum class LegendAlignValue : uint8_t {
+    Left,
+    Right,
+    Center,
+    Bottom,
+    Top,
+    InlineStart,
+    InlineEnd,
+  };
   /**
    * WebIDL Interface
    */

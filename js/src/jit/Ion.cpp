@@ -265,11 +265,10 @@ bool JitRuntime::generateTrampolines(JSContext* cx) {
 
   // The arguments rectifier has to use the same frame layout as the function
   // frames it rectifies.
-  static_assert(mozilla::IsBaseOf<JitFrameLayout, RectifierFrameLayout>::value,
+  static_assert(std::is_base_of<JitFrameLayout, RectifierFrameLayout>::value,
                 "a rectifier frame can be used with jit frame");
-  static_assert(
-      mozilla::IsBaseOf<JitFrameLayout, WasmToJSJitFrameLayout>::value,
-      "wasm frames simply are jit frames");
+  static_assert(std::is_base_of<JitFrameLayout, WasmToJSJitFrameLayout>::value,
+                "wasm frames simply are jit frames");
   static_assert(sizeof(JitFrameLayout) == sizeof(WasmToJSJitFrameLayout),
                 "thus a rectifier frame can be used with a wasm frame");
 
@@ -1059,16 +1058,6 @@ bool OptimizeMIR(MIRGenerator* mir) {
 
   if (mir->shouldCancel("Start")) {
     return false;
-  }
-
-  if (!mir->compilingWasm()) {
-    if (!MakeMRegExpHoistable(mir, graph)) {
-      return false;
-    }
-
-    if (mir->shouldCancel("Make MRegExp Hoistable")) {
-      return false;
-    }
   }
 
   gs.spewPass("BuildSSA");
@@ -1964,7 +1953,7 @@ static bool CanIonCompileOrInlineScript(JSScript* script, const char** reason) {
   if (script->isForEval()) {
     // Eval frames are not yet supported. Supporting this will require new
     // logic in pushBailoutFrame to deal with linking prev.
-    // Additionally, JSOP_DEFVAR support will require baking in isEvalFrame().
+    // Additionally, JSOp::DefVar support will require baking in isEvalFrame().
     *reason = "eval script";
     return false;
   }
@@ -2277,7 +2266,7 @@ static MethodStatus BaselineCanEnterAtBranch(JSContext* cx, HandleScript script,
                                              uint32_t osrFrameSize,
                                              jsbytecode* pc) {
   MOZ_ASSERT(jit::IsIonEnabled(cx));
-  MOZ_ASSERT((JSOp)*pc == JSOP_LOOPHEAD);
+  MOZ_ASSERT((JSOp)*pc == JSOp::LoopHead);
 
   // Skip if the script has been disabled.
   if (!script->canIonCompile()) {
@@ -2353,7 +2342,7 @@ static bool IonCompileScriptForBaseline(JSContext* cx, BaselineFrame* frame,
   MOZ_ASSERT(frame->debugFrameSize() == frameSize);
 
   RootedScript script(cx, frame->script());
-  bool isLoopHead = JSOp(*pc) == JSOP_LOOPHEAD;
+  bool isLoopHead = JSOp(*pc) == JSOp::LoopHead;
 
   // The Baseline JIT code checks for Ion disabled or compiling off-thread.
   MOZ_ASSERT(script->canIonCompile());
@@ -2507,7 +2496,7 @@ bool jit::IonCompileScriptForBaselineOSR(JSContext* cx, BaselineFrame* frame,
   *infoPtr = nullptr;
 
   MOZ_ASSERT(frame->debugFrameSize() == frameSize);
-  MOZ_ASSERT(JSOp(*pc) == JSOP_LOOPHEAD);
+  MOZ_ASSERT(JSOp(*pc) == JSOp::LoopHead);
 
   if (!IonCompileScriptForBaseline(cx, frame, frameSize, pc)) {
     return false;

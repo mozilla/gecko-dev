@@ -30,35 +30,61 @@ MediaController::MediaController(uint64_t aContextId)
 
 MediaController::~MediaController() {
   LOG("Destroy controller %" PRId64, Id());
-  MOZ_DIAGNOSTIC_ASSERT(!mControlledMediaNum);
+  if (!mShutdown) {
+    Shutdown();
+  }
 };
 
 void MediaController::Play() {
   LOG("Play");
-  mIsPlaying = true;
+  SetPlayState(PlaybackState::ePlaying);
   UpdateMediaControlKeysEventToContentMediaIfNeeded(
       MediaControlKeysEvent::ePlay);
 }
 
 void MediaController::Pause() {
   LOG("Pause");
-  mIsPlaying = false;
+  SetPlayState(PlaybackState::ePaused);
   UpdateMediaControlKeysEventToContentMediaIfNeeded(
       MediaControlKeysEvent::ePause);
 }
 
+void MediaController::PrevTrack() {
+  LOG("Prev Track");
+  UpdateMediaControlKeysEventToContentMediaIfNeeded(
+      MediaControlKeysEvent::ePrevTrack);
+}
+
+void MediaController::NextTrack() {
+  LOG("Next Track");
+  UpdateMediaControlKeysEventToContentMediaIfNeeded(
+      MediaControlKeysEvent::eNextTrack);
+}
+
+void MediaController::SeekBackward() {
+  LOG("Seek Backward");
+  UpdateMediaControlKeysEventToContentMediaIfNeeded(
+      MediaControlKeysEvent::eSeekBackward);
+}
+
+void MediaController::SeekForward() {
+  LOG("Seek Forward");
+  UpdateMediaControlKeysEventToContentMediaIfNeeded(
+      MediaControlKeysEvent::eSeekForward);
+}
+
 void MediaController::Stop() {
   LOG("Stop");
-  mIsPlaying = false;
+  SetPlayState(PlaybackState::eStopped);
   UpdateMediaControlKeysEventToContentMediaIfNeeded(
       MediaControlKeysEvent::eStop);
 }
 
 void MediaController::UpdateMediaControlKeysEventToContentMediaIfNeeded(
     MediaControlKeysEvent aEvent) {
-  // There is no controlled media existing, we have no need to update media
-  // action to the content process.
-  if (!ControlledMediaNum()) {
+  // There is no controlled media existing or controller has been shutdown, we
+  // have no need to update media action to the content process.
+  if (!ControlledMediaNum() || mShutdown) {
     return;
   }
   RefPtr<BrowsingContext> context = BrowsingContext::Get(mBrowsingContextId);
@@ -68,14 +94,25 @@ void MediaController::UpdateMediaControlKeysEventToContentMediaIfNeeded(
 }
 
 void MediaController::Shutdown() {
-  mIsPlaying = false;
+  MOZ_ASSERT(!mShutdown, "Do not call shutdown twice!");
+  SetPlayState(PlaybackState::eStopped);
+  // The media controller would be removed from the service when we receive a
+  // notification from the content process about all controlled media has been
+  // stoppped. However, if controlled media is stopped after detaching
+  // browsing context, then sending the notification from the content process
+  // would fail so that we are not able to notify the chrome process to remove
+  // the corresponding controller. Therefore, we should manually remove the
+  // controller from the service.
+  Deactivate();
   mControlledMediaNum = 0;
-  RefPtr<MediaControlService> service = MediaControlService::GetService();
-  MOZ_ASSERT(service);
-  service->GetAudioFocusManager().RevokeAudioFocus(Id());
+  mPlayingControlledMediaNum = 0;
+  mShutdown = true;
 }
 
 void MediaController::NotifyMediaStateChanged(ControlledMediaState aState) {
+  if (mShutdown) {
+    return;
+  }
   if (aState == ControlledMediaState::eStarted) {
     IncreaseControlledMediaNum();
   } else if (aState == ControlledMediaState::eStopped) {
@@ -88,15 +125,21 @@ void MediaController::NotifyMediaStateChanged(ControlledMediaState aState) {
 }
 
 void MediaController::NotifyMediaAudibleChanged(bool aAudible) {
+  if (mShutdown) {
+    return;
+  }
   mAudible = aAudible;
+  RefPtr<MediaControlService> service = MediaControlService::GetService();
+  MOZ_ASSERT(service);
   if (mAudible) {
-    RefPtr<MediaControlService> service = MediaControlService::GetService();
-    MOZ_ASSERT(service);
-    service->GetAudioFocusManager().RequestAudioFocus(Id());
+    service->GetAudioFocusManager().RequestAudioFocus(this);
+  } else {
+    service->GetAudioFocusManager().RevokeAudioFocus(this);
   }
 }
 
 void MediaController::IncreaseControlledMediaNum() {
+  MOZ_ASSERT(!mShutdown);
   MOZ_DIAGNOSTIC_ASSERT(mControlledMediaNum >= 0);
   mControlledMediaNum++;
   LOG("Increase controlled media num to %" PRId64, mControlledMediaNum);
@@ -106,6 +149,7 @@ void MediaController::IncreaseControlledMediaNum() {
 }
 
 void MediaController::DecreaseControlledMediaNum() {
+  MOZ_ASSERT(!mShutdown);
   MOZ_DIAGNOSTIC_ASSERT(mControlledMediaNum >= 1);
   mControlledMediaNum--;
   LOG("Decrease controlled media num to %" PRId64, mControlledMediaNum);
@@ -115,6 +159,7 @@ void MediaController::DecreaseControlledMediaNum() {
 }
 
 void MediaController::IncreasePlayingControlledMediaNum() {
+  MOZ_ASSERT(!mShutdown);
   MOZ_ASSERT(mPlayingControlledMediaNum >= 0);
   mPlayingControlledMediaNum++;
   LOG("Increase playing controlled media num to %" PRId64,
@@ -123,39 +168,59 @@ void MediaController::IncreasePlayingControlledMediaNum() {
              "The number of playing media should not exceed the number of "
              "controlled media!");
   if (mPlayingControlledMediaNum == 1) {
-    mIsPlaying = true;
+    SetPlayState(PlaybackState::ePlaying);
   }
 }
 
 void MediaController::DecreasePlayingControlledMediaNum() {
+  MOZ_ASSERT(!mShutdown);
   mPlayingControlledMediaNum--;
   LOG("Decrease playing controlled media num to %" PRId64,
       mPlayingControlledMediaNum);
   MOZ_ASSERT(mPlayingControlledMediaNum >= 0);
   if (mPlayingControlledMediaNum == 0) {
-    mIsPlaying = false;
+    SetPlayState(PlaybackState::ePaused);
   }
 }
 
 // TODO : Use watchable to moniter mControlledMediaNum
 void MediaController::Activate() {
+  MOZ_ASSERT(!mShutdown);
   RefPtr<MediaControlService> service = MediaControlService::GetService();
-  MOZ_ASSERT(service);
-  service->AddMediaController(this);
+  if (service && !mIsRegisteredToService) {
+    mIsRegisteredToService = service->RegisterActiveMediaController(this);
+    MOZ_ASSERT(mIsRegisteredToService, "Fail to register controller!");
+  }
 }
 
 void MediaController::Deactivate() {
+  MOZ_ASSERT(!mShutdown);
   RefPtr<MediaControlService> service = MediaControlService::GetService();
-  MOZ_ASSERT(service);
-  service->RemoveMediaController(this);
-  service->GetAudioFocusManager().RevokeAudioFocus(Id());
+  if (service) {
+    service->GetAudioFocusManager().RevokeAudioFocus(this);
+    if (mIsRegisteredToService) {
+      mIsRegisteredToService = !service->UnregisterActiveMediaController(this);
+      MOZ_ASSERT(!mIsRegisteredToService, "Fail to unregister controller!");
+    }
+  }
 }
+
+void MediaController::SetPlayState(PlaybackState aState) {
+  if (mShutdown || mState == aState) {
+    return;
+  }
+  LOG("SetPlayState : '%s'", ToPlaybackStateEventStr(aState));
+  mState = aState;
+  mPlaybackStateChangedEvent.Notify(mState);
+}
+
+PlaybackState MediaController::GetState() const { return mState; }
 
 uint64_t MediaController::Id() const { return mBrowsingContextId; }
 
-bool MediaController::IsPlaying() const { return mIsPlaying; }
-
-bool MediaController::IsAudible() const { return IsPlaying() && mAudible; }
+bool MediaController::IsAudible() const {
+  return mState == PlaybackState::ePlaying && mAudible;
+}
 
 uint64_t MediaController::ControlledMediaNum() const {
   return mControlledMediaNum;

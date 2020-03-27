@@ -538,7 +538,7 @@ struct MOZ_STACK_CLASS BufferAlphaColor {
   gfxContext* mContext;
 };
 
-void gfxTextRun::Draw(Range aRange, gfx::Point aPt,
+void gfxTextRun::Draw(const Range aRange, const gfx::Point aPt,
                       const DrawParams& aParams) const {
   NS_ASSERTION(aRange.end <= GetLength(), "Substring out of range");
   NS_ASSERTION(aParams.drawMode == DrawMode::GLYPH_PATH ||
@@ -582,6 +582,15 @@ void gfxTextRun::Draw(Range aRange, gfx::Point aPt,
       aParams.context->HasNonOpaqueNonTransparentColor(currentColor) &&
       !aParams.context->GetTextDrawer();
 
+  // If we need to double-buffer, we'll need to measure the text first to
+  // get the bounds of the area of interest. Ideally we'd do that just for
+  // the specific glyph run(s) that need buffering, but because of bug
+  // 1612610 we currently use the extent of the entire range even when
+  // just buffering a subrange. So we'll measure the full range once and
+  // keep the metrics on hand for any subsequent subranges.
+  gfxTextRun::Metrics metrics;
+  bool gotMetrics = false;
+
   // Set up parameters that will be constant across all glyph runs we need
   // to draw, regardless of the font used.
   TextRunDrawParams params;
@@ -603,6 +612,7 @@ void gfxTextRun::Draw(Range aRange, gfx::Point aPt,
 
   GlyphRunIterator iter(this, aRange);
   gfxFloat advance = 0.0;
+  gfx::Point pt = aPt;
 
   while (iter.NextRun()) {
     gfxFont* font = iter.GetGlyphRun()->mFont;
@@ -611,16 +621,24 @@ void gfxTextRun::Draw(Range aRange, gfx::Point aPt,
     bool needToRestore = false;
     if (mayNeedBuffering && HasSyntheticBoldOrColor(font)) {
       needToRestore = true;
-      // Measure text; use the bounding box to determine the area we need
-      // to buffer.
-      gfxTextRun::Metrics metrics =
-          MeasureText(runRange, gfxFont::LOOSE_INK_EXTENTS,
-                      aParams.context->GetDrawTarget(), aParams.provider);
-      if (IsRightToLeft()) {
-        metrics.mBoundingBox.MoveBy(
-            gfxPoint(aPt.x - metrics.mAdvanceWidth, aPt.y));
-      } else {
-        metrics.mBoundingBox.MoveBy(gfxPoint(aPt.x, aPt.y));
+      if (!gotMetrics) {
+        // Measure text; use the bounding box to determine the area we need
+        // to buffer. We measure the entire range, rather than just the glyph
+        // run that we're actually handling, because of bug 1612610: if the
+        // bounding box passed to PushSolidColor does not intersect the
+        // drawTarget's current clip, the skia backend fails to clip properly.
+        // This means we may use a larger buffer than actually needed, but is
+        // otherwise harmless.
+        metrics =
+            MeasureText(aRange, gfxFont::LOOSE_INK_EXTENTS,
+                        aParams.context->GetDrawTarget(), aParams.provider);
+        if (IsRightToLeft()) {
+          metrics.mBoundingBox.MoveBy(
+              gfxPoint(aPt.x - metrics.mAdvanceWidth, aPt.y));
+        } else {
+          metrics.mBoundingBox.MoveBy(gfxPoint(aPt.x, aPt.y));
+        }
+        gotMetrics = true;
       }
       syntheticBoldBuffer.PushSolidColor(metrics.mBoundingBox, currentColor,
                                          GetAppUnitsPerDevUnit());
@@ -632,27 +650,27 @@ void gfxTextRun::Draw(Range aRange, gfx::Point aPt,
     bool drawPartial =
         (aParams.drawMode & (DrawMode::GLYPH_FILL | DrawMode::GLYPH_STROKE)) ||
         (aParams.drawMode == DrawMode::GLYPH_PATH && aParams.callbacks);
-    gfx::Point origPt = aPt;
+    gfx::Point origPt = pt;
 
     if (drawPartial) {
-      DrawPartialLigature(font, Range(runRange.start, ligatureRange.start),
-                          &aPt, aParams.provider, params,
+      DrawPartialLigature(font, Range(runRange.start, ligatureRange.start), &pt,
+                          aParams.provider, params,
                           iter.GetGlyphRun()->mOrientation);
     }
 
-    DrawGlyphs(font, ligatureRange, &aPt, aParams.provider, ligatureRange,
+    DrawGlyphs(font, ligatureRange, &pt, aParams.provider, ligatureRange,
                params, iter.GetGlyphRun()->mOrientation);
 
     if (drawPartial) {
-      DrawPartialLigature(font, Range(ligatureRange.end, runRange.end), &aPt,
+      DrawPartialLigature(font, Range(ligatureRange.end, runRange.end), &pt,
                           aParams.provider, params,
                           iter.GetGlyphRun()->mOrientation);
     }
 
     if (params.isVerticalRun) {
-      advance += (aPt.y - origPt.y) * params.direction;
+      advance += (pt.y - origPt.y) * params.direction;
     } else {
-      advance += (aPt.x - origPt.x) * params.direction;
+      advance += (pt.x - origPt.x) * params.direction;
     }
 
     // composite result when synthetic bolding used
@@ -2202,9 +2220,10 @@ already_AddRefed<gfxTextRun> gfxFontGroup::MakeSpaceTextRun(
   return textRun.forget();
 }
 
+template <typename T>
 already_AddRefed<gfxTextRun> gfxFontGroup::MakeBlankTextRun(
-    uint32_t aLength, const Parameters* aParams, gfx::ShapedTextFlags aFlags,
-    nsTextFrameUtils::Flags aFlags2) {
+    const T* aString, uint32_t aLength, const Parameters* aParams,
+    gfx::ShapedTextFlags aFlags, nsTextFrameUtils::Flags aFlags2) {
   RefPtr<gfxTextRun> textRun =
       gfxTextRun::Create(aParams, aLength, this, aFlags, aFlags2);
   if (!textRun) {
@@ -2217,6 +2236,15 @@ already_AddRefed<gfxTextRun> gfxFontGroup::MakeBlankTextRun(
   }
   textRun->AddGlyphRun(GetFirstValidFont(), FontMatchType::Kind::kUnspecified,
                        0, false, orientation, false);
+
+  for (uint32_t i = 0; i < aLength; i++) {
+    if (aString[i] == '\n') {
+      textRun->SetIsNewline(i);
+    } else if (aString[i] == '\t') {
+      textRun->SetIsTab(i);
+    }
+  }
+
   return textRun.forget();
 }
 
@@ -2268,7 +2296,7 @@ already_AddRefed<gfxTextRun> gfxFontGroup::MakeTextRun(
     // Short-circuit for size-0 fonts, as Windows and ATSUI can't handle
     // them, and always create at least size 1 fonts, i.e. they still
     // render something for size 0 fonts.
-    return MakeBlankTextRun(aLength, aParams, aFlags, aFlags2);
+    return MakeBlankTextRun(aString, aLength, aParams, aFlags, aFlags2);
   }
 
   RefPtr<gfxTextRun> textRun =
@@ -2296,7 +2324,7 @@ already_AddRefed<gfxTextRun> gfxFontGroup::MakeTextRun(
   }
   if (MOZ_UNLIKELY(GetStyle()->size == 0) ||
       MOZ_UNLIKELY(GetStyle()->sizeAdjust == 0.0f)) {
-    return MakeBlankTextRun(aLength, aParams, aFlags, aFlags2);
+    return MakeBlankTextRun(aString, aLength, aParams, aFlags, aFlags2);
   }
 
   RefPtr<gfxTextRun> textRun =

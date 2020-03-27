@@ -148,7 +148,7 @@ function handleHelperResult(response) {
           break;
         case "inspectObject": {
           const objectActor = helperResult.object;
-          if (hud.toolbox) {
+          if (hud.toolbox && !helperResult.forceExpandInConsole) {
             hud.toolbox.inspectObjectActor(objectActor);
           } else {
             webConsoleUI.inspectObjectActor(objectActor);
@@ -219,16 +219,32 @@ function terminalInputChanged(expression) {
       return;
     }
 
+    const { terminalInput = "" } = getState().history;
+    // Only re-evaluate if the expression did change.
+    if (
+      (!terminalInput && !expression) ||
+      (typeof terminalInput === "string" &&
+        typeof expression === "string" &&
+        expression.trim() === terminalInput.trim())
+    ) {
+      return;
+    }
+
     const originalExpression = expression;
     dispatch({
       type: SET_TERMINAL_INPUT,
-      expression,
+      expression: expression.trim(),
     });
+
+    // There's no need to evaluate an empty string.
+    if (!expression.trim()) {
+      return;
+    }
 
     let mapped;
     ({ expression, mapped } = await getMappedExpression(hud, expression));
 
-    const { frameActor, webConsoleFront } = webConsoleUI.getFrameActor();
+    const { frameActor, webConsoleFront } = await webConsoleUI.getFrameActor();
 
     const response = await client.evaluateJSAsync(expression, {
       frameActor,
@@ -238,20 +254,26 @@ function terminalInputChanged(expression) {
       eager: true,
     });
 
-    const result = response.exception || response.result;
-
-    // Don't show syntax errors or undefined results to the user.
-    if (result.isSyntaxError || result.type == "undefined") {
-      return;
-    }
-
     // eslint-disable-next-line consistent-return
     return dispatch({
       type: SET_TERMINAL_EAGER_RESULT,
       expression: originalExpression,
-      result,
+      result: getEagerEvaluationResult(response),
     });
   };
+}
+
+function getEagerEvaluationResult(response) {
+  const result = response.exception || response.result;
+  // Don't show syntax errors results to the user.
+  if (
+    (result && result.isSyntaxError) ||
+    (result && result.type == "undefined")
+  ) {
+    return null;
+  }
+
+  return result;
 }
 
 module.exports = {

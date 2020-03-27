@@ -2754,46 +2754,6 @@ void nsTableFrame::OrderRowGroups(RowGroupArray& aChildren,
   if (aFoot) *aFoot = foot;
 }
 
-nsTableRowGroupFrame* nsTableFrame::GetTHead() const {
-  nsIFrame* kidFrame = mFrames.FirstChild();
-  while (kidFrame) {
-    if (kidFrame->StyleDisplay()->mDisplay ==
-        mozilla::StyleDisplay::TableHeaderGroup) {
-      return static_cast<nsTableRowGroupFrame*>(kidFrame);
-    }
-
-    // Get the next sibling but skip it if it's also the next-in-flow, since
-    // a next-in-flow will not be part of the current table.
-    while (kidFrame) {
-      nsIFrame* nif = kidFrame->GetNextInFlow();
-      kidFrame = kidFrame->GetNextSibling();
-      if (kidFrame != nif) break;
-    }
-  }
-
-  return nullptr;
-}
-
-nsTableRowGroupFrame* nsTableFrame::GetTFoot() const {
-  nsIFrame* kidFrame = mFrames.FirstChild();
-  while (kidFrame) {
-    if (kidFrame->StyleDisplay()->mDisplay ==
-        mozilla::StyleDisplay::TableFooterGroup) {
-      return static_cast<nsTableRowGroupFrame*>(kidFrame);
-    }
-
-    // Get the next sibling but skip it if it's also the next-in-flow, since
-    // a next-in-flow will not be part of the current table.
-    while (kidFrame) {
-      nsIFrame* nif = kidFrame->GetNextInFlow();
-      kidFrame = kidFrame->GetNextSibling();
-      if (kidFrame != nif) break;
-    }
-  }
-
-  return nullptr;
-}
-
 static bool IsRepeatable(nscoord aFrameHeight, nscoord aPageHeight) {
   return aFrameHeight < (aPageHeight / 4);
 }
@@ -3743,7 +3703,7 @@ nscoord nsTableFrame::CalcBorderBoxBSize(const ReflowInput& aReflowInput) {
 }
 
 bool nsTableFrame::IsAutoLayout() {
-  if (StyleTable()->mLayoutStrategy == NS_STYLE_TABLE_LAYOUT_AUTO) return true;
+  if (StyleTable()->mLayoutStrategy == StyleTableLayout::Auto) return true;
   // a fixed-layout inline-table must have a inline size
   // and tables with inline size set to 'max-content' must be
   // auto-layout (at least as long as
@@ -6790,8 +6750,8 @@ Maybe<BCBorderParameters> BCBlockDirSeg::BuildBorderParameters(
   // end of the border-segment. We've got them reversed, since our block dir
   // is RTL, so we have to swap them here.)
   if (aIter.mTableWM.IsVerticalRL()) {
-    Swap(result.mStartBevelSide, result.mEndBevelSide);
-    Swap(result.mStartBevelOffset, result.mEndBevelOffset);
+    std::swap(result.mStartBevelSide, result.mEndBevelSide);
+    std::swap(result.mStartBevelOffset, result.mEndBevelOffset);
   }
 
   return Some(result);
@@ -6837,7 +6797,7 @@ static void AdjustAndPushBevel(wr::DisplayListBuilder& aBuilder,
   Float offset = NSAppUnitsToFloatPixels(aBevel.mOffset, aAppUnitsPerDevPixel);
   wr::LayoutRect bevelRect = aRect;
   wr::BorderSide bevelBorder[4];
-  NS_FOR_CSS_SIDES(i) {
+  for (const auto i : mozilla::AllPhysicalSides()) {
     bevelBorder[i] =
         wr::ToBorderSide(ToDeviceColor(aColor), StyleBorderStyle::Solid);
   }
@@ -6950,7 +6910,7 @@ static void CreateWRCommandsForBorderSegment(
 
   wr::LayoutRect r = wr::ToLayoutRect(borderRect);
   wr::BorderSide wrSide[4];
-  NS_FOR_CSS_SIDES(i) {
+  for (const auto i : mozilla::AllPhysicalSides()) {
     wrSide[i] = wr::ToBorderSide(ToDeviceColor(aBorderParams.mBorderColor),
                                  StyleBorderStyle::None);
   }
@@ -7182,8 +7142,8 @@ Maybe<BCBorderParameters> BCInlineDirSeg::BuildBorderParameters(
   // "end" will be reversed from this physical-coord view, so we have to swap
   // them here.
   if (aIter.mTableWM.IsBidiRTL()) {
-    Swap(result.mStartBevelSide, result.mEndBevelSide);
-    Swap(result.mStartBevelOffset, result.mEndBevelOffset);
+    std::swap(result.mStartBevelSide, result.mEndBevelSide);
+    std::swap(result.mStartBevelOffset, result.mEndBevelOffset);
   }
 
   return Some(result);

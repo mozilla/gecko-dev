@@ -28,42 +28,40 @@
 /*
  * JS operation bytecodes.
  */
-enum JSOp : uint8_t {
+enum class JSOp : uint8_t {
 #define ENUMERATE_OPCODE(op, ...) op,
   FOR_EACH_OPCODE(ENUMERATE_OPCODE)
 #undef ENUMERATE_OPCODE
-
-      JSOP_LIMIT
 };
 
 /*
  * [SMDOC] Bytecode Format flags (JOF_*)
  */
 enum {
-  JOF_BYTE = 0,          /* single bytecode, no immediates */
-  JOF_UINT8 = 1,         /* unspecified uint8_t argument */
-  JOF_UINT16 = 2,        /* unspecified uint16_t argument */
-  JOF_UINT24 = 3,        /* unspecified uint24_t argument */
-  JOF_UINT32 = 4,        /* unspecified uint32_t argument */
-  JOF_INT8 = 5,          /* int8_t literal */
-  JOF_INT32 = 6,         /* int32_t literal */
-  JOF_JUMP = 7,          /* int32_t jump offset */
-  JOF_TABLESWITCH = 8,   /* table switch */
-  JOF_ENVCOORD = 9,      /* embedded ScopeCoordinate immediate */
-  JOF_ARGC = 10,         /* uint16_t argument count */
-  JOF_QARG = 11,         /* function argument index */
-  JOF_LOCAL = 12,        /* var or block-local variable */
-  JOF_RESUMEINDEX = 13,  /* yield, await, or gosub resume index */
-  JOF_ATOM = 14,         /* uint32_t constant index */
-  JOF_OBJECT = 15,       /* uint32_t object index */
-  JOF_REGEXP = 16,       /* uint32_t regexp index */
-  JOF_DOUBLE = 17,       /* inline DoubleValue */
-  JOF_SCOPE = 18,        /* uint32_t scope index */
-  JOF_ICINDEX = 19,      /* uint32_t IC index */
-  JOF_LOOPHEAD = 20,     /* JSOP_LOOPHEAD, combines JOF_ICINDEX and JOF_UINT8 */
-  JOF_BIGINT = 21,       /* uint32_t index for BigInt value */
-  JOF_CLASS_CTOR = 22,   /* uint32_t atom index, sourceStart, sourceEnd */
-  JOF_CODE_OFFSET = 23,  /* int32_t bytecode offset */
+  JOF_BYTE = 0,         /* single bytecode, no immediates */
+  JOF_UINT8 = 1,        /* unspecified uint8_t argument */
+  JOF_UINT16 = 2,       /* unspecified uint16_t argument */
+  JOF_UINT24 = 3,       /* unspecified uint24_t argument */
+  JOF_UINT32 = 4,       /* unspecified uint32_t argument */
+  JOF_INT8 = 5,         /* int8_t literal */
+  JOF_INT32 = 6,        /* int32_t literal */
+  JOF_JUMP = 7,         /* int32_t jump offset */
+  JOF_TABLESWITCH = 8,  /* table switch */
+  JOF_ENVCOORD = 9,     /* embedded ScopeCoordinate immediate */
+  JOF_ARGC = 10,        /* uint16_t argument count */
+  JOF_QARG = 11,        /* function argument index */
+  JOF_LOCAL = 12,       /* var or block-local variable */
+  JOF_RESUMEINDEX = 13, /* yield, await, or gosub resume index */
+  JOF_ATOM = 14,        /* uint32_t constant index */
+  JOF_OBJECT = 15,      /* uint32_t object index */
+  JOF_REGEXP = 16,      /* uint32_t regexp index */
+  JOF_DOUBLE = 17,      /* inline DoubleValue */
+  JOF_SCOPE = 18,       /* uint32_t scope index */
+  JOF_ICINDEX = 19,     /* uint32_t IC index */
+  JOF_LOOPHEAD = 20,    /* JSOp::LoopHead, combines JOF_ICINDEX and JOF_UINT8 */
+  JOF_BIGINT = 21,      /* uint32_t index for BigInt value */
+  JOF_CLASS_CTOR = 22,  /* uint32_t atom index, sourceStart, sourceEnd */
+  JOF_CODE_OFFSET = 23, /* int32_t bytecode offset */
   JOF_TYPEMASK = 0x001f, /* mask for above immediate types */
 
   JOF_NAME = 1 << 5,     /* name operation */
@@ -76,10 +74,12 @@ enum {
   JOF_DETECTING = 1 << 9,    /* object detection for warning-quelling */
   JOF_CHECKSLOPPY = 1 << 10, /* op can only be generated in sloppy mode */
   JOF_CHECKSTRICT = 1 << 11, /* op can only be generated in strict mode */
-  JOF_INVOKE = 1 << 12,      /* call, construct, or spreadcall instruction */
-  JOF_GNAME = 1 << 13,       /* predicted global name */
-  JOF_TYPESET = 1 << 14,     /* has an entry in a script's type sets */
-  JOF_IC = 1 << 15,          /* baseline may use an IC for this op */
+  JOF_INVOKE = 1 << 12,      /* any call, construct, or eval instruction */
+  JOF_CONSTRUCT = 1 << 13,   /* invoke instruction using [[Construct]] entry */
+  JOF_SPREAD = 1 << 14,      /* invoke instruction using spread argument */
+  JOF_GNAME = 1 << 15,       /* predicted global name */
+  JOF_TYPESET = 1 << 16,     /* has an entry in a script's type sets */
+  JOF_IC = 1 << 17,          /* baseline may use an IC for this op */
 };
 
 /* Shorthand for type from format. */
@@ -262,20 +262,20 @@ static inline void SET_ICINDEX(jsbytecode* pc, uint32_t icIndex) {
 }
 
 static inline unsigned LoopHeadDepthHint(jsbytecode* pc) {
-  MOZ_ASSERT(*pc == JSOP_LOOPHEAD);
+  MOZ_ASSERT(JSOp(*pc) == JSOp::LoopHead);
   return GET_UINT8(pc + 4);
 }
 
 static inline void SetLoopHeadDepthHint(jsbytecode* pc, unsigned loopDepth) {
-  MOZ_ASSERT(*pc == JSOP_LOOPHEAD);
+  MOZ_ASSERT(JSOp(*pc) == JSOp::LoopHead);
   uint8_t data = std::min(loopDepth, unsigned(UINT8_MAX));
   SET_UINT8(pc + 4, data);
 }
 
 static inline bool IsBackedgePC(jsbytecode* pc) {
   switch (JSOp(*pc)) {
-    case JSOP_GOTO:
-    case JSOP_IFNE:
+    case JSOp::Goto:
+    case JSOp::IfNe:
       return GET_JUMP_OFFSET(pc) < 0;
     default:
       return false;
@@ -283,7 +283,7 @@ static inline bool IsBackedgePC(jsbytecode* pc) {
 }
 
 static inline bool IsBackedgeForLoopHead(jsbytecode* pc, jsbytecode* loopHead) {
-  MOZ_ASSERT(JSOp(*loopHead) == JSOP_LOOPHEAD);
+  MOZ_ASSERT(JSOp(*loopHead) == JSOp::LoopHead);
   return IsBackedgePC(pc) && pc + GET_JUMP_OFFSET(pc) == loopHead;
 }
 
@@ -291,7 +291,8 @@ static inline void SetClassConstructorOperands(jsbytecode* pc,
                                                uint32_t atomIndex,
                                                uint32_t sourceStart,
                                                uint32_t sourceEnd) {
-  MOZ_ASSERT(*pc == JSOP_CLASSCONSTRUCTOR || *pc == JSOP_DERIVEDCONSTRUCTOR);
+  MOZ_ASSERT(JSOp(*pc) == JSOp::ClassConstructor ||
+             JSOp(*pc) == JSOp::DerivedConstructor);
   SET_UINT32(pc, atomIndex);
   SET_UINT32(pc + 4, sourceStart);
   SET_UINT32(pc + 8, sourceEnd);
@@ -301,7 +302,8 @@ static inline void GetClassConstructorOperands(jsbytecode* pc,
                                                uint32_t* atomIndex,
                                                uint32_t* sourceStart,
                                                uint32_t* sourceEnd) {
-  MOZ_ASSERT(*pc == JSOP_CLASSCONSTRUCTOR || *pc == JSOP_DERIVEDCONSTRUCTOR);
+  MOZ_ASSERT(JSOp(*pc) == JSOp::ClassConstructor ||
+             JSOp(*pc) == JSOp::DerivedConstructor);
   *atomIndex = GET_UINT32(pc);
   *sourceStart = GET_UINT32(pc + 4);
   *sourceEnd = GET_UINT32(pc + 8);
@@ -353,29 +355,36 @@ struct JSCodeSpec {
 
 namespace js {
 
-extern const JSCodeSpec CodeSpec[];
-extern const char* const CodeName[];
+extern const JSCodeSpec CodeSpecTable[];
+
+inline const JSCodeSpec& CodeSpec(JSOp op) {
+  return CodeSpecTable[uint8_t(op)];
+}
+
+extern const char* const CodeNameTable[];
+
+inline const char* CodeName(JSOp op) { return CodeNameTable[uint8_t(op)]; }
 
 /* Shorthand for type from opcode. */
 
 static inline uint32_t JOF_OPTYPE(JSOp op) {
-  return JOF_TYPE(CodeSpec[op].format);
+  return JOF_TYPE(CodeSpec(op).format);
 }
 
 static inline bool IsJumpOpcode(JSOp op) { return JOF_OPTYPE(op) == JOF_JUMP; }
 
 static inline bool BytecodeFallsThrough(JSOp op) {
   switch (op) {
-    case JSOP_GOTO:
-    case JSOP_DEFAULT:
-    case JSOP_RETURN:
-    case JSOP_RETRVAL:
-    case JSOP_FINALYIELDRVAL:
-    case JSOP_THROW:
-    case JSOP_THROWMSG:
-    case JSOP_TABLESWITCH:
+    case JSOp::Goto:
+    case JSOp::Default:
+    case JSOp::Return:
+    case JSOp::RetRval:
+    case JSOp::FinalYieldRval:
+    case JSOp::Throw:
+    case JSOp::ThrowMsg:
+    case JSOp::TableSwitch:
       return false;
-    case JSOP_GOSUB:
+    case JSOp::Gosub:
       /* These fall through indirectly, after executing a 'finally'. */
       return true;
     default:
@@ -385,9 +394,9 @@ static inline bool BytecodeFallsThrough(JSOp op) {
 
 static inline bool BytecodeIsJumpTarget(JSOp op) {
   switch (op) {
-    case JSOP_JUMPTARGET:
-    case JSOP_LOOPHEAD:
-    case JSOP_AFTERYIELD:
+    case JSOp::JumpTarget:
+    case JSOp::LoopHead:
+    case JSOp::AfterYield:
       return true;
     default:
       return false;
@@ -396,30 +405,30 @@ static inline bool BytecodeIsJumpTarget(JSOp op) {
 
 MOZ_ALWAYS_INLINE unsigned StackUses(jsbytecode* pc) {
   JSOp op = JSOp(*pc);
-  int nuses = CodeSpec[op].nuses;
+  int nuses = CodeSpec(op).nuses;
   if (nuses >= 0) {
     return nuses;
   }
 
   MOZ_ASSERT(nuses == -1);
   switch (op) {
-    case JSOP_POPN:
+    case JSOp::PopN:
       return GET_UINT16(pc);
-    case JSOP_NEW:
-    case JSOP_SUPERCALL:
+    case JSOp::New:
+    case JSOp::SuperCall:
       return 2 + GET_ARGC(pc) + 1;
     default:
       /* stack: fun, this, [argc arguments] */
-      MOZ_ASSERT(op == JSOP_CALL || op == JSOP_CALL_IGNORES_RV ||
-                 op == JSOP_EVAL || op == JSOP_CALLITER ||
-                 op == JSOP_STRICTEVAL || op == JSOP_FUNCALL ||
-                 op == JSOP_FUNAPPLY);
+      MOZ_ASSERT(op == JSOp::Call || op == JSOp::CallIgnoresRv ||
+                 op == JSOp::Eval || op == JSOp::CallIter ||
+                 op == JSOp::StrictEval || op == JSOp::FunCall ||
+                 op == JSOp::FunApply);
       return 2 + GET_ARGC(pc);
   }
 }
 
 MOZ_ALWAYS_INLINE unsigned StackDefs(jsbytecode* pc) {
-  int ndefs = CodeSpec[*pc].ndefs;
+  int ndefs = CodeSpec(JSOp(*pc)).ndefs;
   MOZ_ASSERT(ndefs >= 0);
   return ndefs;
 }
@@ -469,44 +478,48 @@ UniqueChars DecompileValueGenerator(JSContext* cx, int spindex, HandleValue v,
  */
 JSString* DecompileArgument(JSContext* cx, int formalIndex, HandleValue v);
 
+static inline unsigned GetOpLength(JSOp op) {
+  MOZ_ASSERT(uint8_t(op) < JSOP_LIMIT);
+  MOZ_ASSERT(CodeSpec(op).length > 0);
+  return CodeSpec(op).length;
+}
+
 static inline unsigned GetBytecodeLength(jsbytecode* pc) {
   JSOp op = (JSOp)*pc;
-  MOZ_ASSERT(op < JSOP_LIMIT);
-  MOZ_ASSERT(CodeSpec[op].length > 0);
-  return CodeSpec[op].length;
+  return GetOpLength(op);
 }
 
 static inline bool BytecodeIsPopped(jsbytecode* pc) {
   jsbytecode* next = pc + GetBytecodeLength(pc);
-  return JSOp(*next) == JSOP_POP;
+  return JSOp(*next) == JSOp::Pop;
 }
 
 static inline bool BytecodeFlowsToBitop(jsbytecode* pc) {
   // Look for simple bytecode for integer conversions like (x | 0) or (x & -1).
   jsbytecode* next = pc + GetBytecodeLength(pc);
-  if (*next == JSOP_BITOR || *next == JSOP_BITAND) {
+  if (JSOp(*next) == JSOp::BitOr || JSOp(*next) == JSOp::BitAnd) {
     return true;
   }
-  if (*next == JSOP_INT8 && GET_INT8(next) == -1) {
+  if (JSOp(*next) == JSOp::Int8 && GET_INT8(next) == -1) {
     next += GetBytecodeLength(next);
-    if (*next == JSOP_BITAND) {
+    if (JSOp(*next) == JSOp::BitAnd) {
       return true;
     }
     return false;
   }
-  if (*next == JSOP_ONE) {
+  if (JSOp(*next) == JSOp::One) {
     next += GetBytecodeLength(next);
-    if (*next == JSOP_NEG) {
+    if (JSOp(*next) == JSOp::Neg) {
       next += GetBytecodeLength(next);
-      if (*next == JSOP_BITAND) {
+      if (JSOp(*next) == JSOp::BitAnd) {
         return true;
       }
     }
     return false;
   }
-  if (*next == JSOP_ZERO) {
+  if (JSOp(*next) == JSOp::Zero) {
     next += GetBytecodeLength(next);
-    if (*next == JSOP_BITOR) {
+    if (JSOp(*next) == JSOp::BitOr) {
       return true;
     }
     return false;
@@ -518,15 +531,15 @@ extern bool IsValidBytecodeOffset(JSContext* cx, JSScript* script,
                                   size_t offset);
 
 inline bool FlowsIntoNext(JSOp op) {
-  // JSOP_YIELD/JSOP_AWAIT is considered to flow into the next instruction,
-  // like JSOP_CALL.
+  // JSOp::Yield/JSOp::Await is considered to flow into the next instruction,
+  // like JSOp::Call.
   switch (op) {
-    case JSOP_RETRVAL:
-    case JSOP_RETURN:
-    case JSOP_THROW:
-    case JSOP_GOTO:
-    case JSOP_RETSUB:
-    case JSOP_FINALYIELDRVAL:
+    case JSOp::RetRval:
+    case JSOp::Return:
+    case JSOp::Throw:
+    case JSOp::Goto:
+    case JSOp::Retsub:
+    case JSOp::FinalYieldRval:
       return false;
     default:
       return true;
@@ -539,22 +552,22 @@ inline bool IsLocalOp(JSOp op) { return JOF_OPTYPE(op) == JOF_LOCAL; }
 
 inline bool IsAliasedVarOp(JSOp op) { return JOF_OPTYPE(op) == JOF_ENVCOORD; }
 
-inline bool IsGlobalOp(JSOp op) { return CodeSpec[op].format & JOF_GNAME; }
+inline bool IsGlobalOp(JSOp op) { return CodeSpec(op).format & JOF_GNAME; }
 
 inline bool IsPropertySetOp(JSOp op) {
-  return CodeSpec[op].format & JOF_PROPSET;
+  return CodeSpec(op).format & JOF_PROPSET;
 }
 
 inline bool IsPropertyInitOp(JSOp op) {
-  return CodeSpec[op].format & JOF_PROPINIT;
+  return CodeSpec(op).format & JOF_PROPINIT;
 }
 
 inline bool IsLooseEqualityOp(JSOp op) {
-  return op == JSOP_EQ || op == JSOP_NE;
+  return op == JSOp::Eq || op == JSOp::Ne;
 }
 
 inline bool IsStrictEqualityOp(JSOp op) {
-  return op == JSOP_STRICTEQ || op == JSOP_STRICTNE;
+  return op == JSOp::StrictEq || op == JSOp::StrictNe;
 }
 
 inline bool IsEqualityOp(JSOp op) {
@@ -562,117 +575,110 @@ inline bool IsEqualityOp(JSOp op) {
 }
 
 inline bool IsRelationalOp(JSOp op) {
-  return op == JSOP_LT || op == JSOP_LE || op == JSOP_GT || op == JSOP_GE;
+  return op == JSOp::Lt || op == JSOp::Le || op == JSOp::Gt || op == JSOp::Ge;
 }
 
 inline bool IsCheckStrictOp(JSOp op) {
-  return CodeSpec[op].format & JOF_CHECKSTRICT;
+  return CodeSpec(op).format & JOF_CHECKSTRICT;
 }
 
-inline bool IsDetecting(JSOp op) { return CodeSpec[op].format & JOF_DETECTING; }
+inline bool IsDetecting(JSOp op) { return CodeSpec(op).format & JOF_DETECTING; }
 
-inline bool IsNameOp(JSOp op) { return CodeSpec[op].format & JOF_NAME; }
+inline bool IsNameOp(JSOp op) { return CodeSpec(op).format & JOF_NAME; }
 
 #ifdef DEBUG
 inline bool IsCheckSloppyOp(JSOp op) {
-  return CodeSpec[op].format & JOF_CHECKSLOPPY;
+  return CodeSpec(op).format & JOF_CHECKSLOPPY;
 }
 #endif
 
 inline bool IsAtomOp(JSOp op) { return JOF_OPTYPE(op) == JOF_ATOM; }
 
 inline bool IsGetPropOp(JSOp op) {
-  return op == JSOP_LENGTH || op == JSOP_GETPROP || op == JSOP_CALLPROP;
+  return op == JSOp::Length || op == JSOp::GetProp || op == JSOp::CallProp;
 }
 
 inline bool IsGetPropPC(const jsbytecode* pc) { return IsGetPropOp(JSOp(*pc)); }
 
 inline bool IsHiddenInitOp(JSOp op) {
-  return op == JSOP_INITHIDDENPROP || op == JSOP_INITHIDDENELEM ||
-         op == JSOP_INITHIDDENPROP_GETTER || op == JSOP_INITHIDDENELEM_GETTER ||
-         op == JSOP_INITHIDDENPROP_SETTER || op == JSOP_INITHIDDENELEM_SETTER;
+  return op == JSOp::InitHiddenProp || op == JSOp::InitHiddenElem ||
+         op == JSOp::InitHiddenPropGetter || op == JSOp::InitHiddenElemGetter ||
+         op == JSOp::InitHiddenPropSetter || op == JSOp::InitHiddenElemSetter;
 }
 
 inline bool IsStrictSetPC(jsbytecode* pc) {
   JSOp op = JSOp(*pc);
-  return op == JSOP_STRICTSETPROP || op == JSOP_STRICTSETNAME ||
-         op == JSOP_STRICTSETGNAME || op == JSOP_STRICTSETELEM;
+  return op == JSOp::StrictSetProp || op == JSOp::StrictSetName ||
+         op == JSOp::StrictSetGName || op == JSOp::StrictSetElem;
 }
 
 inline bool IsSetPropOp(JSOp op) {
-  return op == JSOP_SETPROP || op == JSOP_STRICTSETPROP || op == JSOP_SETNAME ||
-         op == JSOP_STRICTSETNAME || op == JSOP_SETGNAME ||
-         op == JSOP_STRICTSETGNAME;
+  return op == JSOp::SetProp || op == JSOp::StrictSetProp ||
+         op == JSOp::SetName || op == JSOp::StrictSetName ||
+         op == JSOp::SetGName || op == JSOp::StrictSetGName;
 }
 
 inline bool IsSetPropPC(const jsbytecode* pc) { return IsSetPropOp(JSOp(*pc)); }
 
 inline bool IsGetElemOp(JSOp op) {
-  return op == JSOP_GETELEM || op == JSOP_CALLELEM;
+  return op == JSOp::GetElem || op == JSOp::CallElem;
 }
 
 inline bool IsGetElemPC(const jsbytecode* pc) { return IsGetElemOp(JSOp(*pc)); }
 
 inline bool IsSetElemOp(JSOp op) {
-  return op == JSOP_SETELEM || op == JSOP_STRICTSETELEM;
+  return op == JSOp::SetElem || op == JSOp::StrictSetElem;
 }
 
 inline bool IsSetElemPC(const jsbytecode* pc) { return IsSetElemOp(JSOp(*pc)); }
 
 inline bool IsElemPC(const jsbytecode* pc) {
-  return CodeSpec[*pc].format & JOF_ELEM;
+  return CodeSpec(JSOp(*pc)).format & JOF_ELEM;
 }
 
-inline bool IsCallOp(JSOp op) { return CodeSpec[op].format & JOF_INVOKE; }
+inline bool IsInvokeOp(JSOp op) { return CodeSpec(op).format & JOF_INVOKE; }
 
-inline bool IsCallPC(jsbytecode* pc) { return IsCallOp(JSOp(*pc)); }
+inline bool IsInvokePC(jsbytecode* pc) { return IsInvokeOp(JSOp(*pc)); }
 
 inline bool IsStrictEvalPC(jsbytecode* pc) {
   JSOp op = JSOp(*pc);
-  return op == JSOP_STRICTEVAL || op == JSOP_STRICTSPREADEVAL;
+  return op == JSOp::StrictEval || op == JSOp::StrictSpreadEval;
 }
 
-inline bool IsConstructorCallOp(JSOp op) {
-  return op == JSOP_NEW || op == JSOP_SUPERCALL || op == JSOP_SPREADNEW ||
-         op == JSOP_SPREADSUPERCALL;
+inline bool IsConstructOp(JSOp op) {
+  return CodeSpec(op).format & JOF_CONSTRUCT;
 }
-inline bool IsConstructorCallPC(const jsbytecode* pc) {
-  return IsConstructorCallOp(JSOp(*pc));
-}
-
-inline bool IsSpreadCallOp(JSOp op) {
-  return op == JSOP_SPREADCALL || op == JSOP_SPREADNEW ||
-         op == JSOP_SPREADSUPERCALL || op == JSOP_SPREADEVAL ||
-         op == JSOP_STRICTSPREADEVAL;
+inline bool IsConstructPC(const jsbytecode* pc) {
+  return IsConstructOp(JSOp(*pc));
 }
 
-inline bool IsSpreadCallPC(const jsbytecode* pc) {
-  return IsSpreadCallOp(JSOp(*pc));
-}
+inline bool IsSpreadOp(JSOp op) { return CodeSpec(op).format & JOF_SPREAD; }
+
+inline bool IsSpreadPC(const jsbytecode* pc) { return IsSpreadOp(JSOp(*pc)); }
 
 static inline int32_t GetBytecodeInteger(jsbytecode* pc) {
   switch (JSOp(*pc)) {
-    case JSOP_ZERO:
+    case JSOp::Zero:
       return 0;
-    case JSOP_ONE:
+    case JSOp::One:
       return 1;
-    case JSOP_UINT16:
+    case JSOp::Uint16:
       return GET_UINT16(pc);
-    case JSOP_UINT24:
+    case JSOp::Uint24:
       return GET_UINT24(pc);
-    case JSOP_INT8:
+    case JSOp::Int8:
       return GET_INT8(pc);
-    case JSOP_INT32:
+    case JSOp::Int32:
       return GET_INT32(pc);
     default:
       MOZ_CRASH("Bad op");
   }
 }
 
-inline bool BytecodeOpHasIC(JSOp op) { return CodeSpec[op].format & JOF_IC; }
+inline bool BytecodeOpHasIC(JSOp op) { return CodeSpec(op).format & JOF_IC; }
 
 inline bool BytecodeOpHasTypeSet(JSOp op) {
-  return CodeSpec[op].format & JOF_TYPESET;
+  return CodeSpec(op).format & JOF_TYPESET;
 }
 
 /*

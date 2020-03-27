@@ -25,9 +25,12 @@
 
 namespace js {
 
+namespace frontend {
+class ScopeCreationData;
+};
+
 class BaseScopeData;
 class ModuleObject;
-class Scope;
 class AbstractScope;
 
 enum class BindingKind : uint8_t {
@@ -56,8 +59,7 @@ static inline bool ScopeKindIsInBody(ScopeKind kind) {
   return kind == ScopeKind::Lexical || kind == ScopeKind::SimpleCatch ||
          kind == ScopeKind::Catch || kind == ScopeKind::With ||
          kind == ScopeKind::FunctionLexical ||
-         kind == ScopeKind::FunctionBodyVar ||
-         kind == ScopeKind::ParameterExpressionVar;
+         kind == ScopeKind::FunctionBodyVar;
 }
 
 const char* BindingKindString(BindingKind kind);
@@ -240,6 +242,7 @@ class WrappedPtrOperations<Scope*, Wrapper> {
 //
 class Scope : public js::gc::TenuredCell {
   friend class GCMarker;
+  friend class frontend::ScopeCreationData;
 
   // The enclosing scope or nullptr.
   const GCPtrScope enclosing_;
@@ -263,12 +266,6 @@ class Scope : public js::gc::TenuredCell {
   static Scope* create(JSContext* cx, ScopeKind kind, HandleScope enclosing,
                        HandleShape envShape);
 
-  template <typename ConcreteScope>
-  static ConcreteScope* create(
-      JSContext* cx, ScopeKind kind, HandleScope enclosing,
-      HandleShape envShape,
-      MutableHandle<UniquePtr<typename ConcreteScope::Data>> data);
-
   template <typename ConcreteScope, XDRMode mode>
   static XDRResult XDRSizedBindingNames(
       XDRState<mode>* xdr, Handle<ConcreteScope*> scope,
@@ -283,6 +280,12 @@ class Scope : public js::gc::TenuredCell {
   void applyScopeDataTyped(F&& f);
 
  public:
+  template <typename ConcreteScope>
+  static ConcreteScope* create(
+      JSContext* cx, ScopeKind kind, HandleScope enclosing,
+      HandleShape envShape,
+      MutableHandle<UniquePtr<typename ConcreteScope::Data>> data);
+
   static const JS::TraceKind TraceKind = JS::TraceKind::Scope;
 
   template <typename T>
@@ -308,16 +311,20 @@ class Scope : public js::gc::TenuredCell {
 
   Shape* environmentShape() const { return environmentShape_; }
 
-  bool hasEnvironment() const {
-    switch (kind()) {
+  static bool hasEnvironment(ScopeKind kind, Shape* environmentShape) {
+    switch (kind) {
       case ScopeKind::With:
       case ScopeKind::Global:
       case ScopeKind::NonSyntactic:
         return true;
       default:
         // If there's a shape, an environment must be created for this scope.
-        return environmentShape_ != nullptr;
+        return environmentShape != nullptr;
     }
+  }
+
+  bool hasEnvironment() const {
+    return hasEnvironment(kind_, environmentShape_);
   }
 
   uint32_t chainLength() const;
@@ -357,7 +364,7 @@ class BaseScopeData {};
 
 template <class Data>
 inline size_t SizeOfData(uint32_t numBindings) {
-  static_assert(mozilla::IsBaseOf<BaseScopeData, Data>::value,
+  static_assert(std::is_base_of<BaseScopeData, Data>::value,
                 "Data must be the correct sort of data, i.e. it must "
                 "inherit from BaseScopeData");
   return sizeof(Data) +
@@ -389,11 +396,16 @@ class LexicalScope : public Scope {
   friend class Scope;
   friend class BindingIter;
   friend class GCMarker;
+  friend class frontend::ScopeCreationData;
 
  public:
   // Data is public because it is created by the frontend. See
   // Parser<FullParseHandler>::newLexicalScopeData.
   struct Data : public BaseScopeData {
+    // Frame slots [0, nextFrameSlot) are live when this is the innermost
+    // scope.
+    uint32_t nextFrameSlot = 0;
+
     // Bindings are sorted by kind in both frames and environments.
     //
     //   lets - [0, constStart)
@@ -401,12 +413,7 @@ class LexicalScope : public Scope {
     uint32_t constStart = 0;
     uint32_t length = 0;
 
-    // Frame slots [0, nextFrameSlot) are live when this is the innermost
-    // scope.
-    uint32_t nextFrameSlot = 0;
-
-    // The array of tagged JSAtom* names, allocated beyond the end of the
-    // struct.
+    // Tagged JSAtom* names, allocated beyond the end of the struct.
     TrailingNamesArray trailingNames;
 
     explicit Data(size_t nameCount) : trailingNames(nameCount) {}
@@ -414,9 +421,6 @@ class LexicalScope : public Scope {
 
     void trace(JSTracer* trc);
   };
-
-  static LexicalScope* create(JSContext* cx, ScopeKind kind, Handle<Data*> data,
-                              uint32_t firstFrameSlot, HandleScope enclosing);
 
   template <XDRMode mode>
   static XDRResult XDR(XDRState<mode>* xdr, ScopeKind kind,
@@ -430,7 +434,7 @@ class LexicalScope : public Scope {
 
   static bool prepareForScopeCreation(JSContext* cx, ScopeKind kind,
                                       uint32_t firstFrameSlot,
-                                      HandleScope enclosing,
+                                      Handle<AbstractScope> enclosing,
                                       MutableHandle<UniquePtr<Data>> data,
                                       MutableHandleShape envShape);
 
@@ -438,7 +442,7 @@ class LexicalScope : public Scope {
 
   const Data& data() const { return *static_cast<Data*>(data_); }
 
-  static uint32_t nextFrameSlot(const AbstractScope& start);
+  static uint32_t nextFrameSlot(const AbstractScope& scope);
 
  public:
   uint32_t firstFrameSlot() const;
@@ -493,10 +497,15 @@ class FunctionScope : public Scope {
     // arrow).
     GCPtrFunction canonicalFunction = {};
 
+    // Frame slots [0, nextFrameSlot) are live when this is the innermost
+    // scope.
+    uint32_t nextFrameSlot = 0;
+
     // If parameter expressions are present, parameters act like lexical
     // bindings.
     bool hasParameterExprs = false;
 
+    // Yes if the corresponding function is a field initializer lambda.
     IsFieldInitializer isFieldInitializer = IsFieldInitializer::No;
 
     // Bindings are sorted by kind in both frames and environments.
@@ -530,12 +539,7 @@ class FunctionScope : public Scope {
     uint16_t varStart = 0;
     uint32_t length = 0;
 
-    // Frame slots [0, nextFrameSlot) are live when this is the innermost
-    // scope.
-    uint32_t nextFrameSlot = 0;
-
-    // The array of tagged JSAtom* names, allocated beyond the end of the
-    // struct.
+    // Tagged JSAtom* names, allocated beyond the end of the struct.
     TrailingNamesArray trailingNames;
 
     explicit Data(size_t nameCount) : trailingNames(nameCount) {}
@@ -543,10 +547,6 @@ class FunctionScope : public Scope {
 
     void trace(JSTracer* trc);
   };
-
-  static FunctionScope* create(JSContext* cx, Handle<Data*> data,
-                               bool hasParameterExprs, bool needsEnvironment,
-                               HandleFunction fun, HandleScope enclosing);
 
   static bool prepareForScopeCreation(JSContext* cx,
                                       MutableHandle<UniquePtr<Data>> data,
@@ -591,25 +591,15 @@ class FunctionScope : public Scope {
 
   static bool isSpecialName(JSContext* cx, JSAtom* name);
 
-  static Shape* getEmptyEnvironmentShape(JSContext* cx, bool hasParameterExprs);
+  static Shape* getEmptyEnvironmentShape(JSContext* cx);
 };
 
 //
-// Scope holding only vars. There are 2 kinds of VarScopes.
+// Scope holding only vars. There is a single kind of VarScopes.
 //
 // FunctionBodyVar
 //   Corresponds to the extra var scope present in functions with parameter
 //   expressions. See examples in comment above FunctionScope.
-//
-// ParameterExpressionVar
-//   Each parameter expression is evaluated in its own var environment. For
-//   example, f() below will print 'fml', then 'global'. That's right.
-//
-//     var a = 'global';
-//     function f(x = (eval(`var a = 'fml'`), a), y = a) {
-//       print(x);
-//       print(y);
-//     };
 //
 // Corresponds to VarEnvironmentObject on environment chain.
 //
@@ -617,20 +607,22 @@ class VarScope : public Scope {
   friend class GCMarker;
   friend class BindingIter;
   friend class Scope;
+  friend class frontend::ScopeCreationData;
 
  public:
   // Data is public because it is created by the
   // frontend. See Parser<FullParseHandler>::newVarScopeData.
   struct Data : public BaseScopeData {
-    // All bindings are vars.
-    uint32_t length = 0;
-
-    // Frame slots [firstFrameSlot(), nextFrameSlot) are live when this is
-    // the innermost scope.
+    // Frame slots [0, nextFrameSlot) are live when this is the innermost
+    // scope.
     uint32_t nextFrameSlot = 0;
 
-    // The array of tagged JSAtom* names, allocated beyond the end of the
-    // struct.
+    // All bindings are vars.
+    //
+    //            vars - [0, length)
+    uint32_t length = 0;
+
+    // Tagged JSAtom* names, allocated beyond the end of the struct.
     TrailingNamesArray trailingNames;
 
     explicit Data(size_t nameCount) : trailingNames(nameCount) {}
@@ -638,10 +630,6 @@ class VarScope : public Scope {
 
     void trace(JSTracer* trc);
   };
-
-  static VarScope* create(JSContext* cx, ScopeKind kind, Handle<Data*> data,
-                          uint32_t firstFrameSlot, bool needsEnvironment,
-                          HandleScope enclosing);
 
   template <XDRMode mode>
   static XDRResult XDR(XDRState<mode>* xdr, ScopeKind kind,
@@ -673,8 +661,7 @@ class VarScope : public Scope {
 
 template <>
 inline bool Scope::is<VarScope>() const {
-  return kind_ == ScopeKind::FunctionBodyVar ||
-         kind_ == ScopeKind::ParameterExpressionVar;
+  return kind_ == ScopeKind::FunctionBodyVar;
 }
 
 //
@@ -716,8 +703,7 @@ class GlobalScope : public Scope {
     uint32_t constStart = 0;
     uint32_t length = 0;
 
-    // The array of tagged JSAtom* names, allocated beyond the end of the
-    // struct.
+    // Tagged JSAtom* names, allocated beyond the end of the struct.
     TrailingNamesArray trailingNames;
 
     explicit Data(size_t nameCount) : trailingNames(nameCount) {}
@@ -791,11 +777,16 @@ class EvalScope : public Scope {
   friend class Scope;
   friend class BindingIter;
   friend class GCMarker;
+  friend class frontend::ScopeCreationData;
 
  public:
   // Data is public because it is created by the frontend. See
   // Parser<FullParseHandler>::newEvalScopeData.
   struct Data : public BaseScopeData {
+    // Frame slots [0, nextFrameSlot) are live when this is the innermost
+    // scope.
+    uint32_t nextFrameSlot = 0;
+
     // All bindings in an eval script are 'var' bindings. The implicit
     // lexical scope around the eval is present regardless of strictness
     // and is its own LexicalScope.
@@ -803,15 +794,9 @@ class EvalScope : public Scope {
     // on the BindingName.
     //
     //            vars - [0, length)
-    uint32_t varStart = 0;
     uint32_t length = 0;
 
-    // Frame slots [0, nextFrameSlot) are live when this is the innermost
-    // scope.
-    uint32_t nextFrameSlot = 0;
-
-    // The array of tagged JSAtom* names, allocated beyond the end of the
-    // struct.
+    // Tagged JSAtom* names, allocated beyond the end of the struct.
     TrailingNamesArray trailingNames;
 
     explicit Data(size_t nameCount) : trailingNames(nameCount) {}
@@ -819,9 +804,6 @@ class EvalScope : public Scope {
 
     void trace(JSTracer* trc);
   };
-
-  static EvalScope* create(JSContext* cx, ScopeKind kind, Handle<Data*> data,
-                           HandleScope enclosing);
 
   template <XDRMode mode>
   static XDRResult XDR(XDRState<mode>* xdr, ScopeKind kind,
@@ -879,6 +861,7 @@ class ModuleScope : public Scope {
   friend class BindingIter;
   friend class Scope;
   friend class AbstractScope;
+  friend class frontend::ScopeCreationData;
   static const ScopeKind classScopeKind_ = ScopeKind::Module;
 
  public:
@@ -887,6 +870,10 @@ class ModuleScope : public Scope {
   struct Data : BaseScopeData {
     // The module of the scope.
     GCPtr<ModuleObject*> module = {};
+
+    // Frame slots [0, nextFrameSlot) are live when this is the innermost
+    // scope.
+    uint32_t nextFrameSlot = 0;
 
     // Bindings are sorted by kind.
     //
@@ -899,12 +886,7 @@ class ModuleScope : public Scope {
     uint32_t constStart = 0;
     uint32_t length = 0;
 
-    // Frame slots [0, nextFrameSlot) are live when this is the innermost
-    // scope.
-    uint32_t nextFrameSlot = 0;
-
-    // The array of tagged JSAtom* names, allocated beyond the end of the
-    // struct.
+    // Tagged JSAtom* names, allocated beyond the end of the struct.
     TrailingNamesArray trailingNames;
 
     explicit Data(size_t nameCount) : trailingNames(nameCount) {}
@@ -913,10 +895,6 @@ class ModuleScope : public Scope {
     void trace(JSTracer* trc);
     Zone* zone() const;
   };
-
-  static ModuleScope* create(JSContext* cx, Handle<Data*> data,
-                             Handle<ModuleObject*> module,
-                             HandleScope enclosing);
 
   template <XDRMode mode>
   static XDRResult XDR(XDRState<mode>* xdr, HandleModuleObject module,
@@ -954,14 +932,21 @@ class WasmInstanceScope : public Scope {
 
  public:
   struct Data : public BaseScopeData {
-    uint32_t memoriesStart = 0;
-    uint32_t globalsStart = 0;
-    uint32_t length = 0;
-    uint32_t nextFrameSlot = 0;
-
     // The wasm instance of the scope.
     GCPtr<WasmInstanceObject*> instance = {};
 
+    // Frame slots [0, nextFrameSlot) are live when this is the innermost
+    // scope.
+    uint32_t nextFrameSlot = 0;
+
+    // Bindings list the WASM memories and globals.
+    //
+    // memories - [0, globalsStart)
+    //  globals - [globalsStart, length)
+    uint32_t globalsStart = 0;
+    uint32_t length = 0;
+
+    // Tagged JSAtom* names, allocated beyond the end of the struct.
     TrailingNamesArray trailingNames;
 
     explicit Data(size_t nameCount) : trailingNames(nameCount) {}
@@ -980,7 +965,7 @@ class WasmInstanceScope : public Scope {
  public:
   WasmInstanceObject* instance() const { return data().instance; }
 
-  uint32_t memoriesStart() const { return data().memoriesStart; }
+  uint32_t memoriesStart() const { return 0; }
 
   uint32_t globalsStart() const { return data().globalsStart; }
 
@@ -1001,10 +986,16 @@ class WasmFunctionScope : public Scope {
 
  public:
   struct Data : public BaseScopeData {
-    uint32_t length = 0;
+    // Frame slots [0, nextFrameSlot) are live when this is the innermost
+    // scope.
     uint32_t nextFrameSlot = 0;
-    uint32_t funcIndex = 0;
 
+    // Bindings are the local variable names.
+    //
+    //    vars - [0, length)
+    uint32_t length = 0;
+
+    // Tagged JSAtom* names, allocated beyond the end of the struct.
     TrailingNamesArray trailingNames;
 
     explicit Data(size_t nameCount) : trailingNames(nameCount) {}
@@ -1022,8 +1013,6 @@ class WasmFunctionScope : public Scope {
   const Data& data() const { return *static_cast<Data*>(data_); }
 
  public:
-  uint32_t funcIndex() const { return data().funcIndex; }
-
   static Shape* getEmptyEnvironmentShape(JSContext* cx);
 };
 
@@ -1034,7 +1023,6 @@ void Scope::applyScopeDataTyped(F&& f) {
       f(&as<FunctionScope>().data());
       break;
       case ScopeKind::FunctionBodyVar:
-      case ScopeKind::ParameterExpressionVar:
         f(&as<VarScope>().data());
         break;
       case ScopeKind::Lexical:

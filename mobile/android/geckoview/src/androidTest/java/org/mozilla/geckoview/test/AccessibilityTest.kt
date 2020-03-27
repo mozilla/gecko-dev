@@ -13,9 +13,10 @@ import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 
-import android.support.test.filters.MediumTest
-import android.support.test.InstrumentationRegistry
-import android.support.test.runner.AndroidJUnit4
+import androidx.test.filters.MediumTest
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.ext.junit.runners.AndroidJUnit4
+
 import android.text.InputType
 import android.util.SparseLongArray
 
@@ -111,9 +112,10 @@ class ZZAccessibilityTest : BaseSessionTest() {
     @Before fun setup() {
         // We initialize a view with a parent and grandparent so that the
         // accessibility events propagate up at least to the parent.
-        view = FrameLayout(InstrumentationRegistry.getTargetContext())
-        FrameLayout(InstrumentationRegistry.getTargetContext()).addView(view)
-        FrameLayout(InstrumentationRegistry.getTargetContext()).addView(view.parent as View)
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        view = FrameLayout(context)
+        FrameLayout(context).addView(view)
+        FrameLayout(context).addView(view.parent as View)
 
         // Force on accessibility and assign the session's accessibility
         // object a view.
@@ -543,7 +545,7 @@ class ZZAccessibilityTest : BaseSessionTest() {
             override fun onAccessibilityFocused(event: AccessibilityEvent) {
                 nodeId = getSourceId(event)
                 val node = createNodeInfo(nodeId)
-                assertThat("Accessibility focus on link", node.text as String, startsWith("anim id"))
+                assertThat("Accessibility focus on link", node.contentDescription as String, startsWith("anim id"))
             }
         })
 
@@ -593,7 +595,7 @@ class ZZAccessibilityTest : BaseSessionTest() {
             override fun onAccessibilityFocused(event: AccessibilityEvent) {
                 nodeId = getSourceId(event)
                 val node = createNodeInfo(nodeId)
-                assertThat("Accessibility focus on link", node.text as String, startsWith("anim id"))
+                assertThat("Accessibility focus on link", node.contentDescription as String, startsWith("anim id"))
             }
         })
 
@@ -684,7 +686,7 @@ class ZZAccessibilityTest : BaseSessionTest() {
             override fun onAccessibilityFocused(event: AccessibilityEvent) {
                 nodeId = getSourceId(event)
                 val node = createNodeInfo(nodeId)
-                assertThat("Accessibility focus on first heading", node.text as String, startsWith("Fried cheese"))
+                assertThat("Accessibility focus on first heading", node.contentDescription as String, startsWith("Fried cheese"))
                 if (Build.VERSION.SDK_INT >= 19) {
                     assertThat("First heading is level 1",
                             node.extras.getCharSequence("AccessibilityNodeInfo.roleDescription")!!.toString(),
@@ -699,7 +701,7 @@ class ZZAccessibilityTest : BaseSessionTest() {
             override fun onAccessibilityFocused(event: AccessibilityEvent) {
                 nodeId = getSourceId(event)
                 val node = createNodeInfo(nodeId)
-                assertThat("Accessibility focus on second heading", node.text as String, startsWith("Popcorn shrimp"))
+                assertThat("Accessibility focus on second heading", node.contentDescription as String, startsWith("Popcorn shrimp"))
                 if (Build.VERSION.SDK_INT >= 19) {
                     assertThat("Second heading is level 2",
                             node.extras.getCharSequence("AccessibilityNodeInfo.roleDescription")!!.toString(),
@@ -714,7 +716,7 @@ class ZZAccessibilityTest : BaseSessionTest() {
             override fun onAccessibilityFocused(event: AccessibilityEvent) {
                 nodeId = getSourceId(event)
                 val node = createNodeInfo(nodeId)
-                assertThat("Accessibility focus on second heading", node.text as String, startsWith("Chicken fingers"))
+                assertThat("Accessibility focus on second heading", node.contentDescription as String, startsWith("Chicken fingers"))
                 if (Build.VERSION.SDK_INT >= 19) {
                     assertThat("Third heading is level 3",
                             node.extras.getCharSequence("AccessibilityNodeInfo.roleDescription")!!.toString(),
@@ -1246,7 +1248,7 @@ class ZZAccessibilityTest : BaseSessionTest() {
                 nodeId = getSourceId(event)
                 val node = createNodeInfo(nodeId)
                 assertThat("Accessibility focus on a with href",
-                    node.text as String, startsWith("a with href"))
+                    node.contentDescription as String, startsWith("a with href"))
                 if (Build.VERSION.SDK_INT >= 19) {
                     assertThat("a with href is a link",
                             node.extras.getCharSequence("AccessibilityNodeInfo.roleDescription")!!.toString(),
@@ -1294,7 +1296,7 @@ class ZZAccessibilityTest : BaseSessionTest() {
                 nodeId = getSourceId(event)
                 val node = createNodeInfo(nodeId)
                 assertThat("Accessibility focus on a with onclick",
-                    node.text as String, startsWith("a with onclick"))
+                    node.contentDescription as String, startsWith("a with onclick"))
                 if (Build.VERSION.SDK_INT >= 19) {
                     assertThat("a with onclick is a link",
                             node.extras.getCharSequence("AccessibilityNodeInfo.roleDescription")!!.toString(),
@@ -1310,7 +1312,7 @@ class ZZAccessibilityTest : BaseSessionTest() {
                 nodeId = getSourceId(event)
                 val node = createNodeInfo(nodeId)
                 assertThat("Accessibility focus on span with role link",
-                    node.text as String, startsWith("span with role link"))
+                    node.contentDescription as String, startsWith("span with role link"))
                 if (Build.VERSION.SDK_INT >= 19) {
                     assertThat("span with role link is a link",
                             node.extras.getCharSequence("AccessibilityNodeInfo.roleDescription")!!.toString(),
@@ -1335,7 +1337,7 @@ class ZZAccessibilityTest : BaseSessionTest() {
                 nodeId = getSourceId(event)
                 val node = createNodeInfo(nodeId)
                 assertThat("Accessibility focus on a with href",
-                    node.text as String, startsWith("a with href"))
+                    node.contentDescription as String, startsWith("a with href"))
             }
         })
 
@@ -1346,7 +1348,7 @@ class ZZAccessibilityTest : BaseSessionTest() {
                 nodeId = getSourceId(event)
                 val node = createNodeInfo(nodeId)
                 assertThat("Accessibility focus on a with onclick",
-                    node.text as String, startsWith("a with onclick"))
+                    node.contentDescription as String, startsWith("a with onclick"))
             }
         })
 
@@ -1357,7 +1359,7 @@ class ZZAccessibilityTest : BaseSessionTest() {
                 nodeId = getSourceId(event)
                 val node = createNodeInfo(nodeId)
                 assertThat("Accessibility focus on span with role link",
-                    node.text as String, startsWith("span with role link"))
+                    node.contentDescription as String, startsWith("span with role link"))
             }
         })
     }

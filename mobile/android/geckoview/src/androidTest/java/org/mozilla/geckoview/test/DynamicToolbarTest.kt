@@ -6,8 +6,8 @@ package org.mozilla.geckoview.test
 
 import android.graphics.*
 import android.graphics.Bitmap
-import android.support.test.filters.MediumTest
-import android.support.test.runner.AndroidJUnit4
+import androidx.test.filters.MediumTest
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import android.util.Base64
 import java.io.ByteArrayOutputStream
 import org.hamcrest.Matchers.*
@@ -283,5 +283,25 @@ class DynamicToolbarTest : BaseSessionTest() {
         sessionRule.display?.run { setVerticalClipping(-dynamicToolbarMaxHeight) }
         assertThat("window.innerHeight should be changed when the dynamc toolbar is completely hidden",
                    promise.value as Double, closeTo(SCREEN_HEIGHT / pixelRatio, .01))
+    }
+
+    @WithDisplay(height = SCREEN_HEIGHT, width = SCREEN_WIDTH)
+    @Test
+    fun notCrashOnResizeEvent() {
+        val dynamicToolbarMaxHeight = SCREEN_HEIGHT / 2
+        sessionRule.display?.run { setDynamicToolbarMaxHeight(dynamicToolbarMaxHeight) }
+
+        // Set active since setVerticalClipping call affects only for forground tab.
+        mainSession.setActive(true)
+
+        mainSession.loadTestPath(BaseSessionTest.FIXED_VH)
+        mainSession.waitForPageStop()
+
+        // Do some setVerticalClipping calls that we might try to queue two window resize events.
+        sessionRule.display?.run { setVerticalClipping(-dynamicToolbarMaxHeight) }
+        sessionRule.display?.run { setVerticalClipping(-dynamicToolbarMaxHeight + 1) }
+        sessionRule.display?.run { setVerticalClipping(-dynamicToolbarMaxHeight) }
+
+        mainSession.waitForJS("new Promise(resolve => { window.addEventListener('resize', resolve) })")
     }
 }

@@ -12,8 +12,7 @@
 #include "skia/include/core/SkData.h"
 #include "mozilla/CheckedInt.h"
 
-namespace mozilla {
-namespace gfx {
+namespace mozilla::gfx {
 
 SourceSurfaceSkia::SourceSurfaceSkia()
     : mFormat(SurfaceFormat::UNKNOWN),
@@ -22,7 +21,11 @@ SourceSurfaceSkia::SourceSurfaceSkia()
       mChangeMutex("SourceSurfaceSkia::mChangeMutex"),
       mIsMapped(false) {}
 
-SourceSurfaceSkia::~SourceSurfaceSkia() {}
+SourceSurfaceSkia::~SourceSurfaceSkia() {
+  // if mIsMapped is true then mChangeMutex will be locked
+  // which will cause problems during destruction.
+  MOZ_RELEASE_ASSERT(!mIsMapped);
+}
 
 IntSize SourceSurfaceSkia::GetSize() const { return mSize; }
 
@@ -167,5 +170,4 @@ void SourceSurfaceSkia::DrawTargetWillChange() {
   }
 }
 
-}  // namespace gfx
-}  // namespace mozilla
+}  // namespace mozilla::gfx

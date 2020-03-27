@@ -281,19 +281,15 @@ void runTestFromPath(JSContext* cx, const char* path) {
     CompileOptions txtOptions(cx);
     txtOptions.setFileAndLine(txtPath.begin(), 0);
 
-    frontend::ParseInfo parseInfo(cx, allocScope);
-
-    RootedScriptSourceObject sourceObject(
-        cx,
-        frontend::CreateScriptSourceObject(cx, txtOptions, mozilla::Nothing()));
-    if (!sourceObject) {
-      MOZ_CRASH("Couldn't initialize ScriptSourceObject");
+    frontend::CompilationInfo compilationInfo(cx, allocScope, txtOptions);
+    if (!compilationInfo.init(cx)) {
+      MOZ_CRASH("Couldn't initialize CompilationInfo");
     }
 
     js::frontend::Parser<js::frontend::FullParseHandler, mozilla::Utf8Unit>
         txtParser(cx, txtOptions, txtSource.begin(), txtSource.length(),
-                  /* foldConstants = */ false, parseInfo, nullptr, nullptr,
-                  sourceObject);
+                  /* foldConstants = */ false, compilationInfo, nullptr,
+                  nullptr, compilationInfo.sourceObject);
     if (!txtParser.checkOptions()) {
       MOZ_CRASH("Bad options");
     }
@@ -328,21 +324,17 @@ void runTestFromPath(JSContext* cx, const char* path) {
     CompileOptions binOptions(cx);
     binOptions.setFileAndLine(binPath.begin(), 0);
 
-    frontend::ParseInfo binParseInfo(cx, allocScope);
-
-    frontend::Directives directives(false);
-    frontend::GlobalSharedContext globalsc(cx, ScopeKind::Global, directives,
-                                           false);
-
-    RootedScriptSourceObject sourceObj(
-        cx,
-        frontend::CreateScriptSourceObject(cx, binOptions, mozilla::Nothing()));
-    if (!sourceObj) {
+    frontend::CompilationInfo binCompilationInfo(cx, allocScope, binOptions);
+    if (!binCompilationInfo.init(cx)) {
       MOZ_CRASH();
     }
 
-    frontend::BinASTParser<Tok> binParser(cx, binParseInfo, binOptions,
-                                          sourceObj);
+    frontend::Directives directives(false);
+    frontend::GlobalSharedContext globalsc(
+        cx, ScopeKind::Global, binCompilationInfo, directives, false);
+
+    frontend::BinASTParser<Tok> binParser(cx, binCompilationInfo, binOptions,
+                                          binCompilationInfo.sourceObject);
 
     auto binParsed = binParser.parse(
         &globalsc,

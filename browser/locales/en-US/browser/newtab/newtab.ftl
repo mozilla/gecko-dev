@@ -89,10 +89,10 @@ newtab-menu-show-privacy-info = Our sponsors & your privacy
 
 newtab-privacy-modal-button-done = Done
 newtab-privacy-modal-header = Your privacy matters.
-newtab-privacy-modal-paragraph =
+newtab-privacy-modal-paragraph-2 =
     In addition to dishing up captivating stories, we also show you relevant,
-    highly-vetted content from select sponsors. Rest assured, your browsing
-    data never leaves your personal copy of { -brand-product-name } — we don’t see it, and our
+    highly-vetted content from select sponsors. Rest assured, <strong>your browsing
+    data never leaves your personal copy of { -brand-product-name }</strong> — we don’t see it, and our
     sponsors don’t either.
 newtab-privacy-modal-link = Learn how privacy works on the new tab
 
@@ -131,6 +131,11 @@ newtab-label-removed-bookmark = Bookmark removed
 newtab-label-recommended = Trending
 newtab-label-saved = Saved to { -pocket-brand-name }
 newtab-label-download = Downloaded
+
+# This string is used in the story cards to indicate sponsored content
+# Variables:
+#  $sponsorOrSource (String): This is the name of a company or their domain
+newtab-label-sponsored = { $sponsorOrSource } · Sponsored
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.

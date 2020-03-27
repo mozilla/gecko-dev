@@ -10,9 +10,10 @@
 #include "mozilla/PodOperations.h"    // PodZero
 #include "mozilla/ReverseIterator.h"  // mozilla::Reversed
 
-#include "frontend/ParseInfo.h"
+#include "frontend/CompilationInfo.h"
 #include "frontend/ParseNode.h"      // ObjectBox
 #include "frontend/SharedContext.h"  // FunctionBox
+#include "frontend/Stencil.h"        // ScopeCreationData
 #include "vm/BytecodeUtil.h"         // INDEX_LIMIT, StackUses, StackDefs
 #include "vm/JSContext.h"            // JSContext
 #include "vm/RegExpObject.h"         // RegexpObject
@@ -43,14 +44,14 @@ void GCThingList::finishInnerFunctions() {
   }
 }
 
-bool GCThingList::finish(JSContext* cx, ParseInfo& parseInfo,
+bool GCThingList::finish(JSContext* cx, CompilationInfo& compilationInfo,
                          mozilla::Span<JS::GCCellPtr> array) {
   MOZ_ASSERT(length() <= INDEX_LIMIT);
   MOZ_ASSERT(length() == array.size());
 
   struct Matcher {
     JSContext* cx;
-    ParseInfo& parseInfo;
+    CompilationInfo& compilationInfo;
     uint32_t i;
     mozilla::Span<JS::GCCellPtr>& array;
 
@@ -60,7 +61,7 @@ bool GCThingList::finish(JSContext* cx, ParseInfo& parseInfo,
     }
 
     bool operator()(BigIntIndex& index) {
-      BigIntCreationData& data = parseInfo.bigIntData[index];
+      BigIntCreationData& data = compilationInfo.bigIntData[index];
       BigInt* bi = data.createBigInt(cx);
       if (!bi) {
         return false;
@@ -70,7 +71,7 @@ bool GCThingList::finish(JSContext* cx, ParseInfo& parseInfo,
     }
 
     bool operator()(RegExpIndex& rindex) {
-      RegExpCreationData& data = parseInfo.regExpData[rindex];
+      RegExpCreationData& data = compilationInfo.regExpData[rindex];
       RegExpObject* regexp = data.createRegExp(cx);
       if (!regexp) {
         return false;
@@ -87,10 +88,22 @@ bool GCThingList::finish(JSContext* cx, ParseInfo& parseInfo,
       array[i] = JS::GCCellPtr(obj);
       return true;
     }
+
+    bool operator()(ScopeIndex& index) {
+      MutableHandle<ScopeCreationData> data =
+          compilationInfo.scopeCreationData[index];
+      Scope* scope = data.get().createScope(cx);
+      if (!scope) {
+        return false;
+      }
+
+      array[i] = JS::GCCellPtr(scope);
+      return true;
+    }
   };
 
   for (uint32_t i = 0; i < length(); i++) {
-    Matcher m{cx, parseInfo, i, array};
+    Matcher m{cx, compilationInfo, i, array};
     if (!vector[i].get().match(m)) {
       return false;
     }
@@ -197,7 +210,9 @@ void BytecodeSection::updateDepth(BytecodeOffset target) {
   }
 }
 
-PerScriptData::PerScriptData(JSContext* cx)
-    : gcThingList_(cx), atomIndices_(cx->frontendCollectionPool()) {}
+PerScriptData::PerScriptData(JSContext* cx,
+                             frontend::CompilationInfo& compilationInfo)
+    : gcThingList_(cx, compilationInfo),
+      atomIndices_(cx->frontendCollectionPool()) {}
 
 bool PerScriptData::init(JSContext* cx) { return atomIndices_.acquire(cx); }

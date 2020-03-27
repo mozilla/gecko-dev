@@ -146,7 +146,7 @@ class FunctionCompiler {
   bool init() {
     // Prepare the entry block for MIR generation:
 
-    const ValTypeVector& args = funcType().args();
+    const ArgTypeVector args(funcType());
 
     if (!mirGen_.ensureBallast()) {
       return false;
@@ -155,11 +155,13 @@ class FunctionCompiler {
       return false;
     }
 
-    for (ABIArgIter<ValTypeVector> i(args); !i.done(); i++) {
+    for (ABIArgIter i(args); !i.done(); i++) {
+      MOZ_ASSERT(!args.isSyntheticStackResultPointerArg(i.index()),
+                 "multiple results for wasm functions unimplemented");
       MOZ_ASSERT(i.mirType() != MIRType::Pointer);
       MWasmParameter* ins = MWasmParameter::New(alloc(), *i, i.mirType());
       curBlock_->add(ins);
-      curBlock_->initSlot(info().localSlot(i.index()), ins);
+      curBlock_->initSlot(info().localSlot(args.naturalIndex(i.index())), ins);
       if (!mirGen_.ensureBallast()) {
         return false;
       }
@@ -1019,33 +1021,106 @@ class FunctionCompiler {
 
   // Wrappers for creating various kinds of calls.
 
+  bool collectUnaryCallResult(MIRType type, MDefinition** result) {
+    MInstruction* def;
+    switch (type) {
+      case MIRType::Int32:
+        def = MWasmRegisterResult::New(alloc(), MIRType::Int32, ReturnReg);
+        break;
+      case MIRType::Int64:
+        def = MWasmRegister64Result::New(alloc(), ReturnReg64);
+        break;
+      case MIRType::Float32:
+        def = MWasmFloatRegisterResult::New(alloc(), type, ReturnFloat32Reg);
+        break;
+      case MIRType::Double:
+        def = MWasmFloatRegisterResult::New(alloc(), type, ReturnDoubleReg);
+        break;
+      case MIRType::RefOrNull:
+        def = MWasmRegisterResult::New(alloc(), MIRType::RefOrNull, ReturnReg);
+        break;
+      default:
+        MOZ_CRASH("unexpected MIRType result for builtin call");
+    }
+
+    if (!def) {
+      return false;
+    }
+
+    curBlock_->add(def);
+    *result = def;
+
+    return true;
+  }
+
+  bool collectCallResults(const ResultType& type, DefVector* results) {
+    if (!results->reserve(type.length())) {
+      return false;
+    }
+
+    for (ABIResultIter i(type); !i.done(); i.next()) {
+      MOZ_ASSERT(i.index() == 0, "multiple values to be implemented");
+      const ABIResult& result = i.cur();
+      MOZ_ASSERT(result.inRegister(), "stack results to be implemented");
+      MInstruction* def;
+      switch (result.type().kind()) {
+        case wasm::ValType::I32:
+          def = MWasmRegisterResult::New(alloc(), MIRType::Int32, result.gpr());
+          break;
+        case wasm::ValType::I64:
+          def = MWasmRegister64Result::New(alloc(), result.gpr64());
+          break;
+        case wasm::ValType::F32:
+          def = MWasmFloatRegisterResult::New(alloc(), MIRType::Float32,
+                                              result.fpr());
+          break;
+        case wasm::ValType::F64:
+          def = MWasmFloatRegisterResult::New(alloc(), MIRType::Double,
+                                              result.fpr());
+          break;
+        case wasm::ValType::Ref:
+          def = MWasmRegisterResult::New(alloc(), MIRType::RefOrNull,
+                                         result.gpr());
+          break;
+      }
+      if (!def) {
+        return false;
+      }
+      curBlock_->add(def);
+      results->infallibleAppend(def);
+    }
+
+    MOZ_ASSERT(results->length() == type.length());
+
+    return true;
+  }
+
   bool callDirect(const FuncType& funcType, uint32_t funcIndex,
                   uint32_t lineOrBytecode, const CallCompileState& call,
-                  MDefinition** def) {
+                  DefVector* results) {
     if (inDeadCode()) {
-      *def = nullptr;
       return true;
     }
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Func);
-    MIRType ret = ToMIRType(funcType.ret());
+    ResultType resultType = ResultType::Vector(funcType.results());
     auto callee = CalleeDesc::function(funcIndex);
-    auto* ins = MWasmCall::New(alloc(), desc, callee, call.regArgs_, ret,
-                               StackArgAreaSizeUnaligned(funcType.args()));
+    ArgTypeVector args(funcType);
+    auto* ins = MWasmCall::New(alloc(), desc, callee, call.regArgs_,
+                               StackArgAreaSizeUnaligned(args));
     if (!ins) {
       return false;
     }
 
     curBlock_->add(ins);
-    *def = ins;
-    return true;
+
+    return collectCallResults(resultType, results);
   }
 
   bool callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
                     MDefinition* index, uint32_t lineOrBytecode,
-                    const CallCompileState& call, MDefinition** def) {
+                    const CallCompileState& call, DefVector* results) {
     if (inDeadCode()) {
-      *def = nullptr;
       return true;
     }
 
@@ -1074,38 +1149,39 @@ class FunctionCompiler {
     }
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Dynamic);
-    auto* ins = MWasmCall::New(
-        alloc(), desc, callee, call.regArgs_, ToMIRType(funcType.ret()),
-        StackArgAreaSizeUnaligned(funcType.args()), index);
+    ArgTypeVector args(funcType);
+    ResultType resultType = ResultType::Vector(funcType.results());
+    auto* ins = MWasmCall::New(alloc(), desc, callee, call.regArgs_,
+                               StackArgAreaSizeUnaligned(args), index);
     if (!ins) {
       return false;
     }
 
     curBlock_->add(ins);
-    *def = ins;
-    return true;
+
+    return collectCallResults(resultType, results);
   }
 
   bool callImport(unsigned globalDataOffset, uint32_t lineOrBytecode,
                   const CallCompileState& call, const FuncType& funcType,
-                  MDefinition** def) {
+                  DefVector* results) {
     if (inDeadCode()) {
-      *def = nullptr;
       return true;
     }
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Dynamic);
     auto callee = CalleeDesc::import(globalDataOffset);
+    ArgTypeVector args(funcType);
+    ResultType resultType = ResultType::Vector(funcType.results());
     auto* ins = MWasmCall::New(alloc(), desc, callee, call.regArgs_,
-                               ToMIRType(funcType.ret()),
-                               StackArgAreaSizeUnaligned(funcType.args()));
+                               StackArgAreaSizeUnaligned(args));
     if (!ins) {
       return false;
     }
 
     curBlock_->add(ins);
-    *def = ins;
-    return true;
+
+    return collectCallResults(resultType, results);
   }
 
   bool builtinCall(const SymbolicAddressSignature& builtin,
@@ -1120,16 +1196,15 @@ class FunctionCompiler {
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Symbolic);
     auto callee = CalleeDesc::builtin(builtin.identity);
-    auto* ins =
-        MWasmCall::New(alloc(), desc, callee, call.regArgs_, builtin.retType,
-                       StackArgAreaSizeUnaligned(builtin));
+    auto* ins = MWasmCall::New(alloc(), desc, callee, call.regArgs_,
+                               StackArgAreaSizeUnaligned(builtin));
     if (!ins) {
       return false;
     }
 
     curBlock_->add(ins);
-    *def = ins;
-    return true;
+
+    return collectUnaryCallResult(builtin.retType, def);
   }
 
   bool builtinInstanceMethodCall(const SymbolicAddressSignature& builtin,
@@ -1147,16 +1222,14 @@ class FunctionCompiler {
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Symbolic);
     auto* ins = MWasmCall::NewBuiltinInstanceMethodCall(
         alloc(), desc, builtin.identity, builtin.failureMode, call.instanceArg_,
-        call.regArgs_, builtin.retType, StackArgAreaSizeUnaligned(builtin));
+        call.regArgs_, StackArgAreaSizeUnaligned(builtin));
     if (!ins) {
       return false;
     }
 
     curBlock_->add(ins);
-    if (def) {
-      *def = ins;
-    }
-    return true;
+
+    return def ? collectUnaryCallResult(builtin.retType, def) : true;
   }
 
   /*********************************************** Control flow generation */
@@ -2029,23 +2102,20 @@ static bool EmitCall(FunctionCompiler& f, bool asmJSFuncDef) {
     return false;
   }
 
-  MDefinition* def;
+  DefVector results;
   if (f.env().funcIsImport(funcIndex)) {
     uint32_t globalDataOffset = f.env().funcImportGlobalDataOffsets[funcIndex];
-    if (!f.callImport(globalDataOffset, lineOrBytecode, call, funcType, &def)) {
+    if (!f.callImport(globalDataOffset, lineOrBytecode, call, funcType,
+                      &results)) {
       return false;
     }
   } else {
-    if (!f.callDirect(funcType, funcIndex, lineOrBytecode, call, &def)) {
+    if (!f.callDirect(funcType, funcIndex, lineOrBytecode, call, &results)) {
       return false;
     }
   }
 
-  if (funcType.results().length() == 0) {
-    return true;
-  }
-
-  f.iter().setResult(def);
+  f.iter().setResults(results.length(), results);
   return true;
 }
 
@@ -2079,17 +2149,13 @@ static bool EmitCallIndirect(FunctionCompiler& f, bool oldStyle) {
     return false;
   }
 
-  MDefinition* def;
+  DefVector results;
   if (!f.callIndirect(funcTypeIndex, tableIndex, callee, lineOrBytecode, call,
-                      &def)) {
+                      &results)) {
     return false;
   }
 
-  if (funcType.results().length() == 0) {
-    return true;
-  }
-
-  f.iter().setResult(def);
+  f.iter().setResults(results.length(), results);
   return true;
 }
 
@@ -3663,7 +3729,7 @@ static bool EmitRefIsNull(FunctionCompiler& f) {
     return false;
   }
   f.iter().setResult(
-      f.compare(input, nullVal, JSOP_EQ, MCompare::Compare_RefOrNull));
+      f.compare(input, nullVal, JSOp::Eq, MCompare::Compare_RefOrNull));
   return true;
 }
 #endif  // ENABLE_WASM_REFTYPES
@@ -3821,102 +3887,102 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
         CHECK(EmitConversion<MNot>(f, ValType::I32, ValType::I32));
       case uint16_t(Op::I32Eq):
         CHECK(
-            EmitComparison(f, ValType::I32, JSOP_EQ, MCompare::Compare_Int32));
+            EmitComparison(f, ValType::I32, JSOp::Eq, MCompare::Compare_Int32));
       case uint16_t(Op::I32Ne):
         CHECK(
-            EmitComparison(f, ValType::I32, JSOP_NE, MCompare::Compare_Int32));
+            EmitComparison(f, ValType::I32, JSOp::Ne, MCompare::Compare_Int32));
       case uint16_t(Op::I32LtS):
         CHECK(
-            EmitComparison(f, ValType::I32, JSOP_LT, MCompare::Compare_Int32));
+            EmitComparison(f, ValType::I32, JSOp::Lt, MCompare::Compare_Int32));
       case uint16_t(Op::I32LtU):
-        CHECK(
-            EmitComparison(f, ValType::I32, JSOP_LT, MCompare::Compare_UInt32));
+        CHECK(EmitComparison(f, ValType::I32, JSOp::Lt,
+                             MCompare::Compare_UInt32));
       case uint16_t(Op::I32GtS):
         CHECK(
-            EmitComparison(f, ValType::I32, JSOP_GT, MCompare::Compare_Int32));
+            EmitComparison(f, ValType::I32, JSOp::Gt, MCompare::Compare_Int32));
       case uint16_t(Op::I32GtU):
-        CHECK(
-            EmitComparison(f, ValType::I32, JSOP_GT, MCompare::Compare_UInt32));
+        CHECK(EmitComparison(f, ValType::I32, JSOp::Gt,
+                             MCompare::Compare_UInt32));
       case uint16_t(Op::I32LeS):
         CHECK(
-            EmitComparison(f, ValType::I32, JSOP_LE, MCompare::Compare_Int32));
+            EmitComparison(f, ValType::I32, JSOp::Le, MCompare::Compare_Int32));
       case uint16_t(Op::I32LeU):
-        CHECK(
-            EmitComparison(f, ValType::I32, JSOP_LE, MCompare::Compare_UInt32));
+        CHECK(EmitComparison(f, ValType::I32, JSOp::Le,
+                             MCompare::Compare_UInt32));
       case uint16_t(Op::I32GeS):
         CHECK(
-            EmitComparison(f, ValType::I32, JSOP_GE, MCompare::Compare_Int32));
+            EmitComparison(f, ValType::I32, JSOp::Ge, MCompare::Compare_Int32));
       case uint16_t(Op::I32GeU):
-        CHECK(
-            EmitComparison(f, ValType::I32, JSOP_GE, MCompare::Compare_UInt32));
+        CHECK(EmitComparison(f, ValType::I32, JSOp::Ge,
+                             MCompare::Compare_UInt32));
       case uint16_t(Op::I64Eqz):
         CHECK(EmitConversion<MNot>(f, ValType::I64, ValType::I32));
       case uint16_t(Op::I64Eq):
         CHECK(
-            EmitComparison(f, ValType::I64, JSOP_EQ, MCompare::Compare_Int64));
+            EmitComparison(f, ValType::I64, JSOp::Eq, MCompare::Compare_Int64));
       case uint16_t(Op::I64Ne):
         CHECK(
-            EmitComparison(f, ValType::I64, JSOP_NE, MCompare::Compare_Int64));
+            EmitComparison(f, ValType::I64, JSOp::Ne, MCompare::Compare_Int64));
       case uint16_t(Op::I64LtS):
         CHECK(
-            EmitComparison(f, ValType::I64, JSOP_LT, MCompare::Compare_Int64));
+            EmitComparison(f, ValType::I64, JSOp::Lt, MCompare::Compare_Int64));
       case uint16_t(Op::I64LtU):
-        CHECK(
-            EmitComparison(f, ValType::I64, JSOP_LT, MCompare::Compare_UInt64));
+        CHECK(EmitComparison(f, ValType::I64, JSOp::Lt,
+                             MCompare::Compare_UInt64));
       case uint16_t(Op::I64GtS):
         CHECK(
-            EmitComparison(f, ValType::I64, JSOP_GT, MCompare::Compare_Int64));
+            EmitComparison(f, ValType::I64, JSOp::Gt, MCompare::Compare_Int64));
       case uint16_t(Op::I64GtU):
-        CHECK(
-            EmitComparison(f, ValType::I64, JSOP_GT, MCompare::Compare_UInt64));
+        CHECK(EmitComparison(f, ValType::I64, JSOp::Gt,
+                             MCompare::Compare_UInt64));
       case uint16_t(Op::I64LeS):
         CHECK(
-            EmitComparison(f, ValType::I64, JSOP_LE, MCompare::Compare_Int64));
+            EmitComparison(f, ValType::I64, JSOp::Le, MCompare::Compare_Int64));
       case uint16_t(Op::I64LeU):
-        CHECK(
-            EmitComparison(f, ValType::I64, JSOP_LE, MCompare::Compare_UInt64));
+        CHECK(EmitComparison(f, ValType::I64, JSOp::Le,
+                             MCompare::Compare_UInt64));
       case uint16_t(Op::I64GeS):
         CHECK(
-            EmitComparison(f, ValType::I64, JSOP_GE, MCompare::Compare_Int64));
+            EmitComparison(f, ValType::I64, JSOp::Ge, MCompare::Compare_Int64));
       case uint16_t(Op::I64GeU):
-        CHECK(
-            EmitComparison(f, ValType::I64, JSOP_GE, MCompare::Compare_UInt64));
+        CHECK(EmitComparison(f, ValType::I64, JSOp::Ge,
+                             MCompare::Compare_UInt64));
       case uint16_t(Op::F32Eq):
-        CHECK(EmitComparison(f, ValType::F32, JSOP_EQ,
+        CHECK(EmitComparison(f, ValType::F32, JSOp::Eq,
                              MCompare::Compare_Float32));
       case uint16_t(Op::F32Ne):
-        CHECK(EmitComparison(f, ValType::F32, JSOP_NE,
+        CHECK(EmitComparison(f, ValType::F32, JSOp::Ne,
                              MCompare::Compare_Float32));
       case uint16_t(Op::F32Lt):
-        CHECK(EmitComparison(f, ValType::F32, JSOP_LT,
+        CHECK(EmitComparison(f, ValType::F32, JSOp::Lt,
                              MCompare::Compare_Float32));
       case uint16_t(Op::F32Gt):
-        CHECK(EmitComparison(f, ValType::F32, JSOP_GT,
+        CHECK(EmitComparison(f, ValType::F32, JSOp::Gt,
                              MCompare::Compare_Float32));
       case uint16_t(Op::F32Le):
-        CHECK(EmitComparison(f, ValType::F32, JSOP_LE,
+        CHECK(EmitComparison(f, ValType::F32, JSOp::Le,
                              MCompare::Compare_Float32));
       case uint16_t(Op::F32Ge):
-        CHECK(EmitComparison(f, ValType::F32, JSOP_GE,
+        CHECK(EmitComparison(f, ValType::F32, JSOp::Ge,
                              MCompare::Compare_Float32));
       case uint16_t(Op::F64Eq):
-        CHECK(
-            EmitComparison(f, ValType::F64, JSOP_EQ, MCompare::Compare_Double));
+        CHECK(EmitComparison(f, ValType::F64, JSOp::Eq,
+                             MCompare::Compare_Double));
       case uint16_t(Op::F64Ne):
-        CHECK(
-            EmitComparison(f, ValType::F64, JSOP_NE, MCompare::Compare_Double));
+        CHECK(EmitComparison(f, ValType::F64, JSOp::Ne,
+                             MCompare::Compare_Double));
       case uint16_t(Op::F64Lt):
-        CHECK(
-            EmitComparison(f, ValType::F64, JSOP_LT, MCompare::Compare_Double));
+        CHECK(EmitComparison(f, ValType::F64, JSOp::Lt,
+                             MCompare::Compare_Double));
       case uint16_t(Op::F64Gt):
-        CHECK(
-            EmitComparison(f, ValType::F64, JSOP_GT, MCompare::Compare_Double));
+        CHECK(EmitComparison(f, ValType::F64, JSOp::Gt,
+                             MCompare::Compare_Double));
       case uint16_t(Op::F64Le):
-        CHECK(
-            EmitComparison(f, ValType::F64, JSOP_LE, MCompare::Compare_Double));
+        CHECK(EmitComparison(f, ValType::F64, JSOp::Le,
+                             MCompare::Compare_Double));
       case uint16_t(Op::F64Ge):
-        CHECK(
-            EmitComparison(f, ValType::F64, JSOP_GE, MCompare::Compare_Double));
+        CHECK(EmitComparison(f, ValType::F64, JSOp::Ge,
+                             MCompare::Compare_Double));
 
       // Numeric operators
       case uint16_t(Op::I32Clz):
@@ -4108,7 +4174,7 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
         if (!f.env().gcTypesEnabled()) {
           return f.iter().unrecognizedOpcode(&op);
         }
-        CHECK(EmitComparison(f, RefType::any(), JSOP_EQ,
+        CHECK(EmitComparison(f, RefType::any(), JSOp::Eq,
                              MCompare::Compare_RefOrNull));
 #endif
 #ifdef ENABLE_WASM_REFTYPES
@@ -4493,9 +4559,9 @@ bool wasm::IonCompileFunctions(const ModuleEnvironment& env, LifoAlloc& lifo,
 
     // Build the local types vector.
 
-    const ValTypeVector& argTys = env.funcTypes[func.index]->args();
+    const FuncTypeWithId& funcType = *env.funcTypes[func.index];
     ValTypeVector locals;
-    if (!locals.appendAll(argTys)) {
+    if (!locals.appendAll(funcType.args())) {
       return false;
     }
     if (!DecodeLocalEntries(d, env.types, env.refTypesEnabled(),
@@ -4544,13 +4610,12 @@ bool wasm::IonCompileFunctions(const ModuleEnvironment& env, LifoAlloc& lifo,
         return false;
       }
 
-      FuncTypeIdDesc funcTypeId = env.funcTypes[func.index]->id;
-
       CodeGenerator codegen(&mir, lir, &masm);
 
       BytecodeOffset prologueTrapOffset(func.lineOrBytecode);
       FuncOffsets offsets;
-      if (!codegen.generateWasm(funcTypeId, prologueTrapOffset, argTys,
+      ArgTypeVector args(funcType);
+      if (!codegen.generateWasm(funcType.id, prologueTrapOffset, args,
                                 trapExitLayout, trapExitLayoutNumWords,
                                 &offsets, &code->stackMaps)) {
         return false;

@@ -217,7 +217,7 @@ pref("extensions.webextensions.default-content-security-policy", "script-src 'se
 
 pref("extensions.webextensions.background-delayed-startup", true);
 
-pref("extensions.legacy.enabled", false);
+pref("extensions.experiments.enabled", false);
 
 /* block popups by default, and notify the user about blocked popups */
 pref("dom.disable_open_during_load", true);
@@ -746,14 +746,7 @@ pref("dom.serviceWorkers.enabled", true);
 pref("dom.serviceWorkers.disable_open_click_delay", 5000);
 
 pref("dom.push.debug", false);
-// The upstream autopush endpoint must have the Google API key corresponding to
-// the App's sender ID; we bake this assumption directly into the URL.
-pref("dom.push.serverURL", "https://updates.push.services.mozilla.com/v1/gcm/@MOZ_ANDROID_GCM_SENDERID@");
 pref("dom.push.maxRecentMessageIDsPerSubscription", 0);
-
-#ifdef MOZ_ANDROID_GCM
-  pref("dom.push.enabled", true);
-#endif
 
 // The remote content URL where FxAccountsWebChannel messages originate.  Must use HTTPS.
 pref("identity.fxaccounts.remote.webchannel.uri", "https://accounts.firefox.com");

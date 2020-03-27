@@ -616,8 +616,12 @@ struct gfxFontEntry::GrSandboxData {
     // Firefox preloads the library externally to ensure we won't be stopped by
     // the content sandbox
     const bool external_loads_exist = true;
+    // See Bug 1606981: In some environments allowing stdio in the wasm sandbox
+    // fails as the I/O redirection involves querying meta-data of file
+    // descriptors. This querying fails in some environments.
+    const bool allow_stdio = false;
     sandbox.create_sandbox(mozilla::ipc::GetSandboxedGraphitePath().get(),
-                           external_loads_exist);
+                           external_loads_exist, allow_stdio);
 #else
     sandbox.create_sandbox();
 #endif
@@ -1230,9 +1234,12 @@ void gfxFontEntry::SetupVariationRanges() {
               SlantStyle().Min()) {
             mStandardFace = false;
           }
+          // OpenType and CSS measure angles in opposite directions, so we
+          // have to flip signs and swap min/max when setting up the CSS
+          // font-style range here.
           mStyleRange =
-              SlantStyleRange(FontSlantStyle::Oblique(axis.mMinValue),
-                              FontSlantStyle::Oblique(axis.mMaxValue));
+              SlantStyleRange(FontSlantStyle::Oblique(-axis.mMaxValue),
+                              FontSlantStyle::Oblique(-axis.mMinValue));
         }
         break;
 
@@ -1352,7 +1359,9 @@ void gfxFontEntry::GetVariationsForStyle(nsTArray<gfxFontVariation>& aResult,
     if (!(IsUserFont() && (mRangeFlags & RangeFlags::eAutoSlantStyle))) {
       angle = SlantStyle().Clamp(FontSlantStyle::Oblique(angle)).ObliqueAngle();
     }
-    aResult.AppendElement(gfxFontVariation{HB_TAG('s', 'l', 'n', 't'), angle});
+    // OpenType and CSS measure angles in opposite directions, so we have to
+    // invert the sign of the CSS oblique value when setting OpenType 'slnt'.
+    aResult.AppendElement(gfxFontVariation{HB_TAG('s', 'l', 'n', 't'), -angle});
   }
 
   auto replaceOrAppend = [&aResult](const gfxFontVariation& aSetting) {

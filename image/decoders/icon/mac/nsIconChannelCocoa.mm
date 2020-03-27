@@ -9,6 +9,7 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/EndianUtils.h"
 #include "nsIIconURI.h"
+#include "nsIInputStream.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsString.h"
@@ -352,6 +353,12 @@ NS_IMETHODIMP
 nsIconChannel::SetLoadFlags(uint32_t aLoadAttributes) {
   return mPump->SetLoadFlags(aLoadAttributes);
 }
+
+NS_IMETHODIMP
+nsIconChannel::GetTRRMode(nsIRequest::TRRMode* aTRRMode) { return GetTRRModeImpl(aTRRMode); }
+
+NS_IMETHODIMP
+nsIconChannel::SetTRRMode(nsIRequest::TRRMode aTRRMode) { return SetTRRModeImpl(aTRRMode); }
 
 NS_IMETHODIMP
 nsIconChannel::GetIsDocument(bool* aIsDocument) {

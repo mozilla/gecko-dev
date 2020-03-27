@@ -30,6 +30,9 @@ const { WindowManager } = ChromeUtils.import(
   "chrome://remote/content/WindowManager.jsm"
 );
 
+const MAX_CANVAS_DIMENSION = 32767;
+const MAX_CANVAS_AREA = 472907776;
+
 const PRINT_MAX_SCALE_VALUE = 2.0;
 const PRINT_MIN_SCALE_VALUE = 0.1;
 
@@ -61,7 +64,7 @@ class Page extends Domain {
    * Capture page screenshot.
    *
    * @param {Object} options
-   * @param {Viewport=} options.clip (not supported)
+   * @param {Viewport=} options.clip
    *     Capture the screenshot of a given region only.
    * @param {string=} options.format
    *     Image compression format. Defaults to "png".
@@ -72,53 +75,88 @@ class Page extends Domain {
    *     Base64-encoded image data.
    */
   async captureScreenshot(options = {}) {
-    const { format = "png", quality = 80 } = options;
+    const { clip, format = "png", quality = 80 } = options;
 
-    if (options.clip) {
-      throw new UnsupportedError("clip not supported");
-    }
     if (options.fromSurface) {
       throw new UnsupportedError("fromSurface not supported");
     }
 
-    const MAX_CANVAS_DIMENSION = 32767;
-    const MAX_CANVAS_AREA = 472907776;
+    let rect;
+    let scale = await this.executeInChild("_devicePixelRatio");
 
-    // Retrieve the browsing context of the content browser
-    const { browsingContext, window } = this.session.target;
-    const scale = window.devicePixelRatio;
+    if (clip) {
+      for (const prop of ["x", "y", "width", "height", "scale"]) {
+        if (clip[prop] == undefined) {
+          throw new TypeError(`clip.${prop}: double value expected`);
+        }
+      }
 
-    const rect = await this.executeInChild("_layoutViewport");
+      const contentRect = await this.executeInChild("_contentRect");
 
-    let canvasWidth = rect.clientWidth * scale;
-    let canvasHeight = rect.clientHeight * scale;
+      // For invalid scale values default to full page
+      if (clip.scale <= 0) {
+        Object.assign(clip, {
+          x: 0,
+          y: 0,
+          width: contentRect.width,
+          height: contentRect.height,
+          scale: 1,
+        });
+      } else {
+        if (clip.x < 0 || clip.x > contentRect.width - 1) {
+          clip.x = 0;
+        }
+        if (clip.y < 0 || clip.y > contentRect.height - 1) {
+          clip.y = 0;
+        }
+        if (clip.width <= 0) {
+          clip.width = contentRect.width;
+        }
+        if (clip.height <= 0) {
+          clip.height = contentRect.height;
+        }
+      }
+
+      rect = new DOMRect(clip.x, clip.y, clip.width, clip.height);
+      scale *= clip.scale;
+    } else {
+      // If no specific clipping region has been specified,
+      // fallback to the layout (fixed) viewport, and the
+      // default pixel ratio.
+      const {
+        pageX,
+        pageY,
+        clientWidth,
+        clientHeight,
+      } = await this.executeInChild("_layoutViewport");
+
+      rect = new DOMRect(pageX, pageY, clientWidth, clientHeight);
+    }
+
+    let canvasWidth = rect.width * scale;
+    let canvasHeight = rect.height * scale;
 
     // Cap the screenshot size based on maximum allowed canvas sizes.
     // Using higher dimensions would trigger exceptions in Gecko.
     //
     // See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/canvas#Maximum_canvas_size
     if (canvasWidth > MAX_CANVAS_DIMENSION) {
-      rect.clientWidth = Math.floor(MAX_CANVAS_DIMENSION / scale);
-      canvasWidth = rect.clientWidth * scale;
+      rect.width = Math.floor(MAX_CANVAS_DIMENSION / scale);
+      canvasWidth = rect.width * scale;
     }
     if (canvasHeight > MAX_CANVAS_DIMENSION) {
-      rect.clientHeight = Math.floor(MAX_CANVAS_DIMENSION / scale);
-      canvasHeight = rect.clientHeight * scale;
+      rect.height = Math.floor(MAX_CANVAS_DIMENSION / scale);
+      canvasHeight = rect.height * scale;
     }
     // If the area is larger, reduce the height to keep the full width.
     if (canvasWidth * canvasHeight > MAX_CANVAS_AREA) {
-      rect.clientHeight = Math.floor(MAX_CANVAS_AREA / (canvasWidth * scale));
-      canvasHeight = rect.clientHeight * scale;
+      rect.height = Math.floor(MAX_CANVAS_AREA / (canvasWidth * scale));
+      canvasHeight = rect.height * scale;
     }
 
-    const captureRect = new DOMRect(
-      rect.pageX,
-      rect.pageY,
-      rect.clientWidth,
-      rect.clientHeight
-    );
+    const { browsingContext, window } = this.session.target;
     const snapshot = await browsingContext.currentWindowGlobal.drawSnapshot(
-      captureRect,
+      rect,
       scale,
       "rgb(255,255,255)"
     );
@@ -236,7 +274,7 @@ class Page extends Domain {
   async getLayoutMetrics() {
     return {
       layoutViewport: await this.executeInChild("_layoutViewport"),
-      contentSize: await this.executeInChild("_contentSize"),
+      contentSize: await this.executeInChild("_contentRect"),
     };
   }
 
@@ -257,6 +295,29 @@ class Page extends Domain {
       throw new Error("Page domain is not enabled");
     }
     await this._dialogHandler.handleJavaScriptDialog({ accept, promptText });
+  }
+
+  /**
+   * Navigates current page to the given history entry.
+   *
+   * @param {Object} options
+   * @param {number} options.entryId
+   *    Unique id of the entry to navigate to.
+   */
+  async navigateToHistoryEntry(options = {}) {
+    const { entryId } = options;
+
+    const index = await this.executeInChild(
+      "_getIndexForHistoryEntryId",
+      entryId
+    );
+
+    if (index == null) {
+      throw new Error("No entry with passed id");
+    }
+
+    const { window } = this.session.target;
+    window.gBrowser.gotoIndex(index);
   }
 
   /**
@@ -455,6 +516,19 @@ class Page extends Domain {
 
     return retval;
   }
+
+  /**
+   * Intercept file chooser requests and transfer control to protocol clients.
+   *
+   * When file chooser interception is enabled,
+   * the native file chooser dialog is not shown.
+   * Instead, a protocol event Page.fileChooserOpened is emitted.
+   *
+   * @param {Object} options
+   * @param {boolean=} options.enabled
+   *     Enabled state of file chooser interception.
+   */
+  setInterceptFileChooserDialog(options = {}) {}
 
   /**
    * Emit the proper CDP event javascriptDialogOpening when a javascript dialog

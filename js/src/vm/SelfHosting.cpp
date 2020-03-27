@@ -76,6 +76,7 @@
 #include "vm/Realm.h"
 #include "vm/RegExpObject.h"
 #include "vm/StringType.h"
+#include "vm/ToSource.h"  // js::ValueToSource
 #include "vm/TypedArrayObject.h"
 #include "vm/WrapperObject.h"
 
@@ -588,7 +589,7 @@ static bool intrinsic_DefineDataProperty(JSContext* cx, unsigned argc,
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // When DefineDataProperty is called with 3 arguments, it's compiled to
-  // JSOP_INITELEM in the bytecode emitter so we shouldn't get here.
+  // JSOp::InitElem in the bytecode emitter so we shouldn't get here.
   MOZ_ASSERT(args.length() == 4);
   MOZ_ASSERT(args[0].isObject());
   MOZ_RELEASE_ASSERT(args[3].isInt32());
@@ -2557,9 +2558,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
 
 void js::FillSelfHostingCompileOptions(CompileOptions& options) {
   /*
-   * In self-hosting mode, scripts use JSOP_GETINTRINSIC instead of
-   * JSOP_GETNAME or JSOP_GETGNAME to access unbound variables.
-   * JSOP_GETINTRINSIC does a name lookup on a special object, whose
+   * In self-hosting mode, scripts use JSOp::GetIntrinsic instead of
+   * JSOp::GetName or JSOp::GetGName to access unbound variables.
+   * JSOp::GetIntrinsic does a name lookup on a special object, whose
    * properties are filled in lazily upon first access for a given global.
    *
    * As that object is inaccessible to client code, the lookups are
@@ -2687,7 +2688,7 @@ static bool VerifyGlobalNames(JSContext* cx, Handle<GlobalObject*> shg) {
     for (BytecodeLocation loc : AllBytecodesIterable(script)) {
       JSOp op = loc.getOp();
 
-      if (op == JSOP_GETINTRINSIC) {
+      if (op == JSOp::GetIntrinsic) {
         PropertyName* name = loc.getPropertyName(script);
         id = NameToId(name);
 
@@ -2767,6 +2768,10 @@ bool JSRuntime::initSelfHosting(JSContext* cx) {
   if (!VerifyGlobalNames(cx, shg)) {
     return false;
   }
+
+  // Garbage collect the self hosting zone once when it is created. It should
+  // not be modified after this point.
+  cx->runtime()->gc.freezeSelfHostingZone();
 
   return true;
 }

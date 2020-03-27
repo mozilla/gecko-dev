@@ -43,6 +43,7 @@ VRManagerChild::VRManagerChild()
   MOZ_ASSERT(NS_IsMainThread());
 
   mStartTimeStamp = TimeStamp::Now();
+  AddRef();
 }
 
 VRManagerChild::~VRManagerChild() { MOZ_ASSERT(NS_IsMainThread()); }
@@ -90,7 +91,6 @@ bool VRManagerChild::IsPresenting() {
 /* static */
 bool VRManagerChild::InitForContent(Endpoint<PVRManagerChild>&& aEndpoint) {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!sVRManagerChildSingleton);
 
   RefPtr<VRManagerChild> child(new VRManagerChild());
   if (!aEndpoint.Bind(child)) {
@@ -98,15 +98,6 @@ bool VRManagerChild::InitForContent(Endpoint<PVRManagerChild>&& aEndpoint) {
   }
   sVRManagerChildSingleton = child;
   return true;
-}
-
-/* static */
-bool VRManagerChild::ReinitForContent(Endpoint<PVRManagerChild>&& aEndpoint) {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  ShutDown();
-
-  return InitForContent(std::move(aEndpoint));
 }
 
 /*static*/
@@ -135,25 +126,19 @@ void VRManagerChild::InitWithGPUProcess(Endpoint<PVRManagerChild>&& aEndpoint) {
 /*static*/
 void VRManagerChild::ShutDown() {
   MOZ_ASSERT(NS_IsMainThread());
-  if (sVRManagerChildSingleton) {
-    sVRManagerChildSingleton->Destroy();
+  if (!sVRManagerChildSingleton) {
+    return;
+  }
+  sVRManagerChildSingleton->Close();
+  sVRManagerChildSingleton = nullptr;
+}
+
+void VRManagerChild::ActorDealloc() { Release(); }
+
+void VRManagerChild::ActorDestroy(ActorDestroyReason aReason) {
+  if (sVRManagerChildSingleton == this) {
     sVRManagerChildSingleton = nullptr;
   }
-}
-
-/*static*/
-void VRManagerChild::DeferredDestroy(RefPtr<VRManagerChild> aVRManagerChild) {
-  aVRManagerChild->Close();
-}
-
-void VRManagerChild::Destroy() {
-  // Keep ourselves alive until everything has been shut down
-  RefPtr<VRManagerChild> selfRef = this;
-
-  // The DeferredDestroyVRManager task takes ownership of
-  // the VRManagerChild and will release it when it runs.
-  MessageLoop::current()->PostTask(NewRunnableFunction(
-      "VRManagerChildDestroyRunnable", DeferredDestroy, selfRef));
 }
 
 PVRLayerChild* VRManagerChild::AllocPVRLayerChild(const uint32_t& aDisplayID,
@@ -417,7 +402,7 @@ void VRManagerChild::CancelFrameRequestCallback(int32_t aHandle) {
 }
 
 void VRManagerChild::RunFrameRequestCallbacks() {
-  AUTO_PROFILER_TRACING("VR", "RunFrameRequestCallbacks", GRAPHICS);
+  AUTO_PROFILER_TRACING_MARKER("VR", "RunFrameRequestCallbacks", GRAPHICS);
 
   TimeStamp nowTime = TimeStamp::Now();
   mozilla::TimeDuration duration = nowTime - mStartTimeStamp;

@@ -51,13 +51,13 @@ ConvertMediaControlKeysTestEventToMediaControlKeysEvent(
       return MediaControlKeysEvent::ePause;
     case MediaControlKeysTestEvent::PlayPause:
       return MediaControlKeysEvent::ePlayPause;
-    case MediaControlKeysTestEvent::PrevTrack:
+    case MediaControlKeysTestEvent::Previoustrack:
       return MediaControlKeysEvent::ePrevTrack;
-    case MediaControlKeysTestEvent::NextTrack:
+    case MediaControlKeysTestEvent::Nexttrack:
       return MediaControlKeysEvent::eNextTrack;
-    case MediaControlKeysTestEvent::SeekBackward:
+    case MediaControlKeysTestEvent::Seekbackward:
       return MediaControlKeysEvent::eSeekBackward;
-    case MediaControlKeysTestEvent::SeekForward:
+    case MediaControlKeysTestEvent::Seekforward:
       return MediaControlKeysEvent::eSeekForward;
     default:
       MOZ_ASSERT(aEvent == MediaControlKeysTestEvent::Stop);
@@ -65,13 +65,14 @@ ConvertMediaControlKeysTestEventToMediaControlKeysEvent(
   }
 }
 
-inline const char* ToPlaybackStateEventStr(
-    MediaControlKeysEventSource::PlaybackState aState) {
+inline const char* ToPlaybackStateEventStr(PlaybackState aState) {
   switch (aState) {
-    case MediaControlKeysEventSource::PlaybackState::ePlayed:
-      return "Played";
-    case MediaControlKeysEventSource::PlaybackState::ePaused:
+    case PlaybackState::ePlaying:
+      return "Playing";
+    case PlaybackState::ePaused:
       return "Paused";
+    case PlaybackState::eStopped:
+      return "Stopped";
     default:
       MOZ_ASSERT_UNREACHABLE("Invalid playback state.");
       return "Unknown";

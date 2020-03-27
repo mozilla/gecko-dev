@@ -119,10 +119,9 @@ JSWindowActorProtocol::FromWebIDLOptions(const nsAString& aName,
   }
 
   if (!aOptions.mChild.WasPassed() && !aOptions.mParent.WasPassed()) {
-    aRv.ThrowDOMException(
-        NS_ERROR_DOM_NOT_SUPPORTED_ERR,
-        NS_LITERAL_CSTRING("No point registering an actor with neither child "
-                           "nor parent specifications."));
+    aRv.ThrowNotSupportedError(
+        "No point registering an actor with neither child nor parent "
+        "specifications.");
     return nullptr;
   }
 
@@ -169,6 +168,8 @@ JSWindowActorProtocol::FromWebIDLOptions(const nsAString& aName,
  * This will work in both content and parent processes.
  */
 NS_IMETHODIMP JSWindowActorProtocol::HandleEvent(Event* aEvent) {
+  MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
+
   // Determine which inner window we're associated with, and get its
   // WindowGlobalChild actor.
   EventTarget* target = aEvent->GetOriginalTarget();
@@ -212,6 +213,8 @@ NS_IMETHODIMP JSWindowActorProtocol::HandleEvent(Event* aEvent) {
 NS_IMETHODIMP JSWindowActorProtocol::Observe(nsISupports* aSubject,
                                              const char* aTopic,
                                              const char16_t* aData) {
+  MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
+
   nsCOMPtr<nsPIDOMWindowInner> inner = do_QueryInterface(aSubject);
   RefPtr<WindowGlobalChild> wgc;
 
@@ -377,9 +380,9 @@ void JSWindowActorService::RegisterWindowActor(
 
   auto entry = mDescriptors.LookupForAdd(aName);
   if (entry) {
-    aRv.ThrowDOMException(NS_ERROR_DOM_NOT_SUPPORTED_ERR,
-                          nsPrintfCString("'%s' actor is already registered.",
-                                          NS_ConvertUTF16toUTF8(aName).get()));
+    aRv.ThrowNotSupportedError(
+        nsPrintfCString("'%s' actor is already registered.",
+                        NS_ConvertUTF16toUTF8(aName).get()));
     return;
   }
 

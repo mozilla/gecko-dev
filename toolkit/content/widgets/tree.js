@@ -211,9 +211,8 @@
           tree.stopEditing(true);
           var menuitem = this.querySelector('[anonid="menuitem"]');
           if (event.originalTarget == menuitem) {
-            tree.columns.restoreNaturalOrder();
-            this.removeAttribute("ordinal");
-            tree._ensureColumnOrder();
+            this.style.MozBoxOrdinalGroup = "";
+            tree._ensureColumnOrder(tree.NATURAL_ORDER);
           } else {
             var colindex = event.originalTarget.getAttribute("colindex");
             var column = tree.columns[colindex];
@@ -376,15 +375,19 @@
       this.textContent = "";
       this.appendChild(this.content);
       this.initializeAttributeInheritance();
+      if (this.hasAttribute("ordinal")) {
+        this.style.MozBoxOrdinalGroup = this.getAttribute("ordinal");
+      }
     }
 
     set ordinal(val) {
+      this.style.MozBoxOrdinalGroup = val;
       this.setAttribute("ordinal", val);
       return val;
     }
 
     get ordinal() {
-      var val = this.getAttribute("ordinal");
+      var val = this.style.MozBoxOrdinalGroup;
       if (val == "") {
         return "1";
       }
@@ -589,6 +592,12 @@
   ) {
     constructor() {
       super();
+
+      // These enumerated constants are used as the first argument to
+      // _ensureColumnOrder to specify what column ordering should be used.
+      this.CURRENT_ORDER = 0;
+      this.NATURAL_ORDER = 1; // The original order, which is the DOM ordering
+
       this.attachShadow({ mode: "open" });
       let fragment = MozXULElement.parseXULToFragment(`
         <html:link rel="stylesheet" href="chrome://global/content/widgets.css" />
@@ -1114,27 +1123,36 @@
       return this.getAttribute("_selectDelay") || 50;
     }
 
-    _ensureColumnOrder() {
+    // The first argument (order) can be either one of these constants:
+    //   this.CURRENT_ORDER
+    //   this.NATURAL_ORDER
+    _ensureColumnOrder(order = this.CURRENT_ORDER) {
       if (this.columns) {
         // update the ordinal position of each column to assure that it is
         // an odd number and 2 positions above its next sibling
         var cols = [];
 
-        for (
-          let col = this.columns.getFirstColumn();
-          col;
-          col = col.getNext()
-        ) {
-          cols.push(col.element);
+        if (order == this.CURRENT_ORDER) {
+          for (
+            let col = this.columns.getFirstColumn();
+            col;
+            col = col.getNext()
+          ) {
+            cols.push(col.element);
+          }
+        } else {
+          // order == this.NATURAL_ORDER
+          cols = this.getElementsByTagName("treecol");
         }
+
         for (let i = 0; i < cols.length; ++i) {
-          cols[i].setAttribute("ordinal", i * 2 + 1);
+          cols[i].ordinal = i * 2 + 1;
         }
         // update the ordinal positions of splitters to even numbers, so that
         // they are in between columns
         var splitters = this.getElementsByTagName("splitter");
         for (let i = 0; i < splitters.length; ++i) {
-          splitters[i].setAttribute("ordinal", (i + 1) * 2);
+          splitters[i].style.MozBoxOrdinalGroup = (i + 1) * 2;
         }
       }
     }

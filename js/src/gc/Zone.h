@@ -276,7 +276,7 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   void changeGCState(GCState prev, GCState next) {
     MOZ_ASSERT(RuntimeHeapIsBusy());
     MOZ_ASSERT(gcState() == prev);
-    MOZ_ASSERT_IF(next != NoGC, canCollect());
+    MOZ_ASSERT(canCollect());
     gcState_ = next;
   }
 
@@ -458,6 +458,11 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   js::gc::WeakKeyTable& gcWeakKeys() { return gcWeakKeys_.ref(); }
   js::gc::WeakKeyTable& gcNurseryWeakKeys() { return gcNurseryWeakKeys_.ref(); }
 
+  // Perform all pending weakmap entry marking for this zone after
+  // transitioning to weak marking mode.
+  void enterWeakMarkingMode(js::GCMarker* marker);
+  void checkWeakMarkingMode();
+
  private:
   void sweepWeakKeysAfterMinorGC();
 
@@ -554,6 +559,9 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   js::ZoneData<uint32_t> tenuredStrings;
   js::ZoneData<bool> allocNurseryStrings;
 
+  js::ZoneData<uint32_t> tenuredBigInts;
+  js::ZoneData<bool> allocNurseryBigInts;
+
  private:
   // Shared Shape property tree.
   js::ZoneData<js::PropertyTree> propertyTree_;
@@ -644,6 +652,7 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   // Delete an empty compartment after its contents have been merged.
   void deleteEmptyCompartment(JS::Compartment* comp);
 
+  void clearRootsForShutdownGC();
   void finishRoots();
 
  private:

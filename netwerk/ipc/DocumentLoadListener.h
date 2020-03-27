@@ -220,21 +220,9 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
     bool mIsThirdParty;
   };
 
-  struct NotifyChannelClassifierProtectionDisabledParams {
-    uint32_t mAcceptedReason;
-  };
-
-  struct NotifyCookieAllowedParams {};
-
-  struct NotifyCookieBlockedParams {
-    uint32_t mRejectedReason;
-  };
-
   typedef mozilla::Variant<
       nsIHttpChannel::FlashPluginState, ClassifierMatchedInfoParams,
-      ClassifierMatchedTrackingInfoParams, ClassificationFlagsParams,
-      NotifyChannelClassifierProtectionDisabledParams,
-      NotifyCookieAllowedParams, NotifyCookieBlockedParams>
+      ClassifierMatchedTrackingInfoParams, ClassificationFlagsParams>
       IParentChannelFunction;
 
   // Store a list of all the attribute setters that have been called on this
@@ -329,9 +317,13 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
 
   nsTArray<DocumentChannelRedirect> mRedirects;
 
-  // Flags from nsDocShellLoadState::LoadFlags that we want to make available
-  // to the new docshell if we switch processes.
+  nsString mSrcdocData;
+  nsCOMPtr<nsIURI> mBaseURI;
+
+  // Flags from nsDocShellLoadState::LoadFlags/Type that we want to make
+  // available to the new docshell if we switch processes.
   uint32_t mLoadStateLoadFlags = 0;
+  uint32_t mLoadStateLoadType = 0;
 
   // Corresponding redirect channel registrar Id for the final channel that
   // we want to use when redirecting the child, or doing a process switch.

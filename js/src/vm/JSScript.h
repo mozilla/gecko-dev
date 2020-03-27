@@ -78,9 +78,9 @@ class DebugAPI;
 class DebugScript;
 
 namespace frontend {
-struct BytecodeEmitter;
 class FunctionBox;
 class ModuleSharedContext;
+class ScriptStencil;
 }  // namespace frontend
 
 namespace gc {
@@ -660,25 +660,12 @@ class ScriptSource {
   // will be released in the canonical SSO's finalizer.
   UniquePtr<XDRIncrementalEncoder> xdrEncoder_ = nullptr;
 
-  // Instant at which the first parse of this source started, or null
+  // Instant at which the first parse of this source ended, or null
   // if the source hasn't been parsed yet.
   //
-  // Used for telemetry purposes, to evaluate the benefit of using a streaming
-  // parser.
-  mozilla::TimeStamp parseStarted_;
-
-  // Instant at which the top-level compilation starts emitting bytes, or null
-  // if the source hasn't been compiled yet.
-  //
-  // Used for telemetry purposes, to evaluate the cost of the front-end.
-  mozilla::TimeStamp emitStarted_;
-
-  // Instant at which the first compilation of this source ended, or null if the
-  // source hasn't been parsed yet.
-  //
-  // Used for statistics purposes, to determine how much time code spends syntax
-  // parsed before being full parsed, to help determine whether our syntax parse
-  // vs. full parse heuristics are correct.
+  // Used for statistics purposes, to determine how much time code spends
+  // syntax parsed before being full parsed, to help determine whether
+  // our syntax parse vs. full parse heuristics are correct.
   mozilla::TimeStamp parseEnded_;
 
   // A string indicating how this source code was introduced into the system.
@@ -745,9 +732,8 @@ class ScriptSource {
       js_delete(this);
     }
   }
-  MOZ_MUST_USE bool initFromOptions(
-      JSContext* cx, const JS::ReadOnlyCompileOptions& options,
-      const mozilla::Maybe<uint32_t>& parameterListEnd = mozilla::Nothing());
+  MOZ_MUST_USE bool initFromOptions(JSContext* cx,
+                                    const JS::ReadOnlyCompileOptions& options);
 
   /**
    * The minimum script length (in code units) necessary for a script to be
@@ -1020,6 +1006,10 @@ class ScriptSource {
   MOZ_MUST_USE bool appendSubstring(JSContext* cx, js::StringBuffer& buf,
                                     size_t start, size_t stop);
 
+  void setParameterListEnd(uint32_t parameterListEnd) {
+    parameterListEnd_ = parameterListEnd;
+  }
+
   bool isFunctionBody() { return parameterListEnd_ != 0; }
   JSLinearString* functionBodyString(JSContext* cx);
 
@@ -1220,22 +1210,6 @@ class ScriptSource {
   bool xdrFinalizeEncoder(JS::TranscodeBuffer& buffer);
 
   const mozilla::TimeStamp parseEnded() const { return parseEnded_; }
-  const mozilla::TimeDuration parseTime() const {
-    return emitStarted_ - parseStarted_;
-  }
-  const mozilla::TimeDuration emitTime() const {
-    return parseEnded_ - emitStarted_;
-  }
-  // Record the timestamp at which this source is starting to be parsed.
-  void recordParseStarted() {
-    MOZ_ASSERT(parseStarted_.IsNull());
-    parseStarted_ = ReallyNow();
-  }
-  // Record the timestamp at which this source is starting to be parsed.
-  void recordEmitStarted() {
-    MOZ_ASSERT(emitStarted_.IsNull());
-    emitStarted_ = ReallyNow();
-  }
   // Inform `this` source that it has been fully parsed.
   void recordParseEnded() {
     MOZ_ASSERT(parseEnded_.IsNull());
@@ -1598,8 +1572,8 @@ class alignas(uintptr_t) PrivateScriptData final {
   static bool Clone(JSContext* cx, js::HandleScript src, js::HandleScript dst,
                     js::MutableHandle<JS::GCVector<js::Scope*>> scopes);
 
-  static bool InitFromEmitter(JSContext* cx, js::HandleScript script,
-                              js::frontend::BytecodeEmitter* bce);
+  static bool InitFromStencil(JSContext* cx, js::HandleScript script,
+                              const js::frontend::ScriptStencil& stencil);
 
   void trace(JSTracer* trc);
 
@@ -1858,9 +1832,8 @@ class alignas(uint32_t) ImmutableScriptData final {
   static MOZ_MUST_USE XDRResult XDR(js::XDRState<mode>* xdr,
                                     js::HandleScript script);
 
-  static bool InitFromEmitter(JSContext* cx, js::HandleScript script,
-                              js::frontend::BytecodeEmitter* bce,
-                              uint32_t nslots);
+  static bool InitFromStencil(JSContext* cx, js::HandleScript script,
+                              const js::frontend::ScriptStencil& stencil);
 
   // ImmutableScriptData has trailing data so isn't copyable or movable.
   ImmutableScriptData(const ImmutableScriptData&) = delete;
@@ -1943,9 +1916,8 @@ class RuntimeScriptData final {
   // Mark this RuntimeScriptData for use in a new zone.
   void markForCrossZone(JSContext* cx);
 
-  static bool InitFromEmitter(JSContext* cx, js::HandleScript script,
-                              js::frontend::BytecodeEmitter* bce,
-                              uint32_t nslots);
+  static bool InitFromStencil(JSContext* cx, js::HandleScript script,
+                              const js::frontend::ScriptStencil& stencil);
 
   size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) {
     return mallocSizeOf(this) + mallocSizeOf(isd_.get());
@@ -2097,7 +2069,7 @@ class BaseScript : public gc::TenuredCell {
     BindingsAccessedDynamically = 1 << 5,
     FunHasExtensibleScope = 1 << 6,
 
-    // Bytecode contains JSOP_CALLSITEOBJ
+    // Bytecode contains JSOp::CallSiteObj
     // (We don't relazify functions with template strings, due to observability)
     HasCallSiteObj = 1 << 7,
 
@@ -2113,7 +2085,7 @@ class BaseScript : public gc::TenuredCell {
     HasMappedArgsObj = 1 << 11,
 
     // Script contains inner functions. Used to check if we can relazify the
-    // script.
+    // script. Note: This is only valid for function scripts.
     HasInnerFunctions = 1 << 12,
 
     NeedsHomeObject = 1 << 13,
@@ -2393,7 +2365,7 @@ setterLevel:                                                                  \
   IMMUTABLE_FLAG_GETTER(isGenerator, IsGenerator)
   IMMUTABLE_FLAG_GETTER(isAsync, IsAsync)
   IMMUTABLE_FLAG_GETTER_SETTER_PUBLIC(hasRest, HasRest)
-  // See ContextFlags::funArgumentsHasLocalBinding comment.
+  // See FunctionBox::argumentsHasLocalBinding_ comment.
   // N.B.: no setter -- custom logic in JSScript.
   IMMUTABLE_FLAG_GETTER(argumentsHasVarBinding, ArgumentsHasVarBinding)
   // IsForEval: custom logic below.
@@ -2617,13 +2589,13 @@ class JSScript : public js::BaseScript {
   friend js::XDRResult js::ImmutableScriptData::XDR(js::XDRState<mode>* xdr,
                                                     js::HandleScript script);
 
-  friend bool js::RuntimeScriptData::InitFromEmitter(
+  friend bool js::RuntimeScriptData::InitFromStencil(
       JSContext* cx, js::HandleScript script,
-      js::frontend::BytecodeEmitter* bce, uint32_t nslot);
+      const js::frontend::ScriptStencil& stencil);
 
-  friend bool js::ImmutableScriptData::InitFromEmitter(
+  friend bool js::ImmutableScriptData::InitFromStencil(
       JSContext* cx, js::HandleScript script,
-      js::frontend::BytecodeEmitter* bce, uint32_t nslot);
+      const js::frontend::ScriptStencil& stencil);
 
   template <js::XDRMode mode>
   friend js::XDRResult js::PrivateScriptData::XDR(
@@ -2635,9 +2607,9 @@ class JSScript : public js::BaseScript {
       JSContext* cx, js::HandleScript src, js::HandleScript dst,
       js::MutableHandle<JS::GCVector<js::Scope*>> scopes);
 
-  friend bool js::PrivateScriptData::InitFromEmitter(
+  friend bool js::PrivateScriptData::InitFromStencil(
       JSContext* cx, js::HandleScript script,
-      js::frontend::BytecodeEmitter* bce);
+      const js::frontend::ScriptStencil& stencil);
 
   friend JSScript* js::detail::CopyScript(
       JSContext* cx, js::HandleScript src, js::HandleObject functionOrGlobal,
@@ -2665,7 +2637,7 @@ class JSScript : public js::BaseScript {
                                   js::Handle<js::LazyScript*> lazy);
 
   // NOTE: If you use createPrivateScriptData directly instead of via
-  // fullyInitFromEmitter, you are responsible for notifying the debugger
+  // fullyInitFromStencil, you are responsible for notifying the debugger
   // after successfully creating the script.
   static bool createPrivateScriptData(JSContext* cx,
                                       JS::Handle<JSScript*> script,
@@ -2675,8 +2647,8 @@ class JSScript : public js::BaseScript {
   void initFromFunctionBox(js::frontend::FunctionBox* funbox);
 
  public:
-  static bool fullyInitFromEmitter(JSContext* cx, js::HandleScript script,
-                                   js::frontend::BytecodeEmitter* bce);
+  static bool fullyInitFromStencil(JSContext* cx, js::HandleScript script,
+                                   const js::frontend::ScriptStencil& stencil);
 
 #ifdef DEBUG
  private:
@@ -2698,9 +2670,9 @@ class JSScript : public js::BaseScript {
   }
 
   bool hasForceInterpreterOp() const {
-    // JSOP_FORCEINTERPRETER, if present, must be the first op.
+    // JSOp::ForceInterpreter, if present, must be the first op.
     MOZ_ASSERT(length() >= 1);
-    return JSOp(*code()) == JSOP_FORCEINTERPRETER;
+    return JSOp(*code()) == JSOp::ForceInterpreter;
   }
 
   js::AllBytecodesIterable allLocations() {
@@ -2711,7 +2683,7 @@ class JSScript : public js::BaseScript {
 
   bool isUncompleted() const {
     // code() becomes non-null only if this script is complete.
-    // See the comment in JSScript::fullyInitFromEmitter.
+    // See the comment in JSScript::fullyInitFromStencil.
     return !code();
   }
 
@@ -2723,8 +2695,8 @@ class JSScript : public js::BaseScript {
   jsbytecode* codeEnd() const { return code() + length(); }
 
   jsbytecode* lastPC() const {
-    jsbytecode* pc = codeEnd() - js::JSOP_RETRVAL_LENGTH;
-    MOZ_ASSERT(*pc == JSOP_RETRVAL);
+    jsbytecode* pc = codeEnd() - js::JSOpLength_RetRval;
+    MOZ_ASSERT(JSOp(*pc) == JSOp::RetRval);
     return pc;
   }
 
@@ -2839,12 +2811,12 @@ class JSScript : public js::BaseScript {
                                           js::HandleScript script);
 
   /*
-   * Arguments access (via JSOP_*ARG* opcodes) must access the canonical
+   * Arguments access (via JSOp::*Arg* opcodes) must access the canonical
    * location for the argument. If an arguments object exists AND it's mapped
    * ('arguments' aliases formals), then all access must go through the
    * arguments object. Otherwise, the local slot is the canonical location for
    * the arguments. Note: if a formal is aliased through the scope chain, then
-   * script->formalIsAliased and JSOP_*ARG* opcodes won't be emitted at all.
+   * script->formalIsAliased and JSOp::*Arg* opcodes won't be emitted at all.
    */
   bool argsObjAliasesFormals() const {
     return needsArgsObj() && hasMappedArgsObj();
@@ -3099,7 +3071,7 @@ class JSScript : public js::BaseScript {
 
   uint32_t tableSwitchCaseOffset(jsbytecode* pc, uint32_t caseIndex) const {
     MOZ_ASSERT(containsPC(pc));
-    MOZ_ASSERT(*pc == JSOP_TABLESWITCH);
+    MOZ_ASSERT(JSOp(*pc) == JSOp::TableSwitch);
     uint32_t firstResumeIndex = GET_RESUMEINDEX(pc + 3 * JUMP_OFFSET_LEN);
     return resumeOffsets()[firstResumeIndex + caseIndex];
   }
@@ -3177,6 +3149,7 @@ class JSScript : public js::BaseScript {
   inline js::RegExpObject* getRegExp(jsbytecode* pc);
 
   js::BigInt* getBigInt(size_t index) {
+    MOZ_ASSERT(gcthings()[index].asCell()->isTenured());
     return &gcthings()[index].as<js::BigInt>();
   }
 
@@ -3189,10 +3162,10 @@ class JSScript : public js::BaseScript {
   // The following 3 functions find the static scope just before the
   // execution of the instruction pointed to by pc.
 
-  js::Scope* lookupScope(jsbytecode* pc);
+  js::Scope* lookupScope(jsbytecode* pc) const;
 
-  js::Scope* innermostScope(jsbytecode* pc);
-  js::Scope* innermostScope() { return innermostScope(main()); }
+  js::Scope* innermostScope(jsbytecode* pc) const;
+  js::Scope* innermostScope() const { return innermostScope(main()); }
 
   /*
    * The isEmpty method tells whether this script has code that computes any
@@ -3205,10 +3178,10 @@ class JSScript : public js::BaseScript {
     }
 
     jsbytecode* pc = code();
-    if (noScriptRval() && JSOp(*pc) == JSOP_FALSE) {
+    if (noScriptRval() && JSOp(*pc) == JSOp::False) {
       ++pc;
     }
-    return JSOp(*pc) == JSOP_RETRVAL;
+    return JSOp(*pc) == JSOp::RetRval;
   }
 
   bool formalIsAliased(unsigned argSlot);

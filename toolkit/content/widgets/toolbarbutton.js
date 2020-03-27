@@ -39,7 +39,7 @@
         ".toolbarbutton-multiline-text": "text=label,accesskey,wrap",
         ".toolbarbutton-menu-dropmarker": "disabled,label",
 
-        ".toolbarbutton-badge": "value=badge,style=badgeStyle",
+        ".toolbarbutton-badge": "text=badge,style=badgeStyle",
       };
     }
 
@@ -59,10 +59,10 @@
     static get badgedFragment() {
       let frag = document.importNode(
         MozXULElement.parseXULToFragment(`
-        <legacy-stack class="toolbarbutton-badge-stack">
+        <stack class="toolbarbutton-badge-stack">
           <image class="toolbarbutton-icon"/>
-          <label class="toolbarbutton-badge" top="0" end="0" crop="none"/>
-        </legacy-stack>
+          <html:label class="toolbarbutton-badge"/>
+        </stack>
         <label class="toolbarbutton-text" crop="right" flex="1"/>
         <label class="toolbarbutton-multiline-text" flex="1"/>
         <dropmarker anonid="dropmarker" type="menu"

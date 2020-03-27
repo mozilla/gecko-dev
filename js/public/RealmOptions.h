@@ -185,6 +185,20 @@ class JS_PUBLIC_API RealmCreationOptions {
     return *this;
   }
 
+  bool getToSourceEnabled() const { return toSource_; }
+  RealmCreationOptions& setToSourceEnabled(bool flag) {
+    toSource_ = flag;
+    return *this;
+  }
+
+  bool getPropertyErrorMessageFixEnabled() const {
+    return propertyErrorMessageFix_;
+  }
+  RealmCreationOptions& setPropertyErrorMessageFixEnabled(bool flag) {
+    propertyErrorMessageFix_ = flag;
+    return *this;
+  }
+
   // This flag doesn't affect JS engine behavior.  It is used by Gecko to
   // mark whether content windows and workers are "Secure Context"s. See
   // https://w3c.github.io/webappsec-secure-contexts/
@@ -223,6 +237,8 @@ class JS_PUBLIC_API RealmCreationOptions {
   bool fields_ = false;
   bool awaitFix_ = false;
   bool weakRefs_ = false;
+  bool toSource_ = false;
+  bool propertyErrorMessageFix_ = false;
   bool secureContext_ = false;
 };
 
@@ -245,12 +261,6 @@ class JS_PUBLIC_API RealmBehaviors {
   bool disableLazyParsing() const { return disableLazyParsing_; }
   RealmBehaviors& setDisableLazyParsing(bool flag) {
     disableLazyParsing_ = flag;
-    return *this;
-  }
-
-  bool deferredParserAlloc() const { return deferredParserAlloc_; }
-  RealmBehaviors& setDeferredParserAlloc(bool flag) {
-    deferredParserAlloc_ = flag;
     return *this;
   }
 
@@ -312,7 +322,6 @@ class JS_PUBLIC_API RealmBehaviors {
   // singleton, instead of returning the value which is baked in the JSScript.
   bool singletonsAsTemplates_ = true;
   bool isNonLive_ = false;
-  bool deferredParserAlloc_ = false;
 };
 
 /**

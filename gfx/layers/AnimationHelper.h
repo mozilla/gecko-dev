@@ -62,7 +62,6 @@ struct PropertyAnimation {
 
 struct PropertyAnimationGroup {
   nsCSSPropertyID mProperty;
-  Maybe<TransformData> mAnimationData;
 
   nsTArray<PropertyAnimation> mAnimations;
   RefPtr<RawServoAnimationValue> mBaseStyle;
@@ -116,8 +115,20 @@ struct AnimatedValue final {
   AnimatedValueType mValue;
 };
 
+struct CompositorAnimationData {
+  Maybe<TransformData> mTransform;
+  Maybe<MotionPathData> mMotionPath;
+
+  bool HasData() const { return mTransform || mMotionPath; }
+  void Clear() {
+    mTransform.reset();
+    mMotionPath.reset();
+  }
+};
+
 struct AnimationStorageData {
   nsTArray<PropertyAnimationGroup> mAnimation;
+  CompositorAnimationData mTransformLikeMetaData;
   RefPtr<gfx::Path> mCachedMotionPath;
 
   AnimationStorageData() = default;
@@ -348,7 +359,8 @@ class AnimationHelper {
    */
   static gfx::Matrix4x4 ServoAnimationValueToMatrix4x4(
       const nsTArray<RefPtr<RawServoAnimationValue>>& aValue,
-      const TransformData& aTransformData, gfx::Path* aCachedMotionPath);
+      const CompositorAnimationData& aAnimationData,
+      gfx::Path* aCachedMotionPath);
 };
 
 }  // namespace layers

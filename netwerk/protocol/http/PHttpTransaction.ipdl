@@ -7,6 +7,7 @@
 
 include protocol PSocketProcess;
 include protocol PFileDescriptorSet; // FIXME: bug #792908
+include protocol PInputChannelThrottleQueue;
 
 include IPCStream;
 include NeckoChannelParams;
@@ -20,6 +21,11 @@ using mozilla::net::NetAddr from "mozilla/net/DNS.h";
 namespace mozilla {
 namespace net {
 
+struct H2PushedStreamArg {
+  PHttpTransaction transWithPushedStream;
+  uint32_t pushedStreamId;
+};
+
 refcounted protocol PHttpTransaction
 {
   manager PSocketProcess;
@@ -29,7 +35,9 @@ parent:
                        nsHttpResponseHead?        responseHead,
                        nsCString                  securityInfoSerialization,
                        bool                       proxyConnectFailed,
-                       TimingStructArgs           timings);
+                       TimingStructArgs           timings,
+                       int32_t                    proxyConnectResponseCode,
+                       uint8_t[]                  dataForSniffer);
   async OnTransportStatus(nsresult status,
                           int64_t progress,
                           int64_t progressMax);
@@ -41,9 +49,13 @@ parent:
                       int64_t transferSize,
                       TimingStructArgs timings,
                       nsHttpHeaderArray? responseTrailers,
-                      bool hasStickyConn);
-  async OnNetAddrUpdate(NetAddr selfAddr, NetAddr peerAddr);
+                      bool hasStickyConn,
+                      TransactionObserverResult? transactionObserverResult);
+  async OnNetAddrUpdate(NetAddr selfAddr, NetAddr peerAddr, bool resolvedByTRR);
   async OnInitFailed(nsresult status);
+  async OnH2PushStream(uint32_t pushedStreamId,
+                       nsCString resourceUrl,
+                       nsCString requestString);
 
 child:
   async __delete__();
@@ -54,7 +66,15 @@ child:
              uint64_t reqContentLength,
              bool reqBodyIncludesHeaders,
              uint64_t topLevelOuterContentWindowId,
-             uint8_t httpTrafficCategory);
+             uint8_t httpTrafficCategory,
+             uint64_t requestContextID,
+             uint32_t classOfService,
+             uint32_t initialRwin,
+             bool responseTimeoutEnabled,
+             uint64_t channelId,
+             bool hasTransactionObserver,
+             H2PushedStreamArg? pushedStreamArg,
+             PInputChannelThrottleQueue? throttleQueue);
 
   async UpdateClassOfService(uint32_t classOfService);
   async CancelPump(nsresult status);

@@ -22,17 +22,17 @@
 #  include <sys/prctl.h>
 #endif
 
+#include <utility>
+
+#include "SpecialSystemDirectory.h"
 #include "base/string_util.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/DebugOnly.h"
-#include "mozilla/Move.h"
-#include "mozilla/NullPtr.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/ipc/FileDescriptor.h"
-#include "nsDirectoryServiceDefs.h"
 #include "nsAppDirectoryServiceDefs.h"
+#include "nsDirectoryServiceDefs.h"
 #include "nsThreadUtils.h"
-#include "SpecialSystemDirectory.h"
 #include "sandbox/linux/system_headers/linux_syscalls.h"
 
 namespace mozilla {
@@ -627,6 +627,8 @@ void SandboxBroker::ThreadMain(void) {
   char threadName[16];
   SprintfLiteral(threadName, "FS Broker %d", mChildPid);
   PlatformThread::SetName(threadName);
+
+  AUTO_PROFILER_REGISTER_THREAD(threadName);
 
   // Permissive mode can only be enabled through an environment variable,
   // therefore it is sufficient to fetch the value once

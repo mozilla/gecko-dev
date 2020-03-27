@@ -7,31 +7,29 @@
 #ifndef nsThreadUtils_h__
 #define nsThreadUtils_h__
 
-#include "prthread.h"
-#include "prinrval.h"
+#include <utility>
+
 #include "MainThreadUtils.h"
+#include "mozilla/AbstractEventQueue.h"
+#include "mozilla/Atomics.h"
+#include "mozilla/Likely.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/TimeStamp.h"
+#include "mozilla/Tuple.h"
+#include "mozilla/TypeTraits.h"
+#include "nsCOMPtr.h"
 #include "nsICancelableRunnable.h"
 #include "nsIIdlePeriod.h"
 #include "nsIIdleRunnable.h"
 #include "nsINamed.h"
 #include "nsIRunnable.h"
+#include "nsIThread.h"
 #include "nsIThreadManager.h"
 #include "nsITimer.h"
-#include "nsIThread.h"
 #include "nsString.h"
-#include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
+#include "prinrval.h"
+#include "prthread.h"
 #include "xpcpublic.h"
-#include "mozilla/AbstractEventQueue.h"
-#include "mozilla/Atomics.h"
-#include "mozilla/Likely.h"
-#include "mozilla/Maybe.h"
-#include "mozilla/Move.h"
-#include "mozilla/TimeStamp.h"
-#include "mozilla/Tuple.h"
-#include "mozilla/TypeTraits.h"
-
-#include <utility>
 
 //-----------------------------------------------------------------------------
 // These methods are alternatives to the methods on nsIThreadManager, provided
@@ -811,7 +809,7 @@ template <typename PtrType, class C, typename R, bool Owning,
           mozilla::RunnableKind Kind, typename... As>
 struct nsRunnableMethodTraits<PtrType, R (C::*)(As...), Owning, Kind> {
   typedef typename mozilla::RemoveRawOrSmartPointer<PtrType>::Type class_type;
-  static_assert(mozilla::IsBaseOf<C, class_type>::value,
+  static_assert(std::is_base_of<C, class_type>::value,
                 "Stored class must inherit from method's class");
   typedef R return_type;
   typedef nsRunnableMethod<C, R, Owning, Kind> base_type;
@@ -823,7 +821,7 @@ template <typename PtrType, class C, typename R, bool Owning,
 struct nsRunnableMethodTraits<PtrType, R (C::*)(As...) const, Owning, Kind> {
   typedef const typename mozilla::RemoveRawOrSmartPointer<PtrType>::Type
       class_type;
-  static_assert(mozilla::IsBaseOf<C, class_type>::value,
+  static_assert(std::is_base_of<C, class_type>::value,
                 "Stored class must inherit from method's class");
   typedef R return_type;
   typedef nsRunnableMethod<C, R, Owning, Kind> base_type;
@@ -836,7 +834,7 @@ template <typename PtrType, class C, typename R, bool Owning,
 struct nsRunnableMethodTraits<PtrType, R (__stdcall C::*)(As...), Owning,
                               Kind> {
   typedef typename mozilla::RemoveRawOrSmartPointer<PtrType>::Type class_type;
-  static_assert(mozilla::IsBaseOf<C, class_type>::value,
+  static_assert(std::is_base_of<C, class_type>::value,
                 "Stored class must inherit from method's class");
   typedef R return_type;
   typedef nsRunnableMethod<C, R, Owning, Kind> base_type;
@@ -847,7 +845,7 @@ template <typename PtrType, class C, typename R, bool Owning,
           mozilla::RunnableKind Kind>
 struct nsRunnableMethodTraits<PtrType, R (NS_STDCALL C::*)(), Owning, Kind> {
   typedef typename mozilla::RemoveRawOrSmartPointer<PtrType>::Type class_type;
-  static_assert(mozilla::IsBaseOf<C, class_type>::value,
+  static_assert(std::is_base_of<C, class_type>::value,
                 "Stored class must inherit from method's class");
   typedef R return_type;
   typedef nsRunnableMethod<C, R, Owning, Kind> base_type;
@@ -860,7 +858,7 @@ struct nsRunnableMethodTraits<PtrType, R (__stdcall C::*)(As...) const, Owning,
                               Kind> {
   typedef const typename mozilla::RemoveRawOrSmartPointer<PtrType>::Type
       class_type;
-  static_assert(mozilla::IsBaseOf<C, class_type>::value,
+  static_assert(std::is_base_of<C, class_type>::value,
                 "Stored class must inherit from method's class");
   typedef R return_type;
   typedef nsRunnableMethod<C, R, Owning, Kind> base_type;
@@ -873,7 +871,7 @@ struct nsRunnableMethodTraits<PtrType, R (NS_STDCALL C::*)() const, Owning,
                               Kind> {
   typedef const typename mozilla::RemoveRawOrSmartPointer<PtrType>::Type
       class_type;
-  static_assert(mozilla::IsBaseOf<C, class_type>::value,
+  static_assert(std::is_base_of<C, class_type>::value,
                 "Stored class must inherit from method's class");
   typedef R return_type;
   typedef nsRunnableMethod<C, R, Owning, Kind> base_type;
@@ -1084,14 +1082,14 @@ struct SmartPointerStorageClass
 template <typename T>
 struct NonLValueReferenceStorageClass
     : mozilla::Conditional<
-          mozilla::IsRvalueReference<T>::value,
+          std::is_rvalue_reference_v<T>,
           StoreCopyPassByRRef<typename mozilla::RemoveReference<T>::Type>,
           typename SmartPointerStorageClass<T>::Type> {};
 
 template <typename T>
 struct NonPointerStorageClass
     : mozilla::Conditional<
-          mozilla::IsLvalueReference<T>::value,
+          std::is_lvalue_reference_v<T>,
           typename LValueReferenceStorageClass<
               typename mozilla::RemoveReference<T>::Type>::Type,
           typename NonLValueReferenceStorageClass<T>::Type> {};

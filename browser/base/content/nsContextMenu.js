@@ -164,11 +164,6 @@ class nsContextMenu {
     this.isContentSelected = !this.selectionInfo.docSelectionIsCollapsed;
     this.onPlainTextLink = false;
 
-    let bookmarkPage = document.getElementById("context-bookmarkpage");
-    if (bookmarkPage) {
-      BookmarkingUI.onCurrentPageContextPopupShowing();
-    }
-
     // Initialize (disable/remove) menu items.
     this.initItems();
   }
@@ -909,73 +904,94 @@ class nsContextMenu {
   }
 
   initPasswordManagerItems() {
-    let loginFillInfo = this.contentData && this.contentData.loginFillInfo;
-    let documentURI = this.contentData.documentURIObject;
+    let showFill = false;
+    let showGenerate = false;
+    let enableGeneration = Services.logins.isLoggedIn;
+    try {
+      let loginFillInfo = this.contentData && this.contentData.loginFillInfo;
+      let documentURI = this.contentData.documentURIObject;
 
-    // If we could not find a password field we
-    // don't want to show the form fill option.
-    let showFill =
-      loginFillInfo &&
-      loginFillInfo.passwordField.found &&
-      !documentURI.schemeIs("about");
+      // If we could not find a password field we
+      // don't want to show the form fill option.
+      if (
+        !loginFillInfo ||
+        !loginFillInfo.passwordField.found ||
+        documentURI.schemeIs("about")
+      ) {
+        // Both generation and fill will default to disabled.
+        return;
+      }
+      showFill = true;
 
-    // Disable the fill option if the user hasn't unlocked with their master password
-    // or if the password field or target field are disabled.
-    // XXX: Bug 1529025 to respect signon.rememberSignons
-    let disableFill =
-      !loginFillInfo ||
-      !Services.logins ||
-      !Services.logins.isLoggedIn ||
-      loginFillInfo.passwordField.disabled ||
-      (!this.onPassword && loginFillInfo.usernameField.disabled);
+      // Disable the fill option if the user hasn't unlocked with their master password
+      // or if the password field or target field are disabled.
+      // XXX: Bug 1529025 to respect signon.rememberSignons
+      let disableFill =
+        !loginFillInfo ||
+        !Services.logins ||
+        !Services.logins.isLoggedIn ||
+        loginFillInfo.passwordField.disabled ||
+        (!this.onPassword && loginFillInfo.usernameField.disabled);
 
-    this.showItem("fill-login-separator", showFill);
-    this.showItem("fill-login", showFill);
-    this.setItemAttr("fill-login", "disabled", disableFill);
+      this.setItemAttr("fill-login", "disabled", disableFill);
 
-    // Set the correct label for the fill menu
-    let fillMenu = document.getElementById("fill-login");
-    if (this.onPassword) {
-      fillMenu.setAttribute("label", fillMenu.getAttribute("label-password"));
-      fillMenu.setAttribute(
-        "accesskey",
-        fillMenu.getAttribute("accesskey-password")
+      // Set the correct label for the fill menu
+      let fillMenu = document.getElementById("fill-login");
+      if (this.onPassword) {
+        fillMenu.setAttribute("label", fillMenu.getAttribute("label-password"));
+        fillMenu.setAttribute(
+          "accesskey",
+          fillMenu.getAttribute("accesskey-password")
+        );
+      } else {
+        fillMenu.setAttribute("label", fillMenu.getAttribute("label-login"));
+        fillMenu.setAttribute(
+          "accesskey",
+          fillMenu.getAttribute("accesskey-login")
+        );
+      }
+
+      let formOrigin = LoginHelper.getLoginOrigin(documentURI.spec);
+      let isGeneratedPasswordEnabled =
+        LoginHelper.generationAvailable && LoginHelper.generationEnabled;
+      showGenerate =
+        this.onPassword &&
+        isGeneratedPasswordEnabled &&
+        Services.logins.getLoginSavingEnabled(formOrigin);
+
+      if (disableFill) {
+        // No need to update the submenu if the fill item is disabled.
+        return;
+      }
+
+      // Update sub-menu items.
+      let fragment = nsContextMenu.LoginManagerContextMenu.addLoginsToMenu(
+        this.targetIdentifier,
+        this.browser,
+        formOrigin
       );
-    } else {
-      fillMenu.setAttribute("label", fillMenu.getAttribute("label-login"));
-      fillMenu.setAttribute(
-        "accesskey",
-        fillMenu.getAttribute("accesskey-login")
+
+      this.showItem("fill-login-no-logins", !fragment);
+
+      if (!fragment) {
+        return;
+      }
+      let popup = document.getElementById("fill-login-popup");
+      let insertBeforeElement = document.getElementById("fill-login-no-logins");
+      popup.insertBefore(fragment, insertBeforeElement);
+    } finally {
+      this.showItem("fill-login", showFill);
+      this.showItem("fill-login-generated-password", showGenerate);
+      this.setItemAttr(
+        "fill-login-generated-password",
+        "disabled",
+        !enableGeneration
+      );
+      this.showItem(
+        "fill-login-and-generated-password-separator",
+        showFill || showGenerate
       );
     }
-
-    if (!showFill || disableFill) {
-      return;
-    }
-
-    let formOrigin = LoginHelper.getLoginOrigin(documentURI.spec);
-    let fragment = nsContextMenu.LoginManagerContextMenu.addLoginsToMenu(
-      this.targetIdentifier,
-      this.browser,
-      formOrigin
-    );
-    let isGeneratedPasswordEnabled =
-      LoginHelper.generationAvailable && LoginHelper.generationEnabled;
-    let canFillGeneratedPassword =
-      this.onPassword &&
-      isGeneratedPasswordEnabled &&
-      Services.logins.getLoginSavingEnabled(formOrigin);
-
-    this.showItem("fill-login-no-logins", !fragment);
-    this.showItem("fill-login-generated-password", canFillGeneratedPassword);
-    this.showItem("generated-password-separator", canFillGeneratedPassword);
-
-    if (!fragment) {
-      return;
-    }
-    let popup = document.getElementById("fill-login-popup");
-    let insertBeforeElement = document.getElementById("fill-login-no-logins");
-    popup.insertBefore(fragment, insertBeforeElement);
   }
 
   initSyncItems() {
@@ -1161,7 +1177,10 @@ class nsContextMenu {
       return viewSourceBrowser;
     };
 
-    top.gViewSourceUtils.viewPartialSourceInBrowser(browser, openSelectionFn);
+    top.gViewSourceUtils.viewPartialSourceInBrowser(
+      this.actor.browsingContext,
+      openSelectionFn
+    );
   }
 
   // Open new "view source" window with the frame's URL.
@@ -1285,7 +1304,7 @@ class nsContextMenu {
         false, // don't skip prompt for where to save
         referrerInfo, // referrer info
         null, // document
-        null, // content type
+        "image/jpeg", // content type - keep in sync with ContextMenuChild!
         null, // content disposition
         isPrivate,
         this.principal
@@ -1593,7 +1612,7 @@ class nsContextMenu {
           false,
           referrerInfo,
           null,
-          null,
+          "image/png", // _canvasToBlobURL uses image/png by default.
           null,
           isPrivate,
           document.nodePrincipal /* system, because blob: */

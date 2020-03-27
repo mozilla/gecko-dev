@@ -2088,7 +2088,6 @@ class IDLType(IDLObject):
         'utf8string',
         'jsstring',
         'object',
-        'date',
         'void',
         # Funny stuff
         'interface',
@@ -2108,12 +2107,14 @@ class IDLType(IDLObject):
         self.treatNullAsEmpty = False
         self._clamp = False
         self._enforceRange = False
+        self._allowShared = False
         self._extendedAttrDict = {}
 
     def __eq__(self, other):
         return (other and self.builtin == other.builtin and self.name == other.name and
                           self._clamp == other.hasClamp() and self._enforceRange == other.hasEnforceRange() and
-                          self.treatNullAsEmpty == other.treatNullAsEmpty)
+                          self.treatNullAsEmpty == other.treatNullAsEmpty and
+                          self._allowShared == other.hasAllowShared())
 
     def __ne__(self, other):
         return not self == other
@@ -2172,11 +2173,11 @@ class IDLType(IDLObject):
     def isArrayBufferView(self):
         return False
 
-    def isSharedArrayBuffer(self):
-        return False
-
     def isTypedArray(self):
         return False
+
+    def isBufferSource(self):
+        return self.isArrayBuffer() or self.isArrayBufferView() or self.isTypedArray()
 
     def isCallbackInterface(self):
         return False
@@ -2194,10 +2195,7 @@ class IDLType(IDLObject):
     def isSpiderMonkeyInterface(self):
         """ Returns a boolean indicating whether this type is an 'interface'
             type that is implemented in SpiderMonkey. """
-        return self.isInterface() and (self.isArrayBuffer() or
-                                       self.isArrayBufferView() or
-                                       self.isSharedArrayBuffer() or
-                                       self.isTypedArray() or
+        return self.isInterface() and (self.isBufferSource() or
                                        self.isReadableStream())
 
     def isDictionary(self):
@@ -2208,9 +2206,6 @@ class IDLType(IDLObject):
 
     def isAny(self):
         return self.tag() == IDLType.Tags.any
-
-    def isDate(self):
-        return self.tag() == IDLType.Tags.date
 
     def isObject(self):
         return self.tag() == IDLType.Tags.object
@@ -2239,6 +2234,9 @@ class IDLType(IDLObject):
 
     def hasEnforceRange(self):
         return self._enforceRange
+
+    def hasAllowShared(self):
+        return self._allowShared
 
     def tag(self):
         assert False  # Override me!
@@ -2415,9 +2413,6 @@ class IDLNullableType(IDLParametrizedType):
     def isArrayBufferView(self):
         return self.inner.isArrayBufferView()
 
-    def isSharedArrayBuffer(self):
-        return self.inner.isSharedArrayBuffer()
-
     def isTypedArray(self):
         return self.inner.isTypedArray()
 
@@ -2452,6 +2447,9 @@ class IDLNullableType(IDLParametrizedType):
 
     def hasEnforceRange(self):
         return self.inner.hasEnforceRange()
+
+    def hasAllowShared(self):
+        return self.inner.hasAllowShared()
 
     def isComplete(self):
         return self.name is not None
@@ -2571,8 +2569,7 @@ class IDLSequenceType(IDLParametrizedType):
             # Just forward to the union; it'll deal
             return other.isDistinguishableFrom(self)
         return (other.isPrimitive() or other.isString() or other.isEnum() or
-                other.isDate() or other.isInterface() or
-                other.isDictionary() or
+                other.isInterface() or other.isDictionary() or
                 other.isCallback() or other.isRecord())
 
 
@@ -2623,7 +2620,7 @@ class IDLRecordType(IDLParametrizedType):
             # Just forward to the union; it'll deal
             return other.isDistinguishableFrom(self)
         return (other.isPrimitive() or other.isString() or other.isEnum() or
-                other.isDate() or other.isNonCallbackInterface() or other.isSequence())
+                other.isNonCallbackInterface() or other.isSequence())
 
     def isExposedInAllOf(self, exposureSet):
         return self.inner.unroll().isExposedInAllOf(exposureSet)
@@ -2676,6 +2673,9 @@ class IDLUnionType(IDLType):
                 return typeName(type._identifier.object())
             if isinstance(type, IDLObjectWithIdentifier):
                 return typeName(type.identifier)
+            if isinstance(type, IDLBuiltinType) and type.hasAllowShared():
+                assert type.isBufferSource()
+                return "MaybeShared" + type.name
             return type.name
 
         for (i, type) in enumerate(self.memberTypes):
@@ -2820,9 +2820,6 @@ class IDLTypedefType(IDLType):
 
     def isArrayBufferView(self):
         return self.inner.isArrayBufferView()
-
-    def isSharedArrayBuffer(self):
-        return self.inner.isSharedArrayBuffer()
 
     def isTypedArray(self):
         return self.inner.isTypedArray()
@@ -3005,11 +3002,11 @@ class IDLWrapperType(IDLType):
         if self.isEnum():
             return (other.isPrimitive() or other.isInterface() or other.isObject() or
                     other.isCallback() or other.isDictionary() or
-                    other.isSequence() or other.isRecord() or other.isDate())
+                    other.isSequence() or other.isRecord())
         if self.isDictionary() and other.nullable():
             return False
         if (other.isPrimitive() or other.isString() or other.isEnum() or
-            other.isDate() or other.isSequence()):
+            other.isSequence()):
             return True
         if self.isDictionary():
             return other.isNonCallbackInterface()
@@ -3136,12 +3133,10 @@ class IDLBuiltinType(IDLType):
         'utf8string',
         'jsstring',
         'object',
-        'date',
         'void',
         # Funny stuff
         'ArrayBuffer',
         'ArrayBufferView',
-        'SharedArrayBuffer',
         'Int8Array',
         'Uint8Array',
         'Uint8ClampedArray',
@@ -3175,11 +3170,9 @@ class IDLBuiltinType(IDLType):
         Types.utf8string: IDLType.Tags.utf8string,
         Types.jsstring: IDLType.Tags.jsstring,
         Types.object: IDLType.Tags.object,
-        Types.date: IDLType.Tags.date,
         Types.void: IDLType.Tags.void,
         Types.ArrayBuffer: IDLType.Tags.interface,
         Types.ArrayBufferView: IDLType.Tags.interface,
-        Types.SharedArrayBuffer: IDLType.Tags.interface,
         Types.Int8Array: IDLType.Tags.interface,
         Types.Uint8Array: IDLType.Tags.interface,
         Types.Uint8ClampedArray: IDLType.Tags.interface,
@@ -3193,10 +3186,11 @@ class IDLBuiltinType(IDLType):
     }
 
     def __init__(self, location, name, type, clamp=False, enforceRange=False, treatNullAsEmpty=False,
-                 attrLocation=[]):
+                 allowShared=False, attrLocation=[]):
         """
-        The mutually exclusive clamp/enforceRange/treatNullAsEmpty arguments are used to create instances
-        of this type with the appropriate attributes attached. Use .clamped(), .rangeEnforced(), and .treatNullAs().
+        The mutually exclusive clamp/enforceRange/treatNullAsEmpty/allowShared arguments are used
+        to create instances of this type with the appropriate attributes attached. Use .clamped(),
+        .rangeEnforced(), .withTreatNullAs() and .withAllowShared().
 
         attrLocation is an array of source locations of these attributes for error reporting.
         """
@@ -3206,6 +3200,7 @@ class IDLBuiltinType(IDLType):
         self._clamped = None
         self._rangeEnforced = None
         self._withTreatNullAs = None
+        self._withAllowShared = None;
         if self.isInteger():
             if clamp:
                 self._clamp = True
@@ -3224,6 +3219,18 @@ class IDLBuiltinType(IDLType):
                 self._extendedAttrDict["TreatNullAs"] = ["EmptyString"]
         elif treatNullAsEmpty:
             raise WebIDLError("Non-string types cannot be [TreatNullAs]", attrLocation)
+        if self.isBufferSource():
+            if allowShared:
+                self._allowShared = True
+                self._extendedAttrDict["AllowShared"] = True
+        elif allowShared:
+            raise WebIDLError("Types that are not buffer source types cannot be [AllowShared]", attrLocation)
+
+    def __str__(self):
+        if self._allowShared:
+            assert self.isBufferSource()
+            return "MaybeShared" + str(self.name)
+        return str(self.name)
 
     def clamped(self, attrLocation):
         if not self._clamped:
@@ -3245,6 +3252,13 @@ class IDLBuiltinType(IDLType):
                                            self._typeTag, treatNullAsEmpty=True,
                                            attrLocation=attrLocation)
         return self._withTreatNullAs
+
+    def withAllowShared(self, attrLocation):
+        if not self._withAllowShared:
+            self._withAllowShared = IDLBuiltinType(self.location, self.name,
+                                           self._typeTag, allowShared=True,
+                                           attrLocation=attrLocation)
+        return self._withAllowShared
 
     def isPrimitive(self):
         return self._typeTag <= IDLBuiltinType.Types.double
@@ -3286,9 +3300,6 @@ class IDLBuiltinType(IDLType):
     def isArrayBufferView(self):
         return self._typeTag == IDLBuiltinType.Types.ArrayBufferView
 
-    def isSharedArrayBuffer(self):
-        return self._typeTag == IDLBuiltinType.Types.SharedArrayBuffer
-
     def isTypedArray(self):
         return (self._typeTag >= IDLBuiltinType.Types.Int8Array and
                 self._typeTag <= IDLBuiltinType.Types.Float64Array)
@@ -3302,7 +3313,6 @@ class IDLBuiltinType(IDLType):
         # all of it internally.
         return (self.isArrayBuffer() or
                 self.isArrayBufferView() or
-                self.isSharedArrayBuffer() or
                 self.isTypedArray() or
                 self.isReadableStream())
 
@@ -3340,27 +3350,22 @@ class IDLBuiltinType(IDLType):
             return (other.isNumeric() or other.isString() or other.isEnum() or
                     other.isInterface() or other.isObject() or
                     other.isCallback() or other.isDictionary() or
-                    other.isSequence() or other.isRecord() or other.isDate())
+                    other.isSequence() or other.isRecord())
         if self.isNumeric():
             return (other.isBoolean() or other.isString() or other.isEnum() or
                     other.isInterface() or other.isObject() or
                     other.isCallback() or other.isDictionary() or
-                    other.isSequence() or other.isRecord() or other.isDate())
+                    other.isSequence() or other.isRecord())
         if self.isString():
             return (other.isPrimitive() or other.isInterface() or
                     other.isObject() or
                     other.isCallback() or other.isDictionary() or
-                    other.isSequence() or other.isRecord() or other.isDate())
+                    other.isSequence() or other.isRecord())
         if self.isAny():
             # Can't tell "any" apart from anything
             return False
         if self.isObject():
             return other.isPrimitive() or other.isString() or other.isEnum()
-        if self.isDate():
-            return (other.isPrimitive() or other.isString() or other.isEnum() or
-                    other.isInterface() or other.isCallback() or
-                    other.isDictionary() or other.isSequence() or
-                    other.isRecord())
         if self.isVoid():
             return not other.isVoid()
         # Not much else we could be!
@@ -3368,12 +3373,11 @@ class IDLBuiltinType(IDLType):
         # Like interfaces, but we know we're not a callback
         return (other.isPrimitive() or other.isString() or other.isEnum() or
                 other.isCallback() or other.isDictionary() or
-                other.isSequence() or other.isRecord() or other.isDate() or
+                other.isSequence() or other.isRecord() or
                 (other.isInterface() and (
                  # ArrayBuffer is distinguishable from everything
                  # that's not an ArrayBuffer or a callback interface
                  (self.isArrayBuffer() and not other.isArrayBuffer()) or
-                 (self.isSharedArrayBuffer() and not other.isSharedArrayBuffer()) or
                  (self.isReadableStream() and not other.isReadableStream()) or
                  # ArrayBufferView is distinguishable from everything
                  # that's not an ArrayBufferView or typed array.
@@ -3422,6 +3426,15 @@ class IDLBuiltinType(IDLType):
                                       "'EmptyString', not '%s'" % value,
                                       [attribute.location])
                 ret = self.withTreatNullAs([self.location, attribute.location])
+            elif identifier == "AllowShared":
+                if not attribute.noArguments():
+                    raise WebIDLError("[AllowShared] must take no arguments",
+                                      [attribute.location])
+                if not self.isBufferSource():
+                    raise WebIDLError("[AllowShared] only allowed on buffer source types",
+                                      [self.location, attribute.location])
+                ret = self.withAllowShared([self.location, attribute.location])
+
             else:
                 raise WebIDLError("Unhandled extended attribute on type",
                                   [self.location, attribute.location])
@@ -3488,9 +3501,6 @@ BuiltinTypes = {
     IDLBuiltinType.Types.object:
         IDLBuiltinType(BuiltinLocation("<builtin type>"), "Object",
                        IDLBuiltinType.Types.object),
-    IDLBuiltinType.Types.date:
-        IDLBuiltinType(BuiltinLocation("<builtin type>"), "Date",
-                       IDLBuiltinType.Types.date),
     IDLBuiltinType.Types.void:
         IDLBuiltinType(BuiltinLocation("<builtin type>"), "Void",
                        IDLBuiltinType.Types.void),
@@ -3500,9 +3510,6 @@ BuiltinTypes = {
     IDLBuiltinType.Types.ArrayBufferView:
         IDLBuiltinType(BuiltinLocation("<builtin type>"), "ArrayBufferView",
                        IDLBuiltinType.Types.ArrayBufferView),
-    IDLBuiltinType.Types.SharedArrayBuffer:
-        IDLBuiltinType(BuiltinLocation("<builtin type>"), "SharedArrayBuffer",
-                       IDLBuiltinType.Types.SharedArrayBuffer),
     IDLBuiltinType.Types.Int8Array:
         IDLBuiltinType(BuiltinLocation("<builtin type>"), "Int8Array",
                        IDLBuiltinType.Types.Int8Array),
@@ -4346,8 +4353,9 @@ class IDLAttribute(IDLInterfaceMember):
             assert not isinstance(t.name, IDLUnresolvedIdentifier)
             self.type = t
 
-        if self.readonly and (self.type.hasClamp() or self.type.hasEnforceRange() or self.type.treatNullAsEmpty):
-            raise WebIDLError("A readonly attribute cannot be [Clamp] or [EnforceRange]",
+        if self.readonly and (self.type.hasClamp() or self.type.hasEnforceRange() or
+                              self.type.hasAllowShared() or self.type.treatNullAsEmpty):
+            raise WebIDLError("A readonly attribute cannot be [Clamp] or [EnforceRange] or [AllowShared]",
                               [self.location])
         if self.type.isDictionary() and not self.getExtendedAttribute("Cached"):
             raise WebIDLError("An attribute cannot be of a dictionary type",
@@ -4748,7 +4756,7 @@ class IDLArgument(IDLObjectWithIdentifier):
         for attribute in attrs:
             identifier = attribute.identifier()
             if self.allowTypeAttributes and (identifier == "EnforceRange" or identifier == "Clamp" or
-                                             identifier == "TreatNullAs"):
+                                             identifier == "TreatNullAs" or identifier == "AllowShared"):
                 self.type = self.type.withExtendedAttributes([attribute])
             elif identifier == "TreatNonCallableAsNull":
                 self._allowTreatNonCallableAsNull = True
@@ -4918,8 +4926,7 @@ class IDLCallbackType(IDLType):
             # Just forward to the union; it'll deal
             return other.isDistinguishableFrom(self)
         return (other.isPrimitive() or other.isString() or other.isEnum() or
-                other.isNonCallbackInterface() or other.isDate() or
-                other.isSequence())
+                other.isNonCallbackInterface() or other.isSequence())
 
     def _getDependentObjects(self):
         return self.callback._getDependentObjects()
@@ -5716,7 +5723,6 @@ class Tokenizer(object):
         "optional": "OPTIONAL",
         "...": "ELLIPSIS",
         "::": "SCOPE",
-        "Date": "DATE",
         "DOMString": "DOMSTRING",
         "ByteString": "BYTESTRING",
         "USVString": "USVSTRING",
@@ -5751,7 +5757,6 @@ class Tokenizer(object):
         "<": "LT",
         ">": "GT",
         "ArrayBuffer": "ARRAYBUFFER",
-        "SharedArrayBuffer": "SHAREDARRAYBUFFER",
         "or": "OR",
         "maplike": "MAPLIKE",
         "setlike": "SETLIKE",
@@ -6981,7 +6986,6 @@ class Parser(Tokenizer):
                   | EQUALS
                   | GT
                   | QUESTIONMARK
-                  | DATE
                   | DOMSTRING
                   | BYTESTRING
                   | USVSTRING
@@ -7093,7 +7097,6 @@ class Parser(Tokenizer):
         """
             DistinguishableType : PrimitiveType Null
                                 | ARRAYBUFFER Null
-                                | SHAREDARRAYBUFFER Null
                                 | READABLESTREAM Null
                                 | OBJECT Null
         """
@@ -7101,8 +7104,6 @@ class Parser(Tokenizer):
             type = BuiltinTypes[IDLBuiltinType.Types.object]
         elif p[1] == "ArrayBuffer":
             type = BuiltinTypes[IDLBuiltinType.Types.ArrayBuffer]
-        elif p[1] == "SharedArrayBuffer":
-            type = BuiltinTypes[IDLBuiltinType.Types.SharedArrayBuffer]
         elif p[1] == "ReadableStream":
             type = BuiltinTypes[IDLBuiltinType.Types.ReadableStream]
         else:
@@ -7164,13 +7165,6 @@ class Parser(Tokenizer):
 
         type = IDLUnresolvedType(self.getLocation(p, 1), p[1])
         p[0] = self.handleNullable(type, p[2])
-
-    def p_DistinguishableTypeDate(self, p):
-        """
-            DistinguishableType : DATE Null
-        """
-        p[0] = self.handleNullable(BuiltinTypes[IDLBuiltinType.Types.date],
-                                   p[2])
 
     def p_ConstType(self, p):
         """

@@ -13,6 +13,7 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/BrowserHost.h"
 #include "mozilla/dom/BrowserParent.h"
+#include "mozilla/dom/RemoteWebProgress.h"
 #include "mozilla/dom/WindowGlobalActorsBinding.h"
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/dom/ChromeUtils.h"
@@ -30,6 +31,7 @@
 #include "nsQueryObject.h"
 #include "nsFrameLoaderOwner.h"
 #include "nsSerializationHelper.h"
+#include "nsIBrowser.h"
 #include "nsITransportSecurityInfo.h"
 #include "nsISharePicker.h"
 
@@ -46,12 +48,10 @@ using namespace mozilla::dom::ipc;
 namespace mozilla {
 namespace dom {
 
-typedef nsRefPtrHashtable<nsUint64HashKey, WindowGlobalParent> WGPByIdMap;
-static StaticAutoPtr<WGPByIdMap> gWindowGlobalParentsById;
-
 WindowGlobalParent::WindowGlobalParent(const WindowGlobalInit& aInit,
                                        bool aInProcess)
-    : mDocumentPrincipal(aInit.principal()),
+    : WindowContext(aInit.browsingContext(), aInit.innerWindowId(), {}),
+      mDocumentPrincipal(aInit.principal()),
       mDocumentURI(aInit.documentURI()),
       mInnerWindowId(aInit.innerWindowId()),
       mOuterWindowId(aInit.outerWindowId()),
@@ -64,24 +64,22 @@ WindowGlobalParent::WindowGlobalParent(const WindowGlobalInit& aInit,
   // NOTE: mBrowsingContext initialized in Init()
   MOZ_RELEASE_ASSERT(aInit.browsingContext(),
                      "Must be made in BrowsingContext");
+
+  mFields.SetWithoutSyncing<IDX_OuterWindowId>(aInit.outerWindowId());
 }
 
 void WindowGlobalParent::Init(const WindowGlobalInit& aInit) {
   MOZ_ASSERT(Manager(), "Should have a manager!");
 
-  // Register this WindowGlobal in the gWindowGlobalParentsById map.
-  if (!gWindowGlobalParentsById) {
-    gWindowGlobalParentsById = new WGPByIdMap();
-    ClearOnShutdown(&gWindowGlobalParentsById);
-  }
-  auto entry = gWindowGlobalParentsById->LookupForAdd(mInnerWindowId);
-  MOZ_RELEASE_ASSERT(!entry, "Duplicate WindowGlobalParent entry for ID!");
-  entry.OrInsert([&] { return this; });
+  // Invoke our base class' `Init` method. This will register us in
+  // `gWindowContexts`.
+  WindowContext::Init();
 
   // Determine which content process the window global is coming from.
   dom::ContentParentId processId(0);
+  ContentParent* cp = nullptr;
   if (!mInProcess) {
-    ContentParent* cp = static_cast<ContentParent*>(Manager()->Manager());
+    cp = static_cast<ContentParent*>(Manager()->Manager());
     processId = cp->ChildID();
 
     // Ensure the content process has permissions for this principal.
@@ -97,33 +95,36 @@ void WindowGlobalParent::Init(const WindowGlobalInit& aInit) {
       "When creating a non-root WindowGlobalParent, the WindowGlobalParent "
       "for our embedder should've already been created.");
 
-  // Attach ourself to the browsing context.
-  mBrowsingContext->RegisterWindowGlobal(this);
-
-  // If there is no current window global, assume we're about to become it
-  // optimistically.
-  if (!mBrowsingContext->GetCurrentWindowGlobal()) {
-    mBrowsingContext->SetCurrentWindowGlobal(this);
-  }
-
   // Ensure we have a document URI
   if (!mDocumentURI) {
     NS_NewURI(getter_AddRefs(mDocumentURI), "about:blank");
   }
 
+  // NOTE: `cp` may be nullptr, but that's OK, we need to tell every other
+  // process in our group in that case.
+  IPCInitializer ipcinit = GetIPCInitializer();
+  Group()->EachOtherParent(cp, [&](ContentParent* otherContent) {
+    Unused << otherContent->SendCreateWindowContext(ipcinit);
+  });
+
+  // If there is no current window global, assume we're about to become it
+  // optimistically.
+  mBrowsingContext->SetCurrentInnerWindowId(aInit.innerWindowId());
+
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   if (obs) {
-    obs->NotifyObservers(this, "window-global-created", nullptr);
+    obs->NotifyObservers(ToSupports(this), "window-global-created", nullptr);
   }
 }
 
 /* static */
 already_AddRefed<WindowGlobalParent> WindowGlobalParent::GetByInnerWindowId(
     uint64_t aInnerWindowId) {
-  if (!gWindowGlobalParentsById) {
+  if (!XRE_IsParentProcess()) {
     return nullptr;
   }
-  return gWindowGlobalParentsById->Get(aInnerWindowId);
+
+  return WindowContext::GetById(aInnerWindowId).downcast<WindowGlobalParent>();
 }
 
 already_AddRefed<WindowGlobalChild> WindowGlobalParent::GetChildActor() {
@@ -176,6 +177,15 @@ bool WindowGlobalParent::IsProcessRoot() {
   }
 
   return ContentParentId() != embedder->ContentParentId();
+}
+
+uint32_t WindowGlobalParent::ContentBlockingEvents() {
+  return GetContentBlockingLog()->GetContentBlockingEventsInLog();
+}
+
+void WindowGlobalParent::GetContentBlockingLog(nsAString& aLog) {
+  NS_ConvertUTF8toUTF16 log(GetContentBlockingLog()->Stringify());
+  aLog.Assign(std::move(log));
 }
 
 mozilla::ipc::IPCResult WindowGlobalParent::RecvLoadURI(
@@ -237,25 +247,21 @@ IPCResult WindowGlobalParent::RecvSetHasBeforeUnload(bool aHasBeforeUnload) {
   return IPC_OK();
 }
 
-IPCResult WindowGlobalParent::RecvBecomeCurrentWindowGlobal() {
-  mBrowsingContext->SetCurrentWindowGlobal(this);
-  return IPC_OK();
-}
-
 IPCResult WindowGlobalParent::RecvDestroy() {
+  // Make a copy so that we can avoid potential iterator invalidation when
+  // calling the user-provided Destroy() methods.
+  nsTArray<RefPtr<JSWindowActorParent>> windowActors(mWindowActors.Count());
+  for (auto iter = mWindowActors.Iter(); !iter.Done(); iter.Next()) {
+    windowActors.AppendElement(iter.UserData());
+  }
+
+  for (auto& windowActor : windowActors) {
+    windowActor->StartDestroy();
+  }
+
   if (CanSend()) {
     RefPtr<BrowserParent> browserParent = GetBrowserParent();
     if (!browserParent || !browserParent->IsDestroyed()) {
-      // Make a copy so that we can avoid potential iterator invalidation when
-      // calling the user-provided Destroy() methods.
-      nsTArray<RefPtr<JSWindowActorParent>> windowActors(mWindowActors.Count());
-      for (auto iter = mWindowActors.Iter(); !iter.Done(); iter.Next()) {
-        windowActors.AppendElement(iter.UserData());
-      }
-
-      for (auto& windowActor : windowActors) {
-        windowActor->StartDestroy();
-      }
       Unused << Send__delete__(this);
     }
   }
@@ -289,6 +295,65 @@ const nsAString& WindowGlobalParent::GetRemoteType() {
   }
 
   return VoidString();
+}
+
+void WindowGlobalParent::NotifyContentBlockingEvent(
+    uint32_t aEvent, nsIRequest* aRequest, bool aBlocked, nsIURI* aURIHint,
+    const nsTArray<nsCString>& aTrackingFullHashes,
+    const Maybe<AntiTrackingCommon::StorageAccessGrantedReason>& aReason) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aURIHint);
+  DebugOnly<bool> isCookiesBlockedTracker =
+      aEvent == nsIWebProgressListener::STATE_COOKIES_BLOCKED_TRACKER ||
+      aEvent == nsIWebProgressListener::STATE_COOKIES_BLOCKED_SOCIALTRACKER;
+  MOZ_ASSERT_IF(aBlocked, aReason.isNothing());
+  MOZ_ASSERT_IF(!isCookiesBlockedTracker, aReason.isNothing());
+  MOZ_ASSERT_IF(isCookiesBlockedTracker && !aBlocked, aReason.isSome());
+  MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess());
+  // TODO: temporarily remove this until we find the root case of Bug 1609144
+  // MOZ_DIAGNOSTIC_ASSERT_IF(XRE_IsE10sParentProcess(), !IsInProcess());
+
+  // Return early if this WindowGlobalParent is in process.
+  if (IsInProcess()) {
+    return;
+  }
+
+  nsAutoCString origin;
+  nsContentUtils::GetASCIIOrigin(aURIHint, origin);
+
+  Maybe<uint32_t> event = GetContentBlockingLog()->RecordLogParent(
+      origin, aEvent, aBlocked, aReason, aTrackingFullHashes);
+
+  // Notify the OnContentBlockingEvent if necessary.
+  if (event) {
+    // Get the browser parent from the manager directly since the content
+    // blocking event could happen in the early stage of loading, i.e.
+    // accessing cookies for the http header. At this stage, the actor is
+    // not ready, so we would get a nullptr from GetBrowserParent(). But,
+    // we can actually get it from the manager.
+    RefPtr<BrowserParent> browserParent =
+        static_cast<BrowserParent*>(Manager());
+    if (NS_WARN_IF(!browserParent)) {
+      return;
+    }
+
+    nsCOMPtr<nsIBrowser> browser;
+    nsCOMPtr<nsIWebProgress> manager;
+    nsCOMPtr<nsIWebProgressListener> managerAsListener;
+
+    if (!browserParent->GetWebProgressListener(
+            getter_AddRefs(browser), getter_AddRefs(manager),
+            getter_AddRefs(managerAsListener))) {
+      return;
+    }
+
+    nsCOMPtr<nsIWebProgress> webProgress =
+        new RemoteWebProgress(manager, OuterWindowId(), InnerWindowId(), 0,
+                              false, BrowsingContext()->IsTopContent());
+
+    Unused << managerAsListener->OnContentBlockingEvent(webProgress, aRequest,
+                                                        event.value());
+  }
 }
 
 already_AddRefed<JSWindowActorParent> WindowGlobalParent::GetActor(
@@ -372,6 +437,14 @@ NS_IMPL_ISUPPORTS0(ShareHandler)
 
 }  // namespace
 
+mozilla::ipc::IPCResult WindowGlobalParent::RecvGetContentBlockingEvents(
+    WindowGlobalParent::GetContentBlockingEventsResolver&& aResolver) {
+  uint32_t events = GetContentBlockingLog()->GetContentBlockingEventsInLog();
+  aResolver(events);
+
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult WindowGlobalParent::RecvShare(
     IPCWebShareData&& aData, WindowGlobalParent::ShareResolver&& aResolver) {
   // Widget Layer handoff...
@@ -411,7 +484,7 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvShare(
 }
 
 already_AddRefed<mozilla::dom::Promise> WindowGlobalParent::DrawSnapshot(
-    const DOMRect* aRect, double aScale, const nsAString& aBackgroundColor,
+    const DOMRect* aRect, double aScale, const nsACString& aBackgroundColor,
     mozilla::ErrorResult& aRv) {
   nsIGlobalObject* global = GetParentObject();
   RefPtr<Promise> promise = Promise::Create(global, aRv);
@@ -495,8 +568,43 @@ already_AddRefed<Promise> WindowGlobalParent::GetSecurityInfo(
 }
 
 void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
-  gWindowGlobalParentsById->Remove(mInnerWindowId);
-  mBrowsingContext->UnregisterWindowGlobal(this);
+  // Note that our WindowContext has become discarded.
+  WindowContext::Discard();
+
+  ContentParent* cp = nullptr;
+  if (!mInProcess) {
+    cp = static_cast<ContentParent*>(Manager()->Manager());
+  }
+
+  RefPtr<WindowGlobalParent> self(this);
+  Group()->EachOtherParent(cp, [&](ContentParent* otherContent) {
+    // Keep the WindowContext alive until other processes have acknowledged it
+    // has been discarded.
+    auto resolve = [self](bool) {};
+    auto reject = [self](mozilla::ipc::ResponseRejectReason) {};
+    otherContent->SendDiscardWindowContext(InnerWindowId(), resolve, reject);
+  });
+
+  // Report content blocking log when destroyed.
+  // There shouldn't have any content blocking log when a documnet is loaded in
+  // the parent process(See NotifyContentBlockingeEvent), so we could skip
+  // reporting log when it is in-process.
+  if (!mInProcess) {
+    RefPtr<BrowserParent> browserParent =
+        static_cast<BrowserParent*>(Manager());
+    if (browserParent) {
+      nsCOMPtr<nsILoadContext> loadContext = browserParent->GetLoadContext();
+      if (loadContext && !loadContext->UsePrivateBrowsing() &&
+          BrowsingContext()->IsTopContent()) {
+        GetContentBlockingLog()->ReportLog(DocumentPrincipal());
+
+        if (mDocumentURI && (net::SchemeIsHTTP(mDocumentURI) ||
+                             net::SchemeIsHTTPS(mDocumentURI))) {
+          GetContentBlockingLog()->ReportOrigins();
+        }
+      }
+    }
+  }
 
   // Destroy our JSWindowActors, and reject any pending queries.
   nsRefPtrHashtable<nsStringHashKey, JSWindowActorParent> windowActors;
@@ -509,13 +617,11 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
 
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   if (obs) {
-    obs->NotifyObservers(this, "window-global-destroyed", nullptr);
+    obs->NotifyObservers(ToSupports(this), "window-global-destroyed", nullptr);
   }
 }
 
 WindowGlobalParent::~WindowGlobalParent() {
-  MOZ_ASSERT(!gWindowGlobalParentsById ||
-             !gWindowGlobalParentsById->Contains(mInnerWindowId));
   MOZ_ASSERT(!mWindowActors.Count());
 }
 
@@ -528,18 +634,18 @@ nsIGlobalObject* WindowGlobalParent::GetParentObject() {
   return xpc::NativeGlobal(xpc::PrivilegedJunkScope());
 }
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(WindowGlobalParent, WindowGlobalActor,
+NS_IMPL_CYCLE_COLLECTION_INHERITED(WindowGlobalParent, WindowContext,
                                    mBrowsingContext, mWindowActors)
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(WindowGlobalParent,
-                                               WindowGlobalActor)
+                                               WindowContext)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WindowGlobalParent)
-NS_INTERFACE_MAP_END_INHERITING(WindowGlobalActor)
+NS_INTERFACE_MAP_END_INHERITING(WindowContext)
 
-NS_IMPL_ADDREF_INHERITED(WindowGlobalParent, WindowGlobalActor)
-NS_IMPL_RELEASE_INHERITED(WindowGlobalParent, WindowGlobalActor)
+NS_IMPL_ADDREF_INHERITED(WindowGlobalParent, WindowContext)
+NS_IMPL_RELEASE_INHERITED(WindowGlobalParent, WindowContext)
 
 }  // namespace dom
 }  // namespace mozilla

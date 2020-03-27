@@ -4,70 +4,69 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/DebugOnly.h"
-
 #include "FrameLayerBuilder.h"
 
-#include "gfxContext.h"
-#include "mozilla/LookAndFeel.h"
-#include "mozilla/Maybe.h"
-#include "mozilla/PresShell.h"
-#include "mozilla/dom/EffectsInfo.h"
-#include "mozilla/dom/RemoteBrowser.h"
-#include "mozilla/dom/ProfileTimelineMarkerBinding.h"
-#include "mozilla/gfx/Matrix.h"
+#include <algorithm>
+#include <deque>
+#include <functional>
+#include <utility>
+
 #include "ActiveLayerTracker.h"
 #include "BasicLayers.h"
+#include "GeckoProfiler.h"
 #include "ImageContainer.h"
 #include "ImageLayers.h"
 #include "LayerTreeInvalidation.h"
-#include "Layers.h"
 #include "LayerUserData.h"
-#include "MatrixStack.h"
+#include "Layers.h"
+#include "LayersLogging.h"
 #include "MaskLayerImageCache.h"
+#include "MatrixStack.h"
 #include "UnitTransforms.h"
 #include "Units.h"
 #include "gfx2DGlue.h"
+#include "gfxContext.h"
 #include "gfxEnv.h"
 #include "gfxUtils.h"
-#include "nsAutoPtr.h"
-#include "nsAnimationManager.h"
-#include "nsDisplayList.h"
-#include "nsDocShell.h"
-#include "nsIScrollableFrame.h"
-#include "nsImageFrame.h"
-#include "nsSubDocumentFrame.h"
-#include "nsLayoutUtils.h"
-#include "nsPresContext.h"
-#include "nsPrintfCString.h"
-#include "nsSVGIntegrationUtils.h"
-#include "nsTransitionManager.h"
-#include "mozilla/LayerTimelineMarker.h"
-
+#include "mozilla/DebugOnly.h"
 #include "mozilla/EffectCompositor.h"
 #include "mozilla/LayerAnimationInfo.h"
-#include "mozilla/Move.h"
+#include "mozilla/LayerTimelineMarker.h"
+#include "mozilla/LookAndFeel.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/PerfStats.h"
+#include "mozilla/PresShell.h"
 #include "mozilla/ReverseIterator.h"
+#include "mozilla/StaticPrefs_gfx.h"
+#include "mozilla/StaticPrefs_layers.h"
+#include "mozilla/StaticPrefs_layout.h"
+#include "mozilla/Unused.h"
+#include "mozilla/dom/EffectsInfo.h"
+#include "mozilla/dom/ProfileTimelineMarkerBinding.h"
+#include "mozilla/dom/RemoteBrowser.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/Matrix.h"
 #include "mozilla/gfx/Tools.h"
 #include "mozilla/layers/ShadowLayers.h"
 #include "mozilla/layers/TextureClient.h"
 #include "mozilla/layers/TextureWrapperImage.h"
 #include "mozilla/layers/WebRenderUserData.h"
-#include "mozilla/PerfStats.h"
-#include "mozilla/Unused.h"
-#include "GeckoProfiler.h"
-#include "LayersLogging.h"
-#include "mozilla/StaticPrefs_gfx.h"
-#include "mozilla/StaticPrefs_layers.h"
-#include "mozilla/StaticPrefs_layout.h"
-
-#include <algorithm>
-#include <functional>
-#include <deque>
+#include "nsAnimationManager.h"
+#include "nsDisplayList.h"
+#include "nsDocShell.h"
+#include "nsIScrollableFrame.h"
+#include "nsImageFrame.h"
+#include "nsLayoutUtils.h"
+#include "nsPresContext.h"
+#include "nsPrintfCString.h"
+#include "nsSVGIntegrationUtils.h"
+#include "nsSubDocumentFrame.h"
+#include "nsTransitionManager.h"
 
 using namespace mozilla::layers;
 using namespace mozilla::gfx;
+using mozilla::UniquePtr;
+using mozilla::WrapUnique;
 
 // PaintedLayerData::mAssignedDisplayItems is a std::vector, which is
 // non-memmovable
@@ -274,13 +273,13 @@ void DisplayItemData::EndUpdate() {
   mOldTransform = nullptr;
 }
 
-void DisplayItemData::EndUpdate(nsAutoPtr<nsDisplayItemGeometry> aGeometry) {
+void DisplayItemData::EndUpdate(UniquePtr<nsDisplayItemGeometry>&& aGeometry) {
   MOZ_RELEASE_ASSERT(mLayer);
   MOZ_ASSERT(mItem);
   MOZ_ASSERT(mGeometry || aGeometry);
 
   if (aGeometry) {
-    mGeometry = aGeometry;
+    mGeometry = std::move(aGeometry);
   }
   mClip = mItem->GetClip();
   mChangedFrameInvalidations.SetEmpty();
@@ -547,7 +546,7 @@ void FrameLayerBuilder::DestroyDisplayItemDataFor(nsIFrame* aFrame) {
   // property table in an inconsistent state. So we remove it from the table and
   // then destroy it. (bug 1530657)
   WebRenderUserDataTable* userDataTable =
-      aFrame->RemoveProperty(WebRenderUserDataProperty::Key());
+      aFrame->TakeProperty(WebRenderUserDataProperty::Key());
   if (userDataTable) {
     for (auto iter = userDataTable->Iter(); !iter.Done(); iter.Next()) {
       iter.UserData()->RemoveFromTable();
@@ -580,7 +579,6 @@ class PaintedLayerData {
         mHideAllLayersBelow(false),
         mOpaqueForAnimatedGeometryRootParent(false),
         mBackfaceHidden(false),
-        mShouldPaintOnContentSide(false),
         mDTCRequiresTargetConfirmation(false),
         mImage(nullptr),
         mItemClip(nullptr),
@@ -802,11 +800,6 @@ class PaintedLayerData {
    * with visible backface.
    */
   bool mBackfaceHidden;
-  /**
-   * Set if it is better to render this layer on the content process, for
-   * example if it contains native theme widgets.
-   */
-  bool mShouldPaintOnContentSide;
   /**
    * Set to true if events targeting the dispatch-to-content region
    * require target confirmation.
@@ -3885,10 +3878,6 @@ void PaintedLayerData::Accumulate(
     }
   }
 
-  if (aItem->MustPaintOnContentSide()) {
-    mShouldPaintOnContentSide = true;
-  }
-
   if (aTransform && aType == DisplayItemEntryType::Item) {
     // Bounds transformed with axis-aligned transforms could be included in the
     // opaque region calculations. For simplicity, this is currently not done.
@@ -4012,7 +4001,7 @@ void PaintedLayerData::AccumulateHitTestItem(ContainerState* aState,
                                              nsDisplayItem* aItem,
                                              const DisplayItemClip& aClip,
                                              TransformClipNode* aTransform) {
-  auto* item = static_cast<nsDisplayHitTestInfoItem*>(aItem);
+  auto* item = static_cast<nsDisplayHitTestInfoBase*>(aItem);
   const HitTestInfo& info = item->GetHitTestInfo();
 
   nsRect area = info.mArea;
@@ -4556,7 +4545,7 @@ void ContainerState::ProcessDisplayItems(nsDisplayList* aList) {
     if (marker == DisplayItemEntryType::HitTestInfo) {
       MOZ_ASSERT(item->IsHitTestItem());
       const auto& hitTestInfo =
-          static_cast<nsDisplayHitTestInfoItem*>(item)->GetHitTestInfo();
+          static_cast<nsDisplayHitTestInfoBase*>(item)->GetHitTestInfo();
 
       // Override the layer selection hints for items that have hit test
       // information. This is needed because container items may have different
@@ -5011,7 +5000,7 @@ void ContainerState::ProcessDisplayItems(nsDisplayList* aList) {
       if (itemType == DisplayItemType::TYPE_FIXED_POSITION) {
         newLayerEntry->mIsFixedToRootScrollFrame =
             item->Frame()->StyleDisplay()->mPosition ==
-                NS_STYLE_POSITION_FIXED &&
+                StylePositionProperty::Fixed &&
             nsLayoutUtils::IsReallyFixedPos(item->Frame());
       }
 
@@ -5247,7 +5236,7 @@ void FrameLayerBuilder::ComputeGeometryChangeForItem(DisplayItemData* aData) {
   // do an in-depth comparison. If we haven't previously stored geometry
   // for this item (if it was an active layer), then we can't skip this
   // yet.
-  nsAutoPtr<nsDisplayItemGeometry> geometry;
+  UniquePtr<nsDisplayItemGeometry> geometry;
   if (aData->mReusedItem && aData->mGeometry) {
     aData->EndUpdate();
     return;
@@ -5271,10 +5260,10 @@ void FrameLayerBuilder::ComputeGeometryChangeForItem(DisplayItemData* aData) {
 
   if (!aData->mGeometry) {
     // This item is being added for the first time, invalidate its entire area.
-    geometry = item->AllocateGeometry(mDisplayListBuilder);
+    geometry = WrapUnique(item->AllocateGeometry(mDisplayListBuilder));
 
-    const nsRect bounds = GetInvalidationRect(geometry, clip, aData->mTransform,
-                                              appUnitsPerDevPixel);
+    const nsRect bounds = GetInvalidationRect(
+        geometry.get(), clip, aData->mTransform, appUnitsPerDevPixel);
 
     invalidPixels = bounds.ScaleToOutsidePixels(
         layerData->mXScale, layerData->mYScale, appUnitsPerDevPixel);
@@ -5288,15 +5277,15 @@ void FrameLayerBuilder::ComputeGeometryChangeForItem(DisplayItemData* aData) {
              (item->IsInvalid(invalid) && invalid.IsEmpty())) {
     // Layout marked item/frame as needing repainting (without an explicit
     // rect), invalidate the entire old and new areas.
-    geometry = item->AllocateGeometry(mDisplayListBuilder);
+    geometry = WrapUnique(item->AllocateGeometry(mDisplayListBuilder));
 
     nsRect oldArea =
-        GetInvalidationRect(aData->mGeometry, aData->mClip,
+        GetInvalidationRect(aData->mGeometry.get(), aData->mClip,
                             aData->mOldTransform, appUnitsPerDevPixel);
     oldArea.MoveBy(shift);
 
-    nsRect newArea = GetInvalidationRect(geometry, clip, aData->mTransform,
-                                         appUnitsPerDevPixel);
+    nsRect newArea = GetInvalidationRect(
+        geometry.get(), clip, aData->mTransform, appUnitsPerDevPixel);
 
     nsRegion combined;
     combined.Or(oldArea, newArea);
@@ -5325,7 +5314,7 @@ void FrameLayerBuilder::ComputeGeometryChangeForItem(DisplayItemData* aData) {
     aData->mGeometry->MoveBy(shift);
 
     nsRegion combined;
-    item->ComputeInvalidationRegion(mDisplayListBuilder, aData->mGeometry,
+    item->ComputeInvalidationRegion(mDisplayListBuilder, aData->mGeometry.get(),
                                     &combined);
 
     // Only allocate a new geometry object if something actually changed,
@@ -5336,7 +5325,7 @@ void FrameLayerBuilder::ComputeGeometryChangeForItem(DisplayItemData* aData) {
     if (!combined.IsEmpty() ||
         aData->mLayerState == LayerState::LAYER_INACTIVE ||
         item->NeedsGeometryUpdates()) {
-      geometry = item->AllocateGeometry(mDisplayListBuilder);
+      geometry = WrapUnique(item->AllocateGeometry(mDisplayListBuilder));
     }
 
     aData->mClip.AddOffsetAndComputeDifference(
@@ -5379,7 +5368,7 @@ void FrameLayerBuilder::ComputeGeometryChangeForItem(DisplayItemData* aData) {
                                   layerData->mTranslation);
   }
 
-  aData->EndUpdate(geometry);
+  aData->EndUpdate(std::move(geometry));
 }
 
 void FrameLayerBuilder::AddPaintedDisplayItem(PaintedLayerData* aLayerData,
@@ -7471,7 +7460,7 @@ already_AddRefed<Layer> ContainerState::CreateMaskLayer(
   gfx::Matrix imageTransform = maskTransform;
   imageTransform.PreScale(mParameters.mXScale, mParameters.mYScale);
 
-  nsAutoPtr<MaskLayerImageCache::MaskLayerImageKey> newKey(
+  UniquePtr<MaskLayerImageCache::MaskLayerImageKey> newKey(
       new MaskLayerImageCache::MaskLayerImageKey());
 
   // copy and transform the rounded rects
@@ -7483,7 +7472,7 @@ already_AddRefed<Layer> ContainerState::CreateMaskLayer(
   }
   newKey->mKnowsCompositor = mManager->AsKnowsCompositor();
 
-  const MaskLayerImageCache::MaskLayerImageKey* lookupKey = newKey;
+  const MaskLayerImageCache::MaskLayerImageKey* lookupKey = newKey.get();
 
   // check to see if we can reuse a mask image
   RefPtr<ImageContainer> container =
@@ -7519,7 +7508,7 @@ already_AddRefed<Layer> ContainerState::CreateMaskLayer(
       return nullptr;
     }
 
-    GetMaskLayerImageCache()->PutImage(newKey.forget(), container);
+    GetMaskLayerImageCache()->PutImage(newKey.release(), container);
   }
 
   maskLayer->SetContainer(container);

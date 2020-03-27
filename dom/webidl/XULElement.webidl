@@ -6,7 +6,7 @@
 
 interface XULControllers;
 
-[Func="IsChromeOrXBL",
+[ChromeOnly,
  Exposed=Window]
 interface XULElement : Element {
   [HTMLConstructor] constructor();
@@ -14,10 +14,6 @@ interface XULElement : Element {
   // Layout properties
   [SetterThrows]
   attribute DOMString flex;
-  [SetterThrows]
-  attribute DOMString ordinal;
-  [SetterThrows]
-  attribute DOMString orient;
 
   // Properties for hiding elements.
   attribute boolean hidden;

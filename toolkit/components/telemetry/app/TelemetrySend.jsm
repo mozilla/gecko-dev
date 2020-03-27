@@ -222,6 +222,15 @@ var TelemetrySend = {
   },
 
   /**
+   * Flushes all pings to pingsender that were both
+   *   1. submitted after profile-change-net-teardown, and
+   *   2. wanting to be sent using pingsender.
+   */
+  flushPingSenderBatch() {
+    TelemetrySendImpl.flushPingSenderBatch();
+  },
+
+  /**
    * Submit a ping for sending. This will:
    * - send the ping right away if possible or
    * - save the ping to disk and send it at the next opportunity
@@ -312,20 +321,22 @@ var TelemetrySend = {
    * This method is currently exposed here only for testing purposes as it's
    * only used internally.
    *
-   * @param {String} aUrl The telemetry server URL
-   * @param {String} aPingFilePath The path to the file holding the ping
-   *        contents, if if sent successfully the pingsender will delete it.
+   * @param {Array}<Object> pings An array of objects holding url / path pairs
+   *        for each ping to be sent. The URL represent the telemetry server the
+   *        ping will be sent to and the path points to the ping data. The ping
+   *        data files will be deleted if the pings have been submitted
+   *        successfully.
    * @param {callback} observer A function called with parameters
-            (subject, topic, data) and a topic of "process-finished" or
-            "process-failed" after pingsender completion.
+   *        (subject, topic, data) and a topic of "process-finished" or
+   *        "process-failed" after pingsender completion.
    *
    * @throws NS_ERROR_FAILURE if we couldn't find or run the pingsender
    *         executable.
    * @throws NS_ERROR_NOT_IMPLEMENTED on Android as the pingsender is not
    *         available.
    */
-  testRunPingSender(url, pingPath, observer) {
-    return TelemetrySendImpl.runPingSender(url, pingPath, observer);
+  testRunPingSender(pings, observer) {
+    return TelemetrySendImpl.runPingSender(pings, observer);
   },
 };
 
@@ -673,6 +684,8 @@ var TelemetrySendImpl = {
   _isOSShutdown: false,
   // Has the network shut down, making it too late to send pings?
   _tooLateToSend: false,
+  // Array of {url, path} awaiting flushPingSenderBatch().
+  _pingSenderBatch: [],
 
   OBSERVER_TOPICS: [
     TOPIC_IDLE_DAILY,
@@ -861,6 +874,16 @@ var TelemetrySendImpl = {
     await this._persistCurrentPings();
   },
 
+  flushPingSenderBatch() {
+    if (this._pingSenderBatch.length === 0) {
+      return;
+    }
+    this._log.trace(
+      `flushPingSenderBatch - Sending ${this._pingSenderBatch.length} pings.`
+    );
+    this.runPingSender(this._pingSenderBatch);
+  },
+
   reset() {
     this._log.trace("reset");
 
@@ -951,7 +974,13 @@ var TelemetrySendImpl = {
     );
     try {
       const pingPath = OS.Path.join(TelemetryStorage.pingDirectoryPath, pingId);
-      this.runPingSender(submissionURL, pingPath);
+      if (this._tooLateToSend) {
+        // We're in shutdown. Batch pings destined for pingsender.
+        this._log.trace("_sendWithPingSender - too late to send. Batching.");
+        this._pingSenderBatch.push({ url: submissionURL, path: pingPath });
+        return;
+      }
+      this.runPingSender([{ url: submissionURL, path: pingPath }]);
     } catch (e) {
       this._log.error("_sendWithPingSender - failed to submit ping", e);
     }
@@ -1545,7 +1574,7 @@ var TelemetrySendImpl = {
     };
   },
 
-  runPingSender(url, pingPath, observer) {
+  runPingSender(pings, observer) {
     if (AppConstants.platform === "android") {
       throw Cr.NS_ERROR_NOT_IMPLEMENTED;
     }
@@ -1556,12 +1585,13 @@ var TelemetrySendImpl = {
     let exe = Services.dirsvc.get("GreBinD", Ci.nsIFile);
     exe.append(exeName);
 
+    let params = pings.flatMap(ping => [ping.url, ping.path]);
     let process = Cc["@mozilla.org/process/util;1"].createInstance(
       Ci.nsIProcess
     );
     process.init(exe);
     process.startHidden = true;
     process.noShell = true;
-    process.runAsync([url, pingPath], 2, observer);
+    process.runAsync(params, params.length, observer);
   },
 };

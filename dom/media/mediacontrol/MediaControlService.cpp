@@ -19,6 +19,10 @@
   MOZ_LOG(gMediaControlLog, LogLevel::Debug, \
           ("MediaControlService=%p, " msg, this, ##__VA_ARGS__))
 
+#undef LOG_MAINCONTROLLER
+#define LOG_MAINCONTROLLER(msg, ...) \
+  MOZ_LOG(gMediaControlLog, LogLevel::Debug, (msg, ##__VA_ARGS__))
+
 namespace mozilla {
 namespace dom {
 
@@ -48,7 +52,7 @@ NS_INTERFACE_MAP_END
 NS_IMPL_ADDREF(MediaControlService)
 NS_IMPL_RELEASE(MediaControlService)
 
-MediaControlService::MediaControlService() : mAudioFocusManager(this) {
+MediaControlService::MediaControlService() {
   LOG("create media control service");
   RefPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (obs) {
@@ -62,6 +66,7 @@ void MediaControlService::Init() {
   mMediaControlKeysManager->Open();
   MOZ_ASSERT(mMediaControlKeysManager->IsOpened());
   mMediaControlKeysManager->AddListener(mMediaKeysHandler.get());
+  mControllerManager = MakeUnique<ControllerManager>(this);
 }
 
 MediaControlService::~MediaControlService() {
@@ -87,66 +92,46 @@ MediaControlService::Observe(nsISupports* aSubject, const char* aTopic,
 }
 
 void MediaControlService::Shutdown() {
-  ShutdownAllControllers();
-  mControllers.Clear();
-  mAudioFocusManager.Shutdown();
+  mControllerManager->Shutdown();
   mMediaControlKeysManager->RemoveListener(mMediaKeysHandler.get());
 }
 
-MediaController* MediaControlService::GetOrCreateControllerById(
-    const uint64_t aId) const {
-  MediaController* controller = GetControllerById(aId);
-  if (!controller) {
-    controller = new MediaController(aId);
+bool MediaControlService::RegisterActiveMediaController(
+    MediaController* aController) {
+  MOZ_DIAGNOSTIC_ASSERT(mControllerManager,
+                        "Register controller before initializing service");
+  if (!mControllerManager->AddController(aController)) {
+    LOG("Fail to register controller %" PRId64, aController->Id());
+    return false;
   }
-  return controller;
+  LOG("Register media controller %" PRId64 ", currentNum=%" PRId64,
+      aController->Id(), GetActiveControllersNum());
+  mMediaControllerAmountChangedEvent.Notify(GetActiveControllersNum());
+  return true;
 }
 
-MediaController* MediaControlService::GetControllerById(
-    const uint64_t aId) const {
-  return mControllers.Get(aId).get();
-}
-
-void MediaControlService::AddMediaController(MediaController* aController) {
-  MOZ_DIAGNOSTIC_ASSERT(aController);
-  const uint64_t cId = aController->Id();
-  MOZ_DIAGNOSTIC_ASSERT(!mControllers.GetValue(cId),
-                        "Controller has been added already!");
-  mControllers.Put(cId, aController);
-  mControllerHistory.AppendElement(cId);
-  LOG("Add media controller %" PRId64 ", currentNum=%" PRId64, cId,
-      GetControllersNum());
-  mMediaControllerAmountChangedEvent.Notify(GetControllersNum());
-}
-
-void MediaControlService::RemoveMediaController(MediaController* aController) {
-  MOZ_DIAGNOSTIC_ASSERT(aController);
-  const uint64_t cId = aController->Id();
-  MOZ_DIAGNOSTIC_ASSERT(mControllers.GetValue(cId),
-                        "Controller does not exist!");
-  mControllers.Remove(cId);
-  mControllerHistory.RemoveElement(cId);
-  LOG("Remove media controller %" PRId64 ", currentNum=%" PRId64, cId,
-      GetControllersNum());
-  mMediaControllerAmountChangedEvent.Notify(GetControllersNum());
-}
-
-void MediaControlService::ShutdownAllControllers() const {
-  for (auto iter = mControllers.ConstIter(); !iter.Done(); iter.Next()) {
-    const RefPtr<MediaController>& controller = iter.Data();
-    controller->Shutdown();
+bool MediaControlService::UnregisterActiveMediaController(
+    MediaController* aController) {
+  MOZ_DIAGNOSTIC_ASSERT(mControllerManager,
+                        "Unregister controller before initializing service");
+  if (!mControllerManager->RemoveController(aController)) {
+    LOG("Fail to unregister controller %" PRId64, aController->Id());
+    return false;
   }
+  LOG("Unregister media controller %" PRId64 ", currentNum=%" PRId64,
+      aController->Id(), GetActiveControllersNum());
+  mMediaControllerAmountChangedEvent.Notify(GetActiveControllersNum());
+  return true;
 }
 
-uint64_t MediaControlService::GetControllersNum() const {
-  return mControllers.Count();
+uint64_t MediaControlService::GetActiveControllersNum() const {
+  MOZ_DIAGNOSTIC_ASSERT(mControllerManager);
+  return mControllerManager->GetControllersNum();
 }
 
-MediaController* MediaControlService::GetLastAddedController() const {
-  if (mControllerHistory.IsEmpty()) {
-    return nullptr;
-  }
-  return GetControllerById(mControllerHistory.LastElement());
+MediaController* MediaControlService::GetMainController() const {
+  MOZ_DIAGNOSTIC_ASSERT(mControllerManager);
+  return mControllerManager->GetMainController();
 }
 
 void MediaControlService::GenerateMediaControlKeysTestEvent(
@@ -155,6 +140,79 @@ void MediaControlService::GenerateMediaControlKeysTestEvent(
     return;
   }
   mMediaKeysHandler->OnKeyPressed(aEvent);
+}
+
+// Following functions belong to ControllerManager
+MediaControlService::ControllerManager::ControllerManager(
+    MediaControlService* aService)
+    : mSource(aService->GetMediaControlKeysEventSource()) {
+  MOZ_ASSERT(mSource);
+}
+
+bool MediaControlService::ControllerManager::AddController(
+    MediaController* aController) {
+  MOZ_DIAGNOSTIC_ASSERT(aController);
+  if (mControllers.Contains(aController)) {
+    return false;
+  }
+  mControllers.AppendElement(aController);
+  UpdateMainController(aController);
+  return true;
+}
+
+bool MediaControlService::ControllerManager::RemoveController(
+    MediaController* aController) {
+  MOZ_DIAGNOSTIC_ASSERT(aController);
+  if (!mControllers.Contains(aController)) {
+    return false;
+  }
+  mControllers.RemoveElement(aController);
+  UpdateMainController(
+      mControllers.IsEmpty() ? nullptr : mControllers.LastElement().get());
+  return true;
+}
+
+void MediaControlService::ControllerManager::Shutdown() {
+  mControllers.Clear();
+  mPlayStateChangedListener.DisconnectIfExists();
+}
+
+void MediaControlService::ControllerManager::ControllerPlaybackStateChanged(
+    PlaybackState aState) {
+  MOZ_ASSERT(NS_IsMainThread());
+  mSource->SetPlaybackState(aState);
+}
+
+void MediaControlService::ControllerManager::UpdateMainController(
+    MediaController* aController) {
+  MOZ_ASSERT(NS_IsMainThread());
+  mMainController = aController;
+  // As main controller has been changed, we should disconnect the listener from
+  // the previous controller and reconnect it to the new controller.
+  mPlayStateChangedListener.DisconnectIfExists();
+
+  if (!mMainController) {
+    LOG_MAINCONTROLLER("Clear main controller");
+    mSource->SetPlaybackState(PlaybackState::eStopped);
+    return;
+  }
+  LOG_MAINCONTROLLER("Set controller %" PRId64 " as main controller",
+                     mMainController->Id());
+  // Listen to new main controller in order to get playback state update.
+  mPlayStateChangedListener =
+      mMainController->PlaybackStateChangedEvent().Connect(
+          AbstractThread::MainThread(), this,
+          &ControllerManager::ControllerPlaybackStateChanged);
+  mSource->SetPlaybackState(mMainController->GetState());
+}
+
+MediaController* MediaControlService::ControllerManager::GetMainController()
+    const {
+  return mMainController.get();
+}
+
+uint64_t MediaControlService::ControllerManager::GetControllersNum() const {
+  return mControllers.Length();
 }
 
 }  // namespace dom

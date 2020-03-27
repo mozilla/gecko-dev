@@ -2,32 +2,32 @@ use cubeb_backend::{ChannelLayout, SampleFormat};
 use std::mem;
 use std::os::raw::{c_int, c_void};
 
-extern crate mixer;
-pub use self::mixer::Channel;
+extern crate audio_mixer;
+pub use self::audio_mixer::Channel;
 
-const CHANNEL_OERDER: [mixer::Channel; mixer::Channel::count()] = [
-    mixer::Channel::FrontLeft,
-    mixer::Channel::FrontRight,
-    mixer::Channel::FrontCenter,
-    mixer::Channel::LowFrequency,
-    mixer::Channel::BackLeft,
-    mixer::Channel::BackRight,
-    mixer::Channel::FrontLeftOfCenter,
-    mixer::Channel::FrontRightOfCenter,
-    mixer::Channel::BackCenter,
-    mixer::Channel::SideLeft,
-    mixer::Channel::SideRight,
-    mixer::Channel::TopCenter,
-    mixer::Channel::TopFrontLeft,
-    mixer::Channel::TopFrontCenter,
-    mixer::Channel::TopFrontRight,
-    mixer::Channel::TopBackLeft,
-    mixer::Channel::TopBackCenter,
-    mixer::Channel::TopBackRight,
-    mixer::Channel::Silence,
+const CHANNEL_OERDER: [audio_mixer::Channel; audio_mixer::Channel::count()] = [
+    audio_mixer::Channel::FrontLeft,
+    audio_mixer::Channel::FrontRight,
+    audio_mixer::Channel::FrontCenter,
+    audio_mixer::Channel::LowFrequency,
+    audio_mixer::Channel::BackLeft,
+    audio_mixer::Channel::BackRight,
+    audio_mixer::Channel::FrontLeftOfCenter,
+    audio_mixer::Channel::FrontRightOfCenter,
+    audio_mixer::Channel::BackCenter,
+    audio_mixer::Channel::SideLeft,
+    audio_mixer::Channel::SideRight,
+    audio_mixer::Channel::TopCenter,
+    audio_mixer::Channel::TopFrontLeft,
+    audio_mixer::Channel::TopFrontCenter,
+    audio_mixer::Channel::TopFrontRight,
+    audio_mixer::Channel::TopBackLeft,
+    audio_mixer::Channel::TopBackCenter,
+    audio_mixer::Channel::TopBackRight,
+    audio_mixer::Channel::Silence,
 ];
 
-pub fn get_channel_order(channel_layout: ChannelLayout) -> Vec<mixer::Channel> {
+pub fn get_channel_order(channel_layout: ChannelLayout) -> Vec<audio_mixer::Channel> {
     let mut map = channel_layout.bits();
     let mut order = Vec::new();
     let mut channel_index: usize = 0;
@@ -41,39 +41,49 @@ pub fn get_channel_order(channel_layout: ChannelLayout) -> Vec<mixer::Channel> {
     order
 }
 
-fn get_default_channel_order(channel_count: usize) -> Vec<mixer::Channel> {
+fn get_default_channel_order(channel_count: usize) -> Vec<audio_mixer::Channel> {
     assert_ne!(channel_count, 0);
     let mut channels = Vec::with_capacity(channel_count);
-    for i in 0..channel_count {
-        channels.push(if i < CHANNEL_OERDER.len() {
-            CHANNEL_OERDER[i]
-        } else {
-            mixer::Channel::Silence
-        });
+    for channel in CHANNEL_OERDER.iter().take(channel_count) {
+        channels.push(*channel);
     }
+
+    if channel_count > CHANNEL_OERDER.len() {
+        channels.extend(vec![
+            audio_mixer::Channel::Silence;
+            channel_count - CHANNEL_OERDER.len()
+        ]);
+    }
+
     channels
 }
 
 #[derive(Debug)]
 enum MixerType {
-    IntegerMixer(mixer::Mixer<i16>),
-    FloatMixer(mixer::Mixer<f32>),
+    IntegerMixer(audio_mixer::Mixer<i16>),
+    FloatMixer(audio_mixer::Mixer<f32>),
 }
 
 impl MixerType {
     fn new(
         format: SampleFormat,
-        input_channels: Vec<mixer::Channel>,
-        output_channels: Vec<mixer::Channel>,
+        input_channels: &[audio_mixer::Channel],
+        output_channels: &[audio_mixer::Channel],
     ) -> Self {
         match format {
             SampleFormat::S16LE | SampleFormat::S16BE | SampleFormat::S16NE => {
                 cubeb_log!("Create an integer type(i16) mixer");
-                Self::IntegerMixer(mixer::Mixer::<i16>::new(input_channels, output_channels))
+                Self::IntegerMixer(audio_mixer::Mixer::<i16>::new(
+                    input_channels,
+                    output_channels,
+                ))
             }
             SampleFormat::Float32LE | SampleFormat::Float32BE | SampleFormat::Float32NE => {
                 cubeb_log!("Create an floating type(f32) mixer");
-                Self::FloatMixer(mixer::Mixer::<f32>::new(input_channels, output_channels))
+                Self::FloatMixer(audio_mixer::Mixer::<f32>::new(
+                    input_channels,
+                    output_channels,
+                ))
             }
         }
     }
@@ -101,9 +111,9 @@ impl MixerType {
 
     fn mix(
         &self,
-        input_buffer_ptr: *const u8,
+        input_buffer_ptr: *const (),
         input_buffer_size: usize,
-        output_buffer_ptr: *mut u8,
+        output_buffer_ptr: *mut (),
         output_buffer_size: usize,
         frames: usize,
     ) {
@@ -164,7 +174,7 @@ impl Mixer {
         in_channel_count: usize,
         input_layout: ChannelLayout,
         out_channel_count: usize,
-        mut output_channels: Vec<mixer::Channel>,
+        mut output_channels: Vec<audio_mixer::Channel>,
     ) -> Self {
         cubeb_log!(
             "Create a mixer with input channel count: {}, input layout: {:?}, \
@@ -187,13 +197,16 @@ impl Mixer {
         // some reason.
         // TODO: Only apply this setting when device is Bose QC35 (by device_property.rs).
         if out_channel_count == 1 {
-            output_channels = vec![mixer::Channel::FrontCenter];
+            output_channels = vec![audio_mixer::Channel::FrontCenter];
         } else if out_channel_count == 2 {
-            output_channels = vec![mixer::Channel::FrontLeft, mixer::Channel::FrontRight];
+            output_channels = vec![
+                audio_mixer::Channel::FrontLeft,
+                audio_mixer::Channel::FrontRight,
+            ];
         }
 
-        let all_silence = vec![mixer::Channel::Silence; out_channel_count];
-        if output_channels.len() == 0
+        let all_silence = vec![audio_mixer::Channel::Silence; out_channel_count];
+        if output_channels.is_empty()
             || out_channel_count != output_channels.len()
             || all_silence == output_channels
         {
@@ -202,7 +215,7 @@ impl Mixer {
         }
 
         Self {
-            mixer: MixerType::new(format, input_channels, output_channels),
+            mixer: MixerType::new(format, &input_channels, &output_channels),
             buffer: Vec::new(),
         }
     }
@@ -226,9 +239,9 @@ impl Mixer {
     pub fn mix(&self, frames: usize, dest_buffer: *mut c_void, dest_buffer_size: usize) -> c_int {
         let (src_buffer_ptr, src_buffer_size) = self.get_buffer_info();
         self.mixer.mix(
-            src_buffer_ptr,
+            src_buffer_ptr as *const (),
             src_buffer_size,
-            dest_buffer as *mut u8,
+            dest_buffer as *mut (),
             dest_buffer_size,
             frames,
         );
@@ -420,4 +433,18 @@ fn test_get_channel_order() {
             Channel::SideRight
         ]
     );
+}
+
+#[test]
+fn test_get_default_channel_order() {
+    for len in 1..CHANNEL_OERDER.len() + 10 {
+        let channels = get_default_channel_order(len);
+        if len <= CHANNEL_OERDER.len() {
+            assert_eq!(channels, &CHANNEL_OERDER[..len]);
+        } else {
+            let silences = vec![audio_mixer::Channel::Silence; len - CHANNEL_OERDER.len()];
+            assert_eq!(channels[..CHANNEL_OERDER.len()], CHANNEL_OERDER);
+            assert_eq!(&channels[CHANNEL_OERDER.len()..], silences.as_slice());
+        }
+    }
 }

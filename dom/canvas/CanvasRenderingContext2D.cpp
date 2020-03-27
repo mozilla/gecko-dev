@@ -707,7 +707,7 @@ void CanvasPattern::SetTransform(SVGMatrix& aMatrix) {
   mTransform = ToMatrix(aMatrix.GetMatrix());
 }
 
-void CanvasGradient::AddColorStop(float aOffset, const nsAString& aColorstr,
+void CanvasGradient::AddColorStop(float aOffset, const nsACString& aColorstr,
                                   ErrorResult& aRv) {
   if (aOffset < 0.0 || aOffset > 1.0) {
     aRv.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
@@ -720,7 +720,6 @@ void CanvasGradient::AddColorStop(float aOffset, const nsAString& aColorstr,
   nscolor color;
   bool ok = ServoCSSParser::ComputeColor(styleSet, NS_RGB(0, 0, 0), aColorstr,
                                          &color);
-
   if (!ok) {
     aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
     return;
@@ -995,7 +994,7 @@ JSObject* CanvasRenderingContext2D::WrapObject(
   return CanvasRenderingContext2D_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-bool CanvasRenderingContext2D::ParseColor(const nsAString& aString,
+bool CanvasRenderingContext2D::ParseColor(const nsACString& aString,
                                           nscolor* aColor) {
   Document* document = mCanvasElement ? mCanvasElement->OwnerDoc() : nullptr;
   css::Loader* loader = document ? document->CSSLoader() : nullptr;
@@ -1075,7 +1074,7 @@ void CanvasRenderingContext2D::SetStyleFromString(const nsAString& aStr,
   MOZ_ASSERT(!aStr.IsVoid());
 
   nscolor color;
-  if (!ParseColor(aStr, &color)) {
+  if (!ParseColor(NS_ConvertUTF16toUTF8(aStr), &color)) {
     return;
   }
 
@@ -2193,7 +2192,7 @@ already_AddRefed<CanvasPattern> CanvasRenderingContext2D::CreatePattern(
 //
 void CanvasRenderingContext2D::SetShadowColor(const nsAString& aShadowColor) {
   nscolor color;
-  if (!ParseColor(aShadowColor, &color)) {
+  if (!ParseColor(NS_ConvertUTF16toUTF8(aShadowColor), &color)) {
     return;
   }
 
@@ -3347,29 +3346,25 @@ void CanvasRenderingContext2D::FillText(const nsAString& aText, double aX,
                                         double aY,
                                         const Optional<double>& aMaxWidth,
                                         ErrorResult& aError) {
-  aError = DrawOrMeasureText(aText, aX, aY, aMaxWidth, TextDrawOperation::FILL,
-                             nullptr);
+  DebugOnly<TextMetrics*> metrics = DrawOrMeasureText(
+      aText, aX, aY, aMaxWidth, TextDrawOperation::FILL, aError);
+  MOZ_ASSERT(!metrics);  // drawing operation never returns TextMetrics
 }
 
 void CanvasRenderingContext2D::StrokeText(const nsAString& aText, double aX,
                                           double aY,
                                           const Optional<double>& aMaxWidth,
                                           ErrorResult& aError) {
-  aError = DrawOrMeasureText(aText, aX, aY, aMaxWidth,
-                             TextDrawOperation::STROKE, nullptr);
+  DebugOnly<TextMetrics*> metrics = DrawOrMeasureText(
+      aText, aX, aY, aMaxWidth, TextDrawOperation::STROKE, aError);
+  MOZ_ASSERT(!metrics);  // drawing operation never returns TextMetrics
 }
 
 TextMetrics* CanvasRenderingContext2D::MeasureText(const nsAString& aRawText,
                                                    ErrorResult& aError) {
-  float width;
   Optional<double> maxWidth;
-  aError = DrawOrMeasureText(aRawText, 0, 0, maxWidth,
-                             TextDrawOperation::MEASURE, &width);
-  if (aError.Failed()) {
-    return nullptr;
-  }
-
-  return new TextMetrics(width);
+  return DrawOrMeasureText(aRawText, 0, 0, maxWidth, TextDrawOperation::MEASURE,
+                           aError);
 }
 
 void CanvasRenderingContext2D::AddHitRegion(const HitRegionOptions& aOptions,
@@ -3719,20 +3714,29 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor
   bool mDoMeasureBoundingBox;
 };
 
-nsresult CanvasRenderingContext2D::DrawOrMeasureText(
+TextMetrics* CanvasRenderingContext2D::DrawOrMeasureText(
     const nsAString& aRawText, float aX, float aY,
-    const Optional<double>& aMaxWidth, TextDrawOperation aOp, float* aWidth) {
-  nsresult rv;
+    const Optional<double>& aMaxWidth, TextDrawOperation aOp,
+    ErrorResult& aError) {
+  // Approximated baselines. In an ideal world, we'd read the baseline info
+  // directly from the font (where available). Alas we currently lack
+  // that functionality. These numbers are best guesses and should
+  // suffice for now. Both are fractions of the em ascent/descent from the
+  // alphabetic baseline.
+  const double kHangingBaselineDefault = 0.8;      // fraction of ascent
+  const double kIdeographicBaselineDefault = 0.5;  // fraction of descent
 
   if (!mCanvasElement && !mDocShell) {
     NS_WARNING(
         "Canvas element must be non-null or a docshell must be provided");
-    return NS_ERROR_FAILURE;
+    aError = NS_ERROR_FAILURE;
+    return nullptr;
   }
 
   RefPtr<PresShell> presShell = GetPresShell();
   if (!presShell) {
-    return NS_ERROR_FAILURE;
+    aError = NS_ERROR_FAILURE;
+    return nullptr;
   }
 
   Document* document = presShell->GetDocument();
@@ -3756,11 +3760,11 @@ nsresult CanvasRenderingContext2D::DrawOrMeasureText(
     // try to find the closest context
     canvasStyle = nsComputedDOMStyle::GetComputedStyle(mCanvasElement, nullptr);
     if (!canvasStyle) {
-      return NS_ERROR_FAILURE;
+      aError = NS_ERROR_FAILURE;
+      return nullptr;
     }
 
-    isRTL =
-        canvasStyle->StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+    isRTL = canvasStyle->StyleVisibility()->mDirection == StyleDirection::Rtl;
   } else {
     isRTL = GET_BIDI_OPTION_DIRECTION(document->GetBidiOptions()) ==
             IBMBIDI_TEXTDIRECTION_RTL;
@@ -3769,12 +3773,14 @@ nsresult CanvasRenderingContext2D::DrawOrMeasureText(
   // This is only needed to know if we can know the drawing bounding box easily.
   const bool doCalculateBounds = NeedToCalculateBounds();
   if (presShell->IsDestroying()) {
-    return NS_ERROR_FAILURE;
+    aError = NS_ERROR_FAILURE;
+    return nullptr;
   }
 
   gfxFontGroup* currentFontStyle = GetCurrentFontStyle();
   if (!currentFontStyle) {
-    return NS_ERROR_FAILURE;
+    aError = NS_ERROR_FAILURE;
+    return nullptr;
   }
 
   MOZ_ASSERT(!presShell->IsDestroying(),
@@ -3788,14 +3794,23 @@ nsresult CanvasRenderingContext2D::DrawOrMeasureText(
   currentFontStyle->SetUserFontSet(presContext->GetUserFontSet());
 
   if (currentFontStyle->GetStyle()->size == 0.0F) {
-    if (aWidth) {
-      *aWidth = 0;
+    aError = NS_OK;
+    if (aOp == TextDrawOperation::MEASURE) {
+      return new TextMetrics(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                             0.0, 0.0);
     }
-    return NS_OK;
+    return nullptr;
   }
 
   if (!IsFinite(aX) || !IsFinite(aY)) {
-    return NS_OK;
+    aError = NS_OK;
+    // This may not be correct - what should TextMetrics contain in the case of
+    // infinite width or height?
+    if (aOp == TextDrawOperation::MEASURE) {
+      return new TextMetrics(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                             0.0, 0.0);
+    }
+    return nullptr;
   }
 
   CanvasBidiProcessor processor;
@@ -3822,30 +3837,24 @@ nsresult CanvasRenderingContext2D::DrawOrMeasureText(
   processor.mCtx = this;
   processor.mOp = aOp;
   processor.mBoundingBox = gfxRect(0, 0, 0, 0);
-  processor.mDoMeasureBoundingBox = doCalculateBounds || !mIsEntireFrameInvalid;
+  processor.mDoMeasureBoundingBox = doCalculateBounds ||
+                                    !mIsEntireFrameInvalid ||
+                                    aOp == TextDrawOperation::MEASURE;
   processor.mFontgrp = currentFontStyle;
 
   nscoord totalWidthCoord;
 
   // calls bidi algo twice since it needs the full text width and the
   // bounding boxes before rendering anything
-  rv = nsBidiPresUtils::ProcessText(
+  aError = nsBidiPresUtils::ProcessText(
       textToDraw.get(), textToDraw.Length(), isRTL ? NSBIDI_RTL : NSBIDI_LTR,
       presShell->GetPresContext(), processor, nsBidiPresUtils::MODE_MEASURE,
       nullptr, 0, &totalWidthCoord, &mBidiEngine);
-  if (NS_FAILED(rv)) {
-    return rv;
+  if (aError.Failed()) {
+    return nullptr;
   }
 
   float totalWidth = float(totalWidthCoord) / processor.mAppUnitsPerDevPixel;
-  if (aWidth) {
-    *aWidth = totalWidth;
-  }
-
-  // if only measuring, don't need to do any more work
-  if (aOp == TextDrawOperation::MEASURE) {
-    return NS_OK;
-  }
 
   // offset pt.x based on text align
   gfxFloat anchorX;
@@ -3861,7 +3870,8 @@ nsresult CanvasRenderingContext2D::DrawOrMeasureText(
     anchorX = 1;
   }
 
-  processor.mPt.x -= anchorX * totalWidth;
+  float offsetX = anchorX * totalWidth;
+  processor.mPt.x -= offsetX;
 
   // offset pt.y (or pt.x, for vertical text) based on text baseline
   processor.mFontgrp
@@ -3874,17 +3884,19 @@ nsresult CanvasRenderingContext2D::DrawOrMeasureText(
 
   switch (state.textBaseline) {
     case TextBaseline::HANGING:
-      // fall through; best we can do with the information available
+      baselineAnchor = fontMetrics.emAscent * kHangingBaselineDefault;
+      break;
     case TextBaseline::TOP:
       baselineAnchor = fontMetrics.emAscent;
       break;
     case TextBaseline::MIDDLE:
       baselineAnchor = (fontMetrics.emAscent - fontMetrics.emDescent) * .5f;
       break;
-    case TextBaseline::IDEOGRAPHIC:
-      // fall through; best we can do with the information available
     case TextBaseline::ALPHABETIC:
       baselineAnchor = 0;
+      break;
+    case TextBaseline::IDEOGRAPHIC:
+      baselineAnchor = -fontMetrics.emDescent * kIdeographicBaselineDefault;
       break;
     case TextBaseline::BOTTOM:
       baselineAnchor = -fontMetrics.emDescent;
@@ -3909,16 +3921,45 @@ nsresult CanvasRenderingContext2D::DrawOrMeasureText(
     processor.mPt.y += baselineAnchor;
   }
 
-  // correct bounding box to get it to be the correct size/position
-  processor.mBoundingBox.width = totalWidth;
-  processor.mBoundingBox.MoveBy(gfxPoint(processor.mPt.x, processor.mPt.y));
+  // if only measuring, don't need to do any more work
+  if (aOp == TextDrawOperation::MEASURE) {
+    aError = NS_OK;
+    double actualBoundingBoxLeft = processor.mBoundingBox.X() - offsetX;
+    double actualBoundingBoxRight = processor.mBoundingBox.XMost() - offsetX;
+    double actualBoundingBoxAscent =
+        -processor.mBoundingBox.Y() - baselineAnchor;
+    double actualBoundingBoxDescent =
+        processor.mBoundingBox.YMost() + baselineAnchor;
+    double hangingBaseline =
+        fontMetrics.emAscent * kHangingBaselineDefault - baselineAnchor;
+    double ideographicBaseline =
+        -fontMetrics.emDescent * kIdeographicBaselineDefault - baselineAnchor;
+    return new TextMetrics(
+        totalWidth, actualBoundingBoxLeft, actualBoundingBoxRight,
+        fontMetrics.maxAscent - baselineAnchor,   // fontBBAscent
+        fontMetrics.maxDescent + baselineAnchor,  // fontBBDescent
+        actualBoundingBoxAscent, actualBoundingBoxDescent,
+        fontMetrics.emAscent - baselineAnchor,    // emHeightAscent
+        -fontMetrics.emDescent - baselineAnchor,  // emHeightDescent
+        hangingBaseline,
+        -baselineAnchor,  // alphabeticBaseline
+        ideographicBaseline);
+  }
+
+  // If we did not actually calculate bounds, set up a simple bounding box
+  // based on the text position and advance.
+  if (!doCalculateBounds) {
+    processor.mBoundingBox.width = totalWidth;
+    processor.mBoundingBox.MoveBy(gfxPoint(processor.mPt.x, processor.mPt.y));
+  }
 
   processor.mPt.x *= processor.mAppUnitsPerDevPixel;
   processor.mPt.y *= processor.mAppUnitsPerDevPixel;
 
   EnsureTarget();
   if (!IsTargetValid()) {
-    return NS_ERROR_FAILURE;
+    aError = NS_ERROR_FAILURE;
+    return nullptr;
   }
 
   Matrix oldTransform = mTarget->GetTransform();
@@ -3944,21 +3985,26 @@ nsresult CanvasRenderingContext2D::DrawOrMeasureText(
   // don't ever need to measure the bounding box twice
   processor.mDoMeasureBoundingBox = false;
 
-  rv = nsBidiPresUtils::ProcessText(
+  aError = nsBidiPresUtils::ProcessText(
       textToDraw.get(), textToDraw.Length(), isRTL ? NSBIDI_RTL : NSBIDI_LTR,
       presShell->GetPresContext(), processor, nsBidiPresUtils::MODE_DRAW,
       nullptr, 0, nullptr, &mBidiEngine);
+
+  if (aError.Failed()) {
+    return nullptr;
+  }
 
   mTarget->SetTransform(oldTransform);
 
   if (aOp == CanvasRenderingContext2D::TextDrawOperation::FILL &&
       !doCalculateBounds) {
     RedrawUser(boundingBox);
-    return NS_OK;
+  } else {
+    Redraw();
   }
 
-  Redraw();
-  return NS_OK;
+  aError = NS_OK;
+  return nullptr;
 }
 
 gfxFontGroup* CanvasRenderingContext2D::GetCurrentFontStyle() {
@@ -4699,7 +4745,7 @@ void CanvasRenderingContext2D::GetGlobalCompositeOperation(
 
 void CanvasRenderingContext2D::DrawWindow(nsGlobalWindowInner& aWindow,
                                           double aX, double aY, double aW,
-                                          double aH, const nsAString& aBgColor,
+                                          double aH, const nsACString& aBgColor,
                                           uint32_t aFlags,
                                           ErrorResult& aError) {
   if (int32_t(aW) == 0 || int32_t(aH) == 0) {
@@ -5154,7 +5200,7 @@ nsresult CanvasRenderingContext2D::PutImageData_explicit(
     return NS_OK;
   }
 
-  aArray->ComputeLengthAndData();
+  aArray->ComputeState();
 
   uint32_t dataLen = aArray->Length();
 

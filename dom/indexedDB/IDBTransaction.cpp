@@ -104,7 +104,6 @@ IDBTransaction::IDBTransaction(IDBDatabase* const aDatabase,
       mLineNo(aLineNo),
       mColumn(aColumn),
       mMode(aMode),
-      mCreating(false),
       mRegistered(false),
       mNotedActiveTransaction(false) {
   MOZ_ASSERT(aDatabase);
@@ -133,7 +132,7 @@ IDBTransaction::IDBTransaction(IDBDatabase* const aDatabase,
 IDBTransaction::~IDBTransaction() {
   AssertIsOnOwningThread();
   MOZ_ASSERT(!mPendingRequestCount);
-  MOZ_ASSERT(!mCreating);
+  MOZ_ASSERT(mReadyState == ReadyState::Finished);
   MOZ_ASSERT(!mNotedActiveTransaction);
   MOZ_ASSERT(mSentCommitOrAbort);
   MOZ_ASSERT_IF(HasTransactionChild(), mFiredCompleteOrAbort);
@@ -240,8 +239,6 @@ RefPtr<IDBTransaction> IDBTransaction::Create(
   nsCOMPtr<nsIRunnable> runnable = do_QueryObject(transaction);
   nsContentUtils::AddPendingIDBTransaction(runnable.forget());
 
-  transaction->mCreating = true;
-
   aDatabase->RegisterTransaction(transaction);
   transaction->mRegistered = true;
 
@@ -299,8 +296,9 @@ BackgroundRequestChild* IDBTransaction::StartRequest(
   return actor;
 }
 
-void IDBTransaction::OpenCursor(BackgroundCursorChild* const aBackgroundActor,
-                                const OpenCursorParams& aParams) {
+void IDBTransaction::OpenCursor(
+    PBackgroundIDBCursorChild* const aBackgroundActor,
+    const OpenCursorParams& aParams) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aBackgroundActor);
   MOZ_ASSERT(aParams.type() != OpenCursorParams::T__None);
@@ -342,30 +340,31 @@ void IDBTransaction::OnNewRequest() {
 void IDBTransaction::OnRequestFinished(
     const bool aRequestCompletedSuccessfully) {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(mReadyState == ReadyState::Inactive ||
-             mReadyState == ReadyState::Finished);
+  MOZ_ASSERT(mReadyState != ReadyState::Active);
   MOZ_ASSERT_IF(mReadyState == ReadyState::Finished, !NS_SUCCEEDED(mAbortCode));
   MOZ_ASSERT(mPendingRequestCount);
 
   --mPendingRequestCount;
 
   if (!mPendingRequestCount) {
+    if (mSentCommitOrAbort) {
+      return;
+    }
+
     if (mReadyState == ReadyState::Inactive) {
       mReadyState = ReadyState::Committing;
     }
 
     if (aRequestCompletedSuccessfully) {
       if (NS_SUCCEEDED(mAbortCode)) {
-        SendCommit();
+        SendCommit(true);
       } else {
         SendAbort(mAbortCode);
       }
     } else {
       // Don't try to send any more messages to the parent if the request actor
       // was killed.
-#ifdef DEBUG
       mSentCommitOrAbort.Flip();
-#endif
       IDB_LOG_MARK_CHILD_TRANSACTION(
           "Request actor was killed, transaction will be aborted",
           "IDBTransaction abort", LoggingSerialNumber());
@@ -373,25 +372,23 @@ void IDBTransaction::OnRequestFinished(
   }
 }
 
-void IDBTransaction::SendCommit() {
+void IDBTransaction::SendCommit(const bool aAutoCommit) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(NS_SUCCEEDED(mAbortCode));
   MOZ_ASSERT(IsCommittingOrFinished());
-  MOZ_ASSERT(!mPendingRequestCount);
 
   // Don't do this in the macro because we always need to increment the serial
   // number to keep in sync with the parent.
   const uint64_t requestSerialNumber = IDBRequest::NextSerialNumber();
 
   IDB_LOG_MARK_CHILD_TRANSACTION_REQUEST(
-      "All requests complete, committing transaction", "IDBTransaction commit",
-      LoggingSerialNumber(), requestSerialNumber);
+      "Committing transaction (%s)", "IDBTransaction commit (%s)",
+      LoggingSerialNumber(), requestSerialNumber,
+      aAutoCommit ? "automatically" : "explicitly");
 
   DoWithTransactionChild([](auto& actor) { actor.SendCommit(); });
 
-#ifdef DEBUG
   mSentCommitOrAbort.Flip();
-#endif
 }
 
 void IDBTransaction::SendAbort(const nsresult aResultCode) {
@@ -410,9 +407,7 @@ void IDBTransaction::SendAbort(const nsresult aResultCode) {
   DoWithTransactionChild(
       [aResultCode](auto& actor) { actor.SendAbort(aResultCode); });
 
-#ifdef DEBUG
   mSentCommitOrAbort.Flip();
-#endif
 }
 
 void IDBTransaction::NoteActiveTransaction() {
@@ -430,19 +425,6 @@ void IDBTransaction::MaybeNoteInactiveTransaction() {
     mDatabase->NoteInactiveTransaction();
     mNotedActiveTransaction = false;
   }
-}
-
-bool IDBTransaction::CanAcceptRequests() const {
-  AssertIsOnOwningThread();
-
-  // If we haven't started anything then we can accept requests.
-  // If we've already started then we need to check to see if we still have the
-  // mCreating flag set. If we do (i.e. we haven't returned to the event loop
-  // from the time we were created) then we can accept requests. Otherwise check
-  // the currently running transaction to see if it's the same. We only allow
-  // other requests to be made if this transaction is currently running.
-  return mReadyState == ReadyState::Active &&
-         (!mStarted || mCreating || GetCurrent() == this);
 }
 
 IDBTransaction::AutoRestoreState<IDBTransaction::ReadyState::Inactive,
@@ -475,7 +457,7 @@ RefPtr<IDBObjectStore> IDBTransaction::CreateObjectStore(
   MOZ_ASSERT(aSpec.metadata().id());
   MOZ_ASSERT(Mode::VersionChange == mMode);
   MOZ_ASSERT(mBackgroundActor.mVersionChangeBackgroundActor);
-  MOZ_ASSERT(CanAcceptRequests());
+  MOZ_ASSERT(IsActive());
 
 #ifdef DEBUG
   {
@@ -509,7 +491,7 @@ void IDBTransaction::DeleteObjectStore(const int64_t aObjectStoreId) {
   MOZ_ASSERT(aObjectStoreId);
   MOZ_ASSERT(Mode::VersionChange == mMode);
   MOZ_ASSERT(mBackgroundActor.mVersionChangeBackgroundActor);
-  MOZ_ASSERT(CanAcceptRequests());
+  MOZ_ASSERT(IsActive());
 
   MOZ_ALWAYS_TRUE(
       mBackgroundActor.mVersionChangeBackgroundActor->SendDeleteObjectStore(
@@ -538,7 +520,7 @@ void IDBTransaction::RenameObjectStore(const int64_t aObjectStoreId,
   MOZ_ASSERT(aObjectStoreId);
   MOZ_ASSERT(Mode::VersionChange == mMode);
   MOZ_ASSERT(mBackgroundActor.mVersionChangeBackgroundActor);
-  MOZ_ASSERT(CanAcceptRequests());
+  MOZ_ASSERT(IsActive());
 
   MOZ_ALWAYS_TRUE(
       mBackgroundActor.mVersionChangeBackgroundActor->SendRenameObjectStore(
@@ -552,7 +534,7 @@ void IDBTransaction::CreateIndex(IDBObjectStore* const aObjectStore,
   MOZ_ASSERT(aMetadata.id());
   MOZ_ASSERT(Mode::VersionChange == mMode);
   MOZ_ASSERT(mBackgroundActor.mVersionChangeBackgroundActor);
-  MOZ_ASSERT(CanAcceptRequests());
+  MOZ_ASSERT(IsActive());
 
   MOZ_ALWAYS_TRUE(
       mBackgroundActor.mVersionChangeBackgroundActor->SendCreateIndex(
@@ -566,7 +548,7 @@ void IDBTransaction::DeleteIndex(IDBObjectStore* const aObjectStore,
   MOZ_ASSERT(aIndexId);
   MOZ_ASSERT(Mode::VersionChange == mMode);
   MOZ_ASSERT(mBackgroundActor.mVersionChangeBackgroundActor);
-  MOZ_ASSERT(CanAcceptRequests());
+  MOZ_ASSERT(IsActive());
 
   MOZ_ALWAYS_TRUE(
       mBackgroundActor.mVersionChangeBackgroundActor->SendDeleteIndex(
@@ -581,7 +563,7 @@ void IDBTransaction::RenameIndex(IDBObjectStore* const aObjectStore,
   MOZ_ASSERT(aIndexId);
   MOZ_ASSERT(Mode::VersionChange == mMode);
   MOZ_ASSERT(mBackgroundActor.mVersionChangeBackgroundActor);
-  MOZ_ASSERT(CanAcceptRequests());
+  MOZ_ASSERT(IsActive());
 
   MOZ_ALWAYS_TRUE(
       mBackgroundActor.mVersionChangeBackgroundActor->SendRenameIndex(
@@ -614,7 +596,7 @@ void IDBTransaction::AbortInternal(const nsresult aAbortCode,
     // time-consuming(O(m*n)) and mIndexes/mDeletedIndexes won't be used anymore
     // in IDBObjectStore::(Create|Delete)Index() and IDBObjectStore::Index() in
     // which all the executions are returned earlier by
-    // !transaction->CanAcceptRequests().
+    // !transaction->IsActive().
 
     const nsTArray<ObjectStoreSpec>& specArray =
         mDatabase->Spec()->objectStores();
@@ -713,13 +695,26 @@ void IDBTransaction::Abort(ErrorResult& aRv) {
 void IDBTransaction::Commit(ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
-  if (IsCommittingOrFinished()) {
-    aRv = NS_ERROR_DOM_INDEXEDDB_NOT_ALLOWED_ERR;
+  if (mReadyState != ReadyState::Active || !mNotedActiveTransaction) {
+    aRv = NS_ERROR_DOM_INVALID_STATE_ERR;
     return;
   }
 
-  // TODO
-  aRv = NS_ERROR_NOT_IMPLEMENTED;
+  MOZ_ASSERT(!mSentCommitOrAbort);
+
+  MOZ_ASSERT(mReadyState == ReadyState::Active);
+  mReadyState = ReadyState::Committing;
+  if (NS_WARN_IF(NS_FAILED(mAbortCode))) {
+    SendAbort(mAbortCode);
+    aRv = mAbortCode;
+    return;
+  }
+
+#ifdef DEBUG
+  mWasExplicitlyCommitted.Flip();
+#endif
+
+  SendCommit(false);
 }
 
 void IDBTransaction::FireCompleteOrAbortEvents(const nsresult aResult) {
@@ -878,9 +873,7 @@ RefPtr<IDBObjectStore> IDBTransaction::ObjectStore(const nsAString& aName,
   AssertIsOnOwningThread();
 
   if (IsCommittingOrFinished()) {
-    aRv.ThrowDOMException(
-        NS_ERROR_DOM_INVALID_STATE_ERR,
-        NS_LITERAL_CSTRING("Transaction is already committing or done."));
+    aRv.ThrowInvalidStateError("Transaction is already committing or done.");
     return nullptr;
   }
 
@@ -968,21 +961,42 @@ NS_IMETHODIMP
 IDBTransaction::Run() {
   AssertIsOnOwningThread();
 
-  // We're back at the event loop, no longer newborn.
-  mCreating = false;
+  // TODO: Instead of checking for Finished and Committing states here, we could
+  // remove the transaction from the pending IDB transactions list on
+  // abort/commit.
 
-  MOZ_ASSERT_IF(mReadyState == ReadyState::Finished, IsAborted());
-
-  // Maybe commit if there were no requests generated.
-  if (!mStarted && mReadyState != ReadyState::Finished) {
-    MOZ_ASSERT(mReadyState == ReadyState::Inactive ||
-               mReadyState == ReadyState::Active);
-    mReadyState = ReadyState::Finished;
-
-    SendCommit();
+  if (ReadyState::Finished == mReadyState) {
+    MOZ_ASSERT(IsAborted());
+    return NS_OK;
   }
 
+  if (ReadyState::Committing == mReadyState) {
+    MOZ_ASSERT(mSentCommitOrAbort);
+    return NS_OK;
+  }
+  // We're back at the event loop, no longer newborn, so
+  // return to Inactive state:
+  // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions.
+  MOZ_ASSERT(ReadyState::Active == mReadyState);
+  mReadyState = ReadyState::Inactive;
+
+  CommitIfNotStarted();
+
   return NS_OK;
+}
+
+void IDBTransaction::CommitIfNotStarted() {
+  AssertIsOnOwningThread();
+
+  MOZ_ASSERT(ReadyState::Inactive == mReadyState);
+
+  // Maybe commit if there were no requests generated.
+  if (!mStarted) {
+    MOZ_ASSERT(!mPendingRequestCount);
+    mReadyState = ReadyState::Finished;
+
+    SendCommit(true);
+  }
 }
 
 }  // namespace dom

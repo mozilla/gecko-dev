@@ -35,7 +35,7 @@ var { synthesizeDrop, synthesizeMouseAtCenter } = EventUtils;
 
 const kNSXUL = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
-const kForceOverflowWidthPx = 300;
+const kForceOverflowWidthPx = 450;
 
 function createDummyXULButton(id, label, win = window) {
   let btn = win.document.createElementNS(kNSXUL, "toolbarbutton");
@@ -245,37 +245,24 @@ function endCustomizing(aWindow = window) {
   if (aWindow.document.documentElement.getAttribute("customizing") != "true") {
     return true;
   }
-  return new Promise(resolve => {
-    function onCustomizationEnds() {
-      aWindow.gNavToolbox.removeEventListener(
-        "aftercustomization",
-        onCustomizationEnds
-      );
-      resolve();
-    }
-    aWindow.gNavToolbox.addEventListener(
-      "aftercustomization",
-      onCustomizationEnds
-    );
-    aWindow.gCustomizeMode.exit();
-  });
+  let afterCustomizationPromise = BrowserTestUtils.waitForEvent(
+    aWindow.gNavToolbox,
+    "aftercustomization"
+  );
+  aWindow.gCustomizeMode.exit();
+  return afterCustomizationPromise;
 }
 
 function startCustomizing(aWindow = window) {
   if (aWindow.document.documentElement.getAttribute("customizing") == "true") {
     return null;
   }
-  return new Promise(resolve => {
-    function onCustomizing() {
-      aWindow.gNavToolbox.removeEventListener(
-        "customizationready",
-        onCustomizing
-      );
-      resolve();
-    }
-    aWindow.gNavToolbox.addEventListener("customizationready", onCustomizing);
-    aWindow.gCustomizeMode.enter();
-  });
+  let customizationReadyPromise = BrowserTestUtils.waitForEvent(
+    aWindow.gNavToolbox,
+    "customizationready"
+  );
+  aWindow.gCustomizeMode.enter();
+  return customizationReadyPromise;
 }
 
 function promiseObserverNotified(aTopic) {

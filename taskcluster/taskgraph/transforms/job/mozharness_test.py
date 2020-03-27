@@ -7,6 +7,8 @@ from __future__ import absolute_import, print_function, unicode_literals
 import json
 import os
 
+import six
+from six import text_type
 from voluptuous import Required
 
 from taskgraph.util.taskcluster import get_artifact_url
@@ -31,8 +33,6 @@ VARIANTS = [
     'pgo',
     'asan',
     'stylo',
-    'stylo-disabled',
-    'stylo-sequential',
     'qr',
     'ccov',
 ]
@@ -49,7 +49,7 @@ mozharness_test_run_schema = Schema({
     Required('using'): 'mozharness-test',
     Required('test'): test_description_schema,
     # Base work directory used to set up the task.
-    Required('workdir'): basestring,
+    Required('workdir'): text_type,
 })
 
 
@@ -112,39 +112,9 @@ def mozharness_test_on_docker(config, job, taskdesc):
         'NEED_PULSEAUDIO': 'true',
         'NEED_WINDOW_MANAGER': 'true',
         'NEED_COMPIZ': 'true',
-        'ENABLE_E10S': str(bool(test.get('e10s'))).lower(),
+        'ENABLE_E10S': text_type(bool(test.get('e10s'))).lower(),
         'WORKING_DIR': '/builds/worker',
     })
-
-    # remninder to remove this conditional and remove NEED_COMPIZ from tree
-    # once test are migrated over to Ubuntu 18.04/ubuntu1804.
-    if test['docker-image'] == 'ubuntu1804-test':
-        env.update({
-            'NEED_COMPIZ': 'false'
-        })
-    else:
-        # on Ubuntu1604, require compiz unless proven otherwise.
-        # See https://bugzilla.mozilla.org/show_bug.cgi?id=1552563
-        # if using regex this list can be shortened greatly.
-        suites_not_need_compiz = [
-            'mochitest-webgl1-core',
-            'mochitest-webgl1-ext',
-            'mochitest-plain-gpu',
-            'mochitest-browser-chrome-screenshots',
-            'gtest',
-            'cppunittest',
-            'jsreftest',
-            'crashtest',
-            'reftest',
-            'reftest-no-accel',
-            'web-platform-tests',
-            'web-platform-tests-reftests',
-            'xpcshell'
-        ]
-        if job['run']['test']['suite'] in suites_not_need_compiz or (
-                job['run']['test']['suite'] == 'mochitest-plain' and
-                job['run']['test']['try-name'] == 'mochitest-plain-headless'):
-            env['NEED_COMPIZ'] = 'false'
 
     if mozharness.get('mochitest-flavor'):
         env['MOCHITEST_FLAVOR'] = mozharness['mochitest-flavor']
@@ -177,7 +147,9 @@ def mozharness_test_on_docker(config, job, taskdesc):
         'installer_url': installer_url,
         'test_packages_url': test_packages_url(taskdesc),
     }
-    env['EXTRA_MOZHARNESS_CONFIG'] = {'task-reference': json.dumps(extra_config)}
+    env['EXTRA_MOZHARNESS_CONFIG'] = {
+        'task-reference': six.ensure_text(json.dumps(extra_config))
+    }
 
     command = [
         '{workdir}/bin/test-linux.sh'.format(**run),
@@ -185,7 +157,8 @@ def mozharness_test_on_docker(config, job, taskdesc):
     command.extend(mozharness.get('extra-options', []))
 
     if test.get('test-manifests'):
-        env['MOZHARNESS_TEST_PATHS'] = json.dumps({test['suite']: test['test-manifests']})
+        env['MOZHARNESS_TEST_PATHS'] = six.ensure_text(
+            json.dumps({test['suite']: test['test-manifests']}))
 
     # TODO: remove the need for run['chunked']
     elif mozharness.get('chunked') or test['chunks'] > 1:
@@ -323,7 +296,9 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
         'installer_url': installer_url,
         'test_packages_url': test_packages_url(taskdesc),
     }
-    env['EXTRA_MOZHARNESS_CONFIG'] = {'task-reference': json.dumps(extra_config)}
+    env['EXTRA_MOZHARNESS_CONFIG'] = {
+        'task-reference': six.ensure_text(json.dumps(extra_config))
+    }
 
     if is_windows:
         mh_command = [
@@ -360,7 +335,7 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
         mh_command.extend(['--cfg', cfg_path])
     mh_command.extend(mozharness.get('extra-options', []))
     if mozharness.get('download-symbols'):
-        if isinstance(mozharness['download-symbols'], basestring):
+        if isinstance(mozharness['download-symbols'], text_type):
             mh_command.extend(['--download-symbols', mozharness['download-symbols']])
         else:
             mh_command.extend(['--download-symbols', 'true'])
@@ -368,7 +343,8 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
         mh_command.append('--blob-upload-branch=' + config.params['project'])
 
     if test.get('test-manifests'):
-        env['MOZHARNESS_TEST_PATHS'] = json.dumps({test['suite']: test['test-manifests']})
+        env['MOZHARNESS_TEST_PATHS'] = six.ensure_text(
+            json.dumps({test['suite']: test['test-manifests']}))
 
     # TODO: remove the need for run['chunked']
     elif mozharness.get('chunked') or test['chunks'] > 1:
@@ -476,7 +452,9 @@ def mozharness_test_on_script_engine_autophone(config, job, taskdesc):
         'installer_url': installer_url,
         'test_packages_url': test_packages_url(taskdesc),
     }
-    env['EXTRA_MOZHARNESS_CONFIG'] = {'task-reference': json.dumps(extra_config)}
+    env['EXTRA_MOZHARNESS_CONFIG'] = {
+        'task-reference': six.ensure_text(json.dumps(extra_config))
+    }
 
     script = 'test-linux.sh'
     worker['context'] = config.params.file_url(
@@ -489,7 +467,8 @@ def mozharness_test_on_script_engine_autophone(config, job, taskdesc):
     command.extend(mozharness.get('extra-options', []))
 
     if test.get('test-manifests'):
-        env['MOZHARNESS_TEST_PATHS'] = json.dumps({test['suite']: test['test-manifests']})
+        env['MOZHARNESS_TEST_PATHS'] = six.ensure_text(
+            json.dumps({test['suite']: test['test-manifests']}))
 
     # TODO: remove the need for run['chunked']
     elif mozharness.get('chunked') or test['chunks'] > 1:

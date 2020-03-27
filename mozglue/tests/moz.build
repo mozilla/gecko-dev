@@ -25,6 +25,7 @@ if CONFIG['OS_ARCH'] == 'WINNT':
     GeckoCppUnitTests([
         'TestNativeNt',
         'TestPEExportSection',
+        'TestTimeStampWin',
     ], linkage=None)
     TEST_DIRS += [
         'interceptor',

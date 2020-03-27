@@ -526,7 +526,6 @@ OptionsPanel.prototype = {
         createPreferenceOption(prefDefinition),
         referenceElement
       );
-      parent.removeAttribute("hidden");
     }
   },
 

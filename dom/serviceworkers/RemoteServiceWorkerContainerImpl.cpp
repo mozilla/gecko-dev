@@ -55,7 +55,9 @@ void RemoteServiceWorkerContainerImpl::Register(
     ServiceWorkerRegistrationCallback&& aSuccessCB,
     ServiceWorkerFailureCallback&& aFailureCB) const {
   if (!mActor) {
-    aFailureCB(CopyableErrorResult(NS_ERROR_DOM_INVALID_STATE_ERR));
+    CopyableErrorResult rv;
+    rv.ThrowInvalidStateError("Can't register service worker");
+    aFailureCB(rv);
     return;
   }
 
@@ -80,7 +82,9 @@ void RemoteServiceWorkerContainerImpl::Register(
       },
       [aFailureCB](ResponseRejectReason&& aReason) {
         // IPC layer error
-        aFailureCB(CopyableErrorResult(NS_ERROR_DOM_INVALID_STATE_ERR));
+        CopyableErrorResult rv;
+        rv.ThrowInvalidStateError("Failed to register service worker");
+        aFailureCB(rv);
       });
 }
 

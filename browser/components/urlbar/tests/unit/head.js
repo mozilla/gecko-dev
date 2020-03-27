@@ -36,6 +36,17 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 });
 const { sinon } = ChromeUtils.import("resource://testing-common/Sinon.jsm");
 
+const { AddonTestUtils } = ChromeUtils.import(
+  "resource://testing-common/AddonTestUtils.jsm"
+);
+AddonTestUtils.init(this, false);
+AddonTestUtils.createAppInfo(
+  "xpcshell@tests.mozilla.org",
+  "XPCShell",
+  "42",
+  "42"
+);
+
 /**
  * @param {string} searchString The search string to insert into the context.
  * @param {object} properties Overrides for the default values.
@@ -96,38 +107,21 @@ function promiseControllerNotification(
 /**
  * A basic test provider, returning all the provided matches.
  */
-class TestProvider extends UrlbarProvider {
-  constructor(
-    matches,
-    cancelCallback,
-    type = UrlbarUtils.PROVIDER_TYPE.PROFILE
-  ) {
-    super();
-    this._name = "TestProvider" + Math.floor(Math.random() * 100000);
-    this._cancelCallback = cancelCallback;
-    this._matches = matches;
-    this._type = type;
-  }
-  get name() {
-    return this._name;
-  }
-  get type() {
-    return this._type;
-  }
+class TestProvider extends UrlbarTestUtils.TestProvider {
   isActive(context) {
     Assert.ok(context, "context is passed-in");
     return true;
   }
-  isRestricting(context) {
+  getPriority(context) {
     Assert.ok(context, "context is passed-in");
-    return false;
+    return 0;
   }
   async startQuery(context, add) {
     Assert.ok(context, "context is passed-in");
     Assert.equal(typeof add, "function", "add is a callback");
     this._context = context;
-    for (const match of this._matches) {
-      add(this, match);
+    for (const result of this._results) {
+      add(this, result);
     }
   }
   cancelQuery(context) {
@@ -135,25 +129,24 @@ class TestProvider extends UrlbarProvider {
     if (this._context) {
       Assert.equal(this._context, context, "cancelQuery: context is the same");
     }
-    if (this._cancelCallback) {
-      this._cancelCallback();
+    if (this._onCancel) {
+      this._onCancel();
     }
   }
-  pickResult(result) {}
 }
 
 /**
  * Helper function to clear the existing providers and register a basic provider
  * that returns only the results given.
  *
- * @param {array} matches The matches for the provider to return.
- * @param {function} [cancelCallback] Optional, called when the query provider
- *                                    receives a cancel instruction.
+ * @param {array} results The results for the provider to return.
+ * @param {function} [onCancel] Optional, called when the query provider
+ *                              receives a cancel instruction.
  * @param {UrlbarUtils.PROVIDER_TYPE} type The provider type.
  * @returns {string} name of the registered provider
  */
-function registerBasicTestProvider(matches = [], cancelCallback, type) {
-  let provider = new TestProvider(matches, cancelCallback, type);
+function registerBasicTestProvider(results = [], onCancel, type) {
+  let provider = new TestProvider({ results, onCancel, type });
   UrlbarProvidersManager.registerProvider(provider);
   return provider.name;
 }
@@ -215,7 +208,7 @@ async function addTestEngine(basename, httpServer = undefined) {
  *        search string.  If not given, a default function is used.
  * @returns {nsISearchEngine} The new engine.
  */
-function addTestSuggestionsEngine(suggestionsFn = null) {
+async function addTestSuggestionsEngine(suggestionsFn = null) {
   // This port number should match the number in engine-suggestions.xml.
   let server = makeTestServer(9000);
   server.registerPathHandler("/suggest", (req, resp) => {

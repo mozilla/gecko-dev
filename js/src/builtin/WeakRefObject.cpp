@@ -55,6 +55,18 @@ bool WeakRefObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+  // Wrap the weakRef into the target's compartment.
+  RootedObject wrappedWeakRef(cx, weakRef);
+  AutoRealm ar(cx, target);
+  if (!JS_WrapObject(cx, &wrappedWeakRef)) {
+    return false;
+  }
+
+  if (JS_IsDeadWrapper(wrappedWeakRef)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_DEAD_OBJECT);
+    return false;
+  }
+
   // 4. Perfom ! KeepDuringJob(target).
   if (!target->zone()->keepDuringJob(target)) {
     return false;
@@ -62,13 +74,6 @@ bool WeakRefObject::construct(JSContext* cx, unsigned argc, Value* vp) {
 
   // 5. Set weakRef.[[Target]] to target.
   weakRef->setPrivateGCThing(target);
-
-  // Wrap the weakRef into the target's compartment.
-  RootedObject wrappedWeakRef(cx, weakRef);
-  AutoRealm ar(cx, target);
-  if (!JS_WrapObject(cx, &wrappedWeakRef)) {
-    return false;
-  }
 
   // Add an entry to the per-zone maps from target JS object to a list of weak
   // ref objects.
@@ -125,7 +130,7 @@ const JSClassOps WeakRefObject::classOps_ = {
 };
 
 const ClassSpec WeakRefObject::classSpec_ = {
-    GenericCreateConstructor<WeakRefObject::construct, 0,
+    GenericCreateConstructor<WeakRefObject::construct, 1,
                              gc::AllocKind::FUNCTION>,
     GenericCreatePrototype<WeakRefObject>,
     nullptr,
@@ -149,7 +154,7 @@ const JSClass WeakRefObject::protoClass_ = {
 const JSPropertySpec WeakRefObject::properties[] = {
     JS_STRING_SYM_PS(toStringTag, "WeakRef", JSPROP_READONLY), JS_PS_END};
 
-const JSFunctionSpec WeakRefObject::methods[] = {JS_FN("deref", deref, 2, 0),
+const JSFunctionSpec WeakRefObject::methods[] = {JS_FN("deref", deref, 0, 0),
                                                  JS_FS_END};
 
 /* static */

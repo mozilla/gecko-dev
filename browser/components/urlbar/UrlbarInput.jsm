@@ -227,8 +227,8 @@ class UrlbarInput {
     this._compositionState = UrlbarUtils.COMPOSITION.NONE;
     this._compositionClosedPopup = false;
 
-    this.editor.QueryInterface(Ci.nsIPlaintextEditor).newlineHandling =
-      Ci.nsIPlaintextEditor.eNewlinesStripSurroundingWhitespace;
+    this.editor.newlineHandling =
+      Ci.nsIEditor.eNewlinesStripSurroundingWhitespace;
 
     this._setOpenViewOnFocus();
     Services.prefs.addObserver("browser.urlbar.openViewOnFocus", this);
@@ -455,9 +455,9 @@ class UrlbarInput {
       allowInheritPrincipal: false,
     };
 
-    let selIndex = this.view.selectedRowIndex;
+    let selIndex = result.rowIndex;
     if (!result.payload.keywordOffer) {
-      this.view.close();
+      this.view.close(/* elementPicked */ true);
     }
 
     this.controller.recordSelectedResult(event, result);
@@ -945,22 +945,12 @@ class UrlbarInput {
     return this._lastSearchString;
   }
 
-  get openViewOnFocus() {
-    return this._openViewOnFocus;
-  }
-
-  get openViewOnFocusForCurrentTab() {
-    return (
-      this._openViewOnFocus &&
-      !["about:newtab", "about:home"].includes(
-        this.window.gBrowser.currentURI.spec
-      ) &&
-      !this.isPrivate
-    );
-  }
-
   async updateLayoutBreakout() {
     if (!this.megabar) {
+      return;
+    }
+    if (!this._toolbar) {
+      // Expanding requires a parent toolbar.
       return;
     }
     await this._updateLayoutBreakoutDimensions();
@@ -987,9 +977,7 @@ class UrlbarInput {
     }
     this.removeAttribute("breakout-extend-disabled");
 
-    if (this._toolbar) {
-      this._toolbar.setAttribute("urlbar-exceeds-toolbar-bounds", "true");
-    }
+    this._toolbar.setAttribute("urlbar-exceeds-toolbar-bounds", "true");
     this.setAttribute("breakout-extend", "true");
 
     // Enable the animation only after the first extend call to ensure it
@@ -1012,9 +1000,7 @@ class UrlbarInput {
       return;
     }
     this.removeAttribute("breakout-extend");
-    if (this._toolbar) {
-      this._toolbar.removeAttribute("urlbar-exceeds-toolbar-bounds");
-    }
+    this._toolbar.removeAttribute("urlbar-exceeds-toolbar-bounds");
   }
 
   setPageProxyState(state) {
@@ -1023,7 +1009,38 @@ class UrlbarInput {
     this._identityBox.setAttribute("pageproxystate", state);
   }
 
+  /**
+   * When switching tabs quickly, TabSelect sometimes happens before
+   * _adjustFocusAfterTabSwitch and due to the focus still being on the old
+   * tab, we end up flickering the results pane briefly.
+   */
+  afterTabSwitchFocusChange() {
+    this._gotFocusChange = true;
+    this._afterTabSelectAndFocusChange();
+  }
+
   // Private methods below.
+
+  _afterTabSelectAndFocusChange() {
+    // We must have seen both events to proceed safely.
+    if (!this._gotFocusChange || !this._gotTabSelect) {
+      return;
+    }
+    this._gotFocusChange = this._gotTabSelect = false;
+
+    this._resetSearchState();
+
+    // Switching tabs doesn't always change urlbar focus, so we must try to
+    // reopen here too, not just on focus.
+    // We don't use the original TabSelect event because caching it causes
+    // leaks on MacOS.
+    if (this.view.autoOpen({ event: new CustomEvent("tabswitch") })) {
+      return;
+    }
+    // The input may retain focus when switching tabs in which case we
+    // need to close the view explicitly.
+    this.view.close();
+  }
 
   async _updateLayoutBreakoutDimensions() {
     // When this method gets called a second time before the first call
@@ -1051,7 +1068,7 @@ class UrlbarInput {
         );
         this.textbox.style.setProperty(
           "--urlbar-toolbar-height",
-          px(getBoundsWithoutFlushing(this.textbox.closest("toolbar")).height)
+          px(getBoundsWithoutFlushing(this._toolbar).height)
         );
 
         this.setAttribute("breakout", "true");
@@ -1066,10 +1083,10 @@ class UrlbarInput {
     // FIXME: Not using UrlbarPrefs because its pref observer may run after
     // this call, so we'd get the previous openViewOnFocus value here. This
     // can be cleaned up after bug 1560013.
-    this._openViewOnFocus = Services.prefs.getBoolPref(
+    this.openViewOnFocus = Services.prefs.getBoolPref(
       "browser.urlbar.openViewOnFocus"
     );
-    this.dropmarker.hidden = this._openViewOnFocus;
+    this.dropmarker.hidden = this.openViewOnFocus;
   }
 
   _setValue(val, allowTrim) {
@@ -1510,14 +1527,24 @@ class UrlbarInput {
       Cu.reportError(ex);
     }
 
-    // Reset DOS mitigations for the basic auth prompt.
     // TODO: When bug 1498553 is resolved, we should be able to
     // remove the !triggeringPrincipal condition here.
     if (
       !params.triggeringPrincipal ||
       params.triggeringPrincipal.isSystemPrincipal
     ) {
+      // Reset DOS mitigations for the basic auth prompt.
       delete browser.authPromptAbuseCounter;
+
+      // Reset temporary permissions on the current tab if the user reloads
+      // the tab via the urlbar.
+      if (
+        openUILinkWhere == "current" &&
+        browser.currentURI &&
+        url === browser.currentURI.spec
+      ) {
+        this.window.SitePermissions.clearTemporaryPermissions(browser);
+      }
     }
 
     params.allowThirdPartyFixup = true;
@@ -1566,20 +1593,18 @@ class UrlbarInput {
    * @returns {"current" | "tabshifted" | "tab" | "save" | "window"}
    */
   _whereToOpen(event) {
-    let isMouseEvent = event instanceof MouseEvent;
-    let reuseEmpty = !isMouseEvent;
+    let isKeyboardEvent = event instanceof KeyboardEvent;
+    let reuseEmpty = isKeyboardEvent;
     let where = undefined;
     if (
-      !isMouseEvent &&
-      event &&
+      isKeyboardEvent &&
       (event.altKey || event.getModifierState("AltGraph"))
     ) {
       // We support using 'alt' to open in a tab, because ctrl/shift
       // might be used for canonizing URLs:
       where = event.shiftKey ? "tabshifted" : "tab";
     } else if (
-      !isMouseEvent &&
-      event &&
+      isKeyboardEvent &&
       event.ctrlKey &&
       UrlbarPrefs.get("ctrlCanonizesURLs")
     ) {
@@ -1702,6 +1727,7 @@ class UrlbarInput {
   }
 
   _on_blur(event) {
+    this.focusedViaMousedown = false;
     // We cannot count every blur events after a missed engagement as abandoment
     // because the user may have clicked on some view element that executes
     // a command causing a focus change. For example opening preferences from
@@ -1781,9 +1807,8 @@ class UrlbarInput {
     }
 
     // We handle mouse-based expansion events separately in _on_click.
-    if (this._focusedViaMousedown) {
-      this._focusedViaMousedown = false;
-      this.view.maybeReopen();
+    if (this.focusedViaMousedown) {
+      this.view.autoOpen({ event });
     } else {
       this.startLayoutExtend();
       if (this.inputField.hasAttribute("refocused-by-panel")) {
@@ -1819,7 +1844,7 @@ class UrlbarInput {
           break;
         }
 
-        this._focusedViaMousedown = !this.focused;
+        this.focusedViaMousedown = !this.focused;
         this._preventClickSelectsAll = this.focused;
 
         if (event.target != this.inputField) {
@@ -1833,7 +1858,7 @@ class UrlbarInput {
 
         // Clear any previous selection unless we are focused, to ensure it
         // doesn't affect drag selection.
-        if (this._focusedViaMousedown) {
+        if (this.focusedViaMousedown) {
           this.selectionStart = this.selectionEnd = 0;
         }
 
@@ -1843,11 +1868,8 @@ class UrlbarInput {
         } else if (event.target.id == SEARCH_BUTTON_ID) {
           this._preventClickSelectsAll = true;
           this.search(UrlbarTokenizer.RESTRICT.SEARCH);
-        } else if (this.openViewOnFocusForCurrentTab && !this.view.isOpen) {
-          this.startQuery({
-            allowAutofill: false,
-            event,
-          });
+        } else {
+          this.view.autoOpen({ event });
         }
         break;
       case this.dropmarker:
@@ -2054,7 +2076,8 @@ class UrlbarInput {
   }
 
   _on_TabSelect(event) {
-    this._resetSearchState();
+    this._gotTabSelect = true;
+    this._afterTabSelectAndFocusChange();
   }
 
   _on_keydown(event) {

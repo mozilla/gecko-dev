@@ -3712,7 +3712,7 @@ static void locked_profiler_save_profile_to_file(PSLockRef aLock,
 
 static SamplerThread* locked_profiler_stop(PSLockRef aLock);
 
-void profiler_shutdown() {
+void profiler_shutdown(IsFastShutdown aIsFastShutdown) {
   LOG("profiler_shutdown");
 
   VTUNE_SHUTDOWN();
@@ -3733,8 +3733,13 @@ void profiler_shutdown() {
         locked_profiler_save_profile_to_file(lock, filename,
                                              /* aIsShuttingDown */ true);
       }
+      if (aIsFastShutdown == IsFastShutdown::Yes) {
+        return;
+      }
 
       samplerThread = locked_profiler_stop(lock);
+    } else if (aIsFastShutdown == IsFastShutdown::Yes) {
+      return;
     }
 
     CorePS::Destroy(lock);
@@ -4910,10 +4915,11 @@ void profiler_add_marker_for_thread(int aThreadId,
       static_cast<uint32_t>(aCategoryPair), aPayload, delta.ToMilliseconds());
 }
 
-void profiler_tracing(const char* aCategoryString, const char* aMarkerName,
-                      JS::ProfilingCategoryPair aCategoryPair,
-                      TracingKind aKind,
-                      const Maybe<uint64_t>& aInnerWindowID) {
+void profiler_tracing_marker(const char* aCategoryString,
+                             const char* aMarkerName,
+                             JS::ProfilingCategoryPair aCategoryPair,
+                             TracingKind aKind,
+                             const Maybe<uint64_t>& aInnerWindowID) {
   MOZ_RELEASE_ASSERT(CorePS::Exists());
 
   VTUNE_TRACING(aMarkerName, aKind);
@@ -4929,10 +4935,11 @@ void profiler_tracing(const char* aCategoryString, const char* aMarkerName,
       TracingMarkerPayload(aCategoryString, aKind, aInnerWindowID));
 }
 
-void profiler_tracing(const char* aCategoryString, const char* aMarkerName,
-                      JS::ProfilingCategoryPair aCategoryPair,
-                      TracingKind aKind, UniqueProfilerBacktrace aCause,
-                      const Maybe<uint64_t>& aInnerWindowID) {
+void profiler_tracing_marker(const char* aCategoryString,
+                             const char* aMarkerName,
+                             JS::ProfilingCategoryPair aCategoryPair,
+                             TracingKind aKind, UniqueProfilerBacktrace aCause,
+                             const Maybe<uint64_t>& aInnerWindowID) {
   MOZ_RELEASE_ASSERT(CorePS::Exists());
 
   VTUNE_TRACING(aMarkerName, aKind);

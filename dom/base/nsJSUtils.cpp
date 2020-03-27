@@ -16,6 +16,7 @@
 #include "jsfriendapi.h"
 #include "js/BinASTFormat.h"  // JS::BinASTFormat
 #include "js/CompilationAndEvaluation.h"
+#include "js/Date.h"
 #include "js/Modules.h"  // JS::CompileModule{,DontInflate}, JS::GetModuleScript, JS::Module{Instantiate,Evaluate}
 #include "js/OffThreadScriptCompilation.h"
 #include "js/SourceText.h"
@@ -32,7 +33,6 @@
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/Date.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/Utf8.h"  // mozilla::Utf8Unit
@@ -633,7 +633,8 @@ bool nsJSUtils::DumpEnabled() {
 // nsDOMJSUtils.h
 //
 
-bool nsAutoJSString::init(const JS::Value& v) {
+template <typename T>
+bool nsTAutoJSString<T>::init(const JS::Value& v) {
   // Note: it's okay to use danger::GetJSContext here instead of AutoJSAPI,
   // because the init() call below is careful not to run script (for instance,
   // it only calls JS::ToString for non-object values).
@@ -642,6 +643,8 @@ bool nsAutoJSString::init(const JS::Value& v) {
     JS_ClearPendingException(cx);
     return false;
   }
-
   return true;
 }
+
+template bool nsTAutoJSString<char16_t>::init(const JS::Value&);
+template bool nsTAutoJSString<char>::init(const JS::Value&);

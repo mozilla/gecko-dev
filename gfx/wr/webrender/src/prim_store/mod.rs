@@ -11,7 +11,7 @@ use api::units::*;
 use crate::border::{get_max_scale_for_border, build_border_instances};
 use crate::border::BorderSegmentCacheKey;
 use crate::clip::{ClipStore};
-use crate::clip_scroll_tree::{ROOT_SPATIAL_NODE_INDEX, ClipScrollTree, CoordinateSpaceMapping, SpatialNodeIndex, VisibleFace};
+use crate::spatial_tree::{ROOT_SPATIAL_NODE_INDEX, SpatialTree, CoordinateSpaceMapping, SpatialNodeIndex, VisibleFace};
 use crate::clip::{ClipDataStore, ClipNodeFlags, ClipChainId, ClipChainInstance, ClipItemKind};
 use crate::debug_colors;
 use crate::debug_render::DebugItem;
@@ -27,7 +27,7 @@ use crate::image::{Repetition};
 use crate::intern;
 use crate::internal_types::PlaneSplitAnchor;
 use malloc_size_of::MallocSizeOf;
-use crate::picture::{PictureCompositeMode, PicturePrimitive, ClusterFlags};
+use crate::picture::{PictureCompositeMode, PicturePrimitive, ClusterFlags, TileCacheLogger};
 use crate::picture::{PrimitiveList, RecordedDirtyRegion, SurfaceIndex, RetainedTiles, RasterConfig};
 use crate::prim_store::backdrop::BackdropDataHandle;
 use crate::prim_store::borders::{ImageBorderDataHandle, NormalBorderDataHandle};
@@ -125,7 +125,7 @@ impl PrimitiveOpacity {
         }
     }
 
-    pub fn combine(&self, other: PrimitiveOpacity) -> PrimitiveOpacity {
+    pub fn combine(self, other: PrimitiveOpacity) -> PrimitiveOpacity {
         PrimitiveOpacity{
             is_opaque: self.is_opaque && other.is_opaque
         }
@@ -157,7 +157,7 @@ impl SpaceSnapper {
         ref_spatial_node_index: SpatialNodeIndex,
         target_node_index: SpatialNodeIndex,
         device_pixel_scale: DevicePixelScale,
-        clip_scroll_tree: &ClipScrollTree,
+        spatial_tree: &SpatialTree,
     ) -> Self {
         let mut snapper = SpaceSnapper {
             ref_spatial_node_index,
@@ -166,21 +166,21 @@ impl SpaceSnapper {
             device_pixel_scale,
         };
 
-        snapper.set_target_spatial_node(target_node_index, clip_scroll_tree);
+        snapper.set_target_spatial_node(target_node_index, spatial_tree);
         snapper
     }
 
     pub fn set_target_spatial_node(
         &mut self,
         target_node_index: SpatialNodeIndex,
-        clip_scroll_tree: &ClipScrollTree,
+        spatial_tree: &SpatialTree,
     ) {
         if target_node_index == self.current_target_spatial_node_index {
             return
         }
 
-        let ref_spatial_node = &clip_scroll_tree.spatial_nodes[self.ref_spatial_node_index.0 as usize];
-        let target_spatial_node = &clip_scroll_tree.spatial_nodes[target_node_index.0 as usize];
+        let ref_spatial_node = &spatial_tree.spatial_nodes[self.ref_spatial_node_index.0 as usize];
+        let target_spatial_node = &spatial_tree.spatial_nodes[target_node_index.0 as usize];
 
         self.current_target_spatial_node_index = target_node_index;
         self.snapping_transform = match (ref_spatial_node.snapping_transform, target_spatial_node.snapping_transform) {
@@ -256,24 +256,24 @@ impl<F, T> SpaceMapper<F, T> where F: fmt::Debug {
         ref_spatial_node_index: SpatialNodeIndex,
         target_node_index: SpatialNodeIndex,
         bounds: Rect<f32, T>,
-        clip_scroll_tree: &ClipScrollTree,
+        spatial_tree: &SpatialTree,
     ) -> Self {
         let mut mapper = Self::new(ref_spatial_node_index, bounds);
-        mapper.set_target_spatial_node(target_node_index, clip_scroll_tree);
+        mapper.set_target_spatial_node(target_node_index, spatial_tree);
         mapper
     }
 
     pub fn set_target_spatial_node(
         &mut self,
         target_node_index: SpatialNodeIndex,
-        clip_scroll_tree: &ClipScrollTree,
+        spatial_tree: &SpatialTree,
     ) {
         if target_node_index == self.current_target_spatial_node_index {
             return
         }
 
-        let ref_spatial_node = &clip_scroll_tree.spatial_nodes[self.ref_spatial_node_index.0 as usize];
-        let target_spatial_node = &clip_scroll_tree.spatial_nodes[target_node_index.0 as usize];
+        let ref_spatial_node = &spatial_tree.spatial_nodes[self.ref_spatial_node_index.0 as usize];
+        let target_spatial_node = &spatial_tree.spatial_nodes[target_node_index.0 as usize];
 
         self.kind = if self.ref_spatial_node_index == target_node_index {
             CoordinateSpaceMapping::Local
@@ -283,7 +283,7 @@ impl<F, T> SpaceMapper<F, T> where F: fmt::Debug {
                 .accumulate(&target_spatial_node.content_transform);
             CoordinateSpaceMapping::ScaleOffset(scale_offset)
         } else {
-            let transform = clip_scroll_tree
+            let transform = spatial_tree
                 .get_relative_transform(target_node_index, self.ref_spatial_node_index)
                 .into_transform()
                 .with_source::<F>()
@@ -378,13 +378,13 @@ impl ClipTaskIndex {
 pub struct PictureIndex(pub usize);
 
 impl GpuCacheHandle {
-    pub fn as_int(&self, gpu_cache: &GpuCache) -> i32 {
-        gpu_cache.get_address(self).as_int()
+    pub fn as_int(self, gpu_cache: &GpuCache) -> i32 {
+        gpu_cache.get_address(&self).as_int()
     }
 }
 
 impl GpuCacheAddress {
-    pub fn as_int(&self) -> i32 {
+    pub fn as_int(self) -> i32 {
         // TODO(gw): Temporarily encode GPU Cache addresses as a single int.
         //           In the future, we can change the PrimitiveInstanceData struct
         //           to use 2x u16 for the vertex attribute instead of an i32.
@@ -1063,7 +1063,7 @@ impl BrushSegment {
                     }
                 };
 
-                let clip_task = RenderTask::new_mask(
+                let clip_task_id = RenderTask::new_mask(
                     device_rect.to_i32(),
                     clip_chain.clips_range,
                     root_spatial_node_index,
@@ -1075,12 +1075,10 @@ impl BrushSegment {
                     device_pixel_scale,
                     frame_context.fb_config,
                 );
-
-                let clip_task_id = frame_state.render_tasks.add(clip_task);
                 let port = frame_state
                     .surfaces[surface_index.0]
                     .render_tasks
-                    .expect(&format!("bug: no task for surface {:?}", surface_index))
+                    .unwrap_or_else(|| panic!("bug: no task for surface {:?}", surface_index))
                     .port;
                 frame_state.render_tasks.add_dependency(port, clip_task_id);
                 ClipMaskKind::Mask(clip_task_id)
@@ -1911,12 +1909,12 @@ impl PrimitiveStore {
 
                     // Push a new surface, supplying the list of clips that should be
                     // ignored, since they are handled by clipping when drawing this surface.
-                    frame_state.clip_chain_stack.push_surface(&tile_cache.shared_clips);
+                    frame_state.push_surface(surface_index, &tile_cache.shared_clips);
                     frame_state.tile_cache = Some(tile_cache);
                 }
                 _ => {
                     if is_composite {
-                        frame_state.clip_chain_stack.push_surface(&[]);
+                        frame_state.push_surface(surface_index, &[]);
                     }
                 }
             }
@@ -1934,7 +1932,7 @@ impl PrimitiveStore {
             ROOT_SPATIAL_NODE_INDEX,
             surface.surface_spatial_node_index,
             frame_context.global_screen_world_rect,
-            frame_context.clip_scroll_tree,
+            frame_context.spatial_tree,
         );
 
         let mut surface_rect = PictureRect::zero();
@@ -1962,7 +1960,7 @@ impl PrimitiveStore {
 
             map_local_to_surface.set_target_spatial_node(
                 cluster.spatial_node_index,
-                frame_context.clip_scroll_tree,
+                frame_context.spatial_tree,
             );
 
             for prim_instance in &mut cluster.prim_instances {
@@ -2018,10 +2016,8 @@ impl PrimitiveStore {
                         let pic = &self.pictures[pic_index.0];
                         prim_instance.prim_origin = pic.precise_local_rect.origin;
 
-                        if prim_instance.is_chased() {
-                            if pic.estimated_local_rect != pic.precise_local_rect {
-                                println!("\testimate {:?} adjusted to {:?}", pic.estimated_local_rect, pic.precise_local_rect);
-                            }
+                        if prim_instance.is_chased() && pic.estimated_local_rect != pic.precise_local_rect {
+                            println!("\testimate {:?} adjusted to {:?}", pic.estimated_local_rect, pic.precise_local_rect);
                         }
 
                         let mut shadow_rect = pic.precise_local_rect;
@@ -2111,7 +2107,7 @@ impl PrimitiveStore {
                         prim_instance.local_clip_rect,
                         cluster.spatial_node_index,
                         frame_state.clip_chain_stack.current_clips_array(),
-                        &frame_context.clip_scroll_tree,
+                        &frame_context.spatial_tree,
                         &mut frame_state.data_stores.clip,
                     );
 
@@ -2121,7 +2117,7 @@ impl PrimitiveStore {
                             local_rect,
                             &map_local_to_surface,
                             &map_surface_to_world,
-                            &frame_context.clip_scroll_tree,
+                            &frame_context.spatial_tree,
                             frame_state.gpu_cache,
                             frame_state.resource_cache,
                             surface.device_pixel_scale,
@@ -2137,15 +2133,14 @@ impl PrimitiveStore {
                             cluster.spatial_node_index,
                             clip_chain.as_ref(),
                             prim_local_rect,
-                            frame_context.clip_scroll_tree,
+                            frame_context,
                             frame_state.data_stores,
                             frame_state.clip_store,
                             &self.pictures,
                             frame_state.resource_cache,
                             &self.opacity_bindings,
                             &self.images,
-                            surface_index,
-                            surface.surface_spatial_node_index,
+                            &frame_state.surface_stack,
                         ) {
                             prim_instance.visibility_info = PrimitiveVisibilityIndex::INVALID;
                             // Ensure the primitive clip is popped - perhaps we can use
@@ -2253,9 +2248,11 @@ impl PrimitiveStore {
                             frame_state.scratch.push_debug_rect(debug_rect, debug_color, debug_color.scale_alpha(0.5));
                         }
                     } else if frame_context.debug_flags.contains(::api::DebugFlags::OBSCURE_IMAGES) {
-                        if matches!(prim_instance.kind, PrimitiveInstanceKind::Image { .. } |
-                                                        PrimitiveInstanceKind::YuvImage { .. })
-                        {
+                        let is_image = matches!(
+                            prim_instance.kind,
+                            PrimitiveInstanceKind::Image { .. } | PrimitiveInstanceKind::YuvImage { .. }
+                        );
+                        if is_image {
                             // We allow "small" images, since they're generally UI elements.
                             let rect = clipped_world_rect * frame_context.global_device_pixel_scale;
                             if rect.size.width > 70.0 && rect.size.height > 70.0 {
@@ -2294,7 +2291,7 @@ impl PrimitiveStore {
 
         // Similar to above, pop either the clip chain or root entry off the current clip stack.
         if is_composite {
-            frame_state.clip_chain_stack.pop_surface();
+            frame_state.pop_surface();
         }
 
         let pic = &mut self.pictures[pic_index.0];
@@ -2320,7 +2317,7 @@ impl PrimitiveStore {
                     surface.raster_spatial_node_index,
                     pic.spatial_node_index,
                     surface.device_pixel_scale,
-                    frame_context.clip_scroll_tree,
+                    frame_context.spatial_tree,
                 );
                 surface_rect = rc.composite_mode.inflate_picture_rect(surface_rect, surface.inflation_factor);
                 surface_rect = snap_pic_to_raster.snap_rect(&surface_rect);
@@ -2363,7 +2360,7 @@ impl PrimitiveStore {
                 parent_surface.surface_spatial_node_index,
                 surface.surface_spatial_node_index,
                 PictureRect::max_rect(),
-                frame_context.clip_scroll_tree,
+                frame_context.spatial_tree,
             );
             map_surface_to_parent_surface.map(&surface_rect)
         }
@@ -2433,7 +2430,7 @@ impl PrimitiveStore {
                             ROOT_SPATIAL_NODE_INDEX,
                             prim_spatial_node_index,
                             frame_context.global_screen_world_rect,
-                            frame_context.clip_scroll_tree,
+                            frame_context.spatial_tree,
                         );
 
                         let visible_rect = compute_conservative_visible_rect(
@@ -2656,6 +2653,7 @@ impl PrimitiveStore {
         plane_split_anchor: PlaneSplitAnchor,
         data_stores: &mut DataStores,
         scratch: &mut PrimitiveScratchBuffer,
+        tile_cache_log: &mut TileCacheLogger,
     ) -> bool {
         // If we have dependencies, we need to prepare them first, in order
         // to know the actual rect of this primitive.
@@ -2681,6 +2679,7 @@ impl PrimitiveStore {
                         frame_state,
                         frame_context,
                         scratch,
+                        tile_cache_log,
                     ) {
                         Some(info) => Some(info),
                         None => {
@@ -2724,11 +2723,13 @@ impl PrimitiveStore {
                     frame_state,
                     data_stores,
                     scratch,
+                    tile_cache_log,
                 );
 
                 // Restore the dependencies (borrow check dance)
                 self.pictures[pic_context_for_children.pic_index.0]
                     .restore_context(
+                        pic_context.surface_index,
                         prim_list,
                         pic_context_for_children,
                         pic_state_for_children,
@@ -2789,11 +2790,12 @@ impl PrimitiveStore {
         frame_state: &mut FrameBuildingState,
         data_stores: &mut DataStores,
         scratch: &mut PrimitiveScratchBuffer,
+        tile_cache_log: &mut TileCacheLogger,
     ) {
         for (cluster_index, cluster) in prim_list.clusters.iter_mut().enumerate() {
             pic_state.map_local_to_pic.set_target_spatial_node(
                 cluster.spatial_node_index,
-                frame_context.clip_scroll_tree,
+                frame_context.spatial_tree,
             );
 
             for (prim_instance_index, prim_instance) in cluster.prim_instances.iter_mut().enumerate() {
@@ -2834,6 +2836,7 @@ impl PrimitiveStore {
                     plane_split_anchor,
                     data_stores,
                     scratch,
+                    tile_cache_log,
                 ) {
                     frame_state.profile_counters.visible_primitives.inc();
                 }
@@ -2897,14 +2900,13 @@ impl PrimitiveStore {
                         None,
                         false,
                         |render_tasks| {
-                            let task = RenderTask::new_line_decoration(
+                            render_tasks.add().init(RenderTask::new_line_decoration(
                                 task_size,
                                 cache_key.style,
                                 cache_key.orientation,
                                 cache_key.wavy_line_thickness.to_f32_px(),
                                 LayoutSize::from_au(cache_key.size),
-                            );
-                            render_tasks.add(task)
+                            ))
                         }
                     ));
                 }
@@ -2917,7 +2919,7 @@ impl PrimitiveStore {
 
                 // The glyph transform has to match `glyph_transform` in "ps_text_run" shader.
                 // It's relative to the rasterizing space of a glyph.
-                let transform = frame_context.clip_scroll_tree
+                let transform = frame_context.spatial_tree
                     .get_relative_transform(
                         prim_spatial_node_index,
                         pic_context.raster_spatial_node_index,
@@ -2926,7 +2928,7 @@ impl PrimitiveStore {
                 let prim_offset = prim_instance.prim_origin.to_vector() - run.reference_frame_relative_offset;
 
                 let pic = &self.pictures[pic_context.pic_index.0];
-                let raster_space = pic.get_raster_space(frame_context.clip_scroll_tree);
+                let raster_space = pic.get_raster_space(frame_context.spatial_tree);
                 let surface = &frame_state.surfaces[pic_context.surface_index.0];
 
                 run.request_resources(
@@ -2941,7 +2943,7 @@ impl PrimitiveStore {
                     frame_state.resource_cache,
                     frame_state.gpu_cache,
                     frame_state.render_tasks,
-                    frame_context.clip_scroll_tree,
+                    frame_context.spatial_tree,
                     scratch,
                 );
 
@@ -2979,7 +2981,7 @@ impl PrimitiveStore {
                 //           raster roots with local scale are supported in future,
                 //           that will need to be accounted for here.
                 let scale = frame_context
-                    .clip_scroll_tree
+                    .spatial_tree
                     .get_world_transform(prim_spatial_node_index)
                     .scale_factors();
 
@@ -3019,7 +3021,7 @@ impl PrimitiveStore {
                         None,
                         false,          // TODO(gw): We don't calculate opacity for borders yet!
                         |render_tasks| {
-                            let task = RenderTask::new_border_segment(
+                            render_tasks.add().init(RenderTask::new_border_segment(
                                 cache_size,
                                 build_border_instances(
                                     &segment.cache_key,
@@ -3027,9 +3029,7 @@ impl PrimitiveStore {
                                     &border_data.border,
                                     scale,
                                 ),
-                            );
-
-                            render_tasks.add(task)
+                            ))
                         }
                     ));
                 }
@@ -3201,15 +3201,13 @@ impl PrimitiveStore {
                         None,
                         prim_data.stops_opacity.is_opaque,
                         |render_tasks| {
-                            let task = RenderTask::new_gradient(
+                            render_tasks.add().init(RenderTask::new_gradient(
                                 size,
                                 stops,
                                 orientation,
                                 start_point,
                                 end_point,
-                            );
-
-                            render_tasks.add(task)
+                            ))
                         }
                     ));
                 }
@@ -3229,7 +3227,7 @@ impl PrimitiveStore {
                         ROOT_SPATIAL_NODE_INDEX,
                         prim_spatial_node_index,
                         frame_context.global_screen_world_rect,
-                        frame_context.clip_scroll_tree,
+                        frame_context.spatial_tree,
                     );
 
                     gradient.visible_tiles_range = decompose_repeated_primitive(
@@ -3291,7 +3289,7 @@ impl PrimitiveStore {
                         ROOT_SPATIAL_NODE_INDEX,
                         prim_spatial_node_index,
                         frame_context.global_screen_world_rect,
-                        frame_context.clip_scroll_tree,
+                        frame_context.spatial_tree,
                     );
 
                     prim_data.common.may_need_repetition = false;
@@ -3343,7 +3341,7 @@ impl PrimitiveStore {
                     if let Some(ref mut splitter) = pic_state.plane_splitter {
                         PicturePrimitive::add_split_plane(
                             splitter,
-                            frame_context.clip_scroll_tree,
+                            frame_context.spatial_tree,
                             prim_spatial_node_index,
                             pic.precise_local_rect,
                             &prim_info.combined_local_clip_rect,
@@ -3908,7 +3906,7 @@ impl PrimitiveInstance {
                 frame_state.clip_store.set_active_clips_from_clip_chain(
                     &prim_info.clip_chain,
                     prim_spatial_node_index,
-                    &frame_context.clip_scroll_tree,
+                    &frame_context.spatial_tree,
                     &data_stores.clip,
                 );
 
@@ -3918,7 +3916,7 @@ impl PrimitiveInstance {
                         segment.local_rect.translate(self.prim_origin.to_vector()),
                         &pic_state.map_local_to_pic,
                         &pic_state.map_pic_to_world,
-                        &frame_context.clip_scroll_tree,
+                        &frame_context.spatial_tree,
                         frame_state.gpu_cache,
                         frame_state.resource_cache,
                         device_pixel_scale,
@@ -4018,7 +4016,7 @@ impl PrimitiveInstance {
                 prim_info.clipped_world_rect,
                 device_pixel_scale,
             ) {
-                let clip_task = RenderTask::new_mask(
+                let clip_task_id = RenderTask::new_mask(
                     device_rect,
                     prim_info.clip_chain.clips_range,
                     root_spatial_node_index,
@@ -4030,8 +4028,6 @@ impl PrimitiveInstance {
                     device_pixel_scale,
                     frame_context.fb_config,
                 );
-
-                let clip_task_id = frame_state.render_tasks.add(clip_task);
                 if self.is_chased() {
                     println!("\tcreated task {:?} with device rect {:?}",
                         clip_task_id, device_rect);
@@ -4133,14 +4129,32 @@ pub fn get_raster_rects(
     Some((clipped.to_i32(), unclipped))
 }
 
-/// Get the inline (horizontal) and block (vertical) sizes
-/// for a given line decoration.
-pub fn get_line_decoration_sizes(
+/// Choose the decoration mask tile size for a given line.
+///
+/// Given a line with overall size `rect_size` and the given `orientation`,
+/// return the dimensions of a single mask tile for the decoration pattern
+/// described by `style` and `wavy_line_thickness`.
+///
+/// If `style` is `Solid`, no mask tile is necessary; return `None`. The other
+/// styles each have their own characteristic periods of repetition, so for each
+/// one, this function returns a `LayoutSize` with the right aspect ratio and
+/// whose specific size is convenient for the `cs_line_decoration.glsl` fragment
+/// shader to work with. The shader uses a local coordinate space in which the
+/// tile fills a rectangle with one corner at the origin, and with the size this
+/// function returns.
+///
+/// The returned size is not necessarily in pixels; device scaling and other
+/// concerns can still affect the actual task size.
+///
+/// Regardless of whether `orientation` is `Vertical` or `Horizontal`, the
+/// `width` and `height` of the returned size are always horizontal and
+/// vertical, respectively.
+pub fn get_line_decoration_size(
     rect_size: &LayoutSize,
     orientation: LineOrientation,
     style: LineStyle,
     wavy_line_thickness: f32,
-) -> Option<(f32, f32)> {
+) -> Option<LayoutSize> {
     let h = match orientation {
         LineOrientation::Horizontal => rect_size.height,
         LineOrientation::Vertical => rect_size.width,
@@ -4152,20 +4166,20 @@ pub fn get_line_decoration_sizes(
     //           quality on a wider range of inputs!
     //           See nsCSSRendering::PaintDecorationLine in Gecko.
 
-    match style {
+    let (parallel, perpendicular) = match style {
         LineStyle::Solid => {
-            None
+            return None;
         }
         LineStyle::Dashed => {
             let dash_length = (3.0 * h).min(64.0).max(1.0);
 
-            Some((2.0 * dash_length, 4.0))
+            (2.0 * dash_length, 4.0)
         }
         LineStyle::Dotted => {
             let diameter = h.min(64.0).max(1.0);
             let period = 2.0 * diameter;
 
-            Some((period, diameter))
+            (period, diameter)
         }
         LineStyle::Wavy => {
             let line_thickness = wavy_line_thickness.max(1.0);
@@ -4173,9 +4187,14 @@ pub fn get_line_decoration_sizes(
             let flat_length = ((line_thickness - 1.0) * 2.0).max(1.0);
             let approx_period = 2.0 * (slope_length + flat_length);
 
-            Some((approx_period, h))
+            (approx_period, h)
         }
-    }
+    };
+
+    Some(match orientation {
+        LineOrientation::Horizontal => LayoutSize::new(parallel, perpendicular),
+        LineOrientation::Vertical => LayoutSize::new(perpendicular, parallel),
+    })
 }
 
 fn update_opacity_binding(

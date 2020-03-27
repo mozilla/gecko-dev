@@ -15,6 +15,10 @@ add_task(async function() {
   // Enabled fission's pref as the TargetList is almost disabled without it
   await pushPref("devtools.browsertoolbox.fission", true);
 
+  // Disable the preloaded process as it creates processes intermittently
+  // which forces the emission of RDP requests we aren't correctly waiting for.
+  await pushPref("dom.ipc.processPrelaunch.enabled", false);
+
   const client = await createLocalClient();
   const mainRoot = client.mainRoot;
 
@@ -33,7 +37,7 @@ async function testBrowserWorkers(mainRoot) {
 
   const target = await mainRoot.getMainProcess();
   const targetList = new TargetList(mainRoot, target);
-  await targetList.startListening([TargetList.TYPES.WORKER]);
+  await targetList.startListening();
 
   // Very naive sanity check against getAllTargets(worker)
   const workers = await targetList.getAllTargets(TargetList.TYPES.WORKER);
@@ -114,7 +118,7 @@ async function testBrowserWorkers(mainRoot) {
   );
   ok(hasWorker2, "retrieve the target for tab via getAllTargets");
 
-  targetList.stopListening([TargetList.TYPES.WORKER]);
+  targetList.stopListening();
 }
 
 async function testTabWorkers(mainRoot) {
@@ -136,7 +140,7 @@ async function testTabWorkers(mainRoot) {
   // without the fission preferences
   targetList.listenForWorkers = true;
 
-  await targetList.startListening([TargetList.TYPES.WORKER]);
+  await targetList.startListening();
 
   // Check that calling getAllTargets(workers) return the same target instances
   const workers = await targetList.getAllTargets(TargetList.TYPES.WORKER);
@@ -159,7 +163,7 @@ async function testTabWorkers(mainRoot) {
   is(targets[0], workers[0], "Got the exact same target front");
   targetList.unwatchTargets([TargetList.TYPES.WORKER], onAvailable);
 
-  targetList.stopListening([TargetList.TYPES.WORKER]);
+  targetList.stopListening();
 
   BrowserTestUtils.removeTab(tab);
 }

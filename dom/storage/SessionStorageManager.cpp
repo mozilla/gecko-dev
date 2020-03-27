@@ -93,7 +93,8 @@ NS_IMETHODIMP
 SessionStorageManager::GetSessionStorageCache(
     nsIPrincipal* aPrincipal, nsIPrincipal* aStoragePrincipal,
     RefPtr<SessionStorageCache>* aRetVal) {
-  return GetSessionStorageCacheHelper(aPrincipal, true, nullptr, aRetVal);
+  return GetSessionStorageCacheHelper(aStoragePrincipal, true, nullptr,
+                                      aRetVal);
 }
 
 nsresult SessionStorageManager::GetSessionStorageCacheHelper(
@@ -185,7 +186,7 @@ SessionStorageManager::GetStorage(mozIDOMWindow* aWindow,
 
   RefPtr<SessionStorageCache> cache;
   nsresult rv =
-      GetSessionStorageCacheHelper(aPrincipal, false, nullptr, &cache);
+      GetSessionStorageCacheHelper(aStoragePrincipal, false, nullptr, &cache);
   if (NS_FAILED(rv) || !cache) {
     return rv;
   }
@@ -193,7 +194,7 @@ SessionStorageManager::GetStorage(mozIDOMWindow* aWindow,
   nsCOMPtr<nsPIDOMWindowInner> inner = nsPIDOMWindowInner::From(aWindow);
 
   RefPtr<SessionStorage> storage = new SessionStorage(
-      inner, aPrincipal, cache, this, EmptyString(), aPrivate);
+      inner, aStoragePrincipal, cache, this, EmptyString(), aPrivate);
 
   storage.forget(aRetval);
   return NS_OK;
@@ -211,7 +212,7 @@ SessionStorageManager::CloneStorage(Storage* aStorage) {
 
   RefPtr<SessionStorageCache> cache;
   return GetSessionStorageCacheHelper(
-      aStorage->Principal(), true,
+      aStorage->StoragePrincipal(), true,
       static_cast<SessionStorage*>(aStorage)->Cache(), &cache);
 }
 
@@ -265,7 +266,7 @@ void SessionStorageManager::ClearStorages(
       continue;
     }
 
-    OriginKeyHashTable* table = iter1.Data();
+    OriginKeyHashTable* table = iter1.UserData();
     for (auto iter2 = table->Iter(); !iter2.Done(); iter2.Next()) {
       if (aOriginScope.IsEmpty() ||
           StringBeginsWith(iter2.Key(), aOriginScope)) {
@@ -328,7 +329,7 @@ void SessionStorageManager::SendSessionStorageCache(
   nsTArray<KeyValuePair> sessionData =
       aCache->SerializeData(SessionStorageCache::eSessionSetType);
   Unused << aActor->SendSessionStorageData(
-      mBrowsingContext, nsCString{aOriginAttrs}, nsCString{aOriginKey},
+      mBrowsingContext->Id(), nsCString{aOriginAttrs}, nsCString{aOriginKey},
       defaultData, sessionData);
 }
 

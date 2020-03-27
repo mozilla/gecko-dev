@@ -14,6 +14,7 @@
 #include "js/MemoryMetrics.h"
 #include "js/SourceText.h"
 #include "MessageEventRunnable.h"
+#include "mozilla/Result.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/BlobURLProtocolHandler.h"
@@ -381,7 +382,23 @@ class CompileScriptRunnable final : public WorkerDebuggeeRunnable {
     // current compartment.  Luckily we have a global now.
     JSAutoRealm ar(aCx, globalScope->GetGlobalJSObject());
     if (rv.MaybeSetPendingException(aCx)) {
-      return false;
+      // In the event of an uncaught exception, the worker should still keep
+      // running (return true) but should not be marked as having executed
+      // successfully (which will cause ServiceWorker installation to fail).
+      // In previous error handling cases in this method, we return false (to
+      // trigger CloseInternal) because the global is not in an operable
+      // state at all.
+      //
+      // For ServiceWorkers, this would correspond to the "Run Service Worker"
+      // algorithm returning an "abrupt completion" and _not_ failure.
+      //
+      // For DedicatedWorkers and SharedWorkers, this would correspond to the
+      // "run a worker" algorithm disregarding the return value of "run the
+      // classic script"/"run the module script" in step 24:
+      //
+      // "If script is a classic script, then run the classic script script.
+      // Otherwise, it is a module script; run the module script script."
+      return true;
     }
 
     aWorkerPrivate->SetWorkerScriptExecutedSuccessfully();
@@ -2189,6 +2206,11 @@ WorkerPrivate::WorkerPrivate(
     mJSSettings.content.realmOptions.behaviors().setClampAndJitterTime(
         !UsesSystemPrincipal());
 
+    mJSSettings.chrome.realmOptions.creationOptions().setToSourceEnabled(
+        UsesSystemPrincipal());
+    mJSSettings.content.realmOptions.creationOptions().setToSourceEnabled(
+        UsesSystemPrincipal());
+
     if (mIsSecureContext) {
       mJSSettings.chrome.realmOptions.creationOptions().setSecureContext(true);
       mJSSettings.content.realmOptions.creationOptions().setSecureContext(true);
@@ -2393,7 +2415,7 @@ already_AddRefed<WorkerPrivate> WorkerPrivate::Constructor(
 }
 
 nsresult WorkerPrivate::SetIsDebuggerReady(bool aReady) {
-  AssertIsOnParentThread();
+  AssertIsOnMainThread();
   MutexAutoLock lock(mMutex);
 
   if (mDebuggerReady == aReady) {
@@ -3074,9 +3096,15 @@ Maybe<ClientInfo> WorkerPrivate::GetClientInfo() const {
 const ClientState WorkerPrivate::GetClientState() const {
   MOZ_ACCESS_THREAD_BOUND(mWorkerThreadAccessible, data);
   MOZ_DIAGNOSTIC_ASSERT(data->mClientSource);
-  ClientState state;
-  data->mClientSource->SnapshotState(&state);
-  return state;
+  Result<ClientState, ErrorResult> res = data->mClientSource->SnapshotState();
+  if (res.isOk()) {
+    return res.unwrap();
+  }
+
+  // XXXbz Why is it OK to just ignore errors and return a default-initialized
+  // state here?
+  res.unwrapErr().SuppressException();
+  return ClientState();
 }
 
 const Maybe<ServiceWorkerDescriptor> WorkerPrivate::GetController() {
@@ -4027,9 +4055,14 @@ void WorkerPrivate::PostMessageToParent(
   }
 
   JS::CloneDataPolicy clonePolicy;
+
+  // Parent and dedicated workers are always part of the same cluster.
+  clonePolicy.allowIntraClusterClonableSharedObjects();
+
   if (IsSharedMemoryAllowed()) {
-    clonePolicy.allowSharedMemory();
+    clonePolicy.allowSharedMemoryObjects();
   }
+
   runnable->Write(aCx, aMessage, transferable, clonePolicy, aRv);
 
   if (isTimelineRecording) {
@@ -4646,17 +4679,22 @@ void WorkerPrivate::UpdateContextOptionsInternal(
 void WorkerPrivate::UpdateLanguagesInternal(
     const nsTArray<nsString>& aLanguages) {
   WorkerGlobalScope* globalScope = GlobalScope();
-  if (globalScope) {
-    RefPtr<WorkerNavigator> nav = globalScope->GetExistingNavigator();
-    if (nav) {
-      nav->SetLanguages(aLanguages);
-    }
+  RefPtr<WorkerNavigator> nav = globalScope->GetExistingNavigator();
+  if (nav) {
+    nav->SetLanguages(aLanguages);
   }
 
   MOZ_ACCESS_THREAD_BOUND(mWorkerThreadAccessible, data);
   for (uint32_t index = 0; index < data->mChildWorkers.Length(); index++) {
     data->mChildWorkers[index]->UpdateLanguages(aLanguages);
   }
+
+  RefPtr<Event> event = NS_NewDOMEvent(globalScope, nullptr, nullptr);
+
+  event->InitEvent(NS_LITERAL_STRING("languagechange"), false, false);
+  event->SetTrusted(true);
+
+  globalScope->DispatchEvent(*event);
 }
 
 void WorkerPrivate::UpdateJSWorkerMemoryParameterInternal(JSContext* aCx,
@@ -5052,8 +5090,6 @@ const nsAString& WorkerPrivate::Id() {
 }
 
 bool WorkerPrivate::IsSharedMemoryAllowed() const {
-  AssertIsOnWorkerThread();
-
   if (StaticPrefs::
           dom_postMessage_sharedArrayBuffer_bypassCOOP_COEP_insecure_enabled()) {
     return true;
@@ -5063,8 +5099,6 @@ bool WorkerPrivate::IsSharedMemoryAllowed() const {
 }
 
 bool WorkerPrivate::CrossOriginIsolated() const {
-  AssertIsOnWorkerThread();
-
   if (!StaticPrefs::dom_postMessage_sharedArrayBuffer_withCOOP_COEP()) {
     return false;
   }

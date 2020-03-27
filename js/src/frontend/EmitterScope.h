@@ -26,6 +26,8 @@ class Scope;
 
 namespace frontend {
 
+struct BytecodeEmitter;
+
 // A scope that introduces bindings.
 class EmitterScope : public Nestable<EmitterScope> {
   // The cache of bound names that may be looked up in the
@@ -85,11 +87,15 @@ class EmitterScope : public Nestable<EmitterScope> {
                                              uint8_t hops);
   NameLocation searchAndCache(BytecodeEmitter* bce, JSAtom* name);
 
+  MOZ_MUST_USE bool internEmptyGlobalScopeAsBody(BytecodeEmitter* bce);
+
   template <typename ScopeCreator>
-  MOZ_MUST_USE bool internScope(BytecodeEmitter* bce, ScopeCreator createScope);
+  MOZ_MUST_USE bool internScopeCreationData(BytecodeEmitter* bce,
+                                            ScopeCreator createScope);
+
   template <typename ScopeCreator>
-  MOZ_MUST_USE bool internBodyScope(BytecodeEmitter* bce,
-                                    ScopeCreator createScope);
+  MOZ_MUST_USE bool internBodyScopeCreationData(BytecodeEmitter* bce,
+                                                ScopeCreator createScope);
   MOZ_MUST_USE bool appendScopeNote(BytecodeEmitter* bce);
 
   MOZ_MUST_USE bool deadZoneFrameSlotRange(BytecodeEmitter* bce,
@@ -107,7 +113,6 @@ class EmitterScope : public Nestable<EmitterScope> {
   MOZ_MUST_USE bool enterFunction(BytecodeEmitter* bce, FunctionBox* funbox);
   MOZ_MUST_USE bool enterFunctionExtraBodyVar(BytecodeEmitter* bce,
                                               FunctionBox* funbox);
-  MOZ_MUST_USE bool enterParameterExpressionVar(BytecodeEmitter* bce);
   MOZ_MUST_USE bool enterGlobal(BytecodeEmitter* bce,
                                 GlobalSharedContext* globalsc);
   MOZ_MUST_USE bool enterEval(BytecodeEmitter* bce, EvalSharedContext* evalsc);

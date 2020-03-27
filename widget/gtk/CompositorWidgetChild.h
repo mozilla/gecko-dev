@@ -17,8 +17,11 @@ class CompositorWidgetChild final : public PCompositorWidgetChild,
                                     public PlatformCompositorWidgetDelegate {
  public:
   CompositorWidgetChild(RefPtr<CompositorVsyncDispatcher> aVsyncDispatcher,
-                        RefPtr<CompositorWidgetVsyncObserver> aVsyncObserver);
+                        RefPtr<CompositorWidgetVsyncObserver> aVsyncObserver,
+                        const CompositorWidgetInitData&);
   ~CompositorWidgetChild() override;
+
+  bool Initialize();
 
   mozilla::ipc::IPCResult RecvObserveVsync() override;
   mozilla::ipc::IPCResult RecvUnobserveVsync() override;

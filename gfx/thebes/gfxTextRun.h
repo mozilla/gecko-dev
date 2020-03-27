@@ -274,7 +274,7 @@ class gfxTextRun : public gfxShapedText {
    * Glyphs should be drawn in logical content order, which can be significant
    * if they overlap (perhaps due to negative spacing).
    */
-  void Draw(Range aRange, mozilla::gfx::Point aPt,
+  void Draw(const Range aRange, const mozilla::gfx::Point aPt,
             const DrawParams& aParams) const;
 
   /**
@@ -1383,8 +1383,9 @@ class gfxFontGroup final : public gfxTextRunFactory {
       const Parameters* aParams, mozilla::gfx::ShapedTextFlags aFlags,
       nsTextFrameUtils::Flags aFlags2);
 
+  template <typename T>
   already_AddRefed<gfxTextRun> MakeBlankTextRun(
-      uint32_t aLength, const Parameters* aParams,
+      const T* aString, uint32_t aLength, const Parameters* aParams,
       mozilla::gfx::ShapedTextFlags aFlags, nsTextFrameUtils::Flags aFlags2);
 
   // Initialize the list of fonts

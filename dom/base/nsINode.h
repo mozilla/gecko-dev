@@ -864,17 +864,17 @@ class nsINode : public mozilla::dom::EventTarget {
   }
 
   /**
-   * Destroys a property associated with this node. The value is destroyed
-   * using the destruction function given when that value was set.
+   * Removes a property associated with this node. The value is destroyed using
+   * the destruction function given when that value was set.
    *
    * @param aPropertyName  name of property to destroy.
    */
-  void DeleteProperty(const nsAtom* aPropertyName);
+  void RemoveProperty(const nsAtom* aPropertyName);
 
   /**
-   * Unset a property associated with this node. The value will not be
-   * destroyed but rather returned. It is the caller's responsibility to
-   * destroy the value after that point.
+   * Take a property associated with this node. The value will not be destroyed
+   * but rather returned. It is the caller's responsibility to destroy the value
+   * after that point.
    *
    * @param aPropertyName  name of property to unset.
    * @param aStatus        out parameter for storing resulting status.
@@ -884,7 +884,7 @@ class nsINode : public mozilla::dom::EventTarget {
    *                       (though a null return value does not imply the
    *                       property was not set, i.e. it can be set to null).
    */
-  void* UnsetProperty(const nsAtom* aPropertyName, nsresult* aStatus = nullptr);
+  void* TakeProperty(const nsAtom* aPropertyName, nsresult* aStatus = nullptr);
 
   bool HasProperties() const { return HasFlag(NODE_HAS_PROPERTIES); }
 
@@ -1188,11 +1188,14 @@ class nsINode : public mozilla::dom::EventTarget {
 
     /**
      * A set of ranges which are in the selection and which have this node as
-     * their endpoints' common ancestor.  This is a UniquePtr instead of just a
-     * LinkedList, because that prevents us from pushing DOMSlots up to the next
-     * allocation bucket size, at the cost of some complexity.
+     * their endpoints' closest common inclusive ancestor
+     * (https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor).  This is
+     * a UniquePtr instead of just a LinkedList, because that prevents us from
+     * pushing DOMSlots up to the next allocation bucket size, at the cost of
+     * some complexity.
      */
-    mozilla::UniquePtr<mozilla::LinkedList<nsRange>> mCommonAncestorRanges;
+    mozilla::UniquePtr<mozilla::LinkedList<nsRange>>
+        mClosestCommonInclusiveAncestorRanges;
   };
 
   /**
@@ -1350,15 +1353,29 @@ class nsINode : public mozilla::dom::EventTarget {
   inline bool IsRootOfChromeAccessOnlySubtree() const;
 
   /**
-   * Returns true if |this| node is the common ancestor of the start/end
-   * nodes of a Range in a Selection or a descendant of such a common ancestor.
-   * This node is definitely not selected when |false| is returned, but it may
-   * or may not be selected when |true| is returned.
+   * Returns true if |this| node is the closest common inclusive ancestor
+   * (https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor) of the
+   * start/end nodes of a Range in a Selection or a descendant of such a common
+   * ancestor. This node is definitely not selected when |false| is returned,
+   * but it may or may not be selected when |true| is returned.
    */
   bool IsSelectionDescendant() const {
-    return IsDescendantOfCommonAncestorForRangeInSelection() ||
-           IsCommonAncestorForRangeInSelection();
+    return IsDescendantOfClosestCommonInclusiveAncestorForRangeInSelection() ||
+           IsClosestCommonInclusiveAncestorForRangeInSelection();
   }
+
+  /**
+   * Return true if any part of (this, aStartOffset) .. (this, aEndOffset)
+   * overlaps any nsRange in
+   * GetClosestCommonInclusiveAncestorForRangeInSelection ranges (i.e.
+   * where this is a descendant of a range's common inclusive ancestor node).
+   * If a nsRange starts in (this, aEndOffset) or if it ends in
+   * (this, aStartOffset) then it is non-overlapping and the result is false
+   * for that nsRange.  Collapsed ranges always counts as non-overlapping.
+   *
+   * @param aStartOffset has to be less or equal to aEndOffset.
+   */
+  bool IsSelected(uint32_t aStartOffset, uint32_t aEndOffset) const;
 
   /**
    * Get the root content of an editor. So, this node must be a descendant of
@@ -1595,11 +1612,11 @@ class nsINode : public mozilla::dom::EventTarget {
     ElementHasPart,
     // Set if the element might have a contenteditable attribute set.
     ElementMayHaveContentEditableAttr,
-    // Set if the node is the common ancestor of the start/end nodes of a Range
-    // that is in a Selection.
-    NodeIsCommonAncestorForRangeInSelection,
+    // Set if the node is the closest common inclusive ancestor of the start/end
+    // nodes of a Range that is in a Selection.
+    NodeIsClosestCommonInclusiveAncestorForRangeInSelection,
     // Set if the node is a descendant of a node with the above bit set.
-    NodeIsDescendantOfCommonAncestorForRangeInSelection,
+    NodeIsDescendantOfClosestCommonInclusiveAncestorForRangeInSelection,
     // Set if CanSkipInCC check has been done for this subtree root.
     NodeIsCCMarkedRoot,
     // Maybe set if this node is in black subtree.
@@ -1693,23 +1710,44 @@ class nsINode : public mozilla::dom::EventTarget {
   bool MayHaveContentEditableAttr() const {
     return GetBoolFlag(ElementMayHaveContentEditableAttr);
   }
-  bool IsCommonAncestorForRangeInSelection() const {
-    return GetBoolFlag(NodeIsCommonAncestorForRangeInSelection);
+  /**
+   * https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor
+   */
+  bool IsClosestCommonInclusiveAncestorForRangeInSelection() const {
+    return GetBoolFlag(NodeIsClosestCommonInclusiveAncestorForRangeInSelection);
   }
-  void SetCommonAncestorForRangeInSelection() {
-    SetBoolFlag(NodeIsCommonAncestorForRangeInSelection);
+  /**
+   * https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor
+   */
+  void SetClosestCommonInclusiveAncestorForRangeInSelection() {
+    SetBoolFlag(NodeIsClosestCommonInclusiveAncestorForRangeInSelection);
   }
-  void ClearCommonAncestorForRangeInSelection() {
-    ClearBoolFlag(NodeIsCommonAncestorForRangeInSelection);
+  /**
+   * https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor
+   */
+  void ClearClosestCommonInclusiveAncestorForRangeInSelection() {
+    ClearBoolFlag(NodeIsClosestCommonInclusiveAncestorForRangeInSelection);
   }
-  bool IsDescendantOfCommonAncestorForRangeInSelection() const {
-    return GetBoolFlag(NodeIsDescendantOfCommonAncestorForRangeInSelection);
+  /**
+   * https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor
+   */
+  bool IsDescendantOfClosestCommonInclusiveAncestorForRangeInSelection() const {
+    return GetBoolFlag(
+        NodeIsDescendantOfClosestCommonInclusiveAncestorForRangeInSelection);
   }
-  void SetDescendantOfCommonAncestorForRangeInSelection() {
-    SetBoolFlag(NodeIsDescendantOfCommonAncestorForRangeInSelection);
+  /**
+   * https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor
+   */
+  void SetDescendantOfClosestCommonInclusiveAncestorForRangeInSelection() {
+    SetBoolFlag(
+        NodeIsDescendantOfClosestCommonInclusiveAncestorForRangeInSelection);
   }
-  void ClearDescendantOfCommonAncestorForRangeInSelection() {
-    ClearBoolFlag(NodeIsDescendantOfCommonAncestorForRangeInSelection);
+  /**
+   * https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor
+   */
+  void ClearDescendantOfClosestCommonInclusiveAncestorForRangeInSelection() {
+    ClearBoolFlag(
+        NodeIsDescendantOfClosestCommonInclusiveAncestorForRangeInSelection);
   }
 
   void SetCCMarkedRoot(bool aValue) { SetBoolFlag(NodeIsCCMarkedRoot, aValue); }
@@ -1968,23 +2006,34 @@ class nsINode : public mozilla::dom::EventTarget {
       const ConvertCoordinateOptions& aOptions, CallerType aCallerType,
       ErrorResult& aRv);
 
-  const mozilla::LinkedList<nsRange>* GetExistingCommonAncestorRanges() const {
+  /**
+   * See nsSlots::mClosestCommonInclusiveAncestorRanges.
+   */
+  const mozilla::LinkedList<nsRange>*
+  GetExistingClosestCommonInclusiveAncestorRanges() const {
     if (!HasSlots()) {
       return nullptr;
     }
-    return GetExistingSlots()->mCommonAncestorRanges.get();
+    return GetExistingSlots()->mClosestCommonInclusiveAncestorRanges.get();
   }
 
-  mozilla::LinkedList<nsRange>* GetExistingCommonAncestorRanges() {
+  /**
+   * See nsSlots::mClosestCommonInclusiveAncestorRanges.
+   */
+  mozilla::LinkedList<nsRange>*
+  GetExistingClosestCommonInclusiveAncestorRanges() {
     if (!HasSlots()) {
       return nullptr;
     }
-    return GetExistingSlots()->mCommonAncestorRanges.get();
+    return GetExistingSlots()->mClosestCommonInclusiveAncestorRanges.get();
   }
 
+  /**
+   * See nsSlots::mClosestCommonInclusiveAncestorRanges.
+   */
   mozilla::UniquePtr<mozilla::LinkedList<nsRange>>&
-  GetCommonAncestorRangesPtr() {
-    return Slots()->mCommonAncestorRanges;
+  GetClosestCommonInclusiveAncestorRangesPtr() {
+    return Slots()->mClosestCommonInclusiveAncestorRanges;
   }
 
   nsIWeakReference* GetExistingWeakReference() {

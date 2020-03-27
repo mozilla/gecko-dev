@@ -100,6 +100,7 @@
 #include "nsSliderFrame.h"
 #include "nsFocusManager.h"
 #include "ClientLayerManager.h"
+#include "mozilla/layers/AnimationHelper.h"
 #include "mozilla/layers/RenderRootStateManager.h"
 #include "mozilla/layers/StackingContextHelper.h"
 #include "mozilla/layers/TreeTraversal.h"
@@ -202,241 +203,114 @@ nsCString ActiveScrolledRoot::ToString(
   return std::move(str);
 }
 
-static inline CSSAngle MakeCSSAngle(const StyleAngle& aValue) {
-  return CSSAngle(aValue.ToDegrees(), eCSSUnit_Degree);
-}
-
-static Rotate GetRotate(const StyleRotate& aValue) {
-  Rotate result = null_t();
-  switch (aValue.tag) {
-    case StyleRotate::Tag::None:
-      break;
-    case StyleRotate::Tag::Rotate:
-      result = Rotate(Rotation(MakeCSSAngle(aValue.AsRotate())));
-      break;
-    case StyleRotate::Tag::Rotate3D: {
-      const auto& rotate = aValue.AsRotate3D();
-      result = Rotate(
-          Rotation3D(rotate._0, rotate._1, rotate._2, MakeCSSAngle(rotate._3)));
-      break;
-    }
-    default:
-      MOZ_ASSERT_UNREACHABLE("Unsupported rotate");
-  }
-  return result;
-}
-
-static Scale GetScale(const StyleScale& aValue) {
-  Scale result(1., 1., 1.);
-  switch (aValue.tag) {
-    case StyleScale::Tag::None:
-      break;
-    case StyleScale::Tag::Scale: {
-      auto& scale = aValue.AsScale();
-      result.x() = scale._0;
-      result.y() = scale._1;
-      result.z() = scale._2;
-      break;
-    }
-    default:
-      MOZ_ASSERT_UNREACHABLE("Unsupported scale");
-  }
-  return result;
-}
-
-static Translation GetTranslate(
+static StyleTransformOperation ResolveTranslate(
     TransformReferenceBox& aRefBox, const LengthPercentage& aX,
     const LengthPercentage& aY = LengthPercentage::Zero(),
     const Length& aZ = Length{0}) {
-  Translation result(0, 0, 0);
-  result.x() = nsStyleTransformMatrix::ProcessTranslatePart(
+  float x = nsStyleTransformMatrix::ProcessTranslatePart(
       aX, &aRefBox, &TransformReferenceBox::Width);
-  result.y() = nsStyleTransformMatrix::ProcessTranslatePart(
+  float y = nsStyleTransformMatrix::ProcessTranslatePart(
       aY, &aRefBox, &TransformReferenceBox::Height);
-  result.z() = aZ.ToCSSPixels();
-  return result;
+  return StyleTransformOperation::Translate3D(
+      LengthPercentage::FromPixels(x), LengthPercentage::FromPixels(y), aZ);
 }
 
-static Translation GetTranslate(const StyleTranslate& aValue,
-                                TransformReferenceBox& aRefBox) {
-  Translation result(0, 0, 0);
-  switch (aValue.tag) {
-    case StyleTranslate::Tag::None:
-      break;
-    case StyleTranslate::Tag::Translate: {
-      auto& translate = aValue.AsTranslate();
-      result = GetTranslate(aRefBox, translate._0, translate._1, translate._2);
-      break;
-    }
-    default:
-      MOZ_ASSERT_UNREACHABLE("Unsupported translate");
+static StyleTranslate ResolveTranslate(const StyleTranslate& aValue,
+                                       TransformReferenceBox& aRefBox) {
+  if (aValue.IsTranslate()) {
+    const auto& t = aValue.AsTranslate();
+    float x = nsStyleTransformMatrix::ProcessTranslatePart(
+        t._0, &aRefBox, &TransformReferenceBox::Width);
+    float y = nsStyleTransformMatrix::ProcessTranslatePart(
+        t._1, &aRefBox, &TransformReferenceBox::Height);
+    return StyleTranslate::Translate(LengthPercentage::FromPixels(x),
+                                     LengthPercentage::FromPixels(y), t._2);
   }
-  return result;
+
+  MOZ_ASSERT(aValue.IsNone());
+  return StyleTranslate::None();
 }
 
-static void AddTransformFunctions(const StyleTransform& aTransform,
-                                  TransformReferenceBox& aRefBox,
-                                  nsTArray<TransformFunction>& aFunctions) {
+static StyleTransform ResolveTransformOperations(
+    const StyleTransform& aTransform, TransformReferenceBox& aRefBox) {
+  auto convertMatrix = [](const Matrix4x4& aM) {
+    return StyleTransformOperation::Matrix3D(StyleGenericMatrix3D<StyleNumber>{
+        aM._11, aM._12, aM._13, aM._14, aM._21, aM._22, aM._23, aM._24, aM._31,
+        aM._32, aM._33, aM._34, aM._41, aM._42, aM._43, aM._44});
+  };
+
+  Vector<StyleTransformOperation> result;
+  MOZ_RELEASE_ASSERT(
+      result.initCapacity(aTransform.Operations().Length()),
+      "Allocating vector of transform operations should be successful.");
+
   for (const StyleTransformOperation& op : aTransform.Operations()) {
     switch (op.tag) {
-      case StyleTransformOperation::Tag::RotateX: {
-        CSSAngle theta = MakeCSSAngle(op.AsRotateX());
-        aFunctions.AppendElement(RotationX(theta));
+      case StyleTransformOperation::Tag::TranslateX:
+        result.infallibleAppend(ResolveTranslate(aRefBox, op.AsTranslateX()));
         break;
-      }
-      case StyleTransformOperation::Tag::RotateY: {
-        CSSAngle theta = MakeCSSAngle(op.AsRotateY());
-        aFunctions.AppendElement(RotationY(theta));
+      case StyleTransformOperation::Tag::TranslateY:
+        result.infallibleAppend(ResolveTranslate(
+            aRefBox, LengthPercentage::Zero(), op.AsTranslateY()));
         break;
-      }
-      case StyleTransformOperation::Tag::RotateZ: {
-        CSSAngle theta = MakeCSSAngle(op.AsRotateZ());
-        aFunctions.AppendElement(RotationZ(theta));
+      case StyleTransformOperation::Tag::TranslateZ:
+        result.infallibleAppend(
+            ResolveTranslate(aRefBox, LengthPercentage::Zero(),
+                             LengthPercentage::Zero(), op.AsTranslateZ()));
         break;
-      }
-      case StyleTransformOperation::Tag::Rotate: {
-        CSSAngle theta = MakeCSSAngle(op.AsRotate());
-        aFunctions.AppendElement(Rotation(theta));
-        break;
-      }
-      case StyleTransformOperation::Tag::Rotate3D: {
-        const auto& rotate = op.AsRotate3D();
-        CSSAngle theta = MakeCSSAngle(rotate._3);
-        aFunctions.AppendElement(
-            Rotation3D(rotate._0, rotate._1, rotate._2, theta));
-        break;
-      }
-      case StyleTransformOperation::Tag::ScaleX: {
-        aFunctions.AppendElement(Scale(op.AsScaleX(), 1., 1.));
-        break;
-      }
-      case StyleTransformOperation::Tag::ScaleY: {
-        aFunctions.AppendElement(Scale(1., op.AsScaleY(), 1.));
-        break;
-      }
-      case StyleTransformOperation::Tag::ScaleZ: {
-        aFunctions.AppendElement(Scale(1., 1., op.AsScaleZ()));
-        break;
-      }
-      case StyleTransformOperation::Tag::Scale: {
-        const auto& scale = op.AsScale();
-        aFunctions.AppendElement(Scale(scale._0, scale._1, 1.));
-        break;
-      }
-      case StyleTransformOperation::Tag::Scale3D: {
-        const auto& scale = op.AsScale3D();
-        aFunctions.AppendElement(Scale(scale._0, scale._1, scale._2));
-        break;
-      }
-      case StyleTransformOperation::Tag::TranslateX: {
-        aFunctions.AppendElement(GetTranslate(aRefBox, op.AsTranslateX()));
-        break;
-      }
-      case StyleTransformOperation::Tag::TranslateY: {
-        aFunctions.AppendElement(
-            GetTranslate(aRefBox, LengthPercentage::Zero(), op.AsTranslateY()));
-        break;
-      }
-      case StyleTransformOperation::Tag::TranslateZ: {
-        aFunctions.AppendElement(GetTranslate(aRefBox, LengthPercentage::Zero(),
-                                              LengthPercentage::Zero(),
-                                              op.AsTranslateZ()));
-        break;
-      }
       case StyleTransformOperation::Tag::Translate: {
         const auto& translate = op.AsTranslate();
-        aFunctions.AppendElement(
-            GetTranslate(aRefBox, translate._0, translate._1));
+        result.infallibleAppend(
+            ResolveTranslate(aRefBox, translate._0, translate._1));
         break;
       }
       case StyleTransformOperation::Tag::Translate3D: {
         const auto& translate = op.AsTranslate3D();
-        aFunctions.AppendElement(
-            GetTranslate(aRefBox, translate._0, translate._1, translate._2));
-        break;
-      }
-      case StyleTransformOperation::Tag::SkewX: {
-        CSSAngle x = MakeCSSAngle(op.AsSkewX());
-        aFunctions.AppendElement(SkewX(x));
-        break;
-      }
-      case StyleTransformOperation::Tag::SkewY: {
-        CSSAngle y = MakeCSSAngle(op.AsSkewY());
-        aFunctions.AppendElement(SkewY(y));
-        break;
-      }
-      case StyleTransformOperation::Tag::Skew: {
-        const auto& skew = op.AsSkew();
-        aFunctions.AppendElement(
-            Skew(MakeCSSAngle(skew._0), MakeCSSAngle(skew._1)));
-        break;
-      }
-      case StyleTransformOperation::Tag::Matrix: {
-        gfx::Matrix4x4 matrix;
-        const auto& m = op.AsMatrix();
-        matrix._11 = m.a;
-        matrix._12 = m.b;
-        matrix._13 = 0;
-        matrix._14 = 0;
-        matrix._21 = m.c;
-        matrix._22 = m.d;
-        matrix._23 = 0;
-        matrix._24 = 0;
-        matrix._31 = 0;
-        matrix._32 = 0;
-        matrix._33 = 1;
-        matrix._34 = 0;
-        matrix._41 = m.e;
-        matrix._42 = m.f;
-        matrix._43 = 0;
-        matrix._44 = 1;
-        aFunctions.AppendElement(TransformMatrix(matrix));
-        break;
-      }
-      case StyleTransformOperation::Tag::Matrix3D: {
-        const auto& m = op.AsMatrix3D();
-        gfx::Matrix4x4 matrix;
-
-        matrix._11 = m.m11;
-        matrix._12 = m.m12;
-        matrix._13 = m.m13;
-        matrix._14 = m.m14;
-        matrix._21 = m.m21;
-        matrix._22 = m.m22;
-        matrix._23 = m.m23;
-        matrix._24 = m.m24;
-        matrix._31 = m.m31;
-        matrix._32 = m.m32;
-        matrix._33 = m.m33;
-        matrix._34 = m.m34;
-
-        matrix._41 = m.m41;
-        matrix._42 = m.m42;
-        matrix._43 = m.m43;
-        matrix._44 = m.m44;
-        aFunctions.AppendElement(TransformMatrix(matrix));
+        result.infallibleAppend(ResolveTranslate(aRefBox, translate._0,
+                                                 translate._1, translate._2));
         break;
       }
       case StyleTransformOperation::Tag::InterpolateMatrix: {
         Matrix4x4 matrix;
         nsStyleTransformMatrix::ProcessInterpolateMatrix(matrix, op, aRefBox);
-        aFunctions.AppendElement(TransformMatrix(matrix));
+        result.infallibleAppend(convertMatrix(matrix));
         break;
       }
       case StyleTransformOperation::Tag::AccumulateMatrix: {
         Matrix4x4 matrix;
         nsStyleTransformMatrix::ProcessAccumulateMatrix(matrix, op, aRefBox);
-        aFunctions.AppendElement(TransformMatrix(matrix));
+        result.infallibleAppend(convertMatrix(matrix));
         break;
       }
-      case StyleTransformOperation::Tag::Perspective: {
-        aFunctions.AppendElement(Perspective(op.AsPerspective().ToCSSPixels()));
+      case StyleTransformOperation::Tag::RotateX:
+      case StyleTransformOperation::Tag::RotateY:
+      case StyleTransformOperation::Tag::RotateZ:
+      case StyleTransformOperation::Tag::Rotate:
+      case StyleTransformOperation::Tag::Rotate3D:
+      case StyleTransformOperation::Tag::ScaleX:
+      case StyleTransformOperation::Tag::ScaleY:
+      case StyleTransformOperation::Tag::ScaleZ:
+      case StyleTransformOperation::Tag::Scale:
+      case StyleTransformOperation::Tag::Scale3D:
+      case StyleTransformOperation::Tag::SkewX:
+      case StyleTransformOperation::Tag::SkewY:
+      case StyleTransformOperation::Tag::Skew:
+      case StyleTransformOperation::Tag::Matrix:
+      case StyleTransformOperation::Tag::Matrix3D:
+      case StyleTransformOperation::Tag::Perspective:
+        result.infallibleAppend(op);
         break;
-      }
       default:
         MOZ_ASSERT_UNREACHABLE("Function not handled yet!");
     }
   }
+
+  auto transform = StyleTransform{
+      StyleOwnedSlice<StyleTransformOperation>(std::move(result))};
+  MOZ_ASSERT(!transform.HasPercent());
+  MOZ_ASSERT(transform.Operations().Length() ==
+             aTransform.Operations().Length());
+  return transform;
 }
 
 static TimingFunction ToTimingFunction(
@@ -455,21 +329,14 @@ static TimingFunction ToTimingFunction(
       aCTF->GetSteps().mSteps, static_cast<uint8_t>(aCTF->GetSteps().mPos)));
 }
 
-static Animatable GetOffsetPath(const StyleOffsetPath& aOffsetPath) {
-  Animatable result;
-  switch (aOffsetPath.tag) {
-    case StyleOffsetPath::Tag::Path:
-      result = OffsetPath(MotionPathUtils::NormalizeAndConvertToPathCommands(
-          aOffsetPath.AsPath()));
-      break;
-    case StyleOffsetPath::Tag::Ray:
-      result = OffsetPath(aOffsetPath.AsRay());
-      break;
-    case StyleOffsetPath::Tag::None:
-    default:
-      result = OffsetPath(null_t());
+// FIXME: Bug 1489392: We don't have to normalize the path here if we accept
+// the spec issue which would like to normalize svg paths at computed time.
+static StyleOffsetPath NormalizeOffsetPath(const StyleOffsetPath& aOffsetPath) {
+  if (aOffsetPath.IsPath()) {
+    return StyleOffsetPath::Path(
+        MotionPathUtils::NormalizeSVGPathData(aOffsetPath.AsPath()));
   }
-  return result;
+  return StyleOffsetPath(aOffsetPath);
 }
 
 static void SetAnimatable(nsCSSPropertyID aProperty,
@@ -495,46 +362,33 @@ static void SetAnimatable(nsCSSPropertyID aProperty,
     case eCSSProperty_opacity:
       aAnimatable = aAnimationValue.GetOpacity();
       break;
-    case eCSSProperty_rotate: {
-      aAnimatable = GetRotate(aAnimationValue.GetRotateProperty());
+    case eCSSProperty_rotate:
+      aAnimatable = aAnimationValue.GetRotateProperty();
       break;
-    }
-    case eCSSProperty_scale: {
-      aAnimatable = GetScale(aAnimationValue.GetScaleProperty());
+    case eCSSProperty_scale:
+      aAnimatable = aAnimationValue.GetScaleProperty();
       break;
-    }
-    case eCSSProperty_translate: {
+    case eCSSProperty_translate:
       aAnimatable =
-          GetTranslate(aAnimationValue.GetTranslateProperty(), aRefBox);
+          ResolveTranslate(aAnimationValue.GetTranslateProperty(), aRefBox);
       break;
-    }
-    case eCSSProperty_transform: {
-      aAnimatable = nsTArray<TransformFunction>();
-      AddTransformFunctions(aAnimationValue.GetTransformProperty(), aRefBox,
-                            aAnimatable.get_ArrayOfTransformFunction());
+    case eCSSProperty_transform:
+      aAnimatable = ResolveTransformOperations(
+          aAnimationValue.GetTransformProperty(), aRefBox);
       break;
-    }
     case eCSSProperty_offset_path:
-      aAnimatable = GetOffsetPath(aAnimationValue.GetOffsetPathProperty());
+      aAnimatable =
+          NormalizeOffsetPath(aAnimationValue.GetOffsetPathProperty());
       break;
     case eCSSProperty_offset_distance:
       aAnimatable = aAnimationValue.GetOffsetDistanceProperty();
       break;
-    case eCSSProperty_offset_rotate: {
-      const StyleOffsetRotate& r = aAnimationValue.GetOffsetRotateProperty();
-      aAnimatable = OffsetRotate(MakeCSSAngle(r.angle), r.auto_);
+    case eCSSProperty_offset_rotate:
+      aAnimatable = aAnimationValue.GetOffsetRotateProperty();
       break;
-    }
-    case eCSSProperty_offset_anchor: {
-      const StylePositionOrAuto& p = aAnimationValue.GetOffsetAnchorProperty();
-      if (p.IsAuto()) {
-        aAnimatable = OffsetAnchor(null_t());
-        break;
-      }
-      aAnimatable = OffsetAnchor(
-          AnchorPosition(p.AsPosition().horizontal, p.AsPosition().vertical));
+    case eCSSProperty_offset_anchor:
+      aAnimatable = aAnimationValue.GetOffsetAnchorProperty();
       break;
-    }
     default:
       MOZ_ASSERT_UNREACHABLE("Unsupported property");
   }
@@ -547,7 +401,7 @@ enum class Send {
 static void AddAnimationForProperty(nsIFrame* aFrame,
                                     const AnimationProperty& aProperty,
                                     dom::Animation* aAnimation,
-                                    const Maybe<TransformData>& aData,
+                                    const CompositorAnimationData& aData,
                                     Send aSendFlag,
                                     AnimationInfo& aAnimationInfo) {
   MOZ_ASSERT(aAnimation->GetEffect(),
@@ -619,7 +473,8 @@ static void AddAnimationForProperty(nsIFrame* aFrame,
       aAnimation->HasPendingPlaybackRate()
           ? aAnimation->PlaybackRate()
           : std::numeric_limits<float>::quiet_NaN();
-  animation->data() = aData;
+  animation->transformData() = aData.mTransform;
+  animation->motionPathData() = aData.mMotionPath;
   animation->easingFunction() = ToTimingFunction(timing.TimingFunction());
   animation->iterationComposite() = static_cast<uint8_t>(
       aAnimation->GetEffect()->AsKeyframeEffect()->IterationComposite());
@@ -718,7 +573,7 @@ GroupAnimationsByProperty(const nsTArray<RefPtr<dom::Animation>>& aAnimations,
 static bool AddAnimationsForProperty(
     nsIFrame* aFrame, const EffectSet* aEffects,
     const nsTArray<RefPtr<dom::Animation>>& aCompositorAnimations,
-    const Maybe<TransformData>& aData, nsCSSPropertyID aProperty,
+    const CompositorAnimationData& aData, nsCSSPropertyID aProperty,
     Send aSendFlag, AnimationInfo& aAnimationInfo) {
   bool addedAny = false;
   // Add from first to last (since last overrides)
@@ -770,11 +625,17 @@ static bool AddAnimationsForProperty(
   return addedAny;
 }
 
-static Maybe<TransformData> CreateAnimationData(
+enum class AnimationDataType {
+  WithMotionPath,
+  WithoutMotionPath,
+};
+static CompositorAnimationData CreateAnimationData(
     nsIFrame* aFrame, nsDisplayItem* aItem, DisplayItemType aType,
-    layers::LayersBackend aLayersBackend) {
+    layers::LayersBackend aLayersBackend, AnimationDataType aDataType) {
+  CompositorAnimationData result;
+
   if (aType != DisplayItemType::TYPE_TRANSFORM) {
-    return Nothing();
+    return result;
   }
 
   // XXX Performance here isn't ideal for SVG. We'd prefer to avoid resolving
@@ -784,11 +645,12 @@ static Maybe<TransformData> CreateAnimationData(
   // for TransformReferenceBox).
   TransformReferenceBox refBox(aFrame);
   nsRect bounds(0, 0, refBox.Width(), refBox.Height());
+
   // all data passed directly to the compositor should be in dev pixels
   int32_t devPixelsToAppUnits = aFrame->PresContext()->AppUnitsPerDevPixel();
   float scale = devPixelsToAppUnits;
   Point3D offsetToTransformOrigin =
-      nsDisplayTransform::GetDeltaToTransformOrigin(aFrame, scale, &bounds);
+      nsDisplayTransform::GetDeltaToTransformOrigin(aFrame, refBox, scale);
   nsPoint origin;
   float scaleX = 1.0f;
   float scaleY = 1.0f;
@@ -812,36 +674,30 @@ static Maybe<TransformData> CreateAnimationData(
     origin = aFrame->GetOffsetToCrossDoc(referenceFrame);
   }
 
-  // FIXME: Bug 1591629: Move motion path data into an individual struct.
+  result.mTransform = Some(TransformData(origin, offsetToTransformOrigin,
+                                         bounds, devPixelsToAppUnits, scaleX,
+                                         scaleY, hasPerspectiveParent));
+
+  if (aDataType == AnimationDataType::WithoutMotionPath) {
+    return result;
+  }
+
   const StyleTransformOrigin& styleOrigin =
       aFrame->StyleDisplay()->mTransformOrigin;
   CSSPoint motionPathOrigin = nsStyleTransformMatrix::Convert2DPosition(
       styleOrigin.horizontal, styleOrigin.vertical, refBox);
+  CSSPoint anchorAdjustment =
+      MotionPathUtils::ComputeAnchorPointAdjustment(*aFrame);
 
-  CSSPoint framePosition(0, 0);
-  if (aFrame->HasAnyStateBits(NS_FRAME_SVG_LAYOUT) &&
-      aFrame->StyleDisplay()->mTransformBox != StyleGeometryBox::ViewBox &&
-      aFrame->StyleDisplay()->mTransformBox != StyleGeometryBox::BorderBox) {
-    if (aFrame->IsFrameOfType(nsIFrame::eSVGContainer)) {
-      nsRect boxRect = nsLayoutUtils::ComputeGeometryBox(
-          const_cast<nsIFrame*>(aFrame), StyleGeometryBox::FillBox);
-      framePosition = CSSPoint::FromAppUnits(nsPoint{boxRect.x, boxRect.y});
-    } else {
-      framePosition = CSSPoint::FromAppUnits(aFrame->GetPosition());
-    }
-  }
-
-  return Some(TransformData(origin, offsetToTransformOrigin, motionPathOrigin,
-                            framePosition, RayReferenceData(aFrame), bounds,
-                            devPixelsToAppUnits, scaleX, scaleY,
-                            hasPerspectiveParent));
+  result.mMotionPath = Some(layers::MotionPathData(
+      motionPathOrigin, anchorAdjustment, RayReferenceData(aFrame)));
+  return result;
 }
 
 static void AddNonAnimatingTransformLikePropertiesStyles(
     const nsCSSPropertyIDSet& aNonAnimatingProperties, nsIFrame* aFrame,
-    const Maybe<TransformData>& aData, Send aSendFlag,
-    AnimationInfo& aAnimationInfo) {
-  auto appendFakeAnimation = [&aAnimationInfo, &aData, aSendFlag](
+    Send aSendFlag, AnimationInfo& aAnimationInfo) {
+  auto appendFakeAnimation = [&aAnimationInfo, aSendFlag](
                                  nsCSSPropertyID aProperty,
                                  Animatable&& aBaseStyle) {
     layers::Animation* animation =
@@ -850,7 +706,6 @@ static void AddNonAnimatingTransformLikePropertiesStyles(
             : aAnimationInfo.AddAnimation();
     animation->property() = aProperty;
     animation->baseStyle() = std::move(aBaseStyle);
-    animation->data() = aData;
     animation->easingFunction() = null_t();
     animation->isNotAnimating() = true;
   };
@@ -868,31 +723,30 @@ static void AddNonAnimatingTransformLikePropertiesStyles(
       case eCSSProperty_transform:
         if (!display->mTransform.IsNone()) {
           TransformReferenceBox refBox(aFrame);
-          nsTArray<TransformFunction> transformFunctions;
-          AddTransformFunctions(display->mTransform, refBox,
-                                transformFunctions);
-          appendFakeAnimation(id, Animatable(std::move(transformFunctions)));
+          appendFakeAnimation(
+              id, ResolveTransformOperations(display->mTransform, refBox));
         }
         break;
       case eCSSProperty_translate:
         if (!display->mTranslate.IsNone()) {
           TransformReferenceBox refBox(aFrame);
-          appendFakeAnimation(id, GetTranslate(display->mTranslate, refBox));
+          appendFakeAnimation(id,
+                              ResolveTranslate(display->mTranslate, refBox));
         }
         break;
       case eCSSProperty_rotate:
         if (!display->mRotate.IsNone()) {
-          appendFakeAnimation(id, GetRotate(display->mRotate));
+          appendFakeAnimation(id, display->mRotate);
         }
         break;
       case eCSSProperty_scale:
         if (!display->mScale.IsNone()) {
-          appendFakeAnimation(id, GetScale(display->mScale));
+          appendFakeAnimation(id, display->mScale);
         }
         break;
       case eCSSProperty_offset_path:
         if (!display->mOffsetPath.IsNone()) {
-          appendFakeAnimation(id, GetOffsetPath(display->mOffsetPath));
+          appendFakeAnimation(id, NormalizeOffsetPath(display->mOffsetPath));
         }
         break;
       case eCSSProperty_offset_distance:
@@ -903,16 +757,12 @@ static void AddNonAnimatingTransformLikePropertiesStyles(
       case eCSSProperty_offset_rotate:
         if (hasMotion && (!display->mOffsetRotate.auto_ ||
                           display->mOffsetRotate.angle.ToDegrees() != 0.0)) {
-          const StyleOffsetRotate& rotate = display->mOffsetRotate;
-          appendFakeAnimation(
-              id, OffsetRotate(MakeCSSAngle(rotate.angle), rotate.auto_));
+          appendFakeAnimation(id, display->mOffsetRotate);
         }
         break;
       case eCSSProperty_offset_anchor:
         if (hasMotion && !display->mOffsetAnchor.IsAuto()) {
-          const StylePosition& position = display->mOffsetAnchor.AsPosition();
-          appendFakeAnimation(id, OffsetAnchor(AnchorPosition(
-                                      position.horizontal, position.vertical)));
+          appendFakeAnimation(id, display->mOffsetAnchor);
         }
         break;
       default:
@@ -963,14 +813,15 @@ static void AddAnimationsForDisplayItem(nsIFrame* aFrame,
     return;
   }
 
-  // FIXME: Bug 1591629: We create TransformData for all animating properties
-  // and copy it to every animation property, and pass them through IPC. We
-  // should avoid the duplicates.
-  const Maybe<TransformData> data =
-      CreateAnimationData(aFrame, aItem, aType, aLayersBackend);
   const HashMap<nsCSSPropertyID, nsTArray<RefPtr<dom::Animation>>>
       compositorAnimations =
           GroupAnimationsByProperty(matchedAnimations, propertySet);
+  CompositorAnimationData data =
+      CreateAnimationData(aFrame, aItem, aType, aLayersBackend,
+                          compositorAnimations.has(eCSSProperty_offset_path) ||
+                                  !aFrame->StyleDisplay()->mOffsetPath.IsNone()
+                              ? AnimationDataType::WithMotionPath
+                              : AnimationDataType::WithoutMotionPath);
   // Bug 1424900: Drop this pref check after shipping individual transforms.
   // Bug 1582554: Drop this pref check after shipping motion path.
   const bool hasMultipleTransformLikeProperties =
@@ -989,6 +840,11 @@ static void AddAnimationsForDisplayItem(nsIFrame* aFrame,
     bool added =
         AddAnimationsForProperty(aFrame, effects, iter.get().value(), data,
                                  iter.get().key(), aSendFlag, aAnimationInfo);
+    if (added && data.HasData()) {
+      // Only copy TransformLikeMetaData in the first animation property.
+      data.Clear();
+    }
+
     if (hasMultipleTransformLikeProperties && added) {
       nonAnimatingProperties.RemoveProperty(iter.get().key());
     }
@@ -1009,8 +865,8 @@ static void AddAnimationsForDisplayItem(nsIFrame* aFrame,
       !nonAnimatingProperties.Equals(
           nsCSSPropertyIDSet::TransformLikeProperties()) &&
       !nonAnimatingProperties.IsEmpty()) {
-    AddNonAnimatingTransformLikePropertiesStyles(
-        nonAnimatingProperties, aFrame, data, aSendFlag, aAnimationInfo);
+    AddNonAnimatingTransformLikePropertiesStyles(nonAnimatingProperties, aFrame,
+                                                 aSendFlag, aAnimationInfo);
   }
 }
 
@@ -1972,7 +1828,7 @@ void nsDisplayListBuilder::ResetMarkedFramesForDisplayList(
 
   firstFrameForShell = CurrentPresShellState()->mFirstFrameWithOOFData;
   for (uint32_t i = firstFrameForShell; i < mFramesWithOOFData.Length(); ++i) {
-    mFramesWithOOFData[i]->DeleteProperty(OutOfFlowDisplayDataProperty());
+    mFramesWithOOFData[i]->RemoveProperty(OutOfFlowDisplayDataProperty());
   }
   mFramesWithOOFData.SetLength(firstFrameForShell);
 }
@@ -2198,7 +2054,8 @@ const nsIFrame* nsDisplayListBuilder::FindReferenceFrameFor(
 // Sticky frames are active if their nearest scrollable frame is also active.
 static bool IsStickyFrameActive(nsDisplayListBuilder* aBuilder,
                                 nsIFrame* aFrame, nsIFrame* aParent) {
-  MOZ_ASSERT(aFrame->StyleDisplay()->mPosition == NS_STYLE_POSITION_STICKY);
+  MOZ_ASSERT(aFrame->StyleDisplay()->mPosition ==
+             StylePositionProperty::Sticky);
 
   // Find the nearest scrollframe.
   nsIScrollableFrame* sf = nsLayoutUtils::GetNearestScrollableFrame(
@@ -2235,7 +2092,7 @@ nsDisplayListBuilder::AGRState nsDisplayListBuilder::IsAnimatedGeometryRoot(
     return AGR_YES;
   }
 
-  if (aFrame->StyleDisplay()->mPosition == NS_STYLE_POSITION_STICKY &&
+  if (aFrame->StyleDisplay()->mPosition == StylePositionProperty::Sticky &&
       IsStickyFrameActive(this, aFrame, parent)) {
     aIsAsync = true;
     return AGR_YES;
@@ -2465,7 +2322,7 @@ LayoutDeviceIntRegion nsDisplayListBuilder::GetWindowDraggingRegion() const {
   return result;
 }
 
-void nsDisplayHitTestInfoItem::AddSizeOfExcludingThis(
+void nsDisplayHitTestInfoBase::AddSizeOfExcludingThis(
     nsWindowSizes& aSizes) const {
   nsPaintedDisplayItem::AddSizeOfExcludingThis(aSizes);
   aSizes.mLayoutRetainedDisplayListSize +=
@@ -2473,7 +2330,7 @@ void nsDisplayHitTestInfoItem::AddSizeOfExcludingThis(
 }
 
 void nsDisplayTransform::AddSizeOfExcludingThis(nsWindowSizes& aSizes) const {
-  nsDisplayHitTestInfoItem::AddSizeOfExcludingThis(aSizes);
+  nsDisplayHitTestInfoBase::AddSizeOfExcludingThis(aSizes);
   aSizes.mLayoutRetainedDisplayListSize +=
       aSizes.mState.mMallocSizeOf(mTransformPreserves3D.get());
 }
@@ -2998,8 +2855,8 @@ FrameLayerBuilder* nsDisplayList::BuildLayers(nsDisplayListBuilder* aBuilder,
     AUTO_PROFILER_LABEL_CATEGORY_PAIR(GRAPHICS_LayerBuilding);
 #ifdef MOZ_GECKO_PROFILER
     nsCOMPtr<nsIDocShell> docShell = presContext->GetDocShell();
-    AUTO_PROFILER_TRACING_DOCSHELL("Paint", "LayerBuilding", GRAPHICS,
-                                   docShell);
+    AUTO_PROFILER_TRACING_MARKER_DOCSHELL("Paint", "LayerBuilding", GRAPHICS,
+                                          docShell);
 #endif
 
     if (XRE_IsContentProcess() && StaticPrefs::gfx_content_always_paint()) {
@@ -4081,8 +3938,19 @@ nsDisplayBackgroundImage::nsDisplayBackgroundImage(
       mLayer(aInitData.layer),
       mIsRasterImage(aInitData.isRasterImage),
       mShouldFixToViewport(aInitData.shouldFixToViewport),
-      mImageFlags(0) {
+      mImageFlags(0),
+      mAssociatedImage(false) {
   MOZ_COUNT_CTOR(nsDisplayBackgroundImage);
+
+  // If we have the same background style as our frame we know we're not going
+  // to need to associate our image to the frame. nsFrame::DidSetComputedStyle
+  // would've done that for us already.
+  //
+  // We need to check this here because the style frame pointer of the frame may
+  // change (and doesn't have to invalidate the display item unless background
+  // styles change).
+  mTriedToAssociateImage =
+      !(mBackgroundStyle && mBackgroundStyle != mFrame->Style());
 
   mBounds = GetBoundsInternal(aInitData.builder, aFrameForBounds);
   if (mShouldFixToViewport) {
@@ -4099,10 +3967,25 @@ nsDisplayBackgroundImage::nsDisplayBackgroundImage(
   }
 }
 
+void nsDisplayBackgroundImage::DisassociateImage() {
+  MOZ_ASSERT(mAssociatedImage);
+  MOZ_ASSERT(mFrame);
+
+  if (mFrame->HasImageRequest()) {
+    // We need to check HasImageRequest because the frame may already have
+    // cleared all its requests in some other way before us.
+    auto& layer = mBackgroundStyle->StyleBackground()->mImage.mLayers[mLayer];
+    mFrame->DisassociateImage(layer.mImage);
+  }
+
+  mAssociatedImage = false;
+}
+
 nsDisplayBackgroundImage::~nsDisplayBackgroundImage() {
-#ifdef NS_BUILD_REFCNT_LOGGING
   MOZ_COUNT_DTOR(nsDisplayBackgroundImage);
-#endif
+  if (mAssociatedImage) {
+    DisassociateImage();
+  }
   if (mDependentFrame) {
     mDependentFrame->RemoveDisplayItem(this);
   }
@@ -4653,7 +4536,8 @@ bool nsDisplayBackgroundImage::CreateWebRenderCommands(
     mozilla::wr::IpcResourceUpdateQueue& aResources,
     const StackingContextHelper& aSc, RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder) {
-  ContainerLayerParameters parameter;
+  AssociateImageIfNeeded();
+
   if (!CanBuildWebRenderDisplayItems(aManager->LayerManager(),
                                      aDisplayListBuilder)) {
     return false;
@@ -4799,6 +4683,17 @@ bool nsDisplayBackgroundImage::RenderingMightDependOnPositioningAreaSizeChange()
   return false;
 }
 
+void nsDisplayBackgroundImage::AssociateImageIfNeeded() {
+  if (mTriedToAssociateImage) {
+    return;
+  }
+  mTriedToAssociateImage = true;
+  auto& layer = mBackgroundStyle->StyleBackground()->mImage.mLayers[mLayer];
+  if (mFrame->AssociateImage(layer.mImage)) {
+    mAssociatedImage = true;
+  }
+}
+
 void nsDisplayBackgroundImage::Paint(nsDisplayListBuilder* aBuilder,
                                      gfxContext* aCtx) {
   PaintInternal(aBuilder, aCtx, GetPaintRect(), &mBounds);
@@ -4808,6 +4703,7 @@ void nsDisplayBackgroundImage::PaintInternal(nsDisplayListBuilder* aBuilder,
                                              gfxContext* aCtx,
                                              const nsRect& aBounds,
                                              nsRect* aClipRect) {
+  AssociateImageIfNeeded();
   gfxContext* ctx = aCtx;
   StyleGeometryBox clip =
       mBackgroundStyle->StyleBackground()->mImage.mLayers[mLayer].mClip;
@@ -4975,6 +4871,7 @@ nsRegion nsDisplayThemedBackground::GetOpaqueRegion(
   *aSnap = false;
 
   if (mThemeTransparency == nsITheme::eOpaque) {
+    *aSnap = true;
     result = mBackgroundRect;
   }
   return result;
@@ -5471,22 +5368,27 @@ void nsDisplayOutline::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
       nsRect(offset, mFrame->GetSize()), mFrame->Style());
 }
 
+bool nsDisplayOutline::IsThemedOutline() const {
+  const auto& outlineStyle = mFrame->StyleOutline()->mOutlineStyle;
+  if (!outlineStyle.IsAuto() ||
+      !StaticPrefs::layout_css_outline_style_auto_enabled()) {
+    return false;
+  }
+
+  nsPresContext* pc = mFrame->PresContext();
+  nsITheme* theme = pc->GetTheme();
+  return theme &&
+         theme->ThemeSupportsWidget(pc, mFrame, StyleAppearance::FocusOutline);
+}
+
 bool nsDisplayOutline::CreateWebRenderCommands(
     mozilla::wr::DisplayListBuilder& aBuilder,
     mozilla::wr::IpcResourceUpdateQueue& aResources,
     const StackingContextHelper& aSc,
     mozilla::layers::RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder) {
-  ContainerLayerParameters parameter;
-
-  const auto& outlineStyle = mFrame->StyleOutline()->mOutlineStyle;
-  if (outlineStyle.IsAuto() &&
-      StaticPrefs::layout_css_outline_style_auto_enabled()) {
-    nsITheme* theme = mFrame->PresContext()->GetTheme();
-    if (theme && theme->ThemeSupportsWidget(mFrame->PresContext(), mFrame,
-                                            StyleAppearance::FocusOutline)) {
-      return false;
-    }
+  if (IsThemedOutline()) {
+    return false;
   }
 
   nsPoint offset = ToReferenceFrame();
@@ -5532,23 +5434,11 @@ void nsDisplayEventReceiver::HitTest(nsDisplayListBuilder* aBuilder,
   aOutFrames->AppendElement(mFrame);
 }
 
-bool nsDisplayEventReceiver::CreateWebRenderCommands(
-    mozilla::wr::DisplayListBuilder& aBuilder,
-    mozilla::wr::IpcResourceUpdateQueue& aResources,
-    const StackingContextHelper& aSc,
-    mozilla::layers::RenderRootStateManager* aManager,
-    nsDisplayListBuilder* aDisplayListBuilder) {
-  // This display item should never be getting created when building a display
-  // list for WebRender consumption, so this function should never get called.
-  MOZ_ASSERT(false);
-  return true;
-}
-
 nsDisplayCompositorHitTestInfo::nsDisplayCompositorHitTestInfo(
     nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
     const mozilla::gfx::CompositorHitTestInfo& aHitTestFlags, uint16_t aIndex,
     const mozilla::Maybe<nsRect>& aArea)
-    : nsDisplayHitTestInfoItem(aBuilder, aFrame),
+    : nsDisplayHitTestInfoBase(aBuilder, aFrame),
       mIndex(aIndex),
       mAppUnitsPerDevPixel(mFrame->PresContext()->AppUnitsPerDevPixel()) {
   MOZ_COUNT_CTOR(nsDisplayCompositorHitTestInfo);
@@ -5568,7 +5458,7 @@ nsDisplayCompositorHitTestInfo::nsDisplayCompositorHitTestInfo(
 nsDisplayCompositorHitTestInfo::nsDisplayCompositorHitTestInfo(
     nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
     mozilla::UniquePtr<HitTestInfo>&& aHitTestInfo)
-    : nsDisplayHitTestInfoItem(aBuilder, aFrame),
+    : nsDisplayHitTestInfoBase(aBuilder, aFrame),
       mIndex(0),
       mAppUnitsPerDevPixel(mFrame->PresContext()->AppUnitsPerDevPixel()) {
   MOZ_COUNT_CTOR(nsDisplayCompositorHitTestInfo);
@@ -5640,7 +5530,7 @@ uint16_t nsDisplayCompositorHitTestInfo::CalculatePerFrameKey() const {
 
 int32_t nsDisplayCompositorHitTestInfo::ZIndex() const {
   return mOverrideZIndex ? *mOverrideZIndex
-                         : nsDisplayHitTestInfoItem::ZIndex();
+                         : nsDisplayHitTestInfoBase::ZIndex();
 }
 
 void nsDisplayCompositorHitTestInfo::SetOverrideZIndex(int32_t aZIndex) {
@@ -6172,7 +6062,7 @@ nsDisplayWrapList::nsDisplayWrapList(
     nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nsDisplayList* aList,
     const ActiveScrolledRoot* aActiveScrolledRoot, bool aClearClipChain,
     uint16_t aIndex)
-    : nsDisplayHitTestInfoItem(aBuilder, aFrame, aActiveScrolledRoot),
+    : nsDisplayHitTestInfoBase(aBuilder, aFrame, aActiveScrolledRoot),
       mFrameActiveScrolledRoot(aBuilder->CurrentActiveScrolledRoot()),
       mOverrideZIndex(0),
       mIndex(aIndex),
@@ -6216,7 +6106,7 @@ nsDisplayWrapList::nsDisplayWrapList(
 
 nsDisplayWrapList::nsDisplayWrapList(nsDisplayListBuilder* aBuilder,
                                      nsIFrame* aFrame, nsDisplayItem* aItem)
-    : nsDisplayHitTestInfoItem(aBuilder, aFrame,
+    : nsDisplayHitTestInfoBase(aBuilder, aFrame,
                                aBuilder->CurrentActiveScrolledRoot()),
       mOverrideZIndex(0),
       mIndex(0),
@@ -8072,7 +7962,7 @@ nsDisplayTransform::nsDisplayTransform(nsDisplayListBuilder* aBuilder,
                                        nsIFrame* aFrame, nsDisplayList* aList,
                                        const nsRect& aChildrenBuildingRect,
                                        uint16_t aIndex)
-    : nsDisplayHitTestInfoItem(aBuilder, aFrame),
+    : nsDisplayHitTestInfoBase(aBuilder, aFrame),
       mTransform(Some(Matrix4x4())),
       mTransformGetter(nullptr),
       mAnimatedGeometryRootForChildren(mAnimatedGeometryRoot),
@@ -8091,7 +7981,7 @@ nsDisplayTransform::nsDisplayTransform(nsDisplayListBuilder* aBuilder,
                                        const nsRect& aChildrenBuildingRect,
                                        uint16_t aIndex,
                                        bool aAllowAsyncAnimation)
-    : nsDisplayHitTestInfoItem(aBuilder, aFrame),
+    : nsDisplayHitTestInfoBase(aBuilder, aFrame),
       mTransformGetter(nullptr),
       mAnimatedGeometryRootForChildren(mAnimatedGeometryRoot),
       mAnimatedGeometryRootForScrollMetadata(mAnimatedGeometryRoot),
@@ -8109,7 +7999,7 @@ nsDisplayTransform::nsDisplayTransform(
     nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nsDisplayList* aList,
     const nsRect& aChildrenBuildingRect, uint16_t aIndex,
     ComputeTransformFunction aTransformGetter)
-    : nsDisplayHitTestInfoItem(aBuilder, aFrame),
+    : nsDisplayHitTestInfoBase(aBuilder, aFrame),
       mTransformGetter(aTransformGetter),
       mAnimatedGeometryRootForChildren(mAnimatedGeometryRoot),
       mAnimatedGeometryRootForScrollMetadata(mAnimatedGeometryRoot),
@@ -8137,7 +8027,8 @@ void nsDisplayTransform::SetReferenceFrameToAncestor(
     // determine if we are inside a fixed pos subtree. If we use the outer AGR
     // from outside the fixed pos subtree FLB can't tell that we are fixed pos.
     mAnimatedGeometryRoot = mAnimatedGeometryRootForChildren;
-  } else if (mFrame->StyleDisplay()->mPosition == NS_STYLE_POSITION_STICKY &&
+  } else if (mFrame->StyleDisplay()->mPosition ==
+                 StylePositionProperty::Sticky &&
              IsStickyFrameActive(aBuilder, mFrame, nullptr)) {
     // Similar to the IsFixedPosFrameInDisplayPort case we are our own AGR.
     // We are inside the sticky position, so our AGR is the sticky positioned
@@ -8183,8 +8074,8 @@ bool nsDisplayTransform::ShouldFlattenAway(nsDisplayListBuilder* aBuilder) {
  */
 /* static */
 Point3D nsDisplayTransform::GetDeltaToTransformOrigin(
-    const nsIFrame* aFrame, float aAppUnitsPerPixel,
-    const nsRect* aBoundsOverride) {
+    const nsIFrame* aFrame, TransformReferenceBox& aRefBox,
+    float aAppUnitsPerPixel) {
   MOZ_ASSERT(aFrame, "Can't get delta for a null frame!");
   MOZ_ASSERT(aFrame->IsTransformed() || aFrame->BackfaceIsHidden() ||
                  aFrame->Combines3DTransformWithAncestors(),
@@ -8199,26 +8090,17 @@ Point3D nsDisplayTransform::GetDeltaToTransformOrigin(
    * a distance, it's already computed for us!
    */
   const nsStyleDisplay* display = aFrame->StyleDisplay();
-  // We don't use aBoundsOverride for SVG since we need to account for
-  // refBox.X/Y(). This happens to work because ReflowSVG sets the frame's
-  // mRect before calling FinishAndStoreOverflow so we don't need the override.
-  TransformReferenceBox refBox;
-  if (aBoundsOverride && !(aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
-    refBox.Init(aBoundsOverride->Size());
-  } else {
-    refBox.Init(aFrame);
-  }
 
   const StyleTransformOrigin& transformOrigin = display->mTransformOrigin;
   CSSPoint origin = nsStyleTransformMatrix::Convert2DPosition(
-      transformOrigin.horizontal, transformOrigin.vertical, refBox);
+      transformOrigin.horizontal, transformOrigin.vertical, aRefBox);
 
   if (aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
     // SVG frames (unlike other frames) have a reference box that can be (and
     // typically is) offset from the TopLeft() of the frame. We need to account
     // for that here.
-    origin.x += CSSPixel::FromAppUnits(refBox.X());
-    origin.y += CSSPixel::FromAppUnits(refBox.Y());
+    origin.x += CSSPixel::FromAppUnits(aRefBox.X());
+    origin.y += CSSPixel::FromAppUnits(aRefBox.Y());
   }
 
   float scale = mozilla::AppUnitsPerCSSPixel() / float(aAppUnitsPerPixel);
@@ -8294,35 +8176,37 @@ bool nsDisplayTransform::ComputePerspectiveMatrix(const nsIFrame* aFrame,
 }
 
 nsDisplayTransform::FrameTransformProperties::FrameTransformProperties(
-    const nsIFrame* aFrame, float aAppUnitsPerPixel,
-    const nsRect* aBoundsOverride)
+    const nsIFrame* aFrame, TransformReferenceBox& aRefBox,
+    float aAppUnitsPerPixel)
     : mFrame(aFrame),
       mTranslate(aFrame->StyleDisplay()->mTranslate),
       mRotate(aFrame->StyleDisplay()->mRotate),
       mScale(aFrame->StyleDisplay()->mScale),
       mTransform(aFrame->StyleDisplay()->mTransform),
-      mMotion(MotionPathUtils::ResolveMotionPath(aFrame)),
-      mToTransformOrigin(GetDeltaToTransformOrigin(aFrame, aAppUnitsPerPixel,
-                                                   aBoundsOverride)) {}
+      mMotion(MotionPathUtils::ResolveMotionPath(aFrame, aRefBox)),
+      mToTransformOrigin(
+          GetDeltaToTransformOrigin(aFrame, aRefBox, aAppUnitsPerPixel)) {}
 
 /* Wraps up the transform matrix in a change-of-basis matrix pair that
  * translates from local coordinate space to transform coordinate space, then
  * hands it back.
  */
 Matrix4x4 nsDisplayTransform::GetResultingTransformMatrix(
-    const FrameTransformProperties& aProperties, const nsPoint& aOrigin,
-    float aAppUnitsPerPixel, uint32_t aFlags, const nsRect* aBoundsOverride) {
-  return GetResultingTransformMatrixInternal(
-      aProperties, aOrigin, aAppUnitsPerPixel, aFlags, aBoundsOverride);
+    const FrameTransformProperties& aProperties, TransformReferenceBox& aRefBox,
+    const nsPoint& aOrigin, float aAppUnitsPerPixel, uint32_t aFlags) {
+  return GetResultingTransformMatrixInternal(aProperties, aRefBox, aOrigin,
+                                             aAppUnitsPerPixel, aFlags);
 }
 
 Matrix4x4 nsDisplayTransform::GetResultingTransformMatrix(
     const nsIFrame* aFrame, const nsPoint& aOrigin, float aAppUnitsPerPixel,
-    uint32_t aFlags, const nsRect* aBoundsOverride) {
-  FrameTransformProperties props(aFrame, aAppUnitsPerPixel, aBoundsOverride);
+    uint32_t aFlags) {
+  // mRect before calling FinishAndStoreOverflow so we don't need the override.
+  TransformReferenceBox refBox(aFrame);
+  FrameTransformProperties props(aFrame, refBox, aAppUnitsPerPixel);
 
-  return GetResultingTransformMatrixInternal(props, aOrigin, aAppUnitsPerPixel,
-                                             aFlags, aBoundsOverride);
+  return GetResultingTransformMatrixInternal(props, refBox, aOrigin,
+                                             aAppUnitsPerPixel, aFlags);
 }
 
 static bool ShouldRoundTransformOrigin(const nsIFrame* aFrame) {
@@ -8334,24 +8218,13 @@ static bool ShouldRoundTransformOrigin(const nsIFrame* aFrame) {
 }
 
 Matrix4x4 nsDisplayTransform::GetResultingTransformMatrixInternal(
-    const FrameTransformProperties& aProperties, const nsPoint& aOrigin,
-    float aAppUnitsPerPixel, uint32_t aFlags, const nsRect* aBoundsOverride) {
+    const FrameTransformProperties& aProperties, TransformReferenceBox& aRefBox,
+    const nsPoint& aOrigin, float aAppUnitsPerPixel, uint32_t aFlags) {
   const nsIFrame* frame = aProperties.mFrame;
   NS_ASSERTION(frame || !(aFlags & INCLUDE_PERSPECTIVE),
                "Must have a frame to compute perspective!");
 
   // Get the underlying transform matrix:
-
-  // We don't use aBoundsOverride for SVG since we need to account for
-  // refBox.X/Y(). This happens to work because ReflowSVG sets the frame's
-  // mRect before calling FinishAndStoreOverflow so we don't need the override.
-  TransformReferenceBox refBox;
-  if (aBoundsOverride &&
-      (!frame || !(frame->GetStateBits() & NS_FRAME_SVG_LAYOUT))) {
-    refBox.Init(aBoundsOverride->Size());
-  } else {
-    refBox.Init(frame);
-  }
 
   /* Get the matrix, then change its basis to factor in the origin. */
   Matrix4x4 result;
@@ -8370,7 +8243,8 @@ Matrix4x4 nsDisplayTransform::GetResultingTransformMatrixInternal(
   if (aProperties.HasTransform()) {
     result = nsStyleTransformMatrix::ReadTransforms(
         aProperties.mTranslate, aProperties.mRotate, aProperties.mScale,
-        aProperties.mMotion, aProperties.mTransform, refBox, aAppUnitsPerPixel);
+        aProperties.mMotion, aProperties.mTransform, aRefBox,
+        aAppUnitsPerPixel);
   } else if (hasSVGTransforms) {
     // Correct the translation components for zoom:
     float pixelsPerCSSPx = AppUnitsPerCSSPixel() / aAppUnitsPerPixel;
@@ -8418,7 +8292,8 @@ Matrix4x4 nsDisplayTransform::GetResultingTransformMatrixInternal(
     NS_ASSERTION(parentFrame && parentFrame->IsTransformed() &&
                      parentFrame->Extend3DContext(),
                  "Preserve3D mismatch!");
-    FrameTransformProperties props(parentFrame, aAppUnitsPerPixel, nullptr);
+    TransformReferenceBox refBox(parentFrame);
+    FrameTransformProperties props(parentFrame, refBox, aAppUnitsPerPixel);
 
     uint32_t flags =
         aFlags & (INCLUDE_PRESERVE3D_ANCESTORS | INCLUDE_PERSPECTIVE);
@@ -8432,7 +8307,7 @@ Matrix4x4 nsDisplayTransform::GetResultingTransformMatrixInternal(
                                    aAppUnitsPerPixel, shouldRound);
     }
     Matrix4x4 parent = GetResultingTransformMatrixInternal(
-        props, nsPoint(0, 0), aAppUnitsPerPixel, flags, nullptr);
+        props, aRefBox, nsPoint(0, 0), aAppUnitsPerPixel, flags);
     result = result * parent;
   }
 
@@ -9246,24 +9121,23 @@ nsRect nsDisplayTransform::GetComponentAlphaBounds(
  * @param aUntransformedBounds The rectangle (in app units) to transform.
  * @param aFrame The frame whose transformation should be applied.
  * @param aOrigin The delta from the frame origin to the coordinate space origin
- * @param aBoundsOverride (optional) Force the frame bounds to be the
- *        specified bounds.
  * @return The smallest rectangle containing the image of the transformed
  *         rectangle.
  */
 nsRect nsDisplayTransform::TransformRect(const nsRect& aUntransformedBounds,
                                          const nsIFrame* aFrame,
-                                         const nsRect* aBoundsOverride) {
+                                         TransformReferenceBox& aRefBox) {
   MOZ_ASSERT(aFrame, "Can't take the transform based on a null frame!");
 
   float factor = aFrame->PresContext()->AppUnitsPerDevPixel();
 
   uint32_t flags =
       INCLUDE_PERSPECTIVE | OFFSET_BY_ORIGIN | INCLUDE_PRESERVE3D_ANCESTORS;
+  FrameTransformProperties props(aFrame, aRefBox, factor);
   return nsLayoutUtils::MatrixTransformRect(
       aUntransformedBounds,
-      GetResultingTransformMatrix(aFrame, nsPoint(0, 0), factor, flags,
-                                  aBoundsOverride),
+      GetResultingTransformMatrixInternal(props, aRefBox, nsPoint(0, 0), factor,
+                                          flags),
       factor);
 }
 
@@ -9352,7 +9226,7 @@ void nsDisplayTransform::WriteDebugInfo(std::stringstream& aStream) {
 nsDisplayPerspective::nsDisplayPerspective(nsDisplayListBuilder* aBuilder,
                                            nsIFrame* aFrame,
                                            nsDisplayList* aList)
-    : nsDisplayHitTestInfoItem(aBuilder, aFrame) {
+    : nsDisplayHitTestInfoBase(aBuilder, aFrame) {
   mList.AppendToTop(aList);
   MOZ_ASSERT(mList.Count() == 1);
   MOZ_ASSERT(mList.GetTop()->GetType() == DisplayItemType::TYPE_TRANSFORM);
@@ -10190,7 +10064,7 @@ static Maybe<wr::WrClipId> CreateSimpleClipRegion(
                          radii * 2);
 
       nscoord ellipseRadii[8];
-      NS_FOR_CSS_HALF_CORNERS(corner) {
+      for (const auto corner : mozilla::AllPhysicalHalfCorners()) {
         ellipseRadii[corner] =
             HalfCornerIsX(corner) ? radii.width : radii.height;
       }
@@ -10413,14 +10287,14 @@ bool nsDisplayBackdropFilters::CreateWebRenderCommands(
 
   LayoutDeviceRect bounds = LayoutDeviceRect::FromAppUnits(
       mBackdropRect, mFrame->PresContext()->AppUnitsPerDevPixel());
-  wr::LayoutRect roundedRect = wr::ToRoundedLayoutRect(bounds);
 
   wr::ComplexClipRegion region =
       wr::ToComplexClipRegion(clip.mBGClipArea, clip.mRadii,
                               mFrame->PresContext()->AppUnitsPerDevPixel());
 
-  aBuilder.PushBackdropFilter(roundedRect, region, wrFilters.filters,
-                              wrFilters.filter_datas, !BackfaceIsHidden());
+  aBuilder.PushBackdropFilter(wr::ToLayoutRect(bounds), region,
+                              wrFilters.filters, wrFilters.filter_datas,
+                              !BackfaceIsHidden());
 
   wr::StackingContextParams params;
   params.clip =

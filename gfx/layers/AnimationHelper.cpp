@@ -361,31 +361,6 @@ AnimationHelper::SampleResult AnimationHelper::SampleAnimationForEachNode(
     aAnimationValues.AppendElement(std::move(currValue));
   }
 
-#ifdef DEBUG
-  // Sanity check that all of animation data are the same.
-  const Maybe<TransformData>& lastData =
-      aPropertyAnimationGroups.LastElement().mAnimationData;
-  for (const PropertyAnimationGroup& group : aPropertyAnimationGroups) {
-    const Maybe<TransformData>& data = group.mAnimationData;
-    MOZ_ASSERT(data.isSome() == lastData.isSome(),
-               "The type of AnimationData should be the same");
-    if (data.isNothing()) {
-      continue;
-    }
-
-    MOZ_ASSERT(data.isSome());
-    const TransformData& transformData = data.ref();
-    const TransformData& lastTransformData = lastData.ref();
-    MOZ_ASSERT(transformData.origin() == lastTransformData.origin() &&
-                   transformData.transformOrigin() ==
-                       lastTransformData.transformOrigin() &&
-                   transformData.bounds() == lastTransformData.bounds() &&
-                   transformData.appUnitsPerDevPixel() ==
-                       lastTransformData.appUnitsPerDevPixel(),
-               "All of members of TransformData should be the same");
-  }
-#endif
-
   SampleResult rv =
       aAnimationValues.IsEmpty() ? SampleResult::None : SampleResult::Sampled;
   if (rv == SampleResult::Sampled) {
@@ -459,7 +434,19 @@ AnimationStorageData AnimationHelper::ExtractAnimations(
       // Got a different group, we should create a different array.
       currData = storageData.mAnimation.AppendElement();
       currData->mProperty = animation.property();
-      currData->mAnimationData = animation.data();
+      if (animation.transformData()) {
+        MOZ_ASSERT(!storageData.mTransformLikeMetaData.mTransform,
+                   "Only one entry has TransformData");
+        storageData.mTransformLikeMetaData.mTransform =
+            animation.transformData();
+      }
+
+      if (animation.motionPathData()) {
+        MOZ_ASSERT(!storageData.mTransformLikeMetaData.mMotionPath,
+                   "Only one entry has MotionPathData");
+        storageData.mTransformLikeMetaData.mMotionPath =
+            animation.motionPathData();
+      }
       prevID = animation.property();
 
       // Reset the debug pointer.
@@ -565,6 +552,17 @@ AnimationStorageData AnimationHelper::ExtractAnimations(
                 DisplayItemType::TYPE_BACKGROUND_COLOR)),
         "The property set of output should be the subset of transform-like "
         "properties, opacity, or background_color.");
+
+    if (seenProperties.IsSubsetOf(LayerAnimationInfo::GetCSSPropertiesFor(
+            DisplayItemType::TYPE_TRANSFORM))) {
+      MOZ_ASSERT(storageData.mTransformLikeMetaData.mTransform,
+                 "Should have TransformData");
+    }
+
+    if (seenProperties.HasProperty(eCSSProperty_offset_path)) {
+      MOZ_ASSERT(storageData.mTransformLikeMetaData.mMotionPath,
+                 "Should have MotionPathData");
+    }
   }
 #endif
 
@@ -631,16 +629,16 @@ bool AnimationHelper::SampleAnimations(CompositorAnimationStorage* aStorage,
       case eCSSProperty_offset_distance:
       case eCSSProperty_offset_rotate:
       case eCSSProperty_offset_anchor: {
-        const TransformData& transformData =
-            lastPropertyAnimationGroup.mAnimationData.ref();
-
         gfx::Matrix4x4 transform = ServoAnimationValueToMatrix4x4(
-            animationValues, transformData,
+            animationValues, animationStorageData.mTransformLikeMetaData,
             animationStorageData.mCachedMotionPath);
         gfx::Matrix4x4 frameTransform = transform;
         // If the parent has perspective transform, then the offset into
         // reference frame coordinates is already on this transform. If not,
         // then we need to ask for it to be added here.
+        MOZ_ASSERT(animationStorageData.mTransformLikeMetaData.mTransform);
+        const TransformData& transformData =
+            *animationStorageData.mTransformLikeMetaData.mTransform;
         if (!transformData.hasPerspectiveParent()) {
           nsLayoutUtils::PostTranslate(transform, transformData.origin(),
                                        transformData.appUnitsPerDevPixel(),
@@ -664,7 +662,10 @@ bool AnimationHelper::SampleAnimations(CompositorAnimationStorage* aStorage,
 
 gfx::Matrix4x4 AnimationHelper::ServoAnimationValueToMatrix4x4(
     const nsTArray<RefPtr<RawServoAnimationValue>>& aValues,
-    const TransformData& aTransformData, gfx::Path* aCachedMotionPath) {
+    const CompositorAnimationData& aAnimationData,
+    gfx::Path* aCachedMotionPath) {
+  using nsStyleTransformMatrix::TransformReferenceBox;
+
   // This is a bit silly just to avoid the transform list copy from the
   // animation transform list.
   auto noneTranslate = StyleTranslate::None();
@@ -722,19 +723,23 @@ gfx::Matrix4x4 AnimationHelper::ServoAnimationValueToMatrix4x4(
     }
   }
 
-  Maybe<MotionPathData> motion = MotionPathUtils::ResolveMotionPath(
-      path, distance, offsetRotate, anchor, aTransformData, aCachedMotionPath);
+  MOZ_ASSERT(aAnimationData.mTransform);
+  const TransformData& transformData = *aAnimationData.mTransform;
+  TransformReferenceBox refBox(nullptr, transformData.bounds());
+  Maybe<ResolvedMotionPathData> motion = MotionPathUtils::ResolveMotionPath(
+      path, distance, offsetRotate, anchor, aAnimationData.mMotionPath, refBox,
+      aCachedMotionPath);
 
   // We expect all our transform data to arrive in device pixels
-  gfx::Point3D transformOrigin = aTransformData.transformOrigin();
+  gfx::Point3D transformOrigin = transformData.transformOrigin();
   nsDisplayTransform::FrameTransformProperties props(
       translate ? *translate : noneTranslate, rotate ? *rotate : noneRotate,
       scale ? *scale : noneScale, transform ? *transform : noneTransform,
       motion, transformOrigin);
 
   return nsDisplayTransform::GetResultingTransformMatrix(
-      props, aTransformData.origin(), aTransformData.appUnitsPerDevPixel(), 0,
-      &aTransformData.bounds());
+      props, refBox, transformData.origin(),
+      transformData.appUnitsPerDevPixel(), 0);
 }
 
 }  // namespace layers

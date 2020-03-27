@@ -70,11 +70,12 @@ class nsComputedDOMStyle final : public nsDOMCSSDeclaration,
   NS_DECL_NSIDOMCSSSTYLEDECLARATION_HELPER
   nsresult GetPropertyValue(const nsCSSPropertyID aPropID,
                             nsAString& aValue) override;
-  nsresult SetPropertyValue(const nsCSSPropertyID aPropID,
-                            const nsACString& aValue,
-                            nsIPrincipal* aSubjectPrincipal) override;
+  void SetPropertyValue(const nsCSSPropertyID aPropID, const nsACString& aValue,
+                        nsIPrincipal* aSubjectPrincipal,
+                        mozilla::ErrorResult& aRv) override;
 
-  void IndexedGetter(uint32_t aIndex, bool& aFound, nsACString& aPropName) final;
+  void IndexedGetter(uint32_t aIndex, bool& aFound,
+                     nsACString& aPropName) final;
 
   enum StyleType {
     eDefaultOnly,  // Only includes UA and user sheets

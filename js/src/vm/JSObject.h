@@ -14,6 +14,7 @@
 #include "js/GCVector.h"
 #include "js/HeapAPI.h"
 #include "js/Wrapper.h"
+#include "vm/BytecodeUtil.h"
 #include "vm/Printer.h"
 #include "vm/Shape.h"
 #include "vm/StringType.h"
@@ -999,6 +1000,37 @@ MOZ_ALWAYS_INLINE JSObject* ToObjectFromStack(JSContext* cx, HandleValue vp) {
     return &vp.toObject();
   }
   return js::ToObjectSlow(cx, vp, true);
+}
+
+JSObject* ToObjectSlowForPropertyAccess(JSContext* cx, JS::HandleValue val,
+                                        int valIndex, HandleId key);
+JSObject* ToObjectSlowForPropertyAccess(JSContext* cx, JS::HandleValue val,
+                                        int valIndex, HandlePropertyName key);
+JSObject* ToObjectSlowForPropertyAccess(JSContext* cx, JS::HandleValue val,
+                                        int valIndex, HandleValue keyValue);
+
+MOZ_ALWAYS_INLINE JSObject* ToObjectFromStackForPropertyAccess(JSContext* cx,
+                                                               HandleValue vp,
+                                                               int vpIndex,
+                                                               HandleId key) {
+  if (vp.isObject()) {
+    return &vp.toObject();
+  }
+  return js::ToObjectSlowForPropertyAccess(cx, vp, vpIndex, key);
+}
+MOZ_ALWAYS_INLINE JSObject* ToObjectFromStackForPropertyAccess(
+    JSContext* cx, HandleValue vp, int vpIndex, HandlePropertyName key) {
+  if (vp.isObject()) {
+    return &vp.toObject();
+  }
+  return js::ToObjectSlowForPropertyAccess(cx, vp, vpIndex, key);
+}
+MOZ_ALWAYS_INLINE JSObject* ToObjectFromStackForPropertyAccess(
+    JSContext* cx, HandleValue vp, int vpIndex, HandleValue key) {
+  if (vp.isObject()) {
+    return &vp.toObject();
+  }
+  return js::ToObjectSlowForPropertyAccess(cx, vp, vpIndex, key);
 }
 
 template <XDRMode mode>

@@ -47,7 +47,7 @@ dnl Set the version number of the libs included with mozilla
 dnl ========================================================
 MOZPNG=10635
 NSPR_VERSION=4
-NSPR_MINVER=4.24
+NSPR_MINVER=4.25
 NSS_VERSION=3
 
 dnl Set the minimum version of toolkit libs used by mozilla
@@ -61,9 +61,8 @@ GTK2_VERSION=2.18.0
 GTK3_VERSION=3.4.0
 GDK_VERSION_MAX_ALLOWED=GDK_VERSION_3_4
 W32API_VERSION=3.14
-STARTUP_NOTIFICATION_VERSION=0.8
 DBUS_VERSION=0.60
-SQLITE_VERSION=3.30.1
+SQLITE_VERSION=3.31.1
 
 dnl Set various checks
 dnl ========================================================
@@ -316,7 +315,6 @@ if test "$GNU_CC"; then
     SSE_FLAGS="-msse"
     SSE2_FLAGS="-msse2"
     SSSE3_FLAGS="-mssse3"
-    # FIXME: Let us build with strict aliasing. bug 414641.
     CFLAGS="$CFLAGS -fno-strict-aliasing"
     DSO_CFLAGS=''
 
@@ -456,7 +454,6 @@ if test "$GNU_CC"; then
 fi
 
 if test "$GNU_CXX"; then
-    # FIXME: Let us build with strict aliasing. bug 414641.
     CXXFLAGS="$CXXFLAGS -fno-exceptions -fno-strict-aliasing"
 
     _DEFINES_CXXFLAGS="-DMOZILLA_CLIENT -include $_objdir/mozilla-config.h"
@@ -656,6 +653,7 @@ case "$target" in
 
         # Silence problematic clang warnings
         CXXFLAGS="$CXXFLAGS -Wno-incompatible-ms-struct"
+        LDFLAGS="$LDFLAGS -Wl,--no-insert-timestamp"
     else
         TARGET_COMPILER_ABI=msvc
         RANLIB='echo not_ranlib'
@@ -1508,7 +1506,7 @@ MOZ_ARG_WITH_BOOL(system-nss,
     _USE_SYSTEM_NSS=1 )
 
 if test -n "$_USE_SYSTEM_NSS"; then
-    AM_PATH_NSS(3.49.2, [MOZ_SYSTEM_NSS=1], [AC_MSG_ERROR([you don't have NSS installed or your version is too old])])
+    AM_PATH_NSS(3.50, [MOZ_SYSTEM_NSS=1], [AC_MSG_ERROR([you don't have NSS installed or your version is too old])])
 fi
 
 NSS_CFLAGS="$NSS_CFLAGS -I${DIST}/include/nss"
@@ -1758,40 +1756,6 @@ if test "$COMPILE_ENVIRONMENT"; then
 fi # COMPILE_ENVIRONMENT
 
 AC_SUBST(MOZ_FS_LAYOUT)
-
-dnl ========================================================
-dnl = startup-notification support module
-dnl ========================================================
-
-if test "$MOZ_ENABLE_GTK"
-then
-    MOZ_ENABLE_STARTUP_NOTIFICATION=
-
-    MOZ_ARG_ENABLE_BOOL(startup-notification,
-    [  --enable-startup-notification
-                          Enable startup-notification support (default: disabled) ],
-        MOZ_ENABLE_STARTUP_NOTIFICATION=force,
-        MOZ_ENABLE_STARTUP_NOTIFICATION=)
-    if test "$MOZ_ENABLE_STARTUP_NOTIFICATION"
-    then
-        PKG_CHECK_MODULES(MOZ_STARTUP_NOTIFICATION,
-                          libstartup-notification-1.0 >= $STARTUP_NOTIFICATION_VERSION,
-        [MOZ_ENABLE_STARTUP_NOTIFICATION=1], [
-            if test "$MOZ_ENABLE_STARTUP_NOTIFICATION" = "force"
-            then
-                AC_MSG_ERROR([* * * Could not find startup-notification >= $STARTUP_NOTIFICATION_VERSION])
-            fi
-            MOZ_ENABLE_STARTUP_NOTIFICATION=
-        ])
-    fi
-
-    if test "$MOZ_ENABLE_STARTUP_NOTIFICATION"; then
-        AC_DEFINE(MOZ_ENABLE_STARTUP_NOTIFICATION)
-    fi
-
-    TK_LIBS="$TK_LIBS $MOZ_STARTUP_NOTIFICATION_LIBS"
-fi
-AC_SUBST(MOZ_ENABLE_STARTUP_NOTIFICATION)
 
 AC_SUBST_LIST(TK_CFLAGS)
 AC_SUBST_LIST(TK_LIBS)
@@ -2912,15 +2876,6 @@ AC_SUBST(MOZ_CHILD_PROCESS_BUNDLENAME)
 # "Profile" field, which controls profile location.
 # - MOZ_APP_ID: When set, used for application.ini's "ID" field, and
 # crash reporter server url.
-# - MOZ_APP_ANDROID_VERSION_CODE: On Android, "android:versionCode" for
-# the main application is set to the value of this variable.  If not
-# set, it falls back to a Mozilla-specific value derived from the
-# build ID.
-# - MOZ_ANDROID_SHARED_ID: On Android, "android:sharedUserId" for all Android
-# packages produced.
-# - MOZ_ANDROID_GCM_SENDERID: On Android, the Android GCM Sender ID used.  GCM
-# sender IDs are not sensitive: see, http://stackoverflow.com/a/18216063.
-# - MOZ_MMA_GCM_SENDERID: This GCM Sender ID is used for MMA integration.
 # - MOZ_PROFILE_MIGRATOR: When set, enables profile migrator.
 
 # The following environment variables used to have an effect, but don't anymore:
@@ -2957,14 +2912,6 @@ if test -z "$ANDROID_PACKAGE_NAME" ; then
    fi
 fi
 
-# Mozilla released Firefox for Android {Release,Beta} and {Aurora,Nightly} to
-# the public with specific common shared IDs and we need to keep them
-# consistent forever.  The specific common values are set by per-channel
-# branding; all other channels use a generic sharedID, set below.
-if test -z "$MOZ_ANDROID_SHARED_ID" ; then
-   MOZ_ANDROID_SHARED_ID="${ANDROID_PACKAGE_NAME}.sharedID"
-fi
-
 # For extensions and langpacks, we require a max version that is compatible
 # across security releases. MOZ_APP_MAXVERSION is our method for doing that.
 # 24.0a1 and 24.0a2 aren't affected
@@ -2990,10 +2937,6 @@ AC_SUBST(MOZ_APP_BASENAME)
 AC_SUBST(MOZ_APP_VENDOR)
 AC_SUBST(MOZ_APP_PROFILE)
 AC_SUBST(MOZ_APP_ID)
-AC_SUBST(MOZ_APP_ANDROID_VERSION_CODE)
-AC_SUBST(MOZ_ANDROID_SHARED_ID)
-AC_SUBST(MOZ_ANDROID_GCM_SENDERID)
-AC_SUBST(MOZ_MMA_GCM_SENDERID)
 AC_SUBST(MAR_CHANNEL_ID)
 AC_SUBST(ACCEPTED_MAR_CHANNEL_IDS)
 AC_SUBST(MOZ_PROFILE_MIGRATOR)

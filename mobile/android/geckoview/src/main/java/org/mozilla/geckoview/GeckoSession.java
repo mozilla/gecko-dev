@@ -6,10 +6,14 @@
 
 package org.mozilla.geckoview;
 
+import java.io.ByteArrayInputStream;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.AbstractSequentialList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -419,6 +423,7 @@ public class GeckoSession implements Parcelable {
                 "GeckoView:ContentCrash",
                 "GeckoView:ContentKill",
                 "GeckoView:ContextMenu",
+                "GeckoView:DOMMetaViewportFit",
                 "GeckoView:DOMTitleChanged",
                 "GeckoView:DOMWindowClose",
                 "GeckoView:ExternalResponse",
@@ -455,6 +460,9 @@ public class GeckoSession implements Parcelable {
                                            message.getInt("screenY"),
                                            elem);
 
+                } else if ("GeckoView:DOMMetaViewportFit".equals(event)) {
+                    delegate.onMetaViewportFitChange(GeckoSession.this,
+                                                     message.getString("viewportfit"));
                 } else if ("GeckoView:DOMTitleChanged".equals(event)) {
                     delegate.onTitleChange(GeckoSession.this,
                                            message.getString("title"));
@@ -551,7 +559,8 @@ public class GeckoSession implements Parcelable {
 
                         delegate.onLoadError(GeckoSession.this, request.uri,
                                              new WebRequestError(WebRequestError.ERROR_MALFORMED_URI,
-                                                                 WebRequestError.ERROR_CATEGORY_URI));
+                                                                 WebRequestError.ERROR_CATEGORY_URI,
+                                                                 null));
 
                         return;
                     }
@@ -580,7 +589,7 @@ public class GeckoSession implements Parcelable {
                     final int errorModule = message.getInt("errorModule");
                     final int errorClass = message.getInt("errorClass");
 
-                    final WebRequestError err = WebRequestError.fromGeckoError(errorCode, errorModule, errorClass);
+                    final WebRequestError err = WebRequestError.fromGeckoError(errorCode, errorModule, errorClass, null);
 
                     final GeckoResult<String> result = delegate.onLoadError(GeckoSession.this, uri, err);
                     if (result == null) {
@@ -2814,22 +2823,12 @@ public class GeckoSession implements Parcelable {
              * Contains the host associated with the certificate.
              */
             public final @NonNull String host;
+
             /**
-             * Contains the human-readable name of the certificate subject.
+             * The server certificate in use, if any.
              */
-            public final @NonNull String organization;
-            /**
-             * Contains the full name of the certificate subject, including location.
-             */
-            public final @NonNull String subjectName;
-            /**
-             * Contains the common name of the issuing authority.
-             */
-            public final @NonNull String issuerCommonName;
-            /**
-             * Contains the full/proper name of the issuing authority.
-             */
-            public final @NonNull String issuerOrganization;
+            public final @Nullable X509Certificate certificate;
+
             /**
              * Indicates the security level of the site; possible values are SECURITY_MODE_UNKNOWN,
              * SECURITY_MODE_IDENTIFIED, and SECURITY_MODE_VERIFIED. SECURITY_MODE_IDENTIFIED
@@ -2859,10 +2858,20 @@ public class GeckoSession implements Parcelable {
                 isException = identityData.getBoolean("securityException");
                 origin = identityData.getString("origin");
                 host = identityData.getString("host");
-                organization = identityData.getString("organization");
-                subjectName = identityData.getString("subjectName");
-                issuerCommonName = identityData.getString("issuerCommonName");
-                issuerOrganization = identityData.getString("issuerOrganization");
+
+                X509Certificate decodedCert = null;
+                try {
+                    final CertificateFactory factory = CertificateFactory.getInstance("X.509");
+                    final String certString = identityData.getString("certificate");
+                    if (certString != null) {
+                        final byte[] certBytes = Base64.decode(certString, Base64.NO_WRAP);
+                        decodedCert = (X509Certificate) factory.generateCertificate(new ByteArrayInputStream(certBytes));
+                    }
+                } catch (CertificateException e) {
+                    Log.e(LOGTAG, "Failed to decode certificate", e);
+                }
+
+                certificate = decodedCert;
             }
 
             /**
@@ -2876,10 +2885,7 @@ public class GeckoSession implements Parcelable {
                 isException = false;
                 origin = "";
                 host = "";
-                organization = "";
-                subjectName = "";
-                issuerCommonName = "";
-                issuerOrganization = "";
+                certificate = null;
             }
         }
 
@@ -3011,6 +3017,16 @@ public class GeckoSession implements Parcelable {
          */
         @UiThread
         default void onFullScreen(@NonNull GeckoSession session, boolean fullScreen) {}
+
+        /**
+         * A viewport-fit was discovered in the content or updated after the content.
+         *
+         * @param session The GeckoSession that initiated the callback.
+         * @param viewportFit The value of viewport-fit of meta element in content.
+         * @see <a href="https://drafts.csswg.org/css-round-display/#viewport-fit-descriptor">4.1. The viewport-fit descriptor</a>
+         */
+        @UiThread
+        default void onMetaViewportFitChange(@NonNull GeckoSession session, @NonNull String viewportFit) {}
 
         /**
          * Element details for onContextMenu callbacks.

@@ -341,9 +341,7 @@ nsresult nsXULPrototypeCache::HasData(nsIURI* uri, bool* exists) {
     *exists = sc->HasEntry(spec.get());
   } else {
     *exists = false;
-    return NS_OK;
   }
-  *exists = NS_SUCCEEDED(rv);
   return NS_OK;
 }
 
@@ -377,7 +375,7 @@ nsresult nsXULPrototypeCache::BeginCaching(nsIURI* aURI) {
   rv = aURI->GetHost(package);
   if (NS_FAILED(rv)) return rv;
   nsAutoCString locale;
-  LocaleService::GetInstance()->GetAppLocaleAsLangTag(locale);
+  LocaleService::GetInstance()->GetAppLocaleAsBCP47(locale);
 
   nsAutoCString fileChromePath, fileLocale;
 

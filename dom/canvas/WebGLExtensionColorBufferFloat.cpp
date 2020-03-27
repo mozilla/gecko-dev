@@ -42,8 +42,6 @@ void WebGLExtensionColorBufferFloat::OnSetExplicit() {
   SetRenderable(webgl::FormatRenderableState::Explicit());
 }
 
-WebGLExtensionColorBufferFloat::~WebGLExtensionColorBufferFloat() {}
-
 bool WebGLExtensionColorBufferFloat::IsSupported(const WebGLContext* webgl) {
   if (webgl->IsWebGL2()) return false;
 
@@ -51,8 +49,5 @@ bool WebGLExtensionColorBufferFloat::IsSupported(const WebGLContext* webgl) {
   return gl->IsSupported(gl::GLFeature::renderbuffer_color_float) &&
          gl->IsSupported(gl::GLFeature::frag_color_float);
 }
-
-IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionColorBufferFloat,
-                          WEBGL_color_buffer_float)
 
 }  // namespace mozilla

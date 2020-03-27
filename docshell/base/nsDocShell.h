@@ -7,22 +7,35 @@
 #ifndef nsDocShell_h__
 #define nsDocShell_h__
 
+#include <utility>
+
+#include "GeckoProfiler.h"
+#include "Units.h"
+#include "jsapi.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/HalScreenConfiguration.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/Move.h"
+#include "mozilla/ObservedDocShell.h"
+#include "mozilla/ScrollbarPreferences.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/TimelineConsumers.h"
+#include "mozilla/TimelineMarker.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"
-
 #include "mozilla/dom/BrowsingContext.h"
-#include "mozilla/dom/ProfileTimelineMarkerBinding.h"
-#include "mozilla/gfx/Matrix.h"
 #include "mozilla/dom/ChildSHistory.h"
+#include "mozilla/dom/ProfileTimelineMarkerBinding.h"
 #include "mozilla/dom/WindowProxyHolder.h"
-
+#include "mozilla/gfx/Matrix.h"
+#include "nsAutoPtr.h"
+#include "nsCOMPtr.h"
+#include "nsCRT.h"
+#include "nsCharsetSource.h"
+#include "nsContentPolicyUtils.h"
+#include "nsContentUtils.h"
+#include "nsDocLoader.h"
 #include "nsIAuthPromptProvider.h"
 #include "nsIBaseWindow.h"
 #include "nsIDeprecationWarner.h"
@@ -36,28 +49,11 @@
 #include "nsIWebNavigation.h"
 #include "nsIWebPageDescriptor.h"
 #include "nsIWebProgressListener.h"
-
-#include "nsAutoPtr.h"
-#include "nsCharsetSource.h"
-#include "nsCOMPtr.h"
-#include "nsContentPolicyUtils.h"
-#include "nsContentUtils.h"
-#include "nsCRT.h"
-#include "nsDocLoader.h"
 #include "nsPoint.h"  // mCurrent/mDefaultScrollbarPreferences
 #include "nsRect.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
-
-#include "GeckoProfiler.h"
-#include "jsapi.h"
 #include "prtime.h"
-#include "Units.h"
-
-#include "mozilla/ObservedDocShell.h"
-#include "mozilla/ScrollbarPreferences.h"
-#include "mozilla/TimelineConsumers.h"
-#include "mozilla/TimelineMarker.h"
 
 // Interfaces Needed
 
@@ -490,19 +486,27 @@ class nsDocShell final : public nsDocLoader,
   nsresult CreateContentViewerForActor(
       mozilla::dom::WindowGlobalChild* aWindowActor);
 
-  static bool CreateChannelForLoadState(
+  // Creates a real network channel (not a DocumentChannel) using the specified
+  // parameters.
+  // Used by nsDocShell when not using DocumentChannel, by DocumentLoadListener
+  // (parent-process DocumentChannel), and by DocumentChannelChild/ContentChild
+  // to transfer the resulting channel into the final process.
+  static nsresult CreateRealChannelForDocument(
+      nsIChannel** aChannel, nsIURI* aURI, nsILoadInfo* aLoadInfo,
+      nsIInterfaceRequestor* aCallbacks, nsDocShell* aDocShell,
+      nsLoadFlags aLoadFlags, const nsAString& aSrcdoc, nsIURI* aBaseURI);
+
+  // Creates a real (not DocumentChannel) channel, and configures it using the
+  // supplied nsDocShellLoadState.
+  // Configuration options here are ones that should be applied to only the
+  // real channel, especially ones that need to QI to channel subclasses.
+  static bool CreateAndConfigureRealChannelForLoadState(
       nsDocShellLoadState* aLoadState, mozilla::net::LoadInfo* aLoadInfo,
       nsIInterfaceRequestor* aCallbacks, nsDocShell* aDocShell,
       const nsString* aInitiatorType, nsLoadFlags aLoadFlags,
       uint32_t aLoadType, uint32_t aCacheKey, bool aIsActive,
       bool aIsTopLevelDoc, bool aHasNonEmptySandboxingFlags, nsresult& rv,
       nsIChannel** aChannel);
-
-  static nsresult ConfigureChannel(nsIChannel* aChannel,
-                                   nsDocShellLoadState* aLoadState,
-                                   const nsString* aInitiatorType,
-                                   uint32_t aLoadType, uint32_t aCacheKey,
-                                   bool aHasNonEmptySandboxingFlags);
 
   // Notify consumers of a search being loaded through the observer service:
   static void MaybeNotifyKeywordSearchLoading(const nsString& aProvider,
@@ -557,8 +561,8 @@ class nsDocShell final : public nsDocLoader,
 
   // Security check to prevent frameset spoofing. See comments at
   // implementation site.
-  static bool ValidateOrigin(nsIDocShellTreeItem* aOriginTreeItem,
-                             nsIDocShellTreeItem* aTargetTreeItem);
+  static bool ValidateOrigin(mozilla::dom::BrowsingContext* aOrigin,
+                             mozilla::dom::BrowsingContext* aTarget);
 
   static inline uint32_t PRTimeToSeconds(PRTime aTimeUsec) {
     return uint32_t(aTimeUsec / PR_USEC_PER_SEC);
@@ -1155,7 +1159,7 @@ class nsDocShell final : public nsDocLoader,
   nsRevocableEventPtr<RestorePresentationEvent> mRestorePresentationEvent;
 
   // Editor data, if this document is designMode or contentEditable.
-  nsAutoPtr<nsDocShellEditorData> mEditorData;
+  mozilla::UniquePtr<nsDocShellEditorData> mEditorData;
 
   // Secure browser UI object
   nsCOMPtr<nsISecureBrowserUI> mSecurityUI;

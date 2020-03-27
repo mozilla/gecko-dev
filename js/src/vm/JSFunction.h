@@ -310,8 +310,6 @@ class FunctionFlags {
     setFlags(SELF_HOSTED);
   }
 
-  void setArrow() { setKind(Arrow); }
-
   void setResolvedLength() { setFlags(RESOLVED_LENGTH); }
   void setResolvedName() { setFlags(RESOLVED_NAME); }
 
@@ -323,7 +321,6 @@ class FunctionFlags {
   void clearInferredName() { clearFlags(HAS_INFERRED_NAME); }
 
   void setGuessedAtom() { setFlags(HAS_GUESSED_ATOM); }
-  void clearGuessedAtom() { clearFlags(HAS_GUESSED_ATOM); }
 
   void setPrefixedBoundFunctionName() {
     setFlags(HAS_BOUND_FUNCTION_NAME_PREFIX);
@@ -402,7 +399,7 @@ class JSFunction : public js::NativeObject {
   //      in |var o = {[Symbol.iterator]: function(){}}|. When it happens at
   //      compile-time, the HAS_INFERRED_NAME is set directly in the
   //      bytecode emitter, when it happens at runtime, the flag is set when
-  //      evaluating the JSOP_SETFUNNAME bytecode.
+  //      evaluating the JSOp::SetFunName bytecode.
   //   d. HAS_GUESSED_ATOM and HAS_INFERRED_NAME cannot both be set.
   //   e. |atom_| can be null if neither an explicit, nor inferred, nor a
   //      guessed name was set.
@@ -541,12 +538,25 @@ class JSFunction : public js::NativeObject {
   bool isBuiltinFunctionConstructor();
   bool needsPrototypeProperty();
 
+  // Returns true if this function must have a non-configurable .prototype data
+  // property. This is used to ensure looking up .prototype elsewhere will have
+  // no side-effects.
+  bool hasNonConfigurablePrototypeDataProperty();
+
+  // Returns true if |new Fun()| should not allocate a new object caller-side
+  // but pass the uninitialized-lexical MagicValue and rely on the callee to
+  // construct its own |this| object.
+  bool constructorNeedsUninitializedThis() const {
+    MOZ_ASSERT(isConstructor());
+    MOZ_ASSERT(isInterpreted());
+    return isBoundFunction() || isDerivedClassConstructor();
+  }
+
   /* Returns the strictness of this function, which must be interpreted. */
   bool strict() const { return baseScript()->strict(); }
 
   void setFlags(uint16_t flags) { flags_ = FunctionFlags(flags); }
   void setFlags(FunctionFlags flags) { flags_ = flags; }
-  void setKind(FunctionFlags::FunctionKind kind) { flags_.setKind(kind); }
 
   // Make the function constructible.
   void setIsConstructor() { flags_.setIsConstructor(); }
@@ -561,7 +571,6 @@ class JSFunction : public js::NativeObject {
   void setIsSelfHostedBuiltin() { flags_.setIsSelfHostedBuiltin(); }
   void setIsIntrinsic() { flags_.setIsIntrinsic(); }
 
-  void setArrow() { flags_.setArrow(); }
   void setResolvedLength() { flags_.setResolvedLength(); }
   void setResolvedName() { flags_.setResolvedName(); }
 
@@ -628,13 +637,6 @@ class JSFunction : public js::NativeObject {
     setAtom(atom);
     flags_.setGuessedAtom();
   }
-  void clearGuessedAtom() {
-    MOZ_ASSERT(hasGuessedAtom());
-    MOZ_ASSERT(!isBoundFunction());
-    MOZ_ASSERT(atom_);
-    setAtom(nullptr);
-    flags_.clearGuessedAtom();
-  }
 
   void setPrefixedBoundFunctionName(JSAtom* atom) {
     MOZ_ASSERT(!hasBoundFunctionNamePrefix());
@@ -664,8 +666,6 @@ class JSFunction : public js::NativeObject {
     MOZ_ASSERT(isInterpreted());
     reinterpret_cast<js::GCPtrObject*>(&u.scripted.env_)->init(obj);
   }
-
-  void unsetEnvironment() { setEnvironment(nullptr); }
 
  public:
   static constexpr size_t offsetOfNargs() {
@@ -922,7 +922,7 @@ class JSFunction : public js::NativeObject {
     return u.native.extra.wasmJitEntry_;
   }
 
-  bool isDerivedClassConstructor();
+  bool isDerivedClassConstructor() const;
 
   static unsigned offsetOfNative() {
     return offsetof(JSFunction, u.native.func_);

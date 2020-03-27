@@ -26,7 +26,7 @@
 namespace mozilla {
 namespace psm {
 
-enum class EVStatus {
+enum class EVStatus : uint8_t {
   NotEV = 0,
   EV = 1,
 };
@@ -73,16 +73,19 @@ class TransportSecurityInfo : public nsITransportSecurityInfo,
 
   void SetStatusErrorBits(nsNSSCertificate* cert, uint32_t collected_errors);
 
-  nsresult SetFailedCertChain(UniqueCERTCertList certList);
+  nsresult SetFailedCertChain(nsTArray<nsTArray<uint8_t>>&& certList);
 
   void SetServerCert(nsNSSCertificate* aServerCert, EVStatus aEVStatus);
 
-  nsresult SetSucceededCertChain(mozilla::UniqueCERTCertList certList);
+  nsresult SetSucceededCertChain(nsTArray<nsTArray<uint8_t>>&& certList);
 
   bool HasServerCert() { return mServerCert != nullptr; }
 
-  void SetCertificateTransparencyInfo(
+  static uint16_t ConvertCertificateTransparencyInfoToStatus(
       const mozilla::psm::CertificateTransparencyInfo& info);
+
+  static nsTArray<nsTArray<uint8_t>> CreateCertBytesArray(
+      const UniqueCERTCertList& aCertChain);
 
   // Use errorCode == 0 to indicate success;
   virtual void SetCertVerificationResult(PRErrorCode errorCode){};

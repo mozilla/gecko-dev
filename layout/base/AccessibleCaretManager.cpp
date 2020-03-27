@@ -23,6 +23,7 @@
 #include "nsCaret.h"
 #include "nsContainerFrame.h"
 #include "nsContentUtils.h"
+#include "nsDebug.h"
 #include "nsFocusManager.h"
 #include "nsFrame.h"
 #include "nsFrameSelection.h"
@@ -247,7 +248,8 @@ void AccessibleCaretManager::UpdateCaretsForCursorMode(
 
   switch (result) {
     case PositionChangedResult::NotChanged:
-    case PositionChangedResult::Changed:
+    case PositionChangedResult::Position:
+    case PositionChangedResult::Zoom:
       if (!aHints.contains(UpdateCaretsHint::RespectOldAppearance)) {
         if (HasNonEmptyTextContent(GetEditingHostForFrame(frame))) {
           mFirstCaret->SetAppearance(Appearance::Normal);
@@ -282,7 +284,7 @@ void AccessibleCaretManager::UpdateCaretsForCursorMode(
 
   mSecondCaret->SetAppearance(Appearance::None);
 
-  mIsCaretPositionChanged = (result == PositionChangedResult::Changed);
+  mIsCaretPositionChanged = (result == PositionChangedResult::Position);
 
   if (!aHints.contains(UpdateCaretsHint::DispatchNoEvent) && !mActiveCaret) {
     DispatchCaretStateChangedEvent(CaretChangedReason::Updateposition);
@@ -313,7 +315,8 @@ void AccessibleCaretManager::UpdateCaretsForSelectionMode(
 
     switch (result) {
       case PositionChangedResult::NotChanged:
-      case PositionChangedResult::Changed:
+      case PositionChangedResult::Position:
+      case PositionChangedResult::Zoom:
         if (!aHints.contains(UpdateCaretsHint::RespectOldAppearance)) {
           aCaret->SetAppearance(Appearance::Normal);
         }
@@ -332,8 +335,8 @@ void AccessibleCaretManager::UpdateCaretsForSelectionMode(
       updateSingleCaret(mSecondCaret.get(), endFrame, endOffset);
 
   mIsCaretPositionChanged =
-      firstCaretResult == PositionChangedResult::Changed ||
-      secondCaretResult == PositionChangedResult::Changed;
+      firstCaretResult == PositionChangedResult::Position ||
+      secondCaretResult == PositionChangedResult::Position;
 
   if (mIsCaretPositionChanged) {
     // Flush layout to make the carets intersection correct.
@@ -853,6 +856,13 @@ AccessibleCaretManager::CaretMode AccessibleCaretManager::GetCaretMode() const {
     return CaretMode::None;
   }
 
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
+  MOZ_ASSERT(fm);
+  if (fm->GetFocusedWindow() != mPresShell->GetDocument()->GetWindow()) {
+    // Hide carets if the window is not focused.
+    return CaretMode::None;
+  }
+
   if (selection->IsCollapsed()) {
     return CaretMode::Cursor;
   }
@@ -1121,8 +1131,14 @@ bool AccessibleCaretManager::RestrictCaretDraggingOffsets(
 
   // Compare the active caret's new position (aOffsets) to the inactive caret's
   // position.
-  int32_t cmpToInactiveCaretPos = nsContentUtils::ComparePoints_Deprecated(
+  const Maybe<int32_t> cmpToInactiveCaretPos = nsContentUtils::ComparePoints(
       aOffsets.content, aOffsets.StartOffset(), content, contentOffset);
+  if (NS_WARN_IF(!cmpToInactiveCaretPos)) {
+    // Potentially handle this properly when Selection across Shadow DOM
+    // boundary is implemented
+    // (https://bugzilla.mozilla.org/show_bug.cgi?id=1607497).
+    return false;
+  }
 
   // Move one character (in the direction of dir) from the inactive caret's
   // position. This is the limit for the active caret's new position.
@@ -1135,9 +1151,15 @@ bool AccessibleCaretManager::RestrictCaretDraggingOffsets(
   }
 
   // Compare the active caret's new position (aOffsets) to the limit.
-  int32_t cmpToLimit = nsContentUtils::ComparePoints_Deprecated(
-      aOffsets.content, aOffsets.StartOffset(), limit.mResultContent,
-      limit.mContentOffset);
+  const Maybe<int32_t> cmpToLimit =
+      nsContentUtils::ComparePoints(aOffsets.content, aOffsets.StartOffset(),
+                                    limit.mResultContent, limit.mContentOffset);
+  if (NS_WARN_IF(!cmpToLimit)) {
+    // Potentially handle this properly when Selection across Shadow DOM
+    // boundary is implemented
+    // (https://bugzilla.mozilla.org/show_bug.cgi?id=1607497).
+    return false;
+  }
 
   auto SetOffsetsToLimit = [&aOffsets, &limit]() {
     aOffsets.content = limit.mResultContent;
@@ -1147,15 +1169,15 @@ bool AccessibleCaretManager::RestrictCaretDraggingOffsets(
 
   if (!StaticPrefs::
           layout_accessiblecaret_allow_dragging_across_other_caret()) {
-    if ((mActiveCaret == mFirstCaret.get() && cmpToLimit == 1) ||
-        (mActiveCaret == mSecondCaret.get() && cmpToLimit == -1)) {
+    if ((mActiveCaret == mFirstCaret.get() && *cmpToLimit == 1) ||
+        (mActiveCaret == mSecondCaret.get() && *cmpToLimit == -1)) {
       // The active caret's position is past the limit, which we don't allow
       // here. So set it to the limit, resulting in one character being
       // selected.
       SetOffsetsToLimit();
     }
   } else {
-    switch (cmpToInactiveCaretPos) {
+    switch (*cmpToInactiveCaretPos) {
       case 0:
         // The active caret's position is the same as the position of the
         // inactive caret. So set it to the limit to prevent the selection from
@@ -1391,7 +1413,7 @@ void AccessibleCaretManager::DispatchCaretStateChangedEvent(
   const nsRange* range = sel->GetAnchorFocusRange();
   nsINode* commonAncestorNode = nullptr;
   if (range) {
-    commonAncestorNode = range->GetCommonAncestor();
+    commonAncestorNode = range->GetClosestCommonInclusiveAncestor();
   }
 
   if (!commonAncestorNode) {

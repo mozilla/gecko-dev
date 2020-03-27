@@ -59,8 +59,14 @@ EXPORTS.mozilla.dom += [
     'ImageData.h',
     'ImageUtils.h',
     'OffscreenCanvas.h',
+    'ProducerConsumerQueue.h',
     'TextMetrics.h',
-    'WebGLVertexArrayObject.h',
+    'WebGLChild.h',
+    'WebGLCommandQueue.h',
+    'WebGLCrossProcessCommandQueue.h',
+    'WebGLIpdl.h',
+    'WebGLParent.h',
+    'WebGLTypes.h',
 ]
 
 # Canvas 2D and common sources
@@ -82,24 +88,24 @@ SOURCES += [
 # WebGL Sources
 UNIFIED_SOURCES += [
     'CacheInvalidator.cpp',
+    'ClientWebGLContext.cpp',
+    'ClientWebGLExtensions.cpp',
+    'HostWebGLContext.cpp',
+    'ProducerConsumerQueue.cpp',
     'TexUnpackBlob.cpp',
-    'WebGL1Context.cpp',
     'WebGL2Context.cpp',
     'WebGL2ContextBuffers.cpp',
     'WebGL2ContextFramebuffers.cpp',
     'WebGL2ContextMRTs.cpp',
-    'WebGL2ContextPrograms.cpp',
     'WebGL2ContextQueries.cpp',
     'WebGL2ContextRenderbuffers.cpp',
     'WebGL2ContextSamplers.cpp',
     'WebGL2ContextState.cpp',
     'WebGL2ContextSync.cpp',
-    'WebGL2ContextTextures.cpp',
     'WebGL2ContextTransformFeedback.cpp',
     'WebGL2ContextUniforms.cpp',
-    'WebGL2ContextVAOs.cpp',
-    'WebGLActiveInfo.cpp',
     'WebGLBuffer.cpp',
+    'WebGLChild.cpp',
     'WebGLContext.cpp',
     'WebGLContextBuffers.cpp',
     'WebGLContextDraw.cpp',
@@ -113,7 +119,7 @@ UNIFIED_SOURCES += [
     'WebGLContextValidate.cpp',
     'WebGLContextVertexArray.cpp',
     'WebGLContextVertices.cpp',
-    'WebGLExtensionBlendMinMax.cpp',
+    'WebGLCrossProcessCommandQueue.cpp',
     'WebGLExtensionColorBufferFloat.cpp',
     'WebGLExtensionColorBufferHalfFloat.cpp',
     'WebGLExtensionCompressedTextureASTC.cpp',
@@ -124,54 +130,47 @@ UNIFIED_SOURCES += [
     'WebGLExtensionCompressedTextureRGTC.cpp',
     'WebGLExtensionCompressedTextureS3TC.cpp',
     'WebGLExtensionCompressedTextureS3TC_SRGB.cpp',
-    'WebGLExtensionDebugRendererInfo.cpp',
-    'WebGLExtensionDebugShaders.cpp',
     'WebGLExtensionDepthTexture.cpp',
     'WebGLExtensionDisjointTimerQuery.cpp',
     'WebGLExtensionDrawBuffers.cpp',
-    'WebGLExtensionElementIndexUint.cpp',
     'WebGLExtensionEXTColorBufferFloat.cpp',
     'WebGLExtensionFragDepth.cpp',
     'WebGLExtensionInstancedArrays.cpp',
-    'WebGLExtensionLoseContext.cpp',
-    'WebGLExtensionMOZDebug.cpp',
     'WebGLExtensions.cpp',
     'WebGLExtensionShaderTextureLod.cpp',
     'WebGLExtensionSRGB.cpp',
-    'WebGLExtensionStandardDerivatives.cpp',
-    'WebGLExtensionTextureFilterAnisotropic.cpp',
     'WebGLExtensionTextureFloat.cpp',
     'WebGLExtensionTextureFloatLinear.cpp',
     'WebGLExtensionTextureHalfFloat.cpp',
     'WebGLExtensionTextureHalfFloatLinear.cpp',
-    'WebGLExtensionVertexArray.cpp',
     'WebGLFormats.cpp',
     'WebGLFramebuffer.cpp',
     'WebGLMemoryTracker.cpp',
-    'WebGLObjectModel.cpp',
+    'WebGLParent.cpp',
     'WebGLProgram.cpp',
     'WebGLQuery.cpp',
     'WebGLRenderbuffer.cpp',
     'WebGLSampler.cpp',
     'WebGLShader.cpp',
-    'WebGLShaderPrecisionFormat.cpp',
     'WebGLShaderValidator.cpp',
     'WebGLSync.cpp',
     'WebGLTexelConversions.cpp',
     'WebGLTexture.cpp',
     'WebGLTextureUpload.cpp',
     'WebGLTransformFeedback.cpp',
-    'WebGLUniformLocation.cpp',
     'WebGLValidateStrings.cpp',
     'WebGLVertexArray.cpp',
     'WebGLVertexArrayFake.cpp',
     'WebGLVertexArrayGL.cpp',
-    'WebGLVertexArrayObject.cpp',
     'WebGLVertexAttribData.cpp',
 ]
 
 SOURCES += [
     'MurmurHash3.cpp',
+]
+
+IPDL_SOURCES += [
+    'PWebGL.ipdl',
 ]
 
 # Suppress warnings from third-party code.
@@ -214,3 +213,6 @@ if CONFIG['CC_TYPE'] in ('clang', 'gcc'):
 
 if CONFIG['CC_TYPE'] in ('clang', 'clang-cl'):
     CXXFLAGS += ['-Werror=implicit-int-conversion']
+
+if CONFIG['CC_TYPE'] == 'gcc':
+    CXXFLAGS += ['-Wno-error=unused-result'] # GCC doesn't ignore (void)MustUse();

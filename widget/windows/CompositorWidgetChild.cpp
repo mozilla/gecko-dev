@@ -6,6 +6,7 @@
 #include "CompositorWidgetChild.h"
 #include "mozilla/Unused.h"
 #include "mozilla/widget/CompositorWidgetVsyncObserver.h"
+#include "mozilla/widget/PlatformWidgetTypes.h"
 #include "nsBaseWidget.h"
 #include "VsyncDispatcher.h"
 #include "gfxPlatform.h"
@@ -15,16 +16,23 @@ namespace widget {
 
 CompositorWidgetChild::CompositorWidgetChild(
     RefPtr<CompositorVsyncDispatcher> aVsyncDispatcher,
-    RefPtr<CompositorWidgetVsyncObserver> aVsyncObserver)
+    RefPtr<CompositorWidgetVsyncObserver> aVsyncObserver,
+    const CompositorWidgetInitData& aInitData)
     : mVsyncDispatcher(aVsyncDispatcher),
       mVsyncObserver(aVsyncObserver),
       mCompositorWnd(nullptr),
-      mParentWnd(nullptr) {
+      mWnd(reinterpret_cast<HWND>(
+          aInitData.get_WinCompositorWidgetInitData().hWnd())),
+      mTransparencyMode(
+          aInitData.get_WinCompositorWidgetInitData().transparencyMode()) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!gfxPlatform::IsHeadless());
+  MOZ_ASSERT(mWnd && ::IsWindow(mWnd));
 }
 
 CompositorWidgetChild::~CompositorWidgetChild() {}
+
+bool CompositorWidgetChild::Initialize() { return true; }
 
 void CompositorWidgetChild::EnterPresentLock() {
   Unused << SendEnterPresentLock();
@@ -36,21 +44,18 @@ void CompositorWidgetChild::LeavePresentLock() {
 
 void CompositorWidgetChild::OnDestroyWindow() {}
 
+bool CompositorWidgetChild::OnWindowResize(const LayoutDeviceIntSize& aSize) {
+  return true;
+}
+
+void CompositorWidgetChild::OnWindowModeChange(nsSizeMode aSizeMode) {}
+
 void CompositorWidgetChild::UpdateTransparency(nsTransparencyMode aMode) {
   Unused << SendUpdateTransparency(aMode);
 }
 
 void CompositorWidgetChild::ClearTransparentWindow() {
   Unused << SendClearTransparentWindow();
-}
-
-HDC CompositorWidgetChild::GetTransparentDC() const {
-  // Not supported in out-of-process mode.
-  return nullptr;
-}
-
-void CompositorWidgetChild::SetParentWnd(const HWND aParentWnd) {
-  mParentWnd = reinterpret_cast<HWND>(aParentWnd);
 }
 
 mozilla::ipc::IPCResult CompositorWidgetChild::RecvObserveVsync() {
@@ -66,12 +71,10 @@ mozilla::ipc::IPCResult CompositorWidgetChild::RecvUnobserveVsync() {
 mozilla::ipc::IPCResult CompositorWidgetChild::RecvUpdateCompositorWnd(
     const WindowsHandle& aCompositorWnd, const WindowsHandle& aParentWnd,
     UpdateCompositorWndResolver&& aResolve) {
-  MOZ_ASSERT(mParentWnd);
-
   HWND parentWnd = reinterpret_cast<HWND>(aParentWnd);
-  if (mParentWnd == parentWnd) {
+  if (mWnd == parentWnd) {
     mCompositorWnd = reinterpret_cast<HWND>(aCompositorWnd);
-    ::SetParent(mCompositorWnd, mParentWnd);
+    ::SetParent(mCompositorWnd, mWnd);
     aResolve(true);
   } else {
     aResolve(false);

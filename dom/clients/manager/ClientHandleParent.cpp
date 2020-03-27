@@ -31,7 +31,9 @@ void ClientHandleParent::ActorDestroy(ActorDestroyReason aReason) {
   }
 
   if (mSourcePromise) {
-    mSourcePromise->Reject(NS_ERROR_FAILURE, __func__);
+    CopyableErrorResult rv;
+    rv.ThrowAbortError("Client aborted");
+    mSourcePromise->Reject(rv, __func__);
   }
 }
 
@@ -49,7 +51,7 @@ bool ClientHandleParent::DeallocPClientHandleOpParent(
 IPCResult ClientHandleParent::RecvPClientHandleOpConstructor(
     PClientHandleOpParent* aActor, const ClientOpConstructorArgs& aArgs) {
   auto actor = static_cast<ClientHandleOpParent*>(aActor);
-  actor->Init(aArgs);
+  actor->Init(std::move(const_cast<ClientOpConstructorArgs&>(aArgs)));
   return IPC_OK();
 }
 
@@ -88,7 +90,9 @@ void ClientHandleParent::FoundSource(ClientSourceParent* aSource) {
   if (!ClientMatchPrincipalInfo(aSource->Info().PrincipalInfo(),
                                 mPrincipalInfo)) {
     if (mSourcePromise) {
-      mSourcePromise->Reject(NS_ERROR_FAILURE, __func__);
+      CopyableErrorResult rv;
+      rv.ThrowAbortError("Client aborted");
+      mSourcePromise->Reject(rv, __func__);
     }
     Unused << Send__delete__(this);
     return;

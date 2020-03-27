@@ -115,8 +115,8 @@ set_config('PGO_JARLOG_PATH', depends_if('--with-pgo-jarlog')(lambda p: p))
 
 
 @depends('MOZ_PGO', '--enable-profile-use', '--enable-profile-generate',
-         c_compiler, rustc_info)
-def moz_pgo_rust(pgo, profile_use, profile_generate, c_compiler, rustc):
+         c_compiler)
+def moz_pgo_rust(pgo, profile_use, profile_generate, c_compiler):
     if not pgo:
         return
 
@@ -135,10 +135,6 @@ def moz_pgo_rust(pgo, profile_use, profile_generate, c_compiler, rustc):
 
     if c_compiler.type == 'gcc':
         die('Cannot use cross-language PGO with GCC.')
-
-    # PGO is not stable prior to 1.37
-    if rustc.version < Version('1.37'):
-        die('Cannot use cross-language PGO with Rust version %s.' % rustc.version)
 
     return True
 

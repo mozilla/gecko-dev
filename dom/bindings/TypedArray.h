@@ -7,13 +7,15 @@
 #ifndef mozilla_dom_TypedArray_h
 #define mozilla_dom_TypedArray_h
 
-#include "jsfriendapi.h"  // js::Scalar
+#include <utility>
+
 #include "js/ArrayBuffer.h"
-#include "js/SharedArrayBuffer.h"
+#include "js/ArrayBufferMaybeShared.h"
 #include "js/GCAPI.h"       // JS::AutoCheckCannotGC
 #include "js/RootingAPI.h"  // JS::Rooted
+#include "js/SharedArrayBuffer.h"
+#include "jsfriendapi.h"  // js::Scalar
 #include "mozilla/Attributes.h"
-#include "mozilla/Move.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/SpiderMonkeyInterface.h"
 #include "nsWrapperCache.h"
@@ -109,27 +111,15 @@ struct TypedArray_base : public SpiderMonkeyInterfaceObjectStorage,
 
   inline T* Data() const {
     MOZ_ASSERT(mComputed);
-    if (mShared) return nullptr;
-    return mData;
-  }
-
-  inline T* DataAllowShared() const {
-    MOZ_ASSERT(mComputed);
     return mData;
   }
 
   inline uint32_t Length() const {
     MOZ_ASSERT(mComputed);
-    if (mShared) return 0;
     return mLength;
   }
 
-  inline uint32_t LengthAllowShared() const {
-    MOZ_ASSERT(mComputed);
-    return mLength;
-  }
-
-  inline void ComputeLengthAndData() const {
+  inline void ComputeState() const {
     MOZ_ASSERT(inited());
     MOZ_ASSERT(!mComputed);
     GetLengthAndDataAndSharedness(mImplObj, &mLength, &mShared, &mData);
@@ -168,6 +158,25 @@ struct TypedArray
   static inline JSObject* Create(JSContext* cx, uint32_t length,
                                  const T* data = nullptr) {
     return CreateCommon(cx, length, data);
+  }
+
+  static inline JSObject* Create(JSContext* cx, nsWrapperCache* creator,
+                                 Span<const T> data) {
+    // Span<> uses size_t as a length, and we use uint32_t instead.
+    if (MOZ_UNLIKELY(data.Length() > UINT32_MAX)) {
+      JS_ReportOutOfMemory(cx);
+      return nullptr;
+    }
+    return Create(cx, creator, data.Length(), data.Elements());
+  }
+
+  static inline JSObject* Create(JSContext* cx, Span<const T> data) {
+    // Span<> uses size_t as a length, and we use uint32_t instead.
+    if (MOZ_UNLIKELY(data.Length() > UINT32_MAX)) {
+      JS_ReportOutOfMemory(cx);
+      return nullptr;
+    }
+    return CreateCommon(cx, data.Length(), data.Elements());
   }
 
  private:
@@ -262,14 +271,11 @@ typedef ArrayBufferView_base<js::UnwrapArrayBufferView,
                              js::GetArrayBufferViewLengthAndData,
                              JS_GetArrayBufferViewType>
     ArrayBufferView;
-typedef TypedArray<uint8_t, JS::UnwrapArrayBuffer, JS::GetArrayBufferData,
-                   JS::GetArrayBufferLengthAndData, JS::NewArrayBuffer>
+typedef TypedArray<uint8_t, JS::UnwrapArrayBufferMaybeShared,
+                   JS::GetArrayBufferMaybeSharedData,
+                   JS::GetArrayBufferMaybeSharedLengthAndData,
+                   JS::NewArrayBuffer>
     ArrayBuffer;
-
-typedef TypedArray<
-    uint8_t, JS::UnwrapSharedArrayBuffer, JS::GetSharedArrayBufferData,
-    JS::GetSharedArrayBufferLengthAndData, JS::NewSharedArrayBuffer>
-    SharedArrayBuffer;
 
 // A class for converting an nsTArray to a TypedArray
 // Note: A TypedArrayCreator must not outlive the nsTArray it was created from.

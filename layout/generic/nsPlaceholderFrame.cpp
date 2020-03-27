@@ -26,6 +26,7 @@
 #include "nsIContentInlines.h"
 
 using namespace mozilla;
+using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
 nsPlaceholderFrame* NS_NewPlaceholderFrame(PresShell* aPresShell,
@@ -168,7 +169,7 @@ void nsPlaceholderFrame::DestroyFrom(nsIFrame* aDestructRoot,
   nsIFrame* oof = mOutOfFlowFrame;
   if (oof) {
     mOutOfFlowFrame = nullptr;
-    oof->DeleteProperty(nsIFrame::PlaceholderFrameProperty());
+    oof->RemoveProperty(nsIFrame::PlaceholderFrameProperty());
 
     // If aDestructRoot is not an ancestor of the out-of-flow frame,
     // then call RemoveFrame on it here.

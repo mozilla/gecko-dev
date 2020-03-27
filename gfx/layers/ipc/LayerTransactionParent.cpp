@@ -153,7 +153,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
     }
   });
 
-  AUTO_PROFILER_TRACING("Paint", "LayerTransaction", GRAPHICS);
+  AUTO_PROFILER_TRACING_MARKER("Paint", "LayerTransaction", GRAPHICS);
   AUTO_PROFILER_LABEL("LayerTransactionParent::RecvUpdate", GRAPHICS);
   PerfStats::AutoMetricRecording<PerfStats::Metric::LayerTransactions>
       autoRecording;
@@ -729,18 +729,15 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvGetTransform(
   float scale = 1;
   Point3D scaledOrigin;
   Point3D transformOrigin;
-  for (const PropertyAnimationGroup& group :
-       layer->GetPropertyAnimationGroups()) {
-    if (group.mAnimationData.isNothing()) {
-      continue;
-    }
-    const TransformData& data = group.mAnimationData.ref();
+  const auto* meta = layer->GetTransformLikeMetaData();
+  MOZ_ASSERT(!meta || meta->mTransform);
+  if (meta && meta->mTransform) {
+    const TransformData& data = *meta->mTransform;
     scale = data.appUnitsPerDevPixel();
     scaledOrigin = Point3D(
         NS_round(NSAppUnitsToFloatPixels(data.origin().x, scale)),
         NS_round(NSAppUnitsToFloatPixels(data.origin().y, scale)), 0.0f);
     transformOrigin = data.transformOrigin();
-    break;
   }
 
   // If our parent isn't a perspective layer, then the offset into reference

@@ -32,8 +32,9 @@ const NUM_FRAMES_SHOWN = 7;
 
 type OwnProps = {|
   getFrameTitle?: string => string,
-  selectable?: boolean,
+  panel: "debugger" | "webconsole",
 |};
+
 type Props = {
   cx: ThreadContext,
   frames: Array<Frame>,
@@ -41,13 +42,14 @@ type Props = {
   frameworkGroupingOn: boolean,
   selectedFrame: Object,
   selectFrame: typeof actions.selectFrame,
+  selectLocation: typeof actions.selectLocation,
   toggleBlackBox: Function,
   toggleFrameworkGrouping: Function,
   disableFrameTruncate: boolean,
   disableContextMenu: boolean,
   displayFullUrl: boolean,
   getFrameTitle?: string => string,
-  selectable?: boolean,
+  panel: "debugger" | "webconsole",
 };
 
 type State = {
@@ -120,13 +122,14 @@ class Frames extends Component<Props, State> {
     const {
       cx,
       selectFrame,
+      selectLocation,
       selectedFrame,
       toggleBlackBox,
       frameworkGroupingOn,
       displayFullUrl,
       getFrameTitle,
       disableContextMenu,
-      selectable = false,
+      panel,
     } = this.props;
 
     const framesOrGroups = this.truncateFrames(this.collapseFrames(frames));
@@ -146,13 +149,14 @@ class Frames extends Component<Props, State> {
               copyStackTrace={this.copyStackTrace}
               frameworkGroupingOn={frameworkGroupingOn}
               selectFrame={selectFrame}
+              selectLocation={selectLocation}
               selectedFrame={selectedFrame}
               toggleBlackBox={toggleBlackBox}
               key={String(frameOrGroup.id)}
               displayFullUrl={displayFullUrl}
               getFrameTitle={getFrameTitle}
               disableContextMenu={disableContextMenu}
-              selectable={selectable}
+              panel={panel}
             />
           ) : (
             <Group
@@ -162,13 +166,14 @@ class Frames extends Component<Props, State> {
               copyStackTrace={this.copyStackTrace}
               frameworkGroupingOn={frameworkGroupingOn}
               selectFrame={selectFrame}
+              selectLocation={selectLocation}
               selectedFrame={selectedFrame}
               toggleBlackBox={toggleBlackBox}
               key={frameOrGroup[0].id}
               displayFullUrl={displayFullUrl}
               getFrameTitle={getFrameTitle}
               disableContextMenu={disableContextMenu}
-              selectable={selectable}
+              panel={panel}
             />
           )
         )}
@@ -235,6 +240,7 @@ export default connect<Props, OwnProps, _, _, _, _>(
   mapStateToProps,
   {
     selectFrame: actions.selectFrame,
+    selectLocation: actions.selectLocation,
     toggleBlackBox: actions.toggleBlackBox,
     toggleFrameworkGrouping: actions.toggleFrameworkGrouping,
   }

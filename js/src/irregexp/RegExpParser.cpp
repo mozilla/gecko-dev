@@ -32,8 +32,9 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Casting.h"
-#include "mozilla/Move.h"
 #include "mozilla/Range.h"
+
+#include <utility>
 
 #include "frontend/TokenStream.h"
 #include "gc/GC.h"
@@ -334,7 +335,8 @@ RegExpParser<CharT>::SyntaxError(unsigned errorNumber, ...)
     va_list args;
     va_start(args, errorNumber);
 
-    ReportCompileError(ts.context(), std::move(err), nullptr, JSREPORT_ERROR, errorNumber, &args);
+    ReportCompileErrorLatin1(ts.context(), std::move(err), nullptr,
+                             JSREPORT_ERROR, errorNumber, &args);
 
     va_end(args);
 }

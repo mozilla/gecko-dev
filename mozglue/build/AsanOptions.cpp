@@ -141,6 +141,10 @@ extern "C" const char* __lsan_default_suppressions() {
          // mochitest suites.
          "leak:nss_ClearErrorStack\n"
 
+         // Bug 1602689 - leak at mozilla::NotNull, RacyRegisteredThread,
+         // RegisteredThread::RegisteredThread, mozilla::detail::UniqueSelector
+         "leak:RegisteredThread::RegisteredThread\n"
+
          //
          // Leaks with system libraries in their stacks. These show up across a
          // number of tests. Better symbols and disabling fast stackwalking may
@@ -163,6 +167,7 @@ extern "C" const char* __lsan_default_suppressions() {
          "leak:libresolv.so\n"
          "leak:libstdc++.so\n"
          "leak:libXrandr.so\n"
+         "leak:libX11.so\n"
          "leak:pthread_setspecific_internal\n"
          "leak:swrast_dri.so\n"
 
@@ -173,9 +178,6 @@ extern "C" const char* __lsan_default_suppressions() {
          "leak:mozJSComponentLoader\n"
          "leak:mozilla::xpcom::ConstructJSMComponent\n"
          "leak:XPCWrappedNativeJSOps\n"
-
-         "leak:CreateBrowsingContext\n"
-         "leak:mozilla::dom::CanonicalBrowsingContext::RegisterWindowGlobal\n"
 
       // End of suppressions.
       ;  // Please keep this semicolon.

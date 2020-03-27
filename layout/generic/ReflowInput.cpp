@@ -1058,7 +1058,7 @@ void ReflowInput::ApplyRelativePositioning(nsIFrame* aFrame,
                  "We assume that changing the 'position' property causes "
                  "frame reconstruction.  If that ever changes, this code "
                  "should call "
-                 "aFrame->DeleteProperty(nsIFrame::NormalPositionProperty())");
+                 "aFrame->RemoveProperty(nsIFrame::NormalPositionProperty())");
     return;
   }
 
@@ -1073,9 +1073,9 @@ void ReflowInput::ApplyRelativePositioning(nsIFrame* aFrame,
   }
 
   const nsStyleDisplay* display = aFrame->StyleDisplay();
-  if (NS_STYLE_POSITION_RELATIVE == display->mPosition) {
+  if (StylePositionProperty::Relative == display->mPosition) {
     *aPosition += nsPoint(aComputedOffsets.left, aComputedOffsets.top);
-  } else if (NS_STYLE_POSITION_STICKY == display->mPosition &&
+  } else if (StylePositionProperty::Sticky == display->mPosition &&
              !aFrame->GetNextContinuation() && !aFrame->GetPrevContinuation() &&
              !(aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT)) {
     // Sticky positioning for elements with multiple frames needs to be
@@ -2311,7 +2311,7 @@ void ReflowInput::InitConstraints(
     // until the scroll container knows its size, so we compute offsets
     // from StickyScrollContainer::UpdatePositions.)
     if (mStyleDisplay->IsRelativelyPositioned(mFrame) &&
-        NS_STYLE_POSITION_RELATIVE == mStyleDisplay->mPosition) {
+        StylePositionProperty::Relative == mStyleDisplay->mPosition) {
       ComputeRelativeOffsets(cbwm, mFrame, cbSize.ConvertTo(cbwm, wm),
                              ComputedPhysicalOffsets());
     } else {
@@ -2428,10 +2428,10 @@ void ReflowInput::InitConstraints(
         // in its inline axis.
         auto inlineAxisAlignment =
             wm.IsOrthogonalTo(cbwm)
-                ? mStylePosition->UsedAlignSelf(alignCB->Style())
-                : mStylePosition->UsedJustifySelf(alignCB->Style());
-        if ((inlineAxisAlignment != NS_STYLE_ALIGN_STRETCH &&
-             inlineAxisAlignment != NS_STYLE_ALIGN_NORMAL) ||
+                ? mStylePosition->UsedAlignSelf(alignCB->Style())._0
+                : mStylePosition->UsedJustifySelf(alignCB->Style())._0;
+        if ((inlineAxisAlignment != StyleAlignFlags::STRETCH &&
+             inlineAxisAlignment != StyleAlignFlags::NORMAL) ||
             mStyleMargin->mMargin.GetIStart(wm).IsAuto() ||
             mStyleMargin->mMargin.GetIEnd(wm).IsAuto()) {
           computeSizeFlags = ComputeSizeFlags(computeSizeFlags |
@@ -2518,7 +2518,7 @@ static void UpdateProp(nsIFrame* aFrame,
       aFrame->AddProperty(aProperty, new nsMargin(aNewValue));
     }
   } else {
-    aFrame->DeleteProperty(aProperty);
+    aFrame->RemoveProperty(aProperty);
   }
 }
 
@@ -2533,7 +2533,7 @@ void SizeComputationInput::InitOffsets(WritingMode aWM, nscoord aPercentBasis,
   // Since we are in reflow, we don't need to store these properties anymore
   // unless they are dependent on width, in which case we store the new value.
   nsPresContext* presContext = mFrame->PresContext();
-  mFrame->DeleteProperty(nsIFrame::UsedBorderProperty());
+  mFrame->RemoveProperty(nsIFrame::UsedBorderProperty());
 
   // Compute margins from the specified margin style information. These
   // become the default computed values, and may be adjusted below
@@ -2587,6 +2587,11 @@ void SizeComputationInput::InitOffsets(WritingMode aWM, nscoord aPercentBasis,
       }
       mComputedPadding.Side(wm.PhysicalSide(side)) += val;
       needPaddingProp = true;
+      if (aAxis == eLogicalAxisBlock && val > 0) {
+        // We have a baseline-adjusted block-axis start padding, so
+        // we need this to mark lines dirty when mIsBResize is true:
+        this->mFrame->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
+      }
     }
   };
   if (!aFlags.mUseAutoBSize) {

@@ -1239,14 +1239,14 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(FragmentOrElement)
       nsStaticAtom* const* props =
           Element::HTMLSVGPropertiesToTraverseAndUnlink();
       for (uint32_t i = 0; props[i]; ++i) {
-        tmp->DeleteProperty(props[i]);
+        tmp->RemoveProperty(props[i]);
       }
     }
 
     if (tmp->MayHaveAnimations()) {
       nsAtom** effectProps = EffectSet::GetEffectSetPropertyAtoms();
       for (uint32_t i = 0; effectProps[i]; ++i) {
-        tmp->DeleteProperty(effectProps[i]);
+        tmp->RemoveProperty(effectProps[i]);
       }
     }
   }
@@ -1693,19 +1693,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(FragmentOrElement)
     }
 
     nsAutoCString orphan;
-    if (!tmp->IsInComposedDoc() &&
-        // Ignore xbl:content, which is never in the document and hence always
-        // appears to be orphaned.
-        !tmp->NodeInfo()->Equals(nsGkAtoms::content, kNameSpaceID_XBL)) {
+    if (!tmp->IsInComposedDoc()) {
       orphan.AppendLiteral(" (orphan)");
     }
 
-    static const char* kNSURIs[] = {" ([none])", " (xmlns)",  " (xml)",
-                                    " (xhtml)",  " (XLink)",  " (XSLT)",
-                                    " (XBL)",    " (MathML)", " (RDF)",
-                                    " (XUL)",    " (SVG)",    " (XML Events)"};
-    const char* nsuri = nsid < ArrayLength(kNSURIs) ? kNSURIs[nsid] : "";
-    SprintfLiteral(name, "FragmentOrElement%s %s%s%s%s %s", nsuri,
+    const char* nsuri = nsNameSpaceManager::GetNameSpaceDisplayName(nsid);
+    SprintfLiteral(name, "FragmentOrElement %s %s%s%s%s %s", nsuri,
                    localName.get(), NS_ConvertUTF16toUTF8(id).get(),
                    NS_ConvertUTF16toUTF8(classes).get(), orphan.get(),
                    uri.get());

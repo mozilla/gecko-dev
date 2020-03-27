@@ -43,19 +43,31 @@ impl TextureCopyView {
     fn to_selector(&self, aspects: hal::format::Aspects) -> hal::image::SubresourceRange {
         let level = self.mip_level as hal::image::Level;
         let layer = self.array_layer as hal::image::Layer;
-        hal::image::SubresourceRange {
-            aspects,
-            levels: level .. level + 1,
-            layers: layer .. layer + 1,
+
+        // TODO: Can't satisfy clippy here unless we modify
+        // `hal::image::SubresourceRange` in gfx to use `std::ops::RangeBounds`.
+        #[allow(clippy::range_plus_one)]
+        {
+            hal::image::SubresourceRange {
+                aspects,
+                levels: level .. level + 1,
+                layers: layer .. layer + 1,
+            }
         }
     }
 
     fn to_sub_layers(&self, aspects: hal::format::Aspects) -> hal::image::SubresourceLayers {
         let layer = self.array_layer as hal::image::Layer;
-        hal::image::SubresourceLayers {
-            aspects,
-            level: self.mip_level as hal::image::Level,
-            layers: layer .. layer + 1,
+        // TODO: Can't satisfy clippy here unless we modify
+        // `hal::image::SubresourceLayers` in gfx to use
+        // `std::ops::RangeBounds`.
+        #[allow(clippy::range_plus_one)]
+        {
+            hal::image::SubresourceLayers {
+                aspects,
+                level: self.mip_level as hal::image::Level,
+                layers: layer .. layer + 1,
+            }
         }
     }
 }
@@ -85,13 +97,7 @@ impl<F> Global<F> {
                 .buffers
                 .use_replace(&*buffer_guard, source, (), BufferUsage::COPY_SRC);
         assert!(src_buffer.usage.contains(BufferUsage::COPY_SRC));
-
-        barriers.extend(src_pending.map(|pending| hal::memory::Barrier::Buffer {
-            states: pending.to_states(),
-            target: &src_buffer.raw,
-            families: None,
-            range: None .. None,
-        }));
+        barriers.extend(src_pending.map(|pending| pending.into_hal(src_buffer)));
 
         let (dst_buffer, dst_pending) = cmb.trackers.buffers.use_replace(
             &*buffer_guard,
@@ -100,13 +106,7 @@ impl<F> Global<F> {
             BufferUsage::COPY_DST,
         );
         assert!(dst_buffer.usage.contains(BufferUsage::COPY_DST));
-
-        barriers.extend(dst_pending.map(|pending| hal::memory::Barrier::Buffer {
-            states: pending.to_states(),
-            target: &dst_buffer.raw,
-            families: None,
-            range: None .. None,
-        }));
+        barriers.extend(dst_pending.map(|pending| pending.into_hal(dst_buffer)));
 
         let region = hal::command::BufferCopy {
             src: source_offset,
@@ -146,13 +146,7 @@ impl<F> Global<F> {
             BufferUsage::COPY_SRC,
         );
         assert!(src_buffer.usage.contains(BufferUsage::COPY_SRC));
-
-        let src_barriers = src_pending.map(|pending| hal::memory::Barrier::Buffer {
-            states: pending.to_states(),
-            target: &src_buffer.raw,
-            families: None,
-            range: None .. None,
-        });
+        let src_barriers = src_pending.map(|pending| pending.into_hal(src_buffer));
 
         let (dst_texture, dst_pending) = cmb.trackers.textures.use_replace(
             &*texture_guard,
@@ -161,13 +155,7 @@ impl<F> Global<F> {
             TextureUsage::COPY_DST,
         );
         assert!(dst_texture.usage.contains(TextureUsage::COPY_DST));
-
-        let dst_barriers = dst_pending.map(|pending| hal::memory::Barrier::Image {
-            states: pending.to_states(),
-            target: &dst_texture.raw,
-            families: None,
-            range: pending.selector,
-        });
+        let dst_barriers = dst_pending.map(|pending| pending.into_hal(dst_texture));
 
         let bytes_per_texel = conv::map_texture_format(dst_texture.format, cmb.features)
             .surface_desc()
@@ -222,13 +210,7 @@ impl<F> Global<F> {
             TextureUsage::COPY_SRC,
         );
         assert!(src_texture.usage.contains(TextureUsage::COPY_SRC));
-
-        let src_barriers = src_pending.map(|pending| hal::memory::Barrier::Image {
-            states: pending.to_states(),
-            target: &src_texture.raw,
-            families: None,
-            range: pending.selector,
-        });
+        let src_barriers = src_pending.map(|pending| pending.into_hal(src_texture));
 
         let (dst_buffer, dst_barriers) = cmb.trackers.buffers.use_replace(
             &*buffer_guard,
@@ -237,13 +219,7 @@ impl<F> Global<F> {
             BufferUsage::COPY_DST,
         );
         assert!(dst_buffer.usage.contains(BufferUsage::COPY_DST));
-
-        let dst_barrier = dst_barriers.map(|pending| hal::memory::Barrier::Buffer {
-            states: pending.to_states(),
-            target: &dst_buffer.raw,
-            families: None,
-            range: None .. None,
-        });
+        let dst_barrier = dst_barriers.map(|pending| pending.into_hal(dst_buffer));
 
         let bytes_per_texel = conv::map_texture_format(src_texture.format, cmb.features)
             .surface_desc()
@@ -303,13 +279,7 @@ impl<F> Global<F> {
             TextureUsage::COPY_SRC,
         );
         assert!(src_texture.usage.contains(TextureUsage::COPY_SRC));
-
-        barriers.extend(src_pending.map(|pending| hal::memory::Barrier::Image {
-            states: pending.to_states(),
-            target: &src_texture.raw,
-            families: None,
-            range: pending.selector,
-        }));
+        barriers.extend(src_pending.map(|pending| pending.into_hal(src_texture)));
 
         let (dst_texture, dst_pending) = cmb.trackers.textures.use_replace(
             &*texture_guard,
@@ -318,13 +288,7 @@ impl<F> Global<F> {
             TextureUsage::COPY_DST,
         );
         assert!(dst_texture.usage.contains(TextureUsage::COPY_DST));
-
-        barriers.extend(dst_pending.map(|pending| hal::memory::Barrier::Image {
-            states: pending.to_states(),
-            target: &dst_texture.raw,
-            families: None,
-            range: pending.selector,
-        }));
+        barriers.extend(dst_pending.map(|pending| pending.into_hal(dst_texture)));
 
         let region = hal::command::ImageCopy {
             src_subresource: source.to_sub_layers(aspects),

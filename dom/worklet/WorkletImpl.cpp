@@ -14,6 +14,7 @@
 #include "mozilla/dom/RegisterWorkletBindings.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/WorkletBinding.h"
+#include "nsGlobalWindowInner.h"
 
 namespace mozilla {
 
@@ -40,6 +41,13 @@ WorkletImpl::WorkletImpl(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal)
       mTerminated(false) {
   Unused << NS_WARN_IF(
       NS_FAILED(ipc::PrincipalToPrincipalInfo(mPrincipal, &mPrincipalInfo)));
+
+  if (aWindow->GetDocGroup()) {
+    mAgentClusterId.emplace(aWindow->GetDocGroup()->AgentClusterId());
+  }
+
+  mSharedMemoryAllowed =
+      nsGlobalWindowInner::Cast(aWindow)->IsSharedMemoryAllowed();
 }
 
 WorkletImpl::~WorkletImpl() {
@@ -104,6 +112,7 @@ void WorkletImpl::NotifyWorkletFinished() {
 nsresult WorkletImpl::SendControlMessage(
     already_AddRefed<nsIRunnable> aRunnable) {
   MOZ_ASSERT(NS_IsMainThread());
+  RefPtr<nsIRunnable> runnable = std::move(aRunnable);
 
   // TODO: bug 1492011 re ConsoleWorkletRunnable.
   if (mTerminated) {
@@ -114,11 +123,11 @@ nsresult WorkletImpl::SendControlMessage(
     // Thread creation. FIXME: this will change.
     mWorkletThread = dom::WorkletThread::Create(this);
     if (!mWorkletThread) {
-      return NS_ERROR_UNEXPECTED;
+      return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
     }
   }
 
-  return mWorkletThread->DispatchRunnable(std::move(aRunnable));
+  return mWorkletThread->DispatchRunnable(runnable.forget());
 }
 
 }  // namespace mozilla

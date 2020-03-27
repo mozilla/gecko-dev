@@ -71,6 +71,10 @@ class nsCaret;
 enum class nsDisplayOwnLayerFlags;
 struct WrFiltersHolder;
 
+namespace nsStyleTransformMatrix {
+class TransformReferenceBox;
+}
+
 namespace mozilla {
 class FrameLayerBuilder;
 class PresShell;
@@ -230,7 +234,7 @@ struct AnimatedGeometryRoot {
 
   ~AnimatedGeometryRoot() {
     if (mFrame && mIsRetained) {
-      mFrame->DeleteProperty(AnimatedGeometryRootCache());
+      mFrame->RemoveProperty(AnimatedGeometryRootCache());
     }
   }
 };
@@ -327,7 +331,7 @@ struct ActiveScrolledRoot {
   ~ActiveScrolledRoot() {
     if (mScrollableFrame && mRetained) {
       nsIFrame* f = do_QueryFrame(mScrollableFrame);
-      f->DeleteProperty(ActiveScrolledRootCache());
+      f->RemoveProperty(ActiveScrolledRootCache());
     }
   }
 
@@ -3215,6 +3219,8 @@ class nsPaintedDisplayItem : public nsDisplayItem {
     MOZ_ASSERT_UNREACHABLE("Paint() is not implemented!");
   }
 
+  Maybe<uint16_t>& CacheIndex() { return mCacheIndex; }
+
  protected:
   nsPaintedDisplayItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
       : nsDisplayItem(aBuilder, aFrame) {}
@@ -3230,6 +3236,7 @@ class nsPaintedDisplayItem : public nsDisplayItem {
  private:
   mozilla::DisplayItemData* mDisplayItemData = nullptr;
   mozilla::layers::LayerManager* mDisplayItemDataLayerManager = nullptr;
+  mozilla::Maybe<uint16_t> mCacheIndex;
 };
 
 /**
@@ -3876,17 +3883,17 @@ struct HitTestInfo {
   const mozilla::DisplayItemClip* mClip;
 };
 
-class nsDisplayHitTestInfoItem : public nsPaintedDisplayItem {
+class nsDisplayHitTestInfoBase : public nsPaintedDisplayItem {
  public:
-  nsDisplayHitTestInfoItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
+  nsDisplayHitTestInfoBase(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
       : nsPaintedDisplayItem(aBuilder, aFrame) {}
 
-  nsDisplayHitTestInfoItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+  nsDisplayHitTestInfoBase(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                            const ActiveScrolledRoot* aActiveScrolledRoot)
       : nsPaintedDisplayItem(aBuilder, aFrame, aActiveScrolledRoot) {}
 
-  nsDisplayHitTestInfoItem(nsDisplayListBuilder* aBuilder,
-                           const nsDisplayHitTestInfoItem& aOther)
+  nsDisplayHitTestInfoBase(nsDisplayListBuilder* aBuilder,
+                           const nsDisplayHitTestInfoBase& aOther)
       : nsPaintedDisplayItem(aBuilder, aOther) {}
 
   const HitTestInfo& GetHitTestInfo() const {
@@ -4647,6 +4654,9 @@ class nsDisplayBackgroundImage : public nsDisplayImageContainer {
     if (aFrame == mDependentFrame) {
       mDependentFrame = nullptr;
     }
+    if (mAssociatedImage && aFrame == mFrame) {
+      DisassociateImage();
+    }
     nsDisplayImageContainer::RemoveFrame(aFrame);
   }
 
@@ -4658,6 +4668,9 @@ class nsDisplayBackgroundImage : public nsDisplayImageContainer {
                                      nsDisplayListBuilder* aBuilder);
   nsRect GetBoundsInternal(nsDisplayListBuilder* aBuilder,
                            nsIFrame* aFrameForBounds = nullptr);
+
+  void AssociateImageIfNeeded();
+  void DisassociateImage();
 
   void PaintInternal(nsDisplayListBuilder* aBuilder, gfxContext* aCtx,
                      const nsRect& aBounds, nsRect* aClipRect);
@@ -4687,6 +4700,8 @@ class nsDisplayBackgroundImage : public nsDisplayImageContainer {
   /* Whether the image should be treated as fixed to the viewport. */
   bool mShouldFixToViewport;
   uint32_t mImageFlags;
+  bool mAssociatedImage;
+  bool mTriedToAssociateImage;
 };
 
 enum class TableType : uint8_t {
@@ -5243,7 +5258,7 @@ class nsDisplayBoxShadowInner : public nsPaintedDisplayItem {
 /**
  * The standard display item to paint the CSS outline of a frame.
  */
-class nsDisplayOutline : public nsPaintedDisplayItem {
+class nsDisplayOutline final : public nsPaintedDisplayItem {
  public:
   nsDisplayOutline(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
       : nsPaintedDisplayItem(aBuilder, aFrame) {
@@ -5256,6 +5271,12 @@ class nsDisplayOutline : public nsPaintedDisplayItem {
 
   NS_DISPLAY_DECL_NAME("Outline", TYPE_OUTLINE)
 
+  bool MustPaintOnContentSide() const override {
+    MOZ_ASSERT(IsThemedOutline(),
+               "The only fallback path we have is for themed outlines");
+    return true;
+  }
+
   bool CreateWebRenderCommands(
       mozilla::wr::DisplayListBuilder& aBuilder,
       mozilla::wr::IpcResourceUpdateQueue& aResources,
@@ -5265,33 +5286,30 @@ class nsDisplayOutline : public nsPaintedDisplayItem {
   bool IsInvisibleInRect(const nsRect& aRect) const override;
   nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const override;
   void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
+
+ private:
+  bool IsThemedOutline() const;
 };
 
 /**
  * A class that lets you receive events within the frame bounds but never
  * paints.
  */
-class nsDisplayEventReceiver : public nsPaintedDisplayItem {
+class nsDisplayEventReceiver final : public nsDisplayItem {
  public:
   nsDisplayEventReceiver(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
-      : nsPaintedDisplayItem(aBuilder, aFrame) {
+      : nsDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayEventReceiver);
   }
 
 #ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayEventReceiver() override { MOZ_COUNT_DTOR(nsDisplayEventReceiver); }
+  ~nsDisplayEventReceiver() final { MOZ_COUNT_DTOR(nsDisplayEventReceiver); }
 #endif
 
   NS_DISPLAY_DECL_NAME("EventReceiver", TYPE_EVENT_RECEIVER)
 
   void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
-               HitTestState* aState, nsTArray<nsIFrame*>* aOutFrames) override;
-  bool CreateWebRenderCommands(
-      mozilla::wr::DisplayListBuilder& aBuilder,
-      mozilla::wr::IpcResourceUpdateQueue& aResources,
-      const StackingContextHelper& aSc,
-      mozilla::layers::RenderRootStateManager* aManager,
-      nsDisplayListBuilder* aDisplayListBuilder) override;
+               HitTestState* aState, nsTArray<nsIFrame*>* aOutFrames) final;
 };
 
 /**
@@ -5300,7 +5318,7 @@ class nsDisplayEventReceiver : public nsPaintedDisplayItem {
  * compositor some hit-test info for a frame. This is effectively a dummy item
  * whose sole purpose is to carry the hit-test info to the compositor.
  */
-class nsDisplayCompositorHitTestInfo : public nsDisplayHitTestInfoItem {
+class nsDisplayCompositorHitTestInfo : public nsDisplayHitTestInfoBase {
  public:
   nsDisplayCompositorHitTestInfo(
       nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
@@ -5369,7 +5387,7 @@ class nsDisplayCompositorHitTestInfo : public nsDisplayHitTestInfoItem {
  * we allow the frame to be nullptr. Callers to GetUnderlyingFrame must
  * detect and handle this case.
  */
-class nsDisplayWrapList : public nsDisplayHitTestInfoItem {
+class nsDisplayWrapList : public nsDisplayHitTestInfoBase {
  public:
   /**
    * Takes all the items from aList and puts them in our list.
@@ -5386,7 +5404,7 @@ class nsDisplayWrapList : public nsDisplayHitTestInfoItem {
                     bool aClearClipChain = false, uint16_t aIndex = 0);
 
   nsDisplayWrapList(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
-      : nsDisplayHitTestInfoItem(aBuilder, aFrame),
+      : nsDisplayHitTestInfoBase(aBuilder, aFrame),
         mFrameActiveScrolledRoot(aBuilder->CurrentActiveScrolledRoot()),
         mOverrideZIndex(0),
         mIndex(0),
@@ -5405,7 +5423,7 @@ class nsDisplayWrapList : public nsDisplayHitTestInfoItem {
   nsDisplayWrapList(const nsDisplayWrapList& aOther) = delete;
   nsDisplayWrapList(nsDisplayListBuilder* aBuilder,
                     const nsDisplayWrapList& aOther)
-      : nsDisplayHitTestInfoItem(aBuilder, aOther),
+      : nsDisplayHitTestInfoBase(aBuilder, aOther),
         mListPtr(&mList),
         mFrameActiveScrolledRoot(aOther.mFrameActiveScrolledRoot),
         mMergedFrames(aOther.mMergedFrames),
@@ -5427,7 +5445,7 @@ class nsDisplayWrapList : public nsDisplayHitTestInfoItem {
 
   void Destroy(nsDisplayListBuilder* aBuilder) override {
     mList.DeleteAll(aBuilder);
-    nsDisplayHitTestInfoItem::Destroy(aBuilder);
+    nsDisplayHitTestInfoBase::Destroy(aBuilder);
   }
 
   /**
@@ -5470,9 +5488,9 @@ class nsDisplayWrapList : public nsDisplayHitTestInfoItem {
   void SetActiveScrolledRoot(
       const ActiveScrolledRoot* aActiveScrolledRoot) override {
     // Skip unnecessary call to
-    // |nsDisplayHitTestInfoItem::UpdateHitTestInfoActiveScrolledRoot()|, since
+    // |nsDisplayHitTestInfoBase::UpdateHitTestInfoActiveScrolledRoot()|, since
     // callers will manually call that with different ASR.
-    nsDisplayHitTestInfoItem::SetActiveScrolledRoot(aActiveScrolledRoot);
+    nsDisplayHitTestInfoBase::SetActiveScrolledRoot(aActiveScrolledRoot);
   }
 
   void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
@@ -5552,7 +5570,7 @@ class nsDisplayWrapList : public nsDisplayHitTestInfoItem {
 
   int32_t ZIndex() const override {
     return (mHasZIndexOverride) ? mOverrideZIndex
-                                : nsDisplayHitTestInfoItem::ZIndex();
+                                : nsDisplayHitTestInfoBase::ZIndex();
   }
 
   void SetOverrideZIndex(int32_t aZIndex) {
@@ -6903,10 +6921,11 @@ class nsDisplayFilters : public nsDisplayEffectsBase {
  * function.
  * INVARIANT: The wrapped frame is non-null.
  */
-class nsDisplayTransform : public nsDisplayHitTestInfoItem {
-  typedef mozilla::gfx::Matrix4x4 Matrix4x4;
-  typedef mozilla::gfx::Matrix4x4Flagged Matrix4x4Flagged;
-  typedef mozilla::gfx::Point3D Point3D;
+class nsDisplayTransform : public nsDisplayHitTestInfoBase {
+  using Matrix4x4 = mozilla::gfx::Matrix4x4;
+  using Matrix4x4Flagged = mozilla::gfx::Matrix4x4Flagged;
+  using Point3D = mozilla::gfx::Point3D;
+  using TransformReferenceBox = nsStyleTransformMatrix::TransformReferenceBox;
 
  public:
   enum PrerenderDecision { NoPrerender, FullPrerender, PartialPrerender };
@@ -6944,7 +6963,7 @@ class nsDisplayTransform : public nsDisplayHitTestInfoItem {
   NS_DISPLAY_DECL_NAME("nsDisplayTransform", TYPE_TRANSFORM)
 
   void RestoreState() override {
-    nsDisplayHitTestInfoItem::RestoreState();
+    nsDisplayHitTestInfoBase::RestoreState();
     mShouldFlatten = false;
   }
 
@@ -6960,7 +6979,7 @@ class nsDisplayTransform : public nsDisplayHitTestInfoItem {
 
   void Destroy(nsDisplayListBuilder* aBuilder) override {
     GetChildren()->DeleteAll(aBuilder);
-    nsDisplayHitTestInfoItem::Destroy(aBuilder);
+    nsDisplayHitTestInfoBase::Destroy(aBuilder);
   }
 
   nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) const override;
@@ -7035,7 +7054,7 @@ class nsDisplayTransform : public nsDisplayHitTestInfoItem {
     if (!mTransformGetter) {
       return mFrame;
     }
-    return nsDisplayHitTestInfoItem::ReferenceFrameForChildren();
+    return nsDisplayHitTestInfoBase::ReferenceFrameForChildren();
   }
 
   AnimatedGeometryRoot* AnimatedGeometryRootForScrollMetadata() const override {
@@ -7083,15 +7102,13 @@ class nsDisplayTransform : public nsDisplayHitTestInfoItem {
    * @param aFrame The frame whose transformation should be applied.  This
    *        function raises an assertion if aFrame is null or doesn't have a
    *        transform applied to it.
-   * @param aOrigin The origin of the transform relative to aFrame's local
-   *        coordinate space.
-   * @param aBoundsOverride (optional) Rather than using the frame's computed
-   *        bounding rect as frame bounds, use this rectangle instead.  Pass
-   *        nullptr (or nothing at all) to use the default.
+   * @param aRefBox the reference box to use, which would usually be just
+   *        TransformReferemceBox(aFrame), but callers may override it if
+   *        needed.
    */
   static nsRect TransformRect(const nsRect& aUntransformedBounds,
                               const nsIFrame* aFrame,
-                              const nsRect* aBoundsOverride = nullptr);
+                              TransformReferenceBox& aRefBox);
 
   /* UntransformRect is like TransformRect, except that it inverts the
    * transform.
@@ -7114,8 +7131,8 @@ class nsDisplayTransform : public nsDisplayHitTestInfoItem {
   }
 
   static Point3D GetDeltaToTransformOrigin(const nsIFrame* aFrame,
-                                           float aAppUnitsPerPixel,
-                                           const nsRect* aBoundsOverride);
+                                           TransformReferenceBox&,
+                                           float aAppUnitsPerPixel);
 
   /*
    * Returns true if aFrame has perspective applied from its containing
@@ -7131,14 +7148,15 @@ class nsDisplayTransform : public nsDisplayHitTestInfoItem {
                                        Matrix4x4& aOutMatrix);
 
   struct MOZ_STACK_CLASS FrameTransformProperties {
-    FrameTransformProperties(const nsIFrame* aFrame, float aAppUnitsPerPixel,
-                             const nsRect* aBoundsOverride);
-    FrameTransformProperties(const mozilla::StyleTranslate& aTranslate,
-                             const mozilla::StyleRotate& aRotate,
-                             const mozilla::StyleScale& aScale,
-                             const mozilla::StyleTransform& aTransform,
-                             const Maybe<mozilla::MotionPathData>& aMotion,
-                             const Point3D& aToTransformOrigin)
+    FrameTransformProperties(const nsIFrame* aFrame,
+                             TransformReferenceBox& aRefBox,
+                             float aAppUnitsPerPixel);
+    FrameTransformProperties(
+        const mozilla::StyleTranslate& aTranslate,
+        const mozilla::StyleRotate& aRotate, const mozilla::StyleScale& aScale,
+        const mozilla::StyleTransform& aTransform,
+        const Maybe<mozilla::ResolvedMotionPathData>& aMotion,
+        const Point3D& aToTransformOrigin)
         : mFrame(nullptr),
           mTranslate(aTranslate),
           mRotate(aRotate),
@@ -7157,7 +7175,7 @@ class nsDisplayTransform : public nsDisplayHitTestInfoItem {
     const mozilla::StyleRotate& mRotate;
     const mozilla::StyleScale& mScale;
     const mozilla::StyleTransform& mTransform;
-    const mozilla::Maybe<mozilla::MotionPathData> mMotion;
+    const mozilla::Maybe<mozilla::ResolvedMotionPathData> mMotion;
     const Point3D mToTransformOrigin;
   };
 
@@ -7186,13 +7204,13 @@ class nsDisplayTransform : public nsDisplayHitTestInfoItem {
     INCLUDE_PRESERVE3D_ANCESTORS = 1 << 1,
     INCLUDE_PERSPECTIVE = 1 << 2,
   };
+  static Matrix4x4 GetResultingTransformMatrix(const nsIFrame* aFrame,
+                                               const nsPoint& aOrigin,
+                                               float aAppUnitsPerPixel,
+                                               uint32_t aFlags);
   static Matrix4x4 GetResultingTransformMatrix(
-      const nsIFrame* aFrame, const nsPoint& aOrigin, float aAppUnitsPerPixel,
-      uint32_t aFlags, const nsRect* aBoundsOverride = nullptr);
-  static Matrix4x4 GetResultingTransformMatrix(
-      const FrameTransformProperties& aProperties, const nsPoint& aOrigin,
-      float aAppUnitsPerPixel, uint32_t aFlags,
-      const nsRect* aBoundsOverride = nullptr);
+      const FrameTransformProperties& aProperties, TransformReferenceBox&,
+      const nsPoint& aOrigin, float aAppUnitsPerPixel, uint32_t aFlags);
   /**
    * Decide whether we should prerender some or all of the contents of the
    * transformed frame even when it's not completely visible (yet).
@@ -7244,8 +7262,9 @@ class nsDisplayTransform : public nsDisplayHitTestInfoItem {
   void Init(nsDisplayListBuilder* aBuilder, nsDisplayList* aChildren);
 
   static Matrix4x4 GetResultingTransformMatrixInternal(
-      const FrameTransformProperties& aProperties, const nsPoint& aOrigin,
-      float aAppUnitsPerPixel, uint32_t aFlags, const nsRect* aBoundsOverride);
+      const FrameTransformProperties& aProperties,
+      TransformReferenceBox& aRefBox, const nsPoint& aOrigin,
+      float aAppUnitsPerPixel, uint32_t aFlags);
 
   mutable mozilla::Maybe<Matrix4x4Flagged> mTransform;
   mutable mozilla::Maybe<Matrix4x4Flagged> mInverseTransform;
@@ -7281,7 +7300,7 @@ class nsDisplayTransform : public nsDisplayHitTestInfoItem {
  * perspective-origin is relative to an ancestor of the transformed frame, and
  * APZ can scroll the child separately.
  */
-class nsDisplayPerspective : public nsDisplayHitTestInfoItem {
+class nsDisplayPerspective : public nsDisplayHitTestInfoBase {
   typedef mozilla::gfx::Point3D Point3D;
 
  public:
@@ -7293,7 +7312,7 @@ class nsDisplayPerspective : public nsDisplayHitTestInfoItem {
 
   void Destroy(nsDisplayListBuilder* aBuilder) override {
     mList.DeleteAll(aBuilder);
-    nsDisplayHitTestInfoItem::Destroy(aBuilder);
+    nsDisplayHitTestInfoBase::Destroy(aBuilder);
   }
 
   void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,

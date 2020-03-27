@@ -85,8 +85,7 @@ class ServiceWorkerPrivateImpl final : public ServiceWorkerPrivate::Inner,
   nsresult SendFetchEvent(RefPtr<ServiceWorkerRegistrationInfo> aRegistration,
                           nsCOMPtr<nsIInterceptedChannel> aChannel,
                           const nsAString& aClientId,
-                          const nsAString& aResultingClientId,
-                          bool aIsReload) override;
+                          const nsAString& aResultingClientId) override;
 
   nsresult SpawnWorkerIfNeeded() override;
 
@@ -124,7 +123,8 @@ class ServiceWorkerPrivateImpl final : public ServiceWorkerPrivate::Inner,
 
   void Shutdown();
 
-  RefPtr<GenericNonExclusivePromise> ShutdownInternal();
+  RefPtr<GenericNonExclusivePromise> ShutdownInternal(
+      uint32_t aShutdownStateId);
 
   nsresult ExecServiceWorkerOp(
       ServiceWorkerOpArgs&& aArgs,

@@ -105,6 +105,10 @@ check_and_add_gcc_warning('-Wduplicated-cond')
 # catches unintentional switch case fallthroughs
 check_and_add_gcc_warning('-Wimplicit-fallthrough', cxx_compiler)
 
+# catches unused variable/function declarations
+check_and_add_gcc_warning('-Wunused-function', cxx_compiler)
+check_and_add_gcc_warning('-Wunused-variable', cxx_compiler)
+
 # catches expressions used as a null pointer constant
 # XXX: at the time of writing, the version of clang used on the OS X test
 # machines has a bug that causes it to reject some valid files if both
@@ -153,7 +157,7 @@ check_and_add_gcc_warning('-Wno-error=backend-plugin')
 check_and_add_gcc_warning('-Wno-error=free-nonheap-object')
 
 # Would be a pain to fix all occurrences, for very little gain
-check_and_add_gcc_warning('-Wno-error=multistatement-macros')
+check_and_add_gcc_warning('-Wno-multistatement-macros')
 
 # Disable the -Werror for return-std-move because of a false positive
 # on nsTAutoStringN: https://bugs.llvm.org/show_bug.cgi?id=37249

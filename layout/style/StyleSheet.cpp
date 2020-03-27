@@ -90,32 +90,47 @@ already_AddRefed<StyleSheet> StyleSheet::Constructor(
       do_QueryInterface(aGlobal.GetAsSupports());
 
   if (!window) {
-    aRv.ThrowDOMException(NS_ERROR_DOM_NOT_SUPPORTED_ERR,
-                          "CSSStyleSheet constructor not supported when there "
-                          "is no document");
+    aRv.ThrowNotSupportedError("Not supported when there is no document");
     return nullptr;
   }
 
   Document* constructorDocument = window->GetExtantDoc();
   if (!constructorDocument) {
-    aRv.ThrowDOMException(NS_ERROR_DOM_NOT_SUPPORTED_ERR,
-                          "CSSStyleSheet constructor not supported when there "
-                          "is no document");
+    aRv.ThrowNotSupportedError("Not supported when there is no document");
     return nullptr;
   }
 
-  auto ss = MakeRefPtr<StyleSheet>(css::SheetParsingMode::eAuthorSheetFeatures,
-                                   CORSMode::CORS_NONE, dom::SRIMetadata());
+  // 1. Construct a sheet and set its properties (see spec).
+  // TODO(nordzilla): Various issues with the spec's handling of aOptions:
+  // * https://github.com/WICG/construct-stylesheets/issues/113
+  // * https://github.com/WICG/construct-stylesheets/issues/105
+  auto sheet =
+      MakeRefPtr<StyleSheet>(css::SheetParsingMode::eAuthorSheetFeatures,
+                             CORSMode::CORS_NONE, dom::SRIMetadata());
 
-  ss->mConstructorDocument = constructorDocument;
+  nsIURI* baseURI = constructorDocument->GetBaseURI();
+  nsIURI* sheetURI = constructorDocument->GetDocumentURI();
+  nsIURI* originalURI = nullptr;
+  sheet->SetURIs(sheetURI, originalURI, baseURI);
 
-  // TODO(nordzilla) aOptions.mAlternate is currently unused.
-  // Functionality will be implemented later.
-  // There are still issues with the spec that I need to work out
-  // before I can fully test all of the options:
-  // https://github.com/WICG/construct-stylesheets/issues/105
+  sheet->SetTitle(aOptions.mTitle);
+  sheet->SetPrincipal(constructorDocument->NodePrincipal());
+  sheet->SetReferrerInfo(constructorDocument->GetReferrerInfo());
+  sheet->mConstructorDocument = constructorDocument;
 
-  return ss.forget();
+  // 2. Set the sheet's media according to aOptions.
+  if (aOptions.mMedia.IsString()) {
+    sheet->SetMedia(MediaList::Create(aOptions.mMedia.GetAsString()));
+  } else {
+    sheet->SetMedia(aOptions.mMedia.GetAsMediaList()->Clone());
+  }
+
+  // 3. Set the sheet's disabled flag according to aOptions.
+  sheet->SetDisabled(aOptions.mDisabled);
+  sheet->SetComplete();
+
+  // 4. Return sheet.
+  return sheet.forget();
 }
 
 StyleSheet::~StyleSheet() {
@@ -258,9 +273,9 @@ void StyleSheet::ApplicableStateChanged(bool aApplicable) {
 
   nsINode& node = mDocumentOrShadowRoot->AsNode();
   if (auto* shadow = ShadowRoot::FromNode(node)) {
-    shadow->StyleSheetApplicableStateChanged(*this, aApplicable);
+    shadow->StyleSheetApplicableStateChanged(*this);
   } else {
-    node.AsDocument()->SetStyleSheetApplicableState(*this, aApplicable);
+    node.AsDocument()->StyleSheetApplicableStateChanged(*this);
   }
 }
 
@@ -560,16 +575,14 @@ int32_t StyleSheet::AddRule(const nsAString& aSelector, const nsAString& aBlock,
 // https://wicg.github.io/construct-stylesheets/#dom-cssstylesheet-replace
 already_AddRefed<dom::Promise> StyleSheet::Replace(const nsAString& aText,
                                                    ErrorResult& aRv) {
-  // TODO(nordzilla) This is a stub to land the Constructable Stylesheets
+  // TODO(nordzilla): This is a stub to land the Constructable Stylesheets
   // API under a preference (Bug 1604296). Functionality will be added later.
 
   // Step 1 and 4 are variable declarations
 
   // 2.1 Check if sheet is constructed, else throw.
   if (!mConstructorDocument) {
-    aRv.ThrowDOMException(
-        NS_ERROR_DOM_NOT_ALLOWED_ERR,
-        "The replace() method can only be called on constructed style sheets");
+    aRv.ThrowNotAllowedError("Can only be called on constructed style sheets");
     return nullptr;
   }
 
@@ -593,23 +606,53 @@ already_AddRefed<dom::Promise> StyleSheet::Replace(const nsAString& aText,
 }
 
 // https://wicg.github.io/construct-stylesheets/#dom-cssstylesheet-replacesync
-void StyleSheet::ReplaceSync(const nsAString& aText, ErrorResult& aRv) {
-  // TODO(nordzilla) This is a stub to land the Constructable Stylesheets
-  // API under a preference (Bug 1604296). Functionality will be added later.
-
+void StyleSheet::ReplaceSync(const nsACString& aText, ErrorResult& aRv) {
   // Step 1 is a variable declaration
 
   // 2.1 Check if sheet is constructed, else throw.
   if (!mConstructorDocument) {
-    aRv.ThrowDOMException(NS_ERROR_DOM_NOT_ALLOWED_ERR,
-                          "The replaceSync() method can only be called on "
-                          "constructed style sheets");
-    return;
+    return aRv.ThrowNotAllowedError(
+        "Can only be called on constructed style sheets");
   }
+
   // 2.2 Check if sheet is modifiable, else throw.
+  if (ModificationDisallowed()) {
+    return aRv.ThrowNotAllowedError(
+        "Can only be called on modifiable style sheets");
+  }
+
   // 3. Parse aText into rules.
-  // 4. If rules contain @imports, throw NotAllowedError
-  // 5. Set sheet's rules to rules.
+  // We need to create a disabled loader so that the parser will
+  // accept @import rules, but we do not want to trigger any loads.
+  auto disabledLoader = MakeRefPtr<css::Loader>();
+  disabledLoader->SetEnabled(false);
+  SetURLExtraData();
+  RefPtr<const RawServoStyleSheetContents> rawContent =
+      Servo_StyleSheet_FromUTF8Bytes(
+          disabledLoader, this,
+          /* load_data = */ nullptr, &aText, mParsingMode, Inner().mURLData,
+          /* line_number_offset = */ 0,
+          mConstructorDocument->GetCompatibilityMode(),
+          /* reusable_sheets = */ nullptr,
+          mConstructorDocument->GetStyleUseCounters(),
+          StyleSanitizationKind::None,
+          /* sanitized_output = */ nullptr)
+          .Consume();
+
+  // 4. If rules contain @imports, make no changes and throw NotAllowedError.
+  // FIXME(nordzilla): Checking for @import rules after parse time means that
+  // the document's use counters will be affected even if this function throws.
+  // Consider changing this to detect @import rules during parse time.
+  if (Servo_StyleSheet_HasImportRules(rawContent)) {
+    return aRv.ThrowNotAllowedError(
+        "@import rules are not allowed. Use the async replace() method "
+        "instead.");
+  }
+
+  // 5. Set sheet's rules to the new rules.
+  DropRuleList();
+  Inner().mContents = rawContent.forget();
+  FinishParse();
 }
 
 nsresult StyleSheet::DeleteRuleFromGroup(css::GroupRule* aGroup,
@@ -765,7 +808,7 @@ void StyleSheet::SubjectSubsumesInnerPrincipal(nsIPrincipal& aSubjectPrincipal,
   // Allow access only if CORS mode is not NONE and the security flag
   // is not turned off.
   if (GetCORSMode() == CORS_NONE && !nsContentUtils::BypassCSSOMOriginCheck()) {
-    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+    aRv.ThrowSecurityError("Not allowed to access cross-origin stylesheet");
     return;
   }
 
@@ -781,7 +824,8 @@ void StyleSheet::SubjectSubsumesInnerPrincipal(nsIPrincipal& aSubjectPrincipal,
   // if we're not complete yet.  Luckily, all the callers of this method throw
   // anyway if not complete, so we can just do that here too.
   if (!IsComplete()) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_ACCESS_ERR);
+    aRv.ThrowInvalidAccessError(
+        "Not allowed to access still-loading stylesheet");
     return;
   }
 
@@ -794,7 +838,8 @@ bool StyleSheet::AreRulesAvailable(nsIPrincipal& aSubjectPrincipal,
                                    ErrorResult& aRv) {
   // Rules are not available on incomplete sheets.
   if (!IsComplete()) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_ACCESS_ERR);
+    aRv.ThrowInvalidAccessError(
+        "Can't access rules of still-loading stylsheet");
     return false;
   }
   //-- Security check: Only scripts whose principal subsumes that of the
@@ -895,11 +940,11 @@ void StyleSheet::List(FILE* out, int32_t aIndent) const {
 }
 #endif
 
-void StyleSheet::SetMedia(dom::MediaList* aMedia) {
-  if (aMedia) {
-    aMedia->SetStyleSheet(this);
-  }
+void StyleSheet::SetMedia(already_AddRefed<dom::MediaList> aMedia) {
   mMedia = aMedia;
+  if (mMedia) {
+    mMedia->SetStyleSheet(this);
+  }
 }
 
 void StyleSheet::DropMedia() {
@@ -970,11 +1015,6 @@ already_AddRefed<StyleSheet> StyleSheet::CreateEmptyChildSheet(
 //     -moz-bool-pref, which needs to access the pref service, which is not
 //     threadsafe.
 static bool AllowParallelParse(css::Loader& aLoader, nsIURI* aSheetURI) {
-  // Check the pref.
-  if (!StaticPrefs::layout_css_parsing_parallel()) {
-    return false;
-  }
-
   // If the browser is recording CSS errors, we need to use the sequential path
   // because the parallel path doesn't support that.
   Document* doc = aLoader.GetDocument();
@@ -1071,16 +1111,16 @@ void StyleSheet::FinishParse() {
   SetSourceURL(sourceURL);
 }
 
-nsresult StyleSheet::ReparseSheet(const nsAString& aInput) {
+void StyleSheet::ReparseSheet(const nsACString& aInput, ErrorResult& aRv) {
   if (!IsComplete()) {
-    return NS_ERROR_DOM_INVALID_ACCESS_ERR;
+    return aRv.ThrowInvalidAccessError("Cannot reparse still-loading sheet");
   }
 
   // Allowing to modify UA sheets is dangerous (in the sense that C++ code
   // relies on rules in those sheets), plus they're probably going to be shared
   // across processes in which case this is directly a no-go.
   if (IsReadOnly()) {
-    return NS_OK;
+    return;
   }
 
   // Hold strong ref to the CSSLoader in case the document update
@@ -1133,8 +1173,8 @@ nsresult StyleSheet::ReparseSheet(const nsAString& aInput) {
 
   DropRuleList();
 
-  ParseSheetSync(loader, NS_ConvertUTF16toUTF8(aInput),
-                 /* aLoadData = */ nullptr, lineNumber, &reusableSheets);
+  ParseSheetSync(loader, aInput, /* aLoadData = */ nullptr, lineNumber,
+                 &reusableSheets);
 
   // Notify the stylesets about the new rules.
   {
@@ -1152,8 +1192,6 @@ nsresult StyleSheet::ReparseSheet(const nsAString& aInput) {
 
   // Our rules are no longer considered modified for devtools.
   mState &= ~State::ModifiedRulesForDevtools;
-
-  return NS_OK;
 }
 
 void StyleSheet::DropRuleList() {
@@ -1211,8 +1249,7 @@ void StyleSheet::DeleteRuleInternal(uint32_t aIndex, ErrorResult& aRv) {
   // Ensure mRuleList is constructed.
   GetCssRulesInternal();
   if (aIndex >= mRuleList->Length()) {
-    aRv.ThrowDOMException(
-        NS_ERROR_DOM_INDEX_SIZE_ERR,
+    aRv.ThrowIndexSizeError(
         nsPrintfCString("Cannot delete rule at index %u"
                         " because the number of rules is only %u",
                         aIndex, mRuleList->Length()));
@@ -1224,8 +1261,6 @@ void StyleSheet::DeleteRuleInternal(uint32_t aIndex, ErrorResult& aRv) {
   // event is not enabled.
   RefPtr<css::Rule> rule = mRuleList->GetRule(aIndex);
   aRv = mRuleList->DeleteRule(aIndex);
-  MOZ_ASSERT(!aRv.ErrorCodeIs(NS_ERROR_DOM_INDEX_SIZE_ERR),
-             "IndexSizeError should have been handled earlier");
   if (!aRv.Failed()) {
     RuleRemoved(*rule);
   }

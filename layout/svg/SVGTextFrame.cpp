@@ -275,7 +275,7 @@ static bool IsGlyphPositioningAttribute(nsAtom* aAttribute) {
  * @param aDominantBaseline The dominant-baseline value to use.
  */
 static nscoord GetBaselinePosition(nsTextFrame* aFrame, gfxTextRun* aTextRun,
-                                   uint8_t aDominantBaseline,
+                                   StyleDominantBaseline aDominantBaseline,
                                    float aFontSizeScaleFactor) {
   WritingMode writingMode = aFrame->GetWritingMode();
   // We pass in null for the PropertyProvider since letter-spacing and
@@ -284,30 +284,30 @@ static nscoord GetBaselinePosition(nsTextFrame* aFrame, gfxTextRun* aTextRun,
       aTextRun->MeasureText(gfxFont::LOOSE_INK_EXTENTS, nullptr);
 
   switch (aDominantBaseline) {
-    case NS_STYLE_DOMINANT_BASELINE_HANGING:
-    case NS_STYLE_DOMINANT_BASELINE_TEXT_BEFORE_EDGE:
+    case StyleDominantBaseline::Hanging:
+    case StyleDominantBaseline::TextBeforeEdge:
       return writingMode.IsVerticalRL() ? metrics.mAscent + metrics.mDescent
                                         : 0;
 
-    case NS_STYLE_DOMINANT_BASELINE_AUTO:
-    case NS_STYLE_DOMINANT_BASELINE_ALPHABETIC:
+    case StyleDominantBaseline::Auto:
+    case StyleDominantBaseline::Alphabetic:
       return writingMode.IsVerticalRL()
                  ? metrics.mAscent + metrics.mDescent -
                        aFrame->GetLogicalBaseline(writingMode)
                  : aFrame->GetLogicalBaseline(writingMode);
 
-    case NS_STYLE_DOMINANT_BASELINE_MIDDLE:
+    case StyleDominantBaseline::Middle:
       return aFrame->GetLogicalBaseline(writingMode) -
              SVGContentUtils::GetFontXHeight(aFrame) / 2.0 *
                  AppUnitsPerCSSPixel() * aFontSizeScaleFactor;
 
-    case NS_STYLE_DOMINANT_BASELINE_TEXT_AFTER_EDGE:
-    case NS_STYLE_DOMINANT_BASELINE_IDEOGRAPHIC:
+    case StyleDominantBaseline::TextAfterEdge:
+    case StyleDominantBaseline::Ideographic:
       return writingMode.IsVerticalLR() ? 0
                                         : metrics.mAscent + metrics.mDescent;
 
-    case NS_STYLE_DOMINANT_BASELINE_CENTRAL:
-    case NS_STYLE_DOMINANT_BASELINE_MATHEMATICAL:
+    case StyleDominantBaseline::Central:
+    case StyleDominantBaseline::Mathematical:
       return (metrics.mAscent + metrics.mDescent) / 2.0;
   }
 
@@ -859,8 +859,8 @@ SVGBBox TextRenderedRun::GetRunUserSpaceRect(nsPresContext* aContext,
                         metrics.mBoundingBox.height + above + below);
   if (textRun->IsVertical()) {
     // Swap line-relative textMetrics dimensions to physical coordinates.
-    Swap(fillInAppUnits.x, fillInAppUnits.y);
-    Swap(fillInAppUnits.width, fillInAppUnits.height);
+    std::swap(fillInAppUnits.x, fillInAppUnits.y);
+    std::swap(fillInAppUnits.width, fillInAppUnits.height);
   }
 
   // Account for text-shadow.
@@ -1506,7 +1506,7 @@ class TextFrameIterator {
   /**
    * Returns the current frame's computed dominant-baseline value.
    */
-  uint8_t DominantBaseline() const {
+  StyleDominantBaseline DominantBaseline() const {
     return mBaselines.ElementAt(mBaselines.Length() - 1);
   }
 
@@ -1570,7 +1570,7 @@ class TextFrameIterator {
    * Stack of dominant-baseline values to record as we traverse through the
    * frame tree.
    */
-  AutoTArray<uint8_t, 8> mBaselines;
+  AutoTArray<StyleDominantBaseline, 8> mBaselines;
 
   /**
    * The iterator's current position relative to mSubtree.
@@ -1667,7 +1667,7 @@ nsTextFrame* TextFrameIterator::Next() {
 }
 
 void TextFrameIterator::PushBaseline(nsIFrame* aNextFrame) {
-  uint8_t baseline = aNextFrame->StyleSVG()->mDominantBaseline;
+  StyleDominantBaseline baseline = aNextFrame->StyleSVG()->mDominantBaseline;
   mBaselines.AppendElement(baseline);
 }
 
@@ -3545,13 +3545,15 @@ float SVGTextFrame::GetComputedTextLength(nsIContent* aContent) {
  * Implements the SVG DOM SelectSubString method for the specified
  * text content element.
  */
-nsresult SVGTextFrame::SelectSubString(nsIContent* aContent, uint32_t charnum,
-                                       uint32_t nchars) {
+void SVGTextFrame::SelectSubString(nsIContent* aContent, uint32_t charnum,
+                                   uint32_t nchars, ErrorResult& aRv) {
   nsIFrame* kid = PrincipalChildList().FirstChild();
   if (NS_SUBTREE_DIRTY(kid)) {
     // We're never reflowed if we're under a non-SVG element that is
     // never reflowed (such as the HTML 'caption' element).
-    return NS_ERROR_FAILURE;
+    // XXXbz Should this just return without throwing like the no-frame case?
+    aRv.ThrowInvalidStateError("No layout information available for SVG text");
+    return;
   }
 
   UpdateGlyphPositioning();
@@ -3561,7 +3563,8 @@ nsresult SVGTextFrame::SelectSubString(nsIContent* aContent, uint32_t charnum,
   CharIterator chit(this, CharIterator::eAddressable, aContent);
   if (!chit.AdvanceToSubtree() || !chit.Next(charnum) ||
       chit.IsAfterSubtree()) {
-    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    aRv.ThrowIndexSizeError("Character index out of range");
+    return;
   }
   charnum = chit.TextElementCharIndex();
   nsIContent* content = chit.TextFrame()->GetContent();
@@ -3572,16 +3575,14 @@ nsresult SVGTextFrame::SelectSubString(nsIContent* aContent, uint32_t charnum,
 
   frameSelection->HandleClick(content, charnum, charnum + nchars, false, false,
                               CARET_ASSOCIATE_BEFORE);
-  return NS_OK;
 }
 
 /**
  * Implements the SVG DOM GetSubStringLength method for the specified
  * text content element.
  */
-nsresult SVGTextFrame::GetSubStringLength(nsIContent* aContent,
-                                          uint32_t charnum, uint32_t nchars,
-                                          float* aResult) {
+float SVGTextFrame::GetSubStringLength(nsIContent* aContent, uint32_t charnum,
+                                       uint32_t nchars, ErrorResult& aRv) {
   // For some content we cannot (or currently cannot) compute the length
   // without reflowing.  In those cases we need to fall back to using
   // GetSubStringLengthSlowFallback.
@@ -3602,7 +3603,7 @@ nsresult SVGTextFrame::GetSubStringLength(nsIContent* aContent,
   for (nsTextFrame* frame = frameIter.Current(); frame;
        frame = frameIter.Next()) {
     if (frameIter.TextPathFrame() || frame->GetNextContinuation()) {
-      return GetSubStringLengthSlowFallback(aContent, charnum, nchars, aResult);
+      return GetSubStringLengthSlowFallback(aContent, charnum, nchars, aRv);
     }
   }
 
@@ -3616,14 +3617,14 @@ nsresult SVGTextFrame::GetSubStringLength(nsIContent* aContent,
                     /* aPostReflow */ false);
   if (!chit.AdvanceToSubtree() || !chit.Next(charnum) ||
       chit.IsAfterSubtree()) {
-    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    aRv.ThrowIndexSizeError("Character index out of range");
+    return 0;
   }
 
-  // We do this after the NS_ERROR_DOM_INDEX_SIZE_ERR return so JS calls
-  // correctly throw when necessary.
+  // We do this after the ThrowIndexSizeError() bit so JS calls correctly throw
+  // when necessary.
   if (nchars == 0) {
-    *aResult = 0.0f;
-    return NS_OK;
+    return 0.0f;
   }
 
   charnum = chit.TextElementCharIndex();
@@ -3693,15 +3694,14 @@ nsresult SVGTextFrame::GetSubStringLength(nsIContent* aContent,
   float cssPxPerDevPx = nsPresContext::AppUnitsToFloatCSSPixels(
       presContext->AppUnitsPerDevPixel());
 
-  *aResult = presContext->AppUnitsToGfxUnits(textLength) * cssPxPerDevPx /
-             mFontSizeScaleFactor;
-  return NS_OK;
+  return presContext->AppUnitsToGfxUnits(textLength) * cssPxPerDevPx /
+         mFontSizeScaleFactor;
 }
 
-nsresult SVGTextFrame::GetSubStringLengthSlowFallback(nsIContent* aContent,
-                                                      uint32_t charnum,
-                                                      uint32_t nchars,
-                                                      float* aResult) {
+float SVGTextFrame::GetSubStringLengthSlowFallback(nsIContent* aContent,
+                                                   uint32_t charnum,
+                                                   uint32_t nchars,
+                                                   ErrorResult& aRv) {
   // We need to make sure that we've been reflowed before updating the glyph
   // positioning.
   // XXX perf: It may be possible to limit reflow to just calling ReflowSVG,
@@ -3718,12 +3718,12 @@ nsresult SVGTextFrame::GetSubStringLengthSlowFallback(nsIContent* aContent,
   CharIterator chit(this, CharIterator::eAddressable, aContent);
   if (!chit.AdvanceToSubtree() || !chit.Next(charnum) ||
       chit.IsAfterSubtree()) {
-    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    aRv.ThrowIndexSizeError("Character index out of range");
+    return 0;
   }
 
   if (nchars == 0) {
-    *aResult = 0.0f;
-    return NS_OK;
+    return 0.0f;
   }
 
   charnum = chit.TextElementCharIndex();
@@ -3773,9 +3773,8 @@ nsresult SVGTextFrame::GetSubStringLengthSlowFallback(nsIContent* aContent,
   float cssPxPerDevPx = nsPresContext::AppUnitsToFloatCSSPixels(
       presContext->AppUnitsPerDevPixel());
 
-  *aResult = presContext->AppUnitsToGfxUnits(textLength) * cssPxPerDevPx /
-             mFontSizeScaleFactor;
-  return NS_OK;
+  return presContext->AppUnitsToGfxUnits(textLength) * cssPxPerDevPx /
+         mFontSizeScaleFactor;
 }
 
 /**
@@ -3820,21 +3819,22 @@ int32_t SVGTextFrame::GetCharNumAtPosition(nsIContent* aContent,
  * Implements the SVG DOM GetStartPositionOfChar method for the specified
  * text content element.
  */
-nsresult SVGTextFrame::GetStartPositionOfChar(nsIContent* aContent,
-                                              uint32_t aCharNum,
-                                              nsISVGPoint** aResult) {
+already_AddRefed<nsISVGPoint> SVGTextFrame::GetStartPositionOfChar(
+    nsIContent* aContent, uint32_t aCharNum, ErrorResult& aRv) {
   nsIFrame* kid = PrincipalChildList().FirstChild();
   if (NS_SUBTREE_DIRTY(kid)) {
     // We're never reflowed if we're under a non-SVG element that is
     // never reflowed (such as the HTML 'caption' element).
-    return NS_ERROR_FAILURE;
+    aRv.ThrowInvalidStateError("No layout information available for SVG text");
+    return nullptr;
   }
 
   UpdateGlyphPositioning();
 
   CharIterator it(this, CharIterator::eAddressable, aContent);
   if (!it.AdvanceToSubtree() || !it.Next(aCharNum)) {
-    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    aRv.ThrowIndexSizeError("Character index out of range");
+    return nullptr;
   }
 
   // We need to return the start position of the whole glyph.
@@ -3842,8 +3842,7 @@ nsresult SVGTextFrame::GetStartPositionOfChar(nsIContent* aContent,
 
   RefPtr<DOMSVGPoint> point =
       new DOMSVGPoint(ToPoint(mPositions[startIndex].mPosition));
-  point.forget(aResult);
-  return NS_OK;
+  return point.forget();
 }
 
 /**
@@ -3904,21 +3903,22 @@ static gfxFloat GetGlyphAdvance(SVGTextFrame* aFrame, nsIContent* aContent,
  * Implements the SVG DOM GetEndPositionOfChar method for the specified
  * text content element.
  */
-nsresult SVGTextFrame::GetEndPositionOfChar(nsIContent* aContent,
-                                            uint32_t aCharNum,
-                                            nsISVGPoint** aResult) {
+already_AddRefed<nsISVGPoint> SVGTextFrame::GetEndPositionOfChar(
+    nsIContent* aContent, uint32_t aCharNum, ErrorResult& aRv) {
   nsIFrame* kid = PrincipalChildList().FirstChild();
   if (NS_SUBTREE_DIRTY(kid)) {
     // We're never reflowed if we're under a non-SVG element that is
     // never reflowed (such as the HTML 'caption' element).
-    return NS_ERROR_FAILURE;
+    aRv.ThrowInvalidStateError("No layout information available for SVG text");
+    return nullptr;
   }
 
   UpdateGlyphPositioning();
 
   CharIterator it(this, CharIterator::eAddressable, aContent);
   if (!it.AdvanceToSubtree() || !it.Next(aCharNum)) {
-    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    aRv.ThrowIndexSizeError("Character index out of range");
+    return nullptr;
   }
 
   // We need to return the end position of the whole glyph.
@@ -3939,21 +3939,22 @@ nsresult SVGTextFrame::GetEndPositionOfChar(nsIContent* aContent,
   Point p = m.TransformPoint(Point(advance / mFontSizeScaleFactor, 0));
 
   RefPtr<DOMSVGPoint> point = new DOMSVGPoint(p);
-  point.forget(aResult);
-  return NS_OK;
+  return point.forget();
 }
 
 /**
  * Implements the SVG DOM GetExtentOfChar method for the specified
  * text content element.
  */
-nsresult SVGTextFrame::GetExtentOfChar(nsIContent* aContent, uint32_t aCharNum,
-                                       SVGRect** aResult) {
+already_AddRefed<SVGRect> SVGTextFrame::GetExtentOfChar(nsIContent* aContent,
+                                                        uint32_t aCharNum,
+                                                        ErrorResult& aRv) {
   nsIFrame* kid = PrincipalChildList().FirstChild();
   if (NS_SUBTREE_DIRTY(kid)) {
     // We're never reflowed if we're under a non-SVG element that is
     // never reflowed (such as the HTML 'caption' element).
-    return NS_ERROR_FAILURE;
+    aRv.ThrowInvalidStateError("No layout information available for SVG text");
+    return nullptr;
   }
 
   UpdateGlyphPositioning();
@@ -3961,7 +3962,8 @@ nsresult SVGTextFrame::GetExtentOfChar(nsIContent* aContent, uint32_t aCharNum,
   // Search for the character whose addressable index is aCharNum.
   CharIterator it(this, CharIterator::eAddressable, aContent);
   if (!it.AdvanceToSubtree() || !it.Next(aCharNum)) {
-    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    aRv.ThrowIndexSizeError("Character index out of range");
+    return nullptr;
   }
 
   nsPresContext* presContext = PresContext();
@@ -4006,32 +4008,32 @@ nsresult SVGTextFrame::GetExtentOfChar(nsIContent* aContent, uint32_t aCharNum,
   gfxRect r = m.TransformBounds(glyphRect);
 
   RefPtr<SVGRect> rect = new SVGRect(aContent, ToRect(r));
-  rect.forget(aResult);
-  return NS_OK;
+  return rect.forget();
 }
 
 /**
  * Implements the SVG DOM GetRotationOfChar method for the specified
  * text content element.
  */
-nsresult SVGTextFrame::GetRotationOfChar(nsIContent* aContent,
-                                         uint32_t aCharNum, float* aResult) {
+float SVGTextFrame::GetRotationOfChar(nsIContent* aContent, uint32_t aCharNum,
+                                      ErrorResult& aRv) {
   nsIFrame* kid = PrincipalChildList().FirstChild();
   if (NS_SUBTREE_DIRTY(kid)) {
     // We're never reflowed if we're under a non-SVG element that is
     // never reflowed (such as the HTML 'caption' element).
-    return NS_ERROR_FAILURE;
+    aRv.ThrowInvalidStateError("No layout information available for SVG text");
+    return 0;
   }
 
   UpdateGlyphPositioning();
 
   CharIterator it(this, CharIterator::eAddressable, aContent);
   if (!it.AdvanceToSubtree() || !it.Next(aCharNum)) {
-    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    aRv.ThrowIndexSizeError("Character index out of range");
+    return 0;
   }
 
-  *aResult = mPositions[it.TextElementCharIndex()].mAngle * 180.0 / M_PI;
-  return NS_OK;
+  return mPositions[it.TextElementCharIndex()].mAngle * 180.0 / M_PI;
 }
 
 //----------------------------------------------------------------------
@@ -4499,7 +4501,7 @@ void SVGTextFrame::AdjustPositionsForClusters() {
       gfxPoint direction = gfxPoint(cos(angle), sin(angle)) *
                            (it.TextRun()->IsRightToLeft() ? -1.0 : 1.0);
       if (it.TextRun()->IsVertical()) {
-        Swap(direction.x, direction.y);
+        std::swap(direction.x, direction.y);
       }
       mPositions[charIndex].mPosition =
           mPositions[startIndex].mPosition + direction * advance;
@@ -4778,7 +4780,7 @@ void SVGTextFrame::DoAnchoring() {
 
     if (left != std::numeric_limits<gfxFloat>::infinity()) {
       bool isRTL =
-          chunkFrame->StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+          chunkFrame->StyleVisibility()->mDirection == StyleDirection::Rtl;
       TextAnchorSide anchor = ConvertLogicalTextAnchorToPhysical(
           chunkFrame->StyleSVG()->mTextAnchor, isRTL);
 

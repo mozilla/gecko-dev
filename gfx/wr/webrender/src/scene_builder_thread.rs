@@ -144,7 +144,7 @@ pub enum SceneBuilderRequest {
     SimulateLongSceneBuild(u32),
     SimulateLongLowPrioritySceneBuild(u32),
     Stop,
-    ReportMemory(MemoryReport, MsgSender<MemoryReport>),
+    ReportMemory(Box<MemoryReport>, MsgSender<Box<MemoryReport>>),
     #[cfg(feature = "capture")]
     SaveScene(CaptureConfig),
     #[cfg(feature = "replay")]
@@ -255,6 +255,7 @@ pub struct SceneBuilderThread {
     size_of_ops: Option<MallocSizeOfOps>,
     hooks: Option<Box<dyn SceneBuilderHooks + Send>>,
     simulate_slow_ms: u32,
+    removed_pipelines: FastHashSet<PipelineId>
 }
 
 pub struct SceneBuilderThreadChannels {
@@ -299,6 +300,7 @@ impl SceneBuilderThread {
             size_of_ops,
             hooks,
             simulate_slow_ms: 0,
+            removed_pipelines: FastHashSet::default(),
         }
     }
 
@@ -362,7 +364,7 @@ impl SceneBuilderThread {
                     break;
                 }
                 Ok(SceneBuilderRequest::ReportMemory(mut report, tx)) => {
-                    report += self.report_memory();
+                    (*report) += self.report_memory();
                     tx.send(report).unwrap();
                 }
                 Ok(SceneBuilderRequest::SimulateLongSceneBuild(time_ms)) => {
@@ -518,7 +520,7 @@ impl SceneBuilderThread {
 
     /// Do the bulk of the work of the scene builder thread.
     fn process_transaction(&mut self, txn: &mut Transaction) -> Box<BuiltTransaction> {
-        if let &Some(ref hooks) = &self.hooks {
+        if let Some(ref hooks) = self.hooks {
             hooks.pre_scene_build();
         }
 
@@ -529,7 +531,24 @@ impl SceneBuilderThread {
                       .or_insert_with(|| Document::new(Scene::new()));
         let scene = &mut doc.scene;
 
+        for &(pipeline_id, epoch) in &txn.epoch_updates {
+            scene.update_epoch(pipeline_id, epoch);
+        }
+
+        if let Some(id) = txn.set_root_pipeline {
+            scene.set_root_pipeline_id(id);
+        }
+
+        for &(pipeline_id, _) in &txn.removed_pipelines {
+            scene.remove_pipeline(pipeline_id);
+            self.removed_pipelines.insert(pipeline_id);
+        }
+
         for update in txn.display_list_updates.drain(..) {
+            if self.removed_pipelines.contains(&update.pipeline_id) {
+                continue;
+            }
+
             scene.set_display_list(
                 update.pipeline_id,
                 update.epoch,
@@ -540,17 +559,7 @@ impl SceneBuilderThread {
             );
         }
 
-        for &(pipeline_id, epoch) in &txn.epoch_updates {
-            scene.update_epoch(pipeline_id, epoch);
-        }
-
-        if let Some(id) = txn.set_root_pipeline {
-            scene.set_root_pipeline_id(id);
-        }
-
-        for &(pipeline_id, _) in &txn.removed_pipelines {
-            scene.remove_pipeline(pipeline_id)
-        }
+        self.removed_pipelines.clear();
 
         let mut built_scene = None;
         let mut interner_updates = None;
@@ -612,8 +621,8 @@ impl SceneBuilderThread {
 
     /// Send the results of process_transaction back to the render backend.
     fn forward_built_transactions(&mut self, txns: Vec<Box<BuiltTransaction>>) {
-        let (pipeline_info, result_tx, result_rx) = match &self.hooks {
-            &Some(ref hooks) => {
+        let (pipeline_info, result_tx, result_rx) = match self.hooks {
+            Some(ref hooks) => {
                 if txns.iter().any(|txn| txn.built_scene.is_some()) {
                     let info = PipelineInfo {
                         epochs: txns.iter()
@@ -646,7 +655,7 @@ impl SceneBuilderThread {
         let have_resources_updates : Vec<DocumentId> = if pipeline_info.is_none() {
             txns.iter()
                 .filter(|txn| !txn.resource_updates.is_empty() || txn.invalidate_rendered_frame)
-                .map(|txn| txn.document_id.clone())
+                .map(|txn| txn.document_id)
                 .collect()
         } else {
             Vec::new()
@@ -663,20 +672,15 @@ impl SceneBuilderThread {
             self.hooks.as_ref().unwrap().post_scene_swap(&document_ids,
                                                          pipeline_info, scene_swap_time);
             // Once the hook is done, allow the RB thread to resume
-            match swap_result {
-                Ok(SceneSwapResult::Complete(resume_tx)) => {
-                    resume_tx.send(()).ok();
-                },
-                _ => (),
-            };
+            if let Ok(SceneSwapResult::Complete(resume_tx)) = swap_result {
+                resume_tx.send(()).ok();
+            }
         } else if !have_resources_updates.is_empty() {
-            if let &Some(ref hooks) = &self.hooks {
+            if let Some(ref hooks) = self.hooks {
                 hooks.post_resource_update(&have_resources_updates);
             }
-        } else {
-            if let &Some(ref hooks) = &self.hooks {
-                hooks.post_empty_scene_build();
-            }
+        } else if let Some(ref hooks) = self.hooks {
+            hooks.post_empty_scene_build();
         }
     }
 

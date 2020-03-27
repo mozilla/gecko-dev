@@ -16,10 +16,12 @@
 #include "nsHttpConnectionInfo.h"
 
 #include "mozilla/net/DNS.h"
+#include "mozilla/net/NeckoChannelParams.h"
 #include "nsComponentManagerUtils.h"
 #include "nsICryptoHash.h"
 #include "nsIProtocolProxyService.h"
 #include "nsNetCID.h"
+#include "nsProxyInfo.h"
 #include "prnetdb.h"
 
 static nsresult SHA256(const char* aPlainText, nsAutoCString& aResult) {
@@ -106,7 +108,7 @@ void nsHttpConnectionInfo::Init(const nsACString& host, int32_t port,
   mOriginAttributes = originAttributes;
   mTlsFlags = 0x0;
   mIsTrrServiceChannel = false;
-  mTrrDisabled = false;
+  mTRRMode = nsIRequest::TRR_DEFAULT_MODE;
   mIPv4Disabled = false;
   mIPv6Disabled = false;
 
@@ -234,11 +236,13 @@ void nsHttpConnectionInfo::BuildHashKey() {
     mHashKey.AppendLiteral("}");
   }
 
-  if (GetTrrDisabled()) {
-    // When connecting with TRR disabled, we enforce a separate connection
+  if (GetTRRMode() != nsIRequest::TRR_DEFAULT_MODE) {
+    // When connecting with another TRR mode, we enforce a separate connection
     // hashkey so that we also can trigger a fresh DNS resolver that then
     // doesn't use TRR as the previous connection might have.
-    mHashKey.AppendLiteral("[NOTRR]");
+    mHashKey.AppendLiteral("[TRR:");
+    mHashKey.AppendInt(GetTRRMode());
+    mHashKey.AppendLiteral("]");
   }
 
   if (GetIPv4Disabled()) {
@@ -304,7 +308,7 @@ void nsHttpConnectionInfo::SetOriginServer(const nsACString& host,
 }
 
 // Note that this function needs to be synced with
-// HttpTransactionChild::DeserializeHttpConnectionInfoCloneArgs to make sure
+// nsHttpConnectionInfo::DeserializeHttpConnectionInfoCloneArgs to make sure
 // nsHttpConnectionInfo can be serialized/deserialized.
 already_AddRefed<nsHttpConnectionInfo> nsHttpConnectionInfo::Clone() const {
   RefPtr<nsHttpConnectionInfo> clone;
@@ -328,12 +332,83 @@ already_AddRefed<nsHttpConnectionInfo> nsHttpConnectionInfo::Clone() const {
   clone->SetBeConservative(GetBeConservative());
   clone->SetTlsFlags(GetTlsFlags());
   clone->SetIsTrrServiceChannel(GetIsTrrServiceChannel());
-  clone->SetTrrDisabled(GetTrrDisabled());
+  clone->SetTRRMode(GetTRRMode());
   clone->SetIPv4Disabled(GetIPv4Disabled());
   clone->SetIPv6Disabled(GetIPv6Disabled());
   MOZ_ASSERT(clone->Equals(this));
 
   return clone.forget();
+}
+
+/* static */
+void nsHttpConnectionInfo::SerializeHttpConnectionInfo(
+    nsHttpConnectionInfo* aInfo, HttpConnectionInfoCloneArgs& aArgs) {
+  aArgs.host() = aInfo->GetOrigin();
+  aArgs.port() = aInfo->OriginPort();
+  aArgs.npnToken() = aInfo->GetNPNToken();
+  aArgs.username() = aInfo->GetUsername();
+  aArgs.originAttributes() = aInfo->GetOriginAttributes();
+  aArgs.endToEndSSL() = aInfo->EndToEndSSL();
+  aArgs.routedHost() = aInfo->GetRoutedHost();
+  aArgs.routedPort() = aInfo->RoutedPort();
+  aArgs.anonymous() = aInfo->GetAnonymous();
+  aArgs.aPrivate() = aInfo->GetPrivate();
+  aArgs.insecureScheme() = aInfo->GetInsecureScheme();
+  aArgs.noSpdy() = aInfo->GetNoSpdy();
+  aArgs.beConservative() = aInfo->GetBeConservative();
+  aArgs.tlsFlags() = aInfo->GetTlsFlags();
+  aArgs.isolated() = aInfo->GetIsolated();
+  aArgs.isTrrServiceChannel() = aInfo->GetTRRMode();
+  aArgs.trrMode() = aInfo->GetTRRMode();
+  aArgs.isIPv4Disabled() = aInfo->GetIPv4Disabled();
+  aArgs.isIPv6Disabled() = aInfo->GetIPv6Disabled();
+  aArgs.topWindowOrigin() = aInfo->GetTopWindowOrigin();
+  aArgs.isHttp3() = aInfo->IsHttp3();
+
+  if (!aInfo->ProxyInfo()) {
+    return;
+  }
+
+  nsTArray<ProxyInfoCloneArgs> proxyInfoArray;
+  nsProxyInfo::SerializeProxyInfo(aInfo->ProxyInfo(), proxyInfoArray);
+  aArgs.proxyInfo() = proxyInfoArray;
+}
+
+// This function needs to be synced with nsHttpConnectionInfo::Clone.
+/* static */
+already_AddRefed<nsHttpConnectionInfo>
+nsHttpConnectionInfo::DeserializeHttpConnectionInfoCloneArgs(
+    const HttpConnectionInfoCloneArgs& aInfoArgs) {
+  nsProxyInfo* pi = nsProxyInfo::DeserializeProxyInfo(aInfoArgs.proxyInfo());
+  RefPtr<nsHttpConnectionInfo> cinfo;
+  if (aInfoArgs.routedHost().IsEmpty()) {
+    cinfo = new nsHttpConnectionInfo(
+        aInfoArgs.host(), aInfoArgs.port(), aInfoArgs.npnToken(),
+        aInfoArgs.username(), aInfoArgs.topWindowOrigin(), pi,
+        aInfoArgs.originAttributes(), aInfoArgs.endToEndSSL(),
+        aInfoArgs.isolated(), aInfoArgs.isHttp3());
+  } else {
+    MOZ_ASSERT(aInfoArgs.endToEndSSL());
+    cinfo = new nsHttpConnectionInfo(
+        aInfoArgs.host(), aInfoArgs.port(), aInfoArgs.npnToken(),
+        aInfoArgs.username(), aInfoArgs.topWindowOrigin(), pi,
+        aInfoArgs.originAttributes(), aInfoArgs.routedHost(),
+        aInfoArgs.routedPort(), aInfoArgs.isolated(), aInfoArgs.isHttp3());
+  }
+
+  // Make sure the anonymous, insecure-scheme, and private flags are transferred
+  cinfo->SetAnonymous(aInfoArgs.anonymous());
+  cinfo->SetPrivate(aInfoArgs.aPrivate());
+  cinfo->SetInsecureScheme(aInfoArgs.insecureScheme());
+  cinfo->SetNoSpdy(aInfoArgs.noSpdy());
+  cinfo->SetBeConservative(aInfoArgs.beConservative());
+  cinfo->SetTlsFlags(aInfoArgs.tlsFlags());
+  cinfo->SetIsTrrServiceChannel(aInfoArgs.isTrrServiceChannel());
+  cinfo->SetTRRMode(static_cast<nsIRequest::TRRMode>(aInfoArgs.trrMode()));
+  cinfo->SetIPv4Disabled(aInfoArgs.isIPv4Disabled());
+  cinfo->SetIPv6Disabled(aInfoArgs.isIPv6Disabled());
+
+  return cinfo.forget();
 }
 
 void nsHttpConnectionInfo::CloneAsDirectRoute(nsHttpConnectionInfo** outCI) {
@@ -354,7 +429,7 @@ void nsHttpConnectionInfo::CloneAsDirectRoute(nsHttpConnectionInfo** outCI) {
   clone->SetBeConservative(GetBeConservative());
   clone->SetTlsFlags(GetTlsFlags());
   clone->SetIsTrrServiceChannel(GetIsTrrServiceChannel());
-  clone->SetTrrDisabled(GetTrrDisabled());
+  clone->SetTRRMode(GetTRRMode());
   clone->SetIPv4Disabled(GetIPv4Disabled());
   clone->SetIPv6Disabled(GetIPv6Disabled());
 
@@ -381,9 +456,9 @@ nsresult nsHttpConnectionInfo::CreateWildCard(nsHttpConnectionInfo** outParam) {
   return NS_OK;
 }
 
-void nsHttpConnectionInfo::SetTrrDisabled(bool aNoTrr) {
-  if (mTrrDisabled != aNoTrr) {
-    mTrrDisabled = aNoTrr;
+void nsHttpConnectionInfo::SetTRRMode(nsIRequest::TRRMode aTRRMode) {
+  if (mTRRMode != aTRRMode) {
+    mTRRMode = aTRRMode;
     RebuildHashKey();
   }
 }

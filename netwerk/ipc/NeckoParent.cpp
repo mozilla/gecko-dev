@@ -603,17 +603,18 @@ bool NeckoParent::DeallocPUDPSocketParent(PUDPSocketParent* actor) {
 }
 
 already_AddRefed<PDNSRequestParent> NeckoParent::AllocPDNSRequestParent(
-    const nsCString& aHost, const OriginAttributes& aOriginAttributes,
-    const uint32_t& aFlags) {
+    const nsCString& aHost, const nsCString& aTrrServer, const uint16_t& aType,
+    const OriginAttributes& aOriginAttributes, const uint32_t& aFlags) {
   RefPtr<DNSRequestParent> actor = new DNSRequestParent();
   return actor.forget();
 }
 
 mozilla::ipc::IPCResult NeckoParent::RecvPDNSRequestConstructor(
     PDNSRequestParent* aActor, const nsCString& aHost,
+    const nsCString& aTrrServer, const uint16_t& aType,
     const OriginAttributes& aOriginAttributes, const uint32_t& aFlags) {
   static_cast<DNSRequestParent*>(aActor)->DoAsyncResolve(
-      aHost, aOriginAttributes, aFlags);
+      aHost, aTrrServer, aType, aOriginAttributes, aFlags);
   return IPC_OK();
 }
 
@@ -634,14 +635,14 @@ mozilla::ipc::IPCResult NeckoParent::RecvSpeculativeConnect(
 
 mozilla::ipc::IPCResult NeckoParent::RecvHTMLDNSPrefetch(
     const nsString& hostname, const bool& isHttps,
-    const OriginAttributes& aOriginAttributes, const uint16_t& flags) {
+    const OriginAttributes& aOriginAttributes, const uint32_t& flags) {
   nsHTMLDNSPrefetch::Prefetch(hostname, isHttps, aOriginAttributes, flags);
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult NeckoParent::RecvCancelHTMLDNSPrefetch(
     const nsString& hostname, const bool& isHttps,
-    const OriginAttributes& aOriginAttributes, const uint16_t& flags,
+    const OriginAttributes& aOriginAttributes, const uint32_t& flags,
     const nsresult& reason) {
   nsHTMLDNSPrefetch::CancelPrefetch(hostname, isHttps, aOriginAttributes, flags,
                                     reason);
@@ -750,12 +751,8 @@ mozilla::ipc::IPCResult NeckoParent::RecvOnAuthCancelled(
 
 /* Predictor Messages */
 mozilla::ipc::IPCResult NeckoParent::RecvPredPredict(
-    const Maybe<ipc::URIParams>& aTargetURI,
-    const Maybe<ipc::URIParams>& aSourceURI, const uint32_t& aReason,
+    nsIURI* aTargetURI, nsIURI* aSourceURI, const uint32_t& aReason,
     const OriginAttributes& aOriginAttributes, const bool& hasVerifier) {
-  nsCOMPtr<nsIURI> targetURI = DeserializeURI(aTargetURI);
-  nsCOMPtr<nsIURI> sourceURI = DeserializeURI(aSourceURI);
-
   // Get the current predictor
   nsresult rv = NS_OK;
   nsCOMPtr<nsINetworkPredictor> predictor =
@@ -766,16 +763,17 @@ mozilla::ipc::IPCResult NeckoParent::RecvPredPredict(
   if (hasVerifier) {
     verifier = do_QueryInterface(predictor);
   }
-  predictor->PredictNative(targetURI, sourceURI, aReason, aOriginAttributes,
+  predictor->PredictNative(aTargetURI, aSourceURI, aReason, aOriginAttributes,
                            verifier);
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult NeckoParent::RecvPredLearn(
-    const ipc::URIParams& aTargetURI, const Maybe<ipc::URIParams>& aSourceURI,
-    const uint32_t& aReason, const OriginAttributes& aOriginAttributes) {
-  nsCOMPtr<nsIURI> targetURI = DeserializeURI(aTargetURI);
-  nsCOMPtr<nsIURI> sourceURI = DeserializeURI(aSourceURI);
+    nsIURI* aTargetURI, nsIURI* aSourceURI, const uint32_t& aReason,
+    const OriginAttributes& aOriginAttributes) {
+  if (!aTargetURI) {
+    return IPC_FAIL(this, "aTargetURI is null");
+  }
 
   // Get the current predictor
   nsresult rv = NS_OK;
@@ -783,7 +781,7 @@ mozilla::ipc::IPCResult NeckoParent::RecvPredLearn(
       do_GetService("@mozilla.org/network/predictor;1", &rv);
   NS_ENSURE_SUCCESS(rv, IPC_FAIL_NO_REASON(this));
 
-  predictor->LearnNative(targetURI, sourceURI, aReason, aOriginAttributes);
+  predictor->LearnNative(aTargetURI, aSourceURI, aReason, aOriginAttributes);
   return IPC_OK();
 }
 

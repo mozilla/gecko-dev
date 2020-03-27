@@ -70,11 +70,11 @@ static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
   // safely make its ntdll calls.
 
   HMODULE ourModule;
-#if defined(_MSC_VER)
+#  if defined(_MSC_VER)
   ourModule = reinterpret_cast<HMODULE>(&__ImageBase);
-#else
+#  else
   ourModule = ::GetModuleHandleW(nullptr);
-#endif  // defined(_MSC_VER)
+#  endif  // defined(_MSC_VER)
 
   mozilla::nt::PEHeaders ourExeImage(ourModule);
   if (!ourExeImage) {
@@ -89,7 +89,7 @@ static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
     return importDirRestored;
   }
 
-  Maybe<Span<IMAGE_THUNK_DATA>> ntdllThunks =
+  Maybe<Span<IMAGE_THUNK_DATA> > ntdllThunks =
       ourExeImage.GetIATThunksForModule("ntdll.dll");
   if (!ntdllThunks) {
     return LAUNCHER_ERROR_FROM_WIN32(ERROR_INVALID_DATA);

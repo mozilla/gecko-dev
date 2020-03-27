@@ -10,11 +10,7 @@ ARTIFACTS_DIR="/home/worker/artifacts"
 mkdir -p "$ARTIFACTS_DIR"
 
 # duplicate the functionality of taskcluster-lib-urls, but in bash..
-if [ "$TASKCLUSTER_ROOT_URL" = "https://taskcluster.net" ]; then
-    queue_base='https://queue.taskcluster.net/v1'
-else
-    queue_base="$TASKCLUSTER_ROOT_URL/api/queue/v1"
-fi
+queue_base="$TASKCLUSTER_ROOT_URL/api/queue/v1"
 
 curl --location --retry 10 --retry-delay 10 -o /home/worker/task.json "$queue_base/task/$TASK_ID"
 
@@ -51,10 +47,6 @@ then
 else
   # disable caching
   export MBSDIFF_HOOK=
-fi
-
-if [ -n "$FILENAME_TEMPLATE" ]; then
-    EXTRA_PARAMS="--filename-template $FILENAME_TEMPLATE $EXTRA_PARAMS"
 fi
 
 # EXTRA_PARAMS is optional

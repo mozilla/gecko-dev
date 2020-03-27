@@ -423,7 +423,7 @@ void nsSplitterFrameInner::MouseDrag(nsPresContext* aPresContext,
     bool supportsAfter = SupportsCollapseDirection(After);
 
     const bool isRTL =
-        mOuter->StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+        mOuter->StyleVisibility()->mDirection == StyleDirection::Rtl;
     bool pastEnd = oldPos > 0 && oldPos > pos;
     bool pastBegin = oldPos < 0 && oldPos < pos;
     if (isRTL) {
@@ -643,8 +643,8 @@ nsresult nsSplitterFrameInner::MouseDown(Event* aMouseEvent) {
     Reverse(mChildInfosAfter, mChildInfosAfterCount);
 
     // Now swap the two arrays.
-    Swap(mChildInfosBeforeCount, mChildInfosAfterCount);
-    Swap(mChildInfosBefore, mChildInfosAfter);
+    std::swap(mChildInfosBeforeCount, mChildInfosAfterCount);
+    std::swap(mChildInfosBefore, mChildInfosAfter);
   }
 
   // if resizebefore is not Farthest, reverse the list because the first child

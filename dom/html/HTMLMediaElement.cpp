@@ -460,10 +460,11 @@ class HTMLMediaElement::MediaControlEventListener final
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(IsStarted());
     MEDIACONTROL_LOG("OnKeyPressed '%s'", ToMediaControlKeysEventStr(aEvent));
-    if (aEvent == MediaControlKeysEvent::ePlay) {
+    if (aEvent == MediaControlKeysEvent::ePlay && Owner()->Paused()) {
       Owner()->Play();
-    } else if (aEvent == MediaControlKeysEvent::ePause ||
-               aEvent == MediaControlKeysEvent::eStop) {
+    } else if ((aEvent == MediaControlKeysEvent::ePause ||
+                aEvent == MediaControlKeysEvent::eStop) &&
+               !Owner()->Paused()) {
       Owner()->Pause();
     }
   }
@@ -7161,9 +7162,8 @@ already_AddRefed<Promise> HTMLMediaElement::SetMediaKeys(
   // 2. If this object's attaching media keys value is true, return a
   // promise rejected with a new DOMException whose name is InvalidStateError.
   if (mAttachingMediaKey) {
-    promise->MaybeReject(
-        NS_ERROR_DOM_INVALID_STATE_ERR,
-        NS_LITERAL_CSTRING("A MediaKeys object is in attaching operation."));
+    promise->MaybeRejectWithInvalidStateError(
+        "A MediaKeys object is in attaching operation.");
     return promise.forget();
   }
 
@@ -7770,8 +7770,7 @@ already_AddRefed<Promise> HTMLMediaElement::SetSinkId(const nsAString& aSinkId,
                      promise->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
                      break;
                    case NS_ERROR_NOT_AVAILABLE: {
-                     promise->MaybeRejectWithDOMException(
-                         NS_ERROR_DOM_NOT_FOUND_ERR,
+                     promise->MaybeRejectWithNotFoundError(
                          "The object can not be found here.");
                      break;
                    }

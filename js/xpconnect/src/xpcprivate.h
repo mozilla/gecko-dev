@@ -100,7 +100,6 @@
 #include "PLDHashTable.h"
 #include "nscore.h"
 #include "nsXPCOM.h"
-#include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDebug.h"
 #include "nsISupports.h"
@@ -167,18 +166,6 @@ class Exception;
 }  // namespace mozilla
 
 /***************************************************************************/
-// default initial sizes for maps (hashtables)
-
-#define XPC_JS_MAP_LENGTH 32
-
-#define XPC_NATIVE_MAP_LENGTH 8
-#define XPC_NATIVE_PROTO_MAP_LENGTH 8
-#define XPC_DYING_NATIVE_PROTO_MAP_LENGTH 8
-#define XPC_NATIVE_INTERFACE_MAP_LENGTH 32
-#define XPC_NATIVE_SET_MAP_LENGTH 32
-#define XPC_WRAPPER_MAP_LENGTH 8
-
-/***************************************************************************/
 // data declarations...
 extern const char XPC_EXCEPTION_CONTRACTID[];
 extern const char XPC_CONSOLE_CONTRACTID[];
@@ -226,8 +213,6 @@ class nsXPConnect final : public nsIXPConnect {
  public:
   static XPCJSRuntime* GetRuntimeInstance();
   XPCJSContext* GetContext() { return mContext; }
-
-  static bool IsISupportsDescendant(const nsXPTInterfaceInfo* info);
 
   static nsIScriptSecurityManager* SecurityManager() {
     MOZ_ASSERT(NS_IsMainThread());
@@ -486,21 +471,21 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
   void AssertInvalidWrappedJSNotInTable(nsXPCWrappedJS* wrapper) const;
 
   JSObject2WrappedJSMap* GetMultiCompartmentWrappedJSMap() const {
-    return mWrappedJSMap;
+    return mWrappedJSMap.get();
   }
 
   IID2NativeInterfaceMap* GetIID2NativeInterfaceMap() const {
-    return mIID2NativeInterfaceMap;
+    return mIID2NativeInterfaceMap.get();
   }
 
   ClassInfo2NativeSetMap* GetClassInfo2NativeSetMap() const {
-    return mClassInfo2NativeSetMap;
+    return mClassInfo2NativeSetMap.get();
   }
 
-  NativeSetMap* GetNativeSetMap() const { return mNativeSetMap; }
+  NativeSetMap* GetNativeSetMap() const { return mNativeSetMap.get(); }
 
   XPCWrappedNativeProtoMap* GetDyingWrappedNativeProtoMap() const {
-    return mDyingWrappedNativeProtoMap;
+    return mDyingWrappedNativeProtoMap.get();
   }
 
   XPCWrappedNativeScopeList& GetWrappedNativeScopes() {
@@ -619,13 +604,13 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
                         Hasher, js::SystemAllocPolicy, SweepPolicy>
       Principal2JSObjectMap;
 
-  JSObject2WrappedJSMap* mWrappedJSMap;
-  IID2NativeInterfaceMap* mIID2NativeInterfaceMap;
-  ClassInfo2NativeSetMap* mClassInfo2NativeSetMap;
-  NativeSetMap* mNativeSetMap;
+  mozilla::UniquePtr<JSObject2WrappedJSMap> mWrappedJSMap;
+  mozilla::UniquePtr<IID2NativeInterfaceMap> mIID2NativeInterfaceMap;
+  mozilla::UniquePtr<ClassInfo2NativeSetMap> mClassInfo2NativeSetMap;
+  mozilla::UniquePtr<NativeSetMap> mNativeSetMap;
   Principal2JSObjectMap mUAWidgetScopeMap;
   XPCWrappedNativeScopeList mWrappedNativeScopes;
-  XPCWrappedNativeProtoMap* mDyingWrappedNativeProtoMap;
+  mozilla::UniquePtr<XPCWrappedNativeProtoMap> mDyingWrappedNativeProtoMap;
   bool mGCIsRunning;
   nsTArray<nsISupports*> mNativesToReleaseArray;
   bool mDoingFinalization;
@@ -687,28 +672,22 @@ class MOZ_STACK_CLASS XPCCallContext final {
   inline XPCCallContext* GetPrevCallContext() const;
 
   inline JSObject* GetFlattenedJSObject() const;
-  inline nsISupports* GetIdentityObject() const;
   inline XPCWrappedNative* GetWrapper() const;
-  inline XPCWrappedNativeProto* GetProto() const;
 
   inline bool CanGetTearOff() const;
   inline XPCWrappedNativeTearOff* GetTearOff() const;
 
   inline nsIXPCScriptable* GetScriptable() const;
-  inline bool CanGetSet() const;
   inline XPCNativeSet* GetSet() const;
   inline bool CanGetInterface() const;
   inline XPCNativeInterface* GetInterface() const;
   inline XPCNativeMember* GetMember() const;
   inline bool HasInterfaceAndMember() const;
-  inline jsid GetName() const;
   inline bool GetStaticMemberIsLocal() const;
   inline unsigned GetArgc() const;
   inline JS::Value* GetArgv() const;
-  inline JS::Value* GetRetVal() const;
 
   inline uint16_t GetMethodIndex() const;
-  inline void SetMethodIndex(uint16_t index);
 
   inline jsid GetResolveName() const;
   inline jsid SetResolveName(JS::HandleId name);
@@ -816,18 +795,14 @@ class XPCWrappedNativeScope final
   XPCJSRuntime* GetRuntime() const { return XPCJSRuntime::Get(); }
 
   Native2WrappedNativeMap* GetWrappedNativeMap() const {
-    return mWrappedNativeMap;
+    return mWrappedNativeMap.get();
   }
 
   ClassInfo2WrappedNativeProtoMap* GetWrappedNativeProtoMap() const {
-    return mWrappedNativeProtoMap;
+    return mWrappedNativeProtoMap.get();
   }
 
   nsXPCComponentsBase* GetComponents() const { return mComponents; }
-
-  // Forces the creation of a privileged |Components| object, even in
-  // content scopes. This will crash if used outside of automation.
-  void ForcePrivilegedComponents();
 
   bool AttachComponentsObject(JSContext* aCx);
 
@@ -890,7 +865,7 @@ class XPCWrappedNativeScope final
                         JS::HandleObject aFirstGlobal);
   virtual ~XPCWrappedNativeScope();
 
-  nsAutoPtr<JSObject2JSObjectMap> mWaiverWrapperMap;
+  mozilla::UniquePtr<JSObject2JSObjectMap> mWaiverWrapperMap;
 
   JS::Compartment* Compartment() const { return mCompartment; }
 
@@ -912,8 +887,8 @@ class XPCWrappedNativeScope final
   XPCWrappedNativeScope() = delete;
 
  private:
-  Native2WrappedNativeMap* mWrappedNativeMap;
-  ClassInfo2WrappedNativeProtoMap* mWrappedNativeProtoMap;
+  mozilla::UniquePtr<Native2WrappedNativeMap> mWrappedNativeMap;
+  mozilla::UniquePtr<ClassInfo2WrappedNativeProtoMap> mWrappedNativeProtoMap;
   RefPtr<nsXPCComponentsBase> mComponents;
   JS::Compartment* mCompartment;
 
@@ -1055,7 +1030,6 @@ class XPCNativeInterface final {
   inline const char* GetNameString() const;
   inline XPCNativeMember* FindMember(jsid name) const;
 
-  inline bool HasAncestor(const nsIID* iid) const;
   static inline size_t OffsetOfMembers();
 
   uint16_t GetMemberCount() const { return mMemberCount; }
@@ -1170,10 +1144,6 @@ class XPCNativeSet final {
                          XPCNativeSet* protoSet, bool* pIsLocal) const;
 
   inline bool HasInterface(XPCNativeInterface* aInterface) const;
-  inline bool HasInterfaceWithAncestor(XPCNativeInterface* aInterface) const;
-  inline bool HasInterfaceWithAncestor(const nsIID* iid) const;
-
-  inline XPCNativeInterface* FindInterfaceWithIID(const nsIID& iid) const;
 
   uint16_t GetInterfaceCount() const { return mInterfaceCount; }
   XPCNativeInterface** GetInterfaceArray() { return mInterfaces; }
@@ -1476,8 +1446,6 @@ class XPCWrappedNative final : public nsIXPConnectWrappedNative {
   static bool SetAttribute(XPCCallContext& ccx) {
     return CallMethod(ccx, CALL_SETTER);
   }
-
-  inline bool HasInterfaceNoQI(const nsIID& iid);
 
   XPCWrappedNativeTearOff* FindTearOff(JSContext* cx,
                                        XPCNativeInterface* aInterface,
@@ -2294,6 +2262,7 @@ struct GlobalProperties {
   bool crypto : 1;
   bool fetch : 1;
   bool indexedDB : 1;
+  bool isSecureContext : 1;
   bool rtcIdentityProvider : 1;
 
  private:
@@ -2341,6 +2310,7 @@ class MOZ_STACK_CLASS SandboxOptions : public OptionsBase {
         isWebExtensionContentScript(false),
         proto(cx),
         sameZoneAs(cx),
+        forceSecureContext(false),
         freshCompartment(false),
         freshZone(false),
         isUAWidgetScope(false),
@@ -2360,6 +2330,7 @@ class MOZ_STACK_CLASS SandboxOptions : public OptionsBase {
   JS::RootedObject proto;
   nsCString sandboxName;
   JS::RootedObject sameZoneAs;
+  bool forceSecureContext;
   bool freshCompartment;
   bool freshZone;
   bool isUAWidgetScope;
@@ -2640,8 +2611,7 @@ class CompartmentPrivate {
 
     // Don't share if we have any weird state set.
     return !wantXrays && !isWebExtensionContentScript &&
-           !isUAWidgetCompartment && !universalXPConnectEnabled &&
-           mScope->XBLScopeStateMatches(principal);
+           !isUAWidgetCompartment && mScope->XBLScopeStateMatches(principal);
   }
 
   CompartmentOriginInfo originInfo;
@@ -2674,18 +2644,10 @@ class CompartmentPrivate {
   // See CompartmentHasExclusiveExpandos.
   bool hasExclusiveExpandos;
 
-  // This is only ever set during mochitest runs when enablePrivilege is called.
-  // It's intended as a temporary stopgap measure until we can finish ripping
-  // out enablePrivilege. Once set, this value is never unset (i.e., it doesn't
-  // follow the old scoping rules of enablePrivilege).
-  //
-  // Using it in production is inherently unsafe.
-  bool universalXPConnectEnabled;
-
   // Whether SystemIsBeingShutDown has been called on this compartment.
   bool wasShutdown;
 
-  JSObject2WrappedJSMap* GetWrappedJSMap() const { return mWrappedJSMap; }
+  JSObject2WrappedJSMap* GetWrappedJSMap() const { return mWrappedJSMap.get(); }
   void UpdateWeakPointersAfterGC();
 
   void SystemIsBeingShutDown();
@@ -2708,7 +2670,7 @@ class CompartmentPrivate {
   XPCWrappedNativeScope* GetScope() { return mScope.get(); }
 
  private:
-  JSObject2WrappedJSMap* mWrappedJSMap;
+  mozilla::UniquePtr<JSObject2WrappedJSMap> mWrappedJSMap;
 
   // Cache holding proxy objects for Window objects (and their Location object)
   // that are loaded in a different process.
@@ -2717,10 +2679,6 @@ class CompartmentPrivate {
   // Our XPCWrappedNativeScope.
   mozilla::UniquePtr<XPCWrappedNativeScope> mScope;
 };
-
-bool IsUniversalXPConnectEnabled(JS::Compartment* compartment);
-bool IsUniversalXPConnectEnabled(JSContext* cx);
-bool EnableUniversalXPConnect(JSContext* cx);
 
 inline void CrashIfNotInAutomation() { MOZ_RELEASE_ASSERT(IsInAutomation()); }
 

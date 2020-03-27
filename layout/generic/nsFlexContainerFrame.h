@@ -156,7 +156,7 @@ class nsFlexContainerFrame final : public nsContainerFrame {
   uint32_t GetLineClampValue() const;
 
   // nsContainerFrame overrides
-  uint16_t CSSAlignmentForAbsPosChild(
+  mozilla::StyleAlignFlags CSSAlignmentForAbsPosChild(
       const ReflowInput& aChildRI,
       mozilla::LogicalAxis aLogicalAxis) const override;
 
@@ -165,7 +165,8 @@ class nsFlexContainerFrame final : public nsContainerFrame {
    * subjects in MainAxisPositionTracker() and CrossAxisPositionTracker() for
    * space-between, space-around, and space-evenly.
    *    * @param aNumThingsToPack             Number of alignment subjects.
-   * @param aAlignVal                    Value for align-self or justify-self.
+   * @param aAlignVal                    Value for align-content or
+   *                                     justify-content.
    * @param aFirstSubjectOffset          Outparam for first subject offset.
    * @param aNumPackingSpacesRemaining   Outparam for number of equal-sized
    *                                     packing spaces to apply between each
@@ -173,11 +174,11 @@ class nsFlexContainerFrame final : public nsContainerFrame {
    * @param aPackingSpaceRemaining       Outparam for total amount of packing
    *                                     space to be divided up.
    */
-  static void CalculatePackingSpace(uint32_t aNumThingsToPack,
-                                    uint8_t aAlignVal,
-                                    nscoord* aFirstSubjectOffset,
-                                    uint32_t* aNumPackingSpacesRemaining,
-                                    nscoord* aPackingSpaceRemaining);
+  static void CalculatePackingSpace(
+      uint32_t aNumThingsToPack,
+      const mozilla::StyleContentDistribution& aAlignVal,
+      nscoord* aFirstSubjectOffset, uint32_t* aNumPackingSpacesRemaining,
+      nscoord* aPackingSpaceRemaining);
 
   /**
    * This property is created by a call to
@@ -198,6 +199,26 @@ class nsFlexContainerFrame final : public nsContainerFrame {
                          "See Bug 1157012.");
     return info;
   }
+
+  /**
+   * This function creates a new ComputedFlexContainerInfo or clear the existing
+   * one.
+   */
+  void CreateOrClearFlexContainerInfo();
+
+  /**
+   * Helpers for DoFlexLayout to computed fields in ComputedFlexContainerInfo.
+   */
+  static void CreateFlexLineAndFlexItemInfo(
+      ComputedFlexContainerInfo& aContainerInfo,
+      const mozilla::LinkedList<FlexLine>& aLines);
+
+  static void ComputeFlexDirections(ComputedFlexContainerInfo& aContainerInfo,
+                                    const FlexboxAxisTracker& aAxisTracker);
+
+  static void UpdateFlexLineAndItemInfo(
+      ComputedFlexContainerInfo& aContainerInfo,
+      const mozilla::LinkedList<FlexLine>& aLines);
 
   /**
    * Return aFrame as a flex frame after ensuring it has computed flex info.
@@ -297,6 +318,7 @@ class nsFlexContainerFrame final : public nsContainerFrame {
    * "min-height:auto", via ResolveAutoFlexBasisAndMinSize(). (Basically, the
    * returned FlexItem will be ready to participate in the "Resolve the
    * Flexible Lengths" step of the Flex Layout Algorithm.)
+   * https://drafts.csswg.org/css-flexbox-1/#algo-flex
    */
   mozilla::UniquePtr<FlexItem> GenerateFlexItemForChild(
       nsPresContext* aPresContext, nsIFrame* aChildFrame,
@@ -354,6 +376,9 @@ class nsFlexContainerFrame final : public nsContainerFrame {
    *  - Groups those FlexItems into FlexLines.
    *  - Returns those FlexLines in the outparam |aLines|.
    *
+   * This corresponds to "Collect flex items into flex lines" step in the spec.
+   * https://drafts.csswg.org/css-flexbox-1/#algo-line-break
+   *
    * For any child frames which are placeholders, this method will instead just
    * append that child to the outparam |aPlaceholders| for separate handling.
    * (Absolutely positioned children of a flex container are *not* flex items.)
@@ -378,7 +403,6 @@ class nsFlexContainerFrame final : public nsContainerFrame {
                            nsReflowStatus& aStatus);
 
   void SizeItemInCrossAxis(nsPresContext* aPresContext,
-                           const FlexboxAxisTracker& aAxisTracker,
                            ReflowInput& aChildReflowInput, FlexItem& aItem);
 
   /**

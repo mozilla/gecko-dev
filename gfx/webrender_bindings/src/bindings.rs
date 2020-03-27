@@ -7,10 +7,6 @@ use std::ffi::{CStr, CString};
 use std::ffi::OsString;
 #[cfg(target_os = "windows")]
 use std::os::windows::ffi::OsStringExt;
-#[cfg(target_os = "windows")]
-use winapi::um::processthreadsapi::{SetThreadPriority,GetCurrentThread};
-#[cfg(target_os = "windows")]
-use winapi::um::winbase::{SetThreadAffinityMask};
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 use std::os::unix::ffi::OsStringExt;
 use std::io::Cursor;
@@ -42,7 +38,6 @@ use rayon;
 use num_cpus;
 use euclid::SideOffsets2D;
 use nsstring::nsAString;
-//linux only//use thread_priority::*;
 
 #[cfg(target_os = "macos")]
 use core_foundation::string::CFString;
@@ -356,6 +351,7 @@ pub struct WrImageDescriptor {
     pub height: i32,
     pub stride: i32,
     pub opacity: OpacityType,
+    // TODO(gw): Remove this flag (use prim flags instead).
     pub prefer_compositor_surface: bool,
 }
 
@@ -365,10 +361,6 @@ impl<'a> Into<ImageDescriptor> for &'a WrImageDescriptor {
 
         if self.opacity == OpacityType::Opaque {
             flags |= ImageDescriptorFlags::IS_OPAQUE;
-        }
-
-        if self.prefer_compositor_surface {
-            flags |= ImageDescriptorFlags::PREFER_COMPOSITOR_SURFACE;
         }
 
         ImageDescriptor {
@@ -1069,21 +1061,6 @@ pub unsafe extern "C" fn wr_thread_pool_new(low_priority: bool) -> *mut WrThread
         .thread_name(move |idx|{ format!("WRWorker{}#{}", priority_tag, idx) })
         .num_threads(num_threads)
         .start_handler(move |idx| {
-            #[cfg(target_os = "windows")]
-            {
-                SetThreadPriority(
-                    GetCurrentThread(),
-                    if low_priority {
-                        -1 /* THREAD_PRIORITY_BELOW_NORMAL */
-                    } else {
-                        0 /* THREAD_PRIORITY_NORMAL */
-                    });
-                SetThreadAffinityMask(GetCurrentThread(), 1usize << idx);
-            }
-            /*let thread_id = thread_native_id();
-            set_thread_priority(thread_id,
-                if low_priority { ThreadPriority::Min } else { ThreadPriority::Max },
-                ThreadSchedulePolicy::Normal(NormalThreadSchedulePolicy::Normal));*/
             wr_register_thread_local_arena();
             let name = format!("WRWorker{}#{}",priority_tag, idx);
             register_thread_with_profiler(name.clone());
@@ -1209,6 +1186,7 @@ extern "C" {
         compositor: *mut c_void,
         id: NativeSurfaceId,
         tile_size: DeviceIntSize,
+        is_opaque: bool,
     );
     fn wr_compositor_destroy_surface(
         compositor: *mut c_void,
@@ -1219,7 +1197,6 @@ extern "C" {
         id: NativeSurfaceId,
         x: i32,
         y: i32,
-        is_opaque: bool,
     );
     fn wr_compositor_destroy_tile(
         compositor: *mut c_void,
@@ -1243,6 +1220,10 @@ extern "C" {
         clip_rect: DeviceIntRect,
     );
     fn wr_compositor_end_frame(compositor: *mut c_void);
+    fn wr_compositor_enable_native_compositor(
+        compositor: *mut c_void,
+        enable: bool,
+    );
 }
 
 pub struct WrCompositor(*mut c_void);
@@ -1252,12 +1233,14 @@ impl Compositor for WrCompositor {
         &mut self,
         id: NativeSurfaceId,
         tile_size: DeviceIntSize,
+        is_opaque: bool,
     ) {
         unsafe {
             wr_compositor_create_surface(
                 self.0,
                 id,
                 tile_size,
+                is_opaque,
             );
         }
     }
@@ -1277,7 +1260,6 @@ impl Compositor for WrCompositor {
     fn create_tile(
         &mut self,
         id: NativeTileId,
-        is_opaque: bool,
     ) {
         unsafe {
             wr_compositor_create_tile(
@@ -1285,7 +1267,6 @@ impl Compositor for WrCompositor {
                 id.surface_id,
                 id.x,
                 id.y,
-                is_opaque,
             );
         }
     }
@@ -1365,6 +1346,15 @@ impl Compositor for WrCompositor {
         unsafe {
             wr_compositor_end_frame(
                 self.0,
+            );
+        }
+    }
+
+    fn enable_native_compositor(&mut self, enable: bool) {
+        unsafe {
+            wr_compositor_enable_native_compositor(
+                self.0,
+                enable,
             );
         }
     }
@@ -1606,6 +1596,16 @@ pub unsafe extern "C" fn wr_api_accumulate_memory_report(
 #[no_mangle]
 pub unsafe extern "C" fn wr_api_clear_all_caches(dh: &mut DocumentHandle) {
     dh.api.send_debug_cmd(DebugCommand::ClearCaches(ClearCache::all()));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wr_api_enable_native_compositor(dh: &mut DocumentHandle, enable: bool) {
+    dh.api.send_debug_cmd(DebugCommand::EnableNativeCompositor(enable));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wr_api_enable_multithreading(dh: &mut DocumentHandle, enable: bool) {
+    dh.api.send_debug_cmd(DebugCommand::EnableMultithreading(enable));
 }
 
 fn make_transaction(do_async: bool) -> Transaction {
@@ -2297,6 +2297,7 @@ pub struct WrState {
     pipeline_id: WrPipelineId,
     frame_builder: WebRenderFrameBuilder,
     current_tag: Option<ItemTag>,
+    current_item_key: Option<ItemKey>,
 }
 
 #[no_mangle]
@@ -2311,6 +2312,7 @@ pub extern "C" fn wr_state_new(pipeline_id: WrPipelineId,
                                                                                  content_size,
                                                                                  capacity),
                              current_tag: None,
+                             current_item_key: None,
                          });
 
     Box::into_raw(state)
@@ -2681,6 +2683,7 @@ pub extern "C" fn wr_dp_push_rect(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder.dl_builder.push_rect(
@@ -2711,6 +2714,7 @@ pub extern "C" fn wr_dp_push_rect_with_parent_clip(
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder.dl_builder.push_rect(
@@ -2763,6 +2767,7 @@ pub extern "C" fn wr_dp_push_backdrop_filter_with_parent_clip(
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder.dl_builder.push_backdrop_filter(
@@ -2791,6 +2796,7 @@ pub extern "C" fn wr_dp_push_clear_rect(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(true),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder.dl_builder.push_clear_rect(
@@ -2817,6 +2823,7 @@ pub extern "C" fn wr_dp_push_hit_test(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder.dl_builder.push_hit_test(
@@ -2844,6 +2851,7 @@ pub extern "C" fn wr_dp_push_clear_rect_with_parent_clip(
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(true),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder.dl_builder.push_clear_rect(
@@ -2871,6 +2879,7 @@ pub extern "C" fn wr_dp_push_image(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     let alpha_type = if premultiplied_alpha {
@@ -2911,6 +2920,7 @@ pub extern "C" fn wr_dp_push_repeating_image(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     let alpha_type = if premultiplied_alpha {
@@ -2955,6 +2965,7 @@ pub extern "C" fn wr_dp_push_yuv_planar_image(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder
@@ -2991,6 +3002,7 @@ pub extern "C" fn wr_dp_push_yuv_NV12_image(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder
@@ -3026,6 +3038,7 @@ pub extern "C" fn wr_dp_push_yuv_interleaved_image(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder
@@ -3061,7 +3074,8 @@ pub extern "C" fn wr_dp_push_text(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         clip_id: space_and_clip.clip_id,
         flags: prim_flags(is_backface_visible),
-        hit_info: state.current_tag
+        hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder
@@ -3118,6 +3132,7 @@ pub extern "C" fn wr_dp_push_line(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder
@@ -3163,6 +3178,7 @@ pub extern "C" fn wr_dp_push_border(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder
@@ -3212,6 +3228,7 @@ pub extern "C" fn wr_dp_push_border_image(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder.dl_builder.push_border(
@@ -3270,6 +3287,7 @@ pub extern "C" fn wr_dp_push_border_gradient(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder.dl_builder.push_border(
@@ -3332,6 +3350,7 @@ pub extern "C" fn wr_dp_push_border_radial_gradient(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder.dl_builder.push_border(
@@ -3375,6 +3394,7 @@ pub extern "C" fn wr_dp_push_linear_gradient(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder.dl_builder.push_gradient(
@@ -3419,6 +3439,7 @@ pub extern "C" fn wr_dp_push_radial_gradient(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder.dl_builder.push_radial_gradient(
@@ -3452,6 +3473,7 @@ pub extern "C" fn wr_dp_push_box_shadow(state: &mut WrState,
         spatial_id: space_and_clip.spatial_id,
         flags: prim_flags(is_backface_visible),
         hit_info: state.current_tag,
+        item_key: state.current_item_key,
     };
 
     state.frame_builder
@@ -3465,6 +3487,44 @@ pub extern "C" fn wr_dp_push_box_shadow(state: &mut WrState,
                           border_radius,
                           clip_mode);
 }
+
+#[no_mangle]
+pub extern "C" fn wr_dp_start_cached_item(state: &mut WrState,
+                                          key: ItemKey) {
+    debug_assert!(state.current_item_key.is_none(), "Nested item keys");
+    state.current_item_key = Some(key);
+
+    state.frame_builder.dl_builder.start_extra_data_chunk();
+}
+
+#[no_mangle]
+pub extern "C" fn wr_dp_end_cached_item(state: &mut WrState,
+                                        key: ItemKey) {
+    // Avoid pushing reuse item marker when no extra data was written.
+    if state.frame_builder.dl_builder.end_extra_data_chunk() > 0 {
+        state.frame_builder.dl_builder.push_reuse_item(key);
+    }
+
+    debug_assert!(state.current_item_key.is_some(), "Nested item keys");
+    state.current_item_key = None;
+}
+
+#[no_mangle]
+pub extern "C" fn wr_dp_push_reuse_item(state: &mut WrState,
+                                        key: ItemKey) {
+    state.frame_builder
+        .dl_builder
+        .push_reuse_item(key);
+}
+
+#[no_mangle]
+pub extern "C" fn wr_dp_set_cache_size(state: &mut WrState,
+                                       cache_size: usize) {
+    state.frame_builder
+        .dl_builder
+        .set_cache_size(cache_size);
+}
+
 
 #[no_mangle]
 pub extern "C" fn wr_dump_display_list(state: &mut WrState,

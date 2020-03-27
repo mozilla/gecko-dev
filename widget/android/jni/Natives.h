@@ -8,21 +8,20 @@
 #define mozilla_jni_Natives_h__
 
 #include <jni.h>
+
 #include <utility>
 
-#include "nsThreadUtils.h"
-
-#include "mozilla/Move.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Tuple.h"
 #include "mozilla/TypeTraits.h"
 #include "mozilla/UniquePtr.h"
-#include "mozilla/WeakPtr.h"
 #include "mozilla/Unused.h"
+#include "mozilla/WeakPtr.h"
 #include "mozilla/jni/Accessors.h"
 #include "mozilla/jni/Refs.h"
 #include "mozilla/jni/Types.h"
 #include "mozilla/jni/Utils.h"
+#include "nsThreadUtils.h"
 
 struct NativeException {
   const char* str;
@@ -128,7 +127,7 @@ enum NativePtrType { OWNING, WEAK, REFPTR };
 template <class Impl>
 class NativePtrPicker {
   template <class I>
-  static typename EnableIf<IsBaseOf<SupportsWeakPtr<I>, I>::value,
+  static typename EnableIf<std::is_base_of<SupportsWeakPtr<I>, I>::value,
                            char (&)[NativePtrType::WEAK]>::Type
   Test(char);
 

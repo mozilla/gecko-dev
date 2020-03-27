@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
- 
+
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("devtools/client/shared/vendor/react-prop-types"), require("devtools/client/shared/vendor/react-dom-factories"), require("devtools/client/shared/vendor/react"), require("Services"), require("devtools/client/shared/vendor/react-redux"));
@@ -3179,7 +3179,7 @@ function ErrorRep(props) {
   const mode = props.mode;
   let name;
 
-  if (preview && preview.name && preview.kind) {
+  if (preview && preview.name && typeof preview.name === "string" && preview.kind) {
     switch (preview.kind) {
       case "Error":
         name = preview.name;
@@ -3198,7 +3198,7 @@ function ErrorRep(props) {
 
   const content = [];
 
-  if (mode === MODE.TINY) {
+  if (mode === MODE.TINY || typeof preview.message !== "string") {
     content.push(name);
   } else {
     content.push(`${name}: "${preview.message}"`);
@@ -8033,7 +8033,7 @@ function nodeLoadProperties(node, actor) {
       const properties = await loadItemProperties(node, client, loadedProperties); // If the client does not have a releaseActor function, it means the actors are
       // handled directly by the consumer, so we don't need to track them.
 
-      if (!client.releaseActor) {
+      if (!client || !client.releaseActor) {
         actor = null;
       }
 
@@ -8163,7 +8163,7 @@ function rootsChanged(props) {
 async function releaseActors(state, client, dispatch) {
   const actors = getActors(state);
 
-  if (!client.releaseActor || actors.size === 0) {
+  if (!client || !client.releaseActor || actors.size === 0) {
     return;
   }
 

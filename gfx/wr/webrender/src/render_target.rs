@@ -7,7 +7,7 @@ use api::units::*;
 use api::{ColorF, PremultipliedColorF, ImageFormat, LineOrientation, BorderStyle, PipelineId};
 use crate::batch::{AlphaBatchBuilder, AlphaBatchContainer, BatchTextures, resolve_image};
 use crate::batch::{ClipBatcher, BatchBuilder};
-use crate::clip_scroll_tree::{ClipScrollTree, ROOT_SPATIAL_NODE_INDEX};
+use crate::spatial_tree::{SpatialTree, ROOT_SPATIAL_NODE_INDEX};
 use crate::clip::ClipStore;
 use crate::composite::CompositeState;
 use crate::device::Texture;
@@ -63,7 +63,7 @@ pub struct RenderTargetContext<'a, 'rc> {
     pub use_advanced_blending: bool,
     pub break_advanced_blend_batches: bool,
     pub batch_lookback_count: usize,
-    pub clip_scroll_tree: &'a ClipScrollTree,
+    pub spatial_tree: &'a SpatialTree,
     pub data_stores: &'a DataStores,
     pub surfaces: &'a [SurfaceInfo],
     pub scratch: &'a PrimitiveScratchBuffer,
@@ -663,7 +663,7 @@ impl RenderTarget for AlphaRenderTarget {
                     ctx.resource_cache,
                     gpu_cache,
                     clip_store,
-                    ctx.clip_scroll_tree,
+                    ctx.spatial_tree,
                     transforms,
                     &ctx.data_stores.clip,
                     task_info.actual_rect,
@@ -773,7 +773,10 @@ impl TextureCacheRenderTarget {
                     task_rect: target_rect.0.to_f32(),
                     local_size: info.local_size,
                     style: info.style as i32,
-                    orientation: info.orientation as i32,
+                    axis_select: match info.orientation {
+                        LineOrientation::Horizontal => 0.0,
+                        LineOrientation::Vertical => 1.0,
+                    },
                     wavy_line_thickness: info.wavy_line_thickness,
                 });
             }
@@ -1050,12 +1053,13 @@ pub struct BlitJob {
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
+#[derive(Debug)]
 pub struct LineDecorationJob {
     pub task_rect: DeviceRect,
     pub local_size: LayoutSize,
     pub wavy_line_thickness: f32,
     pub style: i32,
-    pub orientation: i32,
+    pub axis_select: f32,
 }
 
 #[cfg_attr(feature = "capture", derive(Serialize))]

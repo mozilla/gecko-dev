@@ -601,8 +601,9 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   nsresult Close() override;
   bool GetClosed(mozilla::ErrorResult& aError);
   void Stop(mozilla::ErrorResult& aError);
-  void Focus(mozilla::ErrorResult& aError);
-  nsresult Focus() override;
+  void Focus(mozilla::dom::CallerType aCallerType,
+             mozilla::ErrorResult& aError);
+  nsresult Focus(mozilla::dom::CallerType aCallerType) override;
   void Blur(mozilla::ErrorResult& aError);
   mozilla::dom::WindowProxyHolder GetFrames(mozilla::ErrorResult& aError);
   uint32_t Length();
@@ -628,7 +629,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   nsPIDOMWindowOuter* GetInProcessScriptableParent() override;
   mozilla::dom::Element* GetFrameElement(nsIPrincipal& aSubjectPrincipal,
                                          mozilla::ErrorResult& aError);
-  mozilla::dom::Element* GetFrameElement() override;
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> Open(
       const nsAString& aUrl, const nsAString& aName, const nsAString& aOptions,
       mozilla::ErrorResult& aError);
@@ -894,7 +894,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   void GetAttention(mozilla::ErrorResult& aError);
   void GetAttentionWithCycleCount(int32_t aCycleCount,
                                   mozilla::ErrorResult& aError);
-  void SetCursor(const nsAString& aCursor, mozilla::ErrorResult& aError);
+  void SetCursor(const nsACString& aCursor, mozilla::ErrorResult& aError);
   void Maximize();
   void Minimize();
   void Restore();
@@ -944,7 +944,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
     return GetExtantDoc() && GetExtantDoc()->IsInSyncOperation();
   }
 
-  bool IsSharedMemoryAllowed() const;
+  bool IsSharedMemoryAllowed() const override;
 
   // https://whatpr.org/html/4734/structured-data.html#cross-origin-isolated
   bool CrossOriginIsolated() const;
@@ -1017,9 +1017,9 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   void FreeInnerObjects();
 
-  // Only to be called on an inner window.
-  // aDocument must not be null.
-  void InnerSetNewDocument(JSContext* aCx, Document* aDocument);
+  // Initialize state that depends on the document.  By this point, mDoc should
+  // be set correctly and have us set as its script global object.
+  void InitDocumentDependentState(JSContext* aCx);
 
   nsresult EnsureClientSource();
   nsresult ExecutionReady();
@@ -1180,6 +1180,10 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   mozilla::dom::TabGroup* TabGroupInner();
 
+  // Like TabGroupInner, but it is more tolerant of being called at peculiar
+  // times, and it can return null.
+  mozilla::dom::TabGroup* MaybeTabGroupInner();
+
   bool IsBackgroundInternal() const;
 
   // NOTE: Chrome Only
@@ -1235,6 +1239,9 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   void RemoveIdleCallback(mozilla::dom::IdleRequest* aRequest);
 
   void SetActiveLoadingState(bool aIsLoading) override;
+
+  // Hint to the JS engine whether we are currently loading.
+  void HintIsLoading(bool aIsLoading);
 
  protected:
   // Window offline status. Checked to see if we need to fire offline event
@@ -1300,6 +1307,9 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   bool WasCurrentInnerWindow() const override { return mWasCurrentInnerWindow; }
 
   bool mHasSeenGamepadInput : 1;
+
+  // Whether we told the JS engine that we were in pageload.
+  bool mHintedWasLoading : 1;
 
   nsCheapSet<nsUint32HashKey> mGamepadIndexSet;
   nsRefPtrHashtable<nsUint32HashKey, mozilla::dom::Gamepad> mGamepads;

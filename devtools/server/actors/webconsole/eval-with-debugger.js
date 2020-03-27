@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* global BigInt */
 
 "use strict";
 
@@ -116,7 +117,7 @@ exports.evalWithDebugger = function(string, options = {}, webConsole) {
 
   const { dbgWindow, bindSelf } = getDbgWindow(options, dbg, webConsole);
   const helpers = getHelpers(dbgWindow, options, webConsole);
-  const { bindings, helperCache } = bindCommands(
+  let { bindings, helperCache } = bindCommands(
     isCommand(string),
     dbgWindow,
     bindSelf,
@@ -124,10 +125,21 @@ exports.evalWithDebugger = function(string, options = {}, webConsole) {
     helpers
   );
 
+  if (options.bindings) {
+    bindings = { ...(bindings || {}), ...options.bindings };
+  }
+
   // Ready to evaluate the string.
   helpers.evalInput = string;
-  const evalOptions =
-    typeof options.url === "string" ? { url: options.url } : null;
+  const evalOptions = {};
+
+  if (typeof options.url === "string") {
+    evalOptions.url = options.url;
+  }
+
+  if (typeof options.lineNumber === "number") {
+    evalOptions.lineNumber = options.lineNumber;
+  }
 
   updateConsoleInputEvaluation(dbg, dbgWindow, webConsole);
 
@@ -146,6 +158,13 @@ exports.evalWithDebugger = function(string, options = {}, webConsole) {
 
   if (options.eager) {
     allowSideEffects(dbg, sideEffectData);
+  }
+
+  // Attempt to initialize any declarations found in the evaluated string
+  // since they may now be stuck in an "initializing" state due to the
+  // error. Already-initialized bindings will be ignored.
+  if (!frame && result && "throw" in result) {
+    parseErrorOutput(dbgWindow, string);
   }
 
   const { helperResult } = helpers;
@@ -169,18 +188,7 @@ function getEvalResult(string, evalOptions, bindings, frame, dbgWindow) {
   if (frame) {
     return frame.evalWithBindings(string, bindings, evalOptions);
   }
-  const result = dbgWindow.executeInGlobalWithBindings(
-    string,
-    bindings,
-    evalOptions
-  );
-  // Attempt to initialize any declarations found in the evaluated string
-  // since they may now be stuck in an "initializing" state due to the
-  // error. Already-initialized bindings will be ignored.
-  if (result && "throw" in result) {
-    parseErrorOutput(dbgWindow, string);
-  }
-  return result;
+  return dbgWindow.executeInGlobalWithBindings(string, bindings, evalOptions);
 }
 
 function parseErrorOutput(dbgWindow, string) {
@@ -264,13 +272,34 @@ function preventSideEffects(dbg) {
     },
   };
 
-  dbg.addAllGlobalsAsDebuggees();
+  // TODO: re-enable addAllGlobalsAsDebuggees(bug #1610532)
+  // dbg.addAllGlobalsAsDebuggees();
+
+  const timeoutDuration = 100;
+  const endTime = Date.now() + timeoutDuration;
+  let count = 0;
+  function shouldCancel() {
+    // To keep the evaled code as quick as possible, we avoid querying the
+    // current time on ever single step and instead check every 100 steps
+    // as an arbitrary count that seemed to be "often enough".
+    return ++count % 100 === 0 && Date.now() > endTime;
+  }
 
   dbg.onEnterFrame = frame => {
+    if (shouldCancel()) {
+      return null;
+    }
+    frame.onStep = () => {
+      if (shouldCancel()) {
+        return null;
+      }
+      return undefined;
+    };
+
     const script = frame.script;
 
     if (data.executedScripts.has(script)) {
-      return;
+      return undefined;
     }
     data.executedScripts.add(script);
 
@@ -278,13 +307,21 @@ function preventSideEffects(dbg) {
     for (const offset of offsets) {
       script.setBreakpoint(offset, data.handler);
     }
+
+    return undefined;
   };
 
   dbg.onNativeCall = (callee, reason) => {
-    if (reason == "get") {
-      // Native getters are never considered effectful.
+    // Getters are never considered effectful, and setters are always effectful.
+    // Natives called normally are handled with a whitelist.
+    if (
+      reason == "get" ||
+      (reason == "call" && nativeHasNoSideEffects(callee))
+    ) {
+      // Returning undefined causes execution to continue normally.
       return undefined;
     }
+    // Returning null terminates the current evaluation.
     return null;
   };
 
@@ -304,6 +341,179 @@ function allowSideEffects(dbg, data) {
 
   dbg.onEnterFrame = undefined;
   dbg.onNativeCall = undefined;
+}
+
+// Native functions which are considered to be side effect free.
+let gSideEffectFreeNatives; // string => Array(Function)
+
+function ensureSideEffectFreeNatives() {
+  if (gSideEffectFreeNatives) {
+    return;
+  }
+
+  const natives = [
+    Array,
+    Array.from,
+    Array.isArray,
+    Array.of,
+    Array.prototype.concat,
+    Array.prototype.entries,
+    Array.prototype.every,
+    Array.prototype.fill,
+    Array.prototype.filter,
+    Array.prototype.find,
+    Array.prototype.findIndex,
+    Array.prototype.flat,
+    Array.prototype.flatMap,
+    Array.prototype.forEach,
+    Array.prototype.includes,
+    Array.prototype.indexOf,
+    Array.prototype.join,
+    Array.prototype.keys,
+    Array.prototype.lastIndexOf,
+    Array.prototype.map,
+    Array.prototype.reduce,
+    Array.prototype.reduceRight,
+    Array.prototype.slice,
+    Array.prototype.some,
+    Array.prototype.values,
+    ArrayBuffer,
+    ArrayBuffer.isView,
+    ArrayBuffer.prototype.slice,
+    BigInt,
+    ...allProperties(BigInt),
+    Boolean,
+    DataView,
+    Date,
+    Date.now,
+    Date.parse,
+    Date.UTC,
+    ...matchingProperties(Date.prototype, /^get/),
+    ...matchingProperties(Date.prototype, /^to.*?String$/),
+    Error,
+    Function,
+    Function.prototype.apply,
+    Function.prototype.bind,
+    Function.prototype.call,
+    Int8Array,
+    Uint8Array,
+    Uint8ClampedArray,
+    Int16Array,
+    Uint16Array,
+    Int32Array,
+    Uint32Array,
+    Float32Array,
+    Float64Array,
+    // These will apply to other typed array prototypes.
+    Int8Array.prototype.entries,
+    Int8Array.prototype.every,
+    Int8Array.prototype.filter,
+    Int8Array.prototype.find,
+    Int8Array.prototype.findIndex,
+    Int8Array.prototype.forEach,
+    Int8Array.prototype.indexOf,
+    Int8Array.prototype.includes,
+    Int8Array.prototype.join,
+    Int8Array.prototype.keys,
+    Int8Array.prototype.lastIndexOf,
+    Int8Array.prototype.map,
+    Int8Array.prototype.reduce,
+    Int8Array.prototype.reduceRight,
+    Int8Array.prototype.slice,
+    Int8Array.prototype.some,
+    Int8Array.prototype.subarray,
+    Int8Array.prototype.values,
+    ...allProperties(JSON),
+    Map,
+    Map.prototype.forEach,
+    Map.prototype.get,
+    Map.prototype.has,
+    Map.prototype.entries,
+    Map.prototype.keys,
+    Map.prototype.values,
+    ...allProperties(Math),
+    Number,
+    ...allProperties(Number),
+    ...allProperties(Number.prototype),
+    Object,
+    Object.create,
+    Object.keys,
+    Object.entries,
+    Object.getOwnPropertyDescriptor,
+    Object.getOwnPropertyDescriptors,
+    Object.getOwnPropertyNames,
+    Object.getOwnPropertySymbols,
+    Object.getPrototypeOf,
+    Object.is,
+    Object.isExtensible,
+    Object.isFrozen,
+    Object.isSealed,
+    Object.values,
+    Object.prototype.hasOwnProperty,
+    Object.prototype.isPrototypeOf,
+    RegExp,
+    RegExp.prototype.exec,
+    RegExp.prototype.test,
+    Set,
+    Set.prototype.entries,
+    Set.prototype.forEach,
+    Set.prototype.has,
+    Set.prototype.values,
+    String,
+    ...allProperties(String),
+    ...allProperties(String.prototype),
+    Symbol,
+    Symbol.keyFor,
+    WeakMap,
+    WeakMap.prototype.get,
+    WeakMap.prototype.has,
+    WeakSet,
+    WeakSet.prototype.has,
+    decodeURI,
+    decodeURIComponent,
+    encodeURI,
+    encodeURIComponent,
+    escape,
+    isFinite,
+    isNaN,
+    unescape,
+  ];
+
+  const map = new Map();
+  for (const n of natives) {
+    if (!map.has(n.name)) {
+      map.set(n.name, []);
+    }
+    map.get(n.name).push(n);
+  }
+
+  gSideEffectFreeNatives = map;
+
+  function matchingProperties(obj, regexp) {
+    return Object.getOwnPropertyNames(obj)
+      .filter(n => regexp.test(n))
+      .map(n => obj[n])
+      .filter(v => typeof v == "function");
+  }
+
+  function allProperties(obj) {
+    return matchingProperties(obj, /./);
+  }
+}
+
+function nativeHasNoSideEffects(fn) {
+  // Natives with certain names are always considered side effect free.
+  switch (fn.name) {
+    case "toString":
+    case "toLocaleString":
+    case "valueOf":
+      return true;
+  }
+
+  ensureSideEffectFreeNatives();
+
+  const natives = gSideEffectFreeNatives.get(fn.name);
+  return natives && natives.some(n => fn.isSameNative(n));
 }
 
 function updateConsoleInputEvaluation(dbg, dbgWindow, webConsole) {
@@ -446,11 +656,8 @@ function bindCommands(isCmd, dbgWindow, bindSelf, frame, helpers) {
   }
   // Check if the Debugger.Frame or Debugger.Object for the global include any of the
   // helper function we set. We will not overwrite these functions with the Web Console
-  // commands. The exception being "print" which should exist everywhere as
-  // `window.print`, and that we don't want to trigger from the console.
-  const availableHelpers = [
-    ...WebConsoleCommands._originalCommands.keys(),
-  ].filter(h => h !== "print");
+  // commands.
+  const availableHelpers = [...WebConsoleCommands._originalCommands.keys()];
 
   let helpersToDisable = [];
   const helperCache = {};

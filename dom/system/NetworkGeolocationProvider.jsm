@@ -151,7 +151,7 @@ function isCachedRequestMoreAccurateThanServerRequest(newCell, newWifiList) {
   try {
     // Mochitest needs this pref to simulate request failure
     isNetworkRequestCacheEnabled = Services.prefs.getBoolPref(
-      "geo.wifi.debug.requestCache.enabled"
+      "geo.provider.network.debug.requestCache.enabled"
     );
     if (!isNetworkRequestCacheEnabled) {
       gCachedRequest = null;
@@ -222,7 +222,7 @@ function isCachedRequestMoreAccurateThanServerRequest(newCell, newWifiList) {
   return false;
 }
 
-function WifiGeoCoordsObject(lat, lon, acc) {
+function NetworkGeoCoordsObject(lat, lon, acc) {
   this.latitude = lat;
   this.longitude = lon;
   this.accuracy = acc;
@@ -236,37 +236,40 @@ function WifiGeoCoordsObject(lat, lon, acc) {
   this.speed = NaN;
 }
 
-WifiGeoCoordsObject.prototype = {
+NetworkGeoCoordsObject.prototype = {
   QueryInterface: ChromeUtils.generateQI([Ci.nsIDOMGeoPositionCoords]),
 };
 
-function WifiGeoPositionObject(lat, lng, acc) {
-  this.coords = new WifiGeoCoordsObject(lat, lng, acc);
+function NetworkGeoPositionObject(lat, lng, acc) {
+  this.coords = new NetworkGeoCoordsObject(lat, lng, acc);
   this.address = null;
   this.timestamp = Date.now();
 }
 
-WifiGeoPositionObject.prototype = {
+NetworkGeoPositionObject.prototype = {
   QueryInterface: ChromeUtils.generateQI([Ci.nsIDOMGeoPosition]),
 };
 
-function WifiGeoPositionProvider() {
+function NetworkGeolocationProvider() {
   gLoggingEnabled = Services.prefs.getBoolPref(
-    "geo.wifi.logging.enabled",
+    "geo.provider.network.logging.enabled",
     false
   );
   gLocationRequestTimeout = Services.prefs.getIntPref(
-    "geo.wifi.timeToWaitBeforeSending",
+    "geo.provider.network.timeToWaitBeforeSending",
     5000
   );
-  gWifiScanningEnabled = Services.prefs.getBoolPref("geo.wifi.scan", true);
+  gWifiScanningEnabled = Services.prefs.getBoolPref(
+    "geo.provider.network.scan",
+    true
+  );
 
   this.wifiService = null;
   this.timer = null;
   this.started = false;
 }
 
-WifiGeoPositionProvider.prototype = {
+NetworkGeolocationProvider.prototype = {
   classID: Components.ID("{77DA64D3-7458-4920-9491-86CC9914F904}"),
   QueryInterface: ChromeUtils.generateQI([
     Ci.nsIGeolocationProvider,
@@ -281,7 +284,8 @@ WifiGeoPositionProvider.prototype = {
       this.timer.cancel();
       this.timer = null;
     }
-    // wifi thread triggers WifiGeoPositionProvider to proceed, with no wifi, do manual timeout
+    // Wifi thread triggers NetworkGeolocationProvider to proceed. With no wifi,
+    // do manual timeout.
     this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     this.timer.initWithCallback(
       this,
@@ -404,7 +408,7 @@ WifiGeoPositionProvider.prototype = {
     }
 
     // From here on, do a network geolocation request //
-    let url = Services.urlFormatter.formatURLPref("geo.wifi.uri");
+    let url = Services.urlFormatter.formatURLPref("geo.provider.network.url");
     LOG("Sending request");
 
     let xhr = new XMLHttpRequest();
@@ -418,7 +422,7 @@ WifiGeoPositionProvider.prototype = {
     xhr.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
     xhr.responseType = "json";
     xhr.mozBackgroundRequest = true;
-    xhr.timeout = Services.prefs.getIntPref("geo.wifi.xhr.timeout");
+    xhr.timeout = Services.prefs.getIntPref("geo.provider.network.timeout");
     xhr.ontimeout = () => {
       LOG("Location request XHR timed out.");
       notifyPositionUnavailable(this.listener);
@@ -442,7 +446,7 @@ WifiGeoPositionProvider.prototype = {
         return;
       }
 
-      let newLocation = new WifiGeoPositionObject(
+      let newLocation = new NetworkGeoPositionObject(
         xhr.response.location.lat,
         xhr.response.location.lng,
         xhr.response.accuracy
@@ -470,4 +474,4 @@ WifiGeoPositionProvider.prototype = {
   },
 };
 
-var EXPORTED_SYMBOLS = ["WifiGeoPositionProvider"];
+var EXPORTED_SYMBOLS = ["NetworkGeolocationProvider"];

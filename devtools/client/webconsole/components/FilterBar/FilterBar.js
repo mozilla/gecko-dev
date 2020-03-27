@@ -67,9 +67,11 @@ class FilterBar extends Component {
       hidePersistLogsCheckbox: PropTypes.bool.isRequired,
       hideShowContentMessagesCheckbox: PropTypes.bool.isRequired,
       persistLogs: PropTypes.bool.isRequired,
+      eagerEvaluation: PropTypes.bool.isRequired,
       showContentMessages: PropTypes.bool.isRequired,
       timestampsVisible: PropTypes.bool.isRequired,
       webConsoleUI: PropTypes.object.isRequired,
+      autocomplete: PropTypes.bool.isRequired,
     };
   }
 
@@ -114,6 +116,8 @@ class FilterBar extends Component {
       persistLogs,
       showContentMessages,
       timestampsVisible,
+      eagerEvaluation,
+      autocomplete,
     } = this.props;
 
     if (
@@ -123,7 +127,9 @@ class FilterBar extends Component {
       nextProps.groupWarnings !== groupWarnings ||
       nextProps.persistLogs !== persistLogs ||
       nextProps.showContentMessages !== showContentMessages ||
-      nextProps.timestampsVisible !== timestampsVisible
+      nextProps.timestampsVisible !== timestampsVisible ||
+      nextProps.eagerEvaluation !== eagerEvaluation ||
+      nextProps.autocomplete !== autocomplete
     ) {
       return true;
     }
@@ -326,6 +332,7 @@ class FilterBar extends Component {
   renderSettingsButton() {
     const {
       dispatch,
+      eagerEvaluation,
       groupWarnings,
       hidePersistLogsCheckbox,
       hideShowContentMessagesCheckbox,
@@ -333,10 +340,12 @@ class FilterBar extends Component {
       showContentMessages,
       timestampsVisible,
       webConsoleUI,
+      autocomplete,
     } = this.props;
 
     return ConsoleSettings({
       dispatch,
+      eagerEvaluation,
       groupWarnings,
       hidePersistLogsCheckbox,
       hideShowContentMessagesCheckbox,
@@ -344,6 +353,7 @@ class FilterBar extends Component {
       showContentMessages,
       timestampsVisible,
       webConsoleUI,
+      autocomplete,
     });
   }
 
@@ -426,8 +436,10 @@ function mapStateToProps(state) {
     filteredMessagesCount: getFilteredMessagesCount(state),
     groupWarnings: prefsState.groupWarnings,
     persistLogs: uiState.persistLogs,
+    eagerEvaluation: prefsState.eagerEvaluation,
     showContentMessages: uiState.showContentMessages,
     timestampsVisible: uiState.timestampsVisible,
+    autocomplete: prefsState.autocomplete,
   };
 }
 

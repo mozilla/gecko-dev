@@ -8,16 +8,16 @@
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/Move.h"
 
 #include <stdlib.h>
+#include <utility>
 
 #include "jspubtd.h"
 
 #include "builtin/Array.h"
 #include "builtin/Reflect.h"
+#include "frontend/CompilationInfo.h"
 #include "frontend/ModuleSharedContext.h"
-#include "frontend/ParseInfo.h"
 #include "frontend/ParseNode.h"
 #include "frontend/Parser.h"
 #include "js/CharacterEncoding.h"
@@ -190,7 +190,7 @@ static const char* const unopNames[] = {
     "~",      /* UNOP_BITNOT */
     "typeof", /* UNOP_TYPEOF */
     "void",   /* UNOP_VOID */
-    "await"   /* UNOP_AWAIT */
+    "await",  /* UNOP_AWAIT */
 };
 
 static const char* const nodeTypeNames[] = {
@@ -651,11 +651,13 @@ class NodeBuilder {
                                   TokenPos* pos, MutableHandleValue dst);
 
   MOZ_MUST_USE bool callExpression(HandleValue callee, NodeVector& args,
-                                   TokenPos* pos, MutableHandleValue dst);
+                                   TokenPos* pos, MutableHandleValue dst,
+                                   bool isOptional = false);
 
   MOZ_MUST_USE bool memberExpression(bool computed, HandleValue expr,
                                      HandleValue member, TokenPos* pos,
-                                     MutableHandleValue dst);
+                                     MutableHandleValue dst,
+                                     bool isOptional = false);
 
   MOZ_MUST_USE bool arrayExpression(NodeVector& elts, TokenPos* pos,
                                     MutableHandleValue dst);
@@ -671,6 +673,9 @@ class NodeBuilder {
 
   MOZ_MUST_USE bool spreadExpression(HandleValue expr, TokenPos* pos,
                                      MutableHandleValue dst);
+
+  MOZ_MUST_USE bool optionalExpression(HandleValue expr, TokenPos* pos,
+                                       MutableHandleValue dst);
 
   MOZ_MUST_USE bool computedName(HandleValue name, TokenPos* pos,
                                  MutableHandleValue dst);
@@ -1156,7 +1161,8 @@ bool NodeBuilder::sequenceExpression(NodeVector& elts, TokenPos* pos,
 }
 
 bool NodeBuilder::callExpression(HandleValue callee, NodeVector& args,
-                                 TokenPos* pos, MutableHandleValue dst) {
+                                 TokenPos* pos, MutableHandleValue dst,
+                                 bool isOptional) {
   RootedValue array(cx);
   if (!newArray(args, &array)) {
     return false;
@@ -1167,7 +1173,8 @@ bool NodeBuilder::callExpression(HandleValue callee, NodeVector& args,
     return callback(cb, callee, array, pos, dst);
   }
 
-  return newNode(AST_CALL_EXPR, pos, "callee", callee, "arguments", array, dst);
+  return newNode(isOptional ? AST_OPT_CALL_EXPR : AST_CALL_EXPR, pos, "callee",
+                 callee, "arguments", array, dst);
 }
 
 bool NodeBuilder::newExpression(HandleValue callee, NodeVector& args,
@@ -1187,7 +1194,8 @@ bool NodeBuilder::newExpression(HandleValue callee, NodeVector& args,
 
 bool NodeBuilder::memberExpression(bool computed, HandleValue expr,
                                    HandleValue member, TokenPos* pos,
-                                   MutableHandleValue dst) {
+                                   MutableHandleValue dst,
+                                   bool isOptional /* = false */) {
   RootedValue computedVal(cx, BooleanValue(computed));
 
   RootedValue cb(cx, callbacks[AST_MEMBER_EXPR]);
@@ -1195,8 +1203,9 @@ bool NodeBuilder::memberExpression(bool computed, HandleValue expr,
     return callback(cb, computedVal, expr, member, pos, dst);
   }
 
-  return newNode(AST_MEMBER_EXPR, pos, "object", expr, "property", member,
-                 "computed", computedVal, dst);
+  return newNode(isOptional ? AST_OPT_MEMBER_EXPR : AST_MEMBER_EXPR, pos,
+                 "object", expr, "property", member, "computed", computedVal,
+                 dst);
 }
 
 bool NodeBuilder::arrayExpression(NodeVector& elts, TokenPos* pos,
@@ -1244,6 +1253,11 @@ bool NodeBuilder::computedName(HandleValue name, TokenPos* pos,
 bool NodeBuilder::spreadExpression(HandleValue expr, TokenPos* pos,
                                    MutableHandleValue dst) {
   return newNode(AST_SPREAD_EXPR, pos, "expression", expr, dst);
+}
+
+bool NodeBuilder::optionalExpression(HandleValue expr, TokenPos* pos,
+                                     MutableHandleValue dst) {
+  return newNode(AST_OPTIONAL_EXPR, pos, "expression", expr, dst);
 }
 
 bool NodeBuilder::propertyPattern(HandleValue key, HandleValue patt,
@@ -2808,9 +2822,16 @@ bool ASTSerializer::expression(ParseNode* pn, MutableHandleValue dst) {
              builder.unaryExpression(op, expr, &unaryNode->pn_pos, dst);
     }
 
+    case ParseNodeKind::OptionalChain: {
+      RootedValue expr(cx);
+      return expression(pn->as<UnaryNode>().kid(), &expr) &&
+             builder.optionalExpression(expr, &pn->pn_pos, dst);
+    }
+
     case ParseNodeKind::NewExpr:
     case ParseNodeKind::TaggedTemplateExpr:
     case ParseNodeKind::CallExpr:
+    case ParseNodeKind::OptionalCallExpr:
     case ParseNodeKind::SuperCallExpr: {
       BinaryNode* node = &pn->as<BinaryNode>();
       ParseNode* calleeNode = node->left();
@@ -2848,21 +2869,28 @@ bool ASTSerializer::expression(ParseNode* pn, MutableHandleValue dst) {
         return builder.taggedTemplate(callee, args, &node->pn_pos, dst);
       }
 
+      bool isOptional = node->isKind(ParseNodeKind::OptionalCallExpr);
+
       // SUPERCALL is Call(super, args)
       return node->isKind(ParseNodeKind::NewExpr)
                  ? builder.newExpression(callee, args, &node->pn_pos, dst)
-                 : builder.callExpression(callee, args, &node->pn_pos, dst);
+                 : builder.callExpression(callee, args, &node->pn_pos, dst,
+                                          isOptional);
     }
 
+    case ParseNodeKind::OptionalDotExpr:
     case ParseNodeKind::DotExpr: {
-      PropertyAccess* prop = &pn->as<PropertyAccess>();
+      PropertyAccessBase* prop = &pn->as<PropertyAccessBase>();
       MOZ_ASSERT(prop->pn_pos.encloses(prop->expression().pn_pos));
+
+      bool isSuper =
+          prop->is<PropertyAccess>() && prop->as<PropertyAccess>().isSuper();
 
       RootedValue expr(cx);
       RootedValue propname(cx);
       RootedAtom pnAtom(cx, prop->key().atom());
 
-      if (prop->isSuper()) {
+      if (isSuper) {
         if (!builder.super(&prop->expression().pn_pos, &expr)) {
           return false;
         }
@@ -2872,19 +2900,25 @@ bool ASTSerializer::expression(ParseNode* pn, MutableHandleValue dst) {
         }
       }
 
+      bool isOptional = prop->isKind(ParseNodeKind::OptionalDotExpr);
+
       return identifier(pnAtom, nullptr, &propname) &&
-             builder.memberExpression(false, expr, propname, &prop->pn_pos,
-                                      dst);
+             builder.memberExpression(false, expr, propname, &prop->pn_pos, dst,
+                                      isOptional);
     }
 
+    case ParseNodeKind::OptionalElemExpr:
     case ParseNodeKind::ElemExpr: {
-      PropertyByValue* elem = &pn->as<PropertyByValue>();
+      PropertyByValueBase* elem = &pn->as<PropertyByValueBase>();
       MOZ_ASSERT(elem->pn_pos.encloses(elem->expression().pn_pos));
       MOZ_ASSERT(elem->pn_pos.encloses(elem->key().pn_pos));
 
+      bool isSuper =
+          elem->is<PropertyByValue>() && elem->as<PropertyByValue>().isSuper();
+
       RootedValue expr(cx), key(cx);
 
-      if (elem->isSuper()) {
+      if (isSuper) {
         if (!builder.super(&elem->expression().pn_pos, &expr)) {
           return false;
         }
@@ -2894,8 +2928,11 @@ bool ASTSerializer::expression(ParseNode* pn, MutableHandleValue dst) {
         }
       }
 
+      bool isOptional = elem->isKind(ParseNodeKind::OptionalElemExpr);
+
       return expression(&elem->key(), &key) &&
-             builder.memberExpression(true, expr, key, &elem->pn_pos, dst);
+             builder.memberExpression(true, expr, key, &elem->pn_pos, dst,
+                                      isOptional);
     }
 
     case ParseNodeKind::CallSiteObj: {
@@ -3123,7 +3160,8 @@ bool ASTSerializer::propertyName(ParseNode* key, MutableHandleValue dst) {
   }
 
   LOCAL_ASSERT(key->isKind(ParseNodeKind::StringExpr) ||
-               key->isKind(ParseNodeKind::NumberExpr));
+               key->isKind(ParseNodeKind::NumberExpr) ||
+               key->isKind(ParseNodeKind::BigIntExpr));
 
   return literal(key, dst);
 }
@@ -3184,8 +3222,8 @@ bool ASTSerializer::literal(ParseNode* pn, MutableHandleValue dst) {
       break;
 
     case ParseNodeKind::RegExpExpr: {
-      RootedObject re1(
-          cx, pn->as<RegExpLiteral>().getOrCreate(cx, parser->getParseInfo()));
+      RootedObject re1(cx, pn->as<RegExpLiteral>().getOrCreate(
+                               cx, parser->getCompilationInfo()));
       LOCAL_ASSERT(re1 && re1->is<RegExpObject>());
 
       RootedObject re2(cx, CloneRegExpObject(cx, re1.as<RegExpObject>()));
@@ -3660,17 +3698,15 @@ static bool reflect_parse(JSContext* cx, uint32_t argc, Value* vp) {
   mozilla::Range<const char16_t> chars = linearChars.twoByteRange();
 
   LifoAllocScope allocScope(&cx->tempLifoAlloc());
-  ParseInfo parseInfo(cx, allocScope);
-
-  RootedScriptSourceObject sourceObject(
-      cx, frontend::CreateScriptSourceObject(cx, options, mozilla::Nothing()));
-  if (!sourceObject) {
+  CompilationInfo compilationInfo(cx, allocScope, options);
+  if (!compilationInfo.init(cx)) {
     return false;
   }
 
   Parser<FullParseHandler, char16_t> parser(
       cx, options, chars.begin().get(), chars.length(),
-      /* foldConstants = */ false, parseInfo, nullptr, nullptr, sourceObject);
+      /* foldConstants = */ false, compilationInfo, nullptr, nullptr,
+      compilationInfo.sourceObject);
   if (!parser.checkOptions()) {
     return false;
   }
@@ -3695,8 +3731,8 @@ static bool reflect_parse(JSContext* cx, uint32_t argc, Value* vp) {
 
     ModuleBuilder builder(cx, module, &parser);
 
-    ModuleSharedContext modulesc(cx, module, &cx->global()->emptyGlobalScope(),
-                                 builder);
+    ModuleSharedContext modulesc(cx, module, compilationInfo,
+                                 &cx->global()->emptyGlobalScope(), builder);
     pn = parser.moduleBody(&modulesc);
     if (!pn) {
       return false;

@@ -164,8 +164,7 @@ void nsMenuPopupFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
     mPopupType = ePopupTypeTooltip;
   }
 
-  nsCOMPtr<nsIDocShellTreeItem> dsti = PresContext()->GetDocShell();
-  if (dsti && dsti->ItemType() == nsIDocShellTreeItem::typeChrome) {
+  if (PresContext()->IsChrome()) {
     mInContentShell = false;
   }
 
@@ -990,8 +989,7 @@ void nsMenuPopupFrame::HidePopup(bool aDeselectMenu, nsPopupState aNewState) {
 }
 
 nsIFrame::ReflowChildFlags nsMenuPopupFrame::GetXULLayoutFlags() {
-  return ReflowChildFlags::NoSizeView | ReflowChildFlags::NoMoveView |
-         ReflowChildFlags::NoVisibility;
+  return ReflowChildFlags::NoSizeView | ReflowChildFlags::NoMoveView;
 }
 
 nsPoint nsMenuPopupFrame::AdjustPositionForAnchorAlign(nsRect& anchorRect,

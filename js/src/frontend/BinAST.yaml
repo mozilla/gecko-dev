@@ -34,9 +34,10 @@ cpp:
     #include "mozilla/ArrayUtils.h"
     #include "mozilla/Casting.h"
     #include "mozilla/Maybe.h"
-    #include "mozilla/Move.h"
     #include "mozilla/PodOperations.h"
     #include "mozilla/Vector.h"
+
+    #include <utility>
 
     #include "frontend/BinAST-macros.h"
     #include "frontend/BinASTTokenReaderContext.h"
@@ -53,8 +54,7 @@ cpp:
     using JS::RegExpFlag;
     using JS::RegExpFlags;
 
-    namespace js {
-    namespace frontend {
+    namespace js::frontend {
 
     // Compare a bunch of `uint8_t` values (as returned by the tokenizer_) with
     // a string literal (and ONLY a string literal).
@@ -71,8 +71,7 @@ cpp:
     template class BinASTParser<BinASTTokenReaderContext>;
     template class BinASTParser<BinASTTokenReaderMultipart>;
 
-    } // namespace frontend
-    } // namespace js
+    } // namespace js::frontend
 
 hpp:
   # Rules for generating BinASTParser.h
@@ -141,11 +140,11 @@ hpp:
         using AssertedScopeKind = typename Base::AssertedScopeKind;
 
        public:
-        BinASTParser(JSContext* cx, ParseInfo& parseInfo,
+        BinASTParser(JSContext* cx, CompilationInfo& compilationInfo,
                      const JS::ReadOnlyCompileOptions& options,
                      HandleScriptSourceObject sourceObject,
                      Handle<LazyScript*> lazyScript = nullptr)
-            : BinASTParserPerTokenizer<Tok>(cx, parseInfo, options,
+            : BinASTParserPerTokenizer<Tok>(cx, compilationInfo, options,
                                             sourceObject, lazyScript) {}
         ~BinASTParser() {}
 
@@ -691,17 +690,17 @@ BreakStatement:
 
 CallExpression:
   build: |
-    auto op = JSOP_CALL;
+    auto op = JSOp::Call;
 
     // Try to optimize funcall and funapply at the bytecode level
     if (PropertyName* prop = handler_.maybeDottedProperty(callee)) {
       if (prop == cx_->names().apply) {
-        op = JSOP_FUNAPPLY;
+        op = JSOp::FunApply;
         if (pc_->isFunctionBox()) {
           pc_->functionBox()->usesApply = true;
         }
       } else if (prop == cx_->names().call) {
-        op = JSOP_FUNCALL;
+        op = JSOp::FunCall;
       }
     }
 
@@ -714,7 +713,7 @@ CallExpression:
           return raiseMissingDirectEvalInAssertedScope();
         }
 
-        op = pc_->sc()->strict() ? JSOP_STRICTEVAL : JSOP_EVAL;
+        op = pc_->sc()->strict() ? JSOp::StrictEval : JSOp::Eval;
       }
     }
 
@@ -958,6 +957,10 @@ EagerFunctionExpression:
 
         forceStrictIfNecessary(funbox, directives);
 
+        if (pc_->isFunctionBox()) {
+          pc_->functionBox()->setHasInnerFunctions();
+        }
+
         // Push a new ParseContext. It will be used to parse `scope`, the arguments,
         // the function.
         BinASTParseContext funpc(cx_, this, funbox, /* newDirectives = */ nullptr);
@@ -1014,6 +1017,10 @@ LazyFunctionExpression:
       syntax, name));
 
     forceStrictIfNecessary(funbox, directives);
+
+    if (pc_->isFunctionBox()) {
+      pc_->functionBox()->setHasInnerFunctions();
+    }
 
     BINJS_MOZ_TRY_DECL(result, makeEmptyFunctionNode(start, syntax, funbox));
 

@@ -1108,6 +1108,8 @@ static inline JSObject* CreateThisForFunctionWithGroup(JSContext* cx,
 JSObject* js::CreateThisForFunctionWithProto(
     JSContext* cx, HandleFunction callee, HandleObject newTarget,
     HandleObject proto, NewObjectKind newKind /* = GenericObject */) {
+  MOZ_ASSERT(!callee->constructorNeedsUninitializedThis());
+
   RootedObject res(cx);
 
   // Ion may call this with a cross-realm callee.
@@ -1208,6 +1210,8 @@ bool js::GetPrototypeFromConstructor(JSContext* cx, HandleObject newTarget,
 JSObject* js::CreateThisForFunction(JSContext* cx, HandleFunction callee,
                                     HandleObject newTarget,
                                     NewObjectKind newKind) {
+  MOZ_ASSERT(!callee->constructorNeedsUninitializedThis());
+
   RootedObject proto(cx);
   if (!GetPrototypeFromConstructor(cx, newTarget, JSProto_Object, &proto)) {
     return nullptr;
@@ -3048,6 +3052,11 @@ extern bool PropertySpecNameToId(JSContext* cx, JSPropertySpec::Name name,
 // JSPropertySpec list, but omit the definition if the preference is off.
 JS_FRIEND_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
                                                       JSProtoKey key, jsid id) {
+  if (!cx->realm()->creationOptions().getToSourceEnabled()) {
+    return id == NameToId(cx->names().toSource) ||
+           id == NameToId(cx->names().uneval);
+  }
+
   return false;
 }
 
@@ -3325,12 +3334,57 @@ JSObject* js::ToObjectSlow(JSContext* cx, JS::HandleValue val,
   MOZ_ASSERT(!val.isObject());
 
   if (val.isNullOrUndefined()) {
-    if (reportScanStack) {
-      ReportIsNullOrUndefined(cx, JSDVG_SEARCH_STACK, val);
+    ReportIsNullOrUndefinedForPropertyAccess(
+        cx, val, reportScanStack ? JSDVG_SEARCH_STACK : JSDVG_IGNORE_STACK);
+    return nullptr;
+  }
+
+  return PrimitiveToObject(cx, val);
+}
+
+JSObject* js::ToObjectSlowForPropertyAccess(JSContext* cx, JS::HandleValue val,
+                                            int valIndex, HandleId key) {
+  MOZ_ASSERT(!val.isMagic());
+  MOZ_ASSERT(!val.isObject());
+
+  if (val.isNullOrUndefined()) {
+    ReportIsNullOrUndefinedForPropertyAccess(cx, val, valIndex, key);
+    return nullptr;
+  }
+
+  return PrimitiveToObject(cx, val);
+}
+
+JSObject* js::ToObjectSlowForPropertyAccess(JSContext* cx, JS::HandleValue val,
+                                            int valIndex,
+                                            HandlePropertyName key) {
+  MOZ_ASSERT(!val.isMagic());
+  MOZ_ASSERT(!val.isObject());
+
+  if (val.isNullOrUndefined()) {
+    RootedId keyId(cx, NameToId(key));
+    ReportIsNullOrUndefinedForPropertyAccess(cx, val, valIndex, keyId);
+    return nullptr;
+  }
+
+  return PrimitiveToObject(cx, val);
+}
+
+JSObject* js::ToObjectSlowForPropertyAccess(JSContext* cx, JS::HandleValue val,
+                                            int valIndex,
+                                            HandleValue keyValue) {
+  MOZ_ASSERT(!val.isMagic());
+  MOZ_ASSERT(!val.isObject());
+
+  if (val.isNullOrUndefined()) {
+    RootedId key(cx);
+    if (keyValue.isPrimitive()) {
+      if (!ValueToId<CanGC>(cx, keyValue, &key)) {
+        return nullptr;
+      }
+      ReportIsNullOrUndefinedForPropertyAccess(cx, val, valIndex, key);
     } else {
-      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                JSMSG_CANT_CONVERT_TO,
-                                val.isNull() ? "null" : "undefined", "object");
+      ReportIsNullOrUndefinedForPropertyAccess(cx, val, valIndex);
     }
     return nullptr;
   }
@@ -3792,7 +3846,7 @@ JS_FRIEND_API void js::DumpInterpreterFrame(JSContext* cx,
 
     if (jsbytecode* pc = i.pc()) {
       out.printf("  pc = %p\n", pc);
-      out.printf("  current op: %s\n", CodeName[*pc]);
+      out.printf("  current op: %s\n", CodeName(JSOp(*pc)));
       MaybeDumpScope(i.script()->lookupScope(pc), out);
     }
     if (i.isFunctionFrame()) {

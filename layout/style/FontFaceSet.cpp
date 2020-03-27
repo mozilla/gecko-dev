@@ -32,7 +32,6 @@
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/LoadInfo.h"
-#include "nsAutoPtr.h"
 #include "nsContentPolicyUtils.h"
 #include "nsDeviceContext.h"
 #include "nsFontFaceLoader.h"
@@ -211,7 +210,7 @@ void FontFaceSet::ParseFontShorthandForMatching(
   RefPtr<URLExtraData> url = ServoCSSParser::GetURLExtraData(mDocument);
   if (!ServoCSSParser::ParseFontShorthandForMatching(aFont, url, aFamilyList,
                                                      style, stretch, weight)) {
-    aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+    aRv.ThrowSyntaxError("Invalid font shorthand");
     return;
   }
 
@@ -433,7 +432,8 @@ void FontFaceSet::Add(FontFace& aFontFace, ErrorResult& aRv) {
   }
 
   if (aFontFace.HasRule()) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_MODIFICATION_ERR);
+    aRv.ThrowInvalidModificationError(
+        "Can't add face to FontFaceSet that comes from an @font-face rule");
     return;
   }
 

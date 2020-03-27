@@ -8,9 +8,7 @@
 
 #include <vector>
 
-#include "mozilla/LinkedList.h"
 #include "mozilla/WeakPtr.h"
-#include "nsWrapperCache.h"
 
 #include "WebGLObjectModel.h"
 #include "WebGLRenderbuffer.h"
@@ -35,9 +33,9 @@ namespace webgl {
 struct FbAttachInfo final {
   WebGLRenderbuffer* rb = nullptr;
   WebGLTexture* tex = nullptr;
-  GLint mipLevel = 0;
-  GLint zLayer = 0;
-  GLsizei zLayerCount = 1;
+  uint32_t mipLevel = 0;
+  uint32_t zLayer = 0;
+  uint32_t zLayerCount = 1;
   bool isMultiview = false;
 };
 }  // namespace webgl
@@ -50,8 +48,8 @@ class WebGLFBAttachPoint final {
   const bool mDeferAttachment = false;
 
  private:
-  WebGLRefPtr<WebGLTexture> mTexturePtr;
-  WebGLRefPtr<WebGLRenderbuffer> mRenderbufferPtr;
+  RefPtr<WebGLTexture> mTexturePtr;
+  RefPtr<WebGLRenderbuffer> mRenderbufferPtr;
   uint32_t mTexImageLayer = 0;
   uint8_t mTexImageZLayerCount = 1;
   uint8_t mTexImageLevel = 0;
@@ -70,12 +68,9 @@ class WebGLFBAttachPoint final {
 
   ////
 
-  void Unlink() { Clear(); }
-
   bool HasAttachment() const {
     return bool(mTexturePtr) | bool(mRenderbufferPtr);
   }
-  bool IsDeleteRequested() const;
 
   void Clear();
 
@@ -97,9 +92,8 @@ class WebGLFBAttachPoint final {
 
   void DoAttachment(gl::GLContext* gl) const;
 
-  JS::Value GetParameter(WebGLContext* webgl, JSContext* cx, GLenum target,
-                         GLenum attachment, GLenum pname,
-                         ErrorResult* const out_error) const;
+  Maybe<double> GetParameter(WebGLContext* webgl, GLenum attachment,
+                             GLenum pname) const;
 
   bool IsEquivalentForFeedback(const WebGLFBAttachPoint& other) const {
     if (!HasAttachment() | !other.HasAttachment()) return false;
@@ -135,12 +129,11 @@ class WebGLFBAttachPoint final {
   };
 };
 
-class WebGLFramebuffer final : public nsWrapperCache,
-                               public WebGLRefCountedObject<WebGLFramebuffer>,
-                               public LinkedListElement<WebGLFramebuffer>,
+class WebGLFramebuffer final : public WebGLContextBoundObject,
                                public SupportsWeakPtr<WebGLFramebuffer>,
                                public CacheInvalidator {
  public:
+  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(WebGLFramebuffer, override)
   MOZ_DECLARE_WEAKREFERENCE_TYPENAME(WebGLFramebuffer)
 
   const GLuint mGLName;
@@ -194,23 +187,8 @@ class WebGLFramebuffer final : public nsWrapperCache,
   ////
 
  public:
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLFramebuffer)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLFramebuffer)
-
   WebGLFramebuffer(WebGLContext* webgl, GLuint fbo);
-
-  WebGLContext* GetParentObject() const { return mContext; }
-  virtual JSObject* WrapObject(JSContext* cx,
-                               JS::Handle<JSObject*> givenProto) override;
-
- private:
-  ~WebGLFramebuffer() {
-    DeleteOnce();
-    InvalidateCaches();
-  }
-
- public:
-  void Delete();
+  ~WebGLFramebuffer() override;
 
   ////
 
@@ -235,7 +213,7 @@ class WebGLFramebuffer final : public nsWrapperCache,
   void DetachRenderbuffer(const WebGLRenderbuffer* rb);
   bool ValidateAndInitAttachments(GLenum incompleteFbError) const;
   bool ValidateClearBufferType(GLenum buffer, uint32_t drawBuffer,
-                               GLenum funcType) const;
+                               webgl::AttribBaseType funcType) const;
 
   bool ValidateForColorRead(const webgl::FormatUsageInfo** out_format,
                             uint32_t* out_width, uint32_t* out_height) const;
@@ -256,6 +234,7 @@ class WebGLFramebuffer final : public nsWrapperCache,
 #undef GETTER
 
   const auto& ColorAttachment0() const { return mColorAttachments[0]; }
+  bool IsDrawBufferEnabled(uint32_t slotId) const;
 
   ////////////////
   // Invalidation
@@ -270,14 +249,12 @@ class WebGLFramebuffer final : public nsWrapperCache,
   }
 
   FBStatus CheckFramebufferStatus() const;
-  void FramebufferAttach(GLenum attachEnum,
+  bool FramebufferAttach(GLenum attachEnum,
                          const webgl::FbAttachInfo& toAttach);
-  void DrawBuffers(const dom::Sequence<GLenum>& buffers);
+  void DrawBuffers(const std::vector<GLenum>& buffers);
   void ReadBuffer(GLenum attachPoint);
 
-  JS::Value GetAttachmentParameter(JSContext* cx, GLenum target,
-                                   GLenum attachment, GLenum pname,
-                                   ErrorResult* const out_error);
+  Maybe<double> GetAttachmentParameter(GLenum attachment, GLenum pname);
 
   static void BlitFramebuffer(WebGLContext* webgl, GLint srcX0, GLint srcY0,
                               GLint srcX1, GLint srcY1, GLint dstX0,

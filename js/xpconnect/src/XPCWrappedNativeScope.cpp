@@ -63,9 +63,9 @@ static bool RemoteXULForbidsXBLScope(HandleObject aFirstGlobal) {
 
 XPCWrappedNativeScope::XPCWrappedNativeScope(JS::Compartment* aCompartment,
                                              JS::HandleObject aFirstGlobal)
-    : mWrappedNativeMap(Native2WrappedNativeMap::newMap(XPC_NATIVE_MAP_LENGTH)),
+    : mWrappedNativeMap(mozilla::MakeUnique<Native2WrappedNativeMap>()),
       mWrappedNativeProtoMap(
-          ClassInfo2WrappedNativeProtoMap::newMap(XPC_NATIVE_PROTO_MAP_LENGTH)),
+          mozilla::MakeUnique<ClassInfo2WrappedNativeProtoMap>()),
       mComponents(nullptr),
       mCompartment(aCompartment) {
 #ifdef DEBUG
@@ -83,8 +83,11 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JS::Compartment* aCompartment,
   // remote XUL domains, _except_ if we have an additional pref override set.
   //
   // Note that we can't quite remove this yet, even though we never actually
-  // use XBL scopes, because some code (including the security manager) uses
-  // this boolean to make decisions that we rely on in our test infrastructure.
+  // use XBL scopes, because the security manager uses this boolean to make
+  // decisions that we rely on in our test infrastructure.
+  //
+  // FIXME(emilio): Now that the security manager is the only caller probably
+  // should be renamed, but what's a good name for this?
   mAllowContentXBLScope = !RemoteXULForbidsXBLScope(aFirstGlobal);
 }
 
@@ -117,13 +120,6 @@ bool XPCWrappedNativeScope::GetComponentsJSObject(JSContext* cx,
   return true;
 }
 
-void XPCWrappedNativeScope::ForcePrivilegedComponents() {
-  nsCOMPtr<nsIXPCComponents> c = do_QueryInterface(mComponents);
-  if (!c) {
-    mComponents = new nsXPCComponents(this);
-  }
-}
-
 static bool DefineSubcomponentProperty(JSContext* aCx, HandleObject aGlobal,
                                        nsISupports* aSubcomponent,
                                        const nsID* aIID,
@@ -148,14 +144,8 @@ bool XPCWrappedNativeScope::AttachComponentsObject(JSContext* aCx) {
 
   RootedObject global(aCx, CurrentGlobalOrNull(aCx));
 
-  // The global Components property is non-configurable if it's a full
-  // nsXPCComponents object. That way, if it's an nsXPCComponentsBase,
-  // enableUniversalXPConnect can upgrade it later.
-  unsigned attrs = JSPROP_READONLY | JSPROP_RESOLVING;
+  const unsigned attrs = JSPROP_READONLY | JSPROP_RESOLVING | JSPROP_PERMANENT;
   nsCOMPtr<nsIXPCComponents> c = do_QueryInterface(mComponents);
-  if (c) {
-    attrs |= JSPROP_PERMANENT;
-  }
 
   RootedId id(aCx,
               XPCJSContext::Get()->GetStringID(XPCJSContext::IDX_COMPONENTS));
@@ -236,10 +226,8 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope() {
   // We can do additional cleanup assertions here...
 
   MOZ_ASSERT(0 == mWrappedNativeMap->Count(), "scope has non-empty map");
-  delete mWrappedNativeMap;
 
   MOZ_ASSERT(0 == mWrappedNativeProtoMap->Count(), "scope has non-empty map");
-  delete mWrappedNativeProtoMap;
 
   // This should not be necessary, since the Components object should die
   // with the scope but just in case.
@@ -456,7 +444,7 @@ void XPCWrappedNativeScope::DebugDump(int16_t depth) {
   XPC_LOG_ALWAYS(("mCompartment @ %p", mCompartment));
 
   XPC_LOG_ALWAYS(("mWrappedNativeMap @ %p with %d wrappers(s)",
-                  mWrappedNativeMap, mWrappedNativeMap->Count()));
+                  mWrappedNativeMap.get(), mWrappedNativeMap->Count()));
   // iterate contexts...
   if (depth && mWrappedNativeMap->Count()) {
     XPC_LOG_INDENT();
@@ -468,7 +456,8 @@ void XPCWrappedNativeScope::DebugDump(int16_t depth) {
   }
 
   XPC_LOG_ALWAYS(("mWrappedNativeProtoMap @ %p with %d protos(s)",
-                  mWrappedNativeProtoMap, mWrappedNativeProtoMap->Count()));
+                  mWrappedNativeProtoMap.get(),
+                  mWrappedNativeProtoMap->Count()));
   // iterate contexts...
   if (depth && mWrappedNativeProtoMap->Count()) {
     XPC_LOG_INDENT();

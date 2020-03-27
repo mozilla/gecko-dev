@@ -95,7 +95,7 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   MOZ_MUST_USE bool generate();
   MOZ_MUST_USE bool generateWasm(wasm::FuncTypeIdDesc funcTypeId,
                                  wasm::BytecodeOffset trapOffset,
-                                 const wasm::ValTypeVector& argTys,
+                                 const wasm::ArgTypeVector& argTys,
                                  const MachineState& trapExitLayout,
                                  size_t trapExitLayoutNumWords,
                                  wasm::FuncOffsets* offsets,
@@ -259,9 +259,6 @@ class CodeGenerator final : public CodeGeneratorSpecific {
 
   template <class OrderedHashTable>
   void emitLoadIteratorValues(Register result, Register temp, Register front);
-
-  template <size_t Defs>
-  void emitWasmCallBase(LWasmCallBase<Defs>* lir);
 
   template <size_t NumDefs>
   void emitIonToWasmCallBase(LIonToWasmCallBase<NumDefs>* lir);

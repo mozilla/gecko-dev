@@ -287,6 +287,9 @@ class JSString : public js::gc::CellWithLengthAndFlags<js::gc::Cell> {
   static const uint32_t TYPE_FLAGS_MASK =
       js::BitMask(9) - js::BitMask(3) + js::gc::Cell::JSSTRING_BIT;
 
+  static_assert((TYPE_FLAGS_MASK & js::gc::Cell::BIGINT_BIT) == 0,
+                "BigInt bit must not be used for Strings");
+
   static const uint32_t LATIN1_CHARS_BIT = js::Bit(9);
 
   static const uint32_t INDEX_VALUE_BIT = js::Bit(10);
@@ -1676,12 +1679,6 @@ static MOZ_ALWAYS_INLINE JSString* ToString(JSContext* cx, JS::HandleValue v) {
  */
 inline bool ValueToStringBuffer(JSContext* cx, const Value& v,
                                 StringBuffer& sb);
-
-/*
- * Convert a value to its source expression, returning null after reporting
- * an error, otherwise returning a new string reference.
- */
-extern JSString* ValueToSource(JSContext* cx, HandleValue v);
 
 } /* namespace js */
 

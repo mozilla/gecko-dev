@@ -1868,7 +1868,7 @@ class Extension extends ExtensionData {
   }
 
   get manifestCacheKey() {
-    return [this.id, this.version, Services.locale.appLocaleAsLangTag];
+    return [this.id, this.version, Services.locale.appLocaleAsBCP47];
   }
 
   get isPrivileged() {
@@ -1876,13 +1876,12 @@ class Extension extends ExtensionData {
       this.addonData.signedState === AddonManager.SIGNEDSTATE_PRIVILEGED ||
       this.addonData.signedState === AddonManager.SIGNEDSTATE_SYSTEM ||
       this.addonData.builtIn ||
-      (AppConstants.MOZ_ALLOW_LEGACY_EXTENSIONS &&
-        this.addonData.temporarilyInstalled)
+      (AddonSettings.EXPERIMENTS_ENABLED && this.addonData.temporarilyInstalled)
     );
   }
 
   get experimentsAllowed() {
-    return AddonSettings.ALLOW_LEGACY_EXTENSIONS || this.isPrivileged;
+    return AddonSettings.EXPERIMENTS_ENABLED || this.isPrivileged;
   }
 
   saveStartupData() {
@@ -1935,7 +1934,10 @@ class Extension extends ExtensionData {
       content_security_policy &&
       typeof content_security_policy === "object"
     ) {
-      return content_security_policy.content_scripts;
+      return (
+        content_security_policy.content_scripts ||
+        content_security_policy.isolated_world
+      );
     }
   }
 
@@ -2100,7 +2102,7 @@ class Extension extends ExtensionData {
       let locales = await this.promiseLocales();
 
       let matches = Services.locale.negotiateLanguages(
-        Services.locale.appLocalesAsLangTags,
+        Services.locale.appLocalesAsBCP47,
         Array.from(locales.keys()),
         this.defaultLocale
       );

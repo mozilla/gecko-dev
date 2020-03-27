@@ -11,15 +11,14 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Compiler.h"
-#include "mozilla/Move.h"
 #include "mozilla/TemplateLib.h"
 #include "mozilla/UniquePtr.h"
 
 #include <stdlib.h>
 #include <string.h>
+#include <utility>
 
 #include "jstypes.h"
-
 #include "mozmemory.h"
 
 /* The public JS engine namespace. */
@@ -332,7 +331,8 @@ struct MOZ_RAII JS_PUBLIC_DATA AutoEnterOOMUnsafeRegion {
   MOZ_NORETURN MOZ_COLD void crash(size_t size, const char* reason);
 
   using AnnotateOOMAllocationSizeCallback = void (*)(size_t);
-  static AnnotateOOMAllocationSizeCallback annotateOOMSizeCallback;
+  static mozilla::Atomic<AnnotateOOMAllocationSizeCallback, mozilla::Relaxed>
+      annotateOOMSizeCallback;
   static void setAnnotateOOMAllocationSizeCallback(
       AnnotateOOMAllocationSizeCallback callback) {
     annotateOOMSizeCallback = callback;

@@ -65,8 +65,10 @@ void js::ZoneAllocator::updateGCThresholds(GCRuntime& gc,
                                            const js::AutoLockGC& lock) {
   // This is called repeatedly during a GC to update thresholds as memory is
   // freed.
+  bool isAtomsZone = JS::Zone::from(this)->isAtomsZone();
   gcHeapThreshold.updateAfterGC(gcHeapSize.retainedBytes(), invocationKind,
-                                gc.tunables, gc.schedulingState, lock);
+                                gc.tunables, gc.schedulingState, isAtomsZone,
+                                lock);
   mallocHeapThreshold.updateAfterGC(mallocHeapSize.retainedBytes(),
                                     gc.tunables.mallocThresholdBase(),
                                     gc.tunables.mallocGrowthFactor(), lock);
@@ -156,6 +158,8 @@ JS::Zone::Zone(JSRuntime* rt)
       purgeAtomsDeferred(this, 0),
       tenuredStrings(this, 0),
       allocNurseryStrings(this, true),
+      tenuredBigInts(this, 0),
+      allocNurseryBigInts(this, true),
       propertyTree_(this, this),
       baseShapes_(this, this),
       initialShapes_(this, this),
@@ -200,7 +204,6 @@ bool Zone::init(bool isSystemArg) {
 }
 
 void Zone::setNeedsIncrementalBarrier(bool needs) {
-  MOZ_ASSERT_IF(needs, canCollect());
   needsIncrementalBarrier_ = needs;
 }
 
@@ -494,6 +497,11 @@ bool Zone::canCollect() {
   // place.
   if (isAtomsZone()) {
     return !runtimeFromAnyThread()->hasHelperThreadZones();
+  }
+
+  // We don't collect the self hosting zone after it has been initialized.
+  if (isSelfHostingZone()) {
+    return !runtimeFromAnyThread()->gc.isSelfHostingZoneFrozen();
   }
 
   // Zones that will be or are currently used by other threads cannot be
@@ -911,15 +919,17 @@ void Zone::clearScriptLCov(Realm* realm) {
   }
 }
 
-void Zone::finishRoots() {
-  for (RealmsInZoneIter r(this); !r.done(); r.next()) {
-    r->finishRoots();
-  }
-
+void Zone::clearRootsForShutdownGC() {
   // Finalization callbacks are not called if we're shutting down.
   finalizationRecordMap().clear();
 
   clearKeptObjects();
+}
+
+void Zone::finishRoots() {
+  for (RealmsInZoneIter r(this); !r.done(); r.next()) {
+    r->finishRoots();
+  }
 }
 
 void Zone::traceKeptObjects(JSTracer* trc) { keptObjects.ref().trace(trc); }

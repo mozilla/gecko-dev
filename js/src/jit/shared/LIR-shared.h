@@ -1510,7 +1510,7 @@ class LCompare : public LInstructionHelper<1, 2, 0> {
   const LAllocation* left() { return getOperand(0); }
   const LAllocation* right() { return getOperand(1); }
   MCompare* mir() { return mir_->toCompare(); }
-  const char* extraName() const { return CodeName[jsop_]; }
+  const char* extraName() const { return CodeName(jsop_); }
 };
 
 class LCompareI64 : public LInstructionHelper<1, 2 * INT64_PIECES, 0> {
@@ -1531,7 +1531,7 @@ class LCompareI64 : public LInstructionHelper<1, 2 * INT64_PIECES, 0> {
 
   JSOp jsop() const { return jsop_; }
   MCompare* mir() { return mir_->toCompare(); }
-  const char* extraName() const { return CodeName[jsop_]; }
+  const char* extraName() const { return CodeName(jsop_); }
 };
 
 class LCompareI64AndBranch
@@ -1561,7 +1561,7 @@ class LCompareI64AndBranch
   MBasicBlock* ifFalse() const { return getSuccessor(1); }
   MTest* mir() const { return mir_->toTest(); }
   MCompare* cmpMir() const { return cmpMir_; }
-  const char* extraName() const { return CodeName[jsop_]; }
+  const char* extraName() const { return CodeName(jsop_); }
 };
 
 // Compares two integral values of the same JS type, either integer or object.
@@ -1589,7 +1589,7 @@ class LCompareAndBranch : public LControlInstructionHelper<2, 2, 0> {
   const LAllocation* right() { return getOperand(1); }
   MTest* mir() const { return mir_->toTest(); }
   MCompare* cmpMir() const { return cmpMir_; }
-  const char* extraName() const { return CodeName[jsop_]; }
+  const char* extraName() const { return CodeName(jsop_); }
 };
 
 class LCompareD : public LInstructionHelper<1, 2, 0> {
@@ -2062,7 +2062,7 @@ class LBitNotI : public LInstructionHelper<1, 1, 0> {
   LBitNotI() : LInstructionHelper(classOpcode) {}
 };
 
-// Call a VM function to perform a BITNOT operation.
+// Call a VM function to perform a BitNot operation.
 class LBitNotV : public LCallInstructionHelper<BOX_PIECES, BOX_PIECES, 0> {
  public:
   LIR_HEADER(BitNotV)
@@ -2086,10 +2086,10 @@ class LBitOpI : public LInstructionHelper<1, 2, 0> {
   explicit LBitOpI(JSOp op) : LInstructionHelper(classOpcode), op_(op) {}
 
   const char* extraName() const {
-    if (bitop() == JSOP_URSH && mir_->toUrsh()->bailoutsDisabled()) {
+    if (bitop() == JSOp::Ursh && mir_->toUrsh()->bailoutsDisabled()) {
       return "ursh:BailoutsDisabled";
     }
-    return CodeName[op_];
+    return CodeName(op_);
   }
 
   JSOp bitop() const { return op_; }
@@ -2106,7 +2106,7 @@ class LBitOpI64 : public LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 0> {
 
   explicit LBitOpI64(JSOp op) : LInstructionHelper(classOpcode), op_(op) {}
 
-  const char* extraName() const { return CodeName[op_]; }
+  const char* extraName() const { return CodeName(op_); }
 
   JSOp bitop() const { return op_; }
 };
@@ -2125,7 +2125,7 @@ class LShiftI : public LBinaryMath<0> {
 
   MInstruction* mir() { return mir_->toInstruction(); }
 
-  const char* extraName() const { return CodeName[op_]; }
+  const char* extraName() const { return CodeName(op_); }
 };
 
 class LShiftI64 : public LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 0> {
@@ -2143,7 +2143,7 @@ class LShiftI64 : public LInstructionHelper<INT64_PIECES, INT64_PIECES + 1, 0> {
 
   MInstruction* mir() { return mir_->toInstruction(); }
 
-  const char* extraName() const { return CodeName[op_]; }
+  const char* extraName() const { return CodeName(op_); }
 };
 
 // Sign extension
@@ -2674,7 +2674,7 @@ class LMathD : public LBinaryMath<0> {
 
   JSOp jsop() const { return jsop_; }
 
-  const char* extraName() const { return CodeName[jsop_]; }
+  const char* extraName() const { return CodeName(jsop_); }
 };
 
 // Performs an add, sub, mul, or div on two double values.
@@ -2688,7 +2688,7 @@ class LMathF : public LBinaryMath<0> {
 
   JSOp jsop() const { return jsop_; }
 
-  const char* extraName() const { return CodeName[jsop_]; }
+  const char* extraName() const { return CodeName(jsop_); }
 };
 
 class LModD : public LBinaryMath<1> {
@@ -2721,7 +2721,7 @@ class LBinaryV : public LCallInstructionHelper<BOX_PIECES, 2 * BOX_PIECES, 0> {
 
   JSOp jsop() const { return jsop_; }
 
-  const char* extraName() const { return CodeName[jsop_]; }
+  const char* extraName() const { return CodeName(jsop_); }
 
   static const size_t LhsInput = 0;
   static const size_t RhsInput = BOX_PIECES;
@@ -5708,6 +5708,25 @@ class LPostWriteBarrierS : public LInstructionHelper<0, 2, 1> {
   const LDefinition* temp() { return getTemp(0); }
 };
 
+// Generational write barrier used when writing a BigInt to an object.
+class LPostWriteBarrierBI : public LInstructionHelper<0, 2, 1> {
+ public:
+  LIR_HEADER(PostWriteBarrierBI)
+
+  LPostWriteBarrierBI(const LAllocation& obj, const LAllocation& value,
+                      const LDefinition& temp)
+      : LInstructionHelper(classOpcode) {
+    setOperand(0, obj);
+    setOperand(1, value);
+    setTemp(0, temp);
+  }
+
+  const MPostWriteBarrier* mir() const { return mir_->toPostWriteBarrier(); }
+  const LAllocation* object() { return getOperand(0); }
+  const LAllocation* value() { return getOperand(1); }
+  const LDefinition* temp() { return getTemp(0); }
+};
+
 // Generational write barrier used when writing a value to another object.
 class LPostWriteBarrierV : public LInstructionHelper<0, 1 + BOX_PIECES, 1> {
  public:
@@ -5764,6 +5783,34 @@ class LPostWriteElementBarrierS : public LInstructionHelper<0, 3, 1> {
 
   LPostWriteElementBarrierS(const LAllocation& obj, const LAllocation& value,
                             const LAllocation& index, const LDefinition& temp)
+      : LInstructionHelper(classOpcode) {
+    setOperand(0, obj);
+    setOperand(1, value);
+    setOperand(2, index);
+    setTemp(0, temp);
+  }
+
+  const MPostWriteElementBarrier* mir() const {
+    return mir_->toPostWriteElementBarrier();
+  }
+
+  const LAllocation* object() { return getOperand(0); }
+
+  const LAllocation* value() { return getOperand(1); }
+
+  const LAllocation* index() { return getOperand(2); }
+
+  const LDefinition* temp() { return getTemp(0); }
+};
+
+// Generational write barrier used when writing a BigInt to an object's
+// elements.
+class LPostWriteElementBarrierBI : public LInstructionHelper<0, 3, 1> {
+ public:
+  LIR_HEADER(PostWriteElementBarrierBI)
+
+  LPostWriteElementBarrierBI(const LAllocation& obj, const LAllocation& value,
+                             const LAllocation& index, const LDefinition& temp)
       : LInstructionHelper(classOpcode) {
     setOperand(0, obj);
     setOperand(1, value);
@@ -6772,74 +6819,58 @@ class LWasmStackArgI64 : public LInstructionHelper<0, INT64_PIECES, 0> {
   const LInt64Allocation arg() { return getInt64Operand(0); }
 };
 
-inline bool IsWasmCall(LNode::Opcode op) {
-  return (op == LNode::Opcode::WasmCall || op == LNode::Opcode::WasmCallVoid ||
-          op == LNode::Opcode::WasmCallI64);
-}
-
 class LWasmNullConstant : public LInstructionHelper<1, 0, 0> {
  public:
   LIR_HEADER(WasmNullConstant);
   explicit LWasmNullConstant() : LInstructionHelper(classOpcode) {}
 };
 
-template <size_t Defs>
-class LWasmCallBase : public LVariadicInstruction<Defs, 0> {
-  using Base = LVariadicInstruction<Defs, 0>;
-
+class LWasmCall : public LVariadicInstruction<0, 0> {
   bool needsBoundsCheck_;
 
  public:
-  LWasmCallBase(LNode::Opcode opcode, uint32_t numOperands,
-                bool needsBoundsCheck)
-      : Base(opcode, numOperands), needsBoundsCheck_(needsBoundsCheck) {
-    MOZ_ASSERT(IsWasmCall(opcode));
+  LIR_HEADER(WasmCall);
+
+  LWasmCall(uint32_t numOperands, bool needsBoundsCheck)
+      : LVariadicInstruction(classOpcode, numOperands),
+        needsBoundsCheck_(needsBoundsCheck) {
     this->setIsCall();
   }
 
-  MWasmCall* mir() const { return this->mir_->toWasmCall(); }
+  MWasmCall* mir() const { return mir_->toWasmCall(); }
 
   static bool isCallPreserved(AnyRegister reg) {
     // All MWasmCalls preserve the TLS register:
     //  - internal/indirect calls do by the internal wasm ABI
     //  - import calls do by explicitly saving/restoring at the callsite
     //  - builtin calls do because the TLS reg is non-volatile
-    // See also CodeGeneratorShared::emitWasmCallBase.
+    // See also CodeGeneratorShared::emitWasmCall.
     return !reg.isFloat() && reg.gpr() == WasmTlsReg;
   }
 
   bool needsBoundsCheck() const { return needsBoundsCheck_; }
 };
 
-class LWasmCall : public LWasmCallBase<1> {
+class LWasmRegisterResult : public LInstructionHelper<1, 0, 0> {
  public:
-  LIR_HEADER(WasmCall);
+  LIR_HEADER(WasmRegisterResult);
 
-  LWasmCall(uint32_t numOperands, bool needsBoundsCheck)
-      : LWasmCallBase(classOpcode, numOperands, needsBoundsCheck) {}
+  LWasmRegisterResult() : LInstructionHelper(classOpcode) {}
+
+  MWasmRegisterResult* mir() const { return mir_->toWasmRegisterResult(); }
 };
 
-class LWasmCallVoid : public LWasmCallBase<0> {
+class LWasmRegisterPairResult : public LInstructionHelper<2, 0, 0> {
  public:
-  LIR_HEADER(WasmCallVoid);
+  LIR_HEADER(WasmRegisterPairResult);
 
-  LWasmCallVoid(uint32_t numOperands, bool needsBoundsCheck)
-      : LWasmCallBase(classOpcode, numOperands, needsBoundsCheck) {}
-};
+  LWasmRegisterPairResult() : LInstructionHelper(classOpcode) {}
 
-class LWasmCallI64 : public LWasmCallBase<INT64_PIECES> {
- public:
-  LIR_HEADER(WasmCallI64);
-
-  LWasmCallI64(uint32_t numOperands, bool needsBoundsCheck)
-      : LWasmCallBase(classOpcode, numOperands, needsBoundsCheck) {}
+  MDefinition* mir() const { return mirRaw(); }
 };
 
 inline bool LNode::isCallPreserved(AnyRegister reg) const {
-  if (IsWasmCall(op())) {
-    return LWasmCallBase<0>::isCallPreserved(reg);
-  }
-  return false;
+  return isWasmCall() && LWasmCall::isCallPreserved(reg);
 }
 
 class LAssertRangeI : public LInstructionHelper<0, 1, 0> {

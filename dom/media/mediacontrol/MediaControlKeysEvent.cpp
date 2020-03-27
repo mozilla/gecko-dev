@@ -6,14 +6,13 @@
 
 #include "MediaControlKeysEvent.h"
 
+#include "MediaController.h"
 #include "MediaControlUtils.h"
 #include "MediaControlService.h"
 #include "mozilla/Logging.h"
 
 namespace mozilla {
 namespace dom {
-
-using PlaybackState = MediaControlKeysEventSource::PlaybackState;
 
 // avoid redefined macro in unified build
 #undef LOG_SOURCE
@@ -32,24 +31,20 @@ void MediaControlKeysHandler::OnKeyPressed(MediaControlKeysEvent aKeyEvent) {
 
   RefPtr<MediaControlService> service = MediaControlService::GetService();
   MOZ_ASSERT(service);
-  RefPtr<MediaController> controller = service->GetLastAddedController();
+  RefPtr<MediaController> controller = service->GetMainController();
   if (!controller) {
     return;
   }
 
   switch (aKeyEvent) {
     case MediaControlKeysEvent::ePlay:
-      if (!controller->IsPlaying()) {
-        controller->Play();
-      }
+      controller->Play();
       return;
     case MediaControlKeysEvent::ePause:
-      if (controller->IsPlaying()) {
-        controller->Pause();
-      }
+      controller->Pause();
       return;
     case MediaControlKeysEvent::ePlayPause: {
-      if (controller->IsPlaying()) {
+      if (controller->GetState() == PlaybackState::ePlaying) {
         controller->Pause();
       } else {
         controller->Play();
@@ -57,10 +52,16 @@ void MediaControlKeysHandler::OnKeyPressed(MediaControlKeysEvent aKeyEvent) {
       return;
     }
     case MediaControlKeysEvent::ePrevTrack:
+      controller->PrevTrack();
+      return;
     case MediaControlKeysEvent::eNextTrack:
+      controller->NextTrack();
+      return;
     case MediaControlKeysEvent::eSeekBackward:
+      controller->SeekBackward();
+      return;
     case MediaControlKeysEvent::eSeekForward:
-      // TODO : implement related controller functions.
+      controller->SeekForward();
       return;
     case MediaControlKeysEvent::eStop:
       controller->Stop();
@@ -70,6 +71,9 @@ void MediaControlKeysHandler::OnKeyPressed(MediaControlKeysEvent aKeyEvent) {
       return;
   }
 }
+
+MediaControlKeysEventSource::MediaControlKeysEventSource()
+    : mPlaybackState(PlaybackState::eStopped) {}
 
 void MediaControlKeysEventSource::AddListener(
     MediaControlKeysEventListener* aListener) {

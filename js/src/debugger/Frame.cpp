@@ -9,7 +9,6 @@
 #include "mozilla/Assertions.h"   // for AssertionConditionType
 #include "mozilla/HashTable.h"    // for HashMapEntry
 #include "mozilla/Maybe.h"        // for Maybe
-#include "mozilla/Move.h"         // for std::move
 #include "mozilla/Range.h"        // for Range
 #include "mozilla/RangedPtr.h"    // for RangedPtr
 #include "mozilla/Result.h"       // for Result
@@ -20,13 +19,13 @@
 #include <stddef.h>  // for size_t
 #include <stdint.h>  // for int32_t
 #include <string.h>  // for strlen
+#include <utility>   // for std::move
 
 #include "jsapi.h"        // for CallArgs, Handle
 #include "jsfriendapi.h"  // for GetErrorMessage
 #include "jsnum.h"        // for Int32ToString
 
 #include "builtin/Array.h"      // for NewDenseCopiedArray
-#include "builtin/Promise.h"    // for PromiseObject
 #include "debugger/Debugger.h"  // for Completion, Debugger
 #include "debugger/DebugScript.h"
 #include "debugger/Environment.h"          // for DebuggerEnvironment
@@ -34,6 +33,7 @@
 #include "debugger/Object.h"               // for DebuggerObject
 #include "debugger/Script.h"               // for DebuggerScript
 #include "frontend/BytecodeCompilation.h"  // for CompileEvalScript
+#include "frontend/SharedContext.h"        // for GlobalScharedContext
 #include "gc/Barrier.h"                    // for HeapPtr
 #include "gc/FreeOp.h"                     // for JSFreeOp
 #include "gc/GC.h"                         // for MemoryUse
@@ -614,7 +614,24 @@ bool DebuggerFrame::getOlder(JSContext* cx, HandleDebuggerFrame frame,
     }
     FrameIter& iter = *maybeIter;
 
-    for (++iter; !iter.done(); ++iter) {
+    while (true) {
+      Activation& activation = *iter.activation();
+      ++iter;
+
+      // If the parent frame crosses an explicit async stack boundary, we
+      // treat that as an indication to stop traversing sync frames, so that
+      // the on-stack Debugger.Frame instances align with what you would
+      // see in a stringified stack trace.
+      if (iter.activation() != &activation && activation.asyncStack() &&
+          activation.asyncCallIsExplicit()) {
+        break;
+      }
+
+      // If there is no parent frame, we're done.
+      if (iter.done()) {
+        break;
+      }
+
       if (dbg->observesFrame(iter)) {
         if (iter.isIon() && !iter.ensureHasRematerializedFrame(cx)) {
           return false;
@@ -979,10 +996,15 @@ static bool EvaluateInEnv(JSContext* cx, Handle<Env*> env,
     }
 
     LifoAllocScope allocScope(&cx->tempLifoAlloc());
-    frontend::ParseInfo parseInfo(cx, allocScope);
+    frontend::CompilationInfo compilationInfo(cx, allocScope, options);
+    if (!compilationInfo.init(cx)) {
+      return false;
+    }
 
-    frontend::EvalScriptInfo info(cx, parseInfo, options, env, scope);
-    script = frontend::CompileEvalScript(info, srcBuf);
+    frontend::EvalSharedContext evalsc(cx, env, compilationInfo, scope,
+                                       compilationInfo.directives,
+                                       options.extraWarningsOption);
+    script = frontend::CompileEvalScript(compilationInfo, evalsc, env, srcBuf);
     if (!script) {
       return false;
     }
@@ -994,10 +1016,17 @@ static bool EvaluateInEnv(JSContext* cx, Handle<Env*> env,
     // the global scope.
 
     LifoAllocScope allocScope(&cx->tempLifoAlloc());
-    frontend::ParseInfo parseInfo(cx, allocScope);
+    frontend::CompilationInfo compilationInfo(cx, allocScope, options);
+    if (!compilationInfo.init(cx)) {
+      return false;
+    }
+    MOZ_ASSERT(scopeKind == ScopeKind::Global ||
+               scopeKind == ScopeKind::NonSyntactic);
 
-    frontend::GlobalScriptInfo info(cx, parseInfo, options, scopeKind);
-    script = frontend::CompileGlobalScript(info, srcBuf);
+    frontend::GlobalSharedContext globalsc(
+        cx, scopeKind, compilationInfo, compilationInfo.directives,
+        compilationInfo.options.extraWarningsOption);
+    script = frontend::CompileGlobalScript(compilationInfo, globalsc, srcBuf);
     if (!script) {
       return false;
     }
@@ -1281,6 +1310,7 @@ struct MOZ_STACK_CLASS DebuggerFrame::CallData {
   bool environmentGetter();
   bool generatorGetter();
   bool asyncPromiseGetter();
+  bool olderSavedFrameGetter();
   bool liveGetter();
   bool onStackGetter();
   bool terminatedGetter();
@@ -1496,6 +1526,71 @@ bool DebuggerFrame::CallData::asyncPromiseGetter() {
   }
 
   args.rval().setObjectOrNull(result);
+  return true;
+}
+
+bool DebuggerFrame::CallData::olderSavedFrameGetter() {
+  if (!ensureOnStackOrSuspended()) {
+    return false;
+  }
+
+  RootedSavedFrame result(cx);
+  if (!DebuggerFrame::getOlderSavedFrame(cx, frame, &result)) {
+    return false;
+  }
+
+  args.rval().setObjectOrNull(result);
+  return true;
+}
+
+/* static */
+bool DebuggerFrame::getOlderSavedFrame(JSContext* cx, HandleDebuggerFrame frame,
+                                       MutableHandleSavedFrame result) {
+  if (frame->isOnStack()) {
+    Debugger* dbg = frame->owner();
+
+    Maybe<FrameIter> maybeIter;
+    if (!DebuggerFrame::getFrameIter(cx, frame, maybeIter)) {
+      return false;
+    }
+    FrameIter& iter = *maybeIter;
+
+    while (true) {
+      Activation& activation = *iter.activation();
+      ++iter;
+
+      // If the parent frame crosses an explicit async stack boundary, or we
+      // have hit the end of the synchronous frames, we want to switch over
+      // to using SavedFrames.
+      if (iter.activation() != &activation && activation.asyncStack() &&
+          (activation.asyncCallIsExplicit() || iter.done())) {
+        const char* cause = activation.asyncCause();
+        RootedAtom causeAtom(cx, AtomizeUTF8Chars(cx, cause, strlen(cause)));
+        if (!causeAtom) {
+          return false;
+        }
+        RootedSavedFrame stackObj(cx, activation.asyncStack());
+
+        return cx->realm()->savedStacks().copyAsyncStack(
+            cx, stackObj, causeAtom, result, mozilla::Nothing());
+      }
+
+      // If there are no more parent frames, we're done.
+      if (iter.done()) {
+        break;
+      }
+
+      // If we hit another frame that we observe, then there is no saved
+      // frame that we'd want to return.
+      if (dbg->observesFrame(iter)) {
+        break;
+      }
+    }
+  } else {
+    MOZ_ASSERT(frame->hasGenerator());
+  }
+
+  result.set(nullptr);
   return true;
 }
 
@@ -1863,6 +1958,7 @@ const JSPropertySpec DebuggerFrame::properties_[] = {
     JS_DEBUG_PSG("terminated", terminatedGetter),
     JS_DEBUG_PSG("offset", offsetGetter),
     JS_DEBUG_PSG("older", olderGetter),
+    JS_DEBUG_PSG("olderSavedFrame", olderSavedFrameGetter),
     JS_DEBUG_PSG("script", getScript),
     JS_DEBUG_PSG("this", thisGetter),
     JS_DEBUG_PSG("asyncPromise", asyncPromiseGetter),

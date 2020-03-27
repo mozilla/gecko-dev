@@ -60,7 +60,7 @@ class imgIContainer;
 namespace mozilla {
 namespace widget {
 class NativeKey;
-class WinCompositorWidget;
+class InProcessWinCompositorWidget;
 struct MSGResult;
 }  // namespace widget
 }  // namespace mozilla
@@ -144,7 +144,7 @@ class nsWindow final : public nsWindowBase {
   virtual void SuppressAnimation(bool aSuppress) override;
   virtual void Enable(bool aState) override;
   virtual bool IsEnabled() const override;
-  virtual void SetFocus(Raise) override;
+  virtual void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
   virtual LayoutDeviceIntRect GetBounds() override;
   virtual LayoutDeviceIntRect GetScreenBounds() override;
   virtual MOZ_MUST_USE nsresult
@@ -408,6 +408,7 @@ class nsWindow final : public nsWindowBase {
   /**
    * Event processing helpers
    */
+  HWND GetTopLevelForFocus(HWND aCurWnd);
   void DispatchFocusToTopLevelWindow(bool aIsActivate);
   bool DispatchStandardEvent(mozilla::EventMessage aMsg);
   void RelayMouseEvent(UINT aMsg, WPARAM wParam, LPARAM lParam);
@@ -438,6 +439,7 @@ class nsWindow final : public nsWindowBase {
    */
   virtual void OnDestroy() override;
   bool OnResize(const LayoutDeviceIntSize& aSize);
+  void OnSizeModeChange(nsSizeMode aSizeMode);
   bool OnGesture(WPARAM wParam, LPARAM lParam);
   bool OnTouch(WPARAM wParam, LPARAM lParam);
   bool OnHotKey(WPARAM wParam, LPARAM lParam);
@@ -577,6 +579,7 @@ class nsWindow final : public nsWindowBase {
   uint32_t mPickerDisplayCount;
   HICON mIconSmall;
   HICON mIconBig;
+  HWND mLastKillFocusWindow;
   static bool sDropShadowEnabled;
   static uint32_t sInstanceCount;
   static TriStateBool sCanQuit;
@@ -688,7 +691,7 @@ class nsWindow final : public nsWindowBase {
   POINT mCachedHitTestPoint;
   TimeStamp mCachedHitTestTime;
 
-  RefPtr<mozilla::widget::WinCompositorWidget> mBasicLayersSurface;
+  RefPtr<mozilla::widget::InProcessWinCompositorWidget> mBasicLayersSurface;
 
   static bool sNeedsToInitMouseWheelSettings;
   static void InitMouseWheelScrollData();

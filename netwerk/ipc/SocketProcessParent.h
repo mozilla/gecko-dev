@@ -59,10 +59,11 @@ class SocketProcessParent final
       const Maybe<TabId>& aTabId);
   bool DeallocPWebrtcTCPSocketParent(PWebrtcTCPSocketParent* aActor);
   already_AddRefed<PDNSRequestParent> AllocPDNSRequestParent(
-      const nsCString& aHost, const OriginAttributes& aOriginAttributes,
-      const uint32_t& aFlags);
+      const nsCString& aHost, const nsCString& aTrrServer, const uint16_t& aType,
+      const OriginAttributes& aOriginAttributes, const uint32_t& aFlags);
   virtual mozilla::ipc::IPCResult RecvPDNSRequestConstructor(
       PDNSRequestParent* actor, const nsCString& hostName,
+      const nsCString& trrServer, const uint16_t& type,
       const OriginAttributes& aOriginAttributes,
       const uint32_t& flags) override;
 
@@ -85,6 +86,11 @@ class SocketProcessParent final
       PParentToChildStreamParent* aActor) override;
   PFileDescriptorSetParent* SendPFileDescriptorSetConstructor(
       const FileDescriptor& aFD) override;
+
+  mozilla::ipc::IPCResult RecvObserveHttpActivity(
+      const HttpActivityArgs& aArgs, const uint32_t& aActivityType,
+      const uint32_t& aActivitySubtype, const PRTime& aTimestamp,
+      const uint64_t& aExtraSizeData, const nsCString& aExtraStringData);
 
  private:
   SocketProcessHost* mHost;

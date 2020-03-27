@@ -13,12 +13,12 @@
 #include <winternl.h>
 
 #include <algorithm>
+#include <utility>
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/Move.h"
 #include "mozilla/Span.h"
 #include "mozilla/WinHeaderOnlyUtils.h"
 #include "mozilla/interceptor/MMPolicies.h"
@@ -243,9 +243,7 @@ struct MemorySectionNameBuf : public _MEMORY_SECTION_NAME {
     mSectionFileName.Buffer = mBuf;
   }
 
-  MemorySectionNameBuf(const MemorySectionNameBuf& aOther) {
-    *this = aOther;
-  }
+  MemorySectionNameBuf(const MemorySectionNameBuf& aOther) { *this = aOther; }
 
   MemorySectionNameBuf(MemorySectionNameBuf&& aOther) {
     *this = std::move(aOther);
@@ -1068,6 +1066,14 @@ inline HANDLE RtlGetProcessHeap() {
   PTEB teb = ::NtCurrentTeb();
   PPEB peb = teb->ProcessEnvironmentBlock;
   return peb->Reserved4[1];
+}
+
+inline PVOID RtlGetThreadLocalStoragePointer() {
+  return ::NtCurrentTeb()->Reserved1[11];
+}
+
+inline void RtlSetThreadLocalStoragePointerForTestingOnly(PVOID aNewValue) {
+  ::NtCurrentTeb()->Reserved1[11] = aNewValue;
 }
 
 inline DWORD RtlGetCurrentThreadId() {

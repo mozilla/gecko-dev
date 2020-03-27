@@ -13,7 +13,6 @@ kind-dependencies:
 transforms:
     - taskgraph.transforms.tests:transforms
     - taskgraph.transforms.job:transforms
-    - taskgraph.transforms.coalesce:transforms
     - taskgraph.transforms.task:transforms
 
 # Each stanza in a file pointed to by 'jobs-from' describes a particular test
@@ -56,3 +55,12 @@ job-defaults:
                     .*-devedition/.*: false
                     default: true
             default: false
+    fetches:
+        toolchain:
+            by-test-platform:
+                win.*:
+                    - win32-minidump-stackwalk
+                macosx.*:
+                    - macosx64-minidump-stackwalk
+                default:
+                    - linux64-minidump-stackwalk

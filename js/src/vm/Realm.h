@@ -24,6 +24,7 @@
 #include "js/UniquePtr.h"
 #include "vm/ArrayBufferObject.h"
 #include "vm/Compartment.h"
+#include "vm/PromiseLookup.h"  // js::PromiseLookup
 #include "vm/ReceiverGuard.h"
 #include "vm/RegExpShared.h"
 #include "vm/SavedStacks.h"
@@ -782,9 +783,6 @@ class JS::Realm : public JS::shadow::Realm {
 
   // Get or allocate the associated LCovRealm.
   js::coverage::LCovRealm* lcovRealm();
-
-  // Collect coverage info from a script and aggregate into this realm.
-  void collectCodeCoverageInfo(JSScript* script, const char* name);
 
   // Initializes randomNumberGenerator if needed.
   mozilla::non_crypto::XorShift128PlusRNG& getOrCreateRandomNumberGenerator();

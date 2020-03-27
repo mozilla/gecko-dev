@@ -57,30 +57,62 @@
       # TODO: make this so that all hardware accelerated code is in here.
       'target_name': 'hw-acc-crypto',
       'type': 'static_library',
-      'sources': [
-        'verified/Hacl_Chacha20_Vec128.c',
-      ],
+      # 'sources': [
+      #   All hardware accelerated crypto currently requires x64
+      # ],
       'dependencies': [
         '<(DEPTH)/exports.gyp:nss_exports'
       ],
       'conditions': [
-        [ 'target_arch=="ia32" or target_arch=="x64"', {
+        [ 'target_arch=="x64"', {
           'cflags': [
-            '-mssse3'
+            '-mssse3',
+            '-msse4'
           ],
           'cflags_mozilla': [
-            '-mssse3'
+            '-mssse3',
+            '-msse4',
+            '-mpclmul',
+            '-maes',
+            '-mavx',
           ],
           # GCC doesn't define this.
           'defines': [
             '__SSSE3__',
           ],
         }],
+        [ 'OS=="linux" or OS=="android" or OS=="dragonfly" or OS=="freebsd" or \
+           OS=="netbsd" or OS=="openbsd"', {
+          'cflags': [
+            '-mpclmul',
+            '-maes',
+            '-mavx',
+          ],
+        }],
+        # macOS build doesn't use cflags.
+        [ 'OS=="mac" or OS=="ios"', {
+          'xcode_settings': {
+            'OTHER_CFLAGS': [
+              '-mssse3',
+              '-msse4',
+              '-mpclmul',
+              '-maes',
+              '-mavx',
+            ],
+          },
+        }],
         [ 'target_arch=="arm"', {
           # Gecko doesn't support non-NEON platform on Android, but tier-3
           # platform such as Linux/arm will need it
           'cflags_mozilla': [
             '-mfpu=neon'
+          ],
+        }],
+        [ 'target_arch=="x64"', {
+          'sources': [
+            'verified/Hacl_Poly1305_128.c',
+            'verified/Hacl_Chacha20_Vec128.c',
+            'verified/Hacl_Chacha20Poly1305_128.c',
           ],
         }],
       ],
@@ -242,9 +274,14 @@
             'gcm-aes-aarch64_c_lib',
           ],
         }],
-        [ 'target_arch=="ppc64le"', {
+        [ 'disable_altivec==0 and (target_arch=="ppc64" or target_arch=="ppc64le")', {
           'dependencies': [
             'gcm-aes-ppc_c_lib',
+          ],
+        }],
+        [ 'disable_altivec==1 and (target_arch=="ppc64" or target_arch=="ppc64le")', {
+          'defines!': [
+            'NSS_DISABLE_ALTIVEC',
           ],
         }],
         [ 'OS=="linux"', {
@@ -298,9 +335,14 @@
             'gcm-aes-aarch64_c_lib',
           ],
         }],
-        [ 'target_arch=="ppc64" or target_arch=="ppc64le"', {
+        [ 'disable_altivec==0 and (target_arch=="ppc64" or target_arch=="ppc64le")', {
           'dependencies': [
             'gcm-aes-ppc_c_lib',
+          ],
+        }],
+        [ 'disable_altivec==1 and (target_arch=="ppc64" or target_arch=="ppc64le")', {
+          'defines!': [
+            'NSS_DISABLE_ALTIVEC',
           ],
         }],
         [ 'OS!="linux"', {
@@ -409,6 +451,8 @@
       'mpi',
       'ecl',
       'verified',
+      'verified/kremlin/include',
+      'verified/kremlin/kremlib/dist/minimal',
     ],
     'defines': [
       'SHLIB_SUFFIX=\"<(dll_suffix)\"',
@@ -470,7 +514,7 @@
         ],
       }, {
         'defines': [
-          'KRML_NOUINT128',
+          'KRML_VERIFIED_UINT128',
         ],
       }],
       [ 'OS=="linux"', {

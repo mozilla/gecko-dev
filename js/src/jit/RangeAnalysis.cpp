@@ -41,7 +41,6 @@ using mozilla::IsNegativeZero;
 using mozilla::NegativeInfinity;
 using mozilla::NumberEqualsInt32;
 using mozilla::PositiveInfinity;
-using mozilla::Swap;
 
 // [SMDOC] IonMonkey Range Analysis
 //
@@ -209,10 +208,10 @@ bool RangeAnalysis::addBetaNodes() {
                right->type() == MIRType::Int32) {
       MDefinition* smaller = nullptr;
       MDefinition* greater = nullptr;
-      if (jsop == JSOP_LT) {
+      if (jsop == JSOp::Lt) {
         smaller = left;
         greater = right;
-      } else if (jsop == JSOP_GT) {
+      } else if (jsop == JSOp::Gt) {
         smaller = right;
         greater = left;
       }
@@ -248,10 +247,10 @@ bool RangeAnalysis::addBetaNodes() {
 
     Range comp;
     switch (jsop) {
-      case JSOP_LE:
+      case JSOp::Le:
         comp.setDouble(conservativeLower, bound);
         break;
-      case JSOP_LT:
+      case JSOp::Lt:
         // For integers, if x < c, the upper bound of x is c-1.
         if (val->type() == MIRType::Int32) {
           int32_t intbound;
@@ -267,10 +266,10 @@ bool RangeAnalysis::addBetaNodes() {
           comp.refineToExcludeNegativeZero();
         }
         break;
-      case JSOP_GE:
+      case JSOp::Ge:
         comp.setDouble(bound, conservativeUpper);
         break;
-      case JSOP_GT:
+      case JSOp::Gt:
         // For integers, if x > c, the lower bound of x is c+1.
         if (val->type() == MIRType::Int32) {
           int32_t intbound;
@@ -286,24 +285,24 @@ bool RangeAnalysis::addBetaNodes() {
           comp.refineToExcludeNegativeZero();
         }
         break;
-      case JSOP_STRICTEQ:
+      case JSOp::StrictEq:
         // A strict comparison can test for things other than numeric value.
         if (!compare->isNumericComparison()) {
           continue;
         }
-        // Otherwise fall through to handle JSOP_STRICTEQ the same as JSOP_EQ.
+        // Otherwise fall through to handle JSOp::StrictEq the same as JSOp::Eq.
         [[fallthrough]];
-      case JSOP_EQ:
+      case JSOp::Eq:
         comp.setDouble(bound, bound);
         break;
-      case JSOP_STRICTNE:
+      case JSOp::StrictNe:
         // A strict comparison can test for things other than numeric value.
         if (!compare->isNumericComparison()) {
           continue;
         }
-        // Otherwise fall through to handle JSOP_STRICTNE the same as JSOP_NE.
+        // Otherwise fall through to handle JSOp::StrictNe the same as JSOp::Ne.
         [[fallthrough]];
-      case JSOP_NE:
+      case JSOp::Ne:
         // Negative zero is not not-equal to zero.
         if (bound == 0) {
           comp.refineToExcludeNegativeZero();
@@ -911,13 +910,13 @@ Range* Range::xor_(TempAllocator& alloc, const Range* lhs, const Range* rhs) {
   if (lhsUpper < 0) {
     lhsLower = ~lhsLower;
     lhsUpper = ~lhsUpper;
-    Swap(lhsLower, lhsUpper);
+    std::swap(lhsLower, lhsUpper);
     invertAfter = !invertAfter;
   }
   if (rhsUpper < 0) {
     rhsLower = ~rhsLower;
     rhsUpper = ~rhsUpper;
-    Swap(rhsLower, rhsUpper);
+    std::swap(rhsLower, rhsUpper);
     invertAfter = !invertAfter;
   }
 
@@ -951,7 +950,7 @@ Range* Range::xor_(TempAllocator& alloc, const Range* lhs, const Range* rhs) {
   if (invertAfter) {
     lower = ~lower;
     upper = ~upper;
-    Swap(lower, upper);
+    std::swap(lower, upper);
   }
 
   return Range::NewInt32Range(alloc, lower, upper);

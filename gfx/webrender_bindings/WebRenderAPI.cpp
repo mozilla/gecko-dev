@@ -521,6 +521,14 @@ void WebRenderAPI::Readback(const TimeStamp& aStartTime, gfx::IntSize size,
 
 void WebRenderAPI::ClearAllCaches() { wr_api_clear_all_caches(mDocHandle); }
 
+void WebRenderAPI::EnableNativeCompositor(bool aEnable) {
+  wr_api_enable_native_compositor(mDocHandle, aEnable);
+}
+
+void WebRenderAPI::EnableMultithreading(bool aEnable) {
+  wr_api_enable_multithreading(mDocHandle, aEnable);
+}
+
 void WebRenderAPI::Pause() {
   class PauseEvent : public RendererEvent {
    public:
@@ -620,7 +628,9 @@ void WebRenderAPI::WaitFlushed() {
 }
 
 void WebRenderAPI::Capture() {
-  uint8_t bits = 3;                 // TODO: get from JavaScript
+  // see CaptureBits
+  // SCENE | FRAME | TILE_CACHE
+  uint8_t bits = 7;                 // TODO: get from JavaScript
   const char* path = "wr-capture";  // TODO: get from JavaScript
   wr_api_capture(mDocHandle, path, bits);
 }
@@ -1387,6 +1397,22 @@ void DisplayListBuilder::PushBoxShadow(
                         aIsBackfaceVisible, &mCurrentSpaceAndClipChain,
                         aBoxBounds, aOffset, aColor, aBlurRadius, aSpreadRadius,
                         aBorderRadius, aClipMode);
+}
+
+void DisplayListBuilder::ReuseItem(wr::ItemKey aKey) {
+  wr_dp_push_reuse_item(mWrState, aKey);
+}
+
+void DisplayListBuilder::StartCachedItem(wr::ItemKey aKey) {
+  wr_dp_start_cached_item(mWrState, aKey);
+}
+
+void DisplayListBuilder::EndCachedItem(wr::ItemKey aKey) {
+  wr_dp_end_cached_item(mWrState, aKey);
+}
+
+void DisplayListBuilder::SetDisplayListCacheSize(const size_t aCacheSize) {
+  wr_dp_set_cache_size(mWrState, aCacheSize);
 }
 
 Maybe<layers::ScrollableLayerGuid::ViewID>

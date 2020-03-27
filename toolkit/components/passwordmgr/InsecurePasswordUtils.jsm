@@ -100,7 +100,7 @@ this.InsecurePasswordUtils = {
       if (uri.schemeIs("http")) {
         isFormSubmitHTTP = true;
         if (
-          principal.IsOriginPotentiallyTrustworthy ||
+          principal.isOriginPotentiallyTrustworthy ||
           // Ignore sites with local IP addresses pointing to local forms.
           (this._isPrincipalForLocalIPAddress(
             aForm.rootElement.nodePrincipal
@@ -235,7 +235,7 @@ this.InsecurePasswordUtils = {
 };
 
 XPCOMUtils.defineLazyPreferenceGetter(
-  this.InsecurePasswordUtils,
+  InsecurePasswordUtils,
   "_ignoreLocalIPAddress",
   "security.insecure_field_warning.ignore_local_ip_address",
   true

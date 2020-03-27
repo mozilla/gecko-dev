@@ -54,11 +54,30 @@ class Version(LooseVersion):
             itertools.takewhile(lambda x: isinstance(x, int), self.version),
             (0, 0, 0)))[:3]
 
-    def __cmp__(self, other):
+    def _cmp(self, other):
         # LooseVersion checks isinstance(StringType), so work around it.
-        if isinstance(other, six.text_type):
+        if six.PY2 and isinstance(other, six.text_type):
             other = other.encode('ascii')
-        return LooseVersion.__cmp__(self, other)
+        if six.PY2:
+            return LooseVersion.__cmp__(self, other)
+        return LooseVersion._cmp(self, other)
+
+    # These method definitions can be deleted when we remove support for Python
+    # 2.
+    def __eq__(self, other):
+        return self._cmp(other) == 0
+
+    def __lt__(self, other):
+        return self._cmp(other) < 0
+
+    def __le__(self, other):
+        return self._cmp(other) <= 0
+
+    def __gt__(self, other):
+        return self._cmp(other) > 0
+
+    def __ge__(self, other):
+        return self._cmp(other) >= 0
 
 
 class ConfigureOutputHandler(logging.Handler):
@@ -83,6 +102,8 @@ class ConfigureOutputHandler(logging.Handler):
         # Python has this feature where it sets the encoding of pipes to
         # ascii, which blatantly fails when trying to print out non-ascii.
         def fix_encoding(fh):
+            if six.PY3:
+                return fh
             try:
                 isatty = fh.isatty()
             except AttributeError:
@@ -128,7 +149,7 @@ class ConfigureOutputHandler(logging.Handler):
         try:
             if record.levelno == logging.INFO:
                 stream = self._stdout
-                msg = record.getMessage()
+                msg = six.ensure_text(record.getMessage())
                 if (self._stdout_waiting == self.INTERRUPTED and
                         self._same_output):
                     msg = ' ... %s' % msg
@@ -207,8 +228,7 @@ class LineIO(object):
         self._errors = errors
 
     def write(self, buf):
-        if self._encoding and isinstance(buf, str):
-            buf = buf.decode(self._encoding, self._errors)
+        buf = six.ensure_text(buf, encoding=self._encoding or 'utf-8')
         lines = buf.splitlines()
         if not lines:
             return

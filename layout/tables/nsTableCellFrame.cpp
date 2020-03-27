@@ -19,6 +19,8 @@
 #include "nsPresContext.h"
 #include "nsCSSRendering.h"
 #include "nsIContent.h"
+#include "nsIFrame.h"
+#include "nsIFrameInlines.h"
 #include "nsGenericHTMLElement.h"
 #include "nsAttrValueInlines.h"
 #include "nsHTMLParts.h"
@@ -346,7 +348,7 @@ nsresult nsTableCellFrame::ProcessBorders(nsTableFrame* aFrame,
   if (aFrame->IsBorderCollapse() || !borderStyle->HasBorder()) return NS_OK;
 
   if (!GetContentEmpty() ||
-      StyleTableBorder()->mEmptyCells == NS_STYLE_TABLE_EMPTY_CELLS_SHOW) {
+      StyleTableBorder()->mEmptyCells == StyleEmptyCells::Show) {
     aLists.BorderBackground()->AppendNewToTop<nsDisplayBorder>(aBuilder, this);
   }
 
@@ -431,7 +433,7 @@ bool nsTableCellFrame::ShouldPaintBordersAndBackgrounds() const {
     return true;
   }
 
-  return StyleTableBorder()->mEmptyCells == NS_STYLE_TABLE_EMPTY_CELLS_SHOW;
+  return StyleTableBorder()->mEmptyCells == StyleEmptyCells::Show;
 }
 
 bool nsTableCellFrame::ShouldPaintBackground(nsDisplayListBuilder* aBuilder) {
@@ -1109,7 +1111,7 @@ ImgDrawResult nsBCTableCellFrame::PaintBackground(gfxContext& aRenderingContext,
 
   nsStyleBorder myBorder(*StyleBorder());
 
-  NS_FOR_CSS_SIDES(side) {
+  for (const auto side : mozilla::AllPhysicalSides()) {
     myBorder.SetBorderWidth(side, borderWidth.Side(side));
   }
 

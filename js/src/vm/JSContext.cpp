@@ -50,7 +50,7 @@
 #include "util/DoubleToString.h"
 #include "util/NativeStack.h"
 #include "util/Windows.h"
-#include "vm/BytecodeUtil.h"
+#include "vm/BytecodeUtil.h"  // JSDVG_IGNORE_STACK
 #include "vm/ErrorObject.h"
 #include "vm/ErrorReporting.h"
 #include "vm/HelperThreads.h"
@@ -61,6 +61,8 @@
 #include "vm/JSScript.h"
 #include "vm/Realm.h"
 #include "vm/Shape.h"
+#include "vm/StringType.h"  // StringToNewUTF8CharsZ
+#include "vm/ToSource.h"    // js::ValueToSource
 
 #include "vm/Compartment-inl.h"
 #include "vm/JSObject-inl.h"
@@ -303,6 +305,12 @@ JS_FRIEND_API void js::ReportOutOfMemory(JSContext* cx) {
   /* Report the oom. */
   if (JS::OutOfMemoryCallback oomCallback = cx->runtime()->oomCallback) {
     oomCallback(cx, cx->runtime()->oomCallbackData);
+  }
+
+  // If we OOM early in process startup, this may be unavailable so just return
+  // instead of crashing unexpectedly.
+  if (MOZ_UNLIKELY(!cx->runtime()->hasInitializedSelfHosting())) {
+    return;
   }
 
   RootedValue oomMessage(cx, StringValue(cx->names().outOfMemory));
@@ -880,10 +888,23 @@ void js::ReportIsNotDefined(JSContext* cx, HandlePropertyName name) {
   ReportIsNotDefined(cx, id);
 }
 
-void js::ReportIsNullOrUndefined(JSContext* cx, int spindex, HandleValue v) {
+const char* NullOrUndefinedToCharZ(HandleValue v) {
+  MOZ_ASSERT(v.isNullOrUndefined());
+  return v.isNull() ? js_null_str : js_undefined_str;
+}
+
+void js::ReportIsNullOrUndefinedForPropertyAccess(JSContext* cx, HandleValue v,
+                                                  int vIndex) {
   MOZ_ASSERT(v.isNullOrUndefined());
 
-  UniqueChars bytes = DecompileValueGenerator(cx, spindex, v, nullptr);
+  if (vIndex == JSDVG_IGNORE_STACK) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_CANT_CONVERT_TO, NullOrUndefinedToCharZ(v),
+                              "object");
+    return;
+  }
+
+  UniqueChars bytes = DecompileValueGenerator(cx, vIndex, v, nullptr);
   if (!bytes) {
     return;
   }
@@ -892,15 +913,54 @@ void js::ReportIsNullOrUndefined(JSContext* cx, int spindex, HandleValue v) {
       strcmp(bytes.get(), js_null_str) == 0) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_NO_PROPERTIES,
                              bytes.get());
-  } else if (v.isUndefined()) {
+  } else {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                              JSMSG_UNEXPECTED_TYPE, bytes.get(),
-                             js_undefined_str);
-  } else {
-    MOZ_ASSERT(v.isNull());
-    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                             JSMSG_UNEXPECTED_TYPE, bytes.get(), js_null_str);
+                             NullOrUndefinedToCharZ(v));
   }
+}
+
+void js::ReportIsNullOrUndefinedForPropertyAccess(JSContext* cx, HandleValue v,
+                                                  int vIndex, HandleId key) {
+  MOZ_ASSERT(v.isNullOrUndefined());
+
+  if (!cx->realm()->creationOptions().getPropertyErrorMessageFixEnabled()) {
+    ReportIsNullOrUndefinedForPropertyAccess(cx, v, vIndex);
+    return;
+  }
+
+  RootedValue idVal(cx, IdToValue(key));
+  RootedString idStr(cx, ValueToSource(cx, idVal));
+  if (!idStr) {
+    return;
+  }
+
+  UniqueChars keyStr = StringToNewUTF8CharsZ(cx, *idStr);
+  if (!keyStr) {
+    return;
+  }
+
+  if (vIndex == JSDVG_IGNORE_STACK) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_PROPERTY_FAIL,
+                             keyStr.get(), NullOrUndefinedToCharZ(v));
+    return;
+  }
+
+  UniqueChars bytes = DecompileValueGenerator(cx, vIndex, v, nullptr);
+  if (!bytes) {
+    return;
+  }
+
+  if (strcmp(bytes.get(), js_undefined_str) == 0 ||
+      strcmp(bytes.get(), js_null_str) == 0) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_PROPERTY_FAIL,
+                             keyStr.get(), bytes.get());
+    return;
+  }
+
+  JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                           JSMSG_PROPERTY_FAIL_EXPR, keyStr.get(), bytes.get(),
+                           NullOrUndefinedToCharZ(v));
 }
 
 bool js::ReportValueErrorFlags(JSContext* cx, unsigned flags,
@@ -1035,9 +1095,7 @@ JS_FRIEND_API void js::StopDrainingJobQueue(JSContext* cx) {
 JS_FRIEND_API void js::RunJobs(JSContext* cx) {
   MOZ_ASSERT(cx->jobQueue);
   cx->jobQueue->runJobs(cx);
-  for (ZonesIter zone(cx->runtime(), WithAtoms); !zone.done(); zone.next()) {
-    zone->clearKeptObjects();
-  }
+  JS::ClearKeptObjects(cx);
 }
 
 JSObject* InternalJobQueue::getIncumbentGlobal(JSContext* cx) {
@@ -1503,8 +1561,9 @@ void AutoEnterOOMUnsafeRegion::crash(const char* reason) {
   MOZ_CRASH_UNSAFE(msgbuf);
 }
 
-AutoEnterOOMUnsafeRegion::AnnotateOOMAllocationSizeCallback
-    AutoEnterOOMUnsafeRegion::annotateOOMSizeCallback = nullptr;
+mozilla::Atomic<AutoEnterOOMUnsafeRegion::AnnotateOOMAllocationSizeCallback,
+                mozilla::Relaxed>
+    AutoEnterOOMUnsafeRegion::annotateOOMSizeCallback(nullptr);
 
 void AutoEnterOOMUnsafeRegion::crash(size_t size, const char* reason) {
   {
@@ -1515,6 +1574,15 @@ void AutoEnterOOMUnsafeRegion::crash(size_t size, const char* reason) {
   }
   crash(reason);
 }
+
+AutoKeepAtoms::AutoKeepAtoms(
+    JSContext* cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
+    : cx(cx) {
+  MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+  cx->zone()->keepAtoms();
+}
+
+AutoKeepAtoms::~AutoKeepAtoms() { cx->zone()->releaseAtoms(); };
 
 #ifdef DEBUG
 AutoUnsafeCallWithABI::AutoUnsafeCallWithABI(UnsafeABIStrictness strictness)

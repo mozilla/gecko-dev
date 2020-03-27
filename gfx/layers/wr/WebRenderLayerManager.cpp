@@ -227,6 +227,15 @@ bool WebRenderLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags) {
     refreshStart = mTransactionStart;
   }
 
+  // Skip the synchronization for buffer since we also skip the painting during
+  // device-reset status.
+  if (!gfxPlatform::GetPlatform()->DidRenderingDeviceReset()) {
+    if (WrBridge()->GetSyncObject() &&
+        WrBridge()->GetSyncObject()->IsSyncObjectValid()) {
+      WrBridge()->GetSyncObject()->Synchronize();
+    }
+  }
+
   GetCompositorBridgeChild()->EndCanvasTransaction();
 
   AutoTArray<RenderRootUpdates, wr::kRenderRootCount> renderRootUpdates;
@@ -273,7 +282,7 @@ void WebRenderLayerManager::EndTransaction(DrawPaintedLayerCallback aCallback,
 void WebRenderLayerManager::EndTransactionWithoutLayer(
     nsDisplayList* aDisplayList, nsDisplayListBuilder* aDisplayListBuilder,
     WrFiltersHolder&& aFilters, WebRenderBackgroundData* aBackground) {
-  AUTO_PROFILER_TRACING("Paint", "RenderLayers", GRAPHICS);
+  AUTO_PROFILER_TRACING_MARKER("Paint", "RenderLayers", GRAPHICS);
 
   // Since we don't do repeat transactions right now, just set the time
   mAnimationReadyTime = TimeStamp::Now();
@@ -404,10 +413,19 @@ void WebRenderLayerManager::EndTransactionWithoutLayer(
     }
   }
 
+  // Skip the synchronization for buffer since we also skip the painting during
+  // device-reset status.
+  if (!gfxPlatform::GetPlatform()->DidRenderingDeviceReset()) {
+    if (WrBridge()->GetSyncObject() &&
+        WrBridge()->GetSyncObject()->IsSyncObjectValid()) {
+      WrBridge()->GetSyncObject()->Synchronize();
+    }
+  }
+
   GetCompositorBridgeChild()->EndCanvasTransaction();
 
   {
-    AUTO_PROFILER_TRACING("Paint", "ForwardDPTransaction", GRAPHICS);
+    AUTO_PROFILER_TRACING_MARKER("Paint", "ForwardDPTransaction", GRAPHICS);
     nsTArray<RenderRootDisplayListData> renderRootDLs;
     for (auto renderRoot : wr::kRenderRoots) {
       if (builder.GetSendSubBuilderDisplayList(renderRoot)) {

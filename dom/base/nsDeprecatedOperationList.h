@@ -10,12 +10,10 @@
  * designed to be used as input to the C preprocessor *only*.
  */
 
-DEPRECATED_OPERATION(EnablePrivilege)
 DEPRECATED_OPERATION(MutationEvent)
 DEPRECATED_OPERATION(Components)
 DEPRECATED_OPERATION(NodeIteratorDetach)
 DEPRECATED_OPERATION(LenientThis)
-DEPRECATED_OPERATION(MozGetAsFile)
 DEPRECATED_OPERATION(UseOfCaptureEvents)
 DEPRECATED_OPERATION(UseOfReleaseEvents)
 DEPRECATED_OPERATION(SyncXMLHttpRequest)

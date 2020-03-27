@@ -39,12 +39,12 @@ loader.lazyRequireGetter(
   true
 );
 
-// "Lax", "Strict" and "Unset" are special values of the sameSite property
+// "Lax", "Strict" and "None" are special values of the sameSite property
 // that should not be translated.
 const COOKIE_SAMESITE = {
   LAX: "Lax",
   STRICT: "Strict",
-  UNSET: "Unset",
+  NONE: "None",
 };
 
 // GUID to be used as a separator in compound keys. This must match the same
@@ -578,6 +578,8 @@ StorageActors.createActor(
         // because creationTime is in micro seconds
         creationTime: cookie.creationTime / 1000,
 
+        size: cookie.name.length + (cookie.value || "").length,
+
         // - do -
         lastAccessed: cookie.lastAccessed / 1000,
         value: new LongStringActor(this.conn, cookie.value || ""),
@@ -596,7 +598,7 @@ StorageActors.createActor(
           return COOKIE_SAMESITE.STRICT;
       }
       // cookie.SAMESITE_NONE
-      return COOKIE_SAMESITE.UNSET;
+      return COOKIE_SAMESITE.NONE;
     },
 
     populateStoresForHost(host) {
@@ -708,16 +710,17 @@ StorageActors.createActor(
       return [
         { name: "uniqueKey", editable: false, private: true },
         { name: "name", editable: true, hidden: false },
+        { name: "value", editable: true, hidden: false },
         { name: "host", editable: true, hidden: false },
         { name: "path", editable: true, hidden: false },
         { name: "expires", editable: true, hidden: false },
+        { name: "size", editable: false, hidden: false },
+        { name: "isHttpOnly", editable: true, hidden: false },
+        { name: "isSecure", editable: true, hidden: false },
+        { name: "sameSite", editable: false, hidden: false },
         { name: "lastAccessed", editable: false, hidden: false },
         { name: "creationTime", editable: false, hidden: true },
-        { name: "value", editable: true, hidden: false },
         { name: "hostOnly", editable: false, hidden: true },
-        { name: "isSecure", editable: true, hidden: true },
-        { name: "isHttpOnly", editable: true, hidden: false },
-        { name: "sameSite", editable: false, hidden: false },
       ];
     },
 

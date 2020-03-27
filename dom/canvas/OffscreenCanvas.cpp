@@ -17,8 +17,6 @@
 #include "CanvasUtils.h"
 #include "GLContext.h"
 #include "GLScreenBuffer.h"
-#include "WebGL1Context.h"
-#include "WebGL2Context.h"
 
 namespace mozilla {
 namespace dom {
@@ -116,36 +114,22 @@ already_AddRefed<nsISupports> OffscreenCanvas::GetContext(
   }
 
   if (mCanvasRenderer) {
+    mCanvasRenderer->SetContextType(contextType);
     if (contextType == CanvasContextType::WebGL1 ||
         contextType == CanvasContextType::WebGL2) {
-      WebGLContext* webGL = static_cast<WebGLContext*>(mCurrentContext.get());
-      gl::GLContext* gl = webGL->GL();
-      mCanvasRenderer->mContext = mCurrentContext;
-      mCanvasRenderer->SetActiveEventTarget();
-      mCanvasRenderer->mGLContext = gl;
-      mCanvasRenderer->SetIsAlphaPremultiplied(webGL->IsPremultAlpha() ||
-                                               !gl->Caps().alpha);
-
-      if (RefPtr<ImageBridgeChild> imageBridge =
-              ImageBridgeChild::GetSingleton()) {
-        TextureFlags flags = TextureFlags::ORIGIN_BOTTOM_LEFT;
-        mCanvasClient = imageBridge->CreateCanvasClient(
-            CanvasClient::CanvasClientTypeShSurf, flags);
-        mCanvasRenderer->SetCanvasClient(mCanvasClient);
-
-        gl::GLScreenBuffer* screen = gl->Screen();
-        gl::SurfaceCaps caps = screen->mCaps;
-        auto forwarder = mCanvasClient->GetForwarder();
-
-        UniquePtr<gl::SurfaceFactory> factory =
-            gl::GLScreenBuffer::CreateFactory(gl, caps, forwarder, flags);
-
-        if (factory) screen->Morph(std::move(factory));
-      }
+      MOZ_ASSERT_UNREACHABLE("WebGL OffscreenCanvas not yet supported.");
+      return nullptr;
     }
   }
 
   return result.forget();
+}
+
+ImageContainer* OffscreenCanvas::GetImageContainer() {
+  if (!mCanvasRenderer) {
+    return nullptr;
+  }
+  return mCanvasRenderer->GetImageContainer();
 }
 
 already_AddRefed<nsICanvasRenderingContextInternal>
@@ -175,8 +159,11 @@ void OffscreenCanvas::CommitFrameToCompositor() {
     mAttrDirty = false;
   }
 
-  if (mCurrentContext) {
-    static_cast<WebGLContext*>(mCurrentContext.get())->PresentScreenBuffer();
+  CanvasContextType contentType = mCanvasRenderer->GetContextType();
+  if (mCurrentContext && (contentType == CanvasContextType::WebGL1 ||
+                          contentType == CanvasContextType::WebGL2)) {
+    MOZ_ASSERT_UNREACHABLE("WebGL OffscreenCanvas not yet supported.");
+    return;
   }
 
   if (mCanvasRenderer && mCanvasRenderer->mGLContext) {

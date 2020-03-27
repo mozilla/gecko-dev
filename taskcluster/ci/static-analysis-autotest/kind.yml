@@ -23,6 +23,7 @@ job-defaults:
         max-run-time: 3600
         env:
             PERFHERDER_EXTRA_OPTIONS: static-analysis-autotest
+    run-on-projects: ['mozilla-central', 'try']
     run:
         using: mozharness
         actions: [static-analysis-autotest]
@@ -63,7 +64,7 @@ jobs:
                 - linux64-cbindgen
                 - linux64-nasm
                 - linux64-node
-                - lucetc
+                - linux64-lucetc
                 - wasi-sysroot
 
     win64-st-autotest/debug:

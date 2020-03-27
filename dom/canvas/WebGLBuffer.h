@@ -10,19 +10,18 @@
 
 #include "CacheInvalidator.h"
 #include "GLDefs.h"
-#include "mozilla/LinkedList.h"
-#include "nsWrapperCache.h"
 #include "WebGLObjectModel.h"
 #include "WebGLTypes.h"
 
 namespace mozilla {
 
-class WebGLBuffer final : public nsWrapperCache,
-                          public WebGLRefCountedObject<WebGLBuffer>,
-                          public LinkedListElement<WebGLBuffer> {
+class WebGLBuffer final : public WebGLContextBoundObject {
   friend class WebGLContext;
   friend class WebGL2Context;
+  friend class WebGLMemoryTracker;
   friend class WebGLTexture;
+
+  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(WebGLBuffer, override)
 
  public:
   enum class Kind { Undefined, ElementArray, OtherData };
@@ -31,8 +30,6 @@ class WebGLBuffer final : public nsWrapperCache,
 
   void SetContentAfterBind(GLenum target);
   Kind Content() const { return mContent; }
-
-  void Delete();
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
@@ -43,11 +40,6 @@ class WebGLBuffer final : public nsWrapperCache,
                                          uint32_t indexCount) const;
   bool ValidateRange(size_t byteOffset, size_t byteLen) const;
 
-  WebGLContext* GetParentObject() const { return mContext; }
-
-  virtual JSObject* WrapObject(JSContext* cx,
-                               JS::Handle<JSObject*> givenProto) override;
-
   bool ValidateCanBindToTarget(GLenum target);
   void BufferData(GLenum target, uint64_t size, const void* data, GLenum usage);
   void BufferSubData(GLenum target, uint64_t dstByteOffset, uint64_t dataLen,
@@ -57,11 +49,8 @@ class WebGLBuffer final : public nsWrapperCache,
 
   const GLenum mGLName;
 
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLBuffer)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLBuffer)
-
  protected:
-  ~WebGLBuffer();
+  ~WebGLBuffer() override;
 
   void InvalidateCacheRange(uint64_t byteOffset, uint64_t byteLength) const;
 

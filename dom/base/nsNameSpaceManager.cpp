@@ -71,7 +71,6 @@ bool nsNameSpaceManager::Init() {
   REGISTER_NAMESPACE(nsGkAtoms::nsuri_xhtml, kNameSpaceID_XHTML);
   REGISTER_NAMESPACE(nsGkAtoms::nsuri_xlink, kNameSpaceID_XLink);
   REGISTER_NAMESPACE(nsGkAtoms::nsuri_xslt, kNameSpaceID_XSLT);
-  REGISTER_NAMESPACE(nsGkAtoms::nsuri_xbl, kNameSpaceID_XBL);
   REGISTER_NAMESPACE(nsGkAtoms::nsuri_mathml, kNameSpaceID_MathML);
   REGISTER_NAMESPACE(nsGkAtoms::nsuri_rdf, kNameSpaceID_RDF);
   REGISTER_NAMESPACE(nsGkAtoms::nsuri_xul, kNameSpaceID_XUL);
@@ -161,6 +160,17 @@ int32_t nsNameSpaceManager::GetNameSpaceID(nsAtom* aURI, bool aInChromeDoc) {
   }
 
   return kNameSpaceID_Unknown;
+}
+
+// static
+const char* nsNameSpaceManager::GetNameSpaceDisplayName(uint32_t aNameSpaceID) {
+  static const char* kNSURIs[] = {"([none])", "(xmlns)", "(xml)",    "(xhtml)",
+                                  "(XLink)",  "(XSLT)",  "(MathML)", "(RDF)",
+                                  "(XUL)",    "(SVG)"};
+  if (aNameSpaceID < ArrayLength(kNSURIs)) {
+    return kNSURIs[aNameSpaceID];
+  }
+  return "";
 }
 
 nsresult NS_NewElement(Element** aResult,

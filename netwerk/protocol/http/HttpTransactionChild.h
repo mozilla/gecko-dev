@@ -11,6 +11,7 @@
 #include "nsHttpRequestHead.h"
 #include "nsIRequest.h"
 #include "nsIStreamListener.h"
+#include "nsIThrottledInputChannel.h"
 #include "nsITransport.h"
 
 class nsInputStreamPump;
@@ -18,6 +19,7 @@ class nsInputStreamPump;
 namespace mozilla {
 namespace net {
 
+class InputChannelThrottleQueueChild;
 class nsHttpConnectionInfo;
 class nsHttpTransaction;
 class nsProxyInfo;
@@ -28,12 +30,14 @@ class nsProxyInfo;
 //-----------------------------------------------------------------------------
 class HttpTransactionChild final : public PHttpTransactionChild,
                                    public nsIStreamListener,
-                                   public nsITransportEventSink {
+                                   public nsITransportEventSink,
+                                   public nsIThrottledInputChannel {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
   NS_DECL_NSITRANSPORTEVENTSINK
+  NS_DECL_NSITHROTTLEDINPUTCHANNEL
 
   explicit HttpTransactionChild();
 
@@ -43,7 +47,12 @@ class HttpTransactionChild final : public PHttpTransactionChild,
       const Maybe<IPCStream>& aRequestBody, const uint64_t& aReqContentLength,
       const bool& aReqBodyIncludesHeaders,
       const uint64_t& aTopLevelOuterContentWindowId,
-      const uint8_t& aHttpTrafficCategory);
+      const uint8_t& aHttpTrafficCategory, const uint64_t& aRequestContextID,
+      const uint32_t& aClassOfService, const uint32_t& aInitialRwin,
+      const bool& aResponseTimeoutEnabled, const uint64_t& aChannelId,
+      const bool& aHasTransactionObserver,
+      const Maybe<H2PushedStreamArg>& aPushedStreamArg,
+      const mozilla::Maybe<PInputChannelThrottleQueueChild*>& aThrottleQueue);
   mozilla::ipc::IPCResult RecvUpdateClassOfService(
       const uint32_t& classOfService);
   mozilla::ipc::IPCResult RecvCancelPump(const nsresult& aStatus);
@@ -70,15 +79,22 @@ class HttpTransactionChild final : public PHttpTransactionChild,
       nsHttpRequestHead* reqHeaders,
       nsIInputStream* reqBody,  // use the trick in bug 1277681
       uint64_t reqContentLength, bool reqBodyIncludesHeaders,
-      uint64_t topLevelOuterContentWindowId, uint8_t httpTrafficCategory);
+      uint64_t topLevelOuterContentWindowId, uint8_t httpTrafficCategory,
+      uint64_t requestContextID, uint32_t classOfService, uint32_t initialRwin,
+      bool responseTimeoutEnabled, uint64_t channelId,
+      const Maybe<H2PushedStreamArg>& aPushedStreamArg);
 
   bool mCanceled;
   nsresult mStatus;
+  uint64_t mChannelId;
   nsHttpRequestHead mRequestHead;
 
   nsCOMPtr<nsIInputStream> mUploadStream;
   RefPtr<nsHttpTransaction> mTransaction;
   nsCOMPtr<nsIRequest> mTransactionPump;
+  std::function<void()> mTransactionObserver;
+  Maybe<TransactionObserverResult> mTransactionObserverResult;
+  RefPtr<InputChannelThrottleQueueChild> mThrottleQueue;
 };
 
 }  // namespace net

@@ -36,6 +36,7 @@
 #include "GLDefs.h"
 #include "GLLibraryLoader.h"
 #include "nsISupportsImpl.h"
+#include "nsRegionFwd.h"
 #include "plstr.h"
 #include "GLContextTypes.h"
 #include "SurfaceTypes.h"
@@ -3352,6 +3353,16 @@ class GLContext : public GenericAtomicRefCounted,
   virtual bool SwapBuffers() { return false; }
 
   /**
+   * Stores a damage region (in origin bottom left coordinates), which
+   * makes the next SwapBuffers call do eglSwapBuffersWithDamage if supported.
+   *
+   * Note that even if only part of the context is damaged, the entire buffer
+   * needs to be filled with up-to-date contents. This region is only a hint
+   * telling the system compositor which parts of the buffer were updated.
+   */
+  virtual void SetDamage(const nsIntRegion& aDamageRegion) {}
+
+  /**
    * Defines a two-dimensional texture image for context target surface
    */
   virtual bool BindTexImage() { return false; }
@@ -3434,9 +3445,13 @@ class GLContext : public GenericAtomicRefCounted,
   virtual GLenum GetPreferredARGB32Format() const { return LOCAL_GL_RGBA; }
 
   virtual GLenum GetPreferredEGLImageTextureTarget() const {
+#ifdef MOZ_WAYLAND
+    return LOCAL_GL_TEXTURE_2D;
+#else
     return IsExtensionSupported(OES_EGL_image_external)
                ? LOCAL_GL_TEXTURE_EXTERNAL
                : LOCAL_GL_TEXTURE_2D;
+#endif
   }
 
   virtual bool RenewSurface(widget::CompositorWidget* aWidget) { return false; }

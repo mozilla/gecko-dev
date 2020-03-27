@@ -10,14 +10,18 @@ interface RemoteTab;
 interface nsITransportSecurityInfo;
 
 [Exposed=Window, ChromeOnly]
-interface WindowGlobalParent {
+interface WindowContext {
+  readonly attribute unsigned long long innerWindowId;
+};
+
+[Exposed=Window, ChromeOnly]
+interface WindowGlobalParent : WindowContext {
   readonly attribute boolean isClosed;
   readonly attribute boolean isInProcess;
   readonly attribute CanonicalBrowsingContext browsingContext;
 
   readonly attribute boolean isCurrentGlobal;
 
-  readonly attribute unsigned long long innerWindowId;
   readonly attribute unsigned long long outerWindowId;
   readonly attribute unsigned long long contentParentId;
 
@@ -42,6 +46,13 @@ interface WindowGlobalParent {
   // Information about the currently loaded document.
   readonly attribute Principal documentPrincipal;
   readonly attribute URI? documentURI;
+
+  // Bit mask containing content blocking events that are recorded in
+  // the document's content blocking log.
+  readonly attribute unsigned long contentBlockingEvents;
+
+  // String containing serialized content blocking log.
+  readonly attribute DOMString contentBlockingLog;
 
   static WindowGlobalParent? getByInnerWindowId(unsigned long long innerWindowId);
 
@@ -71,7 +82,7 @@ interface WindowGlobalParent {
   [Throws]
   Promise<ImageBitmap> drawSnapshot(DOMRect? rect,
                                     double scale,
-                                    DOMString backgroundColor);
+                                    UTF8String backgroundColor);
 
   /**
    * Fetches the securityInfo object for this window. This function will
@@ -91,6 +102,7 @@ interface WindowGlobalChild {
   readonly attribute boolean isClosed;
   readonly attribute boolean isInProcess;
   readonly attribute BrowsingContext browsingContext;
+  readonly attribute WindowContext windowContext;
 
   readonly attribute boolean isCurrentGlobal;
 

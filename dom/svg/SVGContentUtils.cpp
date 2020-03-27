@@ -286,13 +286,13 @@ void SVGContentUtils::GetStrokeOptions(AutoStrokeOptions* aStrokeOptions,
     aStrokeOptions->mMiterLimit = Float(styleSVG->mStrokeMiterlimit);
 
     switch (styleSVG->mStrokeLinejoin) {
-      case NS_STYLE_STROKE_LINEJOIN_MITER:
+      case StyleStrokeLinejoin::Miter:
         aStrokeOptions->mLineJoin = JoinStyle::MITER_OR_BEVEL;
         break;
-      case NS_STYLE_STROKE_LINEJOIN_ROUND:
+      case StyleStrokeLinejoin::Round:
         aStrokeOptions->mLineJoin = JoinStyle::ROUND;
         break;
-      case NS_STYLE_STROKE_LINEJOIN_BEVEL:
+      case StyleStrokeLinejoin::Bevel:
         aStrokeOptions->mLineJoin = JoinStyle::BEVEL;
         break;
     }
@@ -809,10 +809,13 @@ float SVGContentUtils::CoordToFloat(SVGElement* aContent,
     SVGViewportElement* ctx = aContent->GetCtx();
     return CSSCoord(ctx ? ctx->GetLength(SVGContentUtils::XY) : 0.0f);
   });
-  if (aLength.clamping_mode == StyleAllowedNumericType::NonNegative) {
-    result = std::max(result, 0.0f);
-  } else {
-    MOZ_ASSERT(aLength.clamping_mode == StyleAllowedNumericType::All);
+  if (aLength.IsCalc()) {
+    auto& calc = aLength.AsCalc();
+    if (calc.clamping_mode == StyleAllowedNumericType::NonNegative) {
+      result = std::max(result, 0.0f);
+    } else {
+      MOZ_ASSERT(calc.clamping_mode == StyleAllowedNumericType::All);
+    }
   }
   return result;
 }

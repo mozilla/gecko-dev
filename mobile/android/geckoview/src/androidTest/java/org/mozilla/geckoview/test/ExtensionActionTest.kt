@@ -2,8 +2,8 @@ package org.mozilla.geckoview.test
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.support.test.InstrumentationRegistry
-import android.support.test.filters.MediumTest
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.filters.MediumTest
 import org.hamcrest.Matchers.equalTo
 import org.json.JSONObject
 import org.junit.After
@@ -40,6 +40,8 @@ class ExtensionActionTest : BaseSessionTest() {
 
     @Before
     fun setup() {
+        sessionRule.runtime.webExtensionController.setTabActive(mainSession, true)
+
         // This method installs the extension, opens up ports with the background script and the
         // content script and captures the default action definition from the manifest
         val browserActionDefaultResult = GeckoResult<WebExtension.Action>()
@@ -354,7 +356,7 @@ class ExtensionActionTest : BaseSessionTest() {
     }
 
     private fun compareBitmap(expectedLocation: String, actual: Bitmap) {
-        val stream = InstrumentationRegistry.getTargetContext().assets
+        val stream = InstrumentationRegistry.getInstrumentation().targetContext.assets
                 .open(expectedLocation)
 
         val expected = BitmapFactory.decodeStream(stream)
@@ -383,6 +385,22 @@ class ExtensionActionTest : BaseSessionTest() {
         }
 
         sessionRule.waitForResult(svg)
+    }
+
+    @Test
+    fun themeIcons() {
+        assumeThat("Only browserAction supports this API.", id, equalTo("#browserAction"))
+
+        val png32 = GeckoResult<Void>()
+
+        default!!.icon!!.get(32).accept ({ actual ->
+            compareBitmap("web_extensions/actions/button/beasts-32.png", actual!!)
+            png32.complete(null)
+        }, { error ->
+            png32.completeExceptionally(error!!)
+        })
+
+        sessionRule.waitForResult(png32)
     }
 
     @Test

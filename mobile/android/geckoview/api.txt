@@ -40,6 +40,7 @@ import java.io.InputStream;
 import java.lang.Boolean;
 import java.lang.CharSequence;
 import java.lang.Class;
+import java.lang.Deprecated;
 import java.lang.Exception;
 import java.lang.Float;
 import java.lang.Integer;
@@ -52,6 +53,7 @@ import java.lang.Throwable;
 import java.lang.Void;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.security.cert.X509Certificate;
 import java.util.AbstractSequentialList;
 import java.util.Collection;
 import java.util.List;
@@ -295,8 +297,16 @@ package org.mozilla.geckoview {
     method @UiThread public void clearExceptionList();
     method @UiThread @NonNull public GeckoResult<List<ContentBlockingController.LogEntry>> getLog(@NonNull GeckoSession);
     method @UiThread public void removeException(@NonNull GeckoSession);
-    method @UiThread public void restoreExceptionList(@NonNull ContentBlockingController.ExceptionList);
-    method @UiThread @NonNull public GeckoResult<ContentBlockingController.ExceptionList> saveExceptionList();
+    method @AnyThread public void removeException(@NonNull ContentBlockingController.ContentBlockingException);
+    method @Deprecated @UiThread public void restoreExceptionList(@NonNull ContentBlockingController.ExceptionList);
+    method @AnyThread public void restoreExceptionList(@NonNull List<ContentBlockingController.ContentBlockingException>);
+    method @UiThread @NonNull public GeckoResult<List<ContentBlockingController.ContentBlockingException>> saveExceptionList();
+  }
+
+  @AnyThread public static class ContentBlockingController.ContentBlockingException {
+    method @NonNull public static ContentBlockingController.ContentBlockingException fromJson(@NonNull JSONObject);
+    method @NonNull public JSONObject toJson();
+    field @NonNull public final String uri;
   }
 
   public static class ContentBlockingController.Event {
@@ -322,7 +332,7 @@ package org.mozilla.geckoview {
     field public static final int LOADED_SOCIALTRACKING_CONTENT = 131072;
   }
 
-  @AnyThread public class ContentBlockingController.ExceptionList {
+  @Deprecated @AnyThread public class ContentBlockingController.ExceptionList {
     ctor public ExceptionList(@NonNull String);
     ctor public ExceptionList(@NonNull JSONObject);
     method @NonNull public String[] getUris();
@@ -677,6 +687,7 @@ package org.mozilla.geckoview {
     method @UiThread default public void onFocusRequest(@NonNull GeckoSession);
     method @UiThread default public void onFullScreen(@NonNull GeckoSession, boolean);
     method @UiThread default public void onKill(@NonNull GeckoSession);
+    method @UiThread default public void onMetaViewportFitChange(@NonNull GeckoSession, @NonNull String);
     method @UiThread @Nullable default public GeckoResult<SlowScriptResponse> onSlowScript(@NonNull GeckoSession, @NonNull String);
     method @UiThread default public void onTitleChange(@NonNull GeckoSession, @Nullable String);
     method @UiThread default public void onWebAppManifest(@NonNull GeckoSession, @NonNull JSONObject);
@@ -830,17 +841,14 @@ package org.mozilla.geckoview {
     field public static final int SECURITY_MODE_IDENTIFIED = 1;
     field public static final int SECURITY_MODE_UNKNOWN = 0;
     field public static final int SECURITY_MODE_VERIFIED = 2;
+    field @Nullable public final X509Certificate certificate;
     field @NonNull public final String host;
     field public final boolean isException;
     field public final boolean isSecure;
-    field @NonNull public final String issuerCommonName;
-    field @NonNull public final String issuerOrganization;
     field public final int mixedModeActive;
     field public final int mixedModePassive;
-    field @NonNull public final String organization;
     field @Nullable public final String origin;
     field public final int securityMode;
-    field @NonNull public final String subjectName;
   }
 
   public static interface GeckoSession.PromptDelegate {
@@ -1215,6 +1223,7 @@ package org.mozilla.geckoview {
   public static interface LoginStorage.Delegate {
     method @UiThread @Nullable default public GeckoResult<LoginStorage.LoginEntry[]> onLoginFetch(@NonNull String);
     method @UiThread default public void onLoginSave(@NonNull LoginStorage.LoginEntry);
+    method @UiThread default public void onLoginUsed(@NonNull LoginStorage.LoginEntry, int);
   }
 
   public static class LoginStorage.LoginEntry {
@@ -1236,6 +1245,11 @@ package org.mozilla.geckoview {
     method @AnyThread @NonNull public LoginStorage.LoginEntry.Builder origin(@NonNull String);
     method @AnyThread @NonNull public LoginStorage.LoginEntry.Builder password(@NonNull String);
     method @AnyThread @NonNull public LoginStorage.LoginEntry.Builder username(@NonNull String);
+  }
+
+  public static class LoginStorage.UsedField {
+    ctor public UsedField();
+    field public static final int PASSWORD = 1;
   }
 
   @AnyThread public class MediaElement {
@@ -1484,6 +1498,13 @@ package org.mozilla.geckoview {
     field public static final int VULNERABLE_UPDATE_AVAILABLE = 4;
   }
 
+  public static class WebExtension.DisabledFlags {
+    ctor public DisabledFlags();
+    field public static final int APP = 8;
+    field public static final int BLOCKLIST = 4;
+    field public static final int USER = 2;
+  }
+
   public static class WebExtension.Flags {
     ctor protected Flags();
     field public static final long ALLOW_CONTENT_MESSAGING = 1L;
@@ -1509,6 +1530,7 @@ package org.mozilla.geckoview {
     field public static final int ERROR_NETWORK_FAILURE = -1;
     field public static final int ERROR_SIGNEDSTATE_REQUIRED = -5;
     field public static final int ERROR_UNEXPECTED_ADDON_TYPE = -6;
+    field public static final int ERROR_USER_CANCELED = -100;
   }
 
   @UiThread public static interface WebExtension.MessageDelegate {
@@ -1533,10 +1555,14 @@ package org.mozilla.geckoview {
     field @Nullable public final String creatorName;
     field @Nullable public final String creatorUrl;
     field @Nullable public final String description;
+    field public final int disabledFlags;
+    field public final boolean enabled;
     field @Nullable public final String homepageUrl;
     field @NonNull public final WebExtension.Icon icon;
     field public final boolean isRecommended;
     field @Nullable public final String name;
+    field public final boolean openOptionsPageInTab;
+    field @Nullable public final String optionsPageUrl;
     field @NonNull public final String[] origins;
     field @NonNull public final String[] permissions;
     field public final int signedState;
@@ -1568,17 +1594,28 @@ package org.mozilla.geckoview {
   }
 
   public class WebExtensionController {
+    method @AnyThread @NonNull public GeckoResult<WebExtension> disable(@NonNull WebExtension, int);
+    method @AnyThread @NonNull public GeckoResult<WebExtension> enable(@NonNull WebExtension, int);
     method @UiThread @Nullable public WebExtensionController.PromptDelegate getPromptDelegate();
     method @UiThread @Nullable public WebExtensionController.TabDelegate getTabDelegate();
     method @NonNull @AnyThread public GeckoResult<WebExtension> install(@NonNull String);
     method @AnyThread @NonNull public GeckoResult<List<WebExtension>> list();
     method @UiThread public void setPromptDelegate(@Nullable WebExtensionController.PromptDelegate);
+    method @AnyThread public void setTabActive(@NonNull GeckoSession, boolean);
     method @UiThread public void setTabDelegate(@Nullable WebExtensionController.TabDelegate);
     method @NonNull @AnyThread public GeckoResult<Void> uninstall(@NonNull WebExtension);
+    method @AnyThread @NonNull public GeckoResult<WebExtension> update(@NonNull WebExtension);
+  }
+
+  public static class WebExtensionController.EnableSource {
+    ctor public EnableSource();
+    field public static final int APP = 2;
+    field public static final int USER = 1;
   }
 
   @UiThread public static interface WebExtensionController.PromptDelegate {
     method @Nullable default public GeckoResult<AllowOrDeny> onInstallPrompt(@NonNull WebExtension);
+    method @Nullable default public GeckoResult<AllowOrDeny> onUpdatePrompt(@NonNull WebExtension, @NonNull WebExtension, @NonNull String[], @NonNull String[]);
   }
 
   public static interface WebExtensionController.TabDelegate {
@@ -1663,6 +1700,7 @@ package org.mozilla.geckoview {
 
   @AnyThread public class WebRequestError extends Exception {
     ctor public WebRequestError(int, int);
+    ctor public WebRequestError(int, int, X509Certificate);
     field public static final int ERROR_CATEGORY_CONTENT = 4;
     field public static final int ERROR_CATEGORY_NETWORK = 3;
     field public static final int ERROR_CATEGORY_PROXY = 6;
@@ -1697,6 +1735,7 @@ package org.mozilla.geckoview {
     field public static final int ERROR_UNKNOWN_SOCKET_TYPE = 83;
     field public static final int ERROR_UNSAFE_CONTENT_TYPE = 36;
     field public final int category;
+    field @Nullable public final X509Certificate certificate;
     field public final int code;
   }
 
@@ -1705,6 +1744,8 @@ package org.mozilla.geckoview {
     method public void setReadTimeoutMillis(long);
     field public static final long DEFAULT_READ_TIMEOUT_MS = 30000L;
     field @Nullable public final InputStream body;
+    field @Nullable public final X509Certificate certificate;
+    field public final boolean isSecure;
     field public final boolean redirected;
     field public final int statusCode;
   }
@@ -1713,6 +1754,8 @@ package org.mozilla.geckoview {
     ctor public Builder(@NonNull String);
     method @NonNull public WebResponse.Builder body(@NonNull InputStream);
     method @NonNull public WebResponse build();
+    method @NonNull public WebResponse.Builder certificate(@NonNull X509Certificate);
+    method @NonNull public WebResponse.Builder isSecure(boolean);
     method @NonNull public WebResponse.Builder redirected(boolean);
     method @NonNull public WebResponse.Builder statusCode(int);
   }

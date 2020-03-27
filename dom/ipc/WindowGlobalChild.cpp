@@ -9,6 +9,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/BrowsingContext.h"
+#include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/MozFrameLoaderOwnerBinding.h"
 #include "mozilla/dom/BrowserChild.h"
@@ -16,6 +17,7 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/WindowGlobalActorsBinding.h"
 #include "mozilla/dom/WindowGlobalParent.h"
+#include "mozilla/dom/WindowContext.h"
 #include "mozilla/ipc/InProcessChild.h"
 #include "mozilla/ipc/InProcessParent.h"
 #include "nsContentUtils.h"
@@ -81,8 +83,7 @@ already_AddRefed<WindowGlobalChild> WindowGlobalChild::Create(
   if (httpChan &&
       loadInfo->GetExternalContentPolicyType() ==
           nsIContentPolicy::TYPE_DOCUMENT &&
-      NS_SUCCEEDED(httpChan->ComputeCrossOriginOpenerPolicy(
-          nsILoadInfo::OPENER_POLICY_NULL, &policy))) {
+      NS_SUCCEEDED(httpChan->GetCrossOriginOpenerPolicy(&policy))) {
     bc->SetOpenerPolicy(policy);
   }
 
@@ -134,6 +135,13 @@ already_AddRefed<WindowGlobalChild> WindowGlobalChild::Create(
 void WindowGlobalChild::Init() {
   if (!mDocumentURI) {
     NS_NewURI(getter_AddRefs(mDocumentURI), "about:blank");
+  }
+
+  // Ensure we have a corresponding WindowContext object.
+  if (XRE_IsParentProcess()) {
+    mWindowContext = GetParentActor();
+  } else {
+    mWindowContext = WindowContext::Create(this);
   }
 
   // Register this WindowGlobal in the gWindowGlobalParentsById map.
@@ -216,23 +224,31 @@ void WindowGlobalChild::BeforeUnloadRemoved() {
 }
 
 void WindowGlobalChild::Destroy() {
-  // Perform async IPC shutdown unless we're not in-process, and our
-  // BrowserChild is in the process of being destroyed, which will destroy us as
-  // well.
-  RefPtr<BrowserChild> browserChild = GetBrowserChild();
-  if (!browserChild || !browserChild->IsDestroyed()) {
-    // Make a copy so that we can avoid potential iterator invalidation when
-    // calling the user-provided Destroy() methods.
-    nsTArray<RefPtr<JSWindowActorChild>> windowActors(mWindowActors.Count());
-    for (auto iter = mWindowActors.Iter(); !iter.Done(); iter.Next()) {
-      windowActors.AppendElement(iter.UserData());
-    }
+  // Destroying a WindowGlobalChild requires running script, so hold off on
+  // doing it until we can safely run JS callbacks.
+  nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
+      "WindowGlobalChild::Destroy", [self = RefPtr<WindowGlobalChild>(this)]() {
+        // Make a copy so that we can avoid potential iterator invalidation when
+        // calling the user-provided Destroy() methods.
+        nsTArray<RefPtr<JSWindowActorChild>> windowActors(
+            self->mWindowActors.Count());
+        for (auto iter = self->mWindowActors.Iter(); !iter.Done();
+             iter.Next()) {
+          windowActors.AppendElement(iter.UserData());
+        }
 
-    for (auto& windowActor : windowActors) {
-      windowActor->StartDestroy();
-    }
-    SendDestroy();
-  }
+        for (auto& windowActor : windowActors) {
+          windowActor->StartDestroy();
+        }
+
+        // Perform async IPC shutdown unless we're not in-process, and our
+        // BrowserChild is in the process of being destroyed, which will destroy
+        // us as well.
+        RefPtr<BrowserChild> browserChild = self->GetBrowserChild();
+        if (!browserChild || !browserChild->IsDestroyed()) {
+          self->SendDestroy();
+        }
+      }));
 }
 
 mozilla::ipc::IPCResult WindowGlobalChild::RecvMakeFrameLocal(
@@ -434,6 +450,9 @@ already_AddRefed<JSWindowActorChild> WindowGlobalChild::GetActor(
 }
 
 void WindowGlobalChild::ActorDestroy(ActorDestroyReason aWhy) {
+  MOZ_ASSERT(nsContentUtils::IsSafeToRunScript(),
+             "Destroying WindowGlobalChild can run script");
+
   gWindowGlobalChildById->Remove(mInnerWindowId);
 
 #ifdef MOZ_GECKO_PROFILER
@@ -465,19 +484,16 @@ nsISupports* WindowGlobalChild::GetParentObject() {
   return xpc::NativeGlobal(xpc::PrivilegedJunkScope());
 }
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(WindowGlobalChild, WindowGlobalActor,
-                                   mWindowGlobal, mBrowsingContext,
-                                   mWindowActors)
-
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(WindowGlobalChild,
-                                               WindowGlobalActor)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(WindowGlobalChild, mWindowGlobal,
+                                      mBrowsingContext, mWindowActors)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WindowGlobalChild)
-NS_INTERFACE_MAP_END_INHERITING(WindowGlobalActor)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
+NS_INTERFACE_MAP_END
 
-NS_IMPL_ADDREF_INHERITED(WindowGlobalChild, WindowGlobalActor)
-NS_IMPL_RELEASE_INHERITED(WindowGlobalChild, WindowGlobalActor)
+NS_IMPL_CYCLE_COLLECTING_ADDREF(WindowGlobalChild)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(WindowGlobalChild)
 
 }  // namespace dom
 }  // namespace mozilla

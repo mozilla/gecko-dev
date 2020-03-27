@@ -243,7 +243,6 @@ class nsCookieService final : public nsICookieService,
   void InitDBConn();
   nsresult InitDBConnInternal();
   nsresult CreateTableWorker(const char* aName);
-  nsresult CreateIndex();
   nsresult CreateTable();
   nsresult CreateTableForSchemaVersion6();
   nsresult CreateTableForSchemaVersion5();
@@ -338,6 +337,10 @@ class nsCookieService final : public nsICookieService,
   nsresult RemoveCookiesWithOriginAttributes(
       const mozilla::OriginAttributesPattern& aPattern,
       const nsCString& aBaseDomain);
+
+  nsresult CountCookiesFromHostInternal(const nsACString& aHost,
+                                        uint32_t aPrivateBrowsingId,
+                                        uint32_t* aCountFromHost);
 
  protected:
   nsresult RemoveCookiesFromExactHost(

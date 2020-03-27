@@ -681,6 +681,8 @@ nsresult nsContentSink::ProcessStyleLinkFromHeader(
       CORS_NONE,
       aTitle,
       aMedia,
+      /* integrity = */ EmptyString(),
+      /* nonce = */ EmptyString(),
       aAlternate ? Loader::HasAlternateRel::Yes : Loader::HasAlternateRel::No,
       Loader::IsInline::No,
       Loader::IsExplicitlyEnabled::No,
@@ -817,7 +819,8 @@ void nsContentSink::PrefetchDNS(const nsAString& aHref) {
 
   if (!hostname.IsEmpty() && nsHTMLDNSPrefetch::IsAllowed(mDocument)) {
     nsHTMLDNSPrefetch::PrefetchLow(
-        hostname, isHttps, mDocument->NodePrincipal()->OriginAttributesRef());
+        hostname, isHttps, mDocument->NodePrincipal()->OriginAttributesRef(),
+        mDocument->GetChannel()->GetTRRMode());
   }
 }
 

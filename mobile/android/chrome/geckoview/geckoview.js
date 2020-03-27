@@ -23,6 +23,10 @@ XPCOMUtils.defineLazyGetter(this, "WindowEventDispatcher", () =>
   EventDispatcher.for(window)
 );
 
+// This file assumes `warn` and `debug` are imported into scope
+// by the child scripts.
+/* global debug, warn */
+
 /**
  * ModuleManager creates and manages GeckoView modules. Each GeckoView module
  * normally consists of a JSM module file with an optional content module file.
@@ -200,7 +204,7 @@ var ModuleManager = {
     const windowType = aSettings.isPopup
       ? "navigator:popup"
       : "navigator:geckoview";
-    window.document.documentElement.setAttribute("windowType", windowType);
+    window.document.documentElement.setAttribute("windowtype", windowType);
 
     this.forEach(module => {
       if (module.impl) {
@@ -522,10 +526,6 @@ function startup() {
       name: "GeckoViewContentBlocking",
       onInit: {
         resource: "resource://gre/modules/GeckoViewContentBlocking.jsm",
-      },
-      onEnable: {
-        frameScript:
-          "chrome://geckoview/content/GeckoViewContentBlockingChild.js",
       },
     },
     {

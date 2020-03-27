@@ -21,6 +21,7 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/NullPrincipal.h"
+#include "NullPrincipalURI.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/ScriptSettings.h"
 
@@ -118,7 +119,7 @@ already_AddRefed<Document> DOMParser::ParseFromSafeString(const nsAString& aStr,
 already_AddRefed<Document> DOMParser::ParseFromBuffer(const Uint8Array& aBuf,
                                                       SupportedType aType,
                                                       ErrorResult& aRv) {
-  aBuf.ComputeLengthAndData();
+  aBuf.ComputeState();
   return ParseFromBuffer(MakeSpan(aBuf.Data(), aBuf.Length()), aType, aRv);
 }
 
@@ -250,8 +251,8 @@ already_AddRefed<DOMParser> DOMParser::Constructor(const GlobalObject& aOwner,
   nsCOMPtr<nsIURI> documentURI;
   nsIURI* baseURI = nullptr;
   if (docPrincipal->IsSystemPrincipal()) {
-    docPrincipal = NullPrincipal::CreateWithoutOriginAttributes();
-    docPrincipal->GetURI(getter_AddRefs(documentURI));
+    documentURI = new NullPrincipalURI();
+    docPrincipal = NullPrincipal::Create(OriginAttributes(), documentURI);
   } else {
     // Grab document and base URIs off the window our constructor was
     // called on. Error out if anything untoward happens.
@@ -280,10 +281,9 @@ already_AddRefed<DOMParser> DOMParser::Constructor(const GlobalObject& aOwner,
 
 // static
 already_AddRefed<DOMParser> DOMParser::CreateWithoutGlobal(ErrorResult& aRv) {
+  nsCOMPtr<nsIURI> documentURI = new NullPrincipalURI();
   nsCOMPtr<nsIPrincipal> docPrincipal =
-      NullPrincipal::CreateWithoutOriginAttributes();
-  nsCOMPtr<nsIURI> documentURI;
-  docPrincipal->GetURI(getter_AddRefs(documentURI));
+      NullPrincipal::Create(OriginAttributes(), documentURI);
 
   if (!documentURI) {
     aRv.Throw(NS_ERROR_UNEXPECTED);

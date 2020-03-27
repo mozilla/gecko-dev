@@ -1923,7 +1923,7 @@ class GeneralTokenStreamChars : public SpecializedTokenStreamCharsBase<Unit> {
 
   TokenStreamSpecific* asSpecific() {
     static_assert(
-        mozilla::IsBaseOf<GeneralTokenStreamChars, TokenStreamSpecific>::value,
+        std::is_base_of<GeneralTokenStreamChars, TokenStreamSpecific>::value,
         "static_cast below presumes an inheritance relationship");
 
     return static_cast<TokenStreamSpecific*>(this);
@@ -2548,6 +2548,8 @@ class MOZ_STACK_CLASS TokenStreamSpecific
   using IsIntegerUnit = bool (*)(int32_t);
   MOZ_MUST_USE MOZ_ALWAYS_INLINE bool matchInteger(IsIntegerUnit isIntegerUnit,
                                                    int32_t* nextUnit);
+  MOZ_MUST_USE MOZ_ALWAYS_INLINE bool matchIntegerAfterFirstDigit(
+      IsIntegerUnit isIntegerUnit, int32_t* nextUnit);
 
   /**
    * Tokenize a decimal number that begins at |numStart| into the provided

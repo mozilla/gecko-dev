@@ -6,79 +6,75 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // HttpLog.h should generally be included first
-#include "HttpLog.h"
-
 #include "mozilla/net/HttpBaseChannel.h"
 
+#include <algorithm>
+#include <utility>
+
+#include "HttpBaseChannel.h"
+#include "HttpLog.h"
+#include "LoadInfo.h"
+#include "mozIThirdPartyUtil.h"
+#include "mozilla/AntiTrackingCommon.h"
+#include "mozilla/BasePrincipal.h"
+#include "mozilla/BinarySearch.h"
+#include "mozilla/ConsoleReportCollector.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/InputStreamLengthHelper.h"
+#include "mozilla/NullPrincipal.h"
+#include "mozilla/Services.h"
+#include "mozilla/Telemetry.h"
+#include "mozilla/Tokenizer.h"
+#include "mozilla/dom/Performance.h"
+#include "mozilla/dom/PerformanceStorage.h"
+#include "mozilla/net/PartiallySeekableInputStream.h"
+#include "mozilla/net/UrlClassifierCommon.h"
+#include "mozilla/net/UrlClassifierFeatureFactory.h"
+#include "nsCRT.h"
+#include "nsContentSecurityManager.h"
+#include "nsContentUtils.h"
+#include "nsEscape.h"
 #include "nsGlobalWindowOuter.h"
+#include "nsHttpChannel.h"
 #include "nsHttpHandler.h"
+#include "nsIApplicationCacheChannel.h"
+#include "nsICacheInfoChannel.h"
+#include "nsICachingChannel.h"
+#include "nsIChannelEventSink.h"
+#include "nsIConsoleService.h"
+#include "nsICookieService.h"
+#include "nsIDOMWindowUtils.h"
+#include "nsIDocShell.h"
+#include "nsIEncodedChannel.h"
+#include "nsIHttpHeaderVisitor.h"
+#include "nsILoadGroupChild.h"
+#include "nsIMIMEInputStream.h"
+#include "nsIMutableArray.h"
+#include "nsINetworkInterceptController.h"
+#include "nsIObserverService.h"
+#include "nsIPrincipal.h"
+#include "nsIProtocolProxyService.h"
+#include "nsISSLSocketControl.h"
+#include "nsIScriptError.h"
+#include "nsIScriptSecurityManager.h"
+#include "nsISecurityConsoleMessage.h"
+#include "nsISeekableStream.h"
+#include "nsIStorageStream.h"
+#include "nsIStreamConverterService.h"
+#include "nsITimedChannel.h"
+#include "nsIURIMutator.h"
 #include "nsMimeTypes.h"
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
-#include "nsReadableUtils.h"
-
-#include "mozilla/BasePrincipal.h"
-#include "nsICachingChannel.h"
-#include "nsIPrincipal.h"
-#include "nsIScriptError.h"
-#include "nsISeekableStream.h"
-#include "nsIStorageStream.h"
-#include "nsITimedChannel.h"
-#include "nsIEncodedChannel.h"
-#include "nsIApplicationCacheChannel.h"
-#include "nsIMutableArray.h"
-#include "nsEscape.h"
-#include "nsStreamListenerWrapper.h"
-#include "nsISecurityConsoleMessage.h"
-#include "nsURLHelper.h"
-#include "nsICookieService.h"
-#include "nsIStreamConverterService.h"
-#include "nsCRT.h"
-#include "nsContentUtils.h"
-#include "nsIMutableArray.h"
-#include "nsIURIMutator.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsIObserverService.h"
-#include "nsIProtocolProxyService.h"
-#include "nsProxyRelease.h"
 #include "nsPIDOMWindow.h"
-#include "nsIDocShell.h"
-#include "nsINetworkInterceptController.h"
-#include "mozilla/AntiTrackingCommon.h"
-#include "mozilla/dom/Performance.h"
-#include "mozilla/dom/PerformanceStorage.h"
-#include "mozilla/net/UrlClassifierFeatureFactory.h"
-#include "mozilla/NullPrincipal.h"
-#include "mozilla/Services.h"
-#include "mozIThirdPartyUtil.h"
-#include "nsStreamUtils.h"
-#include "nsThreadUtils.h"
-#include "nsContentSecurityManager.h"
-#include "nsIChannelEventSink.h"
-#include "nsILoadGroupChild.h"
-#include "mozilla/ConsoleReportCollector.h"
-#include "LoadInfo.h"
-#include "nsISSLSocketControl.h"
-#include "mozilla/Telemetry.h"
-#include "nsIConsoleService.h"
-#include "mozilla/BinarySearch.h"
-#include "mozilla/DebugOnly.h"
-#include "mozilla/Move.h"
-#include "mozilla/net/PartiallySeekableInputStream.h"
-#include "mozilla/net/UrlClassifierCommon.h"
-#include "mozilla/InputStreamLengthHelper.h"
-#include "mozilla/Tokenizer.h"
-#include "nsIHttpHeaderVisitor.h"
-#include "nsIMIMEInputStream.h"
-#include "nsICacheInfoChannel.h"
-#include "nsIDOMWindowUtils.h"
-#include "nsHttpChannel.h"
+#include "nsProxyRelease.h"
+#include "nsReadableUtils.h"
 #include "nsRedirectHistoryEntry.h"
 #include "nsServerTiming.h"
-#include "mozilla/Tokenizer.h"
-
-#include <algorithm>
-#include "HttpBaseChannel.h"
+#include "nsStreamListenerWrapper.h"
+#include "nsStreamUtils.h"
+#include "nsThreadUtils.h"
+#include "nsURLHelper.h"
 
 namespace mozilla {
 namespace net {
@@ -158,6 +154,7 @@ HttpBaseChannel::HttpBaseChannel()
     : mReportCollector(new ConsoleReportCollector()),
       mHttpHandler(gHttpHandler),
       mChannelCreationTime(0),
+      mComputedCrossOriginOpenerPolicy(nsILoadInfo::OPENER_POLICY_NULL),
       mStartPos(UINT64_MAX),
       mTransferSize(0),
       mRequestSize(0),
@@ -480,6 +477,16 @@ NS_IMETHODIMP
 HttpBaseChannel::SetLoadFlags(nsLoadFlags aLoadFlags) {
   mLoadFlags = aLoadFlags;
   return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetTRRMode(nsIRequest::TRRMode* aTRRMode) {
+  return GetTRRModeImpl(aTRRMode);
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetTRRMode(nsIRequest::TRRMode aTRRMode) {
+  return SetTRRModeImpl(aTRRMode);
 }
 
 NS_IMETHODIMP
@@ -4194,7 +4201,9 @@ HttpBaseChannel::SetThrottleQueue(nsIInputChannelThrottleQueue* aQueue) {
 
 NS_IMETHODIMP
 HttpBaseChannel::GetThrottleQueue(nsIInputChannelThrottleQueue** aQueue) {
-  *aQueue = mThrottleQueue;
+  NS_ENSURE_ARG_POINTER(aQueue);
+  nsCOMPtr<nsIInputChannelThrottleQueue> queue = mThrottleQueue;
+  queue.forget(aQueue);
   return NS_OK;
 }
 
@@ -4572,6 +4581,23 @@ NS_IMETHODIMP HttpBaseChannel::ComputeCrossOriginOpenerPolicy(
 
   *aOutPolicy = CreateCrossOriginOpenerPolicy(sameness, unsafeAllowOutgoing,
                                               embedderPolicy);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetCrossOriginOpenerPolicy(
+    nsILoadInfo::CrossOriginOpenerPolicy* aPolicy) {
+  MOZ_ASSERT(aPolicy);
+  if (!aPolicy) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  // If this method is called before OnStartRequest (ie. before we call
+  // ComputeCrossOriginOpenerPolicy) or if we were unable to compute the
+  // policy we'll throw an error.
+  if (!mOnStartRequestCalled) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  *aPolicy = mComputedCrossOriginOpenerPolicy;
   return NS_OK;
 }
 

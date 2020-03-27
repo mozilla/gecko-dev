@@ -15,6 +15,8 @@ const { AppConstants } = ChromeUtils.import(
 
 const AUDIO_TOGGLE_ENABLED_PREF =
   "media.videocontrols.picture-in-picture.audio-toggle.enabled";
+const KEYBOARD_CONTROLS_ENABLED_PREF =
+  "media.videocontrols.picture-in-picture.keyboard-controls.enabled";
 
 // Time to fade the Picture-in-Picture video controls after first opening.
 const CONTROLS_FADE_TIMEOUT_MS = 3000;
@@ -172,9 +174,22 @@ let Player = {
       case "keydown": {
         if (event.keyCode == KeyEvent.DOM_VK_TAB) {
           this.controls.setAttribute("keying", true);
-        } else if (event.keyCode == KeyEvent.DOM_VK_ESCAPE) {
+        } else if (
+          event.keyCode == KeyEvent.DOM_VK_ESCAPE &&
+          this.controls.hasAttribute("keying")
+        ) {
           this.controls.removeAttribute("keying");
+        } else if (
+          Services.prefs.getBoolPref(KEYBOARD_CONTROLS_ENABLED_PREF, false) &&
+          !this.controls.hasAttribute("keying") &&
+          (event.keyCode != KeyEvent.DOM_VK_SPACE || !event.target.id)
+        ) {
+          // Pressing "space" fires a "keydown" event which can also trigger a control
+          // button's "click" event. Handle the "keydown" event only when the event did
+          // not originate from a control button and it is not a "space" keypress.
+          this.onKeyDown(event);
         }
+
         break;
       }
 
@@ -235,6 +250,16 @@ let Player = {
     }
   },
 
+  onKeyDown(event) {
+    this.actor.sendAsyncMessage("PictureInPicture:KeyDown", {
+      altKey: event.altKey,
+      shiftKey: event.shiftKey,
+      metaKey: event.metaKey,
+      ctrlKey: event.ctrlKey,
+      keyCode: event.keyCode,
+    });
+  },
+
   onMouseOut(event) {
     if (
       window.screenX != this.lastScreenX ||
@@ -278,9 +303,8 @@ let Player = {
     this._isPlaying = isPlaying;
     this.controls.classList.toggle("playing", isPlaying);
     const playButton = document.getElementById("playpause");
-    let attrName = isPlaying ? "pauselabel" : "playlabel";
-    let accessibleLabel = playButton.getAttribute(attrName);
-    playButton.setAttribute("aria-label", accessibleLabel);
+    let strId = "pictureinpicture-" + (isPlaying ? "pause" : "play");
+    document.l10n.setAttributes(playButton, strId);
   },
 
   _isMuted: false,
@@ -301,9 +325,8 @@ let Player = {
     this._isMuted = isMuted;
     this.controls.classList.toggle("muted", isMuted);
     const audioButton = document.getElementById("audio");
-    let attrName = isMuted ? "unmutelabel" : "mutelabel";
-    let accessibleLabel = audioButton.getAttribute(attrName);
-    audioButton.setAttribute("aria-label", accessibleLabel);
+    let strId = "pictureinpicture-" + (isMuted ? "unmute" : "mute");
+    document.l10n.setAttributes(audioButton, strId);
   },
 
   recordEvent(type, args) {

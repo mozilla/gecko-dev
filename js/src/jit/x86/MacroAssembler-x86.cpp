@@ -176,7 +176,7 @@ void MacroAssemblerX86::handleFailureWithHandlerTail(void* handler,
   jmp(Operand(eax));
 
   // If we found a finally block, this must be a baseline frame. Push
-  // two values expected by JSOP_RETSUB: BooleanValue(true) and the
+  // two values expected by JSOp::Retsub: BooleanValue(true) and the
   // exception.
   bind(&finally);
   ValueOperand exception = ValueOperand(ecx, edx);
@@ -434,8 +434,8 @@ void MacroAssembler::moveValue(const ValueOperand& src,
       return;
     }
     // If only one is, copy that source first.
-    mozilla::Swap(s0, s1);
-    mozilla::Swap(d0, d1);
+    std::swap(s0, s1);
+    std::swap(d0, d1);
   }
 
   if (s0 != d0) {
@@ -514,7 +514,8 @@ void MacroAssembler::branchValueIsNurseryCell(Condition cond,
   Register tag = extractTag(address, temp);
   MOZ_ASSERT(tag == temp);
   branchTestObject(Assembler::Equal, tag, &checkAddress);
-  branchTestString(Assembler::NotEqual, tag,
+  branchTestString(Assembler::Equal, tag, &checkAddress);
+  branchTestBigInt(Assembler::NotEqual, tag,
                    cond == Assembler::Equal ? &done : label);
 
   bind(&checkAddress);
@@ -530,7 +531,8 @@ void MacroAssembler::branchValueIsNurseryCell(Condition cond,
   Label done, checkAddress;
 
   branchTestObject(Assembler::Equal, value, &checkAddress);
-  branchTestString(Assembler::NotEqual, value,
+  branchTestString(Assembler::Equal, value, &checkAddress);
+  branchTestBigInt(Assembler::NotEqual, value,
                    cond == Assembler::Equal ? &done : label);
 
   bind(&checkAddress);

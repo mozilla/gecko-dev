@@ -6466,7 +6466,6 @@ NS_CycleCollectorSuspectUsingNursery
 ?AddRef@nsXBLWindowKeyHandler@@UAGKXZ
 ?InstallKeyboardEventListenersTo@nsXBLWindowKeyHandler@@QAEXPAVEventListenerManager@mozilla@@@Z
 ?AddEventListenerByType@EventListenerManager@mozilla@@QAEXPAVnsIDOMEventListener@@ABV?$nsTSubstring@_S@@ABUEventListenerFlags@2@@Z
-?IsUniversalXPConnectEnabled@xpc@@YA_NPAUJSContext@@@Z
 ?EventListenerAdded@EventTarget@dom@mozilla@@UAEXPAVnsAtom@@@Z
 ?Release@nsXBLWindowKeyHandler@@UAGKXZ
 ??$NewRunnableMethod@PAVnsGlobalWindowOuter@@P81@AEXXZ@mozilla@@YA?AU?$already_AddRefed@V?$nsRunnableMethod@VnsGlobalWindowOuter@@X$00$0A@@@@@PBD$$QAPAVnsGlobalWindowOuter@@P82@AEXXZ@Z
@@ -6579,7 +6578,7 @@ NS_CycleCollectorSuspectUsingNursery
 ?HasFocus@Document@dom@mozilla@@QBE_NAAVErrorResult@3@@Z
 ?GetFocusedWindow@nsFocusManager@@UAG?AW4nsresult@@PAPAVmozIDOMWindowProxy@@@Z
 ?GetCsp@SystemPrincipal@mozilla@@UAG?AW4nsresult@@PAPAVnsIContentSecurityPolicy@@@Z
-?InnerSetNewDocument@nsGlobalWindowInner@@IAEXPAUJSContext@@PAVDocument@dom@mozilla@@@Z
+?InitDocumentDependentState@nsGlobalWindowInner@@IAEXPAUJSContext@@@Z
 ?WrapObject@nsINode@@UAEPAVJSObject@@PAUJSContext@@V?$Handle@PAVJSObject@@@JS@@@Z
 ?WrapNode@nsHTMLDocument@@UAEPAVJSObject@@PAUJSContext@@V?$Handle@PAVJSObject@@@JS@@@Z
 ?Wrap@HTMLDocument_Binding@dom@mozilla@@YA_NPAUJSContext@@PAVnsHTMLDocument@@PAVnsWrapperCache@@V?$Handle@PAVJSObject@@@JS@@V?$MutableHandle@PAVJSObject@@@8@@Z

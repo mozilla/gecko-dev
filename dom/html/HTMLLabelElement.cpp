@@ -51,6 +51,7 @@ HTMLFormElement* HTMLLabelElement::GetForm() const {
 }
 
 void HTMLLabelElement::Focus(const FocusOptions& aOptions,
+                             const CallerType aCallerType,
                              ErrorResult& aError) {
   // retarget the focus method at the for content
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
@@ -109,7 +110,7 @@ nsresult HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
           bool dragSelect = false;
           if (mouseDownPoint) {
             LayoutDeviceIntPoint dragDistance = *mouseDownPoint;
-            DeleteProperty(nsGkAtoms::labelMouseDownPtProperty);
+            RemoveProperty(nsGkAtoms::labelMouseDownPtProperty);
 
             dragDistance -= mouseEvent->mRefPoint;
             const int CLICK_DISTANCE = 2;

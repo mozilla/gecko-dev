@@ -13,6 +13,7 @@
 #include <utility>
 #include <algorithm>
 
+#include "gfxUtils.h"
 #include "GLBlitHelper.h"
 #include "GLContextCGL.h"
 #include "GLContextProvider.h"
@@ -295,13 +296,18 @@ bool NativeLayerRootSnapshotterCA::ReadbackPixels(const IntSize& aReadbackSize,
     return false;
   }
 
-  float scale = mLayerRoot->BackingScale();
-  CGSize size = {aReadbackSize.width / scale, aReadbackSize.height / scale};
-  CGRect bounds = {CGPointZero, size};
+  CGRect bounds = CGRectMake(0, 0, aReadbackSize.width, aReadbackSize.height);
 
   {
+    // Set the correct bounds and scale on the renderer and its root layer. CARenderer always
+    // renders at unit scale, i.e. the coordinates on the root layer must map 1:1 to render target
+    // pixels. But the coordinates on our content layers are in "points", where 1 point maps to 2
+    // device pixels on HiDPI. So in order to render at the full device pixel resolution, we set a
+    // scale transform on the root offscreen layer.
     AutoCATransaction transaction;
     mRenderer.layer.bounds = bounds;
+    float scale = mLayerRoot->BackingScale();
+    mRenderer.layer.sublayerTransform = CATransform3DMakeScale(scale, scale, 1);
     mRenderer.bounds = bounds;
   }
 
@@ -309,24 +315,48 @@ bool NativeLayerRootSnapshotterCA::ReadbackPixels(const IntSize& aReadbackSize,
 
   mGL->MakeCurrent();
 
+  bool needToRedrawEverything = false;
   if (!mFB || mFB->mSize != aReadbackSize) {
     mFB = gl::MozFramebuffer::Create(mGL, aReadbackSize, 0, false);
     if (!mFB) {
       return false;
     }
-    [mRenderer addUpdateRect:bounds];  // fresh framebuffer, draw everything
+    needToRedrawEverything = true;
   }
 
   const gl::ScopedBindFramebuffer bindFB(mGL, mFB->mFB);
   mGL->fViewport(0.0, 0.0, aReadbackSize.width, aReadbackSize.height);
 
   // These legacy OpenGL function calls are part of CARenderer's API contract, see CARenderer.h.
+  // The size passed to glOrtho must be the device pixel size of the render target, otherwise
+  // CARenderer will produce incorrect results.
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(0.0, size.width, 0.0, size.height, -1, 1);
+  glOrtho(0.0, aReadbackSize.width, 0.0, aReadbackSize.height, -1, 1);
 
   float mediaTime = CACurrentMediaTime();
   [mRenderer beginFrameAtTime:mediaTime timeStamp:nullptr];
+  if (needToRedrawEverything) {
+    [mRenderer addUpdateRect:bounds];
+  }
+  if (!CGRectIsEmpty([mRenderer updateBounds])) {
+    // CARenderer assumes the layer tree is opaque. It only ever paints over existing content, it
+    // never erases anything. However, our layer tree is not necessarily opaque. So we manually
+    // erase the area that's going to be redrawn. This ensures correct rendering in the transparent
+    // areas.
+    //
+    // Since we erase the bounds of the update area, this will erase more than necessary if the
+    // update area is not a single rectangle. Unfortunately we cannot get the precise update region
+    // from CARenderer, we can only get the bounds.
+    CGRect updateBounds = [mRenderer updateBounds];
+    gl::ScopedGLState scopedScissorTestState(mGL, LOCAL_GL_SCISSOR_TEST, true);
+    gl::ScopedScissorRect scissor(mGL, updateBounds.origin.x, updateBounds.origin.y,
+                                  updateBounds.size.width, updateBounds.size.height);
+    mGL->fClearColor(0.0, 0.0, 0.0, 0.0);
+    mGL->fClear(LOCAL_GL_COLOR_BUFFER_BIT);
+    // We erased the update region's bounds. Make sure the entire update bounds get repainted.
+    [mRenderer addUpdateRect:updateBounds];
+  }
   [mRenderer render];
   [mRenderer endFrame];
 

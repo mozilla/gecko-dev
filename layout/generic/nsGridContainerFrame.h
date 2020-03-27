@@ -10,7 +10,6 @@
 #define nsGridContainerFrame_h___
 
 #include "mozilla/Maybe.h"
-#include "mozilla/TypeTraits.h"
 #include "mozilla/HashTable.h"
 #include "nsContainerFrame.h"
 
@@ -65,7 +64,13 @@ struct ComputedGridTrackInfo {
   nsTArray<nscoord> mPositions;
   nsTArray<nscoord> mSizes;
   nsTArray<uint32_t> mStates;
+  // Indicates if a track has been collapsed. This will be populated for each
+  // track in the repeat(auto-fit) and repeat(auto-fill), even if there are no
+  // collapsed tracks.
   nsTArray<bool> mRemovedRepeatTracks;
+  // Contains lists of all line name lists, including the name lists inside
+  // repeats. When a repeat(auto) track exists, the internal track names will
+  // appear once each in this array.
   nsTArray<nsTArray<StyleCustomIdent>> mResolvedLineNames;
   uint32_t mRepeatFirstTrack;
   bool mIsSubgrid;
@@ -160,8 +165,8 @@ class nsGridContainerFrame final : public nsContainerFrame {
                     const nsLineList::iterator* aPrevFrameLine,
                     nsFrameList& aFrameList) override;
   void RemoveFrame(ChildListID aListID, nsIFrame* aOldFrame) override;
-  uint16_t CSSAlignmentForAbsPosChild(const ReflowInput& aChildRI,
-                                      LogicalAxis aLogicalAxis) const override;
+  mozilla::StyleAlignFlags CSSAlignmentForAbsPosChild(
+      const ReflowInput& aChildRI, LogicalAxis aLogicalAxis) const override;
 
 #ifdef DEBUG
   void SetInitialChildList(ChildListID aListID,
@@ -445,6 +450,9 @@ class nsGridContainerFrame final : public nsContainerFrame {
    * Return the NS_STATE_GRID_IS_COL/ROW_SUBGRID bits we ought to have.
    */
   nsFrameState ComputeSelfSubgridBits() const;
+
+  /** Helper for ComputeSelfSubgridBits(). */
+  bool WillHaveAtLeastOneTrackInAxis(LogicalAxis aAxis) const;
 
  private:
   // Helpers for ReflowChildren

@@ -9,7 +9,7 @@
 #include "frontend/BytecodeEmitter.h"  // BytecodeEmitter
 #include "frontend/EmitterScope.h"     // EmitterScope
 #include "frontend/SourceNotes.h"      // SRC_*
-#include "vm/Opcodes.h"                // JSOP_*
+#include "vm/Opcodes.h"                // JSOp
 
 using namespace js;
 using namespace js::frontend;
@@ -54,11 +54,11 @@ bool LoopControl::emitContinueTarget(BytecodeEmitter* bce) {
 
 bool LoopControl::emitLoopHead(BytecodeEmitter* bce,
                                const Maybe<uint32_t>& nextPos) {
-  // Insert a NOP if needed to ensure the script does not start with a
-  // JSOP_LOOPHEAD. This avoids JIT issues with prologue code + try notes
+  // Insert a Nop if needed to ensure the script does not start with a
+  // JSOp::LoopHead. This avoids JIT issues with prologue code + try notes
   // or OSR. See bug 1602390 and bug 1602681.
   if (bce->bytecodeSection().offset().toUint32() == 0) {
-    if (!bce->emit1(JSOP_NOP)) {
+    if (!bce->emit1(JSOp::Nop)) {
       return false;
     }
   }
@@ -74,7 +74,7 @@ bool LoopControl::emitLoopHead(BytecodeEmitter* bce,
   head_ = {bce->bytecodeSection().offset()};
 
   BytecodeOffset off;
-  if (!bce->emitJumpTargetOp(JSOP_LOOPHEAD, &off)) {
+  if (!bce->emitJumpTargetOp(JSOp::LoopHead, &off)) {
     return false;
   }
   SetLoopHeadDepthHint(bce->bytecodeSection().code(off), loopDepth_);

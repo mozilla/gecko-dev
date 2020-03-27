@@ -17,6 +17,8 @@
 #include "nsIStreamListener.h"
 #include "nsIURI.h"
 #include "nsIViewSourceChannel.h"
+#include "nsIWrapperChannel.h"
+#include "nsIChildChannel.h"
 #include "nsString.h"
 
 class nsViewSourceChannel final : public nsIViewSourceChannel,
@@ -25,7 +27,11 @@ class nsViewSourceChannel final : public nsIViewSourceChannel,
                                   public nsIHttpChannelInternal,
                                   public nsICachingChannel,
                                   public nsIApplicationCacheChannel,
-                                  public nsIFormPOSTActionChannel {
+                                  public nsIFormPOSTActionChannel,
+                                  public nsIChildChannel,
+                                  public nsIWrapperChannel,
+                                  public nsIInterfaceRequestor,
+                                  public nsIChannelEventSink {
  public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIREQUEST
@@ -35,6 +41,10 @@ class nsViewSourceChannel final : public nsIViewSourceChannel,
   NS_DECL_NSISTREAMLISTENER
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSIHTTPCHANNEL
+  NS_DECL_NSICHILDCHANNEL
+  NS_DECL_NSIWRAPPERCHANNEL
+  NS_DECL_NSIINTERFACEREQUESTOR
+  NS_DECL_NSICHANNELEVENTSINK
   NS_FORWARD_SAFE_NSICACHEINFOCHANNEL(mCacheInfoChannel)
   NS_FORWARD_SAFE_NSICACHINGCHANNEL(mCachingChannel)
   NS_FORWARD_SAFE_NSIAPPLICATIONCACHECHANNEL(mApplicationCacheChannel)
@@ -67,6 +77,7 @@ class nsViewSourceChannel final : public nsIViewSourceChannel,
   // Clones aURI and prefixes it with "view-source:" schema,
   nsresult BuildViewSourceURI(nsIURI* aURI, nsIURI** aResult);
 
+  nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIHttpChannel> mHttpChannel;
   nsCOMPtr<nsIHttpChannelInternal> mHttpChannelInternal;
@@ -75,6 +86,7 @@ class nsViewSourceChannel final : public nsIViewSourceChannel,
   nsCOMPtr<nsIApplicationCacheChannel> mApplicationCacheChannel;
   nsCOMPtr<nsIUploadChannel> mUploadChannel;
   nsCOMPtr<nsIFormPOSTActionChannel> mPostChannel;
+  nsCOMPtr<nsIChildChannel> mChildChannel;
   nsCOMPtr<nsIStreamListener> mListener;
   nsCOMPtr<nsIURI> mOriginalURI;
   nsCOMPtr<nsIURI> mBaseURI;

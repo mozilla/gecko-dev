@@ -338,6 +338,10 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
 
   mozilla::dom::TabGroup* TabGroup();
 
+  // Like MaybeTabGroup, but it is more tolerant of being called at peculiar
+  // times, and it can return null.
+  mozilla::dom::TabGroup* MaybeTabGroup();
+
   virtual mozilla::dom::CustomElementRegistry* CustomElements() = 0;
 
   // XXX: This is called on inner windows
@@ -540,13 +544,11 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
       mozilla::dom::Element& aElt, const nsAString& aPseudoElt,
       mozilla::ErrorResult& aError) = 0;
 
-  virtual mozilla::dom::Element* GetFrameElement() = 0;
-
   virtual nsDOMOfflineResourceList* GetApplicationCache() = 0;
 
   virtual bool GetFullScreen() = 0;
 
-  virtual nsresult Focus() = 0;
+  virtual nsresult Focus(mozilla::dom::CallerType aCallerType) = 0;
   virtual nsresult Close() = 0;
 
   mozilla::dom::DocGroup* GetDocGroup() const;
@@ -756,6 +758,10 @@ class nsPIDOMWindowOuter : public mozIDOMWindowProxy {
   bool HadOriginalOpener() const;
 
   mozilla::dom::TabGroup* TabGroup();
+
+  // Like MaybeTabGroup, but it is more tolerant of being called at peculiar
+  // times, and it can return null.
+  mozilla::dom::TabGroup* MaybeTabGroup();
 
   virtual nsPIDOMWindowOuter* GetPrivateRoot() = 0;
 
@@ -989,13 +995,6 @@ class nsPIDOMWindowOuter : public mozIDOMWindowProxy {
                                      const nsAString& aPopupWindowName,
                                      const nsAString& aPopupWindowFeatures) = 0;
 
-  virtual void NotifyContentBlockingEvent(
-      unsigned aEvent, nsIChannel* aChannel, bool aBlocked, nsIURI* aURIHint,
-      nsIChannel* aTrackingChannel,
-      const mozilla::Maybe<
-          mozilla::AntiTrackingCommon::StorageAccessGrantedReason>& aReason =
-          mozilla::Nothing()) = 0;
-
   // WebIDL-ish APIs
   void MarkUncollectableForCCGeneration(uint32_t aGeneration) {
     mMarkedCCGeneration = aGeneration;
@@ -1035,7 +1034,7 @@ class nsPIDOMWindowOuter : public mozIDOMWindowProxy {
   virtual bool GetFullScreen() = 0;
   virtual nsresult SetFullScreen(bool aFullscreen) = 0;
 
-  virtual nsresult Focus() = 0;
+  virtual nsresult Focus(mozilla::dom::CallerType aCallerType) = 0;
   virtual nsresult Close() = 0;
 
   virtual nsresult MoveBy(int32_t aXDif, int32_t aYDif) = 0;

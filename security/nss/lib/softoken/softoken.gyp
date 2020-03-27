@@ -48,7 +48,7 @@
           'fipstest.c',
           'fipstokn.c',
           'jpakesftk.c',
-          'lgglue.c',
+          'kbkdf.c',
           'lowkey.c',
           'lowpbe.c',
           'padbuf.c',
@@ -64,6 +64,13 @@
           'softkver.c',
           'tlsprf.c'
         ],
+        'conditions': [
+          [ 'disable_dbm==0', {
+            'sources': [
+              'lgglue.c',
+            ]
+          }]
+        ]
       },
     },
     {

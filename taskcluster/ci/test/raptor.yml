@@ -14,11 +14,8 @@ job-defaults:
         by-test-name:
             raptor-tp6-\d{1,2}-firefox(?!-cold):
                 by-test-platform:
-                    windows10-64-ref-hw-2017/opt: ['try', 'mozilla-central']
                     windows10-aarch64/opt: ['try']
-                    (?:windows10-64|windows7-32|linux64)(?:-qr)?/opt: ['mozilla-central', 'try', 'ash']
-                    macosx.*64(?:-qr)?/opt: ['mozilla-central', 'try']
-                    default: ['try', 'mozilla-beta']
+                    default: ['try', 'mozilla-central']
             default:
                 by-test-platform:
                     windows10-64-ref-hw-2017/opt: ['try', 'mozilla-central']
@@ -406,6 +403,11 @@ raptor-unity-webgl-firefox:
     variants: ["fission"]
     try-name: raptor-unity-webgl-firefox
     treeherder-symbol: Rap(ugl)
+    run-on-projects:
+        by-test-platform:
+            windows10-aarch64/opt: ['try']
+            default: ['try', 'mozilla-central']
+    tier: 3
     mozharness:
         extra-options:
             - --test=raptor-unity-webgl
@@ -672,6 +674,21 @@ raptor-youtube-playback-firefox:
     mozharness:
         extra-options:
             - --test=raptor-youtube-playback
+
+raptor-youtube-playback-firefox-profiling:
+    description: "Raptor YouTube Playback on Firefox with Gecko Profiling"
+    try-name: raptor-youtube-playback-firefox-profiling
+    treeherder-symbol: Rap-Prof(ytp)
+    run-on-projects: ['mozilla-central', 'try']
+    max-run-time:
+        by-test-platform:
+            windows10-aarch64/opt: 6000
+            default: 4000
+    tier: 2
+    mozharness:
+        extra-options:
+            - --test=raptor-youtube-playback
+            - --gecko-profile
 
 raptor-youtube-playback-v9-power-firefox:
     description: "Raptor V9 YouTube Playback on Firefox with Power Testing"

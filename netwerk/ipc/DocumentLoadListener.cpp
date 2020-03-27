@@ -33,6 +33,7 @@
 #include "nsExternalHelperAppService.h"
 #include "nsCExternalHandlerService.h"
 #include "nsMimeTypes.h"
+#include "nsIWrapperChannel.h"
 
 mozilla::LazyLogModule gDocumentChannelLog("DocumentChannel");
 #define LOG(fmt) MOZ_LOG(gDocumentChannelLog, mozilla::LogLevel::Verbose, fmt)
@@ -259,7 +260,8 @@ bool DocumentLoadListener::Open(
     bool aPluginsAllowed, nsDOMNavigationTiming* aTiming, nsresult* aRv) {
   LOG(("DocumentLoadListener Open [this=%p, uri=%s]", this,
        aLoadState->URI()->GetSpecOrDefault().get()));
-  if (!nsDocShell::CreateChannelForLoadState(
+
+  if (!nsDocShell::CreateAndConfigureRealChannelForLoadState(
           aLoadState, aLoadInfo, mParentChannelListener, nullptr,
           aInitiatorType, aLoadFlags, aLoadType, aCacheKey, aIsActive,
           aIsTopLevelDoc, aHasNonEmptySandboxingFlags, *aRv,
@@ -267,9 +269,6 @@ bool DocumentLoadListener::Open(
     mParentChannelListener = nullptr;
     return false;
   }
-
-  nsDocShell::ConfigureChannel(mChannel, aLoadState, aInitiatorType, aLoadType,
-                               aCacheKey, aHasNonEmptySandboxingFlags);
 
   // Computation of the top window uses the docshell tree, so only
   // works in the source process. We compute it manually and override
@@ -340,7 +339,10 @@ bool DocumentLoadListener::Open(
 
   mChannelCreationURI = aLoadState->URI();
   mLoadStateLoadFlags = aLoadState->LoadFlags();
+  mLoadStateLoadType = aLoadState->LoadType();
   mTiming = aTiming;
+  mSrcdocData = aLoadState->SrcdocData();
+  mBaseURI = aLoadState->BaseURI();
   return true;
 }
 
@@ -423,6 +425,10 @@ DocumentLoadListener::ReadyToVerify(nsresult aResultCode) {
 }
 
 void DocumentLoadListener::FinishReplacementChannelSetup(bool aSucceeded) {
+  LOG(
+      ("DocumentLoadListener FinishReplacementChannelSetup [this=%p, "
+       "aSucceeded=%d]",
+       this, aSucceeded));
   nsresult rv;
 
   if (mDoingProcessSwitch) {
@@ -495,17 +501,6 @@ void DocumentLoadListener::FinishReplacementChannelSetup(bool aSucceeded) {
         [redirectChannel](const ClassificationFlagsParams& aParams) {
           redirectChannel->NotifyClassificationFlags(
               aParams.mClassificationFlags, aParams.mIsThirdParty);
-        },
-        [redirectChannel](
-            const NotifyChannelClassifierProtectionDisabledParams& aParams) {
-          redirectChannel->NotifyChannelClassifierProtectionDisabled(
-              aParams.mAcceptedReason);
-        },
-        [redirectChannel](const NotifyCookieAllowedParams&) {
-          redirectChannel->NotifyCookieAllowed();
-        },
-        [redirectChannel](const NotifyCookieBlockedParams& aParams) {
-          redirectChannel->NotifyCookieBlocked(aParams.mRejectedReason);
         });
   }
 
@@ -535,6 +530,7 @@ void DocumentLoadListener::FinishReplacementChannelSetup(bool aSucceeded) {
 
 void DocumentLoadListener::ResumeSuspendedChannel(
     nsIStreamListener* aListener) {
+  LOG(("DocumentLoadListener ResumeSuspendedChannel [this=%p]", this));
   RefPtr<nsHttpChannel> httpChannel = do_QueryObject(mChannel);
   if (httpChannel) {
     httpChannel->SetApplyConversion(mOldApplyConversion);
@@ -664,7 +660,11 @@ void DocumentLoadListener::SerializeRedirectData(
   nsCOMPtr<nsIRedirectChannelRegistrar> registrar =
       RedirectChannelRegistrar::GetOrCreate();
   MOZ_ASSERT(registrar);
-  nsresult rv = registrar->RegisterChannel(mChannel, &mRedirectChannelId);
+  nsCOMPtr<nsIChannel> chan = mChannel;
+  if (nsCOMPtr<nsIWrapperChannel> wrapper = do_QueryInterface(chan)) {
+    wrapper->GetInnerChannel(getter_AddRefs(chan));
+  }
+  nsresult rv = registrar->RegisterChannel(chan, &mRedirectChannelId);
   NS_ENSURE_SUCCESS_VOID(rv);
   aArgs.registrarId() = mRedirectChannelId;
 
@@ -723,6 +723,10 @@ void DocumentLoadListener::SerializeRedirectData(
   nsDocShell::ExtractLastVisit(mChannel, getter_AddRefs(previousURI),
                                &previousFlags);
   aArgs.lastVisitInfo() = LastVisitInfo{previousURI, previousFlags};
+  aArgs.srcdocData() = mSrcdocData;
+  aArgs.baseUri() = mBaseURI;
+  aArgs.loadStateLoadFlags() = mLoadStateLoadFlags;
+  aArgs.loadStateLoadType() = mLoadStateLoadType;
 }
 
 void DocumentLoadListener::TriggerCrossProcessSwitch() {
@@ -921,9 +925,11 @@ DocumentLoadListener::OnStartRequest(nsIRequest* aRequest) {
   // SessionStore.jsm. This will determine if a new process needs to be
   // spawned and if so SwitchProcessTo() will be called which will set a
   // ContentProcessIdPromise.
-  nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
-  obsService->NotifyObservers(ToSupports(this), "channel-on-may-change-process",
-                              nullptr);
+  if (status != NS_BINDING_ABORTED) {
+    nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+    obsService->NotifyObservers(ToSupports(this),
+                                "channel-on-may-change-process", nullptr);
+  }
 
   if (mRedirectContentProcessIdPromise) {
     TriggerCrossProcessSwitch();
@@ -1056,29 +1062,6 @@ DocumentLoadListener::NotifyClassificationFlags(uint32_t aClassificationFlags,
   mIParentChannelFunctions.AppendElement(IParentChannelFunction{
       VariantIndex<3>{},
       ClassificationFlagsParams{aClassificationFlags, aIsThirdParty}});
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-DocumentLoadListener::NotifyChannelClassifierProtectionDisabled(
-    uint32_t aAcceptedReason) {
-  mIParentChannelFunctions.AppendElement(IParentChannelFunction{
-      VariantIndex<4>{},
-      NotifyChannelClassifierProtectionDisabledParams{aAcceptedReason}});
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-DocumentLoadListener::NotifyCookieAllowed() {
-  mIParentChannelFunctions.AppendElement(
-      IParentChannelFunction{VariantIndex<5>{}, NotifyCookieAllowedParams()});
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-DocumentLoadListener::NotifyCookieBlocked(uint32_t aRejectedReason) {
-  mIParentChannelFunctions.AppendElement(IParentChannelFunction{
-      VariantIndex<6>{}, NotifyCookieBlockedParams{aRejectedReason}});
   return NS_OK;
 }
 
@@ -1223,7 +1206,7 @@ DocumentLoadListener::HasCrossOriginOpenerPolicyMismatch(bool* aMismatch) {
 }
 
 NS_IMETHODIMP
-DocumentLoadListener::GetCrossOriginOpenerPolicy(
+DocumentLoadListener::GetCachedCrossOriginOpenerPolicy(
     nsILoadInfo::CrossOriginOpenerPolicy* aPolicy) {
   MOZ_ASSERT(aPolicy);
   if (!aPolicy) {

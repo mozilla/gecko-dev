@@ -5,8 +5,8 @@
 package org.mozilla.geckoview.test
 
 import android.os.Parcel
-import android.support.test.filters.MediumTest
-import android.support.test.runner.AndroidJUnit4
+import androidx.test.filters.MediumTest
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import android.util.Base64
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.*
@@ -57,6 +57,7 @@ class WebPushTest : BaseSessionTest() {
 
     @Before
     fun setup() {
+        sessionRule.setPrefsUntilTestEnd(mapOf("dom.webnotifications.requireuserinteraction" to false))
         // Grant "desktop notification" permission
         mainSession.delegateUntilTestEnd(object : Callbacks.PermissionDelegate {
             override fun onContentPermissionRequest(session: GeckoSession, uri: String?, type: Int, callback: GeckoSession.PermissionDelegate.Callback) {

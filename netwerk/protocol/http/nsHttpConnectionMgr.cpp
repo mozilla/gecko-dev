@@ -12,31 +12,30 @@
 #undef LOG_ENABLED
 #define LOG_ENABLED() LOG5_ENABLED()
 
-#include "nsHttpConnectionMgr.h"
-#include "nsHttpConnection.h"
-#include "nsHttpHandler.h"
-#include "nsIHttpChannelInternal.h"
-#include "nsNetCID.h"
-#include "nsCOMPtr.h"
-#include "nsNetUtil.h"
-#include "mozilla/net/DNS.h"
-#include "nsISocketTransport.h"
+#include <algorithm>
+#include <utility>
+
+#include "NullHttpTransaction.h"
+#include "mozilla/ChaosMode.h"
 #include "mozilla/Services.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/net/DashboardTypes.h"
-#include "NullHttpTransaction.h"
-#include "nsIDNSRecord.h"
-#include "nsITransport.h"
-#include "nsInterfaceRequestorAgg.h"
-#include "nsIRequestContext.h"
-#include "nsISocketTransportService.h"
-#include <algorithm>
-#include "mozilla/ChaosMode.h"
 #include "mozilla/Unused.h"
+#include "mozilla/net/DNS.h"
+#include "mozilla/net/DashboardTypes.h"
+#include "nsCOMPtr.h"
+#include "nsHttpConnection.h"
+#include "nsHttpConnectionMgr.h"
+#include "nsHttpHandler.h"
+#include "nsIDNSRecord.h"
+#include "nsIHttpChannelInternal.h"
+#include "nsIRequestContext.h"
+#include "nsISocketTransport.h"
+#include "nsISocketTransportService.h"
+#include "nsITransport.h"
 #include "nsIXPConnect.h"
-
-#include "mozilla/Move.h"
-#include "mozilla/Telemetry.h"
+#include "nsInterfaceRequestorAgg.h"
+#include "nsNetCID.h"
+#include "nsNetUtil.h"
 
 namespace mozilla {
 namespace net {
@@ -4111,9 +4110,8 @@ nsresult nsHttpConnectionMgr::nsHalfOpenSocket::SetupStreams(
   uint32_t tmpFlags = 0;
   if (mCaps & NS_HTTP_REFRESH_DNS) tmpFlags = nsISocketTransport::BYPASS_CACHE;
 
-  if (mCaps & NS_HTTP_DISABLE_TRR) {
-    tmpFlags = nsISocketTransport::DISABLE_TRR;
-  }
+  tmpFlags |= nsISocketTransport::GetFlagsFromTRRMode(
+      NS_HTTP_TRR_MODE_FROM_FLAGS(mCaps));
 
   if (mCaps & NS_HTTP_LOAD_ANONYMOUS)
     tmpFlags |= nsISocketTransport::ANONYMOUS_CONNECT;

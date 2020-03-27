@@ -36,6 +36,19 @@ chai.use(chaiAssertions);
 chai.use(chaiJsonSchema);
 
 const overrider = new GlobalOverrider();
+
+const RemoteSettings = name => ({
+  get: () => {
+    if (name === "attachment") {
+      return Promise.resolve([{ attachment: {} }]);
+    }
+    return Promise.resolve([]);
+  },
+  on: () => {},
+  off: () => {},
+});
+RemoteSettings.pollChanges = () => {};
+
 const TEST_GLOBAL = {
   AddonManager: {
     getActiveAddons() {
@@ -216,7 +229,7 @@ const TEST_GLOBAL = {
       get: () => ({ parent: { parent: { path: "appPath" } } }),
     },
     locale: {
-      get appLocaleAsLangTag() {
+      get appLocaleAsBCP47() {
         return "en-US";
       },
       negotiateLanguages() {},
@@ -230,6 +243,7 @@ const TEST_GLOBAL = {
     obs: {
       addObserver() {},
       removeObserver() {},
+      notifyObservers() {},
     },
     telemetry: {
       setEventRecordingEnabled: () => {},
@@ -354,17 +368,7 @@ const TEST_GLOBAL = {
       return Promise.resolve(false);
     },
   },
-  RemoteSettings(name) {
-    return {
-      get() {
-        if (name === "attachment") {
-          return Promise.resolve([{ attachment: {} }]);
-        }
-        return Promise.resolve([]);
-      },
-      on() {},
-    };
-  },
+  RemoteSettings,
   Localization: class {
     async formatMessages(stringsIds) {
       return Promise.resolve(
@@ -377,8 +381,10 @@ const TEST_GLOBAL = {
       return Promise.resolve(id);
     },
   },
+  FX_MONITOR_OAUTH_CLIENT_ID: "fake_client_id",
   TelemetryEnvironment: {
     setExperimentActive() {},
+    currentEnvironment: { profile: { creationDate: 16587 } },
   },
   TelemetryStopwatch: {
     start: () => {},

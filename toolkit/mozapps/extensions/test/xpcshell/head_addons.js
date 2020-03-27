@@ -1170,7 +1170,7 @@ Services.prefs.setBoolPref("extensions.strictCompatibility", true);
 // Ensure signature checks are enabled by default
 Services.prefs.setBoolPref(PREF_XPI_SIGNATURES_REQUIRED, true);
 
-Services.prefs.setBoolPref("extensions.legacy.enabled", true);
+Services.prefs.setBoolPref("extensions.experiments.enabled", true);
 
 // Copies blocklistFile (an nsIFile) to gProfD/blocklist.xml.
 function copyBlocklistToProfile(blocklistFile) {
@@ -1256,7 +1256,7 @@ async function saveJSON(aData, aFile) {
     aFile,
     new TextEncoder().encode(JSON.stringify(aData, null, 2))
   );
-  info("Done saving JSON file " + aFile.path);
+  info("Done saving JSON file " + aFile);
 }
 
 XPCOMUtils.defineLazyServiceGetter(

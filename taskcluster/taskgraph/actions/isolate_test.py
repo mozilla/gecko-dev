@@ -12,6 +12,8 @@ import logging
 import os
 import re
 
+import six
+
 from slugid import nice as slugid
 from taskgraph.util.taskcluster import list_artifacts, get_artifact, get_task_definition
 from ..util.parameterization import resolve_task_references
@@ -182,8 +184,8 @@ def create_isolate_failure_tasks(task_definition, failures, level, times):
                     saved_command,
                     extra_args=include_args)
             else:
-                task_definition['payload']['env']['MOZHARNESS_TEST_PATHS'] = json.dumps(
-                    {suite: [failure_path]})
+                task_definition['payload']['env']['MOZHARNESS_TEST_PATHS'] = six.ensure_text(
+                    json.dumps({suite: [failure_path]}))
 
             logger.info("Creating task for path {} with command {}".format(
                 failure_path,

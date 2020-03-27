@@ -154,7 +154,7 @@ extern bool Construct(JSContext* cx, HandleValue fval,
 // |IsConstructor(args.callee())|. If this is not the case, throw a TypeError.
 // Otherwise, the user must ensure that, additionally,
 // |IsConstructor(args.newTarget())|. (If |args| comes directly from the
-// interpreter stack, as set up by JSOP_NEW, this comes for free.) Then perform
+// interpreter stack, as set up by JSOp::New, this comes for free.) Then perform
 // a Construct() operation using |args|.
 //
 // This internal operation is intended only for use with arguments known to be
@@ -621,7 +621,7 @@ void ReportInNotObjectError(JSContext* cx, HandleValue lref, int lindex,
 
 // The parser only reports redeclarations that occurs within a single
 // script. Due to the extensibility of the global lexical scope, we also check
-// for redeclarations during runtime in JSOP_DEF{VAR,LET,CONST}.
+// for redeclarations during runtime in JSOp::Def{Var,Let,Const}.
 void ReportRuntimeRedeclaration(JSContext* cx, HandlePropertyName name,
                                 const char* redeclKind);
 
@@ -643,6 +643,8 @@ bool ThrowUninitializedThis(JSContext* cx);
 
 bool ThrowInitializedThis(JSContext* cx);
 
+bool ThrowHomeObjectNotObject(JSContext* cx);
+
 bool DefaultClassConstructor(JSContext* cx, unsigned argc, Value* vp);
 
 bool Debug_CheckSelfHosted(JSContext* cx, HandleValue v);
@@ -656,10 +658,6 @@ JSObject* FunWithProtoOperation(JSContext* cx, HandleFunction fun,
 
 JSFunction* MakeDefaultConstructor(JSContext* cx, HandleScript script,
                                    jsbytecode* pc, HandleObject proto);
-
-JSObject* HomeObjectSuperBase(JSContext* cx, HandleObject homeObj);
-
-JSObject* SuperFunOperation(JSContext* cx, HandleObject callee);
 
 bool SetPropertySuper(JSContext* cx, HandleObject obj, HandleValue receiver,
                       HandlePropertyName id, HandleValue rval, bool strict);

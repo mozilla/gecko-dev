@@ -74,10 +74,29 @@ let gUndoData = null;
 
 XPCOMUtils.defineLazyGetter(this, "gAvailableMigratorKeys", function() {
   if (AppConstants.platform == "win") {
-    return ["firefox", "edge", "ie", "chrome", "chromium", "360se", "canary"];
+    return [
+      "firefox",
+      "edge",
+      "ie",
+      "chrome",
+      "chromium-edge",
+      "chromium-edge-beta",
+      "chrome-beta",
+      "chromium",
+      "360se",
+      "canary",
+    ];
   }
   if (AppConstants.platform == "macosx") {
-    return ["firefox", "safari", "chrome", "chromium", "canary"];
+    return [
+      "firefox",
+      "safari",
+      "chrome",
+      "chromium-edge",
+      "chromium-edge-beta",
+      "chromium",
+      "canary",
+    ];
   }
   if (AppConstants.XP_UNIX) {
     return ["firefox", "chrome", "chrome-beta", "chrome-dev", "chromium"];
@@ -594,6 +613,7 @@ var MigrationUtils = Object.freeze({
       /_(canary|chromium|chrome-beta|chrome-dev)$/,
       "_chrome"
     );
+    aKey = aKey.replace(/_(chromium-edge-beta|chromium-edge)$/, "_edge");
 
     const OVERRIDES = {
       "4_firefox": "4_firefox_history_and_bookmarks",
@@ -609,6 +629,7 @@ var MigrationUtils = Object.freeze({
 
   _getLocalePropertyForBrowser(browserId) {
     switch (browserId) {
+      case "chromium-edge":
       case "edge":
         return "sourceNameEdge";
       case "ie":
@@ -625,6 +646,8 @@ var MigrationUtils = Object.freeze({
         return "sourceNameChromeDev";
       case "chromium":
         return "sourceNameChromium";
+      case "chromium-edge-beta":
+        return "sourceNameEdgeBeta";
       case "firefox":
         return "sourceNameFirefox";
       case "360se":
@@ -772,14 +795,7 @@ var MigrationUtils = Object.freeze({
    * for this source, or null otherwise.
    *
    * @param aKey internal name of the migration source.
-   *             Supported values: ie (windows),
-   *                               edge (windows),
-   *                               safari (mac),
-   *                               canary (mac/windows),
-   *                               chrome (mac/windows/linux),
-   *                               chromium (mac/windows/linux),
-   *                               360se (windows),
-   *                               firefox.
+   *             See `gAvailableMigratorKeys` for supported values by OS.
    *
    * If null is returned,  either no data can be imported
    * for the given migrator, or aMigratorKey is invalid  (e.g. ie on mac,
@@ -821,6 +837,7 @@ var MigrationUtils = Object.freeze({
    */
   getMigratorKeyForDefaultBrowser() {
     // Canary uses the same description as Chrome so we can't distinguish them.
+    // Edge Beta on macOS uses "Microsoft Edge" with no "beta" indication.
     const APP_DESC_TO_KEY = {
       "Internet Explorer": "ie",
       "Microsoft Edge": "edge",
@@ -1297,10 +1314,14 @@ var MigrationUtils = Object.freeze({
     edge: 3,
     ie: 4,
     chrome: 5,
+    "chrome-beta": 5,
+    "chrome-dev": 5,
     chromium: 6,
     canary: 7,
     safari: 8,
     "360se": 9,
+    "chromium-edge": 10,
+    "chromium-edge-beta": 10,
   },
   getSourceIdForTelemetry(sourceName) {
     return this._sourceNameToIdMapping[sourceName] || 0;

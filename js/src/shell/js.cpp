@@ -69,15 +69,14 @@
 #include "builtin/Array.h"
 #include "builtin/MapObject.h"
 #include "builtin/ModuleObject.h"
-#include "builtin/Promise.h"
 #include "builtin/RegExp.h"
 #include "builtin/TestingFunctions.h"
 #include "debugger/DebugAPI.h"
 #if defined(JS_BUILD_BINAST)
 #  include "frontend/BinASTParser.h"
 #endif  // defined(JS_BUILD_BINAST)
+#include "frontend/CompilationInfo.h"
 #include "frontend/ModuleSharedContext.h"
-#include "frontend/ParseInfo.h"
 #include "frontend/Parser.h"
 #include "gc/PublicIterators.h"
 #include "jit/arm/Simulator-arm.h"
@@ -133,9 +132,11 @@
 #include "vm/Monitor.h"
 #include "vm/MutexIDs.h"
 #include "vm/Printer.h"
+#include "vm/PromiseObject.h"  // js::PromiseObject
 #include "vm/Shape.h"
 #include "vm/SharedArrayObject.h"
 #include "vm/Time.h"
+#include "vm/ToSource.h"  // js::ValueToSource
 #include "vm/TypedArrayObject.h"
 #include "vm/WrapperObject.h"
 #include "wasm/WasmJS.h"
@@ -472,7 +473,7 @@ struct MOZ_STACK_CLASS EnvironmentPreparer
   void invoke(JS::HandleObject global, Closure& closure) override;
 };
 
-bool shell::enableDeferredMode = false;
+bool shell::enableDeferredMode = true;
 bool shell::enableCodeCoverage = false;
 bool shell::enableDisassemblyDumps = false;
 bool shell::offthreadCompilation = false;
@@ -488,7 +489,7 @@ bool shell::enableWasmGc = false;
 bool shell::enableWasmVerbose = false;
 bool shell::enableTestWasmAwaitTier2 = false;
 #ifdef ENABLE_WASM_BIGINT
-bool shell::enableWasmBigInt = false;
+bool shell::enableWasmBigInt = true;
 #endif
 bool shell::enableAsyncStacks = false;
 bool shell::enableStreams = false;
@@ -499,6 +500,8 @@ bool shell::enableReadableStreamPipeTo = false;
 bool shell::enableFields = false;
 bool shell::enableAwaitFix = false;
 bool shell::enableWeakRefs = false;
+bool shell::enableToSource = false;
+bool shell::enablePropertyErrorMessageFix = false;
 #ifdef JS_GC_ZEAL
 uint32_t shell::gZealBits = 0;
 uint32_t shell::gZealFrequency = 0;
@@ -761,7 +764,7 @@ static bool ShellInterruptCallback(JSContext* cx) {
     // Report any exceptions thrown by the JS interrupt callback, but do
     // *not* keep it on the cx. The interrupt handler is invoked at points
     // that are not expected to throw catchable exceptions, like at
-    // JSOP_RETRVAL.
+    // JSOp::RetRval.
     //
     // If the interrupted JS code was already throwing, any exceptions
     // thrown by the interrupt handler are silently swallowed.
@@ -2759,10 +2762,9 @@ static bool CpuNow(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 static bool ClearKeptObjects(JSContext* cx, unsigned argc, Value* vp) {
-  for (ZonesIter zone(cx->runtime(), WithAtoms); !zone.done(); zone.next()) {
-    zone->clearKeptObjects();
-  }
-
+  CallArgs args = CallArgsFromVp(argc, vp);
+  JS::ClearKeptObjects(cx);
+  args.rval().setUndefined();
   return true;
 }
 
@@ -3713,8 +3715,9 @@ static void SetStandardRealmOptions(JS::RealmOptions& options) {
       .setReadableStreamPipeToEnabled(enableReadableStreamPipeTo)
       .setFieldsEnabled(enableFields)
       .setAwaitFixEnabled(enableAwaitFix)
-      .setWeakRefsEnabled(enableWeakRefs);
-  options.behaviors().setDeferredParserAlloc(enableDeferredMode);
+      .setWeakRefsEnabled(enableWeakRefs)
+      .setToSourceEnabled(enableToSource)
+      .setPropertyErrorMessageFixEnabled(enablePropertyErrorMessageFix);
 }
 
 static MOZ_MUST_USE bool CheckRealmOptions(JSContext* cx,
@@ -4166,7 +4169,7 @@ static void KillWatchdog(JSContext* cx) {
 
   {
     LockGuard<Mutex> guard(sc->watchdogLock);
-    Swap(sc->watchdogThread, thread);
+    std::swap(sc->watchdogThread, thread);
     if (thread) {
       // The watchdog thread becoming Nothing is its signal to exit.
       sc->watchdogWakeup.notify_one();
@@ -4484,6 +4487,32 @@ static bool SetJitCompilerOption(JSContext* cx, unsigned argc, Value* vp) {
       JS_ReportErrorASCII(cx,
                           "Can't turn off JITs with JIT code on the stack.");
       return false;
+    }
+  }
+
+  // Throw if trying to disable all the Wasm compilers.  The logic here is that
+  // if we're trying to disable a compiler that is currently enabled and that is
+  // the last compiler enabled then we must throw.
+  if ((opt == JSJITCOMPILER_WASM_JIT_BASELINE ||
+       opt == JSJITCOMPILER_WASM_JIT_ION ||
+       opt == JSJITCOMPILER_WASM_JIT_CRANELIFT) &&
+      number == 0) {
+    uint32_t baseline, ion, cranelift;
+    MOZ_ALWAYS_TRUE(JS_GetGlobalJitCompilerOption(
+        cx, JSJITCOMPILER_WASM_JIT_BASELINE, &baseline));
+    MOZ_ALWAYS_TRUE(
+        JS_GetGlobalJitCompilerOption(cx, JSJITCOMPILER_WASM_JIT_ION, &ion));
+    MOZ_ALWAYS_TRUE(JS_GetGlobalJitCompilerOption(
+        cx, JSJITCOMPILER_WASM_JIT_CRANELIFT, &cranelift));
+    if (baseline + ion + cranelift == 1) {
+      if ((opt == JSJITCOMPILER_WASM_JIT_BASELINE && baseline) ||
+          (opt == JSJITCOMPILER_WASM_JIT_ION && ion) ||
+          (opt == JSJITCOMPILER_WASM_JIT_CRANELIFT && cranelift)) {
+        JS_ReportErrorASCII(
+            cx,
+            "Disabling all the Wasm compilers at runtime is not supported.");
+        return false;
+      }
     }
   }
 
@@ -5093,21 +5122,21 @@ static bool GetModuleLoadPath(JSContext* cx, unsigned argc, Value* vp) {
 #if defined(JS_BUILD_BINAST)
 
 using js::frontend::BinASTParser;
+using js::frontend::CompilationInfo;
 using js::frontend::Directives;
 using js::frontend::GlobalSharedContext;
-using js::frontend::ParseInfo;
 using js::frontend::ParseNode;
 
 template <typename Tok>
 static bool ParseBinASTData(JSContext* cx, uint8_t* buf_data,
                             uint32_t buf_length, GlobalSharedContext* globalsc,
-                            ParseInfo& pci,
+                            CompilationInfo& compilationInfo,
                             const JS::ReadOnlyCompileOptions& options,
                             HandleScriptSourceObject sourceObj) {
   MOZ_ASSERT(globalsc);
 
   // Note: We need to keep `reader` alive as long as we can use `parsed`.
-  BinASTParser<Tok> reader(cx, pci, options, sourceObj);
+  BinASTParser<Tok> reader(cx, compilationInfo, options, sourceObj);
 
   JS::Result<ParseNode*> parsed = reader.parse(globalsc, buf_data, buf_length);
 
@@ -5211,22 +5240,20 @@ static bool BinParse(JSContext* cx, unsigned argc, Value* vp) {
       .setFileAndLine("<ArrayBuffer>", 1);
 
   LifoAllocScope allocScope(&cx->tempLifoAlloc());
-  ParseInfo parseInfo(cx, allocScope);
-
-  RootedScriptSourceObject sourceObj(
-      cx, frontend::CreateScriptSourceObject(cx, options, Nothing()));
-  if (!sourceObj) {
+  CompilationInfo compilationInfo(cx, allocScope, options);
+  if (!compilationInfo.init(cx)) {
     return false;
   }
 
   Directives directives(false);
-  GlobalSharedContext globalsc(cx, ScopeKind::Global, directives, false);
+  GlobalSharedContext globalsc(cx, ScopeKind::Global, compilationInfo,
+                               directives, false);
 
   auto parseFunc = mode == Multipart
                        ? ParseBinASTData<frontend::BinASTTokenReaderMultipart>
                        : ParseBinASTData<frontend::BinASTTokenReaderContext>;
-  if (!parseFunc(cx, buf_data, buf_length, &globalsc, parseInfo, options,
-                 sourceObj)) {
+  if (!parseFunc(cx, buf_data, buf_length, &globalsc, compilationInfo, options,
+                 compilationInfo.sourceObject)) {
     return false;
   }
 
@@ -5297,17 +5324,15 @@ static bool Parse(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   LifoAllocScope allocScope(&cx->tempLifoAlloc());
-  ParseInfo parseInfo(cx, allocScope);
-
-  RootedScriptSourceObject sourceObject(
-      cx, frontend::CreateScriptSourceObject(cx, options, Nothing()));
-  if (!sourceObject) {
+  CompilationInfo compilationInfo(cx, allocScope, options);
+  if (!compilationInfo.init(cx)) {
     return false;
   }
 
-  Parser<FullParseHandler, char16_t> parser(
-      cx, options, chars, length,
-      /* foldConstants = */ false, parseInfo, nullptr, nullptr, sourceObject);
+  Parser<FullParseHandler, char16_t> parser(cx, options, chars, length,
+                                            /* foldConstants = */ false,
+                                            compilationInfo, nullptr, nullptr,
+                                            compilationInfo.sourceObject);
   if (!parser.checkOptions()) {
     return false;
   }
@@ -5327,7 +5352,7 @@ static bool Parse(JSContext* cx, unsigned argc, Value* vp) {
 
     ModuleBuilder builder(cx, module, &parser);
 
-    ModuleSharedContext modulesc(cx, module, nullptr, builder);
+    ModuleSharedContext modulesc(cx, module, compilationInfo, nullptr, builder);
     pn = parser.moduleBody(&modulesc);
   }
   if (!pn) {
@@ -5370,17 +5395,14 @@ static bool SyntaxParse(JSContext* cx, unsigned argc, Value* vp) {
   size_t length = scriptContents->length();
 
   LifoAllocScope allocScope(&cx->tempLifoAlloc());
-  ParseInfo parseInfo(cx, allocScope);
-
-  RootedScriptSourceObject sourceObject(
-      cx, frontend::CreateScriptSourceObject(cx, options, Nothing()));
-  if (!sourceObject) {
+  CompilationInfo compilationInfo(cx, allocScope, options);
+  if (!compilationInfo.init(cx)) {
     return false;
   }
 
   Parser<frontend::SyntaxParseHandler, char16_t> parser(
-      cx, options, chars, length, false, parseInfo, nullptr, nullptr,
-      sourceObject);
+      cx, options, chars, length, false, compilationInfo, nullptr, nullptr,
+      compilationInfo.sourceObject);
   if (!parser.checkOptions()) {
     return false;
   }
@@ -6157,6 +6179,18 @@ static bool DecompileThisScript(JSContext* cx, unsigned argc, Value* vp) {
   return JS_WrapValue(cx, args.rval());
 }
 
+static bool ValueToSource(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  JSString* str = ValueToSource(cx, args.get(0));
+  if (!str) {
+    return false;
+  }
+
+  args.rval().setString(str);
+  return true;
+}
+
 static bool ThisFilename(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -6297,13 +6331,6 @@ static bool NewGlobal(JSContext* cx, unsigned argc, Value* vp) {
     }
     if (v.isBoolean()) {
       principals.reset(&ShellPrincipals::fullyTrusted);
-    }
-
-    if (!JS_GetProperty(cx, opts, "deferredParserAlloc", &v)) {
-      return false;
-    }
-    if (v.isBoolean()) {
-      behaviors.setDeferredParserAlloc(v.toBoolean());
     }
 
     if (!JS_GetProperty(cx, opts, "principal", &v)) {
@@ -8925,6 +8952,10 @@ JS_FN_HELP("parseBin", BinParse, 1, 0,
 "decompileThis()",
 "  Decompile the currently executing script."),
 
+    JS_FN_HELP("valueToSource", ValueToSource, 1, 0,
+"valueToSource(value)",
+"  Format a value for inspection."),
+
     JS_FN_HELP("thisFilename", ThisFilename, 0, 0,
 "thisFilename()",
 "  Return the filename of the current script"),
@@ -10380,11 +10411,14 @@ static bool SetContextOptions(JSContext* cx, const OptionParser& op) {
   enableWritableStreams = op.getBoolOption("enable-writable-streams");
   enableReadableStreamPipeTo = op.getBoolOption("enable-readablestream-pipeto");
 #ifdef ENABLE_WASM_BIGINT
-  enableWasmBigInt = op.getBoolOption("wasm-bigint");
+  enableWasmBigInt = !op.getBoolOption("no-wasm-bigint");
 #endif
   enableFields = !op.getBoolOption("disable-experimental-fields");
   enableAwaitFix = op.getBoolOption("enable-experimental-await-fix");
   enableWeakRefs = op.getBoolOption("enable-weak-refs");
+  enableToSource = !op.getBoolOption("disable-tosource");
+  enablePropertyErrorMessageFix =
+      !op.getBoolOption("disable-property-error-message-fix");
 
   JS::ContextOptionsRef(cx)
       .setAsmJS(enableAsmJS)
@@ -11111,8 +11145,9 @@ int main(int argc, char** argv, char** envp) {
                         "Print sub-ms runtime for each file that's run") ||
       !op.addBoolOption('\0', "code-coverage",
                         "Enable code coverage instrumentation.") ||
-      !op.addBoolOption('\0', "parser-deferred-alloc",
-                        "Defer allocation of GC objects until after parser") ||
+      !op.addBoolOption(
+          '\0', "disable-parser-deferred-alloc",
+          "Disable deferred allocation of GC objects until after parser") ||
 #ifdef DEBUG
       !op.addBoolOption('O', "print-alloc",
                         "Print the number of allocations at exit") ||
@@ -11145,10 +11180,10 @@ int main(int argc, char** argv, char** envp) {
       !op.addBoolOption('\0', "disable-wasm-huge-memory",
                         "Disable WebAssembly huge memory") ||
 #ifdef ENABLE_WASM_BIGINT
-      !op.addBoolOption('\0', "wasm-bigint",
-                        "Enable WebAssembly BigInt conversions") ||
+      !op.addBoolOption('\0', "no-wasm-bigint",
+                        "Disable WebAssembly BigInt conversions") ||
 #else
-      !op.addBoolOption('\0', "wasm-bigint", "No-op") ||
+      !op.addBoolOption('\0', "no-wasm-bigint", "No-op") ||
 #endif
       !op.addBoolOption('\0', "test-wasm-await-tier2",
                         "Forcibly activate tiering and block "
@@ -11182,6 +11217,10 @@ int main(int argc, char** argv, char** envp) {
       !op.addBoolOption('\0', "enable-experimental-await-fix",
                         "Enable new, faster await semantics") ||
       !op.addBoolOption('\0', "enable-weak-refs", "Enable weak references") ||
+      !op.addBoolOption('\0', "disable-tosource", "Disable toSource/uneval") ||
+      !op.addBoolOption('\0', "disable-property-error-message-fix",
+                        "Disable fix for the error message when accessing "
+                        "property of null or undefined") ||
       !op.addStringOption('\0', "shared-memory", "on/off",
                           "SharedArrayBuffer and Atomics "
 #if SHARED_MEMORY_DEFAULT
@@ -11317,6 +11356,8 @@ int main(int argc, char** argv, char** envp) {
       !op.addBoolOption('\0', "no-incremental-gc", "Disable Incremental GC") ||
       !op.addStringOption('\0', "nursery-strings", "on/off",
                           "Allocate strings in the nursery") ||
+      !op.addStringOption('\0', "nursery-bigints", "on/off",
+                          "Allocate BigInts in the nursery") ||
       !op.addIntOption('\0', "available-memory", "SIZE",
                        "Select GC settings based on available memory (MB)",
                        0) ||
@@ -11435,8 +11476,8 @@ int main(int argc, char** argv, char** envp) {
     coverage::EnableLCov();
   }
 
-  enableDeferredMode = op.getBoolOption("parser-deferred-alloc") ||
-                       getenv("PARSER_DEFERRED_ALLOC") != nullptr;
+  enableDeferredMode = !op.getBoolOption("disable-parser-deferred-alloc") &&
+                       getenv("DISABLE_PARSER_DEFERRED_ALLOC") == nullptr;
 
 #ifdef JS_WITHOUT_NSPR
   if (!op.getMultiStringOption("dll").empty()) {
@@ -11561,6 +11602,16 @@ int main(int argc, char** argv, char** envp) {
       cx->runtime()->gc.nursery().disableStrings();
     } else {
       MOZ_CRASH("invalid option value for --nursery-strings, must be on/off");
+    }
+  }
+
+  if (const char* opt = op.getStringOption("nursery-bigints")) {
+    if (strcmp(opt, "on") == 0) {
+      cx->runtime()->gc.nursery().enableBigInts();
+    } else if (strcmp(opt, "off") == 0) {
+      cx->runtime()->gc.nursery().disableBigInts();
+    } else {
+      MOZ_CRASH("invalid option value for --nursery-bigints, must be on/off");
     }
   }
 

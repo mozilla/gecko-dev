@@ -36,7 +36,9 @@ import os
 import stat
 import sys
 import re
+import contextlib
 
+from six import StringIO
 from mach.decorators import CommandArgument, CommandProvider, Command
 from mozbuild.base import MachCommandBase
 from mozbuild.util import mkdir
@@ -44,6 +46,18 @@ import mozpack.path as mozpath
 
 
 BROWSERTIME_ROOT = os.path.dirname(__file__)
+PILLOW_VERSION = "6.0.0"
+PYSSIM_VERSION = "0.4"
+
+
+@contextlib.contextmanager
+def silence():
+    oldout, olderr = sys.stdout, sys.stderr
+    try:
+        sys.stdout, sys.stderr = StringIO(), StringIO()
+        yield
+    finally:
+        sys.stdout, sys.stderr = oldout, olderr
 
 
 def node_path():
@@ -309,7 +323,10 @@ class MachBrowsertime(MachCommandBase):
         # otherwise compare won't be found, and the built-in OS convert
         # method will be used instead of the ImageMagick one.
         if 'win64' in host_platform() and path_to_imagemagick:
-            path.insert(0, path_to_imagemagick)
+            # Bug 1596237 - In the windows ImageMagick distribution, the ffmpeg
+            # binary is directly located in the root directory, so here we
+            # insert in the 3rd position to avoid taking precedence over ffmpeg
+            path.insert(2, path_to_imagemagick)
 
         # On macOs, we can't install our own ImageMagick because the
         # System Integrity Protection (SIP) won't let us set DYLD_LIBRARY_PATH
@@ -350,19 +367,25 @@ class MachBrowsertime(MachCommandBase):
         return append_env
 
     def _activate_virtualenv(self, *args, **kwargs):
+        r'''Activates virtualenv.
+
+        This function will also install Pillow and pyssim if needed.
+        It will raise an error in case the install failed.
+        '''
         MachCommandBase._activate_virtualenv(self, *args, **kwargs)
-
+        # installing Python deps on the fly
         try:
-            self.virtualenv_manager.install_pip_package('Pillow==6.0.0')
-        except Exception:
-            print('Could not install Pillow from pip.')
-            return 1
-
+            import PIL
+            if PIL.__version__ != PILLOW_VERSION:
+                raise ImportError("Wrong version %s" % PIL.__version__)
+        except ImportError:
+            self.virtualenv_manager.install_pip_package('Pillow==%s' % PILLOW_VERSION)
         try:
-            self.virtualenv_manager.install_pip_package('pyssim==0.4')
-        except Exception:
-            print('Could not install pyssim from pip.')
-            return 1
+            # No __version__ in that package.
+            # We make the assumption it's fine.
+            import ssim  # noqa
+        except ImportError:
+            self.virtualenv_manager.install_pip_package('pyssim==%s' % PYSSIM_VERSION)
 
     def check(self):
         r'''Run `visualmetrics.py --check`.'''
@@ -427,23 +450,24 @@ class MachBrowsertime(MachCommandBase):
         if not specifies_har:
             extra_args.append('--skipHar')
 
-        # If --firefox.binaryPath is not specified, default to the objdir binary
-        # Note: --firefox.release is not a real browsertime option, but it will
-        #       silently ignore it instead and default to a release installation.
-        specifies_binaryPath = matches(args, '--firefox.binaryPath',
-                                       '--firefox.release', '--firefox.nightly',
-                                       '--firefox.beta', '--firefox.developer')
+        if not matches(args, "--android"):
+            # If --firefox.binaryPath is not specified, default to the objdir binary
+            # Note: --firefox.release is not a real browsertime option, but it will
+            #       silently ignore it instead and default to a release installation.
+            specifies_binaryPath = matches(args, '--firefox.binaryPath',
+                                           '--firefox.release', '--firefox.nightly',
+                                           '--firefox.beta', '--firefox.developer')
 
-        if not specifies_binaryPath:
-            specifies_binaryPath = extract_browser_name(args) == 'chrome'
+            if not specifies_binaryPath:
+                specifies_binaryPath = extract_browser_name(args) == 'chrome'
 
-        if not specifies_binaryPath:
-            try:
-                extra_args.extend(('--firefox.binaryPath', self.get_binary_path()))
-            except Exception:
-                print('Please run |./mach build| '
-                      'or specify a Firefox binary with --firefox.binaryPath.')
-                return 1
+            if not specifies_binaryPath:
+                try:
+                    extra_args.extend(('--firefox.binaryPath', self.get_binary_path()))
+                except Exception:
+                    print('Please run |./mach build| '
+                          'or specify a Firefox binary with --firefox.binaryPath.')
+                    return 1
 
         if extra_args:
             self.log(
@@ -453,6 +477,25 @@ class MachBrowsertime(MachCommandBase):
                 'Running browsertime with extra default arguments: {extra_args}')
 
         return extra_args
+
+    def _verify_node_install(self):
+        # check if Node is installed
+        sys.path.append(mozpath.join(self.topsrcdir, 'tools', 'lint', 'eslint'))
+        import setup_helper
+        with silence():
+            node_valid = setup_helper.check_node_executables_valid()
+        if not node_valid:
+            print("Can't find Node. did you run ./mach bootstrap ?")
+            return False
+
+        # check if the browsertime package has been deployed correctly
+        # for this we just check for the browsertime directory presence
+        if not os.path.exists(browsertime_path()):
+            print("Could not find browsertime.js, try ./mach browsertime --setup")
+            print("If that still fails, try ./mach browsertime --setup --clobber")
+            return False
+
+        return True
 
     @Command('browsertime', category='testing',
              description='Run [browsertime](https://github.com/sitespeedio/browsertime) '
@@ -473,6 +516,9 @@ class MachBrowsertime(MachCommandBase):
 
         if setup:
             return self.setup(should_clobber=clobber)
+        else:
+            if not self._verify_node_install():
+                return 1
 
         if check:
             return self.check()

@@ -22,13 +22,9 @@ VALGRIND_SUPP_CROSS_ARCH = os.path.join(VALGRIND_SUPP_DIR,
 VALGRIND_SUPP_ARCH = None
 
 if platform.architecture()[0] == "64bit":
-    TOOLTOOL_MANIFEST_PATH = "config/tooltool-manifests/linux64/releng.manifest"
-    MINIDUMP_STACKWALK_PATH = "linux64-minidump_stackwalk"
     VALGRIND_SUPP_ARCH = os.path.join(VALGRIND_SUPP_DIR,
                                       "x86_64-pc-linux-gnu.sup")
 else:
-    TOOLTOOL_MANIFEST_PATH = "config/tooltool-manifests/linux32/releng.manifest"
-    MINIDUMP_STACKWALK_PATH = "linux32-minidump_stackwalk"
     VALGRIND_SUPP_ARCH = os.path.join(VALGRIND_SUPP_DIR,
                                       "i386-pc-linux-gnu.sup")
     NODEJS_TOOLTOOL_MANIFEST_PATH = "config/tooltool-manifests/linux32/nodejs.manifest"
@@ -160,6 +156,7 @@ config = {
         "mochitest-webgl2-core": ["--subsuite=webgl2-core"],
         "mochitest-webgl2-ext": ["--subsuite=webgl2-ext"],
         "mochitest-webgl2-deqp": ["--subsuite=webgl2-deqp"],
+        "mochitest-webgpu": ["--subsuite=webgpu"],
         "mochitest-devtools-chrome": ["--flavor=browser", "--subsuite=devtools", "--chunk-by-runtime"],
         "mochitest-devtools-chrome-coverage": ["--flavor=browser", "--subsuite=devtools", "--chunk-by-runtime", "--timeout=1200"],
         "mochitest-a11y": ["--flavor=a11y", "--disable-e10s"],
@@ -168,22 +165,26 @@ config = {
     # local reftest suites
     "all_reftest_suites": {
         "crashtest": {
-            "options": ["--suite=crashtest"],
+            "options": ["--suite=crashtest",
+                        "--topsrcdir=tests/reftest/tests"],
             "tests": ["tests/reftest/tests/testing/crashtest/crashtests.list"]
         },
         "jsreftest": {
-            "options": ["--extra-profile-file=tests/jsreftest/tests/user.js",
-                       "--suite=jstestbrowser"],
-            "tests": ["tests/jsreftest/tests/jstests.list"]
+            "options": ["--extra-profile-file=tests/jsreftest/tests/js/src/tests/user.js",
+                       "--suite=jstestbrowser",
+                       "--topsrcdir=tests/jsreftest/tests"],
+            "tests": ["tests/jsreftest/tests/js/src/tests/jstests.list"]
         },
         "reftest": {
             "options": ["--suite=reftest",
-                        "--setpref=layers.acceleration.force-enabled=true"],
+                        "--setpref=layers.acceleration.force-enabled=true",
+                        "--topsrcdir=tests/reftest/tests"],
             "tests": ["tests/reftest/tests/layout/reftests/reftest.list"]
         },
         "reftest-no-accel": {
             "options": ["--suite=reftest",
-                        "--setpref=layers.acceleration.disabled=true"],
+                        "--setpref=layers.acceleration.disabled=true",
+                        "--topsrcdir=tests/reftest/tests"],
             "tests": ["tests/reftest/tests/layout/reftests/reftest.list"]
         },
     },
@@ -241,8 +242,6 @@ config = {
                              "cppunittest": [],
                              "jittest": [],
                              },
-    "minidump_stackwalk_path": MINIDUMP_STACKWALK_PATH,
-    "minidump_tooltool_manifest_path": TOOLTOOL_MANIFEST_PATH,
     "tooltool_cache": "/builds/worker/tooltool-cache",
     "nodejs_path": NODEJS_PATH,
     # "log_format": "%(levelname)8s - %(message)s",

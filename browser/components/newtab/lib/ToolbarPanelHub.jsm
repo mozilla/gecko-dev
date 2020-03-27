@@ -399,6 +399,7 @@ class _ToolbarPanelHub {
   }
 
   async _contentArguments() {
+    const { defaultEngine } = Services.search;
     // Between now and 6 weeks ago
     const dateTo = new Date();
     const dateFrom = new Date(dateTo.getTime() - 42 * 24 * 60 * 60 * 1000);
@@ -431,6 +432,10 @@ class _ToolbarPanelHub {
         dateFrom
       ),
       ...totalEvents,
+      // Passing in `undefined` as string for the Fluent variable name
+      // in order to match and select the message that does not require
+      // the variable.
+      searchEngineName: defaultEngine ? defaultEngine.name : "undefined",
     };
   }
 
@@ -596,15 +601,15 @@ class _ToolbarPanelHub {
 
   /**
    * @param {object} browser MessageChannel target argument as a response to a user action
-   * @param {object} message Message selected from devtools page
+   * @param {object[]} messages Messages selected from devtools page
    */
-  forceShowMessage(browser, message) {
+  forceShowMessage(browser, messages) {
     const win = browser.browser.ownerGlobal;
     const doc = browser.browser.ownerDocument;
     this.removeMessages(win, WHATS_NEW_PANEL_SELECTOR);
     this.renderMessages(win, doc, WHATS_NEW_PANEL_SELECTOR, {
       force: true,
-      messages: [message],
+      messages: Array.isArray(messages) ? messages : [messages],
     });
     win.PanelUI.panel.addEventListener("popuphidden", event =>
       this.removeMessages(event.target.ownerGlobal, WHATS_NEW_PANEL_SELECTOR)

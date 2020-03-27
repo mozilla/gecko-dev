@@ -7,6 +7,7 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 
+#include "mozilla/AppShutdown.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -232,6 +233,11 @@
 #include "mozilla/mozalloc_oom.h"
 #include "SafeMode.h"
 
+#ifdef MOZ_THUNDERBIRD
+#  include "nsIPK11TokenDB.h"
+#  include "nsIPK11Token.h"
+#endif
+
 extern uint32_t gRestartMode;
 extern void InstallSignalHandlers(const char* ProgramName);
 
@@ -278,7 +284,6 @@ nsString gAbsoluteArgv0Path;
 #  ifdef MOZ_X11
 #    include <gdk/gdkx.h>
 #  endif /* MOZ_X11 */
-#  include "nsGTKToolkit.h"
 #  include <fontconfig/fontconfig.h>
 #endif
 #include "BinaryPath.h"
@@ -337,12 +342,6 @@ static void SaveFileToEnv(const char* name, nsIFile* file) {
   file->GetNativePath(path);
   SaveWordToEnv(name, path);
 #endif
-}
-
-// Save the path of the given file to the specified environment variable
-// provided the environment variable does not have a value.
-static void SaveFileToEnvIfUnset(const char* name, nsIFile* file) {
-  if (!EnvHasValue(name)) SaveFileToEnv(name, file);
 }
 
 static bool gIsExpectedExit = false;
@@ -493,7 +492,13 @@ nsXULAppInfo::GetName(nsACString& aResult) {
     aResult = cc->GetAppInfo().name;
     return NS_OK;
   }
+
+#ifdef MOZ_WIDGET_ANDROID
+  nsCString name = java::GeckoAppShell::GetAppName()->ToCString();
+  aResult.Assign(std::move(name));
+#else
   aResult.Assign(gAppData->name);
+#endif
 
   return NS_OK;
 }
@@ -1549,11 +1554,16 @@ static void SetupLauncherProcessPref() {
 
 #endif  // XP_WIN
 
+void UnlockProfile() {
+  if (gProfileLock) {
+    gProfileLock->Unlock();
+  }
+}
+
 // If aBlankCommandLine is true, then the application will be launched with a
 // blank command line instead of being launched with the same command line that
 // it was initially started with.
-static nsresult LaunchChild(nsINativeAppSupport* aNative,
-                            bool aBlankCommandLine = false) {
+nsresult LaunchChild(bool aBlankCommandLine) {
   // Restart this process by exec'ing it into the current process
   // if supported by the platform.  Otherwise, use NSPR.
 
@@ -1777,7 +1787,7 @@ static ReturnAbortOnError ProfileLockedDialog(nsIFile* aProfileDir,
         SaveFileToEnv("XRE_PROFILE_PATH", aProfileDir);
         SaveFileToEnv("XRE_PROFILE_LOCAL_PATH", aProfileLocalDir);
 
-        return LaunchChild(aNative);
+        return LaunchChild(false);
       }
     } else {
 #ifdef MOZ_WIDGET_ANDROID
@@ -1886,7 +1896,7 @@ static ReturnAbortOnError ShowProfileManager(
     gRestartArgv[gRestartArgc] = nullptr;
   }
 
-  return LaunchChild(aNative);
+  return LaunchChild(false);
 }
 
 static bool gDoMigration = false;
@@ -2286,7 +2296,7 @@ static ReturnAbortOnError CheckDowngrade(nsIFile* aProfileDir,
     SaveFileToEnv("XRE_PROFILE_PATH", profD);
     SaveFileToEnv("XRE_PROFILE_LOCAL_PATH", profLD);
 
-    return LaunchChild(aNative);
+    return LaunchChild(false);
   }
 
   // Cancel
@@ -2625,28 +2635,6 @@ static bool RemoveComponentRegistries(nsIFile* aProfileDir,
   nsresult rv = file->Remove(true);
   return NS_SUCCEEDED(rv) || rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST ||
          rv == NS_ERROR_FILE_NOT_FOUND;
-}
-
-// To support application initiated restart via nsIAppStartup.quit, we
-// need to save various environment variables, and then restore them
-// before re-launching the application.
-
-static struct SavedVar {
-  const char* name;
-  char* value;
-} gSavedVars[] = {{"XUL_APP_FILE", nullptr}};
-
-static void SaveStateForAppInitiatedRestart() {
-  for (auto& savedVar : gSavedVars) {
-    const char* s = PR_GetEnv(savedVar.name);
-    if (s) savedVar.value = Smprintf("%s=%s", savedVar.name, s).release();
-  }
-}
-
-static void RestoreStateForAppInitiatedRestart() {
-  for (auto& savedVar : gSavedVars) {
-    if (savedVar.value) PR_SetEnv(savedVar.value);
-  }
 }
 
 // When we first initialize the crash reporter we don't have a profile,
@@ -3574,46 +3562,6 @@ static void PR_CALLBACK ReadAheadDlls_ThreadStart(void*) {
 }
 #endif
 
-namespace mozilla {
-ShutdownChecksMode gShutdownChecks = SCM_NOTHING;
-}  // namespace mozilla
-
-static void SetShutdownChecks() {
-  // Set default first. On debug builds we crash. On nightly and local
-  // builds we record. Nightlies will then send the info via telemetry,
-  // but it is usefull to have the data in about:telemetry in local builds
-  // too.
-
-#ifdef DEBUG
-#  if defined(MOZ_CODE_COVERAGE)
-  gShutdownChecks = SCM_NOTHING;
-#  else
-  gShutdownChecks = SCM_CRASH;
-#  endif  // MOZ_CODE_COVERAGE
-#else
-  const char* releaseChannel = MOZ_STRINGIFY(MOZ_UPDATE_CHANNEL);
-  if (strcmp(releaseChannel, "nightly") == 0 ||
-      strcmp(releaseChannel, "default") == 0) {
-    gShutdownChecks = SCM_RECORD;
-  } else {
-    gShutdownChecks = SCM_NOTHING;
-  }
-#endif  // DEBUG
-
-  // We let an environment variable override the default so that addons
-  // authors can use it for debugging shutdown with released firefox versions.
-  const char* mozShutdownChecksEnv = PR_GetEnv("MOZ_SHUTDOWN_CHECKS");
-  if (mozShutdownChecksEnv) {
-    if (strcmp(mozShutdownChecksEnv, "crash") == 0) {
-      gShutdownChecks = SCM_CRASH;
-    } else if (strcmp(mozShutdownChecksEnv, "record") == 0) {
-      gShutdownChecks = SCM_RECORD;
-    } else if (strcmp(mozShutdownChecksEnv, "nothing") == 0) {
-      gShutdownChecks = SCM_NOTHING;
-    }
-  }
-}
-
 #if defined(MOZ_WAYLAND)
 bool IsWaylandDisabled() {
   // Enable Wayland on Gtk+ >= 3.22 where we can expect recent enough
@@ -3629,16 +3577,14 @@ bool IsWaylandDisabled() {
 }
 #endif
 
-namespace mozilla {
-namespace startup {
+namespace mozilla::startup {
 Result<nsCOMPtr<nsIFile>, nsresult> GetIncompleteStartupFile(nsIFile* aProfLD) {
   nsCOMPtr<nsIFile> crashFile;
   MOZ_TRY(aProfLD->Clone(getter_AddRefs(crashFile)));
   MOZ_TRY(crashFile->Append(FILE_STARTUP_INCOMPLETE));
   return std::move(crashFile);
 }
-}  // namespace startup
-}  // namespace mozilla
+}  // namespace mozilla::startup
 
 // Check whether the last startup attempt resulted in a crash within the
 // last 6 hours.
@@ -3680,8 +3626,6 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
 
   if (!aExitFlag) return 1;
   *aExitFlag = false;
-
-  SetShutdownChecks();
 
   // Enable Telemetry IO Reporting on DEBUG, nightly and local builds,
   // but disable it on FUZZING builds.
@@ -3851,7 +3795,6 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
 #endif
 #if defined(MOZ_WIDGET_GTK)
   g_set_application_name(mAppData->name);
-  gtk_window_set_auto_startup_notification(false);
 
 #endif /* defined(MOZ_WIDGET_GTK) */
 #ifdef MOZ_X11
@@ -4415,6 +4358,22 @@ nsresult XREMain::XRE_mainRun() {
 
   mDirProvider.DoStartup();
 
+#ifdef MOZ_THUNDERBIRD
+  if (Preferences::GetBool("security.prompt_for_master_password_on_startup",
+                           false)) {
+    // Prompt for the master password prior to opening application windows,
+    // to avoid the race that triggers multiple prompts (see bug 177175).
+    // We use this code until we have a better solution, possibly as
+    // described in bug 177175 comment 384.
+    nsCOMPtr<nsIPK11TokenDB> db =
+        do_GetService("@mozilla.org/security/pk11tokendb;1");
+    nsCOMPtr<nsIPK11Token> token;
+    if (NS_SUCCEEDED(db->GetInternalKeyToken(getter_AddRefs(token)))) {
+      Unused << token->Login(false);
+    }
+  }
+#endif
+
   // As FilePreferences need the profile directory, we must initialize right
   // here.
   mozilla::FilePreferences::InitDirectoriesWhitelist();
@@ -4423,7 +4382,7 @@ nsresult XREMain::XRE_mainRun() {
   OverrideDefaultLocaleIfNeeded();
 
   nsCString userAgentLocale;
-  LocaleService::GetInstance()->GetAppLocaleAsLangTag(userAgentLocale);
+  LocaleService::GetInstance()->GetAppLocaleAsBCP47(userAgentLocale);
   CrashReporter::AnnotateCrashReport(
       CrashReporter::Annotation::useragent_locale, userAgentLocale);
 
@@ -4464,7 +4423,7 @@ nsresult XREMain::XRE_mainRun() {
   }
 #endif
 
-  SaveStateForAppInitiatedRestart();
+  mozilla::AppShutdown::SaveEnvVarsForPotentialRestart();
 
   // clear out any environment variables which may have been set
   // during the relaunch process now that we know we won't be relaunching.
@@ -4497,10 +4456,6 @@ nsresult XREMain::XRE_mainRun() {
 #endif
 
 #if defined(HAVE_DESKTOP_STARTUP_ID) && defined(MOZ_WIDGET_GTK)
-    nsGTKToolkit* toolkit = nsGTKToolkit::GetToolkit();
-    if (toolkit && !mDesktopStartupID.IsEmpty()) {
-      toolkit->SetDesktopStartupID(mDesktopStartupID);
-    }
     // Clear the environment variable so it won't be inherited by
     // child processes and confuse things.
     g_unsetenv("DESKTOP_STARTUP_ID");
@@ -4561,6 +4516,12 @@ nsresult XREMain::XRE_mainRun() {
     mozilla::InitEventTracing(logToConsole);
   }
 #endif /* MOZ_INSTRUMENT_EVENT_LOOP */
+
+  // Send Telemetry about Gecko version and buildid
+  Telemetry::ScalarSet(Telemetry::ScalarID::GECKO_VERSION,
+                       NS_ConvertASCIItoUTF16(gAppData->version));
+  Telemetry::ScalarSet(Telemetry::ScalarID::GECKO_BUILD_ID,
+                       NS_ConvertASCIItoUTF16(gAppData->buildID));
 
 #if defined(MOZ_SANDBOX) && defined(XP_LINUX)
   // If we're on Linux, we now have information about the OS capabilities
@@ -4727,8 +4688,6 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   result = XRE_mainStartup(&exit);
   if (result != 0 || exit) return result;
 
-  bool appInitiatedRestart = false;
-
   // Start the real application. We use |aInitJSContext = false| because
   // XRE_mainRun wants to initialize the JSContext after reading user prefs.
 
@@ -4746,16 +4705,6 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
 #endif
 
   gAbsoluteArgv0Path.Truncate();
-
-  // Check for an application initiated restart.  This is one that
-  // corresponds to nsIAppStartup.quit(eRestart)
-  if (rv == NS_SUCCESS_RESTART_APP) {
-    appInitiatedRestart = true;
-
-    // We have an application restart don't do any shutdown checks here
-    // In particular we don't want to poison IO for checking late-writes.
-    gShutdownChecks = SCM_NOTHING;
-  }
 
 #if defined(MOZ_HAS_REMOTE)
   // Shut down the remote service. We must do this before calling LaunchChild
@@ -4777,27 +4726,7 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   mProfileLock->Unlock();
   gProfileLock = nullptr;
 
-  // Restart the app after XPCOM has been shut down cleanly.
-  if (appInitiatedRestart) {
-    RestoreStateForAppInitiatedRestart();
-
-    // Ensure that these environment variables are set:
-    SaveFileToEnvIfUnset("XRE_PROFILE_PATH", mProfD);
-    SaveFileToEnvIfUnset("XRE_PROFILE_LOCAL_PATH", mProfLD);
-
-#ifdef MOZ_WIDGET_GTK
-    if (!gfxPlatform::IsHeadless()) {
-      MOZ_gdk_display_close(mGdkDisplay);
-    }
-#endif
-
-    { rv = LaunchChild(mNativeApp, true); }
-
-    if (mAppData->flags & NS_XRE_ENABLE_CRASH_REPORTER)
-      CrashReporter::UnsetExceptionHandler();
-
-    return rv == NS_ERROR_LAUNCHED_CHILD_PROCESS ? 0 : 1;
-  }
+  mozilla::AppShutdown::MaybeDoRestart();
 
 #ifdef MOZ_WIDGET_GTK
   // gdk_display_close also calls gdk_display_manager_set_default_display

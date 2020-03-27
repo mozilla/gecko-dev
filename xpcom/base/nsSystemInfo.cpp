@@ -103,7 +103,6 @@ static void SimpleParseKeyValuePairs(
 #ifdef XP_WIN
 // Lifted from media/webrtc/trunk/webrtc/base/systeminfo.cc,
 // so keeping the _ instead of switching to camel case for now.
-typedef BOOL(WINAPI* LPFN_GLPI)(PSYSTEM_LOGICAL_PROCESSOR_INFORMATION, PDWORD);
 static void GetProcessorInformation(int* physical_cpus, int* cache_size_L2,
                                     int* cache_size_L3) {
   MOZ_ASSERT(physical_cpus && cache_size_L2 && cache_size_L3);
@@ -112,18 +111,12 @@ static void GetProcessorInformation(int* physical_cpus, int* cache_size_L2,
   *cache_size_L2 = 0;  // This will be in kbytes
   *cache_size_L3 = 0;  // This will be in kbytes
 
-  // GetLogicalProcessorInformation() is available on Windows XP SP3 and beyond.
-  LPFN_GLPI glpi = reinterpret_cast<LPFN_GLPI>(GetProcAddress(
-      GetModuleHandle(L"kernel32"), "GetLogicalProcessorInformation"));
-  if (nullptr == glpi) {
-    return;
-  }
   // Determine buffer size, allocate and get processor information.
   // Size can change between calls (unlikely), so a loop is done.
   SYSTEM_LOGICAL_PROCESSOR_INFORMATION info_buffer[32];
   SYSTEM_LOGICAL_PROCESSOR_INFORMATION* infos = &info_buffer[0];
   DWORD return_length = sizeof(info_buffer);
-  while (!glpi(infos, &return_length)) {
+  while (!::GetLogicalProcessorInformation(infos, &return_length)) {
     if (GetLastError() == ERROR_INSUFFICIENT_BUFFER &&
         infos == &info_buffer[0]) {
       infos = new SYSTEM_LOGICAL_PROCESSOR_INFORMATION
@@ -891,6 +884,10 @@ nsresult nsSystemInfo::Init() {
     secondaryLibrary.Append(nsDependentCSubstring(gtkver, gtkver_len));
   }
 
+#ifndef MOZ_TSAN
+  // With TSan, avoid loading libpulse here because we cannot unload it
+  // afterwards due to restrictions from TSan about unloading libraries
+  // matched by the suppression list.
   void* libpulse = dlopen("libpulse.so.0", RTLD_LAZY);
   const char* libpulseVersion = "not-available";
   if (libpulse) {
@@ -907,6 +904,7 @@ nsresult nsSystemInfo::Init() {
   if (libpulse) {
     dlclose(libpulse);
   }
+#endif
 
   rv = SetPropertyAsACString(NS_LITERAL_STRING("secondaryLibrary"),
                              secondaryLibrary);
@@ -1154,12 +1152,12 @@ JSObject* GetJSObjForProcessInfo(JSContext* aCx, const ProcessInfo& info) {
   return jsInfo;
 }
 
-RefPtr<mozilla::LazyIdleThread> nsSystemInfo::GetHelperThread() {
-  if (!mLazyHelperThread) {
-    mLazyHelperThread =
-        new LazyIdleThread(3000, NS_LITERAL_CSTRING("SystemInfoIdleThread"));
+RefPtr<nsISerialEventTarget> nsSystemInfo::GetBackgroundTarget() {
+  if (!mBackgroundET) {
+    MOZ_ALWAYS_SUCCEEDS(NS_CreateBackgroundTaskQueue(
+        "SystemInfoThread", getter_AddRefs(mBackgroundET)));
   }
-  return mLazyHelperThread;
+  return mBackgroundET;
 }
 
 NS_IMETHODIMP
@@ -1182,9 +1180,9 @@ nsSystemInfo::GetOsInfo(JSContext* aCx, Promise** aResult) {
   }
 
   if (!mOSInfoPromise) {
-    RefPtr<mozilla::LazyIdleThread> lazyIOThread = GetHelperThread();
+    RefPtr<nsISerialEventTarget> backgroundET = GetBackgroundTarget();
 
-    mOSInfoPromise = InvokeAsync(lazyIOThread, __func__, []() {
+    mOSInfoPromise = InvokeAsync(backgroundET, __func__, []() {
       OSInfo info;
       nsresult rv = CollectOSInfo(info);
       if (NS_SUCCEEDED(rv)) {
@@ -1238,7 +1236,7 @@ nsSystemInfo::GetDiskInfo(JSContext* aCx, Promise** aResult) {
   }
 
   if (!mDiskInfoPromise) {
-    RefPtr<mozilla::LazyIdleThread> lazyIOThread = GetHelperThread();
+    RefPtr<nsISerialEventTarget> backgroundET = GetBackgroundTarget();
     nsCOMPtr<nsIFile> greDir;
     nsCOMPtr<nsIFile> winDir;
     nsCOMPtr<nsIFile> profDir;
@@ -1257,7 +1255,7 @@ nsSystemInfo::GetDiskInfo(JSContext* aCx, Promise** aResult) {
     }
 
     mDiskInfoPromise =
-        InvokeAsync(lazyIOThread, __func__, [greDir, winDir, profDir]() {
+        InvokeAsync(backgroundET, __func__, [greDir, winDir, profDir]() {
           DiskInfo info;
           nsresult rv = CollectDiskInfo(greDir, winDir, profDir, info);
           if (NS_SUCCEEDED(rv)) {
@@ -1326,9 +1324,9 @@ nsSystemInfo::GetCountryCode(JSContext* aCx, Promise** aResult) {
   }
 
   if (!mCountryCodePromise) {
-    RefPtr<mozilla::LazyIdleThread> lazyIOThread = GetHelperThread();
+    RefPtr<nsISerialEventTarget> backgroundET = GetBackgroundTarget();
 
-    mCountryCodePromise = InvokeAsync(lazyIOThread, __func__, []() {
+    mCountryCodePromise = InvokeAsync(backgroundET, __func__, []() {
       nsAutoString countryCode;
 #  ifdef XP_MACOSX
       nsresult rv = GetSelectedCityInfo(countryCode);
@@ -1391,9 +1389,9 @@ nsSystemInfo::GetProcessInfo(JSContext* aCx, Promise** aResult) {
   }
 
   if (!mProcessInfoPromise) {
-    RefPtr<mozilla::LazyIdleThread> lazyIOThread = GetHelperThread();
+    RefPtr<nsISerialEventTarget> backgroundET = GetBackgroundTarget();
 
-    mProcessInfoPromise = InvokeAsync(lazyIOThread, __func__, []() {
+    mProcessInfoPromise = InvokeAsync(backgroundET, __func__, []() {
       ProcessInfo info;
       nsresult rv = CollectProcessInfo(info);
       if (NS_SUCCEEDED(rv)) {

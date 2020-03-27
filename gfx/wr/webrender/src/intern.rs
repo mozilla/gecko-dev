@@ -50,11 +50,13 @@ struct Epoch(u64);
 
 /// A list of updates to be applied to the data store,
 /// provided by the interning structure.
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct UpdateList<S> {
     /// The additions and removals to apply.
-    updates: Vec<Update>,
+    pub updates: Vec<Update>,
     /// Actual new data to insert.
-    data: Vec<S>,
+    pub data: Vec<S>,
 }
 
 lazy_static! {
@@ -122,8 +124,8 @@ pub enum UpdateKind {
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 #[derive(MallocSizeOf)]
 pub struct Update {
-    index: usize,
-    kind: UpdateKind,
+    pub index: usize,
+    pub kind: UpdateKind,
 }
 
 pub trait InternDebug {

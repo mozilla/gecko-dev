@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* This code is loaded in every child process that is started by mochitest in
- * order to be used as a replacement for UniversalXPConnect
+/* This code is loaded in every child process that is started by mochitest.
  */
 
 "use strict";
@@ -680,7 +679,7 @@ class SpecialPowersChild extends JSWindowActorChild {
 
   async toggleMuteState(aMuted, aWindow) {
     let actor = aWindow
-      ? aWindow.getWindowGlobalChild().getActor("SpecialPowers")
+      ? aWindow.windowGlobalChild.getActor("SpecialPowers")
       : this;
     return actor.sendQuery("SPToggleMuteAudio", { mute: aMuted });
   }
@@ -1294,6 +1293,10 @@ class SpecialPowersChild extends JSWindowActorChild {
     );
   }
 
+  async generateMediaControlKeyTestEvent(event) {
+    await this.sendQuery("SPGenerateMediaControlKeyTestEvent", { event });
+  }
+
   // Note: each call to registerConsoleListener MUST be paired with a
   // call to postConsoleSentinel; when the callback receives the
   // sentinel it will unregister itself (_after_ calling the
@@ -1774,7 +1777,7 @@ class SpecialPowersChild extends JSWindowActorChild {
 
     try {
       let actor = aWindow
-        ? aWindow.getWindowGlobalChild().getActor("SpecialPowers")
+        ? aWindow.windowGlobalChild.getActor("SpecialPowers")
         : this;
       actor.sendAsyncMessage("SpecialPowers.Focus", {});
     } catch (e) {
@@ -2196,8 +2199,23 @@ class SpecialPowersChild extends JSWindowActorChild {
     });
   }
 
-  doCommand(window, cmd) {
-    return window.docShell.doCommand(cmd);
+  doCommand(window, cmd, param) {
+    switch (cmd) {
+      case "cmd_align":
+      case "cmd_backgroundColor":
+      case "cmd_fontColor":
+      case "cmd_fontFace":
+      case "cmd_fontSize":
+      case "cmd_highlight":
+      case "cmd_insertImageNoUI":
+      case "cmd_insertLinkNoUI":
+      case "cmd_paragraphState":
+        let params = Cu.createCommandParams();
+        params.setStringValue("state_attribute", param);
+        return window.docShell.doCommandWithParams(cmd, params);
+      default:
+        return window.docShell.doCommand(cmd);
+    }
   }
 
   isCommandEnabled(window, cmd) {

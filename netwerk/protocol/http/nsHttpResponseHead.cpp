@@ -289,7 +289,7 @@ nsresult nsHttpResponseHead::ParseCachedOriginalHeaders(char* block) {
   }
 
   char* p = block;
-  nsHttpAtom hdr = {nullptr};
+  nsHttpAtom hdr;
   nsAutoCString headerNameOriginal;
   nsAutoCString val;
   nsresult rv;
@@ -527,7 +527,7 @@ nsresult nsHttpResponseHead::ParseHeaderLine(const nsACString& line) {
 
 nsresult nsHttpResponseHead::ParseHeaderLine_locked(
     const nsACString& line, bool originalFromNetHeaders) {
-  nsHttpAtom hdr = {nullptr};
+  nsHttpAtom hdr;
   nsAutoCString headerNameOriginal;
   nsAutoCString val;
 
@@ -1202,6 +1202,32 @@ bool nsHttpResponseHead::HasContentType() {
 bool nsHttpResponseHead::HasContentCharset() {
   RecursiveMutexAutoLock monitor(mRecursiveMutex);
   return !mContentCharset.IsEmpty();
+}
+
+bool nsHttpResponseHead::GetContentTypeOptionsHeader(nsACString& aOutput) {
+  aOutput.Truncate();
+
+  nsAutoCString contentTypeOptionsHeader;
+  Unused << GetHeader(nsHttp::X_Content_Type_Options, contentTypeOptionsHeader);
+  if (contentTypeOptionsHeader.IsEmpty()) {
+    // if there is no XCTO header, then there is nothing to do.
+    return false;
+  }
+
+  // XCTO header might contain multiple values which are comma separated, so:
+  // a) let's skip all subsequent values
+  //     e.g. "   NoSniFF   , foo " will be "   NoSniFF   "
+  int32_t idx = contentTypeOptionsHeader.Find(",");
+  if (idx > 0) {
+    contentTypeOptionsHeader = Substring(contentTypeOptionsHeader, 0, idx);
+  }
+  // b) let's trim all surrounding whitespace
+  //    e.g. "   NoSniFF   " -> "NoSniFF"
+  nsHttp::TrimHTTPWhitespace(contentTypeOptionsHeader,
+                             contentTypeOptionsHeader);
+
+  aOutput.Assign(contentTypeOptionsHeader);
+  return true;
 }
 
 }  // namespace net

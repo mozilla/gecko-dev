@@ -73,8 +73,7 @@
 #  include "mozilla/SandboxTestingChild.h"
 #endif
 
-namespace mozilla {
-namespace gfx {
+namespace mozilla::gfx {
 
 using namespace ipc;
 using namespace layers;
@@ -89,7 +88,7 @@ GPUParent::~GPUParent() { sGPUParent = nullptr; }
 GPUParent* GPUParent::GetSingleton() { return sGPUParent; }
 
 bool GPUParent::Init(base::ProcessId aParentPid, const char* aParentBuildID,
-                     MessageLoop* aIOLoop, IPC::Channel* aChannel) {
+                     MessageLoop* aIOLoop, UniquePtr<IPC::Channel> aChannel) {
   // Initialize the thread manager before starting IPC. Otherwise, messages
   // may be posted to the main thread and we won't be able to process them.
   if (NS_WARN_IF(NS_FAILED(nsThreadManager::get().Init()))) {
@@ -97,7 +96,7 @@ bool GPUParent::Init(base::ProcessId aParentPid, const char* aParentBuildID,
   }
 
   // Now it's safe to start IPC.
-  if (NS_WARN_IF(!Open(aChannel, aParentPid, aIOLoop))) {
+  if (NS_WARN_IF(!Open(std::move(aChannel), aParentPid, aIOLoop))) {
     return false;
   }
 
@@ -587,5 +586,4 @@ void GPUParent::ActorDestroy(ActorDestroyReason aWhy) {
   XRE_ShutdownChildProcess();
 }
 
-}  // namespace gfx
-}  // namespace mozilla
+}  // namespace mozilla::gfx

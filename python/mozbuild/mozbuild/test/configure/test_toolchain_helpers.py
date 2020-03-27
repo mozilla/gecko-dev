@@ -6,11 +6,11 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import copy
 import re
-import types
 import unittest
 
 from fnmatch import fnmatch
-from StringIO import StringIO
+import six
+from six import StringIO
 from textwrap import dedent
 
 from mozunit import (
@@ -45,7 +45,7 @@ class CompilerPreprocessor(Preprocessor):
         context = self.context
 
         def normalize_numbers(value):
-            if isinstance(value, types.StringTypes):
+            if isinstance(value, six.string_types):
                 if value[-1:] == 'L' and value[:-1].isdigit():
                     value = int(value[:-1])
             return value
@@ -58,7 +58,7 @@ class CompilerPreprocessor(Preprocessor):
 
         self.context = self.Context(
             (normalize_has_feature_or_builtin(k), normalize_numbers(v))
-            for k, v in context.iteritems()
+            for k, v in six.iteritems(context)
         )
         try:
             return Preprocessor.do_if(
@@ -74,7 +74,7 @@ class CompilerPreprocessor(Preprocessor):
         def repl(matchobj):
             varname = matchobj.group('VAR')
             if varname in self.context:
-                result = str(self.context[varname])
+                result = six.text_type(self.context[varname])
                 # The C preprocessor inserts whitespaces around expanded
                 # symbols.
                 start, end = matchobj.span('VAR')
@@ -104,8 +104,8 @@ class TestCompilerPreprocessor(unittest.TestCase):
 
     def test_normalization(self):
         pp = CompilerPreprocessor({
-            '__has_attribute(bar)': '1',
-            '__has_warning("-Wc++98-foo")': '1',
+            '__has_attribute(bar)': 1,
+            '__has_warning("-Wc++98-foo")': 1,
         })
         pp.out = StringIO()
         input = StringIO(dedent('''\
@@ -161,7 +161,7 @@ class TestCompilerPreprocessor(unittest.TestCase):
         input.name = 'foo'
         pp.do_include(input)
 
-        self.assertEquals('IFDEF_A\nIF_A\nIF_B\nIF_NOT_C\n', pp.out.getvalue())
+        self.assertEquals('IFDEF_A\nIF_A\nIF_NOT_B\nIF_NOT_C\n', pp.out.getvalue())
 
 
 class FakeCompiler(dict):
@@ -201,9 +201,9 @@ class FakeCompiler(dict):
 
     def __init__(self, *definitions):
         for definition in definitions:
-            if all(not isinstance(d, dict) for d in definition.itervalues()):
+            if all(not isinstance(d, dict) for d in six.itervalues(definition)):
                 definition = {None: definition}
-            for key, value in definition.iteritems():
+            for key, value in six.iteritems(definition):
                 self.setdefault(key, {}).update(value)
 
     def __call__(self, stdin, args):
@@ -229,14 +229,14 @@ class FakeCompiler(dict):
             pp = CompilerPreprocessor(self[None])
 
             def apply_defn(defn):
-                for k, v in defn.iteritems():
+                for k, v in six.iteritems(defn):
                     if v is False:
                         if k in pp.context:
                             del pp.context[k]
                     else:
                         pp.context[k] = v
 
-            for glob, defn in self.iteritems():
+            for glob, defn in six.iteritems(self):
                 if glob and not glob.startswith('-') and fnmatch(file, glob):
                     apply_defn(defn)
 
@@ -427,7 +427,7 @@ class CompilerResult(ReadOnlyNamespace):
     def __add__(self, other):
         assert isinstance(other, dict)
         result = copy.deepcopy(self.__dict__)
-        for k, v in other.iteritems():
+        for k, v in six.iteritems(other):
             if k == 'flags':
                 flags = result.setdefault(k, [])
                 if isinstance(v, PrependFlags):

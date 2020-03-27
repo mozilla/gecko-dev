@@ -258,7 +258,7 @@ void PresentationConnection::Send(const ArrayBuffer& aData, ErrorResult& aRv) {
     return;
   }
 
-  aData.ComputeLengthAndData();
+  aData.ComputeState();
 
   static_assert(sizeof(*aData.Data()) == 1, "byte-sized data required");
 
@@ -292,7 +292,7 @@ void PresentationConnection::Send(const ArrayBufferView& aData,
     return;
   }
 
-  aData.ComputeLengthAndData();
+  aData.ComputeState();
 
   static_assert(sizeof(*aData.Data()) == 1, "byte-sized data required");
 
@@ -675,6 +675,16 @@ PresentationConnection::GetLoadFlags(nsLoadFlags* aLoadFlags) {
 
 NS_IMETHODIMP
 PresentationConnection::SetLoadFlags(nsLoadFlags aLoadFlags) { return NS_OK; }
+
+NS_IMETHODIMP
+PresentationConnection::GetTRRMode(nsIRequest::TRRMode* aTRRMode) {
+  return GetTRRModeImpl(aTRRMode);
+}
+
+NS_IMETHODIMP
+PresentationConnection::SetTRRMode(nsIRequest::TRRMode aTRRMode) {
+  return SetTRRModeImpl(aTRRMode);
+}
 
 nsresult PresentationConnection::AddIntoLoadGroup() {
   // Avoid adding to loadgroup multiple times

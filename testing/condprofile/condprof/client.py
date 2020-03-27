@@ -58,12 +58,14 @@ def get_profile(
         "task_id": task_id,
         "repo": repo,
     }
+    LOG("Getting conditioned profile with arguments: %s" % params)
     filename = ARTIFACT_NAME % params
     if task_id is None:
         url = TC_LINK % params + filename
     else:
         url = DIRECT_LINK % params + filename
 
+    LOG("preparing download dir")
     if not download_cache:
         download_dir = tempfile.mkdtemp()
     else:
@@ -73,6 +75,7 @@ def get_profile(
             os.makedirs(download_dir)
 
     downloaded_archive = os.path.join(download_dir, filename)
+    LOG("Downloaded archive path: %s" % downloaded_archive)
     retries = 0
 
     while retries < RETRIES:
@@ -98,6 +101,10 @@ def get_profile(
                         tar.extract = functools.partial(_extract, tar)
                         tar.extractall(target_dir)
             except (OSError, tarfile.ReadError) as e:
+                LOG("Failed to extract the tarball")
+                if download_cache and os.path.exists(archive):
+                    LOG("Removing cached file to attempt a new download")
+                    os.remove(archive)
                 raise ProfileNotFoundError(str(e))
             finally:
                 if not download_cache:

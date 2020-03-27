@@ -331,6 +331,7 @@ restart:
     case ParseNodeKind::DeleteNameExpr:
     case ParseNodeKind::DeletePropExpr:
     case ParseNodeKind::DeleteElemExpr:
+    case ParseNodeKind::DeleteOptionalChainExpr:
     case ParseNodeKind::DeleteExpr:
     case ParseNodeKind::PosExpr:
     case ParseNodeKind::NegExpr:
@@ -385,6 +386,10 @@ restart:
     case ParseNodeKind::ElemExpr:
     case ParseNodeKind::Arguments:
     case ParseNodeKind::CallExpr:
+    case ParseNodeKind::OptionalChain:
+    case ParseNodeKind::OptionalDotExpr:
+    case ParseNodeKind::OptionalElemExpr:
+    case ParseNodeKind::OptionalCallExpr:
     case ParseNodeKind::Name:
     case ParseNodeKind::PrivateName:
     case ParseNodeKind::TemplateStringExpr:
@@ -459,7 +464,7 @@ static bool FoldType(JSContext* cx, FullParseHandler* handler, ParseNode** pnp,
 
       case ParseNodeKind::StringExpr:
         if (pn->isKind(ParseNodeKind::NumberExpr)) {
-          JSAtom* atom = NumberToAtom(cx, pn->as<NumericLiteral>().value());
+          JSAtom* atom = pn->as<NumericLiteral>().toAtom(cx);
           if (!atom) {
             return false;
           }
@@ -1090,12 +1095,13 @@ static bool FoldElement(JSContext* cx, FullParseHandler* handler,
       name = atom->asPropertyName();
     }
   } else if (key->isKind(ParseNodeKind::NumberExpr)) {
-    double number = key->as<NumericLiteral>().value();
+    auto* numeric = &key->as<NumericLiteral>();
+    double number = numeric->value();
     if (number != ToUint32(number)) {
       // Optimization 2: We have something like expr[3.14]. The number
       // isn't an array index, so it converts to a string ("3.14"),
       // enabling optimization 3 below.
-      JSAtom* atom = NumberToAtom(cx, number);
+      JSAtom* atom = numeric->toAtom(cx);
       if (!atom) {
         return false;
       }
@@ -1376,6 +1382,7 @@ class FoldVisitor : public RewritingParseNodeVisitor<FoldVisitor> {
  private:
   bool internalVisitCall(BinaryNode* node) {
     MOZ_ASSERT(node->isKind(ParseNodeKind::CallExpr) ||
+               node->isKind(ParseNodeKind::OptionalCallExpr) ||
                node->isKind(ParseNodeKind::SuperCallExpr) ||
                node->isKind(ParseNodeKind::NewExpr) ||
                node->isKind(ParseNodeKind::TaggedTemplateExpr));
@@ -1412,6 +1419,10 @@ class FoldVisitor : public RewritingParseNodeVisitor<FoldVisitor> {
 
  public:
   bool visitCallExpr(ParseNode*& pn) {
+    return internalVisitCall(&pn->as<BinaryNode>());
+  }
+
+  bool visitOptionalCallExpr(ParseNode*& pn) {
     return internalVisitCall(&pn->as<BinaryNode>());
   }
 

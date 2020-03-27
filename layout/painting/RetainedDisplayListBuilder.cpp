@@ -346,7 +346,7 @@ static void UpdateASR(nsDisplayItem* aItem,
 
   if (aItem->HasHitTestInfo()) {
     const HitTestInfo& info =
-        static_cast<nsDisplayHitTestInfoItem*>(aItem)->GetHitTestInfo();
+        static_cast<nsDisplayHitTestInfoBase*>(aItem)->GetHitTestInfo();
     asr = SelectContainerASR(info.mClipChain, info.mASR, aContainerASR);
   } else {
     asr = aContainerASR;
@@ -373,7 +373,7 @@ static void CopyASR(nsDisplayItem* aOld, nsDisplayItem* aNew) {
   if (aOld->HasHitTestInfo()) {
     MOZ_ASSERT(aNew->HasHitTestInfo());
     const HitTestInfo& info =
-        static_cast<nsDisplayHitTestInfoItem*>(aOld)->GetHitTestInfo();
+        static_cast<nsDisplayHitTestInfoBase*>(aOld)->GetHitTestInfo();
     hitTest = info.mASR;
   }
 
@@ -382,7 +382,7 @@ static void CopyASR(nsDisplayItem* aOld, nsDisplayItem* aNew) {
   // SetActiveScrolledRoot for most items will also set the hit-test info item's
   // asr, so we need to manually set that again to what we saved earlier.
   if (aOld->HasHitTestInfo()) {
-    static_cast<nsDisplayHitTestInfoItem*>(aNew)
+    static_cast<nsDisplayHitTestInfoBase*>(aNew)
         ->UpdateHitTestInfoActiveScrolledRoot(hitTest);
   }
 }
@@ -1390,8 +1390,8 @@ static void ClearFrameProps(nsTArray<nsIFrame*>& aFrames) {
   for (nsIFrame* f : aFrames) {
     if (f->HasOverrideDirtyRegion()) {
       f->SetHasOverrideDirtyRegion(false);
-      f->DeleteProperty(nsDisplayListBuilder::DisplayListBuildingRect());
-      f->DeleteProperty(
+      f->RemoveProperty(nsDisplayListBuilder::DisplayListBuildingRect());
+      f->RemoveProperty(
           nsDisplayListBuilder::DisplayListBuildingDisplayPortRect());
     }
 
@@ -1449,6 +1449,7 @@ PartialUpdateResult RetainedDisplayListBuilder::AttemptPartialUpdate(
       !ComputeRebuildRegion(modifiedFrames.Frames(), &modifiedDirty,
                             &modifiedAGR, framesWithProps.Frames()) ||
       !PreProcessDisplayList(&mList, modifiedAGR, result)) {
+    mBuilder.SetPartialBuildFailed(true);
     mBuilder.LeavePresShell(mBuilder.RootReferenceFrame(), nullptr);
     mList.DeleteAll(&mBuilder);
     return PartialUpdateResult::Failed;
@@ -1473,6 +1474,7 @@ PartialUpdateResult RetainedDisplayListBuilder::AttemptPartialUpdate(
 
   mBuilder.SetDirtyRect(modifiedDirty);
   mBuilder.SetPartialUpdate(true);
+  mBuilder.SetPartialBuildFailed(false);
 
   nsDisplayList modifiedDL;
   mBuilder.RootReferenceFrame()->BuildDisplayListForStackingContext(
@@ -1487,7 +1489,6 @@ PartialUpdateResult RetainedDisplayListBuilder::AttemptPartialUpdate(
   mBuilder.SetPartialUpdate(false);
 
   if (mBuilder.PartialBuildFailed()) {
-    mBuilder.SetPartialBuildFailed(false);
     mBuilder.LeavePresShell(mBuilder.RootReferenceFrame(), nullptr);
     mList.DeleteAll(&mBuilder);
     modifiedDL.DeleteAll(&mBuilder);

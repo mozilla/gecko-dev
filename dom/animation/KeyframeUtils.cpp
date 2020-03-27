@@ -6,33 +6,34 @@
 
 #include "mozilla/KeyframeUtils.h"
 
+#include <algorithm>  // For std::stable_sort, std::min
+#include <utility>
+
+#include "js/ForOfIterator.h"  // For JS::ForOfIterator
+#include "jsapi.h"             // For most JSAPI
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/ErrorResult.h"
-#include "mozilla/Move.h"
 #include "mozilla/RangedArray.h"
-#include "mozilla/ServoBindings.h"
 #include "mozilla/ServoBindingTypes.h"
+#include "mozilla/ServoBindings.h"
 #include "mozilla/ServoCSSParser.h"
-#include "mozilla/StyleAnimationValue.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/StyleAnimationValue.h"
 #include "mozilla/TimingParams.h"
 #include "mozilla/dom/BaseKeyframeTypesBinding.h"  // For FastBaseKeyframe etc.
 #include "mozilla/dom/Document.h"  // For Document::AreWebAnimationsImplicitKeyframesEnabled
 #include "mozilla/dom/Element.h"
-#include "mozilla/dom/KeyframeEffectBinding.h"
 #include "mozilla/dom/KeyframeEffect.h"  // For PropertyValuesPair etc.
+#include "mozilla/dom/KeyframeEffectBinding.h"
 #include "mozilla/dom/Nullable.h"
-#include "jsapi.h"             // For most JSAPI
-#include "js/ForOfIterator.h"  // For JS::ForOfIterator
-#include "nsClassHashtable.h"
-#include "nsContentUtils.h"  // For GetContextForContent
 #include "nsCSSPropertyIDSet.h"
 #include "nsCSSProps.h"
 #include "nsCSSPseudoElements.h"  // For PseudoStyleType
+#include "nsClassHashtable.h"
+#include "nsContentUtils.h"  // For GetContextForContent
 #include "nsIScriptError.h"
 #include "nsPresContextInlines.h"
 #include "nsTArray.h"
-#include <algorithm>  // For std::stable_sort, std::min
 
 using mozilla::dom::Nullable;
 
@@ -134,14 +135,13 @@ class ComputedOffsetComparator {
 //
 // ------------------------------------------------------------------
 
-static void GetKeyframeListFromKeyframeSequence(JSContext* aCx,
-                                                dom::Document* aDocument,
-                                                JS::ForOfIterator& aIterator,
-                                                nsTArray<Keyframe>& aResult,
-                                                ErrorResult& aRv);
+static void GetKeyframeListFromKeyframeSequence(
+    JSContext* aCx, dom::Document* aDocument, JS::ForOfIterator& aIterator,
+    nsTArray<Keyframe>& aResult, const char* aContext, ErrorResult& aRv);
 
 static bool ConvertKeyframeSequence(JSContext* aCx, dom::Document* aDocument,
                                     JS::ForOfIterator& aIterator,
+                                    const char* aContext,
                                     nsTArray<Keyframe>& aResult);
 
 static bool GetPropertyValuesPairs(JSContext* aCx,
@@ -194,7 +194,7 @@ static void DistributeRange(const Range<Keyframe>& aRange);
 /* static */
 nsTArray<Keyframe> KeyframeUtils::GetKeyframesFromObject(
     JSContext* aCx, dom::Document* aDocument, JS::Handle<JSObject*> aFrames,
-    ErrorResult& aRv) {
+    const char* aContext, ErrorResult& aRv) {
   MOZ_ASSERT(!aRv.Failed());
 
   nsTArray<Keyframe> keyframes;
@@ -215,7 +215,8 @@ nsTArray<Keyframe> KeyframeUtils::GetKeyframesFromObject(
   }
 
   if (iter.valueIsIterable()) {
-    GetKeyframeListFromKeyframeSequence(aCx, aDocument, iter, keyframes, aRv);
+    GetKeyframeListFromKeyframeSequence(aCx, aDocument, iter, keyframes,
+                                        aContext, aRv);
   } else {
     GetKeyframeListFromPropertyIndexedKeyframe(aCx, aDocument, objectValue,
                                                keyframes, aRv);
@@ -340,21 +341,20 @@ bool KeyframeUtils::IsAnimatableProperty(nsCSSPropertyID aProperty) {
  *   object to iterate over as a sequence.
  * @param aResult The array into which the resulting Keyframe objects will be
  *   appended.
+ * @param aContext The context string to prepend to thrown exceptions.
  * @param aRv Out param to store any errors thrown by this function.
  */
-static void GetKeyframeListFromKeyframeSequence(JSContext* aCx,
-                                                dom::Document* aDocument,
-                                                JS::ForOfIterator& aIterator,
-                                                nsTArray<Keyframe>& aResult,
-                                                ErrorResult& aRv) {
+static void GetKeyframeListFromKeyframeSequence(
+    JSContext* aCx, dom::Document* aDocument, JS::ForOfIterator& aIterator,
+    nsTArray<Keyframe>& aResult, const char* aContext, ErrorResult& aRv) {
   MOZ_ASSERT(!aRv.Failed());
   MOZ_ASSERT(aResult.IsEmpty());
 
   // Convert the object in aIterator to a sequence of keyframes producing
   // an array of Keyframe objects.
-  if (!ConvertKeyframeSequence(aCx, aDocument, aIterator, aResult)) {
+  if (!ConvertKeyframeSequence(aCx, aDocument, aIterator, aContext, aResult)) {
     aResult.Clear();
-    aRv.Throw(NS_ERROR_FAILURE);
+    aRv.NoteJSContextException(aCx);
     return;
   }
 
@@ -380,6 +380,7 @@ static void GetKeyframeListFromKeyframeSequence(JSContext* aCx,
  */
 static bool ConvertKeyframeSequence(JSContext* aCx, dom::Document* aDocument,
                                     JS::ForOfIterator& aIterator,
+                                    const char* aContext,
                                     nsTArray<Keyframe>& aResult) {
   JS::Rooted<JS::Value> value(aCx);
   ErrorResult parseEasingResult;
@@ -396,8 +397,10 @@ static bool ConvertKeyframeSequence(JSContext* aCx, dom::Document* aDocument,
     // or null/undefined (which gets treated as a default {} dictionary
     // value).
     if (!value.isObject() && !value.isNullOrUndefined()) {
-      dom::ThrowErrorMessage(aCx, dom::MSG_NOT_OBJECT,
-                             "Element of sequence<Keyframe> argument");
+      dom::ThrowErrorMessage<dom::MSG_NOT_OBJECT>(
+          aCx,
+          nsPrintfCString("%sElement of sequence<Keyframe> argument", aContext)
+              .get());
       return false;
     }
 
@@ -502,7 +505,7 @@ static bool GetPropertyValuesPairs(JSContext* aCx,
     return false;
   }
   for (size_t i = 0, n = ids.length(); i < n; i++) {
-    nsAutoJSString propName;
+    nsAutoJSCString propName;
     if (!propName.init(aCx, ids[i])) {
       return false;
     }

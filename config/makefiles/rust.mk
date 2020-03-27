@@ -47,26 +47,16 @@ ifeq (1,$(MOZ_PARALLEL_BUILD))
 cargo_build_flags += -j1
 endif
 
-rustflags_lto = -Clto
-# Disable LTO when linking gkrust_gtest.
-ifneq (,$(findstring gkrust_gtest,$(RUST_LIBRARY_FILE)))
-rustflags_lto =
-endif
-# Disable LTO when linking for macOS with fuzzing for now,
-# see https://github.com/rust-lang/rust/issues/66285
-ifdef FUZZING_INTERFACES
-ifeq ($(OS_ARCH), Darwin)
-rustflags_lto =
-endif
-endif
-
 # These flags are passed via `cargo rustc` and only apply to the final rustc
 # invocation (i.e., only the top-level crate, not its dependencies).
 cargo_rustc_flags = $(CARGO_RUSTCFLAGS)
 ifndef DEVELOPER_OPTIONS
 ifndef MOZ_DEBUG_RUST
-# Enable link-time optimization for release builds
-cargo_rustc_flags += $(rustflags_lto)
+# Enable link-time optimization for release builds, but not when linking
+# gkrust_gtest.
+ifeq (,$(findstring gkrust_gtest,$(RUST_LIBRARY_FILE)))
+cargo_rustc_flags += -Clto
+endif
 endif
 endif
 
@@ -99,14 +89,15 @@ endif
 
 rustflags_override = $(MOZ_RUST_DEFAULT_FLAGS) $(rustflags_neon)
 
-ifdef MOZ_USING_SCCACHE
-export RUSTC_WRAPPER=$(CCACHE)
+ifdef DEVELOPER_OPTIONS
+# By default the Rust compiler will perform a limited kind of ThinLTO on each
+# crate. For local builds this additional optimization is not worth the
+# increase in compile time so we opt out of it.
+rustflags_override += -Clto=off
 endif
 
-ifdef MOZ_CODE_COVERAGE
-ifeq (gcc,$(CC_TYPE))
-CODE_COVERAGE_GCC=1
-endif
+ifdef MOZ_USING_SCCACHE
+export RUSTC_WRAPPER=$(CCACHE)
 endif
 
 ifneq (,$(MOZ_ASAN)$(MOZ_TSAN)$(MOZ_UBSAN))
@@ -132,7 +123,7 @@ rust_cc_env_name := $(subst -,_,$(RUST_TARGET))
 export CC_$(rust_cc_env_name)=$(CC)
 export CXX_$(rust_cc_env_name)=$(CXX)
 export AR_$(rust_cc_env_name)=$(AR)
-ifeq (,$(NATIVE_SANITIZERS)$(CODE_COVERAGE_GCC))
+ifeq (,$(NATIVE_SANITIZERS)$(MOZ_CODE_COVERAGE))
 # -DMOZILLA_CONFIG_H is added to prevent mozilla-config.h from injecting anything
 # in C/C++ compiles from rust. That's not needed in the other branch because the
 # base flags don't force-include mozilla-config.h.

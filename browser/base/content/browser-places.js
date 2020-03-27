@@ -1396,29 +1396,6 @@ var BookmarkingUI = {
       : this.STATUS_UNSTARRED;
   },
 
-  get _starredTooltip() {
-    delete this._starredTooltip;
-    return (this._starredTooltip = this._getFormattedTooltip(
-      "starButtonOn.tooltip2"
-    ));
-  },
-
-  get _unstarredTooltip() {
-    delete this._unstarredTooltip;
-    return (this._unstarredTooltip = this._getFormattedTooltip(
-      "starButtonOff.tooltip2"
-    ));
-  },
-
-  _getFormattedTooltip(strId) {
-    let args = [];
-    let shortcut = document.getElementById(this.BOOKMARK_BUTTON_SHORTCUT);
-    if (shortcut) {
-      args.push(ShortcutUtils.prettifyShortcut(shortcut));
-    }
-    return gNavigatorBundle.getFormattedString(strId, args);
-  },
-
   onPopupShowing: function BUI_onPopupShowing(event) {
     // Don't handle events for submenus.
     if (event.target != event.currentTarget) {
@@ -1602,7 +1579,7 @@ var BookmarkingUI = {
     if (this._hasBookmarksObserver) {
       PlacesUtils.bookmarks.removeObserver(this);
       PlacesUtils.observers.removeListener(
-        ["bookmark-added"],
+        ["bookmark-added", "bookmark-removed"],
         this.handlePlacesEvents
       );
     }
@@ -1653,7 +1630,7 @@ var BookmarkingUI = {
             PlacesUtils.bookmarks.addObserver(this);
             this.handlePlacesEvents = this.handlePlacesEvents.bind(this);
             PlacesUtils.observers.addListener(
-              ["bookmark-added"],
+              ["bookmark-added", "bookmark-removed"],
               this.handlePlacesEvents
             );
             this._hasBookmarksObserver = true;
@@ -1687,71 +1664,111 @@ var BookmarkingUI = {
       }
       if (starred) {
         element.setAttribute("starred", "true");
-        Services.obs.notifyObservers(null, "bookmark-icon-updated", "starred");
       } else {
         element.removeAttribute("starred");
-        Services.obs.notifyObservers(
-          null,
-          "bookmark-icon-updated",
-          "unstarred"
-        );
       }
     }
 
-    // Update the tooltip for elements that require it.
-    for (let element of [
-      this.star,
-      document.getElementById("context-bookmarkpage"),
-    ]) {
-      element.setAttribute(
-        "tooltiptext",
-        starred ? this._starredTooltip : this._unstarredTooltip
-      );
+    if (!this.star) {
+      // The BOOKMARK_BUTTON_SHORTCUT exists only in browser.xhtml.
+      // Return early if we're not in this context, but still reset the
+      // Bookmark This Page items.
+      this.updateBookmarkPageMenuItem(true);
+      return;
     }
+
+    // Update the tooltip for elements that require it.
+    let shortcut = document.getElementById(this.BOOKMARK_BUTTON_SHORTCUT);
+    let l10nArgs = {
+      shortcut: ShortcutUtils.prettifyShortcut(shortcut),
+    };
+    document.l10n.setAttributes(
+      this.star,
+      starred ? "urlbar-star-edit-bookmark" : "urlbar-star-add-bookmark",
+      l10nArgs
+    );
+
+    // Update the Bookmark This Page menuitem when bookmarked state changes.
+    this.updateBookmarkPageMenuItem();
+
+    Services.obs.notifyObservers(
+      null,
+      "bookmark-icon-updated",
+      starred ? "starred" : "unstarred"
+    );
   },
 
   /**
-   * forceReset is passed when we're destroyed and the label should go back
-   * to the default (Bookmark This Page) for OS X.
+   * Update the "bookmark this page" menuitems on the menubar, panels, context
+   * menu and page actions.
+   * @param {boolean} [forceReset] passed when we're destroyed and the label
+   * should go back to the default (Bookmark This Page), for MacOS.
    */
-  updateBookmarkPageMenuItem: function BUI_updateBookmarkPageMenuItem(
-    forceReset
-  ) {
-    if (!this.stringbundleset) {
-      // We are loaded in a non-browser context, like the sidebar.
-      return;
-    }
+  updateBookmarkPageMenuItem(forceReset = false) {
     let isStarred = !forceReset && this._itemGuids.size > 0;
-    let label = this.stringbundleset.getAttribute(
-      isStarred ? "string-editthisbookmark" : "string-bookmarkthispage"
-    );
+    // Define the l10n id which will be used to localize elements
+    // that only require a label using the menubar.ftl messages.
+    let menuItemL10nId = isStarred
+      ? "menu-bookmark-edit"
+      : "menu-bookmark-this-page";
+
+    let menuItem = document.getElementById("menu_bookmarkThisPage");
+    if (menuItem) {
+      // Localize the menubar item.
+      document.l10n.setAttributes(menuItem, menuItemL10nId);
+    }
 
     let panelMenuToolbarButton = document.getElementById(
       "panelMenuBookmarkThisPage"
     );
-    if (!panelMenuToolbarButton) {
-      // We don't have the star UI or context menu (e.g. we're the hidden
-      // window). So we just set the bookmarks menu item label and exit.
-      document
-        .getElementById("menu_bookmarkThisPage")
-        .setAttribute("label", label);
-      return;
+    if (panelMenuToolbarButton) {
+      document.l10n.setAttributes(panelMenuToolbarButton, menuItemL10nId);
     }
 
-    for (let element of [
-      document.getElementById("menu_bookmarkThisPage"),
-      document.getElementById("context-bookmarkpage"),
-      panelMenuToolbarButton,
-    ]) {
-      element.setAttribute("label", label);
+    // Localize the context menu item element.
+    let contextItem = document.getElementById("context-bookmarkpage");
+    if (contextItem) {
+      let shortcutElem = document.getElementById(this.BOOKMARK_BUTTON_SHORTCUT);
+      if (shortcutElem) {
+        let shortcut = ShortcutUtils.prettifyShortcut(shortcutElem);
+        let contextItemL10nId = isStarred
+          ? "main-context-menu-bookmark-change-with-shortcut"
+          : "main-context-menu-bookmark-add-with-shortcut";
+        let l10nArgs = { shortcut };
+        document.l10n.setAttributes(contextItem, contextItemL10nId, l10nArgs);
+      } else {
+        let contextItemL10nId = isStarred
+          ? "main-context-menu-bookmark-change"
+          : "main-context-menu-bookmark-add";
+        document.l10n.setAttributes(contextItem, contextItemL10nId);
+      }
     }
 
-    // Update the title and the starred state for the page action panel.
-    PageActions.actionForID(PageActions.ACTION_ID_BOOKMARK).setTitle(
-      label,
-      window
-    );
-    this._updateStar();
+    // Update Page Actions.
+    if (document.getElementById("page-action-buttons")) {
+      // Fetch the label attribute value of the message and
+      // apply it on the star title.
+      //
+      // Note: This should be updated once bug 1608198 is fixed.
+      this._latestMenuItemL10nId = menuItemL10nId;
+      document.l10n.formatMessages([{ id: menuItemL10nId }]).then(l10n => {
+        // It's possible for this promise to be scheduled multiple times.
+        // In such a case, we'd like to avoid setting the title if there's
+        // a newer l10n id pending to be set.
+        if (this._latestMenuItemL10nId != menuItemL10nId) {
+          return;
+        }
+
+        // We assume that menuItemL10nId has a single attribute.
+        let label = l10n[0].attributes[0].value;
+
+        // Update the title and the starred state for the page action panel.
+        PageActions.actionForID(PageActions.ACTION_ID_BOOKMARK).setTitle(
+          label,
+          window
+        );
+      });
+    }
   },
 
   onMainMenuPopupShowing: function BUI_onMainMenuPopupShowing(event) {
@@ -1760,7 +1777,6 @@ var BookmarkingUI = {
       return;
     }
 
-    this.updateBookmarkPageMenuItem();
     this._initMobileBookmarks(document.getElementById("menu_mobileBookmarks"));
   },
 
@@ -1828,10 +1844,6 @@ var BookmarkingUI = {
     }
   },
 
-  onCurrentPageContextPopupShowing() {
-    this.updateBookmarkPageMenuItem();
-  },
-
   handleEvent: function BUI_handleEvent(aEvent) {
     switch (aEvent.type) {
       case "mouseover":
@@ -1848,8 +1860,6 @@ var BookmarkingUI = {
 
   onPanelMenuViewShowing: function BUI_onViewShowing(aEvent) {
     let panelview = aEvent.target;
-
-    this.updateBookmarkPageMenuItem();
 
     // Get all statically placed buttons to supply them with keyboard shortcuts.
     let staticButtons = panelview.getElementsByTagName("toolbarbutton");
@@ -1946,28 +1956,30 @@ var BookmarkingUI = {
   },
 
   handlePlacesEvents(aEvents) {
-    // Only need to update the UI if it wasn't marked as starred before:
-    if (this._itemGuids.size == 0) {
-      for (let { url, guid } of aEvents) {
-        if (url && url == this._uri.spec) {
-          // If a new bookmark has been added to the tracked uri, register it.
-          if (!this._itemGuids.has(guid)) {
-            this._itemGuids.add(guid);
-            this._updateStar();
+    for (let ev of aEvents) {
+      switch (ev.type) {
+        case "bookmark-added":
+          // Only need to update the UI if it wasn't marked as starred before:
+          if (this._itemGuids.size == 0) {
+            if (ev.url && ev.url == this._uri.spec) {
+              // If a new bookmark has been added to the tracked uri, register it.
+              if (!this._itemGuids.has(ev.guid)) {
+                this._itemGuids.add(ev.guid);
+                this._updateStar();
+              }
+            }
           }
-        }
-      }
-    }
-  },
-
-  // nsINavBookmarkObserver
-  onItemRemoved(aItemId, aParentId, aIndex, aItemType, aURI, aGuid) {
-    // If one of the tracked bookmarks has been removed, unregister it.
-    if (this._itemGuids.has(aGuid)) {
-      this._itemGuids.delete(aGuid);
-      // Only need to update the UI if the page is no longer starred
-      if (this._itemGuids.size == 0) {
-        this._updateStar();
+          break;
+        case "bookmark-removed":
+          // If one of the tracked bookmarks has been removed, unregister it.
+          if (this._itemGuids.has(ev.guid)) {
+            this._itemGuids.delete(ev.guid);
+            // Only need to update the UI if the page is no longer starred
+            if (this._itemGuids.size == 0) {
+              this._updateStar();
+            }
+          }
+          break;
       }
     }
   },

@@ -34,6 +34,7 @@ class AndroidMixin(object):
         self.logcat_proc = None
         self.logcat_file = None
         self.use_gles3 = False
+        self.xre_path = None
         super(AndroidMixin, self).__init__(**kwargs)
 
     @property
@@ -400,7 +401,10 @@ class AndroidMixin(object):
             os.environ["MOZ_UPLOAD_DIR"] = dirs['abs_blob_upload_dir']
             reset_dir = True
         if self.is_emulator:
-            dump_screen(self.xre_path, self, prefix=prefix)
+            if self.xre_path:
+                dump_screen(self.xre_path, self, prefix=prefix)
+            else:
+                self.info('Not saving screenshot: no XRE configured')
         else:
             dump_device_screen(self.device, self, prefix=prefix)
         if reset_dir:
@@ -610,8 +614,6 @@ class AndroidMixin(object):
         self.logcat_start()
         self.delete_ANRs()
         self.delete_tombstones()
-        # Get a post-boot device process list for diagnostics
-        self.info(self.shell_output('ps'))
         self.info("verify_device complete")
 
     @PreScriptAction('run-tests')

@@ -5,8 +5,8 @@
 use api::{ColorF, DebugFlags, DocumentLayer, FontRenderMode, PremultipliedColorF};
 use api::units::*;
 use crate::batch::{BatchBuilder, AlphaBatchBuilder, AlphaBatchContainer};
-use crate::clip::{ClipStore, ClipChainStack};
-use crate::clip_scroll_tree::{ClipScrollTree, ROOT_SPATIAL_NODE_INDEX, SpatialNodeIndex, CoordinateSystemId};
+use crate::clip::{ClipStore, ClipChainStack, ClipDataHandle};
+use crate::spatial_tree::{SpatialTree, ROOT_SPATIAL_NODE_INDEX, SpatialNodeIndex, CoordinateSystemId};
 use crate::composite::{CompositorKind, CompositeState};
 use crate::debug_render::DebugItem;
 use crate::gpu_cache::{GpuCache, GpuCacheHandle};
@@ -15,6 +15,7 @@ use crate::gpu_types::TransformData;
 use crate::internal_types::{FastHashMap, PlaneSplitter, SavedTargetIndex};
 use crate::picture::{PictureUpdateState, SurfaceInfo, ROOT_SURFACE_INDEX, SurfaceIndex, RecordedDirtyRegion};
 use crate::picture::{RetainedTiles, TileCacheInstance, DirtyRegion, SurfaceRenderTasks, SubpixelMode};
+use crate::picture::{TileCacheLogger};
 use crate::prim_store::{SpaceMapper, PictureIndex, PrimitiveDebugId, PrimitiveScratchBuffer};
 use crate::prim_store::{DeferredResolve, PrimitiveVisibilityMask};
 use crate::profiler::{FrameProfileCounters, TextureCacheProfileCounters, ResourceProfileCounters};
@@ -64,6 +65,7 @@ pub struct FrameBuilderConfig {
     pub batch_lookback_count: usize,
     pub background_color: Option<ColorF>,
     pub compositor_kind: CompositorKind,
+    pub tile_size_override: Option<DeviceIntSize>,
 }
 
 /// A set of common / global resources that are retained between
@@ -110,13 +112,13 @@ pub struct FrameBuilder {
 }
 
 pub struct FrameVisibilityContext<'a> {
-    pub clip_scroll_tree: &'a ClipScrollTree,
+    pub spatial_tree: &'a SpatialTree,
     pub global_screen_world_rect: WorldRect,
     pub global_device_pixel_scale: DevicePixelScale,
     pub surfaces: &'a [SurfaceInfo],
     pub debug_flags: DebugFlags,
     pub scene_properties: &'a SceneProperties,
-    pub config: &'a FrameBuilderConfig,
+    pub config: FrameBuilderConfig,
 }
 
 pub struct FrameVisibilityState<'a> {
@@ -130,13 +132,32 @@ pub struct FrameVisibilityState<'a> {
     pub clip_chain_stack: ClipChainStack,
     pub render_tasks: &'a mut RenderTaskGraph,
     pub composite_state: &'a mut CompositeState,
+    /// A stack of currently active off-screen surfaces during the
+    /// visibility frame traversal.
+    pub surface_stack: Vec<SurfaceIndex>,
+}
+
+impl<'a> FrameVisibilityState<'a> {
+    pub fn push_surface(
+        &mut self,
+        surface_index: SurfaceIndex,
+        shared_clips: &[ClipDataHandle]
+    ) {
+        self.surface_stack.push(surface_index);
+        self.clip_chain_stack.push_surface(shared_clips);
+    }
+
+    pub fn pop_surface(&mut self) {
+        self.surface_stack.pop().unwrap();
+        self.clip_chain_stack.pop_surface();
+    }
 }
 
 pub struct FrameBuildingContext<'a> {
     pub global_device_pixel_scale: DevicePixelScale,
     pub scene_properties: &'a SceneProperties,
     pub global_screen_world_rect: WorldRect,
-    pub clip_scroll_tree: &'a ClipScrollTree,
+    pub spatial_tree: &'a SpatialTree,
     pub max_local_clip: LayoutRect,
     pub debug_flags: DebugFlags,
     pub fb_config: &'a FrameBuilderConfig,
@@ -240,6 +261,8 @@ impl FrameBuilder {
         debug_flags: DebugFlags,
         texture_cache_profile: &mut TextureCacheProfileCounters,
         composite_state: &mut CompositeState,
+        tile_cache_logger: &mut TileCacheLogger,
+        config: FrameBuilderConfig,
     ) -> Option<RenderTaskId> {
         profile_scope!("cull");
 
@@ -249,7 +272,7 @@ impl FrameBuilder {
 
         scratch.begin_frame();
 
-        let root_spatial_node_index = scene.clip_scroll_tree.root_reference_frame_index();
+        let root_spatial_node_index = scene.spatial_tree.root_reference_frame_index();
 
         const MAX_CLIP_COORD: f32 = 1.0e9;
 
@@ -257,7 +280,7 @@ impl FrameBuilder {
             global_device_pixel_scale,
             scene_properties,
             global_screen_world_rect,
-            clip_scroll_tree: &scene.clip_scroll_tree,
+            spatial_tree: &scene.spatial_tree,
             max_local_clip: LayoutRect::new(
                 LayoutPoint::new(-MAX_CLIP_COORD, -MAX_CLIP_COORD),
                 LayoutSize::new(2.0 * MAX_CLIP_COORD, 2.0 * MAX_CLIP_COORD),
@@ -266,19 +289,19 @@ impl FrameBuilder {
             fb_config: &scene.config,
         };
 
-        let root_render_task = RenderTask::new_picture(
-            RenderTaskLocation::Fixed(scene.output_rect),
-            scene.output_rect.size.to_f32(),
-            scene.root_pic_index,
-            DeviceIntPoint::zero(),
-            UvRectKind::Rect,
-            ROOT_SPATIAL_NODE_INDEX,
-            global_device_pixel_scale,
-            PrimitiveVisibilityMask::all(),
-            None,
+        let root_render_task_id = render_tasks.add().init(
+            RenderTask::new_picture(
+                RenderTaskLocation::Fixed(scene.output_rect),
+                scene.output_rect.size.to_f32(),
+                scene.root_pic_index,
+                DeviceIntPoint::zero(),
+                UvRectKind::Rect,
+                ROOT_SPATIAL_NODE_INDEX,
+                global_device_pixel_scale,
+                PrimitiveVisibilityMask::all(),
+                None,
+            )
         );
-
-        let root_render_task_id = render_tasks.add(root_render_task);
 
         // Construct a dummy root surface, that represents the
         // main framebuffer surface.
@@ -287,7 +310,7 @@ impl FrameBuilder {
             ROOT_SPATIAL_NODE_INDEX,
             0.0,
             global_screen_world_rect,
-            &scene.clip_scroll_tree,
+            &scene.spatial_tree,
             global_device_pixel_scale,
         );
         surfaces.push(root_surface);
@@ -320,12 +343,12 @@ impl FrameBuilder {
 
             let visibility_context = FrameVisibilityContext {
                 global_device_pixel_scale,
-                clip_scroll_tree: &scene.clip_scroll_tree,
+                spatial_tree: &scene.spatial_tree,
                 global_screen_world_rect,
                 surfaces,
                 debug_flags,
                 scene_properties,
-                config: &scene.config,
+                config,
             };
 
             let mut visibility_state = FrameVisibilityState {
@@ -339,6 +362,9 @@ impl FrameBuilder {
                 clip_chain_stack: ClipChainStack::new(),
                 render_tasks,
                 composite_state,
+                /// Try to avoid allocating during frame traversal - it's unlikely to have a
+                /// surface stack depth of > 16 in most cases.
+                surface_stack: Vec::with_capacity(16),
             };
 
             scene.prim_store.update_visibility(
@@ -411,8 +437,11 @@ impl FrameBuilder {
                 &mut frame_state,
                 &frame_context,
                 scratch,
+                tile_cache_logger
             )
             .unwrap();
+
+        tile_cache_logger.advance();
 
         {
             profile_marker!("PreparePrims");
@@ -425,11 +454,13 @@ impl FrameBuilder {
                 &mut frame_state,
                 data_stores,
                 scratch,
+                tile_cache_logger,
             );
         }
 
         let pic = &mut scene.prim_store.pictures[scene.root_pic_index.0];
         pic.restore_context(
+            ROOT_SURFACE_INDEX,
             prim_list,
             pic_context,
             pic_state,
@@ -465,6 +496,8 @@ impl FrameBuilder {
         scratch: &mut PrimitiveScratchBuffer,
         render_task_counters: &mut RenderTaskGraphCounters,
         debug_flags: DebugFlags,
+        tile_cache_logger: &mut TileCacheLogger,
+        config: FrameBuilderConfig,
     ) -> Frame {
         profile_scope!("build");
         profile_marker!("BuildFrame");
@@ -479,12 +512,12 @@ impl FrameBuilder {
 
         self.globals.update(gpu_cache);
 
-        scene.clip_scroll_tree.update_tree(
+        scene.spatial_tree.update_tree(
             pan,
             global_device_pixel_scale,
             scene_properties,
         );
-        let mut transform_palette = scene.clip_scroll_tree.build_transform_palette();
+        let mut transform_palette = scene.spatial_tree.build_transform_palette();
         scene.clip_store.clear_old_instances();
 
         let mut render_tasks = RenderTaskGraph::new(
@@ -506,7 +539,7 @@ impl FrameBuilder {
             !debug_flags.contains(DebugFlags::DISABLE_PICTURE_CACHING) &&
             !scene.picture_cache_spatial_nodes.iter().any(|spatial_node_index| {
                 let spatial_node = &scene
-                    .clip_scroll_tree
+                    .spatial_tree
                     .spatial_nodes[spatial_node_index.0 as usize];
                 spatial_node.coordinate_system_id != CoordinateSystemId::root() ||
                     spatial_node.is_ancestor_or_self_zooming
@@ -534,6 +567,8 @@ impl FrameBuilder {
             debug_flags,
             &mut resource_profile.texture_cache,
             &mut composite_state,
+            tile_cache_logger,
+            config,
         );
 
         let mut passes;
@@ -564,7 +599,7 @@ impl FrameBuilder {
                     use_advanced_blending: scene.config.gpu_supports_advanced_blend,
                     break_advanced_blend_batches: !scene.config.advanced_blend_is_coherent,
                     batch_lookback_count: scene.config.batch_lookback_count,
-                    clip_scroll_tree: &scene.clip_scroll_tree,
+                    spatial_tree: &scene.spatial_tree,
                     data_stores,
                     surfaces: &surfaces,
                     scratch,

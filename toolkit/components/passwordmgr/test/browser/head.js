@@ -648,7 +648,8 @@ async function openPasswordContextMenu(
 
   // Synthesize a mouse click over the fill login menu header.
   let popupShownPromise = BrowserTestUtils.waitForCondition(
-    () => POPUP_HEADER.open && BrowserTestUtils.is_visible(LOGIN_POPUP)
+    () => POPUP_HEADER.open && BrowserTestUtils.is_visible(LOGIN_POPUP),
+    "Waiting for header to be open and submenu to be visible"
   );
   EventUtils.synthesizeMouseAtCenter(POPUP_HEADER, {}, browser.ownerGlobal);
   await popupShownPromise;
@@ -685,16 +686,13 @@ async function doFillGeneratedPasswordContextMenuItem(browser, passwordInput) {
   await SimpleTest.promiseFocus(browser);
   await openPasswordContextMenu(browser, passwordInput);
 
-  let loginPopup = document.getElementById("fill-login-popup");
   let generatedPasswordItem = document.getElementById(
     "fill-login-generated-password"
   );
   let generatedPasswordSeparator = document.getElementById(
-    "generated-password-separator"
+    "fill-login-and-generated-password-separator"
   );
 
-  // Check the content of the password manager popup
-  ok(BrowserTestUtils.is_visible(loginPopup), "Popup is visible");
   ok(
     BrowserTestUtils.is_visible(generatedPasswordItem),
     "generated password item is visible"

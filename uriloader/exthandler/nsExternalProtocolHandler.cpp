@@ -236,6 +236,14 @@ NS_IMETHODIMP nsExtProtocolChannel::SetLoadFlags(nsLoadFlags aLoadFlags) {
   return NS_OK;
 }
 
+NS_IMETHODIMP nsExtProtocolChannel::GetTRRMode(nsIRequest::TRRMode* aTRRMode) {
+  return GetTRRModeImpl(aTRRMode);
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::SetTRRMode(nsIRequest::TRRMode aTRRMode) {
+  return SetTRRModeImpl(aTRRMode);
+}
+
 NS_IMETHODIMP nsExtProtocolChannel::GetIsDocument(bool* aIsDocument) {
   return NS_GetIsDocumentChannel(this, aIsDocument);
 }
@@ -385,23 +393,6 @@ NS_IMETHODIMP nsExtProtocolChannel::SetParentListener(
   // just no-op.  Actual operation will happen from the child process
   // via CompleteRedirectSetup call on the child channel.
   mConnectedParent = true;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsExtProtocolChannel::NotifyChannelClassifierProtectionDisabled(
-    uint32_t aAcceptedReason) {
-  // nothing to do
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsExtProtocolChannel::NotifyCookieAllowed() {
-  // nothing to do
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsExtProtocolChannel::NotifyCookieBlocked(
-    uint32_t aRejectedReason) {
-  // nothing to do
   return NS_OK;
 }
 

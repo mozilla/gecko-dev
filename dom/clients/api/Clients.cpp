@@ -103,7 +103,7 @@ already_AddRefed<Promise> Clients::Get(const nsAString& aClientID,
             SystemGroup::Dispatch(TaskCategory::Other, r.forget());
             outerPromise->MaybeResolveWithUndefined();
           },
-          [outerPromise, holder](nsresult aResult) {
+          [outerPromise, holder](const CopyableErrorResult& aResult) {
             holder->Complete();
             outerPromise->MaybeResolveWithUndefined();
           })
@@ -188,7 +188,11 @@ already_AddRefed<Promise> Clients::MatchAll(const ClientQueryOptions& aOptions,
         clientList.Sort(MatchAllComparator());
         outerPromise->MaybeResolve(clientList);
       },
-      [outerPromise](nsresult aResult) { outerPromise->MaybeReject(aResult); });
+      [outerPromise](const CopyableErrorResult& aResult) {
+        // MaybeReject needs a non-const result, so make a copy.
+        CopyableErrorResult result(aResult);
+        outerPromise->MaybeReject(result);
+      });
 
   return outerPromise.forget();
 }
@@ -207,8 +211,10 @@ already_AddRefed<Promise> Clients::OpenWindow(const nsAString& aURL,
   }
 
   if (aURL.EqualsLiteral("about:blank")) {
-    // TODO: Improve this error in bug 1412856.
-    outerPromise->MaybeReject(NS_ERROR_DOM_TYPE_ERR);
+    CopyableErrorResult rv;
+    rv.ThrowTypeError(
+        u"Passing \"about:blank\" to Clients.openWindow is not allowed");
+    outerPromise->MaybeReject(rv);
     return outerPromise.forget();
   }
 
@@ -237,10 +243,10 @@ already_AddRefed<Promise> Clients::OpenWindow(const nsAString& aURL,
             new Client(global, aResult.get_ClientInfoAndState());
         outerPromise->MaybeResolve(client);
       },
-      [outerPromise](nsresult aResult) {
-        // TODO: Improve this error in bug 1412856.  Ideally we should throw
-        //       the TypeError in the child process and pass it back to here.
-        outerPromise->MaybeReject(NS_ERROR_DOM_TYPE_ERR);
+      [outerPromise](const CopyableErrorResult& aResult) {
+        // MaybeReject needs a non-const result, so make a copy.
+        CopyableErrorResult result(aResult);
+        outerPromise->MaybeReject(result);
       });
 
   return outerPromise.forget();
@@ -263,7 +269,7 @@ already_AddRefed<Promise> Clients::Claim(ErrorResult& aRv) {
 
   if (serviceWorker.State() != ServiceWorkerState::Activating &&
       serviceWorker.State() != ServiceWorkerState::Activated) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    aRv.ThrowInvalidStateError("Service worker is not active");
     return outerPromise.forget();
   }
 
@@ -272,7 +278,11 @@ already_AddRefed<Promise> Clients::Claim(ErrorResult& aRv) {
       [outerPromise](const ClientOpResult& aResult) {
         outerPromise->MaybeResolveWithUndefined();
       },
-      [outerPromise](nsresult aResult) { outerPromise->MaybeReject(aResult); });
+      [outerPromise](const CopyableErrorResult& aResult) {
+        // MaybeReject needs a non-const result, so make a copy.
+        CopyableErrorResult result(aResult);
+        outerPromise->MaybeReject(result);
+      });
 
   return outerPromise.forget();
 }

@@ -149,6 +149,7 @@ class WorkerGlobalScope : public DOMEventTargetHelper,
 
   IMPL_EVENT_HANDLER(online)
   IMPL_EVENT_HANDLER(offline)
+  IMPL_EVENT_HANDLER(languagechange)
   IMPL_EVENT_HANDLER(rejectionhandled)
   IMPL_EVENT_HANDLER(unhandledrejection)
 
@@ -214,6 +215,8 @@ class WorkerGlobalScope : public DOMEventTargetHelper,
     return mozilla::Some(
         mozilla::dom::EventCallbackDebuggerNotificationType::Global);
   }
+
+  bool IsSharedMemoryAllowed() const override;
 
   Maybe<ClientInfo> GetClientInfo() const override;
 

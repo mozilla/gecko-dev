@@ -12,21 +12,16 @@
 
 namespace mozilla {
 
-WebGLExtensionBase::WebGLExtensionBase(WebGLContext* webgl)
-    : WebGLContextBoundObject(webgl), mIsLost(false), mIsExplicit(false) {}
-
-WebGLExtensionBase::~WebGLExtensionBase() {}
-
-void WebGLExtensionBase::MarkLost() {
-  mIsLost = true;
-
-  OnMarkLost();
+WebGLExtensionBlendMinMax::WebGLExtensionBlendMinMax(WebGLContext* webgl)
+    : WebGLExtensionBase(webgl) {
+  MOZ_ASSERT(IsSupported(webgl), "Don't construct extension if unsupported.");
 }
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(WebGLExtensionBase)
+bool WebGLExtensionBlendMinMax::IsSupported(const WebGLContext* webgl) {
+  if (webgl->IsWebGL2()) return false;
 
-NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(WebGLExtensionBase, AddRef)
-NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(WebGLExtensionBase, Release)
+  return webgl->GL()->IsSupported(gl::GLFeature::blend_minmax);
+}
 
 // -
 
@@ -41,21 +36,12 @@ bool WebGLExtensionExplicitPresent::IsSupported(
   return StaticPrefs::webgl_enable_draft_extensions();
 }
 
-void WebGLExtensionExplicitPresent::Present() const {
-  if (mIsLost || !mContext) return;
-  mContext->PresentScreenBuffer();
-}
-
-IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionExplicitPresent, WEBGL_explicit_present)
-
 // -
 
 WebGLExtensionFloatBlend::WebGLExtensionFloatBlend(WebGLContext* const webgl)
     : WebGLExtensionBase(webgl) {
   MOZ_ASSERT(IsSupported(webgl), "Don't construct extension if unsupported.");
 }
-
-WebGLExtensionFloatBlend::~WebGLExtensionFloatBlend() = default;
 
 bool WebGLExtensionFloatBlend::IsSupported(const WebGLContext* const webgl) {
   if (!WebGLExtensionColorBufferFloat::IsSupported(webgl) &&
@@ -68,8 +54,6 @@ bool WebGLExtensionFloatBlend::IsSupported(const WebGLContext* const webgl) {
   return gl->IsExtensionSupported(gl::GLContext::EXT_float_blend);
 }
 
-IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionFloatBlend, EXT_float_blend)
-
 // -
 
 WebGLExtensionFBORenderMipmap::WebGLExtensionFBORenderMipmap(
@@ -77,8 +61,6 @@ WebGLExtensionFBORenderMipmap::WebGLExtensionFBORenderMipmap(
     : WebGLExtensionBase(webgl) {
   MOZ_ASSERT(IsSupported(webgl), "Don't construct extension if unsupported.");
 }
-
-WebGLExtensionFBORenderMipmap::~WebGLExtensionFBORenderMipmap() = default;
 
 bool WebGLExtensionFBORenderMipmap::IsSupported(
     const WebGLContext* const webgl) {
@@ -90,8 +72,6 @@ bool WebGLExtensionFBORenderMipmap::IsSupported(
   return gl->IsExtensionSupported(gl::GLContext::OES_fbo_render_mipmap);
 }
 
-IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionFBORenderMipmap, OES_fbo_render_mipmap)
-
 // -
 
 WebGLExtensionMultiview::WebGLExtensionMultiview(WebGLContext* const webgl)
@@ -99,30 +79,11 @@ WebGLExtensionMultiview::WebGLExtensionMultiview(WebGLContext* const webgl)
   MOZ_ASSERT(IsSupported(webgl), "Don't construct extension if unsupported.");
 }
 
-WebGLExtensionMultiview::~WebGLExtensionMultiview() = default;
-
 bool WebGLExtensionMultiview::IsSupported(const WebGLContext* const webgl) {
   if (!webgl->IsWebGL2()) return false;
 
   const auto& gl = webgl->gl;
   return gl->IsSupported(gl::GLFeature::multiview);
 }
-
-void WebGLExtensionMultiview::FramebufferTextureMultiviewOVR(
-    const GLenum target, const GLenum attachment, WebGLTexture* const texture,
-    const GLint level, const GLint baseViewIndex,
-    const GLsizei numViews) const {
-  const WebGLContext::FuncScope funcScope(*mContext,
-                                          "framebufferTextureMultiviewOVR");
-  if (mIsLost) {
-    mContext->ErrorInvalidOperation("Extension is lost.");
-    return;
-  }
-
-  mContext->FramebufferTextureMultiview(target, attachment, texture, level,
-                                        baseViewIndex, numViews);
-}
-
-IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionMultiview, OVR_multiview2)
 
 }  // namespace mozilla

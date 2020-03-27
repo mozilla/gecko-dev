@@ -1878,17 +1878,45 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         V(21, 20, 16, 4590), "Intel driver >= 21.20.16.4590");
 #endif
 
+    // Bug 1615421 / 1607860 - Playing videos appear to crash with WebRender
+    // with this particular driver.
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows,
+        (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorIntel),
+        (nsAString&)GfxDriverInfo::GetDriverVendor(DriverVendorAll),
+        GfxDriverInfo::allDevices, nsIGfxInfo::FEATURE_WEBRENDER,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_EQUAL,
+        V(23, 20, 16, 4973), "Intel driver > 23.20.16.4973");
+
     ////////////////////////////////////
     // FEATURE_WEBRENDER_COMPOSITOR
 
+    // See also bug 161687
     APPEND_TO_DRIVER_BLOCKLIST2(
-        OperatingSystem::Windows10,
+        OperatingSystem::Windows,
         (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorIntel),
         (nsAString&)GfxDriverInfo::GetDriverVendor(DriverVendorAll),
-        (GfxDeviceFamily*)GfxDriverInfo::GetDeviceFamily(IntelHD520),
-        nsIGfxInfo::FEATURE_WEBRENDER_COMPOSITOR,
+        GfxDriverInfo::allDevices, nsIGfxInfo::FEATURE_WEBRENDER_COMPOSITOR,
         nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_LESS_THAN_OR_EQUAL,
         V(25, 20, 100, 6472), "FEATURE_FAILURE_BUG_1602511");
+
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows,
+        (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorATI),
+        (nsAString&)GfxDriverInfo::GetDriverVendor(DriverVendorAll),
+        GfxDriverInfo::allDevices, nsIGfxInfo::FEATURE_WEBRENDER_COMPOSITOR,
+        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_EQUAL,
+        V(8, 17, 10, 1129), "FEATURE_FAILURE_CHROME_BUG_800950");
+
+    // Block all AMD for now
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows,
+        (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorATI),
+        (nsAString&)GfxDriverInfo::GetDriverVendor(DriverVendorAll),
+        GfxDriverInfo::allDevices, nsIGfxInfo::FEATURE_WEBRENDER_COMPOSITOR,
+        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_COMPARISON_IGNORED,
+        V(0, 0, 0, 0), "FEATURE_FAILURE_ALL_AMD");
+
   }
   return *sDriverInfo;
 }

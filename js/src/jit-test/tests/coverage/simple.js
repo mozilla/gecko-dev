@@ -1,4 +1,4 @@
-// |jit-test| --code-coverage;
+// |jit-test| --code-coverage
 
 // Currently the Jit integration has a few issues, let's keep this test
 // case deterministic.
@@ -572,6 +572,24 @@ checkLcov(function () { //FN:$,top-level //FNDA:1,%
         //LF:3
         //LH:3
     });
+}
+
+// These tests are not included in ../debug/Script-getOffsetsCoverage-01.js
+// because they are testing behaviour of --code-coverage.
+{
+  // Test function names
+  checkLcov(function () {
+    //FN:1,top-level
+    //FNDA:1,top-level
+
+    var x = function() {};  //FN:$,x
+    let y = function() {};  //FN:$,y
+
+    let z = {
+      z_method() { },       //FN:$,z_method
+      get z_prop() { },     //FN:$,get z_prop
+    }
+  });
 }
 
 // If you add a test case here, do the same in

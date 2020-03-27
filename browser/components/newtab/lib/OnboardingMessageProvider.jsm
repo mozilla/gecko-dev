@@ -13,8 +13,10 @@ ChromeUtils.defineModuleGetter(
   "AddonRepository",
   "resource://gre/modules/addons/AddonRepository.jsm"
 );
+const { FX_MONITOR_OAUTH_CLIENT_ID } = ChromeUtils.import(
+  "resource://gre/modules/FxAccountsCommon.js"
+);
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
-const FX_MONITOR_CLIENT_ID = "802d56ef2a9af9fa";
 
 const L10N = new Localization([
   "branding/brand.ftl",
@@ -70,17 +72,17 @@ const TRAILHEAD_FULL_PAGE_CONTENT = {
 const JOIN_CONTENT = {
   className: "joinCohort",
   title: { string_id: "onboarding-welcome-body" },
-  benefits: ["products", "knowledge", "privacy"].map(id => ({
+  benefits: ["sync", "monitor", "lockwise"].map(id => ({
     id,
     title: { string_id: `onboarding-benefit-${id}-title` },
     text: { string_id: `onboarding-benefit-${id}-text` },
   })),
   learn: {
-    text: { string_id: "onboarding-welcome-learn-more" },
+    text: { string_id: "onboarding-welcome-modal-family-learn-more" },
     url: "https://www.mozilla.org/firefox/accounts/",
   },
   form: {
-    title: { string_id: "onboarding-join-form-header" },
+    title: { string_id: "onboarding-welcome-form-header" },
     text: { string_id: "onboarding-join-form-body" },
     email: { string_id: "onboarding-join-form-email" },
     button: { string_id: "onboarding-join-form-continue" },
@@ -228,7 +230,7 @@ const ONBOARDING_MESSAGES = () => [
       primary_button: {
         label: { string_id: "onboarding-tracking-protection-button2" },
         action:
-          Services.locale.appLocaleAsLangTag.substr(0, 2) === "en"
+          Services.locale.appLocaleAsBCP47.substr(0, 2) === "en"
             ? {
                 type: "OPEN_URL",
                 data: {
@@ -290,7 +292,7 @@ const ONBOARDING_MESSAGES = () => [
     },
     // Use service oauth client_id to identify 'Firefox Monitor' service attached to Firefox Account
     // https://docs.telemetry.mozilla.org/datasets/fxa_metrics/attribution.html#service-attribution
-    targeting: `trailheadTriplet in ['supercharge', 'static'] || ('dynamic' in trailheadTriplet && !("${FX_MONITOR_CLIENT_ID}" in attachedFxAOAuthClients|mapToProperty('id')))`,
+    targeting: `trailheadTriplet in ['supercharge', 'static'] || ('dynamic' in trailheadTriplet && !("${FX_MONITOR_OAUTH_CLIENT_ID}" in attachedFxAOAuthClients|mapToProperty('id')))`,
     trigger: { id: "showOnboarding" },
   },
   {

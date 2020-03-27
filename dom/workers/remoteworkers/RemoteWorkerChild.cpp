@@ -36,6 +36,7 @@
 #include "mozilla/dom/ServiceWorkerInterceptController.h"
 #include "mozilla/dom/ServiceWorkerOp.h"
 #include "mozilla/dom/ServiceWorkerRegistrationDescriptor.h"
+#include "mozilla/dom/ServiceWorkerShutdownState.h"
 #include "mozilla/dom/ServiceWorkerUtils.h"
 #include "mozilla/dom/workerinternals/ScriptLoader.h"
 #include "mozilla/dom/WorkerError.h"
@@ -473,7 +474,13 @@ nsresult RemoteWorkerChild::ExecWorkerOnMainThread(RemoteWorkerData&& aData) {
     nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
         __func__, [initializeWorkerRunnable = std::move(runnable),
                    self = std::move(self)] {
-          if (NS_WARN_IF(!initializeWorkerRunnable->Dispatch())) {
+          // Checking RemoteWorkerChild.mState
+          bool isPending;
+          {
+            auto lock = self->mState.Lock();
+            isPending = lock->is<Pending>();
+          }
+          if (NS_WARN_IF(!isPending || !initializeWorkerRunnable->Dispatch())) {
             self->TransitionStateToTerminated();
             self->CreationFailedOnAnyThread();
           }
@@ -994,7 +1001,9 @@ IPCResult RemoteWorkerChild::RecvExecServiceWorkerOp(
       aArgs.type() != ServiceWorkerOpArgs::TServiceWorkerFetchEventOpArgs,
       "FetchEvent operations should be sent via PFetchEventOp(Proxy) actors!");
 
-  MaybeStartOp(ServiceWorkerOp::Create(aArgs, std::move(aResolve)));
+  MaybeReportServiceWorkerShutdownProgress(aArgs);
+
+  MaybeStartOp(ServiceWorkerOp::Create(std::move(aArgs), std::move(aResolve)));
 
   return IPC_OK();
 }

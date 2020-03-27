@@ -69,6 +69,9 @@ const AboutDebugging = {
       return;
     }
 
+    const direction = Services.locale.isAppLocaleRTL ? "rtl" : "ltr";
+    document.documentElement.setAttribute("dir", direction);
+
     this.onAdbAddonUpdated = this.onAdbAddonUpdated.bind(this);
     this.onAdbProcessReady = this.onAdbProcessReady.bind(this);
     this.onNetworkLocationsUpdated = this.onNetworkLocationsUpdated.bind(this);
@@ -80,7 +83,10 @@ const AboutDebugging = {
     const width = this.getRoundedViewportWidth();
     this.actions.recordTelemetryEvent("open_adbg", { width });
 
-    await l10n.init(["branding/brand.ftl", "devtools/aboutdebugging.ftl"]);
+    await l10n.init([
+      "branding/brand.ftl",
+      "devtools/client/aboutdebugging.ftl",
+    ]);
 
     this.actions.createThisFirefoxRuntime();
 

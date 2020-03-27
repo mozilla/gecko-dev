@@ -8,7 +8,6 @@ check-alphabetical-order = false
 packages = [
     "core-graphics",
     "core-text",
-    "crossbeam-utils",
     "gl_generator",
     "lazy_static",
     "percent-encoding",
@@ -27,8 +26,6 @@ packages = [
 # Files that are ignored for all tidy and lint checks.
 files = [
     "./wrench/src/egl.rs",  # Copied from glutin
-    "./ci-scripts/wrupdater/converter.py",  # servo-tidy doesn't like python3
-    "./ci-scripts/wrupdater/read-json.py",  # servo-tidy doesn't like python3
 ]
 
 # Many directories are currently ignored while we tidy things up

@@ -14,6 +14,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/StaticPrefs_nglayout.h"
 #include "mozilla/TypedEnumBits.h"
+#include "mozilla/UniquePtr.h"
 #include "nsBoundingMetrics.h"
 #include "mozilla/layout/FrameChildList.h"
 #include "mozilla/layers/ScrollableLayerGuid.h"
@@ -712,12 +713,11 @@ class nsLayoutUtils {
    * GetScrolledRect returns the range of allowable scroll offsets
    * for aScrolledFrame, assuming the scrollable overflow area is
    * aScrolledFrameOverflowArea and the scrollport size is aScrollPortSize.
-   * aDirection is either NS_STYLE_DIRECTION_LTR or NS_STYLE_DIRECTION_RTL.
    */
   static nsRect GetScrolledRect(nsIFrame* aScrolledFrame,
                                 const nsRect& aScrolledFrameOverflowArea,
                                 const nsSize& aScrollPortSize,
-                                uint8_t aDirection);
+                                mozilla::StyleDirection);
 
   /**
    * HasPseudoStyle returns true if aContent (whose primary style
@@ -1083,17 +1083,8 @@ class nsLayoutUtils {
    * @param aFactor The number of app units per graphics unit.
    * @return The smallest rectangle in app space that contains aRect.
    */
-  static nsRect RoundGfxRectToAppRect(const Rect& aRect, float aFactor);
-
-  /**
-   * Given a graphics rectangle in graphics space, return a rectangle in
-   * app space that contains the graphics rectangle, rounding out as necessary.
-   *
-   * @param aRect The graphics rect to round outward.
-   * @param aFactor The number of app units per graphics unit.
-   * @return The smallest rectangle in app space that contains aRect.
-   */
-  static nsRect RoundGfxRectToAppRect(const gfxRect& aRect, float aFactor);
+  template <typename T>
+  static nsRect RoundGfxRectToAppRect(const T& aRect, const float aFactor);
 
   /**
    * Returns a subrectangle of aContainedRect that is entirely inside the
@@ -2091,7 +2082,7 @@ class nsLayoutUtils {
 
   /**
    * Some frames with 'position: fixed' (nsStyleDisplay::mPosition ==
-   * NS_STYLE_POSITION_FIXED) are not really fixed positioned, since
+   * StylePositionProperty::Fixed) are not really fixed positioned, since
    * they're inside an element with -moz-transform.  This function says
    * whether such an element is a real fixed-pos element.
    */
@@ -2099,7 +2090,7 @@ class nsLayoutUtils {
 
   /**
    * This function says whether `aFrame` would really be a fixed positioned
-   * frame if the frame was created with NS_STYLE_POSITION_FIXED.
+   * frame if the frame was created with StylePositionProperty::Fixed.
    *
    * It is effectively the same as IsReallyFixedPos, but without asserting the
    * position value. Use it only when you know what you're doing, like when
@@ -2291,7 +2282,8 @@ class nsLayoutUtils {
    * want to maintain a mapping from gfxFontEntry to InspectorFontFace
    * records, so use a temporary hashtable for that.
    */
-  typedef nsTArray<nsAutoPtr<mozilla::dom::InspectorFontFace>> UsedFontFaceList;
+  typedef nsTArray<mozilla::UniquePtr<mozilla::dom::InspectorFontFace>>
+      UsedFontFaceList;
   typedef nsDataHashtable<nsPtrHashKey<gfxFontEntry>,
                           mozilla::dom::InspectorFontFace*>
       UsedFontFaceTable;
@@ -3044,6 +3036,9 @@ class nsLayoutUtils {
                                     const std::string& aValue);
 
   static bool IsAPZTestLoggingEnabled();
+
+  static void ConstrainToCoordValues(gfxFloat& aStart, gfxFloat& aSize);
+  static void ConstrainToCoordValues(float& aStart, float& aSize);
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(nsLayoutUtils::PaintFrameFlags)
@@ -3102,6 +3097,31 @@ template <typename SizeType>
              NSCoordSaturatingNonnegativeMultiply(aSize.width, ratio));
   return SizeType(aSize.width,
                   NSCoordSaturatingNonnegativeMultiply(aSize.width, ratio));
+}
+
+template <typename T>
+nsRect nsLayoutUtils::RoundGfxRectToAppRect(const T& aRect,
+                                            const float aFactor) {
+  // Get a new Rect whose units are app units by scaling by the specified
+  // factor.
+  T scaledRect = aRect;
+  scaledRect.ScaleRoundOut(aFactor);
+
+  // We now need to constrain our results to the max and min values for coords.
+  ConstrainToCoordValues(scaledRect.x, scaledRect.width);
+  ConstrainToCoordValues(scaledRect.y, scaledRect.height);
+
+  if (!aRect.Width()) {
+    scaledRect.SetWidth(0);
+  }
+
+  if (!aRect.Height()) {
+    scaledRect.SetHeight(0);
+  }
+
+  // Now typecast everything back.  This is guaranteed to be safe.
+  return nsRect(nscoord(scaledRect.X()), nscoord(scaledRect.Y()),
+                nscoord(scaledRect.Width()), nscoord(scaledRect.Height()));
 }
 
 namespace mozilla {

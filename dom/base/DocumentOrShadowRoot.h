@@ -29,11 +29,14 @@ namespace dom {
 
 class Animation;
 class Element;
+class Document;
 class DocumentOrShadowRoot;
 class HTMLInputElement;
 struct nsRadioGroupStruct;
 class StyleSheetList;
 class ShadowRoot;
+template <typename T>
+class Sequence;
 
 /**
  * A class meant to be shared by ShadowRoot and Document, that holds a list of
@@ -75,6 +78,12 @@ class DocumentOrShadowRoot {
   }
 
   StyleSheetList* StyleSheets();
+
+  void GetAdoptedStyleSheets(nsTArray<RefPtr<StyleSheet>>&) const;
+
+  void SetAdoptedStyleSheets(
+      const Sequence<OwningNonNull<StyleSheet>>& aAdoptedStyleSheets,
+      ErrorResult& aRv);
 
   Element* GetElementById(const nsAString& aElementId);
 
@@ -227,6 +236,12 @@ class DocumentOrShadowRoot {
 
   nsTArray<RefPtr<StyleSheet>> mStyleSheets;
   RefPtr<StyleSheetList> mDOMStyleSheets;
+
+  // Style sheets that are adopted by assinging to the `adoptedStyleSheets`
+  // WebIDL atribute. These can only be constructed stylesheets.
+  // TODO(nordzilla): These sheets are not yet applied. These currently
+  // exist only to land the WebIDL attribute (Bug 1608489).
+  nsTArray<RefPtr<StyleSheet>> mAdoptedStyleSheets;
 
   /*
    * mIdentifierMap works as follows for IDs:

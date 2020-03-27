@@ -383,7 +383,8 @@ mozilla::ipc::IPCResult HttpChannelChild::RecvOnStartRequest(
     const bool& aApplyConversion, const bool& aIsResolvedByTRR,
     const ResourceTimingStructArgs& aTiming,
     const bool& aAllRedirectsSameOrigin, const Maybe<uint32_t>& aMultiPartID,
-    const bool& aIsLastPartOfMultiPart) {
+    const bool& aIsLastPartOfMultiPart,
+    const nsILoadInfo::CrossOriginOpenerPolicy& aOpenerPolicy) {
   AUTO_PROFILER_LABEL("HttpChannelChild::RecvOnStartRequest", NETWORK);
   LOG(("HttpChannelChild::RecvOnStartRequest [this=%p]\n", this));
   // mFlushedForDiversion and mDivertingToParent should NEVER be set at this
@@ -405,7 +406,8 @@ mozilla::ipc::IPCResult HttpChannelChild::RecvOnStartRequest(
        aCacheExpirationTime, aCachedCharset, aSecurityInfoSerialization,
        aSelfAddr, aPeerAddr, aCacheKey, aAltDataType, aAltDataLen,
        aDeliveringAltData, aApplyConversion, aIsResolvedByTRR, aTiming,
-       aAllRedirectsSameOrigin, aMultiPartID, aIsLastPartOfMultiPart]() {
+       aAllRedirectsSameOrigin, aMultiPartID, aIsLastPartOfMultiPart,
+       aOpenerPolicy]() {
         self->OnStartRequest(
             aChannelStatus, aResponseHead, aUseResponseHead, aRequestHeaders,
             aLoadInfoForwarder, aIsFromCache, aIsRacing, aCacheEntryAvailable,
@@ -413,7 +415,8 @@ mozilla::ipc::IPCResult HttpChannelChild::RecvOnStartRequest(
             aCachedCharset, aSecurityInfoSerialization, aSelfAddr, aPeerAddr,
             aCacheKey, aAltDataType, aAltDataLen, aDeliveringAltData,
             aApplyConversion, aIsResolvedByTRR, aTiming,
-            aAllRedirectsSameOrigin, aMultiPartID, aIsLastPartOfMultiPart);
+            aAllRedirectsSameOrigin, aMultiPartID, aIsLastPartOfMultiPart,
+            aOpenerPolicy);
       }));
 
   {
@@ -467,7 +470,8 @@ void HttpChannelChild::OnStartRequest(
     const bool& aDeliveringAltData, const bool& aApplyConversion,
     const bool& aIsResolvedByTRR, const ResourceTimingStructArgs& aTiming,
     const bool& aAllRedirectsSameOrigin, const Maybe<uint32_t>& aMultiPartID,
-    const bool& aIsLastPartOfMultiPart) {
+    const bool& aIsLastPartOfMultiPart,
+    const nsILoadInfo::CrossOriginOpenerPolicy& aOpenerPolicy) {
   LOG(("HttpChannelChild::OnStartRequest [this=%p]\n", this));
 
   // mFlushedForDiversion and mDivertingToParent should NEVER be set at this
@@ -486,6 +490,8 @@ void HttpChannelChild::OnStartRequest(
   if (mOnStartRequestCalled && mIPCActorDeleted) {
     return;
   }
+
+  mComputedCrossOriginOpenerPolicy = aOpenerPolicy;
 
   if (!mCanceled && NS_SUCCEEDED(mStatus)) {
     mStatus = aChannelStatus;
@@ -1797,52 +1803,6 @@ void HttpChannelChild::ProcessFlushedForDiversion() {
                               self->FlushedForDiversion();
                             }),
                         true);
-}
-
-mozilla::ipc::IPCResult
-HttpChannelChild::RecvNotifyChannelClassifierProtectionDisabled(
-    const uint32_t& aAcceptedReason) {
-  LOG(
-      ("HttpChannelChild::RecvNotifyChannelClassifierProtectionDisabled "
-       "[this=%p aAcceptedReason=%" PRIu32 "]\n",
-       this, aAcceptedReason));
-  MOZ_ASSERT(NS_IsMainThread());
-
-  mEventQ->RunOrEnqueue(new NeckoTargetChannelFunctionEvent(
-      this, [self = UnsafePtr<HttpChannelChild>(this), aAcceptedReason] {
-        UrlClassifierCommon::NotifyChannelClassifierProtectionDisabled(
-            self, aAcceptedReason);
-      }));
-
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult HttpChannelChild::RecvNotifyCookieAllowed() {
-  LOG(("HttpChannelChild::RecvNotifyCookieAllowed [this=%p]\n", this));
-  MOZ_ASSERT(NS_IsMainThread());
-
-  mEventQ->RunOrEnqueue(new NeckoTargetChannelFunctionEvent(
-      this, [self = UnsafePtr<HttpChannelChild>(this)] {
-        AntiTrackingCommon::NotifyBlockingDecision(
-            self, AntiTrackingCommon::BlockingDecision::eAllow, 0);
-      }));
-
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult HttpChannelChild::RecvNotifyCookieBlocked(
-    const uint32_t& aRejectedReason) {
-  LOG(("HttpChannelChild::RecvNotifyCookieBlocked [this=%p]\n", this));
-  MOZ_ASSERT(NS_IsMainThread());
-
-  mEventQ->RunOrEnqueue(new NeckoTargetChannelFunctionEvent(
-      this, [self = UnsafePtr<HttpChannelChild>(this), aRejectedReason] {
-        AntiTrackingCommon::NotifyBlockingDecision(
-            self, AntiTrackingCommon::BlockingDecision::eBlock,
-            aRejectedReason);
-      }));
-
-  return IPC_OK();
 }
 
 mozilla::ipc::IPCResult HttpChannelChild::RecvNotifyClassificationFlags(

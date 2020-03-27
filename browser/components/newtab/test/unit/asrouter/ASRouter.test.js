@@ -50,6 +50,7 @@ function fakeExecuteUserAction(action) {
   return fakeAsyncMessage({ data: action, type: "USER_ACTION" });
 }
 
+// eslint-disable-next-line max-statements
 describe("ASRouter", () => {
   let Router;
   let globals;
@@ -160,6 +161,7 @@ describe("ASRouter", () => {
       init: sandbox.stub(),
       uninit: sandbox.stub(),
       forceShowMessage: sandbox.stub(),
+      enableToolbarButton: sandbox.stub(),
     };
     FakeToolbarBadgeHub = {
       init: sandbox.stub(),
@@ -878,7 +880,7 @@ describe("ASRouter", () => {
     });
     it("should download the attachment if RemoteSettings returns some messages", async () => {
       sandbox
-        .stub(global.Services.locale, "appLocaleAsLangTag")
+        .stub(global.Services.locale, "appLocaleAsBCP47")
         .get(() => "en-US");
       sandbox
         .stub(MessageLoaderUtils, "_getRemoteSettingsMessages")
@@ -897,7 +899,7 @@ describe("ASRouter", () => {
     });
     it("should dispatch undesired event if the ms-language-packs returns no messages", async () => {
       sandbox
-        .stub(global.Services.locale, "appLocaleAsLangTag")
+        .stub(global.Services.locale, "appLocaleAsBCP47")
         .get(() => "en-US");
       sandbox
         .stub(MessageLoaderUtils, "_getRemoteSettingsMessages")
@@ -1096,7 +1098,7 @@ describe("ASRouter", () => {
       const result = await Router.handleMessageRequest({
         provider: "snippets",
       });
-      assert.isUndefined(result);
+      assert.isNull(result);
     });
     it("should not return a message from a blocked campaign", async () => {
       // Block all messages except the first
@@ -1153,7 +1155,16 @@ describe("ASRouter", () => {
       const result = await Router.handleMessageRequest({
         provider: "snippets",
       });
-
+      assert.isNull(result);
+    });
+    it("should not return a message if the frequency cap has been hit", async () => {
+      sandbox.stub(Router, "isBelowFrequencyCaps").returns(false);
+      await Router.setState(() => ({
+        messages: [{ id: "foo", provider: "snippets" }],
+      }));
+      const result = await Router.handleMessageRequest({
+        provider: "snippets",
+      });
       assert.isNull(result);
     });
     it("should get unblocked messages that match the trigger", async () => {
@@ -1220,18 +1231,21 @@ describe("ASRouter", () => {
     });
     it("should return all unblocked messages that match the template, trigger if returnAll=true", async () => {
       const message1 = {
+        provider: "whats_new",
         id: "1",
         template: "whatsnew_panel_message",
         trigger: { id: "whatsNewPanelOpened" },
         groups: ["whats_new"],
       };
       const message2 = {
+        provider: "whats_new",
         id: "2",
         template: "whatsnew_panel_message",
         trigger: { id: "whatsNewPanelOpened" },
         groups: ["whats_new"],
       };
       const message3 = {
+        provider: "whats_new",
         id: "3",
         template: "badge",
         groups: ["whats_new"],
@@ -1239,9 +1253,12 @@ describe("ASRouter", () => {
       sandbox
         .stub(ASRouterTargeting, "findMatchingMessage")
         .callsFake(() => [message2, message1]);
-      await Router.setState({ messages: [message3, message2, message1] });
+      await Router.setState({
+        messages: [message3, message2, message1],
+        providers: [{ id: "whats_new" }],
+      });
       const result = await Router.handleMessageRequest({
-        template: "whatsnew-panel",
+        template: "whatsnew_panel_message",
         triggerId: "whatsNewPanelOpened",
         returnAll: true,
       });
@@ -1794,7 +1811,7 @@ describe("ASRouter", () => {
         await Router.onMessage(msg);
 
         assert.isTrue(Router.state.messageBlockList.includes("foocampaign"));
-        assert.isEmpty(Router._getUnblockedMessages());
+        assert.isEmpty(Router.state.messages.filter(Router.isUnblockedMessage));
       });
       it("should not broadcast CLEAR_MESSAGE if preventDismiss is true", async () => {
         const msg = fakeAsyncMessage({
@@ -2094,6 +2111,20 @@ describe("ASRouter", () => {
 
     describe("#onMessage: TRIGGER", () => {
       it("should pass the trigger to ASRouterTargeting on TRIGGER message", async () => {
+        await Router.setState({
+          messages: [
+            {
+              id: "foo1",
+              provider: "onboarding",
+              template: "onboarding",
+              trigger: { id: "firstRun" },
+              content: { title: "Foo1", body: "Foo123-1" },
+              groups: ["onboarding"],
+            },
+          ],
+          providers: [{ id: "onboarding" }],
+        });
+        sandbox.stub(Router, "loadMessagesFromAllProviders").resolves();
         sandbox.stub(ASRouterTargeting, "findMatchingMessage").resolves();
         const msg = fakeAsyncMessage({
           type: "TRIGGER",
@@ -2888,6 +2919,64 @@ describe("ASRouter", () => {
         assert.calledWithMatch(setReferrerUrl, "", "?foo=FOO!&bar=BAR%3F");
       });
     });
+    describe("#onMessage: FORCE_WHATSNEW_PANEL", () => {
+      it("should call forceWNPanel", async () => {
+        let messages = [];
+        const msg = fakeAsyncMessage({
+          type: "FORCE_WHATSNEW_PANEL",
+          data: { messages },
+        });
+        sandbox.stub(Router, "forceWNPanel");
+
+        await Router.onMessage(msg);
+
+        assert.calledOnce(Router.forceWNPanel);
+      });
+      describe("forceWNPanel", () => {
+        let browser = {
+          document: new Document(),
+          PanelUI: {
+            showSubView: sinon.stub(),
+          },
+        };
+        it("should call enableToolbarButton", async () => {
+          await Router.forceWNPanel(browser);
+
+          assert.calledOnce(FakeToolbarPanelHub.enableToolbarButton);
+        });
+        it("should call PanelUI.showSubView", () => {
+          assert.calledOnce(browser.PanelUI.showSubView);
+        });
+      });
+    });
+    describe("#onMessage: RENDER_WHATSNEW_MESSAGES", () => {
+      it("should call renderWNMessages", async () => {
+        let messages = [];
+        const msg = fakeAsyncMessage({
+          type: "RENDER_WHATSNEW_MESSAGES",
+          data: { messages },
+        });
+        sandbox.stub(Router, "renderWNMessages");
+
+        await Router.onMessage(msg);
+
+        assert.calledOnce(Router.renderWNMessages);
+      });
+      describe("renderWNMessages", () => {
+        let messages = [{}, {}];
+        let browser = {
+          document: new Document(),
+          PanelUI: {
+            showSubView: sinon.stub(),
+          },
+        };
+        it("should call forceShowMessage", () => {
+          Router.renderWNMessages(browser, messages);
+
+          assert.calledOnce(FakeToolbarPanelHub.forceShowMessage);
+        });
+      });
+    });
     describe("#onMessage: default", () => {
       it("should report unknown messages", () => {
         const msg = fakeAsyncMessage({ type: "FOO" });
@@ -3479,7 +3568,7 @@ describe("ASRouter", () => {
       const getter = sandbox.stub();
       getter.onFirstCall().returns("en-US");
       getter.onSecondCall().returns("fr");
-      sandbox.stub(global.Services.locale, "appLocaleAsLangTag").get(getter);
+      sandbox.stub(global.Services.locale, "appLocaleAsBCP47").get(getter);
       const provider = {
         id: "cfr",
         enabled: true,
@@ -3511,7 +3600,7 @@ describe("ASRouter", () => {
       const getter = sandbox.stub();
       getter.onFirstCall().returns("en-US");
       getter.onSecondCall().returns("fr");
-      sandbox.stub(global.Services.locale, "appLocaleAsLangTag").get(getter);
+      sandbox.stub(global.Services.locale, "appLocaleAsBCP47").get(getter);
       const provider = {
         id: "localProvider",
         enabled: true,
@@ -3948,6 +4037,27 @@ describe("ASRouter", () => {
         id: "unblock",
         value: true,
       });
+    });
+  });
+  describe("#loadMessagesForProvider", () => {
+    it("should fetch json from url", async () => {
+      let result = await MessageLoaderUtils.loadMessagesForProvider({
+        location: "http://fake.com/endpoint",
+        type: "json",
+      });
+
+      assert.property(result, "messages");
+      assert.lengthOf(result.messages, FAKE_REMOTE_MESSAGES.length);
+    });
+    it("should catch errors", async () => {
+      fetchStub.throws();
+      let result = await MessageLoaderUtils.loadMessagesForProvider({
+        location: "http://fake.com/endpoint",
+        type: "json",
+      });
+
+      assert.property(result, "messages");
+      assert.lengthOf(result.messages, 0);
     });
   });
 });

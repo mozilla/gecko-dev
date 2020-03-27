@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ProgrammablePassEncoder.h"
+#include "BindGroup.h"
 
 namespace mozilla {
 namespace webgpu {
@@ -15,6 +16,8 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ProgrammablePassEncoder)
 NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(ProgrammablePassEncoder)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(ProgrammablePassEncoder)
+
+ProgrammablePassEncoder::ProgrammablePassEncoder() = default;
 
 }  // namespace webgpu
 }  // namespace mozilla

@@ -8,9 +8,6 @@
 
 #include <vector>
 
-#include "mozilla/LinkedList.h"
-#include "nsWrapperCache.h"
-
 #include "CacheInvalidator.h"
 #include "WebGLObjectModel.h"
 #include "WebGLStrongTypes.h"
@@ -23,37 +20,23 @@ namespace webgl {
 struct LinkedProgramInfo;
 }
 
-class WebGLVertexArray : public nsWrapperCache,
-                         public WebGLRefCountedObject<WebGLVertexArray>,
-                         public LinkedListElement<WebGLVertexArray>,
+class WebGLVertexArray : public WebGLContextBoundObject,
                          public CacheInvalidator {
+  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(WebGLVertexArray, override)
+
  public:
   static WebGLVertexArray* Create(WebGLContext* webgl);
 
-  void Delete();
-
-  WebGLContext* GetParentObject() const { return mContext; }
-
-  virtual JSObject* WrapObject(JSContext* cx,
-                               JS::Handle<JSObject*> givenProto) override;
-
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLVertexArray)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLVertexArray)
-
  protected:
-  WebGLVertexArray(WebGLContext* webgl, GLuint name);
-  virtual ~WebGLVertexArray();
-
-  virtual void BindVertexArray() = 0;
-  virtual void DeleteImpl() = 0;
+  explicit WebGLVertexArray(WebGLContext* webgl);
 
  public:
-  const GLuint mGLName;
+  virtual void BindVertexArray() = 0;
   bool mHasBeenBound = false;
 
  protected:
   std::vector<WebGLVertexAttribData> mAttribs;
-  WebGLRefPtr<WebGLBuffer> mElementArrayBuffer;
+  RefPtr<WebGLBuffer> mElementArrayBuffer;
 
   friend class ScopedDrawHelper;
   friend class WebGLContext;

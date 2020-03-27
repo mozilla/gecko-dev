@@ -195,7 +195,7 @@ void nsContainerFrame::SafelyDestroyFrameListProp(
     if (MOZ_LIKELY(frame)) {
       frame->DestroyFrom(aDestructRoot, aPostDestroyData);
     } else {
-      RemoveProperty(aProp);
+      Unused << TakeProperty(aProp);
       frameList->Delete(aPresShell);
       return;
     }
@@ -217,21 +217,19 @@ void nsContainerFrame::DestroyFrom(nsIFrame* aDestructRoot,
   // If we have any IB split siblings, clear their references to us.
   if (HasAnyStateBits(NS_FRAME_PART_OF_IBSPLIT)) {
     // Delete previous sibling's reference to me.
-    nsIFrame* prevSib = GetProperty(nsIFrame::IBSplitPrevSibling());
-    if (prevSib) {
+    if (nsIFrame* prevSib = GetProperty(nsIFrame::IBSplitPrevSibling())) {
       NS_WARNING_ASSERTION(
           this == prevSib->GetProperty(nsIFrame::IBSplitSibling()),
           "IB sibling chain is inconsistent");
-      prevSib->DeleteProperty(nsIFrame::IBSplitSibling());
+      prevSib->RemoveProperty(nsIFrame::IBSplitSibling());
     }
 
     // Delete next sibling's reference to me.
-    nsIFrame* nextSib = GetProperty(nsIFrame::IBSplitSibling());
-    if (nextSib) {
+    if (nsIFrame* nextSib = GetProperty(nsIFrame::IBSplitSibling())) {
       NS_WARNING_ASSERTION(
           this == nextSib->GetProperty(nsIFrame::IBSplitPrevSibling()),
           "IB sibling chain is inconsistent");
-      nextSib->DeleteProperty(nsIFrame::IBSplitPrevSibling());
+      nextSib->RemoveProperty(nsIFrame::IBSplitPrevSibling());
     }
 
 #ifdef DEBUG
@@ -996,24 +994,6 @@ void nsContainerFrame::PositionChildViews(nsIFrame* aFrame) {
 }
 
 /**
- * The second half of frame reflow. Does the following:
- * - sets the frame's bounds
- * - sizes and positions (if requested) the frame's view. If the frame's final
- *   position differs from the current position and the frame itself does not
- *   have a view, then any child frames with views are positioned so they stay
- *   in sync
- * - sets the view's visibility, opacity, content transparency, and clip
- * - invoked the DidReflow() function
- *
- * Flags:
- * ReflowChildFlags::NoMoveFrame - don't move the frame. aX and aY are ignored
- *    in this case. Also implies ReflowChildFlags::NoMoveView
- * ReflowChildFlags::NoMoveView - don't position the frame's view. Set this if
- *    you don't want to automatically sync the frame and view
- * ReflowChildFlags::NoSizeView - don't size the frame's view
- */
-
-/**
  * De-optimize function to work around a VC2017 15.5+ compiler bug:
  * https://bugzil.la/1424281#c12
  */
@@ -1244,7 +1224,7 @@ static bool TryRemoveFrame(nsIFrame* aFrame,
   if (list && list->StartRemoveFrame(aChildToRemove)) {
     // aChildToRemove *may* have been removed from this list.
     if (list->IsEmpty()) {
-      aFrame->RemoveProperty(aProp);
+      Unused << aFrame->TakeProperty(aProp);
       list->Delete(aFrame->PresShell());
     }
     return true;
@@ -1432,7 +1412,7 @@ nsFrameList* nsContainerFrame::GetPropTableFrames(
 
 nsFrameList* nsContainerFrame::RemovePropTableFrames(
     FrameListPropertyDescriptor aProperty) {
-  return RemoveProperty(aProperty);
+  return TakeProperty(aProperty);
 }
 
 void nsContainerFrame::SetPropTableFrames(
@@ -1729,7 +1709,7 @@ bool nsContainerFrame::ResolvedOrientationIsVertical() {
   return false;
 }
 
-uint16_t nsContainerFrame::CSSAlignmentForAbsPosChild(
+StyleAlignFlags nsContainerFrame::CSSAlignmentForAbsPosChild(
     const ReflowInput& aChildRI, LogicalAxis aLogicalAxis) const {
   MOZ_ASSERT(aChildRI.mFrame->IsAbsolutelyPositioned(),
              "This method should only be called for abspos children");
@@ -1739,7 +1719,7 @@ uint16_t nsContainerFrame::CSSAlignmentForAbsPosChild(
 
   // In the unexpected/unlikely event that this implementation gets invoked,
   // just use "start" alignment.
-  return NS_STYLE_ALIGN_START;
+  return StyleAlignFlags::START;
 }
 
 #ifdef ACCESSIBILITY

@@ -796,8 +796,11 @@ RefPtr<CompositorSession> GPUProcessManager::CreateRemoteSession(
       new CompositorWidgetVsyncObserver(mVsyncBridge, aRootLayerTreeId);
 
   CompositorWidgetChild* widget =
-      new CompositorWidgetChild(dispatcher, observer);
+      new CompositorWidgetChild(dispatcher, observer, initData);
   if (!child->SendPCompositorWidgetConstructor(widget, initData)) {
+    return nullptr;
+  }
+  if (!widget->Initialize()) {
     return nullptr;
   }
   if (!child->SendInitialize(aRootLayerTreeId)) {

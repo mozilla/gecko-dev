@@ -262,7 +262,7 @@ int main(int argc, char* argv[], char* envp[]) {
     // argc & argv will be updated with the values passing from the
     // chrome process.  With the new values, this function
     // continues the reset of the code acting as a content process.
-    if(gBootstrap->XRE_ForkServer(&argc, &argv)) {
+    if (gBootstrap->XRE_ForkServer(&argc, &argv)) {
       // Return from the fork server in the fork server process.
       // Stop the fork server.
       gBootstrap->NS_LogTerm();
@@ -317,15 +317,7 @@ int main(int argc, char* argv[], char* envp[]) {
   DllBlocklist_Initialize(gBlocklistInitFlags);
 #endif
 
-  // XXX: We are testing whether removing LibLoadingStrategy::ReadAhead has a
-  // positive / neutral affect on Nightly startup measures. If it does, we will
-  // rip out the enum and corresponding arguments. See bug 1565902.
-#ifdef NIGHTLY_BUILD
-  nsresult rv = InitXPCOMGlue(LibLoadingStrategy::NoReadAhead);
-#else
   nsresult rv = InitXPCOMGlue(LibLoadingStrategy::ReadAhead);
-#endif
-
   if (NS_FAILED(rv)) {
     return 255;
   }

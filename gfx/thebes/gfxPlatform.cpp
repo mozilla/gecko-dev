@@ -591,6 +591,8 @@ static void WebRenderDebugPrefChangeCallback(const char* aPrefName, void*) {
   GFX_WEBRENDER_DEBUG(".texture-cache.clear-evicted",
                       wr::DebugFlags::TEXTURE_CACHE_DBG_CLEAR_EVICTED)
   GFX_WEBRENDER_DEBUG(".picture-caching", wr::DebugFlags::PICTURE_CACHING_DBG)
+  GFX_WEBRENDER_DEBUG(".tile-cache-logging",
+                      wr::DebugFlags::TILE_CACHE_LOGGING_DBG)
   GFX_WEBRENDER_DEBUG(".primitives", wr::DebugFlags::PRIMITIVE_DBG)
   // Bit 18 is for the zoom display, which requires the mouse position and thus
   // currently only works in wrench.
@@ -611,6 +613,14 @@ static void WebRenderDebugPrefChangeCallback(const char* aPrefName, void*) {
 
 static void WebRenderQualityPrefChangeCallback(const char* aPref, void*) {
   gfxPlatform::GetPlatform()->UpdateAllowSacrificingSubpixelAA();
+}
+
+static void WebRenderMultithreadingPrefChangeCallback(const char* aPrefName,
+                                                      void*) {
+  bool enable = Preferences::GetBool(
+      StaticPrefs::GetPrefName_gfx_webrender_enable_multithreading(), true);
+
+  gfx::gfxVars::SetUseWebRenderMultithreading(enable);
 }
 
 #if defined(USE_SKIA)
@@ -2771,6 +2781,27 @@ static void HardwareTooOldForWR(FeatureState& aFeature) {
                    NS_LITERAL_CSTRING("FEATURE_FAILURE_DEVICE_TOO_OLD"));
 }
 
+#if defined(XP_WIN)
+static bool RecentWindows10() {
+      // Windows version is 10.0.<dwBuildNumber>
+      const uint32_t kMinOSBuildNumber = 18362;
+      OSVERSIONINFO vinfo;
+      vinfo.dwOSVersionInfoSize = sizeof(vinfo);
+#      ifdef _MSC_VER
+      // Disable warning about GetVersionEx being deprecated.
+#        pragma warning(push)
+#        pragma warning(disable : 4996)
+#      endif
+      if (!GetVersionEx(&vinfo) || vinfo.dwBuildNumber < kMinOSBuildNumber) {
+#      ifdef _MSC_VER
+#        pragma warning(pop)
+#      endif
+        return false;
+      }
+      return true;
+}
+#endif
+
 static void UpdateWRQualificationForNvidia(FeatureState& aFeature,
                                            nsIGfxInfo* aGfxInfo,
                                            int32_t aDeviceId, bool aHasBattery,
@@ -2812,19 +2843,7 @@ static void UpdateWRQualificationForNvidia(FeatureState& aFeature,
       // Battery and small screen, it should be only on for recent Windows 10
       // builds and NVIDIA driver versions in late beta and release.
 
-      // Windows version is 10.0.<dwBuildNumber>
-      const uint32_t kMinOSBuildNumber = 18362;
-      OSVERSIONINFO vinfo;
-      vinfo.dwOSVersionInfoSize = sizeof(vinfo);
-#      ifdef _MSC_VER
-      // Disable warning about GetVersionEx being deprecated.
-#        pragma warning(push)
-#        pragma warning(disable : 4996)
-#      endif
-      if (!GetVersionEx(&vinfo) || vinfo.dwBuildNumber < kMinOSBuildNumber) {
-#      ifdef _MSC_VER
-#        pragma warning(pop)
-#      endif
+      if (!RecentWindows10()) {
         aFeature.Disable(
             FeatureStatus::BlockedHasBattery,
             "Has battery and old Windows 10 build",
@@ -2908,7 +2927,7 @@ static void UpdateWRQualificationForAMD(FeatureState& aFeature,
           FeatureStatus::BlockedScreenUnknown, "Screen size unknown",
           NS_LITERAL_CSTRING("FEATURE_FAILURE_SCREEN_SIZE_UNKNOWN"));
     } else if (aScreenPixels <= kMaxPixelsBattery) {
-#    ifdef NIGHTLY_BUILD
+#    ifdef EARLY_BETA_OR_EARLIER
       // Battery and small screen, it should be on by default in nightly.
       *aOutGuardedByQualifiedPref = false;
 #    else
@@ -3020,8 +3039,8 @@ static void UpdateWRQualificationForIntel(FeatureState& aFeature,
       0x163b,
       0x163d,
       0x163e,
-
-      // HD Graphics 4600
+#if 0
+      // // Gen7.5 not allowed until bug 1576637 is resolved.
       0x0412,
       0x0416,
       0x041a,
@@ -3032,6 +3051,7 @@ static void UpdateWRQualificationForIntel(FeatureState& aFeature,
       0x0a1a,
       0x0a1b,
       0x0a1e,
+#endif
   };
   bool supported = false;
   for (uint16_t id : supportedDevices) {
@@ -3100,8 +3120,9 @@ static void UpdateWRQualificationForIntel(FeatureState& aFeature,
     MOZ_ASSERT(false);
 #    endif
     if (aScreenPixels <= kMaxPixelsBattery) {
-#    ifdef NIGHTLY_BUILD
-      // Battery and small screen, it should be on by default in nightly.
+#    ifdef EARLY_BETA_OR_EARLIER
+      // Battery and small screen, it should be on by default in nightly and
+      // beta.
       *aOutGuardedByQualifiedPref = false;
 #    else
       aFeature.Disable(
@@ -3332,6 +3353,11 @@ void gfxPlatform::InitWebRenderConfig() {
           nsDependentCString(
               StaticPrefs::
                   GetPrefName_gfx_webrender_quality_force_disable_sacrificing_subpixel_aa()));
+      Preferences::RegisterCallback(
+          WebRenderMultithreadingPrefChangeCallback,
+          nsDependentCString(
+              StaticPrefs::GetPrefName_gfx_webrender_enable_multithreading()));
+
       UpdateAllowSacrificingSubpixelAA();
     }
   }
@@ -3394,6 +3420,11 @@ void gfxPlatform::InitWebRenderConfig() {
   }
 
 #ifdef XP_WIN
+  if (!RecentWindows10()) {
+    featureComp.ForceDisable(FeatureStatus::Blocked, "Old Windows",
+                             NS_LITERAL_CSTRING("FEATURE_FAILURE_OLD_WINDOWS"));
+  }
+
   if (!gfxVars::UseWebRenderDCompWin()) {
     featureComp.ForceDisable(
         FeatureStatus::Unavailable, "No DirectComposition usage",
@@ -3462,6 +3493,20 @@ void gfxPlatform::InitOMTPConfig() {
   omtp.SetDefaultFromPref("layers.omtp.enabled", true,
                           Preferences::GetBool("layers.omtp.enabled", false,
                                                PrefValueKind::Default));
+
+  if (sizeof(void*) <= sizeof(uint32_t)) {
+    int32_t cpuCores = PR_GetNumberOfProcessors();
+    const uint64_t kMinSystemMemory = 2147483648;  // 2 GB
+    if (cpuCores <= 2) {
+      omtp.ForceDisable(FeatureStatus::Broken,
+                        "OMTP is not supported on 32-bit with <= 2 cores",
+                        NS_LITERAL_CSTRING("FEATURE_FAILURE_OMTP_32BIT_CORES"));
+    } else if (mTotalSystemMemory < kMinSystemMemory) {
+      omtp.ForceDisable(FeatureStatus::Broken,
+                        "OMTP is not supported on 32-bit with < 2 GB RAM",
+                        NS_LITERAL_CSTRING("FEATURE_FAILURE_OMTP_32BIT_MEM"));
+    }
+  }
 
   if (mContentBackend == BackendType::CAIRO) {
     omtp.ForceDisable(FeatureStatus::Broken,

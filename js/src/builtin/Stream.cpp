@@ -23,6 +23,7 @@
 #include "js/PropertySpec.h"
 #include "vm/Interpreter.h"
 #include "vm/JSContext.h"
+#include "vm/PromiseObject.h"  // js::PromiseObject
 #include "vm/SelfHosting.h"
 
 #include "builtin/streams/HandlerFunction-inl.h"  // js::NewHandler
@@ -315,8 +316,9 @@ MOZ_MUST_USE bool js::SetUpExternalReadableByteStreamController(
   // Step 14: Let startResult be the result of performing startAlgorithm.
   // (For external sources, this algorithm does nothing and returns undefined.)
   // Step 15: Let startPromise be a promise resolved with startResult.
-  RootedObject startPromise(
-      cx, PromiseObject::unforgeableResolve(cx, UndefinedHandleValue));
+  Rooted<PromiseObject*> startPromise(
+      cx, PromiseObject::unforgeableResolveWithNonPromise(
+              cx, UndefinedHandleValue));
   if (!startPromise) {
     return false;
   }
@@ -556,7 +558,7 @@ static MOZ_MUST_USE JSObject* ReadableByteStreamControllerPullSteps(
 
   // Step 6: Let promise be ! ReadableStreamAddReadRequest(stream,
   //                                                       forAuthorCode).
-  RootedObject promise(
+  Rooted<PromiseObject*> promise(
       cx, ReadableStreamAddReadOrReadIntoRequest(cx, unwrappedStream));
   if (!promise) {
     return nullptr;

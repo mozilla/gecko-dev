@@ -855,19 +855,27 @@ TransportSecurityInfo::GetFailedCertChain(
   return NS_OK;
 }
 
-nsresult TransportSecurityInfo::SetFailedCertChain(
-    UniqueCERTCertList aCertList) {
-  mFailedCertChain.Clear();
-  for (CERTCertListNode* node = CERT_LIST_HEAD(aCertList);
-       !CERT_LIST_END(node, aCertList); node = CERT_LIST_NEXT(node)) {
-    RefPtr<nsIX509Cert> cert = nsNSSCertificate::Create(node->cert);
-    mFailedCertChain.AppendElement(cert);
+static nsresult CreateCertChain(nsTArray<RefPtr<nsIX509Cert>>& aOutput,
+                                nsTArray<nsTArray<uint8_t>>&& aCertList) {
+  nsTArray<nsTArray<uint8_t>> certList = std::move(aCertList);
+  aOutput.Clear();
+  for (auto& certBytes : certList) {
+    RefPtr<nsIX509Cert> cert = nsNSSCertificate::ConstructFromDER(
+        BitwiseCast<char*, uint8_t*>(certBytes.Elements()), certBytes.Length());
+    if (!cert) {
+      return NS_ERROR_FAILURE;
+    }
+    aOutput.AppendElement(cert);
   }
   return NS_OK;
 }
 
-NS_IMETHODIMP
-TransportSecurityInfo::GetServerCert(nsIX509Cert** aServerCert) {
+nsresult TransportSecurityInfo::SetFailedCertChain(
+    nsTArray<nsTArray<uint8_t>>&& aCertList) {
+  return CreateCertChain(mFailedCertChain, std::move(aCertList));
+}
+
+NS_IMETHODIMP TransportSecurityInfo::GetServerCert(nsIX509Cert** aServerCert) {
   NS_ENSURE_ARG_POINTER(aServerCert);
 
   nsCOMPtr<nsIX509Cert> cert = mServerCert;
@@ -896,18 +904,8 @@ TransportSecurityInfo::GetSucceededCertChain(
 }
 
 nsresult TransportSecurityInfo::SetSucceededCertChain(
-    UniqueCERTCertList aCertList) {
-  // This function effectively takes ownership of aCertList by consuming its
-  // elements and then releasing the original aCertList when it goes out of
-  // scope.
-  mSucceededCertChain.Clear();
-  for (CERTCertListNode* node = CERT_LIST_HEAD(aCertList);
-       !CERT_LIST_END(node, aCertList); node = CERT_LIST_NEXT(node)) {
-    RefPtr<nsIX509Cert> cert = nsNSSCertificate::Create(node->cert);
-    mSucceededCertChain.AppendElement(cert);
-  }
-
-  return NS_OK;
+    nsTArray<nsTArray<uint8_t>>&& aCertList) {
+  return CreateCertChain(mSucceededCertChain, std::move(aCertList));
 }
 
 NS_IMETHODIMP
@@ -1000,35 +998,45 @@ TransportSecurityInfo::GetCertificateTransparencyStatus(
   return NS_OK;
 }
 
-void TransportSecurityInfo::SetCertificateTransparencyInfo(
+// static
+uint16_t TransportSecurityInfo::ConvertCertificateTransparencyInfoToStatus(
     const mozilla::psm::CertificateTransparencyInfo& info) {
   using mozilla::ct::CTPolicyCompliance;
 
-  mCertificateTransparencyStatus =
-      nsITransportSecurityInfo::CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE;
-
   if (!info.enabled) {
     // CT disabled.
-    return;
+    return nsITransportSecurityInfo::CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE;
   }
 
   switch (info.policyCompliance) {
     case CTPolicyCompliance::Compliant:
-      mCertificateTransparencyStatus =
-          nsITransportSecurityInfo::CERTIFICATE_TRANSPARENCY_POLICY_COMPLIANT;
-      break;
+      return nsITransportSecurityInfo::
+          CERTIFICATE_TRANSPARENCY_POLICY_COMPLIANT;
     case CTPolicyCompliance::NotEnoughScts:
-      mCertificateTransparencyStatus = nsITransportSecurityInfo ::
+      return nsITransportSecurityInfo ::
           CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS;
-      break;
     case CTPolicyCompliance::NotDiverseScts:
-      mCertificateTransparencyStatus = nsITransportSecurityInfo ::
+      return nsITransportSecurityInfo ::
           CERTIFICATE_TRANSPARENCY_POLICY_NOT_DIVERSE_SCTS;
-      break;
     case CTPolicyCompliance::Unknown:
     default:
       MOZ_ASSERT_UNREACHABLE("Unexpected CTPolicyCompliance type");
   }
+
+  return nsITransportSecurityInfo::CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE;
+}
+
+// static
+nsTArray<nsTArray<uint8_t>> TransportSecurityInfo::CreateCertBytesArray(
+    const UniqueCERTCertList& aCertChain) {
+  nsTArray<nsTArray<uint8_t>> certsBytes;
+  for (CERTCertListNode* n = CERT_LIST_HEAD(aCertChain);
+       !CERT_LIST_END(n, aCertChain); n = CERT_LIST_NEXT(n)) {
+    nsTArray<uint8_t> certBytes;
+    certBytes.AppendElements(n->cert->derCert.data, n->cert->derCert.len);
+    certsBytes.AppendElement(std::move(certBytes));
+  }
+  return certsBytes;
 }
 
 NS_IMETHODIMP

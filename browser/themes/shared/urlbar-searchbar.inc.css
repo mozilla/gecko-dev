@@ -7,7 +7,6 @@
 %define fieldBorderColor hsla(240,5%,5%,.25)
 %define fieldHoverBorderColor hsla(240,5%,5%,.35)
 %define urlbarMarginInline 5px
-%define urlbarBreakoutExtend 2px
 %define urlbarSearchButtonWidth calc(16px + 2 * @identityBoxPaddingInline@)
 
 :root {
@@ -227,7 +226,7 @@
 
 @keyframes urlbar-grow {
   0% {
-    transform: scaleX(.98) scaleY(.9);
+    transform: scaleX(.99) scaleY(.95);
   }
   100% {
     transform: scale(1.0);
@@ -888,7 +887,7 @@
 /* Search bar */
 
 #search-container {
-  min-width: calc(54px + 11ch);
+  min-width: 125px;
 }
 
 .searchbar-search-button {

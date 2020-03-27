@@ -939,6 +939,8 @@ MConstant::MConstant(TempAllocator& alloc, const js::Value& vp,
       payload_.sym = vp.toSymbol();
       break;
     case MIRType::BigInt:
+      MOZ_ASSERT_IF(IsInsideNursery(vp.toBigInt()),
+                    IonCompilationCanUseNurseryPointers());
       payload_.bi = vp.toBigInt();
       break;
     case MIRType::Object:
@@ -1262,7 +1264,7 @@ void MControlInstruction::printOpcode(GenericPrinter& out) const {
 
 void MCompare::printOpcode(GenericPrinter& out) const {
   MDefinition::printOpcode(out);
-  out.printf(" %s", CodeName[jsop()]);
+  out.printf(" %s", CodeName(jsop()));
 }
 
 void MConstantElements::printOpcode(GenericPrinter& out) const {
@@ -3430,8 +3432,8 @@ MCompare::CompareType MCompare::determineCompareType(JSOp op, MDefinition* left,
   MIRType lhs = left->type();
   MIRType rhs = right->type();
 
-  bool looseEq = op == JSOP_EQ || op == JSOP_NE;
-  bool strictEq = op == JSOP_STRICTEQ || op == JSOP_STRICTNE;
+  bool looseEq = op == JSOp::Eq || op == JSOp::Ne;
+  bool strictEq = op == JSOp::StrictEq || op == JSOp::StrictNe;
   bool relationalEq = !(looseEq || strictEq);
 
   // Comparisons on unsigned integers may be treated as UInt32.
@@ -4144,7 +4146,7 @@ bool MCompare::tryFoldEqualOperands(bool* result) {
   // However NaN !== NaN is true! So we spend some time trying
   // to eliminate this case.
 
-  if (jsop() != JSOP_STRICTEQ && jsop() != JSOP_STRICTNE) {
+  if (jsop() != JSOp::StrictEq && jsop() != JSOp::StrictNe) {
     return false;
   }
 
@@ -4173,7 +4175,7 @@ bool MCompare::tryFoldEqualOperands(bool* result) {
 
   lhs()->setGuardRangeBailoutsUnchecked();
 
-  *result = (jsop() == JSOP_STRICTEQ);
+  *result = (jsop() == JSOp::StrictEq);
   return true;
 }
 
@@ -4193,8 +4195,8 @@ bool MCompare::tryFoldTypeOf(bool* result) {
     return false;
   }
 
-  if (jsop() != JSOP_STRICTEQ && jsop() != JSOP_STRICTNE && jsop() != JSOP_EQ &&
-      jsop() != JSOP_NE) {
+  if (jsop() != JSOp::StrictEq && jsop() != JSOp::StrictNe &&
+      jsop() != JSOp::Eq && jsop() != JSOp::Ne) {
     return false;
   }
 
@@ -4202,45 +4204,45 @@ bool MCompare::tryFoldTypeOf(bool* result) {
   if (constant->toString() == TypeName(JSTYPE_UNDEFINED, names)) {
     if (!typeOf->input()->mightBeType(MIRType::Undefined) &&
         !typeOf->inputMaybeCallableOrEmulatesUndefined()) {
-      *result = (jsop() == JSOP_STRICTNE || jsop() == JSOP_NE);
+      *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
       return true;
     }
   } else if (constant->toString() == TypeName(JSTYPE_BOOLEAN, names)) {
     if (!typeOf->input()->mightBeType(MIRType::Boolean)) {
-      *result = (jsop() == JSOP_STRICTNE || jsop() == JSOP_NE);
+      *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
       return true;
     }
   } else if (constant->toString() == TypeName(JSTYPE_NUMBER, names)) {
     if (!typeOf->input()->mightBeType(MIRType::Int32) &&
         !typeOf->input()->mightBeType(MIRType::Float32) &&
         !typeOf->input()->mightBeType(MIRType::Double)) {
-      *result = (jsop() == JSOP_STRICTNE || jsop() == JSOP_NE);
+      *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
       return true;
     }
   } else if (constant->toString() == TypeName(JSTYPE_STRING, names)) {
     if (!typeOf->input()->mightBeType(MIRType::String)) {
-      *result = (jsop() == JSOP_STRICTNE || jsop() == JSOP_NE);
+      *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
       return true;
     }
   } else if (constant->toString() == TypeName(JSTYPE_SYMBOL, names)) {
     if (!typeOf->input()->mightBeType(MIRType::Symbol)) {
-      *result = (jsop() == JSOP_STRICTNE || jsop() == JSOP_NE);
+      *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
       return true;
     }
   } else if (constant->toString() == TypeName(JSTYPE_BIGINT, names)) {
     if (!typeOf->input()->mightBeType(MIRType::BigInt)) {
-      *result = (jsop() == JSOP_STRICTNE || jsop() == JSOP_NE);
+      *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
       return true;
     }
   } else if (constant->toString() == TypeName(JSTYPE_OBJECT, names)) {
     if (!typeOf->input()->mightBeType(MIRType::Object) &&
         !typeOf->input()->mightBeType(MIRType::Null)) {
-      *result = (jsop() == JSOP_STRICTNE || jsop() == JSOP_NE);
+      *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
       return true;
     }
   } else if (constant->toString() == TypeName(JSTYPE_FUNCTION, names)) {
     if (!typeOf->inputMaybeCallableOrEmulatesUndefined()) {
-      *result = (jsop() == JSOP_STRICTNE || jsop() == JSOP_NE);
+      *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
       return true;
     }
   }
@@ -4261,26 +4263,26 @@ bool MCompare::tryFold(bool* result) {
 
   if (compareType_ == Compare_Null || compareType_ == Compare_Undefined) {
     // The LHS is the value we want to test against null or undefined.
-    if (op == JSOP_STRICTEQ || op == JSOP_STRICTNE) {
+    if (op == JSOp::StrictEq || op == JSOp::StrictNe) {
       if (lhs()->type() == inputType()) {
-        *result = (op == JSOP_STRICTEQ);
+        *result = (op == JSOp::StrictEq);
         return true;
       }
       if (!lhs()->mightBeType(inputType())) {
-        *result = (op == JSOP_STRICTNE);
+        *result = (op == JSOp::StrictNe);
         return true;
       }
     } else {
-      MOZ_ASSERT(op == JSOP_EQ || op == JSOP_NE);
+      MOZ_ASSERT(op == JSOp::Eq || op == JSOp::Ne);
       if (IsNullOrUndefined(lhs()->type())) {
-        *result = (op == JSOP_EQ);
+        *result = (op == JSOp::Eq);
         return true;
       }
       if (!lhs()->mightBeType(MIRType::Null) &&
           !lhs()->mightBeType(MIRType::Undefined) &&
           !(lhs()->mightBeType(MIRType::Object) &&
             operandMightEmulateUndefined())) {
-        *result = (op == JSOP_NE);
+        *result = (op == JSOp::Ne);
         return true;
       }
     }
@@ -4288,26 +4290,26 @@ bool MCompare::tryFold(bool* result) {
   }
 
   if (compareType_ == Compare_Boolean) {
-    MOZ_ASSERT(op == JSOP_STRICTEQ || op == JSOP_STRICTNE);
+    MOZ_ASSERT(op == JSOp::StrictEq || op == JSOp::StrictNe);
     MOZ_ASSERT(rhs()->type() == MIRType::Boolean);
     MOZ_ASSERT(lhs()->type() != MIRType::Boolean,
                "Should use Int32 comparison");
 
     if (!lhs()->mightBeType(MIRType::Boolean)) {
-      *result = (op == JSOP_STRICTNE);
+      *result = (op == JSOp::StrictNe);
       return true;
     }
     return false;
   }
 
   if (compareType_ == Compare_StrictString) {
-    MOZ_ASSERT(op == JSOP_STRICTEQ || op == JSOP_STRICTNE);
+    MOZ_ASSERT(op == JSOp::StrictEq || op == JSOp::StrictNe);
     MOZ_ASSERT(rhs()->type() == MIRType::String);
     MOZ_ASSERT(lhs()->type() != MIRType::String,
                "Should use String comparison");
 
     if (!lhs()->mightBeType(MIRType::String)) {
-      *result = (op == JSOP_STRICTNE);
+      *result = (op == JSOp::StrictNe);
       return true;
     }
     return false;
@@ -4319,19 +4321,19 @@ bool MCompare::tryFold(bool* result) {
 template <typename T>
 static bool FoldComparison(JSOp op, T left, T right) {
   switch (op) {
-    case JSOP_LT:
+    case JSOp::Lt:
       return left < right;
-    case JSOP_LE:
+    case JSOp::Le:
       return left <= right;
-    case JSOP_GT:
+    case JSOp::Gt:
       return left > right;
-    case JSOP_GE:
+    case JSOp::Ge:
       return left >= right;
-    case JSOP_STRICTEQ:
-    case JSOP_EQ:
+    case JSOp::StrictEq:
+    case JSOp::Eq:
       return left == right;
-    case JSOP_STRICTNE:
-    case JSOP_NE:
+    case JSOp::StrictNe:
+    case JSOp::Ne:
       return left != right;
     default:
       MOZ_CRASH("Unexpected op.");
@@ -4365,13 +4367,13 @@ bool MCompare::evaluateConstantOperands(TempAllocator& alloc, bool* result) {
         operand->getOperand(0)->type() == MIRType::Int32) {
       bool replaced = false;
       switch (jsop_) {
-        case JSOP_LT:
+        case JSOp::Lt:
           if (cte > INT32_MAX || cte < INT32_MIN) {
             *result = !((constant == lhs()) ^ (cte < INT32_MIN));
             replaced = true;
           }
           break;
-        case JSOP_LE:
+        case JSOp::Le:
           if (constant == lhs()) {
             if (cte > INT32_MAX || cte <= INT32_MIN) {
               *result = (cte <= INT32_MIN);
@@ -4384,13 +4386,13 @@ bool MCompare::evaluateConstantOperands(TempAllocator& alloc, bool* result) {
             }
           }
           break;
-        case JSOP_GT:
+        case JSOp::Gt:
           if (cte > INT32_MAX || cte < INT32_MIN) {
             *result = !((constant == rhs()) ^ (cte < INT32_MIN));
             replaced = true;
           }
           break;
-        case JSOP_GE:
+        case JSOp::Ge:
           if (constant == lhs()) {
             if (cte >= INT32_MAX || cte < INT32_MIN) {
               *result = (cte >= INT32_MAX);
@@ -4403,15 +4405,15 @@ bool MCompare::evaluateConstantOperands(TempAllocator& alloc, bool* result) {
             }
           }
           break;
-        case JSOP_STRICTEQ:  // Fall through.
-        case JSOP_EQ:
+        case JSOp::StrictEq:  // Fall through.
+        case JSOp::Eq:
           if (cte > INT32_MAX || cte < INT32_MIN) {
             *result = false;
             replaced = true;
           }
           break;
-        case JSOP_STRICTNE:  // Fall through.
-        case JSOP_NE:
+        case JSOp::StrictNe:  // Fall through.
+        case JSOp::Ne:
           if (cte > INT32_MAX || cte < INT32_MIN) {
             *result = true;
             replaced = true;
@@ -4517,20 +4519,20 @@ void MCompare::filtersUndefinedOrNull(bool trueBranch, MDefinition** subject,
     return;
   }
 
-  MOZ_ASSERT(jsop() == JSOP_STRICTNE || jsop() == JSOP_NE ||
-             jsop() == JSOP_STRICTEQ || jsop() == JSOP_EQ);
+  MOZ_ASSERT(jsop() == JSOp::StrictNe || jsop() == JSOp::Ne ||
+             jsop() == JSOp::StrictEq || jsop() == JSOp::Eq);
 
-  // JSOP_*NE only removes undefined/null from if/true branch
-  if (!trueBranch && (jsop() == JSOP_STRICTNE || jsop() == JSOP_NE)) {
+  // JSOp::*Ne only removes undefined/null from if/true branch
+  if (!trueBranch && (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne)) {
     return;
   }
 
-  // JSOP_*EQ only removes undefined/null from else/false branch
-  if (trueBranch && (jsop() == JSOP_STRICTEQ || jsop() == JSOP_EQ)) {
+  // JSOp::*Eq only removes undefined/null from else/false branch
+  if (trueBranch && (jsop() == JSOp::StrictEq || jsop() == JSOp::Eq)) {
     return;
   }
 
-  if (jsop() == JSOP_STRICTEQ || jsop() == JSOP_STRICTNE) {
+  if (jsop() == JSOp::StrictEq || jsop() == JSOp::StrictNe) {
     *filtersUndefined = compareType() == Compare_Undefined;
     *filtersNull = compareType() == Compare_Null;
   } else {
@@ -4572,18 +4574,18 @@ MDefinition* MNot::foldsTo(TempAllocator& alloc) {
     }
   }
 
-  // NOT of an undefined or null value is always true
+  // Not of an undefined or null value is always true
   if (input()->type() == MIRType::Undefined ||
       input()->type() == MIRType::Null) {
     return MConstant::New(alloc, BooleanValue(true));
   }
 
-  // NOT of a symbol is always false.
+  // Not of a symbol is always false.
   if (input()->type() == MIRType::Symbol) {
     return MConstant::New(alloc, BooleanValue(false));
   }
 
-  // NOT of an object that can't emulate undefined is always false.
+  // Not of an object that can't emulate undefined is always false.
   if (input()->type() == MIRType::Object && !operandMightEmulateUndefined()) {
     return MConstant::New(alloc, BooleanValue(false));
   }
@@ -5457,12 +5459,10 @@ MDefinition* MWasmUnsignedToFloat32::foldsTo(TempAllocator& alloc) {
 
 MWasmCall* MWasmCall::New(TempAllocator& alloc, const wasm::CallSiteDesc& desc,
                           const wasm::CalleeDesc& callee, const Args& args,
-                          MIRType resultType,
                           uint32_t stackArgAreaSizeUnaligned,
                           MDefinition* tableIndex) {
   MWasmCall* call =
       new (alloc) MWasmCall(desc, callee, stackArgAreaSizeUnaligned);
-  call->setResultType(resultType);
 
   if (!call->argRegs_.init(alloc, args.length())) {
     return nullptr;
@@ -5489,10 +5489,10 @@ MWasmCall* MWasmCall::New(TempAllocator& alloc, const wasm::CallSiteDesc& desc,
 MWasmCall* MWasmCall::NewBuiltinInstanceMethodCall(
     TempAllocator& alloc, const wasm::CallSiteDesc& desc,
     const wasm::SymbolicAddress builtin, wasm::FailureMode failureMode,
-    const ABIArg& instanceArg, const Args& args, MIRType resultType,
+    const ABIArg& instanceArg, const Args& args,
     uint32_t stackArgAreaSizeUnaligned) {
   auto callee = wasm::CalleeDesc::builtinInstanceMethod(builtin);
-  MWasmCall* call = MWasmCall::New(alloc, desc, callee, args, resultType,
+  MWasmCall* call = MWasmCall::New(alloc, desc, callee, args,
                                    stackArgAreaSizeUnaligned, nullptr);
   if (!call) {
     return nullptr;

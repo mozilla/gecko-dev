@@ -26,7 +26,6 @@
           ("%s: " arg, __func__, ##__VA_ARGS__))
 
 using namespace mozilla;
-using namespace mozilla::java::sdk;
 using media::TimeUnit;
 
 namespace mozilla {
@@ -74,6 +73,7 @@ bool AndroidDecoderModule::SupportsMimeType(const nsACString& aMimeType) {
   // To avoid this we check for wav types here.
   if (aMimeType.EqualsLiteral("audio/x-wav") ||
       aMimeType.EqualsLiteral("audio/wave; codecs=1") ||
+      aMimeType.EqualsLiteral("audio/wave; codecs=3") ||
       aMimeType.EqualsLiteral("audio/wave; codecs=6") ||
       aMimeType.EqualsLiteral("audio/wave; codecs=7") ||
       aMimeType.EqualsLiteral("audio/wave; codecs=65534")) {

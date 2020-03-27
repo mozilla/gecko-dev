@@ -4,12 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsResizerFrame.h"
 #include "nsIContent.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/UniquePtr.h"
 #include "nsGkAtoms.h"
 #include "nsNameSpaceManager.h"
 
@@ -435,7 +435,8 @@ void nsResizerFrame::ResizeContent(nsIContent* aContent,
         if (!widthstr.IsEmpty() &&
             !Substring(widthstr, widthstr.Length() - 2, 2).EqualsLiteral("px"))
           widthstr.AppendLiteral("px");
-        decl->SetProperty(NS_LITERAL_CSTRING("width"), widthstr, EmptyString());
+        decl->SetProperty(NS_LITERAL_CSTRING("width"), widthstr, EmptyString(),
+                          IgnoreErrors());
       }
       if (aDirection.mVertical) {
         NS_ConvertUTF16toUTF8 heightstr(aSizeInfo.height);
@@ -444,7 +445,7 @@ void nsResizerFrame::ResizeContent(nsIContent* aContent,
                  .EqualsLiteral("px"))
           heightstr.AppendLiteral("px");
         decl->SetProperty(NS_LITERAL_CSTRING("height"), heightstr,
-                          EmptyString());
+                          EmptyString(), IgnoreErrors());
       }
     }
   }
@@ -458,10 +459,12 @@ void nsResizerFrame::MaybePersistOriginalSize(nsIContent* aContent,
   aContent->GetProperty(nsGkAtoms::_moz_original_size, &rv);
   if (rv != NS_PROPTABLE_PROP_NOT_THERE) return;
 
-  nsAutoPtr<SizeInfo> sizeInfo(new SizeInfo(aSizeInfo));
+  UniquePtr<SizeInfo> sizeInfo(new SizeInfo(aSizeInfo));
   rv = aContent->SetProperty(nsGkAtoms::_moz_original_size, sizeInfo.get(),
                              nsINode::DeleteProperty<nsResizerFrame::SizeInfo>);
-  if (NS_SUCCEEDED(rv)) sizeInfo.forget();
+  if (NS_SUCCEEDED(rv)) {
+    Unused << sizeInfo.release();
+  }
 }
 
 /* static */
@@ -474,7 +477,7 @@ void nsResizerFrame::RestoreOriginalSize(nsIContent* aContent) {
   NS_ASSERTION(sizeInfo, "We set a null sizeInfo!?");
   Direction direction = {1, 1};
   ResizeContent(aContent, direction, *sizeInfo, nullptr);
-  aContent->DeleteProperty(nsGkAtoms::_moz_original_size);
+  aContent->RemoveProperty(nsGkAtoms::_moz_original_size);
 }
 
 /* returns a Direction struct containing the horizontal and vertical direction

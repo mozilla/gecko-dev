@@ -24,7 +24,7 @@ struct gfxQuaternion;
 struct nsRect;
 
 namespace mozilla {
-struct MotionPathData;
+struct ResolvedMotionPathData;
 }
 
 /**
@@ -85,7 +85,7 @@ class MOZ_STACK_CLASS TransformReferenceBox final {
   }
 
   explicit TransformReferenceBox(const nsIFrame* aFrame,
-                                 const nsSize& aFallbackDimensions)
+                                 const nsRect& aFallbackDimensions)
       : mX(0), mY(0), mWidth(0), mHeight(0) {
     mFrame = aFrame;
     mIsCached = false;
@@ -99,7 +99,7 @@ class MOZ_STACK_CLASS TransformReferenceBox final {
     mFrame = aFrame;
   }
 
-  void Init(const nsSize& aDimensions);
+  void Init(const nsRect& aDimensions);
 
   /**
    * The offset of the reference box from the nsIFrame's TopLeft(). This
@@ -172,7 +172,7 @@ mozilla::gfx::Matrix4x4 ReadTransforms(const mozilla::StyleTransform& aList,
 mozilla::gfx::Matrix4x4 ReadTransforms(
     const mozilla::StyleTranslate&, const mozilla::StyleRotate&,
     const mozilla::StyleScale&,
-    const mozilla::Maybe<mozilla::MotionPathData>& aMotion,
+    const mozilla::Maybe<mozilla::ResolvedMotionPathData>& aMotion,
     const mozilla::StyleTransform&, TransformReferenceBox& aRefBox,
     float aAppUnitsPerMatrixUnit);
 

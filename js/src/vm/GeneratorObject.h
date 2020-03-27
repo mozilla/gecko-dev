@@ -103,9 +103,9 @@ class AbstractGeneratorObject : public NativeObject {
   // RESUME_INDEX_RUNNING.
   //
   // If the generator is suspended, it's the resumeIndex (stored as
-  // JSOP_INITIALYIELD/JSOP_YIELD/JSOP_AWAIT operand) of the yield instruction
-  // that suspended the generator. The resumeIndex can be mapped to the
-  // bytecode offset (interpreter) or to the native code offset (JIT).
+  // JSOp::InitialYield/JSOp::Yield/JSOp::Await operand) of the yield
+  // instruction that suspended the generator. The resumeIndex can be mapped to
+  // the bytecode offset (interpreter) or to the native code offset (JIT).
 
   bool isBeforeInitialYield() const {
     return getFixedSlot(RESUME_INDEX_SLOT).isUndefined();
@@ -125,12 +125,12 @@ class AbstractGeneratorObject : public NativeObject {
     setFixedSlot(RESUME_INDEX_SLOT, Int32Value(RESUME_INDEX_RUNNING));
   }
   void setResumeIndex(jsbytecode* pc) {
-    MOZ_ASSERT(*pc == JSOP_INITIALYIELD || *pc == JSOP_YIELD ||
-               *pc == JSOP_AWAIT);
+    MOZ_ASSERT(JSOp(*pc) == JSOp::InitialYield || JSOp(*pc) == JSOp::Yield ||
+               JSOp(*pc) == JSOp::Await);
 
-    MOZ_ASSERT_IF(JSOp(*pc) == JSOP_INITIALYIELD,
+    MOZ_ASSERT_IF(JSOp(*pc) == JSOp::InitialYield,
                   getFixedSlot(RESUME_INDEX_SLOT).isUndefined());
-    MOZ_ASSERT_IF(JSOp(*pc) != JSOP_INITIALYIELD, isRunning());
+    MOZ_ASSERT_IF(JSOp(*pc) != JSOp::InitialYield, isRunning());
 
     uint32_t resumeIndex = GET_UINT24(pc);
     MOZ_ASSERT(resumeIndex < uint32_t(RESUME_INDEX_RUNNING));
@@ -201,7 +201,7 @@ bool GeneratorThrowOrReturn(JSContext* cx, AbstractFramePtr frame,
  * - While a generator call evaluates default argument values and performs
  *   destructuring, which occurs before the generator object is created.
  *
- * - Between the `GENERATOR` instruction and the `SETALIASEDVAR .generator`
+ * - Between the `Generator` instruction and the `SetAliasedVar .generator`
  *   instruction, at which point the generator object does exist, but is held
  *   only on the stack, and not the `.generator` pseudo-variable this function
  *   consults.
@@ -217,7 +217,7 @@ inline GeneratorResumeKind IntToResumeKind(int32_t value) {
 }
 
 inline GeneratorResumeKind ResumeKindFromPC(jsbytecode* pc) {
-  MOZ_ASSERT(*pc == JSOP_RESUMEKIND);
+  MOZ_ASSERT(JSOp(*pc) == JSOp::ResumeKind);
   return IntToResumeKind(GET_UINT8(pc));
 }
 

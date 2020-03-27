@@ -17,28 +17,9 @@
 
 namespace mozilla {
 
-WebGL2Context::WebGL2Context() : WebGLContext() {
-  MOZ_ASSERT(IsSupported(),
-             "not supposed to create a WebGL2Context"
-             "context when not supported");
-}
-
-WebGL2Context::~WebGL2Context() {}
-
 UniquePtr<webgl::FormatUsageAuthority> WebGL2Context::CreateFormatUsage(
     gl::GLContext* gl) const {
   return webgl::FormatUsageAuthority::CreateForWebGL2(gl);
-}
-
-/*static*/
-bool WebGL2Context::IsSupported() { return StaticPrefs::webgl_enable_webgl2(); }
-
-/*static*/
-WebGL2Context* WebGL2Context::Create() { return new WebGL2Context(); }
-
-JSObject* WebGL2Context::WrapObject(JSContext* cx,
-                                    JS::Handle<JSObject*> givenProto) {
-  return dom::WebGL2RenderingContext_Binding::Wrap(cx, this, givenProto);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -63,8 +44,6 @@ static const gl::GLFeature kRequiredFeatures[] = {
     gl::GLFeature::occlusion_query2,
     gl::GLFeature::packed_depth_stencil,
     gl::GLFeature::query_objects,
-    gl::GLFeature::renderbuffer_color_float,
-    gl::GLFeature::renderbuffer_color_half_float,
     gl::GLFeature::sRGB,
     gl::GLFeature::sampler_objects,
     gl::GLFeature::standard_derivatives,
@@ -136,20 +115,12 @@ bool WebGLContext::InitWebGL2(FailureReason* const out_failReason) {
     return false;
   }
 
-  // we initialise WebGL 2 related stuff.
-  gl->GetUIntegerv(LOCAL_GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS,
-                   &mGLMaxTransformFeedbackSeparateAttribs);
-  gl->GetUIntegerv(LOCAL_GL_MAX_UNIFORM_BUFFER_BINDINGS,
-                   &mGLMaxUniformBufferBindings);
-
   mGLMinProgramTexelOffset =
       gl->GetIntAs<uint32_t>(LOCAL_GL_MIN_PROGRAM_TEXEL_OFFSET);
   mGLMaxProgramTexelOffset =
       gl->GetIntAs<uint32_t>(LOCAL_GL_MAX_PROGRAM_TEXEL_OFFSET);
-  mGLUniformBufferOffsetAlignment =
-      gl->GetIntAs<uint32_t>(LOCAL_GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT);
 
-  mIndexedUniformBufferBindings.resize(mGLMaxUniformBufferBindings);
+  mIndexedUniformBufferBindings.resize(mLimits->maxUniformBufferBindings);
 
   mDefaultTransformFeedback = new WebGLTransformFeedback(this, 0);
   mBoundTransformFeedback = mDefaultTransformFeedback;
@@ -173,6 +144,27 @@ bool WebGLContext::InitWebGL2(FailureReason* const out_failReason) {
   //////
 
   return true;
+}
+
+// -
+
+/*virtual*/
+bool WebGL2Context::IsTexParamValid(GLenum pname) const {
+  switch (pname) {
+    case LOCAL_GL_TEXTURE_BASE_LEVEL:
+    case LOCAL_GL_TEXTURE_COMPARE_FUNC:
+    case LOCAL_GL_TEXTURE_COMPARE_MODE:
+    case LOCAL_GL_TEXTURE_IMMUTABLE_FORMAT:
+    case LOCAL_GL_TEXTURE_IMMUTABLE_LEVELS:
+    case LOCAL_GL_TEXTURE_MAX_LEVEL:
+    case LOCAL_GL_TEXTURE_WRAP_R:
+    case LOCAL_GL_TEXTURE_MAX_LOD:
+    case LOCAL_GL_TEXTURE_MIN_LOD:
+      return true;
+
+    default:
+      return WebGLContext::IsTexParamValid(pname);
+  }
 }
 
 }  // namespace mozilla

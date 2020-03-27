@@ -8,6 +8,7 @@
 #define jit_VMFunctionList_inl_h
 
 #include "builtin/Eval.h"
+#include "builtin/Promise.h"  // js::AsyncFunctionAwait
 #include "builtin/RegExp.h"
 #include "builtin/String.h"
 #include "jit/BaselineIC.h"
@@ -98,8 +99,9 @@ namespace jit {
   _(CreateAsyncFromSyncIterator, js::CreateAsyncFromSyncIterator)              \
   _(CreateDerivedTypedObj, js::jit::CreateDerivedTypedObj)                     \
   _(CreateGenerator, js::jit::CreateGenerator)                                 \
-  _(CreateThis, js::jit::CreateThis)                                           \
   _(CreateThisForFunctionWithProto, js::CreateThisForFunctionWithProto)        \
+  _(CreateThisFromIC, js::jit::CreateThisFromIC)                               \
+  _(CreateThisFromIon, js::jit::CreateThisFromIon)                             \
   _(CreateThisWithTemplate, js::CreateThisWithTemplate)                        \
   _(DebugAfterYield, js::jit::DebugAfterYield)                                 \
   _(DebugEpilogueOnBaselineReturn, js::jit::DebugEpilogueOnBaselineReturn)     \
@@ -146,7 +148,6 @@ namespace jit {
   _(GreaterThan, js::jit::GreaterThan)                                         \
   _(GreaterThanOrEqual, js::jit::GreaterThanOrEqual)                           \
   _(HandleDebugTrap, js::jit::HandleDebugTrap)                                 \
-  _(HomeObjectSuperBase, js::HomeObjectSuperBase)                              \
   _(ImplicitThisOperation, js::ImplicitThisOperation)                          \
   _(ImportMetaOperation, js::ImportMetaOperation)                              \
   _(InitElemGetterSetterOperation, js::InitElemGetterSetterOperation)          \
@@ -271,9 +272,9 @@ namespace jit {
   _(StringsNotEqual, js::jit::StringsEqual<js::jit::EqualityKind::NotEqual>)   \
   _(SubValues, js::SubValues)                                                  \
   _(SubstringKernel, js::SubstringKernel)                                      \
-  _(SuperFunOperation, js::SuperFunOperation)                                  \
   _(ThrowBadDerivedReturn, js::jit::ThrowBadDerivedReturn)                     \
   _(ThrowCheckIsObject, js::ThrowCheckIsObject)                                \
+  _(ThrowHomeObjectNotObject, js::ThrowHomeObjectNotObject)                    \
   _(ThrowInitializedThis, js::ThrowInitializedThis)                            \
   _(ThrowMsgOperation, js::ThrowMsgOperation)                                  \
   _(ThrowObjectCoercible, js::jit::ThrowObjectCoercible)                       \
