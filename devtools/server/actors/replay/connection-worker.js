@@ -78,6 +78,8 @@ function onServerError(evt) {
   doLog(`CloudServer Connection Error\n`);
 }
 
+let gSessionId;
+
 async function onServerMessage(evt) {
   try {
     const data = JSON.parse(evt.data);
@@ -85,6 +87,7 @@ async function onServerMessage(evt) {
       case "modules": {
         const { sessionId, controlJS, replayJS, updateNeeded, updateWanted } = data;
         gConnected = true;
+        gSessionId = sessionId;
         postMessage({ kind: "loaded", sessionId, controlJS, replayJS, updateNeeded, updateWanted });
         break;
       }
@@ -102,15 +105,23 @@ async function onServerMessage(evt) {
   }
 }
 
+const MessageLogCount = 3;
+
+function maybeLogMessage(prefix, message, count) {
+  if (gVerbose || count < MessageLogCount) {
+    const desc = messageDescription(message);
+    doLog(`${prefix} Elapsed ${elapsedTime()} Message ${desc}\n`);
+  } else if (!gVerbose && count == MessageLogCount) {
+    doLog(`Verbose not set, not logging future ${prefix} messages\n`);
+  }
+}
+
 // How much time to give a new connection to establish itself before closing it
 // and reattempting to connect.
 const SocketTimeoutMs = 20000;
 
-let totalSent = 0;
-let totalReceived = 0;
-
 async function doConnect(id, channelId) {
-  doLog(`ReplayerConnect ${elapsedTime()}`);
+  doLog(`ReplayerConnect ${elapsedTime()}\n`);
 
   if (gConnections[id]) {
     PostError(`Duplicate connection ID ${id}`);
@@ -130,6 +141,10 @@ async function doConnect(id, channelId) {
 
     // Resolve hook for any promise waiting on new outgoing messages.
     sendWaiter: null,
+
+    // How many messages have been sent/received over this connection.
+    numSends: 0,
+    numRecvs: 0,
   };
   gConnections[id] = connection;
 
@@ -141,16 +156,13 @@ async function doConnect(id, channelId) {
     PostError(`Invalid websocket address ${text}`);
   }
 
-  // Eventually this ID will include credentials.
-  const sessionId = (Math.random() * 1e9) | 0;
-
-  const socket = new WebSocket(`${address}/connect?id=${sessionId}&verbose=${gVerbose}`);
+  const socket = new WebSocket(`${address}/connect?id=${gSessionId}&verbose=${gVerbose}`);
   socket.onopen = evt => onOpen(id);
   socket.onclose = evt => onClose(id);
   socket.onmessage = evt => onMessage(id, evt);
   socket.onerror = evt => onError(id);
 
-  const bulkSocket = new WebSocket(`${address}/connect?id=${sessionId}&bulk=true&verbose=${gVerbose}`);
+  const bulkSocket = new WebSocket(`${address}/connect?id=${gSessionId}&bulk=true&verbose=${gVerbose}`);
   bulkSocket.onopen = evt => onOpen(id, true);
   bulkSocket.onclose = evt => onClose(id);
   bulkSocket.onmessage = evt => onMessage(id, evt, true);
@@ -158,7 +170,7 @@ async function doConnect(id, channelId) {
 
   setTimeout(() => {
     if (!connection.connected) {
-      doLog(`ReplayerConnectionTimedOut ${elapsedTime()}`);
+      doLog(`ReplayerConnectionTimedOut ${elapsedTime()}\n`);
       socket.close();
       bulkSocket.close();
     }
@@ -170,11 +182,7 @@ async function doConnect(id, channelId) {
     if (connection.outgoing.length) {
       const buf = connection.outgoing.shift();
       try {
-        totalSent += buf.byteLength;
-        if (gVerbose) {
-          const desc = messageDescription(new Uint8Array(buf));
-          doLog(`SocketSend Elapsed ${elapsedTime()} Total ${totalSent} Message ${desc}\n`);
-        }
+        maybeLogMessage("SocketSend", new Uint8Array(buf), ++connection.numSends);
 
         const bulk = checkCompleteMessage(buf);
         if (bulk && connection.bulkOpen) {
@@ -241,7 +249,7 @@ function onOpen(id, bulk) {
 }
 
 function onClose(id, bulk) {
-  doLog(`ReplayerDisconnected ${elapsedTime()}`);
+  doLog(`ReplayerDisconnected ${elapsedTime()}\n`);
   postMessage({ kind: "disconnected", id });
   gConnections[id] = null;
 }
@@ -282,11 +290,7 @@ function extractCompleteMessages(id, bulk, data) {
     const msg = new Uint8Array(info.size);
     msg.set(new Uint8Array(data.buffer, offset, info.size));
 
-    totalReceived += info.size;
-    if (gVerbose) {
-      const desc = messageDescription(msg);
-      doLog(`SocketRecv Elapsed ${elapsedTime()} Total ${totalReceived} Message ${desc}\n`);
-    }
+    maybeLogMessage("SocketRecv", msg, ++gConnections[id].numRecvs);
 
     messages.push(msg.buffer);
     offset += info.size;
@@ -320,7 +324,7 @@ function onMessage(id, evt, bulk) {
   // When we have heard back from the replayer, we are fully connected to it.
   if (!gConnections[id].connected && !bulk) {
     gConnections[id].connected = true;
-    doLog(`ReplayerConnected ${elapsedTime()}`);
+    doLog(`ReplayerConnected ${elapsedTime()}\n`);
     postMessage({ kind: "connected", id });
   }
 
@@ -336,7 +340,7 @@ function onError(id, evt) {
 }
 
 function PostError(why, id) {
-  doLog(`ReplayerConnectionError ${why.toString()} ${elapsedTime()}`);
+  doLog(`ReplayerConnectionError ${why.toString()} ${elapsedTime()}\n`);
   postMessage({ kind: "error", why: why.toString(), id });
 }
 
