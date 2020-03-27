@@ -92,7 +92,8 @@ async function onServerMessage(evt) {
         break;
       }
       case "connectionAddress": {
-        const { address, id } = data;
+        const { id, replayerSessionId, address } = data;
+        gConnections[id].replayerSessionId = replayerSessionId;
         gConnections[id].connectWaiter(address);
         break;
       }
@@ -107,12 +108,13 @@ async function onServerMessage(evt) {
 
 const MessageLogCount = 3;
 
-function maybeLogMessage(prefix, message, count) {
-  if (gVerbose || count < MessageLogCount) {
+function maybeLogMessage(prefix, id, message, count) {
+  if (gVerbose || count <= MessageLogCount) {
     const desc = messageDescription(message);
-    doLog(`${prefix} Elapsed ${elapsedTime()} Message ${desc}\n`);
-  } else if (!gVerbose && count == MessageLogCount) {
-    doLog(`Verbose not set, not logging future ${prefix} messages\n`);
+    doLog(`${prefix} Connection ${id} Elapsed ${elapsedTime()} Message ${desc}\n`);
+  }
+  if (!gVerbose && count == MessageLogCount) {
+    doLog(`Verbose not set, not logging future ${prefix} messages for connection ${id}\n`);
   }
 }
 
@@ -121,12 +123,15 @@ function maybeLogMessage(prefix, message, count) {
 const SocketTimeoutMs = 20000;
 
 async function doConnect(id, channelId) {
-  doLog(`ReplayerConnect ${elapsedTime()}\n`);
+  doLog(`ReplayerConnect ${id} ${elapsedTime()}\n`);
 
   if (gConnections[id]) {
     PostError(`Duplicate connection ID ${id}`);
   }
   const connection = {
+    // ID assigned to this session by the dispatcher.
+    replayerSessionId: null,
+
     // Messages to send to the replayer.
     outgoing: [],
 
@@ -156,13 +161,18 @@ async function doConnect(id, channelId) {
     PostError(`Invalid websocket address ${text}`);
   }
 
-  const socket = new WebSocket(`${address}/connect?id=${gSessionId}&verbose=${gVerbose}`);
+  function urlParams(bulk) {
+    const id = connection.replayerSessionId;
+    return `id=${id}&dispatchId=${gSessionId}&bulk=${bulk}&verbose=${gVerbose}`;
+  }
+
+  const socket = new WebSocket(`${address}/connect?${urlParams(false)}`);
   socket.onopen = evt => onOpen(id);
   socket.onclose = evt => onClose(id);
   socket.onmessage = evt => onMessage(id, evt);
   socket.onerror = evt => onError(id);
 
-  const bulkSocket = new WebSocket(`${address}/connect?id=${gSessionId}&bulk=true&verbose=${gVerbose}`);
+  const bulkSocket = new WebSocket(`${address}/connect?${urlParams(true)}`);
   bulkSocket.onopen = evt => onOpen(id, true);
   bulkSocket.onclose = evt => onClose(id);
   bulkSocket.onmessage = evt => onMessage(id, evt, true);
@@ -170,7 +180,7 @@ async function doConnect(id, channelId) {
 
   setTimeout(() => {
     if (!connection.connected) {
-      doLog(`ReplayerConnectionTimedOut ${elapsedTime()}\n`);
+      doLog(`ReplayerConnectionTimedOut ${id} ${elapsedTime()}\n`);
       socket.close();
       bulkSocket.close();
     }
@@ -182,7 +192,7 @@ async function doConnect(id, channelId) {
     if (connection.outgoing.length) {
       const buf = connection.outgoing.shift();
       try {
-        maybeLogMessage("SocketSend", new Uint8Array(buf), ++connection.numSends);
+        maybeLogMessage("SocketSend", id, new Uint8Array(buf), ++connection.numSends);
 
         const bulk = checkCompleteMessage(buf);
         if (bulk && connection.bulkOpen) {
@@ -249,7 +259,7 @@ function onOpen(id, bulk) {
 }
 
 function onClose(id, bulk) {
-  doLog(`ReplayerDisconnected ${elapsedTime()}\n`);
+  doLog(`ReplayerDisconnected ${id} ${elapsedTime()}\n`);
   postMessage({ kind: "disconnected", id });
   gConnections[id] = null;
 }
@@ -290,7 +300,7 @@ function extractCompleteMessages(id, bulk, data) {
     const msg = new Uint8Array(info.size);
     msg.set(new Uint8Array(data.buffer, offset, info.size));
 
-    maybeLogMessage("SocketRecv", msg, ++gConnections[id].numRecvs);
+    maybeLogMessage("SocketRecv", id, msg, ++gConnections[id].numRecvs);
 
     messages.push(msg.buffer);
     offset += info.size;
@@ -324,7 +334,7 @@ function onMessage(id, evt, bulk) {
   // When we have heard back from the replayer, we are fully connected to it.
   if (!gConnections[id].connected && !bulk) {
     gConnections[id].connected = true;
-    doLog(`ReplayerConnected ${elapsedTime()}\n`);
+    doLog(`ReplayerConnected ${id} ${elapsedTime()}\n`);
     postMessage({ kind: "connected", id });
   }
 
@@ -340,7 +350,7 @@ function onError(id, evt) {
 }
 
 function PostError(why, id) {
-  doLog(`ReplayerConnectionError ${why.toString()} ${elapsedTime()}\n`);
+  doLog(`ReplayerConnectionError ${id} ${why.toString()} ${elapsedTime()}\n`);
   postMessage({ kind: "error", why: why.toString(), id });
 }
 
