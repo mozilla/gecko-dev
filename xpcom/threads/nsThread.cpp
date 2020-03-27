@@ -1258,7 +1258,7 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
       mozilla::TimeDuration duration;
       if (mIsMainThread) {
         TimeStamp now = TimeStamp::Now();
-        duration = now - mCurrentEventStart;
+        duration = now - mLastEventStart;
         if (duration.ToMilliseconds() > LONGTASK_BUSY_WINDOW_MS) {
           nsPrintfCString msg("LongTask %.3f", duration.ToSeconds());
           dom::ChromeUtils::RecordReplayLog(NS_ConvertUTF8toUTF16(msg));
