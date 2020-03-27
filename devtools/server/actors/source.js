@@ -168,10 +168,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
     const source = this._source;
 
     let introductionUrl = null;
-    if (isReplaying) {
-      // Avoid waiting for the script to be loaded when replaying.
-      introductionUrl = source.replayIntroductionUrl;
-    } else if (source.introductionScript) {
+    if (source.introductionScript) {
       introductionUrl = source.introductionScript.source.url;
     }
 
