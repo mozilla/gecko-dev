@@ -65,7 +65,9 @@ ChildDebuggerTransport.prototype = {
 
   receiveMessage: function({ data }) {
     if (data.packetId == this.lastResumePacketId) {
-      ChromeUtils.recordReplayLog("ChildTransport SendResume END");
+      ChromeUtils.recordReplayLog(`ChildTransport SendResume END`);
+    } else if (data.type == "paused") {
+      ChromeUtils.recordReplayLog(`ChildTransport Paused`);
     }
     this.hooks.onPacket(data);
   },
