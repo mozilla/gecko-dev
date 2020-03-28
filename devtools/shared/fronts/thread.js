@@ -26,6 +26,8 @@ loader.lazyRequireGetter(
   true
 );
 
+const ChromeUtils = require("ChromeUtils");
+
 /**
  * Creates a thread front for the remote debugging protocol server. This client
  * is a front to the thread actor created in the server side, hiding the
@@ -66,7 +68,7 @@ class ThreadFront extends FrontClassWithSpec(threadSpec) {
 
   _assertPaused(command) {
     if (!this.paused) {
-      require("ChromeUtils").recordReplayLog(
+      ChromeUtils.recordReplayLog(
         `Thread not paused, currently ${this._state} ${Error().stack}`
       );
       throw Error(
@@ -100,7 +102,9 @@ class ThreadFront extends FrontClassWithSpec(threadSpec) {
     this._previousState = this._state;
     this._state = "resuming";
     try {
+      ChromeUtils.recordReplayLog("ThreadFront.resume BEGIN");
       await super.resume(resumeLimit, rewind);
+      ChromeUtils.recordReplayLog("ThreadFront.resume END");
     } catch (e) {
       if (this._state == "resuming") {
         // There was an error resuming, update the state to the new one

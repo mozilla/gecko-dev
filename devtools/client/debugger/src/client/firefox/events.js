@@ -84,6 +84,8 @@ function removeEventsTopTarget(targetFront: Target) {
 }
 
 async function paused(threadFront: ThreadFront, packet: PausedPacket) {
+  ChromeUtils.recordReplayLog("ThreadFront.paused");
+
   // When reloading we might get pauses from threads before they have been
   // added to the store. Ensure the pause won't be processed until we've
   // finished adding the thread.
