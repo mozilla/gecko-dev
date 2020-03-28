@@ -50,7 +50,8 @@ LocalDebuggerTransport.prototype = {
         dumpn("Packet " + serial + " sent to " + JSON.stringify(packet.to));
       }
     }
-    this._deepFreeze(packet);
+    // Disabled to avoid slowing down this critical path.
+    //this._deepFreeze(packet);
     const other = this.other;
     if (other) {
       DevToolsUtils.executeSoon(
