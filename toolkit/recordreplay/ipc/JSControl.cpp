@@ -1409,8 +1409,6 @@ enum ChangeFrameKind {
   NumChangeFrameKinds
 };
 
-static void MaybeIncorporateScanData();
-
 struct ScriptHitInfo {
   // Information about a location where a script offset has been hit.
   struct ScriptHit {
@@ -1534,11 +1532,7 @@ struct ScriptHitInfo {
   // at each frame depth.
   InfallibleVector<AnyScriptHit, 256> mLastHits;
 
-  CheckpointInfo* GetInfo(uint32_t aCheckpoint, bool aIncorporateData = true) {
-    if (aIncorporateData) {
-      MaybeIncorporateScanData();
-    }
-
+  CheckpointInfo* GetInfo(uint32_t aCheckpoint) {
     while (aCheckpoint >= mInfo.length()) {
       mInfo.append(nullptr);
     }
@@ -1620,7 +1614,7 @@ struct ScriptHitInfo {
 
     while (!stream.IsEmpty()) {
       size_t checkpoint = stream.ReadScalar32();
-      CheckpointInfo* info = GetInfo(checkpoint, /* aIncorporateData */ false);
+      CheckpointInfo* info = GetInfo(checkpoint);
       info->ReadContents(stream);
     }
   }
@@ -1862,6 +1856,7 @@ static bool RecordReplay_CopyScanDataToRoot(JSContext* aCx, unsigned aArgc,
 static bool RecordReplay_GetScannedPaintData(JSContext* aCx, unsigned aArgc,
                                              Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
+  MaybeIncorporateScanData();
 
   if (!args.get(0).isNumber()) {
     JS_ReportErrorASCII(aCx, "Bad parameters");
@@ -1887,6 +1882,7 @@ static bool RecordReplay_GetScannedPaintData(JSContext* aCx, unsigned aArgc,
 static bool RecordReplay_FindScriptHits(JSContext* aCx, unsigned aArgc,
                                         Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
+  MaybeIncorporateScanData();
 
   if (!args.get(0).isNumber() || !args.get(1).isNumber() ||
       !args.get(2).isNumber()) {
@@ -1942,6 +1938,7 @@ static bool MaybeGetNumberProperty(JSContext* aCx, HandleObject aObject,
 static bool RecordReplay_FindChangeFrames(JSContext* aCx, unsigned aArgc,
                                           Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
+  MaybeIncorporateScanData();
 
   if (!args.get(0).isNumber() || !args.get(1).isNumber() ||
       !args.get(2).isObject()) {
