@@ -237,5 +237,26 @@ async function checkMessageObjectContents(msg, expected, expandList = []) {
   });
 }
 
+// For navigating scopes.
+async function findNode(dbg, text) {
+  let node;
+  await waitUntil(() => {
+    for (let index = 0; index < 100; index++) {
+      const elem = findElement(dbg, "scopeNode", index);
+      if (elem && elem.innerText == text) {
+        node = elem;
+        return true;
+      }
+    }
+  });
+  return node;
+}
+
+// For interacting with scopes.
+async function toggleNode(dbg, text) {
+  const node = await findNode(dbg, text);
+  return toggleObjectInspectorNode(node);
+}
+
 PromiseTestUtils.whitelistRejectionsGlobally(/NS_ERROR_NOT_INITIALIZED/);
 PromiseTestUtils.whitelistRejectionsGlobally(/Error in asyncStorage/);

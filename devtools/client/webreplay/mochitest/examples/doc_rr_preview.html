@@ -1,0 +1,15 @@
+<div>Hello World!</div>
+<script>
+setTimeout(foo, 0);
+function foo() {
+  const fooobj = { fooprop1: 0, fooprop2: 1 };
+  bar();
+}
+function bar() {
+  const barobj = { barprop1: 2, barprop2: 3 };
+  setTimeout(recordingFinished, 0);
+}
+function recordingFinished() {
+  SpecialPowers.Services.cpmm.sendAsyncMessage("RecordingFinished");
+}
+</script>

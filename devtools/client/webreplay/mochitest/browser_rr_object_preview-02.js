@@ -11,19 +11,6 @@ PromiseTestUtils.whitelistRejectionsGlobally(
   /can't be sent as the connection just closed/
 );
 
-function findNode(dbg, text) {
-  for (let index = 0; ; index++) {
-    const elem = findElement(dbg, "scopeNode", index);
-    if (elem && elem.innerText == text) {
-      return elem;
-    }
-  }
-}
-
-function toggleNode(dbg, text) {
-  return toggleObjectInspectorNode(findNode(dbg, text));
-}
-
 // Test that objects show up correctly in the scope pane.
 add_task(async function() {
   const dbg = await attachRecordingDebugger("doc_rr_objects.html", {
@@ -37,8 +24,8 @@ add_task(async function() {
 
   // We should be able to expand the window and see its properties.
   await toggleNode(dbg, "<this>");
-  findNode(dbg, "bar()");
-  findNode(dbg, "baz()");
+  await findNode(dbg, "bar()");
+  await findNode(dbg, "baz()");
 
   await shutdownDebugger(dbg);
 });
