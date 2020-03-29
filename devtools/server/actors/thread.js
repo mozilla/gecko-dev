@@ -364,6 +364,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       this.dbg.replayingOnStatusUpdate = this.replayingOnStatusUpdate.bind(this);
       this.dbg.replayingOnTimeWarpClient = this.replayingOnTimeWarpClient.bind(this);
       this.dbg.replayingPaintFinished = this.replayingPaintFinished.bind(this);
+      this.dbg.replayingIsLocationBlackboxed = this.replayingIsLocationBlackboxed.bind(this);
     }
 
     this._debuggerSourcesSeen = new WeakSet();
@@ -873,17 +874,13 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       // Continue forward until we get to a valid step target.
       const { onStep, onPop } = this._makeSteppingHooks({
         steppingType: "next",
-        rewinding: false,
       });
 
       if (this.sources.isFrameBlackBoxed(frame)) {
         return undefined;
       }
 
-      if (this.dbg.replaying) {
-        const offsets = findStepOffsets(frame);
-        frame.setReplayingOnStep(onStep, offsets);
-      } else if (!this.sources.isFrameBlackBoxed(frame)) {
+      if (!this.sources.isFrameBlackBoxed(frame)) {
         frame.onStep = onStep;
       }
 
@@ -892,7 +889,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     };
   },
 
-  _makeOnPop: function({ pauseAndRespond, steppingType, rewinding }) {
+  _makeOnPop: function({ pauseAndRespond, steppingType }) {
     const thread = this;
     return function(completion) {
       // onPop is called when we temporarily leave an async/generator
@@ -917,18 +914,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       if (parentFrame && parentFrame.script) {
         const { onStep, onPop } = thread._makeSteppingHooks({
           steppingType: "next",
-          rewinding,
           completion,
         });
 
-        if (thread.dbg.replaying) {
-          const offsets = findStepOffsets(
-            parentFrame,
-            rewinding,
-            /* requireStepStart */ false
-          );
-          parentFrame.setReplayingOnStep(onStep, offsets);
-        } else if (!thread.sources.isFrameBlackBoxed(parentFrame)) {
+        if (!thread.sources.isFrameBlackBoxed(parentFrame)) {
           parentFrame.onStep = onStep;
         }
 
@@ -969,14 +958,13 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     startFrame,
     steppingType,
     completion,
-    rewinding,
   }) {
     const thread = this;
     return function() {
       // onStep is called with 'this' set to the current frame.
       // NOTE: we need to clear the stepping hooks when we are
       // no longer waiting for an async step to occur.
-      if (!isReplaying && this.hasOwnProperty("waitingOnStep") && !this.waitingOnStep) {
+      if (this.hasOwnProperty("waitingOnStep") && !this.waitingOnStep) {
         delete this.waitingOnStep;
         this.onStep = undefined;
         this.onPop = undefined;
@@ -1042,13 +1030,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   /**
    * Define the JS hook functions for stepping.
    */
-  _makeSteppingHooks: function({ steppingType, rewinding, completion }) {
-    // We can't use the completion value in stepping hooks if we're
-    // replaying, as we can't use its contents after resuming.
-    if (this.dbg.replaying) {
-      completion = null;
-    }
-
+  _makeSteppingHooks: function({ steppingType, completion }) {
     // Bind these methods and state because some of the hooks are called
     // with 'this' set to the current frame. Rather than repeating the
     // binding in each _makeOnX method, just do it once here and pass it
@@ -1058,7 +1040,6 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
         this._pauseAndRespond(frame, { type: "resumeLimit" }, onPacket),
       startFrame: this.youngestFrame,
       steppingType,
-      rewinding,
       completion,
     };
 
@@ -1073,24 +1054,20 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
    * Handle attaching the various stepping hooks we need to attach when we
    * receive a resume request with a resumeLimit property.
    *
-   * @param Object { rewind, resumeLimit }
+   * @param Object { resumeLimit }
    *        The values received over the RDP.
    * @returns A promise that resolves to true once the hooks are attached, or is
    *          rejected with an error packet.
    */
-  _handleResumeLimit: async function({ rewind, resumeLimit }) {
+  _handleResumeLimit: async function({ resumeLimit }) {
+    assert(!isReplaying);
+
     let steppingType = resumeLimit.type;
-    const rewinding = rewind;
-    if (!["break", "step", "next", "finish", "warp"].includes(steppingType)) {
+    if (!["break", "step", "next", "finish"].includes(steppingType)) {
       return Promise.reject({
         error: "badParameterType",
         message: "Unknown resumeLimit type",
       });
-    }
-
-    if (steppingType == "warp") {
-      // Time warp resume limits are handled by the caller.
-      return true;
     }
 
     // If we are stepping out of the onPop handler, we want to use "next" mode
@@ -1101,61 +1078,28 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
 
     const { onEnterFrame, onPop, onStep } = this._makeSteppingHooks({
       steppingType,
-      rewinding,
     });
-
-    if (isReplaying) {
-      await this.youngestFrame.ensureReadyForStepping();
-    }
 
     // Make sure there is still a frame on the stack if we are to continue
     // stepping.
-    const stepFrame = this._getNextStepFrame(this.youngestFrame, rewinding);
+    const stepFrame = this._getNextStepFrame(this.youngestFrame);
     if (stepFrame) {
       switch (steppingType) {
         case "step":
-          assert(
-            !rewinding,
-            "'step' resume limit cannot be used while rewinding"
-          );
           this.dbg.onEnterFrame = onEnterFrame;
         // Fall through.
         case "break":
         case "next":
           if (stepFrame.script) {
-            if (this.dbg.replaying) {
-              const offsets = findStepOffsets(stepFrame, rewinding);
-              stepFrame.setReplayingOnStep(onStep, offsets);
-            } else {
-              stepFrame.waitingOnStep = true;
-              if (!this.sources.isFrameBlackBoxed(stepFrame)) {
-                stepFrame.onStep = onStep;
-              }
-              stepFrame.onPop = onPop;
+            stepFrame.waitingOnStep = true;
+            if (!this.sources.isFrameBlackBoxed(stepFrame)) {
+              stepFrame.onStep = onStep;
             }
+            stepFrame.onPop = onPop;
           }
         // Fall through.
         case "finish":
-          if (rewinding) {
-            await stepFrame.ensureReadyForStepping();
-            let olderFrame = stepFrame.older;
-            while (
-              olderFrame &&
-              (!olderFrame.script || this.sources.isFrameBlackBoxed(olderFrame))
-            ) {
-              await olderFrame.ensureReadyForStepping();
-              olderFrame = olderFrame.older;
-            }
-            if (olderFrame) {
-              // Set an onStep handler in the older frame to stop at the call site.
-              // Make sure the offsets we use are valid breakpoint locations, as we
-              // cannot stop at other offsets when replaying.
-              const offsets = findStepOffsets(olderFrame, true);
-              olderFrame.setReplayingOnStep(onStep, offsets);
-            }
-          } else {
-            stepFrame.onPop = onPop;
-          }
+          stepFrame.onPop = onPop;
           break;
       }
     }
@@ -1167,16 +1111,12 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
    * Clear the onStep and onPop hooks for all frames on the stack.
    */
   _clearSteppingHooks: function() {
-    if (this.dbg.replaying) {
-      this.dbg.replayClearSteppingHooks();
-    } else {
-      let frame = this.youngestFrame;
-      if (frame && frame.onStack) {
-        while (frame) {
-          frame.onStep = undefined;
-          frame.onPop = undefined;
-          frame = frame.older;
-        }
+    let frame = this.youngestFrame;
+    if (frame && frame.onStack) {
+      while (frame) {
+        frame.onStep = undefined;
+        frame.onPop = undefined;
+        frame = frame.older;
       }
     }
   },
@@ -1232,8 +1172,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     try {
       ChromeUtils.recordReplayLog(`ThreadActor.resume Start ${JSON.stringify(resumeLimit)} ${rewind}`);
 
-      if (resumeLimit) {
-        await this._handleResumeLimit({ resumeLimit, rewind });
+      if (isReplaying) {
+        this.dbg.replaySetResumeLimit(resumeLimit ? resumeLimit.type : null);
+      } else if (resumeLimit) {
+        await this._handleResumeLimit({ resumeLimit });
       } else {
         this._clearSteppingHooks();
       }
@@ -1340,10 +1282,8 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   /**
    * Helper method that returns the next frame when stepping.
    */
-  _getNextStepFrame: function(frame, rewinding) {
-    const endOfFrame = rewinding
-      ? frame.offset == frame.script.mainOffset
-      : frame.reportedPop;
+  _getNextStepFrame: function(frame) {
+    const endOfFrame = frame.reportedPop;
     const stepFrame = endOfFrame ? frame.older : frame;
     if (!stepFrame || !stepFrame.script) {
       return null;
@@ -1600,9 +1540,11 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     this._state = "paused";
 
     // Clear stepping hooks.
-    this.dbg.onEnterFrame = undefined;
-    this.dbg.onExceptionUnwind = undefined;
-    this._clearSteppingHooks();
+    if (!isReplaying) {
+      this.dbg.onEnterFrame = undefined;
+      this.dbg.onExceptionUnwind = undefined;
+      this._clearSteppingHooks();
+    }
 
     // Create the actor pool that will hold the pause actor and its
     // children.
@@ -2051,6 +1993,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   // Tell the client that painting finished at the paused point.
   replayingPaintFinished(point) {
     this.emit("replayPaintFinished", { point });
+  },
+
+  replayingIsLocationBlackboxed(url, line, column) {
+    return this.sources.isBlackBoxed(url, line, column);
   },
 
   pickExecutionPoints(count) {

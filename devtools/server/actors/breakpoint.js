@@ -193,7 +193,7 @@ BreakpointActor.prototype = {
 
     // If we're trying to pop this frame, and we see a breakpoint at
     // the spot at which popping started, ignore it.  See bug 970469.
-    const locationAtFinish = frame.onPop && frame.onPop.location;
+    const locationAtFinish = !isReplaying && frame.onPop && frame.onPop.location;
     if (
       locationAtFinish &&
       locationAtFinish.line === line &&
@@ -202,7 +202,7 @@ BreakpointActor.prototype = {
       return undefined;
     }
 
-    if (!this.threadActor.hasMoved(frame, "breakpoint")) {
+    if (!isReplaying && !this.threadActor.hasMoved(frame, "breakpoint")) {
       return undefined;
     }
 
