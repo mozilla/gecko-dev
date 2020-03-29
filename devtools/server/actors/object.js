@@ -92,13 +92,13 @@ const proto = {
     conn
   ) {
     assert(
-      !obj.optimizedOut,
+      !obj || !obj.optimizedOut,
       "Should not create object actors for optimized out values!"
     );
     protocol.Actor.prototype.initialize.call(this, conn);
 
     this.conn = conn;
-    this.obj = obj;
+    this._obj = obj;
     this.thread = thread;
     this.hooks = {
       createValueGrip: createValueGripHook,
@@ -108,6 +108,10 @@ const proto = {
       incrementGripDepth,
       decrementGripDepth,
     };
+  },
+
+  get obj() {
+    return this._obj || this.thread.replayPausedActorValue(this);
   },
 
   rawValue: function() {

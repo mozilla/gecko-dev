@@ -31,9 +31,13 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
    *        The parent thread actor for this frame.
    */
   initialize: function(frame, threadActor, depth) {
-    this.frame = frame;
+    this._frame = frame;
     this.threadActor = threadActor;
     this.depth = depth;
+  },
+
+  get frame() {
+    return this._frame || this.threadActor.replayPausedActorValue(this);
   },
 
   /**
@@ -113,7 +117,7 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
     if (this.frame.type != "wasmcall") {
       form.this = createValueGrip(
         this.frame.this,
-        threadActor._pausePool,
+        threadActor.pauseScopePool,
         threadActor.objectGrip
       );
     }
@@ -136,7 +140,7 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
     return this.frame.arguments.map(arg =>
       createValueGrip(
         arg,
-        this.threadActor._pausePool,
+        this.threadActor.pauseScopePool,
         this.threadActor.objectGrip
       )
     );

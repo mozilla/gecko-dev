@@ -165,6 +165,11 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       this.wrappedJSObject = this;
       Services.obs.notifyObservers(this, "devtools-thread-instantiated");
     }
+
+    if (isReplaying) {
+      this._replayThreadActors = new Map();
+      this._replayPauseActors = [];
+    }
   },
 
   // Used by the ObjectActor to keep track of the depth of grip() calls.
@@ -215,6 +220,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     return this.threadLifetimePool.objectActors.get(raw);
   },
 
+  get pauseScopePool() {
+    return isReplaying ? this.threadLifetimePool : this._pausePool;
+  },
+
   createValueGrip(value) {
     return createValueGrip(value, this.threadLifetimePool, this.objectGrip);
   },
@@ -251,6 +260,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   _pushThreadPause: function() {
     if (this.dbg.replaying) {
       this.dbg.replayPushThreadPause();
+      this.replayPushActorPause();
     }
     if (!this._threadPauseEventLoops) {
       this._threadPauseEventLoops = [];
@@ -264,6 +274,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     assert(eventLoop, "Should have an event loop.");
     eventLoop.resolve();
     if (this.dbg.replaying) {
+      this.replayPopActorPause();
       this.dbg.replayPopThreadPause();
     }
   },
@@ -1013,7 +1024,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     }
 
     const createGrip = value =>
-      createValueGrip(value, this._pausePool, this.objectGrip);
+      createValueGrip(value, this.pauseScopePool, this.objectGrip);
     packet.why.frameFinished = {};
 
     if (completion.hasOwnProperty("return")) {
@@ -1217,11 +1228,14 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     this.maybePauseOnExceptions();
     this._state = "running";
 
-    // Drop the actors in the pause actor pool.
-    this.conn.removeActorPool(this._pausePool);
+    if (!isReplaying) {
+      // Drop the actors in the pause actor pool.
+      this.conn.removeActorPool(this._pausePool);
 
-    this._pausePool = null;
-    this._pauseActor = null;
+      this._pausePool = null;
+      this._pauseActor = null;
+    }
+
     this._popThreadPause();
     // Tell anyone who cares of the resume (as of now, that's the xpcshell harness and
     // devtools-startup.js when handling the --wait-for-jsdebugger flag)
@@ -1544,29 +1558,29 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       this.dbg.onEnterFrame = undefined;
       this.dbg.onExceptionUnwind = undefined;
       this._clearSteppingHooks();
+
+      // Create the actor pool that will hold the pause actor and its
+      // children.
+      assert(!this._pausePool, "No pause pool should exist yet");
+      this._pausePool = new ActorPool(this.conn, "pause");
+      this.conn.addActorPool(this._pausePool);
+
+      // Give children of the pause pool a quick link back to the
+      // thread...
+      this._pausePool.threadActor = this;
+
+      // Create the pause actor itself...
+      assert(!this._pauseActor, "No pause actor should exist yet");
+      this._pauseActor = new PauseActor(this._pausePool);
+      this._pausePool.addActor(this._pauseActor);
     }
-
-    // Create the actor pool that will hold the pause actor and its
-    // children.
-    assert(!this._pausePool, "No pause pool should exist yet");
-    this._pausePool = new ActorPool(this.conn, "pause");
-    this.conn.addActorPool(this._pausePool);
-
-    // Give children of the pause pool a quick link back to the
-    // thread...
-    this._pausePool.threadActor = this;
-
-    // Create the pause actor itself...
-    assert(!this._pauseActor, "No pause actor should exist yet");
-    this._pauseActor = new PauseActor(this._pausePool);
-    this._pausePool.addActor(this._pauseActor);
 
     // Update the list of frames.
     const poppedFrames = this._updateFrames();
 
     // Send off the paused packet and spin an event loop.
     const packet = {
-      actor: this._pauseActor.actorID,
+      actor: this._pauseActor ? this._pauseActor.actorID : null,
     };
 
     if (frame) {
@@ -1659,6 +1673,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
    * @returns A list of actor IDs whose frames have been popped.
    */
   _updateFrames: function() {
+    if (isReplaying) {
+      return;
+    }
+
     const popped = [];
 
     // Create the actor pool that will hold the still-living frames.
@@ -1687,9 +1705,62 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     return popped;
   },
 
+  replayPushActorPause(map) {
+    this._replayPauseActors.push(map || new Map());
+  },
+
+  replayPopActorPause() {
+    if (!this._replayPauseActors.length) {
+      throw new Error("replayPauseActors not set");
+    }
+    return this._replayPauseActors.pop();
+  },
+
+  replayThreadActor(dbgValue, ctor) {
+    if (!this._replayPauseActors.length) {
+      throw new Error("replayPauseActors not set");
+    }
+    const key = dbgValue.replayId();
+    if (!this._replayThreadActors.has(key)) {
+      const actor = ctor();
+      this.threadLifetimePool.addActor(actor);
+      this._replayThreadActors.set(key, actor);
+    }
+    const actor = this._replayThreadActors.get(key);
+    this._replayPauseActors[this._replayPauseActors.length - 1].set(actor, dbgValue);
+    return actor;
+  },
+
+  replayPausedActorValue(actor) {
+    if (!this._replayPauseActors.length) {
+      throw new Error("replayPauseActors not set");
+    }
+    const map = this._replayPauseActors[this._replayPauseActors.length - 1];
+    if (!map.has(actor)) {
+      throw new Error("replayPauseActors missing actor");
+    }
+    return map.get(actor);
+  },
+
   _createFrameActor: function(frame, depth) {
     if (frame.actor) {
       return frame.actor;
+    }
+
+    if (isReplaying) {
+      if (frame.replayingMinimal) {
+        // This actor is created on every pause and will leak over time...
+        const actor = new FrameActor(frame, this, depth);
+        this.threadLifetimePool.addActor(actor);
+        frame.actor = actor;
+        return actor;
+      }
+      const actor = this.replayThreadActor(
+        frame,
+        () => new FrameActor(null, this, depth)
+      );
+      frame.actor = actor;
+      return actor;
     }
 
     const actor = new FrameActor(frame, this, depth);
@@ -1717,6 +1788,15 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
 
     if (environment.actor) {
       return environment.actor;
+    }
+
+    if (isReplaying) {
+      const actor = this.replayThreadActor(
+        environment,
+        () => new EnvironmentActor(null, this)
+      );
+      environment.actor = actor;
+      return actor;
     }
 
     const actor = new EnvironmentActor(environment, this);
@@ -1747,26 +1827,37 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       return this.threadLifetimePool.objectActors.get(value).form();
     }
 
+    const options = {
+      thread: this,
+      getGripDepth: () => this._gripDepth,
+      incrementGripDepth: () => this._gripDepth++,
+      decrementGripDepth: () => this._gripDepth--,
+      createValueGrip: v => {
+        if (this.pauseScopePool) {
+          return createValueGrip(v, this.pauseScopePool, this.pauseObjectGrip);
+        }
+
+        return createValueGrip(v, this.threadLifetimePool, this.objectGrip);
+      },
+      sources: () => this.sources,
+      createEnvironmentActor: (e, p) => this.createEnvironmentActor(e, p),
+      promote: () => this.threadObjectGrip(actor),
+      isThreadLifetimePool: () =>
+          actor.registeredPool !== this.threadLifetimePool,
+    };
+
+    if (isReplaying) {
+      const actor = this.replayThreadActor(
+        value,
+        () => new PauseScopedObjectActor(null, options, this.conn)
+      );
+      this.threadLifetimePool.objectActors.set(value, actor);
+      return actor.form();
+    }
+
     const actor = new PauseScopedObjectActor(
       value,
-      {
-        thread: this,
-        getGripDepth: () => this._gripDepth,
-        incrementGripDepth: () => this._gripDepth++,
-        decrementGripDepth: () => this._gripDepth--,
-        createValueGrip: v => {
-          if (this._pausePool) {
-            return createValueGrip(v, this._pausePool, this.pauseObjectGrip);
-          }
-
-          return createValueGrip(v, this.threadLifetimePool, this.objectGrip);
-        },
-        sources: () => this.sources,
-        createEnvironmentActor: (e, p) => this.createEnvironmentActor(e, p),
-        promote: () => this.threadObjectGrip(actor),
-        isThreadLifetimePool: () =>
-          actor.registeredPool !== this.threadLifetimePool,
-      },
+      options,
       this.conn
     );
     pool.addActor(actor);
@@ -1781,11 +1872,11 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
    *        The debuggee object value.
    */
   pauseObjectGrip: function(value) {
-    if (!this._pausePool) {
+    if (!this.pauseScopePool) {
       throw new Error("Object grip requested while not paused.");
     }
 
-    return this.objectGrip(value, this._pausePool);
+    return this.objectGrip(value, this.pauseScopePool);
   },
 
   /**
@@ -1898,10 +1989,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
         message: `DOM Mutation: '${mutationType}'`,
       },
       pkt => {
-        // We have to add this here because `_pausePool` is `null` beforehand.
-        pkt.why.nodeGrip = this.objectGrip(targetObj, this._pausePool);
+        // We have to add this here because `pauseScopePool` is `null` beforehand.
+        pkt.why.nodeGrip = this.objectGrip(targetObj, this.pauseScopePool);
         pkt.why.ancestorGrip = ancestorObj
-          ? this.objectGrip(ancestorObj, this._pausePool)
+          ? this.objectGrip(ancestorObj, this.pauseScopePool)
           : null;
         pkt.why.action = action;
         return pkt;
@@ -2066,7 +2157,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
 
       packet.why = {
         type: "exception",
-        exception: createValueGrip(value, this._pausePool, this.objectGrip),
+        exception: createValueGrip(value, this.pauseScopePool, this.objectGrip),
       };
       this.emit("paused", packet);
 

@@ -21,8 +21,12 @@ const { environmentSpec } = require("devtools/shared/specs/environment");
  */
 const EnvironmentActor = ActorClassWithSpec(environmentSpec, {
   initialize: function(environment, threadActor) {
-    this.obj = environment;
+    this._obj = environment;
     this.threadActor = threadActor;
+  },
+
+  get obj() {
+    return this._obj || this.threadActor.replayPausedActorValue(this);
   },
 
   /**
