@@ -221,7 +221,8 @@ function update(
 
     case "FETCHED_FRAMES": {
       const { frames } = action;
-      return updateThreadState({ frames, framesLoading: false });
+      const selectedFrameId = frames.length ? frames[0].id : undefined;
+      return updateThreadState({ frames, selectedFrameId, framesLoading: false });
     }
 
     case "PREVIEW_PAUSED_LOCATION": {
