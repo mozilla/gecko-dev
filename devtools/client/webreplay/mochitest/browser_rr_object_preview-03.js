@@ -12,8 +12,8 @@ add_task(async function() {
     waitForRecording: true,
   });
 
-  await addBreakpoint(dbg, "doc_rr_preview.html", 10);
-  await rewindToLine(dbg, 10);
+  await addBreakpoint(dbg, "doc_rr_preview.html", 16);
+  await rewindToLine(dbg, 16);
 
   await toggleNode(dbg, "barobj");
   await findNode(dbg, "barprop1");

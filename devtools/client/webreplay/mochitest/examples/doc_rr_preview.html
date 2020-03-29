@@ -6,7 +6,13 @@ function foo() {
   bar();
 }
 function bar() {
-  const barobj = { barprop1: 2, barprop2: 3 };
+  const barobj = {
+    barprop1: 2,
+    barprop2: 3,
+    nested: {
+      nestedprop1: 4,
+    }
+  };
   setTimeout(recordingFinished, 0);
 }
 function recordingFinished() {
