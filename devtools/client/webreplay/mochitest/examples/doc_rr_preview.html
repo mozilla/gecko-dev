@@ -13,7 +13,13 @@ function bar() {
       nestedprop1: 4,
     }
   };
+  const bararr = [5, 6];
+  update(barobj, bararr);
   setTimeout(recordingFinished, 0);
+}
+function update(obj, arr) {
+  obj.barprop1 = "updated";
+  arr.push("new");
 }
 function recordingFinished() {
   SpecialPowers.Services.cpmm.sendAsyncMessage("RecordingFinished");

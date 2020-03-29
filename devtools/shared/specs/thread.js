@@ -80,6 +80,9 @@ const threadSpec = generateActorSpec({
     replayPaintFinished: {
       point: Option(0, "json"),
     },
+    replayPreloadedData: {
+      data: Option(0, "array:json"),
+    },
   },
 
   methods: {

@@ -149,11 +149,16 @@ function replayFramePositions(
   actions.setFramePositions(positions, unexecutedLocations, frame, thread);
 }
 
+function replayPreloadedData(threadFront, entries) {
+  dump(`REPLAY_PRELOADED_DATA ${JSON.stringify(entries)}\n`);
+}
+
 const clientEvents = {
   paused,
   resumed,
   newSource,
   replayFramePositions,
+  replayPreloadedData,
 };
 
 export {

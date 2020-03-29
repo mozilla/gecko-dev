@@ -169,6 +169,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     if (isReplaying) {
       this._replayThreadActors = new Map();
       this._replayPauseActors = [];
+      this._stepTargetEpoch = 0;
     }
   },
 
@@ -376,6 +377,8 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       this.dbg.replayingOnTimeWarpClient = this.replayingOnTimeWarpClient.bind(this);
       this.dbg.replayingPaintFinished = this.replayingPaintFinished.bind(this);
       this.dbg.replayingIsLocationBlackboxed = this.replayingIsLocationBlackboxed.bind(this);
+      this.dbg.replayingStepTargetEpoch = this.replayingStepTargetEpoch.bind(this);
+      this.dbg.replayingEmitStepTargets = this.replayingEmitStepTargets.bind(this);
     }
 
     this._debuggerSourcesSeen = new WeakSet();
@@ -517,6 +520,8 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   setBreakpoint: async function(location, options) {
+    this.replayingInvalidateStepTargets();
+
     const actor = this.breakpointActorMap.getOrCreateBreakpointActor(location);
     actor.setOptions(options);
 
@@ -538,6 +543,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   removeBreakpoint(location) {
+    this.replayingInvalidateStepTargets();
     const actor = this.breakpointActorMap.getOrCreateBreakpointActor(location);
     actor.delete();
   },
@@ -1328,9 +1334,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       ChromeUtils.recordReplayLog(`ThreadActor.frames End`);
     }
 
-    // Find the starting frame...
-    let frame = this.youngestFrame;
+    return this.walkFrames(this.youngestFrame, start, count);
+  },
 
+  walkFrames(frame, start, count) {
     const walkToParentFrame = () => {
       if (!frame) {
         return;
@@ -1892,6 +1899,24 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
 
     this.threadLifetimePool.addActor(actor);
     this.threadLifetimePool.objectActors.set(actor.obj, actor);
+  },
+
+  replayingStepTargetEpoch() {
+    return this._stepTargetEpoch;
+  },
+
+  replayingEmitStepTargets(info) {
+    if (isReplaying) {
+      this.emit("replayPreloadedData", { data: [{ kind: "StepTargets", ...info }] });
+    }
+  },
+
+  replayingInvalidateStepTargets() {
+    if (isReplaying) {
+      this._stepTargetEpoch++;
+      this.emit("replayPreloadedData", { data: [{ kind: "InvalidateStepTargets" }] });
+      this.dbg.replayRegenerateStepTargets();
+    }
   },
 
   _onWindowReady: function({ isTopLevel, isBFCache, window }) {

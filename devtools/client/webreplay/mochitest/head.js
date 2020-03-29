@@ -258,5 +258,15 @@ async function toggleNode(dbg, text) {
   return toggleObjectInspectorNode(node);
 }
 
+// For interacting with scopes.
+function findNodeValue(dbg, text) {
+  for (let index = 0; index < 100; index++) {
+    var elem = findElement(dbg, "scopeNode", index);
+    if (elem && elem.innerText == text) {
+      return findElement(dbg, "scopeValue", index).innerText;
+    }
+  }
+}
+
 PromiseTestUtils.whitelistRejectionsGlobally(/NS_ERROR_NOT_INITIALIZED/);
 PromiseTestUtils.whitelistRejectionsGlobally(/Error in asyncStorage/);

@@ -12,12 +12,15 @@ add_task(async function() {
     waitForRecording: true,
   });
 
-  await addBreakpoint(dbg, "doc_rr_preview.html", 16);
-  await rewindToLine(dbg, 16);
+  await addBreakpoint(dbg, "doc_rr_preview.html", 17);
+  await rewindToLine(dbg, 17);
+
+  await waitUntil(() => dbg.selectors.getSelectedInlinePreviews());
 
   await toggleNode(dbg, "barobj");
   await findNode(dbg, "barprop1");
   await findNode(dbg, "barprop2");
+  ok(findNodeValue(dbg, "barprop1") == "2", "correct early property text");
 
   const frames = dbg.selectors.getFrames(dbg.selectors.getCurrentThread());
   await dbg.actions.selectFrame(getThreadContext(dbg), frames[1]);
@@ -25,6 +28,13 @@ add_task(async function() {
   await toggleNode(dbg, "fooobj");
   await findNode(dbg, "fooprop1");
   await findNode(dbg, "fooprop2");
+
+  await dbg.actions.selectFrame(getThreadContext(dbg), frames[0]);
+
+  await stepOverToLine(dbg, 18);
+
+  await findNode(dbg, "barprop1");
+  ok(findNodeValue(dbg, "barprop1") == `"updated"`, "correct late property text");
 
   await shutdownDebugger(dbg);
 });

@@ -633,6 +633,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
    * Handler for the "blackbox" packet.
    */
   blackbox: function(range) {
+    this.threadActor.replayingInvalidateStepTargets();
     this.threadActor.sources.blackBox(this.url, range);
     if (
       this.threadActor.state == "paused" &&
@@ -648,6 +649,7 @@ const SourceActor = ActorClassWithSpec(sourceSpec, {
    * Handler for the "unblackbox" packet.
    */
   unblackbox: function(range) {
+    this.threadActor.replayingInvalidateStepTargets();
     this.threadActor.sources.unblackBox(this.url, range);
   },
 
