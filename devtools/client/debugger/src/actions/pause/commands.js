@@ -62,12 +62,14 @@ export function selectThread(cx: Context, thread: ThreadId) {
  */
 export function command(cx: ThreadContext, type: Command) {
   return async ({ dispatch, getState, client }: ThunkArgs) => {
+    ChromeUtils.recordReplayLog(`Debugger CommandStart ${type}`);
+
     if (type) {
       const thread = getCurrentThread(getState());
       const point = getThreadExecutionPoint(getState(), thread);
       const instantInfo = client.canInstantStep(point, type);
       if (instantInfo) {
-        ChromeUtils.recordReplayLog(`InstantStep ${type}`);
+        ChromeUtils.recordReplayLog(`Debugger InstantStep`);
 
         const why = { type: "replayForcedPause" };
         const { executionPoint, frames, environment } = instantInfo;
