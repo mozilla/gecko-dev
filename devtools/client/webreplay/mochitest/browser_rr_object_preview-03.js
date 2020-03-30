@@ -31,6 +31,9 @@ add_task(async function() {
 
   await dbg.actions.selectFrame(getThreadContext(dbg), frames[0]);
 
+  const point = dbg.selectors.getThreadExecutionPoint(dbg.selectors.getCurrentThread());
+  await waitUntil(() => dbg.client.canInstantStep(point, "stepOver"));
+
   await stepOverToLine(dbg, 18);
 
   await findNode(dbg, "barprop1");

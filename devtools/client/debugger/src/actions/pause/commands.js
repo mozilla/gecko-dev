@@ -4,7 +4,12 @@
 
 // @flow
 
-import { getSelectedFrame, getThreadContext } from "../../selectors";
+import {
+  getSelectedFrame,
+  getThreadContext,
+  getThreadExecutionPoint,
+  getCurrentThread,
+} from "../../selectors";
 import { PROMISE } from "../utils/middleware/promise";
 import { evaluateExpressions } from "../expressions";
 import { selectLocation } from "../sources";
@@ -54,6 +59,19 @@ export function selectThread(cx: Context, thread: ThreadId) {
 export function command(cx: ThreadContext, type: Command) {
   return async ({ dispatch, getState, client }: ThunkArgs) => {
     if (type) {
+      const thread = getCurrentThread(getState());
+      const point = getThreadExecutionPoint(getState(), thread);
+      const targetPoint = client.canInstantStep(point, type);
+      if (targetPoint) {
+        client.instantWarp(targetPoint);
+        return dispatch({
+          type: "INSTANT_WARP",
+          point: targetPoint,
+          cx,
+          thread: cx.thread,
+        });
+      }
+
       if (type == "resume" || type == "rewind") {
         dispatch({ type: "CLEAR_FRAME_POSITIONS" });
       }

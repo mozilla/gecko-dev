@@ -102,9 +102,7 @@ class ThreadFront extends FrontClassWithSpec(threadSpec) {
     this._previousState = this._state;
     this._state = "resuming";
     try {
-      ChromeUtils.recordReplayLog("ThreadFront.resume BEGIN");
       await super.resume(resumeLimit, rewind);
-      ChromeUtils.recordReplayLog("ThreadFront.resume END");
     } catch (e) {
       if (this._state == "resuming") {
         // There was an error resuming, update the state to the new one
@@ -206,6 +204,13 @@ class ThreadFront extends FrontClassWithSpec(threadSpec) {
 
     this.interrupt();
     return this.once("paused", warp);
+  }
+
+  instantWarp(point) {
+    if (!this.paused) {
+      throw new Error("not paused");
+    }
+    return super.replayInstantWarp({ point });
   }
 
   /**

@@ -149,8 +149,52 @@ function replayFramePositions(
   actions.setFramePositions(positions, unexecutedLocations, frame, thread);
 }
 
-function replayPreloadedData(threadFront, entries) {
-  dump(`REPLAY_PRELOADED_DATA ${JSON.stringify(entries)}\n`);
+// Copied from execution-point-utils.js, which has trouble being
+// require()'ed here for some reason.
+
+function positionToString(pos) {
+  return `${pos.kind}:${pos.script}:${pos.offset}:${pos.frameIndex}`;
+}
+
+function pointToString(point) {
+  if (point.position) {
+    return `${point.checkpoint}:${point.progress}:${positionToString(
+      point.position
+    )}`;
+  }
+  return `${point.checkpoint}:${point.progress}`;
+}
+
+const gStepTargets = new Map();
+const gPausePackets = new Map();
+
+function replayPreloadedData(threadFront, entry) {
+  switch (entry.data.kind) {
+    case "InvalidateStepTargets":
+      gStepTargets.clear();
+      break;
+    case "StepTargets": {
+      const { point, stepOver, stepIn, stepOut, reverseStepOver } = entry.data;
+      gStepTargets.set(pointToString(point), { stepOver, stepIn, stepOut, reverseStepOver });
+      break;
+    }
+    case "PauseData": {
+      const { point } = entry.data;
+      gPausePackets.set(pointToString(point), { frames: entry.frames });
+      break;
+    }
+    default:
+      throw new Error("Bad preloaded data kind");
+  }
+}
+
+function canInstantStep(point, limit) {
+  const entries = gStepTargets.get(pointToString(point));
+  const target = entries && entries[limit];
+  if (target && gPausePackets.has(pointToString(target))) {
+    return target;
+  }
+  return null;
 }
 
 const clientEvents = {
@@ -168,4 +212,5 @@ export {
   clientEvents,
   addThreadEventListeners,
   attachAllTargets,
+  canInstantStep,
 };

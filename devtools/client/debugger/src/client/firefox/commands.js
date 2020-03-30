@@ -6,7 +6,7 @@
 
 import { prepareSourcePayload, createThread, createFrame } from "./create";
 import { updateTargets } from "./targets";
-import { clientEvents } from "./events";
+import { clientEvents, canInstantStep } from "./events";
 
 import Reps from "devtools-reps";
 import type { Node } from "devtools-reps";
@@ -543,6 +543,10 @@ function timeWarp(position: ExecutionPoint) {
   currentThreadFront.timeWarp(position);
 }
 
+function instantWarp(point: ExecutionPoint) {
+  currentThreadFront.instantWarp(point);
+}
+
 function fetchAncestorFramePositions(index: number) {
   currentThreadFront.fetchAncestorFramePositions(index);
 }
@@ -600,8 +604,10 @@ const clientCommands = {
   lookupTarget,
   getFrontByID,
   timeWarp,
+  instantWarp,
   fetchAncestorFramePositions,
   pickExecutionPoints,
+  canInstantStep,
 };
 
 export { setupCommands, setupCommandsTopTarget, clientCommands };

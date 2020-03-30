@@ -379,6 +379,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       this.dbg.replayingIsLocationBlackboxed = this.replayingIsLocationBlackboxed.bind(this);
       this.dbg.replayingStepTargetEpoch = this.replayingStepTargetEpoch.bind(this);
       this.dbg.replayingEmitStepTargets = this.replayingEmitStepTargets.bind(this);
+      this.dbg.replayingGeneratePausePacket = this.replayingGeneratePausePacket.bind(this);
     }
 
     this._debuggerSourcesSeen = new WeakSet();
@@ -1219,6 +1220,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
    * we are shutting down.
    */
   doResume({ resumeLimit, rewind } = {}) {
+    if (this._instantWarpTarget) {
+      throw new Error("Can't resume during instant warp");
+    }
+
     // When replaying execution in a separate process we need to explicitly
     // notify that process when to resume execution.
     if (this.dbg.replaying) {
@@ -1251,6 +1256,25 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     if (Services.obs) {
       Services.obs.notifyObservers(this, "devtools-thread-resumed");
     }
+  },
+
+  replayInstantWarp(point) {
+    if (this._state != "paused") {
+      throw new Error("Must be paused to instantly warp");
+    }
+    if (this._instantWarpTarget) {
+      throw new Error("Already instant warping");
+    }
+    this._popThreadPause();
+
+    // Dispatch this to the main thread so that the event loop we just resolved
+    // can be popped from the stack.
+    this._instantWarpTarget = point;
+    Services.tm.dispatchToMainThread(() => {
+      this._instantWarpTarget = null;
+      this.dbg.replayInstantWarp(point);
+      this._pushThreadPause();
+    });
   },
 
   /**
@@ -1907,16 +1931,23 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
 
   replayingEmitStepTargets(info) {
     if (isReplaying) {
-      this.emit("replayPreloadedData", { data: [{ kind: "StepTargets", ...info }] });
+      this.emit("replayPreloadedData", { data: { kind: "StepTargets", ...info } });
     }
   },
 
   replayingInvalidateStepTargets() {
     if (isReplaying) {
       this._stepTargetEpoch++;
-      this.emit("replayPreloadedData", { data: [{ kind: "InvalidateStepTargets" }] });
+      this.emit("replayPreloadedData", { data: { kind: "InvalidateStepTargets" } });
       this.dbg.replayRegenerateStepTargets();
     }
+  },
+
+  replayingGeneratePausePacket(point, youngestFrame) {
+    this.replayPushActorPause();
+    const frames = this.walkFrames(youngestFrame, 0, 1000);
+    this.replayPopActorPause();
+    this.emit("replayPreloadedData", { data: { kind: "PauseData", point }, frames });
   },
 
   _onWindowReady: function({ isTopLevel, isBFCache, window }) {
