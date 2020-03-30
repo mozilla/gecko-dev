@@ -18,6 +18,10 @@ import { fetchFrames } from "./fetchFrames";
 import { recordEvent } from "../../utils/telemetry";
 import assert from "../../utils/assert";
 
+import { mapFrames } from ".";
+import { generateInlinePreview } from "./inlinePreview";
+import { mapScopes } from "./mapScopes";
+
 import type {
   ThreadId,
   Context,
@@ -61,15 +65,41 @@ export function command(cx: ThreadContext, type: Command) {
     if (type) {
       const thread = getCurrentThread(getState());
       const point = getThreadExecutionPoint(getState(), thread);
-      const targetPoint = client.canInstantStep(point, type);
-      if (targetPoint) {
-        client.instantWarp(targetPoint);
-        return dispatch({
-          type: "INSTANT_WARP",
-          point: targetPoint,
+      const instantInfo = client.canInstantStep(point, type);
+      if (instantInfo) {
+        ChromeUtils.recordReplayLog(`InstantStep ${type}`);
+
+        const why = { type: "replayForcedPause" };
+        const { executionPoint, frames, environment } = instantInfo;
+        client.instantWarp(executionPoint);
+
+        dispatch({ type: "RESUME", thread, wasStepping: true });
+        dispatch({ type: "PAUSED", thread, why, executionPoint });
+
+        const cx = getThreadContext(getState());
+        const frame = frames[0];
+
+        dispatch({ type: "FETCHED_FRAMES", thread, frames, cx });
+
+        dispatch({
+          type: "ADD_SCOPES",
           cx,
           thread: cx.thread,
+          frame,
+          status: "done",
+          value: environment,
         });
+
+        await dispatch(selectLocation(cx, frame.location));
+        await dispatch(mapFrames(cx));
+
+        const mappedFrame = getSelectedFrame(getState(), thread);
+        await dispatch(selectLocation(cx, mappedFrame.location));
+
+        dispatch(generateInlinePreview(cx, frame));
+        await dispatch(mapScopes(cx, environment, frame));
+        await dispatch(evaluateExpressions(cx));
+        return;
       }
 
       if (type == "resume" || type == "rewind") {

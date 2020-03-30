@@ -14,7 +14,8 @@ import type {
 
 import Actions from "../../actions";
 
-import { createPause, prepareSourcePayload } from "./create";
+import { createPause, prepareSourcePayload, createFrame } from "./create";
+import { clientCommands } from "./commands";
 import sourceQueue from "../../utils/source-queue";
 import { recordEvent } from "../../utils/telemetry";
 import { prefs, features } from "../../utils/prefs";
@@ -179,8 +180,10 @@ function replayPreloadedData(threadFront, entry) {
       break;
     }
     case "PauseData": {
-      const { point } = entry.data;
-      gPausePackets.set(pointToString(point), { frames: entry.frames });
+      const { point, environment } = entry.data;
+      const thread = clientCommands.getMainThread();
+      const frames = entry.frames.frames.map((frame, i) => createFrame(thread, frame, i));
+      gPausePackets.set(pointToString(point), { frames, environment });
       break;
     }
     default:
@@ -189,10 +192,17 @@ function replayPreloadedData(threadFront, entry) {
 }
 
 function canInstantStep(point, limit) {
+  if (!point) {
+    return null;
+  }
   const entries = gStepTargets.get(pointToString(point));
   const target = entries && entries[limit];
-  if (target && gPausePackets.has(pointToString(target))) {
-    return target;
+  if (!target) {
+    return null;
+  }
+  const info = gPausePackets.get(pointToString(target));
+  if (info) {
+    return { executionPoint: target, ...info };
   }
   return null;
 }

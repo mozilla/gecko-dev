@@ -167,8 +167,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     }
 
     if (isReplaying) {
-      this._replayThreadActors = new Map();
-      this._replayPauseActors = [];
+      // Map replayId <=> actor for actors that can be reused between pauses
+      // (frame, object, environment) and are scoped to the thread's lifetime.
+      this._replayIdToActor = new Map();
+      this._replayActorToId = new Map();
       this._stepTargetEpoch = 0;
     }
   },
@@ -261,7 +263,6 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   _pushThreadPause: function() {
     if (this.dbg.replaying) {
       this.dbg.replayPushThreadPause();
-      this.replayPushActorPause();
     }
     if (!this._threadPauseEventLoops) {
       this._threadPauseEventLoops = [];
@@ -275,7 +276,6 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     assert(eventLoop, "Should have an event loop.");
     eventLoop.resolve();
     if (this.dbg.replaying) {
-      this.replayPopActorPause();
       this.dbg.replayPopThreadPause();
     }
   },
@@ -1258,7 +1258,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     }
   },
 
-  replayInstantWarp(point) {
+  replayInstantWarp({ point }) {
     if (this._state != "paused") {
       throw new Error("Must be paused to instantly warp");
     }
@@ -1736,41 +1736,20 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     return popped;
   },
 
-  replayPushActorPause(map) {
-    this._replayPauseActors.push(map || new Map());
-  },
-
-  replayPopActorPause() {
-    if (!this._replayPauseActors.length) {
-      throw new Error("replayPauseActors not set");
-    }
-    return this._replayPauseActors.pop();
-  },
-
   replayThreadActor(dbgValue, ctor) {
-    if (!this._replayPauseActors.length) {
-      throw new Error("replayPauseActors not set");
-    }
-    const key = dbgValue.replayId();
-    if (!this._replayThreadActors.has(key)) {
+    const id = dbgValue.replayId();
+    if (!this._replayIdToActor.has(id)) {
       const actor = ctor();
       this.threadLifetimePool.addActor(actor);
-      this._replayThreadActors.set(key, actor);
+      this._replayIdToActor.set(id, actor);
+      this._replayActorToId.set(actor, id);
     }
-    const actor = this._replayThreadActors.get(key);
-    this._replayPauseActors[this._replayPauseActors.length - 1].set(actor, dbgValue);
-    return actor;
+    return this._replayIdToActor.get(id);
   },
 
   replayPausedActorValue(actor) {
-    if (!this._replayPauseActors.length) {
-      throw new Error("replayPauseActors not set");
-    }
-    const map = this._replayPauseActors[this._replayPauseActors.length - 1];
-    if (!map.has(actor)) {
-      throw new Error("replayPauseActors missing actor");
-    }
-    return map.get(actor);
+    const id = this._replayActorToId.get(actor);
+    return this.dbg.replayIdToValue(id);
   },
 
   _createFrameActor: function(frame, depth) {
@@ -1944,10 +1923,12 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   replayingGeneratePausePacket(point, youngestFrame) {
-    this.replayPushActorPause();
     const frames = this.walkFrames(youngestFrame, 0, 1000);
-    this.replayPopActorPause();
-    this.emit("replayPreloadedData", { data: { kind: "PauseData", point }, frames });
+    const environment = frames.frames[0].getEnvironment();
+    this.emit(
+      "replayPreloadedData",
+      { data: { kind: "PauseData", point, environment }, frames }
+    );
   },
 
   _onWindowReady: function({ isTopLevel, isBFCache, window }) {
