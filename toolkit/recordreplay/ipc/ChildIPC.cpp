@@ -108,9 +108,11 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
 
   if (aMsg->mForkId != gForkId) {
     if (gForkId) {
-      Print("Error: Received message for fork %lu, current fork is %lu, crashing...\n",
+      // For some reason we can receive messages intended for another fork
+      // which has terminated.
+      Print("Warning: Ignoring message for fork %lu, current fork is %lu.\n",
             aMsg->mForkId, gForkId);
-      MOZ_CRASH("Bad fork ID");
+      return;
     }
     SendMessageToForkedProcess(std::move(aMsg));
     return;
@@ -152,7 +154,7 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       break;
     }
     case MessageType::Terminate: {
-      PrintSpew("Terminate message received, exiting...\n");
+      Print("Terminate message received, exiting...\n");
       gExitCalled = true;
       _exit(0);
       break;
