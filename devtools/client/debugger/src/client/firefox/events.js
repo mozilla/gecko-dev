@@ -180,10 +180,12 @@ function replayPreloadedData(threadFront, entry) {
       break;
     }
     case "PauseData": {
-      const { point, environment } = entry.data;
+      const { point, environment, frames } = entry.data;
       const thread = clientCommands.getMainThread();
-      const frames = entry.frames.frames.map((frame, i) => createFrame(thread, frame, i));
-      gPausePackets.set(pointToString(point), { frames, environment });
+      gPausePackets.set(pointToString(point), {
+        frames: frames.map((frame, i) => createFrame(thread, frame, i)),
+        environment,
+      });
       break;
     }
     default:

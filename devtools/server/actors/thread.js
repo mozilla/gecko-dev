@@ -1358,7 +1358,8 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       ChromeUtils.recordReplayLog(`ThreadActor.frames End`);
     }
 
-    return this.walkFrames(this.youngestFrame, start, count);
+    const frames = this.walkFrames(this.youngestFrame, start, count);
+    return { frames: frames.map(f => f.form()) };
   },
 
   walkFrames(frame, start, count) {
@@ -1422,7 +1423,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       frames.push(frameActor);
     }
 
-    return { frames };
+    return frames;
   },
 
   addAllSources() {
@@ -1615,7 +1616,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     };
 
     if (frame) {
-      packet.frame = this._createFrameActor(frame);
+      packet.frame = this._createFrameActor(frame).form();
     }
 
     if (this.dbg.replaying) {
@@ -1750,6 +1751,11 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   replayPausedActorValue(actor) {
     const id = this._replayActorToId.get(actor);
     return this.dbg.replayIdToValue(id);
+  },
+
+  getEnvironment(id) {
+    const actor = this.threadLifetimePool.get(id);
+    return actor.getEnvironment();
   },
 
   _createFrameActor: function(frame, depth) {
@@ -1925,10 +1931,17 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
 
   replayingGeneratePausePacket(point, youngestFrame) {
     const frames = this.walkFrames(youngestFrame, 0, 1000);
-    const environment = frames.frames[0].getEnvironment();
+    const environment = frames[0].getEnvironment();
     this.emit(
       "replayPreloadedData",
-      { data: { kind: "PauseData", point, environment }, frames }
+      {
+        data: {
+          kind: "PauseData",
+          point,
+          environment,
+          frames: frames.map(f => f.form())
+        },
+      }
     );
   },
 

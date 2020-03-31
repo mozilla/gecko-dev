@@ -53,7 +53,7 @@ const threadSpec = generateActorSpec({
   events: {
     paused: {
       actor: Option(0, "nullable:string"),
-      frame: Option(0, "frame"),
+      frame: Option(0, "json"), // JSON instead of frame actor for same reason as TA.frames
       why: Option(0, "paused-reason"),
       poppedFrames: Option(0, "nullable:json"),
       error: Option(0, "nullable:json"),
@@ -82,7 +82,6 @@ const threadSpec = generateActorSpec({
     },
     replayPreloadedData: {
       data: Option(0, "array:json"),
-      frames: Option(0, "thread.frames"),
     },
   },
 
@@ -115,7 +114,9 @@ const threadSpec = generateActorSpec({
         start: Arg(0, "number"),
         count: Arg(1, "number"),
       },
-      response: RetVal("thread.frames"),
+      // Use a JSON return type for TA.frames, unlike Gecko, for consistency
+      // with the replay preloaded data.
+      response: RetVal("json"),
     },
     interrupt: {
       request: {
@@ -219,6 +220,15 @@ const threadSpec = generateActorSpec({
     toggleEventLogging: {
       request: {
         logEventBreakpoints: Arg(0, "string"),
+      },
+    },
+
+    getEnvironment: {
+      request: {
+        id: Arg(0, "string"),
+      },
+      response: {
+        value: RetVal("json"),
       },
     },
 
