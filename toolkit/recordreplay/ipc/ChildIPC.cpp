@@ -107,7 +107,11 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
   AutoReadSpinLock disallowFork(gForkLock);
 
   if (aMsg->mForkId != gForkId) {
-    MOZ_RELEASE_ASSERT(!gForkId);
+    if (gForkId) {
+      Print("Error: Received message for fork %lu, current fork is %lu, crashing...\n",
+            aMsg->mForkId, gForkId);
+      MOZ_CRASH("Bad fork ID");
+    }
     SendMessageToForkedProcess(std::move(aMsg));
     return;
   }
