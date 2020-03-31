@@ -35,7 +35,9 @@ const EnvironmentActor = ActorClassWithSpec(environmentSpec, {
    * reference a destroyed actor.
    */
   destroy: function() {
-    this.obj.actor = null;
+    if (this._obj) {
+      this._obj.actor = null;
+    }
   },
 
   /**
