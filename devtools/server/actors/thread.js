@@ -1837,6 +1837,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       return this.threadLifetimePool.objectActors.get(value).form();
     }
 
+    let actor;
     const options = {
       thread: this,
       getGripDepth: () => this._gripDepth,
@@ -1857,7 +1858,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     };
 
     if (isReplaying) {
-      const actor = this.replayThreadActor(
+      actor = this.replayThreadActor(
         value,
         () => new PauseScopedObjectActor(null, options, this.conn)
       );
@@ -1865,7 +1866,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       return actor.form();
     }
 
-    const actor = new PauseScopedObjectActor(
+    actor = new PauseScopedObjectActor(
       value,
       options,
       this.conn
