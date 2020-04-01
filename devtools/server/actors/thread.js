@@ -2173,8 +2173,8 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     return this.sources.isBlackBoxed(url, line, column);
   },
 
-  pickExecutionPoints(count) {
-    return this.dbg.replayPickExecutionPoints(count);
+  pickExecutionPoints(count, ranges) {
+    return this.dbg.replayPickExecutionPoints(count, ranges);
   },
 
   /**

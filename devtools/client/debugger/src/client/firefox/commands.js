@@ -550,8 +550,8 @@ function fetchAncestorFramePositions(index: number) {
   currentThreadFront.fetchAncestorFramePositions(index);
 }
 
-function pickExecutionPoints(count: number) {
-  return currentThreadFront.pickExecutionPoints(count);
+function pickExecutionPoints(count: number, ranges) {
+  return currentThreadFront.pickExecutionPoints(count, ranges);
 }
 
 const clientCommands = {
