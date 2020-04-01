@@ -12,7 +12,7 @@ import {
 } from "../../selectors";
 import { features } from "../../utils/prefs";
 import { validateThreadContext } from "../../utils/context";
-import { loadSourceText } from "./loadSourceText";
+import { loadSourceText } from "../sources/loadSourceText";
 
 import type { OriginalScope } from "../../utils/pause/mapScopes";
 import type { ThreadContext, Frame, Scope, Preview } from "../../types";
