@@ -1220,8 +1220,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
    * we are shutting down.
    */
   doResume({ resumeLimit, rewind } = {}) {
-    if (this._instantWarpTarget) {
-      throw new Error("Can't resume during instant warp");
+    // Defer resumes until after any in progress instant warp completes.
+    if (this._pendingInstantWarpResumes) {
+      this._pendingInstantWarpResumes.push({ kind: "resume", limit: { resumeLimit, rewind } });
+      return;
     }
 
     // When replaying execution in a separate process we need to explicitly
@@ -1259,21 +1261,42 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   replayInstantWarp({ point }) {
+    if (this._pendingInstantWarpResumes) {
+      this._pendingInstantWarpResumes.push({ kind: "instantWarp", point });
+      return;
+    }
+
     if (this._state != "paused") {
       throw new Error("Must be paused to instantly warp");
-    }
-    if (this._instantWarpTarget) {
-      throw new Error("Already instant warping");
     }
     this._popThreadPause();
 
     // Dispatch this to the main thread so that the event loop we just resolved
-    // can be popped from the stack.
-    this._instantWarpTarget = point;
+    // can be popped from the stack. Keep track of any resumes that are sent to
+    // this thread during the dispatch.
+    this._pendingInstantWarpResumes = [];
     Services.tm.dispatchToMainThread(() => {
-      this._instantWarpTarget = null;
+      const resumes = this._pendingInstantWarpResumes;
+      this._pendingInstantWarpResumes = null;
+
       this.dbg.replayInstantWarp(point);
+
+      // If any other instant warps occurred during the dispatch, warp to those
+      // points instead.
+      for (const info of resumes) {
+        if (info.kind == "instantWarp") {
+          this.dbg.replayInstantWarp(info.point);
+        }
+      }
+
       this._pushThreadPause();
+
+      // Perform any resume which occurred during the dispatch.
+      for (const info of resumes) {
+        if (info.kind == "resume") {
+          this.doResume(info.limit);
+        }
+      }
     });
   },
 
