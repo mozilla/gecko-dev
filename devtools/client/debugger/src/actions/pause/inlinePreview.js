@@ -8,9 +8,11 @@ import {
   getOriginalFrameScope,
   getGeneratedFrameScope,
   getInlinePreviews,
+  getSource,
 } from "../../selectors";
 import { features } from "../../utils/prefs";
 import { validateThreadContext } from "../../utils/context";
+import { loadSourceText } from "./loadSourceText";
 
 import type { OriginalScope } from "../../utils/pause/mapScopes";
 import type { ThreadContext, Frame, Scope, Preview } from "../../types";
@@ -62,6 +64,12 @@ export function generateInlinePreview(cx: ThreadContext, frame: ?Frame) {
     if (!scopes || !scopes.bindings) {
       return;
     }
+
+    const source = getSource(getState(), frame.location.sourceId);
+    if (!source) {
+      return;
+    }
+    await dispatch(loadSourceText({ cx, source }));
 
     const originalAstScopes = await parser.getScopes(frame.location);
     validateThreadContext(getState(), cx);
