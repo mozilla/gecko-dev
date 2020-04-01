@@ -1207,7 +1207,14 @@ double ChromeUtils::RecordReplayElapsedTime(const GlobalObject& aGlobal) {
 /* static */
 void ChromeUtils::RecordReplayLog(const nsAString& aText) {
   GlobalObject* global = nullptr;
-  RecordReplayLog(*global, aText);
+  if (NS_IsMainThread()) {
+    RecordReplayLog(*global, aText);
+  } else {
+    nsString text(aText);
+    NS_DispatchToMainThread(NS_NewRunnableFunction("RecordReplayLog", [=]() {
+          RecordReplayLog(*global, text);
+        }));
+  }
 }
 
 void ChromeUtils::GenerateMediaControlKeysTestEvent(

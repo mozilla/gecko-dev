@@ -2875,7 +2875,7 @@ void Console::MaybeExecuteDumpFunctionForTime(JSContext* aCx,
 }
 
 void Console::ExecuteDumpFunction(const nsAString& aMessage) {
-  if (XRE_IsParentProcess() && NS_IsMainThread()) {
+  if (XRE_IsParentProcess()) {
     ChromeUtils::RecordReplayLog(aMessage);
   }
 
