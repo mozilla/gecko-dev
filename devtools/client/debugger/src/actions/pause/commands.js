@@ -92,12 +92,9 @@ export function command(cx: ThreadContext, type: Command) {
           value: environment,
         });
 
-        // Note: When source maps are in use this will select the mapped
-        // location instead.
-        dispatch(selectLocation(cx, frame.location));
-
         await dispatch(mapFrames(cx));
         const mappedFrame = getSelectedFrame(getState(), thread);
+        dispatch(selectLocation(cx, mappedFrame.location));
 
         dispatch(generateInlinePreview(cx, frame));
         await dispatch(mapScopes(cx, environment, frame));

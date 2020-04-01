@@ -39,7 +39,7 @@ export function paused(pauseInfo: Pause) {
     assert(cx.thread == thread, "Thread mismatch");
 
     if (frame) {
-      await dispatch(selectLocation(cx, frame.location));
+      await dispatch(selectLocation(cx, frame.location, { remap: true }));
     }
 
     await dispatch(markEvaluatedExpressionsAsLoading(cx));
@@ -52,12 +52,6 @@ export function paused(pauseInfo: Pause) {
     }
 
     await dispatch(mapFrames(cx));
-
-    const selectedFrame = getSelectedFrame(getState(), thread);
-    if (selectedFrame) {
-      await dispatch(selectLocation(cx, selectedFrame.location));
-    }
-
     await dispatch(fetchScopes(cx));
 
     // Run after fetching scoping data so that it may make use of the sourcemap

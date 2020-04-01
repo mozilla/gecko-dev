@@ -44,14 +44,11 @@ export function updateFrameLocation(
   if (frame.isOriginal) {
     return Promise.resolve(frame);
   }
-  return sourceMaps.getOriginalLocation(frame.location).then(loc => {
-    dump(`UpdateFrameLocation ${JSON.stringify(frame.location)} ${JSON.stringify(loc)}\n`);
-    return ({
-      ...frame,
-      location: loc,
-      generatedLocation: frame.generatedLocation || frame.location,
-    });
-  });
+  return sourceMaps.getOriginalLocation(frame.location).then(loc => ({
+    ...frame,
+    location: loc,
+    generatedLocation: frame.generatedLocation || frame.location,
+  }));
 }
 
 function updateFrameLocations(
