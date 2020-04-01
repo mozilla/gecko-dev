@@ -86,6 +86,16 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
    */
   form: function() {
     const threadActor = this.threadActor;
+
+    if (this.threadActor.pausePacketForms) {
+      if (this._frame) {
+        throw new Error("Pause packet contains pause scoped frame");
+      }
+      if (this.uploaded) {
+        return { cached: this.actorID };
+      }
+    }
+
     const form = {
       actor: this.actorID,
       asyncCause: this.frame.onStack ? null : "await",
@@ -103,30 +113,33 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
       };
     }
 
-    if (this.frame.replayingMinimal) {
-      // The rest of the frame data is not available yet.
-      return form;
+    if (!this.frame.replayingMinimal) {
+      if (this.depth) {
+        form.depth = this.depth;
+      }
+
+      form.type = this.frame.type;
+
+      if (this.frame.type != "wasmcall") {
+        form.this = createValueGrip(
+          this.frame.this,
+          threadActor.pauseScopePool,
+          threadActor.objectGrip
+        );
+      }
+
+      form.displayName = formatDisplayName(this.frame);
+      form.arguments = this._args();
+
+      if (!this.frame.older) {
+        form.oldest = true;
+      }
     }
 
-    if (this.depth) {
-      form.depth = this.depth;
-    }
-
-    form.type = this.frame.type;
-
-    if (this.frame.type != "wasmcall") {
-      form.this = createValueGrip(
-        this.frame.this,
-        threadActor.pauseScopePool,
-        threadActor.objectGrip
-      );
-    }
-
-    form.displayName = formatDisplayName(this.frame);
-    form.arguments = this._args();
-
-    if (!this.frame.older) {
-      form.oldest = true;
+    if (this.threadActor.pausePacketForms) {
+      this.threadActor.pausePacketForms.push(form);
+      this.uploaded = true;
+      return { cached: this.actorID };
     }
 
     return form;

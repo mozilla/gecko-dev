@@ -54,6 +54,7 @@ add_task(async function() {
 
   await checkInlinePreview(dbg, [5, 6, "new"]);
 
+  await toggleNode(dbg, "barobj");
   await findNode(dbg, "barprop1");
   await waitForNodeValue(dbg, "barprop1", `"updated"`);
 
@@ -62,6 +63,7 @@ add_task(async function() {
 
   await checkInlinePreview(dbg, [5, 6]);
 
+  await toggleNode(dbg, "barobj");
   await findNode(dbg, "barprop1");
   await waitForNodeValue(dbg, "barprop1", "2");
 

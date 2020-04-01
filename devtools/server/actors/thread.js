@@ -1739,13 +1739,22 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
 
   replayThreadActor(dbgValue, ctor) {
     const id = dbgValue.replayId();
-    if (!this._replayIdToActor.has(id)) {
-      const actor = ctor();
-      this.threadLifetimePool.addActor(actor);
-      this._replayIdToActor.set(id, actor);
-      this._replayActorToId.set(actor, id);
+    if (id) {
+      // Thread-scoped reusable actor.
+      if (!this._replayIdToActor.has(id)) {
+        const actor = ctor(null);
+        this.threadLifetimePool.addActor(actor);
+        this._replayIdToActor.set(id, actor);
+        this._replayActorToId.set(actor, id);
+      }
+      return this._replayIdToActor.get(id);
     }
-    return this._replayIdToActor.get(id);
+
+    // One time actor. We create this in the thread lifetime pool anyways and
+    // these will leak over time...
+    const actor = ctor(dbgValue);
+    this.threadLifetimePool.addActor(actor);
+    return actor;
   },
 
   replayPausedActorValue(actor) {
@@ -1764,16 +1773,9 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     }
 
     if (isReplaying) {
-      if (frame.replayingMinimal) {
-        // This actor is created on every pause and will leak over time...
-        const actor = new FrameActor(frame, this, depth);
-        this.threadLifetimePool.addActor(actor);
-        frame.actor = actor;
-        return actor;
-      }
       const actor = this.replayThreadActor(
         frame,
-        () => new FrameActor(null, this, depth)
+        v => new FrameActor(v, this, depth)
       );
       frame.actor = actor;
       return actor;
@@ -1809,7 +1811,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     if (isReplaying) {
       const actor = this.replayThreadActor(
         environment,
-        () => new EnvironmentActor(null, this)
+        v => new EnvironmentActor(v, this)
       );
       environment.actor = actor;
       return actor;
@@ -1866,7 +1868,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     if (isReplaying) {
       actor = this.replayThreadActor(
         value,
-        () => new PauseScopedObjectActor(null, options, this.conn)
+        v => new PauseScopedObjectActor(v, options, this.conn)
       );
       this.threadLifetimePool.objectActors.set(value, actor);
       return actor.form();
@@ -1930,8 +1932,13 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   replayingGeneratePausePacket(point, youngestFrame) {
-    const frames = this.walkFrames(youngestFrame, 0, 1000);
+    if (this.pausePacketForms) {
+      throw new Error("Unexpected pausePacketForms");
+    }
+    this.pausePacketForms = [];
+    let frames = this.walkFrames(youngestFrame, 0, 1000);
     const environment = frames[0].getEnvironment();
+    frames = frames.map(f => f.form());
     this.emit(
       "replayPreloadedData",
       {
@@ -1939,10 +1946,12 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
           kind: "PauseData",
           point,
           environment,
-          frames: frames.map(f => f.form())
+          frames,
+          cachedForms: this.pausePacketForms,
         },
       }
     );
+    this.pausePacketForms = null;
   },
 
   _onWindowReady: function({ isTopLevel, isBFCache, window }) {

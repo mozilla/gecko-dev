@@ -44,6 +44,15 @@ const EnvironmentActor = ActorClassWithSpec(environmentSpec, {
    * Return an environment form for use in a protocol message.
    */
   form: function() {
+    if (this.threadActor.pausePacketForms) {
+      if (this._obj) {
+        throw new Error(`Pause packet contains pause scoped environment ${JSON.stringify(this._obj._data)} ${Error().stack}`);
+      }
+      if (this.uploaded) {
+        return { cached: this.actorID };
+      }
+    }
+
     const form = { actor: this.actorID };
 
     // What is this environment's type?
@@ -83,6 +92,12 @@ const EnvironmentActor = ActorClassWithSpec(environmentSpec, {
     // Shall we list this environment's bindings?
     if (this.obj.type == "declarative") {
       form.bindings = this.bindings();
+    }
+
+    if (this.threadActor.pausePacketForms) {
+      this.threadActor.pausePacketForms.push(form);
+      this.uploaded = true;
+      return { cached: this.actorID };
     }
 
     return form;

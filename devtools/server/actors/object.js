@@ -134,16 +134,34 @@ const proto = {
    * Returns a grip for this actor for returning in a protocol message.
    */
   form: function() {
+    if (this.thread.pausePacketForms) {
+      if (this._obj) {
+        throw new Error("Pause packet contains pause scoped environment");
+      }
+      if (this.uploaded) {
+        return { type: "object", cached: this.actorID };
+      }
+    }
+
     const g = {
       type: "object",
       actor: this.actorID,
+    };
+
+    const finishGrip = () => {
+      if (this.thread.pausePacketForms) {
+        this.thread.pausePacketForms.push(g);
+        this.uploaded = true;
+        return { type: "object", cached: this.actorID };
+      }
+      return g;
     };
 
     // Unsafe objects must be treated carefully.
     if (DevToolsUtils.isCPOW(this.obj)) {
       // Cross-process object wrappers can't be accessed.
       g.class = "CPOW";
-      return g;
+      return finishGrip();
     }
 
     const unwrapped = DevToolsUtils.unwrap(this.obj);
@@ -151,7 +169,7 @@ const proto = {
       // Objects belonging to an invisible-to-debugger compartment might be proxies,
       // so just in case they shouldn't be accessed.
       g.class = "InvisibleToDebugger: " + this.obj.class;
-      return g;
+      return finishGrip();
     }
 
     if (unwrapped && unwrapped.isProxy) {
@@ -161,7 +179,7 @@ const proto = {
       this.hooks.incrementGripDepth();
       previewers.Proxy[0](this, g, null);
       this.hooks.decrementGripDepth();
-      return g;
+      return finishGrip();
     }
 
     const ownPropertyLength = this._getOwnPropertyLength();
@@ -204,7 +222,7 @@ const proto = {
       } catch (e) {}
     }
 
-    return g;
+    return finishGrip();
   },
 
   _getOwnPropertyLength: function() {

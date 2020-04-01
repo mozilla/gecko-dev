@@ -168,6 +168,57 @@ function pointToString(point) {
 
 const gStepTargets = new Map();
 const gPausePackets = new Map();
+const gCachedForms = new Map();
+
+// Destructively modify a piece of JSON by replacing references to cached forms
+// with the actual form, reconstructing a complete form with the contents
+// expected by other parts of the client.
+function replaceCachedFormReferences(json) {
+  if (!json || typeof json != "object") {
+    return;
+  }
+
+  if (Array.isArray(json)) {
+    for (let i = 0; i < json.length; i++) {
+      const v = json[i];
+      if (v && v.cached) {
+        json[i] = replaceCachedForm(v);
+      } else {
+        replaceCachedFormReferences(v);
+      }
+    }
+  } else {
+    for (const [key, v] of Object.entries(json)) {
+      if (v && v.cached) {
+        json[key] = replaceCachedForm(v);
+      } else {
+        replaceCachedFormReferences(v);
+      }
+    }
+  }
+}
+
+function addCachedForm(form) {
+  if (!form.actor) {
+    throw new Error("Expected cached form actor");
+  }
+
+  replaceCachedFormReferences(form);
+  gCachedForms.set(form.actor, form);
+}
+
+function replaceCachedForm(form) {
+  if (!form.cached) {
+    throw new Error("Expected cached form reference");
+  }
+
+  const cached = gCachedForms.get(form.cached);
+  if (!cached) {
+    throw new Error("Unknown cached form");
+  }
+
+  return cached;
+}
 
 function replayPreloadedData(threadFront, entry) {
   switch (entry.data.kind) {
@@ -180,11 +231,12 @@ function replayPreloadedData(threadFront, entry) {
       break;
     }
     case "PauseData": {
-      const { point, environment, frames } = entry.data;
+      const { point, environment, frames, cachedForms } = entry.data;
+      cachedForms.forEach(addCachedForm);
       const thread = clientCommands.getMainThread();
       gPausePackets.set(pointToString(point), {
-        frames: frames.map((frame, i) => createFrame(thread, frame, i)),
-        environment,
+        frames: frames.map((frame, i) => createFrame(thread, replaceCachedForm(frame), i)),
+        environment: replaceCachedForm(environment),
       });
       break;
     }
