@@ -61,54 +61,19 @@ export function selectThread(cx: Context, thread: ThreadId) {
  * @static
  */
 export function command(cx: ThreadContext, type: Command) {
-  return async ({ dispatch, getState, client }: ThunkArgs) => {
+  return async (thunkArgs: ThunkArgs) => {
+    const { dispatch, getState, client } = thunkArgs;
     ChromeUtils.recordReplayLog(`Debugger CommandStart ${type}`);
 
+    const thread = getCurrentThread(getState());
+    const point = getThreadExecutionPoint(getState(), thread);
+
+    const instantInfo = client.eventMethods.canInstantStep(point, type);
+    if (instantInfo) {
+      return doInstantStep(thunkArgs, instantInfo);
+    }
+
     if (type) {
-      const thread = getCurrentThread(getState());
-      const point = getThreadExecutionPoint(getState(), thread);
-      const instantInfo = client.eventMethods.canInstantStep(point, type);
-      if (instantInfo) {
-        ChromeUtils.recordReplayLog(`Debugger InstantStep`);
-
-        const why = { type: "replayForcedPause" };
-        const { executionPoint, frames, environment } = instantInfo;
-        client.instantWarp(executionPoint);
-
-        dispatch({ type: "RESUME", thread, wasStepping: true });
-        dispatch({ type: "PAUSED", thread, why, executionPoint });
-
-        const cx = getThreadContext(getState());
-        const frame = frames[0];
-
-        dispatch({ type: "FETCHED_FRAMES", thread, frames, cx });
-
-        dispatch({
-          type: "ADD_SCOPES",
-          cx,
-          thread: cx.thread,
-          frame,
-          status: "done",
-          value: environment,
-        });
-
-        let mappedLocation = client.eventMethods.maybeMappedLocation(frame.location);
-        if (mappedLocation) {
-          dispatch(mapFrames(cx));
-        } else {
-          ChromeUtils.recordReplayLog(`Debugger InstantStep WaitingForMapFrames`);
-          await dispatch(mapFrames(cx));
-          mappedLocation = getSelectedFrame(getState(), thread).location;
-        }
-
-        dispatch(selectLocation(cx, mappedLocation));
-
-        dispatch(generateInlinePreview(cx, frame.id, mappedLocation));
-        await dispatch(mapScopes(cx, environment, frame));
-        await dispatch(evaluateExpressions(cx));
-        return;
-      }
-
       if (type == "resume" || type == "rewind") {
         dispatch({ type: "CLEAR_FRAME_POSITIONS" });
       }
@@ -121,6 +86,48 @@ export function command(cx: ThreadContext, type: Command) {
       });
     }
   };
+}
+
+async function doInstantStep({ dispatch, getState, client }, instantInfo) {
+  ChromeUtils.recordReplayLog(`Debugger InstantStep`);
+
+  const why = { type: "replayForcedPause" };
+  const { executionPoint, frames, environment } = instantInfo;
+  client.instantWarp(executionPoint);
+
+  const thread = getCurrentThread(getState());
+
+  dispatch({ type: "RESUME", thread, wasStepping: true });
+  dispatch({ type: "PAUSED", thread, why, executionPoint });
+
+  const cx = getThreadContext(getState());
+  const frame = frames[0];
+
+  dispatch({ type: "FETCHED_FRAMES", thread, frames, cx });
+
+  dispatch({
+    type: "ADD_SCOPES",
+    cx,
+    thread: cx.thread,
+    frame,
+    status: "done",
+    value: environment,
+  });
+
+  let mappedLocation = client.eventMethods.maybeMappedLocation(frame.location);
+  if (mappedLocation) {
+    dispatch(mapFrames(cx));
+  } else {
+    ChromeUtils.recordReplayLog(`Debugger InstantStep WaitingForMapFrames`);
+    await dispatch(mapFrames(cx));
+    mappedLocation = getSelectedFrame(getState(), thread).location;
+  }
+
+  dispatch(selectLocation(cx, mappedLocation));
+
+  dispatch(generateInlinePreview(cx, frame.id, mappedLocation));
+  await dispatch(mapScopes(cx, environment, frame));
+  await dispatch(evaluateExpressions(cx));
 }
 
 export function seekToPosition(position: ExecutionPoint) {
