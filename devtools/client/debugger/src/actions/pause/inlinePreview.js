@@ -31,16 +31,16 @@ function getLocalScopeLevels(originalAstScopes): number {
   return levels;
 }
 
-export function generateInlinePreview(cx: ThreadContext, frame: ?Frame) {
+export function generateInlinePreview(cx: ThreadContext, frameId, location) {
   return async function({ dispatch, getState, parser, client }: ThunkArgs) {
-    if (!frame || !features.inlinePreview) {
+    if (!features.inlinePreview) {
       return;
     }
 
     const { thread } = cx;
 
     // Avoid regenerating inline previews when we already have preview data
-    if (getInlinePreviews(getState(), thread, frame.id)) {
+    if (getInlinePreviews(getState(), thread, frameId)) {
       return;
     }
 
@@ -49,14 +49,14 @@ export function generateInlinePreview(cx: ThreadContext, frame: ?Frame) {
     const originalFrameScopes = getOriginalFrameScope(
       getState(),
       thread,
-      frame.location.sourceId,
-      frame.id
+      location.sourceId,
+      frameId
     );
 
     const generatedFrameScopes = getGeneratedFrameScope(
       getState(),
       thread,
-      frame.id
+      frameId
     );
 
     let scopes: ?OriginalScope | Scope | null =
@@ -70,7 +70,7 @@ export function generateInlinePreview(cx: ThreadContext, frame: ?Frame) {
 
     ChromeUtils.recordReplayLog(`GenerateInlinePreview LoadSourceText Start`);
 
-    const source = getSource(getState(), frame.location.sourceId);
+    const source = getSource(getState(), location.sourceId);
     if (!source) {
       return;
     }
@@ -78,7 +78,7 @@ export function generateInlinePreview(cx: ThreadContext, frame: ?Frame) {
 
     ChromeUtils.recordReplayLog(`GenerateInlinePreview LoadSourceText Done`);
 
-    const originalAstScopes = await parser.getScopes(frame.location);
+    const originalAstScopes = await parser.getScopes(location);
     validateThreadContext(getState(), cx);
     if (!originalAstScopes) {
       ChromeUtils.recordReplayLog(`GenerateInlinePreview NoScopes`);
@@ -88,7 +88,7 @@ export function generateInlinePreview(cx: ThreadContext, frame: ?Frame) {
     ChromeUtils.recordReplayLog(`GenerateInlinePreview ScopesLoaded`);
 
     const allPreviews = [];
-    const pausedOnLine: number = frame.location.line;
+    const pausedOnLine: number = location.line;
     const levels: number = getLocalScopeLevels(originalAstScopes);
 
     for (
@@ -152,7 +152,7 @@ export function generateInlinePreview(cx: ThreadContext, frame: ?Frame) {
     return dispatch({
       type: "ADD_INLINE_PREVIEW",
       thread,
-      frame,
+      frameId,
       previews,
     });
   };

@@ -208,7 +208,7 @@ export function mapFrames(cx: ThreadContext) {
     let mappedFrames = await updateFrameLocations(frames, thunkArgs);
     await updateFrameSymbols(cx, mappedFrames, thunkArgs);
 
-    mappedFrames = await expandFrames(mappedFrames, sourceMaps, getState);
+    //mappedFrames = await expandFrames(mappedFrames, sourceMaps, getState);
     mappedFrames = mapDisplayNames(mappedFrames, getState);
 
     const selectedFrameId = getSelectedFrameId(

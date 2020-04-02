@@ -92,11 +92,18 @@ export function command(cx: ThreadContext, type: Command) {
           value: environment,
         });
 
-        await dispatch(mapFrames(cx));
-        const mappedFrame = getSelectedFrame(getState(), thread);
-        dispatch(selectLocation(cx, mappedFrame.location));
+        let mappedLocation = client.eventMethods.maybeMappedLocation(frame.location);
+        if (mappedLocation) {
+          dispatch(mapFrames(cx));
+        } else {
+          ChromeUtils.recordReplayLog(`Debugger InstantStep WaitingForMapFrames`);
+          await dispatch(mapFrames(cx));
+          mappedLocation = getSelectedFrame(getState(), thread).location;
+        }
 
-        dispatch(generateInlinePreview(cx, frame));
+        dispatch(selectLocation(cx, mappedLocation));
+
+        dispatch(generateInlinePreview(cx, frame.id, mappedLocation));
         await dispatch(mapScopes(cx, environment, frame));
         await dispatch(evaluateExpressions(cx));
         return;

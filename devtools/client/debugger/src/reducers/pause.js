@@ -402,13 +402,12 @@ function update(
     }
 
     case "ADD_INLINE_PREVIEW": {
-      const { frame, previews } = action;
-      const selectedFrameId = frame.id;
+      const { frameId, previews } = action;
 
       return updateThreadState({
         inlinePreview: {
           ...threadState().inlinePreview,
-          [selectedFrameId]: previews,
+          [frameId]: previews,
         },
       });
     }
