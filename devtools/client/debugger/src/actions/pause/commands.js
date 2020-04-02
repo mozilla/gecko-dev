@@ -67,7 +67,7 @@ export function command(cx: ThreadContext, type: Command) {
     if (type) {
       const thread = getCurrentThread(getState());
       const point = getThreadExecutionPoint(getState(), thread);
-      const instantInfo = client.canInstantStep(point, type);
+      const instantInfo = client.eventMethods.canInstantStep(point, type);
       if (instantInfo) {
         ChromeUtils.recordReplayLog(`Debugger InstantStep`);
 

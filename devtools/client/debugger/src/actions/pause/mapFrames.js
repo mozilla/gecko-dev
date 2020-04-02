@@ -37,30 +37,44 @@ function getSelectedFrameId(state, thread, frames) {
   return selectedFrame && selectedFrame.id;
 }
 
-export function updateFrameLocation(
+async function getOriginalLocation(location, thunkArgs) {
+  const { sourceMaps, client } = thunkArgs;
+
+  let mapped = client.eventMethods.maybeMappedLocation(location);
+  if (mapped) {
+    return mapped;
+  }
+
+  mapped = await sourceMaps.getOriginalLocation(location);
+  client.eventMethods.addMappedLocation(location);
+  return mapped;
+}
+
+async function updateFrameLocation(
   frame: Frame,
-  sourceMaps: typeof SourceMaps
+  thunkArgs
 ) {
   if (frame.isOriginal) {
-    return Promise.resolve(frame);
+    return frame;
   }
-  return sourceMaps.getOriginalLocation(frame.location).then(loc => ({
+  const loc = await getOriginalLocation(frame.location, thunkArgs);
+  return {
     ...frame,
     location: loc,
     generatedLocation: frame.generatedLocation || frame.location,
-  }));
+  };
 }
 
 function updateFrameLocations(
   frames: Frame[],
-  sourceMaps: typeof SourceMaps
+  thunkArgs
 ): Promise<Frame[]> {
   if (!frames || frames.length == 0) {
     return Promise.resolve(frames);
   }
 
   return Promise.all(
-    frames.map(frame => updateFrameLocation(frame, sourceMaps))
+    frames.map(frame => updateFrameLocation(frame, thunkArgs))
   );
 }
 
@@ -191,7 +205,7 @@ export function mapFrames(cx: ThreadContext) {
       return;
     }
 
-    let mappedFrames = await updateFrameLocations(frames, sourceMaps);
+    let mappedFrames = await updateFrameLocations(frames, thunkArgs);
     await updateFrameSymbols(cx, mappedFrames, thunkArgs);
 
     mappedFrames = await expandFrames(mappedFrames, sourceMaps, getState);

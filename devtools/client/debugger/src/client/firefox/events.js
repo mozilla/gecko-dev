@@ -34,6 +34,7 @@ let actions: typeof Actions;
 let isInterrupted: boolean;
 let threadFrontListeners: WeakMap<ThreadFront, Array<Function>>;
 let workersListener: Object;
+let panel;
 
 function addThreadEventListeners(thread: ThreadFront) {
   const removeListeners = [];
@@ -60,6 +61,7 @@ function attachAllTargets(currentTarget: Target) {
 function setupEvents(dependencies: Dependencies) {
   const { debuggerClient } = dependencies;
   actions = dependencies.actions;
+  panel = dependencies.panel;
   sourceQueue.initialize(actions);
 
   debuggerClient.mainRoot.on("processListChanged", threadListChanged);
@@ -205,6 +207,16 @@ function addCachedForm(form) {
 
   replaceCachedFormReferences(form);
   gCachedForms.set(form.actor, form);
+
+  // Save the results of source mapping any frames we encounter.
+  if (form.where) {
+    const location = {
+      sourceId: clientCommands.getSourceForActor(form.where.actor),
+      line: form.where.line,
+      column: form.where.column,
+    };
+    addMappedLocation(location);
+  }
 }
 
 function replaceCachedForm(form) {
@@ -261,12 +273,38 @@ function canInstantStep(point, limit) {
   return null;
 }
 
+function locationKey({ sourceId, line, column }) {
+  return `${sourceId}:${line}:${column}`;
+}
+
+const gMappedLocations = new Map();
+
+async function addMappedLocation(location) {
+  const key = locationKey(location);
+  if (gMappedLocations.has(key)) {
+    return;
+  }
+
+  const mapped = await panel.toolbox.sourceMapService.getOriginalLocation(location);
+  gMappedLocations.set(key, mapped);
+}
+
+function maybeMappedLocation(location) {
+  return gMappedLocations.get(locationKey(location));
+}
+
 const clientEvents = {
   paused,
   resumed,
   newSource,
   replayFramePositions,
   replayPreloadedData,
+};
+
+const eventMethods = {
+  canInstantStep,
+  maybeMappedLocation,
+  addMappedLocation,
 };
 
 export {
@@ -276,5 +314,5 @@ export {
   clientEvents,
   addThreadEventListeners,
   attachAllTargets,
-  canInstantStep,
+  eventMethods,
 };

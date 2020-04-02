@@ -32,8 +32,6 @@ export class ParserDispatcher extends WorkerDispatcher {
   }
 
   async getScopes(location: SourceLocation): Promise<SourceScope[]> {
-    ChromeUtils.recordReplayLog(`ParserDispatcher.getScopes ${JSON.stringify(location)} ${Error().stack}`);
-
     return this.invoke("getScopes", location);
   }
 
@@ -42,8 +40,6 @@ export class ParserDispatcher extends WorkerDispatcher {
   }
 
   async setSource(sourceId: SourceId, content: SourceContent): Promise<void> {
-    ChromeUtils.recordReplayLog(`ParserDispatcher.setSource ${sourceId} ${Error().stack}`);
-
     const astSource: AstSource = {
       id: sourceId,
       text: content.type === "wasm" ? "" : content.value,

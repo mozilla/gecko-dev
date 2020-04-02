@@ -8,7 +8,7 @@
 
 function waitForInstantStep(dbg, type) {
   const point = dbg.selectors.getThreadExecutionPoint(dbg.selectors.getCurrentThread());
-  return waitUntil(() => dbg.client.canInstantStep(point, type));
+  return waitUntil(() => dbg.client.eventMethods.canInstantStep(point, type));
 }
 
 async function checkInlinePreview(dbg, obj) {

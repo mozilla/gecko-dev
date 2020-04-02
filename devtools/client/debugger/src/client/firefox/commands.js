@@ -6,7 +6,7 @@
 
 import { prepareSourcePayload, createThread, createFrame } from "./create";
 import { updateTargets } from "./targets";
-import { clientEvents, canInstantStep } from "./events";
+import { clientEvents, eventMethods } from "./events";
 
 import Reps from "devtools-reps";
 import type { Node } from "devtools-reps";
@@ -606,7 +606,7 @@ const clientCommands = {
   instantWarp,
   fetchAncestorFramePositions,
   pickExecutionPoints,
-  canInstantStep,
+  eventMethods,
 };
 
 export { setupCommands, setupCommandsTopTarget, clientCommands };
