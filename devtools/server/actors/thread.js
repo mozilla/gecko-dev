@@ -1077,7 +1077,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
    * @returns A promise that resolves to true once the hooks are attached, or is
    *          rejected with an error packet.
    */
-  _handleResumeLimit: async function({ resumeLimit }) {
+  _handleResumeLimit: function({ resumeLimit }) {
     assert(!isReplaying);
 
     let steppingType = resumeLimit.type;
@@ -1154,7 +1154,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   /**
    * Handle a protocol request to resume execution of the debuggee.
    */
-  onResume: async function({ resumeLimit, rewind }) {
+  onResume: function({ resumeLimit, rewind }) {
     if (this._state !== "paused") {
       return {
         error: "wrongState",
@@ -1193,7 +1193,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       if (isReplaying) {
         this.dbg.replaySetResumeLimit(resumeLimit ? resumeLimit.type : null);
       } else if (resumeLimit) {
-        await this._handleResumeLimit({ resumeLimit });
+        this._handleResumeLimit({ resumeLimit });
       } else {
         this._clearSteppingHooks();
       }
@@ -1222,6 +1222,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   doResume({ resumeLimit, rewind } = {}) {
     // Defer resumes until after any in progress instant warp completes.
     if (this._pendingInstantWarpResumes) {
+      ChromeUtils.recordReplayLog(`ThreadActor.resume PushPending`);
       this._pendingInstantWarpResumes.push({ kind: "resume", limit: { resumeLimit, rewind } });
       return;
     }
@@ -1261,7 +1262,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   replayInstantWarp({ point }) {
+    ChromeUtils.recordReplayLog(`ThreadActor.replayInstantWarp Start`);
+
     if (this._pendingInstantWarpResumes) {
+      ChromeUtils.recordReplayLog(`ThreadActor.replayInstantWarp PushPending`);
       this._pendingInstantWarpResumes.push({ kind: "instantWarp", point });
       return;
     }
@@ -1275,7 +1279,13 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     // can be popped from the stack. Keep track of any resumes that are sent to
     // this thread during the dispatch.
     this._pendingInstantWarpResumes = [];
-    Services.tm.dispatchToMainThread(() => {
+    Services.tm.dispatchToMainThread(DevToolsUtils.makeInfallible(() => {
+      ChromeUtils.recordReplayLog(`ThreadActor.replayInstantWarp Dispatched`);
+
+      if (this._state != "paused") {
+        throw new Error("Unpaused while dispatching instant warp runnable");
+      }
+
       const resumes = this._pendingInstantWarpResumes;
       this._pendingInstantWarpResumes = null;
 
@@ -1285,6 +1295,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       // points instead.
       for (const info of resumes) {
         if (info.kind == "instantWarp") {
+          ChromeUtils.recordReplayLog(`ThreadActor.replayInstantWarp ProcessWarp`);
           this.dbg.replayInstantWarp(info.point);
         }
       }
@@ -1294,10 +1305,11 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       // Perform any resume which occurred during the dispatch.
       for (const info of resumes) {
         if (info.kind == "resume") {
+          ChromeUtils.recordReplayLog(`ThreadActor.replayInstantWarp ProcessResume`);
           this.doResume(info.limit);
         }
       }
-    });
+    }));
   },
 
   /**
