@@ -130,7 +130,7 @@ async function loadSourceTextPromise(
         : { type: "text", value: "", contentType: undefined }
     );
 
-    client.events.sourceLoaded(newSource.id);
+    client.eventMethods.sourceLoaded(newSource.id);
 
     // Update the text in any breakpoints for this source by re-adding them.
     const breakpoints = getBreakpointsForSource(getState(), source.id);
