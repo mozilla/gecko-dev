@@ -33,6 +33,16 @@ function actionLogData(action) {
   return "";
 }
 
+function logAction(action) {
+  if (action.type == "BATCH") {
+    action.updates.forEach(logAction);
+  } else {
+    const data = actionLogData(action);
+    const status = action.status ? ` [${action.status}]` : "";
+    ChromeUtils.recordReplayLog(`Debugger ${action.type}${data}${status}`);
+  }
+}
+
 // Middleware which looks for actions that have a cx property and ignores
 // them if the context is no longer valid.
 function context({ dispatch, getState }: ThunkArgs) {
@@ -41,9 +51,7 @@ function context({ dispatch, getState }: ThunkArgs) {
       validateActionContext(getState, action);
     }
 
-    const data = actionLogData(action);
-    const status = action.status ? ` [${action.status}]` : "";
-    ChromeUtils.recordReplayLog(`Debugger ${action.type}${data}${status}`);
+    logAction(action);
 
     return next(action);
   };
