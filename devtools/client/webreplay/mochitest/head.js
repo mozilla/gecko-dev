@@ -237,7 +237,6 @@ async function checkMessageObjectContents(msg, expected, expandList = []) {
   });
 }
 
-// For navigating scopes.
 async function findNode(dbg, text) {
   let node;
   await waitUntil(() => {
@@ -252,13 +251,11 @@ async function findNode(dbg, text) {
   return node;
 }
 
-// For interacting with scopes.
 async function toggleNode(dbg, text) {
   const node = await findNode(dbg, text);
   return toggleObjectInspectorNode(node);
 }
 
-// For interacting with scopes.
 function findNodeValue(dbg, text) {
   for (let index = 0; index < 100; index++) {
     var elem = findElement(dbg, "scopeNode", index);
@@ -266,6 +263,22 @@ function findNodeValue(dbg, text) {
       return findElement(dbg, "scopeValue", index).innerText;
     }
   }
+}
+
+async function waitForNodeValue(dbg, name, value) {
+  await findNode(dbg, name);
+  await waitUntil(() => findNodeValue(dbg, name) == value);
+}
+
+function waitForInstantStep(dbg, type) {
+  const point = dbg.selectors.getThreadExecutionPoint(dbg.selectors.getCurrentThread());
+  return waitUntil(() => dbg.client.eventMethods.canInstantStep(point, type));
+}
+
+async function checkInlinePreview(dbg, obj) {
+  await waitUntil(() => dbg.selectors.getSelectedInlinePreviews());
+  const previews = dbg.selectors.getSelectedInlinePreviews();
+  ok(JSON.stringify(previews).includes(JSON.stringify(obj)), "correct inline preview contents");
 }
 
 PromiseTestUtils.whitelistRejectionsGlobally(/NS_ERROR_NOT_INITIALIZED/);

@@ -6,22 +6,6 @@
 
 "use strict";
 
-function waitForInstantStep(dbg, type) {
-  const point = dbg.selectors.getThreadExecutionPoint(dbg.selectors.getCurrentThread());
-  return waitUntil(() => dbg.client.eventMethods.canInstantStep(point, type));
-}
-
-async function checkInlinePreview(dbg, obj) {
-  await waitUntil(() => dbg.selectors.getSelectedInlinePreviews());
-  const previews = dbg.selectors.getSelectedInlinePreviews();
-  ok(JSON.stringify(previews).includes(JSON.stringify(obj)), "correct inline preview contents");
-}
-
-async function waitForNodeValue(dbg, name, value) {
-  await findNode(dbg, name);
-  await waitUntil(() => findNodeValue(dbg, name) == value);
-}
-
 // Test previews when switching between frames and stepping.
 add_task(async function() {
   const dbg = await attachRecordingDebugger("doc_rr_preview.html", {
