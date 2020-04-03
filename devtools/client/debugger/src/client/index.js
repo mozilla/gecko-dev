@@ -76,6 +76,8 @@ export async function onConnect(
   const initialState = await loadInitialState();
   const workers = bootstrapWorkers(panelWorkers);
 
+  panel.parserDispatcher = workers.parser;
+
   const { store, actions, selectors } = bootstrapStore(
     commands,
     workers,

@@ -216,6 +216,7 @@ function addCachedForm(form) {
       column: form.where.column,
     };
     addMappedLocation(location);
+    addScopes(location);
   }
 }
 
@@ -277,20 +278,63 @@ function locationKey({ sourceId, line, column }) {
   return `${sourceId}:${line}:${column}`;
 }
 
-const gMappedLocations = new Map();
+const gLocationMaps = new Map();
 
 async function addMappedLocation(location) {
   const key = locationKey(location);
-  if (gMappedLocations.has(key)) {
+  if (gLocationMaps.has(key)) {
     return;
   }
 
   const mapped = await panel.toolbox.sourceMapService.getOriginalLocation(location);
-  gMappedLocations.set(key, mapped);
+  gLocationMaps.set(key, mapped);
 }
 
 function maybeMappedLocation(location) {
-  return gMappedLocations.get(locationKey(location));
+  return gLocationMaps.get(locationKey(location));
+}
+
+// locations -> scopes
+const gLocationScopes = new Map();
+
+// source ID -> location[]
+const gPendingLocationScopes = new Map();
+
+const gLoadedSourceIds = new Set();
+
+async function addScopes(location) {
+  if (!gLoadedSourceIds.has(location.sourceId)) {
+    const existing = gPendingLocationScopes.get(location.sourceId);
+    if (existing) {
+      if (!existing.some(l => l.line == location.line && l.column == location.column)) {
+        existing.push(location);
+      }
+    } else {
+      gPendingLocationScopes.set(location.sourceId, [location]);
+    }
+    return;
+  }
+
+  const key = locationKey(location);
+  if (gLocationScopes.has(key)) {
+    return;
+  }
+
+  const scopes = await panel.parserDispatcher.getScopes(location);
+  gLocationScopes.set(key, scopes);
+}
+
+function maybeScopes(location) {
+  return gLocationScopes.get(locationKey(location));
+}
+
+function sourceLoaded(sourceId) {
+  gLoadedSourceIds.add(sourceId);
+  const pending = gPendingLocationScopes.get(sourceId);
+  if (pending) {
+    gPendingLocationScopes.delete(sourceId);
+    pending.forEach(addScopes);
+  }
 }
 
 const clientEvents = {
@@ -305,6 +349,9 @@ const eventMethods = {
   canInstantStep,
   maybeMappedLocation,
   addMappedLocation,
+  maybeScopes,
+  addScopes,
+  sourceLoaded,
 };
 
 export {

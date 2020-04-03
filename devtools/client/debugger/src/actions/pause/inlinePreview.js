@@ -78,11 +78,16 @@ export function generateInlinePreview(cx: ThreadContext, frameId, location) {
 
     ChromeUtils.recordReplayLog(`GenerateInlinePreview LoadSourceText Done`);
 
-    const originalAstScopes = await parser.getScopes(location);
-    validateThreadContext(getState(), cx);
+    let originalAstScopes = client.eventMethods.maybeScopes(location);
     if (!originalAstScopes) {
-      ChromeUtils.recordReplayLog(`GenerateInlinePreview NoScopes`);
-      return;
+      ChromeUtils.recordReplayLog(`GenerateInlinePreview FetchingScopes`);
+      originalAstScopes = await parser.getScopes(location);
+      client.eventMethods.addScopes(location, originalAstScopes);
+      validateThreadContext(getState(), cx);
+      if (!originalAstScopes) {
+        ChromeUtils.recordReplayLog(`GenerateInlinePreview NoScopes`);
+        return;
+      }
     }
 
     ChromeUtils.recordReplayLog(`GenerateInlinePreview ScopesLoaded`);
