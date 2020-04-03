@@ -411,6 +411,10 @@ function update(
         },
       });
     }
+
+    case "BATCH":
+      action.updates.forEach(u => (state = update(state, u)));
+      return state;
   }
 
   return state;

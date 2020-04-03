@@ -87,6 +87,10 @@ function update(
       return resetTabState(state);
     }
 
+    case "BATCH":
+      action.updates.forEach(u => (state = update(state, u)));
+      return state;
+
     default:
       return state;
   }

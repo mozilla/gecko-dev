@@ -9,6 +9,7 @@ import {
   getThreadContext,
   getThreadExecutionPoint,
   getCurrentThread,
+  getSource,
 } from "../../selectors";
 import { PROMISE } from "../utils/middleware/promise";
 import { evaluateExpressions } from "../expressions";
@@ -97,24 +98,40 @@ async function doInstantStep({ dispatch, getState, client }, instantInfo) {
 
   const thread = getCurrentThread(getState());
 
-  dispatch({ type: "RESUME", thread, wasStepping: true });
-  dispatch({ type: "PAUSED", thread, why, executionPoint });
+  const updates = [];
+  const batch = { type: "BATCH", updates };
 
-  const cx = getThreadContext(getState());
+  updates.push({ type: "RESUME", thread, wasStepping: true });
+  updates.push({ type: "PAUSED", thread, why, executionPoint });
+
   const frame = frames[0];
+  updates.push({ type: "FETCHED_FRAMES", thread, frames });
 
-  dispatch({ type: "FETCHED_FRAMES", thread, frames, cx });
-
-  dispatch({
+  updates.push({
     type: "ADD_SCOPES",
-    cx,
-    thread: cx.thread,
+    thread,
     frame,
     status: "done",
     value: environment,
   });
 
   let mappedLocation = client.eventMethods.maybeMappedLocation(frame.location);
+
+  if (mappedLocation) {
+    const source = getSource(getState(), mappedLocation.sourceId);
+    if (source) {
+      updates.push({
+        type: "SET_SELECTED_LOCATION",
+        source,
+        location: mappedLocation,
+      });
+    }
+  }
+
+  dispatch(batch);
+
+  const cx = getThreadContext(getState());
+
   if (mappedLocation) {
     dispatch(mapFrames(cx));
   } else {
