@@ -314,7 +314,29 @@ function locationKey({ sourceId, line, column }) {
   return `${sourceId}:${line}:${column}`;
 }
 
+// location => mapping
 const gLocationMaps = new Map();
+
+// sourceId => MappedSourceLocations
+const gMappedLocationsBySourceId = new Map();
+
+function MappedSourceLocations() {
+  // Whether this source is actively being remapped.
+  this.remapping = false;
+
+  // The number of times this source has started remapping. At most one, probably.
+  this.numRemappings = 0;
+
+  // Locations in this source that mappings have been cached for.
+  this.locations = [];
+}
+
+function getMappedSourceLocations(sourceId) {
+  if (!gMappedLocationsBySourceId.has(sourceId)) {
+    gMappedLocationsBySourceId.set(sourceId, new MappedSourceLocations());
+  }
+  return gMappedLocationsBySourceId.get(sourceId);
+}
 
 async function addMappedLocation(location) {
   const key = locationKey(location);
@@ -322,12 +344,56 @@ async function addMappedLocation(location) {
     return;
   }
 
-  const mapped = await panel.toolbox.sourceMapService.getOriginalLocation(location);
+  const info = getMappedSourceLocations(location.sourceId);
+
+  // Remap the location, watching out for the case when the source is remapped
+  // while we're waiting and regenerating the mapping in that case.
+  let mapped;
+  while (true) {
+    if (info.remapping) {
+      // This mapping will be added after the source is remapped.
+      info.locations.push(location);
+      return;
+    }
+
+    const numRemappings = info.numRemappings;
+    mapped = await panel.toolbox.sourceMapService.getOriginalLocation(location);
+    if (numRemappings == info.numRemappings) {
+      break;
+    }
+  }
+
   gLocationMaps.set(key, mapped);
+  info.locations.push(location);
 }
 
 function maybeMappedLocation(location) {
   return gLocationMaps.get(locationKey(location));
+}
+
+function sourceRemapStart(sourceId) {
+  const info = getMappedSourceLocations(sourceId);
+  if (info.remapping) {
+    throw new Error("Remapping for source already in progress");
+  }
+  info.remapping = true;
+  info.numRemappings++;
+
+  for (const location of info.locations) {
+    gLocationMaps.delete(locationKey(location));
+  }
+}
+
+function sourceRemapEnd(sourceId) {
+  const info = getMappedSourceLocations(sourceId);
+  if (!info.remapping) {
+    throw new Error("Source is not being remapped");
+  }
+  info.remapping = false;
+
+  const locations = info.locations;
+  info.locations = [];
+  locations.forEach(addMappedLocation);
 }
 
 // locations -> scopes
@@ -389,6 +455,8 @@ const eventMethods = {
   addScopes,
   sourceLoaded,
   onSourceActorRegister,
+  sourceRemapStart,
+  sourceRemapEnd,
 };
 
 export {

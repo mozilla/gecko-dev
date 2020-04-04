@@ -40,6 +40,7 @@ import type {
 
 export async function prettyPrintSource(
   sourceMaps: typeof SourceMaps,
+  client,
   generatedSource: Source,
   content: SourceContent,
   actors: Array<SourceActor>
@@ -53,7 +54,9 @@ export async function prettyPrintSource(
     text: content.value,
     url,
   });
+  client.eventMethods.sourceRemapStart(generatedSource.id);
   await sourceMaps.applySourceMap(generatedSource.id, url, code, mappings);
+  client.eventMethods.sourceRemapEnd(generatedSource.id);
 
   // The source map URL service used by other devtools listens to changes to
   // sources based on their actor IDs, so apply the mapping there too.

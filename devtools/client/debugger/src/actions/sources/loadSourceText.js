@@ -55,6 +55,7 @@ async function loadSource(
 
     return prettyPrintSource(
       sourceMaps,
+      client,
       generatedSource,
       content.value,
       getSourceActorsForSource(state, generatedSource.id)

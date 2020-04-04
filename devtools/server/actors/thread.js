@@ -306,6 +306,8 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
    * `exit`. The actor is truely destroyed in the `exit method`.
    */
   destroy: function() {
+    ChromeUtils.recordReplayLog(`ThreadActor.destroy`);
+
     dumpn("in ThreadActor.prototype.destroy");
     if (this._state == "paused") {
       this.doResume();
@@ -338,6 +340,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     this._threadLifetimePool = null;
 
     if (isReplaying) {
+      this.dbg.replayingOnForcedPause = () => {};
       this.dbg.replayingOnStatusUpdate = () => {};
       this.dbg.replayingOnTimeWarpClient = () => {};
       this.dbg.replayingPaintFinished = () => {};
@@ -1205,12 +1208,12 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     try {
       ChromeUtils.recordReplayLog(`ThreadActor.resume Start ${JSON.stringify(resumeLimit)} ${rewind}`);
 
-      if (isReplaying) {
-        this.dbg.replaySetResumeLimit(resumeLimit ? resumeLimit.type : null);
-      } else if (resumeLimit) {
-        this._handleResumeLimit({ resumeLimit });
-      } else {
-        this._clearSteppingHooks();
+      if (!isReplaying) {
+        if (resumeLimit) {
+          this._handleResumeLimit({ resumeLimit });
+        } else {
+          this._clearSteppingHooks();
+        }
       }
 
       this.doResume({ resumeLimit, rewind });
@@ -1248,9 +1251,9 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       if (resumeLimit && resumeLimit.type == "warp") {
         this.dbg.replayTimeWarp(resumeLimit.target);
       } else if (rewind) {
-        this.dbg.replayResumeBackward();
+        this.dbg.replayResumeBackward(resumeLimit ? resumeLimit.type : null);
       } else {
-        this.dbg.replayResumeForward();
+        this.dbg.replayResumeForward(resumeLimit ? resumeLimit.type : null);
       }
     }
 
