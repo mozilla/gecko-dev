@@ -45,6 +45,7 @@ function addThreadEventListeners(thread: ThreadFront) {
     );
   });
   threadFrontListeners.set(thread, removeListeners);
+  thread.replayFetchPreloadedData();
 }
 
 function removeThreadEventListeners(thread: ThreadFront) {
@@ -168,9 +169,17 @@ function pointToString(point) {
   return `${point.checkpoint}:${point.progress}`;
 }
 
+// execution point => step targets from that point
 const gStepTargets = new Map();
+
+// execution point => pause info for that point
 const gPausePackets = new Map();
+
+// actor ID => cached form for that actor
 const gCachedForms = new Map();
+
+// source actor ID => frame forms waiting on that actor to be registered
+const gPendingForms = new Map();
 
 // Destructively modify a piece of JSON by replacing references to cached forms
 // with the actual form, reconstructing a complete form with the contents
@@ -200,6 +209,16 @@ function replaceCachedFormReferences(json) {
   }
 }
 
+function preloadFrameForm(form) {
+  const location = {
+    sourceId: clientCommands.getSourceForActor(form.where.actor),
+    line: form.where.line,
+    column: form.where.column,
+  };
+  addMappedLocation(location);
+  addScopes(location);
+}
+
 function addCachedForm(form) {
   if (!form.actor) {
     throw new Error("Expected cached form actor");
@@ -210,13 +229,25 @@ function addCachedForm(form) {
 
   // Save the results of source mapping any frames we encounter.
   if (form.where) {
-    const location = {
-      sourceId: clientCommands.getSourceForActor(form.where.actor),
-      line: form.where.line,
-      column: form.where.column,
-    };
-    addMappedLocation(location);
-    addScopes(location);
+    try {
+      preloadFrameForm(form);
+    } catch (e) {
+      // The form's source hasn't appeared yet.
+      const existing = gPendingForms.get(form.where.actor);
+      if (existing) {
+        existing.push(form);
+      } else {
+        gPendingForms.set(form.where.actor, [form]);
+      }
+    }
+  }
+}
+
+function onSourceActorRegister(actor) {
+  const pending = gPendingForms.get(actor);
+  if (pending) {
+    pending.forEach(preloadFrameForm);
+    gPendingForms.delete(actor);
   }
 }
 
@@ -246,9 +277,8 @@ function replayPreloadedData(threadFront, entry) {
     case "PauseData": {
       const { point, environment, frames, cachedForms } = entry.data;
       cachedForms.forEach(addCachedForm);
-      const thread = clientCommands.getMainThread();
       gPausePackets.set(pointToString(point), {
-        frames: frames.map((frame, i) => createFrame(thread, replaceCachedForm(frame), i)),
+        frames: frames.map(replaceCachedForm),
         environment: replaceCachedForm(environment),
       });
       break;
@@ -269,7 +299,13 @@ function canInstantStep(point, limit) {
   }
   const info = gPausePackets.get(pointToString(target));
   if (info) {
-    return { executionPoint: target, ...info };
+    const { frames, environment } = info;
+    const thread = clientCommands.getMainThread();
+    return {
+      executionPoint: target,
+      frames: frames.map((frame, i) => createFrame(thread, frame, i)),
+      environment,
+    };
   }
   return null;
 }
@@ -352,6 +388,7 @@ const eventMethods = {
   maybeScopes,
   addScopes,
   sourceLoaded,
+  onSourceActorRegister,
 };
 
 export {

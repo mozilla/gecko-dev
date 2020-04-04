@@ -416,6 +416,7 @@ function pauseGrip(thread: string, func: Function): ObjectFront {
 
 function registerSourceActor(sourceActorId: string, sourceId: SourceId) {
   sourceActors[sourceActorId] = sourceId;
+  eventMethods.onSourceActorRegister(sourceActorId);
 }
 
 async function getSources(

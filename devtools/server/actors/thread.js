@@ -172,6 +172,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       this._replayIdToActor = new Map();
       this._replayActorToId = new Map();
       this._stepTargetEpoch = 0;
+
+      // Preloaded data that hasn't been sent to the client because it hasn't
+      // confirmed it is listening.
+      this._replayPendingPreloadedData = [];
     }
   },
 
@@ -332,6 +336,17 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     this.clearDebuggees();
     this.conn.removeActorPool(this._threadLifetimePool);
     this._threadLifetimePool = null;
+
+    if (isReplaying) {
+      this.dbg.replayingOnStatusUpdate = () => {};
+      this.dbg.replayingOnTimeWarpClient = () => {};
+      this.dbg.replayingPaintFinished = () => {};
+      this.dbg.replayingIsLocationBlackboxed = () => false;
+      this.dbg.replayingStepTargetEpoch = () => 0;
+      this.dbg.replayingEmitStepTargets = () => {};
+      this.dbg.replayingGeneratePausePacket = () => {};
+    }
+
     this._dbg = null;
   },
 
@@ -1948,20 +1963,37 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     this.threadLifetimePool.objectActors.set(actor.obj, actor);
   },
 
+  replayFetchPreloadedData() {
+    if (!this._replayPendingPreloadedData) {
+      throw new Error("Duplicate replayFetchPreloadedData requests");
+    }
+    const pending = this._replayPendingPreloadedData;
+    this._replayPendingPreloadedData = null;
+    pending.forEach(data => this._emitPreloadedData(data));
+  },
+
+  _emitPreloadedData(data) {
+    if (this._replayPendingPreloadedData) {
+      this._replayPendingPreloadedData.push(data);
+    } else {
+      this.emit("replayPreloadedData", { data });
+    }
+  },
+
   replayingStepTargetEpoch() {
     return this._stepTargetEpoch;
   },
 
   replayingEmitStepTargets(info) {
     if (isReplaying) {
-      this.emit("replayPreloadedData", { data: { kind: "StepTargets", ...info } });
+      this._emitPreloadedData({ kind: "StepTargets", ...info });
     }
   },
 
   replayingInvalidateStepTargets() {
     if (isReplaying) {
       this._stepTargetEpoch++;
-      this.emit("replayPreloadedData", { data: { kind: "InvalidateStepTargets" } });
+      this._emitPreloadedData({ kind: "InvalidateStepTargets" });
       this.dbg.replayRegenerateStepTargets();
     }
   },
@@ -1974,18 +2006,13 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     let frames = this.walkFrames(youngestFrame, 0, 1000);
     const environment = frames[0].getEnvironment();
     frames = frames.map(f => f.form());
-    this.emit(
-      "replayPreloadedData",
-      {
-        data: {
-          kind: "PauseData",
-          point,
-          environment,
-          frames,
-          cachedForms: this.pausePacketForms,
-        },
-      }
-    );
+    this._emitPreloadedData({
+      kind: "PauseData",
+      point,
+      environment,
+      frames,
+      cachedForms: this.pausePacketForms,
+    });
     this.pausePacketForms = null;
   },
 

@@ -146,6 +146,8 @@ const threadSpec = generateActorSpec({
     },
     replayFetchStatus: {
     },
+    replayFetchPreloadedData: {
+    },
     dumpThread: {
       request: {},
       response: RetVal("json"),
