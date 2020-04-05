@@ -111,8 +111,8 @@ function maybeLogMessage(prefix, id, message, count, delay) {
   if (gVerbose || count <= MessageLogCount) {
     const desc = messageDescription(message);
     const time = elapsedTime();
-    const delayText = delay ? ` Delay ${delay}` : "";
-    doLog(`${prefix} Connection ${id} Elapsed ${time}${delay} Message ${desc}\n`);
+    const delayText = delay ? ` Delay ${roundTime(delay)}` : "";
+    doLog(`${prefix} Connection ${id} Elapsed ${time}${delayText} Message ${desc}\n`);
   }
   if (!gVerbose && count == MessageLogCount) {
     doLog(`Verbose not set, not logging future ${prefix} messages for connection ${id}\n`);
@@ -345,6 +345,9 @@ function doLog(text) {
 }
 
 function elapsedTime() {
-  const time = ChromeUtils.recordReplayElapsedTime();
+  return roundTime(ChromeUtils.recordReplayElapsedTime());
+}
+
+function roundTime(time) {
   return ((time * 1000) | 0) / 1000;
 }

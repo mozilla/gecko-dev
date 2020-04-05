@@ -339,10 +339,9 @@ void AddToLog(const nsAString& aText, bool aIncludePrefix /* = true */) {
 
   nsCString text;
   if (aIncludePrefix) {
-    double elapsed = (TimeStamp::Now() - gStartupTime).ToSeconds();
     text = nsPrintfCString("[%s %.3f] %s\n",
                            XRE_IsParentProcess() ? "UI" : "Control",
-                           elapsed, NS_ConvertUTF16toUTF8(aText).get());
+                           ElapsedTime(), NS_ConvertUTF16toUTF8(aText).get());
   } else {
     text = NS_ConvertUTF16toUTF8(aText);
   }

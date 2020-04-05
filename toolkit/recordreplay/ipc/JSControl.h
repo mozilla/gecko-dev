@@ -62,7 +62,8 @@ void SetConnectionStatus(uint32_t aChannelId, const nsCString& aStatus);
 
 // Handle incoming messages from a child process.
 void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
-                             const ManifestFinishedMessage& aMsg);
+                             const ManifestFinishedMessage& aMsg,
+                             double aDelay);
 void ForwardUnhandledDivergence(parent::ChildProcessInfo* aChild,
                                 const UnhandledDivergenceMessage& aMsg);
 void ForwardPingResponse(parent::ChildProcessInfo* aChild,

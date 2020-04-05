@@ -41,7 +41,7 @@ ChildProcessInfo::~ChildProcessInfo() {
   SendMessage(TerminateMessage(0));
 }
 
-void ChildProcessInfo::OnIncomingMessage(const Message& aMsg) {
+void ChildProcessInfo::OnIncomingMessage(const Message& aMsg, double aDelay) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   switch (aMsg.mType) {
@@ -61,7 +61,7 @@ void ChildProcessInfo::OnIncomingMessage(const Message& aMsg) {
       break;
     case MessageType::ManifestFinished: {
       const auto& nmsg = static_cast<const ManifestFinishedMessage&>(aMsg);
-      js::ForwardManifestFinished(this, nmsg);
+      js::ForwardManifestFinished(this, nmsg, aDelay);
       break;
     }
     case MessageType::UnhandledDivergence: {
@@ -223,12 +223,14 @@ void ChildProcessInfo::OnCrash(size_t aForkId, const char* aWhy) {
 struct PendingMessage {
   size_t mChildId = 0;
   Message::UniquePtr mMsg;
+  double mTime = 0;
 
   PendingMessage() {}
 
   PendingMessage& operator=(PendingMessage&& aOther) {
     mChildId = aOther.mChildId;
     mMsg = std::move(aOther.mMsg);
+    mTime = aOther.mTime;
     return *this;
   }
 
@@ -236,7 +238,8 @@ struct PendingMessage {
 };
 static StaticInfallibleVector<PendingMessage> gPendingMessages;
 
-static Message::UniquePtr ExtractChildMessage(ChildProcessInfo** aProcess) {
+static Message::UniquePtr ExtractChildMessage(ChildProcessInfo** aProcess,
+                                              double* aDelay) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   if (!gPendingMessages.length()) {
@@ -246,6 +249,8 @@ static Message::UniquePtr ExtractChildMessage(ChildProcessInfo** aProcess) {
   PendingMessage& pending = gPendingMessages[0];
   *aProcess = GetChildProcess(pending.mChildId);
   MOZ_RELEASE_ASSERT(*aProcess);
+
+  *aDelay = ElapsedTime() - pending.mTime;
 
   Message::UniquePtr msg = std::move(pending.mMsg);
   gPendingMessages.erase(&pending);
@@ -263,11 +268,12 @@ void ChildProcessInfo::MaybeProcessNextMessage() {
   lock.emplace(*gMonitor);
 
   ChildProcessInfo* process;
-  Message::UniquePtr msg = ExtractChildMessage(&process);
+  double delay;
+  Message::UniquePtr msg = ExtractChildMessage(&process, &delay);
 
   if (msg) {
     lock.reset();
-    process->OnIncomingMessage(*msg);
+    process->OnIncomingMessage(*msg, delay);
   } else {
     // Limit how long we are willing to wait before returning to the caller.
     TimeStamp deadline = TimeStamp::Now() + TimeDuration::FromMilliseconds(200);
@@ -289,11 +295,12 @@ void ChildProcessInfo::MaybeProcessPendingMessageRunnable() {
   gHasPendingMessageRunnable = false;
   while (true) {
     ChildProcessInfo* process = nullptr;
-    Message::UniquePtr msg = ExtractChildMessage(&process);
+    double delay;
+    Message::UniquePtr msg = ExtractChildMessage(&process, &delay);
 
     if (msg) {
       MonitorAutoUnlock unlock(*gMonitor);
-      process->OnIncomingMessage(*msg);
+      process->OnIncomingMessage(*msg, delay);
     } else {
       break;
     }
@@ -312,6 +319,7 @@ void ChildProcessInfo::MaybeProcessPendingMessageRunnable() {
   PendingMessage pending;
   pending.mChildId = aChildId;
   pending.mMsg = std::move(aMsg);
+  pending.mTime = ElapsedTime();
   gPendingMessages.append(std::move(pending));
 
   // Notify the main thread, if it is waiting in WaitUntilPaused.

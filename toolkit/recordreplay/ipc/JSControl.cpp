@@ -177,21 +177,22 @@ void SetConnectionStatus(uint32_t aChannelId, const nsCString& aStatus) {
 }
 
 static void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
-                                    size_t aForkId, bool aBulk, const char* aBuffer,
-                                    size_t aBufferSize) {
+                                    size_t aForkId, bool aBulk, double aDelay,
+                                    const char* aBuffer, size_t aBufferSize) {
   MOZ_RELEASE_ASSERT(IsInitialized());
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  JS::AutoValueArray<4> args(cx);
+  JS::AutoValueArray<5> args(cx);
   args[0].setInt32(aChild->GetId());
   args[1].setInt32(aForkId);
   args[2].setBoolean(aBulk);
+  args[3].setNumber(aDelay);
 
   NS_ConvertUTF8toUTF16 buf(aBuffer, aBufferSize);
 
-  if (aBufferSize && !JS_ParseJSON(cx, buf.get(), buf.Length(), args[3])) {
+  if (aBufferSize && !JS_ParseJSON(cx, buf.get(), buf.Length(), args[4])) {
     MOZ_CRASH("ForwardManifestFinished");
   }
 
@@ -202,7 +203,8 @@ static void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
 }
 
 void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
-                             const ManifestFinishedMessage& aMsg) {
+                             const ManifestFinishedMessage& aMsg,
+                             double aDelay) {
   if (aMsg.mTag) {
     char* buf = new char[aMsg.mTag];
     size_t written = 0;
@@ -211,18 +213,19 @@ void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
       MOZ_CRASH("ForwardManifestFinished decompress failed");
     }
     MOZ_RELEASE_ASSERT(written == aMsg.mTag);
-    ForwardManifestFinished(aChild, aMsg.mForkId, aMsg.Bulk(), buf, aMsg.mTag);
+    ForwardManifestFinished(aChild, aMsg.mForkId, aMsg.Bulk(), aDelay,
+                            buf, aMsg.mTag);
     delete[] buf;
   } else {
-    ForwardManifestFinished(aChild, aMsg.mForkId, aMsg.Bulk(), aMsg.BinaryData(),
-                            aMsg.BinaryDataSize());
+    ForwardManifestFinished(aChild, aMsg.mForkId, aMsg.Bulk(), aDelay,
+                            aMsg.BinaryData(), aMsg.BinaryDataSize());
   }
 }
 
 void ForwardUnhandledDivergence(parent::ChildProcessInfo* aChild,
                                 const UnhandledDivergenceMessage& aMsg) {
   char buf[] = "{\"unhandledDivergence\":true}";
-  ForwardManifestFinished(aChild, aMsg.mForkId, false, buf, sizeof(buf) - 1);
+  ForwardManifestFinished(aChild, aMsg.mForkId, false, 0, buf, sizeof(buf) - 1);
 }
 
 void ForwardPingResponse(parent::ChildProcessInfo* aChild,

@@ -159,7 +159,7 @@ class ChildProcessInfo {
   // Whether this process is recording.
   bool mRecording = false;
 
-  void OnIncomingMessage(const Message& aMsg);
+  void OnIncomingMessage(const Message& aMsg, double aDelay);
 
   static void MaybeProcessPendingMessageRunnable();
   static void ReceiveChildMessageOnMainThread(size_t aChildId,
