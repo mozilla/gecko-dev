@@ -51,6 +51,10 @@ void SetCloudReplayStatusCallback(JS::HandleValue aCallback);
 
 double ElapsedTime();
 
+void RegisterConnectionWorker(JS::HandleObject aSendCallback);
+
+void OnCloudMessage(long aId, JS::HandleObject aMessage);
+
 // Middleman process API
 
 // Get the pid of the UI process.

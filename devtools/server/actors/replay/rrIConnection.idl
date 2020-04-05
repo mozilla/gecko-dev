@@ -17,9 +17,6 @@ interface rrIConnection : nsISupports {
   // associated with) and returning the globally unique connection ID.
   long Connect(in long channelId);
 
-  // Send message data through a particular connection.
-  void SendMessage(in long connectionId, in jsval buf);
-
   // Make sure a logged message is sent to the cloud server, either now or
   // sometime in the future (including in another browser session).
   void AddToLog(in ACString text);

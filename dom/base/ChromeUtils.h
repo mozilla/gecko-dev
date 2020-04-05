@@ -210,6 +210,12 @@ class ChromeUtils {
 
   static double RecordReplayElapsedTime(const GlobalObject& aGlobal);
 
+  static void RecordReplayRegisterConnectionWorker(const GlobalObject& aGlobal,
+                                                   JS::HandleObject aSendCallback);
+
+  static void RecordReplayOnMessage(const GlobalObject& aGlobal,
+                                    long aId, JS::HandleObject aMessage);
+
   static void GenerateMediaControlKeysTestEvent(
       const GlobalObject& aGlobal, MediaControlKeysTestEvent aEvent);
 };

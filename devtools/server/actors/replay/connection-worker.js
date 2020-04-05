@@ -12,6 +12,8 @@ let gServerAddress;
 let gBuildId;
 let gVerbose;
 
+ChromeUtils.recordReplayRegisterConnectionWorker(doSend);
+
 self.addEventListener("message", msg => {
   try {
     onMainThreadMessage(msg);
@@ -29,9 +31,6 @@ function onMainThreadMessage({ data }) {
       openServerSocket();
     case "connect":
       doConnect(data.id, data.channelId);
-      break;
-    case "send":
-      doSend(data.id, data.buf);
       break;
     case "log":
       doLog(data.text);
@@ -108,12 +107,11 @@ async function onServerMessage(evt) {
 
 const MessageLogCount = 3;
 
-function maybeLogMessage(prefix, id, message, count, originalTime) {
+function maybeLogMessage(prefix, id, message, count) {
   if (gVerbose || count <= MessageLogCount) {
     const desc = messageDescription(message);
     const time = elapsedTime();
-    const delay = originalTime ? ` Delay ${time - originalTime}` : "";
-    doLog(`${prefix} Connection ${id} Elapsed ${time}${delay} Message ${desc}\n`);
+    doLog(`${prefix} Connection ${id} Elapsed ${time} Message ${desc}\n`);
   }
   if (!gVerbose && count == MessageLogCount) {
     doLog(`Verbose not set, not logging future ${prefix} messages for connection ${id}\n`);
@@ -134,20 +132,20 @@ async function doConnect(id, channelId) {
     // ID assigned to this session by the dispatcher.
     replayerSessionId: null,
 
-    // Messages to send to the replayer.
+    // Messages queued up before the main socket opened.
     outgoing: [],
 
-    // Whether the main socket is fully established.
-    connected: false,
+    // Whether the main socket is open.
+    open: false,
 
     // Whether the bulk socket is open.
     bulkOpen: false,
 
+    // Whether the main socket is fully established.
+    connected: false,
+
     // Resolve hook for any promise waiting on the socket to connect.
     connectWaiter: null,
-
-    // Resolve hook for any promise waiting on new outgoing messages.
-    sendWaiter: null,
 
     // How many messages have been sent/received over this connection.
     numSends: 0,
@@ -169,12 +167,14 @@ async function doConnect(id, channelId) {
   }
 
   const socket = new WebSocket(`${address}/connect?${urlParams(false)}`);
+  socket.binaryType = "arraybuffer";
   socket.onopen = evt => onOpen(id);
   socket.onclose = evt => onClose(id);
   socket.onmessage = evt => onMessage(id, evt);
   socket.onerror = evt => onError(id);
 
   const bulkSocket = new WebSocket(`${address}/connect?${urlParams(true)}`);
+  bulkSocket.binaryType = "arraybuffer";
   bulkSocket.onopen = evt => onOpen(id, true);
   bulkSocket.onclose = evt => onClose(id);
   bulkSocket.onmessage = evt => onMessage(id, evt, true);
@@ -187,28 +187,6 @@ async function doConnect(id, channelId) {
       bulkSocket.close();
     }
   }, SocketTimeoutMs);
-
-  await new Promise(resolve => (connection.openWaiter = resolve));
-
-  while (gConnections[id]) {
-    if (connection.outgoing.length) {
-      const buf = connection.outgoing.shift();
-      try {
-        maybeLogMessage("SocketSend", id, new Uint8Array(buf), ++connection.numSends);
-
-        const bulk = checkCompleteMessage(buf);
-        if (bulk && connection.bulkOpen) {
-          bulkSocket.send(buf);
-        } else {
-          socket.send(buf);
-        }
-      } catch (e) {
-        PostError(`Send error ${e}`);
-      }
-    } else {
-      await new Promise(resolve => (connection.sendWaiter = resolve));
-    }
-  }
 }
 
 function readMessage(msg, offset = 0) {
@@ -242,21 +220,39 @@ function checkCompleteMessage(buf) {
 
 function doSend(id, buf) {
   const connection = gConnections[id];
-  if (connection) {
+  if (!connection) {
+    PostError(`Invalid connection ID`);
+    return;
+  }
+
+  if (!connection.open) {
     connection.outgoing.push(buf);
-    if (connection.sendWaiter) {
-      connection.sendWaiter();
-      connection.sendWaiter = null;
+    return;
+  }
+
+  try {
+    maybeLogMessage("SocketSend", id, new Uint8Array(buf), ++connection.numSends);
+
+    const bulk = checkCompleteMessage(buf);
+    if (bulk && connection.bulkOpen) {
+      bulkSocket.send(buf);
+    } else {
+      socket.send(buf);
     }
+  } catch (e) {
+    PostError(`Send error ${e}`);
   }
 }
 
 function onOpen(id, bulk) {
   // Messages can now be sent to the socket.
+  const connection = gConnections[id];
   if (bulk) {
-    gConnections[id].bulkOpen = true;
+    connection.bulkOpen = true;
   } else {
-    gConnections[id].openWaiter();
+    connection.open = true;
+    connection.outgoing.forEach(buf => doSend(id, buf));
+    connection.outgoing.length = 0;
   }
 }
 
@@ -310,41 +306,18 @@ function extractCompleteMessages(id, bulk, data, time) {
   return messages;
 }
 
-// Message data must be sent to the main thread in the order it was received.
-// This is a bit tricky with web socket messages as they return data blobs,
-// and blob.arrayBuffer() returns a promise such that multiple promises could
-// be resolved out of order. Make sure this doesn't happen by using a single
-// async frame to resolve the promises and forward them in order.
-const gMessages = [];
-let gMessageWaiter = null;
-(async function processMessages() {
-  while (true) {
-    if (gMessages.length) {
-      const { id, bulk, promise, time } = gMessages.shift();
-      const buf = await promise;
-      const messages = extractCompleteMessages(id, bulk, new Uint8Array(buf), time);
-      for (const msg of messages) {
-        postMessage({ kind: "message", id, buf: msg });
-      }
-    } else {
-      await new Promise(resolve => (gMessageWaiter = resolve));
-    }
-  }
-})();
-
 function onMessage(id, evt, bulk) {
+  const connection = gConnections[id];
+
   // When we have heard back from the replayer, we are fully connected to it.
-  if (!gConnections[id].connected && !bulk) {
-    gConnections[id].connected = true;
+  if (!connection.connected && !bulk) {
+    connection.connected = true;
     doLog(`ReplayerConnected ${id} ${elapsedTime()}\n`);
     postMessage({ kind: "connected", id });
   }
 
-  gMessages.push({ id, bulk, promise: evt.data.arrayBuffer(), time: elapsedTime() });
-  if (gMessageWaiter) {
-    gMessageWaiter();
-    gMessageWaiter = null;
-  }
+  const messages = extractCompleteMessages(id, bulk, new Uint8Array(evt.data));
+  messages.forEach(msg => ChromeUtils.recordReplayOnMessage(id, msg));
 }
 
 function onError(id, evt) {

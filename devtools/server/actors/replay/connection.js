@@ -72,9 +72,6 @@ function onMessage(evt) {
       }
       break;
     }
-    case "message":
-      gCallbacks.onMessage(evt.data.id, evt.data.buf);
-      break;
     case "connectionFailed":
       Services.cpmm.sendAsyncMessage("RecordReplayCriticalError", { kind: "CloudSpawnError" });
       break;
@@ -101,11 +98,6 @@ function Connect(channelId) {
   const id = gNextConnectionId++;
   gWorker.postMessage({ kind: "connect", id, channelId });
   return id;
-}
-
-// eslint-disable-next-line no-unused-vars
-function SendMessage(id, buf) {
-  gWorker.postMessage({ kind: "send", id, buf });
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -225,4 +217,4 @@ async function flushOfflineLog() {
 }
 
 // eslint-disable-next-line no-unused-vars
-var EXPORTED_SYMBOLS = ["Initialize", "Connect", "SendMessage", "AddToLog"];
+var EXPORTED_SYMBOLS = ["Initialize", "Connect", "AddToLog"];

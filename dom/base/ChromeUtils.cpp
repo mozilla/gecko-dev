@@ -1205,6 +1205,18 @@ double ChromeUtils::RecordReplayElapsedTime(const GlobalObject& aGlobal) {
 }
 
 /* static */
+void ChromeUtils::RecordReplayRegisterConnectionWorker(const GlobalObject& aGlobal,
+                                                       JS::HandleObject aSendCallback) {
+  recordreplay::parent::RegisterConnectionWorker(aSendCallback);
+}
+
+/* static */
+void ChromeUtils::RecordReplayOnMessage(const GlobalObject& aGlobal,
+                                        long aId, JS::HandleObject aMessage) {
+  recordreplay::parent::OnCloudMessage(aId, aMessage);
+}
+
+/* static */
 void ChromeUtils::RecordReplayLog(const nsAString& aText) {
   GlobalObject* global = nullptr;
   if (NS_IsMainThread()) {

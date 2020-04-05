@@ -126,6 +126,14 @@ namespace ChromeUtils {
   // In the UI process, how much time has elapsed since initialization.
   double recordReplayElapsedTime();
 
+  // In the UI process connection worker thread, set the callback
+  // used for sending messages to the cloud.
+  void recordReplayRegisterConnectionWorker(object sendCallback);
+
+  // In the UI process connection worker thread, receive a complete message
+  // from a remote connection.
+  void recordReplayOnMessage(long id, object message);
+
 #ifdef NIGHTLY_BUILD
 
   /**

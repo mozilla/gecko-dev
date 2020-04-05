@@ -83,14 +83,12 @@ static StaticInfallibleVector<char> gReplayJS;
 
 static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
-static bool MessageCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 static bool ConnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 static bool DisconnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 
 static const JSFunctionSpec gCallbacks[] = {
   JS_FN("updateStatus", StatusCallback, 1, 0),
   JS_FN("loadedJS", LoadedCallback, 3, 0),
-  JS_FN("onMessage", MessageCallback, 2, 0),
   JS_FN("onConnected", ConnectedCallback, 1, 0),
   JS_FN("onDisconnected", DisconnectedCallback, 1, 0),
   JS_FS_END
@@ -430,41 +428,6 @@ struct ConnectionChannel {
 
 static StaticInfallibleVector<ConnectionChannel> gConnectionChannels;
 
-class SendMessageToCloudRunnable : public Runnable {
- public:
-  int32_t mConnectionId;
-  Message::UniquePtr mMsg;
-
-  SendMessageToCloudRunnable(int32_t aConnectionId, Message::UniquePtr aMsg)
-      : Runnable("SendMessageToCloudRunnable"),
-        mConnectionId(aConnectionId), mMsg(std::move(aMsg)) {}
-
-  NS_IMETHODIMP Run() {
-    AutoSafeJSContext cx;
-    JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
-
-    JS::RootedObject data(cx, JS::NewArrayBuffer(cx, mMsg->mSize));
-    MOZ_RELEASE_ASSERT(data);
-
-    {
-      JS::AutoCheckCannotGC nogc;
-
-      bool isSharedMemory;
-      uint8_t* ptr = JS::GetArrayBufferData(data, &isSharedMemory, nogc);
-      MOZ_RELEASE_ASSERT(ptr);
-
-      memcpy(ptr, mMsg.get(), mMsg->mSize);
-    }
-
-    JS::RootedValue dataValue(cx, JS::ObjectValue(*data));
-    if (NS_FAILED(gConnection->SendMessage(mConnectionId, dataValue))) {
-      MOZ_CRASH("SendMessageToCloud");
-    }
-
-    return NS_OK;
-  }
-};
-
 static ConnectionChannel* GetConnectionChannel(JSContext* aCx,
                                                JS::HandleValue aValue) {
   if (!aValue.isNumber()) {
@@ -479,43 +442,87 @@ static ConnectionChannel* GetConnectionChannel(JSContext* aCx,
   return &gConnectionChannels[id];
 }
 
-static bool MessageCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
-  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
+static nsCOMPtr<nsIThread> gConnectionWorkerThread;
+static PersistentRootedObject* gWorkerSendCallback;
 
-  ConnectionChannel* info = GetConnectionChannel(aCx, args.get(0));
-  if (!info) {
-    return false;
-  }
+void RegisterConnectionWorker(JS::HandleObject aSendCallback) {
+  MOZ_RELEASE_ASSERT(!gConnectionWorkerThread.get());
 
-  if (!args.get(1).isObject()) {
-    JS_ReportErrorASCII(aCx, "Expected object");
-    return false;
-  }
+  nsIThread* thread = NS_GetCurrentThreadNoCreate();
+  MOZ_RELEASE_ASSERT(thread);
+  gConnectionWorkerThread = thread;
 
-  bool sentData = false;
-  {
-    JS::AutoCheckCannotGC nogc;
-
-    uint32_t length;
-    uint8_t* ptr;
-    bool isSharedMemory;
-    JS::GetArrayBufferLengthAndData(&args.get(1).toObject(), &length,
-                                    &isSharedMemory, &ptr);
-
-    if (ptr) {
-      Channel* channel = info->mChannel;
-      channel->SendMessageData((const char*) ptr, length);
-      sentData = true;
-    }
-  }
-  if (!sentData) {
-    JS_ReportErrorASCII(aCx, "Expected array buffer");
-    return false;
-  }
-
-  args.rval().setUndefined();
-  return true;
+  AutoJSContext cx;
+  gWorkerSendCallback = new PersistentRootedObject(cx);
+  *gWorkerSendCallback = aSendCallback;
 }
+
+void OnCloudMessage(long aId, JS::HandleObject aMessage) {
+  if ((size_t)aId >= gConnectionChannels.length() ||
+      !gConnectionChannels[aId].mChannel) {
+    MOZ_CRASH("Bad connection channel ID");
+  }
+
+  ConnectionChannel* info = &gConnectionChannels[aId];
+  JS::AutoCheckCannotGC nogc;
+
+  uint32_t length;
+  uint8_t* ptr;
+  bool isSharedMemory;
+  JS::GetArrayBufferLengthAndData(aMessage, &length, &isSharedMemory, &ptr);
+
+  if (ptr) {
+    info->mChannel->SendMessageData((const char*) ptr, length);
+  } else {
+    MOZ_CRASH("Expected array buffer");
+  }
+}
+
+class SendMessageToCloudRunnable : public Runnable {
+ public:
+  int32_t mConnectionId;
+  Message::UniquePtr mMsg;
+
+  SendMessageToCloudRunnable(int32_t aConnectionId, Message::UniquePtr aMsg)
+      : Runnable("SendMessageToCloudRunnable"),
+        mConnectionId(aConnectionId), mMsg(std::move(aMsg)) {}
+
+  NS_IMETHODIMP Run() {
+    MOZ_RELEASE_ASSERT(gWorkerSendCallback);
+
+    dom::AutoJSAPI jsapi;
+    if (!jsapi.Init(*gWorkerSendCallback)) {
+      MOZ_CRASH("SendMessageToCloudRunnable jsapi.Init failed");
+    }
+    JSContext* cx = jsapi.cx();
+
+    JS::RootedObject data(cx, JS::NewArrayBuffer(cx, mMsg->mSize));
+    MOZ_RELEASE_ASSERT(data);
+
+    {
+      JS::AutoCheckCannotGC nogc;
+
+      bool isSharedMemory;
+      uint8_t* ptr = JS::GetArrayBufferData(data, &isSharedMemory, nogc);
+      MOZ_RELEASE_ASSERT(ptr);
+
+      memcpy(ptr, mMsg.get(), mMsg->mSize);
+    }
+
+    JS::RootedObject thisv(cx);
+    JS::RootedValue fval(cx, JS::ObjectValue(**gWorkerSendCallback));
+    JS::AutoValueArray<2> args(cx);
+    args[0].setInt32(mConnectionId);
+    args[1].setObject(*data);
+    JS::RootedValue rval(cx);
+
+    if (!JS_CallFunctionValue(cx, thisv, fval, args, &rval)) {
+      MOZ_CRASH("SendMessageToCloudRunnable call failed");
+    }
+
+    return NS_OK;
+  }
+};
 
 void CreateReplayingCloudProcess(dom::ContentParent* aParent, uint32_t aChannelId) {
   MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
@@ -536,7 +543,8 @@ void CreateReplayingCloudProcess(dom::ContentParent* aParent, uint32_t aChannelI
       [=](Message::UniquePtr aMsg) {
         RefPtr<SendMessageToCloudRunnable> runnable =
           new SendMessageToCloudRunnable(connectionId, std::move(aMsg));
-        NS_DispatchToMainThread(runnable);
+        NS_DispatchToThreadQueue(runnable.forget(), gConnectionWorkerThread,
+                                 EventQueuePriority::High);
       }, pid);
   while ((size_t)connectionId >= gConnectionChannels.length()) {
     gConnectionChannels.emplaceBack();
