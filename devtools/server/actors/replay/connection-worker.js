@@ -132,6 +132,10 @@ async function doConnect(id, channelId) {
     // ID assigned to this session by the dispatcher.
     replayerSessionId: null,
 
+    // Websockets used by this connection.
+    socket: null,
+    bulkSocket: null,
+
     // Messages queued up before the main socket opened.
     outgoing: [],
 
@@ -172,6 +176,7 @@ async function doConnect(id, channelId) {
   socket.onclose = evt => onClose(id);
   socket.onmessage = evt => onMessage(id, evt);
   socket.onerror = evt => onError(id);
+  connection.socket = socket;
 
   const bulkSocket = new WebSocket(`${address}/connect?${urlParams(true)}`);
   bulkSocket.binaryType = "arraybuffer";
@@ -179,6 +184,7 @@ async function doConnect(id, channelId) {
   bulkSocket.onclose = evt => onClose(id);
   bulkSocket.onmessage = evt => onMessage(id, evt, true);
   bulkSocket.onerror = evt => onError(id);
+  connection.bulkSocket = bulkSocket;
 
   setTimeout(() => {
     if (!connection.connected) {
@@ -235,9 +241,9 @@ function doSend(id, buf) {
 
     const bulk = checkCompleteMessage(buf);
     if (bulk && connection.bulkOpen) {
-      bulkSocket.send(buf);
+      connection.bulkSocket.send(buf);
     } else {
-      socket.send(buf);
+      connection.socket.send(buf);
     }
   } catch (e) {
     PostError(`Send error ${e}`);
