@@ -793,16 +793,27 @@ void SetWebReplayJS(const nsCString& aControlJS, const nsCString& aReplayJS) {
   }
 }
 
+extern "C" {
+
+// The elapsed time since the process was initialized, in seconds. This is
+// exposed to the translation layer so that consistent times can be used for
+// logged messages.
+MOZ_EXPORT double RecordReplayInterface_ElapsedTime() {
+  return (CurrentTime() - gStartTime) / 1e6;
+}
+
+} // extern "C"
+
 void PrintLog(const nsAString& aText) {
-  double elapsed = (CurrentTime() - gStartTime) / 1e6;
+  double elapsed = RecordReplayInterface_ElapsedTime();
   NS_ConvertUTF16toUTF8 ntext(aText);
   if (IsRecording()) {
-    nsPrintfCString buf("[Recording %.2f] %s\n", elapsed, ntext.get());
+    nsPrintfCString buf("[Recording %.3f] %s\n", elapsed, ntext.get());
     UniquePtr<Message> msg(LogTextMessage::New(
         0, 0, buf.BeginReading(), buf.Length() + 1));
     gChannel->SendMessage(std::move(*msg));
   } else {
-    nsPrintfCString buf("[#%lu %.2f] %s\n", gForkId, elapsed, ntext.get());
+    nsPrintfCString buf("[#%lu %.3f] %s\n", gForkId, elapsed, ntext.get());
     DirectPrint(buf.get());
   }
 }
