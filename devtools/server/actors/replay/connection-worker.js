@@ -225,18 +225,18 @@ function checkCompleteMessage(buf) {
 }
 
 function doSend(id, buf) {
-  const connection = gConnections[id];
-  if (!connection) {
-    PostError(`Invalid connection ID`);
-    return;
-  }
-
-  if (!connection.open) {
-    connection.outgoing.push(buf);
-    return;
-  }
-
   try {
+    const connection = gConnections[id];
+    if (!connection) {
+      PostError(`Invalid connection ID`);
+      return;
+    }
+
+    if (!connection.open) {
+      connection.outgoing.push(buf);
+      return;
+    }
+
     maybeLogMessage("SocketSend", id, new Uint8Array(buf), ++connection.numSends);
 
     const bulk = checkCompleteMessage(buf);
@@ -246,7 +246,7 @@ function doSend(id, buf) {
       connection.socket.send(buf);
     }
   } catch (e) {
-    PostError(`Send error ${e}`);
+    PostError(`SendError ${e}`);
   }
 }
 
