@@ -107,11 +107,12 @@ async function onServerMessage(evt) {
 
 const MessageLogCount = 3;
 
-function maybeLogMessage(prefix, id, message, count) {
+function maybeLogMessage(prefix, id, message, count, delay) {
   if (gVerbose || count <= MessageLogCount) {
     const desc = messageDescription(message);
     const time = elapsedTime();
-    doLog(`${prefix} Connection ${id} Elapsed ${time} Message ${desc}\n`);
+    const delayText = delay ? ` Delay ${delay}` : "";
+    doLog(`${prefix} Connection ${id} Elapsed ${time}${delay} Message ${desc}\n`);
   }
   if (!gVerbose && count == MessageLogCount) {
     doLog(`Verbose not set, not logging future ${prefix} messages for connection ${id}\n`);
@@ -224,7 +225,7 @@ function checkCompleteMessage(buf) {
   return bulk;
 }
 
-function doSend(id, buf) {
+function doSend(id, buf, delay) {
   try {
     const connection = gConnections[id];
     if (!connection) {
@@ -237,7 +238,7 @@ function doSend(id, buf) {
       return;
     }
 
-    maybeLogMessage("SocketSend", id, new Uint8Array(buf), ++connection.numSends);
+    maybeLogMessage("SocketSend", id, new Uint8Array(buf), ++connection.numSends, delay);
 
     const bulk = checkCompleteMessage(buf);
     if (bulk && connection.bulkOpen) {
@@ -304,7 +305,7 @@ function extractCompleteMessages(id, bulk, data, time) {
     const msg = new Uint8Array(info.size);
     msg.set(new Uint8Array(data.buffer, offset, info.size));
 
-    maybeLogMessage("SocketRecv", id, msg, ++gConnections[id].numRecvs, time);
+    maybeLogMessage("SocketRecv", id, msg, ++gConnections[id].numRecvs);
 
     messages.push(msg.buffer);
     offset += info.size;

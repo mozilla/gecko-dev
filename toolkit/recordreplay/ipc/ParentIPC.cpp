@@ -482,10 +482,13 @@ class SendMessageToCloudRunnable : public Runnable {
  public:
   int32_t mConnectionId;
   Message::UniquePtr mMsg;
+  double mPostTime;
 
   SendMessageToCloudRunnable(int32_t aConnectionId, Message::UniquePtr aMsg)
       : Runnable("SendMessageToCloudRunnable"),
-        mConnectionId(aConnectionId), mMsg(std::move(aMsg)) {}
+        mConnectionId(aConnectionId),
+        mMsg(std::move(aMsg)),
+        mPostTime(ElapsedTime()) {}
 
   NS_IMETHODIMP Run() {
     MOZ_RELEASE_ASSERT(gWorkerSendCallback);
@@ -511,13 +514,15 @@ class SendMessageToCloudRunnable : public Runnable {
 
     JS::RootedObject thisv(cx);
     JS::RootedValue fval(cx, JS::ObjectValue(**gWorkerSendCallback));
-    JS::AutoValueArray<2> args(cx);
+    JS::AutoValueArray<3> args(cx);
     args[0].setInt32(mConnectionId);
     args[1].setObject(*data);
+    args[2].setNumber(ElapsedTime() - mPostTime);
     JS::RootedValue rval(cx);
 
     if (!JS_CallFunctionValue(cx, thisv, fval, args, &rval)) {
-      MOZ_CRASH("SendMessageToCloudRunnable call failed");
+      // Ignore failures during shutdown.
+      JS_ClearPendingException(cx);
     }
 
     return NS_OK;
