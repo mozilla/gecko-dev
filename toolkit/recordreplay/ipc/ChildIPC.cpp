@@ -399,7 +399,8 @@ struct ForkedProcess {
   Channel* mChannel;
 };
 
-static StaticInfallibleVector<ForkedProcess> gForkedProcesses;
+// Indexed by fork ID.
+static StaticInfallibleVector<ForkedProcess*> gForkedProcesses;
 static FileHandle gForkWriteFd, gForkReadFd;
 static char* gFatalErrorMemory;
 static const size_t FatalErrorMemorySize = PageSize * 4;
@@ -409,6 +410,9 @@ static void ForkListenerThread(void*) {
     ForkedProcess process;
     int nbytes = read(gForkReadFd, &process, sizeof(process));
     MOZ_RELEASE_ASSERT(nbytes == sizeof(process));
+
+    nsPrintfCString log("ConnectedToFork %lu", process.mForkId);
+    PrintLog(NS_ConvertUTF8toUTF16(log));
 
     AutoReadSpinLock disallowFork(gForkLock);
 
@@ -428,7 +432,11 @@ static void ForkListenerThread(void*) {
       }
     }
 
-    gForkedProcesses.emplaceBack(process);
+    while (process.mForkId >= gForkedProcesses.length()) {
+      gForkedProcesses.append(nullptr);
+    }
+    MOZ_RELEASE_ASSERT(!gForkedProcesses[process.mForkId]);
+    gForkedProcesses[process.mForkId] = new ForkedProcess(process);
   }
 }
 
@@ -445,17 +453,23 @@ static void InitializeForkListener() {
 }
 
 static void SendMessageToForkedProcess(Message::UniquePtr aMsg) {
-  for (ForkedProcess& process : gForkedProcesses) {
-    if (process.mForkId == aMsg->mForkId) {
-      bool remove =
-          aMsg->mType == MessageType::Terminate ||
-          aMsg->mType == MessageType::Crash;
-      process.mChannel->SendMessage(std::move(*aMsg));
-      if (remove) {
-        gForkedProcesses.erase(&process);
-      }
-      return;
+  if (IsVerbose() && aMsg->mType == MessageType::ManifestStart) {
+    nsPrintfCString log("SendManifestStartToForkedProcess %u %u",
+                        aMsg->mSize, aMsg->Hash());
+    PrintLog(NS_ConvertUTF8toUTF16(log));
+  }
+
+  if (aMsg->mForkId < gForkedProcesses.length() && gForkedProcesses[aMsg->mForkId]) {
+    ForkedProcess* process = gForkedProcesses[aMsg->mForkId];
+    bool remove =
+        aMsg->mType == MessageType::Terminate ||
+        aMsg->mType == MessageType::Crash;
+    process->mChannel->SendMessage(std::move(*aMsg));
+    if (remove) {
+      delete process;
+      gForkedProcesses[aMsg->mForkId] = nullptr;
     }
+    return;
   }
 
   gPendingForkMessages.append(std::move(aMsg));
@@ -595,9 +609,9 @@ void ReportCrash(const MinidumpInfo& aInfo, void* aFaultingAddress) {
 
   uint32_t forkId = UINT32_MAX;
   if (aInfo.mTask != mach_task_self()) {
-    for (const ForkedProcess& fork : gForkedProcesses) {
-      if (fork.mPid == pid) {
-        forkId = fork.mForkId;
+    for (const ForkedProcess* fork : gForkedProcesses) {
+      if (fork && fork->mPid == pid) {
+        forkId = fork->mForkId;
       }
     }
     if (forkId == UINT32_MAX) {
