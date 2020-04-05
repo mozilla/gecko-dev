@@ -164,6 +164,7 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       break;
     }
     case MessageType::ManifestStart: {
+      PrintLog(nsString(u"ManifestQueued"));
       MonitorAutoLock lock(*gMonitor);
       const ManifestStartMessage& nmsg = (const ManifestStartMessage&)*aMsg;
       NS_ConvertUTF8toUTF16 converted(nmsg.BinaryData(), nmsg.BinaryDataSize());
