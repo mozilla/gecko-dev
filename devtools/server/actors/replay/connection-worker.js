@@ -108,10 +108,12 @@ async function onServerMessage(evt) {
 
 const MessageLogCount = 3;
 
-function maybeLogMessage(prefix, id, message, count) {
+function maybeLogMessage(prefix, id, message, count, originalTime) {
   if (gVerbose || count <= MessageLogCount) {
     const desc = messageDescription(message);
-    doLog(`${prefix} Connection ${id} Elapsed ${elapsedTime()} Message ${desc}\n`);
+    const time = elapsedTime();
+    const delay = originalTime ? ` Delay ${time - originalTime}` : "";
+    doLog(`${prefix} Connection ${id} Elapsed ${time}${delay} Message ${desc}\n`);
   }
   if (!gVerbose && count == MessageLogCount) {
     doLog(`Verbose not set, not logging future ${prefix} messages for connection ${id}\n`);
@@ -275,7 +277,7 @@ function arrayToString(arr) {
 // Buffers containing incomplete messages.
 const partialMessages = new Map();
 
-function extractCompleteMessages(id, bulk, data) {
+function extractCompleteMessages(id, bulk, data, time) {
   const key = `${id}:${bulk}`;
   const oldData = partialMessages.get(key);
   if (oldData) {
@@ -300,7 +302,7 @@ function extractCompleteMessages(id, bulk, data) {
     const msg = new Uint8Array(info.size);
     msg.set(new Uint8Array(data.buffer, offset, info.size));
 
-    maybeLogMessage("SocketRecv", id, msg, ++gConnections[id].numRecvs);
+    maybeLogMessage("SocketRecv", id, msg, ++gConnections[id].numRecvs, time);
 
     messages.push(msg.buffer);
     offset += info.size;
@@ -318,9 +320,9 @@ let gMessageWaiter = null;
 (async function processMessages() {
   while (true) {
     if (gMessages.length) {
-      const { id, bulk, promise } = gMessages.shift();
+      const { id, bulk, promise, time } = gMessages.shift();
       const buf = await promise;
-      const messages = extractCompleteMessages(id, bulk, new Uint8Array(buf));
+      const messages = extractCompleteMessages(id, bulk, new Uint8Array(buf), time);
       for (const msg of messages) {
         postMessage({ kind: "message", id, buf: msg });
       }
@@ -338,7 +340,7 @@ function onMessage(id, evt, bulk) {
     postMessage({ kind: "connected", id });
   }
 
-  gMessages.push({ id, bulk, promise: evt.data.arrayBuffer() });
+  gMessages.push({ id, bulk, promise: evt.data.arrayBuffer(), time: elapsedTime() });
   if (gMessageWaiter) {
     gMessageWaiter();
     gMessageWaiter = null;
