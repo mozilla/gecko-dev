@@ -276,12 +276,6 @@ class AppUpdater {
     this.update.QueryInterface(Ci.nsIWritablePropertyBag);
     this.update.setProperty("foregroundDownload", "true");
 
-    const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
-    if (env.get("WEBREPLAY_NO_UPDATE") || env.get("WEBREPLAY_OFFLINE")) {
-      this._setStatus(AppUpdater.STATUS.DOWNLOAD_FAILED);
-      return;
-    }
-
     let state = this.aus.downloadUpdate(this.update, false);
     if (state == "failed") {
       this._setStatus(AppUpdater.STATUS.DOWNLOAD_FAILED);

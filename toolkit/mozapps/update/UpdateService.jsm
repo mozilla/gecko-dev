@@ -3240,6 +3240,12 @@ UpdateService.prototype = {
       return STATE_NONE;
     }
 
+    const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+    if (env.get("WEBREPLAY_NO_UPDATE") || env.get("WEBREPLAY_OFFLINE")) {
+      cleanupActiveUpdate();
+      return STATE_NONE;
+    }
+
     // If a download request is in progress vs. a download ready to resume
     if (this.isDownloading) {
       if (update.isCompleteUpdate == this._downloader.isCompleteUpdate) {
