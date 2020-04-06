@@ -548,7 +548,7 @@ function instantWarp(point: ExecutionPoint) {
 }
 
 function fetchAncestorFramePositions(index: number) {
-  currentThreadFront.fetchAncestorFramePositions(index);
+  return currentThreadFront.fetchAncestorFramePositions(index);
 }
 
 function pickExecutionPoints(count: number, ranges) {

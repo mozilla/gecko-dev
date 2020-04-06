@@ -22,6 +22,7 @@ import assert from "../../utils/assert";
 import { mapFrames } from ".";
 import { generateInlinePreview } from "./inlinePreview";
 import { mapScopes } from "./mapScopes";
+import { setFramePositions } from "./setFramePositions";
 
 import type {
   ThreadId,
@@ -133,10 +134,11 @@ async function doInstantStep({ dispatch, getState, client }, instantInfo) {
   const cx = getThreadContext(getState());
 
   if (mappedLocation) {
-    dispatch(mapFrames(cx));
+    dispatch(mapFrames(cx)).then(() => dispatch(setFramePositions()));
   } else {
     ChromeUtils.recordReplayLog(`Debugger InstantStep WaitingForMapFrames`);
     await dispatch(mapFrames(cx));
+    dispatch(setFramePositions());
     mappedLocation = getSelectedFrame(getState(), thread).location;
   }
 

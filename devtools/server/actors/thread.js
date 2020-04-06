@@ -1325,6 +1325,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
         if (info.kind == "resume") {
           ChromeUtils.recordReplayLog(`ThreadActor.replayInstantWarp ProcessResume`);
           this.doResume(info.limit);
+          return;
         }
       }
     }));
@@ -1675,11 +1676,6 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     if (this.dbg.replaying) {
       const point = this.dbg.replayCurrentExecutionPoint();
       packet.executionPoint = point;
-      if (point && point.position) {
-        this.dbg
-          .replayFramePositions(point)
-          .then(positions => this.onFramePositions(positions, frame));
-      }
     }
 
     if (poppedFrames) {
@@ -1689,7 +1685,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     return packet;
   },
 
-  fetchAncestorFramePositions: function(index) {
+  fetchAncestorFramePositions: async function(index) {
     const point = this.dbg.replayCurrentExecutionPoint();
 
     let frame = this.youngestFrame;
@@ -1697,18 +1693,23 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       frame = frame.older;
     }
 
-    this.dbg.replayAncestorFramePositions(point, index).then(points => {
-      this.onFramePositions(points, frame);
-    });
+    const pauseCounter = this.dbg.replayPauseCounter();
+    const points = await this.dbg.replayAncestorFramePositions(point, index);
+    if (pauseCounter != this.dbg.replayPauseCounter()) {
+      // The debugger has resumed and this isn't needed anymore.
+      return { positions: [], unexecuted: [] };
+    }
+
+    return this._makeFramePositions(points, frame);
   },
 
   replayFetchStatus() {
     this.dbg.replayFetchStatus();
   },
 
-  onFramePositions: function(positions, frame) {
+  _makeFramePositions: function(positions, frame) {
     if (!positions || !frame || !frame.script) {
-      return;
+      return { positions: [], unexecuted: [] };
     }
 
     const location = this.sources.getFrameLocation(frame);
@@ -1744,12 +1745,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       };
     }).filter(location => !!location);
 
-    this.emit("replayFramePositions", {
+    return {
       positions: mappedPositions,
-      unexecutedLocations,
-      frame: frame.actor.actorID,
-      thread: this.actorID,
-    });
+      unexecuted: unexecutedLocations,
+    };
   },
 
   /**

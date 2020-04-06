@@ -17,6 +17,7 @@ import { selectLocation } from "../sources";
 import assert from "../../utils/assert";
 
 import { fetchScopes } from "./fetchScopes";
+import { setFramePositions } from "./setFramePositions";
 
 import type { Pause } from "../../types";
 import type { ThunkArgs } from "../types";
@@ -52,6 +53,8 @@ export function paused(pauseInfo: Pause) {
     }
 
     await dispatch(mapFrames(cx));
+    dispatch(setFramePositions());
+
     await dispatch(fetchScopes(cx));
 
     // Run after fetching scoping data so that it may make use of the sourcemap

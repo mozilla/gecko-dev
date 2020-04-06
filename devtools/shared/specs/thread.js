@@ -68,12 +68,6 @@ const threadSpec = generateActorSpec({
     replayStatusUpdate: {
       status: Option(0, "json"),
     },
-    replayFramePositions: {
-      positions: Option(0, "array:json"),
-      unexecutedLocations: Option(0, "array:json"),
-      frame: Option(0, "string"),
-      thread: Option(0, "string"),
-    },
     replayTimeWarp: {
       point: Option(0, "json"),
     },
@@ -138,6 +132,7 @@ const threadSpec = generateActorSpec({
       request: {
         index: Arg(0, "number"),
       },
+      response: RetVal("json"),
     },
     replayInstantWarp: {
       request: {

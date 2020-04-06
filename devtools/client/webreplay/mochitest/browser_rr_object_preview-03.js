@@ -6,6 +6,14 @@
 
 "use strict";
 
+function waitForFrameTimeline(dbg, width) {
+  const doc = dbg.toolbox.getCurrentPanel().panelWin.document;
+  return waitUntil(() => {
+    const elem = doc.querySelector(".frame-timeline-progress");
+    return elem.style.width == width;
+  });
+}
+
 // Test previews when switching between frames and stepping.
 add_task(async function() {
   const dbg = await attachRecordingDebugger("doc_rr_preview.html", {
@@ -23,8 +31,9 @@ add_task(async function() {
   await waitForNodeValue(dbg, "barprop1", "2");
 
   await checkInlinePreview(dbg, [5, 6]);
+  await waitForFrameTimeline(dbg, "28%");
 
-  const frames = dbg.selectors.getFrames(dbg.selectors.getCurrentThread());
+  let frames = dbg.selectors.getFrames(dbg.selectors.getCurrentThread());
   await dbg.actions.selectFrame(getThreadContext(dbg), frames[1]);
 
   await toggleNode(dbg, "fooobj");
@@ -37,6 +46,7 @@ add_task(async function() {
   await stepOverToLine(dbg, 18);
 
   await checkInlinePreview(dbg, [5, 6, "new"]);
+  await waitForFrameTimeline(dbg, "57%");
 
   await toggleNode(dbg, "barobj");
   await findNode(dbg, "barprop1");
@@ -50,6 +60,21 @@ add_task(async function() {
   //await toggleNode(dbg, "barobj");
   await findNode(dbg, "barprop1");
   await waitForNodeValue(dbg, "barprop1", "2");
+
+  await waitForInstantStep(dbg, "stepIn");
+  await stepInToLine(dbg, 21);
+
+  await waitForInstantStep(dbg, "stepOver");
+  await stepInToLine(dbg, 22);
+
+  await waitForFrameTimeline(dbg, "25%");
+
+  frames = dbg.selectors.getFrames(dbg.selectors.getCurrentThread());
+  await dbg.actions.selectFrame(getThreadContext(dbg), frames[1]);
+  await waitForFrameTimeline(dbg, "42%");
+
+  await dbg.actions.selectFrame(getThreadContext(dbg), frames[2]);
+  await waitForFrameTimeline(dbg, "33%");
 
   await shutdownDebugger(dbg);
 });

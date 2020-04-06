@@ -10,16 +10,15 @@ import type { ThunkArgs } from "../types";
 import { getSourceByActorId, getCurrentThread, getSelectedFrame } from "../../selectors";
 import { zip } from "lodash";
 
-export function setFramePositions(
-  positions: Array<ExecutionPoint>,
-  unexecuted,
-  frame: ActorId,
-  thread: ActorId
-) {
-  return async ({ dispatch, getState, sourceMaps }: ThunkArgs) => {
-    if (positions.length == 0) {
+export function setFramePositions() {
+  return async ({ dispatch, getState, sourceMaps, client }: ThunkArgs) => {
+    const thread = getCurrentThread(getState());
+    const frame = getSelectedFrame(getState(), thread);
+    if (!frame) {
       return;
     }
+
+    const { positions, unexecuted } = await client.fetchAncestorFramePositions(frame.index);
 
     const sourceId = getSourceByActorId(getState(), positions[0].location.actor).id;
 
@@ -47,13 +46,8 @@ export function setFramePositions(
       ([location, generatedLocation]) => ({ location, generatedLocation })
     );
 
-    const currentThread = getCurrentThread(getState());
-    if (currentThread != thread) {
-      return;
-    }
-
     const currentFrame = getSelectedFrame(getState(), thread);
-    if (!currentFrame || currentFrame.id != frame) {
+    if (currentFrame != frame) {
       return;
     }
 
