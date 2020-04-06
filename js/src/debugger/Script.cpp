@@ -2475,29 +2475,11 @@ bool DebuggerScript::CallData::setInstrumentationId() {
 static bool PushCompressedContents(JSContext* cx, HandleObject result,
                                    HandleScript script, jsbytecode* pc,
                                    const BytecodeRangeWithPosition& r) {
-  PcVector successors;
-  if (!GetSuccessorBytecodes(script, pc, successors)) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
-
-  RootedObject successorsArray(cx, NewDenseEmptyArray(cx));
-  if (!result) {
-    return false;
-  }
-
-  for (jsbytecode* npc : successors) {
-    if (!NewbornArrayPush(cx, successorsArray, NumberValue(npc - script->code()))) {
-      return false;
-    }
-  }
-
   if (!NewbornArrayPush(cx, result, NumberValue(pc - script->code())) ||
       !NewbornArrayPush(cx, result, NumberValue(r.frontLineNumber())) ||
       !NewbornArrayPush(cx, result, NumberValue(r.frontColumnNumber())) ||
       !NewbornArrayPush(cx, result, NumberValue(r.frontIsBreakablePoint() ? 1 : 0)) ||
-      !NewbornArrayPush(cx, result, NumberValue(r.frontIsBreakableStepPoint() ? 1 : 0)) ||
-      !NewbornArrayPush(cx, result, ObjectValue(*successorsArray))) {
+      !NewbornArrayPush(cx, result, NumberValue(r.frontIsBreakableStepPoint() ? 1 : 0))) {
     return false;
   }
 
