@@ -1688,6 +1688,9 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
 
   fetchAncestorFramePositions: async function(index) {
     const point = this.dbg.replayCurrentExecutionPoint();
+    if (!point || !point.position) {
+      return { positions: [], unexecuted: [] };
+    }
 
     let frame = this.youngestFrame;
     for (let i = 0; frame && i < index; i++) {

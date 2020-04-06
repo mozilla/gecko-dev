@@ -20,6 +20,10 @@ export function setFramePositions() {
 
     const { positions, unexecuted } = await client.fetchAncestorFramePositions(frame.index);
 
+    if (frame != getSelectedFrame(getState(), thread)) {
+      return;
+    }
+
     const sourceId = getSourceByActorId(getState(), positions[0].location.actor).id;
 
     const executionPoints = positions.map(({ point }) => point);
@@ -46,8 +50,7 @@ export function setFramePositions() {
       ([location, generatedLocation]) => ({ location, generatedLocation })
     );
 
-    const currentFrame = getSelectedFrame(getState(), thread);
-    if (currentFrame != frame) {
+    if (frame != getSelectedFrame(getState(), thread)) {
       return;
     }
 

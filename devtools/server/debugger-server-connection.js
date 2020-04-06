@@ -233,6 +233,7 @@ DebuggerServerConnection.prototype = {
     const errorString = prefix + ": " + DevToolsUtils.safeErrorString(error);
     reportError(errorString);
     dumpn(errorString);
+    require("ChromeUtils").recordReplayLog(`DebuggerServerConnectionError: ${errorString} ${Error().stack} ${error.stack}`);
     return {
       from,
       error: "unknownError",
