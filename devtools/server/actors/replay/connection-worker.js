@@ -240,9 +240,6 @@ async function doConnect(id, channelId) {
     socket: new ConnectionSocket(id, false),
     bulkSocket: new ConnectionSocket(id, true),
 
-    // Whether the main socket is fully established.
-    connected: false,
-
     // Resolve hook for any promise waiting on the socket to connect.
     connectWaiter: null,
   };
@@ -265,7 +262,7 @@ async function doConnect(id, channelId) {
   connection.bulkSocket.connect(`${address}/connect?${urlParams(true)}`);
 
   setTimeout(() => {
-    if (!connection.connected) {
+    if (!connection.socket.connected) {
       doLog(`ReplayerConnectionTimedOut ${id} ${elapsedTime()}\n`);
       connection.socket.close();
       connection.bulkSocket.close();
