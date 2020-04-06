@@ -161,7 +161,11 @@ EventLoop.prototype = {
     // Disable events in all open windows.
     for (const window of this.getAllWindowDebuggees()) {
       const { windowUtils } = window;
-      windowUtils.suppressEventHandling(true);
+      try {
+        windowUtils.suppressEventHandling(true);
+      } catch (e) {
+        // This can fail during shutdown.
+      }
       windowUtils.suspendTimeouts();
       windows.push(window);
     }
@@ -176,7 +180,11 @@ EventLoop.prototype = {
     for (const window of pausedWindows) {
       const { windowUtils } = window;
       windowUtils.resumeTimeouts();
-      windowUtils.suppressEventHandling(false);
+      try {
+        windowUtils.suppressEventHandling(false);
+      } catch (e) {
+        // This can fail during shutdown.
+      }
     }
   },
 };
