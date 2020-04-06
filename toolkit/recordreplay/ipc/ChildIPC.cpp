@@ -148,8 +148,7 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       const PingMessage& nmsg = (const PingMessage&)*aMsg;
       uint64_t total =
           *ExecutionProgressCounter() + Thread::TotalEventProgress();
-      nsPrintfCString log("PingResponse %u %llu", nmsg.mId, total);
-      PrintLog(NS_ConvertUTF8toUTF16(log));
+      PrintLog("PingResponse %u %llu", nmsg.mId, total);
       gChannel->SendMessage(PingResponseMessage(gForkId, nmsg.mId, total));
       break;
     }
@@ -164,7 +163,7 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       break;
     }
     case MessageType::ManifestStart: {
-      PrintLog(nsString(u"ManifestQueued"));
+      PrintLog("ManifestQueued");
       MonitorAutoLock lock(*gMonitor);
       const ManifestStartMessage& nmsg = (const ManifestStartMessage&)*aMsg;
       NS_ConvertUTF8toUTF16 converted(nmsg.BinaryData(), nmsg.BinaryDataSize());
@@ -206,7 +205,13 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
     case MessageType::RecordingData: {
       MonitorAutoLock lock(*gMonitor);
       const RecordingDataMessage& nmsg = (const RecordingDataMessage&)*aMsg;
-      MOZ_RELEASE_ASSERT(nmsg.mTag <= gRecordingContents.length());
+      PrintLog("NewRecordingData %llu %lu\n",
+               nmsg.mTag, nmsg.BinaryDataSize());
+      if (nmsg.mTag > gRecordingContents.length()) {
+        Print("Error: RecordingData out of range (current length %lu), crashing...\n",
+              gRecordingContents.length());
+        MOZ_CRASH("RecordingData message out of range");
+      }
       size_t extent = nmsg.mTag + nmsg.BinaryDataSize();
       if (extent > gRecordingContents.length()) {
         size_t nbytes = extent - gRecordingContents.length();
@@ -411,8 +416,7 @@ static void ForkListenerThread(void*) {
     int nbytes = read(gForkReadFd, &process, sizeof(process));
     MOZ_RELEASE_ASSERT(nbytes == sizeof(process));
 
-    nsPrintfCString log("ConnectedToFork %lu", process.mForkId);
-    PrintLog(NS_ConvertUTF8toUTF16(log));
+    PrintLog("ConnectedToFork %lu", process.mForkId);
 
     AutoReadSpinLock disallowFork(gForkLock);
 
@@ -454,9 +458,7 @@ static void InitializeForkListener() {
 
 static void SendMessageToForkedProcess(Message::UniquePtr aMsg) {
   if (IsVerbose() && aMsg->mType == MessageType::ManifestStart) {
-    nsPrintfCString log("SendManifestStartToForkedProcess %u %u",
-                        aMsg->mSize, aMsg->Hash());
-    PrintLog(NS_ConvertUTF8toUTF16(log));
+    PrintLog("SendManifestStartToForkedProcess %u %u", aMsg->mSize, aMsg->Hash());
   }
 
   if (aMsg->mForkId < gForkedProcesses.length() && gForkedProcesses[aMsg->mForkId]) {
@@ -830,6 +832,15 @@ void PrintLog(const nsAString& aText) {
     nsPrintfCString buf("[#%lu %.3f] %s\n", gForkId, elapsed, ntext.get());
     DirectPrint(buf.get());
   }
+}
+
+void PrintLog(const char* aFormat, ...) {
+  nsString str;
+  va_list ap;
+  va_start(ap, aFormat);
+  str.AppendPrintf(aFormat, ap);
+  va_end(ap);
+  PrintLog(str);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1210,8 +1221,7 @@ void ManifestFinished(const js::CharBuffer& aBuffer, bool aBulk, bool aCompress)
     msg = ManifestFinishedMessage::New(gForkId, converted.Length(), compressed, length);
     delete[] compressed;
 
-    nsPrintfCString log("CompressedMessage %u %u", converted.Length(), length);
-    PrintLog(NS_ConvertUTF8toUTF16(log));
+    PrintLog("CompressedMessage %u %u", converted.Length(), length);
   } else {
     msg = ManifestFinishedMessage::New(gForkId, 0, converted.get(), converted.Length());
   }
