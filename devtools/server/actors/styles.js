@@ -590,7 +590,7 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
     this._observedRules = [];
     this.selectedElement = node.rawNode;
 
-    if (!node) {
+    if (!node || Cu.isDeadWrapper(node.rawNode)) {
       return { entries: [], rules: [], sheets: [] };
     }
 
