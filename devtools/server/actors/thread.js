@@ -340,6 +340,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     this._threadLifetimePool = null;
 
     if (isReplaying) {
+      this.dbg.replayingDisconnect();
       this.dbg.replayingOnForcedPause = () => {};
       this.dbg.replayingOnStatusUpdate = () => {};
       this.dbg.replayingOnTimeWarpClient = () => {};
@@ -1967,7 +1968,8 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
 
   replayFetchPreloadedData() {
     if (!this._replayPendingPreloadedData) {
-      throw new Error("Duplicate replayFetchPreloadedData requests");
+      console.error("Error: Duplicate replayFetchPreloadedData requests");
+      return;
     }
     const pending = this._replayPendingPreloadedData;
     this._replayPendingPreloadedData = null;

@@ -76,5 +76,12 @@ add_task(async function() {
   await dbg.actions.selectFrame(getThreadContext(dbg), frames[2]);
   await waitForFrameTimeline(dbg, "33%");
 
-  await shutdownDebugger(dbg);
+  const tab = dbg.tab;
+  await shutdownDebugger(dbg, /* removeTab */ false);
+
+  // As a bonus, check that the debugger can be reopened and interrupt the tab.
+  const dbg2 = await attachDebugger(tab);
+  await interrupt(dbg2);
+
+  await shutdownDebugger(dbg2);
 });

@@ -59,11 +59,13 @@ async function waitForPausedNoSource(dbg) {
   await waitForState(dbg, state => isPaused(dbg), "paused");
 }
 
-async function shutdownDebugger(dbg) {
+async function shutdownDebugger(dbg, removeTab = true) {
   await dbg.actions.removeAllBreakpoints(getContext(dbg));
   await waitForRequestsToSettle(dbg);
   await dbg.toolbox.destroy();
-  await gBrowser.removeTab(dbg.tab);
+  if (removeTab) {
+    await gBrowser.removeTab(dbg.tab);
+  }
 }
 
 async function interrupt(dbg) {

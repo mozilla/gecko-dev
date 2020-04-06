@@ -96,6 +96,7 @@ class ThreadFront extends FrontClassWithSpec(threadSpec) {
    */
   async _doResume(resumeLimit, rewind) {
     this._assertPaused("resume");
+    ChromeUtils.recordReplayLog(`ThreadFront.resume`);
 
     // Put the client in a tentative "resuming" state so we can prevent
     // further requests that should only be sent in the paused state.
@@ -195,6 +196,8 @@ class ThreadFront extends FrontClassWithSpec(threadSpec) {
    *        Description of the warp destination.
    */
   timeWarp(target) {
+    ChromeUtils.recordReplayLog(`ThreadFront.timeWarp`);
+
     const warp = () => {
       this._doResume({ type: "warp", target }, true);
     };
@@ -207,8 +210,9 @@ class ThreadFront extends FrontClassWithSpec(threadSpec) {
   }
 
   instantWarp(point) {
+    ChromeUtils.recordReplayLog(`ThreadFront.replayInstantWarp`);
     if (!this.paused) {
-      throw new Error("not paused");
+      throw new Error("instantWarp while not paused");
     }
     return super.replayInstantWarp({ point });
   }
