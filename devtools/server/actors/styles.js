@@ -353,15 +353,16 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
    * @returns object
    *   object with 'fontFaces', a list of fonts that apply to this node.
    */
-  getAllUsedFontFaces: function(options) {
+  getAllUsedFontFaces: async function(options) {
     const windows = this.inspector.targetActor.windows;
     let fontsList = [];
     for (const win of windows) {
       // Fall back to the documentElement for XUL documents.
       const node = win.document.body
         ? win.document.body
-        : win.document.documentElement;
-      fontsList = [...fontsList, ...this.getUsedFontFaces(node, options)];
+            : win.document.documentElement;
+      const faces = await this.getUsedFontFaces(node, options);
+      fontsList = [...fontsList, ...faces];
     }
 
     return fontsList;
@@ -380,7 +381,7 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
    * @returns object
    *   object with 'fontFaces', a list of fonts that apply to this node.
    */
-  getUsedFontFaces: function(node, options) {
+  getUsedFontFaces: async function(node, options) {
     // node.rawNode is defined for NodeActor objects
     const actualNode = node.rawNode || node;
     if (Cu.isDeadWrapper(actualNode)) {
@@ -399,6 +400,10 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
     }
     const fonts = InspectorUtils.getUsedFontFaces(rng);
     const fontsArray = [];
+
+    if (isReplaying) {
+      await Promise.all(fonts.map(f => f.replayWaitForContentsLoaded()));
+    }
 
     for (let i = 0; i < fonts.length; i++) {
       const font = fonts[i];

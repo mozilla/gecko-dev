@@ -564,6 +564,11 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
   },
 
   _onReflows: function(reflows) {
+    if (isReplaying) {
+      // Reflows in the control process don't affect what we're debugging.
+      return;
+    }
+
     // Going through the nodes the walker knows about, see which ones have had their
     // display or scrollable state changed and send events if any.
     const displayTypeChanges = [];
