@@ -41,7 +41,7 @@ async function init(aEvent) {
   // Include the build ID and display warning if this is an "a#" (nightly or aurora) build
   let versionId = "aboutDialog-version";
   let versionAttributes = {
-    version: AppConstants.MOZ_APP_VERSION_DISPLAY,
+    version: `Build ${Services.appinfo.appBuildID}`,
     bits: Services.appinfo.is64Bit ? 64 : 32,
   };
 
