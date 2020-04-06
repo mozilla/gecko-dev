@@ -1090,7 +1090,7 @@ static bool RecordReplay_FlushRecording(JSContext* aCx, unsigned aArgc,
 
   FlushRecording();
 
-  args.rval().setUndefined();
+  args.rval().setDouble(gRecording->Size());
   return true;
 }
 
