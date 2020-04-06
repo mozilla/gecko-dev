@@ -355,7 +355,7 @@ Submitter.prototype = {
     // These annotations are used only by the crash reporter client and should
     // not be submitted to Socorro.
     const strippedAnnotations = [
-      "StackTraces",
+      //"StackTraces",
       "TelemetryClientId",
       "TelemetryServerURL",
     ];
