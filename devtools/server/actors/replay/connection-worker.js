@@ -229,7 +229,6 @@ function doSend(id, buf, delay) {
   try {
     const connection = gConnections[id];
     if (!connection) {
-      PostError(`Invalid connection ID`);
       return;
     }
 
