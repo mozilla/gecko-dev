@@ -81,6 +81,10 @@ static bool gProcessingManifest = true;
 // thread.
 static StaticInfallibleVector<char> gRecordingContents;
 
+// Messages containing recording data which are not contiguous with the
+// recording contents received so far.
+static StaticInfallibleVector<Message::UniquePtr> gDeferredRecordingDataMessages;
+
 // Any response received to the last ExternalCallRequest message.
 static UniquePtr<ExternalCallResponseMessage, Message::FreePolicy>
     gCallResponseMessage;
@@ -93,6 +97,7 @@ static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock);
 static void SendMessageToForkedProcess(Message::UniquePtr aMsg);
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize);
 static void HandleSharedKeyResponse(const SharedKeyResponseMessage& aMsg);
+static void OnNewRecordingData(Message::UniquePtr aMsg);
 
 // Lock which allows non-main threads to prevent forks. Readers are the threads
 // preventing forks from happening, while the writer is the main thread during
@@ -202,25 +207,9 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       DirectPrint(nmsg.BinaryData());
       break;
     }
-    case MessageType::RecordingData: {
-      MonitorAutoLock lock(*gMonitor);
-      const RecordingDataMessage& nmsg = (const RecordingDataMessage&)*aMsg;
-      PrintLog("NewRecordingData %llu %lu\n",
-               nmsg.mTag, nmsg.BinaryDataSize());
-      if (nmsg.mTag > gRecordingContents.length()) {
-        Print("Error: RecordingData out of range (current length %lu), crashing...\n",
-              gRecordingContents.length());
-        MOZ_CRASH("RecordingData message out of range");
-      }
-      size_t extent = nmsg.mTag + nmsg.BinaryDataSize();
-      if (extent > gRecordingContents.length()) {
-        size_t nbytes = extent - gRecordingContents.length();
-        gRecordingContents.append(nmsg.BinaryData() + nmsg.BinaryDataSize() - nbytes,
-                                  nbytes);
-      }
-      gMonitor->NotifyAll();
+    case MessageType::RecordingData:
+      OnNewRecordingData(std::move(aMsg));
       break;
-    }
     case MessageType::FetchCloudRecordingData: {
       MonitorAutoLock lock(*gMonitor);
       char* buf;
@@ -701,6 +690,42 @@ void ReportUnhandledDivergence() {
 
 size_t GetId() { return gChildId; }
 size_t GetForkId() { return gForkId; }
+
+static bool IncorporateRecordingData(const RecordingDataMessage& aMsg) {
+  if (aMsg.mTag > gRecordingContents.length()) {
+    return false;
+  }
+
+  size_t extent = aMsg.mTag + aMsg.BinaryDataSize();
+  if (extent > gRecordingContents.length()) {
+    size_t nbytes = extent - gRecordingContents.length();
+    gRecordingContents.append(aMsg.BinaryData() + aMsg.BinaryDataSize() - nbytes,
+                              nbytes);
+  }
+
+  return true;
+}
+
+void OnNewRecordingData(Message::UniquePtr aMsg) {
+  MonitorAutoLock lock(*gMonitor);
+
+  const auto& nmsg = (const RecordingDataMessage&)*aMsg;
+  PrintLog("NewRecordingData %llu %lu", nmsg.mTag, nmsg.BinaryDataSize());
+
+  if (IncorporateRecordingData(nmsg)) {
+    for (size_t i = 0; i < gDeferredRecordingDataMessages.length(); i++) {
+      auto& deferred = gDeferredRecordingDataMessages[i];
+      const auto& ndeferred = (const RecordingDataMessage&)*deferred;
+      if (IncorporateRecordingData(ndeferred)) {
+        gDeferredRecordingDataMessages.erase(&deferred);
+      }
+    }
+    gMonitor->NotifyAll();
+  } else {
+    // Defer processing this until it is contiguous with the earlier contents.
+    gDeferredRecordingDataMessages.append(std::move(aMsg));
+  }
+}
 
 void AddPendingRecordingData() {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
