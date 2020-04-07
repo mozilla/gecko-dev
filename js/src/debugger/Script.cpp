@@ -2472,52 +2472,6 @@ bool DebuggerScript::CallData::setInstrumentationId() {
   return true;
 }
 
-static bool PushCompressedContents(JSContext* cx, HandleObject result,
-                                   HandleScript script, jsbytecode* pc,
-                                   const BytecodeRangeWithPosition& r) {
-  if (!NewbornArrayPush(cx, result, NumberValue(pc - script->code())) ||
-      !NewbornArrayPush(cx, result, NumberValue(r.frontLineNumber())) ||
-      !NewbornArrayPush(cx, result, NumberValue(r.frontColumnNumber())) ||
-      !NewbornArrayPush(cx, result, NumberValue(r.frontIsBreakablePoint() ? 1 : 0)) ||
-      !NewbornArrayPush(cx, result, NumberValue(r.frontIsBreakableStepPoint() ? 1 : 0))) {
-    return false;
-  }
-
-  return true;
-}
-
-bool DebuggerScript::CallData::getCompressedContents() {
-  if (!ensureScript()) {
-    return false;
-  }
-
-  // Build an array with the script's contents, using a compact JSON-friendly
-  // format and in O(N) time.
-  RootedObject result(cx, NewDenseEmptyArray(cx));
-  if (!result) {
-    return false;
-  }
-
-  BytecodeRangeWithPosition r(cx, script);
-
-  // BytecodeRangeWithPosition skips opcodes before the main PC, so we need to
-  // handle them separately.
-  for (BytecodeRange nr(cx, script); nr.frontPC() != script->main(); nr.popFront()) {
-    if (!PushCompressedContents(cx, result, script, nr.frontPC(), r)) {
-      return false;
-    }
-  }
-
-  for (; !r.empty(); r.popFront()) {
-    if (!PushCompressedContents(cx, result, script, r.frontPC(), r)) {
-      return false;
-    }
-  }
-
-  args.rval().setObject(*result);
-  return true;
-}
-
 /* static */
 bool DebuggerScript::construct(JSContext* cx, unsigned argc, Value* vp) {
   JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_NO_CONSTRUCTOR,
@@ -2562,7 +2516,6 @@ const JSFunctionSpec DebuggerScript::methods_[] = {
     JS_DEBUG_FN("getEffectfulOffsets", getEffectfulOffsets, 1),
     JS_DEBUG_FN("getBytecodeOffsets", getBytecodeOffsets, 0),
     JS_DEBUG_FN("setInstrumentationId", setInstrumentationId, 1),
-    JS_DEBUG_FN("getCompressedContents", getCompressedContents, 0),
 
     // The following APIs are deprecated due to their reliance on the
     // under-defined 'entrypoint' concept. Make use of getPossibleBreakpoints,
