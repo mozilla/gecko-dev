@@ -711,8 +711,14 @@ void AddPendingRecordingData() {
     MonitorAutoLock lock(*gMonitor);
 
     if (gRecordingContents.length() == gRecording->Size()) {
-      Print("Hit end of recording (%lu), crashing...\n",
-            gRecordingContents.length());
+      Print("Hit end of recording (%lu bytes, checkpoint %lu, position %lu), crashing...\n",
+            gRecordingContents.length(), GetLastCheckpoint(),
+            Thread::Current()->Events().StreamPosition());
+
+      nsAutoCString chunks;
+      Thread::Current()->Events().PrintChunks(chunks);
+      Print("Chunks %s\n", chunks.get());
+
       MOZ_CRASH("AddPendingRecordingData");
     }
 

@@ -328,6 +328,15 @@ void Stream::DumpEvents() {
   }
 }
 
+void Stream::PrintChunks(nsAutoCString& aString) {
+  for (size_t i = 0; i < mChunks.length(); i++) {
+    const StreamChunkLocation& chunk = mChunks[i];
+    aString.AppendPrintf(" Chunk:%lu:%llu:%u:%u:%u:%llu", i, chunk.mOffset,
+                         chunk.mCompressedSize, chunk.mDecompressedSize,
+                         chunk.mHash, chunk.mStreamPos);
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Recording
 ///////////////////////////////////////////////////////////////////////////////

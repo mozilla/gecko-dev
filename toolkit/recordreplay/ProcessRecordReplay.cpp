@@ -271,6 +271,14 @@ void FlushRecording() {
   gRecording->Flush();
   gRecording->AllowStreamWrites();
 
+  child::PrintLog("FlushRecording Checkpoint %lu Position %lu Size %lu",
+                  GetLastCheckpoint(), Thread::Current()->Events().StreamPosition(),
+                  gRecording->Size());
+
+  nsAutoCString chunks;
+  Thread::Current()->Events().PrintChunks(chunks);
+  child::PrintLog("Chunks %s", chunks.get());
+
   if (gRecording->Size() > gRecordingDataSentToMiddleman) {
     child::SendRecordingData(gRecordingDataSentToMiddleman,
                              gRecording->Data() + gRecordingDataSentToMiddleman,

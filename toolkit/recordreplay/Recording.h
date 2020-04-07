@@ -191,6 +191,8 @@ class Stream {
 
   inline size_t StreamPosition() { return mStreamPos; }
 
+  void PrintChunks(nsAutoCString& aString);
+
  private:
   enum ShouldCopy { DontCopyExistingData, CopyExistingData };
 

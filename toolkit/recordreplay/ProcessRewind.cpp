@@ -59,6 +59,8 @@ void CreateCheckpoint() {
     gLastCheckpoint++;
     gLastCheckpointTime = TimeStamp::Now();
 
+    recordreplay::RecordReplayAssert("CreateCheckpoint %lu", gLastCheckpoint);
+
     if (gLastCheckpoint == FirstCheckpointId) {
       gFirstCheckpointTime = gLastCheckpointTime;
     }
