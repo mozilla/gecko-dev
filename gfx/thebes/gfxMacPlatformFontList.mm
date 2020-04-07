@@ -669,6 +669,17 @@ void gfxMacFontFamily::FindStyleVariations(FontInfoData* aFontInfoData) {
   int faceCount = [fontfaces count];
   int faceIndex;
 
+  // After diverging from the recording the record/replay system might just be
+  // returning default values (non-null objects, zero scalars) when we call into
+  // the system. Override this behavior by pretending a font face was found, so
+  // we can create a font, fill it with dummy values, and avoid crashing when
+  // gfxFontGroup::GetDefaultFont isn't able to find any fonts.
+  if (recordreplay::HasDivergedFromRecording() && faceCount == 0) {
+    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+    fprintf(stderr, "gfxMacFontFamily::FindStyleVariations ForgingFontFace %d\n", getpid());
+    faceCount = 1;
+  }
+
   for (faceIndex = 0; faceIndex < faceCount; faceIndex++) {
     NSArray* face = [fontfaces objectAtIndex:faceIndex];
     NSString* psname = [face objectAtIndex:INDEX_FONT_POSTSCRIPT_NAME];
