@@ -403,6 +403,8 @@ void Recording::NewContents(const uint8_t* aContents, size_t aSize,
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(IsReading());
 
+  child::PrintLog("NewRecordingContents %lu %lu\n", mContents.length(), aSize);
+
   // Make sure the header matches when reading the first data in the recording.
   size_t offset = 0;
   if (mContents.empty()) {
@@ -434,6 +436,8 @@ void Recording::NewContents(const uint8_t* aContents, size_t aSize,
       // cloud and have only received part of the recording. We will still have
       // enough of the recording to replay everything covered by the recording
       // summary that was most recently added, however.
+      child::PrintLog("NewRecordingContents IgnoreTruncated %lu %lu %lu\n",
+                      offset, desc->mChunk.mCompressedSize, aSize);
       break;
     }
 
@@ -449,6 +453,9 @@ void Recording::NewContents(const uint8_t* aContents, size_t aSize,
 }
 
 void Recording::Flush() {
+  // Prevent other threads from writing to streams while flushing.
+  AutoWriteSpinLock streamLock(mStreamLock);
+
   AutoSpinLock lock(mLock);
 
   for (auto& vector : mStreams) {

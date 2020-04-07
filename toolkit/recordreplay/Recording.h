@@ -271,10 +271,6 @@ class Recording {
   void NewContents(const uint8_t* aContents, size_t aSize,
                    InfallibleVector<Stream*>* aUpdatedStreams);
 
-  // Prevent/allow other threads to write to streams in this recording.
-  void PreventStreamWrites() { mStreamLock.WriteLock(); }
-  void AllowStreamWrites() { mStreamLock.WriteUnlock(); }
-
   // Flush all streams to the recording.
   void Flush();
 

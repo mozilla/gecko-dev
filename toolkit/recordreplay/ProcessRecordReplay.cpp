@@ -267,9 +267,7 @@ void FlushRecording() {
   MOZ_RELEASE_ASSERT(IsRecording());
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
 
-  gRecording->PreventStreamWrites();
   gRecording->Flush();
-  gRecording->AllowStreamWrites();
 
   child::PrintLog("FlushRecording Checkpoint %lu Position %lu Size %lu",
                   GetLastCheckpoint(), Thread::Current()->Events().StreamPosition(),
