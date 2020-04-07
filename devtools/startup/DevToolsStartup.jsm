@@ -1391,7 +1391,10 @@ function createRecordingButton() {
 
         const uuid = newRecordingUUID();
 
+        ChromeUtils.recordReplayLog(`SaveRecording Begin ${uuid}`);
+
         if (!saveRecording(uuid)) {
+          ChromeUtils.recordReplayLog(`Error: saveRecording failed`);
           return;
         }
 
@@ -1404,7 +1407,11 @@ function createRecordingButton() {
 
         const description = await waitForSavedRecording(uuid);
 
+        ChromeUtils.recordReplayLog(`SaveRecording End ${uuid}`);
+
         if (!description) {
+          ChromeUtils.recordReplayLog(`Error: waitForSavedRecording failed`);
+
           CustomizableUI.clearSubview(recordingItems);
           setLabel(saveRecordingItem, "recordingSaveError.label");
           CustomizableUI.fillSubviewFromMenuItems(itemsToDisplay, recordingItems);
@@ -1468,6 +1475,7 @@ function createRecordingButton() {
               const denom = formatBytes(sent);
               label = `Uploading… ${numer} / ${denom}`;
             }
+            ChromeUtils.recordReplayLog(`UploadDataCallback ${label}`);
             uploadedDataItem.setAttribute("label", label);
             savedRecordingItem.setAttribute("hidden", true);
             uploadedDataItem.setAttribute("hidden", false);
