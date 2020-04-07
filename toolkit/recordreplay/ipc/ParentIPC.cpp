@@ -441,15 +441,18 @@ static ConnectionChannel* GetConnectionChannel(JSContext* aCx,
   return &gConnectionChannels[id];
 }
 
-static nsCOMPtr<nsIThread> gConnectionWorkerThread;
+// Use an indirection here to avoid releasing references and subsequently
+// crashing when the process exits.
+static nsCOMPtr<nsIThread>* gConnectionWorkerThread;
 static PersistentRootedObject* gWorkerSendCallback;
 
 void RegisterConnectionWorker(JS::HandleObject aSendCallback) {
-  MOZ_RELEASE_ASSERT(!gConnectionWorkerThread.get());
+  MOZ_RELEASE_ASSERT(!gConnectionWorkerThread);
 
   nsIThread* thread = NS_GetCurrentThreadNoCreate();
   MOZ_RELEASE_ASSERT(thread);
-  gConnectionWorkerThread = thread;
+  gConnectionWorkerThread = new nsCOMPtr<nsIThread>();
+  *gConnectionWorkerThread = thread;
 
   AutoJSContext cx;
   gWorkerSendCallback = new PersistentRootedObject(cx);
@@ -547,7 +550,7 @@ void CreateReplayingCloudProcess(dom::ContentParent* aParent, uint32_t aChannelI
       [=](Message::UniquePtr aMsg) {
         RefPtr<SendMessageToCloudRunnable> runnable =
           new SendMessageToCloudRunnable(connectionId, std::move(aMsg));
-        NS_DispatchToThreadQueue(runnable.forget(), gConnectionWorkerThread,
+        NS_DispatchToThreadQueue(runnable.forget(), *gConnectionWorkerThread,
                                  EventQueuePriority::High);
       }, pid);
   while ((size_t)connectionId >= gConnectionChannels.length()) {
