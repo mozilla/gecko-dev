@@ -462,7 +462,7 @@ void RegisterConnectionWorker(JS::HandleObject aSendCallback) {
 void OnCloudMessage(long aId, JS::HandleObject aMessage) {
   if ((size_t)aId >= gConnectionChannels.length() ||
       !gConnectionChannels[aId].mChannel) {
-    MOZ_CRASH("Bad connection channel ID");
+    return;
   }
 
   ConnectionChannel* info = &gConnectionChannels[aId];
