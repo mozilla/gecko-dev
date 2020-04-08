@@ -1400,6 +1400,15 @@ static bool RecordReplay_DumpToFile(JSContext* aCx, unsigned aArgc, Value* aVp) 
   return true;
 }
 
+static bool RecordReplay_LogJSAPI(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  SetLoggingJSAPI(ToBoolean(args.get(0)));
+
+  args.rval().setUndefined();
+  return true;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Recording/Replaying Script Hit Methods
 ///////////////////////////////////////////////////////////////////////////////
@@ -2079,6 +2088,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("setSharedKey", RecordReplay_SetSharedKey, 2, 0),
     JS_FN("getSharedKey", RecordReplay_GetSharedKey, 1, 0),
     JS_FN("dumpToFile", RecordReplay_DumpToFile, 2, 0),
+    JS_FN("logJSAPI", RecordReplay_LogJSAPI, 1, 0),
     JS_FS_END};
 
 extern "C" {

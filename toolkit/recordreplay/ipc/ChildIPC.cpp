@@ -1339,5 +1339,31 @@ void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetEvent& aEvent) {
   }
 }
 
+static bool gLogJSAPI;
+static double gEnterTime;
+static ProgressCounter gEnterProgress;
+
+void SetLoggingJSAPI(bool aLog) {
+  gLogJSAPI = aLog;
+}
+
+void OnJSAPIEnter() {
+  if (gLogJSAPI) {
+    child::PrintLog("EnterJSAPI");
+    gEnterTime = CurrentTime();
+    gEnterProgress = *ExecutionProgressCounter();
+  }
+}
+
+void OnJSAPIExit() {
+  if (gLogJSAPI) {
+    child::PrintLog("ExitJSAPI %llu %.3f ms",
+                    *ExecutionProgressCounter() - gEnterProgress,
+                    (CurrentTime() - gEnterTime) / 1000);
+    gEnterTime = 0;
+    gEnterProgress = 0;
+  }
+}
+
 }  // namespace recordreplay
 }  // namespace mozilla
