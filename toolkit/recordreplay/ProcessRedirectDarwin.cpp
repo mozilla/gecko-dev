@@ -2731,7 +2731,10 @@ static SystemRedirection gSystemRedirections[] = {
                 EX_WriteBuffer<3, 2, CGRect>>},
     {"CGFontGetGlyphPath", RR_ScalarRval},
     {"CGFontGetLeading", RR_ScalarRval, nullptr, EX_CFTypeArg<0>},
-    {"CGFontGetUnitsPerEm", RR_ScalarRval, nullptr, EX_CFTypeArg<0>},
+    {"CGFontGetUnitsPerEm", RR_ScalarRval, nullptr,
+     // Specify a default rval when the output is unavailable, this shouldn't
+     // return zero. See gfxMacFont::InitMetrics.
+     EX_Compose<EX_CFTypeArg<0>, EX_UnavailableRval<16>>},
     {"CGFontGetXHeight", RR_ScalarRval, nullptr, EX_CFTypeArg<0>},
     {"CGGradientCreateWithColorComponents", RR_ScalarRval, nullptr,
      EX_Compose<EX_CFTypeArg<0>, EX_Buffer<1, 3, CGFloat>,

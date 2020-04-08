@@ -438,6 +438,14 @@ static inline void EX_SkipExecuting(ExternalCallContext& aCx) {
   }
 }
 
+// Set the return value of a call if the output is unavailable.
+template <size_t Value>
+static inline void EX_UnavailableRval(ExternalCallContext& aCx) {
+  if (aCx.mCall->mOutputUnavailable) {
+    aCx.mArguments->Rval<size_t>() = Value;
+  }
+}
+
 static inline void EX_NoOp(ExternalCallContext& aCx) {}
 
 template <ExternalCallFn Fn0, ExternalCallFn Fn1,
