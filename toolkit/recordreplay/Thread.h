@@ -408,9 +408,12 @@ class MOZ_RAII RecordingEventSection {
     }
   }
 
-  bool CanAccessEvents() {
+  bool CanAccessEvents(bool aTolerateDisallowedEvents = false) {
     if (!mThread || mThread->PassThroughEvents() ||
         mThread->HasDivergedFromRecording()) {
+      return false;
+    }
+    if (aTolerateDisallowedEvents && mThread->AreEventsDisallowed()) {
       return false;
     }
     MOZ_RELEASE_ASSERT(mThread->CanAccessRecording());

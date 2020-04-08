@@ -617,6 +617,12 @@ static inline PreambleResult Preamble_NYI(CallArguments* aArguments) {
 void* BindFunctionArgument(void* aFunction, void* aArgument,
                            size_t aArgumentPosition, Assembler& aAssembler);
 
+// If events are disallowed, return true if the the specified event should
+// handle things as if the thread had diverged from the recording instead.
+// This handles events which can occur during GC, where events are disallowed
+// but we want certain operations to behave normally.
+bool HandleEventDuringDisallow(const char* aWhy);
+
 }  // namespace recordreplay
 }  // namespace mozilla
 

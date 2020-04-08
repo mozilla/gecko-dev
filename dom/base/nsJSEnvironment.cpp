@@ -2118,6 +2118,11 @@ void nsJSContext::MaybePokeCC() {
     return;
   }
 
+  // The CC does not run when recording/replaying.
+  if (recordreplay::IsRecordingOrReplaying()) {
+    return;
+  }
+
   // Don't run consecutive CCs too often.
   if (sCleanupsSinceLastGC && !sLastCCEndTime.IsNull()) {
     TimeDuration sinceLastCCEnd = TimeUntilNow(sLastCCEndTime);

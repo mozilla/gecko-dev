@@ -3444,6 +3444,13 @@ MOZ_EXPORT PlatformSymbol RecordReplayInterface_PlatformSymbols[] = {
 
 } // extern "C"
 
+bool HandleEventDuringDisallow(const char* aWhy) {
+  if (!strcmp(aWhy, "mach_absolute_time")) {
+    return true;
+  }
+  return false;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Direct system call API
 ///////////////////////////////////////////////////////////////////////////////

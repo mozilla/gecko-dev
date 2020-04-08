@@ -30,6 +30,12 @@ ContentProcessMessageManager::~ContentProcessMessageManager() {
 }
 
 ContentProcessMessageManager* ContentProcessMessageManager::Get() {
+  // Allow calls during GC.
+  Maybe<recordreplay::AutoPassThroughThreadEvents> pt;
+  if (recordreplay::AreThreadEventsDisallowed()) {
+    pt.emplace();
+  }
+
   nsCOMPtr<nsIMessageSender> service =
       do_GetService(NS_CHILDPROCESSMESSAGEMANAGER_CONTRACTID);
   if (!service) {

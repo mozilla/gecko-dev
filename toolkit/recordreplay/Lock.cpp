@@ -249,8 +249,9 @@ MOZ_EXPORT void RecordReplayInterface_InternalBeginOrderedAtomicAccess(
   // Determine which atomic lock to use for this access.
   size_t atomicId;
   {
+    // Allow atomic accesses to occur normally when events are disallowed during GC.
     RecordingEventSection res(thread);
-    if (!res.CanAccessEvents()) {
+    if (!res.CanAccessEvents(/* aTolerateDisallowedEvents */ true)) {
       return;
     }
 
@@ -279,8 +280,7 @@ MOZ_EXPORT void RecordReplayInterface_InternalEndOrderedAtomicAccess() {
   MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
 
   Thread* thread = Thread::Current();
-  if (!thread || thread->PassThroughEvents() ||
-      thread->HasDivergedFromRecording()) {
+  if (!thread || !thread->CanAccessRecording()) {
     return;
   }
 

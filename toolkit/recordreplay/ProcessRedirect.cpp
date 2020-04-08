@@ -60,7 +60,7 @@ __attribute__((used)) int RecordReplayInterceptCall(int aCallId,
   Maybe<RecordingEventSection> res;
   res.emplace(thread);
 
-  if (!res.ref().CanAccessEvents()) {
+  if (!res.ref().CanAccessEvents(/* aTolerateDisallowedEvents */ true)) {
     // When events are passed through, invoke the call with the original stack
     // and register state.
     if (!thread || thread->PassThroughEvents()) {
@@ -70,10 +70,14 @@ __attribute__((used)) int RecordReplayInterceptCall(int aCallId,
       return 1;
     }
 
-    MOZ_RELEASE_ASSERT(thread->HasDivergedFromRecording());
-
-    // After we have diverged from the recording, we can't access the thread's
-    // recording anymore.
+    // Either we have diverged from the recording, or events are disallowed.
+    // Only allow the latter case if the event is whitelisted.
+    if (thread->AreEventsDisallowed()) {
+      if (!HandleEventDuringDisallow(redirection.mName)) {
+        Print("Events for %s are disallowed, crashing...\n", redirection.mName);
+        MOZ_CRASH("RecordReplayInterceptCall events are disallowed");
+      }
+    }
 
     // If the redirection has an external preamble hook, call it to see if it
     // can handle this call. The external preamble hook is separate from the
@@ -94,6 +98,10 @@ __attribute__((used)) int RecordReplayInterceptCall(int aCallId,
         return 0;
       }
     }
+
+    // If we are handling this due to HandleEventDuringDisallow(),
+    // the redirection must have actually dealt with this call by now.
+    MOZ_RELEASE_ASSERT(thread->HasDivergedFromRecording());
 
     // Without an external call hook we can't handle this call, and have an
     // unhandled recording divergence.
