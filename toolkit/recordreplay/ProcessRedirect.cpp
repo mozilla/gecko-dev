@@ -72,7 +72,8 @@ __attribute__((used)) int RecordReplayInterceptCall(int aCallId,
 
     // Either we have diverged from the recording, or events are disallowed.
     // Only allow the latter case if the event is whitelisted.
-    if (thread->AreEventsDisallowed()) {
+    if (!thread->HasDivergedFromRecording()) {
+      MOZ_RELEASE_ASSERT(thread->AreEventsDisallowed());
       if (!HandleEventDuringDisallow(redirection.mName)) {
         Print("Events for %s are disallowed, crashing...\n", redirection.mName);
         MOZ_CRASH("RecordReplayInterceptCall events are disallowed");

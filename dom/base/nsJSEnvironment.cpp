@@ -1782,6 +1782,10 @@ void GCTimerFired(nsITimer* aTimer, void* aClosure) {
     return;
   }
 
+  if (recordreplay::IsRecordingOrReplaying()) {
+    return;
+  }
+
   // Now start the actual GC after initial timer has fired.
   sInterSliceGCRunner = IdleTaskRunner::Create(
       [aClosure](TimeStamp aDeadline) {
@@ -2291,7 +2295,7 @@ static void DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress,
       nsJSContext::MaybePokeCC();
 
       if (aDesc.isZone_) {
-        if (!sFullGCTimer && !sShuttingDown) {
+        if (!sFullGCTimer && !sShuttingDown && !recordreplay::IsRecordingOrReplaying()) {
           NS_NewTimerWithFuncCallback(
               &sFullGCTimer, FullGCTimerFired, nullptr,
               StaticPrefs::javascript_options_gc_delay_full(),
@@ -2324,7 +2328,7 @@ static void DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress,
 
       if (sShuttingDown || aDesc.isComplete_) {
         nsJSContext::KillInterSliceGCRunner();
-      } else if (!sInterSliceGCRunner) {
+      } else if (!sInterSliceGCRunner && !recordreplay::IsRecordingOrReplaying()) {
         // If incremental GC wasn't triggered by GCTimerFired, we may not
         // have a runner to ensure all the slices are handled. So, create
         // the runner here.
