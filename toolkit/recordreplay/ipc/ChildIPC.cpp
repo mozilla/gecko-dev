@@ -1340,7 +1340,6 @@ void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetEvent& aEvent) {
 }
 
 static bool gLogJSAPI;
-static double gEnterTime;
 static ProgressCounter gEnterProgress;
 
 void SetLoggingJSAPI(bool aLog) {
@@ -1350,17 +1349,13 @@ void SetLoggingJSAPI(bool aLog) {
 void OnJSAPIEnter() {
   if (gLogJSAPI) {
     child::PrintLog("EnterJSAPI");
-    gEnterTime = CurrentTime();
     gEnterProgress = *ExecutionProgressCounter();
   }
 }
 
 void OnJSAPIExit() {
   if (gLogJSAPI) {
-    child::PrintLog("ExitJSAPI %llu %.3f ms",
-                    *ExecutionProgressCounter() - gEnterProgress,
-                    (CurrentTime() - gEnterTime) / 1000);
-    gEnterTime = 0;
+    child::PrintLog("ExitJSAPI %llu", *ExecutionProgressCounter() - gEnterProgress);
     gEnterProgress = 0;
   }
 }
