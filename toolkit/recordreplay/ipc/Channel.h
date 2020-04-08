@@ -443,6 +443,9 @@ class Channel {
   // Descriptor used to communicate with the other side.
   int mFd;
 
+  // Whether mFd has been closed.
+  bool mClosed;
+
   // For synchronizing initialization of the channel and ensuring atomic sends.
   Monitor mMonitor;
 
@@ -453,6 +456,7 @@ class Channel {
   // The number of bytes of data already in the message buffer.
   size_t mMessageBytes;
 
+  // Data enqueued for sending before the connection was established.
   InfallibleVector<char> mPendingData;
 
   // If spew is enabled, print a message and associated info to stderr.

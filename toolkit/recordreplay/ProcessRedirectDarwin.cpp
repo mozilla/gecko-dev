@@ -3438,7 +3438,6 @@ MOZ_EXPORT PlatformSymbol RecordReplayInterface_PlatformSymbols[] = {
   NewPlatformSymbol(EPIPE),
   NewPlatformSymbol(EAGAIN),
   NewPlatformSymbol(ECONNRESET),
-  NewPlatformSymbol(EBADF),
   { nullptr, 0 },
 };
 

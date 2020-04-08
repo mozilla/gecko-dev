@@ -67,6 +67,7 @@ Channel::Channel(size_t aId, Kind aKind, const MessageHandler& aHandler,
       mInitialized(false),
       mConnectionFd(0),
       mFd(0),
+      mClosed(false),
       mMessageBytes(0) {
   MOZ_RELEASE_ASSERT(!IsRecordingOrReplaying() || AreThreadEventsPassedThrough());
 
@@ -164,6 +165,9 @@ void Channel::SendMessageData(const char* aData, size_t aSize) {
 }
 
 void Channel::SendRaw(const char* aData, size_t aSize) {
+  if (mClosed) {
+    return;
+  }
   while (aSize) {
     int rv = HANDLE_EINTR(send(mFd, aData, aSize, 0));
     if (rv < 0) {
@@ -213,7 +217,11 @@ Message::UniquePtr Channel::WaitForMessage() {
       } else {
         // Returning null will shut down the channel.
         PrintSpew("Channel disconnected, shutting down thread.\n");
-        close(mFd);
+        {
+          MonitorAutoLock lock(mMonitor);
+          close(mFd);
+          mClosed = true;
+        }
         return nullptr;
       }
     }
