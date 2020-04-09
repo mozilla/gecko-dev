@@ -1631,7 +1631,7 @@ function refreshAllRecordingButtons() {
 setInterval(refreshAllRecordingButtons, 2000);
 
 async function runTestScript() {
-  var env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+  const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
   const script = env.get("WEBREPLAY_TEST_SCRIPT");
   if (!script) {
     return;
