@@ -1395,12 +1395,22 @@ static bool RecordReplay_DumpToFile(JSContext* aCx, unsigned aArgc, Value* aVp) 
   return true;
 }
 
-static bool gLogJSAPI;
+enum class LogJSAPILevel {
+  NoLogging = 0,
+  TopLevelEnterExit = 1,
+  AllEnterExit = 2,
+};
+static LogJSAPILevel gLogJSAPI;
 
 static bool RecordReplay_LogJSAPI(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  gLogJSAPI = ToBoolean(args.get(0));
+  if (!args.get(0).isNumber()) {
+    JS_ReportErrorASCII(aCx, "Bad parameter");
+    return false;
+  }
+
+  gLogJSAPI = (LogJSAPILevel) args.get(0).toNumber();
 
   args.rval().setUndefined();
   return true;
@@ -1786,14 +1796,23 @@ static bool RecordReplay_GetFrameDepth(JSContext* aCx, unsigned aArgc,
 
 static ProgressCounter gEnterJSAPIProgress;
 
-static inline void SetFrameDepth(uint32_t aDepth) {
-  if (gLogJSAPI) {
-    if (!gFrameDepth && aDepth) {
-      child::PrintLog("EnterJSAPI");
-      gEnterJSAPIProgress = gProgressCounter;
-    } else if (gFrameDepth && !aDepth) {
-      child::PrintLog("ExitJSAPI %llu", gProgressCounter - gEnterJSAPIProgress);
-      gEnterJSAPIProgress = 0;
+static inline void SetFrameDepth(uint32_t aDepth, uint32_t aScript) {
+  if ((size_t)gLogJSAPI) {
+    switch (gLogJSAPI) {
+      case LogJSAPILevel::TopLevelEnterExit:
+        if (!gFrameDepth && aDepth) {
+          child::PrintLog("EnterJSAPI");
+          gEnterJSAPIProgress = gProgressCounter;
+        } else if (gFrameDepth && !aDepth) {
+          child::PrintLog("ExitJSAPI %llu", gProgressCounter - gEnterJSAPIProgress);
+          gEnterJSAPIProgress = 0;
+        }
+        break;
+      case LogJSAPILevel::AllEnterExit:
+        child::PrintLog("JSAPI Depth %u Script %u", aDepth, aScript);
+        break;
+      default:
+        break;
     }
   }
 
@@ -1810,7 +1829,7 @@ static bool RecordReplay_SetFrameDepth(JSContext* aCx, unsigned aArgc,
     return false;
   }
 
-  SetFrameDepth(args.get(0).toNumber());
+  SetFrameDepth(args.get(0).toNumber(), 0);
 
   args.rval().setUndefined();
   return true;
@@ -1861,7 +1880,7 @@ static bool RecordReplay_OnChangeFrame(JSContext* aCx, unsigned aArgc,
   }
 
   if (Kind == ChangeFrameEnter || Kind == ChangeFrameResume) {
-    SetFrameDepth(gFrameDepth + 1);
+    SetFrameDepth(gFrameDepth + 1, script);
   }
 
   uint32_t frameIndex = gFrameDepth - 1;
@@ -1878,7 +1897,7 @@ static bool RecordReplay_OnChangeFrame(JSContext* aCx, unsigned aArgc,
                               gProgressCounter);
 
   if (Kind == ChangeFrameExit) {
-    SetFrameDepth(gFrameDepth - 1);
+    SetFrameDepth(gFrameDepth - 1, script);
   }
 
   args.rval().setUndefined();
