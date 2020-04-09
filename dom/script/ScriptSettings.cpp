@@ -26,12 +26,6 @@
 #include "nsDOMJSUtils.h"
 
 namespace mozilla {
-
-namespace recordreplay {
-  extern void OnJSAPIEnter();
-  extern void OnJSAPIExit();
-}
-
 namespace dom {
 
 static MOZ_THREAD_LOCAL(ScriptSettingsStackEntry*) sScriptSettingsTLS;
@@ -278,18 +272,7 @@ AutoJSAPI::~AutoJSAPI() {
     JS::SetWarningReporter(cx(), mOldWarningReporter.value());
   }
 
-  bool recordReplayWasActive = false;
-  if (recordreplay::IsRecordingOrReplaying() && mIsMainThread) {
-    recordReplayWasActive = IsJSAPIActive();
-  }
-
   ScriptSettingsStack::Pop(this);
-
-  if (recordreplay::IsRecordingOrReplaying() && mIsMainThread) {
-    if (recordReplayWasActive && !IsJSAPIActive()) {
-      recordreplay::OnJSAPIExit();
-    }
-  }
 }
 
 void WarningOnlyErrorReporter(JSContext* aCx, JSErrorReport* aRep);
@@ -313,11 +296,6 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
   }
   mAutoNullableRealm.emplace(mCx, aGlobal);
   mGlobalObject = aGlobalObject;
-
-  bool recordReplayWasActive = false;
-  if (recordreplay::IsRecordingOrReplaying() && mIsMainThread) {
-    recordReplayWasActive = IsJSAPIActive();
-  }
 
   ScriptSettingsStack::Push(this);
 
@@ -396,12 +374,6 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
     MOZ_ASSERT(false, "We had an exception; we should not have");
   }
 #endif  // DEBUG
-
-  if (recordreplay::IsRecordingOrReplaying() && mIsMainThread) {
-    if (!recordReplayWasActive && IsJSAPIActive()) {
-      recordreplay::OnJSAPIEnter();
-    }
-  }
 }
 
 AutoJSAPI::AutoJSAPI(nsIGlobalObject* aGlobalObject, bool aIsMainThread,

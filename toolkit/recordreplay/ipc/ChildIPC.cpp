@@ -1339,26 +1339,5 @@ void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetEvent& aEvent) {
   }
 }
 
-static bool gLogJSAPI;
-static ProgressCounter gEnterProgress;
-
-void SetLoggingJSAPI(bool aLog) {
-  gLogJSAPI = aLog;
-}
-
-void OnJSAPIEnter() {
-  if (gLogJSAPI) {
-    child::PrintLog("EnterJSAPI");
-    gEnterProgress = *ExecutionProgressCounter();
-  }
-}
-
-void OnJSAPIExit() {
-  if (gLogJSAPI) {
-    child::PrintLog("ExitJSAPI %llu", *ExecutionProgressCounter() - gEnterProgress);
-    gEnterProgress = 0;
-  }
-}
-
 }  // namespace recordreplay
 }  // namespace mozilla

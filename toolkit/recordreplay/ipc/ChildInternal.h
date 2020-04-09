@@ -120,9 +120,6 @@ void SetSharedKey(const nsAutoCString& aKey, const nsAutoCString& aValue);
 void GetSharedKey(const nsAutoCString& aKey, nsAutoCString& aValue);
 
 }  // namespace child
-
-void SetLoggingJSAPI(bool aLog);
-
 }  // namespace recordreplay
 }  // namespace mozilla
 

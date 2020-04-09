@@ -1300,19 +1300,14 @@ static bool RecordReplay_MemoryUsage(JSContext* aCx, unsigned aArgc, Value* aVp)
   return true;
 }
 
-static bool RecordReplay_BeginWatchdog(JSContext* aCx, unsigned aArgc, Value* aVp) {
+static bool RecordReplay_SetWatchdog(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  BeginRunEvent(TimeStamp::Now());
-
-  args.rval().setUndefined();
-  return true;
-}
-
-static bool RecordReplay_EndWatchdog(JSContext* aCx, unsigned aArgc, Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  EndRunEvent();
+  if (ToBoolean(args.get(0))) {
+    BeginRunEvent(TimeStamp::Now());
+  } else {
+    EndRunEvent();
+  }
 
   args.rval().setUndefined();
   return true;
@@ -1400,10 +1395,12 @@ static bool RecordReplay_DumpToFile(JSContext* aCx, unsigned aArgc, Value* aVp) 
   return true;
 }
 
+static bool gLogJSAPI;
+
 static bool RecordReplay_LogJSAPI(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  SetLoggingJSAPI(ToBoolean(args.get(0)));
+  gLogJSAPI = ToBoolean(args.get(0));
 
   args.rval().setUndefined();
   return true;
@@ -1787,6 +1784,22 @@ static bool RecordReplay_GetFrameDepth(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
+static ProgressCounter gEnterJSAPIProgress;
+
+static inline void SetFrameDepth(uint32_t aDepth) {
+  if (gLogJSAPI) {
+    if (!gFrameDepth && aDepth) {
+      child::PrintLog("EnterJSAPI");
+      gEnterJSAPIProgress = gProgressCounter;
+    } else if (gFrameDepth && !aDepth) {
+      child::PrintLog("ExitJSAPI %llu", gProgressCounter - gEnterJSAPIProgress);
+      gEnterJSAPIProgress = 0;
+    }
+  }
+
+  gFrameDepth = aDepth;
+}
+
 static bool RecordReplay_SetFrameDepth(JSContext* aCx, unsigned aArgc,
                                        Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
@@ -1797,7 +1810,7 @@ static bool RecordReplay_SetFrameDepth(JSContext* aCx, unsigned aArgc,
     return false;
   }
 
-  gFrameDepth = args.get(0).toNumber();
+  SetFrameDepth(args.get(0).toNumber());
 
   args.rval().setUndefined();
   return true;
@@ -1848,7 +1861,7 @@ static bool RecordReplay_OnChangeFrame(JSContext* aCx, unsigned aArgc,
   }
 
   if (Kind == ChangeFrameEnter || Kind == ChangeFrameResume) {
-    gFrameDepth++;
+    SetFrameDepth(gFrameDepth + 1);
   }
 
   uint32_t frameIndex = gFrameDepth - 1;
@@ -1865,7 +1878,7 @@ static bool RecordReplay_OnChangeFrame(JSContext* aCx, unsigned aArgc,
                               gProgressCounter);
 
   if (Kind == ChangeFrameExit) {
-    gFrameDepth--;
+    SetFrameDepth(gFrameDepth - 1);
   }
 
   args.rval().setUndefined();
@@ -2211,8 +2224,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("dump", RecordReplay_Dump, 1, 0),
     JS_FN("crash", RecordReplay_Crash, 0, 0),
     JS_FN("memoryUsage", RecordReplay_MemoryUsage, 0, 0),
-    JS_FN("beginWatchdog", RecordReplay_BeginWatchdog, 0, 0),
-    JS_FN("endWatchdog", RecordReplay_EndWatchdog, 0, 0),
+    JS_FN("setWatchdog", RecordReplay_SetWatchdog, 1, 0),
     JS_FN("requestInterrupt", RecordReplay_RequestInterrupt, 1, 0),
     JS_FN("setSharedKey", RecordReplay_SetSharedKey, 2, 0),
     JS_FN("getSharedKey", RecordReplay_GetSharedKey, 1, 0),
