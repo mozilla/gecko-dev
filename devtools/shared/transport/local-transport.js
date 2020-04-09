@@ -35,15 +35,6 @@ function LocalDebuggerTransport(other) {
   this.close = this.close.bind(this);
 }
 
-// Some packets that are critical for debugger performance are sent directly to
-// the other side without going through the event loop first. This can reduce
-// the time to handle the packet by 20-50 ms.
-const gDirectPacketTypes = new Set([
-  "resume", "paused", "resumed",
-]);
-let gLastDirectPacketActor;
-let gLastDirectPacketId;
-
 LocalDebuggerTransport.prototype = {
   /**
    * Transmit a message by directly calling the onPacket handler of the other
@@ -63,18 +54,6 @@ LocalDebuggerTransport.prototype = {
     //this._deepFreeze(packet);
     const other = this.other;
     if (other) {
-      if (gDirectPacketTypes.has(packet.type)) {
-        other.hooks.onPacket(packet);
-        if (packet.to) {
-          gLastDirectPacketActor = packet.to;
-          gLastDirectPacketId = packet.packetId;
-        }
-        return;
-      }
-      if (packet.from == gLastDirectPacketActor && packet.packetId == gLastDirectPacketId) {
-        other.hooks.onPacket(packet);
-        return;
-      }
       DevToolsUtils.executeSoon(
         DevToolsUtils.makeInfallible(() => {
           // Avoid the cost of JSON.stringify() when logging is disabled.
