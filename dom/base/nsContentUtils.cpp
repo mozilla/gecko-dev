@@ -3774,6 +3774,11 @@ nsresult nsContentUtils::ReportToConsole(
     const Document* aDocument, PropertiesFile aFile, const char* aMessageName,
     const nsTArray<nsString>& aParams, nsIURI* aURI,
     const nsString& aSourceLine, uint32_t aLineNumber, uint32_t aColumnNumber) {
+  if (recordreplay::HasDivergedFromRecording()) {
+    // Avoid unhandled divergences when reporting errors.
+    return NS_OK;
+  }
+
   nsresult rv;
   nsAutoString errorText;
   if (!aParams.IsEmpty()) {
