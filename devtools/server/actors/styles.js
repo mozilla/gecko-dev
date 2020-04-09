@@ -403,6 +403,9 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
 
     if (isReplaying) {
       await Promise.all(fonts.map(f => f.replayWaitForContentsLoaded()));
+      await Promise.all(fonts.map(f => {
+        return f.rule ? f.rule.replayWaitForContentsLoaded() : null;
+      }));
     }
 
     for (let i = 0; i < fonts.length; i++) {
