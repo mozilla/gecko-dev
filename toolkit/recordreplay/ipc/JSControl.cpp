@@ -1421,156 +1421,245 @@ enum ChangeFrameKind {
   NumChangeFrameKinds
 };
 
-struct ScriptHitInfo {
-  // Information about a location where a script offset has been hit.
-  struct ScriptHit {
-    uint32_t mFrameIndex : 16;
-    ProgressCounter mProgress : 48;
+// Information about a location where a script offset has been hit.
+struct ScriptHit {
+  uint32_t mFrameIndex : 16;
+  ProgressCounter mProgress : 48;
 
-    ScriptHit(uint32_t aFrameIndex, ProgressCounter aProgress)
-        : mFrameIndex(aFrameIndex), mProgress(aProgress) {
-      static_assert(sizeof(ScriptHit) == 8, "Unexpected size");
-      MOZ_RELEASE_ASSERT(aFrameIndex < 1 << 16);
-      MOZ_RELEASE_ASSERT(aProgress < uint64_t(1) << 48);
+  ScriptHit(uint32_t aFrameIndex, ProgressCounter aProgress)
+      : mFrameIndex(aFrameIndex), mProgress(aProgress) {
+    static_assert(sizeof(ScriptHit) == 8, "Unexpected size");
+    MOZ_RELEASE_ASSERT(aFrameIndex < 1 << 16);
+    MOZ_RELEASE_ASSERT(aProgress < uint64_t(1) << 48);
+  }
+};
+
+typedef InfallibleVector<ScriptHit> ScriptHitVector;
+
+struct ScriptHitKey {
+  uint32_t mScript;
+  uint32_t mOffset;
+
+  ScriptHitKey(uint32_t aScript, uint32_t aOffset)
+      : mScript(aScript), mOffset(aOffset) {
+    static_assert(sizeof(ScriptHitKey) == 8);
+  }
+
+  typedef ScriptHitKey Lookup;
+
+  static HashNumber hash(const ScriptHitKey& aKey) {
+    return HashGeneric(aKey.mScript, aKey.mOffset);
+  }
+
+  static bool match(const ScriptHitKey& aFirst, const ScriptHitKey& aSecond) {
+    return aFirst.mScript == aSecond.mScript &&
+           aFirst.mOffset == aSecond.mOffset;
+  }
+};
+
+typedef HashMap<ScriptHitKey, ScriptHitVector*, ScriptHitKey> ScriptHitMap;
+
+struct AnyScriptHit {
+  uint32_t mScript;
+  uint32_t mOffset;
+  uint32_t mFrameIndex : 16;
+  ProgressCounter mProgress : 48;
+
+  AnyScriptHit() {}
+
+  AnyScriptHit(uint32_t aScript, uint32_t aOffset, uint32_t aFrameIndex,
+               ProgressCounter aProgress)
+      : mScript(aScript), mOffset(aOffset), mFrameIndex(aFrameIndex),
+        mProgress(aProgress) {
+    static_assert(sizeof(AnyScriptHit) == 16);
+  }
+};
+
+typedef InfallibleVector<AnyScriptHit, 128> AnyScriptHitVector;
+
+// All information about script execution in some region of the recording.
+struct ScriptHitRegion {
+  ScriptHitMap mTable;
+  AnyScriptHitVector mChangeFrames[NumChangeFrameKinds];
+
+  void WriteContents(BufferStream& aStream) {
+    aStream.WriteScalar32(mTable.count());
+    for (auto iter = mTable.iter(); !iter.done(); iter.next()) {
+      aStream.WriteBytes(&iter.get().key(), sizeof(ScriptHitKey));
+
+      ScriptHitVector* hits = iter.get().value();
+      aStream.WriteScalar32(hits->length());
+      aStream.WriteBytes(hits->begin(), hits->length() * sizeof(ScriptHit));
     }
-  };
 
-  static_assert(sizeof(ScriptHit) == 8, "Unexpected size");
-
-  typedef InfallibleVector<ScriptHit> ScriptHitVector;
-
-  struct ScriptHitKey {
-    uint32_t mScript;
-    uint32_t mOffset;
-
-    ScriptHitKey(uint32_t aScript, uint32_t aOffset)
-        : mScript(aScript), mOffset(aOffset) {
-      static_assert(sizeof(ScriptHitKey) == 8);
+    for (const auto& vector : mChangeFrames) {
+      aStream.WriteScalar32(vector.length());
+      aStream.WriteBytes(vector.begin(), vector.length() * sizeof(AnyScriptHit));
     }
+  }
 
-    typedef ScriptHitKey Lookup;
+  void ReadContents(BufferStream& aStream) {
+    MOZ_RELEASE_ASSERT(mTable.empty());
+    size_t count = aStream.ReadScalar32();
+    for (size_t i = 0; i < count; i++) {
+      ScriptHitKey key(0, 0);
+      aStream.ReadBytes(&key, sizeof(ScriptHitKey));
 
-    static HashNumber hash(const ScriptHitKey& aKey) {
-      return HashGeneric(aKey.mScript, aKey.mOffset);
-    }
+      size_t numHits = aStream.ReadScalar32();
+      ScriptHitVector* hits = new ScriptHitVector();
+      hits->appendN(ScriptHit(0, 0), numHits);
+      aStream.ReadBytes(hits->begin(), hits->length() * sizeof(ScriptHit));
 
-    static bool match(const ScriptHitKey& aFirst, const ScriptHitKey& aSecond) {
-      return aFirst.mScript == aSecond.mScript &&
-             aFirst.mOffset == aSecond.mOffset;
-    }
-  };
-
-  typedef HashMap<ScriptHitKey, ScriptHitVector*, ScriptHitKey>
-      ScriptHitMap;
-
-  struct AnyScriptHit {
-    uint32_t mScript;
-    uint32_t mOffset;
-    uint32_t mFrameIndex : 16;
-    ProgressCounter mProgress : 48;
-
-    AnyScriptHit() {}
-
-    AnyScriptHit(uint32_t aScript, uint32_t aOffset, uint32_t aFrameIndex,
-                 ProgressCounter aProgress)
-        : mScript(aScript), mOffset(aOffset), mFrameIndex(aFrameIndex),
-          mProgress(aProgress) {
-      static_assert(sizeof(AnyScriptHit) == 16);
-    }
-  };
-
-  typedef InfallibleVector<AnyScriptHit, 128> AnyScriptHitVector;
-
-  struct CheckpointInfo {
-    ScriptHitMap mTable;
-    AnyScriptHitVector mChangeFrames[NumChangeFrameKinds];
-    InfallibleVector<char> mPaintData;
-
-    void WriteContents(BufferStream& aStream) {
-      aStream.WriteScalar32(mTable.count());
-      for (auto iter = mTable.iter(); !iter.done(); iter.next()) {
-        aStream.WriteBytes(&iter.get().key(), sizeof(ScriptHitKey));
-
-        ScriptHitVector* hits = iter.get().value();
-        aStream.WriteScalar32(hits->length());
-        aStream.WriteBytes(hits->begin(), hits->length() * sizeof(ScriptHit));
+      ScriptHitMap::AddPtr p = mTable.lookupForAdd(key);
+      MOZ_RELEASE_ASSERT(!p);
+      if (!mTable.add(p, key, hits)) {
+        MOZ_CRASH("ReadContents");
       }
-
-      for (const auto& vector : mChangeFrames) {
-        aStream.WriteScalar32(vector.length());
-        aStream.WriteBytes(vector.begin(), vector.length() * sizeof(AnyScriptHit));
-      }
-
-      aStream.WriteScalar32(mPaintData.length());
-      aStream.WriteBytes(mPaintData.begin(), mPaintData.length());
     }
 
-    void ReadContents(BufferStream& aStream) {
-      MOZ_RELEASE_ASSERT(mTable.empty());
-      size_t count = aStream.ReadScalar32();
-      for (size_t i = 0; i < count; i++) {
-        ScriptHitKey key(0, 0);
-        aStream.ReadBytes(&key, sizeof(ScriptHitKey));
-
-        size_t numHits = aStream.ReadScalar32();
-        ScriptHitVector* hits = new ScriptHitVector();
-        hits->appendN(ScriptHit(0, 0), numHits);
-        aStream.ReadBytes(hits->begin(), hits->length() * sizeof(ScriptHit));
-
-        ScriptHitMap::AddPtr p = mTable.lookupForAdd(key);
-        MOZ_RELEASE_ASSERT(!p);
-        if (!mTable.add(p, key, hits)) {
-          MOZ_CRASH("ReadContents");
-        }
-      }
-
-      for (auto& vector : mChangeFrames) {
-        MOZ_RELEASE_ASSERT(vector.empty());
-        size_t numChangeFrames = aStream.ReadScalar32();
-        vector.appendN(AnyScriptHit(), numChangeFrames);
-        aStream.ReadBytes(vector.begin(), vector.length() * sizeof(AnyScriptHit));
-      }
-
-      MOZ_RELEASE_ASSERT(mPaintData.empty());
-      size_t paintDataLength = aStream.ReadScalar32();
-      mPaintData.appendN(0, paintDataLength);
-      aStream.ReadBytes(mPaintData.begin(), paintDataLength);
+    for (auto& vector : mChangeFrames) {
+      MOZ_RELEASE_ASSERT(vector.empty());
+      size_t numChangeFrames = aStream.ReadScalar32();
+      vector.appendN(AnyScriptHit(), numChangeFrames);
+      aStream.ReadBytes(vector.begin(), vector.length() * sizeof(AnyScriptHit));
     }
-  };
+  }
 
-  InfallibleVector<CheckpointInfo*, 1024> mInfo;
+  ScriptHitVector* FindHits(uint32_t aScript, uint32_t aOffset) {
+    ScriptHitKey key(aScript, aOffset);
+    ScriptHitMap::Ptr p = mTable.lookup(key);
+    return p ? p->value() : nullptr;
+  }
+
+  AnyScriptHitVector* FindChangeFrames(uint32_t aWhich) {
+    MOZ_RELEASE_ASSERT(aWhich < NumChangeFrameKinds);
+    return &mChangeFrames[aWhich];
+  }
+};
+
+typedef InfallibleVector<ScriptHitRegion*> ScriptHitRegionVector;
+
+// Granularity for subdividing regions according to the progress values of
+// their contents. A lower number will improve certain times of lookups, while
+// a higher number will (slightly) hurt others and reduce memory usage.
+static const size_t RegionGranularity = 10000;
+
+static size_t GetProgressIndex(ProgressCounter aProgress) {
+  return 1 + (aProgress / RegionGranularity);
+}
+
+// All information about execution between one checkpoint and the next.
+struct ScriptHitCheckpoint {
+  // Progress index of the first region, zero if not set.
+  size_t mBaseProgressIndex = 0;
+
+  ScriptHitRegionVector mRegions;
+  InfallibleVector<char> mPaintData;
+
+  ScriptHitCheckpoint() {}
+
+  ScriptHitRegion* GetRegion(ProgressCounter aProgress) {
+    size_t progressIndex = GetProgressIndex(aProgress);
+    if (!mBaseProgressIndex) {
+      mBaseProgressIndex = progressIndex;
+    }
+    MOZ_RELEASE_ASSERT(progressIndex >= mBaseProgressIndex);
+    size_t index = progressIndex - mBaseProgressIndex;
+    while (index >= mRegions.length()) {
+      mRegions.append(new ScriptHitRegion());
+    }
+    return mRegions[index];
+  }
+
+  size_t GetRegionIndex(ProgressCounter aProgress) {
+    MOZ_RELEASE_ASSERT(mBaseProgressIndex);
+    MOZ_RELEASE_ASSERT(mRegions.length());
+
+    size_t progressIndex = GetProgressIndex(aProgress);
+    if (progressIndex < mBaseProgressIndex) {
+      return 0;
+    }
+    size_t index = progressIndex - mBaseProgressIndex;
+    return std::min<size_t>(index, mRegions.length() - 1);
+  }
+
+  void WriteContents(BufferStream& aStream) {
+    aStream.WriteScalar(mBaseProgressIndex);
+    aStream.WriteScalar(mRegions.length());
+    for (auto region : mRegions) {
+      region->WriteContents(aStream);
+    }
+
+    aStream.WriteScalar32(mPaintData.length());
+    aStream.WriteBytes(mPaintData.begin(), mPaintData.length());
+  }
+
+  void ReadContents(BufferStream& aStream) {
+    MOZ_RELEASE_ASSERT(mRegions.length() == 0);
+    mBaseProgressIndex = aStream.ReadScalar();
+    size_t numRegions = aStream.ReadScalar();
+    for (size_t i = 0; i < numRegions; i++) {
+      mRegions.append(new ScriptHitRegion());
+      mRegions[i]->ReadContents(aStream);
+    }
+
+    MOZ_RELEASE_ASSERT(mPaintData.empty());
+    size_t paintDataLength = aStream.ReadScalar32();
+    mPaintData.appendN(0, paintDataLength);
+    aStream.ReadBytes(mPaintData.begin(), paintDataLength);
+  }
+};
+
+struct AllScriptHits {
+  // Information about each checkpoint, indexed by the checkpoint ID.
+  InfallibleVector<ScriptHitCheckpoint*, 1024> mCheckpoints;
 
   // When scanning the recording, this has the last breakpoint hit on a script
   // at each frame depth.
   InfallibleVector<AnyScriptHit, 256> mLastHits;
 
-  CheckpointInfo* GetInfo(uint32_t aCheckpoint) {
-    while (aCheckpoint >= mInfo.length()) {
-      mInfo.append(nullptr);
+  // Get the information about the given checkpoint, creating it if necessary.
+  ScriptHitCheckpoint* GetCheckpoint(uint32_t aCheckpoint) {
+    while (aCheckpoint >= mCheckpoints.length()) {
+      mCheckpoints.append(nullptr);
     }
-    if (!mInfo[aCheckpoint]) {
-      mInfo[aCheckpoint] = new CheckpointInfo();
+    if (!mCheckpoints[aCheckpoint]) {
+      mCheckpoints[aCheckpoint] = new ScriptHitCheckpoint();
     }
-    return mInfo[aCheckpoint];
+    return mCheckpoints[aCheckpoint];
   }
 
-  ScriptHitVector* FindHits(uint32_t aCheckpoint, uint32_t aScript,
-                           uint32_t aOffset) {
-    CheckpointInfo* info = GetInfo(aCheckpoint);
+  // Get the region for the given checkpoint/progress, creating it if necessary.
+  ScriptHitRegion* GetRegion(uint32_t aCheckpoint, ProgressCounter aProgress) {
+    return GetCheckpoint(aCheckpoint)->GetRegion(aProgress);
+  }
 
-    ScriptHitKey key(aScript, aOffset);
-    ScriptHitMap::Ptr p = info->mTable.lookup(key);
-    return p ? p->value() : nullptr;
+  void FindRegions(uint32_t aCheckpoint,
+                   const Maybe<size_t>& aMinProgress,
+                   const Maybe<size_t>& aMaxProgress,
+                   ScriptHitRegionVector& aRegions) {
+    ScriptHitCheckpoint* info = GetCheckpoint(aCheckpoint);
+    if (info->mRegions.empty()) {
+      return;
+    }
+
+    size_t minIndex = aMinProgress.isSome() ? info->GetRegionIndex(*aMinProgress) : 0;
+    size_t maxIndex = aMaxProgress.isSome()
+        ? info->GetRegionIndex(*aMaxProgress)
+        : info->mRegions.length() - 1;
+    for (size_t i = minIndex; i <= maxIndex; i++) {
+      aRegions.append(info->mRegions[i]);
+    }
   }
 
   void AddHit(uint32_t aCheckpoint, uint32_t aScript, uint32_t aOffset,
               uint32_t aFrameIndex, ProgressCounter aProgress) {
-    CheckpointInfo* info = GetInfo(aCheckpoint);
+    ScriptHitRegion* region = GetRegion(aCheckpoint, aProgress);
 
     ScriptHitKey key(aScript, aOffset);
-    ScriptHitMap::AddPtr p = info->mTable.lookupForAdd(key);
-    if (!p && !info->mTable.add(p, key, new ScriptHitVector())) {
-      MOZ_CRASH("ScriptHitInfo::AddHit");
+    ScriptHitMap::AddPtr p = region->mTable.lookupForAdd(key);
+    if (!p && !region->mTable.add(p, key, new ScriptHitVector())) {
+      MOZ_CRASH("AllScriptHits::AddHit");
     }
 
     ScriptHitVector* hits = p->value();
@@ -1594,26 +1683,20 @@ struct ScriptHitInfo {
   void AddChangeFrame(uint32_t aCheckpoint, uint32_t aWhich, uint32_t aScript,
                       uint32_t aOffset, uint32_t aFrameIndex,
                       ProgressCounter aProgress) {
-    CheckpointInfo* info = GetInfo(aCheckpoint);
+    ScriptHitRegion* region = GetRegion(aCheckpoint, aProgress);
     MOZ_RELEASE_ASSERT(aWhich < NumChangeFrameKinds);
-    info->mChangeFrames[aWhich].emplaceBack(aScript, aOffset, aFrameIndex, aProgress);
-  }
-
-  AnyScriptHitVector* FindChangeFrames(uint32_t aCheckpoint, uint32_t aWhich) {
-    CheckpointInfo* info = GetInfo(aCheckpoint);
-    MOZ_RELEASE_ASSERT(aWhich < NumChangeFrameKinds);
-    return &info->mChangeFrames[aWhich];
+    region->mChangeFrames[aWhich].emplaceBack(aScript, aOffset, aFrameIndex, aProgress);
   }
 
   InfallibleVector<char>& GetPaintData(uint32_t aCheckpoint) {
-    return GetInfo(aCheckpoint)->mPaintData;
+    return GetCheckpoint(aCheckpoint)->mPaintData;
   }
 
   void WriteContents(InfallibleVector<char>& aData) {
     BufferStream stream(&aData);
 
-    for (size_t i = 0; i < mInfo.length(); i++) {
-      CheckpointInfo* info = mInfo[i];
+    for (size_t i = 0; i < mCheckpoints.length(); i++) {
+      ScriptHitCheckpoint* info = mCheckpoints[i];
       if (info) {
         stream.WriteScalar32(i);
         info->WriteContents(stream);
@@ -1626,13 +1709,13 @@ struct ScriptHitInfo {
 
     while (!stream.IsEmpty()) {
       size_t checkpoint = stream.ReadScalar32();
-      CheckpointInfo* info = GetInfo(checkpoint);
+      ScriptHitCheckpoint* info = GetCheckpoint(checkpoint);
       info->ReadContents(stream);
     }
   }
 };
 
-static ScriptHitInfo* gScriptHits;
+static AllScriptHits* gScriptHits;
 
 // Interned atoms for the various instrumented operations.
 static JSString* gMainAtom;
@@ -1645,7 +1728,7 @@ static JSString* gExitAtom;
 static StaticInfallibleVector<Message::UniquePtr> gPendingScanDataMessages;
 
 static void InitializeScriptHits() {
-  gScriptHits = new ScriptHitInfo();
+  gScriptHits = new AllScriptHits();
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
@@ -1772,7 +1855,7 @@ static bool RecordReplay_OnChangeFrame(JSContext* aCx, unsigned aArgc,
 
   if (Kind == ChangeFrameEnter && frameIndex) {
     // Find the last breakpoint hit in the calling frame.
-    const ScriptHitInfo::AnyScriptHit& lastHit = gScriptHits->LastHit(frameIndex - 1);
+    const AnyScriptHit& lastHit = gScriptHits->LastHit(frameIndex - 1);
     gScriptHits->AddChangeFrame(GetLastCheckpoint(), ChangeFrameCall,
                                 lastHit.mScript, lastHit.mOffset,
                                 lastHit.mFrameIndex, lastHit.mProgress);
@@ -1891,6 +1974,54 @@ static bool RecordReplay_GetScannedPaintData(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
+static bool MaybeGetNumberProperty(JSContext* aCx, HandleObject aObject,
+                                   const char* aName, Maybe<size_t>* aResult) {
+  RootedValue v(aCx);
+  if (!JS_GetProperty(aCx, aObject, aName, &v)) {
+    return false;
+  }
+
+  if (v.isNumber()) {
+    aResult->emplace(v.toNumber());
+  }
+
+  return true;
+}
+
+struct SearchFilter {
+  Maybe<size_t> mScript;
+  Maybe<size_t> mFrameIndex;
+  Maybe<size_t> mMinProgress;
+  Maybe<size_t> mMaxProgress;
+
+  bool Parse(JSContext* aCx, HandleValue aFilter) {
+    if (!aFilter.isObject()) {
+      if (!aFilter.isUndefined()) {
+        JS_ReportErrorASCII(aCx, "Expected undefined or object filter");
+        return false;
+      }
+      return true;
+    }
+
+    RootedObject filter(aCx, &aFilter.toObject());
+    if (!MaybeGetNumberProperty(aCx, filter, "script", &mScript) ||
+        !MaybeGetNumberProperty(aCx, filter, "frameIndex", &mFrameIndex) ||
+        !MaybeGetNumberProperty(aCx, filter, "minProgress", &mMinProgress) ||
+        !MaybeGetNumberProperty(aCx, filter, "maxProgress", &mMaxProgress)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool Exclude(size_t aScript, size_t aFrameIndex, size_t aProgress) {
+    return (mScript.isSome() && aScript != *mScript) ||
+           (mFrameIndex.isSome() && aFrameIndex != *mFrameIndex) ||
+           (mMinProgress.isSome() && aProgress < *mMinProgress) ||
+           (mMaxProgress.isSome() && aProgress > *mMaxProgress);
+  }
+};
+
 static bool RecordReplay_FindScriptHits(JSContext* aCx, unsigned aArgc,
                                         Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
@@ -1906,12 +2037,28 @@ static bool RecordReplay_FindScriptHits(JSContext* aCx, unsigned aArgc,
   uint32_t script = args.get(1).toNumber();
   uint32_t offset = args.get(2).toNumber();
 
+  SearchFilter filter;
+  if (!filter.Parse(aCx, args.get(3))) {
+    return false;
+  }
+
   RootedValueVector values(aCx);
 
-  ScriptHitInfo::ScriptHitVector* hits =
-      gScriptHits ? gScriptHits->FindHits(checkpoint, script, offset) : nullptr;
-  if (hits) {
+  ScriptHitRegionVector regions;
+  if (gScriptHits) {
+    gScriptHits->FindRegions(checkpoint, filter.mMinProgress, filter.mMaxProgress,
+                             regions);
+  }
+
+  for (auto region : regions) {
+    ScriptHitVector* hits = region->FindHits(script, offset);
+    if (!hits) {
+      continue;
+    }
     for (const auto& hit : *hits) {
+      if (filter.Exclude(script, hit.mFrameIndex, hit.mProgress)) {
+        continue;
+      }
       RootedObject hitObject(aCx, JS_NewObject(aCx, nullptr));
       if (!hitObject ||
           !JS_DefineProperty(aCx, hitObject, "progress",
@@ -1933,27 +2080,12 @@ static bool RecordReplay_FindScriptHits(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
-static bool MaybeGetNumberProperty(JSContext* aCx, HandleObject aObject,
-                                   const char* aName, Maybe<size_t>* aResult) {
-  RootedValue v(aCx);
-  if (!JS_GetProperty(aCx, aObject, aName, &v)) {
-    return false;
-  }
-
-  if (v.isNumber()) {
-    aResult->emplace(v.toNumber());
-  }
-
-  return true;
-}
-
 static bool RecordReplay_FindChangeFrames(JSContext* aCx, unsigned aArgc,
                                           Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
   MaybeIncorporateScanData();
 
-  if (!args.get(0).isNumber() || !args.get(1).isNumber() ||
-      !args.get(2).isObject()) {
+  if (!args.get(0).isNumber() || !args.get(1).isNumber()) {
     JS_ReportErrorASCII(aCx, "Bad parameters");
     return false;
   }
@@ -1966,29 +2098,26 @@ static bool RecordReplay_FindChangeFrames(JSContext* aCx, unsigned aArgc,
     return false;
   }
 
-  Maybe<size_t> frameIndex;
-  Maybe<size_t> script;
-  Maybe<size_t> minProgress;
-  Maybe<size_t> maxProgress;
-
-  RootedObject filter(aCx, &args.get(2).toObject());
-  if (!MaybeGetNumberProperty(aCx, filter, "frameIndex", &frameIndex) ||
-      !MaybeGetNumberProperty(aCx, filter, "script", &script) ||
-      !MaybeGetNumberProperty(aCx, filter, "minProgress", &minProgress) ||
-      !MaybeGetNumberProperty(aCx, filter, "maxProgress", &maxProgress)) {
+  SearchFilter filter;
+  if (!filter.Parse(aCx, args.get(2))) {
     return false;
   }
 
   RootedValueVector values(aCx);
 
-  ScriptHitInfo::AnyScriptHitVector* hits =
-      gScriptHits ? gScriptHits->FindChangeFrames(checkpoint, which) : nullptr;
-  if (hits) {
-    for (const ScriptHitInfo::AnyScriptHit& hit : *hits) {
-      if ((frameIndex.isSome() && hit.mFrameIndex != *frameIndex) ||
-          (script.isSome() && hit.mScript != *script) ||
-          (minProgress.isSome() && hit.mProgress < *minProgress) ||
-          (maxProgress.isSome() && hit.mProgress > *maxProgress)) {
+  ScriptHitRegionVector regions;
+  if (gScriptHits) {
+    gScriptHits->FindRegions(checkpoint, filter.mMinProgress, filter.mMaxProgress,
+                             regions);
+  }
+
+  for (auto region : regions) {
+    AnyScriptHitVector* hits = region->FindChangeFrames(which);
+    if (!hits) {
+      continue;
+    }
+    for (const AnyScriptHit& hit : *hits) {
+      if (filter.Exclude(hit.mScript, hit.mFrameIndex, hit.mProgress)) {
         continue;
       }
       RootedObject hitObject(aCx, JS_NewObject(aCx, nullptr));
@@ -2073,7 +2202,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("setScannedPaintData", RecordReplay_SetScannedPaintData, 2, 0),
     JS_FN("copyScanDataToRoot", RecordReplay_CopyScanDataToRoot, 0, 0),
     JS_FN("getScannedPaintData", RecordReplay_GetScannedPaintData, 1, 0),
-    JS_FN("findScriptHits", RecordReplay_FindScriptHits, 3, 0),
+    JS_FN("findScriptHits", RecordReplay_FindScriptHits, 4, 0),
     JS_FN("findChangeFrames", RecordReplay_FindChangeFrames, 3, 0),
     JS_FN("getenv", RecordReplay_GetEnv, 1, 0),
     JS_FN("saveCloudRecording", RecordReplay_SaveCloudRecording, 1, 0),
