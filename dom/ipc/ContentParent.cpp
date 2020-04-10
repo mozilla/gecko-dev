@@ -151,6 +151,7 @@
 #include "mozilla/net/PCookieServiceParent.h"
 #include "mozilla/plugins/PluginBridge.h"
 #include "mozilla/psm/PSMContentListener.h"
+#include "mozilla/recordreplay/ParentIPC.h"
 #include "mozilla/widget/ScreenManager.h"
 #include "nsAnonymousTemporaryFile.h"
 #include "nsAppRunner.h"
@@ -643,7 +644,9 @@ bool ContentParent::sEarlySandboxInit = false;
 /*static*/ RefPtr<ContentParent::LaunchPromise>
 ContentParent::PreallocateProcess() {
   RefPtr<ContentParent> process = new ContentParent(
-      /* aOpener = */ nullptr, NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE));
+      /* aOpener = */ nullptr, NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE),
+      eNotRecordingOrReplaying,
+      /* aRecordingFile = */ EmptyString());
 
   return process->LaunchSubprocessAsync(PROCESS_PRIORITY_PREALLOC);
 }
@@ -842,6 +845,44 @@ Maybe<ContentParent::RecordReplayState> ContentParent::GetRecordReplayState(
     aRecordingFile.AssignLiteral("*");
   }
   if (!aRecordingFile.IsEmpty()) {
+    return Some(eRecording);
+  }
+  return Some(eNotRecordingOrReplaying);
+}
+
+static bool CreateTemporaryRecordingFile(nsAString& aResult) {
+  static int sNumTemporaryRecordings;
+  nsCOMPtr<nsIFile> file;
+  return !NS_FAILED(
+             NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(file))) &&
+         !NS_FAILED(file->AppendNative(
+             nsPrintfCString("TempRecording.%d.%d", base::GetCurrentProcId(),
+                             ++sNumTemporaryRecordings))) &&
+         !NS_FAILED(file->GetPath(aResult));
+}
+
+/*static*/
+Maybe<ContentParent::RecordReplayState> ContentParent::GetRecordReplayState(
+    Element* aFrameElement, nsAString& aRecordingFile) {
+  if (!aFrameElement) {
+    return Some(eNotRecordingOrReplaying);
+  }
+  aFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::ReplayExecution,
+                         aRecordingFile);
+  if (!aRecordingFile.IsEmpty()) {
+    return Some(eReplaying);
+  }
+  aFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::RecordExecution,
+                         aRecordingFile);
+  if (aRecordingFile.IsEmpty() &&
+      recordreplay::parent::SaveAllRecordingsDirectory()) {
+    aRecordingFile.AssignLiteral("*");
+  }
+  if (!aRecordingFile.IsEmpty()) {
+    if (aRecordingFile.EqualsLiteral("*") &&
+        !CreateTemporaryRecordingFile(aRecordingFile)) {
+      return Nothing();
+    }
     return Some(eRecording);
   }
   return Some(eNotRecordingOrReplaying);
@@ -1517,6 +1558,21 @@ void ContentParent::ShutDownProcess(ShutDownMethod aMethod) {
   // other methods. We first call Shutdown() in the child. After the child is
   // ready, it calls FinishShutdown() on us. Then we close the channel.
   if (aMethod == SEND_SHUTDOWN_MESSAGE) {
+    if (const char* directory =
+            recordreplay::parent::SaveAllRecordingsDirectory()) {
+      // Save a recording for the child process before it shuts down.
+      static int sNumSavedRecordings;
+      nsCOMPtr<nsIFile> file;
+      if (!NS_FAILED(NS_NewNativeLocalFile(nsDependentCString(directory), false,
+                                           getter_AddRefs(file))) &&
+          !NS_FAILED(file->AppendNative(
+              nsPrintfCString("Recording.%d.%d", base::GetCurrentProcId(),
+                              ++sNumSavedRecordings)))) {
+        bool unused;
+        SaveRecording(file, &unused);
+      }
+    }
+
     if (mIPCOpen && !mShutdownPending) {
       // Stop sending input events with input priority when shutting down.
       SetInputPriorityEventEnabled(false);
@@ -1777,6 +1833,14 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
       [subprocess = mSubprocess] { subprocess->Destroy(); }));
   mSubprocess = nullptr;
 
+  // Delete any remaining replaying children.
+  for (auto& replayingProcess : mReplayingChildren) {
+    if (replayingProcess) {
+      replayingProcess->Destroy();
+      replayingProcess = nullptr;
+    }
+  }
+
   ContentProcessManager* cpm = ContentProcessManager::GetSingleton();
   cpm->RemoveContentProcess(this->ChildID());
 
@@ -1843,6 +1907,12 @@ bool ContentParent::ShouldKeepProcessAlive() {
 
   // If we have already been marked as dead, don't prevent shutdown.
   if (!IsAlive()) {
+    return false;
+  }
+
+  // Recording/replaying content parents cannot be reused and should not be
+  // kept alive.
+  if (this->IsRecordingOrReplaying()) {
     return false;
   }
 
@@ -1943,7 +2013,6 @@ void ContentParent::NotifyTabDestroyed(const TabId& aTabId,
   }
 }
 
-<<<<<<< HEAD
 mozilla::ipc::IPCResult ContentParent::RecvOpenRecordReplayChannel(
     const uint32_t& aChannelId, FileDescriptor* aConnection) {
   // We should only get this message from the child if it is recording or
@@ -2022,8 +2091,6 @@ mozilla::ipc::IPCResult ContentParent::RecvGenerateReplayCrashReport(
   return IPC_OK();
 }
 
-=======
->>>>>>> release
 jsipc::CPOWManager* ContentParent::GetCPOWManager() {
   if (PJavaScriptParent* p =
           LoneManagedOrNullAsserts(ManagedPJavaScriptParent())) {
@@ -2211,8 +2278,10 @@ bool ContentParent::BeginSubprocessLaunch(bool aIsSync,
   }
 
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
+  // If we're launching a middleman process for a
+  // recording or replay, start the sandbox later.
   bool sandboxEnabled = IsContentSandboxEnabled();
-  if (sandboxEnabled && sEarlySandboxInit) {
+  if (sandboxEnabled && sEarlySandboxInit && !IsRecordingOrReplaying()) {
     AppendSandboxParams(extraArgs);
   }
   if (sandboxEnabled) {
@@ -2345,7 +2414,10 @@ RefPtr<ContentParent::LaunchPromise> ContentParent::LaunchSubprocessAsync(
 }
 
 ContentParent::ContentParent(ContentParent* aOpener,
-                             const nsAString& aRemoteType, int32_t aJSPluginID)
+                             const nsAString& aRemoteType,
+                             RecordReplayState aRecordReplayState,
+                             const nsAString& aRecordingFile,
+                             int32_t aJSPluginID)
     : mSelfRef(nullptr),
       mSubprocess(nullptr),
       mLaunchTS(TimeStamp::Now()),
@@ -2360,6 +2432,8 @@ ContentParent::ContentParent(ContentParent* aOpener,
       mNumDestroyingTabs(0),
       mLifecycleState(LifecycleState::LAUNCHING),
       mIsForBrowser(!mRemoteType.IsEmpty()),
+      mRecordReplayState(aRecordReplayState),
+      mRecordingFile(aRecordingFile),
       mCalledClose(false),
       mCalledKillHard(false),
       mCreatedPairedMinidumps(false),
@@ -5876,7 +5950,6 @@ void ContentParent::DeallocPSHistoryParent(PSHistoryParent* aActor) {
   delete static_cast<SHistoryParent*>(aActor);
 }
 
-<<<<<<< HEAD
 nsresult ContentParent::SaveRecording(nsIFile* aFile, bool* aRetval) {
   if (mRecordReplayState != eRecording) {
     *aRetval = false;
@@ -5914,8 +5987,6 @@ nsresult ContentParent::SaveCloudRecording(const nsAString& aUUID,
   return NS_OK;
 }
 
-=======
->>>>>>> release
 mozilla::ipc::IPCResult ContentParent::RecvMaybeReloadPlugins() {
   RefPtr<nsPluginHost> pluginHost = nsPluginHost::GetInst();
   pluginHost->ReloadPlugins();

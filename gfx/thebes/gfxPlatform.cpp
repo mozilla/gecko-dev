@@ -893,7 +893,7 @@ void gfxPlatform::Init() {
 
   gfxConfig::Init();
 
-  if (XRE_IsParentProcess()) {
+  if (XRE_IsParentProcess() || recordreplay::IsRecordingOrReplaying()) {
     GPUProcessManager::Initialize();
     RDDProcessManager::Initialize();
 
@@ -1390,12 +1390,12 @@ void gfxPlatform::InitLayersIPC() {
   sLayersIPCIsUp = true;
 
   if (XRE_IsContentProcess()) {
-    if (gfxVars::UseOMTP()) {
+    if (gfxVars::UseOMTP() && !recordreplay::IsRecordingOrReplaying()) {
       layers::PaintThread::Start();
     }
   }
 
-  if (XRE_IsParentProcess()) {
+  if (XRE_IsParentProcess() || recordreplay::IsRecordingOrReplaying()) {
     if (!gfxConfig::IsEnabled(Feature::GPU_PROCESS) && UseWebRender()) {
       wr::RenderThread::Start();
       image::ImageMemoryReporter::InitForWebRender();
@@ -1424,7 +1424,7 @@ void gfxPlatform::ShutdownLayersIPC() {
       layers::ImageBridgeChild::ShutDown();
     }
 
-    if (gfxVars::UseOMTP()) {
+    if (gfxVars::UseOMTP() && !recordreplay::IsRecordingOrReplaying()) {
       layers::PaintThread::Shutdown();
     }
   } else if (XRE_IsParentProcess()) {
@@ -2706,6 +2706,11 @@ void gfxPlatform::InitCompositorAccelerationPrefs() {
         FeatureStatus::Blocked, "Acceleration blocked by headless mode",
         NS_LITERAL_CSTRING("FEATURE_FAILURE_COMP_HEADLESSMODE"));
   }
+  if (recordreplay::IsRecordingOrReplaying()) {
+    feature.ForceDisable(
+        FeatureStatus::Blocked, "Acceleration blocked by recording/replaying",
+        NS_LITERAL_CSTRING("FEATURE_FAILURE_COMP_RECORDREPLAY"));
+  }
 }
 
 /*static*/
@@ -2853,6 +2858,12 @@ void gfxPlatform::InitWebRenderConfig() {
   // crash reports.
   ScopedGfxFeatureReporter reporter("WR", prefEnabled || envvarEnabled);
   if (!XRE_IsParentProcess()) {
+    // Force-disable WebRender in recording/replaying child processes, which
+    // have their own compositor.
+    if (recordreplay::IsRecordingOrReplaying()) {
+      gfxVars::SetUseWebRender(false);
+    }
+
     // The parent process runs through all the real decision-making code
     // later in this function. For other processes we still want to report
     // the state of the feature for crash reports.
@@ -3263,7 +3274,8 @@ bool gfxPlatform::IsInLayoutAsapMode() {
 
 /* static */
 bool gfxPlatform::ForceSoftwareVsync() {
-  return StaticPrefs::layout_frame_rate() > 0;
+  return StaticPrefs::layout_frame_rate() > 0 ||
+         recordreplay::IsRecordingOrReplaying();
 }
 
 /* static */
@@ -3280,7 +3292,7 @@ int gfxPlatform::GetDefaultFrameRate() { return 60; }
 
 /* static */
 void gfxPlatform::ReInitFrameRate() {
-  if (XRE_IsParentProcess()) {
+  if (XRE_IsParentProcess() || recordreplay::IsRecordingOrReplaying()) {
     RefPtr<VsyncSource> oldSource = gPlatform->mVsyncSource;
 
     // Start a new one:

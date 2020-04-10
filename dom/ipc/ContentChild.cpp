@@ -94,6 +94,7 @@
 #include "mozilla/PerformanceUtils.h"
 #include "mozilla/plugins/PluginInstanceParent.h"
 #include "mozilla/plugins/PluginModuleParent.h"
+#include "mozilla/recordreplay/ParentIPC.h"
 #include "mozilla/widget/ScreenManager.h"
 #include "mozilla/widget/WidgetMessageUtils.h"
 #include "nsBaseDragService.h"
@@ -697,6 +698,17 @@ bool ContentChild::Init(MessageLoop* aIOLoop, base::ProcessId aParentPid,
   nsresult rv = nsThreadManager::get().Init();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
+  }
+
+  // Middleman processes use a special channel for forwarding messages to
+  // their own children.
+  if (recordreplay::IsMiddleman()) {
+    SetMiddlemanIPCChannel(recordreplay::parent::ChannelToUIProcess());
+
+    // Eagerly mark this child as connected, as using another IPC channel will
+    // cause that channel's protocol to be marked as connected instead and
+    // prevent this one from being able to send IPDL messages.
+    ActorConnected();
   }
 
   if (!Open(std::move(aChannel), aParentPid, aIOLoop)) {
@@ -1379,8 +1391,12 @@ void ContentChild::InitXPCOM(
   RecvBidiKeyboardNotify(aXPCOMInit.isLangRTL(),
                          aXPCOMInit.haveBidiKeyboards());
 
-  // Create the CPOW manager as soon as possible.
-  SendPJavaScriptConstructor();
+  // Create the CPOW manager as soon as possible. Middleman processes don't use
+  // CPOWs, because their recording child will also have a CPOW manager that
+  // communicates with the UI process.
+  if (!recordreplay::IsMiddleman()) {
+    SendPJavaScriptConstructor();
+  }
 
   if (aXPCOMInit.domainPolicy().active()) {
     nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
@@ -1698,7 +1714,8 @@ static bool StartMacOSContentSandbox() {
   }
 
   // If the sandbox is already enabled, there's nothing more to do here.
-  if (Preferences::GetBool("security.sandbox.content.mac.earlyinit")) {
+  if (Preferences::GetBool("security.sandbox.content.mac.earlyinit") &&
+      !recordreplay::IsRecordingOrReplaying()) {
     return true;
   }
 
@@ -1869,7 +1886,11 @@ static void FirstIdle(void) {
   MOZ_ASSERT(gFirstIdleTask);
   gFirstIdleTask = nullptr;
 
-  ContentChild::GetSingleton()->SendFirstIdle();
+  // When recording or replaying, the middleman process will send this message
+  // instead.
+  if (!recordreplay::IsRecordingOrReplaying()) {
+    ContentChild::GetSingleton()->SendFirstIdle();
+  }
 }
 
 mozilla::jsipc::PJavaScriptChild* ContentChild::AllocPJavaScriptChild() {
@@ -2089,6 +2110,9 @@ jsipc::CPOWManager* ContentChild::GetCPOWManager() {
   if (PJavaScriptChild* c =
           LoneManagedOrNullAsserts(ManagedPJavaScriptChild())) {
     return CPOWManagerFor(c);
+  }
+  if (recordreplay::IsMiddleman()) {
+    return nullptr;
   }
   return CPOWManagerFor(SendPJavaScriptConstructor());
 }
@@ -3639,6 +3663,12 @@ mozilla::ipc::IPCResult ContentChild::RecvSaveRecording(
 mozilla::ipc::IPCResult ContentChild::RecvSaveCloudRecording(
     const nsAString& aUUID) {
   recordreplay::parent::SaveCloudRecording(aUUID);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult ContentChild::RecvSaveRecording(
+    const FileDescriptor& aFile) {
+  recordreplay::parent::SaveRecording(aFile);
   return IPC_OK();
 }
 

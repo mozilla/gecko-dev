@@ -3764,6 +3764,40 @@ XDRResult ScriptSource::xdrData(XDRState<mode>* const xdr,
   return Ok();
 }
 
+// Note the content of sources decoded when recording or replaying.
+static bool MaybeNoteContentParse(JSContext* cx, ScriptSource* ss) {
+  if (!mozilla::recordreplay::IsRecordingOrReplaying()) {
+    return true;
+  }
+  if (!ss->hasSourceText()) {
+    return true;
+  }
+
+  UncompressedSourceCache::AutoHoldEntry holder;
+  if (ss->hasSourceType<Utf8Unit>()) {
+    // UTF-8 source text.
+    ScriptSource::PinnedUnits<Utf8Unit> units(cx, ss, holder, 0, ss->length());
+    if (!units.get()) {
+      return false;
+    }
+    mozilla::recordreplay::NoteContentParse(ss, ss->filename(),
+                                            "application/javascript",
+                                            units.get(), ss->length());
+  } else {
+    // UTF-16 source text.
+    MOZ_ASSERT(ss->hasSourceType<char16_t>());
+    ScriptSource::PinnedUnits<char16_t> units(cx, ss, holder, 0, ss->length());
+    if (!units.get()) {
+      return false;
+    }
+    mozilla::recordreplay::NoteContentParse(ss, ss->filename(),
+                                            "application/javascript",
+                                            units.get(), ss->length());
+  }
+
+  return true;
+}
+
 template <XDRMode mode>
 /* static */
 XDRResult ScriptSource::XDR(XDRState<mode>* xdr,
@@ -3847,6 +3881,11 @@ XDRResult ScriptSource::XDR(XDRState<mode>* xdr,
         }
       }
       MOZ_ASSERT(ss->filename());
+
+      // Note the content of sources decoded when recording or replaying.
+      if (!MaybeNoteContentParse(xdr->cx(), ss)) {
+        return xdr->fail(JS::TranscodeResult_Throw);
+      }
     }
   }
 
@@ -4025,7 +4064,8 @@ bool ScriptSource::setSourceMapURL(JSContext* cx, UniqueTwoByteChars&& url) {
   return sourceMapURL_.isSome();
 }
 
-/* static */ mozilla::Atomic<uint32_t, mozilla::SequentiallyConsistent>
+/* static */ mozilla::Atomic<uint32_t, mozilla::SequentiallyConsistent,
+                             mozilla::recordreplay::Behavior::DontPreserve>
     ScriptSource::idCount_;
 
 /*
@@ -4279,6 +4319,17 @@ JSScript* JSScript::New(JSContext* cx, HandleObject functionOrGlobal,
       JSScript(stubEntry, functionOrGlobal, sourceObject, extent);
 }
 
+static bool ShouldTrackRecordReplayProgress(JSScript* script) {
+  // Progress is only tracked when recording or replaying, and only for
+  // scripts associated with the main thread's runtime. Whether self hosted
+  // scripts execute may depend on performed Ion optimizations (for example,
+  // self hosted TypedObject logic), so they are ignored.
+  return MOZ_UNLIKELY(mozilla::recordreplay::IsRecordingOrReplaying()) &&
+         !script->runtimeFromAnyThread()->parentRuntime &&
+         !script->selfHosted() &&
+         mozilla::recordreplay::ShouldUpdateProgressCounter(script->filename());
+}
+
 /* static */
 JSScript* JSScript::Create(JSContext* cx, HandleObject functionOrGlobal,
                            const ReadOnlyCompileOptions& options,
@@ -4305,6 +4356,8 @@ JSScript* JSScript::Create(JSContext* cx, js::HandleObject functionOrGlobal,
   script->setImmutableFlags(flags);
 
   script->setFlag(MutableFlags::HideScriptFromDebugger, hideScriptFromDebugger);
+  script->setFlag(MutableFlags::TrackRecordReplayProgress,
+                  ShouldTrackRecordReplayProgress(script));
 
   return script;
 }
@@ -4325,6 +4378,9 @@ JSScript* JSScript::Create(JSContext* cx, js::HandleObject functionOrGlobal,
   if (lazy->hasBeenCloned()) {
     script->setHasBeenCloned();
   }
+
+  script->setFlag(MutableFlags::TrackRecordReplayProgress,
+                  ShouldTrackRecordReplayProgress(script));
 
   return script;
 }
