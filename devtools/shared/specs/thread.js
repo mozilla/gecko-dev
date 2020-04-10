@@ -65,7 +65,6 @@ const threadSpec = generateActorSpec({
     newSource: {
       source: Option(0, "json"),
     },
-<<<<<<< HEAD
     replayStatusUpdate: {
       status: Option(0, "json"),
     },
@@ -78,8 +77,6 @@ const threadSpec = generateActorSpec({
     replayPreloadedData: {
       data: Option(0, "array:json"),
     },
-=======
->>>>>>> release
   },
 
   methods: {
@@ -102,6 +99,7 @@ const threadSpec = generateActorSpec({
     resume: {
       request: {
         resumeLimit: Arg(0, "nullable:json"),
+        rewind: Arg(1, "boolean"),
       },
       response: RetVal("nullable:json"),
     },
@@ -237,8 +235,6 @@ const threadSpec = generateActorSpec({
         value: RetVal("array:json"),
       },
     },
-
-    // For testing.
     pickExecutionPoints: {
       request: {
         count: Arg(0, "number"),
@@ -247,6 +243,15 @@ const threadSpec = generateActorSpec({
       response: {
         points: RetVal("array:json"),
       },
+    },
+
+    replayStatusUpdate: {
+      status: Option(0, "json"),
+    },
+    replayFramePositions: {
+      positions: Option(0, "array:json"),
+      frame: Option(0, "string"),
+      thread: Option(0, "string"),
     },
   },
 });

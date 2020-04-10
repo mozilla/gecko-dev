@@ -453,7 +453,9 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
     // originalTarget allows access to the "real" element before any retargeting
     // is applied, such as in the case of XBL anonymous elements.  See also
     // https://developer.mozilla.org/docs/XBL/XBL_1.0_Reference/Anonymous_Content#Event_Flow_and_Targeting
-    const node = event.originalTarget || event.target;
+    const node = isReplaying
+      ? ReplayInspector.findEventTarget(event)
+      : event.originalTarget || event.target;
     return this._walker.attachElement(node);
   },
 

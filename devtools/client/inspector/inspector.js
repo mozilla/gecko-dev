@@ -204,6 +204,18 @@ Inspector.prototype = {
       this._replayResumed = !dbg.isPaused();
     }
 
+    // When replaying, we need to listen to changes in the target's pause state.
+    if (this.currentTarget.isReplayEnabled()) {
+      let dbg = this._toolbox.getPanel("jsdebugger");
+      if (!dbg) {
+        dbg = await this._toolbox.loadTool("jsdebugger");
+      }
+      this._replayResumed = !dbg.isPaused();
+
+      this.currentTarget.threadFront.on("paused", this.handleThreadPaused);
+      this.currentTarget.threadFront.on("resumed", this.handleThreadResumed);
+    }
+
     await this.toolbox.targetList.watchTargets(
       [this.toolbox.targetList.TYPES.FRAME],
       this._onTargetAvailable,
@@ -472,8 +484,10 @@ Inspector.prototype = {
 
     // A helper to tell if the target has or is about to navigate.
     // this._pendingSelection changes on "will-navigate" and "new-root" events.
+    // When replaying, if the target is unpaused then we consider it to be
+    // navigating so that its tree will not be constructed.
     const hasNavigated = () => {
-      return pendingSelection !== this._pendingSelection;
+      return pendingSelection !== this._pendingSelection || this._replayResumed;
     };
 
     if (hasNavigated()) {
@@ -1433,6 +1447,22 @@ Inspector.prototype = {
     if (id == "inspector" && this._hasNewRoot) {
       this.onNewRoot();
     }
+  },
+
+  /**
+   * When replaying, reset the inspector whenever the target pauses.
+   */
+  handleThreadPaused() {
+    this._replayResumed = false;
+    this.onNewRoot();
+  },
+
+  /**
+   * When replaying, reset the inspector whenever the target resumes.
+   */
+  handleThreadResumed() {
+    this._replayResumed = true;
+    this.onNewRoot();
   },
 
   /**

@@ -281,7 +281,7 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
   initialize: function(conn, targetActor, options) {
     protocol.Actor.prototype.initialize.call(this, conn);
     this.targetActor = targetActor;
-    this.rootWin = targetActor.window;
+    this.rootWin = isReplaying ? ReplayInspector.window : targetActor.window;
     this.rootDoc = this.rootWin.document;
     this._refMap = new Map();
     this._pendingMutations = [];

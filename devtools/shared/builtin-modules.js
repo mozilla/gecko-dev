@@ -249,7 +249,7 @@ exports.modules = {
 
 defineLazyGetter(exports.modules, "Debugger", () => {
   const global = Cu.getGlobalForObject(this);
-  // Debugger may already have been added.
+  // Debugger may already have been added by RecordReplayControl getter
   if (global.Debugger) {
     return global.Debugger;
   }
@@ -266,6 +266,20 @@ defineLazyGetter(exports.modules, "ChromeDebugger", () => {
   );
   addDebuggerToGlobal(debuggerSandbox);
   return debuggerSandbox.Debugger;
+});
+
+defineLazyGetter(exports.modules, "RecordReplayControl", () => {
+  // addDebuggerToGlobal also adds the RecordReplayControl object.
+  const global = Cu.getGlobalForObject(this);
+  // RecordReplayControl may already have been added by Debugger getter
+  if (global.RecordReplayControl) {
+    return global.RecordReplayControl;
+  }
+  const { addDebuggerToGlobal } = ChromeUtils.import(
+    "resource://gre/modules/jsdebugger.jsm"
+  );
+  addDebuggerToGlobal(global);
+  return global.RecordReplayControl;
 });
 
 defineLazyGetter(exports.modules, "InspectorUtils", () => {
@@ -382,7 +396,11 @@ lazyGlobal("indexedDB", () => {
     indexedDB
   );
 });
+lazyGlobal("isReplaying", () => {
+  return exports.modules.Debugger.recordReplayProcessKind() == "Middleman";
+});
 
+// Globals which the ReplayInspector provides an alternate implementation for.
 const inspectorGlobals = {
   CSSRule,
   Event,
@@ -390,13 +408,10 @@ const inspectorGlobals = {
 
 for (const [name, value] of Object.entries(inspectorGlobals)) {
   lazyGlobal(name, () => {
-<<<<<<< HEAD
     if (exports.modules.Debugger.recordReplayProcessKind() == "Middleman") {
       const { ReplayInspector } = require("RecordReplayControl").module;
       return ReplayInspector[`create${name}`](value);
     }
-=======
->>>>>>> release
     return value;
   });
 }

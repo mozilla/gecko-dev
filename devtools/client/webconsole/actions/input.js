@@ -215,6 +215,11 @@ function terminalInputChanged(expression) {
       return;
     }
 
+    // The server does not support eager evaluation when replaying.
+    if (hud.currentTarget.isReplayEnabled()) {
+      return;
+    }
+
     const { terminalInput = "" } = getState().history;
     // Only re-evaluate if the expression did change.
     if (

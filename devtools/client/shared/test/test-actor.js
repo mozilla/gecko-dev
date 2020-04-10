@@ -305,6 +305,11 @@ var TestActor = (exports.TestActor = protocol.ActorClassWithSpec(testSpec, {
   },
 
   get content() {
+    // When replaying, the content window is in the replaying process. We can't
+    // use isReplaying here because this actor is loaded into its own sandbox.
+    if (Debugger.recordReplayProcessKind() == "Middleman") {
+      return ReplayInspector.window;
+    }
     return this.targetActor.window;
   },
 
