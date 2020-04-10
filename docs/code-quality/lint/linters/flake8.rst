@@ -1,0 +1,56 @@
+Flake8
+======
+
+`Flake8 <https://flake8.readthedocs.io/en/latest/>`__ is a popular lint wrapper for python. Under the hood, it runs three other tools and
+combines their results:
+
+* `pep8 <http://pep8.readthedocs.io/en/latest/>`__ for checking style
+* `pyflakes <https://github.com/pyflakes/pyflakes>`__ for checking syntax
+* `mccabe <https://github.com/pycqa/mccabe>`__ for checking complexity
+
+
+Run Locally
+-----------
+
+The mozlint integration of flake8 can be run using mach:
+
+.. parsed-literal::
+
+    $ mach lint --linter flake8 <file paths>
+
+Alternatively, omit the ``--linter flake8`` and run all configured linters, which will include
+flake8.
+
+
+Configuration
+-------------
+
+Only directories explicitly whitelisted will have flake8 run against them. To enable flake8 linting
+in a source directory, it must be added to the ``include`` directive in ```tools/lint/flake8.lint``.
+If you wish to exclude a subdirectory of an included one, you can add it to the ``exclude``
+directive.
+
+The default configuration file lives in ``topsrcdir/.flake8``. The default configuration can be
+overridden for a given subdirectory by creating a new ``.flake8`` file in the subdirectory. Be warned
+that ``.flake8`` files cannot inherit from one another, so all configuration you wish to keep must
+be re-defined.
+
+.. warning::
+
+    Only ``.flake8`` files that live in a directory that is explicitly included in the ``include``
+    directive will be considered. See `bug 1277851 <https://bugzilla.mozilla.org/show_bug.cgi?id=1277851>`__ for more details.
+
+For an overview of the supported configuration, see `flake8's documentation <https://flake8.readthedocs.io/en/latest/config.html>`__.
+
+Autofix
+-------
+
+The flake8 linter provides a ``--fix`` option. It is based on `autopep8 <https://github.com/hhatto/autopep8>`__.
+Please note that autopep8 does NOT fix all issues reported by flake8.
+
+
+Sources
+-------
+
+* `Configuration (YAML) <https://searchfox.org/mozilla-central/source/tools/lint/flake8.yml>`_
+* `Source <https://searchfox.org/mozilla-central/source/tools/lint/python/flake8.py>`_

@@ -31,7 +31,7 @@ function ReadTopManifest(aFileURL, aFilter, aManifestID)
 }
 
 // Note: If you materially change the reftest manifest parsing,
-// please keep the parser in print-manifest-dirs.py in sync.
+// please keep the parser in layout/tools/reftest/__init__.py in sync.
 function ReadManifest(aURL, aFilter, aManifestID)
 {
     // Ensure each manifest is only read once. This assumes that manifests that
@@ -72,6 +72,7 @@ function ReadManifest(aURL, aFilter, aManifestID)
 
     var lineNo = 0;
     var urlprefix = "";
+    var defaults = [];
     var defaultTestPrefSettings = [], defaultRefPrefSettings = [];
     if (g.compareRetainedDisplayLists) {
         AddRetainedDisplayListTestPrefs(GetOrCreateSandbox(), defaultTestPrefSettings,
@@ -97,27 +98,9 @@ function ReadManifest(aURL, aFilter, aManifestID)
             continue;
         }
 
-        if (items[0] == "default-preferences") {
-            var m;
-            var item;
-            defaultTestPrefSettings = [];
-            defaultRefPrefSettings = [];
+        if (items[0] == "defaults") {
             items.shift();
-            while ((item = items.shift())) {
-                if (!(m = item.match(RE_PREF_ITEM))) {
-                    throw "Unexpected item in default-preferences list in manifest file " + aURL.spec + " line " + lineNo;
-                }
-                if (!AddPrefSettings(m[1], m[2], m[3], GetOrCreateSandbox(),
-                                     defaultTestPrefSettings,
-                                     defaultRefPrefSettings)) {
-                    throw "Error in pref value in manifest file " + aURL.spec + " line " + lineNo;
-                }
-            }
-            if (g.compareRetainedDisplayLists) {
-                AddRetainedDisplayListTestPrefs(GetOrCreateSandbox(),
-                                                defaultTestPrefSettings,
-                                                defaultRefPrefSettings);
-            }
+            defaults = items;
             continue;
         }
 
@@ -136,6 +119,8 @@ function ReadManifest(aURL, aFilter, aManifestID)
         var nonSkipUsed = false;
         var noAutoFuzz = false;
 
+        var origLength = items.length;
+        items = defaults.concat(items);
         while (items[0].match(/^(fails|needs-focus|random|skip|asserts|slow|require-or|silentfail|pref|test-pref|ref-pref|fuzzy|chaos-mode|wr-capture|wr-capture-ref|noautofuzz)/)) {
             var item = items.shift();
             var stat;
@@ -249,6 +234,12 @@ function ReadManifest(aURL, aFilter, aManifestID)
             }
         }
 
+        if (items.length > origLength) {
+            // Implies we broke out of the loop before we finished processing
+            // defaults. This means defaults contained an invalid token.
+            throw "Error in manifest file " + aURL.spec + " line " + lineNo + ": invalid defaults token '" + items[0] + "'";
+        }
+
         if (minAsserts > maxAsserts) {
             throw "Bad range in manifest file " + aURL.spec + " line " + lineNo;
         }
@@ -349,6 +340,7 @@ function ReadManifest(aURL, aFilter, aManifestID)
             AddTestItem({ type: type,
                           expected: expected_status,
                           manifest: aURL.spec,
+                          manifestID: TestIdentifier(aURL.spec, aManifestID),
                           allowSilentFail: allow_silent_fail,
                           minAsserts: minAsserts,
                           maxAsserts: maxAsserts,
@@ -398,6 +390,7 @@ function ReadManifest(aURL, aFilter, aManifestID)
             AddTestItem({ type: type,
                           expected: expected_status,
                           manifest: aURL.spec,
+                          manifestID: TestIdentifier(aURL.spec, aManifestID),
                           allowSilentFail: allow_silent_fail,
                           minAsserts: minAsserts,
                           maxAsserts: maxAsserts,
@@ -549,9 +542,9 @@ function BuildConditionSandbox(aURL) {
     sandbox.webrtc = false;
 #endif
 
-let retainedDisplayListsEnabled = prefs.getBoolPref("layout.display-list.retain", false);
-sandbox.retainedDisplayLists = retainedDisplayListsEnabled && !g.compareRetainedDisplayLists;
-sandbox.compareRetainedDisplayLists = g.compareRetainedDisplayLists;
+    let retainedDisplayListsEnabled = prefs.getBoolPref("layout.display-list.retain", false);
+    sandbox.retainedDisplayLists = retainedDisplayListsEnabled && !g.compareRetainedDisplayLists;
+    sandbox.compareRetainedDisplayLists = g.compareRetainedDisplayLists;
 
     sandbox.skiaPdf = false;
 
@@ -584,7 +577,7 @@ sandbox.compareRetainedDisplayLists = g.compareRetainedDisplayLists;
     sandbox.windowsDefaultTheme = g.containingWindow.matchMedia("(-moz-windows-default-theme)").matches;
 
     try {
-        sandbox.nativeThemePref = !prefs.getBoolPref("widget.disable-native-theme");
+        sandbox.nativeThemePref = !prefs.getBoolPref("widget.disable-native-theme-for-content");
     } catch (e) {
         sandbox.nativeThemePref = true;
     }

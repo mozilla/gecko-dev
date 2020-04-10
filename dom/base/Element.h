@@ -21,14 +21,12 @@
 #include "nsDOMAttributeMap.h"
 #include "nsINodeList.h"
 #include "nsIScrollableFrame.h"
-#include "nsPresContext.h"
 #include "Units.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/CORSMode.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/FlushType.h"
-#include "mozilla/PresShell.h"
 #include "mozilla/PseudoStyleType.h"
 #include "mozilla/RustCell.h"
 #include "mozilla/SMILAttr.h"
@@ -1171,31 +1169,11 @@ class Element : public FragmentOrElement {
     }
     return false;
   }
-  void SetCapture(bool aRetargetToElement) {
-    // If there is already an active capture, ignore this request. This would
-    // occur if a splitter, frame resizer, etc had already captured and we don't
-    // want to override those.
-    if (!PresShell::GetCapturingContent()) {
-      PresShell::SetCapturingContent(
-          this, CaptureFlags::PreventDragStart |
-                    (aRetargetToElement ? CaptureFlags::RetargetToElement
-                                        : CaptureFlags::None));
-    }
-  }
+  void SetCapture(bool aRetargetToElement);
 
-  void SetCaptureAlways(bool aRetargetToElement) {
-    PresShell::SetCapturingContent(
-        this, CaptureFlags::PreventDragStart |
-                  CaptureFlags::IgnoreAllowedState |
-                  (aRetargetToElement ? CaptureFlags::RetargetToElement
-                                      : CaptureFlags::None));
-  }
+  void SetCaptureAlways(bool aRetargetToElement);
 
-  void ReleaseCapture() {
-    if (PresShell::GetCapturingContent() == this) {
-      PresShell::ReleaseCapturingContent();
-    }
-  }
+  void ReleaseCapture();
 
   already_AddRefed<Promise> RequestFullscreen(CallerType, ErrorResult&);
   void RequestPointerLock(CallerType aCallerType);
@@ -1266,48 +1244,52 @@ class Element : public FragmentOrElement {
   MOZ_CAN_RUN_SCRIPT int32_t ScrollHeight();
   MOZ_CAN_RUN_SCRIPT void MozScrollSnap();
   MOZ_CAN_RUN_SCRIPT int32_t ClientTop() {
-    return nsPresContext::AppUnitsToIntCSSPixels(GetClientAreaRect().y);
+    return CSSPixel::FromAppUnits(GetClientAreaRect().y).Rounded();
   }
   MOZ_CAN_RUN_SCRIPT int32_t ClientLeft() {
-    return nsPresContext::AppUnitsToIntCSSPixels(GetClientAreaRect().x);
+    return CSSPixel::FromAppUnits(GetClientAreaRect().x).Rounded();
   }
   MOZ_CAN_RUN_SCRIPT int32_t ClientWidth() {
-    return nsPresContext::AppUnitsToIntCSSPixels(GetClientAreaRect().Width());
+    return CSSPixel::FromAppUnits(GetClientAreaRect().Width()).Rounded();
   }
   MOZ_CAN_RUN_SCRIPT int32_t ClientHeight() {
-    return nsPresContext::AppUnitsToIntCSSPixels(GetClientAreaRect().Height());
+    return CSSPixel::FromAppUnits(GetClientAreaRect().Height()).Rounded();
   }
   MOZ_CAN_RUN_SCRIPT int32_t ScrollTopMin() {
     nsIScrollableFrame* sf = GetScrollFrame();
-    return sf ? nsPresContext::AppUnitsToIntCSSPixels(sf->GetScrollRange().y)
-              : 0;
+    if (!sf) {
+      return 0;
+    }
+    return CSSPixel::FromAppUnits(sf->GetScrollRange().y).Rounded();
   }
   MOZ_CAN_RUN_SCRIPT int32_t ScrollTopMax() {
     nsIScrollableFrame* sf = GetScrollFrame();
-    return sf ? nsPresContext::AppUnitsToIntCSSPixels(
-                    sf->GetScrollRange().YMost())
-              : 0;
+    if (!sf) {
+      return 0;
+    }
+    return CSSPixel::FromAppUnits(sf->GetScrollRange().YMost()).Rounded();
   }
   MOZ_CAN_RUN_SCRIPT int32_t ScrollLeftMin() {
     nsIScrollableFrame* sf = GetScrollFrame();
-    return sf ? nsPresContext::AppUnitsToIntCSSPixels(sf->GetScrollRange().x)
-              : 0;
+    if (!sf) {
+      return 0;
+    }
+    return CSSPixel::FromAppUnits(sf->GetScrollRange().x).Rounded();
   }
   MOZ_CAN_RUN_SCRIPT int32_t ScrollLeftMax() {
     nsIScrollableFrame* sf = GetScrollFrame();
-    return sf ? nsPresContext::AppUnitsToIntCSSPixels(
-                    sf->GetScrollRange().XMost())
-              : 0;
+    if (!sf) {
+      return 0;
+    }
+    return CSSPixel::FromAppUnits(sf->GetScrollRange().XMost()).Rounded();
   }
 
   MOZ_CAN_RUN_SCRIPT double ClientHeightDouble() {
-    return nsPresContext::AppUnitsToDoubleCSSPixels(
-        GetClientAreaRect().Height());
+    return CSSPixel::FromAppUnits(GetClientAreaRect().Height());
   }
 
   MOZ_CAN_RUN_SCRIPT double ClientWidthDouble() {
-    return nsPresContext::AppUnitsToDoubleCSSPixels(
-        GetClientAreaRect().Width());
+    return CSSPixel::FromAppUnits(GetClientAreaRect().Width());
   }
 
   // This function will return the block size of first line box, no matter if
@@ -1325,14 +1307,6 @@ class Element : public FragmentOrElement {
 
   already_AddRefed<Animation> Animate(
       JSContext* aContext, JS::Handle<JSObject*> aKeyframes,
-      const UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions,
-      ErrorResult& aError);
-
-  // A helper method that factors out the common functionality needed by
-  // Element::Animate and CSSPseudoElement::Animate
-  static already_AddRefed<Animation> Animate(
-      const Nullable<ElementOrCSSPseudoElement>& aTarget, JSContext* aContext,
-      JS::Handle<JSObject*> aKeyframes,
       const UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions,
       ErrorResult& aError);
 
@@ -1459,23 +1433,6 @@ class Element : public FragmentOrElement {
     }
 
     return mAttrs.AttrInfoAt(index);
-  }
-
-  /**
-   * Called when we have been adopted, and the information of the
-   * node has been changed.
-   *
-   * The new document can be reached via OwnerDoc().
-   *
-   * If you override this method,
-   * please call up to the parent NodeInfoChanged.
-   *
-   * If you change this, change also the similar method in Link.
-   */
-  virtual void NodeInfoChanged(Document* aOldDoc) {
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-    AssertInvariantsOnNodeInfoChange();
-#endif
   }
 
   /**
@@ -2037,6 +1994,11 @@ inline mozilla::dom::Element* nsINode::GetPreviousElementSibling() const {
   }
 
   return nullptr;
+}
+
+inline mozilla::dom::Element* nsINode::GetAsElementOrParentElement() const {
+  return IsElement() ? const_cast<mozilla::dom::Element*>(AsElement())
+                     : GetParentElement();
 }
 
 inline mozilla::dom::Element* nsINode::GetNextElementSibling() const {

@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsCOMPtr.h"
+#include "nsDocShell.h"
 #include "nsMemory.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/ModuleUtils.h"
@@ -63,10 +64,10 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsTypeAheadFind)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsTypeAheadFind)
 
-NS_IMPL_CYCLE_COLLECTION(nsTypeAheadFind, mFoundLink, mFoundEditable,
-                         mCurrentWindow, mStartFindRange, mSearchRange,
-                         mStartPointRange, mEndPointRange, mSoundInterface,
-                         mFind, mFoundRange)
+NS_IMPL_CYCLE_COLLECTION_WEAK(nsTypeAheadFind, mFoundLink, mFoundEditable,
+                              mCurrentWindow, mStartFindRange, mSearchRange,
+                              mStartPointRange, mEndPointRange, mSoundInterface,
+                              mFind, mFoundRange)
 
 static NS_DEFINE_CID(kFrameTraversalCID, NS_FRAMETRAVERSAL_CID);
 
@@ -825,6 +826,10 @@ nsresult nsTypeAheadFind::GetSearchContainers(
     // IsRangeVisible. It returns the first visible range after searchRange
     IsRangeVisible(mSearchRange, aIsFirstVisiblePreferred, true,
                    getter_AddRefs(mStartPointRange), nullptr);
+    // We want to search in the visible selection range. That means that the
+    // start point needs to be the end if we're looking backwards, or vice
+    // versa.
+    mStartPointRange->Collapse(!aFindPrev);
   } else {
     uint32_t startOffset;
     nsCOMPtr<nsINode> startNode;
@@ -843,9 +848,8 @@ nsresult nsTypeAheadFind::GetSearchContainers(
     // We need to set the start point this way, other methods haven't worked
     mStartPointRange->SelectNode(*startNode, IgnoreErrors());
     mStartPointRange->SetStart(*startNode, startOffset, IgnoreErrors());
+    mStartPointRange->Collapse(true);  // collapse to start
   }
-
-  mStartPointRange->Collapse(true);  // collapse to start
 
   presShell.forget(aPresShell);
   presContext.forget(aPresContext);

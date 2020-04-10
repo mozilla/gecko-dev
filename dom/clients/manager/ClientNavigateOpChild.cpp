@@ -218,13 +218,13 @@ RefPtr<ClientOpPromise> ClientNavigateOpChild::DoNavigate(
     // 2, if the URL fails to parse, we reject with a TypeError.
     nsPrintfCString err("Invalid URL \"%s\"", aArgs.url().get());
     CopyableErrorResult result;
-    result.ThrowTypeError(NS_ConvertUTF8toUTF16(err));
+    result.ThrowTypeError(err);
     return ClientOpPromise::CreateAndReject(result, __func__);
   }
 
   if (url->GetSpecOrDefault().EqualsLiteral("about:blank")) {
     CopyableErrorResult result;
-    result.ThrowTypeError(u"Navigation to \"about:blank\" is not allowed");
+    result.ThrowTypeError("Navigation to \"about:blank\" is not allowed");
     return ClientOpPromise::CreateAndReject(result, __func__);
   }
 
@@ -267,7 +267,7 @@ RefPtr<ClientOpPromise> ClientNavigateOpChild::DoNavigate(
     /// out.
     nsPrintfCString err("Invalid URL \"%s\"", aArgs.url().get());
     CopyableErrorResult result;
-    result.ThrowTypeError(NS_ConvertUTF8toUTF16(err));
+    result.ThrowTypeError(err);
     return ClientOpPromise::CreateAndReject(result, __func__);
   }
 
@@ -284,7 +284,7 @@ RefPtr<ClientOpPromise> ClientNavigateOpChild::DoNavigate(
     // XXXbz Can we throw something better here?
     result.Throw(rv);
     promise->Reject(result, __func__);
-    return promise.forget();
+    return promise;
   }
 
   return promise->Then(

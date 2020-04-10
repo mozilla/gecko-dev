@@ -333,6 +333,7 @@ static bool gBlockActivateEvent = false;
 static bool gGlobalsInitialized = false;
 static bool gRaiseWindows = true;
 static bool gUseWaylandVsync = false;
+static bool gUseWaylandUseOpaqueRegion = true;
 static GList* gVisibleWaylandPopupWindows = nullptr;
 
 #if GTK_CHECK_VERSION(3, 4, 0)
@@ -474,6 +475,8 @@ nsWindow::nsWindow() {
 
   mWindowScaleFactorChanged = true;
   mWindowScaleFactor = 1;
+
+  mIsAccelerated = false;
 }
 
 nsWindow::~nsWindow() {
@@ -1594,6 +1597,78 @@ void nsWindow::SetSizeMode(nsSizeMode aMode) {
   mBoundsAreValid = false;
 
   mSizeState = mSizeMode;
+}
+
+int32_t nsWindow::GetWorkspaceID() {
+  if (!mIsX11Display || !mShell) {
+    return 0;
+  }
+  // Get the gdk window for this widget.
+  GdkWindow* gdk_window = gtk_widget_get_window(mShell);
+  if (!gdk_window) {
+    return 0;
+  }
+
+  GdkAtom cardinal_atom = gdk_x11_xatom_to_atom(XA_CARDINAL);
+  GdkAtom type_returned;
+  int format_returned;
+  int length_returned;
+  long* wm_desktop;
+
+  if (!gdk_property_get(gdk_window, gdk_atom_intern("_NET_WM_DESKTOP", FALSE),
+                        cardinal_atom,
+                        0,          // offset
+                        INT32_MAX,  // length
+                        FALSE,      // delete
+                        &type_returned, &format_returned, &length_returned,
+                        (guchar**)&wm_desktop)) {
+    return 0;
+  }
+
+  auto desktop = int32_t(wm_desktop[0]);
+  g_free(wm_desktop);
+  return desktop;
+}
+
+void nsWindow::MoveToWorkspace(int32_t workspaceID) {
+  if (!workspaceID || !mIsX11Display || !mShell) {
+    return;
+  }
+
+  // Get the gdk window for this widget.
+  GdkWindow* gdk_window = gtk_widget_get_window(mShell);
+  if (!gdk_window) {
+    return;
+  }
+
+  // This code is inspired by some found in the 'gxtuner' project.
+  // https://github.com/brummer10/gxtuner/blob/792d453da0f3a599408008f0f1107823939d730d/deskpager.cpp#L50
+  XEvent xevent;
+  guint value = workspaceID;
+  Display* xdisplay = gdk_x11_get_default_xdisplay();
+  GdkScreen* screen = gdk_window_get_screen(gdk_window);
+  Window root_win = GDK_WINDOW_XID(gdk_screen_get_root_window(screen));
+  GdkDisplay* display = gdk_window_get_display(gdk_window);
+  Atom type = gdk_x11_get_xatom_by_name_for_display(display, "_NET_WM_DESKTOP");
+
+  xevent.type = ClientMessage;
+  xevent.xclient.type = ClientMessage;
+  xevent.xclient.serial = 0;
+  xevent.xclient.send_event = TRUE;
+  xevent.xclient.display = xdisplay;
+  xevent.xclient.window = GDK_WINDOW_XID(gdk_window);
+  xevent.xclient.message_type = type;
+  xevent.xclient.format = 32;
+  xevent.xclient.data.l[0] = value;
+  xevent.xclient.data.l[1] = CurrentTime;
+  xevent.xclient.data.l[2] = 0;
+  xevent.xclient.data.l[3] = 0;
+  xevent.xclient.data.l[4] = 0;
+
+  XSendEvent(xdisplay, root_win, FALSE,
+             SubstructureNotifyMask | SubstructureRedirectMask, &xevent);
+
+  XFlush(xdisplay);
 }
 
 typedef void (*SetUserTimeFunc)(GdkWindow* aWindow, guint32 aTimestamp);
@@ -3025,9 +3100,15 @@ void nsWindow::OnButtonPressEvent(GdkEventButton* aEvent) {
       return;
     // Map buttons 8-9 to back/forward
     case 8:
+      if (!Preferences::GetBool("mousebutton.4th.enabled", true)) {
+        return;
+      }
       DispatchCommandEvent(nsGkAtoms::Back);
       return;
     case 9:
+      if (!Preferences::GetBool("mousebutton.5th.enabled", true)) {
+        return;
+      }
       DispatchCommandEvent(nsGkAtoms::Forward);
       return;
     default:
@@ -3697,14 +3778,14 @@ gboolean nsWindow::OnTouchEvent(GdkEventTouch* aEvent) {
   event.mTime = aEvent->time;
 
   if (aEvent->type == GDK_TOUCH_BEGIN || aEvent->type == GDK_TOUCH_UPDATE) {
-    mTouches.Put(aEvent->sequence, touch.forget());
+    mTouches.Put(aEvent->sequence, std::move(touch));
     // add all touch points to event object
     for (auto iter = mTouches.Iter(); !iter.Done(); iter.Next()) {
       event.mTouches.AppendElement(new dom::Touch(*iter.UserData()));
     }
   } else if (aEvent->type == GDK_TOUCH_END ||
              aEvent->type == GDK_TOUCH_CANCEL) {
-    *event.mTouches.AppendElement() = touch.forget();
+    *event.mTouches.AppendElement() = std::move(touch);
   }
 
   DispatchInputEvent(&event);
@@ -3848,8 +3929,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
       bool useWebRender =
           gfx::gfxVars::UseWebRender() && AllowWebRenderForThisWindow();
 
-      bool shouldAccelerate = ComputeShouldAccelerate();
-      MOZ_ASSERT(shouldAccelerate | !useWebRender);
+      mIsAccelerated = ComputeShouldAccelerate();
+      MOZ_ASSERT(mIsAccelerated | !useWebRender);
 
       if (mWindowType == eWindowType_toplevel) {
         // We enable titlebar rendering for toplevel windows only.
@@ -3873,7 +3954,7 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
             // Wayland uses ARGB visual by default
             needsAlphaVisual = true;
           } else if (mCSDSupportLevel != CSD_SUPPORT_NONE) {
-            if (shouldAccelerate) {
+            if (mIsAccelerated) {
               needsAlphaVisual = true;
             } else {
               // We want to draw a transparent titlebar but we can't use
@@ -3893,7 +3974,7 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
 
       // Use GL/WebRender compatible visual only when it is necessary, since
       // the visual consumes more memory.
-      if (mIsX11Display && shouldAccelerate) {
+      if (mIsX11Display && mIsAccelerated) {
         auto display = GDK_DISPLAY_XDISPLAY(gtk_widget_get_display(mShell));
         auto screen = gtk_widget_get_screen(mShell);
         int screenNumber = GDK_SCREEN_XNUMBER(screen);
@@ -4043,13 +4124,14 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
       GtkWidget* container = moz_container_new();
       mContainer = MOZ_CONTAINER(container);
 #ifdef MOZ_WAYLAND
-      if (!mIsX11Display && ComputeShouldAccelerate()) {
+      if (!mIsX11Display && mIsAccelerated) {
         mCompositorInitiallyPaused = true;
         RefPtr<nsWindow> self(this);
         moz_container_add_initial_draw_callback(mContainer, [self]() -> void {
           self->mNeedsCompositorResume = true;
           self->MaybeResumeCompositor();
         });
+        moz_container_set_accelerated(mContainer);
       }
 #endif
 
@@ -4848,6 +4930,10 @@ wl_region* CreateOpaqueRegionWayland(int aX, int aY, int aWidth, int aHeight,
 }
 
 void nsWindow::UpdateTopLevelOpaqueRegionWayland(bool aSubtractCorners) {
+  if (!gUseWaylandUseOpaqueRegion) {
+    return;
+  }
+
   wl_surface* surface = moz_gtk_widget_get_wl_surface(GTK_WIDGET(mShell));
   if (!surface) {
     return;
@@ -4874,8 +4960,9 @@ void nsWindow::UpdateTopLevelOpaqueRegionWayland(bool aSubtractCorners) {
   if (window) {
     gdk_window_invalidate_rect(window, &rect, false);
   }
-
-  moz_container_update_opaque_region(mContainer, aSubtractCorners);
+  // We don't set opaque region to mozContainer due to Bug 1615098.
+  // moz_container_update_opaque_region(mContainer, aSubtractCorners,
+  //                                    fullScreen);
 }
 #endif
 
@@ -6576,6 +6663,9 @@ static nsresult initialize_prefs(void) {
       Preferences::GetBool("mozilla.widget.raise-on-setfocus", true);
   gUseWaylandVsync =
       Preferences::GetBool("widget.wayland_vsync.enabled", false);
+  gUseWaylandUseOpaqueRegion =
+      Preferences::GetBool("widget.wayland.use-opaque-region", true);
+
   return NS_OK;
 }
 

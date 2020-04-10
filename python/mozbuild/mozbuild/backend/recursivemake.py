@@ -4,15 +4,17 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import io
 import logging
 import os
 import re
+import six
 
 from collections import (
     defaultdict,
     namedtuple,
 )
-from StringIO import StringIO
+from six import StringIO
 from itertools import chain
 
 from mozpack.manifests import (
@@ -79,79 +81,80 @@ from ..util import (
     ensureParentDir,
     FileAvoidWrite,
     OrderedDefaultDict,
+    pairwise,
 )
 from ..makeutil import Makefile
 from mozbuild.shellutil import quote as shell_quote
 
 MOZBUILD_VARIABLES = [
-    b'ASFLAGS',
-    b'CMSRCS',
-    b'CMMSRCS',
-    b'CPP_UNIT_TESTS',
-    b'DIRS',
-    b'DIST_INSTALL',
-    b'EXTRA_DSO_LDOPTS',
-    b'EXTRA_JS_MODULES',
-    b'EXTRA_PP_COMPONENTS',
-    b'EXTRA_PP_JS_MODULES',
-    b'FORCE_SHARED_LIB',
-    b'FORCE_STATIC_LIB',
-    b'FINAL_LIBRARY',
-    b'HOST_CFLAGS',
-    b'HOST_CSRCS',
-    b'HOST_CMMSRCS',
-    b'HOST_CXXFLAGS',
-    b'HOST_EXTRA_LIBS',
-    b'HOST_LIBRARY_NAME',
-    b'HOST_PROGRAM',
-    b'HOST_SIMPLE_PROGRAMS',
-    b'JAR_MANIFEST',
-    b'JAVA_JAR_TARGETS',
-    b'LIBRARY_NAME',
-    b'LIBS',
-    b'MAKE_FRAMEWORK',
-    b'MODULE',
-    b'NO_DIST_INSTALL',
-    b'NO_EXPAND_LIBS',
-    b'NO_INTERFACES_MANIFEST',
-    b'OS_LIBS',
-    b'PARALLEL_DIRS',
-    b'PREF_JS_EXPORTS',
-    b'PROGRAM',
-    b'RESOURCE_FILES',
-    b'SHARED_LIBRARY_LIBS',
-    b'SHARED_LIBRARY_NAME',
-    b'SIMPLE_PROGRAMS',
-    b'SONAME',
-    b'STATIC_LIBRARY_NAME',
-    b'TEST_DIRS',
-    b'TOOL_DIRS',
+    'ASFLAGS',
+    'CMSRCS',
+    'CMMSRCS',
+    'CPP_UNIT_TESTS',
+    'DIRS',
+    'DIST_INSTALL',
+    'EXTRA_DSO_LDOPTS',
+    'EXTRA_JS_MODULES',
+    'EXTRA_PP_COMPONENTS',
+    'EXTRA_PP_JS_MODULES',
+    'FORCE_SHARED_LIB',
+    'FORCE_STATIC_LIB',
+    'FINAL_LIBRARY',
+    'HOST_CFLAGS',
+    'HOST_CSRCS',
+    'HOST_CMMSRCS',
+    'HOST_CXXFLAGS',
+    'HOST_EXTRA_LIBS',
+    'HOST_LIBRARY_NAME',
+    'HOST_PROGRAM',
+    'HOST_SIMPLE_PROGRAMS',
+    'JAR_MANIFEST',
+    'JAVA_JAR_TARGETS',
+    'LIBRARY_NAME',
+    'LIBS',
+    'MAKE_FRAMEWORK',
+    'MODULE',
+    'NO_DIST_INSTALL',
+    'NO_EXPAND_LIBS',
+    'NO_INTERFACES_MANIFEST',
+    'OS_LIBS',
+    'PARALLEL_DIRS',
+    'PREF_JS_EXPORTS',
+    'PROGRAM',
+    'RESOURCE_FILES',
+    'SHARED_LIBRARY_LIBS',
+    'SHARED_LIBRARY_NAME',
+    'SIMPLE_PROGRAMS',
+    'SONAME',
+    'STATIC_LIBRARY_NAME',
+    'TEST_DIRS',
+    'TOOL_DIRS',
     # XXX config/Makefile.in specifies this in a make invocation
     # 'USE_EXTENSION_MANIFEST',
-    b'XPCSHELL_TESTS',
-    b'XPIDL_MODULE',
+    'XPCSHELL_TESTS',
+    'XPIDL_MODULE',
 ]
 
 DEPRECATED_VARIABLES = [
-    b'ALLOW_COMPILER_WARNINGS',
-    b'EXPORT_LIBRARY',
-    b'EXTRA_LIBS',
-    b'FAIL_ON_WARNINGS',
-    b'HOST_LIBS',
-    b'LIBXUL_LIBRARY',
-    b'MOCHITEST_A11Y_FILES',
-    b'MOCHITEST_BROWSER_FILES',
-    b'MOCHITEST_BROWSER_FILES_PARTS',
-    b'MOCHITEST_CHROME_FILES',
-    b'MOCHITEST_FILES',
-    b'MOCHITEST_FILES_PARTS',
-    b'MOCHITEST_METRO_FILES',
-    b'MOCHITEST_ROBOCOP_FILES',
-    b'MODULE_OPTIMIZE_FLAGS',
-    b'MOZ_CHROME_FILE_FORMAT',
-    b'SHORT_LIBNAME',
-    b'TESTING_JS_MODULES',
-    b'TESTING_JS_MODULE_DIR',
+    'ALLOW_COMPILER_WARNINGS',
+    'EXPORT_LIBRARY',
+    'EXTRA_LIBS',
+    'FAIL_ON_WARNINGS',
+    'HOST_LIBS',
+    'LIBXUL_LIBRARY',
+    'MOCHITEST_A11Y_FILES',
+    'MOCHITEST_BROWSER_FILES',
+    'MOCHITEST_BROWSER_FILES_PARTS',
+    'MOCHITEST_CHROME_FILES',
+    'MOCHITEST_FILES',
+    'MOCHITEST_FILES_PARTS',
+    'MOCHITEST_METRO_FILES',
+    'MOCHITEST_ROBOCOP_FILES',
+    'MODULE_OPTIMIZE_FLAGS',
+    'MOZ_CHROME_FILE_FORMAT',
+    'SHORT_LIBNAME',
+    'TESTING_JS_MODULES',
+    'TESTING_JS_MODULE_DIR',
 ]
 
 MOZBUILD_VARIABLES_MESSAGE = 'It should only be defined in moz.build files.'
@@ -210,9 +213,8 @@ class BackendMakeFile(object):
         self.fh.write(buf)
 
     def write_once(self, buf):
-        if isinstance(buf, unicode):
-            buf = buf.encode('utf-8')
-        if b'\n' + buf not in self.fh.getvalue():
+        buf = six.ensure_text(buf)
+        if '\n' + buf not in six.ensure_text(self.fh.getvalue()):
             self.write(buf)
 
     # For compatibility with makeutil.Makefile
@@ -406,6 +408,8 @@ class RecursiveMakeBackend(MakeBackend):
         self._traversal = RecursiveMakeTraversal()
         self._compile_graph = OrderedDefaultDict(set)
         self._rust_targets = set()
+        self._rust_lib_targets = set()
+        self._gkrust_target = None
 
         self._no_skip = {
             'export': set(),
@@ -638,6 +642,9 @@ class RecursiveMakeBackend(MakeBackend):
             build_target = self._build_target_for_obj(obj)
             self._compile_graph[build_target]
             self._rust_targets.add(build_target)
+            self._rust_lib_targets.add(build_target)
+            if obj.is_gkrust:
+                self._gkrust_target = build_target
 
         elif isinstance(obj, SharedLibrary):
             self._process_shared_library(obj, backend_file)
@@ -753,8 +760,9 @@ class RecursiveMakeBackend(MakeBackend):
             if main:
                 rule.add_dependencies('%s/%s' % (d, tier) for d in main)
 
-        all_compile_deps = reduce(lambda x, y: x | y,
-                                  self._compile_graph.values()) if self._compile_graph else set()
+        all_compile_deps = six.moves.reduce(
+            lambda x, y: x | y,
+            self._compile_graph.values()) if self._compile_graph else set()
         # Include the following as dependencies of the top recursion target for
         # compilation:
         # - nodes that are not dependended upon by anything. Typically, this
@@ -767,7 +775,7 @@ class RecursiveMakeBackend(MakeBackend):
         #   as direct dependencies of the top recursion target, to somehow
         #   prioritize them.
         #   1. See bug 1262241 comment 5.
-        compile_roots = [t for t, deps in self._compile_graph.iteritems()
+        compile_roots = [t for t, deps in six.iteritems(self._compile_graph)
                          if not deps or t not in all_compile_deps]
 
         def add_category_rules(category, roots, graph):
@@ -776,9 +784,21 @@ class RecursiveMakeBackend(MakeBackend):
             # on other directories in the tree, so putting them first here will
             # start them earlier in the build.
             rust_roots = [r for r in roots if r in self._rust_targets]
+            rust_libs = [r for r in roots if r in self._rust_lib_targets]
             if category == 'compile' and rust_roots:
                 rust_rule = root_deps_mk.create_rule(['recurse_rust'])
                 rust_rule.add_dependencies(rust_roots)
+                # Ensure our cargo invocations are serialized, and gecko comes
+                # first. Cargo will lock on the build output directory anyway,
+                # so trying to run things in parallel is not useful. Dependencies
+                # for gecko are especially expensive to build and parallelize
+                # poorly, so prioritizing these will save some idle time in full
+                # builds.
+                for prior_target, target in pairwise(
+                        sorted([t for t in rust_libs],
+                               key=lambda t: t != self._gkrust_target)):
+                    r = root_deps_mk.create_rule([target])
+                    r.add_dependencies([prior_target])
 
             rule.add_dependencies(chain(rust_roots, roots))
             for target, deps in sorted(graph.items()):
@@ -810,7 +830,7 @@ class RecursiveMakeBackend(MakeBackend):
                 self._no_skip['syms'].remove(dirname)
 
         add_category_rules('compile', compile_roots, self._compile_graph)
-        for category, graph in non_default_graphs.iteritems():
+        for category, graph in six.iteritems(non_default_graphs):
             add_category_rules(category, non_default_roots[category], graph)
 
         root_mk = Makefile()
@@ -832,7 +852,7 @@ class RecursiveMakeBackend(MakeBackend):
         root_mk.add_statement('non_default_tiers := %s' % ' '.join(sorted(
             non_default_roots.keys())))
 
-        for category, graphs in non_default_graphs.iteritems():
+        for category, graphs in six.iteritems(non_default_graphs):
             category_dirs = [mozpath.dirname(target)
                              for target in graphs.keys()]
             root_mk.add_statement('%s_dirs := %s' % (category,
@@ -877,14 +897,14 @@ class RecursiveMakeBackend(MakeBackend):
             rule.add_dependencies(['$(CURDIR)/%: %'])
 
     def _check_blacklisted_variables(self, makefile_in, makefile_content):
-        if b'EXTERNALLY_MANAGED_MAKE_FILE' in makefile_content:
+        if 'EXTERNALLY_MANAGED_MAKE_FILE' in makefile_content:
             # Bypass the variable restrictions for externally managed makefiles.
             return
 
         for l in makefile_content.splitlines():
             l = l.strip()
             # Don't check comments
-            if l.startswith(b'#'):
+            if l.startswith('#'):
                 continue
             for x in chain(MOZBUILD_VARIABLES, DEPRECATED_VARIABLES):
                 if x not in l:
@@ -936,16 +956,15 @@ class RecursiveMakeBackend(MakeBackend):
                 obj.topobjdir = bf.environment.topobjdir
                 obj.config = bf.environment
                 self._create_makefile(obj, stub=stub)
-                with open(obj.output_path) as fh:
+                with io.open(obj.output_path, encoding='utf-8') as fh:
                     content = fh.read()
                     # Directories with a Makefile containing a tools target, or
                     # XPI_PKGNAME or INSTALL_EXTENSION_ID can't be skipped and
                     # must run during the 'tools' tier.
-                    for t in (b'XPI_PKGNAME', b'INSTALL_EXTENSION_ID',
-                              b'tools'):
+                    for t in ('XPI_PKGNAME', 'INSTALL_EXTENSION_ID', 'tools'):
                         if t not in content:
                             continue
-                        if t == b'tools' and not re.search('(?:^|\s)tools.*::', content, re.M):
+                        if t == 'tools' and not re.search('(?:^|\s)tools.*::', content, re.M):
                             continue
                         if objdir == self.environment.topobjdir:
                             continue
@@ -1620,20 +1639,20 @@ class RecursiveMakeBackend(MakeBackend):
                 pp.context.update(extra)
             if not pp.context.get('autoconfmk', ''):
                 pp.context['autoconfmk'] = 'autoconf.mk'
-            pp.handleLine(b'# THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT MODIFY BY HAND.\n')
-            pp.handleLine(b'DEPTH := @DEPTH@\n')
-            pp.handleLine(b'topobjdir := @topobjdir@\n')
-            pp.handleLine(b'topsrcdir := @top_srcdir@\n')
-            pp.handleLine(b'srcdir := @srcdir@\n')
-            pp.handleLine(b'srcdir_rel := @srcdir_rel@\n')
-            pp.handleLine(b'relativesrcdir := @relativesrcdir@\n')
-            pp.handleLine(b'include $(DEPTH)/config/@autoconfmk@\n')
+            pp.handleLine('# THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT MODIFY BY HAND.\n')
+            pp.handleLine('DEPTH := @DEPTH@\n')
+            pp.handleLine('topobjdir := @topobjdir@\n')
+            pp.handleLine('topsrcdir := @top_srcdir@\n')
+            pp.handleLine('srcdir := @srcdir@\n')
+            pp.handleLine('srcdir_rel := @srcdir_rel@\n')
+            pp.handleLine('relativesrcdir := @relativesrcdir@\n')
+            pp.handleLine('include $(DEPTH)/config/@autoconfmk@\n')
             if not stub:
                 pp.do_include(obj.input_path)
             # Empty line to avoid failures when last line in Makefile.in ends
             # with a backslash.
-            pp.handleLine(b'\n')
-            pp.handleLine(b'include $(topsrcdir)/config/recurse.mk\n')
+            pp.handleLine('\n')
+            pp.handleLine('include $(topsrcdir)/config/recurse.mk\n')
         if not stub:
             # Adding the Makefile.in here has the desired side-effect
             # that if the Makefile.in disappears, this will force

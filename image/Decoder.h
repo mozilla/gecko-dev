@@ -13,7 +13,6 @@
 #include "mozilla/RefPtr.h"
 #include "AnimationParams.h"
 #include "DecoderFlags.h"
-#include "Downscaler.h"
 #include "ImageMetadata.h"
 #include "Orientation.h"
 #include "SourceBuffer.h"
@@ -105,7 +104,7 @@ class IDecoderFrameRecycler {
 
 class Decoder {
  public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_RECORDED(Decoder)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Decoder)
 
   explicit Decoder(RasterImage* aImage);
 
@@ -435,6 +434,7 @@ class Decoder {
  protected:
   friend class AutoRecordDecoderTelemetry;
   friend class DecoderTestHelper;
+  friend class nsBMPDecoder;
   friend class nsICODecoder;
   friend class PalettedSurfaceSink;
   friend class SurfaceSink;
@@ -558,8 +558,6 @@ class Decoder {
       RawAccessFrameRef&& aPreviousFrame);
 
  protected:
-  Maybe<Downscaler> mDownscaler;
-
   /// Color management profile from the ICCP chunk in the image.
   qcms_profile* mInProfile;
 

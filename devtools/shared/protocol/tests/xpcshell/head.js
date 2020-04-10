@@ -5,8 +5,8 @@
 
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
 const Services = require("Services");
-const { DebuggerServer } = require("devtools/server/debugger-server");
-const { DebuggerClient } = require("devtools/shared/client/debugger-client");
+const { DevToolsServer } = require("devtools/server/devtools-server");
+const { DevToolsClient } = require("devtools/shared/client/devtools-client");
 
 const defer = require("devtools/shared/defer");
 
@@ -15,7 +15,7 @@ function dumpn(msg) {
 }
 
 function connectPipeTracing() {
-  return new TracingTransport(DebuggerServer.connectPipe());
+  return new TracingTransport(DevToolsServer.connectPipe());
 }
 
 /**

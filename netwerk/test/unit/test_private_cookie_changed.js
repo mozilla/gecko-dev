@@ -13,9 +13,9 @@ function makeChan(uri, isPrivate) {
 }
 
 function run_test() {
-  // We don't want to have CookieSettings blocking this test.
+  // We don't want to have CookieJarSettings blocking this test.
   Services.prefs.setBoolPref(
-    "network.cookieSettings.unblocked_for_testing",
+    "network.cookieJarSettings.unblocked_for_testing",
     true
   );
 
@@ -34,9 +34,9 @@ function run_test() {
   let uri = NetUtil.newURI("http://foo.com/");
   let publicChan = makeChan(uri, false);
   let svc = Services.cookies.QueryInterface(Ci.nsICookieService);
-  svc.setCookieString(uri, null, "oh=hai", publicChan);
+  svc.setCookieString(uri, "oh=hai", publicChan);
   let privateChan = makeChan(uri, true);
-  svc.setCookieString(uri, null, "oh=hai", privateChan);
+  svc.setCookieString(uri, "oh=hai", privateChan);
   Assert.equal(publicNotifications, 1);
   Assert.equal(privateNotifications, 1);
 }

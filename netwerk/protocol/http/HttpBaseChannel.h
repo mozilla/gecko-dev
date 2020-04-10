@@ -19,7 +19,6 @@
 #include "mozilla/net/DNS.h"
 #include "mozilla/net/NeckoCommon.h"
 #include "mozilla/net/PrivateBrowsingChannel.h"
-#include "nsAutoPtr.h"
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
 #include "nsHashPropertyBag.h"
@@ -371,6 +370,9 @@ class HttpBaseChannel : public nsHashPropertyBag,
 
   void FlushConsoleReports(nsIConsoleReportCollector* aCollector) override;
 
+  void StealConsoleReports(
+      nsTArray<net::ConsoleReportCollected>& aReports) override;
+
   void ClearConsoleReports() override;
 
   class nsContentEncodings : public nsStringEnumeratorBase {
@@ -399,9 +401,11 @@ class HttpBaseChannel : public nsHashPropertyBag,
     bool mReady;
   };
 
-  nsHttpResponseHead* GetResponseHead() const { return mResponseHead; }
+  nsHttpResponseHead* GetResponseHead() const { return mResponseHead.get(); }
   nsHttpRequestHead* GetRequestHead() { return &mRequestHead; }
-  nsHttpHeaderArray* GetResponseTrailers() const { return mResponseTrailers; }
+  nsHttpHeaderArray* GetResponseTrailers() const {
+    return mResponseTrailers.get();
+  }
 
   const NetAddr& GetSelfAddr() { return mSelfAddr; }
   const NetAddr& GetPeerAddr() { return mPeerAddr; }
@@ -597,6 +601,8 @@ class HttpBaseChannel : public nsHashPropertyBag,
   nsresult GetResponseEmbedderPolicy(
       nsILoadInfo::CrossOriginEmbedderPolicy* aResponseEmbedderPolicy);
 
+  void MaybeFlushConsoleReports();
+
   friend class PrivateBrowsingChannel<HttpBaseChannel>;
   friend class InterceptFailedOnStop;
 
@@ -620,6 +626,7 @@ class HttpBaseChannel : public nsHashPropertyBag,
   nsCOMPtr<nsIStreamListener> mListener;
   // An instance of nsHTTPCompressConv
   nsCOMPtr<nsIStreamListener> mCompressListener;
+  nsCOMPtr<nsIEventTarget> mCurrentThread;
 
  private:
   // Proxy release all members above on main thread.
@@ -663,17 +670,17 @@ class HttpBaseChannel : public nsHashPropertyBag,
   nsCOMPtr<nsIInputChannelThrottleQueue> mThrottleQueue;
   nsCOMPtr<nsIInputStream> mUploadStream;
   nsCOMPtr<nsIRunnable> mUploadCloneableCallback;
-  nsAutoPtr<nsHttpResponseHead> mResponseHead;
-  nsAutoPtr<nsHttpHeaderArray> mResponseTrailers;
+  UniquePtr<nsHttpResponseHead> mResponseHead;
+  UniquePtr<nsHttpHeaderArray> mResponseTrailers;
   RefPtr<nsHttpConnectionInfo> mConnectionInfo;
   nsCOMPtr<nsIProxyInfo> mProxyInfo;
   nsCOMPtr<nsISupports> mSecurityInfo;
   nsCOMPtr<nsIHttpUpgradeListener> mUpgradeProtocolCallback;
-  nsAutoPtr<nsString> mContentDispositionFilename;
+  UniquePtr<nsString> mContentDispositionFilename;
   nsCOMPtr<nsIConsoleReportCollector> mReportCollector;
 
   RefPtr<nsHttpHandler> mHttpHandler;  // keep gHttpHandler alive
-  nsAutoPtr<nsTArray<nsCString>> mRedirectedCachekeys;
+  UniquePtr<nsTArray<nsCString>> mRedirectedCachekeys;
   nsCOMPtr<nsIRequestContext> mRequestContext;
 
   NetAddr mSelfAddr;

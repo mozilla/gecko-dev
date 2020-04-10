@@ -95,7 +95,7 @@ mozilla::ipc::IPCResult CacheOpChild::Recv__delete__(
 
   if (NS_WARN_IF(aRv.Failed())) {
     MOZ_DIAGNOSTIC_ASSERT(aResult.type() == CacheOpResult::Tvoid_t);
-    mPromise->MaybeReject(aRv);
+    mPromise->MaybeReject(std::move(aRv));
     mPromise = nullptr;
     return IPC_OK();
   }
@@ -138,7 +138,7 @@ mozilla::ipc::IPCResult CacheOpChild::Recv__delete__(
       MOZ_DIAGNOSTIC_ASSERT(actor);
       if (!actor) {
         mPromise->MaybeRejectWithTypeError(
-            u"CacheStorage.open() failed to access the storage system.");
+            "CacheStorage.open() failed to access the storage system.");
         break;
       }
 

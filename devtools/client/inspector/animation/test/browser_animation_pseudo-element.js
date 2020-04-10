@@ -20,6 +20,10 @@ const TEST_DATA = [
     expectedTargetLabel: "::after",
     expectedAnimationNameLabel: "div-after",
   },
+  {
+    expectedTargetLabel: "::marker",
+    expectedAnimationNameLabel: "div-marker",
+  },
 ];
 
 add_task(async function() {
@@ -54,9 +58,7 @@ add_task(async function() {
     is(
       animationTargetEl.textContent,
       testData.expectedTargetLabel,
-      `Text content of animation target[${i}] should be ${
-        testData.expectedTarget
-      }`
+      `Text content of animation target[${i}] should be ${testData.expectedTarget}`
     );
 
     info("Checking text content of animation name");

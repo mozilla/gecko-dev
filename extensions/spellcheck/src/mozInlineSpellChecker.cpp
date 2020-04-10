@@ -492,8 +492,8 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(mozInlineSpellChecker)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(mozInlineSpellChecker)
 
-NS_IMPL_CYCLE_COLLECTION(mozInlineSpellChecker, mTextEditor, mSpellCheck,
-                         mCurrentSelectionAnchorNode)
+NS_IMPL_CYCLE_COLLECTION_WEAK(mozInlineSpellChecker, mTextEditor, mSpellCheck,
+                              mCurrentSelectionAnchorNode)
 
 mozInlineSpellChecker::SpellCheckingState
     mozInlineSpellChecker::gCanEnableSpellChecking =
@@ -567,7 +567,7 @@ nsresult mozInlineSpellChecker::Cleanup(bool aDestroyingFrames) {
   // observers.  They may receive two consecutive STARTED notifications for
   // example, which we guarantee will not happen.
 
-  RefPtr<TextEditor> textEditor = mTextEditor.forget();
+  RefPtr<TextEditor> textEditor = std::move(mTextEditor);
   if (mPendingSpellCheck) {
     // Cancel the pending editor spell checker initialization.
     mPendingSpellCheck = nullptr;
@@ -1518,7 +1518,7 @@ nsresult mozInlineSpellChecker::ResumeCheck(
     // no active dictionary
     int32_t count = spellCheckSelection->RangeCount();
     for (int32_t index = count - 1; index >= 0; index--) {
-      nsRange* checkRange = spellCheckSelection->GetRangeAt(index);
+      RefPtr<nsRange> checkRange = spellCheckSelection->GetRangeAt(index);
       if (checkRange) {
         RemoveRange(spellCheckSelection, checkRange);
       }
@@ -1605,8 +1605,9 @@ nsresult mozInlineSpellChecker::RemoveRange(Selection* aSpellCheckSelection,
   NS_ENSURE_ARG_POINTER(aRange);
 
   ErrorResult rv;
-  aSpellCheckSelection->RemoveRangeAndUnselectFramesAndNotifyListeners(*aRange,
-                                                                       rv);
+  RefPtr<nsRange> range{aRange};
+  RefPtr<Selection> selection{aSpellCheckSelection};
+  selection->RemoveRangeAndUnselectFramesAndNotifyListeners(*range, rv);
   if (!rv.Failed() && mNumWordsInSpellSelection) mNumWordsInSpellSelection--;
 
   return rv.StealNSResult();

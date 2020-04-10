@@ -22,6 +22,7 @@
 
 class nsICanvasRenderingContextInternal;
 class nsITimerCallback;
+enum class gfxAlphaType;
 
 namespace mozilla {
 
@@ -68,8 +69,8 @@ class HTMLCanvasElementObserver final : public nsIObserver,
   void RegisterVisibilityChangeEvent();
   void UnregisterVisibilityChangeEvent();
 
-  void RegisterMemoryPressureEvent();
-  void UnregisterMemoryPressureEvent();
+  void RegisterObserverEvents();
+  void UnregisterObserverEvents();
 
  private:
   ~HTMLCanvasElementObserver();
@@ -109,7 +110,7 @@ class FrameCaptureListener : public SupportsWeakPtr<FrameCaptureListener> {
                         const TimeStamp& aTime) = 0;
 
  protected:
-  virtual ~FrameCaptureListener() {}
+  virtual ~FrameCaptureListener() = default;
 
   bool mFrameCaptureRequested;
 };
@@ -327,6 +328,8 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
 
   void OnMemoryPressure();
 
+  void OnDeviceReset();
+
   static void SetAttrFromAsyncCanvasRenderer(AsyncCanvasRenderer* aRenderer);
   static void InvalidateFromAsyncCanvasRenderer(AsyncCanvasRenderer* aRenderer);
 
@@ -402,7 +405,7 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
 
   bool IsPrintCallbackDone();
 
-  void HandlePrintCallback(nsPresContext::nsPresContextType aType);
+  void HandlePrintCallback(nsPresContext*);
 
   nsresult DispatchPrintCallback(nsITimerCallback* aCallback);
 

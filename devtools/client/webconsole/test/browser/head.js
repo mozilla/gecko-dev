@@ -393,11 +393,6 @@ function _getContextMenu(hud) {
   return doc.getElementById("webconsole-menu");
 }
 
-function loadDocument(url, browser = gBrowser.selectedBrowser) {
-  BrowserTestUtils.loadURI(browser, url);
-  return BrowserTestUtils.browserLoaded(browser);
-}
-
 async function toggleConsoleSetting(hud, selector) {
   const toolbox = hud.toolbox;
   const doc = toolbox ? toolbox.doc : hud.chromeWindow.document;
@@ -625,11 +620,17 @@ async function setInputValueForAutocompletion(
 ) {
   const { jsterm } = hud;
 
+  const initialPromises = [];
+  if (jsterm.autocompletePopup.isOpen) {
+    initialPromises.push(jsterm.autocompletePopup.once("popup-closed"));
+  }
   setInputValue(hud, "");
+  await Promise.all(initialPromises);
+
   jsterm.focus();
 
   const updated = jsterm.once("autocomplete-updated");
-  EventUtils.sendString(value);
+  EventUtils.sendString(value, hud.iframeWindow);
   await updated;
 
   if (caretPosition < 0) {
@@ -732,6 +733,19 @@ function getInputCompletionValue(hud) {
   return jsterm.editor.getAutoCompletionText();
 }
 
+function closeAutocompletePopup(hud) {
+  const { jsterm } = hud;
+
+  if (!jsterm.autocompletePopup.isOpen) {
+    return Promise.resolve();
+  }
+
+  const onPopupClosed = jsterm.autocompletePopup.once("popup-closed");
+  const onAutocompleteUpdated = jsterm.once("autocomplete-updated");
+  EventUtils.synthesizeKey("KEY_Escape");
+  return Promise.all([onPopupClosed, onAutocompleteUpdated]);
+}
+
 /**
  * Returns a boolean indicating if the console input is focused.
  *
@@ -780,18 +794,8 @@ async function openDebugger(options = {}) {
   toolbox = await gDevTools.showToolbox(target, "jsdebugger");
   const panel = toolbox.getCurrentPanel();
 
-  // Do not clear VariableView lazily so it doesn't disturb test ending.
-  if (panel._view) {
-    panel._view.Variables.lazyEmpty = false;
-  }
+  await toolbox.threadFront.getSources();
 
-  // Old debugger
-  if (panel.panelWin && panel.panelWin.DebuggerController) {
-    await panel.panelWin.DebuggerController.waitForSourcesLoaded();
-  } else {
-    // New debugger
-    await toolbox.threadFront.getSources();
-  }
   return { target, toolbox, panel };
 }
 
@@ -964,17 +968,17 @@ async function openMessageInNetmonitor(toolbox, hud, url, urlInConsole) {
 
   store.dispatch(nmActions.batchEnable(false));
 
-  await waitUntil(() => {
+  await waitFor(() => {
     const selected = getSelectedRequest(store.getState());
     return selected && selected.url === url;
-  });
+  }, "network entry for the URL wasn't found");
 
   ok(true, "The attached url is correct.");
 
   info(
-    "Wait for the netmonitor headers panel to appear as it spawn RDP requests"
+    "Wait for the netmonitor headers panel to appear as it spawns RDP requests"
   );
-  await waitUntil(() =>
+  await waitFor(() =>
     panelWin.document.querySelector("#headers-panel .headers-overview")
   );
 }
@@ -1021,11 +1025,8 @@ async function getFilterState(hud) {
   const result = {};
 
   for (const button of buttons) {
-    const classes = new Set(button.classList.values());
-    classes.delete("devtools-togglebutton");
-    const category = classes.values().next().value;
-
-    result[category] = button.getAttribute("aria-pressed") === "true";
+    result[button.dataset.category] =
+      button.getAttribute("aria-pressed") === "true";
   }
 
   return result;
@@ -1065,7 +1066,7 @@ async function setFilterState(hud, settings) {
 
   for (const category in settings) {
     const value = settings[category];
-    const button = filterBar.querySelector(`.${category}`);
+    const button = filterBar.querySelector(`[data-category="${category}"]`);
 
     if (category === "text") {
       const filterInput = getFilterInput(hud);
@@ -1340,6 +1341,50 @@ function findObjectInspectorNode(oi, nodeLabel) {
  */
 function getAutocompletePopupLabels(popup) {
   return popup.getItems().map(item => item.label);
+}
+
+/**
+ * Check if the retrieved list of autocomplete labels of the specific popup
+ * includes all of the expected labels.
+ *
+ * @param {AutocompletPopup} popup
+ * @param {Array<String>} expected the array of expected labels
+ */
+function hasExactPopupLabels(popup, expected) {
+  return hasPopupLabels(popup, expected, true);
+}
+
+/**
+ * Check if the expected label is included in the list of autocomplete labels
+ * of the specific popup.
+ *
+ * @param {AutocompletPopup} popup
+ * @param {String} label the label to check
+ */
+function hasPopupLabel(popup, label) {
+  return hasPopupLabels(popup, [label]);
+}
+
+/**
+ * Validate the expected labels against the autocomplete labels.
+ *
+ * @param {AutocompletPopup} popup
+ * @param {Array<String>} expectedLabels
+ * @param {Boolean} checkAll
+ */
+function hasPopupLabels(popup, expectedLabels, checkAll = false) {
+  const autocompleteLabels = getAutocompletePopupLabels(popup);
+  if (checkAll) {
+    return (
+      autocompleteLabels.length === expectedLabels.length &&
+      autocompleteLabels.every((autoLabel, idx) => {
+        return expectedLabels.indexOf(autoLabel) === idx;
+      })
+    );
+  }
+  return expectedLabels.every(expectedLabel => {
+    return autocompleteLabels.includes(expectedLabel);
+  });
 }
 
 /**

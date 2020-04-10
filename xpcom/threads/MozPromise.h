@@ -145,7 +145,7 @@ class MozPromiseRefcountable {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MozPromiseRefcountable)
  protected:
-  virtual ~MozPromiseRefcountable() {}
+  virtual ~MozPromiseRefcountable() = default;
 };
 
 class MozPromiseBase : public MozPromiseRefcountable {
@@ -259,7 +259,7 @@ class MozPromise : public MozPromiseBase {
     RefPtr<typename MozPromise::Private> p =
         new MozPromise::Private(aResolveSite);
     p->Resolve(std::forward<ResolveValueType_>(aResolveValue), aResolveSite);
-    return p.forget();
+    return p;
   }
 
   template <typename RejectValueType_>
@@ -271,7 +271,7 @@ class MozPromise : public MozPromiseBase {
     RefPtr<typename MozPromise::Private> p =
         new MozPromise::Private(aRejectSite);
     p->Reject(std::forward<RejectValueType_>(aRejectValue), aRejectSite);
-    return p.forget();
+    return p;
   }
 
   template <typename ResolveOrRejectValueType_>
@@ -279,7 +279,7 @@ class MozPromise : public MozPromiseBase {
       ResolveOrRejectValueType_&& aValue, const char* aSite) {
     RefPtr<typename MozPromise::Private> p = new MozPromise::Private(aSite);
     p->ResolveOrReject(std::forward<ResolveOrRejectValueType_>(aValue), aSite);
-    return p.forget();
+    return p;
   }
 
   typedef MozPromise<nsTArray<ResolveValueType>, RejectValueType, IsExclusive>
@@ -364,7 +364,7 @@ class MozPromise : public MozPromiseBase {
 
    protected:
     Request() : mComplete(false), mDisconnected(false) {}
-    virtual ~Request() {}
+    virtual ~Request() = default;
 
     bool mComplete;
     bool mDisconnected;
@@ -1128,29 +1128,18 @@ typedef MozPromise<bool, nsresult, /* IsExclusive = */ false>
  * Class to encapsulate a promise for a particular role. Use this as the member
  * variable for a class whose method returns a promise.
  */
-template <typename PromiseType>
-class MozPromiseHolder {
+template <typename PromiseType, typename ImplType>
+class MozPromiseHolderBase {
  public:
-  MozPromiseHolder() : mMonitor(nullptr) {}
+  MozPromiseHolderBase() = default;
 
-  MozPromiseHolder(MozPromiseHolder&& aOther)
-      : mMonitor(nullptr), mPromise(aOther.mPromise.forget()) {}
+  MozPromiseHolderBase(MozPromiseHolderBase&& aOther) = default;
+  MozPromiseHolderBase& operator=(MozPromiseHolderBase&& aOther) = default;
 
-  // Move semantics.
-  MozPromiseHolder& operator=(MozPromiseHolder&& aOther) {
-    MOZ_ASSERT(!mMonitor && !aOther.mMonitor);
-    MOZ_DIAGNOSTIC_ASSERT(!mPromise);
-    mPromise = aOther.mPromise;
-    aOther.mPromise = nullptr;
-    return *this;
-  }
-
-  ~MozPromiseHolder() { MOZ_ASSERT(!mPromise); }
+  ~MozPromiseHolderBase() { MOZ_ASSERT(!mPromise); }
 
   already_AddRefed<PromiseType> Ensure(const char* aMethodName) {
-    if (mMonitor) {
-      mMonitor->AssertCurrentThreadOwns();
-    }
+    static_cast<ImplType*>(this)->Check();
     if (!mPromise) {
       mPromise = new (typename PromiseType::Private)(aMethodName);
     }
@@ -1158,20 +1147,13 @@ class MozPromiseHolder {
     return p.forget();
   }
 
-  // Provide a Monitor that should always be held when accessing this instance.
-  void SetMonitor(Monitor* aMonitor) { mMonitor = aMonitor; }
-
   bool IsEmpty() const {
-    if (mMonitor) {
-      mMonitor->AssertCurrentThreadOwns();
-    }
+    static_cast<const ImplType*>(this)->Check();
     return !mPromise;
   }
 
   already_AddRefed<typename PromiseType::Private> Steal() {
-    if (mMonitor) {
-      mMonitor->AssertCurrentThreadOwns();
-    }
+    static_cast<ImplType*>(this)->Check();
     return mPromise.forget();
   }
 
@@ -1182,9 +1164,7 @@ class MozPromiseHolder {
                   "Resolve() argument must be implicitly convertible to "
                   "MozPromise's ResolveValueT");
 
-    if (mMonitor) {
-      mMonitor->AssertCurrentThreadOwns();
-    }
+    static_cast<ImplType*>(this)->Check();
     MOZ_ASSERT(mPromise);
     mPromise->Resolve(std::forward<ResolveValueType_>(aResolveValue),
                       aMethodName);
@@ -1206,9 +1186,7 @@ class MozPromiseHolder {
                   "Reject() argument must be implicitly convertible to "
                   "MozPromise's RejectValueT");
 
-    if (mMonitor) {
-      mMonitor->AssertCurrentThreadOwns();
-    }
+    static_cast<ImplType*>(this)->Check();
     MOZ_ASSERT(mPromise);
     mPromise->Reject(std::forward<RejectValueType_>(aRejectValue), aMethodName);
     mPromise = nullptr;
@@ -1225,9 +1203,7 @@ class MozPromiseHolder {
   template <typename ResolveOrRejectValueType_>
   void ResolveOrReject(ResolveOrRejectValueType_&& aValue,
                        const char* aMethodName) {
-    if (mMonitor) {
-      mMonitor->AssertCurrentThreadOwns();
-    }
+    static_cast<ImplType*>(this)->Check();
     MOZ_ASSERT(mPromise);
     mPromise->ResolveOrReject(std::forward<ResolveOrRejectValueType_>(aValue),
                               aMethodName);
@@ -1244,8 +1220,37 @@ class MozPromiseHolder {
   }
 
  private:
-  Monitor* mMonitor;
   RefPtr<typename PromiseType::Private> mPromise;
+};
+
+template <typename PromiseType>
+class MozPromiseHolder
+    : public MozPromiseHolderBase<PromiseType, MozPromiseHolder<PromiseType>> {
+ public:
+  using MozPromiseHolderBase<
+      PromiseType, MozPromiseHolder<PromiseType>>::MozPromiseHolderBase;
+  static constexpr void Check(){};
+};
+
+template <typename PromiseType>
+class MozMonitoredPromiseHolder
+    : public MozPromiseHolderBase<PromiseType,
+                                  MozMonitoredPromiseHolder<PromiseType>> {
+ public:
+  // Provide a Monitor that should always be held when accessing this instance.
+  explicit MozMonitoredPromiseHolder(Monitor* const aMonitor)
+      : mMonitor(aMonitor) {
+    MOZ_ASSERT(aMonitor);
+  }
+
+  MozMonitoredPromiseHolder(MozMonitoredPromiseHolder&& aOther) = delete;
+  MozMonitoredPromiseHolder& operator=(MozMonitoredPromiseHolder&& aOther) =
+      delete;
+
+  void Check() const { mMonitor->AssertCurrentThreadOwns(); }
+
+ private:
+  Monitor* const mMonitor;
 };
 
 /*
@@ -1255,7 +1260,7 @@ class MozPromiseHolder {
 template <typename PromiseType>
 class MozPromiseRequestHolder {
  public:
-  MozPromiseRequestHolder() {}
+  MozPromiseRequestHolder() = default;
   ~MozPromiseRequestHolder() { MOZ_ASSERT(!mRequest); }
 
   void Track(already_AddRefed<typename PromiseType::Request> aRequest) {
@@ -1304,8 +1309,8 @@ namespace detail {
 // assertions when used on templated types.
 class MethodCallBase {
  public:
-  MethodCallBase() { MOZ_COUNT_CTOR(MethodCallBase); }
-  virtual ~MethodCallBase() { MOZ_COUNT_DTOR(MethodCallBase); }
+  MOZ_COUNTED_DEFAULT_CTOR(MethodCallBase)
+  MOZ_COUNTED_DTOR_VIRTUAL(MethodCallBase)
 };
 
 template <typename PromiseType, typename MethodType, typename ThisType,
@@ -1375,7 +1380,7 @@ static RefPtr<PromiseType> InvokeAsyncImpl(
       new (typename PromiseType::Private)(aCallerName);
   RefPtr<ProxyRunnableType> r = new ProxyRunnableType(p, methodCall);
   aTarget->Dispatch(r.forget());
-  return p.forget();
+  return p;
 }
 
 constexpr bool Any() { return false; }
@@ -1491,7 +1496,7 @@ static auto InvokeAsync(nsISerialEventTarget* aTarget, const char* aCallerName,
   auto p = MakeRefPtr<typename PromiseType::Private>(aCallerName);
   auto r = MakeRefPtr<ProxyRunnableType>(p, std::forward<Function>(aFunction));
   aTarget->Dispatch(r.forget());
-  return p.forget();
+  return p;
 }
 
 }  // namespace detail

@@ -152,7 +152,7 @@ void KnowsCompositor::IdentifyTextureHost(
 
 KnowsCompositor::KnowsCompositor() : mSerial(++sSerialCounter) {}
 
-KnowsCompositor::~KnowsCompositor() {}
+KnowsCompositor::~KnowsCompositor() = default;
 
 KnowsCompositorMediaProxy::KnowsCompositorMediaProxy(
     const TextureFactoryIdentifier& aIdentifier) {
@@ -163,7 +163,7 @@ KnowsCompositorMediaProxy::KnowsCompositorMediaProxy(
   mSyncObject = mThreadSafeAllocator->GetSyncObject();
 }
 
-KnowsCompositorMediaProxy::~KnowsCompositorMediaProxy() {}
+KnowsCompositorMediaProxy::~KnowsCompositorMediaProxy() = default;
 
 TextureForwarder* KnowsCompositorMediaProxy::GetTextureForwarder() {
   return mThreadSafeAllocator->GetTextureForwarder();
@@ -710,10 +710,6 @@ bool ShadowLayerForwarder::EndTransaction(
     mPaintTiming.sendMs() =
         (TimeStamp::Now() - startTime.value()).ToMilliseconds();
     mShadowManager->SendRecordPaintTimes(mPaintTiming);
-  }
-
-  if (recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::child::NotifyPaintStart();
   }
 
   *aSent = true;

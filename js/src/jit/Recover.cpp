@@ -1314,31 +1314,6 @@ bool RNewIterator::recover(JSContext* cx, SnapshotIterator& iter) const {
   return true;
 }
 
-bool MNewDerivedTypedObject::writeRecoverData(
-    CompactBufferWriter& writer) const {
-  MOZ_ASSERT(canRecoverOnBailout());
-  writer.writeUnsigned(uint32_t(RInstruction::Recover_NewDerivedTypedObject));
-  return true;
-}
-
-RNewDerivedTypedObject::RNewDerivedTypedObject(CompactBufferReader& reader) {}
-
-bool RNewDerivedTypedObject::recover(JSContext* cx,
-                                     SnapshotIterator& iter) const {
-  Rooted<TypeDescr*> descr(cx, &iter.read().toObject().as<TypeDescr>());
-  Rooted<TypedObject*> owner(cx, &iter.read().toObject().as<TypedObject>());
-  int32_t offset = iter.read().toInt32();
-
-  JSObject* obj = OutlineTypedObject::createDerived(cx, descr, owner, offset);
-  if (!obj) {
-    return false;
-  }
-
-  RootedValue result(cx, ObjectValue(*obj));
-  iter.storeInstructionResult(result);
-  return true;
-}
-
 bool MCreateThisWithTemplate::writeRecoverData(
     CompactBufferWriter& writer) const {
   MOZ_ASSERT(canRecoverOnBailout());
@@ -1401,6 +1376,31 @@ bool RLambdaArrow::recover(JSContext* cx, SnapshotIterator& iter) const {
   RootedFunction fun(cx, &iter.read().toObject().as<JSFunction>());
 
   JSObject* resultObject = js::LambdaArrow(cx, fun, scopeChain, newTarget);
+  if (!resultObject) {
+    return false;
+  }
+
+  RootedValue result(cx);
+  result.setObject(*resultObject);
+  iter.storeInstructionResult(result);
+  return true;
+}
+
+bool MFunctionWithProto::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_FunctionWithProto));
+  return true;
+}
+
+RFunctionWithProto::RFunctionWithProto(CompactBufferReader& reader) {}
+
+bool RFunctionWithProto::recover(JSContext* cx, SnapshotIterator& iter) const {
+  RootedObject scopeChain(cx, &iter.read().toObject());
+  RootedObject prototype(cx, &iter.read().toObject());
+  RootedFunction fun(cx, &iter.read().toObject().as<JSFunction>());
+
+  JSObject* resultObject =
+      js::FunWithProtoOperation(cx, fun, scopeChain, prototype);
   if (!resultObject) {
     return false;
   }

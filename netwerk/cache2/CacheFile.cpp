@@ -317,7 +317,7 @@ nsresult CacheFile::OnChunkRead(nsresult aResult, CacheFileChunk* aChunk) {
     MOZ_ASSERT(aChunk->mRefCnt == 2);
     aChunk->mActiveChunk = false;
     ReleaseOutsideLock(
-        RefPtr<CacheFileChunkListener>(aChunk->mFile.forget()).forget());
+        RefPtr<CacheFileChunkListener>(std::move(aChunk->mFile)));
 
     DebugOnly<bool> removed = mDiscardedChunks.RemoveElement(aChunk);
     MOZ_ASSERT(removed);
@@ -362,7 +362,7 @@ nsresult CacheFile::OnChunkWritten(nsresult aResult, CacheFileChunk* aChunk) {
     MOZ_ASSERT(aChunk->mRefCnt == 2);
     aChunk->mActiveChunk = false;
     ReleaseOutsideLock(
-        RefPtr<CacheFileChunkListener>(aChunk->mFile.forget()).forget());
+        RefPtr<CacheFileChunkListener>(std::move(aChunk->mFile)));
 
     DebugOnly<bool> removed = mDiscardedChunks.RemoveElement(aChunk);
     MOZ_ASSERT(removed);
@@ -548,12 +548,12 @@ nsresult CacheFile::OnFileOpened(CacheFileHandle* aHandle, nsresult aResult) {
         // Write all cached chunks, otherwise they may stay unwritten.
         for (auto iter = mCachedChunks.Iter(); !iter.Done(); iter.Next()) {
           uint32_t idx = iter.Key();
-          const RefPtr<CacheFileChunk>& chunk = iter.Data();
+          RefPtr<CacheFileChunk>& chunk = iter.Data();
 
           LOG(("CacheFile::OnFileOpened() - write [this=%p, idx=%u, chunk=%p]",
                this, idx, chunk.get()));
 
-          mChunks.Put(idx, chunk);
+          mChunks.Put(idx, RefPtr{chunk});
           chunk->mFile = this;
           chunk->mActiveChunk = true;
 
@@ -561,7 +561,7 @@ nsresult CacheFile::OnFileOpened(CacheFileHandle* aHandle, nsresult aResult) {
 
           // This would be cleaner if we had an nsRefPtr constructor that took
           // a RefPtr<Derived>.
-          ReleaseOutsideLock(RefPtr<nsISupports>(chunk));
+          ReleaseOutsideLock(std::move(chunk));
 
           iter.Remove();
         }
@@ -984,6 +984,8 @@ nsresult CacheFile::OpenAlternativeOutputStream(
 }
 
 nsresult CacheFile::SetMemoryOnly() {
+  CacheFileAutoLock lock(this);
+
   LOG(("CacheFile::SetMemoryOnly() mMemoryOnly=%d [this=%p]", mMemoryOnly,
        this));
 
@@ -1436,7 +1438,7 @@ nsresult CacheFile::GetChunkLocked(uint32_t aIndex, ECallerType aCaller,
     // Preloader calls this method to preload only non-loaded chunks.
     MOZ_ASSERT(aCaller != PRELOADER, "Unexpected!");
 
-    mChunks.Put(aIndex, chunk);
+    mChunks.Put(aIndex, RefPtr{chunk});
     mCachedChunks.Remove(aIndex);
     chunk->mFile = this;
     chunk->mActiveChunk = true;
@@ -1470,7 +1472,7 @@ nsresult CacheFile::GetChunkLocked(uint32_t aIndex, ECallerType aCaller,
     }
 
     chunk = new CacheFileChunk(this, aIndex, aCaller == WRITER);
-    mChunks.Put(aIndex, chunk);
+    mChunks.Put(aIndex, RefPtr{chunk});
     chunk->mActiveChunk = true;
 
     LOG(
@@ -1503,7 +1505,7 @@ nsresult CacheFile::GetChunkLocked(uint32_t aIndex, ECallerType aCaller,
     if (aCaller == WRITER) {
       // this listener is going to write to the chunk
       chunk = new CacheFileChunk(this, aIndex, true);
-      mChunks.Put(aIndex, chunk);
+      mChunks.Put(aIndex, RefPtr{chunk});
       chunk->mActiveChunk = true;
 
       LOG(("CacheFile::GetChunkLocked() - Created new empty chunk %p [this=%p]",
@@ -1709,7 +1711,7 @@ nsresult CacheFile::DeactivateChunk(CacheFileChunk* aChunk) {
     if (aChunk->mDiscardedChunk) {
       aChunk->mActiveChunk = false;
       ReleaseOutsideLock(
-          RefPtr<CacheFileChunkListener>(aChunk->mFile.forget()).forget());
+          RefPtr<CacheFileChunkListener>(std::move(aChunk->mFile)));
 
       DebugOnly<bool> removed = mDiscardedChunks.RemoveElement(aChunk);
       MOZ_ASSERT(removed);
@@ -1791,11 +1793,10 @@ void CacheFile::RemoveChunkInternal(CacheFileChunk* aChunk, bool aCacheChunk) {
   AssertOwnsLock();
 
   aChunk->mActiveChunk = false;
-  ReleaseOutsideLock(
-      RefPtr<CacheFileChunkListener>(aChunk->mFile.forget()).forget());
+  ReleaseOutsideLock(RefPtr<CacheFileChunkListener>(std::move(aChunk->mFile)));
 
   if (aCacheChunk) {
-    mCachedChunks.Put(aChunk->Index(), aChunk);
+    mCachedChunks.Put(aChunk->Index(), RefPtr{aChunk});
   }
 
   mChunks.Remove(aChunk->Index());
@@ -2065,7 +2066,7 @@ static uint32_t StatusToTelemetryEnum(nsresult aStatus) {
 }
 
 void CacheFile::RemoveInput(CacheFileInputStream* aInput, nsresult aStatus) {
-  CacheFileAutoLock lock(this);
+  AssertOwnsLock();
 
   LOG(("CacheFile::RemoveInput() [this=%p, input=%p, status=0x%08" PRIx32 "]",
        this, aInput, static_cast<uint32_t>(aStatus)));
@@ -2351,6 +2352,8 @@ bool CacheFile::IsWriteInProgress() {
 
 bool CacheFile::EntryWouldExceedLimit(int64_t aOffset, int64_t aSize,
                                       bool aIsAltData) {
+  CacheFileAutoLock lock(this);
+
   if (mSkipSizeCheck || aSize < 0) {
     return false;
   }
@@ -2467,7 +2470,7 @@ nsresult CacheFile::PadChunkWithZeroes(uint32_t aChunkIdx) {
 
   CacheFileChunkWriteHandle hnd = chunk->GetWriteHandle(kChunkSize);
   if (!hnd.Buf()) {
-    ReleaseOutsideLock(chunk.forget());
+    ReleaseOutsideLock(std::move(chunk));
     SetError(NS_ERROR_OUT_OF_MEMORY);
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -2476,7 +2479,7 @@ nsresult CacheFile::PadChunkWithZeroes(uint32_t aChunkIdx) {
   memset(hnd.Buf() + offset, 0, kChunkSize - offset);
   hnd.UpdateDataSize(offset, kChunkSize - offset);
 
-  ReleaseOutsideLock(chunk.forget());
+  ReleaseOutsideLock(std::move(chunk));
 
   return NS_OK;
 }

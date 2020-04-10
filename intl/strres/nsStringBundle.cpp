@@ -309,7 +309,7 @@ already_AddRefed<T> nsStringBundleBase::Create(Args... args) {
 nsStringBundle::nsStringBundle(const char* aURLSpec)
     : nsStringBundleBase(aURLSpec) {}
 
-nsStringBundle::~nsStringBundle() {}
+nsStringBundle::~nsStringBundle() = default;
 
 NS_IMETHODIMP
 nsStringBundleBase::AsyncPreload() {
@@ -679,9 +679,9 @@ struct bundleCacheEntry_t final : public LinkedListElement<bundleCacheEntry_t> {
   nsCString mHashKey;
   nsCOMPtr<nsIStringBundle> mBundle;
 
-  bundleCacheEntry_t() { MOZ_COUNT_CTOR(bundleCacheEntry_t); }
+  MOZ_COUNTED_DEFAULT_CTOR(bundleCacheEntry_t)
 
-  ~bundleCacheEntry_t() { MOZ_COUNT_DTOR(bundleCacheEntry_t); }
+  MOZ_COUNTED_DTOR(bundleCacheEntry_t)
 };
 
 nsStringBundleService::nsStringBundleService()

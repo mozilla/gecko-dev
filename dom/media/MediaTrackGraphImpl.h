@@ -19,6 +19,7 @@
 #include "nsIMemoryReporter.h"
 #include "nsINamed.h"
 #include "nsIRunnable.h"
+#include "nsIThreadInternal.h"
 #include "nsITimer.h"
 #include "AsyncLogger.h"
 
@@ -55,7 +56,7 @@ class ControlMessage {
     MOZ_COUNT_CTOR(ControlMessage);
   }
   // All these run on the graph thread
-  virtual ~ControlMessage() { MOZ_COUNT_DTOR(ControlMessage); }
+  MOZ_COUNTED_DTOR_VIRTUAL(ControlMessage)
   // Do the action of this message on the MediaTrackGraph thread. Any actions
   // affecting graph processing should take effect at mProcessedTime.
   // All track data for times < mProcessedTime has already been
@@ -93,11 +94,13 @@ class MessageBlock {
 class MediaTrackGraphImpl : public MediaTrackGraph,
                             public GraphInterface,
                             public nsIMemoryReporter,
+                            public nsIThreadObserver,
                             public nsITimerCallback,
                             public nsINamed {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTER
+  NS_DECL_NSITHREADOBSERVER
   NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSINAMED
 

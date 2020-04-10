@@ -328,8 +328,8 @@ nsresult IDBFactory::AllowedForWindowInternal(
   }
 
   if (ShouldPartitionStorage(access) &&
-      !StoragePartitioningEnabled(access,
-                                  aWindow->GetExtantDoc()->CookieSettings())) {
+      !StoragePartitioningEnabled(
+          access, aWindow->GetExtantDoc()->CookieJarSettings())) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
@@ -414,13 +414,6 @@ bool IDBFactory::IsChrome() const {
   MOZ_ASSERT(mPrincipalInfo);
 
   return mPrincipalInfo->type() == PrincipalInfo::TSystemPrincipalInfo;
-}
-
-void IDBFactory::IncrementParentLoggingRequestSerialNumber() {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(mBackgroundActor);
-
-  mBackgroundActor->SendIncrementLoggingRequestSerialNumber();
 }
 
 RefPtr<IDBOpenDBRequest> IDBFactory::Open(JSContext* aCx,
@@ -601,7 +594,7 @@ RefPtr<IDBOpenDBRequest> IDBFactory::OpenInternal(
   uint64_t version = 0;
   if (!aDeleting && aVersion.WasPassed()) {
     if (aVersion.Value() < 1) {
-      aRv.ThrowTypeError(u"0 (Zero) is not a valid database version.");
+      aRv.ThrowTypeError("0 (Zero) is not a valid database version.");
       return nullptr;
     }
     version = aVersion.Value();
@@ -665,11 +658,11 @@ RefPtr<IDBOpenDBRequest> IDBFactory::OpenInternal(
     BackgroundChildImpl::ThreadLocal* threadLocal =
         BackgroundChildImpl::GetThreadLocalForCurrentThread();
 
-    nsAutoPtr<ThreadLocal> newIDBThreadLocal;
+    UniquePtr<ThreadLocal> newIDBThreadLocal;
     ThreadLocal* idbThreadLocal;
 
     if (threadLocal && threadLocal->mIndexedDBThreadLocal) {
-      idbThreadLocal = threadLocal->mIndexedDBThreadLocal;
+      idbThreadLocal = threadLocal->mIndexedDBThreadLocal.get();
     } else {
       nsCOMPtr<nsIUUIDGenerator> uuidGen =
           do_GetService("@mozilla.org/uuid-generator;1");
@@ -678,7 +671,8 @@ RefPtr<IDBOpenDBRequest> IDBFactory::OpenInternal(
       nsID id;
       MOZ_ALWAYS_SUCCEEDS(uuidGen->GenerateUUIDInPlace(&id));
 
-      newIDBThreadLocal = idbThreadLocal = new ThreadLocal(id);
+      newIDBThreadLocal = WrapUnique(new ThreadLocal(id));
+      idbThreadLocal = newIDBThreadLocal.get();
     }
 
     PBackgroundChild* backgroundActor =

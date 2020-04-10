@@ -944,8 +944,23 @@ interface nsIDOMWindowUtils : nsISupports {
 
   /**
    * Get the number of screen pixels per CSS pixel.
+   *
+   * This is the same as window.devicePixelRatio, except it bypasses
+   * the fingerprinting resistance efforts that window.devicePixelRatio
+   * does (which is fine as this is only exposed to browser internals).
    */
   readonly attribute float screenPixelsPerCSSPixel;
+
+  /**
+   * Get the number of screen pixels per CSS pixel,
+   * not taking into account any override of the device pixel scale
+   * that's imposed by Responsive Design Mode.
+   *
+   * This is needed to e.g. correctly translate "window.mozInnerScreenX/Y"
+   * into device pixels even when "window" is the window of a document
+   * inside an RDM pane.
+   */
+  readonly attribute float screenPixelsPerCSSPixelNoOverride;
 
   /**
    * Get the current zoom factor.
@@ -1756,12 +1771,6 @@ interface nsIDOMWindowUtils : nsISupports {
    * Posts an RestyleHint::RESTYLE_SELF restyle event for the given element.
    */
   void postRestyleSelfEvent(in Element aElement);
-
-  /**
-   * Used to pause or resume all media in this window. Use-cases are audio
-   * competing, remote media control and to prevent auto-playing media.
-   */
-  attribute uint32_t mediaSuspend;
 
   /**
    * This method doesn't do anything useful.  It was solely added for the

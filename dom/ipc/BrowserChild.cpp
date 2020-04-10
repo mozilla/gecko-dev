@@ -21,6 +21,7 @@
 #include "EventStateManager.h"
 #include "FrameLayerBuilder.h"
 #include "Layers.h"
+#include "LayersLogging.h"
 #include "MMPrinter.h"
 #include "PermissionMessageUtils.h"
 #include "PuppetWidget.h"
@@ -85,7 +86,6 @@
 #include "mozilla/layers/ShadowLayers.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/plugins/PPluginWidgetChild.h"
-#include "mozilla/recordreplay/ParentIPC.h"
 #include "nsBrowserStatusFilter.h"
 #include "nsColorPickerProxy.h"
 #include "nsCommandParams.h"
@@ -146,8 +146,7 @@
 #define BROWSER_ELEMENT_CHILD_SCRIPT \
   NS_LITERAL_STRING("chrome://global/content/BrowserElementChild.js")
 
-#define TABC_LOG(...)
-// #define TABC_LOG(...) printf_stderr("TABC: " __VA_ARGS__)
+static mozilla::LazyLogModule sApzChildLog("apz.child");
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -585,11 +584,6 @@ nsresult BrowserChild::Init(mozIDOMWindowProxy* aParent,
 
   mIPCOpen = true;
 
-  // Recording/replaying processes use their own compositor.
-  if (recordreplay::IsRecordingOrReplaying()) {
-    mPuppetWidget->CreateCompositor();
-  }
-
 #if !defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_THUNDERBIRD) && \
     !defined(MOZ_SUITE)
   mSessionStoreListener = new TabListener(docShell, nullptr);
@@ -638,6 +632,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(BrowserChild)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mStatusFilter)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWebNav)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mBrowsingContext)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(BrowserChild)
@@ -1039,11 +1034,11 @@ BrowserChild::~BrowserChild() {
   mozilla::DropJSObjects(this);
 }
 
-mozilla::ipc::IPCResult BrowserChild::RecvSkipBrowsingContextDetach(
-    SkipBrowsingContextDetachResolver&& aResolve) {
+mozilla::ipc::IPCResult BrowserChild::RecvWillChangeProcess(
+    WillChangeProcessResolver&& aResolve) {
   if (nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation())) {
     RefPtr<nsDocShell> docshell = nsDocShell::Cast(docShell);
-    docshell->SkipBrowsingContextDetach();
+    docshell->SetWillChangeProcess();
   }
   aResolve(true);
   return IPC_OK();
@@ -1234,9 +1229,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvCompositorOptionsChanged(
 
 mozilla::ipc::IPCResult BrowserChild::RecvUpdateDimensions(
     const DimensionInfo& aDimensionInfo) {
-  // When recording/replaying we need to make sure the dimensions are up to
-  // date on the compositor used in this process.
-  if (mLayersConnected.isNothing() && !recordreplay::IsRecordingOrReplaying()) {
+  if (mLayersConnected.isNothing()) {
     return IPC_OK();
   }
 
@@ -1278,6 +1271,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvUpdateDimensions(
     dispatcher->PostDOMEvent();
   }
 
+  RecvSafeAreaInsetsChanged(mPuppetWidget->GetSafeAreaInsets());
+
   return IPC_OK();
 }
 
@@ -1288,6 +1283,9 @@ mozilla::ipc::IPCResult BrowserChild::RecvSizeModeChanged(
     return IPC_OK();
   }
   nsCOMPtr<Document> document(GetTopLevelDocument());
+  if (!document) {
+    return IPC_OK();
+  }
   nsPresContext* presContext = document->GetPresContext();
   if (presContext) {
     presContext->SizeModeChanged(aSizeMode);
@@ -1296,11 +1294,21 @@ mozilla::ipc::IPCResult BrowserChild::RecvSizeModeChanged(
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvChildToParentMatrix(
-    const mozilla::Maybe<mozilla::gfx::Matrix4x4>& aMatrix,
-    const mozilla::ScreenRect& aRemoteDocumentRect) {
+    const Maybe<gfx::Matrix4x4>& aMatrix,
+    const ScreenRect& aTopLevelViewportVisibleRectInBrowserCoords) {
   mChildToParentConversionMatrix =
       LayoutDeviceToLayoutDeviceMatrix4x4::FromUnknownMatrix(aMatrix);
-  mRemoteDocumentRect = aRemoteDocumentRect;
+  mTopLevelViewportVisibleRectInBrowserCoords =
+      aTopLevelViewportVisibleRectInBrowserCoords;
+
+  // Trigger an intersection observation update since ancestor viewports
+  // changed.
+  if (RefPtr<Document> toplevelDoc = GetTopLevelDocument()) {
+    if (nsPresContext* pc = toplevelDoc->GetPresContext()) {
+      pc->RefreshDriver()->EnsureIntersectionObservationsUpdateHappens();
+    }
+  }
+
   return IPC_OK();
 }
 
@@ -1355,11 +1363,12 @@ mozilla::ipc::IPCResult BrowserChild::RecvSuppressDisplayport(
 void BrowserChild::HandleDoubleTap(const CSSPoint& aPoint,
                                    const Modifiers& aModifiers,
                                    const ScrollableLayerGuid& aGuid) {
-  TABC_LOG("Handling double tap at %s with %p %p\n", Stringify(aPoint).c_str(),
-           mBrowserChildMessageManager
-               ? mBrowserChildMessageManager->GetWrapper()
-               : nullptr,
-           mBrowserChildMessageManager.get());
+  MOZ_LOG(
+      sApzChildLog, LogLevel::Debug,
+      ("Handling double tap at %s with %p %p\n", Stringify(aPoint).c_str(),
+       mBrowserChildMessageManager ? mBrowserChildMessageManager->GetWrapper()
+                                   : nullptr,
+       mBrowserChildMessageManager.get()));
 
   if (!mBrowserChildMessageManager) {
     return;
@@ -1592,8 +1601,8 @@ BrowserChild::GetChildToParentConversionMatrix() const {
   return LayoutDeviceToLayoutDeviceMatrix4x4::Translation(offset);
 }
 
-ScreenRect BrowserChild::GetRemoteDocumentRect() const {
-  return mRemoteDocumentRect;
+ScreenRect BrowserChild::GetTopLevelViewportVisibleRectInBrowserCoords() const {
+  return mTopLevelViewportVisibleRectInBrowserCoords;
 }
 
 void BrowserChild::FlushAllCoalescedMouseData() {
@@ -1867,7 +1876,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvNormalPriorityMouseWheelEvent(
 mozilla::ipc::IPCResult BrowserChild::RecvRealTouchEvent(
     const WidgetTouchEvent& aEvent, const ScrollableLayerGuid& aGuid,
     const uint64_t& aInputBlockId, const nsEventStatus& aApzResponse) {
-  TABC_LOG("Receiving touch event of type %d\n", aEvent.mMessage);
+  MOZ_LOG(sApzChildLog, LogLevel::Debug,
+          ("Receiving touch event of type %d\n", aEvent.mMessage));
 
   WidgetTouchEvent localEvent(aEvent);
   localEvent.mWidget = mPuppetWidget;
@@ -2251,11 +2261,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvLoadRemoteScript(
     return IPC_OK();
   }
 
-  // Make sure we only load whitelisted scripts in middleman processes.
-  if (recordreplay::IsMiddleman() && !LoadScriptInMiddleman(aURL)) {
-    return IPC_OK();
-  }
-
   LoadScriptInternal(mm, aURL, !aRunInGlobalScope);
   return IPC_OK();
 }
@@ -2339,7 +2344,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvSwappedWithOtherRemoteLoader(
   // Ignore previous value of mTriedBrowserInit since owner content has changed.
   mTriedBrowserInit = true;
   // Initialize the child side of the browser element machinery, if appropriate.
-  if (IsMozBrowser()) {
+  if (IsMozBrowserElement()) {
     RecvLoadRemoteScript(BROWSER_ELEMENT_CHILD_SCRIPT, true);
   }
 
@@ -2684,7 +2689,7 @@ bool BrowserChild::InitBrowserChildMessageManager() {
     mTriedBrowserInit = true;
     // Initialize the child side of the browser element machinery,
     // if appropriate.
-    if (IsMozBrowser()) {
+    if (IsMozBrowserElement()) {
       RecvLoadRemoteScript(BROWSER_ELEMENT_CHILD_SCRIPT, true);
     }
   }
@@ -2831,17 +2836,39 @@ void BrowserChild::InitAPZState() {
 
 void BrowserChild::NotifyPainted() {
   if (!mNotified) {
-    // Recording/replaying processes have a compositor but not a remote frame.
-    if (!recordreplay::IsRecordingOrReplaying()) {
-      SendNotifyCompositorTransaction();
-    }
+    SendNotifyCompositorTransaction();
     mNotified = true;
   }
 }
 
 IPCResult BrowserChild::RecvUpdateEffects(const EffectsInfo& aEffects) {
+  bool needInvalidate = false;
+  if (mEffectsInfo.IsVisible() && aEffects.IsVisible() &&
+      mEffectsInfo != aEffects) {
+    // if we are staying visible and either the visrect or scale changed we need
+    // to invalidate
+    needInvalidate = true;
+  }
+
   mEffectsInfo = aEffects;
   UpdateVisibility();
+
+  if (needInvalidate) {
+    nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation());
+    if (docShell) {
+      // We don't use BrowserChildBase::GetPresShell() here because that would
+      // create a content viewer if one doesn't exist yet. Creating a content
+      // viewer can cause JS to run, which we want to avoid.
+      // nsIDocShell::GetPresShell returns null if no content viewer exists yet.
+      RefPtr<PresShell> presShell = docShell->GetPresShell();
+      if (presShell) {
+        if (nsIFrame* root = presShell->GetRootFrame()) {
+          root->InvalidateFrame();
+        }
+      }
+    }
+  }
+
   return IPC_OK();
 }
 
@@ -3239,11 +3266,15 @@ mozilla::ipc::IPCResult BrowserChild::RecvRequestNotifyAfterRemotePaint() {
 
 mozilla::ipc::IPCResult BrowserChild::RecvUIResolutionChanged(
     const float& aDpi, const int32_t& aRounding, const double& aScale) {
+  nsCOMPtr<Document> document(GetTopLevelDocument());
+  if (!document) {
+    return IPC_OK();
+  }
+
   ScreenIntSize oldScreenSize = GetInnerSize();
   if (aDpi > 0) {
     mPuppetWidget->UpdateBackingScaleCache(aDpi, aRounding, aScale);
   }
-  nsCOMPtr<Document> document(GetTopLevelDocument());
   RefPtr<nsPresContext> presContext = document->GetPresContext();
   if (presContext) {
     presContext->UIResolutionChangedSync();
@@ -3266,12 +3297,54 @@ mozilla::ipc::IPCResult BrowserChild::RecvUIResolutionChanged(
 
 mozilla::ipc::IPCResult BrowserChild::RecvThemeChanged(
     nsTArray<LookAndFeelInt>&& aLookAndFeelIntCache) {
-  LookAndFeel::SetIntCache(aLookAndFeelIntCache);
   nsCOMPtr<Document> document(GetTopLevelDocument());
+  if (!document) {
+    return IPC_OK();
+  }
+
+  LookAndFeel::SetIntCache(aLookAndFeelIntCache);
   RefPtr<nsPresContext> presContext = document->GetPresContext();
   if (presContext) {
     presContext->ThemeChanged();
   }
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult BrowserChild::RecvSafeAreaInsetsChanged(
+    const mozilla::ScreenIntMargin& aSafeAreaInsets) {
+  mPuppetWidget->UpdateSafeAreaInsets(aSafeAreaInsets);
+
+  nsCOMPtr<nsIScreenManager> screenMgr =
+      do_GetService("@mozilla.org/gfx/screenmanager;1");
+  ScreenIntMargin currentSafeAreaInsets;
+  if (screenMgr) {
+    // aSafeAreaInsets is for current screen. But we have to calculate
+    // safe insets for content window.
+    int32_t x, y, cx, cy;
+    GetDimensions(0, &x, &y, &cx, &cy);
+    nsCOMPtr<nsIScreen> screen;
+    screenMgr->ScreenForRect(x, y, cx, cy, getter_AddRefs(screen));
+
+    if (screen) {
+      LayoutDeviceIntRect windowRect(x + mClientOffset.x + mChromeOffset.x,
+                                     y + mClientOffset.y + mChromeOffset.y, cx,
+                                     cy);
+      currentSafeAreaInsets = nsContentUtils::GetWindowSafeAreaInsets(
+          screen, aSafeAreaInsets, windowRect);
+    }
+  }
+
+  if (nsCOMPtr<Document> document = GetTopLevelDocument()) {
+    nsPresContext* presContext = document->GetPresContext();
+    if (presContext) {
+      presContext->SetSafeAreaInsets(currentSafeAreaInsets);
+    }
+  }
+
+  // https://github.com/w3c/csswg-drafts/issues/4670
+  // Actually we don't set this value on sub document. This behaviour is
+  // same as Blink that safe area insets isn't set on sub document.
+
   return IPC_OK();
 }
 
@@ -3286,14 +3359,6 @@ bool BrowserChild::StopAwaitingLargeAlloc() {
   bool awaiting = mAwaitingLA;
   mAwaitingLA = false;
   return awaiting;
-}
-
-mozilla::ipc::IPCResult BrowserChild::RecvSetWindowName(const nsString& aName) {
-  nsCOMPtr<nsIDocShellTreeItem> item = do_QueryInterface(WebNavigation());
-  if (item) {
-    item->SetName(aName);
-  }
-  return IPC_OK();
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvAllowScriptsToClose() {
@@ -3396,6 +3461,38 @@ Maybe<LayoutDeviceIntRect> BrowserChild::GetVisibleRect() const {
   return Some(visibleRectLD);
 }
 
+Maybe<LayoutDeviceRect>
+BrowserChild::GetTopLevelViewportVisibleRectInSelfCoords() const {
+  if (mIsTopLevel) {
+    return Nothing();
+  }
+
+  if (!mChildToParentConversionMatrix) {
+    // We have no way to tell this remote document visible rect right now.
+    return Nothing();
+  }
+
+  Maybe<LayoutDeviceToLayoutDeviceMatrix4x4> inverse =
+      mChildToParentConversionMatrix->MaybeInverse();
+  if (!inverse) {
+    return Nothing();
+  }
+
+  // Convert the remote document visible rect to the coordinate system of the
+  // iframe document.
+  Maybe<LayoutDeviceRect> rect = UntransformBy(
+      *inverse,
+      ViewAs<LayoutDevicePixel>(
+          mTopLevelViewportVisibleRectInBrowserCoords,
+          PixelCastJustification::ContentProcessIsLayerInUiProcess),
+      LayoutDeviceRect::MaxIntRect());
+  if (!rect) {
+    return Nothing();
+  }
+
+  return rect;
+}
+
 ScreenIntRect BrowserChild::GetOuterRect() {
   LayoutDeviceIntRect outerRect =
       RoundedToInt(mUnscaledOuterRect * mPuppetWidget->GetDefaultScale());
@@ -3425,7 +3522,6 @@ nsresult BrowserChild::CanCancelContentJS(
   if (aEpoch <= mCancelContentJSEpoch) {
     // The next page loaded before we got here, so we shouldn't try to cancel
     // the content JS.
-    TABC_LOG("Unable to cancel content JS; the next page is already loaded!\n");
     return NS_OK;
   }
 
@@ -3795,7 +3891,7 @@ NS_IMETHODIMP BrowserChild::OnSecurityChange(nsIWebProgress* aWebProgress,
     }
 
     securityChangeData.emplace();
-    securityChangeData->securityInfo() = securityInfo.forget();
+    securityChangeData->securityInfo() = ToRefPtr(std::move(securityInfo));
     securityChangeData->isSecureContext() = isSecureContext;
   }
 
@@ -3977,7 +4073,8 @@ BrowserChild::DoesWindowSupportProtectedMedia() {
 #endif
 
 void BrowserChild::NotifyContentBlockingEvent(
-    uint32_t aEvent, nsIChannel* aChannel, bool aBlocked, nsIURI* aHintURI,
+    uint32_t aEvent, nsIChannel* aChannel, bool aBlocked,
+    const nsACString& aTrackingOrigin,
     const nsTArray<nsCString>& aTrackingFullHashes,
     const Maybe<mozilla::AntiTrackingCommon::StorageAccessGrantedReason>&
         aReason) {
@@ -3991,8 +4088,9 @@ void BrowserChild::NotifyContentBlockingEvent(
                                             requestData);
   NS_ENSURE_SUCCESS_VOID(rv);
 
-  Unused << SendNotifyContentBlockingEvent(
-      aEvent, requestData, aBlocked, aHintURI, aTrackingFullHashes, aReason);
+  Unused << SendNotifyContentBlockingEvent(aEvent, requestData, aBlocked,
+                                           PromiseFlatCString(aTrackingOrigin),
+                                           aTrackingFullHashes, aReason);
 }
 
 BrowserChildMessageManager::BrowserChildMessageManager(
@@ -4000,7 +4098,7 @@ BrowserChildMessageManager::BrowserChildMessageManager(
     : ContentFrameMessageManager(new nsFrameMessageManager(aBrowserChild)),
       mBrowserChild(aBrowserChild) {}
 
-BrowserChildMessageManager::~BrowserChildMessageManager() {}
+BrowserChildMessageManager::~BrowserChildMessageManager() = default;
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(BrowserChildMessageManager)
 
@@ -4008,6 +4106,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(BrowserChildMessageManager,
                                                 DOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mMessageManager);
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mBrowserChild);
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(BrowserChildMessageManager,

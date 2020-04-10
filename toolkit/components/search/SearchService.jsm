@@ -18,8 +18,10 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   DeferredTask: "resource://gre/modules/DeferredTask.jsm",
   ExtensionParent: "resource://gre/modules/ExtensionParent.jsm",
   getVerificationHash: "resource://gre/modules/SearchEngine.jsm",
-  OS: "resource://gre/modules/osfile.jsm",
   IgnoreLists: "resource://gre/modules/IgnoreLists.jsm",
+  NetworkGeolocationProvider:
+    "resource://gre/modules/NetworkGeolocationProvider.jsm",
+  OS: "resource://gre/modules/osfile.jsm",
   SearchEngine: "resource://gre/modules/SearchEngine.jsm",
   SearchEngineSelector: "resource://gre/modules/SearchEngineSelector.jsm",
   SearchStaticData: "resource://gre/modules/SearchStaticData.jsm",
@@ -127,7 +129,7 @@ var ensureKnownRegion = async function(ss, awaitRegionCheck) {
   // If we have a region already stored in our prefs we trust it.
   let region = Services.prefs.getCharPref("browser.search.region", "");
   try {
-    if (!region) {
+    if (gGeoSpecificDefaultsEnabled && !region) {
       // We don't have it cached, so fetch it. fetchRegion() will call
       // storeRegion if it gets a result (even if that happens after the
       // promise resolves) and fetchRegionDefault.
@@ -148,7 +150,7 @@ var ensureKnownRegion = async function(ss, awaitRegionCheck) {
       if (expired || !hasValidHashes) {
         await new Promise(resolve => {
           let timeoutMS = Services.prefs.getIntPref(
-            "browser.search.geoip.timeout"
+            "geo.provider.network.timeToWaitBeforeSending"
           );
           let timerId = setTimeout(() => {
             timerId = null;
@@ -246,134 +248,87 @@ async function storeRegion(region) {
 }
 
 // Get the region we are in via a XHR geoip request.
-function fetchRegion(ss, awaitRegionCheck) {
+async function fetchRegion(ss, awaitRegionCheck) {
   // values for the SEARCH_SERVICE_COUNTRY_FETCH_RESULT 'enum' telemetry probe.
   const TELEMETRY_RESULT_ENUM = {
-    SUCCESS: 0,
-    SUCCESS_WITHOUT_DATA: 1,
-    XHRTIMEOUT: 2,
-    ERROR: 3,
+    success: 0,
+    "xhr-empty": 1,
+    "xhr-timeout": 2,
+    "xhr-error": 3,
     // Note that we expect to add finer-grained error types here later (eg,
     // dns error, network error, ssl error, etc) with .ERROR remaining as the
     // generic catch-all that doesn't fit into other categories.
   };
-  let endpoint = Services.urlFormatter.formatURLPref(
-    "browser.search.geoip.url"
-  );
-  SearchUtils.log("_fetchRegion starting with endpoint " + endpoint);
-  // As an escape hatch, no endpoint means no geoip.
-  if (!endpoint) {
-    return Promise.resolve();
-  }
   let startTime = Date.now();
-  return new Promise(resolve => {
-    // Instead of using a timeout on the xhr object itself, we simulate one
-    // using a timer and let the XHR request complete.  This allows us to
-    // capture reliable telemetry on what timeout value should actually be
-    // used to ensure most users don't see one while not making it so large
-    // that many users end up doing a sync init of the search service and thus
-    // would see the jank that implies.
-    // (Note we do actually use a timeout on the XHR, but that's set to be a
-    // large value just incase the request never completes - we don't want the
-    // XHR object to live forever)
-    let timeoutMS = Services.prefs.getIntPref("browser.search.geoip.timeout");
-    let geoipTimeoutPossible = true;
-    let timerId = setTimeout(() => {
-      SearchUtils.log("_fetchRegion: timeout fetching region information");
-      if (geoipTimeoutPossible) {
-        Services.telemetry
-          .getHistogramById("SEARCH_SERVICE_COUNTRY_TIMEOUT")
-          .add(1);
-      }
-      timerId = null;
-      resolve();
-    }, timeoutMS);
 
-    let resolveAndReportSuccess = (result, reason) => {
-      // Even if we timed out, we want to save the region and everything
-      // related so next startup sees the value and doesn't retry this dance.
-      if (result) {
-        storeRegion(result).catch(Cu.reportError);
-      }
-      Services.telemetry
-        .getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_RESULT")
-        .add(reason);
+  let statusCallback = status => {
+    switch (status) {
+      case "xhr-start":
+        // This notification is just for tests...
+        Services.obs.notifyObservers(
+          null,
+          SearchUtils.TOPIC_SEARCH_SERVICE,
+          "geoip-lookup-xhr-starting"
+        );
+        break;
+      case "wifi-timeout":
+        SearchUtils.log("_fetchRegion: timeout fetching wifi information");
+        // Do nothing for now.
+        break;
+    }
+  };
 
-      // This notification is just for tests...
-      Services.obs.notifyObservers(
-        null,
-        SearchUtils.TOPIC_SEARCH_SERVICE,
-        "geoip-lookup-xhr-complete"
-      );
+  let networkGeo = new NetworkGeolocationProvider();
+  let result, errorResult;
+  try {
+    result = await networkGeo.getCountry(statusCallback);
+  } catch (ex) {
+    errorResult = ex;
+    Cu.reportError(ex);
+  }
 
-      if (timerId) {
-        Services.telemetry
-          .getHistogramById("SEARCH_SERVICE_COUNTRY_TIMEOUT")
-          .add(0);
-        geoipTimeoutPossible = false;
-      }
+  let took = Date.now() - startTime;
+  // Even if we timed out, we want to save the region and everything
+  // related so next startup sees the value and doesn't retry this dance.
+  if (result) {
+    // As long as the asynchronous codepath in `storeRegion` is only used for
+    // telemetry, we don't need to await its completion.
+    storeRegion(result).catch(Cu.reportError);
+  }
+  SearchUtils.log(
+    "_fetchRegion got success response in " + took + "ms: " + result
+  );
+  Services.telemetry
+    .getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_TIME_MS")
+    .add(took);
 
-      let callback = () => {
-        // If we've already timed out then we've already resolved the promise,
-        // so there's nothing else to do.
-        if (timerId == null) {
-          return;
-        }
-        clearTimeout(timerId);
-        resolve();
-      };
+  // This notification is just for tests...
+  Services.obs.notifyObservers(
+    null,
+    SearchUtils.TOPIC_SEARCH_SERVICE,
+    "geoip-lookup-xhr-complete"
+  );
 
-      if (result && gGeoSpecificDefaultsEnabled && gModernConfig) {
-        ss._maybeReloadEngines(awaitRegionCheck).then(callback);
-      } else if (result && gGeoSpecificDefaultsEnabled && !gModernConfig) {
-        fetchRegionDefault(ss, awaitRegionCheck)
-          .then(callback)
-          .catch(err => {
-            Cu.reportError(err);
-            callback();
-          });
-      } else {
-        callback();
-      }
-    };
+  // Now that we know the current region, it's possible to fetch defaults,
+  // which we couldn't do before in `ensureKnownRegion`.
+  try {
+    if (result && gModernConfig) {
+      await ss._maybeReloadEngines(awaitRegionCheck);
+    } else if (result && !gModernConfig) {
+      await fetchRegionDefault(ss, awaitRegionCheck);
+    }
+  } catch (ex) {
+    Cu.reportError(ex);
+  }
 
-    let request = new XMLHttpRequest();
-    // This notification is just for tests...
-    Services.obs.notifyObservers(
-      request,
-      SearchUtils.TOPIC_SEARCH_SERVICE,
-      "geoip-lookup-xhr-starting"
-    );
-    request.timeout = 100000; // 100 seconds as the last-chance fallback
-    request.onload = function(event) {
-      let took = Date.now() - startTime;
-      let region = event.target.response && event.target.response.country_code;
-      SearchUtils.log(
-        "_fetchRegion got success response in " + took + "ms: " + region
-      );
-      Services.telemetry
-        .getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_TIME_MS")
-        .add(took);
-      let reason = region
-        ? TELEMETRY_RESULT_ENUM.SUCCESS
-        : TELEMETRY_RESULT_ENUM.SUCCESS_WITHOUT_DATA;
-      resolveAndReportSuccess(region, reason);
-    };
-    request.ontimeout = function(event) {
-      SearchUtils.log(
-        "_fetchRegion: XHR finally timed-out fetching region information"
-      );
-      resolveAndReportSuccess(null, TELEMETRY_RESULT_ENUM.XHRTIMEOUT);
-    };
-    request.onerror = function(event) {
-      SearchUtils.log("_fetchRegion: failed to retrieve region information");
-      resolveAndReportSuccess(null, TELEMETRY_RESULT_ENUM.ERROR);
-    };
-    request.open("POST", endpoint, true);
-    request.setRequestHeader("Content-Type", "application/json");
-    request.responseType = "json";
-    request.send("{}");
-  });
+  let telemetryResult = TELEMETRY_RESULT_ENUM.success;
+  if (errorResult) {
+    telemetryResult =
+      TELEMETRY_RESULT_ENUM[errorResult] || TELEMETRY_RESULT_ENUM["xhr-error"];
+  }
+  Services.telemetry
+    .getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_RESULT")
+    .add(telemetryResult);
 }
 
 // This converts our legacy google engines to the
@@ -571,12 +526,6 @@ function SearchService() {
 SearchService.prototype = {
   classID: Components.ID("{7319788a-fe93-4db3-9f39-818cf08f4256}"),
 
-  // Current cache version. This should be incremented if the format of the cache
-  // file is modified.
-  get CACHE_VERSION() {
-    return gModernConfig ? 2 : 1;
-  },
-
   // The current status of initialization. Note that it does not determine if
   // initialization is complete, only if an error has been encountered so far.
   _initRV: Cr.NS_OK,
@@ -643,6 +592,8 @@ SearchService.prototype = {
    * The suggested order of engines from the configuration.
    * For modern configuration:
    *   This is an array of objects containing the WebExtension ID and Locale.
+   *   This is only needed whilst we investigate issues with cache corruption
+   *   (bug 1589710).
    * For legacy configuration:
    *   This is an array of strings which are the display name of the engines.
    */
@@ -776,6 +727,22 @@ SearchService.prototype = {
       this._setupRemoteSettings().catch(Cu.reportError);
 
       await this._loadEngines(cache);
+
+      // If we've got this far, but the application is now shutting down,
+      // then we need to abandon any further work, especially not writing
+      // the cache. We do this, because the add-on manager has also
+      // started shutting down and as a result, we might have an incomplete
+      // picture of the installed search engines. Writing the cache at
+      // this stage would potentially mean the user would loose their engine
+      // data.
+      // We will however, rebuild the cache on next start up if we detect
+      // it is necessary.
+      if (Services.startup.shuttingDown) {
+        SearchUtils.log("_init: abandoning init due to shutting down");
+        this._initRV = Cr.NS_ERROR_ABORT;
+        this._initObservers.reject(this._initRV);
+        return this._initRV;
+      }
 
       // Make sure the current list of engines is persisted, without the need to wait.
       SearchUtils.log("_init: engines loaded, writing cache");
@@ -1076,7 +1043,7 @@ SearchService.prototype = {
     let appVersion = Services.appinfo.version;
 
     // Allows us to force a cache refresh should the cache format change.
-    cache.version = this.CACHE_VERSION;
+    cache.version = SearchUtils.CACHE_VERSION;
     // We don't want to incur the costs of stat()ing each plugin on every
     // startup when the only (supported) time they will change is during
     // app updates (where the buildID is obviously going to change).
@@ -1175,7 +1142,7 @@ SearchService.prototype = {
     let rebuildCache =
       gEnvironment.get("RELOAD_ENGINES") ||
       !cache.engines ||
-      cache.version != this.CACHE_VERSION ||
+      cache.version != SearchUtils.CACHE_VERSION ||
       cache.locale != Services.locale.requestedLocale ||
       cache.buildID != buildID;
 
@@ -1196,8 +1163,13 @@ SearchService.prototype = {
           cache.builtInEngineList.length != engines.length ||
           engines.some(notInCacheEngines);
 
+        // We don't do a built-in list comparison with distributions because they
+        // have a different set of built-ins to that given from the configuration.
+        // Once distributions are incorporated into the modern config, we could
+        // probably move the distroID check to be legacy config only.
         if (
           !rebuildCache &&
+          SearchUtils.distroID == "" &&
           cache.engines.filter(e => e._isBuiltin).length !=
             cache.builtInEngineList.length
         ) {
@@ -1208,15 +1180,17 @@ SearchService.prototype = {
         function notInCacheVisibleEngines(engineName) {
           return !cache.visibleDefaultEngines.includes(engineName);
         }
-
         // Legacy config.
         rebuildCache =
           cache.visibleDefaultEngines.length !=
             this._visibleDefaultEngines.length ||
           this._visibleDefaultEngines.some(notInCacheVisibleEngines);
 
+        // We don't do a built-in list comparison with distributions because they
+        // have a different set of built-ins to that given from the configuration.
         if (
           !rebuildCache &&
+          SearchUtils.distroID == "" &&
           cache.engines.filter(e => e._isBuiltin).length !=
             cache.visibleDefaultEngines.length
         ) {
@@ -1287,12 +1261,32 @@ SearchService.prototype = {
     SearchUtils.log("_loadEngines: done using rebuilt cache");
   },
 
+  /**
+   * Loads engines as specified by the configuration. We only expect
+   * configured engines here, user engines should not be listed.
+   *
+   * @param {array} engineConfigs
+   *   An array of engines configurations based on the schema.
+   * @param {boolean} [isReload]
+   *   Set to true to indicate a reload is happening.
+   * @returns {array.<nsISearchEngine>}
+   *   Returns an array of the loaded search engines. This may be
+   *   smaller than the original list if not all engines can be loaded.
+   */
   async _loadEnginesFromConfig(engineConfigs, isReload = false) {
     SearchUtils.log("_loadEnginesFromConfig");
     let engines = [];
     for (let config of engineConfigs) {
-      let engine = await this.makeEngineFromConfig(config, isReload);
-      engines.push(engine);
+      try {
+        let engine = await this.makeEngineFromConfig(config, isReload);
+        engines.push(engine);
+      } catch (ex) {
+        console.error(
+          `Could not load engine ${
+            "webExtension" in config ? config.webExtension.id : "unknown"
+          }: ${ex}`
+        );
+      }
     }
     return engines;
   },
@@ -1478,7 +1472,7 @@ SearchService.prototype = {
   },
 
   _reInit(origin, awaitRegionCheck = false) {
-    SearchUtils.log("_reInit");
+    SearchUtils.log("_reInit: " + awaitRegionCheck);
     // Re-entrance guard, because we're using an async lambda below.
     if (gReinitializing) {
       SearchUtils.log("_reInit: already re-initializing, bailing out.");
@@ -1546,7 +1540,7 @@ SearchService.prototype = {
         // it is necessary.
         if (Services.startup.shuttingDown) {
           SearchUtils.log("_reInit: abandoning reInit due to shutting down");
-          this._initObservers.reject();
+          this._initObservers.reject(Cr.NS_ERROR_ABORT);
           return;
         }
 
@@ -1865,7 +1859,8 @@ SearchService.prototype = {
     let { engines, privateDefault } = engineSelector.fetchEngineConfiguration(
       locale,
       region,
-      channel
+      channel,
+      SearchUtils.distroID
     );
 
     const defaultEngine = engines[0];
@@ -2148,7 +2143,10 @@ SearchService.prototype = {
 
   _buildSortedEngineList() {
     SearchUtils.log("_buildSortedEngineList: building list");
-    var addedEngines = {};
+    // We must initialise __sortedEngines here to avoid infinite recursion
+    // in the case of tests which don't define a default search engine.
+    // If there's no default defined, then we revert to the first item in the
+    // sorted list, but we can't do that if we don't have a list.
     this.__sortedEngines = [];
 
     // If the user has specified a custom engine order, read the order
@@ -2160,6 +2158,7 @@ SearchService.prototype = {
       )
     ) {
       SearchUtils.log("_buildSortedEngineList: using db for order");
+      let addedEngines = {};
 
       // Flag to keep track of whether or not we need to call _saveSortedEngineList.
       let needToSaveEngineList = false;
@@ -2192,102 +2191,129 @@ SearchService.prototype = {
       if (needToSaveEngineList) {
         this._saveSortedEngineList();
       }
+
+      // Array for the remaining engines, alphabetically sorted.
+      let alphaEngines = [];
+
+      for (let engine of this._engines.values()) {
+        if (!(engine.name in addedEngines)) {
+          alphaEngines.push(engine);
+        }
+      }
+
+      const collator = new Intl.Collator();
+      alphaEngines.sort((a, b) => {
+        return collator.compare(a.name, b.name);
+      });
+      return (this.__sortedEngines = this.__sortedEngines.concat(alphaEngines));
+    }
+
+    return (this.__sortedEngines = this._sortEnginesByDefaults(
+      Array.from(this._engines.values())
+    ));
+  },
+
+  /**
+   * Sorts engines by the default settings (prefs, configuration values).
+   *
+   * @param {Array} engines
+   *   An array of engine objects to sort.
+   * @returns {Array}
+   *   The sorted array of engine objects.
+   */
+  _sortEnginesByDefaults(engines) {
+    const sortedEngines = [];
+    const addedEngines = new Set();
+
+    function maybeAddEngineToSort(engine) {
+      if (!engine || addedEngines.has(engine.name)) {
+        return;
+      }
+
+      sortedEngines.push(engine);
+      addedEngines.add(engine.name);
+    }
+
+    if (SearchUtils.distroID) {
+      try {
+        var extras = Services.prefs.getChildList(
+          SearchUtils.BROWSER_SEARCH_PREF + "order.extra."
+        );
+
+        // getChildList doesn't guarantee the order of the prefs, but we
+        // expect them alphabetical, so sort them here.
+        extras.sort();
+
+        for (const prefName of extras) {
+          const engineName = Services.prefs.getCharPref(prefName);
+          maybeAddEngineToSort(engines.find(e => e.name == engineName));
+        }
+      } catch (e) {}
+
+      let i = 0;
+      while (++i) {
+        const prefName = `${SearchUtils.BROWSER_SEARCH_PREF}order.${i}`;
+        const engineName = getLocalizedPref(prefName);
+        if (!engineName) {
+          break;
+        }
+
+        maybeAddEngineToSort(engines.find(e => e.name == engineName));
+      }
+    }
+
+    // The original default engine should always be first in the list (except
+    // for distros, that we should respect).
+    const originalDefault = this.originalDefaultEngine;
+    maybeAddEngineToSort(originalDefault);
+
+    // If there's a private default, and it is different to the normal
+    // default, then it should be second in the list.
+    const originalPrivateDefault = this.originalPrivateDefaultEngine;
+    if (originalPrivateDefault && originalPrivateDefault != originalDefault) {
+      maybeAddEngineToSort(originalPrivateDefault);
+    }
+
+    let remainingEngines;
+    const collator = new Intl.Collator();
+
+    if (gModernConfig) {
+      remainingEngines = engines.filter(e => !addedEngines.has(e.name));
+
+      // We sort by highest orderHint first, then alphabetically by name.
+      remainingEngines.sort((a, b) => {
+        if (a._orderHint && b._orderHint) {
+          if (a._orderHint == b._orderHint) {
+            return collator.compare(a.name, b.name);
+          }
+          return b._orderHint - a._orderHint;
+        }
+        if (a._orderHint) {
+          return -1;
+        }
+        if (b._orderHint) {
+          return 1;
+        }
+        return collator.compare(a.name, b.name);
+      });
     } else {
-      // The DB isn't being used, so just read the engine order from the prefs
-      var i = 0;
-      var prefName;
-
-      // The original default engine should always be first in the list
-      const originalDefault = this.originalDefaultEngine;
-      if (originalDefault) {
-        this.__sortedEngines.push(originalDefault);
-        addedEngines[originalDefault.name] = originalDefault;
+      for (let engineName of this._searchOrder) {
+        maybeAddEngineToSort(engines.find(e => e.name == engineName));
       }
 
-      // If there's a private default, and it is different to the normal
-      // default, then it should be second in the list.
-      const originalPrivateDefault = this.originalPrivateDefaultEngine;
-      if (originalPrivateDefault && originalPrivateDefault != originalDefault) {
-        this.__sortedEngines.push(originalPrivateDefault);
-        addedEngines[originalPrivateDefault.name] = originalPrivateDefault;
-      }
+      remainingEngines = [];
 
-      if (SearchUtils.distroID) {
-        try {
-          var extras = Services.prefs.getChildList(
-            SearchUtils.BROWSER_SEARCH_PREF + "order.extra."
-          );
-
-          for (prefName of extras) {
-            let engineName = Services.prefs.getCharPref(prefName);
-
-            let engine = this._engines.get(engineName);
-            if (!engine || engine.name in addedEngines) {
-              continue;
-            }
-
-            this.__sortedEngines.push(engine);
-            addedEngines[engine.name] = engine;
-          }
-        } catch (e) {}
-
-        while (true) {
-          prefName = `${SearchUtils.BROWSER_SEARCH_PREF}order.${++i}`;
-          let engineName = getLocalizedPref(prefName);
-          if (!engineName) {
-            break;
-          }
-
-          let engine = this._engines.get(engineName);
-          if (!engine || engine.name in addedEngines) {
-            continue;
-          }
-
-          this.__sortedEngines.push(engine);
-          addedEngines[engine.name] = engine;
+      for (let engine of engines.values()) {
+        if (!addedEngines.has(engine.name)) {
+          remainingEngines.push(engine);
         }
       }
 
-      if (gModernConfig) {
-        for (const details of this._searchOrder) {
-          let engine = this._getEngineByWebExtensionDetails(details);
-          if (!engine || engine.name in addedEngines) {
-            continue;
-          }
-
-          this.__sortedEngines.push(engine);
-          addedEngines[engine.name] = engine;
-        }
-      } else {
-        for (let engineName of this._searchOrder) {
-          let engine = this._engines.get(engineName);
-          if (!engine || engine.name in addedEngines) {
-            continue;
-          }
-
-          this.__sortedEngines.push(engine);
-          addedEngines[engine.name] = engine;
-        }
-      }
+      remainingEngines.sort((a, b) => {
+        return collator.compare(a.name, b.name);
+      });
     }
-
-    // Array for the remaining engines, alphabetically sorted.
-    let alphaEngines = [];
-
-    for (let engine of this._engines.values()) {
-      if (!(engine.name in addedEngines)) {
-        alphaEngines.push(engine);
-      }
-    }
-
-    let collation = Cc["@mozilla.org/intl/collation-factory;1"]
-      .createInstance(Ci.nsICollationFactory)
-      .CreateCollation();
-    const strength = Ci.nsICollation.kCollationCaseInsensitiveAscii;
-    let comparator = (a, b) =>
-      collation.compareString(strength, a.name, b.name);
-    alphaEngines.sort(comparator);
-    return (this.__sortedEngines = this.__sortedEngines.concat(alphaEngines));
+    return [...sortedEngines, ...remainingEngines];
   },
 
   /**
@@ -2367,85 +2393,10 @@ SearchService.prototype = {
 
   async getDefaultEngines() {
     await this.init();
-    function isDefault(engine) {
-      return engine._isDefault;
-    }
-    var engines = this._sortedEngines.filter(isDefault);
-    var engineOrder = {};
-    var i = 1;
 
-    // Build a list of engines which we have ordering information for.
-    // We're rebuilding the list here because _sortedEngines contain the
-    // current order, but we want the original order.
-
-    if (SearchUtils.distroID) {
-      // First, look at the "browser.search.order.extra" branch.
-      try {
-        var extras = Services.prefs.getChildList(
-          SearchUtils.BROWSER_SEARCH_PREF + "order.extra."
-        );
-
-        for (let prefName of extras) {
-          let engineName = Services.prefs.getCharPref(prefName);
-
-          if (!(engineName in engineOrder)) {
-            engineOrder[engineName] = i++;
-          }
-        }
-      } catch (e) {
-        SearchUtils.log("Getting extra order prefs failed: " + e);
-      }
-
-      // Now look through the "browser.search.order" branch.
-      for (var j = 1; ; j++) {
-        let prefName = `${SearchUtils.BROWSER_SEARCH_PREF}order.${j}`;
-        let engineName = getLocalizedPref(prefName);
-        if (!engineName) {
-          break;
-        }
-
-        if (!(engineName in engineOrder)) {
-          engineOrder[engineName] = i++;
-        }
-      }
-    }
-
-    // Now look at list.json
-    if (gModernConfig) {
-      for (const details of this._searchOrder) {
-        const engine = this._getEngineByWebExtensionDetails(details);
-        if (engine) {
-          engineOrder[engine.name] = i++;
-        }
-      }
-    } else {
-      for (let engineName of this._searchOrder) {
-        engineOrder[engineName] = i++;
-      }
-    }
-
-    SearchUtils.log(
-      "getDefaultEngines: engineOrder: " + engineOrder.toSource()
+    return this._sortEnginesByDefaults(
+      this._sortedEngines.filter(e => e._isDefault)
     );
-
-    function compareEngines(a, b) {
-      var aIdx = engineOrder[a.name];
-      var bIdx = engineOrder[b.name];
-
-      if (aIdx && bIdx) {
-        return aIdx - bIdx;
-      }
-      if (aIdx) {
-        return -1;
-      }
-      if (bIdx) {
-        return 1;
-      }
-
-      return a.name.localeCompare(b.name);
-    }
-    engines.sort(compareEngines);
-    return engines;
   },
 
   async getEnginesByExtensionID(extensionID) {
@@ -2618,6 +2569,7 @@ SearchService.prototype = {
     let params = {
       extraParams: config.extraParams,
       telemetryId: config.telemetryId,
+      orderHint: config.orderHint,
     };
 
     // Modern Config encodes params as objects whereas they are
@@ -2635,10 +2587,6 @@ SearchService.prototype = {
           ).toString();
         }
       }
-    }
-
-    if ("telemetryId" in config) {
-      params.telemetryId = config.telemetryId;
     }
 
     let locale =
@@ -2750,6 +2698,9 @@ SearchService.prototype = {
     if (locale != SearchUtils.DEFAULT_TAG) {
       shortName += "-" + locale;
     }
+    // TODO: Bug 1619656. We should no longer need to maintain the short name as
+    // the telemetry id. However, we need to check that this doesn't adversely
+    // affect settings or caches.
     if ("telemetryId" in engineParams && engineParams.telemetryId) {
       shortName = engineParams.telemetryId;
     }
@@ -2788,12 +2739,14 @@ SearchService.prototype = {
       extensionID: extension.id,
       locale,
       isBuiltin: extension.addonData.builtIn,
+      orderHint: engineParams.orderHint,
       // suggest_url doesn't currently get encoded.
       suggestURL: searchProvider.suggest_url,
       suggestGetParams: suggestUrlGetParams,
       suggestPostParams: suggestUrlPostParams,
       queryCharset: searchProvider.encoding || "UTF-8",
       mozParams,
+      telemetryId: engineParams.telemetryId,
       initEngine: engineParams.initEngine || false,
     };
 
@@ -3226,15 +3179,6 @@ SearchService.prototype = {
       name: engine.name ? engine.name : "",
     };
 
-    let shortName;
-    if (engine.identifier) {
-      shortName = engine.identifier;
-    } else if (engine.name) {
-      shortName = "other-" + engine.name;
-    } else {
-      shortName = "UNDEFINED";
-    }
-
     if (engine._isDefault) {
       engineData.origin = "default";
     } else {
@@ -3320,7 +3264,7 @@ SearchService.prototype = {
       engineData.submissionURL = uri.spec;
     }
 
-    return [shortName, engineData];
+    return [engine.telemetryId, engineData];
   },
 
   async getDefaultEngineInfo() {

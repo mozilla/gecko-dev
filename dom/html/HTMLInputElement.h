@@ -73,7 +73,7 @@ class GetFilesHelper;
  * page is being viewed in private browsing.
  */
 class UploadLastDir final : public nsIObserver, public nsSupportsWeakReference {
-  ~UploadLastDir() {}
+  ~UploadLastDir() = default;
 
  public:
   NS_DECL_ISUPPORTS
@@ -100,7 +100,7 @@ class UploadLastDir final : public nsIObserver, public nsSupportsWeakReference {
   nsresult StoreLastUsedDirectory(Document* aDoc, nsIFile* aDir);
 
   class ContentPrefCallback final : public nsIContentPrefCallback2 {
-    virtual ~ContentPrefCallback() {}
+    virtual ~ContentPrefCallback() = default;
 
    public:
     ContentPrefCallback(nsIFilePicker* aFilePicker,
@@ -533,7 +533,7 @@ class HTMLInputElement final : public TextControlElement,
   int32_t MaxLength() const { return GetIntAttr(nsGkAtoms::maxlength, -1); }
 
   int32_t UsedMaxLength() const final {
-    if (mType == NS_FORM_INPUT_NUMBER) {
+    if (!mInputType->MinAndMaxLengthApply()) {
       return -1;
     }
     return MaxLength();
@@ -1091,12 +1091,14 @@ class HTMLInputElement final : public TextControlElement,
   MOZ_CAN_RUN_SCRIPT
   void HandleTypeChange(uint8_t aNewType, bool aNotify);
 
+  enum class ForValueGetter { No, Yes };
+
   /**
    * Sanitize the value of the element depending of its current type.
    * See:
    * http://www.whatwg.org/specs/web-apps/current-work/#value-sanitization-algorithm
    */
-  void SanitizeValue(nsAString& aValue);
+  void SanitizeValue(nsAString& aValue, ForValueGetter = ForValueGetter::No);
 
   /**
    * Returns whether the placeholder attribute applies for the current type.
@@ -1642,7 +1644,7 @@ class HTMLInputElement final : public TextControlElement,
   };
 
   class nsFilePickerShownCallback : public nsIFilePickerShownCallback {
-    virtual ~nsFilePickerShownCallback() {}
+    virtual ~nsFilePickerShownCallback() = default;
 
    public:
     nsFilePickerShownCallback(HTMLInputElement* aInput,

@@ -31,10 +31,11 @@ namespace jit {
 class MIRGraph;
 class OptimizationInfo;
 
-class MIRGenerator {
+class MIRGenerator final {
  public:
   MIRGenerator(CompileRealm* realm, const JitCompileOptions& options,
-               TempAllocator* alloc, MIRGraph* graph, const CompileInfo* info,
+               TempAllocator* alloc, MIRGraph* graph,
+               const CompileInfo* outerInfo,
                const OptimizationInfo* optimizationInfo);
 
   void initMinWasmHeapLength(uint32_t init) { minWasmHeapLength_ = init; }
@@ -43,7 +44,7 @@ class MIRGenerator {
   MIRGraph& graph() { return *graph_; }
   MOZ_MUST_USE bool ensureBallast() { return alloc().ensureBallast(); }
   const JitRuntime* jitRuntime() const { return runtime->jitRuntime(); }
-  const CompileInfo& info() const { return *info_; }
+  const CompileInfo& outerInfo() const { return *outerInfo_; }
   const OptimizationInfo& optimizationInfo() const {
     return *optimizationInfo_;
   }
@@ -92,11 +93,6 @@ class MIRGenerator {
     return !compilingWasm() && instrumentedProfiling();
   }
 
-  bool isOptimizationTrackingEnabled() {
-    return isProfilerInstrumentationEnabled() && !info().isAnalysis() &&
-           !JitOptions.disableOptimizationTracking;
-  }
-
   bool stringsCanBeInNursery() const { return stringsCanBeInNursery_; }
 
   bool safeForMinorGC() const { return safeForMinorGC_; }
@@ -106,7 +102,7 @@ class MIRGenerator {
   bool shouldCancel(const char* why) { return cancelBuild_; }
   void cancel() { cancelBuild_ = true; }
 
-  bool compilingWasm() const { return info_->compilingWasm(); }
+  bool compilingWasm() const { return outerInfo_->compilingWasm(); }
 
   uint32_t wasmMaxStackArgBytes() const {
     MOZ_ASSERT(compilingWasm());
@@ -125,28 +121,19 @@ class MIRGenerator {
   void setNeedsStaticStackAlignment() { needsStaticStackAlignment_ = true; }
   bool needsStaticStackAlignment() const { return needsStaticStackAlignment_; }
 
-  typedef Vector<ObjectGroup*, 0, JitAllocPolicy> ObjectGroupVector;
-
-  // When aborting with AbortReason::PreliminaryObjects, all groups with
-  // preliminary objects which haven't been analyzed yet.
-  const ObjectGroupVector& abortedPreliminaryGroups() const {
-    return abortedPreliminaryGroups_;
-  }
-
  public:
   CompileRealm* realm;
   CompileRuntime* runtime;
 
- protected:
-  const CompileInfo* info_;
+ private:
+  // The CompileInfo for the outermost script.
+  const CompileInfo* outerInfo_;
+
   const OptimizationInfo* optimizationInfo_;
   TempAllocator* alloc_;
   MIRGraph* graph_;
   AbortReasonOr<Ok> offThreadStatus_;
-  ObjectGroupVector abortedPreliminaryGroups_;
-  mozilla::Atomic<bool, mozilla::Relaxed,
-                  mozilla::recordreplay::Behavior::DontPreserve>
-      cancelBuild_;
+  mozilla::Atomic<bool, mozilla::Relaxed> cancelBuild_;
 
   uint32_t wasmMaxStackArgBytes_;
   bool needsOverrecursedCheck_;
@@ -156,8 +143,6 @@ class MIRGenerator {
   bool instrumentedProfilingIsCached_;
   bool safeForMinorGC_;
   bool stringsCanBeInNursery_;
-
-  void addAbortedPreliminaryGroup(ObjectGroup* group);
 
   uint32_t minWasmHeapLength_;
 

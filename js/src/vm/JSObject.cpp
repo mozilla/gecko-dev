@@ -1121,8 +1121,8 @@ JSObject* js::CreateThisForFunctionWithProto(
 
   if (proto) {
     RootedObjectGroup group(
-        cx, ObjectGroup::defaultNewGroup(cx, nullptr, TaggedProto(proto),
-                                         newTarget));
+        cx, ObjectGroup::defaultNewGroup(cx, &PlainObject::class_,
+                                         TaggedProto(proto), newTarget));
     if (!group) {
       return nullptr;
     }
@@ -1137,8 +1137,8 @@ JSObject* js::CreateThisForFunctionWithProto(
         if (regenerate) {
           // The script was analyzed successfully and may have changed
           // the new type table, so refetch the group.
-          group = ObjectGroup::defaultNewGroup(cx, nullptr, TaggedProto(proto),
-                                               newTarget);
+          group = ObjectGroup::defaultNewGroup(cx, &PlainObject::class_,
+                                               TaggedProto(proto), newTarget);
           AutoSweepObjectGroup sweepNewGroup(group);
           MOZ_ASSERT(group && group->newScript(sweepNewGroup));
         }
@@ -1442,7 +1442,7 @@ static bool GetScriptPlainObjectProperties(
   for (size_t i = 0; i < nobj->getDenseInitializedLength(); i++) {
     Value v = nobj->getDenseElement(i);
     if (!v.isMagic(JS_ELEMENTS_HOLE) &&
-        !properties.append(IdValuePair(INT_TO_JSID(i), v))) {
+        !properties.emplaceBack(INT_TO_JSID(i), v)) {
       return false;
     }
   }
@@ -2645,7 +2645,8 @@ bool js::GetPropertyPure(JSContext* cx, JSObject* obj, jsid id, Value* vp) {
     return true;
   }
 
-  return NativeGetPureInline(&pobj->as<NativeObject>(), id, prop, vp, cx);
+  return pobj->isNative() &&
+         NativeGetPureInline(&pobj->as<NativeObject>(), id, prop, vp, cx);
 }
 
 bool js::GetOwnPropertyPure(JSContext* cx, JSObject* obj, jsid id, Value* vp,
@@ -3539,8 +3540,8 @@ static void dumpValue(const Value& v, js::GenericPrinter& out) {
         } else {
           out.put("<unnamed function");
         }
-        if (fun->hasScript()) {
-          JSScript* script = fun->nonLazyScript();
+        if (fun->hasBaseScript()) {
+          BaseScript* script = fun->baseScript();
           out.printf(" (%s:%u)", script->filename() ? script->filename() : "",
                      script->lineno());
         }

@@ -88,8 +88,8 @@ def make_task_description(config, jobs):
         msi_signing_name = "repackage-signing-msi"
         mar_signing_name = "mar-signing"
         if job.get('locale'):
-            signing_name = "nightly-l10n-signing"
-            build_name = "nightly-l10n"
+            signing_name = "shippable-l10n-signing"
+            build_name = "shippable-l10n"
             repackage_name = "repackage-l10n"
             repackage_signing_name = "repackage-signing-l10n"
             mar_signing_name = "mar-signing-l10n"
@@ -177,8 +177,8 @@ def strip_unwanted_langpacks_from_worker(config, jobs):
     This explicitly deletes langpacks from upstream artifacts and from artifact-maps.
     Due to limitations in declarative artifacts, doing this was our easiest way right now.
     """
-    ALWAYS_OK_PLATFORMS = {'linux64-shippable', 'linux64-devedition-nightly'}
-    OSX_OK_PLATFORMS = {'macosx64-shippable', 'macosx64-devedition-nightly'}
+    ALWAYS_OK_PLATFORMS = {'linux64-shippable', 'linux64-devedition'}
+    OSX_OK_PLATFORMS = {'macosx64-shippable', 'macosx64-devedition'}
     for job in jobs:
         platform = job['attributes'].get('build_platform')
         if platform in ALWAYS_OK_PLATFORMS:

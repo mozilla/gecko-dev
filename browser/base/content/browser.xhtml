@@ -837,6 +837,7 @@
                      class="chromeclass-location" overflows="false">
           <toolbartabstop/>
           <hbox id="urlbar" flex="1"
+                context=""
                 defaultPlaceholder="&urlbar.placeholder2;"
                 focused="true"
                 pageproxystate="invalid">
@@ -853,9 +854,9 @@
                    onclick="gProtectionsHandler.handleProtectionsButtonEvent(event);"
                    onkeypress="gProtectionsHandler.handleProtectionsButtonEvent(event);"
                    onmouseover="gProtectionsHandler.onTrackingProtectionIconHoveredOrFocused();"
-                   onfocus="gProtectionsHandler.onTrackingProtectionIconHoveredOrFocused();">
-                <box id="tracking-protection-icon-box" animationsenabled="true"
-                     tooltip="tracking-protection-icon-tooltip">
+                   onfocus="gProtectionsHandler.onTrackingProtectionIconHoveredOrFocused();"
+                   tooltip="tracking-protection-icon-tooltip">
+                <box id="tracking-protection-icon-box" animationsenabled="true">
                   <image id="tracking-protection-icon"/>
                   <box id="tracking-protection-icon-animatable-box" flex="1">
                     <image id="tracking-protection-icon-animatable-image" flex="1"/>

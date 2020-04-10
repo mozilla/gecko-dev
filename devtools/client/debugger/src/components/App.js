@@ -19,7 +19,6 @@ import {
   getActiveSearch,
   getQuickOpenEnabled,
   getOrientation,
-  getCanRewind,
 } from "../selectors";
 
 import type { OrientationType } from "../reducers/types";
@@ -67,7 +66,6 @@ type Props = {
   endPanelCollapsed: boolean,
   activeSearch: ?ActiveSearchType,
   quickOpenEnabled: boolean,
-  canRewind: boolean,
   setActiveSearch: typeof actions.setActiveSearch,
   closeActiveSearch: typeof actions.closeActiveSearch,
   closeProjectSearch: typeof actions.closeProjectSearch,
@@ -291,12 +289,7 @@ class App extends Component<Props, State> {
           />
         }
         endPanelControl={true}
-        endPanel={
-          <SecondaryPanes
-            horizontal={horizontal}
-            toggleShortcutsModal={() => this.toggleShortcutsModal()}
-          />
-        }
+        endPanel={<SecondaryPanes horizontal={horizontal} />}
         endPanelCollapsed={endPanelCollapsed}
       />
     );
@@ -319,9 +312,9 @@ class App extends Component<Props, State> {
   }
 
   render() {
-    const { quickOpenEnabled, canRewind } = this.props;
+    const { quickOpenEnabled } = this.props;
     return (
-      <div className={classnames("debugger", { "can-rewind": canRewind })}>
+      <div className={classnames("debugger")}>
         <A11yIntention>
           {this.renderLayout()}
           {quickOpenEnabled === true && (
@@ -343,7 +336,6 @@ App.childContextTypes = {
 };
 
 const mapStateToProps = state => ({
-  canRewind: getCanRewind(state),
   selectedSource: getSelectedSource(state),
   startPanelCollapsed: getPaneCollapse(state, "start"),
   endPanelCollapsed: getPaneCollapse(state, "end"),

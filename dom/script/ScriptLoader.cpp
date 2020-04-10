@@ -323,11 +323,13 @@ nsresult ScriptLoader::CheckContentPolicy(Document* aDocument,
   // snapshot the nonce at load start time for performing CSP checks
   if (contentPolicyType == nsIContentPolicy::TYPE_INTERNAL_SCRIPT ||
       contentPolicyType == nsIContentPolicy::TYPE_INTERNAL_MODULE) {
-    nsCOMPtr<Element> element = do_QueryInterface(aContext);
-    if (element && element->IsHTMLElement()) {
-      nsAutoString cspNonce;
-      element->GetAttr(nsGkAtoms::nonce, cspNonce);
-      secCheckLoadInfo->SetCspNonce(cspNonce);
+    nsCOMPtr<nsINode> node = do_QueryInterface(aContext);
+    if (node) {
+      nsString* cspNonce =
+          static_cast<nsString*>(node->GetProperty(nsGkAtoms::nonce));
+      if (cspNonce) {
+        secCheckLoadInfo->SetCspNonce(*cspNonce);
+      }
     }
   }
 
@@ -393,7 +395,8 @@ void ScriptLoader::SetModuleFetchStarted(ModuleLoadRequest* aRequest) {
 
   MOZ_ASSERT(aRequest->IsLoading());
   MOZ_ASSERT(!ModuleMapContainsURL(aRequest->mURI));
-  mFetchingModules.Put(aRequest->mURI, nullptr);
+  mFetchingModules.Put(aRequest->mURI,
+                       RefPtr<GenericNonExclusivePromise::Private>{});
 }
 
 void ScriptLoader::SetModuleFetchFinishedAndResumeWaitingRequests(
@@ -416,7 +419,7 @@ void ScriptLoader::SetModuleFetchFinishedAndResumeWaitingRequests(
   RefPtr<ModuleScript> moduleScript(aRequest->mModuleScript);
   MOZ_ASSERT(NS_FAILED(aResult) == !moduleScript);
 
-  mFetchedModules.Put(aRequest->mURI, moduleScript);
+  mFetchedModules.Put(aRequest->mURI, RefPtr{moduleScript});
 
   if (promise) {
     if (moduleScript) {
@@ -1321,12 +1324,13 @@ nsresult ScriptLoader::StartLoad(ScriptLoadRequest* aRequest) {
   // snapshot the nonce at load start time for performing CSP checks
   if (contentPolicyType == nsIContentPolicy::TYPE_INTERNAL_SCRIPT ||
       contentPolicyType == nsIContentPolicy::TYPE_INTERNAL_MODULE) {
-    nsCOMPtr<Element> element = do_QueryInterface(context);
-    if (element && element->IsHTMLElement()) {
-      nsAutoString cspNonce;
-      element->GetAttr(nsGkAtoms::nonce, cspNonce);
-      nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
-      loadInfo->SetCspNonce(cspNonce);
+    if (context) {
+      nsString* cspNonce =
+          static_cast<nsString*>(context->GetProperty(nsGkAtoms::nonce));
+      if (cspNonce) {
+        nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
+        loadInfo->SetCspNonce(*cspNonce);
+      }
     }
   }
 
@@ -1496,7 +1500,14 @@ static bool CSPAllowsInlineScript(nsIScriptElement* aElement,
   // query the nonce
   nsCOMPtr<Element> scriptContent = do_QueryInterface(aElement);
   nsAutoString nonce;
-  scriptContent->GetAttr(kNameSpaceID_None, nsGkAtoms::nonce, nonce);
+  if (scriptContent) {
+    nsString* cspNonce =
+        static_cast<nsString*>(scriptContent->GetProperty(nsGkAtoms::nonce));
+    if (cspNonce) {
+      nonce = *cspNonce;
+    }
+  }
+
   bool parserCreated =
       aElement->GetParserCreated() != mozilla::dom::NOT_FROM_PARSER;
 
@@ -2028,8 +2039,8 @@ NotifyOffThreadScriptLoadCompletedRunnable::Run() {
 
   // We want these to be dropped on the main thread, once we return from this
   // function.
-  RefPtr<ScriptLoadRequest> request = mRequest.forget();
-  RefPtr<ScriptLoader> loader = mLoader.forget();
+  RefPtr<ScriptLoadRequest> request = std::move(mRequest);
+  RefPtr<ScriptLoader> loader = std::move(mLoader);
 
   request->mOffThreadToken = mToken;
   nsresult rv = loader->ProcessOffThreadRequest(request);
@@ -2722,6 +2733,7 @@ nsresult ScriptLoader::EvaluateScript(ScriptLoadRequest* aRequest) {
       rv = InitDebuggerDataForModuleTree(cx, request);
       NS_ENSURE_SUCCESS(rv, rv);
 
+      TRACE_FOR_TEST(aRequest->Element(), "scriptloader_evaluate_module");
       rv = nsJSUtils::ModuleEvaluate(cx, module);
       MOZ_ASSERT(NS_FAILED(rv) == aes.HasException());
 
@@ -2736,6 +2748,7 @@ nsresult ScriptLoader::EvaluateScript(ScriptLoadRequest* aRequest) {
         FinishDynamicImport(cx, request, rv);
       }
 
+      TRACE_FOR_TEST_NONE(aRequest->Element(), "scriptloader_no_encode");
       aRequest->mCacheInfo = nullptr;
     } else {
       // Update our current script.

@@ -77,17 +77,9 @@ add_task(async function() {
   // about:devtools-toolbox on a real target.
   const clientWrapper = await createLocalClientWrapper();
 
-  // Mock getDeviceDescription() to force the local client to return "nightly" as the
-  // channel. Otherwise the value of the icon source would depend on the current channel.
-  const deviceDescription = await clientWrapper.getDeviceDescription();
-  clientWrapper.getDeviceDescription = function() {
-    return Object.assign({}, deviceDescription, {
-      channel: "nightly",
-    });
-  };
-
   const mocks = new Mocks();
   mocks.createUSBRuntime(RUNTIME_ID, {
+    channel: "nightly",
     clientWrapper: clientWrapper,
     deviceName: DEVICE_NAME,
     isFenix: true,
@@ -106,7 +98,6 @@ add_task(async function() {
   const onRequestSuccess = waitForRequestsSuccess(window.AboutDebugging.store);
   await connectToRuntime(DEVICE_NAME, document);
   await selectRuntime(DEVICE_NAME, ADB_RUNTIME_NAME, document);
-
   info(
     "Wait for requests to finish the USB runtime is backed by a real local client"
   );
@@ -135,7 +126,7 @@ add_task(async function() {
     "The runtime icon is the Fenix icon"
   );
 
-  info("Wait for all pending requests to settle on the DebuggerClient");
+  info("Wait for all pending requests to settle on the DevToolsClient");
   await clientWrapper.client.waitForRequestsToSettle();
 
   await closeAboutDevtoolsToolbox(document, devtoolsTab, window);
@@ -148,19 +139,3 @@ add_task(async function() {
   await removeTab(tab);
   await clientWrapper.close();
 });
-
-async function createLocalClientWrapper() {
-  info("Create a local DebuggerClient");
-  const { DebuggerServer } = require("devtools/server/debugger-server");
-  const { DebuggerClient } = require("devtools/shared/client/debugger-client");
-  const {
-    ClientWrapper,
-  } = require("devtools/client/aboutdebugging/src/modules/client-wrapper");
-
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
-  const client = new DebuggerClient(DebuggerServer.connectPipe());
-
-  await client.connect();
-  return new ClientWrapper(client);
-}

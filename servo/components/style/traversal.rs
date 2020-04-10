@@ -679,12 +679,12 @@ where
     element.finish_restyle(context, data, new_styles, important_rules_changed)
 }
 
-#[cfg(feature = "servo")]
+#[cfg(feature = "servo-layout-2013")]
 fn notify_paint_worklet<E>(context: &StyleContext<E>, data: &ElementData)
 where
     E: TElement,
 {
-    use crate::values::generics::image::{GenericImageLayer, Image};
+    use crate::values::generics::image::Image;
     use style_traits::ToCss;
 
     // We speculatively evaluate any paint worklets during styling.
@@ -694,7 +694,7 @@ where
     if let Some(ref values) = data.styles.primary {
         for image in &values.get_background().background_image.0 {
             let (name, arguments) = match *image {
-                GenericImageLayer::Image(Image::PaintWorklet(ref worklet)) => {
+                Image::PaintWorklet(ref worklet) => {
                     (&worklet.name, &worklet.arguments)
                 },
                 _ => continue,
@@ -719,7 +719,7 @@ where
     }
 }
 
-#[cfg(feature = "gecko")]
+#[cfg(not(feature = "servo-layout-2013"))]
 fn notify_paint_worklet<E>(_context: &StyleContext<E>, _data: &ElementData)
 where
     E: TElement,

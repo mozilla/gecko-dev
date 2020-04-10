@@ -248,7 +248,7 @@
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/dom/BrowserChild.h"
 
-#include "mozilla/net/CookieSettings.h"
+#include "mozilla/net/CookieJarSettings.h"
 
 #include "AccessCheck.h"
 #include "SessionStorageCache.h"
@@ -416,7 +416,7 @@ class IdleRequestExecutorTimeoutHandler final : public TimeoutHandler {
   bool Call(const char* /* unused */) override;
 
  private:
-  ~IdleRequestExecutorTimeoutHandler() override {}
+  ~IdleRequestExecutorTimeoutHandler() override = default;
   RefPtr<IdleRequestExecutor> mExecutor;
 };
 
@@ -475,7 +475,7 @@ class IdleRequestExecutor final : public nsIRunnable,
 
   void DelayedDispatch(uint32_t aDelay);
 
-  ~IdleRequestExecutor() override {}
+  ~IdleRequestExecutor() override = default;
 
   bool mDispatched;
   TimeStamp mDeadline;
@@ -716,7 +716,7 @@ class IdleRequestTimeoutHandler final : public TimeoutHandler {
   }
 
  private:
-  ~IdleRequestTimeoutHandler() override {}
+  ~IdleRequestTimeoutHandler() override = default;
 
   RefPtr<IdleRequest> mIdleRequest;
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
@@ -809,7 +809,7 @@ class PromiseDocumentFlushedResolver final {
     mCallback->Call(&returnVal, error);
 
     if (error.Failed()) {
-      mPromise->MaybeReject(error);
+      mPromise->MaybeReject(std::move(error));
     } else if (guard.Mutated(0)) {
       // Something within the callback mutated the DOM.
       mPromise->MaybeReject(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
@@ -1080,6 +1080,7 @@ void nsGlobalWindowInner::FreeInnerObjects() {
   mChromeEventHandler = nullptr;
 
   if (mListenerManager) {
+    mListenerManager->RemoveAllListeners();
     mListenerManager->Disconnect();
     mListenerManager = nullptr;
   }
@@ -1104,6 +1105,8 @@ void nsGlobalWindowInner::FreeInnerObjects() {
     mDocumentStoragePrincipal = mDoc->EffectiveStoragePrincipal();
     mDocumentURI = mDoc->GetDocumentURI();
     mDocBaseURI = mDoc->GetDocBaseURI();
+    mDocContentBlockingAllowListPrincipal =
+        mDoc->GetContentBlockingAllowListPrincipal();
     mDocumentCsp = mDoc->GetCsp();
 
     while (mDoc->EventHandlingSuppressed()) {
@@ -1380,7 +1383,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindowInner)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindowInner)
-  tmp->ClearWeakReferences();
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
   if (sInnerWindowsById) {
     sInnerWindowsById->Remove(tmp->mWindowID);
   }
@@ -4490,7 +4493,7 @@ Storage* nsGlobalWindowInner::GetLocalStorage(ErrorResult& aError) {
   if (ShouldPartitionStorage(access)) {
     if (!mDoc) {
       access = StorageAccess::eDeny;
-    } else if (!StoragePartitioningEnabled(access, mDoc->CookieSettings())) {
+    } else if (!StoragePartitioningEnabled(access, mDoc->CookieJarSettings())) {
       static const char* kPrefName =
           "privacy.restrict3rdpartystorage.partitionedHosts";
 
@@ -4509,14 +4512,15 @@ Storage* nsGlobalWindowInner::GetLocalStorage(ErrorResult& aError) {
     return nullptr;
   }
 
-  nsCOMPtr<nsICookieSettings> cookieSettings;
+  nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
   if (mDoc) {
-    cookieSettings = mDoc->CookieSettings();
+    cookieJarSettings = mDoc->CookieJarSettings();
   } else {
-    cookieSettings = net::CookieSettings::CreateBlockingAll();
+    cookieJarSettings = net::CookieJarSettings::GetBlockingAll();
   }
 
-  bool partitioningEnabled = StoragePartitioningEnabled(access, cookieSettings);
+  bool partitioningEnabled =
+      StoragePartitioningEnabled(access, cookieJarSettings);
   bool shouldPartition = ShouldPartitionStorage(access);
   bool partition = partitioningEnabled && shouldPartition;
 
@@ -5497,7 +5501,7 @@ RefPtr<ServiceWorker> nsGlobalWindowInner::GetOrCreateServiceWorker(
       return;
     }
 
-    ref = sw.forget();
+    ref = std::move(sw);
     *aDoneOut = true;
   });
 
@@ -5505,7 +5509,7 @@ RefPtr<ServiceWorker> nsGlobalWindowInner::GetOrCreateServiceWorker(
     ref = ServiceWorker::Create(this, aDescriptor);
   }
 
-  return ref.forget();
+  return ref;
 }
 
 RefPtr<mozilla::dom::ServiceWorkerRegistration>
@@ -5520,10 +5524,10 @@ nsGlobalWindowInner::GetServiceWorkerRegistration(
       return;
     }
 
-    ref = swr.forget();
+    ref = std::move(swr);
     *aDoneOut = true;
   });
-  return ref.forget();
+  return ref;
 }
 
 RefPtr<ServiceWorkerRegistration>
@@ -5535,7 +5539,7 @@ nsGlobalWindowInner::GetOrCreateServiceWorkerRegistration(
   if (!ref) {
     ref = ServiceWorkerRegistration::CreateForMainThread(this, aDescriptor);
   }
-  return ref.forget();
+  return ref;
 }
 
 nsresult nsGlobalWindowInner::FireDelayedDOMEvents() {
@@ -5599,8 +5603,9 @@ nsIPrincipal* nsGlobalWindowInner::GetTopLevelAntiTrackingPrincipal() {
     return nullptr;
   }
 
-  bool stopAtOurLevel = mDoc && mDoc->CookieSettings()->GetCookieBehavior() ==
-                                    nsICookieService::BEHAVIOR_REJECT_TRACKER;
+  bool stopAtOurLevel =
+      mDoc && mDoc->CookieJarSettings()->GetCookieBehavior() ==
+                  nsICookieService::BEHAVIOR_REJECT_TRACKER;
 
   if (stopAtOurLevel && topLevelOuterWindow == outerWindow) {
     return nullptr;
@@ -5670,7 +5675,7 @@ class WindowScriptTimeoutHandler final : public ScriptTimeoutHandler {
   MOZ_CAN_RUN_SCRIPT virtual bool Call(const char* aExecutionReason) override;
 
  private:
-  virtual ~WindowScriptTimeoutHandler() {}
+  virtual ~WindowScriptTimeoutHandler() = default;
 
   // Initiating script for use when evaluating mExpr on the main thread.
   RefPtr<LoadedScript> mInitiatingScript;
@@ -5888,8 +5893,8 @@ bool nsGlobalWindowInner::RunTimeoutHandler(Timeout* aTimeout,
   const char* reason = GetTimeoutReasonString(timeout);
 
 #ifdef MOZ_GECKO_PROFILER
+  nsCString str;
   if (profiler_can_accept_markers()) {
-    nsCString str;
     TimeDuration originalInterval = timeout->When() - timeout->SubmitTime();
     str.Append(reason);
     str.Append(" with interval ");
@@ -5898,10 +5903,10 @@ bool nsGlobalWindowInner::RunTimeoutHandler(Timeout* aTimeout,
     nsCString handlerDescription;
     timeout->mScriptHandler->GetDescription(handlerDescription);
     str.Append(handlerDescription);
-    AUTO_PROFILER_TEXT_MARKER_CAUSE("setTimeout callback", str, JS,
-                                    Some(mWindowID),
-                                    timeout->TakeProfilerBacktrace());
   }
+  AUTO_PROFILER_TEXT_MARKER_CAUSE("setTimeout callback", str, JS,
+                                  Some(mWindowID),
+                                  timeout->TakeProfilerBacktrace());
 #endif
 
   bool abortIntervalHandler;
@@ -6275,7 +6280,7 @@ void nsGlobalWindowInner::AddGamepad(uint32_t aIndex, Gamepad* aGamepad) {
   }
   mGamepadIndexSet.Put(index);
   aGamepad->SetIndex(index);
-  mGamepads.Put(aIndex, aGamepad);
+  mGamepads.Put(aIndex, RefPtr{aGamepad});
 }
 
 void nsGlobalWindowInner::RemoveGamepad(uint32_t aIndex) {
@@ -6564,6 +6569,24 @@ void nsGlobalWindowInner::Restore() {
 
   if (widget) {
     widget->SetSizeMode(nsSizeMode_Normal);
+  }
+}
+
+int32_t nsGlobalWindowInner::GetWorkspaceID() {
+  nsCOMPtr<nsIWidget> widget = GetMainWidget();
+
+  if (widget) {
+    return widget->GetWorkspaceID();
+  }
+
+  return 0;
+}
+
+void nsGlobalWindowInner::MoveToWorkspace(int32_t workspaceID) {
+  nsCOMPtr<nsIWidget> widget = GetMainWidget();
+
+  if (widget) {
+    widget->MoveToWorkspace(workspaceID);
   }
 }
 
@@ -6876,7 +6899,7 @@ void nsGlobalWindowInner::GetSidebar(OwningExternalOrWindowProxy& aResult,
   RefPtr<BrowsingContext> domWindow =
       GetChildWindow(NS_LITERAL_STRING("sidebar"));
   if (domWindow) {
-    aResult.SetAsWindowProxy() = domWindow.forget();
+    aResult.SetAsWindowProxy() = std::move(domWindow);
     return;
   }
 
@@ -6944,7 +6967,7 @@ void nsGlobalWindowInner::SetReplaceableWindowCoord(
   }
 
   int32_t value;
-  if (!ValueToPrimitive<int32_t, eDefault>(aCx, aValue, &value)) {
+  if (!ValueToPrimitive<int32_t, eDefault>(aCx, aValue, aPropName, &value)) {
     aError.Throw(NS_ERROR_UNEXPECTED);
     return;
   }
@@ -7261,6 +7284,12 @@ nsIURI* nsPIDOMWindowInner::GetDocBaseURI() const {
   return mDoc ? mDoc->GetDocBaseURI() : mDocBaseURI.get();
 }
 
+nsIPrincipal* nsPIDOMWindowInner::GetDocumentContentBlockingAllowListPrincipal()
+    const {
+  return mDoc ? mDoc->GetContentBlockingAllowListPrincipal()
+              : mDocContentBlockingAllowListPrincipal.get();
+}
+
 void nsPIDOMWindowInner::MaybeCreateDoc() {
   // XXX: Forward to outer?
   MOZ_ASSERT(!mDoc);
@@ -7279,6 +7308,11 @@ mozilla::dom::DocGroup* nsPIDOMWindowInner::GetDocGroup() const {
     return doc->GetDocGroup();
   }
   return nullptr;
+}
+
+mozilla::dom::BrowsingContextGroup*
+nsPIDOMWindowInner::GetBrowsingContextGroup() const {
+  return mBrowsingContext ? mBrowsingContext->Group() : nullptr;
 }
 
 nsIGlobalObject* nsPIDOMWindowInner::AsGlobal() {
@@ -7389,13 +7423,19 @@ void nsPIDOMWindowInner::BroadcastReport(Report* aReport) {
 }
 
 void nsPIDOMWindowInner::NotifyReportingObservers() {
-  nsTArray<RefPtr<ReportingObserver>> reportingObservers(mReportingObservers);
-  for (RefPtr<ReportingObserver>& observer : reportingObservers) {
-    observer->MaybeNotify();
+  const nsTArray<RefPtr<ReportingObserver>> reportingObservers(
+      mReportingObservers);
+  for (auto& observer : reportingObservers) {
+    // MOZ_KnownLive because 'reportingObservers' is guaranteed to
+    // keep it alive.
+    //
+    // This can go away once
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1620312 is fixed.
+    MOZ_KnownLive(observer)->MaybeNotify();
   }
 }
 
-nsPIDOMWindowInner::~nsPIDOMWindowInner() {}
+nsPIDOMWindowInner::~nsPIDOMWindowInner() = default;
 
 #undef FORWARD_TO_OUTER
 #undef FORWARD_TO_OUTER_OR_THROW

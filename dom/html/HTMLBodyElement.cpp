@@ -16,6 +16,7 @@
 #include "nsPresContext.h"
 #include "mozilla/dom/Document.h"
 #include "DocumentInlines.h"
+#include "nsDocShell.h"
 #include "nsHTMLStyleSheet.h"
 #include "nsMappedAttributes.h"
 #include "nsIDocShell.h"
@@ -28,7 +29,7 @@ namespace dom {
 
 //----------------------------------------------------------------------
 
-HTMLBodyElement::~HTMLBodyElement() {}
+HTMLBodyElement::~HTMLBodyElement() = default;
 
 JSObject* HTMLBodyElement::WrapNode(JSContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {

@@ -42,7 +42,6 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Omnijar.h"
-#include "mozilla/RecordReplay.h"
 #include "mozilla/RDDProcessHost.h"
 #include "mozilla/Scoped.h"
 #include "mozilla/Services.h"
@@ -143,14 +142,9 @@ class BaseProcessLauncher {
     SprintfLiteral(mPidString, "%d", base::GetCurrentProcId());
 
     // Compute the serial event target we'll use for launching.
-    if (mozilla::recordreplay::IsMiddleman()) {
-      // During Web Replay, the middleman process launches the actual content
-      // processes, and doesn't initialize enough of XPCOM to use thread pools.
-      mLaunchThread = IOThread();
-    } else {
-      nsCOMPtr<nsIEventTarget> threadOrPool = GetIPCLauncher();
-      mLaunchThread = new TaskQueue(threadOrPool.forget());
-    }
+    nsCOMPtr<nsIEventTarget> threadOrPool = GetIPCLauncher();
+    mLaunchThread = new TaskQueue(threadOrPool.forget());
+
     if (ShouldHaveDirectoryService()) {
       // "Current process directory" means the app dir, not the current
       // working dir or similar.
@@ -362,7 +356,7 @@ GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
   }
 #endif
 #if defined(MOZ_ENABLE_FORKSERVER)
-  if (aProcessType == GeckoProcessType_Content) {
+  if (aProcessType == GeckoProcessType_Content && ForkServiceChild::Get()) {
     mLaunchOptions->use_forkserver = true;
   }
 #endif
@@ -739,12 +733,7 @@ bool GeckoChildProcessHost::WaitUntilConnected(int32_t aTimeoutMs) {
   return mProcessState == PROCESS_CONNECTED;
 }
 
-bool GeckoChildProcessHost::LaunchAndWaitForProcessHandle(
-    StringVector aExtraOpts) {
-  if (!AsyncLaunch(std::move(aExtraOpts))) {
-    return false;
-  }
-
+bool GeckoChildProcessHost::WaitForProcessHandle() {
   MonitorAutoLock lock(mMonitor);
   while (mProcessState < PROCESS_CREATED) {
     lock.Wait();
@@ -752,6 +741,14 @@ bool GeckoChildProcessHost::LaunchAndWaitForProcessHandle(
   MOZ_ASSERT(mProcessState == PROCESS_ERROR || mChildProcessHandle);
 
   return mProcessState < PROCESS_ERROR;
+}
+
+bool GeckoChildProcessHost::LaunchAndWaitForProcessHandle(
+    StringVector aExtraOpts) {
+  if (!AsyncLaunch(std::move(aExtraOpts))) {
+    return false;
+  }
+  return WaitForProcessHandle();
 }
 
 void GeckoChildProcessHost::InitializeChannel() {
@@ -1124,6 +1121,7 @@ bool PosixProcessLauncher::DoSetup() {
   mChildArgv.insert(mChildArgv.end(), mExtraOpts.begin(), mExtraOpts.end());
 
   if (mProcessType != GeckoProcessType_GMPlugin) {
+#  if defined(MOZ_WIDGET_ANDROID)
     if (Omnijar::IsInitialized()) {
       // Make sure that child processes can find the omnijar
       // See XRE_InitCommandLine in nsAppRunner.cpp
@@ -1139,6 +1137,7 @@ bool PosixProcessLauncher::DoSetup() {
         mChildArgv.push_back(path.get());
       }
     }
+#  endif
     // Add the application directory path (-appdir path)
 #  ifdef XP_MACOSX
     AddAppDirToCommandLine(mChildArgv, mAppDir, mProfileDir);
@@ -1182,7 +1181,6 @@ bool PosixProcessLauncher::DoSetup() {
 #  endif  // MOZ_WIDGET_COCOA
 
   mChildArgv.push_back(ChildProcessType());
-
   return true;
 }
 #endif  // OS_POSIX
@@ -1344,6 +1342,7 @@ bool WindowsProcessLauncher::DoSetup() {
     mCmdLine->AppendLooseValue(UTF8ToWide(*it));
   }
 
+#  if defined(MOZ_WIDGET_ANDROID)
   if (Omnijar::IsInitialized()) {
     // Make sure the child process can find the omnijar
     // See XRE_InitCommandLine in nsAppRunner.cpp
@@ -1359,6 +1358,7 @@ bool WindowsProcessLauncher::DoSetup() {
       mCmdLine->AppendLooseValue(path.get());
     }
   }
+#  endif
 
 #  if defined(MOZ_SANDBOX)
 #    if defined(_ARM64_)
@@ -1432,7 +1432,12 @@ bool WindowsProcessLauncher::DoSetup() {
       }
       break;
     case GeckoProcessType_Socket:
-      // TODO - setup sandboxing for the socket process.
+      if (!PR_GetEnv("MOZ_DISABLE_SOCKET_PROCESS_SANDBOX")) {
+        if (!mResults.mSandboxBroker->SetSecurityLevelForSocketProcess()) {
+          return false;
+        }
+        mUseSandbox = true;
+      }
       break;
     case GeckoProcessType_RemoteSandboxBroker:
       // We don't sandbox the sandbox launcher...

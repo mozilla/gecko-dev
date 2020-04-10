@@ -20,6 +20,9 @@
 #include "frontend/EitherParser.h"
 #include "frontend/ErrorReporter.h"
 #include "frontend/FoldConstants.h"
+#ifdef JS_ENABLE_SMOOSH
+#  include "frontend/Frontend2.h"  // Smoosh
+#endif
 #include "frontend/ModuleSharedContext.h"
 #include "frontend/Parser.h"
 #include "js/SourceText.h"
@@ -220,6 +223,19 @@ JSScript* frontend::CompileGlobalScript(CompilationInfo& compilationInfo,
 JSScript* frontend::CompileGlobalScript(CompilationInfo& compilationInfo,
                                         GlobalSharedContext& globalsc,
                                         JS::SourceText<Utf8Unit>& srcBuf) {
+#ifdef JS_ENABLE_SMOOSH
+  if (compilationInfo.cx->options().trySmoosh()) {
+    bool unimplemented = false;
+    auto script =
+        Smoosh::compileGlobalScript(compilationInfo, srcBuf, &unimplemented);
+    if (!unimplemented) {
+      return script;
+    }
+
+    fprintf(stderr, "Falling back!\n");
+  }
+#endif  // JS_ENABLE_SMOOSH
+
   return CreateGlobalScript(compilationInfo, globalsc, srcBuf);
 }
 
@@ -352,7 +368,7 @@ AutoFrontendTraceLog::AutoFrontendTraceLog(JSContext* cx,
   }
 
   frontendEvent_.emplace(TraceLogger_Frontend, errorReporter.getFilename(),
-                         funbox->startLine, funbox->startColumn);
+                         funbox->extent.lineno, funbox->extent.column);
   frontendLog_.emplace(logger_, *frontendEvent_);
   typeLog_.emplace(logger_, id);
 }
@@ -395,12 +411,6 @@ bool frontend::SourceAwareCompiler<Unit>::createSourceAndParser(
   if (!compilationInfo.assignSource(sourceBuffer_)) {
     return false;
   }
-  // Note the contents of any compiled scripts when recording/replaying.
-  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    mozilla::recordreplay::NoteContentParse(
-        this, compilationInfo.options.filename(), "application/javascript",
-        sourceBuffer_.units(), sourceBuffer_.length());
-  }
 
   if (CanLazilyParse(compilationInfo)) {
     syntaxParser.emplace(compilationInfo.cx, compilationInfo.options,
@@ -426,11 +436,15 @@ static bool InternalCreateScript(CompilationInfo& compilationInfo,
                                  HandleObject functionOrGlobal,
                                  uint32_t toStringStart, uint32_t toStringEnd,
                                  uint32_t sourceBufferLength) {
+  SourceExtent extent{/* sourceStart = */ 0,
+                      sourceBufferLength,
+                      toStringStart,
+                      toStringEnd,
+                      compilationInfo.options.lineno,
+                      compilationInfo.options.column};
   compilationInfo.script = JSScript::Create(
       compilationInfo.cx, functionOrGlobal, compilationInfo.options,
-      compilationInfo.sourceObject,
-      /* sourceStart = */ 0, sourceBufferLength, toStringStart, toStringEnd,
-      compilationInfo.options.lineno, compilationInfo.options.column);
+      compilationInfo.sourceObject, extent);
   return compilationInfo.script != nullptr;
 }
 
@@ -557,9 +571,7 @@ ModuleObject* frontend::ModuleCompiler<Unit>::compile(
     return nullptr;
   }
 
-  module->init(compilationInfo.script);
-
-  ModuleBuilder builder(cx, module, parser.ptr());
+  ModuleBuilder builder(cx, parser.ptr());
 
   RootedScope enclosingScope(cx, &cx->global()->emptyGlobalScope());
   ModuleSharedContext modulesc(cx, module, compilationInfo, enclosingScope,
@@ -582,9 +594,12 @@ ModuleObject* frontend::ModuleCompiler<Unit>::compile(
     return nullptr;
   }
 
-  if (!builder.initModule()) {
+  if (!builder.initModule(module)) {
     return nullptr;
   }
+
+  module->initScriptSlots(compilationInfo.script);
+  module->initStatusSlot();
 
   if (!ModuleObject::createEnvironment(cx, module)) {
     return nullptr;
@@ -644,8 +659,9 @@ bool frontend::StandaloneFunctionCompiler<Unit>::compile(
   if (funbox->isInterpreted()) {
     MOZ_ASSERT(fun == funbox->function());
 
-    if (!createFunctionScript(compilationInfo, fun, funbox->toStringStart,
-                              funbox->toStringEnd)) {
+    if (!createFunctionScript(compilationInfo, fun,
+                              funbox->extent.toStringStart,
+                              funbox->extent.toStringEnd)) {
       return false;
     }
 
@@ -726,9 +742,10 @@ static JSScript* CompileGlobalBinASTScriptImpl(
     return nullptr;
   }
 
-  RootedScript script(
-      cx, JSScript::Create(cx, cx->global(), options,
-                           compilationInfo.sourceObject, 0, len, 0, len, 0, 0));
+  SourceExtent extent(0, len, 0, len, 0, 0);
+  RootedScript script(cx,
+                      JSScript::Create(cx, cx->global(), options,
+                                       compilationInfo.sourceObject, extent));
 
   if (!script) {
     return nullptr;
@@ -879,51 +896,6 @@ ModuleObject* frontend::CompileModule(JSContext* cx,
   return CreateModule(cx, options, srcBuf);
 }
 
-// When leaving this scope, the given function should either:
-//   * be linked to a fully compiled script
-//   * remain linking to a lazy script
-class MOZ_STACK_CLASS AutoAssertFunctionDelazificationCompletion {
-#ifdef DEBUG
-  RootedFunction fun_;
-#endif
-
-  void checkIsLazy() {
-    MOZ_ASSERT(fun_->isInterpretedLazy(), "Function should remain lazy");
-    MOZ_ASSERT(!fun_->lazyScript()->hasScript(),
-               "LazyScript should not have a script");
-  }
-
- public:
-  AutoAssertFunctionDelazificationCompletion(JSContext* cx, HandleFunction fun)
-#ifdef DEBUG
-      : fun_(cx, fun)
-#endif
-  {
-    checkIsLazy();
-  }
-
-  ~AutoAssertFunctionDelazificationCompletion() {
-#ifdef DEBUG
-    if (!fun_) {
-      return;
-    }
-#endif
-
-    // If fun_ is not nullptr, it means delazification doesn't complete.
-    // Assert that the function keeps linking to lazy script
-    checkIsLazy();
-  }
-
-  void complete() {
-    // Assert the completion of delazification and forget the function.
-    MOZ_ASSERT(fun_->nonLazyScript());
-
-#ifdef DEBUG
-    fun_ = nullptr;
-#endif
-  }
-};
-
 static void CheckFlagsOnDelazification(uint32_t lazy, uint32_t nonLazy) {
 #ifdef DEBUG
   // These flags are expect to be unset for lazy scripts and are only valid
@@ -936,10 +908,13 @@ static void CheckFlagsOnDelazification(uint32_t lazy, uint32_t nonLazy) {
   // These flags are computed for lazy scripts and may have a different
   // definition for non-lazy scripts.
   //
+  //  IsLazyScript:       This flag will be removed in Bug 1529456.
+  //
   //  TreatAsRunOnce:     Some conditions depend on parent context and are
   //                      computed during lazy parsing, while other conditions
   //                      need to full parse.
   constexpr uint32_t CustomFlagsMask =
+      uint32_t(BaseScript::ImmutableFlags::IsLazyScript) |
       uint32_t(BaseScript::ImmutableFlags::TreatAsRunOnce);
 
   // These flags are expected to match between lazy and full parsing.
@@ -951,7 +926,7 @@ static void CheckFlagsOnDelazification(uint32_t lazy, uint32_t nonLazy) {
 }
 
 template <typename Unit>
-static bool CompileLazyFunctionImpl(JSContext* cx, Handle<LazyScript*> lazy,
+static bool CompileLazyFunctionImpl(JSContext* cx, Handle<BaseScript*> lazy,
                                     const Unit* units, size_t length) {
   MOZ_ASSERT(cx->compartment() == lazy->compartment());
 
@@ -964,7 +939,6 @@ static bool CompileLazyFunctionImpl(JSContext* cx, Handle<LazyScript*> lazy,
 
   AutoAssertReportedException assertException(cx);
   Rooted<JSFunction*> fun(cx, lazy->function());
-  AutoAssertFunctionDelazificationCompletion delazificationCompletion(cx, fun);
 
   JS::CompileOptions options(cx);
   options.setMutedErrors(lazy->mutedErrors())
@@ -1038,17 +1012,16 @@ static bool CompileLazyFunctionImpl(JSContext* cx, Handle<LazyScript*> lazy,
 
   CheckFlagsOnDelazification(lazy->immutableFlags(), script->immutableFlags());
 
-  delazificationCompletion.complete();
   assertException.reset();
   return true;
 }
 
-bool frontend::CompileLazyFunction(JSContext* cx, Handle<LazyScript*> lazy,
+bool frontend::CompileLazyFunction(JSContext* cx, Handle<BaseScript*> lazy,
                                    const char16_t* units, size_t length) {
   return CompileLazyFunctionImpl(cx, lazy, units, length);
 }
 
-bool frontend::CompileLazyFunction(JSContext* cx, Handle<LazyScript*> lazy,
+bool frontend::CompileLazyFunction(JSContext* cx, Handle<BaseScript*> lazy,
                                    const Utf8Unit* units, size_t length) {
   return CompileLazyFunctionImpl(cx, lazy, units, length);
 }
@@ -1057,7 +1030,7 @@ bool frontend::CompileLazyFunction(JSContext* cx, Handle<LazyScript*> lazy,
 
 template <class ParserT>
 static bool CompileLazyBinASTFunctionImpl(JSContext* cx,
-                                          Handle<LazyScript*> lazy,
+                                          Handle<BaseScript*> lazy,
                                           const uint8_t* buf, size_t length) {
   MOZ_ASSERT(cx->compartment() == lazy->compartment());
 
@@ -1069,7 +1042,6 @@ static bool CompileLazyBinASTFunctionImpl(JSContext* cx,
 
   AutoAssertReportedException assertException(cx);
   Rooted<JSFunction*> fun(cx, lazy->function());
-  AutoAssertFunctionDelazificationCompletion delazificationCompletion(cx, fun);
 
   CompileOptions options(cx);
   options.setMutedErrors(lazy->mutedErrors())
@@ -1112,13 +1084,12 @@ static bool CompileLazyBinASTFunctionImpl(JSContext* cx,
     return false;
   }
 
-  delazificationCompletion.complete();
   assertException.reset();
   return script;
 }
 
 bool frontend::CompileLazyBinASTFunction(JSContext* cx,
-                                         Handle<LazyScript*> lazy,
+                                         Handle<BaseScript*> lazy,
                                          const uint8_t* buf, size_t length) {
   if (lazy->scriptSource()->binASTSourceMetadata()->isMultipart()) {
     return CompileLazyBinASTFunctionImpl<BinASTTokenReaderMultipart>(

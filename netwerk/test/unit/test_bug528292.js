@@ -54,7 +54,7 @@ function run_test() {
       .setIntPref("network.cookie.cookieBehavior", 1);
     Cc["@mozilla.org/preferences-service;1"]
       .getService(Ci.nsIPrefBranch)
-      .setBoolPref("network.cookieSettings.unblocked_for_testing", true);
+      .setBoolPref("network.cookieJarSettings.unblocked_for_testing", true);
   }
 
   var ioService = Cc["@mozilla.org/network/io-service;1"].getService(
@@ -79,7 +79,7 @@ function run_test() {
   var postRedirectURI = ioService.newURI(postRedirectURL);
   Cc["@mozilla.org/cookieService;1"]
     .getService(Ci.nsICookieService)
-    .setCookieString(postRedirectURI, null, sentCookieVal, chan);
+    .setCookieString(postRedirectURI, sentCookieVal, chan);
 
   // Load the pre-redirect URI.
   chan.asyncOpen(new ChannelListener(finish_test, null));

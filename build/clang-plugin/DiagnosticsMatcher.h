@@ -6,6 +6,7 @@
 #define DiagnosticsMatcher_h__
 
 #include "ChecksIncludes.inc"
+#include "external/ExternalIncludes.inc"
 
 class DiagnosticsMatcher {
 public:
@@ -14,8 +15,9 @@ public:
   ASTConsumerPtr makeASTConsumer() { return AstMatcher.newASTConsumer(); }
 
 private:
-#define CHECK(cls, name) cls cls##_ { name };
+#define CHECK(cls, name) cls cls##_{name};
 #include "Checks.inc"
+#include "external/ExternalChecks.inc"
 #undef CHECK
   MatchFinder AstMatcher;
 };

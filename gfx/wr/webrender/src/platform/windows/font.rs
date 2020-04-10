@@ -375,36 +375,7 @@ impl FontContext {
         font: &FontInstance,
         key: &GlyphKey,
     ) -> Option<GlyphDimensions> {
-        let size = font.size.to_f32_px();
-        let bitmaps = is_bitmap_font(font);
-        let transform = if font.synthetic_italics.is_enabled() ||
-                           font.flags.intersects(FontInstanceFlags::TRANSPOSE |
-                                                 FontInstanceFlags::FLIP_X |
-                                                 FontInstanceFlags::FLIP_Y) {
-            let mut shape = FontTransform::identity();
-            if font.flags.contains(FontInstanceFlags::FLIP_X) {
-                shape = shape.flip_x();
-            }
-            if font.flags.contains(FontInstanceFlags::FLIP_Y) {
-                shape = shape.flip_y();
-            }
-            if font.flags.contains(FontInstanceFlags::TRANSPOSE) {
-                shape = shape.swap_xy();
-            }
-            if font.synthetic_italics.is_enabled() {
-                shape = shape.synthesize_italics(font.synthetic_italics);
-            }
-            Some(dwrote::DWRITE_MATRIX {
-                m11: shape.scale_x,
-                m12: shape.skew_y,
-                m21: shape.skew_x,
-                m22: shape.scale_y,
-                dx: 0.0,
-                dy: 0.0,
-            })
-        } else {
-            None
-        };
+        let (size, _, bitmaps, transform) = Self::get_glyph_parameters(font, key);
         let (_, _, bounds) = self.create_glyph_analysis(font, key, size, transform, bitmaps).ok()?;
 
         let width = (bounds.right - bounds.left) as i32;
@@ -504,11 +475,11 @@ impl FontContext {
         }
     }
 
-    pub fn rasterize_glyph(&mut self, font: &FontInstance, key: &GlyphKey) -> GlyphRasterResult {
+    fn get_glyph_parameters(font: &FontInstance, key: &GlyphKey) -> (f32, f64, bool, Option<dwrote::DWRITE_MATRIX>) {
         let (_, y_scale) = font.transform.compute_scale().unwrap_or((1.0, 1.0));
-        let size = (font.size.to_f64_px() * y_scale) as f32;
+        let scaled_size = font.size.to_f64_px() * y_scale;
         let bitmaps = is_bitmap_font(font);
-        let (mut shape, (x_offset, y_offset)) = if bitmaps {
+        let (mut shape, (mut x_offset, mut y_offset)) = if bitmaps {
             (FontTransform::identity(), (0.0, 0.0))
         } else {
             (font.transform.invert_scale(y_scale, y_scale), font.get_subpx_offset(key))
@@ -522,9 +493,15 @@ impl FontContext {
         if font.flags.contains(FontInstanceFlags::TRANSPOSE) {
             shape = shape.swap_xy();
         }
+        let (mut tx, mut ty) = (0.0, 0.0);
         if font.synthetic_italics.is_enabled() {
-            shape = shape.synthesize_italics(font.synthetic_italics);
-        }
+            let (shape_, (tx_, ty_)) = font.synthesize_italics(shape, scaled_size);
+            shape = shape_;
+            tx = tx_;
+            ty = ty_;
+        };
+        x_offset += tx;
+        y_offset += ty;
         let transform = if !shape.is_identity() || (x_offset, y_offset) != (0.0, 0.0) {
             Some(dwrote::DWRITE_MATRIX {
                 m11: shape.scale_x,
@@ -537,7 +514,11 @@ impl FontContext {
         } else {
             None
         };
+        (scaled_size as f32, y_scale, bitmaps, transform)
+    }
 
+    pub fn rasterize_glyph(&mut self, font: &FontInstance, key: &GlyphKey) -> GlyphRasterResult {
+        let (size, y_scale, bitmaps, transform) = Self::get_glyph_parameters(font, key);
         let (analysis, texture_type, bounds) = self.create_glyph_analysis(font, key, size, transform, bitmaps)
                                                    .or(Err(GlyphRasterError::LoadFailed))?;
         let width = (bounds.right - bounds.left) as i32;

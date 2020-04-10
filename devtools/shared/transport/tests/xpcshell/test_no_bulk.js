@@ -5,14 +5,14 @@
 
 function run_test() {
   const { createRootActor } = require("xpcshell-test/testactors-no-bulk");
-  DebuggerServer.setRootActor(createRootActor);
+  DevToolsServer.setRootActor(createRootActor);
   // Allow incoming connections.
-  DebuggerServer.init();
+  DevToolsServer.init();
 
   add_task(async function() {
     await test_bulk_send_error(socket_transport);
     await test_bulk_send_error(local_transport);
-    DebuggerServer.destroy();
+    DevToolsServer.destroy();
   });
 
   run_next_test();
@@ -23,7 +23,7 @@ function run_test() {
 var test_bulk_send_error = async function(transportFactory) {
   const transport = await transportFactory();
 
-  const client = new DebuggerClient(transport);
+  const client = new DevToolsClient(transport);
   return client.connect().then(([app, traits]) => {
     Assert.ok(!traits.bulk);
 

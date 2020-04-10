@@ -2,6 +2,8 @@
 /* global ok, is, Cu, BrowserTestUtils, add_task, gBrowser, requestLongerTimeout*/
 "use strict";
 
+Services.prefs.setBoolPref("dom.manifest.enabled", true);
+
 const { ManifestObtainer } = ChromeUtils.import(
   "resource://gre/modules/ManifestObtainer.jsm"
 );
@@ -184,9 +186,7 @@ add_task(async () => {
     const testString = defaultURL.origin + defaultURL.pathname;
     ok(
       manifest.moz_manifest_url.startsWith(testString),
-      `Expect to start with with the testString, but got ${
-        manifest.moz_manifest_url
-      } instead,`
+      `Expect to start with with the testString, but got ${manifest.moz_manifest_url} instead,`
     );
     // Clean up!
     gBrowser.removeTab(gBrowser.getTabForBrowser(aBrowser));

@@ -97,7 +97,6 @@ namespace jit {
   _(CopyElementsForWrite, js::NativeObject::CopyElementsForWrite)              \
   _(CopyLexicalEnvironmentObject, js::jit::CopyLexicalEnvironmentObject)       \
   _(CreateAsyncFromSyncIterator, js::CreateAsyncFromSyncIterator)              \
-  _(CreateDerivedTypedObj, js::jit::CreateDerivedTypedObj)                     \
   _(CreateGenerator, js::jit::CreateGenerator)                                 \
   _(CreateThisForFunctionWithProto, js::CreateThisForFunctionWithProto)        \
   _(CreateThisFromIC, js::jit::CreateThisFromIC)                               \
@@ -156,7 +155,6 @@ namespace jit {
   _(InitFunctionEnvironmentObjects, js::jit::InitFunctionEnvironmentObjects)   \
   _(InitPropGetterSetterOperation, js::InitPropGetterSetterOperation)          \
   _(InitRestParameter, js::jit::InitRestParameter)                             \
-  _(InlineTypedObjectCreateCopy, js::InlineTypedObject::createCopy)            \
   _(InstrumentationActiveOperation, js::InstrumentationActiveOperation)        \
   _(InstrumentationCallbackOperation, js::InstrumentationCallbackOperation)    \
   _(InstrumentationScriptIdOperation, js::InstrumentationScriptIdOperation)    \
@@ -226,7 +224,6 @@ namespace jit {
   _(OperatorInI, js::jit::OperatorInI)                                         \
   _(OptimizeSpreadCall, js::OptimizeSpreadCall)                                \
   _(PopLexicalEnv, js::jit::PopLexicalEnv)                                     \
-  _(PopVarEnv, js::jit::PopVarEnv)                                             \
   _(PowValues, js::PowValues)                                                  \
   _(ProcessCallSiteObjOperation, js::ProcessCallSiteObjOperation)              \
   _(ProxyGetProperty, js::ProxyGetProperty)                                    \
@@ -273,11 +270,13 @@ namespace jit {
   _(SubValues, js::SubValues)                                                  \
   _(SubstringKernel, js::SubstringKernel)                                      \
   _(ThrowBadDerivedReturn, js::jit::ThrowBadDerivedReturn)                     \
+  _(ThrowBadDerivedReturnOrUninitializedThis,                                  \
+    js::jit::ThrowBadDerivedReturnOrUninitializedThis)                         \
   _(ThrowCheckIsObject, js::ThrowCheckIsObject)                                \
   _(ThrowHomeObjectNotObject, js::ThrowHomeObjectNotObject)                    \
   _(ThrowInitializedThis, js::ThrowInitializedThis)                            \
   _(ThrowMsgOperation, js::ThrowMsgOperation)                                  \
-  _(ThrowObjectCoercible, js::jit::ThrowObjectCoercible)                       \
+  _(ThrowObjectCoercible, js::ThrowObjectCoercible)                            \
   _(ThrowOperation, js::ThrowOperation)                                        \
   _(ThrowRuntimeLexicalError, js::jit::ThrowRuntimeLexicalError)               \
   _(ThrowUninitializedThis, js::ThrowUninitializedThis)                        \

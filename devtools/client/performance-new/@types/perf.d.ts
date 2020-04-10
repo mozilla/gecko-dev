@@ -13,7 +13,6 @@ import {
 
 export interface PanelWindow {
   gToolbox?: any;
-  gTarget?: any;
   gInit(perfFront: any, preferenceFront: any): void;
   gDestroy(): void;
   gReportReady?(): void
@@ -89,17 +88,15 @@ export type RecordingState =
   // An async request has been sent to stop the profiler.
   | "request-to-stop-profiler"
   // The profiler notified us that our request to start it actually started
-  // it.
+  // it, or it was already started.
   | "recording"
-  // Some other code with access to the profiler started it.
-  | "other-is-recording"
   // Profiling is not available when in private browsing mode.
   | "locked-by-private-browsing";
 
 // We are currently migrating to a new UX workflow with about:profiling.
 // This type provides an easy way to change the implementation based
 // on context.
-export type PageContext = "popup" | "devtools" | "aboutprofiling";
+export type PageContext = "devtools" | "aboutprofiling";
 
 export interface State {
   recordingState: RecordingState;
@@ -212,6 +209,8 @@ export interface InitializedValues {
   receiveProfile: ReceiveProfile;
   // A function to set the recording settings.
   setRecordingPreferences: SetRecordingPreferences;
+  // The current list of presets, loaded in from a JSM.
+  presets: Presets;
   // Determine the current page context.
   pageContext: PageContext;
   // The popup and devtools panel use different codepaths for getting symbol tables.
@@ -266,6 +265,7 @@ export type Action =
       perfFront: PerfFront;
       receiveProfile: ReceiveProfile;
       setRecordingPreferences: SetRecordingPreferences;
+      presets: Presets;
       pageContext: PageContext;
       recordingSettingsFromPreferences: RecordingStateFromPreferences;
       getSymbolTableGetter: (profile: object) => GetSymbolTableCallback;
@@ -281,6 +281,7 @@ export interface InitializeStoreValues {
   perfFront: PerfFront;
   receiveProfile: ReceiveProfile;
   setRecordingPreferences: SetRecordingPreferences;
+  presets: Presets;
   pageContext: PageContext;
   recordingPreferences: RecordingStateFromPreferences;
   supportedFeatures: string[] | null;
@@ -366,6 +367,17 @@ export interface PerformancePref {
    * and update it elsewhere.
    */
   PopupEnabled: "devtools.performance.popup.enabled";
+  /**
+   * The profiler popup has some introductory text explaining what it is the first
+   * time that you open it. After that, it is not displayed by default.
+   */
+  PopupIntroDisplayed: "devtools.performance.popup.intro-displayed";
+  /**
+   * This preference is used outside of the performance-new type system
+   * (in DevToolsStartup). It toggles the availability of the menu item
+   * "Tools -> Web Developer -> Enable Profiler Toolbar Icon".
+   */
+  PopupFeatureFlag: "devtools.performance.popup.feature-flag";
 }
 
 /**
@@ -401,6 +413,43 @@ export interface PresetDefinition {
   duration: number;
 }
 
-export interface PresetDefinitions {
+export interface Presets {
   [presetName: string]: PresetDefinition;
+}
+
+export type MessageFromFrontend =
+  | {
+      type: "STATUS_QUERY";
+      requestId: number;
+    }
+  | {
+      type: "ENABLE_MENU_BUTTON";
+      requestId: number;
+    };
+
+export type MessageToFrontend =
+  | {
+      type: "STATUS_RESPONSE";
+      menuButtonIsEnabled: boolean;
+      requestId: number;
+    }
+  | {
+      type: "ENABLE_MENU_BUTTON_DONE";
+      requestId: number;
+    }
+
+/**
+ * This represents an event channel that can talk to a content page on the web.
+ * This interface is a manually typed version of toolkit/modules/WebChannel.jsm
+ * and is opinionated about the types of messages we can send with it.
+ *
+ * The definition is here rather than gecko.d.ts because it was simpler than getting
+ * generics working with the ChromeUtils.import machinery.
+ */
+export class ProfilerWebChannel {
+  constructor(id: string, url: MockedExports.nsIURI);
+  send: (message: MessageToFrontend, target: MockedExports.WebChannelTarget) => void;
+  listen: (
+    handler: (idle: string, message: MessageFromFrontend, target: MockedExports.WebChannelTarget) => void
+  ) => void;
 }

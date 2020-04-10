@@ -79,7 +79,7 @@ class WorkerScriptTimeoutHandler final : public ScriptTimeoutHandler {
   MOZ_CAN_RUN_SCRIPT virtual bool Call(const char* aExecutionReason) override;
 
  private:
-  virtual ~WorkerScriptTimeoutHandler() {}
+  virtual ~WorkerScriptTimeoutHandler() = default;
 };
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(WorkerScriptTimeoutHandler,
@@ -160,6 +160,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(WorkerGlobalScope,
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDebuggerNotificationManager)
   tmp->UnlinkHostObjectURIs();
   tmp->mWorkerPrivate->UnlinkTimeouts();
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(WorkerGlobalScope,
@@ -471,7 +472,8 @@ already_AddRefed<IDBFactory> WorkerGlobalScope::GetIndexedDB(
     }
 
     if (ShouldPartitionStorage(access) &&
-        !StoragePartitioningEnabled(access, mWorkerPrivate->CookieSettings())) {
+        !StoragePartitioningEnabled(access,
+                                    mWorkerPrivate->CookieJarSettings())) {
       NS_WARNING("IndexedDB is not allowed in this worker!");
       aErrorResult = NS_ERROR_DOM_SECURITY_ERR;
       return nullptr;
@@ -565,10 +567,10 @@ WorkerGlobalScope::GetServiceWorkerRegistration(
       return;
     }
 
-    ref = swr.forget();
+    ref = std::move(swr);
     *aDoneOut = true;
   });
-  return ref.forget();
+  return ref;
 }
 
 RefPtr<ServiceWorkerRegistration>
@@ -581,7 +583,7 @@ WorkerGlobalScope::GetOrCreateServiceWorkerRegistration(
     ref = ServiceWorkerRegistration::CreateForWorker(mWorkerPrivate, this,
                                                      aDescriptor);
   }
-  return ref.forget();
+  return ref;
 }
 
 uint64_t WorkerGlobalScope::WindowID() const {
@@ -697,7 +699,7 @@ ServiceWorkerGlobalScope::ServiceWorkerGlobalScope(
       mRegistration(
           GetOrCreateServiceWorkerRegistration(aRegistrationDescriptor)) {}
 
-ServiceWorkerGlobalScope::~ServiceWorkerGlobalScope() {}
+ServiceWorkerGlobalScope::~ServiceWorkerGlobalScope() = default;
 
 bool ServiceWorkerGlobalScope::WrapGlobalObject(
     JSContext* aCx, JS::MutableHandle<JSObject*> aReflector) {

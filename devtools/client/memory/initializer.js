@@ -16,18 +16,19 @@ const App = createFactory(require("devtools/client/memory/app"));
 const Store = require("devtools/client/memory/store");
 const { assert } = require("devtools/shared/DevToolsUtils");
 
+const { updateMemoryFront } = require("devtools/client/memory/actions/front");
+
 // Shared variables used by several methods of this module.
 let root, store, unsubscribe;
 
 const initialize = async function() {
   // Exposed by panel.js
-  const { gFront, gToolbox, gHeapAnalysesClient } = window;
+  const { gToolbox, gHeapAnalysesClient } = window;
 
   root = document.querySelector("#app");
   store = Store();
   const app = createElement(App, {
     toolbox: gToolbox,
-    front: gFront,
     heapWorker: gHeapAnalysesClient,
   });
   const provider = createElement(Provider, { store }, app);
@@ -36,6 +37,10 @@ const initialize = async function() {
 
   // Exposed for tests.
   window.gStore = store;
+};
+
+const updateFront = front => {
+  store.dispatch(updateMemoryFront(front));
 };
 
 const destroy = function() {
@@ -72,4 +77,4 @@ function onStateChange() {
   isHighlighted = isRecording;
 }
 
-module.exports = { initialize, destroy };
+module.exports = { initialize, updateFront, destroy };

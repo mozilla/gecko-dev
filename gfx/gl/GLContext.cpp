@@ -2119,12 +2119,7 @@ void GLContext::ReportOutstandingNames() {
 
 #endif /* DEBUG */
 
-void GLContext::GuaranteeResolve() {
-  if (mScreen) {
-    mScreen->AssureBlitted();
-  }
-  fFinish();
-}
+void GLContext::GuaranteeResolve() { fFinish(); }
 
 const gfx::IntSize& GLContext::OffscreenSize() const {
   MOZ_ASSERT(IsOffscreen());
@@ -2333,21 +2328,6 @@ bool GLContext::Readback(SharedSurface* src, gfx::DataSourceSurface* dest) {
   }
 
   return true;
-}
-
-// Do whatever tear-down is necessary after drawing to our offscreen FBO,
-// if it's bound.
-void GLContext::AfterGLDrawCall() {
-  if (mScreen) {
-    mScreen->AfterDrawCall();
-  }
-  mHeavyGLCallsSinceLastFlush = true;
-}
-
-// Do whatever setup is necessary to read from our offscreen FBO, if it's
-// bound.
-void GLContext::BeforeGLReadCall() {
-  if (mScreen) mScreen->BeforeReadCall();
 }
 
 void GLContext::fBindFramebuffer(GLenum target, GLuint framebuffer) {
@@ -2618,10 +2598,6 @@ bool GLContext::InitOffscreen(const gfx::IntSize& size,
   MOZ_ASSERT(!mCaps.any);
 
   return true;
-}
-
-bool GLContext::IsDrawingToDefaultFramebuffer() {
-  return Screen()->IsDrawFramebufferDefault();
 }
 
 GLuint CreateTexture(GLContext* aGL, GLenum aInternalFormat, GLenum aFormat,

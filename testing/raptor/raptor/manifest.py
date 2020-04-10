@@ -11,7 +11,7 @@ from six.moves.urllib.parse import parse_qs, urlsplit, urlunsplit, urlencode, un
 
 from logger.logger import RaptorLogger
 from manifestparser import TestManifest
-from utils import transform_platform, transform_subtest
+from utils import bool_from_str, transform_platform, transform_subtest
 from constants.raptor_tests_constants import YOUTUBE_PLAYBACK_MEASURE
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -478,6 +478,10 @@ def get_raptor_test_list(args, oskey):
 
         if next_test.get('lower_is_better') is not None:
             next_test['lower_is_better'] = bool_from_str(next_test.get('lower_is_better'))
+        if next_test.get('subtest_lower_is_better') is not None:
+            next_test['subtest_lower_is_better'] = bool_from_str(
+                next_test.get('subtest_lower_is_better')
+            )
 
     # write out .json test setting files for the control server to read and send to web ext
     if len(tests_to_run) != 0:
@@ -492,12 +496,3 @@ def get_raptor_test_list(args, oskey):
         LOG.critical("abort: specified test name doesn't exist")
 
     return tests_to_run
-
-
-def bool_from_str(boolean_string):
-    if boolean_string == 'true':
-        return True
-    elif boolean_string == 'false':
-        return False
-    else:
-        raise ValueError("Expected either 'true' or 'false'")

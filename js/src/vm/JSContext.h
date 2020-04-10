@@ -187,9 +187,7 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
 
   // When a helper thread is using a context, it may need to periodically
   // free unused memory.
-  mozilla::Atomic<bool, mozilla::ReleaseAcquire,
-                  mozilla::recordreplay::Behavior::DontPreserve>
-      freeUnusedMemory;
+  mozilla::Atomic<bool, mozilla::ReleaseAcquire> freeUnusedMemory;
 
  public:
   // This is used by helper threads to change the runtime their context is
@@ -537,20 +535,33 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
    */
   js::ContextData<int32_t> suppressGC;
 
+  // clang-format off
+  enum class GCUse {
+    // This thread is not running in the garbage collector.
+    None,
+
+    // This thread is currently marking GC things. This thread could be the main
+    // thread or a helper thread doing sweep-marking.
+    Marking,
+
+    // This thread is currently sweeping GC things. This thread could be the
+    // main thread or a helper thread while the main thread is running the
+    // mutator.
+    Sweeping,
+
+    // Whether this thread is currently finalizing GC things. This thread could
+    // be the main thread or a helper thread doing finalization while the main
+    // thread is running the mutator.
+    Finalizing
+  };
+  // clang-format on
+
 #ifdef DEBUG
-  // Whether this thread is currently sweeping GC things. This thread could be
-  // the main thread or a helper thread while the main thread is running the
-  // mutator. This is used to assert that destruction of GCPtrs only happens
-  // when we are sweeping, among other things.
-  js::ContextData<bool> gcSweeping;
+  // Which part of the garbage collector this context is running at the moment.
+  js::ContextData<GCUse> gcUse;
 
-  // The specific zone currently being swept, if any. Setting this restricts
-  // IsAboutToBeFinalized and IsMarked calls to this zone.
-  js::ContextData<JS::Zone*> gcSweepingZone;
-
-  // Whether this thread is currently marking GC things. This thread could
-  // be the main thread or a helper thread doing sweep-marking.
-  js::ContextData<bool> gcMarking;
+  // The specific zone currently being swept, if any.
+  js::ContextData<JS::Zone*> gcSweepZone;
 
   // Whether this thread is currently manipulating possibly-gray GC things.
   js::ContextData<size_t> isTouchingGrayThings;
@@ -631,8 +642,7 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
 
   /* Whether sampling should be enabled or not. */
  private:
-  mozilla::Atomic<bool, mozilla::SequentiallyConsistent,
-                  mozilla::recordreplay::Behavior::DontPreserve>
+  mozilla::Atomic<bool, mozilla::SequentiallyConsistent>
       suppressProfilerSampling;
 
  public:
@@ -837,9 +847,7 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   js::ContextData<bool> interruptCallbackDisabled;
 
   // Bitfield storing InterruptReason values.
-  mozilla::Atomic<uint32_t, mozilla::Relaxed,
-                  mozilla::recordreplay::Behavior::DontPreserve>
-      interruptBits_;
+  mozilla::Atomic<uint32_t, mozilla::Relaxed> interruptBits_;
 
   // Any thread can call requestInterrupt() to request that this thread
   // stop running. To stop this thread, requestInterrupt sets two fields:
@@ -914,9 +922,7 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
     ionReturnOverride_ = v;
   }
 
-  mozilla::Atomic<uintptr_t, mozilla::Relaxed,
-                  mozilla::recordreplay::Behavior::DontPreserve>
-      jitStackLimit;
+  mozilla::Atomic<uintptr_t, mozilla::Relaxed> jitStackLimit;
 
   // Like jitStackLimit, but not reset to trigger interrupts.
   js::ContextData<uintptr_t> jitStackLimitNoInterrupt;
@@ -1055,7 +1061,6 @@ enum ErrorArgumentsType {
  * Report an exception, using printf-style APIs to generate the error
  * message.
  */
-#ifdef va_start
 extern bool ReportErrorVA(JSContext* cx, unsigned flags, const char* format,
                           ErrorArgumentsType argumentsType, va_list ap)
     MOZ_FORMAT_PRINTF(3, 0);
@@ -1069,11 +1074,29 @@ extern bool ReportErrorNumberUCArray(JSContext* cx, unsigned flags,
                                      JSErrorCallback callback, void* userRef,
                                      const unsigned errorNumber,
                                      const char16_t** args);
-#endif
+
+extern bool ReportErrorNumberUTF8Array(JSContext* cx, unsigned flags,
+                                       JSErrorCallback callback, void* userRef,
+                                       const unsigned errorNumber,
+                                       const char** args);
 
 extern bool ExpandErrorArgumentsVA(JSContext* cx, JSErrorCallback callback,
                                    void* userRef, const unsigned errorNumber,
                                    const char16_t** messageArgs,
+                                   ErrorArgumentsType argumentsType,
+                                   JSErrorReport* reportp, va_list ap);
+
+extern bool ExpandErrorArgumentsVA(JSContext* cx, JSErrorCallback callback,
+                                   void* userRef, const unsigned errorNumber,
+                                   const char** messageArgs,
+                                   ErrorArgumentsType argumentsType,
+                                   JSErrorReport* reportp, va_list ap);
+
+/*
+ * For cases when we do not have an arguments array.
+ */
+extern bool ExpandErrorArgumentsVA(JSContext* cx, JSErrorCallback callback,
+                                   void* userRef, const unsigned errorNumber,
                                    ErrorArgumentsType argumentsType,
                                    JSErrorReport* reportp, va_list ap);
 
@@ -1306,30 +1329,51 @@ class MOZ_RAII AutoSetThreadIsPerformingGC {
   }
 };
 
-// In debug builds, set/reset the GC sweeping flag for the current thread.
-struct MOZ_RAII AutoSetThreadIsSweeping {
+struct MOZ_RAII AutoSetThreadGCUse {
+ protected:
 #ifndef DEBUG
-  explicit AutoSetThreadIsSweeping(Zone* zone = nullptr) {}
+  explicit AutoSetThreadGCUse(JSContext::GCUse use, Zone* sweepZone = nullptr) {
+  }
 #else
-  explicit AutoSetThreadIsSweeping(Zone* zone = nullptr)
-      : cx(TlsContext.get()),
-        prevState(cx->gcSweeping),
-        prevZone(cx->gcSweepingZone) {
-    cx->gcSweeping = true;
-    cx->gcSweepingZone = zone;
+  explicit AutoSetThreadGCUse(JSContext::GCUse use, Zone* sweepZone = nullptr)
+      : cx(TlsContext.get()), prevUse(cx->gcUse), prevZone(cx->gcSweepZone) {
+    MOZ_ASSERT_IF(sweepZone, use == JSContext::GCUse::Sweeping);
+    cx->gcUse = use;
+    cx->gcSweepZone = sweepZone;
   }
 
-  ~AutoSetThreadIsSweeping() {
-    cx->gcSweeping = prevState;
-    cx->gcSweepingZone = prevZone;
-    MOZ_ASSERT_IF(!cx->gcSweeping, !cx->gcSweepingZone);
+  ~AutoSetThreadGCUse() {
+    cx->gcUse = prevUse;
+    cx->gcSweepZone = prevZone;
+    MOZ_ASSERT_IF(cx->gcUse == JSContext::GCUse::None, !cx->gcSweepZone);
   }
 
  private:
   JSContext* cx;
-  bool prevState;
+  JSContext::GCUse prevUse;
   JS::Zone* prevZone;
 #endif
+};
+
+// In debug builds, update the context state to indicate that the current thread
+// is being used for GC marking.
+struct MOZ_RAII AutoSetThreadIsMarking : public AutoSetThreadGCUse {
+  explicit AutoSetThreadIsMarking()
+      : AutoSetThreadGCUse(JSContext::GCUse::Marking) {}
+};
+
+// In debug builds, update the context state to indicate that the current thread
+// is being used for GC sweeping.
+struct MOZ_RAII AutoSetThreadIsSweeping : public AutoSetThreadGCUse {
+  explicit AutoSetThreadIsSweeping(Zone* zone = nullptr)
+      : AutoSetThreadGCUse(JSContext::GCUse::Sweeping, zone) {}
+};
+
+// In debug builds, update the context state to indicate that the current thread
+// is being used for GC finalization.
+struct MOZ_RAII AutoSetThreadIsFinalizing : public AutoSetThreadGCUse {
+  explicit AutoSetThreadIsFinalizing()
+      : AutoSetThreadGCUse(JSContext::GCUse::Finalizing) {}
 };
 
 // Note that this class does not suppress buffer allocation/reallocation in the
@@ -1343,21 +1387,6 @@ class MOZ_RAII AutoSuppressNurseryCellAlloc {
   }
   ~AutoSuppressNurseryCellAlloc() { cx_->nurserySuppressions_--; }
 };
-
-#ifdef DEBUG
-// Set/reset the GC marking flag for the current thread.
-struct MOZ_RAII AutoSetThreadIsMarking {
-  AutoSetThreadIsMarking() : cx(TlsContext.get()), prevState(cx->gcMarking) {
-    cx->gcMarking = true;
-  }
-
-  ~AutoSetThreadIsMarking() { cx->gcMarking = prevState; }
-
- private:
-  JSContext* cx;
-  bool prevState;
-};
-#endif  // DEBUG
 
 }  // namespace gc
 

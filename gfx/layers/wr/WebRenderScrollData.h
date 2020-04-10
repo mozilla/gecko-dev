@@ -88,11 +88,11 @@ class WebRenderLayerScrollData final {
     mVisibleRegion = aRegion;
   }
   const LayerIntRegion& GetVisibleRegion() const { return mVisibleRegion; }
-  void SetRemoteDocumentRect(const LayerIntRect& aRemoteDocumentRect) {
-    mRemoteDocumentRect = aRemoteDocumentRect;
+  void SetRemoteDocumentSize(const LayerIntSize& aRemoteDocumentSize) {
+    mRemoteDocumentSize = aRemoteDocumentSize;
   }
-  const LayerIntRect& GetRemoteDocumentRect() const {
-    return mRemoteDocumentRect;
+  const LayerIntSize& GetRemoteDocumentSize() const {
+    return mRemoteDocumentSize;
   }
   void SetReferentId(LayersId aReferentId) { mReferentId = Some(aReferentId); }
   Maybe<LayersId> GetReferentId() const { return mReferentId; }
@@ -173,7 +173,9 @@ class WebRenderLayerScrollData final {
   gfx::Matrix4x4 mTransform;
   bool mTransformIsPerspective;
   LayerIntRegion mVisibleRegion;
-  LayerIntRect mRemoteDocumentRect;
+  // The remote documents only need their size because their origin is always
+  // (0, 0).
+  LayerIntSize mRemoteDocumentSize;
   Maybe<LayersId> mReferentId;
   Maybe<RenderRootBoundary> mReferentRenderRoot;
   Maybe<RenderRootBoundary> mBoundaryRoot;
@@ -271,16 +273,6 @@ template <>
 struct ParamTraits<mozilla::layers::RenderRootBoundary>
     : public PlainOldDataSerializer<mozilla::layers::RenderRootBoundary> {};
 
-// When ScrollbarData is stored on the layer tree, it's part of
-// SimpleAttributes which itself uses PlainOldDataSerializer, so
-// we don't need a ParamTraits specialization for ScrollbarData
-// separately. Here, however, ScrollbarData is stored as part
-// of WebRenderLayerScrollData whose fields are serialized
-// individually, so we do.
-template <>
-struct ParamTraits<mozilla::layers::ScrollbarData>
-    : public PlainOldDataSerializer<mozilla::layers::ScrollbarData> {};
-
 template <>
 struct ParamTraits<mozilla::layers::WebRenderLayerScrollData> {
   typedef mozilla::layers::WebRenderLayerScrollData paramType;
@@ -292,7 +284,7 @@ struct ParamTraits<mozilla::layers::WebRenderLayerScrollData> {
     WriteParam(aMsg, aParam.mTransform);
     WriteParam(aMsg, aParam.mTransformIsPerspective);
     WriteParam(aMsg, aParam.mVisibleRegion);
-    WriteParam(aMsg, aParam.mRemoteDocumentRect);
+    WriteParam(aMsg, aParam.mRemoteDocumentSize);
     WriteParam(aMsg, aParam.mReferentId);
     WriteParam(aMsg, aParam.mReferentRenderRoot);
     WriteParam(aMsg, aParam.mBoundaryRoot);
@@ -315,7 +307,7 @@ struct ParamTraits<mozilla::layers::WebRenderLayerScrollData> {
            ReadParam(aMsg, aIter, &aResult->mTransform) &&
            ReadParam(aMsg, aIter, &aResult->mTransformIsPerspective) &&
            ReadParam(aMsg, aIter, &aResult->mVisibleRegion) &&
-           ReadParam(aMsg, aIter, &aResult->mRemoteDocumentRect) &&
+           ReadParam(aMsg, aIter, &aResult->mRemoteDocumentSize) &&
            ReadParam(aMsg, aIter, &aResult->mReferentId) &&
            ReadParam(aMsg, aIter, &aResult->mReferentRenderRoot) &&
            ReadParam(aMsg, aIter, &aResult->mBoundaryRoot) &&

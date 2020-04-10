@@ -8,29 +8,29 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 loader.lazyRequireGetter(
   this,
-  "DebuggerServer",
-  "devtools/server/debugger-server",
+  "DevToolsServer",
+  "devtools/server/devtools-server",
   true
 );
 loader.lazyRequireGetter(
   this,
-  "DebuggerClient",
-  "devtools/shared/client/debugger-client",
+  "DevToolsClient",
+  "devtools/shared/client/devtools-client",
   true
 );
 
 const { Toolbox } = require("devtools/client/framework/toolbox");
 
 /**
- * Initialize and connect a DebuggerServer and DebuggerClient. Note: This test
- * does not use TargetFactory, so it has to set up the DebuggerServer and
- * DebuggerClient on its own.
- * @return {Promise} Resolves with an instance of the DebuggerClient class
+ * Initialize and connect a DevToolsServer and DevToolsClient. Note: This test
+ * does not use TargetFactory, so it has to set up the DevToolsServer and
+ * DevToolsClient on its own.
+ * @return {Promise} Resolves with an instance of the DevToolsClient class
  */
-async function setupLocalDebuggerServerAndClient() {
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
-  const client = new DebuggerClient(DebuggerServer.connectPipe());
+async function setupLocalDevToolsServerAndClient() {
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
+  const client = new DevToolsClient(DevToolsServer.connectPipe());
   await client.connect();
   return client;
 }
@@ -46,7 +46,7 @@ async function setupLocalDebuggerServerAndClient() {
 async function setupExtensionDebuggingToolbox(id, options = {}) {
   const { openToolbox = false } = options;
 
-  const client = await setupLocalDebuggerServerAndClient();
+  const client = await setupLocalDevToolsServerAndClient();
   const front = await client.mainRoot.getAddon({ id });
   const target = await front.getTarget();
   target.shouldCloseClient = true;

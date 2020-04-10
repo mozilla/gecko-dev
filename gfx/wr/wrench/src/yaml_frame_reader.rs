@@ -632,16 +632,16 @@ impl YamlFrameReader {
             Ok(image) => {
                 let (image_width, image_height) = image.dimensions();
                 let (format, bytes) = match image {
-                    image::ImageLuma8(_) => {
-                        (ImageFormat::R8, image.raw_pixels())
+                    image::DynamicImage::ImageLuma8(_) => {
+                        (ImageFormat::R8, image.to_bytes())
                     }
-                    image::ImageRgba8(_) => {
-                        let mut pixels = image.raw_pixels();
+                    image::DynamicImage::ImageRgba8(_) => {
+                        let mut pixels = image.to_bytes();
                         premultiply(pixels.as_mut_slice());
                         (ImageFormat::BGRA8, pixels)
                     }
-                    image::ImageRgb8(_) => {
-                        let bytes = image.raw_pixels();
+                    image::DynamicImage::ImageRgb8(_) => {
+                        let bytes = image.to_bytes();
                         let mut pixels = Vec::with_capacity(image_width as usize * image_height as usize * 4);
                         for bgr in bytes.chunks(3) {
                             pixels.extend_from_slice(&[
@@ -925,6 +925,33 @@ impl YamlFrameReader {
         dl.create_radial_gradient(center, radius, stops, extend_mode)
     }
 
+    fn to_conic_gradient(&mut self, dl: &mut DisplayListBuilder, item: &Yaml) -> ConicGradient {
+        let center = item["center"].as_point().expect("conic gradient must have center");
+        let angle = item["angle"].as_force_f32().expect("conic gradient must have an angle");
+        let stops = item["stops"]
+            .as_vec()
+            .expect("conic gradient must have stops")
+            .chunks(2)
+            .map(|chunk| {
+                GradientStop {
+                    offset: chunk[0]
+                        .as_force_f32()
+                        .expect("gradient stop offset is not f32"),
+                    color: chunk[1]
+                        .as_colorf()
+                        .expect("gradient stop color is not color"),
+                }
+            })
+            .collect::<Vec<_>>();
+        let extend_mode = if item["repeat"].as_bool().unwrap_or(false) {
+            ExtendMode::Repeat
+        } else {
+            ExtendMode::Clamp
+        };
+
+        dl.create_conic_gradient(center, angle, stops, extend_mode)
+    }
+
     fn handle_rect(
         &mut self,
         dl: &mut DisplayListBuilder,
@@ -1090,6 +1117,33 @@ impl YamlFrameReader {
         );
     }
 
+    fn handle_conic_gradient(
+        &mut self,
+        dl: &mut DisplayListBuilder,
+        item: &Yaml,
+        info: &mut CommonItemProperties,
+    ) {
+        let bounds_key = if item["type"].is_badvalue() {
+            "conic-gradient"
+        } else {
+            "bounds"
+        };
+        let bounds = item[bounds_key]
+            .as_rect()
+            .expect("conic gradient must have bounds");
+        let gradient = self.to_conic_gradient(dl, item);
+        let tile_size = item["tile-size"].as_size().unwrap_or(bounds.size);
+        let tile_spacing = item["tile-spacing"].as_size().unwrap_or(LayoutSize::zero());
+
+        dl.push_conic_gradient(
+            &info,
+            bounds,
+            gradient,
+            tile_size,
+            tile_spacing,
+        );
+    }
+
     fn handle_border(
         &mut self,
         dl: &mut DisplayListBuilder,
@@ -1168,7 +1222,7 @@ impl YamlFrameReader {
                         do_aa,
                     }))
                 }
-                "image" | "gradient" | "radial-gradient" => {
+                "image" | "gradient" | "radial-gradient" | "conic-gradient" => {
                     let image_width = item["image-width"]
                         .as_i64()
                         .unwrap_or(bounds.size.width as i64);
@@ -1221,7 +1275,10 @@ impl YamlFrameReader {
                         "radial-gradient" => {
                             let gradient = self.to_radial_gradient(dl, item);
                             NinePatchBorderSource::RadialGradient(gradient)
-
+                        }
+                        "conic-gradient" => {
+                            let gradient = self.to_conic_gradient(dl, item);
+                            NinePatchBorderSource::ConicGradient(gradient)
                         }
                         _ => unreachable!("Unexpected border type"),
                     };
@@ -1593,6 +1650,7 @@ impl YamlFrameReader {
             "border",
             "gradient",
             "radial-gradient",
+            "conic-gradient"
         ];
 
         for shorthand in shorthands.iter() {
@@ -1674,6 +1732,13 @@ impl YamlFrameReader {
                     flags.remove(PrimitiveFlags::IS_SCROLLBAR_CONTAINER);
                 }
             }
+            if let Some(prefer_compositor_surface) = item["prefer-compositor-surface"].as_bool() {
+                if prefer_compositor_surface {
+                    flags.insert(PrimitiveFlags::PREFER_COMPOSITOR_SURFACE);
+                } else {
+                    flags.remove(PrimitiveFlags::PREFER_COMPOSITOR_SURFACE);
+                }
+            }
 
             let mut info = CommonItemProperties {
                 clip_rect,
@@ -1699,6 +1764,7 @@ impl YamlFrameReader {
                 "border" => self.handle_border(dl, wrench, item, &mut info),
                 "gradient" => self.handle_gradient(dl, item, &mut info),
                 "radial-gradient" => self.handle_radial_gradient(dl, item, &mut info),
+                "conic-gradient" => self.handle_conic_gradient(dl, item, &mut info),
                 "box-shadow" => self.handle_box_shadow(dl, item, &mut info),
                 "iframe" => self.handle_iframe(dl, item, &mut info),
                 "stacking-context" => {

@@ -33,6 +33,7 @@
 #include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Event.h"
+#include "mozilla/dom/Link.h"
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/HTMLTemplateElement.h"
@@ -101,6 +102,7 @@
 #include "nsChildContentList.h"
 #include "mozilla/dom/NodeBinding.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/AncestorIterator.h"
 #include "xpcprivate.h"
 
 #include "XPathGenerator.h"
@@ -115,14 +117,11 @@ using namespace mozilla::dom;
 bool nsINode::IsInclusiveDescendantOf(const nsINode* aNode) const {
   MOZ_ASSERT(aNode, "The node is nullptr.");
 
-  const nsINode* node = this;
-  do {
+  for (nsINode* node : InclusiveAncestors(*this)) {
     if (node == aNode) {
       return true;
     }
-    node = node->GetParentNode();
-  } while (node);
-
+  }
   return false;
 }
 
@@ -192,6 +191,15 @@ nsINode::~nsINode() {
   MOZ_ASSERT(!HasSlots(), "LastRelease was not called?");
   MOZ_ASSERT(mSubtreeRoot == this, "Didn't restore state properly?");
 }
+
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+void nsINode::AssertInvariantsOnNodeInfoChange() {
+  MOZ_DIAGNOSTIC_ASSERT(!IsInComposedDoc());
+  if (nsCOMPtr<Link> link = do_QueryInterface(this)) {
+    MOZ_DIAGNOSTIC_ASSERT(!link->HasPendingLinkUpdate());
+  }
+}
+#endif
 
 void* nsINode::GetProperty(const nsAtom* aPropertyName,
                            nsresult* aStatus) const {
@@ -372,11 +380,8 @@ nsIContent* nsINode::GetTextEditorRootContent(TextEditor** aTextEditor) {
   if (aTextEditor) {
     *aTextEditor = nullptr;
   }
-  for (nsINode* node = this; node; node = node->GetParentNode()) {
-    if (!node->IsElement() || !node->IsHTMLElement()) continue;
-
-    RefPtr<TextEditor> textEditor =
-        static_cast<nsGenericHTMLElement*>(node)->GetTextEditorInternal();
+  for (auto* element : InclusiveAncestorsOfType<nsGenericHTMLElement>(*this)) {
+    RefPtr<TextEditor> textEditor = element->GetTextEditorInternal();
     if (!textEditor) {
       continue;
     }
@@ -858,20 +863,13 @@ void nsINode::GetBaseURIFromJS(nsAString& aURI, CallerType aCallerType,
 nsIURI* nsINode::GetBaseURIObject() const { return GetBaseURI(true); }
 
 void nsINode::LookupPrefix(const nsAString& aNamespaceURI, nsAString& aPrefix) {
-  Element* element = GetNameSpaceElement();
-  if (element) {
+  if (Element* nsElement = GetNameSpaceElement()) {
     // XXX Waiting for DOM spec to list error codes.
 
     // Trace up the content parent chain looking for the namespace
     // declaration that defines the aNamespaceURI namespace. Once found,
     // return the prefix (i.e. the attribute localName).
-    for (nsIContent* content = element; content;
-         content = content->GetParent()) {
-      if (!content->IsElement()) {
-        continue;
-      }
-
-      Element* element = content->AsElement();
+    for (Element* element : InclusiveAncestorsOfType<Element>(*nsElement)) {
       uint32_t attrCount = element->GetAttrCount();
 
       for (uint32_t i = 0; i < attrCount; ++i) {
@@ -1215,6 +1213,12 @@ void nsINode::GetBoxQuads(const BoxQuadOptions& aOptions,
                           nsTArray<RefPtr<DOMQuad>>& aResult,
                           CallerType aCallerType, mozilla::ErrorResult& aRv) {
   mozilla::GetBoxQuads(this, aOptions, aResult, aCallerType, aRv);
+}
+
+void nsINode::GetBoxQuadsFromWindowOrigin(const BoxQuadOptions& aOptions,
+                                          nsTArray<RefPtr<DOMQuad>>& aResult,
+                                          mozilla::ErrorResult& aRv) {
+  mozilla::GetBoxQuadsFromWindowOrigin(this, aOptions, aResult, aRv);
 }
 
 already_AddRefed<DOMQuad> nsINode::ConvertQuadFromNode(
@@ -1628,10 +1632,10 @@ void nsINode::DisconnectChild(nsIContent* aKid) {
   aKid->mPreviousOrLastSibling = nullptr;
 
   if (previousSibling) {
-    previousSibling->mNextSibling = aKid->mNextSibling.forget();
+    previousSibling->mNextSibling = std::move(aKid->mNextSibling);
   } else {
     // aKid is the first child in the list
-    mFirstChild = aKid->mNextSibling.forget();
+    mFirstChild = std::move(aKid->mNextSibling);
   }
 
   --mChildCount;
@@ -2881,7 +2885,7 @@ JSObject* nsINode::WrapObject(JSContext* aCx,
 }
 
 already_AddRefed<nsINode> nsINode::CloneNode(bool aDeep, ErrorResult& aError) {
-  return Clone(aDeep, nullptr, nullptr, aError);
+  return Clone(aDeep, nullptr, aError);
 }
 
 nsDOMAttributeMap* nsINode::GetAttributes() {
@@ -2952,8 +2956,7 @@ void nsINode::AddAnimationObserverUnlessExists(
 already_AddRefed<nsINode> nsINode::CloneAndAdopt(
     nsINode* aNode, bool aClone, bool aDeep,
     nsNodeInfoManager* aNewNodeInfoManager,
-    JS::Handle<JSObject*> aReparentScope,
-    nsCOMArray<nsINode>* aNodesWithProperties, nsINode* aParent,
+    JS::Handle<JSObject*> aReparentScope, nsINode* aParent,
     ErrorResult& aError) {
   MOZ_ASSERT((!aClone && aNewNodeInfoManager) || !aReparentScope,
              "If cloning or not getting a new nodeinfo we shouldn't rewrap");
@@ -3047,60 +3050,71 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
     }
   } else if (nodeInfoManager) {
     Document* oldDoc = aNode->OwnerDoc();
+
+    Document* newDoc = nodeInfoManager->GetDocument();
+    MOZ_ASSERT(newDoc);
+
     bool wasRegistered = false;
     if (elem) {
       wasRegistered = oldDoc->UnregisterActivityObserver(elem);
     }
 
+    const bool hadProperties = aNode->HasProperties();
+    if (hadProperties) {
+      // NOTE: We want this to happen before NodeInfoChanged so that
+      // NodeInfoChanged can use node properties normally.
+      //
+      // When this fails, it removes all properties for the node anyway, so no
+      // extra error handling needed.
+      Unused << oldDoc->PropertyTable().TransferOrRemoveAllPropertiesFor(
+          aNode, newDoc->PropertyTable());
+    }
+
     aNode->mNodeInfo.swap(newNodeInfo);
+    aNode->NodeInfoChanged(oldDoc);
+
+    MOZ_ASSERT(newDoc != oldDoc);
     if (elem) {
-      elem->NodeInfoChanged(oldDoc);
+      // Adopted callback must be enqueued whenever a node’s
+      // shadow-including inclusive descendants that is custom.
+      CustomElementData* data = elem->GetCustomElementData();
+      if (data && data->mState == CustomElementData::State::eCustom) {
+        LifecycleAdoptedCallbackArgs args = {oldDoc, newDoc};
+        nsContentUtils::EnqueueLifecycleCallback(Document::eAdopted, elem,
+                                                 nullptr, &args);
+      }
     }
 
-    Document* newDoc = aNode->OwnerDoc();
-    if (newDoc) {
-      if (elem) {
-        // Adopted callback must be enqueued whenever a node’s
-        // shadow-including inclusive descendants that is custom.
-        CustomElementData* data = elem->GetCustomElementData();
-        if (data && data->mState == CustomElementData::State::eCustom) {
-          LifecycleAdoptedCallbackArgs args = {oldDoc, newDoc};
-          nsContentUtils::EnqueueLifecycleCallback(Document::eAdopted, elem,
-                                                   nullptr, &args);
+    // XXX what if oldDoc is null, we don't know if this should be
+    // registered or not! Can that really happen?
+    if (wasRegistered) {
+      newDoc->RegisterActivityObserver(aNode->AsElement());
+    }
+
+    if (nsPIDOMWindowInner* window = newDoc->GetInnerWindow()) {
+      EventListenerManager* elm = aNode->GetExistingListenerManager();
+      if (elm) {
+        window->SetMutationListeners(elm->MutationListenerBits());
+        if (elm->MayHavePaintEventListener()) {
+          window->SetHasPaintEventListeners();
         }
-      }
-
-      // XXX what if oldDoc is null, we don't know if this should be
-      // registered or not! Can that really happen?
-      if (wasRegistered) {
-        newDoc->RegisterActivityObserver(aNode->AsElement());
-      }
-
-      if (nsPIDOMWindowInner* window = newDoc->GetInnerWindow()) {
-        EventListenerManager* elm = aNode->GetExistingListenerManager();
-        if (elm) {
-          window->SetMutationListeners(elm->MutationListenerBits());
-          if (elm->MayHavePaintEventListener()) {
-            window->SetHasPaintEventListeners();
-          }
-          if (elm->MayHaveTouchEventListener()) {
-            window->SetHasTouchEventListeners();
-          }
-          if (elm->MayHaveMouseEnterLeaveEventListener()) {
-            window->SetHasMouseEnterLeaveEventListeners();
-          }
-          if (elm->MayHavePointerEnterLeaveEventListener()) {
-            window->SetHasPointerEnterLeaveEventListeners();
-          }
-          if (elm->MayHaveSelectionChangeEventListener()) {
-            window->SetHasSelectionChangeEventListeners();
-          }
+        if (elm->MayHaveTouchEventListener()) {
+          window->SetHasTouchEventListeners();
+        }
+        if (elm->MayHaveMouseEnterLeaveEventListener()) {
+          window->SetHasMouseEnterLeaveEventListeners();
+        }
+        if (elm->MayHavePointerEnterLeaveEventListener()) {
+          window->SetHasPointerEnterLeaveEventListeners();
+        }
+        if (elm->MayHaveSelectionChangeEventListener()) {
+          window->SetHasSelectionChangeEventListeners();
         }
       }
     }
-    if (wasRegistered && oldDoc != newDoc) {
+    if (wasRegistered) {
       nsIContent* content = aNode->AsContent();
-      if (auto mediaElem = HTMLMediaElement::FromNodeOrNull(content)) {
+      if (auto* mediaElem = HTMLMediaElement::FromNodeOrNull(content)) {
         mediaElem->NotifyOwnerDocumentActivityChanged();
       }
       nsCOMPtr<nsIObjectLoadingContent> objectLoadingContent(
@@ -3122,11 +3136,11 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
       }
     }
 
-    if (oldDoc != newDoc && oldDoc->MayHaveDOMMutationObservers()) {
+    if (oldDoc->MayHaveDOMMutationObservers()) {
       newDoc->SetMayHaveDOMMutationObservers();
     }
 
-    if (oldDoc != newDoc && oldDoc->MayHaveAnimationObservers()) {
+    if (oldDoc->MayHaveAnimationObservers()) {
       newDoc->SetMayHaveAnimationObservers();
     }
 
@@ -3143,27 +3157,22 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
         UpdateReflectorGlobal(cx, wrapper, aError);
         if (aError.Failed()) {
           if (wasRegistered) {
-            aNode->OwnerDoc()->UnregisterActivityObserver(aNode->AsElement());
+            newDoc->UnregisterActivityObserver(aNode->AsElement());
+          }
+          if (hadProperties) {
+            // NOTE: When it fails it removes all properties for the node
+            // anyway, so no extra error handling needed.
+            Unused << newDoc->PropertyTable().TransferOrRemoveAllPropertiesFor(
+                aNode, oldDoc->PropertyTable());
           }
           aNode->mNodeInfo.swap(newNodeInfo);
-          if (elem) {
-            elem->NodeInfoChanged(newDoc);
-          }
+          aNode->NodeInfoChanged(newDoc);
           if (wasRegistered) {
-            aNode->OwnerDoc()->RegisterActivityObserver(aNode->AsElement());
+            oldDoc->RegisterActivityObserver(aNode->AsElement());
           }
           return nullptr;
         }
       }
-    }
-  }
-
-  if (aNodesWithProperties && aNode->HasProperties()) {
-    bool ok = aNodesWithProperties->AppendObject(aNode);
-    MOZ_RELEASE_ASSERT(ok, "Out of memory");
-    if (aClone) {
-      ok = aNodesWithProperties->AppendObject(clone);
-      MOZ_RELEASE_ASSERT(ok, "Out of memory");
     }
   }
 
@@ -3173,7 +3182,7 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
          cloneChild = cloneChild->GetNextSibling()) {
       nsCOMPtr<nsINode> child =
           CloneAndAdopt(cloneChild, aClone, true, nodeInfoManager,
-                        aReparentScope, aNodesWithProperties, clone, aError);
+                        aReparentScope, clone, aError);
       if (NS_WARN_IF(aError.Failed())) {
         return nullptr;
       }
@@ -3192,9 +3201,9 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
           newShadowRoot->CloneInternalDataFrom(originalShadowRoot);
           for (nsIContent* origChild = originalShadowRoot->GetFirstChild();
                origChild; origChild = origChild->GetNextSibling()) {
-            nsCOMPtr<nsINode> child = CloneAndAdopt(
-                origChild, aClone, aDeep, nodeInfoManager, aReparentScope,
-                aNodesWithProperties, newShadowRoot, aError);
+            nsCOMPtr<nsINode> child =
+                CloneAndAdopt(origChild, aClone, aDeep, nodeInfoManager,
+                              aReparentScope, newShadowRoot, aError);
             if (NS_WARN_IF(aError.Failed())) {
               return nullptr;
             }
@@ -3205,7 +3214,7 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
       if (ShadowRoot* shadowRoot = aNode->AsElement()->GetShadowRoot()) {
         nsCOMPtr<nsINode> child =
             CloneAndAdopt(shadowRoot, aClone, aDeep, nodeInfoManager,
-                          aReparentScope, aNodesWithProperties, clone, aError);
+                          aReparentScope, clone, aError);
         if (NS_WARN_IF(aError.Failed())) {
           return nullptr;
         }
@@ -3227,9 +3236,9 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
 
     for (nsIContent* cloneChild = origContent->GetFirstChild(); cloneChild;
          cloneChild = cloneChild->GetNextSibling()) {
-      nsCOMPtr<nsINode> child = CloneAndAdopt(
-          cloneChild, aClone, aDeep, ownerNodeInfoManager, aReparentScope,
-          aNodesWithProperties, cloneContent, aError);
+      nsCOMPtr<nsINode> child =
+          CloneAndAdopt(cloneChild, aClone, aDeep, ownerNodeInfoManager,
+                        aReparentScope, cloneContent, aError);
       if (NS_WARN_IF(aError.Failed())) {
         return nullptr;
       }
@@ -3241,39 +3250,41 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
 
 void nsINode::Adopt(nsNodeInfoManager* aNewNodeInfoManager,
                     JS::Handle<JSObject*> aReparentScope,
-                    nsCOMArray<nsINode>& aNodesWithProperties,
                     mozilla::ErrorResult& aError) {
   if (aNewNodeInfoManager) {
-    mozilla::dom::Document* afterAdoptDoc = aNewNodeInfoManager->GetDocument();
-    mozilla::dom::Document* beforeAdoptDoc = OwnerDoc();
+    Document* beforeAdoptDoc = OwnerDoc();
+    Document* afterAdoptDoc = aNewNodeInfoManager->GetDocument();
 
-    if (afterAdoptDoc && beforeAdoptDoc &&
-        (afterAdoptDoc->GetDocGroup() != beforeAdoptDoc->GetDocGroup())) {
+    MOZ_ASSERT(beforeAdoptDoc);
+    MOZ_ASSERT(afterAdoptDoc);
+    MOZ_ASSERT(beforeAdoptDoc != afterAdoptDoc);
+
+    if (afterAdoptDoc->GetDocGroup() != beforeAdoptDoc->GetDocGroup()) {
       // This is a temporary solution for Bug 1590526 to only limit
       // the restriction to chrome level documents because web extensions
       // rely on content to content node adoption.
       if (nsContentUtils::IsChromeDoc(afterAdoptDoc) ||
           nsContentUtils::IsChromeDoc(beforeAdoptDoc)) {
-        aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
-        return;
+        return aError.ThrowSecurityError(
+            "Adopting nodes across docgroups in chrome documents "
+            "is unsupported");
       }
     }
   }
 
   // Just need to store the return value of CloneAndAdopt in a
   // temporary nsCOMPtr to make sure we release it.
-  nsCOMPtr<nsINode> node =
-      CloneAndAdopt(this, false, true, aNewNodeInfoManager, aReparentScope,
-                    &aNodesWithProperties, nullptr, aError);
+  nsCOMPtr<nsINode> node = CloneAndAdopt(this, false, true, aNewNodeInfoManager,
+                                         aReparentScope, nullptr, aError);
 
   nsMutationGuard::DidMutate();
 }
 
-already_AddRefed<nsINode> nsINode::Clone(
-    bool aDeep, nsNodeInfoManager* aNewNodeInfoManager,
-    nsCOMArray<nsINode>* aNodesWithProperties, mozilla::ErrorResult& aError) {
-  return CloneAndAdopt(this, true, aDeep, aNewNodeInfoManager, nullptr,
-                       aNodesWithProperties, nullptr, aError);
+already_AddRefed<nsINode> nsINode::Clone(bool aDeep,
+                                         nsNodeInfoManager* aNewNodeInfoManager,
+                                         ErrorResult& aError) {
+  return CloneAndAdopt(this, true, aDeep, aNewNodeInfoManager, nullptr, nullptr,
+                       aError);
 }
 
 void nsINode::GenerateXPath(nsAString& aResult) {

@@ -21,7 +21,7 @@ using namespace mozilla::gfx;
 StaticMutex SharedSurfacesParent::sMutex;
 StaticAutoPtr<SharedSurfacesParent> SharedSurfacesParent::sInstance;
 
-SharedSurfacesParent::SharedSurfacesParent() {}
+SharedSurfacesParent::SharedSurfacesParent() = default;
 
 SharedSurfacesParent::~SharedSurfacesParent() {
   for (auto i = mSurfaces.Iter(); !i.Done(); i.Next()) {
@@ -134,7 +134,7 @@ void SharedSurfacesParent::AddSameProcess(const wr::ExternalImageId& aId,
   wr::RenderThread::Get()->RegisterExternalImage(id, texture.forget());
 
   surface->AddConsumer();
-  sInstance->mSurfaces.Put(id, surface);
+  sInstance->mSurfaces.Put(id, std::move(surface));
 }
 
 /* static */
@@ -192,7 +192,7 @@ void SharedSurfacesParent::Add(const wr::ExternalImageId& aId,
   wr::RenderThread::Get()->RegisterExternalImage(id, texture.forget());
 
   surface->AddConsumer();
-  sInstance->mSurfaces.Put(id, surface.forget());
+  sInstance->mSurfaces.Put(id, std::move(surface));
 }
 
 /* static */

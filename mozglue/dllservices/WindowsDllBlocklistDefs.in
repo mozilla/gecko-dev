@@ -229,6 +229,10 @@ ALL_PROCESSES += [
     # Old versions of Digital Guardian, bug 1318858
     DllBlocklistEntry("dgapi.dll", (7, 5, 0, 0xffff)),
     DllBlocklistEntry("dgapi64.dll", (7, 5, 0, 0xffff)),
+
+    # Old versions of COMODO Internet Security
+    DllBlocklistEntry("IseGuard32.dll", (1, 6, 13835, 184)),
+    DllBlocklistEntry("IseGuard64.dll", (1, 6, 13835, 184)),
 ]
 
 ALL_PROCESSES_TESTS += [
@@ -246,6 +250,10 @@ BROWSER_PROCESS += [
 
     # SolidWorks Windows Explorer integration causes crashes, bug 1566109
     DllBlocklistEntry("Database.dll", (27, 3, 0, 59)),
+
+    # NXP Semiconductors (formerly Athena) PKCS11 module causes crashes,
+    # bug 1560052
+    DllBlocklistEntry("asepkcs.dll", (6, 5, 0, 5)),
 ]
 
 CHILD_PROCESSES += [

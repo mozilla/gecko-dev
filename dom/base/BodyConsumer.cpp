@@ -641,7 +641,7 @@ void BodyConsumer::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
   mBodyConsumed = true;
 
   MOZ_ASSERT(mConsumePromise);
-  RefPtr<Promise> localPromise = mConsumePromise.forget();
+  RefPtr<Promise> localPromise = std::move(mConsumePromise);
 
   RefPtr<BodyConsumer> self = this;
   auto autoReleaseObject =
@@ -736,7 +736,7 @@ void BodyConsumer::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
 
   error.WouldReportJSException();
   if (error.Failed()) {
-    localPromise->MaybeReject(error);
+    localPromise->MaybeReject(std::move(error));
   }
 }
 
@@ -751,7 +751,7 @@ void BodyConsumer::ContinueConsumeBlobBody(BlobImpl* aBlobImpl,
   mBodyConsumed = true;
 
   MOZ_ASSERT(mConsumePromise);
-  RefPtr<Promise> localPromise = mConsumePromise.forget();
+  RefPtr<Promise> localPromise = std::move(mConsumePromise);
 
   if (!aShuttingDown) {
     RefPtr<dom::Blob> blob = dom::Blob::Create(mGlobal, aBlobImpl);

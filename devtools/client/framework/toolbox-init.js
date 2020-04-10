@@ -86,8 +86,8 @@ async function initToolbox(url, host) {
     targetFromURL,
   } = require("devtools/client/framework/target-from-url");
   const { Toolbox } = require("devtools/client/framework/toolbox");
-  const { DebuggerServer } = require("devtools/server/debugger-server");
-  const { DebuggerClient } = require("devtools/shared/client/debugger-client");
+  const { DevToolsServer } = require("devtools/server/devtools-server");
+  const { DevToolsClient } = require("devtools/shared/client/devtools-client");
 
   // Specify the default tool to open
   const tool = url.searchParams.get("tool");
@@ -115,9 +115,9 @@ async function initToolbox(url, host) {
       // linkedBrowser is the only one attribute being queried by client.getTab
       const tab = { linkedBrowser: iframe };
 
-      DebuggerServer.init();
-      DebuggerServer.registerAllActors();
-      const client = new DebuggerClient(DebuggerServer.connectPipe());
+      DevToolsServer.init();
+      DevToolsServer.registerAllActors();
+      const client = new DevToolsClient(DevToolsServer.connectPipe());
 
       await client.connect();
       // Creates a target for a given browser iframe.

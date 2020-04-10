@@ -755,6 +755,22 @@ pub extern "C" fn Servo_AnimationValue_GetColor(
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_AnimationValue_IsCurrentColor(
+    value: &RawServoAnimationValue,
+) -> bool {
+    let value = AnimationValue::as_arc(&value);
+    match **value {
+        AnimationValue::BackgroundColor(color) => {
+            color.is_currentcolor()
+        },
+        _ => {
+            debug_assert!(false, "Other color properties are not supported yet");
+            false
+        },
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_AnimationValue_GetOpacity(value: &RawServoAnimationValue) -> f32 {
     let value = AnimationValue::as_arc(&value);
     if let AnimationValue::Opacity(opacity) = **value {
@@ -4790,9 +4806,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
     use style::properties::PropertyDeclaration;
     use style::values::generics::box_::{VerticalAlign, VerticalAlignKeyword};
     use style::values::generics::font::FontStyle;
-    use style::values::specified::BorderStyle;
-    use style::values::specified::Display;
-    use style::values::specified::{Clear, Float};
+    use style::values::specified::{BorderStyle, Clear, Display, Float, TextAlign};
 
     fn get_from_computed<T>(value: u32) -> T
     where
@@ -4812,7 +4826,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
         Float => get_from_computed::<Float>(value),
         Clear => get_from_computed::<Clear>(value),
         VerticalAlign => VerticalAlign::Keyword(VerticalAlignKeyword::from_u32(value).unwrap()),
-        TextAlign => longhands::text_align::SpecifiedValue::from_gecko_keyword(value),
+        TextAlign => get_from_computed::<TextAlign>(value),
         TextEmphasisPosition => longhands::text_emphasis_position::SpecifiedValue::from_gecko_keyword(value),
         FontSize => {
             // We rely on Gecko passing in font-size values (0...7) here.
@@ -5182,7 +5196,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(
     use style::properties::longhands::background_image::SpecifiedValue as BackgroundImage;
     use style::properties::PropertyDeclaration;
     use style::stylesheets::CorsMode;
-    use style::values::generics::image::{Image, ImageLayer};
+    use style::values::generics::image::Image;
     use style::values::specified::url::SpecifiedImageUrl;
 
     let url_data = unsafe { UrlExtraData::from_ptr_ref(&raw_extra_data) };
@@ -5198,7 +5212,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(
     );
     let url = SpecifiedImageUrl::parse_from_string(string.into(), &context, CorsMode::None);
     let decl = PropertyDeclaration::BackgroundImage(BackgroundImage(
-        vec![ImageLayer::Image(Image::Url(url))].into(),
+        vec![Image::Url(url)].into(),
     ));
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(decl, Importance::Normal);

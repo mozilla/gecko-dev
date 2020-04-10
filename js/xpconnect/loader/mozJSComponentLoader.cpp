@@ -240,7 +240,7 @@ class MOZ_STACK_CLASS ComponentLoaderInfo {
                          nsContentUtils::GetSystemPrincipal(),
                          nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                          nsIContentPolicy::TYPE_SCRIPT,
-                         nullptr,  // nsICookieSettings
+                         nullptr,  // nsICookieJarSettings
                          nullptr,  // aPerformanceStorage
                          nullptr,  // aLoadGroup
                          nullptr,  // aCallbacks
@@ -835,13 +835,6 @@ nsresult mozJSComponentLoader::ObjectForLocation(
   if (!script) {
     // The script wasn't in the cache , so compile it now.
     LOG(("Slow loading %s\n", nativePath.get()));
-
-    // If we are debugging a replaying process and have diverged from the
-    // recording, trying to load and compile new code will cause the
-    // debugger operation to fail, so just abort now.
-    if (recordreplay::HasDivergedFromRecording()) {
-      return NS_ERROR_FAILURE;
-    }
 
     // Use lazy source if we're using the startup cache. Non-lazy source +
     // startup cache regresses installer size (due to source code stored in

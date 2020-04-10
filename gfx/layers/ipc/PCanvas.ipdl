@@ -14,7 +14,7 @@ namespace layers {
 /**
  * PCanvas is the IPDL for recorded Canvas drawing.
  */
-sync protocol PCanvas {
+async refcounted protocol PCanvas {
 parent:
   /**
    * Initialize a CanvasTranslator for a particular TextureType, which
@@ -31,6 +31,12 @@ parent:
    * stopped due to a timeout waiting for events.
    */
   async ResumeTranslation();
+
+  child:
+  /**
+   * Notify that the canvas device used by the translator has changed.
+   */
+  async NotifyDeviceChanged();
 };
 
 } // layers

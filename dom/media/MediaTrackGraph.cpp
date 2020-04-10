@@ -34,6 +34,7 @@
 #include "GraphRunner.h"
 #include "Tracing.h"
 #include "UnderrunHandler.h"
+#include "mozilla/CycleCollectedJSRuntime.h"
 
 #include "webaudio/blink/DenormalDisabler.h"
 #include "webaudio/blink/HRTFDatabaseLoader.h"
@@ -64,6 +65,7 @@ MediaTrackGraphImpl::~MediaTrackGraphImpl() {
              "thread");
   LOG(LogLevel::Debug, ("MediaTrackGraph %p destroyed", this));
   LOG(LogLevel::Debug, ("MediaTrackGraphImpl::~MediaTrackGraphImpl"));
+  StopAudioCallbackTracing();
 }
 
 void MediaTrackGraphImpl::AddTrackGraphThread(MediaTrack* aTrack) {
@@ -1101,7 +1103,11 @@ void MediaTrackGraphImpl::ProduceDataForTracksBlockByBlock(
   MOZ_ASSERT(OnGraphThread());
   MOZ_ASSERT(aTrackIndex <= mFirstCycleBreaker,
              "Cycle breaker is not AudioNodeTrack?");
+
   while (mProcessedTime < mStateComputedTime) {
+    // Microtask checkpoints are in between render quanta.
+    nsAutoMicroTask mt;
+
     GraphTime next = RoundUpToNextAudioBlock(mProcessedTime);
     for (uint32_t i = mFirstCycleBreaker; i < mTracks.Length(); ++i) {
       auto nt = static_cast<AudioNodeTrack*>(mTracks[i]);
@@ -2318,7 +2324,7 @@ void MediaTrack::AddMainThreadListener(
     }
 
    private:
-    ~NotifyRunnable() {}
+    ~NotifyRunnable() = default;
 
     RefPtr<MediaTrack> mTrack;
   };
@@ -2625,7 +2631,9 @@ TrackTime SourceMediaTrack::AppendData(MediaSegment* aSegment,
   mUpdateTrack->mData->AppendFrom(aSegment);  // note: aSegment is now dead
   {
     MonitorAutoLock lock(graph->GetMonitor());
-    graph->EnsureNextIteration();
+    if (graph->CurrentDriver()) {  // graph shutdown not forced
+      graph->EnsureNextIteration();
+    }
   }
 
   return appended;
@@ -2787,7 +2795,7 @@ float SourceMediaTrack::GetVolumeLocked() {
   return mVolume;
 }
 
-SourceMediaTrack::~SourceMediaTrack() {}
+SourceMediaTrack::~SourceMediaTrack() = default;
 
 void MediaInputPort::Init() {
   LOG(LogLevel::Debug, ("%p: Adding MediaInputPort %p (from %p to %p)",
@@ -3124,8 +3132,8 @@ void MediaTrackGraph::DestroyNonRealtimeInstance(MediaTrackGraph* aGraph) {
   graph->ForceShutDown();
 }
 
-NS_IMPL_ISUPPORTS(MediaTrackGraphImpl, nsIMemoryReporter, nsITimerCallback,
-                  nsINamed)
+NS_IMPL_ISUPPORTS(MediaTrackGraphImpl, nsIMemoryReporter, nsIThreadObserver,
+                  nsITimerCallback, nsINamed)
 
 NS_IMETHODIMP
 MediaTrackGraphImpl::CollectReports(nsIHandleReportCallback* aHandleReport,
@@ -3186,7 +3194,7 @@ void MediaTrackGraphImpl::CollectSizesForMemoryReport(
     nsTArray<AudioNodeSizes> mAudioTrackSizes;
 
    private:
-    ~FinishCollectRunnable() {}
+    ~FinishCollectRunnable() = default;
 
     // Avoiding nsCOMPtr because NSCAP_ASSERT_NO_QUERY_NEEDED in its
     // constructor modifies the ref-count, which cannot be done off main
@@ -3761,4 +3769,22 @@ GraphTime MediaTrackGraph::ProcessedTime() const {
   return static_cast<const MediaTrackGraphImpl*>(this)->mProcessedTime;
 }
 
+// nsIThreadObserver methods
+
+NS_IMETHODIMP
+MediaTrackGraphImpl::OnDispatchedEvent() {
+  MonitorAutoLock lock(mMonitor);
+  EnsureNextIteration();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+MediaTrackGraphImpl::OnProcessNextEvent(nsIThreadInternal*, bool) {
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+MediaTrackGraphImpl::AfterProcessNextEvent(nsIThreadInternal*, bool) {
+  return NS_OK;
+}
 }  // namespace mozilla

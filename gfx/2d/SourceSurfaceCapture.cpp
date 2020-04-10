@@ -62,7 +62,7 @@ SourceSurfaceCapture::SourceSurfaceCapture(DrawTargetCaptureImpl* aOwner,
   mRefDT = mOwner->mRefDT;
 }
 
-SourceSurfaceCapture::~SourceSurfaceCapture() {}
+SourceSurfaceCapture::~SourceSurfaceCapture() = default;
 
 void SourceSurfaceCapture::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
                                                SizeOfInfo& aInfo) const {
@@ -182,7 +182,7 @@ RefPtr<SourceSurface> SourceSurfaceCapture::ResolveImpl(
     surf->AddUserData(reinterpret_cast<UserDataKey*>(dt.get()), data, free);
   }
 
-  return surf.forget();
+  return surf;
 }
 
 already_AddRefed<DataSourceSurface> SourceSurfaceCapture::GetDataSurface() {

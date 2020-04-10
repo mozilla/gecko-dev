@@ -346,13 +346,14 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(EventStateManager)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(EventStateManager)
 
-NS_IMPL_CYCLE_COLLECTION(EventStateManager, mCurrentTargetContent,
-                         mGestureDownContent, mGestureDownFrameOwner,
-                         mLastLeftMouseDownContent, mLastMiddleMouseDownContent,
-                         mLastRightMouseDownContent, mActiveContent,
-                         mHoverContent, mURLTargetContent,
-                         mMouseEnterLeaveHelper, mPointersEnterLeaveHelper,
-                         mDocument, mIMEContentObserver, mAccessKeys)
+NS_IMPL_CYCLE_COLLECTION_WEAK(EventStateManager, mCurrentTargetContent,
+                              mGestureDownContent, mGestureDownFrameOwner,
+                              mLastLeftMouseDownContent,
+                              mLastMiddleMouseDownContent,
+                              mLastRightMouseDownContent, mActiveContent,
+                              mHoverContent, mURLTargetContent,
+                              mMouseEnterLeaveHelper, mPointersEnterLeaveHelper,
+                              mDocument, mIMEContentObserver, mAccessKeys)
 
 void EventStateManager::ReleaseCurrentIMEContentObserver() {
   if (mIMEContentObserver) {
@@ -1344,8 +1345,7 @@ void EventStateManager::DispatchCrossProcessEvent(WidgetEvent* aEvent,
       }
 
       browserParent->SendRealDragEvent(*aEvent->AsDragEvent(), action,
-                                       dropEffect, IPC::Principal(principal),
-                                       csp);
+                                       dropEffect, principal, csp);
       return;
     }
     case ePluginEventClass: {
@@ -2183,43 +2183,6 @@ bool EventStateManager::DoDefaultDragStart(
   }
 
   return true;
-}
-
-nsresult EventStateManager::GetContentViewer(nsIContentViewer** aCv) {
-  *aCv = nullptr;
-
-  nsPIDOMWindowOuter* window = mDocument->GetWindow();
-  if (!window) return NS_ERROR_FAILURE;
-  nsCOMPtr<nsPIDOMWindowOuter> rootWindow = window->GetPrivateRoot();
-  if (!rootWindow) return NS_ERROR_FAILURE;
-
-  BrowserChild* browserChild = BrowserChild::GetFrom(rootWindow);
-  if (!browserChild) {
-    nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-    if (!fm) return NS_ERROR_FAILURE;
-
-    nsCOMPtr<mozIDOMWindowProxy> activeWindow;
-    fm->GetActiveWindow(getter_AddRefs(activeWindow));
-    if (rootWindow != activeWindow) return NS_OK;
-  } else {
-    if (!browserChild->ParentIsActive()) return NS_OK;
-  }
-
-  nsCOMPtr<nsPIDOMWindowOuter> contentWindow =
-      nsGlobalWindowOuter::Cast(rootWindow)->GetContent();
-  if (!contentWindow) return NS_ERROR_FAILURE;
-
-  Document* doc = contentWindow->GetDoc();
-  if (!doc) return NS_ERROR_FAILURE;
-
-  nsCOMPtr<nsISupports> container = doc->GetContainer();
-  if (!container) return NS_ERROR_FAILURE;
-
-  nsCOMPtr<nsIDocShell> docshell = do_QueryInterface(container);
-  docshell->GetContentViewer(aCv);
-  if (!*aCv) return NS_ERROR_FAILURE;
-
-  return NS_OK;
 }
 
 nsresult EventStateManager::ChangeZoom(int32_t change) {
@@ -3917,9 +3880,9 @@ static CursorImage ComputeCustomCursor(nsPresContext* aPresContext,
   // If we are falling back because any cursor before us is loading, let the
   // consumer know.
   bool loading = false;
-  for (const nsCursorImage& image : style.StyleUI()->mCursorImages) {
+  for (const auto& image : style.StyleUI()->mCursor.images.AsSpan()) {
     uint32_t status;
-    imgRequestProxy* req = image.GetImage();
+    imgRequestProxy* req = image.url.GetImage();
     if (!req || NS_FAILED(req->GetImageStatus(&status))) {
       continue;
     }
@@ -3936,8 +3899,8 @@ static CursorImage ComputeCustomCursor(nsPresContext* aPresContext,
       continue;
     }
     Maybe<gfx::Point> specifiedHotspot =
-        image.mHaveHotspot ? Some(gfx::Point{image.mHotspotX, image.mHotspotY})
-                           : Nothing();
+        image.has_hotspot ? Some(gfx::Point{image.hotspot_x, image.hotspot_y})
+                          : Nothing();
     gfx::IntPoint hotspot = ComputeHotspot(container, specifiedHotspot);
     CursorImage result{hotspot, std::move(container), loading};
     if (ShouldBlockCustomCursor(aPresContext, aEvent, result)) {
@@ -3997,7 +3960,7 @@ void EventStateManager::UpdateCursor(nsPresContext* aPresContext,
       return;
     }
     cursor = framecursor->mCursor;
-    container = customCursor.mContainer.forget();
+    container = std::move(customCursor.mContainer);
     hotspot = Some(customCursor.mHotspot);
   }
 
@@ -5784,7 +5747,7 @@ nsresult EventStateManager::DoContentCommandEvent(
             nsContentPolicyType contentPolicyType =
                 transferable->GetContentPolicyType();
             remote->SendPasteTransferable(ipcDataTransfer, isPrivateData,
-                                          IPC::Principal(requestingPrincipal),
+                                          requestingPrincipal,
                                           contentPolicyType);
             rv = NS_OK;
           } else {

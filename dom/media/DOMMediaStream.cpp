@@ -89,7 +89,7 @@ class DOMMediaStream::PlaybackTrackListener : public MediaStreamTrackConsumer {
   }
 
  protected:
-  virtual ~PlaybackTrackListener() {}
+  virtual ~PlaybackTrackListener() = default;
 
   RefPtr<DOMMediaStream> mStream;
 };
@@ -109,6 +109,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(DOMMediaStream,
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mTracks)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mConsumersToKeepAlive)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPlaybackTrackListener)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_PTR
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(DOMMediaStream,

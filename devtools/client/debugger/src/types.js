@@ -8,6 +8,7 @@ import type { SettledValue, FulfilledValue } from "./utils/async-value";
 import type { SourcePayload, LongStringFront } from "./client/firefox/types";
 import type { SourceActorId, SourceActor } from "./reducers/source-actors";
 import type { SourceBase } from "./reducers/sources";
+import type { CallDeclaration } from "./workers/parser/getSymbols";
 
 export type { SourceActorId, SourceActor, SourceBase };
 
@@ -260,6 +261,7 @@ export type Frame = {
   library?: string,
   index: number,
   asyncCause: null | string,
+  state: "on-stack" | "suspended" | "dead",
 };
 
 export type ChromeFrame = {
@@ -519,6 +521,9 @@ export type { Context, ThreadContext } from "./utils/context";
 export type Previews = {
   line: Array<Preview>,
 };
+
+export type HighlightedCall = CallDeclaration & { clear: Object };
+export type HighlightedCalls = Array<HighlightedCall>;
 
 export type Preview = {
   name: string,

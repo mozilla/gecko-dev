@@ -266,7 +266,7 @@ void MediaFormatReader::DecoderFactory::RunStage(Data& aData) {
               mOwner->OwnerThread(), __func__,
               [this, &aData](RefPtr<Token> aToken) {
                 aData.mTokenRequest.Complete();
-                aData.mToken = aToken.forget();
+                aData.mToken = std::move(aToken);
                 aData.mStage = Stage::CreateDecoder;
                 RunStage(aData);
               },
@@ -335,16 +335,6 @@ MediaResult MediaFormatReader::DecoderFactory::DoCreateDecoder(Data& aData) {
     }
   }
 
-  // Media playback is not supported when recording or replaying. See bug
-  // 1304146.
-  if (recordreplay::IsRecordingOrReplaying()) {
-    return MediaResult(
-        NS_ERROR_DOM_MEDIA_FATAL_ERR,
-        nsPrintfCString("error creating %s decoder: "
-                        "media playback is disabled while recording/replaying",
-                        TrackTypeToStr(aData.mTrack)));
-  }
-
   // result may not be updated by PDMFactory::CreateDecoder, as such it must be
   // initialized to a fatal error by default.
   MediaResult result =
@@ -408,7 +398,7 @@ void MediaFormatReader::DecoderFactory::DoInitDecoder(Data& aData) {
             aData.mInitRequest.Complete();
             aData.mStage = Stage::None;
             MutexAutoLock lock(ownerData.mMutex);
-            ownerData.mDecoder = aData.mDecoder.forget();
+            ownerData.mDecoder = std::move(aData.mDecoder);
             ownerData.mDescription = ownerData.mDecoder->GetDescriptionName();
             DDLOGEX2("MediaFormatReader::DecoderFactory", this,
                      DDLogCategory::Log, "decoder_initialized", DDNoValue{});
@@ -453,10 +443,10 @@ class MediaFormatReader::DemuxerProxy {
     MOZ_COUNT_CTOR(DemuxerProxy);
   }
 
-  ~DemuxerProxy() { MOZ_COUNT_DTOR(DemuxerProxy); }
+  MOZ_COUNTED_DTOR(DemuxerProxy)
 
   RefPtr<ShutdownPromise> Shutdown() {
-    RefPtr<Data> data = mData.forget();
+    RefPtr<Data> data = std::move(mData);
     return InvokeAsync(mTaskQueue, __func__, [data]() {
       // We need to clear our reference to the demuxer now. So that in the event
       // the init promise wasn't resolved, such as what can happen with the
@@ -551,7 +541,7 @@ class MediaFormatReader::DemuxerProxy {
     UniquePtr<EncryptionInfo> mCrypto;
 
    private:
-    ~Data() {}
+    ~Data() = default;
   };
   RefPtr<Data> mData;
 };
@@ -676,7 +666,7 @@ class MediaFormatReader::DemuxerProxy::Wrapper : public MediaTrackDemuxer {
   friend class DemuxerProxy;
 
   ~Wrapper() {
-    RefPtr<MediaTrackDemuxer> trackDemuxer = mTrackDemuxer.forget();
+    RefPtr<MediaTrackDemuxer> trackDemuxer = std::move(mTrackDemuxer);
     nsresult rv = mTaskQueue->Dispatch(NS_NewRunnableFunction(
         "MediaFormatReader::DemuxerProxy::Wrapper::~Wrapper",
         [trackDemuxer]() { trackDemuxer->BreakCycles(); }));

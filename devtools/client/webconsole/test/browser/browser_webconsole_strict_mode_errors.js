@@ -10,19 +10,19 @@ add_task(async function() {
     "data:text/html;charset=utf8,empty page"
   );
 
-  loadScriptURI("'use strict';var arguments;");
+  await loadScriptURI("'use strict';var arguments;");
   await waitForError(
     hud,
     "SyntaxError: 'arguments' can't be defined or assigned to in strict mode code"
   );
 
-  loadScriptURI("'use strict';function f(a, a) {};");
+  await loadScriptURI("'use strict';function f(a, a) {};");
   await waitForError(hud, "SyntaxError: duplicate formal argument a");
 
-  loadScriptURI("'use strict';var o = {get p() {}};o.p = 1;");
+  await loadScriptURI("'use strict';var o = {get p() {}};o.p = 1;");
   await waitForError(hud, 'TypeError: setting getter-only property "p"');
 
-  loadScriptURI("'use strict';v = 1;");
+  await loadScriptURI("'use strict';v = 1;");
   await waitForError(
     hud,
     "ReferenceError: assignment to undeclared variable v"
@@ -41,5 +41,5 @@ function loadScriptURI(script) {
     expectUncaughtException();
   }
   const uri = "data:text/html;charset=utf8,<script>" + script + "</script>";
-  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, uri);
+  return navigateTo(uri);
 }

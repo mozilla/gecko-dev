@@ -27,7 +27,7 @@ ABIArgGenerator::ABIArgGenerator()
 
 ABIArg ABIArgGenerator::next(MIRType type) {
 #if defined(XP_WIN)
-  JS_STATIC_ASSERT(NumIntArgRegs == NumFloatArgRegs);
+  static_assert(NumIntArgRegs == NumFloatArgRegs);
   if (regIndex_ == NumIntArgRegs) {
     if (IsSimdType(type)) {
       // On Win64, >64 bit args need to be passed by reference, but wasm
@@ -47,6 +47,7 @@ ABIArg ABIArgGenerator::next(MIRType type) {
     case MIRType::Int64:
     case MIRType::Pointer:
     case MIRType::RefOrNull:
+    case MIRType::StackResults:
       current_ = ABIArg(IntArgRegs[regIndex_++]);
       break;
     case MIRType::Float32:
@@ -77,6 +78,7 @@ ABIArg ABIArgGenerator::next(MIRType type) {
     case MIRType::Int64:
     case MIRType::Pointer:
     case MIRType::RefOrNull:
+    case MIRType::StackResults:
       if (intRegIndex_ == NumIntArgRegs) {
         current_ = ABIArg(stackOffset_);
         stackOffset_ += sizeof(uint64_t);

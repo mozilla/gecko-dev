@@ -21,7 +21,6 @@ from manifest import (
     validate_test_ini,
 )
 
-
 # some test details (test INIs)
 VALID_MANIFESTS = [{
     # page load test with local playback

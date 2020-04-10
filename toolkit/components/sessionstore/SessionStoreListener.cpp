@@ -10,6 +10,7 @@
 #include "mozilla/dom/StorageEvent.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "nsGenericHTMLElement.h"
+#include "nsDocShell.h"
 #include "nsIAppWindow.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeOwner.h"
@@ -138,7 +139,8 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TabListener)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMEventListener)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTION(TabListener, mDocShell, mSessionStore, mOwnerContent)
+NS_IMPL_CYCLE_COLLECTION_WEAK(TabListener, mDocShell, mSessionStore,
+                              mOwnerContent)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(TabListener)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(TabListener)
 

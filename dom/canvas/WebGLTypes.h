@@ -17,6 +17,7 @@
 #include "mozilla/CheckedInt.h"
 #include "mozilla/Range.h"
 #include "mozilla/RefCounted.h"
+#include "mozilla/gfx/Point.h"
 #include "gfxTypes.h"
 
 #include "nsTArray.h"
@@ -348,17 +349,13 @@ struct FloatOrInt final  // For TexParameter[fi] and friends.
   }
 };
 
-struct WebGLPixelStore {
+struct WebGLPixelStore final {
   uint32_t mUnpackImageHeight = 0;
   uint32_t mUnpackSkipImages = 0;
   uint32_t mUnpackRowLength = 0;
   uint32_t mUnpackSkipRows = 0;
   uint32_t mUnpackSkipPixels = 0;
   uint32_t mUnpackAlignment = 0;
-  uint32_t mPackRowLength = 0;
-  uint32_t mPackSkipRows = 0;
-  uint32_t mPackSkipPixels = 0;
-  uint32_t mPackAlignment = 0;
   GLenum mColorspaceConversion = 0;
   bool mFlipY = false;
   bool mPremultiplyAlpha = false;
@@ -463,6 +460,43 @@ typedef avec3<uint32_t> uvec3;
 // -
 
 namespace webgl {
+
+struct PackingInfo final {
+  GLenum format = 0;
+  GLenum type = 0;
+
+  bool operator<(const PackingInfo& x) const {
+    if (format != x.format) return format < x.format;
+
+    return type < x.type;
+  }
+
+  bool operator==(const PackingInfo& x) const {
+    return (format == x.format && type == x.type);
+  }
+};
+
+struct DriverUnpackInfo final {
+  GLenum internalFormat = 0;
+  GLenum unpackFormat = 0;
+  GLenum unpackType = 0;
+
+  PackingInfo ToPacking() const { return {unpackFormat, unpackType}; }
+};
+
+struct PixelPackState final {
+  uint32_t alignment = 4;
+  uint32_t rowLength = 0;
+  uint32_t skipRows = 0;
+  uint32_t skipPixels = 0;
+};
+
+struct ReadPixelsDesc final {
+  ivec2 srcOffset;
+  uvec2 size;
+  PackingInfo pi = {LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE};
+  PixelPackState packState;
+};
 
 class ExtensionBits final {
   uint64_t mBits = 0;
@@ -594,6 +628,7 @@ struct ActiveInfo {
 
 struct ActiveAttribInfo final : public ActiveInfo {
   int32_t location = -1;
+  AttribBaseType baseType = AttribBaseType::Float;
 };
 
 struct ActiveUniformInfo final : public ActiveInfo {
@@ -642,6 +677,21 @@ struct TypedQuad final {
 struct GetUniformData final {
   alignas(alignof(float)) uint8_t data[4 * 4 * sizeof(float)] = {};
   GLenum type = 0;
+};
+
+struct VertAttribPointerDesc final {
+  bool intFunc = false;
+  uint8_t channels = 4;
+  bool normalized = false;
+  uint8_t byteStrideOrZero = 0;
+  GLenum type = LOCAL_GL_FLOAT;
+  uint64_t byteOffset = 0;
+};
+
+struct VertAttribPointerCalculated final {
+  uint8_t byteSize = 4 * 4;
+  uint8_t byteStride = 4 * 4;  // at-most 255
+  webgl::AttribBaseType baseType = webgl::AttribBaseType::Float;
 };
 
 }  // namespace webgl
@@ -712,7 +762,7 @@ class RawBuffer {
     return mData[idx];
   }
 
-  RawBuffer() {}
+  RawBuffer() = default;
   RawBuffer(const RawBuffer&) = delete;
   RawBuffer& operator=(const RawBuffer&) = delete;
 
@@ -821,6 +871,15 @@ inline typename C::mapped_type Find(
 
 // -
 
+template <typename T, typename U>
+inline Maybe<T> MaybeAs(const U val) {
+  const auto checked = CheckedInt<T>(val);
+  if (!checked.isValid()) return {};
+  return Some(checked.value());
+}
+
+// -
+
 inline GLenum ImageToTexTarget(const GLenum imageTarget) {
   switch (imageTarget) {
     case LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
@@ -838,6 +897,7 @@ inline GLenum ImageToTexTarget(const GLenum imageTarget) {
 // -
 
 namespace dom {
+class Element;
 class ImageBitmap;
 class ImageData;
 }  // namespace dom
@@ -911,11 +971,8 @@ Maybe<webgl::ErrorInfo> CheckFramebufferAttach(const GLenum bindImageTarget,
                                                const uint32_t zLayerCount,
                                                const webgl::Limits& limits);
 
-Maybe<webgl::ErrorInfo> CheckVertexAttribPointer(bool webgl2, bool isFuncInt,
-                                                 GLint size, GLenum type,
-                                                 bool normalized,
-                                                 uint32_t stride,
-                                                 uint64_t byteOffset);
+Result<webgl::VertAttribPointerCalculated, webgl::ErrorInfo>
+CheckVertexAttribPointer(bool isWebgl2, const webgl::VertAttribPointerDesc&);
 
 uint8_t ElemTypeComponents(GLenum elemType);
 

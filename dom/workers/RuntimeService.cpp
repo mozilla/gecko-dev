@@ -542,13 +542,6 @@ bool InterruptCallback(JSContext* aCx) {
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   MOZ_ASSERT(worker);
 
-  // As with the main thread, the interrupt callback is triggered
-  // non-deterministically when recording/replaying, so return early to avoid
-  // performing any recorded events.
-  if (recordreplay::IsRecordingOrReplaying()) {
-    return true;
-  }
-
   // Now is a good time to turn on profiling if it's pending.
   PROFILER_JS_INTERRUPT_CALLBACK();
 
@@ -578,21 +571,15 @@ class LogViolationDetailsRunnable final : public WorkerMainThreadRunnable {
   virtual bool MainThreadRun() override;
 
  private:
-  ~LogViolationDetailsRunnable() {}
+  ~LogViolationDetailsRunnable() = default;
 };
 
-bool ContentSecurityPolicyAllows(JSContext* aCx, JS::HandleValue aValue) {
+bool ContentSecurityPolicyAllows(JSContext* aCx, JS::HandleString aCode) {
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   worker->AssertIsOnWorkerThread();
 
-  JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, aValue));
-  if (NS_WARN_IF(!jsString)) {
-    JS_ClearPendingException(aCx);
-    return false;
-  }
-
   nsAutoJSString scriptSample;
-  if (NS_WARN_IF(!scriptSample.init(aCx, jsString))) {
+  if (NS_WARN_IF(!scriptSample.init(aCx, aCode))) {
     JS_ClearPendingException(aCx);
     return false;
   }
@@ -997,7 +984,7 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
     }
 
     JS::JobQueueMayNotBeEmpty(cx);
-    microTaskQueue->push(runnable.forget());
+    microTaskQueue->push(std::move(runnable));
   }
 
   bool IsSystemCaller() const override {
@@ -1037,7 +1024,7 @@ class WorkerThreadPrimaryRunnable final : public Runnable {
     NS_INLINE_DECL_REFCOUNTING_INHERITED(FinishedRunnable, Runnable)
 
    private:
-    ~FinishedRunnable() {}
+    ~FinishedRunnable() = default;
 
     NS_DECL_NSIRUNNABLE
   };
@@ -1056,7 +1043,7 @@ class WorkerThreadPrimaryRunnable final : public Runnable {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(WorkerThreadPrimaryRunnable, Runnable)
 
  private:
-  ~WorkerThreadPrimaryRunnable() {}
+  ~WorkerThreadPrimaryRunnable() = default;
 
   NS_DECL_NSIRUNNABLE
 };
@@ -2011,9 +1998,9 @@ void RuntimeService::PropagateFirstPartyStorageAccessGranted(
     nsPIDOMWindowInner* aWindow) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aWindow);
-  MOZ_ASSERT_IF(
-      aWindow->GetExtantDoc(),
-      aWindow->GetExtantDoc()->CookieSettings()->GetRejectThirdPartyTrackers());
+  MOZ_ASSERT_IF(aWindow->GetExtantDoc(), aWindow->GetExtantDoc()
+                                             ->CookieJarSettings()
+                                             ->GetRejectThirdPartyTrackers());
 
   nsTArray<WorkerPrivate*> workers;
   GetWorkersForWindow(aWindow, workers);
@@ -2428,9 +2415,9 @@ void ResumeWorkersForWindow(nsPIDOMWindowInner* aWindow) {
 void PropagateFirstPartyStorageAccessGrantedToWorkers(
     nsPIDOMWindowInner* aWindow) {
   AssertIsOnMainThread();
-  MOZ_ASSERT_IF(
-      aWindow->GetExtantDoc(),
-      aWindow->GetExtantDoc()->CookieSettings()->GetRejectThirdPartyTrackers());
+  MOZ_ASSERT_IF(aWindow->GetExtantDoc(), aWindow->GetExtantDoc()
+                                             ->CookieJarSettings()
+                                             ->GetRejectThirdPartyTrackers());
 
   RuntimeService* runtime = RuntimeService::GetService();
   if (runtime) {

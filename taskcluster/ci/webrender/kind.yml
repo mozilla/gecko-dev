@@ -131,9 +131,10 @@ jobs:
 
     macos-release:
         description: Runs release-mode WebRender CI tests on a macOS worker
-        worker-type: t-osx-1010
+        worker-type: t-osx-1014
         worker:
-            max-run-time: 3600
+            # repo cloning has highly variable run time
+            max-run-time: 7200
             env:
                 MOZ_FETCHES_DIR: 'checkouts/gecko/gfx/wr'
         dependencies:
@@ -191,7 +192,7 @@ jobs:
 
     macos-debug:
         description: Runs debug-mode WebRender CI tests on a macOS worker
-        worker-type: t-osx-1010
+        worker-type: t-osx-1014
         worker:
             max-run-time: 3600
             env:

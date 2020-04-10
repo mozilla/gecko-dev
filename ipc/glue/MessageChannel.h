@@ -46,7 +46,7 @@ class RefCountedMonitor : public Monitor {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RefCountedMonitor)
 
  private:
-  ~RefCountedMonitor() {}
+  ~RefCountedMonitor() = default;
 };
 
 enum class MessageDirection {
@@ -113,7 +113,7 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
     UntypedCallbackHolder(ActorIdType aActorId, RejectCallback&& aReject)
         : mActorId(aActorId), mReject(std::move(aReject)) {}
 
-    virtual ~UntypedCallbackHolder() {}
+    virtual ~UntypedCallbackHolder() = default;
 
     void Reject(ResponseRejectReason&& aReason) { mReject(std::move(aReason)); }
 
@@ -321,10 +321,6 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
    * Does this MessageChannel cross process boundaries?
    */
   bool IsCrossProcess() const { return mIsCrossProcess; }
-
-  // Return whether a message definitely originated from a middleman process,
-  // due to its sequence number.
-  static bool MessageOriginatesFromMiddleman(const Message& aMessage);
 
 #ifdef OS_WIN
   struct MOZ_STACK_CLASS SyncStackFrame {
@@ -598,7 +594,7 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
    private:
     MessageTask() = delete;
     MessageTask(const MessageTask&) = delete;
-    ~MessageTask() {}
+    ~MessageTask() = default;
 
     MessageChannel* mChannel;
     Message mMessage;

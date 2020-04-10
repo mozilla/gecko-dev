@@ -1201,10 +1201,9 @@ bool jit::EliminateDeadResumePointOperands(MIRGenerator* mir, MIRGraph& graph) {
       }
 
       // Early intermediate values captured by resume points, such as
-      // TypedObject, ArrayState and its allocation, may be legitimately
-      // dead in Ion code, but are still needed if we bail out. They can
-      // recover on bailout.
-      if (ins->isNewDerivedTypedObject() || ins->isRecoveredOnBailout()) {
+      // ArrayState and its allocation, may be legitimately dead in Ion code,
+      // but are still needed if we bail out. They can recover on bailout.
+      if (ins->isRecoveredOnBailout()) {
         MOZ_ASSERT(ins->canRecoverOnBailout());
         continue;
       }
@@ -2952,6 +2951,7 @@ static bool IsResumableMIRType(MIRType type) {
     case MIRType::Doublex2:  // NYI, see also RSimdBox::recover
     case MIRType::Int64:
     case MIRType::RefOrNull:
+    case MIRType::StackResults:
       return false;
   }
   MOZ_CRASH("Unknown MIRType.");
@@ -3658,7 +3658,6 @@ bool jit::EliminateRedundantChecks(MIRGraph& graph) {
           break;
         case MDefinition::Opcode::LoadFixedSlot:
         case MDefinition::Opcode::LoadSlot:
-        case MDefinition::Opcode::LoadUnboxedObjectOrNull:
           if (!TryOptimizeLoadObjectOrNull(def, &eliminateList)) {
             return false;
           }
@@ -3753,7 +3752,6 @@ bool jit::AddKeepAliveInstructions(MIRGraph& graph) {
           continue;
         case MDefinition::Opcode::Elements:
         case MDefinition::Opcode::TypedArrayElements:
-        case MDefinition::Opcode::TypedObjectElements:
           MOZ_ASSERT(ins->numOperands() == 1);
           ownerObject = ins->getOperand(0);
           break;
@@ -4245,7 +4243,7 @@ bool jit::AnalyzeNewScriptDefiniteProperties(
     return false;
   }
 
-  if (!jit::IsIonEnabled(cx) || !jit::IsBaselineJitEnabled() ||
+  if (!jit::IsIonEnabled(cx) || !jit::IsBaselineJitEnabled(cx) ||
       !CanBaselineInterpretScript(script)) {
     return true;
   }
@@ -4304,8 +4302,9 @@ bool jit::AnalyzeNewScriptDefiniteProperties(
   BaselineInspector inspector(script);
   const JitCompileOptions options(cx);
 
-  IonBuilder builder(cx, CompileRealm::get(cx->realm()), options, &temp, &graph,
-                     constraints, &inspector, &info, optimizationInfo,
+  MIRGenerator mirGen(CompileRealm::get(cx->realm()), options, &temp, &graph,
+                      &info, optimizationInfo);
+  IonBuilder builder(cx, mirGen, &info, constraints, &inspector,
                      /* baselineFrame = */ nullptr);
 
   AbortReasonOr<Ok> buildResult = builder.build();
@@ -4336,7 +4335,7 @@ bool jit::AnalyzeNewScriptDefiniteProperties(
     return false;
   }
 
-  if (!EliminatePhis(&builder, graph, AggressiveObservability)) {
+  if (!EliminatePhis(&mirGen, graph, AggressiveObservability)) {
     ReportOutOfMemory(cx);
     return false;
   }
@@ -4458,7 +4457,7 @@ static bool ArgumentsUseCanBeLazy(JSContext* cx, JSScript* script,
     }
   }
 
-  // arguments[i] can read fp->canonicalActualArg(i) directly.
+  // arguments[i] can read fp->unaliasedActual(i) directly.
   if (ins->isCallGetElement() && index == 0) {
     *argumentsContentsObserved = true;
     return true;
@@ -4488,6 +4487,7 @@ bool jit::AnalyzeArgumentsUsage(JSContext* cx, JSScript* scriptArg) {
   AutoEnterAnalysis enter(cx);
 
   MOZ_ASSERT(!script->analyzedArgsUsage());
+  MOZ_ASSERT(script->argumentsHasVarBinding());
 
   // Treat the script as needing an arguments object until we determine it
   // does not need one. This both allows us to easily see where the arguments
@@ -4506,6 +4506,11 @@ bool jit::AnalyzeArgumentsUsage(JSContext* cx, JSScript* scriptArg) {
   }
 
   if (!jit::IsIonEnabled(cx)) {
+    return true;
+  }
+
+  if (JitOptions.warpBuilder) {
+    // TODO: support using WarpBuilder for arguments analysis.
     return true;
   }
 
@@ -4563,8 +4568,9 @@ bool jit::AnalyzeArgumentsUsage(JSContext* cx, JSScript* scriptArg) {
   BaselineInspector inspector(script);
   const JitCompileOptions options(cx);
 
-  IonBuilder builder(nullptr, CompileRealm::get(cx->realm()), options, &temp,
-                     &graph, constraints, &inspector, &info, optimizationInfo,
+  MIRGenerator mirGen(CompileRealm::get(cx->realm()), options, &temp, &graph,
+                      &info, optimizationInfo);
+  IonBuilder builder(nullptr, mirGen, &info, constraints, &inspector,
                      /* baselineFrame = */ nullptr);
 
   AbortReasonOr<Ok> buildResult = builder.build();
@@ -4593,7 +4599,7 @@ bool jit::AnalyzeArgumentsUsage(JSContext* cx, JSScript* scriptArg) {
     return false;
   }
 
-  if (!EliminatePhis(&builder, graph, AggressiveObservability)) {
+  if (!EliminatePhis(&mirGen, graph, AggressiveObservability)) {
     ReportOutOfMemory(cx);
     return false;
   }
@@ -4631,6 +4637,16 @@ bool jit::AnalyzeArgumentsUsage(JSContext* cx, JSScript* scriptArg) {
         return true;
       }
     }
+  }
+
+  // If we assign to a positional formal parameter and the arguments object is
+  // unmapped (strict mode or function with default/rest/destructing args),
+  // parameters do not alias arguments[i], and to make the arguments object
+  // reflect initial parameter values prior to any mutation we create it eagerly
+  // whenever parameters are (or might, in the case of calls to eval) assigned.
+  if (!script->hasMappedArgsObj() && script->jitScript()->modifiesArguments() &&
+      argumentsContentsObserved) {
+    return true;
   }
 
   script->setNeedsArgsObj(false);
@@ -4852,41 +4868,6 @@ void MRootList::trace(JSTracer* trc) {
   TraceVector<type*>(trc, *roots_[JS::RootKind::name], "mir-root-" #name);
   JS_FOR_EACH_TRACEKIND(TRACE_ROOTS)
 #undef TRACE_ROOTS
-}
-
-MOZ_MUST_USE bool jit::CreateMIRRootList(IonBuilder& builder) {
-  MOZ_ASSERT(!builder.info().isAnalysis());
-
-  TempAllocator& alloc = builder.alloc();
-  MIRGraph& graph = builder.graph();
-
-  MRootList* roots = new (alloc.fallible()) MRootList(alloc);
-  if (!roots) {
-    return false;
-  }
-
-  JSScript* prevScript = nullptr;
-
-  for (ReversePostorderIterator block(graph.rpoBegin());
-       block != graph.rpoEnd(); block++) {
-    JSScript* script = block->info().script();
-    if (script != prevScript) {
-      if (!roots->append(script)) {
-        return false;
-      }
-      prevScript = script;
-    }
-
-    for (MInstructionIterator iter(block->begin()), end(block->end());
-         iter != end; iter++) {
-      if (!iter->appendRoots(*roots)) {
-        return false;
-      }
-    }
-  }
-
-  builder.setRootList(*roots);
-  return true;
 }
 
 #ifdef JS_JITSPEW

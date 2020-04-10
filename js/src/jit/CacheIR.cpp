@@ -423,11 +423,11 @@ static NativeGetPropCacheability IsCacheableGetPropCall(JSObject* obj,
     return CanAttachNativeGetter;
   }
 
-  if (getter.hasScript() || getter.isNativeWithJitEntry()) {
+  if (getter.hasBytecode() || getter.isNativeWithJitEntry()) {
     return CanAttachScriptedGetter;
   }
 
-  if (getter.isInterpretedLazy()) {
+  if (getter.isInterpreted()) {
     return CanAttachTemporarilyUnoptimizable;
   }
 
@@ -1793,7 +1793,7 @@ AttachDecision GetPropIRGenerator::tryAttachFunction(HandleObject obj,
     }
 
     // Lazy functions don't store the length.
-    if (fun->isInterpretedLazy()) {
+    if (!fun->hasBytecode()) {
       return AttachDecision::NoAction;
     }
 
@@ -1846,6 +1846,8 @@ AttachDecision GetPropIRGenerator::tryAttachModuleNamespace(HandleObject obj,
 
 AttachDecision GetPropIRGenerator::tryAttachPrimitive(ValOperandId valId,
                                                       HandleId id) {
+  MOZ_ASSERT(!isSuper(), "SuperBase is guaranteed to be an object");
+
   JSProtoKey protoKey;
   switch (val_.type()) {
     case ValueType::String:
@@ -1916,11 +1918,6 @@ AttachDecision GetPropIRGenerator::tryAttachPrimitive(ValOperandId valId,
     case CanAttachScriptedGetter:
     case CanAttachNativeGetter: {
       MOZ_ASSERT(!idempotent());
-
-      // The primitive stubs don't currently support |super| access.
-      if (isSuper()) {
-        return AttachDecision::NoAction;
-      }
 
       if (val_.isNumber()) {
         writer.guardIsNumber(valId);
@@ -2595,7 +2592,7 @@ static bool NeedEnvironmentShapeGuard(JSObject* envObj) {
   // conditions. In that case, we pessimistically create the guard.
   CallObject* callObj = &envObj->as<CallObject>();
   JSFunction* fun = &callObj->callee();
-  if (!fun->hasScript() || fun->baseScript()->funHasExtensibleScope()) {
+  if (!fun->hasBytecode() || fun->baseScript()->funHasExtensibleScope()) {
     return true;
   }
 
@@ -3586,7 +3583,7 @@ static bool IsCacheableSetPropCallScripted(
     return true;
   }
 
-  if (!setter.hasScript()) {
+  if (!setter.hasBytecode()) {
     if (isTemporarilyUnoptimizable) {
       *isTemporarilyUnoptimizable = true;
     }
@@ -4816,7 +4813,7 @@ AttachDecision CallIRGenerator::tryAttachArrayPush() {
   // This is a soft assert, documenting the fact that we pass 'true'
   // for needsTypeBarrier when constructing typeCheckInfo_ for CallIRGenerator.
   // Can be removed safely if the assumption becomes false.
-  MOZ_ASSERT(typeCheckInfo_.needsTypeBarrier());
+  MOZ_ASSERT_IF(IsTypeInferenceEnabled(), typeCheckInfo_.needsTypeBarrier());
 
   // Guard that the group and shape matches.
   if (typeCheckInfo_.needsTypeBarrier()) {
@@ -5136,8 +5133,8 @@ bool CallIRGenerator::getTemplateObjectForScripted(HandleFunction calleeFunc,
   if (protov.isObject()) {
     AutoRealm ar(cx_, calleeFunc);
     TaggedProto proto(&protov.toObject());
-    ObjectGroup* group =
-        ObjectGroup::defaultNewGroup(cx_, nullptr, proto, newTarget);
+    ObjectGroup* group = ObjectGroup::defaultNewGroup(cx_, &PlainObject::class_,
+                                                      proto, newTarget);
     if (!group) {
       return false;
     }
@@ -5432,33 +5429,6 @@ AttachDecision CallIRGenerator::tryAttachCallNative(HandleFunction calleeFunc) {
   return AttachDecision::Attach;
 }
 
-bool CallIRGenerator::getTemplateObjectForClassHook(
-    HandleObject calleeObj, MutableHandleObject result) {
-  MOZ_ASSERT(IsConstructPC(pc_));
-  JSNative hook = calleeObj->constructHook();
-
-  // Don't allocate a template object for super() calls as Ion doesn't support
-  // super() yet.
-  bool isSuper = op_ == JSOp::SuperCall || op_ == JSOp::SpreadSuperCall;
-  if (isSuper) {
-    return true;
-  }
-
-  if (calleeObj->nonCCWRealm() != cx_->realm()) {
-    return true;
-  }
-
-  if (hook == TypedObject::construct) {
-    Rooted<TypeDescr*> descr(cx_, calleeObj.as<TypeDescr>());
-    result.set(TypedObject::createZeroed(cx_, descr, gc::TenuredHeap));
-    if (!result) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 AttachDecision CallIRGenerator::tryAttachCallHook(HandleObject calleeObj) {
   if (op_ == JSOp::FunApply) {
     return AttachDecision::NoAction;
@@ -5480,13 +5450,6 @@ AttachDecision CallIRGenerator::tryAttachCallHook(HandleObject calleeObj) {
     return AttachDecision::NoAction;
   }
 
-  RootedObject templateObj(cx_);
-  if (isConstructing &&
-      !getTemplateObjectForClassHook(calleeObj, &templateObj)) {
-    cx_->clearPendingException();
-    return AttachDecision::NoAction;
-  }
-
   // Load argc.
   Int32OperandId argcId(writer.setInputOperandId(0));
 
@@ -5496,15 +5459,10 @@ AttachDecision CallIRGenerator::tryAttachCallHook(HandleObject calleeObj) {
   ObjOperandId calleeObjId = writer.guardToObject(calleeValId);
 
   // Ensure the callee's class matches the one in this stub.
-  FieldOffset classOffset =
-      writer.guardAnyClass(calleeObjId, calleeObj->getClass());
+  writer.guardAnyClass(calleeObjId, calleeObj->getClass());
 
   writer.callClassHook(calleeObjId, argcId, hook, flags);
   writer.typeMonitorResult();
-
-  if (templateObj) {
-    writer.metaClassTemplateObject(templateObj, classOffset);
-  }
 
   cacheIRStubKind_ = BaselineCacheIRStubKind::Monitored;
   trackAttached("Call native func");
@@ -5554,10 +5512,10 @@ AttachDecision CallIRGenerator::tryAttachStub() {
   // Check for native-function optimizations.
   if (calleeFunc->isNative()) {
     if (op_ == JSOp::FunCall) {
-        return tryAttachFunCall(calleeFunc);
+      return tryAttachFunCall(calleeFunc);
     }
     if (op_ == JSOp::FunApply) {
-        return tryAttachFunApply(calleeFunc);
+      return tryAttachFunApply(calleeFunc);
     }
     return tryAttachCallNative(calleeFunc);
   }

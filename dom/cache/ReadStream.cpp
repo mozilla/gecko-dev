@@ -136,7 +136,7 @@ class ReadStream::Inner::NoteClosedRunnable final : public CancelableRunnable {
   }
 
  private:
-  ~NoteClosedRunnable() {}
+  ~NoteClosedRunnable() = default;
 
   RefPtr<ReadStream::Inner> mStream;
 };
@@ -168,7 +168,7 @@ class ReadStream::Inner::ForgetRunnable final : public CancelableRunnable {
   }
 
  private:
-  ~ForgetRunnable() {}
+  ~ForgetRunnable() = default;
 
   RefPtr<ReadStream::Inner> mStream;
 };
@@ -209,7 +209,7 @@ void ReadStream::Inner::Serialize(
 
   if (mState != Open) {
     aRv.ThrowTypeError(
-        u"Response body is a cache file stream that has already been closed.");
+        "Response body is a cache file stream that has already been closed.");
     return;
   }
 

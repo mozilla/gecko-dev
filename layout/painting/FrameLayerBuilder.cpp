@@ -51,7 +51,6 @@
 #include "mozilla/layers/TextureClient.h"
 #include "mozilla/layers/TextureWrapperImage.h"
 #include "mozilla/layers/WebRenderUserData.h"
-#include "nsAnimationManager.h"
 #include "nsDisplayList.h"
 #include "nsDocShell.h"
 #include "nsIScrollableFrame.h"
@@ -420,9 +419,9 @@ void DisplayItemData::NotifyRemoved() {
     }
   }
 
-  // FIXME: Bug 1530857: Add background_color.
   if (type != DisplayItemType::TYPE_TRANSFORM &&
-      type != DisplayItemType::TYPE_OPACITY) {
+      type != DisplayItemType::TYPE_OPACITY &&
+      type != DisplayItemType::TYPE_BACKGROUND_COLOR) {
     return;
   }
 
@@ -3438,7 +3437,8 @@ void ContainerState::FinishPaintedLayerData(
 
     NS_ASSERTION(FindIndexOfLayerIn(mNewChildLayers, paintedLayer) < 0,
                  "Layer already in list???");
-    mNewChildLayers[data->mNewChildLayersIndex].mLayer = paintedLayer.forget();
+    mNewChildLayers[data->mNewChildLayersIndex].mLayer =
+        std::move(paintedLayer);
   }
 
   PaintedDisplayItemLayerUserData* userData =
@@ -5127,7 +5127,7 @@ void ContainerState::ProcessDisplayItems(nsDisplayList* aList) {
             NS_ASSERTION(FindIndexOfLayerIn(mNewChildLayers, layer) < 0,
                          "Layer already in list???");
             mNewChildLayers[paintedLayerData->mNewChildLayersIndex].mLayer =
-                layer.forget();
+                std::move(layer);
           }
         }
       }

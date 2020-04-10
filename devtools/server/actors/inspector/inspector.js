@@ -135,7 +135,7 @@ exports.InspectorActor = protocol.ActorClassWithSpec(inspectorSpec, {
   },
 
   get window() {
-    return isReplaying ? ReplayInspector.window : this.targetActor.window;
+    return this.targetActor.window;
   },
 
   getWalker: function(options = {}) {

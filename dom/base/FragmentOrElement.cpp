@@ -276,22 +276,18 @@ nsresult nsIContent::LookupNamespaceURIInternal(
   }
   // Trace up the content parent chain looking for the namespace
   // declaration that declares aNamespacePrefix.
-  const nsIContent* content = this;
-  do {
-    if (content->IsElement() &&
-        content->AsElement()->GetAttr(kNameSpaceID_XMLNS, name, aNamespaceURI))
+  for (Element* element = GetAsElementOrParentElement(); element;
+       element = element->GetParentElement()) {
+    if (element->GetAttr(kNameSpaceID_XMLNS, name, aNamespaceURI)) {
       return NS_OK;
-  } while ((content = content->GetParent()));
+    }
+  }
   return NS_ERROR_FAILURE;
 }
 
 nsAtom* nsIContent::GetLang() const {
-  for (const auto* content = this; content; content = content->GetParent()) {
-    if (!content->IsElement()) {
-      continue;
-    }
-
-    auto* element = content->AsElement();
+  for (const Element* element = GetAsElementOrParentElement(); element;
+       element = element->GetParentElement()) {
     if (!element->GetAttrCount()) {
       continue;
     }
@@ -534,7 +530,7 @@ void nsIContent::nsExtendedContentSlots::TraverseExtendedSlots(
   aCb.NoteXPCOMChild(NS_ISUPPORTS_CAST(nsIContent*, mAssignedSlot.get()));
 }
 
-nsIContent::nsExtendedContentSlots::nsExtendedContentSlots() {}
+nsIContent::nsExtendedContentSlots::nsExtendedContentSlots() = default;
 
 nsIContent::nsExtendedContentSlots::~nsExtendedContentSlots() = default;
 
@@ -625,7 +621,7 @@ size_t FragmentOrElement::nsDOMSlots::SizeOfIncludingThis(
 
 FragmentOrElement::nsExtendedDOMSlots::nsExtendedDOMSlots() = default;
 
-FragmentOrElement::nsExtendedDOMSlots::~nsExtendedDOMSlots() {}
+FragmentOrElement::nsExtendedDOMSlots::~nsExtendedDOMSlots() = default;
 
 void FragmentOrElement::nsExtendedDOMSlots::UnlinkExtendedSlots() {
   nsIContent::nsExtendedContentSlots::UnlinkExtendedSlots();

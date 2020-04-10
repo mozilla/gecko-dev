@@ -514,7 +514,7 @@ class MOZ_STACK_CLASS PerHandlerParser : public ParserBase {
   //       are less likely to select this overload.
   PerHandlerParser(JSContext* cx, const JS::ReadOnlyCompileOptions& options,
                    bool foldConstants, CompilationInfo& compilationInfo,
-                   LazyScript* lazyOuterFunction,
+                   BaseScript* lazyOuterFunction,
                    ScriptSourceObject* sourceObject,
                    void* internalSyntaxParser);
 
@@ -523,7 +523,7 @@ class MOZ_STACK_CLASS PerHandlerParser : public ParserBase {
   PerHandlerParser(JSContext* cx, const JS::ReadOnlyCompileOptions& options,
                    bool foldConstants, CompilationInfo& compilationInfo,
                    GeneralParser<SyntaxParseHandler, Unit>* syntaxParser,
-                   LazyScript* lazyOuterFunction,
+                   BaseScript* lazyOuterFunction,
                    ScriptSourceObject* sourceObject)
       : PerHandlerParser(
             cx, options, foldConstants, compilationInfo, lazyOuterFunction,
@@ -987,7 +987,7 @@ class MOZ_STACK_CLASS GeneralParser : public PerHandlerParser<ParseHandler> {
   GeneralParser(JSContext* cx, const JS::ReadOnlyCompileOptions& options,
                 const Unit* units, size_t length, bool foldConstants,
                 CompilationInfo& compilationInfo, SyntaxParser* syntaxParser,
-                LazyScript* lazyOuterFunction,
+                BaseScript* lazyOuterFunction,
                 ScriptSourceObject* sourceObject);
 
   inline void setAwaitHandling(AwaitHandling awaitHandling);
@@ -1312,21 +1312,34 @@ class MOZ_STACK_CLASS GeneralParser : public PerHandlerParser<ParseHandler> {
   ClassNodeType classDefinition(YieldHandling yieldHandling,
                                 ClassContext classContext,
                                 DefaultHandling defaultHandling);
-  MOZ_MUST_USE bool classMember(
-      YieldHandling yieldHandling, DefaultHandling defaultHandling,
-      const ParseContext::ClassStatement& classStmt,
-      HandlePropertyName className, uint32_t classStartOffset,
-      HasHeritage hasHeritage, size_t& numFieldsWithInitializers,
-      size_t& numFieldKeys, ListNodeType& classMembers, bool* done);
+  struct ClassFields {
+    // The number of instance class fields.
+    size_t instanceFields = 0;
+
+    // The number of instance class fields with computed property names.
+    size_t instanceFieldKeys = 0;
+
+    // The number of static class fields.
+    size_t staticFields = 0;
+
+    // The number of static class fields with computed property names.
+    size_t staticFieldKeys = 0;
+  };
+  MOZ_MUST_USE bool classMember(YieldHandling yieldHandling,
+                                const ParseContext::ClassStatement& classStmt,
+                                HandlePropertyName className,
+                                uint32_t classStartOffset,
+                                HasHeritage hasHeritage,
+                                ClassFields& classFields,
+                                ListNodeType& classMembers, bool* done);
   MOZ_MUST_USE bool finishClassConstructor(
       const ParseContext::ClassStatement& classStmt,
       HandlePropertyName className, HasHeritage hasHeritage,
       uint32_t classStartOffset, uint32_t classEndOffset,
-      size_t numFieldsWithInitializers, ListNodeType& classMembers);
+      const ClassFields& classFields, ListNodeType& classMembers);
 
-  FunctionNodeType fieldInitializerOpt(YieldHandling yieldHandling,
-                                       HasHeritage hasHeritage, Node name,
-                                       HandleAtom atom, size_t& numFieldKeys);
+  FunctionNodeType fieldInitializerOpt(Node name, HandleAtom atom,
+                                       ClassFields& classFields, bool isStatic);
   FunctionNodeType synthesizeConstructor(HandleAtom className,
                                          uint32_t classNameOffset,
                                          HasHeritage hasHeritage);

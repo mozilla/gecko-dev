@@ -411,7 +411,7 @@ class OpusState : public OggCodecState {
   UniquePtr<MetadataTags> GetTags() override;
 
  private:
-  nsAutoPtr<OpusParser> mParser;
+  UniquePtr<OpusParser> mParser;
   OpusMSDecoder* mDecoder;
 
   // Granule position (end sample) of the last decoded Opus packet. This is
@@ -449,15 +449,15 @@ enum EMsgHeaderType {
   eTrackDependencies
 };
 
-typedef struct {
+struct FieldPatternType {
   const char* mPatternToRecognize;
   EMsgHeaderType mMsgHeaderType;
-} FieldPatternType;
+};
 
 // Stores the message information for different logical bitstream.
-typedef struct {
+struct MessageField {
   nsClassHashtable<nsUint32HashKey, nsCString> mValuesStore;
-} MessageField;
+};
 
 class SkeletonState : public OggCodecState {
  public:
@@ -546,7 +546,7 @@ class SkeletonState : public OggCodecState {
       MOZ_COUNT_CTOR(nsKeyFrameIndex);
     }
 
-    ~nsKeyFrameIndex() { MOZ_COUNT_DTOR(nsKeyFrameIndex); }
+    MOZ_COUNTED_DTOR(nsKeyFrameIndex)
 
     void Add(int64_t aOffset, int64_t aTimeMs) {
       mKeyPoints.AppendElement(nsKeyPoint(aOffset, aTimeMs));

@@ -63,10 +63,12 @@ class BackgroundParentImpl : public PBackgroundParent,
   virtual mozilla::ipc::IPCResult RecvFlushPendingFileDeletions() override;
 
   virtual PBackgroundSDBConnectionParent* AllocPBackgroundSDBConnectionParent(
+      const PersistenceType& aPersistenceType,
       const PrincipalInfo& aPrincipalInfo) override;
 
   virtual mozilla::ipc::IPCResult RecvPBackgroundSDBConnectionConstructor(
       PBackgroundSDBConnectionParent* aActor,
+      const PersistenceType& aPersistenceType,
       const PrincipalInfo& aPrincipalInfo) override;
 
   virtual bool DeallocPBackgroundSDBConnectionParent(
@@ -216,6 +218,27 @@ class BackgroundParentImpl : public PBackgroundParent,
   virtual PVsyncParent* AllocPVsyncParent() override;
 
   virtual bool DeallocPVsyncParent(PVsyncParent* aActor) override;
+
+  already_AddRefed<mozilla::psm::PVerifySSLServerCertParent>
+  AllocPVerifySSLServerCertParent(
+      const ByteArray& aServerCert, const nsTArray<ByteArray>& aPeerCertChain,
+      const nsCString& aHostName, const int32_t& aPort,
+      const OriginAttributes& aOriginAttributes,
+      const Maybe<ByteArray>& aStapledOCSPResponse,
+      const Maybe<ByteArray>& aSctsFromTLSExtension,
+      const Maybe<DelegatedCredentialInfoArg>& aDcInfo,
+      const uint32_t& aProviderFlags,
+      const uint32_t& aCertVerifierFlags) override;
+
+  virtual mozilla::ipc::IPCResult RecvPVerifySSLServerCertConstructor(
+      PVerifySSLServerCertParent* aActor, const ByteArray& aServerCert,
+      nsTArray<ByteArray>&& aPeerCertChain, const nsCString& aHostName,
+      const int32_t& aPort, const OriginAttributes& aOriginAttributes,
+      const Maybe<ByteArray>& aStapledOCSPResponse,
+      const Maybe<ByteArray>& aSctsFromTLSExtension,
+      const Maybe<DelegatedCredentialInfoArg>& aDcInfo,
+      const uint32_t& aProviderFlags,
+      const uint32_t& aCertVerifierFlags) override;
 
   virtual PBroadcastChannelParent* AllocPBroadcastChannelParent(
       const PrincipalInfo& aPrincipalInfo, const nsCString& aOrigin,

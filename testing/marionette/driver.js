@@ -2808,6 +2808,10 @@ GeckoDriver.prototype.deleteCookie = async function(cmd) {
  * @param {boolean=} focus
  *     Optional flag if the new top-level browsing context should be opened
  *     in foreground (focused) or background (not focused). Defaults to false.
+ * @param {boolean=} private
+ *     Optional flag, which gets only evaluated for type `window`. True if the
+ *     new top-level browsing context should be a private window.
+ *     Defaults to false.
  *
  * @return {Object.<string, string>}
  *     Handle and type of the new browsing context.
@@ -2821,6 +2825,14 @@ GeckoDriver.prototype.newWindow = async function(cmd) {
     focus = assert.boolean(
       cmd.parameters.focus,
       pprint`Expected "focus" to be a boolean, got ${cmd.parameters.focus}`
+    );
+  }
+
+  let isPrivate = false;
+  if (typeof cmd.parameters.private != "undefined") {
+    isPrivate = assert.boolean(
+      cmd.parameters.private,
+      pprint`Expected "private" to be a boolean, got ${cmd.parameters.private}`
     );
   }
 
@@ -2841,7 +2853,7 @@ GeckoDriver.prototype.newWindow = async function(cmd) {
 
   switch (type) {
     case "window":
-      let win = await this.curBrowser.openBrowserWindow(focus);
+      let win = await this.curBrowser.openBrowserWindow(focus, isPrivate);
       contentBrowser = browser.getTabBrowser(win).selectedBrowser;
       break;
 
@@ -3826,6 +3838,12 @@ GeckoDriver.prototype.print = async function(cmd) {
   printSettings.footerStrCenter = "";
   printSettings.footerStrLeft = "";
   printSettings.footerStrRight = "";
+
+  // Override any os-specific unwriteable margins
+  printSettings.unwriteableMarginTop = 0;
+  printSettings.unwriteableMarginLeft = 0;
+  printSettings.unwriteableMarginBottom = 0;
+  printSettings.unwriteableMarginRight = 0;
 
   if (landscape) {
     printSettings.orientation = Ci.nsIPrintSettings.kLandscapeOrientation;

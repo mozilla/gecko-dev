@@ -21,12 +21,11 @@
 #include "mozilla/Sprintf.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/UniquePtr.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/ipc/ProcessChild.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "nsAppRunner.h"
-#include "nsAutoPtr.h"
 #include "nsContentUtils.h"
 #include "nsDataHashtable.h"
 #include "nsDebug.h"
@@ -451,7 +450,7 @@ class AutoEnterTransaction {
 };
 
 class PendingResponseReporter final : public nsIMemoryReporter {
-  ~PendingResponseReporter() {}
+  ~PendingResponseReporter() = default;
 
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -563,18 +562,6 @@ static void TryRegisterStrongMemoryReporter() {
 
 Atomic<size_t> MessageChannel::gUnresolvedResponses;
 
-// Channels in record/replay middleman processes can forward messages that
-// originated in a child recording process. Middleman processes are given
-// a large negative sequence number so that sequence numbers on their messages
-// can be distinguished from those on recording process messages.
-static const int32_t MiddlemanStartSeqno = -(1 << 30);
-
-/* static */
-bool MessageChannel::MessageOriginatesFromMiddleman(const Message& aMessage) {
-  MOZ_ASSERT(recordreplay::IsMiddleman());
-  return aMessage.seqno() < MiddlemanStartSeqno;
-}
-
 MessageChannel::MessageChannel(const char* aName, IToplevelProtocol* aListener)
     : mName(aName),
       mListener(aListener),
@@ -624,10 +611,6 @@ MessageChannel::MessageChannel(const char* aName, IToplevelProtocol* aListener)
 
   TryRegisterStrongMemoryReporter<PendingResponseReporter>();
   TryRegisterStrongMemoryReporter<ChannelCountReporter>();
-
-  if (recordreplay::IsMiddleman()) {
-    mNextSeqno = MiddlemanStartSeqno;
-  }
 }
 
 MessageChannel::~MessageChannel() {
@@ -1118,7 +1101,7 @@ bool MessageChannel::SendBuildIDsMatchMessage(const char* aParentBuildID) {
     return false;
   }
 
-  nsAutoPtr<BuildIDsMatchMessage> msg(new BuildIDsMatchMessage());
+  auto msg = MakeUnique<BuildIDsMatchMessage>();
 
   MOZ_RELEASE_ASSERT(!msg->is_sync());
   MOZ_RELEASE_ASSERT(msg->nested_level() != IPC::Message::NESTED_INSIDE_SYNC);
@@ -1129,10 +1112,10 @@ bool MessageChannel::SendBuildIDsMatchMessage(const char* aParentBuildID) {
 
   MonitorAutoLock lock(*mMonitor);
   if (!Connected()) {
-    ReportConnectionError("MessageChannel", msg);
+    ReportConnectionError("MessageChannel", msg.get());
     return false;
   }
-  mLink->SendMessage(msg.forget());
+  mLink->SendMessage(msg.release());
   return true;
 }
 
@@ -2070,15 +2053,6 @@ void MessageChannel::MessageTask::Clear() {
 
 NS_IMETHODIMP
 MessageChannel::MessageTask::GetPriority(uint32_t* aPriority) {
-  if (recordreplay::IsRecordingOrReplaying()) {
-    // Ignore message priorities in recording/replaying processes. Incoming
-    // messages were sorted in the middleman process according to their
-    // priority before being forwarded here, and reordering them again in this
-    // process can cause problems such as dispatching messages for an actor
-    // before the constructor for that actor.
-    *aPriority = PRIORITY_NORMAL;
-    return NS_OK;
-  }
   switch (mMessage.priority()) {
     case Message::NORMAL_PRIORITY:
       *aPriority = PRIORITY_NORMAL;
@@ -2122,7 +2096,7 @@ void MessageChannel::DispatchMessage(Message&& aMsg) {
     nojsapi.emplace();
   }
 
-  nsAutoPtr<Message> reply;
+  UniquePtr<Message> reply;
 
   IPC_LOG("DispatchMessage: seqno=%d, xid=%d", aMsg.seqno(),
           aMsg.transaction_id());
@@ -2167,7 +2141,7 @@ void MessageChannel::DispatchMessage(Message&& aMsg) {
             aMsg.transaction_id());
     AddProfilerMarker(reply.get(), MessageDirection::eSending);
 
-    mLink->SendMessage(reply.forget());
+    mLink->SendMessage(reply.release());
   }
 }
 
@@ -2180,10 +2154,8 @@ void MessageChannel::DispatchSyncMessage(ActorLifecycleProxy* aProxy,
 
   int nestedLevel = aMsg.nested_level();
 
-  MOZ_RELEASE_ASSERT(
-      nestedLevel == IPC::Message::NOT_NESTED || NS_IsMainThread() ||
-      // Middleman processes forward sync messages on a non-main thread.
-      recordreplay::IsMiddleman());
+  MOZ_RELEASE_ASSERT(nestedLevel == IPC::Message::NOT_NESTED ||
+                     NS_IsMainThread());
 #ifdef MOZ_TASK_TRACER
   AutoScopedLabel autolabel("sync message %s", aMsg.name());
 #endif
@@ -2255,21 +2227,21 @@ void MessageChannel::DispatchInterruptMessage(ActorLifecycleProxy* aProxy,
   SyncStackFrame frame(this, true);
 #endif
 
-  nsAutoPtr<Message> reply;
+  UniquePtr<Message> reply;
 
   ++mRemoteStackDepthGuess;
   Result rv = aProxy->Get()->OnCallReceived(aMsg, *getter_Transfers(reply));
   --mRemoteStackDepthGuess;
 
   if (!MaybeHandleError(rv, aMsg, "DispatchInterruptMessage")) {
-    reply = Message::ForInterruptDispatchError();
+    reply = WrapUnique(Message::ForInterruptDispatchError());
   }
   reply->set_seqno(aMsg.seqno());
 
   MonitorAutoLock lock(*mMonitor);
   if (ChannelConnected == mChannelState) {
     AddProfilerMarker(reply.get(), MessageDirection::eSending);
-    mLink->SendMessage(reply.forget());
+    mLink->SendMessage(reply.release());
   }
 }
 

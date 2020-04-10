@@ -11,7 +11,6 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/EnumeratedArray.h"
-#include "mozilla/MediaFeatureChange.h"
 #include "mozilla/NotNull.h"
 #include "mozilla/ScrollStyles.h"
 #include "mozilla/PreferenceSheet.h"
@@ -22,7 +21,6 @@
 #include "nsCOMPtr.h"
 #include "nsRect.h"
 #include "nsStringFwd.h"
-#include "nsFont.h"
 #include "gfxFontConstants.h"
 #include "nsAtom.h"
 #include "nsCRT.h"
@@ -43,7 +41,6 @@
 #include "nsThreadUtils.h"
 #include "Units.h"
 #include "prenv.h"
-#include "mozilla/StaticPresData.h"
 
 class nsBidi;
 class nsIPrintSettings;
@@ -80,6 +77,8 @@ class EventStateManager;
 class CounterStyleManager;
 class PresShell;
 class RestyleManager;
+class StaticPresData;
+struct MediaFeatureChange;
 namespace layers {
 class ContainerLayer;
 class LayerManager;
@@ -137,7 +136,6 @@ class nsPresContext : public nsISupports,
   using StylePrefersColorScheme = mozilla::StylePrefersColorScheme;
 
   typedef mozilla::ScrollStyles ScrollStyles;
-  typedef mozilla::StaticPresData StaticPresData;
   using TransactionId = mozilla::layers::TransactionId;
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
@@ -177,7 +175,7 @@ class nsPresContext : public nsISupports,
 
   mozilla::PresShell* GetPresShell() const { return mPresShell; }
 
-  void DispatchCharSetChange(NotNull<const Encoding*> aCharSet);
+  void DocumentCharSetChanged(NotNull<const Encoding*> aCharSet);
 
   /**
    * Returns the parent prescontext for this one. Returns null if this is a
@@ -263,18 +261,23 @@ class nsPresContext : public nsISupports,
 
   /**
    * Rebuilds all style data by throwing out the old rule tree and
-   * building a new one, and additionally applying aExtraHint (which
-   * must not contain nsChangeHint_ReconstructFrame) to the root frame.
-   * For aRestyleHint, see RestyleManager::RebuildAllStyleData.
+   * building a new one, and additionally applying a change hint (which must not
+   * contain nsChangeHint_ReconstructFrame) to the root frame.
+   *
+   * For the restyle hint argument, see RestyleManager::RebuildAllStyleData.
    * Also rebuild the user font set and counter style manager.
+   *
+   * FIXME(emilio): The name of this is an utter lie. We should probably call
+   * this PostGlobalStyleChange or something, as it doesn't really rebuild
+   * anything unless you tell it to via the change hint / restyle hint
+   * machinery.
    */
-  void RebuildAllStyleData(nsChangeHint aExtraHint, mozilla::RestyleHint);
+  void RebuildAllStyleData(nsChangeHint, const mozilla::RestyleHint&);
   /**
    * Just like RebuildAllStyleData, except (1) asynchronous and (2) it
-   * doesn't rebuild the user font set.
+   * doesn't rebuild the user font set / counter-style manager / etc.
    */
-  void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint,
-                                    mozilla::RestyleHint);
+  void PostRebuildAllStyleDataEvent(nsChangeHint, const mozilla::RestyleHint&);
 
   void ContentLanguageChanged();
 
@@ -496,6 +499,13 @@ class nsPresContext : public nsISupports,
     UpdateEffectiveTextZoom();
   }
 
+  /**
+   * Notify the pres context that the safe area insets have changed.
+   */
+  void SetSafeAreaInsets(const mozilla::ScreenIntMargin& aInsets);
+
+  mozilla::ScreenIntMargin GetSafeAreaInsets() const { return mSafeAreaInsets; }
+
  protected:
   void UpdateEffectiveTextZoom();
 
@@ -598,7 +608,7 @@ class nsPresContext : public nsISupports,
     return AppUnitsToIntCSSPixels(DevPixelsToAppUnits(aPixels));
   }
 
-  float DevPixelsToFloatCSSPixels(int32_t aPixels) {
+  float DevPixelsToFloatCSSPixels(int32_t aPixels) const {
     return AppUnitsToFloatCSSPixels(DevPixelsToAppUnits(aPixels));
   }
 
@@ -754,10 +764,17 @@ class nsPresContext : public nsISupports,
   uint32_t GetBidi() const;
 
   /*
-   * Obtain a native them for rendering our widgets (both form controls and
+   * Obtain a native theme for rendering our widgets (both form controls and
    * html)
+   *
+   * Guaranteed to return non-null.
    */
-  nsITheme* GetTheme();
+  nsITheme* Theme() MOZ_NONNULL_RETURN {
+    if (MOZ_LIKELY(mTheme)) {
+      return mTheme;
+    }
+    return EnsureTheme();
+  }
 
   /*
    * Notify the pres context that the theme has changed.  An internal switch
@@ -1003,10 +1020,6 @@ class nsPresContext : public nsISupports,
   void NotifyContentfulPaint();
   void NotifyDOMContentFlushed();
 
-  bool UsesRootEMUnits() const { return mUsesRootEMUnits; }
-
-  void SetUsesRootEMUnits(bool aValue) { mUsesRootEMUnits = aValue; }
-
   bool UsesExChUnits() const { return mUsesExChUnits; }
 
   void SetUsesExChUnits(bool aValue) { mUsesExChUnits = aValue; }
@@ -1086,8 +1099,6 @@ class nsPresContext : public nsISupports,
   // Used by the PresShell to force a reflow when some aspect of font info
   // has been updated, potentially affecting font selection and layout.
   void ForceReflowForFontInfoUpdate();
-
-  void DoChangeCharSet(NotNull<const Encoding*> aCharSet);
 
   /**
    * Checks for MozAfterPaint listeners on the document
@@ -1205,6 +1216,8 @@ class nsPresContext : public nsISupports,
   // The maximum height of the dynamic toolbar on mobile.
   mozilla::ScreenIntCoord mDynamicToolbarMaxHeight;
   mozilla::ScreenIntCoord mDynamicToolbarHeight;
+  // Safe area insets support
+  mozilla::ScreenIntMargin mSafeAreaInsets;
   nsSize mPageSize;
   float mPageScale;
   float mPPScale;
@@ -1274,9 +1287,10 @@ class nsPresContext : public nsISupports,
   // Are we currently drawing an SVG glyph?
   unsigned mIsGlyph : 1;
 
-  // Does the associated document use root-em (rem) units?
-  unsigned mUsesRootEMUnits : 1;
   // Does the associated document use ex or ch units?
+  //
+  // TODO(emilio): It's a bit weird that this lives here but all the other
+  // relevant bits live in Device on the rust side.
   unsigned mUsesExChUnits : 1;
 
   // Is the current mCounterStyleManager valid?
@@ -1314,12 +1328,15 @@ class nsPresContext : public nsISupports,
   unsigned mInitialized : 1;
 #endif
 
-  mozilla::Maybe<mozilla::MediaFeatureChange> mPendingMediaFeatureValuesChange;
+  mozilla::UniquePtr<mozilla::MediaFeatureChange>
+      mPendingMediaFeatureValuesChange;
 
  protected:
   virtual ~nsPresContext();
 
   void LastRelease();
+
+  nsITheme* EnsureTheme();
 
 #ifdef DEBUG
  private:

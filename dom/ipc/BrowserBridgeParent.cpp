@@ -23,15 +23,19 @@ using namespace mozilla::hal;
 namespace mozilla {
 namespace dom {
 
-BrowserBridgeParent::BrowserBridgeParent() {}
+BrowserBridgeParent::BrowserBridgeParent() = default;
 
 BrowserBridgeParent::~BrowserBridgeParent() { Destroy(); }
 
 nsresult BrowserBridgeParent::InitWithProcess(
     ContentParent* aContentParent, const nsString& aPresentationURL,
     const WindowGlobalInit& aWindowInit, uint32_t aChromeFlags, TabId aTabId) {
+  if (aWindowInit.browsingContext().IsNullOrDiscarded()) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
   RefPtr<CanonicalBrowsingContext> browsingContext =
-      aWindowInit.browsingContext()->Canonical();
+      aWindowInit.browsingContext().get_canonical();
 
   // We can inherit most TabContext fields for the new BrowserParent actor from
   // our Manager BrowserParent. We also need to sync the first party domain if
@@ -92,7 +96,7 @@ nsresult BrowserBridgeParent::InitWithProcess(
   }
 
   // Set our BrowserParent object to the newly created browser.
-  mBrowserParent = browserParent.forget();
+  mBrowserParent = std::move(browserParent);
   mBrowserParent->SetOwnerElement(Manager()->GetOwnerElement());
   mBrowserParent->InitRendering();
 
@@ -143,8 +147,8 @@ IPCResult BrowserBridgeParent::RecvResumeLoad(uint64_t aPendingSwitchID) {
 }
 
 IPCResult BrowserBridgeParent::RecvUpdateDimensions(
-    const DimensionInfo& aDimensions) {
-  Unused << mBrowserParent->SendUpdateDimensions(aDimensions);
+    const nsIntRect& aRect, const ScreenIntSize& aSize) {
+  mBrowserParent->UpdateDimensions(aRect, aSize);
   return IPC_OK();
 }
 
@@ -189,8 +193,8 @@ IPCResult BrowserBridgeParent::RecvDispatchSynthesizedMouseEvent(
   return IPC_OK();
 }
 
-IPCResult BrowserBridgeParent::RecvSkipBrowsingContextDetach() {
-  Unused << mBrowserParent->SendSkipBrowsingContextDetach();
+IPCResult BrowserBridgeParent::RecvWillChangeProcess() {
+  Unused << mBrowserParent->SendWillChangeProcess();
   return IPC_OK();
 }
 

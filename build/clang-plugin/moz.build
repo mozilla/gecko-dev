@@ -29,9 +29,12 @@ HOST_SOURCES += [
     'NoAutoTypeChecker.cpp',
     'NoDuplicateRefCntMemberChecker.cpp',
     'NoExplicitMoveConstructorChecker.cpp',
+    'NoNewThreadsChecker.cpp',
     'NonMemMovableMemberChecker.cpp',
     'NonMemMovableTemplateArgChecker.cpp',
     'NonParamInsideFunctionDeclChecker.cpp',
+    'NonTrivialTypeInFfiChecker.cpp',
+    'NoPrincipalGetURI.cpp',
     'NoUsingNamespaceMozillaJavaChecker.cpp',
     'OverrideBaseCallChecker.cpp',
     'OverrideBaseCallUsageChecker.cpp',
@@ -46,8 +49,11 @@ HOST_SOURCES += [
     'VariableUsageHelpers.cpp',
 ]
 
+# Ideally, we wouldn't have compile-time choices wrt checkes. bug 1617153.
 if CONFIG['OS_ARCH'] == 'WINNT':
+    HOST_DEFINES['TARGET_IS_WINDOWS'] = True
     HOST_SOURCES += [
+        'FopenUsageChecker.cpp',
         'LoadLibraryUsageChecker.cpp',
     ]
 
@@ -63,6 +69,12 @@ GeneratedFile('ThirdPartyPaths.cpp', script="ThirdPartyPaths.py",
               entry_point="generate", inputs=[
                   '/tools/rewriting/ThirdPartyPaths.txt',
                   '/tools/rewriting/Generated.txt',
+              ])
+
+GeneratedFile('ThreadAllows.h', script="ThreadAllows.py",
+              entry_point="generate_file", inputs=[
+              '/build/clang-plugin/ThreadAllows.txt',
+              '/build/clang-plugin/ThreadFileAllows.txt'
               ])
 
 HOST_COMPILE_FLAGS['STL'] = []
@@ -81,6 +93,7 @@ DIRS += [
     'tests',
 ]
 
+include('external/sources.mozbuild')
 
 # In the current moz.build world, we need to override essentially every
 # variable to limit ourselves to what we need to build the clang plugin.

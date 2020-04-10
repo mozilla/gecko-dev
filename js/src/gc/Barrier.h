@@ -299,6 +299,8 @@ bool CurrentThreadIsIonCompilingSafeForMinorGC();
 
 bool CurrentThreadIsGCSweeping();
 
+bool CurrentThreadIsGCFinalizing();
+
 bool IsMarkedBlack(JSObject* obj);
 
 bool CurrentThreadIsTouchingGrayThings();
@@ -549,8 +551,9 @@ class GCPtr : public WriteBarriered<T> {
     //
     // Note that when sweeping the wrapped pointer may already have been
     // freed by this point.
-    MOZ_ASSERT(CurrentThreadIsGCSweeping() ||
-               this->value == JS::SafelyInitialized<T>());
+    MOZ_ASSERT_IF(
+        !CurrentThreadIsGCSweeping() && !CurrentThreadIsGCFinalizing(),
+        this->value == JS::SafelyInitialized<T>());
     Poison(this, JS_FREED_HEAP_PTR_PATTERN, sizeof(*this),
            MemCheckKind::MakeNoAccess);
   }
@@ -633,6 +636,7 @@ class HeapPtr : public WriteBarriered<T> {
   }
 
   void init(const T& v) {
+    MOZ_ASSERT(this->value == JS::SafelyInitialized<T>());
     AssertTargetIsNotGray(v);
     this->value = v;
     this->post(JS::SafelyInitialized<T>(), this->value);
@@ -832,8 +836,8 @@ class HeapSlotArray {
   }
 
   operator const Value*() const {
-    JS_STATIC_ASSERT(sizeof(GCPtr<Value>) == sizeof(Value));
-    JS_STATIC_ASSERT(sizeof(HeapSlot) == sizeof(Value));
+    static_assert(sizeof(GCPtr<Value>) == sizeof(Value));
+    static_assert(sizeof(HeapSlot) == sizeof(Value));
     return reinterpret_cast<const Value*>(array);
   }
   operator HeapSlot*() const {
@@ -980,8 +984,8 @@ struct MovableCellHasher<WeakHeapPtr<T>> {
 /* Useful for hashtables with a HeapPtr as key. */
 template <class T>
 struct HeapPtrHasher {
-  typedef HeapPtr<T> Key;
-  typedef T Lookup;
+  using Key = HeapPtr<T>;
+  using Lookup = T;
 
   static HashNumber hash(Lookup obj) { return DefaultHasher<T>::hash(obj); }
   static bool match(const Key& k, Lookup l) { return k.get() == l; }
@@ -990,8 +994,8 @@ struct HeapPtrHasher {
 
 template <class T>
 struct PreBarrieredHasher {
-  typedef PreBarriered<T> Key;
-  typedef T Lookup;
+  using Key = PreBarriered<T>;
+  using Lookup = T;
 
   static HashNumber hash(Lookup obj) { return DefaultHasher<T>::hash(obj); }
   static bool match(const Key& k, Lookup l) { return k.get() == l; }
@@ -1001,8 +1005,8 @@ struct PreBarrieredHasher {
 /* Useful for hashtables with a WeakHeapPtr as key. */
 template <class T>
 struct WeakHeapPtrHasher {
-  typedef WeakHeapPtr<T> Key;
-  typedef T Lookup;
+  using Key = WeakHeapPtr<T>;
+  using Lookup = T;
 
   static HashNumber hash(Lookup obj) { return DefaultHasher<T>::hash(obj); }
   static bool match(const Key& k, Lookup l) { return k.unbarrieredGet() == l; }

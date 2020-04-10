@@ -1197,11 +1197,6 @@ bool PushVarEnv(JSContext* cx, BaselineFrame* frame, HandleScope scope) {
   return frame->pushVarEnvironment(cx, scope);
 }
 
-bool PopVarEnv(JSContext* cx, BaselineFrame* frame) {
-  frame->popOffEnvironmentChain<VarEnvironmentObject>();
-  return true;
-}
-
 bool EnterWith(JSContext* cx, BaselineFrame* frame, HandleValue val,
                Handle<WithScope*> templ) {
   return EnterWithOperation(cx, frame, val, templ);
@@ -1219,15 +1214,6 @@ bool InitBaselineFrameForOsr(BaselineFrame* frame,
                              InterpreterFrame* interpFrame,
                              uint32_t numStackValues) {
   return frame->initForOsr(interpFrame, numStackValues);
-}
-
-JSObject* CreateDerivedTypedObj(JSContext* cx, HandleObject descr,
-                                HandleObject owner, int32_t offset) {
-  MOZ_ASSERT(descr->is<TypeDescr>());
-  MOZ_ASSERT(owner->is<TypedObject>());
-  Rooted<TypeDescr*> descr1(cx, &descr->as<TypeDescr>());
-  Rooted<TypedObject*> owner1(cx, &owner->as<TypedObject>());
-  return OutlineTypedObject::createDerived(cx, descr1, owner1, offset);
 }
 
 JSString* StringReplace(JSContext* cx, HandleString string,
@@ -1281,7 +1267,7 @@ bool IonForcedInvalidation(JSContext* cx) {
   RootedScript script(cx, frame.script());
   MOZ_ASSERT(script->hasIonScript());
 
-  if (script->baselineScript()->hasPendingIonBuilder()) {
+  if (script->baselineScript()->hasPendingIonCompileTask()) {
     LinkIonScript(cx, script);
     return true;
   }
@@ -1457,15 +1443,18 @@ bool ThrowRuntimeLexicalError(JSContext* cx, unsigned errorNumber) {
 }
 
 bool ThrowBadDerivedReturn(JSContext* cx, HandleValue v) {
+  MOZ_ASSERT(!v.isObject() && !v.isUndefined());
   ReportValueError(cx, JSMSG_BAD_DERIVED_RETURN, JSDVG_IGNORE_STACK, v,
                    nullptr);
   return false;
 }
 
-bool ThrowObjectCoercible(JSContext* cx, HandleValue v) {
-  MOZ_ASSERT(v.isUndefined() || v.isNull());
-  MOZ_ALWAYS_FALSE(ToObjectSlow(cx, v, true));
-  return false;
+bool ThrowBadDerivedReturnOrUninitializedThis(JSContext* cx, HandleValue v) {
+  MOZ_ASSERT(!v.isObject());
+  if (v.isUndefined()) {
+    return js::ThrowUninitializedThis(cx);
+  }
+  return ThrowBadDerivedReturn(cx, v);
 }
 
 bool BaselineGetFunctionThis(JSContext* cx, BaselineFrame* frame,
@@ -1706,7 +1695,8 @@ bool SetNativeDataPropertyPure(JSContext* cx, JSObject* obj, PropertyName* name,
     return false;
   }
 
-  if (NeedsTypeBarrier && !HasTypePropertyId(nobj, NameToId(name), *val)) {
+  if (NeedsTypeBarrier && IsTypeInferenceEnabled() &&
+      !HasTypePropertyId(nobj, NameToId(name), *val)) {
     return false;
   }
 

@@ -35,10 +35,7 @@ ZoneAllocator::ZoneAllocator(JSRuntime* rt)
       gcHeapSize(&rt->gc.heapSize),
       mallocHeapSize(nullptr),
       jitHeapSize(nullptr),
-      jitHeapThreshold(jit::MaxCodeBytesPerProcess * 0.8) {
-  AutoLockGC lock(rt);
-  updateGCThresholds(rt->gc, GC_NORMAL, lock);
-}
+      jitHeapThreshold(jit::MaxCodeBytesPerProcess * 0.8) {}
 
 ZoneAllocator::~ZoneAllocator() {
 #ifdef DEBUG
@@ -105,7 +102,7 @@ void ZoneAllocator::removeSharedMemory(void* mem, size_t nbytes,
   // nbytes can be zero here for SharedArrayBuffers.
 
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
-  MOZ_ASSERT(CurrentThreadIsGCSweeping());
+  MOZ_ASSERT(CurrentThreadIsGCFinalizing());
 
   auto ptr = sharedMemoryUseCounts.lookup(mem);
 
@@ -136,11 +133,16 @@ JS::Zone::Zone(JSRuntime* rt)
       // ProtectedData checks in CheckZone::check may read this field.
       helperThreadUse_(HelperThreadUse::None),
       helperThreadOwnerContext_(nullptr),
-      uniqueIds_(this),
-      suppressAllocationMetadataBuilder(this, false),
       arenas(this),
-      tenuredAllocsSinceMinorGC_(0),
       types(this),
+      data(this, nullptr),
+      tenuredStrings(this, 0),
+      tenuredBigInts(this, 0),
+      allocNurseryStrings(this, true),
+      allocNurseryBigInts(this, true),
+      suppressAllocationMetadataBuilder(this, false),
+      uniqueIds_(this),
+      tenuredAllocsSinceMinorGC_(0),
       gcWeakMapList_(this),
       compartments_(),
       crossZoneStringWrappers_(this),
@@ -156,19 +158,10 @@ JS::Zone::Zone(JSRuntime* rt)
       functionToStringCache_(this),
       keepAtomsCount(this, 0),
       purgeAtomsDeferred(this, 0),
-      tenuredStrings(this, 0),
-      allocNurseryStrings(this, true),
-      tenuredBigInts(this, 0),
-      allocNurseryBigInts(this, true),
       propertyTree_(this, this),
       baseShapes_(this, this),
       initialShapes_(this, this),
       nurseryShapes_(this),
-      data(this, nullptr),
-      isSystem(this, false),
-#ifdef DEBUG
-      gcSweepGroupIndex(0),
-#endif
       finalizationRecordMap_(this, this),
       jitZone_(this, nullptr),
       gcScheduled_(false),
@@ -182,6 +175,10 @@ JS::Zone::Zone(JSRuntime* rt)
   /* Ensure that there are no vtables to mess us up here. */
   MOZ_ASSERT(reinterpret_cast<JS::shadow::Zone*>(this) ==
              static_cast<JS::shadow::Zone*>(this));
+
+  // We can't call updateGCThresholds until the Zone has been constructed.
+  AutoLockGC lock(rt);
+  updateGCThresholds(rt->gc, GC_NORMAL, lock);
 }
 
 Zone::~Zone() {
@@ -191,16 +188,35 @@ Zone::~Zone() {
 
   JSRuntime* rt = runtimeFromAnyThread();
   if (this == rt->gc.systemZone) {
+    MOZ_ASSERT(isSystemZone());
     rt->gc.systemZone = nullptr;
   }
 
   js_delete(jitZone_.ref());
 }
 
-bool Zone::init(bool isSystemArg) {
-  isSystem = isSystemArg;
+bool Zone::init() {
   regExps_.ref() = make_unique<RegExpZone>(this);
   return regExps_.ref() && gcWeakKeys().init() && gcNurseryWeakKeys().init();
+}
+
+void Zone::setIsAtomsZone() {
+  MOZ_ASSERT(!isAtomsZone_);
+  MOZ_ASSERT(runtimeFromAnyThread()->isAtomsZone(this));
+  isAtomsZone_ = true;
+  setIsSystemZone();
+}
+
+void Zone::setIsSelfHostingZone() {
+  MOZ_ASSERT(!isSelfHostingZone_);
+  MOZ_ASSERT(runtimeFromAnyThread()->isSelfHostingZone(this));
+  isSelfHostingZone_ = true;
+  setIsSystemZone();
+}
+
+void Zone::setIsSystemZone() {
+  MOZ_ASSERT(!isSystemZone_);
+  isSystemZone_ = true;
 }
 
 void Zone::setNeedsIncrementalBarrier(bool needs) {
@@ -376,8 +392,12 @@ void Zone::discardJitCode(JSFreeOp* fop,
   if (discardBaselineCode || discardJitScripts) {
 #ifdef DEBUG
     // Assert no JitScripts are marked as active.
-    for (auto iter = cellIter<JSScript>(); !iter.done(); iter.next()) {
-      JSScript* script = iter.unbarrieredGet();
+    for (auto iter = cellIter<BaseScript>(); !iter.done(); iter.next()) {
+      BaseScript* base = iter.unbarrieredGet();
+      if (base->isLazyScript()) {
+        continue;
+      }
+      JSScript* script = base->asJSScript();
       if (jit::JitScript* jitScript = script->maybeJitScript()) {
         MOZ_ASSERT(!jitScript->active());
       }
@@ -391,8 +411,11 @@ void Zone::discardJitCode(JSFreeOp* fop,
   // Invalidate all Ion code in this zone.
   jit::InvalidateAll(fop, this);
 
-  for (auto script = cellIterUnsafe<JSScript>(); !script.done();
-       script.next()) {
+  for (auto base = cellIterUnsafe<BaseScript>(); !base.done(); base.next()) {
+    if (base->isLazyScript()) {
+      continue;
+    }
+    JSScript* script = base->asJSScript();
     jit::JitScript* jitScript = script->maybeJitScript();
     if (!jitScript) {
       continue;

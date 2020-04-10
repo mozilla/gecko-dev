@@ -90,25 +90,14 @@ static DataInfo* GetDataInfo(const nsACString& aUri,
     return nullptr;
   }
 
+  // Let's remove any fragment from this URI.
+  int32_t fragmentPos = aUri.FindChar('#');
+
   DataInfo* res;
-
-  // Let's remove any fragment and query from this URI.
-  int32_t hasFragmentPos = aUri.FindChar('#');
-  int32_t hasQueryPos = aUri.FindChar('?');
-
-  int32_t pos = -1;
-  if (hasFragmentPos >= 0 && hasQueryPos >= 0) {
-    pos = std::min(hasFragmentPos, hasQueryPos);
-  } else if (hasFragmentPos >= 0) {
-    pos = hasFragmentPos;
+  if (fragmentPos < 0) {
+    res = gDataTable->Get(aUri);
   } else {
-    pos = hasQueryPos;
-  }
-
-  if (pos < 0) {
-    gDataTable->Get(aUri, &res);
-  } else {
-    gDataTable->Get(StringHead(aUri, pos), &res);
+    res = gDataTable->Get(StringHead(aUri, fragmentPos));
   }
 
   if (!aAlsoIfRevoked && res && res->mRevoked) {
@@ -303,11 +292,8 @@ class BlobURLsReporter final : public nsIMemoryReporter {
     nsCOMPtr<nsIStackFrame> frame = dom::GetCurrentJSStack(maxFrames);
 
     nsAutoCString origin;
-    nsCOMPtr<nsIURI> principalURI;
-    if (NS_SUCCEEDED(aInfo->mPrincipal->GetURI(getter_AddRefs(principalURI))) &&
-        principalURI) {
-      principalURI->GetPrePath(origin);
-    }
+
+    aInfo->mPrincipal->GetPrepath(origin);
 
     // If we got a frame, we better have a current JSContext.  This is cheating
     // a bit; ideally we'd have our caller pass in a JSContext, or have
@@ -350,15 +336,13 @@ class BlobURLsReporter final : public nsIMemoryReporter {
   }
 
  private:
-  ~BlobURLsReporter() {}
+  ~BlobURLsReporter() = default;
 
   static void BuildPath(nsAutoCString& path, nsCStringHashKey::KeyType aKey,
                         DataInfo* aInfo, bool anonymize) {
-    nsCOMPtr<nsIURI> principalURI;
     nsAutoCString url, owner;
-    if (NS_SUCCEEDED(aInfo->mPrincipal->GetURI(getter_AddRefs(principalURI))) &&
-        principalURI != nullptr && NS_SUCCEEDED(principalURI->GetSpec(owner)) &&
-        !owner.IsEmpty()) {
+    aInfo->mPrincipal->GetAsciiSpec(owner);
+    if (!owner.IsEmpty()) {
       owner.ReplaceChar('/', '\\');
       path += "owner(";
       if (anonymize) {
@@ -465,7 +449,7 @@ class ReleasingTimerHolder final : public Runnable,
   explicit ReleasingTimerHolder(const nsACString& aURI)
       : Runnable("ReleasingTimerHolder"), mURI(aURI) {}
 
-  ~ReleasingTimerHolder() {}
+  ~ReleasingTimerHolder() = default;
 
   void RevokeURI() {
     // Remove the shutting down blocker

@@ -12,22 +12,19 @@ add_task(async function() {
   const { jsterm } = hud;
   const { autocompletePopup } = jsterm;
 
-  const onPopUpOpen = autocompletePopup.once("popup-opened");
-
   info(`Enter ":"`);
   jsterm.focus();
+  let onAutocompleUpdated = jsterm.once("autocomplete-updated");
   EventUtils.sendString(":");
-
-  await onPopUpOpen;
+  await onAutocompleUpdated;
 
   const expectedCommands = [":help", ":screenshot"];
-  is(
-    getPopupItems(autocompletePopup).join("\n"),
-    expectedCommands.join("\n"),
+  ok(
+    hasExactPopupLabels(autocompletePopup, expectedCommands),
     "popup contains expected commands"
   );
 
-  let onAutocompleUpdated = jsterm.once("autocomplete-updated");
+  onAutocompleUpdated = jsterm.once("autocomplete-updated");
   EventUtils.sendString("s");
   await onAutocompleUpdated;
   checkInputCompletionValue(
@@ -62,7 +59,3 @@ add_task(async function() {
   EventUtils.synthesizeKey("KEY_Tab");
   is(getInputValue(hud), ":help", "Tab key correctly completes :help");
 });
-
-function getPopupItems(popup) {
-  return popup.items.map(item => item.label);
-}

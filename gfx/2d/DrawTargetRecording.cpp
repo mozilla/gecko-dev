@@ -556,7 +556,7 @@ RefPtr<DrawTarget> DrawTargetRecording::CreateClippedDrawTarget(
   RefPtr<DrawTarget> similarDT;
   similarDT = new DrawTargetRecording(this, mRect, aFormat);
   mRecorder->RecordEvent(
-      RecordedCreateClippedDrawTarget(similarDT.get(), aBounds, aFormat));
+      RecordedCreateClippedDrawTarget(this, similarDT.get(), aBounds, aFormat));
   similarDT->SetTransform(mTransform);
   return similarDT;
 }
@@ -658,9 +658,16 @@ void DrawTargetRecording::EnsurePatternDependenciesStored(
     }
     case PatternType::RADIAL_GRADIENT: {
       MOZ_ASSERT_IF(
-          static_cast<const LinearGradientPattern*>(&aPattern)->mStops,
+          static_cast<const RadialGradientPattern*>(&aPattern)->mStops,
           mRecorder->HasStoredObject(
               static_cast<const RadialGradientPattern*>(&aPattern)->mStops));
+      return;
+    }
+    case PatternType::CONIC_GRADIENT: {
+      MOZ_ASSERT_IF(
+          static_cast<const ConicGradientPattern*>(&aPattern)->mStops,
+          mRecorder->HasStoredObject(
+              static_cast<const ConicGradientPattern*>(&aPattern)->mStops));
       return;
     }
     case PatternType::SURFACE: {

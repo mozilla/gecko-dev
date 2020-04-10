@@ -367,6 +367,8 @@ static const char* DefTypeName(LDefinition::Type type) {
       return "simd128int";
     case LDefinition::SIMD128FLOAT:
       return "simd128float";
+    case LDefinition::STACKRESULTS:
+      return "stackresults";
 #  ifdef JS_NUNBOX32
     case LDefinition::TYPE:
       return "t";
@@ -416,6 +418,8 @@ static UniqueChars PrintUse(const LUse* use) {
       return JS_smprintf("v%d:r?", use->virtualRegister());
     case LUse::KEEPALIVE:
       return JS_smprintf("v%d:*", use->virtualRegister());
+    case LUse::STACK:
+      return JS_smprintf("v%d:s", use->virtualRegister());
     case LUse::RECOVERED_INPUT:
       return JS_smprintf("v%d:**", use->virtualRegister());
     default:
@@ -446,6 +450,10 @@ UniqueChars LAllocation::toString() const {
         break;
       case LAllocation::ARGUMENT_SLOT:
         buf = JS_smprintf("arg:%d", toArgument()->index());
+        break;
+      case LAllocation::STACK_AREA:
+        buf = JS_smprintf("stackarea:%d+%d", toStackArea()->base(),
+                          toStackArea()->size());
         break;
       case LAllocation::USE:
         buf = PrintUse(toUse());

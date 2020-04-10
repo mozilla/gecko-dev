@@ -190,7 +190,7 @@ wrench-deps:
         fetch:
             - android-rs-glue
         toolchain:
-            - linux64-rust-1.39  # whatever m-c is built with
+            - linux64-rust-1.41  # whatever m-c is built with
 
 wgpu-deps:
     description: "Downloads all the crates needed for testing wgpu"
@@ -208,7 +208,7 @@ wgpu-deps:
         fetch:
             - android-rs-glue
         toolchain:
-            - linux64-rust-1.39  # whatever m-c is built with
+            - linux64-rust-1.41  # whatever m-c is built with
 
 linux64-lucetc:
     description: "lucetc build process"
@@ -225,3 +225,31 @@ linux64-lucetc:
             - linux64-binutils
             - linux64-clang
             - linux64-rust
+
+linux64-liblowercase:
+    description: "liblowercase"
+    treeherder:
+        symbol: TL(lc)
+    run:
+        script: build-liblowercase.sh
+        sparse-profile: liblowercase
+        toolchain-artifact: public/build/liblowercase.tar.xz
+        resources:
+            - build/liblowercase/
+    fetches:
+        toolchain:
+            - linux64-rust-1.41
+
+linux64-wine:
+    description: "Wine build for Windows Cross Compile"
+    treeherder:
+        symbol: TL(wine)
+        tier: 1
+    worker:
+        max-run-time: 10800
+    run:
+        script: build-wine.sh
+        toolchain-artifact: public/build/wine.tar.xz
+    fetches:
+        fetch:
+            - wine-3.0.3

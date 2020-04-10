@@ -5,6 +5,7 @@
 #include "SSLTokensCache.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Logging.h"
+#include "nsIOService.h"
 #include "nsNSSIOLayer.h"
 #include "TransportSecurityInfo.h"
 #include "ssl.h"
@@ -66,7 +67,11 @@ NS_IMPL_ISUPPORTS(SSLTokensCache, nsIMemoryReporter)
 nsresult SSLTokensCache::Init() {
   StaticMutexAutoLock lock(sLock);
 
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (nsIOService::UseSocketProcess()) {
+    if (!XRE_IsSocketProcess()) {
+      return NS_OK;
+    }
+  } else if (!XRE_IsParentProcess()) {
     return NS_OK;
   }
 
@@ -358,6 +363,24 @@ SSLTokensCache::CollectReports(nsIHandleReportCallback* aHandleReport,
                      "Memory used for the SSL tokens cache.");
 
   return NS_OK;
+}
+
+// static
+void SSLTokensCache::Clear() {
+  LOG(("SSLTokensCache::Clear"));
+  if (!sEnabled) {
+    return;
+  }
+
+  StaticMutexAutoLock lock(sLock);
+  if (!gInstance) {
+    LOG(("  service not initialized"));
+    return;
+  }
+
+  gInstance->mExpirationArray.Clear();
+  gInstance->mTokenCacheRecords.Clear();
+  gInstance->mCacheSize = 0;
 }
 
 }  // namespace net

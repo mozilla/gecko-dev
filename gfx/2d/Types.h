@@ -7,6 +7,7 @@
 #ifndef MOZILLA_GFX_TYPES_H_
 #define MOZILLA_GFX_TYPES_H_
 
+#include "mozilla/DefineEnum.h"  // for MOZ_DEFINE_ENUM_CLASS_WITH_BASE
 #include "mozilla/EndianUtils.h"
 #include "mozilla/EnumeratedRange.h"
 #include "mozilla/MacroArgs.h"  // for MOZ_CONCAT
@@ -410,12 +411,15 @@ enum class SamplingFilter : int8_t {
   SENTINEL  // one past the last valid value
 };
 
-enum class PatternType : int8_t {
+// clang-format off
+MOZ_DEFINE_ENUM_CLASS_WITH_BASE(PatternType, int8_t, (
   COLOR,
   SURFACE,
   LINEAR_GRADIENT,
-  RADIAL_GRADIENT
-};
+  RADIAL_GRADIENT,
+  CONIC_GRADIENT
+));
+// clang-format on
 
 enum class JoinStyle : int8_t {
   BEVEL,
@@ -514,7 +518,7 @@ typedef mozilla::gfx::SurfaceFormat gfxImageFormat;
 namespace mozilla {
 
 // Side constants for use in various places.
-enum Side { eSideTop, eSideRight, eSideBottom, eSideLeft };
+enum Side : uint8_t { eSideTop, eSideRight, eSideBottom, eSideLeft };
 
 constexpr auto AllPhysicalSides() {
   return mozilla::MakeInclusiveEnumeratedRange(eSideTop, eSideLeft);
@@ -533,7 +537,7 @@ enum class SideBits {
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(SideBits)
 
-enum Corner {
+enum Corner : uint8_t {
   // This order is important!
   eCornerTopLeft = 0,
   eCornerTopRight = 1,

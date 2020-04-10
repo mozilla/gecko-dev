@@ -396,7 +396,7 @@ Inspector.prototype = {
       "visible";
 
     // Setup the sidebar panels.
-    await this.setupSidebar();
+    this.setupSidebar();
 
     await onMarkupLoaded;
     this.isReady = true;
@@ -472,10 +472,8 @@ Inspector.prototype = {
 
     // A helper to tell if the target has or is about to navigate.
     // this._pendingSelection changes on "will-navigate" and "new-root" events.
-    // When replaying, if the target is unpaused then we consider it to be
-    // navigating so that its tree will not be constructed.
     const hasNavigated = () => {
-      return pendingSelection !== this._pendingSelection || this._replayResumed;
+      return pendingSelection !== this._pendingSelection;
     };
 
     if (hasNavigated()) {
@@ -846,7 +844,7 @@ Inspector.prototype = {
   async onSidebarToggle() {
     this.is3PaneModeEnabled = !this.is3PaneModeEnabled;
     await this.setupToolbar();
-    await this.addRuleView({ skipQueue: true });
+    this.addRuleView({ skipQueue: true });
   },
 
   /**
@@ -917,7 +915,7 @@ Inspector.prototype = {
    * @params {String} defaultTab
    *         Thie id of the default tab for the sidebar.
    */
-  async addRuleView({ defaultTab = "ruleview", skipQueue = false } = {}) {
+  addRuleView({ defaultTab = "ruleview", skipQueue = false } = {}) {
     const ruleViewSidebar = this.sidebarSplitBoxRef.current.startPanelContainer;
 
     if (this.is3PaneModeEnabled) {
@@ -931,7 +929,7 @@ Inspector.prototype = {
       // Force the rule view panel creation by calling getPanel
       this.getPanel("ruleview");
 
-      await this.sidebar.removeTab("ruleview");
+      this.sidebar.removeTab("ruleview");
 
       this.ruleViewSideBar.addExistingTab(
         "ruleview",
@@ -965,7 +963,7 @@ Inspector.prototype = {
       });
 
       this.ruleViewSideBar.hide();
-      await this.ruleViewSideBar.removeTab("ruleview");
+      this.ruleViewSideBar.removeTab("ruleview");
 
       if (skipQueue) {
         this.sidebar.addExistingTab(
@@ -1073,7 +1071,7 @@ Inspector.prototype = {
   /**
    * Build the sidebar.
    */
-  async setupSidebar() {
+  setupSidebar() {
     const sidebar = this.panelDoc.getElementById("inspector-sidebar");
     const options = {
       showAllTabsMenu: true,
@@ -1105,7 +1103,7 @@ Inspector.prototype = {
 
     // Append all side panels
 
-    await this.addRuleView({ defaultTab });
+    this.addRuleView({ defaultTab });
 
     // Inspector sidebar panels in order of appearance.
     const sidebarPanels = [
@@ -1672,7 +1670,9 @@ Inspector.prototype = {
    * Stops listening for reflows.
    */
   untrackReflowsInSelection() {
-    if (!this.reflowFront) {
+    // Check the actorID because the reflowFront is a target scoped actor and
+    // might have been destroyed after switching targets.
+    if (!this.reflowFront || !this.reflowFront.actorID) {
       return;
     }
 
@@ -1772,8 +1772,6 @@ Inspector.prototype = {
     }
 
     this.cancelUpdate();
-
-    this.untrackReflowsInSelection();
 
     this.sidebar.destroy();
 

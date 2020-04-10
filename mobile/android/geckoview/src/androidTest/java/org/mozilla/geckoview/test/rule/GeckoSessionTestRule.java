@@ -170,19 +170,19 @@ public class GeckoSessionTestRule implements TestRule {
      * under test. Can be used on classes or methods. Note that the settings values must
      * be string literals regardless of the type of the settings.
      * <p>
-     * Disable e10s for a particular test:
+     * Enable tracking protection for a particular test:
      * <pre>
-     * &#64;Setting.List(&#64;Setting(key = Setting.Key.USE_MULTIPROCESS,
+     * &#64;Setting.List(&#64;Setting(key = Setting.Key.USE_TRACKING_PROTECTION,
      *                        value = "false"))
      * &#64;Test public void test() { ... }
      * </pre>
      * <p>
      * Use multiple settings:
      * <pre>
-     * &#64;Setting.List({&#64;Setting(key = Setting.Key.USE_MULTIPROCESS,
-     *                         value = "false"),
+     * &#64;Setting.List({&#64;Setting(key = Setting.Key.USE_PRIVATE_MODE,
+     *                         value = "true"),
      *                &#64;Setting(key = Setting.Key.USE_TRACKING_PROTECTION,
-     *                         value = "true")})
+     *                         value = "false")})
      * </pre>
      */
     @Target({ElementType.METHOD, ElementType.TYPE})
@@ -193,7 +193,6 @@ public class GeckoSessionTestRule implements TestRule {
             DISPLAY_MODE,
             ALLOW_JAVASCRIPT,
             SCREEN_ID,
-            USE_MULTIPROCESS,
             USE_PRIVATE_MODE,
             USE_TRACKING_PROTECTION,
             FULL_ACCESSIBILITY_TREE;
@@ -760,7 +759,6 @@ public class GeckoSessionTestRule implements TestRule {
 
     public GeckoSessionTestRule() {
         mDefaultSettings = new GeckoSessionSettings.Builder()
-                .useMultiprocess(env.isMultiprocess())
                 .build();
     }
 
@@ -1100,8 +1098,10 @@ public class GeckoSessionTestRule implements TestRule {
     }
 
     protected void prepareSession(final GeckoSession session) {
-        session.setMessageDelegate(RuntimeCreator.sTestSupportExtension, mMessageDelegate,
-                "browser");
+        session.getWebExtensionController()
+                .setMessageDelegate(RuntimeCreator.sTestSupportExtension,
+                                    mMessageDelegate,
+                          "browser");
         for (final Class<?> cls : DEFAULT_DELEGATES) {
             try {
                 setDelegate(cls, session, mNullDelegates.contains(cls) ? null : mCallbackProxy);

@@ -6,6 +6,7 @@
 
 #include "WebRenderUserData.h"
 
+#include "mozilla/layers/AnimationHelper.h"
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/ImageClient.h"
 #include "mozilla/layers/WebRenderBridgeChild.h"
@@ -83,7 +84,7 @@ WebRenderUserData::WebRenderUserData(RenderRootStateManager* aManager,
       mTable(aManager->GetWebRenderUserDataTable()),
       mUsed(false) {}
 
-WebRenderUserData::~WebRenderUserData() {}
+WebRenderUserData::~WebRenderUserData() = default;
 
 void WebRenderUserData::RemoveFromTable() { mTable->RemoveEntry(this); }
 
@@ -336,6 +337,11 @@ WebRenderImageData* WebRenderFallbackData::PaintIntoImage() {
   return mImageData.get();
 }
 
+WebRenderAPZAnimationData::WebRenderAPZAnimationData(
+    RenderRootStateManager* aManager, nsDisplayItem* aItem)
+    : WebRenderUserData(aManager, aItem),
+      mAnimationId(AnimationHelper::GetNextCompositorAnimationsId()) {}
+
 WebRenderAnimationData::WebRenderAnimationData(RenderRootStateManager* aManager,
                                                nsDisplayItem* aItem)
     : WebRenderUserData(aManager, aItem) {}
@@ -409,7 +415,7 @@ RenderRootBoundary& WebRenderRenderRootData::EnsureHasBoundary(
   return mBoundary.ref();
 }
 
-WebRenderRenderRootData::~WebRenderRenderRootData() {}
+WebRenderRenderRootData::~WebRenderRenderRootData() = default;
 
 void DestroyWebRenderUserDataTable(WebRenderUserDataTable* aTable) {
   for (auto iter = aTable->Iter(); !iter.Done(); iter.Next()) {

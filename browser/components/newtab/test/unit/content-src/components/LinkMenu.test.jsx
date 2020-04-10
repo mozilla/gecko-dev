@@ -352,10 +352,12 @@ describe("<LinkMenu>", () => {
         url: FAKE_SITE.url,
         referrer: FAKE_SITE.referrer,
       },
-      "newtab-menu-dismiss": {
-        url: FAKE_SITE.url,
-        pocket_id: FAKE_SITE.pocket_id,
-      },
+      "newtab-menu-dismiss": [
+        {
+          url: FAKE_SITE.url,
+          pocket_id: FAKE_SITE.pocket_id,
+        },
+      ],
       menu_action_webext_dismiss: {
         source: "TOP_SITES",
         url: FAKE_SITE.url,
@@ -397,9 +399,7 @@ describe("<LinkMenu>", () => {
     options
       .filter(o => o.type !== "separator")
       .forEach(option => {
-        it(`should fire a ${option.action.type} action for ${
-          option.id
-        } with the expected data`, () => {
+        it(`should fire a ${option.action.type} action for ${option.id} with the expected data`, () => {
           option.onClick();
 
           if (option.impression && option.userEvent) {
@@ -437,9 +437,7 @@ describe("<LinkMenu>", () => {
             assert.deepEqual(option.action.data, expectedActionData[option.id]);
           }
         });
-        it(`should fire a UserEvent action for ${
-          option.id
-        } if configured`, () => {
+        it(`should fire a UserEvent action for ${option.id} if configured`, () => {
           if (option.userEvent) {
             option.onClick();
             const [action] = dispatch.secondCall.args;

@@ -265,6 +265,12 @@ struct ParamTraits<mozilla::gfx::ColorSpace>
                                       mozilla::gfx::ColorSpace::SRGB,
                                       mozilla::gfx::ColorSpace::Max> {};
 
+template <>
+struct ParamTraits<mozilla::gfx::CompositionOp>
+    : public ContiguousEnumSerializerInclusive<
+          mozilla::gfx::CompositionOp, mozilla::gfx::CompositionOp::OP_OVER,
+          mozilla::gfx::CompositionOp::OP_COUNT> {};
+
 /*
 template <>
 struct ParamTraits<mozilla::PixelFormat>
@@ -592,6 +598,26 @@ struct ParamTraits<mozilla::gfx::Margin> {
 template <class T>
 struct ParamTraits<mozilla::gfx::MarginTyped<T>> {
   typedef mozilla::gfx::MarginTyped<T> paramType;
+
+  static void Write(Message* msg, const paramType& param) {
+    WriteParam(msg, param.top);
+    WriteParam(msg, param.right);
+    WriteParam(msg, param.bottom);
+    WriteParam(msg, param.left);
+  }
+
+  static bool Read(const Message* msg, PickleIterator* iter,
+                   paramType* result) {
+    return (ReadParam(msg, iter, &result->top) &&
+            ReadParam(msg, iter, &result->right) &&
+            ReadParam(msg, iter, &result->bottom) &&
+            ReadParam(msg, iter, &result->left));
+  }
+};
+
+template <class T>
+struct ParamTraits<mozilla::gfx::IntMarginTyped<T>> {
+  typedef mozilla::gfx::IntMarginTyped<T> paramType;
 
   static void Write(Message* msg, const paramType& param) {
     WriteParam(msg, param.top);

@@ -9,8 +9,8 @@
    withActiveServiceWorker, Services, consoleAPICall */
 
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
-const { DebuggerServer } = require("devtools/server/debugger-server");
-const { DebuggerClient } = require("devtools/shared/client/debugger-client");
+const { DevToolsServer } = require("devtools/server/devtools-server");
+const { DevToolsClient } = require("devtools/shared/client/devtools-client");
 const { ObjectFront } = require("devtools/shared/fronts/object");
 const Services = require("Services");
 
@@ -18,18 +18,18 @@ function initCommon() {
   // Services.prefs.setBoolPref("devtools.debugger.log", true);
 }
 
-function initDebuggerServer() {
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
-  DebuggerServer.allowChromeProcess = true;
+function initDevToolsServer() {
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
+  DevToolsServer.allowChromeProcess = true;
 }
 
 async function connectToDebugger() {
   initCommon();
-  initDebuggerServer();
+  initDevToolsServer();
 
-  const transport = DebuggerServer.connectPipe();
-  const client = new DebuggerClient(transport);
+  const transport = DevToolsServer.connectPipe();
+  const client = new DevToolsClient(transport);
 
   await client.connect();
   return client;
@@ -59,7 +59,8 @@ var _attachConsole = async function(listeners, attachToTab, attachToWorker) {
     // ParentProcessTarget / WorkerTarget / FrameTarget
     let target, worker;
     if (!attachToTab) {
-      target = await client.mainRoot.getMainProcess();
+      const targetDescriptor = await client.mainRoot.getMainProcess();
+      target = await targetDescriptor.getTarget();
     } else {
       target = await client.mainRoot.getTab();
       if (attachToWorker) {

@@ -100,11 +100,8 @@ class nsDisplayFieldSetBorder final : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayFieldSetBorder);
   }
-#ifdef NS_BUILD_REFCNT_LOGGING
-  virtual ~nsDisplayFieldSetBorder() {
-    MOZ_COUNT_DTOR(nsDisplayFieldSetBorder);
-  }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayFieldSetBorder)
+
   virtual void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
   virtual nsDisplayItemGeometry* AllocateGeometry(
       nsDisplayListBuilder* aBuilder) override;
@@ -890,7 +887,8 @@ void nsFieldSetFrame::EnsureChildContinuation(nsIFrame* aChild,
   nsIFrame* nif = aChild->GetNextInFlow();
   if (aStatus.IsFullyComplete()) {
     if (nif) {
-      RemoveFrame(kPrincipalList, nif);
+      // NOTE: we want to avoid our DEBUG version of RemoveFrame above.
+      nsContainerFrame::RemoveFrame(kNoReflowPrincipalList, nif);
       MOZ_ASSERT(!aChild->GetNextInFlow());
     }
   } else {

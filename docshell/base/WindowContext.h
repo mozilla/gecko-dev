@@ -7,12 +7,16 @@
 #ifndef mozilla_dom_WindowContext_h
 #define mozilla_dom_WindowContext_h
 
+#include "mozilla/dom/MaybeDiscarded.h"
 #include "mozilla/dom/SyncedContext.h"
+#include "mozilla/net/NeckoChannelParams.h"
 
 namespace mozilla {
 namespace dom {
 
-#define MOZ_EACH_WC_FIELD(FIELD) FIELD(OuterWindowId, uint64_t)
+#define MOZ_EACH_WC_FIELD(FIELD) \
+  FIELD(OuterWindowId, uint64_t) \
+  FIELD(CookieJarSettings, Maybe<mozilla::net::CookieJarSettingsArgs>)
 
 class WindowContext : public nsISupports, public nsWrapperCache {
   MOZ_DECL_SYNCED_CONTEXT(WindowContext, MOZ_EACH_WC_FIELD)
@@ -26,8 +30,13 @@ class WindowContext : public nsISupports, public nsWrapperCache {
 
   BrowsingContext* GetBrowsingContext() const { return mBrowsingContext; }
   BrowsingContextGroup* Group() const;
+  uint64_t Id() const { return InnerWindowId(); }
   uint64_t InnerWindowId() const { return mInnerWindowId; }
+  uint64_t OuterWindowId() const { return GetOuterWindowId(); }
   bool IsDiscarded() const { return mIsDiscarded; }
+
+  // Cast this object to it's parent-process canonical form.
+  WindowGlobalParent* Canonical();
 
   nsIGlobalObject* GetParentObject() const;
   JSObject* WrapObject(JSContext* cx,
@@ -68,6 +77,12 @@ class WindowContext : public nsISupports, public nsWrapperCache {
     return GetOuterWindowId() == 0 && aValue != 0;
   }
 
+  bool CanSet(FieldIndex<IDX_CookieJarSettings>,
+              const Maybe<mozilla::net::CookieJarSettingsArgs>& aValue,
+              ContentParent* aSource) {
+    return true;
+  }
+
   // Overload `DidSet` to get notifications for a particular field being set.
   template <size_t I>
   void DidSet(FieldIndex<I>) {}
@@ -80,6 +95,7 @@ class WindowContext : public nsISupports, public nsWrapperCache {
 
 using WindowContextTransaction = WindowContext::BaseTransaction;
 using WindowContextInitializer = WindowContext::IPCInitializer;
+using MaybeDiscardedWindowContext = MaybeDiscarded<WindowContext>;
 
 // Don't specialize the `Transaction` object for every translation unit it's
 // used in. This should help keep code size down.
@@ -89,11 +105,12 @@ extern template class syncedcontext::Transaction<WindowContext>;
 
 namespace ipc {
 template <>
-struct IPDLParamTraits<dom::WindowContext*> {
+struct IPDLParamTraits<dom::MaybeDiscarded<dom::WindowContext>> {
   static void Write(IPC::Message* aMsg, IProtocol* aActor,
-                    dom::WindowContext* aParam);
+                    const dom::MaybeDiscarded<dom::WindowContext>& aParam);
   static bool Read(const IPC::Message* aMsg, PickleIterator* aIter,
-                   IProtocol* aActor, RefPtr<dom::WindowContext>* aResult);
+                   IProtocol* aActor,
+                   dom::MaybeDiscarded<dom::WindowContext>* aResult);
 };
 
 template <>

@@ -101,6 +101,7 @@ add_task(async function testAboutDebugging() {
   );
   debugAddonsBtn.click();
   await switched;
+  await waitForRequestsToSettle(AboutDebugging.store);
 
   info("Force about:debugging to a different hash URL");
   aboutDebuggingTab.linkedBrowser.contentWindow.location.hash = "/setup";

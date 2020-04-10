@@ -943,8 +943,7 @@ uint32_t ActivePS::sNextGeneration = 0;
 #  undef PS_GET_LOCKLESS
 #  undef PS_GET_AND_SET
 
-Atomic<uint32_t, MemoryOrdering::Relaxed, recordreplay::Behavior::DontPreserve>
-    RacyFeatures::sActiveAndFeatures(0);
+Atomic<uint32_t, MemoryOrdering::Relaxed> RacyFeatures::sActiveAndFeatures(0);
 
 /* static */
 void RacyFeatures::SetActive(uint32_t aFeatures) {
@@ -2149,14 +2148,17 @@ void SamplerThread::Run() {
             auto state = localBlocksRingBuffer.GetState();
             if (state.mClearedBlockCount != previousState.mClearedBlockCount) {
               LOG("Stack sample too big for local storage, needed %u bytes",
-                  unsigned(state.mRangeEnd.ConvertToU64() -
-                           previousState.mRangeEnd.ConvertToU64()));
-            } else if (state.mRangeEnd.ConvertToU64() -
-                           previousState.mRangeEnd.ConvertToU64() >=
+                  unsigned(
+                      state.mRangeEnd.ConvertToProfileBufferIndex() -
+                      previousState.mRangeEnd.ConvertToProfileBufferIndex()));
+            } else if (state.mRangeEnd.ConvertToProfileBufferIndex() -
+                           previousState.mRangeEnd
+                               .ConvertToProfileBufferIndex() >=
                        CorePS::CoreBlocksRingBuffer().BufferLength()->Value()) {
               LOG("Stack sample too big for profiler storage, needed %u bytes",
-                  unsigned(state.mRangeEnd.ConvertToU64() -
-                           previousState.mRangeEnd.ConvertToU64()));
+                  unsigned(
+                      state.mRangeEnd.ConvertToProfileBufferIndex() -
+                      previousState.mRangeEnd.ConvertToProfileBufferIndex()));
             } else {
               CorePS::CoreBlocksRingBuffer().AppendContents(
                   localBlocksRingBuffer);

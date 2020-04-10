@@ -43,12 +43,12 @@ void VectorRemove(std::vector<T>& aVector, const T& aElement) {
 /** Lists of Observers */
 struct ObserverLists {
  private:
-  ~ObserverLists() {}
+  ~ObserverLists() = default;
 
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ObserverLists)
 
-  ObserverLists() {}
+  ObserverLists() = default;
 
   ObserverLists(ObserverLists const& aOther)
       : mCreateObservers(aOther.mCreateObservers),
@@ -80,7 +80,7 @@ class PerThreadData {
     MOZ_COUNT_CTOR(PerThreadData);
   }
 
-  ~PerThreadData() { MOZ_COUNT_DTOR(PerThreadData); }
+  MOZ_COUNTED_DTOR(PerThreadData)
 
   void CallObservers(mozilla::IOInterposeObserver::Observation& aObservation) {
     // Prevent recursive reporting.
@@ -162,7 +162,7 @@ class MasterList {
     MOZ_COUNT_CTOR(MasterList);
   }
 
-  ~MasterList() { MOZ_COUNT_DTOR(MasterList); }
+  MOZ_COUNTED_DTOR(MasterList)
 
   inline void Disable() { mIsEnabled = false; }
   inline void Enable() { mIsEnabled = true; }

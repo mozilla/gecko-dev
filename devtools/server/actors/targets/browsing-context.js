@@ -232,7 +232,7 @@ const browsingContextTargetPrototype = {
    * This class is subclassed by FrameTargetActor and others.
    * Subclasses are expected to implement a getter for the docShell property.
    *
-   * @param connection DebuggerServerConnection
+   * @param connection DevToolsServerConnection
    *        The conection to the client.
    */
   initialize: function(connection) {
@@ -518,6 +518,16 @@ const browsingContextTargetPrototype = {
     );
 
     Object.assign(response, actors);
+
+    // The thread actor is the only actor manually created by the target actor.
+    // It is not registered in targetScopedActorFactoriesand therefore needs
+    // to be added here manually.
+    if (this.threadActor) {
+      Object.assign(response, {
+        threadActor: this.threadActor.actorID,
+      });
+    }
+
     return response;
   },
 
@@ -1173,8 +1183,7 @@ const browsingContextTargetPrototype = {
    */
   _setCacheDisabled(disabled) {
     const enable = Ci.nsIRequest.LOAD_NORMAL;
-    const disable =
-      Ci.nsIRequest.LOAD_BYPASS_CACHE | Ci.nsIRequest.INHIBIT_CACHING;
+    const disable = Ci.nsIRequest.LOAD_BYPASS_CACHE;
 
     this.docShell.defaultLoadFlags = disabled ? disable : enable;
   },
@@ -1237,8 +1246,7 @@ const browsingContextTargetPrototype = {
       return null;
     }
 
-    const disable =
-      Ci.nsIRequest.LOAD_BYPASS_CACHE | Ci.nsIRequest.INHIBIT_CACHING;
+    const disable = Ci.nsIRequest.LOAD_BYPASS_CACHE;
     return this.docShell.defaultLoadFlags === disable;
   },
 

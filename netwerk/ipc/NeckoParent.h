@@ -128,10 +128,13 @@ class NeckoParent : public PNeckoParent {
                                           const uint16_t& port);
 
   already_AddRefed<PDocumentChannelParent> AllocPDocumentChannelParent(
-      PBrowserParent* aBrowser, const SerializedLoadContext& aSerialized,
+      PBrowserParent* aBrowser,
+      const dom::MaybeDiscarded<dom::BrowsingContext>& aContext,
+      const SerializedLoadContext& aSerialized,
       const DocumentChannelCreationArgs& args);
   virtual mozilla::ipc::IPCResult RecvPDocumentChannelConstructor(
       PDocumentChannelParent* aActor, PBrowserParent* aBrowser,
+      const dom::MaybeDiscarded<dom::BrowsingContext>& aContext,
       const SerializedLoadContext& aSerialized,
       const DocumentChannelCreationArgs& aArgs) override;
   bool DeallocPDocumentChannelParent(PDocumentChannelParent* channel);
@@ -151,8 +154,9 @@ class NeckoParent : public PNeckoParent {
       const nsCString& aFilter) override;
   bool DeallocPUDPSocketParent(PUDPSocketParent*);
   already_AddRefed<PDNSRequestParent> AllocPDNSRequestParent(
-      const nsCString& aHost, const nsCString& aTrrServer, const uint16_t& aType,
-      const OriginAttributes& aOriginAttributes, const uint32_t& aFlags);
+      const nsCString& aHost, const nsCString& aTrrServer,
+      const uint16_t& aType, const OriginAttributes& aOriginAttributes,
+      const uint32_t& aFlags);
   virtual mozilla::ipc::IPCResult RecvPDNSRequestConstructor(
       PDNSRequestParent* actor, const nsCString& hostName,
       const nsCString& trrServer, const uint16_t& type,

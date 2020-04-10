@@ -26,7 +26,11 @@ async function testResult(input, expected) {
     title: input.title,
   });
 
-  await promiseAutocompleteResultPopup(input.query);
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    waitForFocus: SimpleTest.waitForFocus,
+    value: input.query,
+  });
 
   let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
   Assert.equal(result.url, ESCAPED_URL, "Should have the correct url to load");
@@ -126,6 +130,31 @@ add_task(async function test_url_result_no_path() {
       highlightedUrl: [
         [
           (UrlbarPrefs.get("update1.view.stripHttps") ? "" : "https://") + "ex",
+          false,
+        ],
+        ["ample", true],
+        [".com", false],
+      ],
+    }
+  );
+});
+
+add_task(async function test_url_result_www() {
+  await testResult(
+    {
+      query: "ample",
+      title: "The Title",
+      url: "https://www.example.com/",
+    },
+    {
+      displayedUrl:
+        (UrlbarPrefs.get("update1.view.stripHttps") ? "" : "https://www.") +
+        "example.com",
+      highlightedTitle: [["The Title", false]],
+      highlightedUrl: [
+        [
+          (UrlbarPrefs.get("update1.view.stripHttps") ? "" : "https://www.") +
+            "ex",
           false,
         ],
         ["ample", true],

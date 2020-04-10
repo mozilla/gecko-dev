@@ -1665,7 +1665,7 @@ static DenseElementResult ArrayReverseDenseKernel(JSContext* cx,
 
 // ES2017 draft rev 1b0184bc17fc09a8ddcf4aeec9b6d9fcac4eafce
 // 22.1.3.21 Array.prototype.reverse ( )
-bool js::array_reverse(JSContext* cx, unsigned argc, Value* vp) {
+static bool array_reverse(JSContext* cx, unsigned argc, Value* vp) {
   AutoGeckoProfilerEntry pseudoFrame(
       cx, "Array.prototype.reverse", JS::ProfilingCategoryPair::JS,
       uint32_t(ProfilingStackFrame::Flags::RELEVANT_FOR_JS));
@@ -1906,8 +1906,8 @@ static bool ComparatorNumericRightMinusLeft(const NumericElement& a,
   return true;
 }
 
-typedef bool (*ComparatorNumeric)(const NumericElement& a,
-                                  const NumericElement& b, bool* lessOrEqualp);
+using ComparatorNumeric = bool (*)(const NumericElement&, const NumericElement&,
+                                   bool*);
 
 static const ComparatorNumeric SortComparatorNumerics[] = {
     nullptr, nullptr, ComparatorNumericLeftMinusRight,
@@ -1925,8 +1925,7 @@ static bool ComparatorInt32RightMinusLeft(const Value& a, const Value& b,
   return true;
 }
 
-typedef bool (*ComparatorInt32)(const Value& a, const Value& b,
-                                bool* lessOrEqualp);
+using ComparatorInt32 = bool (*)(const Value&, const Value&, bool*);
 
 static const ComparatorInt32 SortComparatorInt32s[] = {
     nullptr, nullptr, ComparatorInt32LeftMinusRight,
@@ -2656,7 +2655,7 @@ bool js::array_shift(JSContext* cx, unsigned argc, Value* vp) {
 
 // ES2017 draft rev 1b0184bc17fc09a8ddcf4aeec9b6d9fcac4eafce
 // 22.1.3.29 Array.prototype.unshift ( ...items )
-bool js::array_unshift(JSContext* cx, unsigned argc, Value* vp) {
+static bool array_unshift(JSContext* cx, unsigned argc, Value* vp) {
   AutoGeckoProfilerEntry pseudoFrame(
       cx, "Array.prototype.unshift", JS::ProfilingCategoryPair::JS,
       uint32_t(ProfilingStackFrame::Flags::RELEVANT_FOR_JS));
@@ -3243,7 +3242,7 @@ static bool array_splice_impl(JSContext* cx, unsigned argc, Value* vp,
 }
 
 /* ES 2016 draft Mar 25, 2016 22.1.3.26. */
-bool js::array_splice(JSContext* cx, unsigned argc, Value* vp) {
+static bool array_splice(JSContext* cx, unsigned argc, Value* vp) {
   return array_splice_impl(cx, argc, vp, true);
 }
 
@@ -3726,7 +3725,7 @@ static bool array_of(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-const JSJitInfo js::array_splice_info = {
+static const JSJitInfo array_splice_info = {
     {(JSJitGetterOp)array_splice_noRetVal},
     {0}, /* unused */
     {0}, /* unused */

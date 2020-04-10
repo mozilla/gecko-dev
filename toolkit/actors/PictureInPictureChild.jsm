@@ -63,8 +63,8 @@ XPCOMUtils.defineLazyGetter(this, "gToggleOverrides", () => {
  * hovering.
  */
 class PictureInPictureToggleChild extends JSWindowActorChild {
-  constructor(dispatcher) {
-    super(dispatcher);
+  constructor() {
+    super();
     // We need to maintain some state about various things related to the
     // Picture-in-Picture toggles - however, for now, the same
     // PictureInPictureToggleChild might be re-used for different documents.
@@ -1401,7 +1401,9 @@ class PictureInPictureChild extends JSWindowActorChild {
     if (focusedWindow) {
       let doc = focusedWindow.document;
       if (doc) {
-        let video = doc.querySelector("video");
+        let listOfVideos = doc.querySelectorAll("video");
+        let video =
+          Array.from(listOfVideos).filter(v => !v.paused)[0] || listOfVideos[0];
         if (video) {
           this.togglePictureInPicture(video);
         }

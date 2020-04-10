@@ -169,7 +169,7 @@ class MOZ_STACK_CLASS AutoSetCurrentTransaction final {
       MOZ_ASSERT(threadLocal);
 
       // Hang onto this for resetting later.
-      mThreadLocal = threadLocal->mIndexedDBThreadLocal;
+      mThreadLocal = threadLocal->mIndexedDBThreadLocal.get();
       MOZ_ASSERT(mThreadLocal);
 
       // Save the current value.
@@ -203,7 +203,7 @@ class MOZ_STACK_CLASS ResultHelper final : public IDBRequest::ResultCallback {
     IDBCursor* mCursor;
     IDBMutableFile* mMutableFile;
     StructuredCloneReadInfo* mStructuredClone;
-    const nsTArray<StructuredCloneReadInfo>* mStructuredCloneArray;
+    nsTArray<StructuredCloneReadInfo>* mStructuredCloneArray;
     const Key* mKey;
     const nsTArray<Key>* mKeyArray;
     const JS::Value* mJSVal;
@@ -266,7 +266,7 @@ class MOZ_STACK_CLASS ResultHelper final : public IDBRequest::ResultCallback {
   }
 
   ResultHelper(IDBRequest* aRequest, IDBTransaction* aTransaction,
-               const nsTArray<StructuredCloneReadInfo>* aResult)
+               nsTArray<StructuredCloneReadInfo>* aResult)
       : mRequest(aRequest),
         mAutoTransaction(aTransaction),
         mResultType(ResultTypeStructuredCloneArray) {
@@ -339,10 +339,11 @@ class MOZ_STACK_CLASS ResultHelper final : public IDBRequest::ResultCallback {
         return GetResult(aCx, mResult.mMutableFile, aResult);
 
       case ResultTypeStructuredClone:
-        return GetResult(aCx, mResult.mStructuredClone, aResult);
+        return GetResult(aCx, std::move(*mResult.mStructuredClone), aResult);
 
       case ResultTypeStructuredCloneArray:
-        return GetResult(aCx, mResult.mStructuredCloneArray, aResult);
+        return GetResult(aCx, std::move(*mResult.mStructuredCloneArray),
+                         aResult);
 
       case ResultTypeKey:
         return GetResult(aCx, mResult.mKey, aResult);
@@ -387,9 +388,10 @@ class MOZ_STACK_CLASS ResultHelper final : public IDBRequest::ResultCallback {
     return NS_OK;
   }
 
-  nsresult GetResult(JSContext* aCx, StructuredCloneReadInfo* aCloneInfo,
+  nsresult GetResult(JSContext* aCx, StructuredCloneReadInfo&& aCloneInfo,
                      JS::MutableHandle<JS::Value> aResult) {
-    const bool ok = IDBObjectStore::DeserializeValue(aCx, *aCloneInfo, aResult);
+    const bool ok =
+        IDBObjectStore::DeserializeValue(aCx, std::move(aCloneInfo), aResult);
 
     if (NS_WARN_IF(!ok)) {
       return NS_ERROR_DOM_DATA_CLONE_ERR;
@@ -399,7 +401,7 @@ class MOZ_STACK_CLASS ResultHelper final : public IDBRequest::ResultCallback {
   }
 
   nsresult GetResult(JSContext* aCx,
-                     const nsTArray<StructuredCloneReadInfo>* aCloneInfos,
+                     nsTArray<StructuredCloneReadInfo>&& aCloneInfos,
                      JS::MutableHandle<JS::Value> aResult) {
     JS::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
     if (NS_WARN_IF(!array)) {
@@ -407,8 +409,8 @@ class MOZ_STACK_CLASS ResultHelper final : public IDBRequest::ResultCallback {
       return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
     }
 
-    if (!aCloneInfos->IsEmpty()) {
-      const uint32_t count = aCloneInfos->Length();
+    if (!aCloneInfos.IsEmpty()) {
+      const uint32_t count = aCloneInfos.Length();
 
       if (NS_WARN_IF(!JS::SetArrayLength(aCx, array, count))) {
         IDB_REPORT_INTERNAL_ERR();
@@ -416,12 +418,11 @@ class MOZ_STACK_CLASS ResultHelper final : public IDBRequest::ResultCallback {
       }
 
       for (uint32_t index = 0; index < count; index++) {
-        auto& cloneInfo =
-            const_cast<StructuredCloneReadInfo&>(aCloneInfos->ElementAt(index));
+        auto& cloneInfo = aCloneInfos.ElementAt(index);
 
         JS::Rooted<JS::Value> value(aCx);
 
-        const nsresult rv = GetResult(aCx, &cloneInfo, &value);
+        const nsresult rv = GetResult(aCx, std::move(cloneInfo), &value);
         if (NS_WARN_IF(NS_FAILED(rv))) {
           return rv;
         }
@@ -845,12 +846,12 @@ class WorkerPermissionChallenge final : public Runnable {
   WorkerPermissionChallenge(WorkerPrivate* aWorkerPrivate,
                             BackgroundFactoryRequestChild* aActor,
                             IDBFactory* aFactory,
-                            const PrincipalInfo& aPrincipalInfo)
+                            PrincipalInfo&& aPrincipalInfo)
       : Runnable("indexedDB::WorkerPermissionChallenge"),
         mWorkerPrivate(aWorkerPrivate),
         mActor(aActor),
         mFactory(aFactory),
-        mPrincipalInfo(aPrincipalInfo) {
+        mPrincipalInfo(std::move(aPrincipalInfo)) {
     MOZ_ASSERT(mWorkerPrivate);
     MOZ_ASSERT(aActor);
     MOZ_ASSERT(aFactory);
@@ -952,14 +953,11 @@ class WorkerPermissionChallenge final : public Runnable {
     BrowserChild* browserChild = BrowserChild::GetFrom(window);
     MOZ_ASSERT(browserChild);
 
-    IPC::Principal ipcPrincipal(principal);
-
     RefPtr<WorkerPermissionChallenge> self(this);
-    browserChild->SendIndexedDBPermissionRequest(ipcPrincipal)
-        ->Then(
-            GetCurrentThreadSerialEventTarget(), __func__,
-            [self](const uint32_t& aPermission) { self->OperationCompleted(); },
-            [](const mozilla::ipc::ResponseRejectReason) {});
+    browserChild->SendIndexedDBPermissionRequest(principal)->Then(
+        GetCurrentThreadSerialEventTarget(), __func__,
+        [self](const uint32_t& aPermission) { self->OperationCompleted(); },
+        [](const mozilla::ipc::ResponseRejectReason) {});
     return false;
   }
 
@@ -1681,7 +1679,7 @@ mozilla::ipc::IPCResult BackgroundFactoryRequestChild::Recv__delete__(
 }
 
 mozilla::ipc::IPCResult BackgroundFactoryRequestChild::RecvPermissionChallenge(
-    const PrincipalInfo& aPrincipalInfo) {
+    PrincipalInfo&& aPrincipalInfo) {
   AssertIsOnOwningThread();
 
   MaybeCollectGarbageOnIPCMessage();
@@ -1692,7 +1690,7 @@ mozilla::ipc::IPCResult BackgroundFactoryRequestChild::RecvPermissionChallenge(
     workerPrivate->AssertIsOnWorkerThread();
 
     RefPtr<WorkerPermissionChallenge> challenge = new WorkerPermissionChallenge(
-        workerPrivate, this, mFactory, aPrincipalInfo);
+        workerPrivate, this, mFactory, std::move(aPrincipalInfo));
     if (!challenge->Dispatch()) {
       return IPC_FAIL_NO_REASON(this);
     }
@@ -1744,23 +1742,20 @@ mozilla::ipc::IPCResult BackgroundFactoryRequestChild::RecvPermissionChallenge(
   RefPtr<BrowserChild> browserChild = mFactory->GetBrowserChild();
   MOZ_ASSERT(browserChild);
 
-  IPC::Principal ipcPrincipal(principal);
-
-  browserChild->SendIndexedDBPermissionRequest(ipcPrincipal)
-      ->Then(
-          GetCurrentThreadSerialEventTarget(), __func__,
-          [this](const uint32_t& aPermission) {
-            this->AssertIsOnOwningThread();
-            MaybeCollectGarbageOnIPCMessage();
-            this->SendPermissionRetry();
-          },
-          [](const mozilla::ipc::ResponseRejectReason) {});
+  browserChild->SendIndexedDBPermissionRequest(principal)->Then(
+      GetCurrentThreadSerialEventTarget(), __func__,
+      [this](const uint32_t& aPermission) {
+        this->AssertIsOnOwningThread();
+        MaybeCollectGarbageOnIPCMessage();
+        this->SendPermissionRetry();
+      },
+      [](const mozilla::ipc::ResponseRejectReason) {});
 
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult BackgroundFactoryRequestChild::RecvBlocked(
-    const uint64_t& aCurrentVersion) {
+    const uint64_t aCurrentVersion) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mRequest);
 
@@ -1941,8 +1936,8 @@ bool BackgroundDatabaseChild::DeallocPBackgroundIDBTransactionChild(
 
 PBackgroundIDBVersionChangeTransactionChild*
 BackgroundDatabaseChild::AllocPBackgroundIDBVersionChangeTransactionChild(
-    const uint64_t& aCurrentVersion, const uint64_t& aRequestedVersion,
-    const int64_t& aNextObjectStoreId, const int64_t& aNextIndexId) {
+    const uint64_t aCurrentVersion, const uint64_t aRequestedVersion,
+    const int64_t aNextObjectStoreId, const int64_t aNextIndexId) {
   AssertIsOnOwningThread();
 
   IDBOpenDBRequest* request = mOpenRequestActor->GetOpenDBRequest();
@@ -2021,7 +2016,7 @@ bool BackgroundDatabaseChild::DeallocPBackgroundMutableFileChild(
 }
 
 mozilla::ipc::IPCResult BackgroundDatabaseChild::RecvVersionChange(
-    const uint64_t& aOldVersion, const Maybe<uint64_t>& aNewVersion) {
+    const uint64_t aOldVersion, const Maybe<uint64_t> aNewVersion) {
   AssertIsOnOwningThread();
 
   MaybeCollectGarbageOnIPCMessage();
@@ -2300,7 +2295,7 @@ void BackgroundTransactionChild::ActorDestroy(ActorDestroyReason aWhy) {
 }
 
 mozilla::ipc::IPCResult BackgroundTransactionChild::RecvComplete(
-    const nsresult& aResult) {
+    const nsresult aResult) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mTransaction);
 
@@ -2396,7 +2391,7 @@ void BackgroundVersionChangeTransactionChild::ActorDestroy(
 }
 
 mozilla::ipc::IPCResult BackgroundVersionChangeTransactionChild::RecvComplete(
-    const nsresult& aResult) {
+    const nsresult aResult) {
   AssertIsOnOwningThread();
 
   MaybeCollectGarbageOnIPCMessage();
@@ -2669,15 +2664,11 @@ void BackgroundRequestChild::HandleResponse(const nsTArray<Key>& aResponse) {
 }
 
 void BackgroundRequestChild::HandleResponse(
-    const SerializedStructuredCloneReadInfo& aResponse) {
+    SerializedStructuredCloneReadInfo&& aResponse) {
   AssertIsOnOwningThread();
 
-  // XXX Fix this somehow...
-  auto& serializedCloneInfo =
-      const_cast<SerializedStructuredCloneReadInfo&>(aResponse);
-
   auto cloneReadInfo = DeserializeStructuredCloneReadInfo(
-      std::move(serializedCloneInfo), mTransaction->Database());
+      std::move(aResponse), mTransaction->Database());
 
   if (cloneReadInfo.mHasPreprocessInfo) {
     UniquePtr<JSStructuredCloneData> cloneData = GetNextCloneData();
@@ -2690,7 +2681,7 @@ void BackgroundRequestChild::HandleResponse(
 }
 
 void BackgroundRequestChild::HandleResponse(
-    const nsTArray<SerializedStructuredCloneReadInfo>& aResponse) {
+    nsTArray<SerializedStructuredCloneReadInfo>&& aResponse) {
   AssertIsOnOwningThread();
 
   nsTArray<StructuredCloneReadInfo> cloneReadInfos;
@@ -2701,14 +2692,11 @@ void BackgroundRequestChild::HandleResponse(
     cloneReadInfos.SetCapacity(count);
 
     std::transform(
-        aResponse.begin(), aResponse.end(), MakeBackInserter(cloneReadInfos),
-        [database = mTransaction->Database(), this](
-            const SerializedStructuredCloneReadInfo& constSerializedCloneInfo) {
-          // XXX Fix the need for the const_cast somehow...
-          auto& serializedCloneInfo =
-              const_cast<SerializedStructuredCloneReadInfo&>(
-                  constSerializedCloneInfo);
-
+        std::make_move_iterator(aResponse.begin()),
+        std::make_move_iterator(aResponse.end()),
+        MakeBackInserter(cloneReadInfos),
+        [database = mTransaction->Database(),
+         this](SerializedStructuredCloneReadInfo&& serializedCloneInfo) {
           auto cloneReadInfo = DeserializeStructuredCloneReadInfo(
               std::move(serializedCloneInfo), database);
 
@@ -2824,7 +2812,7 @@ void BackgroundRequestChild::ActorDestroy(ActorDestroyReason aWhy) {
 }
 
 mozilla::ipc::IPCResult BackgroundRequestChild::Recv__delete__(
-    const RequestResponse& aResponse) {
+    RequestResponse&& aResponse) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mRequest);
   MOZ_ASSERT(mTransaction);
@@ -2850,7 +2838,8 @@ mozilla::ipc::IPCResult BackgroundRequestChild::Recv__delete__(
         break;
 
       case RequestResponse::TObjectStoreGetResponse:
-        HandleResponse(aResponse.get_ObjectStoreGetResponse().cloneInfo());
+        HandleResponse(
+            std::move(aResponse.get_ObjectStoreGetResponse().cloneInfo()));
         break;
 
       case RequestResponse::TObjectStoreGetKeyResponse:
@@ -2858,7 +2847,8 @@ mozilla::ipc::IPCResult BackgroundRequestChild::Recv__delete__(
         break;
 
       case RequestResponse::TObjectStoreGetAllResponse:
-        HandleResponse(aResponse.get_ObjectStoreGetAllResponse().cloneInfos());
+        HandleResponse(
+            std::move(aResponse.get_ObjectStoreGetAllResponse().cloneInfos()));
         break;
 
       case RequestResponse::TObjectStoreGetAllKeysResponse:
@@ -2875,7 +2865,7 @@ mozilla::ipc::IPCResult BackgroundRequestChild::Recv__delete__(
         break;
 
       case RequestResponse::TIndexGetResponse:
-        HandleResponse(aResponse.get_IndexGetResponse().cloneInfo());
+        HandleResponse(std::move(aResponse.get_IndexGetResponse().cloneInfo()));
         break;
 
       case RequestResponse::TIndexGetKeyResponse:
@@ -2883,7 +2873,8 @@ mozilla::ipc::IPCResult BackgroundRequestChild::Recv__delete__(
         break;
 
       case RequestResponse::TIndexGetAllResponse:
-        HandleResponse(aResponse.get_IndexGetAllResponse().cloneInfos());
+        HandleResponse(
+            std::move(aResponse.get_IndexGetAllResponse().cloneInfos()));
         break;
 
       case RequestResponse::TIndexGetAllKeysResponse:
@@ -2951,8 +2942,8 @@ mozilla::ipc::IPCResult BackgroundRequestChild::RecvPreprocess(
 nsresult BackgroundRequestChild::PreprocessHelper::Init(
     const StructuredCloneFile& aFile) {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(aFile.mBlob);
-  MOZ_ASSERT(aFile.mType == StructuredCloneFile::eStructuredClone);
+  MOZ_ASSERT(aFile.HasBlob());
+  MOZ_ASSERT(aFile.Type() == StructuredCloneFile::eStructuredClone);
   MOZ_ASSERT(mState == State::Initial);
 
   // The stream transport service is used for asynchronous processing. It has a
@@ -2971,7 +2962,8 @@ nsresult BackgroundRequestChild::PreprocessHelper::Init(
   ErrorResult errorResult;
 
   nsCOMPtr<nsIInputStream> stream;
-  aFile.mBlob->CreateInputStream(getter_AddRefs(stream), errorResult);
+  // XXX After Bug 1620560, MutableBlob is not needed here anymore.
+  aFile.MutableBlob().CreateInputStream(getter_AddRefs(stream), errorResult);
   if (NS_WARN_IF(errorResult.Failed())) {
     return errorResult.StealNSResult();
   }
@@ -3554,7 +3546,7 @@ BackgroundCursorChild<CursorType>::HandleIndividualCursorResponse(
 template <IDBCursorType CursorType>
 template <typename T, typename Func>
 void BackgroundCursorChild<CursorType>::HandleMultipleCursorResponses(
-    const nsTArray<T>& aResponses, const Func& aHandleRecord) {
+    nsTArray<T>&& aResponses, const Func& aHandleRecord) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mRequest);
   MOZ_ASSERT(mTransaction);
@@ -3568,15 +3560,12 @@ void BackgroundCursorChild<CursorType>::HandleMultipleCursorResponses(
       aResponses.Length());
   MOZ_ASSERT_IF(aResponses.Length() > 1, mCachedResponses.empty());
 
-  // XXX Fix this somehow...
-  auto& responses = const_cast<nsTArray<T>&>(aResponses);
-
   // If a new cursor is created, we need to keep a reference to it until the
   // ResultHelper creates a DOM Binding.
   RefPtr<IDBCursor> strongNewCursor;
 
   bool isFirst = true;
-  for (auto& response : responses) {
+  for (auto& response : aResponses) {
     IDB_LOG_MARK_CHILD_TRANSACTION_REQUEST(
         "PRELOAD: Processing response for key %s", "Processing",
         mTransaction->LoggingSerialNumber(),
@@ -3588,7 +3577,7 @@ void BackgroundCursorChild<CursorType>::HandleMultipleCursorResponses(
     // we extended this towards preloading in the background, all results
     // might need to be cached.
     auto maybeNewCursor =
-        aHandleRecord(/* aUseAsCurrentResult */ isFirst, response);
+        aHandleRecord(/* aUseAsCurrentResult */ isFirst, std::move(response));
     if (maybeNewCursor) {
       MOZ_ASSERT(!strongNewCursor);
       strongNewCursor = std::move(maybeNewCursor);
@@ -3613,13 +3602,13 @@ void BackgroundCursorChild<CursorType>::HandleMultipleCursorResponses(
 
 template <IDBCursorType CursorType>
 void BackgroundCursorChild<CursorType>::HandleResponse(
-    const nsTArray<ObjectStoreCursorResponse>& aResponses) {
+    nsTArray<ObjectStoreCursorResponse>&& aResponses) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mTransaction);
 
   HandleMultipleCursorResponses(
-      aResponses, [this](const bool useAsCurrentResult,
-                         ObjectStoreCursorResponse& response) {
+      std::move(aResponses), [this](const bool useAsCurrentResult,
+                                    ObjectStoreCursorResponse&& response) {
         // TODO: Maybe move the deserialization of the clone-read-info into
         // the cursor, so that it is only done for records actually accessed,
         // which might not be the case for all cached records.
@@ -3632,12 +3621,12 @@ void BackgroundCursorChild<CursorType>::HandleResponse(
 
 template <IDBCursorType CursorType>
 void BackgroundCursorChild<CursorType>::HandleResponse(
-    const nsTArray<ObjectStoreKeyCursorResponse>& aResponses) {
+    nsTArray<ObjectStoreKeyCursorResponse>&& aResponses) {
   AssertIsOnOwningThread();
 
   HandleMultipleCursorResponses(
-      aResponses, [this](const bool useAsCurrentResult,
-                         ObjectStoreKeyCursorResponse& response) {
+      std::move(aResponses), [this](const bool useAsCurrentResult,
+                                    ObjectStoreKeyCursorResponse&& response) {
         return HandleIndividualCursorResponse(useAsCurrentResult,
                                               std::move(response.key()));
       });
@@ -3645,13 +3634,13 @@ void BackgroundCursorChild<CursorType>::HandleResponse(
 
 template <IDBCursorType CursorType>
 void BackgroundCursorChild<CursorType>::HandleResponse(
-    const nsTArray<IndexCursorResponse>& aResponses) {
+    nsTArray<IndexCursorResponse>&& aResponses) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mTransaction);
 
   HandleMultipleCursorResponses(
-      aResponses,
-      [this](const bool useAsCurrentResult, IndexCursorResponse& response) {
+      std::move(aResponses),
+      [this](const bool useAsCurrentResult, IndexCursorResponse&& response) {
         return HandleIndividualCursorResponse(
             useAsCurrentResult, std::move(response.key()),
             std::move(response.sortKey()), std::move(response.objectKey()),
@@ -3662,13 +3651,13 @@ void BackgroundCursorChild<CursorType>::HandleResponse(
 
 template <IDBCursorType CursorType>
 void BackgroundCursorChild<CursorType>::HandleResponse(
-    const nsTArray<IndexKeyCursorResponse>& aResponses) {
+    nsTArray<IndexKeyCursorResponse>&& aResponses) {
   AssertIsOnOwningThread();
   static_assert(!CursorTypeTraits<CursorType>::IsObjectStoreCursor);
 
   HandleMultipleCursorResponses(
-      aResponses,
-      [this](const bool useAsCurrentResult, IndexKeyCursorResponse& response) {
+      std::move(aResponses),
+      [this](const bool useAsCurrentResult, IndexKeyCursorResponse&& response) {
         return HandleIndividualCursorResponse(
             useAsCurrentResult, std::move(response.key()),
             std::move(response.sortKey()), std::move(response.objectKey()));
@@ -3704,7 +3693,7 @@ void BackgroundCursorChild<CursorType>::ActorDestroy(ActorDestroyReason aWhy) {
 
 template <IDBCursorType CursorType>
 mozilla::ipc::IPCResult BackgroundCursorChild<CursorType>::RecvResponse(
-    const CursorResponse& aResponse) {
+    CursorResponse&& aResponse) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aResponse.type() != CursorResponse::T__None);
   MOZ_ASSERT(mRequest);
@@ -3732,7 +3721,8 @@ mozilla::ipc::IPCResult BackgroundCursorChild<CursorType>::RecvResponse(
 
     case CursorResponse::TArrayOfObjectStoreCursorResponse:
       if constexpr (CursorType == IDBCursorType::ObjectStore) {
-        HandleResponse(aResponse.get_ArrayOfObjectStoreCursorResponse());
+        HandleResponse(
+            std::move(aResponse.get_ArrayOfObjectStoreCursorResponse()));
       } else {
         MOZ_CRASH("Response type mismatch");
       }
@@ -3740,7 +3730,8 @@ mozilla::ipc::IPCResult BackgroundCursorChild<CursorType>::RecvResponse(
 
     case CursorResponse::TArrayOfObjectStoreKeyCursorResponse:
       if constexpr (CursorType == IDBCursorType::ObjectStoreKey) {
-        HandleResponse(aResponse.get_ArrayOfObjectStoreKeyCursorResponse());
+        HandleResponse(
+            std::move(aResponse.get_ArrayOfObjectStoreKeyCursorResponse()));
       } else {
         MOZ_CRASH("Response type mismatch");
       }
@@ -3748,7 +3739,7 @@ mozilla::ipc::IPCResult BackgroundCursorChild<CursorType>::RecvResponse(
 
     case CursorResponse::TArrayOfIndexCursorResponse:
       if constexpr (CursorType == IDBCursorType::Index) {
-        HandleResponse(aResponse.get_ArrayOfIndexCursorResponse());
+        HandleResponse(std::move(aResponse.get_ArrayOfIndexCursorResponse()));
       } else {
         MOZ_CRASH("Response type mismatch");
       }
@@ -3756,7 +3747,8 @@ mozilla::ipc::IPCResult BackgroundCursorChild<CursorType>::RecvResponse(
 
     case CursorResponse::TArrayOfIndexKeyCursorResponse:
       if constexpr (CursorType == IDBCursorType::IndexKey) {
-        HandleResponse(aResponse.get_ArrayOfIndexKeyCursorResponse());
+        HandleResponse(
+            std::move(aResponse.get_ArrayOfIndexKeyCursorResponse()));
       } else {
         MOZ_CRASH("Response type mismatch");
       }
@@ -3864,7 +3856,7 @@ void BackgroundFileHandleChild::ActorDestroy(ActorDestroyReason aWhy) {
 }
 
 mozilla::ipc::IPCResult BackgroundFileHandleChild::RecvComplete(
-    const bool& aAborted) {
+    const bool aAborted) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mFileHandle);
 
@@ -4023,7 +4015,7 @@ mozilla::ipc::IPCResult BackgroundFileRequestChild::Recv__delete__(
 }
 
 mozilla::ipc::IPCResult BackgroundFileRequestChild::RecvProgress(
-    const uint64_t& aProgress, const uint64_t& aProgressMax) {
+    const uint64_t aProgress, const uint64_t aProgressMax) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mFileRequest);
 

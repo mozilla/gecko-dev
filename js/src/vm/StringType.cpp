@@ -28,6 +28,7 @@
 
 #include "frontend/BytecodeCompiler.h"
 #include "gc/Marking.h"
+#include "gc/MaybeRooted.h"
 #include "gc/Nursery.h"
 #include "js/CharacterEncoding.h"
 #include "js/StableStringChars.h"
@@ -404,7 +405,7 @@ static MOZ_ALWAYS_INLINE bool AllocChars(JSString* str, size_t length,
   *capacity =
       length > DOUBLING_MAX ? length + (length / 8) : RoundUpPow2(length);
 
-  JS_STATIC_ASSERT(JSString::MAX_LENGTH * sizeof(CharT) <= UINT32_MAX);
+  static_assert(JSString::MAX_LENGTH * sizeof(CharT) <= UINT32_MAX);
   *chars =
       str->zone()->pod_arena_malloc<CharT>(js::StringBufferArena, *capacity);
   return *chars != nullptr;

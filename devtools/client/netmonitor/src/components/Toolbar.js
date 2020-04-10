@@ -160,7 +160,7 @@ class Toolbar extends Component {
       // Executed when throttling changes (through toolbar button).
       onChangeNetworkThrottling: PropTypes.func.isRequired,
       toggleSearchPanel: PropTypes.func.isRequired,
-      networkActionBarOpen: PropTypes.bool.isRequired,
+      networkActionBarOpen: PropTypes.bool,
       toggleRequestBlockingPanel: PropTypes.func.isRequired,
       networkActionBarSelectedPanel: PropTypes.string.isRequired,
       hasBlockedRequests: PropTypes.bool.isRequired,
@@ -619,7 +619,7 @@ module.exports = connect(
     recording: getRecordingState(state),
     requestFilterTypes: state.filters.requestFilterTypes,
     networkThrottling: state.networkThrottling,
-    networkActionBarOpen: state.search.panelOpen,
+    networkActionBarOpen: state.ui.networkActionOpen,
     networkActionBarSelectedPanel: state.ui.selectedActionBarTabId || "",
     selectedRequest: getSelectedRequest(state),
   }),

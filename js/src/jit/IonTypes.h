@@ -42,9 +42,9 @@ class IonCompilationId {
 
 namespace jit {
 
-typedef uint32_t RecoverOffset;
-typedef uint32_t SnapshotOffset;
-typedef uint32_t BailoutId;
+using RecoverOffset = uint32_t;
+using SnapshotOffset = uint32_t;
+using BailoutId = uint32_t;
 
 // The maximum size of any buffer associated with an assembler or code object.
 // This is chosen to not overflow a signed integer, leaving room for an extra
@@ -71,8 +71,8 @@ enum BailoutKind {
   // We just lump them together.
   Bailout_DuringVMCall,
 
-  // Call to a non-JSFunction (problem for |apply|)
-  Bailout_NonJSFunctionCallee,
+  // Too many arguments for apply calls.
+  Bailout_TooManyArguments,
 
   // Dynamic scope chain lookup produced |undefined|
   Bailout_DynamicNameNotFound,
@@ -137,12 +137,6 @@ enum BailoutKind {
   // We hit a |debugger;| statement.
   Bailout_Debugger,
 
-  // |this| used uninitialized in a derived constructor
-  Bailout_UninitializedThis,
-
-  // Derived constructors must return object or undefined
-  Bailout_BadDerivedConstructorReturn,
-
   // We hit this code for the first time.
   Bailout_FirstExecution,
 
@@ -168,8 +162,6 @@ enum BailoutKind {
 
   // A bailout triggered by a bounds-check failure.
   Bailout_BoundsCheck,
-  // A bailout triggered by a typed object whose backing buffer was detached.
-  Bailout_Detached,
 
   // A shape guard based on TI information failed.
   // (We saw an object whose shape does not match that / any of those observed
@@ -190,8 +182,8 @@ inline const char* BailoutKindString(BailoutKind kind) {
       return "Bailout_Inevitable";
     case Bailout_DuringVMCall:
       return "Bailout_DuringVMCall";
-    case Bailout_NonJSFunctionCallee:
-      return "Bailout_NonJSFunctionCallee";
+    case Bailout_TooManyArguments:
+      return "Bailout_TooManyArguments";
     case Bailout_DynamicNameNotFound:
       return "Bailout_DynamicNameNotFound";
     case Bailout_StringArgumentsEval:
@@ -236,10 +228,6 @@ inline const char* BailoutKindString(BailoutKind kind) {
       return "Bailout_NonSharedTypedArrayInput";
     case Bailout_Debugger:
       return "Bailout_Debugger";
-    case Bailout_UninitializedThis:
-      return "Bailout_UninitializedThis";
-    case Bailout_BadDerivedConstructorReturn:
-      return "Bailout_BadDerivedConstructorReturn";
     case Bailout_FirstExecution:
       return "Bailout_FirstExecution";
 
@@ -254,8 +242,6 @@ inline const char* BailoutKindString(BailoutKind kind) {
       return "Bailout_ArgumentCheck";
     case Bailout_BoundsCheck:
       return "Bailout_BoundsCheck";
-    case Bailout_Detached:
-      return "Bailout_Detached";
     case Bailout_ShapeGuard:
       return "Bailout_ShapeGuard";
     case Bailout_UninitializedLexical:
@@ -414,7 +400,7 @@ class SimdConstant {
   bool operator!=(const SimdConstant& rhs) const { return !operator==(rhs); }
 
   // SimdConstant is a HashPolicy
-  typedef SimdConstant Lookup;
+  using Lookup = SimdConstant;
   static HashNumber hash(const SimdConstant& val) {
     uint32_t hash = mozilla::HashBytes(&val.u, sizeof(val.u));
     return mozilla::AddToHash(hash, val.type_);
@@ -462,13 +448,14 @@ enum class MIRType : uint8_t {
   // Types above are specialized.
   Value,
   ObjectOrNull,
-  None,         // Invalid, used as a placeholder.
-  Slots,        // A slots vector
-  Elements,     // An elements vector
-  Pointer,      // An opaque pointer that receives no special treatment
-  RefOrNull,    // Wasm Ref/AnyRef/NullRef: a raw JSObject* or a raw (void*)0
-  Shape,        // A Shape pointer.
-  ObjectGroup,  // An ObjectGroup pointer.
+  None,          // Invalid, used as a placeholder.
+  Slots,         // A slots vector
+  Elements,      // An elements vector
+  Pointer,       // An opaque pointer that receives no special treatment
+  RefOrNull,     // Wasm Ref/AnyRef/NullRef: a raw JSObject* or a raw (void*)0
+  StackResults,  // Wasm multi-value stack result area, which may contain refs
+  Shape,         // A Shape pointer.
+  ObjectGroup,   // An ObjectGroup pointer.
   Last = ObjectGroup,
   // Representing both SIMD.IntBxN and SIMD.UintBxN.
   Int8x16 = Int32 | (4 << VECTOR_SCALE_SHIFT),
@@ -615,6 +602,8 @@ static inline const char* StringFromMIRType(MIRType type) {
       return "Pointer";
     case MIRType::RefOrNull:
       return "RefOrNull";
+    case MIRType::StackResults:
+      return "StackResults";
     case MIRType::Shape:
       return "Shape";
     case MIRType::ObjectGroup:
@@ -923,7 +912,7 @@ enum class RoundingMode { Down, Up, NearestTiesToEven, TowardsZero };
 static const uint32_t MAX_UNCHECKED_LEAF_FRAME_SIZE = 64;
 
 // Truncating conversion modifiers.
-typedef uint32_t TruncFlags;
+using TruncFlags = uint32_t;
 static const TruncFlags TRUNC_UNSIGNED = TruncFlags(1) << 0;
 static const TruncFlags TRUNC_SATURATING = TruncFlags(1) << 1;
 

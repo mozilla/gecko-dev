@@ -58,6 +58,7 @@ signing_description_schema = schema.extend({
 
     Optional('shipping-phase'): task_description_schema['shipping-phase'],
     Optional('shipping-product'): task_description_schema['shipping-product'],
+    Optional('dependent-tasks'): {text_type: object},
 
     # Optional control for how long a task may run (aka maxRunTime)
     Optional('max-run-time'): int,
@@ -74,7 +75,9 @@ signing_description_schema = schema.extend({
 @transforms.add
 def set_defaults(config, jobs):
     for job in jobs:
-        job.setdefault('depname', 'build')
+        if not job.get('depname'):
+            dep_job = job['primary-dependency']
+            job['depname'] = dep_job.kind
         yield job
 
 
@@ -166,7 +169,7 @@ def make_task_description(config, jobs):
                        'upstream-artifacts': job['upstream-artifacts'],
                        'max-run-time': job.get('max-run-time', 3600)},
             'scopes': [signing_cert_scope] + signing_format_scopes,
-            'dependencies': {job['depname']: dep_job.label},
+            'dependencies': _generate_dependencies(job),
             'attributes': attributes,
             'run-on-projects': dep_job.attributes.get('run_on_projects'),
             'optimization': dep_job.optimization,
@@ -176,6 +179,31 @@ def make_task_description(config, jobs):
         }
 
         if 'macosx' in build_platform:
+            shippable = "false"
+            if "shippable" in attributes and attributes["shippable"]:
+                shippable = "true"
+            # remove the nightly check once nightly is gone as an attribute
+            if "nightly" in attributes and attributes["nightly"]:
+                shippable = "true"
+            mac_behavior = evaluate_keyed_by(
+                config.graph_config['mac-notarization']['mac-behavior'],
+                'mac behavior',
+                {
+                    'project': config.params['project'],
+                    'shippable': shippable,
+                },
+            )
+            if mac_behavior == 'mac_notarize':
+                if 'part-1' in config.kind:
+                    mac_behavior = 'mac_notarize_part_1'
+                elif config.kind.endswith('signing'):
+                    mac_behavior = 'mac_notarize_part_3'
+                else:
+                    raise Exception("Unknown kind {} for mac_behavior!".format(config.kind))
+            else:
+                if 'part-1' in config.kind:
+                    continue
+            task['worker']['mac-behavior'] = mac_behavior
             worker_type_alias_map = {
                 'linux-depsigning': 'mac-depsigning',
                 'linux-signing': 'mac-signing',
@@ -188,15 +216,6 @@ def make_task_description(config, jobs):
                     " ({} not found in mapping)".format(worker_type_alias)
                 )
             worker_type_alias = worker_type_alias_map[worker_type_alias]
-            mac_behavior = evaluate_keyed_by(
-                config.graph_config['mac-notarization']['mac-behavior'],
-                'mac behavior',
-                {
-                    'release-type': config.params['release_type'],
-                    'platform': build_platform,
-                },
-            )
-            task['worker']['mac-behavior'] = mac_behavior
             if job.get('entitlements-url'):
                 task['worker']['entitlements-url'] = job['entitlements-url']
 
@@ -210,6 +229,15 @@ def make_task_description(config, jobs):
             task['priority'] = job['priority']
 
         yield task
+
+
+def _generate_dependencies(job):
+    if isinstance(job.get('dependent-tasks'), dict):
+        deps = {}
+        for k, v in job['dependent-tasks'].items():
+            deps[k] = v.label
+        return deps
+    return {job['depname']: job['primary-dependency'].label}
 
 
 def _generate_treeherder_platform(dep_th_platform, build_platform, build_type):

@@ -30,9 +30,9 @@ using namespace js::gc;
 
 using JS::AutoGCRooter;
 
-typedef RootedValueMap::Range RootRange;
-typedef RootedValueMap::Entry RootEntry;
-typedef RootedValueMap::Enum RootEnum;
+using RootRange = RootedValueMap::Range;
+using RootEntry = RootedValueMap::Entry;
+using RootEnum = RootedValueMap::Enum;
 
 template <typename T>
 using TraceFunction = void (*)(JSTracer* trc, T* ref, const char* name);
@@ -285,7 +285,7 @@ void js::gc::GCRuntime::traceRuntimeForMajorGC(JSTracer* trc,
         trc, Compartment::NonGrayEdges);
   }
 
-  markFinalizationGroupData(trc);
+  markFinalizationGroupRoots(trc);
 
   traceRuntimeCommon(trc, MarkRuntime);
 }
@@ -302,8 +302,6 @@ void js::gc::GCRuntime::traceRuntimeForMinorGC(JSTracer* trc,
   // roots via the edges stored by the pre-barrier verifier when we finish
   // the verifier for the last time.
   gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::MARK_ROOTS);
-
-  jit::JitRuntime::TraceJitcodeGlobalTableForMinorGC(trc);
 
   traceRuntimeCommon(trc, TraceRuntime);
 }
@@ -480,6 +478,7 @@ void js::gc::GCRuntime::finishRoots() {
   rt->finishPersistentRoots();
 
   rt->finishSelfHosting();
+  selfHostingZoneFrozen = false;
 
   for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next()) {
     zone->finishRoots();
@@ -514,7 +513,7 @@ class BufferGrayRootsTracer final : public JS::CallbackTracer {
   bool onStringEdge(JSString** stringp) override {
     return bufferRoot(*stringp);
   }
-  bool onScriptEdge(JSScript** scriptp) override {
+  bool onScriptEdge(js::BaseScript** scriptp) override {
     return bufferRoot(*scriptp);
   }
   bool onSymbolEdge(JS::Symbol** symbolp) override {

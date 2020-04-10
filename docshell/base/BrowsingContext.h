@@ -16,6 +16,7 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/LoadURIOptionsBinding.h"
 #include "mozilla/dom/LocationBase.h"
+#include "mozilla/dom/MaybeDiscarded.h"
 #include "mozilla/dom/FeaturePolicyUtils.h"
 #include "mozilla/dom/SessionStorageManager.h"
 #include "mozilla/dom/UserActivation.h"
@@ -31,6 +32,7 @@
 
 class nsDocShellLoadState;
 class nsGlobalWindowOuter;
+class nsILoadInfo;
 class nsIPrincipal;
 class nsOuterWindowProxy;
 class PickleIterator;
@@ -106,7 +108,9 @@ class WindowProxyHolder;
   FIELD(GVInaudibleAutoplayRequestStatus, GVAutoplayRequestStatus)           \
   /* ScreenOrientation-related APIs */                                       \
   FIELD(CurrentOrientationAngle, float)                                      \
-  FIELD(CurrentOrientationType, mozilla::dom::OrientationType)
+  FIELD(CurrentOrientationType, mozilla::dom::OrientationType)               \
+  FIELD(UserAgentOverride, nsString)                                         \
+  FIELD(EmbedderElementType, Maybe<nsString>)
 
 // BrowsingContext, in this context, is the cross process replicated
 // environment in which information about documents is stored. In
@@ -155,6 +159,26 @@ class BrowsingContext : public nsISupports, public nsWrapperCache {
                                                   const nsAString& aName,
                                                   Type aType);
 
+  // Same as the above, but does not immediately attach the browsing context.
+  // `EnsureAttached()` must be called before the BrowsingContext is used for a
+  // DocShell, BrowserParent, or BrowserBridgeChild.
+  static already_AddRefed<BrowsingContext> CreateDetached(
+      BrowsingContext* aParent, BrowsingContext* aOpener,
+      const nsAString& aName, Type aType);
+
+  // Same as Create, but for a BrowsingContext which does not belong to a
+  // visible window, and will always be detached by the process that created it.
+  // In contrast, any top-level BrowsingContext created in a content process
+  // using Create() is assumed to belong to a <browser> element in the parent
+  // process, which will be responsible for detaching it.
+  static already_AddRefed<BrowsingContext> CreateWindowless(
+      BrowsingContext* aParent, BrowsingContext* aOpener,
+      const nsAString& aName, Type aType);
+
+  void EnsureAttached();
+
+  bool EverAttached() const { return mEverAttached; }
+
   // Cast this object to a canonical browsing context, and return it.
   CanonicalBrowsingContext* Canonical();
 
@@ -167,6 +191,9 @@ class BrowsingContext : public nsISupports, public nsWrapperCache {
   // been destroyed, and may not be available on the other side of an IPC
   // message.
   bool IsDiscarded() const { return mIsDiscarded; }
+
+  bool Windowless() const { return mWindowless; }
+  void SetWindowless();
 
   // Get the DocShell for this BrowsingContext if it is in-process, or
   // null if it's not.
@@ -243,6 +270,7 @@ class BrowsingContext : public nsISupports, public nsWrapperCache {
   void GetName(nsAString& aName) { aName = GetName(); }
   bool NameEquals(const nsAString& aName) { return GetName().Equals(aName); }
 
+  Type GetType() const { return mType; }
   bool IsContent() const { return mType == Type::Content; }
   bool IsChrome() const { return !IsContent(); }
 
@@ -441,6 +469,11 @@ class BrowsingContext : public nsISupports, public nsWrapperCache {
                       const WindowPostMessageOptions& aOptions,
                       nsIPrincipal& aSubjectPrincipal, ErrorResult& aError);
 
+  void GetCustomUserAgent(nsString& aUserAgent) {
+    aUserAgent = Top()->GetUserAgentOverride();
+  }
+  void SetCustomUserAgent(const nsAString& aUserAgent);
+
   JSObject* WrapObject(JSContext* aCx);
 
   static JSObject* ReadStructuredClone(JSContext* aCx,
@@ -478,6 +511,7 @@ class BrowsingContext : public nsISupports, public nsWrapperCache {
     uint64_t GetOpenerId() const { return mozilla::Get<IDX_OpenerId>(mFields); }
 
     bool mCached;
+    bool mWindowless;
 
     FieldTuple mFields;
   };
@@ -499,8 +533,6 @@ class BrowsingContext : public nsISupports, public nsWrapperCache {
   void AddDeprioritizedLoadRunner(nsIRunnable* aRunner);
 
   RefPtr<SessionStorageManager> GetSessionStorageManager();
-
-  Type GetType() const { return mType; }
 
   bool PendingInitialization() const { return mPendingInitialization; };
   void SetPendingInitialization(bool aVal) { mPendingInitialization = aVal; };
@@ -603,6 +635,13 @@ class BrowsingContext : public nsISupports, public nsWrapperCache {
 
   void DidSet(FieldIndex<IDX_AncestorLoading>);
 
+  void DidSet(FieldIndex<IDX_UserAgentOverride>);
+  bool CanSet(FieldIndex<IDX_UserAgentOverride>, const nsString& aUserAgent,
+              ContentParent* aSource);
+
+  bool CanSet(FieldIndex<IDX_EmbedderElementType>,
+              const Maybe<nsString>& aInitiatorType, ContentParent* aSource);
+
   template <size_t I, typename T>
   bool CanSet(FieldIndex<I>, const T&, ContentParent*) {
     return true;
@@ -610,6 +649,10 @@ class BrowsingContext : public nsISupports, public nsWrapperCache {
 
   template <size_t I>
   void DidSet(FieldIndex<I>) {}
+
+  // True if the process attempting to set field is the same as the embedder's
+  // process.
+  bool CheckOnlyEmbedderCanSet(ContentParent* aSource);
 
   // Type of BrowsingContent
   const Type mType;
@@ -619,6 +662,8 @@ class BrowsingContext : public nsISupports, public nsWrapperCache {
 
   RefPtr<BrowsingContextGroup> mGroup;
   RefPtr<BrowsingContext> mParent;
+  // Note: BrowsingContext_Binding::ClearCachedChildrenValue must be called any
+  // time this array is mutated to keep the JS-exposed reflection in sync.
   Children mChildren;
   nsCOMPtr<nsIDocShell> mDocShell;
 
@@ -634,6 +679,9 @@ class BrowsingContext : public nsISupports, public nsWrapperCache {
   JS::Heap<JSObject*> mWindowProxy;
   LocationProxy mLocation;
 
+  // True if Attach() has been called on this BrowsingContext already.
+  bool mEverAttached : 1;
+
   // Is the most recent Document in this BrowsingContext loaded within this
   // process? This may be true with a null mDocShell after the Window has been
   // closed.
@@ -643,6 +691,10 @@ class BrowsingContext : public nsISupports, public nsWrapperCache {
   // only be discarded once.
   bool mIsDiscarded : 1;
 
+  // True if this BrowsingContext has no associated visible window, and is owned
+  // by whichever process created it, even if top-level.
+  bool mWindowless : 1;
+
   // This is true if the BrowsingContext was out of process, but is now in
   // process, and might have remote window proxies that need to be cleaned up.
   bool mDanglingRemoteOuterProxies : 1;
@@ -650,6 +702,10 @@ class BrowsingContext : public nsISupports, public nsWrapperCache {
   // If true, the docShell has not been fully initialized, and may not be used
   // as the target of a load.
   bool mPendingInitialization : 1;
+
+  // True if this BrowsingContext has been embedded in a element in this
+  // process.
+  bool mEmbeddedByThisProcess : 1;
 
   // The start time of user gesture, this is only available if the browsing
   // context is in process.
@@ -700,6 +756,7 @@ extern bool GetRemoteOuterWindowProxy(JSContext* aCx, BrowsingContext* aContext,
 using BrowsingContextTransaction = BrowsingContext::BaseTransaction;
 using BrowsingContextInitializer = BrowsingContext::IPCInitializer;
 using BrowsingContextChildren = BrowsingContext::Children;
+using MaybeDiscardedBrowsingContext = MaybeDiscarded<BrowsingContext>;
 
 // Specialize the transaction object for every translation unit it's used in.
 extern template class syncedcontext::Transaction<BrowsingContext>;
@@ -709,11 +766,12 @@ extern template class syncedcontext::Transaction<BrowsingContext>;
 // Allow sending BrowsingContext objects over IPC.
 namespace ipc {
 template <>
-struct IPDLParamTraits<dom::BrowsingContext*> {
+struct IPDLParamTraits<dom::MaybeDiscarded<dom::BrowsingContext>> {
   static void Write(IPC::Message* aMsg, IProtocol* aActor,
-                    dom::BrowsingContext* aParam);
+                    const dom::MaybeDiscarded<dom::BrowsingContext>& aParam);
   static bool Read(const IPC::Message* aMsg, PickleIterator* aIter,
-                   IProtocol* aActor, RefPtr<dom::BrowsingContext>* aResult);
+                   IProtocol* aActor,
+                   dom::MaybeDiscarded<dom::BrowsingContext>* aResult);
 };
 
 template <>

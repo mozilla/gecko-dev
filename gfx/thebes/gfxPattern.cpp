@@ -37,6 +37,14 @@ gfxPattern::gfxPattern(gfxFloat cx0, gfxFloat cy0, gfxFloat radius0,
                                         radius0, radius1, nullptr);
 }
 
+// conic
+gfxPattern::gfxPattern(gfxFloat cx, gfxFloat cy, gfxFloat angle,
+                       gfxFloat startOffset, gfxFloat endOffset)
+    : mExtend(ExtendMode::CLAMP) {
+  mGfxPattern.InitConicGradientPattern(Point(cx, cy), angle, startOffset,
+                                       endOffset, nullptr);
+}
+
 // Azure
 gfxPattern::gfxPattern(SourceSurface* aSurface,
                        const Matrix& aPatternToUserSpace)
@@ -48,7 +56,8 @@ gfxPattern::gfxPattern(SourceSurface* aSurface,
 
 void gfxPattern::AddColorStop(gfxFloat offset, const Color& c) {
   if (mGfxPattern.GetPattern()->GetType() != PatternType::LINEAR_GRADIENT &&
-      mGfxPattern.GetPattern()->GetType() != PatternType::RADIAL_GRADIENT) {
+      mGfxPattern.GetPattern()->GetType() != PatternType::RADIAL_GRADIENT &&
+      mGfxPattern.GetPattern()->GetType() != PatternType::CONIC_GRADIENT) {
     return;
   }
 
@@ -134,6 +143,13 @@ Pattern* gfxPattern::GetPattern(const DrawTarget* aTarget,
           static_cast<RadialGradientPattern*>(mGfxPattern.GetPattern());
       radialGradientPattern->mMatrix = patternToUser;
       radialGradientPattern->mStops = mStops;
+      break;
+    }
+    case PatternType::CONIC_GRADIENT: {
+      ConicGradientPattern* conicGradientPattern =
+          static_cast<ConicGradientPattern*>(mGfxPattern.GetPattern());
+      conicGradientPattern->mMatrix = patternToUser;
+      conicGradientPattern->mStops = mStops;
       break;
     }
     default:

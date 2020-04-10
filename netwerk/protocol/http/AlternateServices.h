@@ -104,6 +104,7 @@ class AltSvcMapping {
                           const OriginAttributes& originAttributes);
 
   bool IsHttp3() { return mIsHttp3; }
+  const nsCString& NPNToken() const { return mNPNToken; }
 
  private:
   virtual ~AltSvcMapping() = default;
@@ -203,6 +204,7 @@ class AltSvcCache {
   nsresult GetAltSvcCacheKeys(nsTArray<nsCString>& value);
 
  private:
+  void EnsureStorageInited();
   already_AddRefed<AltSvcMapping> LookupMapping(const nsCString& key,
                                                 bool privateBrowsing);
   RefPtr<DataStorage> mStorage;

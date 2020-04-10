@@ -17,16 +17,27 @@ types.addDictType("root.listWorkers", {
 types.addDictType("root.listServiceWorkerRegistrations", {
   registrations: "array:serviceWorkerRegistration",
 });
-types.addDictType("root.listProcesses", {
-  processes: "array:json",
-});
 types.addDictType("root.listRemoteFrames", {
   frames: "array:frameDescriptor",
 });
+// Backward compatibility: FF74 or older servers will return the
+// process descriptor as the "form" property of the response.
+// Once FF75 is merged to release we can always expect `processDescriptor`
+// to be defined.
+types.addDictType("root.getProcess", {
+  form: "nullable:processDescriptor",
+  processDescriptor: "nullable:processDescriptor",
+});
 types.addDictType("root.listTabs", {
-  tabs: "array:browsingContextTarget",
+  // Backwards compatibility for servers FF74 and before
+  // once FF75 is merged into release, we can return tabDescriptors directly.
+  tabs: "array:json",
   selected: "number",
 });
+types.addPolymorphicType("root.browsingContextDescriptor", [
+  "frameDescriptor",
+  "processDescriptor",
+]);
 
 const rootSpecPrototype = {
   typeName: "root",
@@ -50,6 +61,8 @@ const rootSpecPrototype = {
         tabId: Option(0, "number"),
       },
       response: {
+        // Backwards compatibility for servers FF74 and before
+        // once FF75 is merged into release, we can return the tabDescriptor directly.
         tab: RetVal("json"),
       },
     },
@@ -84,14 +97,16 @@ const rootSpecPrototype = {
 
     listProcesses: {
       request: {},
-      response: RetVal("root.listProcesses"),
+      response: {
+        processes: RetVal("array:processDescriptor"),
+      },
     },
 
     getProcess: {
       request: {
         id: Arg(0, "number"),
       },
-      response: RetVal("json"),
+      response: RetVal("root.getProcess"),
     },
 
     listRemoteFrames: {
@@ -105,7 +120,7 @@ const rootSpecPrototype = {
       request: {
         id: Arg(0, "number"),
       },
-      response: RetVal("json"),
+      response: RetVal("root.browsingContextDescriptor"),
     },
 
     protocolDescription: {

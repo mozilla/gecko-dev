@@ -231,34 +231,96 @@ class AutoCompleteParent extends JSWindowActorParent {
     this.openedPopup.view = AutoCompleteResultView;
     this.openedPopup.selectedIndex = -1;
 
-    if (results.length) {
-      // Reset fields that were set from the last time the search popup was open
-      this.openedPopup.mInput = AutoCompleteResultView;
-      // Temporarily increase the maxRows as we don't want to show
-      // the scrollbar in login or form autofill popups.
-      if (
-        resultStyles.size &&
-        (resultStyles.has("autofill-profile") ||
-          resultStyles.has("loginsFooter"))
-      ) {
-        this.openedPopup._normalMaxRows = this.openedPopup.maxRows;
-        this.openedPopup.mInput.maxRows = 100;
-      }
-      this.openedPopup.addEventListener("popuphidden", this);
-      this.openedPopup.addEventListener("popupshowing", this);
-      this.openedPopup.openPopupAtScreenRect(
-        "after_start",
-        rect.left,
-        rect.top,
-        rect.width,
-        rect.height,
-        false,
-        false
-      );
-      this.openedPopup.invalidate();
-    } else {
-      this.closePopup();
+    // Reset fields that were set from the last time the search popup was open
+    this.openedPopup.mInput = AutoCompleteResultView;
+    // Temporarily increase the maxRows as we don't want to show
+    // the scrollbar in login or form autofill popups.
+    if (
+      resultStyles.size &&
+      (resultStyles.has("autofill-profile") || resultStyles.has("loginsFooter"))
+    ) {
+      this.openedPopup._normalMaxRows = this.openedPopup.maxRows;
+      this.openedPopup.mInput.maxRows = 100;
     }
+    this.openedPopup.addEventListener("popuphidden", this);
+    this.openedPopup.addEventListener("popupshowing", this);
+    this.openedPopup.openPopupAtScreenRect(
+      "after_start",
+      rect.left,
+      rect.top,
+      rect.width,
+      rect.height,
+      false,
+      false
+    );
+    this.openedPopup.invalidate();
+    this._maybeRecordTelemetryEvents(results);
+  }
+
+  /**
+   * @param {object[]} results - Non-empty array of autocomplete results.
+   */
+  _maybeRecordTelemetryEvents(results) {
+    let actor = this.browsingContext.currentWindowGlobal.getActor(
+      "LoginManager"
+    );
+    actor.maybeRecordPasswordGenerationShownTelemetryEvent(results);
+
+    // Assume the result with the start time (loginsFooter) is last.
+    let lastResult = results[results.length - 1];
+    if (lastResult.style != "loginsFooter") {
+      return;
+    }
+
+    // The comment field of `loginsFooter` results have many additional pieces of
+    // information for telemetry purposes. After bug 1555209, this information
+    // can be passed to the parent process outside of nsIAutoCompleteResult APIs
+    // so we won't need this hack.
+    let rawExtraData = JSON.parse(lastResult.comment);
+    if (!rawExtraData.searchStartTimeMS) {
+      throw new Error("Invalid autocomplete search start time");
+    }
+
+    if (rawExtraData.stringLength > 1) {
+      // To reduce event volume, only record for lengths 0 and 1.
+      return;
+    }
+
+    let duration =
+      Services.telemetry.msSystemNow() - rawExtraData.searchStartTimeMS;
+    delete rawExtraData.searchStartTimeMS;
+
+    delete rawExtraData.formHostname;
+
+    // Add counts by result style to rawExtraData.
+    results.reduce((accumulated, r) => {
+      // Keys can be a maximum of 15 characters and values must be strings.
+      let truncatedStyle = r.style.substring(0, 15);
+      accumulated[truncatedStyle] = (accumulated[truncatedStyle] || 0) + 1;
+      return accumulated;
+    }, rawExtraData);
+
+    // Convert extra values to strings since recordEvent requires that.
+    let extraStrings = Object.fromEntries(
+      Object.entries(rawExtraData).map(([key, val]) => {
+        let stringVal = "";
+        if (typeof val == "boolean") {
+          stringVal += val ? "1" : "0";
+        } else {
+          stringVal += val;
+        }
+        return [key, stringVal];
+      })
+    );
+
+    Services.telemetry.recordEvent(
+      "form_autocomplete",
+      "show",
+      "logins",
+      // Convert to a string
+      duration + "",
+      extraStrings
+    );
   }
 
   invalidate(results) {
@@ -271,6 +333,7 @@ class AutoCompleteParent extends JSWindowActorParent {
     } else {
       AutoCompleteResultView.setResults(this, results);
       this.openedPopup.invalidate();
+      this._maybeRecordTelemetryEvents(results);
     }
   }
 

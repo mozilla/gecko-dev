@@ -12,11 +12,11 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-const { DebuggerClient } = require("devtools/shared/client/debugger-client");
+const { DevToolsClient } = require("devtools/shared/client/devtools-client");
 const {
   ActorRegistry,
 } = require("devtools/server/actors/utils/actor-registry");
-const { DebuggerServer } = require("devtools/server/debugger-server");
+const { DevToolsServer } = require("devtools/server/devtools-server");
 
 const PATH = "browser/devtools/server/tests/browser/";
 const TEST_DOMAIN = "http://test1.example.org";
@@ -80,32 +80,46 @@ async function initLayoutFrontForUrl(url) {
   return { inspector, walker, layout, target };
 }
 
-async function initAccessibilityFrontForUrl(url) {
-  const target = await addTabTarget(url);
-  const inspector = await target.getFront("inspector");
-  const walker = inspector.walker;
+async function initAccessibilityFrontsForUrl(
+  url,
+  { enableByDefault = true } = {}
+) {
+  const { inspector, walker, target } = await initInspectorFront(url);
+  const parentAccessibility = await target.client.mainRoot.getFront(
+    "parentaccessibility"
+  );
   const accessibility = await target.getFront("accessibility");
-
   await accessibility.bootstrap();
+  const a11yWalker = accessibility.accessibleWalkerFront;
+  if (enableByDefault) {
+    await parentAccessibility.enable();
+  }
 
-  return { inspector, walker, accessibility, target };
+  return {
+    inspector,
+    walker,
+    accessibility,
+    parentAccessibility,
+    a11yWalker,
+    target,
+  };
 }
 
-function initDebuggerServer() {
+function initDevToolsServer() {
   try {
-    // Sometimes debugger server does not get destroyed correctly by previous
+    // Sometimes devtools server does not get destroyed correctly by previous
     // tests.
-    DebuggerServer.destroy();
+    DevToolsServer.destroy();
   } catch (e) {
-    info(`DebuggerServer destroy error: ${e}\n${e.stack}`);
+    info(`DevToolsServer destroy error: ${e}\n${e.stack}`);
   }
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
 }
 
 async function initPerfFront() {
-  initDebuggerServer();
-  const client = new DebuggerClient(DebuggerServer.connectPipe());
+  initDevToolsServer();
+  const client = new DevToolsClient(DevToolsServer.connectPipe());
   await waitUntilClientConnected(client);
   const front = await client.mainRoot.getFront("perf");
   return { front, client };
@@ -120,8 +134,8 @@ async function initInspectorFront(url) {
 }
 
 /**
- * Wait until a DebuggerClient is connected.
- * @param {DebuggerClient} client
+ * Wait until a DevToolsClient is connected.
+ * @param {DevToolsClient} client
  * @return {Promise} Resolves when connected.
  */
 function waitUntilClientConnected(client) {
@@ -322,7 +336,8 @@ function getA11yInitOrShutdownPromise() {
  * Wait for accessibility service to shut down. We consider it shut down when
  * an "a11y-init-or-shutdown" event is received with a value of "0".
  */
-async function waitForA11yShutdown() {
+async function waitForA11yShutdown(parentAccessibility) {
+  await parentAccessibility.disable();
   if (!Services.appinfo.accessibilityEnabled) {
     return;
   }

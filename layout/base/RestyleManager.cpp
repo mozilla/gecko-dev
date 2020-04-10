@@ -507,9 +507,8 @@ static nsChangeHint ChangeForContentStateChange(const Element& aElement,
     auto* disp = primaryFrame->StyleDisplay();
     if (disp->HasAppearance()) {
       nsPresContext* pc = primaryFrame->PresContext();
-      nsITheme* theme = pc->GetTheme();
-      if (theme &&
-          theme->ThemeSupportsWidget(pc, primaryFrame, disp->mAppearance)) {
+      nsITheme* theme = pc->Theme();
+      if (theme->ThemeSupportsWidget(pc, primaryFrame, disp->mAppearance)) {
         bool repaint = false;
         theme->WidgetStateChanged(primaryFrame, disp->mAppearance, nullptr,
                                   &repaint, nullptr);
@@ -2268,18 +2267,21 @@ void RestyleManager::PostRestyleEventForAnimations(Element* aElement,
 
 void RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
                                          RestyleHint aRestyleHint) {
-  // NOTE(emilio): GeckoRestlyeManager does a sync style flush, which seems not
-  // to be needed in my testing.
-  PostRebuildAllStyleDataEvent(aExtraHint, aRestyleHint);
-}
-
-void RestyleManager::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint,
-                                                  RestyleHint aRestyleHint) {
   // NOTE(emilio): The semantics of these methods are quite funny, in the sense
   // that we're not supposed to need to rebuild the actual stylist data.
   //
   // That's handled as part of the MediumFeaturesChanged stuff, if needed.
-  StyleSet()->ClearCachedStyleData();
+  //
+  // Clear the cached style data only if we are guaranteed to process the whole
+  // DOM tree again.
+  //
+  // FIXME(emilio): Decouple this, probably. This probably just wants to reset
+  // the "uses viewport units / uses rem" bits, and _maybe_ clear cached anon
+  // box styles and such... But it doesn't really always need to clear the
+  // initial style of the document and similar...
+  if (aRestyleHint.DefinitelyRecascadesAllSubtree()) {
+    StyleSet()->ClearCachedStyleData();
+  }
 
   DocumentStyleRootIterator iter(mPresContext->Document());
   while (Element* root = iter.GetNextStyleRoot()) {
@@ -3373,9 +3375,9 @@ void RestyleManager::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
     // See if we have appearance information for a theme.
     const nsStyleDisplay* disp = primaryFrame->StyleDisplay();
     if (disp->HasAppearance()) {
-      nsITheme* theme = PresContext()->GetTheme();
-      if (theme && theme->ThemeSupportsWidget(PresContext(), primaryFrame,
-                                              disp->mAppearance)) {
+      nsITheme* theme = PresContext()->Theme();
+      if (theme->ThemeSupportsWidget(PresContext(), primaryFrame,
+                                     disp->mAppearance)) {
         bool repaint = false;
         theme->WidgetStateChanged(primaryFrame, disp->mAppearance, aAttribute,
                                   &repaint, aOldValue);

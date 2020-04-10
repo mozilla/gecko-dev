@@ -22,7 +22,6 @@ add_task(async function() {
   await SpecialPowers.pushPrefEnv({
     set: [["security.block_Worker_with_wrong_mime", true]],
   });
-
   const hud = await openNewTabAndConsole(TEST_URI);
   await waitFor(
     () => findMessage(hud, MIME_ERROR_MSG1, ".message.error"),

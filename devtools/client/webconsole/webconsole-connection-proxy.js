@@ -51,7 +51,7 @@ class WebConsoleConnectionProxy {
   }
 
   /**
-   * Initialize a debugger client and connect it to the debugger server.
+   * Initialize a devtools client and connect it to the devtools server.
    *
    * @return object
    *         A promise object that is resolved/rejected based on the success of
@@ -188,9 +188,7 @@ class WebConsoleConnectionProxy {
 
     if (response.error) {
       throw new Error(
-        `Web Console getCachedMessages error: ${response.error} ${
-          response.message
-        }`
+        `Web Console getCachedMessages error: ${response.error} ${response.message}`
       );
     }
 

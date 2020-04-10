@@ -50,8 +50,10 @@ codespell:
         - toolkit/docs/
         - toolkit/locales/en-US/
         - toolkit/modules/docs/
+        - tools/fuzzing/docs/
         - tools/moztreedocs/
         - tools/lint/
+        - tools/sanitizer/docs/
         - tools/tryselect/
     exclude:
         - tools/lint/test/test_codespell.py

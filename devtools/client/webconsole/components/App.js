@@ -115,6 +115,7 @@ class App extends Component {
       filterBarDisplayMode: PropTypes.oneOf([
         ...Object.values(FILTERBAR_DISPLAY_MODES),
       ]).isRequired,
+      showEvaluationSelector: PropTypes.bool,
     };
   }
 
@@ -292,6 +293,7 @@ class App extends Component {
       reverseSearchInputVisible,
       serviceContainer,
       webConsoleUI,
+      showEvaluationSelector,
     } = this.props;
 
     return editorMode
@@ -301,6 +303,7 @@ class App extends Component {
           dispatch,
           reverseSearchInputVisible,
           serviceContainer,
+          showEvaluationSelector,
           webConsoleUI,
         })
       : null;
@@ -337,11 +340,12 @@ class App extends Component {
   }
 
   renderEagerEvaluation() {
-    if (!this.props.eagerEvaluationEnabled) {
+    const { eagerEvaluationEnabled, serviceContainer } = this.props;
+    if (!eagerEvaluationEnabled) {
       return null;
     }
 
-    return EagerEvaluation();
+    return EagerEvaluation({ serviceContainer });
   }
 
   renderReverseSearch() {
@@ -392,9 +396,12 @@ class App extends Component {
   }
 
   renderRootElement(children) {
-    const { editorMode, serviceContainer } = this.props;
+    const { editorMode, serviceContainer, sidebarVisible } = this.props;
 
     const classNames = ["webconsole-app"];
+    if (sidebarVisible) {
+      classNames.push("sidebar-visible");
+    }
     if (editorMode) {
       classNames.push("jsterm-editor");
     }
@@ -469,6 +476,7 @@ const mapStateToProps = state => ({
   filterBarDisplayMode: state.ui.filterBarDisplayMode,
   eagerEvaluationEnabled: state.prefs.eagerEvaluation,
   autocomplete: state.prefs.autocomplete,
+  showEvaluationSelector: state.ui.showEvaluationSelector,
 });
 
 const mapDispatchToProps = dispatch => ({

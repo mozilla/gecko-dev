@@ -78,6 +78,11 @@ nsresult AppendAppNotesToCrashReport(const nsACString& data) {
 
 bool GetAnnotation(const nsACString& key, nsACString& data) { return false; }
 
+void GetAnnotation(uint32_t childPid, Annotation annotation,
+                   nsACString& outStr) {
+  return;
+}
+
 nsresult RegisterAppMemory(void* ptr, size_t length) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -150,8 +155,6 @@ void SetMemoryReportFile(nsIFile* aFile) {}
 nsresult GetDefaultMemoryReportFile(nsIFile** aFile) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
-
-void SetTelemetrySessionId(const nsACString& id) {}
 
 void DeleteMinidumpFilesForID(const nsAString& id) {}
 

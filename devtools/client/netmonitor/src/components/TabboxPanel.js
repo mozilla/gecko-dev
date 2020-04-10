@@ -21,7 +21,7 @@ const TabPanel = createFactory(
   require("devtools/client/shared/components/tabs/Tabs").TabPanel
 );
 const CookiesPanel = createFactory(
-  require("devtools/client/netmonitor/src/components/CookiesPanel")
+  require("devtools/client/netmonitor/src/components/request-details/CookiesPanel")
 );
 const HeadersPanel = createFactory(
   require("devtools/client/netmonitor/src/components/HeadersPanel")
@@ -30,16 +30,16 @@ const WebSocketsPanel = createFactory(
   require("devtools/client/netmonitor/src/components/websockets/WebSocketsPanel")
 );
 const ParamsPanel = createFactory(
-  require("devtools/client/netmonitor/src/components/ParamsPanel")
+  require("devtools/client/netmonitor/src/components/request-details/ParamsPanel")
 );
 const CachePanel = createFactory(
-  require("devtools/client/netmonitor/src/components/CachePanel")
+  require("devtools/client/netmonitor/src/components/request-details/CachePanel")
 );
 const ResponsePanel = createFactory(
   require("devtools/client/netmonitor/src/components/ResponsePanel")
 );
 const SecurityPanel = createFactory(
-  require("devtools/client/netmonitor/src/components/SecurityPanel")
+  require("devtools/client/netmonitor/src/components/request-details/SecurityPanel")
 );
 const StackTracePanel = createFactory(
   require("devtools/client/netmonitor/src/components/StackTracePanel")

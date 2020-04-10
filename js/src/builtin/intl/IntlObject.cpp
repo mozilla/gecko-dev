@@ -647,8 +647,7 @@ bool js::intl_BestAvailableLocale(JSContext* cx, unsigned argc, Value* vp) {
     MOZ_ASSERT(!tag.unicodeExtension(),
                "locale must contain no Unicode extensions");
 
-    if (!tag.canonicalize(
-            cx, intl::LanguageTag::UnicodeExtensionCanonicalForm::No)) {
+    if (!tag.canonicalize(cx)) {
       return false;
     }
 
@@ -709,8 +708,7 @@ bool js::intl_supportedLocaleOrFallback(JSContext* cx, unsigned argc,
       return false;
     }
   } else {
-    if (!tag.canonicalize(
-            cx, intl::LanguageTag::UnicodeExtensionCanonicalForm::No)) {
+    if (!tag.canonicalize(cx)) {
       return false;
     }
 
@@ -815,8 +813,9 @@ static bool IntlClassFinish(JSContext* cx, HandleObject intl,
   RootedId ctorId(cx);
   RootedValue ctorValue(cx);
   for (const auto& protoKey :
-       {JSProto_Collator, JSProto_DateTimeFormat, JSProto_NumberFormat,
-        JSProto_PluralRules, JSProto_RelativeTimeFormat}) {
+       {JSProto_Collator, JSProto_DateTimeFormat, JSProto_Locale,
+        JSProto_NumberFormat, JSProto_PluralRules,
+        JSProto_RelativeTimeFormat}) {
     JSObject* ctor = GlobalObject::getOrCreateConstructor(cx, protoKey);
     if (!ctor) {
       return false;

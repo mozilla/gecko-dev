@@ -252,9 +252,6 @@ already_AddRefed<XPCNativeInterface> XPCNativeInterface::NewInstance(
 
   if (totalCount > MAX_LOCAL_MEMBER_COUNT) {
     members = new XPCNativeMember[totalCount];
-    if (!members) {
-      return nullptr;
-    }
   } else {
     members = local_members;
   }
@@ -472,7 +469,7 @@ already_AddRefed<XPCNativeSet> XPCNativeSet::GetNewOrUsed(JSContext* cx,
     return set.forget();
   }
 
-  set = NewInstance(cx, {iface.forget()});
+  set = NewInstance(cx, {std::move(iface)});
   if (!set) {
     return nullptr;
   }
@@ -684,7 +681,7 @@ already_AddRefed<XPCNativeSet> XPCNativeSet::NewInstance(
   NS_ADDREF(*(outp++) = isup);
 
   for (auto key = array.begin(); key != array.end(); key++) {
-    RefPtr<XPCNativeInterface> cur = key->forget();
+    RefPtr<XPCNativeInterface> cur = std::move(*key);
     if (isup == cur) {
       continue;
     }

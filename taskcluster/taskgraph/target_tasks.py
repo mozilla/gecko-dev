@@ -282,6 +282,14 @@ def target_tasks_promote_desktop(full_task_graph, parameters, graph_config):
     return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
 
 
+def is_geckoview(task, parameters):
+    return (
+        task.attributes.get('shipping_product') == 'fennec' and
+        task.kind in ('beetmover-geckoview', 'upload-symbols') and
+        parameters['release_product'] == 'firefox'
+    )
+
+
 @_target_task('push_desktop')
 def target_tasks_push_desktop(full_task_graph, parameters, graph_config):
     """Select the set of tasks required to push a build of desktop to cdns.
@@ -296,14 +304,13 @@ def target_tasks_push_desktop(full_task_graph, parameters, graph_config):
         # Include promotion tasks; these will be optimized out
         if task.label in filtered_for_candidates:
             return True
-        if task.attributes.get('shipping_product') == parameters['release_product'] and \
-                task.attributes.get('shipping_phase') == 'push':
-            return True
         # XXX: Bug 1612540 - include beetmover jobs for publishing geckoview, along
         # with the regular Firefox (not Devedition!) releases so that they are at sync
-        if (task.attributes.get('shipping_product') == 'fennec' and
-            task.kind in ('beetmover-geckoview', 'upload-symbols') and
-                parameters['release_product'] == 'firefox'):
+        if is_geckoview(task, parameters):
+            return True
+
+        if task.attributes.get('shipping_product') == parameters['release_product'] and \
+                task.attributes.get('shipping_phase') == 'push':
             return True
 
     return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
@@ -332,6 +339,11 @@ def target_tasks_ship_desktop(full_task_graph, parameters, graph_config):
         # Include promotion tasks; these will be optimized out
         if task.label in filtered_for_candidates:
             return True
+
+        # XXX: Bug 1619603 - geckoview also ships alongside Firefox RC
+        if is_geckoview(task, parameters) and is_rc:
+            return True
+
         if task.attributes.get('shipping_product') != parameters['release_product'] or \
                 task.attributes.get('shipping_phase') != 'ship':
             return False
@@ -639,13 +651,13 @@ def target_tasks_chromium_update(full_task_graph, parameters, graph_config):
             'fetch-mac-chromium']
 
 
-@_target_task('pipfile_update')
-def target_tasks_pipfile_update(full_task_graph, parameters, graph_config):
+@_target_task('python_dependency_update')
+def target_tasks_python_update(full_task_graph, parameters, graph_config):
     """Select the set of tasks required to perform nightly in-tree pipfile updates
     """
     def filter(task):
         # For now any task in the repo-update kind is ok
-        return task.kind in ['pipfile-update']
+        return task.kind in ['python-dependency-update']
     return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
 
 
@@ -667,6 +679,13 @@ def target_tasks_l10n_bump(full_task_graph, parameters, graph_config):
         # For now any task in the repo-update kind is ok
         return task.kind in ['l10n-bump']
     return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
+
+
+@_target_task('merge_automation')
+def target_tasks_merge_automation(full_task_graph, parameters, graph_config):
+    """Select the set of tasks required to perform repository merges.
+    """
+    return ['merge-automation']
 
 
 @_target_task('cron_bouncer_check')

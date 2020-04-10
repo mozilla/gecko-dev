@@ -10,9 +10,14 @@
 #include "nsContentUtils.h"
 #include "nsLayoutUtils.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/ServoBindings.h"
+#include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/DocumentInlines.h"
+#include "mozilla/dom/HTMLImageElement.h"
+#include "Units.h"
 
 namespace mozilla {
 namespace dom {
@@ -49,7 +54,10 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMIntersectionObserver)
   tmp->Disconnect();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mOwner)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocument)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCallback)
+  if (tmp->mCallback.is<RefPtr<dom::IntersectionCallback>>()) {
+    ImplCycleCollectionUnlink(
+        tmp->mCallback.as<RefPtr<dom::IntersectionCallback>>());
+  }
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mRoot)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mQueuedEntries)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
@@ -57,7 +65,11 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(DOMIntersectionObserver)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOwner)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDocument)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallback)
+  if (tmp->mCallback.is<RefPtr<dom::IntersectionCallback>>()) {
+    ImplCycleCollectionTraverse(
+        cb, tmp->mCallback.as<RefPtr<dom::IntersectionCallback>>(), "mCallback",
+        0);
+  }
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRoot)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mQueuedEntries)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
@@ -80,7 +92,20 @@ already_AddRefed<DOMIntersectionObserver> DOMIntersectionObserver::Constructor(
   RefPtr<DOMIntersectionObserver> observer =
       new DOMIntersectionObserver(window.forget(), aCb);
 
-  observer->mRoot = aOptions.mRoot;
+  if (!aOptions.mRoot.IsNull()) {
+    if (aOptions.mRoot.Value().IsElement()) {
+      observer->mRoot = aOptions.mRoot.Value().GetAsElement();
+    } else {
+      MOZ_ASSERT(aOptions.mRoot.Value().IsDocument());
+      if (!StaticPrefs::
+              dom_IntersectionObserverExplicitDocumentRoot_enabled()) {
+        aRv.ThrowTypeError<dom::MSG_DOES_NOT_IMPLEMENT_INTERFACE>(
+            "'root' member of IntersectionObserverInit", "Element");
+        return nullptr;
+      }
+      observer->mRoot = aOptions.mRoot.Value().GetAsDocument();
+    }
+  }
 
   if (!observer->SetRootMargin(aOptions.mRootMargin)) {
     aRv.ThrowSyntaxError("rootMargin must be specified in pixels or percent.");
@@ -93,7 +118,7 @@ already_AddRefed<DOMIntersectionObserver> DOMIntersectionObserver::Constructor(
     observer->mThresholds.SetCapacity(thresholds.Length());
     for (const auto& thresh : thresholds) {
       if (thresh < 0.0 || thresh > 1.0) {
-        aRv.ThrowTypeError<dom::MSG_THRESHOLD_RANGE_ERROR>();
+        aRv.ThrowRangeError<dom::MSG_THRESHOLD_RANGE_ERROR>();
         return nullptr;
       }
       observer->mThresholds.AppendElement(thresh);
@@ -102,11 +127,54 @@ already_AddRefed<DOMIntersectionObserver> DOMIntersectionObserver::Constructor(
   } else {
     double thresh = aOptions.mThreshold.GetAsDouble();
     if (thresh < 0.0 || thresh > 1.0) {
-      aRv.ThrowTypeError<dom::MSG_THRESHOLD_RANGE_ERROR>();
+      aRv.ThrowRangeError<dom::MSG_THRESHOLD_RANGE_ERROR>();
       return nullptr;
     }
     observer->mThresholds.AppendElement(thresh);
   }
+
+  return observer.forget();
+}
+
+static void LazyLoadCallback(
+    const Sequence<OwningNonNull<DOMIntersectionObserverEntry>>& aEntries) {
+  for (const auto& entry : aEntries) {
+    MOZ_ASSERT(entry->Target()->IsHTMLElement(nsGkAtoms::img));
+    if (entry->IsIntersecting()) {
+      static_cast<HTMLImageElement*>(entry->Target())
+          ->StopLazyLoadingAndStartLoadIfNeeded();
+    }
+  }
+}
+
+static LengthPercentage PrefMargin(float aValue, bool aIsPercentage) {
+  return aIsPercentage ? LengthPercentage::FromPercentage(aValue / 100.0f)
+                       : LengthPercentage::FromPixels(aValue);
+}
+
+DOMIntersectionObserver::DOMIntersectionObserver(Document& aDocument,
+                                                 NativeCallback aCallback)
+    : mOwner(aDocument.GetInnerWindow()),
+      mDocument(&aDocument),
+      mCallback(aCallback),
+      mConnected(false) {}
+
+already_AddRefed<DOMIntersectionObserver>
+DOMIntersectionObserver::CreateLazyLoadObserver(Document& aDocument) {
+  RefPtr<DOMIntersectionObserver> observer =
+      new DOMIntersectionObserver(aDocument, LazyLoadCallback);
+  observer->mThresholds.AppendElement(std::numeric_limits<double>::min());
+
+#define SET_MARGIN(side_, side_lower_)                                 \
+  observer->mRootMargin.Get(eSide##side_) = PrefMargin(                \
+      StaticPrefs::dom_image_lazy_loading_root_margin_##side_lower_(), \
+      StaticPrefs::                                                    \
+          dom_image_lazy_loading_root_margin_##side_lower_##_percentage());
+  SET_MARGIN(Top, top);
+  SET_MARGIN(Right, right);
+  SET_MARGIN(Bottom, bottom);
+  SET_MARGIN(Left, left);
+#undef SET_MARGIN
 
   return observer.forget();
 }
@@ -133,7 +201,7 @@ void DOMIntersectionObserver::Observe(Element& aTarget) {
   Connect();
   if (mDocument) {
     if (nsPresContext* pc = mDocument->GetPresContext()) {
-      pc->RefreshDriver()->IntersectionObservationAdded();
+      pc->RefreshDriver()->EnsureIntersectionObservationsUpdateHappens();
     }
   }
 }
@@ -210,7 +278,7 @@ enum class BrowsingContextOrigin { Similar, Different, Unknown };
 // contexts" is gone, but this is still in the spec, see
 // https://github.com/w3c/IntersectionObserver/issues/161
 static BrowsingContextOrigin SimilarOrigin(const Element& aTarget,
-                                           const Element* aRoot) {
+                                           const nsINode* aRoot) {
   if (!aRoot) {
     return BrowsingContextOrigin::Unknown;
   }
@@ -258,8 +326,12 @@ static Document* GetTopLevelDocument(const Document& aDocument) {
 //
 // Both aRootBounds and the return value are relative to
 // nsLayoutUtils::GetContainingBlockForClientRect(aRoot).
-static Maybe<nsRect> ComputeTheIntersection(nsIFrame* aTarget, nsIFrame* aRoot,
-                                            const nsRect& aRootBounds) {
+//
+// In case of out-of-process document, aRemoteDocumentVisibleRect is a rectangle
+// in the out-of-process document's coordinate system.
+static Maybe<nsRect> ComputeTheIntersection(
+    nsIFrame* aTarget, nsIFrame* aRoot, const nsRect& aRootBounds,
+    const Maybe<nsRect>& aRemoteDocumentVisibleRect) {
   nsIFrame* target = aTarget;
   // 1. Let intersectionRect be the result of running the
   // getBoundingClientRect() algorithm on the target.
@@ -339,7 +411,70 @@ static Maybe<nsRect> ComputeTheIntersection(nsIFrame* aTarget, nsIFrame* aRoot,
       nsLayoutUtils::TransformRect(aRoot, rootScrollFrame, rect);
     }
   }
+
+  // In out-of-process iframes we need to take an intersection with the remote
+  // document visble rect which was already clipped by ancestor document's
+  // viewports.
+  if (aRemoteDocumentVisibleRect) {
+    MOZ_ASSERT(aRoot->PresContext()->IsRootContentDocumentInProcess() &&
+               !aRoot->PresContext()->IsRootContentDocumentCrossProcess());
+
+    intersectionRect =
+        EdgeInclusiveIntersection(rect, *aRemoteDocumentVisibleRect);
+    if (intersectionRect.isNothing()) {
+      return Nothing();
+    }
+    rect = intersectionRect.value();
+  }
+
   return Some(rect);
+}
+
+struct OopIframeMetrics {
+  nsIFrame* mInProcessRootFrame = nullptr;
+  nsRect mInProcessRootRect;
+  nsRect mRemoteDocumentVisibleRect;
+};
+
+static Maybe<OopIframeMetrics> GetOopIframeMetrics(Document& aDocument) {
+  Document* rootDoc = nsContentUtils::GetRootDocument(&aDocument);
+  MOZ_ASSERT(rootDoc && !rootDoc->IsTopLevelContentDocument());
+
+  PresShell* rootPresShell = rootDoc->GetPresShell();
+  if (!rootPresShell || rootPresShell->IsDestroying()) {
+    return Nothing();
+  }
+
+  nsIFrame* inProcessRootFrame = rootPresShell->GetRootFrame();
+  if (!inProcessRootFrame) {
+    return Nothing();
+  }
+
+  BrowserChild* browserChild = BrowserChild::GetFrom(rootDoc->GetDocShell());
+  if (!browserChild) {
+    return Nothing();
+  }
+  MOZ_DIAGNOSTIC_ASSERT(!browserChild->IsTopLevel());
+
+  nsRect inProcessRootRect;
+  if (nsIScrollableFrame* scrollFrame =
+          rootPresShell->GetRootScrollFrameAsScrollable()) {
+    inProcessRootRect = scrollFrame->GetScrollPortRect();
+  }
+
+  Maybe<LayoutDeviceRect> remoteDocumentVisibleRect =
+      browserChild->GetTopLevelViewportVisibleRectInSelfCoords();
+  if (!remoteDocumentVisibleRect) {
+    return Nothing();
+  }
+
+  return Some(OopIframeMetrics{
+      inProcessRootFrame,
+      inProcessRootRect,
+      LayoutDeviceRect::ToAppUnits(
+          *remoteDocumentVisibleRect,
+          rootPresShell->GetPresContext()->AppUnitsPerDevPixel()),
+  });
 }
 
 // https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo
@@ -349,11 +484,15 @@ void DOMIntersectionObserver::Update(Document* aDocument,
   // 1 - Let rootBounds be observer's root intersection rectangle.
   //  ... but since the intersection rectangle depends on the target, we defer
   //      the inflation until later.
+  // NOTE: |rootRect| and |rootFrame| will be root in the same process. In
+  // out-of-process iframes, they are NOT root ones of the top level content
+  // document.
   nsRect rootRect;
   nsIFrame* rootFrame = nullptr;
-  Element* root = mRoot;
-  if (mRoot) {
-    if ((rootFrame = mRoot->GetPrimaryFrame())) {
+  nsINode* root = mRoot;
+  Maybe<nsRect> remoteDocumentVisibleRect;
+  if (mRoot && mRoot->IsElement()) {
+    if ((rootFrame = mRoot->AsElement()->GetPrimaryFrame())) {
       nsRect rootRectRelativeToRootFrame;
       if (rootFrame->IsScrollFrame()) {
         // rootRectRelativeToRootFrame should be the content rect of rootFrame,
@@ -369,18 +508,30 @@ void DOMIntersectionObserver::Update(Document* aDocument,
       rootRect = nsLayoutUtils::TransformFrameRectToAncestor(
           rootFrame, rootRectRelativeToRootFrame, containingBlock);
     }
-  } else if (Document* topLevelDocument = GetTopLevelDocument(*aDocument)) {
-    if (PresShell* presShell = topLevelDocument->GetPresShell()) {
-      rootFrame = presShell->GetRootScrollFrame();
-      if (rootFrame) {
-        root = rootFrame->GetContent()->AsElement();
-        nsIScrollableFrame* scrollFrame = do_QueryFrame(rootFrame);
-        rootRect = scrollFrame->GetScrollPortRect();
+  } else {
+    MOZ_ASSERT(!mRoot || mRoot->IsDocument());
+    Document* rootDocument =
+        mRoot ? mRoot->AsDocument() : GetTopLevelDocument(*aDocument);
+    if (rootDocument) {
+      if (PresShell* presShell = rootDocument->GetPresShell()) {
+        rootFrame = presShell->GetRootScrollFrame();
+        if (rootFrame) {
+          root = rootFrame->GetContent()->AsElement();
+          nsIScrollableFrame* scrollFrame = do_QueryFrame(rootFrame);
+          rootRect = scrollFrame->GetScrollPortRect();
+        }
       }
+    } else if (Maybe<OopIframeMetrics> metrics =
+                   GetOopIframeMetrics(*aDocument)) {
+      // `implicit root` case in an out-of-process iframe.
+      rootFrame = metrics->mInProcessRootFrame;
+      rootRect = metrics->mInProcessRootRect;
+      remoteDocumentVisibleRect = Some(metrics->mRemoteDocumentVisibleRect);
     }
   }
 
-  nsMargin rootMargin;
+  nsMargin rootMargin;  // This root margin is NOT applied in `implicit root`
+                        // case, e.g. in out-of-process iframes.
   for (const auto side : mozilla::AllPhysicalSides()) {
     nscoord basis = side == eSideTop || side == eSideBottom ? rootRect.Height()
                                                             : rootRect.Width();
@@ -406,6 +557,8 @@ void DOMIntersectionObserver::Update(Document* aDocument,
     }
 
     BrowsingContextOrigin origin = SimilarOrigin(*target, root);
+    MOZ_ASSERT_IF(remoteDocumentVisibleRect,
+                  origin != BrowsingContextOrigin::Similar);
     if (origin == BrowsingContextOrigin::Similar) {
       rootBounds.Inflate(rootMargin);
     }
@@ -430,8 +583,8 @@ void DOMIntersectionObserver::Update(Document* aDocument,
 
       // 2.4. Let intersectionRect be the result of running the compute the
       // intersection algorithm on target.
-      intersectionRect =
-          ComputeTheIntersection(targetFrame, rootFrame, rootBounds);
+      intersectionRect = ComputeTheIntersection(
+          targetFrame, rootFrame, rootBounds, remoteDocumentVisibleRect);
     }
 
     // 2.5. Let targetArea be targetRect’s area.
@@ -525,8 +678,14 @@ void DOMIntersectionObserver::Notify() {
     }
   }
   mQueuedEntries.Clear();
-  RefPtr<dom::IntersectionCallback> callback(mCallback);
-  callback->Call(this, entries, *this);
+
+  if (mCallback.is<RefPtr<dom::IntersectionCallback>>()) {
+    RefPtr<dom::IntersectionCallback> callback(
+        mCallback.as<RefPtr<dom::IntersectionCallback>>());
+    callback->Call(this, entries, *this);
+  } else {
+    mCallback.as<NativeCallback>()(entries);
+  }
 }
 
 }  // namespace dom

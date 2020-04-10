@@ -171,7 +171,7 @@ class MOZ_RAII AutoSaveRestore {
 // of a canvas are stored.  Furthermore, this memory will be tracked by the
 // underlying surface implementations.  See bug 655638 for details.
 class Canvas2dPixelsReporter final : public nsIMemoryReporter {
-  ~Canvas2dPixelsReporter() {}
+  ~Canvas2dPixelsReporter() = default;
 
  public:
   NS_DECL_ISUPPORTS
@@ -762,7 +762,7 @@ class CanvasShutdownObserver final : public nsIObserver {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
  private:
-  ~CanvasShutdownObserver() {}
+  ~CanvasShutdownObserver() = default;
 
   CanvasRenderingContext2D* mCanvas;
 };
@@ -1337,8 +1337,8 @@ bool CanvasRenderingContext2D::EnsureTarget(const gfx::Rect* aCoveredRect,
     newTarget->ClearRect(canvasRect);
   }
 
-  mTarget = newTarget.forget();
-  mBufferProvider = newProvider.forget();
+  mTarget = std::move(newTarget);
+  mBufferProvider = std::move(newProvider);
 
   RegisterAllocation();
 
@@ -2088,8 +2088,13 @@ already_AddRefed<CanvasPattern> CanvasRenderingContext2D::CreatePattern(
     element = canvas;
 
     nsIntSize size = canvas->GetSize();
-    if (size.width == 0 || size.height == 0) {
-      aError.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    if (size.width == 0) {
+      aError.ThrowInvalidStateError("Passed-in canvas has width 0");
+      return nullptr;
+    }
+
+    if (size.height == 0) {
+      aError.ThrowInvalidStateError("Passed-in canvas has height 0");
       return nullptr;
     }
 
@@ -2117,18 +2122,9 @@ already_AddRefed<CanvasPattern> CanvasRenderingContext2D::CreatePattern(
     }
   } else if (aSource.IsHTMLImageElement()) {
     HTMLImageElement* img = &aSource.GetAsHTMLImageElement();
-    if (img->IntrinsicState().HasState(NS_EVENT_STATE_BROKEN)) {
-      return nullptr;
-    }
-
     element = img;
   } else if (aSource.IsSVGImageElement()) {
     SVGImageElement* img = &aSource.GetAsSVGImageElement();
-    if (img->IntrinsicState().HasState(NS_EVENT_STATE_BROKEN)) {
-      aError.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-      return nullptr;
-    }
-
     element = img;
   } else if (aSource.IsHTMLVideoElement()) {
     auto& video = aSource.GetAsHTMLVideoElement();
@@ -2145,13 +2141,8 @@ already_AddRefed<CanvasPattern> CanvasRenderingContext2D::CreatePattern(
     }
     RefPtr<SourceSurface> srcSurf = imgBitmap.PrepareForDrawTarget(mTarget);
     if (!srcSurf) {
-      JSContext* context = nsContentUtils::GetCurrentJSContext();
-      if (context) {
-        JS::WarnASCII(context,
-                      "CanvasRenderingContext2D.createPattern() failed to "
-                      "prepare source ImageBitmap.");
-      }
-      aError.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+      aError.ThrowInvalidStateError(
+          "Passed-in ImageBitmap has been transferred");
       return nullptr;
     }
 
@@ -2175,6 +2166,25 @@ already_AddRefed<CanvasPattern> CanvasRenderingContext2D::CreatePattern(
   nsLayoutUtils::SurfaceFromElementResult res =
       nsLayoutUtils::SurfaceFromElement(
           element, nsLayoutUtils::SFE_WANT_FIRST_FRAME_IF_IMAGE, mTarget);
+
+  // Per spec, we should throw here for the HTMLImageElement and SVGImageElement
+  // cases if the image request state is "broken".  In terms of the infromation
+  // in "res", the "broken" state corresponds to not having a size and not being
+  // still-loading (so there is no size forthcoming).
+  if (aSource.IsHTMLImageElement() || aSource.IsSVGImageElement()) {
+    if (!res.mIsStillLoading && !res.mHasSize) {
+      aError.ThrowInvalidStateError(
+          "Passed-in image's current request's state is \"broken\"");
+      return nullptr;
+    }
+
+    if (res.mSize.width == 0 || res.mSize.height == 0) {
+      return nullptr;
+    }
+
+    // Is the "fully decodable" check already done in SurfaceFromElement?  It's
+    // not clear how to do it from here, exactly.
+  }
 
   RefPtr<SourceSurface> surface = res.GetSourceSurface();
   if (!surface) {
@@ -2904,8 +2914,7 @@ bool CanvasRenderingContext2D::DrawCustomFocusRing(
     return false;
   }
 
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm) {
+  if (nsFocusManager* fm = nsFocusManager::GetFocusManager()) {
     // check that the element is focused
     if (&aElement == fm->GetFocusedElement()) {
       if (nsPIDOMWindowOuter* window = aElement.OwnerDoc()->GetWindow()) {
@@ -4366,8 +4375,8 @@ CanvasRenderingContext2D::CachedSurfaceFromElement(Element* aElement) {
   }
 
   res.mSize = res.mIntrinsicSize = res.mSourceSurface->GetSize();
-  res.mPrincipal = principal.forget();
-  res.mImageRequest = imgRequest.forget();
+  res.mPrincipal = std::move(principal);
+  res.mImageRequest = std::move(imgRequest);
   res.mIsWriteOnly = CheckWriteOnlySecurity(res.mCORSUsed, res.mPrincipal,
                                             res.mHadCrossOriginRedirects);
 

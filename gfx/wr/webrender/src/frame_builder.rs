@@ -76,12 +76,18 @@ pub struct FrameGlobalResources {
     /// The image shader block for the most common / default
     /// set of image parameters (color white, stretch == rect.size).
     pub default_image_handle: GpuCacheHandle,
+
+    /// A GPU cache config for drawing transparent rectangle primitives.
+    /// This is used to 'cut out' overlay tiles where a compositor
+    /// surface exists.
+    pub default_transparent_rect_handle: GpuCacheHandle,
 }
 
 impl FrameGlobalResources {
     pub fn empty() -> Self {
         FrameGlobalResources {
             default_image_handle: GpuCacheHandle::new(),
+            default_transparent_rect_handle: GpuCacheHandle::new(),
         }
     }
 
@@ -98,6 +104,10 @@ impl FrameGlobalResources {
                 0.0,
                 0.0,
             ]);
+        }
+
+        if let Some(mut request) = gpu_cache.request(&mut self.default_transparent_rect_handle) {
+            request.push(PremultipliedColorF::TRANSPARENT);
         }
     }
 }
@@ -262,7 +272,6 @@ impl FrameBuilder {
         texture_cache_profile: &mut TextureCacheProfileCounters,
         composite_state: &mut CompositeState,
         tile_cache_logger: &mut TileCacheLogger,
-        config: FrameBuilderConfig,
     ) -> Option<RenderTaskId> {
         profile_scope!("cull");
 
@@ -299,6 +308,7 @@ impl FrameBuilder {
                 ROOT_SPATIAL_NODE_INDEX,
                 global_device_pixel_scale,
                 PrimitiveVisibilityMask::all(),
+                None,
                 None,
             )
         );
@@ -348,7 +358,7 @@ impl FrameBuilder {
                 surfaces,
                 debug_flags,
                 scene_properties,
-                config,
+                config: scene.config,
             };
 
             let mut visibility_state = FrameVisibilityState {
@@ -375,6 +385,12 @@ impl FrameBuilder {
                 &mut visibility_state,
             );
 
+            // When there are tiles that are left remaining in the `retained_tiles`,
+            // dirty rects are not valid.
+            if !visibility_state.retained_tiles.caches.is_empty() {
+              visibility_state.composite_state.dirty_rects_are_valid = false;
+            }
+
             // When a new display list is processed by WR, the existing tiles from
             // any picture cache are stored in the `retained_tiles` field above. This
             // allows the first frame of a new display list to reuse any existing tiles
@@ -386,8 +402,13 @@ impl FrameBuilder {
             // we need to manually clean up any native compositor surfaces that were
             // allocated by these tiles.
             for (_, mut cache_state) in visibility_state.retained_tiles.caches.drain() {
-                if let Some(native_surface_id) = cache_state.native_surface_id.take() {
-                    visibility_state.resource_cache.destroy_compositor_surface(native_surface_id);
+                if let Some(native_surface) = cache_state.native_surface.take() {
+                    visibility_state.resource_cache.destroy_compositor_surface(native_surface.opaque);
+                    visibility_state.resource_cache.destroy_compositor_surface(native_surface.alpha);
+                }
+
+                for (_, external_surface) in cache_state.external_native_surface_cache.drain() {
+                    visibility_state.resource_cache.destroy_compositor_surface(external_surface.native_surface_id)
                 }
             }
         }
@@ -433,7 +454,7 @@ impl FrameBuilder {
                 root_spatial_node_index,
                 root_spatial_node_index,
                 ROOT_SURFACE_INDEX,
-                SubpixelMode::Allow,
+                &SubpixelMode::Allow,
                 &mut frame_state,
                 &frame_context,
                 scratch,
@@ -497,7 +518,6 @@ impl FrameBuilder {
         render_task_counters: &mut RenderTaskGraphCounters,
         debug_flags: DebugFlags,
         tile_cache_logger: &mut TileCacheLogger,
-        config: FrameBuilderConfig,
     ) -> Frame {
         profile_scope!("build");
         profile_marker!("BuildFrame");
@@ -568,7 +588,6 @@ impl FrameBuilder {
             &mut resource_profile.texture_cache,
             &mut composite_state,
             tile_cache_logger,
-            config,
         );
 
         let mut passes;
@@ -918,10 +937,15 @@ pub fn build_render_pass(
                             //           designed to support batch merging, which isn't
                             //           relevant for picture cache targets. We
                             //           can restructure / tidy this up a bit.
-                            let scissor_rect  = match render_tasks[task_id].kind {
-                                RenderTaskKind::Picture(ref info) => info.scissor_rect,
+                            let (scissor_rect, valid_rect)  = match render_tasks[task_id].kind {
+                                RenderTaskKind::Picture(ref info) => {
+                                    (
+                                        info.scissor_rect.expect("bug: must be set for cache tasks"),
+                                        info.valid_rect.expect("bug: must be set for cache tasks"),
+                                    )
+                                }
                                 _ => unreachable!(),
-                            }.expect("bug: dirty rect must be set for picture cache tasks");
+                            };
                             let mut batch_containers = Vec::new();
                             let mut alpha_batch_container = AlphaBatchContainer::new(Some(scissor_rect));
                             batcher.build(
@@ -937,6 +961,7 @@ pub fn build_render_pass(
                                 clear_color,
                                 alpha_batch_container,
                                 dirty_rect: scissor_rect,
+                                valid_rect,
                             };
 
                             picture_cache.push(target);

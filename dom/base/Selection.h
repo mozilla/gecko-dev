@@ -8,12 +8,10 @@
 #define mozilla_Selection_h__
 
 #include "mozilla/dom/StyledRange.h"
-#include "mozilla/AccessibleCaretEventHub.h"
 #include "mozilla/AutoRestore.h"
-#include "mozilla/PresShell.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/RangeBoundary.h"
 #include "mozilla/SelectionChangeEventDispatcher.h"
-#include "mozilla/TextRange.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"
 #include "nsDirection.h"
@@ -35,10 +33,11 @@ class nsCopySupport;
 class nsHTMLCopyEncoder;
 
 namespace mozilla {
+class AccessibleCaretEventHub;
 class ErrorResult;
 class HTMLEditor;
 class PostContentIterator;
-enum class TableSelection : uint32_t;
+enum class TableSelectionMode : uint32_t;
 struct AutoPrepareFocusRange;
 namespace dom {
 class DocGroup;
@@ -46,6 +45,7 @@ class DocGroup;
 }  // namespace mozilla
 
 namespace mozilla {
+
 namespace dom {
 
 // Note, the ownership of mozilla::dom::Selection depends on which way the
@@ -60,8 +60,10 @@ class Selection final : public nsSupportsWeakReference,
   virtual ~Selection();
 
  public:
-  Selection();
-  explicit Selection(nsFrameSelection* aList);
+  /**
+   * @param aFrameSelection can be nullptr.
+   */
+  explicit Selection(nsFrameSelection* aFrameSelection);
 
   MOZ_DECLARE_WEAKREFERENCE_TYPENAME(Selection)
 
@@ -84,19 +86,13 @@ class Selection final : public nsSupportsWeakReference,
    * MaybeNotifyAccessibleCaretEventHub() starts to notify
    * AccessibleCaretEventHub of selection change if aPresShell has it.
    */
-  void MaybeNotifyAccessibleCaretEventHub(PresShell* aPresShell) {
-    if (!mAccessibleCaretEventHub && aPresShell) {
-      mAccessibleCaretEventHub = aPresShell->GetAccessibleCaretEventHub();
-    }
-  }
+  void MaybeNotifyAccessibleCaretEventHub(PresShell* aPresShell);
 
   /**
    * StopNotifyingAccessibleCaretEventHub() stops notifying
    * AccessibleCaretEventHub of selection change.
    */
-  void StopNotifyingAccessibleCaretEventHub() {
-    mAccessibleCaretEventHub = nullptr;
-  }
+  void StopNotifyingAccessibleCaretEventHub();
 
   /**
    * EnableSelectionChangeEvent() starts to notify
@@ -170,6 +166,10 @@ class Selection final : public nsSupportsWeakReference,
    */
   nsresult AddRangesForSelectableNodes(nsRange* aRange, int32_t* aOutIndex,
                                        bool aNoStartSelect = false);
+
+  /**
+   * Doesn't remove `aRange` from `mAnchorFocusRange`.
+   */
   nsresult RemoveRangeInternal(nsRange& aRange);
 
  public:
@@ -292,6 +292,8 @@ class Selection final : public nsSupportsWeakReference,
 
   /**
    * Deletes this selection from document the nodes belong to.
+   * Only if this has `SelectionType::eNormal`.
+   * TODO: mark as `MOZ_CAN_RUN_SCRIPT`.
    */
   void DeleteFromDocument(mozilla::ErrorResult& aRv);
 
@@ -302,8 +304,10 @@ class Selection final : public nsSupportsWeakReference,
   nsRange* GetRangeAt(uint32_t aIndex, mozilla::ErrorResult& aRv);
   void AddRangeJS(nsRange& aRange, mozilla::ErrorResult& aRv);
 
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  void RemoveRangeAndUnselectFramesAndNotifyListeners(
+  /**
+   * Callers need to keep `aRange` alive.
+   */
+  MOZ_CAN_RUN_SCRIPT void RemoveRangeAndUnselectFramesAndNotifyListeners(
       nsRange& aRange, mozilla::ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void RemoveAllRanges(mozilla::ErrorResult& aRv);
@@ -407,10 +411,14 @@ class Selection final : public nsSupportsWeakReference,
    * @param offset      Where in given dom node to place the selection (the
    *                    offset into the given node)
    */
+  // TODO: mark as `MOZ_CAN_RUN_SCRIPT`
+  // (https://bugzilla.mozilla.org/show_bug.cgi?id=1615296).
   void Collapse(nsINode& aContainer, uint32_t aOffset, ErrorResult& aRv) {
     Collapse(RawRangeBoundary(&aContainer, aOffset), aRv);
   }
 
+  // TODO: this should be `MOZ_CAN_RUN_SCRIPT` instead
+  // (https://bugzilla.mozilla.org/show_bug.cgi?id=1615296).
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   void Collapse(const RawRangeBoundary& aPoint, ErrorResult& aRv);
 
@@ -704,7 +712,7 @@ class Selection final : public nsSupportsWeakReference,
       bool aSelected) const;
 
   nsresult SelectFrames(nsPresContext* aPresContext, nsRange* aRange,
-                        bool aSelect);
+                        bool aSelect) const;
 
   /**
    * SelectFramesInAllRanges() calls SelectFrames() for all current
@@ -712,17 +720,13 @@ class Selection final : public nsSupportsWeakReference,
    */
   void SelectFramesInAllRanges(nsPresContext* aPresContext);
 
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  static nsresult GetTableCellLocationFromRange(nsRange* aRange,
-                                                TableSelection* aSelectionType,
-                                                int32_t* aRow, int32_t* aCol);
-
   /**
    * @param aOutIndex points to the index of the range in mRanges. If
    *                  aDidAddRange is true, it is in [0, mRanges.Length()).
    */
-  nsresult MaybeAddTableCellRange(nsRange* aRange, bool* aDidAddRange,
-                                  int32_t* aOutIndex);
+  MOZ_CAN_RUN_SCRIPT nsresult MaybeAddTableCellRange(nsRange& aRange,
+                                                     bool* aDidAddRange,
+                                                     int32_t* aOutIndex);
 
   /**
    * Binary searches the given sorted array of ranges for the insertion point
@@ -756,9 +760,6 @@ class Selection final : public nsSupportsWeakReference,
                                  int32_t& aStartIndex,
                                  int32_t& aEndIndex) const;
   StyledRange* FindRangeData(nsRange* aRange);
-
-  static void UserSelectRangesToAdd(nsRange* aItem,
-                                    nsTArray<RefPtr<nsRange>>& rangesToAdd);
 
   /**
    * Preserves the sorting and disjunctiveness of mRanges.

@@ -97,6 +97,7 @@ class TestShellParent;
 #ifdef FUZZING
 class ProtocolFuzzerHelper;
 #endif
+class SharedPreferenceSerializer;
 }  // namespace ipc
 
 namespace jsipc {
@@ -313,13 +314,6 @@ class ContentParent final
   // Let managees query if it is safe to send messages.
   bool IsDestroyed() const { return !mIPCOpen; }
 
-  mozilla::ipc::IPCResult RecvOpenRecordReplayChannel(
-      const uint32_t& channelId, FileDescriptor* connection);
-  mozilla::ipc::IPCResult RecvCreateReplayingProcess(
-      const uint32_t& aChannelId);
-  mozilla::ipc::IPCResult RecvGenerateReplayCrashReport(
-      const uint32_t& aChannelId);
-
   mozilla::ipc::IPCResult RecvCreateGMPService();
 
   mozilla::ipc::IPCResult RecvLoadPlugin(
@@ -494,13 +488,13 @@ class ContentParent final
   already_AddRefed<POfflineCacheUpdateParent> AllocPOfflineCacheUpdateParent(
       const URIParams& aManifestURI, const URIParams& aDocumentURI,
       const PrincipalInfo& aLoadingPrincipalInfo, const bool& aStickDocument,
-      const CookieSettingsArgs& aCookieSettingsArgs);
+      const CookieJarSettingsArgs& aCookieJarSettingsArgs);
 
   virtual mozilla::ipc::IPCResult RecvPOfflineCacheUpdateConstructor(
       POfflineCacheUpdateParent* aActor, const URIParams& aManifestURI,
       const URIParams& aDocumentURI, const PrincipalInfo& aLoadingPrincipal,
       const bool& stickDocument,
-      const CookieSettingsArgs& aCookieSettingsArgs) override;
+      const CookieJarSettingsArgs& aCookieJarSettingsArgs) override;
 
   mozilla::ipc::IPCResult RecvSetOfflinePermission(
       const IPC::Principal& principal);
@@ -597,7 +591,8 @@ class ContentParent final
 
   void DeallocPSHEntryParent(PSHEntryParent*);
 
-  PSHistoryParent* AllocPSHistoryParent(BrowsingContext* aContext);
+  PSHistoryParent* AllocPSHistoryParent(
+      const MaybeDiscarded<BrowsingContext>& aContext);
 
   void DeallocPSHistoryParent(PSHistoryParent* aActor);
 
@@ -649,19 +644,41 @@ class ContentParent final
       uint64_t aContextId, DetachBrowsingContextResolver&& aResolve);
 
   mozilla::ipc::IPCResult RecvCacheBrowsingContextChildren(
-      BrowsingContext* aContext);
+      const MaybeDiscarded<BrowsingContext>& aContext);
 
   mozilla::ipc::IPCResult RecvRestoreBrowsingContextChildren(
-      BrowsingContext* aContext, BrowsingContext::Children&& aChildren);
+      const MaybeDiscarded<BrowsingContext>& aContext,
+      nsTArray<MaybeDiscarded<BrowsingContext>>&& aChildren);
 
-  mozilla::ipc::IPCResult RecvWindowClose(BrowsingContext* aContext,
-                                          bool aTrustedCaller);
-  mozilla::ipc::IPCResult RecvWindowFocus(BrowsingContext* aContext,
-                                          CallerType aCallerType);
-  mozilla::ipc::IPCResult RecvWindowBlur(BrowsingContext* aContext);
+  mozilla::ipc::IPCResult RecvWindowClose(
+      const MaybeDiscarded<BrowsingContext>& aContext, bool aTrustedCaller);
+  mozilla::ipc::IPCResult RecvWindowFocus(
+      const MaybeDiscarded<BrowsingContext>& aContext, CallerType aCallerType);
+  mozilla::ipc::IPCResult RecvWindowBlur(
+      const MaybeDiscarded<BrowsingContext>& aContext);
+  mozilla::ipc::IPCResult RecvRaiseWindow(
+      const MaybeDiscarded<BrowsingContext>& aContext, CallerType aCallerType);
+  mozilla::ipc::IPCResult RecvClearFocus(
+      const MaybeDiscarded<BrowsingContext>& aContext);
+  mozilla::ipc::IPCResult RecvSetFocusedBrowsingContext(
+      const MaybeDiscarded<BrowsingContext>& aContext);
+  mozilla::ipc::IPCResult RecvSetActiveBrowsingContext(
+      const MaybeDiscarded<BrowsingContext>& aContext);
+  mozilla::ipc::IPCResult RecvUnsetActiveBrowsingContext(
+      const MaybeDiscarded<BrowsingContext>& aContext);
+  mozilla::ipc::IPCResult RecvSetFocusedElement(
+      const MaybeDiscarded<BrowsingContext>& aContext, bool aNeedsFocus);
+  mozilla::ipc::IPCResult RecvBlurToParent(
+      const MaybeDiscarded<BrowsingContext>& aFocusedBrowsingContext,
+      const MaybeDiscarded<BrowsingContext>& aBrowsingContextToClear,
+      const MaybeDiscarded<BrowsingContext>& aAncestorBrowsingContextToFocus,
+      bool aIsLeavingDocument, bool aAdjustWidget,
+      bool aBrowsingContextToClearHandled,
+      bool aAncestorBrowsingContextToFocusHandled);
+
   mozilla::ipc::IPCResult RecvWindowPostMessage(
-      BrowsingContext* aContext, const ClonedMessageData& aMessage,
-      const PostMessageData& aData);
+      const MaybeDiscarded<BrowsingContext>& aContext,
+      const ClonedMessageData& aMessage, const PostMessageData& aData);
 
   FORWARD_SHMEM_ALLOCATOR_TO(PContentParent)
 
@@ -671,8 +688,10 @@ class ContentParent final
       const FileDescriptor& aFD) override;
 
  protected:
-  bool CheckBrowsingContextOwnership(BrowsingContext* aBC,
+  bool CheckBrowsingContextOwnership(CanonicalBrowsingContext* aBC,
                                      const char* aOperation) const;
+  bool CheckBrowsingContextEmbedder(CanonicalBrowsingContext* aBC,
+                                    const char* aOperation) const;
 
   void OnChannelConnected(int32_t pid) override;
 
@@ -719,20 +738,13 @@ class ContentParent final
       nsIReferrerInfo* aReferrerInfo, bool aLoadUri,
       nsIContentSecurityPolicy* aCsp);
 
-  enum RecordReplayState { eNotRecordingOrReplaying, eRecording, eReplaying };
-
   explicit ContentParent(int32_t aPluginID)
-      : ContentParent(nullptr, EmptyString(), eNotRecordingOrReplaying,
-                      EmptyString(), aPluginID) {}
-  ContentParent(ContentParent* aOpener, const nsAString& aRemoteType,
-                RecordReplayState aRecordReplayState = eNotRecordingOrReplaying,
-                const nsAString& aRecordingFile = EmptyString())
-      : ContentParent(aOpener, aRemoteType, aRecordReplayState, aRecordingFile,
-                      nsFakePluginTag::NOT_JSPLUGIN) {}
+      : ContentParent(nullptr, EmptyString(), aPluginID) {}
+  ContentParent(ContentParent* aOpener, const nsAString& aRemoteType)
+      : ContentParent(aOpener, aRemoteType, nsFakePluginTag::NOT_JSPLUGIN) {}
 
   ContentParent(ContentParent* aOpener, const nsAString& aRemoteType,
-                RecordReplayState aRecordReplayState,
-                const nsAString& aRecordingFile, int32_t aPluginID);
+                int32_t aPluginID);
 
   // Launch the subprocess and associated initialization.
   // Returns false if the process fails to start.
@@ -748,9 +760,20 @@ class ContentParent final
       hal::ProcessPriority aInitialPriority);
 
   // Common implementation of LaunchSubprocess{Sync,Async}.
-  void LaunchSubprocessInternal(
-      hal::ProcessPriority aInitialPriority,
-      mozilla::Variant<bool*, RefPtr<LaunchPromise>*>&& aRetval);
+  // Return `true` in case of success, `false` if launch was
+  // aborted because of shutdown.
+  bool BeginSubprocessLaunch(bool aIsSync, ProcessPriority aPriority);
+  void LaunchSubprocessReject();
+  bool LaunchSubprocessResolve(bool aIsSync, ProcessPriority aPriority);
+  // Return `nullptr` in case of error.
+  // Return a `ContentParent` in case of success. This `ContentParent`
+  // may either be ready and initialized or in the process of initializing
+  // asynchronously. In the latter case, the caller is responsible for
+  // finishing initialization.
+  static already_AddRefed<ContentParent> GetNewOrUsedBrowserProcessInternal(
+      Element* aFrameElement, const nsAString& aRemoteType,
+      ProcessPriority aPriority, ContentParent* aOpener, bool aPreferUsed,
+      bool aIsSync);
 
   // Common initialization after sub process launch.
   bool InitInternal(ProcessPriority aPriority);
@@ -837,7 +860,7 @@ class ContentParent final
   //
   // See nsIPermissionManager::GetPermissionsForKey for more information on
   // these keys.
-  void EnsurePermissionsByKey(const nsCString& aKey);
+  void EnsurePermissionsByKey(const nsCString& aKey, const nsCString& aOrigin);
 
   static void ForceKillTimerCallback(nsITimer* aTimer, void* aClosure);
 
@@ -911,7 +934,8 @@ class ContentParent final
       const uint32_t& aContentDispositionHint,
       const nsString& aContentDispositionFilename, const bool& aForceSave,
       const int64_t& aContentLength, const bool& aWasFileChannel,
-      const Maybe<URIParams>& aReferrer, BrowsingContext* aContext,
+      const Maybe<URIParams>& aReferrer,
+      const MaybeDiscarded<BrowsingContext>& aContext,
       const bool& aShouldCloseWindow);
 
   mozilla::ipc::IPCResult RecvPExternalHelperAppConstructor(
@@ -921,7 +945,8 @@ class ContentParent final
       const uint32_t& aContentDispositionHint,
       const nsString& aContentDispositionFilename, const bool& aForceSave,
       const int64_t& aContentLength, const bool& aWasFileChannel,
-      const Maybe<URIParams>& aReferrer, BrowsingContext* aContext,
+      const Maybe<URIParams>& aReferrer,
+      const MaybeDiscarded<BrowsingContext>& aContext,
       const bool& aShouldCloseWindow) override;
 
   already_AddRefed<PHandlerServiceParent> AllocPHandlerServiceParent();
@@ -1070,12 +1095,12 @@ class ContentParent final
   mozilla::ipc::IPCResult RecvPrivateDocShellsExist(const bool& aExist);
 
   mozilla::ipc::IPCResult RecvCommitBrowsingContextTransaction(
-      BrowsingContext* aContext,
+      const MaybeDiscarded<BrowsingContext>& aContext,
       BrowsingContext::BaseTransaction&& aTransaction, uint64_t aEpoch);
 
   mozilla::ipc::IPCResult RecvCommitWindowContextTransaction(
-      WindowContext* aContext, WindowContext::BaseTransaction&& aTransaction,
-      uint64_t aEpoch);
+      const MaybeDiscarded<WindowContext>& aContext,
+      WindowContext::BaseTransaction&& aTransaction, uint64_t aEpoch);
 
   mozilla::ipc::IPCResult RecvFirstIdle();
 
@@ -1222,10 +1247,18 @@ class ContentParent final
       const Principal& aPrincipal);
 
   mozilla::ipc::IPCResult RecvNotifyMediaStateChanged(
-      BrowsingContext* aContext, ControlledMediaState aState);
+      const MaybeDiscarded<BrowsingContext>& aContext,
+      ControlledMediaState aState);
 
   mozilla::ipc::IPCResult RecvNotifyMediaAudibleChanged(
-      BrowsingContext* aContext, bool aAudible);
+      const MaybeDiscarded<BrowsingContext>& aContext, bool aAudible);
+
+  mozilla::ipc::IPCResult RecvNotifyMediaSessionUpdated(
+      const MaybeDiscarded<BrowsingContext>& aContext, bool aIsCreated);
+
+  mozilla::ipc::IPCResult RecvNotifyUpdateMediaMetadata(
+      const MaybeDiscarded<BrowsingContext>& aContext,
+      const Maybe<MediaMetadataBase>& aMetadata);
 
   mozilla::ipc::IPCResult RecvGetModulesTrust(
       ModulePaths&& aModPaths, bool aRunAtNormalPriority,
@@ -1280,12 +1313,6 @@ class ContentParent final
   TimeDuration TimeSinceLaunch();
 
  private:
-  // Determine the recording/replaying state for this frame.
-  // Return `Nothing` in case of error, typically if we need
-  // to create a temporary recording file but could not.
-  static Maybe<RecordReplayState> GetRecordReplayState(
-      Element* aFrameElement, nsAString& aRecordingFile);
-
   // Return an existing ContentParent if possible. Otherwise, `nullptr`.
   static already_AddRefed<ContentParent> GetUsedBrowserProcess(
       ContentParent* aOpener, const nsAString& aRemoteType,
@@ -1361,16 +1388,6 @@ class ContentParent final
   LifecycleState mLifecycleState;
 
   bool mIsForBrowser;
-
-  // Whether this process is recording or replaying its execution, and any
-  // associated recording file.
-  RecordReplayState mRecordReplayState;
-  nsString mRecordingFile;
-
-  // When recording or replaying, the child process is a middleman. This vector
-  // stores any replaying children we have spawned on behalf of that middleman,
-  // indexed by their record/replay channel ID.
-  Vector<mozilla::ipc::GeckoChildProcessHost*> mReplayingChildren;
 
   // These variables track whether we've called Close() and KillHard() on our
   // channel.
@@ -1455,6 +1472,10 @@ class ContentParent final
 
   // See `BrowsingContext::mEpochs` for an explanation of this field.
   uint64_t mBrowsingContextFieldEpoch = 0;
+
+  // A preference serializer used to share preferences with the process.
+  // Cleared once startup is complete.
+  UniquePtr<mozilla::ipc::SharedPreferenceSerializer> mPrefSerializer;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(ContentParent, NS_CONTENTPARENT_IID)
@@ -1497,7 +1518,7 @@ class ParentIdleListener : public nsIObserver {
       : mParent(aParent), mObserver(aObserver), mTime(aTime) {}
 
  private:
-  virtual ~ParentIdleListener() {}
+  virtual ~ParentIdleListener() = default;
 
   RefPtr<mozilla::dom::ContentParent> mParent;
   uint64_t mObserver;

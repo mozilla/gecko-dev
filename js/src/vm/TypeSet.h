@@ -18,7 +18,8 @@
 
 #include "jstypes.h"  // JS_BITS_PER_WORD, JS_PUBLIC_API
 
-#include "jit/IonTypes.h"      // jit::MIRType
+#include "jit/IonTypes.h"  // jit::MIRType
+#include "jit/JitOptions.h"
 #include "js/GCAnnotations.h"  // JS_HAZ_GC_POINTER
 #include "js/Id.h"
 #include "js/TracingAPI.h"  // JSTracer
@@ -456,8 +457,7 @@ class TypeSet {
 
   /* Get a list of all types in this set. */
   using TypeList = Vector<Type, 1, SystemAllocPolicy>;
-  template <class TypeListT>
-  bool enumerateTypes(TypeListT* list) const;
+  bool enumerateTypes(TypeList* list) const;
 
   /*
    * Iterate through the objects in this set. getObjectCount overapproximates

@@ -56,6 +56,10 @@ try:
 except ImportError:
     build = None
 
+POST_DELAY_CONDPROF = 1000
+POST_DELAY_DEBUG = 3000
+POST_DELAY_DEFAULT = 30000
+
 
 class Perftest(object):
     """Abstract base class for perftests that execute via a subharness,
@@ -82,7 +86,7 @@ either Raptor or browsertime."""
         memory_test=False,
         is_release_build=False,
         debug_mode=False,
-        post_startup_delay=None,
+        post_startup_delay=POST_DELAY_DEFAULT,
         interrupt_handler=None,
         e10s=True,
         enable_webrender=False,
@@ -146,8 +150,8 @@ either Raptor or browsertime."""
         self.playback = None
         self.benchmark = None
         self.gecko_profiler = None
-        self.post_startup_delay = post_startup_delay
         self.device = None
+        self.runtime_error = None
         self.profile_class = profile_class or app
         self.conditioned_profile_dir = None
         self.interrupt_handler = interrupt_handler
@@ -159,18 +163,27 @@ either Raptor or browsertime."""
         self.results_handler.add_browser_meta(self.config["app"], browser_version)
 
         # debug mode is currently only supported when running locally
-        self.debug_mode = debug_mode if self.config["run_local"] else False
+        self.run_local = self.config['run_local']
+        self.debug_mode = debug_mode if self.run_local else False
 
-        # if running debug-mode reduce the pause after browser startup
-        if self.debug_mode:
-            self.post_startup_delay = min(self.post_startup_delay, 3000)
-            LOG.info(
-                "debug-mode enabled, reducing post-browser startup pause to %d ms"
-                % self.post_startup_delay
-            )
+        # For the post startup delay, we want to max it to 1s when using the
+        # conditioned profiles.
+        if not self.no_condprof and not self.run_local:
+            self.post_startup_delay = min(post_startup_delay, POST_DELAY_CONDPROF)
+        else:
+            # if running debug-mode reduce the pause after browser startup
+            if self.debug_mode:
+                self.post_startup_delay = min(post_startup_delay,
+                                              POST_DELAY_DEBUG)
+            else:
+                self.post_startup_delay = post_startup_delay
+
+        LOG.info("Post startup delay set to %d ms" % self.post_startup_delay)
         LOG.info("main raptor init, config is: %s" % str(self.config))
-
         self.build_browser_profile()
+
+        # Crashes counter
+        self.crashes = 0
 
     @property
     def is_localhost(self):
@@ -315,8 +328,11 @@ either Raptor or browsertime."""
                 try:
                     self.run_test(test, timeout=int(test.get("page_timeout")))
                 except RuntimeError as e:
-                    LOG.critical("Tests failed to finish! Application timed out.")
-                    LOG.error(e)
+                    # Check for crashes before showing the timeout error.
+                    self.check_for_crashes()
+                    if self.crashes == 0:
+                        LOG.critical(e)
+                    os.sys.exit(1)
                 finally:
                     self.run_test_teardown(test)
             return self.process_results(tests, test_names)

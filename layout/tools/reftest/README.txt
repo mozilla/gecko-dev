@@ -374,27 +374,29 @@ must be one of the following:
    a manifest, it is legal to use it anywhere in a manifest. Subsequent uses
    of url-prefix overwrite any existing values.
 
-4. Specification of default preferences
+4. Specification of defaults
 
-   default-preferences <preference>*
+   defaults [<failure-type> | <preference> | <http>]
 
-   where <preference> is defined above.
+   where <failure-type>, <preference> and <http> are defined above.
 
-   The <preference> settings will be used for all following test items in the
-   manifest.
+   The default settings will be used for all following test items in the manifest.
+   Any test specific settings will override the defaults, just as later items
+   within a line override earlier ones.
 
-   If a test item includes its own preference settings, then they will override
-   any settings for preferences of the same names that are set using
-   default-preferences, just as later items within a line override earlier ones.
+   A defaults line with no settings will reset the defaults to be empty.
 
-   A default-preferences line with no <preference> settings following it will
-   reset the set of default preferences to be empty.
+   As with url-prefix, defaults will often be used at the start of a manifest file
+   so that it applies to all test items, but it is legal for defaults to appear
+   anywhere in the manifest. A subsequent defaults will reset any previous default
+   settings and overwrite them with the new settings.
 
-   As with url-prefix, default-preferences will often be used at the start of a
-   manifest file so that it applies to all test items, but it is legal for
-   default-preferences to appear anywhere in the manifest. A subsequent
-   default-preferences will reset any previous default preference values and
-   overwrite them with the specified <preference> values.
+   It is invalid to set non-skip defaults before an include line, just as it is
+   invalid to specify non-skip settings directly on the include line itself. If a
+   manifest needs to use both defaults and include, the include should appear
+   before the defaults. If it's important to specify the include later on in the
+   manifest, a blank defaults line directly preceding the include can be used to
+   reset the defaults.
 
 This test manifest format could be used by other harnesses, such as ones
 that do not depend on XUL, or even ones testing other layout engines.

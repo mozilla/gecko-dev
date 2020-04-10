@@ -347,7 +347,6 @@ class OSXBootstrapper(BaseBootstrapper):
             'gnu-tar',
             'node',
             'python',
-            'python@2',
             'terminal-notifier',
             'watchman',
         ]
@@ -541,6 +540,11 @@ class OSXBootstrapper(BaseBootstrapper):
         self.install_toolchain_artifact(state_dir, checkout_root,
                                         sccache.CLANG_DIST_TOOLCHAIN,
                                         no_unpack=True)
+
+    def ensure_fix_stacks_packages(self, state_dir, checkout_root):
+        from mozboot import fix_stacks
+
+        self.install_toolchain_artifact(state_dir, checkout_root, fix_stacks.MACOS_FIX_STACKS)
 
     def ensure_stylo_packages(self, state_dir, checkout_root):
         from mozboot import stylo

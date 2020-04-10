@@ -141,13 +141,13 @@ class PaymentResponse final : public DOMEventTargetHelper,
                     PaymentAddress* aShippingAddress,
                     const ResponseData& aDetails, const nsAString& aPayerName,
                     const nsAString& aPayerEmail, const nsAString& aPayerPhone);
-  void RejectRetry(ErrorResult& aRejectReason);
+  void RejectRetry(ErrorResult&& aRejectReason);
 
  protected:
   ~PaymentResponse();
 
-  nsresult ValidatePaymentValidationErrors(
-      const PaymentValidationErrors& aErrors);
+  void ValidatePaymentValidationErrors(const PaymentValidationErrors& aErrors,
+                                       ErrorResult& aRv);
 
   void ConvertPaymentMethodErrors(JSContext* aCx,
                                   const PaymentValidationErrors& aErrors,

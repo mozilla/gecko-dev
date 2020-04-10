@@ -18,7 +18,6 @@
 #include "frontend/BinAST-macros.h"  // BINJS_TRY*, BINJS_MOZ_TRY*
 #include "gc/Rooting.h"              // RootedAtom
 #include "js/AllocPolicy.h"          // SystemAllocPolicy
-#include "js/StableStringChars.h"    // Latin1Char
 #include "js/UniquePtr.h"            // js::UniquePtr
 #include "js/Utility.h"              // js_free
 #include "js/Vector.h"               // js::Vector
@@ -1464,7 +1463,7 @@ BinASTTokenReaderContext::readSkippableSubTree(const FieldContext&) {
   return SkippableSubTree(0, 0);
 }
 
-JS::Result<Ok> BinASTTokenReaderContext::registerLazyScript(LazyScript* lazy) {
+JS::Result<Ok> BinASTTokenReaderContext::registerLazyScript(BaseScript* lazy) {
   BINJS_TRY(lazyScripts_.append(lazy));
   return Ok();
 }

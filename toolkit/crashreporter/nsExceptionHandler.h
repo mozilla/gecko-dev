@@ -75,7 +75,6 @@ void SetProfileDirectory(nsIFile* aDir);
 void UpdateCrashEventsDir();
 void SetMemoryReportFile(nsIFile* aFile);
 nsresult GetDefaultMemoryReportFile(nsIFile** aFile);
-void SetTelemetrySessionId(const nsACString& id);
 
 /**
  * Get the path where crash event files should be written.
@@ -116,6 +115,9 @@ nsresult UnregisterAppMemory(void* ptr);
 
 // Include heap regions of the crash context.
 void SetIncludeContextHeap(bool aValue);
+
+void GetAnnotation(uint32_t childPid, Annotation annotation,
+                   nsACString& outStr);
 
 // Functions for working with minidumps and .extras
 typedef mozilla::EnumeratedArray<Annotation, Annotation::Count, nsCString>

@@ -15,6 +15,7 @@ ChromeUtils.import("resource://gre/modules/NotificationDB.jsm");
 // lazy module getters
 
 XPCOMUtils.defineLazyModuleGetters(this, {
+  AboutNewTabStartupRecorder: "resource:///modules/AboutNewTabService.jsm",
   AddonManager: "resource://gre/modules/AddonManager.jsm",
   AMTelemetry: "resource://gre/modules/AddonManager.jsm",
   NewTabPagePreloading: "resource:///modules/NewTabPagePreloading.jsm",
@@ -2078,20 +2079,6 @@ var gBrowserInit = {
       }
     });
 
-    CaptivePortalWatcher.delayedStartup();
-
-    this.delayedStartupFinished = true;
-
-    _resolveDelayedStartup();
-
-    SessionStore.promiseAllWindowsRestored.then(() => {
-      this._schedulePerWindowIdleTasks();
-      document.documentElement.setAttribute("sessionrestored", "true");
-    });
-
-    Services.obs.notifyObservers(window, "browser-delayed-startup-finished");
-    TelemetryTimestamps.add("delayedStartupFinished");
-
     if (BrowserHandler.kiosk) {
       // We don't modify popup windows for kiosk mode
       if (!gURLBar.readOnly) {
@@ -2102,6 +2089,19 @@ var gBrowserInit = {
     if (!Services.policies.isAllowed("hideShowMenuBar")) {
       document.getElementById("toolbar-menubar").removeAttribute("toolbarname");
     }
+
+    CaptivePortalWatcher.delayedStartup();
+
+    SessionStore.promiseAllWindowsRestored.then(() => {
+      this._schedulePerWindowIdleTasks();
+      document.documentElement.setAttribute("sessionrestored", "true");
+    });
+
+    this.delayedStartupFinished = true;
+    _resolveDelayedStartup();
+    Services.obs.notifyObservers(window, "browser-delayed-startup-finished");
+    TelemetryTimestamps.add("delayedStartupFinished");
+    // We've announced that delayed startup has finished. Do not add code past this point.
   },
 
   _setInitialFocus() {
@@ -2309,6 +2309,8 @@ var gBrowserInit = {
       NewTabPagePreloading.maybeCreatePreloadedBrowser(window);
     });
 
+    scheduleIdleTask(reportRemoteSubframesEnabledTelemetry);
+
     if (AppConstants.NIGHTLY_BUILD) {
       scheduleIdleTask(() => {
         FissionTestingUI.init();
@@ -2352,6 +2354,8 @@ var gBrowserInit = {
 
       // If the given URI is different from the homepage, we want to load it.
       if (uri != defaultArgs) {
+        AboutNewTabStartupRecorder.noteNonDefaultStartup();
+
         if (uri instanceof Ci.nsIArray) {
           // Transform the nsIArray of nsISupportsString's into a JS Array of
           // JS strings.
@@ -2577,28 +2581,33 @@ const SiteSpecificBrowserUI = {
   },
 
   removeSSBFromMenu(ssb) {
-    let button = document.getElementById("ssb-button-" + ssb.id);
-    if (!button) {
+    let container = document.getElementById("ssb-button-" + ssb.id);
+    if (!container) {
       return;
     }
 
-    if (!button.nextElementSibling && !button.previousElementSibling) {
+    if (!container.nextElementSibling && !container.previousElementSibling) {
       document.getElementById("appMenu-ssb-button").hidden = true;
     }
 
+    let button = container.querySelector(".ssb-launch");
     let uri = button.getAttribute("image");
     if (uri) {
       URL.revokeObjectURL(uri);
     }
 
-    button.remove();
+    container.remove();
   },
 
   addSSBToMenu(ssb) {
+    let container = document.createXULElement("toolbaritem");
+    container.id = `ssb-button-${ssb.id}`;
+    container.className = "toolbaritem-menu-buttons";
+
     let menu = document.createXULElement("toolbarbutton");
-    menu.id = "ssb-button-" + ssb.id;
-    menu.className = "subviewbutton subviewbutton-iconic";
+    menu.className = "ssb-launch subviewbutton subviewbutton-iconic";
     menu.setAttribute("label", ssb.name);
+    menu.setAttribute("flex", "1");
 
     ssb.getScaledIcon(16 * devicePixelRatio).then(
       icon => {
@@ -2615,7 +2624,18 @@ const SiteSpecificBrowserUI = {
       ssb.launch();
     });
 
-    this.panelBody.append(menu);
+    let uninstall = document.createXULElement("toolbarbutton");
+    uninstall.className = "ssb-uninstall subviewbutton subviewbutton-iconic";
+    // Hardcoded for now. Localization tracked in bug 1602528.
+    uninstall.setAttribute("tooltiptext", "Uninstall");
+
+    uninstall.addEventListener("command", () => {
+      ssb.uninstall();
+    });
+
+    container.append(menu);
+    container.append(uninstall);
+    this.panelBody.append(container);
     document.getElementById("appMenu-ssb-button").hidden = false;
   },
 
@@ -3331,125 +3351,6 @@ function BrowserPageInfo(
   );
 }
 
-/**
- * Sets the URI to display in the location bar.
- *
- * @param aURI [optional]
- *        nsIURI to set. If this is unspecified, the current URI will be used.
- * @param updatePopupNotifications [optional]
- *        Passed though to SetPageProxyState, indicates whether the
- *        PopupNotifications need updated.
- */
-function URLBarSetURI(aURI, updatePopupNotifications) {
-  var value = gBrowser.userTypedValue;
-  var valid = false;
-
-  // Explicitly check for nulled out value. We don't want to reset the URL
-  // bar if the user has deleted the URL and we'd just put the same URL
-  // back. See bug 304198.
-  if (value === null) {
-    let uri = aURI || gBrowser.currentURI;
-    // Strip off usernames and passwords for the location bar
-    try {
-      uri = Services.uriFixup.createExposableURI(uri);
-    } catch (e) {}
-
-    // Replace initial page URIs with an empty string
-    // only if there's no opener (bug 370555).
-    if (
-      isInitialPage(uri) &&
-      checkEmptyPageOrigin(gBrowser.selectedBrowser, uri)
-    ) {
-      value = "";
-    } else {
-      // We should deal with losslessDecodeURI throwing for exotic URIs
-      try {
-        value = losslessDecodeURI(uri);
-      } catch (ex) {
-        value = "about:blank";
-      }
-    }
-
-    valid = !isBlankPageURL(uri.spec) || uri.schemeIs("moz-extension");
-  } else if (
-    isInitialPage(value) &&
-    checkEmptyPageOrigin(gBrowser.selectedBrowser)
-  ) {
-    value = "";
-    valid = true;
-  }
-
-  let isDifferentValidValue = valid && value != gURLBar.value;
-  gURLBar.value = value;
-  gURLBar.valueIsTyped = !valid;
-  gURLBar.removeAttribute("usertyping");
-  if (isDifferentValidValue) {
-    // The selection is enforced only for new values, to avoid overriding the
-    // cursor position when the user switches windows while typing.
-    gURLBar.selectionStart = gURLBar.selectionEnd = 0;
-  }
-
-  SetPageProxyState(valid ? "valid" : "invalid", updatePopupNotifications);
-}
-
-function losslessDecodeURI(aURI) {
-  let scheme = aURI.scheme;
-  var value = aURI.displaySpec;
-
-  let decodeASCIIOnly = !["https", "http", "file", "ftp"].includes(scheme);
-  // Try to decode as UTF-8 if there's no encoding sequence that we would break.
-  if (!/%25(?:3B|2F|3F|3A|40|26|3D|2B|24|2C|23)/i.test(value)) {
-    if (decodeASCIIOnly) {
-      // This only decodes ascii characters (hex) 20-7e, except 25 (%).
-      // This avoids both cases stipulated below (%-related issues, and \r, \n
-      // and \t, which would be %0d, %0a and %09, respectively) as well as any
-      // non-US-ascii characters.
-      value = value.replace(
-        /%(2[0-4]|2[6-9a-f]|[3-6][0-9a-f]|7[0-9a-e])/g,
-        decodeURI
-      );
-    } else {
-      try {
-        value = decodeURI(value)
-          // 1. decodeURI decodes %25 to %, which creates unintended
-          //    encoding sequences. Re-encode it, unless it's part of
-          //    a sequence that survived decodeURI, i.e. one for:
-          //    ';', '/', '?', ':', '@', '&', '=', '+', '$', ',', '#'
-          //    (RFC 3987 section 3.2)
-          // 2. Re-encode select whitespace so that it doesn't get eaten
-          //    away by the location bar (bug 410726). Re-encode all
-          //    adjacent whitespace, to prevent spoofing attempts where
-          //    invisible characters would push part of the URL to
-          //    overflow the location bar (bug 1395508).
-          .replace(
-            /%(?!3B|2F|3F|3A|40|26|3D|2B|24|2C|23)|[\r\n\t]|\s(?=\s)|\s$/gi,
-            encodeURIComponent
-          );
-      } catch (e) {}
-    }
-  }
-
-  // Encode invisible characters (C0/C1 control characters, U+007F [DEL],
-  // U+00A0 [no-break space], line and paragraph separator,
-  // object replacement character) (bug 452979, bug 909264)
-  value = value.replace(
-    // eslint-disable-next-line no-control-regex
-    /[\u0000-\u001f\u007f-\u00a0\u2028\u2029\ufffc]/g,
-    encodeURIComponent
-  );
-
-  // Encode default ignorable characters (bug 546013)
-  // except ZWNJ (U+200C) and ZWJ (U+200D) (bug 582186).
-  // This includes all bidirectional formatting characters.
-  // (RFC 3987 sections 3.2 and 4.1 paragraph 6)
-  value = value.replace(
-    // eslint-disable-next-line no-misleading-character-class
-    /[\u00ad\u034f\u061c\u115f-\u1160\u17b4-\u17b5\u180b-\u180d\u200b\u200e-\u200f\u202a-\u202e\u2060-\u206f\u3164\ufe00-\ufe0f\ufeff\uffa0\ufff0-\ufff8]|\ud834[\udd73-\udd7a]|[\udb40-\udb43][\udc00-\udfff]/g,
-    encodeURIComponent
-  );
-  return value;
-}
-
 function UpdateUrlbarSearchSplitterState() {
   var splitter = document.getElementById("urlbar-search-splitter");
   var urlbar = document.getElementById("urlbar-container");
@@ -3563,11 +3464,6 @@ function PageProxyClickHandler(aEvent) {
     middleMousePaste(aEvent);
   }
 }
-
-const SEC_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SEC_ERROR_BASE;
-const SEC_ERROR_UNKNOWN_ISSUER = SEC_ERROR_BASE + 13;
-
-const PREF_SSL_IMPACT_ROOTS = ["security.tls.version.", "security.ssl3."];
 
 /**
  * Handle command events bubbling up from error page content
@@ -3700,10 +3596,6 @@ function BrowserFullScreen() {
   window.fullScreen = !window.fullScreen || BrowserHandler.kiosk;
 }
 
-function getWebNavigation() {
-  return gBrowser.webNavigation;
-}
-
 function BrowserReloadWithFlags(reloadFlags) {
   let unchangedRemoteness = [];
 
@@ -3726,15 +3618,6 @@ function BrowserReloadWithFlags(reloadFlags) {
         );
         gBrowser._insertBrowser(tab);
       }
-    } else if (browser.hasAttribute("recordExecution")) {
-      // Recording tabs always use new content processes when reloading, to get
-      // a fresh recording.
-      gBrowser.updateBrowserRemoteness(browser, {
-        recordExecution: "*",
-        newFrameloader: true,
-        remoteType: E10SUtils.DEFAULT_REMOTE_TYPE,
-      });
-      loadBrowserURI(browser, url);
     } else {
       unchangedRemoteness.push(tab);
     }
@@ -4564,7 +4447,9 @@ const BrowserSearch = {
         : "tab",
       usePrivate,
       "contextmenu",
-      triggeringPrincipal,
+      Services.scriptSecurityManager.createNullPrincipal(
+        triggeringPrincipal.originAttributes
+      ),
       csp
     );
     if (engine) {
@@ -5103,11 +4988,11 @@ function updateUserContextUIIndicator() {
 
   replaceContainerClass("color", hbox, identity.color);
 
-  let label = document.getElementById("userContext-label");
-  label.setAttribute(
-    "value",
-    ContextualIdentityService.getUserContextLabel(userContextId)
-  );
+  let label = ContextualIdentityService.getUserContextLabel(userContextId);
+  document.getElementById("userContext-label").setAttribute("value", label);
+  // Also set the container label as the tooltip so we can only show the icon
+  // in small windows.
+  hbox.setAttribute("tooltiptext", label);
 
   let indicator = document.getElementById("userContext-indicator");
   replaceContainerClass("icon", indicator, identity.icon);
@@ -5181,7 +5066,7 @@ var XULBrowserWindow = {
   },
 
   forceInitialBrowserNonRemote(aOpener) {
-    gBrowser.updateBrowserRemoteness(gBrowser.initialBrowser, {
+    gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
       opener: aOpener,
       remoteType: E10SUtils.NOT_REMOTE,
     });
@@ -5457,7 +5342,7 @@ var XULBrowserWindow = {
       // via simulated locationchange events such as switching between tabs, however
       // if this is a document navigation then PopupNotifications will be updated
       // via TabsProgressListener.onLocationChange and we do not want it called twice
-      URLBarSetURI(aLocationURI, aIsSimulated);
+      gURLBar.setURI(aLocationURI, aIsSimulated);
 
       BookmarkingUI.onLocationChange();
 
@@ -5830,6 +5715,7 @@ var CombinedStopReload = {
     this._cancelTransition();
     this.stop.removeEventListener("click", this);
     this.stopReloadContainer.removeEventListener("animationend", this);
+    this.stopReloadContainer.removeEventListener("animationcancel", this);
     this.stopReloadContainer = null;
     this.reload = null;
     this.stop = null;
@@ -5842,6 +5728,7 @@ var CombinedStopReload = {
           this._stopClicked = true;
         }
         break;
+      case "animationcancel":
       case "animationend": {
         if (
           event.target.classList.contains("toolbarbutton-animatable-image") &&
@@ -5878,6 +5765,7 @@ var CombinedStopReload = {
       Services.prefs.getBoolPref("browser.stopReloadAnimation.enabled");
     Services.prefs.addObserver("toolkit.cosmeticAnimations.enabled", this);
     this.stopReloadContainer.addEventListener("animationend", this);
+    this.stopReloadContainer.addEventListener("animationcancel", this);
   },
 
   onTabSwitch() {
@@ -7296,7 +7184,7 @@ function BrowserSetForcedCharacterSet(aCharset) {
     gBrowser.selectedBrowser.characterSet = aCharset;
     // Save the forced character-set
     PlacesUIUtils.setCharsetForPage(
-      getWebNavigation().currentURI,
+      gBrowser.currentURI,
       aCharset,
       window
     ).catch(Cu.reportError);
@@ -7647,7 +7535,7 @@ var gPageStyleMenu = {
       let actor = global.getActor("PageStyle");
       actor.sendAsyncMessage(message, data);
 
-      contextsToVisit.push(...currentContext.getChildren());
+      contextsToVisit.push(...currentContext.children);
     }
   },
 
@@ -8475,7 +8363,7 @@ function ReportFalseDeceptiveSite() {
       });
     }
 
-    contextsToVisit.push(...currentContext.getChildren());
+    contextsToVisit.push(...currentContext.children);
   }
 }
 
@@ -9428,9 +9316,25 @@ var ConfirmationHint = {
   },
 };
 
+function reportRemoteSubframesEnabledTelemetry() {
+  let autostart = Services.prefs.getBoolPref("fission.autostart");
+
+  let categoryLabel = gFissionBrowser ? "Enabled" : "Disabled";
+  if (autostart == gFissionBrowser) {
+    categoryLabel += "ByAutostart";
+  } else {
+    categoryLabel += "ByUser";
+  }
+
+  Services.telemetry
+    .getHistogramById("WINDOW_REMOTE_SUBFRAMES_ENABLED_STATUS")
+    .add(categoryLabel);
+}
+
 if (AppConstants.NIGHTLY_BUILD) {
   var FissionTestingUI = {
     init() {
+      // Handle the Fission/Non-Fission testing UI.
       let autostart = Services.prefs.getBoolPref("fission.autostart");
       if (!autostart) {
         return;
@@ -9443,6 +9347,33 @@ if (AppConstants.NIGHTLY_BUILD) {
 
       newFissionWindow.hidden = gFissionBrowser;
       newNonFissionWindow.hidden = !gFissionBrowser;
+
+      if (!Cu.isInAutomation) {
+        // We don't want to display the warning in automation as it messes with many tests
+        // that rely on a specific state of the screen at the end of startup.
+        this.checkFissionWithoutWebRender();
+      }
+    },
+
+    // Display a warning if we're attempting to use Fission without WebRender
+    checkFissionWithoutWebRender() {
+      let isFissionEnabled = Services.prefs.getBoolPref("fission.autostart");
+      if (!isFissionEnabled) {
+        return;
+      }
+
+      let isWebRenderEnabled = Services.prefs.getBoolPref("gfx.webrender.all");
+
+      if (isWebRenderEnabled) {
+        return;
+      }
+      // Note: Test is hardcoded in English. This is a Nightly-locked warning, so we can afford to.
+      window.gNotificationBox.appendNotification(
+        "You are running with Fission enabled but without WebRender. This combination is untested, so use at your own risk.",
+        "warning-fission-without-webrender-notification",
+        "chrome://global/skin/icons/question-16.png",
+        window.gNotificationBox.PRIORITY_WARNING_LOW
+      );
     },
   };
 }

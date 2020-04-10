@@ -55,8 +55,7 @@ def diff_resources(left_path, right_path):
             res = parser.parse(fh.read())
             lines.append(serializer.serialize(res).splitlines(True))
     sys.stdout.writelines(
-        chunk.encode('utf-8')
-        for chunk in unified_diff(lines[0], lines[1], left_path, right_path)
+        chunk for chunk in unified_diff(lines[0], lines[1], left_path, right_path)
     )
 
 
@@ -145,7 +144,7 @@ def test_migration(cmd, obj_dir, to_test, references):
             mozpath.join(work_dir, 'reference', ref),
             mozpath.join(work_dir, 'en-US', ref),
         )
-    messages = [l.desc for l in client.log('::{} - ::{}'.format(tip, old_tip))]
+    messages = [l.desc.decode('utf-8') for l in client.log(b'::%s - ::%s' % (tip, old_tip))]
     bug = re.search('[0-9]{5,}', migration_name).group()
     # Just check first message for bug number, they're all following the same pattern
     if bug not in messages[0]:

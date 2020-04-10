@@ -10,6 +10,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/IntersectionObserverBinding.h"
 #include "mozilla/ServoStyleConsts.h"
+#include "mozilla/Variant.h"
 #include "nsTArray.h"
 
 namespace mozilla {
@@ -19,7 +20,7 @@ class DOMIntersectionObserver;
 
 class DOMIntersectionObserverEntry final : public nsISupports,
                                            public nsWrapperCache {
-  ~DOMIntersectionObserverEntry() {}
+  ~DOMIntersectionObserverEntry() = default;
 
  public:
   DOMIntersectionObserverEntry(nsISupports* aOwner, DOMHighResTimeStamp aTime,
@@ -82,12 +83,16 @@ class DOMIntersectionObserver final : public nsISupports,
                                       public nsWrapperCache {
   virtual ~DOMIntersectionObserver() { Disconnect(); }
 
+  typedef void (*NativeCallback)(
+      const Sequence<OwningNonNull<DOMIntersectionObserverEntry>>& aEntries);
+  DOMIntersectionObserver(Document&, NativeCallback);
+
  public:
   DOMIntersectionObserver(already_AddRefed<nsPIDOMWindowInner>&& aOwner,
                           dom::IntersectionCallback& aCb)
       : mOwner(aOwner),
         mDocument(mOwner->GetExtantDoc()),
-        mCallback(&aCb),
+        mCallback(RefPtr<dom::IntersectionCallback>(&aCb)),
         mConnected(false) {}
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMIntersectionObserver)
@@ -106,7 +111,7 @@ class DOMIntersectionObserver final : public nsISupports,
 
   nsISupports* GetParentObject() const { return mOwner; }
 
-  Element* GetRoot() const { return mRoot; }
+  nsINode* GetRoot() const { return mRoot; }
 
   void GetRootMargin(DOMString& aRetVal);
   void GetThresholds(nsTArray<double>& aRetVal);
@@ -118,12 +123,13 @@ class DOMIntersectionObserver final : public nsISupports,
 
   void TakeRecords(nsTArray<RefPtr<DOMIntersectionObserverEntry>>& aRetVal);
 
-  dom::IntersectionCallback* IntersectionCallback() { return mCallback; }
-
   bool SetRootMargin(const nsAString& aString);
 
   void Update(Document* aDocument, DOMHighResTimeStamp time);
   MOZ_CAN_RUN_SCRIPT void Notify();
+
+  static already_AddRefed<DOMIntersectionObserver> CreateLazyLoadObserver(
+      Document&);
 
  protected:
   void Connect();
@@ -136,8 +142,8 @@ class DOMIntersectionObserver final : public nsISupports,
 
   nsCOMPtr<nsPIDOMWindowInner> mOwner;
   RefPtr<Document> mDocument;
-  RefPtr<dom::IntersectionCallback> mCallback;
-  RefPtr<Element> mRoot;
+  Variant<RefPtr<dom::IntersectionCallback>, NativeCallback> mCallback;
+  RefPtr<nsINode> mRoot;
   StyleRect<LengthPercentage> mRootMargin;
   nsTArray<double> mThresholds;
 

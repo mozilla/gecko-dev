@@ -28,17 +28,20 @@ class nsDOMOfflineResourceList;
 class nsGlobalWindowInner;
 class nsGlobalWindowOuter;
 class nsIArray;
+class nsIBaseWindow;
 class nsIChannel;
 class nsIContent;
 class nsIContentSecurityPolicy;
 class nsICSSDeclaration;
 class nsIDocShell;
+class nsIDocShellTreeOwner;
 class nsDocShellLoadState;
 class nsIPrincipal;
 class nsIRunnable;
 class nsIScriptTimeoutHandler;
 class nsISerialEventTarget;
 class nsIURI;
+class nsIWebBrowserChrome;
 class nsPIDOMWindowInner;
 class nsPIDOMWindowOuter;
 class nsPIWindowRoot;
@@ -49,6 +52,7 @@ namespace mozilla {
 namespace dom {
 class AudioContext;
 class BrowsingContext;
+class BrowsingContextGroup;
 class ClientInfo;
 class ClientState;
 class ContentFrameMessageManager;
@@ -399,6 +403,11 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
   inline mozilla::dom::BrowsingContext* GetBrowsingContext() const;
 
   /**
+   * Get the browsing context group this window belongs to.
+   */
+  mozilla::dom::BrowsingContextGroup* GetBrowsingContextGroup() const;
+
+  /**
    * Call this to indicate that some node (this window, its document,
    * or content in that document) has a paint event listener.
    */
@@ -568,6 +577,8 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
 
   bool HasStorageAccessGranted(const nsACString& aPermissionKey);
 
+  nsIPrincipal* GetDocumentContentBlockingAllowListPrincipal() const;
+
  protected:
   void CreatePerformanceObjectIfNeeded();
 
@@ -592,6 +603,7 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
   // Cache the URI when mDoc is cleared.
   nsCOMPtr<nsIURI> mDocumentURI;  // strong
   nsCOMPtr<nsIURI> mDocBaseURI;   // strong
+  nsCOMPtr<nsIPrincipal> mDocContentBlockingAllowListPrincipal;
 
   nsCOMPtr<mozilla::dom::EventTarget> mParentTarget;  // strong
 
@@ -686,7 +698,6 @@ class nsPIDOMWindowOuter : public mozIDOMWindowProxy {
   ~nsPIDOMWindowOuter();
 
   void RefreshMediaElementsSuspend(SuspendTypes aSuspend);
-  bool IsDisposableSuspend(SuspendTypes aSuspend) const;
   void MaybeNotifyMediaResumedFromBlock(SuspendTypes aSuspend);
 
  public:
@@ -1061,6 +1072,10 @@ class nsPIDOMWindowOuter : public mozIDOMWindowProxy {
       mozilla::dom::BrowsingContext* aOpener);
   already_AddRefed<mozilla::dom::BrowsingContext>
   TakeOpenerForInitialContentBrowser();
+
+  already_AddRefed<nsIDocShellTreeOwner> GetTreeOwner();
+  already_AddRefed<nsIBaseWindow> GetTreeOwnerWindow();
+  already_AddRefed<nsIWebBrowserChrome> GetWebBrowserChrome();
 
  protected:
   // Lazily instantiate an about:blank document if necessary, and if

@@ -128,7 +128,6 @@ pref("browser.sessionstore.backupInterval", 120000); // milliseconds -> 2 minute
 pref("browser.sessionstore.max_tabs_undo", 10);
 pref("browser.sessionstore.max_resumed_crashes", 2);
 pref("browser.sessionstore.privacy_level", 0); // saving data: 0 = all, 1 = unencrypted sites, 2 = never
-pref("browser.sessionstore.debug_logging", false);
 
 // Download protection lists are not available on Fennec.
 pref("urlclassifier.downloadAllowTable", "");
@@ -350,10 +349,6 @@ pref("devtools.remote.wifi.enabled", false);
 // don't forget to change the all.js accordingly.
 pref("devtools.performance.recording.features", "[\"js\",\"leaf\",\"stackwalk\",\"java\"]");
 
-// With the typical screen sizes on mobile devices, we want to wrap page sources by default.
-pref("view_source.wrap_long_lines", true);
-
-
 pref("ui.touch.radius.enabled", false);
 pref("ui.touch.radius.leftmm", 3);
 pref("ui.touch.radius.topmm", 5);
@@ -361,7 +356,7 @@ pref("ui.touch.radius.rightmm", 3);
 pref("ui.touch.radius.bottommm", 2);
 pref("ui.touch.radius.visitedWeight", 120);
 
-pref("ui.mouse.radius.enabled", false);
+pref("ui.mouse.radius.enabled", true);
 pref("ui.mouse.radius.leftmm", 3);
 pref("ui.mouse.radius.topmm", 5);
 pref("ui.mouse.radius.rightmm", 3);

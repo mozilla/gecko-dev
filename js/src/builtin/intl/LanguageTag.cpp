@@ -261,10 +261,11 @@ static bool SortAlphabetically(JSContext* cx,
   return true;
 }
 
-bool LanguageTag::canonicalizeBaseName(JSContext* cx) {
-  // Per UTS 35, 3.3.1, the very first step is to canonicalize the syntax by
-  // normalizing the case and ordering all subtags. The canonical syntax form
-  // itself is specified in UTS 35, 3.2.1.
+bool LanguageTag::canonicalizeBaseName(JSContext* cx,
+                                       DuplicateVariants duplicateVariants) {
+  // Per 6.2.3 CanonicalizeUnicodeLocaleId, the very first step is to
+  // canonicalize the syntax by normalizing the case and ordering all subtags.
+  // The canonical syntax form is specified in UTS 35, 3.2.1.
 
   // Language codes need to be in lower case. "JA" -> "ja"
   language_.toLowerCase();
@@ -301,25 +302,42 @@ bool LanguageTag::canonicalizeBaseName(JSContext* cx) {
       return false;
     }
 
-    // Reject the Locale identifier if a duplicate variant was found, e.g.
-    // "en-variant-Variant".
-    const UniqueChars* duplicate = std::adjacent_find(
-        variants().begin(), variants().end(), [](const auto& a, const auto& b) {
-          return strcmp(a.get(), b.get()) == 0;
-        });
-    if (duplicate != variants().end()) {
-      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                JSMSG_DUPLICATE_VARIANT_SUBTAG,
-                                duplicate->get());
-      return false;
+    if (duplicateVariants == DuplicateVariants::Reject) {
+      // Reject the Locale identifier if a duplicate variant was found, e.g.
+      // "en-variant-Variant".
+      const UniqueChars* duplicate =
+          std::adjacent_find(variants().begin(), variants().end(),
+                             [](const auto& a, const auto& b) {
+                               return strcmp(a.get(), b.get()) == 0;
+                             });
+      if (duplicate != variants().end()) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_DUPLICATE_VARIANT_SUBTAG,
+                                  duplicate->get());
+        return false;
+      }
     }
   }
 
   // 2. Any extensions are in alphabetical order by their singleton.
-  // - A subsequent call to canonicalizeExtensions() will perform this.
+  // 3. All attributes are sorted in alphabetical order.
+  // 4. All keywords and tfields are sorted by alphabetical order of their keys,
+  //    within their respective extensions.
+  // 5. Any type or tfield value "true" is removed.
+  // - A subsequent call to canonicalizeExtensions() will perform these steps.
 
-  // The next two steps in 3.3.1 replace deprecated language and region
-  // subtags with their preferred mappings.
+  // 6.2.3 CanonicalizeUnicodeLocaleId, step 2 transforms the locale identifier
+  // into its canonical form per UTS 3.2.1.
+
+  // 1. Use the bcp47 data to replace keys, types, tfields, and tvalues by their
+  // canonical forms.
+  // - A subsequent call to canonicalizeExtensions() will perform this step.
+
+  // 2. Replace aliases in the unicode_language_id and tlang (if any).
+  // - tlang is handled in canonicalizeExtensions().
+
+  // Replace deprecated language, region, and variant subtags with their
+  // preferred mappings.
 
   if (!updateGrandfatheredMappings(cx)) {
     return false;
@@ -339,19 +357,34 @@ bool LanguageTag::canonicalizeBaseName(JSContext* cx) {
     }
   }
 
-  // No variant subtag replacements are currently present.
+  // Replace deprecated variant subtags with their preferred values.
+  if (!performVariantMappings(cx)) {
+    return false;
+  }
+
   // No extension replacements are currently present.
   // Private use sequences are left as is.
 
-  // The two final steps in 3.3.1, handling irregular grandfathered and
-  // private-use only language tags, don't apply, because these two forms
-  // can't occur in Unicode BCP 47 locale identifiers.
+  // 3. Replace aliases in special key values.
+  // - A subsequent call to canonicalizeExtensions() will perform this step.
 
   return true;
 }
 
-bool LanguageTag::canonicalizeExtensions(
-    JSContext* cx, UnicodeExtensionCanonicalForm canonicalForm) {
+#ifdef DEBUG
+template <typename CharT>
+static bool IsAsciiLowercaseAlphanumericOrDash(
+    mozilla::Span<const CharT> span) {
+  const CharT* ptr = span.data();
+  size_t length = span.size();
+  return std::all_of(ptr, ptr + length, [](auto c) {
+    return mozilla::IsAsciiLowercaseAlpha(c) || mozilla::IsAsciiDigit(c) ||
+           c == '-';
+  });
+}
+#endif
+
+bool LanguageTag::canonicalizeExtensions(JSContext* cx) {
   // The canonical case for all extension subtags is lowercase.
   for (UniqueChars& extension : extensions_) {
     char* extensionChars = extension.get();
@@ -370,7 +403,7 @@ bool LanguageTag::canonicalizeExtensions(
 
   for (UniqueChars& extension : extensions_) {
     if (extension[0] == 'u') {
-      if (!canonicalizeUnicodeExtension(cx, extension, canonicalForm)) {
+      if (!canonicalizeUnicodeExtension(cx, extension)) {
         return false;
       }
     } else if (extension[0] == 't') {
@@ -378,6 +411,9 @@ bool LanguageTag::canonicalizeExtensions(
         return false;
       }
     }
+
+    MOZ_ASSERT(IsAsciiLowercaseAlphanumericOrDash(
+        mozilla::MakeStringSpan(extension.get())));
   }
 
   // The canonical case for privateuse subtags is lowercase.
@@ -408,8 +444,7 @@ bool LanguageTag::canonicalizeExtensions(
  *   see Section 3.6.4 U Extension Data Files).
  */
 bool LanguageTag::canonicalizeUnicodeExtension(
-    JSContext* cx, JS::UniqueChars& unicodeExtension,
-    UnicodeExtensionCanonicalForm canonicalForm) {
+    JSContext* cx, JS::UniqueChars& unicodeExtension) {
   const char* const extension = unicodeExtension.get();
   MOZ_ASSERT(extension[0] == 'u');
   MOZ_ASSERT(extension[1] == '-');
@@ -506,7 +541,7 @@ bool LanguageTag::canonicalizeUnicodeExtension(
     const auto& attribute = attributes[i];
 
     // Skip duplicate attributes.
-    if (canonicalForm == UnicodeExtensionCanonicalForm::Yes && i > 0) {
+    if (i > 0) {
       const auto& lastAttribute = attributes[i - 1];
       if (attribute.length() == lastAttribute.length() &&
           std::char_traits<char>::compare(attribute.begin(extension),
@@ -572,7 +607,7 @@ bool LanguageTag::canonicalizeUnicodeExtension(
     const auto& keyword = keywords[i];
 
     // Skip duplicate keywords.
-    if (canonicalForm == UnicodeExtensionCanonicalForm::Yes && i > 0) {
+    if (i > 0) {
       const auto& lastKeyword = keywords[i - 1];
       if (std::char_traits<char>::compare(keyword.begin(extension),
                                           lastKeyword.begin(extension),
@@ -596,17 +631,10 @@ bool LanguageTag::canonicalizeUnicodeExtension(
       StringSpan type(keyword.begin(extension) + UnicodeKeyWithSepLength,
                       keyword.length() - UnicodeKeyWithSepLength);
 
-      if (canonicalForm == UnicodeExtensionCanonicalForm::Yes) {
-        // Search if there's a replacement for the current Unicode keyword.
-        if (const char* replacement = replaceUnicodeExtensionType(key, type)) {
-          if (!appendReplacement(keyword,
-                                 mozilla::MakeStringSpan(replacement))) {
-            return false;
-          }
-        } else {
-          if (!appendKeyword(keyword, type)) {
-            return false;
-          }
+      // Search if there's a replacement for the current Unicode keyword.
+      if (const char* replacement = replaceUnicodeExtensionType(key, type)) {
+        if (!appendReplacement(keyword, mozilla::MakeStringSpan(replacement))) {
+          return false;
         }
       } else {
         if (!appendKeyword(keyword, type)) {
@@ -763,25 +791,34 @@ bool LanguageTag::canonicalizeTransformExtension(
 
   // Append the language subtag if present.
   //
-  // [1] is a bit unclear whether or not the `tlang` subtag also needs to be
-  // canonicalized (and case-adjusted). For now simply append it as is.
-  // (|parseTransformExtension| doesn't alter case from the lowercased form we
-  // have previously taken pains to ensure is present in the extension, so no
-  // special effort is required to ensure lowercasing.) If we switch to [2], the
-  // `tlang` subtag also needs to be canonicalized according to the same rules
-  // as `unicode_language_id` subtags are canonicalized. Also see [3].
-  //
-  // [1] https://unicode.org/reports/tr35/#Language_Tag_to_Locale_Identifier
-  // [2] https://unicode.org/reports/tr35/#Canonical_Unicode_Locale_Identifiers
-  // [3] https://github.com/tc39/ecma402/issues/330
+  // Replace aliases in tlang per
+  // <https://unicode.org/reports/tr35/#Canonical_Unicode_Locale_Identifiers>.
   if (tag.language().present()) {
     if (!sb.append('-')) {
       return false;
     }
+
+    // ECMA-402 is unclear whether or not duplicate variants are allowed in
+    // transform extensions. Tentatively allow duplicates until
+    // https://github.com/tc39/ecma402/issues/330 has been addressed.
+    if (!tag.canonicalizeBaseName(cx, DuplicateVariants::Accept)) {
+      return false;
+    }
+
+    // The canonical case for Transform extensions is lowercase per
+    // <https://unicode.org/reports/tr35/#BCP47_T_Extension>. Convert the two
+    // subtags which don't use lowercase for their canonical syntax.
+    tag.script_.toLowerCase();
+    tag.region_.toLowerCase();
+
     if (!LanguageTagToString(cx, tag, sb)) {
       return false;
     }
   }
+
+  static constexpr size_t TransformKeyWithSepLength = TransformKeyLength + 1;
+
+  using StringSpan = mozilla::Span<const char>;
 
   // Append all fields.
   //
@@ -795,8 +832,23 @@ bool LanguageTag::canonicalizeTransformExtension(
     if (!sb.append('-')) {
       return false;
     }
-    if (!sb.append(field.begin(extension), field.length())) {
-      return false;
+
+    StringSpan key(field.begin(extension), TransformKeyLength);
+    StringSpan value(field.begin(extension) + TransformKeyWithSepLength,
+                     field.length() - TransformKeyWithSepLength);
+
+    // Search if there's a replacement for the current transform keyword.
+    if (const char* replacement = replaceTransformExtensionType(key, value)) {
+      if (!sb.append(field.begin(extension), TransformKeyWithSepLength)) {
+        return false;
+      }
+      if (!sb.append(replacement, strlen(replacement))) {
+        return false;
+      }
+    } else {
+      if (!sb.append(field.begin(extension), field.length())) {
+        return false;
+      }
     }
   }
 

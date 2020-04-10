@@ -71,6 +71,11 @@ ChromeUtils.defineModuleGetter(
   "ProfilerMenuButton",
   "resource://devtools/client/performance-new/popup/menu-button.jsm.js"
 );
+ChromeUtils.defineModuleGetter(
+  this,
+  "WebChannel",
+  "resource://gre/modules/WebChannel.jsm"
+);
 
 // We don't want to spend time initializing the full loader here so we create
 // our own lazy require.
@@ -261,6 +266,51 @@ function isProfilerButtonEnabled() {
   return Services.prefs.getBoolPref(PROFILER_POPUP_ENABLED_PREF, false);
 }
 
+/**
+ * Validate the URL that will be used for the WebChannel for the profiler.
+ *
+ * @param {string} targetUrl
+ * @returns {string}
+ */
+function validateProfilerWebChannelUrl(targetUrl) {
+  const frontEndUrl = "https://profiler.firefox.com";
+
+  if (targetUrl !== frontEndUrl) {
+    // The user can specify either localhost or deploy previews as well as
+    // the official frontend URL for testing.
+    if (
+      // Allow a test URL.
+      targetUrl === "http://example.com" ||
+      // Allows the following:
+      //   "http://localhost:4242"
+      //   "http://localhost:4242/"
+      //   "http://localhost:3"
+      //   "http://localhost:334798455"
+      /^http:\/\/localhost:\d+\/?$/.test(targetUrl) ||
+      // Allows the following:
+      //   "https://deploy-preview-1234--perf-html.netlify.com"
+      //   "https://deploy-preview-1234--perf-html.netlify.com/"
+      //   "https://deploy-preview-1234567--perf-html.netlify.com"
+      /^https:\/\/deploy-preview-\d+--perf-html\.netlify\.com\/?$/.test(
+        targetUrl
+      )
+    ) {
+      // This URL is one of the allowed ones to be used for configuration.
+      return targetUrl;
+    }
+
+    console.error(
+      `The preference "devtools.performance.recording.ui-base-url" was set to a ` +
+        "URL that is not allowed. No WebChannel messages will be sent between the " +
+        `browser and that URL. Falling back to ${frontEndUrl}. Only localhost ` +
+        "and deploy previews URLs are allowed.",
+      targetUrl
+    );
+  }
+
+  return frontEndUrl;
+}
+
 XPCOMUtils.defineLazyGetter(this, "ProfilerPopupBackground", function() {
   return ChromeUtils.import(
     "resource://devtools/client/performance-new/popup/background.jsm.js"
@@ -362,8 +412,8 @@ DevToolsStartup.prototype = {
       this.handleDebuggerFlag(cmdLine, binaryPath);
     }
 
-    if (flags.debuggerServer) {
-      this.handleDebuggerServerFlag(cmdLine, flags.debuggerServer);
+    if (flags.devToolsServer) {
+      this.handleDevToolsServerFlag(cmdLine, flags.devToolsServer);
     }
   },
 
@@ -374,23 +424,23 @@ DevToolsStartup.prototype = {
         console: false,
         debugger: false,
         devtools: false,
-        debuggerServer: false,
+        devToolsServer: false,
       };
     }
 
     const console = cmdLine.handleFlag("jsconsole", false);
     const devtools = cmdLine.handleFlag("devtools", false);
 
-    let debuggerServer;
+    let devToolsServer;
     try {
-      debuggerServer = cmdLine.handleFlagWithParam(
+      devToolsServer = cmdLine.handleFlagWithParam(
         "start-debugger-server",
         false
       );
     } catch (e) {
       // We get an error if the option is given but not followed by a value.
       // By catching and trying again, the value is effectively optional.
-      debuggerServer = cmdLine.handleFlag("start-debugger-server", false);
+      devToolsServer = cmdLine.handleFlag("start-debugger-server", false);
     }
 
     let debuggerFlag;
@@ -402,7 +452,7 @@ DevToolsStartup.prototype = {
       debuggerFlag = cmdLine.handleFlag("jsdebugger", false);
     }
 
-    return { console, debugger: debuggerFlag, devtools, debuggerServer };
+    return { console, debugger: debuggerFlag, devtools, devToolsServer };
   },
 
   /**
@@ -585,8 +635,66 @@ DevToolsStartup.prototype = {
       return;
     }
     this.profilerRecordingButtonCreated = true;
+
+    const isPopupFeatureFlagEnabled = Services.prefs.getBoolPref(
+      "devtools.performance.popup.feature-flag",
+      AppConstants.NIGHTLY_BUILD
+    );
+
+    // Listen for messages from the front-end. This needs to happen even if the
+    // button isn't enabled yet. This will allow the front-end to turn on the
+    // popup for our users, regardless of if the feature is enabled by default.
+    this.initializeProfilerWebChannel();
+
+    if (!isPopupFeatureFlagEnabled) {
+      // The profiler's popup is experimental. The plan is to eventually turn it on
+      // everywhere, but while it's under active development we don't want everyone
+      // having it enabled. For now the default pref is to turn it on with Nightly,
+      // with the option to flip the pref in other releases. This feature flag will
+      // go away once it is fully shipped.
+      return;
+    }
+
     if (isProfilerButtonEnabled()) {
       ProfilerMenuButton.initialize();
+    }
+  },
+
+  /**
+   * Initialize the WebChannel for profiler.firefox.com. This function happens at
+   * startup, so care should be taken to minimize its performance impact. The WebChannel
+   * is a mechanism that is used to communicate between the browser, and front-end code.
+   */
+  initializeProfilerWebChannel() {
+    let channel;
+
+    // Register a channel for the URL in preferences. Also update the WebChannel if
+    // the URL changes.
+    const urlPref = "devtools.performance.recording.ui-base-url";
+    Services.prefs.addObserver(urlPref, registerWebChannel);
+    registerWebChannel();
+
+    function registerWebChannel() {
+      if (channel) {
+        channel.stopListening();
+      }
+
+      const urlForWebChannel = Services.io.newURI(
+        validateProfilerWebChannelUrl(Services.prefs.getStringPref(urlPref))
+      );
+
+      channel = new WebChannel("profiler.firefox.com", urlForWebChannel);
+
+      channel.listen((id, message, target) => {
+        // Defer loading the ProfilerPopupBackground script until it's absolutely needed,
+        // as this code path gets loaded at startup.
+        ProfilerPopupBackground.handleWebChannelMessage(
+          channel,
+          id,
+          message,
+          target
+        );
+      });
     }
   },
 
@@ -1007,7 +1115,7 @@ DevToolsStartup.prototype = {
    * --start-debugger-server ws:
    *   Start the WebSocket server on the default port (taken from d.d.remote-port)
    */
-  handleDebuggerServerFlag: function(cmdLine, portOrPath) {
+  handleDevToolsServerFlag: function(cmdLine, portOrPath) {
     if (!this._isRemoteDebuggingEnabled()) {
       return;
     }
@@ -1042,22 +1150,22 @@ DevToolsStartup.prototype = {
       const serverLoader = new DevToolsLoader({
         invisibleToDebugger: true,
       });
-      const { DebuggerServer: debuggerServer } = serverLoader.require(
-        "devtools/server/debugger-server"
+      const { DevToolsServer: devToolsServer } = serverLoader.require(
+        "devtools/server/devtools-server"
       );
       const { SocketListener } = serverLoader.require(
         "devtools/shared/security/socket"
       );
-      debuggerServer.init();
-      debuggerServer.registerAllActors();
-      debuggerServer.allowChromeProcess = true;
+      devToolsServer.init();
+      devToolsServer.registerAllActors();
+      devToolsServer.allowChromeProcess = true;
       const socketOptions = { portOrPath, webSocket };
 
-      const listener = new SocketListener(debuggerServer, socketOptions);
+      const listener = new SocketListener(devToolsServer, socketOptions);
       listener.open();
-      dump("Started debugger server on " + portOrPath + "\n");
+      dump("Started devtools server on " + portOrPath + "\n");
     } catch (e) {
-      dump("Unable to start debugger server on " + portOrPath + ": " + e);
+      dump("Unable to start devtools server on " + portOrPath + ": " + e);
     }
 
     if (cmdLine.state == Ci.nsICommandLine.STATE_REMOTE_AUTO) {
@@ -1165,7 +1273,7 @@ DevToolsStartup.prototype = {
     "                     Enables debugging (some) application startup code paths.\n" +
     "                     Only has an effect when `--jsdebugger` is also supplied.\n" +
     "  --devtools         Open DevTools on initial load.\n" +
-    "  --start-debugger-server [ws:][ <port> | <path> ] Start the debugger server on\n" +
+    "  --start-debugger-server [ws:][ <port> | <path> ] Start the devtools server on\n" +
     "                     a TCP port or Unix domain socket path. Defaults to TCP port\n" +
     "                     6000. Use WebSocket protocol if ws: prefix is specified.\n",
   /* eslint-disable max-len */
@@ -1261,6 +1369,8 @@ const JsonView = {
     }
   },
 };
+
+var EXPORTED_SYMBOLS = ["DevToolsStartup", "validateProfilerWebChannelUrl"];
 
 // Web Replay stuff.
 
@@ -1782,5 +1892,3 @@ function cloudStatusToFatalError(status) {
   }
   return "CloudNotConnected";
 }
-
-var EXPORTED_SYMBOLS = ["DevToolsStartup"];

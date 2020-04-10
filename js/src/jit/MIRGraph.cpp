@@ -23,12 +23,11 @@ MIRGenerator::MIRGenerator(CompileRealm* realm,
                            const OptimizationInfo* optimizationInfo)
     : realm(realm),
       runtime(realm ? realm->runtime() : nullptr),
-      info_(info),
+      outerInfo_(info),
       optimizationInfo_(optimizationInfo),
       alloc_(alloc),
       graph_(graph),
       offThreadStatus_(Ok()),
-      abortedPreliminaryGroups_(*alloc_),
       cancelBuild_(false),
       wasmMaxStackArgBytes_(0),
       needsOverrecursedCheck_(false),
@@ -81,18 +80,6 @@ mozilla::GenericErrorResult<AbortReason> MIRGenerator::abort(
   auto forward = abortFmt(r, message, ap);
   va_end(ap);
   return forward;
-}
-
-void MIRGenerator::addAbortedPreliminaryGroup(ObjectGroup* group) {
-  for (size_t i = 0; i < abortedPreliminaryGroups_.length(); i++) {
-    if (group == abortedPreliminaryGroups_[i]) {
-      return;
-    }
-  }
-  AutoEnterOOMUnsafeRegion oomUnsafe;
-  if (!abortedPreliminaryGroups_.append(group)) {
-    oomUnsafe.crash("addAbortedPreliminaryGroup");
-  }
 }
 
 void MIRGraph::addBlock(MBasicBlock* block) {
@@ -705,7 +692,7 @@ void MBasicBlock::setArgumentsObject(MDefinition* argsObj) {
 }
 
 void MBasicBlock::pick(int32_t depth) {
-  // pick take an element and move it to the top.
+  // pick takes a value and moves it to the top.
   // pick(-2):
   //   A B C D E
   //   A B D C E [ swapAt(-2) ]
@@ -716,7 +703,7 @@ void MBasicBlock::pick(int32_t depth) {
 }
 
 void MBasicBlock::unpick(int32_t depth) {
-  // unpick take the top of the stack element and move it under the depth-th
+  // unpick takes the value on top of the stack and moves it under the depth-th
   // element;
   // unpick(-2):
   //   A B C D E

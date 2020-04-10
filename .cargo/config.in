@@ -15,7 +15,12 @@ rev = "6a866fdad2ca880df9b87fcbc9921abac1e91914"
 [source."https://github.com/mozilla/neqo"]
 git = "https://github.com/mozilla/neqo"
 replace-with = "vendored-sources"
-tag = "v0.1.12"
+tag = "v0.2.0"
+
+[source."https://github.com/mozilla-spidermonkey/jsparagus"]
+git = "https://github.com/mozilla-spidermonkey/jsparagus"
+replace-with = "vendored-sources"
+rev = "0b248045fda0cc9b7323c73b81cfbcab71f4a9ef"
 
 [source."https://github.com/kvark/spirv_cross"]
 branch = "wgpu"
@@ -33,9 +38,9 @@ replace-with = "vendored-sources"
 tag = "v0.3.0"
 
 [source."https://github.com/hsivonen/packed_simd"]
-branch = "rust_1_32"
 git = "https://github.com/hsivonen/packed_simd"
 replace-with = "vendored-sources"
+rev = "3541e3818fdc7c2a24f87e3459151a4ce955a67a"
 
 [source."https://github.com/djg/cubeb-pulse-rs"]
 git = "https://github.com/djg/cubeb-pulse-rs"
@@ -45,7 +50,7 @@ rev = "8069f8f4189982e0b38fa6dc8993dd4fab41f728"
 [source."https://github.com/bytecodealliance/cranelift"]
 git = "https://github.com/bytecodealliance/cranelift"
 replace-with = "vendored-sources"
-rev = "eb20fcab349ce20ac6f8659d1c4b058108d5e627"
+rev = "98c818c129979e98a3db150f8f9698f6451b7ef7"
 
 [source."https://github.com/badboy/failure"]
 git = "https://github.com/badboy/failure"
@@ -60,12 +65,12 @@ replace-with = "vendored-sources"
 [source."https://github.com/PLSysSec/rlbox_lucet_sandbox/"]
 git = "https://github.com/PLSysSec/rlbox_lucet_sandbox/"
 replace-with = "vendored-sources"
-rev = "5f8bca975d8206e4837786d6bdb57a5c2fbd4016"
+rev = "d510da5999a744c563b0acd18056069d1698273f"
 
 [source."https://github.com/PLSysSec/lucet_sandbox_compiler"]
 git = "https://github.com/PLSysSec/lucet_sandbox_compiler"
 replace-with = "vendored-sources"
-rev = "58498599272e23ef797bb4304d0f181d7455ca57"
+rev = "5e870faf6f95d79d11efc813e56370ad124bbed5"
 
 [source."https://github.com/ChunMinChang/cubeb-coreaudio-rs"]
 git = "https://github.com/ChunMinChang/cubeb-coreaudio-rs"

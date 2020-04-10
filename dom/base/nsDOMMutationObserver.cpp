@@ -353,20 +353,20 @@ void nsAnimationReceiver::RecordAnimationMutation(
     return;
   }
 
-  Maybe<NonOwningAnimationTarget> animationTarget = keyframeEffect->GetTarget();
+  NonOwningAnimationTarget animationTarget =
+      keyframeEffect->GetAnimationTarget();
   if (!animationTarget) {
     return;
   }
 
-  Element* elem = animationTarget->mElement;
+  Element* elem = animationTarget.mElement;
   if (!Animations() || !(Subtree() || elem == Target()) ||
       elem->ChromeOnlyAccess()) {
     return;
   }
 
   // Record animations targeting to a pseudo element only when subtree is true.
-  if (animationTarget->mPseudoType != PseudoStyleType::NotPseudo &&
-      !Subtree()) {
+  if (animationTarget.mPseudoType != PseudoStyleType::NotPseudo && !Subtree()) {
     return;
   }
 
@@ -621,29 +621,28 @@ void nsDOMMutationObserver::Observe(
   if (!(childList || attributes || characterData || animations ||
         nativeAnonymousChildList)) {
     aRv.ThrowTypeError(
-        u"One of 'childList', 'attributes', 'characterData' must not be "
-        u"false.");
+        "One of 'childList', 'attributes', 'characterData' must not be false.");
     return;
   }
 
   if (aOptions.mAttributeOldValue.WasPassed() &&
       aOptions.mAttributeOldValue.Value() && !attributes) {
     aRv.ThrowTypeError(
-        u"If 'attributeOldValue' is true, 'attributes' must not be false.");
+        "If 'attributeOldValue' is true, 'attributes' must not be false.");
     return;
   }
 
   if (aOptions.mAttributeFilter.WasPassed() && !attributes) {
     aRv.ThrowTypeError(
-        u"If 'attributesFilter' is present, 'attributes' must not be false.");
+        "If 'attributesFilter' is present, 'attributes' must not be false.");
     return;
   }
 
   if (aOptions.mCharacterDataOldValue.WasPassed() &&
       aOptions.mCharacterDataOldValue.Value() && !characterData) {
     aRv.ThrowTypeError(
-        u"If 'characterDataOldValue' is true, 'characterData' must not be "
-        u"false.");
+        "If 'characterDataOldValue' is true, 'characterData' must not be "
+        "false.");
     return;
   }
 
@@ -702,7 +701,7 @@ void nsDOMMutationObserver::TakeRecords(
     current->mNext.swap(next);
     if (!mMergeAttributeRecords ||
         !MergeableAttributeRecord(aRetVal.SafeLastElement(nullptr), current)) {
-      *aRetVal.AppendElement() = current.forget();
+      *aRetVal.AppendElement() = std::move(current);
     }
     current.swap(next);
   }
@@ -755,7 +754,7 @@ already_AddRefed<nsDOMMutationObserver> nsDOMMutationObserver::Constructor(
   }
   bool isChrome = nsContentUtils::IsChromeDoc(window->GetExtantDoc());
   RefPtr<nsDOMMutationObserver> observer =
-      new nsDOMMutationObserver(window.forget(), aCb, isChrome);
+      new nsDOMMutationObserver(std::move(window), aCb, isChrome);
   return observer.forget();
 }
 

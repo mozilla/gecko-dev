@@ -27,10 +27,11 @@ pref("devtools.webconsole.sidebarToggle", true);
 pref("devtools.webconsole.groupWarningMessages", false);
 pref("devtools.webconsole.input.editor", false);
 pref("devtools.webconsole.input.autocomplete", true);
-pref("devtools.webconsole.input.eagerEvaluation", false);
+pref("devtools.webconsole.input.eagerEvaluation", true);
 pref("devtools.browserconsole.contentMessages", true);
 pref("devtools.webconsole.input.editorWidth", 800);
 pref("devtools.webconsole.input.editorOnboarding", true);
+pref("devtools.webconsole.input.context", false);
 
 global.loader = {
   lazyServiceGetter: () => {},
@@ -121,8 +122,8 @@ requireHacker.global_hook("default", (path, module) => {
     "devtools/shared/plural-form": () =>
       getModule("devtools/client/webconsole/test/node/fixtures/PluralForm"),
     Services: () => `module.exports = require("devtools-services")`,
-    "devtools/server/debugger-server": () =>
-      `module.exports = {DebuggerServer: {}}`,
+    "devtools/server/devtools-server": () =>
+      `module.exports = {DevToolsServer: {}}`,
     "devtools/client/shared/components/SmartTrace": () => "{}",
     "devtools/client/netmonitor/src/components/TabboxPanel": () => "{}",
     "devtools/client/webconsole/utils/context-menu": () => "{}",

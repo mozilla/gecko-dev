@@ -17,6 +17,8 @@
 #include "mozilla/Array.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/DeferredFinalize.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/dom/BindingCallContext.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/CallbackObject.h"
 #include "mozilla/dom/DOMJSClass.h"
@@ -32,7 +34,6 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Likely.h"
 #include "mozilla/MemoryReporting.h"
-#include "nsAutoPtr.h"
 #include "mozilla/dom/Document.h"
 #include "nsIGlobalObject.h"
 #include "nsIVariant.h"
@@ -194,19 +195,20 @@ inline bool IsDOMObject(JSObject* obj) {
 // If mayBeWrapper is false, obj can just be a JSObject*, and U anything that a
 // T* can be assigned to.
 //
-// CxType is in practice allowed to be either decltype(nullptr) or JSContext*.
-// If it's decltype(nullptr) we will do a CheckedUnwrapStatic and it's the
-// caller's responsibility to make sure they're not trying to work with Window
-// or Location objects.  Otherwise we'll do a CheckedUnwrapDynamic.  This all
-// only matters if mayBeWrapper is true; if it's false just pass nullptr for
-// the cx arg.
+// The cx arg is in practice allowed to be either nullptr or JSContext* or a
+// BindingCallContext reference.  If it's nullptr we will do a
+// CheckedUnwrapStatic and it's the caller's responsibility to make sure they're
+// not trying to work with Window or Location objects.  Otherwise we'll do a
+// CheckedUnwrapDynamic.  This all only matters if mayBeWrapper is true; if it's
+// false just pass nullptr for the cx arg.
 namespace binding_detail {
 template <class T, bool mayBeWrapper, typename U, typename V, typename CxType>
 MOZ_ALWAYS_INLINE nsresult UnwrapObjectInternal(V& obj, U& value,
                                                 prototypes::ID protoID,
                                                 uint32_t protoDepth,
-                                                CxType cx) {
+                                                const CxType& cx) {
   static_assert(IsSame<CxType, JSContext*>::value ||
+                    IsSame<CxType, BindingCallContext>::value ||
                     IsSame<CxType, decltype(nullptr)>::value,
                 "Unexpected CxType");
 
@@ -325,7 +327,7 @@ struct MutableValueHandleWrapper {
 // UnwrapObject overloads that ensure we have a MutableHandle to keep it alive.
 template <prototypes::ID PrototypeID, class T, typename U, typename CxType>
 MOZ_ALWAYS_INLINE nsresult UnwrapObject(JS::MutableHandle<JSObject*> obj,
-                                        U& value, CxType cx) {
+                                        U& value, const CxType& cx) {
   binding_detail::MutableObjectHandleWrapper wrapper(obj);
   return binding_detail::UnwrapObjectInternal<T, true>(
       wrapper, value, PrototypeID, PrototypeTraits<PrototypeID>::Depth, cx);
@@ -333,7 +335,7 @@ MOZ_ALWAYS_INLINE nsresult UnwrapObject(JS::MutableHandle<JSObject*> obj,
 
 template <prototypes::ID PrototypeID, class T, typename U, typename CxType>
 MOZ_ALWAYS_INLINE nsresult UnwrapObject(JS::MutableHandle<JS::Value> obj,
-                                        U& value, CxType cx) {
+                                        U& value, const CxType& cx) {
   MOZ_ASSERT(obj.isObject());
   binding_detail::MutableValueHandleWrapper wrapper(obj);
   return binding_detail::UnwrapObjectInternal<T, true>(
@@ -343,21 +345,21 @@ MOZ_ALWAYS_INLINE nsresult UnwrapObject(JS::MutableHandle<JS::Value> obj,
 // UnwrapObject overloads that ensure we have a strong ref to keep it alive.
 template <prototypes::ID PrototypeID, class T, typename U, typename CxType>
 MOZ_ALWAYS_INLINE nsresult UnwrapObject(JSObject* obj, RefPtr<U>& value,
-                                        CxType cx) {
+                                        const CxType& cx) {
   return binding_detail::UnwrapObjectInternal<T, true>(
       obj, value, PrototypeID, PrototypeTraits<PrototypeID>::Depth, cx);
 }
 
 template <prototypes::ID PrototypeID, class T, typename U, typename CxType>
 MOZ_ALWAYS_INLINE nsresult UnwrapObject(JSObject* obj, nsCOMPtr<U>& value,
-                                        CxType cx) {
+                                        const CxType& cx) {
   return binding_detail::UnwrapObjectInternal<T, true>(
       obj, value, PrototypeID, PrototypeTraits<PrototypeID>::Depth, cx);
 }
 
 template <prototypes::ID PrototypeID, class T, typename U, typename CxType>
 MOZ_ALWAYS_INLINE nsresult UnwrapObject(JSObject* obj, OwningNonNull<U>& value,
-                                        CxType cx) {
+                                        const CxType& cx) {
   return binding_detail::UnwrapObjectInternal<T, true>(
       obj, value, PrototypeID, PrototypeTraits<PrototypeID>::Depth, cx);
 }
@@ -365,7 +367,7 @@ MOZ_ALWAYS_INLINE nsresult UnwrapObject(JSObject* obj, OwningNonNull<U>& value,
 // An UnwrapObject overload that just calls one of the JSObject* ones.
 template <prototypes::ID PrototypeID, class T, typename U, typename CxType>
 MOZ_ALWAYS_INLINE nsresult UnwrapObject(JS::Handle<JS::Value> obj, U& value,
-                                        CxType cx) {
+                                        const CxType& cx) {
   MOZ_ASSERT(obj.isObject());
   return UnwrapObject<PrototypeID, T>(&obj.toObject(), value, cx);
 }
@@ -1189,7 +1191,7 @@ inline bool WrapNewBindingNonWrapperCachedObject(
 // true if the JSObject took ownership
 template <class T>
 inline bool WrapNewBindingNonWrapperCachedObject(
-    JSContext* cx, JS::Handle<JSObject*> scopeArg, nsAutoPtr<T>& value,
+    JSContext* cx, JS::Handle<JSObject*> scopeArg, UniquePtr<T>& value,
     JS::MutableHandle<JS::Value> rval,
     JS::Handle<JSObject*> givenProto = nullptr) {
   static_assert(!IsRefcounted<T>::value, "Only pass owned classes in here.");
@@ -1232,7 +1234,8 @@ inline bool WrapNewBindingNonWrapperCachedObject(
       return false;
     }
 
-    value.forget();
+    // JS object took ownership
+    Unused << value.release();
   }
 
   // We can end up here in all sorts of compartments, per above.  Make
@@ -1266,27 +1269,27 @@ inline bool WrapNewBindingNonWrapperCachedObject(
 }
 
 template <bool Fatal>
-inline bool EnumValueNotFound(JSContext* cx, JS::HandleString str,
+inline bool EnumValueNotFound(BindingCallContext& cx, JS::HandleString str,
                               const char* type, const char* sourceDescription);
 
 template <>
-inline bool EnumValueNotFound<false>(JSContext* cx, JS::HandleString str,
-                                     const char* type,
+inline bool EnumValueNotFound<false>(BindingCallContext& cx,
+                                     JS::HandleString str, const char* type,
                                      const char* sourceDescription) {
   // TODO: Log a warning to the console.
   return true;
 }
 
 template <>
-inline bool EnumValueNotFound<true>(JSContext* cx, JS::HandleString str,
-                                    const char* type,
+inline bool EnumValueNotFound<true>(BindingCallContext& cx,
+                                    JS::HandleString str, const char* type,
                                     const char* sourceDescription) {
   JS::UniqueChars deflated = JS_EncodeStringToUTF8(cx, str);
   if (!deflated) {
     return false;
   }
-  return ThrowErrorMessage<MSG_INVALID_ENUM_VALUE>(cx, sourceDescription,
-                                                   deflated.get(), type);
+  return cx.ThrowErrorMessage<MSG_INVALID_ENUM_VALUE>(sourceDescription,
+                                                      deflated.get(), type);
 }
 
 template <typename CharT>
@@ -1316,7 +1319,7 @@ inline int FindEnumStringIndexImpl(const CharT* chars, size_t length,
 }
 
 template <bool InvalidValueFatal>
-inline bool FindEnumStringIndex(JSContext* cx, JS::Handle<JS::Value> v,
+inline bool FindEnumStringIndex(BindingCallContext& cx, JS::Handle<JS::Value> v,
                                 const EnumEntry* values, const char* type,
                                 const char* sourceDescription, int* index) {
   // JS_StringEqualsAscii is slow as molasses, so don't use it here.
@@ -1677,7 +1680,7 @@ struct FindAssociatedGlobalForNative<T, false> {
 };
 
 // Helper for calling GetOrCreateDOMReflector with smart pointers
-// (nsAutoPtr/nsRefPtr/nsCOMPtr) or references.
+// (UniquePtr/RefPtr/nsCOMPtr) or references.
 template <class T, bool isSmartPtr = IsSmartPtr<T>::value>
 struct GetOrCreateDOMReflectorHelper {
   static inline bool GetOrCreate(JSContext* cx, const T& value,
@@ -1706,7 +1709,7 @@ inline bool GetOrCreateDOMReflector(
 }
 
 // Helper for calling GetOrCreateDOMReflectorNoWrap with smart pointers
-// (nsAutoPtr/nsRefPtr/nsCOMPtr) or references.
+// (UniquePtr/RefPtr/nsCOMPtr) or references.
 template <class T, bool isSmartPtr = IsSmartPtr<T>::value>
 struct GetOrCreateDOMReflectorNoWrapHelper {
   static inline bool GetOrCreate(JSContext* cx, const T& value,
@@ -1782,6 +1785,10 @@ bool ThrowingConstructor(JSContext* cx, unsigned argc, JS::Value* vp);
 
 bool ThrowConstructorWithoutNew(JSContext* cx, const char* name);
 
+// Helper for throwing an "invalid this" exception.
+bool ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
+                      bool aSecurityError, prototypes::ID aProtoId);
+
 bool GetPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
                             JS::Handle<JS::Value> receiver, JS::Handle<jsid> id,
                             bool* found, JS::MutableHandle<JS::Value> vp);
@@ -1846,8 +1853,9 @@ static inline bool ConvertJSValueToString(
 }
 
 template <typename T>
-static inline bool ConvertJSValueToString(JSContext* cx,
-                                          JS::Handle<JS::Value> v, T& result) {
+static inline bool ConvertJSValueToString(
+    JSContext* cx, JS::Handle<JS::Value> v,
+    const char* /* unused sourceDescription */, T& result) {
   return ConvertJSValueToString(cx, v, eStringify, eStringify, result);
 }
 
@@ -1857,9 +1865,9 @@ MOZ_MUST_USE bool NormalizeUSVString(
     binding_detail::FakeString<char16_t>& aString);
 
 template <typename T>
-static inline bool ConvertJSValueToUSVString(JSContext* cx,
-                                             JS::Handle<JS::Value> v,
-                                             T& result) {
+static inline bool ConvertJSValueToUSVString(
+    JSContext* cx, JS::Handle<JS::Value> v,
+    const char* /* unused sourceDescription */, T& result) {
   if (!ConvertJSValueToString(cx, v, eStringify, eStringify, result)) {
     return false;
   }
@@ -1892,12 +1900,15 @@ inline bool ConvertIdToString(JSContext* cx, JS::HandleId id, T& result,
   return true;
 }
 
-bool ConvertJSValueToByteString(JSContext* cx, JS::Handle<JS::Value> v,
-                                bool nullable, nsACString& result);
+bool ConvertJSValueToByteString(BindingCallContext& cx, JS::Handle<JS::Value> v,
+                                bool nullable, const char* sourceDescription,
+                                nsACString& result);
 
-inline bool ConvertJSValueToByteString(JSContext* cx, JS::Handle<JS::Value> v,
+inline bool ConvertJSValueToByteString(BindingCallContext& cx,
+                                       JS::Handle<JS::Value> v,
+                                       const char* sourceDescription,
                                        nsACString& result) {
-  return ConvertJSValueToByteString(cx, v, false, result);
+  return ConvertJSValueToByteString(cx, v, false, sourceDescription, result);
 }
 
 template <typename T>
@@ -2451,7 +2462,7 @@ bool ReportLenientThisUnwrappingFailure(JSContext* cx, JSObject* obj);
 // Given a JSObject* that represents the chrome side of a JS-implemented WebIDL
 // interface, get the nsIGlobalObject corresponding to the content side, if any.
 // A false return means an exception was thrown.
-bool GetContentGlobalForJSImplementedObject(JSContext* cx,
+bool GetContentGlobalForJSImplementedObject(BindingCallContext& cx,
                                             JS::Handle<JSObject*> obj,
                                             nsIGlobalObject** global);
 
@@ -2652,11 +2663,6 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
   void InitializationSucceeded() {
     T* pointer;
     mNative.forget(&pointer);
-
-    // Never collect binding objects while recording or replaying, to avoid
-    // non-deterministically releasing references during finalization.
-    recordreplay::HoldJSObject(mReflector);
-
     mReflector = nullptr;
   }
 
@@ -2696,7 +2702,7 @@ struct DeferredFinalizerImpl {
   typedef typename Conditional<
       IsSame<T, nsISupports>::value, nsCOMPtr<T>,
       typename Conditional<IsRefcounted<T>::value, RefPtr<T>,
-                           nsAutoPtr<T>>::Type>::Type SmartPtr;
+                           UniquePtr<T>>::Type>::Type SmartPtr;
   typedef SegmentedVector<SmartPtr> SmartPtrArray;
 
   static_assert(
@@ -2713,7 +2719,7 @@ struct DeferredFinalizerImpl {
     smartPtrArray.InfallibleAppend(dont_AddRef(ptr));
   }
   template <class U>
-  static inline void AppendAndTake(SegmentedVector<nsAutoPtr<U>>& smartPtrArray,
+  static inline void AppendAndTake(SegmentedVector<UniquePtr<U>>& smartPtrArray,
                                    U* ptr) {
     smartPtrArray.InfallibleAppend(ptr);
   }
@@ -3057,7 +3063,7 @@ inline RefPtr<T> StrongOrRawPtr(RefPtr<S>&& aPtr) {
 }
 
 template <class T, class ReturnType = typename Conditional<
-                       IsRefcounted<T>::value, T*, nsAutoPtr<T>>::Type>
+                       IsRefcounted<T>::value, T*, UniquePtr<T>>::Type>
 inline ReturnType StrongOrRawPtr(T* aPtr) {
   return ReturnType(aPtr);
 }
@@ -3066,10 +3072,8 @@ template <class T, template <typename> class SmartPtr, class S>
 inline void StrongOrRawPtr(SmartPtr<S>&& aPtr) = delete;
 
 template <class T>
-struct StrongPtrForMember {
-  typedef typename Conditional<IsRefcounted<T>::value, RefPtr<T>,
-                               nsAutoPtr<T>>::Type Type;
-};
+using StrongPtrForMember =
+    typename Conditional<IsRefcounted<T>::value, RefPtr<T>, UniquePtr<T>>::Type;
 
 namespace binding_detail {
 inline JSObject* GetHackedNamespaceProtoObject(JSContext* aCx) {

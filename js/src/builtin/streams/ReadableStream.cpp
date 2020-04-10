@@ -21,7 +21,7 @@
 #include "builtin/streams/ReadableStreamDefaultControllerOperations.h"  // js::SetUpReadableStreamDefaultControllerFromUnderlyingSource
 #include "builtin/streams/ReadableStreamInternals.h"  // js::ReadableStreamCancel
 #include "builtin/streams/ReadableStreamOperations.h"  // js::ReadableStream{PipeTo,Tee}
-#include "builtin/streams/ReadableStreamReader.h"  // js::CreateReadableStreamDefaultReader, js::ForAuthorCodeBool
+#include "builtin/streams/ReadableStreamReader.h"  // js::CreateReadableStream{BYOB,Default}Reader, js::ForAuthorCodeBool
 #include "builtin/streams/WritableStream.h"  // js::WritableStream
 #include "js/CallArgs.h"                     // JS::CallArgs{,FromVp}
 #include "js/Class.h"  // JSCLASS_PRIVATE_IS_NSISUPPORTS, JSCLASS_HAS_PRIVATE, JS_NULL_CLASS_OPS
@@ -313,24 +313,21 @@ static MOZ_MUST_USE bool ReadableStream_getReader(JSContext* cx, unsigned argc,
       return false;
     }
 
-    // Step 4: If mode is "byob",
-    //         return ? AcquireReadableStreamBYOBReader(this).
+    // Step 5: (If mode is not "byob",) Throw a RangeError exception.
     bool equal;
     if (!EqualStrings(cx, mode, cx->names().byob, &equal)) {
       return false;
     }
-    if (equal) {
-      // BYOB readers aren't implemented yet.
-      JS_ReportErrorNumberASCII(
-          cx, GetErrorMessage, nullptr,
-          JSMSG_READABLESTREAM_BYTES_TYPE_NOT_IMPLEMENTED);
+    if (!equal) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_READABLESTREAM_INVALID_READER_MODE);
       return false;
     }
 
-    // Step 5: Throw a RangeError exception.
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_READABLESTREAM_INVALID_READER_MODE);
-    return false;
+    // Step 4: If mode is "byob",
+    //         return ? AcquireReadableStreamBYOBReader(this).
+    reader = CreateReadableStreamBYOBReader(cx, unwrappedStream,
+                                            ForAuthorCodeBool::Yes);
   }
 
   // Reordered second part of steps 2 and 4.
@@ -368,10 +365,10 @@ static bool ReadableStream_pipeTo(JSContext* cx, unsigned argc, Value* vp) {
   // second argument destructuring pattern.  But as |ToBoolean| is infallible
   // and has no observable side effects, we may as well do step 3 here too.
   bool preventClose, preventAbort, preventCancel;
-  Rooted<Value> signal(cx);
+  Rooted<Value> signalVal(cx);
   {
     // (P)(Re)use the |signal| root.
-    auto& v = signal;
+    auto& v = signalVal;
 
     if (!GetProperty(cx, options, cx->names().preventClose, &v)) {
       return false;
@@ -388,7 +385,7 @@ static bool ReadableStream_pipeTo(JSContext* cx, unsigned argc, Value* vp) {
     }
     preventCancel = JS::ToBoolean(v);
   }
-  if (!GetProperty(cx, options, cx->names().signal, &signal)) {
+  if (!GetProperty(cx, options, cx->names().signal, &signalVal)) {
     return false;
   }
 
@@ -416,7 +413,23 @@ static bool ReadableStream_pipeTo(JSContext* cx, unsigned argc, Value* vp) {
   // Step 4: If signal is not undefined, and signal is not an instance of the
   //         AbortSignal interface, return a promise rejected with a TypeError
   //         exception.
-  // XXX jwalden need some hooks for this, or something
+  Rooted<JSObject*> signal(cx, nullptr);
+  do {
+    if (signalVal.isUndefined()) {
+      break;
+    }
+
+    if (signalVal.isObject()) {
+      // XXX jwalden need some JSAPI hooks to detect AbortSignal instances, or
+      //             something
+
+      signal = &signalVal.toObject();
+    }
+
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_READABLESTREAM_PIPETO_BAD_SIGNAL);
+    return ReturnPromiseRejectedWithPendingError(cx, args);
+  } while (false);
 
   // Step 5: If ! IsReadableStreamLocked(this) is true, return a promise
   //         rejected with a TypeError exception.

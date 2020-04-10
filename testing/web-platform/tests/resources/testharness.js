@@ -638,31 +638,87 @@ policies and contribution forms [3].
         });
     }
 
-    function promise_rejects(test, expected, promise, description) {
-        return promise.then(test.unreached_func("Should have rejected: " + description)).catch(function(e) {
-            assert_throws(expected, function() { throw e }, description);
-        });
+    /**
+     * Make a copy of a Promise in the current realm.
+     *
+     * @param {Promise} promise the given promise that may be from a different
+     *                          realm
+     * @returns {Promise}
+     *
+     * An arbitrary promise provided by the caller may have originated in
+     * another frame that have since navigated away, rendering the frame's
+     * document inactive. Such a promise cannot be used with `await` or
+     * Promise.resolve(), as microtasks associated with it may be prevented
+     * from being run. See https://github.com/whatwg/html/issues/5319 for a
+     * particular case.
+     *
+     * In functions we define here, there is an expectation from the caller
+     * that the promise is from the current realm, that can always be used with
+     * `await`, etc. We therefore create a new promise in this realm that
+     * inherit the value and status from the given promise.
+     */
+
+    function bring_promise_to_current_realm(promise) {
+        return new Promise(promise.then.bind(promise));
     }
 
-    function promise_rejects_js(test, expected, promise, description) {
-        return promise.then(test.unreached_func("Should have rejected: " + description)).catch(function(e) {
-            assert_throws_js_impl(expected, function() { throw e },
-                                  description, "promise_reject_js");
-        });
+    function promise_rejects_js(test, constructor, promise, description) {
+        return bring_promise_to_current_realm(promise)
+            .then(test.unreached_func("Should have rejected: " + description))
+            .catch(function(e) {
+                assert_throws_js_impl(constructor, function() { throw e },
+                                      description, "promise_rejects_js");
+            });
     }
 
-    function promise_rejects_dom(test, expected, promise, description) {
-        return promise.then(test.unreached_func("Should have rejected: " + description)).catch(function(e) {
-            assert_throws_dom_impl(expected, function() { throw e },
-                                   description, "promise_rejects_dom");
-        });
+    /**
+     * Assert that a Promise is rejected with the right DOMException.
+     *
+     * @param test the test argument passed to promise_test
+     * @param {number|string} type.  See documentation for assert_throws_dom.
+     *
+     * For the remaining arguments, there are two ways of calling
+     * promise_rejects_dom:
+     *
+     * 1) If the DOMException is expected to come from the current global, the
+     * third argument should be the promise expected to reject, and a fourth,
+     * optional, argument is the assertion description.
+     *
+     * 2) If the DOMException is expected to come from some other global, the
+     * third argument should be the DOMException constructor from that global,
+     * the fourth argument the promise expected to reject, and the fifth,
+     * optional, argument the assertion description.
+     */
+
+    function promise_rejects_dom(test, type, promiseOrConstructor, descriptionOrPromise, maybeDescription) {
+        let constructor, promise, description;
+        if (typeof promiseOrConstructor === "function" &&
+            promiseOrConstructor.name === "DOMException") {
+            constructor = promiseOrConstructor;
+            promise = descriptionOrPromise;
+            description = maybeDescription;
+        } else {
+            constructor = self.DOMException;
+            promise = promiseOrConstructor;
+            description = descriptionOrPromise;
+            assert(maybeDescription === undefined,
+                   "Too many args pased to no-constructor version of promise_rejects_dom");
+        }
+        return bring_promise_to_current_realm(promise)
+            .then(test.unreached_func("Should have rejected: " + description))
+            .catch(function(e) {
+                assert_throws_dom_impl(type, function() { throw e }, description,
+                                       "promise_rejects_dom", constructor);
+            });
     }
 
-    function promise_rejects_exactly(test, expected, promise, description) {
-        return promise.then(test.unreached_func("Should have rejected: " + description)).catch(function(e) {
-            assert_throws_exactly_impl(expected, function() { throw e },
-                                       description, "promise_rejects_exactly");
-        });
+    function promise_rejects_exactly(test, exception, promise, description) {
+        return bring_promise_to_current_realm(promise)
+            .then(test.unreached_func("Should have rejected: " + description))
+            .catch(function(e) {
+                assert_throws_exactly_impl(exception, function() { throw e },
+                                           description, "promise_rejects_exactly");
+            });
     }
 
     /**
@@ -898,7 +954,6 @@ policies and contribution forms [3].
     expose(test, 'test');
     expose(async_test, 'async_test');
     expose(promise_test, 'promise_test');
-    expose(promise_rejects, 'promise_rejects');
     expose(promise_rejects_js, 'promise_rejects_js');
     expose(promise_rejects_dom, 'promise_rejects_dom');
     expose(promise_rejects_exactly, 'promise_rejects_exactly');
@@ -1468,156 +1523,6 @@ policies and contribution forms [3].
     expose(assert_readonly, "assert_readonly");
 
     /**
-     * Assert an Exception with the expected code is thrown.
-     *
-     * @param {object|number|string} code The expected exception code.
-     * @param {Function} func Function which should throw.
-     * @param {string} description Error description for the case that the error is not thrown.
-     */
-    function assert_throws(code, func, description)
-    {
-        try {
-            func.call(this);
-            assert(false, "assert_throws", description,
-                   "${func} did not throw", {func:func});
-        } catch (e) {
-            if (e instanceof AssertionError) {
-                throw e;
-            }
-
-            assert(typeof e === "object",
-                   "assert_throws", description,
-                   "${func} threw ${e} with type ${type}, not an object",
-                   {func:func, e:e, type:typeof e});
-
-            assert(e !== null,
-                   "assert_throws", description,
-                   "${func} threw null, not an object",
-                   {func:func});
-
-            if (code === null) {
-                throw new AssertionError('Test bug: need to pass exception to assert_throws()');
-            }
-            if (typeof code === "object") {
-                assert("name" in e && e.name == code.name,
-                       "assert_throws", description,
-                       "${func} threw ${actual} (${actual_name}) expected ${expected} (${expected_name})",
-                                    {func:func, actual:e, actual_name:e.name,
-                                     expected:code,
-                                     expected_name:code.name});
-                return;
-            }
-
-            var code_name_map = {
-                INDEX_SIZE_ERR: 'IndexSizeError',
-                HIERARCHY_REQUEST_ERR: 'HierarchyRequestError',
-                WRONG_DOCUMENT_ERR: 'WrongDocumentError',
-                INVALID_CHARACTER_ERR: 'InvalidCharacterError',
-                NO_MODIFICATION_ALLOWED_ERR: 'NoModificationAllowedError',
-                NOT_FOUND_ERR: 'NotFoundError',
-                NOT_SUPPORTED_ERR: 'NotSupportedError',
-                INUSE_ATTRIBUTE_ERR: 'InUseAttributeError',
-                INVALID_STATE_ERR: 'InvalidStateError',
-                SYNTAX_ERR: 'SyntaxError',
-                INVALID_MODIFICATION_ERR: 'InvalidModificationError',
-                NAMESPACE_ERR: 'NamespaceError',
-                INVALID_ACCESS_ERR: 'InvalidAccessError',
-                TYPE_MISMATCH_ERR: 'TypeMismatchError',
-                SECURITY_ERR: 'SecurityError',
-                NETWORK_ERR: 'NetworkError',
-                ABORT_ERR: 'AbortError',
-                URL_MISMATCH_ERR: 'URLMismatchError',
-                QUOTA_EXCEEDED_ERR: 'QuotaExceededError',
-                TIMEOUT_ERR: 'TimeoutError',
-                INVALID_NODE_TYPE_ERR: 'InvalidNodeTypeError',
-                DATA_CLONE_ERR: 'DataCloneError'
-            };
-
-            var name = code in code_name_map ? code_name_map[code] : code;
-
-            var name_code_map = {
-                IndexSizeError: 1,
-                HierarchyRequestError: 3,
-                WrongDocumentError: 4,
-                InvalidCharacterError: 5,
-                NoModificationAllowedError: 7,
-                NotFoundError: 8,
-                NotSupportedError: 9,
-                InUseAttributeError: 10,
-                InvalidStateError: 11,
-                SyntaxError: 12,
-                InvalidModificationError: 13,
-                NamespaceError: 14,
-                InvalidAccessError: 15,
-                TypeMismatchError: 17,
-                SecurityError: 18,
-                NetworkError: 19,
-                AbortError: 20,
-                URLMismatchError: 21,
-                QuotaExceededError: 22,
-                TimeoutError: 23,
-                InvalidNodeTypeError: 24,
-                DataCloneError: 25,
-
-                EncodingError: 0,
-                NotReadableError: 0,
-                UnknownError: 0,
-                ConstraintError: 0,
-                DataError: 0,
-                TransactionInactiveError: 0,
-                ReadOnlyError: 0,
-                VersionError: 0,
-                OperationError: 0,
-                NotAllowedError: 0
-            };
-
-            var code_name_map = {};
-            for (var key in name_code_map) {
-                if (name_code_map[key] > 0) {
-                    code_name_map[name_code_map[key]] = key;
-                }
-            }
-
-            var required_props = { code: code };
-
-            if (typeof code === "number") {
-                if (code === 0) {
-                    throw new AssertionError('Test bug: ambiguous DOMException code 0 passed to assert_throws()');
-                } else if (!(code in code_name_map)) {
-                    throw new AssertionError('Test bug: unrecognized DOMException code "' + code + '" passed to assert_throws()');
-                }
-                name = code_name_map[code];
-            } else if (typeof code === "string") {
-                if (!(name in name_code_map)) {
-                    throw new AssertionError('Test bug: unrecognized DOMException code "' + code + '" passed to assert_throws()');
-                }
-                required_props.code = name_code_map[name];
-            }
-
-            if (required_props.code === 0 ||
-               ("name" in e &&
-                e.name !== e.name.toUpperCase() &&
-                e.name !== "DOMException")) {
-                // New style exception: also test the name property.
-                required_props.name = name;
-            }
-
-            //We'd like to test that e instanceof the appropriate interface,
-            //but we can't, because we don't know what window it was created
-            //in.  It might be an instanceof the appropriate interface on some
-            //unknown other window.  TODO: Work around this somehow?
-
-            for (var prop in required_props) {
-                assert(prop in e && e[prop] == required_props[prop],
-                       "assert_throws", description,
-                       "${func} threw ${e} that is not a DOMException " + code + ": property ${prop} is equal to ${actual}, expected ${expected}",
-                       {func:func, e:e, prop:prop, actual:e[prop], expected:required_props[prop]});
-            }
-        }
-    }
-    expose(assert_throws, "assert_throws");
-
-    /**
      * Assert a JS Error with the expected constructor is thrown.
      *
      * @param {object} constructor The expected exception constructor.
@@ -1698,20 +1603,44 @@ policies and contribution forms [3].
      *        either be an exception name (e.g. "HierarchyRequestError",
      *        "WrongDocumentError") or the name of the corresponding error code
      *        (e.g. "HIERARCHY_REQUEST_ERR", "WRONG_DOCUMENT_ERR").
-     * @param {Function} func Function which should throw.
-     * @param {string} description Error description for the case that the error is not thrown.
+     *
+     * For the remaining arguments, there are two ways of calling
+     * promise_rejects_dom:
+     *
+     * 1) If the DOMException is expected to come from the current global, the
+     * second argument should be the function expected to throw and a third,
+     * optional, argument is the assertion description.
+     *
+     * 2) If the DOMException is expected to come from some other global, the
+     * second argument should be the DOMException constructor from that global,
+     * the third argument the function expected to throw, and the fourth, optional,
+     * argument the assertion description.
      */
-    function assert_throws_dom(type, func, description)
+    function assert_throws_dom(type, funcOrConstructor, descriptionOrFunc, maybeDescription)
     {
-        assert_throws_dom_impl(type, func, description, "assert_throws_dom")
+        let constructor, func, description;
+        if (funcOrConstructor.name === "DOMException") {
+            constructor = funcOrConstructor;
+            func = descriptionOrFunc;
+            description = maybeDescription;
+        } else {
+            constructor = self.DOMException;
+            func = funcOrConstructor;
+            description = descriptionOrFunc;
+            assert(maybeDescription === undefined,
+                   "Too many args pased to no-constructor version of assert_throws_dom");
+        }
+        assert_throws_dom_impl(type, func, description, "assert_throws_dom", constructor)
     }
     expose(assert_throws_dom, "assert_throws_dom");
 
     /**
-     * Like assert_throws_dom but allows specifying the assertion type
-     * (assert_throws_dom or promise_rejects_dom, in practice).
+     * Similar to assert_throws_dom but allows specifying the assertion type
+     * (assert_throws_dom or promise_rejects_dom, in practice).  The
+     * "constructor" argument must be the DOMException constructor from the
+     * global we expect the exception to come from.
      */
-    function assert_throws_dom_impl(type, func, description, assertion_type)
+    function assert_throws_dom_impl(type, func, description, assertion_type, constructor)
     {
         try {
             func.call(this);
@@ -1722,6 +1651,7 @@ policies and contribution forms [3].
                 throw e;
             }
 
+            // Basic sanity-checks on the thrown exception.
             assert(typeof e === "object",
                    assertion_type, description,
                    "${func} threw ${e} with type ${type}, not an object",
@@ -1835,19 +1765,21 @@ policies and contribution forms [3].
                 required_props.name = name;
             }
 
-            //We'd like to test that e instanceof the appropriate interface,
-            //but we can't, because we don't know what window it was created
-            //in.  It might be an instanceof the appropriate interface on some
-            //unknown other window.  TODO: Work around this somehow?  Maybe have
-            //the first arg just be a DOMException with the right name instead
-            //of the string-or-code thing we have now?
-
             for (var prop in required_props) {
                 assert(prop in e && e[prop] == required_props[prop],
                        assertion_type, description,
                        "${func} threw ${e} that is not a DOMException " + type + ": property ${prop} is equal to ${actual}, expected ${expected}",
                        {func:func, e:e, prop:prop, actual:e[prop], expected:required_props[prop]});
             }
+
+            // Check that the exception is from the right global.  This check is last
+            // so more specific, and more informative, checks on the properties can
+            // happen in case a totally incorrect exception is thrown.
+            assert(e.constructor === constructor,
+                   assertion_type, description,
+                   "${func} threw an exception from the wrong global",
+                   {func});
+
         }
     }
 
@@ -2906,24 +2838,8 @@ policies and contribution forms [3].
         var message_port;
 
         if (is_service_worker(worker)) {
-            if (window.MessageChannel) {
-                // The ServiceWorker's implicit MessagePort is currently not
-                // reliably accessible from the ServiceWorkerGlobalScope due to
-                // Blink setting MessageEvent.source to null for messages sent
-                // via ServiceWorker.postMessage(). Until that's resolved,
-                // create an explicit MessageChannel and pass one end to the
-                // worker.
-                var message_channel = new MessageChannel();
-                message_port = message_channel.port1;
-                message_port.start();
-                worker.postMessage({type: "connect"}, [message_channel.port2]);
-            } else {
-                // If MessageChannel is not available, then try the
-                // ServiceWorker.postMessage() approach using MessageEvent.source
-                // on the other end.
-                message_port = navigator.serviceWorker;
-                worker.postMessage({type: "connect"});
-            }
+            message_port = navigator.serviceWorker;
+            worker.postMessage({type: "connect"});
         } else if (is_shared_worker(worker)) {
             message_port = worker.port;
             message_port.start();

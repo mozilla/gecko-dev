@@ -3,7 +3,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import React from "react";
-import schema from "./EOYSnippet.schema.json";
 import { SimpleSnippet } from "../SimpleSnippet/SimpleSnippet";
 
 class EOYSnippetBase extends React.PureComponent {
@@ -25,11 +24,12 @@ class EOYSnippetBase extends React.PureComponent {
 
   handleSubmit(event) {
     event.preventDefault();
+    this.props.sendClick(event);
     this.setFrequencyValue();
-    this.refs.form.submit();
     if (!this.props.content.do_not_autoblock) {
       this.props.onBlock();
     }
+    this.refs.form.submit();
   }
 
   renderDonations() {
@@ -62,6 +62,7 @@ class EOYSnippetBase extends React.PureComponent {
         action={this.props.content.donation_form_url}
         method={this.props.form_method}
         onSubmit={this.handleSubmit}
+        data-metric="EOYSnippetForm"
         ref="form"
       >
         {donationURLParams.map(([key, value], idx) => (
@@ -139,11 +140,10 @@ class EOYSnippetBase extends React.PureComponent {
 
 export const EOYSnippet = props => {
   const extendedContent = {
-    monthly_checkbox_label_text:
-      schema.properties.monthly_checkbox_label_text.default,
-    locale: schema.properties.locale.default,
-    currency_code: schema.properties.currency_code.default,
-    selected_button: schema.properties.selected_button.default,
+    monthly_checkbox_label_text: "Make my donation monthly",
+    locale: "en-US",
+    currency_code: "usd",
+    selected_button: "donation_amount_second",
     ...props.content,
   };
 

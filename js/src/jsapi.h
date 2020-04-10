@@ -99,7 +99,7 @@ class MOZ_RAII JS_PUBLIC_API CustomAutoRooter : private AutoGCRooter {
 
 /************************************************************************/
 
-typedef bool (*JSInterruptCallback)(JSContext* cx);
+using JSInterruptCallback = bool (*)(JSContext*);
 
 /**
  * Callback used to ask the embedding for the cross compartment wrapper handler
@@ -110,9 +110,8 @@ typedef bool (*JSInterruptCallback)(JSContext* cx);
  * wrapper with a lazily-defined prototype and the correct global. It is
  * guaranteed not to wrap a function.
  */
-typedef JSObject* (*JSWrapObjectCallback)(JSContext* cx,
-                                          JS::HandleObject existing,
-                                          JS::HandleObject obj);
+using JSWrapObjectCallback = JSObject* (*)(JSContext*, JS::HandleObject,
+                                           JS::HandleObject);
 
 /**
  * Callback used by the wrap hook to ask the embedding to prepare an object
@@ -121,22 +120,19 @@ typedef JSObject* (*JSWrapObjectCallback)(JSContext* cx,
  * is non-null, then it is the original object we are going to swap into during
  * a transplant.
  */
-typedef void (*JSPreWrapCallback)(JSContext* cx, JS::HandleObject scope,
-                                  JS::HandleObject origObj,
-                                  JS::HandleObject obj,
-                                  JS::HandleObject objectPassedToWrap,
-                                  JS::MutableHandleObject retObj);
+using JSPreWrapCallback = void (*)(JSContext*, JS::HandleObject,
+                                   JS::HandleObject, JS::HandleObject,
+                                   JS::HandleObject, JS::MutableHandleObject);
 
 struct JSWrapObjectCallbacks {
   JSWrapObjectCallback wrap;
   JSPreWrapCallback preWrap;
 };
 
-typedef void (*JSDestroyCompartmentCallback)(JSFreeOp* fop,
-                                             JS::Compartment* compartment);
+using JSDestroyCompartmentCallback = void (*)(JSFreeOp*, JS::Compartment*);
 
-typedef size_t (*JSSizeOfIncludingThisCompartmentCallback)(
-    mozilla::MallocSizeOf mallocSizeOf, JS::Compartment* compartment);
+using JSSizeOfIncludingThisCompartmentCallback =
+    size_t (*)(mozilla::MallocSizeOf, JS::Compartment*);
 
 /**
  * Callback used to intercept JavaScript errors.
@@ -490,8 +486,8 @@ namespace JS {
 enum class CompartmentIterResult { KeepGoing, Stop };
 }  // namespace JS
 
-typedef JS::CompartmentIterResult (*JSIterateCompartmentCallback)(
-    JSContext* cx, void* data, JS::Compartment* compartment);
+using JSIterateCompartmentCallback =
+    JS::CompartmentIterResult (*)(JSContext*, void*, JS::Compartment*);
 
 /**
  * This function calls |compartmentCallback| on every compartment until either
@@ -675,9 +671,8 @@ extern JS_PUBLIC_API bool JS_InitCTypesClass(JSContext* cx,
  * charset, returning a null-terminated string allocated with JS_malloc. On
  * failure, this function should report an error.
  */
-typedef char* (*JSCTypesUnicodeToNativeFun)(JSContext* cx,
-                                            const char16_t* source,
-                                            size_t slen);
+using JSCTypesUnicodeToNativeFun = char* (*)(JSContext*, const char16_t*,
+                                             size_t);
 
 /**
  * Set of function pointers that ctypes can use for various internal functions.
@@ -1944,11 +1939,10 @@ class JS_PUBLIC_API StreamConsumer {
 
 enum class MimeType { Wasm };
 
-typedef bool (*ConsumeStreamCallback)(JSContext* cx, JS::HandleObject obj,
-                                      MimeType mimeType,
-                                      StreamConsumer* consumer);
+using ConsumeStreamCallback = bool (*)(JSContext*, JS::HandleObject, MimeType,
+                                       StreamConsumer*);
 
-typedef void (*ReportStreamErrorCallback)(JSContext* cx, size_t errorCode);
+using ReportStreamErrorCallback = void (*)(JSContext*, size_t);
 
 extern JS_PUBLIC_API void InitConsumeStreamCallback(
     JSContext* cx, ConsumeStreamCallback consume,
@@ -2446,6 +2440,15 @@ extern JS_PUBLIC_API void JS_ReportErrorNumberUTF8VA(
 #endif
 
 /*
+ * args is null-terminated.  That is, a null char* means there are no
+ * more args.  The number of args must match the number expected for
+ * errorNumber for the given JSErrorCallback.
+ */
+extern JS_PUBLIC_API void JS_ReportErrorNumberUTF8Array(
+    JSContext* cx, JSErrorCallback errorCallback, void* userRef,
+    const unsigned errorNumber, const char** args);
+
+/*
  * Use an errorNumber to retrieve the format string, args are char16_t*
  */
 extern JS_PUBLIC_API void JS_ReportErrorNumberUC(JSContext* cx,
@@ -2478,6 +2481,10 @@ extern JS_PUBLIC_API bool JS_ReportErrorFlagsAndNumberUC(
  * Complain when out of memory.
  */
 extern MOZ_COLD JS_PUBLIC_API void JS_ReportOutOfMemory(JSContext* cx);
+
+extern JS_PUBLIC_API bool JS_ExpandErrorArgumentsASCII(
+    JSContext* cx, JSErrorCallback errorCallback, const unsigned errorNumber,
+    JSErrorReport* reportp, ...);
 
 /**
  * Complain when an allocation size overflows the maximum supported limit.
@@ -2703,14 +2710,6 @@ namespace JS {
  */
 extern JS_PUBLIC_API JSObject* ExceptionStackOrNull(JS::HandleObject obj);
 
-/**
- * If this process is recording or replaying and the given value is an
- * exception object (or an unwrappable cross-compartment wrapper for one),
- * return the point where this exception was thrown, for time warping later.
- * Returns zero otherwise.
- */
-extern JS_PUBLIC_API uint64_t ExceptionTimeWarpTarget(JS::HandleValue exn);
-
 } /* namespace JS */
 
 /**
@@ -2767,6 +2766,7 @@ extern JS_PUBLIC_API void JS_SetOffthreadIonCompilationEnabled(JSContext* cx,
   Register(ION_GVN_ENABLE, "ion.gvn.enable") \
   Register(ION_FORCE_IC, "ion.forceinlineCaches") \
   Register(ION_ENABLE, "ion.enable") \
+  Register(JIT_TRUSTEDPRINCIPALS_ENABLE, "jit_trustedprincipals.enable") \
   Register(ION_CHECK_RANGE_ANALYSIS, "ion.check-range-analysis") \
   Register(ION_FREQUENT_BAILOUT_THRESHOLD, "ion.frequent-bailout-threshold") \
   Register(BASELINE_INTERPRETER_ENABLE, "blinterp.enable") \
@@ -2774,7 +2774,6 @@ extern JS_PUBLIC_API void JS_SetOffthreadIonCompilationEnabled(JSContext* cx,
   Register(OFFTHREAD_COMPILATION_ENABLE, "offthread-compilation.enable")  \
   Register(FULL_DEBUG_CHECKS, "jit.full-debug-checks") \
   Register(JUMP_THRESHOLD, "jump-threshold") \
-  Register(TRACK_OPTIMIZATIONS, "jit.track-optimizations") \
   Register(NATIVE_REGEXP_ENABLE, "native_regexp.enable") \
   Register(SIMULATOR_ALWAYS_INTERRUPT, "simulator.always-interrupt")      \
   Register(SPECTRE_INDEX_MASKING, "spectre.index-masking") \
@@ -2967,7 +2966,7 @@ extern JS_PUBLIC_API MOZ_MUST_USE bool DisableWasmHugeMemory();
  * can be called on any thread and must be set at most once in a process.
  */
 
-typedef void (*LargeAllocationFailureCallback)();
+using LargeAllocationFailureCallback = void (*)();
 
 extern JS_PUBLIC_API void SetProcessLargeAllocationFailureCallback(
     LargeAllocationFailureCallback afc);
@@ -2983,7 +2982,7 @@ extern JS_PUBLIC_API void SetProcessLargeAllocationFailureCallback(
  * large-allocation-failure callback has returned.
  */
 
-typedef void (*OutOfMemoryCallback)(JSContext* cx, void* data);
+using OutOfMemoryCallback = void (*)(JSContext*, void*);
 
 extern JS_PUBLIC_API void SetOutOfMemoryCallback(JSContext* cx,
                                                  OutOfMemoryCallback cb,

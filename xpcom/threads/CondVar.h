@@ -43,7 +43,7 @@ class OffTheBooksCondVar : BlockingResourceBase {
    * ~OffTheBooksCondVar
    * Clean up after this OffTheBooksCondVar, but NOT its associated Mutex.
    **/
-  ~OffTheBooksCondVar() {}
+  ~OffTheBooksCondVar() = default;
 
   /**
    * Wait
@@ -123,7 +123,7 @@ class CondVar : public OffTheBooksCondVar {
     MOZ_COUNT_CTOR(CondVar);
   }
 
-  ~CondVar() { MOZ_COUNT_DTOR(CondVar); }
+  MOZ_COUNTED_DTOR(CondVar)
 
  private:
   CondVar();

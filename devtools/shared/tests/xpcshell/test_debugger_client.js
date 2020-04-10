@@ -3,10 +3,10 @@
 
 "use strict";
 
-// DebuggerClient tests
+// DevToolsClient tests
 
-const { DebuggerServer } = require("devtools/server/debugger-server");
-const { DebuggerClient } = require("devtools/shared/client/debugger-client");
+const { DevToolsServer } = require("devtools/server/devtools-server");
+const { DevToolsClient } = require("devtools/shared/client/devtools-client");
 
 add_task(async function() {
   await testCloseLoops();
@@ -14,9 +14,9 @@ add_task(async function() {
 });
 
 function createClient() {
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
-  const client = new DebuggerClient(DebuggerServer.connectPipe());
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
+  const client = new DevToolsClient(DevToolsServer.connectPipe());
   return client;
 }
 

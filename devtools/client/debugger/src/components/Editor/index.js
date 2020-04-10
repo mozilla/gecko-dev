@@ -39,6 +39,8 @@ import {
   getThreadContext,
   getSkipPausing,
   getInlinePreview,
+  getSelectedFrame,
+  getHighlightedCalls,
 } from "../../selectors";
 
 // Redux actions
@@ -56,6 +58,7 @@ import EmptyLines from "./EmptyLines";
 import EditorMenu from "./EditorMenu";
 import ConditionalPanel from "./ConditionalPanel";
 import InlinePreviews from "./InlinePreviews";
+import HighlightCalls from "./HighlightCalls";
 
 import {
   showSourceText,
@@ -89,6 +92,8 @@ import type {
   SourceLocation,
   SourceWithContent,
   ThreadContext,
+  Frame,
+  HighlightedCalls as highlightedCallsType,
 } from "../../types";
 
 const cssVars = {
@@ -111,6 +116,8 @@ export type Props = {
   isPaused: boolean,
   skipPausing: boolean,
   inlinePreviewEnabled: boolean,
+  selectedFrame: ?Frame,
+  highlightedCalls: ?highlightedCallsType,
 
   // Actions
   openConditionalPanel: typeof actions.openConditionalPanel,
@@ -126,6 +133,8 @@ export type Props = {
   breakpointActions: BreakpointItemActions,
   editorActions: EditorItemActions,
   toggleBlackBox: typeof actions.toggleBlackBox,
+  highlightCalls: typeof actions.highlightCalls,
+  unhighlightCalls: typeof actions.unhighlightCalls,
 };
 
 type State = {
@@ -181,6 +190,11 @@ class Editor extends PureComponent<Props, State> {
     const codeMirrorWrapper = codeMirror.getWrapperElement();
 
     codeMirror.on("gutterClick", this.onGutterClick);
+
+    if (features.commandClick) {
+      document.addEventListener("keydown", this.commandKeyDown);
+      document.addEventListener("keyup", this.commandKeyUp);
+    }
 
     // Set code editor wrapper to be focusable
     codeMirrorWrapper.tabIndex = 0;
@@ -321,6 +335,22 @@ class Editor extends PureComponent<Props, State> {
   };
 
   onEditorScroll = debounce(this.props.updateViewport, 75);
+
+  commandKeyDown = (e: KeyboardEvent) => {
+    const { key } = e;
+    if (this.props.isPaused && key === "Meta") {
+      const { cx, selectedFrame, highlightCalls } = this.props;
+      highlightCalls(cx, selectedFrame);
+    }
+  };
+
+  commandKeyUp = (e: KeyboardEvent) => {
+    const { key } = e;
+    if (key === "Meta") {
+      const { cx, unhighlightCalls } = this.props;
+      unhighlightCalls(cx);
+    }
+  };
 
   onKeyDown(e: KeyboardEvent) {
     const { codeMirror } = this.state.editor;
@@ -619,6 +649,7 @@ class Editor extends PureComponent<Props, State> {
 
     return (
       <div>
+        <HighlightCalls editor={editor} selectedSource={selectedSource} />
         <DebugLine />
         <HighlightLine />
         <ReplayLines />
@@ -693,6 +724,8 @@ const mapStateToProps = state => {
     isPaused: getIsPaused(state, getCurrentThread(state)),
     skipPausing: getSkipPausing(state),
     inlinePreviewEnabled: getInlinePreview(state),
+    selectedFrame: getSelectedFrame(state, getCurrentThread(state)),
+    highlightedCalls: getHighlightedCalls(state, getCurrentThread(state)),
   };
 };
 
@@ -710,6 +743,8 @@ const mapDispatchToProps = dispatch => ({
       updateCursorPosition: actions.updateCursorPosition,
       closeTab: actions.closeTab,
       toggleBlackBox: actions.toggleBlackBox,
+      highlightCalls: actions.highlightCalls,
+      unhighlightCalls: actions.unhighlightCalls,
     },
     dispatch
   ),

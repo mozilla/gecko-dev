@@ -123,8 +123,8 @@ return /******/ (function(modules) { // webpackBootstrap
 "use strict";
 
 
-var pdfjsVersion = '2.4.326';
-var pdfjsBuild = 'd6754d1e';
+var pdfjsVersion = '2.4.392';
+var pdfjsBuild = 'e1586016';
 
 var pdfjsSharedUtil = __w_pdfjs_require__(1);
 
@@ -1205,7 +1205,7 @@ function _fetchDocument(worker, source, pdfDataRangeTransport, docId) {
 
   return worker.messageHandler.sendWithPromise("GetDocRequest", {
     docId,
-    apiVersion: '2.4.326',
+    apiVersion: '2.4.392',
     source: {
       data: source.data,
       url: source.url,
@@ -1428,7 +1428,7 @@ class PDFDocumentProxy {
   }
 
   cleanup() {
-    this._transport.startCleanup();
+    return this._transport.startCleanup();
   }
 
   destroy() {
@@ -1759,8 +1759,7 @@ class PDFPageProxy {
 
   cleanup(resetStats = false) {
     this.pendingCleanup = true;
-
-    this._tryCleanup(resetStats);
+    return this._tryCleanup(resetStats);
   }
 
   _tryCleanup(resetStats = false) {
@@ -1768,7 +1767,7 @@ class PDFPageProxy {
       const intentState = this.intentStates[intent];
       return intentState.renderTasks.length !== 0 || !intentState.operatorList.lastChunk;
     })) {
-      return;
+      return false;
     }
 
     Object.keys(this.intentStates).forEach(intent => {
@@ -1782,6 +1781,7 @@ class PDFPageProxy {
     }
 
     this.pendingCleanup = false;
+    return true;
   }
 
   _startRenderPage(transparency, intent) {
@@ -1951,9 +1951,7 @@ class LoopbackPort {
       if ((buffer = value.buffer) && (0, _util.isArrayBuffer)(buffer)) {
         const transferable = transfers && transfers.includes(buffer);
 
-        if (value === buffer) {
-          result = value;
-        } else if (transferable) {
+        if (transferable) {
           result = new value.constructor(buffer, value.byteOffset, value.byteLength);
         } else {
           result = new value.constructor(value);
@@ -2874,12 +2872,16 @@ class WorkerTransport {
   }
 
   startCleanup() {
-    this.messageHandler.sendWithPromise("Cleanup", null).then(() => {
+    return this.messageHandler.sendWithPromise("Cleanup", null).then(() => {
       for (let i = 0, ii = this.pageCache.length; i < ii; i++) {
         const page = this.pageCache[i];
 
         if (page) {
-          page.cleanup();
+          const cleanupSuccessful = page.cleanup();
+
+          if (!cleanupSuccessful) {
+            throw new Error(`startCleanup: Page ${i + 1} is currently rendering.`);
+          }
         }
       }
 
@@ -3148,9 +3150,9 @@ const InternalRenderTask = function InternalRenderTaskClosure() {
   return InternalRenderTask;
 }();
 
-const version = '2.4.326';
+const version = '2.4.392';
 exports.version = version;
-const build = 'd6754d1e';
+const build = 'e1586016';
 exports.build = build;
 
 /***/ }),
@@ -5364,7 +5366,14 @@ var CanvasGraphics = function CanvasGraphicsClosure() {
           }
         }
 
-        var charWidth = width * widthAdvanceScale + spacing * fontDirection;
+        var charWidth;
+
+        if (vertical) {
+          charWidth = width * widthAdvanceScale - spacing * fontDirection;
+        } else {
+          charWidth = width * widthAdvanceScale + spacing * fontDirection;
+        }
+
         x += charWidth;
 
         if (restoreNeeded) {
@@ -6998,7 +7007,7 @@ class Metadata {
     data = this._repair(data);
     const parser = new _xml_parser.SimpleXMLParser();
     const xmlDocument = parser.parseFromString(data);
-    this._metadata = Object.create(null);
+    this._metadataMap = new Map();
 
     if (xmlDocument) {
       this._parse(xmlDocument);
@@ -7006,7 +7015,7 @@ class Metadata {
   }
 
   _repair(data) {
-    return data.replace(/^([^<]+)/, "").replace(/>\\376\\377([^<]+)/g, function (all, codes) {
+    return data.replace(/^[^<]+/, "").replace(/>\\376\\377([^<]+)/g, function (all, codes) {
       const bytes = codes.replace(/\\([0-3])([0-7])([0-7])/g, function (code, d1, d2, d3) {
         return String.fromCharCode(d1 * 64 + d2 * 8 + d3 * 1);
       }).replace(/&(amp|apos|gt|lt|quot);/g, function (str, name) {
@@ -7075,23 +7084,29 @@ class Metadata {
         if (desc.childNodes[j].nodeName.toLowerCase() !== "#text") {
           const entry = desc.childNodes[j];
           const name = entry.nodeName.toLowerCase();
-          this._metadata[name] = entry.textContent.trim();
+
+          this._metadataMap.set(name, entry.textContent.trim());
         }
       }
     }
   }
 
   get(name) {
-    const data = this._metadata[name];
-    return typeof data !== "undefined" ? data : null;
+    return this._metadataMap.has(name) ? this._metadataMap.get(name) : null;
   }
 
   getAll() {
-    return this._metadata;
+    const obj = Object.create(null);
+
+    for (const [key, value] of this._metadataMap) {
+      obj[key] = value;
+    }
+
+    return obj;
   }
 
   has(name) {
-    return typeof this._metadata[name] !== "undefined";
+    return this._metadataMap.has(name);
   }
 
 }
@@ -8946,7 +8961,6 @@ var renderTextLayer = function renderTextLayerClosure() {
         this._bounds = null;
       }
 
-      const NO_PADDING = "0 0 0 0";
       const transformBuf = [],
             paddingBuf = [];
 
@@ -8993,11 +9007,7 @@ var renderTextLayer = function renderTextLayerClosure() {
             paddingBuf.push(0);
           }
 
-          const padding = paddingBuf.join(" ");
-
-          if (padding !== NO_PADDING) {
-            div.style.padding = padding;
-          }
+          div.style.padding = paddingBuf.join(" ");
 
           if (transformBuf.length) {
             div.style.transform = transformBuf.join(" ");

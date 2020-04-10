@@ -57,10 +57,7 @@ class AbstractThread : public nsISerialEventTarget {
   static already_AddRefed<AbstractThread> CreateEventTargetWrapper(
       nsIEventTarget* aEventTarget, bool aRequireTailDispatch);
 
-  // AbstractThreads preserve their refcounts when recording/replaying, as
-  // otherwise the thread which releases the last reference may vary between
-  // recording and replaying.
-  NS_DECL_THREADSAFE_ISUPPORTS_WITH_RECORDING(recordreplay::Behavior::Preserve)
+  NS_DECL_THREADSAFE_ISUPPORTS
 
   // We don't use NS_DECL_NSIEVENTTARGET so that we can remove the default
   // |flags| parameter from Dispatch. Otherwise, a single-argument Dispatch call
@@ -134,7 +131,7 @@ class AbstractThread : public nsISerialEventTarget {
   };
 
  protected:
-  virtual ~AbstractThread() {}
+  virtual ~AbstractThread() = default;
   static MOZ_THREAD_LOCAL(AbstractThread*) sCurrentThreadTLS;
 
   // True if we want to require that every task dispatched from tasks running in

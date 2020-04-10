@@ -18,8 +18,6 @@
 #include "nsISupports.h"
 #include "nsTArray.h"
 #include "nsWrapperCache.h"
-#include "nsAutoPtr.h"
-
 #include <type_traits>
 
 namespace mozilla {
@@ -158,23 +156,6 @@ MOZ_MUST_USE
 }
 }  // namespace binding_detail
 
-// We can take a non-refcounted non-wrapper-cached DOM object that lives in an
-// nsAutoPtr.
-template <class T>
-MOZ_MUST_USE
-    std::enable_if_t<std::is_base_of<NonRefcountedDOMObject, T>::value, bool>
-    ToJSValue(JSContext* aCx, nsAutoPtr<T>&& aArgument,
-              JS::MutableHandle<JS::Value> aValue) {
-  if (!binding_detail::ToJSValueFromPointerHelper(aCx, aArgument.get(),
-                                                  aValue)) {
-    return false;
-  }
-
-  // JS object took ownership
-  aArgument.forget();
-  return true;
-}
-
 // We can take a non-refcounted non-wrapper-cached DOM object that lives in a
 // UniquePtr.
 template <class T>
@@ -303,7 +284,7 @@ MOZ_MUST_USE bool ToJSValue(JSContext* aCx, nsresult aArgument,
 // Accept ErrorResult, for use in rejections, and create an exception
 // representing the failure.  Note, the ErrorResult must indicate a failure
 // with aArgument.Failure() returning true.
-MOZ_MUST_USE bool ToJSValue(JSContext* aCx, ErrorResult& aArgument,
+MOZ_MUST_USE bool ToJSValue(JSContext* aCx, ErrorResult&& aArgument,
                             JS::MutableHandle<JS::Value> aValue);
 
 // Accept owning WebIDL unions.

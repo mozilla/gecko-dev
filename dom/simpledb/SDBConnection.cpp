@@ -59,6 +59,7 @@ nsresult GetWriteData(JSContext* aCx, JS::Handle<JS::Value> aValue,
 
 SDBConnection::SDBConnection()
     : mBackgroundActor(nullptr),
+      mPersistenceType(PERSISTENCE_TYPE_INVALID),
       mRunningRequest(false),
       mOpen(false),
       mAllowedToClose(false) {
@@ -176,7 +177,7 @@ nsresult SDBConnection::EnsureBackgroundActor() {
 
   mBackgroundActor = static_cast<SDBConnectionChild*>(
       backgroundActor->SendPBackgroundSDBConnectionConstructor(
-          actor, *mPrincipalInfo));
+          actor, mPersistenceType, *mPrincipalInfo));
   if (NS_WARN_IF(!mBackgroundActor)) {
     return NS_ERROR_FAILURE;
   }
@@ -205,12 +206,13 @@ nsresult SDBConnection::InitiateRequest(SDBRequest* aRequest,
 NS_IMPL_ISUPPORTS(SDBConnection, nsISDBConnection)
 
 NS_IMETHODIMP
-SDBConnection::Init(nsIPrincipal* aPrincipal) {
+SDBConnection::Init(nsIPrincipal* aPrincipal,
+                    const nsACString& aPersistenceType) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
 
-  nsAutoPtr<PrincipalInfo> principalInfo(new PrincipalInfo());
-  nsresult rv = PrincipalToPrincipalInfo(aPrincipal, principalInfo);
+  UniquePtr<PrincipalInfo> principalInfo(new PrincipalInfo());
+  nsresult rv = PrincipalToPrincipalInfo(aPrincipal, principalInfo.get());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -225,7 +227,15 @@ SDBConnection::Init(nsIPrincipal* aPrincipal) {
     return NS_ERROR_INVALID_ARG;
   }
 
+  Nullable<PersistenceType> persistenceType;
+  rv = NullablePersistenceTypeFromText(aPersistenceType, &persistenceType);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
   mPrincipalInfo = std::move(principalInfo);
+  mPersistenceType = persistenceType.IsNull() ? PERSISTENCE_TYPE_DEFAULT
+                                              : persistenceType.Value();
 
   return NS_OK;
 }

@@ -20,21 +20,21 @@ function connectClient(client) {
 }
 
 add_task(async function() {
-  initTestDebuggerServer();
+  initTestDevToolsServer();
 });
 
 // Client w/ OOB_CERT auth connects successfully to server w/ OOB_CERT auth
 add_task(async function() {
-  equal(DebuggerServer.listeningSockets, 0, "0 listening sockets");
+  equal(DevToolsServer.listeningSockets, 0, "0 listening sockets");
 
   // Grab our cert, instead of relying on a discovery advertisement
   const serverCert = await cert.local.getOrCreate();
 
   const oobData = defer();
-  const AuthenticatorType = DebuggerServer.Authenticators.get("OOB_CERT");
+  const AuthenticatorType = DevToolsServer.Authenticators.get("OOB_CERT");
   const serverAuth = new AuthenticatorType.Server();
   serverAuth.allowConnection = () => {
-    return DebuggerServer.AuthenticationResult.ALLOW;
+    return DevToolsServer.AuthenticationResult.ALLOW;
   };
   // Skip prompt for tests
   serverAuth.receiveOOB = () => oobData.promise;
@@ -44,10 +44,10 @@ add_task(async function() {
     encryption: true,
     portOrPath: -1,
   };
-  const listener = new SocketListener(DebuggerServer, socketOptions);
+  const listener = new SocketListener(DevToolsServer, socketOptions);
   ok(listener, "Socket listener created");
   await listener.open();
-  equal(DebuggerServer.listeningSockets, 1, "1 listening socket");
+  equal(DevToolsServer.listeningSockets, 1, "1 listening socket");
 
   const clientAuth = new AuthenticatorType.Client();
   clientAuth.sendOOB = ({ oob }) => {
@@ -56,7 +56,7 @@ add_task(async function() {
     oobData.resolve(oob);
   };
 
-  const transport = await DebuggerClient.socketConnect({
+  const transport = await DevToolsClient.socketConnect({
     host: "127.0.0.1",
     port: listener.port,
     encryption: true,
@@ -67,7 +67,7 @@ add_task(async function() {
   });
   ok(transport, "Client transport created");
 
-  const client = new DebuggerClient(transport);
+  const client = new DevToolsClient(transport);
   const onUnexpectedClose = () => {
     do_throw("Closed unexpectedly");
   };
@@ -82,18 +82,18 @@ add_task(async function() {
   client.off("closed", onUnexpectedClose);
   transport.close();
   listener.close();
-  equal(DebuggerServer.listeningSockets, 0, "0 listening sockets");
+  equal(DevToolsServer.listeningSockets, 0, "0 listening sockets");
 });
 
 // Client w/o OOB_CERT auth fails to connect to server w/ OOB_CERT auth
 add_task(async function() {
-  equal(DebuggerServer.listeningSockets, 0, "0 listening sockets");
+  equal(DevToolsServer.listeningSockets, 0, "0 listening sockets");
 
   const oobData = defer();
-  const AuthenticatorType = DebuggerServer.Authenticators.get("OOB_CERT");
+  const AuthenticatorType = DevToolsServer.Authenticators.get("OOB_CERT");
   const serverAuth = new AuthenticatorType.Server();
   serverAuth.allowConnection = () => {
-    return DebuggerServer.AuthenticationResult.ALLOW;
+    return DevToolsServer.AuthenticationResult.ALLOW;
   };
   // Skip prompt for tests
   serverAuth.receiveOOB = () => oobData.promise;
@@ -103,14 +103,14 @@ add_task(async function() {
     encryption: true,
     portOrPath: -1,
   };
-  const listener = new SocketListener(DebuggerServer, socketOptions);
+  const listener = new SocketListener(DevToolsServer, socketOptions);
   ok(listener, "Socket listener created");
   await listener.open();
-  equal(DebuggerServer.listeningSockets, 1, "1 listening socket");
+  equal(DevToolsServer.listeningSockets, 1, "1 listening socket");
 
   // This will succeed, but leaves the client in confused state, and no data is
   // actually accessible
-  const transport = await DebuggerClient.socketConnect({
+  const transport = await DevToolsClient.socketConnect({
     host: "127.0.0.1",
     port: listener.port,
     encryption: true,
@@ -119,7 +119,7 @@ add_task(async function() {
 
   // Attempt to use the transport
   const deferred = defer();
-  const client = new DebuggerClient(transport);
+  const client = new DevToolsClient(transport);
   client.onPacket = packet => {
     // Client did not authenticate, so it ends up seeing the server's auth data
     // which is effectively malformed data from the client's perspective
@@ -141,7 +141,7 @@ add_task(async function() {
     ok(true, "Sending a message failed");
     transport.close();
     listener.close();
-    equal(DebuggerServer.listeningSockets, 0, "0 listening sockets");
+    equal(DevToolsServer.listeningSockets, 0, "0 listening sockets");
     return;
   }
 
@@ -150,16 +150,16 @@ add_task(async function() {
 
 // Client w/ invalid K value fails to connect
 add_task(async function() {
-  equal(DebuggerServer.listeningSockets, 0, "0 listening sockets");
+  equal(DevToolsServer.listeningSockets, 0, "0 listening sockets");
 
   // Grab our cert, instead of relying on a discovery advertisement
   const serverCert = await cert.local.getOrCreate();
 
   const oobData = defer();
-  const AuthenticatorType = DebuggerServer.Authenticators.get("OOB_CERT");
+  const AuthenticatorType = DevToolsServer.Authenticators.get("OOB_CERT");
   const serverAuth = new AuthenticatorType.Server();
   serverAuth.allowConnection = () => {
-    return DebuggerServer.AuthenticationResult.ALLOW;
+    return DevToolsServer.AuthenticationResult.ALLOW;
   };
   // Skip prompt for tests
   serverAuth.receiveOOB = () => oobData.promise;
@@ -180,13 +180,13 @@ add_task(async function() {
     encryption: true,
     portOrPath: -1,
   };
-  const listener = new SocketListener(DebuggerServer, socketOptions);
+  const listener = new SocketListener(DevToolsServer, socketOptions);
   ok(listener, "Socket listener created");
   await listener.open();
-  equal(DebuggerServer.listeningSockets, 1, "1 listening socket");
+  equal(DevToolsServer.listeningSockets, 1, "1 listening socket");
 
   try {
-    await DebuggerClient.socketConnect({
+    await DevToolsClient.socketConnect({
       host: "127.0.0.1",
       port: listener.port,
       encryption: true,
@@ -198,7 +198,7 @@ add_task(async function() {
   } catch (e) {
     ok(true, "Client failed to connect as expected");
     listener.close();
-    equal(DebuggerServer.listeningSockets, 0, "0 listening sockets");
+    equal(DevToolsServer.listeningSockets, 0, "0 listening sockets");
     return;
   }
 
@@ -207,16 +207,16 @@ add_task(async function() {
 
 // Client w/ invalid cert hash fails to connect
 add_task(async function() {
-  equal(DebuggerServer.listeningSockets, 0, "0 listening sockets");
+  equal(DevToolsServer.listeningSockets, 0, "0 listening sockets");
 
   // Grab our cert, instead of relying on a discovery advertisement
   const serverCert = await cert.local.getOrCreate();
 
   const oobData = defer();
-  const AuthenticatorType = DebuggerServer.Authenticators.get("OOB_CERT");
+  const AuthenticatorType = DevToolsServer.Authenticators.get("OOB_CERT");
   const serverAuth = new AuthenticatorType.Server();
   serverAuth.allowConnection = () => {
-    return DebuggerServer.AuthenticationResult.ALLOW;
+    return DevToolsServer.AuthenticationResult.ALLOW;
   };
   // Skip prompt for tests
   serverAuth.receiveOOB = () => oobData.promise;
@@ -237,13 +237,13 @@ add_task(async function() {
     encryption: true,
     portOrPath: -1,
   };
-  const listener = new SocketListener(DebuggerServer, socketOptions);
+  const listener = new SocketListener(DevToolsServer, socketOptions);
   ok(listener, "Socket listener created");
   await listener.open();
-  equal(DebuggerServer.listeningSockets, 1, "1 listening socket");
+  equal(DevToolsServer.listeningSockets, 1, "1 listening socket");
 
   try {
-    await DebuggerClient.socketConnect({
+    await DevToolsClient.socketConnect({
       host: "127.0.0.1",
       port: listener.port,
       encryption: true,
@@ -255,7 +255,7 @@ add_task(async function() {
   } catch (e) {
     ok(true, "Client failed to connect as expected");
     listener.close();
-    equal(DebuggerServer.listeningSockets, 0, "0 listening sockets");
+    equal(DevToolsServer.listeningSockets, 0, "0 listening sockets");
     return;
   }
 
@@ -263,5 +263,5 @@ add_task(async function() {
 });
 
 add_task(async function() {
-  DebuggerServer.destroy();
+  DevToolsServer.destroy();
 });

@@ -54,9 +54,9 @@ static const char kMaxEntriesPref[] = "offline.max_site_resources";
 // nsDOMOfflineResourceList
 //
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(nsDOMOfflineResourceList,
-                                   DOMEventTargetHelper, mCacheUpdate,
-                                   mPendingEvents)
+NS_IMPL_CYCLE_COLLECTION_WEAK_INHERITED(nsDOMOfflineResourceList,
+                                        DOMEventTargetHelper, mCacheUpdate,
+                                        mPendingEvents)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMOfflineResourceList)
   NS_INTERFACE_MAP_ENTRY(nsIOfflineCacheUpdateObserver)
@@ -372,10 +372,10 @@ void nsDOMOfflineResourceList::MozAdd(const nsAString& aURI, ErrorResult& aRv) {
   }
 
   RefPtr<Document> doc = GetOwner()->GetExtantDoc();
-  nsCOMPtr<nsICookieSettings> cs = doc ? doc->CookieSettings() : nullptr;
+  nsCOMPtr<nsICookieJarSettings> cjs = doc ? doc->CookieJarSettings() : nullptr;
 
   rv = update->InitPartial(mManifestURI, clientID, mDocumentURI,
-                           mLoadingPrincipal, cs);
+                           mLoadingPrincipal, cjs);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     aRv.Throw(rv);
     return;

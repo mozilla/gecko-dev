@@ -7,10 +7,15 @@ PROJECT=dump_syms
 case "$(uname -s)" in
 Linux)
     COMPRESS_EXT=xz
+    export RUSTFLAGS=-Clinker=clang++
+    export CXX=clang++
+    export PATH=$MOZ_FETCHES_DIR/clang/bin:$MOZ_FETCHES_DIR/binutils/bin:$PATH
+    FEATURES=vendored-openssl
     ;;
 MINGW*)
     UPLOAD_DIR=$PWD/public/build
     COMPRESS_EXT=bz2
+    FEATURES=
 
     . $GECKO_PATH/taskcluster/scripts/misc/vs-setup.sh
     ;;
@@ -31,7 +36,7 @@ PATH="$(cd $MOZ_FETCHES_DIR && pwd)/rustc/bin:$PATH"
 
 cd $MOZ_FETCHES_DIR/$PROJECT
 
-cargo build --verbose --release
+cargo build --verbose --release ${FEATURES:+--features "$FEATURES"}
 
 mkdir $PROJECT
 cp target/release/${PROJECT}* ${PROJECT}/

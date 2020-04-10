@@ -68,7 +68,7 @@ class GMPServiceCreateHelper final : public mozilla::Runnable {
           SystemGroup::EventTargetFor(mozilla::TaskCategory::Other),
           createHelper, true);
 
-      service = createHelper->mService.forget();
+      service = std::move(createHelper->mService);
     }
 
     return service.forget();
@@ -144,7 +144,7 @@ GeckoMediaPluginService::GeckoMediaPluginService()
   }
 }
 
-GeckoMediaPluginService::~GeckoMediaPluginService() {}
+GeckoMediaPluginService::~GeckoMediaPluginService() = default;
 
 NS_IMETHODIMP
 GeckoMediaPluginService::RunPluginCrashCallbacks(

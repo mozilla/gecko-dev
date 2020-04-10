@@ -16,19 +16,17 @@
 #include "TextLeafAccessible.h"
 #include "TraversalRule.h"
 #include "Pivot.h"
+#include "Platform.h"
 #include "nsAccessibilityService.h"
 #include "nsEventShell.h"
 #include "nsPersistentProperties.h"
 #include "nsIAccessibleAnnouncementEvent.h"
-#include "nsIStringBundle.h"
 #include "nsAccUtils.h"
 #include "nsTextEquivUtils.h"
 #include "RootAccessible.h"
 
 #include "mozilla/a11y/PDocAccessibleChild.h"
 #include "mozilla/jni/GeckoBundleUtils.h"
-
-#define ROLE_STRINGS_URL "chrome://global/locale/AccessFu.properties"
 
 // icu TRUE conflicting with java::sdk::Boolean::TRUE()
 // https://searchfox.org/mozilla-central/rev/ce02064d8afc8673cef83c92896ee873bd35e7ae/intl/icu/source/common/unicode/umachine.h#265
@@ -85,18 +83,19 @@ nsresult AccessibleWrap::HandleAccEvent(AccEvent* aEvent) {
         }
         break;
       }
-      case nsIAccessibleEvent::EVENT_SHOW:
-      case nsIAccessibleEvent::EVENT_HIDE: {
+      case nsIAccessibleEvent::EVENT_REORDER: {
         if (DocAccessibleWrap* topContentDoc =
                 doc->GetTopLevelContentDoc(accessible)) {
-          topContentDoc->CacheViewport();
+          topContentDoc->CacheViewport(true);
         }
         break;
       }
       case nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED: {
         if (accessible != aEvent->Document() && !aEvent->IsFromUserInput()) {
           AccCaretMoveEvent* caretEvent = downcast_accEvent(aEvent);
-          if (IsHyperText()) {
+          HyperTextAccessible* ht = AsHyperText();
+          if ((State() & states::FOCUSABLE) != 0 ||
+              (ht && ht->SelectionCount())) {
             DOMPoint point =
                 AsHyperText()->OffsetToDOMPoint(caretEvent->GetCaretOffset());
             if (Accessible* newPos =
@@ -191,7 +190,19 @@ nsresult AccessibleWrap::HandleAccEvent(AccEvent* aEvent) {
       AccStateChangeEvent* event = downcast_accEvent(aEvent);
       auto state = event->GetState();
       if (state & states::CHECKED) {
-        sessionAcc->SendClickedEvent(accessible, event->IsStateEnabled());
+        sessionAcc->SendClickedEvent(
+            accessible, java::SessionAccessibility::FLAG_CHECKABLE |
+                            (event->IsStateEnabled()
+                                 ? java::SessionAccessibility::FLAG_CHECKED
+                                 : 0));
+      }
+
+      if (state & states::EXPANDED) {
+        sessionAcc->SendClickedEvent(
+            accessible, java::SessionAccessibility::FLAG_EXPANDABLE |
+                            (event->IsStateEnabled()
+                                 ? java::SessionAccessibility::FLAG_EXPANDED
+                                 : 0));
       }
 
       if (state & states::SELECTED) {
@@ -499,6 +510,14 @@ uint32_t AccessibleWrap::GetFlags(role aRole, uint64_t aState,
     flags |= java::SessionAccessibility::FLAG_SELECTED;
   }
 
+  if (aState & states::EXPANDABLE) {
+    flags |= java::SessionAccessibility::FLAG_EXPANDABLE;
+  }
+
+  if (aState & states::EXPANDED) {
+    flags |= java::SessionAccessibility::FLAG_EXPANDED;
+  }
+
   if ((aState & (states::INVISIBLE | states::OFFSCREEN)) == 0) {
     flags |= java::SessionAccessibility::FLAG_VISIBLE_TO_USER;
   }
@@ -514,42 +533,19 @@ void AccessibleWrap::GetRoleDescription(role aRole,
                                         nsIPersistentProperties* aAttributes,
                                         nsAString& aGeckoRole,
                                         nsAString& aRoleDescription) {
-  nsresult rv = NS_OK;
-
-  nsCOMPtr<nsIStringBundleService> sbs =
-      do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Failed to get string bundle service");
-    return;
-  }
-
-  nsCOMPtr<nsIStringBundle> bundle;
-  rv = sbs->CreateBundle(ROLE_STRINGS_URL, getter_AddRefs(bundle));
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Failed to get string bundle");
-    return;
-  }
-
   if (aRole == roles::HEADING && aAttributes) {
     // The heading level is an attribute, so we need that.
     AutoTArray<nsString, 1> formatString;
-    rv = aAttributes->GetStringProperty(NS_LITERAL_CSTRING("level"),
-                                        *formatString.AppendElement());
-    if (NS_SUCCEEDED(rv)) {
-      rv = bundle->FormatStringFromName("headingLevel", formatString,
-                                        aRoleDescription);
-      if (NS_SUCCEEDED(rv)) {
-        return;
-      }
+    nsresult rv = aAttributes->GetStringProperty(NS_LITERAL_CSTRING("level"),
+                                                 *formatString.AppendElement());
+    if (NS_SUCCEEDED(rv) &&
+        LocalizeString("headingLevel", aRoleDescription, formatString)) {
+      return;
     }
   }
 
   GetAccService()->GetStringRole(aRole, aGeckoRole);
-  rv = bundle->GetStringFromName(NS_ConvertUTF16toUTF8(aGeckoRole).get(),
-                                 aRoleDescription);
-  if (NS_FAILED(rv)) {
-    aRoleDescription.AssignLiteral("");
-  }
+  LocalizeString(NS_ConvertUTF16toUTF8(aGeckoRole).get(), aRoleDescription);
 }
 
 already_AddRefed<nsIPersistentProperties>
@@ -692,13 +688,10 @@ mozilla::java::GeckoBundle::LocalRef AccessibleWrap::ToBundle(
   GECKOBUNDLE_PUT(nodeInfo, "className",
                   java::sdk::Integer::ValueOf(AndroidClass()));
 
+  nsAutoString hint;
   if (aState & states::EDITABLE) {
-    nsAutoString hint(aName);
-    if (!aDescription.IsEmpty()) {
-      hint.AppendLiteral(" ");
-      hint.Append(aDescription);
-    }
-    GECKOBUNDLE_PUT(nodeInfo, "hint", jni::StringParam(hint));
+    // An editable field's name is populated in the hint.
+    hint.Assign(aName);
     GECKOBUNDLE_PUT(nodeInfo, "text", jni::StringParam(aTextValue));
   } else {
     if (role == roles::LINK || role == roles::HEADING) {
@@ -706,10 +699,30 @@ mozilla::java::GeckoBundle::LocalRef AccessibleWrap::ToBundle(
     } else {
       GECKOBUNDLE_PUT(nodeInfo, "text", jni::StringParam(aName));
     }
+  }
 
-    if (!aDescription.IsEmpty()) {
-      GECKOBUNDLE_PUT(nodeInfo, "hint", jni::StringParam(aDescription));
+  if (!aDescription.IsEmpty()) {
+    if (!hint.IsEmpty()) {
+      // If this is an editable, the description is concatenated with a
+      // whitespace directly after the name.
+      hint.AppendLiteral(" ");
     }
+    hint.Append(aDescription);
+  }
+
+  if ((aState & states::REQUIRED) != 0) {
+    nsAutoString requiredString;
+    if (LocalizeString("stateRequired", requiredString)) {
+      if (!hint.IsEmpty()) {
+        // If the hint is non-empty, concatenate with a comma for a brief pause.
+        hint.AppendLiteral(", ");
+      }
+      hint.Append(requiredString);
+    }
+  }
+
+  if (!hint.IsEmpty()) {
+    GECKOBUNDLE_PUT(nodeInfo, "hint", jni::StringParam(hint));
   }
 
   nsAutoString geckoRole;

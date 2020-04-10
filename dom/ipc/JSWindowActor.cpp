@@ -6,6 +6,8 @@
 
 #include "mozilla/dom/JSWindowActor.h"
 #include "mozilla/dom/JSWindowActorBinding.h"
+
+#include "mozilla/Telemetry.h"
 #include "mozilla/dom/ClonedErrorHolder.h"
 #include "mozilla/dom/ClonedErrorHolderBinding.h"
 #include "mozilla/dom/DOMException.h"
@@ -15,6 +17,7 @@
 #include "mozilla/dom/Promise.h"
 #include "js/Promise.h"
 #include "xpcprivate.h"
+#include "nsASCIIMask.h"
 
 namespace mozilla {
 namespace dom {
@@ -128,6 +131,18 @@ bool JSWindowActor::AllowMessage(const JSWindowActorMessageMeta& aMetadata,
     return true;
   }
 
+  nsAutoString messageName(aMetadata.actorName());
+  messageName.AppendLiteral("::");
+  messageName.Append(aMetadata.messageName());
+
+  // Remove digits to avoid spamming telemetry if anybody is dynamically
+  // generating message names with numbers in them.
+  messageName.StripTaggedASCII(ASCIIMask::Mask0to9());
+
+  Telemetry::ScalarAdd(
+      Telemetry::ScalarID::DOM_IPC_REJECTED_WINDOW_ACTOR_MESSAGE, messageName,
+      1);
+
   return false;
 }
 
@@ -210,7 +225,7 @@ already_AddRefed<Promise> JSWindowActor::SendQuery(
   meta.queryId() = mNextQueryId++;
   meta.kind() = JSWindowActorMessageKind::Query;
 
-  mPendingQueries.Put(meta.queryId(), promise);
+  mPendingQueries.Put(meta.queryId(), RefPtr{promise});
 
   SendRawMessage(meta, std::move(data), CaptureJSStack(aCx), aRv);
   return promise.forget();
@@ -321,7 +336,7 @@ void JSWindowActor::ReceiveMessageOrQuery(
         promise->MaybeRejectWithTimeoutError(
             "Message handler threw uncatchable exception");
       } else {
-        promise->MaybeReject(aRv);
+        promise->MaybeReject(std::move(aRv));
       }
     } else {
       promise->MaybeResolve(retval);

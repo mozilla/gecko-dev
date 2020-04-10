@@ -112,6 +112,29 @@ add_task(async function test_an_event_is_sent_on_start() {
 });
 add_task(clear_state);
 
+add_task(async function test_offline_is_reported_if_relevant() {
+  const startHistogram = getUptakeTelemetrySnapshot(
+    TELEMETRY_HISTOGRAM_POLL_KEY
+  );
+  const offlineBackup = Services.io.offline;
+  try {
+    Services.io.offline = true;
+
+    await RemoteSettings.pollChanges();
+
+    const endHistogram = getUptakeTelemetrySnapshot(
+      TELEMETRY_HISTOGRAM_POLL_KEY
+    );
+    const expectedIncrements = {
+      [UptakeTelemetry.STATUS.NETWORK_OFFLINE_ERROR]: 1,
+    };
+    checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  } finally {
+    Services.io.offline = offlineBackup;
+  }
+});
+add_task(clear_state);
+
 add_task(async function test_check_success() {
   const startPollHistogram = getUptakeTelemetrySnapshot(
     TELEMETRY_HISTOGRAM_POLL_KEY
@@ -365,12 +388,13 @@ add_task(clear_state);
 add_task(async function test_age_of_data_is_reported_in_uptake_status() {
   await withFakeChannel("nightly", async () => {
     const serverTime = 1552323900000;
+    const recordsTimestamp = serverTime - 3600 * 1000;
     server.registerPathHandler(
       CHANGES_PATH,
       serveChangesEntries(serverTime, [
         {
           id: "b6ba7fab-a40a-4d03-a4af-6b627f3c5b36",
-          last_modified: serverTime - 3600 * 1000,
+          last_modified: recordsTimestamp,
           host: "localhost",
           bucket: "main",
           collection: "some-entry",
@@ -401,6 +425,7 @@ add_task(async function test_age_of_data_is_reported_in_uptake_status() {
           source: TELEMETRY_HISTOGRAM_SYNC_KEY,
           duration: () => true,
           trigger: "manual",
+          timestamp: `"${recordsTimestamp}"`,
         },
       ],
     ]);
@@ -510,6 +535,34 @@ add_task(async function test_success_with_partial_list() {
   // On the second call, the server does not mention the poll-test-collection
   // and maybeSync() is not called.
   Assert.equal(maybeSyncCount, 1, "maybeSync should not be called twice");
+});
+add_task(clear_state);
+
+add_task(async function test_full_polling() {
+  server.registerPathHandler(
+    CHANGES_PATH,
+    serveChangesEntries(10000, [
+      {
+        id: "b6ba7fab-a40a-4d03-a4af-6b627f3c5b36",
+        last_modified: 42,
+        host: "localhost",
+        bucket: "main",
+        collection: "poll-test-collection",
+      },
+    ])
+  );
+
+  const c = RemoteSettings("poll-test-collection");
+  let maybeSyncCount = 0;
+  c.maybeSync = () => {
+    maybeSyncCount++;
+  };
+
+  await RemoteSettings.pollChanges();
+  await RemoteSettings.pollChanges({ full: true });
+
+  // Since the second call is full, clients are called
+  Assert.equal(maybeSyncCount, 2, "maybeSync should be called twice");
 });
 add_task(clear_state);
 

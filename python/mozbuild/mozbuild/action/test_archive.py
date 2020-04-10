@@ -126,14 +126,12 @@ ARCHIVE_FILES = {
             'patterns': [
                 'client/**',
                 'harness/**',
-                'puppeteer/**',
                 'mach_test_package_commands.py',
             ],
             'dest': 'marionette',
             'ignore': [
                 'client/docs',
                 'harness/marionette_harness/tests',
-                'puppeteer/firefox/docs',
             ],
         },
         {
@@ -297,6 +295,7 @@ ARCHIVE_FILES = {
             'base': 'dist/bin',
             'patterns': [
                 'dmd.py',
+                'fix_stacks.py',
                 'fix_linux_stack.py',
                 'fix_macosx_stack.py',
                 'fix_stack_using_bpsyms.py',
@@ -524,6 +523,12 @@ ARCHIVE_FILES = {
             'base': 'testing/mozbase/mozdevice',
             'pattern': '**',
             'dest': 'condprofile/mozdevice',
+        },
+        {
+            'source': buildconfig.topsrcdir,
+            'base': 'testing/mozbase/mozlog',
+            'pattern': '**',
+            'dest': 'condprofile/mozlog',
         },
         {
             'source': buildconfig.topsrcdir,

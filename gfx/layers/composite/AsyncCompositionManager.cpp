@@ -74,7 +74,7 @@ AsyncCompositionManager::AsyncCompositionManager(
   MOZ_ASSERT(mCompositorBridge);
 }
 
-AsyncCompositionManager::~AsyncCompositionManager() {}
+AsyncCompositionManager::~AsyncCompositionManager() = default;
 
 void AsyncCompositionManager::ResolveRefLayers(
     CompositorBridgeParent* aCompositor, bool* aHasRemoteContent,
@@ -1212,7 +1212,7 @@ bool AsyncCompositionManager::ApplyAsyncContentTransformToTree(
             MOZ_ASSERT(targetId != ScrollableLayerGuid::NULL_SCROLL_ID);
             ScrollableLayerGuid rootContent = sampler->GetGuid(*zoomedMetrics);
             return rootContent.mScrollId == targetId &&
-            rootContent.mLayersId == currentLayersId;
+                   rootContent.mLayersId == currentLayersId;
           };
 
           auto IsStuckToZoomContainerAtBottom = [&](Layer* aLayer) {

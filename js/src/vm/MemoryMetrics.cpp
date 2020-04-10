@@ -377,17 +377,22 @@ static void StatsCellCallback(JSRuntime* rt, void* data, JS::GCCellPtr cellptr,
     }
 
     case JS::TraceKind::Script: {
-      JSScript* script = &cellptr.as<JSScript>();
-      RealmStats& realmStats = script->realm()->realmStats();
+      BaseScript* base = &cellptr.as<BaseScript>();
+      RealmStats& realmStats = base->realm()->realmStats();
       realmStats.scriptsGCHeap += thingSize;
       realmStats.scriptsMallocHeapData +=
-          script->sizeOfData(rtStats->mallocSizeOf_);
-      script->addSizeOfJitScript(rtStats->mallocSizeOf_, &realmStats.jitScripts,
-                                 &realmStats.baselineStubsFallback);
-      jit::AddSizeOfBaselineData(script, rtStats->mallocSizeOf_,
-                                 &realmStats.baselineData);
-      realmStats.ionData += jit::SizeOfIonData(script, rtStats->mallocSizeOf_);
-      CollectScriptSourceStats<granularity>(closure, script->scriptSource());
+          base->sizeOfExcludingThis(rtStats->mallocSizeOf_);
+      if (!base->isLazyScript()) {
+        JSScript* script = static_cast<JSScript*>(base);
+        script->addSizeOfJitScript(rtStats->mallocSizeOf_,
+                                   &realmStats.jitScripts,
+                                   &realmStats.baselineStubsFallback);
+        jit::AddSizeOfBaselineData(script, rtStats->mallocSizeOf_,
+                                   &realmStats.baselineData);
+        realmStats.ionData +=
+            jit::SizeOfIonData(script, rtStats->mallocSizeOf_);
+      }
+      CollectScriptSourceStats<granularity>(closure, base->scriptSource());
       break;
     }
 
@@ -457,14 +462,6 @@ static void StatsCellCallback(JSRuntime* rt, void* data, JS::GCCellPtr cellptr,
     case JS::TraceKind::JitCode: {
       zStats->jitCodesGCHeap += thingSize;
       // The code for a script is counted in ExecutableAllocator::sizeOfCode().
-      break;
-    }
-
-    case JS::TraceKind::LazyScript: {
-      LazyScript* lazy = &cellptr.as<LazyScript>();
-      zStats->lazyScriptsGCHeap += thingSize;
-      zStats->lazyScriptsMallocHeap +=
-          lazy->sizeOfExcludingThis(rtStats->mallocSizeOf_);
       break;
     }
 

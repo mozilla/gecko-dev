@@ -105,7 +105,7 @@ var Harness = {
       Services.prefs.setBoolPref(PREF_INSTALL_REQUIRESECUREORIGIN, false);
       Services.prefs.setBoolPref(PREF_LOGGING_ENABLED, true);
       Services.prefs.setBoolPref(
-        "network.cookieSettings.unblocked_for_testing",
+        "network.cookieJarSettings.unblocked_for_testing",
         true
       );
 
@@ -131,7 +131,7 @@ var Harness = {
         Services.prefs.clearUserPref(PREF_LOGGING_ENABLED);
         Services.prefs.clearUserPref(PREF_INSTALL_REQUIRESECUREORIGIN);
         Services.prefs.clearUserPref(
-          "network.cookieSettings.unblocked_for_testing"
+          "network.cookieJarSettings.unblocked_for_testing"
         );
 
         Services.obs.removeObserver(self, "addon-install-started");
@@ -369,22 +369,19 @@ var Harness = {
     if (this.finalContentEvent && !this.waitingForEvent) {
       this.waitingForEvent = true;
       info("Waiting for " + this.finalContentEvent);
-      let mm = this._boundWin.get().gBrowser.selectedBrowser.messageManager;
-      mm.loadFrameScript(
-        `data:,content.addEventListener("${
-          this.finalContentEvent
-        }", () => { sendAsyncMessage("Test:GotNewInstallEvent"); });`,
-        false
-      );
-      let listener = () => {
-        info("Saw " + this.finalContentEvent);
-        mm.removeMessageListener("Test:GotNewInstallEvent", listener);
+      BrowserTestUtils.waitForContentEvent(
+        this._boundWin.get().gBrowser.selectedBrowser,
+        this.finalContentEvent,
+        true,
+        null,
+        true
+      ).then(() => {
+        info("Saw " + this.finalContentEvent + "," + this.waitingForEvent);
         this.waitingForEvent = false;
         if (this.pendingCount == 0) {
           this.endTest();
         }
-      };
-      mm.addMessageListener("Test:GotNewInstallEvent", listener);
+      });
     }
   },
 

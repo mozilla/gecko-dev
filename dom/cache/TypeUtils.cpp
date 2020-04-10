@@ -125,9 +125,7 @@ void TypeUtils::ToCacheRequest(
   }
   if (!schemeValid) {
     if (aSchemeAction == TypeErrorOnInvalidScheme) {
-      NS_ConvertUTF8toUTF16 urlUTF16(url);
-      aRv.ThrowTypeError<MSG_INVALID_URL_SCHEME>(NS_LITERAL_STRING("Request"),
-                                                 urlUTF16);
+      aRv.ThrowTypeError<MSG_INVALID_URL_SCHEME>("Request", url);
       return;
     }
   }
@@ -183,7 +181,7 @@ void TypeUtils::ToCacheResponseWithoutBody(CacheResponse& aOut,
   RefPtr<InternalHeaders> headers = aIn.UnfilteredHeaders();
   MOZ_DIAGNOSTIC_ASSERT(headers);
   if (HasVaryStar(headers)) {
-    aRv.ThrowTypeError(u"Invalid Response object with a 'Vary: *' header.");
+    aRv.ThrowTypeError("Invalid Response object with a 'Vary: *' header.");
     return;
   }
   ToHeadersEntryList(aOut.headers(), headers);

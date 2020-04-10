@@ -1,12 +1,13 @@
 # Please DO NOT add more third party files to this file.
 # They should be added to tools/rewriting/ThirdPartyPaths.txt instead.
-# The remaining third-party paths will be removed in bug 1608799.
 
 # This file should only be used for exclusions where we have:
 # - preprocessed files
 # - generated files that are for some reason checked into source
 # - intentionally invalid files
 # - build directories and other items that we need to ignore
+
+!.eslintrc.js
 
 # Always ignore node_modules.
 **/node_modules/
@@ -48,6 +49,7 @@ browser/extensions/pdfjs/content/web
 browser/components/pocket/content/panels/js/tmpl.js
 
 # Ignore newtab files
+browser/components/newtab/aboutwelcome/content/aboutwelcome.bundle.js
 browser/components/newtab/data/
 browser/components/newtab/logs/
 
@@ -55,9 +57,6 @@ browser/components/newtab/logs/
 browser/locales/
 # Generated data files
 browser/extensions/formautofill/phonenumberutils/PhoneNumberMetaData.jsm
-
-# Soon to be removed (bug 1609815)
-devtools/client/webreplay/
 
 # Ignore devtools debugger files which aren't intended for linting, and also
 # aren't included in any .eslintignore or .prettierignore file.
@@ -161,10 +160,9 @@ modules/libpref/test/unit/*data/
 # Only contains non-standard test files.
 python/
 
-# Remote agent
+# These are (mainly) imported code that we don't want to lint to make imports easier.
 remote/Protocol.jsm
 remote/test/browser/chrome-remote-interface.js
-remote/test/demo.js
 
 # services/ exclusions
 
@@ -178,18 +176,9 @@ services/fxaccounts/FxAccountsPairingChannel.js
 # Servo is imported.
 servo/
 
-# Remote protocol exclusions
+# Test files that we don't want to lint (preprocessed, minified etc)
 testing/marionette/atom.js
-testing/marionette/legacyaction.js
-testing/marionette/harness
-
-# other testing/ exclusions
-# third party modules
-testing/mochitest/tests/Harness_sanity/
-testing/mochitest/tests/SimpleTest/
-# octothorpe used for pref file comment causes parsing error
 testing/mozbase/mozprofile/tests/files/prefs_with_comments.js
-
 testing/talos/talos/scripts/jszip.min.js
 testing/talos/talos/startup_test/sessionrestore/profile/sessionstore.js
 testing/talos/talos/startup_test/sessionrestore/profile-manywindows/sessionstore.js
@@ -198,8 +187,8 @@ testing/talos/talos/tests/devtools/addon/content/pages/
 testing/talos/talos/tests/tp5n/
 testing/talos/talos/fis/tp5n/
 
+# Mainly third-party related code, that shouldn't be linted.
 testing/web-platform/
-testing/xpcshell/moz-http2/
 
 # toolkit/ exclusions
 
@@ -211,6 +200,7 @@ toolkit/components/workerloader/tests/moduleF-syntax-error.js
 
 # External code:
 toolkit/components/reader/Readability.js
+toolkit/components/reader/Readability-readerable.js
 toolkit/components/reader/JSDOMParser.js
 
 # Uses preprocessing

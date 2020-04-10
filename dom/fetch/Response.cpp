@@ -103,18 +103,24 @@ already_AddRefed<Response> Response::Redirect(const GlobalObject& aGlobal,
     if (doc) {
       baseURI = doc->GetBaseURI();
     }
+    // Don't use NS_ConvertUTF16toUTF8 because that doesn't let us handle OOM.
+    nsAutoCString url;
+    if (!AppendUTF16toUTF8(aUrl, url, fallible)) {
+      aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+      return nullptr;
+    }
+
     nsCOMPtr<nsIURI> resolvedURI;
-    nsresult rv =
-        NS_NewURI(getter_AddRefs(resolvedURI), aUrl, nullptr, baseURI);
+    nsresult rv = NS_NewURI(getter_AddRefs(resolvedURI), url, nullptr, baseURI);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      aRv.ThrowTypeError<MSG_INVALID_URL>(aUrl);
+      aRv.ThrowTypeError<MSG_INVALID_URL>(url);
       return nullptr;
     }
 
     nsAutoCString spec;
     rv = resolvedURI->GetSpec(spec);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      aRv.ThrowTypeError<MSG_INVALID_URL>(aUrl);
+      aRv.ThrowTypeError<MSG_INVALID_URL>(url);
       return nullptr;
     }
 
@@ -136,7 +142,7 @@ already_AddRefed<Response> Response::Redirect(const GlobalObject& aGlobal,
 
   if (aStatus != 301 && aStatus != 302 && aStatus != 303 && aStatus != 307 &&
       aStatus != 308) {
-    aRv.ThrowRangeError(u"Invalid redirect status code.");
+    aRv.ThrowRangeError("Invalid redirect status code.");
     return nullptr;
   }
 
@@ -175,7 +181,7 @@ already_AddRefed<Response> Response::Constructor(
   }
 
   if (aInit.mStatus < 200 || aInit.mStatus > 599) {
-    aRv.ThrowRangeError(u"Invalid response status code.");
+    aRv.ThrowRangeError("Invalid response status code.");
     return nullptr;
   }
 
@@ -263,7 +269,7 @@ already_AddRefed<Response> Response::Constructor(
 
   if (!aBody.IsNull()) {
     if (aInit.mStatus == 204 || aInit.mStatus == 205 || aInit.mStatus == 304) {
-      aRv.ThrowTypeError(u"Response body is given with a null body status.");
+      aRv.ThrowTypeError("Response body is given with a null body status.");
       return nullptr;
     }
 

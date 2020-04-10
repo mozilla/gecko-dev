@@ -44,20 +44,13 @@ void DisplayItemCache::PopulateFreeList(const bool aAddAll) {
   }
 }
 
-static bool CanCacheItem(const nsDisplayItem* aItem) {
+static bool CanCacheItem(const nsPaintedDisplayItem* aItem) {
   // Only cache leaf display items that can be reused.
   if (!aItem->CanBeReused()) {
     return false;
   }
 
-  switch (aItem->GetType()) {
-    case DisplayItemType::TYPE_BACKGROUND_COLOR:
-      // case DisplayItemType::TYPE_TEXT:
-      MOZ_ASSERT(!aItem->HasChildren());
-      return true;
-    default:
-      return false;
-  }
+  return aItem->CanBeCached();
 }
 
 void DisplayItemCache::MaybeStartCaching(nsPaintedDisplayItem* aItem,
@@ -89,22 +82,27 @@ void DisplayItemCache::MaybeStartCaching(nsPaintedDisplayItem* aItem,
   MOZ_ASSERT(CanCacheItem(aItem));
   MOZ_ASSERT(mCurrentIndex && CurrentCacheSize() > *mCurrentIndex);
 
-  auto& state = mCachedItemState[*mCurrentIndex];
-  MOZ_ASSERT(!state.mCached);
-  state.mCached = true;
-  MOZ_ASSERT(!state.mUsed);
-  state.mUsed = true;
-  state.mSpaceAndClip = aBuilder.CurrentSpaceAndClipChain();
-
-  Stats().AddCached();
   aBuilder.StartCachedItem(*mCurrentIndex);
 }
 
 void DisplayItemCache::MaybeEndCaching(wr::DisplayListBuilder& aBuilder) {
-  if (IsEnabled() && mCurrentIndex) {
-    aBuilder.EndCachedItem(*mCurrentIndex);
-    mCurrentIndex = Nothing();
+  if (!IsEnabled() || !mCurrentIndex) {
+    return;
   }
+
+  if (aBuilder.EndCachedItem(*mCurrentIndex)) {
+    // Caching of the item succeeded, update the cached item state.
+    auto& state = mCachedItemState[*mCurrentIndex];
+    MOZ_ASSERT(!state.mCached);
+    state.mCached = true;
+    MOZ_ASSERT(!state.mUsed);
+    state.mUsed = true;
+    state.mSpaceAndClip = aBuilder.CurrentSpaceAndClipChain();
+
+    Stats().AddCached();
+  }
+
+  mCurrentIndex = Nothing();
 }
 
 bool DisplayItemCache::ReuseItem(nsPaintedDisplayItem* aItem,

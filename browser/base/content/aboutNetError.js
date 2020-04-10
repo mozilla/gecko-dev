@@ -225,15 +225,20 @@ function initPage() {
       sd.textContent = getDescription();
     }
   }
-  if (showCaptivePortalUI) {
-    initPageCaptivePortal();
-    return;
-  }
+
   if (gIsCertError) {
-    initPageCertError();
-    updateContainerPosition();
+    if (showCaptivePortalUI) {
+      initPageCaptivePortal();
+    } else {
+      initPageCertError();
+      updateContainerPosition();
+    }
+
+    initCertErrorPageActions();
+    setTechnicalDetailsOnCertError();
     return;
   }
+
   addAutofocus("#netErrorButtonContainer > .try-again");
 
   document.body.classList.add("neterror");
@@ -338,11 +343,6 @@ function initPage() {
       span.textContent = document.location.hostname;
     }
   }
-
-  // Dispatch this event only for tests. This should only be sent after we're
-  // done initializing the error page.
-  let event = new CustomEvent("AboutNetErrorLoad", { bubbles: true });
-  document.dispatchEvent(event);
 }
 
 function setupErrorUI() {
@@ -490,6 +490,10 @@ function initPageCertError() {
     document.querySelector(".exceptionDialogButtonContainer").hidden = true;
   }
 
+  setCertErrorDetails();
+}
+
+function initCertErrorPageActions() {
   document
     .getElementById("returnButton")
     .addEventListener("click", onReturnButtonClick);
@@ -505,13 +509,6 @@ function initPageCertError() {
   document
     .getElementById("exceptionDialogButton")
     .addEventListener("click", addCertException);
-
-  setCertErrorDetails();
-  setTechnicalDetailsOnCertError();
-
-  // Dispatch this event only for tests.
-  let event = new CustomEvent("AboutNetErrorLoad", { bubbles: true });
-  document.dispatchEvent(event);
 }
 
 function addCertException() {
@@ -576,7 +573,7 @@ async function getFailedCertificatesAsPEMString() {
   return details;
 }
 
-async function setCertErrorDetails(event) {
+function setCertErrorDetails(event) {
   // Check if the connection is being man-in-the-middled. When the parent
   // detects an intercepted connection, the page may be reloaded with a new
   // error code (MOZILLA_PKIX_ERROR_MITM_DETECTED).
@@ -593,8 +590,6 @@ async function setCertErrorDetails(event) {
     RPMSendAsyncMessage("Browser:PrimeMitm");
   }
 
-  let div = document.getElementById("certificateErrorText");
-  div.textContent = await getFailedCertificatesAsPEMString();
   let learnMoreLink = document.getElementById("learnMoreLink");
   let baseURL = RPMGetFormatURLPref("app.support.baseURL");
   learnMoreLink.setAttribute("href", baseURL + "connection-not-secure");
@@ -846,7 +841,7 @@ async function setCertErrorDetails(event) {
   }
 }
 
-function setTechnicalDetailsOnCertError() {
+async function setTechnicalDetailsOnCertError() {
   let technicalInfo = document.getElementById("badCertTechnicalInfo");
 
   function setL10NLabel(l10nId, args = {}, attrs = {}, rewrite = true) {
@@ -1049,6 +1044,9 @@ function setTechnicalDetailsOnCertError() {
     // to fluent DOM overlays.
     technicalInfo.addEventListener("click", handleErrorCodeClick);
   }
+
+  let div = document.getElementById("certificateErrorText");
+  div.textContent = await getFailedCertificatesAsPEMString();
 }
 
 function handleErrorCodeClick(event) {
@@ -1087,3 +1085,6 @@ for (let button of document.querySelectorAll(".try-again")) {
 // an onload handler. This is because error pages are loaded as
 // LOAD_BACKGROUND, which means that onload handlers will not be executed.
 initPage();
+// Dispatch this event so tests can detect that we finished loading the error page.
+let event = new CustomEvent("AboutNetErrorLoad", { bubbles: true });
+document.dispatchEvent(event);

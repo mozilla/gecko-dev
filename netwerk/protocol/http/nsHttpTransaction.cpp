@@ -198,7 +198,7 @@ void nsHttpTransaction::SetClassOfService(uint32_t cos) {
 
 class ReleaseH2WSTrans final : public Runnable {
  public:
-  explicit ReleaseH2WSTrans(already_AddRefed<SpdyConnectTransaction>&& trans)
+  explicit ReleaseH2WSTrans(RefPtr<SpdyConnectTransaction>&& trans)
       : Runnable("ReleaseH2WSTrans"), mTrans(std::move(trans)) {}
 
   NS_IMETHOD Run() override {
@@ -239,7 +239,7 @@ nsHttpTransaction::~nsHttpTransaction() {
 
   if (mH2WSTransaction) {
     RefPtr<ReleaseH2WSTrans> r =
-        new ReleaseH2WSTrans(mH2WSTransaction.forget());
+        new ReleaseH2WSTrans(std::move(mH2WSTransaction));
     r->Dispatch();
   }
 }
@@ -262,7 +262,7 @@ nsresult nsHttpTransaction::Init(
   MOZ_ASSERT(cinfo);
   MOZ_ASSERT(requestHead);
   MOZ_ASSERT(target);
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(target->IsOnCurrentThread());
 
   mChannelId = channelId;
   mTransactionObserver = std::move(transactionObserver);
@@ -485,7 +485,7 @@ void nsHttpTransaction::SetH2WSConnRefTaken() {
   }
 }
 
-nsHttpResponseHead* nsHttpTransaction::TakeResponseHead() {
+UniquePtr<nsHttpResponseHead> nsHttpTransaction::TakeResponseHead() {
   MOZ_ASSERT(!mResponseHeadTaken, "TakeResponseHead called 2x");
 
   // Lock TakeResponseHead() against main thread
@@ -500,19 +500,17 @@ nsHttpResponseHead* nsHttpTransaction::TakeResponseHead() {
     return nullptr;
   }
 
-  nsHttpResponseHead* head = mResponseHead;
-  mResponseHead = nullptr;
-  return head;
+  return WrapUnique(std::exchange(mResponseHead, nullptr));
 }
 
-nsHttpHeaderArray* nsHttpTransaction::TakeResponseTrailers() {
+UniquePtr<nsHttpHeaderArray> nsHttpTransaction::TakeResponseTrailers() {
   MOZ_ASSERT(!mResponseTrailersTaken, "TakeResponseTrailers called 2x");
 
   // Lock TakeResponseTrailers() against main thread
   MutexAutoLock lock(*nsHttp::GetLock());
 
   mResponseTrailersTaken = true;
-  return mForTakeResponseTrailers.forget();
+  return std::move(mForTakeResponseTrailers);
 }
 
 void nsHttpTransaction::SetProxyConnectFailed() { mProxyConnectFailed = true; }
@@ -733,7 +731,8 @@ nsresult nsHttpTransaction::Status() { return mStatus; }
 uint32_t nsHttpTransaction::Caps() { return mCaps & ~mCapsToClear; }
 
 void nsHttpTransaction::SetDNSWasRefreshed() {
-  MOZ_ASSERT(NS_IsMainThread(), "SetDNSWasRefreshed on main thread only!");
+  MOZ_ASSERT(mConsumerTarget->IsOnCurrentThread(),
+             "SetDNSWasRefreshed on target thread only!");
   mCapsToClear |= NS_HTTP_REFRESH_DNS;
 }
 
@@ -1018,7 +1017,7 @@ int64_t nsHttpTransaction::GetRequestSize() { return mRequestSize; }
 
 already_AddRefed<Http2PushedStreamWrapper>
 nsHttpTransaction::TakePushedStreamById(uint32_t aStreamId) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mConsumerTarget->IsOnCurrentThread());
   MOZ_ASSERT(aStreamId);
 
   auto entry = mIDToStreamMap.Lookup(aStreamId);
@@ -1034,10 +1033,21 @@ nsHttpTransaction::TakePushedStreamById(uint32_t aStreamId) {
 void nsHttpTransaction::OnPush(Http2PushedStreamWrapper* aStream) {
   LOG(("nsHttpTransaction::OnPush %p aStream=%p", this, aStream));
   MOZ_ASSERT(aStream);
-  MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mOnPushCallback);
+  MOZ_ASSERT(mConsumerTarget);
 
   RefPtr<Http2PushedStreamWrapper> stream = aStream;
+  if (!mConsumerTarget->IsOnCurrentThread()) {
+    RefPtr<nsHttpTransaction> self = this;
+    if (NS_FAILED(mConsumerTarget->Dispatch(
+            NS_NewRunnableFunction("nsHttpTransaction::OnPush",
+                                   [self, stream]() { self->OnPush(stream); }),
+            NS_DISPATCH_NORMAL))) {
+      stream->OnPushFailed();
+    }
+    return;
+  }
+
   auto entry = mIDToStreamMap.LookupForAdd(stream->StreamID());
   MOZ_ASSERT(!entry);
   if (!entry) {
@@ -1045,7 +1055,7 @@ void nsHttpTransaction::OnPush(Http2PushedStreamWrapper* aStream) {
   }
 
   if (NS_FAILED(mOnPushCallback(stream->StreamID(), stream->GetResourceUrl(),
-                                stream->GetRequestString()))) {
+                                stream->GetRequestString(), this))) {
     stream->OnPushFailed();
     mIDToStreamMap.Remove(stream->StreamID());
   }
@@ -1729,6 +1739,7 @@ nsresult nsHttpTransaction::HandleContentStart() {
       case 421:
         LOG(("Misdirected Request.\n"));
         gHttpHandler->AltServiceCache()->ClearHostMapping(mConnInfo);
+        mCaps |= NS_HTTP_REFRESH_DNS;
 
         // retry on a new connection - just in case
         if (!mRestartCount) {
@@ -2464,7 +2475,7 @@ void nsHttpTransaction::SetHttpTrailers(nsCString& aTrailers) {
   LOG(("[\n    %s\n]", aTrailers.BeginReading()));
 
   // Introduce a local variable to minimize the critical section.
-  nsAutoPtr<nsHttpHeaderArray> httpTrailers(new nsHttpHeaderArray());
+  UniquePtr<nsHttpHeaderArray> httpTrailers(new nsHttpHeaderArray());
   // Given it's usually null, use double-check locking for performance.
   if (mForTakeResponseTrailers) {
     MutexAutoLock lock(*nsHttp::GetLock());
@@ -2543,12 +2554,6 @@ int32_t nsHttpTransaction::GetProxyConnectResponseCode() {
   return mProxyConnectResponseCode;
 }
 
-void nsHttpTransaction::GetTransactionObserverResult(
-    TransactionObserverResult& aResult) {
-  MutexAutoLock lock(mLock);
-  aResult = mTransactionObserverResult;
-}
-
 void nsHttpTransaction::NotifyTransactionObserver(nsresult reason) {
   MOZ_ASSERT(OnSocketThread());
 
@@ -2581,16 +2586,14 @@ void nsHttpTransaction::NotifyTransactionObserver(nsresult reason) {
     }
   }
 
-  {
-    MutexAutoLock lock(mLock);
-    mTransactionObserverResult.versionOk() = versionOk;
-    mTransactionObserverResult.authOk() = authOk;
-    mTransactionObserverResult.closeReason() = reason;
-  }
+  TransactionObserverResult result;
+  result.versionOk() = versionOk;
+  result.authOk() = authOk;
+  result.closeReason() = reason;
 
   TransactionObserverFunc obs = nullptr;
   std::swap(obs, mTransactionObserver);
-  obs();
+  obs(std::move(result));
 }
 
 }  // namespace net

@@ -103,7 +103,7 @@ body {
 }
 
 .flexible-output-input > .webconsole-output:not(:empty) {
-  min-height: 19px;
+  min-height: var(--console-row-height);
 }
 
 /* webconsole.css | chrome://devtools/skin/webconsole.css */
@@ -121,8 +121,6 @@ body {
 }
 
 .webconsole-app .jsterm-input-container {
-  min-height: 28px;
-  padding-block-start: 2px;
   overflow-y: auto;
   overflow-x: hidden;
   /* We display the open editor button at the end of the input */
@@ -130,37 +128,55 @@ body {
   grid-template-columns: 1fr auto;
   /* This allows us to not define a column for the CodeMirror container */
   grid-auto-flow: column;
-}
-
-/* The input should be full-height when eager evaluation is disabled. */
-.webconsole-app:not(.eager-evaluation) .jsterm-input-container {
-  flex-grow: 1;
-}
-
-/* When eager evaluation is enabled, we want the input + eager evaluation result to be 40px
-   at most, so we lower the minimum height of the input */
-.webconsole-app.eager-evaluation .jsterm-input-container {
-  min-height: 22px;
-  padding-block-start: 0;
-}
-
-.webconsole-app.eager-evaluation .webconsole-input-openEditorButton {
-  padding-block: 0;
-   height: 22px;
+  /* This element has tabindex="-1" and can briefly show a focus outline when
+   * clicked, before we move the focus to CodeMirror. */
+  outline: none;
 }
 
 .webconsole-app:not(.jsterm-editor) .jsterm-input-container {
   direction: ltr;
+  /* Define the border width and padding as variables so that we can keep
+   * border-top-width, padding and min-height in sync. */
+  --jsterm-border-width: 0;
+  --jsterm-padding-top: 0;
+  --jsterm-padding-bottom: 0;
+  min-height: calc(
+    var(--console-row-height) +
+    var(--jsterm-border-width) +
+    var(--jsterm-padding-top) +
+    var(--jsterm-padding-bottom)
+  );
+  padding-top: var(--jsterm-padding-top);
+  padding-bottom: var(--jsterm-padding-bottom);
+  border-top-color: var(--theme-splitter-color);
+  border-top-width: var(--jsterm-border-width);
+  border-top-style: solid;
 }
 
-.webconsole-app .webconsole-output:empty ~ .jsterm-input-container {
-  border-top: none;
+.webconsole-app .webconsole-output:not(:empty) ~ .jsterm-input-container {
+  --jsterm-border-width: 1px;
+}
+
+.webconsole-app:not(.jsterm-editor):not(.eager-evaluation) .jsterm-input-container {
+  /* The input should be full-height when eager evaluation is disabled. */
+  flex-grow: 1;
+  --jsterm-padding-top: var(--console-input-extra-padding);
+  --jsterm-padding-bottom: var(--console-input-extra-padding);
+}
+
+.webconsole-app:not(.jsterm-editor).eager-evaluation .jsterm-input-container {
+  --jsterm-padding-top: var(--console-input-extra-padding);
 }
 
 .webconsole-input-openEditorButton {
-  grid-column: -1 / -2;
-  height: 24px;
+  height: var(--console-row-height);
   margin: 0;
+  padding-block: 0;
+}
+
+.webconsole-input-buttons {
+  grid-column: -1 / -2;
+  display: flex;
 }
 
 :root:dir(rtl) .webconsole-input-openEditorButton {
@@ -285,16 +301,17 @@ body {
   /*
      * The following elements are going to be present in the toolbar:
      *   - The run button
+     *   - The evaluation selector button
      *   - The history nav
      *   - A separator
      *   - The close button
      *
      * +-------------------------------------------+
-     * | ▶︎ Run                          ˄ ˅ 🔍 | ✕ |
+     * | ▶︎ Run  Top↕                    ˄ ˅ 🔍 | ✕ |
      * +-------------------------------------------+
      *
      */
-  grid-template-columns: auto 1fr auto auto auto auto auto;
+  grid-template-columns: auto auto 1fr auto auto auto auto auto;
   height: unset;
 }
 
@@ -306,6 +323,7 @@ body {
   align-items: center;
 }
 
+
 .jsterm-editor .webconsole-editor-toolbar .webconsole-editor-toolbar-executeButton::before {
   content: url("chrome://devtools/skin/images/webconsole/run.svg");
   height: 16px;
@@ -313,6 +331,14 @@ body {
   -moz-context-properties: fill;
   fill: currentColor;
   margin-inline-end: 2px;
+}
+
+.jsterm-editor .webconsole-editor-toolbar .webconsole-evaluation-selector-button {
+  height: 20px;
+  margin-inline-start: 5px;
+  padding-inline: 8px 16px !important;
+  background-position-x: calc(100% - 5px) !important;
+  background-position-y: calc(50% + 1px) !important;
 }
 
 .jsterm-editor .webconsole-editor-toolbar .webconsole-editor-toolbar-history-prevExpressionButton {
@@ -373,6 +399,7 @@ body {
   /* Needed as we might have the onboarding UI displayed */
   display: flex;
   flex-direction: column;
+  background-color: var(--theme-sidebar-background);
 }
 
 .jsterm-editor #webconsole-notificationbox {
@@ -393,15 +420,6 @@ body {
     will still take the whole available space. */
   min-width: 100%;
   width: 0;
-  border-inline-end: 1px solid var(--theme-splitter-color);
-  border-block-start: 1px solid var(--theme-splitter-color);
-  padding-inline-start: 2px;
-  align-items: center;
-  padding-block: 5px;
-}
-
-.jsterm-editor .eager-evaluation-result:empty {
-  display: none;
 }
 
 .jsterm-editor .editor-resizer {

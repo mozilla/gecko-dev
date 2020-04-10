@@ -4,6 +4,8 @@
 
 const SEARCH_REGION_PREF = "browser.search.region";
 const FXA_ENABLED_PREF = "identity.fxaccounts.enabled";
+const DISTRIBUTION_ID_PREF = "distribution.id";
+const DISTRIBUTION_ID_CHINA_REPACK = "MozillaOnline";
 
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
@@ -13,6 +15,7 @@ const { XPCOMUtils } = ChromeUtils.import(
 XPCOMUtils.defineLazyModuleGetters(this, {
   ASRouterPreferences: "resource://activity-stream/lib/ASRouterPreferences.jsm",
   AddonManager: "resource://gre/modules/AddonManager.jsm",
+  ClientEnvironment: "resource://normandy/lib/ClientEnvironment.jsm",
   NewTabUtils: "resource://gre/modules/NewTabUtils.jsm",
   ProfileAge: "resource://gre/modules/ProfileAge.jsm",
   ShellService: "resource:///modules/ShellService.jsm",
@@ -506,10 +509,6 @@ const TargetingGetters = {
   get isWhatsNewPanelEnabled() {
     return isWhatsNewPanelEnabled;
   },
-  get isFxABadgeEnabled() {
-    // Requires cleanup and update of remote messages. See Bug 1601965.
-    return true;
-  },
   get userPrefs() {
     return {
       cfrFeatures: cfrFeaturesUserPref,
@@ -560,6 +559,17 @@ const TargetingGetters = {
   },
   get scoreThreshold() {
     return ASRouterPreferences.personalizedCfrThreshold;
+  },
+  get isChinaRepack() {
+    return (
+      Services.prefs
+        .getDefaultBranch(null)
+        .getCharPref(DISTRIBUTION_ID_PREF, "default") ===
+      DISTRIBUTION_ID_CHINA_REPACK
+    );
+  },
+  get userId() {
+    return ClientEnvironment.userId;
   },
 };
 

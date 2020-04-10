@@ -402,6 +402,7 @@ class XPCJSContext final : public mozilla::CycleCollectedJSContext,
     IDX_CLASS_ID,
     IDX_INTERFACE_ID,
     IDX_INITIALIZER,
+    IDX_PRINT,
     IDX_TOTAL_COUNT  // just a count of the above
   };
 
@@ -585,8 +586,8 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
   JS::Value mStrJSVals[XPCJSContext::IDX_TOTAL_COUNT];
 
   struct Hasher {
-    typedef RefPtr<mozilla::BasePrincipal> Key;
-    typedef Key Lookup;
+    using Key = RefPtr<mozilla::BasePrincipal>;
+    using Lookup = Key;
     static uint32_t hash(const Lookup& l) { return l->GetOriginNoSuffixHash(); }
     static bool match(const Key& k, const Lookup& l) {
       return k->FastEquals(l);
@@ -788,7 +789,6 @@ extern bool XPC_WN_GetterSetter(JSContext* cx, unsigned argc, JS::Value* vp);
 /***************************************************************************/
 // XPCWrappedNativeScope is one-to-one with a JS compartment.
 
-class nsXPCComponentsBase;
 class XPCWrappedNativeScope final
     : public mozilla::LinkedListElement<XPCWrappedNativeScope> {
  public:
@@ -802,7 +802,7 @@ class XPCWrappedNativeScope final
     return mWrappedNativeProtoMap.get();
   }
 
-  nsXPCComponentsBase* GetComponents() const { return mComponents; }
+  nsXPCComponents* GetComponents() const { return mComponents; }
 
   bool AttachComponentsObject(JSContext* aCx);
 
@@ -889,7 +889,7 @@ class XPCWrappedNativeScope final
  private:
   mozilla::UniquePtr<Native2WrappedNativeMap> mWrappedNativeMap;
   mozilla::UniquePtr<ClassInfo2WrappedNativeProtoMap> mWrappedNativeProtoMap;
-  RefPtr<nsXPCComponentsBase> mComponents;
+  RefPtr<nsXPCComponents> mComponents;
   JS::Compartment* mCompartment;
 
   JS::WeakMapPtr<JSObject*, JSObject*> mXrayExpandos;
@@ -972,8 +972,8 @@ class XPCNativeMember final {
   void SetIndexInInterface(uint16_t index) { mIndexInInterface = index; }
 
   /* default ctor - leave random contents */
-  XPCNativeMember() { MOZ_COUNT_CTOR(XPCNativeMember); }
-  ~XPCNativeMember() { MOZ_COUNT_DTOR(XPCNativeMember); }
+  MOZ_COUNTED_DEFAULT_CTOR(XPCNativeMember)
+  MOZ_COUNTED_DTOR(XPCNativeMember)
 
  private:
   bool Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
@@ -1241,7 +1241,7 @@ class XPCWrappedNativeProto final {
 
   // hide ctor
   XPCWrappedNativeProto(XPCWrappedNativeScope* Scope, nsIClassInfo* ClassInfo,
-                        already_AddRefed<XPCNativeSet>&& Set);
+                        RefPtr<XPCNativeSet>&& Set);
 
   bool Init(JSContext* cx, nsIXPCScriptable* scriptable);
 
@@ -1498,13 +1498,12 @@ class XPCWrappedNative final : public nsIXPConnectWrappedNative {
   XPCWrappedNative() = delete;
 
   // This ctor is used if this object will have a proto.
-  XPCWrappedNative(already_AddRefed<nsISupports>&& aIdentity,
+  XPCWrappedNative(nsCOMPtr<nsISupports>&& aIdentity,
                    XPCWrappedNativeProto* aProto);
 
   // This ctor is used if this object will NOT have a proto.
-  XPCWrappedNative(already_AddRefed<nsISupports>&& aIdentity,
-                   XPCWrappedNativeScope* aScope,
-                   already_AddRefed<XPCNativeSet>&& aSet);
+  XPCWrappedNative(nsCOMPtr<nsISupports>&& aIdentity,
+                   XPCWrappedNativeScope* aScope, RefPtr<XPCNativeSet>&& aSet);
 
   virtual ~XPCWrappedNative();
   void Destroy();
@@ -1827,7 +1826,7 @@ class XPCConvert {
                              const void* buf, const nsXPTType& type,
                              const nsID* iid, uint32_t count, nsresult* pErr);
 
-  typedef std::function<void*(uint32_t*)> ArrayAllocFixupLen;
+  using ArrayAllocFixupLen = std::function<void*(uint32_t*)>;
 
   /**
    * Convert a JS::Value into a native array.
@@ -1890,13 +1889,12 @@ class nsXPCException {
 };
 
 /***************************************************************************/
-// 'Components' object implementations. nsXPCComponentsBase has the
-// less-privileged stuff that we're willing to expose to XBL.
+// 'Components' object implementation.
 
-class nsXPCComponentsBase : public nsIXPCComponentsBase {
+class nsXPCComponents final : public nsIXPCComponents {
  public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIXPCCOMPONENTSBASE
+  NS_DECL_NSIXPCCOMPONENTS
 
  public:
   void SystemIsBeingShutDown() { ClearMembers(); }
@@ -1904,32 +1902,15 @@ class nsXPCComponentsBase : public nsIXPCComponentsBase {
   XPCWrappedNativeScope* GetScope() { return mScope; }
 
  protected:
-  virtual ~nsXPCComponentsBase();
+  ~nsXPCComponents();
 
-  explicit nsXPCComponentsBase(XPCWrappedNativeScope* aScope);
-  virtual void ClearMembers();
+  explicit nsXPCComponents(XPCWrappedNativeScope* aScope);
+  void ClearMembers();
 
   XPCWrappedNativeScope* mScope;
 
-  // Unprivileged members from nsIXPCComponentsBase.
   RefPtr<nsXPCComponents_Interfaces> mInterfaces;
   RefPtr<nsXPCComponents_Results> mResults;
-
-  friend class XPCWrappedNativeScope;
-};
-
-class nsXPCComponents : public nsXPCComponentsBase, public nsIXPCComponents {
- public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_FORWARD_NSIXPCCOMPONENTSBASE(nsXPCComponentsBase::)
-  NS_DECL_NSIXPCCOMPONENTS
-
- protected:
-  explicit nsXPCComponents(XPCWrappedNativeScope* aScope);
-  virtual ~nsXPCComponents();
-  virtual void ClearMembers() override;
-
-  // Privileged members added by nsIXPCComponents.
   RefPtr<nsXPCComponents_Classes> mClasses;
   RefPtr<nsXPCComponents_ID> mID;
   RefPtr<nsXPCComponents_Exception> mException;
@@ -2084,11 +2065,11 @@ class TypedAutoMarkingPtr : public AutoMarkingPtr {
   T* mPtr;
 };
 
-typedef TypedAutoMarkingPtr<XPCWrappedNative> AutoMarkingWrappedNativePtr;
-typedef TypedAutoMarkingPtr<XPCWrappedNativeTearOff>
-    AutoMarkingWrappedNativeTearOffPtr;
-typedef TypedAutoMarkingPtr<XPCWrappedNativeProto>
-    AutoMarkingWrappedNativeProtoPtr;
+using AutoMarkingWrappedNativePtr = TypedAutoMarkingPtr<XPCWrappedNative>;
+using AutoMarkingWrappedNativeTearOffPtr =
+    TypedAutoMarkingPtr<XPCWrappedNativeTearOff>;
+using AutoMarkingWrappedNativeProtoPtr =
+    TypedAutoMarkingPtr<XPCWrappedNativeProto>;
 
 /***************************************************************************/
 namespace xpc {
@@ -2237,17 +2218,24 @@ struct GlobalProperties {
   bool CSS : 1;
   bool CSSRule : 1;
   bool Directory : 1;
+  bool Document : 1;
+  bool DOMException : 1;
   bool DOMParser : 1;
+  bool DOMTokenList : 1;
   bool Element : 1;
   bool Event : 1;
   bool File : 1;
   bool FileReader : 1;
   bool FormData : 1;
+  bool Headers : 1;
   bool InspectorUtils : 1;
   bool MessageChannel : 1;
   bool Node : 1;
   bool NodeFilter : 1;
+  bool Performance : 1;
   bool PromiseDebugging : 1;
+  bool Range : 1;
+  bool Selection : 1;
   bool TextDecoder : 1;
   bool TextEncoder : 1;
   bool URL : 1;

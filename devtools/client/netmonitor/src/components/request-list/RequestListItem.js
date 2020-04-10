@@ -20,6 +20,7 @@ const {
 
 // Components
 /* global
+  RequestListColumnInitiator,
   RequestListColumnCause,
   RequestListColumnContentSize,
   RequestListColumnCookies,
@@ -38,7 +39,11 @@ const {
   RequestListColumnUrl,
   RequestListColumnWaterfall
 */
-
+loader.lazyGetter(this, "RequestListColumnInitiator", function() {
+  return createFactory(
+    require("devtools/client/netmonitor/src/components/request-list/RequestListColumnInitiator")
+  );
+});
 loader.lazyGetter(this, "RequestListColumnCause", function() {
   return createFactory(
     require("devtools/client/netmonitor/src/components/request-list/RequestListColumnCause")
@@ -159,8 +164,8 @@ const UPDATED_REQ_PROPS = [
   "index",
   "networkDetailsOpen",
   "isSelected",
+  "isVisible",
   "requestFilterTypes",
-  "waterfallWidth",
 ];
 
 /**
@@ -190,6 +195,11 @@ const COLUMN_COMPONENTS = [
     column: "cause",
     ColumnComponent: RequestListColumnCause,
     props: ["onCauseBadgeMouseDown"],
+  },
+  {
+    column: "initiator",
+    ColumnComponent: RequestListColumnInitiator,
+    props: ["onInitiatorBadgeMouseDown"],
   },
   { column: "type", ColumnComponent: RequestListColumnType },
   {
@@ -243,6 +253,7 @@ class RequestListItem extends Component {
       item: PropTypes.object.isRequired,
       index: PropTypes.number.isRequired,
       isSelected: PropTypes.bool.isRequired,
+      isVisible: PropTypes.bool.isRequired,
       firstRequestStartedMs: PropTypes.number.isRequired,
       fromCache: PropTypes.bool,
       networkDetailsOpen: PropTypes.bool,
@@ -254,13 +265,16 @@ class RequestListItem extends Component {
       onSecurityIconMouseDown: PropTypes.func.isRequired,
       onWaterfallMouseDown: PropTypes.func.isRequired,
       requestFilterTypes: PropTypes.object.isRequired,
-      waterfallWidth: PropTypes.number,
+      intersectionObserver: PropTypes.object,
     };
   }
 
   componentDidMount() {
     if (this.props.isSelected) {
       this.refs.listItem.focus();
+    }
+    if (this.props.intersectionObserver) {
+      this.props.intersectionObserver.observe(this.refs.listItem);
     }
 
     const { connector, item, requestFilterTypes } = this.props;
@@ -305,6 +319,12 @@ class RequestListItem extends Component {
     }
   }
 
+  componentWillUnmount() {
+    if (this.props.intersectionObserver) {
+      this.props.intersectionObserver.unobserve(this.refs.listItem);
+    }
+  }
+
   render() {
     const {
       blocked,
@@ -313,6 +333,7 @@ class RequestListItem extends Component {
       item,
       index,
       isSelected,
+      isVisible,
       firstRequestStartedMs,
       fromCache,
       onDoubleClick,
@@ -337,22 +358,20 @@ class RequestListItem extends Component {
         onDoubleClick,
       },
       ...COLUMN_COMPONENTS.filter(({ column }) => columns[column]).map(
-        ({ column, ColumnComponent, props: columnProps }) =>
-          column &&
-          ColumnComponent({
+        ({ column, ColumnComponent, props: columnProps }) => {
+          return ColumnComponent({
+            key: column,
             item,
-            ...(columnProps || []).reduce(
-              (acc, keyOrObject) => {
-                if (typeof keyOrObject == "string") {
-                  acc[keyOrObject] = this.props[keyOrObject];
-                } else {
-                  Object.assign(acc, keyOrObject);
-                }
-                return acc;
-              },
-              { item }
-            ),
-          })
+            ...(columnProps || []).reduce((acc, keyOrObject) => {
+              if (typeof keyOrObject == "string") {
+                acc[keyOrObject] = this.props[keyOrObject];
+              } else {
+                Object.assign(acc, keyOrObject);
+              }
+              return acc;
+            }, {}),
+          });
+        }
       ),
       ...RESPONSE_HEADERS.filter(header => columns[header]).map(header =>
         RequestListColumnResponseHeader({
@@ -368,6 +387,7 @@ class RequestListItem extends Component {
           firstRequestStartedMs,
           item,
           onWaterfallMouseDown,
+          isVisible,
         })
     );
   }

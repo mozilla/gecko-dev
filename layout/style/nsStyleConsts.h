@@ -389,11 +389,6 @@ enum class StyleFlexWrap : uint8_t {
 #define NS_STYLE_FONT_SIZE_NO_KEYWORD \
   10  // Used by Servo to track the "no keyword" case
 
-// grid-auto-flow keywords
-#define NS_STYLE_GRID_AUTO_FLOW_ROW (1 << 0)
-#define NS_STYLE_GRID_AUTO_FLOW_COLUMN (1 << 1)
-#define NS_STYLE_GRID_AUTO_FLOW_DENSE (1 << 2)
-
 // 'subgrid' keyword in grid-template-{columns,rows}
 #define NS_STYLE_GRID_TEMPLATE_SUBGRID 0
 
@@ -522,20 +517,6 @@ enum class StyleObjectFit : uint8_t {
   None,
   ScaleDown,
 };
-
-// See nsStyleText
-#define NS_STYLE_TEXT_ALIGN_START 0
-#define NS_STYLE_TEXT_ALIGN_LEFT 1
-#define NS_STYLE_TEXT_ALIGN_RIGHT 2
-#define NS_STYLE_TEXT_ALIGN_CENTER 3
-#define NS_STYLE_TEXT_ALIGN_JUSTIFY 4
-#define NS_STYLE_TEXT_ALIGN_CHAR \
-  5  // align based on a certain character, for table cell
-#define NS_STYLE_TEXT_ALIGN_END 6
-#define NS_STYLE_TEXT_ALIGN_AUTO 7
-#define NS_STYLE_TEXT_ALIGN_MOZ_CENTER 8
-#define NS_STYLE_TEXT_ALIGN_MOZ_RIGHT 9
-#define NS_STYLE_TEXT_ALIGN_MOZ_LEFT 10
 
 // See nsStyleText
 #define NS_STYLE_TEXT_DECORATION_STYLE_NONE \
@@ -770,13 +751,14 @@ enum class StyleColorAdjust : uint8_t {
 };
 
 // color-interpolation and color-interpolation-filters
-#define NS_STYLE_COLOR_INTERPOLATION_AUTO 0
-#define NS_STYLE_COLOR_INTERPOLATION_SRGB 1
-#define NS_STYLE_COLOR_INTERPOLATION_LINEARRGB 2
+enum class StyleColorInterpolation : uint8_t {
+  Auto = 0,
+  Srgb = 1,
+  Linearrgb = 2,
+};
 
 // vector-effect
-#define NS_STYLE_VECTOR_EFFECT_NONE 0
-#define NS_STYLE_VECTOR_EFFECT_NON_SCALING_STROKE 1
+enum class StyleVectorEffect : uint8_t { None = 0, NonScalingStroke = 1 };
 
 // 3d Transforms - Backface visibility
 #define NS_STYLE_BACKFACE_VISIBILITY_VISIBLE 1

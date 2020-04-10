@@ -9,7 +9,6 @@ use core::{
 };
 
 pub use core::command::{
-    wgpu_command_encoder_begin_render_pass,
     compute_ffi::*,
     render_ffi::*,
 };
@@ -32,6 +31,10 @@ struct IdentityHub {
     bind_groups: IdentityManager,
     shader_modules: IdentityManager,
     compute_pipelines: IdentityManager,
+    render_pipelines: IdentityManager,
+    textures: IdentityManager,
+    texture_views: IdentityManager,
+    samplers: IdentityManager,
 }
 
 #[derive(Debug, Default)]
@@ -180,6 +183,79 @@ pub extern "C" fn wgpu_client_kill_buffer_id(client: &Client, id: id::BufferId) 
 }
 
 #[no_mangle]
+pub extern "C" fn wgpu_client_make_texture_id(client: &Client, device_id: id::DeviceId) -> id::TextureId {
+    let backend = device_id.backend();
+    client
+        .identities
+        .lock()
+        .select(backend)
+        .textures
+        .alloc(backend)
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_kill_texture_id(
+    client: &Client,
+    id: id::TextureId,
+) {
+    client
+        .identities
+        .lock()
+        .select(id.backend())
+        .textures
+        .free(id)
+}
+
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_make_texture_view_id(client: &Client, device_id: id::DeviceId) -> id::TextureViewId {
+    let backend = device_id.backend();
+    client
+        .identities
+        .lock()
+        .select(backend)
+        .texture_views
+        .alloc(backend)
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_kill_texture_view_id(
+    client: &Client,
+    id: id::TextureViewId,
+) {
+    client
+        .identities
+        .lock()
+        .select(id.backend())
+        .texture_views
+        .free(id)
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_make_sampler_id(client: &Client, device_id: id::DeviceId) -> id::SamplerId {
+    let backend = device_id.backend();
+    client
+        .identities
+        .lock()
+        .select(backend)
+        .samplers
+        .alloc(backend)
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_kill_sampler_id(
+    client: &Client,
+    id: id::SamplerId,
+) {
+    client
+        .identities
+        .lock()
+        .select(id.backend())
+        .samplers
+        .free(id)
+}
+
+#[no_mangle]
 pub extern "C" fn wgpu_client_make_encoder_id(
     client: &Client,
     device_id: id::DeviceId,
@@ -216,6 +292,19 @@ pub unsafe extern "C" fn wgpu_command_encoder_begin_compute_pass(
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_compute_pass_destroy(pass: core::command::RawPass) {
+    let _ = pass.into_vec();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wgpu_command_encoder_begin_render_pass(
+    encoder_id: id::CommandEncoderId,
+    desc: &core::command::RenderPassDescriptor,
+) -> core::command::RawPass {
+    core::command::RawPass::new_render(encoder_id, desc)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wgpu_render_pass_destroy(pass: core::command::RawPass) {
     let _ = pass.into_vec();
 }
 
@@ -351,5 +440,32 @@ pub extern "C" fn wgpu_client_kill_compute_pipeline_id(
         .lock()
         .select(id.backend())
         .compute_pipelines
+        .free(id)
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_make_render_pipeline_id(
+    client: &Client,
+    device_id: id::DeviceId,
+) -> id::RenderPipelineId {
+    let backend = device_id.backend();
+    client
+        .identities
+        .lock()
+        .select(backend)
+        .render_pipelines
+        .alloc(backend)
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_kill_render_pipeline_id(
+    client: &Client,
+    id: id::RenderPipelineId,
+) {
+    client
+        .identities
+        .lock()
+        .select(id.backend())
+        .render_pipelines
         .free(id)
 }

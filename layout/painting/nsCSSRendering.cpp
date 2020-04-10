@@ -702,9 +702,9 @@ ImgDrawResult nsCSSRendering::CreateWebRenderCommandsForBorderWithStyleBorder(
     mozilla::layers::RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder,
     const nsStyleBorder& aStyleBorder) {
+  auto& borderImage = aStyleBorder.mBorderImageSource;
   // First try to create commands for simple borders.
-  nsStyleImageType type = aStyleBorder.mBorderImageSource.GetType();
-  if (type == eStyleImageType_Null) {
+  if (borderImage.IsNone()) {
     CreateWebRenderCommandsForNullBorder(
         aItem, aForFrame, aBorderArea, aBuilder, aResources, aSc, aStyleBorder);
     return ImgDrawResult::SUCCESS;
@@ -712,7 +712,7 @@ ImgDrawResult nsCSSRendering::CreateWebRenderCommandsForBorderWithStyleBorder(
 
   // Next we try image and gradient borders. Gradients are not supported at
   // this very moment.
-  if (type != eStyleImageType_Image) {
+  if (!borderImage.IsImageRequestType()) {
     return ImgDrawResult::NOT_SUPPORTED;
   }
 
@@ -838,14 +838,14 @@ ImgDrawResult nsCSSRendering::PaintBorderWithStyleBorder(
   // passed in ComputedStyle may be different!  Always use |aStyle|!
   const nsStyleDisplay* displayData = aStyle->StyleDisplay();
   if (displayData->HasAppearance()) {
-    nsITheme* theme = aPresContext->GetTheme();
-    if (theme && theme->ThemeSupportsWidget(aPresContext, aForFrame,
-                                            displayData->mAppearance)) {
+    nsITheme* theme = aPresContext->Theme();
+    if (theme->ThemeSupportsWidget(aPresContext, aForFrame,
+                                   displayData->mAppearance)) {
       return ImgDrawResult::SUCCESS;  // Let the theme handle it.
     }
   }
 
-  if (!aStyleBorder.mBorderImageSource.IsEmpty()) {
+  if (!aStyleBorder.mBorderImageSource.IsNone()) {
     ImgDrawResult result = ImgDrawResult::SUCCESS;
 
     uint32_t irFlags = 0;
@@ -873,7 +873,7 @@ ImgDrawResult nsCSSRendering::PaintBorderWithStyleBorder(
   // If we had a border-image, but it wasn't loaded, then we should return
   // ImgDrawResult::NOT_READY; we'll want to try again if we do a paint with
   // sync decoding enabled.
-  if (aStyleBorder.mBorderImageSource.GetType() != eStyleImageType_Null) {
+  if (!aStyleBorder.mBorderImageSource.IsNone()) {
     result = ImgDrawResult::NOT_READY;
   }
 
@@ -910,7 +910,7 @@ Maybe<nsCSSBorderRenderer> nsCSSRendering::CreateBorderRendererWithStyleBorder(
     const nsRect& aDirtyRect, const nsRect& aBorderArea,
     const nsStyleBorder& aStyleBorder, ComputedStyle* aStyle,
     bool* aOutBorderIsEmpty, Sides aSkipSides) {
-  if (aStyleBorder.mBorderImageSource.GetType() != eStyleImageType_Null) {
+  if (!aStyleBorder.mBorderImageSource.IsNone()) {
     return Nothing();
   }
   return CreateNullBorderRendererWithStyleBorder(
@@ -926,9 +926,9 @@ nsCSSRendering::CreateNullBorderRendererWithStyleBorder(
     bool* aOutBorderIsEmpty, Sides aSkipSides) {
   const nsStyleDisplay* displayData = aStyle->StyleDisplay();
   if (displayData->HasAppearance()) {
-    nsITheme* theme = aPresContext->GetTheme();
-    if (theme && theme->ThemeSupportsWidget(aPresContext, aForFrame,
-                                            displayData->mAppearance)) {
+    nsITheme* theme = aPresContext->Theme();
+    if (theme->ThemeSupportsWidget(aPresContext, aForFrame,
+                                   displayData->mAppearance)) {
       return Nothing();
     }
   }
@@ -1020,9 +1020,9 @@ Maybe<nsCSSBorderRenderer> nsCSSRendering::CreateBorderRendererForOutline(
   StyleBorderStyle outlineStyle;
   if (ourOutline->mOutlineStyle.IsAuto()) {
     if (StaticPrefs::layout_css_outline_style_auto_enabled()) {
-      nsITheme* theme = aPresContext->GetTheme();
-      if (theme && theme->ThemeSupportsWidget(aPresContext, aForFrame,
-                                              StyleAppearance::FocusOutline)) {
+      nsITheme* theme = aPresContext->Theme();
+      if (theme->ThemeSupportsWidget(aPresContext, aForFrame,
+                                     StyleAppearance::FocusOutline)) {
         theme->DrawWidgetBackground(aRenderingContext, aForFrame,
                                     StyleAppearance::FocusOutline, innerRect,
                                     aDirtyRect);
@@ -1529,9 +1529,9 @@ void nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
       nsRect nativeRect = aDirtyRect;
       nativeRect.MoveBy(-shadowOffset);
       nativeRect.IntersectRect(frameRect, nativeRect);
-      aPresContext->GetTheme()->DrawWidgetBackground(shadowContext, aForFrame,
-                                                     styleDisplay->mAppearance,
-                                                     aFrameArea, nativeRect);
+      aPresContext->Theme()->DrawWidgetBackground(shadowContext, aForFrame,
+                                                  styleDisplay->mAppearance,
+                                                  aFrameArea, nativeRect);
 
       blurringArea.DoPaint();
       aRenderingContext.Restore();
@@ -1874,22 +1874,22 @@ bool nsCSSRendering::CanBuildWebRenderDisplayItemsForStyleImageLayer(
   // We cannot draw native themed backgrounds
   const nsStyleDisplay* displayData = aFrame->StyleDisplay();
   if (displayData->HasAppearance()) {
-    nsITheme* theme = aPresCtx.GetTheme();
-    if (theme && theme->ThemeSupportsWidget(&aPresCtx, aFrame,
-                                            displayData->mAppearance)) {
+    nsITheme* theme = aPresCtx.Theme();
+    if (theme->ThemeSupportsWidget(&aPresCtx, aFrame,
+                                   displayData->mAppearance)) {
       return false;
     }
   }
 
-  // We only support painting gradients and image for a single style image layer
-  const nsStyleImage* styleImage =
-      &aBackgroundStyle->mImage.mLayers[aLayer].mImage;
-  if (styleImage->GetType() == eStyleImageType_Image) {
-    if (styleImage->GetCropRect()) {
+  // We only support painting gradients and image for a single style image
+  // layer, and we don't support crop-rects.
+  const auto& styleImage = aBackgroundStyle->mImage.mLayers[aLayer].mImage;
+  if (styleImage.IsImageRequestType()) {
+    if (styleImage.IsRect()) {
       return false;
     }
 
-    imgRequestProxy* requestProxy = styleImage->GetImageData();
+    imgRequestProxy* requestProxy = styleImage.GetImageRequest();
     if (!requestProxy) {
       return false;
     }
@@ -1909,7 +1909,7 @@ bool nsCSSRendering::CanBuildWebRenderDisplayItemsForStyleImageLayer(
     return true;
   }
 
-  if (styleImage->GetType() == eStyleImageType_Gradient) {
+  if (styleImage.IsGradient()) {
     return true;
   }
 
@@ -1966,8 +1966,9 @@ static bool IsOpaqueBorderEdge(const nsStyleBorder& aBorder,
   // because we may not even have the image loaded at this point, and
   // even if we did, checking whether the relevant tile is fully
   // opaque would be too much work.
-  if (aBorder.mBorderImageSource.GetType() != eStyleImageType_Null)
+  if (!aBorder.mBorderImageSource.IsNone()) {
     return false;
+  }
 
   StyleColor color = aBorder.BorderColorFor(aSide);
   // We don't know the foreground color here, so if it's being used
@@ -2447,9 +2448,9 @@ ImgDrawResult nsCSSRendering::PaintStyleImageLayerWithSC(
   // XXXzw this ignores aParams.bgClipRect.
   const nsStyleDisplay* displayData = aParams.frame->StyleDisplay();
   if (displayData->HasAppearance()) {
-    nsITheme* theme = aParams.presCtx.GetTheme();
-    if (theme && theme->ThemeSupportsWidget(&aParams.presCtx, aParams.frame,
-                                            displayData->mAppearance)) {
+    nsITheme* theme = aParams.presCtx.Theme();
+    if (theme->ThemeSupportsWidget(&aParams.presCtx, aParams.frame,
+                                   displayData->mAppearance)) {
       nsRect drawing(aParams.borderArea);
       theme->GetWidgetOverflow(aParams.presCtx.DeviceContext(), aParams.frame,
                                displayData->mAppearance, &drawing);
@@ -4009,7 +4010,7 @@ void nsCSSRendering::PaintDecorationLine(
   mozilla::StyleTextDecorationSkipInk skipInk =
       aFrame->StyleText()->mTextDecorationSkipInk;
   bool skipInkEnabled =
-      skipInk == mozilla::StyleTextDecorationSkipInk::Auto &&
+      skipInk != mozilla::StyleTextDecorationSkipInk::None &&
       aParams.decoration != StyleTextDecorationLine::LINE_THROUGH &&
       StaticPrefs::layout_css_text_decoration_skip_ink_enabled();
 
@@ -4074,14 +4075,16 @@ void nsCSSRendering::PaintDecorationLine(
   while (iter.NextRun()) {
     if (iter.GetGlyphRun()->mOrientation ==
             mozilla::gfx::ShapedTextFlags::TEXT_ORIENT_VERTICAL_UPRIGHT ||
-        iter.GetGlyphRun()->mIsCJK) {
+        (iter.GetGlyphRun()->mIsCJK &&
+         skipInk == mozilla::StyleTextDecorationSkipInk::Auto)) {
       // We don't support upright text in vertical modes currently
       // (see https://bugzilla.mozilla.org/show_bug.cgi?id=1572294),
       // but we do need to update textPos so that following runs will be
       // correctly positioned.
       // We also don't apply skip-ink to CJK text runs because many fonts
       // have an underline that looks really bad if this is done
-      // (see https://bugzilla.mozilla.org/show_bug.cgi?id=1573249).
+      // (see https://bugzilla.mozilla.org/show_bug.cgi?id=1573249),
+      // when skip-ink is set to 'auto'.
       textPos.fX += currentGlyphRunAdvance();
       continue;
     }

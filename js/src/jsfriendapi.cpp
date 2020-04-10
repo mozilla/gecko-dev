@@ -337,10 +337,10 @@ JS_FRIEND_API bool js::IsSystemRealm(JS::Realm* realm) {
   return realm->isSystem();
 }
 
-JS_FRIEND_API bool js::IsSystemZone(Zone* zone) { return zone->isSystem; }
+JS_FRIEND_API bool js::IsSystemZone(Zone* zone) { return zone->isSystemZone(); }
 
 JS_FRIEND_API bool js::IsAtomsZone(JS::Zone* zone) {
-  return zone->runtimeFromAnyThread()->isAtomsZone(zone);
+  return zone->isAtomsZone();
 }
 
 JS_FRIEND_API bool js::IsFunctionObject(JSObject* obj) {
@@ -1460,10 +1460,6 @@ bool js::AddMozDateTimeFormatConstructor(JSContext* cx, JS::HandleObject intl) {
 }
 
 bool js::AddListFormatConstructor(JSContext* cx, JS::HandleObject intl) {
-  return IntlNotEnabled(cx);
-}
-
-bool js::AddLocaleConstructor(JSContext* cx, JS::HandleObject intl) {
   return IntlNotEnabled(cx);
 }
 

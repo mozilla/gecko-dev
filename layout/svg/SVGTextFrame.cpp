@@ -49,6 +49,7 @@
 #include "mozilla/dom/Text.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/PatternHelpers.h"
+#include "mozilla/StaticPrefs_svg.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -2690,7 +2691,7 @@ class nsDisplaySVGText final : public nsPaintedDisplayItem {
     MOZ_ASSERT(aFrame, "Must have a frame!");
   }
 #ifdef NS_BUILD_REFCNT_LOGGING
-  virtual ~nsDisplaySVGText() { MOZ_COUNT_DTOR(nsDisplaySVGText); }
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplaySVGText)
 #endif
 
   NS_DISPLAY_DECL_NAME("nsDisplaySVGText", TYPE_SVG_TEXT)
@@ -3573,7 +3574,8 @@ void SVGTextFrame::SelectSubString(nsIContent* aContent, uint32_t charnum,
 
   RefPtr<nsFrameSelection> frameSelection = GetFrameSelection();
 
-  frameSelection->HandleClick(content, charnum, charnum + nchars, false, false,
+  frameSelection->HandleClick(content, charnum, charnum + nchars,
+                              nsFrameSelection::FocusMode::kCollapseToNewPoint,
                               CARET_ASSOCIATE_BEFORE);
 }
 
@@ -4966,15 +4968,21 @@ bool SVGTextFrame::ShouldRenderAsPath(nsTextFrame* aFrame,
   // Fill is a non-solid paint, has a non-default fill-rule or has
   // non-1 opacity.
   if (!(style->mFill.kind.IsNone() ||
-        (style->mFill.kind.IsColor() && style->mFillOpacity == 1))) {
+        (style->mFill.kind.IsColor() && style->mFillOpacity.IsOpacity() &&
+         style->mFillOpacity.AsOpacity() == 1))) {
     return true;
   }
 
   // Text has a stroke.
-  if (style->HasStroke() &&
-      SVGContentUtils::CoordToFloat(static_cast<SVGElement*>(GetContent()),
-                                    style->mStrokeWidth) > 0) {
-    return true;
+  if (style->HasStroke()) {
+    if (style->mStrokeWidth.IsContextValue()) {
+      return true;
+    }
+    if (SVGContentUtils::CoordToFloat(
+            static_cast<SVGElement*>(GetContent()),
+            style->mStrokeWidth.AsLengthPercentage()) > 0) {
+      return true;
+    }
   }
 
   return false;

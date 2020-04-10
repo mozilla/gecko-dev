@@ -197,7 +197,8 @@ bool HttpBackgroundChannelParent::OnTransportAndData(
 
 bool HttpBackgroundChannelParent::OnStopRequest(
     const nsresult& aChannelStatus, const ResourceTimingStructArgs& aTiming,
-    const nsHttpHeaderArray& aResponseTrailers) {
+    const nsHttpHeaderArray& aResponseTrailers,
+    const nsTArray<ConsoleReportCollected>& aConsoleReports) {
   LOG(
       ("HttpBackgroundChannelParent::OnStopRequest [this=%p "
        "status=%" PRIx32 "]\n",
@@ -212,10 +213,11 @@ bool HttpBackgroundChannelParent::OnStopRequest(
     MutexAutoLock lock(mBgThreadMutex);
     nsresult rv = mBackgroundThread->Dispatch(
         NewRunnableMethod<const nsresult, const ResourceTimingStructArgs,
-                          const nsHttpHeaderArray>(
+                          const nsHttpHeaderArray,
+                          const nsTArray<ConsoleReportCollected>>(
             "net::HttpBackgroundChannelParent::OnStopRequest", this,
             &HttpBackgroundChannelParent::OnStopRequest, aChannelStatus,
-            aTiming, aResponseTrailers),
+            aTiming, aResponseTrailers, aConsoleReports),
         NS_DISPATCH_NORMAL);
 
     MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
@@ -227,7 +229,7 @@ bool HttpBackgroundChannelParent::OnStopRequest(
   TimeStamp lastActTabOpt = nsHttp::GetLastActiveTabLoadOptimizationHit();
 
   return SendOnStopRequest(aChannelStatus, aTiming, lastActTabOpt,
-                           aResponseTrailers);
+                           aResponseTrailers, aConsoleReports);
 }
 
 bool HttpBackgroundChannelParent::OnDiversion() {
@@ -275,7 +277,8 @@ void HttpBackgroundChannelParent::ActorDestroy(ActorDestroyReason aWhy) {
       "net::HttpBackgroundChannelParent::ActorDestroy", [self]() {
         MOZ_ASSERT(NS_IsMainThread());
 
-        RefPtr<HttpChannelParent> channelParent = self->mChannelParent.forget();
+        RefPtr<HttpChannelParent> channelParent =
+            std::move(self->mChannelParent);
 
         if (channelParent) {
           channelParent->OnBackgroundParentDestroyed();

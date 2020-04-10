@@ -180,7 +180,7 @@ static TimeDuration SuspendBackgroundVideoDelay() {
 
 class MediaDecoderStateMachine::StateObject {
  public:
-  virtual ~StateObject() {}
+  virtual ~StateObject() = default;
   virtual void Exit() {}  // Exit action.
   virtual void Step() {}  // Perform a 'cycle' of this state object.
   virtual State GetState() const = 0;
@@ -1699,7 +1699,7 @@ class MediaDecoderStateMachine::VideoOnlySeekingState
     // changes.
     mMaster->mOnPlaybackEvent.Notify(MediaPlaybackEvent::VideoOnlySeekBegin);
 
-    return p.forget();
+    return p;
   }
 
   void Exit() override {
@@ -2872,15 +2872,24 @@ void MediaDecoderStateMachine::StopPlayback() {
 void MediaDecoderStateMachine::MaybeStartPlayback() {
   MOZ_ASSERT(OnTaskQueue());
   // Should try to start playback only after decoding first frames.
-  MOZ_ASSERT(mSentFirstFrameLoadedEvent);
+  if (!mSentFirstFrameLoadedEvent) {
+    LOG("MaybeStartPlayback: Not starting playback before loading first frame");
+    return;
+  }
 
   if (IsPlaying()) {
     // Logging this case is really spammy - don't do it.
     return;
   }
 
+  if (mIsMediaSinkSuspended) {
+    LOG("MaybeStartPlayback: Not starting playback when sink is suspended");
+    return;
+  }
+
   if (mPlayState != MediaDecoder::PLAY_STATE_PLAYING) {
-    LOG("Not starting playback [mPlayState=%d]", mPlayState.Ref());
+    LOG("MaybeStartPlayback: Not starting playback [mPlayState=%d]",
+        mPlayState.Ref());
     return;
   }
 
@@ -3368,7 +3377,7 @@ void MediaDecoderStateMachine::EnqueueFirstFrameLoadedEvent() {
   MediaDecoderEventVisibility visibility =
       firstFrameBeenLoaded ? MediaDecoderEventVisibility::Suppressed
                            : MediaDecoderEventVisibility::Observable;
-  mFirstFrameLoadedEvent.Notify(nsAutoPtr<MediaInfo>(new MediaInfo(Info())),
+  mFirstFrameLoadedEvent.Notify(UniquePtr<MediaInfo>(new MediaInfo(Info())),
                                 visibility);
 }
 
@@ -3611,6 +3620,11 @@ RefPtr<GenericPromise> MediaDecoderStateMachine::InvokeSetSink(
 RefPtr<GenericPromise> MediaDecoderStateMachine::SetSink(
     RefPtr<AudioDeviceInfo> aSinkDevice) {
   MOZ_ASSERT(OnTaskQueue());
+  if (mIsMediaSinkSuspended) {
+    // Don't change sink id in a suspended sink.
+    return GenericPromise::CreateAndReject(NS_ERROR_ABORT, __func__);
+  }
+
   if (mOutputCaptured) {
     // Not supported yet.
     return GenericPromise::CreateAndReject(NS_ERROR_ABORT, __func__);
@@ -3641,6 +3655,40 @@ RefPtr<GenericPromise> MediaDecoderStateMachine::SetSink(
     }
   }
   return GenericPromise::CreateAndResolve(wasPlaying, __func__);
+}
+
+void MediaDecoderStateMachine::InvokeSuspendMediaSink() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsresult rv = OwnerThread()->Dispatch(
+      NewRunnableMethod("MediaDecoderStateMachine::SuspendMediaSink", this,
+                        &MediaDecoderStateMachine::SuspendMediaSink));
+  MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
+  Unused << rv;
+}
+
+void MediaDecoderStateMachine::SuspendMediaSink() {
+  MOZ_ASSERT(OnTaskQueue());
+  mIsMediaSinkSuspended = true;
+  StopMediaSink();
+  mMediaSink->Shutdown();
+}
+
+void MediaDecoderStateMachine::InvokeResumeMediaSink() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsresult rv = OwnerThread()->Dispatch(
+      NewRunnableMethod("MediaDecoderStateMachine::ResumeMediaSink", this,
+                        &MediaDecoderStateMachine::ResumeMediaSink));
+  MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
+  Unused << rv;
+}
+
+void MediaDecoderStateMachine::ResumeMediaSink() {
+  MOZ_ASSERT(OnTaskQueue());
+  mMediaSink = CreateMediaSink();
+  mIsMediaSinkSuspended = false;
+  MaybeStartPlayback();
 }
 
 void MediaDecoderStateMachine::UpdateSecondaryVideoContainer() {
@@ -3767,7 +3815,7 @@ RefPtr<GenericPromise> MediaDecoderStateMachine::RequestDebugInfo(
       AbstractThread::TailDispatch);
   MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
   Unused << rv;
-  return p.forget();
+  return p;
 }
 
 class VideoQueueMemoryFunctor : public nsDequeFunctor {

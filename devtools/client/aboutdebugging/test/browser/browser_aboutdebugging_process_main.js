@@ -44,7 +44,11 @@ async function testMainProcessTarget(name, description) {
     name: RUNTIME_APP_NAME,
   });
   usbRuntime.getMainProcess = () => {
-    return { actorID: 0 };
+    return {
+      getTarget: () => {
+        return { actorID: 0 };
+      },
+    };
   };
   mocks.emitUSBUpdate();
 
@@ -53,6 +57,7 @@ async function testMainProcessTarget(name, description) {
   await selectRuntime(RUNTIME_DEVICE_NAME, RUNTIME_APP_NAME, document);
 
   info("Check debug target item of the main process");
+  await waitUntil(() => findDebugTargetByText(name, document));
   const mainProcessItem = findDebugTargetByText(name, document);
   ok(mainProcessItem, "Debug target item of the main process should display");
   ok(

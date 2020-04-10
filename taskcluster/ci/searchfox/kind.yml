@@ -94,6 +94,8 @@ jobs:
                 - linux64-node
                 - linux64-rust-macos
                 - linux64-cbindgen
+                - linux64-lucetc
+                - wasi-sysroot
 
     win64-searchfox/debug:
         description: "Win64 Searchfox Debug (clang-cl)"
@@ -113,7 +115,6 @@ jobs:
         run:
             using: mozharness
             actions: [build]
-            use-caches: false
             options: [append-env-variables-from-configs]
             script: mozharness/scripts/fx_desktop_build.py
             config:
@@ -129,6 +130,7 @@ jobs:
                 - win64-rust
                 - win64-cbindgen
                 - win64-nasm
+                - win64-dump-syms
 
     android-armv7-searchfox/debug:
         description: "Android ARMv7 Debug Searchfox"
@@ -144,7 +146,7 @@ jobs:
                 PERFHERDER_EXTRA_OPTIONS: searchfox
                 RUSTC_BOOTSTRAP: "1"
                 MOZSEARCH_PLATFORM: "android-armv7"
-                GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
+                GRADLE_USER_HOME: "/builds/worker/checkouts/gecko/mobile/android/gradle/dotgradle-offline"
                 TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
         run:
             using: mozharness

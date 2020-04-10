@@ -17,7 +17,7 @@ const ActorRegistry = {
   },
 
   /**
-   * Register a CommonJS module with the debugger server.
+   * Register a CommonJS module with the devtools server.
    * @param id string
    *        The ID of a CommonJS module.
    *        The actor is going to be registered immediately, but loaded only
@@ -94,7 +94,7 @@ const ActorRegistry = {
   },
 
   /**
-   * Unregister a previously-loaded CommonJS module from the debugger server.
+   * Unregister a previously-loaded CommonJS module from the devtools server.
    */
   unregisterModule(id) {
     const mod = gRegisteredModules[id];
@@ -156,6 +156,19 @@ const ActorRegistry = {
       constructor: "PerfActor",
       type: { global: true },
     });
+    /**
+     * Always register parent accessibility actor as a global module. This
+     * actor is responsible for all top level accessibility actor functionality
+     * that relies on the parent process.
+     */
+    this.registerModule(
+      "devtools/server/actors/accessibility/parent-accessibility",
+      {
+        prefix: "parentAccessibility",
+        constructor: "ParentAccessibilityActor",
+        type: { global: true },
+      }
+    );
   },
 
   /**
@@ -327,7 +340,7 @@ const ActorRegistry = {
     }
     delete this.targetScopedActorFactories[name];
     for (const connID of Object.getOwnPropertyNames(this._connections)) {
-      // DebuggerServerConnection in child process don't have rootActor
+      // DevToolsServerConnection in child process don't have rootActor
       if (this._connections[connID].rootActor) {
         this._connections[connID].rootActor.removeActorByName(name);
       }
@@ -399,7 +412,7 @@ const ActorRegistry = {
     }
     delete this.globalActorFactories[name];
     for (const connID of Object.getOwnPropertyNames(this._connections)) {
-      // DebuggerServerConnection in child process don't have rootActor
+      // DevToolsServerConnection in child process don't have rootActor
       if (this._connections[connID].rootActor) {
         this._connections[connID].rootActor.removeActorByName(name);
       }

@@ -381,6 +381,8 @@ RefPtr<UntrustedModulesPromise> UntrustedModulesProcessor::GetAllProcessedData(
 
   result.mElapsed = TimeStamp::Now() - TimeStamp::ProcessCreation();
 
+  result.VerifyConsistency();
+
   return UntrustedModulesPromise::CreateAndResolve(
       Some(UntrustedModulesData(std::move(result))), aSource);
 }
@@ -875,6 +877,12 @@ void UntrustedModulesProcessor::CompleteProcessing(
         return;
       }
 
+      // Trusted modules should have been eliminated by GetModulesTrustInternal
+      // in the browser process
+      if (mProcessedModuleLoads.mIsDiagnosticsAssertEnabled) {
+        MOZ_DIAGNOSTIC_ASSERT(!event.IsTrusted());
+      }
+
       Telemetry::ProcessedStack processedStack =
           stackProcessor.GetStackAndModules(backtrace);
 
@@ -895,6 +903,9 @@ void UntrustedModulesProcessor::CompleteProcessing(
 
   mProcessedModuleLoads.AddNewLoads(modules, std::move(processedEvents),
                                     std::move(processedStacks));
+
+  mProcessedModuleLoads.VerifyConsistency();
+
   if (maybeXulLoadDuration) {
     MOZ_ASSERT(!mProcessedModuleLoads.mXULLoadDurationMS);
     mProcessedModuleLoads.mXULLoadDurationMS = maybeXulLoadDuration;
@@ -983,7 +994,7 @@ RefPtr<ModulesTrustPromise> UntrustedModulesProcessor::GetModulesTrustInternal(
           NS_ERROR_ILLEGAL_DURING_SHUTDOWN, __func__);
     }
 
-    modMap.Put(resolvedNtPath, module.forget());
+    modMap.Put(resolvedNtPath, std::move(module));
   }
 
   return ModulesTrustPromise::CreateAndResolve(std::move(result), __func__);

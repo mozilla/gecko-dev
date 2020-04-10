@@ -147,7 +147,7 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "AnimationPlaybackEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "AnimationTimeline", insecureContext: true, release: false },
+  { name: "AnimationTimeline", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Attr", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -237,13 +237,13 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Crypto", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "CryptoKey", insecureContext: true },
+  { name: "CryptoKey" },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSS", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSS2Properties", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "CSSAnimation", insecureContext: true, release: false },
+  { name: "CSSAnimation", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSConditionRule", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -269,7 +269,7 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSPageRule", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "CSSPseudoElement", insecureContext: true, release: false },
+  { name: "CSSPseudoElement", insecureContext: true, disabled: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSRule", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -283,7 +283,7 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSSupportsRule", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "CSSTransition", insecureContext: true, release: false },
+  { name: "CSSTransition", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CustomElementRegistry", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -313,7 +313,7 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "DocumentFragment", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "DocumentTimeline", insecureContext: true, release: false },
+  { name: "DocumentTimeline", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "DocumentType", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -1050,7 +1050,9 @@ var interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "StyleSheetList", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "SubtleCrypto", insecureContext: true },
+  { name: "SubtleCrypto" },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "SubmitEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "SVGAElement", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!

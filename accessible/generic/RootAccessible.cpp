@@ -144,7 +144,7 @@ const char* const kEventTypes[] = {
     // HTMLInputElement.cpp & radio.js)
     "RadioStateChange", "popupshown", "popuphiding", "DOMMenuInactive",
     "DOMMenuItemActive", "DOMMenuItemInactive", "DOMMenuBarActive",
-    "DOMMenuBarInactive"};
+    "DOMMenuBarInactive", "scroll"};
 
 nsresult RootAccessible::AddEventListeners() {
   // EventTarget interface allows to register event listeners to
@@ -222,13 +222,23 @@ RootAccessible::HandleEvent(Event* aDOMEvent) {
       GetAccService()->GetDocAccessible(origTargetNode->OwnerDoc());
 
   if (document) {
-    // Root accessible exists longer than any of its descendant documents so
-    // that we are guaranteed notification is processed before root accessible
-    // is destroyed.
-    // For shadow DOM, GetOriginalTarget on the Event returns null if we
-    // process the event async, so we must pass the target node as well.
-    document->HandleNotification<RootAccessible, Event, nsINode>(
-        this, &RootAccessible::ProcessDOMEvent, aDOMEvent, origTargetNode);
+    nsAutoString eventType;
+    aDOMEvent->GetType(eventType);
+    if (eventType.EqualsLiteral("scroll")) {
+      // We don't put this in the notification queue for 2 reasons:
+      // 1. We will flood the queue with repetitive events.
+      // 2. Since this doesn't necessarily touch layout, we are not
+      //    guaranteed to have a WillRefresh tick any time soon.
+      document->HandleScroll(origTargetNode);
+    } else {
+      // Root accessible exists longer than any of its descendant documents so
+      // that we are guaranteed notification is processed before root accessible
+      // is destroyed.
+      // For shadow DOM, GetOriginalTarget on the Event returns null if we
+      // process the event async, so we must pass the target node as well.
+      document->HandleNotification<RootAccessible, Event, nsINode>(
+          this, &RootAccessible::ProcessDOMEvent, aDOMEvent, origTargetNode);
+    }
   }
 
   return NS_OK;
@@ -499,6 +509,25 @@ void RootAccessible::HandlePopupShownEvent(Accessible* aAccessible) {
       RefPtr<AccEvent> event =
           new AccStateChangeEvent(combobox, states::EXPANDED, true);
       if (event) nsEventShell::FireEvent(event);
+    }
+
+    // If aria-activedescendant is present, redirect focus.
+    // This is needed for parent process <select> dropdowns, which use a
+    // menulist containing div elements instead of XUL menuitems. XUL menuitems
+    // fire DOMMenuItemActive events from layout instead.
+    MOZ_ASSERT(aAccessible->Elm());
+    if (aAccessible->Elm()->HasAttr(kNameSpaceID_None,
+                                    nsGkAtoms::aria_activedescendant)) {
+      Accessible* activeDescendant = aAccessible->CurrentItem();
+      if (activeDescendant) {
+        FocusMgr()->ActiveItemChanged(activeDescendant, false);
+#ifdef A11Y_LOG
+        if (logging::IsEnabled(logging::eFocus)) {
+          logging::ActiveItemChangeCausedBy("ARIA activedescendant on popup",
+                                            activeDescendant);
+        }
+#endif
+      }
     }
   }
 }

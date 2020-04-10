@@ -84,7 +84,10 @@ MOCHITEST_MANIFESTS += [
     'tests/mochitest/identity/mochitest.ini',
 ]
 
-BROWSER_CHROME_MANIFESTS += ['mediacontrol/tests/browser.ini']
+BROWSER_CHROME_MANIFESTS += [
+    'mediacontrol/tests/browser.ini',
+    'mediasession/test/browser.ini',
+]
 
 if CONFIG['MOZ_WEBRTC']:
     MOCHITEST_MANIFESTS += ['tests/mochitest/mochitest.ini']
@@ -353,6 +356,7 @@ LOCAL_INCLUDES += [
     '/layout/xul',
     '/media/libyuv/libyuv/include',
     '/netwerk/base',
+    '/toolkit/content/tests/browser/',
 ]
 
 if CONFIG['MOZ_WEBRTC']:
@@ -367,6 +371,24 @@ DEFINES['TRACING'] = True
 
 if CONFIG['MOZ_ANDROID_HLS_SUPPORT']:
     DEFINES['MOZ_ANDROID_HLS_SUPPORT'] = True
+
+if CONFIG['COMPILE_ENVIRONMENT']:
+    EXPORTS += [
+        '!audioipc_client_ffi_generated.h',
+        '!audioipc_server_ffi_generated.h',
+    ]
+
+    GeneratedFile('audioipc_client_ffi_generated.h',
+                  script='/build/RunCbindgen.py', entry_point='generate',
+                  inputs=[
+                      '/media/audioipc/client',
+                  ])
+
+    GeneratedFile('audioipc_server_ffi_generated.h',
+                  script='/build/RunCbindgen.py', entry_point='generate',
+                  inputs=[
+                      '/media/audioipc/server',
+                  ])
 
 include('/ipc/chromium/chromium-config.mozbuild')
 

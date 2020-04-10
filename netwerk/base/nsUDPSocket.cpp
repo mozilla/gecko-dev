@@ -12,7 +12,6 @@
 #include "nsSocketTransport2.h"
 #include "nsUDPSocket.h"
 #include "nsProxyRelease.h"
-#include "nsAutoPtr.h"
 #include "nsError.h"
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
@@ -462,7 +461,7 @@ void nsUDPSocket::OnSocketDetached(PRFileDesc* fd) {
     RefPtr<nsIUDPSocketListener> listener = nullptr;
     {
       MutexAutoLock lock(mLock);
-      listener = mListener.forget();
+      listener = ToRefPtr(std::move(mListener));
     }
 
     if (listener) {

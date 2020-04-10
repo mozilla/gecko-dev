@@ -115,7 +115,7 @@
   _(IntrinsicToObject)                             \
   _(IntrinsicIsObject)                             \
   _(IntrinsicIsCrossRealmArrayConstructor)         \
-  _(IntrinsicToIntegerPositiveZero)                \
+  _(IntrinsicToInteger)                            \
   _(IntrinsicToString)                             \
   _(IntrinsicIsConstructing)                       \
   _(IntrinsicSubstringKernel)                      \
@@ -153,12 +153,7 @@
   _(IntrinsicTypedArrayLength)                     \
   _(IntrinsicPossiblyWrappedTypedArrayLength)      \
   _(IntrinsicTypedArrayByteOffset)                 \
-  _(IntrinsicTypedArrayElementShift)               \
-                                                   \
-  _(IntrinsicObjectIsTypedObject)                  \
-  _(IntrinsicObjectIsTypeDescr)                    \
-  _(IntrinsicTypeDescrIsSimpleType)                \
-  _(IntrinsicTypeDescrIsArrayType)
+  _(IntrinsicTypedArrayElementShift)
 
 struct JSJitInfo;
 

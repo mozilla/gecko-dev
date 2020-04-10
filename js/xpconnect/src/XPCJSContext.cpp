@@ -558,12 +558,6 @@ bool XPCJSContext::RecordScriptActivity(bool aActive) {
     return oldValue;
   }
 
-  // Since the slow script dialog never activates if we are recording or
-  // replaying, don't record/replay JS activity notifications.
-  if (recordreplay::IsRecordingOrReplaying()) {
-    return oldValue;
-  }
-
   if (!aActive) {
     ProcessHangMonitor::ClearHang();
   }
@@ -582,12 +576,6 @@ AutoScriptActivity::~AutoScriptActivity() {
 
 // static
 bool XPCJSContext::InterruptCallback(JSContext* cx) {
-  // The slow script dialog never activates if we are recording or replaying,
-  // since the precise timing of the dialog cannot be replayed.
-  if (recordreplay::IsRecordingOrReplaying()) {
-    return true;
-  }
-
   XPCJSContext* self = XPCJSContext::Get();
 
   // Now is a good time to turn on profiling if it's pending.
@@ -789,6 +777,8 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
   bool useBaselineInterp = Preferences::GetBool(JS_OPTIONS_DOT_STR "blinterp");
   bool useBaselineJit = Preferences::GetBool(JS_OPTIONS_DOT_STR "baselinejit");
   bool useIon = Preferences::GetBool(JS_OPTIONS_DOT_STR "ion");
+  bool useJitForTrustedPrincipals =
+      Preferences::GetBool(JS_OPTIONS_DOT_STR "jit_trustedprincipals");
   bool useNativeRegExp =
       Preferences::GetBool(JS_OPTIONS_DOT_STR "native_regexp");
 
@@ -838,6 +828,7 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
       useBaselineInterp = false;
       useBaselineJit = false;
       useIon = false;
+      useJitForTrustedPrincipals = false;
       useNativeRegExp = false;
     }
   }
@@ -847,6 +838,8 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
   JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_BASELINE_ENABLE,
                                 useBaselineJit);
   JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_ION_ENABLE, useIon);
+  JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_JIT_TRUSTEDPRINCIPALS_ENABLE,
+                                useJitForTrustedPrincipals);
   JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_NATIVE_REGEXP_ENABLE,
                                 useNativeRegExp);
 

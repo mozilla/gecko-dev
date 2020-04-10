@@ -100,6 +100,7 @@
 #include "gfxUtils.h"
 #include "nsILoginManagerAuthPrompter.h"
 #include "nsPIWindowRoot.h"
+#include "nsReadableUtils.h"
 #include "nsIAuthPrompt2.h"
 #include "gfxDrawable.h"
 #include "ImageOps.h"
@@ -114,6 +115,7 @@
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "MMPrinter.h"
 #include "SessionStoreFunctions.h"
+#include "mozilla/dom/CrashReport.h"
 
 #ifdef XP_WIN
 #  include "mozilla/plugins/PluginWidgetParent.h"
@@ -149,7 +151,9 @@ LazyLogModule gBrowserFocusLog("BrowserFocus");
   MOZ_LOG(gBrowserFocusLog, mozilla::LogLevel::Debug, args)
 
 /* static */
-StaticAutoPtr<nsTArray<BrowserParent*>> BrowserParent::sFocusStack;
+BrowserParent* BrowserParent::sFocus = nullptr;
+/* static */
+BrowserParent* BrowserParent::sTopLevelWebFocus = nullptr;
 
 // The flags passed by the webProgress notifications are 16 bits shifted
 // from the ones registered by webProgressListeners.
@@ -166,8 +170,8 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(BrowserParent)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMEventListener)
 NS_INTERFACE_MAP_END
-NS_IMPL_CYCLE_COLLECTION(BrowserParent, mFrameElement, mBrowserDOMWindow,
-                         mLoadContext, mFrameLoader, mBrowsingContext)
+NS_IMPL_CYCLE_COLLECTION_WEAK(BrowserParent, mLoadContext, mFrameLoader,
+                              mBrowsingContext)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(BrowserParent)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(BrowserParent)
 
@@ -219,33 +223,20 @@ BrowserParent::BrowserParent(ContentParent* aManager, const TabId& aTabId,
       mHasPresented(false),
       mIsReadyToHandleInputEvents(false),
       mIsMouseEnterIntoWidgetEventSuppressed(false),
-      mIsDestroyingForProcessSwitch(false),
-      mIsActiveRecordReplayTab(false) {
+      mIsDestroyingForProcessSwitch(false) {
   MOZ_ASSERT(aManager);
   // When the input event queue is disabled, we don't need to handle the case
   // that some input events are dispatched before PBrowserConstructor.
   mIsReadyToHandleInputEvents = !ContentParent::IsInputEventQueueSupported();
 }
 
-BrowserParent::~BrowserParent() {}
+BrowserParent::~BrowserParent() = default;
 
 /* static */
-void BrowserParent::InitializeStatics() {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  sFocusStack = new nsTArray<BrowserParent*>();
-  ClearOnShutdown(&sFocusStack);
-}
+void BrowserParent::InitializeStatics() { MOZ_ASSERT(XRE_IsParentProcess()); }
 
 /* static */
-BrowserParent* BrowserParent::GetFocused() {
-  if (!sFocusStack) {
-    return nullptr;
-  }
-  if (sFocusStack->IsEmpty()) {
-    return nullptr;
-  }
-  return sFocusStack->LastElement();
-}
+BrowserParent* BrowserParent::GetFocused() { return sFocus; }
 
 /*static*/
 BrowserParent* BrowserParent::GetFrom(nsFrameLoader* aFrameLoader) {
@@ -628,7 +619,7 @@ void BrowserParent::RemoveWindowListeners() {
 }
 
 void BrowserParent::DestroyInternal() {
-  PopFocus(this);
+  UnsetTopLevelWebFocus(this);
 
   RemoveWindowListeners();
 
@@ -654,8 +645,6 @@ void BrowserParent::DestroyInternal() {
         ->ParentDestroy();
   }
 #endif
-
-  SetIsActiveRecordReplayTab(false);
 }
 
 void BrowserParent::Destroy() {
@@ -703,7 +692,33 @@ void BrowserParent::ActorDestroy(ActorDestroyReason why) {
 
   // Even though BrowserParent::Destroy calls this, we need to do it here too in
   // case of a crash.
-  BrowserParent::PopFocus(this);
+  BrowserParent::UnsetTopLevelWebFocus(this);
+
+  if (why == AbnormalShutdown) {
+    // dom_reporting_header must also be enabled for the report to be sent.
+    if (StaticPrefs::dom_reporting_crash_enabled()) {
+      nsCOMPtr<nsIPrincipal> principal = GetContentPrincipal();
+
+      if (principal) {
+        nsAutoCString crash_reason;
+        CrashReporter::GetAnnotation(OtherPid(),
+                                     CrashReporter::Annotation::MozCrashReason,
+                                     crash_reason);
+        // FIXME(arenevier): Find a less fragile way to identify that a crash
+        // was caused by OOM
+        bool is_oom = false;
+        if (crash_reason == "OOM" || crash_reason == "OOM!" ||
+            StringBeginsWith(crash_reason,
+                             NS_LITERAL_CSTRING("[unhandlable oom]")) ||
+            StringBeginsWith(crash_reason,
+                             NS_LITERAL_CSTRING("Unhandlable OOM"))) {
+          is_oom = true;
+        }
+
+        CrashReport::Deliver(principal, is_oom);
+      }
+    }
+  }
 
   // Prevent executing ContentParent::NotifyTabDestroying in
   // BrowserParent::Destroy() called by frameLoader->DestroyComplete() below
@@ -920,9 +935,15 @@ void BrowserParent::InitRendering() {
   Unused << SendInitRendering(textureFactoryIdentifier, layersId,
                               mRemoteLayerTreeOwner.GetCompositorOptions(),
                               mRemoteLayerTreeOwner.IsLayersConnected());
+
+  RefPtr<nsIWidget> widget = GetTopLevelWidget();
+  if (widget) {
+    ScreenIntMargin safeAreaInsets = widget->GetSafeAreaInsets();
+    Unused << SendSafeAreaInsetsChanged(safeAreaInsets);
+  }
+
 #if defined(MOZ_WIDGET_ANDROID)
   if (XRE_IsParentProcess()) {
-    RefPtr<nsIWidget> widget = GetTopLevelWidget();
     MOZ_ASSERT(widget);
 
     Unused << SendDynamicToolbarMaxHeightChanged(
@@ -1147,7 +1168,7 @@ void BrowserParent::HandleAccessKey(const WidgetKeyboardEvent& aEvent,
 void BrowserParent::Activate() {
   LOGBROWSERFOCUS(("Activate %p", this));
   if (!mIsDestroyed) {
-    PushFocus(this);  // Intentionally inside "if"
+    SetTopLevelWebFocus(this);  // Intentionally inside "if"
     Unused << Manager()->SendActivate(this);
   }
 }
@@ -1155,7 +1176,7 @@ void BrowserParent::Activate() {
 void BrowserParent::Deactivate(bool aWindowLowering) {
   LOGBROWSERFOCUS(("Deactivate %p", this));
   if (!aWindowLowering) {
-    PopFocus(this);  // Intentionally outside the next "if"
+    UnsetTopLevelWebFocus(this);  // Intentionally outside the next "if"
   }
   if (!mIsDestroyed) {
     Unused << Manager()->SendDeactivate(this);
@@ -1328,6 +1349,13 @@ IPCResult BrowserParent::RecvIndexedDBPermissionRequest(
 IPCResult BrowserParent::RecvNewWindowGlobal(
     ManagedEndpoint<PWindowGlobalParent>&& aEndpoint,
     const WindowGlobalInit& aInit) {
+  if (!aInit.browsingContext().GetMaybeDiscarded()) {
+    return IPC_FAIL(this, "Cannot create for missing BrowsingContext");
+  }
+  if (!aInit.principal()) {
+    return IPC_FAIL(this, "Cannot create without valid principal");
+  }
+
   // Construct our new WindowGlobalParent, bind, and initialize it.
   auto wgp = MakeRefPtr<WindowGlobalParent>(aInit, /* inproc */ false);
 
@@ -1667,7 +1695,7 @@ class SynthesizedEventObserver : public nsIObserver {
   }
 
  private:
-  virtual ~SynthesizedEventObserver() {}
+  virtual ~SynthesizedEventObserver() = default;
 
   RefPtr<BrowserParent> mBrowserParent;
   uint64_t mObserverId;
@@ -2665,7 +2693,7 @@ mozilla::ipc::IPCResult BrowserParent::RecvNavigationFinished() {
 
 mozilla::ipc::IPCResult BrowserParent::RecvNotifyContentBlockingEvent(
     const uint32_t& aEvent, const RequestData& aRequestData,
-    const bool aBlocked, nsIURI* aHintURI,
+    const bool aBlocked, const nsACString& aTrackingOrigin,
     nsTArray<nsCString>&& aTrackingFullHashes,
     const Maybe<mozilla::AntiTrackingCommon::StorageAccessGrantedReason>&
         aReason) {
@@ -2693,7 +2721,7 @@ mozilla::ipc::IPCResult BrowserParent::RecvNotifyContentBlockingEvent(
       aRequestData.requestURI(), aRequestData.originalRequestURI(),
       aRequestData.matchedList(), aRequestData.elapsedLoadTimeMS());
 
-  wgp->NotifyContentBlockingEvent(aEvent, request, aBlocked, aHintURI,
+  wgp->NotifyContentBlockingEvent(aEvent, request, aBlocked, aTrackingOrigin,
                                   aTrackingFullHashes, aReason);
 
   return IPC_OK();
@@ -2923,88 +2951,95 @@ bool BrowserParent::SendPasteTransferable(const IPCDataTransfer& aDataTransfer,
 }
 
 /* static */
-void BrowserParent::PushFocus(BrowserParent* aBrowserParent) {
-  if (!sFocusStack) {
-    MOZ_ASSERT_UNREACHABLE("PushFocus when not initialized");
-    return;
-  }
-  if (!aBrowserParent->GetBrowserBridgeParent()) {
-    // top-level Web content
-    // When a new native window is created, we spin a nested event loop.
-    // As a result, unlike when raising an existing window, we get
-    // PushFocus for content in the new window before we get the PopFocus
-    // for content in the old one. Hence, if the stack isn't empty when
-    // pushing top-level Web content, first pop everything off the stack.
-    PopFocusAll();
-    MOZ_ASSERT(sFocusStack->IsEmpty());
-  } else {
-    // out-of-process iframe
-    // Considering that we can get top-level pushes out of order, let's
-    // ignore trailing out-of-process iframe pushes for the previous top-level
-    // Web content.
-    if (sFocusStack->IsEmpty()) {
-      LOGBROWSERFOCUS(
-          ("PushFocus for out-of-process iframe ignored with empty stack %p",
-           aBrowserParent));
-      return;
-    }
-    nsCOMPtr<nsIWidget> webRootWidget = sFocusStack->ElementAt(0)->GetWidget();
-    nsCOMPtr<nsIWidget> iframeWigdet = aBrowserParent->GetWidget();
-    if (webRootWidget != iframeWigdet) {
-      LOGBROWSERFOCUS(
-          ("PushFocus for out-of-process iframe ignored with mismatching "
-           "top-level content %p",
-           aBrowserParent));
-      return;
-    }
-  }
-  if (sFocusStack->Contains(aBrowserParent)) {
-    MOZ_ASSERT_UNREACHABLE(
-        "Trying to push a BrowserParent that is already on the stack");
-    return;
-  }
+void BrowserParent::SetTopLevelWebFocus(BrowserParent* aBrowserParent) {
   BrowserParent* old = GetFocused();
-  sFocusStack->AppendElement(aBrowserParent);
-  MOZ_ASSERT(GetFocused() == aBrowserParent);
-  LOGBROWSERFOCUS(("PushFocus changed focus to %p", aBrowserParent));
-  IMEStateManager::OnFocusMovedBetweenBrowsers(old, aBrowserParent);
-}
-
-/* static */
-void BrowserParent::PopFocus(BrowserParent* aBrowserParent) {
-  if (!sFocusStack) {
-    MOZ_ASSERT_UNREACHABLE("PopFocus when not initialized");
-    return;
-  }
-  // When focus is in an out-of-process iframe and the whole window
-  // or tab loses focus, we first receive a pop for the top-level Web
-  // content process and only then for its out-of-process iframes.
-  // Hence, we do all the popping up front and then ignore the
-  // pop requests for the out-of-process iframes that we already
-  // popped.
-  auto pos = sFocusStack->LastIndexOf(aBrowserParent);
-  if (pos == nsTArray<BrowserParent*>::NoIndex) {
-    LOGBROWSERFOCUS(("PopFocus not on stack %p", aBrowserParent));
-    return;
-  }
-  auto len = sFocusStack->Length();
-  auto itemsToPop = len - pos;
-  LOGBROWSERFOCUS(("PopFocus pops %zu items %p", itemsToPop, aBrowserParent));
-  while (pos < sFocusStack->Length()) {
-    BrowserParent* popped = sFocusStack->PopLastElement();
-    BrowserParent* focused = GetFocused();
-    LOGBROWSERFOCUS(("PopFocus changed focus to %p", focused));
-    IMEStateManager::OnFocusMovedBetweenBrowsers(popped, focused);
+  if (aBrowserParent && !aBrowserParent->GetBrowserBridgeParent()) {
+    // top-level Web content
+    sTopLevelWebFocus = aBrowserParent;
+    BrowserParent* bp = UpdateFocus();
+    if (old != bp) {
+      LOGBROWSERFOCUS(
+          ("SetTopLevelWebFocus updated focus; old: %p, new: %p", old, bp));
+      IMEStateManager::OnFocusMovedBetweenBrowsers(old, bp);
+    }
   }
 }
 
 /* static */
-void BrowserParent::PopFocusAll() {
-  if (!sFocusStack->IsEmpty()) {
-    LOGBROWSERFOCUS(("PopFocusAll pops items"));
-    PopFocus(sFocusStack->ElementAt(0));
-  } else {
-    LOGBROWSERFOCUS(("PopFocusAll does nothing"));
+void BrowserParent::UnsetTopLevelWebFocus(BrowserParent* aBrowserParent) {
+  BrowserParent* old = GetFocused();
+  if (sTopLevelWebFocus == aBrowserParent) {
+    // top-level Web content
+    sTopLevelWebFocus = nullptr;
+    sFocus = nullptr;
+    if (old) {
+      LOGBROWSERFOCUS(
+          ("UnsetTopLevelWebFocus moved focus to chrome; old: %p", old));
+      IMEStateManager::OnFocusMovedBetweenBrowsers(old, nullptr);
+    }
+  }
+}
+
+/* static */
+void BrowserParent::UpdateFocusFromBrowsingContext() {
+  BrowserParent* old = GetFocused();
+  BrowserParent* bp = UpdateFocus();
+  if (old != bp) {
+    LOGBROWSERFOCUS(
+        ("UpdateFocusFromBrowsingContext updated focus; old: %p, new: %p", old,
+         bp));
+    IMEStateManager::OnFocusMovedBetweenBrowsers(old, bp);
+  }
+}
+
+/* static */
+BrowserParent* BrowserParent::UpdateFocus() {
+  if (!sTopLevelWebFocus) {
+    sFocus = nullptr;
+    return nullptr;
+  }
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (fm) {
+    BrowsingContext* bc = fm->GetFocusedBrowsingContextInChrome();
+    if (bc) {
+      BrowsingContext* top = bc->Top();
+      MOZ_ASSERT(top, "Should always have a top BrowsingContext.");
+      CanonicalBrowsingContext* canonicalTop = top->Canonical();
+      MOZ_ASSERT(canonicalTop,
+                 "Casting to canonical should always be possible in the parent "
+                 "process (top case).");
+      WindowGlobalParent* globalTop = canonicalTop->GetCurrentWindowGlobal();
+      if (globalTop) {
+        RefPtr<BrowserParent> globalTopParent = globalTop->GetBrowserParent();
+        if (sTopLevelWebFocus == globalTopParent) {
+          CanonicalBrowsingContext* canonical = bc->Canonical();
+          MOZ_ASSERT(
+              canonical,
+              "Casting to canonical should always be possible in the parent "
+              "process.");
+          WindowGlobalParent* global = canonical->GetCurrentWindowGlobal();
+          if (global) {
+            RefPtr<BrowserParent> parent = global->GetBrowserParent();
+            sFocus = parent;
+            return sFocus;
+          }
+          LOGBROWSERFOCUS(
+              ("Focused BrowsingContext did not have WindowGlobalParent."));
+        }
+      } else {
+        LOGBROWSERFOCUS(
+            ("Top-level BrowsingContext did not have WindowGlobalParent."));
+      }
+    }
+  }
+  sFocus = sTopLevelWebFocus;
+  return sFocus;
+}
+
+/* static */
+void BrowserParent::UnsetTopLevelWebFocusAll() {
+  if (sTopLevelWebFocus) {
+    UnsetTopLevelWebFocus(sTopLevelWebFocus);
   }
 }
 
@@ -3311,11 +3346,6 @@ void BrowserParent::SetDocShellIsActive(bool isActive) {
     }
   }
 #endif
-
-  // Keep track of how many active recording/replaying tabs there are.
-  if (Manager()->IsRecordingOrReplaying()) {
-    SetIsActiveRecordReplayTab(isActive);
-  }
 }
 
 bool BrowserParent::GetHasPresented() { return mHasPresented; }
@@ -3895,16 +3925,6 @@ void BrowserParent::SetBrowserHost(BrowserHost* aBrowser) {
   MOZ_ASSERT(!aBrowser ||
              (!mBrowserBridgeParent && !mBrowserHost && !mFrameElement));
   mBrowserHost = aBrowser;
-}
-
-/* static */
-size_t BrowserParent::gNumActiveRecordReplayTabs;
-
-void BrowserParent::SetIsActiveRecordReplayTab(bool aIsActive) {
-  if (aIsActive != mIsActiveRecordReplayTab) {
-    gNumActiveRecordReplayTabs += aIsActive ? 1 : -1;
-    mIsActiveRecordReplayTab = aIsActive;
-  }
 }
 
 mozilla::ipc::IPCResult BrowserParent::RecvSetSystemFont(

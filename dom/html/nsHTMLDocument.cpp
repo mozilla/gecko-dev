@@ -133,7 +133,7 @@ nsHTMLDocument::nsHTMLDocument()
   mCompatMode = eCompatibility_NavQuirks;
 }
 
-nsHTMLDocument::~nsHTMLDocument() {}
+nsHTMLDocument::~nsHTMLDocument() = default;
 
 JSObject* nsHTMLDocument::WrapNode(JSContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
@@ -525,7 +525,7 @@ nsresult nsHTMLDocument::StartDocumentLoad(const char* aCommand,
     docShell->GetContentViewer(getter_AddRefs(cv));
   }
   if (!cv) {
-    cv = parentContentViewer.forget();
+    cv = std::move(parentContentViewer);
   }
 
   nsAutoCString urlSpec;

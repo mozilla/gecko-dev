@@ -97,22 +97,21 @@
 #  include "mozilla/layers/AndroidDynamicToolbarAnimator.h"
 #endif  // defined(MOZ_WIDGET_ANDROID)
 
-#define ENABLE_APZC_LOGGING 0
-// #define ENABLE_APZC_LOGGING 1
+static mozilla::LazyLogModule sApzCtlLog("apz.controller");
+#define APZC_LOG(...) MOZ_LOG(sApzCtlLog, LogLevel::Debug, (__VA_ARGS__))
+#define APZC_LOGV(...) MOZ_LOG(sApzCtlLog, LogLevel::Verbose, (__VA_ARGS__))
 
-#if ENABLE_APZC_LOGGING
-#  define APZC_LOG(...) printf_stderr("APZC: " __VA_ARGS__)
-#  define APZC_LOG_FM(fm, prefix, ...)                  \
-    {                                                   \
-      std::stringstream ss;                             \
-      ss << nsPrintfCString(prefix, __VA_ARGS__).get(); \
-      AppendToString(ss, fm, ":", "", true);            \
-      APZC_LOG("%s\n", ss.str().c_str());               \
-    }
-#else
-#  define APZC_LOG(...)
-#  define APZC_LOG_FM(fm, prefix, ...)
-#endif
+#define APZC_LOG_FM_COMMON(fm, prefix, level, ...)          \
+  if (MOZ_LOG_TEST(sApzCtlLog, level)) {                    \
+    std::stringstream ss;                                   \
+    ss << nsPrintfCString(prefix, __VA_ARGS__).get();       \
+    AppendToString(ss, fm, ":", "", true);                  \
+    MOZ_LOG(sApzCtlLog, level, ("%s\n", ss.str().c_str())); \
+  }
+#define APZC_LOG_FM(fm, prefix, ...) \
+  APZC_LOG_FM_COMMON(fm, prefix, LogLevel::Debug, __VA_ARGS__)
+#define APZC_LOGV_FM(fm, prefix, ...) \
+  APZC_LOG_FM_COMMON(fm, prefix, LogLevel::Verbose, __VA_ARGS__)
 
 namespace mozilla {
 namespace layers {
@@ -1502,8 +1501,7 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(
     case PANNING_LOCKED_Y:
     case PAN_MOMENTUM: {
       MOZ_ASSERT(GetCurrentTouchBlock());
-      mX.EndTouch(aEvent.mTime);
-      mY.EndTouch(aEvent.mTime);
+      EndTouch(aEvent.mTime);
       return HandleEndOfPan();
     }
     case PINCHING:
@@ -1799,8 +1797,7 @@ nsEventStatus AsyncPanZoomController::OnScaleEnd(
       ScrollSnap();
     } else {
       // when zoom is not allowed
-      mX.EndTouch(aEvent.mTime);
-      mY.EndTouch(aEvent.mTime);
+      EndTouch(aEvent.mTime);
       if (stateWasPinching) {
         // still pinching
         if (HasReadyTouchBlock()) {
@@ -2650,8 +2647,7 @@ nsEventStatus AsyncPanZoomController::OnPanEnd(const PanGestureInput& aEvent) {
   // Call into OnPan in order to process any delta included in this event.
   OnPan(aEvent, true);
 
-  mX.EndTouch(aEvent.mTime);
-  mY.EndTouch(aEvent.mTime);
+  EndTouch(aEvent.mTime);
 
   // Use HandleEndOfPan for fling on platforms that don't
   // emit momentum events (Gtk).
@@ -2787,6 +2783,7 @@ nsEventStatus AsyncPanZoomController::GenerateSingleTap(
       // the corresponding touch-up. To avoid that we schedule the singletap
       // message to run on the next spin of the event loop. See bug 965381 for
       // the issue this was causing.
+      APZC_LOG("posting runnable for HandleTap from GenerateSingleTap");
       RefPtr<Runnable> runnable =
           NewRunnableMethod<TapType, LayoutDevicePoint, mozilla::Modifiers,
                             ScrollableLayerGuid, uint64_t>(
@@ -3540,10 +3537,16 @@ void AsyncPanZoomController::RecordScrollPayload(const TimeStamp& aTimeStamp) {
 }
 
 void AsyncPanZoomController::StartTouch(const ParentLayerPoint& aPoint,
-                                        uint32_t aTime) {
+                                        uint32_t aTimestampMs) {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
-  mX.StartTouch(aPoint.x, aTime);
-  mY.StartTouch(aPoint.y, aTime);
+  mX.StartTouch(aPoint.x, aTimestampMs);
+  mY.StartTouch(aPoint.y, aTimestampMs);
+}
+
+void AsyncPanZoomController::EndTouch(uint32_t aTimestampMs) {
+  RecursiveMutexAutoLock lock(mRecursiveMutex);
+  mX.EndTouch(aTimestampMs);
+  mY.EndTouch(aTimestampMs);
 }
 
 void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
@@ -3832,7 +3835,7 @@ const ScreenMargin AsyncPanZoomController::CalculatePendingDisplayPort(
   float paintFactor = kDefaultEstimatedPaintDurationMs;
   displayPort.MoveBy(velocity * paintFactor * StaticPrefs::apz_velocity_bias());
 
-  APZC_LOG_FM(
+  APZC_LOGV_FM(
       aFrameMetrics,
       "Calculated displayport as %s from velocity %s paint time %f metrics",
       Stringify(displayPort).c_str(), ToString(aVelocity).c_str(), paintFactor);
@@ -3987,7 +3990,7 @@ void AsyncPanZoomController::RequestContentRepaint(
     return;
   }
 
-  APZC_LOG_FM(aFrameMetrics, "%p requesting content repaint", this);
+  APZC_LOGV_FM(aFrameMetrics, "%p requesting content repaint", this);
   {  // scope lock
     MutexAutoLock lock(mCheckerboardEventLock);
     if (mCheckerboardEvent && mCheckerboardEvent->IsRecordingTrace()) {
@@ -4114,7 +4117,7 @@ bool AsyncPanZoomController::AdvanceAnimations(const TimeStamp& aSampleTime) {
   // since the tasks are allowed to call APZCTreeManager methods which can grab
   // the tree lock.
   for (uint32_t i = 0; i < deferredTasks.Length(); ++i) {
-    APZThreadUtils::RunOnControllerThread(deferredTasks[i].forget());
+    APZThreadUtils::RunOnControllerThread(std::move(deferredTasks[i]));
   }
 
   // If any of the deferred tasks starts a new animation, it will request a
@@ -4128,9 +4131,6 @@ CSSRect AsyncPanZoomController::GetCurrentAsyncLayoutViewport(
   AutoApplyAsyncTestAttributes testAttributeApplier(this);
   MOZ_ASSERT(Metrics().IsRootContent(),
              "Only the root content APZC has a layout viewport");
-  if (aMode == eForCompositing && mScrollMetadata.IsApzForceDisabled()) {
-    return mLastContentPaintMetrics.GetLayoutViewport();
-  }
   return GetEffectiveLayoutViewport(aMode);
 }
 
@@ -4138,11 +4138,6 @@ ParentLayerPoint AsyncPanZoomController::GetCurrentAsyncScrollOffset(
     AsyncTransformConsumer aMode) const {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
   AutoApplyAsyncTestAttributes testAttributeApplier(this);
-
-  if (aMode == eForCompositing && mScrollMetadata.IsApzForceDisabled()) {
-    return mLastContentPaintMetrics.GetScrollOffset() *
-           mLastContentPaintMetrics.GetZoom();
-  }
 
   return GetEffectiveScrollOffset(aMode) * GetEffectiveZoom(aMode);
 }
@@ -4152,10 +4147,6 @@ CSSPoint AsyncPanZoomController::GetCurrentAsyncScrollOffsetInCssPixels(
   RecursiveMutexAutoLock lock(mRecursiveMutex);
   AutoApplyAsyncTestAttributes testAttributeApplier(this);
 
-  if (aMode == eForCompositing && mScrollMetadata.IsApzForceDisabled()) {
-    return mLastContentPaintMetrics.GetScrollOffset();
-  }
-
   return GetEffectiveScrollOffset(aMode);
 }
 
@@ -4163,10 +4154,6 @@ AsyncTransform AsyncPanZoomController::GetCurrentAsyncTransform(
     AsyncTransformConsumer aMode, AsyncTransformComponents aComponents) const {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
   AutoApplyAsyncTestAttributes testAttributeApplier(this);
-
-  if (aMode == eForCompositing && mScrollMetadata.IsApzForceDisabled()) {
-    return AsyncTransform();
-  }
 
   CSSToParentLayerScale2D effectiveZoom;
   if (aComponents.contains(AsyncTransformComponent::eVisual)) {
@@ -4181,18 +4168,17 @@ AsyncTransform AsyncPanZoomController::GetCurrentAsyncTransform(
 
   ParentLayerPoint translation;
   if (aComponents.contains(AsyncTransformComponent::eVisual)) {
-    CSSPoint lastPaintVisualOffset;
+    // There is no "lastPaintVisualOffset" to subtract here; the visual offset
+    // is entirely async.
     if (mLastContentPaintMetrics.IsScrollable()) {
-      lastPaintVisualOffset =
-          mLastContentPaintMetrics.GetScrollOffset() -
-          mLastContentPaintMetrics.GetLayoutViewport().TopLeft();
+      MOZ_ASSERT(mLastContentPaintMetrics.GetScrollOffset() ==
+                 mLastContentPaintMetrics.GetLayoutViewport().TopLeft());
     }
 
     CSSPoint currentVisualOffset = GetEffectiveScrollOffset(aMode) -
                                    GetEffectiveLayoutViewport(aMode).TopLeft();
 
-    translation +=
-        (currentVisualOffset - lastPaintVisualOffset) * effectiveZoom;
+    translation += currentVisualOffset * effectiveZoom;
   }
   if (aComponents.contains(AsyncTransformComponent::eLayout)) {
     CSSPoint lastPaintLayoutOffset;
@@ -4231,7 +4217,10 @@ LayoutDeviceToParentLayerScale AsyncPanZoomController::GetCurrentPinchZoomScale(
 
 CSSRect AsyncPanZoomController::GetEffectiveLayoutViewport(
     AsyncTransformConsumer aMode) const {
-  if (StaticPrefs::apz_frame_delay_enabled() && aMode == eForCompositing) {
+  if (aMode == eForCompositing && mScrollMetadata.IsApzForceDisabled()) {
+    return mLastContentPaintMetrics.GetLayoutViewport();
+  }
+  if (aMode == eForCompositing && StaticPrefs::apz_frame_delay_enabled()) {
     return mCompositedLayoutViewport;
   }
   return Metrics().GetLayoutViewport();
@@ -4239,7 +4228,10 @@ CSSRect AsyncPanZoomController::GetEffectiveLayoutViewport(
 
 CSSPoint AsyncPanZoomController::GetEffectiveScrollOffset(
     AsyncTransformConsumer aMode) const {
-  if (StaticPrefs::apz_frame_delay_enabled() && aMode == eForCompositing) {
+  if (aMode == eForCompositing && mScrollMetadata.IsApzForceDisabled()) {
+    return mLastContentPaintMetrics.GetVisualViewportOffset();
+  }
+  if (aMode == eForCompositing && StaticPrefs::apz_frame_delay_enabled()) {
     return mCompositedScrollOffset;
   }
   return Metrics().GetScrollOffset();
@@ -4247,7 +4239,10 @@ CSSPoint AsyncPanZoomController::GetEffectiveScrollOffset(
 
 CSSToParentLayerScale2D AsyncPanZoomController::GetEffectiveZoom(
     AsyncTransformConsumer aMode) const {
-  if (StaticPrefs::apz_frame_delay_enabled() && aMode == eForCompositing) {
+  if (aMode == eForCompositing && mScrollMetadata.IsApzForceDisabled()) {
+    return mLastContentPaintMetrics.GetZoom();
+  }
+  if (aMode == eForCompositing && StaticPrefs::apz_frame_delay_enabled()) {
     return mCompositedZoom;
   }
   return Metrics().GetZoom();
@@ -4435,7 +4430,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(
 
   if ((aScrollMetadata == mLastContentPaintMetadata) && !isDefault) {
     // No new information here, skip it.
-    APZC_LOG("%p NotifyLayersUpdated short-circuit\n", this);
+    APZC_LOGV("%p NotifyLayersUpdated short-circuit\n", this);
     return;
   }
 
@@ -4459,10 +4454,10 @@ void AsyncPanZoomController::NotifyLayersUpdated(
   }
 
   mScrollMetadata.SetScrollParentId(aScrollMetadata.GetScrollParentId());
-  APZC_LOG_FM(aLayerMetrics,
-              "%p got a NotifyLayersUpdated with aIsFirstPaint=%d, "
-              "aThisLayerTreeUpdated=%d",
-              this, aIsFirstPaint, aThisLayerTreeUpdated);
+  APZC_LOGV_FM(aLayerMetrics,
+               "%p got a NotifyLayersUpdated with aIsFirstPaint=%d, "
+               "aThisLayerTreeUpdated=%d",
+               this, aIsFirstPaint, aThisLayerTreeUpdated);
 
   {  // scope lock
     MutexAutoLock lock(mCheckerboardEventLock);

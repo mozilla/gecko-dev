@@ -30,17 +30,10 @@ import type {
   ThreadContext,
   Previews,
   SourceLocation,
-  ExecutionPoint,
+  HighlightedCalls,
 } from "../types";
 
-export type Command =
-  | null
-  | "stepOver"
-  | "stepIn"
-  | "stepOut"
-  | "resume"
-  | "rewind"
-  | "reverseStepOver";
+export type Command = null | "stepOver" | "stepIn" | "stepOut" | "resume";
 
 // Pause state associated with an individual thread.
 type ThreadPauseState = {
@@ -88,6 +81,7 @@ type ThreadPauseState = {
   inlinePreview: {
     [FrameId]: Object,
   },
+  highlightedCalls: ?HighlightedCalls,
 };
 
 // Pause state describing all threads.
@@ -118,6 +112,7 @@ function createPauseState(thread: ThreadId = "UnknownThread") {
       pauseCounter: 0,
     },
     previewLocation: null,
+    highlightedCalls: null,
     threads: {},
     skipPausing: prefs.skipPausing,
     mapScopes: prefs.mapScopes,
@@ -138,6 +133,7 @@ const resumedPauseState = {
   executionPoint: null,
   why: null,
   inlinePreview: {},
+  highlightedCalls: null,
 };
 
 const createInitialPauseState = () => ({
@@ -415,6 +411,18 @@ function update(
     case "BATCH":
       action.updates.forEach(u => (state = update(state, u)));
       return state;
+
+    case "HIGHLIGHT_CALLS": {
+      const { highlightedCalls } = action;
+      return updateThreadState({ ...threadState(), highlightedCalls });
+    }
+
+    case "UNHIGHLIGHT_CALLS": {
+      return updateThreadState({
+        ...threadState(),
+        highlightedCalls: null,
+      });
+    }
   }
 
   return state;
@@ -661,6 +669,10 @@ export function getThreadExecutionPoint(state: State, thread: ThreadId) {
 
 export function getSkipPausing(state: State) {
   return state.pause.skipPausing;
+}
+
+export function getHighlightedCalls(state: State, thread: ThreadId) {
+  return getThreadPauseState(state.pause, thread).highlightedCalls;
 }
 
 export function isMapScopesEnabled(state: State) {

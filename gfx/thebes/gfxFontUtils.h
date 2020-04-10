@@ -52,7 +52,7 @@ class gfxSparseBitSet {
   };
 
  public:
-  gfxSparseBitSet() {}
+  gfxSparseBitSet() = default;
   gfxSparseBitSet(const gfxSparseBitSet& aBitset) {
     mBlockIndex.AppendElements(aBitset.mBlockIndex);
     mBlocks.AppendElements(aBitset.mBlocks);
@@ -632,7 +632,7 @@ struct AutoSwap_PRUint24 {
   }
 
  private:
-  AutoSwap_PRUint24() {}
+  AutoSwap_PRUint24() = default;
   uint8_t value[3];
 };
 
@@ -642,6 +642,15 @@ struct SFNTHeader {
   AutoSwap_PRUint16 searchRange;    // (Maximum power of 2 <= numTables) x 16.
   AutoSwap_PRUint16 entrySelector;  // Log2(maximum power of 2 <= numTables).
   AutoSwap_PRUint16 rangeShift;     // NumTables x 16-searchRange.
+};
+
+struct TTCHeader {
+  AutoSwap_PRUint32 ttcTag;  // 4 -byte identifier 'ttcf'.
+  AutoSwap_PRUint16 majorVersion;
+  AutoSwap_PRUint16 minorVersion;
+  AutoSwap_PRUint32 numFonts;
+  // followed by:
+  // AutoSwap_PRUint32 offsetTable[numFonts]
 };
 
 struct TableDirEntry {
@@ -1156,13 +1165,14 @@ class gfxFontUtils {
                                   nsTArray<uint16_t>& aGlyphs,
                                   nsTArray<mozilla::gfx::Color>& aColors);
 
-  // Helper used to implement gfxFontEntry::GetVariationInstances for
+  // Helper used to implement gfxFontEntry::GetVariation{Axes,Instances} for
   // platforms where the native font APIs don't provide the info we want
-  // in a convenient form.
+  // in a convenient form, or when native APIs are too expensive.
   // (Not used on platforms -- currently, freetype -- where the font APIs
   // expose variation instance details directly.)
-  static void GetVariationInstances(
-      gfxFontEntry* aFontEntry, nsTArray<gfxFontVariationInstance>& aInstances);
+  static void GetVariationData(gfxFontEntry* aFontEntry,
+                               nsTArray<gfxFontVariationAxis>* aAxes,
+                               nsTArray<gfxFontVariationInstance>* aInstances);
 
   // Helper method for reading localized family names from the name table
   // of a single face.

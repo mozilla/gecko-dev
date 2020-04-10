@@ -13,8 +13,8 @@ const { DevToolsLoader } = ChromeUtils.import(
 loader.lazyRequireGetter(this, "Tools", "devtools/client/definitions", true);
 loader.lazyRequireGetter(
   this,
-  "DebuggerClient",
-  "devtools/shared/client/debugger-client",
+  "DevToolsClient",
+  "devtools/shared/client/devtools-client",
   true
 );
 loader.lazyRequireGetter(this, "l10n", "devtools/client/webconsole/utils/l10n");
@@ -38,7 +38,7 @@ class BrowserConsoleManager {
     this._browserConsole = null;
     this._browserConsoleInitializing = null;
     this._browerConsoleSessionState = false;
-    this._debuggerClient = null;
+    this._devToolsClient = null;
   }
 
   storeBrowserConsoleSessionState() {
@@ -79,8 +79,8 @@ class BrowserConsoleManager {
     await this._browserConsole.destroy();
     this._browserConsole = null;
 
-    await this._debuggerClient.close();
-    this._debuggerClient = null;
+    await this._devToolsClient.close();
+    this._devToolsClient = null;
   }
 
   /**
@@ -117,26 +117,27 @@ class BrowserConsoleManager {
     // `freshCompartment`, which will force it to be loaded in another compartment.
     // We aren't using `invisibleToDebugger` in order to allow the Browser toolbox to
     // debug the Browser console. This is fine as they will spawn distinct Loaders and
-    // so distinct `DebuggerServer` and actor modules.
+    // so distinct `DevToolsServer` and actor modules.
     const loader = new DevToolsLoader({
       freshCompartment: true,
     });
-    const { DebuggerServer } = loader.require(
-      "devtools/server/debugger-server"
+    const { DevToolsServer } = loader.require(
+      "devtools/server/devtools-server"
     );
 
-    DebuggerServer.init();
+    DevToolsServer.init();
 
     // Ensure that the root actor and the target-scoped actors have been registered on
-    // the DebuggerServer, so that the Browser Console can retrieve the console actors.
+    // the DevToolsServer, so that the Browser Console can retrieve the console actors.
     // (See Bug 1416105 for rationale).
-    DebuggerServer.registerActors({ root: true, target: true });
+    DevToolsServer.registerActors({ root: true, target: true });
 
-    DebuggerServer.allowChromeProcess = true;
+    DevToolsServer.allowChromeProcess = true;
 
-    this._debuggerClient = new DebuggerClient(DebuggerServer.connectPipe());
-    await this._debuggerClient.connect();
-    return this._debuggerClient.mainRoot.getMainProcess();
+    this._devToolsClient = new DevToolsClient(DevToolsServer.connectPipe());
+    await this._devToolsClient.connect();
+    const descriptor = await this._devToolsClient.mainRoot.getMainProcess();
+    return descriptor.getTarget();
   }
 
   async openWindow() {

@@ -89,7 +89,7 @@ export type FrameFront = {
   displayName: string,
   this: any,
   asyncCause: null | string,
-  state: "on-stack" | "suspended",
+  state: "on-stack" | "suspended" | "dead",
 };
 
 /**
@@ -234,11 +234,11 @@ type ConsoleFront = {
  */
 
 /**
- * DebuggerClient
+ * DevToolsClient
  * @memberof firefox
  * @static
  */
-export type DebuggerClient = {
+export type DevToolsClient = {
   _activeRequests: {
     get: any => any,
     delete: any => void,
@@ -246,7 +246,7 @@ export type DebuggerClient = {
   mainRoot: {
     traits: any,
     getFront: string => Promise<*>,
-    listProcesses: () => Promise<{ processes: ProcessDescriptor }>,
+    listProcesses: () => Promise<Array<ProcessDescriptor>>,
     listAllWorkerTargets: () => Promise<*>,
     listServiceWorkerRegistrations: () => Promise<*>,
     getWorker: any => Promise<*>,
@@ -373,8 +373,6 @@ export type ThreadFront = {
   stepIn: Function => Promise<*>,
   stepOver: Function => Promise<*>,
   stepOut: Function => Promise<*>,
-  rewind: Function => Promise<*>,
-  reverseStepOver: Function => Promise<*>,
   breakOnNext: () => Promise<*>,
   // FIXME: unclear if SourceId or ActorId here
   source: ({ actor: SourceId }) => SourceClient,

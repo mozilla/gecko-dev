@@ -41,6 +41,7 @@ using mozilla::gfx::SurfaceFormat from "mozilla/gfx/Types.h";
 using mozilla::LayoutDeviceIntPoint from "Units.h";
 using mozilla::LayoutDevicePoint from "Units.h";
 using mozilla::ScreenIntCoord from "Units.h";
+using mozilla::ScreenIntMargin from "Units.h";
 using mozilla::ScreenIntPoint from "Units.h";
 using ScreenRect from "Units.h";
 using struct mozilla::layers::ScrollableLayerGuid from "mozilla/layers/ScrollableLayerGuid.h";
@@ -74,7 +75,6 @@ using struct mozilla::layers::TextureFactoryIdentifier from "mozilla/layers/Comp
 using mozilla::layers::CompositorOptions from "mozilla/layers/CompositorOptions.h";
 using mozilla::CSSToScreenScale from "Units.h";
 using mozilla::CommandInt from "mozilla/EventForwards.h";
-using mozilla::WritingMode from "mozilla/WritingModes.h";
 using nsIWidget::TouchPointerState from "nsIWidget.h";
 using nsCursor from "nsIWidget.h";
 using struct LookAndFeelInt from "mozilla/widget/WidgetMessageUtils.h";
@@ -88,7 +88,6 @@ using class mozilla::NativeEventData from "ipc/nsGUIEventIPC.h";
 using mozilla::FontRange from "ipc/nsGUIEventIPC.h";
 using mozilla::a11y::IAccessibleHolder from "mozilla/a11y/IPCTypes.h";
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
-using refcounted class mozilla::dom::BrowsingContext from "mozilla/dom/BrowsingContext.h";
 using mozilla::dom::EffectsInfo from "mozilla/dom/TabMessageUtils.h";
 using mozilla::dom::TabId from "mozilla/dom/ipc/IdType.h";
 using mozilla::ScrollAxis from "mozilla/PresShellForwards.h";
@@ -604,7 +603,7 @@ parent:
                            WebProgressSecurityChangeData? aSecurityChangeData);
 
     async NotifyContentBlockingEvent(uint32_t aEvent, RequestData aRequestData,
-                                     bool aBlocked, nsIURI aHintURI,
+                                     bool aBlocked, nsCString aTrackingOrigin,
                                      nsCString[] aTrackingFullHashes,
                                      StorageAccessGrantedReason? aReason);
 
@@ -938,6 +937,12 @@ child:
     async ThemeChanged(LookAndFeelInt[] lookAndFeelIntCache);
 
     /**
+     * Tell the child that the safe area of widget has changed.
+     *
+     */
+    async SafeAreaInsetsChanged(ScreenIntMargin aSafeAreaInsets);
+
+    /**
      * Tell the browser that its frame loader has been swapped
      * with another.
      */
@@ -995,11 +1000,6 @@ child:
     async AwaitLargeAlloc();
 
     /**
-     * Tell the BrowserChild to set the name of its toplevel docshell to the given name.
-     */
-    async SetWindowName(nsString aName);
-
-    /**
      * Tell the BrowserChild to allow scripts in the docshell to close the window.
      */
     async AllowScriptsToClose();
@@ -1016,7 +1016,7 @@ child:
      */
     async SetWidgetNativeData(WindowsHandle aHandle);
 
-    async SkipBrowsingContextDetach() returns (bool success);
+    async WillChangeProcess() returns (bool success);
 
 parent:
     /**

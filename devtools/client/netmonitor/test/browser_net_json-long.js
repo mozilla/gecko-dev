@@ -32,6 +32,7 @@ add_task(async function() {
   const requestsListStatus = requestItem.querySelector(".status-code");
   EventUtils.sendMouseEvent({ type: "mouseover" }, requestsListStatus);
   await waitUntil(() => requestsListStatus.title);
+  await waitForDOMIfNeeded(requestItem, ".requests-list-timings-total");
 
   verifyRequestItemTarget(
     document,
@@ -130,7 +131,7 @@ add_task(async function() {
     );
     is(
       values[0].textContent,
-      "{\u2026}",
+      'Object { greeting: "Hello long string JSON!" }',
       "The first json property value was incorrect."
     );
 
@@ -141,7 +142,7 @@ add_task(async function() {
     );
     is(
       values[1].textContent,
-      "{\u2026}",
+      '"Hello long string JSON!"',
       "The second json property value was incorrect."
     );
   }

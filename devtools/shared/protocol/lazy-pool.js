@@ -15,7 +15,7 @@ const { Pool } = require("devtools/shared/protocol");
  * objects. Pools are used on both sides of the connection to help coordinate lifetimes.
  *
  * @param conn
- *   Is a DebuggerServerConnection.  Must have
+ *   Is a DevToolsServerConnection.  Must have
  *   addActorPool, removeActorPool, and poolFor.
  * @constructor
  */
@@ -72,7 +72,7 @@ exports.LazyPool = LazyPool;
  *        of the sort that one can add to an ActorPool.
  *
  *     - conn
- *        The DebuggerServerConnection in which the new actors will participate.
+ *        The DevToolsServerConnection in which the new actors will participate.
  *
  *     - actorID
  *        The actor's name, for use as the new actors' parentID.
@@ -133,7 +133,7 @@ exports.createExtraActors = createExtraActors;
  *        of the sort that one can add to an ActorPool.
  *
  *     - conn
- *        The DebuggerServerConnection in which the new actors will participate.
+ *        The DevToolsServerConnection in which the new actors will participate.
  *
  *     - actorID
  *        The actor's name, for use as the new actors' parentID.
@@ -163,9 +163,7 @@ LazyActor.prototype = {
       // Fetch the actor constructor
     } catch (e) {
       throw new Error(
-        `Unable to load actor module '${options.id}'\n${e.message}\n${
-          e.stack
-        }\n`
+        `Unable to load actor module '${options.id}'\n${e.message}\n${e.stack}\n`
       );
     }
   },
@@ -185,9 +183,7 @@ LazyActor.prototype = {
     const constructor = module[options.constructorName];
     if (!constructor) {
       throw new Error(
-        `Unable to find actor constructor named '${
-          this.name
-        }'. (Is it exported?)`
+        `Unable to find actor constructor named '${this.name}'. (Is it exported?)`
       );
     }
     return constructor;

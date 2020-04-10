@@ -20,8 +20,9 @@ UniquePtr<SharedSurface_DMABUF> SharedSurface_DMABUF::Create(
   }
 
   RefPtr<WaylandDMABufSurface> surface =
-      WaylandDMABufSurface::CreateDMABufSurface(size.width, size.height, flags);
-  if (!surface || !surface->CreateEGLImage(prodGL)) {
+      WaylandDMABufSurfaceRGBA::CreateDMABufSurface(size.width, size.height,
+                                                    flags);
+  if (!surface || !surface->CreateTexture(prodGL)) {
     return nullptr;
   }
 
@@ -41,14 +42,10 @@ SharedSurface_DMABUF::~SharedSurface_DMABUF() {
   if (!mGL || !mGL->MakeCurrent()) {
     return;
   }
-  mSurface->ReleaseEGLImage();
+  mSurface->ReleaseTextures();
 }
 
-void SharedSurface_DMABUF::ProducerReleaseImpl() {
-  mGL->MakeCurrent();
-  // We don't have a better sync mechanism here so use glFinish() at least.
-  mGL->fFinish();
-}
+void SharedSurface_DMABUF::ProducerReleaseImpl() { mSurface->FenceSet(); }
 
 bool SharedSurface_DMABUF::ToSurfaceDescriptor(
     layers::SurfaceDescriptor* const out_descriptor) {

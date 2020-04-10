@@ -25,10 +25,8 @@ add_task(async function() {
 
   await onPopUpOpen;
 
-  const popupItems = popup.getItems().map(e => e.label);
-  is(
-    popupItems.includes("0"),
-    false,
+  ok(
+    !hasPopupLabel(popup, "0"),
     "Completing on an array doesn't show numbers."
   );
 

@@ -386,6 +386,14 @@ RefPtr<const webgl::LinkedProgramInfo> QueryProgramInfo(WebGLProgram* prog,
         // shader, FragData[1] will be present. FragData[0] is valid for non-MRT
         // shaders.
         drawBuffers = webgl->GLMaxDrawBuffers();
+      } else if (translatedSource.find("(gl_FragColor") == std::string::npos &&
+                 translatedSource.find("(webgl_FragColor") ==
+                     std::string::npos &&
+                 translatedSource.find("(gl_FragData") == std::string::npos &&
+                 translatedSource.find("(webgl_FragData") ==
+                     std::string::npos) {
+        // We have to support no-color-output shaders?
+        drawBuffers = 0;
       }
 
       for (uint32_t i = 0; i < drawBuffers; ++i) {
@@ -512,7 +520,7 @@ webgl::LinkedProgramInfo::LinkedProgramInfo(WebGLProgram* prog)
       transformFeedbackBufferMode(prog->mNextLink_TransformFeedbackBufferMode) {
 }
 
-webgl::LinkedProgramInfo::~LinkedProgramInfo() {}
+webgl::LinkedProgramInfo::~LinkedProgramInfo() = default;
 
 webgl::AttribBaseType webgl::ToAttribBaseType(const GLenum elemType) {
   switch (elemType) {
@@ -601,67 +609,54 @@ webgl::LinkedProgramInfo::GetDrawFetchLimits() const {
   const auto& webgl = prog->mContext;
   const auto& vao = webgl->mBoundVertexArray;
 
-  const auto found = mDrawFetchCache.Find(vao);
-  if (found) return found;
-
-  std::vector<const CacheInvalidator*> cacheDeps;
-  const auto& activeAttribs = active.activeAttribs;
-  cacheDeps.reserve(2 + activeAttribs.size());
-  cacheDeps.push_back(vao.get());
-  cacheDeps.push_back(&webgl->mGenericVertexAttribTypeInvalidator);
-
   {
     // We have to ensure that every enabled attrib array (not just the active
     // ones) has a non-null buffer.
-    bool err = false;
-    for (const auto& cur : vao->mAttribs) {
-      err |= (cur.mEnabled && !cur.mBuf);
-    }
-    if (MOZ_UNLIKELY(err)) {
-      uint32_t i = 0;
-      for (const auto& cur : vao->mAttribs) {
-        if (cur.mEnabled && !cur.mBuf) {
-          webgl->ErrorInvalidOperation(
-              "Vertex attrib array %u is enabled but"
-              " has no buffer bound.",
-              i);
-          return nullptr;
-        }
-        i++;
-      }
+    const auto badIndex = vao->GetAttribIsArrayWithNullBuffer();
+    if (badIndex) {
+      webgl->ErrorInvalidOperation(
+          "Vertex attrib array %u is enabled but"
+          " has no buffer bound.",
+          *badIndex);
+      return nullptr;
     }
   }
 
+  const auto& activeAttribs = active.activeAttribs;
+
+  webgl::CachedDrawFetchLimits fetchLimits;
+  fetchLimits.usedBuffers =
+      std::move(mScratchFetchLimits.usedBuffers);  // Avoid realloc.
+  fetchLimits.usedBuffers.clear();
+  fetchLimits.usedBuffers.reserve(activeAttribs.size());
+
   bool hasActiveAttrib = false;
   bool hasActiveDivisor0 = false;
-  webgl::CachedDrawFetchLimits fetchLimits = {UINT64_MAX, UINT64_MAX};
-  fetchLimits.usedBuffers.reserve(activeAttribs.size());
 
   for (const auto& progAttrib : activeAttribs) {
     const auto& loc = progAttrib.location;
     if (loc == -1) continue;
     hasActiveAttrib |= true;
 
-    const auto& attribData = vao->mAttribs[loc];
-    hasActiveDivisor0 |= (attribData.mDivisor == 0);
+    const auto& binding = vao->AttribBinding(loc);
+    const auto& buffer = binding.buffer;
+    const auto& layout = binding.layout;
+    hasActiveDivisor0 |= (layout.divisor == 0);
 
     webgl::AttribBaseType attribDataBaseType;
-    if (attribData.mEnabled) {
-      MOZ_ASSERT(attribData.mBuf);
+    if (layout.isArray) {
+      MOZ_ASSERT(buffer);
       fetchLimits.usedBuffers.push_back(
-          {attribData.mBuf.get(), static_cast<uint32_t>(loc)});
+          {buffer.get(), static_cast<uint32_t>(loc)});
 
-      cacheDeps.push_back(&attribData.mBuf->mFetchInvalidator);
+      attribDataBaseType = layout.baseType;
 
-      attribDataBaseType = attribData.BaseType();
-
-      const size_t availBytes = attribData.mBuf->ByteLength();
-      const auto availElems =
-          AvailGroups(availBytes, attribData.ByteOffset(),
-                      attribData.BytesPerVertex(), attribData.ExplicitStride());
-      if (attribData.mDivisor) {
+      const auto availBytes = buffer->ByteLength();
+      const auto availElems = AvailGroups(availBytes, layout.byteOffset,
+                                          layout.byteSize, layout.byteStride);
+      if (layout.divisor) {
         const auto availInstances =
-            CheckedInt<uint64_t>(availElems) * attribData.mDivisor;
+            CheckedInt<uint64_t>(availElems) * layout.divisor;
         if (availInstances.isValid()) {
           fetchLimits.maxInstances =
               std::min(fetchLimits.maxInstances, availInstances.value());
@@ -673,8 +668,8 @@ webgl::LinkedProgramInfo::GetDrawFetchLimits() const {
       attribDataBaseType = webgl->mGenericVertexAttribTypes[loc];
     }
 
-    const auto progBaseType = ToAttribBaseType(progAttrib.elemType);
-    if ((attribDataBaseType != progBaseType) &
+    const auto& progBaseType = progAttrib.baseType;
+    if ((attribDataBaseType != progBaseType) &&
         (progBaseType != webgl::AttribBaseType::Boolean)) {
       const auto& dataType = ToString(attribDataBaseType);
       const auto& progType = ToString(progBaseType);
@@ -693,11 +688,10 @@ webgl::LinkedProgramInfo::GetDrawFetchLimits() const {
     return nullptr;
   }
 
-  // --
+  // -
 
-  auto entry = mDrawFetchCache.MakeEntry(vao.get(), std::move(fetchLimits));
-  entry->ResetInvalidators(std::move(cacheDeps));
-  return mDrawFetchCache.Insert(std::move(entry));
+  mScratchFetchLimits = std::move(fetchLimits);
+  return &mScratchFetchLimits;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

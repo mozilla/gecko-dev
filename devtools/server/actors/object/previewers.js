@@ -5,7 +5,7 @@
 "use strict";
 
 const { Cu, Ci } = require("chrome");
-const { DebuggerServer } = require("devtools/server/debugger-server");
+const { DevToolsServer } = require("devtools/server/devtools-server");
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 loader.lazyRequireGetter(
   this,
@@ -197,9 +197,7 @@ const previewers = {
         } else if (raw && !Object.getOwnPropertyDescriptor(raw, i)) {
           items.push(null);
         } else {
-          // Workers do not have access to Cu, and when recording/replaying we
-          // don't have a raw object. In either case we do not need to deal with
-          // xray wrappers.
+          // Workers do not have access to Cu.
           const value = DevToolsUtils.getProperty(obj, i);
           items.push(hooks.createValueGrip(value));
         }
@@ -515,10 +513,7 @@ function GenericObject(
     }
   }
 
-  // Do not search for safe getters when generating previews while replaying.
-  // This involves a lot of back-and-forth communication which we don't want to
-  // incur while previewing objects.
-  if (i < OBJECT_PREVIEW_MAX_ITEMS && !isReplaying) {
+  if (i < OBJECT_PREVIEW_MAX_ITEMS) {
     preview.safeGetterValues = objectActor._findSafeGetterValues(
       Object.keys(preview.ownProperties),
       OBJECT_PREVIEW_MAX_ITEMS - i

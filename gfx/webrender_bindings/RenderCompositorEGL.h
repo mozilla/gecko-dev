@@ -23,7 +23,7 @@ class RenderCompositorEGL : public RenderCompositor {
   virtual ~RenderCompositorEGL();
 
   bool BeginFrame() override;
-  RenderedFrameId EndFrame(const FfiVec<DeviceIntRect>& aDirtyRects) final;
+  RenderedFrameId EndFrame(const nsTArray<DeviceIntRect>& aDirtyRects) final;
   void Pause() override;
   bool Resume() override;
 
@@ -34,6 +34,8 @@ class RenderCompositorEGL : public RenderCompositor {
   bool UseANGLE() const override { return false; }
 
   LayoutDeviceIntSize GetBufferSize() override;
+
+  CompositorCapabilities GetCompositorCapabilities() override;
 
  protected:
   EGLSurface CreateEGLSurface();

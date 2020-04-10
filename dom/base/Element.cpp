@@ -26,6 +26,7 @@
 #include "mozilla/dom/MutationObservers.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/Text.h"
+#include "mozilla/dom/nsCSPContext.h"
 #include "mozilla/gfx/Matrix.h"
 #include "nsAtom.h"
 #include "nsDOMAttributeMap.h"
@@ -3106,6 +3107,31 @@ static const char* GetFullscreenError(CallerType aCallerType,
   return nullptr;
 }
 
+void Element::SetCapture(bool aRetargetToElement) {
+  // If there is already an active capture, ignore this request. This would
+  // occur if a splitter, frame resizer, etc had already captured and we don't
+  // want to override those.
+  if (!PresShell::GetCapturingContent()) {
+    PresShell::SetCapturingContent(
+        this, CaptureFlags::PreventDragStart |
+                  (aRetargetToElement ? CaptureFlags::RetargetToElement
+                                      : CaptureFlags::None));
+  }
+}
+
+void Element::SetCaptureAlways(bool aRetargetToElement) {
+  PresShell::SetCapturingContent(
+      this, CaptureFlags::PreventDragStart | CaptureFlags::IgnoreAllowedState |
+                (aRetargetToElement ? CaptureFlags::RetargetToElement
+                                    : CaptureFlags::None));
+}
+
+void Element::ReleaseCapture() {
+  if (PresShell::GetCapturingContent() == this) {
+    PresShell::ReleaseCapturingContent();
+  }
+}
+
 already_AddRefed<Promise> Element::RequestFullscreen(CallerType aCallerType,
                                                      ErrorResult& aRv) {
   auto request = FullscreenRequest::Create(this, aCallerType, aRv);
@@ -3219,29 +3245,7 @@ already_AddRefed<Animation> Element::Animate(
     JSContext* aContext, JS::Handle<JSObject*> aKeyframes,
     const UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions,
     ErrorResult& aError) {
-  Nullable<ElementOrCSSPseudoElement> target;
-  target.SetValue().SetAsElement() = this;
-  return Animate(target, aContext, aKeyframes, aOptions, aError);
-}
-
-/* static */
-already_AddRefed<Animation> Element::Animate(
-    const Nullable<ElementOrCSSPseudoElement>& aTarget, JSContext* aContext,
-    JS::Handle<JSObject*> aKeyframes,
-    const UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions,
-    ErrorResult& aError) {
-  MOZ_ASSERT(!aTarget.IsNull() && (aTarget.Value().IsElement() ||
-                                   aTarget.Value().IsCSSPseudoElement()),
-             "aTarget should be initialized");
-
-  RefPtr<Element> referenceElement;
-  if (aTarget.Value().IsElement()) {
-    referenceElement = &aTarget.Value().GetAsElement();
-  } else {
-    referenceElement = aTarget.Value().GetAsCSSPseudoElement().Element();
-  }
-
-  nsCOMPtr<nsIGlobalObject> ownerGlobal = referenceElement->GetOwnerGlobal();
+  nsCOMPtr<nsIGlobalObject> ownerGlobal = GetOwnerGlobal();
   if (!ownerGlobal) {
     aError.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -3253,8 +3257,8 @@ already_AddRefed<Animation> Element::Animate(
   // convention and needs to be called in caller's compartment.
   // This should match to RunConstructorInCallerCompartment attribute in
   // KeyframeEffect.webidl.
-  RefPtr<KeyframeEffect> effect = KeyframeEffect::Constructor(
-      global, aTarget, aKeyframes, aOptions, aError);
+  RefPtr<KeyframeEffect> effect =
+      KeyframeEffect::Constructor(global, this, aKeyframes, aOptions, aError);
   if (aError.Failed()) {
     return nullptr;
   }
@@ -3263,7 +3267,7 @@ already_AddRefed<Animation> Element::Animate(
   // needs to be called in the target element's realm.
   JSAutoRealm ar(aContext, global.Get());
 
-  AnimationTimeline* timeline = referenceElement->OwnerDoc()->Timeline();
+  AnimationTimeline* timeline = OwnerDoc()->Timeline();
   RefPtr<Animation> animation = Animation::Constructor(
       global, effect, Optional<AnimationTimeline*>(timeline), aError);
   if (aError.Failed()) {
@@ -3691,9 +3695,8 @@ static void IntersectionObserverPropertyDtor(void* aObject,
                                              nsAtom* aPropertyName,
                                              void* aPropertyValue,
                                              void* aData) {
-  Element* element = static_cast<Element*>(aObject);
-  IntersectionObserverList* observers =
-      static_cast<IntersectionObserverList*>(aPropertyValue);
+  auto* element = static_cast<Element*>(aObject);
+  auto* observers = static_cast<IntersectionObserverList*>(aPropertyValue);
   for (auto iter = observers->Iter(); !iter.Done(); iter.Next()) {
     DOMIntersectionObserver* observer = iter.Key();
     observer->UnlinkTarget(*element);
@@ -3709,7 +3712,7 @@ void Element::RegisterIntersectionObserver(DOMIntersectionObserver* aObserver) {
     observers = new IntersectionObserverList();
     observers->Put(aObserver, eUninitialized);
     SetProperty(nsGkAtoms::intersectionobserverlist, observers,
-                IntersectionObserverPropertyDtor, true);
+                IntersectionObserverPropertyDtor, /* aTransfer = */ true);
     return;
   }
 
@@ -3725,24 +3728,19 @@ void Element::RegisterIntersectionObserver(DOMIntersectionObserver* aObserver) {
 
 void Element::UnregisterIntersectionObserver(
     DOMIntersectionObserver* aObserver) {
-  IntersectionObserverList* observers = static_cast<IntersectionObserverList*>(
+  auto* observers = static_cast<IntersectionObserverList*>(
       GetProperty(nsGkAtoms::intersectionobserverlist));
   if (observers) {
     observers->Remove(aObserver);
+    if (observers->IsEmpty()) {
+      RemoveProperty(nsGkAtoms::intersectionobserverlist);
+    }
   }
 }
 
 void Element::UnlinkIntersectionObservers() {
-  IntersectionObserverList* observers = static_cast<IntersectionObserverList*>(
-      GetProperty(nsGkAtoms::intersectionobserverlist));
-  if (!observers) {
-    return;
-  }
-  for (auto iter = observers->Iter(); !iter.Done(); iter.Next()) {
-    DOMIntersectionObserver* observer = iter.Key();
-    observer->UnlinkTarget(*this);
-  }
-  observers->Clear();
+  // IntersectionObserverPropertyDtor takes care of the hard work.
+  RemoveProperty(nsGkAtoms::intersectionobserverlist);
 }
 
 bool Element::UpdateIntersectionObservation(DOMIntersectionObserver* aObserver,
@@ -4218,15 +4216,6 @@ double Element::FirstLineBoxBSize() const {
              ? nsPresContext::AppUnitsToDoubleCSSPixels(line->BSize())
              : 0.0;
 }
-
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-void Element::AssertInvariantsOnNodeInfoChange() {
-  MOZ_DIAGNOSTIC_ASSERT(!IsInComposedDoc());
-  if (nsCOMPtr<Link> link = do_QueryInterface(this)) {
-    MOZ_DIAGNOSTIC_ASSERT(!link->HasPendingLinkUpdate());
-  }
-}
-#endif
 
 // static
 nsAtom* Element::GetEventNameForAttr(nsAtom* aAttr) {

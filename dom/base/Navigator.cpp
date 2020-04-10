@@ -95,6 +95,10 @@
 #  include "mozilla/Hal.h"
 #endif
 
+#if defined(XP_WIN)
+#  include "mozilla/WindowsVersion.h"
+#endif
+
 #include "mozilla/EMEUtils.h"
 #include "mozilla/DetailedPromise.h"
 #include "mozilla/Unused.h"
@@ -228,7 +232,11 @@ void Navigator::Invalidate() {
   }
 
   mMediaCapabilities = nullptr;
-  mMediaSession = nullptr;
+
+  if (mMediaSession) {
+    mMediaSession->Shutdown();
+    mMediaSession = nullptr;
+  }
 
   mAddonManager = nullptr;
 
@@ -246,7 +254,7 @@ void Navigator::GetUserAgent(nsAString& aUserAgent, CallerType aCallerType,
     nsIDocShell* docshell = window->GetDocShell();
     nsString customUserAgent;
     if (docshell) {
-      docshell->GetCustomUserAgent(customUserAgent);
+      docshell->GetBrowsingContext()->GetCustomUserAgent(customUserAgent);
 
       if (!customUserAgent.IsEmpty()) {
         aUserAgent = customUserAgent;
@@ -639,7 +647,7 @@ class VibrateWindowListener : public nsIDOMEventListener {
   NS_DECL_NSIDOMEVENTLISTENER
 
  private:
-  virtual ~VibrateWindowListener() {}
+  virtual ~VibrateWindowListener() = default;
 
   nsWeakPtr mWindow;
   nsWeakPtr mDocument;
@@ -1025,7 +1033,7 @@ Geolocation* Navigator::GetGeolocation(ErrorResult& aRv) {
 }
 
 class BeaconStreamListener final : public nsIStreamListener {
-  ~BeaconStreamListener() {}
+  ~BeaconStreamListener() = default;
 
  public:
   BeaconStreamListener() : mLoadGroup(nullptr) {}
@@ -1130,14 +1138,14 @@ bool Navigator::SendBeaconInternal(const nsAString& aUrl,
   nsresult rv = nsContentUtils::NewURIWithDocumentCharset(
       getter_AddRefs(uri), aUrl, doc, doc->GetDocBaseURI());
   if (NS_FAILED(rv)) {
-    aRv.ThrowTypeError<MSG_INVALID_URL>(aUrl);
+    aRv.ThrowTypeError<MSG_INVALID_URL>(NS_ConvertUTF16toUTF8(aUrl));
     return false;
   }
 
   // Spec disallows any schemes save for HTTP/HTTPs
   if (!uri->SchemeIs("http") && !uri->SchemeIs("https")) {
-    aRv.ThrowTypeError<MSG_INVALID_URL_SCHEME>(NS_LITERAL_STRING("Beacon"),
-                                               aUrl);
+    aRv.ThrowTypeError<MSG_INVALID_URL_SCHEME>("Beacon",
+                                               uri->GetSpecOrDefault());
     return false;
   }
 
@@ -1360,7 +1368,7 @@ Promise* Navigator::Share(const ShareData& aData, ErrorResult& aRv) {
                           aData.mUrl.WasPassed();
   if (!someMemberPassed) {
     aRv.ThrowTypeError(
-        u"Must have a title, text, or url in the ShareData dictionary");
+        "Must have a title, text, or url in the ShareData dictionary");
     return nullptr;
   }
 
@@ -1372,7 +1380,8 @@ Promise* Navigator::Share(const ShareData& aData, ErrorResult& aRv) {
   if (aData.mUrl.WasPassed()) {
     auto result = doc->ResolveWithBaseURI(aData.mUrl.Value());
     if (NS_WARN_IF(result.isErr())) {
-      aRv.ThrowTypeError<MSG_INVALID_URL>(aData.mUrl.Value());
+      aRv.ThrowTypeError<MSG_INVALID_URL>(
+          NS_ConvertUTF16toUTF8(aData.mUrl.Value()));
       return nullptr;
     }
     url = result.unwrap();
@@ -1521,7 +1530,7 @@ void Navigator::FinishGetVRDisplays(bool isWebVRSupportedInwindow, Promise* p) {
     // The Window has been torn down, so there is no further work that can
     // be done.
     p->MaybeRejectWithTypeError(
-        u"Unable to return VRDisplays for a closed window.");
+        "Unable to return VRDisplays for a closed window.");
     return;
   }
 
@@ -1537,7 +1546,7 @@ void Navigator::OnXRPermissionRequestAllow() {
   if (!VRDisplay::RefreshVRDisplays(win->WindowID())) {
     for (auto& p : mVRGetDisplaysPromises) {
       // Failed to refresh, reject the promise now
-      p->MaybeRejectWithTypeError(u"Failed to find attached VR displays.");
+      p->MaybeRejectWithTypeError("Failed to find attached VR displays.");
     }
   }
 }
@@ -1703,6 +1712,19 @@ bool Navigator::HasUserMediaSupport(JSContext* cx, JSObject* obj) {
           StaticPrefs::media_peerconnection_enabled()) &&
          (IsSecureContextOrObjectIsFromSecureContext(cx, obj) ||
           StaticPrefs::media_devices_insecure_enabled());
+}
+
+/* static */
+bool Navigator::HasShareSupport(JSContext* cx, JSObject* obj) {
+  if (!Preferences::GetBool("dom.webshare.enabled")) {
+    return false;
+  }
+#if defined(XP_WIN) && !defined(__MINGW32__)
+  // The first public build that supports ShareCanceled API
+  return IsWindows10BuildOrLater(18956);
+#else
+  return true;
+#endif
 }
 
 /* static */
@@ -1999,6 +2021,10 @@ dom::MediaSession* Navigator::MediaSession() {
     mMediaSession = new dom::MediaSession(GetWindow());
   }
   return mMediaSession;
+}
+
+bool Navigator::HasCreatedMediaSession() const {
+  return mMediaSession != nullptr;
 }
 
 Clipboard* Navigator::Clipboard() {

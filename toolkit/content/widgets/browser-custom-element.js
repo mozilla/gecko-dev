@@ -1149,31 +1149,6 @@
       context.notifyMediaMutedChanged(false);
     }
 
-    pauseMedia(disposable) {
-      let suspendedReason;
-      if (disposable) {
-        suspendedReason = "mediaControlPaused";
-      } else {
-        suspendedReason = "lostAudioFocusTransiently";
-      }
-
-      this.sendMessageToActor(
-        "AudioPlayback",
-        { type: suspendedReason },
-        "AudioPlayback",
-        "roots"
-      );
-    }
-
-    stopMedia() {
-      this.sendMessageToActor(
-        "AudioPlayback",
-        { type: "mediaControlStopped" },
-        "AudioPlayback",
-        "roots"
-      );
-    }
-
     resumeMedia() {
       this.frameLoader.browsingContext.notifyStartDelayedAutoplayMedia();
       if (this._hasAnyPlayingMediaBeenBlocked) {
@@ -2084,8 +2059,7 @@
         // Iterate as long as scope in assigned. Note that we use the original
         // passed in scope, not childScope here.
         if (scope) {
-          let contexts = browsingContext.getChildren();
-          for (let context of contexts) {
+          for (let context of browsingContext.children) {
             sendToChildren(context, scope);
           }
         }

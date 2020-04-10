@@ -62,13 +62,13 @@ class MOZ_RAII AutoMutationBatchForAnimation {
   explicit AutoMutationBatchForAnimation(
       const Animation& aAnimation MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    Maybe<NonOwningAnimationTarget> target = aAnimation.GetTargetForAnimation();
+    NonOwningAnimationTarget target = aAnimation.GetTargetForAnimation();
     if (!target) {
       return;
     }
 
     // For mutation observers, we use the OwnerDoc.
-    mAutoBatch.emplace(target->mElement->OwnerDoc());
+    mAutoBatch.emplace(target.mElement->OwnerDoc());
   }
 
  private:
@@ -83,12 +83,13 @@ class MOZ_RAII AutoMutationBatchForAnimation {
 //
 // ---------------------------------------------------------------------------
 
-Maybe<NonOwningAnimationTarget> Animation::GetTargetForAnimation() const {
+NonOwningAnimationTarget Animation::GetTargetForAnimation() const {
   AnimationEffect* effect = GetEffect();
+  NonOwningAnimationTarget target;
   if (!effect || !effect->AsKeyframeEffect()) {
-    return Nothing();
+    return target;
   }
-  return effect->AsKeyframeEffect()->GetTarget();
+  return effect->AsKeyframeEffect()->GetAnimationTarget();
 }
 
 /* static */
@@ -188,6 +189,10 @@ void Animation::SetEffectNoUpdate(AnimationEffect* aEffect) {
 }
 
 void Animation::SetTimeline(AnimationTimeline* aTimeline) {
+#ifndef NIGHTLY_BUILD
+  MOZ_ASSERT_UNREACHABLE(
+      "Animation.timeline setter is supported only on nightly");
+#endif
   SetTimelineNoUpdate(aTimeline);
   PostUpdate();
 }
@@ -365,9 +370,15 @@ void Animation::UpdatePlaybackRate(double aPlaybackRate) {
 
   mPendingPlaybackRate = Some(aPlaybackRate);
 
-  // If we already have a pending task, there is nothing more to do since the
-  // playback rate will be applied then.
   if (Pending()) {
+    // If we already have a pending task, there is nothing more to do since the
+    // playback rate will be applied then.
+    //
+    // However, as with the idle/paused case below, we still need to update the
+    // relevance (and effect set to make sure it only contains relevant
+    // animations) since the relevance is based on the Animation play state
+    // which incorporates the _pending_ playback rate.
+    UpdateEffect(PostRestyleMode::Never);
     return;
   }
 
@@ -641,18 +652,18 @@ void Animation::CommitStyles(ErrorResult& aRv) {
     return;
   }
 
-  Maybe<NonOwningAnimationTarget> target = keyframeEffect->GetTarget();
+  NonOwningAnimationTarget target = keyframeEffect->GetAnimationTarget();
   if (!target) {
     return;
   }
 
-  if (target->mPseudoType != PseudoStyleType::NotPseudo) {
+  if (target.mPseudoType != PseudoStyleType::NotPseudo) {
     aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
     return;
   }
 
   // Check it is an element with a style attribute
-  nsCOMPtr<nsStyledElement> styledElement = do_QueryInterface(target->mElement);
+  nsCOMPtr<nsStyledElement> styledElement = do_QueryInterface(target.mElement);
   if (!styledElement) {
     aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
     return;
@@ -660,16 +671,16 @@ void Animation::CommitStyles(ErrorResult& aRv) {
 
   // Flush style before checking if the target element is rendered since the
   // result could depend on pending style changes.
-  if (Document* doc = target->mElement->GetComposedDoc()) {
+  if (Document* doc = target.mElement->GetComposedDoc()) {
     doc->FlushPendingNotifications(FlushType::Style);
   }
-  if (!target->mElement->IsRendered()) {
+  if (!target.mElement->IsRendered()) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
   nsPresContext* presContext =
-      nsContentUtils::GetContextForContent(target->mElement);
+      nsContentUtils::GetContextForContent(target.mElement);
   if (!presContext) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
@@ -688,11 +699,11 @@ void Animation::CommitStyles(ErrorResult& aRv) {
   // Start the update now so that the old rule doesn't get used
   // between when we mutate the declaration and when we set the new
   // rule.
-  mozAutoDocUpdate autoUpdate(target->mElement->OwnerDoc(), true);
+  mozAutoDocUpdate autoUpdate(target.mElement->OwnerDoc(), true);
 
   // Get the inline style to append to
   RefPtr<DeclarationBlock> declarationBlock;
-  if (auto* existing = target->mElement->GetInlineStyleDeclaration()) {
+  if (auto* existing = target.mElement->GetInlineStyleDeclaration()) {
     declarationBlock = existing->EnsureMutable();
   } else {
     declarationBlock = new DeclarationBlock();
@@ -702,7 +713,7 @@ void Animation::CommitStyles(ErrorResult& aRv) {
   // Prepare the callback
   MutationClosureData closureData;
   closureData.mClosure = nsDOMCSSAttributeDeclaration::MutationClosureFunction;
-  closureData.mElement = target->mElement;
+  closureData.mElement = target.mElement;
   DeclarationBlockMutationClosure beforeChangeClosure = {
       nsDOMCSSAttributeDeclaration::MutationClosureFunction,
       &closureData,
@@ -726,7 +737,7 @@ void Animation::CommitStyles(ErrorResult& aRv) {
   }
 
   // Update inline style declaration
-  target->mElement->SetInlineStyleDeclaration(*declarationBlock, closureData);
+  target.mElement->SetInlineStyleDeclaration(*declarationBlock, closureData);
 }
 
 // ---------------------------------------------------------------------------
@@ -752,8 +763,8 @@ void Animation::SetCurrentTimeAsDouble(const Nullable<double>& aCurrentTime,
   if (aCurrentTime.IsNull()) {
     if (!GetCurrentTimeAsDuration().IsNull()) {
       aRv.ThrowTypeError(
-          u"Current time is resolved but trying to set it to an unresolved "
-          u"time");
+          "Current time is resolved but trying to set it to an unresolved "
+          "time");
     }
     return;
   }
@@ -1052,7 +1063,7 @@ bool Animation::IsReplaceable() const {
   // We should only replace animations with a target element (since otherwise
   // what other effects would we consider when determining if they are covered
   // or not?).
-  if (!GetEffect()->AsKeyframeEffect()->GetTarget()) {
+  if (!GetEffect()->AsKeyframeEffect()->GetAnimationTarget()) {
     return false;
   }
 
@@ -1071,15 +1082,16 @@ void Animation::ScheduleReplacementCheck() {
   // If IsReplaceable() is true, the following should also hold
   MOZ_ASSERT(GetEffect());
   MOZ_ASSERT(GetEffect()->AsKeyframeEffect());
-  MOZ_ASSERT(GetEffect()->AsKeyframeEffect()->GetTarget());
 
-  Maybe<NonOwningAnimationTarget> target =
-      GetEffect()->AsKeyframeEffect()->GetTarget();
+  NonOwningAnimationTarget target =
+      GetEffect()->AsKeyframeEffect()->GetAnimationTarget();
+
+  MOZ_ASSERT(target);
 
   nsPresContext* presContext =
-      nsContentUtils::GetContextForContent(target->mElement);
+      nsContentUtils::GetContextForContent(target.mElement);
   if (presContext) {
-    presContext->EffectCompositor()->NoteElementForReducing(*target);
+    presContext->EffectCompositor()->NoteElementForReducing(target);
   }
 }
 
@@ -1727,7 +1739,7 @@ void Animation::DoFinishNotification(SyncNotifyFlag aSyncNotifyFlag) {
   } else if (!mFinishNotificationTask) {
     RefPtr<MicroTaskRunnable> runnable = new AsyncFinishNotification(this);
     context->DispatchToMicroTask(do_AddRef(runnable));
-    mFinishNotificationTask = runnable.forget();
+    mFinishNotificationTask = std::move(runnable);
   }
 }
 

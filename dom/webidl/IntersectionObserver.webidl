@@ -34,7 +34,7 @@ interface IntersectionObserver {
               optional IntersectionObserverInit options = {});
 
   [Constant]
-  readonly attribute Element? root;
+  readonly attribute Node? root;
   [Constant]
   readonly attribute DOMString rootMargin;
   [Constant,Cached]
@@ -43,9 +43,6 @@ interface IntersectionObserver {
   void unobserve(Element target);
   void disconnect();
   sequence<IntersectionObserverEntry> takeRecords();
-
-  [ChromeOnly]
-  readonly attribute IntersectionCallback intersectionCallback;
 };
 
 callback IntersectionCallback =
@@ -60,7 +57,7 @@ dictionary IntersectionObserverEntryInit {
 };
 
 dictionary IntersectionObserverInit {
-  Element?  root = null;
+  (Element or Document)?  root = null;
   DOMString rootMargin = "0px";
   (double or sequence<double>) threshold = 0;
 };

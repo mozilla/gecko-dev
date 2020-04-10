@@ -48,6 +48,7 @@ import org.yaml.snakeyaml.error.YAMLException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 public final class GeckoRuntime implements Parcelable {
@@ -271,8 +272,14 @@ public final class GeckoRuntime implements Parcelable {
     };
 
     private static String getProcessName(final Context context) {
-        final ActivityManager manager = (ActivityManager)context.getSystemService(Context.ACTIVITY_SERVICE);
-        for (final ActivityManager.RunningAppProcessInfo info : manager.getRunningAppProcesses()) {
+        final ActivityManager manager =
+                (ActivityManager)context.getSystemService(Context.ACTIVITY_SERVICE);
+        final List<ActivityManager.RunningAppProcessInfo> infos =
+                manager.getRunningAppProcesses();
+        if (infos == null) {
+            return null;
+        }
+        for (final ActivityManager.RunningAppProcessInfo info : infos) {
             if (info.pid == Process.myPid()) {
                 return info.processName;
             }
@@ -286,7 +293,7 @@ public final class GeckoRuntime implements Parcelable {
             Log.d(LOGTAG, "init");
         }
         int flags = 0;
-        if (settings.getUseContentProcessHint()) {
+        if (settings.getUseMultiprocess()) {
             flags |= GeckoThread.FLAG_PRELOAD_CHILD;
         }
 
@@ -297,16 +304,22 @@ public final class GeckoRuntime implements Parcelable {
         final Class<?> crashHandler = settings.getCrashHandler();
         if (crashHandler != null) {
             try {
-                final ServiceInfo info = context.getPackageManager().getServiceInfo(new ComponentName(context, crashHandler), 0);
+                final ServiceInfo info =
+                        context.getPackageManager()
+                        .getServiceInfo(
+                                new ComponentName(context, crashHandler), 0);
                 if (info.processName.equals(getProcessName(context))) {
-                    throw new IllegalArgumentException("Crash handler service must run in a separate process");
+                    throw new IllegalArgumentException(
+                            "Crash handler service must run in a separate process");
                 }
 
-                EventDispatcher.getInstance().registerUiThreadListener(mEventListener, "GeckoView:ContentCrashReport");
+                EventDispatcher.getInstance().registerUiThreadListener(
+                        mEventListener, "GeckoView:ContentCrashReport");
 
                 flags |= GeckoThread.FLAG_ENABLE_NATIVE_CRASHREPORTER;
             } catch (PackageManager.NameNotFoundException e) {
-                throw new IllegalArgumentException("Crash handler must be registered as a service");
+                throw new IllegalArgumentException(
+                        "Crash handler must be registered as a service");
             }
         }
 
@@ -499,11 +512,12 @@ public final class GeckoRuntime implements Parcelable {
         final GeckoBundle bundle = new GeckoBundle(1);
         bundle.putString("id", webExtension.id);
 
-        mWebExtensionController.unregisterWebExtension(webExtension);
-
         EventDispatcher.getInstance().dispatch("GeckoView:UnregisterWebExtension", bundle, result);
 
-        return result;
+        return result.then(success -> {
+            mWebExtensionController.unregisterWebExtension(webExtension);
+            return GeckoResult.fromValue(success);
+        });
     }
 
     /**

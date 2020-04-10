@@ -117,6 +117,7 @@ class ShaderValidator;
 class TexUnpackBlob;
 struct UniformInfo;
 struct UniformBlockInfo;
+struct VertAttribPointerDesc;
 }  // namespace webgl
 
 struct WebGLTexImageData {
@@ -194,36 +195,6 @@ class AvailabilityRunnable final : public Runnable {
 struct BufferAndIndex final {
   const WebGLBuffer* buffer = nullptr;
   uint32_t id = -1;
-};
-
-// -
-
-class DynDGpuManager final {
-  static constexpr uint32_t TICK_MS = 3000;
-
-  enum class State {
-    Inactive,
-    Primed,
-    Active,
-  };
-
-  Mutex mMutex;
-  bool mActivityThisTick = false;
-  State mState = State::Inactive;
-  RefPtr<gl::GLContext> mDGpuContext;
-
- public:
-  static std::shared_ptr<DynDGpuManager> Get();
-
-  DynDGpuManager();
-  ~DynDGpuManager();
-
-  void ReportActivity(const std::shared_ptr<DynDGpuManager>& strong);
-
- private:
-  void SetState(const MutexAutoLock&, State);
-  void Tick(const std::shared_ptr<DynDGpuManager>& strong);
-  void DispatchTick(const std::shared_ptr<DynDGpuManager>& strong);
 };
 
 }  // namespace webgl
@@ -318,15 +289,6 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr<WebGLContext> {
   // Grab a const reference so we can see changes, but can't make changes.
   const decltype(mGL_OnlyClearInDestroyResourcesAndContext)& gl;
 
- private:
-  std::shared_ptr<webgl::DynDGpuManager> mDynDGpuManager;
-
-  void ReportActivity() const {
-    if (mDynDGpuManager) {
-      mDynDGpuManager->ReportActivity(mDynDGpuManager);
-    }
-  }
-
  public:
   void CheckForInactivity();
 
@@ -373,9 +335,6 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr<WebGLContext> {
   void Resize(uvec2 size);
 
   void SetCompositableHost(RefPtr<layers::CompositableHost>& aCompositableHost);
-
-  RefPtr<mozilla::gfx::SourceSurface> GetSurfaceSnapshot(
-      gfxAlphaType* out_alphaType);
 
   /**
    * An abstract base class to be implemented by callers wanting to be notified
@@ -613,7 +572,7 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr<WebGLContext> {
 
   void LineWidth(GLfloat width);
   void LinkProgram(WebGLProgram& prog);
-  void PixelStorei(GLenum pname, GLint param);
+  void PixelStorei(GLenum pname, uint32_t param);
   void PolygonOffset(GLfloat factor, GLfloat units);
 
   RefPtr<layers::SharedSurfaceTextureClient> GetVRFrame();
@@ -626,20 +585,15 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr<WebGLContext> {
       const webgl::FormatUsageInfo* usage) const;
 
  protected:
-  void ReadPixelsImpl(GLint x, GLint y, GLsizei width, GLsizei height,
-                      GLenum format, GLenum type, uintptr_t data,
+  void ReadPixelsImpl(const webgl::ReadPixelsDesc&, uintptr_t data,
                       uint64_t dataLen);
-  bool DoReadPixelsAndConvert(const webgl::FormatInfo* srcFormat, GLint x,
-                              GLint y, GLsizei width, GLsizei height,
-                              GLenum format, GLenum destType, uintptr_t dest,
+  bool DoReadPixelsAndConvert(const webgl::FormatInfo* srcFormat,
+                              const webgl::ReadPixelsDesc&, uintptr_t dest,
                               uint64_t dataLen, uint32_t rowStride);
 
  public:
-  void ReadPixelsPbo(GLint x, GLint y, GLsizei width, GLsizei height,
-                     GLenum format, GLenum type, uint64_t offset);
-
-  void ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,
-                  GLenum format, GLenum type, const Range<uint8_t>& dest);
+  void ReadPixelsPbo(const webgl::ReadPixelsDesc&, uint64_t offset);
+  void ReadPixels(const webgl::ReadPixelsDesc&, const Range<uint8_t>& dest);
 
   ////
 
@@ -860,11 +814,8 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr<WebGLContext> {
 
   ////
 
-  void VertexAttribPointer(bool isFuncInt, GLuint index, GLint size,
-                           GLenum type, bool normalized, uint32_t stride,
-                           uint64_t byteOffset);
+  void VertexAttribPointer(uint32_t index, const webgl::VertAttribPointerDesc&);
 
- public:
   void VertexAttribDivisor(GLuint index, GLuint divisor);
 
  private:
@@ -898,6 +849,7 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr<WebGLContext> {
   bool mCanLoseContextInForeground = true;
   bool mShouldPresent = false;
   bool mDisableFragHighP = false;
+  bool mForceResizeOnPresent = false;
   bool mVRReady = false;
 
   template <typename WebGLObjectType>
@@ -983,7 +935,7 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr<WebGLContext> {
     nsCString key;  // For reporting.
     nsCString info;
 
-    FailureReason() {}
+    FailureReason() = default;
 
     template <typename A, typename B>
     FailureReason(const A& _key, const B& _info)
@@ -1164,10 +1116,6 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr<WebGLContext> {
   CheckedUint32 GetUnpackSize(bool isFunc3D, uint32_t width, uint32_t height,
                               uint32_t depth, uint8_t bytesPerPixel);
 
-  bool ValidatePackSize(uint32_t width, uint32_t height, uint8_t bytesPerPixel,
-                        uint32_t* const out_rowStride,
-                        uint32_t* const out_endOffset);
-
   UniquePtr<webgl::TexUnpackBlob> FromDomElem(
       const dom::HTMLCanvasElement& canvas, TexImageTarget target, uvec3 size,
       const dom::Element& elem, ErrorResult* const out_error) const;
@@ -1203,7 +1151,7 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr<WebGLContext> {
   GLuint mStencilValueMaskBack = 0;
   GLuint mStencilWriteMaskFront = 0;
   GLuint mStencilWriteMaskBack = 0;
-  uint8_t mColorWriteMask = 0;  // bitmask
+  uint8_t mColorWriteMask = 0xf;  // bitmask
   realGLboolean mDepthWriteMask = 0;
   GLfloat mColorClearValue[4];
   GLint mStencilClearValue = 0;
@@ -1384,14 +1332,33 @@ class ScopedFBRebinder final {
   ~ScopedFBRebinder();
 };
 
+// -
+
+constexpr inline bool IsBufferTargetLazilyBound(const GLenum target) {
+  return target != LOCAL_GL_ELEMENT_ARRAY_BUFFER;
+}
+
+void DoBindBuffer(gl::GLContext&, GLenum target, const WebGLBuffer*);
+
 class ScopedLazyBind final {
  private:
-  gl::GLContext* const mGL;
+  gl::GLContext& mGL;
   const GLenum mTarget;
 
  public:
-  ScopedLazyBind(gl::GLContext* gl, GLenum target, const WebGLBuffer* buf);
-  ~ScopedLazyBind();
+  ScopedLazyBind(gl::GLContext* const gl, const GLenum target,
+                 const WebGLBuffer* const buf)
+      : mGL(*gl), mTarget(IsBufferTargetLazilyBound(target) ? target : 0) {
+    if (mTarget) {
+      DoBindBuffer(mGL, mTarget, buf);
+    }
+  }
+
+  ~ScopedLazyBind() {
+    if (mTarget) {
+      DoBindBuffer(mGL, mTarget, nullptr);
+    }
+  }
 };
 
 ////

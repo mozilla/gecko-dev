@@ -174,7 +174,7 @@ class nsDocShell final : public nsDocLoader,
 
    private:
     virtual ~InterfaceRequestorProxy();
-    InterfaceRequestorProxy() {}
+    InterfaceRequestorProxy() = default;
     nsWeakPtr mWeakPtr;
   };
 
@@ -477,9 +477,7 @@ class nsDocShell final : public nsDocLoader,
   // Clear the document's storage access flag if needed.
   void MaybeClearStorageAccessFlag();
 
-  void SkipBrowsingContextDetach() {
-    mSkipBrowsingContextDetachOnDestroy = true;
-  }
+  void SetWillChangeProcess() { mWillChangeProcess = true; }
 
   // Create a content viewer within this nsDocShell for the given
   // `WindowGlobalChild` actor.
@@ -503,10 +501,10 @@ class nsDocShell final : public nsDocLoader,
   static bool CreateAndConfigureRealChannelForLoadState(
       nsDocShellLoadState* aLoadState, mozilla::net::LoadInfo* aLoadInfo,
       nsIInterfaceRequestor* aCallbacks, nsDocShell* aDocShell,
-      const nsString* aInitiatorType, nsLoadFlags aLoadFlags,
-      uint32_t aLoadType, uint32_t aCacheKey, bool aIsActive,
-      bool aIsTopLevelDoc, bool aHasNonEmptySandboxingFlags, nsresult& rv,
-      nsIChannel** aChannel);
+      const mozilla::OriginAttributes& aOriginAttributes,
+      nsLoadFlags aLoadFlags, uint32_t aLoadType, uint32_t aCacheKey,
+      bool aIsActive, bool aIsTopLevelDoc, bool aHasNonEmptySandboxingFlags,
+      nsresult& rv, nsIChannel** aChannel);
 
   // Notify consumers of a search being loaded through the observer service:
   static void MaybeNotifyKeywordSearchLoading(const nsString& aProvider,
@@ -681,8 +679,8 @@ class nsDocShell final : public nsDocLoader,
   // originalURI on the channel that does the load. If OriginalURI is null, URI
   // will be set as the originalURI. If LoadReplace is true, LOAD_REPLACE flag
   // will be set on the nsIChannel.
-  nsresult DoURILoad(nsDocShellLoadState* aLoadState, bool aLoadFromExternal,
-                     nsIDocShell** aDocShell, nsIRequest** aRequest);
+  nsresult DoURILoad(nsDocShellLoadState* aLoadState, nsIDocShell** aDocShell,
+                     nsIRequest** aRequest);
 
   static nsresult AddHeadersToChannel(nsIInputStream* aHeadersData,
                                       nsIChannel* aChannel);
@@ -1095,7 +1093,6 @@ class nsDocShell final : public nsDocLoader,
 
   nsID mHistoryID;
   nsString mTitle;
-  nsString mCustomUserAgent;
   nsCString mOriginalUriString;
   nsWeakPtr mOpener;
   nsTObserverArray<nsWeakPtr> mPrivacyObservers;
@@ -1293,7 +1290,6 @@ class nsDocShell final : public nsDocLoader,
   bool mAllowContentRetargeting : 1;
   bool mAllowContentRetargetingOnChildren : 1;
   bool mUseErrorPages : 1;
-  bool mUseStrictSecurityChecks : 1;
   bool mObserveErrorPages : 1;
   bool mCSSErrorReportingEnabled : 1;
   bool mAllowAuth : 1;
@@ -1355,10 +1351,9 @@ class nsDocShell final : public nsDocLoader,
 
   bool mIsFrame : 1;
 
-  // If mSkipBrowsingContextDetachOnDestroy is set to true, then when the
-  // docshell is destroyed, the browsing context will not be detached. This is
-  // for cases where we want to preserve the BC for future use.
-  bool mSkipBrowsingContextDetachOnDestroy : 1;
+  // If mWillChangeProcess is set to true, then when the docshell is destroyed,
+  // we prepare the browsing context to change process.
+  bool mWillChangeProcess : 1;
 
   // Set when activity in this docshell is being watched by the developer tools.
   bool mWatchedByDevtools : 1;

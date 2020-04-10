@@ -27,9 +27,8 @@ add_task(async function() {
       test`
   );
 
-  is(
-    getPopupLabels(autocompletePopup).join("\n"),
-    [
+  ok(
+    hasExactPopupLabels(autocompletePopup, [
       "testClass",
       "testConst",
       "testDeconstruct1",
@@ -43,11 +42,7 @@ add_task(async function() {
       "testParamRest",
       "testParamRestFirst",
       "testVar",
-    ].join("\n"),
+    ]),
     "Autocomplete popup displays both global and local variables"
   );
 });
-
-function getPopupLabels(popup) {
-  return popup.getItems().map(item => item.label);
-}

@@ -25,7 +25,6 @@
 #  include "mozilla/StateMirroring.h"
 #  include "mozilla/StateWatching.h"
 #  include "mozilla/dom/MediaDebugInfoBinding.h"
-#  include "nsAutoPtr.h"
 #  include "nsCOMPtr.h"
 #  include "nsIObserver.h"
 #  include "nsISupports.h"
@@ -234,14 +233,15 @@ class MediaDecoder : public DecoderDoctorLifeLogger<MediaDecoder> {
   // media element when it is sent to the bfcache, or when we need
   // to throttle the download. Call on the main thread only. This can
   // be called multiple times, there's an internal "suspend count".
-  virtual void Suspend() {}
+  // When it is called the internal system audio resource are cleaned up.
+  virtual void Suspend();
 
   // Resume any media downloads that have been suspended. Called by the
   // media element when it is restored from the bfcache, or when we need
   // to stop throttling the download. Call on the main thread only.
   // The download will only actually resume once as many Resume calls
   // have been made as Suspend calls.
-  virtual void Resume() {}
+  virtual void Resume();
 
   // Moves any existing channel loads into or out of background. Background
   // loads don't block the load event. This is called when we stop or restart
@@ -407,7 +407,7 @@ class MediaDecoder : public DecoderDoctorLifeLogger<MediaDecoder> {
 
   // Called when the first audio and/or video from the media file has been
   // loaded by the state machine. Call on the main thread only.
-  virtual void FirstFrameLoaded(nsAutoPtr<MediaInfo> aInfo,
+  virtual void FirstFrameLoaded(UniquePtr<MediaInfo> aInfo,
                                 MediaDecoderEventVisibility aEventVisibility);
 
   void SetStateMachineParameters();
@@ -561,7 +561,7 @@ class MediaDecoder : public DecoderDoctorLifeLogger<MediaDecoder> {
 
   // Stores media info, including info of audio tracks and video tracks, should
   // only be accessed from main thread.
-  nsAutoPtr<MediaInfo> mInfo;
+  UniquePtr<MediaInfo> mInfo;
 
   // Tracks the visibility status of owner element's document.
   bool mIsDocumentVisible;

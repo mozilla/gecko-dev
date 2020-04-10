@@ -21,7 +21,6 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/SharedThreadPool.h"
 #include "mozilla/UniquePtr.h"
-#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsINamed.h"
 #include "nsIThread.h"
@@ -92,7 +91,7 @@ class ShutdownThreadEvent : public Runnable {
  public:
   explicit ShutdownThreadEvent(nsIThread* aThread)
       : Runnable("ShutdownThreadEvent"), mThread(aThread) {}
-  ~ShutdownThreadEvent() {}
+  ~ShutdownThreadEvent() = default;
   NS_IMETHOD Run() override {
     mThread->Shutdown();
     mThread = nullptr;
@@ -292,7 +291,7 @@ RefPtr<GenericPromise> InvokeUntil(Work aWork, Condition aCondition) {
   };
 
   Helper::Iteration(p, aWork, aCondition);
-  return p.forget();
+  return p;
 }
 
 // Simple timer to run a runnable after a timeout.
@@ -311,7 +310,7 @@ class SimpleTimer : public nsITimerCallback, public nsINamed {
   NS_IMETHOD Notify(nsITimer* timer) override;
 
  private:
-  virtual ~SimpleTimer() {}
+  virtual ~SimpleTimer() = default;
   nsresult Init(nsIRunnable* aTask, uint32_t aTimeoutMs,
                 nsIEventTarget* aTarget);
 

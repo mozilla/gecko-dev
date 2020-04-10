@@ -31,6 +31,7 @@
 #endif
 
 #include "nsServiceManagerUtils.h"
+#include "nsIInputStream.h"
 #include "nsIObserverService.h"
 #include "nsIObserver.h"
 #include "nsIPrefBranch.h"
@@ -40,7 +41,6 @@
 #include "nsProxyRelease.h"
 #include "nsThread.h"
 #include "nsThreadUtils.h"
-#include "nsAutoPtr.h"
 #include "nsNetUtil.h"
 #include "nsNetCID.h"
 #include "mozilla/StaticPtr.h"
@@ -844,7 +844,7 @@ void DataChannelConnection::ProcessQueuedOpens() {
 }
 
 void DataChannelConnection::SctpDtlsInput(const std::string& aTransportId,
-                                          MediaPacket& packet) {
+                                          const MediaPacket& packet) {
   if ((packet.type() != MediaPacket::SCTP) || (mTransportId != aTransportId)) {
     return;
   }
@@ -1332,7 +1332,7 @@ bool DataChannelConnection::SendDeferredMessages() {
 // buffer MUST have at least one item!
 // returns if we're still blocked (true)
 bool DataChannelConnection::SendBufferedMessages(
-    nsTArray<nsAutoPtr<BufferedOutgoingMsg>>& buffer, size_t* aWritten) {
+    nsTArray<UniquePtr<BufferedOutgoingMsg>>& buffer, size_t* aWritten) {
   do {
     // Re-send message
     int error = SendMsgInternal(*buffer[0], aWritten);
@@ -2569,7 +2569,7 @@ out:
 // Returns a POSIX error code directly instead of setting errno.
 // IMPORTANT: Ensure that the buffer passed is guarded by mLock!
 int DataChannelConnection::SendMsgInternalOrBuffer(
-    nsTArray<nsAutoPtr<BufferedOutgoingMsg>>& buffer, OutgoingMsg& msg,
+    nsTArray<UniquePtr<BufferedOutgoingMsg>>& buffer, OutgoingMsg& msg,
     bool& buffered, size_t* aWritten) {
   NS_WARNING_ASSERTION(msg.GetLength() > 0, "Length is 0?!");
 
@@ -3081,13 +3081,17 @@ void DataChannel::SetListener(DataChannelListener* aListener,
   mListener = aListener;
 }
 
-void DataChannel::SendErrnoToErrorResult(int error, ErrorResult& aRv) {
+void DataChannel::SendErrnoToErrorResult(int error, size_t aMessageSize,
+                                         ErrorResult& aRv) {
   switch (error) {
     case 0:
       break;
-    case EMSGSIZE:
-      aRv.Throw(NS_ERROR_DOM_TYPE_ERR);
+    case EMSGSIZE: {
+      nsPrintfCString err("Message size (%zu) exceeds maxMessageSize",
+                          aMessageSize);
+      aRv.ThrowTypeError(err);
       break;
+    }
     default:
       aRv.Throw(NS_ERROR_DOM_OPERATION_ERR);
       break;
@@ -3173,7 +3177,8 @@ void DataChannel::SendMsg(const nsACString& aMsg, ErrorResult& aRv) {
     return;
   }
 
-  SendErrnoToErrorResult(mConnection->SendMsg(mStream, aMsg), aRv);
+  SendErrnoToErrorResult(mConnection->SendMsg(mStream, aMsg), aMsg.Length(),
+                         aRv);
   if (!aRv.Failed()) {
     IncrementBufferedAmount(aMsg.Length(), aRv);
   }
@@ -3184,7 +3189,8 @@ void DataChannel::SendBinaryMsg(const nsACString& aMsg, ErrorResult& aRv) {
     return;
   }
 
-  SendErrnoToErrorResult(mConnection->SendBinaryMsg(mStream, aMsg), aRv);
+  SendErrnoToErrorResult(mConnection->SendBinaryMsg(mStream, aMsg),
+                         aMsg.Length(), aRv);
   if (!aRv.Failed()) {
     IncrementBufferedAmount(aMsg.Length(), aRv);
   }
@@ -3214,7 +3220,8 @@ void DataChannel::SendBinaryBlob(dom::Blob& aBlob, ErrorResult& aRv) {
     return;
   }
 
-  SendErrnoToErrorResult(mConnection->SendBlob(mStream, msgStream), aRv);
+  SendErrnoToErrorResult(mConnection->SendBlob(mStream, msgStream), msgLength,
+                         aRv);
   if (!aRv.Failed()) {
     IncrementBufferedAmount(msgLength, aRv);
   }

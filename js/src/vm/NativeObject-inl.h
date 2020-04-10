@@ -14,6 +14,7 @@
 #include "builtin/TypedObject.h"
 #include "gc/Allocator.h"
 #include "gc/GCTrace.h"
+#include "gc/MaybeRooted.h"
 #include "js/Result.h"
 #include "proxy/Proxy.h"
 #include "vm/JSContext.h"
@@ -67,6 +68,10 @@ inline void NativeObject::clearShouldConvertDoubleElements() {
 
 inline void NativeObject::addDenseElementType(JSContext* cx, uint32_t index,
                                               const Value& val) {
+  if (!IsTypeInferenceEnabled()) {
+    return;
+  }
+
   // Avoid a slow AddTypePropertyId call if the type is the same as the type
   // of the previous element.
   TypeSet::Type thisType = TypeSet::GetValueType(val);
@@ -93,15 +98,19 @@ inline void NativeObject::initDenseElementWithType(JSContext* cx,
 }
 
 inline void NativeObject::setDenseElementHole(JSContext* cx, uint32_t index) {
-  MarkObjectGroupFlags(cx, this, OBJECT_FLAG_NON_PACKED);
+  if (IsTypeInferenceEnabled()) {
+    MarkObjectGroupFlags(cx, this, OBJECT_FLAG_NON_PACKED);
+  }
   setDenseElement(index, MagicValue(JS_ELEMENTS_HOLE));
 }
 
 inline void NativeObject::removeDenseElementForSparseIndex(JSContext* cx,
                                                            uint32_t index) {
   MOZ_ASSERT(containsPure(INT_TO_JSID(index)));
-  MarkObjectGroupFlags(cx, this,
-                       OBJECT_FLAG_NON_PACKED | OBJECT_FLAG_SPARSE_INDEXES);
+  if (IsTypeInferenceEnabled()) {
+    MarkObjectGroupFlags(cx, this,
+                         OBJECT_FLAG_NON_PACKED | OBJECT_FLAG_SPARSE_INDEXES);
+  }
   if (containsDenseElement(index)) {
     setDenseElement(index, MagicValue(JS_ELEMENTS_HOLE));
   }
@@ -113,7 +122,9 @@ inline bool NativeObject::writeToIndexWouldMarkNotPacked(uint32_t index) {
 
 inline void NativeObject::markDenseElementsNotPacked(JSContext* cx) {
   MOZ_ASSERT(isNative());
-  MarkObjectGroupFlags(cx, this, OBJECT_FLAG_NON_PACKED);
+  if (IsTypeInferenceEnabled()) {
+    MarkObjectGroupFlags(cx, this, OBJECT_FLAG_NON_PACKED);
+  }
 }
 
 inline void NativeObject::elementsRangeWriteBarrierPost(uint32_t start,
@@ -794,28 +805,24 @@ static MOZ_ALWAYS_INLINE bool LookupOwnPropertyInline(
   // id was not found in obj. Try obj's resolve hook, if any.
   if (obj->getClass()->getResolve()) {
     MOZ_ASSERT(!cx->isHelperThreadContext());
-    if (!allowGC) {
+    if constexpr (!allowGC) {
       return false;
-    }
+    } else {
+      bool recursed;
+      if (!CallResolveOp(cx, obj, id, propp, &recursed)) {
+        return false;
+      }
 
-    bool recursed;
-    if (!CallResolveOp(
-            cx, MaybeRooted<NativeObject*, allowGC>::toHandle(obj),
-            MaybeRooted<jsid, allowGC>::toHandle(id),
-            MaybeRooted<PropertyResult, allowGC>::toMutableHandle(propp),
-            &recursed)) {
-      return false;
-    }
+      if (recursed) {
+        propp.setNotFound();
+        *donep = true;
+        return true;
+      }
 
-    if (recursed) {
-      propp.setNotFound();
-      *donep = true;
-      return true;
-    }
-
-    if (propp) {
-      *donep = true;
-      return true;
+      if (propp) {
+        *donep = true;
+        return true;
+      }
     }
   }
 
@@ -892,14 +899,11 @@ static MOZ_ALWAYS_INLINE bool LookupPropertyInline(
     }
     if (!proto->isNative()) {
       MOZ_ASSERT(!cx->isHelperThreadContext());
-      if (!allowGC) {
+      if constexpr (!allowGC) {
         return false;
+      } else {
+        return LookupProperty(cx, proto, id, objp, propp);
       }
-      return LookupProperty(
-          cx, MaybeRooted<JSObject*, allowGC>::toHandle(proto),
-          MaybeRooted<jsid, allowGC>::toHandle(id),
-          MaybeRooted<JSObject*, allowGC>::toMutableHandle(objp),
-          MaybeRooted<PropertyResult, allowGC>::toMutableHandle(propp));
     }
 
     current = &proto->template as<NativeObject>();
@@ -921,6 +925,9 @@ inline bool ThrowIfNotConstructing(JSContext* cx, const CallArgs& args,
 }
 
 inline bool IsPackedArray(JSObject* obj) {
+  if (!IsTypeInferenceEnabled()) {
+    return false;
+  }
   if (!obj->is<ArrayObject>() || obj->hasLazyGroup()) {
     return false;
   }

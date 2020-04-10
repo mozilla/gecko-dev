@@ -60,6 +60,7 @@
 #include "mozilla/dom/network/UDPSocketParent.h"
 #include "mozilla/dom/WebAuthnTransactionParent.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/psm/VerifySSLServerCertParent.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "nsNetUtil.h"
 #include "nsProxyRelease.h"
@@ -101,7 +102,7 @@ namespace {
 class TestParent final : public mozilla::ipc::PBackgroundTestParent {
   friend class mozilla::ipc::BackgroundParentImpl;
 
-  TestParent() { MOZ_COUNT_CTOR(TestParent); }
+  MOZ_COUNTED_DEFAULT_CTOR(TestParent)
 
  protected:
   ~TestParent() override { MOZ_COUNT_DTOR(TestParent); }
@@ -233,23 +234,26 @@ mozilla::ipc::IPCResult BackgroundParentImpl::RecvFlushPendingFileDeletions() {
 
 BackgroundParentImpl::PBackgroundSDBConnectionParent*
 BackgroundParentImpl::AllocPBackgroundSDBConnectionParent(
+    const PersistenceType& aPersistenceType,
     const PrincipalInfo& aPrincipalInfo) {
   AssertIsInMainOrSocketProcess();
   AssertIsOnBackgroundThread();
 
-  return mozilla::dom::AllocPBackgroundSDBConnectionParent(aPrincipalInfo);
+  return mozilla::dom::AllocPBackgroundSDBConnectionParent(aPersistenceType,
+                                                           aPrincipalInfo);
 }
 
 mozilla::ipc::IPCResult
 BackgroundParentImpl::RecvPBackgroundSDBConnectionConstructor(
     PBackgroundSDBConnectionParent* aActor,
+    const PersistenceType& aPersistenceType,
     const PrincipalInfo& aPrincipalInfo) {
   AssertIsInMainOrSocketProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
 
-  if (!mozilla::dom::RecvPBackgroundSDBConnectionConstructor(aActor,
-                                                             aPrincipalInfo)) {
+  if (!mozilla::dom::RecvPBackgroundSDBConnectionConstructor(
+          aActor, aPersistenceType, aPrincipalInfo)) {
     return IPC_FAIL_NO_REASON(this);
   }
   return IPC_OK();
@@ -761,8 +765,7 @@ mozilla::ipc::IPCResult BackgroundParentImpl::RecvPUDPSocketConstructor(
     return IPC_FAIL_NO_REASON(this);
   }
 
-  IPC::Principal principal;
-  if (!static_cast<UDPSocketParent*>(aActor)->Init(principal, aFilter)) {
+  if (!static_cast<UDPSocketParent*>(aActor)->Init(nullptr, aFilter)) {
     MOZ_CRASH("UDPSocketCallback - failed init");
   }
 
@@ -773,6 +776,40 @@ bool BackgroundParentImpl::DeallocPUDPSocketParent(PUDPSocketParent* actor) {
   UDPSocketParent* p = static_cast<UDPSocketParent*>(actor);
   p->Release();
   return true;
+}
+
+already_AddRefed<mozilla::psm::PVerifySSLServerCertParent>
+BackgroundParentImpl::AllocPVerifySSLServerCertParent(
+    const ByteArray& aServerCert, const nsTArray<ByteArray>& aPeerCertChain,
+    const nsCString& aHostName, const int32_t& aPort,
+    const OriginAttributes& aOriginAttributes,
+    const Maybe<ByteArray>& aStapledOCSPResponse,
+    const Maybe<ByteArray>& aSctsFromTLSExtension,
+    const Maybe<DelegatedCredentialInfoArg>& aDcInfo,
+    const uint32_t& aProviderFlags, const uint32_t& aCertVerifierFlags) {
+  RefPtr<mozilla::psm::VerifySSLServerCertParent> parent =
+      new mozilla::psm::VerifySSLServerCertParent();
+  return parent.forget();
+}
+
+mozilla::ipc::IPCResult
+BackgroundParentImpl::RecvPVerifySSLServerCertConstructor(
+    PVerifySSLServerCertParent* aActor, const ByteArray& aServerCert,
+    nsTArray<ByteArray>&& aPeerCertChain, const nsCString& aHostName,
+    const int32_t& aPort, const OriginAttributes& aOriginAttributes,
+    const Maybe<ByteArray>& aStapledOCSPResponse,
+    const Maybe<ByteArray>& aSctsFromTLSExtension,
+    const Maybe<DelegatedCredentialInfoArg>& aDcInfo,
+    const uint32_t& aProviderFlags, const uint32_t& aCertVerifierFlags) {
+  mozilla::psm::VerifySSLServerCertParent* authCert =
+      static_cast<mozilla::psm::VerifySSLServerCertParent*>(aActor);
+  if (!authCert->Dispatch(aServerCert, std::move(aPeerCertChain), aHostName,
+                          aPort, aOriginAttributes, aStapledOCSPResponse,
+                          aSctsFromTLSExtension, aDcInfo, aProviderFlags,
+                          aCertVerifierFlags)) {
+    return IPC_FAIL_NO_REASON(this);
+  }
+  return IPC_OK();
 }
 
 mozilla::dom::PBroadcastChannelParent*

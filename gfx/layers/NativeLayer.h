@@ -59,7 +59,7 @@ class NativeLayerRoot {
   }
 
  protected:
-  virtual ~NativeLayerRoot() {}
+  virtual ~NativeLayerRoot() = default;
 };
 
 // Allows reading back the visual output of a NativeLayerRoot.
@@ -69,7 +69,7 @@ class NativeLayerRoot {
 // same thread.
 class NativeLayerRootSnapshotter {
  public:
-  virtual ~NativeLayerRootSnapshotter() {}
+  virtual ~NativeLayerRootSnapshotter() = default;
 
   // Reads the composited result of the NativeLayer tree into aReadbackBuffer,
   // synchronously. Should only be called right after a call to CommitToScreen()
@@ -119,6 +119,11 @@ class NativeLayer {
   virtual gfx::IntPoint GetPosition() = 0;
 
   virtual gfx::IntRect GetRect() = 0;
+
+  // The valid rect is stored here, but applied in the compositor code
+  // by combining it with the surface clip rect.
+  virtual void SetValidRect(const gfx::IntRect& aValidRect) = 0;
+  virtual gfx::IntRect GetValidRect() = 0;
 
   // Set an optional clip rect on the layer. The clip rect is in the same
   // coordinate space as the layer rect.
@@ -180,7 +185,7 @@ class NativeLayer {
   virtual void DiscardBackbuffers() = 0;
 
  protected:
-  virtual ~NativeLayer() {}
+  virtual ~NativeLayer() = default;
 };
 
 }  // namespace layers

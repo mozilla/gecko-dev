@@ -59,7 +59,7 @@ module.exports = function makeDebugger({
   findDebuggees,
   shouldAddNewGlobalAsDebuggee,
 } = {}) {
-  const dbg = isReplaying ? new ReplayDebugger() : new Debugger();
+  const dbg = new Debugger();
   EventEmitter.decorate(dbg);
 
   dbg.allowUnobservedAsmJS = true;

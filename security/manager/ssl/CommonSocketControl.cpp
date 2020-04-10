@@ -16,12 +16,10 @@ NS_IMPL_ISUPPORTS_INHERITED(CommonSocketControl, TransportSecurityInfo,
                             nsISSLSocketControl)
 
 CommonSocketControl::CommonSocketControl(uint32_t aProviderFlags)
-    : mNPNCompleted(false),
-      mHandshakeCompleted(false),
+    : mHandshakeCompleted(false),
       mJoined(false),
       mSentClientCert(false),
       mFailedVerification(false),
-      mResumed(false),
       mSSLVersionUsed(nsISSLSocketControl::SSL_VERSION_UNKNOWN),
       mProviderFlags(aProviderFlags) {}
 
@@ -49,16 +47,6 @@ CommonSocketControl::StartTLS(void) { return NS_ERROR_NOT_IMPLEMENTED; }
 NS_IMETHODIMP
 CommonSocketControl::SetNPNList(nsTArray<nsCString>& aNPNList) {
   return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-CommonSocketControl::GetNegotiatedNPN(nsACString& aNegotiatedNPN) {
-  if (!mNPNCompleted) {
-    return NS_ERROR_NOT_CONNECTED;
-  }
-
-  aNegotiatedNPN = mNegotiatedNPN;
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -260,12 +248,11 @@ CommonSocketControl::SetEsniTxt(const nsACString& aEsniTxt) {
 }
 
 NS_IMETHODIMP
-CommonSocketControl::GetResumed(bool* aResumed) {
-  *aResumed = mResumed;
-  return NS_OK;
+CommonSocketControl::GetPeerId(nsACString& aResult) {
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-CommonSocketControl::GetPeerId(nsACString& aResult) {
+CommonSocketControl::SetResumptionTokenFromExternalCache() {
   return NS_ERROR_NOT_IMPLEMENTED;
 }

@@ -111,7 +111,7 @@ CONSOLE: service-workers/service-worker/resources/navigation-redirect-other-orig
 CONSOLE: service-workers/service-worker/navigation-redirect.https.html
 CONSOLE: service-workers/service-worker/resources/clients-get-other-origin.html
 CONSOLE: webrtc/tools/*
-CONSOLE: webaudio/resources/audit.js:39
+CONSOLE: webaudio/resources/audit.js:41
 
 # use of console in a public library - annotation-model ensures
 # it is not actually used
@@ -297,6 +297,7 @@ SET TIMEOUT: document-policy/font-display/font-display-document-policy-01.tentat
 SET TIMEOUT: html/browsers/windows/auxiliary-browsing-contexts/resources/close-opener.html
 SET TIMEOUT: html/cross-origin-embedder-policy/resources/navigate-none.sub.html
 SET TIMEOUT: html/cross-origin-embedder-policy/resources/navigate-require-corp.sub.html
+SET TIMEOUT: html/cross-origin-embedder-policy/resources/navigate-require-corp-same-site.sub.html
 SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
 SET TIMEOUT: html/webappapis/timers/*
 SET TIMEOUT: portals/history/resources/portal-harness.js
@@ -668,6 +669,7 @@ MISSING-LINK: css/filter-effects/*.any.js
 # Tests that use WebKit/Blink testing APIs
 LAYOUTTESTS APIS: import-maps/resources/jest-test-helper.js
 LAYOUTTESTS APIS: import-maps/common/resources/common-test-helper.js
+LAYOUTTESTS APIS: resources/chromium/enable-hyperlink-auditing.js
 LAYOUTTESTS APIS: resources/chromium/generic_sensor_mocks.js
 LAYOUTTESTS APIS: resources/chromium/nfc-mock.js
 LAYOUTTESTS APIS: resources/chromium/webxr-test.js

@@ -238,18 +238,32 @@ void DCLayerTree::CompositorEndFrame() {
 }
 
 void DCLayerTree::Bind(wr::NativeTileId aId, wr::DeviceIntPoint* aOffset,
-                       uint32_t* aFboId, wr::DeviceIntRect aDirtyRect) {
+                       uint32_t* aFboId, wr::DeviceIntRect aDirtyRect,
+                       wr::DeviceIntRect aValidRect) {
   auto surface = GetSurface(aId.surface_id);
+  auto layer = surface->GetLayer(aId.x, aId.y);
   wr::DeviceIntPoint targetOffset{0, 0};
 
 #ifdef USE_VIRTUAL_SURFACES
+  gfx::IntRect validRect(aValidRect.origin.x, aValidRect.origin.y,
+                         aValidRect.size.width, aValidRect.size.height);
+  if (!layer->mValidRect.IsEqualEdges(validRect)) {
+    layer->mValidRect = validRect;
+    surface->DirtyAllocatedRect();
+  }
   wr::DeviceIntSize tileSize = surface->GetTileSize();
   RefPtr<IDCompositionSurface> compositionSurface =
       surface->GetCompositionSurface();
-  targetOffset.x = VIRTUAL_OFFSET + tileSize.width * aId.x;
-  targetOffset.y = VIRTUAL_OFFSET + tileSize.height * aId.y;
+  wr::DeviceIntPoint virtualOffset = surface->GetVirtualOffset();
+  targetOffset.x = virtualOffset.x + tileSize.width * aId.x;
+  targetOffset.y = virtualOffset.y + tileSize.height * aId.y;
 #else
-  auto layer = surface->GetLayer(aId.x, aId.y);
+  D2D_RECT_F clip_rect;
+  clip_rect.left = aValidRect.origin.x;
+  clip_rect.top = aValidRect.origin.y;
+  clip_rect.right = clip_rect.left + aValidRect.size.width;
+  clip_rect.bottom = clip_rect.top + aValidRect.size.height;
+  layer->GetVisual()->SetClip(clip_rect);
   RefPtr<IDCompositionSurface> compositionSurface =
       layer->GetCompositionSurface();
 #endif
@@ -272,6 +286,7 @@ void DCLayerTree::Unbind() {
 }
 
 void DCLayerTree::CreateSurface(wr::NativeSurfaceId aId,
+                                wr::DeviceIntPoint aVirtualOffset,
                                 wr::DeviceIntSize aTileSize, bool aIsOpaque) {
   auto it = mDCSurfaces.find(aId);
   MOZ_RELEASE_ASSERT(it == mDCSurfaces.end());
@@ -280,7 +295,8 @@ void DCLayerTree::CreateSurface(wr::NativeSurfaceId aId,
     return;
   }
 
-  auto surface = MakeUnique<DCSurface>(aTileSize, aIsOpaque, this);
+  auto surface =
+      MakeUnique<DCSurface>(aTileSize, aVirtualOffset, aIsOpaque, this);
   if (!surface->Initialize()) {
     gfxCriticalNote << "Failed to initialize DCSurface: " << wr::AsUint64(aId);
     return;
@@ -319,8 +335,9 @@ void DCLayerTree::AddSurface(wr::NativeSurfaceId aId,
 #ifdef USE_VIRTUAL_SURFACES
   layer->UpdateAllocatedRect();
 
-  aPosition.x -= VIRTUAL_OFFSET;
-  aPosition.y -= VIRTUAL_OFFSET;
+  wr::DeviceIntPoint virtualOffset = layer->GetVirtualOffset();
+  aPosition.x -= virtualOffset.x;
+  aPosition.y -= virtualOffset.y;
 #endif
 
   // Place the visual - this changes frame to frame based on scroll position
@@ -383,12 +400,14 @@ GLuint DCLayerTree::GetOrCreateFbo(int aWidth, int aHeight) {
   return fboId;
 }
 
-DCSurface::DCSurface(wr::DeviceIntSize aTileSize, bool aIsOpaque,
+DCSurface::DCSurface(wr::DeviceIntSize aTileSize,
+                     wr::DeviceIntPoint aVirtualOffset, bool aIsOpaque,
                      DCLayerTree* aDCLayerTree)
     : mDCLayerTree(aDCLayerTree),
       mTileSize(aTileSize),
       mIsOpaque(aIsOpaque),
-      mAllocatedRectDirty(true) {}
+      mAllocatedRectDirty(true),
+      mVirtualOffset(aVirtualOffset) {}
 
 DCSurface::~DCSurface() {}
 
@@ -405,9 +424,9 @@ bool DCSurface::Initialize() {
   DXGI_ALPHA_MODE alpha_mode =
       mIsOpaque ? DXGI_ALPHA_MODE_IGNORE : DXGI_ALPHA_MODE_PREMULTIPLIED;
 
-  hr = dCompDevice->CreateVirtualSurface(VIRTUAL_OFFSET * 2, VIRTUAL_OFFSET * 2,
-                                         DXGI_FORMAT_B8G8R8A8_UNORM, alpha_mode,
-                                         getter_AddRefs(mVirtualSurface));
+  hr = dCompDevice->CreateVirtualSurface(
+      VIRTUAL_SURFACE_SIZE, VIRTUAL_SURFACE_SIZE, DXGI_FORMAT_B8G8R8A8_UNORM,
+      alpha_mode, getter_AddRefs(mVirtualSurface));
   MOZ_ASSERT(SUCCEEDED(hr));
 
   // Bind the surface memory to this visual
@@ -449,6 +468,8 @@ void DCSurface::DestroyTile(int aX, int aY) {
 }
 
 #ifdef USE_VIRTUAL_SURFACES
+void DCSurface::DirtyAllocatedRect() { mAllocatedRectDirty = true; }
+
 void DCSurface::UpdateAllocatedRect() {
   if (mAllocatedRectDirty) {
     // The virtual surface may have holes in it (for example, an empty tile
@@ -457,12 +478,15 @@ void DCSurface::UpdateAllocatedRect() {
     std::vector<RECT> validRects;
 
     for (auto it = mDCLayers.begin(); it != mDCLayers.end(); ++it) {
+      auto layer = GetLayer(it->first.mX, it->first.mY);
       RECT rect;
 
-      rect.left = (LONG)(VIRTUAL_OFFSET + it->first.mX * mTileSize.width);
-      rect.top = (LONG)(VIRTUAL_OFFSET + it->first.mY * mTileSize.height);
-      rect.right = rect.left + mTileSize.width;
-      rect.bottom = rect.top + mTileSize.height;
+      rect.left = (LONG)(mVirtualOffset.x + it->first.mX * mTileSize.width +
+                         layer->mValidRect.x);
+      rect.top = (LONG)(mVirtualOffset.y + it->first.mY * mTileSize.height +
+                        layer->mValidRect.y);
+      rect.right = rect.left + layer->mValidRect.width;
+      rect.bottom = rect.top + layer->mValidRect.height;
 
       validRects.push_back(rect);
     }
@@ -490,7 +514,14 @@ bool DCLayer::Initialize(int aX, int aY, wr::DeviceIntSize aSize,
     return false;
   }
 
-#ifndef USE_VIRTUAL_SURFACES
+#ifdef USE_VIRTUAL_SURFACES
+  // Initially, the entire tile is considered valid, unless it is set by
+  // the SetTileProperties method.
+  mValidRect.x = 0;
+  mValidRect.y = 0;
+  mValidRect.width = aSize.width;
+  mValidRect.height = aSize.height;
+#else
   HRESULT hr;
   const auto dCompDevice = mDCLayerTree->GetCompositionDevice();
   hr = dCompDevice->CreateVisual(getter_AddRefs(mVisual));

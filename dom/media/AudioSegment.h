@@ -288,13 +288,12 @@ class AudioSegment : public MediaSegmentBase<AudioSegment, AudioChunk> {
 
   AudioSegment() : MediaSegmentBase<AudioSegment, AudioChunk>(AUDIO) {}
 
-  AudioSegment(AudioSegment&& aSegment)
-      : MediaSegmentBase<AudioSegment, AudioChunk>(std::move(aSegment)) {}
+  AudioSegment(AudioSegment&& aSegment) = default;
 
   AudioSegment(const AudioSegment&) = delete;
   AudioSegment& operator=(const AudioSegment&) = delete;
 
-  ~AudioSegment() {}
+  ~AudioSegment() = default;
 
   // Resample the whole segment in place.  `aResampler` is an instance of a
   // resampler, initialized with `aResamplerChannelCount` channels. If this
@@ -397,7 +396,7 @@ class AudioSegment : public MediaSegmentBase<AudioSegment, AudioChunk> {
   // in the segment.
   AudioChunk* AppendAndConsumeChunk(AudioChunk* aChunk) {
     AudioChunk* chunk = AppendChunk(aChunk->mDuration);
-    chunk->mBuffer = aChunk->mBuffer.forget();
+    chunk->mBuffer = std::move(aChunk->mBuffer);
     chunk->mChannelData.SwapElements(aChunk->mChannelData);
 
     MOZ_ASSERT(chunk->mBuffer || aChunk->mChannelData.IsEmpty(),

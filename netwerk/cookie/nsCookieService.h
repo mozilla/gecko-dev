@@ -15,7 +15,6 @@
 #include "nsCookie.h"
 #include "nsCookieKey.h"
 #include "nsString.h"
-#include "nsAutoPtr.h"
 #include "nsHashKeys.h"
 #include "nsIMemoryReporter.h"
 #include "nsTHashtable.h"
@@ -35,7 +34,7 @@
 using mozilla::OriginAttributes;
 
 class nsICookiePermission;
-class nsICookieSettings;
+class nsICookieJarSettings;
 class nsIEffectiveTLDService;
 class nsIIDNService;
 class nsIPrefBranch;
@@ -172,8 +171,6 @@ class nsCookieService final : public nsICookieService,
  private:
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-  static bool sSameSiteEnabled;  // cached pref
-
  public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -207,20 +204,23 @@ class nsCookieService final : public nsICookieService,
                            bool aFromHttp, nsIChannel* aChannel,
                            bool& aSetCookie,
                            mozIThirdPartyUtil* aThirdPartyUtil);
-  static CookieStatus CheckPrefs(
-      nsICookieSettings* aCookieSettings, nsIURI* aHostURI, bool aIsForeign,
-      bool aIsTrackingResource, bool aIsSocialTrackingResource,
-      bool aIsFirstPartyStorageAccessGranted, const nsACString& aCookieHeader,
-      const int aNumOfCookies, const OriginAttributes& aOriginAttrs,
-      uint32_t* aRejectedReason);
+  static CookieStatus CheckPrefs(nsICookieJarSettings* aCookieJarSettings,
+                                 nsIURI* aHostURI, bool aIsForeign,
+                                 bool aIsThirdPartyTrackingResource,
+                                 bool aIsThirdPartySocialTrackingResource,
+                                 bool aFirstPartyStorageAccessGranted,
+                                 const nsACString& aCookieHeader,
+                                 const int aNumOfCookies,
+                                 const OriginAttributes& aOriginAttrs,
+                                 uint32_t* aRejectedReason);
   static int64_t ParseServerTime(const nsACString& aServerTime);
 
-  static already_AddRefed<nsICookieSettings> GetCookieSettings(
+  static already_AddRefed<nsICookieJarSettings> GetCookieJarSettings(
       nsIChannel* aChannel);
 
   void GetCookiesForURI(nsIURI* aHostURI, nsIChannel* aChannel, bool aIsForeign,
-                        bool aIsTrackingResource,
-                        bool aIsSocialTrackingResource,
+                        bool aIsThirdPartyTrackingResource,
+                        bool aIsThirdPartySocialTrackingResource,
                         bool aFirstPartyStorageAccessGranted,
                         uint32_t aRejectedReason, bool aIsSafeTopLevelNav,
                         bool aIsSameSiteForeign, bool aHttpBound,
@@ -261,7 +261,8 @@ class nsCookieService final : public nsICookieService,
                                  bool aHttpBound, nsACString& aCookie);
   void GetCookieStringInternal(
       nsIURI* aHostURI, nsIChannel* aChannel, bool aIsForeign,
-      bool aIsTrackingResource, bool aIsSocialTrackingResource,
+      bool aIsThirdPartyTrackingResource,
+      bool aIsThirdPartySocialTrackingResource,
       bool aFirstPartyStorageAccessGranted, uint32_t aRejectedReason,
       bool aIsSafeTopLevelNav, bool aIsSameSiteForeign, bool aHttpBound,
       const OriginAttributes& aOriginAttrs, nsACString& aCookie);
@@ -270,10 +271,10 @@ class nsCookieService final : public nsICookieService,
                                  const nsACString& aServerTime,
                                  nsIChannel* aChannel, bool aFromHttp);
   void SetCookieStringInternal(
-      nsIURI* aHostURI, bool aIsForeign, bool aIsTrackingResource,
-      bool aIsSocialTrackingResource, bool aFirstPartyStorageAccessGranted,
-      uint32_t aRejectedReason, nsCString& aCookieHeader,
-      const nsACString& aServerTime, bool aFromHttp,
+      nsIURI* aHostURI, bool aIsForeign, bool aIsThirdPartyTrackingResource,
+      bool aIsThirdPartySocialTrackingResource,
+      bool aFirstPartyStorageAccessGranted, uint32_t aRejectedReason,
+      nsCString& aCookieHeader, const nsACString& aServerTime, bool aFromHttp,
       const OriginAttributes& aOriginAttrs, nsIChannel* aChannel);
   bool SetCookieInternal(nsIURI* aHostURI, const nsCookieKey& aKey,
                          bool aRequireHostMatch, CookieStatus aStatus,

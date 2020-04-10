@@ -486,20 +486,31 @@ pub struct ExternalTexture {
     id: gl::GLuint,
     target: gl::GLuint,
     swizzle: Swizzle,
+    uv_rect: TexelRect,
 }
 
 impl ExternalTexture {
-    pub fn new(id: u32, target: TextureTarget, swizzle: Swizzle) -> Self {
+    pub fn new(
+        id: u32,
+        target: TextureTarget,
+        swizzle: Swizzle,
+        uv_rect: TexelRect,
+    ) -> Self {
         ExternalTexture {
             id,
             target: get_gl_target(target),
             swizzle,
+            uv_rect,
         }
     }
 
     #[cfg(feature = "replay")]
     pub fn internal_id(&self) -> gl::GLuint {
         self.id
+    }
+
+    pub fn get_uv_rect(&self) -> TexelRect {
+        self.uv_rect
     }
 }
 
@@ -618,6 +629,13 @@ impl Texture {
             id: self.id,
             target: self.target,
             swizzle: Swizzle::default(),
+            // TODO(gw): Support custom UV rect for external textures during captures
+            uv_rect: TexelRect::new(
+                0.0,
+                0.0,
+                self.size.width as f32,
+                self.size.height as f32,
+            ),
         };
         self.id = 0; // don't complain, moved out
         ext
@@ -830,7 +848,8 @@ impl ProgramBinary {
 
 /// The interfaces that an application can implement to handle ProgramCache update
 pub trait ProgramCacheObserver {
-    fn update_disk_cache(&self, entries: Vec<Arc<ProgramBinary>>);
+    fn save_shaders_to_disk(&self, entries: Vec<Arc<ProgramBinary>>);
+    fn set_startup_shaders(&self, entries: Vec<Arc<ProgramBinary>>);
     fn try_load_shader_from_disk(&self, digest: &ProgramSourceDigest, program_cache: &Rc<ProgramCache>);
     fn notify_program_binary_failed(&self, program_binary: &Arc<ProgramBinary>);
 }
@@ -845,12 +864,12 @@ struct ProgramCacheEntry {
 pub struct ProgramCache {
     entries: RefCell<FastHashMap<ProgramSourceDigest, ProgramCacheEntry>>,
 
-    /// True if we've already updated the disk cache with the shaders used during startup.
-    updated_disk_cache: Cell<bool>,
-
     /// Optional trait object that allows the client
     /// application to handle ProgramCache updating
     program_cache_handler: Option<Box<dyn ProgramCacheObserver>>,
+
+    /// Programs that have not yet been cached to disk (by program_cache_handler)
+    pending_entries: RefCell<Vec<Arc<ProgramBinary>>>,
 }
 
 impl ProgramCache {
@@ -858,27 +877,42 @@ impl ProgramCache {
         Rc::new(
             ProgramCache {
                 entries: RefCell::new(FastHashMap::default()),
-                updated_disk_cache: Cell::new(false),
                 program_cache_handler: program_cache_observer,
+                pending_entries: RefCell::new(Vec::default()),
             }
         )
     }
 
-    /// Notify that we've rendered the first few frames, and that the shaders
-    /// we've loaded correspond to the shaders needed during startup, and thus
-    /// should be the ones cached to disk.
-    fn startup_complete(&self) {
-        if self.updated_disk_cache.get() {
-            return;
-        }
-
+    /// Save any new program binaries to the disk cache, and if startup has
+    /// just completed then write the list of shaders to load on next startup.
+    fn update_disk_cache(&self, startup_complete: bool) {
         if let Some(ref handler) = self.program_cache_handler {
-            let active_shaders = self.entries.borrow().values()
-                .filter(|e| e.linked).map(|e| e.binary.clone())
-                .collect::<Vec<_>>();
-            handler.update_disk_cache(active_shaders);
-            self.updated_disk_cache.set(true);
+            if !self.pending_entries.borrow().is_empty() {
+                let pending_entries = self.pending_entries.replace(Vec::default());
+                handler.save_shaders_to_disk(pending_entries);
+            }
+
+            if startup_complete {
+                let startup_shaders = self.entries.borrow().values()
+                    .filter(|e| e.linked).map(|e| e.binary.clone())
+                    .collect::<Vec<_>>();
+                handler.set_startup_shaders(startup_shaders);
+            }
         }
+    }
+
+    /// Add a new ProgramBinary to the cache.
+    /// This function is typically used after compiling and linking a new program.
+    /// The binary will be saved to disk the next time update_disk_cache() is called.
+    fn add_new_program_binary(&self, program_binary: Arc<ProgramBinary>) {
+        self.pending_entries.borrow_mut().push(program_binary.clone());
+
+        let digest = program_binary.source_digest.clone();
+        let entry = ProgramCacheEntry {
+            binary: program_binary,
+            linked: true,
+        };
+        self.entries.borrow_mut().insert(digest, entry);
     }
 
     /// Load ProgramBinary to ProgramCache.
@@ -949,6 +983,8 @@ pub struct Capabilities {
     /// Whether the driver supports uploading to textures from a non-zero
     /// offset within a PBO.
     pub supports_nonzero_pbo_offsets: bool,
+    /// Whether the driver supports specifying the texture usage up front.
+    pub supports_texture_usage: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -1309,6 +1345,8 @@ impl Device {
             gl.provoking_vertex_angle(gl::FIRST_VERTEX_CONVENTION);
         }
 
+        let supports_texture_usage = supports_extension(&extensions, "GL_ANGLE_texture_usage");
+
         // Our common-case image data in Firefox is BGRA, so we make an effort
         // to use BGRA as the internal texture storage format to avoid the need
         // to swizzle during upload. Currently we only do this on GLES (and thus
@@ -1480,6 +1518,7 @@ impl Device {
                 supports_khr_debug,
                 supports_texture_swizzle,
                 supports_nonzero_pbo_offsets,
+                supports_texture_usage,
             },
 
             color_formats,
@@ -2015,11 +2054,8 @@ impl Device {
                 if !cached_programs.entries.borrow().contains_key(&info.digest) {
                     let (buffer, format) = self.gl.get_program_binary(program.id);
                     if buffer.len() > 0 {
-                        let entry = ProgramCacheEntry {
-                            binary: Arc::new(ProgramBinary::new(buffer, format, info.digest.clone())),
-                            linked: true,
-                        };
-                        cached_programs.entries.borrow_mut().insert(info.digest.clone(), entry);
+                        let binary = Arc::new(ProgramBinary::new(buffer, format, info.digest.clone()));
+                        cached_programs.add_new_program_binary(binary);
                     }
                 }
             }
@@ -2083,6 +2119,10 @@ impl Device {
         };
         self.bind_texture(DEFAULT_TEXTURE, &texture, Swizzle::default());
         self.set_texture_parameters(texture.target, filter);
+
+        if self.capabilities.supports_texture_usage && render_target.is_some() {
+            self.gl.tex_parameter_i(texture.target, gl::TEXTURE_USAGE_ANGLE, gl::FRAMEBUFFER_ATTACHMENT_ANGLE as gl::GLint);
+        }
 
         // Allocate storage.
         let desc = self.gl_describe_format(texture.format);
@@ -3272,13 +3312,11 @@ impl Device {
 
         self.frame_id.0 += 1;
 
-        // Declare startup complete after the first ten frames. This number is
-        // basically a heuristic, which dictates how early a shader needs to be
-        // used in order to be cached to disk.
-        if self.frame_id.0 == 10 {
-            if let Some(ref cache) = self.cached_programs {
-                cache.startup_complete();
-            }
+        // Save any shaders compiled this frame to disk.
+        // If this is the tenth frame then treat startup as complete, meaning the
+        // current set of in-use shaders are the ones to load on the next startup.
+        if let Some(ref cache) = self.cached_programs {
+            cache.update_disk_cache(self.frame_id.0 == 10);
         }
     }
 

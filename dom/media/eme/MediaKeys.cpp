@@ -59,6 +59,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(MediaKeys)
   tmp->UnregisterActivityObserver();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocument)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_PTR
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(MediaKeys)
@@ -119,7 +120,8 @@ void MediaKeys::Terminated() {
   // Remove entries during iteration will screw it. Make a copy first.
   for (auto iter = mKeySessions.Iter(); !iter.Done(); iter.Next()) {
     RefPtr<MediaKeySession>& session = iter.Data();
-    keySessions.Put(session->GetSessionId(), session);
+    // XXX Could the RefPtr still be moved here?
+    keySessions.Put(session->GetSessionId(), RefPtr{session});
   }
   for (auto iter = keySessions.Iter(); !iter.Done(); iter.Next()) {
     RefPtr<MediaKeySession>& session = iter.Data();
@@ -184,7 +186,7 @@ already_AddRefed<DetailedPromise> MediaKeys::SetServerCertificate(
   CopyArrayBufferViewOrArrayBufferData(aCert, data);
   if (data.IsEmpty()) {
     promise->MaybeRejectWithTypeError(
-        u"Empty certificate passed to MediaKeys.setServerCertificate()");
+        "Empty certificate passed to MediaKeys.setServerCertificate()");
     return promise.forget();
   }
 
@@ -222,7 +224,7 @@ PromiseId MediaKeys::StorePromise(DetailedPromise* aPromise) {
   }
 #endif
 
-  mPromises.Put(id, aPromise);
+  mPromises.Put(id, RefPtr{aPromise});
   return id;
 }
 
@@ -254,16 +256,17 @@ already_AddRefed<DetailedPromise> MediaKeys::RetrievePromise(PromiseId aId) {
   return promise.forget();
 }
 
-void MediaKeys::RejectPromise(PromiseId aId, nsresult aExceptionCode,
+void MediaKeys::RejectPromise(PromiseId aId, ErrorResult&& aException,
                               const nsCString& aReason) {
+  uint32_t errorCodeAsInt = aException.ErrorCodeAsInt();
   EME_LOG("MediaKeys[%p]::RejectPromise(%" PRIu32 ", 0x%" PRIx32 ")", this, aId,
-          static_cast<uint32_t>(aExceptionCode));
+          errorCodeAsInt);
 
   RefPtr<DetailedPromise> promise(RetrievePromise(aId));
   if (!promise) {
     EME_LOG("MediaKeys[%p]::RejectPromise(%" PRIu32 ", 0x%" PRIx32
             ") couldn't retrieve promise! Bailing!",
-            this, aId, static_cast<uint32_t>(aExceptionCode));
+            this, aId, errorCodeAsInt);
     return;
   }
 
@@ -278,19 +281,14 @@ void MediaKeys::RejectPromise(PromiseId aId, nsresult aExceptionCode,
     mPromiseIdToken.Remove(aId);
   }
 
-  MOZ_ASSERT(NS_FAILED(aExceptionCode));
-  if (aExceptionCode == NS_ERROR_DOM_TYPE_ERR) {
-    // This is supposed to be a TypeError, not a DOMException.
-    promise->MaybeRejectWithTypeError(NS_ConvertUTF8toUTF16(aReason));
-  } else {
-    promise->MaybeReject(aExceptionCode, aReason);
-  }
+  MOZ_ASSERT(aException.Failed());
+  promise->MaybeReject(std::move(aException), aReason);
 
   if (mCreatePromiseId == aId) {
     // Note: This will probably destroy the MediaKeys object!
     EME_LOG("MediaKeys[%p]::RejectPromise(%" PRIu32 ", 0x%" PRIx32
             ") calling Release()",
-            this, aId, static_cast<uint32_t>(aExceptionCode));
+            this, aId, errorCodeAsInt);
     Release();
   }
 }
@@ -314,7 +312,7 @@ void MediaKeys::OnSessionIdReady(MediaKeySession* aSession) {
         "MediaKeySession with invalid sessionId passed to OnSessionIdReady()");
     return;
   }
-  mKeySessions.Put(aSession->GetSessionId(), aSession);
+  mKeySessions.Put(aSession->GetSessionId(), RefPtr{aSession});
 }
 
 void MediaKeys::ResolvePromise(PromiseId aId) {
@@ -349,7 +347,7 @@ void MediaKeys::ResolvePromise(PromiseId aId) {
         "CDM LoadSession() returned a different session ID than requested");
     return;
   }
-  mKeySessions.Put(session->GetSessionId(), session);
+  mKeySessions.Put(session->GetSessionId(), RefPtr{session});
   promise->MaybeResolve(session);
 }
 
@@ -545,7 +543,7 @@ already_AddRefed<MediaKeySession> MediaKeys::CreateSession(
   EME_LOG("MediaKeys[%p]::CreateSession(aCx=%p, aSessionType=%" PRIu8
           ") putting session with token=%" PRIu32 " into mPendingSessions",
           this, aCx, static_cast<uint8_t>(aSessionType), session->Token());
-  mPendingSessions.Put(session->Token(), session);
+  mPendingSessions.Put(session->Token(), RefPtr{session});
 
   return session.forget();
 }

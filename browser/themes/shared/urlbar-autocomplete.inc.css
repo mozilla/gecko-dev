@@ -63,7 +63,7 @@
 
 .urlbarView.megabar .urlbarView-body-inner {
   width: 100%;
-  border-top: 1px solid var(--panel-separator-color);
+  border-top: 1px solid var(--urlbar-separator-color);
 }
 
 .urlbarView:not(.megabar) {
@@ -386,8 +386,8 @@
 
 .urlbarView-title-separator::before {
   content: "\2014";
-  color: var(--panel-disabled-color);
   margin: 0 .4em;
+  opacity: 0.6;
 }
 
 .urlbarView-title:empty + .urlbarView-tags:empty + .urlbarView-title-separator {
@@ -416,7 +416,6 @@
   color: var(--urlbar-popup-url-color);
 }
 
-.urlbarView-row[selected] > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-title-separator::before,
 .urlbarView-row[selected] > .urlbarView-row-inner > .urlbarView-no-wrap >.urlbarView-action,
 .urlbarView-row[selected] > .urlbarView-row-inner > .urlbarView-url {
   color: inherit;

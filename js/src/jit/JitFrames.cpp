@@ -552,6 +552,10 @@ void HandleException(ResumeFromException* rfe) {
   JSContext* cx = TlsContext.get();
   TraceLoggerThread* logger = TraceLoggerForCurrentThread(cx);
 
+#ifdef DEBUG
+  cx->runtime()->jitRuntime()->clearDisallowArbitraryCode();
+#endif
+
   auto resetProfilerFrame = mozilla::MakeScopeExit([=] {
     if (!cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(
             cx->runtime())) {
@@ -724,6 +728,19 @@ void EnsureBareExitFrame(JitActivation* act, JitFrameLayout* frame) {
   act->setJSExitFP((uint8_t*)frame);
   exitFrame->footer()->setBareExitFrame();
   MOZ_ASSERT(exitFrame->isBareExit());
+}
+
+JSScript* MaybeForwardedScriptFromCalleeToken(CalleeToken token) {
+  switch (GetCalleeTokenTag(token)) {
+    case CalleeToken_Script:
+      return MaybeForwarded(CalleeTokenToScript(token));
+    case CalleeToken_Function:
+    case CalleeToken_FunctionConstructing: {
+      JSFunction* fun = MaybeForwarded(CalleeTokenToFunction(token));
+      return MaybeForwarded(fun)->nonLazyScript();
+    }
+  }
+  MOZ_CRASH("invalid callee token tag");
 }
 
 CalleeToken TraceCalleeToken(JSTracer* trc, CalleeToken token) {

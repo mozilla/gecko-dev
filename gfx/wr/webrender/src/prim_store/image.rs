@@ -118,7 +118,7 @@ pub enum ImageSource {
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
-#[derive(MallocSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub struct ImageData {
     pub key: ApiImageKey,
     pub stretch_size: LayoutSize,
@@ -512,7 +512,8 @@ impl InternablePrimitive for YuvImage {
     ) -> PrimitiveInstanceKind {
         PrimitiveInstanceKind::YuvImage {
             data_handle,
-            segment_instance_index: SegmentInstanceIndex::INVALID
+            segment_instance_index: SegmentInstanceIndex::INVALID,
+            is_compositor_surface: false,
         }
     }
 }

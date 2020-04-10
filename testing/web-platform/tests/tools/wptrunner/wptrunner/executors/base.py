@@ -163,14 +163,18 @@ class TimedRunner(object):
                 self.result = False, ("INTERNAL-ERROR", "%s.run_func didn't set a result" %
                                       self.__class__.__name__)
             else:
-                message = "Executor hit external timeout (this may indicate a hang)\n"
-                # get a traceback for the current stack of the executor thread
-                message += "".join(traceback.format_stack(sys._current_frames()[executor.ident]))
-                self.result = False, ("EXTERNAL-TIMEOUT", message)
+                if self.protocol.is_alive():
+                    message = "Executor hit external timeout (this may indicate a hang)\n"
+                    # get a traceback for the current stack of the executor thread
+                    message += "".join(traceback.format_stack(sys._current_frames()[executor.ident]))
+                    self.result = False, ("EXTERNAL-TIMEOUT", message)
+                else:
+                    self.logger.info("Browser not responding, setting status to CRASH")
+                    self.result = False, ("CRASH", None)
         elif self.result[1] is None:
             # We didn't get any data back from the test, so check if the
             # browser is still responsive
-            if self.protocol.is_alive:
+            if self.protocol.is_alive():
                 self.result = False, ("INTERNAL-ERROR", None)
             else:
                 self.logger.info("Browser not responding, setting status to CRASH")
@@ -256,8 +260,9 @@ class TestExecutor(object):
         try:
             result = self.do_test(test)
         except Exception as e:
-            self.logger.warning(traceback.format_exc(e))
-            result = self.result_from_exception(test, e)
+            exception_string = traceback.format_exc()
+            self.logger.warning(exception_string)
+            result = self.result_from_exception(test, e, exception_string)
 
         if result is Stop:
             return result
@@ -271,7 +276,8 @@ class TestExecutor(object):
         self.runner.send_message("test_ended", test, result)
 
     def server_url(self, protocol):
-        return "%s://%s:%s" % (protocol,
+        scheme = "https" if protocol == "h2" else protocol
+        return "%s://%s:%s" % (scheme,
                                self.server_config["browser_host"],
                                self.server_config["ports"][protocol][0])
 
@@ -289,7 +295,7 @@ class TestExecutor(object):
     def on_environment_change(self, new_environment):
         pass
 
-    def result_from_exception(self, test, e):
+    def result_from_exception(self, test, e, exception_string):
         if hasattr(e, "status") and e.status in test.result_cls.statuses:
             status = e.status
         else:
@@ -297,7 +303,7 @@ class TestExecutor(object):
         message = text_type(getattr(e, "message", ""))
         if message:
             message += "\n"
-        message += traceback.format_exc(e)
+        message += exception_string
         return test.result_cls(status, message), []
 
     def wait(self):
@@ -511,7 +517,7 @@ class WdspecExecutor(TestExecutor):
         self.protocol = self.protocol_cls(self, browser)
 
     def is_alive(self):
-        return self.protocol.is_alive
+        return self.protocol.is_alive()
 
     def on_environment_change(self, new_environment):
         pass
@@ -574,7 +580,7 @@ class WdspecRun(object):
             message = getattr(e, "message")
             if message:
                 message += "\n"
-            message += traceback.format_exc(e)
+            message += traceback.format_exc()
             self.result = False, ("INTERNAL-ERROR", message)
         finally:
             self.result_flag.set()
@@ -637,10 +643,9 @@ class WebDriverProtocol(Protocol):
         pass
 
     def teardown(self):
-        if self.server is not None and self.server.is_alive:
+        if self.server is not None and self.server.is_alive():
             self.server.stop()
 
-    @property
     def is_alive(self):
         """Test that the connection is still alive.
 

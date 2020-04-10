@@ -15,16 +15,8 @@
 #include "nsIContentInlines.h"  // for nsINode::IsEditable()
 #include "nsLayoutUtils.h"      // for nsLayoutUtils
 
-#define ENABLE_FT_LOGGING 0
-// #define ENABLE_FT_LOGGING 1
-
-#if ENABLE_FT_LOGGING
-#  define FT_LOG(FMT, ...)         \
-    printf_stderr("FT (%s): " FMT, \
-                  XRE_IsParentProcess() ? "chrome" : "content", __VA_ARGS__)
-#else
-#  define FT_LOG(...)
-#endif
+static mozilla::LazyLogModule sApzFtgLog("apz.focustarget");
+#define FT_LOG(...) MOZ_LOG(sApzFtgLog, LogLevel::Debug, (__VA_ARGS__))
 
 using namespace mozilla::dom;
 using namespace mozilla::layout;
@@ -164,7 +156,7 @@ FocusTarget::FocusTarget(PresShell* aRootPresShell,
     if (layersId.IsValid()) {
       FT_LOG("Creating reflayer target with seq=%" PRIu64 ", kl=%d, lt=%" PRIu64
              "\n",
-             aFocusSequenceNumber, mFocusHasKeyEventListeners, layersId);
+             aFocusSequenceNumber, mFocusHasKeyEventListeners, layersId.mId);
 
       mData = AsVariant<LayersId>(std::move(layersId));
       return;

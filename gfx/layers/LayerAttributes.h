@@ -21,7 +21,13 @@ struct ParamTraits;
 namespace mozilla {
 namespace layers {
 
-enum class ScrollbarLayerType : uint8_t { None, Thumb, Container };
+// clang-format off
+MOZ_DEFINE_ENUM_CLASS_WITH_BASE(ScrollbarLayerType, uint8_t, (
+  None,
+  Thumb,
+  Container
+));
+// clang-format on
 
 /**
  *  It stores data for scroll thumb layer or container layers.
@@ -126,8 +132,7 @@ struct ScrollbarData {
 };
 
 /**
- * Infrequently changing layer attributes that require no special
- * serialization work.
+ * Infrequently changing layer attributes.
  */
 class SimpleLayerAttributes final {
   friend struct IPC::ParamTraits<mozilla::layers::SimpleLayerAttributes>;
@@ -382,6 +387,8 @@ class SimpleLayerAttributes final {
     SideBits mSides;
   };
   Maybe<FixedPositionData> mFixedPositionData;
+  friend struct IPC::ParamTraits<
+      mozilla::layers::SimpleLayerAttributes::FixedPositionData>;
 
   struct StickyPositionData {
     ScrollableLayerGuid::ViewID mScrollId;
@@ -389,11 +396,11 @@ class SimpleLayerAttributes final {
     LayerRectAbsolute mInner;
   };
   Maybe<StickyPositionData> mStickyPositionData;
+  friend struct IPC::ParamTraits<
+      mozilla::layers::SimpleLayerAttributes::StickyPositionData>;
 
-  /**
-   * This class may only contain plain-old-data members that can be safely
-   * copied over IPC. Make sure to add new members to operator ==.
-   */
+  // Make sure to add new members to operator== and the ParamTraits template
+  // instantiation.
 };
 
 }  // namespace layers

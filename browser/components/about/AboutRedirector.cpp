@@ -62,20 +62,14 @@ static const RedirEntry kRedirMap[] = {
     {"tabcrashed", "chrome://browser/content/aboutTabCrashed.xhtml",
      nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
          nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::HIDE_FROM_ABOUTABOUT},
-    {"policies", "chrome://browser/content/policies/aboutPolicies.xhtml",
+    {"policies", "chrome://browser/content/policies/aboutPolicies.html",
      nsIAboutModule::ALLOW_SCRIPT},
-    {"privatebrowsing", "chrome://browser/content/aboutPrivateBrowsing.xhtml",
+    {"privatebrowsing", "chrome://browser/content/aboutPrivateBrowsing.html",
      nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
          nsIAboutModule::URI_MUST_LOAD_IN_CHILD | nsIAboutModule::ALLOW_SCRIPT},
-#if !defined(ANDROID) && defined(NIGHTLY_BUILD)
-    // about:profiling is Nightly-only while it is in active development. Once
-    // the feature matures, it will be released across all desktop channels.
-    // When removing this ifdef, make sure and handle the ifdef in
-    // devtools/client/jar.mn as well.
     {"profiling",
      "chrome://devtools/content/performance-new/aboutprofiling/index.xhtml",
      nsIAboutModule::ALLOW_SCRIPT},
-#endif
     {"rights", "chrome://global/content/aboutRights.xhtml",
      nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
          nsIAboutModule::ALLOW_SCRIPT},

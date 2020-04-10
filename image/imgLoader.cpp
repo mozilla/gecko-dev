@@ -725,20 +725,13 @@ static bool ShouldLoadCachedImage(imgRequest* aImgRequest,
     }
 
     if (!aTriggeringPrincipal || !aTriggeringPrincipal->IsSystemPrincipal()) {
-      // Set the requestingLocation from the aTriggeringPrincipal.
-      nsCOMPtr<nsIURI> requestingLocation;
-      if (aTriggeringPrincipal) {
-        rv = aTriggeringPrincipal->GetURI(getter_AddRefs(requestingLocation));
-        NS_ENSURE_SUCCESS(rv, false);
-      }
-
       // reset the decision for mixed content blocker check
       decision = nsIContentPolicy::REJECT_REQUEST;
-      rv = nsMixedContentBlocker::ShouldLoad(
-          insecureRedirect, aPolicyType, contentLocation, requestingLocation,
-          aLoadingContext,
-          EmptyCString(),  // mime guess
-          aTriggeringPrincipal, &decision);
+      rv = nsMixedContentBlocker::ShouldLoad(insecureRedirect, aPolicyType,
+                                             contentLocation, nullptr,
+                                             aLoadingContext,
+                                             EmptyCString(),  // mime guess
+                                             aTriggeringPrincipal, &decision);
       if (NS_FAILED(rv) || !NS_CP_ACCEPTED(decision)) {
         return false;
       }
@@ -895,7 +888,7 @@ static nsresult NewImageChannel(
     // requestingNode.
     rv = NS_NewChannel(aResult, aURI, nsContentUtils::GetSystemPrincipal(),
                        securityFlags, aPolicyType,
-                       nullptr,  // nsICookieSettings
+                       nullptr,  // nsICookieJarSettings
                        nullptr,  // PerformanceStorage
                        nullptr,  // loadGroup
                        callbacks, aLoadFlags);
@@ -1545,7 +1538,7 @@ bool imgLoader::PutIntoCache(const ImageCacheKey& aKey, imgCacheEntry* entry) {
              nullptr));
   }
 
-  cache.Put(aKey, entry);
+  cache.Put(aKey, RefPtr{entry});
 
   // We can be called to resurrect an evicted entry.
   if (entry->Evicted()) {
@@ -2582,6 +2575,13 @@ NS_IMETHODIMP
 imgLoader::GetMIMETypeFromContent(nsIRequest* aRequest,
                                   const uint8_t* aContents, uint32_t aLength,
                                   nsACString& aContentType) {
+  nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
+  if (channel) {
+    nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
+    if (loadInfo->GetSkipContentSniffing()) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+  }
   return GetMimeTypeFromContent((const char*)aContents, aLength, aContentType);
 }
 

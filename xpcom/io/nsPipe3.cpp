@@ -62,7 +62,7 @@ enum SegmentChangeResult { SegmentNotChanged, SegmentAdvanceBufferRead };
 // a critical section.
 class nsPipeEvents {
  public:
-  nsPipeEvents() {}
+  nsPipeEvents() = default;
   ~nsPipeEvents();
 
   inline void NotifyInputReady(nsIAsyncInputStream* aStream,
@@ -134,10 +134,7 @@ class nsPipeInputStream final : public nsIAsyncInputStream,
                                 public nsIBufferedInputStream,
                                 public nsIInputStreamPriority {
  public:
-  // Pipe input streams preserve their refcount changes when record/replaying,
-  // as otherwise the thread which destroys the stream may vary between
-  // recording and replaying.
-  NS_DECL_THREADSAFE_ISUPPORTS_WITH_RECORDING(recordreplay::Behavior::Preserve)
+  NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIINPUTSTREAM
   NS_DECL_NSIASYNCINPUTSTREAM
   NS_DECL_NSITELLABLESTREAM
@@ -156,7 +153,7 @@ class nsPipeInputStream final : public nsIAsyncInputStream,
         mCallbackFlags(0),
         mPriority(nsIRunnablePriority::PRIORITY_NORMAL) {}
 
-  explicit nsPipeInputStream(const nsPipeInputStream& aOther)
+  nsPipeInputStream(const nsPipeInputStream& aOther)
       : mPipe(aOther.mPipe),
         mLogicalOffset(aOther.mLogicalOffset),
         mInputStatus(aOther.mInputStatus),
@@ -251,8 +248,7 @@ class nsPipeOutputStream : public nsIAsyncOutputStream, public nsIClassInfo {
   nsPipe* mPipe;
 
   // separate refcnt so that we know when to close the producer
-  ThreadSafeAutoRefCntWithRecording<recordreplay::Behavior::Preserve>
-      mWriterRefCnt;
+  ThreadSafeAutoRefCnt mWriterRefCnt;
   int64_t mLogicalOffset;
   bool mBlocking;
 
@@ -271,9 +267,7 @@ class nsPipe final : public nsIPipe {
   friend class nsPipeOutputStream;
   friend class AutoReadSegment;
 
-  // As for nsPipeInputStream, preserve refcount changes when recording or
-  // replaying.
-  NS_DECL_THREADSAFE_ISUPPORTS_WITH_RECORDING(recordreplay::Behavior::Preserve)
+  NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIPIPE
 
   // nsPipe methods:
@@ -494,7 +488,7 @@ nsPipe::nsPipe()
   mInputList.AppendElement(mOriginalInput);
 }
 
-nsPipe::~nsPipe() {}
+nsPipe::~nsPipe() = default;
 
 NS_IMPL_ADDREF(nsPipe)
 NS_IMPL_QUERY_INTERFACE(nsPipe, nsIPipe)
@@ -974,8 +968,8 @@ nsresult nsPipe::CloneInputStream(nsPipeInputStream* aOriginal,
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
   RefPtr<nsPipeInputStream> ref = new nsPipeInputStream(*aOriginal);
   mInputList.AppendElement(ref);
-  nsCOMPtr<nsIAsyncInputStream> downcast = ref.forget();
-  downcast.forget(aCloneOut);
+  nsCOMPtr<nsIAsyncInputStream> upcast = std::move(ref);
+  upcast.forget(aCloneOut);
   return NS_OK;
 }
 

@@ -11,8 +11,8 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-var { DebuggerServer } = require("devtools/server/debugger-server");
-var { DebuggerClient } = require("devtools/shared/client/debugger-client");
+var { DevToolsServer } = require("devtools/server/devtools-server");
+var { DevToolsClient } = require("devtools/shared/client/devtools-client");
 var { Toolbox } = require("devtools/client/framework/toolbox");
 loader.lazyRequireGetter(this, "defer", "devtools/shared/defer");
 

@@ -72,7 +72,7 @@ class MLGPUScreenshotGrabberImpl final {
   const IntSize mReadbackTextureSize;
 };
 
-MLGPUScreenshotGrabber::~MLGPUScreenshotGrabber() {}
+MLGPUScreenshotGrabber::~MLGPUScreenshotGrabber() = default;
 
 void MLGPUScreenshotGrabber::MaybeGrabScreenshot(MLGDevice* aDevice,
                                                  MLGTexture* aTexture) {
@@ -271,7 +271,7 @@ void MLGPUScreenshotGrabberImpl::GrabScreenshot(MLGDevice* aDevice,
   // main memory until the next frame. If we did it in this frame, we'd block on
   // the GPU.
   mCurrentFrameQueueItem =
-      Some(QueueItem{TimeStamp::Now(), readbackTexture.forget(), scaledSize,
+      Some(QueueItem{TimeStamp::Now(), std::move(readbackTexture), scaledSize,
                      aTexture->GetSize(), aDevice,
                      reinterpret_cast<uintptr_t>(static_cast<void*>(this))});
 }

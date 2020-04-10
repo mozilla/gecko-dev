@@ -315,6 +315,9 @@ uint32_t GetNaked(uint32_t aCh) {
   static const UNormalizer2* normalizer;
   static HashMap<uint32_t, uint32_t> nakedCharCache;
 
+  NS_ASSERTION(!IsCombiningDiacritic(aCh),
+               "This character needs to be skipped");
+
   HashMap<uint32_t, uint32_t>::Ptr entry = nakedCharCache.lookup(aCh);
   if (entry.found()) {
     return entry->value();
@@ -340,13 +343,6 @@ uint32_t GetNaked(uint32_t aCh) {
     return aCh;
   }
 
-  if (u_getIntPropertyValue(aCh, UCHAR_GENERAL_CATEGORY) & U_GC_M_MASK) {
-    // The character is itself a combining character, and we don't want to use
-    // its decomposition into multiple combining characters.
-    baseChar = aCh;
-    goto cache;
-  }
-
   if (NS_IS_HIGH_SURROGATE(decomposition[0])) {
     baseChar = SURROGATE_TO_UCS4(decomposition[0], decomposition[1]);
     combiners = decomposition + 2;
@@ -368,7 +364,7 @@ uint32_t GetNaked(uint32_t aCh) {
     } else {
       nextChar = combiners[0];
     }
-    if (u_getCombiningClass(nextChar) == 0) {
+    if (!IsCombiningDiacritic(nextChar)) {
       // Hangul syllables decompose but do not actually have diacritics.
       baseChar = aCh;
     }

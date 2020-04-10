@@ -59,7 +59,7 @@ const runtimeDetails = {
   // This might be undefined when connecting to runtimes older than Fx 66
   canDebugServiceWorkers: PropTypes.bool,
 
-  // ClientWrapper built using a DebuggerClient for the runtime
+  // ClientWrapper built using a DevToolsClient for the runtime
   clientWrapper: PropTypes.instanceOf(ClientWrapper).isRequired,
 
   // compatibility report to check if the target runtime is in range of the backward
@@ -80,22 +80,22 @@ const runtimeDetails = {
 exports.runtimeDetails = PropTypes.shape(runtimeDetails);
 
 const networkRuntimeConnectionParameter = {
-  // host name of debugger server to connect
+  // host name of devtools server to connect
   host: PropTypes.string.isRequired,
 
-  // port number of debugger server to connect
+  // port number of devtools server to connect
   port: PropTypes.number.isRequired,
 };
 
 const usbRuntimeConnectionParameter = {
   // device id
   deviceId: PropTypes.string.isRequired,
-  // socket path to connect debugger server
+  // socket path to connect devtools server
   socketPath: PropTypes.string.isRequired,
 };
 
 const runtimeExtra = {
-  // parameter to connect to debugger server
+  // parameter to connect to devtools server
   // unavailable on unavailable/unplugged runtimes
   connectionParameters: PropTypes.oneOfType([
     PropTypes.shape(networkRuntimeConnectionParameter),

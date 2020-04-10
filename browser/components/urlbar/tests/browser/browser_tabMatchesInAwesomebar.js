@@ -41,6 +41,7 @@ add_task(async function step_2() {
   gBrowser.removeCurrentTab();
   gBrowser.selectTabAtIndex(1);
   gBrowser.removeCurrentTab();
+  gBrowser.selectTabAtIndex(0);
 
   let promises = [];
   for (let i = 1; i < gBrowser.tabs.length; i++) {
@@ -179,7 +180,11 @@ function ensure_opentabs_match_db() {
 
 async function checkAutocompleteResults(expected) {
   info("Searching open pages.");
-  await promiseAutocompleteResultPopup(RESTRICT_TOKEN_OPENPAGE);
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    waitForFocus: SimpleTest.waitForFocus,
+    value: RESTRICT_TOKEN_OPENPAGE,
+  });
 
   let resultCount = UrlbarTestUtils.getResultCount(window);
   for (let i = 0; i < resultCount; i++) {

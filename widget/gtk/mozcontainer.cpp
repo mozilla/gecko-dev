@@ -164,13 +164,15 @@ void moz_container_move(MozContainer* container, int dx, int dy) {
 
   // wl_subsurface_set_position is actually property of parent surface
   // which is effective when parent surface is commited.
-  wl_surface* parent_surface =
-      moz_gtk_widget_get_wl_surface(GTK_WIDGET(container));
-  if (parent_surface) {
-    wl_subsurface_set_position(container->subsurface, container->subsurface_dx,
-                               container->subsurface_dy);
-    wl_surface_commit(parent_surface);
-    container->surface_position_needs_update = false;
+  wl_subsurface_set_position(container->subsurface, container->subsurface_dx,
+                             container->subsurface_dy);
+  container->surface_position_needs_update = false;
+
+  GdkWindow* window = gtk_widget_get_window(GTK_WIDGET(container));
+  if (window) {
+    GdkRectangle rect = (GdkRectangle){0, 0, gdk_window_get_width(window),
+                                       gdk_window_get_height(window)};
+    gdk_window_invalidate_rect(window, &rect, false);
   }
 }
 
@@ -222,11 +224,13 @@ void moz_container_init(MozContainer* container) {
   container->ready_to_draw = gfxPlatformGtk::GetPlatform()->IsX11Display();
   container->opaque_region_needs_update = false;
   container->opaque_region_subtract_corners = false;
+  container->opaque_region_fullscreen = false;
   container->surface_needs_clear = true;
   container->subsurface_dx = 0;
   container->subsurface_dy = 0;
   container->surface_position_needs_update = 0;
   container->initial_draw_cbs.clear();
+  container->is_accelerated = false;
 #endif
 
   LOG(("%s [%p]\n", __FUNCTION__, (void*)container));
@@ -571,15 +575,25 @@ static void moz_container_add(GtkContainer* container, GtkWidget* widget) {
 
 #ifdef MOZ_WAYLAND
 static void moz_container_set_opaque_region(MozContainer* container) {
+  if (!container->opaque_region_needs_update || !container->surface) {
+    return;
+  }
+
   GtkAllocation allocation;
   gtk_widget_get_allocation(GTK_WIDGET(container), &allocation);
 
-  // Set region to mozcontainer which does not have any offset
-  wl_region* region =
-      CreateOpaqueRegionWayland(0, 0, allocation.width, allocation.height,
-                                container->opaque_region_subtract_corners);
-  wl_surface_set_opaque_region(container->surface, region);
-  wl_region_destroy(region);
+  // Set region to mozcontainer for normal state only
+  if (!container->opaque_region_fullscreen) {
+    wl_region* region =
+        CreateOpaqueRegionWayland(0, 0, allocation.width, allocation.height,
+                                  container->opaque_region_subtract_corners);
+    wl_surface_set_opaque_region(container->surface, region);
+    wl_region_destroy(region);
+  } else {
+    wl_surface_set_opaque_region(container->surface, nullptr);
+  }
+
+  container->opaque_region_needs_update = false;
 }
 
 struct wl_surface* moz_container_get_wl_surface(MozContainer* container) {
@@ -595,17 +609,25 @@ struct wl_surface* moz_container_get_wl_surface(MozContainer* container) {
     GdkDisplay* display = gtk_widget_get_display(GTK_WIDGET(container));
     nsWaylandDisplay* waylandDisplay = WaylandDisplayGet(display);
 
+    wl_surface* parent_surface =
+        moz_gtk_widget_get_wl_surface(GTK_WIDGET(container));
+    if (!parent_surface) {
+      return nullptr;
+    }
+
     // Available as of GTK 3.8+
     struct wl_compositor* compositor = waylandDisplay->GetCompositor();
     container->surface = wl_compositor_create_surface(compositor);
-    wl_surface* parent_surface =
-        moz_gtk_widget_get_wl_surface(GTK_WIDGET(container));
-    if (!container->surface || !parent_surface) {
+    if (!container->surface) {
       return nullptr;
     }
 
     container->subsurface = wl_subcompositor_get_subsurface(
         waylandDisplay->GetSubcompositor(), container->surface, parent_surface);
+    if (!container->subsurface) {
+      g_clear_pointer(&container->surface, wl_surface_destroy);
+      return nullptr;
+    }
 
     GdkWindow* window = gtk_widget_get_window(GTK_WIDGET(container));
     gint x, y;
@@ -631,11 +653,7 @@ struct wl_surface* moz_container_get_wl_surface(MozContainer* container) {
                        container->subsurface_dy);
   }
 
-  if (container->opaque_region_needs_update) {
-    moz_container_set_opaque_region(container);
-    container->opaque_region_needs_update = false;
-  }
-
+  moz_container_set_opaque_region(container);
   return container->surface;
 }
 
@@ -675,9 +693,22 @@ gboolean moz_container_surface_needs_clear(MozContainer* container) {
 }
 
 void moz_container_update_opaque_region(MozContainer* container,
-                                        bool aSubtractCorners) {
+                                        bool aSubtractCorners,
+                                        bool aFullScreen) {
   container->opaque_region_needs_update = true;
   container->opaque_region_subtract_corners = aSubtractCorners;
+  container->opaque_region_fullscreen = aFullScreen;
+
+  // When GL compositor / WebRender is used,
+  // moz_container_get_wl_egl_window() is called only once when window
+  // is created or resized so update opaque region now.
+  if (container->is_accelerated) {
+    moz_container_set_opaque_region(container);
+  }
+}
+
+void moz_container_set_accelerated(MozContainer* container) {
+  container->is_accelerated = true;
 }
 #endif
 

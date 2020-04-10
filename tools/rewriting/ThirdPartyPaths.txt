@@ -100,6 +100,7 @@ media/libvorbis/
 media/libvpx/
 media/libwebp/
 media/libyuv/
+media/mp4parse-rust/
 media/mtransport/third_party/
 media/openmax_dl/
 media/openmax_il/
@@ -121,6 +122,7 @@ netwerk/srtp/src/
 nsprpub/
 other-licenses/
 parser/expat/
+remote/test/browser/chrome-remote-interface.js
 remote/test/puppeteer/
 security/nss/
 security/sandbox/chromium/

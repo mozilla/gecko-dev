@@ -74,6 +74,8 @@ static inline JSScript* ScriptFromCalleeToken(CalleeToken token) {
   MOZ_CRASH("invalid callee token tag");
 }
 
+JSScript* MaybeForwardedScriptFromCalleeToken(CalleeToken token);
+
 // In between every two frames lies a small header describing both frames. This
 // header, minimally, contains a returnAddress word and a descriptor word. The
 // descriptor describes the size and type of the previous frame, whereas the
@@ -666,7 +668,7 @@ class IonDOMMethodExitFrameLayout {
 
   inline Value* vp() {
     // The code in visitCallDOMNative depends on this static assert holding
-    JS_STATIC_ASSERT(
+    static_assert(
         offsetof(IonDOMMethodExitFrameLayout, loCalleeResult_) ==
         (offsetof(IonDOMMethodExitFrameLayout, argc_) + sizeof(uintptr_t)));
     return reinterpret_cast<Value*>(&loCalleeResult_);

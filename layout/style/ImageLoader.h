@@ -27,6 +27,7 @@ class nsIURI;
 class nsIPrincipal;
 
 namespace mozilla {
+struct MediaFeatureChange;
 namespace dom {
 class Document;
 }
@@ -50,8 +51,7 @@ class ImageLoader final {
     REQUEST_HAS_BLOCKED_ONLOAD = 1u << 1,
   };
 
-  explicit ImageLoader(dom::Document* aDocument)
-      : mDocument(aDocument) {
+  explicit ImageLoader(dom::Document* aDocument) : mDocument(aDocument) {
     MOZ_ASSERT(mDocument);
   }
 

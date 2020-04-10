@@ -72,7 +72,6 @@ extern crate num_cpus;
 extern crate num_derive;
 extern crate num_integer;
 extern crate num_traits;
-extern crate ordered_float;
 extern crate owning_ref;
 extern crate parking_lot;
 extern crate precomputed_hash;
@@ -120,7 +119,7 @@ pub mod attr;
 pub mod author_styles;
 pub mod bezier;
 pub mod bloom;
-#[path="properties/computed_value_flags.rs"]
+#[path = "properties/computed_value_flags.rs"]
 pub mod computed_value_flags;
 pub mod context;
 pub mod counter_style;

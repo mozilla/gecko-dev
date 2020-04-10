@@ -118,8 +118,10 @@ void AudioData::EnsureAudioBuffer() {
     return;
   }
   const AudioDataValue* srcData = GetAdjustedData();
-  mAudioBuffer =
-      SharedBuffer::Create(mFrames * mChannels * sizeof(AudioDataValue));
+  CheckedInt<size_t> bufferSize(sizeof(AudioDataValue));
+  bufferSize *= mFrames;
+  bufferSize *= mChannels;
+  mAudioBuffer = SharedBuffer::Create(bufferSize);
 
   AudioDataValue* destData = static_cast<AudioDataValue*>(mAudioBuffer->Data());
   for (uint32_t i = 0; i < mFrames; ++i) {
@@ -222,7 +224,7 @@ VideoData::VideoData(int64_t aOffset, const TimeUnit& aTime,
   mTimecode = aTimecode;
 }
 
-VideoData::~VideoData() {}
+VideoData::~VideoData() = default;
 
 size_t VideoData::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
   size_t size = aMallocSizeOf(this);
@@ -480,7 +482,7 @@ already_AddRefed<MediaRawData> MediaRawData::Clone() const {
   return s.forget();
 }
 
-MediaRawData::~MediaRawData() {}
+MediaRawData::~MediaRawData() = default;
 
 size_t MediaRawData::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
   size_t size = aMallocSizeOf(this);

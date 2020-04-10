@@ -254,9 +254,7 @@ static uint32_t StartupExtraDefaultFeatures() {
 // locked state.
 class PSMutex : private ::mozilla::detail::MutexImpl {
  public:
-  PSMutex()
-      : ::mozilla::detail::MutexImpl(
-            ::mozilla::recordreplay::Behavior::DontPreserve) {}
+  PSMutex() : ::mozilla::detail::MutexImpl() {}
 
   void Lock() {
     const int tid = profiler_current_thread_id();
@@ -315,9 +313,7 @@ class PSMutex : private ::mozilla::detail::MutexImpl {
   // This should only be used to compare with the current thread id; any other
   // number (0 or other id) could change at any time because the current thread
   // wouldn't own the lock.
-  Atomic<int, MemoryOrdering::SequentiallyConsistent,
-         recordreplay::Behavior::DontPreserve>
-      mOwningThreadId{0};
+  Atomic<int, MemoryOrdering::SequentiallyConsistent> mOwningThreadId{0};
 };
 
 // RAII class to lock the profiler mutex.
@@ -1222,7 +1218,7 @@ class ActivePS {
 #ifdef MOZ_BASE_PROFILER
   // Optional startup profile thread array from BaseProfiler.
   UniquePtr<char[]> mBaseProfileThreads;
-  BlocksRingBuffer::BlockIndex mGeckoIndexWhenBaseProfileAdded;
+  ProfileBufferBlockIndex mGeckoIndexWhenBaseProfileAdded;
 #endif
 
   struct ExitProfile {
@@ -1242,8 +1238,7 @@ uint32_t ActivePS::sNextGeneration = 0;
 // The mutex that guards accesses to CorePS and ActivePS.
 static PSMutex gPSMutex;
 
-Atomic<uint32_t, MemoryOrdering::Relaxed, recordreplay::Behavior::DontPreserve>
-    RacyFeatures::sActiveAndFeatures(0);
+Atomic<uint32_t, MemoryOrdering::Relaxed> RacyFeatures::sActiveAndFeatures(0);
 
 // Each live thread has a RegisteredThread, and we store a reference to it in
 // TLS. This class encapsulates that TLS.
@@ -2342,7 +2337,8 @@ static UniquePtr<ProfileBuffer> CollectJavaThreadProfileData(
 
   int sampleId = 0;
   while (true) {
-    double sampleTime = java::GeckoJavaSampler::GetSampleTime(0, sampleId);
+    // Gets the data from the java main thread only.
+    double sampleTime = java::GeckoJavaSampler::GetSampleTime(sampleId);
     if (sampleTime == 0.0) {
       break;
     }
@@ -2353,7 +2349,7 @@ static UniquePtr<ProfileBuffer> CollectJavaThreadProfileData(
     int frameId = 0;
     while (true) {
       jni::String::LocalRef frameName =
-          java::GeckoJavaSampler::GetFrameName(0, sampleId, frameId++);
+          java::GeckoJavaSampler::GetFrameName(sampleId, frameId++);
       if (!frameName) {
         break;
       }
@@ -3205,19 +3201,22 @@ void SamplerThread::Run() {
             if (NS_WARN_IF(state.mClearedBlockCount !=
                            previousState.mClearedBlockCount)) {
               LOG("Stack sample too big for local storage, needed %u bytes",
-                  unsigned(state.mRangeEnd.ConvertToU64() -
-                           previousState.mRangeEnd.ConvertToU64()));
+                  unsigned(
+                      state.mRangeEnd.ConvertToProfileBufferIndex() -
+                      previousState.mRangeEnd.ConvertToProfileBufferIndex()));
               // There *must* be a CompactStack after a TimeBeforeCompactStack,
               // even an empty one.
               CorePS::CoreBlocksRingBuffer().PutObjects(
                   ProfileBufferEntry::Kind::CompactStack,
                   UniquePtr<BlocksRingBuffer>(nullptr));
-            } else if (state.mRangeEnd.ConvertToU64() -
-                           previousState.mRangeEnd.ConvertToU64() >=
+            } else if (state.mRangeEnd.ConvertToProfileBufferIndex() -
+                           previousState.mRangeEnd
+                               .ConvertToProfileBufferIndex() >=
                        CorePS::CoreBlocksRingBuffer().BufferLength()->Value()) {
               LOG("Stack sample too big for profiler storage, needed %u bytes",
-                  unsigned(state.mRangeEnd.ConvertToU64() -
-                           previousState.mRangeEnd.ConvertToU64()));
+                  unsigned(
+                      state.mRangeEnd.ConvertToProfileBufferIndex() -
+                      previousState.mRangeEnd.ConvertToProfileBufferIndex()));
               // There *must* be a CompactStack after a TimeBeforeCompactStack,
               // even an empty one.
               CorePS::CoreBlocksRingBuffer().PutObjects(
@@ -4197,7 +4196,11 @@ static void locked_profiler_start(PSLockRef aLock, PowerOfTwo32 aCapacity,
     if (javaInterval < 10) {
       javaInterval = 10;
     }
-    java::GeckoJavaSampler::Start(javaInterval, 1000);
+    // Send the interval-relative entry count, but we have 100000 hard cap in
+    // the java code, it can't be more than that.
+    java::GeckoJavaSampler::Start(
+        javaInterval, std::round((double)(capacity.Value()) * interval /
+                                 (double)(javaInterval)));
   }
 #endif
 
@@ -4845,7 +4848,7 @@ bool profiler_add_native_allocation_marker(int aMainThreadId, int64_t aSize,
 void profiler_add_network_marker(
     nsIURI* aURI, int32_t aPriority, uint64_t aChannelId, NetworkLoadType aType,
     mozilla::TimeStamp aStart, mozilla::TimeStamp aEnd, int64_t aCount,
-    mozilla::net::CacheDisposition aCacheDisposition,
+    mozilla::net::CacheDisposition aCacheDisposition, uint64_t aInnerWindowID,
     const mozilla::net::TimingStruct* aTimings, nsIURI* aRedirectURI,
     UniqueProfilerBacktrace aSource) {
   if (!profiler_can_accept_markers()) {
@@ -4867,10 +4870,11 @@ void profiler_add_network_marker(
   AUTO_PROFILER_STATS(add_marker_with_NetworkMarkerPayload);
   profiler_add_marker(
       name, JS::ProfilingCategoryPair::NETWORK,
-      NetworkMarkerPayload(
-          static_cast<int64_t>(aChannelId), PromiseFlatCString(spec).get(),
-          aType, aStart, aEnd, aPriority, aCount, aCacheDisposition, aTimings,
-          PromiseFlatCString(redirect_spec).get(), std::move(aSource)));
+      NetworkMarkerPayload(static_cast<int64_t>(aChannelId),
+                           PromiseFlatCString(spec).get(), aType, aStart, aEnd,
+                           aPriority, aCount, aCacheDisposition, aInnerWindowID,
+                           aTimings, PromiseFlatCString(redirect_spec).get(),
+                           std::move(aSource)));
 }
 
 void profiler_add_marker_for_thread(int aThreadId,

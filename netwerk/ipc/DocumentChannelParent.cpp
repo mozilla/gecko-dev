@@ -6,27 +6,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DocumentChannelParent.h"
+#include "mozilla/dom/BrowserParent.h"
+#include "mozilla/dom/CanonicalBrowsingContext.h"
+#include "mozilla/dom/ClientInfo.h"
 
 extern mozilla::LazyLogModule gDocumentChannelLog;
 #define LOG(fmt) MOZ_LOG(gDocumentChannelLog, mozilla::LogLevel::Verbose, fmt)
 
+using namespace mozilla::dom;
+
 namespace mozilla {
 namespace net {
 
-DocumentChannelParent::DocumentChannelParent(BrowserParent* aBrowser,
+DocumentChannelParent::DocumentChannelParent(CanonicalBrowsingContext* aContext,
                                              nsILoadContext* aLoadContext,
                                              PBOverrideStatus aOverrideStatus) {
   LOG(("DocumentChannelParent ctor [this=%p]", this));
-  mParent =
-      new DocumentLoadListener(aBrowser, aLoadContext, aOverrideStatus, this);
+  // Sometime we can get this called without a BrowsingContext, so that we have
+  // an actor to call SendFailedAsyncOpen on.
+  if (aContext) {
+    mParent =
+        new DocumentLoadListener(aContext, aLoadContext, aOverrideStatus, this);
+  }
 }
 
 DocumentChannelParent::~DocumentChannelParent() {
   LOG(("DocumentChannelParent dtor [this=%p]", this));
 }
 
-bool DocumentChannelParent::Init(BrowserParent* aBrowser,
-                                 const DocumentChannelCreationArgs& aArgs) {
+bool DocumentChannelParent::Init(const DocumentChannelCreationArgs& aArgs) {
+  MOZ_ASSERT(mParent);
   RefPtr<nsDocShellLoadState> loadState =
       new nsDocShellLoadState(aArgs.loadState());
   LOG(("DocumentChannelParent Init [this=%p, uri=%s]", this,
@@ -35,17 +44,21 @@ bool DocumentChannelParent::Init(BrowserParent* aBrowser,
   RefPtr<class LoadInfo> loadInfo;
   nsresult rv = mozilla::ipc::LoadInfoArgsToLoadInfo(Some(aArgs.loadInfo()),
                                                      getter_AddRefs(loadInfo));
+
+  Maybe<ClientInfo> clientInfo;
+  if (aArgs.initialClientInfo().isSome()) {
+    clientInfo.emplace(ClientInfo(aArgs.initialClientInfo().ref()));
+  }
+
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   rv = NS_ERROR_UNEXPECTED;
-  if (!mParent->Open(
-          aBrowser, loadState, loadInfo, aArgs.initiatorType().ptrOr(nullptr),
-          aArgs.loadFlags(), aArgs.loadType(), aArgs.cacheKey(),
-          aArgs.isActive(), aArgs.isTopLevelDoc(),
-          aArgs.hasNonEmptySandboxingFlags(), aArgs.topWindowURI(),
-          aArgs.contentBlockingAllowListPrincipal(), aArgs.customUserAgent(),
-          aArgs.channelId(), aArgs.asyncOpenTime(), aArgs.documentOpenFlags(),
-          aArgs.pluginsAllowed(), aArgs.timing().refOr(nullptr), &rv)) {
+  if (!mParent->Open(loadState, loadInfo, aArgs.loadFlags(), aArgs.loadType(),
+                     aArgs.cacheKey(), aArgs.isActive(), aArgs.isTopLevelDoc(),
+                     aArgs.hasNonEmptySandboxingFlags(), aArgs.channelId(),
+                     aArgs.asyncOpenTime(), aArgs.documentOpenFlags(),
+                     aArgs.pluginsAllowed(), aArgs.timing().refOr(nullptr),
+                     std::move(clientInfo), aArgs.outerWindowId(), &rv)) {
     return SendFailedAsyncOpen(rv);
   }
 

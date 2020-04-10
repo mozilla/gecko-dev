@@ -1590,10 +1590,7 @@ impl UnparsedValue {
             } else {
                 CSSWideKeyword::Initial
             };
-            PropertyDeclaration::CSSWideKeyword(WideKeywordDeclaration {
-                id: longhand_id,
-                keyword,
-            })
+            PropertyDeclaration::css_wide_keyword(longhand_id, keyword)
         };
 
         let css = match crate::custom_properties::substitute(
@@ -1630,10 +1627,7 @@ impl UnparsedValue {
         let mut input = Parser::new(&mut input);
         input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
         if let Ok(keyword) = input.try(CSSWideKeyword::parse) {
-            return PropertyDeclaration::CSSWideKeyword(WideKeywordDeclaration {
-                id: longhand_id,
-                keyword,
-            });
+            return PropertyDeclaration::css_wide_keyword(longhand_id, keyword);
         }
 
         let declaration = input.parse_entirely(|input| {
@@ -2239,6 +2233,12 @@ impl PropertyDeclaration {
         }
     }
 
+    /// Returns a CSS-wide keyword declaration for a given property.
+    #[inline]
+    pub fn css_wide_keyword(id: LonghandId, keyword: CSSWideKeyword) -> Self {
+        Self::CSSWideKeyword(WideKeywordDeclaration { id, keyword })
+    }
+
     /// Returns a CSS-wide keyword if the declaration's value is one.
     #[inline]
     pub fn get_css_wide_keyword(&self) -> Option<CSSWideKeyword> {
@@ -2367,9 +2367,7 @@ impl PropertyDeclaration {
             PropertyId::Longhand(id) => {
                 input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
                 input.try(CSSWideKeyword::parse).map(|keyword| {
-                    PropertyDeclaration::CSSWideKeyword(
-                        WideKeywordDeclaration { id, keyword },
-                    )
+                    PropertyDeclaration::css_wide_keyword(id, keyword)
                 }).or_else(|()| {
                     input.look_for_var_or_env_functions();
                     input.parse_entirely(|input| id.parse_value(context, input))
@@ -2403,12 +2401,7 @@ impl PropertyDeclaration {
                         declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword)
                     } else {
                         for longhand in id.longhands() {
-                            declarations.push(PropertyDeclaration::CSSWideKeyword(
-                                WideKeywordDeclaration {
-                                    id: longhand,
-                                    keyword,
-                                },
-                            ))
+                            declarations.push(PropertyDeclaration::css_wide_keyword(longhand, keyword));
                         }
                     }
                 } else {
@@ -2550,12 +2543,7 @@ impl<'a> Iterator for AllShorthandDeclarationIterator<'a> {
         match *self.all_shorthand {
             AllShorthand::NotSet => None,
             AllShorthand::CSSWideKeyword(ref keyword) => {
-                Some(PropertyDeclaration::CSSWideKeyword(
-                    WideKeywordDeclaration {
-                        id: self.longhands.next()?,
-                        keyword: *keyword
-                    }
-                ))
+                Some(PropertyDeclaration::css_wide_keyword(self.longhands.next()?, *keyword))
             }
             AllShorthand::WithVariables(ref unparsed) => {
                 Some(PropertyDeclaration::WithVariables(
@@ -2895,9 +2883,18 @@ pub struct ComputedValues {
     /// We maintain this distinction in servo to reduce the amount of special
     /// casing.
     inner: ComputedValuesInner,
+
+    /// The pseudo-element that we're using.
+    pseudo: Option<PseudoElement>,
 }
 
 impl ComputedValues {
+    /// Returns the pseudo-element that this style represents.
+    #[cfg(feature = "servo")]
+    pub fn pseudo(&self) -> Option<<&PseudoElement> {
+        self.pseudo.as_ref()
+    }
+
     /// Returns whether this style's display value is equal to contents.
     pub fn is_display_contents(&self) -> bool {
         self.get_box().clone_display().is_contents()
@@ -3000,7 +2997,7 @@ impl ComputedValues {
 impl ComputedValues {
     /// Create a new refcounted `ComputedValues`
     pub fn new(
-        _: Option<<&PseudoElement>,
+        pseudo: Option<<&PseudoElement>,
         custom_properties: Option<Arc<crate::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
         flags: ComputedValueFlags,
@@ -3020,7 +3017,8 @@ impl ComputedValues {
             % for style_struct in data.active_style_structs():
                 ${style_struct.ident},
             % endfor
-            }
+            },
+            pseudo: pseudo.cloned(),
         })
     }
 
@@ -3835,7 +3833,7 @@ pub use self::lazy_static_module::INITIAL_SERVO_VALUES;
 #[allow(missing_docs)]
 mod lazy_static_module {
     use crate::logical_geometry::WritingMode;
-    use create::computed_value_flags::ComputedValueFlags;
+    use crate::computed_value_flags::ComputedValueFlags;
     use servo_arc::Arc;
     use super::{ComputedValues, ComputedValuesInner, longhands, style_structs};
 
@@ -3867,7 +3865,8 @@ mod lazy_static_module {
                 rules: None,
                 visited_style: None,
                 flags: ComputedValueFlags::empty(),
-            }
+            },
+            pseudo: None,
         };
     }
 }

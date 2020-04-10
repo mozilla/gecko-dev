@@ -2308,11 +2308,7 @@ class nsDisplayItemBase : public nsDisplayItemLink {
 
   void SetCantBeReused() { mItemFlags += ItemBaseFlag::CantBeReused; }
 
-  void DiscardIfOldItem() {
-    if (mOldList) {
-      SetCantBeReused();
-    }
-  }
+  bool IsOldItem() const { return !!mOldList; }
 
   /**
    * Returns true if the frame of this display item is in a modified subtree.
@@ -2490,7 +2486,7 @@ class nsDisplayItem : public nsDisplayItemBase {
   nsDisplayItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                 const ActiveScrolledRoot* aActiveScrolledRoot);
 
-  virtual ~nsDisplayItem() { MOZ_COUNT_DTOR(nsDisplayItem); }
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayItem)
 
   /**
    * The custom copy-constructor is implemented to prevent copying the saved
@@ -2534,7 +2530,7 @@ class nsDisplayItem : public nsDisplayItemBase {
   }
 
   struct HitTestState {
-    explicit HitTestState() : mInPreserves3D(false) {}
+    explicit HitTestState() = default;
 
     ~HitTestState() {
       NS_ASSERTION(mItemBuffer.Length() == 0,
@@ -2542,7 +2538,11 @@ class nsDisplayItem : public nsDisplayItemBase {
     }
 
     // Handling transform items for preserve 3D frames.
-    bool mInPreserves3D;
+    bool mInPreserves3D = false;
+    // When hit-testing for visibility, we may hit a fully opaque item in a
+    // nested display list. We want to stop at that point, without looking
+    // further on other items.
+    bool mHitFullyOpaqueItem = false;
     AutoTArray<nsDisplayItem*, 100> mItemBuffer;
   };
 
@@ -3219,6 +3219,21 @@ class nsPaintedDisplayItem : public nsDisplayItem {
     MOZ_ASSERT_UNREACHABLE("Paint() is not implemented!");
   }
 
+  /**
+   * Display items that are guaranteed to produce the same output from
+   * |CreateWebRenderCommands()|, regardless of the surrounding state,
+   * can return true. This allows |DisplayItemCache| to cache the output of
+   * |CreateWebRenderCommands()|, and avoid the call for successive paints, if
+   * the item is reused. If calling |CreateWebRenderCommands()| would not create
+   * any WebRender display items, |CanBeCached()| should return false.
+   */
+  virtual bool CanBeCached() const { return false; }
+
+  /**
+   * External storage used by |DisplayItemCache| to avoid hashmap lookups.
+   * If an item is reused and has the cache index set, it means that
+   * |DisplayItemCache| has assigned a cache slot for the item.
+   */
   Maybe<uint16_t>& CacheIndex() { return mCacheIndex; }
 
  protected:
@@ -4098,9 +4113,7 @@ class nsDisplayGeneric : public nsPaintedDisplayItem {
     return DisplayItemType::TYPE_GENERIC;
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayGeneric() override { MOZ_COUNT_DTOR(nsDisplayGeneric); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayGeneric)
 
   void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override {
     MOZ_ASSERT(!!mPaint != !!mOldPaint);
@@ -4156,9 +4169,7 @@ class nsDisplayReflowCount : public nsPaintedDisplayItem {
     MOZ_COUNT_CTOR(nsDisplayReflowCount);
   }
 
-#  ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayReflowCount() override { MOZ_COUNT_DTOR(nsDisplayReflowCount); }
-#  endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayReflowCount)
 
   NS_DISPLAY_DECL_NAME("nsDisplayReflowCount", TYPE_REFLOW_COUNT)
 
@@ -4240,9 +4251,7 @@ class nsDisplayBorder : public nsPaintedDisplayItem {
  public:
   nsDisplayBorder(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame);
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayBorder() override { MOZ_COUNT_DTOR(nsDisplayBorder); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayBorder)
 
   NS_DISPLAY_DECL_NAME("Border", TYPE_BORDER)
 
@@ -4405,9 +4414,7 @@ class nsDisplaySolidColor : public nsDisplaySolidColorBase {
     }
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplaySolidColor() override { MOZ_COUNT_DTOR(nsDisplaySolidColor); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplaySolidColor)
 
   NS_DISPLAY_DECL_NAME("SolidColor", TYPE_SOLID_COLOR)
 
@@ -4470,11 +4477,7 @@ class nsDisplaySolidColorRegion : public nsPaintedDisplayItem {
     MOZ_COUNT_CTOR(nsDisplaySolidColorRegion);
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplaySolidColorRegion() override {
-    MOZ_COUNT_DTOR(nsDisplaySolidColorRegion);
-  }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplaySolidColorRegion)
 
   NS_DISPLAY_DECL_NAME("SolidColorRegion", TYPE_SOLID_COLOR_REGION)
 
@@ -4783,13 +4786,7 @@ class nsDisplayThemedBackground : public nsPaintedDisplayItem {
   nsDisplayThemedBackground(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                             const nsRect& aBackgroundRect);
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayThemedBackground() override {
-    MOZ_COUNT_DTOR(nsDisplayThemedBackground);
-  }
-#else
-  ~nsDisplayThemedBackground() override = default;
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayThemedBackground)
 
   NS_DISPLAY_DECL_NAME("ThemedBackground", TYPE_THEMED_BACKGROUND)
 
@@ -4929,6 +4926,8 @@ class nsDisplayBackgroundColor : public nsPaintedDisplayItem {
       mDependentFrame->RemoveDisplayItem(this);
     }
   }
+
+  bool CanBeCached() const final { return !HasBackgroundClipText(); }
 
   NS_DISPLAY_DECL_NAME("BackgroundColor", TYPE_BACKGROUND_COLOR)
 
@@ -5140,11 +5139,7 @@ class nsDisplayBoxShadowOuter final : public nsPaintedDisplayItem {
     mBounds = GetBoundsInternal();
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayBoxShadowOuter() override {
-    MOZ_COUNT_DTOR(nsDisplayBoxShadowOuter);
-  }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayBoxShadowOuter)
 
   NS_DISPLAY_DECL_NAME("BoxShadowOuter", TYPE_BOX_SHADOW_OUTER)
 
@@ -5202,11 +5197,7 @@ class nsDisplayBoxShadowInner : public nsPaintedDisplayItem {
     MOZ_COUNT_CTOR(nsDisplayBoxShadowInner);
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayBoxShadowInner() override {
-    MOZ_COUNT_DTOR(nsDisplayBoxShadowInner);
-  }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayBoxShadowInner)
 
   NS_DISPLAY_DECL_NAME("BoxShadowInner", TYPE_BOX_SHADOW_INNER)
 
@@ -5265,9 +5256,7 @@ class nsDisplayOutline final : public nsPaintedDisplayItem {
     MOZ_COUNT_CTOR(nsDisplayOutline);
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayOutline() override { MOZ_COUNT_DTOR(nsDisplayOutline); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayOutline)
 
   NS_DISPLAY_DECL_NAME("Outline", TYPE_OUTLINE)
 
@@ -5302,9 +5291,7 @@ class nsDisplayEventReceiver final : public nsDisplayItem {
     MOZ_COUNT_CTOR(nsDisplayEventReceiver);
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayEventReceiver() final { MOZ_COUNT_DTOR(nsDisplayEventReceiver); }
-#endif
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayEventReceiver)
 
   NS_DISPLAY_DECL_NAME("EventReceiver", TYPE_EVENT_RECEIVER)
 
@@ -5330,11 +5317,13 @@ class nsDisplayCompositorHitTestInfo : public nsDisplayHitTestInfoBase {
       nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
       mozilla::UniquePtr<HitTestInfo>&& aHitTestInfo);
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayCompositorHitTestInfo() override {
-    MOZ_COUNT_DTOR(nsDisplayCompositorHitTestInfo);
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayCompositorHitTestInfo)
+
+  bool CanBeCached() const final {
+    // Do not try to cache gecko hit test items with empty hit test area,
+    // because they would not create any WebRender display items.
+    return !HitTestArea().IsEmpty();
   }
-#endif
 
   NS_DISPLAY_DECL_NAME("CompositorHitTestInfo", TYPE_COMPOSITOR_HITTEST_INFO)
 
@@ -5688,9 +5677,7 @@ class nsDisplayOpacity : public nsDisplayWrapList {
   void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                HitTestState* aState, nsTArray<nsIFrame*>* aOutFrames) override;
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayOpacity() override { MOZ_COUNT_DTOR(nsDisplayOpacity); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayOpacity)
 
   NS_DISPLAY_DECL_NAME("Opacity", TYPE_OPACITY)
 
@@ -5815,9 +5802,7 @@ class nsDisplayBlendMode : public nsDisplayWrapList {
     MOZ_COUNT_CTOR(nsDisplayBlendMode);
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayBlendMode() override { MOZ_COUNT_DTOR(nsDisplayBlendMode); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayBlendMode)
 
   NS_DISPLAY_DECL_NAME("BlendMode", TYPE_BLEND_MODE)
 
@@ -5928,11 +5913,7 @@ class nsDisplayBlendContainer : public nsDisplayWrapList {
       nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nsDisplayList* aList,
       const ActiveScrolledRoot* aActiveScrolledRoot);
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayBlendContainer() override {
-    MOZ_COUNT_DTOR(nsDisplayBlendContainer);
-  }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayBlendContainer)
 
   NS_DISPLAY_DECL_NAME("BlendContainer", TYPE_BLEND_CONTAINER)
 
@@ -6103,9 +6084,7 @@ class nsDisplayOwnLayer : public nsDisplayWrapList {
     MOZ_COUNT_CTOR(nsDisplayOwnLayer);
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayOwnLayer() override { MOZ_COUNT_DTOR(nsDisplayOwnLayer); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayOwnLayer)
 
   NS_DISPLAY_DECL_NAME("OwnLayer", TYPE_OWN_LAYER)
 
@@ -6140,6 +6119,7 @@ class nsDisplayOwnLayer : public nsDisplayWrapList {
   nsDisplayOwnLayerFlags GetFlags() { return mFlags; }
   bool IsScrollThumbLayer() const;
   bool IsScrollbarContainer() const;
+  bool IsRootScrollbarContainerWithDynamicToolbar() const;
   bool IsZoomingLayer() const;
   bool IsFixedPositionLayer() const;
 
@@ -6165,9 +6145,7 @@ class nsDisplayRenderRoot : public nsDisplayWrapList {
                       const ActiveScrolledRoot* aActiveScrolledRoot,
                       mozilla::wr::RenderRoot aRenderRoot);
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayRenderRoot() override { MOZ_COUNT_DTOR(nsDisplayRenderRoot); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayRenderRoot)
 
   NS_DISPLAY_DECL_NAME("RenderRoot", TYPE_RENDER_ROOT)
 
@@ -6264,9 +6242,7 @@ class nsDisplayResolution : public nsDisplaySubDocument {
   nsDisplayResolution(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                       nsSubDocumentFrame* aSubDocFrame, nsDisplayList* aList,
                       nsDisplayOwnLayerFlags aFlags);
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayResolution() override { MOZ_COUNT_DTOR(nsDisplayResolution); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayResolution)
 
   NS_DISPLAY_DECL_NAME("Resolution", TYPE_RESOLUTION)
 
@@ -6295,11 +6271,7 @@ class nsDisplayStickyPosition : public nsDisplayOwnLayer {
     MOZ_COUNT_CTOR(nsDisplayStickyPosition);
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayStickyPosition() override {
-    MOZ_COUNT_DTOR(nsDisplayStickyPosition);
-  }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayStickyPosition)
 
   void SetClipChain(const DisplayItemClipChain* aClipChain,
                     bool aStore) override;
@@ -6353,9 +6325,7 @@ class nsDisplayFixedPosition : public nsDisplayOwnLayer {
       nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
       nsDisplayBackgroundImage* aImage, uint16_t aIndex);
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayFixedPosition() override { MOZ_COUNT_DTOR(nsDisplayFixedPosition); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayFixedPosition)
 
   NS_DISPLAY_DECL_NAME("FixedPosition", TYPE_FIXED_POSITION)
 
@@ -6461,13 +6431,11 @@ class nsDisplayTableFixedPosition : public nsDisplayFixedPosition {
 class nsDisplayScrollInfoLayer : public nsDisplayWrapList {
  public:
   nsDisplayScrollInfoLayer(nsDisplayListBuilder* aBuilder,
-                           nsIFrame* aScrolledFrame, nsIFrame* aScrollFrame);
+                           nsIFrame* aScrolledFrame, nsIFrame* aScrollFrame,
+                           const CompositorHitTestInfo& aHitInfo,
+                           const nsRect& aHitArea);
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayScrollInfoLayer() override {
-    MOZ_COUNT_DTOR(nsDisplayScrollInfoLayer);
-  }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayScrollInfoLayer)
 
   NS_DISPLAY_DECL_NAME("ScrollInfoLayer", TYPE_SCROLL_INFO_LAYER)
 
@@ -6496,11 +6464,19 @@ class nsDisplayScrollInfoLayer : public nsDisplayWrapList {
   bool UpdateScrollData(
       mozilla::layers::WebRenderScrollData* aData,
       mozilla::layers::WebRenderLayerScrollData* aLayerData) override;
+  bool CreateWebRenderCommands(
+      mozilla::wr::DisplayListBuilder& aBuilder,
+      mozilla::wr::IpcResourceUpdateQueue& aResources,
+      const StackingContextHelper& aSc,
+      mozilla::layers::RenderRootStateManager* aManager,
+      nsDisplayListBuilder* aDisplayListBuilder) override;
 
  protected:
   nsIFrame* mScrollFrame;
   nsIFrame* mScrolledFrame;
   ViewID mScrollParentId;
+  CompositorHitTestInfo mHitInfo;
+  nsRect mHitArea;
 };
 
 /**
@@ -6524,9 +6500,7 @@ class nsDisplayZoom : public nsDisplaySubDocument {
                 int32_t aAPD, int32_t aParentAPD,
                 nsDisplayOwnLayerFlags aFlags = nsDisplayOwnLayerFlags::None);
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayZoom() override { MOZ_COUNT_DTOR(nsDisplayZoom); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayZoom)
 
   NS_DISPLAY_DECL_NAME("Zoom", TYPE_ZOOM)
 
@@ -6611,9 +6585,7 @@ class nsDisplayEffectsBase : public nsDisplayWrapList {
     MOZ_COUNT_CTOR(nsDisplayEffectsBase);
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayEffectsBase() override { MOZ_COUNT_DTOR(nsDisplayEffectsBase); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayEffectsBase)
 
   nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                            bool* aSnap) const override;
@@ -6671,11 +6643,7 @@ class nsDisplayMasksAndClipPaths : public nsDisplayEffectsBase {
     MOZ_COUNT_CTOR(nsDisplayMasksAndClipPaths);
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayMasksAndClipPaths() override {
-    MOZ_COUNT_DTOR(nsDisplayMasksAndClipPaths);
-  }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayMasksAndClipPaths)
 
   NS_DISPLAY_DECL_NAME("Mask", TYPE_MASK)
 
@@ -6760,11 +6728,7 @@ class nsDisplayBackdropRootContainer : public nsDisplayWrapList {
     MOZ_COUNT_CTOR(nsDisplayBackdropRootContainer);
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayBackdropRootContainer() override {
-    MOZ_COUNT_DTOR(nsDisplayBackdropRootContainer);
-  }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayBackdropRootContainer)
 
   NS_DISPLAY_DECL_NAME("BackdropRootContainer", TYPE_BACKDROP_ROOT_CONTAINER)
 
@@ -6796,11 +6760,7 @@ class nsDisplayBackdropFilters : public nsDisplayWrapList {
     MOZ_COUNT_CTOR(nsDisplayBackdropFilters);
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayBackdropFilters() override {
-    MOZ_COUNT_DTOR(nsDisplayBackdropFilters);
-  }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayBackdropFilters)
 
   NS_DISPLAY_DECL_NAME("BackdropFilter", TYPE_BACKDROP_FILTER)
 
@@ -6841,9 +6801,7 @@ class nsDisplayFilters : public nsDisplayEffectsBase {
     MOZ_COUNT_CTOR(nsDisplayFilters);
   }
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayFilters() override { MOZ_COUNT_DTOR(nsDisplayFilters); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayFilters)
 
   NS_DISPLAY_DECL_NAME("Filter", TYPE_FILTER)
 
@@ -6956,9 +6914,7 @@ class nsDisplayTransform : public nsDisplayHitTestInfoBase {
                      uint16_t aIndex,
                      ComputeTransformFunction aTransformGetter);
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplayTransform() override { MOZ_COUNT_DTOR(nsDisplayTransform); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayTransform)
 
   NS_DISPLAY_DECL_NAME("nsDisplayTransform", TYPE_TRANSFORM)
 
@@ -7384,9 +7340,7 @@ class nsDisplayText final : public nsPaintedDisplayItem {
  public:
   nsDisplayText(nsDisplayListBuilder* aBuilder, nsTextFrame* aFrame,
                 const mozilla::Maybe<bool>& aIsSelected);
-#ifdef NS_BUILD_REFCNT_LOGGING
-  virtual ~nsDisplayText() { MOZ_COUNT_DTOR(nsDisplayText); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayText)
 
   NS_DISPLAY_DECL_NAME("Text", TYPE_TEXT)
 
@@ -7510,9 +7464,7 @@ class nsDisplaySVGWrapper : public nsDisplayWrapList {
   nsDisplaySVGWrapper(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                       nsDisplayList* aList);
 
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~nsDisplaySVGWrapper() override { MOZ_COUNT_DTOR(nsDisplaySVGWrapper); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplaySVGWrapper)
 
   NS_DISPLAY_DECL_NAME("SVGWrapper", TYPE_SVG_WRAPPER)
 

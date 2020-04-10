@@ -9,6 +9,7 @@
 #include "mozilla/Assertions.h"          // for MOZ_ASSERT, etc.
 #include "mozilla/EditAction.h"          // for EditAction and EditSubAction
 #include "mozilla/EditorDOMPoint.h"      // for EditorDOMPoint
+#include "mozilla/EventForwards.h"       // for InputEventTargetRanges
 #include "mozilla/Maybe.h"               // for Maybe
 #include "mozilla/OwningNonNull.h"       // for OwningNonNull
 #include "mozilla/PresShell.h"           // for PresShell
@@ -928,6 +929,13 @@ class EditorBase : public nsIEditor,
         SettingDataTransfer aSettingDataTransfer, int32_t aClipboardType);
     dom::DataTransfer* GetDataTransfer() const { return mDataTransfer; }
 
+    /**
+     * AppendTargetRange() appends aTargetRange to target ranges.  This should
+     * be used only by edit action handlers which do not want to set target
+     * ranges to selection ranges.
+     */
+    void AppendTargetRange(dom::StaticRange& aTargetRange);
+
     void Abort() { mAborted = true; }
     bool IsAborted() const { return mAborted; }
 
@@ -1105,6 +1113,9 @@ class EditorBase : public nsIEditor,
 
     // The dataTransfer should be set to InputEvent.dataTransfer.
     RefPtr<dom::DataTransfer> mDataTransfer;
+
+    // They are used for result of InputEvent.getTargetRanges() of beforeinput.
+    OwningNonNullStaticRangeArray mTargetRanges;
 
     // Start point where spell checker should check from.  This is used only
     // by TextEditor.
@@ -1370,16 +1381,14 @@ class EditorBase : public nsIEditor,
    * aOffset of aTextNode with transaction.
    *
    * @param aStringToInsert     String to be inserted.
-   * @param aTextNode           Text node to contain aStringToInsert.
-   * @param aOffset             Offset at insertion point in aTextNode.
+   * @param aPointToInsert      The insertion point.
    * @param aSuppressIME        true if it's not a part of IME composition.
    *                            E.g., adjusting whitespaces during composition.
    *                            false, otherwise.
    */
-  MOZ_CAN_RUN_SCRIPT
-  nsresult InsertTextIntoTextNodeWithTransaction(
-      const nsAString& aStringToInsert, Text& aTextNode, int32_t aOffset,
-      bool aSuppressIME = false);
+  MOZ_CAN_RUN_SCRIPT nsresult InsertTextIntoTextNodeWithTransaction(
+      const nsAString& aStringToInsert,
+      const EditorDOMPointInText& aPointToInsert, bool aSuppressIME = false);
 
   /**
    * SetTextNodeWithoutTransaction() is optimized path to set new value to

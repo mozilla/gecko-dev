@@ -18,7 +18,7 @@
 #include "nsNetCID.h"
 #include "nsIPrefBranch.h"
 #include "mozilla/Unused.h"
-#include "mozilla/net/CookieSettings.h"
+#include "mozilla/net/CookieJarSettings.h"
 #include "nsIURI.h"
 
 using mozilla::Unused;
@@ -70,7 +70,7 @@ void SetACookie(nsICookieService* aCookieService, const char* aSpec1,
   if (aSpec2) NS_NewURI(getter_AddRefs(uri2), aSpec2);
 
   nsresult rv = aCookieService->SetCookieStringFromHttp(
-      uri1, uri2, nullptr, nsDependentCString(aCookieString),
+      uri1, uri2, nsDependentCString(aCookieString),
       aServerTime ? nsDependentCString(aServerTime) : VoidCString(), nullptr);
   EXPECT_TRUE(NS_SUCCEEDED(rv));
 }
@@ -99,15 +99,16 @@ void SetASameSiteCookie(nsICookieService* aCookieService, const char* aSpec1,
                 nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK,
                 nsIContentPolicy::TYPE_OTHER);
 
-  nsCOMPtr<nsICookieSettings> cookieSettings =
-      aAllowed ? CookieSettings::Create() : CookieSettings::CreateBlockingAll();
-  MOZ_ASSERT(cookieSettings);
+  nsCOMPtr<nsICookieJarSettings> cookieJarSettings =
+      aAllowed ? CookieJarSettings::Create()
+               : CookieJarSettings::GetBlockingAll();
+  MOZ_ASSERT(cookieJarSettings);
 
   nsCOMPtr<nsILoadInfo> loadInfo = dummyChannel->LoadInfo();
-  loadInfo->SetCookieSettings(cookieSettings);
+  loadInfo->SetCookieJarSettings(cookieJarSettings);
 
   nsresult rv = aCookieService->SetCookieStringFromHttp(
-      uri1, uri2, nullptr, nsDependentCString(aCookieString),
+      uri1, uri2, nsDependentCString(aCookieString),
       aServerTime ? nsDependentCString(aServerTime) : VoidCString(),
       dummyChannel);
   EXPECT_TRUE(NS_SUCCEEDED(rv));
@@ -119,7 +120,7 @@ void SetACookieNoHttp(nsICookieService* aCookieService, const char* aSpec,
   NS_NewURI(getter_AddRefs(uri), aSpec);
 
   nsresult rv = aCookieService->SetCookieString(
-      uri, nullptr, nsDependentCString(aCookieString), nullptr);
+      uri, nsDependentCString(aCookieString), nullptr);
   EXPECT_TRUE(NS_SUCCEEDED(rv));
 }
 
@@ -186,6 +187,11 @@ void InitPrefs(nsIPrefBranch* aPrefBranch) {
   aPrefBranch->SetIntPref(kPrefCookieQuotaPerHost, 49);
   // Set the base domain limit to 50 so we have a known value.
   aPrefBranch->SetIntPref(kCookiesMaxPerHost, 50);
+
+  // SameSite=none by default. We have other tests for lax-by-default.
+  // XXX: Bug 1617611 - Fix all the tests broken by "cookies sameSite=lax by
+  // default"
+  Preferences::SetBool("network.cookie.sameSite.laxByDefault", false);
 }
 
 TEST(TestCookie, TestCookieMain)
@@ -977,7 +983,7 @@ TEST(TestCookie, TestCookieMain)
   EXPECT_TRUE(NS_SUCCEEDED(cookieMgr->RemoveAll()));
 
   // None of these cookies will be set because using
-  // CookieSettings::CreateBlockingAll().
+  // CookieJarSettings::GetBlockingAll().
   SetASameSiteCookie(cookieService, "http://samesite.test", nullptr,
                      "unset=yes", nullptr, false);
   SetASameSiteCookie(cookieService, "http://samesite.test", nullptr,
@@ -1059,6 +1065,20 @@ TEST(TestCookie, TestCookieMain)
              "test=sameSiteLaxVal; samesite=lax", nullptr);
   GetACookie(cookieService, "http://www.notsamesite.com", nullptr, cookie);
   EXPECT_TRUE(CheckResult(cookie.get(), MUST_BE_NULL));
+
+  static const char* secureURIs[] = {
+      "http://localhost", "http://localhost:1234", "http://127.0.0.1",
+      "http://127.0.0.2", "http://127.1.0.1",      "http://[::1]",
+      // TODO bug 1220810 "http://xyzzy.localhost"
+  };
+
+  uint32_t numSecureURIs = sizeof(secureURIs) / sizeof(const char*);
+  for (uint32_t i = 0; i < numSecureURIs; ++i) {
+    SetACookie(cookieService, secureURIs[i], nullptr, "test=basic; secure",
+               nullptr);
+    GetACookie(cookieService, secureURIs[i], nullptr, cookie);
+    EXPECT_TRUE(CheckResult(cookie.get(), MUST_EQUAL, "test=basic"));
+  }
 
   // XXX the following are placeholders: add these tests please!
   // *** "noncompliant cookie" tests

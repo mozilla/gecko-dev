@@ -6,7 +6,6 @@
 #include "TLSServerSocket.h"
 
 #include "mozilla/net/DNS.h"
-#include "nsAutoPtr.h"
 #include "nsComponentManagerUtils.h"
 #include "nsDependentSubstring.h"
 #include "nsIServerSocket.h"
@@ -282,7 +281,7 @@ TLSServerConnectionInfo::~TLSServerConnectionInfo() {
   RefPtr<nsITLSServerSecurityObserver> observer;
   {
     MutexAutoLock lock(mLock);
-    observer = mSecurityObserver.forget();
+    observer = ToRefPtr(std::move(mSecurityObserver));
   }
 
   if (observer) {

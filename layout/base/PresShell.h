@@ -1826,7 +1826,6 @@ class PresShell final : public nsStubDocumentObserver,
   void AddUserSheet(StyleSheet*);
   void AddAgentSheet(StyleSheet*);
   void AddAuthorSheet(StyleSheet*);
-  void RemoveSheet(StyleOrigin, StyleSheet*);
   void RemovePreferenceStyles();
 
   /**
@@ -1990,7 +1989,7 @@ class PresShell final : public nsStubDocumentObserver,
     explicit EventHandler(PresShell& aPresShell)
         : mPresShell(aPresShell), mCurrentEventInfoSetter(nullptr) {}
     explicit EventHandler(RefPtr<PresShell>&& aPresShell)
-        : mPresShell(aPresShell.forget()), mCurrentEventInfoSetter(nullptr) {}
+        : mPresShell(std::move(aPresShell)), mCurrentEventInfoSetter(nullptr) {}
 
     /**
      * HandleEvent() may dispatch aGUIEvent.  This may redirect the event to

@@ -137,10 +137,11 @@ class nsHttpChannel final : public HttpBaseChannel,
        nsContentPolicyType aContentPolicyType) override;
 
   MOZ_MUST_USE nsresult OnPush(uint32_t aPushedStreamId, const nsACString& aUrl,
-                               const nsACString& aRequestString);
+                               const nsACString& aRequestString,
+                               HttpTransactionShell* aTransaction);
 
   static bool IsRedirectStatus(uint32_t status);
-  static bool WillRedirect(nsHttpResponseHead* response);
+  static bool WillRedirect(const nsHttpResponseHead& response);
 
   // Methods HttpBaseChannel didn't implement for us or that we override.
   //
@@ -632,7 +633,7 @@ class nsHttpChannel final : public HttpBaseChannel,
   // We must close mCacheInputStream explicitly to avoid leaks.
   AutoClose<nsIInputStream> mCacheInputStream;
   RefPtr<nsInputStreamPump> mCachePump;
-  nsAutoPtr<nsHttpResponseHead> mCachedResponseHead;
+  UniquePtr<nsHttpResponseHead> mCachedResponseHead;
   nsCOMPtr<nsISupports> mCachedSecurityInfo;
   uint32_t mPostID;
   uint32_t mRequestTime;
@@ -825,6 +826,7 @@ class nsHttpChannel final : public HttpBaseChannel,
   // Is true if the network request has been triggered.
   bool mNetworkTriggered = false;
   bool mWaitingForProxy = false;
+  bool mStaleRevalidation = false;
   // Will be true if the onCacheEntryAvailable callback is not called by the
   // time we send the network request
   Atomic<bool> mRaceCacheWithNetwork;

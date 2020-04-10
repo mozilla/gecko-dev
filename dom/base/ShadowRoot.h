@@ -41,6 +41,8 @@ class HTMLInputElement;
 class ShadowRoot final : public DocumentFragment,
                          public DocumentOrShadowRoot,
                          public nsIRadioGroupContainer {
+  friend class DocumentOrShadowRoot;
+
  public:
   NS_IMPL_FROMNODE_HELPER(ShadowRoot, IsShadowRoot());
 
@@ -72,7 +74,8 @@ class ShadowRoot final : public DocumentFragment,
   ShadowRootMode Mode() const { return mMode; }
   bool IsClosed() const { return mMode == ShadowRootMode::Closed; }
 
-  void RemoveSheet(StyleSheet* aSheet);
+  void RemoveSheet(StyleSheet&);
+  void RemoveSheetFromStyles(StyleSheet&);
   void RuleAdded(StyleSheet&, css::Rule&);
   void RuleRemoved(StyleSheet&, css::Rule&);
   void RuleChanged(StyleSheet&, css::Rule*);
@@ -101,7 +104,8 @@ class ShadowRoot final : public DocumentFragment,
   nsresult Bind();
 
  private:
-  void InsertSheetIntoAuthorData(size_t aIndex, StyleSheet&);
+  void InsertSheetIntoAuthorData(size_t aIndex, StyleSheet&,
+                                 const nsTArray<RefPtr<StyleSheet>>&);
 
   void AppendStyleSheet(StyleSheet& aSheet) {
     InsertSheetAt(SheetCount(), aSheet);
@@ -167,6 +171,11 @@ class ShadowRoot final : public DocumentFragment,
   mozilla::ServoStyleRuleMap& ServoStyleRuleMap();
 
   JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) final;
+
+  void NodeInfoChanged(Document* aOldDoc) override {
+    DocumentFragment::NodeInfoChanged(aOldDoc);
+    ClearAdoptedStyleSheets();
+  }
 
   void AddToIdTable(Element* aElement, nsAtom* aId);
   void RemoveFromIdTable(Element* aElement, nsAtom* aId);

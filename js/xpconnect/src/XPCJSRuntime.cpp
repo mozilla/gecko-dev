@@ -126,6 +126,7 @@ const char* const XPCJSRuntime::mStrings[] = {
     "classId",           // IDX_CLASS_ID
     "interfaceId",       // IDX_INTERFACE_ID
     "initializer",       // IDX_INITIALIZER
+    "print",             // IDX_PRINT
 };
 
 /***************************************************************************/
@@ -1147,7 +1148,7 @@ static void GetRealmName(JS::Realm* realm, nsCString& name, int* anonymizeID,
           }
         }
         if (lastSlashPos != -1) {
-          name.ReplaceASCII(pathPos, lastSlashPos - pathPos, "<anonymized>");
+          name.ReplaceLiteral(pathPos, lastSlashPos - pathPos, "<anonymized>");
         } else {
           // Something went wrong. Anonymize the entire path to be
           // safe.
@@ -1396,15 +1397,6 @@ static void ReportZoneStats(const JS::ZoneStats& zStats,
       zStats.compartmentsPrivateData,
       "Extra data attached to each compartment by XPConnect, including "
       "its wrapped-js.");
-
-  ZRREPORT_GC_BYTES(pathPrefix + NS_LITERAL_CSTRING("lazy-scripts/gc-heap"),
-                    zStats.lazyScriptsGCHeap,
-                    "Scripts that haven't executed yet.");
-
-  ZRREPORT_BYTES(
-      pathPrefix + NS_LITERAL_CSTRING("lazy-scripts/malloc-heap"),
-      zStats.lazyScriptsMallocHeap,
-      "Lazy script tables containing closed-over bindings or inner functions.");
 
   ZRREPORT_GC_BYTES(pathPrefix + NS_LITERAL_CSTRING("jit-codes-gc-heap"),
                     zStats.jitCodesGCHeap,
@@ -2443,12 +2435,6 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
 
   REPORT_BYTES(
       NS_LITERAL_CSTRING(
-          "js-main-runtime-gc-heap-committed/unused/gc-things/lazy-scripts"),
-      KIND_OTHER, rtStats.zTotals.unusedGCThings.lazyScript,
-      "Unused lazy script cells within non-empty arenas.");
-
-  REPORT_BYTES(
-      NS_LITERAL_CSTRING(
           "js-main-runtime-gc-heap-committed/unused/gc-things/jitcode"),
       KIND_OTHER, rtStats.zTotals.unusedGCThings.jitcode,
       "Unused jitcode cells within non-empty arenas.");
@@ -2514,11 +2500,6 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
                 KIND_OTHER, rtStats.realmTotals.scriptsGCHeap,
                 "Used script cells.");
 
-  MREPORT_BYTES(
-      NS_LITERAL_CSTRING(
-          "js-main-runtime-gc-heap-committed/used/gc-things/lazy-scripts"),
-      KIND_OTHER, rtStats.zTotals.lazyScriptsGCHeap, "Used lazy script cells.");
-
   MREPORT_BYTES(NS_LITERAL_CSTRING(
                     "js-main-runtime-gc-heap-committed/used/gc-things/jitcode"),
                 KIND_OTHER, rtStats.zTotals.jitCodesGCHeap,
@@ -2572,9 +2553,10 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
       "The memory used by ParseTasks waiting in HelperThreadState.");
 
   REPORT_BYTES(
-      NS_LITERAL_CSTRING("explicit/js-non-window/helper-thread/ion-builder"),
-      KIND_HEAP, gStats.helperThread.ionBuilder,
-      "The memory used by IonBuilders waiting in HelperThreadState.");
+      NS_LITERAL_CSTRING(
+          "explicit/js-non-window/helper-thread/ion-compile-task"),
+      KIND_HEAP, gStats.helperThread.ionCompileTask,
+      "The memory used by IonCompileTasks waiting in HelperThreadState.");
 
   REPORT_BYTES(
       NS_LITERAL_CSTRING("explicit/js-non-window/helper-thread/wasm-compile"),

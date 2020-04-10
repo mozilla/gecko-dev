@@ -227,6 +227,10 @@ class TelemetryHandler {
     );
   }
 
+  reportPageWithAds(info) {
+    this._contentHandler._reportPageWithAds(info);
+  }
+
   /**
    * This may start tracking a tab based on the URL. If the URL matches a search
    * partner, and it has a code, then we'll start tracking it. This will aid
@@ -411,7 +415,6 @@ class TelemetryHandler {
    * @param {object} win The window to register.
    */
   _registerWindow(win) {
-    this._contentHandler.registerWindow(win);
     win.gBrowser.tabContainer.addEventListener("TabClose", this);
   }
 
@@ -426,7 +429,6 @@ class TelemetryHandler {
       this.stopTrackingBrowser(tab);
     }
 
-    this._contentHandler.unregisterWindow(win);
     win.gBrowser.tabContainer.removeEventListener("TabClose", this);
   }
 
@@ -618,20 +620,6 @@ class ContentHandler {
   }
 
   /**
-   * Receives a message from the SearchTelemetryChild actor.
-   *
-   * @param {object} msg
-   */
-  receiveMessage(msg) {
-    if (msg.name != "SearchTelemetry:PageInfo") {
-      LOG("Received unexpected message: " + msg.name);
-      return;
-    }
-
-    this._reportPageWithAds(msg.data);
-  }
-
-  /**
    * Test-only function to override the search provider information for use
    * with tests. Passes it to the SearchTelemetryChild actor.
    *
@@ -655,8 +643,9 @@ class ContentHandler {
     let getTopURL = channel => {
       // top-level document
       if (
+        channel.loadInfo &&
         channel.loadInfo.externalContentPolicyType ==
-        Ci.nsIContentPolicy.TYPE_DOCUMENT
+          Ci.nsIContentPolicy.TYPE_DOCUMENT
       ) {
         return channel.finalURL;
       }
@@ -677,6 +666,7 @@ class ContentHandler {
 
       // top-level resource
       if (
+        channel.loadInfo &&
         channel.loadInfo.loadingPrincipal &&
         channel.loadInfo.loadingPrincipal.URI
       ) {
@@ -796,25 +786,6 @@ class ContentHandler {
   }
 
   /**
-   * Adds a message listener for the window being registered to receive messages
-   * from SearchTelemetryChild.
-   *
-   * @param {object} win The window to register.
-   */
-  registerWindow(win) {
-    win.messageManager.addMessageListener("SearchTelemetry:PageInfo", this);
-  }
-
-  /**
-   * Removes the message listener for the window.
-   *
-   * @param {object} win The window to unregister.
-   */
-  unregisterWindow(win) {
-    win.messageManager.removeMessageListener("SearchTelemetry:PageInfo", this);
-  }
-
-  /**
    * Logs telemetry for a page with adverts, if it is one of the partner search
    * provider pages that we're tracking.
    *
@@ -826,9 +797,7 @@ class ContentHandler {
     let item = this._findBrowserItemForURL(info.url);
     if (!item) {
       LOG(
-        `Expected to report URI for ${
-          info.url
-        } with ads but couldn't find the information`
+        `Expected to report URI for ${info.url} with ads but couldn't find the information`
       );
       return;
     }

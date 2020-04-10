@@ -46,15 +46,15 @@ void OutputStreamDriver::EndTrack() {
   }
 }
 
-void OutputStreamDriver::SetImage(const RefPtr<layers::Image>& aImage,
+void OutputStreamDriver::SetImage(RefPtr<layers::Image>&& aImage,
                                   const TimeStamp& aTime) {
   MOZ_ASSERT(NS_IsMainThread());
 
   TRACE_COMMENT("SourceMediaTrack %p", mSourceStream.get());
 
   VideoSegment segment;
-  segment.AppendFrame(do_AddRef(aImage), aImage->GetSize(), mPrincipalHandle,
-                      false, aTime);
+  const auto size = aImage->GetSize();
+  segment.AppendFrame(aImage.forget(), size, mPrincipalHandle, false, aTime);
   mSourceStream->AppendData(&segment);
 }
 
@@ -92,7 +92,7 @@ class TimerDriver : public OutputStreamDriver {
     }
 
     mFrameCaptureRequested = false;
-    SetImage(image.forget(), aTime);
+    SetImage(std::move(image), aTime);
   }
 
   void Forget() override {
@@ -103,7 +103,7 @@ class TimerDriver : public OutputStreamDriver {
   }
 
  protected:
-  virtual ~TimerDriver() {}
+  virtual ~TimerDriver() = default;
 
  private:
   const double mFPS;
@@ -126,11 +126,11 @@ class AutoDriver : public OutputStreamDriver {
     // after something changed.
 
     RefPtr<Image> image = aImage;
-    SetImage(image.forget(), aTime);
+    SetImage(std::move(image), aTime);
   }
 
  protected:
-  virtual ~AutoDriver() {}
+  virtual ~AutoDriver() = default;
 };
 
 // ----------------------------------------------------------------------

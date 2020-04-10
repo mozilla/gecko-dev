@@ -229,6 +229,13 @@ add_task(async function testFind() {
       "rejected Promise should pass the expected error"
     );
 
+    // Test highlightResults without any arguments, especially `rangeIndex`.
+    data = await browser.find.find("example");
+    browser.test.assertEq(6, data.count, "The number of matches found:");
+    await browser.find.highlightResults();
+
+    await browser.find.removeHighlighting();
+
     data = await browser.find.find("banana", { includeRectData: true });
     await browser.find.highlightResults({ rangeIndex: 5 });
 
@@ -247,9 +254,8 @@ add_task(async function testFind() {
   let { top, left } = rectData[5].rectsAndTexts.rectList[0];
   await extension.unload();
 
-  let subFrameBrowsingContext = gBrowser.selectedBrowser.browsingContext
-    .getChildren()[0]
-    .getChildren()[1];
+  let subFrameBrowsingContext =
+    gBrowser.selectedBrowser.browsingContext.children[0].children[1];
   let result = await SpecialPowers.spawn(
     subFrameBrowsingContext,
     [],
@@ -331,9 +337,8 @@ add_task(async function testRemoveHighlighting() {
   await extension.awaitMessage("test:find:WebExtensionFinished");
   await extension.unload();
 
-  let subFrameBrowsingContext = gBrowser.selectedBrowser.browsingContext
-    .getChildren()[0]
-    .getChildren()[1];
+  let subFrameBrowsingContext =
+    gBrowser.selectedBrowser.browsingContext.children[0].children[1];
   let result = await SpecialPowers.spawn(
     subFrameBrowsingContext,
     [],

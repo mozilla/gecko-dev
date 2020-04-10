@@ -773,19 +773,19 @@ struct LastArg;
 
 template <>
 struct LastArg<> {
-  typedef void Type;
+  using Type = void;
   static constexpr size_t nbArgs = 0;
 };
 
 template <typename HeadType>
 struct LastArg<HeadType> {
-  typedef HeadType Type;
+  using Type = HeadType;
   static constexpr size_t nbArgs = 1;
 };
 
 template <typename HeadType, typename... TailTypes>
 struct LastArg<HeadType, TailTypes...> {
-  typedef typename LastArg<TailTypes...>::Type Type;
+  using Type = typename LastArg<TailTypes...>::Type;
   static constexpr size_t nbArgs = LastArg<TailTypes...>::nbArgs + 1;
 };
 
@@ -1015,14 +1015,10 @@ MOZ_MUST_USE bool DebugLeaveLexicalEnv(JSContext* cx, BaselineFrame* frame,
 
 MOZ_MUST_USE bool PushVarEnv(JSContext* cx, BaselineFrame* frame,
                              HandleScope scope);
-MOZ_MUST_USE bool PopVarEnv(JSContext* cx, BaselineFrame* frame);
 
 MOZ_MUST_USE bool InitBaselineFrameForOsr(BaselineFrame* frame,
                                           InterpreterFrame* interpFrame,
                                           uint32_t numStackValues);
-
-JSObject* CreateDerivedTypedObj(JSContext* cx, HandleObject descr,
-                                HandleObject owner, int32_t offset);
 
 MOZ_MUST_USE bool IonRecompile(JSContext* cx);
 MOZ_MUST_USE bool IonForcedRecompile(JSContext* cx);
@@ -1073,7 +1069,8 @@ MOZ_MUST_USE bool ThrowRuntimeLexicalError(JSContext* cx, unsigned errorNumber);
 
 MOZ_MUST_USE bool ThrowBadDerivedReturn(JSContext* cx, HandleValue v);
 
-MOZ_MUST_USE bool ThrowObjectCoercible(JSContext* cx, HandleValue v);
+MOZ_MUST_USE bool ThrowBadDerivedReturnOrUninitializedThis(JSContext* cx,
+                                                           HandleValue v);
 
 MOZ_MUST_USE bool BaselineGetFunctionThis(JSContext* cx, BaselineFrame* frame,
                                           MutableHandleValue res);

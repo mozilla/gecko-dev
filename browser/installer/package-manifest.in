@@ -48,7 +48,7 @@
 @RESPATH@/dictionaries/*
 @RESPATH@/browser/localization/*
 @RESPATH@/localization/*
-#if defined(XP_WIN) || defined(XP_LINUX)
+#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
 @RESPATH@/fonts/*
 #endif
 @RESPATH@/hyphenation/*
@@ -137,10 +137,8 @@
 @RESPATH@/update-settings.ini
 #endif
 @RESPATH@/platform.ini
-#ifndef MOZ_SYSTEM_SQLITE
 #ifndef MOZ_FOLD_LIBS
 @BINPATH@/@DLL_PREFIX@mozsqlite3@DLL_SUFFIX@
-#endif
 #endif
 @BINPATH@/@DLL_PREFIX@lgpllibs@DLL_SUFFIX@
 #ifdef MOZ_FFVPX
@@ -373,8 +371,12 @@ bin/libfreebl_64int_3.so
 @RESPATH@/chrome/pippki@JAREXT@
 @RESPATH@/chrome/pippki.manifest
 
-#if defined(XP_WIN) && !defined(_ARM64_)
+; preprocessor.py doesn't handle parentheses, so while the following could be
+; expressed in a single line, it's more clear to break them up.
+#if defined(XP_WIN) || defined(XP_MACOSX)
+#if !defined(_ARM64_)
 @BINPATH@/@DLL_PREFIX@osclientcerts@DLL_SUFFIX@
+#endif
 #endif
 
 ; For process sandboxing
@@ -444,7 +446,6 @@ bin/libfreebl_64int_3.so
 @BINPATH@/@MOZ_CLANG_RT_ASAN_LIB@
 #endif
 
-
 ; media
 @RESPATH@/gmp-clearkey/0.1/@DLL_PREFIX@clearkey@DLL_SUFFIX@
 @RESPATH@/gmp-clearkey/0.1/manifest.json
@@ -452,6 +453,7 @@ bin/libfreebl_64int_3.so
 #ifdef MOZ_DMD
 ; DMD
 @RESPATH@/dmd.py
+@RESPATH@/fix_stacks.py
 @RESPATH@/fix_stack_using_bpsyms.py
 #ifdef XP_MACOSX
 @RESPATH@/fix_macosx_stack.py
@@ -463,6 +465,10 @@ bin/libfreebl_64int_3.so
 
 #ifdef PKG_LOCALE_MANIFEST
 #include @PKG_LOCALE_MANIFEST@
+#endif
+
+#if defined(XP_WIN) && defined(MOZ_DEFAULT_BROWSER_AGENT)
+@BINPATH@/default-browser-agent@BIN_SUFFIX@
 #endif
 
 #ifdef MOZ_EME_WIN32_ARTIFACT

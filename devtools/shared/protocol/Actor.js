@@ -25,7 +25,7 @@ exports.actorSpecs = actorSpecs;
  * An actor in the actor tree.
  *
  * @param optional conn
- *   Either a DebuggerServerConnection or a DebuggerClient.  Must have
+ *   Either a DevToolsServerConnection or a DevToolsClient.  Must have
  *   addActorPool, removeActorPool, and poolFor.
  *   conn can be null if the subclass provides a conn property.
  * @constructor

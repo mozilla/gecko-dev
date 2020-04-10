@@ -101,9 +101,6 @@ DefaultJitOptions::DefaultJitOptions() {
   // Toggles whether loop invariant code motion is globally disabled.
   SET_DEFAULT(disableLicm, false);
 
-  // Toggles wheter optimization tracking is globally disabled.
-  SET_DEFAULT(disableOptimizationTracking, true);
-
   // Toggle whether Profile Guided Optimization is globally disabled.
   SET_DEFAULT(disablePgo, false);
 
@@ -137,6 +134,18 @@ DefaultJitOptions::DefaultJitOptions() {
 
   // Whether the IonMonkey JIT is enabled.
   SET_DEFAULT(ion, true);
+
+#ifdef NIGHTLY_BUILD
+  // Whether TI is enabled.
+  SET_DEFAULT(typeInference, true);
+#endif
+
+  // Whether Ion uses WarpBuilder as MIR builder.
+  SET_DEFAULT(warpBuilder, false);
+
+  // Whether the IonMonkey and Baseline JITs are enabled for Trusted Principals.
+  // (Ignored if ion or baselineJit is set to true.)
+  SET_DEFAULT(jitForTrustedPrincipals, false);
 
   // Whether the RegExp JIT is enabled.
   SET_DEFAULT(nativeRegExp, true);

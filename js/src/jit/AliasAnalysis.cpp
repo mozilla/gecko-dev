@@ -9,9 +9,9 @@
 #include <stdio.h>
 
 #include "jit/Ion.h"
-#include "jit/IonBuilder.h"
 #include "jit/JitSpewer.h"
 #include "jit/MIR.h"
+#include "jit/MIRGenerator.h"
 #include "jit/MIRGraph.h"
 
 #include "vm/Printer.h"
@@ -87,9 +87,6 @@ static inline const MDefinition* MaybeUnwrap(const MDefinition* object) {
   if (object->isTypedArrayElements()) {
     return nullptr;
   }
-  if (object->isTypedObjectElements()) {
-    return nullptr;
-  }
   if (object->isConstantElements()) {
     return nullptr;
   }
@@ -100,9 +97,10 @@ static inline const MDefinition* MaybeUnwrap(const MDefinition* object) {
 // Get the object of any load/store. Returns nullptr if not tied to
 // an object.
 static inline const MDefinition* GetObject(const MDefinition* ins) {
-  if (!ins->getAliasSet().isStore() && !ins->getAliasSet().isLoad()) {
+  if (ins->getAliasSet().isNone()) {
     return nullptr;
   }
+  MOZ_ASSERT(ins->getAliasSet().isStore() || ins->getAliasSet().isLoad());
 
   // Note: only return the object if that object owns that property.
   // I.e. the property isn't on the prototype chain.
@@ -111,16 +109,11 @@ static inline const MDefinition* GetObject(const MDefinition* ins) {
     case MDefinition::Opcode::InitializedLength:
     case MDefinition::Opcode::LoadElement:
     case MDefinition::Opcode::LoadUnboxedScalar:
-    case MDefinition::Opcode::LoadUnboxedObjectOrNull:
-    case MDefinition::Opcode::LoadUnboxedString:
     case MDefinition::Opcode::StoreElement:
-    case MDefinition::Opcode::StoreUnboxedObjectOrNull:
-    case MDefinition::Opcode::StoreUnboxedString:
     case MDefinition::Opcode::StoreUnboxedScalar:
     case MDefinition::Opcode::SetInitializedLength:
     case MDefinition::Opcode::ArrayLength:
     case MDefinition::Opcode::SetArrayLength:
-    case MDefinition::Opcode::TypedObjectDescr:
     case MDefinition::Opcode::Slots:
     case MDefinition::Opcode::Elements:
     case MDefinition::Opcode::MaybeCopyElementsForWrite:
@@ -145,9 +138,11 @@ static inline const MDefinition* GetObject(const MDefinition* ins) {
     case MDefinition::Opcode::InArray:
     case MDefinition::Opcode::LoadElementHole:
     case MDefinition::Opcode::TypedArrayElements:
-    case MDefinition::Opcode::TypedObjectElements:
     case MDefinition::Opcode::CopyLexicalEnvironmentObject:
     case MDefinition::Opcode::IsPackedArray:
+    case MDefinition::Opcode::SuperFunction:
+    case MDefinition::Opcode::InitHomeObject:
+    case MDefinition::Opcode::HomeObjectSuperBase:
       object = ins->getOperand(0);
       break;
     case MDefinition::Opcode::GetPropertyCache:
@@ -155,11 +150,8 @@ static inline const MDefinition* GetObject(const MDefinition* ins) {
     case MDefinition::Opcode::GetDOMProperty:
     case MDefinition::Opcode::GetDOMMember:
     case MDefinition::Opcode::Call:
-    case MDefinition::Opcode::Compare:
     case MDefinition::Opcode::GetArgumentsObjectArg:
     case MDefinition::Opcode::SetArgumentsObjectArg:
-    case MDefinition::Opcode::GetFrameArgument:
-    case MDefinition::Opcode::SetFrameArgument:
     case MDefinition::Opcode::CompareExchangeTypedArrayElement:
     case MDefinition::Opcode::AtomicExchangeTypedArrayElement:
     case MDefinition::Opcode::AtomicTypedArrayElementBinop:
@@ -177,17 +169,13 @@ static inline const MDefinition* GetObject(const MDefinition* ins) {
     case MDefinition::Opcode::WasmStoreGlobalVar:
     case MDefinition::Opcode::WasmStoreGlobalCell:
     case MDefinition::Opcode::WasmStoreRef:
-    case MDefinition::Opcode::ArrayJoin:
-    case MDefinition::Opcode::ArraySlice:
-    case MDefinition::Opcode::StoreElementHole:
-    case MDefinition::Opcode::FallibleStoreElement:
+    case MDefinition::Opcode::WasmStoreStackResult:
       return nullptr;
     default:
 #ifdef DEBUG
       // Crash when the default aliasSet is overriden, but when not added in the
       // list above.
-      if (!ins->getAliasSet().isStore() ||
-          ins->getAliasSet().flags() != AliasSet::Flag::Any) {
+      if (!ins->hasDefaultAliasSet()) {
         MOZ_CRASH(
             "Overridden getAliasSet without updating AliasAnalysis GetObject");
       }
@@ -196,8 +184,7 @@ static inline const MDefinition* GetObject(const MDefinition* ins) {
       return nullptr;
   }
 
-  MOZ_ASSERT(!ins->getAliasSet().isStore() ||
-             ins->getAliasSet().flags() != AliasSet::Flag::Any);
+  MOZ_ASSERT(!ins->hasDefaultAliasSet());
   object = MaybeUnwrap(object);
   MOZ_ASSERT_IF(object, object->type() == MIRType::Object);
   return object;

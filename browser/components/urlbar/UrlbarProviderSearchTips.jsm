@@ -17,10 +17,12 @@ const { XPCOMUtils } = ChromeUtils.import(
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppMenuNotifications: "resource://gre/modules/AppMenuNotifications.jsm",
+  DefaultBrowserCheck: "resource:///modules/BrowserGlue.jsm",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
   Log: "resource://gre/modules/Log.jsm",
   ProfileAge: "resource://gre/modules/ProfileAge.jsm",
   Services: "resource://gre/modules/Services.jsm",
+  setTimeout: "resource://gre/modules/Timer.jsm",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
   UrlbarProvider: "resource:///modules/UrlbarUtils.jsm",
   UrlbarProviderTopSites: "resource:///modules/UrlbarProviderTopSites.jsm",
@@ -46,11 +48,15 @@ XPCOMUtils.defineLazyPreferenceGetter(
   true
 );
 
-// The possible tips to show.
+// The possible tips to show.  These names (except NONE) are used in the names
+// of keys in the `urlbar.tips` keyed scalar telemetry (see telemetry.rst).
+// Don't modify them unless you've considered that.  If you do modify them or
+// add new tips, then you are also adding new `urlbar.tips` keys and therefore
+// need an expanded data collection review.
 const TIPS = {
   NONE: "",
-  ONBOARD: "onboard",
-  REDIRECT: "redirect",
+  ONBOARD: "searchTip_onboard",
+  REDIRECT: "searchTip_redirect",
 };
 
 // This maps engine names to regexes matching their homepages. We show the
@@ -76,6 +82,10 @@ const SUPPORTED_ENGINES = new Map([
 // The maximum number of times we'll show a tip across all sessions.
 const MAX_SHOWN_COUNT = 4;
 
+// Amount of time to wait before showing a tip after selecting a tab or
+// navigating to a page where we should show a tip.
+const SHOW_TIP_DELAY_MS = 200;
+
 // We won't show a tip if the browser has been updated in the past
 // LAST_UPDATE_THRESHOLD_MS.
 const LAST_UPDATE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
@@ -92,16 +102,23 @@ class ProviderSearchTips extends UrlbarProvider {
 
     // Whether we should disable tips for the current browser session, for
     // example because a tip was already shown.
-    this.disableTipsForCurrentSession = false;
-
-    if (
-      UrlbarPrefs.get("searchTips.onboard.shownCount") >= MAX_SHOWN_COUNT &&
-      UrlbarPrefs.get("searchTips.redirect.shownCount") >= MAX_SHOWN_COUNT
-    ) {
-      this.disableTipsForCurrentSession = true;
+    this.disableTipsForCurrentSession = true;
+    for (let tip of Object.values(TIPS)) {
+      if (tip && UrlbarPrefs.get(`tipShownCount.${tip}`) < MAX_SHOWN_COUNT) {
+        this.disableTipsForCurrentSession = false;
+        break;
+      }
     }
+
     // Whether and what kind of tip we've shown in the current engagement.
     this.showedTipTypeInCurrentEngagement = TIPS.NONE;
+  }
+
+  /**
+   * Enum of the types of search tips.
+   */
+  get TIP_TYPE() {
+    return TIPS;
   }
 
   get PRIORITY() {
@@ -171,6 +188,7 @@ class ProviderSearchTips extends UrlbarProvider {
       UrlbarUtils.RESULT_TYPE.TIP,
       UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
       {
+        type: tip,
         buttonTextData: { id: "urlbar-search-tips-confirm" },
         icon: defaultEngine.iconURI.spec,
       }
@@ -189,7 +207,7 @@ class ProviderSearchTips extends UrlbarProvider {
       case TIPS.REDIRECT:
         result.heuristic = false;
         result.payload.textData = {
-          id: "urlbar-search-tips-redirect",
+          id: "urlbar-search-tips-redirect-2",
           args: {
             engineName: defaultEngine.name,
           },
@@ -200,6 +218,8 @@ class ProviderSearchTips extends UrlbarProvider {
     if (!this.queries.has(queryContext)) {
       return;
     }
+
+    Services.telemetry.keyedScalarAdd("urlbar.tips", `${tip}-shown`, 1);
 
     addCallback(this, result);
     this.queries.delete(queryContext);
@@ -240,23 +260,13 @@ class ProviderSearchTips extends UrlbarProvider {
       state == "engagement"
     ) {
       // The user either clicked the tip's "Okay, Got It" button, or they
-      // engaged with the urlbar while the tip was showing. We treat both as
-      // the user's acknowledgment of the tip, and we don't show tips again in any
+      // engaged with the urlbar while the tip was showing. We treat both as the
+      // user's acknowledgment of the tip, and we don't show tips again in any
       // session. Set the shown count to the max.
-      switch (this.showedTipTypeInCurrentEngagement) {
-        case TIPS.ONBOARD:
-          Services.prefs.setIntPref(
-            "browser.urlbar.searchTips.onboard.shownCount",
-            MAX_SHOWN_COUNT
-          );
-          break;
-        case TIPS.REDIRECT:
-          Services.prefs.setIntPref(
-            "browser.urlbar.searchTips.redirect.shownCount",
-            MAX_SHOWN_COUNT
-          );
-          break;
-      }
+      UrlbarPrefs.set(
+        `tipShownCount.${this.showedTipTypeInCurrentEngagement}`,
+        MAX_SHOWN_COUNT
+      );
     }
     this.showedTipTypeInCurrentEngagement = TIPS.NONE;
   }
@@ -280,7 +290,8 @@ class ProviderSearchTips extends UrlbarProvider {
     if (
       !UrlbarPrefs.get("update1.searchTips") ||
       !cfrFeaturesUserPref ||
-      this.disableTipsForCurrentSession
+      (this.disableTipsForCurrentSession &&
+        !UrlbarPrefs.get("searchTips.test.ignoreShowLimits"))
     ) {
       return;
     }
@@ -298,67 +309,74 @@ class ProviderSearchTips extends UrlbarProvider {
     let instance = {};
     this._maybeShowTipForUrlInstance = instance;
 
+    let ignoreShowLimits = UrlbarPrefs.get("searchTips.test.ignoreShowLimits");
+
     // Don't show a tip if the browser is already showing some other notification.
-    if (isBrowserShowingNotification()) {
+    if ((await isBrowserShowingNotification()) && !ignoreShowLimits) {
       return;
     }
 
     // Don't show a tip if the browser has been updated recently.
     let date = await lastBrowserUpdateDate();
-    if (Date.now() - date <= LAST_UPDATE_THRESHOLD_MS) {
+    if (Date.now() - date <= LAST_UPDATE_THRESHOLD_MS && !ignoreShowLimits) {
       return;
     }
 
     // Determine which tip we should show for the tab.
     let tip;
-    let shownCountPrefName;
     let isNewtab = ["about:newtab", "about:home"].includes(urlStr);
     let isSearchHomepage = !isNewtab && (await isDefaultEngineHomepage(urlStr));
     if (isNewtab) {
       tip = TIPS.ONBOARD;
-      shownCountPrefName = "searchTips.onboard.shownCount";
     } else if (isSearchHomepage) {
       tip = TIPS.REDIRECT;
-      shownCountPrefName = "searchTips.redirect.shownCount";
     } else {
       // No tip.
       return;
     }
 
-    if (this._maybeShowTipForUrlInstance != instance) {
-      return;
-    }
-
     // If we've shown this type of tip the maximum number of times over all
     // sessions, don't show it again.
-    let shownCount = UrlbarPrefs.get(shownCountPrefName);
-    if (shownCount >= MAX_SHOWN_COUNT) {
+    let shownCount = UrlbarPrefs.get(`tipShownCount.${tip}`);
+    if (shownCount >= MAX_SHOWN_COUNT && !ignoreShowLimits) {
       return;
     }
-
-    this.currentTip = tip;
 
     // At this point, we're showing a tip.
     this.disableTipsForCurrentSession = true;
 
     // Store the new shown count.
-    Services.prefs.setIntPref(
-      `browser.urlbar.${shownCountPrefName}`,
-      shownCount + 1
-    );
+    UrlbarPrefs.set(`tipShownCount.${tip}`, shownCount + 1);
 
     // Start a search.
-    let window = BrowserWindowTracker.getTopWindow();
-    window.gURLBar.search("", { focus: tip == TIPS.ONBOARD });
+    setTimeout(() => {
+      if (this._maybeShowTipForUrlInstance != instance) {
+        return;
+      }
+
+      let window = BrowserWindowTracker.getTopWindow();
+      // We don't want to interrupt a user's typed query with a Search Tip.
+      // See bugs 1613662 and 1619547.
+      if (
+        window.gURLBar.getAttribute("pageproxystate") == "invalid" &&
+        window.gURLBar.value != ""
+      ) {
+        return;
+      }
+
+      this.currentTip = tip;
+      window.gURLBar.search("", { focus: tip == TIPS.ONBOARD });
+    }, SHOW_TIP_DELAY_MS);
   }
 }
 
-function isBrowserShowingNotification() {
+async function isBrowserShowingNotification() {
   let window = BrowserWindowTracker.getTopWindow();
 
   // urlbar view and notification box (info bar)
   if (
     window.gURLBar.view.isOpen ||
+    window.gHighPriorityNotificationBox.currentNotification ||
     window.gBrowser.getNotificationBox().currentNotification
   ) {
     return true;
@@ -398,6 +416,16 @@ function isBrowserShowingNotification() {
     if (node.getAttribute("open") == "true") {
       return true;
     }
+  }
+
+  // On startup, the default browser check normally opens after the Search Tip.
+  // As a result, we can't check for the prompt's presence, but we can check if
+  // it plans on opening.
+  const willPrompt = await DefaultBrowserCheck.willCheckDefaultBrowser(
+    /* isStartupCheck */ false
+  );
+  if (willPrompt) {
+    return true;
   }
 
   return false;

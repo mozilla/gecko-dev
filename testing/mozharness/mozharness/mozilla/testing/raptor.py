@@ -202,6 +202,8 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
         }],
         [["--host"], {
             "dest": "host",
+            "type": "str",
+            "default": "127.0.0.1",
             "help": "Hostname from which to serve urls (default: 127.0.0.1). "
                     "The value HOST_IP will cause the value of host to be "
                     "to be loaded from the environment variable HOST_IP.",
@@ -210,8 +212,9 @@ class Raptor(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidMixin):
             "dest": "power_test",
             "action": "store_true",
             "default": False,
-            "help": "Use Raptor to measure power usage; the host IP address must be specified via "
-            "the --host command-line argument.",
+            "help": "Use Raptor to measure power usage on Android browsers (Geckoview Example, "
+                    "Fenix, Refbrow, and Fennec) as well as on Intel-based MacOS machines that "
+                    "have Intel Power Gadget installed.",
         }],
         [["--memory-test"], {
             "dest": "memory_test",

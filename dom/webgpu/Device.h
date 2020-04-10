@@ -101,6 +101,11 @@ class Device final : public DOMEventTargetHelper {
   void CreateBufferMapped(JSContext* aCx, const dom::GPUBufferDescriptor& aDesc,
                           nsTArray<JS::Value>& aSequence, ErrorResult& aRv);
 
+  already_AddRefed<Texture> CreateTexture(
+      const dom::GPUTextureDescriptor& aDesc);
+  already_AddRefed<Sampler> CreateSampler(
+      const dom::GPUSamplerDescriptor& aDesc);
+
   already_AddRefed<CommandEncoder> CreateCommandEncoder(
       const dom::GPUCommandEncoderDescriptor& aDesc);
 
@@ -115,6 +120,8 @@ class Device final : public DOMEventTargetHelper {
       const dom::GPUShaderModuleDescriptor& aDesc);
   already_AddRefed<ComputePipeline> CreateComputePipeline(
       const dom::GPUComputePipelineDescriptor& aDesc);
+  already_AddRefed<RenderPipeline> CreateRenderPipeline(
+      const dom::GPURenderPipelineDescriptor& aDesc);
 
   // IMPL_EVENT_HANDLER(uncapturederror)
 };

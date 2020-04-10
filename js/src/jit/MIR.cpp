@@ -370,9 +370,6 @@ MDefinition* MInstruction::foldsToStore(TempAllocator& alloc) {
     case Opcode::StoreElement:
       value = store->toStoreElement()->value();
       break;
-    case Opcode::StoreUnboxedObjectOrNull:
-      value = store->toStoreUnboxedObjectOrNull()->value();
-      break;
     default:
       MOZ_CRASH("unknown store");
   }
@@ -1098,8 +1095,8 @@ void MConstant::printOpcode(GenericPrinter& out) const {
         } else {
           out.put("unnamed function");
         }
-        if (fun->hasScript()) {
-          JSScript* script = fun->nonLazyScript();
+        if (fun->hasBaseScript()) {
+          BaseScript* script = fun->baseScript();
           out.printf(" (%s:%u)", script->filename() ? script->filename() : "",
                      script->lineno());
         }
@@ -2376,6 +2373,14 @@ bool MPhi::checkForTypeChange(TempAllocator& alloc, MDefinition* ins,
                               bool* ptypeChange) {
   MIRType resultType = this->type();
   TemporaryTypeSet* resultTypeSet = this->resultTypeSet();
+
+  if (JitOptions.warpBuilder) {
+    // WarpBuilder does not specialize phis during MIR building and does not
+    // rely on MIR type information.
+    MOZ_ASSERT(resultType == MIRType::Value);
+    MOZ_ASSERT(!resultTypeSet);
+    return true;
+  }
 
   if (!MergeTypes(alloc, &resultType, &resultTypeSet, ins->type(),
                   ins->resultTypeSet())) {
@@ -5068,6 +5073,9 @@ MDefinition* MFunctionEnvironment::foldsTo(TempAllocator& alloc) {
   if (input()->isLambdaArrow()) {
     return input()->toLambdaArrow()->environmentChain();
   }
+  if (input()->isFunctionWithProto()) {
+    return input()->toFunctionWithProto()->environmentChain();
+  }
   return this;
 }
 
@@ -5151,38 +5159,6 @@ MDefinition::AliasType MLoadElement::mightAlias(const MDefinition* def) const {
 }
 
 MDefinition* MLoadElement::foldsTo(TempAllocator& alloc) {
-  if (MDefinition* def = foldsToStore(alloc)) {
-    return def;
-  }
-
-  return this;
-}
-
-MDefinition::AliasType MLoadUnboxedObjectOrNull::mightAlias(
-    const MDefinition* def) const {
-  if (def->isStoreUnboxedObjectOrNull()) {
-    const MStoreUnboxedObjectOrNull* store = def->toStoreUnboxedObjectOrNull();
-    if (store->index() != index()) {
-      if (DefinitelyDifferentValue(store->index(), index())) {
-        return AliasType::NoAlias;
-      }
-      return AliasType::MayAlias;
-    }
-
-    if (store->elements() != elements()) {
-      return AliasType::MayAlias;
-    }
-
-    if (store->offsetAdjustment() != offsetAdjustment()) {
-      return AliasType::MayAlias;
-    }
-
-    return AliasType::MustAlias;
-  }
-  return AliasType::MayAlias;
-}
-
-MDefinition* MLoadUnboxedObjectOrNull::foldsTo(TempAllocator& alloc) {
   if (MDefinition* def = foldsToStore(alloc)) {
     return def;
   }
@@ -5689,6 +5665,49 @@ MDefinition* MIsNullOrUndefined::foldsTo(TempAllocator& alloc) {
   }
 
   return this;
+}
+
+MDefinition* MCheckThis::foldsTo(TempAllocator& alloc) {
+  MDefinition* input = thisValue();
+  if (!input->isBox()) {
+    return this;
+  }
+
+  MDefinition* unboxed = input->getOperand(0);
+  if (unboxed->mightBeMagicType()) {
+    return this;
+  }
+
+  return input;
+}
+
+MDefinition* MCheckThisReinit::foldsTo(TempAllocator& alloc) {
+  MDefinition* input = thisValue();
+  if (!input->isBox()) {
+    return this;
+  }
+
+  MDefinition* unboxed = input->getOperand(0);
+  if (unboxed->type() != MIRType::MagicUninitializedLexical) {
+    return this;
+  }
+
+  return input;
+}
+
+MDefinition* MCheckObjCoercible::foldsTo(TempAllocator& alloc) {
+  MDefinition* input = checkValue();
+  if (!input->isBox()) {
+    return this;
+  }
+
+  MDefinition* unboxed = input->getOperand(0);
+  if (unboxed->mightBeType(MIRType::Null) ||
+      unboxed->mightBeType(MIRType::Undefined)) {
+    return this;
+  }
+
+  return input;
 }
 
 bool jit::ElementAccessIsDenseNative(CompilerConstraintList* constraints,

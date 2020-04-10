@@ -20,6 +20,7 @@
 namespace mozilla {
 namespace net {
 
+class HttpConnectionUDP;
 class Http3Stream;
 class QuicSocketControl;
 
@@ -34,8 +35,7 @@ class QuicSocketControl;
 class Http3Session final : public nsAHttpTransaction,
                            public nsAHttpConnection,
                            public nsAHttpSegmentReader,
-                           public nsAHttpSegmentWriter,
-                           public nsITimerCallback {
+                           public nsAHttpSegmentWriter {
  public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_HTTP3SESSION_IID)
 
@@ -44,11 +44,10 @@ class Http3Session final : public nsAHttpTransaction,
   NS_DECL_NSAHTTPCONNECTION(mConnection)
   NS_DECL_NSAHTTPSEGMENTREADER
   NS_DECL_NSAHTTPSEGMENTWRITER
-  NS_DECL_NSITIMERCALLBACK
 
   Http3Session();
   nsresult Init(const nsACString& aOrigin, nsISocketTransport* aSocketTransport,
-                nsHttpConnection* readerWriter);
+                HttpConnectionUDP* readerWriter);
 
   bool IsConnected() const { return mState == CONNECTED; }
   bool IsClosing() const { return (mState == CLOSING || mState == CLOSED); }
@@ -72,9 +71,6 @@ class Http3Session final : public nsAHttpTransaction,
                                           uint32_t*, bool*) final;
   MOZ_MUST_USE nsresult WriteSegmentsAgain(nsAHttpSegmentWriter*, uint32_t,
                                            uint32_t*, bool*) final;
-
-  bool ResponseTimeoutEnabled() const final { return true; }
-  PRIntervalTime ResponseTimeout() final;
 
   // The folowing functions are used by Http3Stream:
   nsresult TryActivating(const nsACString& aMethod, const nsACString& aScheme,
@@ -110,6 +106,8 @@ class Http3Session final : public nsAHttpTransaction,
   // verification is done.
   void Authenticated(int32_t aError);
 
+  nsresult ProcessOutputAndEvents();
+
  private:
   ~Http3Session();
 
@@ -122,11 +120,10 @@ class Http3Session final : public nsAHttpTransaction,
   nsresult ProcessOutput();
   nsresult ProcessInput();
   nsresult ProcessEvents(uint32_t count, uint32_t* countWritten, bool* again);
-  nsresult ProcessOutputAndEvents();
 
   void SetupTimer(uint64_t aTimeout);
 
-  void ResetRecvd(uint64_t aStreamId, Http3AppError aError);
+  void ResetRecvd(uint64_t aStreamId, uint64_t aError);
 
   void QueueStream(Http3Stream* stream);
   void RemoveStreamFromQueues(Http3Stream*);
@@ -135,6 +132,10 @@ class Http3Session final : public nsAHttpTransaction,
   void CallCertVerification();
   void SetSecInfo();
 
+  void MaybeResumeSend();
+
+  void CloseConnectionTelemetry(CloseError& aError, bool aClosing);
+
   RefPtr<NeqoHttp3Conn> mHttp3Connection;
   RefPtr<nsAHttpConnection> mConnection;
   nsRefPtrHashtable<nsUint64HashKey, Http3Stream> mStreamIdHash;
@@ -142,6 +143,7 @@ class Http3Session final : public nsAHttpTransaction,
       mStreamTransactionHash;
 
   nsDeque mReadyForWrite;
+  nsTArray<uint64_t> mReadyForWriteButBlocked;
   nsDeque mQueuedStreams;
 
   enum State { INITIALIZING, CONNECTED, CLOSING, CLOSED } mState;
@@ -157,7 +159,7 @@ class Http3Session final : public nsAHttpTransaction,
 
   nsTArray<uint8_t> mPacketToSend;
 
-  RefPtr<nsHttpConnection> mSegmentReaderWriter;
+  RefPtr<HttpConnectionUDP> mSegmentReaderWriter;
 
   // The underlying socket transport object is needed to propogate some events
   RefPtr<nsISocketTransport> mSocketTransport;

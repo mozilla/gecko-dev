@@ -45,7 +45,7 @@ async function setup(pageUrl) {
 
 async function teardown({ client, extension }) {
   await client.close();
-  DebuggerServer.destroy();
+  DevToolsServer.destroy();
   gBrowser.removeCurrentTab();
   await extension.unload();
 }
@@ -304,9 +304,7 @@ add_task(async function test_exception_inspectedWindowEval_result() {
     "Got the expected exception message"
   );
 
-  const expectedCallerInfo = `called from ${fakeExtCallerInfo.url}:${
-    fakeExtCallerInfo.lineNumber
-  }`;
+  const expectedCallerInfo = `called from ${fakeExtCallerInfo.url}:${fakeExtCallerInfo.lineNumber}`;
   ok(
     result.exceptionInfo.value.includes(expectedCallerInfo),
     "Got the expected caller info in the exception message"

@@ -157,6 +157,32 @@ add_task(
 );
 add_task(clear_state);
 
+add_task(async function test_throws_when_network_is_offline() {
+  const backupOffline = Services.io.offline;
+  try {
+    Services.io.offline = true;
+    const startHistogram = getUptakeTelemetrySnapshot(
+      clientWithDump.identifier
+    );
+    let error;
+    try {
+      await clientWithDump.maybeSync(2000);
+    } catch (e) {
+      error = e;
+    }
+    equal(error.name, "NetworkOfflineError");
+
+    const endHistogram = getUptakeTelemetrySnapshot(clientWithDump.identifier);
+    const expectedIncrements = {
+      [UptakeTelemetry.STATUS.NETWORK_OFFLINE_ERROR]: 1,
+    };
+    checkUptakeTelemetry(startHistogram, endHistogram, expectedIncrements);
+  } finally {
+    Services.io.offline = backupOffline;
+  }
+});
+add_task(clear_state);
+
 add_task(async function test_sync_event_is_sent_even_if_up_to_date() {
   if (IS_ANDROID) {
     // Skip test: we don't ship remote settings dumps on Android (see package-manifest).
@@ -243,6 +269,7 @@ add_task(async function test_get_does_not_sync_if_empty_dump_is_provided() {
   equal(data.length, 0);
   Assert.ok(await Utils.hasLocalData(clientWithEmptyDump));
 });
+add_task(clear_state);
 
 add_task(async function test_get_synchronization_can_be_disabled() {
   const data = await client.get({ syncIfEmpty: false });
@@ -475,6 +502,28 @@ add_task(async function test_inspect_method() {
 });
 add_task(clear_state);
 
+add_task(async function test_clearAll_method() {
+  // Make sure we have some local data.
+  await client.maybeSync(2000);
+  await clientWithDump.maybeSync(2000);
+
+  await RemoteSettings.clearAll();
+
+  ok(!(await Utils.hasLocalData(client)), "Local data was deleted");
+  ok(!(await Utils.hasLocalData(clientWithDump)), "Local data was deleted");
+  ok(
+    !Services.prefs.prefHasUserValue(client.lastCheckTimePref),
+    "Pref was cleaned"
+  );
+
+  // Synchronization is not broken after resuming.
+  await client.maybeSync(2000);
+  await clientWithDump.maybeSync(2000);
+  ok(await Utils.hasLocalData(client), "Local data was populated");
+  ok(await Utils.hasLocalData(clientWithDump), "Local data was populated");
+});
+add_task(clear_state);
+
 add_task(async function test_listeners_are_not_deduplicated() {
   let count = 0;
   const plus1 = () => {
@@ -680,6 +729,39 @@ add_task(async function test_telemetry_reports_indexeddb_as_custom_1() {
 });
 add_task(clear_state);
 
+add_task(async function test_telemetry_reports_error_name_as_event_nightly() {
+  const backup = client.openCollection;
+  client.openCollection = () => {
+    const e = new Error("Some unknown error");
+    e.name = "ThrownError";
+    throw e;
+  };
+
+  await withFakeChannel("nightly", async () => {
+    try {
+      await client.maybeSync(2000);
+    } catch (e) {}
+
+    TelemetryTestUtils.assertEvents([
+      [
+        "uptake.remotecontent.result",
+        "uptake",
+        "remotesettings",
+        UptakeTelemetry.STATUS.UNKNOWN_ERROR,
+        {
+          source: client.identifier,
+          trigger: "manual",
+          duration: v => v >= 0,
+          errorName: "ThrownError",
+        },
+      ],
+    ]);
+  });
+
+  client.openCollection = backup;
+});
+add_task(clear_state);
+
 add_task(async function test_bucketname_changes_when_bucket_pref_changes() {
   equal(client.bucketName, "main");
 
@@ -731,9 +813,7 @@ function handleResponse(request, response) {
     const sample = getSampleResponse(request, server.identity.primaryPort);
     if (!sample) {
       do_throw(
-        `unexpected ${request.method} request for ${request.path}?${
-          request.queryString
-        }`
+        `unexpected ${request.method} request for ${request.path}?${request.queryString}`
       );
     }
 

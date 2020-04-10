@@ -32,7 +32,8 @@ add_task(async function() {
 async function testWatchTargets(mainRoot) {
   info("Test TargetList watchTargets function");
 
-  const target = await mainRoot.getMainProcess();
+  const targetDescriptor = await mainRoot.getMainProcess();
+  const target = await targetDescriptor.getTarget();
   const targetList = new TargetList(mainRoot, target);
 
   await targetList.startListening();
@@ -174,7 +175,7 @@ async function testWatchTargets(mainRoot) {
 async function testContentProcessTarget(mainRoot) {
   info("Test TargetList watchTargets with a content process target");
 
-  const { processes } = await mainRoot.listProcesses();
+  const processes = await mainRoot.listProcesses();
   const target = await processes[1].getTarget();
   const targetList = new TargetList(mainRoot, target);
 
@@ -220,7 +221,8 @@ async function testThrowingInOnAvailable(mainRoot) {
     "Test TargetList watchTargets function when an exception is thrown in onAvailable callback"
   );
 
-  const target = await mainRoot.getMainProcess();
+  const targetDescriptor = await mainRoot.getMainProcess();
+  const target = await targetDescriptor.getTarget();
   const targetList = new TargetList(mainRoot, target);
 
   await targetList.startListening();

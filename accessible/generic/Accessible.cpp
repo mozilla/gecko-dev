@@ -116,15 +116,10 @@ Accessible::Accessible(nsIContent* aContent, DocAccessible* aDoc)
       mHideEventTarget(false) {
   mBits.groupInfo = nullptr;
   mInt.mIndexOfEmbeddedChild = -1;
-
-  // Assign an ID to this Accessible for use in UniqueID().
-  recordreplay::RegisterThing(this);
 }
 
 Accessible::~Accessible() {
   NS_ASSERTION(!mDoc, "LastRelease was never called!?!");
-
-  recordreplay::UnregisterThing(this);
 }
 
 ENameValueFlag Accessible::Name(nsString& aName) const {
@@ -171,14 +166,13 @@ ENameValueFlag Accessible::Name(nsString& aName) const {
 void Accessible::Description(nsString& aDescription) {
   // There are 4 conditions that make an accessible have no accDescription:
   // 1. it's a text node; or
-  // 2. It has no DHTML describedby property
+  // 2. It has no ARIA describedby or description property
   // 3. it doesn't have an accName; or
   // 4. its title attribute already equals to its accName nsAutoString name;
 
   if (!HasOwnContent() || mContent->IsText()) return;
 
-  nsTextEquivUtils::GetTextEquivFromIDRefs(this, nsGkAtoms::aria_describedby,
-                                           aDescription);
+  ARIADescription(aDescription);
 
   if (aDescription.IsEmpty()) {
     NativeDescription(aDescription);
@@ -1967,6 +1961,22 @@ void Accessible::ARIAName(nsString& aName) const {
 }
 
 // Accessible protected
+void Accessible::ARIADescription(nsString& aDescription) const {
+  // aria-describedby takes precedence over aria-description
+  nsresult rv = nsTextEquivUtils::GetTextEquivFromIDRefs(
+      this, nsGkAtoms::aria_describedby, aDescription);
+  if (NS_SUCCEEDED(rv)) {
+    aDescription.CompressWhitespace();
+  }
+
+  if (aDescription.IsEmpty() && mContent->IsElement() &&
+      mContent->AsElement()->GetAttr(
+          kNameSpaceID_None, nsGkAtoms::aria_description, aDescription)) {
+    aDescription.CompressWhitespace();
+  }
+}
+
+// Accessible protected
 ENameValueFlag Accessible::NativeName(nsString& aName) const {
   if (mContent->IsHTMLElement()) {
     Accessible* label = nullptr;
@@ -2648,6 +2658,18 @@ int32_t Accessible::GetLevelInternal() {
       }
     } else {
       ++level;  // level is 1-index based
+    }
+  } else if (role == roles::COMMENT) {
+    // For comments, count the ancestor elements with the same role to get the
+    // level.
+    level = 1;
+
+    Accessible* parent = this;
+    while ((parent = parent->Parent())) {
+      roles::Role parentRole = parent->Role();
+      if (parentRole == roles::COMMENT) {
+        ++level;
+      }
     }
   }
 

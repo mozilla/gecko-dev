@@ -15,7 +15,6 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/ErrorNames.h"
 #include "mtransport/runnable_utils.h"
-#include "nsAutoPtr.h"
 #include "Tracing.h"
 
 // scoped_ptr.h uses FF
@@ -799,8 +798,8 @@ void AudioInputProcessing::NotifyOutputData(MediaTrackGraphImpl* aGraph,
       mPacketizerOutput->Channels() != aChannels) {
     // It's ok to drop the audio still in the packetizer here: if this changes,
     // we changed devices or something.
-    mPacketizerOutput =
-        new AudioPacketizer<AudioDataValue, float>(aRate / 100, aChannels);
+    mPacketizerOutput = MakeUnique<AudioPacketizer<AudioDataValue, float>>(
+        aRate / 100, aChannels);
   }
 
   mPacketizerOutput->Input(aBuffer, aFrames);
@@ -889,8 +888,8 @@ void AudioInputProcessing::PacketizeAndProcess(MediaTrackGraphImpl* aGraph,
   if (!mPacketizerInput || mPacketizerInput->PacketSize() != aRate / 100u ||
       mPacketizerInput->Channels() != aChannels) {
     // It's ok to drop the audio still in the packetizer here.
-    mPacketizerInput =
-        new AudioPacketizer<AudioDataValue, float>(aRate / 100, aChannels);
+    mPacketizerInput = MakeUnique<AudioPacketizer<AudioDataValue, float>>(
+        aRate / 100, aChannels);
   }
 
   // Packetize our input data into 10ms chunks, deinterleave into planar channel
@@ -933,8 +932,10 @@ void AudioInputProcessing::PacketizeAndProcess(MediaTrackGraphImpl* aGraph,
     mAudioProcessing->set_stream_delay_ms(0);
 
     // Bug 1414837: find a way to not allocate here.
-    RefPtr<SharedBuffer> buffer = SharedBuffer::Create(
-        mPacketizerInput->PacketSize() * aChannels * sizeof(float));
+    CheckedInt<size_t> bufferSize(sizeof(float));
+    bufferSize *= mPacketizerInput->PacketSize();
+    bufferSize *= aChannels;
+    RefPtr<SharedBuffer> buffer = SharedBuffer::Create(bufferSize);
 
     // Prepare channel pointers to the SharedBuffer created above.
     AutoTArray<float*, 8> processedOutputChannelPointers;
@@ -1001,8 +1002,10 @@ void AudioInputProcessing::InsertInGraph(const T* aBuffer, size_t aFrames,
   MOZ_ASSERT(aChannels >= 1 && aChannels <= 8, "Support up to 8 channels");
 
   AudioSegment segment;
-  RefPtr<SharedBuffer> buffer =
-      SharedBuffer::Create(aFrames * aChannels * sizeof(T));
+  CheckedInt<size_t> bufferSize(sizeof(T));
+  bufferSize *= aFrames;
+  bufferSize *= aChannels;
+  RefPtr<SharedBuffer> buffer = SharedBuffer::Create(bufferSize);
   AutoTArray<const T*, 8> channels;
   if (aChannels == 1) {
     PodCopy(static_cast<T*>(buffer->Data()), aBuffer, aFrames);

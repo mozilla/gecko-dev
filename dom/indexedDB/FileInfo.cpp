@@ -24,47 +24,6 @@ namespace indexedDB {
 using namespace mozilla::dom::quota;
 using namespace mozilla::ipc;
 
-namespace {
-
-template <typename IdType>
-class FileInfoImpl final : public FileInfo {
-  IdType mFileId;
-
- public:
-  FileInfoImpl(FileManager* aFileManager, IdType aFileId)
-      : FileInfo(aFileManager), mFileId(aFileId) {
-    MOZ_ASSERT(aFileManager);
-    MOZ_ASSERT(aFileId > 0);
-  }
-
- private:
-  ~FileInfoImpl() = default;
-
-  virtual int64_t Id() const override { return int64_t(mFileId); }
-};
-
-}  // namespace
-
-FileInfo::FileInfo(FileManager* aFileManager) : mFileManager(aFileManager) {
-  MOZ_ASSERT(aFileManager);
-}
-
-// static
-FileInfo* FileInfo::Create(FileManager* aFileManager, int64_t aId) {
-  MOZ_ASSERT(aFileManager);
-  MOZ_ASSERT(aId > 0);
-
-  if (aId <= INT16_MAX) {
-    return new FileInfoImpl<int16_t>(aFileManager, aId);
-  }
-
-  if (aId <= INT32_MAX) {
-    return new FileInfoImpl<int32_t>(aFileManager, aId);
-  }
-
-  return new FileInfoImpl<int64_t>(aFileManager, aId);
-}
-
 void FileInfo::GetReferences(int32_t* aRefCnt, int32_t* aDBRefCnt,
                              int32_t* aSliceRefCnt) {
   MOZ_ASSERT(!IndexedDatabaseManager::IsClosed());
@@ -117,7 +76,7 @@ void FileInfo::UpdateReferences(ThreadSafeAutoRefCnt& aRefCount, int32_t aDelta,
       return;
     }
 
-    mFileManager->mFileInfos.Remove(Id());
+    mFileManager->RemoveFileInfo(Id(), lock);
 
     needsCleanup = !mFileManager->Invalidated();
   }
@@ -168,15 +127,14 @@ void FileInfo::Cleanup() {
 }
 
 /* static */
-nsCOMPtr<nsIFile> FileInfo::GetFileForFileInfo(FileInfo* aFileInfo) {
-  FileManager* const fileManager = aFileInfo->Manager();
+nsCOMPtr<nsIFile> FileInfo::GetFileForFileInfo(const FileInfo& aFileInfo) {
+  FileManager* const fileManager = aFileInfo.Manager();
   const nsCOMPtr<nsIFile> directory = fileManager->GetDirectory();
   if (NS_WARN_IF(!directory)) {
     return nullptr;
   }
 
-  nsCOMPtr<nsIFile> file =
-      FileManager::GetFileForId(directory, aFileInfo->Id());
+  nsCOMPtr<nsIFile> file = FileManager::GetFileForId(directory, aFileInfo.Id());
   if (NS_WARN_IF(!file)) {
     return nullptr;
   }

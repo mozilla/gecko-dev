@@ -103,6 +103,11 @@ class PrioritizedEventQueue final : public AbstractEventQueue {
   EventQueuePriority SelectQueue(bool aUpdateState,
                                  const MutexAutoLock& aProofOfLock);
 
+  void IndirectlyQueueRunnable(already_AddRefed<nsIRunnable>&& aEvent,
+                               EventQueuePriority aPriority,
+                               const MutexAutoLock& aProofOfLock,
+                               mozilla::TimeDuration* aDelay);
+
   UniquePtr<EventQueue> mHighQueue;
   UniquePtr<EventQueueSized<32>> mInputQueue;
   UniquePtr<EventQueue> mMediumHighQueue;
@@ -116,12 +121,6 @@ class PrioritizedEventQueue final : public AbstractEventQueue {
 
   TimeDuration mLastEventDelay;
   TimeStamp mLastEventStart;
-
-  // Try to process one high priority runnable after each normal
-  // priority runnable. This gives the processing model HTML spec has for
-  // 'Update the rendering' in the case only vsync messages are in the
-  // secondary queue and prevents starving the normal queue.
-  bool mProcessHighPriorityQueue = false;
 
   TimeStamp mInputHandlingStartTime;
 

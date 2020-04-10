@@ -13,6 +13,84 @@ exclude: true
 
 ⚠️  breaking change
 
+## v75
+- ⚠️ Remove `GeckoRuntimeSettings.Builder#useContentProcessHint`. The content
+  process is now preloaded by default if
+  [`GeckoRuntimeSettings.Builder#useMultiprocess`][75.1] is enabled.
+- ⚠️ Move `GeckoSessionSettings.Builder#useMultiprocess` to
+  [`GeckoRuntimeSettings.Builder#useMultiprocess`][75.1]. Multiprocess state is
+  no longer determined per session.
+- Added [`DebuggerDelegate#onExtensionListUpdated`][75.2] to notify that a temporary
+  extension has been installed by the debugger.
+  ([bug 1614295]({{bugzilla}}1614295))
+- ⚠️ Removed [`GeckoRuntimeSettings.setAutoplayDefault`][75.3], use
+  [`GeckoSession.PermissionDelegate#PERMISSION_AUTOPLAY_AUDIBLE`][73.12] and
+  [`GeckoSession.PermissionDelegate#PERMISSION_AUTOPLAY_INAUDIBLE`][73.13] to
+  control autoplay.
+  ([bug 1614894]({{bugzilla}}1614894))
+- Added [`GeckoSession.reload(int flags)`][75.4] That takes a [load flag][75.5] parameter.
+- ⚠️ Moved [`ActionDelegate`][75.6] and [`MessageDelegate`][75.7] to
+  [`SessionController`][75.8].
+  ([bug 1616625]({{bugzilla}}1616625))
+- Added [`SessionTabDelegate`][75.9] to [`SessionController`][75.8] and
+  [`TabDelegate`][75.10] to [`WebExtension`][69.5] which receive respectively
+  calls for the session and the runtime. `TabDelegate` is also now
+  per-`WebExtension` object instead of being global.  The existing global
+  [`TabDelegate`][75.11] is now deprecated and will be removed in GeckoView 77.
+  ([bug 1616625]({{bugzilla}}1616625))
+- Added [`SessionTabDelegate#onUpdateTab`][75.12] which is called whenever an
+  extension calls `tabs.update` on the corresponding `GeckoSession`.
+  [`TabDelegate#onCreateTab`][75.13] now takes a [`CreateTabDetails`][75.14]
+  object which contains additional information about the newly created tab
+  (including the `url` which used to be passed in directly).
+  ([bug 1616625]({{bugzilla}}1616625))
+- Added [`GeckoRuntimeSettings.setWebManifestEnabled`][75.15],
+  [`GeckoRuntimeSettings.webManifest`][75.16], and
+  [`GeckoRuntimeSettings.getWebManifestEnabled`][75.17]
+  ([bug 1614894]({{bugzilla}}1603673)), to enable or check Web Manifest support.
+- Added [`GeckoDisplay.safeAreaInsetsChanged`][75.18] to notify the content of [safe area insets][75.19].
+  ([bug 1503656]({{bugzilla}}1503656))
+- Added [`GeckoResult#cancel()`][75.22], [`GeckoResult#setCancellationDelegate()`][75.22],
+  and [`GeckoResult.CancellationDelegate`][75.23]. This adds the optional ability to cancel
+  an operation behind a pending `GeckoResult`.
+- Added [`baseUrl`][75.24] to [`WebExtension.MetaData`][75.25] to expose the
+  base URL for all WebExtension pages for a given extension.
+  ([bug 1560048]({{bugzilla}}1560048))
+- Added [`allowedInPrivateBrowsing`][75.26] and
+  [`setAllowedInPrivateBrowsing`][75.27] to control whether an extension can
+  run in private browsing or not.  Extensions installed with
+  [`registerWebExtension`][67.15] will always be allowed to run in private
+  browsing.
+  ([bug 1599139]({{bugzilla}}1599139))
+
+[75.1]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#useMultiprocess-boolean-
+[75.2]: {{javadoc_uri}}/WebExtensionController.DebuggerDelegate.html#onExtensionListUpdated--
+[75.3]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#autoplayDefault-boolean-
+[75.4]: {{javadoc_uri}}/GeckoSession.html#reload-int-
+[75.5]: {{javadoc_uri}}/GeckoSession.html#LOAD_FLAGS_NONE
+[75.6]: {{javadoc_uri}}/WebExtension.ActionDelegate.html
+[75.7]: {{javadoc_uri}}/WebExtension.MessageDelegate.html
+[75.8]: {{javadoc_uri}}/WebExtension.SessionController.html
+[75.9]: {{javadoc_uri}}/WebExtension.SessionTabDelegate.html
+[75.10]: {{javadoc_uri}}/WebExtension.TabDelegate.html
+[75.11]: {{javadoc_uri}}/WebExtensionRuntime.TabDelegate.html
+[75.12]: {{javadoc_uri}}/WebExtension.SessionTabDelegate.html#onUpdateTab-org.mozilla.geckoview.WebExtension-org.mozilla.geckoview.GeckoSession-org.mozilla.geckoview.WebExtension.UpdateTabDetails-
+[75.13]: {{javadoc_uri}}/WebExtension.TabDelegate.html#onNewTab-org.mozilla.geckoview.WebExtension-org.mozilla.geckoview.WebExtension.CreateTabDetails-
+[75.14]: {{javadoc_uri}}/WebExtension.CreateTabDetails.html
+[75.15]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#setWebManifestEnabled-boolean-
+[75.16]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#webManifest-boolean-
+[75.17]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#getWebManifestEnabled--
+[75.18]: {{javadoc_uri}}/GeckoDisplay.html#safeAreaInsetsChanged-int-int-int-int-
+[75.19]: https://developer.mozilla.org/en-US/docs/Web/CSS/env
+[75.20]: {{javadoc_uri}}/WebExtension.InstallException.ErrorCodes.html#ERROR_POSTPONED-
+[75.21]: {{javadoc_uri}}/GeckoResult.html#cancel--
+[75.22]: {{javadoc_uri}}/GeckoResult.html#setCancellationDelegate-CancellationDelegate-
+[75.23]: {{javadoc_uri}}/GeckoResult.CancellationDelegate.html
+[75.24]: {{javadoc_uri}}/WebExtension.MetaData.html#baseUrl
+[75.25]: {{javadoc_uri}}/WebExtension.MetaData.html
+[75.26]: {{javadoc_uri}}/WebExtension.MetaData.html#allowedInPrivateBrowsing
+[75.27]: {{javadoc_uri}}/WebExtensionController.html#setAllowedInPrivateBrowsing-org.mozilla.geckoview.WebExtension-boolean-
+
 ## v74
 - Added [`WebExtensionController.enable`][74.1] and [`disable`][74.2] to
   enable and disable extensions.
@@ -44,6 +122,7 @@ exclude: true
   which is the addon metadata necessary to show their option pages.
   ([bug 1598792]({{bugzilla}}1598792))
 - Added [`WebExtensionController.update`][74.16] to update extensions. ([bug 1599581]({{bugzilla}}1599581))
+- ⚠️ Replaced `subscription` argument in [`WebPushDelegate.onSubscriptionChanged`][74.17] from a [`WebPushSubscription`][74.18] to the [`String`][74.19] `scope`.
 
 [74.1]: {{javadoc_uri}}/WebExtensionController.html#enable-org.mozilla.geckoview.WebExtension-int-
 [74.2]: {{javadoc_uri}}/WebExtensionController.html#disable-org.mozilla.geckoview.WebExtension-int-
@@ -61,6 +140,9 @@ exclude: true
 [74.14]: {{javadoc_uri}}/WebExtension.MetaData.html#optionsUrl
 [74.15]: {{javadoc_uri}}/WebExtension.MetaData.html#openOptionsPageInTab
 [74.16]: {{javadoc_uri}}/WebExtensionController.html#update-org.mozilla.geckoview.WebExtension-int-
+[74.17]: {{javadoc_uri}}/WebPushController.html#onSubscriptionChange-org.mozilla.geckoview.WebPushSubscription-byte:A-
+[74.18]: {{javadoc_uri}}/WebPushSubscription.html
+[74.19]: https://developer.android.com/reference/java/lang/String
 
 ## v73
 - Added [`WebExtensionController.install`][73.1] and [`uninstall`][73.2] to
@@ -571,4 +653,4 @@ exclude: true
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport-android.content.Context-android.os.Bundle-java.lang.String-
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: e7913b3fec18f7edb75b81e6bebfb7860ab57c91
+[api-version]: 6b0849430f800a3e2226c1a87d26830d1cbe73ee

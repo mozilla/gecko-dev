@@ -21,7 +21,7 @@ namespace js {
 class FunctionExtended;
 struct SelfHostedLazyScript;
 
-typedef JSNative Native;
+using Native = JSNative;
 }  // namespace js
 
 static const uint32_t JSSLOT_BOUND_FUNCTION_TARGET = 2;
@@ -66,11 +66,10 @@ class FunctionFlags {
 
     // An interpreted function has or may-have bytecode and an environment. Only
     // one of these flags may be used at a time. As a memory optimization, the
-    // SELF_HOSTED and INTERPRETED_LAZY flags together indicate there is no
-    // js::BaseScript at all and we must clone from the self-hosted realm in
-    // order to get bytecode.
-    INTERPRETED = 1 << 5,
-    INTERPRETED_LAZY = 1 << 6,
+    // SELFHOSTLAZY flag indicates there is no js::BaseScript at all and we must
+    // clone from the self-hosted realm in order to get bytecode.
+    BASESCRIPT = 1 << 5,
+    SELFHOSTLAZY = 1 << 6,
 
     // Function may be called as a constructor. This corresponds in the spec as
     // having a [[Construct]] internal method.
@@ -121,15 +120,15 @@ class FunctionFlags {
     ASMJS_CTOR = CONSTRUCTOR | ASMJS_KIND,
     ASMJS_LAMBDA_CTOR = CONSTRUCTOR | LAMBDA | ASMJS_KIND,
     WASM = WASM_KIND,
-    INTERPRETED_NORMAL = INTERPRETED | CONSTRUCTOR | NORMAL_KIND,
-    INTERPRETED_CLASS_CTOR = INTERPRETED | CONSTRUCTOR | CLASSCONSTRUCTOR_KIND,
-    INTERPRETED_GENERATOR_OR_ASYNC = INTERPRETED | NORMAL_KIND,
-    INTERPRETED_LAMBDA = INTERPRETED | LAMBDA | CONSTRUCTOR | NORMAL_KIND,
-    INTERPRETED_LAMBDA_ARROW = INTERPRETED | LAMBDA | ARROW_KIND,
-    INTERPRETED_LAMBDA_GENERATOR_OR_ASYNC = INTERPRETED | LAMBDA | NORMAL_KIND,
-    INTERPRETED_GETTER = INTERPRETED | GETTER_KIND,
-    INTERPRETED_SETTER = INTERPRETED | SETTER_KIND,
-    INTERPRETED_METHOD = INTERPRETED | METHOD_KIND,
+    INTERPRETED_NORMAL = BASESCRIPT | CONSTRUCTOR | NORMAL_KIND,
+    INTERPRETED_CLASS_CTOR = BASESCRIPT | CONSTRUCTOR | CLASSCONSTRUCTOR_KIND,
+    INTERPRETED_GENERATOR_OR_ASYNC = BASESCRIPT | NORMAL_KIND,
+    INTERPRETED_LAMBDA = BASESCRIPT | LAMBDA | CONSTRUCTOR | NORMAL_KIND,
+    INTERPRETED_LAMBDA_ARROW = BASESCRIPT | LAMBDA | ARROW_KIND,
+    INTERPRETED_LAMBDA_GENERATOR_OR_ASYNC = BASESCRIPT | LAMBDA | NORMAL_KIND,
+    INTERPRETED_GETTER = BASESCRIPT | GETTER_KIND,
+    INTERPRETED_SETTER = BASESCRIPT | SETTER_KIND,
+    INTERPRETED_METHOD = BASESCRIPT | METHOD_KIND,
 
     // Flags that XDR ignores. See also: js::BaseScript::MutableFlags.
     MUTABLE_FLAGS = RESOLVED_NAME | RESOLVED_LENGTH | NEW_SCRIPT_CLEARED,
@@ -156,8 +155,7 @@ class FunctionFlags {
   explicit FunctionFlags(uint16_t flags) : flags_(flags) {}
   MOZ_IMPLICIT FunctionFlags(Flags f) : flags_(f) {}
 
-  static_assert((INTERPRETED | INTERPRETED_LAZY) ==
-                    js::JS_FUNCTION_INTERPRETED_BITS,
+  static_assert((BASESCRIPT | SELFHOSTLAZY) == js::JS_FUNCTION_INTERPRETED_BITS,
                 "jsfriendapi.h's FunctionFlags::INTERPRETED-alike is wrong");
   static_assert(((FunctionKindLimit - 1) << FUNCTION_KIND_SHIFT) <=
                     FUNCTION_KIND_MASK,
@@ -184,7 +182,7 @@ class FunctionFlags {
 
   /* A function can be classified as either native (C++) or interpreted (JS): */
   bool isInterpreted() const {
-    return hasFlags(INTERPRETED) || hasFlags(INTERPRETED_LAZY);
+    return hasFlags(BASESCRIPT) || hasFlags(SELFHOSTLAZY);
   }
   bool isNative() const { return !isInterpreted(); }
 
@@ -229,7 +227,6 @@ class FunctionFlags {
     return hasFlags(HAS_BOUND_FUNCTION_NAME_PREFIX);
   }
   bool isLambda() const { return hasFlags(LAMBDA); }
-  bool isInterpretedLazy() const { return hasFlags(INTERPRETED_LAZY); }
 
   bool isNamedLambda(JSAtom* atom) const {
     return isLambda() && atom && !hasInferredName() && !hasGuessedAtom();
@@ -239,13 +236,8 @@ class FunctionFlags {
   // For live JSFunctions the pointer values will always be non-null, but due
   // to partial initialization the GC (and other features that scan the heap
   // directly) may still return a null pointer.
-  bool hasScript() const { return hasFlags(INTERPRETED); }
-  bool hasLazyScript() const {
-    return isInterpretedLazy() && !isSelfHostedOrIntrinsic();
-  }
-  bool hasSelfHostedLazyScript() const {
-    return isInterpretedLazy() && isSelfHostedOrIntrinsic();
-  }
+  bool hasBaseScript() const { return hasFlags(BASESCRIPT); }
+  bool hasSelfHostedLazyScript() const { return hasFlags(SELFHOSTLAZY); }
 
   // Arrow functions store their lexical new.target in the first extended slot.
   bool isArrow() const { return kind() == Arrow; }
@@ -326,10 +318,10 @@ class FunctionFlags {
     setFlags(HAS_BOUND_FUNCTION_NAME_PREFIX);
   }
 
-  void setInterpretedLazy() { setFlags(INTERPRETED_LAZY); }
-  void clearInterpretedLazy() { clearFlags(INTERPRETED_LAZY); }
-  void setInterpreted() { setFlags(INTERPRETED); }
-  void clearInterpreted() { clearFlags(INTERPRETED); }
+  void setSelfHostedLazy() { setFlags(SELFHOSTLAZY); }
+  void clearSelfHostedLazy() { clearFlags(SELFHOSTLAZY); }
+  void setBaseScript() { setFlags(BASESCRIPT); }
+  void clearBaseScript() { clearFlags(BASESCRIPT); }
 
   void setWasmJitEntry() { setFlags(WASM_JIT_ENTRY); }
 
@@ -423,19 +415,17 @@ class JSFunction : public js::NativeObject {
 
   /* Call objects must be created for each invocation of this function. */
   bool needsCallObject() const {
-    MOZ_ASSERT(!isInterpretedLazy());
-
     if (isNative()) {
       return false;
     }
 
+    MOZ_ASSERT(hasBytecode());
+
     // Note: this should be kept in sync with
     // FunctionBox::needsCallObjectRegardlessOfBindings().
-    MOZ_ASSERT_IF(baseScript()->funHasExtensibleScope() ||
-                      baseScript()->needsHomeObject() ||
-                      baseScript()->isDerivedClassConstructor() ||
-                      isGenerator() || isAsync(),
-                  nonLazyScript()->bodyScope()->hasEnvironment());
+    MOZ_ASSERT_IF(
+        baseScript()->funHasExtensibleScope() || isGenerator() || isAsync(),
+        nonLazyScript()->bodyScope()->hasEnvironment());
 
     return nonLazyScript()->bodyScope()->hasEnvironment();
   }
@@ -483,18 +473,20 @@ class JSFunction : public js::NativeObject {
   }
 
   bool isLambda() const { return flags_.isLambda(); }
-  bool isInterpretedLazy() const { return flags_.isInterpretedLazy(); }
 
   // These methods determine which of the u.scripted.s union arms are active.
   // For live JSFunctions the pointer values will always be non-null, but due
   // to partial initialization the GC (and other features that scan the heap
   // directly) may still return a null pointer.
-  bool hasScript() const { return flags_.hasScript(); }
-  bool hasLazyScript() const { return flags_.hasLazyScript(); }
   bool hasSelfHostedLazyScript() const {
     return flags_.hasSelfHostedLazyScript();
   }
-  bool hasBaseScript() const { return hasScript() || hasLazyScript(); }
+  bool hasBaseScript() const { return flags_.hasBaseScript(); }
+
+  bool hasBytecode() const {
+    MOZ_ASSERT(!isIncomplete());
+    return hasBaseScript() && baseScript()->hasBytecode();
+  }
 
   // Arrow functions store their lexical new.target in the first extended slot.
   bool isArrow() const { return flags_.isArrow(); }
@@ -518,14 +510,15 @@ class JSFunction : public js::NativeObject {
   bool isIntrinsic() const { return flags_.isIntrinsic(); }
 
   bool hasJitScript() const {
-    if (!hasScript()) {
+    if (!hasBaseScript()) {
       return false;
     }
 
     return baseScript()->hasJitScript();
   }
   bool hasJitEntry() const {
-    return hasScript() || isInterpretedLazy() || isNativeWithJitEntry();
+    return hasBaseScript() || hasSelfHostedLazyScript() ||
+           isNativeWithJitEntry();
   }
 
   /* Compound attributes: */
@@ -706,7 +699,7 @@ class JSFunction : public js::NativeObject {
     MOZ_ASSERT(fun->isInterpreted());
     MOZ_ASSERT(cx);
 
-    if (fun->hasLazyScript()) {
+    if (fun->hasBaseScript() && !fun->hasBytecode()) {
       if (!delazifyLazilyInterpretedFunction(cx, fun)) {
         return nullptr;
       }
@@ -721,7 +714,7 @@ class JSFunction : public js::NativeObject {
 
   JSScript* existingScript() {
     MOZ_ASSERT(isInterpreted());
-    if (isInterpretedLazy()) {
+    if (!hasBytecode()) {
       JSFunction* canonicalFunction = baseScript()->function();
       JSScript* script = canonicalFunction->nonLazyScript();
 
@@ -750,13 +743,13 @@ class JSFunction : public js::NativeObject {
   bool isIncomplete() const { return isInterpreted() && !u.scripted.s.script_; }
 
   JSScript* nonLazyScript() const {
-    MOZ_ASSERT(hasScript());
+    MOZ_ASSERT(hasBaseScript());
     MOZ_ASSERT(u.scripted.s.script_);
     return static_cast<JSScript*>(u.scripted.s.script_);
   }
 
   js::LazyScript* lazyScript() const {
-    MOZ_ASSERT(hasLazyScript());
+    MOZ_ASSERT(hasBaseScript());
     MOZ_ASSERT(u.scripted.s.script_);
     return static_cast<js::LazyScript*>(u.scripted.s.script_);
   }
@@ -783,8 +776,8 @@ class JSFunction : public js::NativeObject {
     baseScript()->setEnclosingScope(enclosingScope);
   }
 
-  void setEnclosingLazyScript(js::LazyScript* enclosingScript) {
-    baseScript()->setEnclosingLazyScript(enclosingScript);
+  void setEnclosingLazyScript(js::BaseScript* enclosingScript) {
+    baseScript()->setEnclosingScript(enclosingScript);
   }
 
   js::GeneratorKind generatorKind() const {
@@ -813,30 +806,25 @@ class JSFunction : public js::NativeObject {
     MOZ_ASSERT_IF(script, realm() == script->realm());
 
     u.scripted.s.script_ = script;
-    MOZ_ASSERT(hasScript());
   }
 
-  void initLazyScript(js::LazyScript* lazy) {
+  void initLazyScript(js::BaseScript* lazy) {
     MOZ_ASSERT(isInterpreted());
-    flags_.clearInterpreted();
-    flags_.setInterpretedLazy();
     u.scripted.s.script_ = lazy;
-    MOZ_ASSERT(hasLazyScript());
   }
 
   // Release the lazyScript() pointer while triggering barriers.
   void clearLazyScript() {
-    js::LazyScript::writeBarrierPre(lazyScript());
-    flags_.clearInterpretedLazy();
-    flags_.setInterpreted();
+    js::BaseScript::writeBarrierPre(lazyScript());
     u.scripted.s.script_ = nullptr;
     MOZ_ASSERT(isIncomplete());
   }
 
   void initSelfHostedLazyScript(js::SelfHostedLazyScript* lazy) {
+    MOZ_ASSERT(isSelfHostedBuiltin());
     MOZ_ASSERT(isInterpreted());
-    flags_.clearInterpreted();
-    flags_.setInterpretedLazy();
+    flags_.clearBaseScript();
+    flags_.setSelfHostedLazy();
     u.scripted.s.selfHostedLazy_ = lazy;
     MOZ_ASSERT(hasSelfHostedLazyScript());
   }
@@ -844,16 +832,16 @@ class JSFunction : public js::NativeObject {
   void clearSelfHostedLazyScript() {
     // Note: The selfHostedLazy_ field is not a GC-thing pointer so we don't
     // need to trigger barriers.
-    flags_.clearInterpretedLazy();
-    flags_.setInterpreted();
+    flags_.clearSelfHostedLazy();
+    flags_.setBaseScript();
     u.scripted.s.script_ = nullptr;
     MOZ_ASSERT(isIncomplete());
   }
 
   // Transform from lazy to non-lazy mode.
   void setUnlazifiedScript(JSScript* script) {
-    MOZ_ASSERT(isInterpretedLazy());
-    if (hasLazyScript()) {
+    MOZ_ASSERT(isInterpreted() && !hasBytecode());
+    if (hasBaseScript()) {
       if (!lazyScript()->maybeScript()) {
         lazyScript()->initScript(script);
       }
@@ -1039,8 +1027,8 @@ extern bool AsyncFunctionConstructor(JSContext* cx, unsigned argc, Value* vp);
 extern bool AsyncGeneratorConstructor(JSContext* cx, unsigned argc, Value* vp);
 
 // If enclosingEnv is null, the function will have a null environment()
-// (yes, null, not the global).  In all cases, the global will be used as the
-// parent.
+// (yes, null, not the global lexical environment).  In all cases, the global
+// will be used as the terminating environment.
 
 extern JSFunction* NewFunctionWithProto(
     JSContext* cx, JSNative native, unsigned nargs, FunctionFlags flags,
@@ -1074,8 +1062,8 @@ inline JSFunction* NewNativeConstructor(
 }
 
 // Allocate a new scripted function.  If enclosingEnv is null, the
-// global will be used.  In all cases the parent of the resulting object will be
-// the global.
+// global lexical environment will be used.  In all cases the terminating
+// environment of the resulting object will be the global.
 extern JSFunction* NewScriptedFunction(
     JSContext* cx, unsigned nargs, FunctionFlags flags, HandleAtom atom,
     HandleObject proto = nullptr,
@@ -1164,18 +1152,19 @@ class FunctionExtended : public JSFunction {
 };
 
 extern bool CanReuseScriptForClone(JS::Realm* realm, HandleFunction fun,
-                                   HandleObject newParent);
+                                   HandleObject newEnclosingEnv);
 
-extern JSFunction* CloneFunctionReuseScript(
-    JSContext* cx, HandleFunction fun, HandleObject parent,
-    gc::AllocKind kind = gc::AllocKind::FUNCTION,
-    NewObjectKind newKindArg = GenericObject, HandleObject proto = nullptr);
+extern JSFunction* CloneFunctionReuseScript(JSContext* cx, HandleFunction fun,
+                                            HandleObject enclosingEnv,
+                                            gc::AllocKind kind,
+                                            NewObjectKind newKindArg,
+                                            HandleObject proto);
 
 // Functions whose scripts are cloned are always given singleton types.
 extern JSFunction* CloneFunctionAndScript(
-    JSContext* cx, HandleFunction fun, HandleObject parent,
+    JSContext* cx, HandleFunction fun, HandleObject enclosingEnv,
     HandleScope newScope, Handle<ScriptSourceObject*> sourceObject,
-    gc::AllocKind kind = gc::AllocKind::FUNCTION, HandleObject proto = nullptr);
+    gc::AllocKind kind, HandleObject proto = nullptr);
 
 extern JSFunction* CloneAsmJSModuleFunction(JSContext* cx, HandleFunction fun);
 

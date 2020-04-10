@@ -42,7 +42,7 @@ with Files('GNUmakefile'):
     BUG_COMPONENT = ('Firefox Build System', 'General')
 
 with Files('*gradle*'):
-    BUG_COMPONENT = ('Firefox for Android', 'General')
+    BUG_COMPONENT = ('GeckoView', 'General')
     SCHEDULES.exclusive = ['android']
 
 with Files('*.json'):
@@ -164,6 +164,7 @@ if not CONFIG['JS_STANDALONE'] or not CONFIG['MOZ_BUILD_APP']:
 
     GENERATED_FILES['buildid.h'].script = 'build/variables.py:buildid_header'
     GENERATED_FILES['source-repo.h'].script = 'build/variables.py:source_repo_header'
+    GENERATED_FILES['source-repo.h'].py2 = True
 
     DIRS += [
         'build',
@@ -184,5 +185,7 @@ OBJDIR_PP_FILES['.cargo'] += ['.cargo/config.in']
 DEFINES['top_srcdir'] = TOPSRCDIR
 
 SPHINX_TREES['contributing'] = 'docs/contributing'
+
+SPHINX_TREES['code-quality'] = 'docs/code-quality'
 
 include('build/templates.mozbuild')

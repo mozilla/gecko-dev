@@ -58,14 +58,14 @@ ScriptAndCounts::ScriptAndCounts(ScriptAndCounts&& sac)
 void SetFrameArgumentsObject(JSContext* cx, AbstractFramePtr frame,
                              HandleScript script, JSObject* argsobj);
 
-inline void ScriptWarmUpData::initEnclosingScript(LazyScript* enclosingScript) {
+inline void ScriptWarmUpData::initEnclosingScript(BaseScript* enclosingScript) {
   MOZ_ASSERT(data_ == ResetState());
   setTaggedPtr<EnclosingScriptTag>(enclosingScript);
-  static_assert(std::is_base_of<gc::TenuredCell, LazyScript>::value,
-                "LazyScript must be TenuredCell to avoid post-barriers");
+  static_assert(std::is_base_of<gc::TenuredCell, BaseScript>::value,
+                "BaseScript must be TenuredCell to avoid post-barriers");
 }
 inline void ScriptWarmUpData::clearEnclosingScript() {
-  LazyScript::writeBarrierPre(toEnclosingScript());
+  BaseScript::writeBarrierPre(toEnclosingScript());
   data_ = ResetState();
 }
 
@@ -82,6 +82,11 @@ inline void ScriptWarmUpData::clearEnclosingScope() {
 
 inline JSPrincipals* BaseScript::principals() const {
   return realm()->principals();
+}
+
+inline JSScript* BaseScript::asJSScript() {
+  MOZ_ASSERT(!isLazyScript());
+  return static_cast<JSScript*>(this);
 }
 
 }  // namespace js

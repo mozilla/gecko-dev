@@ -95,6 +95,11 @@
       // Gets the name from @title, ignore whitespace content
       testName("from_label_ignore_ws_subtree", "about");
 
+      // role="alert" doesn't get name from subtree...
+      testName("alert", null);
+      // but the subtree is used if referenced by aria-labelledby.
+      testName("inputLabelledByAlert", "Error");
+
       // ////////////////////////////////////////////////////////////////////////
       // label element
 
@@ -233,6 +238,11 @@
 
       // But not if it is a weak (landmark) ARIA role
       testName("NoNameForTRBecauseWeakARIA", null);
+
+      // Name from sub tree of grouping if requested by other accessible.
+      testName("grouping", null);
+      testName("requested_name_from_grouping", "label");
+      testName("listitem_containing_block_tbody", "label");
 
       SimpleTest.finish();
     }
@@ -439,6 +449,10 @@
 
   <!-- no name from subtree because it holds whitespaces only -->
   <a id="from_label_ignore_ws_subtree" href="about:mozilla" title="about">&nbsp;&nbsp;  </a>
+
+  <!-- Don't use subtree unless referenced by aria-labelledby. -->
+  <div id="alert" role="alert">Error</div>
+  <input type="text" id="inputLabelledByAlert" aria-labelledby="alert">
 
   <!-- label element, label contains control -->
   <label>text<button id="btn_label_inside">10</button>text</label>
@@ -658,5 +672,16 @@
   <!-- No name for tr because of weak (landmark) role -->
   <table><tr id="NoNameForTRBecauseWeakARIA" role="main"><th>a</th><td>b</td></tr></table>
 
+  <!-- Name from subtree of grouping if requested by other object -->
+  <div id="grouping" role="group">label</div>
+  <button id="requested_name_from_grouping"aria-labelledby="grouping"></button>
+  <!-- Name from sub tree of tbody marked as display:block;, which is also a grouping -->
+  <div id="listitem_containing_block_tbody" role="listitem">
+    <table>
+      <tbody style="display: block;">
+        <tr><td>label</td></tr>
+      </tbody>
+    </table>
+  </div>
 </body>
 </html>

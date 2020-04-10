@@ -282,7 +282,11 @@ void ProcessLink::OnChannelOpened() {
     mChan->mChannelState = ChannelOpening;
     lock.Notify();
   }
-  /*assert*/ mTransport->Connect();
+
+  if (!mTransport->Connect()) {
+    mTransport->Close();
+    OnChannelError();
+  }
 }
 
 void ProcessLink::OnTakeConnectedChannel() {

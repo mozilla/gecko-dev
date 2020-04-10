@@ -710,7 +710,7 @@ static size_t ToLowerCaseImpl(CharT* destChars, const CharT* srcChars,
 
   size_t j = startIndex;
   for (size_t i = startIndex; i < srcLength; i++) {
-    char16_t c = srcChars[i];
+    CharT c = srcChars[i];
     if constexpr (!IsSame<CharT, Latin1Char>::value) {
       if (unicode::IsLeadSurrogate(c) && i + 1 < srcLength) {
         char16_t trail = srcChars[i + 1];
@@ -745,8 +745,6 @@ static size_t ToLowerCaseImpl(CharT* destChars, const CharT* srcChars,
     }
 
     c = unicode::ToLowerCase(c);
-    MOZ_ASSERT_IF((IsSame<CharT, Latin1Char>::value),
-                  c <= JSString::MAX_LATIN1_CHAR);
     destChars[j++] = c;
   }
 
@@ -795,8 +793,7 @@ static JSString* ToLowerCase(JSContext* cx, JSLinearString* str) {
     // static strings cache.
     if constexpr (IsSame<CharT, Latin1Char>::value) {
       if (length == 1) {
-        char16_t lower = unicode::ToLowerCase(chars[0]);
-        MOZ_ASSERT(lower <= JSString::MAX_LATIN1_CHAR);
+        CharT lower = unicode::ToLowerCase(chars[0]);
         MOZ_ASSERT(StaticStrings::hasUnit(lower));
 
         return cx->staticStrings().getUnit(lower);
@@ -872,7 +869,7 @@ JSString* js::StringToLowerCase(JSContext* cx, HandleString string) {
   return ToLowerCase<char16_t>(cx, linear);
 }
 
-bool js::str_toLowerCase(JSContext* cx, unsigned argc, Value* vp) {
+static bool str_toLowerCase(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   RootedString str(cx, ToStringForStringFunction(cx, args.thisv()));
@@ -1309,7 +1306,7 @@ JSString* js::StringToUpperCase(JSContext* cx, HandleString string) {
   return ToUpperCase<char16_t>(cx, linear);
 }
 
-bool js::str_toUpperCase(JSContext* cx, unsigned argc, Value* vp) {
+static bool str_toUpperCase(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   RootedString str(cx, ToStringForStringFunction(cx, args.thisv()));
@@ -1758,7 +1755,7 @@ static int BoyerMooreHorspool(const TextChar* text, uint32_t textLen,
 
 template <typename TextChar, typename PatChar>
 struct MemCmp {
-  typedef uint32_t Extent;
+  using Extent = uint32_t;
   static MOZ_ALWAYS_INLINE Extent computeExtent(const PatChar*,
                                                 uint32_t patLen) {
     return (patLen - 1) * sizeof(PatChar);
@@ -1772,7 +1769,7 @@ struct MemCmp {
 
 template <typename TextChar, typename PatChar>
 struct ManualCmp {
-  typedef const PatChar* Extent;
+  using Extent = const PatChar*;
   static MOZ_ALWAYS_INLINE Extent computeExtent(const PatChar* pat,
                                                 uint32_t patLen) {
     return pat + patLen;
@@ -2319,7 +2316,7 @@ static int32_t LastIndexOfImpl(const TextChar* text, size_t textLen,
 
 // ES2017 draft rev 6859bb9ccaea9c6ede81d71e5320e3833b92cb3e
 // 21.1.3.9 String.prototype.lastIndexOf ( searchString [ , position ] )
-bool js::str_lastIndexOf(JSContext* cx, unsigned argc, Value* vp) {
+static bool str_lastIndexOf(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Steps 1-2.

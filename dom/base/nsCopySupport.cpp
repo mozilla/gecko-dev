@@ -406,7 +406,7 @@ nsresult nsCopySupport::GetTransferableForNode(
   // Make a temporary selection with aNode in a single range.
   // XXX We should try to get rid of the Selection object here.
   // XXX bug 1245883
-  RefPtr<Selection> selection = new Selection();
+  RefPtr<Selection> selection = new Selection(nullptr);
   RefPtr<nsRange> range = nsRange::Create(aNode);
   ErrorResult result;
   range->SelectNode(*aNode, result);
@@ -639,12 +639,13 @@ static nsresult AppendImagePromise(nsITransferable* aTransferable,
     // Fix the file extension in the URL
     nsAutoCString primaryExtension;
     mimeInfo->GetPrimaryExtension(primaryExtension);
-
-    rv = NS_MutateURI(imgUri)
-             .Apply(NS_MutatorMethod(&nsIURLMutator::SetFileExtension,
-                                     primaryExtension, nullptr))
-             .Finalize(imgUrl);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (!primaryExtension.IsEmpty()) {
+      rv = NS_MutateURI(imgUri)
+               .Apply(NS_MutatorMethod(&nsIURLMutator::SetFileExtension,
+                                       primaryExtension, nullptr))
+               .Finalize(imgUrl);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
   }
 
   nsAutoCString fileName;

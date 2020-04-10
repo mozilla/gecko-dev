@@ -39,7 +39,7 @@ using namespace js::wasm;
 using mozilla::ArrayLength;
 
 typedef Vector<jit::MIRType, 8, SystemAllocPolicy> MIRTypeVector;
-typedef jit::ABIArgIter<MIRTypeVector> ABIArgMIRTypeIter;
+using ABIArgMIRTypeIter = jit::ABIArgIter<MIRTypeVector>;
 
 /*****************************************************************************/
 // ABIResultIter implementation
@@ -315,7 +315,7 @@ static void SetupABIArguments(MacroAssembler& masm, const FuncExport& fe,
           masm.load64(src, iter->gpr64());
         } else if (type == MIRType::RefOrNull) {
           masm.loadPtr(src, iter->gpr());
-        } else if (type == MIRType::Pointer) {
+        } else if (type == MIRType::StackResults) {
           MOZ_ASSERT(args.isSyntheticStackResultPointerArg(iter.index()));
           MOZ_CRASH("multiple function results not yet implemented");
         } else {
@@ -378,7 +378,7 @@ static void SetupABIArguments(MacroAssembler& masm, const FuncExport& fe,
                                                  iter->offsetFromArgBase()));
             break;
           }
-          case MIRType::Pointer: {
+          case MIRType::StackResults: {
             MOZ_ASSERT(args.isSyntheticStackResultPointerArg(iter.index()));
             MOZ_CRASH("multiple function results not yet implemented");
             break;
@@ -1379,7 +1379,7 @@ void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
         case MIRType::RefOrNull:
           GenPrintPtr(DebugChannel::Function, masm, iter->gpr());
           break;
-        case MIRType::Pointer:
+        case MIRType::StackResults:
           MOZ_ASSERT(args.isSyntheticStackResultPointerArg(iter.index()));
           GenPrintPtr(DebugChannel::Function, masm, iter->gpr());
           break;
@@ -1449,7 +1449,7 @@ void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
             masm.storePtr(scratch, dst);
             break;
           }
-          case MIRType::Pointer: {
+          case MIRType::StackResults: {
             MOZ_CRASH("multi-value in ion to wasm fast path unimplemented");
           }
           default: {
@@ -1585,7 +1585,7 @@ static void StackCopy(MacroAssembler& masm, MIRType type, Register scratch,
   }
 }
 
-typedef bool ToValue;
+using ToValue = bool;
 
 // Note, when toValue is true then this may destroy the values in incoming
 // argument registers as a result of Spectre mitigation.

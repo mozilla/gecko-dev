@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{BuiltDisplayList, DisplayItemCache, ColorF, DynamicProperties, Epoch, FontRenderMode};
-use api::{PipelineId, PropertyBinding, PropertyBindingId, MixBlendMode, StackingContext};
+use api::{BuiltDisplayList, DisplayListWithCache, ColorF, DynamicProperties, Epoch, FontRenderMode};
+use api::{PipelineId, PropertyBinding, PropertyBindingId, PropertyValue, MixBlendMode, StackingContext};
 use api::units::*;
 use crate::composite::CompositorKind;
 use crate::clip::{ClipStore, ClipDataStore};
@@ -22,6 +22,7 @@ use std::sync::Arc;
 pub struct SceneProperties {
     transform_properties: FastHashMap<PropertyBindingId, LayoutTransform>,
     float_properties: FastHashMap<PropertyBindingId, f32>,
+    color_properties: FastHashMap<PropertyBindingId, ColorF>,
     current_properties: DynamicProperties,
     pending_properties: Option<DynamicProperties>,
 }
@@ -31,6 +32,7 @@ impl SceneProperties {
         SceneProperties {
             transform_properties: FastHashMap::default(),
             float_properties: FastHashMap::default(),
+            color_properties: FastHashMap::default(),
             current_properties: DynamicProperties::default(),
             pending_properties: None,
         }
@@ -42,13 +44,12 @@ impl SceneProperties {
     }
 
     /// Add to the current property list for this display list.
-    pub fn add_properties(&mut self, properties: DynamicProperties) {
+    pub fn add_transforms(&mut self, transforms: Vec<PropertyValue<LayoutTransform>>) {
         let mut pending_properties = self.pending_properties
             .take()
             .unwrap_or_default();
 
-        pending_properties.transforms.extend(properties.transforms);
-        pending_properties.floats.extend(properties.floats);
+        pending_properties.transforms.extend(transforms);
 
         self.pending_properties = Some(pending_properties);
     }
@@ -76,6 +77,11 @@ impl SceneProperties {
 
                 for property in &pending_properties.floats {
                     self.float_properties
+                        .insert(property.key.id, property.value);
+                }
+
+                for property in &pending_properties.colors {
+                    self.color_properties
                         .insert(property.key.id, property.value);
                 }
 
@@ -122,6 +128,27 @@ impl SceneProperties {
     pub fn float_properties(&self) -> &FastHashMap<PropertyBindingId, f32> {
         &self.float_properties
     }
+
+    /// Get the current value for a color property.
+    pub fn resolve_color(
+        &self,
+        property: &PropertyBinding<ColorF>
+    ) -> ColorF {
+        match *property {
+            PropertyBinding::Value(value) => value,
+            PropertyBinding::Binding(ref key, v) => {
+                self.color_properties
+                    .get(&key.id)
+                    .cloned()
+                    .unwrap_or(v)
+            }
+        }
+    }
+
+    pub fn color_properties(&self) -> &FastHashMap<PropertyBindingId, ColorF> {
+        &self.color_properties
+    }
+
 }
 
 /// A representation of the layout within the display port for a given document or iframe.
@@ -133,8 +160,7 @@ pub struct ScenePipeline {
     pub viewport_size: LayoutSize,
     pub content_size: LayoutSize,
     pub background_color: Option<ColorF>,
-    pub display_list: BuiltDisplayList,
-    pub display_list_cache: DisplayItemCache,
+    pub display_list: DisplayListWithCache,
 }
 
 /// A complete representation of the layout bundling visible pipelines together.
@@ -169,12 +195,15 @@ impl Scene {
         viewport_size: LayoutSize,
         content_size: LayoutSize,
     ) {
-        let pipeline = self.pipelines.remove(&pipeline_id);
-        let mut display_list_cache = pipeline.map_or(Default::default(), |p| {
-            p.display_list_cache
-        });
-
-        display_list_cache.update(&display_list);
+        // Adds a cache to the given display list. If this pipeline already had
+        // a display list before, that display list is updated and used instead.
+        let display_list = match self.pipelines.remove(&pipeline_id) {
+            Some(mut pipeline) => {
+                pipeline.display_list.update(display_list);
+                pipeline.display_list
+            }
+            None => DisplayListWithCache::new_from_list(display_list)
+        };
 
         let new_pipeline = ScenePipeline {
             pipeline_id,
@@ -182,7 +211,6 @@ impl Scene {
             content_size,
             background_color,
             display_list,
-            display_list_cache,
         };
 
         self.pipelines.insert(pipeline_id, new_pipeline);

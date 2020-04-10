@@ -25,7 +25,6 @@ const {
   getDisplayedRequests,
   getColumns,
   getSelectedRequest,
-  getWaterfallScale,
 } = require("devtools/client/netmonitor/src/selectors/index");
 
 loader.lazyRequireGetter(
@@ -82,6 +81,7 @@ class RequestListContent extends Component {
       firstRequestStartedMs: PropTypes.number.isRequired,
       fromCache: PropTypes.bool,
       onCauseBadgeMouseDown: PropTypes.func.isRequired,
+      onInitiatorBadgeMouseDown: PropTypes.func.isRequired,
       onItemRightMouseButtonDown: PropTypes.func.isRequired,
       onItemMouseDown: PropTypes.func.isRequired,
       onSecurityIconMouseDown: PropTypes.func.isRequired,
@@ -91,7 +91,6 @@ class RequestListContent extends Component {
       openRequestBlockingAndAddUrl: PropTypes.func.isRequired,
       openRequestBlockingAndDisableUrls: PropTypes.func.isRequired,
       removeBlockedUrl: PropTypes.func.isRequired,
-      scale: PropTypes.number,
       selectRequest: PropTypes.func.isRequired,
       selectedRequest: PropTypes.object,
       requestFilterTypes: PropTypes.object.isRequired,
@@ -109,6 +108,11 @@ class RequestListContent extends Component {
     this.onContextMenu = this.onContextMenu.bind(this);
     this.onMouseDown = this.onMouseDown.bind(this);
     this.hasOverflow = false;
+    this.onIntersect = this.onIntersect.bind(this);
+    this.intersectionObserver = null;
+    this.state = {
+      onscreenItems: new Set(),
+    };
   }
 
   componentWillMount() {
@@ -125,6 +129,17 @@ class RequestListContent extends Component {
     // Install event handler to hide the tooltip on scroll
     this.refs.scrollEl.addEventListener("scroll", this.onScroll, true);
     this.onResize();
+    this.intersectionObserver = new IntersectionObserver(this.onIntersect, {
+      root: this.refs.scrollEl,
+      // Render 10% more columns for a scrolling headstart
+      rootMargin: "10%",
+    });
+    // Prime IntersectionObserver with existing entries
+    for (const item of this.refs.scrollEl.querySelectorAll(
+      ".request-list-item"
+    )) {
+      this.intersectionObserver.observe(item);
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -148,6 +163,8 @@ class RequestListContent extends Component {
     // Uninstall the tooltip event handler
     this.tooltip.stopTogglingOnHover();
     window.removeEventListener("resize", this.onResize);
+    this.intersectionObserver.disconnect();
+    this.intersectionObserver = null;
   }
 
   /*
@@ -158,6 +175,32 @@ class RequestListContent extends Component {
     const parent = this.refs.scrollEl.parentNode;
     this.refs.scrollEl.style.width = parent.offsetWidth + "px";
     this.refs.scrollEl.style.height = parent.offsetHeight + "px";
+  }
+
+  onIntersect(entries) {
+    // Track when off screen elements moved on screen to ensure updates
+    let onscreenDidChange = false;
+    const onscreenItems = new Set(this.state.onscreenItems);
+    for (const { target, isIntersecting } of entries) {
+      const id = target.dataset.id;
+      if (isIntersecting) {
+        if (onscreenItems.add(id)) {
+          onscreenDidChange = true;
+        }
+      } else {
+        onscreenItems.delete(id);
+      }
+    }
+    if (onscreenDidChange) {
+      // Remove ids that are no longer displayed
+      const itemIds = new Set(this.props.displayedRequests.map(({ id }) => id));
+      for (const id of onscreenItems) {
+        if (!itemIds.has(id)) {
+          onscreenItems.delete(id);
+        }
+      }
+      this.setState({ onscreenItems });
+    }
   }
 
   /**
@@ -318,13 +361,14 @@ class RequestListContent extends Component {
       displayedRequests,
       firstRequestStartedMs,
       onCauseBadgeMouseDown,
+      onInitiatorBadgeMouseDown,
       onSecurityIconMouseDown,
       onWaterfallMouseDown,
       requestFilterTypes,
-      scale,
       selectedRequest,
       openRequestBlockingAndAddUrl,
       openRequestBlockingAndDisableUrls,
+      networkDetailsOpen,
     } = this.props;
 
     return div(
@@ -345,40 +389,38 @@ class RequestListContent extends Component {
               className: "requests-list-row-group",
               tabIndex: 0,
               onKeyDown: this.onKeyDown,
-              style: {
-                "--timings-scale": scale,
-                "--timings-rev-scale": 1 / scale,
-              },
             },
-            displayedRequests.map((item, index) =>
-              RequestListItem({
+            displayedRequests.map((item, index) => {
+              return RequestListItem({
                 blocked: !!item.blockedReason,
                 firstRequestStartedMs,
                 fromCache: item.status === "304" || item.fromCache,
-                networkDetailsOpen: this.props.networkDetailsOpen,
+                networkDetailsOpen,
                 connector,
                 columns,
                 item,
                 index,
                 isSelected: item.id === (selectedRequest && selectedRequest.id),
+                isVisible: this.state.onscreenItems.has(item.id),
                 key: item.id,
+                intersectionObserver: this.intersectionObserver,
                 onContextMenu: this.onContextMenu,
                 onDoubleClick: () => this.onDoubleClick(item),
                 onMouseDown: evt =>
                   this.onMouseDown(evt, item.id, item.channelId),
                 onCauseBadgeMouseDown: () => onCauseBadgeMouseDown(item.cause),
+                onInitiatorBadgeMouseDown: () =>
+                  onInitiatorBadgeMouseDown(item.cause),
                 onSecurityIconMouseDown: () =>
                   onSecurityIconMouseDown(item.securityState),
-                onWaterfallMouseDown: () => onWaterfallMouseDown(),
+                onWaterfallMouseDown: onWaterfallMouseDown,
                 requestFilterTypes,
-                openRequestBlockingAndAddUrl: url =>
-                  openRequestBlockingAndAddUrl(url),
-                openRequestBlockingAndDisableUrls: url =>
-                  openRequestBlockingAndDisableUrls(url),
-              })
-            )
-          ) // end of requests-list-row-group">
-        ),
+                openRequestBlockingAndAddUrl: openRequestBlockingAndAddUrl,
+                openRequestBlockingAndDisableUrls: openRequestBlockingAndDisableUrls,
+              });
+            })
+          )
+        ), // end of requests-list-row-group">
         dom.div({
           className: "requests-list-anchor",
           key: "anchor",
@@ -401,7 +443,6 @@ module.exports = connect(
     displayedRequests: getDisplayedRequests(state),
     firstRequestStartedMs: state.requests.firstStartedMs,
     selectedRequest: getSelectedRequest(state),
-    scale: getWaterfallScale(state),
     requestFilterTypes: state.filters.requestFilterTypes,
   }),
   (dispatch, props) => ({
@@ -421,6 +462,11 @@ module.exports = connect(
      */
     onCauseBadgeMouseDown: cause => {
       if (cause.stacktrace && cause.stacktrace.length > 0) {
+        dispatch(Actions.selectDetailsPanelTab("stack-trace"));
+      }
+    },
+    onInitiatorBadgeMouseDown: cause => {
+      if (cause.lastFrame) {
         dispatch(Actions.selectDetailsPanelTab("stack-trace"));
       }
     },

@@ -27,6 +27,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(Blob)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Blob)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mGlobal)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -219,7 +220,7 @@ already_AddRefed<Blob> Blob::Constructor(
     nsAutoString type(aBag.mType);
     MakeValidBlobType(type);
     impl->InitializeBlob(aData.Value(), type,
-                         aBag.mEndings == EndingTypes::Native, aRv);
+                         aBag.mEndings == EndingType::Native, aRv);
   } else {
     impl->InitializeBlob(aRv);
   }

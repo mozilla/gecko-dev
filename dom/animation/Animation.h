@@ -48,7 +48,7 @@ class Document;
 class Animation : public DOMEventTargetHelper,
                   public LinkedListElement<Animation> {
  protected:
-  virtual ~Animation() {}
+  virtual ~Animation() = default;
 
  public:
   explicit Animation(nsIGlobalObject* aGlobal)
@@ -63,7 +63,7 @@ class Animation : public DOMEventTargetHelper,
    * Utility function to get the target (pseudo-)element associated with an
    * animation.
    */
-  Maybe<NonOwningAnimationTarget> GetTargetForAnimation() const;
+  NonOwningAnimationTarget GetTargetForAnimation() const;
 
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
@@ -90,17 +90,18 @@ class Animation : public DOMEventTargetHelper,
   void SetId(const nsAString& aId);
 
   AnimationEffect* GetEffect() const { return mEffect; }
-  void SetEffect(AnimationEffect* aEffect);
+  virtual void SetEffect(AnimationEffect* aEffect);
   void SetEffectNoUpdate(AnimationEffect* aEffect);
 
   AnimationTimeline* GetTimeline() const { return mTimeline; }
+  // Animation.timeline setter is supported only on Nightly.
   void SetTimeline(AnimationTimeline* aTimeline);
   void SetTimelineNoUpdate(AnimationTimeline* aTimeline);
 
   Nullable<TimeDuration> GetStartTime() const { return mStartTime; }
   Nullable<double> GetStartTimeAsDouble() const;
   void SetStartTime(const Nullable<TimeDuration>& aNewStartTime);
-  void SetStartTimeAsDouble(const Nullable<double>& aStartTime);
+  virtual void SetStartTimeAsDouble(const Nullable<double>& aStartTime);
 
   // This is deliberately _not_ called GetCurrentTime since that would clash
   // with a macro defined in winbase.h
@@ -133,21 +134,16 @@ class Animation : public DOMEventTargetHelper,
 
   void Finish(ErrorResult& aRv);
 
-  virtual void Play(ErrorResult& aRv, LimitBehavior aLimitBehavior);
+  void Play(ErrorResult& aRv, LimitBehavior aLimitBehavior);
   virtual void PlayFromJS(ErrorResult& aRv) {
     Play(aRv, LimitBehavior::AutoRewind);
   }
 
-  virtual void Pause(ErrorResult& aRv);
-  /**
-   * PauseFromJS is currently only here for symmetry with PlayFromJS but
-   * in future we will likely have to flush style in
-   * CSSAnimation::PauseFromJS so we leave it for now.
-   */
-  void PauseFromJS(ErrorResult& aRv) { Pause(aRv); }
+  void Pause(ErrorResult& aRv);
+  virtual void PauseFromJS(ErrorResult& aRv) { Pause(aRv); }
 
   void UpdatePlaybackRate(double aPlaybackRate);
-  void Reverse(ErrorResult& aRv);
+  virtual void Reverse(ErrorResult& aRv);
 
   void Persist();
   void CommitStyles(ErrorResult& aRv);

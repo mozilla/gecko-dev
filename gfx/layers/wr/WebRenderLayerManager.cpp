@@ -190,6 +190,14 @@ bool WebRenderLayerManager::BeginTransaction(const nsCString& aURL) {
 }
 
 bool WebRenderLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags) {
+  // If we haven't sent a display list (since creation or since the last time we
+  // sent ClearDisplayList to the parent) then we can't do an empty transaction
+  // because the parent doesn't have a display list for us and we need to send a
+  // display list first.
+  if (!WrBridge()->GetSentDisplayList()) {
+    return false;
+  }
+
   // Since we don't do repeat transactions right now, just set the time
   mAnimationReadyTime = TimeStamp::Now();
 
@@ -324,6 +332,11 @@ void WebRenderLayerManager::EndTransactionWithoutLayer(
       mWebRenderCommandBuilder.ShouldDumpDisplayList(aDisplayListBuilder);
   if (dumpEnabled) {
     printf_stderr("-- WebRender display list build --\n");
+  }
+
+  if (XRE_IsContentProcess() &&
+      StaticPrefs::gfx_webrender_dl_dump_content_serialized()) {
+    builder.DumpSerializedDisplayList();
   }
 
   if (aDisplayList) {

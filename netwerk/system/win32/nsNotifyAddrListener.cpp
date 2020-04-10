@@ -36,7 +36,6 @@
 #include "nsNotifyAddrListener.h"
 #include "nsString.h"
 #include "nsPrintfCString.h"
-#include "nsAutoPtr.h"
 #include "mozilla/Services.h"
 #include "nsCRT.h"
 #include "mozilla/StaticPrefs_network.h"
@@ -264,13 +263,6 @@ nsNotifyAddrListener::nextCoalesceWaitTime() {
   // check if coalescing period should continue
   double period = (TimeStamp::Now() - mChangeTime).ToMilliseconds();
   if (period >= kNetworkChangeCoalescingPeriod) {
-    if (!mNetworkChangeTime.IsNull()) {
-      Telemetry::AccumulateTimeDelta(
-          Telemetry::NETWORK_TIME_BETWEEN_NETWORK_CHANGE_EVENTS,
-          mNetworkChangeTime);
-    }
-    mNetworkChangeTime = TimeStamp::Now();
-
     NotifyObservers(NS_NETWORK_LINK_TOPIC, NS_NETWORK_LINK_DATA_CHANGED);
     mCoalescingActive = false;
     return INFINITE;  // return default

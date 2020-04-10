@@ -18,6 +18,7 @@
 #include "nsAtom.h"
 #include "nsServiceManagerUtils.h"
 #include "nsUnicharUtils.h"
+#include "nsUnicodeProperties.h"
 #include "nsCRT.h"
 #include "nsRange.h"
 #include "nsContentUtils.h"
@@ -32,6 +33,7 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using namespace mozilla::unicode;
 
 // Yikes!  Casting a char to unichar can fill with ones!
 #define CHAR_TO_UNICHAR(c) ((char16_t)(unsigned char)c)
@@ -241,6 +243,10 @@ struct nsFind::State final {
   // Sets up the first node position and offset.
   void Initialize();
 
+  static bool ValidTextNode(const nsINode& aNode) {
+    return aNode.IsText() && !SkipNode(aNode.AsText());
+  }
+
   const bool mFindBackward;
 
   // Whether we've called GetNextNode() at least once.
@@ -263,15 +269,7 @@ void nsFind::State::Advance() {
     nsIContent* current =
         mFindBackward ? mIterator.GetPrev() : mIterator.GetNext();
 
-    if (!current) {
-      return;
-    }
-
-    if (!current->IsContent() || SkipNode(current->AsContent())) {
-      continue;
-    }
-
-    if (current->IsText()) {
+    if (!current || ValidTextNode(*current)) {
       return;
     }
   }
@@ -282,11 +280,23 @@ void nsFind::State::Initialize() {
   mInitialized = true;
   mIterOffset = mFindBackward ? -1 : 0;
 
+  nsINode* container = mFindBackward ? mStartPoint.GetStartContainer()
+                                     : mStartPoint.GetEndContainer();
+
   // Set up ourselves at the first node we want to start searching at.
-  nsINode* beginning = mFindBackward ? mStartPoint.GetEndContainer()
-                                     : mStartPoint.GetStartContainer();
-  if (beginning && beginning->IsContent()) {
-    mIterator.Seek(*beginning->AsContent());
+  nsIContent* beginning = mFindBackward ? mStartPoint.GetChildAtStartOffset()
+                                        : mStartPoint.GetChildAtEndOffset();
+  if (beginning) {
+    mIterator.Seek(*beginning);
+    // If the start point is pointing to a node, when looking backwards we'd
+    // start looking at the children of that node, and we don't really want
+    // that. When looking forwards, we look at the next sibling afterwards.
+    if (mFindBackward) {
+      mIterator.GetPrevSkippingChildren();
+    }
+  } else if (container && container->IsContent()) {
+    // Text-only range, or pointing to past the end of the node, for example.
+    mIterator.Seek(*container->AsContent());
   }
 
   nsINode* current = mIterator.GetCurrent();
@@ -294,19 +304,22 @@ void nsFind::State::Initialize() {
     return;
   }
 
-  if (!current->IsText() || SkipNode(current->AsText())) {
+  if (!ValidTextNode(*current)) {
     Advance();
-    return;
+    current = mIterator.GetCurrent();
+    if (!current) {
+      return;
+    }
   }
 
   mLastBlockParent = GetBlockParent(*current->AsText());
 
-  if (current != beginning) {
+  if (current != container) {
     return;
   }
 
   mIterOffset =
-      mFindBackward ? mStartPoint.EndOffset() : mStartPoint.StartOffset();
+      mFindBackward ? mStartPoint.StartOffset() : mStartPoint.EndOffset();
 }
 
 const nsTextFragment* nsFind::State::GetNextNonEmptyTextFragmentInSameBlock() {
@@ -679,8 +692,13 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
 
     // Save the previous character for word boundary detection
     prevChar = c;
-    // The two characters we'll be comparing:
+    // The two characters we'll be comparing are c and patc. If not matching
+    // diacritics, don't leave c set to a combining diacritical mark. (patc is
+    // already guaranteed to not be a combining diacritical mark.)
     c = (t2b ? DecodeChar(t2b, &findex) : CHAR_TO_UNICHAR(t1b[findex]));
+    if (!mMatchDiacritics && IsCombiningDiacritic(c)) {
+      continue;
+    }
     patc = DecodeChar(patStr, &pindex);
 
     DEBUG_FIND_PRINTF(
@@ -817,7 +835,6 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
             continue;
           }
         }
-
 
         int32_t matchStartOffset;
         int32_t matchEndOffset;

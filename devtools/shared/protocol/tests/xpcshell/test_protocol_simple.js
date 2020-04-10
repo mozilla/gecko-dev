@@ -160,10 +160,10 @@ class RootFront extends protocol.FrontClassWithSpec(rootSpec) {
 }
 
 add_task(async function() {
-  DebuggerServer.createRootActor = conn => {
+  DevToolsServer.createRootActor = conn => {
     return RootActor(conn);
   };
-  DebuggerServer.init();
+  DevToolsServer.init();
 
   Assert.throws(() => {
     const badActor = protocol.ActorClassWithSpec({}, {});
@@ -189,7 +189,7 @@ add_task(async function() {
     "Should throw for unknown collection type"
   );
   const trace = connectPipeTracing();
-  const client = new DebuggerClient(trace);
+  const client = new DevToolsClient(trace);
 
   const [applicationType] = await client.connect();
   trace.expectReceive({

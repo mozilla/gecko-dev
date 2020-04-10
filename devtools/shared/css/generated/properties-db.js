@@ -203,7 +203,7 @@ exports.CSS_PROPERTIES = {
       "-moz-mac-vibrancy-light",
       "-moz-mac-vibrant-titlebar-dark",
       "-moz-mac-vibrant-titlebar-light",
-      "-moz-menulist-button",
+      "-moz-menulist-arrow-button",
       "-moz-win-borderless-glass",
       "-moz-win-browsertabbar-toolbox",
       "-moz-win-communications-toolbox",
@@ -1520,7 +1520,7 @@ exports.CSS_PROPERTIES = {
       "-moz-mac-vibrancy-light",
       "-moz-mac-vibrant-titlebar-dark",
       "-moz-mac-vibrant-titlebar-light",
-      "-moz-menulist-button",
+      "-moz-menulist-arrow-button",
       "-moz-win-borderless-glass",
       "-moz-win-browsertabbar-toolbox",
       "-moz-win-communications-toolbox",
@@ -9529,7 +9529,6 @@ exports.CSS_PROPERTIES = {
       "margin-box",
       "none",
       "padding-box",
-      "path",
       "polygon",
       "radial-gradient",
       "repeating-linear-gradient",
@@ -9894,6 +9893,7 @@ exports.CSS_PROPERTIES = {
     ],
     "supports": [],
     "values": [
+      "all",
       "auto",
       "inherit",
       "initial",
@@ -10907,10 +10907,6 @@ exports.PREFERENCES = [
   [
     "-moz-transform-origin",
     "layout.css.prefixes.transforms"
-  ],
-  [
-    "-webkit-appearance",
-    "layout.css.webkit-appearance.enabled"
   ],
   [
     "-moz-column-width",

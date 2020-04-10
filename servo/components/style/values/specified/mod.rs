@@ -31,7 +31,7 @@ use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKin
 pub use self::align::{AlignContent, AlignItems, AlignSelf, ContentDistribution};
 #[cfg(feature = "gecko")]
 pub use self::align::{JustifyContent, JustifyItems, JustifySelf, SelfAlignment};
-pub use self::angle::{Angle, AllowUnitlessZeroAngle};
+pub use self::angle::{AllowUnitlessZeroAngle, Angle};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
@@ -55,8 +55,8 @@ pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis};
 pub use self::font::{FontVariantAlternates, FontWeight};
 pub use self::font::{FontVariantEastAsian, FontVariationSettings};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
-pub use self::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
-pub use self::image::{GradientItem, GradientKind, Image, ImageLayer, MozImageRect};
+pub use self::image::{EndingShape as GradientEndingShape, Gradient};
+pub use self::image::{Image, MozImageRect};
 pub use self::length::{AbsoluteLength, CalcLengthPercentage, CharacterWidth};
 pub use self::length::{FontRelativeLength, Length, LengthOrNumber, NonNegativeLengthOrNumber};
 pub use self::length::{LengthOrAuto, LengthPercentage, LengthPercentageOrAuto};
@@ -85,6 +85,7 @@ pub use self::text::{InitialLetter, LetterSpacing, LineBreak, LineHeight, TextAl
 pub use self::text::{OverflowWrap, TextEmphasisPosition, TextEmphasisStyle, WordBreak};
 pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpacing};
 pub use self::text::{TextDecorationLength, TextDecorationSkipInk, TextTransform};
+pub use self::text::TextAlignLast;
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, Transform};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};

@@ -60,6 +60,7 @@ nsresult HttpTransactionChild::InitInternal(
     uint64_t topLevelOuterContentWindowId, uint8_t httpTrafficCategory,
     uint64_t requestContextID, uint32_t classOfService, uint32_t initialRwin,
     bool responseTimeoutEnabled, uint64_t channelId,
+    bool aHasTransactionObserver,
     const Maybe<H2PushedStreamArg>& aPushedStreamArg) {
   LOG(("HttpTransactionChild::InitInternal [this=%p caps=%x]\n", this, caps));
 
@@ -71,7 +72,8 @@ nsresult HttpTransactionChild::InitInternal(
   if (caps & NS_HTTP_ONPUSH_LISTENER) {
     RefPtr<HttpTransactionChild> self = this;
     pushCallback = [self](uint32_t aPushedStreamId, const nsACString& aUrl,
-                          const nsACString& aRequestString) {
+                          const nsACString& aRequestString,
+                          HttpTransactionShell* aTransaction) {
       bool res = false;
       if (self->CanSend()) {
         res =
@@ -79,6 +81,16 @@ nsresult HttpTransactionChild::InitInternal(
                                      PromiseFlatCString(aRequestString));
       }
       return res ? NS_OK : NS_ERROR_FAILURE;
+    };
+  }
+
+  std::function<void(TransactionObserverResult &&)> observer;
+  if (aHasTransactionObserver) {
+    nsMainThreadPtrHandle<HttpTransactionChild> handle(
+        new nsMainThreadPtrHolder<HttpTransactionChild>(
+            "HttpTransactionChildProxy", this, false));
+    observer = [handle](TransactionObserverResult&& aResult) {
+      handle->mTransactionObserverResult.emplace(std::move(aResult));
     };
   }
 
@@ -97,9 +109,8 @@ nsresult HttpTransactionChild::InitInternal(
       nullptr,  // TODO: security callback, fix in bug 1512479.
       this, topLevelOuterContentWindowId,
       static_cast<HttpTrafficCategory>(httpTrafficCategory), rc, classOfService,
-      initialRwin, responseTimeoutEnabled, channelId,
-      std::move(mTransactionObserver), std::move(pushCallback),
-      transWithPushedStream, pushedStreamId);
+      initialRwin, responseTimeoutEnabled, channelId, std::move(observer),
+      std::move(pushCallback), transWithPushedStream, pushedStreamId);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     mTransaction = nullptr;
     return rv;
@@ -160,19 +171,6 @@ mozilla::ipc::IPCResult HttpTransactionChild::RecvInit(
   mTransaction = new nsHttpTransaction();
   mChannelId = aChannelId;
 
-  if (aHasTransactionObserver) {
-    nsMainThreadPtrHandle<HttpTransactionChild> handle(
-        new nsMainThreadPtrHolder<HttpTransactionChild>(
-            "HttpTransactionChildProxy", this, false));
-    mTransactionObserver = [handle]() {
-      if (handle->mTransaction) {
-        handle->mTransactionObserverResult.emplace();
-        handle->mTransaction->GetTransactionObserverResult(
-            handle->mTransactionObserverResult.ref());
-      }
-    };
-  }
-
   if (aThrottleQueue.isSome()) {
     mThrottleQueue =
         static_cast<InputChannelThrottleQueueChild*>(aThrottleQueue.ref());
@@ -182,7 +180,8 @@ mozilla::ipc::IPCResult HttpTransactionChild::RecvInit(
       aCaps, aArgs, &mRequestHead, mUploadStream, aReqContentLength,
       aReqBodyIncludesHeaders, aTopLevelOuterContentWindowId,
       aHttpTrafficCategory, aRequestContextID, aClassOfService, aInitialRwin,
-      aResponseTimeoutEnabled, aChannelId, aPushedStreamArg);
+      aResponseTimeoutEnabled, aChannelId, aHasTransactionObserver,
+      aPushedStreamArg);
   if (NS_FAILED(rv)) {
     LOG(("HttpTransactionChild::RecvInit: [this=%p] InitInternal failed!\n",
          this));
@@ -320,7 +319,7 @@ HttpTransactionChild::OnStartRequest(nsIRequest* aRequest) {
     }
   }
 
-  nsAutoPtr<nsHttpResponseHead> head(mTransaction->TakeResponseHead());
+  UniquePtr<nsHttpResponseHead> head(mTransaction->TakeResponseHead());
   Maybe<nsHttpResponseHead> optionalHead;
   nsTArray<uint8_t> dataForSniffer;
   if (head) {
@@ -361,7 +360,7 @@ HttpTransactionChild::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
 
   MOZ_ASSERT(mTransaction);
 
-  nsAutoPtr<nsHttpHeaderArray> headerArray(
+  UniquePtr<nsHttpHeaderArray> headerArray(
       mTransaction->TakeResponseTrailers());
   Maybe<nsHttpHeaderArray> responseTrailers;
   if (headerArray) {

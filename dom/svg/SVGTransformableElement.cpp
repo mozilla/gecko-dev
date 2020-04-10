@@ -67,16 +67,16 @@ nsChangeHint SVGTransformableElement::GetAttributeChangeHint(
                  "Unknown modification type.");
       if (!mTransforms || !mTransforms->HasTransform()) {
         // New value is empty, treat as removal.
+        // FIXME: Should we just rely on CreatedOrRemovedOnLastChange?
         isAdditionOrRemoval = true;
-      } else if (mTransforms->RequiresFrameReconstruction()) {
+      } else if (mTransforms->CreatedOrRemovedOnLastChange()) {
         // Old value was empty, treat as addition.
         isAdditionOrRemoval = true;
       }
     }
 
     if (isAdditionOrRemoval) {
-      // Reconstruct the frame tree to handle stacking context changes:
-      retval |= nsChangeHint_ReconstructFrame;
+      retval |= nsChangeHint_ComprehensiveAddOrRemoveTransform;
     } else {
       // We just assume the old and new transforms are different.
       retval |= nsChangeHint_UpdatePostTransformOverflow |
@@ -100,7 +100,8 @@ gfxMatrix SVGTransformableElement::PrependLocalTransformsTo(
     // must override this function and handle that themselves.)
     return aMatrix;
   }
-  return GetUserToParentTransform(mAnimateMotionTransform, mTransforms) *
+  return GetUserToParentTransform(mAnimateMotionTransform.get(),
+                                  mTransforms.get()) *
          aMatrix;
 }
 
@@ -117,7 +118,8 @@ void SVGTransformableElement::SetAnimateMotionTransform(
   }
   bool transformSet = mTransforms && mTransforms->IsExplicitlySet();
   bool prevSet = mAnimateMotionTransform || transformSet;
-  mAnimateMotionTransform = aMatrix ? new gfx::Matrix(*aMatrix) : nullptr;
+  mAnimateMotionTransform =
+      aMatrix ? MakeUnique<gfx::Matrix>(*aMatrix) : nullptr;
   bool nowSet = mAnimateMotionTransform || transformSet;
   int32_t modType;
   if (prevSet && !nowSet) {
@@ -143,9 +145,9 @@ void SVGTransformableElement::SetAnimateMotionTransform(
 SVGAnimatedTransformList* SVGTransformableElement::GetAnimatedTransformList(
     uint32_t aFlags) {
   if (!mTransforms && (aFlags & DO_ALLOCATE)) {
-    mTransforms = new SVGAnimatedTransformList();
+    mTransforms = MakeUnique<SVGAnimatedTransformList>();
   }
-  return mTransforms;
+  return mTransforms.get();
 }
 
 SVGElement* SVGTransformableElement::GetNearestViewportElement() {

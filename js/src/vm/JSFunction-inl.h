@@ -38,8 +38,8 @@ inline bool CanReuseFunctionForClone(JSContext* cx, HandleFunction fun) {
   }
   fun->baseScript()->setHasBeenCloned();
 
-  if (fun->hasScript()) {
-    if (LazyScript* lazy = fun->nonLazyScript()->maybeLazyScript()) {
+  if (fun->hasBytecode()) {
+    if (BaseScript* lazy = fun->nonLazyScript()->maybeLazyScript()) {
       lazy->setHasBeenCloned();
     }
   }
@@ -48,7 +48,7 @@ inline bool CanReuseFunctionForClone(JSContext* cx, HandleFunction fun) {
 }
 
 inline JSFunction* CloneFunctionObjectIfNotSingleton(
-    JSContext* cx, HandleFunction fun, HandleObject parent,
+    JSContext* cx, HandleFunction fun, HandleObject enclosingEnv,
     HandleObject proto = nullptr, NewObjectKind newKind = GenericObject) {
   /*
    * For attempts to clone functions at a function definition opcode,
@@ -63,12 +63,28 @@ inline JSFunction* CloneFunctionObjectIfNotSingleton(
    * the function's script.
    */
   if (CanReuseFunctionForClone(cx, fun)) {
-    ObjectOpResult succeeded;
-    if (proto && !SetPrototype(cx, fun, proto, succeeded)) {
-      return nullptr;
+    if (proto && proto != fun->staticPrototype()) {
+      // |CanReuseFunctionForClone| ensures |fun| is a singleton function. |fun|
+      // must also be extensible and have a mutable prototype for its prototype
+      // to be modifiable, so assert both conditions, too.
+      MOZ_ASSERT(fun->isSingleton());
+      MOZ_ASSERT(!fun->staticPrototypeIsImmutable());
+      MOZ_ASSERT(fun->isExtensible());
+
+      if (!JSObject::setDelegate(cx, proto)) {
+        return nullptr;
+      }
+
+      // Directly splice the prototype instead of calling |js::SetPrototype| to
+      // ensure we don't mark the function as having "unknown properties". This
+      // is safe to do, because the singleton function hasn't yet been exposed
+      // to scripts.
+      Rooted<TaggedProto> tagged(cx, TaggedProto(proto));
+      if (!JSObject::splicePrototype(cx, fun, tagged)) {
+        return nullptr;
+      }
     }
-    MOZ_ASSERT(!proto || succeeded);
-    fun->setEnvironment(parent);
+    fun->setEnvironment(enclosingEnv);
     return fun;
   }
 
@@ -78,8 +94,9 @@ inline JSFunction* CloneFunctionObjectIfNotSingleton(
   gc::AllocKind extendedFinalizeKind = gc::AllocKind::FUNCTION_EXTENDED;
   gc::AllocKind kind = fun->isExtended() ? extendedFinalizeKind : finalizeKind;
 
-  if (CanReuseScriptForClone(cx->realm(), fun, parent)) {
-    return CloneFunctionReuseScript(cx, fun, parent, kind, newKind, proto);
+  if (CanReuseScriptForClone(cx->realm(), fun, enclosingEnv)) {
+    return CloneFunctionReuseScript(cx, fun, enclosingEnv, kind, newKind,
+                                    proto);
   }
 
   RootedScript script(cx, JSFunction::getOrCreateScript(cx, fun));
@@ -88,8 +105,8 @@ inline JSFunction* CloneFunctionObjectIfNotSingleton(
   }
   RootedScope enclosingScope(cx, script->enclosingScope());
   Rooted<ScriptSourceObject*> sourceObject(cx, script->sourceObject());
-  return CloneFunctionAndScript(cx, fun, parent, enclosingScope, sourceObject,
-                                kind, proto);
+  return CloneFunctionAndScript(cx, fun, enclosingEnv, enclosingScope,
+                                sourceObject, kind, proto);
 }
 
 } /* namespace js */

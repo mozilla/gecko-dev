@@ -2622,8 +2622,9 @@ HTMLEditor::JoinTableCells(bool aMergeNonContiguousContents) {
       RefPtr<Element> deletedCell;
       HTMLEditor::GetCellFromRange(range, getter_AddRefs(deletedCell));
       if (!deletedCell) {
-        SelectionRefPtr()->RemoveRangeAndUnselectFramesAndNotifyListeners(
-            *range, IgnoreErrors());
+        MOZ_KnownLive(SelectionRefPtr())
+            ->RemoveRangeAndUnselectFramesAndNotifyListeners(*range,
+                                                             IgnoreErrors());
         rangeCount--;
         i--;
       }
@@ -4000,7 +4001,7 @@ HTMLEditor::GetSelectedCellsType(Element* aElement, uint32_t* aSelectionType) {
   }
 
   // We have at least one selected cell, so set return value
-  *aSelectionType = static_cast<uint32_t>(TableSelection::Cell);
+  *aSelectionType = static_cast<uint32_t>(TableSelectionMode::Cell);
 
   // Store indexes of each row/col to avoid duplication of searches
   nsTArray<int32_t> indexArray;
@@ -4028,7 +4029,7 @@ HTMLEditor::GetSelectedCellsType(Element* aElement, uint32_t* aSelectionType) {
   }
 
   if (allCellsInRowAreSelected) {
-    *aSelectionType = static_cast<uint32_t>(TableSelection::Row);
+    *aSelectionType = static_cast<uint32_t>(TableSelectionMode::Row);
     return NS_OK;
   }
   // Test for columns
@@ -4058,7 +4059,7 @@ HTMLEditor::GetSelectedCellsType(Element* aElement, uint32_t* aSelectionType) {
                          "Failed to get next selected table cell element");
   }
   if (allCellsInColAreSelected) {
-    *aSelectionType = static_cast<uint32_t>(TableSelection::Column);
+    *aSelectionType = static_cast<uint32_t>(TableSelectionMode::Column);
   }
 
   return NS_OK;
@@ -4153,11 +4154,8 @@ bool HTMLEditor::IsEmptyCell(dom::Element* aCell) {
     return true;
   }
 
-  bool isEmpty;
   // Or check if no real content
-  nsresult rv = IsEmptyNode(cellChild, &isEmpty, false, false);
-  NS_ENSURE_SUCCESS(rv, false);
-  return isEmpty;
+  return IsEmptyNode(*cellChild, false, false);
 }
 
 }  // namespace mozilla

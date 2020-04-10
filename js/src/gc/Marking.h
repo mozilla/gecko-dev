@@ -22,7 +22,6 @@ class JSTracer;
 namespace js {
 class BaseShape;
 class GCMarker;
-class LazyScript;
 class NativeObject;
 class ObjectGroup;
 class Shape;
@@ -69,6 +68,15 @@ inline bool IsMarkedUnbarriered(JSRuntime* rt, T* thingp) {
   return IsMarkedInternal(rt, ConvertToBase(thingp));
 }
 
+// Report whether a GC thing has been marked with any color. Things which are in
+// zones that are not currently being collected or are owned by another runtime
+// are always reported as being marked.
+template <typename T>
+inline bool IsMarked(JSRuntime* rt, BarrieredBase<T>* thingp) {
+  return IsMarkedInternal(rt,
+                          ConvertToBase(thingp->unsafeUnbarrieredForTracing()));
+}
+
 template <typename T>
 inline bool IsAboutToBeFinalizedUnbarriered(T* thingp) {
   return IsAboutToBeFinalizedInternal(ConvertToBase(thingp));
@@ -98,6 +106,8 @@ inline Cell* ToMarkable(const Value& v) {
 }
 
 inline Cell* ToMarkable(Cell* cell) { return cell; }
+
+bool UnmarkGrayGCThingUnchecked(JSRuntime* rt, JS::GCCellPtr thing);
 
 } /* namespace gc */
 

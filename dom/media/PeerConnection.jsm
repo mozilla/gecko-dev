@@ -263,6 +263,11 @@ class RTCSessionDescription {
   }
 
   __init({ type, sdp }) {
+    if (!type) {
+      throw new this._win.TypeError(
+        "Missing required 'type' member of RTCSessionDescriptionInit"
+      );
+    }
     Object.assign(this, { _type: type, _sdp: sdp });
   }
 
@@ -488,8 +493,7 @@ class RTCPeerConnection {
       );
     }
 
-    var principal = Cu.getWebIDLCallerPrincipal();
-    this._isChrome = principal.isSystemPrincipal;
+    this._documentPrincipal = Cu.getWebIDLCallerPrincipal();
 
     if (_globalPCList._networkdown) {
       throw new this._win.DOMException(
@@ -519,7 +523,7 @@ class RTCPeerConnection {
     this.makeGetterSetterEH("onidpvalidationerror");
 
     this._pc = new this._win.PeerConnectionImpl();
-    this._operationsChain = this._win.Promise.resolve();
+    this._operations = [];
 
     this.__DOM_IMPL__._innerObject = this;
     const observer = new this._win.PeerConnectionObserver(this.__DOM_IMPL__);
@@ -585,21 +589,28 @@ class RTCPeerConnection {
 
   // Add a function to the internal operations chain.
 
-  async _chain(func) {
-    let p = (async () => {
-      await this._operationsChain;
-      // Don't _checkClosed() inside the chain, because it throws, and spec
-      // behavior is to NOT reject outstanding promises on close. This is what
-      // happens most of the time anyways, as the c++ code stops calling us once
-      // closed, hanging the chain. However, c++ may already have queued tasks
-      // on us, so if we're one of those then sit back.
-      if (this._closed) {
-        return null;
-      }
-      return func();
-    })();
-    // don't propagate errors in the operations chain (this is a fork of p).
-    this._operationsChain = p.catch(() => {});
+  _chain(operation) {
+    let resolveP, rejectP;
+    const p = new Promise((r, e) => {
+      resolveP = r;
+      rejectP = e;
+    });
+    this._operations.push(() => {
+      operation().then(resolveP, rejectP);
+      const doNextOperation = () => {
+        if (this._closed) {
+          return;
+        }
+        this._operations.shift();
+        if (this._operations.length) {
+          this._operations[0]();
+        }
+      };
+      p.then(doNextOperation, doNextOperation);
+    });
+    if (this._operations.length == 1) {
+      this._operations[0]();
+    }
     return p;
   }
 
@@ -944,39 +955,40 @@ class RTCPeerConnection {
       });
   }
 
-  async _createOffer(options) {
+  _createOffer(options) {
     this._checkClosed();
     this._ensureTransceiversForOfferToReceive(options);
     this._syncTransceivers();
-    let origin = Cu.getWebIDLCallerPrincipal().origin;
-    return this._chain(async () => {
-      switch (this.signalingState) {
-        case "stable":
-        case "have-local-offer":
-          break;
-        default:
-          throw new this._win.DOMException(
-            `Cannot create offer in ${this.signalingState}`,
-            "InvalidStateError"
-          );
-      }
-      let haveAssertion;
-      if (this._localIdp.enabled) {
-        haveAssertion = this._getIdentityAssertion(origin);
-      }
-      await this._getPermission();
-      await this._certificateReady;
-      let sdp = await new Promise((resolve, reject) => {
-        this._onCreateOfferSuccess = resolve;
-        this._onCreateOfferFailure = reject;
-        this._impl.createOffer(options);
-      });
-      if (haveAssertion) {
-        await haveAssertion;
-        sdp = this._localIdp.addIdentityAttribute(sdp);
-      }
-      return Cu.cloneInto({ type: "offer", sdp }, this._win);
+    return this._chain(() => this._createAnOffer(options));
+  }
+
+  async _createAnOffer(options = {}) {
+    switch (this.signalingState) {
+      case "stable":
+      case "have-local-offer":
+        break;
+      default:
+        throw new this._win.DOMException(
+          `Cannot create offer in ${this.signalingState}`,
+          "InvalidStateError"
+        );
+    }
+    let haveAssertion;
+    if (this._localIdp.enabled) {
+      haveAssertion = this._getIdentityAssertion();
+    }
+    await this._getPermission();
+    await this._certificateReady;
+    let sdp = await new Promise((resolve, reject) => {
+      this._onCreateOfferSuccess = resolve;
+      this._onCreateOfferFailure = reject;
+      this._impl.createOffer(options);
     });
+    if (haveAssertion) {
+      await haveAssertion;
+      sdp = this._localIdp.addIdentityAttribute(sdp);
+    }
+    return Cu.cloneInto({ type: "offer", sdp }, this._win);
   }
 
   createAnswer(optionsOrOnSucc, onErr) {
@@ -987,43 +999,41 @@ class RTCPeerConnection {
     return this._async(() => this._createAnswer(optionsOrOnSucc));
   }
 
-  async _createAnswer(options) {
+  _createAnswer(options) {
     this._checkClosed();
     this._syncTransceivers();
-    let origin = Cu.getWebIDLCallerPrincipal().origin;
-    return this._chain(async () => {
-      // We give up line-numbers in errors by doing this here, but do all
-      // state-checks inside the chain, to support the legacy feature that
-      // callers don't have to wait for setRemoteDescription to finish.
-      if (this.signalingState != "have-remote-offer") {
-        throw new this._win.DOMException(
-          `Cannot create offer in ${this.signalingState}`,
-          "InvalidStateError"
-        );
-      }
-      let haveAssertion;
-      if (this._localIdp.enabled) {
-        haveAssertion = this._getIdentityAssertion(origin);
-      }
-      await this._getPermission();
-      await this._certificateReady;
-      let sdp = await new Promise((resolve, reject) => {
-        this._onCreateAnswerSuccess = resolve;
-        this._onCreateAnswerFailure = reject;
-        this._impl.createAnswer();
-      });
-      if (haveAssertion) {
-        await haveAssertion;
-        sdp = this._localIdp.addIdentityAttribute(sdp);
-      }
-      return Cu.cloneInto({ type: "answer", sdp }, this._win);
+    return this._chain(() => this._createAnAnswer());
+  }
+
+  async _createAnAnswer() {
+    if (this.signalingState != "have-remote-offer") {
+      throw new this._win.DOMException(
+        `Cannot create answer in ${this.signalingState}`,
+        "InvalidStateError"
+      );
+    }
+    let haveAssertion;
+    if (this._localIdp.enabled) {
+      haveAssertion = this._getIdentityAssertion();
+    }
+    await this._getPermission();
+    await this._certificateReady;
+    let sdp = await new Promise((resolve, reject) => {
+      this._onCreateAnswerSuccess = resolve;
+      this._onCreateAnswerFailure = reject;
+      this._impl.createAnswer();
     });
+    if (haveAssertion) {
+      await haveAssertion;
+      sdp = this._localIdp.addIdentityAttribute(sdp);
+    }
+    return Cu.cloneInto({ type: "answer", sdp }, this._win);
   }
 
   async _getPermission() {
     if (!this._havePermission) {
-      let privileged =
-        this._isChrome ||
+      const privileged =
+        this._documentPrincipal.isSystemPrincipal ||
         Services.prefs.getBoolPref("media.navigator.permission.disabled");
 
       if (privileged) {
@@ -1047,20 +1057,7 @@ class RTCPeerConnection {
     return this._havePermission;
   }
 
-  _sanityCheckSdp(action, type, sdp) {
-    if (action === undefined) {
-      throw new this._win.DOMException(
-        "Invalid type " + type + " provided to setLocalDescription",
-        "InvalidParameterError"
-      );
-    }
-    if (action == Ci.IPeerConnection.kActionPRAnswer) {
-      throw new this._win.DOMException(
-        "pranswer not yet implemented",
-        "NotSupportedError"
-      );
-    }
-
+  _sanityCheckSdp(sdp) {
     // The fippo butter finger filter AKA non-ASCII chars
     // Note: SDP allows non-ASCII character in the subject (who cares?)
     // eslint-disable-next-line no-control-regex
@@ -1077,20 +1074,48 @@ class RTCPeerConnection {
     return this._auto(onSucc, onErr, () => this._setLocalDescription(desc));
   }
 
-  async _setLocalDescription({ type, sdp }) {
+  _setLocalDescription({ type, sdp }) {
+    if (type == "pranswer") {
+      throw new this._win.DOMException(
+        "pranswer not yet implemented",
+        "NotSupportedError"
+      );
+    }
     this._checkClosed();
-
-    let action = this._actions[type];
-
-    this._sanityCheckSdp(action, type, sdp);
-
     return this._chain(async () => {
-      await this._getPermission();
+      // Avoid Promise.all ahead of synchronous part of spec algorithm, since it
+      // defers. NOTE: The spec says to return an already-rejected promise in
+      // some cases, which is difficult to achieve in practice from JS (would
+      // require avoiding await and then() entirely), but we want to come as
+      // close as we reasonably can.
+      const p = this._getPermission();
+      if (!type) {
+        switch (this.signalingState) {
+          case "stable":
+          case "have-local-offer":
+          case "have-remote-pranswer":
+            type = "offer";
+            break;
+          default:
+            type = "answer";
+            break;
+        }
+      }
+      if (!sdp) {
+        if (type == "offer") {
+          await this._createAnOffer();
+        } else if (type == "answer") {
+          await this._createAnAnswer();
+        }
+      } else {
+        this._sanityCheckSdp(sdp);
+      }
       await new Promise((resolve, reject) => {
         this._onSetDescriptionSuccess = resolve;
         this._onSetDescriptionFailure = reject;
-        this._impl.setLocalDescription(action, sdp);
+        this._impl.setLocalDescription(this._actions[type], sdp);
       });
+      await p;
       this._negotiationNeeded = false;
       if (type == "answer") {
         if (this._localUfragsToReplace.size > 0) {
@@ -1166,19 +1191,21 @@ class RTCPeerConnection {
     return this._auto(onSucc, onErr, () => this._setRemoteDescription(desc));
   }
 
-  async _setRemoteDescription({ type, sdp }) {
+  _setRemoteDescription({ type, sdp }) {
+    if (!type) {
+      throw new this._win.TypeError(
+        "Missing required 'type' member of RTCSessionDescriptionInit"
+      );
+    }
+    if (type == "pranswer") {
+      throw new this._win.DOMException(
+        "pranswer not yet implemented",
+        "NotSupportedError"
+      );
+    }
     this._checkClosed();
-
-    let action = this._actions[type];
-
-    this._sanityCheckSdp(action, type, sdp);
-
-    // Get caller's origin before hitting the promise chain
-    let origin = Cu.getWebIDLCallerPrincipal().origin;
-
     return this._chain(async () => {
       const haveSetRemote = (async () => {
-        await this._getPermission();
         if (type == "offer" && this.signalingState == "have-local-offer") {
           await new Promise((resolve, reject) => {
             this._onSetDescriptionSuccess = resolve;
@@ -1193,20 +1220,23 @@ class RTCPeerConnection {
           this._transceivers = this._transceivers.filter(t => !t.shouldRemove);
           this._updateCanTrickle();
         }
+        this._sanityCheckSdp(sdp);
+        const p = this._getPermission();
         await new Promise((resolve, reject) => {
           this._onSetDescriptionSuccess = resolve;
           this._onSetDescriptionFailure = reject;
-          this._impl.setRemoteDescription(action, sdp);
+          this._impl.setRemoteDescription(this._actions[type], sdp);
         });
+        await p;
         this._processTrackAdditionsAndRemovals();
         this._fireLegacyAddStreamEvents();
         this._transceivers = this._transceivers.filter(t => !t.shouldRemove);
         this._updateCanTrickle();
       })();
 
-      if (action != Ci.IPeerConnection.kActionRollback) {
+      if (type != "rollback") {
         // Do setRemoteDescription and identity validation in parallel
-        await this._validateIdentity(sdp, origin);
+        await this._validateIdentity(sdp);
       }
       await haveSetRemote;
       this._negotiationNeeded = false;
@@ -1235,16 +1265,18 @@ class RTCPeerConnection {
     );
   }
 
-  async _getIdentityAssertion(origin) {
+  async _getIdentityAssertion() {
     await this._certificateReady;
-    return this._localIdp.getIdentityAssertion(this._impl.fingerprint, origin);
+    return this._localIdp.getIdentityAssertion(
+      this._impl.fingerprint,
+      this._documentPrincipal.origin
+    );
   }
 
   getIdentityAssertion() {
     this._checkClosed();
-    let origin = Cu.getWebIDLCallerPrincipal().origin;
     return this._win.Promise.resolve(
-      this._chain(() => this._getIdentityAssertion(origin))
+      this._chain(() => this._getIdentityAssertion())
     );
   }
 
@@ -1805,7 +1837,9 @@ class RTCPeerConnection {
     if (state != this._iceConnectionState) {
       this._iceConnectionState = state;
       _globalPCList.notifyLifecycleObservers(this, "iceconnectionstatechange");
-      this.dispatchEvent(new this._win.Event("iceconnectionstatechange"));
+      if (!this._closed) {
+        this.dispatchEvent(new this._win.Event("iceconnectionstatechange"));
+      }
     }
   }
 

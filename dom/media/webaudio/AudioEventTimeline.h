@@ -129,20 +129,20 @@ class AudioEventTimeline {
     }
     if (!WebAudioUtils::IsTimeValid(aEvent.mTimeConstant)) {
       aRv.ThrowRangeError(
-          u"The exponential constant passed to setTargetAtTime must be "
-          u"non-negative.");
+          "The exponential constant passed to setTargetAtTime must be "
+          "non-negative.");
       return false;
     }
 
     if (aEvent.mType == AudioTimelineEvent::SetValueCurve) {
       if (!aEvent.mCurve || aEvent.mCurveLength < 2) {
-        aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+        aRv.ThrowInvalidStateError("Curve length must be at least 2");
         return false;
       }
       if (aEvent.mDuration <= 0) {
         aRv.ThrowRangeError(
-            u"The curve duration for setValueCurveAtTime must be strictly "
-            u"positive.");
+            "The curve duration for setValueCurveAtTime must be strictly "
+            "positive.");
         return false;
       }
     }
@@ -155,7 +155,7 @@ class AudioEventTimeline {
       if (mEvents[i].mType == AudioTimelineEvent::SetValueCurve &&
           TimeOf(mEvents[i]) <= TimeOf(aEvent) &&
           TimeOf(mEvents[i]) + mEvents[i].mDuration > TimeOf(aEvent)) {
-        aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+        aRv.ThrowNotSupportedError("Can't add events during a curve event");
         return false;
       }
     }
@@ -166,7 +166,8 @@ class AudioEventTimeline {
       for (unsigned i = 0; i < mEvents.Length(); ++i) {
         if (TimeOf(aEvent) < TimeOf(mEvents[i]) &&
             TimeOf(aEvent) + aEvent.mDuration > TimeOf(mEvents[i])) {
-          aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+          aRv.ThrowNotSupportedError(
+              "Can't add curve events that overlap other events");
           return false;
         }
       }
@@ -176,20 +177,22 @@ class AudioEventTimeline {
     if (aEvent.mType == AudioTimelineEvent::ExponentialRamp) {
       if (aEvent.mValue <= 0.f) {
         aRv.ThrowRangeError(
-            u"The value passed to exponentialRampToValueAtTime must be "
-            u"positive.");
+            "The value passed to exponentialRampToValueAtTime must be "
+            "positive.");
         return false;
       }
       const AudioTimelineEvent* previousEvent =
           GetPreviousEvent(TimeOf(aEvent));
       if (previousEvent) {
         if (previousEvent->mValue <= 0.f) {
-          aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+          // XXXbz I see no mention of SyntaxError in the Web Audio API spec
+          aRv.ThrowSyntaxError("Previous event value must be positive");
           return false;
         }
       } else {
         if (mValue <= 0.f) {
-          aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+          // XXXbz I see no mention of SyntaxError in the Web Audio API spec
+          aRv.ThrowSyntaxError("Our value must be positive");
           return false;
         }
       }

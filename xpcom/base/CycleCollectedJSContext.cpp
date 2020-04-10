@@ -194,7 +194,7 @@ class PromiseJobRunnable final : public MicroTaskRunnable {
     }
   }
 
-  virtual ~PromiseJobRunnable() {}
+  virtual ~PromiseJobRunnable() = default;
 
  protected:
   MOZ_CAN_RUN_SCRIPT
@@ -331,7 +331,7 @@ void CycleCollectedJSContext::PromiseRejectionTrackerCallback(
       RefPtr<Promise> promise =
           Promise::CreateFromExisting(xpc::NativeGlobal(aPromise), aPromise);
       aboutToBeNotified.AppendElement(promise);
-      unhandled.Put(promiseID, promise);
+      unhandled.Put(promiseID, std::move(promise));
     }
   } else {
     PromiseDebugging::AddConsumedRejection(aPromise);
@@ -401,7 +401,7 @@ void CycleCollectedJSContext::ProcessStableStateQueue() {
   // When run, one event can add another event to the mStableStateEvents, as
   // such you can't use iterators here.
   for (uint32_t i = 0; i < mStableStateEvents.Length(); ++i) {
-    nsCOMPtr<nsIRunnable> event = mStableStateEvents[i].forget();
+    nsCOMPtr<nsIRunnable> event = std::move(mStableStateEvents[i]);
     event->Run();
   }
 
@@ -417,24 +417,27 @@ void CycleCollectedJSContext::CleanupIDBTransactions(uint32_t aRecursionDepth) {
   nsTArray<PendingIDBTransactionData> localQueue =
       std::move(mPendingIDBTransactions);
 
-  for (uint32_t i = 0; i < localQueue.Length(); ++i) {
-    PendingIDBTransactionData& data = localQueue[i];
-    if (data.mRecursionDepth != aRecursionDepth) {
-      continue;
-    }
+  localQueue.RemoveElementsAt(
+      std::remove_if(localQueue.begin(), localQueue.end(),
+                     [aRecursionDepth](PendingIDBTransactionData& data) {
+                       if (data.mRecursionDepth != aRecursionDepth) {
+                         return false;
+                       }
 
-    {
-      nsCOMPtr<nsIRunnable> transaction = data.mTransaction.forget();
-      transaction->Run();
-    }
+                       {
+                         nsCOMPtr<nsIRunnable> transaction =
+                             std::move(data.mTransaction);
+                         transaction->Run();
+                       }
 
-    localQueue.RemoveElementAt(i--);
-  }
+                       return true;
+                     }),
+      localQueue.end());
 
-  // If the queue has events in it now, they were added from something we
-  // called, so they belong at the end of the queue.
-  localQueue.AppendElements(mPendingIDBTransactions);
-  localQueue.SwapElements(mPendingIDBTransactions);
+  // If mPendingIDBTransactions has events in it now, they were added from
+  // something we called, so they belong at the end of the queue.
+  localQueue.AppendElements(std::move(mPendingIDBTransactions));
+  mPendingIDBTransactions = std::move(localQueue);
   mDoingStableStates = false;
 }
 
@@ -561,7 +564,7 @@ void CycleCollectedJSContext::DispatchToMicroTask(
   MOZ_ASSERT(runnable);
 
   JS::JobQueueMayNotBeEmpty(Context());
-  mPendingMicroTaskRunnables.push(runnable.forget());
+  mPendingMicroTaskRunnables.push(std::move(runnable));
 }
 
 class AsyncMutationHandler final : public mozilla::Runnable {
@@ -617,10 +620,10 @@ bool CycleCollectedJSContext::PerformMicroTaskCheckPoint(bool aForce) {
   for (;;) {
     RefPtr<MicroTaskRunnable> runnable;
     if (!mDebuggerMicroTaskQueue.empty()) {
-      runnable = mDebuggerMicroTaskQueue.front().forget();
+      runnable = std::move(mDebuggerMicroTaskQueue.front());
       mDebuggerMicroTaskQueue.pop();
     } else if (!mPendingMicroTaskRunnables.empty()) {
-      runnable = mPendingMicroTaskRunnables.front().forget();
+      runnable = std::move(mPendingMicroTaskRunnables.front());
       mPendingMicroTaskRunnables.pop();
     } else {
       break;
@@ -669,7 +672,7 @@ void CycleCollectedJSContext::PerformDebuggerMicroTaskCheckpoint() {
       break;
     }
 
-    RefPtr<MicroTaskRunnable> runnable = microtaskQueue->front().forget();
+    RefPtr<MicroTaskRunnable> runnable = std::move(microtaskQueue->front());
     MOZ_ASSERT(runnable);
 
     // This function can re-enter, so we remove the element before calling.

@@ -15,7 +15,7 @@
 #include "nsCOMArray.h"           // for member
 #include "nsCompatibility.h"      // for member
 #include "nsCOMPtr.h"             // for member
-#include "nsICookieSettings.h"
+#include "nsICookieJarSettings.h"
 #include "nsGkAtoms.h"           // for static class members
 #include "nsNameSpaceManager.h"  // for static class members
 #include "nsIApplicationCache.h"
@@ -152,6 +152,7 @@ class ServoStyleSet;
 enum class StyleOrigin : uint8_t;
 class SMILAnimationController;
 enum class StyleCursorKind : uint8_t;
+enum class StylePrefersColorScheme : uint8_t;
 template <typename>
 class OwningNonNull;
 struct URLExtraData;
@@ -246,6 +247,7 @@ enum BFCacheStatus {
   CONTAINS_MSE_CONTENT = 1 << 8,         // Status 8
   HAS_ACTIVE_SPEECH_SYNTHESIS = 1 << 9,  // Status 9
   HAS_USED_VR = 1 << 10,                 // Status 10
+  CONTAINS_REMOTE_SUBFRAMES = 1 << 11,   // Status 11
 };
 
 }  // namespace dom
@@ -372,7 +374,7 @@ class ExternalResourceMap {
 
  protected:
   class PendingLoad : public ExternalResourceLoad, public nsIStreamListener {
-    ~PendingLoad() {}
+    ~PendingLoad() = default;
 
    public:
     explicit PendingLoad(Document* aDisplayDocument)
@@ -403,7 +405,7 @@ class ExternalResourceMap {
   friend class PendingLoad;
 
   class LoadgroupCallbacks final : public nsIInterfaceRequestor {
-    ~LoadgroupCallbacks() {}
+    ~LoadgroupCallbacks() = default;
 
    public:
     explicit LoadgroupCallbacks(nsIInterfaceRequestor* aOtherCallbacks)
@@ -474,6 +476,8 @@ class Document : public nsINode,
                  public nsStubMutationObserver,
                  public DispatcherTrait,
                  public SupportsWeakPtr<Document> {
+  friend class DocumentOrShadowRoot;
+
  protected:
   explicit Document(const char* aContentType);
   virtual ~Document();
@@ -580,9 +584,6 @@ class Document : public nsINode,
   nsIPrincipal* GetContentBlockingAllowListPrincipal() const {
     return mContentBlockingAllowListPrincipal;
   }
-
-  already_AddRefed<nsIPrincipal> RecomputeContentBlockingAllowListPrincipal(
-      nsIURI* aURIBeingLoaded, const OriginAttributes& aAttrs);
 
   // EventTarget
   void GetEventTargetParent(EventChainPreVisitor& aVisitor) override;
@@ -1114,6 +1115,14 @@ class Document : public nsINode,
   }
 
   /**
+   * Returns true if the document holds a CSP
+   * delivered through an HTTP Header.
+   */
+  bool GetHasCSPDeliveredThroughHeader() {
+    return mHasCSPDeliveredThroughHeader;
+  }
+
+  /**
    * Return a promise which resolves to the content blocking events.
    */
   typedef MozPromise<uint32_t, bool, true> GetContentBlockingEventsPromise;
@@ -1413,8 +1422,8 @@ class Document : public nsINode,
   // flag.
   bool StorageAccessSandboxed() const;
 
-  // Returns the cookie settings for this and sub contexts.
-  nsICookieSettings* CookieSettings();
+  // Returns the cookie jar settings for this and sub contexts.
+  nsICookieJarSettings* CookieJarSettings();
 
   // Increments the document generation.
   inline void Changed() { ++mGeneration; }
@@ -1598,7 +1607,7 @@ class Document : public nsINode,
 
     nsExpirationState* GetExpirationState() { return &mState; }
 
-    ~SelectorCacheKey() { MOZ_COUNT_DTOR(SelectorCacheKey); }
+    MOZ_COUNTED_DTOR(SelectorCacheKey)
   };
 
   class SelectorCacheKeyDeleter;
@@ -1700,7 +1709,7 @@ class Document : public nsINode,
   /**
    * Remove a stylesheet from the document
    */
-  void RemoveStyleSheet(StyleSheet*);
+  void RemoveStyleSheet(StyleSheet&);
 
   /**
    * Notify the document that the applicable state of the sheet changed
@@ -3612,6 +3621,11 @@ class Document : public nsINode,
   void ScheduleIntersectionObserverNotification();
   MOZ_CAN_RUN_SCRIPT void NotifyIntersectionObservers();
 
+  DOMIntersectionObserver* GetLazyLoadImageObserver() {
+    return mLazyLoadImageObserver;
+  }
+  DOMIntersectionObserver& EnsureLazyLoadImageObserver();
+
   // Dispatch a runnable related to the document.
   nsresult Dispatch(TaskCategory aCategory,
                     already_AddRefed<nsIRunnable>&& aRunnable) final;
@@ -3867,6 +3881,9 @@ class Document : public nsINode,
 
   nsIPermissionDelegateHandler* PermDelegateHandler();
 
+  // CSS prefers-color-scheme media feature for this document.
+  StylePrefersColorScheme PrefersColorScheme() const;
+
   // Returns true if we use overlay scrollbars on the system wide or on the
   // given document.
   static bool UseOverlayScrollbars(const Document* aDocument);
@@ -3931,8 +3948,6 @@ class Document : public nsINode,
   }
 
   void RemoveDocStyleSheetsFromStyleSets();
-  void RemoveStyleSheetsFromStyleSets(
-      const nsTArray<RefPtr<StyleSheet>>& aSheets, StyleOrigin);
   void ResetStylesheetsToURI(nsIURI* aURI);
   void FillStyleSet();
   void FillStyleSetUserAndUASheets();
@@ -3945,8 +3960,8 @@ class Document : public nsINode,
   }
   void AddContentEditableStyleSheetsToStyleSet(bool aDesignMode);
   void RemoveContentEditableStyleSheets();
-  void AddStyleSheetToStyleSets(StyleSheet* aSheet);
-  void RemoveStyleSheetFromStyleSets(StyleSheet* aSheet);
+  void AddStyleSheetToStyleSets(StyleSheet&);
+  void RemoveStyleSheetFromStyleSets(StyleSheet&);
   void NotifyStyleSheetApplicableStateChanged();
   // Just like EnableStyleSheetsForSet, but doesn't check whether
   // aSheetSet is null and allows the caller to control whether to set
@@ -4054,6 +4069,34 @@ class Document : public nsINode,
       const nsAString& aHTMLCommandName,
       const nsAString& aValue = EmptyString(),
       nsAString* aAdjustedValue = nullptr);
+
+  /**
+   * AutoRunningExecCommandMarker is AutoRestorer for mIsRunningExecCommand.
+   * Since it's a bit field, not a bool member, therefore, we cannot use
+   * AutoRestorer for it.
+   */
+  class MOZ_STACK_CLASS AutoRunningExecCommandMarker final {
+   public:
+    AutoRunningExecCommandMarker() = delete;
+    explicit AutoRunningExecCommandMarker(const AutoRunningExecCommandMarker&) =
+        delete;
+    // Guaranteeing the document's lifetime with `MOZ_CAN_RUN_SCRIPT`.
+    MOZ_CAN_RUN_SCRIPT explicit AutoRunningExecCommandMarker(
+        Document& aDocument)
+        : mDocument(aDocument),
+          mHasBeenRunning(aDocument.mIsRunningExecCommand) {
+      aDocument.mIsRunningExecCommand = true;
+    }
+    ~AutoRunningExecCommandMarker() {
+      if (!mHasBeenRunning) {
+        mDocument.mIsRunningExecCommand = false;
+      }
+    }
+
+   private:
+    Document& mDocument;
+    bool mHasBeenRunning;
+  };
 
   // Mapping table from HTML command name to internal command.
   typedef nsDataHashtable<nsStringCaseInsensitiveHashKey, InternalCommandData>
@@ -4386,6 +4429,9 @@ class Document : public nsINode,
   // True if a document load has a CSP with unsafe-inline attached.
   bool mHasUnsafeInlineCSP : 1;
 
+  // True if the document has a CSP delivered throuh a header
+  bool mHasCSPDeliveredThroughHeader : 1;
+
   // True if DisallowBFCaching has been called on this document.
   bool mBFCacheDisallowed : 1;
 
@@ -4560,6 +4606,9 @@ class Document : public nsINode,
   // We don't use the general deprecated operation mechanism for this because we
   // also record this as a `CountedUnknownProperty`.
   bool mHasWarnedAboutZoom : 1;
+
+  // While we're handling an execCommand call, set to true.
+  bool mIsRunningExecCommand : 1;
 
   uint8_t mPendingFullscreenRequests;
 
@@ -4868,6 +4917,8 @@ class Document : public nsINode,
   // Array of intersection observers
   nsTHashtable<nsPtrHashKey<DOMIntersectionObserver>> mIntersectionObservers;
 
+  RefPtr<DOMIntersectionObserver> mLazyLoadImageObserver;
+
   // Stack of fullscreen elements. When we request fullscreen we push the
   // fullscreen element onto this stack, and when we cancel fullscreen we
   // pop one off this stack, restoring the previous fullscreen state
@@ -4943,6 +4994,8 @@ class Document : public nsINode,
 
   nsCOMPtr<nsIRequest> mOnloadBlocker;
 
+  // Gecko-internal sheets used for extensions and such.
+  // Exposed to privileged script via nsIDOMWindowUtils.loadSheet.
   nsTArray<RefPtr<StyleSheet>> mAdditionalSheets[AdditionalSheetTypeCount];
 
   // Member to store out last-selected stylesheet set.
@@ -5001,7 +5054,7 @@ class Document : public nsINode,
 
   bool mPendingInitialTranslation;
 
-  nsCOMPtr<nsICookieSettings> mCookieSettings;
+  nsCOMPtr<nsICookieJarSettings> mCookieJarSettings;
 
   // Document generation. Gets incremented everytime it changes.
   int32_t mGeneration;
@@ -5118,6 +5171,8 @@ class MOZ_RAII IgnoreOpensDuringUnload final {
  private:
   Document* mDoc;
 };
+
+bool IsInActiveTab(Document* aDoc);
 
 }  // namespace dom
 }  // namespace mozilla

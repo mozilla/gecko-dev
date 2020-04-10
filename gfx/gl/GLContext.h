@@ -29,14 +29,16 @@
 #  define MOZ_GL_DEBUG 1
 #endif
 
-#include "../../mfbt/RefPtr.h"
-#include "../../mfbt/UniquePtr.h"
-#include "../../mfbt/ThreadLocal.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/ThreadLocal.h"
 
+#include "nsTArray.h"
 #include "GLDefs.h"
 #include "GLLibraryLoader.h"
 #include "nsISupportsImpl.h"
 #include "nsRegionFwd.h"
+#include "nsString.h"
 #include "plstr.h"
 #include "GLContextTypes.h"
 #include "SurfaceTypes.h"
@@ -724,11 +726,11 @@ class GLContext : public GenericAtomicRefCounted,
 
   // Do whatever tear-down is necessary after drawing to our offscreen FBO,
   // if it's bound.
-  void AfterGLDrawCall();
+  void AfterGLDrawCall() { mHeavyGLCallsSinceLastFlush = true; }
 
   // Do whatever setup is necessary to read from our offscreen FBO, if it's
   // bound.
-  void BeforeGLReadCall();
+  void BeforeGLReadCall() {}
 
   // Do whatever tear-down is necessary after reading from our offscreen FBO,
   // if it's bound.
@@ -3565,8 +3567,6 @@ class GLContext : public GenericAtomicRefCounted,
   GLScreenBuffer* Screen() const { return mScreen.get(); }
 
   bool WorkAroundDriverBugs() const { return mWorkAroundDriverBugs; }
-
-  bool IsDrawingToDefaultFramebuffer();
 
   bool IsOffscreenSizeAllowed(const gfx::IntSize& aSize) const;
 

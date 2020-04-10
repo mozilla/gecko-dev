@@ -163,25 +163,12 @@ TEST_VARIANTS = {
             'e10s': True,
         },
         'merge': {
-            'fission-run-on-projects': ['try'],
+            # Ensures the default state is to not run anywhere.
+            'fission-run-on-projects': [],
             'mozharness': {
                 'extra-options': ['--setpref=fission.autostart=true',
                                   '--setpref=dom.serviceWorkers.parent_intercept=true',
                                   '--setpref=browser.tabs.documentchannel=true'],
-            },
-        },
-    },
-    'serviceworker': {
-        'description': "{description} with serviceworker-e10s redesign enabled",
-        'filterfn': runs_on_central,
-        'suffix': 'sw',
-        'replace': {
-            'run-on-projects': ['mozilla-central'],
-        },
-        'merge': {
-            'tier': 2,
-            'mozharness': {
-                'extra-options': ['--setpref="dom.serviceWorkers.parent_intercept=true"'],
             },
         },
     },
@@ -570,8 +557,7 @@ def set_defaults(config, tests):
         test.setdefault('limit-platforms', [])
         # Bug 1602863 - temporarily in place while ubuntu1604 and ubuntu1804
         # both exist in the CI.
-        if ('linux1804' in test['test-platform'] or
-                config.params['try_task_config'].get('ubuntu-bionic')):
+        if ('linux1804' in test['test-platform']):
             test.setdefault('docker-image', {'in-tree': 'ubuntu1804-test'})
         else:
             test.setdefault('docker-image', {'in-tree': 'desktop1604-test'})
@@ -818,6 +804,7 @@ def set_tier(config, tests):
                 'linux64-shippable/opt',
                 'linux64-devedition/opt',
                 'linux64-asan/opt',
+                'linux64-tsan/opt',
                 'linux64-qr/opt',
                 'linux64-qr/debug',
                 'linux64-pgo-qr/opt',
@@ -829,6 +816,7 @@ def set_tier(config, tests):
                 'linux1804-64-qr/debug',
                 'linux1804-64-shippable-qr/opt',
                 'linux1804-64-asan/opt',
+                'linux1804-64-tsan/opt',
                 'windows7-32/debug',
                 'windows7-32/opt',
                 'windows7-32-pgo/opt',
@@ -986,34 +974,29 @@ def setup_browsertime(config, tests):
 
         cd_fetches = {
             'linux.*': [
-                'linux64-chromedriver-76',
-                'linux64-chromedriver-77',
                 'linux64-chromedriver-78',
-                'linux64-chromedriver-79'
+                'linux64-chromedriver-79',
+                'linux64-chromedriver-80'
             ],
             'macosx.*': [
-                'mac64-chromedriver-76',
-                'mac64-chromedriver-77',
                 'mac64-chromedriver-78',
-                'mac64-chromedriver-79'
+                'mac64-chromedriver-79',
+                'mac64-chromedriver-80'
             ],
             'windows.*aarch64.*': [
-                'win32-chromedriver-76',
-                'win32-chromedriver-77',
                 'win32-chromedriver-78',
-                'win32-chromedriver-79'
+                'win32-chromedriver-79',
+                'win32-chromedriver-80'
             ],
             'windows.*-32.*': [
-                'win32-chromedriver-76',
-                'win32-chromedriver-77',
                 'win32-chromedriver-78',
-                'win32-chromedriver-79'
+                'win32-chromedriver-79',
+                'win32-chromedriver-80'
             ],
             'windows.*-64.*': [
-                'win32-chromedriver-76',
-                'win32-chromedriver-77',
                 'win32-chromedriver-78',
-                'win32-chromedriver-79'
+                'win32-chromedriver-79',
+                'win32-chromedriver-80'
             ],
         }
 
@@ -1287,10 +1270,8 @@ CHUNK_SUITES_BLACKLIST = (
     'jittest',
     'jsreftest',
     'marionette',
-    'mochitest-browser-chrome',
     'mochitest-browser-chrome-screenshots',
     'mochitest-browser-chrome-thunderbird',
-    'mochitest-devtools-webreplay',
     'mochitest-valgrind-plain',
     'mochitest-webgl1-core',
     'mochitest-webgl1-ext',
@@ -1496,15 +1477,11 @@ def set_worker_type(config, tests):
         elif test_platform.startswith('android-hw-g5'):
             if test['suite'] != 'raptor':
                 test['worker-type'] = 't-bitbar-gw-unit-g5'
-            elif '--power-test' in test['mozharness']['extra-options']:
-                test['worker-type'] = 't-bitbar-gw-batt-g5'
             else:
                 test['worker-type'] = 't-bitbar-gw-perf-g5'
         elif test_platform.startswith('android-hw-p2'):
             if test['suite'] != 'raptor':
                 test['worker-type'] = 't-bitbar-gw-unit-p2'
-            elif '--power-test' in test['mozharness']['extra-options']:
-                test['worker-type'] = 't-bitbar-gw-batt-p2'
             else:
                 test['worker-type'] = 't-bitbar-gw-perf-p2'
         elif test_platform.startswith('android-em-7.0-x86'):

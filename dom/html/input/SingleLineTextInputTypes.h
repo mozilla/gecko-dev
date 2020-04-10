@@ -11,8 +11,9 @@
 
 class SingleLineTextInputTypeBase : public ::InputType {
  public:
-  ~SingleLineTextInputTypeBase() override {}
+  ~SingleLineTextInputTypeBase() override = default;
 
+  bool MinAndMaxLengthApply() const final { return true; }
   bool IsTooLong() const final;
   bool IsTooShort() const final;
   bool IsValueMissing() const final;

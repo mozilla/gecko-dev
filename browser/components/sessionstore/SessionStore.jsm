@@ -1096,7 +1096,9 @@ var SessionStoreInternal = {
             !browser.userTypedValue
           ) {
             browser.userTypedValue = tabData.userTypedValue;
-            win.URLBarSetURI();
+            if (tab.selected) {
+              win.gURLBar.setURI();
+            }
           }
 
           // Remove state we don't need any longer.
@@ -1179,6 +1181,7 @@ var SessionStoreInternal = {
         this.saveStateDelayed(win);
         break;
       case "oop-browser-crashed":
+      case "oop-browser-buildid-mismatch":
         if (aEvent.isTopFrame) {
           this.onBrowserCrashed(target);
         }
@@ -2151,6 +2154,7 @@ var SessionStoreInternal = {
     let browser = aTab.linkedBrowser;
     browser.addEventListener("SwapDocShells", this);
     browser.addEventListener("oop-browser-crashed", this);
+    browser.addEventListener("oop-browser-buildid-mismatch", this);
 
     if (browser.frameLoader) {
       this._lastKnownFrameLoader.set(browser.permanentKey, browser.frameLoader);
@@ -2301,6 +2305,7 @@ var SessionStoreInternal = {
 
     browser.removeEventListener("SwapDocShells", this);
     browser.removeEventListener("oop-browser-crashed", this);
+    browser.removeEventListener("oop-browser-buildid-mismatch", this);
 
     // If this tab was in the middle of restoring or still needs to be restored,
     // we need to reset that state. If the tab was restoring, we will attempt to
@@ -2532,9 +2537,7 @@ var SessionStoreInternal = {
     aReplaceBrowsingContext
   ) {
     debug(
-      `[process-switch]: performing switch from ${
-        aBrowser.remoteType
-      } to ${aRemoteType}`
+      `[process-switch]: performing switch from ${aBrowser.remoteType} to ${aRemoteType}`
     );
 
     // Don't try to switch tabs before delayed startup is completed.
@@ -2624,15 +2627,10 @@ var SessionStoreInternal = {
     }
 
     // Check that the document has a corresponding BrowsingContext.
-    let browsingContext;
-    let isSubframe = false;
-    let cp = channel.loadInfo.externalContentPolicyType;
-    if (cp == Ci.nsIContentPolicy.TYPE_DOCUMENT) {
-      browsingContext = channel.loadInfo.browsingContext;
-    } else {
-      browsingContext = channel.loadInfo.frameBrowsingContext;
-      isSubframe = true;
-    }
+    let browsingContext = channel.loadInfo.targetBrowsingContext;
+    let isSubframe =
+      channel.loadInfo.externalContentPolicyType !=
+      Ci.nsIContentPolicy.TYPE_DOCUMENT;
 
     if (!browsingContext) {
       debug(`[process-switch]: no BrowsingContext - ignoring`);
@@ -2648,7 +2646,7 @@ var SessionStoreInternal = {
 
     let topDocShell = topBC.embedderElement.ownerGlobal.docShell;
     let { useRemoteSubframes } = topDocShell.QueryInterface(Ci.nsILoadContext);
-    if (!useRemoteSubframes && cp != Ci.nsIContentPolicy.TYPE_DOCUMENT) {
+    if (!useRemoteSubframes && isSubframe) {
       debug(`[process-switch]: remote subframes disabled - ignoring`);
       return;
     }
@@ -3864,6 +3862,10 @@ var SessionStoreInternal = {
     } else if (winData.sidebar) {
       delete winData.sidebar;
     }
+    let workspaceID = aWindow.getWorkspaceID();
+    if (workspaceID) {
+      winData.workspaceID = workspaceID;
+    }
   },
 
   /**
@@ -4105,6 +4107,10 @@ var SessionStoreInternal = {
     // We're not returning from this before we end up calling restoreTabs
     // for this window, so make sure we send the SSWindowStateBusy event.
     this._setWindowStateBusy(aWindow);
+
+    if (winData.workspaceID) {
+      aWindow.moveToWorkspace(winData.workspaceID);
+    }
 
     if (!winData.tabs) {
       winData.tabs = [];

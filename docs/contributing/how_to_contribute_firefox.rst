@@ -1,16 +1,10 @@
 How to contribute to Firefox
 ============================
 
-The goal of this doc is to have a place where all simple commands
-are listed from start to end.
 
-This aims to be a simple tutorial for lazy copy and paste.
-
-Each section in this tutorial links to more detailed documentation on the topic.
-
-The whole process is a bit long, it will take time to get things right.
-If at any point you are stuck, please don't feel shy to ask on Riot/Matrix at `https://chat.mozilla.org <https://chat.mozilla.org>`__
-in `#introduction <https://chat.mozilla.org/#/room/#introduction:mozilla.org>`__ channel.
+The whole process is a bit long, and it will take time to get things right.
+If at any point you are stuck, please don't hesitate to ask at `https://chat.mozilla.org <https://chat.mozilla.org>`__
+in the `#introduction <https://chat.mozilla.org/#/room/#introduction:mozilla.org>`__ channel.
 
 Clone the sources
 -----------------
@@ -27,6 +21,8 @@ For git, see the `git cinnabar documentation <https://github.com/glandium/git-ci
 The clone should be around 30 minutes (depending on your connection) and
 the repository should be less than 5GB (~ 20GB after the build).
 
+If you have any network connection issues and cannot clone with command, try :ref:`Mercurial bundles <Mercurial bundles>`.
+
 `More
 information <https://developer.mozilla.org/docs/Mozilla/Developer_guide/Source_Code/Mercurial>`__
 
@@ -40,7 +36,8 @@ Firefox provides a mechanism to install all dependencies; in the source tree:
      $ ./mach bootstrap
 
 The default options are recommended.
-Select "`Artifact Mode <https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Artifact_builds>`__" if you are not planning to write C++ or Rust code.
+If you're not planning to write C++ or Rust code, select :ref:`Artifact Mode <Artifact builds>`
+and follow the instructions at the end of the bootstrap for creating a mozconfig file.
 
 `More
 information <https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_Instructions/Linux_Prerequisites>`__
@@ -85,7 +82,7 @@ information <https://developer.mozilla.org/docs/Mozilla/Developer_guide/Build_In
 To write a patch
 ----------------
 
-Make the changes you need in the code base.
+Make the changes you need in the codebase. You can look up UI text in `Searchfox <https://searchfox.org>`__ to find the right file.
 
 Then:
 
@@ -105,10 +102,10 @@ The commit message should look like:
 
     Optionally, a longer description of the change.
 
-To find a reviewer, the easiest way is to do ``hg log <modified-file>`` (or
-``git log <modified-file>``, if you're using git) on the relevant files, and
-look who usually is reviewing the actual changes (ie not reformat, renaming
-of variables, etc).
+To :ref:`find a reviewer or a review group <Getting reviews>`, the easiest way is to do
+``hg log <modified-file>`` (or ``git log <modified-file>``, if
+you're using git) on the relevant files, and look who usually is
+reviewing the actual changes (ie not reformat, renaming of variables, etc).
 
 To visualize your patch in the repository, run:
 
@@ -121,7 +118,7 @@ To visualize your patch in the repository, run:
     $ git show
 
 
-`More information <https://developer.mozilla.org/docs/Mozilla/Mercurial>`__
+:ref:`More information <Mercurial Overview>`
 
 
 To test a change locally

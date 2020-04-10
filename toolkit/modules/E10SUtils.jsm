@@ -256,16 +256,14 @@ function validatedWebRemoteType(
 
   if (
     allowLinkedWebInFileUriProcess &&
+    // This is not supported with documentchannel
+    !documentChannel &&
     aPreferredRemoteType == FILE_REMOTE_TYPE
   ) {
     // If aCurrentUri is passed then we should only allow FILE_REMOTE_TYPE
     // when it is same origin as target or the current URI is already a
     // file:// URI.
     if (aCurrentUri) {
-      if (documentChannel && aCurrentUri.scheme == "file") {
-        return aPreferredRemoteType;
-      }
-
       try {
         // checkSameOriginURI throws when not same origin.
         // todo: if you intend to update CheckSameOriginURI to log the error to the
@@ -856,14 +854,7 @@ var E10SUtils = {
     aFlags,
     aCsp
   ) {
-    let actor;
-    try {
-      actor = aDocShell.domWindow.windowGlobalChild.getActor("BrowserTab");
-    } catch (ex) {}
-    if (!actor) {
-      // Fall back to using the message manager.
-      actor = aDocShell.messageManager;
-    }
+    const actor = aDocShell.domWindow.windowGlobalChild.getActor("BrowserTab");
 
     // Retarget the load to the correct process
     let sessionHistory = aDocShell.QueryInterface(Ci.nsIWebNavigation)
@@ -947,7 +938,7 @@ var E10SUtils = {
       let stack = [aBrowser.browsingContext];
       while (stack.length) {
         let bc = stack.pop();
-        stack.push(...bc.getChildren());
+        stack.push(...bc.children);
         if (bc.currentWindowGlobal) {
           let pid = bc.currentWindowGlobal.osPid;
           if (pid != tabPid) {

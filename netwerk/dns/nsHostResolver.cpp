@@ -19,7 +19,6 @@
 #include "nsISupportsBase.h"
 #include "nsISupportsUtils.h"
 #include "nsIThreadManager.h"
-#include "nsAutoPtr.h"
 #include "nsComponentManagerUtils.h"
 #include "nsPrintfCString.h"
 #include "nsXPCOMCIDInternal.h"
@@ -646,7 +645,7 @@ nsresult nsHostResolver::Init() {
   MOZ_ALWAYS_SUCCEEDS(
       threadPool->SetThreadStackSize(nsIThreadManager::kThreadPoolStackSize));
   MOZ_ALWAYS_SUCCEEDS(threadPool->SetName(NS_LITERAL_CSTRING("DNS Resolver")));
-  mResolverThreads = threadPool.forget();
+  mResolverThreads = ToRefPtr(std::move(threadPool));
 
   return NS_OK;
 }
@@ -1273,7 +1272,7 @@ nsresult nsHostResolver::TrrLookup(nsHostRecord* aRec, TRR* pushedTRR) {
       RefPtr<TRR> trr;
       MutexAutoLock trrlock(addrRec->mTrrLock);
       trr = pushedTRR ? pushedTRR : new TRR(this, rec, rectype);
-      if (pushedTRR || NS_SUCCEEDED(NS_DispatchToMainThread(trr))) {
+      if (pushedTRR || NS_SUCCEEDED(gTRRService->DispatchTRRRequest(trr))) {
         addrRec->mResolving++;
         if (rectype == TRRTYPE_A) {
           MOZ_ASSERT(!addrRec->mTrrA);
@@ -1306,7 +1305,8 @@ nsresult nsHostResolver::TrrLookup(nsHostRecord* aRec, TRR* pushedTRR) {
     RefPtr<TRR> trr;
     MutexAutoLock trrlock(typeRec->mTrrLock);
     trr = pushedTRR ? pushedTRR : new TRR(this, rec, rectype);
-    if (pushedTRR || NS_SUCCEEDED(NS_DispatchToMainThread(trr))) {
+    RefPtr<TRR> trrRequest = trr;
+    if (pushedTRR || NS_SUCCEEDED(gTRRService->DispatchTRRRequest(trr))) {
       typeRec->mResolving++;
       MOZ_ASSERT(!typeRec->mTrr);
       typeRec->mTrr = trr;
@@ -1877,16 +1877,18 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookup(
     if (different_rrset(addrRec->addr_info, newRRSet)) {
       LOG(("nsHostResolver record %p new gencnt\n", addrRec.get()));
       old_addr_info = addrRec->addr_info;
-      addrRec->addr_info = newRRSet.forget();
+      addrRec->addr_info = std::move(newRRSet);
       addrRec->addr_info_gencnt++;
     } else {
       if (addrRec->addr_info && newRRSet) {
         addrRec->addr_info->ttl = newRRSet->ttl;
         // Update trr timings
-        addrRec->addr_info->SetTrrFetchDuration(newRRSet->GetTrrFetchDuration());
-        addrRec->addr_info->SetTrrFetchDurationNetworkOnly(newRRSet->GetTrrFetchDurationNetworkOnly());
+        addrRec->addr_info->SetTrrFetchDuration(
+            newRRSet->GetTrrFetchDuration());
+        addrRec->addr_info->SetTrrFetchDurationNetworkOnly(
+            newRRSet->GetTrrFetchDurationNetworkOnly());
       }
-      old_addr_info = newRRSet.forget();
+      old_addr_info = std::move(newRRSet);
     }
     addrRec->negative = !addrRec->addr_info;
     PrepareRecordExpirationAddrRecord(addrRec);

@@ -93,7 +93,7 @@ class MOZ_RAII AutoSweepJitScript : public AutoSweepBase {
 #endif
 
  public:
-  inline explicit AutoSweepJitScript(JSScript* script);
+  inline explicit AutoSweepJitScript(BaseScript* script);
 #ifdef DEBUG
   inline ~AutoSweepJitScript();
 
@@ -194,8 +194,6 @@ class PreliminaryObjectArrayWithTemplate : public PreliminaryObjectArray {
 
  public:
   explicit PreliminaryObjectArrayWithTemplate(Shape* shape) : shape_(shape) {}
-
-  void clear() { shape_.init(nullptr); }
 
   Shape* shape() { return shape_; }
 

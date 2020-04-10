@@ -108,6 +108,7 @@ class Rule extends PureComponent {
           "ruleview-rule devtools-monospace" +
           (isUnmatched ? " unmatched" : "") +
           (isUserAgentStyle ? " uneditable" : ""),
+        "data-rule-id": id,
       },
       SourceLink({
         id,

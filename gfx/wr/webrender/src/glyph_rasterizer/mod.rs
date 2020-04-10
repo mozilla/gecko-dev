@@ -292,6 +292,7 @@ impl FontTransform {
         FontTransform::new(1.0, 0.0, 0.0, 1.0)
     }
 
+    #[allow(dead_code)]
     pub fn is_identity(&self) -> bool {
         *self == FontTransform::identity()
     }
@@ -337,14 +338,27 @@ impl FontTransform {
         self.pre_scale(x_scale.recip() as f32, y_scale.recip() as f32)
     }
 
-    pub fn synthesize_italics(&self, angle: SyntheticItalics) -> Self {
+    pub fn synthesize_italics(&self, angle: SyntheticItalics, size: f64, vertical: bool) -> (Self, (f64, f64)) {
         let skew_factor = angle.to_skew();
-        FontTransform::new(
-            self.scale_x,
-            self.skew_x - self.scale_x * skew_factor,
-            self.skew_y,
-            self.scale_y - self.skew_y * skew_factor,
-        )
+        if vertical {
+          // origin delta to be applied so that we effectively skew around
+          // the middle rather than edge of the glyph
+          let (tx, ty) = (0.0, -size * 0.5 * skew_factor as f64);
+          (FontTransform::new(
+              self.scale_x + self.skew_x * skew_factor,
+              self.skew_x,
+              self.skew_y + self.scale_y * skew_factor,
+              self.scale_y,
+          ), (self.scale_x as f64 * tx + self.skew_x as f64 * ty,
+              self.skew_y as f64 * tx + self.scale_y as f64 * ty))
+        } else {
+          (FontTransform::new(
+              self.scale_x,
+              self.skew_x - self.scale_x * skew_factor,
+              self.skew_y,
+              self.scale_y - self.skew_y * skew_factor,
+          ), (0.0, 0.0))
+        }
     }
 
     pub fn swap_xy(&self) -> Self {
@@ -359,8 +373,8 @@ impl FontTransform {
         FontTransform::new(self.scale_x, -self.skew_x, self.skew_y, -self.scale_y)
     }
 
-    pub fn transform(&self, point: &LayoutPoint) -> WorldPoint {
-        WorldPoint::new(
+    pub fn transform(&self, point: &LayoutPoint) -> DevicePoint {
+        DevicePoint::new(
             self.scale_x * point.x + self.skew_x * point.y,
             self.skew_y * point.x + self.scale_y * point.y,
         )
@@ -388,7 +402,7 @@ impl<'a> From<&'a LayoutToWorldTransform> for FontTransform {
 
 // Some platforms (i.e. Windows) may have trouble rasterizing glyphs above this size.
 // Ensure glyph sizes are reasonably limited to avoid that scenario.
-pub const FONT_SIZE_LIMIT: f64 = 320.0;
+pub const FONT_SIZE_LIMIT: f32 = 320.0;
 
 /// A mutable font instance description.
 ///
@@ -403,6 +417,7 @@ pub struct FontInstance {
     pub render_mode: FontRenderMode,
     pub flags: FontInstanceFlags,
     pub color: ColorU,
+    pub transform_glyphs: bool,
     // The font size is in *device* pixels, not logical pixels.
     // It is stored as an Au since we need sub-pixel sizes, but
     // can't store as a f32 due to use of this type as a hash key.
@@ -464,6 +479,7 @@ impl FontInstance {
     ) -> Self {
         FontInstance {
             transform: FontTransform::identity(),
+            transform_glyphs: false,
             color,
             size: base.size,
             base,
@@ -477,6 +493,7 @@ impl FontInstance {
     ) -> Self {
         FontInstance {
             transform: FontTransform::identity(),
+            transform_glyphs: false,
             color: ColorU::new(0, 0, 0, 255),
             size: base.size,
             render_mode: base.render_mode,
@@ -486,11 +503,11 @@ impl FontInstance {
     }
 
     pub fn get_alpha_glyph_format(&self) -> GlyphFormat {
-        if self.transform.is_identity() { GlyphFormat::Alpha } else { GlyphFormat::TransformedAlpha }
+        if !self.transform_glyphs { GlyphFormat::Alpha } else { GlyphFormat::TransformedAlpha }
     }
 
     pub fn get_subpixel_glyph_format(&self) -> GlyphFormat {
-        if self.transform.is_identity() { GlyphFormat::Subpixel } else { GlyphFormat::TransformedSubpixel }
+        if !self.transform_glyphs { GlyphFormat::Subpixel } else { GlyphFormat::TransformedSubpixel }
     }
 
     pub fn disable_subpixel_aa(&mut self) {
@@ -547,6 +564,10 @@ impl FontInstance {
         } else {
             0
         }
+    }
+
+    pub fn synthesize_italics(&self, transform: FontTransform, size: f64) -> (FontTransform, (f64, f64)) {
+        transform.synthesize_italics(self.synthetic_italics, size, self.flags.contains(FontInstanceFlags::VERTICAL))
     }
 }
 

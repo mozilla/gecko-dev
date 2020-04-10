@@ -228,6 +228,7 @@ class Navigator final : public nsISupports, public nsWrapperCache {
   // WebIDL helper methods
   static bool HasUserMediaSupport(JSContext* /* unused */,
                                   JSObject* /* unused */);
+  static bool HasShareSupport(JSContext* /* unused */, JSObject* /* unused */);
 
   nsPIDOMWindowInner* GetParentObject() const { return GetWindow(); }
 
@@ -242,6 +243,8 @@ class Navigator final : public nsISupports, public nsWrapperCache {
   already_AddRefed<Promise> RequestMediaKeySystemAccess(
       const nsAString& aKeySystem,
       const Sequence<MediaKeySystemConfiguration>& aConfig, ErrorResult& aRv);
+
+  bool HasCreatedMediaSession() const;
 
  private:
   RefPtr<MediaKeySystemAccessManager> mMediaKeySystemAccessManager;

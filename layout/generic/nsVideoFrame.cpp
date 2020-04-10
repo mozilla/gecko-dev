@@ -234,7 +234,7 @@ already_AddRefed<Layer> nsVideoFrame::BuildLayer(
   uint32_t flags = element->HasAlpha() ? 0 : Layer::CONTENT_OPAQUE;
   layer->SetContentFlags(flags);
 
-  RefPtr<Layer> result = layer.forget();
+  RefPtr<Layer> result = std::move(layer);
   return result.forget();
 }
 
@@ -406,7 +406,7 @@ class nsDisplayVideo : public nsPaintedDisplayItem {
     MOZ_COUNT_CTOR(nsDisplayVideo);
   }
 #ifdef NS_BUILD_REFCNT_LOGGING
-  virtual ~nsDisplayVideo() { MOZ_COUNT_DTOR(nsDisplayVideo); }
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayVideo)
 #endif
 
   NS_DISPLAY_DECL_NAME("Video", TYPE_VIDEO)

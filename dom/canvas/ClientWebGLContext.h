@@ -177,6 +177,7 @@ class ContextGenerationInfo final {
   std::array<float, 4> mClearColor = {{0, 0, 0, 0}};
   std::array<float, 4> mBlendColor = {{0, 0, 0, 0}};
   std::array<float, 2> mDepthRange = {{0, 1}};
+  webgl::PixelPackState mPixelPackState;
 
   std::vector<GLenum> mCompressedTextureFormats;
 
@@ -1372,7 +1373,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
                                    GLsizei numViewLayers) const {
     const FuncScope funcScope(*this, "framebufferTextureMultiview");
     if (IsContextLost()) return;
-    if (numViewLayers < 1) {
+    if (tex && numViewLayers < 1) {
       EnqueueError(LOCAL_GL_INVALID_VALUE, "`numViewLayers` must be >=1.");
       return;
     }

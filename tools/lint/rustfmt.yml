@@ -4,16 +4,18 @@ rust:
     include:
         - build/workspace-hack/
         - gfx/wr/peek-poke/peek-poke-derive/
-        - js/src/rust/shared/
+        - js/
         - security/manager/ssl/osclientcerts/
         - servo/components/size_of_test/
         - servo/components/to_shmem_derive/
         - testing/mozbase/rust/mozprofile/
         - testing/mozbase/rust/mozversion/
-        - testing/webdriver/
-        - testing/webdriver/
+        - testing/
         - toolkit/components/telemetry/fog/
+        - toolkit/crashreporter/
+        - toolkit/library/
         - tools/fuzzing/rust/
+        - xpcom/
     exclude:
         - dom/media/gtest/
         - dom/webauthn/libudev-sys/
@@ -21,9 +23,6 @@ rust:
         - gfx/wr/peek-poke/
         - gfx/wr/webrender_build/
         - gfx/wr/wr_malloc_size_of/
-        - js/src/
-        - js/src/frontend/binast/
-        - js/src/wasm/cranelift/
         - media/mp4parse-rust/mp4parse/
         - media/mp4parse-rust/mp4parse_capi/
         - media/mp4parse-rust/mp4parse_fallible/
@@ -36,15 +35,10 @@ rust:
         - servo/components/style_traits/
         - servo/components/to_shmem/
         - servo/tests/unit/style/
-        - testing/geckodriver/
-        - testing/mozbase/rust/mozdevice/
-        - testing/mozbase/rust/mozrunner/
-        - testing/webdriver/
-        - xpcom/rust/gtest/bench-collections/
-        - xpcom/rust/xpcom/xpcom_macros/
     extensions:
         - rs
     support-files:
         - 'tools/lint/rust/**'
     type: external
     payload: rust:lint
+    code_review_warnings: true

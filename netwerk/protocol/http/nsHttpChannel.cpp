@@ -14,6 +14,7 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/dom/nsCSPContext.h"
+#include "mozilla/dom/nsCSPService.h"
 
 #include "nsHttp.h"
 #include "nsHttpChannel.h"
@@ -97,6 +98,7 @@
 #include "nsIX509Cert.h"
 #include "ScopedNSSTypes.h"
 #include "nsIDeprecationWarner.h"
+#include "nsIDNSRecord.h"
 #include "mozilla/dom/Document.h"
 #include "nsICompressConvStats.h"
 #include "nsCORSListenerProxy.h"
@@ -118,7 +120,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ServiceWorkerUtils.h"
 #include "mozilla/net/AsyncUrlChannelClassifier.h"
-#include "mozilla/net/CookieSettings.h"
+#include "mozilla/net/CookieJarSettings.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
 #include "HttpTrafficAnalyzer.h"
@@ -295,9 +297,9 @@ bool IsInSubpathOfAppCacheManifest(nsIApplicationCache* cache,
 
 // We only treat 3xx responses as redirects if they have a Location header and
 // the status code is in a whitelist.
-bool nsHttpChannel::WillRedirect(nsHttpResponseHead* response) {
-  return IsRedirectStatus(response->Status()) &&
-         response->HasHeader(nsHttp::Location);
+bool nsHttpChannel::WillRedirect(const nsHttpResponseHead& response) {
+  return IsRedirectStatus(response.Status()) &&
+         response.HasHeader(nsHttp::Location);
 }
 
 nsresult StoreAuthorizationMetaData(nsICacheEntry* entry,
@@ -432,7 +434,6 @@ void nsHttpChannel::ReleaseMainThreadOnlyReferences() {
   nsTArray<nsCOMPtr<nsISupports>> arrayToRelease;
   arrayToRelease.AppendElement(mApplicationCacheForWrite.forget());
   arrayToRelease.AppendElement(mAuthProvider.forget());
-  arrayToRelease.AppendElement(mRedirectURI.forget());
   arrayToRelease.AppendElement(mRedirectChannel.forget());
   arrayToRelease.AppendElement(mPreflightChannel.forget());
   arrayToRelease.AppendElement(mDNSPrefetch.forget());
@@ -574,9 +575,7 @@ nsresult nsHttpChannel::OnBeforeConnect() {
   // header for *all* navigational requests instead of all requests as
   // defined in the spec, see:
   // https://www.w3.org/TR/upgrade-insecure-requests/#preference
-  nsContentPolicyType type = mLoadInfo
-                                 ? mLoadInfo->GetExternalContentPolicyType()
-                                 : nsIContentPolicy::TYPE_OTHER;
+  nsContentPolicyType type = mLoadInfo->GetExternalContentPolicyType();
 
   if (type == nsIContentPolicy::TYPE_DOCUMENT ||
       type == nsIContentPolicy::TYPE_SUBDOCUMENT) {
@@ -586,7 +585,7 @@ nsresult nsHttpChannel::OnBeforeConnect() {
   }
 
   nsCOMPtr<nsIPrincipal> resultPrincipal;
-  if (!mURI->SchemeIs("https") && mLoadInfo) {
+  if (!mURI->SchemeIs("https")) {
     nsContentUtils::GetSecurityManager()->GetChannelResultPrincipal(
         this, getter_AddRefs(resultPrincipal));
   }
@@ -1054,7 +1053,7 @@ nsresult nsHttpChannel::ContinueHandleAsyncRedirect(nsresult rv) {
     LOG(("ContinueHandleAsyncRedirect got failure result [rv=%" PRIx32 "]\n",
          static_cast<uint32_t>(rv)));
 
-    bool redirectsEnabled = !mLoadInfo || !mLoadInfo->GetDontFollowRedirects();
+    bool redirectsEnabled = !mLoadInfo->GetDontFollowRedirects();
 
     if (redirectsEnabled) {
       // TODO: stop failing original channel if redirect vetoed?
@@ -1333,7 +1332,7 @@ nsresult nsHttpChannel::SetupTransaction() {
                                          getter_AddRefs(callbacks));
 
   // create the transaction object
-  if (gIOService->UseSocketProcess()) {
+  if (nsIOService::UseSocketProcess()) {
     MOZ_ASSERT(gIOService->SocketProcessReady(),
                "Socket process should be ready.");
 
@@ -1387,10 +1386,11 @@ nsresult nsHttpChannel::SetupTransaction() {
         do_GetWeakReference(static_cast<nsIHttpChannel*>(this)));
     pushCallback = [weakPtrThis](uint32_t aPushedStreamId,
                                  const nsACString& aUrl,
-                                 const nsACString& aRequestString) {
+                                 const nsACString& aRequestString,
+                                 HttpTransactionShell* aTransaction) {
       if (nsCOMPtr<nsIHttpChannel> channel = do_QueryReferent(weakPtrThis)) {
         return static_cast<nsHttpChannel*>(channel.get())
-            ->OnPush(aPushedStreamId, aUrl, aRequestString);
+            ->OnPush(aPushedStreamId, aUrl, aRequestString, aTransaction);
       }
       return NS_ERROR_NOT_AVAILABLE;
     };
@@ -1400,15 +1400,12 @@ nsresult nsHttpChannel::SetupTransaction() {
   EnsureRequestContext();
 
   HttpTrafficCategory category = CreateTrafficCategory();
-  std::function<void()> observer;
+  std::function<void(TransactionObserverResult &&)> observer;
   if (mTransactionObserver) {
-    RefPtr<HttpTransactionShell> transaction = mTransaction;
-    observer = [transactionObserver{std::move(mTransactionObserver)},
-                transaction]() {
-      TransactionObserverResult result;
-      transaction->GetTransactionObserverResult(result);
-      transactionObserver->Complete(result.versionOk(), result.authOk(),
-                                    result.closeReason());
+    observer = [transactionObserver{std::move(mTransactionObserver)}](
+                   TransactionObserverResult&& aResult) {
+      transactionObserver->Complete(aResult.versionOk(), aResult.authOk(),
+                                    aResult.closeReason());
     };
   }
   rv = mTransaction->Init(
@@ -1815,8 +1812,8 @@ void nsHttpChannel::SetCachedContentType() {
           NS_ConvertUTF8toUTF16(contentTypeStr))) {
     contentType = nsICacheEntry::CONTENT_TYPE_JAVASCRIPT;
   } else if (StringBeginsWith(contentTypeStr, NS_LITERAL_CSTRING("text/css")) ||
-             (mLoadInfo && mLoadInfo->GetExternalContentPolicyType() ==
-                               nsIContentPolicy::TYPE_STYLESHEET)) {
+             (mLoadInfo->GetExternalContentPolicyType() ==
+              nsIContentPolicy::TYPE_STYLESHEET)) {
     contentType = nsICacheEntry::CONTENT_TYPE_STYLESHEET;
   } else if (StringBeginsWith(contentTypeStr,
                               NS_LITERAL_CSTRING("application/wasm"))) {
@@ -1872,13 +1869,13 @@ nsresult nsHttpChannel::CallOnStartRequest() {
     mOnStartRequestCalled = true;
   });
 
-  nsresult rv = EnsureMIMEOfScript(this, mURI, mResponseHead, mLoadInfo);
+  nsresult rv = EnsureMIMEOfScript(this, mURI, mResponseHead.get(), mLoadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = ProcessXCTO(this, mURI, mResponseHead, mLoadInfo);
+  rv = ProcessXCTO(this, mURI, mResponseHead.get(), mLoadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  WarnWrongMIMEOfScript(this, mURI, mResponseHead, mLoadInfo);
+  WarnWrongMIMEOfScript(this, mURI, mResponseHead.get(), mLoadInfo);
 
   // Allow consumers to override our content type
   if (mLoadFlags & LOAD_CALL_CONTENT_SNIFFERS) {
@@ -1900,7 +1897,7 @@ nsresult nsHttpChannel::CallOnStartRequest() {
       if (pump) {
         pump->PeekStream(CallTypeSniffers, thisChannel);
       } else {
-        MOZ_ASSERT(gIOService->UseSocketProcess());
+        MOZ_ASSERT(nsIOService::UseSocketProcess());
         RefPtr<HttpTransactionParent> trans = do_QueryObject(mTransactionPump);
         MOZ_ASSERT(trans);
         trans->SetSniffedTypeToChannel(CallTypeSniffers, thisChannel);
@@ -2463,13 +2460,18 @@ nsresult nsHttpChannel::ProcessResponse() {
 
   if (Telemetry::CanRecordPrereleaseData()) {
     // how often do we see something like Alt-Svc: "443:quic,p=1"
+    // and Alt-Svc: "h3-****"
     nsAutoCString alt_service;
     Unused << mResponseHead->GetHeader(nsHttp::Alternate_Service, alt_service);
-    bool saw_quic =
-        (!alt_service.IsEmpty() && PL_strstr(alt_service.get(), "quic"))
-            ? true
-            : false;
-    Telemetry::Accumulate(Telemetry::HTTP_SAW_QUIC_ALT_PROTOCOL, saw_quic);
+    uint32_t saw_quic = 0;
+    if (!alt_service.IsEmpty()) {
+      if (PL_strstr(alt_service.get(), "h3-")) {
+        saw_quic = 1;
+      } else if (PL_strstr(alt_service.get(), "quic")) {
+        saw_quic = 2;
+      }
+    }
+    Telemetry::Accumulate(Telemetry::HTTP_SAW_QUIC_ALT_PROTOCOL_2, saw_quic);
 
     // Gather data on how many URLS get redirected
     switch (httpStatus) {
@@ -2526,7 +2528,7 @@ nsresult nsHttpChannel::ProcessResponse() {
   if (referrer) {
     nsCOMPtr<nsILoadContextInfo> lci = GetLoadContextInfo(this);
     mozilla::net::Predictor::UpdateCacheability(
-        referrer, mURI, httpStatus, mRequestHead, mResponseHead, lci,
+        referrer, mURI, httpStatus, mRequestHead, mResponseHead.get(), lci,
         IsThirdPartyTrackingResource());
   }
 
@@ -2657,7 +2659,7 @@ nsresult nsHttpChannel::ContinueProcessResponse1() {
 }
 
 void nsHttpChannel::AssertNotDocumentChannel() {
-  if (!mLoadInfo || !IsDocument()) {
+  if (!IsDocument()) {
     return;
   }
 
@@ -2686,14 +2688,15 @@ void nsHttpChannel::AssertNotDocumentChannel() {
     return;
   }
 
-  nsContentPolicyType contentPolicy;
-  MOZ_ALWAYS_SUCCEEDS(mLoadInfo->GetExternalContentPolicyType(&contentPolicy));
-  RefPtr<BrowsingContext> bc;
-  if (contentPolicy == CSPService::TYPE_DOCUMENT) {
-    MOZ_ALWAYS_SUCCEEDS(mLoadInfo->GetBrowsingContext(getter_AddRefs(bc)));
-  } else {
-    MOZ_ALWAYS_SUCCEEDS(mLoadInfo->GetFrameBrowsingContext(getter_AddRefs(bc)));
+  auto contentPolicy = mLoadInfo->GetExternalContentPolicyType();
+  if (contentPolicy != nsIContentPolicy::TYPE_DOCUMENT &&
+      contentPolicy != nsIContentPolicy::TYPE_SUBDOCUMENT) {
+    return;
   }
+
+  RefPtr<BrowsingContext> bc;
+  MOZ_ALWAYS_SUCCEEDS(mLoadInfo->GetTargetBrowsingContext(getter_AddRefs(bc)));
+  MOZ_ASSERT(bc);  // It shouldn't be possible.
   if (!bc) {
     return;
   }
@@ -3672,7 +3675,7 @@ nsresult nsHttpChannel::ProcessPartialContent(
   }
 
   // merge any new headers with the cached response headers
-  mCachedResponseHead->UpdateHeaders(mResponseHead);
+  mCachedResponseHead->UpdateHeaders(mResponseHead.get());
 
   // update the cached response head
   nsAutoCString head;
@@ -3815,7 +3818,7 @@ nsresult nsHttpChannel::ProcessNotModified(
   }
 
   // merge any new headers with the cached response headers
-  mCachedResponseHead->UpdateHeaders(mResponseHead);
+  mCachedResponseHead->UpdateHeaders(mResponseHead.get());
 
   // update the cached response head
   nsAutoCString head;
@@ -4270,7 +4273,7 @@ nsresult nsHttpChannel::CheckPartial(nsICacheEntry* aEntry, int64_t* aSize,
                                      int64_t* aContentLength) {
   return nsHttp::CheckPartial(
       aEntry, aSize, aContentLength,
-      mCachedResponseHead ? mCachedResponseHead : mResponseHead);
+      mCachedResponseHead ? mCachedResponseHead.get() : mResponseHead.get());
 }
 
 void nsHttpChannel::UntieValidationRequest() {
@@ -4359,12 +4362,13 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry,
       (gHttpHandler->SessionStartTime() > lastModifiedTime);
 
   // Get the cached HTTP response headers
-  mCachedResponseHead = new nsHttpResponseHead();
+  mCachedResponseHead = MakeUnique<nsHttpResponseHead>();
 
-  rv = nsHttp::GetHttpResponseHeadFromCacheEntry(entry, mCachedResponseHead);
+  rv = nsHttp::GetHttpResponseHeadFromCacheEntry(entry,
+                                                 mCachedResponseHead.get());
   NS_ENSURE_SUCCESS(rv, rv);
 
-  bool isCachedRedirect = WillRedirect(mCachedResponseHead);
+  bool isCachedRedirect = WillRedirect(*mCachedResponseHead);
 
   // Do not return 304 responses from the cache, and also do not return
   // any other non-redirect 3xx responses from the cache (see bug 759043).
@@ -4489,8 +4493,8 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry,
   entry->GetIsForcedValid(&isForcedValid);
 
   bool weaklyFramed, isImmutable;
-  nsHttp::DetermineFramingAndImmutability(entry, mCachedResponseHead, isHttps,
-                                          &weaklyFramed, &isImmutable);
+  nsHttp::DetermineFramingAndImmutability(entry, mCachedResponseHead.get(),
+                                          isHttps, &weaklyFramed, &isImmutable);
 
   // Cached entry is not the entity we request (see bug #633743)
   if (ResponseWouldVary(entry)) {
@@ -4499,9 +4503,10 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry,
     doValidation = true;
   } else {
     doValidation = nsHttp::ValidationRequired(
-        isForcedValid, mCachedResponseHead, mLoadFlags, mAllowStaleCacheContent,
-        isImmutable, mCustomConditionalRequest, mRequestHead, entry,
-        cacheControlRequest, fromPreviousSession, &doBackgroundValidation);
+        isForcedValid, mCachedResponseHead.get(), mLoadFlags,
+        mAllowStaleCacheContent, isImmutable, mCustomConditionalRequest,
+        mRequestHead, entry, cacheControlRequest, fromPreviousSession,
+        &doBackgroundValidation);
   }
 
   nsAutoCString requestedETag;
@@ -4553,7 +4558,7 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry,
     MOZ_ASSERT(NS_SUCCEEDED(rv));
 
     if (!mRedirectedCachekeys)
-      mRedirectedCachekeys = new nsTArray<nsCString>();
+      mRedirectedCachekeys = MakeUnique<nsTArray<nsCString>>();
     else if (mRedirectedCachekeys->Contains(cacheKey))
       doValidation = true;
 
@@ -5033,8 +5038,8 @@ nsresult DoUpdateExpirationTime(nsHttpChannel* aSelf,
 //
 nsresult nsHttpChannel::UpdateExpirationTime() {
   uint32_t expirationTime = 0;
-  nsresult rv =
-      DoUpdateExpirationTime(this, mCacheEntry, mResponseHead, expirationTime);
+  nsresult rv = DoUpdateExpirationTime(this, mCacheEntry, mResponseHead.get(),
+                                       expirationTime);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mOfflineCacheEntry) {
@@ -5112,7 +5117,7 @@ nsresult nsHttpChannel::OpenCacheInputStream(nsICacheEntry* cacheEntry,
 
   rv = NS_OK;
 
-  if (WillRedirect(mCachedResponseHead)) {
+  if (WillRedirect(*mCachedResponseHead)) {
     // Do not even try to read the entity for a redirect because we do not
     // return an entity to the application when we process redirects.
     LOG(("Will skip read of cached redirect entity\n"));
@@ -5356,7 +5361,7 @@ nsresult nsHttpChannel::ReadFromCache(bool alreadyMarkedValid) {
   // Keep the conditions below in sync with the conditions in
   // StartBufferingCachedEntity.
 
-  if (WillRedirect(mResponseHead)) {
+  if (WillRedirect(*mResponseHead)) {
     // TODO: Bug 759040 - We should call HandleAsyncRedirect directly here,
     // to avoid event dispatching latency.
     MOZ_ASSERT(!mCacheInputStream);
@@ -5699,7 +5704,7 @@ nsresult DoAddCacheEntryHeaders(nsHttpChannel* self, nsICacheEntry* entry,
 }
 
 nsresult nsHttpChannel::AddCacheEntryHeaders(nsICacheEntry* entry) {
-  return DoAddCacheEntryHeaders(this, entry, &mRequestHead, mResponseHead,
+  return DoAddCacheEntryHeaders(this, entry, &mRequestHead, mResponseHead.get(),
                                 mSecurityInfo);
 }
 
@@ -5960,7 +5965,7 @@ nsresult nsHttpChannel::AsyncProcessRedirection(uint32_t redirectType) {
 
   // If we were told to not follow redirects automatically, then again
   // carry on as though this were a normal response.
-  if (mLoadInfo && mLoadInfo->GetDontFollowRedirects()) {
+  if (mLoadInfo->GetDontFollowRedirects()) {
     return NS_ERROR_FAILURE;
   }
 
@@ -6041,7 +6046,8 @@ nsresult nsHttpChannel::ContinueProcessRedirectionAfterFallback(nsresult rv) {
     profiler_add_network_marker(
         mURI, priority, mChannelId, NetworkLoadType::LOAD_REDIRECT,
         mLastStatusReported, TimeStamp::Now(), mLogicalOffset,
-        mCacheDisposition, &timings, mRedirectURI, std::move(mSource));
+        mCacheDisposition, mLoadInfo->GetInnerWindowID(), &timings,
+        mRedirectURI, std::move(mSource));
   }
 #endif
 
@@ -6452,7 +6458,7 @@ nsHttpChannel::AsyncOpen(nsIStreamListener* aListener) {
     return rv;
   }
   MOZ_ASSERT(
-      !mLoadInfo || mLoadInfo->GetSecurityMode() == 0 ||
+      mLoadInfo->GetSecurityMode() == 0 ||
           mLoadInfo->GetInitialSecurityCheckDone() ||
           (mLoadInfo->GetSecurityMode() ==
                nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL &&
@@ -6477,10 +6483,10 @@ nsHttpChannel::AsyncOpen(nsIStreamListener* aListener) {
   mLastStatusReported =
       TimeStamp::Now();  // in case we enable the profiler after AsyncOpen()
   if (profiler_can_accept_markers()) {
-    profiler_add_network_marker(mURI, mPriority, mChannelId,
-                                NetworkLoadType::LOAD_START,
-                                mChannelCreationTimestamp, mLastStatusReported,
-                                0, mCacheDisposition, nullptr, nullptr);
+    profiler_add_network_marker(
+        mURI, mPriority, mChannelId, NetworkLoadType::LOAD_START,
+        mChannelCreationTimestamp, mLastStatusReported, 0, mCacheDisposition,
+        mLoadInfo->GetInnerWindowID(), nullptr, nullptr);
   }
 #endif
 
@@ -6583,7 +6589,7 @@ nsHttpChannel::AsyncOpen(nsIStreamListener* aListener) {
 
   mListener = listener;
 
-  if (gIOService->UseSocketProcess() &&
+  if (nsIOService::UseSocketProcess() &&
       !gIOService->IsSocketProcessLaunchComplete()) {
     RefPtr<nsHttpChannel> self = this;
     gIOService->CallOrWaitForSocketProcess(
@@ -7480,8 +7486,8 @@ static bool CompareCrossOriginOpenerPolicies(
     nsIPrincipal* documentOrigin,
     nsILoadInfo::CrossOriginOpenerPolicy resultPolicy,
     nsIPrincipal* resultOrigin) {
-  if (documentPolicy == nsILoadInfo::OPENER_POLICY_NULL &&
-      resultPolicy == nsILoadInfo::OPENER_POLICY_NULL) {
+  if (documentPolicy == nsILoadInfo::OPENER_POLICY_UNSAFE_NONE &&
+      resultPolicy == nsILoadInfo::OPENER_POLICY_UNSAFE_NONE) {
     return true;
   }
 
@@ -7494,19 +7500,6 @@ static bool CompareCrossOriginOpenerPolicies(
   if ((documentPolicy & nsILoadInfo::OPENER_POLICY_SAME_ORIGIN) &&
       documentOrigin->Equals(resultOrigin)) {
     return true;
-  }
-
-  if (documentPolicy & nsILoadInfo::OPENER_POLICY_SAME_SITE) {
-    nsAutoCString siteOriginA;
-    nsAutoCString siteOriginB;
-
-    documentOrigin->GetSiteOrigin(siteOriginA);
-    resultOrigin->GetSiteOrigin(siteOriginB);
-    LOG(("Comparing origin doc:[%s] with result:[%s]\n", siteOriginA.get(),
-         siteOriginB.get()));
-    if (siteOriginA == siteOriginB) {
-      return true;
-    }
   }
 
   return false;
@@ -7527,9 +7520,7 @@ nsresult nsHttpChannel::ComputeCrossOriginOpenerPolicyMismatch() {
   }
 
   // Maybe the channel failed and we have no response head?
-  nsHttpResponseHead* head =
-      mResponseHead ? mResponseHead : mCachedResponseHead;
-  if (!head) {
+  if (!mResponseHead && !mCachedResponseHead) {
     // Not having a response head is not a hard failure at the point where
     // this method is called.
     return NS_OK;
@@ -7546,13 +7537,13 @@ nsresult nsHttpChannel::ComputeCrossOriginOpenerPolicyMismatch() {
   // Get the policy of the active document, and the policy for the result.
   nsILoadInfo::CrossOriginOpenerPolicy documentPolicy = ctx->GetOpenerPolicy();
   nsILoadInfo::CrossOriginOpenerPolicy resultPolicy =
-      nsILoadInfo::OPENER_POLICY_NULL;
+      nsILoadInfo::OPENER_POLICY_UNSAFE_NONE;
   Unused << ComputeCrossOriginOpenerPolicy(documentPolicy, &resultPolicy);
   mComputedCrossOriginOpenerPolicy = resultPolicy;
 
   // If bc's popup sandboxing flag set is not empty and potentialCOOP is
   // non-null, then navigate bc to a network error and abort these steps.
-  if (resultPolicy != nsILoadInfo::OPENER_POLICY_NULL &&
+  if (resultPolicy != nsILoadInfo::OPENER_POLICY_UNSAFE_NONE &&
       GetHasNonEmptySandboxingFlag()) {
     LOG(
         ("nsHttpChannel::ComputeCrossOriginOpenerPolicyMismatch network error "
@@ -7595,18 +7586,17 @@ nsresult nsHttpChannel::ComputeCrossOriginOpenerPolicyMismatch() {
   }
 
   // If one of the following is false:
-  //   - document's unsafe-allow-outgoing is true
+  //   - document's policy is same-origin-allow-popups
   //   - resultPolicy is null
   //   - doc is the initial about:blank document
   // then we have a mismatch.
 
-  if (!(documentPolicy &
-        nsILoadInfo::OPENER_POLICY_UNSAFE_ALLOW_OUTGOING_FLAG)) {
+  if (documentPolicy != nsILoadInfo::OPENER_POLICY_SAME_ORIGIN_ALLOW_POPUPS) {
     mHasCrossOriginOpenerPolicyMismatch = true;
     return NS_OK;
   }
 
-  if (resultPolicy != nsILoadInfo::OPENER_POLICY_NULL) {
+  if (resultPolicy != nsILoadInfo::OPENER_POLICY_UNSAFE_NONE) {
     mHasCrossOriginOpenerPolicyMismatch = true;
     return NS_OK;
   }
@@ -8311,7 +8301,7 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
     upgradeKey = NS_LITERAL_CSTRING("disabledNoReason");
     // Checks "security.mixed_content.upgrade_display_content" is true
     if (nsMixedContentBlocker::ShouldUpgradeMixedDisplayContent()) {
-      if (mLoadInfo && mLoadInfo->GetBrowserUpgradeInsecureRequests()) {
+      if (mLoadInfo->GetBrowserUpgradeInsecureRequests()) {
         // HTTP content the browser has upgraded to HTTPS
         upgradeKey = NS_LITERAL_CSTRING("enabledUpgrade");
       } else {
@@ -8322,7 +8312,7 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
     // shift http to https disposition enums
     chanDisposition =
         static_cast<ChannelDisposition>(chanDisposition + kHttpsCanceled);
-  } else if (mLoadInfo && mLoadInfo->GetBrowserWouldUpgradeInsecureRequests()) {
+  } else if (mLoadInfo->GetBrowserWouldUpgradeInsecureRequests()) {
     // HTTP content the browser would upgrade to HTTPS if upgrading was
     // enabled
     upgradeKey = NS_LITERAL_CSTRING("disabledUpgrade");
@@ -8402,6 +8392,8 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
   // Register entry to the PerformanceStorage resource timing
   MaybeReportTimingData();
 
+  MaybeFlushConsoleReports();
+
 #ifdef MOZ_GECKO_PROFILER
   if (profiler_can_accept_markers() && !mRedirectURI) {
     // Don't include this if we already redirected
@@ -8413,7 +8405,8 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
     profiler_add_network_marker(
         uri, priority, mChannelId, NetworkLoadType::LOAD_STOP,
         mLastStatusReported, TimeStamp::Now(), mLogicalOffset,
-        mCacheDisposition, &mTransactionTimings, nullptr, std::move(mSource));
+        mCacheDisposition, mLoadInfo->GetInnerWindowID(), &mTransactionTimings,
+        nullptr, std::move(mSource));
   }
 #endif
 
@@ -9243,7 +9236,7 @@ NS_IMETHODIMP
 nsHttpChannel::MarkOfflineCacheEntryAsForeign() {
   nsresult rv;
 
-  nsAutoPtr<OfflineCacheEntryAsForeignMarker> marker(
+  UniquePtr<OfflineCacheEntryAsForeignMarker> marker(
       GetOfflineCacheEntryAsForeignMarker());
 
   if (!marker) return NS_ERROR_NOT_AVAILABLE;
@@ -9550,11 +9543,11 @@ void nsHttpChannel::SetPushedStreamTransactionAndId(
 }
 
 nsresult nsHttpChannel::OnPush(uint32_t aPushedStreamId, const nsACString& aUrl,
-                               const nsACString& aRequestString) {
+                               const nsACString& aRequestString,
+                               HttpTransactionShell* aTransaction) {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mTransaction);
-  LOG(("nsHttpChannel::OnPush [this=%p, trans=%p]\n", this,
-       mTransaction.get()));
+  MOZ_ASSERT(aTransaction);
+  LOG(("nsHttpChannel::OnPush [this=%p, trans=%p]\n", this, aTransaction));
 
   MOZ_ASSERT(mCaps & NS_HTTP_ONPUSH_LISTENER);
   nsCOMPtr<nsIHttpPushListener> pushListener;
@@ -9612,7 +9605,7 @@ nsresult nsHttpChannel::OnPush(uint32_t aPushedStreamId, const nsACString& aUrl,
   channel->mCallbacks = mCallbacks;
 
   // Link the trans with pushed stream and the new channel and call listener
-  channel->SetPushedStreamTransactionAndId(mTransaction, aPushedStreamId);
+  channel->SetPushedStreamTransactionAndId(aTransaction, aPushedStreamId);
   rv = pushListener->OnPush(this, pushHttpChannel);
   return rv;
 }
@@ -10493,16 +10486,15 @@ nsresult nsHttpChannel::RedirectToInterceptedChannel() {
 }
 
 void nsHttpChannel::ReEvaluateReferrerAfterTrackingStatusIsKnown() {
-  nsCOMPtr<nsICookieSettings> cs;
+  nsCOMPtr<nsICookieJarSettings> cjs;
   if (mLoadInfo) {
-    Unused << mLoadInfo->GetCookieSettings(getter_AddRefs(cs));
+    Unused << mLoadInfo->GetCookieJarSettings(getter_AddRefs(cjs));
   }
-  if (!cs) {
-    cs = net::CookieSettings::Create();
+  if (!cjs) {
+    cjs = net::CookieJarSettings::Create();
   }
-  if (cs->GetRejectThirdPartyTrackers()) {
-    bool isPrivate =
-        mLoadInfo && mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
+  if (cjs->GetRejectThirdPartyTrackers()) {
+    bool isPrivate = mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
     // If our referrer has been set before, and our referrer policy is unset
     // (default policy) if we thought the channel wasn't a third-party
     // tracking channel, we may need to set our referrer with referrer policy
@@ -10579,6 +10571,15 @@ NS_IMPL_ISUPPORTS(BackgroundRevalidatingListener, nsIStreamListener,
 }  // namespace
 
 void nsHttpChannel::PerformBackgroundCacheRevalidation() {
+  if (!StaticPrefs::network_http_stale_while_revalidate_enabled()) {
+    return;
+  }
+
+  // This is a channel doing a revalidation. It shouldn't do it again.
+  if (mStaleRevalidation) {
+    return;
+  }
+
   LOG(("nsHttpChannel::PerformBackgroundCacheRevalidation %p", this));
 
   Unused << NS_DispatchToMainThreadQueue(
@@ -10616,6 +10617,11 @@ void nsHttpChannel::PerformBackgroundCacheRevalidationNow() {
   nsCOMPtr<nsIClassOfService> cos(do_QueryInterface(validatingChannel));
   if (cos) {
     cos->AddClassFlags(nsIClassOfService::Tail);
+  }
+
+  RefPtr<nsHttpChannel> httpChan = do_QueryObject(validatingChannel);
+  if (httpChan) {
+    httpChan->mStaleRevalidation = true;
   }
 
   RefPtr<BackgroundRevalidatingListener> listener =

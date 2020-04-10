@@ -698,9 +698,11 @@ static void printSize(char* aDesc, nscoord aSize) {
 
 bool nsComboboxControlFrame::HasDropDownButton() const {
   const nsStyleDisplay* disp = StyleDisplay();
+  // FIXME(emilio): Blink also shows this for menulist-button and such... Seems
+  // more similar to our mac / linux implementation.
   return disp->mAppearance == StyleAppearance::Menulist &&
          (!IsThemed(disp) ||
-          PresContext()->GetTheme()->ThemeNeedsComboboxDropmarker());
+          PresContext()->Theme()->ThemeNeedsComboboxDropmarker());
 }
 
 nscoord nsComboboxControlFrame::GetIntrinsicISize(
@@ -1466,9 +1468,7 @@ class nsDisplayComboboxFocus : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayComboboxFocus);
   }
-#ifdef NS_BUILD_REFCNT_LOGGING
-  virtual ~nsDisplayComboboxFocus() { MOZ_COUNT_DTOR(nsDisplayComboboxFocus); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayComboboxFocus)
 
   virtual void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
   NS_DISPLAY_DECL_NAME("ComboboxFocus", TYPE_COMBOBOX_FOCUS)
@@ -1498,9 +1498,8 @@ void nsComboboxControlFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     if (window && window->ShouldShowFocusRing()) {
       nsPresContext* presContext = PresContext();
       const nsStyleDisplay* disp = StyleDisplay();
-      if ((!IsThemed(disp) ||
-           !presContext->GetTheme()->ThemeDrawsFocusForWidget(
-               disp->mAppearance)) &&
+      if ((!IsThemed(disp) || !presContext->Theme()->ThemeDrawsFocusForWidget(
+                                  disp->mAppearance)) &&
           mDisplayFrame && IsVisibleForPainting()) {
         aLists.Content()->AppendNewToTop<nsDisplayComboboxFocus>(aBuilder,
                                                                  this);

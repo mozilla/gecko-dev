@@ -66,6 +66,7 @@
 #include "mozilla/AntiTrackingCommon.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/LazyIdleThread.h"
+#include "mozilla/SyncRunnable.h"
 
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/Navigator.h"
@@ -75,6 +76,7 @@
 #include "mozilla/recordreplay/ParentIPC.h"
 
 #include "nsNSSComponent.h"
+#include "TRRServiceChannel.h"
 
 #if defined(XP_UNIX)
 #  include <sys/utsname.h>
@@ -582,7 +584,7 @@ nsresult nsHttpHandler::InitConnectionMgr() {
     return NS_OK;
   }
 
-  if (gIOService->UseSocketProcess() && XRE_IsParentProcess()) {
+  if (nsIOService::UseSocketProcess() && XRE_IsParentProcess()) {
     if (!gIOService->SocketProcessReady()) {
       gIOService->CallOrWaitForSocketProcess(
           []() { Unused << gHttpHandler->InitConnectionMgr(); });
@@ -597,7 +599,7 @@ nsresult nsHttpHandler::InitConnectionMgr() {
 
     mConnMgr = connMgr;
   } else {
-    MOZ_ASSERT(XRE_IsSocketProcess() || !gIOService->UseSocketProcess());
+    MOZ_ASSERT(XRE_IsSocketProcess() || !nsIOService::UseSocketProcess());
     mConnMgr = new nsHttpConnectionMgr();
   }
 
@@ -1977,6 +1979,23 @@ static nsresult PrepareAcceptLanguages(const char* i_AcceptLanguages,
 }
 
 nsresult nsHttpHandler::SetAcceptLanguages() {
+  if (!NS_IsMainThread()) {
+    nsCOMPtr<nsIThread> mainThread;
+    nsresult rv = NS_GetMainThread(getter_AddRefs(mainThread));
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    // Forward to the main thread synchronously.
+    SyncRunnable::DispatchToThread(
+        mainThread, new SyncRunnable(NS_NewRunnableFunction(
+                        "nsHttpHandler::SetAcceptLanguages",
+                        [&rv]() { rv = gHttpHandler->SetAcceptLanguages(); })));
+    return rv;
+  }
+
+  MOZ_ASSERT(NS_IsMainThread());
+
   mAcceptLanguagesIsDirty = false;
 
   nsAutoCString acceptLanguages;
@@ -2063,13 +2082,11 @@ nsHttpHandler::AllowPort(int32_t port, const char* scheme, bool* _retval) {
 // nsHttpHandler::nsIProxiedProtocolHandler
 //-----------------------------------------------------------------------------
 
-NS_IMETHODIMP
-nsHttpHandler::NewProxiedChannel(nsIURI* uri, nsIProxyInfo* givenProxyInfo,
-                                 uint32_t proxyResolveFlags, nsIURI* proxyURI,
-                                 nsILoadInfo* aLoadInfo, nsIChannel** result) {
-  RefPtr<HttpBaseChannel> httpChannel;
-
-  LOG(("nsHttpHandler::NewProxiedChannel [proxyInfo=%p]\n", givenProxyInfo));
+nsresult nsHttpHandler::SetupChannelInternal(
+    HttpBaseChannel* aChannel, nsIURI* uri, nsIProxyInfo* givenProxyInfo,
+    uint32_t proxyResolveFlags, nsIURI* proxyURI, nsILoadInfo* aLoadInfo,
+    nsIChannel** result) {
+  RefPtr<HttpBaseChannel> httpChannel = aChannel;
 
 #ifdef MOZ_TASK_TRACER
   if (tasktracer::IsStartLogging()) {
@@ -2085,18 +2102,7 @@ nsHttpHandler::NewProxiedChannel(nsIURI* uri, nsIProxyInfo* givenProxyInfo,
     NS_ENSURE_ARG(proxyInfo);
   }
 
-  if (IsNeckoChild()) {
-    httpChannel = new HttpChannelChild();
-  } else {
-    httpChannel = new nsHttpChannel();
-  }
-
   uint32_t caps = mCapabilities;
-
-  if (!IsNeckoChild()) {
-    // HACK: make sure PSM gets initialized on the main thread.
-    net_EnsurePSMInit();
-  }
 
   uint64_t channelId;
   nsresult rv = NewChannelId(channelId);
@@ -2110,14 +2116,49 @@ nsHttpHandler::NewProxiedChannel(nsIURI* uri, nsIProxyInfo* givenProxyInfo,
                          channelId, contentPolicyType);
   if (NS_FAILED(rv)) return rv;
 
-  // set the loadInfo on the new channel
-  rv = httpChannel->SetLoadInfo(aLoadInfo);
-  if (NS_FAILED(rv)) {
-    return rv;
+  // TRRServiceChannel doesn't need loadInfo.
+  if (aLoadInfo) {
+    // set the loadInfo on the new channel
+    rv = httpChannel->SetLoadInfo(aLoadInfo);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
   }
 
   httpChannel.forget(result);
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpHandler::NewProxiedChannel(nsIURI* uri, nsIProxyInfo* givenProxyInfo,
+                                 uint32_t proxyResolveFlags, nsIURI* proxyURI,
+                                 nsILoadInfo* aLoadInfo, nsIChannel** result) {
+  HttpBaseChannel* httpChannel;
+
+  LOG(("nsHttpHandler::NewProxiedChannel [proxyInfo=%p]\n", givenProxyInfo));
+
+  if (IsNeckoChild()) {
+    httpChannel = new HttpChannelChild();
+  } else {
+    // HACK: make sure PSM gets initialized on the main thread.
+    net_EnsurePSMInit();
+    httpChannel = new nsHttpChannel();
+  }
+
+  return SetupChannelInternal(httpChannel, uri, givenProxyInfo,
+                              proxyResolveFlags, proxyURI, aLoadInfo, result);
+}
+
+nsresult nsHttpHandler::CreateTRRServiceChannel(
+    nsIURI* uri, nsIProxyInfo* givenProxyInfo, uint32_t proxyResolveFlags,
+    nsIURI* proxyURI, nsILoadInfo* aLoadInfo, nsIChannel** result) {
+  HttpBaseChannel* httpChannel = new TRRServiceChannel();
+
+  LOG(("nsHttpHandler::CreateTRRServiceChannel [proxyInfo=%p]\n",
+       givenProxyInfo));
+
+  return SetupChannelInternal(httpChannel, uri, givenProxyInfo,
+                              proxyResolveFlags, proxyURI, aLoadInfo, result);
 }
 
 //-----------------------------------------------------------------------------
@@ -2380,8 +2421,7 @@ nsresult nsHttpHandler::SpeculativeConnectInternal(
   if (IsNeckoChild()) {
     ipc::URIParams params;
     SerializeURI(aURI, params);
-    gNeckoChild->SendSpeculativeConnect(params, IPC::Principal(aPrincipal),
-                                        anonymous);
+    gNeckoChild->SendSpeculativeConnect(params, aPrincipal, anonymous);
     return NS_OK;
   }
 
@@ -2647,7 +2687,6 @@ void nsHttpHandler::ShutdownConnectionManager() {
 }
 
 nsresult nsHttpHandler::NewChannelId(uint64_t& channelId) {
-  MOZ_ASSERT(NS_IsMainThread());
   channelId =
       ((static_cast<uint64_t>(mProcessId) << 32) & 0xFFFFFFFF00000000LL) |
       mNextChannelId++;

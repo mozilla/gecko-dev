@@ -53,7 +53,10 @@ const {
   createMultiModalGetSymbolTableFn,
 } = require("devtools/client/performance-new/browser");
 
-const { getDefaultRecordingPreferencesForOlderFirefox } = ChromeUtils.import(
+const {
+  getDefaultRecordingPreferencesForOlderFirefox,
+  presets,
+} = ChromeUtils.import(
   "resource://devtools/client/performance-new/popup/background.jsm.js"
 );
 
@@ -90,6 +93,9 @@ async function gInit(perfFront, preferenceFront) {
     Promise.resolve(perfFront.getSupportedFeatures()).catch(() => null),
   ]);
 
+  // This panel doesn't support presets yet, make sure it's always set to custom.
+  recordingPreferences.presetName = "custom";
+
   // Do some initialization, especially with privileged things that are part of the
   // the browser.
   store.dispatch(
@@ -97,6 +103,7 @@ async function gInit(perfFront, preferenceFront) {
       perfFront,
       receiveProfile,
       recordingPreferences,
+      presets,
       supportedFeatures,
       pageContext: "devtools",
 

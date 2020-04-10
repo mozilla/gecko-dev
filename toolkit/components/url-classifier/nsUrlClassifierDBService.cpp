@@ -1619,15 +1619,6 @@ nsresult nsUrlClassifierDBService::ReadDisallowCompletionsTablesFromPrefs() {
 
 nsresult nsUrlClassifierDBService::Init() {
   MOZ_ASSERT(NS_IsMainThread(), "Must initialize DB service on main thread");
-  nsCOMPtr<nsIXULRuntime> appInfo =
-      do_GetService("@mozilla.org/xre/app-info;1");
-  if (appInfo) {
-    bool inSafeMode = false;
-    appInfo->GetInSafeMode(&inSafeMode);
-    if (inSafeMode) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-  }
 
   switch (XRE_GetProcessType()) {
     case GeckoProcessType_Default:
@@ -1990,7 +1981,7 @@ nsUrlClassifierDBService::SendThreatHitReport(nsIChannel* aChannel,
                      nsContentUtils::GetSystemPrincipal(),
                      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                      nsIContentPolicy::TYPE_OTHER,
-                     nullptr,  // nsICookieSettings
+                     nullptr,  // nsICookieJarSettings
                      nullptr,  // aPerformanceStorage
                      nullptr,  // aLoadGroup
                      nullptr, loadFlags);

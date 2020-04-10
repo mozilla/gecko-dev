@@ -2909,7 +2909,7 @@ void MacroAssemblerARMCompat::loadInt32OrDouble(Register base, Register index,
                                                 int32_t shift) {
   Label notInt32, end;
 
-  JS_STATIC_ASSERT(NUNBOX32_PAYLOAD_OFFSET == 0);
+  static_assert(NUNBOX32_PAYLOAD_OFFSET == 0);
 
   ScratchRegisterScope scratch(asMasm());
 
@@ -3180,7 +3180,7 @@ void MacroAssemblerARMCompat::storePayload(const Value& val,
   // If NUNBOX32_PAYLOAD_OFFSET is not zero, the memory operand [base + index
   // << shift + imm] cannot be encoded into a single instruction, and cannot
   // be integrated into the as_dtr call.
-  JS_STATIC_ASSERT(NUNBOX32_PAYLOAD_OFFSET == 0);
+  static_assert(NUNBOX32_PAYLOAD_OFFSET == 0);
 
   // If an offset is used, modify the base so that a [base + index << shift]
   // instruction format can be used.
@@ -3207,7 +3207,7 @@ void MacroAssemblerARMCompat::storePayload(Register src,
   // If NUNBOX32_PAYLOAD_OFFSET is not zero, the memory operand [base + index
   // << shift + imm] cannot be encoded into a single instruction, and cannot
   // be integrated into the as_dtr call.
-  JS_STATIC_ASSERT(NUNBOX32_PAYLOAD_OFFSET == 0);
+  static_assert(NUNBOX32_PAYLOAD_OFFSET == 0);
 
   // Save/restore the base if the BaseIndex has an offset, as above.
   if (dest.offset != 0) {
@@ -5942,7 +5942,7 @@ void MacroAssemblerARM::wasmLoadImpl(const wasm::MemoryAccessDesc& access,
   BufferOffset load;
   if (out64 != Register64::Invalid()) {
     if (type == Scalar::Int64) {
-      MOZ_ASSERT(INT64LOW_OFFSET == 0);
+      static_assert(INT64LOW_OFFSET == 0);
 
       load = ma_dataTransferN(IsLoad, 32, /* signed = */ false, memoryBase, ptr,
                               out64.low);
@@ -6009,7 +6009,7 @@ void MacroAssemblerARM::wasmStoreImpl(const wasm::MemoryAccessDesc& access,
 
   BufferOffset store;
   if (type == Scalar::Int64) {
-    MOZ_ASSERT(INT64LOW_OFFSET == 0);
+    static_assert(INT64LOW_OFFSET == 0);
 
     store = ma_dataTransferN(IsStore, 32 /* bits */, /* signed */ false,
                              memoryBase, ptr, val64.low);

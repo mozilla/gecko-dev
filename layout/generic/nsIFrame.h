@@ -56,6 +56,7 @@
 #include "mozilla/AspectRatio.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/SmallPointerArray.h"
+#include "mozilla/PresShell.h"
 #include "mozilla/WritingModes.h"
 #include "nsDirection.h"
 #include "nsFrameList.h"
@@ -99,6 +100,7 @@
 class nsAtom;
 class nsPresContext;
 class nsView;
+class nsFrameSelection;
 class nsIWidget;
 class nsISelectionController;
 class nsBoxLayoutState;
@@ -771,7 +773,7 @@ class nsIFrame : public nsQueryFrame {
   void SetComputedStyle(ComputedStyle* aStyle) {
     if (aStyle != mComputedStyle) {
       AssertNewStyleIsSane(*aStyle);
-      RefPtr<ComputedStyle> oldComputedStyle = mComputedStyle.forget();
+      RefPtr<ComputedStyle> oldComputedStyle = std::move(mComputedStyle);
       mComputedStyle = aStyle;
       DidSetComputedStyle(oldComputedStyle);
     }
@@ -1204,6 +1206,9 @@ class nsIFrame : public nsQueryFrame {
   NS_DECLARE_FRAME_PROPERTY_DELETABLE(PreEffectsBBoxProperty, nsRect)
   NS_DECLARE_FRAME_PROPERTY_DELETABLE(PreTransformOverflowAreasProperty,
                                       nsOverflowAreas)
+
+  NS_DECLARE_FRAME_PROPERTY_DELETABLE(CachedBorderImageDataProperty,
+                                      CachedBorderImageData)
 
   NS_DECLARE_FRAME_PROPERTY_DELETABLE(OverflowAreasProperty, nsOverflowAreas)
 
@@ -1694,10 +1699,10 @@ class nsIFrame : public nsQueryFrame {
     }
     nsIFrame* mutable_this = const_cast<nsIFrame*>(this);
     nsPresContext* pc = PresContext();
-    nsITheme* theme = pc->GetTheme();
-    if (!theme ||
-        !theme->ThemeSupportsWidget(pc, mutable_this, aDisp->mAppearance))
+    nsITheme* theme = pc->Theme();
+    if (!theme->ThemeSupportsWidget(pc, mutable_this, aDisp->mAppearance)) {
       return false;
+    }
     if (aTransparencyState) {
       *aTransparencyState =
           theme->GetWidgetTransparency(mutable_this, aDisp->mAppearance);
@@ -1763,9 +1768,15 @@ class nsIFrame : public nsQueryFrame {
 
   /**
    * True if this frame has any animation of transform in effect.
-   *
    */
   bool HasAnimationOfTransform() const;
+
+  /**
+   * True if this frame has any animation of opacity in effect.
+   *
+   * EffectSet is just an optimization.
+   */
+  bool HasAnimationOfOpacity(mozilla::EffectSet* = nullptr) const;
 
   /**
    * Returns true if the frame is translucent or the frame has opacity
@@ -2020,13 +2031,13 @@ class nsIFrame : public nsQueryFrame {
    *
    * Returns whether the image was in fact associated with the frame.
    */
-  MOZ_MUST_USE bool AssociateImage(const nsStyleImage&);
+  MOZ_MUST_USE bool AssociateImage(const mozilla::StyleImage&);
 
   /**
    * This needs to be called if the above caller returned true, once the above
    * caller doesn't care about getting notified anymore.
    */
-  void DisassociateImage(const nsStyleImage&);
+  void DisassociateImage(const mozilla::StyleImage&);
 
   enum class AllowCustomCursorImage {
     No,
@@ -3837,8 +3848,8 @@ class nsIFrame : public nsQueryFrame {
 
   static bool AddXULPrefSize(nsIFrame* aBox, nsSize& aSize, bool& aWidth,
                              bool& aHeightSet);
-  static bool AddXULMinSize(nsBoxLayoutState& aState, nsIFrame* aBox,
-                            nsSize& aSize, bool& aWidth, bool& aHeightSet);
+  static bool AddXULMinSize(nsIFrame* aBox, nsSize& aSize, bool& aWidth,
+                            bool& aHeightSet);
   static bool AddXULMaxSize(nsIFrame* aBox, nsSize& aSize, bool& aWidth,
                             bool& aHeightSet);
   static bool AddXULFlex(nsIFrame* aBox, nscoord& aFlex);
@@ -4243,7 +4254,6 @@ class nsIFrame : public nsQueryFrame {
   bool HasDisplayItems();
   bool HasDisplayItem(nsDisplayItemBase* aItem);
   bool HasDisplayItem(uint32_t aKey);
-  void DiscardOldItems();
 
   bool ForceDescendIntoIfVisible() const { return mForceDescendIntoIfVisible; }
   void SetForceDescendIntoIfVisible(bool aForce) {

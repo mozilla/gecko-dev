@@ -1195,20 +1195,6 @@ void MacroAssembler::initGCThing(Register obj, Register temp,
         }
       }
     }
-  } else if (templateObj.isInlineTypedObject()) {
-    JS::AutoAssertNoGC nogc;  // off-thread, so cannot GC
-    size_t nbytes = templateObj.getInlineTypedObjectSize();
-    const uint8_t* memory = templateObj.getInlineTypedObjectMem(nogc);
-
-    // Memcpy the contents of the template object to the new object.
-    size_t offset = 0;
-    while (nbytes) {
-      uintptr_t value = *(uintptr_t*)(memory + offset);
-      storePtr(ImmWord(value),
-               Address(obj, InlineTypedObject::offsetOfDataStart() + offset));
-      nbytes = (nbytes < sizeof(uintptr_t)) ? 0 : nbytes - sizeof(uintptr_t);
-      offset += sizeof(uintptr_t);
-    }
   } else {
     MOZ_CRASH("Unknown object");
   }
@@ -1834,8 +1820,7 @@ void MacroAssembler::loadJitCodeMaybeNoArgCheck(Register func, Register dest) {
 #ifdef DEBUG
   {
     Label ok;
-    int32_t flags =
-        FunctionFlags::INTERPRETED | FunctionFlags::INTERPRETED_LAZY;
+    int32_t flags = FunctionFlags::BASESCRIPT;
     branchTestFunctionFlags(func, flags, Assembler::NonZero, &ok);
     assumeUnreachable("Function has no BaseScript!");
     bind(&ok);
@@ -2897,7 +2882,7 @@ void MacroAssembler::loadFunctionLength(Register func, Register funFlags,
     // These flags should already have been checked by caller.
     Label ok;
     uint32_t FlagsToCheck =
-        FunctionFlags::INTERPRETED_LAZY | FunctionFlags::RESOLVED_LENGTH;
+        FunctionFlags::SELFHOSTLAZY | FunctionFlags::RESOLVED_LENGTH;
     branchTest32(Assembler::Zero, funFlags, Imm32(FlagsToCheck), &ok);
     assumeUnreachable("The function flags should already have been checked.");
     bind(&ok);
@@ -2910,7 +2895,7 @@ void MacroAssembler::loadFunctionLength(Register func, Register funFlags,
   Label isInterpreted, isBound, lengthLoaded;
   branchTest32(Assembler::NonZero, funFlags, Imm32(FunctionFlags::BOUND_FUN),
                &isBound);
-  branchTest32(Assembler::NonZero, funFlags, Imm32(FunctionFlags::INTERPRETED),
+  branchTest32(Assembler::NonZero, funFlags, Imm32(FunctionFlags::BASESCRIPT),
                &isInterpreted);
   {
     // Load the length property of a native function.

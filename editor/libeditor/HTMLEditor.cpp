@@ -541,49 +541,47 @@ nsresult HTMLEditor::MaybeCollapseSelectionAtFirstEditableNode(
   // Find first editable and visible node.
   EditorRawDOMPoint pointToPutCaret(editingHost, 0);
   for (;;) {
-    WSRunObject wsObj(this, pointToPutCaret.GetContainer(),
-                      pointToPutCaret.Offset());
-    int32_t visOffset = 0;
-    WSType visType;
-    nsCOMPtr<nsINode> visNode;
-    wsObj.NextVisibleNode(pointToPutCaret, address_of(visNode), &visOffset,
-                          &visType);
-
+    WSScanResult forwardScanFromPointToPutCaretResult =
+        WSRunScanner::ScanNextVisibleNodeOrBlockBoundary(*this,
+                                                         pointToPutCaret);
     // If we meet a non-editable node first, we should move caret to start of
     // the editing host (perhaps, user may want to insert something before
     // the first non-editable node? Chromium behaves so).
-    if (visNode && !visNode->IsEditable()) {
+    if (forwardScanFromPointToPutCaretResult.GetContent() &&
+        !forwardScanFromPointToPutCaretResult.IsContentEditable()) {
       pointToPutCaret.Set(editingHost, 0);
       break;
     }
 
-    // WSRunObject::NextVisibleNode() returns WSType::special and the "special"
-    // node when it meets empty inline element.  In this case, we should go to
-    // next sibling.  For example, if current editor is:
-    // <div contenteditable><span></span><b><br></b></div>
-    // then, we should put caret at the <br> element.  So, let's check if
-    // found node is an empty inline container element.
-    if (visType == WSType::special && visNode &&
-        TagCanContainTag(*visNode->NodeInfo()->NameAtom(),
+    // WSRunScanner::ScanNextVisibleNodeOrBlockBoundary() reaches "special
+    // content" when it meets empty inline element.  In this case, we should go
+    // to next sibling.  For example, if current editor is: <div
+    // contenteditable><span></span><b><br></b></div> then, we should put caret
+    // at the <br> element.  So, let's check if found node is an empty inline
+    // container element.
+    if (forwardScanFromPointToPutCaretResult.ReachedSpecialContent() &&
+        forwardScanFromPointToPutCaretResult.GetContent() &&
+        TagCanContainTag(*forwardScanFromPointToPutCaretResult.GetContent()
+                              ->NodeInfo()
+                              ->NameAtom(),
                          *nsGkAtoms::textTagName)) {
-      pointToPutCaret.Set(visNode);
-      DebugOnly<bool> advanced = pointToPutCaret.AdvanceOffset();
-      NS_WARNING_ASSERTION(
-          advanced,
-          "Failed to advance offset from found empty inline container element");
+      pointToPutCaret =
+          forwardScanFromPointToPutCaretResult.RawPointAfterContent();
       continue;
     }
 
     // If there is editable and visible text node, move caret at start of it.
-    if (visType == WSType::normalWS || visType == WSType::text) {
-      pointToPutCaret.Set(visNode, visOffset);
+    if (forwardScanFromPointToPutCaretResult.InNormalWhiteSpacesOrText()) {
+      pointToPutCaret = forwardScanFromPointToPutCaretResult.RawPoint();
       break;
     }
 
     // If there is editable <br> or something inline special element like
     // <img>, <input>, etc, move caret before it.
-    if (visType == WSType::br || visType == WSType::special) {
-      pointToPutCaret.Set(visNode);
+    if (forwardScanFromPointToPutCaretResult.ReachedBRElement() ||
+        forwardScanFromPointToPutCaretResult.ReachedSpecialContent()) {
+      pointToPutCaret =
+          forwardScanFromPointToPutCaretResult.RawPointAtContent();
       break;
     }
 
@@ -592,35 +590,34 @@ nsresult HTMLEditor::MaybeCollapseSelectionAtFirstEditableNode(
     // host.
     // XXX This may not make sense, but Chromium behaves so.  Therefore, the
     //     reason why we do this is just compatibility with Chromium.
-    if (visType != WSType::otherBlock) {
+    if (!forwardScanFromPointToPutCaretResult.ReachedOtherBlockElement()) {
       pointToPutCaret.Set(editingHost, 0);
       break;
     }
 
-    // By definition of WSRunObject, a block element terminates a whitespace
+    // By definition of WSRunScanner, a block element terminates a whitespace
     // run. That is, although we are calling a method that is named
-    // "NextVisibleNode", the node returned might not be visible/editable!
+    // "ScanNextVisibleNodeOrBlockBoundary", the node returned might not
+    // be visible/editable!
 
     // However, we were given a block that is not a container.  Since the
     // block can not contain anything that's visible, such a block only
     // makes sense if it is visible by itself, like a <hr>.  We want to
     // place the caret in front of that block.
-    if (!IsContainer(visNode)) {
-      pointToPutCaret.Set(visNode);
+    if (!IsContainer(forwardScanFromPointToPutCaretResult.GetContent())) {
+      pointToPutCaret =
+          forwardScanFromPointToPutCaretResult.RawPointAtContent();
       break;
     }
 
     // If the given block does not contain any visible/editable items, we want
     // to skip it and continue our search.
-    bool isEmptyBlock;
-    if (NS_SUCCEEDED(IsEmptyNode(visNode, &isEmptyBlock)) && isEmptyBlock) {
+    if (IsEmptyNode(*forwardScanFromPointToPutCaretResult.GetContent())) {
       // Skip the empty block
-      pointToPutCaret.Set(visNode);
-      DebugOnly<bool> advanced = pointToPutCaret.AdvanceOffset();
-      NS_WARNING_ASSERTION(
-          advanced, "Failed to advance offset from the found empty block node");
+      pointToPutCaret =
+          forwardScanFromPointToPutCaretResult.RawPointAfterContent();
     } else {
-      pointToPutCaret.Set(visNode, 0);
+      pointToPutCaret.Set(forwardScanFromPointToPutCaretResult.GetContent(), 0);
     }
   }
   nsresult rv = SelectionRefPtr()->Collapse(pointToPutCaret);
@@ -935,18 +932,13 @@ bool HTMLEditor::IsVisibleBRElement(nsINode* aNode) {
 
   // Sigh.  We have to use expensive whitespace calculation code to
   // determine what is going on
-  int32_t selOffset;
-  nsCOMPtr<nsINode> selNode = GetNodeLocation(aNode, &selOffset);
-  // Let's look after the break
-  selOffset++;
-  WSRunObject wsObj(this, selNode, selOffset);
-  WSType visType;
-  wsObj.NextVisibleNode(EditorRawDOMPoint(selNode, selOffset), &visType);
-  if (visType & WSType::block) {
+  EditorRawDOMPoint afterBRElement(EditorRawDOMPoint::After(*aNode));
+  if (NS_WARN_IF(!afterBRElement.IsSet())) {
     return false;
   }
-
-  return true;
+  return !WSRunScanner::ScanNextVisibleNodeOrBlockBoundary(*this,
+                                                           afterBRElement)
+              .ReachedBlockBoundary();
 }
 
 NS_IMETHODIMP
@@ -1458,35 +1450,35 @@ HTMLEditor::RebuildDocumentFromSource(const nsAString& aSourceString) {
 }
 
 EditorRawDOMPoint HTMLEditor::GetBetterInsertionPointFor(
-    nsINode& aNodeToInsert, const EditorRawDOMPoint& aPointToInsert) {
+    nsIContent& aContentToInsert, const EditorRawDOMPoint& aPointToInsert) {
   if (NS_WARN_IF(!aPointToInsert.IsSet())) {
     return aPointToInsert;
   }
 
   EditorRawDOMPoint pointToInsert(aPointToInsert.GetNonAnonymousSubtreePoint());
   if (NS_WARN_IF(!pointToInsert.IsSet())) {
-    // Cannot insert aNodeToInsert into this DOM tree.
+    // Cannot insert aContentToInsert into this DOM tree.
     return EditorRawDOMPoint();
   }
 
   // If the node to insert is not a block level element, we can insert it
   // at any point.
-  if (!IsBlockNode(&aNodeToInsert)) {
+  if (!IsBlockNode(&aContentToInsert)) {
     return pointToInsert;
   }
 
-  WSRunObject wsObj(this, pointToInsert.GetContainer(), pointToInsert.Offset());
+  WSRunScanner wsScannerForPointToInsert(this, pointToInsert);
 
   // If the insertion position is after the last visible item in a line,
   // i.e., the insertion position is just before a visible line break <br>,
   // we want to skip to the position just after the line break (see bug 68767).
-  nsCOMPtr<nsINode> nextVisibleNode;
-  WSType nextVisibleType;
-  wsObj.NextVisibleNode(pointToInsert, address_of(nextVisibleNode), nullptr,
-                        &nextVisibleType);
+  WSScanResult forwardScanFromPointToInsertResult =
+      wsScannerForPointToInsert.ScanNextVisibleNodeOrBlockBoundaryFrom(
+          pointToInsert);
   // So, if the next visible node isn't a <br> element, we can insert the block
   // level element to the point.
-  if (!nextVisibleNode || !(nextVisibleType & WSType::br)) {
+  if (!forwardScanFromPointToInsertResult.GetContent() ||
+      !forwardScanFromPointToInsertResult.ReachedBRElement()) {
     return pointToInsert;
   }
 
@@ -1494,25 +1486,21 @@ EditorRawDOMPoint HTMLEditor::GetBetterInsertionPointFor(
   // positioned at the beginning of a block, in that case skipping the <br>
   // would not insert the <br> at the caret position, but after the current
   // empty line.
-  nsCOMPtr<nsINode> previousVisibleNode;
-  WSType previousVisibleType;
-  wsObj.PriorVisibleNode(pointToInsert, address_of(previousVisibleNode),
-                         nullptr, &previousVisibleType);
+  WSScanResult backwardScanFromPointToInsertResult =
+      wsScannerForPointToInsert.ScanPreviousVisibleNodeOrBlockBoundaryFrom(
+          pointToInsert);
   // So, if there is no previous visible node,
   // or, if both nodes of the insertion point is <br> elements,
   // or, if the previous visible node is different block,
   // we need to skip the following <br>.  So, otherwise, we can insert the
   // block at the insertion point.
-  if (!previousVisibleNode || (previousVisibleType & WSType::br) ||
-      (previousVisibleType & WSType::thisBlock)) {
+  if (!backwardScanFromPointToInsertResult.GetContent() ||
+      backwardScanFromPointToInsertResult.ReachedBRElement() ||
+      backwardScanFromPointToInsertResult.ReachedCurrentBlockBoundary()) {
     return pointToInsert;
   }
 
-  EditorRawDOMPoint afterBRNode(nextVisibleNode);
-  DebugOnly<bool> advanced = afterBRNode.AdvanceOffset();
-  NS_WARNING_ASSERTION(advanced,
-                       "Failed to advance offset to after the <br> node");
-  return afterBRNode;
+  return forwardScanFromPointToInsertResult.RawPointAfterContent();
 }
 
 NS_IMETHODIMP
@@ -2368,8 +2356,7 @@ Element* HTMLEditor::GetElementOrParentByTagNameInternal(const nsAtom& aTagName,
                                                          nsINode& aNode) const {
   MOZ_ASSERT(&aTagName != nsGkAtoms::_empty);
 
-  Element* currentElement =
-      aNode.IsElement() ? aNode.AsElement() : aNode.GetParentElement();
+  Element* currentElement = aNode.GetAsElementOrParentElement();
   if (NS_WARN_IF(!currentElement)) {
     // Neither aNode nor its parent is an element, so no ancestor is
     MOZ_ASSERT(!aNode.GetParentNode() ||
@@ -3062,12 +3049,7 @@ nsresult HTMLEditor::DeleteSelectionWithTransaction(
   if (!blockParent) {
     return NS_OK;
   }
-  bool emptyBlockParent;
-  rv = IsEmptyNode(blockParent, &emptyBlockParent);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-  if (emptyBlockParent) {
+  if (IsEmptyNode(*blockParent)) {
     return NS_OK;
   }
 
@@ -3135,21 +3117,23 @@ nsresult HTMLEditor::DeleteParentBlocksWithTransactionIfEmpty(
   MOZ_ASSERT(mPlaceholderBatch);
 
   // First, check there is visible contents before the point in current block.
-  WSRunObject wsObj(this, aPoint);
-  if (!(wsObj.mStartReason & WSType::thisBlock)) {
+  WSRunScanner wsScannerForPoint(this, aPoint);
+  if (!wsScannerForPoint.StartsFromCurrentBlockBoundary()) {
     // If there is visible node before the point, we shouldn't remove the
     // parent block.
     return NS_SUCCESS_EDITOR_ELEMENT_NOT_FOUND;
   }
-  if (NS_WARN_IF(!wsObj.mStartReasonNode) ||
-      NS_WARN_IF(!wsObj.mStartReasonNode->GetParentNode())) {
+  if (NS_WARN_IF(!wsScannerForPoint.GetStartReasonContent()) ||
+      NS_WARN_IF(!wsScannerForPoint.GetStartReasonContent()->GetParentNode())) {
     return NS_ERROR_FAILURE;
   }
-  if (wsObj.GetEditingHost() == wsObj.mStartReasonNode) {
+  if (wsScannerForPoint.GetEditingHost() ==
+      wsScannerForPoint.GetStartReasonContent()) {
     // If we reach editing host, there is no parent blocks which can be removed.
     return NS_SUCCESS_EDITOR_ELEMENT_NOT_FOUND;
   }
-  if (HTMLEditUtils::IsTableCellOrCaption(*wsObj.mStartReasonNode)) {
+  if (HTMLEditUtils::IsTableCellOrCaption(
+          *wsScannerForPoint.GetStartReasonContent())) {
     // If we reach a <td>, <th> or <caption>, we shouldn't remove it even
     // becomes empty because removing such element changes the structure of
     // the <table>.
@@ -3157,34 +3141,41 @@ nsresult HTMLEditor::DeleteParentBlocksWithTransactionIfEmpty(
   }
 
   // Next, check there is visible contents after the point in current block.
-  WSType wsType = WSType::none;
-  wsObj.NextVisibleNode(aPoint, &wsType);
-  if (wsType == WSType::br) {
+  WSScanResult forwardScanFromPointResult =
+      wsScannerForPoint.ScanNextVisibleNodeOrBlockBoundaryFrom(aPoint);
+  if (forwardScanFromPointResult.ReachedBRElement()) {
+    // XXX In my understanding, this is odd.  The end reason may not be
+    //     same as the reached <br> element because the equality is
+    //     guaranteed only when ReachedCurrentBlockBoundary() returns true.
+    //     However, looks like that this code assumes that
+    //     GetEndReasonContent() returns the (or a) <br> element.
+    NS_ASSERTION(wsScannerForPoint.GetEndReasonContent() ==
+                     forwardScanFromPointResult.BRElementPtr(),
+                 "End reason is not the reached <br> element");
     // If the <br> element is visible, we shouldn't remove the parent block.
-    if (IsVisibleBRElement(wsObj.mEndReasonNode)) {
+    if (IsVisibleBRElement(wsScannerForPoint.GetEndReasonContent())) {
       return NS_SUCCESS_EDITOR_ELEMENT_NOT_FOUND;
     }
-    if (wsObj.mEndReasonNode->GetNextSibling()) {
-      EditorRawDOMPoint afterBRElement;
-      afterBRElement.SetAfter(wsObj.mEndReasonNode);
-      WSRunObject wsRunObjAfterBR(this, afterBRElement);
-      WSType wsTypeAfterBR = WSType::none;
-      wsRunObjAfterBR.NextVisibleNode(afterBRElement, &wsTypeAfterBR);
-      if (wsTypeAfterBR != WSType::thisBlock) {
+    if (wsScannerForPoint.GetEndReasonContent()->GetNextSibling()) {
+      if (!WSRunScanner::ScanNextVisibleNodeOrBlockBoundary(
+               *this, EditorRawDOMPoint::After(
+                          *wsScannerForPoint.GetEndReasonContent()))
+               .ReachedCurrentBlockBoundary()) {
         // If we couldn't reach the block's end after the invisible <br>,
         // that means that there is visible content.
         return NS_SUCCESS_EDITOR_ELEMENT_NOT_FOUND;
       }
     }
-  } else if (wsType != WSType::thisBlock) {
+  } else if (!forwardScanFromPointResult.ReachedCurrentBlockBoundary()) {
     // If we couldn't reach the block's end, the block has visible content.
     return NS_SUCCESS_EDITOR_ELEMENT_NOT_FOUND;
   }
 
   // Delete the parent block.
-  EditorDOMPoint nextPoint(wsObj.mStartReasonNode->GetParentNode(), 0);
-  nsresult rv =
-      DeleteNodeWithTransaction(MOZ_KnownLive(*wsObj.mStartReasonNode));
+  EditorDOMPoint nextPoint(
+      wsScannerForPoint.GetStartReasonContent()->GetParentNode(), 0);
+  nsresult rv = DeleteNodeWithTransaction(
+      MOZ_KnownLive(*wsScannerForPoint.GetStartReasonContent()));
   if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
     return NS_ERROR_EDITOR_DESTROYED;
   }
@@ -3192,7 +3183,7 @@ nsresult HTMLEditor::DeleteParentBlocksWithTransactionIfEmpty(
     return rv;
   }
   // If we reach editing host, return NS_OK.
-  if (nextPoint.GetContainer() == wsObj.GetEditingHost()) {
+  if (nextPoint.GetContainer() == wsScannerForPoint.GetEditingHost()) {
     return NS_OK;
   }
 
@@ -3206,7 +3197,7 @@ nsresult HTMLEditor::DeleteParentBlocksWithTransactionIfEmpty(
           NS_EVENT_BITS_MUTATION_SUBTREEMODIFIED)) {
     Element* editingHost = GetActiveEditingHost();
     if (NS_WARN_IF(!editingHost) ||
-        NS_WARN_IF(editingHost != wsObj.GetEditingHost())) {
+        NS_WARN_IF(editingHost != wsScannerForPoint.GetEditingHost())) {
       return NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE;
     }
     if (NS_WARN_IF(!EditorUtils::IsDescendantOf(*nextPoint.GetContainer(),
@@ -3562,32 +3553,29 @@ bool HTMLEditor::IsTextPropertySetByContent(nsINode* aNode, nsAtom* aProperty,
                                             nsAString* outValue) {
   MOZ_ASSERT(aNode && aProperty);
 
-  while (aNode) {
-    if (aNode->IsElement()) {
-      Element* element = aNode->AsElement();
-      if (aProperty == element->NodeInfo()->NameAtom()) {
-        if (!aAttribute) {
-          return true;
-        }
-        nsAutoString value;
-        element->GetAttr(kNameSpaceID_None, aAttribute, value);
-        if (outValue) {
-          *outValue = value;
-        }
-        if (!value.IsEmpty()) {
-          if (!aValue) {
-            return true;
-          }
-          if (aValue->Equals(value, nsCaseInsensitiveStringComparator())) {
-            return true;
-          }
-          // We found the prop with the attribute, but the value doesn't
-          // match.
-          break;
-        }
-      }
+  for (Element* element = aNode->GetAsElementOrParentElement(); element;
+       element = element->GetParentElement()) {
+    if (aProperty != element->NodeInfo()->NameAtom()) {
+      continue;
     }
-    aNode = aNode->GetParentNode();
+    if (!aAttribute) {
+      return true;
+    }
+    nsAutoString value;
+    element->GetAttr(kNameSpaceID_None, aAttribute, value);
+    if (outValue) {
+      *outValue = value;
+    }
+    if (!value.IsEmpty()) {
+      if (!aValue) {
+        return true;
+      }
+      if (aValue->Equals(value, nsCaseInsensitiveStringComparator())) {
+        return true;
+      }
+      // We found the prop with the attribute, but the value doesn't match.
+      return false;
+    }
   }
   return false;
 }
@@ -3635,37 +3623,36 @@ Element* HTMLEditor::GetEnclosingTable(nsINode* aNode) {
  * Uses EditorBase::JoinNodesWithTransaction() so action is undoable.
  * Should be called within the context of a batch transaction.
  */
-nsresult HTMLEditor::CollapseAdjacentTextNodes(nsRange* aInRange) {
-  NS_ENSURE_TRUE(aInRange, NS_ERROR_NULL_POINTER);
+nsresult HTMLEditor::CollapseAdjacentTextNodes(nsRange& aInRange) {
   AutoTransactionsConserveSelection dontChangeMySelection(*this);
-  nsTArray<nsCOMPtr<nsINode>> textNodes;
-  // we can't actually do anything during iteration, so store the text nodes in
-  // an array don't bother ref counting them because we know we can hold them
-  // for the lifetime of this method
 
-  // build a list of editable text nodes
-  ContentSubtreeIterator subtreeIter;
-  subtreeIter.Init(aInRange);
-  for (; !subtreeIter.IsDone(); subtreeIter.Next()) {
-    nsINode* node = subtreeIter.GetCurrentNode();
-    if (node->NodeType() == nsINode::TEXT_NODE &&
-        IsEditable(node->AsContent())) {
-      textNodes.AppendElement(node);
-    }
+  // we can't actually do anything during iteration, so store the text nodes in
+  // an array first.
+  DOMSubtreeIterator subtreeIter;
+  if (NS_WARN_IF(NS_FAILED(subtreeIter.Init(aInRange)))) {
+    return NS_ERROR_FAILURE;
   }
+  AutoTArray<OwningNonNull<Text>, 8> textNodes;
+  subtreeIter.AppendNodesToArray(
+      +[](nsINode& aNode, void* aSelf) -> bool {
+        return static_cast<HTMLEditor*>(aSelf)->IsEditable(&aNode);
+      },
+      textNodes, this);
 
   // now that I have a list of text nodes, collapse adjacent text nodes
   // NOTE: assumption that JoinNodes keeps the righthand node
   while (textNodes.Length() > 1) {
     // we assume a textNodes entry can't be nullptr
-    nsINode* leftTextNode = textNodes[0];
-    nsINode* rightTextNode = textNodes[1];
+    Text* leftTextNode = textNodes[0];
+    Text* rightTextNode = textNodes[1];
     NS_ASSERTION(leftTextNode && rightTextNode,
                  "left or rightTextNode null in CollapseAdjacentTextNodes");
 
     // get the prev sibling of the right node, and see if its leftTextNode
-    nsCOMPtr<nsINode> prevSibOfRightNode = rightTextNode->GetPreviousSibling();
-    if (prevSibOfRightNode && prevSibOfRightNode == leftTextNode) {
+    nsIContent* previousSiblingOfRightTextNode =
+        rightTextNode->GetPreviousSibling();
+    if (previousSiblingOfRightTextNode &&
+        previousSiblingOfRightTextNode == leftTextNode) {
       nsresult rv = JoinNodesWithTransaction(MOZ_KnownLive(*leftTextNode),
                                              MOZ_KnownLive(*rightTextNode));
       if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -3981,15 +3968,11 @@ bool HTMLEditor::IsVisibleTextNode(Text& aText) const {
     return true;
   }
 
-  WSRunScanner wsRunScanner(this, &aText, 0);
-  nsCOMPtr<nsINode> nextVisibleNode;
-  WSType visibleNodeType;
-  wsRunScanner.NextVisibleNode(EditorRawDOMPoint(&aText, 0),
-                               address_of(nextVisibleNode), nullptr,
-                               &visibleNodeType);
-  return (visibleNodeType == WSType::normalWS ||
-          visibleNodeType == WSType::text) &&
-         &aText == nextVisibleNode;
+  WSScanResult nextWSScanResult =
+      WSRunScanner::ScanNextVisibleNodeOrBlockBoundary(
+          *this, EditorRawDOMPoint(&aText, 0));
+  return nextWSScanResult.InNormalWhiteSpacesOrText() &&
+         nextWSScanResult.TextPtr() == &aText;
 }
 
 bool HTMLEditor::IsEmpty() const {
@@ -4014,35 +3997,16 @@ bool HTMLEditor::IsEmpty() const {
 }
 
 /**
- * IsEmptyNode() figures out if aNode is an empty node.  A block can have
- * children and still be considered empty, if the children are empty or
- * non-editable.
- */
-nsresult HTMLEditor::IsEmptyNode(nsINode* aNode, bool* outIsEmptyNode,
-                                 bool aSingleBRDoesntCount,
-                                 bool aListOrCellNotEmpty,
-                                 bool aSafeToAskFrames) const {
-  NS_ENSURE_TRUE(aNode && outIsEmptyNode, NS_ERROR_NULL_POINTER);
-  *outIsEmptyNode = true;
-  bool seenBR = false;
-  return IsEmptyNodeImpl(aNode, outIsEmptyNode, aSingleBRDoesntCount,
-                         aListOrCellNotEmpty, aSafeToAskFrames, &seenBR);
-}
-
-/**
  * IsEmptyNodeImpl() is workhorse for IsEmptyNode().
  */
-nsresult HTMLEditor::IsEmptyNodeImpl(nsINode* aNode, bool* outIsEmptyNode,
-                                     bool aSingleBRDoesntCount,
-                                     bool aListOrCellNotEmpty,
-                                     bool aSafeToAskFrames,
-                                     bool* aSeenBR) const {
-  NS_ENSURE_TRUE(aNode && outIsEmptyNode && aSeenBR, NS_ERROR_NULL_POINTER);
+bool HTMLEditor::IsEmptyNodeImpl(nsINode& aNode, bool aSingleBRDoesntCount,
+                                 bool aListOrCellNotEmpty,
+                                 bool aSafeToAskFrames, bool* aSeenBR) const {
+  MOZ_ASSERT(aSeenBR);
 
-  if (Text* text = aNode->GetAsText()) {
-    *outIsEmptyNode = aSafeToAskFrames ? !IsInVisibleTextFrames(*text)
-                                       : !IsVisibleTextNode(*text);
-    return NS_OK;
+  if (Text* text = aNode.GetAsText()) {
+    return aSafeToAskFrames ? !IsInVisibleTextFrames(*text)
+                            : !IsVisibleTextNode(*text);
   }
 
   // if it's not a text node (handled above) and it's not a container,
@@ -4051,36 +4015,34 @@ nsresult HTMLEditor::IsEmptyNodeImpl(nsINode* aNode, bool* outIsEmptyNode,
   // anchors are containers, named anchors are "empty" but we don't
   // want to treat them as such.  Also, don't call ListItems or table
   // cells empty if caller desires.  Form Widgets not empty.
-  if (!IsContainer(aNode) ||
-      (HTMLEditUtils::IsNamedAnchor(aNode) ||
-       HTMLEditUtils::IsFormWidget(aNode) ||
-       (aListOrCellNotEmpty && (HTMLEditUtils::IsListItem(aNode) ||
-                                HTMLEditUtils::IsTableCell(aNode))))) {
-    *outIsEmptyNode = false;
-    return NS_OK;
+  if (!IsContainer(&aNode) ||
+      (HTMLEditUtils::IsNamedAnchor(&aNode) ||
+       HTMLEditUtils::IsFormWidget(&aNode) ||
+       (aListOrCellNotEmpty && (HTMLEditUtils::IsListItem(&aNode) ||
+                                HTMLEditUtils::IsTableCell(&aNode))))) {
+    return false;
   }
 
   // need this for later
   bool isListItemOrCell =
-      HTMLEditUtils::IsListItem(aNode) || HTMLEditUtils::IsTableCell(aNode);
+      HTMLEditUtils::IsListItem(&aNode) || HTMLEditUtils::IsTableCell(&aNode);
 
   // loop over children of node. if no children, or all children are either
   // empty text nodes or non-editable, then node qualifies as empty
-  for (nsCOMPtr<nsIContent> child = aNode->GetFirstChild(); child;
+  for (nsCOMPtr<nsIContent> child = aNode.GetFirstChild(); child;
        child = child->GetNextSibling()) {
     // Is the child editable and non-empty?  if so, return false
     if (EditorBase::IsEditable(child)) {
       if (Text* text = child->GetAsText()) {
         // break out if we find we aren't empty
-        *outIsEmptyNode = aSafeToAskFrames ? !IsInVisibleTextFrames(*text)
-                                           : !IsVisibleTextNode(*text);
-        if (!*outIsEmptyNode) {
-          return NS_OK;
+        if (!(aSafeToAskFrames ? !IsInVisibleTextFrames(*text)
+                               : !IsVisibleTextNode(*text))) {
+          return false;
         }
       } else {
         // An editable, non-text node. We need to check its content.
         // Is it the node we are iterating over?
-        if (child == aNode) {
+        if (child == &aNode) {
           break;
         }
 
@@ -4097,33 +4059,27 @@ nsresult HTMLEditor::IsEmptyNodeImpl(nsINode* aNode, bool* outIsEmptyNode,
               if (HTMLEditUtils::IsList(child) ||
                   child->IsHTMLElement(nsGkAtoms::table)) {
                 // break out if we find we aren't empty
-                *outIsEmptyNode = false;
-                return NS_OK;
+                return false;
               }
             } else if (HTMLEditUtils::IsFormWidget(child)) {
               // is it a form widget?
               // break out if we find we aren't empty
-              *outIsEmptyNode = false;
-              return NS_OK;
+              return false;
             }
           }
 
-          bool isEmptyNode = true;
-          nsresult rv =
-              IsEmptyNodeImpl(child, &isEmptyNode, aSingleBRDoesntCount,
-                              aListOrCellNotEmpty, aSafeToAskFrames, aSeenBR);
-          NS_ENSURE_SUCCESS(rv, rv);
-          if (!isEmptyNode) {
+          if (!IsEmptyNodeImpl(*child, aSingleBRDoesntCount,
+                               aListOrCellNotEmpty, aSafeToAskFrames,
+                               aSeenBR)) {
             // otherwise it ain't empty
-            *outIsEmptyNode = false;
-            return NS_OK;
+            return false;
           }
         }
       }
     }
   }
 
-  return NS_OK;
+  return true;
 }
 
 // add to aElement the CSS inline styles corresponding to the HTML attribute
@@ -4482,12 +4438,14 @@ nsresult HTMLEditor::CopyLastEditableChildStylesWithTransaction(
     deepestEditableContent =
         GetPreviousEditableHTMLNode(*deepestEditableContent);
   }
-  Element* deepestVisibleEditableElement = nullptr;
-  if (deepestEditableContent) {
-    deepestVisibleEditableElement =
-        deepestEditableContent->IsElement()
-            ? deepestEditableContent->AsElement()
-            : deepestEditableContent->GetParentElement();
+  if (!deepestEditableContent) {
+    return NS_OK;
+  }
+
+  Element* deepestVisibleEditableElement =
+      deepestEditableContent->GetAsElementOrParentElement();
+  if (!deepestVisibleEditableElement) {
+    return NS_OK;
   }
 
   // Clone inline elements to keep current style in the new block.
@@ -4538,7 +4496,7 @@ nsresult HTMLEditor::CopyLastEditableChildStylesWithTransaction(
   if (NS_WARN_IF(!brElement)) {
     return NS_ERROR_FAILURE;
   }
-  *aNewBrElement = brElement.forget();
+  *aNewBrElement = std::move(brElement);
   return NS_OK;
 }
 

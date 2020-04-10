@@ -63,9 +63,7 @@ class nsDisplayCanvas final : public nsPaintedDisplayItem {
       : nsPaintedDisplayItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayCanvas);
   }
-#ifdef NS_BUILD_REFCNT_LOGGING
-  virtual ~nsDisplayCanvas() { MOZ_COUNT_DTOR(nsDisplayCanvas); }
-#endif
+  MOZ_COUNTED_DTOR_OVERRIDE(nsDisplayCanvas)
 
   NS_DISPLAY_DECL_NAME("nsDisplayCanvas", TYPE_CANVAS)
 
@@ -116,7 +114,7 @@ class nsDisplayCanvas final : public nsPaintedDisplayItem {
       nsDisplayListBuilder* aDisplayListBuilder) override {
     HTMLCanvasElement* element =
         static_cast<HTMLCanvasElement*>(mFrame->GetContent());
-    element->HandlePrintCallback(mFrame->PresContext()->Type());
+    element->HandlePrintCallback(mFrame->PresContext());
 
     switch (element->GetCurrentContextType()) {
       case CanvasContextType::Canvas2D:
@@ -438,7 +436,7 @@ already_AddRefed<Layer> nsHTMLCanvasFrame::BuildLayer(
   nsIntSize canvasSizeInPx = GetCanvasSize();
 
   nsPresContext* presContext = PresContext();
-  element->HandlePrintCallback(presContext->Type());
+  element->HandlePrintCallback(presContext);
 
   if (canvasSizeInPx.width <= 0 || canvasSizeInPx.height <= 0 || area.IsEmpty())
     return nullptr;

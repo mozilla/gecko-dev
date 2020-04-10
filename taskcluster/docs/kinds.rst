@@ -34,6 +34,18 @@ Many builds must be signed. The build-signing task takes the unsigned `build`
 kind artifacts and passes them through signingscriptworker to a signing server
 and returns signed results.
 
+For mac notarization, we download the signed bits that have been notarized by Apple, and we staple the notarization to the app and pkg.
+
+build-notarization-part-1
+-------------------------
+
+We switched to a 3-part mac notarization workflow in bug 1562412. This is the first task, which signs the files and submits them for notarization.
+
+build-notarization-poller
+-------------------------
+
+We switched to a 3-part mac notarization workflow in bug 1562412. This is the second task, which polls Apple for notarization status. Because this is run in a separate, special notarization poller pool, we free up the mac notarization pool for actual signing work.
+
 artifact-build
 --------------
 
@@ -55,19 +67,31 @@ The l10n kind takes the last published nightly build, and generates localized bu
 from it. You can read more about how to trigger these on the `wiki
 <https://wiki.mozilla.org/ReleaseEngineering/TryServer#Desktop_l10n_jobs_.28on_Taskcluster.29>`_.
 
-nightly-l10n
-------------
+shippable-l10n
+--------------
 
 The nightly l10n kind repacks a specific nightly build (from the same source code)
 in order to provide localized versions of the same source.
 
-nightly-l10n-signing
---------------------
+shippable-l10n-signing
+----------------------
 
-The nightly l10n signing kind takes artifacts from the nightly-l10n kind and
+The shippable l10n signing kind takes artifacts from the shippable-l10n kind and
 passes them to signing servers to have their contents signed appropriately, based
-on an appropriate signing format. One signing job is created for each nightly-l10n
+on an appropriate signing format. One signing job is created for each shippable-l10n
 job (usually chunked).
+
+For mac notarization, we download the signed bits that have been notarized by Apple, and we staple the notarization to the app and pkg.
+
+shippable-l10n-notarization-part-1
+----------------------------------
+
+We switched to a 3-part mac notarization workflow in bug 1562412. This is the first task, which signs the files and submits them for notarization.
+
+shippable-l10n-notarization-poller
+----------------------------------
+
+We switched to a 3-part mac notarization workflow in bug 1562412. This is the second task, which polls Apple for notarization status. Because this is run in a separate, special notarization poller pool, we free up the mac notarization pool for actual signing work.
 
 source-test
 -----------
@@ -288,9 +312,17 @@ release-snap-repackage
 ----------------------
 Generate an installer using Ubuntu's Snap format.
 
+release-flatpak-repackage
+-------------------------
+Generate an installer using Flathub's Flatpak format.
+
 release-snap-push
 -----------------
 Pushes Snap repackage on Snap store.
+
+release-flatpak-push
+--------------------
+Pushes Flatpak repackage on Flathub
 
 release-secondary-snap-push
 ---------------------------
@@ -432,6 +464,18 @@ release-partner-repack-signing
 ------------------------------
 Internal signing of partner repacks.
 
+For mac notarization, we download the signed bits that have been notarized by Apple, and we staple the notarization to the app and pkg.
+
+release-partner-repack-notarization-part-1
+------------------------------------------
+
+We switched to a 3-part mac notarization workflow in bug 1562412. This is the first task, which signs the files and submits them for notarization.
+
+release-partner-repack-notarization-poller
+------------------------------------------
+
+We switched to a 3-part mac notarization workflow in bug 1562412. This is the second task, which polls Apple for notarization status. Because this is run in a separate, special notarization poller pool, we free up the mac notarization pool for actual signing work.
+
 release-partner-repack-repackage
 --------------------------------
 Repackaging of partner repacks.
@@ -460,6 +504,18 @@ Generates customized versions of releases for eme-free repacks.
 release-eme-free-repack-signing
 -------------------------------
 Internal signing of eme-free repacks
+
+For mac notarization, we download the signed bits that have been notarized by Apple, and we staple the notarization to the app and pkg.
+
+release-eme-free-repack-notarization-part-1
+-------------------------------------------
+
+We switched to a 3-part mac notarization workflow in bug 1562412. This is the first task, which signs the files and submits them for notarization.
+
+release-eme-free-repack-notarization-poller
+-------------------------------------------
+
+We switched to a 3-part mac notarization workflow in bug 1562412. This is the second task, which polls Apple for notarization status. Because this is run in a separate, special notarization poller pool, we free up the mac notarization pool for actual signing work.
 
 release-eme-free-repack-repackage
 ---------------------------------
@@ -522,10 +578,10 @@ repo-update
 Repo-Update tasks are tasks that perform some action on the project repo itself,
 in order to update its state in some way.
 
-pipfile-update
---------------
-Pipfile-update tasks generate update Pipfile.lock for in-tree Pipfiles, and attach
-patches with the updates to Phabricator.
+python-dependency-update
+------------------------
+Python-dependency-update runs `pip-compile --generate-hashes` against the specified `requirements.in` and
+submits patches to Phabricator.
 
 partials
 --------
@@ -643,6 +699,10 @@ A shipitscript task that does the following:
 l10n-bump
 ---------
 Cron-driven tasks that bump l10n-changesets files in-tree, using data from the l10n dashboard.
+
+merge-automation
+----------------
+Hook-driven tasks that automate "Merge Day" tasks during the release cycle.
 
 system-symbols
 --------------

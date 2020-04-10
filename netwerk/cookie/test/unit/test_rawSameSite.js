@@ -45,7 +45,7 @@ add_task(async _ => {
   if (!inChildProcess()) {
     Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
     Services.prefs.setBoolPref(
-      "network.cookieSettings.unblocked_for_testing",
+      "network.cookieJarSettings.unblocked_for_testing",
       true
     );
     Services.prefs.setBoolPref("network.cookie.sameSite.laxByDefault", true);
@@ -97,7 +97,7 @@ add_task(async _ => {
       Services.obs.addObserver(observer, "cookie-saved-on-disk");
     });
 
-    cs.setCookieStringFromHttp(uri, null, null, test.cookie, null, channel);
+    cs.setCookieStringFromHttp(uri, null, test.cookie, null, channel);
 
     await promise;
 

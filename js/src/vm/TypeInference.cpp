@@ -26,7 +26,6 @@
 #include "jit/Ion.h"
 #include "jit/IonAnalysis.h"
 #include "jit/JitRealm.h"
-#include "jit/OptimizationTracking.h"
 #include "js/MemoryMetrics.h"
 #include "js/UniquePtr.h"
 #include "util/DiagnosticAssertions.h"
@@ -170,9 +169,6 @@ bool js::InferSpewActive(TypeSpewChannel channel) {
   if (!checked) {
     checked = true;
     PodArrayZero(active);
-    if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-      return false;
-    }
     const char* env = getenv("INFERFLAGS");
     if (!env) {
       return false;
@@ -198,9 +194,6 @@ static bool InferSpewColorable() {
   static bool checked = false;
   if (!checked) {
     checked = true;
-    if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-      return false;
-    }
     const char* env = getenv("TERM");
     if (!env) {
       return false;
@@ -461,8 +454,7 @@ bool TypeSet::objectsIntersect(const TypeSet* other) const {
   return false;
 }
 
-template <class TypeListT>
-bool TypeSet::enumerateTypes(TypeListT* list) const {
+bool TypeSet::enumerateTypes(TypeList* list) const {
   /* If any type is possible, there's no need to worry about specifics. */
   if (flags & TYPE_FLAG_UNKNOWN) {
     return list->append(UnknownType());
@@ -496,10 +488,6 @@ bool TypeSet::enumerateTypes(TypeListT* list) const {
 
   return true;
 }
-
-template bool TypeSet::enumerateTypes<TypeSet::TypeList>(TypeList* list) const;
-template bool TypeSet::enumerateTypes<jit::TempTypeList>(
-    jit::TempTypeList* list) const;
 
 inline bool TypeSet::addTypesToConstraint(JSContext* cx,
                                           TypeConstraint* constraint) {
@@ -634,8 +622,8 @@ void TypeSet::addType(Type type, LifoAlloc* alloc) {
     // have many different classes and prototypes but are still optimizable
     // by IonMonkey.
     if (objectCount >= TYPE_FLAG_OBJECT_COUNT_LIMIT) {
-      JS_STATIC_ASSERT(TYPE_FLAG_DOMOBJECT_COUNT_LIMIT >=
-                       TYPE_FLAG_OBJECT_COUNT_LIMIT);
+      static_assert(TYPE_FLAG_DOMOBJECT_COUNT_LIMIT >=
+                    TYPE_FLAG_OBJECT_COUNT_LIMIT);
       // Examining the entire type set is only required when we first hit
       // the normal object limit.
       if (objectCount == TYPE_FLAG_OBJECT_COUNT_LIMIT) {
@@ -1369,6 +1357,9 @@ void TypeSet::ObjectKey::ensureTrackedProperty(JSContext* cx, jsid id) {
 }
 
 void js::EnsureTrackPropertyTypes(JSContext* cx, JSObject* obj, jsid id) {
+  if (!IsTypeInferenceEnabled()) {
+    return;
+  }
   id = IdToTypeId(id);
 
   if (obj->isSingleton()) {
@@ -1475,6 +1466,14 @@ bool js::FinishCompilation(JSContext* cx, HandleScript script,
                            CompilerConstraintList* constraints,
                            IonCompilationId compilationId, bool* isValidOut) {
   MOZ_ASSERT(*cx->zone()->types.currentCompilationId() == compilationId);
+
+  if (!IsTypeInferenceEnabled()) {
+    MOZ_ASSERT(!constraints->failed());
+    MOZ_ASSERT(constraints->length() == 0);
+    MOZ_ASSERT(constraints->numFrozenScripts() == 0);
+    *isValidOut = true;
+    return true;
+  }
 
   if (constraints->failed()) {
     return false;
@@ -1670,7 +1669,7 @@ void HeapTypeSetKey::freeze(CompilerConstraintList* constraints) {
   LifoAlloc* alloc = constraints->alloc();
   LifoAlloc::AutoFallibleScope fallibleAllocator(alloc);
 
-  typedef CompilerConstraintInstance<ConstraintDataFreeze> T;
+  using T = CompilerConstraintInstance<ConstraintDataFreeze>;
   constraints->add(alloc->new_<T>(alloc, *this, ConstraintDataFreeze()));
 }
 
@@ -1872,7 +1871,7 @@ bool TypeSet::ObjectKey::hasFlags(CompilerConstraintList* constraints,
   HeapTypeSetKey objectProperty = property(JSID_EMPTY);
   LifoAlloc* alloc = constraints->alloc();
 
-  typedef CompilerConstraintInstance<ConstraintDataFreezeObjectFlags> T;
+  using T = CompilerConstraintInstance<ConstraintDataFreezeObjectFlags>;
   constraints->add(alloc->new_<T>(alloc, objectProperty,
                                   ConstraintDataFreezeObjectFlags(flags)));
   return false;
@@ -1926,7 +1925,7 @@ gc::InitialHeap ObjectGroup::initialHeap(CompilerConstraintList* constraints) {
       TypeSet::ObjectKey::get(this)->property(JSID_EMPTY);
   LifoAlloc* alloc = constraints->alloc();
 
-  typedef CompilerConstraintInstance<ConstraintDataFreezeObjectFlags> T;
+  using T = CompilerConstraintInstance<ConstraintDataFreezeObjectFlags>;
   constraints->add(
       alloc->new_<T>(alloc, objectProperty,
                      ConstraintDataFreezeObjectFlags(OBJECT_FLAG_PRE_TENURE)));
@@ -1986,9 +1985,8 @@ void TypeSet::ObjectKey::watchStateChangeForTypedArrayData(
   HeapTypeSetKey objectProperty = property(JSID_EMPTY);
   LifoAlloc* alloc = constraints->alloc();
 
-  typedef CompilerConstraintInstance<
-      ConstraintDataFreezeObjectForTypedArrayData>
-      T;
+  using T =
+      CompilerConstraintInstance<ConstraintDataFreezeObjectForTypedArrayData>;
   constraints->add(
       alloc->new_<T>(alloc, objectProperty,
                      ConstraintDataFreezeObjectForTypedArrayData(tarray)));
@@ -2065,7 +2063,7 @@ bool HeapTypeSetKey::nonData(CompilerConstraintList* constraints) {
 
   LifoAlloc* alloc = constraints->alloc();
 
-  typedef CompilerConstraintInstance<ConstraintDataFreezePropertyState> T;
+  using T = CompilerConstraintInstance<ConstraintDataFreezePropertyState>;
   constraints->add(
       alloc->new_<T>(alloc, *this,
                      ConstraintDataFreezePropertyState(
@@ -2080,7 +2078,7 @@ bool HeapTypeSetKey::nonWritable(CompilerConstraintList* constraints) {
 
   LifoAlloc* alloc = constraints->alloc();
 
-  typedef CompilerConstraintInstance<ConstraintDataFreezePropertyState> T;
+  using T = CompilerConstraintInstance<ConstraintDataFreezePropertyState>;
   constraints->add(
       alloc->new_<T>(alloc, *this,
                      ConstraintDataFreezePropertyState(
@@ -2155,7 +2153,7 @@ bool HeapTypeSetKey::constant(CompilerConstraintList* constraints,
   *valOut = val;
 
   LifoAlloc* alloc = constraints->alloc();
-  typedef CompilerConstraintInstance<ConstraintDataConstantProperty> T;
+  using T = CompilerConstraintInstance<ConstraintDataConstantProperty>;
   constraints->add(
       alloc->new_<T>(alloc, *this, ConstraintDataConstantProperty()));
   return true;
@@ -2203,7 +2201,7 @@ bool HeapTypeSetKey::couldBeConstant(CompilerConstraintList* constraints) {
   // inert constraints to pin these properties in place.
 
   LifoAlloc* alloc = constraints->alloc();
-  typedef CompilerConstraintInstance<ConstraintDataInert> T;
+  using T = CompilerConstraintInstance<ConstraintDataInert>;
   constraints->add(alloc->new_<T>(alloc, *this, ConstraintDataInert()));
 
   return false;
@@ -2694,8 +2692,11 @@ void js::PrintTypes(JSContext* cx, Compartment* comp, bool force) {
   }
 
   RootedScript script(cx);
-  for (auto iter = zone->cellIter<JSScript>(); !iter.done(); iter.next()) {
-    script = iter;
+  for (auto base = zone->cellIter<BaseScript>(); !base.done(); base.next()) {
+    if (base->isLazyScript()) {
+      continue;
+    }
+    script = base->asJSScript();
     if (JitScript* jitScript = script->maybeJitScript()) {
       jitScript->printTypes(cx, script);
     }
@@ -2950,6 +2951,9 @@ void ObjectGroup::markPropertyNonData(JSContext* cx, JSObject* obj, jsid id) {
 
 void ObjectGroup::markPropertyNonWritable(JSContext* cx, JSObject* obj,
                                           jsid id) {
+  if (!IsTypeInferenceEnabled()) {
+    return;
+  }
   AutoEnterAnalysis enter(cx);
 
   id = IdToTypeId(id);
@@ -3056,6 +3060,8 @@ void ObjectGroup::detachNewScript(bool isSweeping, ObjectGroup* replacement) {
 
   if (newScript->analyzed()) {
     ObjectGroupRealm& objectGroups = ObjectGroupRealm::get(this);
+    const JSClass* clasp = this->clasp();
+    MOZ_ASSERT(clasp == &PlainObject::class_);
     TaggedProto proto = this->proto();
     if (proto.isObject() && IsForwarded(proto.toObject())) {
       proto = TaggedProto(Forwarded(proto.toObject()));
@@ -3065,10 +3071,10 @@ void ObjectGroup::detachNewScript(bool isSweeping, ObjectGroup* replacement) {
       AutoSweepObjectGroup sweepReplacement(replacement);
       MOZ_ASSERT(replacement->newScript(sweepReplacement)->function() ==
                  newScript->function());
-      objectGroups.replaceDefaultNewGroup(nullptr, proto, associated,
+      objectGroups.replaceDefaultNewGroup(clasp, proto, associated,
                                           replacement);
     } else {
-      objectGroups.removeDefaultNewGroup(nullptr, proto, associated);
+      objectGroups.removeDefaultNewGroup(clasp, proto, associated);
     }
   } else {
     MOZ_ASSERT(!replacement);
@@ -3406,6 +3412,9 @@ void js::TypeMonitorCallSlow(JSContext* cx, JSObject* callee,
 /* static */
 void JitScript::MonitorBytecodeType(JSContext* cx, JSScript* script,
                                     jsbytecode* pc, TypeSet::Type type) {
+  if (!IsTypeInferenceEnabled()) {
+    return;
+  }
   cx->check(script, type);
 
   AutoEnterAnalysis enter(cx);
@@ -3425,6 +3434,9 @@ void JitScript::MonitorBytecodeType(JSContext* cx, JSScript* script,
 void JitScript::MonitorBytecodeTypeSlow(JSContext* cx, JSScript* script,
                                         jsbytecode* pc, StackTypeSet* types,
                                         TypeSet::Type type) {
+  if (!IsTypeInferenceEnabled()) {
+    return;
+  }
   cx->check(script, type);
 
   AutoEnterAnalysis enter(cx);
@@ -3443,6 +3455,7 @@ void JitScript::MonitorBytecodeTypeSlow(JSContext* cx, JSScript* script,
 void JitScript::MonitorMagicValueBytecodeType(JSContext* cx, JSScript* script,
                                               jsbytecode* pc,
                                               const js::Value& rval) {
+  MOZ_ASSERT(IsTypeInferenceEnabled());
   MOZ_ASSERT(rval.isMagic());
 
   // It's possible that we arrived here from bailing out of Ion, and that
@@ -3468,6 +3481,10 @@ void JitScript::MonitorBytecodeType(JSContext* cx, JSScript* script,
                                     jsbytecode* pc, const js::Value& rval) {
   MOZ_ASSERT(BytecodeOpHasTypeSet(JSOp(*pc)));
 
+  if (!IsTypeInferenceEnabled()) {
+    return;
+  }
+
   if (!script->hasJitScript()) {
     return;
   }
@@ -3483,6 +3500,9 @@ void JitScript::MonitorBytecodeType(JSContext* cx, JSScript* script,
 /* static */
 bool JSFunction::setTypeForScriptedFunction(JSContext* cx, HandleFunction fun,
                                             bool singleton /* = false */) {
+  if (!IsTypeInferenceEnabled()) {
+    return true;
+  }
   if (singleton) {
     if (!setSingleton(cx, fun)) {
       return false;
@@ -3508,6 +3528,8 @@ bool JSFunction::setTypeForScriptedFunction(JSContext* cx, HandleFunction fun,
 /////////////////////////////////////////////////////////////////////
 
 void PreliminaryObjectArray::registerNewObject(PlainObject* res) {
+  MOZ_ASSERT(IsTypeInferenceEnabled());
+
   // The preliminary object pointers are weak, and won't be swept properly
   // during nursery collections, so the preliminary objects need to be
   // initially tenured.
@@ -3533,6 +3555,8 @@ bool PreliminaryObjectArray::full() const {
 }
 
 void PreliminaryObjectArray::sweep() {
+  MOZ_ASSERT(IsTypeInferenceEnabled());
+
   // All objects in the array are weak, so clear any that are about to be
   // destroyed.
   for (size_t i = 0; i < COUNT; i++) {
@@ -3544,6 +3568,7 @@ void PreliminaryObjectArray::sweep() {
 }
 
 void PreliminaryObjectArrayWithTemplate::trace(JSTracer* trc) {
+  MOZ_ASSERT(IsTypeInferenceEnabled());
   TraceNullableEdge(trc, &shape_, "PreliminaryObjectArrayWithTemplate_shape");
 }
 
@@ -4009,7 +4034,7 @@ bool TypeNewScript::maybeAnalyze(JSContext* cx, ObjectGroup* group,
   group->addDefiniteProperties(cx, prefixShape);
 
   ObjectGroupRealm& realm = ObjectGroupRealm::get(group);
-  realm.replaceDefaultNewGroup(nullptr, group->proto(), function(),
+  realm.replaceDefaultNewGroup(group->clasp(), group->proto(), function(),
                                initialGroup);
 
   templateObject()->setGroup(initialGroup);
@@ -4490,11 +4515,13 @@ void JitScript::sweepTypes(const js::AutoSweepJitScript& sweep, Zone* zone) {
     inlinedCompilations.shrinkTo(dest);
   }
 
-  // Remove constraints and references to dead objects from stack type sets.
-  unsigned num = numTypeSets();
-  StackTypeSet* arr = typeArray(sweep);
-  for (unsigned i = 0; i < num; i++) {
-    arr[i].sweep(sweep, zone);
+  if (IsTypeInferenceEnabled()) {
+    // Remove constraints and references to dead objects from stack type sets.
+    unsigned num = numTypeSets();
+    StackTypeSet* arr = typeArray(sweep);
+    for (unsigned i = 0; i < num; i++) {
+      arr[i].sweep(sweep, zone);
+    }
   }
 
   if (types.hadOOMSweepingTypes()) {

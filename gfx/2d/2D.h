@@ -203,7 +203,7 @@ class GradientStops : public external::AtomicRefCounted<GradientStops> {
   virtual bool IsValid() const { return true; }
 
  protected:
-  GradientStops() {}
+  GradientStops() = default;
 };
 
 /**
@@ -283,6 +283,37 @@ class RadialGradientPattern : public Pattern {
   Point mCenter2;  //!< Center of the outer circle.
   Float mRadius1;  //!< Radius of the inner (focal) circle.
   Float mRadius2;  //!< Radius of the outer circle.
+  RefPtr<GradientStops>
+      mStops;      /**< GradientStops object for this gradient, this
+                        should match the backend type of the draw target
+                        this pattern will be used with. */
+  Matrix mMatrix;  //!< A matrix that transforms the pattern into user space
+};
+
+/**
+ * This class is used for Conic Gradient Patterns, the gradient stops are
+ * stored in a separate object and are backend dependent. This class itself
+ * may be used on the stack.
+ */
+class ConicGradientPattern : public Pattern {
+ public:
+  /// For constructor parameter description, see member data documentation.
+  ConicGradientPattern(const Point& aCenter, Float aAngle, Float aStartOffset,
+                       Float aEndOffset, GradientStops* aStops,
+                       const Matrix& aMatrix = Matrix())
+      : mCenter(aCenter),
+        mAngle(aAngle),
+        mStartOffset(aStartOffset),
+        mEndOffset(aEndOffset),
+        mStops(aStops),
+        mMatrix(aMatrix) {}
+
+  PatternType GetType() const override { return PatternType::CONIC_GRADIENT; }
+
+  Point mCenter;  //!< Center of the gradient
+  Float mAngle;   //!< Start angle of gradient
+  Float mStartOffset;  // Offset of first stop
+  Float mEndOffset;    // Offset of last stop
   RefPtr<GradientStops>
       mStops;      /**< GradientStops object for this gradient, this
                         should match the backend type of the draw target
@@ -906,7 +937,7 @@ class UnscaledFont : public SupportsThreadSafeWeakPtr<UnscaledFont> {
   }
 
  protected:
-  UnscaledFont() {}
+  UnscaledFont() = default;
 
  private:
   static Atomic<uint32_t> sDeletionCounter;

@@ -204,7 +204,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.style.pseudo.map_or(false, |p| p.is_marker()) &&
                 self.style.get_parent_list().clone_list_style_position() ==
                     ListStylePosition::Outside &&
-                !layout_parent_style.get_box().clone_display().is_inline_flow()
+                !layout_parent_style
+                    .get_box()
+                    .clone_display()
+                    .is_inline_flow()
         );
 
         if !blockify {
@@ -224,15 +227,21 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn set_bits(&mut self) {
         let display = self.style.get_box().clone_display();
 
-        if !display.is_contents() &&
-            !self
-                .style
-                .get_text()
-                .clone_text_decoration_line()
-                .is_empty()
-        {
-            self.style
-                .add_flags(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
+        if !display.is_contents() {
+            if !self
+                    .style
+                    .get_text()
+                    .clone_text_decoration_line()
+                    .is_empty()
+            {
+                self.style
+                    .add_flags(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
+            }
+
+            if self.style.get_effects().clone_opacity() == 0. {
+                self.style
+                    .add_flags(ComputedValueFlags::IS_IN_OPACITY_ZERO_SUBTREE);
+            }
         }
 
         if self.style.is_pseudo_element() {
@@ -241,7 +250,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
 
         if self.style.is_root_element {
-            self.style.add_flags(ComputedValueFlags::IS_ROOT_ELEMENT_STYLE);
+            self.style
+                .add_flags(ComputedValueFlags::IS_ROOT_ELEMENT_STYLE);
         }
 
         #[cfg(feature = "servo-layout-2013")]
@@ -285,8 +295,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let writing_mode = self.style.get_inherited_box().clone_writing_mode();
         let text_combine_upright = self.style.get_inherited_text().clone_text_combine_upright();
 
-        if matches!(writing_mode, WritingMode::VerticalRl | WritingMode::VerticalLr) &&
-            text_combine_upright == TextCombineUpright::All
+        if matches!(
+            writing_mode,
+            WritingMode::VerticalRl | WritingMode::VerticalLr
+        ) && text_combine_upright == TextCombineUpright::All
         {
             self.style.add_flags(ComputedValueFlags::IS_TEXT_COMBINED);
             self.style

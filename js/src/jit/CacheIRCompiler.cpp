@@ -2939,11 +2939,12 @@ bool CacheIRCompiler::emitLoadFunctionLengthResult() {
   // Get the JSFunction flags.
   masm.load16ZeroExtend(Address(obj, JSFunction::offsetOfFlags()), scratch);
 
-  // Functions with lazy scripts don't store their length.
-  // If the length was resolved before the length property might be shadowed.
+  // Functions with a SelfHostedLazyScript must be compiled with the slow-path
+  // before the function length is known. If the length was previously resolved,
+  // the length property may be shadowed.
   masm.branchTest32(
       Assembler::NonZero, scratch,
-      Imm32(FunctionFlags::INTERPRETED_LAZY | FunctionFlags::RESOLVED_LENGTH),
+      Imm32(FunctionFlags::SELFHOSTLAZY | FunctionFlags::RESOLVED_LENGTH),
       failure->label());
 
   masm.loadFunctionLength(obj, scratch, scratch, failure->label());
@@ -4800,11 +4801,6 @@ void CacheIRCompiler::emitPostBarrierShared(Register obj,
                                             Register scratch,
                                             Register maybeIndex) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
-
-  // Generational GC is disabled for WebReplay.
-  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    return;
-  }
 
   if (val.constant()) {
     MOZ_ASSERT_IF(val.value().isGCThing(),

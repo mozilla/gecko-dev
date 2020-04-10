@@ -529,8 +529,19 @@ class nsWindow::NPZCSupport final
       window->ProcessUntransformedAPZEvent(&wheelEvent, result);
     });
 
-    return result.mHitRegionWithApzAwareListeners ? INPUT_RESULT_HANDLED_CONTENT
-                                                  : INPUT_RESULT_HANDLED;
+    if (result.mHitRegionWithApzAwareListeners) {
+      return INPUT_RESULT_HANDLED_CONTENT;
+    }
+
+    switch (result.mStatus) {
+      case nsEventStatus_eIgnore:
+        return INPUT_RESULT_UNHANDLED;
+      case nsEventStatus_eConsumeDoDefault:
+        return INPUT_RESULT_HANDLED;
+      default:
+        MOZ_ASSERT_UNREACHABLE("Unexpected nsEventStatus");
+        return INPUT_RESULT_UNHANDLED;
+    }
   }
 
  private:
@@ -642,8 +653,19 @@ class nsWindow::NPZCSupport final
       window->ProcessUntransformedAPZEvent(&mouseEvent, result);
     });
 
-    return result.mHitRegionWithApzAwareListeners ? INPUT_RESULT_HANDLED_CONTENT
-                                                  : INPUT_RESULT_HANDLED;
+    if (result.mHitRegionWithApzAwareListeners) {
+      return INPUT_RESULT_HANDLED_CONTENT;
+    }
+
+    switch (result.mStatus) {
+      case nsEventStatus_eIgnore:
+        return INPUT_RESULT_UNHANDLED;
+      case nsEventStatus_eConsumeDoDefault:
+        return INPUT_RESULT_HANDLED;
+      default:
+        MOZ_ASSERT_UNREACHABLE("Unexpected nsEventStatus");
+        return INPUT_RESULT_UNHANDLED;
+    }
   }
 
   int32_t HandleMotionEvent(
@@ -760,8 +782,19 @@ class nsWindow::NPZCSupport final
       window->DispatchHitTest(touchEvent);
     });
 
-    return result.mHitRegionWithApzAwareListeners ? INPUT_RESULT_HANDLED_CONTENT
-                                                  : INPUT_RESULT_HANDLED;
+    if (result.mHitRegionWithApzAwareListeners) {
+      return INPUT_RESULT_HANDLED_CONTENT;
+    }
+
+    switch (result.mStatus) {
+      case nsEventStatus_eIgnore:
+        return INPUT_RESULT_UNHANDLED;
+      case nsEventStatus_eConsumeDoDefault:
+        return INPUT_RESULT_HANDLED;
+      default:
+        MOZ_ASSERT_UNREACHABLE("Unexpected nsEventStatus");
+        return INPUT_RESULT_UNHANDLED;
+    }
   }
 };
 
@@ -1237,6 +1270,16 @@ class nsWindow::LayerViewSupport final
       }
     }
   }
+
+  void OnSafeAreaInsetsChanged(int32_t aTop, int32_t aRight, int32_t aBottom,
+                               int32_t aLeft) {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (!mWindow) {
+      return;  // Already shut down.
+    }
+    ScreenIntMargin safeAreaInsets(aTop, aRight, aBottom, aLeft);
+    mWindow->UpdateSafeAreaInsets(safeAreaInsets);
+  }
 };
 
 template <>
@@ -1525,7 +1568,17 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
     }
   }
 
-  mBounds = aRect;
+  // A default size of 1x1 confuses MobileViewportManager, so
+  // use 0x0 instead. This is also a little more fitting since
+  // we don't yet have a surface yet (and therefore a valid size)
+  // and 0x0 is usually recognized as invalid.
+  LayoutDeviceIntRect rect = aRect;
+  if (aRect.width == 1 && aRect.height == 1) {
+    rect.width = 0;
+    rect.height = 0;
+  }
+
+  mBounds = rect;
 
   BaseCreate(nullptr, aInitData);
 
@@ -1539,12 +1592,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
     parent->mChildren.AppendElement(this);
     mParent = parent;
   }
-
-  // A default size of 1x1 confuses MobileViewportManager, so
-  // use 0x0 instead. This is also a little more fitting since
-  // we don't yet have a surface yet (and therefore a valid size)
-  // and 0x0 is usually recognized as invalid.
-  Resize(0, 0, false);
 
   CreateLayerManager();
 
@@ -1810,14 +1857,15 @@ void nsWindow::SetFocus(Raise, mozilla::dom::CallerType aCallerType) {
 }
 
 void nsWindow::BringToFront() {
+  MOZ_ASSERT(XRE_IsParentProcess());
   // If the window to be raised is the same as the currently raised one,
   // do nothing. We need to check the focus manager as well, as the first
   // window that is created will be first in the window list but won't yet
   // be focused.
-  nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
-  nsCOMPtr<mozIDOMWindowProxy> existingTopWindow;
-  fm->GetActiveWindow(getter_AddRefs(existingTopWindow));
-  if (existingTopWindow && FindTopLevel() == nsWindow::TopWindow()) return;
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (fm && fm->GetActiveWindow() && FindTopLevel() == nsWindow::TopWindow()) {
+    return;
+  }
 
   if (!IsTopLevel()) {
     FindTopLevel()->BringToFront();
@@ -2053,10 +2101,6 @@ void nsWindow::DispatchHitTest(const WidgetTouchEvent& aEvent) {
     hittest.mInputSource = MouseEvent_Binding::MOZ_SOURCE_TOUCH;
     nsEventStatus status;
     DispatchEvent(&hittest, status);
-
-    if (mAPZEventState && hittest.mHitCluster) {
-      mAPZEventState->ProcessClusterHit();
-    }
   }
 }
 
@@ -2349,6 +2393,20 @@ nsresult nsWindow::SetPrefersReducedMotionOverrideForTest(bool aValue) {
 nsresult nsWindow::ResetPrefersReducedMotionOverrideForTest() {
   LookAndFeel::ResetPrefersReducedMotionOverrideForTest();
   return NS_OK;
+}
+
+ScreenIntMargin nsWindow::GetSafeAreaInsets() const { return mSafeAreaInsets; }
+
+void nsWindow::UpdateSafeAreaInsets(const ScreenIntMargin& aSafeAreaInsets) {
+  mSafeAreaInsets = aSafeAreaInsets;
+
+  if (mWidgetListener) {
+    mWidgetListener->SafeAreaInsetsChanged(aSafeAreaInsets);
+  }
+
+  if (mAttachedWidgetListener) {
+    mAttachedWidgetListener->SafeAreaInsetsChanged(aSafeAreaInsets);
+  }
 }
 
 already_AddRefed<nsIWidget> nsIWidget::CreateTopLevelWindow() {

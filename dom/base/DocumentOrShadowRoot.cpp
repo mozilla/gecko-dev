@@ -13,6 +13,7 @@
 #include "mozilla/dom/HTMLInputElement.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/StyleSheetList.h"
+#include "nsTHashtable.h"
 #include "nsFocusManager.h"
 #include "nsIRadioVisitor.h"
 #include "nsIFormControl.h"
@@ -89,15 +90,24 @@ already_AddRefed<StyleSheet> DocumentOrShadowRoot::RemoveSheet(
   return sheet.forget();
 }
 
+void DocumentOrShadowRoot::RemoveSheetFromStylesIfApplicable(
+    StyleSheet& aSheet) {
+  if (!aSheet.IsApplicable()) {
+    return;
+  }
+  if (mKind == Kind::Document) {
+    AsNode().AsDocument()->RemoveStyleSheetFromStyleSets(aSheet);
+  } else {
+    MOZ_ASSERT(AsNode().IsShadowRoot());
+    static_cast<ShadowRoot&>(AsNode()).RemoveSheetFromStyles(aSheet);
+  }
+}
+
 // https://wicg.github.io/construct-stylesheets/#dom-documentorshadowroot-adoptedstylesheets
 void DocumentOrShadowRoot::SetAdoptedStyleSheets(
     const Sequence<OwningNonNull<StyleSheet>>& aAdoptedStyleSheets,
     ErrorResult& aRv) {
-  // TODO(nordzilla): This is just a minimal-implementation stub to land
-  // the WebIDL attribute (Bug 1608489).
-
-  // Step 1 is a variable declaration
-
+  Document& doc = *AsNode().OwnerDoc();
   for (const OwningNonNull<StyleSheet>& sheet : aAdoptedStyleSheets) {
     // 2.1 Check if all sheets are constructed, else throw NotAllowedError
     if (!sheet->IsConstructed()) {
@@ -107,18 +117,85 @@ void DocumentOrShadowRoot::SetAdoptedStyleSheets(
     }
     // 2.2 Check if all sheets' constructor documents match the
     // DocumentOrShadowRoot's node document, else throw NotAlloweError
-    if (!sheet->ConstructorDocumentMatches(AsNode().OwnerDoc())) {
+    if (!sheet->ConstructorDocumentMatches(doc)) {
       return aRv.ThrowNotAllowedError(
           "Each adopted style sheet's constructor document must match the "
           "document or shadow root's node document");
     }
   }
-  // 3. Set the adopted style sheets to the new sheets
-  mAdoptedStyleSheets.ClearAndRetainStorage();
-  mAdoptedStyleSheets.SetCapacity(aAdoptedStyleSheets.Length());
-  for (const OwningNonNull<StyleSheet>& sheet : aAdoptedStyleSheets) {
-    mAdoptedStyleSheets.AppendElement(sheet.get());
+
+  auto* shadow = ShadowRoot::FromNode(AsNode());
+  MOZ_ASSERT((mKind == Kind::ShadowRoot) == !!shadow);
+
+  StyleSheetSet set(aAdoptedStyleSheets.Length());
+  size_t commonPrefix = 0;
+
+  // Find the index at which the new array differs from the old array.
+  // We don't want to do extra work for the sheets that both arrays have.
+  size_t min =
+      std::min(aAdoptedStyleSheets.Length(), mAdoptedStyleSheets.Length());
+  for (size_t i = 0; i < min; ++i) {
+    if (aAdoptedStyleSheets[i] != mAdoptedStyleSheets[i]) {
+      break;
+    }
+    ++commonPrefix;
+    set.PutEntry(mAdoptedStyleSheets[i]);
   }
+
+  // Try to truncate the sheets to a common prefix.
+  // If the prefix contains duplicates of sheets that we are removing,
+  // we are just going to re-build everything from scratch.
+  if (commonPrefix != mAdoptedStyleSheets.Length()) {
+    StyleSheetSet removedSet(mAdoptedStyleSheets.Length() - commonPrefix);
+    for (size_t i = mAdoptedStyleSheets.Length(); i != commonPrefix; --i) {
+      RefPtr<StyleSheet> sheetToRemove = mAdoptedStyleSheets.PopLastElement();
+      if (MOZ_UNLIKELY(set.Contains(sheetToRemove))) {
+        // Fixing duplicate sheets would require insertions/removals from the
+        // style set. We may as well just rebuild the whole thing from scratch.
+        set.Clear();
+        // Note that setting this to zero means we'll continue the loop until
+        // all the sheets are cleared.
+        commonPrefix = 0;
+      }
+      if (MOZ_LIKELY(removedSet.EnsureInserted(sheetToRemove))) {
+        RemoveSheetFromStylesIfApplicable(*sheetToRemove);
+        sheetToRemove->RemoveAdopter(*this);
+      }
+    }
+    mAdoptedStyleSheets.TruncateLength(commonPrefix);
+  }
+
+  // 3. Set the adopted style sheets to the new sheets
+  mAdoptedStyleSheets.SetCapacity(aAdoptedStyleSheets.Length());
+
+  // Only add sheets that are not already in the common prefix.
+  for (const auto& sheet : MakeSpan(aAdoptedStyleSheets).From(commonPrefix)) {
+    if (MOZ_UNLIKELY(!set.EnsureInserted(sheet))) {
+      // The idea is that this case is rare, so we pay the price of removing the
+      // old sheet from the styles and append it later rather than the other way
+      // around.
+      RemoveSheetFromStylesIfApplicable(*sheet);
+    } else {
+      sheet->AddAdopter(*this);
+    }
+    mAdoptedStyleSheets.AppendElement(sheet);
+    if (sheet->IsApplicable()) {
+      if (mKind == Kind::Document) {
+        doc.AddStyleSheetToStyleSets(*sheet);
+      } else {
+        shadow->InsertSheetIntoAuthorData(mAdoptedStyleSheets.Length() - 1,
+                                          *sheet, mAdoptedStyleSheets);
+      }
+    }
+  }
+}
+
+void DocumentOrShadowRoot::ClearAdoptedStyleSheets() {
+  EnumerateUniqueAdoptedStyleSheetsBackToFront([&](StyleSheet& aSheet) {
+    RemoveSheetFromStylesIfApplicable(aSheet);
+    aSheet.RemoveAdopter(*this);
+  });
+  mAdoptedStyleSheets.Clear();
 }
 
 Element* DocumentOrShadowRoot::GetElementById(const nsAString& aElementId) {
@@ -652,6 +729,17 @@ nsRadioGroupStruct* DocumentOrShadowRoot::GetOrCreateRadioGroup(
       .get();
 }
 
+int32_t DocumentOrShadowRoot::StyleOrderIndexOfSheet(
+    const StyleSheet& aSheet) const {
+  if (aSheet.IsConstructed()) {
+    // NOTE: constructable sheets can have duplicates, so we need to start
+    // looking from behind.
+    int32_t index = mAdoptedStyleSheets.LastIndexOf(&aSheet);
+    return (index < 0) ? index : index + SheetCount();
+  }
+  return mStyleSheets.IndexOf(&aSheet);
+}
+
 void DocumentOrShadowRoot::GetAdoptedStyleSheets(
     nsTArray<RefPtr<StyleSheet>>& aAdoptedStyleSheets) const {
   aAdoptedStyleSheets = mAdoptedStyleSheets;
@@ -661,27 +749,34 @@ void DocumentOrShadowRoot::Traverse(DocumentOrShadowRoot* tmp,
                                     nsCycleCollectionTraversalCallback& cb) {
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mStyleSheets)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDOMStyleSheets)
-  // TODO(nordzilla): This may get more involved once the sheets are applied.
-  // This currently exists only to land the WebIDL attribute (Bug 1608489)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAdoptedStyleSheets)
-  for (StyleSheet* sheet : tmp->mStyleSheets) {
-    if (!sheet->IsApplicable()) {
-      continue;
+
+  auto NoteSheetIfApplicable = [&](StyleSheet& aSheet) {
+    if (!aSheet.IsApplicable()) {
+      return;
     }
-    // The style set or mServoStyles keep more references to it if the sheet is
-    // applicable.
+    // The style set or mServoStyles keep more references to it if the sheet
+    // is applicable.
     if (tmp->mKind == Kind::ShadowRoot) {
       NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mServoStyles->sheets[i]");
-      cb.NoteXPCOMChild(sheet);
+      cb.NoteXPCOMChild(&aSheet);
     } else if (tmp->AsNode().AsDocument()->StyleSetFilled()) {
       NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(
           cb, "mStyleSet->mRawSet.stylist.stylesheets.author[i]");
-      cb.NoteXPCOMChild(sheet);
+      cb.NoteXPCOMChild(&aSheet);
     }
+  };
+
+  for (auto& sheet : tmp->mStyleSheets) {
+    NoteSheetIfApplicable(*sheet);
   }
+
+  tmp->EnumerateUniqueAdoptedStyleSheetsBackToFront(NoteSheetIfApplicable);
+
   for (auto iter = tmp->mIdentifierMap.ConstIter(); !iter.Done(); iter.Next()) {
     iter.Get()->Traverse(&cb);
   }
+
   for (auto iter = tmp->mRadioGroups.Iter(); !iter.Done(); iter.Next()) {
     nsRadioGroupStruct* radioGroup = iter.UserData();
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(
@@ -698,10 +793,11 @@ void DocumentOrShadowRoot::Traverse(DocumentOrShadowRoot* tmp,
 }
 
 void DocumentOrShadowRoot::Unlink(DocumentOrShadowRoot* tmp) {
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mDOMStyleSheets)
-  // TODO(nordzilla): This may get more involved once the sheets are applied.
-  // This currently exists only to land the WebIDL attribute (Bug 1608489)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mAdoptedStyleSheets)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mDOMStyleSheets);
+  for (RefPtr<StyleSheet>& sheet : tmp->mAdoptedStyleSheets) {
+    sheet->RemoveAdopter(*tmp);
+  }
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mAdoptedStyleSheets);
   tmp->mIdentifierMap.Clear();
   tmp->mRadioGroups.Clear();
 }

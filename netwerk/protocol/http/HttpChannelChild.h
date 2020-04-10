@@ -155,7 +155,8 @@ class HttpChannelChild final : public PHttpChannelChild,
   mozilla::ipc::IPCResult RecvOnStopRequest(
       const nsresult& aChannelStatus, const ResourceTimingStructArgs& aTiming,
       const TimeStamp& aLastActiveTabOptHit,
-      const nsHttpHeaderArray& aResponseTrailers) override;
+      const nsHttpHeaderArray& aResponseTrailers,
+      nsTArray<ConsoleReportCollected>&& aConsoleReports) override;
   mozilla::ipc::IPCResult RecvFailedAsyncOpen(const nsresult& status) override;
   mozilla::ipc::IPCResult RecvRedirect1Begin(
       const uint32_t& registrarId, const URIParams& newURI,
@@ -258,7 +259,7 @@ class HttpChannelChild final : public PHttpChannelChild,
     OverrideRunnable(HttpChannelChild* aChannel, HttpChannelChild* aNewChannel,
                      InterceptStreamListener* aListener, nsIInputStream* aInput,
                      nsIInterceptedBodyCallback* aCallback,
-                     nsAutoPtr<nsHttpResponseHead>& aHead,
+                     UniquePtr<nsHttpResponseHead>&& aHead,
                      nsICacheInfoChannel* aCacheInfo);
 
     NS_IMETHOD Run() override;
@@ -270,7 +271,7 @@ class HttpChannelChild final : public PHttpChannelChild,
     RefPtr<InterceptStreamListener> mListener;
     nsCOMPtr<nsIInputStream> mInput;
     nsCOMPtr<nsIInterceptedBodyCallback> mCallback;
-    nsAutoPtr<nsHttpResponseHead> mHead;
+    UniquePtr<nsHttpResponseHead> mHead;
     nsCOMPtr<nsICacheInfoChannel> mSynthesizedCacheInfo;
   };
 
@@ -292,9 +293,10 @@ class HttpChannelChild final : public PHttpChannelChild,
                                  const uint64_t& aOffset,
                                  const uint32_t& aCount,
                                  const nsCString& aData);
-  void ProcessOnStopRequest(const nsresult& aStatusCode,
-                            const ResourceTimingStructArgs& aTiming,
-                            const nsHttpHeaderArray& aResponseTrailers);
+  void ProcessOnStopRequest(
+      const nsresult& aChannelStatus, const ResourceTimingStructArgs& aTiming,
+      const nsHttpHeaderArray& aResponseTrailers,
+      const nsTArray<ConsoleReportCollected>& aConsoleReports);
   void ProcessFlushedForDiversion();
   void ProcessDivertMessages();
 
@@ -323,7 +325,7 @@ class HttpChannelChild final : public PHttpChannelChild,
   // Override this channel's pending response with a synthesized one. The
   // content will be asynchronously read from the pump.
   void OverrideWithSynthesizedResponse(
-      nsAutoPtr<nsHttpResponseHead>& aResponseHead,
+      UniquePtr<nsHttpResponseHead>& aResponseHead,
       nsIInputStream* aSynthesizedInput,
       nsIInterceptedBodyCallback* aSynthesizedCallback,
       InterceptStreamListener* aStreamListener,
@@ -512,7 +514,8 @@ class HttpChannelChild final : public PHttpChannelChild,
                           const nsCString& data);
   void OnStopRequest(const nsresult& channelStatus,
                      const ResourceTimingStructArgs& timing,
-                     const nsHttpHeaderArray& aResponseTrailers);
+                     const nsHttpHeaderArray& aResponseTrailers,
+                     const nsTArray<ConsoleReportCollected>& aConsoleReports);
   void MaybeDivertOnStop(const nsresult& aChannelStatus);
   void FailedAsyncOpen(const nsresult& status);
   void HandleAsyncAbort();

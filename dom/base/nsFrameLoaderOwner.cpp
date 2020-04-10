@@ -33,8 +33,7 @@ void nsFrameLoaderOwner::SetFrameLoader(nsFrameLoader* aNewFrameLoader) {
   mFrameLoader = aNewFrameLoader;
 }
 
-already_AddRefed<mozilla::dom::BrowsingContext>
-nsFrameLoaderOwner::GetBrowsingContext() {
+mozilla::dom::BrowsingContext* nsFrameLoaderOwner::GetBrowsingContext() {
   if (mFrameLoader) {
     return mFrameLoader->GetBrowsingContext();
   }
@@ -102,7 +101,7 @@ void nsFrameLoaderOwner::ChangeRemotenessCommon(
     if (mFrameLoader) {
       if (aPreserveContext) {
         bc = mFrameLoader->GetBrowsingContext();
-        mFrameLoader->SkipBrowsingContextDetach();
+        mFrameLoader->SetWillChangeProcess();
       }
 
       // Preserve the networkCreated status, as nsDocShells created after a
@@ -206,7 +205,7 @@ void nsFrameLoaderOwner::ChangeRemotenessWithBridge(BrowserBridgeChild* aBridge,
 
   std::function<void()> frameLoaderInit = [&] {
     RefPtr<BrowserBridgeHost> host = aBridge->FinishInit(mFrameLoader);
-    mFrameLoader->mBrowsingContext->SetEmbedderElement(
+    mFrameLoader->mPendingBrowsingContext->SetEmbedderElement(
         mFrameLoader->GetOwnerContent());
     mFrameLoader->mRemoteBrowser = host;
   };

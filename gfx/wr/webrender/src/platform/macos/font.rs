@@ -365,47 +365,58 @@ impl FontContext {
         font: &FontInstance,
         key: &GlyphKey,
     ) -> Option<GlyphDimensions> {
-        self.get_ct_font(font.font_key, font.size, &font.variations)
+        let (x_scale, y_scale) = font.transform.compute_scale().unwrap_or((1.0, 1.0));
+        let size = font.size.scale_by(y_scale as f32);
+        self.get_ct_font(font.font_key, size, &font.variations)
             .and_then(|ref ct_font| {
                 let glyph = key.index() as CGGlyph;
                 let bitmap = is_bitmap_font(ct_font);
-                let (x_offset, y_offset) = if bitmap { (0.0, 0.0) } else { font.get_subpx_offset(key) };
-                let transform = if font.synthetic_italics.is_enabled() ||
-                                   font.flags.intersects(FontInstanceFlags::TRANSPOSE |
-                                                         FontInstanceFlags::FLIP_X |
-                                                         FontInstanceFlags::FLIP_Y) {
-                    let mut shape = FontTransform::identity();
-                    if font.flags.contains(FontInstanceFlags::FLIP_X) {
-                        shape = shape.flip_x();
-                    }
-                    if font.flags.contains(FontInstanceFlags::FLIP_Y) {
-                        shape = shape.flip_y();
-                    }
-                    if font.flags.contains(FontInstanceFlags::TRANSPOSE) {
-                        shape = shape.swap_xy();
-                    }
-                    if font.synthetic_italics.is_enabled() {
-                        shape = shape.synthesize_italics(font.synthetic_italics);
-                    }
+                let (mut shape, (x_offset, y_offset)) = if bitmap {
+                    (FontTransform::identity(), (0.0, 0.0))
+                } else {
+                    (font.transform.invert_scale(y_scale, y_scale), font.get_subpx_offset(key))
+                };
+                if font.flags.contains(FontInstanceFlags::FLIP_X) {
+                    shape = shape.flip_x();
+                }
+                if font.flags.contains(FontInstanceFlags::FLIP_Y) {
+                    shape = shape.flip_y();
+                }
+                if font.flags.contains(FontInstanceFlags::TRANSPOSE) {
+                    shape = shape.swap_xy();
+                }
+                let (mut tx, mut ty) = (0.0, 0.0);
+                if font.synthetic_italics.is_enabled() {
+                    let (shape_, (tx_, ty_)) = font.synthesize_italics(shape, size.to_f64_px());
+                    shape = shape_;
+                    tx = tx_;
+                    ty = ty_;
+                }
+                let transform = if !shape.is_identity() || (tx, ty) != (0.0, 0.0) {
                     Some(CGAffineTransform {
                         a: shape.scale_x as f64,
                         b: -shape.skew_y as f64,
                         c: -shape.skew_x as f64,
                         d: shape.scale_y as f64,
-                        tx: 0.0,
-                        ty: 0.0,
+                        tx: tx,
+                        ty: -ty,
                     })
                 } else {
                     None
                 };
-                let extra_strikes = font.get_extra_strikes(1.0);
+                let (strike_scale, pixel_step) = if bitmap {
+                    (y_scale, 1.0)
+                } else {
+                    (x_scale, y_scale / x_scale)
+                };
+                let extra_strikes = font.get_extra_strikes(strike_scale);
                 let metrics = get_glyph_metrics(
                     ct_font,
                     transform.as_ref(),
                     glyph,
                     x_offset,
                     y_offset,
-                    extra_strikes as f64,
+                    extra_strikes as f64 * pixel_step,
                 );
                 if metrics.rasterized_width == 0 || metrics.rasterized_height == 0 {
                     None
@@ -514,17 +525,21 @@ impl FontContext {
         if font.flags.contains(FontInstanceFlags::TRANSPOSE) {
             shape = shape.swap_xy();
         }
+        let (mut tx, mut ty) = (0.0, 0.0);
         if font.synthetic_italics.is_enabled() {
-            shape = shape.synthesize_italics(font.synthetic_italics);
+            let (shape_, (tx_, ty_)) = font.synthesize_italics(shape, size.to_f64_px());
+            shape = shape_;
+            tx = tx_;
+            ty = ty_;
         }
-        let transform = if !shape.is_identity() {
+        let transform = if !shape.is_identity() || (tx, ty) != (0.0, 0.0) {
             Some(CGAffineTransform {
                 a: shape.scale_x as f64,
                 b: -shape.skew_y as f64,
                 c: -shape.skew_x as f64,
                 d: shape.scale_y as f64,
-                tx: 0.0,
-                ty: 0.0,
+                tx: tx,
+                ty: -ty,
             })
         } else {
             None
@@ -633,8 +648,8 @@ impl FontContext {
 
             // CG Origin is bottom left, WR is top left. Need -y offset
             let mut draw_origin = CGPoint {
-                x: -metrics.rasterized_left as f64 + x_offset,
-                y: metrics.rasterized_descent as f64 - y_offset,
+                x: -metrics.rasterized_left as f64 + x_offset + tx,
+                y: metrics.rasterized_descent as f64 - y_offset - ty,
             };
 
             if let Some(transform) = transform {

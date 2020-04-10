@@ -47,27 +47,6 @@ const PREFS_AFTER_SECTIONS = [
   },
 ];
 
-// This CSS is added to the whole about:preferences page
-const CUSTOM_CSS = `
-#homeContentsGroup checkbox[src] .checkbox-icon {
-  -moz-context-properties: fill;
-  fill: currentColor;
-  margin-inline-end: 8px;
-  margin-inline-start: 4px;
-  width: 16px;
-}
-#homeContentsGroup [data-subcategory] {
-  margin-top: 14px;
-}
-#homeContentsGroup [data-subcategory] .section-checkbox {
-  font-weight: 600;
-}
-#homeContentsGroup [data-subcategory] > vbox menulist {
-  margin-top: 0;
-  margin-bottom: 0;
-}
-`;
-
 this.AboutPreferences = class AboutPreferences {
   init() {
     Services.obs.addObserver(this, PREFERENCES_LOADED_EVENT);
@@ -145,15 +124,6 @@ this.AboutPreferences = class AboutPreferences {
       // Prevent changing the UI if the preference can't be changed
       element.disabled = Preferences.get(fullPref).locked;
     };
-
-    // Add in custom styling
-    document.insertBefore(
-      document.createProcessingInstruction(
-        "xml-stylesheet",
-        `href="data:text/css,${encodeURIComponent(CUSTOM_CSS)}" type="text/css"`
-      ),
-      document.documentElement
-    );
 
     // Insert a new group immediately after the homepage one
     const homeGroup = document.getElementById("homepageGroup");
@@ -260,9 +230,7 @@ this.AboutPreferences = class AboutPreferences {
       }
 
       const subChecks = [];
-      const fullName = `browser.newtabpage.activity-stream.${
-        sectionData.pref.feed
-      }`;
+      const fullName = `browser.newtabpage.activity-stream.${sectionData.pref.feed}`;
       const pref = Preferences.get(fullName);
 
       // Add a checkbox pref for any nested preferences

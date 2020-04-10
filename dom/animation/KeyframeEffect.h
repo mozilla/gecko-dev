@@ -39,7 +39,6 @@ class nsIFrame;
 namespace mozilla {
 
 class AnimValuesStyleRule;
-enum class PseudoStyleType : uint8_t;
 class ErrorResult;
 struct AnimationRule;
 struct TimingParams;
@@ -48,9 +47,7 @@ class ComputedStyle;
 class PresShell;
 
 namespace dom {
-class ElementOrCSSPseudoElement;
 class GlobalObject;
-class OwningElementOrCSSPseudoElement;
 class UnrestrictedDoubleOrKeyframeAnimationOptions;
 class UnrestrictedDoubleOrKeyframeEffectOptions;
 enum class IterationCompositeOperation : uint8_t;
@@ -104,8 +101,6 @@ struct AnimationProperty {
                              const dom::Element* aElement);
 };
 
-struct ElementPropertyTransition;
-
 namespace dom {
 
 class Animation;
@@ -113,8 +108,7 @@ class Document;
 
 class KeyframeEffect : public AnimationEffect {
  public:
-  KeyframeEffect(Document* aDocument,
-                 const Maybe<OwningAnimationTarget>& aTarget,
+  KeyframeEffect(Document* aDocument, OwningAnimationTarget&& aTarget,
                  TimingParams&& aTiming, const KeyframeEffectParams& aOptions);
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -128,8 +122,7 @@ class KeyframeEffect : public AnimationEffect {
 
   // KeyframeEffect interface
   static already_AddRefed<KeyframeEffect> Constructor(
-      const GlobalObject& aGlobal,
-      const Nullable<ElementOrCSSPseudoElement>& aTarget,
+      const GlobalObject& aGlobal, Element* aTarget,
       JS::Handle<JSObject*> aKeyframes,
       const UnrestrictedDoubleOrKeyframeEffectOptions& aOptions,
       ErrorResult& aRv);
@@ -141,28 +134,37 @@ class KeyframeEffect : public AnimationEffect {
   // for use with for Animatable.animate.
   // Not exposed to content.
   static already_AddRefed<KeyframeEffect> Constructor(
-      const GlobalObject& aGlobal,
-      const Nullable<ElementOrCSSPseudoElement>& aTarget,
+      const GlobalObject& aGlobal, Element* aTarget,
       JS::Handle<JSObject*> aKeyframes,
       const UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions,
       ErrorResult& aRv);
 
-  void GetTarget(Nullable<OwningElementOrCSSPseudoElement>& aRv) const;
-  Maybe<NonOwningAnimationTarget> GetTarget() const {
-    Maybe<NonOwningAnimationTarget> result;
-    if (mTarget) {
-      result.emplace(*mTarget);
-    }
-    return result;
+  already_AddRefed<Element> GetTarget() const {
+    RefPtr<Element> ret = mTarget.mElement;
+    return ret.forget();
   }
-  // This method calls GetTargetComputedStyle which is not safe to use when
+  NonOwningAnimationTarget GetAnimationTarget() const {
+    return NonOwningAnimationTarget(mTarget.mElement, mTarget.mPseudoType);
+  }
+  void GetPseudoElement(nsAString& aRetVal) const {
+    if (mTarget.mPseudoType == PseudoStyleType::NotPseudo) {
+      SetDOMStringToNull(aRetVal);
+      return;
+    }
+    aRetVal = nsCSSPseudoElements::PseudoTypeAsString(mTarget.mPseudoType);
+  }
+
+  // These two setters call GetTargetComputedStyle which is not safe to use when
   // we are in the middle of updating style. If we need to use this when
   // updating style, we should pass the ComputedStyle into this method and use
   // that to update the properties rather than calling
   // GetComputedStyle.
-  void SetTarget(const Nullable<ElementOrCSSPseudoElement>& aTarget);
+  void SetTarget(Element* aTarget) {
+    UpdateTarget(aTarget, mTarget.mPseudoType);
+  }
+  void SetPseudoElement(const nsAString& aPseudoElement, ErrorResult& aRv);
 
-  void GetKeyframes(JSContext*& aCx, nsTArray<JSObject*>& aResult,
+  void GetKeyframes(JSContext* aCx, nsTArray<JSObject*>& aResult,
                     ErrorResult& aRv) const;
   void GetProperties(nsTArray<AnimationPropertyDetails>& aProperties,
                      ErrorResult& aRv) const;
@@ -178,10 +180,14 @@ class KeyframeEffect : public AnimationEffect {
   void NotifyAnimationTimingUpdated(PostRestyleMode aPostRestyle);
   void RequestRestyle(EffectCompositor::RestyleType aRestyleType);
   void SetAnimation(Animation* aAnimation) override;
-  void SetKeyframes(JSContext* aContext, JS::Handle<JSObject*> aKeyframes,
-                    ErrorResult& aRv);
+  virtual void SetKeyframes(JSContext* aContext,
+                            JS::Handle<JSObject*> aKeyframes, ErrorResult& aRv);
   void SetKeyframes(nsTArray<Keyframe>&& aKeyframes,
                     const ComputedStyle* aStyle);
+
+  // Replace the start value of the transition. This is used for updating
+  // transitions running on the compositor.
+  void ReplaceTransitionStartValue(AnimationValue&& aStartValue);
 
   // Returns the set of properties affected by this effect regardless of
   // whether any of these properties is overridden by an !important rule.
@@ -279,7 +285,7 @@ class KeyframeEffect : public AnimationEffect {
       AnimationPerformanceWarning::Type& aPerformanceWarning /* out */) const;
   bool HasGeometricProperties() const;
   bool AffectsGeometry() const override {
-    return GetTarget() && HasGeometricProperties();
+    return mTarget && HasGeometricProperties();
   }
 
   Document* GetRenderedDocument() const;
@@ -343,16 +349,16 @@ class KeyframeEffect : public AnimationEffect {
       const Nullable<double>& aProgressOnLastCompose,
       uint64_t aCurrentIterationOnLastCompose);
 
+  bool HasOpacityChange() const {
+    return mCumulativeChangeHint & nsChangeHint_UpdateOpacityLayer;
+  }
+
  protected:
   ~KeyframeEffect() override = default;
 
-  static Maybe<OwningAnimationTarget> ConvertTarget(
-      const Nullable<ElementOrCSSPseudoElement>& aTarget);
-
   template <class OptionsType>
   static already_AddRefed<KeyframeEffect> ConstructKeyframeEffect(
-      const GlobalObject& aGlobal,
-      const Nullable<ElementOrCSSPseudoElement>& aTarget,
+      const GlobalObject& aGlobal, Element* aTarget,
       JS::Handle<JSObject*> aKeyframes, const OptionsType& aOptions,
       ErrorResult& aRv);
 
@@ -360,6 +366,9 @@ class KeyframeEffect : public AnimationEffect {
   // to resolve specified values. This function also applies paced spacing if
   // needed.
   nsTArray<AnimationProperty> BuildProperties(const ComputedStyle* aStyle);
+
+  // Helper for SetTarget() and SetPseudoElement().
+  void UpdateTarget(Element* aElement, PseudoStyleType aPseudoType);
 
   // This effect is registered with its target element so long as:
   //
@@ -399,7 +408,7 @@ class KeyframeEffect : public AnimationEffect {
                        const ComputedStyle* aComputedValues,
                        RefPtr<ComputedStyle>& aBaseComputedValues);
 
-  Maybe<OwningAnimationTarget> mTarget;
+  OwningAnimationTarget mTarget;
 
   KeyframeEffectParams mEffectOptions;
 
@@ -433,6 +442,9 @@ class KeyframeEffect : public AnimationEffect {
   // our style context changes we know to update the cumulative change hint even
   // if our properties haven't changed.
   bool mNeedsStyleData = false;
+
+  // True if there is any current-color for background color in this keyframes.
+  bool mHasCurrentColor = false;
 
   // The non-animated values for properties in this effect that contain at
   // least one animation value that is composited with the underlying value

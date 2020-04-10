@@ -27,7 +27,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/TaskQueue.h"
-#include "nsAutoPtr.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsContentTypeParser.h"
 #include "nsContentUtils.h"
@@ -1240,7 +1239,7 @@ class MediaRecorder::Session : public PrincipalChangeObserver<MediaStreamTrack>,
 
   void MediaEncoderShutdown() {
     MOZ_ASSERT(mEncoderThread->IsCurrentThreadIn());
-    MOZ_ASSERT(mEncoder->IsShutdown());
+    mEncoder->AssertShutdownCalled();
 
     mMainThread->Dispatch(NewRunnableMethod<nsresult>(
         "MediaRecorder::Session::MediaEncoderShutdown->DoSessionEndTask", this,
@@ -1800,9 +1799,8 @@ already_AddRefed<MediaRecorder> MediaRecorder::Constructor(
   // Allow recording from audio node only when pref is on.
   if (!Preferences::GetBool("media.recorder.audio_node.enabled", false)) {
     // Pretending that this constructor is not defined.
-    NS_NAMED_LITERAL_STRING(argStr, "Argument 1 of MediaRecorder.constructor");
-    NS_NAMED_LITERAL_STRING(typeStr, "MediaStream");
-    aRv.ThrowTypeError<MSG_DOES_NOT_IMPLEMENT_INTERFACE>(argStr, typeStr);
+    aRv.ThrowTypeError<MSG_DOES_NOT_IMPLEMENT_INTERFACE>("Argument 1",
+                                                         "MediaStream");
     return nullptr;
   }
 
@@ -1970,7 +1968,7 @@ void MediaRecorder::NotifyError(nsresult aRv) {
                               "mSecurityDomException was not initialized"));
         mSecurityDomException = DOMException::Create(NS_ERROR_DOM_SECURITY_ERR);
       }
-      init.mError = mSecurityDomException.forget();
+      init.mError = std::move(mSecurityDomException);
       break;
     default:
       if (!mUnknownDomException) {
@@ -1981,7 +1979,7 @@ void MediaRecorder::NotifyError(nsresult aRv) {
       LOG(LogLevel::Debug, ("MediaRecorder.NotifyError: "
                             "mUnknownDomException being fired for aRv: %X",
                             uint32_t(aRv)));
-      init.mError = mUnknownDomException.forget();
+      init.mError = std::move(mUnknownDomException);
   }
 
   RefPtr<MediaRecorderErrorEvent> event = MediaRecorderErrorEvent::Constructor(

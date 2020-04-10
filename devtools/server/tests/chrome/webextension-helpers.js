@@ -8,8 +8,8 @@
 const { require, loader } = ChromeUtils.import(
   "resource://devtools/shared/Loader.jsm"
 );
-const { DebuggerClient } = require("devtools/shared/client/debugger-client");
-const { DebuggerServer } = require("devtools/server/debugger-server");
+const { DevToolsClient } = require("devtools/shared/client/devtools-client");
+const { DevToolsServer } = require("devtools/server/devtools-server");
 
 const {
   AddonTestUtils,
@@ -24,12 +24,12 @@ loader.lazyImporter(
   "resource://gre/modules/ExtensionParent.jsm"
 );
 
-// Initialize a minimal DebuggerServer and connect to the webextension addon actor.
-if (!DebuggerServer.initialized) {
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
+// Initialize a minimal DevToolsServer and connect to the webextension addon actor.
+if (!DevToolsServer.initialized) {
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
   SimpleTest.registerCleanupFunction(function() {
-    DebuggerServer.destroy();
+    DevToolsServer.destroy();
   });
 }
 
@@ -98,8 +98,8 @@ function collectFrameUpdates({ client }, matchFn) {
 }
 
 async function attachAddon(addonId) {
-  const transport = DebuggerServer.connectPipe();
-  const client = new DebuggerClient(transport);
+  const transport = DevToolsServer.connectPipe();
+  const client = new DevToolsClient(transport);
 
   await client.connect();
 

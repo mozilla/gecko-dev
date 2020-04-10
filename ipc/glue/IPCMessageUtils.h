@@ -75,8 +75,7 @@ struct null_t {
 };
 
 struct SerializedStructuredCloneBuffer final {
-  SerializedStructuredCloneBuffer()
-      : data(JS::StructuredCloneScope::Unassigned) {}
+  SerializedStructuredCloneBuffer() = default;
 
   SerializedStructuredCloneBuffer(SerializedStructuredCloneBuffer&&) = default;
   SerializedStructuredCloneBuffer& operator=(
@@ -95,7 +94,7 @@ struct SerializedStructuredCloneBuffer final {
     return false;
   }
 
-  JSStructuredCloneData data;
+  JSStructuredCloneData data{JS::StructuredCloneScope::Unassigned};
 };
 
 }  // namespace mozilla
@@ -1215,13 +1214,11 @@ struct ParamTraits<mozilla::dom::Optional<T>> {
 
 struct CrossOriginOpenerPolicyValidator {
   static bool IsLegalValue(nsILoadInfo::CrossOriginOpenerPolicy e) {
-    return e == nsILoadInfo::OPENER_POLICY_NULL ||
+    return e == nsILoadInfo::OPENER_POLICY_UNSAFE_NONE ||
            e == nsILoadInfo::OPENER_POLICY_SAME_ORIGIN ||
-           e == nsILoadInfo::OPENER_POLICY_SAME_SITE ||
+           e == nsILoadInfo::OPENER_POLICY_SAME_ORIGIN_ALLOW_POPUPS ||
            e == nsILoadInfo::
-                    OPENER_POLICY_SAME_ORIGIN_EMBEDDER_POLICY_REQUIRE_CORP ||
-           e == nsILoadInfo::OPENER_POLICY_SAME_ORIGIN_ALLOW_OUTGOING ||
-           e == nsILoadInfo::OPENER_POLICY_SAME_SITE_ALLOW_OUTGOING;
+                    OPENER_POLICY_SAME_ORIGIN_EMBEDDER_POLICY_REQUIRE_CORP;
   }
 };
 

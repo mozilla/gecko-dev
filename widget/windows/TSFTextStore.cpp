@@ -21,6 +21,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEvents.h"
+#include "mozilla/ToString.h"
 #include "mozilla/WindowsVersion.h"
 #include "nsWindow.h"
 #include "nsPrintfCString.h"
@@ -3301,22 +3302,22 @@ static bool GetColor(const TF_DA_COLOR& aTSFColor, nscolor& aResult) {
 }
 
 static bool GetLineStyle(TF_DA_LINESTYLE aTSFLineStyle,
-                         uint8_t& aTextRangeLineStyle) {
+                         TextRangeStyle::LineStyle& aTextRangeLineStyle) {
   switch (aTSFLineStyle) {
     case TF_LS_NONE:
-      aTextRangeLineStyle = TextRangeStyle::LINESTYLE_NONE;
+      aTextRangeLineStyle = TextRangeStyle::LineStyle::None;
       return true;
     case TF_LS_SOLID:
-      aTextRangeLineStyle = TextRangeStyle::LINESTYLE_SOLID;
+      aTextRangeLineStyle = TextRangeStyle::LineStyle::Solid;
       return true;
     case TF_LS_DOT:
-      aTextRangeLineStyle = TextRangeStyle::LINESTYLE_DOTTED;
+      aTextRangeLineStyle = TextRangeStyle::LineStyle::Dotted;
       return true;
     case TF_LS_DASH:
-      aTextRangeLineStyle = TextRangeStyle::LINESTYLE_DASHED;
+      aTextRangeLineStyle = TextRangeStyle::LineStyle::Dashed;
       return true;
     case TF_LS_SQUIGGLE:
-      aTextRangeLineStyle = TextRangeStyle::LINESTYLE_WAVY;
+      aTextRangeLineStyle = TextRangeStyle::LineStyle::Wavy;
       return true;
     default:
       return false;
@@ -4728,25 +4729,28 @@ bool TSFTextStore::MaybeHackNoErrorLayoutBugs(LONG& aACPStart, LONG& aACPEnd) {
     // mode on Win7.  So, we should never return TS_E_NOLAYOUT to MS IME for
     // Japanese.
     case TextInputProcessorID::eMicrosoftIMEForJapanese:
-      if (sAlllowToStopHackingIfFine) {
-        return false;
-      }
       // Basically, MS-IME tries to retrieve whole composition string rect
       // at deciding suggest window immediately after unlocking the document.
       // However, in e10s mode, the content hasn't updated yet in most cases.
       // Therefore, if the first character at the retrieving range rect is
       // available, we should use it as the result.
+      // Note that according to bug 1609675, MS-IME for Japanese itself does
+      // not handle TS_E_NOLAYOUT correctly at least on Build 18363.657 (1909).
       if (TSFPrefs::DoNotReturnNoLayoutErrorToMSJapaneseIMEAtFirstChar() &&
           aACPStart < aACPEnd) {
         aACPEnd = aACPStart;
+        break;
+      }
+      if (sAlllowToStopHackingIfFine) {
+        return false;
       }
       // Although, the condition is not clear, MS-IME sometimes retrieves the
       // caret rect immediately after modifying the composition string but
       // before unlocking the document.  In such case, we should return the
       // nearest character rect.
-      else if (TSFPrefs::DoNotReturnNoLayoutErrorToMSJapaneseIMEAtCaret() &&
-               aACPStart == aACPEnd && selectionForTSF.IsCollapsed() &&
-               selectionForTSF.EndOffset() == aACPEnd) {
+      if (TSFPrefs::DoNotReturnNoLayoutErrorToMSJapaneseIMEAtCaret() &&
+          aACPStart == aACPEnd && selectionForTSF.IsCollapsed() &&
+          selectionForTSF.EndOffset() == aACPEnd) {
         int32_t minOffsetOfLayoutChanged =
             static_cast<int32_t>(mContentForTSF.MinOffsetOfLayoutChanged());
         aACPEnd = aACPStart = std::max(minOffsetOfLayoutChanged - 1, 0);
@@ -6004,20 +6008,12 @@ nsresult TSFTextStore::OnTextChangeInternal(
 
   MOZ_LOG(sTextStoreLog, LogLevel::Debug,
           ("0x%p   TSFTextStore::OnTextChangeInternal(aIMENotification={ "
-           "mMessage=0x%08X, mTextChangeData={ mStartOffset=%lu, "
-           "mRemovedEndOffset=%lu, mAddedEndOffset=%lu, "
-           "mCausedOnlyByComposition=%s, "
-           "mIncludingChangesDuringComposition=%s, "
-           "mIncludingChangesWithoutComposition=%s }), "
+           "mMessage=0x%08X, mTextChangeData=%s }), "
            "mDestroyed=%s, mSink=0x%p, mSinkMask=%s, "
            "mComposition.IsComposing()=%s",
-           this, aIMENotification.mMessage, textChangeData.mStartOffset,
-           textChangeData.mRemovedEndOffset, textChangeData.mAddedEndOffset,
-           GetBoolName(textChangeData.mCausedOnlyByComposition),
-           GetBoolName(textChangeData.mIncludingChangesDuringComposition),
-           GetBoolName(textChangeData.mIncludingChangesWithoutComposition),
-           GetBoolName(mDestroyed), mSink.get(),
-           GetSinkMaskNameStr(mSinkMask).get(),
+           this, aIMENotification.mMessage,
+           mozilla::ToString(textChangeData).c_str(), GetBoolName(mDestroyed),
+           mSink.get(), GetSinkMaskNameStr(mSinkMask).get(),
            GetBoolName(mComposition.IsComposing())));
 
   if (mDestroyed) {
@@ -6104,18 +6100,10 @@ nsresult TSFTextStore::OnSelectionChangeInternal(
       aIMENotification.mSelectionChangeData;
   MOZ_LOG(sTextStoreLog, LogLevel::Debug,
           ("0x%p   TSFTextStore::OnSelectionChangeInternal("
-           "aIMENotification={ mSelectionChangeData={ mOffset=%lu, "
-           "Length()=%lu, mReversed=%s, mWritingMode=%s, "
-           "mCausedByComposition=%s, mCausedBySelectionEvent=%s, "
-           "mOccurredDuringComposition=%s } }), mDestroyed=%s, "
+           "aIMENotification={ mSelectionChangeData=%s }), mDestroyed=%s, "
            "mSink=0x%p, mSinkMask=%s, mIsRecordingActionsWithoutLock=%s, "
            "mComposition.IsComposing()=%s",
-           this, selectionChangeData.mOffset, selectionChangeData.Length(),
-           GetBoolName(selectionChangeData.mReversed),
-           GetWritingModeName(selectionChangeData.GetWritingMode()).get(),
-           GetBoolName(selectionChangeData.mCausedByComposition),
-           GetBoolName(selectionChangeData.mCausedBySelectionEvent),
-           GetBoolName(selectionChangeData.mOccurredDuringComposition),
+           this, mozilla::ToString(selectionChangeData).c_str(),
            GetBoolName(mDestroyed), mSink.get(),
            GetSinkMaskNameStr(mSinkMask).get(),
            GetBoolName(mIsRecordingActionsWithoutLock),

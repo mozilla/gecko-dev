@@ -90,8 +90,10 @@ UNIFIED_SOURCES += [
     'HttpBaseChannel.cpp',
     'HttpChannelChild.cpp',
     'HttpChannelParent.cpp',
+    'HttpConnectionBase.cpp',
     'HttpConnectionMgrChild.cpp',
     'HttpConnectionMgrParent.cpp',
+    'HttpConnectionUDP.cpp',
     'HttpInfo.cpp',
     'HttpTrafficAnalyzer.cpp',
     'HttpTransactionChild.cpp',
@@ -120,6 +122,7 @@ UNIFIED_SOURCES += [
     'NullHttpTransaction.cpp',
     'ParentChannelListener.cpp',
     'QuicSocketControl.cpp',
+    'TRRServiceChannel.cpp',
     'TunnelUtils.cpp',
 ]
 

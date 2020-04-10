@@ -11,6 +11,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   PromiseUtils: "resource://gre/modules/PromiseUtils.jsm",
   RemoteSettings: "resource://services-settings/remote-settings.js",
   RemoteSettingsClient: "resource://services-settings/RemoteSettingsClient.jsm",
+  SearchEngineSelector: "resource://gre/modules/SearchEngineSelector.jsm",
   SearchTestUtils: "resource://testing-common/SearchTestUtils.jsm",
   Services: "resource://gre/modules/Services.jsm",
   setTimeout: "resource://gre/modules/Timer.jsm",
@@ -42,17 +43,6 @@ var XULRuntime = Cc["@mozilla.org/xre/runtime;1"].getService(Ci.nsIXULRuntime);
 // Expand the amount of information available in error logs
 Services.prefs.setBoolPref("browser.search.log", true);
 
-// The geo-specific search tests assume certain prefs are already setup, which
-// might not be true when run in comm-central etc.  So create them here.
-Services.prefs.setBoolPref("browser.search.geoSpecificDefaults", true);
-Services.prefs.setIntPref("browser.search.geoip.timeout", 3000);
-// But still disable geoip lookups - tests that need it will re-configure this.
-Services.prefs.setCharPref("browser.search.geoip.url", "");
-// Also disable region defaults - tests using it will also re-configure it.
-Services.prefs
-  .getDefaultBranch(SearchUtils.BROWSER_SEARCH_PREF)
-  .setCharPref("geoSpecificDefaults.url", "");
-
 XPCOMUtils.defineLazyPreferenceGetter(
   this,
   "gModernConfig",
@@ -68,6 +58,12 @@ AddonTestUtils.createAppInfo(
   "42"
 );
 
+// Allow telemetry probes which may otherwise be disabled for some applications (e.g. Thunderbird)
+Services.prefs.setBoolPref(
+  "toolkit.telemetry.testing.overrideProductsCheck",
+  true
+);
+
 /**
  * Load engines from test data located in particular folders.
  *
@@ -75,8 +71,17 @@ AddonTestUtils.createAppInfo(
  *   The folder name to use.
  * @param {string} [subFolder]
  *   The subfolder to use, if any.
+ * @param {array} [config]
+ *   An array which contains the configuration to set.
+ * @returns {object|null}
+ *   If this is the modern configuration, returns a stub for the method
+ *   that the configuration is obtained from.
  */
-async function useTestEngines(folder = "data", subFolder = null) {
+async function useTestEngines(
+  folder = "data",
+  subFolder = null,
+  config = null
+) {
   let url = `resource://test/${folder}/`;
   if (subFolder) {
     url += `${subFolder}/`;
@@ -85,6 +90,22 @@ async function useTestEngines(folder = "data", subFolder = null) {
     .getProtocolHandler("resource")
     .QueryInterface(Ci.nsIResProtocolHandler);
   resProt.setSubstitution("search-extensions", Services.io.newURI(url));
+  if (gModernConfig) {
+    if (config) {
+      return sinon
+        .stub(SearchEngineSelector.prototype, "getEngineConfiguration")
+        .returns(config);
+    }
+    let chan = NetUtil.newChannel({
+      uri: "resource://search-extensions/engines.json",
+      loadUsingSystemPrincipal: true,
+    });
+    let json = parseJsonFromStream(chan.open());
+    return sinon
+      .stub(SearchEngineSelector.prototype, "getEngineConfiguration")
+      .returns(json.data);
+  }
+  return null;
 }
 
 async function promiseCacheData() {
@@ -412,7 +433,7 @@ async function withGeoServer(
   let defaultBranch = Services.prefs.getDefaultBranch(
     SearchUtils.BROWSER_SEARCH_PREF
   );
-  let originalURL = defaultBranch.getCharPref(PREF_SEARCH_URL);
+  let originalURL = defaultBranch.getCharPref(PREF_SEARCH_URL, "");
   defaultBranch.setCharPref(PREF_SEARCH_URL, url);
   // Set a bogus user value so that running the test ensures we ignore it.
   Services.prefs.setCharPref(
@@ -423,7 +444,7 @@ async function withGeoServer(
   let geoLookupUrl = geoLookupData
     ? `http://localhost:${srv.identity.primaryPort}/lookup_geoip`
     : 'data:application/json,{"country_code": "FR"}';
-  Services.prefs.setCharPref("browser.search.geoip.url", geoLookupUrl);
+  Services.prefs.setCharPref("geo.provider-country.network.url", geoLookupUrl);
 
   try {
     await testFn(gRequests);
@@ -433,7 +454,7 @@ async function withGeoServer(
     Services.prefs.clearUserPref(
       SearchUtils.BROWSER_SEARCH_PREF + PREF_SEARCH_URL
     );
-    Services.prefs.clearUserPref("browser.search.geoip.url");
+    Services.prefs.clearUserPref("geo.provider-country.network.url");
   }
 }
 

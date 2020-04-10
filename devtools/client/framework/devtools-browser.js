@@ -31,14 +31,14 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "DebuggerServer",
-  "devtools/server/debugger-server",
+  "DevToolsServer",
+  "devtools/server/devtools-server",
   true
 );
 loader.lazyRequireGetter(
   this,
-  "DebuggerClient",
-  "devtools/shared/client/debugger-client",
+  "DevToolsClient",
+  "devtools/shared/client/devtools-client",
   true
 );
 loader.lazyRequireGetter(
@@ -358,18 +358,19 @@ var gDevToolsBrowser = (exports.gDevToolsBrowser = {
   },
 
   async _getContentProcessTarget(processId) {
-    // Create a DebuggerServer in order to connect locally to it
-    DebuggerServer.init();
-    DebuggerServer.registerAllActors();
-    DebuggerServer.allowChromeProcess = true;
+    // Create a DevToolsServer in order to connect locally to it
+    DevToolsServer.init();
+    DevToolsServer.registerAllActors();
+    DevToolsServer.allowChromeProcess = true;
 
-    const transport = DebuggerServer.connectPipe();
-    const client = new DebuggerClient(transport);
+    const transport = DevToolsServer.connectPipe();
+    const client = new DevToolsClient(transport);
 
     await client.connect();
-    const target = await client.mainRoot.getProcess(processId);
+    const targetDescriptor = await client.mainRoot.getProcess(processId);
+    const target = await targetDescriptor.getTarget();
     // Ensure closing the connection in order to cleanup
-    // the debugger client and also the server created in the
+    // the devtools client and also the server created in the
     // content process
     target.on("close", () => {
       client.close();
@@ -778,7 +779,7 @@ var gDevToolsBrowser = (exports.gDevToolsBrowser = {
     }
 
     // Remove scripts loaded in content process to support the Browser Content Toolbox.
-    DebuggerServer.removeContentServerScript();
+    DevToolsServer.removeContentServerScript();
 
     gDevTools.destroy({ shuttingDown });
   },

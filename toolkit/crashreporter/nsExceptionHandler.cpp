@@ -102,7 +102,6 @@ using mozilla::InjectCrashRunnable;
 
 #include "mozilla/IOInterposer.h"
 #include "mozilla/mozalloc_oom.h"
-#include "mozilla/recordreplay/ParentIPC.h"
 
 #if defined(XP_MACOSX)
 CFStringRef reporterClientAppID = CFSTR("org.mozilla.crashreporter");
@@ -201,9 +200,6 @@ static XP_CHAR* libraryPath;  // Path where the NSS library is
 
 // Where crash events should go.
 static XP_CHAR* eventsDirectory;
-
-// The current telemetry session ID to write to the event file
-static char* currentSessionId = nullptr;
 
 // If this is false, we don't launch the crash reporter
 static bool doReport = true;
@@ -319,7 +315,7 @@ class ReportInjectedCrash : public Runnable {
 // If annotations are attempted before the crash reporter is enabled,
 // they queue up here.
 class DelayedNote;
-nsTArray<nsAutoPtr<DelayedNote> >* gDelayedAnnotations;
+nsTArray<UniquePtr<DelayedNote> >* gDelayedAnnotations;
 
 #if defined(XP_WIN)
 // the following are used to prevent other DLLs reverting the last chance
@@ -1316,10 +1312,6 @@ static void WriteAnnotationsForMainProcessCrash(PlatformWriter& pw,
     if (!value.IsEmpty()) {
       writer.Write(key, value.get(), value.Length());
     }
-  }
-
-  if (currentSessionId) {
-    writer.Write(Annotation::TelemetrySessionId, currentSessionId);
   }
 
   char crashTimeString[32];
@@ -2328,11 +2320,6 @@ nsresult UnsetExceptionHandler() {
     eventsDirectory = nullptr;
   }
 
-  if (currentSessionId) {
-    free(currentSessionId);
-    currentSessionId = nullptr;
-  }
-
   if (memoryReportPath) {
     free(memoryReportPath);
     memoryReportPath = nullptr;
@@ -2378,14 +2365,14 @@ class DelayedNote {
 
 static void EnqueueDelayedNote(DelayedNote* aNote) {
   if (!gDelayedAnnotations) {
-    gDelayedAnnotations = new nsTArray<nsAutoPtr<DelayedNote> >();
+    gDelayedAnnotations = new nsTArray<UniquePtr<DelayedNote> >();
   }
-  gDelayedAnnotations->AppendElement(aNote);
+  gDelayedAnnotations->AppendElement(WrapUnique(aNote));
 }
 
 void NotifyCrashReporterClientCreated() {
   if (gDelayedAnnotations) {
-    for (nsAutoPtr<DelayedNote>& note : *gDelayedAnnotations) {
+    for (const auto& note : *gDelayedAnnotations) {
       note->Run();
     }
     delete gDelayedAnnotations;
@@ -2994,16 +2981,6 @@ nsresult GetDefaultMemoryReportFile(nsIFile** aFile) {
   return NS_OK;
 }
 
-void SetTelemetrySessionId(const nsACString& id) {
-  if (!gExceptionHandler) {
-    return;
-  }
-  if (currentSessionId) {
-    free(currentSessionId);
-  }
-  currentSessionId = ToNewCString(id);
-}
-
 static void FindPendingDir() {
   if (pendingDirectory) return;
 
@@ -3229,12 +3206,6 @@ static void PopulateContentProcessAnnotations(AnnotationTable& aAnnotations,
     MutexAutoLock lock(*crashReporterAPILock);
     MergeContentCrashAnnotations(aAnnotations, crashReporterAPIData_Table);
   }
-
-  if (currentSessionId) {
-    aAnnotations[Annotation::TelemetrySessionId] =
-        nsDependentCString(currentSessionId);
-  }
-
   AddCommonAnnotations(aAnnotations);
   ReadExceptionTimeAnnotations(aAnnotations, aPid);
 }
@@ -3320,24 +3291,6 @@ static void OnChildProcessDumpRequested(void* aContext,
   }
 }
 
-#ifdef XP_MACOSX
-
-// Middleman processes do not have their own crash generation server.
-// Any crashes in the middleman's children are forwarded to the UI process.
-static bool MaybeForwardCrashesIfMiddleman() {
-  if (recordreplay::IsMiddleman()) {
-    childCrashNotifyPipe =
-        mozilla::Smprintf(
-            "gecko-crash-server-pipe.%i",
-            static_cast<int>(recordreplay::parent::ParentProcessId()))
-            .release();
-    return true;
-  }
-  return false;
-}
-
-#endif  // XP_MACOSX
-
 static bool OOPInitialized() { return pidToMinidump != nullptr; }
 
 void OOPInit() {
@@ -3399,10 +3352,6 @@ void OOPInit() {
       true, &dumpPath);
 
 #elif defined(XP_MACOSX)
-  if (MaybeForwardCrashesIfMiddleman()) {
-    return;
-  }
-
   childCrashNotifyPipe = mozilla::Smprintf("gecko-crash-server-pipe.%i",
                                            static_cast<int>(getpid()))
                              .release();
@@ -3635,6 +3584,22 @@ bool SetRemoteExceptionHandler(const nsACString& crashPipe) {
   return gExceptionHandler->IsOutOfProcess();
 }
 #endif  // XP_WIN
+
+void GetAnnotation(uint32_t childPid, Annotation annotation,
+                   nsACString& outStr) {
+  if (!GetEnabled()) {
+    return;
+  }
+
+  MutexAutoLock lock(*dumpMapLock);
+
+  ChildProcessData* pd = pidToMinidump->GetEntry(childPid);
+  if (!pd) {
+    return;
+  }
+
+  outStr = (*pd->annotations)[annotation];
+}
 
 bool TakeMinidumpForChild(uint32_t childPid, nsIFile** dump,
                           AnnotationTable& aAnnotations, uint32_t* aSequence) {

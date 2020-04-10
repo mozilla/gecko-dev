@@ -31,7 +31,7 @@ use crate::prim_store::{register_prim_chase_id, get_line_decoration_size};
 use crate::prim_store::{SpaceSnapper};
 use crate::prim_store::backdrop::Backdrop;
 use crate::prim_store::borders::{ImageBorder, NormalBorderPrim};
-use crate::prim_store::gradient::{GradientStopKey, LinearGradient, RadialGradient, RadialGradientParams};
+use crate::prim_store::gradient::{GradientStopKey, LinearGradient, RadialGradient, RadialGradientParams, ConicGradient, ConicGradientParams};
 use crate::prim_store::image::{Image, YuvImage};
 use crate::prim_store::line_dec::{LineDecoration, LineDecorationCacheKey};
 use crate::prim_store::picture::{Picture, PictureCompositeKey, PictureKey};
@@ -41,6 +41,7 @@ use crate::resource_cache::{FontInstanceMap, ImageRequest};
 use crate::scene::{Scene, BuiltScene, SceneStats, StackingContextHelpers};
 use crate::scene_builder_thread::Interners;
 use crate::spatial_node::{StickyFrameInfo, ScrollFrameKind};
+use euclid::approxeq::ApproxEq;
 use std::{f32, mem, usize, ops};
 use std::collections::vec_deque::VecDeque;
 use std::sync::Arc;
@@ -459,9 +460,8 @@ impl<'a> SceneBuilder<'a> {
             device_pixel_scale,
         );
 
-        let cache = &root_pipeline.display_list_cache;
         builder.build_items(
-            &mut root_pipeline.display_list.iter_with_cache(cache),
+            &mut root_pipeline.display_list.iter(),
             root_pipeline.pipeline_id,
             true,
         );
@@ -687,6 +687,7 @@ impl<'a> SceneBuilder<'a> {
                 &mut self.prim_store,
                 &mut self.clip_store,
                 &mut self.picture_cache_spatial_nodes,
+                &self.config,
             );
 
             main_prim_list.add_prim(
@@ -1001,9 +1002,8 @@ impl<'a> SceneBuilder<'a> {
         self.rf_mapper.push_scope();
         self.iframe_depth += 1;
 
-        let cache = &pipeline.display_list_cache;
         self.build_items(
-            &mut pipeline.display_list.iter_with_cache(cache),
+            &mut pipeline.display_list.iter(),
             pipeline.pipeline_id,
             true,
         );
@@ -1216,7 +1216,7 @@ impl<'a> SceneBuilder<'a> {
                 self.add_solid_rectangle(
                     clip_and_scroll,
                     &layout,
-                    ColorF::TRANSPARENT,
+                    PropertyBinding::Value(ColorF::TRANSPARENT),
                 );
             }
             DisplayItem::ClearRectangle(ref info) => {
@@ -1297,6 +1297,39 @@ impl<'a> SceneBuilder<'a> {
                     info.gradient.start_offset * info.gradient.radius.width,
                     info.gradient.end_offset * info.gradient.radius.width,
                     info.gradient.radius.width / info.gradient.radius.height,
+                    item.gradient_stops(),
+                    info.gradient.extend_mode,
+                    tile_size,
+                    info.tile_spacing,
+                    None,
+                );
+
+                self.add_nonshadowable_primitive(
+                    clip_and_scroll,
+                    &layout,
+                    Vec::new(),
+                    prim_key_kind,
+                );
+            }
+            DisplayItem::ConicGradient(ref info) => {
+                let (layout, unsnapped_rect, clip_and_scroll) = self.process_common_properties_with_bounds(
+                    &info.common,
+                    &info.bounds,
+                    apply_pipeline_clip,
+                );
+
+                let tile_size = process_repeat_size(
+                    &layout.rect,
+                    &unsnapped_rect,
+                    info.tile_size,
+                );
+
+                let prim_key_kind = self.create_conic_gradient_prim(
+                    &layout,
+                    info.gradient.center,
+                    info.gradient.angle,
+                    info.gradient.start_offset,
+                    info.gradient.end_offset,
                     item.gradient_stops(),
                     info.gradient.extend_mode,
                     tile_size,
@@ -2720,13 +2753,19 @@ impl<'a> SceneBuilder<'a> {
         &mut self,
         clip_and_scroll: ScrollNodeAndClipChain,
         info: &LayoutPrimitiveInfo,
-        color: ColorF,
+        color: PropertyBinding<ColorF>,
     ) {
-        if color.a == 0.0 {
-            // Don't add transparent rectangles to the draw list, but do consider them for hit
-            // testing. This allows specifying invisible hit testing areas.
-            self.add_primitive_to_hit_testing_list(info, clip_and_scroll);
-            return;
+        match color {
+            PropertyBinding::Value(value) => {
+                if value.a == 0.0 {
+                    // Don't add transparent rectangles to the draw list,
+                    // but do consider them for hit testing. This allows
+                    // specifying invisible hit testing areas.
+                    self.add_primitive_to_hit_testing_list(info, clip_and_scroll);
+                    return;
+                }
+            },
+            PropertyBinding::Binding(..) => {},
         }
 
         self.add_primitive(
@@ -2900,6 +2939,27 @@ impl<'a> SceneBuilder<'a> {
                             prim,
                         );
                     }
+                    NinePatchBorderSource::ConicGradient(gradient) => {
+                        let prim = self.create_conic_gradient_prim(
+                            &info,
+                            gradient.center,
+                            gradient.angle,
+                            gradient.start_offset,
+                            gradient.end_offset,
+                            gradient_stops,
+                            gradient.extend_mode,
+                            LayoutSize::new(border.height as f32, border.width as f32),
+                            LayoutSize::zero(),
+                            Some(Box::new(nine_patch)),
+                        );
+
+                        self.add_nonshadowable_primitive(
+                            clip_and_scroll,
+                            info,
+                            Vec::new(),
+                            prim,
+                        );
+                    }
                 };
             }
             BorderDetails::Normal(ref border) => {
@@ -3006,6 +3066,40 @@ impl<'a> SceneBuilder<'a> {
             extend_mode,
             center: center.into(),
             params,
+            stretch_size: stretch_size.into(),
+            tile_spacing: tile_spacing.into(),
+            nine_patch,
+            stops,
+        }
+    }
+
+    pub fn create_conic_gradient_prim(
+        &mut self,
+        info: &LayoutPrimitiveInfo,
+        center: LayoutPoint,
+        angle: f32,
+        start_offset: f32,
+        end_offset: f32,
+        stops: ItemRange<GradientStop>,
+        extend_mode: ExtendMode,
+        stretch_size: LayoutSize,
+        mut tile_spacing: LayoutSize,
+        nine_patch: Option<Box<NinePatchDescriptor>>,
+    ) -> ConicGradient {
+        let mut prim_rect = info.rect;
+        simplify_repeated_primitive(&stretch_size, &mut tile_spacing, &mut prim_rect);
+
+        let stops = stops.iter().map(|stop| {
+            GradientStopKey {
+                offset: stop.offset,
+                color: stop.color.into(),
+            }
+        }).collect();
+
+        ConicGradient {
+            extend_mode,
+            center: center.into(),
+            params: ConicGradientParams { angle, start_offset, end_offset },
             stretch_size: stretch_size.into(),
             tile_spacing: tile_spacing.into(),
             nine_patch,
@@ -3993,13 +4087,21 @@ fn process_repeat_size(
     unsnapped_rect: &LayoutRect,
     repeat_size: LayoutSize,
 ) -> LayoutSize {
+    // FIXME(aosmond): The tile size is calculated based on several parameters
+    // during display list building. It may produce a slightly different result
+    // than the bounds due to floating point error accumulation, even though in
+    // theory they should be the same. We do a fuzzy check here to paper over
+    // that. It may make more sense to push the original parameters into scene
+    // building and let it do a saner calculation with more information (e.g.
+    // the snapped values).
+    const EPSILON: f32 = 0.001;
     LayoutSize::new(
-        if repeat_size.width == unsnapped_rect.size.width {
+        if repeat_size.width.approx_eq_eps(&unsnapped_rect.size.width, &EPSILON) {
             snapped_rect.size.width
         } else {
             repeat_size.width
         },
-        if repeat_size.height == unsnapped_rect.size.height {
+        if repeat_size.height.approx_eq_eps(&unsnapped_rect.size.height, &EPSILON) {
             snapped_rect.size.height
         } else {
             repeat_size.height
@@ -4020,6 +4122,7 @@ fn create_tile_cache(
     prim_store: &mut PrimitiveStore,
     clip_store: &mut ClipStore,
     picture_cache_spatial_nodes: &mut FastHashSet<SpatialNodeIndex>,
+    frame_builder_config: &FrameBuilderConfig,
 ) -> PrimitiveInstance {
     // Add this spatial node to the list to check for complex transforms
     // at the start of a frame build.
@@ -4071,6 +4174,7 @@ fn create_tile_cache(
         background_color,
         shared_clips,
         parent_clip_chain_id,
+        frame_builder_config,
     ));
 
     let pic_index = prim_store.pictures.alloc().init(PicturePrimitive::new_image(

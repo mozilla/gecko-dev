@@ -275,7 +275,8 @@ typedef bool (*WriteStructuredCloneOp)(JSContext* cx,
  * To follow HTML5, the application must throw a DATA_CLONE_ERR DOMException
  * with error set to one of the JS_SCERR_* values.
  */
-typedef void (*StructuredCloneErrorOp)(JSContext* cx, uint32_t errorid);
+typedef void (*StructuredCloneErrorOp)(JSContext* cx, uint32_t errorid,
+                                       void* closure, const char* errorMessage);
 
 /**
  * This is called when JS_ReadStructuredClone receives a transferable object
@@ -329,6 +330,19 @@ typedef bool (*CanTransferStructuredCloneOp)(JSContext* cx,
                                              bool* sameProcessScopeRequired,
                                              void* closure);
 
+/**
+ * Called when a SharedArrayBuffer (including one owned by a Wasm memory object)
+ * has been processed in context `cx` by structured cloning.  If `receiving` is
+ * true then the SAB has been received from a channel and a new SAB object has
+ * been created; if false then an existing SAB has been serialized onto a
+ * channel.
+ *
+ * If the callback returns false then the clone operation (read or write) will
+ * signal a failure.
+ */
+typedef bool (*SharedArrayBufferClonedOp)(JSContext* cx, bool receiving,
+                                          void* closure);
+
 struct JSStructuredCloneCallbacks {
   ReadStructuredCloneOp read;
   WriteStructuredCloneOp write;
@@ -337,6 +351,7 @@ struct JSStructuredCloneCallbacks {
   TransferStructuredCloneOp writeTransfer;
   FreeTransferStructuredCloneOp freeTransfer;
   CanTransferStructuredCloneOp canTransfer;
+  SharedArrayBufferClonedOp sabCloned;
 };
 
 enum OwnTransferablePolicy {
@@ -571,7 +586,7 @@ class MOZ_NON_MEMMOVABLE JS_PUBLIC_API JSStructuredCloneData {
  * Note: If `data` contains transferable objects, it can be read only once.
  */
 JS_PUBLIC_API bool JS_ReadStructuredClone(
-    JSContext* cx, JSStructuredCloneData& data, uint32_t version,
+    JSContext* cx, const JSStructuredCloneData& data, uint32_t version,
     JS::StructuredCloneScope scope, JS::MutableHandleValue vp,
     const JS::CloneDataPolicy& cloneDataPolicy,
     const JSStructuredCloneCallbacks* optionalCallbacks, void* closure);
@@ -703,6 +718,8 @@ class JS_PUBLIC_API JSAutoStructuredCloneBuffer {
 #define JS_SCERR_SHMEM_TRANSFERABLE 4
 #define JS_SCERR_TYPED_ARRAY_DETACHED 5
 #define JS_SCERR_WASM_NO_TRANSFER 6
+#define JS_SCERR_NOT_CLONABLE 7
+#define JS_SCERR_NOT_CLONABLE_WITH_COOP_COEP 8
 
 JS_PUBLIC_API bool JS_ReadUint32Pair(JSStructuredCloneReader* r, uint32_t* p1,
                                      uint32_t* p2);

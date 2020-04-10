@@ -87,8 +87,10 @@ class WindowGlobalParent final : public WindowContext,
   nsIPrincipal* DocumentPrincipal() { return mDocumentPrincipal; }
 
   // The BrowsingContext which this WindowGlobal has been loaded into.
+  // FIXME: It's quite awkward that this method has a slightly different name
+  // than the one on WindowContext.
   CanonicalBrowsingContext* BrowsingContext() override {
-    return mBrowsingContext;
+    return CanonicalBrowsingContext::Cast(WindowContext::GetBrowsingContext());
   }
 
   // Get the root nsFrameLoader object for the tree of BrowsingContext nodes
@@ -100,9 +102,11 @@ class WindowGlobalParent final : public WindowContext,
   // The current URI which loaded in the document.
   nsIURI* GetDocumentURI() override { return mDocumentURI; }
 
-  // Window IDs for inner/outer windows.
-  uint64_t OuterWindowId() { return mOuterWindowId; }
-  uint64_t InnerWindowId() { return mInnerWindowId; }
+  const nsString& GetDocumentTitle() const { return mDocumentTitle; }
+
+  nsIPrincipal* GetContentBlockingAllowListPrincipal() const {
+    return mDocContentBlockingAllowListPrincipal;
+  }
 
   uint64_t ContentParentId();
 
@@ -139,7 +143,8 @@ class WindowGlobalParent final : public WindowContext,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void NotifyContentBlockingEvent(
-      uint32_t aEvent, nsIRequest* aRequest, bool aBlocked, nsIURI* aURIHint,
+      uint32_t aEvent, nsIRequest* aRequest, bool aBlocked,
+      const nsACString& aTrackingOrigin,
       const nsTArray<nsCString>& aTrackingFullHashes,
       const Maybe<AntiTrackingCommon::StorageAccessGrantedReason>& aReason =
           Nothing());
@@ -151,12 +156,14 @@ class WindowGlobalParent final : public WindowContext,
   JSWindowActor::Type GetSide() override { return JSWindowActor::Type::Parent; }
 
   // IPC messages
-  mozilla::ipc::IPCResult RecvLoadURI(dom::BrowsingContext* aTargetBC,
-                                      nsDocShellLoadState* aLoadState,
-                                      bool aSetNavigating);
-  mozilla::ipc::IPCResult RecvInternalLoad(dom::BrowsingContext* aTargetBC,
-                                           nsDocShellLoadState* aLoadState);
+  mozilla::ipc::IPCResult RecvLoadURI(
+      const MaybeDiscarded<dom::BrowsingContext>& aTargetBC,
+      nsDocShellLoadState* aLoadState, bool aSetNavigating);
+  mozilla::ipc::IPCResult RecvInternalLoad(
+      const MaybeDiscarded<dom::BrowsingContext>& aTargetBC,
+      nsDocShellLoadState* aLoadState);
   mozilla::ipc::IPCResult RecvUpdateDocumentURI(nsIURI* aURI);
+  mozilla::ipc::IPCResult RecvUpdateDocumentTitle(const nsString& aTitle);
   mozilla::ipc::IPCResult RecvSetIsInitialDocument(bool aIsInitialDocument) {
     mIsInitialDocument = aIsInitialDocument;
     return IPC_OK();
@@ -186,11 +193,11 @@ class WindowGlobalParent final : public WindowContext,
   // NOTE: This document principal doesn't reflect possible |document.domain|
   // mutations which may have been made in the actual document.
   nsCOMPtr<nsIPrincipal> mDocumentPrincipal;
+  nsCOMPtr<nsIPrincipal> mDocContentBlockingAllowListPrincipal;
   nsCOMPtr<nsIURI> mDocumentURI;
-  RefPtr<CanonicalBrowsingContext> mBrowsingContext;
+  nsString mDocumentTitle;
+
   nsRefPtrHashtable<nsStringHashKey, JSWindowActorParent> mWindowActors;
-  uint64_t mInnerWindowId;
-  uint64_t mOuterWindowId;
   bool mInProcess;
   bool mIsInitialDocument;
 

@@ -223,24 +223,35 @@ mozilla::ipc::IPCResult BrowserBridgeChild::RecvScrollRectIntoView(
 }
 
 mozilla::ipc::IPCResult BrowserBridgeChild::RecvSubFrameCrashed(
-    BrowsingContext* aContext) {
-  if (aContext) {
-    RefPtr<nsFrameLoaderOwner> frameLoaderOwner =
-        do_QueryObject(aContext->GetEmbedderElement());
-    IgnoredErrorResult rv;
-    RemotenessOptions options;
-    options.mError.Construct(static_cast<uint32_t>(NS_ERROR_FRAME_CRASHED));
-    frameLoaderOwner->ChangeRemoteness(options, rv);
+    const MaybeDiscarded<BrowsingContext>& aContext) {
+  if (aContext.IsNullOrDiscarded()) {
+    return IPC_OK();
+  }
 
-    if (NS_WARN_IF(rv.Failed())) {
-      return IPC_FAIL(this, "Remoteness change failed");
-    }
+  RefPtr<nsFrameLoaderOwner> frameLoaderOwner =
+      do_QueryObject(aContext.get()->GetEmbedderElement());
+  if (!frameLoaderOwner) {
+    return IPC_OK();
+  }
+
+  IgnoredErrorResult rv;
+  RemotenessOptions options;
+  options.mError.Construct(static_cast<uint32_t>(NS_ERROR_FRAME_CRASHED));
+  frameLoaderOwner->ChangeRemoteness(options, rv);
+
+  if (NS_WARN_IF(rv.Failed())) {
+    return IPC_FAIL(this, "Remoteness change failed");
   }
 
   return IPC_OK();
 }
 
 void BrowserBridgeChild::ActorDestroy(ActorDestroyReason aWhy) {
+  if (!mBrowsingContext) {
+    // This BBC was never valid, skip teardown.
+    return;
+  }
+
   // Ensure we unblock our document's 'load' event (in case the OOP-iframe has
   // been removed before it finished loading, or its subprocess crashed):
   UnblockOwnerDocsLoadEvent();

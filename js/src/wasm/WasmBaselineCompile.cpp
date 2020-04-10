@@ -199,9 +199,9 @@ enum class InterModule { False = false, True = true };
 #  define RABALDR_SCRATCH_F32
 #  define RABALDR_SCRATCH_F64
 
-static const Register RabaldrScratchI32 = Register::Invalid();
-static const FloatRegister RabaldrScratchF32 = InvalidFloatReg;
-static const FloatRegister RabaldrScratchF64 = InvalidFloatReg;
+static constexpr Register RabaldrScratchI32 = Register::Invalid();
+static constexpr FloatRegister RabaldrScratchF32 = InvalidFloatReg;
+static constexpr FloatRegister RabaldrScratchF64 = InvalidFloatReg;
 #endif
 
 #ifdef JS_CODEGEN_ARM64
@@ -211,7 +211,7 @@ static const FloatRegister RabaldrScratchF64 = InvalidFloatReg;
 #  define RABALDR_SCRATCH_F64
 #  define RABALDR_SCRATCH_F32_ALIASES_F64
 
-static const Register RabaldrScratchI32 = Register::FromCode(15);
+static constexpr Register RabaldrScratchI32{Registers::x15};
 
 // Note, the float scratch regs cannot be registers that are used for parameter
 // passing in any ABI we use.  Argregs tend to be low-numbered; register 30
@@ -239,7 +239,7 @@ static_assert(RabaldrScratchF64 != ScratchDoubleReg, "Too busy");
 // RabaldrScratchI32 is in fact ebx.
 
 #  define RABALDR_SCRATCH_I32
-static const Register RabaldrScratchI32 = ebx;
+static constexpr Register RabaldrScratchI32 = ebx;
 
 #  define RABALDR_INT_DIV_I64_CALLOUT
 #endif
@@ -251,7 +251,7 @@ static const Register RabaldrScratchI32 = ebx;
 // worth it yet.  CallTempReg2 seems safe.
 
 #  define RABALDR_SCRATCH_I32
-static const Register RabaldrScratchI32 = CallTempReg2;
+static constexpr Register RabaldrScratchI32 = CallTempReg2;
 
 #  define RABALDR_INT_DIV_I64_CALLOUT
 #  define RABALDR_I64_TO_FLOAT_CALLOUT
@@ -260,7 +260,7 @@ static const Register RabaldrScratchI32 = CallTempReg2;
 
 #ifdef JS_CODEGEN_MIPS32
 #  define RABALDR_SCRATCH_I32
-static const Register RabaldrScratchI32 = CallTempReg2;
+static constexpr Register RabaldrScratchI32 = CallTempReg2;
 
 #  define RABALDR_INT_DIV_I64_CALLOUT
 #  define RABALDR_I64_TO_FLOAT_CALLOUT
@@ -269,7 +269,7 @@ static const Register RabaldrScratchI32 = CallTempReg2;
 
 #ifdef JS_CODEGEN_MIPS64
 #  define RABALDR_SCRATCH_I32
-static const Register RabaldrScratchI32 = CallTempReg2;
+static constexpr Register RabaldrScratchI32 = CallTempReg2;
 #endif
 
 #ifdef RABALDR_SCRATCH_F32_ALIASES_F64
@@ -670,8 +670,8 @@ class BaseRegAlloc {
 #endif
 
 #ifdef RABALDR_SCRATCH_F32_ALIASES_F64
-    MOZ_ASSERT(RabaldrScratchF32 != InvalidFloatReg, "Float reg definition");
-    MOZ_ASSERT(RabaldrScratchF64 != InvalidFloatReg, "Float reg definition");
+    static_assert(RabaldrScratchF32 != InvalidFloatReg, "Float reg definition");
+    static_assert(RabaldrScratchF64 != InvalidFloatReg, "Float reg definition");
 #endif
 
 #if defined(RABALDR_SCRATCH_F32) && !defined(RABALDR_SCRATCH_F32_ALIASES_F64)
@@ -1057,8 +1057,7 @@ BaseLocalIter::BaseLocalIter(const ValTypeVector& locals,
       args_(args),
       argsIter_(args_),
       index_(0),
-      localSize_(debugEnabled ? DebugFrame::offsetOfFrame() : 0),
-      reservedSize_(localSize_),
+      nextFrameSize_(debugEnabled ? DebugFrame::offsetOfFrame() : 0),
       frameOffset_(INT32_MAX),
       stackResultPointerOffset_(INT32_MAX),
       mirType_(MIRType::Undefined),
@@ -1069,19 +1068,24 @@ BaseLocalIter::BaseLocalIter(const ValTypeVector& locals,
 
 int32_t BaseLocalIter::pushLocal(size_t nbytes) {
   MOZ_ASSERT(nbytes % 4 == 0 && nbytes <= 16);
-  localSize_ = AlignBytes(localSize_, nbytes) + nbytes;
-  return localSize_;  // Locals grow down so capture base address.
+  nextFrameSize_ = AlignBytes(frameSize_, nbytes) + nbytes;
+  return nextFrameSize_;  // Locals grow down so capture base address.
 }
 
 void BaseLocalIter::settle() {
+  MOZ_ASSERT(!done_);
+  frameSize_ = nextFrameSize_;
+
   if (!argsIter_.done()) {
     mirType_ = argsIter_.mirType();
+    MIRType concreteType = mirType_;
     switch (mirType_) {
-      case MIRType::Pointer:
+      case MIRType::StackResults:
         // The pointer to stack results is handled like any other argument:
         // either addressed in place if it is passed on the stack, or we spill
         // it in the frame if it's in a register.
         MOZ_ASSERT(args_.isSyntheticStackResultPointerArg(index_));
+        concreteType = MIRType::Pointer;
         [[fallthrough]];
       case MIRType::Int32:
       case MIRType::Int64:
@@ -1089,7 +1093,7 @@ void BaseLocalIter::settle() {
       case MIRType::Float32:
       case MIRType::RefOrNull:
         if (argsIter_->argInRegister()) {
-          frameOffset_ = pushLocal(MIRTypeToSize(mirType_));
+          frameOffset_ = pushLocal(MIRTypeToSize(concreteType));
         } else {
           frameOffset_ = -(argsIter_->offsetFromArgBase() + sizeof(Frame));
         }
@@ -1097,11 +1101,12 @@ void BaseLocalIter::settle() {
       default:
         MOZ_CRASH("Argument type");
     }
-    if (mirType_ == MIRType::Pointer) {
+    if (mirType_ == MIRType::StackResults) {
       stackResultPointerOffset_ = frameOffset();
       // Advance past the synthetic stack result pointer argument and fall
       // through to the next case.
       argsIter_++;
+      frameSize_ = nextFrameSize_;
       MOZ_ASSERT(argsIter_.done());
     } else {
       return;
@@ -1632,23 +1637,21 @@ class BaseStackFrame final : public BaseStackFrameAllocator {
 
     DebugOnly<uint32_t> index = 0;
     BaseLocalIter i(locals, args, debugEnabled);
-    varLow_ = i.reservedSize();
-    for (; !i.done() && i.index() < args.length(); i++) {
+    for (; !i.done() && i.index() < args.lengthWithoutStackResults(); i++) {
       MOZ_ASSERT(i.isArg());
       MOZ_ASSERT(i.index() == index);
       localInfo->infallibleEmplaceBack(i.mirType(), i.frameOffset());
-      varLow_ = i.currentLocalSize();
       index++;
     }
 
-    varHigh_ = varLow_;
+    varLow_ = i.frameSize();
     for (; !i.done(); i++) {
       MOZ_ASSERT(!i.isArg());
       MOZ_ASSERT(i.index() == index);
       localInfo->infallibleEmplaceBack(i.mirType(), i.frameOffset());
-      varHigh_ = i.currentLocalSize();
       index++;
     }
+    varHigh_ = i.frameSize();
 
     setLocalSize(AlignBytes(varHigh_, WasmStackAlignment));
 
@@ -1736,7 +1739,9 @@ class BaseStackFrame final : public BaseStackFrameAllocator {
     MOZ_ASSERT(results.height() <= masm.framePushed());
     uint32_t offsetFromSP = masm.framePushed() - results.height();
     masm.movePtr(AsRegister(sp_), dest);
-    masm.addPtr(Imm32(offsetFromSP), dest);
+    if (offsetFromSP) {
+      masm.addPtr(Imm32(offsetFromSP), dest);
+    }
   }
 
  private:
@@ -1949,6 +1954,7 @@ class BaseStackFrame final : public BaseStackFrameAllocator {
   void popStackResultsToMemory(Register dest, uint32_t bytes, Register temp) {
     MOZ_ASSERT(bytes <= currentStackHeight());
     MOZ_ASSERT(bytes % sizeof(uint32_t) == 0);
+    uint32_t bytesToPop = bytes;
     uint32_t srcOffset = stackOffset(currentStackHeight());
     uint32_t destOffset = 0;
     while (bytes >= sizeof(intptr_t)) {
@@ -1963,7 +1969,7 @@ class BaseStackFrame final : public BaseStackFrameAllocator {
       masm.load32(Address(sp_, srcOffset), temp);
       masm.store32(temp, Address(dest, destOffset));
     }
-    popBytes(bytes);
+    popBytes(bytesToPop);
   }
 
   void storeImmediateToStack(int32_t imm, uint32_t destHeight, Register temp) {
@@ -6096,7 +6102,7 @@ class BaseCompiler final : public BaseCompilerInterface {
   struct Atomic32Temps : mozilla::Array<RegI32, Count> {
     // Allocate all temp registers if 'allocate' is not specified.
     void allocate(BaseCompiler* bc, size_t allocate = Count) {
-      MOZ_ASSERT(Count != 0);
+      static_assert(Count != 0);
       for (size_t i = 0; i < allocate; ++i) {
         this->operator[](i) = bc->needI32();
       }
@@ -11728,8 +11734,15 @@ bool BaseCompiler::emitStructSet() {
     }
     case ValType::Ref: {
       masm.computeEffectiveAddress(Address(rp, offs), valueAddr);
+
+      // Bug 1617908.  Ensure that if a TypedObject is not inline, then its
+      // underlying ArrayBuffer also is not inline, or the barrier logic fails.
+      static_assert(InlineTypedObject::MaxInlineBytes >=
+                    ArrayBufferObject::MaxInlineBytes);
+
       // emitBarrieredStore consumes valueAddr
-      if (!emitBarrieredStore(Some(rp), valueAddr, rr)) {
+      if (!emitBarrieredStore(structType.isInline_ ? Some(rp) : Nothing(),
+                              valueAddr, rr)) {
         return false;
       }
       freeRef(rr);

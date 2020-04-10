@@ -77,6 +77,18 @@ var Policies = {
     },
   },
 
+  AppAutoUpdate: {
+    onBeforeUIStartup(manager, param) {
+      // Logic feels a bit reversed here, but it's correct. If AppAutoUpdate is
+      // true, we disallow turning off auto updating, and visa versa.
+      if (param) {
+        manager.disallowFeature("app-auto-updates-off");
+      } else {
+        manager.disallowFeature("app-auto-updates-on");
+      }
+    },
+  },
+
   AppUpdateURL: {
     onBeforeAddons(manager, param) {
       setDefaultPref("app.update.url", param.href);
@@ -384,6 +396,12 @@ var Policies = {
     },
   },
 
+  DisableDefaultBrowserAgent: {
+    // The implementation of this policy is in the default browser agent itself
+    // (/toolkit/mozapps/defaultagent); we need an entry for it here so that it
+    // shows up in about:policies as a real policy and not as an error.
+  },
+
   DisableDeveloperTools: {
     onBeforeAddons(manager, param) {
       if (param) {
@@ -634,12 +652,23 @@ var Policies = {
 
   DNSOverHTTPS: {
     onBeforeAddons(manager, param) {
+      let locked = false;
+      if ("Locked" in param) {
+        locked = param.Locked;
+      }
       if ("Enabled" in param) {
         let mode = param.Enabled ? 2 : 5;
-        setDefaultPref("network.trr.mode", mode, param.Locked);
+        setDefaultPref("network.trr.mode", mode, locked);
       }
-      if (param.ProviderURL) {
-        setDefaultPref("network.trr.uri", param.ProviderURL.href, param.Locked);
+      if ("ProviderURL" in param) {
+        setDefaultPref("network.trr.uri", param.ProviderURL.href, locked);
+      }
+      if ("ExcludedDomains" in param) {
+        setDefaultPref(
+          "network.trr.excluded-domains",
+          param.ExcludedDomains.join(","),
+          locked
+        );
       }
     },
   },
@@ -1187,8 +1216,10 @@ var Policies = {
     onBeforeAddons(manager, param) {
       if (Array.isArray(param)) {
         Services.locale.requestedLocales = param;
-      } else {
+      } else if (param) {
         Services.locale.requestedLocales = param.split(",");
+      } else {
+        Services.locale.requestedLocales = [];
       }
     },
   },
@@ -1535,6 +1566,39 @@ var Policies = {
     },
   },
 
+  UserMessaging: {
+    onBeforeAddons(manager, param) {
+      let locked = false;
+      if ("Locked" in param) {
+        locked = param.Locked;
+      }
+      if ("WhatsNew" in param) {
+        setDefaultPref(
+          "browser.messaging-system.whatsNewPanel.enabled",
+          param.WhatsNew,
+          locked
+        );
+      }
+      if ("ExtensionRecommendations" in param) {
+        setDefaultPref(
+          "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons",
+          param.ExtensionRecommendations,
+          locked
+        );
+      }
+      if ("FeatureRecommendations" in param) {
+        setDefaultPref(
+          "browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features",
+          param.FeatureRecommendations,
+          locked
+        );
+      }
+      if ("UrlbarInterventions" in param && !param.UrlbarInterventions) {
+        manager.disallowFeature("urlbarinterventions");
+      }
+    },
+  },
+
   WebsiteFilter: {
     onBeforeUIStartup(manager, param) {
       this.filter = new WebsiteFilter(
@@ -1773,9 +1837,7 @@ function installAddonFromURL(url, extensionID) {
       onDownloadEnded: install => {
         if (extensionID && install.addon.id != extensionID) {
           log.error(
-            `Add-on downloaded from ${url} had unexpected id (got ${
-              install.addon.id
-            } expected ${extensionID})`
+            `Add-on downloaded from ${url} had unexpected id (got ${install.addon.id} expected ${extensionID})`
           );
           install.removeListener(listener);
           install.cancel();

@@ -383,8 +383,8 @@ impl Transaction {
     /// resolve bindings in the current display list. This is a convenience method
     /// so the caller doesn't have to figure out all the dynamic properties before
     /// setting them on the transaction but can do them incrementally.
-    pub fn append_dynamic_properties(&mut self, properties: DynamicProperties) {
-        self.frame_ops.push(FrameMsg::AppendDynamicProperties(properties));
+    pub fn append_dynamic_transform_properties(&mut self, transforms: Vec<PropertyValue<LayoutTransform>>) {
+        self.frame_ops.push(FrameMsg::AppendDynamicTransformProperties(transforms));
     }
 
     /// Consumes this object and just returns the frame ops.
@@ -862,7 +862,7 @@ pub enum FrameMsg {
     ///
     UpdateDynamicProperties(DynamicProperties),
     ///
-    AppendDynamicProperties(DynamicProperties),
+    AppendDynamicTransformProperties(Vec<PropertyValue<LayoutTransform>>),
     ///
     SetPinchZoom(ZoomFactor),
     ///
@@ -894,7 +894,7 @@ impl fmt::Debug for FrameMsg {
             FrameMsg::ScrollNodeWithId(..) => "FrameMsg::ScrollNodeWithId",
             FrameMsg::GetScrollNodeState(..) => "FrameMsg::GetScrollNodeState",
             FrameMsg::UpdateDynamicProperties(..) => "FrameMsg::UpdateDynamicProperties",
-            FrameMsg::AppendDynamicProperties(..) => "FrameMsg::AppendDynamicProperties",
+            FrameMsg::AppendDynamicTransformProperties(..) => "FrameMsg::AppendDynamicTransformProperties",
             FrameMsg::SetPinchZoom(..) => "FrameMsg::SetPinchZoom",
             FrameMsg::SetIsTransformAsyncZooming(..) => "FrameMsg::SetIsTransformAsyncZooming",
         })
@@ -974,6 +974,8 @@ pub enum DebugCommand {
     EnableNativeCompositor(bool),
     /// Enable/disable parallel job execution with rayon.
     EnableMultithreading(bool),
+    /// Sets the maximum amount of existing batches to visit before creating a new one.
+    SetBatchingLookback(u32),
     /// Invalidate GPU cache, forcing the update from the CPU mirror.
     InvalidateGpuCache,
     /// Causes the scene builder to pause for a given amount of milliseconds each time it
@@ -1152,7 +1154,7 @@ pub enum PrimitiveKeyKind {
     ///
     Rectangle {
         ///
-        color: ColorU,
+        color: PropertyBinding<ColorU>,
     },
 }
 
@@ -1175,6 +1177,7 @@ macro_rules! enumerate_interners {
             line_decoration: LineDecoration,
             linear_grad: LinearGradient,
             radial_grad: RadialGradient,
+            conic_grad: ConicGradient,
             picture: Picture,
             text_run: TextRun,
             filter_data: FilterDataIntern,
@@ -1424,6 +1427,10 @@ bitflags! {
         const INVALIDATION_DBG = 1 << 28;
         /// Log tile cache to memory for later saving as part of wr-capture
         const TILE_CACHE_LOGGING_DBG   = 1 << 29;
+        /// For debugging, force-disable automatic scaling of establishes_raster_root
+        /// pictures that are too large (ie go back to old behavior that prevents those
+        /// large pictures from establishing a raster root).
+        const DISABLE_RASTER_ROOT_SCALING = 1 << 30;
     }
 }
 
@@ -1818,7 +1825,7 @@ impl PropertyBindingId {
 /// A unique key that is used for connecting animated property
 /// values to bindings in the display list.
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize, PeekPoke)]
 pub struct PropertyBindingKey<T> {
     ///
     pub id: PropertyBindingId,
@@ -1850,7 +1857,7 @@ impl<T> PropertyBindingKey<T> {
 /// used for the case where the animation is still in-delay phase
 /// (i.e. the animation doesn't produce any animation values).
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, PeekPoke)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize, PeekPoke)]
 pub enum PropertyBinding<T> {
     /// Non-animated value.
     Value(T),
@@ -1867,6 +1874,46 @@ impl<T: Default> Default for PropertyBinding<T> {
 impl<T> From<T> for PropertyBinding<T> {
     fn from(value: T) -> PropertyBinding<T> {
         PropertyBinding::Value(value)
+    }
+}
+
+impl From<PropertyBindingKey<ColorF>> for PropertyBindingKey<ColorU> {
+    fn from(key: PropertyBindingKey<ColorF>) -> PropertyBindingKey<ColorU> {
+        PropertyBindingKey {
+            id: key.id.clone(),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl From<PropertyBindingKey<ColorU>> for PropertyBindingKey<ColorF> {
+    fn from(key: PropertyBindingKey<ColorU>) -> PropertyBindingKey<ColorF> {
+        PropertyBindingKey {
+            id: key.id.clone(),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl From<PropertyBinding<ColorF>> for PropertyBinding<ColorU> {
+    fn from(value: PropertyBinding<ColorF>) -> PropertyBinding<ColorU> {
+        match value {
+            PropertyBinding::Value(value) => PropertyBinding::Value(value.into()),
+            PropertyBinding::Binding(k, v) => {
+                PropertyBinding::Binding(k.into(), v.into())
+            }
+        }
+    }
+}
+
+impl From<PropertyBinding<ColorU>> for PropertyBinding<ColorF> {
+    fn from(value: PropertyBinding<ColorU>) -> PropertyBinding<ColorF> {
+        match value {
+            PropertyBinding::Value(value) => PropertyBinding::Value(value.into()),
+            PropertyBinding::Binding(k, v) => {
+                PropertyBinding::Binding(k.into(), v.into())
+            }
+        }
     }
 }
 
@@ -1887,8 +1934,10 @@ pub struct PropertyValue<T> {
 pub struct DynamicProperties {
     ///
     pub transforms: Vec<PropertyValue<LayoutTransform>>,
-    ///
+    /// opacity
     pub floats: Vec<PropertyValue<f32>>,
+    /// background color
+    pub colors: Vec<PropertyValue<ColorF>>,
 }
 
 /// A handler to integrate WebRender with the thread that contains the `Renderer`.

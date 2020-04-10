@@ -21,7 +21,7 @@ add_task(async function() {
   await pushPref("devtools.toolbox.sidebar.width", TOOLBOX_WIDTH);
 
   // Open the host on the right so that the doorhangers hang right.
-  const [, , doc] = await createHost("right", TEST_URI);
+  const { doc } = await createHost("right", TEST_URI);
 
   info("Test resizing of a tooltip");
 
@@ -48,7 +48,7 @@ add_task(async function() {
 
   // Resize the content
   div.style.cssText = "width: 200px; height: 30px";
-  tooltip.updateContainerBounds(box1, { position: "top" });
+  tooltip.show(box1, { position: "top" });
 
   // The panel should have moved 100px to the left and 10px down
   const updatedPanelBounds = tooltip.panel

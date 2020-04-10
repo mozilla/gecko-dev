@@ -14,12 +14,12 @@
 _profileInitialized = true;
 
 add_task(async function test() {
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
 
-  info("Create and connect the DebuggerClient");
-  const transport = DebuggerServer.connectPipe();
-  const client = new DebuggerClient(transport);
+  info("Create and connect the DevToolsClient");
+  const transport = DevToolsServer.connectPipe();
+  const client = new DevToolsClient(transport);
   await client.connect();
 
   info("Get the device front and check calling getDescription() on it");

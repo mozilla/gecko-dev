@@ -65,8 +65,8 @@ using namespace mozilla::gfx;
 using namespace mozilla::image;
 using namespace mozilla::layers;
 
-using mozilla::dom::Element;
 using mozilla::dom::Document;
+using mozilla::dom::Element;
 using mozilla::dom::ReferrerInfo;
 
 class nsImageBoxFrameEvent : public Runnable {
@@ -193,7 +193,7 @@ void nsImageBoxFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
                            nsIFrame* aPrevInFlow) {
   if (!mListener) {
     RefPtr<nsImageBoxListener> listener = new nsImageBoxListener(this);
-    mListener = listener.forget();
+    mListener = std::move(listener);
   }
 
   mSuppressStyleCheck = true;
@@ -218,38 +218,7 @@ void nsImageBoxFrame::StopAnimation() {
   }
 }
 
-// WeakFrame must have heap-only lifetime, so can't be used in a temporary
-// on-stack lambda, even if that lambda then gets moved into a heap member in
-// NS_NewRunnableFunction.  AutoWeakFrame must have stack-only lifetime, so
-// can't be used insde a lambda.  As a result, we can't use
-// NS_NewRunnableFunction here and have to invent our own runnable.
-namespace {
-class UpdateImageRunnable : public Runnable {
- public:
-  explicit UpdateImageRunnable(nsImageBoxFrame* aFrame)
-      : Runnable("UpdateImageRunnable"), mFrame(aFrame) {}
-
- protected:
-  NS_IMETHOD Run() override {
-    if (mFrame.IsAlive()) {
-      static_cast<nsImageBoxFrame*>(mFrame.GetFrame())->UpdateImage();
-    }
-    return NS_OK;
-  }
-
-  WeakFrame mFrame;
-};
-}  // anonymous namespace
-
 void nsImageBoxFrame::UpdateImage() {
-  if (!nsContentUtils::IsSafeToRunScript()) {
-    // FIXME: bug 1613524.  Once PageIconProtocolHandler is in C++, we
-    // can remove this indirection.
-    auto runnable = MakeRefPtr<UpdateImageRunnable>(this);
-    nsContentUtils::AddScriptRunner(runnable.forget());
-    return;
-  }
-
   nsPresContext* presContext = PresContext();
   Document* doc = presContext->Document();
 
@@ -637,9 +606,11 @@ bool nsImageBoxFrame::CanOptimizeToImageLayer() {
 
 imgRequestProxy* nsImageBoxFrame::GetRequestFromStyle() {
   const nsStyleDisplay* disp = StyleDisplay();
-  if (disp->HasAppearance() && nsBox::gTheme &&
-      nsBox::gTheme->ThemeSupportsWidget(nullptr, this, disp->mAppearance)) {
-    return nullptr;
+  if (disp->HasAppearance()) {
+    nsPresContext* pc = PresContext();
+    if (pc->Theme()->ThemeSupportsWidget(pc, this, disp->mAppearance)) {
+      return nullptr;
+    }
   }
 
   return StyleList()->GetListStyleImage();
@@ -767,7 +738,7 @@ nsSize nsImageBoxFrame::GetXULMinSize(nsBoxLayoutState& aState) {
   DISPLAY_MIN_SIZE(this, size);
   AddBorderAndPadding(size);
   bool widthSet, heightSet;
-  nsIFrame::AddXULMinSize(aState, this, size, widthSet, heightSet);
+  nsIFrame::AddXULMinSize(this, size, widthSet, heightSet);
   return size;
 }
 

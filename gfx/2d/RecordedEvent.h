@@ -11,6 +11,7 @@
 #include <ostream>
 #include <sstream>
 #include <cstring>
+#include <functional>
 #include <vector>
 
 #include "RecordingTypes.h"
@@ -129,6 +130,15 @@ struct RadialGradientPatternStorage {
   Matrix mMatrix;
 };
 
+struct ConicGradientPatternStorage {
+  Point mCenter;
+  Float mAngle;
+  Float mStartOffset;
+  Float mEndOffset;
+  ReferencePtr mStops;
+  Matrix mMatrix;
+};
+
 struct SurfacePatternStorage {
   ExtendMode mExtend;
   SamplingFilter mSamplingFilter;
@@ -144,6 +154,7 @@ struct PatternStorage {
     char mColor[sizeof(ColorPatternStorage)];
     char mLinear[sizeof(LinearGradientPatternStorage)];
     char mRadial[sizeof(RadialGradientPatternStorage)];
+    char mConic[sizeof(ConicGradientPatternStorage)];
     char mSurface[sizeof(SurfacePatternStorage)];
   };
 };

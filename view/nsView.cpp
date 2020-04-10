@@ -20,10 +20,13 @@
 #include "nsIFrame.h"
 #include "nsPresArena.h"
 #include "nsXULPopupManager.h"
+#include "nsIScreen.h"
 #include "nsIWidgetListener.h"
 #include "nsContentUtils.h"  // for nsAutoScriptBlocker
+#include "nsDocShell.h"
 #include "mozilla/TimelineConsumers.h"
 #include "mozilla/CompositeTimelineMarker.h"
+#include "mozilla/StartupTimeline.h"
 
 using namespace mozilla;
 
@@ -1076,6 +1079,9 @@ void nsView::DidCompositeWindow(mozilla::layers::TransactionId aTransactionId,
     rootContext->NotifyDidPaintForSubtree(aTransactionId, aCompositeEnd);
   }
 
+  mozilla::StartupTimeline::RecordOnce(mozilla::StartupTimeline::FIRST_PAINT2,
+                                       aCompositeEnd);
+
   // If the two timestamps are identical, this was likely a fake composite
   // event which wouldn't be terribly useful to display.
   if (aCompositeStart == aCompositeEnd) {
@@ -1130,6 +1136,49 @@ nsEventStatus nsView::HandleEvent(WidgetGUIEvent* aEvent,
   }
 
   return result;
+}
+
+void nsView::SafeAreaInsetsChanged(const ScreenIntMargin& aSafeAreaInsets) {
+  if (!IsRoot()) {
+    return;
+  }
+
+  PresShell* presShell = mViewManager->GetPresShell();
+  if (!presShell) {
+    return;
+  }
+
+  ScreenIntMargin windowSafeAreaInsets;
+  LayoutDeviceIntRect windowRect = mWindow->GetScreenBounds();
+  nsCOMPtr<nsIScreen> screen = mWindow->GetWidgetScreen();
+  if (screen) {
+    windowSafeAreaInsets = nsContentUtils::GetWindowSafeAreaInsets(
+        screen, aSafeAreaInsets, windowRect);
+  }
+
+  presShell->GetPresContext()->SetSafeAreaInsets(windowSafeAreaInsets);
+
+  // https://github.com/w3c/csswg-drafts/issues/4670
+  // Actually we don't set this value on sub document. This behaviour is
+  // same as Blink.
+
+  dom::Document* document = presShell->GetDocument();
+  if (!document) {
+    return;
+  }
+
+  nsPIDOMWindowOuter* window = document->GetWindow();
+  if (!window) {
+    return;
+  }
+
+  nsContentUtils::CallOnAllRemoteChildren(
+      window,
+      [windowSafeAreaInsets](dom::BrowserParent* aBrowserParent) -> CallState {
+        Unused << aBrowserParent->SendSafeAreaInsetsChanged(
+            windowSafeAreaInsets);
+        return CallState::Continue;
+      });
 }
 
 bool nsView::IsPrimaryFramePaintSuppressed() {

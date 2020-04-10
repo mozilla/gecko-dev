@@ -132,7 +132,6 @@ ${helpers.single_keyword(
         "Overflow",
         "computed::Overflow::Visible",
         engines="gecko servo-2013 servo-2020",
-        servo_2020_pref="layout.2020.unimplemented",
         logical_group="overflow",
         logical=logical,
         animation_value_type="discrete",
@@ -636,7 +635,7 @@ ${helpers.predefined_type(
     "Appearance",
     "computed::Appearance::None",
     engines="gecko",
-    alias="-webkit-appearance:layout.css.webkit-appearance.enabled",
+    alias="-webkit-appearance",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance)",
     animation_value_type="discrete",
     gecko_ffi_name="mAppearance",
@@ -682,10 +681,10 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "shape-outside",
-    "basic_shape::FloatAreaShape",
-    "generics::basic_shape::ShapeSource::None",
+    "basic_shape::ShapeOutside",
+    "generics::basic_shape::ShapeOutside::None",
     engines="gecko",
-    animation_value_type="basic_shape::FloatAreaShape",
+    animation_value_type="basic_shape::ShapeOutside",
     spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",
 )}
 

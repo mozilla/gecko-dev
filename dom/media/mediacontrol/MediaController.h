@@ -9,6 +9,7 @@
 
 #include "ContentMediaController.h"
 #include "MediaEventSource.h"
+#include "mozilla/dom/MediaSessionController.h"
 #include "nsDataHashtable.h"
 #include "nsISupportsImpl.h"
 
@@ -52,9 +53,9 @@ enum class PlaybackState : uint8_t {
  * tabs playing media at the same time, we can use the ID to query the specific
  * controller from `MediaControlService`.
  */
-class MediaController final {
+class MediaController final : public MediaSessionController {
  public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaController);
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaController, override);
 
   explicit MediaController(uint64_t aContextId);
 
@@ -70,7 +71,6 @@ class MediaController final {
   // then calling any its method won't take any effect.
   void Shutdown();
 
-  uint64_t Id() const;
   bool IsAudible() const;
   uint64_t ControlledMediaNum() const;
   PlaybackState GetState() const;
@@ -99,7 +99,6 @@ class MediaController final {
 
   void SetPlayState(PlaybackState aState);
 
-  uint64_t mBrowsingContextId;
   bool mAudible = false;
   bool mIsRegisteredToService = false;
   int64_t mControlledMediaNum = 0;

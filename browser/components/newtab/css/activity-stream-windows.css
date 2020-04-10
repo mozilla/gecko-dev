@@ -1885,9 +1885,13 @@ main {
   .discovery-stream.ds-layout .ds-column-grid {
     display: grid;
     grid-row-gap: var(--gridRowGap); }
+    .discovery-stream.ds-layout .ds-column-grid > div:empty {
+      display: none; }
 
 .ds-header {
   margin: 8px 0; }
+  .ds-header .ds-context {
+    font-weight: 400; }
 
 .ds-header,
 .ds-layout .section-title span {
@@ -1983,6 +1987,35 @@ main {
       line-height: 20px; }
   .ds-card-grid.empty {
     grid-template-columns: auto; }
+
+.ds-dismiss.ds-dismiss-ds-collection .ds-dismiss-button {
+  margin: 26px 0 0;
+  inset-inline-end: 25px; }
+
+.ds-dismiss.ds-dismiss-ds-collection.hovering {
+  background: var(--newtab-element-hover-color); }
+
+.ds-collection-card-grid {
+  padding: 10px 25px 25px;
+  margin: 0 0 20px; }
+  .ds-collection-card-grid .story-footer {
+    display: none; }
+  .ds-collection-card-grid .ds-header {
+    padding: 0 40px 0 0; }
+    .ds-collection-card-grid .ds-header .title {
+      color: #0C0C0D;
+      font-weight: 600;
+      font-size: 17px;
+      line-height: 24px; }
+      [lwt-newtab-brighttext] .ds-collection-card-grid .ds-header .title {
+        color: #D7D7DB; }
+    .ds-collection-card-grid .ds-header .ds-context {
+      color: #737373;
+      font-weight: normal;
+      font-size: 13px;
+      line-height: 24px; }
+      [lwt-newtab-brighttext] .ds-collection-card-grid .ds-header .ds-context {
+        color: #B1B1B3; }
 
 .ds-hero {
   position: relative; }
@@ -2913,15 +2946,9 @@ main {
 
 .ds-dismiss {
   position: relative;
-  overflow: hidden;
   border-radius: 8px;
-  transition-delay: 100ms;
-  transition-duration: 200ms;
+  transition-duration: 250ms;
   transition-property: background; }
-  .ds-dismiss.hovering {
-    background: rgba(12, 12, 13, 0.1); }
-    [lwt-newtab-brighttext] .ds-dismiss.hovering {
-      background: rgba(12, 12, 13, 0.3); }
   .ds-dismiss:hover .ds-dismiss-button {
     opacity: 1; }
   .ds-dismiss .ds-dismiss-button {
@@ -2934,17 +2961,22 @@ main {
     align-items: center;
     justify-content: center;
     position: absolute;
-    right: 0;
+    inset-inline-end: 0;
     top: 0;
     border-radius: 50%;
-    margin: 18px 18px 0 0;
-    background: rgba(12, 12, 13, 0.1); }
-    [lwt-newtab-brighttext] .ds-dismiss .ds-dismiss-button {
-      background: rgba(12, 12, 13, 0.3); }
+    background-color: transparent; }
+    .ds-dismiss .ds-dismiss-button .icon {
+      fill: #737373; }
+      [lwt-newtab-brighttext] .ds-dismiss .ds-dismiss-button .icon {
+        fill: #EDEDF0; }
     .ds-dismiss .ds-dismiss-button:hover {
       background: rgba(12, 12, 13, 0.2); }
       [lwt-newtab-brighttext] .ds-dismiss .ds-dismiss-button:hover {
         background: rgba(12, 12, 13, 0.5); }
+        [lwt-newtab-brighttext] .ds-dismiss .ds-dismiss-button:hover .icon {
+          fill: #F9F9FA; }
+      .ds-dismiss .ds-dismiss-button:hover .icon {
+        fill: #2A2A2E; }
     .ds-dismiss .ds-dismiss-button:active {
       background: rgba(12, 12, 13, 0.3); }
       [lwt-newtab-brighttext] .ds-dismiss .ds-dismiss-button:active {
@@ -3068,7 +3100,15 @@ main {
 
 .ds-dismiss-ds-text-promo {
   max-width: 744px;
-  margin: auto; }
+  margin: auto;
+  overflow: hidden; }
+  .ds-dismiss-ds-text-promo.hovering {
+    background: rgba(12, 12, 13, 0.1); }
+    [lwt-newtab-brighttext] .ds-dismiss-ds-text-promo.hovering {
+      background: rgba(12, 12, 13, 0.3); }
+  .ds-dismiss-ds-text-promo .ds-dismiss-button {
+    margin-inline: 0 18px;
+    margin-block: 18px 0; }
 
 .ds-text-promo {
   max-width: 640px;
@@ -3346,6 +3386,8 @@ body[lwt-newtab-brighttext] .scene2Icon .icon-light-theme {
     padding: 20px;
     fill: #FFF;
     position: absolute; }
+    .modalOverlayInner .icon-dismiss:hover {
+      background-color: #2B2156; }
     .modalOverlayInner .icon-dismiss:focus {
       border: 1px dotted; }
   .modalOverlayInner h2 {
@@ -4190,6 +4232,7 @@ body[lwt-newtab-brighttext] .scene2Icon .icon-light-theme {
       width: 1042px; } }
   .trailheadCardsInner .icon-dismiss {
     border: 0;
+    border-radius: 4px;
     cursor: pointer;
     inset-inline-end: 15px;
     padding: 15px;
@@ -4197,7 +4240,7 @@ body[lwt-newtab-brighttext] .scene2Icon .icon-light-theme {
     position: absolute;
     top: 15px; }
     .trailheadCardsInner .icon-dismiss:hover, .trailheadCardsInner .icon-dismiss:focus {
-      background-color: var(--newtab-element-hover-color); }
+      background-color: var(--newtab-element-active-color); }
 
 .trailheadCardGrid {
   display: grid;

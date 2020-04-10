@@ -6,10 +6,11 @@ from __future__ import print_function
 
 import os
 import re
+import six
 import sys
 from subprocess import Popen, PIPE
 
-from tests import RefTestCase
+from .tests import RefTestCase
 
 
 def split_path_into_dirs(path):
@@ -106,7 +107,7 @@ class XULInfoTester:
                 '-e', self.js_prologue,
                 '-e', 'print(!!({}))'.format(cond)
             ]
-            p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
             out, err = p.communicate()
             if out in ('true\n', 'true\r\n'):
                 ans = True
@@ -258,7 +259,7 @@ def _emit_manifest_at(location, relative, test_gen, depth):
     filename = os.path.join(location, 'jstests.list')
     manifest = []
     numTestFiles = 0
-    for k, test_list in manifests.iteritems():
+    for k, test_list in six.iteritems(manifests):
         fullpath = os.path.join(location, k)
         if os.path.isdir(fullpath):
             manifest.append("include " + k + "/jstests.list")

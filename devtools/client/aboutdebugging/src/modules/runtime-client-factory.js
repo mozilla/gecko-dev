@@ -5,8 +5,8 @@
 "use strict";
 
 const { prepareTCPConnection } = require("devtools/shared/adb/commands/index");
-const { DebuggerClient } = require("devtools/shared/client/debugger-client");
-const { DebuggerServer } = require("devtools/server/debugger-server");
+const { DevToolsClient } = require("devtools/shared/client/devtools-client");
+const { DevToolsServer } = require("devtools/server/devtools-server");
 const {
   ClientWrapper,
 } = require("devtools/client/aboutdebugging/src/modules/client-wrapper");
@@ -17,18 +17,18 @@ const {
 const { RUNTIMES } = require("devtools/client/aboutdebugging/src/constants");
 
 async function createLocalClient() {
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
-  DebuggerServer.allowChromeProcess = true;
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
+  DevToolsServer.allowChromeProcess = true;
 
-  const client = new DebuggerClient(DebuggerServer.connectPipe());
+  const client = new DevToolsClient(DevToolsServer.connectPipe());
   await client.connect();
   return new ClientWrapper(client);
 }
 
 async function createNetworkClient(host, port) {
-  const transport = await DebuggerClient.socketConnect({ host, port });
-  const client = new DebuggerClient(transport);
+  const transport = await DevToolsClient.socketConnect({ host, port });
+  const client = new DevToolsClient(transport);
   await client.connect();
   return new ClientWrapper(client);
 }

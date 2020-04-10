@@ -45,7 +45,7 @@ loader.lazyImporter(
  * WebExtensionDescriptorActor is a child of RootActor, it can be retrieved via
  * RootActor.listAddons request.
  *
- * @param {DebuggerServerConnection} conn
+ * @param {DevToolsServerConnection} conn
  *        The connection to the client.
  * @param {AddonWrapper} addon
  *        The target addon.
@@ -153,7 +153,7 @@ const WebExtensionDescriptorActor = protocol.ActorClassWithSpec(
       return {};
     },
 
-    // This function will be called from RootActor in case that the debugger client
+    // This function will be called from RootActor in case that the devtools client
     // retrieves list of addons with `iconDataURL` option.
     async loadIconDataURL() {
       this._iconDataURL = await this.getIconDataURL();

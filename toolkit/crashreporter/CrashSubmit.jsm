@@ -357,6 +357,7 @@ Submitter.prototype = {
     const strippedAnnotations = [
       //"StackTraces",
       "TelemetryClientId",
+      "TelemetrySessionId",
       "TelemetryServerURL",
     ];
     let decoder = new TextDecoder();

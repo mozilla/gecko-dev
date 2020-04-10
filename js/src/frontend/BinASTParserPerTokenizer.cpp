@@ -85,7 +85,7 @@ BinASTParserPerTokenizer<Tok>::BinASTParserPerTokenizer(
     JSContext* cx, CompilationInfo& compilationInfo,
     const JS::ReadOnlyCompileOptions& options,
     HandleScriptSourceObject sourceObject,
-    Handle<LazyScript*> lazyScript /* = nullptr */)
+    Handle<BaseScript*> lazyScript /* = nullptr */)
     : BinASTParserBase(cx, compilationInfo, sourceObject),
       options_(options),
       lazyScript_(cx, lazyScript),
@@ -333,6 +333,9 @@ JS::Result<Ok> BinASTParserPerTokenizer<Tok>::finishEagerFunction(
     funbox->setArgCount(nargs);
   }
 
+  // BCE will need to generate bytecode for this.
+  funbox->emitBytecode = true;
+
   const bool canSkipLazyClosedOverBindings = false;
   BINJS_TRY(pc_->declareFunctionArgumentsObject(usedNames_,
                                                 canSkipLazyClosedOverBindings));
@@ -368,11 +371,12 @@ JS::Result<Ok> BinASTParserPerTokenizer<Tok>::finishLazyFunction(
   funbox->setArgCount(nargs);
   funbox->synchronizeArgCount();
 
-  BINJS_TRY_DECL(lazy, LazyScript::Create(cx_, fun, sourceObject_,
-                                          pc_->closedOverBindingsForLazy(),
-                                          pc_->innerFunctionBoxesForLazy, start,
-                                          end, start, end,
-                                          /* lineno = */ 0, start));
+  SourceExtent extent(start, end, start, end,
+                      /* lineno = */ 0, start);
+  BINJS_TRY_DECL(lazy,
+                 LazyScript::Create(cx_, fun, sourceObject_,
+                                    pc_->closedOverBindingsForLazy(),
+                                    pc_->innerFunctionBoxesForLazy, extent));
 
   if (funbox->strict()) {
     lazy->setStrict();

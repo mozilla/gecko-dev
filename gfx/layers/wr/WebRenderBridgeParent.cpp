@@ -1774,6 +1774,16 @@ void WebRenderBridgeParent::UpdateMultithreading() {
   }
 }
 
+void WebRenderBridgeParent::UpdateBatchingParameters() {
+  uint32_t count = gfxVars::WebRenderBatchingLookback();
+  for (auto& api : mApis) {
+    if (!api) {
+      continue;
+    }
+    api->SetBatchingLookback(count);
+  }
+}
+
 #if defined(MOZ_WIDGET_ANDROID)
 void WebRenderBridgeParent::RequestScreenPixels(
     UiCompositorControllerParent* aController) {
@@ -2269,7 +2279,8 @@ bool WebRenderBridgeParent::AdvanceAnimations() {
 
 bool WebRenderBridgeParent::SampleAnimations(
     wr::RenderRootArray<nsTArray<wr::WrOpacityProperty>>& aOpacityArrays,
-    wr::RenderRootArray<nsTArray<wr::WrTransformProperty>>& aTransformArrays) {
+    wr::RenderRootArray<nsTArray<wr::WrTransformProperty>>& aTransformArrays,
+    wr::RenderRootArray<nsTArray<wr::WrColorProperty>>& aColorArrays) {
   const bool isAnimating = AdvanceAnimations();
 
   // return the animated data if has
@@ -2280,12 +2291,16 @@ bool WebRenderBridgeParent::SampleAnimations(
       wr::RenderRoot renderRoot = mAnimStorage->AnimationRenderRoot(iter.Key());
       auto& transformArray = aTransformArrays[renderRoot];
       auto& opacityArray = aOpacityArrays[renderRoot];
+      auto& colorArray = aColorArrays[renderRoot];
       if (value->Is<AnimationTransform>()) {
         transformArray.AppendElement(wr::ToWrTransformProperty(
             iter.Key(), value->Transform().mTransformInDevSpace));
       } else if (value->Is<float>()) {
         opacityArray.AppendElement(
             wr::ToWrOpacityProperty(iter.Key(), value->Opacity()));
+      } else if (value->Is<nscolor>()) {
+        colorArray.AppendElement(wr::ToWrColorProperty(
+            iter.Key(), gfx::Color::FromABGR(value->Color())));
       }
     }
   }
@@ -2415,8 +2430,9 @@ void WebRenderBridgeParent::MaybeGenerateFrame(VsyncId aId,
 
   wr::RenderRootArray<nsTArray<wr::WrOpacityProperty>> opacityArrays;
   wr::RenderRootArray<nsTArray<wr::WrTransformProperty>> transformArrays;
+  wr::RenderRootArray<nsTArray<wr::WrColorProperty>> colorArrays;
 
-  if (SampleAnimations(opacityArrays, transformArrays)) {
+  if (SampleAnimations(opacityArrays, transformArrays, colorArrays)) {
     // TODO we should have a better way of assessing whether we need a content
     // or a chrome frame generation.
     ScheduleGenerateFrameAllRenderRoots();
@@ -2429,7 +2445,8 @@ void WebRenderBridgeParent::MaybeGenerateFrame(VsyncId aId,
     }
     auto renderRoot = api->GetRenderRoot();
     fastTxns[renderRoot]->UpdateDynamicProperties(opacityArrays[renderRoot],
-                                                  transformArrays[renderRoot]);
+                                                  transformArrays[renderRoot],
+                                                  colorArrays[renderRoot]);
   }
 
   SetAPZSampleTime();
@@ -2508,7 +2525,7 @@ void WebRenderBridgeParent::NotifySceneBuiltForEpoch(
 
 void WebRenderBridgeParent::NotifyDidSceneBuild(
     const nsTArray<wr::RenderRoot>& aRenderRoots,
-    RefPtr<wr::WebRenderPipelineInfo> aInfo) {
+    RefPtr<const wr::WebRenderPipelineInfo> aInfo) {
   MOZ_ASSERT(IsRootWebRenderBridgeParent());
   if (!mCompositorScheduler) {
     return;
@@ -2533,10 +2550,8 @@ void WebRenderBridgeParent::NotifyDidSceneBuild(
 
   // Look through all the pipelines contained within the built scene
   // and check which vsync they initiated from.
-  auto info = aInfo->Raw();
-  for (uintptr_t i = 0; i < info.epochs.length; i++) {
-    auto epoch = info.epochs.data[i];
-
+  const auto& info = aInfo->Raw();
+  for (const auto& epoch : info.epochs) {
     WebRenderBridgeParent* wrBridge = this;
     if (!(epoch.pipeline_id == PipelineId())) {
       wrBridge = mAsyncImageManager->GetWrBridge(epoch.pipeline_id);

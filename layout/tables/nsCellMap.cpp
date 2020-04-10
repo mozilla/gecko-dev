@@ -226,8 +226,9 @@ nsCellMap* nsTableCellMap::GetMapFor(const nsTableRowGroupFrame* aRowGroup,
     if (auto* rgOrig = findOtherRowGroupOfType(&mTableFrame)) {
       return GetMapFor(rgOrig, aStartHint);
     }
-    MOZ_ASSERT_UNREACHABLE("A repeated header/footer should always have an "
-                           "original header/footer it was repeated from");
+    MOZ_ASSERT_UNREACHABLE(
+        "A repeated header/footer should always have an "
+        "original header/footer it was repeated from");
   }
 
   return nullptr;
@@ -1823,13 +1824,16 @@ int32_t nsCellMap::GetRowSpanForNewCell(nsTableCellFrame* aCellFrameToAdd,
 bool nsCellMap::HasMoreThanOneCell(int32_t aRowIndex) const {
   const CellDataArray& row = mRows.SafeElementAt(aRowIndex, *sEmptyRow);
   uint32_t maxColIndex = row.Length();
-  uint32_t count = 0;
   uint32_t colIndex;
+  bool foundOne = false;
   for (colIndex = 0; colIndex < maxColIndex; colIndex++) {
     CellData* cellData = row[colIndex];
-    if (cellData && (cellData->GetCellFrame() || cellData->IsRowSpan()))
-      count++;
-    if (count > 1) return true;
+    if (cellData && (cellData->GetCellFrame() || cellData->IsRowSpan())) {
+      if (foundOne) {
+        return true;
+      }
+      foundOne = true;
+    }
   }
   return false;
 }
@@ -2151,8 +2155,11 @@ void nsCellMap::RemoveCell(nsTableCellMap& aMap, nsTableCellFrame* aCellFrame,
   // originating cells, we need to assume that this the only such cell, and
   // rebuild so that there are no extraneous cols at the end. The same is true
   // for removing rows.
-  if (!aCellFrame->GetRowSpan() || !aCellFrame->GetColSpan())
-    spansCauseRebuild = true;
+  if (!spansCauseRebuild) {
+    if (!aCellFrame->GetRowSpan() || !aCellFrame->GetColSpan()) {
+      spansCauseRebuild = true;
+    }
+  }
 
   if (spansCauseRebuild) {
     aMap.RebuildConsideringCells(this, nullptr, aRowIndex, startColIndex, false,

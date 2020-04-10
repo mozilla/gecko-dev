@@ -597,7 +597,7 @@ nsCSPContext::GetAllowsInline(nsContentPolicyType aContentType,
 }
 
 NS_IMETHODIMP
-nsCSPContext::GetAllowsNavigateTo(nsIURI* aURI, nsILoadInfo* aLoadInfo,
+nsCSPContext::GetAllowsNavigateTo(nsIURI* aURI, bool aIsFormSubmission,
                                   bool aWasRedirected, bool aEnforceWhitelist,
                                   bool* outAllowsNavigateTo) {
   /*
@@ -617,7 +617,7 @@ nsCSPContext::GetAllowsNavigateTo(nsIURI* aURI, nsILoadInfo* aLoadInfo,
   // So in case this is a form submission and the directive 'form-action' is
   // present then there is nothing for us to do here, see: 6.3.3.1.2
   // https://www.w3.org/TR/CSP3/#navigate-to-pre-navigate
-  if (aLoadInfo->GetIsFormSubmission()) {
+  if (aIsFormSubmission) {
     for (unsigned long i = 0; i < mPolicies.Length(); i++) {
       if (mPolicies[i]->hasDirective(
               nsIContentSecurityPolicy::FORM_ACTION_DIRECTIVE)) {
@@ -1704,9 +1704,9 @@ nsCSPContext::GetCSPSandboxFlags(uint32_t* aOutSandboxFlags) {
 NS_IMPL_ISUPPORTS(CSPViolationReportListener, nsIStreamListener,
                   nsIRequestObserver, nsISupports);
 
-CSPViolationReportListener::CSPViolationReportListener() {}
+CSPViolationReportListener::CSPViolationReportListener() = default;
 
-CSPViolationReportListener::~CSPViolationReportListener() {}
+CSPViolationReportListener::~CSPViolationReportListener() = default;
 
 nsresult AppendSegmentToString(nsIInputStream* aInputStream, void* aClosure,
                                const char* aRawSegment, uint32_t aToOffset,
@@ -1743,9 +1743,9 @@ CSPViolationReportListener::OnStartRequest(nsIRequest* aRequest) {
 NS_IMPL_ISUPPORTS(CSPReportRedirectSink, nsIChannelEventSink,
                   nsIInterfaceRequestor);
 
-CSPReportRedirectSink::CSPReportRedirectSink() {}
+CSPReportRedirectSink::CSPReportRedirectSink() = default;
 
-CSPReportRedirectSink::~CSPReportRedirectSink() {}
+CSPReportRedirectSink::~CSPReportRedirectSink() = default;
 
 NS_IMETHODIMP
 CSPReportRedirectSink::AsyncOnChannelRedirect(

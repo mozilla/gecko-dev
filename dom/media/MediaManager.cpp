@@ -295,8 +295,8 @@ class SourceListener : public SupportsWeakPtr<SourceListener> {
       SourceListenerPromise;
 
   MOZ_DECLARE_WEAKREFERENCE_TYPENAME(SourceListener)
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION_AND_RECORDING(
-      SourceListener, recordreplay::Behavior::Preserve)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(
+      SourceListener)
 
   SourceListener();
 
@@ -2183,12 +2183,9 @@ void MediaManager::DeviceListChanged() {
             }
 
             nsTArray<nsString> deviceIDs;
-
             for (auto& device : *devices) {
               nsString id;
               device->GetId(id);
-              id.ReplaceSubstring(NS_LITERAL_STRING("default: "),
-                                  NS_LITERAL_STRING(""));
               if (!deviceIDs.Contains(id)) {
                 deviceIDs.AppendElement(id);
               }
@@ -2200,10 +2197,18 @@ void MediaManager::DeviceListChanged() {
                 // Device has not been removed
                 continue;
               }
-              // Stop the corresponding SourceListener
+              // Stop the corresponding SourceListener. In order to do that
+              // first collect the listeners in an array and stop them after
+              // the loop. The StopRawID method modify indirectly the
+              // mActiveWindows and will assert-crash since the iterator is
+              // active and the table is being enumerated.
+              nsTArray<RefPtr<GetUserMediaWindowListener>> stopListeners;
               for (auto iter = mActiveWindows.Iter(); !iter.Done();
                    iter.Next()) {
-                iter.UserData()->StopRawID(id);
+                stopListeners.AppendElement(iter.UserData());
+              }
+              for (auto& l : stopListeners) {
+                l->StopRawID(id);
               }
             }
             mDeviceIDs = deviceIDs;
@@ -2767,7 +2772,7 @@ RefPtr<MediaManager::StreamPromise> MediaManager::GetUserMedia(
                 focusSource);
 
             // Store the task w/callbacks.
-            self->mActiveCallbacks.Put(callID, task.forget());
+            self->mActiveCallbacks.Put(callID, std::move(task));
 
             // Add a WindowID cross-reference so OnNavigation can tear
             // things down
@@ -3083,8 +3088,7 @@ RefPtr<MediaManager::MgrPromise> MediaManager::EnumerateDevicesImpl(
           })
       ->Then(
           GetMainThreadSerialEventTarget(), __func__,
-          [aWindowId, originKey, aVideoInputEnumType, aAudioInputEnumType,
-           aVideoInputType, aAudioInputType, aOutDevices](bool) {
+          [aWindowId, originKey, aOutDevices](bool) {
             // Only run if window is still on our active list.
             MediaManager* mgr = MediaManager::GetIfExists();
             if (!mgr || !mgr->IsWindowStillActive(aWindowId)) {
@@ -3093,23 +3097,15 @@ RefPtr<MediaManager::MgrPromise> MediaManager::EnumerateDevicesImpl(
                   __func__);
             }
 
-            // If we fetched any real cameras or mics, remove the
-            // "default" part of their IDs.
-            if (aVideoInputType == MediaSourceEnum::Camera &&
-                aAudioInputType == MediaSourceEnum::Microphone &&
-                (aVideoInputEnumType != DeviceEnumerationType::Fake ||
-                 aAudioInputEnumType != DeviceEnumerationType::Fake)) {
-              mgr->mDeviceIDs.Clear();
-              for (auto& device : *aOutDevices) {
-                nsString id;
-                device->GetId(id);
-                id.ReplaceSubstring(NS_LITERAL_STRING("default: "),
-                                    NS_LITERAL_STRING(""));
-                if (!mgr->mDeviceIDs.Contains(id)) {
-                  mgr->mDeviceIDs.AppendElement(id);
-                }
+            mgr->mDeviceIDs.Clear();
+            for (auto& device : *aOutDevices) {
+              nsString id;
+              device->GetId(id);
+              if (!mgr->mDeviceIDs.Contains(id)) {
+                mgr->mDeviceIDs.AppendElement(id);
               }
             }
+
             if (!mgr->IsWindowStillActive(aWindowId)) {
               return MgrPromise::CreateAndReject(
                   MakeRefPtr<MediaMgrError>(MediaMgrError::Name::AbortError),
@@ -3400,7 +3396,7 @@ void MediaManager::AddWindowID(uint64_t aWindowId,
     return;
   }
 
-  GetActiveWindows()->Put(aWindowId, aListener.forget());
+  GetActiveWindows()->Put(aWindowId, std::move(aListener));
 }
 
 void MediaManager::RemoveWindowID(uint64_t aWindowId) {

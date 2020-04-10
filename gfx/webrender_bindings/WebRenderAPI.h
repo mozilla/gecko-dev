@@ -106,7 +106,8 @@ class TransactionBuilder final {
 
   void UpdateDynamicProperties(
       const nsTArray<wr::WrOpacityProperty>& aOpacityArray,
-      const nsTArray<wr::WrTransformProperty>& aTransformArray);
+      const nsTArray<wr::WrTransformProperty>& aTransformArray,
+      const nsTArray<wr::WrColorProperty>& aColorArray);
 
   void SetDocumentView(const LayoutDeviceIntRect& aDocRect);
 
@@ -249,6 +250,7 @@ class WebRenderAPI final {
   void ClearAllCaches();
   void EnableNativeCompositor(bool aEnable);
   void EnableMultithreading(bool aEnable);
+  void SetBatchingLookback(uint32_t aCount);
 
   void Pause();
   bool Resume();
@@ -404,6 +406,7 @@ class DisplayListBuilder final {
 
   usize Dump(usize aIndent, const Maybe<usize>& aStart,
              const Maybe<usize>& aEnd);
+  void DumpSerializedDisplayList();
 
   void Finalize(wr::LayoutSize& aOutContentSizes,
                 wr::BuiltDisplayList& aOutDisplayList);
@@ -460,6 +463,10 @@ class DisplayListBuilder final {
 
   void PushRect(const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,
                 bool aIsBackfaceVisible, const wr::ColorF& aColor);
+  void PushRectWithAnimation(const wr::LayoutRect& aBounds,
+                             const wr::LayoutRect& aClip,
+                             bool aIsBackfaceVisible, const wr::ColorF& aColor,
+                             const WrAnimationProperty* aAnimation);
   void PushRoundedRect(const wr::LayoutRect& aBounds,
                        const wr::LayoutRect& aClip, bool aIsBackfaceVisible,
                        const wr::ColorF& aColor);
@@ -492,6 +499,14 @@ class DisplayListBuilder final {
                           wr::ExtendMode aExtendMode,
                           const wr::LayoutSize aTileSize,
                           const wr::LayoutSize aTileSpacing);
+
+  void PushConicGradient(const wr::LayoutRect& aBounds,
+                         const wr::LayoutRect& aClip, bool aIsBackfaceVisible,
+                         const wr::LayoutPoint& aCenter, const float aAngle,
+                         const nsTArray<wr::GradientStop>& aStops,
+                         wr::ExtendMode aExtendMode,
+                         const wr::LayoutSize aTileSize,
+                         const wr::LayoutSize aTileSpacing);
 
   void PushImage(const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,
                  bool aIsBackfaceVisible, wr::ImageRendering aFilter,
@@ -557,6 +572,13 @@ class DisplayListBuilder final {
       const nsTArray<wr::GradientStop>& aStops, wr::ExtendMode aExtendMode,
       const wr::LayoutSideOffsets& aOutset);
 
+  void PushBorderConicGradient(
+      const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,
+      bool aIsBackfaceVisible, const wr::LayoutSideOffsets& aWidths, bool aFill,
+      const wr::LayoutPoint& aCenter, const float aAngle,
+      const nsTArray<wr::GradientStop>& aStops, wr::ExtendMode aExtendMode,
+      const wr::LayoutSideOffsets& aOutset);
+
   void PushText(const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,
                 bool aIsBackfaceVisible, const wr::ColorF& aColor,
                 wr::FontInstanceKey aFontKey,
@@ -581,7 +603,7 @@ class DisplayListBuilder final {
                      const wr::BoxShadowClipMode& aClipMode);
 
   void StartCachedItem(wr::ItemKey aKey);
-  void EndCachedItem(wr::ItemKey aKey);
+  bool EndCachedItem(wr::ItemKey aKey);
   void ReuseItem(wr::ItemKey aKey);
   void SetDisplayListCacheSize(const size_t aCacheSize);
 

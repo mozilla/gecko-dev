@@ -8,6 +8,7 @@
 #include "nsIContentSecurityPolicy.idl"
 #include "nsISerializable.idl"
 #include "nsIAboutModule.idl"
+#include "nsIReferrerInfo.idl"
 
 %{C++
 struct JSPrincipals;
@@ -45,6 +46,7 @@ interface nsIURI;
 [ptr] native JSPrincipals(JSPrincipals);
 [ref] native PrincipalArray(const nsTArray<nsCOMPtr<nsIPrincipal>>);
 [ref] native const_OriginAttributes(const mozilla::OriginAttributes);
+native ReferrerPolicy(mozilla::dom::ReferrerPolicy);
 
 [scriptable, builtinclass, uuid(f75f502d-79fd-48be-a079-e5a7b8f80c8b)]
 interface nsIPrincipal : nsISerializable
@@ -69,7 +71,7 @@ interface nsIPrincipal : nsISerializable
     /*
     * Returns whether the Principals URI is equal to the other URI
     */
-    boolean EqualsURI(in nsIURI aOtherURI);
+    boolean equalsURI(in nsIURI aOtherURI);
 
     /**
      * Returns a hash value for the principal.
@@ -218,6 +220,32 @@ interface nsIPrincipal : nsISerializable
     [noscript] readonly attribute ACString asciiOrigin;
 
     /**
+     * Returns the "host:port" portion of the 
+     * Principals URI, if any.
+     */
+    [noscript] readonly attribute ACString hostPort;
+
+        /**
+     * Returns the "host:port" portion of the 
+     * Principals URI, if any.
+     */
+    [noscript] readonly attribute ACString asciiHost;
+
+
+    /**
+     * Returns the "host" portion of the 
+     * Principals URI, if any.
+     */
+    [noscript] readonly attribute ACString host;
+
+    /**
+        * Returns the prepath of the principals uri
+        * follows the format scheme:
+        * "scheme://username:password@hostname:portnumber/"
+    */
+        [noscript] readonly attribute ACString prepath;
+
+    /**
       * Returns the ASCII Spec from the Principals URI.
       * Might return the empty string, e.g. for the case of
       * a SystemPrincipal or an EpxandedPrincipal.
@@ -230,7 +258,7 @@ interface nsIPrincipal : nsISerializable
     /* Returns the Pre Path of the Principals URI with
     * user:pass stripped for privacy and spoof prevention
     */
-    readonly attribute ACString ExposablePrePath;
+    readonly attribute ACString exposablePrePath;
 
     /**
     * Checks if the Principal's URI Scheme matches with the parameter
@@ -252,13 +280,32 @@ interface nsIPrincipal : nsISerializable
     * Checks if the Principal's URI is contained in the given Pref
     * @param pref    The pref to be checked
     */
-    bool IsURIInPrefList(in string pref);
+    bool isURIInPrefList(in string pref);
 
     /*
     * Uses NS_Security Compare to determine if the
     * other URI is same-origin as the uri of the Principal
     */
-    bool IsSameOrigin(in nsIURI otherURI, in bool aIsPrivateWin);
+    bool isSameOrigin(in nsIURI otherURI, in bool aIsPrivateWin);
+
+    /*
+    * Checks if the Principal is allowed to load the Provided file:// URI
+    * using NS_RelaxStrictFileOriginPolicy
+    */
+    bool allowsRelaxStrictFileOriginPolicy(in nsIURI aURI);
+
+
+    /*
+    *  Generates a Cache-Key for the Cors-Preflight Cache
+    */
+    ACString getPrefLightCacheKey(in nsIURI aURI ,in bool aWithCredentials);
+
+
+    /*
+    * Returns a Key for the LocalStorage Manager, used to 
+    * check the Principals Origin Storage usage. 
+    */
+    readonly attribute ACString localStorageQuotaKey;
 
     /**
      * Implementation of
@@ -276,7 +323,13 @@ interface nsIPrincipal : nsISerializable
      * Returns the Flags of the Principals 
      * associated AboutModule, in case there is one.
      */
-    uint32_t GetAboutModuleFlags();
+    uint32_t getAboutModuleFlags();
+
+    /**
+     * Creates and Returns a new ReferrerInfo with the 
+     * Principals URI
+     */
+    nsIReferrerInfo createReferrerInfo(in ReferrerPolicy aReferrerPolicy);
 
     /**
      * The base part of |origin| without the concatenation with |originSuffix|.
@@ -397,6 +450,11 @@ interface nsIPrincipal : nsISerializable
     * Returns true if the URI is an Onion URI
     */
     [infallible] readonly attribute boolean isOnion;
+
+    /**
+     * Returns if the principal is for an IP address.
+     */
+    [infallible] readonly attribute boolean isIpAddress;
 };
 
 /**

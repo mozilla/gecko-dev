@@ -267,7 +267,7 @@ already_AddRefed<Promise> ServiceWorkerRegistration::Update(ErrorResult& aRv) {
         }
         outer->MaybeResolve(ref);
       },
-      [outer, self](ErrorResult& aRv) { outer->MaybeReject(aRv); });
+      [outer, self](ErrorResult&& aRv) { outer->MaybeReject(std::move(aRv)); });
 
   return outer.forget();
 }
@@ -291,9 +291,10 @@ already_AddRefed<Promise> ServiceWorkerRegistration::Unregister(
   }
 
   mInner->Unregister([outer](bool aSuccess) { outer->MaybeResolve(aSuccess); },
-                     [outer](ErrorResult& aRv) {
+                     [outer](ErrorResult&& aRv) {
                        // register() should be resilient and resolve false
                        // instead of rejecting in most cases.
+                       aRv.SuppressException();
                        outer->MaybeResolve(false);
                      });
 
@@ -331,15 +332,15 @@ already_AddRefed<Promise> ServiceWorkerRegistration::ShowNotification(
     return nullptr;
   }
 
-  NS_ConvertUTF8toUTF16 scope(mDescriptor.Scope());
-
   // Until we ship ServiceWorker objects on worker threads the active
   // worker will always be nullptr.  So limit this check to main
   // thread for now.
   if (mDescriptor.GetActive().isNothing() && NS_IsMainThread()) {
-    aRv.ThrowTypeError<MSG_NO_ACTIVE_WORKER>(scope);
+    aRv.ThrowTypeError<MSG_NO_ACTIVE_WORKER>(mDescriptor.Scope());
     return nullptr;
   }
+
+  NS_ConvertUTF8toUTF16 scope(mDescriptor.Scope());
 
   RefPtr<Promise> p = Notification::ShowPersistentNotification(
       aCx, global, scope, aTitle, aOptions, mDescriptor, aRv);
@@ -462,9 +463,9 @@ void ServiceWorkerRegistration::UpdateStateInternal(
   // given descriptor.  Any that are not restored will need
   // to be moved to the redundant state.
   AutoTArray<RefPtr<ServiceWorker>, 3> oldWorkerList({
-      mInstallingWorker.forget(),
-      mWaitingWorker.forget(),
-      mActiveWorker.forget(),
+      std::move(mInstallingWorker),
+      std::move(mWaitingWorker),
+      std::move(mActiveWorker),
   });
 
   // Its important that all state changes are actually applied before

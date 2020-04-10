@@ -2551,7 +2551,7 @@ void SizeComputationInput::InitOffsets(WritingMode aWM, nscoord aPercentBasis,
   bool isThemed = mFrame->IsThemed(disp);
   bool needPaddingProp;
   LayoutDeviceIntMargin widgetPadding;
-  if (isThemed && presContext->GetTheme()->GetWidgetPadding(
+  if (isThemed && presContext->Theme()->GetWidgetPadding(
                       presContext->DeviceContext(), mFrame, disp->mAppearance,
                       &widgetPadding)) {
     ComputedPhysicalPadding() = LayoutDevicePixel::ToAppUnits(
@@ -2602,7 +2602,7 @@ void SizeComputationInput::InitOffsets(WritingMode aWM, nscoord aPercentBasis,
   }
 
   if (isThemed) {
-    LayoutDeviceIntMargin border = presContext->GetTheme()->GetWidgetBorder(
+    LayoutDeviceIntMargin border = presContext->Theme()->GetWidgetBorder(
         presContext->DeviceContext(), mFrame, disp->mAppearance);
     ComputedPhysicalBorderPadding() = LayoutDevicePixel::ToAppUnits(
         border, presContext->AppUnitsPerDevPixel());
@@ -2722,19 +2722,19 @@ void ReflowInput::CalculateBlockSideMargins(LayoutFrameType aFrameType) {
       // of the table wrapper's parent.
       pri = pri->mParentReflowInput;
     }
-    if (pri && (pri->mStyleText->mTextAlign == NS_STYLE_TEXT_ALIGN_MOZ_LEFT ||
-                pri->mStyleText->mTextAlign == NS_STYLE_TEXT_ALIGN_MOZ_CENTER ||
-                pri->mStyleText->mTextAlign == NS_STYLE_TEXT_ALIGN_MOZ_RIGHT)) {
+    if (pri && (pri->mStyleText->mTextAlign == StyleTextAlign::MozLeft ||
+                pri->mStyleText->mTextAlign == StyleTextAlign::MozCenter ||
+                pri->mStyleText->mTextAlign == StyleTextAlign::MozRight)) {
       if (pri->mWritingMode.IsBidiLTR()) {
         isAutoStartMargin =
-            pri->mStyleText->mTextAlign != NS_STYLE_TEXT_ALIGN_MOZ_LEFT;
+            pri->mStyleText->mTextAlign != StyleTextAlign::MozLeft;
         isAutoEndMargin =
-            pri->mStyleText->mTextAlign != NS_STYLE_TEXT_ALIGN_MOZ_RIGHT;
+            pri->mStyleText->mTextAlign != StyleTextAlign::MozRight;
       } else {
         isAutoStartMargin =
-            pri->mStyleText->mTextAlign != NS_STYLE_TEXT_ALIGN_MOZ_RIGHT;
+            pri->mStyleText->mTextAlign != StyleTextAlign::MozRight;
         isAutoEndMargin =
-            pri->mStyleText->mTextAlign != NS_STYLE_TEXT_ALIGN_MOZ_LEFT;
+            pri->mStyleText->mTextAlign != StyleTextAlign::MozLeft;
       }
     }
     // Otherwise apply the CSS rules, and ignore one margin by forcing

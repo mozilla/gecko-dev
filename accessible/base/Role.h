@@ -1047,11 +1047,21 @@ enum Role {
 
   /**
    * The html:mark element.
-   * May also be used if WAI-ARIA gets an equivalent role.
+   * This is also used for the equivalent WAI-ARIA role.
    */
   MARK = 179,
 
-  LAST_ROLE = MARK
+  /**
+   * The WAI-ARIA suggestion role.
+   */
+  SUGGESTION = 180,
+
+  /**
+   * The WAI-ARIA comment role.
+   */
+  COMMENT = 181,
+
+  LAST_ROLE = COMMENT
 };
 
 }  // namespace roles

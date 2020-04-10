@@ -48,7 +48,7 @@ static StaticAutoPtr<WGCByIdMap> gWindowGlobalChildById;
 WindowGlobalChild::WindowGlobalChild(const WindowGlobalInit& aInit,
                                      nsGlobalWindowInner* aWindow)
     : mWindowGlobal(aWindow),
-      mBrowsingContext(aInit.browsingContext()),
+      mBrowsingContext(aInit.browsingContext().GetMaybeDiscarded()),
       mDocumentPrincipal(aInit.principal()),
       mDocumentURI(aInit.documentURI()),
       mInnerWindowId(aInit.innerWindowId()),
@@ -87,8 +87,9 @@ already_AddRefed<WindowGlobalChild> WindowGlobalChild::Create(
     bc->SetOpenerPolicy(policy);
   }
 
-  WindowGlobalInit init(principal, aWindow->GetDocumentURI(), bc,
-                        aWindow->WindowID(),
+  WindowGlobalInit init(principal,
+                        aWindow->GetDocumentContentBlockingAllowListPrincipal(),
+                        aWindow->GetDocumentURI(), bc, aWindow->WindowID(),
                         aWindow->GetOuterWindow()->WindowID());
 
   auto wgc = MakeRefPtr<WindowGlobalChild>(init, aWindow);
@@ -252,13 +253,19 @@ void WindowGlobalChild::Destroy() {
 }
 
 mozilla::ipc::IPCResult WindowGlobalChild::RecvMakeFrameLocal(
-    dom::BrowsingContext* aFrameContext, uint64_t aPendingSwitchId) {
+    const MaybeDiscarded<dom::BrowsingContext>& aFrameContext,
+    uint64_t aPendingSwitchId) {
   MOZ_DIAGNOSTIC_ASSERT(XRE_IsContentProcess());
 
-  MOZ_LOG(aFrameContext->GetLog(), LogLevel::Debug,
-          ("RecvMakeFrameLocal ID=%" PRIx64, aFrameContext->Id()));
+  MOZ_LOG(BrowsingContext::GetLog(), LogLevel::Debug,
+          ("RecvMakeFrameLocal ID=%" PRIx64, aFrameContext.ContextId()));
 
-  RefPtr<Element> embedderElt = aFrameContext->GetEmbedderElement();
+  if (NS_WARN_IF(aFrameContext.IsNullOrDiscarded())) {
+    return IPC_OK();
+  }
+  dom::BrowsingContext* frameContext = aFrameContext.get();
+
+  RefPtr<Element> embedderElt = frameContext->GetEmbedderElement();
   if (NS_WARN_IF(!embedderElt)) {
     return IPC_OK();
   }
@@ -279,28 +286,42 @@ mozilla::ipc::IPCResult WindowGlobalChild::RecvMakeFrameLocal(
 }
 
 mozilla::ipc::IPCResult WindowGlobalChild::RecvMakeFrameRemote(
-    dom::BrowsingContext* aFrameContext,
+    const MaybeDiscarded<dom::BrowsingContext>& aFrameContext,
     ManagedEndpoint<PBrowserBridgeChild>&& aEndpoint, const TabId& aTabId,
     MakeFrameRemoteResolver&& aResolve) {
   MOZ_DIAGNOSTIC_ASSERT(XRE_IsContentProcess());
 
-  MOZ_LOG(aFrameContext->GetLog(), LogLevel::Debug,
-          ("RecvMakeFrameRemote ID=%" PRIx64, aFrameContext->Id()));
+  MOZ_LOG(BrowsingContext::GetLog(), LogLevel::Debug,
+          ("RecvMakeFrameRemote ID=%" PRIx64, aFrameContext.ContextId()));
 
   // Immediately resolve the promise, acknowledging the request.
   aResolve(true);
 
+  // Get a BrowsingContext if we're not null or discarded. We don't want to
+  // early-return before we connect the BrowserBridgeChild, as otherwise we'll
+  // never break the channel in the parent.
+  RefPtr<dom::BrowsingContext> frameContext;
+  if (!aFrameContext.IsDiscarded()) {
+    frameContext = aFrameContext.get();
+  }
+
   // Immediately construct the BrowserBridgeChild so we can destroy it cleanly
   // if the process switch fails.
   RefPtr<BrowserBridgeChild> bridge =
-      new BrowserBridgeChild(aFrameContext, aTabId);
+      new BrowserBridgeChild(frameContext, aTabId);
   RefPtr<BrowserChild> manager = GetBrowserChild();
   if (NS_WARN_IF(
           !manager->BindPBrowserBridgeEndpoint(std::move(aEndpoint), bridge))) {
     return IPC_OK();
   }
 
-  RefPtr<Element> embedderElt = aFrameContext->GetEmbedderElement();
+  // Immediately tear down the actor if we don't have a valid FrameContext.
+  if (NS_WARN_IF(aFrameContext.IsNullOrDiscarded())) {
+    BrowserBridgeChild::Send__delete__(bridge);
+    return IPC_OK();
+  }
+
+  RefPtr<Element> embedderElt = frameContext->GetEmbedderElement();
   if (NS_WARN_IF(!embedderElt)) {
     BrowserBridgeChild::Send__delete__(bridge);
     return IPC_OK();
@@ -445,7 +466,7 @@ already_AddRefed<JSWindowActorChild> WindowGlobalChild::GetActor(
   MOZ_RELEASE_ASSERT(!actor->GetManager(),
                      "mManager was already initialized once!");
   actor->Init(aName, this);
-  mWindowActors.Put(aName, actor);
+  mWindowActors.Put(aName, RefPtr{actor});
   return actor.forget();
 }
 

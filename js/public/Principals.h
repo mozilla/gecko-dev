@@ -20,9 +20,7 @@ struct JSStructuredCloneWriter;
 
 struct JSPrincipals {
   /* Don't call "destroy"; use reference counting macros below. */
-  mozilla::Atomic<int32_t, mozilla::SequentiallyConsistent,
-                  mozilla::recordreplay::Behavior::DontPreserve>
-      refcount;
+  mozilla::Atomic<int32_t, mozilla::SequentiallyConsistent> refcount;
 
 #ifdef JS_DEBUG
   /* A helper to facilitate principals debugging. */
@@ -70,7 +68,7 @@ typedef bool (*JSSubsumesOp)(JSPrincipals* first, JSPrincipals* second);
  * Used to check if a CSP instance wants to disable eval() and friends.
  * See GlobalObject::isRuntimeCodeGenEnabled() in vm/GlobalObject.cpp.
  */
-typedef bool (*JSCSPEvalChecker)(JSContext* cx, JS::HandleValue value);
+typedef bool (*JSCSPEvalChecker)(JSContext* cx, JS::HandleString code);
 
 struct JSSecurityCallbacks {
   JSCSPEvalChecker contentSecurityPolicyAllows;

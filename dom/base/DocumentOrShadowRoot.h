@@ -73,17 +73,20 @@ class DocumentOrShadowRoot {
 
   size_t SheetCount() const { return mStyleSheets.Length(); }
 
-  int32_t IndexOfSheet(const StyleSheet& aSheet) const {
-    return mStyleSheets.IndexOf(&aSheet);
-  }
+  size_t AdoptedSheetCount() const { return mAdoptedStyleSheets.Length(); }
+
+  /**
+   * Returns an index for the sheet in relative style order.
+   * If there are non-applicable sheets, then this index may
+   * not match 1:1 with the sheet's actual index in the style set.
+   *
+   * Handles sheets from both mStyleSheets and mAdoptedStyleSheets
+   */
+  int32_t StyleOrderIndexOfSheet(const StyleSheet& aSheet) const;
 
   StyleSheetList* StyleSheets();
 
   void GetAdoptedStyleSheets(nsTArray<RefPtr<StyleSheet>>&) const;
-
-  void SetAdoptedStyleSheets(
-      const Sequence<OwningNonNull<StyleSheet>>& aAdoptedStyleSheets,
-      ErrorResult& aRv);
 
   Element* GetElementById(const nsAString& aElementId);
 
@@ -218,7 +221,30 @@ class DocumentOrShadowRoot {
 
   nsIContent* Retarget(nsIContent* aContent) const;
 
+  void SetAdoptedStyleSheets(
+      const Sequence<OwningNonNull<StyleSheet>>& aAdoptedStyleSheets,
+      ErrorResult& aRv);
+
+  // This is needed because ServoStyleSet / ServoAuthorData don't deal with
+  // duplicate stylesheets (and it's unclear we'd want to support that as it'd
+  // be a bunch of duplicate work), while adopted stylesheets do need to deal
+  // with them.
+  template <typename Callback>
+  void EnumerateUniqueAdoptedStyleSheetsBackToFront(Callback aCallback) {
+    StyleSheetSet set(mAdoptedStyleSheets.Length());
+    for (StyleSheet* sheet : Reversed(mAdoptedStyleSheets)) {
+      if (MOZ_UNLIKELY(!set.EnsureInserted(sheet))) {
+        continue;
+      }
+      aCallback(*sheet);
+    }
+  }
+
  protected:
+  using StyleSheetSet = nsTHashtable<nsPtrHashKey<const StyleSheet>>;
+  void RemoveSheetFromStylesIfApplicable(StyleSheet&);
+  void ClearAdoptedStyleSheets();
+
   // Returns the reference to the sheet, if found in mStyleSheets.
   already_AddRefed<StyleSheet> RemoveSheet(StyleSheet& aSheet);
   void InsertSheetAt(size_t aIndex, StyleSheet& aSheet);
@@ -239,8 +265,6 @@ class DocumentOrShadowRoot {
 
   // Style sheets that are adopted by assinging to the `adoptedStyleSheets`
   // WebIDL atribute. These can only be constructed stylesheets.
-  // TODO(nordzilla): These sheets are not yet applied. These currently
-  // exist only to land the WebIDL attribute (Bug 1608489).
   nsTArray<RefPtr<StyleSheet>> mAdoptedStyleSheets;
 
   /*

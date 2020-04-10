@@ -204,7 +204,8 @@ pub extern crate api;
 extern crate webrender_build;
 
 #[doc(hidden)]
-pub use crate::composite::{CompositorConfig, Compositor, NativeSurfaceId, NativeTileId, NativeSurfaceInfo};
+pub use crate::composite::{CompositorConfig, Compositor, CompositorCapabilities};
+pub use crate::composite::{NativeSurfaceId, NativeTileId, NativeSurfaceInfo};
 pub use crate::device::{build_shader_strings, UploadMethod, VertexUsageHint, get_gl_target};
 pub use crate::device::{ProgramBinary, ProgramCache, ProgramCacheObserver, FormatDesc};
 pub use crate::device::Device;
@@ -221,6 +222,7 @@ pub use crate::screen_capture::{AsyncScreenshotHandle, RecordedFrameHandle};
 pub use crate::shade::{Shaders, WrShaders};
 pub use api as webrender_api;
 pub use webrender_build::shader::ProgramSourceDigest;
-pub use crate::picture::{TileDescriptor, TileId, InvalidationReason, PrimitiveCompareResult};
+pub use crate::picture::{TileDescriptor, TileId, InvalidationReason};
+pub use crate::picture::{PrimitiveCompareResult, PrimitiveCompareResultDetail, CompareHelperResult};
 pub use crate::picture::{TileNode, TileNodeKind, TileSerializer, TileCacheInstanceSerializer, TileOffset, TileCacheLoggerUpdateLists};
-pub use crate::intern::{Update,UpdateKind};
+pub use crate::intern::ItemUid;

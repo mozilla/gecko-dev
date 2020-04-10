@@ -55,6 +55,22 @@ graph_config_schema = Schema({
             Optional('partial-updates'): bool,
         }},
     },
+    Required('merge-automation'): {
+        Required('flavors'): {text_type: {
+            Required('from-branch'): text_type,
+            Required('to-branch'): text_type,
+            Required('from-repo'): text_type,
+            Required('to-repo'): text_type,
+            Required('version-files'): [text_type],
+            Required('version-files-suffix'): [text_type],
+            Required('version-suffix'): text_type,
+            Required('copy-files'): [[text_type]],
+            Required('replacements'): [[text_type]],
+            Required('merge-old-head'): bool,
+            Required('base-tag'): text_type,
+            Optional('end-tag'): text_type,
+        }},
+    },
     Required('scriptworker'): {
         # Prefix to add to scopes controlling scriptworkers
         Required('scope-prefix'): text_type,
@@ -88,7 +104,7 @@ graph_config_schema = Schema({
     },
     Required('mac-notarization'): {
         Required('mac-behavior'):
-            optionally_keyed_by('platform', 'release-type',
+            optionally_keyed_by('project', 'shippable',
                                 Any('mac_notarize', 'mac_geckodriver', 'mac_sign',
                                     'mac_sign_and_pkg')),
         Required('mac-entitlements'):

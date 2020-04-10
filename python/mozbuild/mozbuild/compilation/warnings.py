@@ -7,9 +7,11 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import errno
+import io
 import json
 import os
 import re
+import six
 
 from mozbuild.util import hash_file
 import mozpack.path as mozpath
@@ -226,7 +228,7 @@ class WarningsDatabase(object):
         """
 
         # Need to calculate up front since we are mutating original object.
-        filenames = self._files.keys()
+        filenames = list(six.iterkeys(self._files))
         for filename in filenames:
             if not os.path.exists(filename):
                 del self._files[filename]
@@ -245,18 +247,17 @@ class WarningsDatabase(object):
         obj = {'files': {}}
 
         # All this hackery because JSON can't handle sets.
-        for k, v in self._files.iteritems():
+        for k, v in six.iteritems(self._files):
             obj['files'][k] = {}
 
-            for k2, v2 in v.iteritems():
+            for k2, v2 in six.iteritems(v):
                 normalized = v2
-
-                if k2 == 'warnings':
-                    normalized = [w for w in v2]
-
+                if isinstance(v2, set):
+                    normalized = list(v2)
                 obj['files'][k][k2] = normalized
 
-        json.dump(obj, fh, indent=2)
+        to_write = six.ensure_text(json.dumps(obj, indent=2))
+        fh.write(to_write)
 
     def deserialize(self, fh):
         """Load serialized content from a handle into the current instance."""
@@ -265,13 +266,10 @@ class WarningsDatabase(object):
         self._files = obj['files']
 
         # Normalize data types.
-        for filename, value in self._files.iteritems():
-            for k, v in value.iteritems():
-                if k != 'warnings':
-                    continue
-
+        for filename, value in six.iteritems(self._files):
+            if 'warnings' in value:
                 normalized = set()
-                for d in v:
+                for d in value['warnings']:
                     w = CompilerWarning()
                     w.update(d)
                     normalized.add(w)
@@ -280,7 +278,7 @@ class WarningsDatabase(object):
 
     def load_from_file(self, filename):
         """Load the database from a file."""
-        with open(filename, 'rb') as fh:
+        with io.open(filename, 'r', encoding='utf-8') as fh:
             self.deserialize(fh)
 
     def save_to_file(self, filename):
@@ -291,7 +289,7 @@ class WarningsDatabase(object):
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-        with open(filename, 'wb') as fh:
+        with io.open(filename, 'w', encoding='utf-8', newline='\n') as fh:
             self.serialize(fh)
 
 

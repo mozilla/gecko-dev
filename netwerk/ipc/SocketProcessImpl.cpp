@@ -12,6 +12,10 @@
 #include "mozilla/BackgroundHangMonitor.h"
 #include "mozilla/Preferences.h"
 
+#if defined(OS_WIN) && defined(MOZ_SANDBOX)
+#  include "mozilla/sandboxTarget.h"
+#endif
+
 using mozilla::ipc::IOThreadChild;
 
 namespace mozilla {
@@ -22,7 +26,7 @@ LazyLogModule gSocketProcessLog("socketprocess");
 SocketProcessImpl::SocketProcessImpl(ProcessId aParentPid)
     : ProcessChild(aParentPid) {}
 
-SocketProcessImpl::~SocketProcessImpl() {}
+SocketProcessImpl::~SocketProcessImpl() = default;
 
 bool SocketProcessImpl::Init(int aArgc, char* aArgv[]) {
 #ifdef OS_POSIX
@@ -31,6 +35,12 @@ bool SocketProcessImpl::Init(int aArgc, char* aArgv[]) {
                   base::GetCurrentProcId());
     sleep(30);
   }
+#endif
+#if defined(MOZ_SANDBOX) && defined(OS_WIN)
+  LoadLibraryW(L"nss3.dll");
+  LoadLibraryW(L"softokn3.dll");
+  LoadLibraryW(L"freebl3.dll");
+  mozilla::SandboxTarget::Instance()->StartSandbox();
 #endif
   char* parentBuildID = nullptr;
   char* prefsHandle = nullptr;

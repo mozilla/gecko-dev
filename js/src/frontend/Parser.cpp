@@ -165,28 +165,7 @@ ParserSharedBase::ParserSharedBase(JSContext* cx,
   cx->frontendCollectionPool().addActiveCompilation();
 }
 
-// Ensure we don't hold onto any memory via trace list nodes
-// which may be freed when the lifo alloc dies.
-void ParserSharedBase::cleanupTraceList() {
-  TraceListNode* elem = traceListHead_;
-  while (elem) {
-    if (elem->isObjectBox()) {
-      ObjectBox* objBox = elem->asObjectBox();
-
-      // FunctionBoxes are LifoAllocated, but the LazyScriptCreationData that
-      // they hold onto have SystemAlloc memory. We need to make sure this gets
-      // cleaned up before the Lifo gets released (in CompilationInfo) to ensure
-      // that we don't leak memory.
-      if (objBox->isFunctionBox()) {
-        objBox->asFunctionBox()->cleanupMemory();
-      }
-    }
-    elem = elem->traceLink;
-  }
-}
-
 ParserSharedBase::~ParserSharedBase() {
-  cleanupTraceList();
   cx_->frontendCollectionPool().removeActiveCompilation();
 }
 
@@ -220,7 +199,7 @@ ParserBase::~ParserBase() { MOZ_ASSERT(checkOptionsCalled_); }
 template <class ParseHandler>
 PerHandlerParser<ParseHandler>::PerHandlerParser(
     JSContext* cx, const ReadOnlyCompileOptions& options, bool foldConstants,
-    CompilationInfo& compilationInfo, LazyScript* lazyOuterFunction,
+    CompilationInfo& compilationInfo, BaseScript* lazyOuterFunction,
     ScriptSourceObject* sourceObject, void* internalSyntaxParser)
     : ParserBase(cx, options, foldConstants, compilationInfo, sourceObject),
       handler_(cx, compilationInfo.allocScope.alloc(), lazyOuterFunction),
@@ -230,7 +209,7 @@ template <class ParseHandler, typename Unit>
 GeneralParser<ParseHandler, Unit>::GeneralParser(
     JSContext* cx, const ReadOnlyCompileOptions& options, const Unit* units,
     size_t length, bool foldConstants, CompilationInfo& compilationInfo,
-    SyntaxParser* syntaxParser, LazyScript* lazyOuterFunction,
+    SyntaxParser* syntaxParser, BaseScript* lazyOuterFunction,
     ScriptSourceObject* sourceObject)
     : Base(cx, options, foldConstants, compilationInfo, syntaxParser,
            lazyOuterFunction, sourceObject),
@@ -345,6 +324,11 @@ FunctionBox* PerHandlerParser<ParseHandler>::newFunctionBox(
     FunctionNodeType funNode, Handle<FunctionCreationData> fcd,
     uint32_t toStringStart, Directives inheritedDirectives,
     GeneratorKind generatorKind, FunctionAsyncKind asyncKind) {
+  size_t index = this->getCompilationInfo().funcData.length();
+  if (!this->getCompilationInfo().funcData.emplaceBack(fcd.get())) {
+    return nullptr;
+  }
+
   /*
    * We use JSContext.tempLifoAlloc to allocate parsed objects and place them
    * on a list in this Parser to ensure GC safety. Thus the tempLifoAlloc
@@ -352,11 +336,10 @@ FunctionBox* PerHandlerParser<ParseHandler>::newFunctionBox(
    * scanning, parsing and code generation for the whole script or top-level
    * function.
    */
-
   FunctionBox* funbox = alloc_.new_<FunctionBox>(
-      cx_, traceListHead_, fcd, toStringStart, this->getCompilationInfo(),
+      cx_, traceListHead_, toStringStart, this->getCompilationInfo(),
       inheritedDirectives, options().extraWarningsOption, generatorKind,
-      asyncKind);
+      asyncKind, index);
 
   if (!funbox) {
     ReportOutOfMemory(cx_);
@@ -1685,6 +1668,9 @@ bool PerHandlerParser<FullParseHandler>::finishFunction(
   FunctionBox* funbox = pc_->functionBox();
   funbox->synchronizeArgCount();
 
+  // BCE will need to generate bytecode for this.
+  funbox->emitBytecode = true;
+
   bool hasParameterExprs = funbox->hasParameterExprs;
 
   if (hasParameterExprs) {
@@ -1757,8 +1743,7 @@ bool PerHandlerParser<SyntaxParseHandler>::finishFunction(
     return false;
   }
 
-  MOZ_ASSERT(funbox->functionCreationData());
-  funbox->functionCreationData()->lazyScriptData =
+  funbox->functionCreationData().get().lazyScriptData =
       mozilla::Some(std::move(data));
   return true;
 }
@@ -1771,11 +1756,11 @@ bool ParserBase::publishDeferredFunctions(FunctionTree* root) {
         return true;
       }
 
-      if (!funbox->functionCreationData()) {
+      if (!funbox->hasFunctionCreationIndex()) {
         return true;
       }
 
-      Handle<FunctionCreationData> fcd = funbox->functionCreationDataHandle();
+      MutableHandle<FunctionCreationData> fcd = funbox->functionCreationData();
       RootedFunction fun(parser->cx_, AllocNewFunction(parser->cx_, fcd));
       if (!fun) {
         return false;
@@ -1784,7 +1769,7 @@ bool ParserBase::publishDeferredFunctions(FunctionTree* root) {
       funbox->initializeFunction(fun);
 
       mozilla::Maybe<LazyScriptCreationData> data =
-          std::move(funbox->functionCreationData()->lazyScriptData);
+          std::move(fcd.get().lazyScriptData);
       if (!data) {
         return true;
       }
@@ -1800,10 +1785,9 @@ bool LazyScriptCreationData::create(JSContext* cx, FunctionBox* funbox,
                                     HandleScriptSourceObject sourceObject) {
   Rooted<JSFunction*> function(cx, funbox->function());
   MOZ_ASSERT(function);
-  LazyScript* lazy = LazyScript::Create(
-      cx, function, sourceObject, closedOverBindings, innerFunctionBoxes,
-      funbox->sourceStart, funbox->sourceEnd, funbox->toStringStart,
-      funbox->toStringEnd, funbox->startLine, funbox->startColumn);
+  BaseScript* lazy =
+      LazyScript::Create(cx, function, sourceObject, closedOverBindings,
+                         innerFunctionBoxes, funbox->extent);
   if (!lazy) {
     return false;
   }
@@ -1854,7 +1838,6 @@ bool LazyScriptCreationData::create(JSContext* cx, FunctionBox* funbox,
   PropagateTransitiveParseFlags(funbox, lazy);
 
   function->initLazyScript(lazy);
-  funbox->setIsInterpretedLazy(true);
 
   if (fieldInitializers) {
     lazy->setFieldInitializers(*fieldInitializers);
@@ -2165,7 +2148,6 @@ JSFunction* AllocNewFunction(JSContext* cx,
 
   if (data.isSelfHosting) {
     fun->setIsSelfHostedBuiltin();
-    MOZ_ASSERT(fun->hasScript());
   }
 
   if (data.typeForScriptedFunction) {
@@ -2602,11 +2584,13 @@ bool Parser<FullParseHandler, Unit>::skipLazyInnerFunction(
   }
 
   funbox->initFromLazyFunction(fun);
-  MOZ_ASSERT(fun->baseScript()->hasEnclosingLazyScript());
+  MOZ_ASSERT(fun->baseScript()->hasEnclosingScript(),
+             "Inner lazy function should not have a scope until we finish our "
+             "own compile");
 
   PropagateTransitiveParseFlags(funbox, pc_->sc());
 
-  if (!tokenStream.advance(funbox->sourceEnd)) {
+  if (!tokenStream.advance(funbox->extent.sourceEnd)) {
     return false;
   }
 
@@ -2762,11 +2746,8 @@ GeneralParser<ParseHandler, Unit>::functionDefinition(
 
   // If we see any inner function, note it on our current context. The bytecode
   // emitter may eliminate the function later, but we use a conservative
-  // definition for consistency between lazy and full parsing. The flag is only
-  // defined on function scripts right now.
-  if (pc_->isFunctionBox()) {
-    pc_->functionBox()->setHasInnerFunctions();
-  }
+  // definition for consistency between lazy and full parsing.
+  pc_->sc()->setHasInnerFunctions();
 
   // When fully parsing a LazyScript, we do not fully reparse its inner
   // functions, which are also lazy. Instead, their free variables and
@@ -6969,10 +6950,10 @@ static AccessorType ToAccessorType(PropertyType propType) {
 
 template <class ParseHandler, typename Unit>
 bool GeneralParser<ParseHandler, Unit>::classMember(
-    YieldHandling yieldHandling, DefaultHandling defaultHandling,
-    const ParseContext::ClassStatement& classStmt, HandlePropertyName className,
-    uint32_t classStartOffset, HasHeritage hasHeritage, size_t& numFields,
-    size_t& numFieldKeys, ListNodeType& classMembers, bool* done) {
+    YieldHandling yieldHandling, const ParseContext::ClassStatement& classStmt,
+    HandlePropertyName className, uint32_t classStartOffset,
+    HasHeritage hasHeritage, ClassFields& classFields,
+    ListNodeType& classMembers, bool* done) {
   *done = false;
 
   TokenKind tt;
@@ -7029,8 +7010,10 @@ bool GeneralParser<ParseHandler, Unit>::classMember(
     }
 
     if (isStatic) {
-      errorAt(propNameOffset, JSMSG_BAD_METHOD_DEF);
-      return false;
+      if (propAtom == cx_->names().prototype) {
+        errorAt(propNameOffset, JSMSG_BAD_METHOD_DEF);
+        return false;
+      }
     }
 
     if (propAtom == cx_->names().constructor) {
@@ -7042,10 +7025,14 @@ bool GeneralParser<ParseHandler, Unit>::classMember(
       return false;
     }
 
-    numFields++;
+    if (isStatic) {
+      classFields.staticFields++;
+    } else {
+      classFields.instanceFields++;
+    }
 
-    FunctionNodeType initializer = fieldInitializerOpt(
-        yieldHandling, hasHeritage, propName, propAtom, numFieldKeys);
+    FunctionNodeType initializer =
+        fieldInitializerOpt(propName, propAtom, classFields, isStatic);
     if (!initializer) {
       return false;
     }
@@ -7055,7 +7042,7 @@ bool GeneralParser<ParseHandler, Unit>::classMember(
     }
 
     ClassFieldType field =
-        handler_.newClassFieldDefinition(propName, initializer);
+        handler_.newClassFieldDefinition(propName, initializer, isStatic);
     if (!field) {
       return false;
     }
@@ -7111,8 +7098,25 @@ bool GeneralParser<ParseHandler, Unit>::classMember(
       }
   }
 
-  // .fieldKeys must be declared outside the scope .initializers is declared in,
-  // hence this extra scope.
+  // When |super()| is invoked, we search for the nearest scope containing
+  // |.initializers| to initialize the class fields. This set-up precludes
+  // declaring |.initializers| in the class scope, because in some syntactic
+  // contexts |super()| can appear nested in a class, while actually belonging
+  // to an outer class definition.
+  //
+  // Example:
+  // class Outer extends Base {
+  //   field = 1;
+  //   constructor() {
+  //     class Inner {
+  //       field = 2;
+  //
+  //       // The super() call in the computed property name mustn't access
+  //       // Inner's |.initializers| array, but instead Outer's.
+  //       [super()]() {}
+  //     }
+  //   }
+  // }
   Maybe<ParseContext::Scope> dotInitializersScope;
   if (isConstructor && !options().selfHostingMode) {
     dotInitializersScope.emplace(this);
@@ -7158,10 +7162,11 @@ template <class ParseHandler, typename Unit>
 bool GeneralParser<ParseHandler, Unit>::finishClassConstructor(
     const ParseContext::ClassStatement& classStmt, HandlePropertyName className,
     HasHeritage hasHeritage, uint32_t classStartOffset, uint32_t classEndOffset,
-    size_t numFields, ListNodeType& classMembers) {
+    const ClassFields& classFields, ListNodeType& classMembers) {
   // Fields cannot re-use the constructor obtained via JSOp::ClassConstructor or
   // JSOp::DerivedConstructor due to needing to emit calls to the field
   // initializers in the constructor. So, synthesize a new one.
+  size_t numFields = classFields.instanceFields;
   if (classStmt.constructorBox == nullptr && numFields > 0) {
     MOZ_ASSERT(!options().selfHostingMode);
     // Unconditionally create the scope here, because it's always the
@@ -7211,7 +7216,7 @@ bool GeneralParser<ParseHandler, Unit>::finishClassConstructor(
   if (FunctionBox* ctorbox = classStmt.constructorBox) {
     // Amend the toStringEnd offset for the constructor now that we've
     // finished parsing the class.
-    ctorbox->toStringEnd = classEndOffset;
+    ctorbox->extent.toStringEnd = classEndOffset;
 
     if (numFields > 0) {
       // Field initialization need access to `this`.
@@ -7219,19 +7224,17 @@ bool GeneralParser<ParseHandler, Unit>::finishClassConstructor(
     }
 
     // Set the same information, but on the lazyScript.
-    if (ctorbox->isInterpretedLazy()) {
-      ctorbox->function()->baseScript()->setToStringEnd(classEndOffset);
+    if (ctorbox->hasObject()) {
+      if (!ctorbox->emitBytecode) {
+        ctorbox->function()->baseScript()->setToStringEnd(classEndOffset);
 
-      if (numFields > 0) {
-        ctorbox->function()->baseScript()->setFunctionHasThisBinding();
+        if (numFields > 0) {
+          ctorbox->function()->baseScript()->setFunctionHasThisBinding();
+        }
+      } else {
+        // There should not be any non-lazy script yet.
+        MOZ_ASSERT(ctorbox->function()->isIncomplete());
       }
-    } else {
-      // There should not be any non-lazy script yet.
-      MOZ_ASSERT_IF(ctorbox->hasObject(), ctorbox->function()->isIncomplete());
-    }
-
-    if (numFields == 0) {
-      handler_.deleteConstructorScope(cx_, classMembers);
     }
   }
 
@@ -7321,13 +7324,11 @@ GeneralParser<ParseHandler, Unit>::classDefinition(
       return null();
     }
 
-    size_t numFields = 0;
-    size_t numFieldKeys = 0;
+    ClassFields classFields{};
     for (;;) {
       bool done;
-      if (!classMember(yieldHandling, defaultHandling, classStmt, className,
-                       classStartOffset, hasHeritage, numFields, numFieldKeys,
-                       classMembers, &done)) {
+      if (!classMember(yieldHandling, classStmt, className, classStartOffset,
+                       hasHeritage, classFields, classMembers, &done)) {
         return null();
       }
       if (done) {
@@ -7335,16 +7336,30 @@ GeneralParser<ParseHandler, Unit>::classDefinition(
       }
     }
 
-    if (numFieldKeys > 0) {
+    if (classFields.instanceFieldKeys > 0) {
       if (!noteDeclaredName(cx_->names().dotFieldKeys, DeclarationKind::Let,
                             namePos)) {
         return null();
       }
     }
 
+    if (classFields.staticFields > 0) {
+      if (!noteDeclaredName(cx_->names().dotStaticInitializers,
+                            DeclarationKind::Let, namePos)) {
+        return null();
+      }
+    }
+
+    if (classFields.staticFieldKeys > 0) {
+      if (!noteDeclaredName(cx_->names().dotStaticFieldKeys,
+                            DeclarationKind::Let, namePos)) {
+        return null();
+      }
+    }
+
     classEndOffset = pos().end;
     if (!finishClassConstructor(classStmt, className, hasHeritage,
-                                classStartOffset, classEndOffset, numFields,
+                                classStartOffset, classEndOffset, classFields,
                                 classMembers)) {
       return null();
     }
@@ -7425,7 +7440,6 @@ GeneralParser<ParseHandler, Unit>::synthesizeConstructor(
     return null();
   }
   funbox->initWithEnclosingParseContext(pc_, data, functionSyntaxKind);
-  handler_.setFunctionBox(funNode, funbox);
   setFunctionEndFromCurrentToken(funbox);
 
   // Push a SourceParseContext on to the stack.
@@ -7553,9 +7567,10 @@ GeneralParser<ParseHandler, Unit>::synthesizeConstructor(
 
 template <class ParseHandler, typename Unit>
 typename ParseHandler::FunctionNodeType
-GeneralParser<ParseHandler, Unit>::fieldInitializerOpt(
-    YieldHandling yieldHandling, HasHeritage hasHeritage, Node propName,
-    HandleAtom propAtom, size_t& numFieldKeys) {
+GeneralParser<ParseHandler, Unit>::fieldInitializerOpt(Node propName,
+                                                       HandleAtom propAtom,
+                                                       ClassFields& classFields,
+                                                       bool isStatic) {
   bool hasInitializer = false;
   if (!tokenStream.matchToken(&hasInitializer, TokenKind::Assign,
                               TokenStream::SlashIsDiv)) {
@@ -7595,8 +7610,7 @@ GeneralParser<ParseHandler, Unit>::fieldInitializerOpt(
   if (!funbox) {
     return null();
   }
-  funbox->initFieldInitializer(pc_, data, hasHeritage);
-  handler_.setFunctionBox(funNode, funbox);
+  funbox->initFieldInitializer(pc_, data);
 
   // We can't use setFunctionStartAtCurrentToken because that uses pos().begin,
   // which is incorrect for fields without initializers (pos() points to the
@@ -7608,6 +7622,7 @@ GeneralParser<ParseHandler, Unit>::fieldInitializerOpt(
   funbox->setStart(firstTokenPos.begin, firstTokenLine, firstTokenColumn);
 
   // Push a SourceParseContext on to the stack.
+  ParseContext* outerpc = pc_;
   SourceParseContext funpc(this, funbox, /* newDirectives = */ nullptr);
   if (!funpc.init()) {
     return null();
@@ -7670,13 +7685,22 @@ GeneralParser<ParseHandler, Unit>::fieldInitializerOpt(
   if (!propAtom) {
     // See BytecodeEmitter::emitCreateFieldKeys for an explanation of what
     // .fieldKeys means and its purpose.
-    Node dotFieldKeys = newInternalDotName(cx_->names().dotFieldKeys);
-    if (!dotFieldKeys) {
+    NameNodeType fieldKeysName;
+    if (isStatic) {
+      fieldKeysName = newInternalDotName(cx_->names().dotStaticFieldKeys);
+    } else {
+      fieldKeysName = newInternalDotName(cx_->names().dotFieldKeys);
+    }
+    if (!fieldKeysName) {
       return null();
     }
 
-    double fieldKeyIndex = numFieldKeys;
-    numFieldKeys++;
+    double fieldKeyIndex;
+    if (isStatic) {
+      fieldKeyIndex = classFields.staticFieldKeys++;
+    } else {
+      fieldKeyIndex = classFields.instanceFieldKeys++;
+    }
     Node fieldKeyIndexNode = handler_.newNumber(
         fieldKeyIndex, DecimalPoint::NoDecimal, wholeInitializerPos);
     if (!fieldKeyIndexNode) {
@@ -7684,7 +7708,7 @@ GeneralParser<ParseHandler, Unit>::fieldInitializerOpt(
     }
 
     Node fieldKeyValue = handler_.newPropertyByValue(
-        dotFieldKeys, fieldKeyIndexNode, wholeInitializerPos.end);
+        fieldKeysName, fieldKeyIndexNode, wholeInitializerPos.end);
     if (!fieldKeyValue) {
       return null();
     }
@@ -7753,6 +7777,10 @@ GeneralParser<ParseHandler, Unit>::fieldInitializerOpt(
 
   if (!finishFunction(/* isStandaloneFunction = */ false,
                       IsFieldInitializer::Yes)) {
+    return null();
+  }
+
+  if (!leaveInnerFunction(outerpc)) {
     return null();
   }
 

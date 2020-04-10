@@ -44,6 +44,7 @@
 #include "gc/Zone.h"
 #include "jit/BaselineJIT.h"
 #include "jit/InlinableNatives.h"
+#include "jit/Ion.h"
 #include "jit/JitRealm.h"
 #include "js/Array.h"        // JS::NewArrayObject
 #include "js/ArrayBuffer.h"  // JS::{DetachArrayBuffer,GetArrayBufferLengthAndData,NewArrayBufferWithContents}
@@ -445,6 +446,12 @@ static bool GetBuildConfiguration(JSContext* cx, unsigned argc, Value* vp) {
 static bool IsLCovEnabled(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   args.rval().setBoolean(coverage::IsLCovEnabled());
+  return true;
+}
+
+static bool IsTypeInferenceEnabled(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  args.rval().setBoolean(js::IsTypeInferenceEnabled());
   return true;
 }
 
@@ -1099,8 +1106,8 @@ static bool IsLazyFunction(JSContext* cx, unsigned argc, Value* vp) {
     JS_ReportErrorASCII(cx, "The first argument should be a function.");
     return false;
   }
-  args.rval().setBoolean(
-      args[0].toObject().as<JSFunction>().isInterpretedLazy());
+  JSFunction* fun = &args[0].toObject().as<JSFunction>();
+  args.rval().setBoolean(fun->isInterpreted() && !fun->hasBytecode());
   return true;
 }
 
@@ -1116,7 +1123,7 @@ static bool IsRelazifiableFunction(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   JSFunction* fun = &args[0].toObject().as<JSFunction>();
-  args.rval().setBoolean(fun->hasScript() &&
+  args.rval().setBoolean(fun->hasBytecode() &&
                          fun->nonLazyScript()->maybeLazyScript() &&
                          fun->nonLazyScript()->isRelazifiable());
   return true;
@@ -2504,7 +2511,8 @@ static bool GetWaitForAllPromise(JSContext* cx, unsigned argc, Value* vp) {
   if (!args.requireAtLeast(cx, "getWaitForAllPromise", 1)) {
     return false;
   }
-  if (!args[0].isObject() || !IsPackedArray(&args[0].toObject())) {
+  if (!args[0].isObject() || !args[0].toObject().is<ArrayObject>() ||
+      args[0].toObject().as<NativeObject>().isIndexed()) {
     JS_ReportErrorASCII(
         cx, "first argument must be a dense Array of Promise objects");
     return false;
@@ -2991,7 +2999,7 @@ static_assert(JitWarmupResetLimit <=
 static bool testingFunc_inJit(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  if (!jit::IsBaselineJitEnabled()) {
+  if (!jit::IsBaselineJitEnabled(cx)) {
     return ReturnStringCopy(cx, args, "Baseline is disabled.");
   }
 
@@ -3832,7 +3840,7 @@ static bool ReportLargeAllocationFailure(JSContext* cx, unsigned argc,
 
 namespace heaptools {
 
-typedef UniqueTwoByteChars EdgeName;
+using EdgeName = UniqueTwoByteChars;
 
 // An edge to a node from its predecessor in a path through the graph.
 class BackEdge {
@@ -3867,8 +3875,8 @@ class BackEdge {
 
 // A path-finding handler class for use with JS::ubi::BreadthFirst.
 struct FindPathHandler {
-  typedef BackEdge NodeData;
-  typedef JS::ubi::BreadthFirst<FindPathHandler> Traversal;
+  using NodeData = BackEdge;
+  using Traversal = JS::ubi::BreadthFirst<FindPathHandler>;
 
   FindPathHandler(JSContext* cx, JS::ubi::Node start, JS::ubi::Node target,
                   MutableHandle<GCVector<Value>> nodes, Vector<EdgeName>& edges)
@@ -4590,7 +4598,8 @@ struct MajorGC {
   int32_t phases;
 };
 
-static void majorGC(JSContext* cx, JSGCStatus status, void* data) {
+static void majorGC(JSContext* cx, JSGCStatus status, JS::GCReason reason,
+                    void* data) {
   auto info = static_cast<MajorGC*>(data);
   if (!(info->phases & (1 << status))) {
     return;
@@ -4609,7 +4618,8 @@ struct MinorGC {
   bool active;
 };
 
-static void minorGC(JSContext* cx, JSGCStatus status, void* data) {
+static void minorGC(JSContext* cx, JSGCStatus status, JS::GCReason reason,
+                    void* data) {
   auto info = static_cast<MinorGC*>(data);
   if (!(info->phases & (1 << status))) {
     return;
@@ -4628,7 +4638,8 @@ static void minorGC(JSContext* cx, JSGCStatus status, void* data) {
 static MajorGC majorGCInfo;
 static MinorGC minorGCInfo;
 
-static void enterNullRealm(JSContext* cx, JSGCStatus status, void* data) {
+static void enterNullRealm(JSContext* cx, JSGCStatus status,
+                           JS::GCReason reason, void* data) {
   JSAutoNullableRealm enterRealm(cx, nullptr);
 }
 
@@ -5893,9 +5904,9 @@ static bool MonitorType(JSContext* cx, unsigned argc, Value* vp) {
     }
   }
 
-  // Avoid assertion failures if Baseline is disabled or we can't Baseline
-  // Interpret this script.
-  if (!jit::IsBaselineInterpreterEnabled() ||
+  // Avoid assertion failures if TI or Baseline Interpreter is disabled or if we
+  // can't Baseline Interpret this script.
+  if (!IsTypeInferenceEnabled() || !jit::IsBaselineInterpreterEnabled() ||
       !jit::CanBaselineInterpretScript(script)) {
     args.rval().setUndefined();
     return true;
@@ -6116,7 +6127,7 @@ static bool BaselineCompile(JSContext* cx, unsigned argc, Value* vp) {
       return true;
     }
 
-    if (!jit::IsBaselineJitEnabled()) {
+    if (!jit::IsBaselineJitEnabled(cx)) {
       returnedStr = "baseline disabled";
       break;
     }
@@ -6147,6 +6158,13 @@ static bool BaselineCompile(JSContext* cx, unsigned argc, Value* vp) {
     return ReturnStringCopy(cx, args, returnedStr);
   }
 
+  return true;
+}
+
+static bool ClearKeptObjects(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  JS::ClearKeptObjects(cx);
+  args.rval().setUndefined();
   return true;
 }
 
@@ -6260,8 +6278,12 @@ static const JSFunctionSpecWithHelp TestingFunctions[] = {
 "  was built with."),
 
     JS_FN_HELP("isLcovEnabled", ::IsLCovEnabled, 0, 0,
-"getBuildConfiguration()",
+"isLcovEnabled()",
 "  Return true if JS LCov support is enabled."),
+
+    JS_FN_HELP("isTypeInferenceEnabled", ::IsTypeInferenceEnabled, 0, 0,
+"isTypeInferenceEnabled()",
+"  Return true if Type Inference is enabled."),
 
     JS_FN_HELP("hasChild", HasChild, 0, 0,
 "hasChild(parent, child)",
@@ -7059,6 +7081,13 @@ gc::ZealModeHelpText),
 "  REPLACEMENT CHARACTER.  Return an array [r, w] where |r| is the\n"
 "  number of 16-bit units read and |w| is the number of bytes of UTF-8\n"
 "  written."),
+
+   JS_FN_HELP("clearKeptObjects", ClearKeptObjects, 0, 0,
+"clearKeptObjects()",
+"Perform the ECMAScript ClearKeptObjects operation, clearing the list of\n"
+"observed WeakRef targets that are kept alive until the next synchronous\n"
+"sequence of ECMAScript execution completes. This is used for testing\n"
+"WeakRefs.\n"),
 
     JS_FS_HELP_END
 };

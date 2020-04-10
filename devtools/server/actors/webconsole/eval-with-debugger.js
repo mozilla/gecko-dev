@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* global BigInt */
 
 "use strict";
 
+const Debugger = require("Debugger");
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 
 loader.lazyRequireGetter(
@@ -37,6 +37,16 @@ loader.lazyRequireGetter(
   "LongStringActor",
   "devtools/server/actors/string",
   true
+);
+loader.lazyRequireGetter(
+  this,
+  "eagerEcmaWhitelist",
+  "devtools/server/actors/webconsole/eager-ecma-whitelist"
+);
+loader.lazyRequireGetter(
+  this,
+  "eagerFunctionWhitelist",
+  "devtools/server/actors/webconsole/eager-function-whitelist"
 );
 
 function isObject(value) {
@@ -91,8 +101,9 @@ function isObject(value) {
  *        in the Inspector (or null, if there is no selection). This is used
  *        for helper functions that make reference to the currently selected
  *        node, like $0.
- *         - url: the url to evaluate the script as. Defaults to
- *         "debugger eval code".
+ *        - eager: Set to true if you want the evaluation to bail if it may have side effects.
+ *        - url: the url to evaluate the script as. Defaults to "debugger eval code",
+ *        or "debugger eager eval code" if eager is true.
  * @return object
  *         An object that holds the following properties:
  *         - dbg: the debugger where the string was evaluated.
@@ -133,8 +144,10 @@ exports.evalWithDebugger = function(string, options = {}, webConsole) {
   helpers.evalInput = string;
   const evalOptions = {};
 
-  if (typeof options.url === "string") {
-    evalOptions.url = options.url;
+  const urlOption =
+    options.url || (options.eager ? "debugger eager eval code" : null);
+  if (typeof urlOption === "string") {
+    evalOptions.url = urlOption;
   }
 
   if (typeof options.lineNumber === "number") {
@@ -157,7 +170,7 @@ exports.evalWithDebugger = function(string, options = {}, webConsole) {
   );
 
   if (options.eager) {
-    allowSideEffects(dbg, sideEffectData);
+    allowSideEffects(sideEffectData);
   }
 
   // Attempt to initialize any declarations found in the evaluated string
@@ -263,17 +276,22 @@ function preventSideEffects(dbg) {
     throw new Error("Debugger has hook installed");
   }
 
-  const data = {
-    executedScripts: new Set(),
-    debuggees: dbg.getDebuggees(),
+  // We ensure that the metadata for native functions is loaded before we
+  // initialize sideeffect-prevention because the data is lazy-loaded, and this
+  // logic can run inside of debuggee compartments because the
+  // "addAllGlobalsAsDebuggees" considers the vast majority of realms
+  // valid debuggees. Without this, eager-eval runs the risk of failing
+  // because building the list of valid native functions is itself a
+  // side-effectful operation because it needs to populate a
+  // module cache, among any number of other things.
+  ensureSideEffectFreeNatives();
 
-    handler: {
-      hit: () => null,
-    },
-  };
-
-  // TODO: re-enable addAllGlobalsAsDebuggees(bug #1610532)
-  // dbg.addAllGlobalsAsDebuggees();
+  // Note: It is critical for debuggee performance that we implement all of
+  // this debuggee tracking logic with a separate Debugger instance.
+  // Bug 1617666 arises otherwise if we set an onEnterFrame hook on the
+  // existing debugger object and then later clear it.
+  const newDbg = new Debugger();
+  newDbg.addAllGlobalsAsDebuggees();
 
   const timeoutDuration = 100;
   const endTime = Date.now() + timeoutDuration;
@@ -285,7 +303,12 @@ function preventSideEffects(dbg) {
     return ++count % 100 === 0 && Date.now() > endTime;
   }
 
-  dbg.onEnterFrame = frame => {
+  const executedScripts = new Set();
+  const handler = {
+    hit: () => null,
+  };
+
+  newDbg.onEnterFrame = frame => {
     if (shouldCancel()) {
       return null;
     }
@@ -298,49 +321,52 @@ function preventSideEffects(dbg) {
 
     const script = frame.script;
 
-    if (data.executedScripts.has(script)) {
+    if (executedScripts.has(script)) {
       return undefined;
     }
-    data.executedScripts.add(script);
+    executedScripts.add(script);
 
     const offsets = script.getEffectfulOffsets();
     for (const offset of offsets) {
-      script.setBreakpoint(offset, data.handler);
+      script.setBreakpoint(offset, handler);
     }
 
     return undefined;
   };
 
+  // The debugger only calls onNativeCall handlers on the debugger that is
+  // explicitly calling eval, so we need to add this hook on "dbg" even though
+  // the rest of our hooks work via "newDbg".
   dbg.onNativeCall = (callee, reason) => {
-    // Getters are never considered effectful, and setters are always effectful.
-    // Natives called normally are handled with a whitelist.
-    if (
-      reason == "get" ||
-      (reason == "call" && nativeHasNoSideEffects(callee))
-    ) {
-      // Returning undefined causes execution to continue normally.
-      return undefined;
+    try {
+      // Getters are never considered effectful, and setters are always effectful.
+      // Natives called normally are handled with a whitelist.
+      if (
+        reason == "get" ||
+        (reason == "call" && nativeHasNoSideEffects(callee))
+      ) {
+        // Returning undefined causes execution to continue normally.
+        return undefined;
+      }
+    } catch (err) {
+      DevToolsUtils.reportException(
+        "evalWithDebugger onNativeCall",
+        new Error("Unable to validate native function against whitelist")
+      );
     }
     // Returning null terminates the current evaluation.
     return null;
   };
 
-  return data;
+  return {
+    dbg,
+    newDbg,
+  };
 }
 
-function allowSideEffects(dbg, data) {
-  for (const script of data.executedScripts) {
-    script.clearBreakpoint(data.handler);
-  }
-
-  for (const global of dbg.getDebuggees()) {
-    if (!data.debuggees.includes(global)) {
-      dbg.removeDebuggee(global);
-    }
-  }
-
-  dbg.onEnterFrame = undefined;
-  dbg.onNativeCall = undefined;
+function allowSideEffects(data) {
+  data.dbg.onNativeCall = undefined;
+  data.newDbg.removeAllDebuggees();
 }
 
 // Native functions which are considered to be side effect free.
@@ -352,131 +378,11 @@ function ensureSideEffectFreeNatives() {
   }
 
   const natives = [
-    Array,
-    Array.from,
-    Array.isArray,
-    Array.of,
-    Array.prototype.concat,
-    Array.prototype.entries,
-    Array.prototype.every,
-    Array.prototype.fill,
-    Array.prototype.filter,
-    Array.prototype.find,
-    Array.prototype.findIndex,
-    Array.prototype.flat,
-    Array.prototype.flatMap,
-    Array.prototype.forEach,
-    Array.prototype.includes,
-    Array.prototype.indexOf,
-    Array.prototype.join,
-    Array.prototype.keys,
-    Array.prototype.lastIndexOf,
-    Array.prototype.map,
-    Array.prototype.reduce,
-    Array.prototype.reduceRight,
-    Array.prototype.slice,
-    Array.prototype.some,
-    Array.prototype.values,
-    ArrayBuffer,
-    ArrayBuffer.isView,
-    ArrayBuffer.prototype.slice,
-    BigInt,
-    ...allProperties(BigInt),
-    Boolean,
-    DataView,
-    Date,
-    Date.now,
-    Date.parse,
-    Date.UTC,
-    ...matchingProperties(Date.prototype, /^get/),
-    ...matchingProperties(Date.prototype, /^to.*?String$/),
-    Error,
-    Function,
-    Function.prototype.apply,
-    Function.prototype.bind,
-    Function.prototype.call,
-    Int8Array,
-    Uint8Array,
-    Uint8ClampedArray,
-    Int16Array,
-    Uint16Array,
-    Int32Array,
-    Uint32Array,
-    Float32Array,
-    Float64Array,
-    // These will apply to other typed array prototypes.
-    Int8Array.prototype.entries,
-    Int8Array.prototype.every,
-    Int8Array.prototype.filter,
-    Int8Array.prototype.find,
-    Int8Array.prototype.findIndex,
-    Int8Array.prototype.forEach,
-    Int8Array.prototype.indexOf,
-    Int8Array.prototype.includes,
-    Int8Array.prototype.join,
-    Int8Array.prototype.keys,
-    Int8Array.prototype.lastIndexOf,
-    Int8Array.prototype.map,
-    Int8Array.prototype.reduce,
-    Int8Array.prototype.reduceRight,
-    Int8Array.prototype.slice,
-    Int8Array.prototype.some,
-    Int8Array.prototype.subarray,
-    Int8Array.prototype.values,
-    ...allProperties(JSON),
-    Map,
-    Map.prototype.forEach,
-    Map.prototype.get,
-    Map.prototype.has,
-    Map.prototype.entries,
-    Map.prototype.keys,
-    Map.prototype.values,
-    ...allProperties(Math),
-    Number,
-    ...allProperties(Number),
-    ...allProperties(Number.prototype),
-    Object,
-    Object.create,
-    Object.keys,
-    Object.entries,
-    Object.getOwnPropertyDescriptor,
-    Object.getOwnPropertyDescriptors,
-    Object.getOwnPropertyNames,
-    Object.getOwnPropertySymbols,
-    Object.getPrototypeOf,
-    Object.is,
-    Object.isExtensible,
-    Object.isFrozen,
-    Object.isSealed,
-    Object.values,
-    Object.prototype.hasOwnProperty,
-    Object.prototype.isPrototypeOf,
-    RegExp,
-    RegExp.prototype.exec,
-    RegExp.prototype.test,
-    Set,
-    Set.prototype.entries,
-    Set.prototype.forEach,
-    Set.prototype.has,
-    Set.prototype.values,
-    String,
-    ...allProperties(String),
-    ...allProperties(String.prototype),
-    Symbol,
-    Symbol.keyFor,
-    WeakMap,
-    WeakMap.prototype.get,
-    WeakMap.prototype.has,
-    WeakSet,
-    WeakSet.prototype.has,
-    decodeURI,
-    decodeURIComponent,
-    encodeURI,
-    encodeURIComponent,
-    escape,
-    isFinite,
-    isNaN,
-    unescape,
+    ...eagerEcmaWhitelist,
+
+    // Pull in all of the non-ECMAScript native functions that we want to
+    // whitelist as well.
+    ...eagerFunctionWhitelist,
   ];
 
   const map = new Map();
@@ -488,20 +394,13 @@ function ensureSideEffectFreeNatives() {
   }
 
   gSideEffectFreeNatives = map;
-
-  function matchingProperties(obj, regexp) {
-    return Object.getOwnPropertyNames(obj)
-      .filter(n => regexp.test(n))
-      .map(n => obj[n])
-      .filter(v => typeof v == "function");
-  }
-
-  function allProperties(obj) {
-    return matchingProperties(obj, /./);
-  }
 }
 
 function nativeHasNoSideEffects(fn) {
+  if (fn.isBoundFunction) {
+    fn = fn.boundTargetFunction;
+  }
+
   // Natives with certain names are always considered side effect free.
   switch (fn.name) {
     case "toString":
@@ -509,8 +408,6 @@ function nativeHasNoSideEffects(fn) {
     case "valueOf":
       return true;
   }
-
-  ensureSideEffectFreeNatives();
 
   const natives = gSideEffectFreeNatives.get(fn.name);
   return natives && natives.some(n => fn.isSameNative(n));

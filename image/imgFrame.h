@@ -15,6 +15,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Monitor.h"
+#include "nsRect.h"
 
 namespace mozilla {
 namespace image {
@@ -355,11 +356,11 @@ class DrawableFrameRef final {
   }
 
   DrawableFrameRef(DrawableFrameRef&& aOther)
-      : mFrame(aOther.mFrame.forget()), mRef(std::move(aOther.mRef)) {}
+      : mFrame(std::move(aOther.mFrame)), mRef(std::move(aOther.mRef)) {}
 
   DrawableFrameRef& operator=(DrawableFrameRef&& aOther) {
     MOZ_ASSERT(this != &aOther, "Self-moves are prohibited");
-    mFrame = aOther.mFrame.forget();
+    mFrame = std::move(aOther.mFrame);
     mRef = std::move(aOther.mRef);
     return *this;
   }
@@ -422,7 +423,7 @@ class RawAccessFrameRef final {
   }
 
   RawAccessFrameRef(RawAccessFrameRef&& aOther)
-      : mFrame(aOther.mFrame.forget()), mData(aOther.mData) {
+      : mFrame(std::move(aOther.mFrame)), mData(aOther.mData) {
     aOther.mData = nullptr;
   }
 
@@ -439,7 +440,7 @@ class RawAccessFrameRef final {
       mFrame->UnlockImageData();
     }
 
-    mFrame = aOther.mFrame.forget();
+    mFrame = std::move(aOther.mFrame);
     mData = aOther.mData;
     aOther.mData = nullptr;
 

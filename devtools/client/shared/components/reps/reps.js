@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+ 
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("devtools/client/shared/vendor/react-prop-types"), require("devtools/client/shared/vendor/react-dom-factories"), require("devtools/client/shared/vendor/react"), require("Services"), require("devtools/client/shared/vendor/react-redux"));
@@ -1694,7 +1694,7 @@ function nodeIsUnmappedBinding(item) {
   return value && value.unmapped;
 } // Used to check if an item represents a binding that exists in the debugger's
 // parser result, but does not match up with a binding returned by the
-// debugger server.
+// devtools server.
 
 
 function nodeIsUnscopedBinding(item) {
@@ -1816,29 +1816,6 @@ function nodeHasEntries(item) {
   return value.class === "Map" || value.class === "Set" || value.class === "WeakMap" || value.class === "WeakSet" || value.class === "Storage";
 }
 
-function nodeHasAllEntriesInPreview(item) {
-  const {
-    preview
-  } = getValue(item) || {};
-
-  if (!preview) {
-    return false;
-  }
-
-  const {
-    entries,
-    items,
-    length,
-    size
-  } = preview;
-
-  if (!entries && !items) {
-    return false;
-  }
-
-  return entries ? entries.length === size : items.length === length;
-}
-
 function nodeNeedsNumericalBuckets(item) {
   return nodeSupportsNumericalBucketing(item) && getNumericalPropertiesCount(item) > MAX_NUMERICAL_PROPERTIES;
 }
@@ -1922,46 +1899,6 @@ function makeNodesForProxyProperties(loadedProps, item) {
 
 function makeNodesForEntries(item) {
   const nodeName = "<entries>";
-  const entriesPath = "<entries>";
-
-  if (nodeHasAllEntriesInPreview(item)) {
-    let entriesNodes = [];
-    const {
-      preview
-    } = getValue(item);
-
-    if (preview.entries) {
-      entriesNodes = preview.entries.map(([key, value], index) => {
-        return createNode({
-          parent: item,
-          name: index,
-          path: createPath(entriesPath, index),
-          contents: {
-            value: GripMapEntryRep.createGripMapEntry(key, value)
-          }
-        });
-      });
-    } else if (preview.items) {
-      entriesNodes = preview.items.map((value, index) => {
-        return createNode({
-          parent: item,
-          name: index,
-          path: createPath(entriesPath, index),
-          contents: {
-            value
-          }
-        });
-      });
-    }
-
-    return createNode({
-      parent: item,
-      name: nodeName,
-      contents: entriesNodes,
-      type: NODE_TYPES.ENTRIES
-    });
-  }
-
   return createNode({
     parent: item,
     name: nodeName,
@@ -2540,6 +2477,7 @@ module.exports = {
   getChildrenWithEvaluations,
   getClosestGripNode,
   getClosestNonBucketNode,
+  getEvaluatedItem,
   getFront,
   getPathExpression,
   getParent,
@@ -2553,7 +2491,6 @@ module.exports = {
   makeNodesForProperties,
   makeNumericalBuckets,
   nodeHasAccessors,
-  nodeHasAllEntriesInPreview,
   nodeHasChildren,
   nodeHasEntries,
   nodeHasProperties,
@@ -2947,16 +2884,29 @@ function FunctionRep(props) {
     });
   }
 
-  return span({
+  const elProps = {
     "data-link-actor-id": grip.actor,
     className: "objectBox objectBox-function",
-    // Set dir="ltr" to prevent function parentheses from
+    // Set dir="ltr" to prevent parentheses from
     // appearing in the wrong direction
     dir: "ltr"
-  }, getTitle(grip, props), getFunctionName(grip, props), "(", ...renderParams(grip), ")", jumpToDefinitionButton);
+  };
+  const parameterNames = (grip.parameterNames || []).filter(param => param);
+
+  if (grip.isClassConstructor) {
+    return span(elProps, getClassTitle(grip, props), getFunctionName(grip, props), ...getClassBody(parameterNames, props), jumpToDefinitionButton);
+  }
+
+  return span(elProps, getFunctionTitle(grip, props), getFunctionName(grip, props), "(", ...getParams(parameterNames), ")", jumpToDefinitionButton);
 }
 
-function getTitle(grip, props) {
+function getClassTitle(grip) {
+  return span({
+    className: "objectTitle"
+  }, "class ");
+}
+
+function getFunctionTitle(grip, props) {
   const {
     mode
   } = props;
@@ -3032,23 +2982,34 @@ function cleanFunctionName(name) {
   return name;
 }
 
-function renderParams(grip) {
+function getClassBody(constructorParams, props) {
   const {
-    parameterNames = []
-  } = grip;
-  return parameterNames.filter(param => param).reduce((res, param, index, arr) => {
-    res.push(span({
+    mode
+  } = props;
+
+  if (mode === MODE.TINY) {
+    return [];
+  }
+
+  return [" {", ...getClassConstructor(constructorParams), "}"];
+}
+
+function getClassConstructor(parameterNames) {
+  if (parameterNames.length === 0) {
+    return [];
+  }
+
+  return [" constructor(", ...getParams(parameterNames), ") "];
+}
+
+function getParams(parameterNames) {
+  return parameterNames.flatMap((param, index, arr) => {
+    return [span({
       className: "param"
-    }, param));
-
-    if (index < arr.length - 1) {
-      res.push(span({
-        className: "delimiter"
-      }, ", "));
-    }
-
-    return res;
-  }, []);
+    }, param), index === arr.length - 1 ? "" : span({
+      className: "delimiter"
+    }, ", ")];
+  });
 } // Registration
 
 
@@ -4011,7 +3972,6 @@ const {
   getFront,
   getValue,
   nodeHasAccessors,
-  nodeHasAllEntriesInPreview,
   nodeHasProperties,
   nodeIsBucket,
   nodeIsDefaultProperties,
@@ -4123,7 +4083,7 @@ function shouldLoadItemNonIndexedProperties(item, loadedProperties = new Map()) 
 function shouldLoadItemEntries(item, loadedProperties = new Map()) {
   const gripItem = getClosestGripNode(item);
   const value = getValue(gripItem);
-  return value && nodeIsEntries(getClosestNonBucketNode(item)) && !nodeHasAllEntriesInPreview(gripItem) && !loadedProperties.has(item.path) && !nodeNeedsNumericalBuckets(item);
+  return value && nodeIsEntries(getClosestNonBucketNode(item)) && !loadedProperties.has(item.path) && !nodeNeedsNumericalBuckets(item);
 }
 
 function shouldLoadItemPrototype(item, loadedProperties = new Map()) {
@@ -7660,6 +7620,7 @@ const {
 const {
   getChildrenWithEvaluations,
   getActor,
+  getEvaluatedItem,
   getParent,
   getValue,
   nodeIsPrimitive,
@@ -7792,7 +7753,21 @@ class ObjectInspector extends Component {
   }
 
   getRoots() {
-    return this.props.roots;
+    const {
+      evaluations,
+      roots
+    } = this.props;
+    const length = roots.length;
+
+    for (let i = 0; i < length; i++) {
+      let rootItem = roots[i];
+
+      if (evaluations.has(rootItem.path)) {
+        roots[i] = getEvaluatedItem(rootItem, evaluations);
+      }
+    }
+
+    return roots;
   }
 
   getNodeKey(item) {
@@ -8167,6 +8142,13 @@ async function releaseActors(state, client, dispatch) {
     return;
   }
 
+  let promises = [];
+
+  for (const actor of actors) {
+    promises.push(client.releaseActor(actor));
+  }
+
+  await Promise.all(promises);
   dispatch({
     type: "RELEASED_ACTORS",
     data: {

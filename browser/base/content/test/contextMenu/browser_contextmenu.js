@@ -272,24 +272,43 @@ add_task(async function test_mailto() {
 });
 
 add_task(async function test_image() {
-  await test_contextmenu("#test-image", [
-    "context-viewimage",
-    true,
-    "context-copyimage-contents",
-    true,
-    "context-copyimage",
-    true,
-    "---",
-    null,
-    "context-saveimage",
-    true,
-    "context-sendimage",
-    true,
-    "context-setDesktopBackground",
-    true,
-    "context-viewimageinfo",
-    true,
-  ]);
+  for (let selector of ["#test-image", "#test-svg-image"]) {
+    await test_contextmenu(
+      selector,
+      [
+        "context-viewimage",
+        true,
+        "context-copyimage-contents",
+        true,
+        "context-copyimage",
+        true,
+        "---",
+        null,
+        "context-saveimage",
+        true,
+        "context-sendimage",
+        true,
+        "context-setDesktopBackground",
+        true,
+        "context-viewimageinfo",
+        true,
+      ],
+      {
+        onContextMenuShown() {
+          is(
+            typeof gContextMenu.imageInfo.height,
+            "number",
+            "Should have height"
+          );
+          is(
+            typeof gContextMenu.imageInfo.width,
+            "number",
+            "Should have width"
+          );
+        },
+      }
+    );
+  }
 });
 
 add_task(async function test_canvas() {
@@ -990,6 +1009,76 @@ add_task(async function test_image_in_iframe() {
     ]),
     null,
   ]);
+});
+
+add_task(async function test_pdf_viewer_in_iframe() {
+  await test_contextmenu(
+    "#test-pdf-viewer-in-frame",
+    [
+      "context-navigation",
+      null,
+      [
+        "context-back",
+        false,
+        "context-forward",
+        false,
+        "context-reload",
+        true,
+        "context-bookmarkpage",
+        true,
+      ],
+      null,
+      "---",
+      null,
+      "context-savepage",
+      true,
+      ...(hasPocket ? ["context-pocket", true] : []),
+      "---",
+      null,
+      "context-sendpagetodevice",
+      true,
+      [],
+      null,
+      "context-selectall",
+      true,
+      "frame",
+      null,
+      getThisFrameSubMenu([
+        "context-showonlythisframe",
+        true,
+        "context-openframeintab",
+        true,
+        "context-openframe",
+        true,
+        "---",
+        null,
+        "context-reloadframe",
+        true,
+        "---",
+        null,
+        "context-bookmarkframe",
+        true,
+        "context-saveframe",
+        true,
+        "---",
+        null,
+        "context-printframe",
+        true,
+        "---",
+        null,
+        "context-viewframeinfo",
+        true,
+      ]),
+      null,
+      "---",
+      null,
+      "context-viewsource",
+      true,
+      "context-viewinfo",
+      true,
+    ],
+    { maybeScreenshotsPresent: true, shiftkey: true }
+  );
 });
 
 add_task(async function test_textarea() {

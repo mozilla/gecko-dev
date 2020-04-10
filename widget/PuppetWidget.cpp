@@ -585,7 +585,7 @@ bool PuppetWidget::CreateRemoteLayerManager(
   // it if we successfully create its successor because a partially initialized
   // layer manager is worse than a fully initialized but shutdown layer manager.
   DestroyLayerManager();
-  mLayerManager = lm.forget();
+  mLayerManager = std::move(lm);
   return true;
 }
 
@@ -1140,6 +1140,14 @@ LayoutDeviceIntPoint PuppetWidget::GetChromeOffset() {
   return GetOwningBrowserChild()->GetChromeOffset();
 }
 
+LayoutDeviceIntPoint PuppetWidget::WidgetToScreenOffset() {
+  auto positionRalativeToWindow =
+      WidgetToTopLevelWidgetTransform().TransformPoint(LayoutDevicePoint());
+
+  return GetWindowPosition() +
+         LayoutDeviceIntPoint::Round(positionRalativeToWindow);
+}
+
 LayoutDeviceIntPoint PuppetWidget::GetWindowPosition() {
   if (!GetOwningBrowserChild()) {
     return LayoutDeviceIntPoint();
@@ -1249,6 +1257,15 @@ PuppetScreenManager::ScreenForRect(int32_t inLeft, int32_t inTop,
                                    int32_t inWidth, int32_t inHeight,
                                    nsIScreen** outScreen) {
   return GetPrimaryScreen(outScreen);
+}
+
+ScreenIntMargin PuppetWidget::GetSafeAreaInsets() const {
+  return mSafeAreaInsets;
+}
+
+void PuppetWidget::UpdateSafeAreaInsets(
+    const ScreenIntMargin& aSafeAreaInsets) {
+  mSafeAreaInsets = aSafeAreaInsets;
 }
 
 nsIWidgetListener* PuppetWidget::GetCurrentWidgetListener() {

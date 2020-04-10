@@ -84,6 +84,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsContentSink)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mCSSLoader)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mNodeInfoManager)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mScriptLoader)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsContentSink)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDocument)
@@ -1412,7 +1413,8 @@ void nsContentSink::DropParserAndPerfHint(void) {
   // actually broken.
   // Drop our reference to the parser to get rid of a circular
   // reference.
-  RefPtr<nsParserBase> kungFuDeathGrip(mParser.forget());
+  RefPtr<nsParserBase> kungFuDeathGrip = std::move(mParser);
+  mozilla::Unused << kungFuDeathGrip;
 
   if (mDynamicLowerValue) {
     // Reset the performance hint which was set to FALSE

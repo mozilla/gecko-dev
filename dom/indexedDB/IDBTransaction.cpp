@@ -59,7 +59,7 @@ ThreadLocal* GetIndexedDBThreadLocal() {
       BackgroundChildImpl::GetThreadLocalForCurrentThread();
   MOZ_ASSERT(threadLocal);
 
-  ThreadLocal* idbThreadLocal = threadLocal->mIndexedDBThreadLocal;
+  ThreadLocal* idbThreadLocal = threadLocal->mIndexedDBThreadLocal.get();
   MOZ_ASSERT(idbThreadLocal);
 
   return idbThreadLocal;
@@ -386,7 +386,35 @@ void IDBTransaction::SendCommit(const bool aAutoCommit) {
       LoggingSerialNumber(), requestSerialNumber,
       aAutoCommit ? "automatically" : "explicitly");
 
-  DoWithTransactionChild([](auto& actor) { actor.SendCommit(); });
+  const auto lastRequestSerialNumber =
+      [this, aAutoCommit,
+       requestSerialNumber]() -> Maybe<decltype(requestSerialNumber)> {
+    if (aAutoCommit) {
+      return Nothing();
+    }
+
+    // In case of an explicit commit, we need to note the serial number of the
+    // last request to check if a request submitted before the commit request
+    // failed. If we are currently in an event handler for a request on this
+    // transaction, ignore this request. This is used to synchronize the
+    // transaction's committing state with the parent side, to abort the
+    // transaction in case of a request resulting in an error (see
+    // https://w3c.github.io/IndexedDB/#async-execute-request, step 5.3.). With
+    // automatic commit, this is not necessary, as the transaction's state will
+    // only be set to committing after the last request completed.
+    const bool dispatchingEventForThisTransaction =
+        BackgroundChildImpl::GetThreadLocalForCurrentThread()
+            ->mIndexedDBThreadLocal->GetCurrentTransaction() == this;
+
+    return Some(requestSerialNumber
+                    ? (requestSerialNumber -
+                       (dispatchingEventForThisTransaction ? 0 : 1))
+                    : 0);
+  }();
+
+  DoWithTransactionChild([lastRequestSerialNumber](auto& actor) {
+    actor.SendCommit(lastRequestSerialNumber);
+  });
 
   mSentCommitOrAbort.Flip();
 }
@@ -452,7 +480,7 @@ void IDBTransaction::GetCallerLocation(nsAString& aFilename,
 }
 
 RefPtr<IDBObjectStore> IDBTransaction::CreateObjectStore(
-    const ObjectStoreSpec& aSpec) {
+    ObjectStoreSpec& aSpec) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aSpec.metadata().id());
   MOZ_ASSERT(Mode::VersionChange == mMode);
@@ -877,22 +905,16 @@ RefPtr<IDBObjectStore> IDBTransaction::ObjectStore(const nsAString& aName,
     return nullptr;
   }
 
-  const ObjectStoreSpec* spec = nullptr;
-
-  if (IDBTransaction::Mode::VersionChange == mMode ||
-      mObjectStoreNames.Contains(aName)) {
-    const nsTArray<ObjectStoreSpec>& objectStores =
-        mDatabase->Spec()->objectStores();
-
-    const auto foundIt =
-        std::find_if(objectStores.cbegin(), objectStores.cend(),
-                     [&aName](const auto& objectStore) {
-                       return objectStore.metadata().name() == aName;
-                     });
-    if (foundIt != objectStores.cend()) {
-      spec = &*foundIt;
+  auto* const spec = [this, &aName]() -> ObjectStoreSpec* {
+    if (IDBTransaction::Mode::VersionChange == mMode ||
+        mObjectStoreNames.Contains(aName)) {
+      return mDatabase->LookupModifiableObjectStoreSpec(
+          [&aName](const auto& objectStore) {
+            return objectStore.metadata().name() == aName;
+          });
     }
-  }
+    return nullptr;
+  }();
 
   if (!spec) {
     aRv.Throw(NS_ERROR_DOM_INDEXEDDB_NOT_FOUND_ERR);
@@ -966,7 +988,10 @@ IDBTransaction::Run() {
   // abort/commit.
 
   if (ReadyState::Finished == mReadyState) {
-    MOZ_ASSERT(IsAborted());
+    // There are three cases where mReadyState is set to Finished: In
+    // FileCompleteOrAbortEvents, AbortInternal and in CommitIfNotStarted. We
+    // shouldn't get here after CommitIfNotStarted again.
+    MOZ_ASSERT(mFiredCompleteOrAbort || IsAborted());
     return NS_OK;
   }
 

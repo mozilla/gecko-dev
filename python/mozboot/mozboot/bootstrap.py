@@ -4,6 +4,8 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from collections import OrderedDict
+
 import platform
 import sys
 import os
@@ -59,22 +61,12 @@ Please choose the version of Firefox you want to build:
 %s
 Your choice: '''
 
-APPLICATIONS_LIST = [
+APPLICATIONS = OrderedDict([
     ('Firefox for Desktop Artifact Mode', 'browser_artifact_mode'),
     ('Firefox for Desktop', 'browser'),
     ('GeckoView/Firefox for Android Artifact Mode', 'mobile_android_artifact_mode'),
     ('GeckoView/Firefox for Android', 'mobile_android'),
-]
-
-# TODO Legacy Python 2.6 code, can be removed.
-# This is a workaround for the fact that we must support python2.6 (which has
-# no OrderedDict)
-APPLICATIONS = dict(
-    browser_artifact_mode=APPLICATIONS_LIST[0],
-    browser=APPLICATIONS_LIST[1],
-    mobile_android_artifact_mode=APPLICATIONS_LIST[2],
-    mobile_android=APPLICATIONS_LIST[3],
-)
+])
 
 VCS_CHOICE = '''
 Firefox can be cloned using either Git or Mercurial.
@@ -204,6 +196,14 @@ If you have questions, please ask in #build in irc.mozilla.org. If you would
 like to opt out of data collection, select (N) at the prompt.
 
 Would you like to enable build system telemetry?'''
+
+
+MOZ_PHAB_ADVERTISE = '''
+If you plan on submitting changes to Firefox use the following command to
+install the review submission tool "moz-phab":
+
+  mach install-moz-phab
+'''
 
 
 def update_or_create_build_telemetry_config(path):
@@ -386,6 +386,7 @@ class Bootstrapper(object):
             self.instance.ensure_lucetc_packages(state_dir, checkout_root)
             self.instance.ensure_wasi_sysroot_packages(state_dir, checkout_root)
             self.instance.ensure_dump_syms_packages(state_dir, checkout_root)
+            self.instance.ensure_fix_stacks_packages(state_dir, checkout_root)
 
     def check_telemetry_opt_in(self, state_dir):
         # We can't prompt the user.
@@ -404,15 +405,17 @@ class Bootstrapper(object):
     def bootstrap(self):
         if self.choice is None:
             # Like ['1. Firefox for Desktop', '2. Firefox for Android Artifact Mode', ...].
-            labels = ['%s. %s' % (i + 1, name) for (i, (name, _)) in enumerate(APPLICATIONS_LIST)]
+            labels = ['%s. %s' % (i, name) for i, name in enumerate(APPLICATIONS.keys(), 1)]
             prompt = APPLICATION_CHOICE % '\n'.join('  {}'.format(label) for label in labels)
             prompt_choice = self.instance.prompt_int(prompt=prompt, low=1, high=len(APPLICATIONS))
-            name, application = APPLICATIONS_LIST[prompt_choice-1]
-        elif self.choice not in APPLICATIONS.keys():
+            name, application = list(APPLICATIONS.items())[prompt_choice-1]
+        elif self.choice in APPLICATIONS.keys():
+            name, application = self.choice, APPLICATIONS[self.choice]
+        elif self.choice in APPLICATIONS.values():
+            name, application = next((k, v) for k, v in APPLICATIONS.items() if v == self.choice)
+        else:
             raise Exception('Please pick a valid application choice: (%s)' %
                             '/'.join(APPLICATIONS.keys()))
-        else:
-            name, application = APPLICATIONS[self.choice]
 
         self.instance.application = application
         self.instance.artifact_mode = 'artifact_mode' in application
@@ -525,6 +528,9 @@ class Bootstrapper(object):
         if not (self.instance.which('rustc') and self.instance._parse_version('rustc')
                 >= MODERN_RUST_VERSION):
             print("To build %s, please restart the shell (Start a new terminal window)" % name)
+
+        if not self.instance.which("moz-phab"):
+            print(MOZ_PHAB_ADVERTISE)
 
         # Like 'suggest_browser_mozconfig' or 'suggest_mobile_android_mozconfig'.
         getattr(self.instance, 'suggest_%s_mozconfig' % application)()

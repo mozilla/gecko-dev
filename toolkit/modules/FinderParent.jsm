@@ -6,7 +6,6 @@
 
 var EXPORTED_SYMBOLS = ["FinderParent"];
 
-const kFissionEnabledPref = "fission.autostart";
 const kModalHighlightPref = "findbar.modalHighlight";
 const kSoundEnabledPref = "accessibility.typeaheadfind.enablesound";
 const kNotFoundSoundPref = "accessibility.typeaheadfind.soundURL";
@@ -57,6 +56,11 @@ function FinderParent(browser) {
   this._foundSearchString = null;
   this._lastFoundBrowsingContext = null;
 
+  // The correct states of these will be updated when the findbar is opened.
+  this._caseSensitive = false;
+  this._entireWord = false;
+  this._matchDiacritics = false;
+
   this.swapBrowser(browser);
 }
 
@@ -68,6 +72,10 @@ FinderParent.prototype = {
 
   get browsingContext() {
     return this._browser.browsingContext;
+  },
+
+  get useRemoteSubframes() {
+    return this._browser.ownerGlobal.docShell.nsILoadContext.useRemoteSubframes;
   },
 
   swapBrowser(aBrowser) {
@@ -164,8 +172,7 @@ FinderParent.prototype = {
   gatherBrowsingContexts(aBrowsingContext) {
     let list = [aBrowsingContext];
 
-    let children = aBrowsingContext.getChildren();
-    for (let child of children) {
+    for (let child of aBrowsingContext.children) {
       list.push(...this.gatherBrowsingContexts(child));
     }
 
@@ -182,7 +189,7 @@ FinderParent.prototype = {
     let useModalHighlighter = Services.prefs.getBoolPref(kModalHighlightPref);
     let hasOutOfProcessChild = false;
     if (useModalHighlighter) {
-      if (Services.prefs.getBoolPref(kFissionEnabledPref)) {
+      if (this.useRemoteSubframes) {
         return false;
       }
 
@@ -224,18 +231,21 @@ FinderParent.prototype = {
   },
 
   set caseSensitive(aSensitive) {
+    this._caseSensitive = aSensitive;
     this.sendMessageToAllContexts("Finder:CaseSensitive", {
       caseSensitive: aSensitive,
     });
   },
 
   set entireWord(aEntireWord) {
+    this._entireWord = aEntireWord;
     this.sendMessageToAllContexts("Finder:EntireWord", {
       entireWord: aEntireWord,
     });
   },
 
   set matchDiacritics(aMatchDiacritics) {
+    this._matchDiacritics = aMatchDiacritics;
     this.sendMessageToAllContexts("Finder:MatchDiacritics", {
       matchDiacritics: aMatchDiacritics,
     });
@@ -308,6 +318,10 @@ FinderParent.prototype = {
         : Ci.nsITypeAheadFind.FIND_NEXT;
     }
     aArgs.findAgain = aFindNext;
+
+    aArgs.caseSensitive = this._caseSensitive;
+    aArgs.matchDiacritics = this._matchDiacritics;
+    aArgs.entireWord = this._entireWord;
 
     aArgs.useSubFrames = this.needSubFrameSearch(searchList);
     if (aArgs.useSubFrames) {

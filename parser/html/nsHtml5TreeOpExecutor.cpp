@@ -6,6 +6,7 @@
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Likely.h"
+#include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/nsCSPContext.h"
 #include "mozilla/dom/nsCSPService.h"
@@ -810,9 +811,8 @@ void nsHtml5TreeOpExecutor::MaybeComplainAboutCharset(const char* aMsgId,
   // the embedded different-origin pages anyway and can't fix problems even
   // if alerted about them.
   if (!strcmp(aMsgId, "EncNoDeclaration") && mDocShell) {
-    nsCOMPtr<nsIDocShellTreeItem> parent;
-    mDocShell->GetInProcessSameTypeParent(getter_AddRefs(parent));
-    if (parent) {
+    BrowsingContext* const bc = mDocShell->GetBrowsingContext();
+    if (bc && bc->GetParent()) {
       return;
     }
   }

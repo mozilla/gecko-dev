@@ -20,6 +20,8 @@ promise_test(async t => {
     iframe,
     "/wake-lock/resources/page1.html"
   );
+  // Save the DOMException of page1.html before navigating away.
+  const frameDOMException1 = iframe.contentWindow.DOMException;
   // We navigate the iframe again, putting wakeLock1's document into an inactive state.
   const wakeLock2 = await getWakeLockObject(
     iframe,
@@ -27,9 +29,10 @@ promise_test(async t => {
   );
   // Now, wakeLock1's relevant global object's document is no longer active.
   // So, call .request(), and make sure it rejects appropriately.
-  await promise_rejects(
+  await promise_rejects_dom(
     t,
     "NotAllowedError",
+    frameDOMException1,
     wakeLock1.request('screen'),
     "Inactive document, so must throw NotAllowedError"
   );
@@ -58,6 +61,8 @@ promise_test(async t => {
     innerIframe,
     "/wake-lock/resources/page2.html"
   );
+  // Save DOMException from innerIframe before navigating away.
+  const innerIframeDOMException = innerIframe.contentWindow.DOMException;
 
   // Navigate the outer iframe to a new location.
   // Wait for the load event to fire.
@@ -70,9 +75,10 @@ promise_test(async t => {
   // (it is the active document of the inner iframe), but is not fully active
   // (since the parent of the inner iframe is itself no longer active).
   // So, call request.show() and make sure it rejects appropriately.
-  await promise_rejects(
+  await promise_rejects_dom(
     t,
     "NotAllowedError",
+    innerIframeDOMException,
     wakeLock.request('screen'),
     "Active, but not fully active, so must throw NotAllowedError"
   );

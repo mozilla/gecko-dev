@@ -61,6 +61,8 @@ declare namespace MockedExports {
   type GetPref<T> = (prefName: string, defaultValue?: T) => T;
   type SetPref<T> = (prefName: string, value?: T) => T;
 
+  interface nsIURI {}
+
   type Services = {
     prefs: {
       clearUserPref: (prefName: string) => void;
@@ -86,6 +88,9 @@ declare namespace MockedExports {
     focus: {
       activeWindow: ChromeWindow;
     };
+    io: {
+      newURI(url: string): nsIURI;
+    },
     scriptSecurityManager: any;
     startup: {
       quit: (optionsBitmask: number) => void,
@@ -137,10 +142,22 @@ declare namespace MockedExports {
     };
   };
 
+  interface BrowsingContextStub {}
+  interface PrincipalStub {}
+
+  interface WebChannelTarget {
+    browsingContext: BrowsingContextStub,
+    browser: Browser,
+    eventTarget: null,
+    principal: PrincipalStub,
+  }
+
+  const WebChannelJSM: any;
+
   // TS-TODO
   const CustomizableUIJSM: any;
-
   const CustomizableWidgetsJSM: any;
+  const PanelMultiViewJSM: any;
 
   const Services: Services;
 
@@ -233,6 +250,10 @@ declare module "resource://gre/modules/ProfilerGetSymbols.jsm" {
   export = MockedExports.ProfilerGetSymbolsJSM;
 }
 
+declare module "resource://gre/modules/WebChannel.jsm" {
+  export = MockedExports.WebChannelJSM;
+}
+
 declare module "resource://devtools/client/performance-new/popup/background.jsm.js" {
   import * as Background from "devtools/client/performance-new/popup/background.jsm.js";
   export = Background
@@ -244,6 +265,10 @@ declare module "resource:///modules/CustomizableUI.jsm" {
 
 declare module "resource:///modules/CustomizableWidgets.jsm" {
   export = MockedExports.CustomizableWidgetsJSM;
+}
+
+declare module "resource:///modules/PanelMultiView.jsm" {
+  export = MockedExports.PanelMultiViewJSM;
 }
 
 declare var ChromeUtils: MockedExports.ChromeUtils;
@@ -277,4 +302,31 @@ declare interface XULIframeElement extends XULElement {
   src: string;
 }
 
-declare interface ChromeWindow extends Window {}
+declare interface ChromeWindow extends Window {
+  openWebLinkIn: (
+    url: string,
+    where: "current" | "tab" | "tabshifted" | "window" | "save",
+    // TS-TODO
+    params?: unknown
+  ) => void;
+  openTrustedLinkIn: (
+    url: string,
+    where: "current" | "tab" | "tabshifted" | "window" | "save",
+    // TS-TODO
+    params?: unknown
+  ) => void;
+}
+
+declare interface MenuListElement extends XULElement {
+  value: string;
+  disabled: boolean;
+}
+
+declare interface XULCommandEvent extends Event {
+  target: XULElement
+}
+
+declare interface XULElementWithCommandHandler {
+  addEventListener: (type: "command", handler: (event: XULCommandEvent) => void, isCapture?: boolean) => void
+  removeEventListener: (type: "command", handler: (event: XULCommandEvent) => void, isCapture?: boolean) => void
+}

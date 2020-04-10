@@ -89,6 +89,7 @@ FWD_DECLARE_VS_FUNCTION(blend_brush_vs)
 FWD_DECLARE_VS_FUNCTION(mix_blend_brush_vs)
 FWD_DECLARE_VS_FUNCTION(linear_gradient_brush_vs)
 FWD_DECLARE_VS_FUNCTION(radial_gradient_brush_vs)
+FWD_DECLARE_VS_FUNCTION(conic_gradient_brush_vs)
 FWD_DECLARE_VS_FUNCTION(yuv_brush_vs)
 FWD_DECLARE_VS_FUNCTION(opacity_brush_vs)
 
@@ -163,8 +164,12 @@ void main(void) {
 
     // Write the normal vertex information out.
     if (transform.is_axis_aligned) {
+
+        // Select the corner of the local rect that we are processing.
+        vec2 local_pos = segment_rect.p0 + segment_rect.size * aPosition.xy;
+
         vi = write_vertex(
-            segment_rect,
+            local_pos,
             ph.local_clip_rect,
             ph.z,
             transform,
@@ -244,13 +249,6 @@ void main(void) {
 
 #ifdef WR_FRAGMENT_SHADER
 
-struct Fragment {
-    vec4 color;
-#ifdef WR_FEATURE_DUAL_SOURCE_BLENDING
-    vec4 blend;
-#endif
-};
-
 // Foward-declare all brush entry-points.
 Fragment image_brush_fs();
 Fragment solid_brush_fs();
@@ -258,8 +256,10 @@ Fragment blend_brush_fs();
 Fragment mix_blend_brush_fs();
 Fragment linear_gradient_brush_fs();
 Fragment radial_gradient_brush_fs();
+Fragment conic_gradient_brush_fs();
 Fragment yuv_brush_fs();
 Fragment opacity_brush_fs();
+Fragment text_brush_fs();
 Fragment multi_brush_fs(int brush_kind);
 
 void main(void) {

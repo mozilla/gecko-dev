@@ -204,7 +204,7 @@ class TypeDescr : public NativeObject {
   static void finalize(JSFreeOp* fop, JSObject* obj);
 };
 
-typedef Handle<TypeDescr*> HandleTypeDescr;
+using HandleTypeDescr = Handle<TypeDescr*>;
 
 class SimpleTypeDescr : public TypeDescr {};
 
@@ -214,7 +214,7 @@ class SimpleTypeDescr : public TypeDescr {};
 // an opaque reference type.)
 class ScalarTypeDescr : public SimpleTypeDescr {
  public:
-  typedef Scalar::Type Type;
+  using Type = Scalar::Type;
 
   static const type::Kind Kind = type::Scalar;
   static const bool Opaque = false;
@@ -310,7 +310,7 @@ enum class ReferenceType {
 class ReferenceTypeDescr : public SimpleTypeDescr {
  public:
   // Must match order of JS_FOR_EACH_REFERENCE_TYPE_REPR below
-  typedef ReferenceType Type;
+  using Type = ReferenceType;
   static const char* typeName(Type type);
 
   static const int32_t TYPE_MAX = int32_t(ReferenceType::TYPE_STRING) + 1;
@@ -511,7 +511,7 @@ class StructTypeDescr : public ComplexTypeDescr {
   }
 };
 
-typedef Handle<StructTypeDescr*> HandleStructTypeDescr;
+using HandleStructTypeDescr = Handle<StructTypeDescr*>;
 
 /*
  * This object exists in order to encapsulate the typed object types
@@ -638,7 +638,7 @@ class TypedObject : public JSObject {
   }
 };
 
-typedef Handle<TypedObject*> HandleTypedObject;
+using HandleTypedObject = Handle<TypedObject*>;
 
 class OutlineTypedObject : public TypedObject {
   // The object which owns the data this object points to. Because this
@@ -728,7 +728,8 @@ class InlineTypedObject : public TypedObject {
   // Start of the inline data, which immediately follows the shape and type.
   uint8_t data_[1];
 
-  static const size_t MaximumSize =
+ public:
+  static const size_t MaxInlineBytes =
       JSObject::MAX_BYTE_SIZE - sizeof(TypedObject);
 
  protected:
@@ -737,10 +738,10 @@ class InlineTypedObject : public TypedObject {
  public:
   static inline gc::AllocKind allocKindForTypeDescriptor(TypeDescr* descr);
 
-  static bool canAccommodateSize(size_t size) { return size <= MaximumSize; }
+  static bool canAccommodateSize(size_t size) { return size <= MaxInlineBytes; }
 
   static bool canAccommodateType(TypeDescr* type) {
-    return type->size() <= MaximumSize;
+    return type->size() <= MaxInlineBytes;
   }
 
   uint8_t* inlineTypedMem(const JS::AutoRequireNoGC&) const {

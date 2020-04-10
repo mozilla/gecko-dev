@@ -51,6 +51,7 @@ EXPORTS.mozilla = [
     'HashFunctions.h',
     'HashTable.h',
     'HelperMacros.h',
+    'InitializedOnce.h',
     'IntegerPrintfMacros.h',
     'IntegerRange.h',
     'IntegerTypeTraits.h',
@@ -78,7 +79,6 @@ EXPORTS.mozilla = [
     'Range.h',
     'RangedArray.h',
     'RangedPtr.h',
-    'RecordReplay.h',
     'ReentrancyGuard.h',
     'RefCounted.h',
     'RefCountType.h',
@@ -165,11 +165,6 @@ UNIFIED_SOURCES += [
 ]
 
 if CONFIG['MOZ_BUILD_APP'] not in ('memory', 'tools/crashreporter', 'tools/update-packaging'):
-    # RecordReplay.cpp uses files from js/
-    UNIFIED_SOURCES += [
-        'RecordReplay.cpp',
-    ]
-
     # Building MFBT tests adds a large overhead when building
     # tools/crashreporter.
     TEST_DIRS += ['tests']

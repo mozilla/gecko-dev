@@ -60,8 +60,9 @@
 #  define PROFILER_ADD_MARKER(markerName, categoryPair)
 #  define PROFILER_ADD_MARKER_WITH_PAYLOAD(markerName, categoryPair, \
                                            PayloadType, payloadArgs)
-#  define PROFILER_ADD_NETWORK_MARKER(uri, pri, channel, type, start, end, \
-                                      count, cache, timings, redirect, ...)
+#  define PROFILER_ADD_NETWORK_MARKER(uri, pri, channel, type, start, end,  \
+                                      count, cache, innerWindowID, timings, \
+                                      redirect, ...)
 
 #  define PROFILER_TRACING_MARKER(categoryString, markerName, categoryPair, \
                                   kind)
@@ -264,8 +265,7 @@ class RacyFeatures {
   // We combine the active bit with the feature bits so they can be read or
   // written in a single atomic operation. Accesses to this atomic are not
   // recorded by web replay as they may occur at non-deterministic points.
-  static mozilla::Atomic<uint32_t, mozilla::MemoryOrdering::Relaxed,
-                         recordreplay::Behavior::DontPreserve>
+  static mozilla::Atomic<uint32_t, mozilla::MemoryOrdering::Relaxed>
       sActiveAndFeatures;
 };
 
@@ -833,14 +833,16 @@ void profiler_add_marker_for_thread(
 enum class NetworkLoadType { LOAD_START, LOAD_STOP, LOAD_REDIRECT };
 
 #  define PROFILER_ADD_NETWORK_MARKER(uri, pri, channel, type, start, end,  \
-                                      count, cache, timings, redirect, ...) \
+                                      count, cache, innerWindowID, timings, \
+                                      redirect, ...)                        \
     profiler_add_network_marker(uri, pri, channel, type, start, end, count, \
-                                cache, timings, redirect, ##__VA_ARGS__)
+                                cache, innerWindowID, timings, redirect,    \
+                                ##__VA_ARGS__)
 
 void profiler_add_network_marker(
     nsIURI* aURI, int32_t aPriority, uint64_t aChannelId, NetworkLoadType aType,
     mozilla::TimeStamp aStart, mozilla::TimeStamp aEnd, int64_t aCount,
-    mozilla::net::CacheDisposition aCacheDisposition,
+    mozilla::net::CacheDisposition aCacheDisposition, uint64_t aInnerWindowID,
     const mozilla::net::TimingStruct* aTimings = nullptr,
     nsIURI* aRedirectURI = nullptr, UniqueProfilerBacktrace aSource = nullptr);
 
@@ -1102,9 +1104,7 @@ class ProfilingStackOwner {
 
   class ProfilingStack mProfilingStack;
 
-  mutable Atomic<int32_t, MemoryOrdering::ReleaseAcquire,
-                 recordreplay::Behavior::DontPreserve>
-      mRefCnt;
+  mutable Atomic<int32_t, MemoryOrdering::ReleaseAcquire> mRefCnt;
 };
 
 // This class creates a non-owning ProfilingStack reference. Objects of this

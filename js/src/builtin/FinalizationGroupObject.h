@@ -6,49 +6,55 @@
 
 /*
  * FinalizationGroup objects allow a program to register to receive a callback
- * after a 'target' object dies. The callback is passed a 'holdings' value (that
+ * after a 'target' object dies. The callback is passed a 'held value' (that
  * hopefully doesn't entrain the target). An 'unregister token' is an object
  * which can be used to remove multiple previous registrations in one go.
  *
  * To arrange this, the following data structures are used:
  *
- *   +--------------------------------+----------------------------+
- *   |  FinalizationGroup compartment |  Target zone / compartment |
- *   |                                |                            |
- *   |      +-------------------+     |    +------------------+    |
- *   |  +-->+ FinalizationGroup |     |    |       Zone       |    |
- *   |  |   +---------+---------+     |    +---------+--------+    |
- *   |  |             |               |              |             |
- *   |  |             |               |              |             |
- *   |  |             v               |              v             |
- *   |  |  +----------+----------+    |   +----------+---------+   |
- *   |  |  |    Registrations    |    |   | FinalizationRecord |   |
- *   |  |  |      weak map       |    |   |        map         |   |
- *   |  |  +---------------------+    |   +--------------------+   |
- *   |  |  | Unregister : Record |    |   |  Target  : Record  |   |
- *   |  |  |   token    :  list  |    |   |          :  list   |   |
- *   |  |  +-----------------+---+    |   +-----+---------+----+   |
- *   |  |                    |        |         |         |        |
- *   |  |             +------+        |         |         |        |
- *   |  |           * v               |         |         |        |
- *   |  |  +----------+----------+ *  |         |         |        |
- *   |  |  | FinalizationRecord  +<-----------------------+        |
- *   |  |  +---------------------+    |         |                  |
- *   |  +--+ Group               |    |         v                  |
- *   |     +---------------------+    |     +---+---------+        |
- *   |     | Holdings            |    |     |   Target    |        |
- *   |     +---------------------+    |     +-------------+        |
- *   |                                |                            |
- *   +--------------------------------+----------------------------+
+ *   +-------------------------------------+---------------------------------+
+ *   |    FinalizationGroup compartment    |    Target zone / compartment    |
+ *   |                                     |                                 |
+ *   |         +-------------------+       |      +------------------+       |
+ *   |  +----->+ FinalizationGroup |       |      |       Zone       |       |
+ *   |  |      +---------+---------+       |      +---------+--------+       |
+ *   |  |                |                 |                |                |
+ *   |  |                v                 |                v                |
+ *   |  |  +-------------+-------------+   |   +------------+------------+   |
+ *   |  |  |       Registrations       |   |   |  FinalizationRecordMap  |   |
+ *   |  |  |         weak map          |   |   |           map           |   |
+ *   |  |  +---------------------------+   |   +-------------------------+   |
+ *   |  |  | Unregister  :   Records   |   |   |  Target  : Finalization-|   |
+ *   |  |  |   token     :   object    |   |   |  object  : RecordVector |   |
+ *   |  |  +--------------------+------+   |   +----+-------------+------+   |
+ *   |  |                       |          |        |             |          |
+ *   |  |                       v          |        v             |          |
+ *   |  |  +--------------------+------+   |   +----+-----+       |          |
+ *   |  |  |       Finalization-       |   |   |  Target  |       |          |
+ *   |  |  |     RecordVectorObject    |   |   | JSObject |       |          |
+ *   |  |  +-------------+-------------+   |   +----------+       |          |
+ *   |  |  |       RecordVector        |   |                      |          |
+ *   |  |  +-------------+-------------+   |                      |          |
+ *   |  |                |                 |                      |          |
+ *   |  |              * v                 |                      |          |
+ *   |  |  +-------------+-------------+ * |                      |          |
+ *   |  |  | FinalizationRecordObject  +<-------------------------+          |
+ *   |  |  +---------------------------+   |                                 |
+ *   |  +--+ Group                     |   |                                 |
+ *   |     +---------------------------+   |                                 |
+ *   |     | Held value                |   |                                 |
+ *   |     +---------------------------+   |                                 |
+ *   |                                     |                                 |
+ *   +-------------------------------------+---------------------------------+
  *
  * Registering a target with a FinalizationGroup creates a FinalizationRecord
- * containing the group and the holdings. This is added to a vector of records
+ * containing the group and the heldValue. This is added to a vector of records
  * associated with the target, implemented as a map on the target's Zone. All
  * finalization records are treated as GC roots.
  *
  * When a target is registered an unregister token may be supplied. If so, this
  * is also recorded by the group and is stored in a weak map of
- * registrations. The values of this map are FinalizationRecordVector
+ * registrations. The values of this map are FinalizationRecordVectorObject
  * objects. It's necessary to have another JSObject here because our weak map
  * implementation only supports JS types as values.
  *
@@ -60,7 +66,7 @@
  *
  * The finalization record maps are also swept during GC to check for any
  * targets that are dying. For such targets the associated record list is
- * processed and for each record the holdings is queued on finalization
+ * processed and for each record the heldValue is queued on finalization
  * group. At a later time this causes the client's callback to be run.
  *
  * When targets are unregistered, the registration is looked up in the weakmap
@@ -88,9 +94,18 @@ using RootedFinalizationGroupObject = Rooted<FinalizationGroupObject*>;
 using RootedFinalizationIteratorObject = Rooted<FinalizationIteratorObject*>;
 using RootedFinalizationRecordObject = Rooted<FinalizationRecordObject*>;
 
-// A finalization record: a pair of finalization group and holdings value.
+// A finalization record: a pair of finalization group and held value.
+//
+// A finalization record represents the registered interest of a finalization
+// group in a target's finalization.
+//
+// Finalization records are initially 'active' but may be cleared and become
+// inactive. This happens when:
+//  - the heldValue is passed to the group's cleanup callback
+//  - the group's unregister method removes the registration
+//  - the FinalizationGroup dies
 class FinalizationRecordObject : public NativeObject {
-  enum { GroupSlot = 0, HoldingsSlot, SlotCount };
+  enum { WeakGroupSlot = 0, HeldValueSlot, SlotCount };
 
  public:
   static const JSClass class_;
@@ -98,12 +113,22 @@ class FinalizationRecordObject : public NativeObject {
   // The group can be a CCW to a FinalizationGroupObject.
   static FinalizationRecordObject* create(JSContext* cx,
                                           HandleFinalizationGroupObject group,
-                                          HandleValue holdings);
+                                          HandleValue heldValue);
 
-  FinalizationGroupObject* group() const;
-  Value holdings() const;
-  bool wasCleared() const;
+  // Read weak group pointer and perform read barrier during GC.
+  FinalizationGroupObject* groupDuringGC(gc::GCRuntime* gc) const;
+
+  Value heldValue() const;
+  bool isActive() const;
   void clear();
+  bool sweep();
+
+ private:
+  static const JSClassOps classOps_;
+
+  static void trace(JSTracer* trc, JSObject* obj);
+
+  FinalizationGroupObject* groupUnbarriered() const;
 };
 
 // A vector of FinalizationRecordObjects.
@@ -137,11 +162,15 @@ class FinalizationRecordVectorObject : public NativeObject {
   static void finalize(JSFreeOp* fop, JSObject* obj);
 };
 
+using FinalizationRecordSet =
+    GCHashSet<HeapPtrObject, MovableCellHasher<HeapPtrObject>, ZoneAllocPolicy>;
+
 // The FinalizationGroup object itself.
 class FinalizationGroupObject : public NativeObject {
   enum {
     CleanupCallbackSlot = 0,
     RegistrationsSlot,
+    ActiveRecords,
     RecordsToBeCleanedUpSlot,
     IsQueuedForCleanupSlot,
     IsCleanupJobActiveSlot,
@@ -154,6 +183,7 @@ class FinalizationGroupObject : public NativeObject {
 
   JSObject* cleanupCallback() const;
   ObjectWeakMap* registrations() const;
+  FinalizationRecordSet* activeRecords() const;
   FinalizationRecordVector* recordsToBeCleanedUp() const;
   bool isQueuedForCleanup() const;
   bool isCleanupJobActive() const;
@@ -192,8 +222,8 @@ class FinalizationGroupObject : public NativeObject {
       HandleFinalizationGroupObject group);
 };
 
-// An iterator over a finalization group's queued holdings. In the spec this is
-// called FinalizationGroupCleanupIterator.
+// An iterator over a finalization group's queued held values. In the spec this
+// is called FinalizationGroupCleanupIterator.
 class FinalizationIteratorObject : public NativeObject {
   enum { FinalizationGroupSlot = 0, IndexSlot, SlotCount };
 

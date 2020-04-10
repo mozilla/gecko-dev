@@ -13,6 +13,7 @@
 #include "nsIChannel.h"
 #include "nsIChildChannel.h"
 #include "nsITraceableChannel.h"
+#include "mozilla/dom/ClientInfo.h"
 
 #define DOCUMENT_CHANNEL_IID                         \
   {                                                  \
@@ -45,9 +46,9 @@ class DocumentChannel : public nsIIdentChannel, public nsITraceableChannel {
   NS_DECLARE_STATIC_IID_ACCESSOR(DOCUMENT_CHANNEL_IID)
 
   DocumentChannel(nsDocShellLoadState* aLoadState, class LoadInfo* aLoadInfo,
-                  const nsString* aInitiatorType, nsLoadFlags aLoadFlags,
-                  uint32_t aLoadType, uint32_t aCacheKey, bool aIsActive,
-                  bool aIsTopLevelDoc, bool aHasNonEmptySandboxingFlags);
+                  nsLoadFlags aLoadFlags, uint32_t aLoadType,
+                  uint32_t aCacheKey, bool aIsActive, bool aIsTopLevelDoc,
+                  bool aHasNonEmptySandboxingFlags);
 
   const nsTArray<DocumentChannelRedirect>& GetRedirectChain() const {
     return mRedirects;
@@ -67,6 +68,10 @@ class DocumentChannel : public nsIIdentChannel, public nsITraceableChannel {
     mTiming = aTiming;
   }
 
+  void SetInitialClientInfo(const Maybe<dom::ClientInfo>& aInfo) {
+    mInitialClientInfo = aInfo;
+  }
+
  protected:
   nsDocShell* GetDocShell();
 
@@ -77,7 +82,6 @@ class DocumentChannel : public nsIIdentChannel, public nsITraceableChannel {
 
   const TimeStamp mAsyncOpenTime;
   const RefPtr<nsDocShellLoadState> mLoadState;
-  const Maybe<nsString> mInitiatorType;
   const uint32_t mLoadType;
   const uint32_t mCacheKey;
   const bool mIsActive;
@@ -99,6 +103,7 @@ class DocumentChannel : public nsIIdentChannel, public nsITraceableChannel {
   nsCOMPtr<nsISupports> mOwner;
   bool mPluginsAllowed = false;
   RefPtr<nsDOMNavigationTiming> mTiming;
+  Maybe<dom::ClientInfo> mInitialClientInfo;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(DocumentChannel, DOCUMENT_CHANNEL_IID)

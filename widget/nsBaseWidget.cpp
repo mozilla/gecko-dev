@@ -309,7 +309,7 @@ void nsBaseWidget::DestroyCompositor() {
 
     // XXX CompositorBridgeChild and CompositorBridgeParent might be re-created
     // in ClientLayerManager destructor. See bug 1133426.
-    RefPtr<CompositorSession> session = mCompositorSession.forget();
+    RefPtr<CompositorSession> session = std::move(mCompositorSession);
     session->Shutdown();
   }
 }
@@ -640,6 +640,12 @@ void nsBaseWidget::SetSizeMode(nsSizeMode aMode) {
   MOZ_ASSERT(aMode == nsSizeMode_Normal || aMode == nsSizeMode_Minimized ||
              aMode == nsSizeMode_Maximized || aMode == nsSizeMode_Fullscreen);
   mSizeMode = aMode;
+}
+
+int32_t nsBaseWidget::GetWorkspaceID() { return 0; }
+
+void nsBaseWidget::MoveToWorkspace(int32_t workspaceID) {
+  // Noop.
 }
 
 //-------------------------------------------------------------------------
@@ -1136,7 +1142,7 @@ nsEventStatus nsBaseWidget::DispatchInputEvent(WidgetInputEvent* aEvent) {
     if (wheelEvent) {
       RefPtr<Runnable> r =
           new DispatchWheelInputOnControllerThread(*wheelEvent, mAPZC, this);
-      APZThreadUtils::RunOnControllerThread(r.forget());
+      APZThreadUtils::RunOnControllerThread(std::move(r));
       return nsEventStatus_eConsumeDoDefault;
     }
     // Allow dispatching keyboard events on Gecko thread.
@@ -1343,7 +1349,7 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight) {
 
   WindowUsesOMTC();
 
-  mLayerManager = lm.forget();
+  mLayerManager = std::move(lm);
 
   // Only track compositors for top-level windows, since other window types
   // may use the basic compositor.  Except on the OS X - see bug 1306383
@@ -1402,9 +1408,6 @@ CompositorBridgeChild* nsBaseWidget::GetRemoteRenderer() {
 }
 
 already_AddRefed<gfx::DrawTarget> nsBaseWidget::StartRemoteDrawing() {
-  if (recordreplay::IsRecordingOrReplaying()) {
-    return recordreplay::child::DrawTargetForRemoteDrawing(mBounds.Size());
-  }
   return nullptr;
 }
 
@@ -2064,7 +2067,7 @@ void nsBaseWidget::RegisterPluginWindowForRemoteUpdates() {
     return;
   }
   MOZ_ASSERT(sPluginWidgetList);
-  sPluginWidgetList->Put(id, this);
+  sPluginWidgetList->Put(id, RefPtr{this});
 #endif
 }
 

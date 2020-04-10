@@ -535,9 +535,7 @@ EngineManager.prototype = {
       }
       // Unregister the old engine, register the new one.
       this._log.info(
-        `Switching ${name} engine ("${info.pref}" went from ${
-          info.lastValue
-        } => ${prefValue})`
+        `Switching ${name} engine ("${info.pref}" went from ${info.lastValue} => ${prefValue})`
       );
       try {
         await this._removeAndFinalize(name);
@@ -554,9 +552,7 @@ EngineManager.prototype = {
         this._log.info(`Switched the ${name} engine to use ${engineType.name}`);
       } catch (e) {
         this._log.warn(
-          `Switching the ${name} engine to use ${
-            engineType.name
-          } failed (couldn't register)`,
+          `Switching the ${name} engine to use ${engineType.name} failed (couldn't register)`,
           e
         );
       }
@@ -979,6 +975,17 @@ SyncEngine.prototype = {
    */
   async resetLocalSyncID() {
     return this.ensureCurrentSyncID(Utils.makeGUID());
+  },
+
+  /**
+   * Allows overriding scheduler logic -- added to help reduce kinto server
+   * getting hammered because our scheduler never got tuned for it.
+   *
+   * Note: Overriding engines must take resyncs into account -- score will not
+   * be cleared.
+   */
+  shouldSkipSync(syncReason) {
+    return false;
   },
 
   /*

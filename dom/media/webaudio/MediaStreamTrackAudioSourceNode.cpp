@@ -21,6 +21,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(MediaStreamTrackAudioSourceNode)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(MediaStreamTrackAudioSourceNode)
   tmp->Destroy();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mInputTrack)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_PTR
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END_INHERITED(AudioNode)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(
@@ -44,10 +45,9 @@ MediaStreamTrackAudioSourceNode::MediaStreamTrackAudioSourceNode(
 MediaStreamTrackAudioSourceNode::Create(
     AudioContext& aAudioContext,
     const MediaStreamTrackAudioSourceOptions& aOptions, ErrorResult& aRv) {
-  if (aAudioContext.IsOffline()) {
-    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-    return nullptr;
-  }
+  // The spec has a pointless check here.  See
+  // https://github.com/WebAudio/web-audio-api/issues/2149
+  MOZ_RELEASE_ASSERT(!aAudioContext.IsOffline(), "Bindings messed up?");
 
   if (!aOptions.mMediaStreamTrack->Ended() &&
       aAudioContext.Graph() != aOptions.mMediaStreamTrack->Graph()) {
@@ -57,7 +57,11 @@ MediaStreamTrackAudioSourceNode::Create(
                                     NS_LITERAL_CSTRING("Web Audio"), document,
                                     nsContentUtils::eDOM_PROPERTIES,
                                     "MediaStreamAudioSourceNodeDifferentRate");
-    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    // This is not a spec-required exception, just a limitation of our
+    // implementation.
+    aRv.ThrowNotSupportedError(
+        "Connecting AudioNodes from AudioContexts with different sample-rate "
+        "is currently not supported.");
     return nullptr;
   }
 
@@ -77,7 +81,7 @@ void MediaStreamTrackAudioSourceNode::Init(MediaStreamTrack* aMediaStreamTrack,
   MOZ_ASSERT(aMediaStreamTrack);
 
   if (!aMediaStreamTrack->AsAudioStreamTrack()) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    aRv.ThrowInvalidStateError("\"mediaStreamTrack\" must be an audio track");
     return;
   }
 

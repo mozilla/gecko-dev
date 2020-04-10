@@ -89,8 +89,9 @@
 #include <cstdlib>  // for std::abs(int/long)
 #include <cmath>    // for std::abs(float/double)
 
-#define PAINT_SKIP_LOG(...)
-// #define PAINT_SKIP_LOG(...) printf_stderr("PSKIP: " __VA_ARGS__)
+static mozilla::LazyLogModule sApzPaintSkipLog("apz.paintskip");
+#define PAINT_SKIP_LOG(...) \
+  MOZ_LOG(sApzPaintSkipLog, LogLevel::Debug, (__VA_ARGS__))
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1334,9 +1335,8 @@ nscoord ScrollFrameHelper::GetNondisappearingScrollbarWidth(
   if (LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars) != 0) {
     // We're using overlay scrollbars, so we need to get the width that
     // non-disappearing scrollbars would have.
-    nsITheme* theme = aState->PresContext()->GetTheme();
-    if (theme &&
-        theme->ThemeSupportsWidget(aState->PresContext(),
+    nsITheme* theme = aState->PresContext()->Theme();
+    if (theme->ThemeSupportsWidget(aState->PresContext(),
                                    verticalWM ? mHScrollbarBox : mVScrollbarBox,
                                    StyleAppearance::ScrollbarNonDisappearing)) {
       LayoutDeviceIntSize size;
@@ -1664,7 +1664,7 @@ nsSize nsXULScrollFrame::GetXULMinSize(nsBoxLayoutState& aState) {
 
   AddBorderAndPadding(min);
   bool widthSet, heightSet;
-  nsIFrame::AddXULMinSize(aState, this, min, widthSet, heightSet);
+  nsIFrame::AddXULMinSize(this, min, widthSet, heightSet);
   return min;
 }
 
@@ -3164,7 +3164,8 @@ void ScrollFrameHelper::AppendScrollPartsTo(nsDisplayListBuilder* aBuilder,
   // viewport scrollbars. They would create layerization problems. This wouldn't
   // normally be an issue but themes can add overflow areas to scrollbar parts.
   if (mIsRoot) {
-    nsRect scrollPartsClip(aBuilder->ToReferenceFrame(mOuter), TrueOuterSize());
+    nsRect scrollPartsClip(aBuilder->ToReferenceFrame(mOuter),
+                           TrueOuterSize(aBuilder));
     clipState.ClipContentDescendants(scrollPartsClip);
   }
 
@@ -3777,28 +3778,29 @@ void ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   }
 
   if (couldBuildLayer) {
+    CompositorHitTestInfo info(CompositorHitTestFlags::eVisibleToHitTest,
+                               CompositorHitTestFlags::eInactiveScrollframe);
+    // If the scroll frame has non-default overscroll-behavior, instruct
+    // APZ to require a target confirmation before processing events that
+    // hit this scroll frame (that is, to drop the events if a
+    // confirmation does not arrive within the timeout period). Otherwise,
+    // APZ's fallback behaviour of scrolling the enclosing scroll frame
+    // would violate the specified overscroll-behavior.
+    auto overscroll = GetOverscrollBehaviorInfo();
+    if (overscroll.mBehaviorX != OverscrollBehavior::Auto ||
+        overscroll.mBehaviorY != OverscrollBehavior::Auto) {
+      info += CompositorHitTestFlags::eRequiresTargetConfirmation;
+    }
+
+    nsRect area = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
+
     // Make sure that APZ will dispatch events back to content so we can
     // create a displayport for this frame. We'll add the item later on.
     if (!mWillBuildScrollableLayer) {
       if (aBuilder->BuildCompositorHitTestInfo()) {
-        CompositorHitTestInfo info(
-            CompositorHitTestFlags::eVisibleToHitTest,
-            CompositorHitTestFlags::eInactiveScrollframe);
-        // If the scroll frame has non-default overscroll-behavior, instruct
-        // APZ to require a target confirmation before processing events that
-        // hit this scroll frame (that is, to drop the events if a
-        // confirmation does not arrive within the timeout period). Otherwise,
-        // APZ's fallback behaviour of scrolling the enclosing scroll frame
-        // would violate the specified overscroll-behavior.
-        auto overscroll = GetOverscrollBehaviorInfo();
-        if (overscroll.mBehaviorX != OverscrollBehavior::Auto ||
-            overscroll.mBehaviorY != OverscrollBehavior::Auto) {
-          info += CompositorHitTestFlags::eRequiresTargetConfirmation;
-        }
         nsDisplayCompositorHitTestInfo* hitInfo =
             MakeDisplayItem<nsDisplayCompositorHitTestInfo>(
-                aBuilder, mScrolledFrame, info, 1,
-                Some(mScrollPort + aBuilder->ToReferenceFrame(mOuter)));
+                aBuilder, mScrolledFrame, info, 1, Some(area));
         if (hitInfo) {
           AppendInternalItemToTop(scrolledContent, hitInfo, Some(INT32_MAX));
         }
@@ -3808,7 +3810,7 @@ void ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     if (aBuilder->ShouldBuildScrollInfoItemsForHoisting()) {
       aBuilder->AppendNewScrollInfoItemForHoisting(
           MakeDisplayItem<nsDisplayScrollInfoLayer>(aBuilder, mScrolledFrame,
-                                                    mOuter));
+                                                    mOuter, info, area));
     }
   }
 
@@ -5768,11 +5770,26 @@ class MOZ_RAII AutoMinimumScaleSizeChangeDetector final {
   bool mPreviousIsUsingMinimumScaleSize;
 };
 
-nsSize ScrollFrameHelper::TrueOuterSize() const {
+nsSize ScrollFrameHelper::TrueOuterSize(nsDisplayListBuilder* aBuilder) const {
   if (RefPtr<MobileViewportManager> manager =
           mOuter->PresShell()->GetMobileViewportManager()) {
+    LayoutDeviceIntSize displaySize = manager->DisplaySize();
+
+    MOZ_ASSERT(aBuilder);
+    // In case of WebRender, we expand the outer size to include the dynamic
+    // toolbar area here.
+    // In case of non WebRender, we expand the size dynamically in
+    // MoveScrollbarForLayerMargin in AsyncCompositionManager.cpp.
+    LayerManager* layerManager = aBuilder->GetWidgetLayerManager();
+    if (layerManager &&
+        layerManager->GetBackendType() == layers::LayersBackend::LAYERS_WR) {
+      displaySize.height += ViewAs<LayoutDevicePixel>(
+          mOuter->PresContext()->GetDynamicToolbarMaxHeight(),
+          PixelCastJustification::LayoutDeviceIsScreenForBounds);
+    }
+
     return LayoutDeviceSize::ToAppUnits(
-        manager->DisplaySize(), mOuter->PresContext()->AppUnitsPerDevPixel());
+        displaySize, mOuter->PresContext()->AppUnitsPerDevPixel());
   }
   return mOuter->GetSize();
 }

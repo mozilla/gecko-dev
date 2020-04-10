@@ -76,16 +76,20 @@ class Browsertime(Perftest):
 
     def remove_mozprofile_delimiters_from_profile(self):
         # Perftest.build_browser_profile uses mozprofile to create the profile and merge in prefs;
-        # while merging, mozprofile adds in special delimiters; these delimiters are not recognized
-        # by selenium-webdriver ultimately causing Firefox launch to fail. So we must remove these
-        # delimiters from the browser profile before passing into btime via firefox.profileTemplate
+        # while merging, mozprofile adds in special delimiters; these delimiters (along with blank
+        # lines) are not recognized by selenium-webdriver ultimately causing Firefox launch to
+        # fail. So we must remove these delimiters from the browser profile before passing into
+        # btime via firefox.profileTemplate.
 
         LOG.info("Removing mozprofile delimiters from browser profile")
         userjspath = os.path.join(self.profile.profile, "user.js")
         try:
             with open(userjspath) as userjsfile:
                 lines = userjsfile.readlines()
-            lines = [line for line in lines if not line.startswith("#MozRunner")]
+            lines = [
+                line for line in lines
+                if not line.startswith("#MozRunner") and line.strip()
+            ]
             with open(userjspath, "w") as userjsfile:
                 userjsfile.writelines(lines)
         except Exception as e:
@@ -185,7 +189,11 @@ class Browsertime(Perftest):
         browsertime_options = [
             "--firefox.profileTemplate", str(self.profile.profile),
             "--skipHar",
-            "--video", self.browsertime_video and "true" or "false",
+            "--viewPort", "1366x695",
+            "--pageLoadStrategy", "none",
+            "--firefox.disableBrowsertimeExtension", "true",
+            "--pageCompleteCheckStartWait", "5000",
+            "--pageCompleteCheckPollTimeout", "1000",
             "--visualMetrics", "false",
             # url load timeout (milliseconds)
             "--timeouts.pageLoad", str(timeout),
@@ -194,6 +202,19 @@ class Browsertime(Perftest):
             "-vvv",
             "--resultDir", self.results_handler.result_dir_for_test(test),
         ]
+
+        if self.browsertime_video:
+            # For now, capturing video with Firefox always uses the window recorder/composition
+            # recorder.  In the future we'd like to be able to selectively use Android's `adb
+            # screenrecord` as well.  (There's no harm setting Firefox options for other browsers.)
+            browsertime_options.extend([
+                "--video", "true",
+                "--firefox.windowRecorder", "true",
+            ])
+        else:
+            browsertime_options.extend([
+                "--video", "false",
+            ])
 
         # have browsertime use our newly-created conditioned-profile path
         if not self.no_condprof:

@@ -16,8 +16,11 @@ enum IterationCompositeOperation {
 };
 
 dictionary KeyframeEffectOptions : EffectTiming {
+  [Pref="dom.animations-api.compositing.enabled"]
   IterationCompositeOperation iterationComposite = "replace";
+  [Pref="dom.animations-api.compositing.enabled"]
   CompositeOperation          composite = "replace";
+  DOMString?                  pseudoElement = null;
 };
 
 // KeyframeEffect should run in the caller's compartment to do custom
@@ -27,13 +30,14 @@ dictionary KeyframeEffectOptions : EffectTiming {
  Exposed=Window]
 interface KeyframeEffect : AnimationEffect {
   [Throws]
-  constructor((Element or CSSPseudoElement)? target,
+  constructor(Element? target,
               object? keyframes,
               optional (unrestricted double or KeyframeEffectOptions) options = {});
   [Throws]
   constructor(KeyframeEffect source);
 
-  attribute (Element or CSSPseudoElement)?  target;
+  attribute Element?                  target;
+  [SetterThrows] attribute DOMString? pseudoElement;
   [Pref="dom.animations-api.compositing.enabled"]
   attribute IterationCompositeOperation     iterationComposite;
   [Pref="dom.animations-api.compositing.enabled"]

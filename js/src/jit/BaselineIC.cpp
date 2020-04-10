@@ -214,28 +214,31 @@ bool JitScript::initICEntriesAndBytecodeTypeMap(JSContext* cx,
     return AddICImpl(cx, this, ICEntry::ProloguePCOffset, stub, icEntryIndex);
   };
 
-  // Add ICEntries and fallback stubs for this/argument type checks.
-  // Note: we pass a nullptr pc to indicate this is a non-op IC.
-  // See ICEntry::NonOpPCOffset.
-  if (JSFunction* fun = script->function()) {
-    ICStub* stub =
-        alloc.newStub<ICTypeMonitor_Fallback>(Kind::TypeMonitor, nullptr, 0);
-    if (!addPrologueIC(stub)) {
-      return false;
-    }
-
-    for (size_t i = 0; i < fun->nargs(); i++) {
-      ICStub* stub = alloc.newStub<ICTypeMonitor_Fallback>(Kind::TypeMonitor,
-                                                           nullptr, i + 1);
+  if (IsTypeInferenceEnabled()) {
+    // Add ICEntries and fallback stubs for this/argument type checks.
+    // Note: we pass a nullptr pc to indicate this is a non-op IC.
+    // See ICEntry::NonOpPCOffset.
+    if (JSFunction* fun = script->function()) {
+      ICStub* stub =
+          alloc.newStub<ICTypeMonitor_Fallback>(Kind::TypeMonitor, nullptr, 0);
       if (!addPrologueIC(stub)) {
         return false;
+      }
+
+      for (size_t i = 0; i < fun->nargs(); i++) {
+        ICStub* stub = alloc.newStub<ICTypeMonitor_Fallback>(Kind::TypeMonitor,
+                                                             nullptr, i + 1);
+        if (!addPrologueIC(stub)) {
+          return false;
+        }
       }
     }
   }
 
   // Index of the next bytecode type map entry to initialize.
   uint32_t typeMapIndex = 0;
-  uint32_t* const typeMap = bytecodeTypeMap();
+  uint32_t* const typeMap =
+      IsTypeInferenceEnabled() ? bytecodeTypeMap() : nullptr;
 
   // For JOF_IC ops: initialize ICEntries and fallback stubs.
   // For JOF_TYPESET ops: initialize bytecode type map entries.
@@ -243,7 +246,7 @@ bool JitScript::initICEntriesAndBytecodeTypeMap(JSContext* cx,
     JSOp op = loc.getOp();
     // Note: if the script is very large there will be more JOF_TYPESET ops
     // than bytecode type sets. See JSScript::MaxBytecodeTypeSets.
-    if (BytecodeOpHasTypeSet(op) &&
+    if (BytecodeOpHasTypeSet(op) && typeMap &&
         typeMapIndex < JSScript::MaxBytecodeTypeSets) {
       typeMap[typeMapIndex] = loc.bytecodeToOffset(script);
       typeMapIndex++;
@@ -521,7 +524,8 @@ bool JitScript::initICEntriesAndBytecodeTypeMap(JSContext* cx,
 
   // Assert all ICEntries and type map entries have been initialized.
   MOZ_ASSERT(icEntryIndex == numICEntries());
-  MOZ_ASSERT(typeMapIndex == script->numBytecodeTypeSets());
+  MOZ_ASSERT_IF(IsTypeInferenceEnabled(),
+                typeMapIndex == script->numBytecodeTypeSets());
 
   return true;
 }
@@ -762,7 +766,7 @@ void ICFallbackStub::unlinkStub(Zone* zone, ICStub* prev, ICStub* stub) {
     stub->trace(zone->barrierTracer());
   }
 
-  if (stub->makesGCCalls() && stub->isMonitored()) {
+  if (IsTypeInferenceEnabled() && stub->makesGCCalls() && stub->isMonitored()) {
     // This stub can make calls so we can return to it if it's on the stack.
     // We just have to reset its firstMonitorStub_ field to avoid a stale
     // pointer when purgeOptimizedStubs destroys all optimized monitor
@@ -850,19 +854,24 @@ ICMonitoredStub::ICMonitoredStub(Kind kind, JitCode* stubCode,
                                  ICStub* firstMonitorStub)
     : ICStub(kind, ICStub::Monitored, stubCode),
       firstMonitorStub_(firstMonitorStub) {
-  // In order to silence Coverity - null pointer dereference checker
-  MOZ_ASSERT(firstMonitorStub_);
-  // If the first monitored stub is a ICTypeMonitor_Fallback stub, then
-  // double check that _its_ firstMonitorStub is the same as this one.
-  MOZ_ASSERT_IF(
-      firstMonitorStub_->isTypeMonitor_Fallback(),
-      firstMonitorStub_->toTypeMonitor_Fallback()->firstMonitorStub() ==
-          firstMonitorStub_);
+  if (IsTypeInferenceEnabled()) {
+    // In order to silence Coverity - null pointer dereference checker
+    MOZ_ASSERT(firstMonitorStub_);
+    // If the first monitored stub is a ICTypeMonitor_Fallback stub, then
+    // double check that _its_ firstMonitorStub is the same as this one.
+    MOZ_ASSERT_IF(
+        firstMonitorStub_->isTypeMonitor_Fallback(),
+        firstMonitorStub_->toTypeMonitor_Fallback()->firstMonitorStub() ==
+            firstMonitorStub_);
+  } else {
+    MOZ_ASSERT(!firstMonitorStub_);
+  }
 }
 
 bool ICMonitoredFallbackStub::initMonitoringChain(JSContext* cx,
                                                   JSScript* script) {
   MOZ_ASSERT(fallbackMonitorStub_ == nullptr);
+  MOZ_ASSERT(IsTypeInferenceEnabled());
 
   ICStubSpace* space = script->jitScript()->fallbackStubSpace();
   FallbackStubAllocator alloc(cx, *space);
@@ -879,6 +888,10 @@ bool ICMonitoredFallbackStub::initMonitoringChain(JSContext* cx,
 bool TypeMonitorResult(JSContext* cx, ICMonitoredFallbackStub* stub,
                        BaselineFrame* frame, HandleScript script,
                        jsbytecode* pc, HandleValue val) {
+  if (!IsTypeInferenceEnabled()) {
+    return true;
+  }
+
   ICTypeMonitor_Fallback* typeMonitorFallback =
       stub->getFallbackMonitorStub(cx, script);
   if (!typeMonitorFallback) {
@@ -1237,6 +1250,8 @@ bool ICTypeMonitor_Fallback::addMonitorStubForValue(JSContext* cx,
 bool DoTypeMonitorFallback(JSContext* cx, BaselineFrame* frame,
                            ICTypeMonitor_Fallback* stub, HandleValue value,
                            MutableHandleValue res) {
+  MOZ_ASSERT(IsTypeInferenceEnabled());
+
   JSScript* script = frame->script();
   jsbytecode* pc = stub->icEntry()->pc(script);
   TypeFallbackICSpew(cx, stub, "TypeMonitor");
@@ -1266,7 +1281,7 @@ bool DoTypeMonitorFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_TypeMonitor() {
-  MOZ_ASSERT(R0 == JSReturnOperand);
+  static_assert(R0 == JSReturnOperand);
 
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
@@ -1394,6 +1409,8 @@ bool ICCacheIR_Updated::addUpdateStubForValue(JSContext* cx,
                                               HandleObject obj,
                                               HandleObjectGroup group,
                                               HandleId id, HandleValue val) {
+  MOZ_ASSERT(IsTypeInferenceEnabled());
+
   EnsureTrackPropertyTypes(cx, obj, id);
 
   // Make sure that undefined values are explicitly included in the property
@@ -1539,6 +1556,8 @@ bool DoTypeUpdateFallback(JSContext* cx, BaselineFrame* frame,
   // This can get called from optimized stubs. Therefore it is not allowed to
   // gc.
   JS::AutoCheckCannotGC nogc;
+
+  MOZ_ASSERT(IsTypeInferenceEnabled());
 
   FallbackICSpew(cx, stub->getChainFallback(), "TypeUpdate(%s)",
                  ICStub::KindString(stub->kind()));
@@ -1731,7 +1750,7 @@ bool DoToBoolFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_ToBool() {
-  MOZ_ASSERT(R0 == JSReturnOperand);
+  static_assert(R0 == JSReturnOperand);
 
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
@@ -1933,7 +1952,7 @@ bool DoGetElemSuperFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
-  MOZ_ASSERT(R0 == JSReturnOperand);
+  static_assert(R0 == JSReturnOperand);
 
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
@@ -2182,7 +2201,7 @@ bool DoSetElemFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_SetElem() {
-  MOZ_ASSERT(R0 == JSReturnOperand);
+  static_assert(R0 == JSReturnOperand);
 
   EmitRestoreTailCallReg(masm);
 
@@ -2346,7 +2365,7 @@ bool DoGetNameFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_GetName() {
-  MOZ_ASSERT(R0 == JSReturnOperand);
+  static_assert(R0 == JSReturnOperand);
 
   EmitRestoreTailCallReg(masm);
 
@@ -2390,7 +2409,7 @@ bool DoBindNameFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_BindName() {
-  MOZ_ASSERT(R0 == JSReturnOperand);
+  static_assert(R0 == JSReturnOperand);
 
   EmitRestoreTailCallReg(masm);
 
@@ -2536,7 +2555,7 @@ bool DoGetPropSuperFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
-  MOZ_ASSERT(R0 == JSReturnOperand);
+  static_assert(R0 == JSReturnOperand);
 
   EmitRestoreTailCallReg(masm);
 
@@ -2770,7 +2789,7 @@ bool DoSetPropFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_SetProp() {
-  MOZ_ASSERT(R0 == JSReturnOperand);
+  static_assert(R0 == JSReturnOperand);
 
   EmitRestoreTailCallReg(masm);
 
@@ -3072,7 +3091,7 @@ void ICStubCompilerBase::pushCallArguments(MacroAssembler& masm,
 }
 
 bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
-  MOZ_ASSERT(R0 == JSReturnOperand);
+  static_assert(R0 == JSReturnOperand);
 
   // Values are on the stack left-to-right. Calling convention wants them
   // right-to-left so duplicate them on the stack in reverse order.
@@ -3174,7 +3193,7 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   // If this is a |constructing| call, if the callee returns a non-object, we
   // replace it with the |this| object passed in.
   if (isConstructing) {
-    MOZ_ASSERT(JSReturnOperand == R0);
+    static_assert(JSReturnOperand == R0);
     Label skipThisReplace;
 
     masm.branchTestObject(Assembler::Equal, JSReturnOperand, &skipThisReplace);
@@ -3450,7 +3469,7 @@ bool DoUnaryArithFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_UnaryArith() {
-  MOZ_ASSERT(R0 == JSReturnOperand);
+  static_assert(R0 == JSReturnOperand);
 
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
@@ -3574,7 +3593,7 @@ bool DoBinaryArithFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_BinaryArith() {
-  MOZ_ASSERT(R0 == JSReturnOperand);
+  static_assert(R0 == JSReturnOperand);
 
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
@@ -3671,7 +3690,7 @@ bool DoCompareFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_Compare() {
-  MOZ_ASSERT(R0 == JSReturnOperand);
+  static_assert(R0 == JSReturnOperand);
 
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);

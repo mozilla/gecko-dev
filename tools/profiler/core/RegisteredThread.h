@@ -32,7 +32,7 @@ class RacyRegisteredThread final {
     MOZ_COUNT_CTOR(RacyRegisteredThread);
   }
 
-  ~RacyRegisteredThread() { MOZ_COUNT_DTOR(RacyRegisteredThread); }
+  MOZ_COUNTED_DTOR(RacyRegisteredThread)
 
   void SetIsBeingProfiled(bool aIsBeingProfiled) {
     mIsBeingProfiled = aIsBeingProfiled;
@@ -138,11 +138,7 @@ class RacyRegisteredThread final {
   mozilla::Atomic<int> mSleep;
 
   // Is this thread being profiled? (e.g., should markers be recorded?)
-  // Accesses to this atomic are not recorded by web replay as they may occur
-  // at non-deterministic points.
-  mozilla::Atomic<bool, mozilla::MemoryOrdering::Relaxed,
-                  mozilla::recordreplay::Behavior::DontPreserve>
-      mIsBeingProfiled;
+  mozilla::Atomic<bool, mozilla::MemoryOrdering::Relaxed> mIsBeingProfiled;
 };
 
 // This class contains information that's relevant to a single thread only
@@ -242,9 +238,6 @@ class RegisteredThread final {
       if (mJSSampling == ACTIVE_REQUESTED) {
         mJSSampling = ACTIVE;
         js::EnableContextProfilingStack(mContext, true);
-        JS_SetGlobalJitCompilerOption(mContext,
-                                      JSJITCOMPILER_TRACK_OPTIMIZATIONS,
-                                      TrackOptimizationsEnabled());
         if (JSTracerEnabled()) {
           JS::StartTraceLogger(mContext);
         }

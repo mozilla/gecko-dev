@@ -11,7 +11,7 @@ transforms:
 
 kind-dependencies:
     - build-signing
-    - nightly-l10n-signing
+    - shippable-l10n-signing
 
 only-for-attributes:
     - nightly
@@ -19,7 +19,7 @@ only-for-attributes:
 
 only-for-build-platforms:
     - linux64-shippable/opt
-    - linux64-devedition-nightly/opt
+    - linux64-devedition/opt
 
 job-template:
     description: Beetmover submission for platform-independent langpacks {locales} in {platform} directory

@@ -24,13 +24,16 @@ value :
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-import sys
+import errno
+import io
+from optparse import OptionParser
 import os
 import re
 import six
-from optparse import OptionParser
-import errno
+import sys
+
 from mozbuild.makeutil import Makefile
+from mozpack.path import normsep
 
 # hack around win32 mangling our line endings
 # http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/65443
@@ -492,7 +495,7 @@ class Preprocessor:
                 except OSError as error:
                     if error.errno != errno.EEXIST:
                         raise
-            return open(path, 'wb')
+            return io.open(path, 'w', encoding='utf-8', newline='\n')
 
         p = self.getCommandLineParser()
         options, args = p.parse_args(args=args)
@@ -514,7 +517,7 @@ class Preprocessor:
 
         if args:
             for f in args:
-                with open(f, 'rU') as input:
+                with io.open(f, 'rU', encoding='utf-8') as input:
                     self.processFile(input=input, output=out)
             if depfile:
                 mk = Makefile()
@@ -804,7 +807,7 @@ class Preprocessor:
                     args = self.applyFilters(args)
                 if not os.path.isabs(args):
                     args = os.path.join(self.curdir, args)
-                args = open(args, 'rU')
+                args = io.open(args, 'rU', encoding='utf-8')
             except Preprocessor.Error:
                 raise
             except Exception:
@@ -826,9 +829,9 @@ class Preprocessor:
             self.curdir = os.path.dirname(abspath)
             self.includes.add(six.ensure_text(abspath))
             if self.topobjdir and path_starts_with(abspath, self.topobjdir):
-                abspath = '$OBJDIR' + abspath[len(self.topobjdir):]
+                abspath = '$OBJDIR' + normsep(abspath[len(self.topobjdir):])
             elif self.topsrcdir and path_starts_with(abspath, self.topsrcdir):
-                abspath = '$SRCDIR' + abspath[len(self.topsrcdir):]
+                abspath = '$SRCDIR' + normsep(abspath[len(self.topsrcdir):])
             self.context['FILE'] = abspath
             self.context['DIRECTORY'] = os.path.dirname(abspath)
         self.context['LINE'] = 0
@@ -859,7 +862,7 @@ def preprocess(includes=[sys.stdin], defines={},
     pp = Preprocessor(defines=defines,
                       marker=marker)
     for f in includes:
-        with open(f, 'rU') as input:
+        with io.open(f, 'rU', encoding='utf-8') as input:
             pp.processFile(input=input, output=output)
     return pp.includes
 

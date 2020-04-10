@@ -62,6 +62,7 @@ pref("devtools.debugger.map-scopes-enabled", false);
 pref("devtools.debugger.log-actions", false);
 pref("devtools.debugger.log-event-breakpoints", false);
 
+pref("devtools.debugger.features.async-captured-stacks", false);
 pref("devtools.debugger.features.wasm", true);
 pref("devtools.debugger.features.shortcuts", true);
 pref("devtools.debugger.features.root", true);
@@ -72,6 +73,7 @@ pref("devtools.debugger.features.remove-command-bar-options", false);
 pref("devtools.debugger.features.workers", true);
 pref("devtools.debugger.features.code-coverage", false);
 pref("devtools.debugger.features.code-folding", false);
+pref("devtools.debugger.features.command-click", false);
 pref("devtools.debugger.features.outline", true);
 pref("devtools.debugger.features.component-pane", false);
 pref("devtools.debugger.features.async-stepping", false);

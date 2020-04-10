@@ -12,6 +12,7 @@ const {
   accessibleSpec,
   accessibleWalkerSpec,
   accessibilitySpec,
+  parentAccessibilitySpec,
   simulatorSpec,
 } = require("devtools/shared/specs/accessibility");
 const events = require("devtools/shared/event-emitter");
@@ -180,19 +181,36 @@ class AccessibilityFront extends FrontClassWithSpec(accessibilitySpec) {
 
     this.before("init", this.init.bind(this));
     this.before("shutdown", this.shutdown.bind(this));
+
+    // TODO: Deprecated. Remove after Fx75.
     this.before("can-be-enabled-change", this.canBeEnabled.bind(this));
+    // TODO: Deprecated. Remove after Fx75.
     this.before("can-be-disabled-change", this.canBeDisabled.bind(this));
 
-    // Attribute name from which to retrieve the actorID out of the target actor's form
+    // Attribute name from which to retrieve the actorID out of the target
+    // actor's form
     this.formAttributeName = "accessibilityActor";
   }
 
-  bootstrap() {
-    return super.bootstrap().then(state => {
-      this.enabled = state.enabled;
-      this.canBeEnabled = state.canBeEnabled;
-      this.canBeDisabled = state.canBeDisabled;
-    });
+  // We purposefully do not use initialize here and separate accessiblity
+  // front/actor initialization into two parts: getting the front from target
+  // and then separately bootstrapping the front. The reason for that is because
+  // accessibility front is always created as part of the accessibility panel
+  // startup when the toolbox is opened. If initialize was used, in rare cases,
+  // when the toolbox is destroyed before the accessibility tool startup is
+  // complete, the toolbox destruction would hang because the accessibility
+  // front will indefinitely wait for its initialize method to complete before
+  // being destroyed. With custom bootstrapping the front will be destroyed
+  // correctly.
+  async bootstrap() {
+    this.accessibleWalkerFront = await super.getWalker();
+    this.simulatorFront = await super.getSimulator();
+    // TODO: Deprecated. Remove canBeEnabled and canBeDisabled after Fx75.
+    ({
+      enabled: this.enabled,
+      canBeEnabled: this.canBeEnabled,
+      canBeDisabled: this.canBeDisabled,
+    } = await super.bootstrap());
   }
 
   init() {
@@ -201,6 +219,37 @@ class AccessibilityFront extends FrontClassWithSpec(accessibilitySpec) {
 
   shutdown() {
     this.enabled = false;
+  }
+
+  // TODO: Deprecated. Remove after Fx75.
+  canBeEnabled(canBeEnabled) {
+    this.canBeEnabled = canBeEnabled;
+  }
+
+  // TODO: Deprecated. Remove after Fx75.
+  canBeDisabled(canBeDisabled) {
+    this.canBeDisabled = canBeDisabled;
+  }
+}
+
+class ParentAccessibilityFront extends FrontClassWithSpec(
+  parentAccessibilitySpec
+) {
+  constructor(client, targetFront, parentFront) {
+    super(client, targetFront, parentFront);
+    this.before("can-be-enabled-change", this.canBeEnabled.bind(this));
+    this.before("can-be-disabled-change", this.canBeDisabled.bind(this));
+
+    // Attribute name from which to retrieve the actorID out of the target
+    // actor's form
+    this.formAttributeName = "parentAccessibilityActor";
+  }
+
+  async initialize() {
+    ({
+      canBeEnabled: this.canBeEnabled,
+      canBeDisabled: this.canBeDisabled,
+    } = await super.bootstrap());
   }
 
   canBeEnabled(canBeEnabled) {
@@ -220,5 +269,7 @@ exports.AccessibleWalkerFront = AccessibleWalkerFront;
 registerFront(AccessibleWalkerFront);
 exports.AccessibilityFront = AccessibilityFront;
 registerFront(AccessibilityFront);
+exports.ParentAccessibilityFront = ParentAccessibilityFront;
+registerFront(ParentAccessibilityFront);
 exports.SimulatorFront = SimulatorFront;
 registerFront(SimulatorFront);

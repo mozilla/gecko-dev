@@ -83,7 +83,6 @@ class nsScriptErrorBase : public nsIScriptError {
   uint64_t mOuterWindowID;
   uint64_t mInnerWindowID;
   int64_t mTimeStamp;
-  uint64_t mTimeWarpTarget;
   // mInitializedOnMainThread, mIsFromPrivateWindow and mIsFromChromeContext are
   // set on the main thread from InitializeOnMainThread().
   mozilla::Atomic<bool> mInitializedOnMainThread;
@@ -93,11 +92,11 @@ class nsScriptErrorBase : public nsIScriptError {
 
 class nsScriptError final : public nsScriptErrorBase {
  public:
-  nsScriptError() {}
+  nsScriptError() = default;
   NS_DECL_THREADSAFE_ISUPPORTS
 
  private:
-  virtual ~nsScriptError() {}
+  virtual ~nsScriptError() = default;
 };
 
 class nsScriptErrorWithStack : public nsScriptErrorBase {

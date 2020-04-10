@@ -25,7 +25,7 @@ add_task(async function() {
       const { require } = ChromeUtils.import(
         "resource://devtools/shared/Loader.jsm"
       );
-      const { DebuggerServer } = require("devtools/server/debugger-server");
+      const { DevToolsServer } = require("devtools/server/devtools-server");
       const {
         DocumentWalker: _documentWalker,
       } = require("devtools/server/actors/inspector/document-walker");
@@ -33,7 +33,7 @@ add_task(async function() {
       // Convert actorID to current compartment string otherwise
       // searchAllConnectionsForActor is confused and won't find the actor.
       actorID = String(actorID);
-      const walkerActor = DebuggerServer.searchAllConnectionsForActor(actorID);
+      const walkerActor = DevToolsServer.searchAllConnectionsForActor(actorID);
       const walkerSearch = walkerActor.walkerSearch;
       const {
         WalkerSearch,
@@ -149,6 +149,37 @@ add_task(async function() {
             {
               node: inspectee.querySelector("h1 + p > strong").childNodes[0],
               type: "text",
+            },
+          ],
+        },
+        {
+          desc: "Search for XPath with one result",
+          search: "//strong",
+          expected: [
+            { node: inspectee.querySelector("strong"), type: "xpath" },
+          ],
+        },
+        {
+          desc: "Search for XPath with multiple results",
+          search: "//h2",
+          expected: [
+            { node: inspectee.querySelectorAll("h2")[0], type: "xpath" },
+            { node: inspectee.querySelectorAll("h2")[1], type: "xpath" },
+            { node: inspectee.querySelectorAll("h2")[2], type: "xpath" },
+          ],
+        },
+        {
+          desc: "Search for XPath via containing text",
+          search: "//*[contains(text(), 'p tag')]",
+          expected: [{ node: inspectee.querySelector("p"), type: "xpath" }],
+        },
+        {
+          desc: "Search for XPath matching text node",
+          search: "//strong/text()",
+          expected: [
+            {
+              node: inspectee.querySelector("strong").firstChild,
+              type: "xpath",
             },
           ],
         },

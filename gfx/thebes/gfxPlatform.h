@@ -632,8 +632,7 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
    */
   virtual mozilla::gfx::VsyncSource* GetHardwareVsync() {
     MOZ_ASSERT(mVsyncSource != nullptr);
-    MOZ_ASSERT(XRE_IsParentProcess() ||
-               mozilla::recordreplay::IsRecordingOrReplaying());
+    MOZ_ASSERT(XRE_IsParentProcess());
     return mVsyncSource;
   }
 
@@ -762,8 +761,6 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   gfxPlatform();
   virtual ~gfxPlatform();
 
-  virtual bool HasBattery() { return false; }
-
   virtual void InitAcceleration();
   virtual void InitWebRenderConfig();
   virtual void InitWebGPUConfig();
@@ -882,11 +879,11 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   static void InitOpenGLConfig();
   static void CreateCMSOutputProfile();
 
-  static void GetCMSOutputProfileData(void*& mem, size_t& size);
+  static nsTArray<uint8_t> GetCMSOutputProfileData();
 
   friend void RecordingPrefChanged(const char* aPrefName, void* aClosure);
 
-  virtual void GetPlatformCMSOutputProfile(void*& mem, size_t& size);
+  virtual nsTArray<uint8_t> GetPlatformCMSOutputProfileData();
 
   /**
    * Calling this function will compute and set the ideal tile size for the

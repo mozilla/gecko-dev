@@ -9,7 +9,6 @@
 #include "mozilla/net/SocketProcessParent.h"
 #include "nsHttpActivityDistributor.h"
 #include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
 #include "nsIOService.h"
 #include "nsThreadUtils.h"
 #include "NullHttpChannel.h"
@@ -148,7 +147,7 @@ nsHttpActivityDistributor::AddObserver(nsIHttpActivityObserver* aObserver) {
     if (!mObservers.AppendElement(observer)) return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  if (gIOService->UseSocketProcess() && wasEmpty) {
+  if (nsIOService::UseSocketProcess() && wasEmpty) {
     SocketProcessParent* parent = SocketProcessParent::GetSingleton();
     if (parent && parent->CanSend()) {
       Unused << parent->SendOnHttpActivityDistributorActivated(true);
@@ -173,7 +172,7 @@ nsHttpActivityDistributor::RemoveObserver(nsIHttpActivityObserver* aObserver) {
     isEmpty = mObservers.IsEmpty();
   }
 
-  if (gIOService->UseSocketProcess() && isEmpty) {
+  if (nsIOService::UseSocketProcess() && isEmpty) {
     SocketProcessParent* parent = SocketProcessParent::GetSingleton();
     if (parent && parent->CanSend()) {
       Unused << parent->SendOnHttpActivityDistributorActivated(false);

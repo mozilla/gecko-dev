@@ -285,8 +285,8 @@ class AssemblerX86Shared : public AssemblerShared {
  protected:
   X86Encoding::BaseAssemblerSpecific masm;
 
-  typedef X86Encoding::JmpSrc JmpSrc;
-  typedef X86Encoding::JmpDst JmpDst;
+  using JmpSrc = X86Encoding::JmpSrc;
+  using JmpDst = X86Encoding::JmpDst;
 
  public:
   AssemblerX86Shared() {
@@ -381,9 +381,9 @@ class AssemblerX86Shared : public AssemblerShared {
 
   static void StaticAsserts() {
     // DoubleConditionBits should not interfere with x86 condition codes.
-    JS_STATIC_ASSERT(!((Equal | NotEqual | Above | AboveOrEqual | Below |
-                        BelowOrEqual | Parity | NoParity) &
-                       DoubleConditionBits));
+    static_assert(!((Equal | NotEqual | Above | AboveOrEqual | Below |
+                     BelowOrEqual | Parity | NoParity) &
+                    DoubleConditionBits));
   }
 
   static Condition InvertCondition(Condition cond);
@@ -423,7 +423,7 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void setPrinter(Sprinter* sp) { masm.setPrinter(sp); }
 
-  static const Register getStackPointer() { return StackPointer; }
+  Register getStackPointer() const { return StackPointer; }
 
   void executableCopy(void* buffer);
   void processCodeLabels(uint8_t* rawCode);

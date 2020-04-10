@@ -6,6 +6,14 @@
 
 var EXPORTED_SYMBOLS = ["Page"];
 
+var { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  SessionStore: "resource:///modules/sessionstore/SessionStore.jsm",
+});
+
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 const { clearInterval, setInterval } = ChromeUtils.import(
   "resource://gre/modules/Timer.jsm"
@@ -23,6 +31,7 @@ const { UnsupportedError } = ChromeUtils.import(
 const { streamRegistry } = ChromeUtils.import(
   "chrome://remote/content/domains/parent/IO.jsm"
 );
+const { PollPromise } = ChromeUtils.import("chrome://remote/content/Sync.jsm");
 const { TabManager } = ChromeUtils.import(
   "chrome://remote/content/TabManager.jsm"
 );
@@ -40,6 +49,8 @@ const PDF_TRANSFER_MODES = {
   base64: "ReturnAsBase64",
   stream: "ReturnAsStream",
 };
+
+const TIMEOUT_SET_HISTORY_INDEX = 1000;
 
 class Page extends Domain {
   constructor(session) {
@@ -279,6 +290,40 @@ class Page extends Domain {
   }
 
   /**
+   * Returns navigation history for the current page.
+   *
+   * @return {currentIndex:number, entries:Array<NavigationEntry>}
+   */
+  async getNavigationHistory() {
+    const { window } = this.session.target;
+
+    return new Promise(resolve => {
+      function updateSessionHistory(sessionHistory) {
+        const entries = sessionHistory.entries.map(entry => {
+          return {
+            id: entry.ID,
+            url: entry.url,
+            userTypedURL: entry.originalURI || entry.url,
+            title: entry.title,
+            // TODO: Bug 1609514
+            transitionType: null,
+          };
+        });
+
+        resolve({
+          currentIndex: sessionHistory.index,
+          entries,
+        });
+      }
+
+      SessionStore.getSessionHistory(
+        window.gBrowser.selectedTab,
+        updateSessionHistory
+      );
+    });
+  }
+
+  /**
    * Interact with the currently opened JavaScript dialog (alert, confirm,
    * prompt) for this page. This will always close the dialog, either accepting
    * or rejecting it, with the optional prompt filled.
@@ -307,10 +352,7 @@ class Page extends Domain {
   async navigateToHistoryEntry(options = {}) {
     const { entryId } = options;
 
-    const index = await this.executeInChild(
-      "_getIndexForHistoryEntryId",
-      entryId
-    );
+    const index = await this._getIndexForHistoryEntryId(entryId);
 
     if (index == null) {
       throw new Error("No entry with passed id");
@@ -318,6 +360,19 @@ class Page extends Domain {
 
     const { window } = this.session.target;
     window.gBrowser.gotoIndex(index);
+
+    // On some platforms the requested index isn't set immediately.
+    await PollPromise(
+      async (resolve, reject) => {
+        const currentIndex = await this._getCurrentHistoryIndex();
+        if (currentIndex == index) {
+          resolve();
+        } else {
+          reject();
+        }
+      },
+      { timeout: TIMEOUT_SET_HISTORY_INDEX }
+    );
   }
 
   /**
@@ -529,6 +584,37 @@ class Page extends Domain {
    *     Enabled state of file chooser interception.
    */
   setInterceptFileChooserDialog(options = {}) {}
+
+  _getCurrentHistoryIndex() {
+    const { window } = this.session.target;
+
+    return new Promise(resolve => {
+      SessionStore.getSessionHistory(window.gBrowser.selectedTab, history => {
+        resolve(history.index);
+      });
+    });
+  }
+
+  _getIndexForHistoryEntryId(id) {
+    const { window } = this.session.target;
+
+    return new Promise(resolve => {
+      function updateSessionHistory(sessionHistory) {
+        sessionHistory.entries.forEach((entry, index) => {
+          if (entry.ID == id) {
+            resolve(index);
+          }
+        });
+
+        resolve(null);
+      }
+
+      SessionStore.getSessionHistory(
+        window.gBrowser.selectedTab,
+        updateSessionHistory
+      );
+    });
+  }
 
   /**
    * Emit the proper CDP event javascriptDialogOpening when a javascript dialog

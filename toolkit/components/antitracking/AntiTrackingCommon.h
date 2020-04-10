@@ -15,7 +15,7 @@
 #define USER_INTERACTION_PERM NS_LITERAL_CSTRING("storageAccessAPI")
 
 class nsIChannel;
-class nsICookieSettings;
+class nsICookieJarSettings;
 class nsIPermission;
 class nsIPrincipal;
 class nsIURI;
@@ -71,7 +71,7 @@ class AntiTrackingCommon final {
   // This method checks if the principal has the permission to access to the
   // first party storage.
   static bool IsFirstPartyStorageAccessGrantedFor(
-      nsIPrincipal* aPrincipal, nsICookieSettings* aCookieSettings);
+      nsIPrincipal* aPrincipal, nsICookieJarSettings* aCookieJarSettings);
 
   enum StorageAccessGrantedReason {
     eStorageAccessAPI,
@@ -119,14 +119,6 @@ class AntiTrackingCommon final {
 
   static bool HasUserInteraction(nsIPrincipal* aPrincipal);
 
-  // This API allows consumers to get notified when the anti-tracking component
-  // settings change.  After this callback is called, an anti-tracking check
-  // that has been previously performed with the same parameters may now return
-  // a different result.
-  typedef std::function<void()> AntiTrackingSettingsChangedCallback;
-  static void OnAntiTrackingSettingsChanged(
-      const AntiTrackingSettingsChangedCallback& aCallback);
-
   // For IPC only.
   typedef MozPromise<nsresult, bool, true> FirstPartyStorageAccessGrantPromise;
   static RefPtr<FirstPartyStorageAccessGrantPromise>
@@ -135,21 +127,6 @@ class AntiTrackingCommon final {
       const nsCString& aTrackingOrigin, int aAllowMode,
       uint64_t aExpirationTime =
           StaticPrefs::privacy_restrict3rdpartystorage_expiration());
-
-  // Check whether a top window principal is on the content blocking allow list.
-  static nsresult IsOnContentBlockingAllowList(nsIPrincipal* aTopWinPrincipal,
-                                               bool aIsPrivateBrowsing,
-                                               bool& aIsAllowListed);
-
-  // Computes the principal used to check the content blocking allow list for a
-  // top-level document based on the document principal.  This function is used
-  // right after setting up the document principal.
-  static void ComputeContentBlockingAllowListPrincipal(
-      nsIPrincipal* aDocumentPrincipal, nsIPrincipal** aPrincipal);
-
-  static void RecomputeContentBlockingAllowListPrincipal(
-      nsIURI* aURIBeingLoaded, const OriginAttributes& aAttrs,
-      nsIPrincipal** aPrincipal);
 
   enum class BlockingDecision {
     eBlock,
@@ -187,7 +164,7 @@ class AntiTrackingCommon final {
   static void NotifyContentBlockingEvent(
       nsPIDOMWindowOuter* aWindow, nsIChannel* aReportingChannel,
       nsIChannel* aTrackingChannel, bool aBlocked, uint32_t aRejectedReason,
-      nsIURI* aURI,
+      const nsACString& aTrackingOrigin,
       const Maybe<StorageAccessGrantedReason>& aReason = Nothing());
 
   static void RedirectHeuristic(nsIChannel* aOldChannel, nsIURI* aOldURI,

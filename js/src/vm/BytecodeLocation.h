@@ -13,7 +13,7 @@
 
 namespace js {
 
-typedef uint32_t RawBytecodeLocationOffset;
+using RawBytecodeLocationOffset = uint32_t;
 
 class PropertyName;
 
@@ -27,7 +27,7 @@ class BytecodeLocationOffset {
   RawBytecodeLocationOffset rawOffset() const { return rawOffset_; }
 };
 
-typedef jsbytecode* RawBytecode;
+using RawBytecode = jsbytecode*;
 
 // A immutable representation of a program location
 //
@@ -152,6 +152,12 @@ class BytecodeLocation {
 
   bool isJump() const { return IsJumpOpcode(getOp()); }
 
+  bool isBackedge() const { return IsBackedgePC(rawBytecode_); }
+
+  bool isBackedgeForLoophead(BytecodeLocation loopHead) const {
+    return IsBackedgeForLoopHead(rawBytecode_, loopHead.rawBytecode_);
+  }
+
   bool opHasTypeSet() const { return BytecodeOpHasTypeSet(getOp()); }
 
   bool fallsThrough() const { return BytecodeFallsThrough(getOp()); }
@@ -190,6 +196,50 @@ class BytecodeLocation {
   int32_t getTableSwitchHigh() const {
     MOZ_ASSERT(is(JSOp::TableSwitch));
     return GET_JUMP_OFFSET(rawBytecode_ + (2 * JUMP_OFFSET_LEN));
+  }
+
+  uint32_t getPopCount() const {
+    MOZ_ASSERT(is(JSOp::PopN));
+    return GET_UINT16(rawBytecode_);
+  }
+
+  uint32_t getDupAtIndex() const {
+    MOZ_ASSERT(is(JSOp::DupAt));
+    return GET_UINT24(rawBytecode_);
+  }
+
+  uint8_t getPickDepth() const {
+    MOZ_ASSERT(is(JSOp::Pick));
+    return GET_UINT8(rawBytecode_);
+  }
+  uint8_t getUnpickDepth() const {
+    MOZ_ASSERT(is(JSOp::Unpick));
+    return GET_UINT8(rawBytecode_);
+  }
+
+  int8_t getInt8() const {
+    MOZ_ASSERT(is(JSOp::Int8));
+    return GET_INT8(rawBytecode_);
+  }
+  uint16_t getUint16() const {
+    MOZ_ASSERT(is(JSOp::Uint16));
+    return GET_UINT16(rawBytecode_);
+  }
+  uint32_t getUint24() const {
+    MOZ_ASSERT(is(JSOp::Uint24));
+    return GET_UINT24(rawBytecode_);
+  }
+  int32_t getInt32() const {
+    MOZ_ASSERT(is(JSOp::Int32));
+    return GET_INT32(rawBytecode_);
+  }
+  uint32_t getResumeIndex() const {
+    MOZ_ASSERT(is(JSOp::ResumeIndex));
+    return GET_RESUMEINDEX(rawBytecode_);
+  }
+  Value getInlineValue() const {
+    MOZ_ASSERT(is(JSOp::Double));
+    return GET_INLINE_VALUE(rawBytecode_);
   }
 
 #ifdef DEBUG

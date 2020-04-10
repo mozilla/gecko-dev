@@ -16,7 +16,6 @@ describe("ToolbarBadgeHub", () => {
   let everyWindowStub;
   let clearTimeoutStub;
   let setTimeoutStub;
-  let setIntervalStub;
   let addObserverStub;
   let removeObserverStub;
   let getStringPrefStub;
@@ -75,7 +74,6 @@ describe("ToolbarBadgeHub", () => {
     };
     clearTimeoutStub = sandbox.stub();
     setTimeoutStub = sandbox.stub();
-    setIntervalStub = sandbox.stub();
     fakeWindow = {
       MozXULElement: { insertFTLIfNeeded: sandbox.stub() },
       ownerGlobal: {
@@ -97,7 +95,6 @@ describe("ToolbarBadgeHub", () => {
       PrivateBrowsingUtils: { isBrowserPrivate: isBrowserPrivateStub },
       setTimeout: setTimeoutStub,
       clearTimeout: clearTimeoutStub,
-      setInterval: setIntervalStub,
       Services: {
         wm: {
           getMostRecentWindow: () => fakeWindow,
@@ -140,24 +137,6 @@ describe("ToolbarBadgeHub", () => {
         instance.prefs.WHATSNEW_TOOLBAR_PANEL,
         instance
       );
-    });
-    it("should setInterval for `checkHomepageOverridePref`", async () => {
-      await instance.init(sandbox.stub().resolves(), {});
-      sandbox.stub(instance, "checkHomepageOverridePref");
-
-      assert.calledOnce(setIntervalStub);
-      assert.calledWithExactly(
-        setIntervalStub,
-        sinon.match.func,
-        5 * 60 * 1000
-      );
-
-      assert.notCalled(instance.checkHomepageOverridePref);
-      const [cb] = setIntervalStub.firstCall.args;
-
-      cb();
-
-      assert.calledOnce(instance.checkHomepageOverridePref);
     });
   });
   describe("#uninit", () => {
@@ -332,9 +311,7 @@ describe("ToolbarBadgeHub", () => {
       assert.calledWithExactly(
         fakeElement.setAttribute,
         "aria-labelledby",
-        `toolbarbutton-notification-description ${
-          whatsnewMessage.content.target
-        }`
+        `toolbarbutton-notification-description ${whatsnewMessage.content.target}`
       );
     });
     it("should attach fluent id to description", () => {
@@ -462,51 +439,6 @@ describe("ToolbarBadgeHub", () => {
       instance.executeAction({ id: "show-whatsnew-button" });
 
       assert.calledOnce(stub);
-    });
-    it("should set HOMEPAGE_OVERRIDE_PREF on `moments-wnp` action", () => {
-      instance.executeAction({
-        id: "moments-wnp",
-        data: {
-          url: "foo.com",
-          expire: 1,
-        },
-        message_id: "bar",
-      });
-
-      assert.calledOnce(setStringPrefStub);
-      assert.calledWithExactly(
-        setStringPrefStub,
-        instance.prefs.HOMEPAGE_OVERRIDE_PREF,
-        JSON.stringify({ message_id: "bar", url: "foo.com", expire: 1 })
-      );
-    });
-    it("should block after taking the action", () => {
-      instance.executeAction({
-        id: "moments-wnp",
-        data: {
-          url: "foo.com",
-          expire: 1,
-        },
-        message_id: "bar",
-      });
-
-      assert.calledOnce(blockMessageByIdStub);
-      assert.calledWithExactly(blockMessageByIdStub, "bar");
-    });
-    it("should compute expire based on expireDelta", () => {
-      sandbox.spy(instance, "getExpirationDate");
-
-      instance.executeAction({
-        id: "moments-wnp",
-        data: {
-          url: "foo.com",
-          expireDelta: 10,
-        },
-        message_id: "bar",
-      });
-
-      assert.calledOnce(instance.getExpirationDate);
-      assert.calledWithExactly(instance.getExpirationDate, 10);
     });
   });
   describe("removeToolbarNotification", () => {
@@ -707,54 +639,6 @@ describe("ToolbarBadgeHub", () => {
       instance.observe("", "", "foo");
 
       assert.notCalled(instance.messageRequest);
-    });
-  });
-  describe("#checkHomepageOverridePref", () => {
-    let messageRequestStub;
-    let unblockMessageByIdStub;
-    beforeEach(async () => {
-      unblockMessageByIdStub = sandbox.stub();
-      await instance.init(sandbox.stub().resolves(), {
-        unblockMessageById: unblockMessageByIdStub,
-      });
-      messageRequestStub = sandbox.stub(instance, "messageRequest");
-    });
-    it("should reset HOMEPAGE_OVERRIDE_PREF if set", () => {
-      getStringPrefStub.returns(true);
-
-      instance.checkHomepageOverridePref();
-
-      assert.calledOnce(getStringPrefStub);
-      assert.calledWithExactly(
-        getStringPrefStub,
-        instance.prefs.HOMEPAGE_OVERRIDE_PREF,
-        ""
-      );
-      assert.calledOnce(clearUserPrefStub);
-      assert.calledWithExactly(
-        clearUserPrefStub,
-        instance.prefs.HOMEPAGE_OVERRIDE_PREF
-      );
-    });
-    it("should unblock the message set in the pref", () => {
-      getStringPrefStub.returns(JSON.stringify({ message_id: "foo" }));
-
-      instance.checkHomepageOverridePref();
-
-      assert.calledOnce(unblockMessageByIdStub);
-      assert.calledWithExactly(unblockMessageByIdStub, "foo");
-    });
-    it("should catch parse errors", () => {
-      getStringPrefStub.returns({});
-
-      instance.checkHomepageOverridePref();
-
-      assert.notCalled(unblockMessageByIdStub);
-      assert.calledOnce(messageRequestStub);
-      assert.calledWithExactly(messageRequestStub, {
-        template: "update_action",
-        triggerId: "momentsUpdate",
-      });
     });
   });
 });

@@ -10,6 +10,7 @@
 
 #include "mozilla/dom/Selection.h"
 
+#include "mozilla/AccessibleCaretEventHub.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoCopyListener.h"
@@ -78,8 +79,6 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 //#define DEBUG_TABLE 1
-
-static bool IsValidSelectionPoint(nsFrameSelection* aFrameSel, nsINode* aNode);
 
 #ifdef PRINT_RANGE
 static void printRange(nsRange* aDomRange);
@@ -190,6 +189,8 @@ class nsAutoScrollTimer final : public nsITimerCallback, public nsINamed {
   }
 
   nsresult Init(nsFrameSelection* aFrameSelection, Selection* aSelection) {
+    MOZ_ASSERT(aFrameSelection);
+
     mFrameSelection = aFrameSelection;
     mSelection = aSelection;
     return NS_OK;
@@ -248,33 +249,6 @@ class nsAutoScrollTimer final : public nsITimerCallback, public nsINamed {
 };
 
 NS_IMPL_ISUPPORTS(nsAutoScrollTimer, nsITimerCallback, nsINamed)
-
-/*
-The limiter is used specifically for the text areas and textfields
-In that case it is the DIV tag that is anonymously created for the text
-areas/fields.  Text nodes and BR nodes fall beneath it.  In the case of a
-BR node the limiter will be the parent and the offset will point before or
-after the BR node.  In the case of the text node the parent content is
-the text node itself and the offset will be the exact character position.
-The offset is not important to check for validity.  Simply look at the
-passed in content.  If it equals the limiter then the selection point is valid.
-If its parent it the limiter then the point is also valid.  In the case of
-NO limiter all points are valid since you are in a topmost iframe. (browser
-or composer)
-*/
-bool IsValidSelectionPoint(nsFrameSelection* aFrameSel, nsINode* aNode) {
-  if (!aFrameSel || !aNode) return false;
-
-  nsIContent* limiter = aFrameSel->GetLimiter();
-  if (limiter && limiter != aNode && limiter != aNode->GetParent()) {
-    // if newfocus == the limiter. that's ok. but if not there and not parent
-    // bad
-    return false;  // not in the right content. tLimiter said so
-  }
-
-  limiter = aFrameSel->GetAncestorLimiter();
-  return !limiter || aNode->IsInclusiveDescendantOf(limiter);
-}
 
 #ifdef PRINT_RANGE
 void printRange(nsRange* aDomRange) {
@@ -412,17 +386,17 @@ void Selection::SetCaretBidiLevel(const Nullable<int16_t>& aCaretBidiLevel,
 
 /**
  * Test whether the supplied range points to a single table element.
- * Result is one of the TableSelection constants. "None" means
+ * Result is one of the TableSelectionMode constants. "None" means
  * a table element isn't selected.
  */
-// TODO: Figure out TableSelection::Column and TableSelection::AllCells
-static nsresult GetTableSelectionType(nsRange* aRange,
-                                      TableSelection* aTableSelectionType) {
+// TODO: Figure out TableSelectionMode::Column and TableSelectionMode::AllCells
+static nsresult GetTableSelectionType(const nsRange* aRange,
+                                      TableSelectionMode* aTableSelectionType) {
   if (!aRange || !aTableSelectionType) {
     return NS_ERROR_NULL_POINTER;
   }
 
-  *aTableSelectionType = TableSelection::None;
+  *aTableSelectionType = TableSelectionMode::None;
 
   nsINode* startNode = aRange->GetStartContainer();
   if (!startNode) {
@@ -454,27 +428,28 @@ static nsresult GetTableSelectionType(nsRange* aRange,
   }
 
   if (startContent->IsHTMLElement(nsGkAtoms::tr)) {
-    *aTableSelectionType = TableSelection::Cell;
+    *aTableSelectionType = TableSelectionMode::Cell;
   } else  // check to see if we are selecting a table or row (column and all
           // cells not done yet)
   {
-    if (child->IsHTMLElement(nsGkAtoms::table))
-      *aTableSelectionType = TableSelection::Table;
-    else if (child->IsHTMLElement(nsGkAtoms::tr))
-      *aTableSelectionType = TableSelection::Row;
+    if (child->IsHTMLElement(nsGkAtoms::table)) {
+      *aTableSelectionType = TableSelectionMode::Table;
+    } else if (child->IsHTMLElement(nsGkAtoms::tr)) {
+      *aTableSelectionType = TableSelectionMode::Row;
+    }
   }
 
   return NS_OK;
 }
 
-// static
-nsresult Selection::GetTableCellLocationFromRange(
-    nsRange* aRange, TableSelection* aSelectionType, int32_t* aRow,
+MOZ_CAN_RUN_SCRIPT static nsresult GetTableCellLocationFromRange(
+    const nsRange* aRange, TableSelectionMode* aSelectionType, int32_t* aRow,
     int32_t* aCol) {
-  if (!aRange || !aSelectionType || !aRow || !aCol)
+  if (!aRange || !aSelectionType || !aRow || !aCol) {
     return NS_ERROR_NULL_POINTER;
+  }
 
-  *aSelectionType = TableSelection::None;
+  *aSelectionType = TableSelectionMode::None;
   *aRow = 0;
   *aCol = 0;
 
@@ -483,7 +458,7 @@ nsresult Selection::GetTableCellLocationFromRange(
 
   // Don't fail if range does not point to a single table cell,
   // let aSelectionType tell user if we don't have a cell
-  if (*aSelectionType != TableSelection::Cell) {
+  if (*aSelectionType != TableSelectionMode::Cell) {
     return NS_OK;
   }
 
@@ -506,28 +481,28 @@ nsresult Selection::GetTableCellLocationFromRange(
   return cellLayout->GetCellIndexes(*aRow, *aCol);
 }
 
-nsresult Selection::MaybeAddTableCellRange(nsRange* aRange, bool* aDidAddRange,
+nsresult Selection::MaybeAddTableCellRange(nsRange& aRange, bool* aDidAddRange,
                                            int32_t* aOutIndex) {
-  if (!aDidAddRange || !aOutIndex) return NS_ERROR_NULL_POINTER;
+  if (!aDidAddRange || !aOutIndex) {
+    return NS_ERROR_NULL_POINTER;
+  }
 
   *aDidAddRange = false;
   *aOutIndex = -1;
 
   if (!mFrameSelection) return NS_OK;
 
-  if (!aRange) return NS_ERROR_NULL_POINTER;
-
   nsresult result;
 
   // Get if we are adding a cell selection and the row, col of cell if we are
   int32_t newRow, newCol;
-  TableSelection tableMode;
-  result = GetTableCellLocationFromRange(aRange, &tableMode, &newRow, &newCol);
+  TableSelectionMode tableMode;
+  result = GetTableCellLocationFromRange(&aRange, &tableMode, &newRow, &newCol);
   if (NS_FAILED(result)) return result;
 
   // If not adding a cell range, we are done here
-  if (tableMode != TableSelection::Cell) {
-    mFrameSelection->mSelectingTableCellMode = tableMode;
+  if (tableMode != TableSelectionMode::Cell) {
+    mFrameSelection->mTableSelection.mMode = tableMode;
     // Don't fail if range isn't a selected cell, aDidAddRange tells caller if
     // we didn't proceed
     return NS_OK;
@@ -536,25 +511,16 @@ nsresult Selection::MaybeAddTableCellRange(nsRange* aRange, bool* aDidAddRange,
   // Set frame selection mode only if not already set to a table mode
   // so we don't lose the select row and column flags (not detected by
   // getTableCellLocation)
-  if (mFrameSelection->mSelectingTableCellMode == TableSelection::None)
-    mFrameSelection->mSelectingTableCellMode = tableMode;
+  if (mFrameSelection->mTableSelection.mMode == TableSelectionMode::None) {
+    mFrameSelection->mTableSelection.mMode = tableMode;
+  }
 
   *aDidAddRange = true;
-  return AddRangesForSelectableNodes(aRange, aOutIndex);
+  return AddRangesForSelectableNodes(&aRange, aOutIndex);
 }
 
-Selection::Selection()
-    : mCachedOffsetForFrame(nullptr),
-      mDirection(eDirNext),
-      mSelectionType(SelectionType::eNormal),
-      mCustomColors(nullptr),
-      mSelectionChangeBlockerCount(0),
-      mUserInitiated(false),
-      mCalledByJS(false),
-      mNotifyAutoCopy(false) {}
-
-Selection::Selection(nsFrameSelection* aList)
-    : mFrameSelection(aList),
+Selection::Selection(nsFrameSelection* aFrameSelection)
+    : mFrameSelection(aFrameSelection),
       mCachedOffsetForFrame(nullptr),
       mDirection(eDirNext),
       mSelectionType(SelectionType::eNormal),
@@ -614,6 +580,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Selection)
   tmp->RemoveAllRanges(IgnoreErrors());
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mFrameSelection)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_PTR
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Selection)
   {
@@ -812,8 +780,8 @@ nsresult Selection::SubtractRange(StyledRange& aRange, nsRange& aSubtract,
   return NS_OK;
 }
 
-void Selection::UserSelectRangesToAdd(nsRange* aItem,
-                                      nsTArray<RefPtr<nsRange>>& aRangesToAdd) {
+static void UserSelectRangesToAdd(nsRange* aItem,
+                                  nsTArray<RefPtr<nsRange>>& aRangesToAdd) {
   // We cannot directly call IsEditorSelection() because we may be in an
   // inconsistent state during Collapse() (we're cleared already but we haven't
   // got a new focus node yet).
@@ -1271,7 +1239,7 @@ nsresult Selection::GetPrimaryFrameForAnchorNode(nsIFrame** aReturnFrame) {
   *aReturnFrame = 0;
   nsCOMPtr<nsIContent> content = do_QueryInterface(GetAnchorNode());
   if (content && mFrameSelection) {
-    *aReturnFrame = mFrameSelection->GetFrameForNodeOffset(
+    *aReturnFrame = nsFrameSelection::GetFrameForNodeOffset(
         content, AnchorOffset(), mFrameSelection->GetHint(), &frameOffset);
     if (*aReturnFrame) return NS_OK;
   }
@@ -1344,8 +1312,8 @@ nsresult Selection::GetPrimaryOrCaretFrameForNodeOffset(nsIContent* aContent,
         /* aReturnUnadjustedFrame = */ nullptr, aOffsetUsed);
   }
 
-  *aReturnFrame = mFrameSelection->GetFrameForNodeOffset(aContent, aOffset,
-                                                         hint, aOffsetUsed);
+  *aReturnFrame = nsFrameSelection::GetFrameForNodeOffset(aContent, aOffset,
+                                                          hint, aOffsetUsed);
   if (!*aReturnFrame) {
     return NS_ERROR_FAILURE;
   }
@@ -1406,7 +1374,7 @@ void Selection::SelectFramesInAllRanges(nsPresContext* aPresContext) {
  * traversing through the frames
  */
 nsresult Selection::SelectFrames(nsPresContext* aPresContext, nsRange* aRange,
-                                 bool aSelect) {
+                                 bool aSelect) const {
   if (!mFrameSelection || !aPresContext || !aPresContext->GetPresShell()) {
     // nothing to do
     return NS_OK;
@@ -1834,9 +1802,9 @@ void Selection::RemoveAllRanges(ErrorResult& aRv) {
   RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
   frameSelection->ClearTableCellSelection();
 
+  RefPtr<Selection> kungFuDeathGrip{this};
   // Be aware, this instance may be destroyed after this call.
-  // XXX Why doesn't this call Selection::NotifySelectionListener() directly?
-  result = frameSelection->NotifySelectionListeners(GetType());
+  result = NotifySelectionListeners();
 
   // Also need to notify the frames!
   // PresShell::CharacterDataChanged should do that on DocumentChanged
@@ -1880,14 +1848,15 @@ void Selection::AddRangeAndSelectFramesAndNotifyListeners(nsRange& aRange,
     return;
   }
 
-  // MaybeAddTableCellRange might flush frame.
+  // MaybeAddTableCellRange might flush frame and `NotifySelectionListeners`
+  // below might destruct `this`.
   RefPtr<Selection> kungFuDeathGrip(this);
 
   // This inserts a table cell range in proper document order
   // and returns NS_OK if range doesn't contain just one table cell
   bool didAddRange;
   int32_t rangeIndex;
-  nsresult result = MaybeAddTableCellRange(range, &didAddRange, &rangeIndex);
+  nsresult result = MaybeAddTableCellRange(*range, &didAddRange, &rangeIndex);
   if (NS_FAILED(result)) {
     aRv.Throw(result);
     return;
@@ -1914,15 +1883,15 @@ void Selection::AddRangeAndSelectFramesAndNotifyListeners(nsRange& aRange,
     SetInterlinePosition(true, IgnoreErrors());
   }
 
+  if (!mFrameSelection) {
+    return;  // nothing to do
+  }
+
   RefPtr<nsPresContext> presContext = GetPresContext();
   SelectFrames(presContext, range, true);
 
-  if (!mFrameSelection) return;  // nothing to do
-
   // Be aware, this instance may be destroyed after this call.
-  // XXX Why doesn't this call Selection::NotifySelectionListener() directly?
-  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
-  result = frameSelection->NotifySelectionListeners(GetType());
+  result = NotifySelectionListeners();
   if (NS_FAILED(result)) {
     aRv.Throw(result);
   }
@@ -2002,10 +1971,9 @@ void Selection::RemoveRangeAndUnselectFramesAndNotifyListeners(
 
   if (!mFrameSelection) return;  // nothing to do
 
+  RefPtr<Selection> kungFuDeathGrip{this};
   // Be aware, this instance may be destroyed after this call.
-  // XXX Why doesn't this call Selection::NotifySelectionListener() directly?
-  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
-  rv = frameSelection->NotifySelectionListeners(GetType());
+  rv = NotifySelectionListeners();
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
   }
@@ -2057,7 +2025,7 @@ void Selection::Collapse(const RawRangeBoundary& aPoint, ErrorResult& aRv) {
 
   RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
   frameSelection->InvalidateDesiredPos();
-  if (!IsValidSelectionPoint(frameSelection, aPoint.Container())) {
+  if (!frameSelection->IsValidSelectionPoint(aPoint.Container())) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
@@ -2126,9 +2094,9 @@ void Selection::Collapse(const RawRangeBoundary& aPoint, ErrorResult& aRv) {
   SetAnchorFocusRange(0);
   SelectFrames(presContext, range, true);
 
+  RefPtr<Selection> kungFuDeathGrip{this};
   // Be aware, this instance may be destroyed after this call.
-  // XXX Why doesn't this call Selection::NotifySelectionListener() directly?
-  result = frameSelection->NotifySelectionListeners(GetType());
+  result = NotifySelectionListeners();
   if (NS_FAILED(result)) {
     aRv.Throw(result);
   }
@@ -2158,9 +2126,8 @@ void Selection::CollapseToStart(ErrorResult& aRv) {
   }
 
   if (mFrameSelection) {
-    int16_t reason = mFrameSelection->PopReason() |
-                     nsISelectionListener::COLLAPSETOSTART_REASON;
-    mFrameSelection->PostReason(reason);
+    mFrameSelection->AddChangeReasons(
+        nsISelectionListener::COLLAPSETOSTART_REASON);
   }
   nsINode* container = firstRange->GetStartContainer();
   if (!container) {
@@ -2195,9 +2162,8 @@ void Selection::CollapseToEnd(ErrorResult& aRv) {
   }
 
   if (mFrameSelection) {
-    int16_t reason = mFrameSelection->PopReason() |
-                     nsISelectionListener::COLLAPSETOEND_REASON;
-    mFrameSelection->PostReason(reason);
+    mFrameSelection->AddChangeReasons(
+        nsISelectionListener::COLLAPSETOEND_REASON);
   }
   nsINode* container = lastRange->GetEndContainer();
   if (!container) {
@@ -2347,7 +2313,7 @@ void Selection::Extend(nsINode& aContainer, uint32_t aOffset,
   }
 
   nsresult res;
-  if (!IsValidSelectionPoint(mFrameSelection, &aContainer)) {
+  if (!mFrameSelection->IsValidSelectionPoint(&aContainer)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
@@ -2598,10 +2564,9 @@ void Selection::Extend(nsINode& aContainer, uint32_t aOffset,
          nsAtomCString(content->NodeInfo()->NameAtom()).get(), aOffset);
 #endif
 
+  RefPtr<Selection> kungFuDeathGrip{this};
   // Be aware, this instance may be destroyed after this call.
-  // XXX Why doesn't this call Selection::NotifySelectionListener() directly?
-  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
-  res = frameSelection->NotifySelectionListeners(GetType());
+  res = NotifySelectionListeners();
   if (NS_FAILED(res)) {
     aRv.Throw(res);
   }
@@ -2625,7 +2590,7 @@ void Selection::SelectAllChildren(nsINode& aNode, ErrorResult& aRv) {
   }
 
   if (mFrameSelection) {
-    mFrameSelection->PostReason(nsISelectionListener::SELECTALL_REASON);
+    mFrameSelection->AddChangeReasons(nsISelectionListener::SELECTALL_REASON);
   }
 
   // Chrome moves focus when aNode is outside of active editing host.
@@ -2717,6 +2682,16 @@ bool Selection::ContainsPoint(const nsPoint& aPoint) {
     }
   }
   return false;
+}
+
+void Selection::MaybeNotifyAccessibleCaretEventHub(PresShell* aPresShell) {
+  if (!mAccessibleCaretEventHub && aPresShell) {
+    mAccessibleCaretEventHub = aPresShell->GetAccessibleCaretEventHub();
+  }
+}
+
+void Selection::StopNotifyingAccessibleCaretEventHub() {
+  mAccessibleCaretEventHub = nullptr;
 }
 
 nsPresContext* Selection::GetPresContext() const {
@@ -2819,7 +2794,7 @@ nsIFrame* Selection::GetSelectionEndPointGeometry(SelectionRegion aRegion,
   nsCOMPtr<nsIContent> content = do_QueryInterface(node);
   NS_ENSURE_TRUE(content.get(), nullptr);
   int32_t frameOffset = 0;
-  frame = mFrameSelection->GetFrameForNodeOffset(
+  frame = nsFrameSelection::GetFrameForNodeOffset(
       content, nodeOffset, mFrameSelection->GetHint(), &frameOffset);
   if (!frame) return nullptr;
 
@@ -3079,10 +3054,10 @@ nsresult Selection::NotifySelectionListeners() {
   // We've notified all selection listeners even when some of them are removed
   // (and may be destroyed) during notifying one of them.  Therefore, we should
   // copy all listeners to the local variable first.
-  AutoTArray<nsCOMPtr<nsISelectionListener>, 5> selectionListeners(
+  const AutoTArray<nsCOMPtr<nsISelectionListener>, 5> selectionListeners(
       mSelectionListeners);
 
-  int16_t reason = frameSelection->PopReason();
+  int16_t reason = frameSelection->PopChangeReasons();
 
   if (mNotifyAutoCopy) {
     AutoCopyListener::OnSelectionChange(doc, *this, reason);
@@ -3099,7 +3074,12 @@ nsresult Selection::NotifySelectionListeners() {
     dispatcher->OnSelectionChange(doc, this, reason);
   }
   for (auto& listener : selectionListeners) {
-    listener->NotifySelectionChanged(doc, this, reason);
+    // MOZ_KnownLive because 'selectionListeners' is guaranteed to
+    // keep it alive.
+    //
+    // This can go away once
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1620312 is fixed.
+    MOZ_KnownLive(listener)->NotifySelectionChanged(doc, this, reason);
   }
   return NS_OK;
 }
@@ -3132,12 +3112,34 @@ bool Selection::IsBlockingSelectionChangeEvents() const {
 }
 
 void Selection::DeleteFromDocument(ErrorResult& aRv) {
-  if (!mFrameSelection) return;  // nothing to do
-  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
-  nsresult rv = frameSelection->DeleteFromDocument();
-  if (NS_FAILED(rv)) {
-    aRv.Throw(rv);
+  if (mSelectionType != SelectionType::eNormal) {
+    return;  // Nothing to do.
   }
+
+  // If we're already collapsed, then we do nothing (bug 719503).
+  if (IsCollapsed()) {
+    return;
+  }
+
+  for (uint32_t rangeIdx = 0; rangeIdx < RangeCount(); ++rangeIdx) {
+    RefPtr<nsRange> range = GetRangeAt(rangeIdx);
+    range->DeleteContents(aRv);
+    if (aRv.Failed()) {
+      return;
+    }
+  }
+
+  // Collapse to the new location.
+  // If we deleted one character, then we move back one element.
+  // FIXME  We don't know how to do this past frame boundaries yet.
+  if (AnchorOffset() > 0) {
+    Collapse(GetAnchorNode(), AnchorOffset());
+  }
+#ifdef DEBUG
+  else {
+    printf("Don't know how to set selection back past frame boundary\n");
+  }
+#endif
 }
 
 void Selection::Modify(const nsAString& aAlter, const nsAString& aDirection,
@@ -3315,12 +3317,13 @@ void Selection::SetStartAndEndInternal(InLimiter aInLimiter,
   SelectionBatcher batch(this);
 
   if (aInLimiter == InLimiter::eYes) {
-    if (!IsValidSelectionPoint(mFrameSelection, aStartRef.Container())) {
+    if (!mFrameSelection ||
+        !mFrameSelection->IsValidSelectionPoint(aStartRef.Container())) {
       aRv.Throw(NS_ERROR_FAILURE);
       return;
     }
     if (aStartRef.Container() != aEndRef.Container() &&
-        !IsValidSelectionPoint(mFrameSelection, aEndRef.Container())) {
+        !mFrameSelection->IsValidSelectionPoint(aEndRef.Container())) {
       aRv.Throw(NS_ERROR_FAILURE);
       return;
     }

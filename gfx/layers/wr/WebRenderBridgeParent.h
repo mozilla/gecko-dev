@@ -106,6 +106,7 @@ class WebRenderBridgeParent final
   void UpdateQualitySettings();
   void UpdateDebugFlags();
   void UpdateMultithreading();
+  void UpdateBatchingParameters();
 
   mozilla::ipc::IPCResult RecvEnsureConnected(
       TextureFactoryIdentifier* aTextureFactoryIdentifier,
@@ -254,7 +255,7 @@ class WebRenderBridgeParent final
   void ScheduleForcedGenerateFrame();
 
   void NotifyDidSceneBuild(const nsTArray<wr::RenderRoot>& aRenderRoots,
-                           RefPtr<wr::WebRenderPipelineInfo> aInfo);
+                           RefPtr<const wr::WebRenderPipelineInfo> aInfo);
 
   wr::Epoch UpdateWebRender(
       CompositorVsyncScheduler* aScheduler,
@@ -426,7 +427,8 @@ class WebRenderBridgeParent final
   bool AdvanceAnimations();
   bool SampleAnimations(
       wr::RenderRootArray<nsTArray<wr::WrOpacityProperty>>& aOpacityArrays,
-      wr::RenderRootArray<nsTArray<wr::WrTransformProperty>>& aTransformArrays);
+      wr::RenderRootArray<nsTArray<wr::WrTransformProperty>>& aTransformArrays,
+      wr::RenderRootArray<nsTArray<wr::WrColorProperty>>& aColorArrays);
 
   CompositorBridgeParent* GetRootCompositorBridgeParent() const;
 

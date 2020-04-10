@@ -58,6 +58,8 @@
 #include "nsContentUtils.h"
 #include "nsExceptionHandler.h"
 #include "mozilla/StaticPrefs_network.h"
+#include "nsNSSComponent.h"
+#include "ssl.h"
 
 #ifdef MOZ_WIDGET_GTK
 #  include "nsGIOProtocolHandler.h"
@@ -198,6 +200,7 @@ nsIOService::nsIOService()
       mHttpHandlerAlreadyShutingDown(false),
       mNetworkLinkServiceInitialized(false),
       mChannelEventSinks(NS_CHANNEL_EVENT_SINK_CATEGORY),
+      mMutex("nsIOService::mMutex"),
       mTotalRequests(0),
       mCacheWon(0),
       mNetWon(0),
@@ -219,6 +222,29 @@ static const char* gCallbackPrefs[] = {
 static const char* gCallbackPrefsForSocketProcess[] = {
     WEBRTC_PREF_PREFIX,
     NETWORK_DNS_PREF,
+    "network.ssl_tokens_cache_enabled",
+    nullptr,
+};
+
+static const char* gCallbackSecurityPrefs[] = {
+    // Note the prefs listed below should be in sync with the code in
+    // HandleTLSPrefChange().
+    "security.tls.version.min",
+    "security.tls.version.max",
+    "security.tls.version.enable-deprecated",
+    "security.tls.hello_downgrade_check",
+    "security.ssl.require_safe_negotiation",
+    "security.ssl.enable_false_start",
+    "security.ssl.enable_alpn",
+    "security.tls.enable_0rtt_data",
+    "security.ssl.disable_session_identifiers",
+    "security.tls.enable_post_handshake_auth",
+    "security.tls.enable_delegated_credentials",
+    // Note the prefs listed below should be in sync with the code in
+    // SetValidationOptionsCommon().
+    "security.ssl.enable_ocsp_stapling",
+    "security.ssl.enable_ocsp_must_staple",
+    "security.pki.certificate_transparency.mode",
     nullptr,
 };
 
@@ -264,6 +290,11 @@ nsresult nsIOService::Init() {
   Preferences::AddBoolVarCache(&mOfflineMirrorsConnectivity,
                                OFFLINE_MIRRORS_CONNECTIVITY, true);
 
+  if (IsSocketProcessChild()) {
+    Preferences::RegisterCallbacks(nsIOService::OnTLSPrefChange,
+                                   gCallbackSecurityPrefs, this);
+  }
+
   gIOService = this;
 
   InitializeNetworkLinkService();
@@ -279,6 +310,28 @@ nsIOService::~nsIOService() {
     MOZ_ASSERT(gIOService == this);
     gIOService = nullptr;
   }
+}
+
+// static
+void nsIOService::OnTLSPrefChange(const char* aPref, void* aSelf) {
+  MOZ_ASSERT(IsSocketProcessChild());
+
+  if (!EnsureNSSInitializedChromeOrContent()) {
+    LOG(("NSS not initialized."));
+    return;
+  }
+
+  nsAutoCString pref(aPref);
+  // The preferences listed in gCallbackSecurityPrefs need to be in sync with
+  // the code in HandleTLSPrefChange() and SetValidationOptionsCommon().
+  if (HandleTLSPrefChange(pref)) {
+    LOG(("HandleTLSPrefChange done"));
+  } else if (pref.EqualsLiteral("security.ssl.enable_ocsp_stapling") ||
+             pref.EqualsLiteral("security.ssl.enable_ocsp_must_staple") ||
+             pref.EqualsLiteral("security.pki.certificate_transparency.mode")) {
+    SetValidationOptionsCommon();
+  }
+  nsNSSComponent::ClearSSLExternalAndInternalSessionCacheNative();
 }
 
 nsresult nsIOService::InitializeCaptivePortalService() {
@@ -448,6 +501,7 @@ bool nsIOService::SocketProcessReady() {
 static bool sUseSocketProcess = false;
 static bool sUseSocketProcessChecked = false;
 
+// static
 bool nsIOService::UseSocketProcess() {
   if (sUseSocketProcessChecked) {
     return sUseSocketProcess;
@@ -1268,15 +1322,25 @@ nsIOService::AllowPort(int32_t inPort, const char* scheme, bool* _retval) {
     return NS_OK;
   }
 
+  nsTArray<int32_t> restrictedPortList;
+  {
+    MutexAutoLock lock(mMutex);
+    restrictedPortList.Assign(mRestrictedPortList);
+  }
+
   // first check to see if the port is in our blacklist:
-  int32_t badPortListCnt = mRestrictedPortList.Length();
+  int32_t badPortListCnt = restrictedPortList.Length();
   for (int i = 0; i < badPortListCnt; i++) {
-    if (port == mRestrictedPortList[i]) {
+    if (port == restrictedPortList[i]) {
       *_retval = false;
 
       // check to see if the protocol wants to override
       if (!scheme) return NS_OK;
 
+      // We don't support get protocol handler off main thread.
+      if (!NS_IsMainThread()) {
+        return NS_OK;
+      }
       nsCOMPtr<nsIProtocolHandler> handler;
       nsresult rv = GetProtocolHandler(scheme, getter_AddRefs(handler));
       if (NS_FAILED(rv)) return rv;
@@ -1354,7 +1418,11 @@ void nsIOService::PrefsChanged(const char* pref) {
 
 void nsIOService::ParsePortList(const char* pref, bool remove) {
   nsAutoCString portList;
-
+  nsTArray<int32_t> restrictedPortList;
+  {
+    MutexAutoLock lock(mMutex);
+    restrictedPortList.Assign(std::move(mRestrictedPortList));
+  }
   // Get a pref string and chop it up into a list of ports.
   Preferences::GetCString(pref, portList);
   if (!portList.IsVoid()) {
@@ -1371,10 +1439,10 @@ void nsIOService::ParsePortList(const char* pref, bool remove) {
           int32_t curPort;
           if (remove) {
             for (curPort = portBegin; curPort <= portEnd; curPort++)
-              mRestrictedPortList.RemoveElement(curPort);
+              restrictedPortList.RemoveElement(curPort);
           } else {
             for (curPort = portBegin; curPort <= portEnd; curPort++)
-              mRestrictedPortList.AppendElement(curPort);
+              restrictedPortList.AppendElement(curPort);
           }
         }
       } else {
@@ -1382,13 +1450,16 @@ void nsIOService::ParsePortList(const char* pref, bool remove) {
         int32_t port = portListArray[index].ToInteger(&aErrorCode);
         if (NS_SUCCEEDED(aErrorCode) && port < 65536) {
           if (remove)
-            mRestrictedPortList.RemoveElement(port);
+            restrictedPortList.RemoveElement(port);
           else
-            mRestrictedPortList.AppendElement(port);
+            restrictedPortList.AppendElement(port);
         }
       }
     }
   }
+
+  MutexAutoLock lock(mMutex);
+  mRestrictedPortList.Assign(std::move(restrictedPortList));
 }
 
 class nsWakeupNotifier : public Runnable {
@@ -1488,6 +1559,12 @@ nsIOService::Observe(nsISupports* subject, const char* topic,
     SSLTokensCache::Shutdown();
 
     DestroySocketProcess();
+
+    if (IsSocketProcessChild()) {
+      Preferences::UnregisterCallbacks(nsIOService::OnTLSPrefChange,
+                                       gCallbackSecurityPrefs, this);
+      NSSShutdownForSocketProcess();
+    }
   } else if (!strcmp(topic, NS_NETWORK_LINK_TOPIC)) {
     OnNetworkLinkEvent(NS_ConvertUTF16toUTF8(data).get());
   } else if (!strcmp(topic, NS_NETWORK_ID_CHANGED_TOPIC)) {
@@ -1781,8 +1858,7 @@ nsresult nsIOService::SpeculativeConnectInternal(
   if (IsNeckoChild()) {
     ipc::URIParams params;
     SerializeURI(aURI, params);
-    gNeckoChild->SendSpeculativeConnect(params, IPC::Principal(aPrincipal),
-                                        aAnonymous);
+    gNeckoChild->SendSpeculativeConnect(params, aPrincipal, aAnonymous);
     return NS_OK;
   }
 

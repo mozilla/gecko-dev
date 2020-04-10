@@ -13,7 +13,7 @@ add_task(async function oopProcessSwap() {
   await BrowserTestUtils.withNewTab(
     { gBrowser: win.gBrowser, url: FILE },
     async browser => {
-      is(browser.browsingContext.getChildren().length, 0);
+      is(browser.browsingContext.children.length, 0);
 
       info("creating an in-process frame");
       let frameId = await SpecialPowers.spawn(
@@ -31,7 +31,7 @@ add_task(async function oopProcessSwap() {
         }
       );
 
-      is(browser.browsingContext.getChildren().length, 1);
+      is(browser.browsingContext.children.length, 1);
 
       info("navigating to x-process frame");
       let oopinfo = await SpecialPowers.spawn(
@@ -68,15 +68,13 @@ add_task(async function oopProcessSwap() {
         }
       );
 
-      is(browser.browsingContext.getChildren().length, 1);
+      is(browser.browsingContext.children.length, 1);
 
       if (Services.prefs.getBoolPref("fission.preserve_browsing_contexts")) {
         is(
           frameId,
           oopinfo.browsingContextId,
-          `BrowsingContext should not have changed (${frameId} != ${
-            oopinfo.browsingContextId
-          })`
+          `BrowsingContext should not have changed (${frameId} != ${oopinfo.browsingContextId})`
         );
       }
       is(oopinfo.location, WEB, "correct location");
@@ -98,7 +96,7 @@ add_task(async function oopOriginProcessSwap() {
   await BrowserTestUtils.withNewTab(
     { gBrowser: win.gBrowser, url: COM_DUMMY },
     async browser => {
-      is(browser.browsingContext.getChildren().length, 0);
+      is(browser.browsingContext.children.length, 0);
 
       info("creating an in-process frame");
       let frameId = await SpecialPowers.spawn(
@@ -116,7 +114,7 @@ add_task(async function oopOriginProcessSwap() {
         }
       );
 
-      is(browser.browsingContext.getChildren().length, 1);
+      is(browser.browsingContext.children.length, 1);
 
       info("navigating to x-process frame");
       let oopinfo = await SpecialPowers.spawn(
@@ -153,14 +151,12 @@ add_task(async function oopOriginProcessSwap() {
         }
       );
 
-      is(browser.browsingContext.getChildren().length, 1);
+      is(browser.browsingContext.children.length, 1);
       if (Services.prefs.getBoolPref("fission.preserve_browsing_contexts")) {
         is(
           frameId,
           oopinfo.browsingContextId,
-          `BrowsingContext should not have changed (${frameId} != ${
-            oopinfo.browsingContextId
-          })`
+          `BrowsingContext should not have changed (${frameId} != ${oopinfo.browsingContextId})`
         );
       }
       is(oopinfo.location, ORG_POSTMSG, "correct location");

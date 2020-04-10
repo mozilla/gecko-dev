@@ -3,9 +3,6 @@ const { E10SUtils } = ChromeUtils.import(
 );
 
 const DOCUMENT_CHANNEL_PREF = "browser.tabs.documentchannel";
-const LINKED_WEB_IN_FILE_PREF =
-  "browser.tabs.remote.allowLinkedWebInFileUriProcess";
-const FISSION_PREF = "fission.autostart";
 const HISTORY = [
   { url: httpURL("dummy_page.html") },
   { url: fileURL("dummy_page.html") },
@@ -133,7 +130,7 @@ if (!SpecialPowers.useRemoteSubframes) {
 
 add_task(async function prefEnabled() {
   await SpecialPowers.pushPrefEnv({
-    set: [[DOCUMENT_CHANNEL_PREF, true], [LINKED_WEB_IN_FILE_PREF, false]],
+    set: [[DOCUMENT_CHANNEL_PREF, true]],
   });
   await runTest();
   await SpecialPowers.popPrefEnv();

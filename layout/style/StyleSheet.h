@@ -246,9 +246,7 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
     // different lifetime than mDocument.
     NotOwnedByDocumentOrShadowRoot
   };
-  dom::DocumentOrShadowRoot* GetAssociatedDocumentOrShadowRoot() const {
-    return mDocumentOrShadowRoot;
-  }
+  dom::DocumentOrShadowRoot* GetAssociatedDocumentOrShadowRoot() const;
 
   // Whether this stylesheet is kept alive by the associated document or
   // associated shadow root's document somehow, and thus at least has the same
@@ -258,7 +256,9 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   // Returns the document whose styles this sheet is affecting.
   dom::Document* GetComposedDoc() const;
 
-  // Returns the document we're associated to, via mDocumentOrShadowRoot.
+  // If this is a constructed style sheet, return mConstructorDocument.
+  // Otherwise return the document we're associated to,
+  // via mDocumentOrShadowRoot.
   //
   // Non-null iff GetAssociatedDocumentOrShadowRoot is non-null.
   dom::Document* GetAssociatedDocument() const;
@@ -367,18 +367,49 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   int32_t AddRule(const nsAString& aSelector, const nsAString& aBlock,
                   const dom::Optional<uint32_t>& aIndex,
                   nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv);
-  already_AddRefed<dom::Promise> Replace(const nsAString& aText, ErrorResult&);
+  already_AddRefed<dom::Promise> Replace(const nsACString& aText, ErrorResult&);
   void ReplaceSync(const nsACString& aText, ErrorResult&);
   bool ModificationDisallowed() const {
     return bool(mState & State::ModificationDisallowed);
+  }
+
+  // Called before and after the asynchronous Replace() function
+  // to disable/re-enable modification while there is a pending promise.
+  void SetModificationDisallowed(bool aDisallowed) {
+    MOZ_ASSERT(IsConstructed());
+    MOZ_ASSERT(!IsReadOnly());
+    if (aDisallowed) {
+      mState |= State::ModificationDisallowed;
+      // Sheet will be re-set to complete when its rules are replaced
+      mState &= ~State::Complete;
+      if (!Disabled()) {
+        ApplicableStateChanged(false);
+      }
+    } else {
+      mState &= ~State::ModificationDisallowed;
+    }
   }
 
   // True if the sheet was created through the Constructable StyleSheets API
   bool IsConstructed() const { return !!mConstructorDocument; }
 
   // Ture if the sheet's constructor document matches the given document
-  bool ConstructorDocumentMatches(dom::Document* document) const {
-    return mConstructorDocument == document;
+  bool ConstructorDocumentMatches(dom::Document& aDocument) const {
+    return mConstructorDocument == &aDocument;
+  }
+
+  // Add a document or shadow root to the list of adopters.
+  // Adopters will be notified when styles are changed.
+  void AddAdopter(dom::DocumentOrShadowRoot& aAdopter) {
+    MOZ_ASSERT(IsConstructed());
+    MOZ_ASSERT(!mAdopters.Contains(&aAdopter));
+    mAdopters.AppendElement(&aAdopter);
+  }
+
+  // Remove a document or shadow root from the list of adopters.
+  void RemoveAdopter(dom::DocumentOrShadowRoot& aAdopter) {
+    // Cannot assert IsConstructed() because this can run after unlink.
+    mAdopters.RemoveElement(&aAdopter);
   }
 
   // WebIDL miscellaneous bits
@@ -421,6 +452,12 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
 
   // Removes a stylesheet from its parent sheet child list, if any.
   void RemoveFromParent();
+
+  // Resolves mReplacePromise with this sheet.
+  void MaybeResolveReplacePromise();
+
+  // Rejects mReplacePromise with a NetworkError.
+  void MaybeRejectReplacePromise();
 
  private:
   void SetModifiedRules() {
@@ -478,6 +515,9 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   // Called when a stylesheet is cloned.
   void StyleSheetCloned(StyleSheet&);
 
+  // Notifies that the applicable state changed.
+  // aApplicable is the value that we expect to get from IsApplicable().
+  // assertion will fail if the expectation does not match reality.
   void ApplicableStateChanged(bool aApplicable);
 
   void UnparentChildren();
@@ -505,6 +545,10 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   StyleSheet* mParent;  // weak ref
 
   RefPtr<dom::Document> mConstructorDocument;
+
+  // Will be set in the Replace() function and resolved/rejected by the
+  // sheet once its rules have been replaced and the sheet is complete again.
+  RefPtr<dom::Promise> mReplacePromise;
 
   nsString mTitle;
 
@@ -542,6 +586,8 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   RefPtr<ServoCSSRuleList> mRuleList;
 
   MozPromiseHolder<StyleSheetParsePromise> mParsePromise;
+
+  nsTArray<dom::DocumentOrShadowRoot*> mAdopters;
 
   // Make StyleSheetInfo and subclasses into friends so they can use
   // ChildSheetListBuilder.

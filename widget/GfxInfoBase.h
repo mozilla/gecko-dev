@@ -87,8 +87,7 @@ class GfxInfoBase : public nsIGfxInfo,
   // NS_GENERIC_FACTORY_CONSTRUCTOR_INIT require it be nsresult return.
   virtual nsresult Init();
 
-  // only useful on X11
-  NS_IMETHOD_(void) GetData() override {}
+  NS_IMETHOD_(void) GetData() override;
 
   static void AddCollector(GfxInfoCollectorBase* collector);
   static void RemoveCollector(GfxInfoCollectorBase* collector);
@@ -103,6 +102,7 @@ class GfxInfoBase : public nsIGfxInfo,
   virtual nsString Product() { return EmptyString(); }
   virtual nsString Manufacturer() { return EmptyString(); }
   virtual uint32_t OperatingSystemVersion() { return 0; }
+  virtual uint32_t OperatingSystemBuild() { return 0; }
 
   // Convenience to get the application version
   static const nsCString& GetApplicationVersion();
@@ -126,6 +126,13 @@ class GfxInfoBase : public nsIGfxInfo,
 
   virtual void DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> obj);
 
+  bool DoesDesktopEnvironmentMatch(const nsAString& aBlocklistDesktop,
+                                   const nsAString& aDesktopEnv);
+
+  virtual bool DoesWindowProtocolMatch(
+      const nsAString& aBlocklistWindowProtocol,
+      const nsAString& aWindowProtocol);
+
   bool DoesVendorMatch(const nsAString& aBlocklistVendor,
                        const nsAString& aAdapterVendor);
 
@@ -139,10 +146,16 @@ class GfxInfoBase : public nsIGfxInfo,
 
   NS_IMETHOD ControlGPUProcessForXPCShell(bool aEnable, bool* _retval) override;
 
+  // Total number of pixels for all detected screens at startup.
+  int64_t mScreenPixels;
+
  private:
   virtual int32_t FindBlocklistedDeviceInList(
       const nsTArray<GfxDriverInfo>& aDriverInfo, nsAString& aSuggestedVersion,
-      int32_t aFeature, nsACString& aFailureId, OperatingSystem os);
+      int32_t aFeature, nsACString& aFailureId, OperatingSystem os,
+      bool aForAllowing);
+
+  bool IsFeatureAllowlisted(int32_t aFeature) const;
 
   void EvaluateDownloadedBlacklist(nsTArray<GfxDriverInfo>& aDriverInfo);
 

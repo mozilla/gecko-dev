@@ -19,7 +19,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/SVGAnimatedClass.h"
 #include "mozilla/gfx/MatrixFwd.h"
-#include "nsAutoPtr.h"
+#include "mozilla/UniquePtr.h"
 #include "nsChangeHint.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsError.h"
@@ -78,12 +78,27 @@ class SVGElement : public SVGElementBase  // nsIContent
   virtual nsresult Clone(mozilla::dom::NodeInfo*,
                          nsINode** aResult) const MOZ_MUST_OVERRIDE override;
 
+  // From Element
+  nsresult CopyInnerTo(mozilla::dom::Element* aDest);
+
   // nsISupports
   NS_INLINE_DECL_REFCOUNTING_INHERITED(SVGElement, SVGElementBase)
 
   NS_DECL_ADDSIZEOFEXCLUDINGTHIS
 
   void DidAnimateClass();
+
+  void SetNonce(const nsAString& aNonce) {
+    SetProperty(nsGkAtoms::nonce, new nsString(aNonce),
+                nsINode::DeleteProperty<nsString>);
+  }
+  void RemoveNonce() { RemoveProperty(nsGkAtoms::nonce); }
+  void GetNonce(nsAString& aNonce) const {
+    nsString* cspNonce = static_cast<nsString*>(GetProperty(nsGkAtoms::nonce));
+    if (cspNonce) {
+      aNonce = *cspNonce;
+    }
+  }
 
   // nsIContent interface methods
 
@@ -306,7 +321,7 @@ class SVGElement : public SVGElementBase  // nsIContent
     if (!mClassAttribute.IsAnimated()) {
       return nullptr;
     }
-    return mClassAnimAttr;
+    return mClassAnimAttr.get();
   }
 
   virtual void ClearAnyCachedPath() {}
@@ -609,7 +624,7 @@ class SVGElement : public SVGElementBase  // nsIContent
   void UnsetAttrInternal(int32_t aNameSpaceID, nsAtom* aName, bool aNotify);
 
   SVGAnimatedClass mClassAttribute;
-  nsAutoPtr<nsAttrValue> mClassAnimAttr;
+  UniquePtr<nsAttrValue> mClassAnimAttr;
   RefPtr<mozilla::DeclarationBlock> mContentDeclarationBlock;
 };
 

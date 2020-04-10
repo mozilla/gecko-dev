@@ -158,7 +158,7 @@ MODERN_MERCURIAL_VERSION = LooseVersion('4.8')
 MODERN_PYTHON_VERSION = LooseVersion('2.7.3')
 
 # Upgrade rust older than this.
-MODERN_RUST_VERSION = LooseVersion('1.39.0')
+MODERN_RUST_VERSION = LooseVersion('1.41.1')
 
 # Upgrade nasm older than this.
 MODERN_NASM_VERSION = LooseVersion('2.14')
@@ -315,6 +315,12 @@ class BaseBootstrapper(object):
     def ensure_dump_syms_packages(self, state_dir, checkout_root):
         '''
         Install dump_syms.
+        '''
+        pass
+
+    def ensure_fix_stacks_packages(self, state_dir, checkout_root):
+        '''
+        Install fix-stacks.
         '''
         pass
 

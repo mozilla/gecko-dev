@@ -7,6 +7,7 @@
 // HttpLog.h should generally be included first
 #include "HttpLog.h"
 
+#include "mozilla/ConsoleReportCollector.h"
 #include "mozilla/ipc/FileDescriptorSetParent.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
 #include "mozilla/net/HttpChannelParent.h"
@@ -53,7 +54,6 @@
 #include "nsThreadUtils.h"
 #include "nsQueryObject.h"
 #include "nsIMultiPartChannel.h"
-#include "nsIWrapperChannel.h"
 
 using mozilla::BasePrincipal;
 using namespace mozilla::dom;
@@ -226,7 +226,7 @@ void HttpChannelParent::CleanupBackgroundChannel() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mBgParent) {
-    RefPtr<HttpBackgroundChannelParent> bgParent = mBgParent.forget();
+    RefPtr<HttpBackgroundChannelParent> bgParent = std::move(mBgParent);
     bgParent->OnChannelClosed();
     return;
   }
@@ -511,8 +511,9 @@ bool HttpChannelParent::DoAsyncOpen(
     }
   }
 
-  RefPtr<ParentChannelListener> parentListener =
-      new ParentChannelListener(this, mBrowserParent);
+  RefPtr<ParentChannelListener> parentListener = new ParentChannelListener(
+      this, mBrowserParent ? mBrowserParent->GetBrowsingContext() : nullptr,
+      mLoadContext && mLoadContext->UsePrivateBrowsing());
 
   httpChannel->SetRequestMethod(nsDependentCString(requestMethod.get()));
 
@@ -647,8 +648,8 @@ bool HttpChannelParent::DoAsyncOpen(
   // Store the strong reference of channel and parent listener object until
   // all the initialization procedure is complete without failure, to remove
   // cycle reference in fail case and to avoid memory leakage.
-  mChannel = httpChannel.forget();
-  mParentListener = parentListener.forget();
+  mChannel = std::move(httpChannel);
+  mParentListener = std::move(parentListener);
   mChannel->SetNotificationCallbacks(mParentListener);
 
   mSuspendAfterSynthesizeResponse = aSuspendAfterSynthesizeResponse;
@@ -914,7 +915,22 @@ mozilla::ipc::IPCResult HttpChannelParent::RecvRedirect2Verify(
       nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
           do_QueryInterface(newHttpChannel);
       if (appCacheChannel) {
-        appCacheChannel->SetChooseApplicationCache(aChooseAppcache);
+        bool setChooseAppCache = false;
+        if (aChooseAppcache) {
+          nsCOMPtr<nsIURI> uri;
+          // Using GetURI because this is what DoAsyncOpen uses.
+          newHttpChannel->GetURI(getter_AddRefs(uri));
+
+          OriginAttributes attrs;
+          NS_GetOriginAttributes(newHttpChannel, attrs);
+
+          nsCOMPtr<nsIPrincipal> principal =
+              BasePrincipal::CreateContentPrincipal(uri, attrs);
+
+          setChooseAppCache = NS_ShouldCheckAppCache(principal);
+        }
+
+        appCacheChannel->SetChooseApplicationCache(setChooseAppCache);
       }
 
       nsCOMPtr<nsILoadInfo> newLoadInfo = newHttpChannel->LoadInfo();
@@ -1367,11 +1383,6 @@ HttpChannelParent::OnStartRequest(nsIRequest* aRequest) {
       multiPartChannel->GetPartID(&partID);
       multiPartID = Some(partID);
       multiPartChannel->GetIsLastPart(&isLastPartOfMultiPart);
-    } else if (nsCOMPtr<nsIWrapperChannel> wrapperChannel =
-                   do_QueryInterface(aRequest)) {
-      nsCOMPtr<nsIChannel> inner;
-      wrapperChannel->GetInnerChannel(getter_AddRefs(inner));
-      chan = do_QueryObject(inner);
     }
   }
   MOZ_ASSERT(multiPartID || !mIsMultiPart, "Changed multi-part state?");
@@ -1384,9 +1395,10 @@ HttpChannelParent::OnStartRequest(nsIRequest* aRequest) {
     return NS_ERROR_UNEXPECTED;
   }
 
-  MOZ_ASSERT(mChannel == chan,
+  // Todo: re-enable when bug 1589749 is fixed.
+  /*MOZ_ASSERT(mChannel == chan,
              "HttpChannelParent getting OnStartRequest from a different "
-             "HttpBaseChannel instance");
+             "HttpBaseChannel instance");*/
 
   // Send down any permissions which are relevant to this URL if we are
   // performing a document load. We can't do that if mIPCClosed is set.
@@ -1422,8 +1434,8 @@ HttpChannelParent::OnStartRequest(nsIRequest* aRequest) {
   if (httpChannelImpl) {
     httpChannelImpl->GetLoadedFromApplicationCache(&loadedFromApplicationCache);
     if (loadedFromApplicationCache) {
-      mOfflineForeignMarker =
-          httpChannelImpl->GetOfflineCacheEntryAsForeignMarker();
+      mOfflineForeignMarker.reset(
+          httpChannelImpl->GetOfflineCacheEntryAsForeignMarker());
       nsCOMPtr<nsIApplicationCache> appCache;
       httpChannelImpl->GetApplicationCache(getter_AddRefs(appCache));
       nsCString appCacheGroupId;
@@ -1523,7 +1535,7 @@ HttpChannelParent::OnStartRequest(nsIRequest* aRequest) {
   chan->GetAllRedirectsSameOrigin(&allRedirectsSameOrigin);
 
   nsILoadInfo::CrossOriginOpenerPolicy openerPolicy =
-      nsILoadInfo::OPENER_POLICY_NULL;
+      nsILoadInfo::OPENER_POLICY_UNSAFE_NONE;
   chan->GetCrossOriginOpenerPolicy(&openerPolicy);
 
   rv = NS_OK;
@@ -1574,6 +1586,13 @@ HttpChannelParent::OnStopRequest(nsIRequest* aRequest, nsresult aStatusCode) {
 
   nsHttpHeaderArray* responseTrailer = mChannel->GetResponseTrailers();
 
+  nsTArray<ConsoleReportCollected> consoleReports;
+
+  RefPtr<HttpBaseChannel> httpChannel = do_QueryObject(mChannel);
+  if (httpChannel) {
+    httpChannel->StealConsoleReports(consoleReports);
+  }
+
   // Either IPC channel is closed or background channel
   // is ready to send OnStopRequest.
   MOZ_ASSERT(mIPCClosed || mBgParent);
@@ -1585,13 +1604,15 @@ HttpChannelParent::OnStopRequest(nsIRequest* aRequest, nsresult aStatusCode) {
     TimeStamp lastActTabOpt = nsHttp::GetLastActiveTabLoadOptimizationHit();
     if (!SendOnStopRequest(
             aStatusCode, GetTimingAttributes(mChannel), lastActTabOpt,
-            responseTrailer ? *responseTrailer : nsHttpHeaderArray())) {
+            responseTrailer ? *responseTrailer : nsHttpHeaderArray(),
+            consoleReports)) {
       return NS_ERROR_UNEXPECTED;
     }
   } else if (mIPCClosed || !mBgParent ||
              !mBgParent->OnStopRequest(
                  aStatusCode, GetTimingAttributes(mChannel),
-                 responseTrailer ? *responseTrailer : nsHttpHeaderArray())) {
+                 responseTrailer ? *responseTrailer : nsHttpHeaderArray(),
+                 consoleReports)) {
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -2317,7 +2338,7 @@ void HttpChannelParent::StartDiversion() {
   Unused << mChannel->DoApplyContentConversions(
       mDivertListener, getter_AddRefs(converterListener));
   if (converterListener) {
-    mDivertListener = converterListener.forget();
+    mDivertListener = std::move(converterListener);
   }
 
   // Now mParentListener can be diverted to mDivertListener.

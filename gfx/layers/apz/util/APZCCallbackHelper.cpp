@@ -34,12 +34,8 @@
 #include "nsView.h"
 #include "Layers.h"
 
-// #define APZCCH_LOGGING 1
-#ifdef APZCCH_LOGGING
-#  define APZCCH_LOG(...) printf_stderr("APZCCH: " __VA_ARGS__)
-#else
-#  define APZCCH_LOG(...)
-#endif
+static mozilla::LazyLogModule sApzHlpLog("apz.helper");
+#define APZCCH_LOG(...) MOZ_LOG(sApzHlpLog, LogLevel::Debug, (__VA_ARGS__))
 
 namespace mozilla {
 namespace layers {
@@ -288,7 +284,7 @@ void APZCCallbackHelper::NotifyLayerTransforms(
           ViewAs<LayoutDeviceToLayoutDeviceMatrix4x4>(
               msg.GetMatrix(),
               PixelCastJustification::ContentProcessIsLayerInUiProcess),
-          msg.GetRemoteDocumentRect());
+          msg.GetTopLevelViewportVisibleRectInBrowserCoords());
     }
   }
 }
@@ -700,15 +696,15 @@ static bool PrepareForSetTargetAPZCNotification(
         target ? target : aRootFrame);
   }
 
-#ifdef APZCCH_LOGGING
-  nsAutoString dpElementDesc;
-  if (dpElement) {
-    dpElement->Describe(dpElementDesc);
+  if (MOZ_LOG_TEST(sApzHlpLog, LogLevel::Debug)) {
+    nsAutoString dpElementDesc;
+    if (dpElement) {
+      dpElement->Describe(dpElementDesc);
+    }
+    APZCCH_LOG("For event at %s found scrollable element %p (%s)\n",
+               Stringify(aRefPoint).c_str(), dpElement.get(),
+               NS_LossyConvertUTF16toASCII(dpElementDesc).get());
   }
-  APZCCH_LOG("For event at %s found scrollable element %p (%s)\n",
-             Stringify(aRefPoint).c_str(), dpElement.get(),
-             NS_LossyConvertUTF16toASCII(dpElementDesc).get());
-#endif
 
   bool guidIsValid = APZCCallbackHelper::GetOrCreateScrollIdentifiers(
       dpElement, &(guid.mScrollableLayerGuid.mPresShellId),
@@ -787,7 +783,7 @@ DisplayportSetListener::DisplayportSetListener(
       mInputBlockId(aInputBlockId),
       mTargets(aTargets) {}
 
-DisplayportSetListener::~DisplayportSetListener() {}
+DisplayportSetListener::~DisplayportSetListener() = default;
 
 bool DisplayportSetListener::Register() {
   if (mPresShell->AddPostRefreshObserver(this)) {

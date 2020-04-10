@@ -8,7 +8,6 @@
 
 #include "ImageContainer.h"
 
-#include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 #include "nsIPrincipal.h"
@@ -63,7 +62,7 @@ class DOMMediaStream : public DOMEventTargetHelper,
 
   class TrackListener {
    public:
-    virtual ~TrackListener() {}
+    virtual ~TrackListener() = default;
 
     /**
      * Called when the DOMMediaStream has a live track added, either by

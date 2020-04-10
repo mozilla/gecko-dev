@@ -92,6 +92,7 @@ PhaseKindGraphRoots = [
     PhaseKind("WAIT_BACKGROUND_THREAD", "Wait Background Thread", 2),
     PhaseKind("PREPARE", "Prepare For Collection", 69, [
         PhaseKind("UNMARK", "Unmark", 7),
+        PhaseKind("UNMARK_WEAKMAPS", "Unmark WeakMaps", 76),
         PhaseKind("BUFFER_GRAY_ROOTS", "Buffer Gray Roots", 49),
         PhaseKind("MARK_DISCARD_CODE", "Mark Discard Code", 3),
         PhaseKind("RELAZIFY_FUNCTIONS", "Relazify Functions", 4),
@@ -142,7 +143,9 @@ PhaseKindGraphRoots = [
             PhaseKind("SWEEP_LAZYSCRIPTS", "Sweep LazyScripts", 71),
             PhaseKind("SWEEP_WEAKMAPS", "Sweep WeakMaps", 63),
             PhaseKind("SWEEP_UNIQUEIDS", "Sweep Unique IDs", 64),
-            PhaseKind("SWEEP_FINALIZATION_GROUPS", "Sweep FinalizationGroups", 74),
+            PhaseKind("SWEEP_FINALIZATION_GROUPS", "Sweep FinalizationGroups", 74, [
+                UnmarkGrayPhaseKind
+            ]),
             PhaseKind("SWEEP_WEAKREFS", "Sweep WeakRefs", 75),
             PhaseKind("SWEEP_JIT_DATA", "Sweep JIT Data", 65),
             PhaseKind("SWEEP_WEAK_CACHES", "Sweep Weak Caches", 66),
@@ -282,7 +285,7 @@ def writeList(out, items):
 
 
 def writeEnumClass(out, name, type, items, extraItems):
-    items = ["FIRST"] + items + ["LIMIT"] + extraItems
+    items = ["FIRST"] + list(items) + ["LIMIT"] + list(extraItems)
     items[1] += " = " + items[0]
     out.write("enum class %s : %s {\n" % (name, type))
     writeList(out, items)

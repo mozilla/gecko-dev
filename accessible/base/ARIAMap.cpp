@@ -164,6 +164,15 @@ static const nsRoleMapEntry sWAIRoleMaps[] = {
     eARIAReadonly,
     eARIAOrientation
   },
+  { // comment
+    nsGkAtoms::comment,
+    roles::COMMENT,
+    kUseMapRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    kGenericAccType,
+  },
   { // complementary
     nsGkAtoms::complementary,
     roles::LANDMARK,
@@ -814,6 +823,15 @@ static const nsRoleMapEntry sWAIRoleMaps[] = {
     eLandmark,
     kNoReqStates
   },
+  { // mark
+    nsGkAtoms::mark,
+    roles::MARK,
+    kUseMapRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    kGenericAccType,
+  },
   { // marquee
     nsGkAtoms::marquee,
     roles::ANIMATION,
@@ -1107,6 +1125,15 @@ static const nsRoleMapEntry sWAIRoleMaps[] = {
     ePoliteLiveAttr,
     kGenericAccType,
     kNoReqStates
+  },
+  { // suggestion
+    nsGkAtoms::suggestion,
+    roles::SUGGESTION,
+    kUseMapRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    kGenericAccType,
   },
   { // switch
     nsGkAtoms::svgSwitch,

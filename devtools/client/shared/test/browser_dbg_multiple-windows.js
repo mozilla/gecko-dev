@@ -8,18 +8,18 @@
  * are open.
  */
 
-var { DebuggerServer } = require("devtools/server/debugger-server");
-var { DebuggerClient } = require("devtools/shared/client/debugger-client");
+var { DevToolsServer } = require("devtools/server/devtools-server");
+var { DevToolsClient } = require("devtools/shared/client/devtools-client");
 
 const TAB1_URL = "data:text/html;charset=utf-8,first-tab";
 const TAB2_URL = "data:text/html;charset=utf-8,second-tab";
 
 add_task(async function() {
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
 
-  const transport = DebuggerServer.connectPipe();
-  const client = new DebuggerClient(transport);
+  const transport = DevToolsServer.connectPipe();
+  const client = new DevToolsClient(transport);
   const [type] = await client.connect();
   is(type, "browser", "Root actor should identify itself as a browser.");
 

@@ -7,7 +7,6 @@
 #define GPU_RenderPassEncoder_H_
 
 #include "ObjectModel.h"
-#include "RenderEncoderBase.h"
 
 namespace mozilla {
 namespace dom {
@@ -23,24 +22,40 @@ namespace webgpu {
 
 class CommandEncoder;
 class RenderBundle;
+class RenderPipeline;
 
-class RenderPassEncoder final : public RenderEncoderBase,
+class RenderPassEncoder final : public ObjectBase,
                                 public ChildOf<CommandEncoder> {
  public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(RenderPassEncoder,
-                                                         RenderEncoderBase)
+  GPU_DECL_CYCLE_COLLECTION(RenderPassEncoder)
   GPU_DECL_JS_WRAP(RenderPassEncoder)
 
-  RenderPassEncoder() = delete;
+  RenderPassEncoder(CommandEncoder* const aParent,
+                    const dom::GPURenderPassDescriptor& aDesc);
 
  protected:
   virtual ~RenderPassEncoder();
   void Cleanup() {}
 
+  ffi::WGPURawPass mRaw;
+  // keep all the used objects alive while the pass is recorded
+  std::vector<RefPtr<const BindGroup>> mUsedBindGroups;
+  std::vector<RefPtr<const Buffer>> mUsedBuffers;
+  std::vector<RefPtr<const RenderPipeline>> mUsedPipelines;
+  std::vector<RefPtr<const TextureView>> mUsedTextureViews;
+
  public:
   void SetBindGroup(uint32_t aSlot, const BindGroup& aBindGroup,
-                    const dom::Sequence<uint32_t>& aDynamicOffsets) override;
+                    const dom::Sequence<uint32_t>& aDynamicOffsets);
+  void SetPipeline(const RenderPipeline& aPipeline);
+  void SetIndexBuffer(const Buffer& aBuffer, uint64_t aOffset);
+  void SetVertexBuffer(uint32_t aSlot, const Buffer& aBuffer, uint64_t aOffset);
+  void Draw(uint32_t aVertexCount, uint32_t aInstanceCount,
+            uint32_t aFirstVertex, uint32_t aFirstInstance);
+  void DrawIndexed(uint32_t aIndexCount, uint32_t aInstanceCount,
+                   uint32_t aFirstIndex, int32_t aBaseVertex,
+                   uint32_t aFirstInstance);
+  void EndPass(ErrorResult& aRv);
 };
 
 }  // namespace webgpu

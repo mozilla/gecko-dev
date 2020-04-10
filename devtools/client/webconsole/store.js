@@ -83,9 +83,12 @@ function configureStore(webConsoleUI, options = {}) {
       editorWidth: getIntPref(PREFS.UI.EDITOR_WIDTH),
       showEditorOnboarding: getBoolPref(PREFS.UI.EDITOR_ONBOARDING),
       timestampsVisible: getBoolPref(PREFS.UI.MESSAGE_TIMESTAMP),
+      showEvaluationSelector: getBoolPref(PREFS.UI.CONTEXT_SELECTOR),
     }),
   };
 
+  const toolbox = options.thunkArgs.toolbox;
+  const sessionId = (toolbox && toolbox.sessionId) || -1;
   const middleware = applyMiddleware(
     ignore,
     thunkWithOptions.bind(null, {
@@ -93,7 +96,7 @@ function configureStore(webConsoleUI, options = {}) {
       ...options.thunkArgs,
     }),
     historyPersistence,
-    eventTelemetry.bind(null, options.telemetry, options.sessionId)
+    eventTelemetry.bind(null, options.telemetry, sessionId)
   );
 
   return createStore(

@@ -50,11 +50,8 @@ add_task(async function() {
   is(popup.selectedIndex, 1, "popup.selectedIndex is correct");
   ok(!getInputCompletionValue(hud), "completeNode.value is empty");
 
-  const items = popup.getItems().map(e => e.label);
-  const expectedItems = ["testBugAA", "testBugBB"];
-  is(
-    items.join("-"),
-    expectedItems.join("-"),
+  ok(
+    hasExactPopupLabels(popup, ["testBugAA", "testBugBB"]),
     "getItems returns the items we expect"
   );
 
@@ -88,8 +85,7 @@ add_task(async function() {
   ok(!getInputCompletionValue(hud), "there is no completion text");
 
   info("Test autocomplete inside parens");
-  setInputValue(hud, "dump()");
-  EventUtils.synthesizeKey("KEY_ArrowLeft");
+  await setInputValueForAutocompletion(hud, "dump()", -1);
   let onAutocompleteUpdated = jsterm.once("autocomplete-updated");
   EventUtils.sendString("window.testBugA");
   await onAutocompleteUpdated;
@@ -148,12 +144,10 @@ add_task(async function() {
 
 async function setInitialState(hud) {
   const { jsterm } = hud;
-  jsterm.focus();
-  setInputValue(hud, "dump()");
-  EventUtils.synthesizeKey("KEY_ArrowLeft");
+  await setInputValueForAutocompletion(hud, "dump()", -1);
 
-  const onPopUpOpen = jsterm.autocompletePopup.once("popup-opened");
+  const onAutocompleteUpdated = jsterm.once("autocomplete-updated");
   EventUtils.sendString("window.testB");
   checkInputValueAndCursorPosition(hud, "dump(window.testB|)");
-  await onPopUpOpen;
+  await onAutocompleteUpdated;
 }

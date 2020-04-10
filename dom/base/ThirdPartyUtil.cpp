@@ -19,6 +19,7 @@
 #include "nsReadableUtils.h"
 #include "nsThreadUtils.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/ContentBlockingAllowList.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPtr.h"
@@ -162,8 +163,8 @@ ThirdPartyUtil::GetContentBlockingAllowListPrincipalFromWindow(
     OriginAttributes attrs =
         docShell ? nsDocShell::Cast(docShell)->GetOriginAttributes()
                  : OriginAttributes();
-    principal =
-        doc->RecomputeContentBlockingAllowListPrincipal(aURIBeingLoaded, attrs);
+    ContentBlockingAllowList::RecomputePrincipal(aURIBeingLoaded, attrs,
+                                                 getter_AddRefs(principal));
   }
 
   if (!principal || !principal->GetIsContentPrincipal()) {
@@ -475,11 +476,11 @@ ThirdPartyUtil::AnalyzeChannel(nsIChannel* aChannel, bool aNotify, nsIURI* aURI,
   nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
       do_QueryInterface(aChannel);
   if (classifiedChannel) {
-    if (classifiedChannel->IsTrackingResource()) {
-      result += ThirdPartyAnalysis::IsTrackingResource;
+    if (classifiedChannel->IsThirdPartyTrackingResource()) {
+      result += ThirdPartyAnalysis::IsThirdPartyTrackingResource;
     }
-    if (classifiedChannel->IsSocialTrackingResource()) {
-      result += ThirdPartyAnalysis::IsSocialTrackingResource;
+    if (classifiedChannel->IsThirdPartySocialTrackingResource()) {
+      result += ThirdPartyAnalysis::IsThirdPartySocialTrackingResource;
     }
 
     // Check first-party storage access even for non-tracking resources, since

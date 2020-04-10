@@ -68,7 +68,6 @@ class MouseEvent : public UIEvent {
   int32_t MovementX() { return GetMovementPoint().x; }
   int32_t MovementY() { return GetMovementPoint().y; }
   float MozPressure() const;
-  bool HitCluster() const;
   uint16_t MozInputSource() const;
   void InitNSMouseEvent(const nsAString& aType, bool aCanBubble,
                         bool aCancelable, nsGlobalWindowInner* aView,
@@ -79,7 +78,7 @@ class MouseEvent : public UIEvent {
                         float aPressure, uint16_t aInputSource);
 
  protected:
-  ~MouseEvent() {}
+  ~MouseEvent() = default;
 
   void InitMouseEvent(const nsAString& aType, bool aCanBubble, bool aCancelable,
                       nsGlobalWindowInner* aView, int32_t aDetail,

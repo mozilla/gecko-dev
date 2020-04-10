@@ -217,7 +217,7 @@ jobs:
             kind: test
             tier: 1
         attributes:
-            build_platform: linux-devedition-nightly
+            build_platform: linux-devedition
         extra:
             product: firefox
             platform: linux-i686
@@ -233,7 +233,7 @@ jobs:
             kind: test
             tier: 1
         attributes:
-            build_platform: linux64-devedition-nightly
+            build_platform: linux64-devedition
         extra:
             product: firefox
             platform: linux-x86_64
@@ -249,7 +249,7 @@ jobs:
             kind: test
             tier: 1
         attributes:
-            build_platform: macosx64-devedition-nightly
+            build_platform: macosx64-devedition
         extra:
             product: firefox
             platform: mac
@@ -265,7 +265,7 @@ jobs:
             kind: test
             tier: 1
         attributes:
-            build_platform: win32-devedition-nightly
+            build_platform: win32-devedition
         extra:
             product: firefox
             platform: win32
@@ -281,7 +281,7 @@ jobs:
             kind: test
             tier: 1
         attributes:
-            build_platform: win64-devedition-nightly
+            build_platform: win64-devedition
         extra:
             product: firefox
             platform: win64
@@ -297,7 +297,7 @@ jobs:
             kind: test
             tier: 1
         attributes:
-            build_platform: win64-aarch64-devedition-nightly
+            build_platform: win64-aarch64-devedition
         extra:
             product: firefox
             platform: win64-aarch64

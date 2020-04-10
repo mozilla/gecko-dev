@@ -57,7 +57,7 @@ class ServiceWorkerShutdownBlocker;
 
 class ServiceWorkerUpdateFinishCallback {
  protected:
-  virtual ~ServiceWorkerUpdateFinishCallback() {}
+  virtual ~ServiceWorkerUpdateFinishCallback() = default;
 
  public:
   NS_INLINE_DECL_REFCOUNTING(ServiceWorkerUpdateFinishCallback)
@@ -282,10 +282,6 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
   nsresult GetClientRegistration(
       const ClientInfo& aClientInfo,
       ServiceWorkerRegistrationInfo** aRegistrationInfo);
-
-  void UpdateControlledClient(const ClientInfo& aOldClientInfo,
-                              const ClientInfo& aNewClientInfo,
-                              const ServiceWorkerDescriptor& aServiceWorker);
 
   // Returns the shutdown state ID (may be an invalid ID if an
   // nsIAsyncShutdownBlocker is not used).

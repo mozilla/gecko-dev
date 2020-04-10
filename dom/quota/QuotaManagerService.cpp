@@ -118,7 +118,7 @@ class QuotaManagerService::PendingRequestInfo {
  public:
   explicit PendingRequestInfo(RequestBase* aRequest) : mRequest(aRequest) {}
 
-  virtual ~PendingRequestInfo() {}
+  virtual ~PendingRequestInfo() = default;
 
   RequestBase* GetRequest() const { return mRequest; }
 
@@ -299,14 +299,13 @@ nsresult QuotaManagerService::EnsureBackgroundActor() {
   return NS_OK;
 }
 
-nsresult QuotaManagerService::InitiateRequest(
-    nsAutoPtr<PendingRequestInfo>& aInfo) {
+nsresult QuotaManagerService::InitiateRequest(PendingRequestInfo& aInfo) {
   nsresult rv = EnsureBackgroundActor();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  rv = aInfo->InitiateRequest(mBackgroundActor);
+  rv = aInfo.InitiateRequest(mBackgroundActor);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -386,6 +385,54 @@ NS_IMPL_QUERY_INTERFACE(QuotaManagerService, nsIQuotaManagerService,
                         nsIObserver)
 
 NS_IMETHODIMP
+QuotaManagerService::StorageInitialized(nsIQuotaRequest** _retval) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
+
+  if (NS_WARN_IF(!StaticPrefs::dom_quotaManager_testing())) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  RefPtr<Request> request = new Request();
+
+  StorageInitializedParams params;
+
+  RequestInfo info(request, params);
+
+  nsresult rv = InitiateRequest(info);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  request.forget(_retval);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+QuotaManagerService::TemporaryStorageInitialized(nsIQuotaRequest** _retval) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
+
+  if (NS_WARN_IF(!StaticPrefs::dom_quotaManager_testing())) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  RefPtr<Request> request = new Request();
+
+  TemporaryStorageInitializedParams params;
+
+  RequestInfo info(request, params);
+
+  nsresult rv = InitiateRequest(info);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  request.forget(_retval);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 QuotaManagerService::Init(nsIQuotaRequest** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(nsContentUtils::IsCallerChrome());
@@ -398,7 +445,7 @@ QuotaManagerService::Init(nsIQuotaRequest** _retval) {
 
   InitParams params;
 
-  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+  RequestInfo info(request, params);
 
   nsresult rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -422,7 +469,7 @@ QuotaManagerService::InitTemporaryStorage(nsIQuotaRequest** _retval) {
 
   InitTemporaryStorageParams params;
 
-  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+  RequestInfo info(request, params);
 
   nsresult rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -476,7 +523,7 @@ QuotaManagerService::InitStorageAndOrigin(nsIPrincipal* aPrincipal,
     params.clientTypeIsExplicit() = true;
   }
 
-  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+  RequestInfo info(request, params);
 
   rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -499,7 +546,7 @@ QuotaManagerService::GetUsage(nsIQuotaUsageCallback* aCallback, bool aGetAll,
 
   params.getAll() = aGetAll;
 
-  nsAutoPtr<PendingRequestInfo> info(new UsageRequestInfo(request, params));
+  UsageRequestInfo info(request, params);
 
   nsresult rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -531,7 +578,7 @@ QuotaManagerService::GetUsageForPrincipal(nsIPrincipal* aPrincipal,
 
   params.fromMemory() = aFromMemory;
 
-  nsAutoPtr<PendingRequestInfo> info(new UsageRequestInfo(request, params));
+  UsageRequestInfo info(request, params);
 
   rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -554,7 +601,7 @@ QuotaManagerService::Clear(nsIQuotaRequest** _retval) {
 
   ClearAllParams params;
 
-  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+  RequestInfo info(request, params);
 
   nsresult rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -579,7 +626,7 @@ QuotaManagerService::ClearStoragesForOriginAttributesPattern(
 
   params.pattern() = pattern;
 
-  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+  RequestInfo info(request, params);
 
   nsresult rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -619,7 +666,7 @@ QuotaManagerService::ClearStoragesForPrincipal(
   RequestParams params;
   params = ClearOriginParams(commonParams);
 
-  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+  RequestInfo info(request, params);
 
   rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -642,7 +689,7 @@ QuotaManagerService::Reset(nsIQuotaRequest** _retval) {
 
   ResetAllParams params;
 
-  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+  RequestInfo info(request, params);
 
   nsresult rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -686,7 +733,7 @@ QuotaManagerService::ResetStoragesForPrincipal(
   RequestParams params;
   params = ResetOriginParams(commonParams);
 
-  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+  RequestInfo info(request, params);
 
   rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -714,7 +761,7 @@ QuotaManagerService::Persisted(nsIPrincipal* aPrincipal,
     return rv;
   }
 
-  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+  RequestInfo info(request, params);
 
   rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -742,7 +789,7 @@ QuotaManagerService::Persist(nsIPrincipal* aPrincipal,
     return rv;
   }
 
-  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+  RequestInfo info(request, params);
 
   rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -769,7 +816,7 @@ QuotaManagerService::Estimate(nsIPrincipal* aPrincipal,
     return rv;
   }
 
-  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+  RequestInfo info(request, params);
 
   rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -781,16 +828,14 @@ QuotaManagerService::Estimate(nsIPrincipal* aPrincipal,
 }
 
 NS_IMETHODIMP
-QuotaManagerService::ListOrigins(nsIQuotaCallback* aCallback,
-                                 nsIQuotaRequest** _retval) {
+QuotaManagerService::ListOrigins(nsIQuotaRequest** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aCallback);
 
-  RefPtr<Request> request = new Request(aCallback);
+  RefPtr<Request> request = new Request();
 
   ListOriginsParams params;
 
-  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+  RequestInfo info(request, params);
 
   nsresult rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -818,8 +863,7 @@ QuotaManagerService::Observe(nsISupports* aSubject, const char* aTopic,
   }
 
   if (!strcmp(aTopic, OBSERVER_TOPIC_IDLE)) {
-    nsAutoPtr<PendingRequestInfo> info(
-        new IdleMaintenanceInfo(/* aStart */ true));
+    IdleMaintenanceInfo info(/* aStart */ true);
 
     nsresult rv = InitiateRequest(info);
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -832,8 +876,7 @@ QuotaManagerService::Observe(nsISupports* aSubject, const char* aTopic,
   if (!strcmp(aTopic, OBSERVER_TOPIC_ACTIVE)) {
     RemoveIdleObserver();
 
-    nsAutoPtr<PendingRequestInfo> info(
-        new IdleMaintenanceInfo(/* aStart */ false));
+    IdleMaintenanceInfo info(/* aStart */ false);
 
     nsresult rv = InitiateRequest(info);
     if (NS_WARN_IF(NS_FAILED(rv))) {

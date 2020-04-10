@@ -15,7 +15,6 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/StateWatching.h"
 #include "mozilla/TaskQueue.h"
-#include "nsAutoPtr.h"
 #include "nsAutoRef.h"
 #include "nsIRunnable.h"
 #include "nsTArray.h"
@@ -788,7 +787,7 @@ class MediaInputPort final {
   }
 
   // Private destructor, to discourage deletion outside of Release():
-  ~MediaInputPort() { MOZ_COUNT_DTOR(MediaInputPort); }
+  MOZ_COUNTED_DTOR(MediaInputPort)
 
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaInputPort)
@@ -1134,7 +1133,7 @@ class MediaTrackGraph {
   explicit MediaTrackGraph(TrackRate aSampleRate) : mSampleRate(aSampleRate) {
     MOZ_COUNT_CTOR(MediaTrackGraph);
   }
-  virtual ~MediaTrackGraph() { MOZ_COUNT_DTOR(MediaTrackGraph); }
+  MOZ_COUNTED_DTOR_VIRTUAL(MediaTrackGraph)
 
   // Intended only for assertions, either on graph thread or not running (in
   // which case we must be on the main thread).

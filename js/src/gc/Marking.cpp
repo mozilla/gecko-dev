@@ -307,8 +307,6 @@ JS_FOR_EACH_TRACEKIND(IMPL_CHECK_TRACED_THING);
 #undef IMPL_CHECK_TRACED_THING
 }  // namespace js
 
-static bool UnmarkGrayGCThing(JSRuntime* rt, JS::GCCellPtr thing);
-
 static inline bool ShouldMarkCrossCompartment(GCMarker* marker, JSObject* src,
                                               Cell* dstCell) {
   MarkColor color = marker->markColor();
@@ -348,8 +346,8 @@ static inline bool ShouldMarkCrossCompartment(GCMarker* marker, JSObject* src,
      * as part of normal marking.
      */
     if (dst.isMarkedGray() && !dstZone->isGCMarking()) {
-      UnmarkGrayGCThing(marker->runtime(),
-                        JS::GCCellPtr(&dst, dst.getTraceKind()));
+      UnmarkGrayGCThingUnchecked(marker->runtime(),
+                                 JS::GCCellPtr(&dst, dst.getTraceKind()));
       return false;
     }
 
@@ -581,10 +579,8 @@ template void js::TraceManuallyBarrieredCrossCompartmentEdge<Value>(
     JSTracer*, JSObject*, Value*, const char*);
 template void js::TraceManuallyBarrieredCrossCompartmentEdge<JSObject*>(
     JSTracer*, JSObject*, JSObject**, const char*);
-template void js::TraceManuallyBarrieredCrossCompartmentEdge<JSScript*>(
-    JSTracer*, JSObject*, JSScript**, const char*);
-template void js::TraceManuallyBarrieredCrossCompartmentEdge<LazyScript*>(
-    JSTracer*, JSObject*, LazyScript**, const char*);
+template void js::TraceManuallyBarrieredCrossCompartmentEdge<BaseScript*>(
+    JSTracer*, JSObject*, BaseScript**, const char*);
 
 template <typename T>
 void js::TraceWeakMapKeyEdgeInternal(JSTracer* trc, Zone* weakMapZone,
@@ -610,11 +606,8 @@ void js::TraceWeakMapKeyEdgeInternal(JSTracer* trc, Zone* weakMapZone,
 template void js::TraceWeakMapKeyEdgeInternal<JSObject>(JSTracer*, Zone*,
                                                         JSObject**,
                                                         const char*);
-template void js::TraceWeakMapKeyEdgeInternal<JSScript>(JSTracer*, Zone*,
-                                                        JSScript**,
-                                                        const char*);
-template void js::TraceWeakMapKeyEdgeInternal<LazyScript>(JSTracer*, Zone*,
-                                                          LazyScript**,
+template void js::TraceWeakMapKeyEdgeInternal<BaseScript>(JSTracer*, Zone*,
+                                                          BaseScript**,
                                                           const char*);
 
 template <typename T>
@@ -741,29 +734,24 @@ void js::gc::TraceRangeInternal(JSTracer* trc, size_t len, T* vec,
 
 namespace js {
 
-typedef bool HasNoImplicitEdgesType;
+using HasNoImplicitEdgesType = bool;
 
 template <typename T>
 struct ImplicitEdgeHolderType {
-  typedef HasNoImplicitEdgesType Type;
+  using Type = HasNoImplicitEdgesType;
 };
 
-// For now, we only handle JSObject* and JSScript* keys, but the linear time
+// For now, we only handle JSObject* and BaseScript* keys, but the linear time
 // algorithm can be easily extended by adding in more types here, then making
-// GCMarker::traverse<T> call markPotentialEphemeronKey.
+// GCMarker::traverse<T> call markImplicitEdges.
 template <>
 struct ImplicitEdgeHolderType<JSObject*> {
-  typedef JSObject* Type;
+  using Type = JSObject*;
 };
 
 template <>
-struct ImplicitEdgeHolderType<JSScript*> {
-  typedef JSScript* Type;
-};
-
-template <>
-struct ImplicitEdgeHolderType<LazyScript*> {
-  typedef LazyScript* Type;
+struct ImplicitEdgeHolderType<BaseScript*> {
+  using Type = BaseScript*;
 };
 
 void GCMarker::markEphemeronValues(gc::Cell* markedCell,
@@ -809,8 +797,7 @@ void GCMarker::markImplicitEdges(T* thing) {
 }
 
 template void GCMarker::markImplicitEdges(JSObject*);
-template void GCMarker::markImplicitEdges(JSScript*);
-template void GCMarker::markImplicitEdges(LazyScript*);
+template void GCMarker::markImplicitEdges(BaseScript*);
 
 }  // namespace js
 
@@ -949,9 +936,9 @@ void GCMarker::traverse(RegExpShared* thing) {
 }
 }  // namespace js
 
-// Strings, LazyScripts, Shapes, and Scopes are extremely common, but have
-// simple patterns of recursion. We traverse trees of these edges immediately,
-// with aggressive, manual inlining, implemented by eagerlyTraceChildren.
+// Strings, Shapes, and Scopes are extremely common, but have simple patterns of
+// recursion. We traverse trees of these edges immediately, with aggressive,
+// manual inlining, implemented by eagerlyTraceChildren.
 template <typename T>
 void js::GCMarker::markAndScan(T* thing) {
   if (ThingIsPermanentAtomOrWellKnownSymbol(thing)) {
@@ -964,10 +951,6 @@ void js::GCMarker::markAndScan(T* thing) {
 namespace js {
 template <>
 void GCMarker::traverse(JSString* thing) {
-  markAndScan(thing);
-}
-template <>
-void GCMarker::traverse(LazyScript* thing) {
   markAndScan(thing);
 }
 template <>
@@ -1006,7 +989,7 @@ void GCMarker::traverse(jit::JitCode* thing) {
   markAndPush(thing);
 }
 template <>
-void GCMarker::traverse(JSScript* thing) {
+void GCMarker::traverse(BaseScript* thing) {
   markAndPush(thing);
 }
 }  // namespace js
@@ -1129,50 +1112,28 @@ void BaseScript::traceChildren(JSTracer* trc) {
   // per-zone maps. Note that a failed compilation must not have entries since
   // the script itself will not be marked as having bytecode.
   if (hasBytecode()) {
-    JSScript* script = static_cast<JSScript*>(this);
+    JSScript* script = this->asJSScript();
 
     if (hasDebugScript()) {
       DebugAPI::traceDebugScript(trc, script);
     }
   }
-}
 
-void LazyScript::traceChildren(JSTracer* trc) {
-  BaseScript::traceChildren(trc);
-
-  if (trc->traceWeakEdges()) {
-    TraceNullableEdge(trc, &script_, "script");
+  // Trace the edge to our twin. Note that it will have the opposite type of
+  // current script.
+  if (isLazyScript()) {
+    if (trc->traceWeakEdges()) {
+      TraceNullableEdge(trc, &u.script_, "script");
+    }
+  } else {
+    if (u.lazyScript) {
+      TraceManuallyBarrieredEdge(trc, &u.lazyScript, "lazyScript");
+    }
   }
 
   if (trc->isMarkingTracer()) {
     GCMarker::fromTracer(trc)->markImplicitEdges(this);
   }
-}
-inline void js::GCMarker::eagerlyMarkChildren(LazyScript* thing) {
-  traverseEdge(thing, static_cast<JSObject*>(thing->functionOrGlobal_));
-  traverseEdge(thing, static_cast<JSObject*>(thing->sourceObject_));
-
-  thing->warmUpData_.trace(this);
-
-  if (thing->data_) {
-    // Traverse the PrivateScriptData::gcthings() array.
-    for (JS::GCCellPtr& elem : thing->data_->gcthings()) {
-      if (elem.is<JSObject>()) {
-        traverseEdge(thing, &elem.as<JSObject>());
-      } else if (elem.is<JSString>()) {
-        traverseEdge(thing, &elem.as<JSString>());
-      } else {
-        MOZ_ASSERT(!elem);
-      }
-    }
-  }
-
-  MOZ_ASSERT(thing->sharedData_ == nullptr,
-             "LazyScript should not have shared data.");
-
-  // script_ is weak so is not traced here.
-
-  markImplicitEdges(thing);
 }
 
 void Shape::traceChildren(JSTracer* trc) {
@@ -1576,7 +1537,7 @@ void js::GCMarker::lazilyMarkChildren(ObjectGroup* group) {
   }
 }
 
-void JS::BigInt::traceChildren(JSTracer* trc) { return; }
+void JS::BigInt::traceChildren(JSTracer* trc) {}
 
 template <typename Functor>
 static void VisitTraceList(const Functor& f, const uint32_t* traceList,
@@ -1854,6 +1815,8 @@ inline static bool ObjectDenseElementsMayBeMarkable(NativeObject* nobj) {
     return true;
   }
 
+  MOZ_ASSERT(IsTypeInferenceEnabled());
+
   // This typeset doesn't escape this function so avoid sweeping here.
   HeapTypeSet* typeSet = group->maybeGetPropertyDontCheckGeneration(JSID_VOID);
   if (!typeSet) {
@@ -1929,7 +1892,7 @@ inline void GCMarker::processMarkStackTop(SliceBudget& budget) {
     }
 
     case MarkStack::ScriptTag: {
-      auto script = stack.popPtr().as<JSScript>();
+      auto script = stack.popPtr().as<BaseScript>();
       AutoSetTracingSource asts(this, script);
       return script->traceChildren(this);
     }
@@ -2213,7 +2176,7 @@ struct MapTypeToMarkStackTag<jit::JitCode*> {
   static const auto value = MarkStack::JitCodeTag;
 };
 template <>
-struct MapTypeToMarkStackTag<JSScript*> {
+struct MapTypeToMarkStackTag<BaseScript*> {
   static const auto value = MarkStack::ScriptTag;
 };
 
@@ -3061,7 +3024,7 @@ static inline void TraceWholeCell(TenuringTracer& mover, JS::BigInt* bi) {
   bi->traceChildren(&mover);
 }
 
-static inline void TraceWholeCell(TenuringTracer& mover, JSScript* script) {
+static inline void TraceWholeCell(TenuringTracer& mover, BaseScript* script) {
   script->traceChildren(&mover);
 }
 
@@ -3106,7 +3069,7 @@ void js::gc::StoreBuffer::WholeCellBuffer::trace(TenuringTracer& mover) {
         TraceBufferedCells<JS::BigInt>(mover, arena, cells);
         break;
       case JS::TraceKind::Script:
-        TraceBufferedCells<JSScript>(mover, arena, cells);
+        TraceBufferedCells<BaseScript>(mover, arena, cells);
         break;
       case JS::TraceKind::JitCode:
         TraceBufferedCells<jit::JitCode>(mover, arena, cells);
@@ -3580,10 +3543,12 @@ static inline void CheckIsMarkedThing(T* thingp) {
   // Allow the current thread access if it is sweeping or in sweep-marking, but
   // try to check the zone. Some threads have access to all zones when sweeping.
   JSContext* cx = TlsContext.get();
-  if (cx->gcSweeping || cx->gcMarking) {
+  MOZ_ASSERT(cx->gcUse != JSContext::GCUse::Finalizing);
+  if (cx->gcUse == JSContext::GCUse::Sweeping ||
+      cx->gcUse == JSContext::GCUse::Marking) {
     Zone* zone = thing->zoneFromAnyThread();
-    MOZ_ASSERT_IF(cx->gcSweepingZone,
-                  cx->gcSweepingZone == zone || zone->isAtomsZone());
+    MOZ_ASSERT_IF(cx->gcSweepZone,
+                  cx->gcSweepZone == zone || zone->isAtomsZone());
     return;
   }
 
@@ -3622,6 +3587,9 @@ struct MightBeNurseryAllocated {
 
 template <typename T>
 bool js::gc::IsMarkedInternal(JSRuntime* rt, T** thingp) {
+  // Don't depend on the mark state of other cells during finalization.
+  MOZ_ASSERT(!CurrentThreadIsGCFinalizing());
+
   if (IsOwnedByOtherRuntime(rt, *thingp)) {
     return true;
   }
@@ -3642,11 +3610,18 @@ bool js::gc::IsMarkedInternal(JSRuntime* rt, T** thingp) {
 bool js::gc::IsAboutToBeFinalizedDuringSweep(TenuredCell& tenured) {
   MOZ_ASSERT(!IsInsideNursery(&tenured));
   MOZ_ASSERT(tenured.zoneFromAnyThread()->isGCSweeping());
+
+  // Don't depend on the mark state of other cells during finalization.
+  MOZ_ASSERT(!CurrentThreadIsGCFinalizing());
+
   return !tenured.isMarkedAny();
 }
 
 template <typename T>
 bool js::gc::IsAboutToBeFinalizedInternal(T** thingp) {
+  // Don't depend on the mark state of other cells during finalization.
+  MOZ_ASSERT(!CurrentThreadIsGCFinalizing());
+
   CheckIsMarkedThing(thingp);
   T* thing = *thingp;
   JSRuntime* rt = thing->runtimeFromAnyThread();
@@ -3715,11 +3690,8 @@ bool SweepingTracer::onShapeEdge(Shape** shapep) { return sweepEdge(shapep); }
 bool SweepingTracer::onStringEdge(JSString** stringp) {
   return sweepEdge(stringp);
 }
-bool SweepingTracer::onScriptEdge(JSScript** scriptp) {
+bool SweepingTracer::onScriptEdge(js::BaseScript** scriptp) {
   return sweepEdge(scriptp);
-}
-bool SweepingTracer::onLazyScriptEdge(LazyScript** lazyp) {
-  return sweepEdge(lazyp);
 }
 bool SweepingTracer::onBaseShapeEdge(BaseShape** basep) {
   return sweepEdge(basep);
@@ -3775,10 +3747,6 @@ JS_FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(INSTANTIATE_INTERNAL_IATBF_FUNCTION)
 #undef INSTANTIATE_INTERNAL_IS_MARKED_FUNCTION
 #undef INSTANTIATE_INTERNAL_IATBF_FUNCTION
 #undef INSTANTIATE_INTERNAL_MARKING_FUNCTIONS_FROM_TRACEKIND
-
-#ifdef DEBUG
-bool CurrentThreadIsGCMarking() { return TlsContext.get()->gcMarking; }
-#endif  // DEBUG
 
 } /* namespace gc */
 } /* namespace js */
@@ -3924,13 +3892,9 @@ void UnmarkGrayTracer::unmark(JS::GCCellPtr cell) {
   }
 }
 
-static bool UnmarkGrayGCThing(JSRuntime* rt, JS::GCCellPtr thing) {
+bool js::gc::UnmarkGrayGCThingUnchecked(JSRuntime* rt, JS::GCCellPtr thing) {
   MOZ_ASSERT(thing);
   MOZ_ASSERT(thing.asCell()->isMarkedGray());
-
-  // Gray cell unmarking can occur at different points between recording and
-  // replay, so disallow recorded events from occurring in the tracer.
-  mozilla::recordreplay::AutoDisallowThreadEvents d;
 
   AutoGeckoProfilerEntry profilingStackFrame(
       TlsContext.get(), "UnmarkGrayGCThing", JS::ProfilingCategoryPair::GCCC);
@@ -3950,7 +3914,7 @@ JS_FRIEND_API bool JS::UnmarkGrayGCThingRecursively(JS::GCCellPtr thing) {
 
   JSRuntime* rt = thing.asCell()->runtimeFromMainThread();
   gcstats::AutoPhase outerPhase(rt->gc.stats(), gcstats::PhaseKind::BARRIER);
-  return UnmarkGrayGCThing(rt, thing);
+  return UnmarkGrayGCThingUnchecked(rt, thing);
 }
 
 bool js::UnmarkGrayShapeRecursively(Shape* shape) {

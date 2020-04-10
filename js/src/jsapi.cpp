@@ -1270,6 +1270,7 @@ JS_PUBLIC_API void JS::AddAssociatedMemory(JSObject* obj, size_t nbytes,
   }
 
   Zone* zone = obj->zone();
+  MOZ_ASSERT(!IsInsideNursery(obj));
   zone->addCellMemory(obj, nbytes, js::MemoryUse(use));
   zone->maybeMallocTriggerZoneGC();
 }
@@ -3637,15 +3638,17 @@ JS_PUBLIC_API JSScript* JS_GetFunctionScript(JSContext* cx,
   if (fun->isNative()) {
     return nullptr;
   }
-  if (fun->isInterpretedLazy()) {
-    AutoRealm ar(cx, fun);
-    JSScript* script = JSFunction::getOrCreateScript(cx, fun);
-    if (!script) {
-      MOZ_CRASH();
-    }
-    return script;
+
+  if (fun->hasBytecode()) {
+    return fun->nonLazyScript();
   }
-  return fun->nonLazyScript();
+
+  AutoRealm ar(cx, fun);
+  JSScript* script = JSFunction::getOrCreateScript(cx, fun);
+  if (!script) {
+    MOZ_CRASH();
+  }
+  return script;
 }
 
 JS_PUBLIC_API JSString* JS_DecompileScript(JSContext* cx, HandleScript script) {
@@ -4781,6 +4784,16 @@ JS_PUBLIC_API void JS_ReportErrorNumberUTF8VA(JSContext* cx,
                       ArgumentsAreUTF8, ap);
 }
 
+JS_PUBLIC_API void JS_ReportErrorNumberUTF8Array(JSContext* cx,
+                                                 JSErrorCallback errorCallback,
+                                                 void* userRef,
+                                                 const unsigned errorNumber,
+                                                 const char** args) {
+  AssertHeapIsIdle();
+  ReportErrorNumberUTF8Array(cx, JSREPORT_ERROR, errorCallback, userRef,
+                             errorNumber, args);
+}
+
 JS_PUBLIC_API void JS_ReportErrorNumberUC(JSContext* cx,
                                           JSErrorCallback errorCallback,
                                           void* userRef,
@@ -4870,6 +4883,20 @@ JS_PUBLIC_API void JS_ReportAllocationOverflow(JSContext* cx) {
   ReportAllocationOverflow(cx);
 }
 
+JS_PUBLIC_API bool JS_ExpandErrorArgumentsASCII(JSContext* cx,
+                                                JSErrorCallback errorCallback,
+                                                const unsigned errorNumber,
+                                                JSErrorReport* reportp, ...) {
+  va_list ap;
+  bool ok;
+
+  AssertHeapIsIdle();
+  va_start(ap, reportp);
+  ok = ExpandErrorArgumentsVA(cx, errorCallback, nullptr, errorNumber,
+                              ArgumentsAreASCII, reportp, ap);
+  va_end(ap);
+  return ok;
+}
 /************************************************************************/
 
 JS_PUBLIC_API bool JS_SetDefaultLocale(JSRuntime* rt, const char* locale) {
@@ -4927,7 +4954,9 @@ JS_PUBLIC_API void JS_SetPendingException(JSContext* cx, HandleValue value,
                                           JS::ExceptionStackBehavior behavior) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
-  cx->releaseCheck(value);
+  // We don't check the compartment of `value` here, because we're not
+  // doing anything with it other than storing it, and stored
+  // exception values can be in an abitrary compartment.
 
   if (behavior == JS::ExceptionStackBehavior::Capture) {
     cx->setPendingExceptionAndCaptureStack(value);
@@ -4946,8 +4975,11 @@ JS_PUBLIC_API void JS::SetPendingExceptionAndStack(JSContext* cx,
                                                    HandleObject stack) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
-  cx->releaseCheck(value);
-  cx->releaseCheck(stack);
+  // We don't check the compartments of `value` and `stack` here,
+  // because we're not doing anything with them other than storing
+  // them, and stored exception values can be in an abitrary
+  // compartment while stored stack values are always the unwrapped
+  // object anyway.
 
   RootedSavedFrame nstack(cx);
   if (stack) {
@@ -5339,6 +5371,17 @@ JS_PUBLIC_API void JS_SetGlobalJitCompilerOption(JSContext* cx,
         JitSpew(js::jit::JitSpew_IonScripts, "Disable ion");
       }
       break;
+    case JSJITCOMPILER_JIT_TRUSTEDPRINCIPALS_ENABLE:
+      if (value == 1) {
+        jit::JitOptions.jitForTrustedPrincipals = true;
+        JitSpew(js::jit::JitSpew_IonScripts,
+                "Enable ion and baselinejit for trusted principals");
+      } else if (value == 0) {
+        jit::JitOptions.jitForTrustedPrincipals = false;
+        JitSpew(js::jit::JitSpew_IonScripts,
+                "Disable ion and baselinejit for trusted principals");
+      }
+      break;
     case JSJITCOMPILER_ION_FREQUENT_BAILOUT_THRESHOLD:
       if (value == uint32_t(-1)) {
         jit::DefaultJitOptions defaultValues;
@@ -5383,9 +5426,6 @@ JS_PUBLIC_API void JS_SetGlobalJitCompilerOption(JSContext* cx,
         value = defaultValues.jumpThreshold;
       }
       jit::JitOptions.jumpThreshold = value;
-      break;
-    case JSJITCOMPILER_TRACK_OPTIMIZATIONS:
-      jit::JitOptions.disableOptimizationTracking = !value;
       break;
     case JSJITCOMPILER_SPECTRE_INDEX_MASKING:
       jit::JitOptions.spectreIndexMasking = !!value;

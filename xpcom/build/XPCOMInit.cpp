@@ -64,7 +64,7 @@
 #include "nsMemoryReporterManager.h"
 #include "nsMessageLoop.h"
 #include "nss.h"
-#include "ssl.h"
+#include "nsNSSComponent.h"
 
 #include <locale.h>
 #include "mozilla/Services.h"
@@ -208,7 +208,7 @@ class ICUReporter final : public nsIMemoryReporter,
     return NS_OK;
   }
 
-  ~ICUReporter() {}
+  ~ICUReporter() = default;
 };
 
 NS_IMPL_ISUPPORTS(ICUReporter, nsIMemoryReporter)
@@ -234,7 +234,7 @@ class OggReporter final : public nsIMemoryReporter,
     return NS_OK;
   }
 
-  ~OggReporter() {}
+  ~OggReporter() = default;
 };
 
 NS_IMPL_ISUPPORTS(OggReporter, nsIMemoryReporter)
@@ -634,9 +634,10 @@ nsresult ShutdownXPCOM(nsIServiceManager* aServMgr) {
     gfxPlatform::ShutdownLayersIPC();
     mozilla::RemoteDecoderManagerChild::Shutdown();
 
-    mozilla::scache::StartupCache::DeleteSingleton();
     if (observerService) {
       mozilla::KillClearOnShutdown(ShutdownPhase::ShutdownThreads);
+      mozilla::AppShutdown::MaybeFastShutdown(
+          mozilla::ShutdownPhase::ShutdownThreads);
       observerService->NotifyObservers(
           nullptr, NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID, nullptr);
     }
@@ -717,6 +718,8 @@ nsresult ShutdownXPCOM(nsIServiceManager* aServMgr) {
   mozilla::AppShutdown::MaybeFastShutdown(
       mozilla::ShutdownPhase::ShutdownPostLastCycleCollection);
 
+  mozilla::scache::StartupCache::DeleteSingleton();
+
   PROFILER_ADD_MARKER("Shutdown xpcom", OTHER);
 
   // Shutdown xpcom. This will release all loaders and cause others holding
@@ -738,7 +741,7 @@ nsresult ShutdownXPCOM(nsIServiceManager* aServMgr) {
   // down, any remaining objects that could be holding NSS resources (should)
   // have been released, so we can safely shut down NSS.
   if (NSS_IsInitialized()) {
-    SSL_ClearSessionCache();
+    nsNSSComponent::ClearSSLExternalAndInternalSessionCacheNative();
     if (NSS_Shutdown() != SECSuccess) {
       // If you're seeing this crash and/or warning, some NSS resources are
       // still in use (see bugs 1417680 and 1230312). Set the environment

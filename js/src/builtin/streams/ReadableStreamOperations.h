@@ -14,6 +14,8 @@
 #include "js/RootingAPI.h"  // JS::Handle
 #include "js/Value.h"       // JS::Value
 
+class JS_PUBLIC_API JSObject;
+
 namespace js {
 
 class PromiseObject;
@@ -35,10 +37,10 @@ extern MOZ_MUST_USE bool ReadableStreamTee(
     bool cloneForBranch2, JS::MutableHandle<ReadableStream*> branch1Stream,
     JS::MutableHandle<ReadableStream*> branch2Stream);
 
-extern MOZ_MUST_USE JSObject* ReadableStreamPipeTo(
+extern MOZ_MUST_USE PromiseObject* ReadableStreamPipeTo(
     JSContext* cx, JS::Handle<ReadableStream*> unwrappedSource,
     JS::Handle<WritableStream*> unwrappedDest, bool preventClose,
-    bool preventAbort, bool preventCancel, JS::Handle<JS::Value> signal);
+    bool preventAbort, bool preventCancel, JS::Handle<JSObject*> signal);
 
 }  // namespace js
 

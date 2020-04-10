@@ -316,6 +316,7 @@ class ObjectGroup : public gc::TenuredCell {
   }
 
   void setInterpretedFunction(JSFunction* fun) {
+    MOZ_ASSERT(!gc::IsInsideNursery(reinterpret_cast<gc::Cell*>(fun)));
     setAddendum(Addendum_InterpretedFunction, fun);
   }
 
@@ -446,8 +447,8 @@ class ObjectGroup : public gc::TenuredCell {
                                    uint32_t count);
 
   static void staticAsserts() {
-    JS_STATIC_ASSERT(offsetof(ObjectGroup, proto_) ==
-                     offsetof(js::shadow::ObjectGroup, proto));
+    static_assert(offsetof(ObjectGroup, proto_) ==
+                  offsetof(js::shadow::ObjectGroup, proto));
   }
 
  public:

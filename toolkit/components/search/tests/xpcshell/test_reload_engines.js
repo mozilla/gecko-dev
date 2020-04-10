@@ -6,37 +6,35 @@
 const SEARCH_SERVICE_TOPIC = "browser-search-service";
 const SEARCH_ENGINE_TOPIC = "browser-search-engine-modified";
 
-const CONFIG = {
-  data: [
-    {
-      webExtension: {
-        id: "engine@search.mozilla.org",
-      },
-      orderHint: 30,
-      appliesTo: [
-        {
-          included: { everywhere: true },
-          excluded: { regions: ["FR"] },
-          default: "yes",
-          defaultPrivate: "yes",
-        },
-      ],
+const CONFIG = [
+  {
+    webExtension: {
+      id: "engine@search.mozilla.org",
     },
-    {
-      webExtension: {
-        id: "engine-pref@search.mozilla.org",
+    orderHint: 30,
+    appliesTo: [
+      {
+        included: { everywhere: true },
+        excluded: { regions: ["FR"] },
+        default: "yes",
+        defaultPrivate: "yes",
       },
-      orderHint: 20,
-      appliesTo: [
-        {
-          included: { regions: ["FR"] },
-          default: "yes",
-          defaultPrivate: "yes",
-        },
-      ],
+    ],
+  },
+  {
+    webExtension: {
+      id: "engine-pref@search.mozilla.org",
     },
-  ],
-};
+    orderHint: 20,
+    appliesTo: [
+      {
+        included: { regions: ["FR"] },
+        default: "yes",
+        defaultPrivate: "yes",
+      },
+    ],
+  },
+];
 
 // Default engine with no region defined.
 const DEFAULT = "Test search engine";
@@ -60,18 +58,16 @@ function listenFor(name, key) {
 
 add_task(async function setup() {
   Services.prefs.setBoolPref("browser.search.separatePrivateDefault", true);
+  Services.prefs.setBoolPref("browser.search.geoSpecificDefaults", true);
 
-  await useTestEngines();
+  await useTestEngines("data", null, CONFIG);
   await AddonTestUtils.promiseStartupManager();
-
-  let confUrl = `data:application/json,${JSON.stringify(CONFIG)}`;
-  Services.prefs.setStringPref("search.config.url", confUrl);
 });
 
 add_task(async function test_regular_init() {
   let reloadObserved = listenFor(SEARCH_SERVICE_TOPIC, "engines-reloaded");
   let geoUrl = `data:application/json,{"country_code": "FR"}`;
-  Services.prefs.setCharPref("browser.search.geoip.url", geoUrl);
+  Services.prefs.setCharPref("geo.provider-country.network.url", geoUrl);
 
   await Promise.all([
     Services.search.init(true),
@@ -108,7 +104,7 @@ add_task(async function test_init_with_slow_region_lookup() {
   });
 
   Services.prefs.setCharPref(
-    "browser.search.geoip.url",
+    "geo.provider-country.network.url",
     `http://localhost:${srv.identity.primaryPort}/fetch_region`
   );
 

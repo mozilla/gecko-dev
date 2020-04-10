@@ -205,6 +205,7 @@ fn common_node(v: &mut Table, clip_id_mapper: &mut ClipIdMapper, info: &CommonIt
     rect_node(v, "clip-rect", &info.clip_rect);
     bool_node(v, "backface-visible", info.flags.contains(PrimitiveFlags::IS_BACKFACE_VISIBLE));
     bool_node(v, "scrollbar-container", info.flags.contains(PrimitiveFlags::IS_SCROLLBAR_CONTAINER));
+    bool_node(v, "prefer-compositor-surface", info.flags.contains(PrimitiveFlags::PREFER_COMPOSITOR_SURFACE));
     bool_node(v, "scrollbar-thumb", info.flags.contains(PrimitiveFlags::IS_SCROLLBAR_THUMB));
 
     clip_and_scroll_node(v, clip_id_mapper, info.clip_id, info.spatial_id);
@@ -510,6 +511,29 @@ fn radial_gradient_to_yaml(
 ) {
     point_node(table, "center", &gradient.center);
     size_node(table, "radius", &gradient.radius);
+
+    let first_offset = gradient.start_offset;
+    let last_offset = gradient.end_offset;
+    let stops_delta = last_offset - first_offset;
+    assert!(first_offset <= last_offset);
+
+    let mut denormalized_stops = vec![];
+    for stop in stops_range {
+        let denormalized_stop = (stop.offset * stops_delta) + first_offset;
+        denormalized_stops.push(Yaml::Real(denormalized_stop.to_string()));
+        denormalized_stops.push(Yaml::String(color_to_string(stop.color)));
+    }
+    yaml_node(table, "stops", Yaml::Array(denormalized_stops));
+    bool_node(table, "repeat", gradient.extend_mode == ExtendMode::Repeat);
+}
+
+fn conic_gradient_to_yaml(
+    table: &mut Table,
+    gradient: &webrender::api::ConicGradient,
+    stops_range: ItemRange<GradientStop>,
+) {
+    point_node(table, "center", &gradient.center);
+    f32_node(table, "angle", gradient.angle);
 
     let first_offset = gradient.start_offset;
     let last_offset = gradient.end_offset;
@@ -857,8 +881,8 @@ impl YamlFrameWriter {
         assert!(data.stride > 0);
         let (color_type, bpp, do_unpremultiply) = match data.format {
             ImageFormat::RGBA8 |
-            ImageFormat::BGRA8 => (ColorType::RGBA(8), 4, true),
-            ImageFormat::R8 => (ColorType::Gray(8), 1, false),
+            ImageFormat::BGRA8 => (ColorType::Rgba8, 4, true),
+            ImageFormat::R8 => (ColorType::L8, 1, false),
             _ => {
                 println!(
                     "Failed to write image with format {:?}, dimensions {}x{}, stride {}",
@@ -978,7 +1002,13 @@ impl YamlFrameWriter {
                 DisplayItem::Rectangle(item) => {
                     str_node(&mut v, "type", "rect");
                     common_node(&mut v, clip_id_mapper, &item.common);
-                    color_node(&mut v, "color", item.color);
+
+                    let key_label = match item.color {
+                        PropertyBinding::Value(..) => "color",
+                        PropertyBinding::Binding(..) => "animating-color",
+                    };
+                    color_node(&mut v, key_label,
+                               scene.properties.resolve_color(&item.color));
                 }
                 DisplayItem::HitTest(item) => {
                     str_node(&mut v, "type", "hit-test");
@@ -1191,6 +1221,14 @@ impl YamlFrameWriter {
                                         base.gradient_stops(),
                                     );
                                 }
+                                NinePatchBorderSource::ConicGradient(gradient) => {
+                                    str_node(&mut v, "border-type", "conic-gradient");
+                                    conic_gradient_to_yaml(
+                                        &mut v,
+                                        &gradient,
+                                        base.gradient_stops(),
+                                    );
+                                }
                             }
 
                             i32_node(&mut v, "image-width", details.width);
@@ -1268,6 +1306,18 @@ impl YamlFrameWriter {
                     size_node(&mut v, "tile-size", &item.tile_size);
                     size_node(&mut v, "tile-spacing", &item.tile_spacing);
                     radial_gradient_to_yaml(
+                        &mut v,
+                        &item.gradient,
+                        base.gradient_stops(),
+                    );
+                }
+                DisplayItem::ConicGradient(item) => {
+                    str_node(&mut v, "type", "conic-gradient");
+                    rect_node(&mut v, "bounds", &item.bounds);
+                    common_node(&mut v, clip_id_mapper, &item.common);
+                    size_node(&mut v, "tile-size", &item.tile_size);
+                    size_node(&mut v, "tile-spacing", &item.tile_spacing);
+                    conic_gradient_to_yaml(
                         &mut v,
                         &item.gradient,
                         base.gradient_stops(),

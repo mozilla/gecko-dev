@@ -27,7 +27,7 @@ namespace gmp {
 
 class GMPCapability {
  public:
-  explicit GMPCapability() {}
+  explicit GMPCapability() = default;
   GMPCapability(GMPCapability&& aOther)
       : mAPIName(std::move(aOther.mAPIName)),
         mAPITags(std::move(aOther.mAPITags)) {}
@@ -154,7 +154,7 @@ class GMPParent final
   RefPtr<GenericPromise> ReadChromiumManifestFile(
       nsIFile* aFile);  // GMP thread.
   void AddCrashAnnotations();
-  bool GetCrashID(nsString& aResult);
+  void GetCrashID(nsString& aResult);
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
   mozilla::ipc::IPCResult RecvPGMPStorageConstructor(

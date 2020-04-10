@@ -200,13 +200,6 @@ async function fetchStylesheet(sheet, consoleActor) {
     }
   }
 
-  // When replaying, fetch the stylesheets from the replaying process, so that
-  // we get the same sheets which were used when recording.
-  if (isReplaying) {
-    const dbg = new ReplayDebugger();
-    return dbg.replayingContent(href);
-  }
-
   const options = {
     loadFromCache: true,
     policy: Ci.nsIContentPolicy.TYPE_INTERNAL_STYLESHEET,
@@ -258,7 +251,7 @@ var StyleSheetActor = protocol.ActorClassWithSpec(styleSheetSpec, {
    * Window of target
    */
   get window() {
-    return isReplaying ? ReplayInspector.window : this.parentActor.window;
+    return this.parentActor.window;
   },
 
   /**
@@ -717,9 +710,7 @@ var StyleSheetsActor = protocol.ActorClassWithSpec(styleSheetsSpec, {
   async getStyleSheets() {
     let actors = [];
 
-    const windows = isReplaying
-      ? [ReplayInspector.window]
-      : this.parentActor.windows;
+    const windows = this.parentActor.windows;
     for (const win of windows) {
       const sheets = await this._addStyleSheets(win);
       actors = actors.concat(sheets);

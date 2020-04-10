@@ -17,7 +17,7 @@ import org.mozilla.geckoview.BuildConfig;
 @WrapForJNI
 public final class XPCOMEventTarget extends JNIObject implements IXPCOMEventTarget {
     @Override
-    public void dispatch(final Runnable runnable) {
+    public void execute(final Runnable runnable) {
         dispatchNative(new JNIRunnable(runnable));
     }
 
@@ -62,6 +62,14 @@ public final class XPCOMEventTarget extends JNIObject implements IXPCOMEventTarg
         } else {
             throw new RuntimeException("Attempt to assign to unknown thread named " + name);
         }
+
+        // Ensure that we see the right name in the Java debugger. We don't do this for mMainThread
+        // because its name was already set (in this context, "main" is the GeckoThread).
+        if (mMainThread != target) {
+            target.execute(() -> {
+                Thread.currentThread().setName(name);
+            });
+        }
     }
 
     @Override
@@ -71,7 +79,7 @@ public final class XPCOMEventTarget extends JNIObject implements IXPCOMEventTarg
 
     @WrapForJNI
     private static synchronized void resolveAndDispatch(final String name, final Runnable runnable) {
-        getTarget(name).dispatch(runnable);
+        getTarget(name).execute(runnable);
     }
 
     private static native void resolveAndDispatchNative(final String name, final Runnable runnable);
@@ -101,11 +109,11 @@ public final class XPCOMEventTarget extends JNIObject implements IXPCOMEventTarg
         }
 
         @Override
-        public void dispatch(final Runnable runnable) {
+        public void execute(final Runnable runnable) {
             final IXPCOMEventTarget target = XPCOMEventTarget.getTarget(mTargetName);
 
             if (target != null && target instanceof XPCOMEventTarget) {
-                target.dispatch(runnable);
+                target.execute(runnable);
                 return;
             }
 

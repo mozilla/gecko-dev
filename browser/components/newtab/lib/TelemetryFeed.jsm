@@ -31,6 +31,11 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
+  "AboutNewTabStartupRecorder",
+  "resource:///modules/AboutNewTabService.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
   "PingCentre",
   "resource:///modules/PingCentre.jsm"
 );
@@ -67,6 +72,7 @@ ChromeUtils.defineModuleGetter(
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.jsm",
+  TelemetrySession: "resource://gre/modules/TelemetrySession.jsm",
 });
 
 XPCOMUtils.defineLazyServiceGetters(this, {
@@ -115,6 +121,12 @@ const ONBOARDING_ALLOWED_PAGE_VALUES = [
   "about:home",
   "about:newtab",
 ];
+
+XPCOMUtils.defineLazyGetter(
+  this,
+  "browserSessionId",
+  () => TelemetrySession.getMetadata("").sessionId
+);
 
 this.TelemetryFeed = class TelemetryFeed {
   constructor(options) {
@@ -660,6 +672,7 @@ this.TelemetryFeed = class TelemetryFeed {
    */
   async applyOnboardingPolicy(ping, session) {
     ping.client_id = await this.telemetryClientId;
+    ping.browser_session_id = browserSessionId;
     // Attach page info to `event_context` if there is a session associated with this ping
     if (ping.action === "onboarding_user_event" && session && session.page) {
       let event_context;
@@ -705,6 +718,7 @@ this.TelemetryFeed = class TelemetryFeed {
   async sendEventPing(ping) {
     delete ping.action;
     ping.client_id = await this.telemetryClientId;
+    ping.browser_session_id = browserSessionId;
     if (ping.value && typeof ping.value === "object") {
       ping.value = JSON.stringify(ping.value);
     }
@@ -785,15 +799,6 @@ this.TelemetryFeed = class TelemetryFeed {
     const { ping, pingType } = await this.createASRouterEvent(action);
     if (!pingType) {
       Cu.reportError("Unknown ping type for ASRouter telemetry");
-      return;
-    }
-    // Don't report snippets telemetry from Nightly channel if using release
-    // snippets endpoint
-    if (
-      pingType === "snippets" &&
-      ASRouterPreferences.useReleaseSnippets &&
-      action.data.action !== "snippets_local_testing_user_event"
-    ) {
       return;
     }
     this.sendStructuredIngestionEvent(
@@ -1073,7 +1078,7 @@ this.TelemetryFeed = class TelemetryFeed {
       !HomePage.overridden &&
       Services.prefs.getIntPref("browser.startup.page") === 1
     ) {
-      aboutNewTabService.maybeRecordTopsitesPainted(timestamp);
+      AboutNewTabStartupRecorder.maybeRecordTopsitesPainted(timestamp);
     }
 
     Object.assign(session.perf, data);

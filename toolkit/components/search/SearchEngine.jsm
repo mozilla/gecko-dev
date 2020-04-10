@@ -918,6 +918,10 @@ SearchEngine.prototype = {
   _locale: null,
   // Built in search engine extensions.
   _isBuiltin: false,
+  // The order hint from the configuration (if any).
+  _orderHint: null,
+  // The telemetry id from the configuration (if any).
+  _telemetryId: null,
 
   /**
    * Retrieves the data from the engine's file asynchronously.
@@ -1495,6 +1499,8 @@ SearchEngine.prototype = {
     this._extensionID = params.extensionID;
     this._locale = params.locale;
     this._isBuiltin = !!params.isBuiltin;
+    this._orderHint = params.orderHint;
+    this._telemetryId = params.telemetryId;
 
     this._initEngineURLFromMetaData(SearchUtils.URL_TYPE.SEARCH, {
       method: (params.searchPostParams && "POST") || params.method || "GET",
@@ -1766,6 +1772,8 @@ SearchEngine.prototype = {
     this._iconMapObj = json._iconMapObj;
     this._metaData = json._metaData || {};
     this._isBuiltin = json._isBuiltin;
+    this._orderHint = json._orderHint || null;
+    this._telemetryId = json._telemetryId || null;
     if (json.filePath) {
       this._filePath = json.filePath;
     }
@@ -1805,6 +1813,8 @@ SearchEngine.prototype = {
       _metaData: this._metaData,
       _urls: this._urls,
       _isBuiltin: this._isBuiltin,
+      _orderHint: this._orderHint,
+      _telemetryId: this._telemetryId,
     };
 
     if (this._updateInterval) {
@@ -1856,6 +1866,21 @@ SearchEngine.prototype = {
     var value = val ? val.trim() : null;
     this.setAttr("alias", value);
     SearchUtils.notifyAction(this, SearchUtils.MODIFIED_TYPE.CHANGED);
+  },
+
+  /**
+   * Returns the appropriate identifier to use for telemetry. It is based on
+   * the following order:
+   *
+   * - telemetryId: The telemetry id from the configuration.
+   * - identifier: The built-in identifier of app-provided engines.
+   * - other-<name>: The engine name prefixed by `other-` for non-app-provided
+   *                 engines.
+   *
+   * @returns {string}
+   */
+  get telemetryId() {
+    return this._telemetryId || this.identifier || `other-${this.name}`;
   },
 
   /**

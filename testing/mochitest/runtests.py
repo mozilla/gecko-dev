@@ -805,28 +805,31 @@ def findTestMediaDevices(log):
                            'v4l2sink', 'device=%s' % device])
     info['video'] = name
 
-    if platform.linux_distribution()[0] == 'debian':
-        # Debian 10 doesn't seem to appreciate starting pactl here.
-        # Still WIP (bug 1565332)
-        pass
-    else:
-        # Use pactl to see if the PulseAudio module-null-sink module is loaded.
-        pactl = spawn.find_executable("pactl")
+    # check if PulseAudio module-null-sink is loaded
+    pactl = spawn.find_executable("pactl")
 
-        def null_sink_loaded():
-            o = subprocess.check_output(
-                [pactl, 'list', 'short', 'modules'])
-            return filter(lambda x: 'module-null-sink' in x, o.splitlines())
+    if not pactl:
+        log.error('Could not find pactl on system')
+        return None
 
-        if not null_sink_loaded():
+    try:
+        o = subprocess.check_output(
+            [pactl, 'list', 'short', 'modules'])
+    except subprocess.CalledProcessError:
+        log.error('Could not list currently loaded modules')
+        return None
+
+    null_sink = filter(lambda x: 'module-null-sink' in x, o.splitlines())
+
+    if not null_sink:
+        try:
             subprocess.check_call([
                 pactl,
                 'load-module',
                 'module-null-sink'
             ])
-
-        if not null_sink_loaded():
-            log.error('Couldn\'t load module-null-sink')
+        except subprocess.CalledProcessError:
+            log.error('Could not load module-null-sink')
             return None
 
     # Hardcode the name since it's always the same.
@@ -1506,7 +1509,7 @@ toolbar#nav-bar {
             if 'ancestor_manifest' in test and '/' in normsep(test['ancestor_manifest']):
                 manifest_key = '{}:{}'.format(test['ancestor_manifest'], manifest_key)
 
-            self.tests_by_manifest[manifest_key].append(tp)
+            self.tests_by_manifest[manifest_key.replace('\\', '/')].append(tp)
             self.prefs_by_manifest[manifest_key].add(test.get('prefs'))
             self.env_vars_by_manifest[manifest_key].add(test.get('environment'))
 
@@ -2758,9 +2761,6 @@ toolbar#nav-bar {
 
             if options.jsdebugger:
                 options.browserArgs.extend(['-jsdebugger', '-wait-for-jsdebugger'])
-
-            if options.recordingPath:
-                options.browserArgs.extend(['--save-recordings', options.recordingPath])
 
             # Remove the leak detection file so it can't "leak" to the tests run.
             # The file is not there if leak logging was not enabled in the

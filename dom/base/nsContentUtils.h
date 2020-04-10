@@ -132,10 +132,16 @@ class TextEditor;
 
 enum class StorageAccess;
 
+struct InputEventOptions;
+
 namespace dom {
+class BrowserChild;
+class BrowserParent;
 class BrowsingContext;
 class BrowsingContextGroup;
+class ContentChild;
 class ContentFrameMessageManager;
+class ContentParent;
 struct CustomElementDefinition;
 class DataTransfer;
 class DocumentFragment;
@@ -149,11 +155,8 @@ struct LifecycleCallbackArgs;
 struct LifecycleAdoptedCallbackArgs;
 class MessageBroadcaster;
 class NodeInfo;
-class ContentChild;
-class ContentParent;
-class BrowserChild;
 class Selection;
-class BrowserParent;
+class StaticRange;
 class WorkerPrivate;
 }  // namespace dom
 
@@ -1492,28 +1495,12 @@ class nsContentUtils {
    *                            value.  Note that this can be nullptr only
    *                            when the dispatching event is not cancelable.
    */
-  MOZ_CAN_RUN_SCRIPT
-  static nsresult DispatchInputEvent(Element* aEventTarget) {
-    return DispatchInputEvent(aEventTarget, mozilla::eEditorInput,
-                              mozilla::EditorInputType::eUnknown, nullptr,
-                              InputEventOptions());
-  }
-  struct MOZ_STACK_CLASS InputEventOptions final {
-    InputEventOptions() = default;
-    explicit InputEventOptions(const nsAString& aData)
-        : mData(aData), mDataTransfer(nullptr) {}
-    explicit InputEventOptions(mozilla::dom::DataTransfer* aDataTransfer);
-
-    nsString mData;
-    mozilla::dom::DataTransfer* mDataTransfer;
-  };
-  MOZ_CAN_RUN_SCRIPT
-  static nsresult DispatchInputEvent(Element* aEventTarget,
-                                     mozilla::EventMessage aEventMessage,
-                                     mozilla::EditorInputType aEditorInputType,
-                                     mozilla::TextEditor* aTextEditor,
-                                     const InputEventOptions& aOptions,
-                                     nsEventStatus* aEventStatus = nullptr);
+  MOZ_CAN_RUN_SCRIPT static nsresult DispatchInputEvent(Element* aEventTarget);
+  MOZ_CAN_RUN_SCRIPT static nsresult DispatchInputEvent(
+      Element* aEventTarget, mozilla::EventMessage aEventMessage,
+      mozilla::EditorInputType aEditorInputType,
+      mozilla::TextEditor* aTextEditor, mozilla::InputEventOptions&& aOptions,
+      nsEventStatus* aEventStatus = nullptr);
 
   /**
    * This method creates and dispatches a untrusted event.
@@ -2511,6 +2498,12 @@ class nsContentUtils {
   static bool IsPDFJSEnabled();
 
   /**
+   * Checks to see whether the given principal is the internal PDF
+   * viewer principal.
+   */
+  static bool IsPDFJS(nsIPrincipal* aPrincipal);
+
+  /**
    * Checks if internal SWF player is enabled.
    */
   static bool IsSWFPlayerEnabled();
@@ -2939,16 +2932,16 @@ class nsContentUtils {
                                           nsIChannel* aChannel, nsIURI* aURI);
 
   /*
-   * Returns true if this window's channel has been marked as a tracking
-   * resource.
-   */
-  static bool IsTrackingResourceWindow(nsPIDOMWindowInner* aWindow);
-
-  /*
    * Returns true if this window's channel has been marked as a third-party
    * tracking resource.
    */
   static bool IsThirdPartyTrackingResourceWindow(nsPIDOMWindowInner* aWindow);
+
+  /*
+   * Returns true if this window's channel has been marked as a first-party
+   * tracking resource.
+   */
+  static bool IsFirstPartyTrackingResourceWindow(nsPIDOMWindowInner* aWindow);
 
   /*
    * Serializes a HTML nsINode into its markup representation.
@@ -3236,6 +3229,14 @@ class nsContentUtils {
       Document* aDocument);
 
   static nsGlobalWindowInner* CallerInnerWindow();
+
+  /*
+   * Return safe area insets of window that defines as
+   * https://drafts.csswg.org/css-env-1/#safe-area-insets.
+   */
+  static mozilla::ScreenIntMargin GetWindowSafeAreaInsets(
+      nsIScreen* aScreen, const mozilla::ScreenIntMargin& aSafeareaInsets,
+      const mozilla::LayoutDeviceIntRect& aWindowRect);
 
  private:
   static bool InitializeEventTable();

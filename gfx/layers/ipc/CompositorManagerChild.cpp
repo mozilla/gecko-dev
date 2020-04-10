@@ -50,7 +50,7 @@ void CompositorManagerChild::InitSameProcess(uint32_t aNamespace,
   }
 
   parent->BindComplete(/* aIsRoot */ true);
-  sInstance = child.forget();
+  sInstance = std::move(child);
 }
 
 /* static */
@@ -146,7 +146,7 @@ CompositorManagerChild::CreateWidgetCompositorBridge(
 already_AddRefed<CompositorBridgeChild>
 CompositorManagerChild::CreateSameProcessWidgetCompositorBridge(
     LayerManager* aLayerManager, uint32_t aNamespace) {
-  MOZ_ASSERT(XRE_IsParentProcess() || recordreplay::IsRecordingOrReplaying());
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
   if (NS_WARN_IF(!sInstance || !sInstance->CanSend())) {
     return nullptr;

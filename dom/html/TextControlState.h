@@ -274,7 +274,6 @@ class TextControlState final : public SupportsWeakPtr<TextControlState> {
   void SetPreviewText(const nsAString& aValue, bool aNotify);
   void GetPreviewText(nsAString& aValue);
   bool GetPreviewVisibility() { return mPreviewVisibility; }
-
   void HideSelectionIfBlurred();
 
   struct SelectionProperties {

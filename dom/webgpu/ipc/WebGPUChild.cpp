@@ -80,6 +80,11 @@ Maybe<RawId> WebGPUChild::AdapterRequestDevice(
   }
 }
 
+void WebGPUChild::DestroyAdapter(RawId aId) {
+  SendAdapterDestroy(aId);
+  ffi::wgpu_client_kill_adapter_ids(mClient, &aId, 1);
+}
+
 RawId WebGPUChild::DeviceCreateBuffer(RawId aSelfId,
                                       const dom::GPUBufferDescriptor& aDesc) {
   RawId id = ffi::wgpu_client_make_buffer_id(mClient, aSelfId);
@@ -87,6 +92,128 @@ RawId WebGPUChild::DeviceCreateBuffer(RawId aSelfId,
     MOZ_CRASH("IPC failure");
   }
   return id;
+}
+
+void WebGPUChild::DestroyBuffer(RawId aId) {
+  SendBufferDestroy(aId);
+  ffi::wgpu_client_kill_buffer_id(mClient, aId);
+}
+
+UniquePtr<ffi::WGPUTextureViewDescriptor> WebGPUChild::GetDefaultViewDescriptor(
+    const dom::GPUTextureDescriptor& aDesc) {
+  ffi::WGPUTextureViewDescriptor desc = {};
+  desc.format = ffi::WGPUTextureFormat(aDesc.mFormat);
+  switch (aDesc.mDimension) {
+    case dom::GPUTextureDimension::_1d:
+      desc.dimension = ffi::WGPUTextureViewDimension_D1;
+      break;
+    case dom::GPUTextureDimension::_2d:
+      desc.dimension = ffi::WGPUTextureViewDimension_D2;
+      break;
+    case dom::GPUTextureDimension::_3d:
+      desc.dimension = ffi::WGPUTextureViewDimension_D3;
+      break;
+    default:
+      MOZ_CRASH("Unexpected texture dimension");
+  }
+  desc.level_count = aDesc.mMipLevelCount;
+  desc.array_layer_count = aDesc.mArrayLayerCount;
+  return UniquePtr<ffi::WGPUTextureViewDescriptor>(
+      new ffi::WGPUTextureViewDescriptor(desc));
+}
+
+RawId WebGPUChild::DeviceCreateTexture(RawId aSelfId,
+                                       const dom::GPUTextureDescriptor& aDesc) {
+  ffi::WGPUTextureDescriptor desc = {};
+  if (aDesc.mSize.IsUnsignedLongSequence()) {
+    const auto& seq = aDesc.mSize.GetAsUnsignedLongSequence();
+    desc.size.width = seq.Length() > 0 ? seq[0] : 1;
+    desc.size.height = seq.Length() > 1 ? seq[1] : 1;
+    desc.size.depth = seq.Length() > 2 ? seq[2] : 1;
+  } else if (aDesc.mSize.IsGPUExtent3DDict()) {
+    const auto& dict = aDesc.mSize.GetAsGPUExtent3DDict();
+    desc.size.width = dict.mWidth;
+    desc.size.height = dict.mHeight;
+    desc.size.depth = dict.mDepth;
+  } else {
+    MOZ_CRASH("Unexpected union");
+  }
+  desc.array_layer_count = aDesc.mArrayLayerCount;
+  desc.mip_level_count = aDesc.mMipLevelCount;
+  desc.sample_count = aDesc.mSampleCount;
+  desc.dimension = ffi::WGPUTextureDimension(aDesc.mDimension);
+  desc.format = ffi::WGPUTextureFormat(aDesc.mFormat);
+  desc.usage = aDesc.mUsage;
+
+  RawId id = ffi::wgpu_client_make_texture_id(mClient, aSelfId);
+  if (!SendDeviceCreateTexture(aSelfId, desc, id)) {
+    MOZ_CRASH("IPC failure");
+  }
+  return id;
+}
+
+RawId WebGPUChild::TextureCreateView(
+    RawId aSelfId, const dom::GPUTextureViewDescriptor& aDesc,
+    const ffi::WGPUTextureViewDescriptor& aDefaultViewDesc) {
+  ffi::WGPUTextureViewDescriptor desc = aDefaultViewDesc;
+  if (aDesc.mFormat.WasPassed()) {
+    desc.format = ffi::WGPUTextureFormat(aDesc.mFormat.Value());
+  }
+  if (aDesc.mDimension.WasPassed()) {
+    desc.dimension = ffi::WGPUTextureViewDimension(aDesc.mDimension.Value());
+  }
+
+  desc.aspect = ffi::WGPUTextureAspect(aDesc.mAspect);
+  desc.base_mip_level = aDesc.mBaseMipLevel;
+  desc.level_count = aDesc.mMipLevelCount
+                         ? aDesc.mMipLevelCount
+                         : aDefaultViewDesc.level_count - aDesc.mBaseMipLevel;
+  desc.base_array_layer = aDesc.mBaseArrayLayer;
+  desc.array_layer_count =
+      aDesc.mArrayLayerCount
+          ? aDesc.mArrayLayerCount
+          : aDefaultViewDesc.array_layer_count - aDesc.mBaseArrayLayer;
+
+  RawId id = ffi::wgpu_client_make_texture_view_id(mClient, aSelfId);
+  if (!SendTextureCreateView(aSelfId, desc, id)) {
+    MOZ_CRASH("IPC failure");
+  }
+  return id;
+}
+
+void WebGPUChild::DestroyTexture(RawId aId) {
+  SendTextureDestroy(aId);
+  ffi::wgpu_client_kill_texture_id(mClient, aId);
+}
+
+void WebGPUChild::DestroyTextureView(RawId aId) {
+  SendTextureViewDestroy(aId);
+  ffi::wgpu_client_kill_texture_view_id(mClient, aId);
+}
+
+RawId WebGPUChild::DeviceCreateSampler(RawId aSelfId,
+                                       const dom::GPUSamplerDescriptor& aDesc) {
+  ffi::WGPUSamplerDescriptor desc = {};
+  desc.address_mode_u = ffi::WGPUAddressMode(aDesc.mAddressModeU);
+  desc.address_mode_v = ffi::WGPUAddressMode(aDesc.mAddressModeV);
+  desc.address_mode_w = ffi::WGPUAddressMode(aDesc.mAddressModeW);
+  desc.mag_filter = ffi::WGPUFilterMode(aDesc.mMagFilter);
+  desc.min_filter = ffi::WGPUFilterMode(aDesc.mMinFilter);
+  desc.mipmap_filter = ffi::WGPUFilterMode(aDesc.mMipmapFilter);
+  desc.lod_min_clamp = aDesc.mLodMinClamp;
+  desc.lod_max_clamp = aDesc.mLodMaxClamp;
+  desc.compare_function = ffi::WGPUCompareFunction(aDesc.mCompare);
+
+  RawId id = ffi::wgpu_client_make_sampler_id(mClient, aSelfId);
+  if (!SendDeviceCreateSampler(aSelfId, desc, id)) {
+    MOZ_CRASH("IPC failure");
+  }
+  return id;
+}
+
+void WebGPUChild::DestroySampler(RawId aId) {
+  SendSamplerDestroy(aId);
+  ffi::wgpu_client_kill_sampler_id(mClient, aId);
 }
 
 RawId WebGPUChild::DeviceCreateCommandEncoder(
@@ -108,6 +235,15 @@ RawId WebGPUChild::CommandEncoderFinish(
   // and a new command buffer ID is being created from it. Resolve the ID
   // type aliasing at the place that introduces it: `wgpu-core`.
   return aSelfId;
+}
+
+void WebGPUChild::DestroyCommandEncoder(RawId aId) {
+  SendCommandEncoderDestroy(aId);
+  ffi::wgpu_client_kill_encoder_id(mClient, aId);
+}
+void WebGPUChild::DestroyCommandBuffer(RawId aId) {
+  SendCommandBufferDestroy(aId);
+  ffi::wgpu_client_kill_encoder_id(mClient, aId);
 }
 
 RawId WebGPUChild::DeviceCreateBindGroupLayout(
@@ -133,6 +269,11 @@ RawId WebGPUChild::DeviceCreateBindGroupLayout(
   return id;
 }
 
+void WebGPUChild::DestroyBindGroupLayout(RawId aId) {
+  SendBindGroupLayoutDestroy(aId);
+  ffi::wgpu_client_kill_bind_group_layout_id(mClient, aId);
+}
+
 RawId WebGPUChild::DeviceCreatePipelineLayout(
     RawId aSelfId, const dom::GPUPipelineLayoutDescriptor& aDesc) {
   RawId id = ffi::wgpu_client_make_pipeline_layout_id(mClient, aSelfId);
@@ -144,6 +285,11 @@ RawId WebGPUChild::DeviceCreatePipelineLayout(
     MOZ_CRASH("IPC failure");
   }
   return id;
+}
+
+void WebGPUChild::DestroyPipelineLayout(RawId aId) {
+  SendPipelineLayoutDestroy(aId);
+  ffi::wgpu_client_kill_pipeline_layout_id(mClient, aId);
 }
 
 RawId WebGPUChild::DeviceCreateBindGroup(
@@ -178,6 +324,11 @@ RawId WebGPUChild::DeviceCreateBindGroup(
   return id;
 }
 
+void WebGPUChild::DestroyBindGroup(RawId aId) {
+  SendBindGroupDestroy(aId);
+  ffi::wgpu_client_kill_bind_group_id(mClient, aId);
+}
+
 RawId WebGPUChild::DeviceCreateShaderModule(
     RawId aSelfId, const dom::GPUShaderModuleDescriptor& aDesc) {
   RawId id = ffi::wgpu_client_make_shader_module_id(mClient, aSelfId);
@@ -191,17 +342,164 @@ RawId WebGPUChild::DeviceCreateShaderModule(
   }
   return id;
 }
+
+void WebGPUChild::DestroyShaderModule(RawId aId) {
+  SendShaderModuleDestroy(aId);
+  ffi::wgpu_client_kill_shader_module_id(mClient, aId);
+}
+
+static SerialProgrammableStageDescriptor ConvertProgrammableStageDescriptor(
+    const dom::GPUProgrammableStageDescriptor& aDesc) {
+  SerialProgrammableStageDescriptor stage = {};
+  stage.mModule = aDesc.mModule->mId;
+  stage.mEntryPoint = aDesc.mEntryPoint;
+  return stage;
+}
+
 RawId WebGPUChild::DeviceCreateComputePipeline(
     RawId aSelfId, const dom::GPUComputePipelineDescriptor& aDesc) {
   RawId id = ffi::wgpu_client_make_compute_pipeline_id(mClient, aSelfId);
-  SerialProgrammableStageDescriptor stage = {};
-  stage.mModule = aDesc.mComputeStage.mModule->mId;
-  stage.mEntryPoint = aDesc.mComputeStage.mEntryPoint;
-  SerialComputePipelineDescriptor desc = {aDesc.mLayout->mId, stage};
+  const SerialComputePipelineDescriptor desc = {
+      aDesc.mLayout->mId,
+      ConvertProgrammableStageDescriptor(aDesc.mComputeStage),
+  };
   if (!SendDeviceCreateComputePipeline(aSelfId, desc, id)) {
     MOZ_CRASH("IPC failure");
   }
   return id;
+}
+
+void WebGPUChild::DestroyComputePipeline(RawId aId) {
+  SendComputePipelineDestroy(aId);
+  ffi::wgpu_client_kill_compute_pipeline_id(mClient, aId);
+}
+
+static ffi::WGPURasterizationStateDescriptor ConvertRasterizationDescriptor(
+    const dom::GPURasterizationStateDescriptor& aDesc) {
+  ffi::WGPURasterizationStateDescriptor desc = {};
+  desc.front_face = ffi::WGPUFrontFace(aDesc.mFrontFace);
+  desc.cull_mode = ffi::WGPUCullMode(aDesc.mCullMode);
+  desc.depth_bias = aDesc.mDepthBias;
+  desc.depth_bias_slope_scale = aDesc.mDepthBiasSlopeScale;
+  desc.depth_bias_clamp = aDesc.mDepthBiasClamp;
+  return desc;
+}
+
+static ffi::WGPUBlendDescriptor ConvertBlendDescriptor(
+    const dom::GPUBlendDescriptor& aDesc) {
+  ffi::WGPUBlendDescriptor desc = {};
+  desc.src_factor = ffi::WGPUBlendFactor(aDesc.mSrcFactor);
+  desc.dst_factor = ffi::WGPUBlendFactor(aDesc.mDstFactor);
+  desc.operation = ffi::WGPUBlendOperation(aDesc.mOperation);
+  return desc;
+}
+
+static ffi::WGPUColorStateDescriptor ConvertColorDescriptor(
+    const dom::GPUColorStateDescriptor& aDesc) {
+  ffi::WGPUColorStateDescriptor desc = {};
+  desc.format = ffi::WGPUTextureFormat(aDesc.mFormat);
+  const ffi::WGPUBlendDescriptor no_blend = {
+      ffi::WGPUBlendFactor_One,
+      ffi::WGPUBlendFactor_Zero,
+      ffi::WGPUBlendOperation_Add,
+  };
+  desc.alpha_blend = aDesc.mAlpha.WasPassed()
+                         ? ConvertBlendDescriptor(aDesc.mAlpha.Value())
+                         : no_blend;
+  desc.color_blend = aDesc.mColor.WasPassed()
+                         ? ConvertBlendDescriptor(aDesc.mColor.Value())
+                         : no_blend;
+  desc.write_mask = aDesc.mWriteMask;
+  return desc;
+}
+
+static ffi::WGPUStencilStateFaceDescriptor ConvertStencilFaceDescriptor(
+    const dom::GPUStencilStateFaceDescriptor& aDesc) {
+  ffi::WGPUStencilStateFaceDescriptor desc = {};
+  desc.compare = ffi::WGPUCompareFunction(aDesc.mCompare);
+  desc.fail_op = ffi::WGPUStencilOperation(aDesc.mFailOp);
+  desc.depth_fail_op = ffi::WGPUStencilOperation(aDesc.mDepthFailOp);
+  desc.pass_op = ffi::WGPUStencilOperation(aDesc.mPassOp);
+  return desc;
+}
+
+static ffi::WGPUDepthStencilStateDescriptor ConvertDepthStencilDescriptor(
+    const dom::GPUDepthStencilStateDescriptor& aDesc) {
+  ffi::WGPUDepthStencilStateDescriptor desc = {};
+  desc.format = ffi::WGPUTextureFormat(aDesc.mFormat);
+  desc.depth_write_enabled = aDesc.mDepthWriteEnabled;
+  desc.depth_compare = ffi::WGPUCompareFunction(aDesc.mDepthCompare);
+  desc.stencil_front = ConvertStencilFaceDescriptor(aDesc.mStencilFront);
+  desc.stencil_back = ConvertStencilFaceDescriptor(aDesc.mStencilBack);
+  desc.stencil_read_mask = aDesc.mStencilReadMask;
+  desc.stencil_write_mask = aDesc.mStencilWriteMask;
+  return desc;
+}
+
+static ffi::WGPUVertexAttributeDescriptor ConvertVertexAttributeDescriptor(
+    const dom::GPUVertexAttributeDescriptor& aDesc) {
+  ffi::WGPUVertexAttributeDescriptor desc = {};
+  desc.offset = aDesc.mOffset;
+  desc.format = ffi::WGPUVertexFormat(aDesc.mFormat);
+  desc.shader_location = aDesc.mShaderLocation;
+  return desc;
+}
+
+static SerialVertexBufferDescriptor ConvertVertexBufferDescriptor(
+    const dom::GPUVertexBufferDescriptor& aDesc) {
+  SerialVertexBufferDescriptor desc = {};
+  desc.mStride = aDesc.mStride;
+  desc.mStepMode = ffi::WGPUInputStepMode(aDesc.mStepMode);
+  for (const auto& vat : aDesc.mAttributeSet) {
+    desc.mAttributes.AppendElement(ConvertVertexAttributeDescriptor(vat));
+  }
+  return desc;
+}
+
+RawId WebGPUChild::DeviceCreateRenderPipeline(
+    RawId aSelfId, const dom::GPURenderPipelineDescriptor& aDesc) {
+  RawId id = ffi::wgpu_client_make_render_pipeline_id(mClient, aSelfId);
+  SerialRenderPipelineDescriptor desc = {};
+  desc.mLayout = aDesc.mLayout->mId;
+  desc.mVertexStage = ConvertProgrammableStageDescriptor(aDesc.mVertexStage);
+  if (aDesc.mFragmentStage.WasPassed()) {
+    desc.mFragmentStage =
+        ConvertProgrammableStageDescriptor(aDesc.mFragmentStage.Value());
+  }
+  desc.mPrimitiveTopology =
+      ffi::WGPUPrimitiveTopology(aDesc.mPrimitiveTopology);
+  if (aDesc.mRasterizationState.WasPassed()) {
+    desc.mRasterizationState =
+        Some(ConvertRasterizationDescriptor(aDesc.mRasterizationState.Value()));
+  }
+  for (const auto& color_state : aDesc.mColorStates) {
+    desc.mColorStates.AppendElement(ConvertColorDescriptor(color_state));
+  }
+  if (aDesc.mDepthStencilState.WasPassed()) {
+    desc.mDepthStencilState =
+        Some(ConvertDepthStencilDescriptor(aDesc.mDepthStencilState.Value()));
+  }
+  desc.mVertexInput.mIndexFormat =
+      ffi::WGPUIndexFormat(aDesc.mVertexInput.mIndexFormat);
+  for (const auto& vertex_desc : aDesc.mVertexInput.mVertexBuffers) {
+    SerialVertexBufferDescriptor vb_desc = {};
+    if (!vertex_desc.IsNull()) {
+      vb_desc = ConvertVertexBufferDescriptor(vertex_desc.Value());
+    }
+    desc.mVertexInput.mVertexBuffers.AppendElement(vb_desc);
+  }
+  desc.mSampleCount = aDesc.mSampleCount;
+  desc.mSampleMask = aDesc.mSampleMask;
+  desc.mAlphaToCoverageEnabled = aDesc.mAlphaToCoverageEnabled;
+  if (!SendDeviceCreateRenderPipeline(aSelfId, desc, id)) {
+    MOZ_CRASH("IPC failure");
+  }
+  return id;
+}
+
+void WebGPUChild::DestroyRenderPipeline(RawId aId) {
+  SendRenderPipelineDestroy(aId);
+  ffi::wgpu_client_kill_render_pipeline_id(mClient, aId);
 }
 
 void WebGPUChild::QueueSubmit(RawId aSelfId,
@@ -210,43 +508,6 @@ void WebGPUChild::QueueSubmit(RawId aSelfId,
   for (const auto& cur : aCommandBufferIds) {
     ffi::wgpu_client_kill_encoder_id(mClient, cur);
   }
-}
-
-void WebGPUChild::DestroyAdapter(RawId aId) {
-  SendAdapterDestroy(aId);
-  ffi::wgpu_client_kill_adapter_ids(mClient, &aId, 1);
-}
-void WebGPUChild::DestroyBuffer(RawId aId) {
-  SendBufferDestroy(aId);
-  ffi::wgpu_client_kill_buffer_id(mClient, aId);
-}
-void WebGPUChild::DestroyCommandEncoder(RawId aId) {
-  SendCommandEncoderDestroy(aId);
-  ffi::wgpu_client_kill_encoder_id(mClient, aId);
-}
-void WebGPUChild::DestroyCommandBuffer(RawId aId) {
-  SendCommandBufferDestroy(aId);
-  ffi::wgpu_client_kill_encoder_id(mClient, aId);
-}
-void WebGPUChild::DestroyBindGroupLayout(RawId aId) {
-  SendBindGroupLayoutDestroy(aId);
-  ffi::wgpu_client_kill_bind_group_layout_id(mClient, aId);
-}
-void WebGPUChild::DestroyPipelineLayout(RawId aId) {
-  SendPipelineLayoutDestroy(aId);
-  ffi::wgpu_client_kill_pipeline_layout_id(mClient, aId);
-}
-void WebGPUChild::DestroyBindGroup(RawId aId) {
-  SendBindGroupDestroy(aId);
-  ffi::wgpu_client_kill_bind_group_id(mClient, aId);
-}
-void WebGPUChild::DestroyShaderModule(RawId aId) {
-  SendShaderModuleDestroy(aId);
-  ffi::wgpu_client_kill_shader_module_id(mClient, aId);
-}
-void WebGPUChild::DestroyComputePipeline(RawId aId) {
-  SendComputePipelineDestroy(aId);
-  ffi::wgpu_client_kill_compute_pipeline_id(mClient, aId);
 }
 
 }  // namespace webgpu

@@ -84,15 +84,16 @@ class nsWaylandDisplay {
   GbmFormat* GetGbmFormat(bool aHasAlpha);
   GbmFormat* GetExactGbmFormat(int aFormat);
 
+  void AddFormat(bool aHasAlpha, int aFormat);
   void AddFormatModifier(bool aHasAlpha, int aFormat, uint32_t mModifierHi,
                          uint32_t mModifierLo);
+
   static bool IsDMABufEnabled();
   static bool IsDMABufBasicEnabled();
   static bool IsDMABufTexturesEnabled();
   static bool IsDMABufWebGLEnabled();
-
-  // See WindowSurfaceWayland::CacheMode for details.
-  int GetRenderingCacheModePref() { return sRenderingCacheModePref; };
+  static bool IsDMABufVAAPIEnabled();
+  static int GetRenderingCacheModePref();
 
  private:
   bool ConfigureGbm();
@@ -118,12 +119,7 @@ class nsWaylandDisplay {
   bool mGdmConfigured;
   bool mExplicitSync;
   static bool sIsDMABufEnabled;
-  static int sIsDMABufPrefTextState;
-  static int sIsDMABufPrefBasicCompositorState;
-  static int sIsDMABufPrefWebGLState;
   static bool sIsDMABufConfigured;
-  static int sRenderingCacheModePref;
-  static bool sIsPrefLoaded;
 };
 
 void WaylandDispatchDisplays();
@@ -134,8 +130,6 @@ wl_display* WaylandDisplayGetWLDisplay(GdkDisplay* aGdkDisplay = nullptr);
 typedef struct gbm_device* (*CreateDeviceFunc)(int);
 typedef struct gbm_bo* (*CreateFunc)(struct gbm_device*, uint32_t, uint32_t,
                                      uint32_t, uint32_t);
-typedef struct gbm_bo* (*ImportFunc)(struct gbm_device*, uint32_t, void*,
-                                     uint32_t);
 typedef struct gbm_bo* (*CreateWithModifiersFunc)(struct gbm_device*, uint32_t,
                                                   uint32_t, uint32_t,
                                                   const uint64_t*,
@@ -158,6 +152,7 @@ typedef int (*DrmPrimeHandleToFDFunc)(int, uint32_t, uint32_t, int*);
 class nsGbmLib {
  public:
   static bool Load();
+  static bool IsLoaded();
   static bool IsAvailable();
   static bool IsModifierAvailable();
 
@@ -166,10 +161,6 @@ class nsGbmLib {
                                uint32_t height, uint32_t format,
                                uint32_t flags) {
     return sCreate(gbm, width, height, format, flags);
-  }
-  static struct gbm_bo* Import(struct gbm_device* gbm, uint32_t type,
-                               void* buffer, uint32_t usage) {
-    return sImport(gbm, type, buffer, usage);
   }
   static void Destroy(struct gbm_bo* bo) { sDestroy(bo); }
   static uint32_t GetStride(struct gbm_bo* bo) { return sGetStride(bo); }
@@ -211,7 +202,6 @@ class nsGbmLib {
  private:
   static CreateDeviceFunc sCreateDevice;
   static CreateFunc sCreate;
-  static ImportFunc sImport;
   static CreateWithModifiersFunc sCreateWithModifiers;
   static GetModifierFunc sGetModifier;
   static GetStrideFunc sGetStride;

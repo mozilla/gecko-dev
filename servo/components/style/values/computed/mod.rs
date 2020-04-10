@@ -57,7 +57,7 @@ pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis};
 pub use self::font::{FontVariantAlternates, FontWeight};
 pub use self::font::{FontVariantEastAsian, FontVariationSettings};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
-pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
+pub use self::image::{Gradient, Image, LineDirection, MozImageRect};
 pub use self::length::{CSSPixelLength, ExtremumLength, NonNegativeLength};
 pub use self::length::{Length, LengthOrNumber, LengthPercentage, NonNegativeLengthOrNumber};
 pub use self::length::{LengthOrAuto, LengthPercentageOrAuto, MaxSize, Size};
@@ -78,7 +78,7 @@ pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::text::TextUnderlinePosition;
 pub use self::text::{InitialLetter, LetterSpacing, LineBreak, LineHeight};
 pub use self::text::{OverflowWrap, TextOverflow, WordBreak, WordSpacing};
-pub use self::text::{TextAlign, TextEmphasisPosition, TextEmphasisStyle};
+pub use self::text::{TextAlign, TextAlignLast, TextEmphasisPosition, TextEmphasisStyle};
 pub use self::text::{TextDecorationLength, TextDecorationSkipInk};
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, Transform, TransformOperation};
@@ -501,11 +501,9 @@ impl ToComputedValue for specified::AngleOrPercentage {
     #[inline]
     fn from_computed_value(computed: &AngleOrPercentage) -> Self {
         match *computed {
-            AngleOrPercentage::Percentage(percentage) => {
-                specified::AngleOrPercentage::Percentage(ToComputedValue::from_computed_value(
-                    &percentage,
-                ))
-            },
+            AngleOrPercentage::Percentage(percentage) => specified::AngleOrPercentage::Percentage(
+                ToComputedValue::from_computed_value(&percentage),
+            ),
             AngleOrPercentage::Angle(angle) => {
                 specified::AngleOrPercentage::Angle(ToComputedValue::from_computed_value(&angle))
             },

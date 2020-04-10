@@ -332,16 +332,6 @@
   height: 12px;
 }
 
-#command-button-replay,
-#command-button-stop-replay {
-  background-color: transparent;
-}
-
-#command-button-replay:hover,
-#command-button-stop-replay:hover {
-  background: var(--toolbarbutton-background);
-}
-
 #command-button-rulers::before {
   background-image: url("chrome://devtools/skin/images/command-rulers.svg");
 }

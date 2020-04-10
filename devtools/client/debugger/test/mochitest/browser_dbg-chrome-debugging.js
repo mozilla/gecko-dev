@@ -12,16 +12,16 @@ var { DevToolsLoader } = ChromeUtils.import("resource://devtools/shared/Loader.j
 var customLoader = new DevToolsLoader({
   invisibleToDebugger: true,
 });
-var { DebuggerServer } = customLoader.require("devtools/server/debugger-server");
-var { DebuggerClient } = require("devtools/shared/client/debugger-client");
+var { DevToolsServer } = customLoader.require("devtools/server/devtools-server");
+var { DevToolsClient } = require("devtools/shared/client/devtools-client");
 
-function initDebuggerClient() {
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
-  DebuggerServer.allowChromeProcess = true;
+function initDevToolsClient() {
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
+  DevToolsServer.allowChromeProcess = true;
 
-  let transport = DebuggerServer.connectPipe();
-  return new DebuggerClient(transport);
+  let transport = DevToolsServer.connectPipe();
+  return new DevToolsClient(transport);
 }
 
 function onNewSource(packet) {
@@ -43,16 +43,17 @@ registerCleanupFunction(function() {
   gNewChromeSource = null;
 
   customLoader = null;
-  DebuggerServer = null;
+  DevToolsServer = null;
 });
 
 add_task(async function() {
-  gClient = initDebuggerClient();
+  gClient = initDevToolsClient();
 
   const [type] = await gClient.connect();
   is(type, "browser", "Root actor should identify itself as a browser.");
 
-  const front = await gClient.mainRoot.getMainProcess();
+  const descriptorFront = await gClient.mainRoot.getMainProcess();
+  const front = await descriptorFront.getTarget();
   await front.attach();
   const [, threadFront] = await front.attachThread();
   gThreadFront = threadFront;

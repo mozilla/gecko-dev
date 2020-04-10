@@ -167,6 +167,11 @@ async function triggerAutofillAndCheckProfile(profile) {
               'dataTransfer of "beforeinput" should be null'
             );
             is(
+              event.getTargetRanges().length,
+              0,
+              'getTargetRanges() of "beforeinput" should return empty array'
+            );
+            is(
               event.cancelable,
               true,
               `"beforeinput" event should be cancelable on ${element.tagName}`
@@ -187,23 +192,17 @@ async function triggerAutofillAndCheckProfile(profile) {
               if (hadEditor) {
                 ok(
                   beforeInputFired,
-                  `"beforeinput" event should've been fired before "input" event on ${
-                    element.tagName
-                  }`
+                  `"beforeinput" event should've been fired before "input" event on ${element.tagName}`
                 );
               } else {
                 ok(
                   beforeInputFired,
-                  `"beforeinput" event should've been fired before "input" event on ${
-                    element.tagName
-                  }`
+                  `"beforeinput" event should've been fired before "input" event on ${element.tagName}`
                 );
               }
               ok(
                 event instanceof InputEvent,
-                `"input" event should be dispatched with InputEvent interface on ${
-                  element.tagName
-                }`
+                `"input" event should be dispatched with InputEvent interface on ${element.tagName}`
               );
               is(
                 event.inputType,
@@ -212,6 +211,11 @@ async function triggerAutofillAndCheckProfile(profile) {
               );
               is(event.data, String(value), `data value should be "${value}"`);
               is(event.dataTransfer, null, "dataTransfer should be null");
+              is(
+                event.getTargetRanges().length,
+                0,
+                "getTargetRanges() should return empty array"
+              );
             } else {
               ok(
                 !beforeInputFired,
@@ -219,9 +223,7 @@ async function triggerAutofillAndCheckProfile(profile) {
               );
               ok(
                 event instanceof Event && !(event instanceof UIEvent),
-                `"input" event should be dispatched with Event interface on ${
-                  element.tagName
-                }`
+                `"input" event should be dispatched with Event interface on ${element.tagName}`
               );
             }
             is(

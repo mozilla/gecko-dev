@@ -131,12 +131,7 @@ FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
       functionScopeBindings_(nullptr),
       extraVarScopeBindings_(nullptr),
       functionNode(nullptr),
-      sourceStart(0),
-      sourceEnd(0),
-      startLine(1),
-      startColumn(0),
-      toStringStart(toStringStart),
-      toStringEnd(0),
+      extent{0, 0, toStringStart, 0, 1, 0},
       length(0),
       isGenerator_(generatorKind == GeneratorKind::Generator),
       isAsync_(asyncKind == FunctionAsyncKind::AsyncFunction),
@@ -146,6 +141,7 @@ FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
       useAsm(false),
       isAnnexB(false),
       wasEmitted(false),
+      emitBytecode(false),
       declaredArguments(false),
       usesArguments(false),
       usesApply(false),
@@ -159,7 +155,6 @@ FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
       needsHomeObject_(false),
       isDerivedClassConstructor_(false),
       hasThisBinding_(false),
-      hasInnerFunctions_(false),
       nargs_(0),
       explicitName_(explicitName),
       flags_(flags) {}
@@ -181,16 +176,16 @@ FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
 }
 
 FunctionBox::FunctionBox(JSContext* cx, TraceListNode* traceListHead,
-                         Handle<FunctionCreationData> data,
                          uint32_t toStringStart,
                          CompilationInfo& compilationInfo,
                          Directives directives, bool extraWarnings,
                          GeneratorKind generatorKind,
-                         FunctionAsyncKind asyncKind)
+                         FunctionAsyncKind asyncKind, size_t index)
     : FunctionBox(cx, traceListHead, toStringStart, compilationInfo, directives,
-                  extraWarnings, generatorKind, asyncKind, data.get().atom,
-                  data.get().flags) {
-  functionCreationData_.emplace(data);
+                  extraWarnings, generatorKind, asyncKind,
+                  compilationInfo.funcData[index].get().atom,
+                  compilationInfo.funcData[index].get().flags) {
+  funcDataIndex_.emplace(index);
 }
 
 void FunctionBox::initFromLazyFunction(JSFunction* fun) {
@@ -211,12 +206,7 @@ void FunctionBox::initFromLazyFunction(JSFunction* fun) {
     setHasModuleGoal();
   }
 
-  sourceStart = lazy->sourceStart();
-  sourceEnd = lazy->sourceEnd();
-  toStringStart = lazy->toStringStart();
-  toStringEnd = lazy->toStringEnd();
-  startLine = lazy->lineno();
-  startColumn = lazy->column();
+  extent = lazy->extent();
 }
 
 void FunctionBox::initStandaloneFunction(Scope* enclosingScope) {
@@ -278,14 +268,10 @@ void FunctionBox::initWithEnclosingParseContext(ParseContext* enclosing,
 }
 
 void FunctionBox::initFieldInitializer(ParseContext* enclosing,
-                                       Handle<FunctionCreationData> data,
-                                       HasHeritage hasHeritage) {
+                                       Handle<FunctionCreationData> data) {
   this->initWithEnclosingParseContext(enclosing, data,
-                                      FunctionSyntaxKind::Expression);
-  allowSuperProperty_ = true;
-  allowSuperCall_ = false;
+                                      FunctionSyntaxKind::Method);
   allowArguments_ = false;
-  needsThisTDZChecks_ = hasHeritage == HasHeritage::Yes;
 }
 
 void FunctionBox::initWithEnclosingScope(JSFunction* fun) {
@@ -324,7 +310,7 @@ void FunctionBox::setEnclosingScopeForInnerLazyFunction(
 }
 
 void FunctionBox::finish() {
-  if (isInterpretedLazy()) {
+  if (!emitBytecode) {
     // Lazy inner functions need to record their enclosing scope for when they
     // eventually are compiled.
     function()->setEnclosingScope(enclosingScope_.getExistingScope());
@@ -345,6 +331,11 @@ ModuleSharedContext::ModuleSharedContext(JSContext* cx, ModuleObject* module,
       builder(builder) {
   thisBinding_ = ThisBinding::Module;
   hasModuleGoal_ = true;
+}
+
+MutableHandle<FunctionCreationData> FunctionBox::functionCreationData() const {
+  MOZ_ASSERT(hasFunctionCreationIndex());
+  return compilationInfo_.funcData[*funcDataIndex_];
 }
 
 }  // namespace frontend

@@ -34,14 +34,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   getTrailheadConfigFromPref
 );
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
-  "useReleaseSnippets",
-  "browser.newtabpage.activity-stream.asrouter.useReleaseSnippets",
-  false,
-  null
-);
-
 const DEFAULT_STATE = {
   _initialized: false,
   _providers: null,
@@ -149,9 +141,7 @@ class _ASRouterPreferences {
     const config = providers.find(p => p.id === id);
     if (!config) {
       Cu.reportError(
-        `Cannot set enabled state for '${id}' because the pref ${
-          this._providerPrefBranch
-        }${id} does not exist or is not correctly formatted.`
+        `Cannot set enabled state for '${id}' because the pref ${this._providerPrefBranch}${id} does not exist or is not correctly formatted.`
       );
       return;
     }
@@ -179,10 +169,6 @@ class _ASRouterPreferences {
       );
     }
     return this._devtoolsEnabled;
-  }
-
-  get useReleaseSnippets() {
-    return useReleaseSnippets;
   }
 
   observe(aSubject, aTopic, aPrefName) {

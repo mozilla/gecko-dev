@@ -42,15 +42,14 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
         }
 
         /**
-         * Set the content process hint flag.
+         * Set whether multiprocess support should be enabled.
          *
-         * @param use If true, this will reload the content process for future use.
-         *            Default is false.
+         * @param use A flag determining whether multiprocess should be enabled.
+         *            Default is true.
          * @return This Builder instance.
-
          */
-        public @NonNull Builder useContentProcessHint(final boolean use) {
-            getSettings().mUseContentProcess = use;
+        public @NonNull Builder useMultiprocess(final boolean use) {
+            getSettings().mUseMultiprocess.set(use);
             return this;
         }
 
@@ -154,6 +153,22 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
          */
         public @NonNull Builder useMaxScreenDepth(final boolean enable) {
             getSettings().mUseMaxScreenDepth = enable;
+            return this;
+        }
+
+        /**
+         * Set whether web manifest support is enabled.
+         *
+         * This controls if Gecko actually downloads, or "obtains", web
+         * manifests and processes them. Without setting this pref, trying
+         * to obtain a manifest throws.
+         *
+         * @param enabled A flag determining whether Web Manifest processing support is
+         *                enabled.
+         * @return The builder instance.
+         */
+        public @NonNull Builder webManifest(final boolean enabled) {
+            getSettings().mWebManifest.set(enabled);
             return this;
         }
 
@@ -321,17 +336,6 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
         }
 
         /**
-         * Sets video autoplay mode.
-         * May be either {@link GeckoRuntimeSettings#AUTOPLAY_DEFAULT_ALLOWED} or {@link GeckoRuntimeSettings#AUTOPLAY_DEFAULT_BLOCKED}
-         * @param autoplay Allows or blocks video autoplay.
-         * @return This Builder instance.
-         */
-        public @NonNull Builder autoplayDefault(final @AutoplayDefault int autoplay) {
-            getSettings().mAutoplayDefault.set(autoplay);
-            return this;
-        }
-
-        /**
          * Sets the preferred color scheme override for web content.
          *
          * @param scheme The preferred color scheme. Must be one of the
@@ -433,7 +437,6 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     }
 
     private GeckoRuntime mRuntime;
-    /* package */ boolean mUseContentProcess;
     /* package */ String[] mArgs;
     /* package */ Bundle mExtras;
     /* package */ String mConfigFilePath;
@@ -444,6 +447,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
         return mContentBlocking;
     }
 
+    /* package */ final Pref<Boolean> mWebManifest = new Pref<Boolean>(
+        "dom.manifest.enabled", true);
     /* package */ final Pref<Boolean> mJavaScript = new Pref<Boolean>(
         "javascript.enabled", true);
     /* package */ final Pref<Boolean> mRemoteDebugging = new Pref<Boolean>(
@@ -452,8 +457,6 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
         "browser.display.use_document_fonts", 1);
     /* package */ final Pref<Boolean> mConsoleOutput = new Pref<Boolean>(
         "geckoview.console.enabled", false);
-    /* package */ final Pref<Integer> mAutoplayDefault = new Pref<Integer>(
-        "media.autoplay.default", AUTOPLAY_DEFAULT_BLOCKED);
     /* package */ final Pref<Integer> mFontSizeFactor = new Pref<>(
         "font.size.systemFontScale", 100);
     /* package */ final Pref<Integer> mFontInflationMinTwips = new Pref<>(
@@ -478,6 +481,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
             "general.aboutConfig.enable", false);
     /* package */ final Pref<Boolean> mForceUserScalable = new Pref<>(
             "browser.ui.zoom.force-user-scalable", false);
+    /* package */ final Pref<Boolean> mUseMultiprocess = new Pref<>(
+            "browser.tabs.remote.autostart", true);
 
     /* package */ boolean mDebugPause;
     /* package */ boolean mUseMaxScreenDepth;
@@ -524,7 +529,6 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     private void updateSettings(final @NonNull GeckoRuntimeSettings settings) {
         updatePrefs(settings);
 
-        mUseContentProcess = settings.getUseContentProcessHint();
         mArgs = settings.getArguments().clone();
         mExtras = new Bundle(settings.getExtras());
         mContentBlocking = new ContentBlocking.Settings(
@@ -548,13 +552,14 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     }
 
     /**
-     * Get the content process hint flag.
+     * Whether multiprocess is enabled.
      *
-     * @return The content process hint flag.
+     * @return true if multiprocess is enabled, false otherwise.
      */
-    public boolean getUseContentProcessHint() {
-        return mUseContentProcess;
+    public boolean getUseMultiprocess() {
+        return mUseMultiprocess.get();
     }
+
 
     /**
      * Get the custom Gecko process arguments.
@@ -786,6 +791,28 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     }
 
     /**
+     * Sets whether Web Manifest processing support is enabled.
+     *
+     * @param enabled A flag determining whether Web Manifest processing support is
+     *                enabled.
+     *
+     * @return This GeckoRuntimeSettings instance.
+     */
+    public @NonNull GeckoRuntimeSettings setWebManifestEnabled(final boolean enabled) {
+        mWebManifest.commit(enabled);
+        return this;
+    }
+
+    /**
+     * Get whether or not Web Manifest processing support is enabled.
+     *
+     * @return True if web manifest processing support is enabled.
+     */
+    public boolean getWebManifestEnabled() {
+        return mWebManifest.get();
+    }
+
+    /**
      * Set whether or not web console messages should go to logcat.
      *
      * Note: If enabled, Gecko performance may be negatively impacted if
@@ -834,41 +861,6 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
      */
     public boolean getAutomaticFontSizeAdjustment() {
         return GeckoFontScaleListener.getInstance().getEnabled();
-    }
-
-    // Sync values with dom/media/nsIAutoplay.idl.
-    @Retention(RetentionPolicy.SOURCE)
-    @IntDef({ AUTOPLAY_DEFAULT_ALLOWED, AUTOPLAY_DEFAULT_BLOCKED })
-    /* package */ @interface AutoplayDefault {}
-
-    /**
-     * Autoplay video is allowed.
-     */
-    public static final int AUTOPLAY_DEFAULT_ALLOWED = 0;
-
-    /**
-     * Autoplay video is blocked.
-     */
-    public static final int AUTOPLAY_DEFAULT_BLOCKED = 1;
-
-    /**
-     * Sets video autoplay mode.
-     * May be either {@link GeckoRuntimeSettings#AUTOPLAY_DEFAULT_ALLOWED} or {@link GeckoRuntimeSettings#AUTOPLAY_DEFAULT_BLOCKED}
-     * @param autoplay Allows or blocks video autoplay.
-     * @return This GeckoRuntimeSettings instance.
-     */
-    public @NonNull GeckoRuntimeSettings setAutoplayDefault(final @AutoplayDefault int autoplay) {
-        mAutoplayDefault.commit(autoplay);
-        return this;
-    }
-
-    /**
-     * Gets the current video autoplay mode.
-     * @return The current video autoplay mode. Will be either {@link GeckoRuntimeSettings#AUTOPLAY_DEFAULT_ALLOWED}
-     * or {@link GeckoRuntimeSettings#AUTOPLAY_DEFAULT_BLOCKED}
-     */
-    public @AutoplayDefault int getAutoplayDefault() {
-        return mAutoplayDefault.get();
     }
 
     private static final int FONT_INFLATION_BASE_VALUE = 120;
@@ -1099,7 +1091,6 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     public void writeToParcel(final Parcel out, final int flags) {
         super.writeToParcel(out, flags);
 
-        ParcelableUtils.writeBoolean(out, mUseContentProcess);
         out.writeStringArray(mArgs);
         mExtras.writeToParcel(out, flags);
         ParcelableUtils.writeBoolean(out, mDebugPause);
@@ -1117,7 +1108,6 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     public void readFromParcel(final @NonNull Parcel source) {
         super.readFromParcel(source);
 
-        mUseContentProcess = ParcelableUtils.readBoolean(source);
         mArgs = source.createStringArray();
         mExtras.readFromParcel(source);
         mDebugPause = ParcelableUtils.readBoolean(source);

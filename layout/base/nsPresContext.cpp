@@ -28,6 +28,7 @@
 #include "nsIContentViewer.h"
 #include "nsPIDOMWindow.h"
 #include "mozilla/ServoStyleSet.h"
+#include "mozilla/MediaFeatureChange.h"
 #include "nsIContent.h"
 #include "nsIFrame.h"
 #include "mozilla/dom/BrowsingContext.h"
@@ -65,6 +66,7 @@
 #include "mozilla/dom/PBrowserParent.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/BrowserParent.h"
+#include "mozilla/StaticPresData.h"
 #include "nsRefreshDriver.h"
 #include "Layers.h"
 #include "LayerUserData.h"
@@ -80,6 +82,7 @@
 #include "mozilla/GlobalStyleSheetCache.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/StaticPrefs_layout.h"
+#include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/StaticPrefs_zoom.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
@@ -204,7 +207,6 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
       mPrefChangePendingNeedsReflow(false),
       mPostedPrefChangedRunnable(false),
       mIsGlyph(false),
-      mUsesRootEMUnits(false),
       mUsesExChUnits(false),
       mCounterStylesDirty(true),
       mFontFeatureValuesDirty(true),
@@ -324,13 +326,10 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsPresContext)
   // NS_RELEASE(tmp->mLanguage); // an atom
   // NS_IMPL_CYCLE_COLLECTION_UNLINK(mTheme); // a service
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPrintSettings);
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_PTR
 
   tmp->Destroy();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-// whether no native theme service exists;
-// if this gets set to true, we'll stop asking for it.
-static bool sNoTheme = false;
 
 // Set to true when LookAndFeelChanged needs to be called.  This is used
 // because the look and feel is a service, so there's no need to notify it from
@@ -766,7 +765,7 @@ void nsPresContext::DetachPresShell() {
   }
 }
 
-void nsPresContext::DoChangeCharSet(NotNull<const Encoding*> aCharSet) {
+void nsPresContext::DocumentCharSetChanged(NotNull<const Encoding*> aCharSet) {
   UpdateCharSet(aCharSet);
   mDeviceContext->FlushFontCache();
 
@@ -792,11 +791,6 @@ void nsPresContext::UpdateCharSet(NotNull<const Encoding*> aCharSet) {
     default:
       SetVisualMode(IsVisualCharset(aCharSet));
   }
-}
-
-void nsPresContext::DispatchCharSetChange(NotNull<const Encoding*> aEncoding) {
-  // In Servo RebuildAllStyleData is async, so no need to do the runnable dance.
-  DoChangeCharSet(aEncoding);
 }
 
 nsPresContext* nsPresContext::GetParentPresContext() {
@@ -1270,12 +1264,15 @@ void nsPresContext::RecordInteractionTime(InteractionType aType,
   }
 }
 
-nsITheme* nsPresContext::GetTheme() {
-  if (!sNoTheme && !mTheme) {
-    mTheme = do_GetNativeTheme();
-    if (!mTheme) sNoTheme = true;
+nsITheme* nsPresContext::EnsureTheme() {
+  MOZ_ASSERT(!mTheme);
+  if (StaticPrefs::widget_disable_native_theme_for_content() &&
+      (!IsChrome() || XRE_IsContentProcess())) {
+    mTheme = do_GetBasicNativeThemeDoNotUseDirectly();
+  } else {
+    mTheme = do_GetNativeThemeDoNotUseDirectly();
   }
-
+  MOZ_RELEASE_ASSERT(mTheme);
   return mTheme;
 }
 
@@ -1468,7 +1465,7 @@ void nsPresContext::MediaFeatureValuesChanged(
   }
 
   if (!mPendingMediaFeatureValuesChange) {
-    mPendingMediaFeatureValuesChange.emplace(aChange);
+    mPendingMediaFeatureValuesChange = MakeUnique<MediaFeatureChange>(aChange);
     return;
   }
 
@@ -1476,16 +1473,11 @@ void nsPresContext::MediaFeatureValuesChanged(
 }
 
 void nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint,
-                                        RestyleHint aRestyleHint) {
+                                        const RestyleHint& aRestyleHint) {
   if (!mPresShell) {
     // We must have been torn down. Nothing to do here.
     return;
   }
-
-  // FIXME(emilio): Why is it safe to reset mUsesRootEMUnits / mUsesEXChUnits
-  // here if there's no restyle hint? That looks pretty bogus.
-  mUsesRootEMUnits = false;
-  mUsesExChUnits = false;
 
   // TODO(emilio): It's unclear to me why would these three calls below be
   // needed. In particular, RebuildAllStyleData doesn't rebuild rules or
@@ -1496,17 +1488,19 @@ void nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint,
   mDocument->MarkUserFontSetDirty();
   MarkCounterStylesDirty();
   MarkFontFeatureValuesDirty();
-
-  RestyleManager()->RebuildAllStyleData(aExtraHint, aRestyleHint);
+  PostRebuildAllStyleDataEvent(aExtraHint, aRestyleHint);
 }
 
-void nsPresContext::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint,
-                                                 RestyleHint aRestyleHint) {
+void nsPresContext::PostRebuildAllStyleDataEvent(
+    nsChangeHint aExtraHint, const RestyleHint& aRestyleHint) {
   if (!mPresShell) {
     // We must have been torn down. Nothing to do here.
     return;
   }
-  RestyleManager()->PostRebuildAllStyleDataEvent(aExtraHint, aRestyleHint);
+  if (aRestyleHint.DefinitelyRecascadesAllSubtree()) {
+    mUsesExChUnits = false;
+  }
+  RestyleManager()->RebuildAllStyleData(aExtraHint, aRestyleHint);
 }
 
 static CallState MediaFeatureValuesChangedAllDocumentsCallback(
@@ -2575,6 +2569,16 @@ DynamicToolbarState nsPresContext::GetDynamicToolbarState() const {
     return DynamicToolbarState::Collapsed;
   }
   return DynamicToolbarState::InTransition;
+}
+
+void nsPresContext::SetSafeAreaInsets(const ScreenIntMargin& aSafeAreaInsets) {
+  if (mSafeAreaInsets == aSafeAreaInsets) {
+    return;
+  }
+  mSafeAreaInsets = aSafeAreaInsets;
+
+  PostRebuildAllStyleDataEvent(nsChangeHint(0),
+                               RestyleHint::RecascadeSubtree());
 }
 
 #ifdef DEBUG

@@ -45,7 +45,7 @@ class CharMapHashKey : public PLDHashEntryHdr {
   CharMapHashKey(const CharMapHashKey& toCopy) : mCharMap(toCopy.mCharMap) {
     MOZ_COUNT_CTOR(CharMapHashKey);
   }
-  ~CharMapHashKey() { MOZ_COUNT_DTOR(CharMapHashKey); }
+  MOZ_COUNTED_DTOR(CharMapHashKey)
 
   gfxCharacterMap* GetKey() const { return mCharMap; }
 
@@ -493,7 +493,7 @@ class gfxPlatformFontList : public gfxFontInfoLoader {
   };
 
   class MemoryReporter final : public nsIMemoryReporter {
-    ~MemoryReporter() {}
+    ~MemoryReporter() = default;
 
    public:
     NS_DECL_ISUPPORTS
@@ -747,12 +747,12 @@ class gfxPlatformFontList : public gfxFontInfoLoader {
   bool mFaceNameListsInitialized;
 
   struct ExtraNames {
-    ExtraNames() : mFullnames(64), mPostscriptNames(64) {}
+    ExtraNames() = default;
 
     // fullname ==> font entry (unique, one name per font entry)
-    FontEntryTable mFullnames;
+    FontEntryTable mFullnames{64};
     // Postscript name ==> font entry (unique, one name per font entry)
-    FontEntryTable mPostscriptNames;
+    FontEntryTable mPostscriptNames{64};
   };
   mozilla::UniquePtr<ExtraNames> mExtraNames;
 

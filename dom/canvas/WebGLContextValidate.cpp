@@ -24,7 +24,6 @@
 #include "WebGLTexture.h"
 #include "WebGLValidateStrings.h"
 #include "WebGLVertexArray.h"
-#include "WebGLVertexAttribData.h"
 
 #if defined(MOZ_WIDGET_COCOA)
 #  include "nsCocoaFeatures.h"
@@ -41,7 +40,6 @@ const uint32_t kMinMaxVertexTextureImageUnits = 0;    // Page 164
 const uint32_t kMinMaxFragmentTextureImageUnits = 8;  // Page 164
 const uint32_t kMinMaxCombinedTextureImageUnits = 8;  // Page 164
 
-const uint32_t kMinMaxColorAttachments = 4;
 const uint32_t kMinMaxDrawBuffers = 4;
 
 // These few deviate from the spec: (The minimum values in the spec are
@@ -286,7 +284,6 @@ bool WebGLContext::InitAndValidateGL(FailureReason* const out_failReason) {
 
   // These are the default values, see 6.2 State tables in the
   // OpenGL ES 2.0.25 spec.
-  mColorWriteMask = 0x0f;
   mDriverColorMask = mColorWriteMask;
   mColorClearValue[0] = 0.f;
   mColorClearValue[1] = 0.f;
@@ -577,7 +574,6 @@ bool WebGLContext::InitAndValidateGL(FailureReason* const out_failReason) {
   // vertex array object (the name zero) is also deprecated. [...]"
   mDefaultVertexArray = WebGLVertexArray::Create(this);
   mDefaultVertexArray->BindVertexArray();
-  mDefaultVertexArray->mAttribs.resize(limits.maxVertexAttribs);
 
   mPixelStore.mFlipY = false;
   mPixelStore.mPremultiplyAlpha = false;
@@ -591,10 +587,6 @@ bool WebGLContext::InitAndValidateGL(FailureReason* const out_failReason) {
   mPixelStore.mUnpackSkipRows = 0;
   mPixelStore.mUnpackSkipPixels = 0;
   mPixelStore.mUnpackAlignment = 4;
-  mPixelStore.mPackRowLength = 0;
-  mPixelStore.mPackSkipRows = 0;
-  mPixelStore.mPackSkipPixels = 0;
-  mPixelStore.mPackAlignment = 4;
 
   mPrimRestartTypeBytes = 0;
 

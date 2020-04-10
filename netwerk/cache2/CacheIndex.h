@@ -21,6 +21,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/UniquePtr.h"
 
 class nsIFile;
 class nsIDirectoryEnumerator;
@@ -114,7 +115,7 @@ class CacheIndexEntry : public PLDHashEntryHdr {
 
   explicit CacheIndexEntry(KeyTypePointer aKey) {
     MOZ_COUNT_CTOR(CacheIndexEntry);
-    mRec = new CacheIndexRecord();
+    mRec = MakeUnique<CacheIndexRecord>();
     LOG(("CacheIndexEntry::CacheIndexEntry() - Created record [rec=%p]",
          mRec.get()));
     memcpy(&mRec->mHash, aKey, sizeof(SHA1Sum::Hash));
@@ -227,7 +228,17 @@ class CacheIndexEntry : public PLDHashEntryHdr {
   uint16_t GetOnStopTime() const { return mRec->mOnStopTime; }
 
   void SetContentType(uint8_t aType) { mRec->mContentType = aType; }
-  uint8_t GetContentType() const { return mRec->mContentType; }
+  uint8_t GetContentType() const { return GetContentType(mRec.get()); }
+  static uint8_t GetContentType(CacheIndexRecord* aRec) {
+    if (aRec->mContentType >= nsICacheEntry::CONTENT_TYPE_LAST) {
+      LOG(
+          ("CacheIndexEntry::GetContentType() - Found invalid content type "
+           "[hash=%08x%08x%08x%08x%08x, contentType=%u]",
+           LOGSHA1(aRec->mHash), aRec->mContentType));
+      return nsICacheEntry::CONTENT_TYPE_UNKNOWN;
+    }
+    return aRec->mContentType;
+  }
 
   // Sets filesize in kilobytes.
   void SetFileSize(uint32_t aFileSize) {
@@ -242,9 +253,9 @@ class CacheIndexEntry : public PLDHashEntryHdr {
     mRec->mFlags |= aFileSize;
   }
   // Returns filesize in kilobytes.
-  uint32_t GetFileSize() const { return GetFileSize(mRec); }
-  static uint32_t GetFileSize(CacheIndexRecord* aRec) {
-    return aRec->mFlags & kFileSizeMask;
+  uint32_t GetFileSize() const { return GetFileSize(*mRec); }
+  static uint32_t GetFileSize(const CacheIndexRecord& aRec) {
+    return aRec.mFlags & kFileSizeMask;
   }
   static uint32_t IsPinned(CacheIndexRecord* aRec) {
     return aRec->mFlags & kPinnedMask;
@@ -353,7 +364,7 @@ class CacheIndexEntry : public PLDHashEntryHdr {
   // FileSize in kilobytes
   static const uint32_t kFileSizeMask = 0x00FFFFFF;
 
-  nsAutoPtr<CacheIndexRecord> mRec;
+  UniquePtr<CacheIndexRecord> mRec;
 };
 
 class CacheIndexEntryUpdate : public CacheIndexEntry {
@@ -472,9 +483,20 @@ class CacheIndexStats {
         mDisableLogging(false)
 #endif
   {
+    for (uint32_t i = 0; i < nsICacheEntry::CONTENT_TYPE_LAST; ++i) {
+      mCountByType[i] = 0;
+      mSizeByType[i] = 0;
+    }
   }
 
   bool operator==(const CacheIndexStats& aOther) const {
+    for (uint32_t i = 0; i < nsICacheEntry::CONTENT_TYPE_LAST; ++i) {
+      if (mCountByType[i] != aOther.mCountByType[i] ||
+          mSizeByType[i] != aOther.mSizeByType[i]) {
+        return false;
+      }
+    }
+
     return
 #ifdef DEBUG
         aOther.mStateLogged == mStateLogged &&
@@ -506,6 +528,10 @@ class CacheIndexStats {
     mFresh = 0;
     mEmpty = 0;
     mSize = 0;
+    for (uint32_t i = 0; i < nsICacheEntry::CONTENT_TYPE_LAST; ++i) {
+      mCountByType[i] = 0;
+      mSizeByType[i] = 0;
+    }
   }
 
 #ifdef DEBUG
@@ -515,6 +541,12 @@ class CacheIndexStats {
   uint32_t Count() {
     MOZ_ASSERT(!mStateLogged, "CacheIndexStats::Count() - state logged!");
     return mCount;
+  }
+
+  uint32_t CountByType(uint8_t aContentType) {
+    MOZ_ASSERT(!mStateLogged, "CacheIndexStats::CountByType() - state logged!");
+    MOZ_RELEASE_ASSERT(aContentType < nsICacheEntry::CONTENT_TYPE_LAST);
+    return mCountByType[aContentType];
   }
 
   uint32_t Dirty() {
@@ -539,6 +571,12 @@ class CacheIndexStats {
     return mSize;
   }
 
+  uint32_t SizeByType(uint8_t aContentType) {
+    MOZ_ASSERT(!mStateLogged, "CacheIndexStats::SizeByType() - state logged!");
+    MOZ_RELEASE_ASSERT(aContentType < nsICacheEntry::CONTENT_TYPE_LAST);
+    return mSizeByType[aContentType];
+  }
+
   void BeforeChange(const CacheIndexEntry* aEntry) {
 #ifdef DEBUG_STATS
     if (!mDisableLogging) {
@@ -555,7 +593,9 @@ class CacheIndexStats {
 #endif
     if (aEntry) {
       MOZ_ASSERT(mCount);
+      uint8_t contentType = aEntry->GetContentType();
       mCount--;
+      mCountByType[contentType]--;
       if (aEntry->IsDirty()) {
         MOZ_ASSERT(mDirty);
         mDirty--;
@@ -578,6 +618,7 @@ class CacheIndexStats {
           } else {
             MOZ_ASSERT(mSize >= aEntry->GetFileSize());
             mSize -= aEntry->GetFileSize();
+            mSizeByType[contentType] -= aEntry->GetFileSize();
           }
         }
       }
@@ -592,7 +633,9 @@ class CacheIndexStats {
     mStateLogged = false;
 #endif
     if (aEntry) {
+      uint8_t contentType = aEntry->GetContentType();
       ++mCount;
+      ++mCountByType[contentType];
       if (aEntry->IsDirty()) {
         mDirty++;
       }
@@ -609,6 +652,7 @@ class CacheIndexStats {
             mEmpty++;
           } else {
             mSize += aEntry->GetFileSize();
+            mSizeByType[contentType] += aEntry->GetFileSize();
           }
         }
       }
@@ -624,12 +668,14 @@ class CacheIndexStats {
 
  private:
   uint32_t mCount;
+  uint32_t mCountByType[nsICacheEntry::CONTENT_TYPE_LAST];
   uint32_t mNotInitialized;
   uint32_t mRemoved;
   uint32_t mDirty;
   uint32_t mFresh;
   uint32_t mEmpty;
   uint32_t mSize;
+  uint32_t mSizeByType[nsICacheEntry::CONTENT_TYPE_LAST];
 #ifdef DEBUG
   // We completely remove the data about an entry from the stats in
   // BeforeChange() and set this flag to true. The entry is then modified,

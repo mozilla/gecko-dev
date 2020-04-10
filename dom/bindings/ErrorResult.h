@@ -31,6 +31,7 @@
 #include <utility>
 
 #include "js/GCAnnotations.h"
+#include "js/ErrorReport.h"
 #include "js/Value.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -76,6 +77,13 @@ bool constexpr ErrorFormatHasContext[] = {
 #undef MSG_DEF
 };
 
+// Table of the kinds of exceptions error messages will produce.
+JSExnType constexpr ErrorExceptionType[] = {
+#define MSG_DEF(_name, _argc, _has_context, _exn, _str) _exn,
+#include "mozilla/dom/Errors.msg"
+#undef MSG_DEF
+};
+
 uint16_t GetErrorArgCount(const ErrNum aErrorNumber);
 
 namespace binding_detail {
@@ -93,16 +101,18 @@ inline bool ThrowErrorMessage(JSContext* aCx, Ts&&... aArgs) {
   return false;
 }
 
-struct StringArrayAppender {
-  static void Append(nsTArray<nsString>& aArgs, uint16_t aCount) {
+template <typename CharT>
+struct TStringArrayAppender {
+  static void Append(nsTArray<nsTString<CharT>>& aArgs, uint16_t aCount) {
     MOZ_RELEASE_ASSERT(aCount == 0,
                        "Must give at least as many string arguments as are "
                        "required by the ErrNum.");
   }
 
+  // Allow passing nsAString/nsACString instances for our args.
   template <typename... Ts>
-  static void Append(nsTArray<nsString>& aArgs, uint16_t aCount,
-                     const nsAString& aFirst, Ts&&... aOtherArgs) {
+  static void Append(nsTArray<nsTString<CharT>>& aArgs, uint16_t aCount,
+                     const nsTSubstring<CharT>& aFirst, Ts&&... aOtherArgs) {
     if (aCount == 0) {
       MOZ_ASSERT(false,
                  "There should not be more string arguments provided than are "
@@ -112,12 +122,30 @@ struct StringArrayAppender {
     aArgs.AppendElement(aFirst);
     Append(aArgs, aCount - 1, std::forward<Ts>(aOtherArgs)...);
   }
+
+  // Also allow passing literal instances for our args.
+  template <int N, typename... Ts>
+  static void Append(nsTArray<nsTString<CharT>>& aArgs, uint16_t aCount,
+                     const CharT (&aFirst)[N], Ts&&... aOtherArgs) {
+    if (aCount == 0) {
+      MOZ_ASSERT(false,
+                 "There should not be more string arguments provided than are "
+                 "required by the ErrNum.");
+      return;
+    }
+    aArgs.AppendElement(nsTLiteralString<CharT>(aFirst));
+    Append(aArgs, aCount - 1, std::forward<Ts>(aOtherArgs)...);
+  }
 };
+
+using StringArrayAppender = TStringArrayAppender<char16_t>;
+using CStringArrayAppender = TStringArrayAppender<char>;
 
 }  // namespace dom
 
 class ErrorResult;
 class OOMReporter;
+class CopyableErrorResult;
 
 namespace binding_danger {
 
@@ -273,6 +301,8 @@ class TErrorResult {
   template <dom::ErrNum errorNumber, typename... Ts>
   void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
   ThrowTypeError(Ts&&... messageArgs) {
+    static_assert(dom::ErrorExceptionType[errorNumber] == JSEXN_TYPEERR,
+                  "Throwing a non-TypeError via ThrowTypeError");
     ThrowErrorWithMessage<errorNumber>(NS_ERROR_INTERNAL_ERRORRESULT_TYPEERROR,
                                        std::forward<Ts>(messageArgs)...);
   }
@@ -280,7 +310,7 @@ class TErrorResult {
   // To be used when throwing a TypeError with a completely custom
   // message string that's only used in one spot.
   inline void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
-  ThrowTypeError(const nsAString& aMessage) {
+  ThrowTypeError(const nsACString& aMessage) {
     this->template ThrowTypeError<dom::MSG_ONE_OFF_TYPEERR>(aMessage);
   }
 
@@ -288,13 +318,15 @@ class TErrorResult {
   // message string that's a string literal that's only used in one spot.
   template <int N>
   void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
-  ThrowTypeError(const char16_t (&aMessage)[N]) {
-    ThrowTypeError(nsLiteralString(aMessage));
+  ThrowTypeError(const char (&aMessage)[N]) {
+    ThrowTypeError(nsLiteralCString(aMessage));
   }
 
   template <dom::ErrNum errorNumber, typename... Ts>
   void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
   ThrowRangeError(Ts&&... messageArgs) {
+    static_assert(dom::ErrorExceptionType[errorNumber] == JSEXN_RANGEERR,
+                  "Throwing a non-RangeError via ThrowRangeError");
     ThrowErrorWithMessage<errorNumber>(NS_ERROR_INTERNAL_ERRORRESULT_RANGEERROR,
                                        std::forward<Ts>(messageArgs)...);
   }
@@ -302,7 +334,7 @@ class TErrorResult {
   // To be used when throwing a RangeError with a completely custom
   // message string that's only used in one spot.
   inline void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
-  ThrowRangeError(const nsAString& aMessage) {
+  ThrowRangeError(const nsACString& aMessage) {
     this->template ThrowRangeError<dom::MSG_ONE_OFF_RANGEERR>(aMessage);
   }
 
@@ -310,8 +342,8 @@ class TErrorResult {
   // message string that's a string literal that's only used in one spot.
   template <int N>
   void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
-  ThrowRangeError(const char16_t (&aMessage)[N]) {
-    ThrowRangeError(nsLiteralString(aMessage));
+  ThrowRangeError(const char (&aMessage)[N]) {
+    ThrowRangeError(nsLiteralCString(aMessage));
   }
 
   bool IsErrorWithMessage() const {
@@ -451,8 +483,8 @@ class TErrorResult {
 
   // Helper method that creates a new Message for this TErrorResult,
   // and returns the arguments array from that Message.
-  nsTArray<nsString>& CreateErrorMessageHelper(const dom::ErrNum errorNumber,
-                                               nsresult errorType);
+  nsTArray<nsCString>& CreateErrorMessageHelper(const dom::ErrNum errorNumber,
+                                                nsresult errorType);
 
   template <dom::ErrNum errorNumber, typename... Ts>
   void ThrowErrorWithMessage(nsresult errorType, Ts&&... messageArgs) {
@@ -465,7 +497,7 @@ class TErrorResult {
 
     ClearUnionData();
 
-    nsTArray<nsString>& messageArgsArray =
+    nsTArray<nsCString>& messageArgsArray =
         CreateErrorMessageHelper(errorNumber, errorType);
     uint16_t argCount = dom::GetErrorArgCount(errorNumber);
     if (dom::ErrorFormatHasContext[errorNumber]) {
@@ -478,8 +510,8 @@ class TErrorResult {
       --argCount;
       messageArgsArray.AppendElement();
     }
-    dom::StringArrayAppender::Append(messageArgsArray, argCount,
-                                     std::forward<Ts>(messageArgs)...);
+    dom::CStringArrayAppender::Append(messageArgsArray, argCount,
+                                      std::forward<Ts>(messageArgs)...);
 #ifdef DEBUG
     mUnionState = HasMessage;
 #endif  // DEBUG
@@ -572,7 +604,7 @@ class TErrorResult {
     // |mJSException| has a non-trivial constructor and therefore MUST be
     // placement-new'd into existence.
     MOZ_PUSH_DISABLE_NONTRIVIAL_UNION_WARNINGS
-    Extra() {}
+    Extra() {}  // NOLINT
     MOZ_POP_DISABLE_NONTRIVIAL_UNION_WARNINGS
   } mExtra;
 
@@ -653,25 +685,25 @@ class ErrorResult : public binding_danger::TErrorResult<
       BaseErrorResult;
 
  public:
-  ErrorResult() : BaseErrorResult() {}
+  ErrorResult() = default;
 
-  ErrorResult(ErrorResult&& aRHS) : BaseErrorResult(std::move(aRHS)) {}
+  ErrorResult(ErrorResult&& aRHS) = default;
+  // Explicitly allow moving out of a CopyableErrorResult into an ErrorResult.
+  // This is implemented below so it can see the definition of
+  // CopyableErrorResult.
+  inline explicit ErrorResult(CopyableErrorResult&& aRHS);
 
   explicit ErrorResult(nsresult aRv) : BaseErrorResult(aRv) {}
 
   // This operator is deprecated and ideally shouldn't be used.
   void operator=(nsresult rv) { BaseErrorResult::operator=(rv); }
 
-  ErrorResult& operator=(ErrorResult&& aRHS) {
-    BaseErrorResult::operator=(std::move(aRHS));
-    return *this;
-  }
+  ErrorResult& operator=(ErrorResult&& aRHS) = default;
 
- private:
   // Not to be implemented, to make sure people always pass this by
   // reference, not by value.
   ErrorResult(const ErrorResult&) = delete;
-  void operator=(const ErrorResult&) = delete;
+  ErrorResult& operator=(const ErrorResult&) = delete;
 };
 
 template <typename CleanupPolicy>
@@ -708,15 +740,14 @@ class CopyableErrorResult
       BaseErrorResult;
 
  public:
-  CopyableErrorResult() : BaseErrorResult() {}
+  CopyableErrorResult() = default;
 
   explicit CopyableErrorResult(const ErrorResult& aRight) : BaseErrorResult() {
     auto val = reinterpret_cast<const CopyableErrorResult&>(aRight);
     operator=(val);
   }
 
-  CopyableErrorResult(CopyableErrorResult&& aRHS)
-      : BaseErrorResult(std::move(aRHS)) {}
+  CopyableErrorResult(CopyableErrorResult&& aRHS) = default;
 
   explicit CopyableErrorResult(ErrorResult&& aRHS) : BaseErrorResult() {
     // We must not copy JS exceptions since it can too easily lead to
@@ -744,10 +775,7 @@ class CopyableErrorResult
   // This operator is deprecated and ideally shouldn't be used.
   void operator=(nsresult rv) { BaseErrorResult::operator=(rv); }
 
-  CopyableErrorResult& operator=(CopyableErrorResult&& aRHS) {
-    BaseErrorResult::operator=(std::move(aRHS));
-    return *this;
-  }
+  CopyableErrorResult& operator=(CopyableErrorResult&& aRHS) = default;
 
   CopyableErrorResult(const CopyableErrorResult& aRight) : BaseErrorResult() {
     operator=(aRight);
@@ -771,7 +799,22 @@ class CopyableErrorResult
     }
     return *this;
   }
+
+  // Disallow implicit converstion to non-const ErrorResult&, because that would
+  // allow people to throw exceptions on us while bypassing our checks for JS
+  // exceptions.
+  operator ErrorResult&() = delete;
+
+  // Allow conversion to ErrorResult&& so we can move out of ourselves into
+  // an ErrorResult.
+  operator ErrorResult &&() && {
+    auto* val = reinterpret_cast<ErrorResult*>(this);
+    return std::move(*val);
+  }
 };
+
+inline ErrorResult::ErrorResult(CopyableErrorResult&& aRHS)
+    : ErrorResult(reinterpret_cast<ErrorResult&&>(aRHS)) {}
 
 namespace dom {
 namespace binding_detail {
@@ -781,54 +824,38 @@ class FastErrorResult : public mozilla::binding_danger::TErrorResult<
 }  // namespace binding_detail
 }  // namespace dom
 
-// This part is a bit annoying.  We want an OOMReporter class that has the
-// following properties:
+// We want an OOMReporter class that has the following properties:
 //
 // 1) Can be cast to from any ErrorResult-like type.
 // 2) Has a fast destructor (because we want to use it from bindings).
 // 3) Won't be randomly instantiated by non-binding code (because the fast
-//    destructor is not so safe.
+//    destructor is not so safe).
 // 4) Doesn't look ugly on the callee side (e.g. isn't in the binding_detail or
 //    binding_danger namespace).
 //
-// We do this by having two classes: The class callees should use, which has the
-// things we want and a private constructor, and a friend subclass in the
-// binding_danger namespace that can be used to construct it.
-namespace binding_danger {
-class OOMReporterInstantiator;
-}  // namespace binding_danger
-
+// We do this by creating a class that can't actually be constructed directly
+// but can be cast to from ErrorResult-like types, both implicitly and
+// explicitly.
 class OOMReporter : private dom::binding_detail::FastErrorResult {
  public:
   void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG ReportOOM() {
     Throw(NS_ERROR_OUT_OF_MEMORY);
   }
 
- private:
-  // OOMReporterInstantiator is a friend so it can call our constructor and
-  // MaybeSetPendingException.
-  friend class binding_danger::OOMReporterInstantiator;
+  // A method that turns a FastErrorResult into an OOMReporter, which we use in
+  // codegen to ensure that callees don't take an ErrorResult when they should
+  // only be taking an OOMReporter.  The idea is that we can then just have a
+  // FastErrorResult on the stack and call this to produce the thing to pass to
+  // callees.
+  static OOMReporter& From(FastErrorResult& aRv) { return aRv; }
 
+ private:
   // TErrorResult is a friend so its |operator OOMReporter&()| can work.
   template <typename CleanupPolicy>
   friend class binding_danger::TErrorResult;
 
   OOMReporter() : dom::binding_detail::FastErrorResult() {}
 };
-
-namespace binding_danger {
-class OOMReporterInstantiator : public OOMReporter {
- public:
-  OOMReporterInstantiator() : OOMReporter() {}
-
-  // We want to be able to call MaybeSetPendingException from codegen.  The one
-  // on OOMReporter is not callable directly, because it comes from a private
-  // superclass.  But we're a friend, so _we_ can call it.
-  bool MaybeSetPendingException(JSContext* cx, const char* context = nullptr) {
-    return OOMReporter::MaybeSetPendingException(cx, context);
-  }
-};
-}  // namespace binding_danger
 
 template <typename CleanupPolicy>
 binding_danger::TErrorResult<CleanupPolicy>::operator OOMReporter&() {

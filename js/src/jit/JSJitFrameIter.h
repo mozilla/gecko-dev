@@ -23,7 +23,7 @@ class ArgumentsObject;
 
 namespace jit {
 
-typedef void* CalleeToken;
+using CalleeToken = void*;
 
 enum class FrameType {
   // A JS frame is analogous to a js::InterpreterFrame, representing one
@@ -186,6 +186,7 @@ class JSJitFrameIter {
   JSFunction* maybeCallee() const;
   unsigned numActualArgs() const;
   JSScript* script() const;
+  JSScript* maybeForwardedScript() const;
   void baselineScriptAndPc(JSScript** scriptRes, jsbytecode** pcRes) const;
   Value* actualArgs() const;
 

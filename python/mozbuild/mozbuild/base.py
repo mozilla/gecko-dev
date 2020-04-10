@@ -4,6 +4,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import io
 import json
 import logging
 import mozpack.path as mozpath
@@ -146,7 +147,7 @@ class MozbuildObject(ProcessExecutionMixin):
         mozconfig = MozconfigLoader.AUTODETECT
 
         def load_mozinfo(path):
-            info = json.load(open(path, 'rt'))
+            info = json.load(io.open(path, 'rt', encoding='utf-8'))
             topsrcdir = info.get('topsrcdir')
             topobjdir = os.path.dirname(path)
             mozconfig = info.get('mozconfig')
@@ -215,7 +216,7 @@ class MozbuildObject(ProcessExecutionMixin):
             return True
 
         deps = []
-        with open(dep_file, 'r') as fh:
+        with io.open(dep_file, 'r', encoding='utf-8', newline='\n') as fh:
             deps = fh.read().splitlines()
 
         mtime = os.path.getmtime(output)
@@ -240,7 +241,7 @@ class MozbuildObject(ProcessExecutionMixin):
         # we last built the backend, re-generate the backend if
         # so.
         outputs = []
-        with open(backend_file, 'r') as fh:
+        with io.open(backend_file, 'r', encoding='utf-8', newline='\n') as fh:
             outputs = fh.read().splitlines()
         for output in outputs:
             if not os.path.isfile(mozpath.join(self.topobjdir, output)):
@@ -698,6 +699,12 @@ class MozbuildObject(ProcessExecutionMixin):
                 args.append('-j%d' % multiprocessing.cpu_count())
         elif num_jobs > 0:
             args.append('MOZ_PARALLEL_BUILD=%d' % num_jobs)
+        elif os.environ.get('MOZ_LOW_PARALLELISM_BUILD'):
+            cpus = multiprocessing.cpu_count()
+            jobs = max(1, int(0.75 * cpus))
+            print("  Low parallelism requested: using %d jobs for %d cores" %
+                  (jobs, cpus))
+            args.append('MOZ_PARALLEL_BUILD=%d' % jobs)
 
         if ignore_errors:
             args.append('-k')
@@ -724,7 +731,7 @@ class MozbuildObject(ProcessExecutionMixin):
             fn = self._run_command_in_srcdir
 
         append_env = dict(append_env or ())
-        append_env[b'MACH'] = '1'
+        append_env['MACH'] = '1'
 
         params = {
             'args': args,

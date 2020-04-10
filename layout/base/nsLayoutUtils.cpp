@@ -6,6 +6,7 @@
 
 #include "nsLayoutUtils.h"
 
+#include "mozilla/AccessibleCaretEventHub.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/dom/CanvasUtils.h"
@@ -5332,8 +5333,8 @@ static nscoord AddIntrinsicSizeOffset(
     LayoutDeviceIntSize devSize;
     bool canOverride = true;
     nsPresContext* pc = aFrame->PresContext();
-    pc->GetTheme()->GetMinimumWidgetSize(pc, aFrame, disp->mAppearance,
-                                         &devSize, &canOverride);
+    pc->Theme()->GetMinimumWidgetSize(pc, aFrame, disp->mAppearance, &devSize,
+                                      &canOverride);
     nscoord themeSize = pc->DevPixelsToAppUnits(
         aAxis == eAxisVertical ? devSize.height : devSize.width);
     // GetMinimumWidgetSize() returns a border-box width.
@@ -7579,7 +7580,7 @@ nsLayoutUtils::SurfaceFromElementResult nsLayoutUtils::SurfaceFromElement(
       imgIContainer::FLAG_SYNC_DECODE | imgIContainer::FLAG_ASYNC_NOTIFY;
   if (aSurfaceFlags & SFE_NO_COLORSPACE_CONVERSION)
     frameFlags |= imgIContainer::FLAG_DECODE_NO_COLORSPACE_CONVERSION;
-  if (aSurfaceFlags & SFE_PREFER_NO_PREMULTIPLY_ALPHA) {
+  if (aSurfaceFlags & SFE_ALLOW_NON_PREMULT) {
     frameFlags |= imgIContainer::FLAG_DECODE_NO_PREMULTIPLY_ALPHA;
   }
 
@@ -7642,9 +7643,9 @@ nsLayoutUtils::SurfaceFromElementResult nsLayoutUtils::SurfaceFromElement(
   bool hadCrossOriginRedirects = true;
   imgRequest->GetHadCrossOriginRedirects(&hadCrossOriginRedirects);
 
-  result.mPrincipal = principal.forget();
+  result.mPrincipal = std::move(principal);
   result.mHadCrossOriginRedirects = hadCrossOriginRedirects;
-  result.mImageRequest = imgRequest.forget();
+  result.mImageRequest = std::move(imgRequest);
   result.mIsWriteOnly = CanvasUtils::CheckWriteOnlySecurity(
       result.mCORSUsed, result.mPrincipal, result.mHadCrossOriginRedirects);
 
@@ -7665,7 +7666,12 @@ nsLayoutUtils::SurfaceFromElementResult nsLayoutUtils::SurfaceFromElement(
 
   IntSize size = aElement->GetSize();
 
-  result.mSourceSurface = aElement->GetSurfaceSnapshot(&result.mAlphaType);
+  auto pAlphaType = &result.mAlphaType;
+  if (!(aSurfaceFlags & SFE_ALLOW_NON_PREMULT)) {
+    pAlphaType =
+        nullptr;  // Coersce GetSurfaceSnapshot to give us Opaque/Premult only.
+  }
+  result.mSourceSurface = aElement->GetSurfaceSnapshot(pAlphaType);
   if (!result.mSourceSurface) {
     // If the element doesn't have a context then we won't get a snapshot. The
     // canvas spec wants us to not error and just draw nothing, so return an
@@ -7745,7 +7751,7 @@ nsLayoutUtils::SurfaceFromElementResult nsLayoutUtils::SurfaceFromElement(
   result.mSize = result.mLayersImage->GetSize();
   result.mIntrinsicSize =
       gfx::IntSize(aElement->VideoWidth(), aElement->VideoHeight());
-  result.mPrincipal = principal.forget();
+  result.mPrincipal = std::move(principal);
   result.mHadCrossOriginRedirects = aElement->HadCrossOriginRedirects();
   result.mIsWriteOnly = CanvasUtils::CheckWriteOnlySecurity(
       result.mCORSUsed, result.mPrincipal, result.mHadCrossOriginRedirects);
@@ -8429,9 +8435,9 @@ nsRect nsLayoutUtils::GetBoxShadowRectForFrame(nsIFrame* aFrame,
     // border-box path with border-radius disabled.
     if (transparency != nsITheme::eOpaque) {
       nsPresContext* presContext = aFrame->PresContext();
-      presContext->GetTheme()->GetWidgetOverflow(
-          presContext->DeviceContext(), aFrame, styleDisplay->mAppearance,
-          &inputRect);
+      presContext->Theme()->GetWidgetOverflow(presContext->DeviceContext(),
+                                              aFrame, styleDisplay->mAppearance,
+                                              &inputRect);
     }
   }
 
@@ -8474,7 +8480,6 @@ bool nsLayoutUtils::GetContentViewerSize(nsPresContext* aPresContext,
 
   if (aPresContext->HasDynamicToolbar() && !bounds.IsEmpty()) {
     MOZ_ASSERT(aPresContext->IsRootContentDocumentCrossProcess());
-    MOZ_ASSERT(bounds.height > aPresContext->GetDynamicToolbarMaxHeight());
     bounds.height -= aPresContext->GetDynamicToolbarMaxHeight();
     // Collapse the size in the case the dynamic toolbar max height is greater
     // than the content bound height so that hopefully embedders of GeckoView
@@ -9033,6 +9038,10 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
         CSSPoint::FromAppUnits(scrollableFrame->GetApzScrollPosition());
     metrics.SetScrollOffset(scrollPosition);
     metrics.SetBaseScrollOffset(apzScrollPosition);
+    metrics.SetVisualViewportOffset(
+        aIsRootContent && presShell->IsVisualViewportOffsetSet()
+            ? CSSPoint::FromAppUnits(presShell->GetVisualViewportOffset())
+            : scrollPosition);
 
     if (aIsRootContent) {
       if (aLayerManager->GetIsFirstPaint() &&
@@ -9928,17 +9937,59 @@ static nsRect ComputeHTMLReferenceRect(nsIFrame* aFrame,
   return r;
 }
 
+static StyleGeometryBox ShapeBoxToGeometryBox(const StyleShapeBox& aBox) {
+  switch (aBox) {
+    case StyleShapeBox::BorderBox:
+      return StyleGeometryBox::BorderBox;
+    case StyleShapeBox::ContentBox:
+      return StyleGeometryBox::ContentBox;
+    case StyleShapeBox::MarginBox:
+      return StyleGeometryBox::MarginBox;
+    case StyleShapeBox::PaddingBox:
+      return StyleGeometryBox::PaddingBox;
+  }
+  MOZ_ASSERT_UNREACHABLE("Unknown shape box type");
+  return StyleGeometryBox::MarginBox;
+}
+
+static StyleGeometryBox ClipPathBoxToGeometryBox(
+    const StyleShapeGeometryBox& aBox) {
+  using Tag = StyleShapeGeometryBox::Tag;
+  switch (aBox.tag) {
+    case Tag::ShapeBox:
+      return ShapeBoxToGeometryBox(aBox.AsShapeBox());
+    case Tag::ElementDependent:
+      return StyleGeometryBox::NoBox;
+    case Tag::FillBox:
+      return StyleGeometryBox::FillBox;
+    case Tag::StrokeBox:
+      return StyleGeometryBox::StrokeBox;
+    case Tag::ViewBox:
+      return StyleGeometryBox::ViewBox;
+  }
+  MOZ_ASSERT_UNREACHABLE("Unknown shape box type");
+  return StyleGeometryBox::NoBox;
+}
+
 /* static */
 nsRect nsLayoutUtils::ComputeGeometryBox(nsIFrame* aFrame,
                                          StyleGeometryBox aGeometryBox) {
   // We use ComputeSVGReferenceRect for all SVG elements, except <svg>
   // element, which does have an associated CSS layout box. In this case we
   // should still use ComputeHTMLReferenceRect for region computing.
-  nsRect r = (aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT)
-                 ? ComputeSVGReferenceRect(aFrame, aGeometryBox)
-                 : ComputeHTMLReferenceRect(aFrame, aGeometryBox);
+  return aFrame->HasAnyStateBits(NS_FRAME_SVG_LAYOUT)
+             ? ComputeSVGReferenceRect(aFrame, aGeometryBox)
+             : ComputeHTMLReferenceRect(aFrame, aGeometryBox);
+}
 
-  return r;
+nsRect nsLayoutUtils::ComputeGeometryBox(nsIFrame* aFrame,
+                                         const StyleShapeBox& aBox) {
+  return ComputeGeometryBox(aFrame, ShapeBoxToGeometryBox(aBox));
+}
+
+nsRect nsLayoutUtils::ComputeGeometryBox(nsIFrame* aFrame,
+                                         const StyleShapeGeometryBox& aBox) {
+  return ComputeGeometryBox(aFrame, ClipPathBoxToGeometryBox(aBox));
 }
 
 /* static */
@@ -10157,7 +10208,8 @@ static Maybe<ScreenRect> GetFrameVisibleRectOnScreen(const nsIFrame* aFrame) {
       PixelCastJustification::ContentProcessIsLayerInUiProcess);
 
   return Some(
-      browserChild->GetRemoteDocumentRect().Intersect(transformedToRoot));
+      browserChild->GetTopLevelViewportVisibleRectInBrowserCoords().Intersect(
+          transformedToRoot));
 }
 
 // static

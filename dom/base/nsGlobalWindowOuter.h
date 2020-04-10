@@ -544,8 +544,6 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
 
   nsresult GetPrompter(nsIPrompt** aPrompt) override;
 
-  RefPtr<mozilla::ThrottledEventQueue> mPostMessageEventQueue;
-
  protected:
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder>
   GetOpenerWindowOuter();
@@ -810,10 +808,6 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
                         mozilla::dom::BrowsingContext** aReturn);
 
  public:
-  // Helper Functions
-  already_AddRefed<nsIDocShellTreeOwner> GetTreeOwner();
-  already_AddRefed<nsIBaseWindow> GetTreeOwnerWindow();
-  already_AddRefed<nsIWebBrowserChrome> GetWebBrowserChrome();
   nsresult SecurityCheckURL(const char* aURL, nsIURI** aURI);
 
   bool PopupWhitelisted();

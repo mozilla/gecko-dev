@@ -35,26 +35,6 @@ const TRAILHEAD_ONBOARDING_TEMPLATE = {
   },
 };
 
-const TRAILHEAD_MODAL_VARIANT_CONTENT = {
-  className: "joinCohort",
-  benefits: ["sync", "monitor", "lockwise"].map(id => ({
-    id,
-    title: { string_id: `onboarding-benefit-${id}-title` },
-    text: { string_id: `onboarding-benefit-${id}-text` },
-  })),
-  learn: {
-    text: { string_id: "onboarding-welcome-modal-family-learn-more" },
-    url: "https://www.mozilla.org/firefox/accounts/",
-  },
-  form: {
-    title: { string_id: "onboarding-welcome-form-header" },
-    text: { string_id: "onboarding-join-form-body" },
-    email: { string_id: "onboarding-join-form-email" },
-    button: { string_id: "onboarding-join-form-continue" },
-  },
-  skipButton: { string_id: "onboarding-start-browsing-button-label" },
-};
-
 const TRAILHEAD_FULL_PAGE_CONTENT = {
   title: { string_id: "onboarding-welcome-body" },
   learn: {
@@ -69,9 +49,8 @@ const TRAILHEAD_FULL_PAGE_CONTENT = {
   },
 };
 
-const JOIN_CONTENT = {
-  className: "joinCohort",
-  title: { string_id: "onboarding-welcome-body" },
+const DEFAULT_WELCOME_CONTENT = {
+  className: "welcomeCohort",
   benefits: ["sync", "monitor", "lockwise"].map(id => ({
     id,
     title: { string_id: `onboarding-benefit-${id}-title` },
@@ -96,7 +75,8 @@ const ONBOARDING_MESSAGES = () => [
     utm_term: "trailhead-join",
     ...TRAILHEAD_ONBOARDING_TEMPLATE,
     content: {
-      ...JOIN_CONTENT,
+      ...DEFAULT_WELCOME_CONTENT,
+      title: { string_id: "onboarding-welcome-body" },
     },
   },
   {
@@ -135,21 +115,12 @@ const ONBOARDING_MESSAGES = () => [
     trigger: { id: "firstRun" },
   },
   {
-    id: "TRAILHEAD_5",
-    targeting: "trailheadInterrupt == 'modal_control'",
-    utm_term: "trailhead-modal_control",
-    ...TRAILHEAD_ONBOARDING_TEMPLATE,
-    content: {
-      ...JOIN_CONTENT,
-    },
-  },
-  {
     id: "TRAILHEAD_6",
     targeting: "trailheadInterrupt == 'modal_variant_a'",
     utm_term: "trailhead-modal_variant_a",
     ...TRAILHEAD_ONBOARDING_TEMPLATE,
     content: {
-      ...TRAILHEAD_MODAL_VARIANT_CONTENT,
+      ...DEFAULT_WELCOME_CONTENT,
       title: { string_id: "onboarding-welcome-modal-get-body" },
     },
   },
@@ -159,7 +130,7 @@ const ONBOARDING_MESSAGES = () => [
     utm_term: "trailhead-modal_variant_b",
     ...TRAILHEAD_ONBOARDING_TEMPLATE,
     content: {
-      ...TRAILHEAD_MODAL_VARIANT_CONTENT,
+      ...DEFAULT_WELCOME_CONTENT,
       title: { string_id: "onboarding-welcome-modal-supercharge-body" },
     },
   },
@@ -169,18 +140,8 @@ const ONBOARDING_MESSAGES = () => [
     utm_term: "trailhead-modal_variant_c",
     ...TRAILHEAD_ONBOARDING_TEMPLATE,
     content: {
-      ...TRAILHEAD_MODAL_VARIANT_CONTENT,
+      ...DEFAULT_WELCOME_CONTENT,
       title: { string_id: "onboarding-welcome-modal-privacy-body" },
-    },
-  },
-  {
-    id: "TRAILHEAD_9",
-    targeting: "trailheadInterrupt == 'modal_variant_f'",
-    utm_term: "trailhead-modal_variant_f",
-    ...TRAILHEAD_ONBOARDING_TEMPLATE,
-    content: {
-      ...JOIN_CONTENT,
-      form: TRAILHEAD_MODAL_VARIANT_CONTENT.form,
     },
   },
   {
@@ -270,7 +231,7 @@ const ONBOARDING_MESSAGES = () => [
       },
     },
     targeting:
-      "trailheadTriplet in ['supercharge', 'static'] || ( 'dynamic' in trailheadTriplet && usesFirefoxSync == false)",
+      "(trailheadTriplet in ['supercharge', 'static'] || ( 'dynamic' in trailheadTriplet && usesFirefoxSync == false)) && isChinaRepack == false",
     trigger: { id: "showOnboarding" },
   },
   {
@@ -292,7 +253,7 @@ const ONBOARDING_MESSAGES = () => [
     },
     // Use service oauth client_id to identify 'Firefox Monitor' service attached to Firefox Account
     // https://docs.telemetry.mozilla.org/datasets/fxa_metrics/attribution.html#service-attribution
-    targeting: `trailheadTriplet in ['supercharge', 'static'] || ('dynamic' in trailheadTriplet && !("${FX_MONITOR_OAUTH_CLIENT_ID}" in attachedFxAOAuthClients|mapToProperty('id')))`,
+    targeting: `(trailheadTriplet in ['supercharge', 'static'] || ('dynamic' in trailheadTriplet && !("${FX_MONITOR_OAUTH_CLIENT_ID}" in attachedFxAOAuthClients|mapToProperty('id')))) && isChinaRepack == false`,
     trigger: { id: "showOnboarding" },
   },
   {
@@ -329,7 +290,7 @@ const ONBOARDING_MESSAGES = () => [
         },
       },
     },
-    targeting: "trailheadTriplet == 'payoff'",
+    targeting: "trailheadTriplet == 'payoff' && isChinaRepack == false",
     trigger: { id: "showOnboarding" },
   },
   {
@@ -400,7 +361,7 @@ const ONBOARDING_MESSAGES = () => [
         },
       },
     },
-    targeting: "trailheadTriplet == 'multidevice'",
+    targeting: "trailheadTriplet == 'multidevice' && isChinaRepack == false",
     trigger: { id: "showOnboarding" },
   },
   {
@@ -420,7 +381,7 @@ const ONBOARDING_MESSAGES = () => [
         },
       },
     },
-    targeting: "'dynamic' in trailheadTriplet",
+    targeting: "'dynamic' in trailheadTriplet && isChinaRepack == false",
     trigger: { id: "showOnboarding" },
   },
   {
@@ -444,7 +405,7 @@ const ONBOARDING_MESSAGES = () => [
         },
       },
     },
-    targeting: "trailheadTriplet == 'payoff'",
+    targeting: "trailheadTriplet == 'payoff' && isChinaRepack == false",
     trigger: { id: "showOnboarding" },
   },
   {
@@ -504,7 +465,7 @@ const ONBOARDING_MESSAGES = () => [
       target: "fxa-toolbar-menu-button",
     },
     // Never accessed the FxA panel && doesn't use Firefox sync & has FxA enabled
-    targeting: `isFxABadgeEnabled && !hasAccessedFxAPanel && !usesFirefoxSync && isFxAEnabled == true`,
+    targeting: `!hasAccessedFxAPanel && !usesFirefoxSync && isFxAEnabled == true`,
     trigger: { id: "toolbarBadgeUpdate" },
   },
   {

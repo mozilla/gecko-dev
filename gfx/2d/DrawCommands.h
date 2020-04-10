@@ -68,6 +68,10 @@ class StoredPattern {
         new (mRadial) RadialGradientPattern(
             *static_cast<const RadialGradientPattern*>(&aPattern));
         return;
+      case PatternType::CONIC_GRADIENT:
+        new (mConic) ConicGradientPattern(
+            *static_cast<const ConicGradientPattern*>(&aPattern));
+        return;
     }
   }
 
@@ -98,6 +102,7 @@ class StoredPattern {
     char mColor[sizeof(ColorPattern)];
     char mLinear[sizeof(LinearGradientPattern)];
     char mRadial[sizeof(RadialGradientPattern)];
+    char mConic[sizeof(ConicGradientPattern)];
     char mSurface[sizeof(SurfacePattern)];
   };
 };
@@ -816,7 +821,7 @@ class PushLayerCommand : public DrawingCommand {
 
 class PopClipCommand : public DrawingCommand {
  public:
-  PopClipCommand() {}
+  PopClipCommand() = default;
 
   CommandType GetType() const override { return PopClipCommand::Type; }
 
@@ -836,7 +841,7 @@ class PopClipCommand : public DrawingCommand {
 
 class PopLayerCommand : public DrawingCommand {
  public:
-  PopLayerCommand() {}
+  PopLayerCommand() = default;
 
   CommandType GetType() const override { return PopLayerCommand::Type; }
 

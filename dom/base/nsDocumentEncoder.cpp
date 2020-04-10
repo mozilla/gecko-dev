@@ -1287,7 +1287,7 @@ class nsHTMLCopyEncoder : public nsDocumentEncoder {
 
 nsHTMLCopyEncoder::nsHTMLCopyEncoder() { mIsTextWidget = false; }
 
-nsHTMLCopyEncoder::~nsHTMLCopyEncoder() {}
+nsHTMLCopyEncoder::~nsHTMLCopyEncoder() = default;
 
 NS_IMETHODIMP
 nsHTMLCopyEncoder::Init(Document* aDocument, const nsAString& aMimeType,
@@ -1378,7 +1378,7 @@ nsHTMLCopyEncoder::SetSelection(Selection* aSelection) {
   // there's no Clone() for selection! fix...
   // nsresult rv = aSelection->Clone(getter_AddRefs(mSelection);
   // NS_ENSURE_SUCCESS(rv, rv);
-  mEncodingScope.mSelection = new Selection();
+  mEncodingScope.mSelection = new Selection(nullptr);
 
   // loop thru the ranges in the selection
   for (uint32_t rangeIdx = 0; rangeIdx < rangeCount; ++rangeIdx) {

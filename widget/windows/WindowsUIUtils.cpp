@@ -33,7 +33,6 @@
 
 #  pragma comment(lib, "runtimeobject.lib")
 
-using namespace mozilla;
 using namespace ABI::Windows::UI;
 using namespace ABI::Windows::UI::ViewManagement;
 using namespace Microsoft::WRL;
@@ -130,6 +129,8 @@ IDataPackage4 : public IInspectable {
 #  endif
 
 #endif
+
+using namespace mozilla;
 
 WindowsUIUtils::WindowsUIUtils() : mInTabletMode(eTabletModeUnknown) {}
 
@@ -279,28 +280,28 @@ struct HStringDeleter {
   void operator()(pointer aString) { WindowsDeleteString(aString); }
 };
 
-typedef mozilla::UniquePtr<HSTRING, HStringDeleter> HStringUniquePtr;
+typedef UniquePtr<HSTRING, HStringDeleter> HStringUniquePtr;
 
-mozilla::Result<HStringUniquePtr, HRESULT> ConvertToWindowsString(
+Result<HStringUniquePtr, HRESULT> ConvertToWindowsString(
     const nsAString& aStr) {
   HSTRING rawStr;
   HRESULT hr = WindowsCreateString(PromiseFlatString(aStr).get(), aStr.Length(),
                                    &rawStr);
   if (FAILED(hr)) {
-    return mozilla::Err(hr);
+    return Err(hr);
   }
   return HStringUniquePtr(rawStr);
 }
 
-mozilla::Result<Ok, nsresult> RequestShare(
+Result<Ok, nsresult> RequestShare(
     const std::function<HRESULT(IDataRequestedEventArgs* pArgs)>& aCallback) {
   if (!IsWin10OrLater()) {
-    return mozilla::Err(NS_ERROR_FAILURE);
+    return Err(NS_ERROR_FAILURE);
   }
 
   HWND hwnd = GetForegroundWindow();
   if (!hwnd) {
-    return mozilla::Err(NS_ERROR_FAILURE);
+    return Err(NS_ERROR_FAILURE);
   }
 
   ComPtr<IDataTransferManagerInterop> dtmInterop;
@@ -313,7 +314,7 @@ mozilla::Result<Ok, nsresult> RequestShare(
       IID_PPV_ARGS(&dtmInterop));
   if (FAILED(hr) ||
       FAILED(dtmInterop->GetForWindow(hwnd, IID_PPV_ARGS(&dtm)))) {
-    return mozilla::Err(NS_ERROR_FAILURE);
+    return Err(NS_ERROR_FAILURE);
   }
 
   auto callback = Callback<
@@ -326,7 +327,7 @@ mozilla::Result<Ok, nsresult> RequestShare(
   EventRegistrationToken dataRequestedToken;
   if (FAILED(dtm->add_DataRequested(callback.Get(), &dataRequestedToken)) ||
       FAILED(dtmInterop->ShowShareUIForWindow(hwnd))) {
-    return mozilla::Err(NS_ERROR_FAILURE);
+    return Err(NS_ERROR_FAILURE);
   }
 
   return Ok();
@@ -336,8 +337,8 @@ mozilla::Result<Ok, nsresult> RequestShare(
 RefPtr<SharePromise> WindowsUIUtils::Share(nsAutoString aTitle,
                                            nsAutoString aText,
                                            nsAutoString aUrl) {
-  auto promiseHolder = mozilla::MakeRefPtr<
-      mozilla::media::Refcountable<mozilla::MozPromiseHolder<SharePromise>>>();
+  auto promiseHolder = MakeRefPtr<
+      mozilla::media::Refcountable<MozPromiseHolder<SharePromise>>>();
   RefPtr<SharePromise> promise = promiseHolder->Ensure(__func__);
 
 #ifndef __MINGW32__

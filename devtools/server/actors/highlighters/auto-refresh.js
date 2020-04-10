@@ -103,7 +103,7 @@ AutoRefreshHighlighter.prototype = {
 
   /* Window containing the target content. */
   get contentWindow() {
-    return isReplaying ? ReplayInspector.window : this.win;
+    return this.win;
   },
 
   /**
@@ -298,7 +298,7 @@ AutoRefreshHighlighter.prototype = {
   },
 
   _startRefreshLoop: function() {
-    const win = isReplaying ? this.win : this.currentNode.ownerGlobal;
+    const win = this.currentNode.ownerGlobal;
     this.rafID = win.requestAnimationFrame(this._startRefreshLoop.bind(this));
     this.rafWin = win;
     this.update();

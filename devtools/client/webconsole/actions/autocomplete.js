@@ -27,10 +27,11 @@ function autocompleteUpdate(force, getterPath, expressionVars) {
     }
 
     const inputValue = hud.getInputValue();
-    const {
-      frameActor: frameActorId,
-      webConsoleFront,
-    } = await webConsoleUI.getFrameActor();
+    const frameActorId = await webConsoleUI.getFrameActor();
+    const webconsoleFront = await webConsoleUI.getWebconsoleFront({
+      frameActorId,
+    });
+
     const cursor = webConsoleUI.getInputCursor();
 
     const state = getState().autocomplete;
@@ -80,7 +81,7 @@ function autocompleteUpdate(force, getterPath, expressionVars) {
       autocompleteDataFetch({
         input,
         frameActorId,
-        webConsoleFront,
+        webconsoleFront,
         authorizedEvaluations,
         force,
         expressionVars,
@@ -133,15 +134,16 @@ function autocompleteDataFetch({
   input,
   frameActorId,
   force,
-  webConsoleFront,
+  webconsoleFront,
   authorizedEvaluations,
   expressionVars,
 }) {
-  return ({ dispatch, webConsoleUI }) => {
+  return async ({ dispatch, webConsoleUI }) => {
     const selectedNodeActor = webConsoleUI.getSelectedNodeActor();
     const id = generateRequestId();
     dispatch({ type: AUTOCOMPLETE_PENDING_REQUEST, id });
-    webConsoleFront
+
+    webconsoleFront
       .autocomplete(
         input,
         undefined,

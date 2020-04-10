@@ -715,9 +715,7 @@ this.AntiTracking = {
         if (options.errorMessageDomains) {
           ok(
             msg.errorMessage.includes(options.errorMessageDomains[index]),
-            `Error message domain ${
-              options.errorMessageDomains[index]
-            } (${index}) found in "${msg.errorMessage}"`
+            `Error message domain ${options.errorMessageDomains[index]} (${index}) found in "${msg.errorMessage}"`
           );
           index++;
         }
@@ -1095,6 +1093,9 @@ this.AntiTracking = {
       channel.asyncOpen(listener);
     });
 
-    return channel.QueryInterface(Ci.nsIClassifiedChannel).isTrackingResource();
+    return !!(
+      channel.QueryInterface(Ci.nsIClassifiedChannel).classificationFlags &
+      Ci.nsIClassifiedChannel.CLASSIFIED_ANY_BASIC_TRACKING
+    );
   },
 };

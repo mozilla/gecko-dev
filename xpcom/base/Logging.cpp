@@ -10,6 +10,7 @@
 
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/FileUtils.h"
+#include "mozilla/LateWriteChecks.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Printf.h"
@@ -161,9 +162,7 @@ void empty_va(va_list* va, ...) {
 class LogModuleManager {
  public:
   LogModuleManager()
-      // As for logging atomics, don't preserve behavior for this lock when
-      // recording/replaying.
-      : mModulesLock("logmodules", recordreplay::Behavior::DontPreserve),
+      : mModulesLock("logmodules"),
         mModules(kInitialModuleCount),
         mPrintEntryCount(0),
         mOutFile(nullptr),
@@ -390,6 +389,7 @@ class LogModuleManager {
 
   void Print(const char* aName, LogLevel aLevel, const TimeStamp* aStart,
              const char* aFmt, va_list aArgs) MOZ_FORMAT_PRINTF(5, 0) {
+    AutoSuspendLateWriteChecks suspendLateWriteChecks;
     long pid = static_cast<long>(base::GetCurrentProcId());
     const size_t kBuffSize = 1024;
     char buff[kBuffSize];

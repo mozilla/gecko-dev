@@ -253,7 +253,7 @@ class EMEDecryptor : public MediaDataDecoder,
       mIsShutdown = true;
       mSamplesWaitingForKey->BreakCycles();
       mSamplesWaitingForKey = nullptr;
-      RefPtr<MediaDataDecoder> decoder = mDecoder.forget();
+      RefPtr<MediaDataDecoder> decoder = std::move(mDecoder);
       mProxy = nullptr;
       return decoder->Shutdown();
     });
@@ -359,7 +359,7 @@ RefPtr<ShutdownPromise> EMEMediaDataDecoderProxy::Shutdown() {
 EMEDecoderModule::EMEDecoderModule(CDMProxy* aProxy, PDMFactory* aPDM)
     : mProxy(aProxy), mPDM(aPDM) {}
 
-EMEDecoderModule::~EMEDecoderModule() {}
+EMEDecoderModule::~EMEDecoderModule() = default;
 
 static already_AddRefed<MediaDataDecoderProxy> CreateDecoderWrapper(
     CDMProxy* aProxy, const CreateDecoderParams& aParams) {

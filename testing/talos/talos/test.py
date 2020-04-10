@@ -866,6 +866,13 @@ class motionmark_animometer(WebkitBenchmark):
 
 
 @register_test()
+class motionmark_webgl(WebkitBenchmark):
+    # MotionMark benchmark used by many browser vendors (from webkit)
+    tpmanifest = '${talos}/tests/motionmark/webgl.manifest'
+    unit = 'fps'
+
+
+@register_test()
 class ARES6(WebkitBenchmark):
     # ARES-6 benchmark used by many browser vendors (from webkit)
     tpmanifest = '${talos}/tests/ares6/ares6.manifest'
@@ -1033,5 +1040,14 @@ class about_newtab_with_snippets(PageloaderTest):
             '{"id":"snippets","enabled":true,"type":"json","location":\
             "http://fakedomain/tests/about-newtab/snippets.json",\
             "updateCycleInMs":14400000}',
-            'browser.newtabpage.activity-stream.feeds.snippets': True
+            'browser.newtabpage.activity-stream.feeds.snippets': True,
+            'browser.newtabpage.activity-stream.feeds.section.topstories': True,
+            'browser.newtabpage.activity-stream.feeds.section.topstories.options':\
+            '{"provider_name":""}',
+            'browser.newtabpage.activity-stream.discoverystream.endpoints': 'http://fakedomain',
+            'browser.newtabpage.activity-stream.discoverystream.config':\
+            '{"api_key_pref":"extensions.pocket.oAuthConsumerKey","collapsible":true,\
+            "enabled":true,"show_spocs":false,"hardcoded_layout":false,"personalized":true,\
+            "layout_endpoint":\
+            "http://fakedomain/tests/about-newtab/ds_layout.json"}'
             }

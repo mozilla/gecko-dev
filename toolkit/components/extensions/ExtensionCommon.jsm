@@ -1750,9 +1750,7 @@ class SchemaAPIManager extends EventEmitter {
       {
         wantXrays: false,
         wantGlobalProperties: ["ChromeUtils"],
-        sandboxName: `Namespace of ext-*.js scripts for ${
-          this.processType
-        } (from: resource://gre/modules/ExtensionCommon.jsm)`,
+        sandboxName: `Namespace of ext-*.js scripts for ${this.processType} (from: resource://gre/modules/ExtensionCommon.jsm)`,
       }
     );
 
@@ -2185,9 +2183,6 @@ class EventManager {
     this.remove = new Map();
 
     if (this.persistent) {
-      if (this.context.viewType !== "background") {
-        this.persistent = null;
-      }
       if (AppConstants.DEBUG) {
         if (this.context.envType !== "addon_parent") {
           throw new Error(
@@ -2199,6 +2194,9 @@ class EventManager {
             "Persistent event manager must specify module and event"
           );
         }
+      }
+      if (this.context.viewType !== "background") {
+        this.persistent = null;
       }
     }
   }

@@ -16,9 +16,8 @@ enum CSSStyleSheetParsingMode {
 
 dictionary CSSStyleSheetInit {
   (MediaList or DOMString) media = "";
-  DOMString title = "";
-  boolean alternate = false;
   boolean disabled = false;
+  UTF8String baseURL;
 };
 
 [Exposed=Window]
@@ -36,7 +35,7 @@ interface CSSStyleSheet : StyleSheet {
   [Throws, NeedsSubjectPrincipal]
   void deleteRule(unsigned long index);
   [Throws, Pref="layout.css.constructable-stylesheets.enabled"]
-  Promise<CSSStyleSheet> replace(USVString text);
+  Promise<CSSStyleSheet> replace(UTF8String text);
   [Throws, Pref="layout.css.constructable-stylesheets.enabled"]
   void replaceSync(UTF8String text);
 

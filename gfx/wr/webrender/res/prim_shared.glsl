@@ -109,15 +109,11 @@ struct VertexInfo {
     vec4 world_pos;
 };
 
-VertexInfo write_vertex(RectWithSize instance_rect,
+VertexInfo write_vertex(vec2 local_pos,
                         RectWithSize local_clip_rect,
                         float z,
                         Transform transform,
                         PictureTask task) {
-
-    // Select the corner of the local rect that we are processing.
-    vec2 local_pos = instance_rect.p0 + instance_rect.size * aPosition.xy;
-
     // Clamp to the two local clip rects.
     vec2 clamped_local_pos = clamp_rect(local_pos, local_clip_rect);
 
@@ -244,6 +240,14 @@ vec2 get_image_quad_uv(int address, vec2 f) {
 #endif //WR_VERTEX_SHADER
 
 #ifdef WR_FRAGMENT_SHADER
+
+struct Fragment {
+    vec4 color;
+#ifdef WR_FEATURE_DUAL_SOURCE_BLENDING
+    vec4 blend;
+#endif
+};
+
 
 float do_clip() {
     // check for the dummy bounds, which are given to the opaque objects

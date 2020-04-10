@@ -604,7 +604,6 @@ nsWindow::nsWindow(bool aIsChildWindow)
   mOldExStyle = 0;
   mPainting = 0;
   mLastKeyboardLayout = 0;
-  mBlurSuppressLevel = 0;
   mLastPaintEndTime = TimeStamp::Now();
   mCachedHitTestPoint.x = 0;
   mCachedHitTestPoint.y = 0;
@@ -4164,22 +4163,19 @@ bool nsWindow::TouchEventShouldStartDrag(EventMessage aEventMessage,
     hittest.mInputSource = MouseEvent_Binding::MOZ_SOURCE_TOUCH;
     DispatchInputEvent(&hittest);
 
-    EventTarget* target = hittest.GetDOMEventTarget();
-    if (target) {
-      nsCOMPtr<nsIContent> node = do_QueryInterface(target);
-
-      // Check if the element or any parent element has the
-      // attribute we're looking for.
-      while (node) {
-        if (node->IsElement()) {
+    if (EventTarget* target = hittest.GetDOMEventTarget()) {
+      if (nsCOMPtr<nsIContent> content = do_QueryInterface(target)) {
+        // Check if the element or any parent element has the
+        // attribute we're looking for.
+        for (Element* element = content->GetAsElementOrParentElement(); element;
+             element = element->GetParentElement()) {
           nsAutoString startDrag;
-          node->AsElement()->GetAttribute(
-              NS_LITERAL_STRING("touchdownstartsdrag"), startDrag);
+          element->GetAttribute(NS_LITERAL_STRING("touchdownstartsdrag"),
+                                startDrag);
           if (!startDrag.IsEmpty()) {
             return true;
           }
         }
-        node = node->GetParent();
       }
     }
   }
@@ -4539,9 +4535,7 @@ void nsWindow::DispatchFocusToTopLevelWindow(bool aIsActivate) {
       if (aIsActivate) {
         win->mWidgetListener->WindowActivated();
       } else {
-        if (!win->BlurEventsSuppressed()) {
-          win->mWidgetListener->WindowDeactivated();
-        }
+        win->mWidgetListener->WindowDeactivated();
       }
     }
   }
@@ -4565,31 +4559,6 @@ bool nsWindow::IsTopLevelMouseExit(HWND aWnd) {
   if (mouseWnd == mouseTopLevel) return true;
 
   return WinUtils::GetTopLevelHWND(aWnd) != mouseTopLevel;
-}
-
-bool nsWindow::BlurEventsSuppressed() {
-  // are they suppressed in this window?
-  if (mBlurSuppressLevel > 0) return true;
-
-  // are they suppressed by any container widget?
-  HWND parentWnd = ::GetParent(mWnd);
-  if (parentWnd) {
-    nsWindow* parent = WinUtils::GetNSWindowPtr(parentWnd);
-    if (parent) return parent->BlurEventsSuppressed();
-  }
-  return false;
-}
-
-// In some circumstances (opening dependent windows) it makes more sense
-// (and fixes a crash bug) to not blur the parent window. Called from
-// nsFilePicker.
-void nsWindow::SuppressBlurEvents(bool aSuppress) {
-  if (aSuppress)
-    ++mBlurSuppressLevel;  // for this widget
-  else {
-    NS_ASSERTION(mBlurSuppressLevel > 0, "unbalanced blur event suppression");
-    if (mBlurSuppressLevel > 0) --mBlurSuppressLevel;
-  }
 }
 
 bool nsWindow::ConvertStatus(nsEventStatus aStatus) {

@@ -68,11 +68,12 @@ async function testSimulate(simulator, matrix, type = null) {
 }
 
 add_task(async function() {
-  const { target, accessibility } = await initAccessibilityFrontForUrl(
-    MAIN_DOMAIN + "doc_accessibility.html"
+  const { target, accessibility } = await initAccessibilityFrontsForUrl(
+    MAIN_DOMAIN + "doc_accessibility.html",
+    { enableByDefault: false }
   );
 
-  const simulator = await accessibility.getSimulator();
+  const simulator = accessibility.simulatorFront;
 
   if (!simulator) {
     ok(!isWebRenderEnabled(window), "Web render is disabled.");

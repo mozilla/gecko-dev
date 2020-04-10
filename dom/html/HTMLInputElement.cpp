@@ -169,27 +169,25 @@ static const nsAttrValue::EnumTable kInputTypeTable[] = {
 static const nsAttrValue::EnumTable* kInputDefaultType =
     &kInputTypeTable[ArrayLength(kInputTypeTable) - 2];
 
-static const uint8_t NS_INPUT_INPUTMODE_AUTO = 0;
-static const uint8_t NS_INPUT_INPUTMODE_NUMERIC = 1;
-static const uint8_t NS_INPUT_INPUTMODE_DIGIT = 2;
-static const uint8_t NS_INPUT_INPUTMODE_UPPERCASE = 3;
-static const uint8_t NS_INPUT_INPUTMODE_LOWERCASE = 4;
-static const uint8_t NS_INPUT_INPUTMODE_TITLECASE = 5;
-static const uint8_t NS_INPUT_INPUTMODE_AUTOCAPITALIZED = 6;
+static const uint8_t NS_INPUT_INPUTMODE_NONE = 1;
+static const uint8_t NS_INPUT_INPUTMODE_TEXT = 2;
+static const uint8_t NS_INPUT_INPUTMODE_TEL = 3;
+static const uint8_t NS_INPUT_INPUTMODE_URL = 4;
+static const uint8_t NS_INPUT_INPUTMODE_EMAIL = 5;
+static const uint8_t NS_INPUT_INPUTMODE_NUMERIC = 6;
+static const uint8_t NS_INPUT_INPUTMODE_DECIMAL = 7;
+static const uint8_t NS_INPUT_INPUTMODE_SEARCH = 8;
 
 static const nsAttrValue::EnumTable kInputInputmodeTable[] = {
-    {"auto", NS_INPUT_INPUTMODE_AUTO},
+    {"none", NS_INPUT_INPUTMODE_NONE},
+    {"text", NS_INPUT_INPUTMODE_TEXT},
+    {"tel", NS_INPUT_INPUTMODE_TEL},
+    {"url", NS_INPUT_INPUTMODE_URL},
+    {"email", NS_INPUT_INPUTMODE_EMAIL},
     {"numeric", NS_INPUT_INPUTMODE_NUMERIC},
-    {"digit", NS_INPUT_INPUTMODE_DIGIT},
-    {"uppercase", NS_INPUT_INPUTMODE_UPPERCASE},
-    {"lowercase", NS_INPUT_INPUTMODE_LOWERCASE},
-    {"titlecase", NS_INPUT_INPUTMODE_TITLECASE},
-    {"autocapitalized", NS_INPUT_INPUTMODE_AUTOCAPITALIZED},
+    {"decimal", NS_INPUT_INPUTMODE_DECIMAL},
+    {"search", NS_INPUT_INPUTMODE_SEARCH},
     {nullptr, 0}};
-
-// Default inputmode value is "auto".
-static const nsAttrValue::EnumTable* kInputDefaultInputmode =
-    &kInputInputmodeTable[0];
 
 static const nsAttrValue::EnumTable kCaptureTable[] = {
     {"user", static_cast<int16_t>(nsIFilePicker::captureUser)},
@@ -561,7 +559,7 @@ NS_IMPL_ISUPPORTS(HTMLInputElement::nsFilePickerShownCallback,
                   nsIFilePickerShownCallback)
 
 class nsColorPickerShownCallback final : public nsIColorPickerShownCallback {
-  ~nsColorPickerShownCallback() {}
+  ~nsColorPickerShownCallback() = default;
 
  public:
   nsColorPickerShownCallback(HTMLInputElement* aInput,
@@ -928,7 +926,6 @@ UploadLastDir::Observe(nsISupports* aSubject, char const* aTopic,
 #ifdef ACCESSIBILITY
 // Helper method
 static nsresult FireEventForAccessibility(HTMLInputElement* aTarget,
-                                          nsPresContext* aPresContext,
                                           EventMessage aEventMessage);
 #endif
 
@@ -1387,7 +1384,7 @@ void HTMLInputElement::GetFormMethod(nsAString& aValue) {
 }
 
 void HTMLInputElement::GetInputMode(nsAString& aValue) {
-  GetEnumAttr(nsGkAtoms::inputmode, kInputDefaultInputmode->tag, aValue);
+  GetEnumAttr(nsGkAtoms::inputmode, nullptr, aValue);
 }
 
 void HTMLInputElement::GetType(nsAString& aValue) {
@@ -1440,7 +1437,7 @@ void HTMLInputElement::GetValue(nsAString& aValue, CallerType aCallerType) {
   GetValueInternal(aValue, aCallerType);
 
   if (SanitizesOnValueGetter()) {
-    SanitizeValue(aValue);
+    SanitizeValue(aValue, ForValueGetter::Yes);
   }
 }
 
@@ -1744,9 +1741,7 @@ void HTMLInputElement::SetValueAsDate(JSContext* aCx,
       return;
     }
     if (!isDate) {
-      aRv.ThrowTypeError(
-          u"Value being assigned to HTMLInputElement.valueAsDate is not a "
-          u"date.");
+      aRv.ThrowTypeError("Value being assigned is not a date.");
       return;
     }
   }
@@ -2173,7 +2168,8 @@ void HTMLInputElement::SetFocusState(bool aIsFocused) {
     return;
   }
 
-  EventStates focusStates = NS_EVENT_STATE_FOCUS | NS_EVENT_STATE_FOCUSRING;
+  EventStates focusStates = NS_EVENT_STATE_FOCUS | NS_EVENT_STATE_FOCUSRING |
+                            NS_EVENT_STATE_FOCUS_VISIBLE;
   if (aIsFocused) {
     AddStates(focusStates);
   } else {
@@ -3117,11 +3113,6 @@ void HTMLInputElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
     if (textControlFrame) textControlFrame->EnsureEditorInitialized();
   }
 
-  // FIXME Allow submission etc. also when there is no prescontext, Bug 329509.
-  if (!aVisitor.mPresContext) {
-    nsGenericHTMLFormElementWithState::GetEventTargetParent(aVisitor);
-    return;
-  }
   //
   // Web pages expect the value of a radio button or checkbox to be set
   // *before* onclick and DOMActivate fire, and they expect that if they set
@@ -3317,9 +3308,6 @@ void HTMLInputElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
 }
 
 nsresult HTMLInputElement::PreHandleEvent(EventChainVisitor& aVisitor) {
-  if (!aVisitor.mPresContext) {
-    return nsGenericHTMLFormElementWithState::PreHandleEvent(aVisitor);
-  }
   nsresult rv;
   if (aVisitor.mItemFlags & NS_PRE_HANDLE_BLUR_EVENT) {
     MOZ_ASSERT(aVisitor.mEvent->mMessage == eBlur);
@@ -3595,12 +3583,6 @@ static bool IgnoreInputEventWithModifier(WidgetInputEvent* aEvent,
 }
 
 nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
-  if (!aVisitor.mPresContext) {
-    // Hack alert! In order to open file picker even in case the element isn't
-    // in document, try to init picker even without PresContext.
-    return MaybeInitPickers(aVisitor);
-  }
-
   if (aVisitor.mEvent->mMessage == eFocus ||
       aVisitor.mEvent->mMessage == eBlur) {
     if (aVisitor.mEvent->mMessage == eBlur) {
@@ -3639,7 +3621,9 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
       InternalUIEvent actEvent(true, eLegacyDOMActivate, mouseEvent);
       actEvent.mDetail = 1;
 
-      if (RefPtr<PresShell> presShell = aVisitor.mPresContext->GetPresShell()) {
+      if (RefPtr<PresShell> presShell =
+              aVisitor.mPresContext ? aVisitor.mPresContext->GetPresShell()
+                                    : nullptr) {
         nsEventStatus status = nsEventStatus_eIgnore;
         mInInternalActivate = true;
         rv = presShell->HandleDOMEventWithTarget(this, &actEvent, &status);
@@ -3706,17 +3690,14 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
 #ifdef ACCESSIBILITY
       // Fire an event to notify accessibility
       if (mType == NS_FORM_INPUT_CHECKBOX) {
-        FireEventForAccessibility(this, aVisitor.mPresContext,
-                                  eFormCheckboxStateChange);
+        FireEventForAccessibility(this, eFormCheckboxStateChange);
       } else {
-        FireEventForAccessibility(this, aVisitor.mPresContext,
-                                  eFormRadioStateChange);
+        FireEventForAccessibility(this, eFormRadioStateChange);
         // Fire event for the previous selected radio.
         nsCOMPtr<nsIContent> content = do_QueryInterface(aVisitor.mItemData);
         HTMLInputElement* previous = HTMLInputElement::FromNodeOrNull(content);
         if (previous) {
-          FireEventForAccessibility(previous, aVisitor.mPresContext,
-                                    eFormRadioStateChange);
+          FireEventForAccessibility(previous, eFormRadioStateChange);
         }
       }
 #endif
@@ -3786,7 +3767,8 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
               case NS_FORM_INPUT_CHECKBOX:
               case NS_FORM_INPUT_RADIO: {
                 // Checkbox and Radio try to submit on Enter press
-                if (keyEvent->mKeyCode != NS_VK_SPACE) {
+                if (keyEvent->mKeyCode != NS_VK_SPACE &&
+                    aVisitor.mPresContext) {
                   MaybeSubmitForm(MOZ_KnownLive(aVisitor.mPresContext));
 
                   break;  // If we are submitting, do not send click event
@@ -3865,8 +3847,10 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
                mType == NS_FORM_INPUT_NUMBER ||
                IsExperimentalMobileType(mType) || IsDateTimeInputType(mType))) {
             FireChangeEventIfNeeded();
-            rv = MaybeSubmitForm(MOZ_KnownLive(aVisitor.mPresContext));
-            NS_ENSURE_SUCCESS(rv, rv);
+            if (aVisitor.mPresContext) {
+              rv = MaybeSubmitForm(MOZ_KnownLive(aVisitor.mPresContext));
+              NS_ENSURE_SUCCESS(rv, rv);
+            }
           }
 
           if (aVisitor.mEvent->mMessage == eKeyPress &&
@@ -4499,7 +4483,8 @@ void HTMLInputElement::HandleTypeChange(uint8_t aNewType, bool aNotify) {
   }
 }
 
-void HTMLInputElement::SanitizeValue(nsAString& aValue) {
+void HTMLInputElement::SanitizeValue(nsAString& aValue,
+                                     ForValueGetter aForGetter) {
   NS_ASSERTION(mDoneCreating, "The element creation should be finished!");
 
   switch (mType) {
@@ -4521,7 +4506,40 @@ void HTMLInputElement::SanitizeValue(nsAString& aValue) {
       bool ok = mInputType->ConvertStringToNumber(aValue, value);
       if (!ok) {
         aValue.Truncate();
+        return;
       }
+
+      nsAutoString sanitizedValue;
+      if (aForGetter == ForValueGetter::Yes) {
+        // If the default non-localized algorithm parses the value, then we're
+        // done, don't un-localize it, to avoid precision loss, and to preserve
+        // scientific notation as well for example.
+        //
+        // FIXME(emilio, bug 1622808): Localization should ideally be more
+        // input-preserving.
+        if (StringToDecimal(aValue).isFinite()) {
+          return;
+        }
+        // For the <input type=number> value getter, we return the unlocalized
+        // value if it doesn't parse as StringToDecimal, for compat with other
+        // browsers.
+        char buf[32];
+        DebugOnly<bool> ok = value.toString(buf, ArrayLength(buf));
+        sanitizedValue.AssignASCII(buf);
+        MOZ_ASSERT(ok, "buf not big enough");
+      } else {
+        mInputType->ConvertNumberToString(value, sanitizedValue);
+        // Otherwise we localize as needed, but if both the localized and
+        // unlocalized version parse, we just use the unlocalized one, to
+        // preserve the input as much as possible.
+        //
+        // FIXME(emilio, bug 1622808): Localization should ideally be more
+        // input-preserving.
+        if (StringToDecimal(sanitizedValue).isFinite()) {
+          return;
+        }
+      }
+      aValue.Assign(sanitizedValue);
     } break;
     case NS_FORM_INPUT_RANGE: {
       Decimal minimum = GetMinimum();
@@ -5516,7 +5534,6 @@ void HTMLInputElement::SetSelectionDirection(const nsAString& aDirection,
 
 #ifdef ACCESSIBILITY
 /*static*/ nsresult FireEventForAccessibility(HTMLInputElement* aTarget,
-                                              nsPresContext* aPresContext,
                                               EventMessage aEventMessage) {
   Element* element = static_cast<Element*>(aTarget);
   return nsContentUtils::DispatchTrustedEvent<WidgetEvent>(
@@ -5602,7 +5619,7 @@ HTMLInputElement::SubmitNamesValues(HTMLFormSubmission* aFormSubmission) {
   if (IsDisabled() || mType == NS_FORM_INPUT_RESET ||
       mType == NS_FORM_INPUT_BUTTON ||
       ((mType == NS_FORM_INPUT_SUBMIT || mType == NS_FORM_INPUT_IMAGE) &&
-       aFormSubmission->GetOriginatingElement() != this) ||
+       aFormSubmission->GetSubmitterElement() != this) ||
       ((mType == NS_FORM_INPUT_RADIO || mType == NS_FORM_INPUT_CHECKBOX) &&
        !mChecked)) {
     return NS_OK;

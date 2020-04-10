@@ -134,7 +134,7 @@ CompositorBridgeParentBase::CompositorBridgeParentBase(
     CompositorManagerParent* aManager)
     : mCanSend(true), mCompositorManager(aManager) {}
 
-CompositorBridgeParentBase::~CompositorBridgeParentBase() {}
+CompositorBridgeParentBase::~CompositorBridgeParentBase() = default;
 
 ProcessId CompositorBridgeParentBase::GetChildProcessId() { return OtherPid(); }
 
@@ -266,7 +266,7 @@ inline void CompositorBridgeParent::ForEachIndirectLayerTree(
 inline void CompositorBridgeParent::ForEachWebRenderBridgeParent(
     const Lambda& aCallback) {
   sIndirectLayerTreesLock->AssertCurrentThreadOwns();
-  for (auto it : sIndirectLayerTrees) {
+  for (auto& it : sIndirectLayerTrees) {
     LayerTreeState* state = &it.second;
     if (state->mWrBridge) {
       aCallback(state->mWrBridge);
@@ -360,7 +360,7 @@ CompositorBridgeParent::CompositorBridgeParent(
 
 void CompositorBridgeParent::InitSameProcess(widget::CompositorWidget* aWidget,
                                              const LayersId& aLayerTreeId) {
-  MOZ_ASSERT(XRE_IsParentProcess() || recordreplay::IsRecordingOrReplaying());
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 
   mWidget = aWidget;
@@ -1021,11 +1021,7 @@ void CompositorBridgeParent::CompositeToTarget(VsyncId aId, DrawTarget* aTarget,
   bool requestNextFrame =
       mCompositionManager->TransformShadowTree(time, mVsyncRate);
 
-  // Don't eagerly schedule new compositions here when recording or replaying.
-  // Recording/replaying processes schedule composites at the top of the main
-  // thread's event loop rather than via PVsync, which can cause the composites
-  // scheduled here to pile up without any drawing actually happening.
-  if (requestNextFrame && !recordreplay::IsRecordingOrReplaying()) {
+  if (requestNextFrame) {
     ScheduleComposition();
 #if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
     // If we have visible windowed plugins then we need to wait for content (and
@@ -1479,6 +1475,13 @@ void CompositorBridgeParent::InitializeLayerManager(
     if (!mCompositor) {
       return;
     }
+#ifdef XP_WIN
+    if (mCompositor->AsBasicCompositor() && XRE_IsGPUProcess()) {
+      // BasicCompositor does not use CompositorWindow,
+      // then if CompositorWindow exists, it needs to be destroyed.
+      mWidget->AsWindows()->DestroyCompositorWindow();
+    }
+#endif
     mLayerManager = new LayerManagerComposite(mCompositor);
   }
   mLayerManager->SetCompositorBridgeID(mCompositorBridgeID);
@@ -1602,7 +1605,8 @@ PLayerTransactionParent* CompositorBridgeParent::AllocPLayerTransactionParent(
 #ifdef XP_WIN
   // This is needed to avoid freezing the window on a device crash on double
   // buffering, see bug 1549674.
-  if (gfxVars::UseDoubleBufferingWithCompositor() && XRE_IsGPUProcess()) {
+  if (gfxVars::UseDoubleBufferingWithCompositor() && XRE_IsGPUProcess() &&
+      aBackendHints.Contains(LayersBackend::LAYERS_D3D11)) {
     mWidget->AsWindows()->EnsureCompositorWindow();
   }
 #endif
@@ -2014,6 +2018,8 @@ void CompositorBridgeParent::InitializeStatics() {
   gfxVars::SetWebRenderDebugFlagsListener(&UpdateDebugFlags);
   gfxVars::SetUseWebRenderMultithreadingListener(
       &UpdateWebRenderMultithreading);
+  gfxVars::SetWebRenderBatchingLookbackListener(
+      &UpdateWebRenderBatchingParameters);
 }
 
 /*static*/
@@ -2071,6 +2077,24 @@ void CompositorBridgeParent::UpdateWebRenderMultithreading() {
   MonitorAutoLock lock(*sIndirectLayerTreesLock);
   ForEachWebRenderBridgeParent([&](WebRenderBridgeParent* wrBridge) -> void {
     wrBridge->UpdateMultithreading();
+  });
+}
+
+/*static*/
+void CompositorBridgeParent::UpdateWebRenderBatchingParameters() {
+  if (!CompositorThreadHolder::IsInCompositorThread()) {
+    if (CompositorLoop()) {
+      CompositorLoop()->PostTask(NewRunnableFunction(
+          "CompositorBridgeParent::UpdateWebRenderBatchingParameters",
+          &CompositorBridgeParent::UpdateWebRenderBatchingParameters));
+    }
+
+    return;
+  }
+
+  MonitorAutoLock lock(*sIndirectLayerTreesLock);
+  ForEachWebRenderBridgeParent([&](WebRenderBridgeParent* wrBridge) -> void {
+    wrBridge->UpdateBatchingParameters();
   });
 }
 
@@ -2288,7 +2312,7 @@ void CompositorBridgeParent::DidComposite(const VsyncId& aId,
 
 void CompositorBridgeParent::NotifyDidSceneBuild(
     const nsTArray<wr::RenderRoot>& aRenderRoots,
-    RefPtr<wr::WebRenderPipelineInfo> aInfo) {
+    RefPtr<const wr::WebRenderPipelineInfo> aInfo) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   if (mPaused) {
     return;

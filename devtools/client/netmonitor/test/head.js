@@ -143,7 +143,7 @@ const gDefaultFilters = Services.prefs.getCharPref(
 // Reveal many columns for test
 Services.prefs.setCharPref(
   "devtools.netmonitor.visibleColumns",
-  '["cause","contentSize","cookies","domain","duration",' +
+  '["cause","initiator","contentSize","cookies","domain","duration",' +
     '"endTime","file","url","latency","method","protocol",' +
     '"remoteip","responseTime","scheme","setCookies",' +
     '"startTime","status","transferred","type","waterfall"]'
@@ -487,8 +487,11 @@ function verifyRequestItemTarget(
 ) {
   info("> Verifying: " + method + " " + url + " " + data.toSource());
 
-  const visibleIndex = requestList.indexOf(requestItem);
+  const visibleIndex = requestList.findIndex(
+    needle => needle.id === requestItem.id
+  );
 
+  isnot(visibleIndex, -1, "The requestItem exists");
   info("Visible index of item: " + visibleIndex);
 
   const {
@@ -505,6 +508,7 @@ function verifyRequestItemTarget(
   } = data;
 
   const target = document.querySelectorAll(".request-list-item")[visibleIndex];
+
   // Bug 1414981 - Request URL should not show #hash
   const unicodeUrl = getUnicodeUrl(url.split("#")[0]);
   const ORIGINAL_FILE_URL = L10N.getFormatStr(

@@ -20,6 +20,7 @@
 #include "gc/Allocator.h"
 #include "gc/Barrier.h"
 #include "gc/Cell.h"
+#include "gc/MaybeRooted.h"
 #include "gc/Nursery.h"
 #include "gc/Rooting.h"
 #include "js/CharacterEncoding.h"
@@ -36,7 +37,7 @@ class JSRope;
 
 namespace JS {
 
-class AutoStableStringChars;
+class JS_FRIEND_API AutoStableStringChars;
 
 }  // namespace JS
 
@@ -1519,7 +1520,7 @@ extern JSLinearString* NewStringFromLittleEndianNoGC(JSContext* cx,
                                                      LittleEndianChars chars,
                                                      size_t length);
 
-JS_STATIC_ASSERT(sizeof(HashNumber) == 4);
+static_assert(sizeof(HashNumber) == 4);
 
 template <AllowGC allowGC>
 extern JSString* ConcatStrings(

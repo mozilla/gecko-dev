@@ -40,6 +40,11 @@ BrowsingContextGroup* WindowContext::Group() const {
   return mBrowsingContext->Group();
 }
 
+WindowGlobalParent* WindowContext::Canonical() {
+  MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
+  return static_cast<WindowGlobalParent*>(this);
+}
+
 nsIGlobalObject* WindowContext::GetParentObject() const {
   return xpc::NativeGlobal(xpc::PrivilegedJunkScope());
 }
@@ -168,30 +173,16 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(WindowContext)
 
 namespace ipc {
 
-void IPDLParamTraits<dom::WindowContext*>::Write(IPC::Message* aMsg,
-                                                 IProtocol* aActor,
-                                                 dom::WindowContext* aParam) {
-  uint64_t id = aParam ? aParam->InnerWindowId() : 0;
+void IPDLParamTraits<dom::MaybeDiscarded<dom::WindowContext>>::Write(
+    IPC::Message* aMsg, IProtocol* aActor,
+    const dom::MaybeDiscarded<dom::WindowContext>& aParam) {
+  uint64_t id = aParam.ContextId();
   WriteIPDLParam(aMsg, aActor, id);
-  if (!aParam) {
-    return;
-  }
-
-  // Make sure that the other side will still have our WindowContext around when
-  // it tries to perform deserialization. See `BrowsingContext`'s impl for
-  // justifications.
-  if (aActor->GetIPCChannel()->IsCrossProcess()) {
-    MOZ_RELEASE_ASSERT(
-        !aParam->IsDiscarded(),
-        "Cannot send discarded WindowContext between processes!");
-  } else {
-    aParam->AddRef();
-  }
 }
 
-bool IPDLParamTraits<dom::WindowContext*>::Read(
+bool IPDLParamTraits<dom::MaybeDiscarded<dom::WindowContext>>::Read(
     const IPC::Message* aMsg, PickleIterator* aIter, IProtocol* aActor,
-    RefPtr<dom::WindowContext>* aResult) {
+    dom::MaybeDiscarded<dom::WindowContext>* aResult) {
   uint64_t id = 0;
   if (!ReadIPDLParam(aMsg, aIter, aActor, &id)) {
     return false;
@@ -199,22 +190,11 @@ bool IPDLParamTraits<dom::WindowContext*>::Read(
 
   if (id == 0) {
     *aResult = nullptr;
-    return true;
+  } else if (RefPtr<dom::WindowContext> wc = dom::WindowContext::GetById(id)) {
+    *aResult = std::move(wc);
+  } else {
+    aResult->SetDiscarded(id);
   }
-
-  RefPtr<dom::WindowContext> windowContext = dom::WindowContext::GetById(id);
-  if (!windowContext) {
-    MOZ_CRASH("Attempt to deserialize absent WindowContext");
-    *aResult = nullptr;
-    return false;
-  }
-
-  if (!aActor->GetIPCChannel()->IsCrossProcess()) {
-    // Release the reference taken in `::Write()` for in-process actors.
-    windowContext.get()->Release();
-  }
-
-  *aResult = windowContext.forget();
   return true;
 }
 

@@ -804,15 +804,12 @@
     /*
      * Create and push a new object with no properties.
      *
-     * (This opcode has 4 unused bytes so it can be easily turned into
-     * `JSOp::NewObject` during bytecode generation.)
-     *
      *   Category: Objects
      *   Type: Creating objects
-     *   Operands: uint32_t _unused
+     *   Operands:
      *   Stack: => obj
      */ \
-    MACRO(NewInit, new_init, NULL, 5, 0, 1, JOF_UINT32|JOF_IC) \
+    MACRO(NewInit, new_init, NULL, 1, 0, 1, JOF_UINT32|JOF_IC) \
     /*
      * Create and push a new object of a predetermined shape.
      *
@@ -2408,9 +2405,9 @@
      *   Category: Control flow
      *   Type: Exceptions
      *   Operands: uint8_t hops, uint24_t slot
-     *   Stack: v => v
+     *   Stack:
      */ \
-    MACRO(ThrowSetAliasedConst, throw_set_aliased_const, NULL, 5, 1, 1, JOF_ENVCOORD|JOF_NAME|JOF_DETECTING) \
+    MACRO(ThrowSetAliasedConst, throw_set_aliased_const, NULL, 5, 0, 0, JOF_ENVCOORD|JOF_NAME|JOF_DETECTING) \
     /*
      * Throw a TypeError for invalid assignment to the callee binding in a named
      * lambda, which is always a `const` binding. This is a different bytecode
@@ -2421,9 +2418,9 @@
      *   Category: Control flow
      *   Type: Exceptions
      *   Operands:
-     *   Stack: v => v
+     *   Stack:
      */ \
-    MACRO(ThrowSetCallee, throw_set_callee, NULL, 1, 1, 1, JOF_BYTE) \
+    MACRO(ThrowSetCallee, throw_set_callee, NULL, 1, 0, 0, JOF_BYTE) \
     /*
      * Throws a runtime TypeError for invalid assignment to an optimized
      * `const` binding. `localno` is used to get the variable name for the
@@ -2432,9 +2429,9 @@
      *   Category: Control flow
      *   Type: Exceptions
      *   Operands: uint24_t localno
-     *   Stack: v => v
+     *   Stack:
      */ \
-    MACRO(ThrowSetConst, throw_set_const, NULL, 4, 1, 1, JOF_LOCAL|JOF_NAME|JOF_DETECTING) \
+    MACRO(ThrowSetConst, throw_set_const, NULL, 4, 0, 0, JOF_LOCAL|JOF_NAME|JOF_DETECTING) \
     /*
      * No-op instruction that marks the top of the bytecode for a
      * *TryStatement*.
@@ -3099,6 +3096,9 @@
      *
      * See `JSOp::PushLexicalEnv` for the fine print.
      *
+     * There is no corresponding `JSOp::PopVarEnv` operation, because a
+     * `VarEnvironmentObject` is never popped from the environment chain.
+     *
      * Implements: Places in the spec where the VariableEnvironment is set:
      *
      * -   The bit in [PerformEval][1] where, in strict direct eval, the new
@@ -3107,9 +3107,7 @@
      *
      * -   The weird scoping rules for functions with default parameter
      *     expressions, as specified in [FunctionDeclarationInstantiation][2]
-     *     step 28 ("NOTE: A separate Environment Record is needed...") and
-     *     [IteratorBindingInitialization for *FormalParameter* and
-     *     *FormalRestParameter*][3].
+     *     step 28 ("NOTE: A separate Environment Record is needed...").
      *
      * Note: The spec also pushes a new VariableEnvironment on entry to every
      * function, but the VM takes care of that as part of pushing the stack
@@ -3118,7 +3116,6 @@
      *
      * [1]: https://tc39.es/ecma262/#sec-performeval
      * [2]: https://tc39.es/ecma262/#sec-functiondeclarationinstantiation
-     * [3]: https://tc39.es/ecma262/#sec-function-definitions-runtime-semantics-iteratorbindinginitialization
      *
      *   Category: Variables and scopes
      *   Type: Entering and leaving environments
@@ -3126,17 +3123,6 @@
      *   Stack: =>
      */ \
     MACRO(PushVarEnv, push_var_env, NULL, 5, 0, 0, JOF_SCOPE) \
-    /*
-     * Pop a `VarEnvironmentObject` from the environment chain.
-     *
-     * See `JSOp::PushLexicalEnv` for the fine print.
-     *
-     *   Category: Variables and scopes
-     *   Type: Entering and leaving environments
-     *   Operands:
-     *   Stack: =>
-     */ \
-    MACRO(PopVarEnv, pop_var_env, NULL, 1, 0, 0, JOF_BYTE) \
     /*
      * Push a `WithEnvironmentObject` wrapping ToObject(`val`) to the
      * environment chain.
@@ -3516,6 +3502,7 @@
  * a power of two.  Use this macro to do so.
  */
 #define FOR_EACH_TRAILING_UNUSED_OPCODE(MACRO) \
+  MACRO(239)                                   \
   MACRO(240)                                   \
   MACRO(241)                                   \
   MACRO(242)                                   \

@@ -213,7 +213,7 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
   XMLHttpRequestMainThread();
 
   void Construct(nsIPrincipal* aPrincipal, nsIGlobalObject* aGlobalObject,
-                 nsICookieSettings* aCookieSettings, bool aForWorker,
+                 nsICookieJarSettings* aCookieJarSettings, bool aForWorker,
                  nsIURI* aBaseURI = nullptr, nsILoadGroup* aLoadGroup = nullptr,
                  PerformanceStorage* aPerformanceStorage = nullptr,
                  nsICSPEventListener* aCSPEventListener = nullptr) {
@@ -222,7 +222,7 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
     BindToOwner(aGlobalObject);
     mBaseURI = aBaseURI;
     mLoadGroup = aLoadGroup;
-    mCookieSettings = aCookieSettings;
+    mCookieJarSettings = aCookieJarSettings;
     mForWorker = aForWorker;
     mPerformanceStorage = aPerformanceStorage;
     mCSPEventListener = aCSPEventListener;
@@ -516,7 +516,7 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
 
   nsCOMPtr<nsIStreamListener> mXMLParserStreamListener;
 
-  nsCOMPtr<nsICookieSettings> mCookieSettings;
+  nsCOMPtr<nsICookieJarSettings> mCookieJarSettings;
 
   RefPtr<PerformanceStorage> mPerformanceStorage;
   nsCOMPtr<nsICSPEventListener> mCSPEventListener;
@@ -577,7 +577,7 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
     }
 
    private:
-    virtual ~nsHeaderVisitor() {}
+    virtual ~nsHeaderVisitor() = default;
 
     nsTArray<HeaderEntry> mHeaderList;
     nsCString mHeaders;
@@ -859,7 +859,7 @@ class nsXHRParseEndListener : public nsIDOMEventListener {
   void SetIsStale() { mXHR = nullptr; }
 
  private:
-  virtual ~nsXHRParseEndListener() {}
+  virtual ~nsXHRParseEndListener() = default;
 
   XMLHttpRequestMainThread* mXHR;
 };

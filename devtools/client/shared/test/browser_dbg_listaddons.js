@@ -9,8 +9,8 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-var { DebuggerServer } = require("devtools/server/debugger-server");
-var { DebuggerClient } = require("devtools/shared/client/debugger-client");
+var { DevToolsServer } = require("devtools/server/devtools-server");
+var { DevToolsClient } = require("devtools/shared/client/devtools-client");
 
 /**
  * Make sure the listAddons request works as specified.
@@ -21,11 +21,11 @@ const ADDON2_ID = "test-addon-2@mozilla.org";
 const ADDON2_PATH = "addons/test-addon-2/";
 
 add_task(async function() {
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
 
-  const transport = DebuggerServer.connectPipe();
-  const client = new DebuggerClient(transport);
+  const transport = DevToolsServer.connectPipe();
+  const client = new DevToolsClient(transport);
 
   const [type] = await client.connect();
   is(type, "browser", "Root actor should identify itself as a browser.");

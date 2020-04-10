@@ -50,20 +50,19 @@ namespace dom {
 
 WindowGlobalParent::WindowGlobalParent(const WindowGlobalInit& aInit,
                                        bool aInProcess)
-    : WindowContext(aInit.browsingContext(), aInit.innerWindowId(), {}),
+    : WindowContext(aInit.browsingContext().GetMaybeDiscarded(),
+                    aInit.innerWindowId(), {}),
       mDocumentPrincipal(aInit.principal()),
       mDocumentURI(aInit.documentURI()),
-      mInnerWindowId(aInit.innerWindowId()),
-      mOuterWindowId(aInit.outerWindowId()),
       mInProcess(aInProcess),
       mIsInitialDocument(false),
       mHasBeforeUnload(false) {
   MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess(), "Parent process only");
-  MOZ_RELEASE_ASSERT(mDocumentPrincipal, "Must have a valid principal");
 
-  // NOTE: mBrowsingContext initialized in Init()
-  MOZ_RELEASE_ASSERT(aInit.browsingContext(),
-                     "Must be made in BrowsingContext");
+  MOZ_RELEASE_ASSERT(
+      BrowsingContext(),
+      "Must be made in BrowsingContext, though it may be discarded");
+  MOZ_RELEASE_ASSERT(mDocumentPrincipal, "Must have a valid principal");
 
   mFields.SetWithoutSyncing<IDX_OuterWindowId>(aInit.outerWindowId());
 }
@@ -86,12 +85,9 @@ void WindowGlobalParent::Init(const WindowGlobalInit& aInit) {
     cp->TransmitPermissionsForPrincipal(mDocumentPrincipal);
   }
 
-  mBrowsingContext = CanonicalBrowsingContext::Cast(aInit.browsingContext());
-  MOZ_ASSERT(mBrowsingContext);
-
   MOZ_DIAGNOSTIC_ASSERT(
-      !mBrowsingContext->GetParent() ||
-          mBrowsingContext->GetEmbedderInnerWindowId(),
+      !BrowsingContext()->GetParent() ||
+          BrowsingContext()->GetEmbedderInnerWindowId(),
       "When creating a non-root WindowGlobalParent, the WindowGlobalParent "
       "for our embedder should've already been created.");
 
@@ -109,7 +105,12 @@ void WindowGlobalParent::Init(const WindowGlobalInit& aInit) {
 
   // If there is no current window global, assume we're about to become it
   // optimistically.
-  mBrowsingContext->SetCurrentInnerWindowId(aInit.innerWindowId());
+  if (!BrowsingContext()->IsDiscarded()) {
+    BrowsingContext()->SetCurrentInnerWindowId(aInit.innerWindowId());
+  }
+
+  mDocContentBlockingAllowListPrincipal =
+      aInit.contentBlockingAllowListPrincipal();
 
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   if (obs) {
@@ -189,49 +190,52 @@ void WindowGlobalParent::GetContentBlockingLog(nsAString& aLog) {
 }
 
 mozilla::ipc::IPCResult WindowGlobalParent::RecvLoadURI(
-    dom::BrowsingContext* aTargetBC, nsDocShellLoadState* aLoadState,
-    bool aSetNavigating) {
-  if (!aTargetBC || aTargetBC->IsDiscarded()) {
+    const MaybeDiscarded<dom::BrowsingContext>& aTargetBC,
+    nsDocShellLoadState* aLoadState, bool aSetNavigating) {
+  if (aTargetBC.IsNullOrDiscarded()) {
     MOZ_LOG(
         BrowsingContext::GetLog(), LogLevel::Debug,
         ("ParentIPC: Trying to send a message with dead or detached context"));
     return IPC_OK();
   }
+  CanonicalBrowsingContext* targetBC = aTargetBC.get_canonical();
 
   // FIXME: For cross-process loads, we should double check CanAccess() for the
   // source browsing context in the parent process.
 
-  if (aTargetBC->Group() != BrowsingContext()->Group()) {
+  if (targetBC->Group() != BrowsingContext()->Group()) {
     return IPC_FAIL(this, "Illegal cross-group BrowsingContext load");
   }
 
   // FIXME: We should really initiate the load in the parent before bouncing
   // back down to the child.
 
-  aTargetBC->LoadURI(nullptr, aLoadState, aSetNavigating);
+  targetBC->LoadURI(nullptr, aLoadState, aSetNavigating);
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult WindowGlobalParent::RecvInternalLoad(
-    dom::BrowsingContext* aTargetBC, nsDocShellLoadState* aLoadState) {
-  if (!aTargetBC || aTargetBC->IsDiscarded()) {
+    const MaybeDiscarded<dom::BrowsingContext>& aTargetBC,
+    nsDocShellLoadState* aLoadState) {
+  if (aTargetBC.IsNullOrDiscarded()) {
     MOZ_LOG(
         BrowsingContext::GetLog(), LogLevel::Debug,
         ("ParentIPC: Trying to send a message with dead or detached context"));
     return IPC_OK();
   }
+  CanonicalBrowsingContext* targetBC = aTargetBC.get_canonical();
 
   // FIXME: For cross-process loads, we should double check CanAccess() for the
   // source browsing context in the parent process.
 
-  if (aTargetBC->Group() != BrowsingContext()->Group()) {
+  if (targetBC->Group() != BrowsingContext()->Group()) {
     return IPC_FAIL(this, "Illegal cross-group BrowsingContext load");
   }
 
   // FIXME: We should really initiate the load in the parent before bouncing
   // back down to the child.
 
-  aTargetBC->InternalLoad(mBrowsingContext, aLoadState, nullptr, nullptr);
+  targetBC->InternalLoad(BrowsingContext(), aLoadState, nullptr, nullptr);
   return IPC_OK();
 }
 
@@ -239,6 +243,12 @@ IPCResult WindowGlobalParent::RecvUpdateDocumentURI(nsIURI* aURI) {
   // XXX(nika): Assert that the URI change was one which makes sense (either
   // about:blank -> a real URI, or a legal push/popstate URI change?)
   mDocumentURI = aURI;
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult WindowGlobalParent::RecvUpdateDocumentTitle(
+    const nsString& aTitle) {
+  mDocumentTitle = aTitle;
   return IPC_OK();
 }
 
@@ -298,11 +308,11 @@ const nsAString& WindowGlobalParent::GetRemoteType() {
 }
 
 void WindowGlobalParent::NotifyContentBlockingEvent(
-    uint32_t aEvent, nsIRequest* aRequest, bool aBlocked, nsIURI* aURIHint,
+    uint32_t aEvent, nsIRequest* aRequest, bool aBlocked,
+    const nsACString& aTrackingOrigin,
     const nsTArray<nsCString>& aTrackingFullHashes,
     const Maybe<AntiTrackingCommon::StorageAccessGrantedReason>& aReason) {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aURIHint);
   DebugOnly<bool> isCookiesBlockedTracker =
       aEvent == nsIWebProgressListener::STATE_COOKIES_BLOCKED_TRACKER ||
       aEvent == nsIWebProgressListener::STATE_COOKIES_BLOCKED_SOCIALTRACKER;
@@ -318,11 +328,8 @@ void WindowGlobalParent::NotifyContentBlockingEvent(
     return;
   }
 
-  nsAutoCString origin;
-  nsContentUtils::GetASCIIOrigin(aURIHint, origin);
-
   Maybe<uint32_t> event = GetContentBlockingLog()->RecordLogParent(
-      origin, aEvent, aBlocked, aReason, aTrackingFullHashes);
+      aTrackingOrigin, aEvent, aBlocked, aReason, aTrackingFullHashes);
 
   // Notify the OnContentBlockingEvent if necessary.
   if (event) {
@@ -384,12 +391,12 @@ already_AddRefed<JSWindowActorParent> WindowGlobalParent::GetActor(
   MOZ_RELEASE_ASSERT(!actor->GetManager(),
                      "mManager was already initialized once!");
   actor->Init(aName, this);
-  mWindowActors.Put(aName, actor);
+  mWindowActors.Put(aName, RefPtr{actor});
   return actor.forget();
 }
 
 bool WindowGlobalParent::IsCurrentGlobal() {
-  return CanSend() && mBrowsingContext->GetCurrentWindowGlobal() == this;
+  return CanSend() && BrowsingContext()->GetCurrentWindowGlobal() == this;
 }
 
 namespace {
@@ -635,7 +642,7 @@ nsIGlobalObject* WindowGlobalParent::GetParentObject() {
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(WindowGlobalParent, WindowContext,
-                                   mBrowsingContext, mWindowActors)
+                                   mWindowActors)
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(WindowGlobalParent,
                                                WindowContext)

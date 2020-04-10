@@ -31,13 +31,13 @@ class GMPTimerParent : public PGMPTimerParent {
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
  private:
-  ~GMPTimerParent() {}
+  ~GMPTimerParent() = default;
 
   static void GMPTimerExpired(nsITimer* aTimer, void* aClosure);
 
   struct Context {
     Context() : mId(0) { MOZ_COUNT_CTOR(Context); }
-    ~Context() { MOZ_COUNT_DTOR(Context); }
+    MOZ_COUNTED_DTOR(Context)
     nsCOMPtr<nsITimer> mTimer;
     RefPtr<GMPTimerParent>
         mParent;  // Note: live timers keep the GMPTimerParent alive.

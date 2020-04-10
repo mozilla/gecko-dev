@@ -13,7 +13,7 @@
 #include "mozilla/NullPrincipal.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/ipc/URIUtils.h"
-#include "mozilla/net/CookieSettings.h"
+#include "mozilla/net/CookieJarSettings.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #include "ExpandedPrincipal.h"
 #include "nsIScriptSecurityManager.h"
@@ -27,11 +27,13 @@
 #include "URIUtils.h"
 #include "mozilla/dom/nsCSPUtils.h"
 #include "mozilla/dom/nsCSPContext.h"
+#include "mozilla/dom/BrowsingContext.h"
 
 namespace mozilla {
 
 using mozilla::BasePrincipal;
 using mozilla::Maybe;
+using mozilla::dom::BrowsingContext;
 using mozilla::dom::ServiceWorkerDescriptor;
 using namespace mozilla::net;
 
@@ -527,13 +529,13 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
   nsAutoString cspNonce;
   Unused << NS_WARN_IF(NS_FAILED(aLoadInfo->GetCspNonce(cspNonce)));
 
-  nsCOMPtr<nsICookieSettings> cookieSettings;
-  rv = aLoadInfo->GetCookieSettings(getter_AddRefs(cookieSettings));
+  nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
+  rv = aLoadInfo->GetCookieJarSettings(getter_AddRefs(cookieJarSettings));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  CookieSettingsArgs cookieSettingsArgs;
-  static_cast<CookieSettings*>(cookieSettings.get())
-      ->Serialize(cookieSettingsArgs);
+  CookieJarSettingsArgs cookieJarSettingsArgs;
+  static_cast<CookieJarSettings*>(cookieJarSettings.get())
+      ->Serialize(cookieJarSettingsArgs);
 
   Maybe<CSPInfo> maybeCspToInheritInfo;
   nsCOMPtr<nsIContentSecurityPolicy> cspToInherit =
@@ -578,7 +580,7 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
       aLoadInfo->GetDocumentHasLoaded(),
       aLoadInfo->GetAllowListFutureDocumentsCreatedFromThisRedirectChain(),
       cspNonce, aLoadInfo->GetSkipContentSniffing(),
-      aLoadInfo->GetIsFromProcessingFrameAttributes(), cookieSettingsArgs,
+      aLoadInfo->GetIsFromProcessingFrameAttributes(), cookieJarSettingsArgs,
       aLoadInfo->GetRequestBlockingReason(), maybeCspToInheritInfo));
 
   return NS_OK;
@@ -587,16 +589,15 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
 nsresult LoadInfoArgsToLoadInfo(
     const Maybe<LoadInfoArgs>& aOptionalLoadInfoArgs,
     nsILoadInfo** outLoadInfo) {
-  return LoadInfoArgsToLoadInfo(aOptionalLoadInfoArgs, nullptr, nullptr,
-                                outLoadInfo);
+  return LoadInfoArgsToLoadInfo(aOptionalLoadInfoArgs, nullptr, outLoadInfo);
 }
 nsresult LoadInfoArgsToLoadInfo(
-    const Maybe<LoadInfoArgs>& aOptionalLoadInfoArgs, nsINode* aLoadingContext,
+    const Maybe<LoadInfoArgs>& aOptionalLoadInfoArgs,
     nsINode* aCspToInheritLoadingContext, nsILoadInfo** outLoadInfo) {
   RefPtr<LoadInfo> loadInfo;
-  nsresult rv = LoadInfoArgsToLoadInfo(aOptionalLoadInfoArgs, aLoadingContext,
-                                       aCspToInheritLoadingContext,
-                                       getter_AddRefs(loadInfo));
+  nsresult rv =
+      LoadInfoArgsToLoadInfo(aOptionalLoadInfoArgs, aCspToInheritLoadingContext,
+                             getter_AddRefs(loadInfo));
   NS_ENSURE_SUCCESS(rv, rv);
 
   loadInfo.forget(outLoadInfo);
@@ -605,11 +606,10 @@ nsresult LoadInfoArgsToLoadInfo(
 
 nsresult LoadInfoArgsToLoadInfo(
     const Maybe<LoadInfoArgs>& aOptionalLoadInfoArgs, LoadInfo** outLoadInfo) {
-  return LoadInfoArgsToLoadInfo(aOptionalLoadInfoArgs, nullptr, nullptr,
-                                outLoadInfo);
+  return LoadInfoArgsToLoadInfo(aOptionalLoadInfoArgs, nullptr, outLoadInfo);
 }
 nsresult LoadInfoArgsToLoadInfo(
-    const Maybe<LoadInfoArgs>& aOptionalLoadInfoArgs, nsINode* aLoadingContext,
+    const Maybe<LoadInfoArgs>& aOptionalLoadInfoArgs,
     nsINode* aCspToInheritLoadingContext, LoadInfo** outLoadInfo) {
   if (aOptionalLoadInfoArgs.isNothing()) {
     *outLoadInfo = nullptr;
@@ -723,9 +723,9 @@ nsresult LoadInfoArgsToLoadInfo(
         ServiceWorkerDescriptor(loadInfoArgs.controller().ref()));
   }
 
-  nsCOMPtr<nsICookieSettings> cookieSettings;
-  CookieSettings::Deserialize(loadInfoArgs.cookieSettings(),
-                              getter_AddRefs(cookieSettings));
+  nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
+  CookieJarSettings::Deserialize(loadInfoArgs.cookieJarSettings(),
+                                 getter_AddRefs(cookieJarSettings));
 
   nsCOMPtr<nsIContentSecurityPolicy> cspToInherit;
   Maybe<mozilla::ipc::CSPInfo> cspToInheritInfo =
@@ -735,10 +735,20 @@ nsresult LoadInfoArgsToLoadInfo(
     cspToInherit = CSPInfoToCSP(cspToInheritInfo.ref(), doc);
   }
 
+  // Restore the loadingContext for frames using the BrowsingContext's
+  // embedder element. Note that this only works if the embedder is
+  // same-process, so won't be fission compatible.
+  nsCOMPtr<nsINode> loadingContext;
+  RefPtr<BrowsingContext> frameBrowsingContext =
+      BrowsingContext::Get(loadInfoArgs.frameBrowsingContextID());
+  if (frameBrowsingContext) {
+    loadingContext = frameBrowsingContext->GetEmbedderElement();
+  }
+
   RefPtr<mozilla::LoadInfo> loadInfo = new mozilla::LoadInfo(
       loadingPrincipal, triggeringPrincipal, principalToInherit,
       sandboxedLoadingPrincipal, topLevelPrincipal,
-      topLevelStorageAreaPrincipal, resultPrincipalURI, cookieSettings,
+      topLevelStorageAreaPrincipal, resultPrincipalURI, cookieJarSettings,
       cspToInherit, clientInfo, reservedClientInfo, initialClientInfo,
       controller, loadInfoArgs.securityFlags(), loadInfoArgs.sandboxFlags(),
       loadInfoArgs.contentPolicyType(),
@@ -767,7 +777,7 @@ nsresult LoadInfoArgsToLoadInfo(
       loadInfoArgs.documentHasLoaded(),
       loadInfoArgs.allowListFutureDocumentsCreatedFromThisRedirectChain(),
       loadInfoArgs.cspNonce(), loadInfoArgs.skipContentSniffing(),
-      loadInfoArgs.requestBlockingReason(), aLoadingContext);
+      loadInfoArgs.requestBlockingReason(), loadingContext);
 
   if (loadInfoArgs.isFromProcessingFrameAttributes()) {
     loadInfo->SetIsFromProcessingFrameAttributes();
@@ -787,7 +797,7 @@ void LoadInfoToParentLoadInfoForwarder(
         false,  // documentHasUserInteracted
         false,  // documentHasLoaded
         false,  // allowListFutureDocumentsCreatedFromThisRedirectChain
-        Maybe<CookieSettingsArgs>(),
+        Maybe<CookieJarSettingsArgs>(),
         nsILoadInfo::BLOCKING_REASON_NONE);  // requestBlockingReason
     return;
   }
@@ -801,15 +811,17 @@ void LoadInfoToParentLoadInfoForwarder(
   uint32_t tainting = nsILoadInfo::TAINTING_BASIC;
   Unused << aLoadInfo->GetTainting(&tainting);
 
-  Maybe<CookieSettingsArgs> cookieSettingsArgs;
+  Maybe<CookieJarSettingsArgs> cookieJarSettingsArgs;
 
-  nsCOMPtr<nsICookieSettings> cookieSettings;
-  nsresult rv = aLoadInfo->GetCookieSettings(getter_AddRefs(cookieSettings));
-  CookieSettings* cs = static_cast<CookieSettings*>(cookieSettings.get());
-  if (NS_SUCCEEDED(rv) && cookieSettings && cs->HasBeenChanged()) {
-    CookieSettingsArgs args;
+  nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
+  nsresult rv =
+      aLoadInfo->GetCookieJarSettings(getter_AddRefs(cookieJarSettings));
+  CookieJarSettings* cs =
+      static_cast<CookieJarSettings*>(cookieJarSettings.get());
+  if (NS_SUCCEEDED(rv) && cookieJarSettings && cs->HasBeenChanged()) {
+    CookieJarSettingsArgs args;
     cs->Serialize(args);
-    cookieSettingsArgs = Some(args);
+    cookieJarSettingsArgs = Some(args);
   }
 
   *aForwarderArgsOut = ParentLoadInfoForwarderArgs(
@@ -820,7 +832,7 @@ void LoadInfoToParentLoadInfoForwarder(
       aLoadInfo->GetDocumentHasUserInteracted(),
       aLoadInfo->GetDocumentHasLoaded(),
       aLoadInfo->GetAllowListFutureDocumentsCreatedFromThisRedirectChain(),
-      cookieSettingsArgs, aLoadInfo->GetRequestBlockingReason());
+      cookieJarSettingsArgs, aLoadInfo->GetRequestBlockingReason());
 }
 
 nsresult MergeParentLoadInfoForwarder(
@@ -865,14 +877,15 @@ nsresult MergeParentLoadInfoForwarder(
   MOZ_ALWAYS_SUCCEEDS(aLoadInfo->SetRequestBlockingReason(
       aForwarderArgs.requestBlockingReason()));
 
-  const Maybe<CookieSettingsArgs>& cookieSettingsArgs =
-      aForwarderArgs.cookieSettings();
-  if (cookieSettingsArgs.isSome()) {
-    nsCOMPtr<nsICookieSettings> cookieSettings;
-    nsresult rv = aLoadInfo->GetCookieSettings(getter_AddRefs(cookieSettings));
-    if (NS_SUCCEEDED(rv) && cookieSettings) {
-      static_cast<CookieSettings*>(cookieSettings.get())
-          ->Merge(cookieSettingsArgs.ref());
+  const Maybe<CookieJarSettingsArgs>& cookieJarSettingsArgs =
+      aForwarderArgs.cookieJarSettings();
+  if (cookieJarSettingsArgs.isSome()) {
+    nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
+    nsresult rv =
+        aLoadInfo->GetCookieJarSettings(getter_AddRefs(cookieJarSettings));
+    if (NS_SUCCEEDED(rv) && cookieJarSettings) {
+      static_cast<CookieJarSettings*>(cookieJarSettings.get())
+          ->Merge(cookieJarSettingsArgs.ref());
     }
   }
 

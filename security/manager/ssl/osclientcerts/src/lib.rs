@@ -6,12 +6,20 @@
 #![allow(non_snake_case)]
 
 extern crate byteorder;
+#[cfg(target_os = "macos")]
+#[macro_use]
+extern crate core_foundation;
 extern crate env_logger;
 #[macro_use]
 extern crate lazy_static;
+#[cfg(target_os = "macos")]
+extern crate libloading;
 #[macro_use]
 extern crate log;
 extern crate pkcs11;
+#[cfg(target_os = "macos")]
+#[macro_use]
+extern crate rental;
 extern crate sha2;
 #[cfg(target_os = "windows")]
 extern crate winapi;
@@ -22,6 +30,8 @@ use std::sync::Mutex;
 mod manager;
 #[macro_use]
 mod util;
+#[cfg(target_os = "macos")]
+mod backend_macos;
 #[cfg(target_os = "windows")]
 mod backend_windows;
 
@@ -73,12 +83,20 @@ macro_rules! manager_guard_to_manager {
 /// This gets called to initialize the module. For this implementation, this consists of
 /// instantiating the `ManagerProxy`.
 extern "C" fn C_Initialize(_pInitArgs: CK_C_INITIALIZE_ARGS_PTR) -> CK_RV {
-    env_logger::init();
+    // This will fail if this has already been called, but this isn't a problem because either way,
+    // logging has been initialized.
+    let _ = env_logger::try_init();
     let mut manager_guard = try_to_get_manager_guard!();
     match manager_guard.replace(ManagerProxy::new()) {
         Some(_unexpected_previous_manager) => {
-            error!("C_Initialize: manager unexpectedly previously set");
-            return CKR_DEVICE_ERROR;
+            #[cfg(target_os = "macos")]
+            {
+                info!("C_Initialize: manager previously set (this is expected on macOS - replacing it)");
+            }
+            #[cfg(target_os = "windows")]
+            {
+                warn!("C_Initialize: manager unexpectedly previously set (bravely continuing by replacing it)");
+            }
         }
         None => {}
     }
@@ -1114,3 +1132,6 @@ pub extern "C" fn C_GetFunctionList(ppFunctionList: CK_FUNCTION_LIST_PTR_PTR) ->
     }
     CKR_OK
 }
+
+#[cfg_attr(target_os = "macos", link(name = "Security", kind = "framework"))]
+extern "C" {}

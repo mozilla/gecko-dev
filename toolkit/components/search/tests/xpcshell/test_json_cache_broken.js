@@ -23,7 +23,7 @@ const { getVerificationHash } = ChromeUtils.import(
 var cacheTemplate, appPluginsPath, profPlugins;
 
 const enginesCache = {
-  version: gModernConfig ? 2 : 1,
+  version: SearchUtils.CACHE_VERSION,
   buildID: "TBD",
   appVersion: "TBD",
   locale: "en-US",
@@ -162,10 +162,10 @@ add_task(async function test_cached_engine_properties() {
     ? [
         // Default engines
         "Test search engine",
-        "engine-pref",
         // Rest of engines in order
         "engine-resourceicon",
         "engine-chromeicon",
+        "engine-pref",
         "engine-rel-searchform-purpose",
         "Test search engine (Reordered)",
         "A second test engine",

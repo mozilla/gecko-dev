@@ -74,7 +74,7 @@ function run_test() {
   if (!inChildProcess()) {
     Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
     Services.prefs.setBoolPref(
-      "network.cookieSettings.unblocked_for_testing",
+      "network.cookieJarSettings.unblocked_for_testing",
       true
     );
   }
@@ -98,7 +98,7 @@ function run_test_continued() {
     Ci.nsICookieService
   );
   var cookie2 = "C2=V2";
-  cookServ.setCookieString(chan.URI, null, cookie2, chan);
+  cookServ.setCookieString(chan.URI, cookie2, chan);
   chan.setRequestHeader("Cookie", cookieVal, false);
 
   // We expect that the setRequestHeader overrides the

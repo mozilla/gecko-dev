@@ -880,7 +880,6 @@ with modules["SECURITY"]:
 with modules["DOM_XPATH"]:
     # DOM error codes from http://www.w3.org/TR/DOM-Level-3-XPath/
     errors["NS_ERROR_DOM_INVALID_EXPRESSION_ERR"] = FAILURE(51)
-    errors["NS_ERROR_DOM_TYPE_ERR"] = FAILURE(52)
 
 
 # =======================================================================
@@ -896,8 +895,6 @@ with modules["URILOADER"]:
     errors["NS_ERROR_UNWANTED_URI"] = FAILURE(35)
     errors["NS_ERROR_BLOCKED_URI"] = FAILURE(37)
     errors["NS_ERROR_HARMFUL_URI"] = FAILURE(38)
-    errors["NS_ERROR_MAYBE_TRACKING_URI"] = FAILURE(39)
-    errors["NS_ERROR_TRACKING_ANNOTATION_URI"] = FAILURE(40)
     errors["NS_ERROR_FINGERPRINTING_URI"] = FAILURE(41)
     errors["NS_ERROR_CRYPTOMINING_URI"] = FAILURE(42)
     errors["NS_ERROR_SOCIALTRACKING_URI"] = FAILURE(43)
@@ -922,8 +919,6 @@ with modules["CONTENT"]:
     errors["NS_ERROR_CONTENT_BLOCKED_SHOW_ALT"] = FAILURE(7)
     # Success variations of content policy blocking
     errors["NS_PROPTABLE_PROP_NOT_THERE"] = FAILURE(10)
-    # Error code for XBL
-    errors["NS_ERROR_XBL_BLOCKED"] = FAILURE(15)
     # Error code for when the content process crashed
     errors["NS_ERROR_CONTENT_CRASHED"] = FAILURE(16)
     # Error code for when a subframe process crashed
@@ -1238,11 +1233,11 @@ def error_list_h(output):
 
     output.write("#define NS_ERROR_MODULE_BASE_OFFSET {}\n".format(MODULE_BASE_OFFSET))
 
-    for mod, val in modules.iteritems():
+    for mod, val in modules.items():
         output.write("#define NS_ERROR_MODULE_{} {}\n".format(mod, val.num))
 
     items = []
-    for error, val in errors.iteritems():
+    for error, val in errors.items():
         items.append("  {} = 0x{:X}".format(error, val))
     output.write("""
 enum class nsresult : uint32_t
@@ -1253,7 +1248,7 @@ enum class nsresult : uint32_t
 """.format(",\n".join(items)))
 
     items = []
-    for error, val in errors.iteritems():
+    for error, val in errors.items():
         items.append("  {0} = nsresult::{0}".format(error))
 
     output.write("""
@@ -1290,7 +1285,7 @@ GetErrorNameInternal(nsresult rv)
     # NOTE: Making sure we don't write out duplicate values is important as
     # we're using a switch statement to implement this.
     seen = set()
-    for error, val in errors.iteritems():
+    for error, val in errors.items():
         if val not in seen:
             output.write('  case nsresult::{0}: return "{0}";\n'.format(error))
         seen.add(val)
@@ -1317,9 +1312,9 @@ use super::nsresult;
     output.write("pub const NS_ERROR_MODULE_BASE_OFFSET: nsresult = nsresult({});\n"
                  .format(MODULE_BASE_OFFSET))
 
-    for mod, val in modules.iteritems():
+    for mod, val in modules.items():
         output.write("pub const NS_ERROR_MODULE_{}: nsresult = nsresult({});\n"
                      .format(mod, val.num))
 
-    for error, val in errors.iteritems():
+    for error, val in errors.items():
         output.write("pub const {}: nsresult = nsresult(0x{:X});\n".format(error, val))

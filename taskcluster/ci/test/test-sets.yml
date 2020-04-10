@@ -15,10 +15,6 @@
 
 ### Feature-specific test groups
 
-common-tests:
-    - marionette
-    - mochitest-browser-chrome
-
 web-platform-tests:
     - web-platform-tests
     - web-platform-tests-crashtests
@@ -53,6 +49,7 @@ talos:
     - talos-perf-reftest-singletons
     - talos-tabswitch
     - talos-realworld-webextensions
+    - talos-webgl
     # - talos-h1 Bug 1487031 - Disabled for not finding actionable regressions
     # - talos-h2 Bug 1487031 - Disabled for not finding actionable regressions
 
@@ -75,9 +72,11 @@ talos-profiling:
     - talos-tp5o-profiling
     - talos-tabswitch-profiling
     - talos-realworld-webextensions-profiling
+    - talos-webgl-profiling
 
 talos-ref-hw:
     - talos-g4
+    - talos-webgl
 
 raptor-firefox:
     - raptor-tp6-1-firefox
@@ -293,6 +292,7 @@ raptor-fetch-chromium:
 browsertime:
     - browsertime-tp6
     - browsertime-speedometer
+    - browsertime-ares6
     - browsertime-tp6-profiling
 
 # Raptor desktop power tests
@@ -337,7 +337,6 @@ linux32-tests:
 
 linux-common-tests:
     - marionette
-    - mochitest-browser-chrome
 
 linux1804-tests:
     - cppunit
@@ -347,8 +346,9 @@ linux1804-tests:
     - gtest
     - jsreftest
     - jittest
-    - mochitest
+    - mochitest-plain
     - mochitest-a11y
+    - mochitest-browser-chrome
     - mochitest-chrome
     - mochitest-devtools-chrome
     - mochitest-gpu
@@ -373,7 +373,7 @@ linux1804-qr-tests:
     - gtest
     - jittest
     - jsreftest
-    - mochitest
+    - mochitest-plain
     - mochitest-a11y
     - mochitest-chrome
     - mochitest-gpu
@@ -394,8 +394,9 @@ linux1804-ccov-tests:
     - gtest
     - jittest
     - jsreftest
-    - mochitest
+    - mochitest-plain
     - mochitest-a11y
+    - mochitest-browser-chrome
     - mochitest-chrome
     - mochitest-devtools-chrome
     - mochitest-gpu
@@ -425,7 +426,7 @@ linux-talos-flex:
 
 windows-qr-tests:
     - crashtest
-    - mochitest
+    - mochitest-plain
     - mochitest-browser-chrome
     - mochitest-gpu
     - mochitest-media
@@ -446,7 +447,7 @@ windows-tests:
     - jittest
     - jsreftest
     - marionette
-    - mochitest
+    - mochitest-plain
     - mochitest-a11y
     - mochitest-browser-chrome
     - mochitest-chrome
@@ -486,28 +487,9 @@ mingwclang-tests-opt:
     - mochitest-gpu
 
 windows-aarch64-tests:
-    - cppunit
     - crashtest
-    - gtest
-    - marionette
-    - mochitest
-    - mochitest-a11y
-    - mochitest-browser-chrome
-    - mochitest-chrome
-    - mochitest-devtools-chrome
-    - mochitest-gpu
     - mochitest-media
-    - mochitest-remote
-    - mochitest-webgl1-core
-    - mochitest-webgl1-ext
-    - mochitest-webgl2-core
-    - mochitest-webgl2-ext
-    - mochitest-webgpu
     - reftest
-    - web-platform-tests
-    - web-platform-tests-crashtests
-    - web-platform-tests-reftests
-    - xpcshell
 
 windows-talos:
     - talos-bcv
@@ -526,6 +508,7 @@ windows-talos:
     - talos-xperf
     - talos-tabswitch
     - talos-realworld-webextensions
+    - talos-webgl
     # - talos-h1 Bug 1487031 - Disabled for not finding actionable regressions
 
 # macOS
@@ -539,12 +522,11 @@ macosx1014-64-tests:
     - jittest
     - jsreftest
     - marionette
-    - mochitest
+    - mochitest-plain
     - mochitest-a11y
     - mochitest-browser-chrome
     - mochitest-chrome
     - mochitest-devtools-chrome
-    - mochitest-devtools-webreplay
     - mochitest-gpu
     - mochitest-media
     - mochitest-remote
@@ -583,6 +565,7 @@ macosx64-talos:
     - talos-perf-reftest
     - talos-perf-reftest-singletons
     - talos-realworld-webextensions
+    - talos-webgl
     # - talos-tabswitch # Bug 1453007 times out
     # - talos-h1 # too long to unpack profile- Bug 1442893
 
@@ -593,8 +576,9 @@ android-x86_64-tests:
     - crashtest
     - geckoview-junit
     - gtest
-    - mochitest
+    - mochitest-plain
     - mochitest-gpu
+    - mochitest-media
     # - mochitest-webgl1-core # Harness issues?
     # - mochitest-webgl1-ext
     # - mochitest-webgl2-core # Emulator not creating ES3?
@@ -1002,3 +986,7 @@ android-hw-arm7-browsertime:
     - browsertime-tp6m
     - browsertime-tp6m-profiling
     - browsertime-benchmark-speedometer
+
+linux-tsan-tests:
+    - mochitest-plain
+    - xpcshell

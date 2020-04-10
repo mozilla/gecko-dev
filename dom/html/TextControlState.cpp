@@ -31,6 +31,7 @@
 #include "nsTextNode.h"
 #include "nsIController.h"
 #include "mozilla/AutoRestore.h"
+#include "mozilla/InputEventOptions.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/dom/Event.h"
@@ -377,8 +378,8 @@ NS_INTERFACE_TABLE_HEAD(TextInputSelectionController)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE_CYCLE_COLLECTION(TextInputSelectionController)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTION(TextInputSelectionController, mFrameSelection,
-                         mLimiter)
+NS_IMPL_CYCLE_COLLECTION_WEAK(TextInputSelectionController, mFrameSelection,
+                              mLimiter)
 
 TextInputSelectionController::TextInputSelectionController(
     nsFrameSelection* aSel, PresShell* aPresShell, nsIContent* aLimiter)
@@ -723,7 +724,10 @@ TextInputSelectionController::CompleteMove(bool aForward, bool aExtend) {
     }
   }
 
-  frameSelection->HandleClick(parentDIV, offset, offset, aExtend, false, hint);
+  const nsFrameSelection::FocusMode focusMode =
+      aExtend ? nsFrameSelection::FocusMode::kExtendSelection
+              : nsFrameSelection::FocusMode::kCollapseToNewPoint;
+  frameSelection->HandleClick(parentDIV, offset, offset, focusMode, hint);
 
   // if we got this far, attempt to scroll no matter what the above result is
   return CompleteScroll(aForward);
@@ -825,7 +829,12 @@ NS_INTERFACE_MAP_BEGIN(TextInputListener)
   NS_INTERFACE_MAP_ENTRIES_CYCLE_COLLECTION(TextInputListener)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTION_0(TextInputListener)
+NS_IMPL_CYCLE_COLLECTION_CLASS(TextInputListener)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(TextInputListener)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_REFERENCE
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(TextInputListener)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 void TextInputListener::OnSelectionChange(Selection& aSelection,
                                           int16_t aReason) {
@@ -2891,7 +2900,7 @@ bool TextControlState::SetValueWithoutTextEditor(
       DebugOnly<nsresult> rvIgnored = nsContentUtils::DispatchInputEvent(
           MOZ_KnownLive(aHandlingSetValue.GetTextControlElement()),
           eEditorBeforeInput, EditorInputType::eInsertReplacementText, nullptr,
-          nsContentUtils::InputEventOptions(inputEventData), &status);
+          InputEventOptions(inputEventData), &status);
       NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
                            "Failed to dispatch beforeinput event");
       if (status == nsEventStatus_eConsumeNoDefault) {
@@ -2977,7 +2986,7 @@ bool TextControlState::SetValueWithoutTextEditor(
       DebugOnly<nsresult> rvIgnored = nsContentUtils::DispatchInputEvent(
           MOZ_KnownLive(aHandlingSetValue.GetTextControlElement()),
           eEditorInput, EditorInputType::eInsertReplacementText, nullptr,
-          nsContentUtils::InputEventOptions(inputEventData));
+          InputEventOptions(inputEventData));
       NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
                            "Failed to dispatch input event");
     }

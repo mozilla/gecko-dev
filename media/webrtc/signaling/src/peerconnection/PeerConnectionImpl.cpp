@@ -1115,11 +1115,6 @@ PeerConnectionImpl::CreateDataChannel(
   PC_AUTO_ENTER_API_CALL(false);
   MOZ_ASSERT(aRetval);
 
-  // WebRTC is not enabled when recording/replaying (being removed) bug 1304149.
-  if (recordreplay::IsRecordingOrReplaying()) {
-    return NS_ERROR_UNEXPECTED;
-  }
-
   RefPtr<DataChannel> dataChannel;
   DataChannelConnection::Type theType =
       static_cast<DataChannelConnection::Type>(aType);
@@ -2629,8 +2624,6 @@ static UniquePtr<dom::RTCStatsCollection> GetReceiverStats_s(
     ssrc = Some(ssrcval);
   }
 
-  RTCInboundRtpStreamStats mInboundRtp;
-  nsTArray<RTCRTPContributingSourceStats> mCsrcs;
   // First, fill in remote stat with rtcp sender data, if present.
   uint32_t packetsSent;
   uint64_t bytesSent;

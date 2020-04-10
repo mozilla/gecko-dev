@@ -86,6 +86,16 @@ ToolbarKeyboardNavigator = {
     return aRoot._toolbarKeyNavWalker;
   },
 
+  _initTabStops(aRoot) {
+    for (let stop of aRoot.getElementsByTagName("toolbartabstop")) {
+      // These are invisible, but because they need to be in the tab order,
+      // they can't get display: none or similar. They must therefore be
+      // explicitly hidden for accessibility.
+      stop.setAttribute("aria-hidden", "true");
+      stop.addEventListener("focus", this);
+    }
+  },
+
   init() {
     for (let id of this.kToolbars) {
       let toolbar = document.getElementById(id);
@@ -93,16 +103,11 @@ ToolbarKeyboardNavigator = {
       // We manage toolbar focus completely. This attribute ensures that CSS
       // doesn't set -moz-user-focus: normal.
       toolbar.setAttribute("keyNav", "true");
-      for (let stop of toolbar.getElementsByTagName("toolbartabstop")) {
-        // These are invisible, but because they need to be in the tab order,
-        // they can't get display: none or similar. They must therefore be
-        // explicitly hidden for accessibility.
-        stop.setAttribute("aria-hidden", "true");
-        stop.addEventListener("focus", this);
-      }
+      this._initTabStops(toolbar);
       toolbar.addEventListener("keydown", this);
       toolbar.addEventListener("keypress", this);
     }
+    CustomizableUI.addListener(this);
   },
 
   uninit() {
@@ -115,6 +120,19 @@ ToolbarKeyboardNavigator = {
       toolbar.removeEventListener("keypress", this);
       toolbar.removeAttribute("keyNav");
     }
+    CustomizableUI.removeListener(this);
+  },
+
+  // CustomizableUI event handler
+  onWidgetAdded(aWidgetId, aArea, aPosition) {
+    if (!this.kToolbars.includes(aArea)) {
+      return;
+    }
+    let widget = document.getElementById(aWidgetId);
+    if (!widget) {
+      return;
+    }
+    this._initTabStops(widget);
   },
 
   _focusButton(aButton) {
@@ -168,6 +186,42 @@ ToolbarKeyboardNavigator = {
     walker.currentNode = aEvent.target;
     let button = walker.nextNode();
     if (!button || !this._isButton(button)) {
+      // If we think we're moving backward, and focus came from outside the
+      // toolbox, we might actually have wrapped around. This currently only
+      // happens in popup windows (because in normal windows, focus first
+      // goes to the tabstrip, where we don't have tabstops). In this case,
+      // the event target was the first tabstop. If we can't find a button,
+      // e.g. because we're in a popup where most buttons are hidden, we
+      // should ensure focus keeps moving forward:
+      if (
+        oldFocus &&
+        this._isFocusMovingBackward &&
+        !gNavToolbox.contains(oldFocus)
+      ) {
+        let allStops = Array.from(
+          gNavToolbox.querySelectorAll("toolbartabstop")
+        );
+        // Find the previous toolbartabstop:
+        let earlierVisibleStopIndex = allStops.indexOf(aEvent.target) - 1;
+        // Then work out if any of the earlier ones are in a visible
+        // toolbar:
+        while (earlierVisibleStopIndex >= 0) {
+          let stopToolbar = allStops[earlierVisibleStopIndex].closest(
+            "toolbar"
+          );
+          if (
+            window.windowUtils.getBoundsWithoutFlushing(stopToolbar).height > 0
+          ) {
+            break;
+          }
+          earlierVisibleStopIndex--;
+        }
+        // If we couldn't find any earlier visible stops, we're not moving
+        // backwards, we're moving forwards and wrapped around:
+        if (earlierVisibleStopIndex == -1) {
+          this._isFocusMovingBackward = false;
+        }
+      }
       // No navigable buttons for this tab stop. Skip it.
       if (this._isFocusMovingBackward) {
         document.commandDispatcher.rewindFocus();

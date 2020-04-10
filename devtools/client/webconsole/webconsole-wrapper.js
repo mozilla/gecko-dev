@@ -9,6 +9,7 @@ const {
 } = require("devtools/client/shared/vendor/react");
 const ReactDOM = require("devtools/client/shared/vendor/react-dom");
 const { Provider } = require("devtools/client/shared/vendor/react-redux");
+const ToolboxProvider = require("devtools/client/framework/store-provider");
 
 const actions = require("devtools/client/webconsole/actions/index");
 const { configureStore } = require("devtools/client/webconsole/store");
@@ -35,6 +36,19 @@ loader.lazyRequireGetter(
   "Constants",
   "devtools/client/webconsole/constants"
 );
+
+function renderApp({ app, store, toolbox, root }) {
+  return ReactDOM.render(
+    createElement(
+      Provider,
+      { store },
+      toolbox
+        ? createElement(ToolboxProvider, { store: toolbox.store }, app)
+        : app
+    ),
+    root
+  );
+}
 
 let store = null;
 
@@ -81,11 +95,11 @@ class WebConsoleWrapper {
     return new Promise(resolve => {
       store = configureStore(this.webConsoleUI, {
         // We may not have access to the toolbox (e.g. in the browser console).
-        sessionId: (this.toolbox && this.toolbox.sessionId) || -1,
         telemetry: this.telemetry,
         thunkArgs: {
           webConsoleUI,
           hud: this.hud,
+          toolbox: this.toolbox,
           client: this.webConsoleUI._commands,
         },
       });
@@ -116,8 +130,12 @@ class WebConsoleWrapper {
 
       // Render the root Application component.
       if (this.parentNode) {
-        const provider = createElement(Provider, { store }, app);
-        this.body = ReactDOM.render(provider, this.parentNode);
+        this.body = renderApp({
+          app,
+          store,
+          root: this.parentNode,
+          toolbox: this.toolbox,
+        });
       } else {
         // If there's no parentNode, we are in a test. So we can resolve immediately.
         resolve();

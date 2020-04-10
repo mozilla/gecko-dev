@@ -58,6 +58,26 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
+  "registerThread",
+  "devtools/client/framework/actions/index",
+  true
+);
+loader.lazyRequireGetter(
+  this,
+  "clearThread",
+  "devtools/client/framework/actions/index",
+  true
+);
+
+loader.lazyRequireGetter(
+  this,
+  "selectThread",
+  "devtools/client/framework/actions/index",
+  true
+);
+
+loader.lazyRequireGetter(
+  this,
   "AppConstants",
   "resource://gre/modules/AppConstants.jsm",
   true
@@ -120,6 +140,12 @@ loader.lazyRequireGetter(
   this,
   "createEditContextMenu",
   "devtools/client/framework/toolbox-context-menu",
+  true
+);
+loader.lazyRequireGetter(
+  this,
+  "getSelectedThread",
+  "devtools/client/framework/reducers/threads",
   true
 );
 loader.lazyRequireGetter(
@@ -506,16 +532,6 @@ Toolbox.prototype = {
     await this._listFrames();
     await this.initPerformance();
 
-    // Notify all the tools that the target has changed
-    await Promise.all(
-      [...this._toolPanels.values()].map(panel => {
-        if (panel.switchToTarget) {
-          return panel.switchToTarget(newTarget);
-        }
-        return Promise.resolve();
-      })
-    );
-
     this.emit("switched-target", newTarget);
   },
 
@@ -591,6 +607,20 @@ Toolbox.prototype = {
     return this.hostType === Toolbox.HostType.BROWSERTOOLBOX;
   },
 
+  selectThread(threadActor) {
+    const thread = this.target.client.getFrontByID(threadActor);
+    this.store.dispatch(selectThread(thread));
+  },
+
+  getSelectedThreadFront: function() {
+    const thread = getSelectedThread(this.store.getState());
+    if (!thread) {
+      return null;
+    }
+
+    return this.target.client.getFrontByID(thread.actor);
+  },
+
   _onPausedState: function(packet, threadFront) {
     // Suppress interrupted events by default because the thread is
     // paused/resumed a lot for various actions.
@@ -643,6 +673,10 @@ Toolbox.prototype = {
 
     await this._attachTarget({ type, targetFront, isTopLevel });
 
+    if (this.hostType !== Toolbox.HostType.PAGE) {
+      await this.store.dispatch(registerThread(targetFront));
+    }
+
     if (isTopLevel) {
       this.emit("top-target-attached");
     }
@@ -651,6 +685,10 @@ Toolbox.prototype = {
   _onTargetDestroyed({ type, targetFront, isTopLevel }) {
     if (isTopLevel) {
       this.detachTarget();
+    }
+
+    if (this.hostType !== Toolbox.HostType.PAGE) {
+      this.store.dispatch(clearThread(targetFront));
     }
   },
 
@@ -757,12 +795,6 @@ Toolbox.prototype = {
         window: this.win,
         useOnlyShared: true,
       }).require;
-
-      // The web console is immediately loaded when replaying, so that the
-      // timeline will always be populated with generated messages.
-      if (this.target.isReplayEnabled()) {
-        await this.loadTool("webconsole");
-      }
 
       this.isReady = true;
 
@@ -2853,12 +2885,7 @@ Toolbox.prototype = {
    * Tells the target tab to reload.
    */
   reloadTarget: function(force) {
-    if (this.target.canRewind) {
-      // Recording tabs need to be reloaded in a new content process.
-      reloadAndRecordTab();
-    } else {
-      this.target.reload({ force: force });
-    }
+    this.target.reload({ force: force });
   },
 
   /**
@@ -3046,8 +3073,13 @@ Toolbox.prototype = {
       // it can be either an addon or browser toolbox actor
       return promise.resolve();
     }
-    const { frames } = await this.target.listFrames();
-    this._updateFrames({ frames });
+
+    try {
+      const { frames } = await this.target.listFrames();
+      this._updateFrames({ frames });
+    } catch (e) {
+      console.error("Error while listing frames", e);
+    }
   },
 
   /**

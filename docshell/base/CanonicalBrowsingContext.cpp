@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 
+#include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/ContentProcessManager.h"
@@ -33,12 +34,14 @@ extern mozilla::LazyLogModule gUserInteractionPRLog;
 CanonicalBrowsingContext::CanonicalBrowsingContext(BrowsingContext* aParent,
                                                    BrowsingContextGroup* aGroup,
                                                    uint64_t aBrowsingContextId,
-                                                   uint64_t aProcessId,
+                                                   uint64_t aOwnerProcessId,
+                                                   uint64_t aEmbedderProcessId,
                                                    BrowsingContext::Type aType,
                                                    FieldTuple&& aFields)
     : BrowsingContext(aParent, aGroup, aBrowsingContextId, aType,
                       std::move(aFields)),
-      mProcessId(aProcessId) {
+      mProcessId(aOwnerProcessId),
+      mEmbedderProcessId(aEmbedderProcessId) {
   // You are only ever allowed to create CanonicalBrowsingContexts in the
   // parent process.
   MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
@@ -250,26 +253,6 @@ void CanonicalBrowsingContext::LoadURI(const nsAString& aURI,
   LoadURI(nullptr, loadState, true);
 }
 
-namespace {
-
-using NewOrUsedPromise = MozPromise<RefPtr<ContentParent>, nsresult, false>;
-
-// NOTE: This method is currently a dummy, and always actually spawns sync. It
-// mostly exists so I can test out the async API right now.
-RefPtr<NewOrUsedPromise> GetNewOrUsedBrowserProcessAsync(
-    const nsAString& aRemoteType) {
-  RefPtr<ContentParent> contentParent =
-      ContentParent::GetNewOrUsedBrowserProcess(
-          nullptr, aRemoteType, hal::PROCESS_PRIORITY_FOREGROUND, nullptr,
-          false);
-  if (!contentParent) {
-    return NewOrUsedPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
-  }
-  return NewOrUsedPromise::CreateAndResolve(contentParent, __func__);
-}
-
-}  // anonymous namespace
-
 void CanonicalBrowsingContext::PendingRemotenessChange::Complete(
     ContentParent* aContentParent) {
   if (!mPromise) {
@@ -341,28 +324,22 @@ void CanonicalBrowsingContext::PendingRemotenessChange::Complete(
     MOZ_DIAGNOSTIC_ASSERT(oldBrowser != embedderBrowser);
     MOZ_DIAGNOSTIC_ASSERT(oldBrowser->GetBrowserBridgeParent());
 
-    oldBrowser->SendSkipBrowsingContextDetach(
-        [resetInFlightId](bool aSuccess) { resetInFlightId(); },
-        [resetInFlightId](mozilla::ipc::ResponseRejectReason aReason) {
-          resetInFlightId();
-        });
+    auto callback = [resetInFlightId](auto) { resetInFlightId(); };
+    oldBrowser->SendWillChangeProcess(callback, callback);
     oldBrowser->Destroy();
   }
 
   // Tell the embedder process a remoteness change is in-process. When this is
   // acknowledged, reset the in-flight ID if it used to be an in-process load.
-  embedderWindow->SendMakeFrameRemote(
-      target, std::move(endpoint), tabId,
-      [wasRemote, resetInFlightId](bool aSuccess) {
-        if (!wasRemote) {
-          resetInFlightId();
-        }
-      },
-      [wasRemote, resetInFlightId](mozilla::ipc::ResponseRejectReason aReason) {
-        if (!wasRemote) {
-          resetInFlightId();
-        }
-      });
+  {
+    auto callback = [wasRemote, resetInFlightId](auto) {
+      if (!wasRemote) {
+        resetInFlightId();
+      }
+    };
+    embedderWindow->SendMakeFrameRemote(target, std::move(endpoint), tabId,
+                                        callback, callback);
+  }
 
   // FIXME: We should get the correct principal for the to-be-created window so
   // we can avoid creating unnecessary extra windows in the new process.
@@ -468,7 +445,7 @@ CanonicalBrowsingContext::ChangeFrameRemoteness(const nsAString& aRemoteType,
 
       RefPtr<CanonicalBrowsingContext> target(this);
       SetInFlightProcessId(OwnerProcessId());
-      oldBrowser->SendSkipBrowsingContextDetach(
+      oldBrowser->SendWillChangeProcess(
           [target](bool aSuccess) { target->SetInFlightProcessId(0); },
           [target](mozilla::ipc::ResponseRejectReason aReason) {
             target->SetInFlightProcessId(0);
@@ -487,13 +464,18 @@ CanonicalBrowsingContext::ChangeFrameRemoteness(const nsAString& aRemoteType,
       new PendingRemotenessChange(this, promise, aPendingSwitchId);
   mPendingRemotenessChange = change;
 
-  GetNewOrUsedBrowserProcessAsync(aRemoteType)
+  ContentParent::GetNewOrUsedBrowserProcessAsync(
+      /* aFrameElement = */ nullptr,
+      /* aRemoteType = */ aRemoteType,
+      /* aPriority = */ hal::PROCESS_PRIORITY_FOREGROUND,
+      /* aOpener = */ nullptr,
+      /* aPreferUsed = */ false)
       ->Then(
           GetMainThreadSerialEventTarget(), __func__,
           [change](ContentParent* aContentParent) {
             change->Complete(aContentParent);
           },
-          [change](nsresult aRv) { change->Cancel(aRv); });
+          [change](LaunchError aError) { change->Cancel(NS_ERROR_FAILURE); });
   return promise.forget();
 }
 

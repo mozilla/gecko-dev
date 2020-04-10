@@ -98,7 +98,6 @@ hardware (via AudioStream).
 #  include "mozilla/ReentrantMonitor.h"
 #  include "mozilla/StateMirroring.h"
 #  include "mozilla/dom/MediaDebugInfoBinding.h"
-#  include "nsAutoPtr.h"
 #  include "nsThreadUtils.h"
 
 namespace mozilla {
@@ -244,7 +243,7 @@ class MediaDecoderStateMachine
     return mMetadataLoadedEvent;
   }
 
-  MediaEventSourceExc<nsAutoPtr<MediaInfo>, MediaDecoderEventVisibility>&
+  MediaEventSourceExc<UniquePtr<MediaInfo>, MediaDecoderEventVisibility>&
   FirstFrameLoadedEvent() {
     return mFirstFrameLoadedEvent;
   }
@@ -277,6 +276,9 @@ class MediaDecoderStateMachine
   void SetVideoDecodeMode(VideoDecodeMode aMode);
 
   RefPtr<GenericPromise> InvokeSetSink(RefPtr<AudioDeviceInfo> aSink);
+
+  void InvokeSuspendMediaSink();
+  void InvokeResumeMediaSink();
 
  private:
   class StateObject;
@@ -359,6 +361,11 @@ class MediaDecoderStateMachine
   // executed, for all previous requests the promise will be resolved
   // with true or false similar to above.
   RefPtr<GenericPromise> SetSink(RefPtr<AudioDeviceInfo> aSink);
+
+  // Shutdown MediaSink on suspend to clean up resources.
+  void SuspendMediaSink();
+  // Create a new MediaSink, it must have been stopped first.
+  void ResumeMediaSink();
 
  protected:
   virtual ~MediaDecoderStateMachine();
@@ -672,7 +679,7 @@ class MediaDecoderStateMachine
   MediaEventProducerExc<UniquePtr<MediaInfo>, UniquePtr<MetadataTags>,
                         MediaDecoderEventVisibility>
       mMetadataLoadedEvent;
-  MediaEventProducerExc<nsAutoPtr<MediaInfo>, MediaDecoderEventVisibility>
+  MediaEventProducerExc<UniquePtr<MediaInfo>, MediaDecoderEventVisibility>
       mFirstFrameLoadedEvent;
 
   MediaEventProducer<MediaPlaybackEvent> mOnPlaybackEvent;
@@ -746,6 +753,11 @@ class MediaDecoderStateMachine
 
   // Used to distinguish whether the audio is producing sound.
   Canonical<bool> mIsAudioDataAudible;
+
+  // Track when MediaSink is supsended. When that happens some actions are
+  // restricted like starting the sink or changing sink id. The flag is valid
+  // after Initialization. TaskQueue thread only.
+  bool mIsMediaSinkSuspended = false;
 
  public:
   AbstractCanonical<media::TimeIntervals>* CanonicalBuffered() const;

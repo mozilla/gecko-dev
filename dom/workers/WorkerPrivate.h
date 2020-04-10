@@ -75,16 +75,16 @@ class SharedMutex {
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RefCountedMutex)
 
    private:
-    ~RefCountedMutex() {}
+    ~RefCountedMutex() = default;
   };
 
-  RefPtr<RefCountedMutex> mMutex;
+  const RefPtr<RefCountedMutex> mMutex;
 
  public:
   explicit SharedMutex(const char* aName)
       : mMutex(new RefCountedMutex(aName)) {}
 
-  SharedMutex(SharedMutex& aOther) : mMutex(aOther.mMutex) {}
+  SharedMutex(const SharedMutex& aOther) = default;
 
   operator Mutex&() { return *mMutex; }
 
@@ -775,10 +775,10 @@ class WorkerPrivate : public RelativeTimeline {
     return mLoadInfo.mStorageAccess;
   }
 
-  nsICookieSettings* CookieSettings() const {
+  nsICookieJarSettings* CookieJarSettings() const {
     // Any thread.
-    MOZ_ASSERT(mLoadInfo.mCookieSettings);
-    return mLoadInfo.mCookieSettings;
+    MOZ_ASSERT(mLoadInfo.mCookieJarSettings);
+    return mLoadInfo.mCookieJarSettings;
   }
 
   const OriginAttributes& GetOriginAttributes() const {

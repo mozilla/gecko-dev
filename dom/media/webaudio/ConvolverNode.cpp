@@ -6,7 +6,6 @@
 
 #include "ConvolverNode.h"
 #include "mozilla/dom/ConvolverNodeBinding.h"
-#include "nsAutoPtr.h"
 #include "AlignmentUtils.h"
 #include "AudioNodeEngine.h"
 #include "AudioNodeTrack.h"
@@ -100,7 +99,7 @@ class ConvolverNodeEngine final : public AudioNodeEngine {
       mRightConvolverMode = RightConvolverMode::Always;
     }
 
-    mReverb = aReverb;
+    mReverb.reset(aReverb);
   }
 
   void AllocateReverbInput(const AudioBlock& aInput,
@@ -146,7 +145,7 @@ class ConvolverNodeEngine final : public AudioNodeEngine {
  private:
   // Keeping mReverbInput across process calls avoids unnecessary reallocation.
   AudioBlock mReverbInput;
-  nsAutoPtr<WebCore::Reverb> mReverb;
+  UniquePtr<WebCore::Reverb> mReverb;
   // Tracks samples of the tail remaining to be output.  INT32_MIN is a
   // special value to indicate that the end of any previous tail has been
   // handled.
@@ -394,13 +393,17 @@ void ConvolverNode::SetBuffer(JSContext* aCx, AudioBuffer* aBuffer,
         // Supported number of channels
         break;
       default:
-        aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+        aRv.ThrowNotSupportedError(
+            nsPrintfCString("%u is not a supported number of channels",
+                            aBuffer->NumberOfChannels()));
         return;
     }
   }
 
   if (aBuffer && (aBuffer->SampleRate() != Context()->SampleRate())) {
-    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    aRv.ThrowNotSupportedError(nsPrintfCString(
+        "Buffer sample rate (%g) does not match AudioContext sample rate (%g)",
+        aBuffer->SampleRate(), Context()->SampleRate()));
     return;
   }
 
@@ -418,8 +421,11 @@ void ConvolverNode::SetBuffer(JSContext* aCx, AudioBuffer* aBuffer,
       // There is currently no value in providing 16/32-byte aligned data
       // because PadAndMakeScaledDFT() will copy the data (without SIMD
       // instructions) to aligned arrays for the FFT.
-      RefPtr<SharedBuffer> floatBuffer = SharedBuffer::Create(
-          sizeof(float) * data.mDuration * data.ChannelCount());
+      CheckedInt<size_t> bufferSize(sizeof(float));
+      bufferSize *= data.mDuration;
+      bufferSize *= data.ChannelCount();
+      RefPtr<SharedBuffer> floatBuffer =
+          SharedBuffer::Create(bufferSize, fallible);
       if (!floatBuffer) {
         aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
         return;
@@ -452,11 +458,11 @@ void ConvolverNode::SetBuffer(JSContext* aCx, AudioBuffer* aBuffer,
     const size_t MaxFFTSize = 32768;
 
     bool allocationFailure = false;
-    nsAutoPtr<WebCore::Reverb> reverb(new WebCore::Reverb(
+    UniquePtr<WebCore::Reverb> reverb(new WebCore::Reverb(
         data, MaxFFTSize, !Context()->IsOffline(), mNormalize,
         aBuffer->SampleRate(), &allocationFailure));
     if (!allocationFailure) {
-      ns->SetReverb(reverb.forget(), data.ChannelCount());
+      ns->SetReverb(reverb.release(), data.ChannelCount());
     } else {
       aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
       return;

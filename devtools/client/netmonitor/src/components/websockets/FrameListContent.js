@@ -61,7 +61,7 @@ class FrameListContent extends Component {
       selectedFrame: PropTypes.object,
       selectFrame: PropTypes.func.isRequired,
       columns: PropTypes.object.isRequired,
-      isClosed: PropTypes.func.isRequired,
+      isClosed: PropTypes.bool.isRequired,
       closedConnectionDetails: PropTypes.object,
       channelId: PropTypes.number,
       onSelectFrameDelta: PropTypes.func.isRequired,
@@ -356,9 +356,7 @@ class FrameListContent extends Component {
           {
             className: "ws-connection-closed-message",
           },
-          `${CONNECTION_CLOSED_TEXT}: ${closedConnectionDetails.code} ${
-            closedConnectionDetails.reason
-          }`
+          `${CONNECTION_CLOSED_TEXT}: ${closedConnectionDetails.code} ${closedConnectionDetails.reason}`
         ),
       hr({
         ref: "scrollAnchor",

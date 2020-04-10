@@ -12,7 +12,7 @@ transforms:
     - taskgraph.transforms.task:transforms
 
 kind-dependencies:
-    - nightly-l10n-signing
+    - shippable-l10n-signing
     - toolchain
 
 only-for-build-platforms:
@@ -28,12 +28,12 @@ only-for-build-platforms:
     - win32-nightly/opt
     - win64-nightly/opt
     - win64-aarch64-nightly/opt
-    - linux-devedition-nightly/opt
-    - linux64-devedition-nightly/opt
-    - macosx64-devedition-nightly/opt
-    - win32-devedition-nightly/opt
-    - win64-devedition-nightly/opt
-    - win64-aarch64-devedition-nightly/opt
+    - linux-devedition/opt
+    - linux64-devedition/opt
+    - macosx64-devedition/opt
+    - win32-devedition/opt
+    - win64-devedition/opt
+    - win64-aarch64-devedition/opt
 
 job-template:
     worker-type: 'b-linux'

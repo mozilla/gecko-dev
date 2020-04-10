@@ -297,6 +297,31 @@ addonsManager:
     bug_numbers: [1572711, 1607744]
     release_channel_collection: opt-out
 
+form_autocomplete:
+  show:
+    objects: ["logins"]
+    bug_numbers: [1619498]
+    description: >-
+      An content form autocomplete popup was shown. Details on the timing and context are provided.
+      The `value` is the number of milliseconds since the autocomplete search started.
+    expiry_version: never
+    extra_keys:
+      acFieldName: The "field name" token (last one) of the field's autocomplete attribute.
+      fieldType: The `type` property value of the field.
+      generatedPasswo: The number of generated password rows shown.
+      hadPrevious: Whether the autocomplete results had cached previous results it could use.
+      typeWasPassword: Whether the input `type` was ever "password".
+      insecureWarning: The number of insecure login field warning rows shown (should be 0 or 1).
+      login: The number of login rows shown (without the domain line).
+      loginWithOrigin: The number of login rows shown (with the domain line).
+      loginsFooter: The number of "View Saved Logins" footer row shown.
+      stringLength: Length of the text in the field that triggered these results.
+    notification_emails: ["passwords-dev@mozilla.org"]
+    products:
+      - firefox
+    record_in_processes: ["main"]
+    release_channel_collection: opt-out
+
 extensions.data:
   migrateResult:
     objects: ["storageLocal"]
@@ -574,16 +599,14 @@ normandy:
 
 pwmgr:
   open_management:
-    objects: ["aboutprotections", "autocomplete", "capturedoorhanger", "contextmenu", "direct", "fxamenu", "mainmenu", "pageinfo", "preferences"]
+    objects: ["aboutprotections", "autocomplete", "capturedoorhanger", "contextmenu", "direct", "fxamenu", "mainmenu", "pageinfo", "preferences", "snippet"]
     methods: ["open_management"]
     description: >
       Sent when opening the password management UI.
-    bug_numbers: [1543499, 1454733, 1545172, 1550631]
+    bug_numbers: [1543499, 1454733, 1545172, 1550631, 1622971]
     notification_emails: ["loines@mozilla.com", "passwords-dev@mozilla.org", "sfoster@mozilla.com"]
     products:
       - "firefox"
-      - "fennec"
-      - "geckoview"
     record_in_processes: [main, content]
     release_channel_collection: opt-out
     expiry_version: never
@@ -631,10 +654,11 @@ pwmgr:
     record_in_processes: [content]
   autocomplete_field:
     objects: ["generatedpassword"]
-    methods: ["autocomplete_field"]
+    methods: ["autocomplete_field", "autocomplete_shown"]
     description: >
-      Sent the first time each unique generated password is used to fill a login field - i.e. the user selects it from from the autocomplete dropdown on a password input
-    bug_numbers: [1548878]
+      "autocomplete_field": The first time each unique generated password is used to fill a login field - i.e. the user selects it from from the autocomplete dropdown on a password input
+      "autocomplete_shown": The first time the password generation option is shown in the autocomplete dropdown on a password input for a site per session
+    bug_numbers: [1548878, 1616356]
     notification_emails: ["loines@mozilla.com", "passwords-dev@mozilla.org", "sfoster@mozilla.com"]
     products:
       - "firefox"
@@ -1542,6 +1566,7 @@ security.ui.protections:
     bug_numbers:
       - 1557050
       - 1610897
+      - 1612091
     description: >
       User closed on the protection report.
     expiry_version: "80"
@@ -1560,6 +1585,8 @@ security.ui.protections:
       - 1557050
       - 1572825
       - 1610897
+      - 1612088
+      - 1612091
     description: >
       User interaction by click events on the protection report.
     objects: [
@@ -1572,6 +1599,7 @@ security.ui.protections:
       "mtr_about_link",
       "mtr_signup_button",
       "trackers_about_link",
+      "mobile_app_link",
     ]
     expiry_version: "80"
     record_in_processes: ["content"]
@@ -1589,12 +1617,13 @@ security.ui.app_menu:
   click:
     bug_numbers:
       - 1603545 
+      - 1616229
     description: >
       Privacy and Security click events on app menu.
     objects: [
       "open_full_report",
     ]
-    expiry_version: "76"
+    expiry_version: "80"
     record_in_processes: 
       - main
     release_channel_collection: opt-out
@@ -1685,8 +1714,13 @@ uptake.remotecontent.result:
         The age of pulled data in seconds (ie. difference between publication time and fetch time).
       duration: >
         The duration of the synchronization process in milliseconds.
+      timestamp: >
+        The current timestamp, received during synchronization.
+      errorName: >
+        An optional string with the error name attribute in case of failure.
     bug_numbers:
       - 1517469
+      - 1617133
     products:
       - "firefox"
       - "fennec"

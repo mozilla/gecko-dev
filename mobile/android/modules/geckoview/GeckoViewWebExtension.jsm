@@ -22,10 +22,16 @@ const { EventEmitter } = ChromeUtils.import(
 );
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
+const PRIVATE_BROWSING_PERMISSION = {
+  permissions: ["internal:privateBrowsingAllowed"],
+  origins: [],
+};
+
 XPCOMUtils.defineLazyModuleGetters(this, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
   EventDispatcher: "resource://gre/modules/Messaging.jsm",
   Extension: "resource://gre/modules/Extension.jsm",
+  ExtensionPermissions: "resource://gre/modules/ExtensionPermissions.jsm",
   GeckoViewTabBridge: "resource://gre/modules/GeckoViewTab.jsm",
   Management: "resource://gre/modules/Extension.jsm",
 });
@@ -267,6 +273,13 @@ function exportExtension(aAddon, aPermissions, aSourceURI) {
   if (embedderDisabled) {
     disabledFlags.push("appDisabled");
   }
+  let baseURL = "";
+  let privateBrowsingAllowed = false;
+  const policy = WebExtensionPolicy.getByID(id);
+  if (policy) {
+    baseURL = policy.getURL();
+    privateBrowsingAllowed = policy.privateBrowsingAllowed;
+  }
   return {
     webExtensionId: id,
     locationURI: aSourceURI != null ? aSourceURI.spec : "",
@@ -288,6 +301,8 @@ function exportExtension(aAddon, aPermissions, aSourceURI) {
       blocklistState,
       signedState,
       icons,
+      baseURL,
+      privateBrowsingAllowed,
     },
   };
 }
@@ -317,6 +332,11 @@ class ExtensionInstallListener {
   }
 
   onInstallFailed(aInstall) {
+    const { error: installError, state } = aInstall;
+    this.resolve({ installError, state });
+  }
+
+  onInstallPostponed(aInstall) {
     const { error: installError, state } = aInstall;
     this.resolve({ installError, state });
   }
@@ -438,6 +458,30 @@ async function updatePromptHandler(aInfo) {
 }
 
 var GeckoViewWebExtension = {
+  observe(aSubject, aTopic, aData) {
+    debug`observe ${aTopic}`;
+
+    switch (aTopic) {
+      case "testing-installed-addon":
+      case "testing-uninstalled-addon": {
+        // We pretend devtools installed/uninstalled this addon so we don't
+        // have to add an API just for internal testing.
+        // TODO: assert this is under a test
+        EventDispatcher.instance.sendRequest({
+          type: "GeckoView:WebExtension:DebuggerListUpdated",
+        });
+        break;
+      }
+
+      case "devtools-installed-addon": {
+        EventDispatcher.instance.sendRequest({
+          type: "GeckoView:WebExtension:DebuggerListUpdated",
+        });
+        break;
+      }
+    }
+  },
+
   async registerWebExtension(aId, aUri, allowContentMessaging, aCallback) {
     const params = {
       id: aId,
@@ -453,6 +497,8 @@ var GeckoViewWebExtension = {
 
     const scope = Extension.getBootstrapScope(aId, file);
     scope.allowContentMessaging = allowContentMessaging;
+    // Always allow built-in extensions to run in private browsing
+    ExtensionPermissions.add(aId, PRIVATE_BROWSING_PERMISSION);
     this.extensionScopes.set(aId, scope);
 
     await scope.startup(params, undefined);
@@ -474,7 +520,7 @@ var GeckoViewWebExtension = {
   },
 
   async extensionById(aId) {
-    let scope = this.extensionScopes.get(aId);
+    const scope = this.extensionScopes.get(aId);
     if (!scope) {
       // Check if this is an installed extension we haven't seen yet
       const addon = await AddonManager.getAddonByID(aId);
@@ -482,10 +528,7 @@ var GeckoViewWebExtension = {
         debug`Could not find extension with id=${aId}`;
         return null;
       }
-      scope = {
-        allowContentMessaging: false,
-        extension: addon,
-      };
+      return addon;
     }
 
     return scope.extension;
@@ -507,6 +550,23 @@ var GeckoViewWebExtension = {
     );
 
     return promise;
+  },
+
+  async setPrivateBrowsingAllowed(aId, aAllowed) {
+    if (aAllowed) {
+      await ExtensionPermissions.add(aId, PRIVATE_BROWSING_PERMISSION);
+    } else {
+      await ExtensionPermissions.remove(aId, PRIVATE_BROWSING_PERMISSION);
+    }
+
+    // Reload the extension if it is already enabled.  This ensures any change
+    // on the private browsing permission is properly handled.
+    const addon = await this.extensionById(aId);
+    if (addon.isActive) {
+      await addon.reload();
+    }
+
+    return exportExtension(addon, addon.userPermissions, /* aSourceURI */ null);
   },
 
   async uninstallWebExtension(aId) {
@@ -648,18 +708,14 @@ var GeckoViewWebExtension = {
           (!(uri instanceof Ci.nsIFileURL) && !(uri instanceof Ci.nsIJARURI))
         ) {
           aCallback.onError(
-            `Extension does not point to a resource URI or a file URL. extension=${
-              aData.locationUri
-            }`
+            `Extension does not point to a resource URI or a file URL. extension=${aData.locationUri}`
           );
           return;
         }
 
         if (uri.fileName != "" && uri.fileExtension != "xpi") {
           aCallback.onError(
-            `Extension does not point to a folder or an .xpi file. Hint: the path needs to end with a "/" to be considered a folder. extension=${
-              aData.locationUri
-            }`
+            `Extension does not point to a folder or an .xpi file. Hint: the path needs to end with a "/" to be considered a folder. extension=${aData.locationUri}`
           );
           return;
         }
@@ -677,9 +733,7 @@ var GeckoViewWebExtension = {
           aData.allowContentMessaging
         ).then(aCallback.onSuccess, error =>
           aCallback.onError(
-            `An error occurred while registering the WebExtension ${
-              aData.locationUri
-            }: ${error}.`
+            `An error occurred while registering the WebExtension ${aData.locationUri}: ${error}.`
           )
         );
         break;
@@ -718,6 +772,20 @@ var GeckoViewWebExtension = {
             /* aSourceURI */ null
           ),
         });
+        break;
+      }
+
+      case "GeckoView:WebExtension:SetPBAllowed": {
+        const { extensionId, allowed } = aData;
+        try {
+          const extension = await this.setPrivateBrowsingAllowed(
+            extensionId,
+            allowed
+          );
+          aCallback.onSuccess({ extension });
+        } catch (ex) {
+          aCallback.onError(`Unexpected error: ${ex}`);
+        }
         break;
       }
 
@@ -836,3 +904,6 @@ GeckoViewWebExtension.extensionScopes = new Map();
 GeckoViewWebExtension.browserActions = new WeakMap();
 // WeakMap[Extension -> PageAction]
 GeckoViewWebExtension.pageActions = new WeakMap();
+Services.obs.addObserver(GeckoViewWebExtension, "devtools-installed-addon");
+Services.obs.addObserver(GeckoViewWebExtension, "testing-installed-addon");
+Services.obs.addObserver(GeckoViewWebExtension, "testing-uninstalled-addon");

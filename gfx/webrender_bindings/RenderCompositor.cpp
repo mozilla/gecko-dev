@@ -37,15 +37,17 @@ void wr_compositor_begin_frame(void* aCompositor) {
 
 void wr_compositor_bind(void* aCompositor, wr::NativeTileId aId,
                         wr::DeviceIntPoint* aOffset, uint32_t* aFboId,
-                        wr::DeviceIntRect aDirtyRect) {
+                        wr::DeviceIntRect aDirtyRect,
+                        wr::DeviceIntRect aValidRect) {
   RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
-  compositor->Bind(aId, aOffset, aFboId, aDirtyRect);
+  compositor->Bind(aId, aOffset, aFboId, aDirtyRect, aValidRect);
 }
 
 void wr_compositor_create_surface(void* aCompositor, wr::NativeSurfaceId aId,
+                                  wr::DeviceIntPoint aVirtualOffset,
                                   wr::DeviceIntSize aTileSize, bool aIsOpaque) {
   RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
-  compositor->CreateSurface(aId, aTileSize, aIsOpaque);
+  compositor->CreateSurface(aId, aVirtualOffset, aTileSize, aIsOpaque);
 }
 
 void wr_compositor_create_tile(void* aCompositor, wr::NativeSurfaceId aId,
@@ -73,6 +75,11 @@ void wr_compositor_end_frame(void* aCompositor) {
 void wr_compositor_enable_native_compositor(void* aCompositor, bool aEnable) {
   RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
   compositor->EnableNativeCompositor(aEnable);
+}
+
+CompositorCapabilities wr_compositor_get_capabilities(void* aCompositor) {
+  RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
+  return compositor->GetCompositorCapabilities();
 }
 
 void wr_compositor_unbind(void* aCompositor) {
@@ -108,7 +115,7 @@ UniquePtr<RenderCompositor> RenderCompositor::Create(
 RenderCompositor::RenderCompositor(RefPtr<widget::CompositorWidget>&& aWidget)
     : mWidget(aWidget) {}
 
-RenderCompositor::~RenderCompositor() {}
+RenderCompositor::~RenderCompositor() = default;
 
 bool RenderCompositor::MakeCurrent() { return gl()->MakeCurrent(); }
 

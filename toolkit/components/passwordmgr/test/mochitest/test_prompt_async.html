@@ -23,8 +23,6 @@
       // These are magically defined on the window due to the iframe IDs
       /* global iframe1, iframe2a, iframe2b */
 
-      let chromeScript = runInParent(SimpleTest.getTestFileURL("pwmgr_common.js"));
-
       /**
        * Add a listener to add some logins to be autofilled in the HTTP/proxy auth. prompts later.
        */
@@ -297,13 +295,13 @@
         }
 
         let parentIFrameBC = SpecialPowers.wrap(window).windowGlobalChild
-                                          .browsingContext.getChildren()[0];
+                                          .browsingContext.children[0];
 
-        let childIFrame = SpecialPowers.unwrap(parentIFrameBC.getChildren()[0]);
+        let childIFrame = SpecialPowers.unwrap(parentIFrameBC.children[0]);
         await SpecialPowers.spawn(childIFrame, ["iframe1"], checkIframe);
-        childIFrame = SpecialPowers.unwrap(parentIFrameBC.getChildren()[1]);
+        childIFrame = SpecialPowers.unwrap(parentIFrameBC.children[1]);
         await SpecialPowers.spawn(childIFrame, ["iframe2"], checkIframe);
-        childIFrame = SpecialPowers.unwrap(parentIFrameBC.getChildren()[2]);
+        childIFrame = SpecialPowers.unwrap(parentIFrameBC.children[2]);
         await SpecialPowers.spawn(childIFrame, ["iframe3"], checkIframe);
       });
 

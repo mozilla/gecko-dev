@@ -118,6 +118,20 @@ function resetGlobalLimit() {
   SpecialPowers.clearUserPref("dom.quotaManager.temporaryStorage.fixedLimit");
 }
 
+function storageInitialized(callback) {
+  let request = SpecialPowers._getQuotaManager().storageInitialized();
+  request.callback = callback;
+
+  return request;
+}
+
+function temporaryStorageInitialized(callback) {
+  let request = SpecialPowers._getQuotaManager().temporaryStorageInitialized();
+  request.callback = callback;
+
+  return request;
+}
+
 function init(callback) {
   let request = SpecialPowers._getQuotaManager().init();
   request.callback = callback;
@@ -199,6 +213,16 @@ function clearChromeOrigin(callback) {
 function reset(callback) {
   let request = SpecialPowers._getQuotaManager().reset();
   request.callback = callback;
+
+  return request;
+}
+
+function resetClient(principal, client) {
+  let request = Services.qms.resetStoragesForPrincipal(
+    principal,
+    "default",
+    client
+  );
 
   return request;
 }
@@ -361,7 +385,7 @@ function getCurrentPrincipal() {
   return Cc["@mozilla.org/systemprincipal;1"].createInstance(Ci.nsIPrincipal);
 }
 
-function getSimpleDatabase(principal) {
+function getSimpleDatabase(principal, persistence) {
   let connection = Cc["@mozilla.org/dom/sdb-connection;1"].createInstance(
     Ci.nsISDBConnection
   );
@@ -370,7 +394,7 @@ function getSimpleDatabase(principal) {
     principal = getCurrentPrincipal();
   }
 
-  connection.init(principal);
+  connection.init(principal, persistence);
 
   return connection;
 }
@@ -598,6 +622,10 @@ function verifyStorage(packageDefinitionRelativePaths, key) {
           throw new Error("A common entry must be a directory");
         }
 
+        if (!expectedEntry.entries && !sharedEntry.entries) {
+          throw new Error("A common entry must not be a leaf");
+        }
+
         if (sharedEntry.entries) {
           if (!expectedEntry.entries) {
             expectedEntry.entries = [];
@@ -677,4 +705,40 @@ function verifyStorage(packageDefinitionRelativePaths, key) {
   log("Stringified expected entries: " + JSON.stringify(expectedEntries));
 
   compareEntries(currentEntries, expectedEntries, key);
+}
+
+async function verifyInitializationStatus(
+  expectStorageIsInitialized,
+  expectTemporaryStorageIsInitialized
+) {
+  if (!expectStorageIsInitialized && expectTemporaryStorageIsInitialized) {
+    throw new Error("Invalid expectation");
+  }
+
+  let request = storageInitialized();
+  await requestFinished(request);
+
+  const storageIsInitialized = request.result;
+
+  request = temporaryStorageInitialized();
+  await requestFinished(request);
+
+  const temporaryStorageIsInitialized = request.result;
+
+  ok(
+    !(!storageIsInitialized && temporaryStorageIsInitialized),
+    "Initialization status is consistent"
+  );
+
+  if (expectStorageIsInitialized) {
+    ok(storageIsInitialized, "Storage is initialized");
+  } else {
+    ok(!storageIsInitialized, "Storage is not initialized");
+  }
+
+  if (expectTemporaryStorageIsInitialized) {
+    ok(temporaryStorageIsInitialized, "Temporary storage is initialized");
+  } else {
+    ok(!temporaryStorageIsInitialized, "Temporary storage is not initialized");
+  }
 }

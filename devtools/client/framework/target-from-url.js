@@ -4,8 +4,8 @@
 
 "use strict";
 
-const { DebuggerServer } = require("devtools/server/debugger-server");
-const { DebuggerClient } = require("devtools/shared/client/debugger-client");
+const { DevToolsServer } = require("devtools/server/devtools-server");
+const { DevToolsClient } = require("devtools/shared/client/devtools-client");
 const {
   remoteClientManager,
 } = require("devtools/client/shared/remote-debugging/remote-client-manager");
@@ -118,13 +118,14 @@ async function _targetFromURL(client, id, type, chrome) {
     }
   } else if (type == "process") {
     // Fetch target for a remote chrome actor
-    DebuggerServer.allowChromeProcess = true;
+    DevToolsServer.allowChromeProcess = true;
     try {
       id = parseInt(id, 10);
       if (isNaN(id)) {
         id = 0;
       }
-      front = await client.mainRoot.getProcess(id);
+      const frontDescriptor = await client.mainRoot.getProcess(id);
+      front = await frontDescriptor.getTarget(id);
     } catch (ex) {
       if (ex.error == "noProcess") {
         throw new Error(`targetFromURL, process with id '${id}' doesn't exist`);
@@ -133,7 +134,7 @@ async function _targetFromURL(client, id, type, chrome) {
     }
   } else if (type == "window") {
     // Fetch target for a remote window actor
-    DebuggerServer.allowChromeProcess = true;
+    DevToolsServer.allowChromeProcess = true;
     try {
       id = parseInt(id, 10);
       if (isNaN(id)) {
@@ -162,7 +163,7 @@ async function _targetFromURL(client, id, type, chrome) {
 }
 
 /**
- * Create a DebuggerClient for a given URL object having various query parameters:
+ * Create a DevToolsClient for a given URL object having various query parameters:
  *
  * host:
  *    {String} The hostname or IP address to connect to.
@@ -175,7 +176,7 @@ async function _targetFromURL(client, id, type, chrome) {
  *
  * @param {URL} url
  *        The url to fetch query params from.
- * @return a promise that resolves a DebuggerClient object
+ * @return a promise that resolves a DevToolsClient object
  */
 async function clientFromURL(url) {
   const params = url.searchParams;
@@ -196,14 +197,14 @@ async function clientFromURL(url) {
 
   let transport;
   if (port) {
-    transport = await DebuggerClient.socketConnect({ host, port, webSocket });
+    transport = await DevToolsClient.socketConnect({ host, port, webSocket });
   } else {
     // Setup a server if we don't have one already running
-    DebuggerServer.init();
-    DebuggerServer.registerAllActors();
-    transport = DebuggerServer.connectPipe();
+    DevToolsServer.init();
+    DevToolsServer.registerAllActors();
+    transport = DevToolsServer.connectPipe();
   }
-  return new DebuggerClient(transport);
+  return new DevToolsClient(transport);
 }
 
 exports.clientFromURL = clientFromURL;

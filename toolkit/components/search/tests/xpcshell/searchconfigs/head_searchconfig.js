@@ -38,7 +38,7 @@ const SUBMISSION_PURPOSES = [
   "newtab",
 ];
 
-const engineSelector = new SearchEngineSelector();
+let engineSelector;
 
 /**
  * This class implements the test harness for search configuration tests.
@@ -100,11 +100,8 @@ class SearchConfigTest {
       "42"
     );
 
-    await engineSelector.init();
-
     // Disable region checks.
     Services.prefs.setBoolPref("browser.search.geoSpecificDefaults", false);
-    Services.prefs.setCharPref("browser.search.geoip.url", "");
 
     // Enable separatePrivateDefault testing. We test with this on, as we have
     // separate tests for ensuring the normal = private when this is off.
@@ -117,8 +114,26 @@ class SearchConfigTest {
       true
     );
 
+    // We need to force modern config off before we start. Modern config uses
+    // the results from the engine selector directly, whereas the legacy
+    // config uses the search service which needs to know we want to run
+    // it in legacy mode.
+    Services.prefs.setBoolPref(
+      SearchUtils.BROWSER_SEARCH_PREF + "modernConfig",
+      false
+    );
+
     await AddonTestUtils.promiseStartupManager();
     await Services.search.init();
+
+    // We must use the engine selector that the search service has created (if
+    // it has), as remote settings can only easily deal with us loading the
+    // configuration once - after that, it tries to access the network.
+    engineSelector =
+      Services.search.wrappedJSObject._engineSelector ||
+      new SearchEngineSelector();
+
+    await engineSelector.init();
 
     // Note: we don't use the helper function here, so that we have at least
     // one message output per process.
@@ -482,9 +497,9 @@ class SearchConfigTest {
       }
       if (rule.telemetryId) {
         this.assertEqual(
-          engine._shortName,
+          engine.telemetryId,
           rule.telemetryId,
-          `Should have the correct shortName ${location}.`
+          `Should have the correct telemetryId ${location}.`
         );
       }
     }
@@ -530,9 +545,7 @@ class SearchConfigTest {
         this.assertOk(
           submission.uri.host.endsWith(rules.domain),
           `Should have the correct domain for type: ${urlType} ${location}.
-           Got "${submission.uri.host}", expected to end with "${
-            rules.domain
-          }".`
+           Got "${submission.uri.host}", expected to end with "${rules.domain}".`
         );
       }
     }
@@ -557,18 +570,14 @@ class SearchConfigTest {
       const submissionQueryParams = submission.uri.query.split("&");
       this.assertOk(
         submissionQueryParams.includes(code),
-        `Expected "${code}" in url "${
-          submission.uri.spec
-        }" from purpose "${purpose}" ${location}`
+        `Expected "${code}" in url "${submission.uri.spec}" from purpose "${purpose}" ${location}`
       );
 
       const paramName = code.split("=")[0];
       this.assertOk(
         submissionQueryParams.filter(param => param.startsWith(paramName))
           .length == 1,
-        `Expected only one "${paramName}" parameter in "${
-          submission.uri.spec
-        }" from purpose "${purpose}" ${location}`
+        `Expected only one "${paramName}" parameter in "${submission.uri.spec}" from purpose "${purpose}" ${location}`
       );
     }
   }
@@ -588,9 +597,7 @@ class SearchConfigTest {
       const submission = engine.getSubmission("test", URLTYPE_SEARCH_HTML);
       this.assertOk(
         submission.uri.query.split("&").includes(rule.searchUrlCode),
-        `Expected "${rule.searchUrlCode}" in search url "${
-          submission.uri.spec
-        }"`
+        `Expected "${rule.searchUrlCode}" in search url "${submission.uri.spec}"`
       );
     }
     if (rule.searchFormUrlCode) {
@@ -604,9 +611,7 @@ class SearchConfigTest {
       const submission = engine.getSubmission("test", URLTYPE_SUGGEST_JSON);
       this.assertOk(
         submission.uri.query.split("&").includes(rule.suggestUrlCode),
-        `Expected "${rule.suggestUrlCode}" in suggestion url "${
-          submission.uri.spec
-        }"`
+        `Expected "${rule.suggestUrlCode}" in suggestion url "${submission.uri.spec}"`
       );
     }
   }

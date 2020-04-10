@@ -7,17 +7,17 @@
  * Make sure the listTabs request works as specified.
  */
 
-var { DebuggerServer } = require("devtools/server/debugger-server");
-var { DebuggerClient } = require("devtools/shared/client/debugger-client");
+var { DevToolsServer } = require("devtools/server/devtools-server");
+var { DevToolsClient } = require("devtools/shared/client/devtools-client");
 
 const TAB1_URL = EXAMPLE_URL + "doc_empty-tab-01.html";
 
 add_task(async function test() {
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
 
-  const transport = DebuggerServer.connectPipe();
-  const client = new DebuggerClient(transport);
+  const transport = DevToolsServer.connectPipe();
+  const client = new DevToolsClient(transport);
   const [type] = await client.connect();
   is(type, "browser", "Root actor should identify itself as a browser.");
   const tab = await addTab(TAB1_URL);

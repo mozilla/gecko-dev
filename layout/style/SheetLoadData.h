@@ -196,7 +196,23 @@ class SheetLoadData final : public nsIRunnable, public nsIThreadObserver {
   // is non-null.
   const Encoding* mPreloadEncoding;
 
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  // Whether SheetComplete was called.
+  bool mSheetCompleteCalled = false;
+#endif
+
   bool ShouldDefer() const { return mWasAlternate || !mMediaMatched; }
+
+  // If there are no child sheets outstanding, mark us as complete.
+  // Otherwise, the children are holding strong refs to the data
+  // and will call SheetComplete() on it when they complete.
+  void SheetFinishedParsingAsync() {
+    MOZ_ASSERT(mIsBeingParsed);
+    mIsBeingParsed = false;
+    if (!mPendingChildren) {
+      mLoader->SheetComplete(*this, NS_OK);
+    }
+  }
 
  private:
   void FireLoadEvent(nsIThreadInternal* aThread);

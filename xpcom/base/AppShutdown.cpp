@@ -16,6 +16,7 @@
 #include "mozilla/CmdLineAndEnvUtils.h"
 #include "mozilla/PoisonIOInterposer.h"
 #include "mozilla/Printf.h"
+#include "mozilla/scache/StartupCache.h"
 #include "mozilla/StartupTimeline.h"
 #include "mozilla/StaticPrefs_toolkit.h"
 #include "mozilla/LateWriteChecks.h"
@@ -29,6 +30,7 @@ namespace mozilla {
 static ShutdownPhase sFastShutdownPhase = ShutdownPhase::NotInShutdown;
 static ShutdownPhase sLateWriteChecksPhase = ShutdownPhase::NotInShutdown;
 static AppShutdownMode sShutdownMode = AppShutdownMode::Normal;
+static bool sIsShuttingDown = false;
 
 // These environment variable strings are all deliberately copied and leaked
 // due to requirements of PR_SetEnv and similar.
@@ -45,12 +47,16 @@ ShutdownPhase GetShutdownPhaseFromPrefValue(int32_t aPrefValue) {
   switch (aPrefValue) {
     case 1:
       return ShutdownPhase::ShutdownPostLastCycleCollection;
+    case 2:
+      return ShutdownPhase::ShutdownThreads;
       // NOTE: the remaining values from the ShutdownPhase enum will be added
       // when we're at least reasonably confident that the world won't come
       // crashing down if we do a fast shutdown at that point.
   }
   return ShutdownPhase::NotInShutdown;
 }
+
+bool AppShutdown::IsShuttingDown() { return sIsShuttingDown; }
 
 void AppShutdown::SaveEnvVarsForPotentialRestart() {
   const char* s = PR_GetEnv("XUL_APP_FILE");
@@ -125,6 +131,12 @@ void AppShutdown::Init(AppShutdownMode aMode) {
   int32_t lateWriteChecksPref =
       StaticPrefs::toolkit_shutdown_lateWriteChecksStage();
   sLateWriteChecksPhase = GetShutdownPhaseFromPrefValue(lateWriteChecksPref);
+
+  // Very early shutdowns can happen before the startup cache is even
+  // initialized; don't bother initializing it during shutdown.
+  if (auto* cache = scache::StartupCache::GetSingletonNoInit()) {
+    cache->MaybeInitShutdownWrite();
+  }
 }
 
 void AppShutdown::MaybeFastShutdown(ShutdownPhase aPhase) {
@@ -147,6 +159,7 @@ void AppShutdown::MaybeFastShutdown(ShutdownPhase aPhase) {
 }
 
 void AppShutdown::OnShutdownConfirmed() {
+  sIsShuttingDown = true;
   // If we're restarting, we need to save environment variables correctly
   // while everything is still alive to do so.
   if (sShutdownMode == AppShutdownMode::Restart) {

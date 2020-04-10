@@ -65,7 +65,7 @@
 #include "ScriptLoader.h"
 #include "mozilla/dom/ServiceWorkerEvents.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
-#include "mozilla/net/CookieSettings.h"
+#include "mozilla/net/CookieJarSettings.h"
 #include "WorkerCSPEventListener.h"
 #include "WorkerDebugger.h"
 #include "WorkerDebuggerManager.h"
@@ -161,7 +161,7 @@ class ExternalRunnableWrapper final : public WorkerRunnable {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(ExternalRunnableWrapper, WorkerRunnable)
 
  private:
-  ~ExternalRunnableWrapper() {}
+  ~ExternalRunnableWrapper() = default;
 
   virtual bool PreDispatch(WorkerPrivate* aWorkerPrivate) override {
     // Silence bad assertions.
@@ -259,7 +259,7 @@ class TopLevelWorkerFinishedRunnable final : public Runnable {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(TopLevelWorkerFinishedRunnable, Runnable)
 
  private:
-  ~TopLevelWorkerFinishedRunnable() {}
+  ~TopLevelWorkerFinishedRunnable() = default;
 
   NS_IMETHOD
   Run() override {
@@ -553,7 +553,7 @@ class TimerRunnable final : public WorkerRunnable,
       : WorkerRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount) {}
 
  private:
-  ~TimerRunnable() {}
+  ~TimerRunnable() = default;
 
   virtual bool PreDispatch(WorkerPrivate* aWorkerPrivate) override {
     // Silence bad assertions.
@@ -957,7 +957,7 @@ class WorkerPrivate::EventTarget final : public nsISerialEventTarget {
   NS_DECL_NSIEVENTTARGET_FULL
 
  private:
-  ~EventTarget() {}
+  ~EventTarget() = default;
 };
 
 struct WorkerPrivate::TimeoutInfo {
@@ -1125,7 +1125,7 @@ class WorkerPrivate::MemoryReporter final : public nsIMemoryReporter {
     FinishCollectRunnable& operator=(const FinishCollectRunnable&&) = delete;
   };
 
-  ~MemoryReporter() {}
+  ~MemoryReporter() = default;
 
   void Disable() {
     // Called from WorkerPrivate::DisableMemoryReporter.
@@ -1330,7 +1330,12 @@ nsresult WorkerPrivate::SetCSPFromHeaderValues(
   // is a SystemPrincipal) then we fall back and use the
   // base URI as selfURI for CSP.
   nsCOMPtr<nsIURI> selfURI;
-  mLoadInfo.mPrincipal->GetURI(getter_AddRefs(selfURI));
+  // Its not recommended to use the BasePrincipal to get the URI
+  // but in this case we need to make an exception
+  auto* basePrin = BasePrincipal::Cast(mLoadInfo.mPrincipal);
+  if (basePrin) {
+    basePrin->GetURI(getter_AddRefs(selfURI));
+  }
   if (!selfURI) {
     selfURI = mLoadInfo.mBaseURI;
   }
@@ -2340,7 +2345,7 @@ already_AddRefed<WorkerPrivate> WorkerPrivate::Constructor(
   MOZ_ASSERT(runtimeService);
 
   nsILoadInfo::CrossOriginOpenerPolicy agentClusterCoop =
-      nsILoadInfo::OPENER_POLICY_NULL;
+      nsILoadInfo::OPENER_POLICY_UNSAFE_NONE;
   nsID agentClusterId;
   if (parent) {
     MOZ_ASSERT(aWorkerType == WorkerType::WorkerTypeDedicated);
@@ -2435,7 +2440,7 @@ nsresult WorkerPrivate::SetIsDebuggerReady(bool aReady) {
     // order in which they were originally dispatched.
     auto pending = std::move(mDelayedDebuggeeRunnables);
     for (uint32_t i = 0; i < pending.Length(); i++) {
-      RefPtr<WorkerRunnable> runnable = pending[i].forget();
+      RefPtr<WorkerRunnable> runnable = std::move(pending[i]);
       nsresult rv = DispatchLockHeld(runnable.forget(), nullptr, lock);
       NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -2639,7 +2644,7 @@ nsresult WorkerPrivate::GetLoadInfo(JSContext* aCx, nsPIDOMWindowInner* aWindow,
       loadInfo.mFromWindow = true;
       loadInfo.mWindowID = globalWindow->WindowID();
       loadInfo.mStorageAccess = StorageAllowedForWindow(globalWindow);
-      loadInfo.mCookieSettings = document->CookieSettings();
+      loadInfo.mCookieJarSettings = document->CookieJarSettings();
       loadInfo.mOriginAttributes =
           nsContentUtils::GetOriginAttributes(document);
       loadInfo.mParentController = globalWindow->GetController();
@@ -2685,8 +2690,8 @@ nsresult WorkerPrivate::GetLoadInfo(JSContext* aCx, nsPIDOMWindowInner* aWindow,
       loadInfo.mFromWindow = false;
       loadInfo.mWindowID = UINT64_MAX;
       loadInfo.mStorageAccess = StorageAccess::eAllow;
-      loadInfo.mCookieSettings = mozilla::net::CookieSettings::Create();
-      MOZ_ASSERT(loadInfo.mCookieSettings);
+      loadInfo.mCookieJarSettings = mozilla::net::CookieJarSettings::Create();
+      MOZ_ASSERT(loadInfo.mCookieJarSettings);
 
       loadInfo.mOriginAttributes = OriginAttributes();
     }
@@ -2709,7 +2714,7 @@ nsresult WorkerPrivate::GetLoadInfo(JSContext* aCx, nsPIDOMWindowInner* aWindow,
 
     rv = ChannelFromScriptURLMainThread(
         loadInfo.mLoadingPrincipal, document, loadInfo.mLoadGroup, url,
-        clientInfo, ContentPolicyType(aWorkerType), loadInfo.mCookieSettings,
+        clientInfo, ContentPolicyType(aWorkerType), loadInfo.mCookieJarSettings,
         loadInfo.mReferrerInfo, getter_AddRefs(loadInfo.mChannel));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2748,7 +2753,7 @@ void WorkerPrivate::OverrideLoadInfoLoadGroup(WorkerLoadInfo& aLoadInfo,
       loadGroup->SetNotificationCallbacks(aLoadInfo.mInterfaceRequestor);
   MOZ_ALWAYS_SUCCEEDS(rv);
 
-  aLoadInfo.mLoadGroup = loadGroup.forget();
+  aLoadInfo.mLoadGroup = std::move(loadGroup);
 
   MOZ_ASSERT(NS_LoadGroupMatchesPrincipal(aLoadInfo.mLoadGroup, aPrincipal));
 }
@@ -3464,7 +3469,7 @@ void WorkerPrivate::ClearMainEventQueue(WorkerRanOrNot aRanOrNot) {
   if (WorkerNeverRan == aRanOrNot) {
     for (uint32_t count = mPreStartRunnables.Length(), index = 0; index < count;
          index++) {
-      RefPtr<WorkerRunnable> runnable = mPreStartRunnables[index].forget();
+      RefPtr<WorkerRunnable> runnable = std::move(mPreStartRunnables[index]);
       static_cast<nsIRunnable*>(runnable.get())->Run();
     }
   } else {
@@ -5209,7 +5214,7 @@ WorkerPrivate::AutoPushEventLoopGlobal::AutoPushEventLoopGlobal(
     WorkerPrivate* aWorkerPrivate, JSContext* aCx)
     : mWorkerPrivate(aWorkerPrivate) {
   MOZ_ACCESS_THREAD_BOUND(mWorkerPrivate->mWorkerThreadAccessible, data);
-  mOldEventLoopGlobal = data->mCurrentEventLoopGlobal.forget();
+  mOldEventLoopGlobal = std::move(data->mCurrentEventLoopGlobal);
   if (JSObject* global = JS::CurrentGlobalOrNull(aCx)) {
     data->mCurrentEventLoopGlobal = xpc::NativeGlobal(global);
   }
@@ -5217,7 +5222,7 @@ WorkerPrivate::AutoPushEventLoopGlobal::AutoPushEventLoopGlobal(
 
 WorkerPrivate::AutoPushEventLoopGlobal::~AutoPushEventLoopGlobal() {
   MOZ_ACCESS_THREAD_BOUND(mWorkerPrivate->mWorkerThreadAccessible, data);
-  data->mCurrentEventLoopGlobal = mOldEventLoopGlobal.forget();
+  data->mCurrentEventLoopGlobal = std::move(mOldEventLoopGlobal);
 }
 
 }  // namespace dom

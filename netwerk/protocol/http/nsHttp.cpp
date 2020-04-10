@@ -27,7 +27,7 @@
 namespace mozilla {
 namespace net {
 
-const nsCString kHttp3Version = NS_LITERAL_CSTRING("h3-24");
+const nsCString kHttp3Version = NS_LITERAL_CSTRING("h3-27");
 
 // define storage for all atoms
 namespace nsHttp {
@@ -423,7 +423,8 @@ bool ValidationRequired(bool isForcedValid,
     LOG(("  not validating, expire time not in the past"));
   } else if (cachedResponseHead->MustValidateIfExpired()) {
     doValidation = true;
-  } else if (cachedResponseHead->StaleWhileRevalidate(now, expiration)) {
+  } else if (cachedResponseHead->StaleWhileRevalidate(now, expiration) &&
+             StaticPrefs::network_http_stale_while_revalidate_enabled()) {
     LOG(("  not validating, in the stall-while-revalidate window"));
     doValidation = false;
     if (performBackgroundRevalidation) {
@@ -536,13 +537,6 @@ void SetLastActiveTabLoadOptimizationHit(TimeStamp const& when) {
   if (gHttpHandler) {
     gHttpHandler->SetLastActiveTabLoadOptimizationHit(when);
   }
-}
-
-HttpVersion GetHttpVersionFromSpdy(SpdyVersion sv) {
-  MOZ_DIAGNOSTIC_ASSERT(sv != SpdyVersion::NONE);
-  MOZ_ASSERT(sv == SpdyVersion::HTTP_2);
-
-  return HttpVersion::v2_0;
 }
 
 }  // namespace nsHttp
@@ -842,8 +836,10 @@ void LogHeaders(const char* lineStart) {
 }
 
 nsresult HttpProxyResponseToErrorCode(uint32_t aStatusCode) {
-  MOZ_ASSERT(aStatusCode >= 300,
-             "Call HttpProxyResponseToErrorCode with successful status code!");
+  // In proxy CONNECT case, we treat every response code except 200 as an error.
+  // Even if the proxy server returns other 2xx codes (i.e. 206), this function
+  // still returns an error code.
+  MOZ_ASSERT(aStatusCode != 200);
 
   nsresult rv;
   switch (aStatusCode) {

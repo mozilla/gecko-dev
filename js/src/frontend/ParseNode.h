@@ -10,6 +10,8 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Variant.h"
 
+#include <iterator>
+
 #include "frontend/Stencil.h"
 #include "frontend/Token.h"
 #include "util/Text.h"
@@ -42,8 +44,6 @@
 //   garbage-collected.
 
 namespace js {
-
-class ArrayObject;
 
 namespace frontend {
 
@@ -254,9 +254,7 @@ inline bool IsTypeofKind(ParseNodeKind kind) {
 /*
  * <Definitions>
  * Function (FunctionNode)
- *   funbox: ptr to js::FunctionBox holding function object containing arg and
- *           var properties.  We create the function object at parse (not emit)
- *           time to specialize arg and var bytecodes early.
+ *   funbox: ptr to js::FunctionBox
  *   body: ParamsBody or null for lazily-parsed function, ordinarily;
  *         ParseNodeKind::LexicalScope for implicit function in genexpr
  *   syntaxKind: the syntax of the function
@@ -1342,6 +1340,13 @@ class ListNode : public ParseNode {
     explicit iterator(ParseNode* node) : node_(node) {}
 
    public:
+    // Implement std::iterator_traits.
+    using iterator_category = std::input_iterator_tag;
+    using value_type = ParseNode*;
+    using difference_type = ptrdiff_t;
+    using pointer = ParseNode**;
+    using reference = ParseNode*&;
+
     bool operator==(const iterator& other) const {
       return node_ == other.node_;
     }
@@ -1548,26 +1553,15 @@ class NumericLiteral : public ParseNode {
 };
 
 class BigIntLiteral : public ParseNode {
-  // BigIntLiterals hold onto a CompilationInfo reference to avoid
-  // having to plumb CompilationInfo through FoldConstants.
-  struct Deferred {
-    CompilationInfo& compilationInfo;
-    BigIntIndex index;
-  };
-  mozilla::Variant<Deferred, BigIntBox*> data_;
-
-  BigIntBox* box() const { return data_.as<BigIntBox*>(); }
+  CompilationInfo& compilationInfo_;
+  BigIntIndex index_;
 
  public:
-  BigIntLiteral(BigIntBox* bibox, const TokenPos& pos)
-      : ParseNode(ParseNodeKind::BigIntExpr, pos), data_(bibox) {}
-
-  explicit BigIntLiteral(BigIntIndex index, CompilationInfo& compilationInfo,
-                         const TokenPos& pos)
+  BigIntLiteral(BigIntIndex index, CompilationInfo& compilationInfo,
+                const TokenPos& pos)
       : ParseNode(ParseNodeKind::BigIntExpr, pos),
-        data_(Deferred{compilationInfo, index}) {}
-
-  bool isDeferred() { return data_.is<Deferred>(); }
+        compilationInfo_(compilationInfo),
+        index_(index) {}
 
   static bool test(const ParseNode& node) {
     return node.isKind(ParseNodeKind::BigIntExpr);
@@ -1584,11 +1578,7 @@ class BigIntLiteral : public ParseNode {
   void dumpImpl(GenericPrinter& out, int indent);
 #endif
 
-  BigIntIndex index() { return data_.as<Deferred>().index; }
-
-  // Get the contained BigInt value: Assumes it was created with one,
-  // and cannot be used when deferred allocation mode is enabled.
-  BigInt* value();
+  BigIntIndex index() { return index_; }
 
   // Get the contained BigIntValue, or parse it from the creation data
   // Can be used when deferred allocation mode is enabled.
@@ -1634,8 +1624,6 @@ class LexicalScopeNode : public ParseNode {
     // the rest of the frontend also depends on.
     return Handle<LexicalScope::Data*>::fromMarkedLocation(&bindings);
   }
-
-  void clearScopeBindings() { this->bindings = nullptr; }
 
   ParseNode* scopeBody() const { return body; }
 
@@ -2037,8 +2025,6 @@ class OptionalPropertyByValue : public PropertyByValueBase {
  * TaggedTemplate.
  */
 class CallSiteNode : public ListNode {
-  MOZ_MUST_USE ArrayObject* getArrayValue(JSContext* cx, ListNode* cookedOrRaw);
-
  public:
   explicit CallSiteNode(uint32_t begin)
       : ListNode(ParseNodeKind::CallSiteObj, TokenPos(begin, begin + 1)) {}
@@ -2047,14 +2033,6 @@ class CallSiteNode : public ListNode {
     bool match = node.isKind(ParseNodeKind::CallSiteObj);
     MOZ_ASSERT_IF(match, node.is<ListNode>());
     return match;
-  }
-
-  MOZ_MUST_USE ArrayObject* getCookedArrayValue(JSContext* cx) {
-    return getArrayValue(cx, this);
-  }
-
-  MOZ_MUST_USE ArrayObject* getRawArrayValue(JSContext* cx) {
-    return getArrayValue(cx, rawNodes());
   }
 
   ListNode* rawNodes() const {
@@ -2123,13 +2101,14 @@ class ClassMethod : public BinaryNode {
 };
 
 class ClassField : public BinaryNode {
+  bool isStatic_;
+
  public:
-  ClassField(ParseNode* name, ParseNode* initializer)
+  ClassField(ParseNode* name, ParseNode* initializer, bool isStatic)
       : BinaryNode(ParseNodeKind::ClassField,
-                   initializer == nullptr
-                       ? name->pn_pos
-                       : TokenPos::box(name->pn_pos, initializer->pn_pos),
-                   name, initializer) {}
+                   TokenPos::box(name->pn_pos, initializer->pn_pos), name,
+                   initializer),
+        isStatic_(isStatic) {}
 
   static bool test(const ParseNode& node) {
     bool match = node.isKind(ParseNodeKind::ClassField);
@@ -2139,9 +2118,9 @@ class ClassField : public BinaryNode {
 
   ParseNode& name() const { return *left(); }
 
-  FunctionNode* initializer() const {
-    return right() ? &right()->as<FunctionNode>() : nullptr;
-  }
+  FunctionNode* initializer() const { return &right()->as<FunctionNode>(); }
+
+  bool isStatic() const { return isStatic_; }
 };
 
 class PropertyDefinition : public BinaryNode {

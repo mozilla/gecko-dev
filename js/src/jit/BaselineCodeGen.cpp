@@ -1473,6 +1473,10 @@ bool BaselineInterpreterCodeGen::emitWarmUpCounterIncrement() {
 
 template <>
 bool BaselineCompilerCodeGen::emitArgumentTypeChecks() {
+  if (!IsTypeInferenceEnabled()) {
+    return true;
+  }
+
   if (!handler.function()) {
     return true;
   }
@@ -1500,6 +1504,10 @@ bool BaselineCompilerCodeGen::emitArgumentTypeChecks() {
 
 template <>
 bool BaselineInterpreterCodeGen::emitArgumentTypeChecks() {
+  if (!IsTypeInferenceEnabled()) {
+    return true;
+  }
+
   Register scratch1 = R1.scratchReg();
 
   // If the script is not a function, we're done.
@@ -3722,7 +3730,7 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_GetAliasedVar() {
   emitGetAliasedVar(R0);
 
-  if (handler.maybeIonCompileable()) {
+  if (IsTypeInferenceEnabled() && handler.maybeIonCompileable()) {
     // No need to monitor types if we know Ion can't compile this script.
     if (!emitNextIC()) {
       return false;
@@ -3944,7 +3952,7 @@ bool BaselineCompilerCodeGen::emit_GetImport() {
     }
   }
 
-  if (handler.maybeIonCompileable()) {
+  if (IsTypeInferenceEnabled() && handler.maybeIonCompileable()) {
     // No need to monitor types if we know Ion can't compile this script.
     if (!emitNextIC()) {
       return false;
@@ -3974,7 +3982,7 @@ bool BaselineInterpreterCodeGen::emit_GetImport() {
   }
 
   // Enter the type monitor IC.
-  if (!emitNextIC()) {
+  if (IsTypeInferenceEnabled() && !emitNextIC()) {
     return false;
   }
 
@@ -5084,16 +5092,6 @@ bool BaselineCodeGen<Handler>::emit_PushVarEnv() {
 
   using Fn = bool (*)(JSContext*, BaselineFrame*, HandleScope);
   return callVM<Fn, jit::PushVarEnv>();
-}
-
-template <typename Handler>
-bool BaselineCodeGen<Handler>::emit_PopVarEnv() {
-  prepareVMCall();
-  masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
-  pushArg(R0.scratchReg());
-
-  using Fn = bool (*)(JSContext*, BaselineFrame*);
-  return callVM<Fn, jit::PopVarEnv>();
 }
 
 template <typename Handler>
@@ -6738,10 +6736,6 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
   // case GC gets run during stack check). For global and eval scripts, the env
   // chain is in R1. For function scripts, the env chain is in the callee.
   emitInitFrameFields(R1.scratchReg());
-
-  if (!emitIncExecutionProgressCounter(R2.scratchReg())) {
-    return false;
-  }
 
   // When compiling with Debugger instrumentation, set the debuggeeness of
   // the frame before any operation that can call into the VM.

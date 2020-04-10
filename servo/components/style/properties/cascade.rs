@@ -337,83 +337,74 @@ where
     context.builder.build()
 }
 
-/// How should a declaration behave when ignoring document colors?
-enum DeclarationApplication {
-    /// We should apply the declaration.
-    Apply,
-    /// We should ignore the declaration.
-    Ignore,
-    /// We should apply the following declaration, only if any other declaration
-    /// hasn't set it before.
-    ApplyUnlessOverriden(PropertyDeclaration),
-}
+/// For ignored colors mode, we sometimes want to do something equivalent to
+/// "revert-or-initial", where we `revert` for a given origin, but then apply a
+/// given initial value if nothing in other origins did override it.
+///
+/// This is a bit of a clunky way of achieving this.
+type DeclarationsToApplyUnlessOverriden = SmallVec::<[PropertyDeclaration; 2]>;
 
-fn application_when_ignoring_colors(
+fn tweak_when_ignoring_colors(
     builder: &StyleBuilder,
     longhand_id: LonghandId,
     origin: Origin,
-    declaration: &PropertyDeclaration,
-) -> DeclarationApplication {
+    declaration: &mut Cow<PropertyDeclaration>,
+    declarations_to_apply_unless_overriden: &mut DeclarationsToApplyUnlessOverriden,
+) {
     if !longhand_id.ignored_when_document_colors_disabled() {
-        return DeclarationApplication::Apply;
+        return;
     }
 
     let is_ua_or_user_rule = matches!(origin, Origin::User | Origin::UserAgent);
     if is_ua_or_user_rule {
-        return DeclarationApplication::Apply;
+        return;
     }
 
     // Don't override background-color on ::-moz-color-swatch. It is set as an
     // author style (via the style attribute), but it's pretty important for it
     // to show up for obvious reasons :)
     if builder.pseudo.map_or(false, |p| p.is_color_swatch()) && longhand_id == LonghandId::BackgroundColor {
-        return DeclarationApplication::Apply;
+        return;
     }
 
-    // Treat background-color a bit differently.  If the specified color is
-    // anything other than a fully transparent color, convert it into the
-    // Device's default background color.
-    // Also: for now, we treat background-image a bit differently, too.
-    // background-image is marked as ignored, but really, we only ignore
-    // it when backplates are disabled (since then text may be unreadable over
-    // a background image, if we're ignoring document colors).
-    // Here we check backplate status to decide if ignoring background-image
-    // is the right decision.
-    match *declaration {
+    // A few special-cases ahead.
+    match **declaration {
+        // We honor color and background-color: transparent, and
+        // "revert-or-initial" otherwise.
         PropertyDeclaration::BackgroundColor(ref color) => {
             if color.is_transparent() {
-                return DeclarationApplication::Apply;
+                return;
             }
             let color = builder.device.default_background_color();
-            DeclarationApplication::ApplyUnlessOverriden(
+            declarations_to_apply_unless_overriden.push(
                 PropertyDeclaration::BackgroundColor(color.into())
             )
         }
         PropertyDeclaration::Color(ref color) => {
+            // otherwise.
             if color.0.is_transparent() {
-                return DeclarationApplication::Apply;
-            }
-            if builder.get_parent_inherited_text().clone_color().alpha != 0 {
-                return DeclarationApplication::Ignore;
+                return;
             }
             let color = builder.device.default_color();
-            DeclarationApplication::ApplyUnlessOverriden(
+            declarations_to_apply_unless_overriden.push(
                 PropertyDeclaration::Color(specified::ColorPropertyValue(color.into()))
             )
         },
-        // In the future, if/when we remove the backplate pref, we can remove this
-        // special case along with the 'ignored_when_colors_disabled=True' mako line
-        // for the "background-image" property.
+        // We honor url background-images if backplating.
         #[cfg(feature = "gecko")]
-        PropertyDeclaration::BackgroundImage(..) => {
+        PropertyDeclaration::BackgroundImage(ref bkg) => {
+            use crate::values::generics::image::Image;
             if static_prefs::pref!("browser.display.permit_backplate") {
-                DeclarationApplication::Apply
-            } else {
-                DeclarationApplication::Ignore
+                if bkg.0.iter().all(|image| matches!(*image, Image::Url(..))) {
+                    return;
+                }
             }
         },
-        _ => DeclarationApplication::Ignore,
+        _ => {},
     }
+
+    *declaration.to_mut() = PropertyDeclaration::css_wide_keyword(longhand_id, CSSWideKeyword::Revert);
+
 }
 
 struct Cascade<'a, 'b: 'a> {
@@ -491,7 +482,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         let ignore_colors = !self.context.builder.device.use_document_colors();
         let mut declarations_to_apply_unless_overriden =
-            SmallVec::<[PropertyDeclaration; 2]>::new();
+            DeclarationsToApplyUnlessOverriden::new();
 
         for (declaration, origin) in declarations {
             let declaration_id = declaration.id();
@@ -533,26 +524,23 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 continue;
             }
 
-            let declaration = self.substitute_variables_if_needed(declaration);
+            let mut declaration = self.substitute_variables_if_needed(declaration);
 
             // When document colors are disabled, do special handling of
             // properties that are marked as ignored in that mode.
             if ignore_colors {
-                let application = application_when_ignoring_colors(
+                tweak_when_ignoring_colors(
                     &self.context.builder,
                     longhand_id,
                     origin,
-                    &declaration,
+                    &mut declaration,
+                    &mut declarations_to_apply_unless_overriden,
                 );
-
-                match application {
-                    DeclarationApplication::Ignore => continue,
-                    DeclarationApplication::Apply => {},
-                    DeclarationApplication::ApplyUnlessOverriden(decl) => {
-                        declarations_to_apply_unless_overriden.push(decl);
-                        continue;
-                    }
-                }
+                debug_assert_eq!(
+                    declaration.id(),
+                    PropertyDeclarationId::Longhand(longhand_id),
+                    "Shouldn't change the declaration id!",
+                );
             }
 
             let css_wide_keyword = declaration.get_css_wide_keyword();

@@ -306,22 +306,15 @@ class MarionetteParentProcess {
     this.alteredPrefs = new Set();
 
     if (env.exists(ENV_ENABLED)) {
-      MarionettePrefs.enabled = true;
+      this.enabled = true;
+    } else {
+      this.enabled = MarionettePrefs.enabled;
     }
 
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "enabled",
-      "marionette.enabled",
-      false,
-      (aPreference, previousValue, newValue) => {
-        if (newValue) {
-          this.init(false);
-        } else {
-          this.uninit();
-        }
-      }
-    );
+    if (this.enabled) {
+      log.trace(`Marionette enabled`);
+    }
+
     Services.ppmm.addMessageListener("Marionette:IsRunning", this);
   }
 
@@ -341,17 +334,13 @@ class MarionetteParentProcess {
   }
 
   observe(subject, topic) {
-    log.trace(`Received observer notification ${topic}`);
+    if (this.enabled) {
+      log.trace(`Received observer notification ${topic}`);
+    }
 
     switch (topic) {
       case "profile-after-change":
         Services.obs.addObserver(this, "command-line-startup");
-        Services.obs.addObserver(this, "toplevel-window-ready");
-        Services.obs.addObserver(this, "marionette-startup-requested");
-
-        for (let [pref, value] of EnvironmentPrefs.from(ENV_PRESERVE_PREFS)) {
-          Preferences.set(pref, value);
-        }
         break;
 
       // In safe mode the command line handlers are getting parsed after the
@@ -362,13 +351,25 @@ class MarionetteParentProcess {
         Services.obs.removeObserver(this, topic);
 
         if (!this.enabled && subject.handleFlag("marionette", false)) {
-          MarionettePrefs.enabled = true;
+          log.trace(`Marionette enabled`);
+          this.enabled = true;
         }
 
-        // We want to suppress the modal dialog that's shown
-        // when starting up in safe-mode to enable testing.
-        if (this.enabled && Services.appinfo.inSafeMode) {
-          Services.obs.addObserver(this, "domwindowopened");
+        if (this.enabled) {
+          Services.obs.addObserver(this, "toplevel-window-ready");
+          Services.obs.addObserver(this, "marionette-startup-requested");
+
+          // Only set preferences to preserve in a new profile
+          // when Marionette is enabled.
+          for (let [pref, value] of EnvironmentPrefs.from(ENV_PRESERVE_PREFS)) {
+            Preferences.set(pref, value);
+          }
+
+          // We want to suppress the modal dialog that's shown
+          // when starting up in safe-mode to enable testing.
+          if (Services.appinfo.inSafeMode) {
+            Services.obs.addObserver(this, "domwindowopened");
+          }
         }
 
         break;

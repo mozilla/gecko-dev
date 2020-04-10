@@ -20,7 +20,8 @@ interface BrowsingContext {
 
   readonly attribute BrowsingContext top;
 
-  sequence<BrowsingContext> getChildren();
+  [Cached, Frozen, Pure]
+  readonly attribute sequence<BrowsingContext> children;
 
   readonly attribute nsIDocShell? docShell;
 
@@ -33,6 +34,8 @@ interface BrowsingContext {
   readonly attribute BrowsingContextGroup group;
 
   readonly attribute WindowProxy? window;
+
+  attribute [TreatNullAs=EmptyString] DOMString customUserAgent;
 
   /**
    * The sandbox flags on the browsing context. These reflect the value of the

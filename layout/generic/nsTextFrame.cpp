@@ -2181,9 +2181,9 @@ already_AddRefed<gfxTextRun> BuildTextRunsScanner::BuildTextRunForFrames(
   nsTextFrame* nextBreakBeforeFrame = GetNextBreakBeforeFrame(&nextBreakIndex);
   bool isSVG = nsSVGUtils::IsInSVGTextSubtree(mLineContainer);
   bool enabledJustification =
-      (mLineContainer->StyleText()->mTextAlign == NS_STYLE_TEXT_ALIGN_JUSTIFY ||
+      (mLineContainer->StyleText()->mTextAlign == StyleTextAlign::Justify ||
        mLineContainer->StyleText()->mTextAlignLast ==
-           NS_STYLE_TEXT_ALIGN_JUSTIFY);
+           StyleTextAlignLast::Justify);
 
   const nsStyleText* textStyle = nullptr;
   const nsStyleFont* fontStyle = nullptr;
@@ -4054,7 +4054,7 @@ bool nsTextPaintStyle::InitSelectionColorsAndShadow() {
         style->GetVisitedDependentColor(&nsStyleBackground::mBackgroundColor);
     mSelectionTextColor =
         style->GetVisitedDependentColor(&nsStyleText::mWebkitTextFillColor);
-    mSelectionPseudoStyle = style.forget();
+    mSelectionPseudoStyle = std::move(style);
     return true;
   }
 
@@ -4574,7 +4574,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsContinuingTextFrame)
 nsTextFrame::~nsTextFrame() {}
 
 Maybe<nsIFrame::Cursor> nsTextFrame::GetCursor(const nsPoint& aPoint) {
-  StyleCursorKind kind = StyleUI()->mCursor;
+  StyleCursorKind kind = StyleUI()->mCursor.keyword;
   if (kind == StyleCursorKind::Auto) {
     if (!IsSelectable(nullptr)) {
       kind = StyleCursorKind::Default;
@@ -5284,9 +5284,8 @@ nsRect nsTextFrame::UpdateTextEmphasis(WritingMode aWM,
 // https://drafts.csswg.org/css-text-decor-4/#text-decoration-width-property
 // Returns the thickness in device pixels.
 static gfxFloat ComputeDecorationLineThickness(
-    const StyleTextDecorationLength& aThickness,
-    const gfxFloat aAutoValue, const gfxFont::Metrics& aFontMetrics,
-    const gfxFloat aAppUnitsPerDevPixel) {
+    const StyleTextDecorationLength& aThickness, const gfxFloat aAutoValue,
+    const gfxFont::Metrics& aFontMetrics, const gfxFloat aAppUnitsPerDevPixel) {
   if (aThickness.IsAuto()) {
     return aAutoValue;
   }
@@ -5371,9 +5370,10 @@ static gfxFloat ComputeDecorationLineOffset(
     // to a minimum of 1/16 em (equivalent to 1px at font-size 16px) to mitigate
     // skip-ink issues with fonts that leave the underlineOffset field as zero.
     MOZ_ASSERT(aPosition.IsAuto());
-    return aOffset.IsAuto()
-            ? std::min(aFontMetrics.underlineOffset, -aFontMetrics.emHeight / 16.0)
-            : -aOffset.AsLengthPercentage().Resolve(em) / aAppUnitsPerDevPixel;
+    return aOffset.IsAuto() ? std::min(aFontMetrics.underlineOffset,
+                                       -aFontMetrics.emHeight / 16.0)
+                            : -aOffset.AsLengthPercentage().Resolve(em) /
+                                  aAppUnitsPerDevPixel;
   }
 
   if (aLineType == StyleTextDecorationLine::OVERLINE) {
@@ -5690,6 +5690,25 @@ void nsTextFrame::PaintDecorationLine(
   }
 }
 
+static uint8_t ToStyleLineStyle(const TextRangeStyle& aStyle) {
+  switch (aStyle.mLineStyle) {
+    case TextRangeStyle::LineStyle::None:
+      return NS_STYLE_TEXT_DECORATION_STYLE_NONE;
+    case TextRangeStyle::LineStyle::Solid:
+      return NS_STYLE_TEXT_DECORATION_STYLE_SOLID;
+    case TextRangeStyle::LineStyle::Dotted:
+      return NS_STYLE_TEXT_DECORATION_STYLE_DOTTED;
+    case TextRangeStyle::LineStyle::Dashed:
+      return NS_STYLE_TEXT_DECORATION_STYLE_DASHED;
+    case TextRangeStyle::LineStyle::Double:
+      return NS_STYLE_TEXT_DECORATION_STYLE_DOUBLE;
+    case TextRangeStyle::LineStyle::Wavy:
+      return NS_STYLE_TEXT_DECORATION_STYLE_WAVY;
+  }
+  MOZ_ASSERT_UNREACHABLE("Invalid line style");
+  return NS_STYLE_TEXT_DECORATION_STYLE_NONE;
+}
+
 /**
  * This, plus kSelectionTypesWithDecorations, encapsulates all knowledge
  * about drawing text decoration for selections.
@@ -5767,10 +5786,10 @@ void nsTextFrame::DrawSelectionDecorations(
       if (isIMEType && aRangeStyle.IsDefined()) {
         // If IME defines the style, that should override our definition.
         if (aRangeStyle.IsLineStyleDefined()) {
-          if (aRangeStyle.mLineStyle == TextRangeStyle::LINESTYLE_NONE) {
+          if (aRangeStyle.mLineStyle == TextRangeStyle::LineStyle::None) {
             return;
           }
-          params.style = aRangeStyle.mLineStyle;
+          params.style = ToStyleLineStyle(aRangeStyle);
           relativeSize = aRangeStyle.mIsBoldLine ? 2.0f : 1.0f;
         } else if (!weDefineSelectionUnderline) {
           // There is no underline style definition.
@@ -7344,10 +7363,10 @@ bool nsTextFrame::CombineSelectionUnderlineRect(nsPresContext* aPresContext,
       TextRangeStyle& rangeStyle = sd->mTextRangeStyle;
       if (rangeStyle.IsDefined()) {
         if (!rangeStyle.IsLineStyleDefined() ||
-            rangeStyle.mLineStyle == TextRangeStyle::LINESTYLE_NONE) {
+            rangeStyle.mLineStyle == TextRangeStyle::LineStyle::None) {
           continue;
         }
-        params.style = rangeStyle.mLineStyle;
+        params.style = ToStyleLineStyle(rangeStyle);
         relativeSize = rangeStyle.mIsBoldLine ? 2.0f : 1.0f;
       } else if (!nsTextPaintStyle::GetSelectionUnderline(
                      aPresContext, index, nullptr, &relativeSize,
@@ -9525,9 +9544,9 @@ void nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
 
   // Compute space and letter counts for justification, if required
   if (!textStyle->WhiteSpaceIsSignificant() &&
-      (lineContainer->StyleText()->mTextAlign == NS_STYLE_TEXT_ALIGN_JUSTIFY ||
+      (lineContainer->StyleText()->mTextAlign == StyleTextAlign::Justify ||
        lineContainer->StyleText()->mTextAlignLast ==
-           NS_STYLE_TEXT_ALIGN_JUSTIFY ||
+           StyleTextAlignLast::Justify ||
        shouldSuppressLineBreak) &&
       !nsSVGUtils::IsInSVGTextSubtree(lineContainer)) {
     AddStateBits(TEXT_JUSTIFICATION_ENABLED);

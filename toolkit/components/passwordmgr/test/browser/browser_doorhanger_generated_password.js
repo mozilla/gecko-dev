@@ -141,15 +141,6 @@ async function openFormInNewTab(url, formValues, taskFn) {
                 "Check autofilled password value"
               );
             }
-            if (props.hasOwnProperty("setValue")) {
-              let gotInput = ContentTaskUtils.waitForEvent(
-                field,
-                "input",
-                "field value changed"
-              );
-              field.setUserInput(props.setValue);
-              await gotInput;
-            }
           }
           props = usernameProps;
           if (props) {
@@ -161,18 +152,44 @@ async function openFormInNewTab(url, formValues, taskFn) {
                 "Check autofilled username value"
               );
             }
-            if (props.hasOwnProperty("setValue")) {
-              let gotInput = ContentTaskUtils.waitForEvent(
-                field,
-                "input",
-                "field value changed"
-              );
-              field.setUserInput(props.setValue);
-              await gotInput;
-            }
           }
         }
       );
+
+      if (formValues.password && formValues.password.setValue !== undefined) {
+        info(
+          "Editing the password, expectedMessage? " +
+            formValues.password.expectedMessage
+        );
+        let messagePromise = formValues.password.expectedMessage
+          ? listenForTestNotification(formValues.password.expectedMessage)
+          : Promise.resolve();
+        await changeContentInputValue(
+          browser,
+          formValues.password.selector,
+          formValues.password.setValue
+        );
+        await messagePromise;
+        info("messagePromise resolved");
+      }
+
+      if (formValues.username && formValues.username.setValue !== undefined) {
+        info(
+          "Editing the username, expectedMessage? " +
+            formValues.username.expectedMessage
+        );
+        let messagePromise = formValues.username.expectedMessage
+          ? listenForTestNotification(formValues.username.expectedMessage)
+          : Promise.resolve();
+        await changeContentInputValue(
+          browser,
+          formValues.username.selector,
+          formValues.username.setValue
+        );
+        await messagePromise;
+        info("messagePromise resolved");
+      }
+
       await taskFn(browser);
     }
   );
@@ -223,7 +240,7 @@ async function openAndVerifyDoorhanger(browser, type, expected) {
 
 async function submitForm(browser) {
   // Submit the form
-  info("Now submit the form with the generated password");
+  info("Now submit the form");
 
   await SpecialPowers.spawn(browser, [], async function() {
     content.document.querySelector("form").submit();
@@ -334,6 +351,7 @@ add_task(async function autocomplete_generated_password_saved_empty_username() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
+        expectedMessage: "",
       },
       username: { selector: usernameInputSelector, expectedValue: "" },
     },
@@ -396,6 +414,7 @@ add_task(async function autocomplete_generated_password_saved_username() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
+        expectedMessage: "",
       },
       username: {
         selector: usernameInputSelector,
@@ -489,11 +508,14 @@ add_task(async function ac_gen_pw_saved_empty_un_stored_non_empty_un_in_form() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
+        expectedMessage: "",
       },
       username: {
         selector: usernameInputSelector,
         expectedValue: "",
         setValue: "myusername",
+        // with an empty password value, no message is sent for a username change
+        expectedMessage: "",
       },
     },
     async function taskFn(browser) {
@@ -560,6 +582,7 @@ add_task(async function contextfill_generated_password_saved_empty_username() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
+        expectedMessage: "",
       },
       username: { selector: usernameInputSelector, expectedValue: "" },
     },
@@ -626,6 +649,7 @@ add_task(async function autocomplete_generated_password_edited_no_auto_save() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
+        expectedMessage: "",
       },
       username: { selector: usernameInputSelector, expectedValue: "" },
     },
@@ -730,11 +754,14 @@ add_task(async function contextmenu_fill_generated_password_and_set_username() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
+        expectedMessage: "",
       },
       username: {
         selector: usernameInputSelector,
         expectedValue: "olduser",
         setValue: "differentuser",
+        // with an empty password value, no message is sent for a username change
+        expectedMessage: "",
       },
     },
     async function taskFn(browser) {
@@ -1011,7 +1038,6 @@ add_task(
         );
 
         info("Waiting to openAndVerifyDoorhanger");
-        // also moves focus, producing another onGeneratedPasswordFilledOrEdited message from content
         let notif = await openAndVerifyDoorhanger(browser, "password-change", {
           dismissed: true,
           anchorExtraAttr: "attention",
@@ -1113,11 +1139,14 @@ add_task(async function autosaved_login_updated_to_existing_login_onsubmit() {
         selector: passwordInputSelector,
         expectedValue: "xyzpassword",
         setValue: "",
+        expectedMessage: "",
       },
       username: {
         selector: usernameInputSelector,
         expectedValue: "user1",
         setValue: "",
+        // with an empty password value, no message is sent for a username change
+        expectedMessage: "",
       },
     },
     async function taskFn(browser) {
@@ -1189,7 +1218,7 @@ add_task(async function autosaved_login_updated_to_existing_login_onsubmit() {
       });
       await cleanupDoorhanger(notif);
 
-      // now submit the form with the user1 username and the generated password
+      // now update and submit the form with the user1 username and the generated password
       info(`submitting form`);
       let submitResults = await submitFormAndGetResults(
         browser,
@@ -1209,9 +1238,7 @@ add_task(async function autosaved_login_updated_to_existing_login_onsubmit() {
         "Form submitted with expected password"
       );
       info(
-        `form was submitted, got username/password ${submitResults.username}/${
-          submitResults.password
-        }`
+        `form was submitted, got username/password ${submitResults.username}/${submitResults.password}`
       );
 
       await waitForDoorhanger(browser, "password-change");
@@ -1288,4 +1315,208 @@ add_task(async function autosaved_login_updated_to_existing_login_onsubmit() {
       );
     }
   );
+});
+
+add_task(async function form_change_from_autosaved_login_to_existing_login() {
+  // test when changing from a generated password in a form to an existing saved login
+  // * the auto-saved login should not be deleted
+  // * the metadata for the matching login should be updated
+  // * the by-origin cache for the password should point at the autosaved login
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["signon.passwordEditCapture.enabled", true]],
+  });
+
+  await setup_withOneLogin("user1", "xyzpassword");
+  await openFormInNewTab(
+    TEST_ORIGIN + FORM_PAGE_PATH,
+    {
+      password: {
+        selector: passwordInputSelector,
+        expectedValue: "xyzpassword",
+        setValue: "",
+        expectedMessage: "PasswordEditedOrGenerated",
+      },
+      username: {
+        selector: usernameInputSelector,
+        expectedValue: "user1",
+        setValue: "",
+        // with an empty password value, no message is sent for a username change
+        expectedMessage: "",
+      },
+    },
+    async function taskFn(browser) {
+      await SimpleTest.promiseFocus(browser);
+
+      // first, create an auto-saved login with generated password
+      let storageChangedPromise = TestUtils.topicObserved(
+        "passwordmgr-storage-changed",
+        (_, data) => data == "addLogin"
+      );
+      let confirmationHint = document.getElementById("confirmation-hint");
+      let hintPromiseShown = BrowserTestUtils.waitForEvent(
+        confirmationHint,
+        "popupshown"
+      );
+
+      info("Filling generated password from AC menu");
+      await fillGeneratedPasswordFromACPopup(browser, passwordInputSelector);
+
+      info("waiting for dismissed password-change notification");
+      await waitForDoorhanger(browser, "password-change");
+      // Make sure confirmation hint was shown
+      await hintPromiseShown;
+      await verifyConfirmationHint(confirmationHint);
+
+      info("waiting for addLogin");
+      await storageChangedPromise;
+      info("addLogin promise resolved");
+      // Check properties of the newly auto-saved login
+      let [user1LoginSnapshot, autoSavedLogin] = verifyLogins([
+        null, // ignore the first one
+        {
+          timesUsed: 1,
+          username: "",
+          passwordLength: LoginTestUtils.generation.LENGTH,
+        },
+      ]);
+      info("user1LoginSnapshot, guid: " + user1LoginSnapshot.guid);
+      info("autoSavedLogin, guid: " + autoSavedLogin.guid);
+
+      info("verifyLogins ok");
+      let passwordCacheEntry = LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().get(
+        "https://example.com"
+      );
+
+      ok(
+        passwordCacheEntry,
+        "Got the cached generated password entry for https://example.com"
+      );
+      is(
+        passwordCacheEntry.value,
+        autoSavedLogin.password,
+        "Cached password matches the auto-saved login password"
+      );
+      is(
+        passwordCacheEntry.storageGUID,
+        autoSavedLogin.guid,
+        "Cached password guid matches the auto-saved login guid"
+      );
+
+      let notif = await openAndVerifyDoorhanger(browser, "password-change", {
+        dismissed: true,
+        anchorExtraAttr: "attention",
+        usernameValue: "",
+        password: autoSavedLogin.password,
+      });
+
+      // close but don't remove the doorhanger, we want to ensure it is updated/replaced on further form edits
+      let promiseHidden = BrowserTestUtils.waitForEvent(
+        PopupNotifications.panel,
+        "popuphidden"
+      );
+      let PN = notif.owner;
+      PN.panel.hidePopup();
+      await promiseHidden;
+      await TestUtils.waitForTick();
+
+      // now update the form with the user1 username and password
+      info(`updating form`);
+      let passwordEditedMessages = listenForTestNotification(
+        "PasswordEditedOrGenerated",
+        2
+      );
+      let passwordChangeDoorhangerPromise = waitForDoorhanger(
+        browser,
+        "password-change"
+      );
+      let hintDidShow = false;
+      hintPromiseShown = BrowserTestUtils.waitForPopupEvent(
+        confirmationHint,
+        "shown"
+      );
+      hintPromiseShown.then(() => (hintDidShow = true));
+
+      info("Entering username and password for the previously saved login");
+      await changeContentFormValues(browser, {
+        [passwordInputSelector]: user1LoginSnapshot.password,
+        [usernameInputSelector]: user1LoginSnapshot.username,
+      });
+      info(
+        "form edited, waiting for test notification of PasswordEditedOrGenerated"
+      );
+
+      await passwordEditedMessages;
+      info("Resolved listenForTestNotification promise");
+
+      await passwordChangeDoorhangerPromise;
+      // wait to ensure there's no confirmation hint
+      try {
+        await TestUtils.waitForCondition(
+          () => {
+            return hintDidShow;
+          },
+          `Waiting for confirmationHint popup`,
+          undefined,
+          25
+        );
+      } catch (ex) {
+        info("Got expected timeout from the waitForCondition: ", ex);
+      } finally {
+        ok(!hintDidShow, "No confirmation hint shown");
+      }
+
+      // the previous doorhanger would have old values, verify it was updated/replaced with new values from the form
+      notif = await openAndVerifyDoorhanger(browser, "password-change", {
+        dismissed: true,
+        anchorExtraAttr: "",
+        usernameValue: user1LoginSnapshot.username,
+        passwordLength: user1LoginSnapshot.password.length,
+      });
+      await cleanupDoorhanger(notif);
+
+      storageChangedPromise = TestUtils.topicObserved(
+        "passwordmgr-storage-changed",
+        (_, data) => data == "modifyLogin"
+      );
+
+      // submit the form to ensure the correct updates are made
+      await submitForm(browser);
+      info("form submitted, waiting for storage changed");
+      await storageChangedPromise;
+
+      // Check the auto-saved login has not changed and only metadata on the original login updated
+      verifyLogins([
+        {
+          username: "user1",
+          password: "xyzpassword",
+          timeCreated: user1LoginSnapshot.timeCreated,
+          usedSince: user1LoginSnapshot.timeLastUsed,
+        },
+        {
+          username: "",
+          password: autoSavedLogin.password,
+          timeCreated: autoSavedLogin.timeCreated,
+          timeLastUsed: autoSavedLogin.timeLastUsed,
+        },
+      ]);
+
+      // Check we have no notifications at this point
+      ok(!PopupNotifications.isPanelOpen, "No doorhanger is open");
+      ok(
+        !PopupNotifications.getNotification("password", browser),
+        "No notifications"
+      );
+
+      // make sure the cache entry is unchanged with the removal of the auto-saved login
+      is(
+        autoSavedLogin.password,
+        LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().get(
+          "https://example.com"
+        ).value,
+        "Generated password cache entry has the expected password value"
+      );
+    }
+  );
+  await SpecialPowers.popPrefEnv();
 });

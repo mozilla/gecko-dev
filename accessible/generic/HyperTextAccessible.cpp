@@ -1283,13 +1283,15 @@ nsresult HyperTextAccessible::SetSelectionRange(int32_t aStartPos,
   // some input controls
   if (isFocusable) TakeFocus();
 
-  dom::Selection* domSel = DOMSelection();
+  RefPtr<dom::Selection> domSel = DOMSelection();
   NS_ENSURE_STATE(domSel);
 
   // Set up the selection.
-  for (int32_t idx = domSel->RangeCount() - 1; idx > 0; idx--)
-    domSel->RemoveRangeAndUnselectFramesAndNotifyListeners(
-        *domSel->GetRangeAt(idx), IgnoreErrors());
+  for (int32_t idx = domSel->RangeCount() - 1; idx > 0; idx--) {
+    RefPtr<nsRange> range{domSel->GetRangeAt(idx)};
+    domSel->RemoveRangeAndUnselectFramesAndNotifyListeners(*range,
+                                                           IgnoreErrors());
+  }
   SetSelectionBoundsAt(0, aStartPos, aEndPos);
 
   // Make sure it is visible
@@ -1575,7 +1577,7 @@ bool HyperTextAccessible::SetSelectionBoundsAt(int32_t aSelectionNum,
     return false;
   }
 
-  dom::Selection* domSel = DOMSelection();
+  RefPtr<dom::Selection> domSel = DOMSelection();
   if (!domSel) return false;
 
   RefPtr<nsRange> range;
@@ -1613,15 +1615,16 @@ bool HyperTextAccessible::SetSelectionBoundsAt(int32_t aSelectionNum,
 }
 
 bool HyperTextAccessible::RemoveFromSelection(int32_t aSelectionNum) {
-  dom::Selection* domSel = DOMSelection();
+  RefPtr<dom::Selection> domSel = DOMSelection();
   if (!domSel) return false;
 
   if (aSelectionNum < 0 ||
       aSelectionNum >= static_cast<int32_t>(domSel->RangeCount()))
     return false;
 
-  domSel->RemoveRangeAndUnselectFramesAndNotifyListeners(
-      *domSel->GetRangeAt(aSelectionNum), IgnoreErrors());
+  const RefPtr<nsRange> range{domSel->GetRangeAt(aSelectionNum)};
+  domSel->RemoveRangeAndUnselectFramesAndNotifyListeners(*range,
+                                                         IgnoreErrors());
   return true;
 }
 

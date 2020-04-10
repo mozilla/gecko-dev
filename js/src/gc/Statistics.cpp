@@ -40,8 +40,7 @@ using mozilla::TimeStamp;
  * larger-numbered reasons to pile up in the last telemetry bucket, or switch
  * to GC_REASON_3 and bump the max value.
  */
-JS_STATIC_ASSERT(JS::GCReason::NUM_TELEMETRY_REASONS >=
-                 JS::GCReason::NUM_REASONS);
+static_assert(JS::GCReason::NUM_TELEMETRY_REASONS >= JS::GCReason::NUM_REASONS);
 
 static inline auto AllPhaseKinds() {
   return mozilla::MakeEnumeratedRange(PhaseKind::FIRST, PhaseKind::LIMIT);
@@ -75,6 +74,10 @@ JS_PUBLIC_API const char* JS::ExplainGCReason(JS::GCReason reason) {
     default:
       MOZ_CRASH("bad GC reason");
   }
+}
+
+JS_PUBLIC_API bool JS::InternalGCReason(JS::GCReason reason) {
+  return reason < JS::GCReason::FIRST_FIREFOX_REASON;
 }
 
 const char* js::gcstats::ExplainAbortReason(gc::AbortReason reason) {

@@ -24,6 +24,9 @@
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/Components.h"
 #include "nsIURIFixup.h"
+#include "mozilla/dom/StorageUtils.h"
+
+#include "prnetdb.h"
 
 #include "json/json.h"
 #include "nsSerializationHelper.h"
@@ -58,6 +61,28 @@ BasePrincipal::GetAsciiOrigin(nsACString& aOrigin) {
     return NS_ERROR_NOT_AVAILABLE;
   }
   return nsContentUtils::GetASCIIOrigin(prinURI, aOrigin);
+}
+
+NS_IMETHODIMP
+BasePrincipal::GetHostPort(nsACString& aRes) {
+  aRes.Truncate();
+  nsCOMPtr<nsIURI> prinURI;
+  nsresult rv = GetURI(getter_AddRefs(prinURI));
+  if (NS_FAILED(rv) || !prinURI) {
+    return NS_OK;
+  }
+  return prinURI->GetHostPort(aRes);
+}
+
+NS_IMETHODIMP
+BasePrincipal::GetHost(nsACString& aRes) {
+  aRes.Truncate();
+  nsCOMPtr<nsIURI> prinURI;
+  nsresult rv = GetURI(getter_AddRefs(prinURI));
+  if (NS_FAILED(rv) || !prinURI) {
+    return NS_OK;
+  }
+  return prinURI->GetHost(aRes);
 }
 
 NS_IMETHODIMP
@@ -463,6 +488,49 @@ BasePrincipal::IsSameOrigin(nsIURI* aURI, bool aIsPrivateWin, bool* aRes) {
       ssm->CheckSameOriginURI(prinURI, aURI, false, aIsPrivateWin));
   return NS_OK;
 }
+NS_IMETHODIMP
+BasePrincipal::AllowsRelaxStrictFileOriginPolicy(nsIURI* aURI, bool* aRes) {
+  *aRes = false;
+  nsCOMPtr<nsIURI> prinURI;
+  nsresult rv = GetURI(getter_AddRefs(prinURI));
+  if (NS_FAILED(rv) || !prinURI) {
+    return NS_OK;
+  }
+  *aRes = NS_RelaxStrictFileOriginPolicy(aURI, prinURI);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+BasePrincipal::GetPrefLightCacheKey(nsIURI* aURI, bool aWithCredentials,
+                                    nsACString& _retval) {
+  _retval.Truncate();
+  NS_NAMED_LITERAL_CSTRING(space, " ");
+
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = GetURI(getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoCString scheme, host, port;
+  if (uri) {
+    uri->GetScheme(scheme);
+    uri->GetHost(host);
+    port.AppendInt(NS_GetRealPort(uri));
+  }
+
+  if (aWithCredentials) {
+    _retval.AssignLiteral("cred");
+  } else {
+    _retval.AssignLiteral("nocred");
+  }
+
+  nsAutoCString spec;
+  rv = aURI->GetSpec(spec);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  _retval.Append(space + scheme + space + host + space + port + space + spec);
+
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 BasePrincipal::GetIsNullPrincipal(bool* aResult) {
@@ -494,6 +562,17 @@ BasePrincipal::GetAsciiSpec(nsACString& aSpec) {
 }
 
 NS_IMETHODIMP
+BasePrincipal::GetAsciiHost(nsACString& aHost) {
+  aHost.Truncate();
+  nsCOMPtr<nsIURI> prinURI;
+  nsresult rv = GetURI(getter_AddRefs(prinURI));
+  if (NS_FAILED(rv) || !prinURI) {
+    return NS_OK;
+  }
+  return prinURI->GetAsciiHost(aHost);
+}
+
+NS_IMETHODIMP
 BasePrincipal::GetExposablePrePath(nsACString& aPrepath) {
   aPrepath.Truncate();
   nsCOMPtr<nsIURI> prinURI;
@@ -515,6 +594,16 @@ BasePrincipal::GetExposablePrePath(nsACString& aPrepath) {
     return NS_OK;
   }
   return fixedURI->GetDisplayPrePath(aPrepath);
+}
+NS_IMETHODIMP
+BasePrincipal::GetPrepath(nsACString& aPath) {
+  aPath.Truncate();
+  nsCOMPtr<nsIURI> prinURI;
+  nsresult rv = GetURI(getter_AddRefs(prinURI));
+  if (NS_FAILED(rv) || !prinURI) {
+    return NS_OK;
+  }
+  return prinURI->GetPrePath(aPath);
 }
 
 NS_IMETHODIMP
@@ -543,6 +632,31 @@ NS_IMETHODIMP BasePrincipal::GetIsOnion(bool* aIsOnion) {
     return NS_OK;
   }
   *aIsOnion = StringEndsWith(host, NS_LITERAL_CSTRING(".onion"));
+  return NS_OK;
+}
+
+NS_IMETHODIMP BasePrincipal::GetIsIpAddress(bool* aIsIpAddress) {
+  *aIsIpAddress = false;
+
+  nsCOMPtr<nsIURI> prinURI;
+  nsresult rv = GetURI(getter_AddRefs(prinURI));
+  if (NS_FAILED(rv) || !prinURI) {
+    return NS_OK;
+  }
+
+  nsAutoCString host;
+  rv = prinURI->GetHost(host);
+  if (NS_FAILED(rv)) {
+    return NS_OK;
+  }
+
+  PRNetAddr prAddr;
+  memset(&prAddr, 0, sizeof(prAddr));
+
+  if (PR_StringToNetAddr(host.get(), &prAddr) == PR_SUCCESS) {
+    *aIsIpAddress = true;
+  }
+
   return NS_OK;
 }
 
@@ -826,10 +940,56 @@ void BasePrincipal::FinishInit(BasePrincipal* aOther,
   mHasExplicitDomain = aOther->mHasExplicitDomain;
 }
 
+NS_IMETHODIMP
+BasePrincipal::GetLocalStorageQuotaKey(nsACString& aKey) {
+  aKey.Truncate();
+  nsresult rv;
+  nsCOMPtr<nsIEffectiveTLDService> eTLDService(
+      do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID, &rv));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIURI> uri;
+  rv = GetURI(getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(uri, NS_ERROR_UNEXPECTED);
+
+  nsAutoCString eTLDplusOne;
+  rv = eTLDService->GetBaseDomain(uri, 0, eTLDplusOne);
+  if (NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS == rv) {
+    // XXX bug 357323 - what to do for localhost/file exactly?
+    rv = uri->GetAsciiHost(eTLDplusOne);
+  }
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  OriginAttributesRef().CreateSuffix(aKey);
+
+  nsAutoCString subdomainsDBKey;
+  dom::StorageUtils::CreateReversedDomain(eTLDplusOne, subdomainsDBKey);
+
+  aKey.Append(':');
+  aKey.Append(subdomainsDBKey);
+
+  return NS_OK;
+}
+
 bool SiteIdentifier::Equals(const SiteIdentifier& aOther) const {
   MOZ_ASSERT(IsInitialized());
   MOZ_ASSERT(aOther.IsInitialized());
   return mPrincipal->FastEquals(aOther.mPrincipal);
+}
+
+NS_IMETHODIMP
+BasePrincipal::CreateReferrerInfo(mozilla::dom::ReferrerPolicy aReferrerPolicy,
+                                  nsIReferrerInfo** _retval) {
+  nsCOMPtr<nsIURI> prinURI;
+  nsresult rv = GetURI(getter_AddRefs(prinURI));
+  if (NS_FAILED(rv) || !prinURI) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  RefPtr<dom::ReferrerInfo> info =
+      new dom::ReferrerInfo(prinURI, aReferrerPolicy);
+  info.forget(_retval);
+  return NS_OK;
 }
 
 }  // namespace mozilla

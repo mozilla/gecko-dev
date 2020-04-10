@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::{collections::HashMap, convert::TryFrom, fmt, time::SystemTime};
+use std::{collections::HashMap, convert::TryFrom, fmt};
 
 use dogear::{
-    debug, AbortSignal, CompletionOps, Content, DeleteLocalItem, Guid, Item, Kind, MergedRoot,
-    Tree, UploadItem, UploadTombstone, Validity,
+    debug, warn, AbortSignal, CompletionOps, Content, DeleteLocalItem, Guid, Item, Kind,
+    MergedRoot, Tree, UploadItem, UploadTombstone, Validity,
 };
 use nsstring::nsString;
 use storage::{Conn, Step};
+use url::Url;
 use xpcom::interfaces::{mozISyncedBookmarksMerger, nsINavBookmarksService};
 
 use crate::driver::{AbortController, Driver};
@@ -146,15 +147,32 @@ impl<'s> Store<'s> {
         let guid = Guid::from_utf16(&*raw_guid)?;
 
         let raw_url_href: Option<nsString> = step.get_by_name("url")?;
-        let url_href = match raw_url_href {
-            Some(raw_url_href) => Some(String::from_utf16(&*raw_url_href)?),
-            None => None,
+        let (url, validity) = match raw_url_href {
+            // Local items might have (syntactically) invalid URLs, as in bug
+            // 1615931. If we try to sync these items, other clients will flag
+            // them as invalid (see `SyncedBookmarksMirror#storeRemote{Bookmark,
+            // Query}`), delete them when merging, and upload tombstones for
+            // them. We can avoid this extra round trip by flagging the local
+            // item as invalid. If there's a corresponding remote item with a
+            // valid URL, we'll replace the local item with it; if there isn't,
+            // we'll delete the local item.
+            Some(raw_url_href) => match Url::parse(&String::from_utf16(&*raw_url_href)?) {
+                Ok(url) => (Some(url), Validity::Valid),
+                Err(err) => {
+                    warn!(
+                        self.driver,
+                        "Failed to parse URL for local item {}: {}", guid, err
+                    );
+                    (None, Validity::Replace)
+                }
+            },
+            None => (None, Validity::Valid),
         };
 
         let typ: i64 = step.get_by_name("type")?;
         let kind = match typ {
-            nsINavBookmarksService::TYPE_BOOKMARK => match url_href.as_ref() {
-                Some(u) if u.starts_with("place:") => Kind::Query,
+            nsINavBookmarksService::TYPE_BOOKMARK => match url.as_ref() {
+                Some(u) if u.scheme() == "place" => Kind::Query,
                 _ => Kind::Bookmark,
             },
             nsINavBookmarksService::TYPE_FOLDER => {
@@ -177,6 +195,8 @@ impl<'s> Store<'s> {
         let sync_change_counter: i64 = step.get_by_name("syncChangeCounter")?;
         item.needs_merge = sync_change_counter > 0;
 
+        item.validity = validity;
+
         let content = if item.guid == dogear::ROOT_GUID {
             None
         } else {
@@ -187,7 +207,10 @@ impl<'s> Store<'s> {
                     Kind::Bookmark | Kind::Query => {
                         let raw_title: nsString = step.get_by_name("title")?;
                         let title = String::from_utf16(&*raw_title)?;
-                        url_href.map(|url_href| Content::Bookmark { title, url_href })
+                        url.map(|url| Content::Bookmark {
+                            title,
+                            url_href: url.into_string(),
+                        })
                     }
                     Kind::Folder | Kind::Livemark => {
                         let raw_title: nsString = step.get_by_name("title")?;
@@ -231,6 +254,10 @@ impl<'s> Store<'s> {
                     let raw_url_href: Option<nsString> = step.get_by_name("url")?;
                     match raw_url_href {
                         Some(raw_url_href) => {
+                            // Unlike for local items, we don't parse URLs for
+                            // remote items, since `storeRemote{Bookmark,
+                            // Query}` already parses and canonicalizes them
+                            // before inserting them into the mirror database.
                             let url_href = String::from_utf16(&*raw_url_href)?;
                             Some(Content::Bookmark { title, url_href })
                         }
@@ -423,13 +450,22 @@ impl<'s> dogear::Store for Store<'s> {
         // Apply the merged tree and stage outgoing items. This transaction
         // blocks writes from the main connection until it's committed, so we
         // try to do as little work as possible within it.
+        if self.db.transaction_in_progress()? {
+            return Err(Error::StorageBusy);
+        }
         let tx = self.db.transaction()?;
         if self.total_sync_changes != total_sync_changes() {
             return Err(Error::MergeConflict);
         }
 
         debug!(self.driver, "Updating local items in Places");
-        update_local_items_in_places(&tx, &self.driver, &self.controller, &ops)?;
+        update_local_items_in_places(
+            &tx,
+            &self.driver,
+            &self.controller,
+            self.local_time_millis,
+            &ops,
+        )?;
 
         debug!(self.driver, "Staging items to upload");
         stage_items_to_upload(
@@ -464,6 +500,7 @@ fn update_local_items_in_places<'t>(
     db: &Conn,
     driver: &Driver,
     controller: &AbortController,
+    local_time_millis: i64,
     ops: &CompletionOps<'t>,
 ) -> Result<()> {
     debug!(
@@ -479,7 +516,10 @@ fn update_local_items_in_places<'t>(
          DELETE FROM itemsMoved;",
     )?;
 
-    let now = rounded_now();
+    // Places uses microsecond timestamps for dates added and last modified
+    // times, rounded to the nearest millisecond. Using `now` for the local
+    // time lets us set modified times deterministically for tests.
+    let now = local_time_millis * 1000;
 
     // Insert URLs for new remote items into the `moz_places` table. We need to
     // do this before inserting new remote items, since we need Place IDs for
@@ -1255,15 +1295,6 @@ impl fmt::Display for UploadItemsFragment {
             self.0
         )
     }
-}
-
-/// Returns the current time, in microseconds, rounded to the nearest
-/// millisecond.
-fn rounded_now() -> u64 {
-    SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .map(|d| (d.as_secs() as u64) * 1_000_000 + u64::from(d.subsec_millis()) * 1000)
-        .unwrap_or(0)
 }
 
 pub enum ApplyStatus {

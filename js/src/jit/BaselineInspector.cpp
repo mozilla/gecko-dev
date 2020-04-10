@@ -749,7 +749,9 @@ ObjectGroup* BaselineInspector::getTemplateObjectGroup(jsbytecode* pc) {
 }
 
 JSFunction* BaselineInspector::getSingleCallee(jsbytecode* pc) {
-  MOZ_ASSERT(JSOp(*pc) == JSOp::New);
+  MOZ_ASSERT(JSOp(*pc) == JSOp::New || JSOp(*pc) == JSOp::SuperCall ||
+             JSOp(*pc) == JSOp::SpreadNew ||
+             JSOp(*pc) == JSOp::SpreadSuperCall);
 
   const ICEntry& entry = icEntryFromPC(pc);
   ICStub* stub = entry.firstStub();
@@ -789,26 +791,6 @@ JSObject* BaselineInspector::getTemplateObjectForNative(jsbytecode* pc,
       };
       JSObject* result = MaybeTemplateObject(
           stub, MetaTwoByteKind::NativeTemplateObject, filter);
-      if (result) {
-        return result;
-      }
-    }
-  }
-
-  return nullptr;
-}
-
-JSObject* BaselineInspector::getTemplateObjectForClassHook(
-    jsbytecode* pc, const JSClass* clasp) {
-  const ICEntry& entry = icEntryFromPC(pc);
-  for (ICStub* stub = entry.firstStub(); stub; stub = stub->next()) {
-    if (ICStub::IsCacheIRKind(stub->kind())) {
-      auto filter = [stub, clasp](CacheIRReader& args,
-                                  const CacheIRStubInfo* info) {
-        return info->getStubField<JSClass*>(stub, args.stubOffset()) == clasp;
-      };
-      JSObject* result = MaybeTemplateObject(
-          stub, MetaTwoByteKind::ClassTemplateObject, filter);
       if (result) {
         return result;
       }

@@ -8,6 +8,7 @@
 #include "nsCharSeparatedTokenizer.h"
 #include "nsContentUtils.h"
 #include "nsHostResolver.h"
+#include "nsHttpHandler.h"
 #include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIIOService.h"
@@ -28,9 +29,11 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_network.h"
+#include "mozilla/SyncRunnable.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Tokenizer.h"
+#include "mozilla/UniquePtr.h"
 
 namespace mozilla {
 namespace net {
@@ -155,7 +158,12 @@ nsresult TRR::DohEncode(nsCString& aBody, bool aDisableECS) {
 
 NS_IMETHODIMP
 TRR::Run() {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT_IF(gTRRService && StaticPrefs::network_trr_fetch_off_main_thread(),
+                gTRRService->IsOnTRRThread());
+  MOZ_ASSERT_IF(
+      gTRRService && !StaticPrefs::network_trr_fetch_off_main_thread(),
+      NS_IsMainThread());
+
   if ((gTRRService == nullptr) || NS_FAILED(SendHTTPRequest())) {
     FailData(NS_ERROR_FAILURE);
     // The dtor will now be run
@@ -163,9 +171,63 @@ TRR::Run() {
   return NS_OK;
 }
 
+static void InitHttpHandler() {
+  nsresult rv;
+  nsCOMPtr<nsIIOService> ios = do_GetIOService(&rv);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  nsCOMPtr<nsIProtocolHandler> handler;
+  rv = ios->GetProtocolHandler("http", getter_AddRefs(handler));
+  if (NS_FAILED(rv)) {
+    return;
+  }
+}
+
+nsresult TRR::CreateChannelHelper(nsIURI* aUri, nsIChannel** aResult) {
+  *aResult = nullptr;
+
+  if (NS_IsMainThread()) {
+    nsresult rv;
+    nsCOMPtr<nsIIOService> ios(do_GetIOService(&rv));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_NewChannel(aResult, aUri, nsContentUtils::GetSystemPrincipal(),
+                         nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                         nsIContentPolicy::TYPE_OTHER,
+                         nullptr,  // nsICookieJarSettings
+                         nullptr,  // PerformanceStorage
+                         nullptr,  // aLoadGroup
+                         nullptr,  // aCallbacks
+                         nsIRequest::LOAD_NORMAL, ios);
+  }
+
+  // Unfortunately, we can only initialize gHttpHandler on main thread.
+  if (!gHttpHandler) {
+    nsCOMPtr<nsIEventTarget> main = GetMainThreadEventTarget();
+    if (main) {
+      // Forward to the main thread synchronously.
+      SyncRunnable::DispatchToThread(
+          main, new SyncRunnable(NS_NewRunnableFunction(
+                    "InitHttpHandler", []() { InitHttpHandler(); })));
+    }
+  }
+
+  if (!gHttpHandler) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  return gHttpHandler->CreateTRRServiceChannel(aUri,
+                                               nullptr,  // givenProxyInfo
+                                               0,        // proxyResolveFlags
+                                               nullptr,  // proxyURI
+                                               nullptr,  // aLoadInfo
+                                               aResult);
+}
+
 nsresult TRR::SendHTTPRequest() {
   // This is essentially the "run" method - created from nsHostResolver
-  MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
 
   if ((mType != TRRTYPE_A) && (mType != TRRTYPE_AAAA) &&
       (mType != TRRTYPE_NS) && (mType != TRRTYPE_TXT)) {
@@ -180,7 +242,8 @@ nsresult TRR::SendHTTPRequest() {
     // we also don't check the blacklist for TRR only requests
     MOZ_ASSERT(mRec);
 
-    if (UseDefaultServer() &&  gTRRService->IsTRRBlacklisted(mHost, mOriginSuffix, mPB, true)) {
+    if (UseDefaultServer() &&
+        gTRRService->IsTRRBlacklisted(mHost, mOriginSuffix, mPB, true)) {
       if (mType == TRRTYPE_A) {
         // count only blacklist for A records to avoid double counts
         Telemetry::Accumulate(Telemetry::DNS_TRR_BLACKLISTED, true);
@@ -194,14 +257,11 @@ nsresult TRR::SendHTTPRequest() {
     }
   }
 
-  nsresult rv;
-  nsCOMPtr<nsIIOService> ios(do_GetIOService(&rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
   bool useGet = gTRRService->UseGET();
   nsAutoCString body;
   nsCOMPtr<nsIURI> dnsURI;
   bool disableECS = gTRRService->DisableECS();
+  nsresult rv;
 
   LOG(("TRR::SendHTTPRequest resolve %s type %u\n", mHost.get(), mType));
 
@@ -244,22 +304,19 @@ nsresult TRR::SendHTTPRequest() {
     return rv;
   }
 
-  rv = NS_NewChannel(getter_AddRefs(mChannel), dnsURI,
-                     nsContentUtils::GetSystemPrincipal(),
-                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
-                     nsIContentPolicy::TYPE_OTHER,
-                     nullptr,  // nsICookieSettings
-                     nullptr,  // PerformanceStorage
-                     nullptr,  // aLoadGroup
-                     this,
-                     nsIRequest::LOAD_ANONYMOUS | nsIRequest::INHIBIT_CACHING |
-                         nsIRequest::LOAD_BYPASS_CACHE |
-                         nsIChannel::LOAD_BYPASS_URL_CLASSIFIER,
-                     ios);
+  rv = CreateChannelHelper(dnsURI, getter_AddRefs(mChannel));
   if (NS_FAILED(rv)) {
     LOG(("TRR:SendHTTPRequest: NewChannel failed!\n"));
     return rv;
   }
+
+  mChannel->SetLoadFlags(
+      nsIRequest::LOAD_ANONYMOUS | nsIRequest::INHIBIT_CACHING |
+      nsIRequest::LOAD_BYPASS_CACHE | nsIChannel::LOAD_BYPASS_URL_CLASSIFIER);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mChannel->SetNotificationCallbacks(this);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel);
   if (!httpChannel) {
@@ -335,6 +392,12 @@ nsresult TRR::SendHTTPRequest() {
   if (!StaticPrefs::network_trr_send_user_agent_headers()) {
     rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("User-Agent"),
                                        EmptyCString(), false);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  if (StaticPrefs::network_trr_send_empty_accept_encoding_headers()) {
+    rv = httpChannel->SetEmptyRequestHeader(
+        NS_LITERAL_CSTRING("Accept-Encoding"));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1017,7 +1080,10 @@ nsresult TRR::On200Response(nsIChannel* aChannel) {
              mCname.get(), mCnameLoop));
         RefPtr<TRR> trr =
             new TRR(mHostResolver, mRec, mCname, mType, mCnameLoop, mPB);
-        rv = NS_DispatchToMainThread(trr);
+        if (!gTRRService) {
+          return NS_ERROR_FAILURE;
+        }
+        rv = gTRRService->DispatchTRRRequest(trr);
         if (NS_SUCCEEDED(rv)) {
           return rv;
         }
@@ -1137,7 +1203,7 @@ TRR::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aInputStream,
 
 nsresult DOHresp::Add(uint32_t TTL, unsigned char* dns, int index, uint16_t len,
                       bool aLocalAllowed) {
-  nsAutoPtr<DOHaddr> doh(new DOHaddr);
+  auto doh = MakeUnique<DOHaddr>();
   NetAddr* addr = &doh->mNet;
   if (4 == len) {
     // IPv4
@@ -1167,7 +1233,7 @@ nsresult DOHresp::Add(uint32_t TTL, unsigned char* dns, int index, uint16_t len,
     NetAddrToString(addr, buf, sizeof(buf));
     LOG(("DOHresp:Add %s\n", buf));
   }
-  mAddresses.insertBack(doh.forget());
+  mAddresses.insertBack(doh.release());
   return NS_OK;
 }
 
@@ -1186,10 +1252,22 @@ class ProxyCancel : public Runnable {
 };
 
 void TRR::Cancel() {
-  if (!NS_IsMainThread()) {
-    NS_DispatchToMainThread(new ProxyCancel(this));
-    return;
+  if (StaticPrefs::network_trr_fetch_off_main_thread()) {
+    if (gTRRService) {
+      nsCOMPtr<nsIThread> thread = gTRRService->TRRThread();
+      if (thread && !thread->IsOnCurrentThread()) {
+        nsCOMPtr<nsIRunnable> r = new ProxyCancel(this);
+        thread->Dispatch(r.forget());
+        return;
+      }
+    }
+  } else {
+    if (!NS_IsMainThread()) {
+      NS_DispatchToMainThread(new ProxyCancel(this));
+      return;
+    }
   }
+
   if (mChannel) {
     LOG(("TRR: %p canceling Channel %p %s %d\n", this, mChannel.get(),
          mHost.get(), mType));
@@ -1200,9 +1278,7 @@ void TRR::Cancel() {
   }
 }
 
-bool TRR::UseDefaultServer() {
-  return !mRec || mRec->mTrrServer.IsEmpty();
-}
+bool TRR::UseDefaultServer() { return !mRec || mRec->mTrrServer.IsEmpty(); }
 
 #undef LOG
 

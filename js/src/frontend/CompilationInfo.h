@@ -15,6 +15,7 @@
 #include "frontend/SharedContext.h"
 #include "frontend/Stencil.h"
 #include "frontend/UsedNameTracker.h"
+#include "js/GCVector.h"
 #include "js/RealmOptions.h"
 #include "js/SourceText.h"
 #include "js/Vector.h"
@@ -44,10 +45,16 @@ struct MOZ_RAII CompilationInfo {
   UsedNameTracker usedNames;
   LifoAllocScope& allocScope;
   FunctionTreeHolder treeHolder;
-  // Hold onto the RegExpCreationData and BigIntCreationDatas that are
-  // allocated during parse to ensure correct destruction.
+  // Hold onto the RegExpCreationData, BigIntCreationData, and
+  // FunctionCreationData that are allocated during parse to
+  // ensure correct destruction.
   Vector<RegExpCreationData> regExpData;
   Vector<BigIntCreationData> bigIntData;
+
+  // A rooted vector to ensure tracing. While not strictly
+  // necessary because of the AutoKeepAtoms above, good
+  // practice neverthless.
+  JS::RootedVector<FunctionCreationData> funcData;
 
   // A rooted list of scopes created during this parse.
   //
@@ -75,6 +82,7 @@ struct MOZ_RAII CompilationInfo {
         treeHolder(cx),
         regExpData(cx),
         bigIntData(cx),
+        funcData(cx),
         scopeCreationData(cx),
         sourceObject(cx) {}
 

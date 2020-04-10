@@ -289,8 +289,7 @@ bool nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext,
           aAppearance == StyleAppearance::Textarea ||
           aAppearance == StyleAppearance::Listbox ||
           aAppearance == StyleAppearance::Menulist ||
-          (aAppearance == StyleAppearance::MenulistButton &&
-           StaticPrefs::layout_css_webkit_appearance_enabled())) &&
+          aAppearance == StyleAppearance::MenulistButton) &&
          aFrame->GetContent()->IsHTMLElement() &&
          aPresContext->HasAuthorSpecifiedRules(
              aFrame,
@@ -327,6 +326,7 @@ bool nsNativeTheme::IsFrameRTL(nsIFrame* aFrame) {
   return aFrame->GetWritingMode().IsPhysicalRTL();
 }
 
+/* static */
 bool nsNativeTheme::IsHTMLContent(nsIFrame* aFrame) {
   if (!aFrame) {
     return false;
@@ -689,6 +689,8 @@ bool nsNativeTheme::IsWidgetScrollbarPart(StyleAppearance aAppearance) {
     case StyleAppearance::ScrollbarbuttonRight:
     case StyleAppearance::ScrollbarthumbVertical:
     case StyleAppearance::ScrollbarthumbHorizontal:
+    case StyleAppearance::ScrollbartrackHorizontal:
+    case StyleAppearance::ScrollbartrackVertical:
     case StyleAppearance::Scrollcorner:
       return true;
     default:

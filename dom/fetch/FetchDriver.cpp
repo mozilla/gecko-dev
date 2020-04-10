@@ -279,7 +279,7 @@ AlternativeDataStreamListener::OnStopRequest(nsIRequest* aRequest,
 
   // Alternative data loading is going to finish, breaking the reference cycle
   // here by taking the ownership to a loacl variable.
-  RefPtr<FetchDriver> fetchDriver = mFetchDriver.forget();
+  RefPtr<FetchDriver> fetchDriver = std::move(mFetchDriver);
 
   if (mStatus == AlternativeDataStreamListener::CANCELED) {
     // do nothing
@@ -326,14 +326,14 @@ NS_IMPL_ISUPPORTS(FetchDriver, nsIStreamListener, nsIChannelEventSink,
 FetchDriver::FetchDriver(InternalRequest* aRequest, nsIPrincipal* aPrincipal,
                          nsILoadGroup* aLoadGroup,
                          nsIEventTarget* aMainThreadEventTarget,
-                         nsICookieSettings* aCookieSettings,
+                         nsICookieJarSettings* aCookieJarSettings,
                          PerformanceStorage* aPerformanceStorage,
                          bool aIsTrackingFetch)
     : mPrincipal(aPrincipal),
       mLoadGroup(aLoadGroup),
       mRequest(aRequest),
       mMainThreadEventTarget(aMainThreadEventTarget),
-      mCookieSettings(aCookieSettings),
+      mCookieJarSettings(aCookieJarSettings),
       mPerformanceStorage(aPerformanceStorage),
       mNeedToObserveOnDataAvailable(false),
       mIsTrackingFetch(aIsTrackingFetch),
@@ -510,7 +510,7 @@ nsresult FetchDriver::HttpFetch(
   nsLoadFlags loadFlags = nsIRequest::LOAD_BACKGROUND | bypassFlag;
   if (mDocument) {
     MOZ_ASSERT(mDocument->NodePrincipal() == mPrincipal);
-    MOZ_ASSERT(mDocument->CookieSettings() == mCookieSettings);
+    MOZ_ASSERT(mDocument->CookieJarSettings() == mCookieJarSettings);
     rv = NS_NewChannel(getter_AddRefs(chan), uri, mDocument, secFlags,
                        mRequest->ContentPolicyType(),
                        nullptr,             /* aPerformanceStorage */
@@ -519,13 +519,13 @@ nsresult FetchDriver::HttpFetch(
   } else if (mClientInfo.isSome()) {
     rv = NS_NewChannel(getter_AddRefs(chan), uri, mPrincipal, mClientInfo.ref(),
                        mController, secFlags, mRequest->ContentPolicyType(),
-                       mCookieSettings, mPerformanceStorage, mLoadGroup,
+                       mCookieJarSettings, mPerformanceStorage, mLoadGroup,
                        nullptr, /* aCallbacks */
                        loadFlags, ios);
   } else {
     rv =
         NS_NewChannel(getter_AddRefs(chan), uri, mPrincipal, secFlags,
-                      mRequest->ContentPolicyType(), mCookieSettings,
+                      mRequest->ContentPolicyType(), mCookieJarSettings,
                       mPerformanceStorage, mLoadGroup, nullptr, /* aCallbacks */
                       loadFlags, ios);
   }
@@ -1206,7 +1206,7 @@ FetchDriver::OnStopRequest(nsIRequest* aRequest, nsresult aStatusCode) {
 
   // main data loading is going to finish, breaking the reference cycle.
   RefPtr<AlternativeDataStreamListener> altDataListener =
-      mAltDataListener.forget();
+      std::move(mAltDataListener);
 
   // We need to check mObserver, which is nulled by FailWithNetworkError(),
   // because in the case of "error" redirect mode, aStatusCode may be NS_OK but

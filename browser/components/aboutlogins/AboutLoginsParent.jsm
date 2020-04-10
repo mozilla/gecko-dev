@@ -197,11 +197,7 @@ class AboutLoginsParent extends JSWindowActorParent {
       EXPECTED_ABOUTLOGINS_REMOTE_TYPE
     ) {
       throw new Error(
-        `AboutLoginsParent: Received ${
-          message.name
-        } message the remote type didn't match expectations: ${
-          this.browsingContext.embedderElement.remoteType
-        } == ${EXPECTED_ABOUTLOGINS_REMOTE_TYPE}`
+        `AboutLoginsParent: Received ${message.name} message the remote type didn't match expectations: ${this.browsingContext.embedderElement.remoteType} == ${EXPECTED_ABOUTLOGINS_REMOTE_TYPE}`
       );
     }
 
@@ -311,23 +307,6 @@ class AboutLoginsParent extends JSWindowActorParent {
       }
       case "AboutLogins:OpenPreferences": {
         ownerGlobal.openPreferences("privacy-logins");
-        break;
-      }
-      case "AboutLogins:OpenSite": {
-        let guid = message.data.login.guid;
-        let logins = LoginHelper.searchLoginsWithObject({ guid });
-        if (logins.length != 1) {
-          log.warn(
-            `AboutLogins:OpenSite: expected to find a login for guid: ${guid} but found ${
-              logins.length
-            }`
-          );
-          return;
-        }
-
-        ownerGlobal.openWebLinkIn(logins[0].origin, "tab", {
-          relatedToCurrent: true,
-        });
         break;
       }
       case "AboutLogins:MasterPasswordRequest": {
@@ -445,9 +424,7 @@ class AboutLoginsParent extends JSWindowActorParent {
         });
         if (logins.length != 1) {
           log.warn(
-            `AboutLogins:UpdateLogin: expected to find a login for guid: ${
-              loginUpdates.guid
-            } but found ${logins.length}`
+            `AboutLogins:UpdateLogin: expected to find a login for guid: ${loginUpdates.guid} but found ${logins.length}`
           );
           return;
         }

@@ -309,6 +309,10 @@ impl DataStores {
                 let prim_data = &self.radial_grad[data_handle];
                 &prim_data.common
             }
+            PrimitiveInstanceKind::ConicGradient { data_handle, .. } => {
+                let prim_data = &self.conic_grad[data_handle];
+                &prim_data.common
+            }
             PrimitiveInstanceKind::TextRun { data_handle, .. }  => {
                 let prim_data = &self.text_run[data_handle];
                 &prim_data.common
@@ -510,8 +514,8 @@ impl Document {
             FrameMsg::UpdateDynamicProperties(property_bindings) => {
                 self.dynamic_properties.set_properties(property_bindings);
             }
-            FrameMsg::AppendDynamicProperties(property_bindings) => {
-                self.dynamic_properties.add_properties(property_bindings);
+            FrameMsg::AppendDynamicTransformProperties(property_bindings) => {
+                self.dynamic_properties.add_transforms(property_bindings);
             }
             FrameMsg::SetPinchZoom(factor) => {
                 if self.view.pinch_zoom_factor != factor.get() {
@@ -541,7 +545,6 @@ impl Document {
         resource_profile: &mut ResourceProfileCounters,
         debug_flags: DebugFlags,
         tile_cache_logger: &mut TileCacheLogger,
-        config: FrameBuilderConfig,
     ) -> RenderedDocument {
         let accumulated_scale_factor = self.view.accumulated_scale_factor();
         let pan = self.view.pan.to_f32() / accumulated_scale_factor;
@@ -569,7 +572,6 @@ impl Document {
                 &mut self.render_task_counters,
                 debug_flags,
                 tile_cache_logger,
-                config,
             );
             self.hit_tester = Some(self.scene.create_hit_tester(&self.data_stores.clip));
             frame
@@ -1138,16 +1140,14 @@ impl RenderBackend {
                         // that are created.
                         self.frame_config
                             .dual_source_blending_is_enabled = enable;
-
-                        self.low_priority_scene_tx.send(SceneBuilderRequest::SetFrameBuilderConfig(
-                            self.frame_config.clone()
-                        )).unwrap();
+                        self.update_frame_builder_config();
 
                         // We don't want to forward this message to the renderer.
                         return RenderBackendStatus::Continue;
                     }
                     DebugCommand::SetPictureTileSize(tile_size) => {
                         self.frame_config.tile_size_override = tile_size;
+                        self.update_frame_builder_config();
 
                         return RenderBackendStatus::Continue;
                     }
@@ -1245,17 +1245,19 @@ impl RenderBackend {
                         }
 
                         self.frame_config.compositor_kind = compositor_kind;
-
-                        // Update config in SceneBuilder
-                        self.low_priority_scene_tx.send(SceneBuilderRequest::SetFrameBuilderConfig(
-                            self.frame_config.clone()
-                         )).unwrap();
+                        self.update_frame_builder_config();
 
                         // We don't want to forward this message to the renderer.
                         return RenderBackendStatus::Continue;
                     }
                     DebugCommand::EnableMultithreading(enable) => {
                         self.resource_cache.enable_multithreading(enable);
+                        return RenderBackendStatus::Continue;
+                    }
+                    DebugCommand::SetBatchingLookback(count) => {
+                        self.frame_config.batch_lookback_count = count as usize;
+                        self.update_frame_builder_config();
+
                         return RenderBackendStatus::Continue;
                     }
                     DebugCommand::SimulateLongSceneBuild(time_ms) => {
@@ -1309,6 +1311,12 @@ impl RenderBackend {
         }
 
         RenderBackendStatus::Continue
+    }
+
+    fn update_frame_builder_config(&self) {
+        self.low_priority_scene_tx.send(SceneBuilderRequest::SetFrameBuilderConfig(
+            self.frame_config.clone()
+        )).unwrap();
     }
 
     fn prepare_for_frames(&mut self) {
@@ -1580,7 +1588,6 @@ impl RenderBackend {
                     &mut profile_counters.resources,
                     self.debug_flags,
                     &mut self.tile_cache_logger,
-                    self.frame_config,
                 );
 
                 debug!("generated frame for document {:?} with {} passes",
@@ -1759,7 +1766,6 @@ impl RenderBackend {
                     &mut profile_counters.resources,
                     self.debug_flags,
                     &mut self.tile_cache_logger,
-                    self.frame_config,
                 );
                 // After we rendered the frames, there are pending updates to both
                 // GPU cache and resources. Instead of serializing them, we are going to make sure

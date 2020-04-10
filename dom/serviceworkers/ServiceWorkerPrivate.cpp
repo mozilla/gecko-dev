@@ -44,7 +44,7 @@
 #include "mozilla/dom/WorkerScope.h"
 #include "mozilla/dom/ipc/StructuredCloneData.h"
 #include "mozilla/ipc/BackgroundUtils.h"
-#include "mozilla/net/CookieSettings.h"
+#include "mozilla/net/CookieJarSettings.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #include "mozilla/Services.h"
 #include "mozilla/DebugOnly.h"
@@ -106,7 +106,7 @@ ServiceWorkerPrivate::ServiceWorkerPrivate(ServiceWorkerInfo* aInfo)
     MOZ_ALWAYS_SUCCEEDS(inner->Initialize());
 #endif
 
-    mInner = inner.forget();
+    mInner = std::move(inner);
   }
 }
 
@@ -473,7 +473,7 @@ class SendMessageEventRunnable final : public ExtendableEventWorkerRunnable {
     mData->Read(aCx, &messageData, rv);
 
     // If deserialization fails, we will fire a messageerror event
-    bool deserializationFailed = rv.ErrorCodeIs(NS_ERROR_DOM_DATA_CLONE_ERR);
+    bool deserializationFailed = rv.Failed();
 
     if (!deserializationFailed && NS_WARN_IF(rv.Failed())) {
       rv.SuppressException();
@@ -760,7 +760,7 @@ class PushErrorReporter final : public ExtendableEventCallback {
   WorkerPrivate* mWorkerPrivate;
   nsString mMessageId;
 
-  ~PushErrorReporter() {}
+  ~PushErrorReporter() = default;
 
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PushErrorReporter, override)
@@ -1368,7 +1368,7 @@ class FetchEventRunnable : public ExtendableFunctionalEventWorkerRunnable,
   }
 
  private:
-  ~FetchEventRunnable() {}
+  ~FetchEventRunnable() = default;
 
   class ResumeRequest final : public Runnable {
     nsMainThreadPtrHandle<nsIInterceptedChannel> mChannel;
@@ -1708,11 +1708,11 @@ nsresult ServiceWorkerPrivate::SpawnWorkerIfNeeded(WakeUpReason aWhy,
   // moment, ServiceWorkers are not exposed in partitioned contexts.
   info.mStoragePrincipal = info.mPrincipal;
 
-  info.mCookieSettings = mozilla::net::CookieSettings::Create();
-  MOZ_ASSERT(info.mCookieSettings);
+  info.mCookieJarSettings = mozilla::net::CookieJarSettings::Create();
+  MOZ_ASSERT(info.mCookieJarSettings);
 
   info.mStorageAccess =
-      StorageAllowedForServiceWorker(info.mPrincipal, info.mCookieSettings);
+      StorageAllowedForServiceWorker(info.mPrincipal, info.mCookieJarSettings);
 
   info.mOriginAttributes = mInfo->GetOriginAttributes();
 
@@ -1798,7 +1798,8 @@ void ServiceWorkerPrivate::TerminateWorker() {
     }
 
     Unused << NS_WARN_IF(!mWorkerPrivate->Cancel());
-    RefPtr<WorkerPrivate> workerPrivate(mWorkerPrivate.forget());
+    RefPtr<WorkerPrivate> workerPrivate = std::move(mWorkerPrivate);
+    mozilla::Unused << workerPrivate;
     mSupportsArray.Clear();
 
     // Any pending events are never going to fire on this worker.  Cancel
@@ -1869,7 +1870,7 @@ void ServiceWorkerPrivate::UpdateState(ServiceWorkerState aState) {
   mPendingFunctionalEvents.SwapElements(pendingEvents);
 
   for (uint32_t i = 0; i < pendingEvents.Length(); ++i) {
-    RefPtr<WorkerRunnable> r = pendingEvents[i].forget();
+    RefPtr<WorkerRunnable> r = std::move(pendingEvents[i]);
     if (NS_WARN_IF(!r->Dispatch())) {
       NS_WARNING("Failed to dispatch pending functional event!");
     }

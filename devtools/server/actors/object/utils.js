@@ -4,7 +4,7 @@
 
 "use strict";
 
-const { DebuggerServer } = require("devtools/server/debugger-server");
+const { DevToolsServer } = require("devtools/server/devtools-server");
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 const { assert } = DevToolsUtils;
 
@@ -168,7 +168,7 @@ function createValueGrip(value, pool, makeObjectGrip) {
  *        The string we are checking the length of.
  */
 function stringIsLong(str) {
-  return str.length >= DebuggerServer.LONG_STRING_LENGTH;
+  return str.length >= DevToolsServer.LONG_STRING_LENGTH;
 }
 
 const TYPED_ARRAY_CLASSES = [
@@ -220,10 +220,8 @@ function getArrayLength(object) {
     throw new Error("Expected an array, got a " + object.class);
   }
 
-  // Real arrays have a reliable `length` own property. When replaying, always
-  // get the length property, as we can't invoke getters on the proxy returned
-  // by unsafeDereference().
-  if (object.class === "Array" || isReplaying) {
+  // Real arrays have a reliable `length` own property.
+  if (object.class === "Array") {
     return DevToolsUtils.getProperty(object, "length");
   }
 
@@ -324,10 +322,6 @@ function getPropNamesFromObject(obj, rawObj) {
       for (let j = 0; j < rawObj.length; j++) {
         names.push(rawObj.key(j));
       }
-    } else if (isReplaying) {
-      // When replaying we can access a batch of properties for use in generating
-      // the preview. This avoids needing to enumerate all properties.
-      names = obj.getEnumerableOwnPropertyNamesForPreview();
     } else {
       names = obj.getOwnPropertyNames();
     }

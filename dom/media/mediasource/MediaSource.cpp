@@ -7,9 +7,9 @@
 #include "MediaSource.h"
 
 #include "AsyncEventRunner.h"
-#include "DecoderTraits.h"
 #include "Benchmark.h"
 #include "DecoderDoctorDiagnostics.h"
+#include "DecoderTraits.h"
 #include "MediaContainerType.h"
 #include "MediaResult.h"
 #include "MediaSourceDemuxer.h"
@@ -18,22 +18,22 @@
 #include "SourceBufferList.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/Logging.h"
+#include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/HTMLMediaElement.h"
+#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/mozalloc.h"
 #include "nsDebug.h"
 #include "nsError.h"
 #include "nsIRunnable.h"
 #include "nsIScriptObjectPrincipal.h"
-#include "nsPIDOMWindow.h"
 #include "nsMimeTypes.h"
+#include "nsPIDOMWindow.h"
+#include "nsServiceManagerUtils.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
-#include "mozilla/Logging.h"
-#include "nsServiceManagerUtils.h"
-#include "mozilla/gfx/gfxVars.h"
-#include "mozilla/Sprintf.h"
 
 #ifdef MOZ_WIDGET_ANDROID
 #  include "AndroidBridge.h"
@@ -73,7 +73,7 @@ namespace mozilla {
 //     optional "Windows Media Feature Pack"
 // 2. If H264 hardware acceleration is not available.
 // 3. The CPU is considered to be fast enough
-static bool IsWebMForced(DecoderDoctorDiagnostics* aDiagnostics) {
+static bool IsVP9Forced(DecoderDoctorDiagnostics* aDiagnostics) {
   bool mp4supported = DecoderTraits::IsMP4SupportedType(
       MediaContainerType(MEDIAMIMETYPE(VIDEO_MP4)), aDiagnostics);
   bool hwsupported = gfx::gfxVars::CanUseHardwareVideoDecoding();
@@ -92,7 +92,7 @@ void MediaSource::IsTypeSupported(const nsAString& aType,
                                   DecoderDoctorDiagnostics* aDiagnostics,
                                   ErrorResult& aRv) {
   if (aType.IsEmpty()) {
-    return aRv.ThrowTypeError(u"Empty type");
+    return aRv.ThrowTypeError("Empty type");
   }
 
   Maybe<MediaContainerType> containerType = MakeMediaContainerType(aType);
@@ -105,6 +105,15 @@ void MediaSource::IsTypeSupported(const nsAString& aType,
     return aRv.ThrowNotSupportedError("Can't play type");
   }
 
+  bool hasVP9 = false;
+  const MediaCodecs& codecs = containerType->ExtendedType().Codecs();
+  for (const auto& codec : codecs.Range()) {
+    if (IsVP9CodecString(codec)) {
+      hasVP9 = true;
+      break;
+    }
+  }
+
   // Now we know that this media type could be played.
   // MediaSource imposes extra restrictions, and some prefs.
   const MediaMIMEType& mimeType = containerType->Type();
@@ -115,19 +124,23 @@ void MediaSource::IsTypeSupported(const nsAString& aType,
       // like we can't play it.  Or should this throw "Unknown type"?
       return aRv.ThrowNotSupportedError("Can't play type");
     }
+    if (!StaticPrefs::media_mediasource_vp9_enabled() && hasVP9 &&
+        !IsVP9Forced(aDiagnostics)) {
+      // Don't leak information about the fact that it's pref-disabled; just act
+      // like we can't play it.  Or should this throw "Unknown type"?
+      return aRv.ThrowNotSupportedError("Can't play type");
+    }
+
     return;
   }
   if (mimeType == MEDIAMIMETYPE("video/webm")) {
-    if (!(StaticPrefs::media_mediasource_webm_enabled() ||
-          StaticPrefs::media_media_capabilities_enabled() ||
-          containerType->ExtendedType().Codecs().Contains(
-              NS_LITERAL_STRING("vp8")) ||
-#ifdef MOZ_AV1
-          (StaticPrefs::media_av1_enabled() &&
-           IsAV1CodecString(
-               containerType->ExtendedType().Codecs().AsString())) ||
-#endif
-          IsWebMForced(aDiagnostics))) {
+    if (!StaticPrefs::media_mediasource_webm_enabled()) {
+      // Don't leak information about the fact that it's pref-disabled; just act
+      // like we can't play it.  Or should this throw "Unknown type"?
+      return aRv.ThrowNotSupportedError("Can't play type");
+    }
+    if (!StaticPrefs::media_mediasource_vp9_enabled() && hasVP9 &&
+        !IsVP9Forced(aDiagnostics)) {
       // Don't leak information about the fact that it's pref-disabled; just act
       // like we can't play it.  Or should this throw "Unknown type"?
       return aRv.ThrowNotSupportedError("Can't play type");
@@ -202,7 +215,7 @@ void MediaSource::SetDuration(double aDuration, ErrorResult& aRv) {
   MSE_API("SetDuration(aDuration=%f, ErrorResult)", aDuration);
   if (aDuration < 0 || IsNaN(aDuration)) {
     nsPrintfCString error("Invalid duration value %f", aDuration);
-    aRv.ThrowTypeError(NS_ConvertUTF8toUTF16(error));
+    aRv.ThrowTypeError(error);
     return;
   }
   if (mReadyState != MediaSourceReadyState::Open ||
@@ -404,7 +417,7 @@ void MediaSource::SetLiveSeekableRange(double aStart, double aEnd,
   // 2. If start is negative or greater than end, then throw a TypeError
   // exception and abort these steps.
   if (aStart < 0 || aStart > aEnd) {
-    aRv.ThrowTypeError(u"Invalid start value");
+    aRv.ThrowTypeError("Invalid start value");
     return;
   }
 

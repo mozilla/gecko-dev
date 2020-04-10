@@ -457,6 +457,7 @@ strong {
   padding-inline-start: 16px;
 }
 
+.menu-button--iconic::before,
 .tooltip-container[type="doorhanger"] .menuitem > .command.iconic > .label::before {
   content: " ";
   display: inline-block;
@@ -470,6 +471,7 @@ strong {
   fill: currentColor;
   background-image: var(--menuitem-icon-image);
   background-size: contain;
+  background-repeat: no-repeat;
   /*
    * The icons in the sidebar menu have opacity: 0.8 here, but those in the
    * hamburger menu don't. For now we match the hamburger menu styling,
@@ -489,6 +491,16 @@ strong {
   border-top: 1px solid var(--theme-arrowpanel-separator);
   margin: 6px 0;
   padding: 0;
+}
+
+.tooltip-container[type="doorhanger"] [role="menuseparator"] {
+  border: none;
+  border-bottom: 1px solid #cacdd3;
+  width: 100%;
+  height: 2px;
+  display: block;
+  background: none;
+  pointer-events: none;
 }
 
 /* Tooltip: Events */

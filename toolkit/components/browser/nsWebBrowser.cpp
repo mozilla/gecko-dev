@@ -37,6 +37,7 @@
 
 // for painting the background window
 #include "mozilla/LookAndFeel.h"
+#include "mozilla/ServoStyleConsts.h"
 
 // Printing Includes
 #ifdef NS_PRINTING
@@ -208,8 +209,8 @@ nsWebBrowser::InternalDestroy() {
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsWebBrowser)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsWebBrowser)
 
-NS_IMPL_CYCLE_COLLECTION(nsWebBrowser, mDocShell, mDocShellAsReq,
-                         mDocShellAsWin, mDocShellAsNav, mWebProgress)
+NS_IMPL_CYCLE_COLLECTION_WEAK(nsWebBrowser, mDocShell, mDocShellAsReq,
+                              mDocShellAsWin, mDocShellAsNav, mWebProgress)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsWebBrowser)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIWebBrowser)

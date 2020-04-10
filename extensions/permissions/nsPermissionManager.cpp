@@ -27,6 +27,7 @@
 #include "mozilla/storage.h"
 #include "mozilla/Attributes.h"
 #include "nsXULAppAPI.h"
+#include "nsIIdleService.h"
 #include "nsIPrincipal.h"
 #include "nsIURIMutator.h"
 #include "nsContentUtils.h"
@@ -83,6 +84,8 @@ static void LogToConsole(const nsAString& aMsg) {
 
 #define ENSURE_NOT_CHILD_PROCESS_NORET ENSURE_NOT_CHILD_PROCESS_(;)
 
+#define EXPIRY_NOW PR_Now() / 1000
+
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace {
@@ -134,6 +137,10 @@ bool IsPreloadPermission(const nsACString& aType) {
 // for user context and private browsing.
 // Keep this array in sync with 'STRIPPED_PERMS' in
 // 'test_permmanager_oa_strip.js'
+// Currently only preloaded permissions are supported.
+// This is because perms are sent to the content process in bulk by perm key.
+// Non-preloaded, but OA stripped permissions would not be accessible by sites
+// in private browsing / non-default user context.
 static constexpr std::array<nsLiteralCString, 1> kStripOAPermissions = {
     {NS_LITERAL_CSTRING("cookie")}};
 
@@ -404,7 +411,8 @@ class MOZ_STACK_CLASS UpgradeHostToOriginHostfileImport final
 
     return mPm->AddInternal(principal, aType, aPermission, mID, aExpireType,
                             aExpireTime, aModificationTime,
-                            nsPermissionManager::eDontNotify, mOperation);
+                            nsPermissionManager::eDontNotify, mOperation, false,
+                            &aOrigin);
   }
 
  private:
@@ -820,7 +828,7 @@ CloseDatabaseListener::CloseDatabaseListener(nsPermissionManager* aManager,
 NS_IMETHODIMP
 CloseDatabaseListener::Complete(nsresult, nsISupports*) {
   // Help breaking cycles
-  RefPtr<nsPermissionManager> manager = mManager.forget();
+  RefPtr<nsPermissionManager> manager = std::move(mManager);
   if (mRebuildOnSuccess && !gIsShuttingDown) {
     return manager->InitDB(true);
   }
@@ -870,7 +878,7 @@ NS_IMETHODIMP DeleteFromMozHostListener::HandleError(mozIStorageError*) {
 
 NS_IMETHODIMP DeleteFromMozHostListener::HandleCompletion(uint16_t aReason) {
   // Help breaking cycles
-  RefPtr<nsPermissionManager> manager = mManager.forget();
+  RefPtr<nsPermissionManager> manager = std::move(mManager);
 
   if (aReason == REASON_ERROR) {
     manager->CloseDB(true);
@@ -1627,9 +1635,58 @@ nsresult nsPermissionManager::InitDB(bool aRemoveFile) {
   // Always import default permissions.
   ImportDefaults();
   // check whether to import or just read in the db
-  if (tableExists) return Read();
+  if (tableExists) {
+    rv = Read();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    AddIdleDailyMaintenanceJob();
+  }
 
   return NS_OK;
+}
+
+void nsPermissionManager::AddIdleDailyMaintenanceJob() {
+  nsCOMPtr<nsIObserverService> observerService =
+      mozilla::services::GetObserverService();
+  NS_ENSURE_TRUE_VOID(observerService);
+
+  nsresult rv =
+      observerService->AddObserver(this, OBSERVER_TOPIC_IDLE_DAILY, false);
+  NS_ENSURE_SUCCESS_VOID(rv);
+}
+
+void nsPermissionManager::RemoveIdleDailyMaintenanceJob() {
+  nsCOMPtr<nsIObserverService> observerService =
+      mozilla::services::GetObserverService();
+  NS_ENSURE_TRUE_VOID(observerService);
+
+  nsresult rv =
+      observerService->RemoveObserver(this, OBSERVER_TOPIC_IDLE_DAILY);
+  NS_ENSURE_SUCCESS_VOID(rv);
+}
+
+void nsPermissionManager::PerformIdleDailyMaintenance() {
+  if (!mDBConn) {
+    return;
+  }
+
+  nsCOMPtr<mozIStorageAsyncStatement> stmtDeleteExpired;
+  nsresult rv = mDBConn->CreateAsyncStatement(
+      NS_LITERAL_CSTRING("DELETE FROM moz_perms WHERE expireType = "
+                         "?1 AND expireTime <= ?2"),
+      getter_AddRefs(stmtDeleteExpired));
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  rv =
+      stmtDeleteExpired->BindInt32ByIndex(0, nsIPermissionManager::EXPIRE_TIME);
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  rv = stmtDeleteExpired->BindInt64ByIndex(1, EXPIRY_NOW);
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  nsCOMPtr<mozIStoragePendingStatement> pending;
+  rv = stmtDeleteExpired->ExecuteAsync(nullptr, getter_AddRefs(pending));
+  NS_ENSURE_SUCCESS_VOID(rv);
 }
 
 // sets the schema version and creates the moz_perms table.
@@ -1687,7 +1744,7 @@ nsPermissionManager::AddFromPrincipal(nsIPrincipal* aPrincipal,
   if ((aExpireType == nsIPermissionManager::EXPIRE_TIME ||
        (aExpireType == nsIPermissionManager::EXPIRE_SESSION &&
         aExpireTime != 0)) &&
-      aExpireTime <= (PR_Now() / 1000)) {
+      aExpireTime <= EXPIRY_NOW) {
     return NS_OK;
   }
 
@@ -1719,11 +1776,24 @@ nsresult nsPermissionManager::AddInternal(
     nsIPrincipal* aPrincipal, const nsACString& aType, uint32_t aPermission,
     int64_t aID, uint32_t aExpireType, int64_t aExpireTime,
     int64_t aModificationTime, NotifyOperationType aNotifyOperation,
-    DBOperationType aDBOperation, const bool aIgnoreSessionPermissions) {
+    DBOperationType aDBOperation, const bool aIgnoreSessionPermissions,
+    const nsACString* aOriginString) {
+  nsresult rv = NS_OK;
   nsAutoCString origin;
-  nsresult rv = GetOriginFromPrincipal(aPrincipal,
-                                       IsOAForceStripPermission(aType), origin);
-  NS_ENSURE_SUCCESS(rv, rv);
+  // Only attempt to compute the origin string when it is going to be needed
+  // later on in the function.
+  if (!IsChildProcess() ||
+      (aDBOperation == eWriteToDB && IsPersistentExpire(aExpireType, aType))) {
+    if (aOriginString) {
+      // Use the origin string provided by the caller.
+      origin = *aOriginString;
+    } else {
+      // Compute it from the principal provided.
+      rv = GetOriginFromPrincipal(aPrincipal, IsOAForceStripPermission(aType),
+                                  origin);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
 
   // For private browsing only store permissions for the session
   if (aExpireType != EXPIRE_SESSION) {
@@ -1821,7 +1891,7 @@ nsresult nsPermissionManager::AddInternal(
   // update the in-memory list, write to the db, and notify consumers.
   int64_t id;
   if (aModificationTime == 0) {
-    aModificationTime = PR_Now() / 1000;
+    aModificationTime = EXPIRY_NOW;
   }
 
   switch (op) {
@@ -2050,7 +2120,7 @@ nsPermissionManager::RemoveAllSince(int64_t aSince) {
 
 template <class T>
 nsresult nsPermissionManager::RemovePermissionEntries(T aCondition) {
-  Vector<Pair<nsCOMPtr<nsIPrincipal>, nsCString>, 10> array;
+  Vector<Tuple<nsCOMPtr<nsIPrincipal>, nsCString, nsCString>, 10> array;
   for (auto iter = mPermissionTable.Iter(); !iter.Done(); iter.Next()) {
     PermissionHashKey* entry = iter.Get();
     for (const auto& permEntry : entry->GetPermissions()) {
@@ -2067,7 +2137,8 @@ nsresult nsPermissionManager::RemovePermissionEntries(T aCondition) {
         continue;
       }
 
-      if (!array.emplaceBack(principal, mTypeArray[permEntry.mType])) {
+      if (!array.emplaceBack(principal, mTypeArray[permEntry.mType],
+                             entry->GetKey()->mOrigin)) {
         continue;
       }
     }
@@ -2075,9 +2146,10 @@ nsresult nsPermissionManager::RemovePermissionEntries(T aCondition) {
 
   for (auto& i : array) {
     // AddInternal handles removal, so let it do the work...
-    AddInternal(i.first(), i.second(), nsIPermissionManager::UNKNOWN_ACTION, 0,
+    AddInternal(Get<0>(i), Get<1>(i), nsIPermissionManager::UNKNOWN_ACTION, 0,
                 nsIPermissionManager::EXPIRE_NEVER, 0, 0,
-                nsPermissionManager::eNotify, nsPermissionManager::eWriteToDB);
+                nsPermissionManager::eNotify, nsPermissionManager::eWriteToDB,
+                false, &Get<2>(i));
   }
   // now re-import any defaults as they may now be required if we just deleted
   // an override.
@@ -2348,7 +2420,7 @@ nsPermissionManager::GetPermissionHashKey(nsIPrincipal* aPrincipal,
     if ((permEntry.mExpireType == nsIPermissionManager::EXPIRE_TIME ||
          (permEntry.mExpireType == nsIPermissionManager::EXPIRE_SESSION &&
           permEntry.mExpireTime != 0)) &&
-        permEntry.mExpireTime <= (PR_Now() / 1000)) {
+        permEntry.mExpireTime <= EXPIRY_NOW) {
       entry = nullptr;
       RemoveFromPrincipal(aPrincipal, mTypeArray[aType]);
     } else if (permEntry.mPermission == nsIPermissionManager::UNKNOWN_ACTION) {
@@ -2421,7 +2493,7 @@ nsPermissionManager::GetPermissionHashKey(
     if ((permEntry.mExpireType == nsIPermissionManager::EXPIRE_TIME ||
          (permEntry.mExpireType == nsIPermissionManager::EXPIRE_SESSION &&
           permEntry.mExpireTime != 0)) &&
-        permEntry.mExpireTime <= (PR_Now() / 1000)) {
+        permEntry.mExpireTime <= EXPIRY_NOW) {
       entry = nullptr;
       // If we need to remove a permission we mint a principal.  This is a bit
       // inefficient, but hopefully this code path isn't super common.
@@ -2625,6 +2697,7 @@ NS_IMETHODIMP nsPermissionManager::Observe(nsISupports* aSubject,
   if (!nsCRT::strcmp(aTopic, "profile-before-change")) {
     // The profile is about to change,
     // or is going away because the application is shutting down.
+    RemoveIdleDailyMaintenanceJob();
     gIsShuttingDown = true;
     RemoveAllFromMemory();
     CloseDB(false);
@@ -2642,6 +2715,8 @@ NS_IMETHODIMP nsPermissionManager::Observe(nsISupports* aSubject,
     RemoveAllFromMemory();
     CloseDB(false);
     InitDB(false);
+  } else if (!nsCRT::strcmp(aTopic, OBSERVER_TOPIC_IDLE_DAILY)) {
+    PerformIdleDailyMaintenance();
   }
 
   return NS_OK;
@@ -2671,7 +2746,7 @@ nsPermissionManager::RemovePermissionsWithAttributes(
 
 nsresult nsPermissionManager::RemovePermissionsWithAttributes(
     mozilla::OriginAttributesPattern& aPattern) {
-  Vector<Pair<nsCOMPtr<nsIPrincipal>, nsCString>, 10> permissions;
+  Vector<Tuple<nsCOMPtr<nsIPrincipal>, nsCString, nsCString>, 10> permissions;
   for (auto iter = mPermissionTable.Iter(); !iter.Done(); iter.Next()) {
     PermissionHashKey* entry = iter.Get();
 
@@ -2687,16 +2762,18 @@ nsresult nsPermissionManager::RemovePermissionsWithAttributes(
     }
 
     for (const auto& permEntry : entry->GetPermissions()) {
-      if (!permissions.emplaceBack(principal, mTypeArray[permEntry.mType])) {
+      if (!permissions.emplaceBack(principal, mTypeArray[permEntry.mType],
+                                   entry->GetKey()->mOrigin)) {
         continue;
       }
     }
   }
 
   for (auto& i : permissions) {
-    AddInternal(i.first(), i.second(), nsIPermissionManager::UNKNOWN_ACTION, 0,
+    AddInternal(Get<0>(i), Get<1>(i), nsIPermissionManager::UNKNOWN_ACTION, 0,
                 nsIPermissionManager::EXPIRE_NEVER, 0, 0,
-                nsPermissionManager::eNotify, nsPermissionManager::eWriteToDB);
+                nsPermissionManager::eNotify, nsPermissionManager::eWriteToDB,
+                false, &Get<2>(i));
   }
 
   return NS_OK;
@@ -2747,34 +2824,19 @@ nsresult nsPermissionManager::Read() {
 
   nsresult rv;
 
-  // delete expired permissions before we read in the db
-  {
-    // this deletion has its own scope so the write lock is released when done.
-    nsCOMPtr<mozIStorageStatement> stmtDeleteExpired;
-    rv = mDBConn->CreateStatement(
-        NS_LITERAL_CSTRING(
-            "DELETE FROM moz_perms WHERE expireType = ?1 AND expireTime <= ?2"),
-        getter_AddRefs(stmtDeleteExpired));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = stmtDeleteExpired->BindInt32ByIndex(0,
-                                             nsIPermissionManager::EXPIRE_TIME);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = stmtDeleteExpired->BindInt64ByIndex(1, PR_Now() / 1000);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    bool hasResult;
-    rv = stmtDeleteExpired->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
   nsCOMPtr<mozIStorageStatement> stmt;
   rv = mDBConn->CreateStatement(
-      NS_LITERAL_CSTRING("SELECT id, origin, type, permission, expireType, "
-                         "expireTime, modificationTime "
-                         "FROM moz_perms"),
+      NS_LITERAL_CSTRING(
+          "SELECT id, origin, type, permission, expireType, "
+          "expireTime, modificationTime "
+          "FROM moz_perms WHERE expireType != ?1 OR expireTime > ?2"),
       getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = stmt->BindInt32ByIndex(0, nsIPermissionManager::EXPIRE_TIME);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = stmt->BindInt64ByIndex(1, EXPIRY_NOW);
   NS_ENSURE_SUCCESS(rv, rv);
 
   int64_t id;
@@ -2820,7 +2882,8 @@ nsresult nsPermissionManager::Read() {
     }
 
     rv = AddInternal(principal, type, permission, id, expireType, expireTime,
-                     modificationTime, eDontNotify, eNoDBOperation);
+                     modificationTime, eDontNotify, eNoDBOperation, false,
+                     &origin);
     if (NS_FAILED(rv)) {
       readError = true;
       continue;
@@ -3036,8 +3099,9 @@ void nsPermissionManager::UpdateDB(
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 }
 
-bool nsPermissionManager::GetPermissionsWithKey(
-    const nsACString& aPermissionKey, nsTArray<IPC::Permission>& aPerms) {
+bool nsPermissionManager::GetPermissionsFromOriginOrKey(
+    const nsACString& aOrigin, const nsACString& aKey,
+    nsTArray<IPC::Permission>& aPerms) {
   aPerms.Clear();
   if (NS_WARN_IF(XRE_IsContentProcess())) {
     return false;
@@ -3047,27 +3111,41 @@ bool nsPermissionManager::GetPermissionsWithKey(
     PermissionHashKey* entry = iter.Get();
 
     nsAutoCString permissionKey;
-    GetKeyForOrigin(entry->GetKey()->mOrigin,
-                    IsOAForceStripPermission(aPermissionKey), permissionKey);
+    if (aOrigin.IsEmpty()) {
+      // We can't check for individual OA strip perms here.
+      // Don't force strip origin attributes.
+      GetKeyForOrigin(entry->GetKey()->mOrigin, false, permissionKey);
 
-    // If the keys don't match, and we aren't getting the default "" key, then
-    // we can exit early. We have to keep looking if we're getting the default
-    // key, as we may see a preload permission which should be transmitted.
-    if (aPermissionKey != permissionKey && !aPermissionKey.IsEmpty()) {
+      // If the keys don't match, and we aren't getting the default "" key, then
+      // we can exit early. We have to keep looking if we're getting the default
+      // key, as we may see a preload permission which should be transmitted.
+      if (aKey != permissionKey && !aKey.IsEmpty()) {
+        continue;
+      }
+    } else if (aOrigin != entry->GetKey()->mOrigin) {
+      // If the origins don't match, then we can exit early. We have to keep
+      // looking if we're getting the default origin, as we may see a preload
+      // permission which should be transmitted.
       continue;
     }
 
     for (const auto& permEntry : entry->GetPermissions()) {
-      // Given how "default" permissions work and the possibility of them being
-      // overridden with UNKNOWN_ACTION, we might see this value here - but we
-      // do not want to send it to the content process.
+      // Given how "default" permissions work and the possibility of them
+      // being overridden with UNKNOWN_ACTION, we might see this value here -
+      // but we do not want to send it to the content process.
       if (permEntry.mPermission == nsIPermissionManager::UNKNOWN_ACTION) {
         continue;
       }
 
       bool isPreload = IsPreloadPermission(mTypeArray[permEntry.mType]);
-      if ((isPreload && aPermissionKey.IsEmpty()) ||
-          (!isPreload && aPermissionKey == permissionKey)) {
+      bool shouldAppend;
+      if (aOrigin.IsEmpty()) {
+        shouldAppend = (isPreload && aKey.IsEmpty()) ||
+                       (!isPreload && aKey == permissionKey);
+      } else {
+        shouldAppend = (!isPreload && aOrigin == entry->GetKey()->mOrigin);
+      }
+      if (shouldAppend) {
         aPerms.AppendElement(
             IPC::Permission(entry->GetKey()->mOrigin,
                             mTypeArray[permEntry.mType], permEntry.mPermission,
@@ -3099,7 +3177,8 @@ void nsPermissionManager::SetPermissionsWithKey(
     // key, but it's possible.
     return;
   }
-  mPermissionKeyPromiseMap.Put(aPermissionKey, nullptr);
+  mPermissionKeyPromiseMap.Put(aPermissionKey,
+                               RefPtr<GenericNonExclusivePromise::Private>{});
 
   // Add the permissions locally to our process
   for (IPC::Permission& perm : aPerms) {
@@ -3200,24 +3279,29 @@ void nsPermissionManager::GetKeyForPermission(nsIPrincipal* aPrincipal,
 }
 
 /* static */
-nsTArray<nsCString> nsPermissionManager::GetAllKeysForPrincipal(
-    nsIPrincipal* aPrincipal) {
+nsTArray<Pair<nsCString, nsCString>>
+nsPermissionManager::GetAllKeysForPrincipal(nsIPrincipal* aPrincipal) {
   MOZ_ASSERT(aPrincipal);
 
-  nsTArray<nsCString> keys;
+  nsTArray<Pair<nsCString, nsCString>> pairs;
   nsCOMPtr<nsIPrincipal> prin = aPrincipal;
   while (prin) {
-    // Add the key to the list
-    nsCString* key = keys.AppendElement();
-    GetKeyForPrincipal(prin, false, *key);
+    // Add the pair to the list
+    Pair<nsCString, nsCString>* pair =
+        pairs.AppendElement(MakePair(EmptyCString(), EmptyCString()));
+    // We can't check for individual OA strip perms here.
+    // Don't force strip origin attributes.
+    GetKeyForPrincipal(prin, false, pair->first());
+
+    Unused << GetOriginFromPrincipal(prin, false, pair->second());
 
     // Get the next subdomain principal and loop back around.
     prin = GetNextSubDomainPrincipal(prin);
   }
 
-  MOZ_ASSERT(keys.Length() >= 1,
-             "Every principal should have at least one key.");
-  return keys;
+  MOZ_ASSERT(pairs.Length() >= 1,
+             "Every principal should have at least one pair item.");
+  return pairs;
 }
 
 NS_IMETHODIMP
@@ -3267,16 +3351,15 @@ void nsPermissionManager::WhenPermissionsAvailable(nsIPrincipal* aPrincipal,
   }
 
   nsTArray<RefPtr<GenericNonExclusivePromise>> promises;
-  for (auto& key : GetAllKeysForPrincipal(aPrincipal)) {
+  for (auto& pair : GetAllKeysForPrincipal(aPrincipal)) {
     RefPtr<GenericNonExclusivePromise::Private> promise;
-    if (!mPermissionKeyPromiseMap.Get(key, getter_AddRefs(promise))) {
+    if (!mPermissionKeyPromiseMap.Get(pair.first(), getter_AddRefs(promise))) {
       // In this case we have found a permission which isn't available in the
       // content process and hasn't been requested yet. We need to create a new
       // promise, and send the request to the parent (if we have not already
       // done so).
       promise = new GenericNonExclusivePromise::Private(__func__);
-      mPermissionKeyPromiseMap.Put(
-          key, RefPtr<GenericNonExclusivePromise::Private>(promise).forget());
+      mPermissionKeyPromiseMap.Put(pair.first(), RefPtr{promise});
     }
 
     if (promise) {

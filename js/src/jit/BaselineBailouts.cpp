@@ -368,7 +368,7 @@ struct BaselineStackBuilder {
 #if defined(JS_CODEGEN_X86)
     // On X86, the FramePointer is pushed as the first value in the Rectifier
     // frame.
-    MOZ_ASSERT(BaselineFrameReg == FramePointer);
+    static_assert(BaselineFrameReg == FramePointer);
     priorOffset -= sizeof(void*);
     return virtualPointerAtStackOffset(priorOffset);
 #elif defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64) ||   \
@@ -480,9 +480,6 @@ static jsbytecode* GetResumePC(JSScript* script, jsbytecode* pc,
     if (fasterPc == pc) {
       break;
     }
-  }
-  if (skippedLoopHead && script->trackRecordReplayProgress()) {
-    mozilla::recordreplay::AdvanceExecutionProgressCounter();
   }
 
   return pc;
@@ -2003,7 +2000,7 @@ bool jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg) {
     // Normal bailouts.
     case Bailout_Inevitable:
     case Bailout_DuringVMCall:
-    case Bailout_NonJSFunctionCallee:
+    case Bailout_TooManyArguments:
     case Bailout_DynamicNameNotFound:
     case Bailout_StringArgumentsEval:
     case Bailout_Overflow:
@@ -2024,8 +2021,6 @@ bool jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg) {
     case Bailout_NonBigIntInput:
     case Bailout_NonSharedTypedArrayInput:
     case Bailout_Debugger:
-    case Bailout_UninitializedThis:
-    case Bailout_BadDerivedConstructorReturn:
       // Do nothing.
       break;
 
@@ -2048,7 +2043,6 @@ bool jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg) {
       // Do nothing, bailout will resume before the argument monitor ICs.
       break;
     case Bailout_BoundsCheck:
-    case Bailout_Detached:
       HandleBoundsCheckFailure(cx, outerScript, innerScript);
       break;
     case Bailout_ShapeGuard:

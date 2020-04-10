@@ -485,7 +485,7 @@ void MediaPipeline::IncrementRtcpPacketsReceived() {
   }
 }
 
-void MediaPipeline::RtpPacketReceived(MediaPacket& packet) {
+void MediaPipeline::RtpPacketReceived(const MediaPacket& packet) {
   if (mDirection == DirectionType::TRANSMIT) {
     return;
   }
@@ -572,7 +572,7 @@ void MediaPipeline::RtpPacketReceived(MediaPacket& packet) {
                                     header.ssrc);  // Ignore error codes
 }
 
-void MediaPipeline::RtcpPacketReceived(MediaPacket& packet) {
+void MediaPipeline::RtcpPacketReceived(const MediaPacket& packet) {
   if (!mTransport->Pipeline()) {
     MOZ_LOG(gMediaPipelineLog, LogLevel::Debug,
             ("Discarding incoming packet; transport disconnected"));
@@ -620,7 +620,7 @@ void MediaPipeline::RtcpPacketReceived(MediaPacket& packet) {
 }
 
 void MediaPipeline::PacketReceived(const std::string& aTransportId,
-                                   MediaPacket& packet) {
+                                   const MediaPacket& packet) {
   if (mTransportId != aTransportId) {
     return;
   }
@@ -650,7 +650,7 @@ void MediaPipeline::AlpnNegotiated(const std::string& aAlpn,
 }
 
 void MediaPipeline::EncryptedPacketSending(const std::string& aTransportId,
-                                           MediaPacket& aPacket) {
+                                           const MediaPacket& aPacket) {
   if (mTransportId == aTransportId) {
     dom::mozPacketDumpType type;
     if (aPacket.type() == MediaPacket::SRTP) {
@@ -793,7 +793,7 @@ class MediaPipelineTransmit::VideoFrameFeeder : public VideoConverterListener {
   }
 
  protected:
-  virtual ~VideoFrameFeeder() { MOZ_COUNT_DTOR(VideoFrameFeeder); }
+  MOZ_COUNTED_DTOR_OVERRIDE(VideoFrameFeeder)
 
   Mutex mMutex;  // Protects the member below.
   RefPtr<PipelineListener> mListener;
@@ -1484,8 +1484,9 @@ class MediaPipelineReceiveAudio::PipelineListener
       MOZ_LOG(gMediaPipelineLog, LogLevel::Debug,
               ("Audio conduit returned buffer of length %zu", samplesLength));
 
-      RefPtr<SharedBuffer> samples =
-          SharedBuffer::Create(samplesLength * sizeof(uint16_t));
+      CheckedInt<size_t> bufferSize(sizeof(uint16_t));
+      bufferSize *= samplesLength;
+      RefPtr<SharedBuffer> samples = SharedBuffer::Create(bufferSize);
       int16_t* samplesData = static_cast<int16_t*>(samples->Data());
       AudioSegment segment;
       size_t frames = samplesLength / channelCount;
@@ -1673,7 +1674,7 @@ class MediaPipelineReceiveVideo::PipelineListener
         return;
       }
 
-      image = yuvImage.forget();
+      image = std::move(yuvImage);
     }
 
     VideoSegment segment;

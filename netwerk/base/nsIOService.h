@@ -19,6 +19,7 @@
 #include "nsDataHashtable.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Mutex.h"
 #include "prtime.h"
 #include "nsICaptivePortalService.h"
 
@@ -119,7 +120,7 @@ class nsIOService final : public nsIIOService,
   bool SocketProcessReady();
   static void NotifySocketProcessPrefsChanged(const char* aName, void* aSelf);
   void NotifySocketProcessPrefsChanged(const char* aName);
-  bool UseSocketProcess();
+  static bool UseSocketProcess();
 
   bool IsSocketProcessLaunchComplete();
 
@@ -133,6 +134,8 @@ class nsIOService final : public nsIIOService,
 
   friend SocketProcessMemoryReporter;
   RefPtr<MemoryReportingProcess> GetSocketProcessMemoryReporter();
+
+  static void OnTLSPrefChange(const char* aPref, void* aSelf);
 
  private:
   // These shouldn't be called directly:
@@ -217,6 +220,7 @@ class nsIOService final : public nsIIOService,
   // cached categories
   nsCategoryCache<nsIChannelEventSink> mChannelEventSinks;
 
+  Mutex mMutex;
   nsTArray<int32_t> mRestrictedPortList;
 
   static bool sIsDataURIUniqueOpaqueOrigin;

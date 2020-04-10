@@ -108,11 +108,11 @@ void PaymentRequest::IsValidStandardizedPMI(const nsAString& aIdentifier,
   while (start != end) {
     // the first char must be in the range %x61-7A
     if ((*start < 'a' || *start > 'z')) {
-      nsAutoString error;
+      nsAutoCString error;
       error.AssignLiteral("'");
-      error.Append(aIdentifier);
+      error.Append(NS_ConvertUTF16toUTF8(aIdentifier));
       error.AppendLiteral("' is not valid. The character '");
-      error.Append(*start);
+      error.Append(NS_ConvertUTF16toUTF8(start, 1));
       error.AppendLiteral(
           "' at the beginning or after the '-' must be in the range [a-z].");
       aRv.ThrowRangeError(error);
@@ -127,11 +127,11 @@ void PaymentRequest::IsValidStandardizedPMI(const nsAString& aIdentifier,
     }
     // if the char is not in the range %x61-7A + DIGITs, it must be '-'
     if (start != end && *start != '-') {
-      nsAutoString error;
+      nsAutoCString error;
       error.AssignLiteral("'");
-      error.Append(aIdentifier);
+      error.Append(NS_ConvertUTF16toUTF8(aIdentifier));
       error.AppendLiteral("' is not valid. The character '");
-      error.Append(*start);
+      error.Append(NS_ConvertUTF16toUTF8(start, 1));
       error.AppendLiteral("' must be in the range [a-zA-z0-9-].");
       aRv.ThrowRangeError(error);
       return;
@@ -140,11 +140,11 @@ void PaymentRequest::IsValidStandardizedPMI(const nsAString& aIdentifier,
       ++start;
       // the last char can not be '-'
       if (start == end) {
-        nsAutoString error;
+        nsAutoCString error;
         error.AssignLiteral("'");
-        error.Append(aIdentifier);
+        error.Append(NS_ConvertUTF16toUTF8(aIdentifier));
         error.AppendLiteral("' is not valid. The last character '");
-        error.Append(*start);
+        error.Append(NS_ConvertUTF16toUTF8(start, 1));
         error.AppendLiteral("' must be in the range [a-z0-9].");
         aRv.ThrowRangeError(error);
         return;
@@ -156,7 +156,7 @@ void PaymentRequest::IsValidStandardizedPMI(const nsAString& aIdentifier,
 void PaymentRequest::IsValidPaymentMethodIdentifier(
     const nsAString& aIdentifier, ErrorResult& aRv) {
   if (aIdentifier.IsEmpty()) {
-    aRv.ThrowTypeError(u"Payment method identifier is required.");
+    aRv.ThrowTypeError("Payment method identifier is required.");
     return;
   }
   /*
@@ -177,9 +177,9 @@ void PaymentRequest::IsValidPaymentMethodIdentifier(
       urlParser->ParseURL(url.get(), url.Length(), &schemePos, &schemeLen,
                           &authorityPos, &authorityLen, nullptr, nullptr);
   if (NS_FAILED(rv)) {
-    nsAutoString error;
+    nsAutoCString error;
     error.AppendLiteral("Error parsing payment method identifier '");
-    error.Append(aIdentifier);
+    error.Append(NS_ConvertUTF16toUTF8(aIdentifier));
     error.AppendLiteral("'as a URL.");
     aRv.ThrowRangeError(error);
     return;
@@ -191,17 +191,17 @@ void PaymentRequest::IsValidPaymentMethodIdentifier(
     return;
   }
   if (!Substring(aIdentifier, schemePos, schemeLen).EqualsASCII("https")) {
-    nsAutoString error;
+    nsAutoCString error;
     error.AssignLiteral("'");
-    error.Append(aIdentifier);
+    error.Append(NS_ConvertUTF16toUTF8(aIdentifier));
     error.AppendLiteral("' is not valid. The scheme must be 'https'.");
     aRv.ThrowRangeError(error);
     return;
   }
   if (Substring(aIdentifier, authorityPos, authorityLen).IsEmpty()) {
-    nsAutoString error;
+    nsAutoCString error;
     error.AssignLiteral("'");
-    error.Append(aIdentifier);
+    error.Append(NS_ConvertUTF16toUTF8(aIdentifier));
     error.AppendLiteral("' is not valid. hostname can not be empty.");
     aRv.ThrowRangeError(error);
     return;
@@ -251,9 +251,9 @@ void PaymentRequest::IsValidPaymentMethodIdentifier(
     // not exist.
     if ((usernameLen <= 0) && (passwordLen <= 0)) {
       if (authority.Length() - atPos - 1 == 0) {
-        nsAutoString error;
+        nsAutoCString error;
         error.AssignLiteral("'");
-        error.Append(aIdentifier);
+        error.Append(NS_ConvertUTF16toUTF8(aIdentifier));
         error.AppendLiteral("' is not valid. hostname can not be empty.");
         aRv.ThrowRangeError(error);
         return;
@@ -267,9 +267,9 @@ void PaymentRequest::IsValidPaymentMethodIdentifier(
       if (NS_FAILED(rv)) {
         // ParseServerInfo returns NS_ERROR_MALFORMED_URI in all fail cases, we
         // probably need a followup bug to figure out the fail reason.
-        nsAutoString error;
+        nsAutoCString error;
         error.AssignLiteral("Error extracting hostname from '");
-        error.Append(NS_ConvertUTF8toUTF16(serverInfo));
+        error.Append(serverInfo);
         error.AppendLiteral("'.");
         aRv.ThrowRangeError(error);
         return;
@@ -278,9 +278,9 @@ void PaymentRequest::IsValidPaymentMethodIdentifier(
   }
   // PMI is valid when usernameLen/passwordLen equals to -1 or 0.
   if (usernameLen > 0 || passwordLen > 0) {
-    nsAutoString error;
+    nsAutoCString error;
     error.AssignLiteral("'");
-    error.Append(aIdentifier);
+    error.Append(NS_ConvertUTF16toUTF8(aIdentifier));
     error.AssignLiteral("' is not valid. Username and password must be empty.");
     aRv.ThrowRangeError(error);
     return;
@@ -288,9 +288,9 @@ void PaymentRequest::IsValidPaymentMethodIdentifier(
 
   // PMI is valid when hostnameLen is larger than 0
   if (hostnameLen <= 0) {
-    nsAutoString error;
+    nsAutoCString error;
     error.AssignLiteral("'");
-    error.Append(aIdentifier);
+    error.Append(NS_ConvertUTF16toUTF8(aIdentifier));
     error.AppendLiteral("' is not valid. hostname can not be empty.");
     aRv.ThrowRangeError(error);
     return;
@@ -301,7 +301,7 @@ void PaymentRequest::IsValidMethodData(
     JSContext* aCx, const Sequence<PaymentMethodData>& aMethodData,
     ErrorResult& aRv) {
   if (!aMethodData.Length()) {
-    aRv.ThrowTypeError(u"At least one payment method is required.");
+    aRv.ThrowTypeError("At least one payment method is required.");
     return;
   }
 
@@ -321,7 +321,7 @@ void PaymentRequest::IsValidMethodData(
       nsAutoString error;
       if (!service->IsValidBasicCardRequest(aCx, methodData.mData.Value(),
                                             error)) {
-        aRv.ThrowTypeError(error);
+        aRv.ThrowTypeError(NS_ConvertUTF16toUTF8(error));
         return;
       }
     }
@@ -353,11 +353,11 @@ void PaymentRequest::IsValidNumber(const nsAString& aItem,
   }
 
   if (NS_FAILED(error)) {
-    nsAutoString errorMsg;
+    nsAutoCString errorMsg;
     errorMsg.AssignLiteral("The amount.value of \"");
-    errorMsg.Append(aItem);
+    errorMsg.Append(NS_ConvertUTF16toUTF8(aItem));
     errorMsg.AppendLiteral("\"(");
-    errorMsg.Append(aStr);
+    errorMsg.Append(NS_ConvertUTF16toUTF8(aStr));
     errorMsg.AppendLiteral(") must be a valid decimal monetary value.");
     aRv.ThrowTypeError(errorMsg);
     return;
@@ -381,11 +381,11 @@ void PaymentRequest::IsNonNegativeNumber(const nsAString& aItem,
   }
 
   if (NS_FAILED(error)) {
-    nsAutoString errorMsg;
+    nsAutoCString errorMsg;
     errorMsg.AssignLiteral("The amount.value of \"");
-    errorMsg.Append(aItem);
+    errorMsg.Append(NS_ConvertUTF16toUTF8(aItem));
     errorMsg.AppendLiteral("\"(");
-    errorMsg.Append(aStr);
+    errorMsg.Append(NS_ConvertUTF16toUTF8(aStr));
     errorMsg.AppendLiteral(
         ") must be a valid and non-negative decimal monetary value.");
     aRv.ThrowTypeError(errorMsg);
@@ -405,11 +405,11 @@ void PaymentRequest::IsValidCurrency(const nsAString& aItem,
    * "Z" (U+0041 to U+005A) or the range "a" to "z" (U+0061 to U+007A)
    */
   if (aCurrency.Length() != 3) {
-    nsAutoString error;
+    nsAutoCString error;
     error.AssignLiteral("The length amount.currency of \"");
-    error.Append(aItem);
+    error.Append(NS_ConvertUTF16toUTF8(aItem));
     error.AppendLiteral("\"(");
-    error.Append(aCurrency);
+    error.Append(NS_ConvertUTF16toUTF8(aCurrency));
     error.AppendLiteral(") must be 3.");
     aRv.ThrowRangeError(error);
     return;
@@ -421,11 +421,11 @@ void PaymentRequest::IsValidCurrency(const nsAString& aItem,
         (aCurrency.CharAt(idx) >= 'a' && aCurrency.CharAt(idx) <= 'z')) {
       continue;
     }
-    nsAutoString error;
+    nsAutoCString error;
     error.AssignLiteral("The character amount.currency of \"");
-    error.Append(aItem);
+    error.Append(NS_ConvertUTF16toUTF8(aItem));
     error.AppendLiteral("\"(");
-    error.Append(aCurrency);
+    error.Append(NS_ConvertUTF16toUTF8(aCurrency));
     error.AppendLiteral(
         ") must be in the range 'A' to 'Z'(U+0041 to U+005A) or 'a' to "
         "'z'(U+0061 to U+007A).");
@@ -515,9 +515,9 @@ void PaymentRequest::IsValidDetailsBase(const PaymentDetailsBase& aDetails,
         return;
       }
       if (seenIDs.Contains(shippingOption.mId)) {
-        nsAutoString error;
+        nsAutoCString error;
         error.AssignLiteral("Duplicate shippingOption id '");
-        error.Append(shippingOption.mId);
+        error.Append(NS_ConvertUTF16toUTF8(shippingOption.mId));
         error.AppendLiteral("'");
         aRv.ThrowTypeError(error);
         return;
@@ -567,31 +567,35 @@ already_AddRefed<PaymentRequest> PaymentRequest::Constructor(
   nsCOMPtr<nsPIDOMWindowInner> window =
       do_QueryInterface(aGlobal.GetAsSupports());
   if (!window) {
-    aRv.Throw(NS_ERROR_UNEXPECTED);
-    return nullptr;
-  }
-
-  // the feature can only be used in an active document
-  if (!window->IsCurrentInnerWindow()) {
-    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+    aRv.ThrowAbortError("No global object for creating PaymentRequest");
     return nullptr;
   }
 
   nsCOMPtr<Document> doc = window->GetExtantDoc();
   if (!doc) {
-    aRv.Throw(NS_ERROR_UNEXPECTED);
+    aRv.ThrowAbortError("No document for creating PaymentRequest");
+    return nullptr;
+  }
+
+  // the feature can only be used in an active document
+  if (!doc->IsCurrentActiveDocument()) {
+    aRv.ThrowSecurityError(
+        "Can't create a PaymentRequest for an inactive document");
     return nullptr;
   }
 
   if (!FeaturePolicyUtils::IsFeatureAllowed(doc,
                                             NS_LITERAL_STRING("payment"))) {
-    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+    aRv.ThrowSecurityError(
+        "Document's Feature Policy does not allow to create a PaymentRequest");
     return nullptr;
   }
 
   // Check if AllowPaymentRequest on the owner document
   if (!doc->AllowPaymentRequest()) {
-    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+    aRv.ThrowSecurityError(
+        "The PaymentRequest API is not enabled in this document, since "
+        "allowPaymentRequest property is false");
     return nullptr;
   }
 
@@ -617,22 +621,22 @@ already_AddRefed<PaymentRequest> PaymentRequest::Constructor(
 
   // Create PaymentRequest and set its |mId|
   RefPtr<PaymentRequest> request;
-  nsresult rv = manager->CreatePayment(aGlobal.Context(), window,
-                                       topLevelPrincipal, aMethodData, aDetails,
-                                       aOptions, getter_AddRefs(request));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(NS_ERROR_DOM_TYPE_ERR);
+  manager->CreatePayment(aGlobal.Context(), window, topLevelPrincipal,
+                         aMethodData, aDetails, aOptions,
+                         getter_AddRefs(request), aRv);
+  if (aRv.Failed()) {
     return nullptr;
   }
   return request.forget();
 }
 
 already_AddRefed<PaymentRequest> PaymentRequest::CreatePaymentRequest(
-    nsPIDOMWindowInner* aWindow, nsresult& aRv) {
+    nsPIDOMWindowInner* aWindow, ErrorResult& aRv) {
   // Generate a unique id for identification
   nsID uuid;
-  aRv = nsContentUtils::GenerateUUIDInPlace(uuid);
-  if (NS_WARN_IF(NS_FAILED(aRv))) {
+  if (NS_WARN_IF(NS_FAILED(nsContentUtils::GenerateUUIDInPlace(uuid)))) {
+    aRv.ThrowAbortError(
+        "Failed to create an internal UUID for the PaymentRequest");
     return nullptr;
   }
 
@@ -664,35 +668,34 @@ PaymentRequest::PaymentRequest(nsPIDOMWindowInner* aWindow,
 
 already_AddRefed<Promise> PaymentRequest::CanMakePayment(ErrorResult& aRv) {
   if (!InFullyActiveDocument()) {
-    aRv.Throw(NS_ERROR_DOM_ABORT_ERR);
+    aRv.ThrowAbortError("The owner document is not fully active");
     return nullptr;
   }
 
   if (mState != eCreated) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    aRv.ThrowInvalidStateError(
+        "The PaymentRequest's state should be 'Created'");
     return nullptr;
   }
 
   if (mResultPromise) {
     // XXX This doesn't match the spec but does match Chromium.
-    aRv.Throw(NS_ERROR_DOM_NOT_ALLOWED_ERR);
+    aRv.ThrowNotAllowedError(
+        "PaymentRequest.CanMakePayment() has already been called");
     return nullptr;
   }
 
   nsIGlobalObject* global = GetOwnerGlobal();
-  ErrorResult result;
-  RefPtr<Promise> promise = Promise::Create(global, result);
-  if (result.Failed()) {
-    aRv.Throw(NS_ERROR_FAILURE);
+  RefPtr<Promise> promise = Promise::Create(global, aRv);
+  if (aRv.Failed()) {
     return nullptr;
   }
 
   RefPtr<PaymentRequestManager> manager = PaymentRequestManager::GetSingleton();
   MOZ_ASSERT(manager);
-  nsresult rv = manager->CanMakePayment(this);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    promise->MaybeReject(NS_ERROR_FAILURE);
-    return promise.forget();
+  manager->CanMakePayment(this, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
   }
   mResultPromise = promise;
   return promise.forget();
@@ -707,7 +710,7 @@ void PaymentRequest::RespondCanMakePayment(bool aResult) {
 already_AddRefed<Promise> PaymentRequest::Show(
     const Optional<OwningNonNull<Promise>>& aDetailsPromise, ErrorResult& aRv) {
   if (!InFullyActiveDocument()) {
-    aRv.Throw(NS_ERROR_DOM_ABORT_ERR);
+    aRv.ThrowAbortError("The owner document is not fully active");
     return nullptr;
   }
 
@@ -721,21 +724,20 @@ already_AddRefed<Promise> PaymentRequest::Show(
     nsContentUtils::ReportToConsoleNonLocalized(
         msg, nsIScriptError::warningFlag, NS_LITERAL_CSTRING("Security"), doc);
     if (StaticPrefs::dom_payments_request_user_interaction_required()) {
-      aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+      aRv.ThrowSecurityError(NS_ConvertUTF16toUTF8(msg));
       return nullptr;
     }
   }
 
   if (mState != eCreated) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    aRv.ThrowInvalidStateError(
+        "The PaymentRequest's state should be 'Created'");
     return nullptr;
   }
 
-  ErrorResult result;
-  RefPtr<Promise> promise = Promise::Create(global, result);
-  if (result.Failed()) {
+  RefPtr<Promise> promise = Promise::Create(global, aRv);
+  if (aRv.Failed()) {
     mState = eClosed;
-    aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
   }
 
@@ -746,15 +748,10 @@ already_AddRefed<Promise> PaymentRequest::Show(
 
   RefPtr<PaymentRequestManager> manager = PaymentRequestManager::GetSingleton();
   MOZ_ASSERT(manager);
-  nsresult rv = manager->ShowPayment(this);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    if (rv == NS_ERROR_ABORT) {
-      promise->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
-    } else {
-      promise->MaybeReject(NS_ERROR_DOM_NOT_ALLOWED_ERR);
-    }
+  manager->ShowPayment(this, aRv);
+  if (aRv.Failed()) {
     mState = eClosed;
-    return promise.forget();
+    return nullptr;
   }
 
   mAcceptPromise = promise;
@@ -762,14 +759,14 @@ already_AddRefed<Promise> PaymentRequest::Show(
   return promise.forget();
 }
 
-void PaymentRequest::RejectShowPayment(ErrorResult& aRejectReason) {
+void PaymentRequest::RejectShowPayment(ErrorResult&& aRejectReason) {
   MOZ_ASSERT(mAcceptPromise || mResponse);
   MOZ_ASSERT(mState == eInteractive);
 
   if (mResponse) {
-    mResponse->RejectRetry(aRejectReason);
+    mResponse->RejectRetry(std::move(aRejectReason));
   } else {
-    mAcceptPromise->MaybeReject(aRejectReason);
+    mAcceptPromise->MaybeReject(std::move(aRejectReason));
   }
   mState = eClosed;
   mAcceptPromise = nullptr;
@@ -780,12 +777,12 @@ void PaymentRequest::RespondShowPayment(const nsAString& aMethodName,
                                         const nsAString& aPayerName,
                                         const nsAString& aPayerEmail,
                                         const nsAString& aPayerPhone,
-                                        ErrorResult& aRv) {
+                                        ErrorResult&& aResult) {
   MOZ_ASSERT(mAcceptPromise || mResponse);
   MOZ_ASSERT(mState == eInteractive);
 
-  if (aRv.Failed()) {
-    RejectShowPayment(aRv);
+  if (aResult.Failed()) {
+    RejectShowPayment(std::move(aResult));
     return;
   }
 
@@ -815,33 +812,32 @@ void PaymentRequest::RespondComplete() {
 
 already_AddRefed<Promise> PaymentRequest::Abort(ErrorResult& aRv) {
   if (!InFullyActiveDocument()) {
-    aRv.Throw(NS_ERROR_DOM_ABORT_ERR);
+    aRv.ThrowAbortError("The owner document is not fully active");
     return nullptr;
   }
 
   if (mState != eInteractive) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    aRv.ThrowSecurityError(
+        "The PaymentRequest's state should be 'Interactive'");
     return nullptr;
   }
 
   if (mAbortPromise) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    aRv.ThrowInvalidStateError(
+        "PaymentRequest.abort() has already been called");
     return nullptr;
   }
 
   nsIGlobalObject* global = GetOwnerGlobal();
-  ErrorResult result;
-  RefPtr<Promise> promise = Promise::Create(global, result);
-  if (result.Failed()) {
-    aRv.Throw(NS_ERROR_FAILURE);
+  RefPtr<Promise> promise = Promise::Create(global, aRv);
+  if (aRv.Failed()) {
     return nullptr;
   }
 
   RefPtr<PaymentRequestManager> manager = PaymentRequestManager::GetSingleton();
   MOZ_ASSERT(manager);
-  nsresult rv = manager->AbortPayment(this);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(NS_ERROR_FAILURE);
+  manager->AbortPayment(this, aRv);
+  if (aRv.Failed()) {
     return nullptr;
   }
 
@@ -863,8 +859,7 @@ void PaymentRequest::RespondAbortPayment(bool aSuccess) {
     // Respond show with mUpdateError, set mUpdating to false.
     mUpdating = false;
     RespondShowPayment(EmptyString(), ResponseData(), EmptyString(),
-                       EmptyString(), EmptyString(), mUpdateError);
-    mUpdateError.SuppressException();
+                       EmptyString(), EmptyString(), std::move(mUpdateError));
     return;
   }
 
@@ -874,78 +869,82 @@ void PaymentRequest::RespondAbortPayment(bool aSuccess) {
   if (aSuccess) {
     mAbortPromise->MaybeResolve(JS::UndefinedHandleValue);
     mAbortPromise = nullptr;
-    ErrorResult rv;
-    rv.Throw(NS_ERROR_DOM_ABORT_ERR);
-    RejectShowPayment(rv);
+    ErrorResult abortResult;
+    abortResult.ThrowAbortError("The PaymentRequest is aborted");
+    RejectShowPayment(std::move(abortResult));
   } else {
     mAbortPromise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
     mAbortPromise = nullptr;
   }
 }
 
-nsresult PaymentRequest::UpdatePayment(JSContext* aCx,
-                                       const PaymentDetailsUpdate& aDetails) {
-  NS_ENSURE_ARG_POINTER(aCx);
+void PaymentRequest::UpdatePayment(JSContext* aCx,
+                                   const PaymentDetailsUpdate& aDetails,
+                                   ErrorResult& aRv) {
+  MOZ_ASSERT(aCx);
   if (mState != eInteractive) {
-    return NS_ERROR_DOM_INVALID_STATE_ERR;
-  }
-  RefPtr<PaymentRequestManager> manager = PaymentRequestManager::GetSingleton();
-  if (NS_WARN_IF(!manager)) {
-    return NS_ERROR_FAILURE;
-  }
-  nsresult rv = manager->UpdatePayment(aCx, this, aDetails, mRequestShipping);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-  return NS_OK;
-}
-
-void PaymentRequest::AbortUpdate(nsresult aRv) {
-  ErrorResult rv;
-  rv.Throw(aRv);
-  AbortUpdate(rv);
-}
-
-void PaymentRequest::AbortUpdate(ErrorResult& aRv) {
-  // perfect ignoring when the document is not fully active.
-  if (!InFullyActiveDocument()) {
+    aRv.ThrowInvalidStateError(
+        "The PaymentRequest state should be 'Interactive'");
     return;
   }
-
-  MOZ_ASSERT(aRv.Failed());
-
-  if (mState != eInteractive) {
-    return;
-  }
-  // Close down any remaining user interface.
   RefPtr<PaymentRequestManager> manager = PaymentRequestManager::GetSingleton();
   MOZ_ASSERT(manager);
-  nsresult rv = manager->AbortPayment(this);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  manager->UpdatePayment(aCx, this, aDetails, mRequestShipping, aRv);
+}
+
+void PaymentRequest::AbortUpdate(ErrorResult& aReason) {
+  // AbortUpdate has the responsiblity to call aReason.SuppressException() when
+  // fail to update.
+
+  MOZ_ASSERT(aReason.Failed());
+
+  // Completely ignoring the call when the owner document is not fully active.
+  if (!InFullyActiveDocument()) {
+    aReason.SuppressException();
     return;
   }
 
-  // Remember update error |aRv| and do the following steps in
+  // Completely ignoring the call when the PaymentRequest state is not
+  // eInteractive.
+  if (mState != eInteractive) {
+    aReason.SuppressException();
+    return;
+  }
+  // Try to close down any remaining user interface. Should recevie
+  // RespondAbortPayment from chrome process.
+  // Completely ignoring the call when failed to send action to chrome process.
+  RefPtr<PaymentRequestManager> manager = PaymentRequestManager::GetSingleton();
+  MOZ_ASSERT(manager);
+  IgnoredErrorResult result;
+  manager->AbortPayment(this, result);
+  if (result.Failed()) {
+    aReason.SuppressException();
+    return;
+  }
+
+  // Remember update error |aReason| and do the following steps in
   // RespondShowPayment.
   // 1. Set target.state to closed
   // 2. Reject the promise target.acceptPromise with exception "aRv"
   // 3. Abort the algorithm with update error
-  mUpdateError = std::move(aRv);
+  mUpdateError = std::move(aReason);
 }
 
-nsresult PaymentRequest::RetryPayment(JSContext* aCx,
-                                      const PaymentValidationErrors& aErrors) {
+void PaymentRequest::RetryPayment(JSContext* aCx,
+                                  const PaymentValidationErrors& aErrors,
+                                  ErrorResult& aRv) {
   if (mState == eInteractive) {
-    return NS_ERROR_DOM_INVALID_STATE_ERR;
+    aRv.ThrowInvalidStateError(
+        "Call Retry() when the PaymentReqeust state is 'Interactive'");
+    return;
   }
   RefPtr<PaymentRequestManager> manager = PaymentRequestManager::GetSingleton();
   MOZ_ASSERT(manager);
-  nsresult rv = manager->RetryPayment(aCx, this, aErrors);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+  manager->RetryPayment(aCx, this, aErrors, aRv);
+  if (aRv.Failed()) {
+    return;
   }
   mState = eInteractive;
-  return NS_OK;
 }
 
 void PaymentRequest::GetId(nsAString& aRetVal) const { aRetVal = mId; }
@@ -1105,25 +1104,25 @@ void PaymentRequest::ResolvedCallback(JSContext* aCx,
     return;
   }
 
+  ErrorResult result;
   // Converting value to a PaymentDetailsUpdate dictionary
   RootedDictionary<PaymentDetailsUpdate> details(aCx);
   if (!details.Init(aCx, aValue)) {
-    ErrorResult rv;
-    rv.StealExceptionFromJSContext(aCx);
-    AbortUpdate(rv);
+    result.StealExceptionFromJSContext(aCx);
+    AbortUpdate(result);
     return;
   }
 
-  ErrorResult rv;
-  IsValidDetailsUpdate(details, mRequestShipping, rv);
-  if (rv.Failed()) {
-    AbortUpdate(rv);
+  IsValidDetailsUpdate(details, mRequestShipping, result);
+  if (result.Failed()) {
+    AbortUpdate(result);
     return;
   }
 
   // Update the PaymentRequest with the new details
-  if (NS_FAILED(UpdatePayment(aCx, details))) {
-    AbortUpdate(NS_ERROR_DOM_ABORT_ERR);
+  UpdatePayment(aCx, details, result);
+  if (result.Failed()) {
+    AbortUpdate(result);
     return;
   }
 }
@@ -1135,7 +1134,10 @@ void PaymentRequest::RejectedCallback(JSContext* aCx,
   }
 
   mUpdating = false;
-  AbortUpdate(NS_ERROR_DOM_ABORT_ERR);
+  ErrorResult result;
+  result.ThrowAbortError(
+      "Details promise for PaymentRequest.show() is rejected by merchant");
+  AbortUpdate(result);
 }
 
 bool PaymentRequest::InFullyActiveDocument() {
@@ -1192,9 +1194,9 @@ void PaymentRequest::NotifyOwnerDocumentActivityChanged() {
         mAcceptPromise = nullptr;
       }
       if (mResponse) {
-        ErrorResult rv;
-        rv.Throw(NS_ERROR_DOM_ABORT_ERR);
-        mResponse->RejectRetry(rv);
+        ErrorResult rejectReason;
+        rejectReason.ThrowAbortError("The owner documnet is not fully active");
+        mResponse->RejectRetry(std::move(rejectReason));
       }
       if (mAbortPromise) {
         mAbortPromise->MaybeReject(NS_ERROR_DOM_ABORT_ERR);

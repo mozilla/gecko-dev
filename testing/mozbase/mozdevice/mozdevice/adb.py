@@ -2990,13 +2990,21 @@ class ADBDevice(ADBCommand):
         :raises: * ADBTimeoutError
                  * ADBError
         """
+        if self.version < version_codes.Q:
+            return self._get_top_activity_P(timeout=timeout)
+        return self._get_top_activity_Q(timeout=timeout)
+
+    def _get_top_activity_P(self, timeout=None):
+        """Returns the name of the top activity (focused app) reported by dumpsys
+        for Android 9 and earlier.
+        """
         package = None
         data = None
         cmd = "dumpsys window windows"
         try:
             data = self.shell_output(cmd, timeout=timeout)
         except Exception:
-            # dumpsys intermittently fails on some platforms (4.3 arm emulator)
+            # dumpsys intermittently fails on some platforms.
             return package
         m = re.search('mFocusedApp(.+)/', data)
         if not m:
@@ -3006,6 +3014,30 @@ class ADBDevice(ADBCommand):
             line = m.group(0)
             # Extract package name: string of non-whitespace ending in forward slash
             m = re.search('(\S+)/$', line)
+            if m:
+                package = m.group(1)
+        if self._verbose:
+            self._logger.debug('get_top_activity: %s' % str(package))
+        return package
+
+    def _get_top_activity_Q(self, timeout=None):
+        """Returns the name of the top activity (focused app) reported by dumpsys
+        for Android 10 and later.
+        """
+        package = None
+        data = None
+        cmd = "dumpsys window"
+        try:
+            data = self.shell_output(cmd, timeout=timeout)
+        except Exception:
+            # dumpsys intermittently fails on some platforms (4.3 arm emulator)
+            return package
+        m = re.search('mFocusedApp=AppWindowToken{\w+ token=Token{'
+                      '\w+ ActivityRecord{\w+ w+ (\w+)/w+ \w+}}}', data)
+        if m:
+            line = m.group(1)
+            # Extract package name: string of non-whitespace ending in forward slash
+            m = re.search('(\S+)/', line)
             if m:
                 package = m.group(1)
         if self._verbose:
@@ -3110,24 +3142,22 @@ class ADBDevice(ADBCommand):
 
         :param str: app_name: Name of application (e.g. `org.mozilla.fennec`)
         """
-        try:
-            if self.version >= version_codes.M:
-                permissions = [
-                    'android.permission.WRITE_EXTERNAL_STORAGE',
-                    'android.permission.READ_EXTERNAL_STORAGE',
-                    'android.permission.ACCESS_COARSE_LOCATION',
-                    'android.permission.ACCESS_FINE_LOCATION',
-                    'android.permission.CAMERA',
-                    'android.permission.RECORD_AUDIO',
-                ]
-                if self.version >= version_codes.P:
-                    permissions.append('android.permission.FOREGROUND_SERVICE')
-                self._logger.info("Granting important runtime permissions to %s" % app_name)
-                for permission in permissions:
+        if self.version >= version_codes.M:
+            permissions = [
+                'android.permission.WRITE_EXTERNAL_STORAGE',
+                'android.permission.READ_EXTERNAL_STORAGE',
+                'android.permission.ACCESS_COARSE_LOCATION',
+                'android.permission.ACCESS_FINE_LOCATION',
+                'android.permission.CAMERA',
+                'android.permission.RECORD_AUDIO',
+            ]
+            self._logger.info("Granting important runtime permissions to %s" % app_name)
+            for permission in permissions:
+                try:
                     self.shell_output('pm grant %s %s' % (app_name, permission))
-        except ADBError as e:
-            self._logger.warning("Unable to grant runtime permissions to %s due to %s" %
-                                 (app_name, e))
+                except ADBError as e:
+                    self._logger.warning("Unable to grant runtime permission %s to %s due to %s" %
+                                         (permission, app_name, e))
 
     def install_app(self, apk_path, replace=False, timeout=None):
         """Installs an app on the device.

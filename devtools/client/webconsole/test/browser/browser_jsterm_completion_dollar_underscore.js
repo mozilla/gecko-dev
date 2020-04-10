@@ -32,30 +32,26 @@ add_task(async function() {
 
   await setInputValueForAutocompletion(hud, "$_.");
   checkInputCompletionValue(hud, "x", "'$_.' completion (completeNode)");
-  is(
-    getAutocompletePopupLabels(autocompletePopup).join("|"),
-    "x|y",
+  ok(
+    hasExactPopupLabels(autocompletePopup, ["x", "y"]),
     "autocomplete popup has expected items"
   );
   is(autocompletePopup.isOpen, true, "autocomplete popup is open");
 
   await setInputValueForAutocompletion(hud, "$_.x.");
   is(autocompletePopup.isOpen, true, "autocomplete popup is open");
-  is(
-    getAutocompletePopupLabels(autocompletePopup).includes("toExponential"),
-    true,
+  ok(
+    hasPopupLabel(autocompletePopup, "toExponential"),
     "autocomplete popup has expected items"
   );
 
   await setInputValueForAutocompletion(hud, "$_.y.");
   is(autocompletePopup.isOpen, true, "autocomplete popup is open");
-  is(
-    getAutocompletePopupLabels(autocompletePopup).includes("trim"),
-    true,
+  ok(
+    hasPopupLabel(autocompletePopup, "trim"),
     "autocomplete popup has expected items"
   );
-});
 
-function getAutocompletePopupLabels(autocompletePopup) {
-  return autocompletePopup.items.map(i => i.label);
-}
+  info("Close autocomplete popup");
+  await closeAutocompletePopup(hud);
+});

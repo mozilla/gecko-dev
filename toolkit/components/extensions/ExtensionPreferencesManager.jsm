@@ -411,6 +411,23 @@ this.ExtensionPreferencesManager = {
   },
 
   /**
+   * Removes a set of settings that are available under certain addon permissions.
+   *
+   * @param {string} id           The extension id.
+   * @param {string} permission   The permission name from the extension manifest.
+   * @returns {Promise}           A promise that resolves when all related settings are removed.
+   */
+  removeSettingsForPermission(id, permission) {
+    let removePromises = [];
+    settingsMap.forEach((setting, name) => {
+      if (setting.permission == permission) {
+        removePromises.push(this.removeSetting(id, name));
+      }
+    });
+    return Promise.all(removePromises);
+  },
+
+  /**
    * Return the currently active value for a setting.
    *
    * @param {string} name

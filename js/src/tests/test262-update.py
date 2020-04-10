@@ -21,7 +21,6 @@ from operator import itemgetter
 # Skip all tests which use features not supported in SpiderMonkey.
 UNSUPPORTED_FEATURES = set([
     "tail-call-optimization",
-    "class-static-fields-public",
     "class-fields-private",
     "class-static-fields-private",
     "class-methods-private",
@@ -430,7 +429,7 @@ def process_test262(test262Dir, test262OutDir, strictTests, externManifests):
                                                                  "detachArrayBuffer.js", "nans.js"]
     explicitIncludes[os.path.join("built-ins", "TypedArrays")] = ["detachArrayBuffer.js"]
 
-    # Intl.Locale and Intl.ListFormat aren't yet enabled by default.
+    # Intl.ListFormat isn't yet enabled by default.
     localIncludesMap[os.path.join("intl402")] = ["test262-intl-locale.js"]
 
     # Process all test directories recursively.

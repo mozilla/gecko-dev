@@ -1320,7 +1320,8 @@ class MOZ_STACK_CLASS nsGridContainerFrame::LineNameMap {
         const auto& lineNameLists = styleSubgrid->names;
         int32_t extraAutoFillLineCount = mClampMaxLine - lineNameLists.Length();
         mRepeatAutoStart = styleSubgrid->fill_idx;
-        mRepeatAutoEnd = mRepeatAutoStart + extraAutoFillLineCount + 1;
+        mRepeatAutoEnd =
+            mRepeatAutoStart + std::max(0, extraAutoFillLineCount + 1);
       }
     } else {
       mClampMinLine = kMinLine;
@@ -4366,8 +4367,8 @@ void nsGridContainerFrame::Grid::PlaceGridItems(
   // Step 1, place 'auto' items that have one definite position -
   // definite row (column) for grid-auto-flow:row (column).
   auto flowStyle = gridStyle->mGridAutoFlow;
-  const bool isRowOrder = (flowStyle & NS_STYLE_GRID_AUTO_FLOW_ROW);
-  const bool isSparse = !(flowStyle & NS_STYLE_GRID_AUTO_FLOW_DENSE);
+  const bool isRowOrder = bool(flowStyle & StyleGridAutoFlow::ROW);
+  const bool isSparse = !(flowStyle & StyleGridAutoFlow::DENSE);
   uint32_t clampMaxColLine = colLineNameMap.mClampMaxLine + offsetToColZero;
   uint32_t clampMaxRowLine = rowLineNameMap.mClampMaxLine + offsetToRowZero;
   // We need 1 cursor per row (or column) if placement is sparse.
@@ -7841,7 +7842,10 @@ nsFrameState nsGridContainerFrame::ComputeSelfSubgridBits() const {
     }
   }
 
-  // skip our scroll frame and such if we have it
+  // Skip our scroll frame and such if we have it.
+  // This will store the outermost frame that shares our content node:
+  const nsIFrame* outerFrame = this;
+  // ...and this will store that frame's parent:
   auto* parent = GetParent();
   while (parent && parent->GetContent() == GetContent()) {
     // If we find our containing frame has 'contain:layout/paint' we can't be
@@ -7851,13 +7855,15 @@ nsFrameState nsGridContainerFrame::ComputeSelfSubgridBits() const {
     if (parentDisplay->IsContainLayout() || parentDisplay->IsContainPaint()) {
       return nsFrameState(0);
     }
+    outerFrame = parent;
     parent = parent->GetParent();
   }
   nsFrameState bits = nsFrameState(0);
   const nsGridContainerFrame* gridParent = do_QueryFrame(parent);
   if (gridParent) {
     // NOTE: our NS_FRAME_OUT_OF_FLOW isn't set yet so we check our style.
-    bool isOutOfFlow = StyleDisplay()->IsAbsolutelyPositionedStyle();
+    bool isOutOfFlow =
+        outerFrame->StyleDisplay()->IsAbsolutelyPositionedStyle();
     const auto* pos = StylePosition();
     bool isColSubgrid = pos->mGridTemplateColumns.IsSubgrid();
     // OOF subgrids don't create tracks in the parent, so we need to check that
@@ -7902,7 +7908,7 @@ bool nsGridContainerFrame::WillHaveAtLeastOneTrackInAxis(
   const auto& gridTemplate = aAxis == eLogicalAxisBlock
                                  ? pos->mGridTemplateRows
                                  : pos->mGridTemplateColumns;
-  if (!gridTemplate.IsNone()) {
+  if (gridTemplate.IsTrackList()) {
     return true;
   }
   for (nsIFrame* child : PrincipalChildList()) {
@@ -7962,7 +7968,7 @@ nscoord nsGridContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
                                state.mFrame->Style());
   }
   if (!IsRowSubgrid() && state.mRowFunctions.mHasRepeatAuto &&
-      !(state.mGridStyle->mGridAutoFlow & NS_STYLE_GRID_AUTO_FLOW_ROW)) {
+      !(state.mGridStyle->mGridAutoFlow & StyleGridAutoFlow::ROW)) {
     // Only 'grid-auto-flow:column' can create new implicit columns, so that's
     // the only case where our block-size can affect the number of columns.
     repeatSizing.InitFromStyle(eLogicalAxisBlock, state.mWM,
@@ -8429,13 +8435,11 @@ void nsGridContainerFrame::StoreUsedTrackSizes(
 #ifdef DEBUG
 void nsGridContainerFrame::SetInitialChildList(ChildListID aListID,
                                                nsFrameList& aChildList) {
-#  ifdef DEBUG
   ChildListIDs supportedLists = {kAbsoluteList, kFixedList, kPrincipalList};
   // We don't handle the kBackdropList frames in any way, but it only contains
   // a placeholder for ::backdrop which is OK to not reflow (for now anyway).
   supportedLists += kBackdropList;
   MOZ_ASSERT(supportedLists.contains(aListID), "unexpected child list");
-#  endif
 
   return nsContainerFrame::SetInitialChildList(aListID, aChildList);
 }

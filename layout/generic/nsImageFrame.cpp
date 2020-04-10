@@ -180,6 +180,15 @@ bool nsImageFrame::ShouldShowBrokenImageIcon() const {
     return false;
   }
 
+  // <img alt=""> is special, and it shouldn't draw the broken image icon,
+  // unlike the no-alt attribute or non-empty-alt-attribute case.
+  if (auto* image = HTMLImageElement::FromNode(mContent)) {
+    const nsAttrValue* alt = image->GetParsedAttr(nsGkAtoms::alt);
+    if (alt && alt->IsEmptyString()) {
+      return false;
+    }
+  }
+
   // check for broken images. valid null images (eg. img src="") are
   // not considered broken because they have no image requests
   if (nsCOMPtr<imgIRequest> currentRequest = GetCurrentRequest()) {
@@ -442,7 +451,7 @@ static void ScaleIntrinsicSizeForDensity(nsIContent& aContent,
 }
 
 static IntrinsicSize ComputeIntrinsicSize(imgIContainer* aImage,
-                                          bool aHasRequest,
+                                          bool aUseMappedRatio,
                                           nsImageFrame::Kind aKind,
                                           const nsImageFrame& aFrame) {
   const ComputedStyle& style = *aFrame.Style();
@@ -467,21 +476,41 @@ static IntrinsicSize ComputeIntrinsicSize(imgIContainer* aImage,
     return IntrinsicSize(edgeLengthToUse, edgeLengthToUse);
   }
 
-  if (aHasRequest && style.StylePosition()->mAspectRatio != 0.0f) {
+  if (aUseMappedRatio && style.StylePosition()->mAspectRatio != 0.0f) {
     return IntrinsicSize();
   }
 
   return IntrinsicSize(0, 0);
 }
 
+// For compat reasons, see bug 1602047, we don't use the intrinsic ratio from
+// width="" and height="" for images with no src attribute (no request).
+//
+// But we shouldn't get fooled by <img loading=lazy>. We do want to apply the
+// ratio then...
+bool nsImageFrame::ShouldUseMappedAspectRatio() const {
+  if (mKind != Kind::ImageElement) {
+    return true;
+  }
+  nsCOMPtr<imgIRequest> currentRequest = GetCurrentRequest();
+  if (currentRequest) {
+    return true;
+  }
+  // TODO(emilio): Investigate the compat situation of the above check, maybe we
+  // can just check for empty src attribute or something...
+  auto* image = HTMLImageElement::FromNode(mContent);
+  return image && image->IsAwaitingLoadOrLazyLoading();
+}
+
 bool nsImageFrame::UpdateIntrinsicSize() {
   IntrinsicSize oldIntrinsicSize = mIntrinsicSize;
-  nsCOMPtr<imgIRequest> currentRequest = GetCurrentRequest();
-  mIntrinsicSize = ComputeIntrinsicSize(mImage, !!currentRequest, mKind, *this);
+  mIntrinsicSize =
+      ComputeIntrinsicSize(mImage, ShouldUseMappedAspectRatio(), mKind, *this);
   return mIntrinsicSize != oldIntrinsicSize;
 }
 
-static AspectRatio ComputeAspectRatio(imgIContainer* aImage, bool aHasRequest,
+static AspectRatio ComputeAspectRatio(imgIContainer* aImage,
+                                      bool aUseMappedRatio,
                                       const nsImageFrame& aFrame) {
   const ComputedStyle& style = *aFrame.Style();
   if (style.StyleDisplay()->IsContainSize()) {
@@ -492,7 +521,7 @@ static AspectRatio ComputeAspectRatio(imgIContainer* aImage, bool aHasRequest,
       return *fromImage;
     }
   }
-  if (aHasRequest && style.StylePosition()->mAspectRatio != 0.0f) {
+  if (aUseMappedRatio && style.StylePosition()->mAspectRatio != 0.0f) {
     return AspectRatio(style.StylePosition()->mAspectRatio);
   }
   if (aFrame.ShouldShowBrokenImageIcon()) {
@@ -503,8 +532,8 @@ static AspectRatio ComputeAspectRatio(imgIContainer* aImage, bool aHasRequest,
 
 bool nsImageFrame::UpdateIntrinsicRatio() {
   AspectRatio oldIntrinsicRatio = mIntrinsicRatio;
-  nsCOMPtr<imgIRequest> currentRequest = GetCurrentRequest();
-  mIntrinsicRatio = ComputeAspectRatio(mImage, !!currentRequest, *this);
+  mIntrinsicRatio =
+      ComputeAspectRatio(mImage, ShouldUseMappedAspectRatio(), *this);
   return mIntrinsicRatio != oldIntrinsicRatio;
 }
 
@@ -623,7 +652,7 @@ bool nsImageFrame::ShouldCreateImageFrameFor(const Element& aElement,
     return true;
   }
 
-  if (aStyle.StyleUIReset()->mForceBrokenImageIcon) {
+  if (aStyle.StyleUIReset()->mMozForceBrokenImageIcon) {
     return true;
   }
 
@@ -725,6 +754,11 @@ void nsImageFrame::UpdateImage(imgIRequest* aRequest, imgIContainer* aImage) {
     // Now we need to reflow if we have an unconstrained size and have
     // already gotten the initial reflow.
     if (!(mState & IMAGE_SIZECONSTRAINED)) {
+#ifdef ACCESSIBILITY
+      if (nsAccessibilityService* accService = GetAccService()) {
+        accService->NotifyOfImageSizeAvailable(PresShell(), mContent);
+      }
+#endif
       PresShell()->FrameNeedsReflow(this, IntrinsicDirty::StyleChange,
                                     NS_FRAME_IS_DIRTY);
     } else if (PresShell()->IsActive()) {
@@ -1355,8 +1389,7 @@ ImgDrawResult nsImageFrame::DisplayAltFeedback(gfxContext& aRenderingContext,
     // Assert that we're not drawing a border-image here; if we were, we
     // couldn't ignore the ImgDrawResult that PaintBorderWithStyleBorder
     // returns.
-    MOZ_ASSERT(recessedBorder.mBorderImageSource.GetType() ==
-               eStyleImageType_Null);
+    MOZ_ASSERT(recessedBorder.mBorderImageSource.IsNone());
 
     Unused << nsCSSRendering::PaintBorderWithStyleBorder(
         PresContext(), aRenderingContext, this, inner, inner, recessedBorder,
@@ -1538,8 +1571,7 @@ ImgDrawResult nsImageFrame::DisplayAltFeedbackWithoutLayer(
     // Assert that we're not drawing a border-image here; if we were, we
     // couldn't ignore the ImgDrawResult that PaintBorderWithStyleBorder
     // returns.
-    MOZ_ASSERT(recessedBorder.mBorderImageSource.GetType() ==
-               eStyleImageType_Null);
+    MOZ_ASSERT(recessedBorder.mBorderImageSource.IsNone());
 
     nsRect rect = nsRect(aPt, GetSize());
     Unused << nsCSSRendering::CreateWebRenderCommandsForBorderWithStyleBorder(
@@ -2320,7 +2352,7 @@ Maybe<nsIFrame::Cursor> nsImageFrame::GetCursor(const nsPoint& aPoint) {
   // get styles out of the blue and expect to trigger image loads for those.
   areaStyle->StartImageLoads(*PresContext()->Document());
 
-  StyleCursorKind kind = areaStyle->StyleUI()->mCursor;
+  StyleCursorKind kind = areaStyle->StyleUI()->mCursor.keyword;
   if (kind == StyleCursorKind::Auto) {
     kind = StyleCursorKind::Default;
   }

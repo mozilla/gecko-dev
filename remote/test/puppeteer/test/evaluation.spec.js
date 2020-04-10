@@ -19,7 +19,7 @@ const utils = require('./utils');
 const bigint = typeof BigInt !== 'undefined';
 
 module.exports.addTests = function({testRunner, expect}) {
-  const {describe, xdescribe, fdescribe} = testRunner;
+  const {describe, xdescribe, fdescribe, describe_fails_ffox} = testRunner;
   const {it, fit, xit, it_fails_ffox} = testRunner;
   const {beforeAll, beforeEach, afterAll, afterEach} = testRunner;
 
@@ -28,7 +28,7 @@ module.exports.addTests = function({testRunner, expect}) {
       const result = await page.evaluate(() => 7 * 3);
       expect(result).toBe(21);
     });
-    it('should transfer BigInt', async({page, server}) => {
+    (bigint ? it : xit)('should transfer BigInt', async({page, server}) => {
       const result = await page.evaluate(a => a, BigInt(42));
       expect(result).toBe(BigInt(42));
     });
@@ -80,7 +80,7 @@ module.exports.addTests = function({testRunner, expect}) {
       const result = await page.evaluate(a => a['中文字符'], {'中文字符': 42});
       expect(result).toBe(42);
     });
-    it('should throw when evaluation triggers reload', async({page, server}) => {
+    it_fails_ffox('should throw when evaluation triggers reload', async({page, server}) => {
       let error = null;
       await page.evaluate(() => {
         location.reload();
@@ -100,7 +100,7 @@ module.exports.addTests = function({testRunner, expect}) {
       await page.goto(server.EMPTY_PAGE);
       expect(await frameEvaluation).toBe(42);
     });
-    it('should work from-inside an exposed function', async({page, server}) => {
+    it_fails_ffox('should work from-inside an exposed function', async({page, server}) => {
       // Setup inpage callback, which calls Page.evaluate
       await page.exposeFunction('callController', async function(a, b) {
         return await page.evaluate((a, b) => a * b, a, b);
@@ -134,7 +134,7 @@ module.exports.addTests = function({testRunner, expect}) {
       expect(result).not.toBe(object);
       expect(result).toEqual(object);
     });
-    it('should return BigInt', async({page, server}) => {
+    (bigint ? it : xit)('should return BigInt', async({page, server}) => {
       const result = await page.evaluate(() => BigInt(42));
       expect(result).toBe(BigInt(42));
     });
@@ -161,10 +161,10 @@ module.exports.addTests = function({testRunner, expect}) {
     it('should properly serialize null fields', async({page}) => {
       expect(await page.evaluate(() => ({a: undefined}))).toEqual({});
     });
-    it('should return undefined for non-serializable objects', async({page, server}) => {
+    it_fails_ffox('should return undefined for non-serializable objects', async({page, server}) => {
       expect(await page.evaluate(() => window)).toBe(undefined);
     });
-    it('should fail for circular object', async({page, server}) => {
+    it_fails_ffox('should fail for circular object', async({page, server}) => {
       const result = await page.evaluate(() => {
         const a = {};
         const b = {a};
@@ -224,7 +224,7 @@ module.exports.addTests = function({testRunner, expect}) {
       });
       expect(result).toBe(true);
     });
-    it('should throw a nice error after a navigation', async({page, server}) => {
+    it_fails_ffox('should throw a nice error after a navigation', async({page, server}) => {
       const executionContext = await page.mainFrame().executionContext();
 
       await Promise.all([

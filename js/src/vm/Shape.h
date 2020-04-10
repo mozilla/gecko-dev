@@ -24,6 +24,7 @@
 
 #include "gc/Barrier.h"
 #include "gc/FreeOp.h"
+#include "gc/MaybeRooted.h"
 #include "gc/Rooting.h"
 #include "js/HashTable.h"
 #include "js/MemoryMetrics.h"
@@ -124,8 +125,8 @@ class Shape;
 struct StackShape;
 
 struct ShapeHasher : public DefaultHasher<Shape*> {
-  typedef Shape* Key;
-  typedef StackShape Lookup;
+  using Key = Shape*;
+  using Lookup = StackShape;
 
   static MOZ_ALWAYS_INLINE HashNumber hash(const Lookup& l);
   static MOZ_ALWAYS_INLINE bool match(Key k, const Lookup& l);
@@ -254,8 +255,8 @@ class PropertyTree {
 
 class TenuringTracer;
 
-typedef JSGetterOp GetterOp;
-typedef JSSetterOp SetterOp;
+using GetterOp = JSGetterOp;
+using SetterOp = JSSetterOp;
 
 /* Limit on the number of slotful properties in an object. */
 static const uint32_t SHAPE_INVALID_SLOT = Bit(24) - 1;
@@ -834,8 +835,8 @@ class BaseShape : public gc::TenuredCell {
 
  private:
   static void staticAsserts() {
-    JS_STATIC_ASSERT(offsetof(BaseShape, clasp_) ==
-                     offsetof(js::shadow::BaseShape, clasp_));
+    static_assert(offsetof(BaseShape, clasp_) ==
+                  offsetof(js::shadow::BaseShape, clasp_));
     static_assert(sizeof(BaseShape) % gc::CellAlignBytes == 0,
                   "Things inheriting from gc::Cell must have a size that's "
                   "a multiple of gc::CellAlignBytes");
@@ -918,7 +919,7 @@ namespace mozilla {
 
 template <>
 struct DefaultHasher<jsid> {
-  typedef jsid Lookup;
+  using Lookup = jsid;
   static HashNumber hash(jsid id) { return js::HashId(id); }
   static bool match(jsid id1, jsid id2) { return id1 == id2; }
 };
@@ -1148,11 +1149,11 @@ class Shape : public gc::TenuredCell {
 
    public:
     Range(JSContext* cx, Shape* shape) : cursor(cx, shape) {
-      JS_STATIC_ASSERT(allowGC == CanGC);
+      static_assert(allowGC == CanGC);
     }
 
     explicit Range(Shape* shape) : cursor((JSContext*)nullptr, shape) {
-      JS_STATIC_ASSERT(allowGC == NoGC);
+      static_assert(allowGC == NoGC);
     }
 
     bool empty() const { return !cursor || cursor->isEmptyShape(); }
@@ -1441,12 +1442,11 @@ class Shape : public gc::TenuredCell {
   void fixupShapeTreeAfterMovingGC();
 
   static void staticAsserts() {
-    JS_STATIC_ASSERT(offsetof(Shape, base_) ==
-                     offsetof(js::shadow::Shape, base));
-    JS_STATIC_ASSERT(offsetof(Shape, immutableFlags) ==
-                     offsetof(js::shadow::Shape, immutableFlags));
-    JS_STATIC_ASSERT(FIXED_SLOTS_SHIFT == js::shadow::Shape::FIXED_SLOTS_SHIFT);
-    JS_STATIC_ASSERT(FIXED_SLOTS_MASK == js::shadow::Shape::FIXED_SLOTS_MASK);
+    static_assert(offsetof(Shape, base_) == offsetof(js::shadow::Shape, base));
+    static_assert(offsetof(Shape, immutableFlags) ==
+                  offsetof(js::shadow::Shape, immutableFlags));
+    static_assert(FIXED_SLOTS_SHIFT == js::shadow::Shape::FIXED_SLOTS_SHIFT);
+    static_assert(FIXED_SLOTS_MASK == js::shadow::Shape::FIXED_SLOTS_MASK);
   }
 };
 

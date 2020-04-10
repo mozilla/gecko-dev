@@ -10,6 +10,7 @@ ${helpers.single_keyword(
     "vector-effect",
     "none non-scaling-stroke",
     engines="gecko",
+    gecko_enum_prefix="StyleVectorEffect",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVGTiny12/painting.html#VectorEffectProperty",
 )}
@@ -76,10 +77,10 @@ ${helpers.single_keyword(
 
 ${helpers.predefined_type(
     "clip-path",
-    "basic_shape::ClippingShape",
-    "generics::basic_shape::ShapeSource::None",
+    "basic_shape::ClipPath",
+    "generics::basic_shape::ClipPath::None",
     engines="gecko",
-    animation_value_type="basic_shape::ClippingShape",
+    animation_value_type="basic_shape::ClipPath",
     flags="CREATES_STACKING_CONTEXT",
     spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path",
 )}
@@ -172,10 +173,10 @@ ${helpers.single_keyword(
 
 ${helpers.predefined_type(
     "mask-image",
-    "ImageLayer",
+    "Image",
     engines="gecko",
-    initial_value="computed::ImageLayer::none()",
-    initial_specified_value="specified::ImageLayer::none()",
+    initial_value="computed::Image::None",
+    initial_specified_value="specified::Image::None",
     parse_method="parse_with_cors_anonymous",
     spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image",
     vector=True,

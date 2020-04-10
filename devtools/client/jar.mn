@@ -25,8 +25,6 @@ devtools.jar:
     content/performance/index.xhtml (performance/index.xhtml)
     content/performance-new/index.xhtml (performance-new/index.xhtml)
     content/performance-new/frame-script.js (performance-new/frame-script.js)
-    content/performance-new/popup/initializer.js (performance-new/popup/initializer.js)
-    content/performance-new/popup/popup.xhtml (performance-new/popup/popup.xhtml)
     content/memory/index.xhtml (memory/index.xhtml)
     content/framework/toolbox-window.xhtml (framework/toolbox-window.xhtml)
     content/framework/toolbox-options.html (framework/toolbox-options.html)
@@ -109,7 +107,6 @@ devtools.jar:
     skin/images/command-paintflashing.svg (themes/images/command-paintflashing.svg)
     skin/images/command-screenshot.svg (themes/images/command-screenshot.svg)
     skin/images/command-responsivemode.svg (themes/images/command-responsivemode.svg)
-    skin/images/command-replay.svg (themes/images/command-replay.svg)
     skin/images/command-pick.svg (themes/images/command-pick.svg)
     skin/images/command-pick-accessibility.svg (themes/images/command-pick-accessibility.svg)
     skin/images/command-frames.svg (themes/images/command-frames.svg)
@@ -172,7 +169,6 @@ devtools.jar:
     skin/images/datastore.svg (themes/images/datastore.svg)
     skin/images/globe.svg (themes/images/globe.svg)
     skin/images/next.svg (themes/images/next.svg)
-    skin/images/next-circle.svg (themes/images/next-circle.svg)
     skin/images/folder.svg (themes/images/folder.svg)
     skin/images/sad-face.svg (themes/images/sad-face.svg)
     skin/images/shape-swatch.svg (themes/images/shape-swatch.svg)
@@ -194,8 +190,7 @@ devtools.jar:
     skin/images/open-3-pane.svg (themes/images/open-3-pane.svg)
     skin/images/vview-delete.svg (themes/images/vview-delete.svg)
     skin/images/vview-edit.svg (themes/images/vview-edit.svg)
-    skin/images/vview-lock.png (themes/images/vview-lock.png)
-    skin/images/vview-lock@2x.png (themes/images/vview-lock@2x.png)
+    skin/images/vview-lock.svg (themes/images/vview-lock.svg)
     skin/images/sort-ascending-arrow.svg (themes/images/sort-ascending-arrow.svg)
     skin/images/sort-descending-arrow.svg (themes/images/sort-descending-arrow.svg)
     skin/images/cubic-bezier-swatch.svg (themes/images/cubic-bezier-swatch.svg)
@@ -215,7 +210,6 @@ devtools.jar:
     skin/images/pane-collapse.svg (themes/images/pane-collapse.svg)
     skin/images/pane-expand.svg (themes/images/pane-expand.svg)
     skin/images/help.svg (themes/images/help.svg)
-    skin/images/read-only.svg (themes/images/read-only.svg)
     skin/images/reveal.svg (themes/images/reveal.svg)
     skin/images/select-arrow.svg (themes/images/select-arrow.svg)
     skin/images/settings.svg (themes/images/settings.svg)
@@ -255,13 +249,7 @@ devtools.jar:
     # WhatsNew panel
     content/whats-new/index.html (whats-new/index.html)
 
-#if !defined(ANDROID) && defined(NIGHTLY_BUILD)
     # about:profiling
-
-    # This page is still Nightly only while under active development.
-    # The about:profiling page is also has an ifdef in:
-    # browser/components/about/AboutRedirector.cpp
     skin/aboutprofiling.css (themes/aboutprofiling.css)
     content/performance-new/aboutprofiling/initializer.js (performance-new/aboutprofiling/initializer.js)
     content/performance-new/aboutprofiling/index.xhtml (performance-new/aboutprofiling/index.xhtml)
-#endif

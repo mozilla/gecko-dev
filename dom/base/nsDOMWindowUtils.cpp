@@ -176,7 +176,7 @@ namespace {
 
 class NativeInputRunnable final : public PrioritizableRunnable {
   explicit NativeInputRunnable(already_AddRefed<nsIRunnable>&& aEvent);
-  ~NativeInputRunnable() {}
+  ~NativeInputRunnable() = default;
 
  public:
   static already_AddRefed<nsIRunnable> Create(
@@ -1167,12 +1167,10 @@ nsDOMWindowUtils::NodesFromRect(float aX, float aY, float aTopSize,
                                 float aLeftSize, bool aIgnoreRootScrollFrame,
                                 bool aFlushLayout, bool aOnlyVisible,
                                 nsINodeList** aReturn) {
-  nsCOMPtr<Document> doc = GetDocument();
+  RefPtr<Document> doc = GetDocument();
   NS_ENSURE_STATE(doc);
 
-  nsSimpleContentList* list = new nsSimpleContentList(doc);
-  NS_ADDREF(list);
-  *aReturn = list;
+  auto list = MakeRefPtr<nsSimpleContentList>(doc);
 
   AutoTArray<RefPtr<nsINode>, 8> nodes;
   doc->NodesFromRect(aX, aY, aTopSize, aRightSize, aBottomSize, aLeftSize,
@@ -1181,6 +1179,8 @@ nsDOMWindowUtils::NodesFromRect(float aX, float aY, float aTopSize,
   for (auto& node : nodes) {
     list->AppendElement(node->AsContent());
   }
+
+  list.forget(aReturn);
   return NS_OK;
 }
 
@@ -1703,6 +1703,19 @@ nsDOMWindowUtils::GetScreenPixelsPerCSSPixel(float* aScreenPixels) {
   nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryReferent(mWindow);
   NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
   *aScreenPixels = window->GetDevicePixelRatio(CallerType::System);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::GetScreenPixelsPerCSSPixelNoOverride(float* aScreenPixels) {
+  nsPresContext* presContext = GetPresContext();
+  if (!presContext) {
+    *aScreenPixels = 1.0;
+    return NS_OK;
+  }
+
+  *aScreenPixels =
+      float(AppUnitsPerCSSPixel()) / float(presContext->AppUnitsPerDevPixel());
   return NS_OK;
 }
 
@@ -3701,24 +3714,6 @@ nsDOMWindowUtils::PostRestyleSelfEvent(Element* aElement) {
 
   nsLayoutUtils::PostRestyleEvent(aElement, RestyleHint::RESTYLE_SELF,
                                   nsChangeHint(0));
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::GetMediaSuspend(uint32_t* aSuspend) {
-  nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryReferent(mWindow);
-  NS_ENSURE_STATE(window);
-
-  *aSuspend = window->GetMediaSuspend();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::SetMediaSuspend(uint32_t aSuspend) {
-  nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryReferent(mWindow);
-  NS_ENSURE_STATE(window);
-
-  window->SetMediaSuspend(aSuspend);
   return NS_OK;
 }
 

@@ -40,6 +40,7 @@ const PERM_DENY_ACTION = Services.perms.DENY_ACTION;
 
 // Add settings objects for supported APIs to the preferences manager.
 ExtensionPreferencesManager.addSetting("allowPopupsForUserEvents", {
+  permission: "browserSettings",
   prefNames: ["dom.popup_allowed_events"],
 
   setCallback(value) {
@@ -51,6 +52,7 @@ ExtensionPreferencesManager.addSetting("allowPopupsForUserEvents", {
 });
 
 ExtensionPreferencesManager.addSetting("cacheEnabled", {
+  permission: "browserSettings",
   prefNames: ["browser.cache.disk.enable", "browser.cache.memory.enable"],
 
   setCallback(value) {
@@ -63,6 +65,7 @@ ExtensionPreferencesManager.addSetting("cacheEnabled", {
 });
 
 ExtensionPreferencesManager.addSetting("closeTabsByDoubleClick", {
+  permission: "browserSettings",
   prefNames: ["browser.tabs.closeTabByDblclick"],
 
   setCallback(value) {
@@ -71,6 +74,7 @@ ExtensionPreferencesManager.addSetting("closeTabsByDoubleClick", {
 });
 
 ExtensionPreferencesManager.addSetting("contextMenuShowEvent", {
+  permission: "browserSettings",
   prefNames: ["ui.context_menus.after_mouseup"],
 
   setCallback(value) {
@@ -79,6 +83,7 @@ ExtensionPreferencesManager.addSetting("contextMenuShowEvent", {
 });
 
 ExtensionPreferencesManager.addSetting("ftpProtocolEnabled", {
+  permission: "browserSettings",
   prefNames: ["network.ftp.enabled"],
 
   setCallback(value) {
@@ -87,6 +92,7 @@ ExtensionPreferencesManager.addSetting("ftpProtocolEnabled", {
 });
 
 ExtensionPreferencesManager.addSetting("imageAnimationBehavior", {
+  permission: "browserSettings",
   prefNames: ["image.animation_mode"],
 
   setCallback(value) {
@@ -95,6 +101,7 @@ ExtensionPreferencesManager.addSetting("imageAnimationBehavior", {
 });
 
 ExtensionPreferencesManager.addSetting("newTabPosition", {
+  permission: "browserSettings",
   prefNames: [
     "browser.tabs.insertRelatedAfterCurrent",
     "browser.tabs.insertAfterCurrent",
@@ -109,6 +116,7 @@ ExtensionPreferencesManager.addSetting("newTabPosition", {
 });
 
 ExtensionPreferencesManager.addSetting("openBookmarksInNewTabs", {
+  permission: "browserSettings",
   prefNames: ["browser.tabs.loadBookmarksInTabs"],
 
   setCallback(value) {
@@ -117,6 +125,7 @@ ExtensionPreferencesManager.addSetting("openBookmarksInNewTabs", {
 });
 
 ExtensionPreferencesManager.addSetting("openSearchResultsInNewTabs", {
+  permission: "browserSettings",
   prefNames: ["browser.search.openintab"],
 
   setCallback(value) {
@@ -125,6 +134,7 @@ ExtensionPreferencesManager.addSetting("openSearchResultsInNewTabs", {
 });
 
 ExtensionPreferencesManager.addSetting("openUrlbarResultsInNewTabs", {
+  permission: "browserSettings",
   prefNames: ["browser.urlbar.openintab"],
 
   setCallback(value) {
@@ -133,6 +143,7 @@ ExtensionPreferencesManager.addSetting("openUrlbarResultsInNewTabs", {
 });
 
 ExtensionPreferencesManager.addSetting("webNotificationsDisabled", {
+  permission: "browserSettings",
   prefNames: ["permissions.default.desktop-notification"],
 
   setCallback(value) {
@@ -141,6 +152,7 @@ ExtensionPreferencesManager.addSetting("webNotificationsDisabled", {
 });
 
 ExtensionPreferencesManager.addSetting("overrideDocumentColors", {
+  permission: "browserSettings",
   prefNames: ["browser.display.document_color_use"],
 
   setCallback(value) {
@@ -149,7 +161,26 @@ ExtensionPreferencesManager.addSetting("overrideDocumentColors", {
 });
 
 ExtensionPreferencesManager.addSetting("useDocumentFonts", {
+  permission: "browserSettings",
   prefNames: ["browser.display.use_document_fonts"],
+
+  setCallback(value) {
+    return { [this.prefNames[0]]: value };
+  },
+});
+
+ExtensionPreferencesManager.addSetting("zoomFullPage", {
+  permission: "browserSettings",
+  prefNames: ["browser.zoom.full"],
+
+  setCallback(value) {
+    return { [this.prefNames[0]]: value };
+  },
+});
+
+ExtensionPreferencesManager.addSetting("zoomSiteSpecific", {
+  permission: "browserSettings",
+  prefNames: ["browser.zoom.siteSpecific"],
 
   setCallback(value) {
     return { [this.prefNames[0]]: value };
@@ -159,6 +190,18 @@ ExtensionPreferencesManager.addSetting("useDocumentFonts", {
 this.browserSettings = class extends ExtensionAPI {
   getAPI(context) {
     let { extension } = context;
+
+    // eslint-disable-next-line mozilla/balanced-listeners
+    extension.on("remove-permissions", (ignoreEvent, permissions) => {
+      if (!permissions.permissions.includes("browserSettings")) {
+        return;
+      }
+      ExtensionPreferencesManager.removeSettingsForPermission(
+        extension.id,
+        "browserSettings"
+      );
+    });
+
     return {
       browserSettings: {
         allowPopupsForUserEvents: getSettingsAPI({
@@ -213,9 +256,7 @@ this.browserSettings = class extends ExtensionAPI {
             set: details => {
               if (!["mouseup", "mousedown"].includes(details.value)) {
                 throw new ExtensionError(
-                  `${
-                    details.value
-                  } is not a valid value for contextMenuShowEvent.`
+                  `${details.value} is not a valid value for contextMenuShowEvent.`
                 );
               }
               if (
@@ -371,9 +412,7 @@ this.browserSettings = class extends ExtensionAPI {
                 )
               ) {
                 throw new ExtensionError(
-                  `${
-                    details.value
-                  } is not a valid value for overrideDocumentColors.`
+                  `${details.value} is not a valid value for overrideDocumentColors.`
                 );
               }
               let prefValue = 0; // initialize to 0 - auto/high-contrast-only
@@ -417,6 +456,20 @@ this.browserSettings = class extends ExtensionAPI {
             },
           }
         ),
+        zoomFullPage: getSettingsAPI({
+          context,
+          name: "zoomFullPage",
+          callback() {
+            return Services.prefs.getBoolPref("browser.zoom.full");
+          },
+        }),
+        zoomSiteSpecific: getSettingsAPI({
+          context,
+          name: "zoomSiteSpecific",
+          callback() {
+            return Services.prefs.getBoolPref("browser.zoom.siteSpecific");
+          },
+        }),
       },
     };
   }

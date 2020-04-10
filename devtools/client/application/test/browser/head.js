@@ -44,32 +44,15 @@ async function enableApplicationPanel() {
   // Enable all preferences related to service worker debugging.
   await enableServiceWorkerDebugging();
 
+  // Enable web manifest processing.
+  Services.prefs.setBoolPref("dom.manifest.enabled", true);
+
   // Enable application panel in DevTools.
   await pushPref("devtools.application.enabled", true);
 }
 
 function getWorkerContainers(doc) {
   return doc.querySelectorAll(".js-sw-container");
-}
-
-async function navigate(toolbox, url) {
-  const isTargetSwitchingEnabled = Services.prefs.getBoolPref(
-    "devtools.target-switching.enabled",
-    false
-  );
-
-  // when target switching, a new target will receive the "navigate" event
-  if (isTargetSwitchingEnabled) {
-    const onSwitched = once(toolbox, "switched-target");
-    toolbox.target.navigateTo({ url });
-    return onSwitched;
-  }
-
-  // when we are not target switching, the same target will receive the
-  // "navigate" event
-  const onNavigated = once(toolbox.target, "navigate");
-  toolbox.target.navigateTo({ url });
-  return onNavigated;
 }
 
 async function openNewTabAndApplicationPanel(url) {

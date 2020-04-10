@@ -82,11 +82,6 @@
 #include "mozilla/layers/DeviceAttachmentsD3D11.h"
 #include "D3D11Checks.h"
 
-#include <devguid.h>   // for GUID_DEVCLASS_BATTERY
-#include <setupapi.h>  // for SetupDi*
-#include <winioctl.h>  // for IOCTL_*
-#include <batclass.h>  // for BATTERY_*
-
 using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::layers;
@@ -315,108 +310,6 @@ static void UpdateANGLEConfig() {
   }
 }
 
-bool gfxWindowsPlatform::HasBattery() {
-  // Helper classes to manage lifetimes of Windows structs.
-  class MOZ_STACK_CLASS HDevInfoHolder final {
-   public:
-    explicit HDevInfoHolder(HDEVINFO aHandle) : mHandle(aHandle) {}
-
-    ~HDevInfoHolder() { ::SetupDiDestroyDeviceInfoList(mHandle); }
-
-   private:
-    HDEVINFO mHandle;
-  };
-
-  class MOZ_STACK_CLASS HandleHolder final {
-   public:
-    explicit HandleHolder(HANDLE aHandle) : mHandle(aHandle) {}
-
-    ~HandleHolder() { ::CloseHandle(mHandle); }
-
-   private:
-    HANDLE mHandle;
-  };
-
-  HDEVINFO hdev =
-      ::SetupDiGetClassDevs(&GUID_DEVCLASS_BATTERY, nullptr, nullptr,
-                            DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
-  if (hdev == INVALID_HANDLE_VALUE) {
-    return true;
-  }
-
-  HDevInfoHolder hdevHolder(hdev);
-
-  DWORD i = 0;
-  SP_DEVICE_INTERFACE_DATA did = {0};
-  did.cbSize = sizeof(did);
-
-  while (::SetupDiEnumDeviceInterfaces(hdev, nullptr, &GUID_DEVCLASS_BATTERY, i,
-                                       &did)) {
-    DWORD bufferSize = 0;
-    ::SetupDiGetDeviceInterfaceDetail(hdev, &did, nullptr, 0, &bufferSize,
-                                      nullptr);
-    if (::GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
-      return true;
-    }
-
-    UniquePtr<uint8_t[]> buffer(new (std::nothrow) uint8_t[bufferSize]);
-    if (!buffer) {
-      return true;
-    }
-
-    PSP_DEVICE_INTERFACE_DETAIL_DATA pdidd =
-        reinterpret_cast<PSP_DEVICE_INTERFACE_DETAIL_DATA>(buffer.get());
-    pdidd->cbSize = sizeof(*pdidd);
-    if (!::SetupDiGetDeviceInterfaceDetail(hdev, &did, pdidd, bufferSize,
-                                           &bufferSize, nullptr)) {
-      return true;
-    }
-
-    HANDLE hbat = ::CreateFile(pdidd->DevicePath, GENERIC_READ | GENERIC_WRITE,
-                               FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
-                               OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (hbat == INVALID_HANDLE_VALUE) {
-      return true;
-    }
-
-    HandleHolder hbatHolder(hbat);
-
-    BATTERY_QUERY_INFORMATION bqi = {0};
-    DWORD dwWait = 0;
-    DWORD dwOut;
-
-    // We need the tag to query the information below.
-    if (!::DeviceIoControl(hbat, IOCTL_BATTERY_QUERY_TAG, &dwWait,
-                           sizeof(dwWait), &bqi.BatteryTag,
-                           sizeof(bqi.BatteryTag), &dwOut, nullptr) ||
-        !bqi.BatteryTag) {
-      return true;
-    }
-
-    BATTERY_INFORMATION bi = {0};
-    bqi.InformationLevel = BatteryInformation;
-
-    if (!::DeviceIoControl(hbat, IOCTL_BATTERY_QUERY_INFORMATION, &bqi,
-                           sizeof(bqi), &bi, sizeof(bi), &dwOut, nullptr)) {
-      return true;
-    }
-
-    // If a battery intended for general use (i.e. system use) is not a UPS
-    // (i.e. short term), then we know for certain we have a battery.
-    if ((bi.Capabilities & BATTERY_SYSTEM_BATTERY) &&
-        !(bi.Capabilities & BATTERY_IS_SHORT_TERM)) {
-      return true;
-    }
-
-    // Otherwise we check the next battery.
-    ++i;
-  }
-
-  // If we fail to enumerate because there are no more batteries to check, then
-  // we can safely say there are indeed no system batteries.
-  return ::GetLastError() != ERROR_NO_MORE_ITEMS;
-}
-
 void gfxWindowsPlatform::InitAcceleration() {
   gfxPlatform::InitAcceleration();
 
@@ -451,6 +344,20 @@ void gfxWindowsPlatform::InitAcceleration() {
 
 void gfxWindowsPlatform::InitWebRenderConfig() {
   gfxPlatform::InitWebRenderConfig();
+  if (XRE_IsParentProcess()) {
+    bool prev =
+        Preferences::GetBool("sanity-test.webrender.force-disabled", false);
+    bool current = Preferences::GetBool("gfx.webrender.force-disabled", false);
+    // When "gfx.webrender.force-disabled" pref is changed from false to true,
+    // set "layers.mlgpu.sanity-test-failed" pref to false.
+    // "layers.mlgpu.sanity-test-failed" pref is re-tested by SanityTest.jsm.
+    bool doRetest = !prev && current;
+    if (doRetest) {
+      Preferences::SetBool("layers.mlgpu.sanity-test-failed", false);
+    }
+    // Need to be called after gfxPlatform::InitWebRenderConfig().
+    InitializeAdvancedLayersConfig();
+  }
 
   if (gfxVars::UseWebRender()) {
     UpdateBackendPrefs();
@@ -995,35 +902,37 @@ void gfxWindowsPlatform::CheckForContentOnlyDeviceReset() {
   }
 }
 
-void gfxWindowsPlatform::GetPlatformCMSOutputProfile(void*& mem,
-                                                     size_t& mem_size) {
-  WCHAR str[MAX_PATH];
-  DWORD size = MAX_PATH;
-  BOOL res;
-
-  mem = nullptr;
-  mem_size = 0;
-
-  HDC dc = GetDC(nullptr);
-  if (!dc) return;
-
-  MOZ_SEH_TRY { res = GetICMProfileW(dc, &size, (LPWSTR)&str); }
-  MOZ_SEH_EXCEPT(GetExceptionCode() == EXCEPTION_ILLEGAL_INSTRUCTION) {
-    res = FALSE;
+nsTArray<uint8_t> gfxWindowsPlatform::GetPlatformCMSOutputProfileData() {
+  HDC dc = ::GetDC(nullptr);
+  if (!dc) {
+    return nsTArray<uint8_t>();
   }
 
-  ReleaseDC(nullptr, dc);
-  if (!res) return;
+  WCHAR profilePath[MAX_PATH];
+  DWORD profilePathLen = MAX_PATH;
 
-#ifdef _WIN32
-  qcms_data_from_unicode_path(str, &mem, &mem_size);
+  bool getProfileResult = ::GetICMProfileW(dc, &profilePathLen, profilePath);
 
-#  ifdef DEBUG_tor
-  if (mem_size > 0)
-    fprintf(stderr, "ICM profile read from %s successfully\n",
-            NS_ConvertUTF16toUTF8(str).get());
-#  endif  // DEBUG_tor
-#endif    // _WIN32
+  ::ReleaseDC(nullptr, dc);
+
+  if (!getProfileResult) {
+    return nsTArray<uint8_t>();
+  }
+
+  void* mem = nullptr;
+  size_t size = 0;
+
+  qcms_data_from_unicode_path(profilePath, &mem, &size);
+  if (!mem) {
+    return nsTArray<uint8_t>();
+  }
+
+  nsTArray<uint8_t> result;
+  result.AppendElements(static_cast<uint8_t*>(mem), size);
+
+  free(mem);
+
+  return result;
 }
 
 void gfxWindowsPlatform::GetDLLVersion(char16ptr_t aDLLPath,
@@ -1371,8 +1280,6 @@ void gfxWindowsPlatform::InitializeD3D11Config() {
                                         &message, failureId)) {
     d3d11.Disable(FeatureStatus::Blacklisted, message.get(), failureId);
   }
-
-  InitializeAdvancedLayersConfig();
 }
 
 /* static */
@@ -1403,6 +1310,10 @@ void gfxWindowsPlatform::InitializeAdvancedLayersConfig() {
   if (!IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_ADVANCED_LAYERS, &message,
                            failureId)) {
     al.Disable(FeatureStatus::Blacklisted, message.get(), failureId);
+  } else if (gfxVars::UseWebRender()) {
+    al.Disable(FeatureStatus::Blocked,
+               "Blocked from fallback candidate by WebRender usage",
+               NS_LITERAL_CSTRING("FEATURE_BLOCKED_BY_WEBRENDER_USAGE"));
   } else if (Preferences::GetBool("layers.mlgpu.sanity-test-failed", false)) {
     al.Disable(FeatureStatus::Broken, "Failed to render sanity test",
                NS_LITERAL_CSTRING("FEATURE_FAILURE_FAILED_TO_RENDER"));

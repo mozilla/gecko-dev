@@ -107,18 +107,33 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
 
         public ChildConnection(@NonNull final GeckoProcessType type) {
             mType = type;
+            mPid = INVALID_PID;
         }
 
-        public int getPid() {
+        public int getPid() throws RemoteException {
             XPCOMEventTarget.assertOnLauncherThread();
-            if ((mPid == INVALID_PID) && (mChild != null)) {
-                try {
-                    mPid = mChild.getPid();
-                } catch (final RemoteException e) {
-                    Log.e(LOGTAG, "Cannot get pid for " + mType.toString(), e);
-                }
+            if (mChild == null) {
+                throw new IllegalStateException("Calling ChildConnection.getPid() on an unbound connection");
             }
+
+            if (mPid == INVALID_PID) {
+                mPid = mChild.getPid();
+            }
+
+            if (mPid == INVALID_PID) {
+                throw new RuntimeException("Unable to obtain a valid pid for connection");
+            }
+
             return mPid;
+        }
+
+        public int getPidFallible() {
+            try {
+                return getPid();
+            } catch (final Exception e) {
+                Log.w(LOGTAG, "Cannot get pid for " + mType.toString(), e);
+                return INVALID_PID;
+            }
         }
 
         private String buildLogMsg(@NonNull final String msgStart) {
@@ -126,7 +141,7 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
             builder.append(" ");
             builder.append(mType.toString());
 
-            int pid = getPid();
+            int pid = getPidFallible();
             if (pid != INVALID_PID) {
                 builder.append(" with pid ");
                 builder.append(pid);
@@ -170,7 +185,7 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
             final Context context = GeckoAppShell.getApplicationContext();
             final Intent intent = new Intent();
             intent.setClassName(context,
-                                GeckoServiceChildProcess.class.getName() + '$' + mType.toString());
+                                GeckoChildProcessServices.class.getName() + '$' + mType.toString());
 
             mPendingBind = new GeckoResult<>();
             try {
@@ -193,7 +208,7 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
             }
 
             // This could end up using IPC, so do it before we unbind.
-            final int pid = getPid();
+            final int pid = getPidFallible();
 
             if (mPendingBind != null) {
                 // We called unbind() while bind() was still pending completion
@@ -289,21 +304,21 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
         @Override
         public void onServiceConnected(final ComponentName name,
                                        final IBinder service) {
-            XPCOMEventTarget.launcherThread().dispatch(() -> {
+            XPCOMEventTarget.launcherThread().execute(() -> {
                 completeServiceConnect(service);
             });
         }
 
         @Override
         public void onServiceDisconnected(final ComponentName name) {
-            XPCOMEventTarget.launcherThread().dispatch(() -> {
+            XPCOMEventTarget.launcherThread().execute(() -> {
                 completeServiceDisconnect();
             });
         }
 
         @Override
         public void binderDied() {
-            XPCOMEventTarget.launcherThread().dispatch(() -> {
+            XPCOMEventTarget.launcherThread().execute(() -> {
                 onBinderDeath();
             });
         }
@@ -327,7 +342,7 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
     }
 
     public void preload(final GeckoProcessType... types) {
-        XPCOMEventTarget.launcherThread().dispatch(() -> {
+        XPCOMEventTarget.launcherThread().execute(() -> {
             for (final GeckoProcessType type : types) {
                 final ChildConnection connection = getConnection(type);
                 connection.bind().accept(child -> {
@@ -342,7 +357,7 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
     }
 
     public void crashChild() {
-        XPCOMEventTarget.launcherThread().dispatch(() -> {
+        XPCOMEventTarget.launcherThread().execute(() -> {
             final ChildConnection conn = mConnections.get(GeckoProcessType.CONTENT);
             if (conn == null) {
                 return;
@@ -380,7 +395,7 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
         final Bundle extras = GeckoThread.getActiveExtras();
         final int flags = filterFlagsForChild(GeckoThread.getActiveFlags());
 
-        XPCOMEventTarget.launcherThread().dispatch(() -> {
+        XPCOMEventTarget.launcherThread().execute(() -> {
             INSTANCE.start(result, type, args, extras, flags, prefsFd,
                            prefMapFd, ipcFd, crashFd, crashAnnotationFd,
                            /* isRetry */ false);
@@ -479,8 +494,17 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
         }
 
         if (started) {
-            result.complete(connection.getPid());
-            return;
+            try {
+                result.complete(connection.getPid());
+                return;
+            } catch (final RemoteException e) {
+                exception = e;
+            } catch (final Exception e) {
+                Log.e(LOGTAG, "ChildConnection.getPid() exception: ", e);
+            }
+
+            // If we don't have a valid pid, then fall through to our error handling code that will
+            // attempt to retry the launch.
         }
 
         if (isRetry) {

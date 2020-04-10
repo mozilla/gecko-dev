@@ -140,6 +140,10 @@ nsMediaSniffer::GetMIMETypeFromContent(nsIRequest* aRequest,
                                        nsACString& aSniffedType) {
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
   if (channel) {
+    nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
+    if (loadInfo->GetSkipContentSniffing()) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
     nsLoadFlags loadFlags = 0;
     channel->GetLoadFlags(&loadFlags);
     if (!(loadFlags & nsIChannel::LOAD_MEDIA_SNIFFER_OVERRIDES_CONTENT_TYPE)) {
@@ -191,16 +195,16 @@ nsMediaSniffer::GetMIMETypeFromContent(nsIRequest* aRequest,
     return NS_OK;
   }
 
+  if (MatchesADTS(aData, clampedLength)) {
+    aSniffedType.AssignLiteral(AUDIO_AAC);
+    return NS_OK;
+  }
+
   // Flac frames are generally big, often in excess of 24kB.
   // Using a size of MAX_BYTES_SNIFFED effectively means that we will only
   // recognize flac content if it starts with a frame.
   if (MatchesFLAC(aData, clampedLength)) {
     aSniffedType.AssignLiteral(AUDIO_FLAC);
-    return NS_OK;
-  }
-
-  if (MatchesADTS(aData, clampedLength)) {
-    aSniffedType.AssignLiteral(AUDIO_AAC);
     return NS_OK;
   }
 

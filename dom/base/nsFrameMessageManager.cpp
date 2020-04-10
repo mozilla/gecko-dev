@@ -608,19 +608,6 @@ void nsFrameMessageManager::ReceiveMessage(
     const nsAString& aMessage, bool aIsSync, StructuredCloneData* aCloneData,
     mozilla::jsipc::CpowHolder* aCpows, nsIPrincipal* aPrincipal,
     nsTArray<StructuredCloneData>* aRetVal, ErrorResult& aError) {
-  // If we are recording or replaying, we will end up here in both the
-  // middleman process and the recording/replaying process. Ignore the message
-  // in one of the processes, so that it is only received in one place.
-  if (recordreplay::IsRecordingOrReplaying()) {
-    if (DirectMessageToMiddleman(aMessage)) {
-      return;
-    }
-  } else if (recordreplay::IsMiddleman()) {
-    if (!DirectMessageToMiddleman(aMessage)) {
-      return;
-    }
-  }
-
   MOZ_ASSERT(aTarget);
 
   nsAutoTObserverArray<nsMessageListenerInfo, 1>* listeners =

@@ -82,13 +82,7 @@ impl Cert {
             slice::from_raw_parts(cert_info.Issuer.pbData, cert_info.Issuer.cbData as usize)
         };
         let issuer = issuer.to_vec();
-        let serial_number = unsafe {
-            slice::from_raw_parts(
-                cert_info.SerialNumber.pbData,
-                cert_info.SerialNumber.cbData as usize,
-            )
-        };
-        let serial_number = serial_number.to_vec();
+        let serial_number = read_encoded_serial_number(&value)?;
         let subject = unsafe {
             slice::from_raw_parts(cert_info.Subject.pbData, cert_info.Subject.cbData as usize)
         };
@@ -619,6 +613,21 @@ impl CertStore {
         CertStore { handle }
     }
 }
+
+pub const SUPPORTED_ATTRIBUTES: &[CK_ATTRIBUTE_TYPE] = &[
+    CKA_CLASS,
+    CKA_TOKEN,
+    CKA_LABEL,
+    CKA_ID,
+    CKA_VALUE,
+    CKA_ISSUER,
+    CKA_SERIAL_NUMBER,
+    CKA_SUBJECT,
+    CKA_PRIVATE,
+    CKA_KEY_TYPE,
+    CKA_MODULUS,
+    CKA_EC_PARAMS,
+];
 
 /// Attempts to enumerate certificates with private keys exposed by the OS. Currently only looks in
 /// the "My" cert store of the current user. In the future this may look in more locations.

@@ -37,7 +37,6 @@ using mozilla::Some;
 using mozilla::StaticAutoPtr;
 using mozilla::StaticMutex;
 using mozilla::StaticMutexAutoLock;
-using mozilla::StaticMutexNotRecorded;
 using mozilla::Telemetry::DynamicScalarDefinition;
 using mozilla::Telemetry::KeyedScalarAction;
 using mozilla::Telemetry::ProcessID;
@@ -592,7 +591,7 @@ nsresult ScalarUnsigned::GetValue(const nsACString& aStoreName,
   if (NS_FAILED(rv)) {
     return rv;
   }
-  aResult = outVar.forget();
+  aResult = std::move(outVar);
   if (aClearStore) {
     mStorage[storeIndex] = 0;
     ClearValueInStore(storeIndex);
@@ -712,7 +711,7 @@ nsresult ScalarString::GetValue(const nsACString& aStoreName, bool aClearStore,
   if (aClearStore) {
     ClearValueInStore(storeIndex);
   }
-  aResult = outVar.forget();
+  aResult = std::move(outVar);
   return NS_OK;
 }
 
@@ -806,7 +805,7 @@ nsresult ScalarBoolean::GetValue(const nsACString& aStoreName, bool aClearStore,
   if (NS_FAILED(rv)) {
     return rv;
   }
-  aResult = outVar.forget();
+  aResult = std::move(outVar);
   return NS_OK;
 }
 
@@ -2442,7 +2441,7 @@ void internal_ApplyPendingOperations(const StaticMutexAutoLock& lock) {
 // that, due to the nature of Telemetry, we cannot rely on having a
 // mutex initialized in InitializeGlobalState. Unfortunately, we
 // cannot make sure that no other function is called before this point.
-static StaticMutexNotRecorded gTelemetryScalarsMutex;
+static StaticMutex gTelemetryScalarsMutex;
 
 void TelemetryScalar::InitializeGlobalState(bool aCanRecordBase,
                                             bool aCanRecordExtended) {

@@ -42,7 +42,7 @@ class RenderCompositor {
   // have been pushed to the queue.
   // @return a RenderedFrameId for the frame
   virtual RenderedFrameId EndFrame(
-      const FfiVec<DeviceIntRect>& aDirtyRects) = 0;
+      const nsTArray<DeviceIntRect>& aDirtyRects) = 0;
   // Returns false when waiting gpu tasks is failed.
   // It might happen when rendering context is lost.
   virtual bool WaitForGPU() { return true; }
@@ -88,9 +88,11 @@ class RenderCompositor {
   virtual void CompositorBeginFrame() {}
   virtual void CompositorEndFrame() {}
   virtual void Bind(wr::NativeTileId aId, wr::DeviceIntPoint* aOffset,
-                    uint32_t* aFboId, wr::DeviceIntRect aDirtyRect) {}
+                    uint32_t* aFboId, wr::DeviceIntRect aDirtyRect,
+                    wr::DeviceIntRect aValidRect) {}
   virtual void Unbind() {}
   virtual void CreateSurface(wr::NativeSurfaceId aId,
+                             wr::DeviceIntPoint aVirtualOffset,
                              wr::DeviceIntSize aTileSize, bool aIsOpaque) {}
   virtual void DestroySurface(NativeSurfaceId aId) {}
   virtual void CreateTile(wr::NativeSurfaceId, int32_t aX, int32_t aY) {}
@@ -98,6 +100,7 @@ class RenderCompositor {
   virtual void AddSurface(wr::NativeSurfaceId aId, wr::DeviceIntPoint aPosition,
                           wr::DeviceIntRect aClipRect) {}
   virtual void EnableNativeCompositor(bool aEnable) {}
+  virtual CompositorCapabilities GetCompositorCapabilities() = 0;
 
   // Interface for partial present
   virtual bool UsePartialPresent() { return false; }

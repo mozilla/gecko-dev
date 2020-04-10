@@ -24,7 +24,7 @@ HTMLStyleElement::HTMLStyleElement(
   AddMutationObserver(this);
 }
 
-HTMLStyleElement::~HTMLStyleElement() {}
+HTMLStyleElement::~HTMLStyleElement() = default;
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLStyleElement)
 
@@ -164,7 +164,7 @@ void HTMLStyleElement::SetTextContentInternal(const nsAString& aTextContent,
 }
 
 Maybe<nsStyleLinkElement::SheetInfo> HTMLStyleElement::GetStyleSheetInfo() {
-  if (!IsCSSMimeTypeAttribute(*this)) {
+  if (!IsCSSMimeTypeAttributeForStyleElement(*this)) {
     return Nothing();
   }
 

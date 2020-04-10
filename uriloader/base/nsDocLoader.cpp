@@ -14,6 +14,7 @@
 #include "mozilla/PresShell.h"
 
 #include "nsDocLoader.h"
+#include "nsDocShell.h"
 #include "nsNetUtil.h"
 #include "nsIHttpChannel.h"
 #include "nsIWebNavigation.h"
@@ -180,7 +181,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDocLoader)
   NS_INTERFACE_MAP_ENTRY_CONCRETE(nsDocLoader)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTION(nsDocLoader, mChildrenInOnload)
+NS_IMPL_CYCLE_COLLECTION_WEAK(nsDocLoader, mChildrenInOnload)
 
 /*
  * Implementation of nsIInterfaceRequestor methods...
@@ -1473,7 +1474,8 @@ NS_IMETHODIMP nsDocLoader::AsyncOnChannelRedirect(
           newURI, where, nsIWebNavigation::LOAD_FLAGS_IS_REDIRECT,
           /* triggering principal */ nullptr, &loadURIHandled);
       if (NS_SUCCEEDED(rv) && loadURIHandled) {
-        cb->OnRedirectVerifyCallback(NS_OK);
+        aOldChannel->Cancel(NS_ERROR_ABORT);
+        cb->OnRedirectVerifyCallback(NS_ERROR_ABORT);
         return NS_OK;
       }
     }

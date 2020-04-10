@@ -43,9 +43,15 @@ derive_eq = true
 derive_neq = true
 
 [defines]
-# This will actually never be defined, but is handy to avoid cbindgen
+# These will actually never be defined, but is handy to avoid cbindgen
 # generating Servo-only types.
 "feature = servo" = "CBINDGEN_IS_SERVO"
+"feature = servo-layout-2013" = "CBINDGEN_IS_SERVO"
+"feature = servo-layout-2020" = "CBINDGEN_IS_SERVO"
+# These will always be defined.
+"feature = gecko" = "CBINDGEN_IS_GECKO"
+"feature = cbindgen" = "CBINDGEN_IS_GECKO"
+# These depend on the build.
 "target_pointer_width = 32" = "SERVO_32_BITS"
 "target_pointer_width = 64" = "HAVE_64BIT_BUILD"
 
@@ -198,6 +204,17 @@ include = [
   "AlignContent",
   "JustifyContent",
   "TransformStyle",
+  "Image",
+  "ClipPath",
+  "ShapeOutside",
+  "GridAutoFlow",
+  "Cursor",
+  "SVGStrokeDashArray",
+  "SVGLength",
+  "SVGOpacity",
+  "SVGWidth",
+  "TextAlign",
+  "TextAlignLast",
 ]
 item_types = ["enums", "structs", "unions", "typedefs", "functions", "constants"]
 renaming_overrides_prefixing = true
@@ -261,18 +278,34 @@ renaming_overrides_prefixing = true
   inline void ScaleBy(float);
 """
 
+"GenericCalcNode" = """
+ private:
+
+  template <typename ResultT, typename PercentageConverter>
+  ResultT ResolveInternal(ResultT aPercentageBasis,
+                          PercentageConverter aPercentageConverter) const;
+
+ public:
+  CSSCoord ResolveToCSSPixels(CSSCoord aPercentageBasis) const;
+
+  using CoordPercentageRounder = nscoord(*)(float);
+  nscoord Resolve(nscoord aBasis, CoordPercentageRounder) const;
+
+  void ScaleLengthsBy(float);
+"""
+
 "LengthPercentageUnion" = """
   using Self = StyleLengthPercentageUnion;
 
   // TODO(emilio): cbindgen should be able to generate these in the body of the
   // union, but it seems it's only implemented for structs, not unions.
-  static const uint32_t TAG_CALC = StyleLengthPercentageUnion_TAG_CALC;
-  static const uint32_t TAG_LENGTH = StyleLengthPercentageUnion_TAG_LENGTH;
-  static const uint32_t TAG_PERCENTAGE = StyleLengthPercentageUnion_TAG_PERCENTAGE;
-  static const uint32_t TAG_MASK = StyleLengthPercentageUnion_TAG_MASK;
+  static const uint8_t TAG_CALC = StyleLengthPercentageUnion_TAG_CALC;
+  static const uint8_t TAG_LENGTH = StyleLengthPercentageUnion_TAG_LENGTH;
+  static const uint8_t TAG_PERCENTAGE = StyleLengthPercentageUnion_TAG_PERCENTAGE;
+  static const uint8_t TAG_MASK = StyleLengthPercentageUnion_TAG_MASK;
 
  private:
-  uint32_t Tag() const {
+  uint8_t Tag() const {
     return tag.tag & TAG_MASK;
   }
 
@@ -376,21 +409,31 @@ renaming_overrides_prefixing = true
 
   // Defined in WritingModes.h
   inline const T& Get(mozilla::Side) const;
-  inline const T& Get(mozilla::WritingMode, mozilla::LogicalSide) const;
-  inline const T& GetIStart(mozilla::WritingMode) const;
-  inline const T& GetBStart(mozilla::WritingMode) const;
-  inline const T& GetIEnd(mozilla::WritingMode) const;
-  inline const T& GetBEnd(mozilla::WritingMode) const;
+  inline const T& Get(WritingMode, LogicalSide) const;
+  inline const T& GetIStart(WritingMode) const;
+  inline const T& GetBStart(WritingMode) const;
+  inline const T& GetIEnd(WritingMode) const;
+  inline const T& GetBEnd(WritingMode) const;
+
+  inline T& Get(mozilla::Side);
+  inline T& Get(WritingMode, LogicalSide);
+  inline T& GetIStart(WritingMode);
+  inline T& GetBStart(WritingMode);
+  inline T& GetIEnd(WritingMode);
+  inline T& GetBEnd(WritingMode);
 """
 
 "GenericBorderRadius" = """
-  inline const StyleLengthPercentage& Get(mozilla::HalfCorner) const;
+  inline const StyleLengthPercentage& Get(HalfCorner) const;
 """
 
 "RestyleHint" = """
   static inline StyleRestyleHint RestyleSubtree();
   static inline StyleRestyleHint RecascadeSubtree();
   static inline StyleRestyleHint ForAnimations();
+  // Returns true if this change hint is guaranteed to at least recascade all
+  // elements in the subtree of the element it is applied to.
+  inline bool DefinitelyRecascadesAllSubtree() const;
 """
 
 "TextTransform" = """
@@ -661,6 +704,7 @@ renaming_overrides_prefixing = true
 """
 
 "GenericGradient" = """
+  inline bool Repeating() const;
   bool IsOpaque() const;
 """
 
@@ -696,31 +740,76 @@ renaming_overrides_prefixing = true
 """
 
 "GenericRotate" = """
-public:
+ public:
   // The implementation of IPC LayersMessages needs this to be public.
   StyleGenericRotate(): tag(Tag::None) {}
 """
 
 "GenericScale" = """
-public:
+ public:
   // The implementation of IPC LayersMessages needs this to be public.
   StyleGenericScale(): tag(Tag::None) {}
 """
 
 "GenericTranslate" = """
-public:
+ public:
   // The implementation of IPC LayersMessages needs this to be public.
   StyleGenericTranslate(): tag(Tag::None) {}
 """
 
 "GenericOffsetPath" = """
-public:
+ public:
   // The implementation of IPC LayersMessages needs this to be public.
   StyleGenericOffsetPath(): tag(Tag::None) {}
 """
 
 "GenericPositionOrAuto" = """
-public:
+ public:
   // The implementation of IPC LayersMessages needs this to be public.
   StyleGenericPositionOrAuto(): tag(Tag::Auto) {}
+"""
+
+"GenericImage" = """
+ public:
+  // Whether this image may have an image request associated with it.
+  bool IsImageRequestType() const;
+
+  // Gets the image request URL.
+  const StyleComputedImageUrl* GetImageRequestURLValue() const;
+
+  // Gets the image data of this image if it has any image request.
+  imgRequestProxy* GetImageRequest() const;
+
+  // Returns true if this image is fully loaded, and its size is calculated.
+  // Always returns true if there's no image request involved and this image
+  // is not `none`.
+  bool IsComplete() const;
+
+  // Returns true if this image has an available size and hasn't errored.
+  // Always returns true if there's no image request involved and this image
+  // is not `none`.
+  bool IsSizeAvailable() const;
+
+  // Starts the decoding of a image. Returns true if the current frame of the
+  // image is complete. The return value is intended to be used instead of
+  // IsComplete because IsComplete may not be up to date if notifications
+  // from decoding are pending because they are being sent async.
+  bool StartDecoding() const;
+
+  // Returns true if the item is definitely opaque --- i.e., paints every
+  // pixel within its bounds opaquely, and the bounds contains at least a pixel.
+  bool IsOpaque() const;
+
+  struct ActualCropRect {
+    nsIntRect mRect; // in image pixels
+    bool mIsEntireImage;
+  };
+
+  Maybe<ActualCropRect> ComputeActualCropRect() const;
+
+  // Resolves the underlying image request if any.
+  void ResolveImage(dom::Document&, const StyleGenericImage* aOld);
+
+  // Returns whether this image has been resolved.
+  bool IsResolved() const;
 """

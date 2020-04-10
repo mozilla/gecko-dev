@@ -17,13 +17,13 @@ use crate::values::{specified, CSSFloat};
 use crate::Zero;
 use app_units::Au;
 use std::fmt::{self, Write};
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub};
 use style_traits::{CSSPixel, CssWriter, ToCss};
 
 pub use super::image::Image;
+pub use super::length_percentage::{LengthPercentage, NonNegativeLengthPercentage};
 pub use crate::values::specified::url::UrlOrNone;
 pub use crate::values::specified::{Angle, BorderStyle, Time};
-pub use super::length_percentage::{LengthPercentage, NonNegativeLengthPercentage};
 
 impl ToComputedValue for specified::NoCalcLength {
     type ComputedValue = Length;
@@ -57,7 +57,9 @@ impl ToComputedValue for specified::Length {
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             specified::Length::NoCalc(l) => l.to_computed_value(context),
-            specified::Length::Calc(ref calc) => calc.to_computed_value(context).to_length().unwrap(),
+            specified::Length::Calc(ref calc) => {
+                calc.to_computed_value(context).to_length().unwrap()
+            },
         }
     }
 
@@ -272,7 +274,7 @@ impl CSSPixelLength {
     }
 }
 
-impl Zero for CSSPixelLength {
+impl num_traits::Zero for CSSPixelLength {
     fn zero() -> Self {
         CSSPixelLength::new(0.)
     }
@@ -315,6 +317,13 @@ impl Div<CSSFloat> for CSSPixelLength {
     #[inline]
     fn div(self, other: CSSFloat) -> Self {
         Self::new(self.px() / other)
+    }
+}
+
+impl MulAssign<CSSFloat> for CSSPixelLength {
+    #[inline]
+    fn mul_assign(&mut self, other: CSSFloat) {
+        self.0 *= other;
     }
 }
 

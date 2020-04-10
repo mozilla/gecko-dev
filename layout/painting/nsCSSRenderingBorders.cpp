@@ -3388,11 +3388,12 @@ nsCSSBorderImageRenderer::CreateBorderImageRenderer(
   }
 
   // We should always get here with the frame's border, but we may construct an
-  // nsStyleBorder from the stack to deal with :visited. We copy the border
-  // image and such from the non-visited one, so there's no need to do anything
-  // with it.
-  MOZ_ASSERT(&aStyleBorder == aForFrame->StyleBorder() ||
-             aForFrame->Style()->GetStyleIfVisited());
+  // nsStyleBorder om the stack to deal with :visited and other shenaningans.
+  //
+  // We always copy the border image and such from the non-visited one, so
+  // there's no need to do anything with it.
+  MOZ_ASSERT(aStyleBorder.GetBorderImageRequest() ==
+             aForFrame->StyleBorder()->GetBorderImageRequest());
 
   nsCSSBorderImageRenderer renderer(aForFrame, aBorderArea, aStyleBorder,
                                     aSkipSides, imgRenderer);
@@ -3609,7 +3610,8 @@ ImgDrawResult nsCSSBorderImageRenderer::CreateWebRenderCommands(
 
   ImgDrawResult drawResult = ImgDrawResult::SUCCESS;
   switch (mImageRenderer.GetType()) {
-    case eStyleImageType_Image: {
+    case StyleImage::Tag::Rect:
+    case StyleImage::Tag::Url: {
       RefPtr<imgIContainer> img = mImageRenderer.GetImage();
       if (!img || img->GetType() == imgIContainer::TYPE_VECTOR) {
         // Vector images will redraw each segment of the border up to 8 times.
@@ -3662,18 +3664,21 @@ ImgDrawResult nsCSSBorderImageRenderer::CreateWebRenderCommands(
         bool noVerticalBorders = widths[0] <= epsilon && widths[2] < epsilon;
         bool noHorizontalBorders = widths[1] <= epsilon && widths[3] < epsilon;
 
-        // Border image with no border. It's a little silly but WebRender currently does
-        // not handle this. We could fall back to a blob image but there are reftests that
-        // are sensible to the test going through a blob while the reference doesn't.
+        // Border image with no border. It's a little silly but WebRender
+        // currently does not handle this. We could fall back to a blob image
+        // but there are reftests that are sensible to the test going through a
+        // blob while the reference doesn't.
         if (noVerticalBorders && noHorizontalBorders) {
-          aBuilder.PushImage(dest, clip, !aItem->BackfaceIsHidden(), rendering, key.value());
+          aBuilder.PushImage(dest, clip, !aItem->BackfaceIsHidden(), rendering,
+                             key.value());
           break;
         }
 
         // Fall-back if we want to fill the middle area and opposite edges are
         // both empty.
         // TODO(bug 1609893): moving some of the repetition handling code out
-        // of the image shader will make it easier to handle these cases properly.
+        // of the image shader will make it easier to handle these cases
+        // properly.
         if (noHorizontalBorders || noVerticalBorders) {
           return ImgDrawResult::NOT_SUPPORTED;
         }
@@ -3693,7 +3698,7 @@ ImgDrawResult nsCSSBorderImageRenderer::CreateWebRenderCommands(
       aBuilder.PushBorderImage(dest, clip, !aItem->BackfaceIsHidden(), params);
       break;
     }
-    case eStyleImageType_Gradient: {
+    case StyleImage::Tag::Gradient: {
       const StyleGradient& gradient = *mImageRenderer.GetGradientData();
       nsCSSGradientRenderer renderer = nsCSSGradientRenderer::Create(
           aForFrame->PresContext(), aForFrame->Style(), gradient, mImageSize);
@@ -3703,10 +3708,13 @@ ImgDrawResult nsCSSBorderImageRenderer::CreateWebRenderCommands(
       LayoutDevicePoint lineStart;
       LayoutDevicePoint lineEnd;
       LayoutDeviceSize gradientRadius;
+      LayoutDevicePoint gradientCenter;
+      float gradientAngle;
       renderer.BuildWebRenderParameters(1.0, extendMode, stops, lineStart,
-                                        lineEnd, gradientRadius);
+                                        lineEnd, gradientRadius, gradientCenter,
+                                        gradientAngle);
 
-      if (gradient.kind.IsLinear()) {
+      if (gradient.IsLinear()) {
         LayoutDevicePoint startPoint =
             LayoutDevicePoint(dest.origin.x, dest.origin.y) + lineStart;
         LayoutDevicePoint endPoint =
@@ -3722,12 +3730,21 @@ ImgDrawResult nsCSSBorderImageRenderer::CreateWebRenderCommands(
             extendMode,
             wr::ToLayoutSideOffsets(outset[0], outset[1], outset[2],
                                     outset[3]));
-      } else {
+      } else if (gradient.IsRadial()) {
         aBuilder.PushBorderRadialGradient(
             dest, clip, !aItem->BackfaceIsHidden(),
             wr::ToBorderWidths(widths[0], widths[1], widths[2], widths[3]),
             mFill, wr::ToLayoutPoint(lineStart),
             wr::ToLayoutSize(gradientRadius), stops, extendMode,
+            wr::ToLayoutSideOffsets(outset[0], outset[1], outset[2],
+                                    outset[3]));
+      } else {
+        MOZ_ASSERT(gradient.IsConic());
+        aBuilder.PushBorderConicGradient(
+            dest, clip, !aItem->BackfaceIsHidden(),
+            wr::ToBorderWidths(widths[0], widths[1], widths[2], widths[3]),
+            mFill, wr::ToLayoutPoint(gradientCenter), gradientAngle, stops,
+            extendMode,
             wr::ToLayoutSideOffsets(outset[0], outset[1], outset[2],
                                     outset[3]));
       }

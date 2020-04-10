@@ -16,7 +16,7 @@ from .. import GECKO
 from .treeherder import join_symbol
 
 logger = logging.getLogger(__name__)
-base_path = os.path.join(GECKO, 'taskcluster', 'docs')
+doc_base_path = os.path.join(GECKO, 'taskcluster', 'docs')
 
 
 @attr.s(frozen=True)
@@ -47,35 +47,69 @@ class VerificationSequence(object):
 verifications = VerificationSequence()
 
 
-def verify_docs(filename, identifiers, appearing_as):
+@attr.s(frozen=True)
+class DocPaths(object):
+    _paths = attr.ib(factory=list)
 
+    def get_files(self, filename):
+        rv = []
+        for p in self._paths:
+            doc_path = os.path.join(p, filename)
+            if os.path.exists(doc_path):
+                rv.append(doc_path)
+        return rv
+
+    def add(self, path):
+        """
+        Projects that make use of Firefox's taskgraph can extend it with
+        their own task kinds by registering additional paths for documentation.
+        documentation_paths.add() needs to be called by the project's Taskgraph
+        registration function. See taskgraph.config.
+        """
+        self._paths.append(path)
+
+
+documentation_paths = DocPaths()
+documentation_paths.add(doc_base_path)
+
+
+def verify_docs(filename, identifiers, appearing_as):
+    """
+    Look for identifiers of the type appearing_as in the files
+    returned by documentation_paths.get_files(). Firefox will have
+    a single file in a list, but projects such as Thunderbird can have
+    documentation in another location and may return multiple files.
+    """
     # We ignore identifiers starting with '_' for the sake of tests.
     # Strings starting with "_" are ignored for doc verification
     # hence they can be used for faking test values
-    with open(os.path.join(base_path, filename)) as fileObject:
-        doctext = "".join(fileObject.readlines())
-        if appearing_as == "inline-literal":
-            expression_list = [
-                "``" + identifier + "``"
-                for identifier in identifiers
-                if not identifier.startswith("_")
-            ]
-        elif appearing_as == "heading":
-            expression_list = [
-                '\n' + identifier + "\n(?:(?:(?:-+\n)+)|(?:(?:.+\n)+))"
-                for identifier in identifiers
-                if not identifier.startswith("_")
-            ]
-        else:
-            raise Exception("appearing_as = `{}` not defined".format(appearing_as))
+    doc_files = documentation_paths.get_files(filename)
+    doctext = "".join(
+        [open(d).read() for d in doc_files]
+    )
 
-        for expression, identifier in zip(expression_list, identifiers):
-            match_group = re.search(expression, doctext)
-            if not match_group:
-                raise Exception(
-                    "{}: `{}` missing from doc file: `{}`"
-                    .format(appearing_as, identifier, filename)
-                )
+    if appearing_as == "inline-literal":
+        expression_list = [
+            "``" + identifier + "``"
+            for identifier in identifiers
+            if not identifier.startswith("_")
+        ]
+    elif appearing_as == "heading":
+        expression_list = [
+            '\n' + identifier + "\n(?:(?:(?:-+\n)+)|(?:(?:.+\n)+))"
+            for identifier in identifiers
+            if not identifier.startswith("_")
+        ]
+    else:
+        raise Exception("appearing_as = `{}` not defined".format(appearing_as))
+
+    for expression, identifier in zip(expression_list, identifiers):
+        match_group = re.search(expression, doctext)
+        if not match_group:
+            raise Exception(
+                "{}: `{}` missing from doc file: `{}`"
+                .format(appearing_as, identifier, filename)
+            )
 
 
 @verifications.add('full_task_graph')
@@ -261,3 +295,51 @@ def verify_nightly_no_sccache(task, taskgraph, scratch_pad, graph_config):
         if task.task.get('payload', {}).get('env', {}).get('USE_SCCACHE'):
             raise Exception(
                 'Nightly job {} cannot use sccache'.format(task.label))
+
+
+@verifications.add('full_task_graph')
+def verify_test_packaging(task, taskgraph, scratch_pad, graph_config):
+    if task is None:
+        exceptions = []
+        for task in taskgraph.tasks.itervalues():
+            if task.kind == 'build' and not task.attributes.get('skip-verify-test-packaging'):
+                build_env = task.task.get('payload', {}).get('env', {})
+                package_tests = build_env.get('MOZ_AUTOMATION_PACKAGE_TESTS')
+                shippable = task.attributes.get('shippable', False)
+                nightly = task.attributes.get('nightly', False)
+                build_has_tests = scratch_pad.get(task.label)
+
+                if package_tests != '1':
+                    # Shippable builds should always package tests.
+                    if shippable:
+                        exceptions.append('Build job {} is shippable and does not specify '
+                                          'MOZ_AUTOMATION_PACKAGE_TESTS=1 in the '
+                                          'environment.'.format(task.label))
+                    if nightly:
+                        exceptions.append('Build job {} is nightly and does not specify '
+                                          'MOZ_AUTOMATION_PACKAGE_TESTS=1 in the '
+                                          'environment.'.format(task.label))
+
+                    # Build tasks in the scratch pad have tests dependent on
+                    # them, so we need to package tests during build.
+                    if build_has_tests:
+                        exceptions.append(
+                            'Build job {} has tests dependent on it and does not specify '
+                            'MOZ_AUTOMATION_PACKAGE_TESTS=1 in the environment'.format(task.label))
+                else:
+                    # Build tasks that aren't in the scratch pad have no
+                    # dependent tests, so we shouldn't package tests.
+                    # With the caveat that we expect shippable and nightly jobs to always
+                    # produce tests.
+                    if not build_has_tests and not any([shippable, nightly]):
+                        exceptions.append(
+                            'Build job {} has no tests, but specifies '
+                            'MOZ_AUTOMATION_PACKAGE_TESTS={} in the environment. '
+                            'Unset MOZ_AUTOMATION_PACKAGE_TESTS in the task definition '
+                            'to fix.'.format(task.label, package_tests))
+        if exceptions:
+            raise Exception("\n".join(exceptions))
+        return
+    if task.kind == 'test':
+        build_task = taskgraph[task.dependencies['build']]
+        scratch_pad[build_task.label] = 1

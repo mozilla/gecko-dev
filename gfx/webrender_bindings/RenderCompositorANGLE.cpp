@@ -446,7 +446,7 @@ bool RenderCompositorANGLE::BeginFrame() {
 }
 
 RenderedFrameId RenderCompositorANGLE::EndFrame(
-    const FfiVec<DeviceIntRect>& aDirtyRects) {
+    const nsTArray<DeviceIntRect>& aDirtyRects) {
   RenderedFrameId frameId = GetNextRenderFrameId();
   InsertGraphicsCommandsFinishedWaitQuery(frameId);
 
@@ -474,10 +474,10 @@ RenderedFrameId RenderCompositorANGLE::EndFrame(
       // Clear full render flag.
       mFullRender = false;
       // If there is no diry rect, we skip SwapChain present.
-      if (aDirtyRects.length > 0) {
-        StackArray<RECT, 1> rects(aDirtyRects.length);
-        for (uintptr_t i = 0; i < aDirtyRects.length; i++) {
-          const DeviceIntRect& rect = aDirtyRects.data[i];
+      if (!aDirtyRects.IsEmpty()) {
+        StackArray<RECT, 1> rects(aDirtyRects.Length());
+        for (size_t i = 0; i < aDirtyRects.Length(); ++i) {
+          const DeviceIntRect& rect = aDirtyRects[i];
           // Clip rect to bufferSize
           rects[i].left =
               std::max(0, std::min(rect.origin.x, bufferSize.width));
@@ -491,7 +491,7 @@ RenderedFrameId RenderCompositorANGLE::EndFrame(
 
         DXGI_PRESENT_PARAMETERS params;
         PodZero(&params);
-        params.DirtyRectsCount = aDirtyRects.length;
+        params.DirtyRectsCount = aDirtyRects.Length();
         params.pDirtyRects = rects.data();
 
         HRESULT hr;
@@ -506,7 +506,7 @@ RenderedFrameId RenderCompositorANGLE::EndFrame(
     }
     auto end = TimeStamp::Now();
     mozilla::Telemetry::Accumulate(mozilla::Telemetry::COMPOSITE_SWAP_TIME,
-                                            (end - start).ToMilliseconds() * 10.);
+                                   (end - start).ToMilliseconds() * 10.);
   }
 
   if (mDisablingNativeCompositor) {
@@ -804,16 +804,18 @@ void RenderCompositorANGLE::CompositorEndFrame() {
 
 void RenderCompositorANGLE::Bind(wr::NativeTileId aId,
                                  wr::DeviceIntPoint* aOffset, uint32_t* aFboId,
-                                 wr::DeviceIntRect aDirtyRect) {
-  mDCLayerTree->Bind(aId, aOffset, aFboId, aDirtyRect);
+                                 wr::DeviceIntRect aDirtyRect,
+                                 wr::DeviceIntRect aValidRect) {
+  mDCLayerTree->Bind(aId, aOffset, aFboId, aDirtyRect, aValidRect);
 }
 
 void RenderCompositorANGLE::Unbind() { mDCLayerTree->Unbind(); }
 
 void RenderCompositorANGLE::CreateSurface(wr::NativeSurfaceId aId,
+                                          wr::DeviceIntPoint aVirtualOffset,
                                           wr::DeviceIntSize aTileSize,
                                           bool aIsOpaque) {
-  mDCLayerTree->CreateSurface(aId, aTileSize, aIsOpaque);
+  mDCLayerTree->CreateSurface(aId, aVirtualOffset, aTileSize, aIsOpaque);
 }
 
 void RenderCompositorANGLE::DestroySurface(NativeSurfaceId aId) {
@@ -834,6 +836,18 @@ void RenderCompositorANGLE::AddSurface(wr::NativeSurfaceId aId,
                                        wr::DeviceIntPoint aPosition,
                                        wr::DeviceIntRect aClipRect) {
   mDCLayerTree->AddSurface(aId, aPosition, aClipRect);
+}
+
+CompositorCapabilities RenderCompositorANGLE::GetCompositorCapabilities() {
+  CompositorCapabilities caps;
+
+#ifdef USE_VIRTUAL_SURFACES
+  caps.virtual_surface_size = VIRTUAL_SURFACE_SIZE;
+#else
+  caps.virtual_surface_size = 0;
+#endif
+
+  return caps;
 }
 
 void RenderCompositorANGLE::EnableNativeCompositor(bool aEnable) {
@@ -902,6 +916,8 @@ bool RenderCompositorANGLE::MaybeReadback(
     return false;
   }
 
+  auto start = TimeStamp::Now();
+
   HDC nulldc = ::GetDC(NULL);
   HDC dc = ::CreateCompatibleDC(nulldc);
   ::ReleaseDC(nullptr, nulldc);
@@ -954,6 +970,11 @@ bool RenderCompositorANGLE::MaybeReadback(
 
   ::DeleteObject(bitmap);
   ::DeleteDC(dc);
+
+  uint32_t latencyMs = round((TimeStamp::Now() - start).ToMilliseconds());
+  if (latencyMs > 500) {
+    gfxCriticalNote << "Readback took too long: " << latencyMs << " ms";
+  }
 
   return true;
 }

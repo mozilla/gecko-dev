@@ -42,6 +42,7 @@
 #include "nsStyleConsts.h"
 #include "nsPresContext.h"
 #include "nsContentUtils.h"
+#include "nsDocShell.h"
 #include "nsGlobalWindow.h"
 #include "nsXULTooltipListener.h"
 #include "nsXULPopupManager.h"
@@ -692,8 +693,10 @@ NS_IMETHODIMP AppWindow::Destroy() {
 
   mDOMWindow = nullptr;
   if (mDocShell) {
+    RefPtr<BrowsingContext> bc(mDocShell->GetBrowsingContext());
     nsCOMPtr<nsIBaseWindow> shellAsWin(do_QueryInterface(mDocShell));
     shellAsWin->Destroy();
+    bc->Detach();
     mDocShell = nullptr;  // this can cause reentrancy of this function
   }
 
@@ -2187,8 +2190,7 @@ NS_IMETHODIMP AppWindow::CreateNewChromeWindow(int32_t aChromeFlags,
 
   NS_ENSURE_TRUE(newWindow, NS_ERROR_FAILURE);
 
-  *_retval = newWindow;
-  NS_ADDREF(*_retval);
+  newWindow.forget(_retval);
 
   return NS_OK;
 }
@@ -2263,8 +2265,7 @@ NS_IMETHODIMP AppWindow::CreateNewContentWindow(int32_t aChromeFlags,
                   appWin->mPrimaryBrowserParent);
   MOZ_ASSERT_IF(appWin->mPrimaryContentShell, aNextRemoteTabId == 0);
 
-  *_retval = newWindow;
-  NS_ADDREF(*_retval);
+  newWindow.forget(_retval);
 
   return NS_OK;
 }

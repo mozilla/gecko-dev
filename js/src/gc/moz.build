@@ -28,6 +28,7 @@ UNIFIED_SOURCES += [
     'Barrier.cpp',
     'FinalizationGroup.cpp',
     'GC.cpp',
+    'GCParallelTask.cpp',
     'GCTrace.cpp',
     'Marking.cpp',
     'Memory.cpp',

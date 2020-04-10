@@ -133,6 +133,13 @@ js_option(env='MOZ_PGO', help='Build with profile guided optimizations')
 
 set_config('MOZ_PGO', depends('MOZ_PGO')(lambda x: bool(x)))
 
+
+wine = check_prog(
+    'WINE', ['wine64', 'wine'], allow_missing=True,
+    when=depends(target, host)(
+        lambda t, h: t.kernel == 'WINNT' and h.kernel == 'Linux'))
+
+
 include('build/moz.configure/toolchain.configure',
         when='--enable-compile-environment')
 
@@ -562,13 +569,19 @@ def makensis_progs(target):
 nsis = check_prog('MAKENSISU', makensis_progs, allow_missing=True)
 
 # Make sure the version of makensis is up to date.
-@depends_if(nsis)
+@depends(nsis, wine)
 @checking('for NSIS version')
 @imports('re')
-def nsis_version(nsis):
+def nsis_version(nsis, wine):
+    if not nsis:
+        return None
     nsis_min_version = '3.0b1'
-    out = check_cmd_output(nsis, '-version',
-                           onerror=lambda: die('Failed to get nsis version.'))
+    onerror = lambda: die('Failed to get nsis version.')
+    if wine and nsis.lower().endswith('.exe'):
+        out = check_cmd_output(wine, nsis, '-version', onerror=onerror)
+    else:
+        out = check_cmd_output(nsis, '-version', onerror=onerror)
+
     m = re.search(r'(?<=v)[0-9]+\.[0-9]+((a|b|rc)[0-9]+)?', out)
 
     if not m:
@@ -604,6 +617,7 @@ def nsis_flags(host):
 set_config('MAKENSISU_FLAGS', nsis_flags)
 
 check_prog('7Z', ('7z', '7za'), allow_missing=True, when=target_is_windows)
+check_prog('UPX', ('upx',), allow_missing=True, when=target_is_windows)
 
 
 @depends(host_c_compiler, c_compiler, bindgen_config_paths)
@@ -633,20 +647,6 @@ llvm_objdump = check_prog('LLVM_OBJDUMP', llvm_objdump, what='llvm-objdump',
                           paths=toolchain_search_path)
 
 add_old_configure_assignment('LLVM_OBJDUMP', llvm_objdump)
-
-# Fork server
-option('--enable-forkserver', env='MOZ_ENABLE_FORKSERVER', help='Enable fork server')
-
-@depends('--enable-forkserver', target)
-def forkserver_flag(value, target):
-    if target.os == 'Android' or \
-       (target.os == 'GNU' and target.kernel == 'Linux') or \
-       target.os == 'FreeBSD':
-        return bool(value)
-    pass
-
-set_config('MOZ_ENABLE_FORKSERVER', forkserver_flag)
-set_define('MOZ_ENABLE_FORKSERVER', forkserver_flag, forkserver_flag)
 
 
 # Please do not add configure checks from here on.

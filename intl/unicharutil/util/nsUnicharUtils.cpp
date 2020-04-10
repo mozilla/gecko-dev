@@ -170,21 +170,26 @@ uint32_t ToNaked(uint32_t aChar) {
 }
 
 void ToNaked(nsAString& aString) {
-  char16_t* buf = aString.BeginWriting();
-  ToNaked(buf, buf, aString.Length());
-}
-
-void ToNaked(const char16_t* aIn, char16_t* aOut, uint32_t aLen) {
-  for (uint32_t i = 0; i < aLen; i++) {
-    uint32_t ch = aIn[i];
-    if (i < aLen - 1 && NS_IS_SURROGATE_PAIR(ch, aIn[i + 1])) {
-      ch = mozilla::unicode::GetNaked(SURROGATE_TO_UCS4(ch, aIn[i + 1]));
-      NS_ASSERTION(!IS_IN_BMP(ch), "stripping crossed BMP/SMP boundary!");
-      aOut[i++] = H_SURROGATE(ch);
-      aOut[i] = L_SURROGATE(ch);
+  uint32_t i = 0;
+  while (i < aString.Length()) {
+    uint32_t ch = aString[i];
+    if (i < aString.Length() - 1 && NS_IS_SURROGATE_PAIR(ch, aString[i + 1])) {
+      ch = SURROGATE_TO_UCS4(ch, aString[i + 1]);
+      if (mozilla::unicode::IsCombiningDiacritic(ch)) {
+        aString.Cut(i, 2);
+      } else {
+        ch = mozilla::unicode::GetNaked(ch);
+        NS_ASSERTION(!IS_IN_BMP(ch), "stripping crossed BMP/SMP boundary!");
+        aString.Replace(i++, 1, H_SURROGATE(ch));
+        aString.Replace(i++, 1, L_SURROGATE(ch));
+      }
       continue;
     }
-    aOut[i] = ToNaked(ch);
+    if (mozilla::unicode::IsCombiningDiacritic(ch)) {
+      aString.Cut(i, 1);
+    } else {
+      aString.Replace(i++, 1, ToNaked(ch));
+    }
   }
 }
 
@@ -429,6 +434,23 @@ int32_t CaseInsensitiveCompare(const char* aLeft, const char* aRight,
   return 0;
 }
 
+static MOZ_ALWAYS_INLINE uint32_t
+GetLowerUTF8Codepoint_inline(const char* aStr, const char* aEnd,
+                             const char** aNext, bool aMatchDiacritics) {
+  uint32_t c;
+  for (;;) {
+    c = GetLowerUTF8Codepoint_inline(aStr, aEnd, aNext);
+    if (aMatchDiacritics) {
+      break;
+    }
+    if (!mozilla::unicode::IsCombiningDiacritic(c)) {
+      break;
+    }
+    aStr = *aNext;
+  }
+  return c;
+}
+
 bool CaseInsensitiveUTF8CharsEqual(const char* aLeft, const char* aRight,
                                    const char* aLeftEnd, const char* aRightEnd,
                                    const char** aLeftNext,
@@ -440,14 +462,15 @@ bool CaseInsensitiveUTF8CharsEqual(const char* aLeft, const char* aRight,
   NS_ASSERTION(aLeft < aLeftEnd, "aLeft must be less than aLeftEnd.");
   NS_ASSERTION(aRight < aRightEnd, "aRight must be less than aRightEnd.");
 
-  uint32_t leftChar = GetLowerUTF8Codepoint_inline(aLeft, aLeftEnd, aLeftNext);
+  uint32_t leftChar = GetLowerUTF8Codepoint_inline(aLeft, aLeftEnd, aLeftNext,
+                                                   aMatchDiacritics);
   if (MOZ_UNLIKELY(leftChar == uint32_t(-1))) {
     *aErr = true;
     return false;
   }
 
-  uint32_t rightChar =
-      GetLowerUTF8Codepoint_inline(aRight, aRightEnd, aRightNext);
+  uint32_t rightChar = GetLowerUTF8Codepoint_inline(
+      aRight, aRightEnd, aRightNext, aMatchDiacritics);
   if (MOZ_UNLIKELY(rightChar == uint32_t(-1))) {
     *aErr = true;
     return false;

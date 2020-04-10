@@ -3,7 +3,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 """ Helpers to build scenarii
 """
-from condprof.util import ERROR
+from condprof.util import logger
+
+_SUPPORTED_MOBILE_BROWSERS = "fenix", "gecko", "fennec"
+
+
+def is_mobile(platform):
+    return any(mobile in platform for mobile in _SUPPORTED_MOBILE_BROWSERS)
 
 
 class TabSwitcher:
@@ -17,7 +23,7 @@ class TabSwitcher:
         self._max = options.get("max_urls", 10)
         self.platform = options.get("platform", "")
         self.num_tabs = self._max >= 100 and 100 or self._max
-        self._mobile = "fenix" in self.platform or "gecko" in self.platform
+        self._mobile = is_mobile(self.platform)
 
     async def create_windows(self):
         # on mobile we don't use tabs for now
@@ -39,7 +45,7 @@ class TabSwitcher:
                 self.handles = await self.session.get_window_handles()
                 self.current = 0
         except Exception:
-            ERROR("Could not get window handles")
+            logger.error("Could not get window handles")
             return
 
         handle = self.handles[self.current]
@@ -50,4 +56,50 @@ class TabSwitcher:
         try:
             await self.session.switch_to_window(handle)
         except Exception:
-            ERROR("Could not switch to handle %s" % str(handle))
+            logger.error("Could not switch to handle %s" % str(handle))
+
+
+# 10 minutes
+_SCRIPT_TIMEOUT = 10 * 60 * 1000
+
+
+async def execute_async_script(session, script, *args):
+    # switch to the right context if needed
+    current_context = await session._request(url="/moz/context", method="GET")
+    if current_context != "chrome":
+        logger.info("Switching to chrome context")
+        await session._request(
+            url="/moz/context", method="POST", data={"context": "chrome"}
+        )
+        switch_back = True
+    else:
+        switch_back = False
+    logger.info("Setting up script timeout")
+    await session._request(
+        url="/timeouts", method="POST", data={"script": _SCRIPT_TIMEOUT}
+    )
+    try:
+        attempts = 0
+        while True:
+            logger.info("Running triggerSync()")
+            try:
+                return await session._request(
+                    url="/execute/async",
+                    method="POST",
+                    data={"script": script, "args": list(args)},
+                )
+            except Exception as e:
+                attempts += 1
+                logger.error("The script failed.", exc_info=True)
+                if attempts > 2:
+                    return {
+                        "result": 1,
+                        "result_message": str(e),
+                        "result_exc": e,
+                        "logs": {},
+                    }
+    finally:
+        if switch_back:
+            await session._request(
+                url="/moz/context", method="POST", data={"context": current_context}
+            )

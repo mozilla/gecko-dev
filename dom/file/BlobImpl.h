@@ -31,7 +31,7 @@ class BlobImpl : public nsISupports {
   NS_DECLARE_STATIC_IID_ACCESSOR(BLOBIMPL_IID)
   NS_DECL_THREADSAFE_ISUPPORTS
 
-  BlobImpl() {}
+  BlobImpl() = default;
 
   virtual void GetName(nsAString& aName) const = 0;
 
@@ -40,8 +40,6 @@ class BlobImpl : public nsISupports {
   virtual void SetDOMPath(const nsAString& aName) = 0;
 
   virtual int64_t GetLastModified(ErrorResult& aRv) = 0;
-
-  virtual void SetLastModified(int64_t aLastModified) = 0;
 
   virtual void GetMozFullPath(nsAString& aName,
                               SystemCallerGuarantee /* unused */,
@@ -85,19 +83,14 @@ class BlobImpl : public nsISupports {
 
   virtual int64_t GetFileId() = 0;
 
-  virtual nsresult GetSendInfo(nsIInputStream** aBody, uint64_t* aContentLength,
-                               nsACString& aContentType,
-                               nsACString& aCharset) = 0;
+  nsresult GetSendInfo(nsIInputStream** aBody, uint64_t* aContentLength,
+                       nsACString& aContentType, nsACString& aCharset);
 
   virtual void SetLazyData(const nsAString& aName,
                            const nsAString& aContentType, uint64_t aLength,
                            int64_t aLastModifiedDate) = 0;
 
   virtual bool IsMemoryFile() const = 0;
-
-  virtual bool IsSizeUnknown() const = 0;
-
-  virtual bool IsDateUnknown() const = 0;
 
   virtual bool IsFile() const = 0;
 
@@ -106,7 +99,7 @@ class BlobImpl : public nsISupports {
   virtual bool IsDirectory() const { return false; }
 
  protected:
-  virtual ~BlobImpl() {}
+  virtual ~BlobImpl() = default;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(BlobImpl, BLOBIMPL_IID)

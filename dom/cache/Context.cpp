@@ -24,7 +24,7 @@ using mozilla::dom::cache::QuotaInfo;
 
 class NullAction final : public Action {
  public:
-  NullAction() {}
+  NullAction() = default;
 
   virtual void RunOnTarget(Resolver* aResolver, const QuotaInfo&,
                            Data*) override {
@@ -149,7 +149,7 @@ class Context::QuotaInitRunnable final : public nsIRunnable,
     nsresult Result() const { return mResult; }
 
    private:
-    ~SyncResolver() {}
+    ~SyncResolver() = default;
 
     bool mResolved;
     nsresult mResult;
@@ -224,10 +224,11 @@ void Context::QuotaInitRunnable::OpenDirectory() {
   // a listener.  We will then get DirectoryLockAcquired() on the owning
   // thread when it is safe to access our storage directory.
   mState = STATE_WAIT_FOR_DIRECTORY_LOCK;
-  QuotaManager::Get()->OpenDirectory(PERSISTENCE_TYPE_DEFAULT,
-                                     mQuotaInfo.mGroup, mQuotaInfo.mOrigin,
-                                     quota::Client::DOMCACHE,
-                                     /* aExclusive */ false, this);
+  RefPtr<DirectoryLock> pendingDirectoryLock =
+      QuotaManager::Get()->OpenDirectory(PERSISTENCE_TYPE_DEFAULT,
+                                         mQuotaInfo.mGroup, mQuotaInfo.mOrigin,
+                                         quota::Client::DOMCACHE,
+                                         /* aExclusive */ false, this);
 }
 
 void Context::QuotaInitRunnable::DirectoryLockAcquired(DirectoryLock* aLock) {

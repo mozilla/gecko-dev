@@ -178,6 +178,7 @@
 #include "nsIDragSession.h"
 #include "nsIFrameInlines.h"
 #include "mozilla/gfx/2D.h"
+#include "nsNetUtil.h"
 #include "nsSubDocumentFrame.h"
 #include "nsQueryObject.h"
 #include "mozilla/GlobalStyleSheetCache.h"
@@ -1351,6 +1352,7 @@ void PresShell::Destroy() {
 
   if (rd->GetPresContext() == GetPresContext()) {
     rd->RevokeViewManagerFlush();
+    rd->ClearHasScheduleFlush();
   }
 
   CancelAllPendingReflows();
@@ -1476,13 +1478,13 @@ void PresShell::UpdatePreferenceStyles() {
   // it to be modifiable from devtools and similar, see bugs 1239336 and
   // 1436782. I think it conceptually should be a user sheet, and could be
   // without too much trouble I'd think.
-  StyleSet()->AppendStyleSheet(StyleOrigin::UserAgent, newPrefSheet);
+  StyleSet()->AppendStyleSheet(*newPrefSheet);
   mPrefStyleSheet = newPrefSheet;
 }
 
 void PresShell::RemovePreferenceStyles() {
   if (mPrefStyleSheet) {
-    StyleSet()->RemoveStyleSheet(StyleOrigin::UserAgent, mPrefStyleSheet);
+    StyleSet()->RemoveStyleSheet(*mPrefStyleSheet);
     mPrefStyleSheet = nullptr;
   }
 }
@@ -1513,10 +1515,10 @@ void PresShell::AddUserSheet(StyleSheet* aSheet) {
   }
 
   if (index == static_cast<size_t>(StyleSet()->SheetCount(StyleOrigin::User))) {
-    StyleSet()->AppendStyleSheet(StyleOrigin::User, aSheet);
+    StyleSet()->AppendStyleSheet(*aSheet);
   } else {
     StyleSheet* ref = StyleSet()->SheetAt(StyleOrigin::User, index);
-    StyleSet()->InsertStyleSheetBefore(StyleOrigin::User, aSheet, ref);
+    StyleSet()->InsertStyleSheetBefore(*aSheet, *ref);
   }
 
   mDocument->ApplicableStylesChanged();
@@ -1525,7 +1527,7 @@ void PresShell::AddUserSheet(StyleSheet* aSheet) {
 void PresShell::AddAgentSheet(StyleSheet* aSheet) {
   // Make sure this does what nsDocumentViewer::CreateStyleSet does
   // wrt ordering.
-  StyleSet()->AppendStyleSheet(StyleOrigin::UserAgent, aSheet);
+  StyleSet()->AppendStyleSheet(*aSheet);
   mDocument->ApplicableStylesChanged();
 }
 
@@ -1534,17 +1536,11 @@ void PresShell::AddAuthorSheet(StyleSheet* aSheet) {
   // ones added with the StyleSheetService.
   StyleSheet* firstAuthorSheet = mDocument->GetFirstAdditionalAuthorSheet();
   if (firstAuthorSheet) {
-    StyleSet()->InsertStyleSheetBefore(StyleOrigin::Author, aSheet,
-                                       firstAuthorSheet);
+    StyleSet()->InsertStyleSheetBefore(*aSheet, *firstAuthorSheet);
   } else {
-    StyleSet()->AppendStyleSheet(StyleOrigin::Author, aSheet);
+    StyleSet()->AppendStyleSheet(*aSheet);
   }
 
-  mDocument->ApplicableStylesChanged();
-}
-
-void PresShell::RemoveSheet(StyleOrigin aOrigin, StyleSheet* aSheet) {
-  StyleSet()->RemoveStyleSheet(aOrigin, aSheet);
   mDocument->ApplicableStylesChanged();
 }
 
@@ -2315,9 +2311,13 @@ PresShell::CompleteMove(bool aForward, bool aExtend) {
                             : FrameConstructor()->GetRootElementFrame();
   if (!frame) return NS_ERROR_FAILURE;
   nsIFrame::CaretPosition pos = frame->GetExtremeCaretPosition(!aForward);
+
+  const nsFrameSelection::FocusMode focusMode =
+      aExtend ? nsFrameSelection::FocusMode::kExtendSelection
+              : nsFrameSelection::FocusMode::kCollapseToNewPoint;
   frameSelection->HandleClick(
-      pos.mResultContent, pos.mContentOffset, pos.mContentOffset, aExtend,
-      false, aForward ? CARET_ASSOCIATE_AFTER : CARET_ASSOCIATE_BEFORE);
+      pos.mResultContent, pos.mContentOffset, pos.mContentOffset, focusMode,
+      aForward ? CARET_ASSOCIATE_AFTER : CARET_ASSOCIATE_BEFORE);
   if (limiter) {
     // HandleClick resets ancestorLimiter, so set it again.
     frameSelection->SetAncestorLimiter(limiter);
@@ -3134,7 +3134,7 @@ nsresult PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll,
 }
 
 nsresult PresShell::ScrollToAnchor() {
-  nsCOMPtr<nsIContent> lastAnchor = mLastAnchorScrolledTo.forget();
+  nsCOMPtr<nsIContent> lastAnchor = std::move(mLastAnchorScrolledTo);
   if (!lastAnchor) {
     return NS_OK;
   }
@@ -5061,7 +5061,26 @@ nscolor PresShell::GetDefaultBackgroundColorToDraw() {
   if (!mPresContext || !mPresContext->GetBackgroundColorDraw()) {
     return NS_RGB(255, 255, 255);
   }
-  return mPresContext->DefaultBackgroundColor();
+
+  nscolor backgroundColor = mPresContext->DefaultBackgroundColor();
+  if (backgroundColor != NS_RGB(255, 255, 255)) {
+    // Return non-default color.
+    return backgroundColor;
+  }
+
+  // Use a dark background for top-level about:blank that is inaccessible to
+  // content JS.
+  Document* doc = GetDocument();
+  BrowsingContext* bc = doc->GetBrowsingContext();
+  if (bc && bc->IsTop() && !bc->HasOpener() &&
+      doc->GetDocumentURI() &&
+      NS_IsAboutBlank(doc->GetDocumentURI()) &&
+      doc->PrefersColorScheme() == StylePrefersColorScheme::Dark) {
+    // Use --in-content-page-background for prefers-color-scheme: dark.
+    return NS_RGB(0x2A, 0x2A, 0x2E);
+  }
+
+  return backgroundColor;
 }
 
 void PresShell::UpdateCanvasBackground() {
@@ -8876,12 +8895,12 @@ bool PresShell::IsDisplayportSuppressed() {
 }
 
 nsresult PresShell::AddOverrideStyleSheet(StyleSheet* aSheet) {
-  StyleSet()->AppendStyleSheet(aSheet->GetOrigin(), aSheet);
+  StyleSet()->AppendStyleSheet(*aSheet);
   return NS_OK;
 }
 
 nsresult PresShell::RemoveOverrideStyleSheet(StyleSheet* aSheet) {
-  StyleSet()->RemoveStyleSheet(aSheet->GetOrigin(), aSheet);
+  StyleSet()->RemoveStyleSheet(*aSheet);
   return NS_OK;
 }
 
@@ -10925,21 +10944,6 @@ void PresShell::SyncWindowProperties(nsView* aView) {
   }
 }
 
-static StyleOrigin ToOrigin(uint32_t aServiceSheetType) {
-  switch (aServiceSheetType) {
-    case nsIStyleSheetService::AGENT_SHEET:
-      return StyleOrigin::UserAgent;
-      break;
-    case nsIStyleSheetService::USER_SHEET:
-      return StyleOrigin::User;
-      break;
-    default:
-      MOZ_FALLTHROUGH_ASSERT("unexpected aSheetType value");
-    case nsIStyleSheetService::AUTHOR_SHEET:
-      return StyleOrigin::Author;
-  }
-}
-
 nsresult PresShell::HasRuleProcessorUsedByMultipleStyleSets(uint32_t aSheetType,
                                                             bool* aRetVal) {
   *aRetVal = false;
@@ -10966,7 +10970,8 @@ void PresShell::NotifyStyleSheetServiceSheetAdded(StyleSheet* aSheet,
 
 void PresShell::NotifyStyleSheetServiceSheetRemoved(StyleSheet* aSheet,
                                                     uint32_t aSheetType) {
-  RemoveSheet(ToOrigin(aSheetType), aSheet);
+  StyleSet()->RemoveStyleSheet(*aSheet);
+  mDocument->ApplicableStylesChanged();
 }
 
 void PresShell::SetIsUnderHiddenEmbedderElement(

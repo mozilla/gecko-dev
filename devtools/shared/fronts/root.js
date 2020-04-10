@@ -13,26 +13,14 @@ const {
 loader.lazyRequireGetter(this, "getFront", "devtools/shared/protocol", true);
 loader.lazyRequireGetter(
   this,
-  "ProcessDescriptorFront",
-  "devtools/shared/fronts/descriptors/process",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "FrameDescriptorFront",
-  "devtools/shared/fronts/descriptors/frame",
+  "TabDescriptorFront",
+  "devtools/shared/fronts/descriptors/tab",
   true
 );
 loader.lazyRequireGetter(
   this,
   "BrowsingContextTargetFront",
   "devtools/shared/fronts/targets/browsing-context",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "ContentProcessTargetFront",
-  "devtools/shared/fronts/targets/content-process",
   true
 );
 loader.lazyRequireGetter(
@@ -48,7 +36,7 @@ class RootFront extends FrontClassWithSpec(rootSpec) {
 
     // Root Front is a special Front. It is the only one to set its actor ID manually
     // out of the form object returned by RootActor.sayHello which is called when calling
-    // DebuggerClient.connect().
+    // DevToolsClient.connect().
     this.actorID = form.from;
 
     this.applicationType = form.applicationType;
@@ -215,7 +203,7 @@ class RootFront extends FrontClassWithSpec(rootSpec) {
     let { workers } = await this.listWorkers();
 
     // And then from the Child processes
-    const { processes } = await this.listProcesses();
+    const processes = await this.listProcesses();
     for (const processDescriptorFront of processes) {
       // Ignore parent process
       if (processDescriptorFront.isParent) {
@@ -231,116 +219,29 @@ class RootFront extends FrontClassWithSpec(rootSpec) {
     return workers;
   }
 
-  async listProcesses() {
-    const { processes } = await super.listProcesses();
-    const processDescriptors = processes.map(form => {
-      if (form.actor && form.actor.includes("processDescriptor")) {
-        return this._getProcessDescriptorFront(form);
-      }
-      // Support FF69 and older
-      return {
-        id: form.id,
-        isParent: form.parent,
-        getTarget: () => {
-          return this.getProcess(form.id);
-        },
-      };
-    });
-    return { processes: processDescriptors };
-  }
-
   /**
-   * Fetch the ParentProcessTargetActor for the main process.
+   * Fetch the ProcessDescriptorFront for the main process.
    *
-   * `getProcess` requests allows to fetch the target actor for any process
-   * and the main process is having the process ID zero.
+   * `getProcess` requests allows to fetch the descriptor for any process and
+   * the main process is having the process ID zero.
    */
   getMainProcess() {
     return this.getProcess(0);
   }
 
-  async getProcess(id) {
-    const { form } = await super.getProcess(id);
-    if (form.actor && form.actor.includes("processDescriptor")) {
-      // The server currently returns a form, when we can drop backwards compatibility,
-      // we can use automatic marshalling here instead, making the next line unnecessary
-      const processDescriptorFront = this._getProcessDescriptorFront(form);
-      return processDescriptorFront.getTarget();
-    }
-
-    // Backwards compatibility for servers up to FF69.
-    // Do not use specification automatic marshalling as getProcess may return
-    // two different type: ParentProcessTargetActor or ContentProcessTargetActor.
-    // Also, we do want to memoize the fronts and return already existing ones.
-    let front = this.actor(form.actor);
-    if (front) {
-      return front;
-    }
-    // getProcess may return a ContentProcessTargetActor or a ParentProcessTargetActor
-    // In most cases getProcess(0) will return the main process target actor,
-    // which is a ParentProcessTargetActor, but not in xpcshell, which uses a
-    // ContentProcessTargetActor. So select the right front based on the actor ID.
-    if (form.actor.includes("contentProcessTarget")) {
-      front = new ContentProcessTargetFront(this._client, null, this);
-    } else {
-      // ParentProcessTargetActor doesn't have a specific front, instead it uses
-      // BrowsingContextTargetFront on the client side.
-      front = new BrowsingContextTargetFront(this._client, null, this);
-    }
-    // As these fronts aren't instantiated by protocol.js, we have to set their actor ID
-    // manually like that:
-    front.actorID = form.actor;
-    front.form(form);
-    this.manage(front);
-
-    return front;
-  }
-
   /**
-   * This exists as a polyfill for now for tabTargets, which do not have descriptors.
-   * The mainRoot fills the role of the descriptor
-   */
-
-  /**
-   *  Get the previous frame descriptor front if it exists, create a new one if not
-   */
-  _getFrameDescriptorFront(form) {
-    let front = this.actor(form.actor);
-    if (front) {
-      return front;
-    }
-    front = new FrameDescriptorFront(this._client, null, this);
-    front.form(form);
-    front.actorID = form.actor;
-    this.manage(front);
-    return front;
-  }
-
-  /**
-   * Get the previous process descriptor front if it exists, create a new one if not.
+   * Retrieve the target descriptor for the provided id.
    *
-   * If we are using a modern server, we will get a form for a processDescriptorFront.
-   * Until we can switch to auto marshalling, we need to marshal this into a process
-   * descriptor front ourselves.
+   * @return {ProcessDescriptorFront} the process descriptor front for the
+   *         provided id.
    */
-  _getProcessDescriptorFront(form) {
-    let front = this.actor(form.actor);
-    if (front) {
-      return front;
-    }
-    front = new ProcessDescriptorFront(this._client, null, this);
-    front.form(form);
-    front.actorID = form.actor;
-    this.manage(front);
-    return front;
-  }
-
-  async getBrowsingContextDescriptor(id) {
-    const form = await super.getBrowsingContextDescriptor(id);
-    if (form.actor && form.actor.includes("processDescriptor")) {
-      return this._getProcessDescriptorFront(form);
-    }
-    return this._getFrameDescriptorFront(form);
+  async getProcess(id) {
+    const { form, processDescriptor } = await super.getProcess(id);
+    // Backward compatibility: FF74 or older servers will return the
+    // process descriptor as the "form" property of the response.
+    // Once FF75 is merged to release we can always expect `processDescriptor`
+    // to be defined.
+    return processDescriptor || form;
   }
 
   /**
@@ -349,10 +250,23 @@ class RootFront extends FrontClassWithSpec(rootSpec) {
    */
   async listTabs(options) {
     const { selected, tabs } = await super.listTabs(options);
+    const targets = [];
     for (const i in tabs) {
-      tabs[i].setIsSelected(i == selected);
+      if (!this.actorID) {
+        console.error("The root front was destroyed while processing listTabs");
+        return [];
+      }
+
+      try {
+        const form = tabs[i];
+        const target = await this._createTargetFrontForTabForm(form);
+        target.setIsSelected(i == selected);
+        targets.push(target);
+      } catch (e) {
+        console.error("Failed to get the target for tab descriptor", e);
+      }
     }
-    return tabs;
+    return targets;
   }
 
   /**
@@ -395,27 +309,50 @@ class RootFront extends FrontClassWithSpec(rootSpec) {
     }
 
     const form = await super.getTab(packet);
+    return this._createTargetFrontForTabForm(form, filter);
+  }
+
+  async _createTargetFrontForTabForm(form, filter = {}) {
     let front = this.actor(form.actor);
     if (front) {
+      if (!form.actor.includes("tabDescriptor")) {
+        // Backwards compatibility for servers FF74 and older.
+        front.form(form);
+        return front;
+      }
+
+      return front.getTarget();
+    }
+
+    if (!form.actor.includes("tabDescriptor")) {
+      // Backwards compatibility for servers FF74 and older.
+
+      // Instanciate a specialized class for a local tab as it needs some more
+      // client side integration with the Firefox frontend.
+      // But ignore the fake `tab` object we receive, where there is only a
+      // `linkedBrowser` attribute, but this isn't a real <tab> element.
+      // devtools/client/framework/test/browser_toolbox_target.js is passing such
+      // a fake tab.
+      if (filter && filter.tab && filter.tab.tagName == "tab") {
+        front = new LocalTabTargetFront(this._client, null, this, filter.tab);
+      } else {
+        front = new BrowsingContextTargetFront(this._client, null, this);
+      }
+      // As these fronts aren't instantiated by protocol.js, we have to set their actor ID
+      // manually like that:
+      front.actorID = form.actor;
       front.form(form);
+      this.manage(front);
       return front;
     }
-    // Instanciate a specialized class for a local tab as it needs some more
-    // client side integration with the Firefox frontend.
-    // But ignore the fake `tab` object we receive, where there is only a
-    // `linkedBrowser` attribute, but this isn't a real <tab> element.
-    // devtools/client/framework/test/browser_toolbox_target.js is passing such
-    // a fake tab.
-    if (filter && filter.tab && filter.tab.tagName == "tab") {
-      front = new LocalTabTargetFront(this._client, null, this, filter.tab);
-    } else {
-      front = new BrowsingContextTargetFront(this._client, null, this);
-    }
+
+    const descriptorFront = new TabDescriptorFront(this._client, null, this);
     // As these fronts aren't instantiated by protocol.js, we have to set their actor ID
     // manually like that:
-    front.actorID = form.actor;
-    front.form(form);
-    this.manage(front);
+    descriptorFront.actorID = form.actor;
+    descriptorFront.form(form);
+    this.manage(descriptorFront);
+    front = await descriptorFront.getTarget(filter);
     return front;
   }
 
@@ -476,6 +413,19 @@ class RootFront extends FrontClassWithSpec(rootSpec) {
     front = getFront(this._client, typeName, rootForm);
     this.fronts.set(typeName, front);
     return front;
+  }
+
+  /*
+   * This function returns true if the root actor has a registered global actor
+   * with a given name.
+   * @param {String} actorName
+   *        The name of a global actor.
+   *
+   * @return {Boolean}
+   */
+  async hasActor(actorName) {
+    const rootForm = await this.rootForm;
+    return !!rootForm[actorName + "Actor"];
   }
 }
 exports.RootFront = RootFront;

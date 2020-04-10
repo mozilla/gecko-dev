@@ -369,7 +369,7 @@ static bool NeedsGCAfterCC() {
 }
 
 class nsJSEnvironmentObserver final : public nsIObserver {
-  ~nsJSEnvironmentObserver() {}
+  ~nsJSEnvironmentObserver() = default;
 
  public:
   NS_DECL_ISUPPORTS
@@ -383,6 +383,10 @@ nsJSEnvironmentObserver::Observe(nsISupports* aSubject, const char* aTopic,
                                  const char16_t* aData) {
   if (!nsCRT::strcmp(aTopic, "memory-pressure")) {
     if (StaticPrefs::javascript_options_gc_on_memory_pressure()) {
+      if (sShuttingDown) {
+        // Don't GC/CC if we're already shutting down.
+        return NS_OK;
+      }
       nsDependentString data(aData);
       if (data.EqualsLiteral("low-memory-ongoing")) {
         // Don't GC/CC if we are in an ongoing low-memory state since its very
@@ -417,7 +421,8 @@ nsJSEnvironmentObserver::Observe(nsISupports* aSubject, const char* aTopic,
     }
     MOZ_ASSERT(!sIsCompactingOnUserInactive);
   } else if (!nsCRT::strcmp(aTopic, "quit-application") ||
-             !nsCRT::strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
+             !nsCRT::strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) ||
+             !nsCRT::strcmp(aTopic, "content-child-will-shutdown")) {
     sShuttingDown = true;
     KillTimers();
   }
@@ -530,8 +535,7 @@ class ScriptErrorEvent : public Runnable {
       JS::Rooted<JSObject*> stackGlobal(rootingCx);
       xpc::FindExceptionStackForConsoleReport(win, mError, mErrorStack, &stack,
                                               &stackGlobal);
-      mReport->LogToConsoleWithStack(stack, stackGlobal,
-                                     JS::ExceptionTimeWarpTarget(mError));
+      mReport->LogToConsoleWithStack(stack, stackGlobal);
     }
 
     return NS_OK;
@@ -2675,6 +2679,7 @@ void nsJSContext::EnsureStatics() {
   obs->AddObserver(observer, "user-interaction-active", false);
   obs->AddObserver(observer, "quit-application", false);
   obs->AddObserver(observer, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
+  obs->AddObserver(observer, "content-child-will-shutdown", false);
 
   sIsInitialized = true;
 }

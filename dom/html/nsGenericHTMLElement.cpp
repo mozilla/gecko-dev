@@ -109,7 +109,15 @@ nsresult nsGenericHTMLElement::CopyInnerTo(Element* aDst) {
 
   auto reparse = aDst->OwnerDoc() == OwnerDoc() ? ReparseAttributes::No
                                                 : ReparseAttributes::Yes;
-  return Element::CopyInnerTo(aDst, reparse);
+  nsresult rv = Element::CopyInnerTo(aDst, reparse);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // cloning a node must retain its internal nonce slot
+  nsString* nonce = static_cast<nsString*>(GetProperty(nsGkAtoms::nonce));
+  if (nonce) {
+    static_cast<nsGenericHTMLElement*>(aDst)->SetNonce(*nonce);
+  }
+  return NS_OK;
 }
 
 static const nsAttrValue::EnumTable kDirTable[] = {
@@ -386,6 +394,21 @@ nsresult nsGenericHTMLElement::BindToTree(BindContext& aContext,
     aContext.OwnerDoc().ChangeContentEditableCount(this, +1);
   }
 
+  // Hide any nonce from the DOM, but keep the internal value of the
+  // nonce by copying and resetting the internal nonce value.
+  if (HasFlag(NODE_HAS_NONCE_AND_HEADER_CSP) && IsInComposedDoc() &&
+      OwnerDoc()->GetBrowsingContext()) {
+    nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
+        "nsGenericHTMLElement::ResetNonce::Runnable",
+        [self = RefPtr<nsGenericHTMLElement>(this)]() {
+          nsAutoString nonce;
+          self->GetNonce(nonce);
+          self->SetAttr(kNameSpaceID_None, nsGkAtoms::nonce, EmptyString(),
+                        true);
+          self->SetNonce(nonce);
+        }));
+  }
+
   // We need to consider a labels element is moved to another subtree
   // with different root, it needs to update labels list and its root
   // as well.
@@ -641,6 +664,20 @@ nsresult nsGenericHTMLElement::AfterSetAttr(
         }
       }
     }
+
+    // The nonce will be copied over to an internal slot and cleared from the
+    // Element within BindToTree to avoid CSS Selector nonce exfiltration if
+    // the CSP list contains a header-delivered CSP.
+    if (nsGkAtoms::nonce == aName) {
+      if (aValue) {
+        SetNonce(aValue->GetStringValue());
+        if (OwnerDoc()->GetHasCSPDeliveredThroughHeader()) {
+          SetFlags(NODE_HAS_NONCE_AND_HEADER_CSP);
+        }
+      } else {
+        RemoveNonce();
+      }
+    }
   }
 
   return nsGenericHTMLElementBase::AfterSetAttr(
@@ -874,11 +911,11 @@ nsPresContext* nsGenericHTMLElement::GetPresContext(PresContextFor aFor) {
 }
 
 static const nsAttrValue::EnumTable kDivAlignTable[] = {
-    {"left", NS_STYLE_TEXT_ALIGN_MOZ_LEFT},
-    {"right", NS_STYLE_TEXT_ALIGN_MOZ_RIGHT},
-    {"center", NS_STYLE_TEXT_ALIGN_MOZ_CENTER},
-    {"middle", NS_STYLE_TEXT_ALIGN_MOZ_CENTER},
-    {"justify", NS_STYLE_TEXT_ALIGN_JUSTIFY},
+    {"left", StyleTextAlign::MozLeft},
+    {"right", StyleTextAlign::MozRight},
+    {"center", StyleTextAlign::MozCenter},
+    {"middle", StyleTextAlign::MozCenter},
+    {"justify", StyleTextAlign::Justify},
     {nullptr, 0}};
 
 static const nsAttrValue::EnumTable kFrameborderTable[] = {
@@ -905,8 +942,8 @@ static const nsAttrValue::EnumTable kTableVAlignTable[] = {
 bool nsGenericHTMLElement::ParseAlignValue(const nsAString& aString,
                                            nsAttrValue& aResult) {
   static const nsAttrValue::EnumTable kAlignTable[] = {
-      {"left", NS_STYLE_TEXT_ALIGN_LEFT},
-      {"right", NS_STYLE_TEXT_ALIGN_RIGHT},
+      {"left", StyleTextAlign::Left},
+      {"right", StyleTextAlign::Right},
 
       {"top", StyleVerticalAlignKeyword::Top},
       {"middle", StyleVerticalAlignKeyword::MozMiddleWithBaseline},
@@ -923,18 +960,41 @@ bool nsGenericHTMLElement::ParseAlignValue(const nsAString& aString,
       {"absbottom", StyleVerticalAlignKeyword::Bottom},
       {nullptr, 0}};
 
+  static_assert(uint8_t(StyleTextAlign::Left) !=
+                    uint8_t(StyleVerticalAlignKeyword::Top) &&
+                uint8_t(StyleTextAlign::Left) !=
+                    uint8_t(StyleVerticalAlignKeyword::MozMiddleWithBaseline) &&
+                uint8_t(StyleTextAlign::Left) !=
+                    uint8_t(StyleVerticalAlignKeyword::Baseline) &&
+                uint8_t(StyleTextAlign::Left) !=
+                    uint8_t(StyleVerticalAlignKeyword::TextTop) &&
+                uint8_t(StyleTextAlign::Left) !=
+                    uint8_t(StyleVerticalAlignKeyword::Middle) &&
+                uint8_t(StyleTextAlign::Left) !=
+                    uint8_t(StyleVerticalAlignKeyword::Bottom));
+
+  static_assert(uint8_t(StyleTextAlign::Right) !=
+                    uint8_t(StyleVerticalAlignKeyword::Top) &&
+                uint8_t(StyleTextAlign::Right) !=
+                    uint8_t(StyleVerticalAlignKeyword::MozMiddleWithBaseline) &&
+                uint8_t(StyleTextAlign::Right) !=
+                    uint8_t(StyleVerticalAlignKeyword::Baseline) &&
+                uint8_t(StyleTextAlign::Right) !=
+                    uint8_t(StyleVerticalAlignKeyword::TextTop) &&
+                uint8_t(StyleTextAlign::Right) !=
+                    uint8_t(StyleVerticalAlignKeyword::Middle) &&
+                uint8_t(StyleTextAlign::Right) !=
+                    uint8_t(StyleVerticalAlignKeyword::Bottom));
+
   return aResult.ParseEnumValue(aString, kAlignTable, false);
 }
 
 //----------------------------------------
 
 static const nsAttrValue::EnumTable kTableHAlignTable[] = {
-    {"left", NS_STYLE_TEXT_ALIGN_LEFT},
-    {"right", NS_STYLE_TEXT_ALIGN_RIGHT},
-    {"center", NS_STYLE_TEXT_ALIGN_CENTER},
-    {"char", NS_STYLE_TEXT_ALIGN_CHAR},
-    {"justify", NS_STYLE_TEXT_ALIGN_JUSTIFY},
-    {nullptr, 0}};
+    {"left", StyleTextAlign::Left},       {"right", StyleTextAlign::Right},
+    {"center", StyleTextAlign::Center},   {"char", StyleTextAlign::Char},
+    {"justify", StyleTextAlign::Justify}, {nullptr, 0}};
 
 bool nsGenericHTMLElement::ParseTableHAlignValue(const nsAString& aString,
                                                  nsAttrValue& aResult) {
@@ -945,13 +1005,13 @@ bool nsGenericHTMLElement::ParseTableHAlignValue(const nsAString& aString,
 
 // This table is used for td, th, tr, col, thead, tbody and tfoot.
 static const nsAttrValue::EnumTable kTableCellHAlignTable[] = {
-    {"left", NS_STYLE_TEXT_ALIGN_MOZ_LEFT},
-    {"right", NS_STYLE_TEXT_ALIGN_MOZ_RIGHT},
-    {"center", NS_STYLE_TEXT_ALIGN_MOZ_CENTER},
-    {"char", NS_STYLE_TEXT_ALIGN_CHAR},
-    {"justify", NS_STYLE_TEXT_ALIGN_JUSTIFY},
-    {"middle", NS_STYLE_TEXT_ALIGN_MOZ_CENTER},
-    {"absmiddle", NS_STYLE_TEXT_ALIGN_CENTER},
+    {"left", StyleTextAlign::MozLeft},
+    {"right", StyleTextAlign::MozRight},
+    {"center", StyleTextAlign::MozCenter},
+    {"char", StyleTextAlign::Char},
+    {"justify", StyleTextAlign::Justify},
+    {"middle", StyleTextAlign::MozCenter},
+    {"absmiddle", StyleTextAlign::Center},
     {nullptr, 0}};
 
 bool nsGenericHTMLElement::ParseTableCellHAlignValue(const nsAString& aString,
@@ -1124,16 +1184,16 @@ void nsGenericHTMLElement::MapImageAlignAttributeInto(
   if (value && value->Type() == nsAttrValue::eEnum) {
     int32_t align = value->GetEnumValue();
     if (!aDecls.PropertyIsSet(eCSSProperty_float)) {
-      if (align == NS_STYLE_TEXT_ALIGN_LEFT) {
+      if (align == uint8_t(StyleTextAlign::Left)) {
         aDecls.SetKeywordValue(eCSSProperty_float, StyleFloat::Left);
-      } else if (align == NS_STYLE_TEXT_ALIGN_RIGHT) {
+      } else if (align == uint8_t(StyleTextAlign::Right)) {
         aDecls.SetKeywordValue(eCSSProperty_float, StyleFloat::Right);
       }
     }
     if (!aDecls.PropertyIsSet(eCSSProperty_vertical_align)) {
       switch (align) {
-        case NS_STYLE_TEXT_ALIGN_LEFT:
-        case NS_STYLE_TEXT_ALIGN_RIGHT:
+        case uint8_t(StyleTextAlign::Left):
+        case uint8_t(StyleTextAlign::Right):
           break;
         default:
           aDecls.SetKeywordValue(eCSSProperty_vertical_align, align);
@@ -1919,23 +1979,7 @@ nsGenericHTMLFormElement::FocusTristate nsGenericHTMLFormElement::FocusState() {
     return eUnfocusable;
   }
 
-  // If the window is not active, do not allow the focus to bring the
-  // window to the front.  We update the focus controller, but do
-  // nothing else.
-  if (nsPIDOMWindowOuter* win = doc->GetWindow()) {
-    nsCOMPtr<nsPIDOMWindowOuter> rootWindow = win->GetPrivateRoot();
-
-    nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
-    if (fm && rootWindow) {
-      nsCOMPtr<mozIDOMWindowProxy> activeWindow;
-      fm->GetActiveWindow(getter_AddRefs(activeWindow));
-      if (activeWindow == rootWindow) {
-        return eActiveWindow;
-      }
-    }
-  }
-
-  return eInactiveWindow;
+  return IsInActiveTab(doc) ? eActiveWindow : eInactiveWindow;
 }
 
 Element* nsGenericHTMLFormElement::AddFormIdObserver() {

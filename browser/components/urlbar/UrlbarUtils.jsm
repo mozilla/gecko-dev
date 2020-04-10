@@ -91,9 +91,13 @@ var UrlbarUtils = {
     // Payload: { url, icon, device, title }
     REMOTE_TAB: 6,
     // An actionable message to help the user with their query.
+    // `type` is a string and is required.  It will be used in the names of keys
+    // in the `urlbar.tips` keyed scalar telemetry (see telemetry.rst).  If you
+    // add a new type, then you are also adding new `urlbar.tips` keys and
+    // therefore need an expanded data collection review.
     // textData and buttonTextData are objects containing an l10n id and args.
     // If a tip is untranslated it's possible to provide text and buttonText.
-    // Payload: { icon, textData, buttonTextData, [buttonUrl], [helpUrl] }
+    // Payload: { type, icon, textData, buttonTextData, [buttonUrl], [helpUrl] }
     TIP: 7,
   },
 
@@ -272,6 +276,8 @@ var UrlbarUtils = {
     return mimeStream.QueryInterface(Ci.nsIInputStream);
   },
 
+  _compareIgnoringDiacritics: null,
+
   /**
    * Returns a list of all the token substring matches in a string.  Matching is
    * case insensitive.  Each match in the returned list is a tuple: [matchIndex,
@@ -298,6 +304,7 @@ var UrlbarUtils = {
     let hits = new Array(str.length).fill(
       highlightType == this.HIGHLIGHT.SUGGESTED ? 1 : 0
     );
+    let compareIgnoringDiacritics;
     for (let { lowerCaseValue: needle } of tokens) {
       // Ideally we should never hit the empty token case, but just in case
       // the `needle` check protects us from an infinite loop.
@@ -323,11 +330,18 @@ var UrlbarUtils = {
       // If that fails to match anything, try a (computationally intensive)
       // diacritic-insensitive search.
       if (!found) {
-        const options = { sensitivity: "base" };
+        if (!compareIgnoringDiacritics) {
+          if (!this._compareIgnoringDiacritics) {
+            this._compareIgnoringDiacritics = new Intl.Collator(undefined, {
+              sensitivity: "base",
+            }).compare;
+          }
+          compareIgnoringDiacritics = this._compareIgnoringDiacritics;
+        }
         index = 0;
         while (index < str.length) {
           let hay = str.substr(index, needle.length);
-          if (needle.localeCompare(hay, [], options) == 0) {
+          if (compareIgnoringDiacritics(needle, hay) === 0) {
             hits.fill(
               highlightType == this.HIGHLIGHT.SUGGESTED ? 0 : 1,
               index,
@@ -597,6 +611,7 @@ class UrlbarQueryContext {
       ["providers", v => Array.isArray(v) && v.length],
       ["sources", v => Array.isArray(v) && v.length],
       ["engineName", v => typeof v == "string" && !!v.length],
+      ["currentPage", v => typeof v == "string" && !!v.length],
     ]) {
       if (options[prop]) {
         if (!checkFn(options[prop])) {

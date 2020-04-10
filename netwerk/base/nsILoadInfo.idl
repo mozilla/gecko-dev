@@ -10,7 +10,7 @@
 
 interface nsIChannel;
 interface nsIContentSecurityPolicy;
-interface nsICookieSettings;
+interface nsICookieJarSettings;
 interface nsICSPEventListener;
 interface nsINode;
 interface nsIPrincipal;
@@ -433,10 +433,10 @@ interface nsILoadInfo : nsISupports
   [infallible] readonly attribute unsigned long cookiePolicy;
 
   /**
-   * The cookie settings inherited from the top-level document's loadInfo.
+   * The cookie jar settings inherited from the top-level document's loadInfo.
    * It cannot be null.
    */
-  attribute nsICookieSettings cookieSettings;
+  attribute nsICookieJarSettings cookieJarSettings;
 
   /**
    * If forceInheritPrincipal is true, the data coming from the channel should
@@ -661,6 +661,15 @@ interface nsILoadInfo : nsISupports
    */
   [infallible] readonly attribute unsigned long long frameBrowsingContextID;
   readonly attribute BrowsingContext frameBrowsingContext;
+
+  /**
+   * If the element being loaded is a nsFrameLoaderOwner,
+   * `targetBrowsingContext` is the Browsing Context which will contain the
+   * loading document (see `frameBrowsingContext`). Otherwise, it is the
+   * Browsing Context performing the load (see `browsingContext`).
+   */
+  [infallible] readonly attribute unsigned long long targetBrowsingContextID;
+  readonly attribute BrowsingContext targetBrowsingContext;
 
   /**
    * Resets the PrincipalToInherit to a freshly created NullPrincipal
@@ -1212,19 +1221,13 @@ interface nsILoadInfo : nsISupports
   [infallible] readonly attribute boolean isFromProcessingFrameAttributes;
 
   cenum CrossOriginOpenerPolicy : 8 {
-    OPENER_POLICY_NULL = 0,
+    OPENER_POLICY_UNSAFE_NONE = 0,
     OPENER_POLICY_SAME_ORIGIN = 1,
-    OPENER_POLICY_SAME_SITE = 2,
-    OPENER_POLICY_SAMENESS_MASK = 0x0f,
+    OPENER_POLICY_SAME_ORIGIN_ALLOW_POPUPS = 2,
     OPENER_POLICY_EMBEDDER_POLICY_REQUIRE_CORP_FLAG = 0x10,
-    OPENER_POLICY_UNSAFE_ALLOW_OUTGOING_FLAG = 0x80,
     OPENER_POLICY_SAME_ORIGIN_EMBEDDER_POLICY_REQUIRE_CORP =
         OPENER_POLICY_SAME_ORIGIN |
-        OPENER_POLICY_EMBEDDER_POLICY_REQUIRE_CORP_FLAG,
-    OPENER_POLICY_SAME_ORIGIN_ALLOW_OUTGOING =
-        OPENER_POLICY_SAME_ORIGIN | OPENER_POLICY_UNSAFE_ALLOW_OUTGOING_FLAG,
-    OPENER_POLICY_SAME_SITE_ALLOW_OUTGOING =
-        OPENER_POLICY_SAME_SITE | OPENER_POLICY_UNSAFE_ALLOW_OUTGOING_FLAG
+        OPENER_POLICY_EMBEDDER_POLICY_REQUIRE_CORP_FLAG
   };
 
   cenum CrossOriginEmbedderPolicy : 8 {

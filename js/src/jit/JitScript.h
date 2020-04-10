@@ -98,6 +98,8 @@ static IonScript* const IonCompilingScriptPtr =
 //
 // * List of Ion compilations inlining this script, for invalidation.
 //
+// The StackTypeSet array and bytecode type map are empty when TI is disabled.
+//
 // Memory Layout
 // =============
 // JitScript has various trailing (variable-length) arrays. The memory layout is
@@ -179,9 +181,7 @@ class alignas(uintptr_t) JitScript final {
   // Number of times the script has been called or has had backedges taken.
   // Reset if the script's JIT code is forcibly discarded. See also the
   // ScriptWarmUpData class.
-  mozilla::Atomic<uint32_t, mozilla::Relaxed,
-                  mozilla::recordreplay::Behavior::DontPreserve>
-      warmUpCount_ = {};
+  mozilla::Atomic<uint32_t, mozilla::Relaxed> warmUpCount_ = {};
 
   // Offset of the StackTypeSet array.
   uint32_t typeSetOffset_ = 0;
@@ -221,6 +221,7 @@ class alignas(uintptr_t) JitScript final {
   }
 
   StackTypeSet* typeArrayDontCheckGeneration() {
+    MOZ_ASSERT(IsTypeInferenceEnabled());
     uint8_t* base = reinterpret_cast<uint8_t*>(this);
     return reinterpret_cast<StackTypeSet*>(base + typeSetOffset_);
   }
@@ -302,6 +303,7 @@ class alignas(uintptr_t) JitScript final {
     return (typeSetOffset_ - offsetOfICEntries()) / sizeof(ICEntry);
   }
   uint32_t numTypeSets() const {
+    MOZ_ASSERT(IsTypeInferenceEnabled());
     return (bytecodeTypeMapOffset_ - typeSetOffset_) / sizeof(StackTypeSet);
   }
 
@@ -325,6 +327,7 @@ class alignas(uintptr_t) JitScript final {
   }
 
   uint32_t* bytecodeTypeMap() {
+    MOZ_ASSERT(IsTypeInferenceEnabled());
     uint8_t* base = reinterpret_cast<uint8_t*>(this);
     return reinterpret_cast<uint32_t*>(base + bytecodeTypeMapOffset_);
   }

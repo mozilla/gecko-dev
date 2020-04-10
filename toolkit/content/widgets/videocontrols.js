@@ -111,7 +111,7 @@ this.VideoControlsWidget = class {
    * toggle. Those requirements currently are:
    *
    * 1. The video must be 45 seconds in length or longer.
-   * 2. Neither the width or the height of the video can be less than 160px.
+   * 2. Neither the width or the height of the video can be less than 140px.
    * 3. The video must have audio.
    * 4. The video must not a MediaStream video (Bug 1592539)
    *
@@ -135,7 +135,7 @@ this.VideoControlsWidget = class {
       return false;
     }
 
-    const MIN_VIDEO_DIMENSION = 160; // pixels
+    const MIN_VIDEO_DIMENSION = 140; // pixels
     if (
       someVideo.videoWidth < MIN_VIDEO_DIMENSION ||
       someVideo.videoHeight < MIN_VIDEO_DIMENSION
@@ -1322,7 +1322,7 @@ this.VideoControlsImplWidget = class {
           }
 
           this.startFadeOut(this.controlBar, false);
-          this.textTrackList.hidden = true;
+          this.textTrackListContainer.hidden = true;
           this.window.clearTimeout(this._showControlsTimeout);
           this._controlsHiddenByTimeout = false;
         }
@@ -1939,11 +1939,11 @@ this.VideoControlsImplWidget = class {
           }
         }
 
-        this.textTrackList.hidden = true;
+        this.textTrackListContainer.hidden = true;
       },
 
       onControlBarAnimationFinished() {
-        this.textTrackList.hidden = true;
+        this.textTrackListContainer.hidden = true;
         this.video.dispatchEvent(
           new this.window.CustomEvent("controlbarchange")
         );
@@ -1957,10 +1957,10 @@ this.VideoControlsImplWidget = class {
       },
 
       toggleClosedCaption() {
-        if (this.textTrackList.hidden) {
-          this.textTrackList.hidden = false;
+        if (this.textTrackListContainer.hidden) {
+          this.textTrackListContainer.hidden = false;
         } else {
-          this.textTrackList.hidden = true;
+          this.textTrackListContainer.hidden = true;
         }
       },
 
@@ -2281,6 +2281,9 @@ this.VideoControlsImplWidget = class {
           "closedCaptionButton"
         );
         this.textTrackList = this.shadowRoot.getElementById("textTrackList");
+        this.textTrackListContainer = this.shadowRoot.getElementById(
+          "textTrackListContainer"
+        );
         this.pictureInPictureToggleButton = this.shadowRoot.getElementById(
           "pictureInPictureToggleButton"
         );
@@ -2630,7 +2633,9 @@ this.VideoControlsImplWidget = class {
                       enterfullscreenlabel="&fullscreenButton.enterfullscreenlabel;"
                       exitfullscreenlabel="&fullscreenButton.exitfullscreenlabel;"/>
             </div>
-            <div id="textTrackList" class="textTrackList" hidden="true" offlabel="&closedCaption.off;"></div>
+            <div id="textTrackListContainer" class="textTrackListContainer" hidden="true">
+              <div id="textTrackList" class="textTrackList" offlabel="&closedCaption.off;"></div>
+            </div>
           </div>
         </div>
       </div>`,

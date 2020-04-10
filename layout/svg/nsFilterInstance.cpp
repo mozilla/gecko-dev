@@ -110,7 +110,6 @@ static mozilla::wr::ComponentTransferFuncType FuncTypeToWr(uint8_t aFuncType) {
     case SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY:
     default:
       return mozilla::wr::ComponentTransferFuncType::Identity;
-
   }
   MOZ_ASSERT_UNREACHABLE("all func types not handled?");
   return mozilla::wr::ComponentTransferFuncType::Identity;
@@ -258,7 +257,7 @@ bool nsFilterInstance::BuildWebRenderFilters(nsIFrame* aFilteredFrame,
                       gsRGBToLinearRGBMap[uint8_t(color.b * 255)], color.a);
       }
       wr::Shadow wrShadow;
-      wrShadow.offset = {(float)shadow.mOffset.x, (float)shadow.mOffset.y};
+      wrShadow.offset = {shadow.mOffset.x, shadow.mOffset.y};
       wrShadow.color = wr::ToColorF(ToDeviceColor(color));
       wrShadow.blur_radius = stdDev.width;
       wr::FilterOp filterOp = wr::FilterOp::DropShadow(wrShadow);

@@ -49,6 +49,7 @@ This ping is submitted once upon Activity Stream initialization if either about:
   "action": "activity_stream_event",
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -80,6 +81,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown" ],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "action": "activity_stream_event",
@@ -100,6 +102,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -117,6 +120,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -142,6 +146,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -165,6 +170,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -186,6 +192,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -205,6 +212,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -223,6 +231,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -244,6 +253,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -267,6 +277,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -292,6 +303,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -314,6 +326,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -336,6 +349,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -359,6 +373,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -382,6 +397,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -399,6 +415,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -416,6 +433,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -439,6 +457,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "user_prefs": 59,
   "page": "n/a",
   "session_id": "n/a",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3"
 }
 ```
 
@@ -448,6 +467,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
 {
   "event": "TOP_SITES_EDIT",
   "source": "TOP_SITES_SOURCE",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   // "-1" Is used for prepending a new TopSite at the front of the list, while
   // any other possible value is used for editing an existing TopSite slot.
   "action_position": [-1 | "0..TOP_SITES_LENGTH"]
@@ -459,6 +479,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
 ```js
 {
   "event": "PREVIEW_REQUEST",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "source": "TOP_SITES"
 }
 ```
@@ -479,6 +500,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": "about:welcome",
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -497,6 +519,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "page": "about:welcome",
   "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
   "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "addon_version": "20180710100040",
   "locale": "en-US",
   "user_prefs": 7
@@ -1025,6 +1048,7 @@ CFR impression ping has two forms, in which the message_id could be of different
   "locale": "en-US",
   "message_id": "EXTENDED_TRIPLETS_1",
   "event": "IMPRESSION",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "event_context": { "page": ["about:welcome" | "about:home" | "about:newtab"] }
 }
 ```
@@ -1058,6 +1082,7 @@ This reports the user's interaction with Activity Stream Router.
   "source": "ONBOARDING",
   "message_id": "onboarding_message_1",
   "event": ["IMPRESSION" | "CLICK_BUTTION" | "INSTALL" | "BLOCK"],
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
   "event_context": { "page": ["about:welcome" | "about:home" | "about:newtab"] }
 }
 ```
@@ -1182,5 +1207,36 @@ For message impressions we concatenate the ids of all messages in the panel.
   "message_id": "WHATS_NEW_70",
   "event": ["CLICK" | "IMPRESSION"],
   "value": { "view": ["application_menu" | "toolbar_dropdown"] }
+}
+```
+
+## Moments page pings
+
+This reports when a moments page message has set the user preference for
+`browser.startup.homepage_override.once`. It goes through the same policy
+as other CFR messages.
+
+```
+// Release ping
+{
+  "action": "cfr_user_event"
+  "addon_version": "20200225022813"
+  "bucket_id": "WNP_THANK_YOU"
+  "event": "MOMENTS_PAGE_SET"
+  "impression_id": "{d85d2268-b751-9543-b6d7-aad523bf2b26}"
+  "locale": "en-US"
+  "message_id": "n/a"
+  "source": "CFR"
+}
+
+// Beta and Nightly channels
+{
+  "source": "CFR",
+  "message_id": "WNP_THANK_YOU",
+  "bucket_id": "WNP_THANK_YOU",
+  "event": "MOMENTS_PAGE_SET",
+  "addon_version": "20200225022813",
+  "locale": "en-US",
+  "client_id": "21dc1375-b24e-984b-83e9-c8a9660ae4ff"
 }
 ```

@@ -62,7 +62,6 @@ GTK3_VERSION=3.4.0
 GDK_VERSION_MAX_ALLOWED=GDK_VERSION_3_4
 W32API_VERSION=3.14
 DBUS_VERSION=0.60
-SQLITE_VERSION=3.31.1
 
 dnl Set various checks
 dnl ========================================================
@@ -138,8 +137,7 @@ case "$target" in
         _WIN32_MSVC=1
 
         # Make sure compilers are valid
-        CFLAGS="$CFLAGS -nologo"
-        CXXFLAGS="$CXXFLAGS -TP -nologo"
+        CXXFLAGS="$CXXFLAGS -TP"
         AC_LANG_SAVE
         AC_LANG_C
         AC_TRY_COMPILE([#include <stdio.h>],
@@ -171,7 +169,7 @@ case "$target" in
           if test ! -d "$WIN_UCRT_REDIST_DIR"; then
             AC_MSG_ERROR([Invalid Windows UCRT Redist directory: ${WIN_UCRT_REDIST_DIR}])
           fi
-          WIN_UCRT_REDIST_DIR=`cd "$WIN_UCRT_REDIST_DIR" && pwd -W`
+          WIN_UCRT_REDIST_DIR=`cd "$WIN_UCRT_REDIST_DIR" && (pwd -W 2>/dev/null || pwd)`
         fi
 
         AC_SUBST(MSVC_C_RUNTIME_DLL)
@@ -183,7 +181,7 @@ case "$target" in
           if test ! -d "$WIN32_REDIST_DIR"; then
             AC_MSG_ERROR([Invalid Win32 Redist directory: ${WIN32_REDIST_DIR}])
           fi
-          WIN32_REDIST_DIR=`cd "$WIN32_REDIST_DIR" && pwd -W`
+          WIN32_REDIST_DIR=`cd "$WIN32_REDIST_DIR" && (pwd -W 2>/dev/null || pwd)`
         fi
 
         # Check linker version, except in lld builds
@@ -486,7 +484,7 @@ dnl ========================================================
 case "$host" in
 *mingw*)
     if test -n "$_WIN32_MSVC"; then
-        HOST_CFLAGS="$HOST_CFLAGS -nologo"
+        HOST_CFLAGS="$HOST_CFLAGS"
     else
         HOST_CFLAGS="$HOST_CFLAGS -mwindows"
     fi
@@ -1506,7 +1504,7 @@ MOZ_ARG_WITH_BOOL(system-nss,
     _USE_SYSTEM_NSS=1 )
 
 if test -n "$_USE_SYSTEM_NSS"; then
-    AM_PATH_NSS(3.50, [MOZ_SYSTEM_NSS=1], [AC_MSG_ERROR([you don't have NSS installed or your version is too old])])
+    AM_PATH_NSS(3.51, [MOZ_SYSTEM_NSS=1], [AC_MSG_ERROR([you don't have NSS installed or your version is too old])])
 fi
 
 NSS_CFLAGS="$NSS_CFLAGS -I${DIST}/include/nss"
@@ -1646,12 +1644,6 @@ if test -f "${srcdir}/${MOZ_BUILD_APP}/confvars.sh" ; then
 else
   AC_MSG_RESULT([no])
 fi
-
-if test "$EARLY_BETA_OR_EARLIER"; then
-    MOZ_NEW_CERT_STORAGE=1
-    AC_DEFINE(MOZ_NEW_CERT_STORAGE)
-fi
-AC_SUBST(MOZ_NEW_CERT_STORAGE)
 
 # Allow someone to change MOZ_APP_NAME and MOZ_APP_BASENAME in mozconfig
 MOZ_ARG_WITH_STRING(app-name,
@@ -2150,35 +2142,11 @@ dnl =
 dnl ========================================================
 MOZ_ARG_HEADER(Individual module options)
 
-dnl ========================================================
-dnl Check for sqlite
-dnl ========================================================
-
-MOZ_SYSTEM_SQLITE=
-MOZ_ARG_ENABLE_BOOL(system-sqlite,
-[  --enable-system-sqlite  Use system sqlite (located with pkgconfig)],
-MOZ_SYSTEM_SQLITE=1,
-MOZ_SYSTEM_SQLITE= )
-
-if test -n "$MOZ_SYSTEM_SQLITE"
-then
-    dnl ============================
-    dnl === SQLite Version check ===
-    dnl ============================
-    dnl Check to see if the system SQLite package is new enough.
-    PKG_CHECK_MODULES(SQLITE, sqlite3 >= $SQLITE_VERSION)
-else
-    dnl ==============================
-    dnl === SQLite fdatasync check ===
-    dnl ==============================
-    dnl Check to see if fdatasync is available
-    AC_CHECK_FUNC(fdatasync)
-fi
-
-if test -n "$MOZ_SYSTEM_SQLITE"; then
-    AC_DEFINE(MOZ_SYSTEM_SQLITE)
-fi
-AC_SUBST(MOZ_SYSTEM_SQLITE)
+dnl ==============================
+dnl === SQLite fdatasync check ===
+dnl ==============================
+dnl Check to see if fdatasync is available and make use of it
+AC_CHECK_FUNC(fdatasync)
 
 dnl ========================================================
 dnl = Disable zipwriter

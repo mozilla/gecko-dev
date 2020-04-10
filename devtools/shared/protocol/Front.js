@@ -19,8 +19,8 @@ let gNextPacketId = 1;
 /**
  * Base class for client-side actor fronts.
  *
- * @param [DebuggerClient|null] conn
- *   The conn must either be DebuggerClient or null. Must have
+ * @param [DevToolsClient|null] conn
+ *   The conn must either be DevToolsClient or null. Must have
  *   addActorPool, removeActorPool, and poolFor.
  *   conn can be null if the subclass provides a conn property.
  * @param [Target|null] target
@@ -127,6 +127,15 @@ class Front extends Pool {
    *        The function is called with the same argument than onAvailable.
    */
   watchFronts(typeName, onAvailable, onDestroy) {
+    if (!this.actorID) {
+      // The front was already destroyed, bail out.
+      console.error(
+        `Tried to call watchFronts for the '${typeName}' type on an ` +
+          `already destroyed front '${this.typeName}'.`
+      );
+      return;
+    }
+
     if (onAvailable) {
       // First fire the callback on already instantiated fronts
       for (const front of this.poolChildren()) {
@@ -149,6 +158,15 @@ class Front extends Pool {
    * See `watchFronts()` for documentation of the arguments.
    */
   unwatchFronts(typeName, onAvailable, onDestroy) {
+    if (!this.actorID) {
+      // The front was already destroyed, bail out.
+      console.error(
+        `Tried to call unwatchFronts for the '${typeName}' type on an ` +
+          `already destroyed front '${this.typeName}'.`
+      );
+      return;
+    }
+
     if (onAvailable) {
       this._frontCreationListeners.off(typeName, onAvailable);
     }

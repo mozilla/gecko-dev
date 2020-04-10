@@ -1,11 +1,9 @@
 config = {
-    "l10n_dir": "l10n-central",
     "locales_dir": "mobile/android/locales",
     "ignore_locales": ["en-US"],
 
-    "objdir": "obj-firefox",
     "repack_env": {
-        "MOZ_OBJDIR": "obj-firefox",
+        "MOZ_OBJDIR": "%(abs_obj_dir)s",
     },
 
     'vcs_share_base': "/builds/hg-shared",

@@ -6,14 +6,14 @@
 
 loader.lazyRequireGetter(
   this,
-  "DebuggerServer",
-  "devtools/server/debugger-server",
+  "DevToolsServer",
+  "devtools/server/devtools-server",
   true
 );
 loader.lazyRequireGetter(
   this,
-  "DebuggerClient",
-  "devtools/shared/client/debugger-client",
+  "DevToolsClient",
+  "devtools/shared/client/devtools-client",
   true
 );
 
@@ -29,7 +29,7 @@ exports.TargetFactory = {
    *
    * @param {XULTab} tab
    *        The tab to use in creating a new target.
-   * @param {DebuggerClient} client
+   * @param {DevToolsClient} client
    *        Optional client to fetch the target actor from.
    *
    * @return A target object
@@ -55,14 +55,14 @@ exports.TargetFactory = {
    * Instantiate a target for the given tab.
    *
    * This will automatically:
-   * - if no client is passed, spawn a DebuggerServer in the parent process,
-   *   and create a DebuggerClient and connect it to this local DebuggerServer,
+   * - if no client is passed, spawn a DevToolsServer in the parent process,
+   *   and create a DevToolsClient and connect it to this local DevToolsServer,
    * - call RootActor's `getTab` request to retrieve the FrameTargetActor's form,
    * - instantiate a Target instance.
    *
    * @param {XULTab} tab
    *        The tab to use in creating a new target.
-   * @param {DebuggerClient} client
+   * @param {DevToolsClient} client
    *        Optional client to fetch the target actor from.
    *
    * @return A target object
@@ -70,8 +70,8 @@ exports.TargetFactory = {
   async createTargetForTab(tab, client) {
     function createLocalServer() {
       // Since a remote protocol connection will be made, let's start the
-      // DebuggerServer here, once and for all tools.
-      DebuggerServer.init();
+      // DevToolsServer here, once and for all tools.
+      DevToolsServer.init();
 
       // When connecting to a local tab, we only need the root actor.
       // Then we are going to call frame-connector.js' connectToFrame and talk
@@ -79,14 +79,14 @@ exports.TargetFactory = {
       // We also need browser actors for actor registry which enabled addons
       // to register custom actors.
       // TODO: the comment and implementation are out of sync here. See Bug 1420134.
-      DebuggerServer.registerAllActors();
+      DevToolsServer.registerAllActors();
       // Enable being able to get child process actors
-      DebuggerServer.allowChromeProcess = true;
+      DevToolsServer.allowChromeProcess = true;
     }
 
     function createLocalClient() {
       createLocalServer();
-      return new DebuggerClient(DebuggerServer.connectPipe());
+      return new DevToolsClient(DevToolsServer.connectPipe());
     }
 
     if (!client) {

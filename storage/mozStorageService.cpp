@@ -32,8 +32,6 @@
 #  undef CompareString
 #endif
 
-#include "nsIPromptService.h"
-
 ////////////////////////////////////////////////////////////////////////////////
 //// Defines
 
@@ -184,31 +182,6 @@ already_AddRefed<Service> Service::getSingleton() {
     return do_AddRef(gService);
   }
 
-  // Ensure that we are using the same version of SQLite that we compiled with
-  // or newer.  Our configure check ensures we are using a new enough version
-  // at compile time.
-  if (SQLITE_VERSION_NUMBER > ::sqlite3_libversion_number() ||
-      !::sqlite3_compileoption_used("SQLITE_SECURE_DELETE") ||
-      !::sqlite3_compileoption_used("SQLITE_THREADSAFE=1") ||
-      !::sqlite3_compileoption_used("SQLITE_ENABLE_FTS3") ||
-      !::sqlite3_compileoption_used("SQLITE_ENABLE_UNLOCK_NOTIFY") ||
-      !::sqlite3_compileoption_used("SQLITE_ENABLE_DBSTAT_VTAB")) {
-    nsCOMPtr<nsIPromptService> ps(do_GetService(NS_PROMPTSERVICE_CONTRACTID));
-    if (ps) {
-      nsAutoString title, message;
-      title.AppendLiteral("SQLite Version Error");
-      message.AppendLiteral(
-          "The application has been updated, but the SQLite "
-          "library wasn't updated properly and the application "
-          "cannot run. Please try to launch the application again. "
-          "If that should still fail, please try reinstalling "
-          "it, or contact the support of where you got the "
-          "application from.");
-      (void)ps->Alert(nullptr, title.get(), message.get());
-    }
-    MOZ_CRASH("SQLite Version Error");
-  }
-
   // The first reference to the storage service must be obtained on the
   // main thread.
   NS_ENSURE_TRUE(NS_IsMainThread(), nullptr);
@@ -269,7 +242,7 @@ void Service::unregisterConnection(Connection* aConnection) {
         // spinning a nested event loop if the connection was not properly
         // shutdown, we want to do that outside this loop so that we can finish
         // mutating the array and drop our mutex.
-        forgettingRef = mConnections[i].forget();
+        forgettingRef = std::move(mConnections[i]);
         mConnections.RemoveElementAt(i);
         break;
       }
@@ -579,7 +552,7 @@ Service::OpenAsyncDatabase(nsIVariant* aDatabaseStore,
     nsCOMPtr<nsIFile> cloned;
     rv = storageFile->Clone(getter_AddRefs(cloned));
     MOZ_ASSERT(NS_SUCCEEDED(rv));
-    storageFile = cloned.forget();
+    storageFile = std::move(cloned);
 
     if (!readOnly) {
       // Ensure that SQLITE_OPEN_CREATE is passed in for compatibility reasons.

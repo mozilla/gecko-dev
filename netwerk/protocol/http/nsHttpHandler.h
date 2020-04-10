@@ -53,6 +53,8 @@ class nsHttpConnection;
 class nsHttpConnectionInfo;
 class HttpTransactionShell;
 class AltSvcMapping;
+class TRR;
+class TRRServiceChannel;
 
 /*
  * FRAMECHECK_LAX - no check
@@ -252,7 +254,7 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
     return aPrivate ? &mPrivateAuthCache : &mAuthCache;
   }
   nsHttpConnectionMgr* ConnMgr() {
-    MOZ_ASSERT_IF(gIOService->UseSocketProcess(), XRE_IsSocketProcess());
+    MOZ_ASSERT_IF(nsIOService::UseSocketProcess(), XRE_IsSocketProcess());
     return mConnMgr->AsHttpConnectionMgr();
   }
 
@@ -303,7 +305,7 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
 
   // Called when a connection is done processing a transaction.  Callable
   // from any thread.
-  MOZ_MUST_USE nsresult ReclaimConnection(nsHttpConnection* conn) {
+  MOZ_MUST_USE nsresult ReclaimConnection(HttpConnectionBase* conn) {
     return mConnMgr->ReclaimConnection(conn);
   }
 
@@ -500,6 +502,17 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   // Checks if there are any user certs or active smart cards on a different
   // thread. Updates mSpeculativeConnectEnabled when done.
   void MaybeEnableSpeculativeConnect();
+
+  // We only allow TRR and TRRServiceChannel itself to create TRRServiceChannel.
+  friend class TRRServiceChannel;
+  friend class TRR;
+  nsresult CreateTRRServiceChannel(nsIURI* uri, nsIProxyInfo* givenProxyInfo,
+                                   uint32_t proxyResolveFlags, nsIURI* proxyURI,
+                                   nsILoadInfo* aLoadInfo, nsIChannel** result);
+  nsresult SetupChannelInternal(HttpBaseChannel* aChannel, nsIURI* uri,
+                                nsIProxyInfo* givenProxyInfo,
+                                uint32_t proxyResolveFlags, nsIURI* proxyURI,
+                                nsILoadInfo* aLoadInfo, nsIChannel** result);
 
  private:
   // cached services
@@ -773,7 +786,7 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
 
   // State for generating channelIds
   uint32_t mProcessId;
-  uint32_t mNextChannelId;
+  Atomic<uint32_t, Relaxed> mNextChannelId;
 
   // The last time any of the active tab page load optimization took place.
   // This is accessed on multiple threads, hence a lock is needed.

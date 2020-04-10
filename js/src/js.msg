@@ -41,7 +41,7 @@
 
 MSG_DEF(JSMSG_NOT_AN_ERROR,            0, JSEXN_ERR, "<Error #0 is reserved>")
 MSG_DEF(JSMSG_NOT_DEFINED,             1, JSEXN_REFERENCEERR, "{0} is not defined")
-MSG_DEF(JSMSG_MORE_ARGS_NEEDED,        4, JSEXN_TYPEERR, "{0} requires at least {1} argument{2}, but only {3} were passed")
+MSG_DEF(JSMSG_MORE_ARGS_NEEDED,        4, JSEXN_TYPEERR, "{0}: At least {1} argument{2} required, but only {3} passed")
 MSG_DEF(JSMSG_INCOMPATIBLE_PROTO,      3, JSEXN_TYPEERR, "{0}.prototype.{1} called on incompatible {2}")
 MSG_DEF(JSMSG_NO_CONSTRUCTOR,          1, JSEXN_TYPEERR, "{0} has no constructor")
 MSG_DEF(JSMSG_BAD_SORT_ARG,            0, JSEXN_TYPEERR, "invalid Array.prototype.sort argument")
@@ -377,6 +377,10 @@ MSG_DEF(JSMSG_BAD_TRAILING_UTF8_UNIT,  1, JSEXN_SYNTAXERR, "bad trailing UTF-8 b
 MSG_DEF(JSMSG_FORBIDDEN_UTF8_CODE_POINT,2,JSEXN_SYNTAXERR, "{0} isn't a valid code point because {1}")
 MSG_DEF(JSMSG_BAD_CODE_UNITS,          1, JSEXN_NOTE, "the code units comprising this invalid code point were: {0}")
 
+// SmooshMonkey
+MSG_DEF(JSMSG_SMOOSH_COMPILE_ERROR,    1, JSEXN_SYNTAXERR, "{0}")
+MSG_DEF(JSMSG_SMOOSH_UNIMPLEMENTED,    1, JSEXN_INTERNALERR, "{0}")
+
 // asm.js
 MSG_DEF(JSMSG_USE_ASM_TYPE_FAIL,       1, JSEXN_TYPEERR, "asm.js type error: {0}")
 MSG_DEF(JSMSG_USE_ASM_LINK_FAIL,       1, JSEXN_TYPEERR, "asm.js link error: {0}")
@@ -489,6 +493,7 @@ MSG_DEF(JSMSG_DEBUG_BAD_LINE,          0, JSEXN_TYPEERR, "invalid line number")
 MSG_DEF(JSMSG_DEBUG_BAD_OFFSET,        0, JSEXN_TYPEERR, "invalid script offset")
 MSG_DEF(JSMSG_DEBUG_BAD_REFERENT,      2, JSEXN_TYPEERR, "{0} does not refer to {1}")
 MSG_DEF(JSMSG_DEBUG_BAD_RESUMPTION,    0, JSEXN_TYPEERR, "debugger resumption value must be undefined, {throw: val}, {return: val}, or null")
+MSG_DEF(JSMSG_DEBUG_RESUMPTION_CONFLICT, 0, JSEXN_TYPEERR, "debugger hook returned a resumption, but an earlier hook already did")
 MSG_DEF(JSMSG_DEBUG_BAD_YIELD,         0, JSEXN_TYPEERR, "generator yielded invalid value")
 MSG_DEF(JSMSG_DEBUG_CANT_DEBUG_GLOBAL, 0, JSEXN_TYPEERR, "passing non-debuggable global to addDebuggee")
 MSG_DEF(JSMSG_DEBUG_SAME_COMPARTMENT,  0, JSEXN_TYPEERR, "debugger and debuggee must be in different compartments")
@@ -668,7 +673,7 @@ MSG_DEF(JSMSG_GET_ASYNC_ITER_RETURNED_PRIMITIVE, 0, JSEXN_TYPEERR, "[Symbol.asyn
 // ReadableStream
 MSG_DEF(JSMSG_READABLESTREAM_UNDERLYINGSOURCE_TYPE_WRONG,0, JSEXN_RANGEERR,"'underlyingSource.type' must be \"bytes\" or undefined.")
 MSG_DEF(JSMSG_READABLESTREAM_BYTES_TYPE_NOT_IMPLEMENTED, 0, JSEXN_RANGEERR,"support for 'new ReadableStream({ type: \"bytes\" })' is not yet implemented")
-MSG_DEF(JSMSG_READABLESTREAM_BYOB_READERS_NOT_IMPLEMENTED,0,JSEXN_RANGEERR,"support for 'readableStream.getReader({ mode: \"byob\" })' is not yet implemented")
+MSG_DEF(JSMSG_READABLESTREAM_BYOB_READER_FOR_NON_BYTE_STREAM,0,JSEXN_TYPEERR,"can't get a BYOB reader for a non-byte stream")
 MSG_DEF(JSMSG_READABLESTREAM_INVALID_READER_MODE,        0, JSEXN_RANGEERR,"'mode' must be \"byob\" or undefined.")
 MSG_DEF(JSMSG_NUMBER_MUST_BE_FINITE_NON_NEGATIVE, 1, JSEXN_RANGEERR, "'{0}' must be a finite, non-negative number.")
 MSG_DEF(JSMSG_READABLEBYTESTREAMCONTROLLER_INVALID_BYTESWRITTEN, 0, JSEXN_RANGEERR, "'bytesWritten' exceeds remaining length.")
@@ -691,6 +696,7 @@ MSG_DEF(JSMSG_READABLEBYTESTREAMCONTROLLER_CLOSE_PENDING_PULL, 0, JSEXN_TYPEERR,
 MSG_DEF(JSMSG_READABLESTREAMBYOBREQUEST_NO_CONTROLLER,   1, JSEXN_TYPEERR, "ReadableStreamBYOBRequest method '{0}' called on a request with no controller.")
 MSG_DEF(JSMSG_READABLESTREAMBYOBREQUEST_RESPOND_CLOSED,  0, JSEXN_TYPEERR, "ReadableStreamBYOBRequest method 'respond' called with non-zero number of bytes with a closed controller.")
 MSG_DEF(JSMSG_READABLESTREAM_METHOD_NOT_IMPLEMENTED,     1, JSEXN_TYPEERR, "ReadableStream method {0} not yet implemented")
+MSG_DEF(JSMSG_READABLESTREAM_PIPETO_BAD_SIGNAL,          0, JSEXN_TYPEERR, "signal must be either undefined or an AbortSignal")
 
 // WritableStream
 MSG_DEF(JSMSG_READABLESTREAM_UNDERLYINGSINK_TYPE_WRONG,  0, JSEXN_RANGEERR,"'underlyingSink.type' must be undefined.")
@@ -718,7 +724,7 @@ MSG_DEF(JSMSG_RESPONSE_ALREADY_CONSUMED,                 0, JSEXN_TYPEERR,  "Res
 
 // BigInt
 MSG_DEF(JSMSG_BIGINT_TO_NUMBER, 0, JSEXN_TYPEERR, "can't convert BigInt to number")
-MSG_DEF(JSMSG_NUMBER_TO_BIGINT, 0, JSEXN_RANGEERR, "can't convert non-finite number to BigInt")
+MSG_DEF(JSMSG_NONINTEGER_NUMBER_TO_BIGINT, 1, JSEXN_RANGEERR, "{0} can't be converted to BigInt because it isn't an integer")
 MSG_DEF(JSMSG_BIGINT_TOO_LARGE, 0, JSEXN_RANGEERR, "BigInt is too large to allocate")
 MSG_DEF(JSMSG_BIGINT_DIVISION_BY_ZERO, 0, JSEXN_RANGEERR, "BigInt division by zero")
 MSG_DEF(JSMSG_BIGINT_NEGATIVE_EXPONENT, 0, JSEXN_RANGEERR, "BigInt negative exponent")
@@ -732,7 +738,7 @@ MSG_DEF(JSMSG_BINAST,                                    1, JSEXN_SYNTAXERR, "Bi
 // FinalizationGroup
 MSG_DEF(JSMSG_NOT_A_FINALIZATION_GROUP,                  1, JSEXN_TYPEERR, "{0} is not a FinalizationGroup")
 MSG_DEF(JSMSG_NOT_A_FINALIZATION_ITERATOR,               1, JSEXN_TYPEERR, "{0} is not a FinalizationGroupCleanupIterator")
-MSG_DEF(JSMSG_BAD_HOLDINGS,                              0, JSEXN_TYPEERR, "The holdings passed to FinalizationGroup.register must not be the same as its target object")
+MSG_DEF(JSMSG_BAD_HELD_VALUE,                            0, JSEXN_TYPEERR, "The heldValue parameter passed to FinalizationGroup.register must not be the same as the target parameter")
 MSG_DEF(JSMSG_BAD_UNREGISTER_TOKEN,                      1, JSEXN_TYPEERR, "Invalid unregister token passed to {0}")
 MSG_DEF(JSMSG_STALE_FINALIZATION_GROUP_ITERATOR,         0, JSEXN_TYPEERR, "Can't use stale finalization group iterator")
 MSG_DEF(JSMSG_BAD_CLEANUP_STATE,                         0, JSEXN_TYPEERR, "Can't call FinalizeGroup.cleanupSome while cleanup is in progress")

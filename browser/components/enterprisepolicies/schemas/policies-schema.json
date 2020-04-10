@@ -17,6 +17,10 @@
       }
     },
 
+    "AppAutoUpdate": {
+      "type": "boolean"
+    },
+
     "AppUpdateURL": {
       "type": "URL"
     },
@@ -191,6 +195,10 @@
       "type": "boolean"
     },
 
+    "DisableDefaultBrowserAgent": {
+      "type": "boolean"
+    },
+
     "DisableDeveloperTools": {
       "type": "boolean"
     },
@@ -289,6 +297,12 @@
         },
         "ProviderURL": {
           "type": "URLorEmpty"
+        },
+        "ExcludedDomains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "Locked": {
           "type": "boolean"
@@ -714,9 +728,6 @@
           "type": "number",
           "enum": [-1, 0, 1]
         },
-        "app.update.auto": {
-          "type": "boolean"
-        },
         "browser.bookmarks.autoExportHTML": {
           "type": "boolean"
         },
@@ -1055,6 +1066,27 @@
         }
       },
       "required": ["Title", "URL"],
+    },
+
+    "UserMessaging": {
+      "type": "object",
+      "properties": {
+        "WhatsNew": {
+          "type": "boolean"
+        },
+        "ExtensionRecommendations": {
+          "type": "boolean"
+        },
+        "FeatureRecommendations": {
+          "type": "boolean"
+        },
+        "UrlbarInterventions": {
+          "type": "boolean"
+        },
+        "Locked": {
+          "type": "boolean"
+        }
+      }
     },
 
     "WebsiteFilter": {

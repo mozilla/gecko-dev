@@ -52,12 +52,6 @@ static already_AddRefed<nsAtom> AtomizeAttribute(const nsAString& aAttribute) {
   return NS_Atomize(aAttribute);
 }
 
-bool HTMLEditor::IsEmptyTextNode(nsINode& aNode) const {
-  bool isEmptyTextNode = false;
-  return EditorBase::IsTextNode(&aNode) &&
-         NS_SUCCEEDED(IsEmptyNode(&aNode, &isEmptyTextNode)) && isEmptyTextNode;
-}
-
 nsresult HTMLEditor::SetInlinePropertyAsAction(nsAtom& aProperty,
                                                nsAtom* aAttribute,
                                                const nsAString& aValue,
@@ -270,8 +264,10 @@ nsresult HTMLEditor::SetInlinePropertyInternal(
 
       // Then, apply new style to all nodes in the range entirely.
       for (auto& content : arrayOfContents) {
-        nsresult rv = SetInlinePropertyOnNode(*content, aProperty, aAttribute,
-                                              aAttributeValue);
+        // MOZ_KnownLive because 'arrayOfContents' is guaranteed to
+        // keep it alive.
+        nsresult rv = SetInlinePropertyOnNode(
+            MOZ_KnownLive(*content), aProperty, aAttribute, aAttributeValue);
         if (NS_WARN_IF(Destroyed())) {
           return NS_ERROR_EDITOR_DESTROYED;
         }
@@ -479,8 +475,10 @@ nsresult HTMLEditor::SetInlinePropertyOnNodeImpl(nsIContent& aNode,
 
       // Then loop through the list, set the property on each node.
       for (auto& node : arrayOfNodes) {
-        nsresult rv =
-            SetInlinePropertyOnNode(node, aProperty, aAttribute, aValue);
+        // MOZ_KnownLive because 'arrayOfNodes' is guaranteed to
+        // keep it alive.
+        nsresult rv = SetInlinePropertyOnNode(MOZ_KnownLive(node), aProperty,
+                                              aAttribute, aValue);
         NS_ENSURE_SUCCESS(rv, rv);
       }
     }
@@ -610,8 +608,10 @@ nsresult HTMLEditor::SetInlinePropertyOnNode(nsIContent& aNode,
   }
 
   for (auto& node : nodesToSet) {
-    nsresult rv =
-        SetInlinePropertyOnNodeImpl(node, aProperty, aAttribute, aValue);
+    // MOZ_KnownLive because 'nodesToSet' is guaranteed to
+    // keep it alive.
+    nsresult rv = SetInlinePropertyOnNodeImpl(MOZ_KnownLive(node), aProperty,
+                                              aAttribute, aValue);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -779,19 +779,16 @@ EditResult HTMLEditor::ClearStyleAt(const EditorDOMPoint& aPoint,
   // If it did split nodes, but topmost ancestor inline element is split
   // at start of it, we don't need the empty inline element.  Let's remove
   // it now.
-  if (splitResult.GetPreviousNode()) {
-    bool isEmpty = false;
-    IsEmptyNode(splitResult.GetPreviousNode(), &isEmpty, false, true);
-    if (isEmpty) {
-      // Delete previous node if it's empty.
-      nsresult rv = DeleteNodeWithTransaction(
-          MOZ_KnownLive(*splitResult.GetPreviousNode()));
-      if (NS_WARN_IF(Destroyed())) {
-        return EditResult(NS_ERROR_EDITOR_DESTROYED);
-      }
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return EditResult(rv);
-      }
+  if (splitResult.GetPreviousNode() &&
+      IsEmptyNode(*splitResult.GetPreviousNode(), false, true)) {
+    // Delete previous node if it's empty.
+    nsresult rv = DeleteNodeWithTransaction(
+        MOZ_KnownLive(*splitResult.GetPreviousNode()));
+    if (NS_WARN_IF(Destroyed())) {
+      return EditResult(NS_ERROR_EDITOR_DESTROYED);
+    }
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return EditResult(rv);
     }
   }
 
@@ -838,20 +835,16 @@ EditResult HTMLEditor::ClearStyleAt(const EditorDOMPoint& aPoint,
   // Let's remove the next node if it becomes empty by splitting it.
   // XXX Is this possible case without mutation event listener?
   if (splitResultAtStartOfNextNode.Handled() &&
-      splitResultAtStartOfNextNode.GetNextNode()) {
-    bool isEmpty = false;
-    IsEmptyNode(splitResultAtStartOfNextNode.GetNextNode(), &isEmpty, false,
-                true);
-    if (isEmpty) {
-      // Delete next node if it's empty.
-      nsresult rv = DeleteNodeWithTransaction(
-          MOZ_KnownLive(*splitResultAtStartOfNextNode.GetNextNode()));
-      if (NS_WARN_IF(Destroyed())) {
-        return EditResult(NS_ERROR_EDITOR_DESTROYED);
-      }
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return EditResult(rv);
-      }
+      splitResultAtStartOfNextNode.GetNextNode() &&
+      IsEmptyNode(*splitResultAtStartOfNextNode.GetNextNode(), false, true)) {
+    // Delete next node if it's empty.
+    nsresult rv = DeleteNodeWithTransaction(
+        MOZ_KnownLive(*splitResultAtStartOfNextNode.GetNextNode()));
+    if (NS_WARN_IF(Destroyed())) {
+      return EditResult(NS_ERROR_EDITOR_DESTROYED);
+    }
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return EditResult(rv);
     }
   }
 
@@ -927,7 +920,7 @@ nsresult HTMLEditor::RemoveStyleInside(Element& aElement, nsAtom* aProperty,
         return rv;
       }
     }
-    child = nextSibling.forget();
+    child = ToRefPtr(std::move(nextSibling));
   }
 
   // Next, remove the element or its attribute.
@@ -1730,8 +1723,10 @@ nsresult HTMLEditor::RemoveInlinePropertyInternal(
           if (!content->IsText()) {
             // XXX Do we need to call this even when data node or something?  If
             //     so, for what?
+            // MOZ_KnownLive because 'arrayOfContents' is guaranteed to
+            // keep it alive.
             DebugOnly<nsresult> rvIgnored = SetInlinePropertyOnNode(
-                content, MOZ_KnownLive(*style.mProperty),
+                MOZ_KnownLive(content), MOZ_KnownLive(*style.mProperty),
                 MOZ_KnownLive(style.mAttribute),
                 NS_LITERAL_STRING("-moz-editor-invert-value"));
             if (NS_WARN_IF(Destroyed())) {
@@ -1781,8 +1776,10 @@ nsresult HTMLEditor::RemoveInlinePropertyInternal(
                     textNode, style.mProperty, style.mAttribute)) {
               continue;
             }
+            // MOZ_KnownLive because 'leafTextNodes' is guaranteed to
+            // keep it alive.
             nsresult rv = SetInlinePropertyOnTextNode(
-                textNode, 0, textNode->TextLength(),
+                MOZ_KnownLive(textNode), 0, textNode->TextLength(),
                 MOZ_KnownLive(*style.mProperty),
                 MOZ_KnownLive(style.mAttribute),
                 NS_LITERAL_STRING("-moz-editor-invert-value"));
@@ -1971,7 +1968,10 @@ nsresult HTMLEditor::RelativeFontChange(FontSize aDir) {
 
         // Now that we have the list, do the font size change on each node
         for (auto& node : arrayOfNodes) {
-          rv = RelativeFontChangeOnNode(aDir == FontSize::incr ? +1 : -1, node);
+          // MOZ_KnownLive because 'arrayOfNodes' is guaranteed to keep it
+          // alive.
+          rv = RelativeFontChangeOnNode(aDir == FontSize::incr ? +1 : -1,
+                                        MOZ_KnownLive(node));
           if (NS_WARN_IF(NS_FAILED(rv))) {
             return rv;
           }
@@ -2103,7 +2103,9 @@ nsresult HTMLEditor::RelativeFontChangeHelper(int32_t aSizeChange,
     }
 
     for (const auto& child : childList) {
-      nsresult rv = RelativeFontChangeOnNode(aSizeChange, child);
+      // MOZ_KnownLive because 'childList' is guaranteed to
+      // keep it alive.
+      nsresult rv = RelativeFontChangeOnNode(aSizeChange, MOZ_KnownLive(child));
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -2120,7 +2122,9 @@ nsresult HTMLEditor::RelativeFontChangeHelper(int32_t aSizeChange,
   }
 
   for (const auto& child : childList) {
-    nsresult rv = RelativeFontChangeHelper(aSizeChange, child);
+    // MOZ_KnownLive because 'childList' is guaranteed to
+    // keep it alive.
+    nsresult rv = RelativeFontChangeHelper(aSizeChange, MOZ_KnownLive(child));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -2195,7 +2199,9 @@ nsresult HTMLEditor::RelativeFontChangeOnNode(int32_t aSizeChange,
   }
 
   for (const auto& child : childList) {
-    nsresult rv = RelativeFontChangeOnNode(aSizeChange, child);
+    // MOZ_KnownLive because 'childList' is guaranteed to
+    // keep it alive.
+    nsresult rv = RelativeFontChangeOnNode(aSizeChange, MOZ_KnownLive(child));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 

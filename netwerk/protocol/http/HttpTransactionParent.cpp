@@ -186,20 +186,20 @@ void HttpTransactionParent::SetClassOfService(uint32_t classOfService) {
   Unused << SendUpdateClassOfService(classOfService);
 }
 
-nsHttpResponseHead* HttpTransactionParent::TakeResponseHead() {
+UniquePtr<nsHttpResponseHead> HttpTransactionParent::TakeResponseHead() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mResponseHeadTaken, "TakeResponseHead called 2x");
 
   mResponseHeadTaken = true;
-  return mResponseHead.forget();
+  return std::move(mResponseHead);
 }
 
-nsHttpHeaderArray* HttpTransactionParent::TakeResponseTrailers() {
+UniquePtr<nsHttpHeaderArray> HttpTransactionParent::TakeResponseTrailers() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mResponseTrailersTaken, "TakeResponseTrailers called 2x");
 
   mResponseTrailersTaken = true;
-  return mResponseTrailers.forget();
+  return std::move(mResponseTrailers);
 }
 
 void HttpTransactionParent::SetSniffedTypeToChannel(
@@ -315,12 +315,6 @@ void HttpTransactionParent::SetDomainLookupEnd(mozilla::TimeStamp timeStamp,
   mTimings.domainLookupEnd = mDomainLookupEnd;
 }
 
-void HttpTransactionParent::GetTransactionObserverResult(
-    TransactionObserverResult& aResult) {
-  MOZ_ASSERT(NS_IsMainThread());
-  aResult = mTransactionObserverResult;
-}
-
 nsHttpTransaction* HttpTransactionParent::AsHttpTransaction() {
   return nullptr;
 }
@@ -399,7 +393,7 @@ void HttpTransactionParent::DoOnStartRequest(
   }
 
   if (aResponseHead.isSome()) {
-    mResponseHead = new nsHttpResponseHead(aResponseHead.ref());
+    mResponseHead = MakeUnique<nsHttpResponseHead>(aResponseHead.ref());
   }
   mProxyConnectFailed = aProxyConnectFailed;
   TimingStructArgsToTimingsStruct(aTimings, mTimings);
@@ -480,17 +474,19 @@ mozilla::ipc::IPCResult HttpTransactionParent::RecvOnStopRequest(
     const int64_t& aTransferSize, const TimingStructArgs& aTimings,
     const Maybe<nsHttpHeaderArray>& aResponseTrailers,
     const bool& aHasStickyConn,
-    const Maybe<TransactionObserverResult>& aTransactionObserverResult) {
+    Maybe<TransactionObserverResult>&& aTransactionObserverResult) {
   LOG(("HttpTransactionParent::RecvOnStopRequest [this=%p status=%" PRIx32
        "]\n",
        this, static_cast<uint32_t>(aStatus)));
   mEventQ->RunOrEnqueue(new NeckoTargetChannelFunctionEvent(
       this, [self = UnsafePtr<HttpTransactionParent>(this), aStatus,
              aResponseIsComplete, aTransferSize, aTimings, aResponseTrailers,
-             aHasStickyConn, aTransactionObserverResult]() {
+             aHasStickyConn,
+             aTransactionObserverResult{
+                 std::move(aTransactionObserverResult)}]() mutable {
         self->DoOnStopRequest(aStatus, aResponseIsComplete, aTransferSize,
                               aTimings, aResponseTrailers, aHasStickyConn,
-                              aTransactionObserverResult);
+                              std::move(aTransactionObserverResult));
       }));
   return IPC_OK();
 }
@@ -500,7 +496,7 @@ void HttpTransactionParent::DoOnStopRequest(
     const int64_t& aTransferSize, const TimingStructArgs& aTimings,
     const Maybe<nsHttpHeaderArray>& aResponseTrailers,
     const bool& aHasStickyConn,
-    const Maybe<TransactionObserverResult>& aTransactionObserverResult) {
+    Maybe<TransactionObserverResult>&& aTransactionObserverResult) {
   LOG(("HttpTransactionParent::DoOnStopRequest [this=%p]\n", this));
   if (mCanceled) {
     return;
@@ -517,12 +513,13 @@ void HttpTransactionParent::DoOnStopRequest(
   TimingStructArgsToTimingsStruct(aTimings, mTimings);
 
   if (aResponseTrailers.isSome()) {
-    mResponseTrailers = new nsHttpHeaderArray(aResponseTrailers.ref());
+    mResponseTrailers = MakeUnique<nsHttpHeaderArray>(aResponseTrailers.ref());
   }
   mHasStickyConnection = aHasStickyConn;
   if (aTransactionObserverResult.isSome()) {
-    mTransactionObserverResult = aTransactionObserverResult.value();
-    mTransactionObserver();
+    TransactionObserverFunc obs = nullptr;
+    std::swap(obs, mTransactionObserver);
+    obs(std::move(*aTransactionObserverResult));
   }
 
   AutoEventEnqueuer ensureSerialDispatch(mEventQ);
@@ -553,7 +550,7 @@ mozilla::ipc::IPCResult HttpTransactionParent::RecvOnH2PushStream(
     const nsCString& aRequestString) {
   MOZ_ASSERT(mOnPushCallback);
 
-  mOnPushCallback(aPushedStreamId, aResourceUrl, aRequestString);
+  mOnPushCallback(aPushedStreamId, aResourceUrl, aRequestString, this);
   return IPC_OK();
 }  // namespace net
 

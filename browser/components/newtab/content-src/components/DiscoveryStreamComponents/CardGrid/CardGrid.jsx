@@ -55,9 +55,7 @@ export class CardGrid extends React.PureComponent {
 
     return (
       <div
-        className={`ds-card-grid ds-card-grid-${
-          this.props.border
-        } ds-card-grid-${divisibility}`}
+        className={`ds-card-grid ds-card-grid-${this.props.border} ds-card-grid-${divisibility}`}
       >
         {cards}
       </div>
@@ -78,7 +76,12 @@ export class CardGrid extends React.PureComponent {
     return (
       <div>
         {this.props.title && (
-          <div className="ds-header">{this.props.title}</div>
+          <div className="ds-header">
+            <div className="title">{this.props.title}</div>
+            {this.props.context && (
+              <div className="ds-context">{this.props.context}</div>
+            )}
+          </div>
         )}
         {isEmpty ? (
           <div className="ds-card-grid empty">

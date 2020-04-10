@@ -53,7 +53,7 @@ class NewRenderer : public RendererEvent {
     MOZ_COUNT_CTOR(NewRenderer);
   }
 
-  ~NewRenderer() { MOZ_COUNT_DTOR(NewRenderer); }
+  MOZ_COUNTED_DTOR(NewRenderer)
 
   void Run(RenderThread& aRenderThread, WindowId aWindowId) override {
     layers::AutoCompleteTask complete(mTask);
@@ -158,7 +158,7 @@ class RemoveRenderer : public RendererEvent {
     MOZ_COUNT_CTOR(RemoveRenderer);
   }
 
-  virtual ~RemoveRenderer() { MOZ_COUNT_DTOR(RemoveRenderer); }
+  MOZ_COUNTED_DTOR_OVERRIDE(RemoveRenderer)
 
   void Run(RenderThread& aRenderThread, WindowId aWindowId) override {
     aRenderThread.RemoveRenderer(aWindowId);
@@ -216,12 +216,15 @@ void TransactionBuilder::InvalidateRenderedFrame() {
 
 void TransactionBuilder::UpdateDynamicProperties(
     const nsTArray<wr::WrOpacityProperty>& aOpacityArray,
-    const nsTArray<wr::WrTransformProperty>& aTransformArray) {
+    const nsTArray<wr::WrTransformProperty>& aTransformArray,
+    const nsTArray<wr::WrColorProperty>& aColorArray) {
   wr_transaction_update_dynamic_properties(
       mTxn, aOpacityArray.IsEmpty() ? nullptr : aOpacityArray.Elements(),
       aOpacityArray.Length(),
       aTransformArray.IsEmpty() ? nullptr : aTransformArray.Elements(),
-      aTransformArray.Length());
+      aTransformArray.Length(),
+      aColorArray.IsEmpty() ? nullptr : aColorArray.Elements(),
+      aColorArray.Length());
 }
 
 bool TransactionBuilder::IsEmpty() const {
@@ -486,7 +489,7 @@ void WebRenderAPI::Readback(const TimeStamp& aStartTime, gfx::IntSize size,
       MOZ_COUNT_CTOR(Readback);
     }
 
-    virtual ~Readback() { MOZ_COUNT_DTOR(Readback); }
+    MOZ_COUNTED_DTOR_OVERRIDE(Readback)
 
     void Run(RenderThread& aRenderThread, WindowId aWindowId) override {
       aRenderThread.UpdateAndRender(aWindowId, VsyncId(), mStartTime,
@@ -529,6 +532,10 @@ void WebRenderAPI::EnableMultithreading(bool aEnable) {
   wr_api_enable_multithreading(mDocHandle, aEnable);
 }
 
+void WebRenderAPI::SetBatchingLookback(uint32_t aCount) {
+  wr_api_set_batching_lookback(mDocHandle, aCount);
+}
+
 void WebRenderAPI::Pause() {
   class PauseEvent : public RendererEvent {
    public:
@@ -536,7 +543,7 @@ void WebRenderAPI::Pause() {
       MOZ_COUNT_CTOR(PauseEvent);
     }
 
-    virtual ~PauseEvent() { MOZ_COUNT_DTOR(PauseEvent); }
+    MOZ_COUNTED_DTOR_OVERRIDE(PauseEvent)
 
     void Run(RenderThread& aRenderThread, WindowId aWindowId) override {
       aRenderThread.Pause(aWindowId);
@@ -564,7 +571,7 @@ bool WebRenderAPI::Resume() {
       MOZ_COUNT_CTOR(ResumeEvent);
     }
 
-    virtual ~ResumeEvent() { MOZ_COUNT_DTOR(ResumeEvent); }
+    MOZ_COUNTED_DTOR_OVERRIDE(ResumeEvent)
 
     void Run(RenderThread& aRenderThread, WindowId aWindowId) override {
       *mResult = aRenderThread.Resume(aWindowId);
@@ -608,7 +615,7 @@ void WebRenderAPI::WaitFlushed() {
       MOZ_COUNT_CTOR(WaitFlushedEvent);
     }
 
-    virtual ~WaitFlushedEvent() { MOZ_COUNT_DTOR(WaitFlushedEvent); }
+    MOZ_COUNTED_DTOR_OVERRIDE(WaitFlushedEvent)
 
     void Run(RenderThread& aRenderThread, WindowId aWindowId) override {
       layers::AutoCompleteTask complete(mTask);
@@ -676,7 +683,7 @@ WebRenderAPI::WriteCollectedFrames() {
       MOZ_COUNT_CTOR(WriteCollectedFramesEvent);
     }
 
-    ~WriteCollectedFramesEvent() { MOZ_COUNT_DTOR(WriteCollectedFramesEvent); }
+    MOZ_COUNTED_DTOR(WriteCollectedFramesEvent)
 
     void Run(RenderThread& aRenderThread, WindowId aWindowId) override {
       aRenderThread.WriteCollectedFramesForWindow(aWindowId);
@@ -706,7 +713,7 @@ WebRenderAPI::GetCollectedFrames() {
       MOZ_COUNT_CTOR(GetCollectedFramesEvent);
     }
 
-    ~GetCollectedFramesEvent() { MOZ_COUNT_DTOR(GetCollectedFramesEvent); };
+    MOZ_COUNTED_DTOR(GetCollectedFramesEvent);
 
     void Run(RenderThread& aRenderThread, WindowId aWindowId) override {
       Maybe<layers::CollectedFrames> frames =
@@ -858,7 +865,7 @@ class FrameStartTime : public RendererEvent {
     MOZ_COUNT_CTOR(FrameStartTime);
   }
 
-  virtual ~FrameStartTime() { MOZ_COUNT_DTOR(FrameStartTime); }
+  MOZ_COUNTED_DTOR_OVERRIDE(FrameStartTime)
 
   void Run(RenderThread& aRenderThread, WindowId aWindowId) override {
     auto renderer = aRenderThread.GetRenderer(aWindowId);
@@ -932,6 +939,10 @@ usize DisplayListBuilder::Dump(usize aIndent, const Maybe<usize>& aStart,
                                const Maybe<usize>& aEnd) {
   return wr_dump_display_list(mWrState, aIndent, aStart.ptrOr(nullptr),
                               aEnd.ptrOr(nullptr));
+}
+
+void DisplayListBuilder::DumpSerializedDisplayList() {
+  wr_dump_serialized_display_list(mWrState);
 }
 
 void DisplayListBuilder::Finalize(wr::LayoutSize& aOutContentSize,
@@ -1131,6 +1142,20 @@ void DisplayListBuilder::PushHitTest(const wr::LayoutRect& aBounds,
                       &mCurrentSpaceAndClipChain);
 }
 
+void DisplayListBuilder::PushRectWithAnimation(
+    const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,
+    bool aIsBackfaceVisible, const wr::ColorF& aColor,
+    const WrAnimationProperty* aAnimation) {
+  wr::LayoutRect clip = MergeClipLeaf(aClip);
+  WRDL_LOG("PushRectWithAnimation b=%s cl=%s c=%s\n", mWrState,
+           Stringify(aBounds).c_str(), Stringify(clip).c_str(),
+           Stringify(aColor).c_str());
+
+  wr_dp_push_rect_with_animation(mWrState, aBounds, clip, aIsBackfaceVisible,
+                                 &mCurrentSpaceAndClipChain, aColor,
+                                 aAnimation);
+}
+
 void DisplayListBuilder::PushClearRect(const wr::LayoutRect& aBounds) {
   wr::LayoutRect clip = MergeClipLeaf(aBounds);
   WRDL_LOG("PushClearRect b=%s c=%s\n", mWrState, Stringify(aBounds).c_str(),
@@ -1193,6 +1218,17 @@ void DisplayListBuilder::PushRadialGradient(
       mWrState, aBounds, MergeClipLeaf(aClip), aIsBackfaceVisible,
       &mCurrentSpaceAndClipChain, aCenter, aRadius, aStops.Elements(),
       aStops.Length(), aExtendMode, aTileSize, aTileSpacing);
+}
+
+void DisplayListBuilder::PushConicGradient(
+    const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,
+    bool aIsBackfaceVisible, const wr::LayoutPoint& aCenter, const float aAngle,
+    const nsTArray<wr::GradientStop>& aStops, wr::ExtendMode aExtendMode,
+    const wr::LayoutSize aTileSize, const wr::LayoutSize aTileSpacing) {
+  wr_dp_push_conic_gradient(mWrState, aBounds, MergeClipLeaf(aClip),
+                            aIsBackfaceVisible, &mCurrentSpaceAndClipChain,
+                            aCenter, aAngle, aStops.Elements(), aStops.Length(),
+                            aExtendMode, aTileSize, aTileSpacing);
 }
 
 void DisplayListBuilder::PushImage(
@@ -1317,6 +1353,18 @@ void DisplayListBuilder::PushBorderRadialGradient(
       aStops.Elements(), aStops.Length(), aExtendMode, aOutset);
 }
 
+void DisplayListBuilder::PushBorderConicGradient(
+    const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,
+    bool aIsBackfaceVisible, const wr::LayoutSideOffsets& aWidths, bool aFill,
+    const wr::LayoutPoint& aCenter, const float aAngle,
+    const nsTArray<wr::GradientStop>& aStops, wr::ExtendMode aExtendMode,
+    const wr::LayoutSideOffsets& aOutset) {
+  wr_dp_push_border_conic_gradient(
+      mWrState, aBounds, MergeClipLeaf(aClip), aIsBackfaceVisible,
+      &mCurrentSpaceAndClipChain, aWidths, aFill, aCenter, aAngle,
+      aStops.Elements(), aStops.Length(), aExtendMode, aOutset);
+}
+
 void DisplayListBuilder::PushText(const wr::LayoutRect& aBounds,
                                   const wr::LayoutRect& aClip,
                                   bool aIsBackfaceVisible,
@@ -1407,8 +1455,8 @@ void DisplayListBuilder::StartCachedItem(wr::ItemKey aKey) {
   wr_dp_start_cached_item(mWrState, aKey);
 }
 
-void DisplayListBuilder::EndCachedItem(wr::ItemKey aKey) {
-  wr_dp_end_cached_item(mWrState, aKey);
+bool DisplayListBuilder::EndCachedItem(wr::ItemKey aKey) {
+  return wr_dp_end_cached_item(mWrState, aKey);
 }
 
 void DisplayListBuilder::SetDisplayListCacheSize(const size_t aCacheSize) {

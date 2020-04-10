@@ -12,6 +12,7 @@
 #include "mozilla/dom/DataTransfer.h"
 #include "mozilla/dom/DragEvent.h"
 #include "mozilla/dom/Selection.h"
+#include "mozilla/dom/StaticRange.h"
 #include "nsAString.h"
 #include "nsCOMPtr.h"
 #include "nsComponentManagerUtils.h"
@@ -402,16 +403,16 @@ nsresult TextEditor::OnDrop(DragEvent* aDropEvent) {
     }
     droppedAt = rangeAtDropPoint->StartRef();
     MOZ_ASSERT(droppedAt.IsSetAndValid());
-  }
 
-  // If focus is changed to different element and we're handling drop in
-  // contenteditable, we cannot handle it without focus.  So, we should give
-  // it up.
-  if (NS_WARN_IF(newFocusedElement !=
-                     nsFocusManager::GetFocusManager()->GetFocusedElement() &&
-                 AsHTMLEditor() && !AsHTMLEditor()->IsInDesignMode())) {
-    editActionData.Abort();
-    return NS_OK;
+    // If focus is changed to different element and we're handling drop in
+    // contenteditable, we cannot handle it without focus.  So, we should give
+    // it up.
+    if (AsHTMLEditor() && !AsHTMLEditor()->IsInDesignMode() &&
+        NS_WARN_IF(newFocusedElement !=
+                   AsHTMLEditor()->GetActiveEditingHost())) {
+      editActionData.Abort();
+      return NS_OK;
+    }
   }
 
   if (!AsHTMLEditor()) {
@@ -463,6 +464,15 @@ nsresult TextEditor::OnDrop(DragEvent* aDropEvent) {
     }
   } else {
     editActionData.InitializeDataTransfer(dataTransfer);
+    RefPtr<StaticRange> targetRange = StaticRange::Create(
+        droppedAt.GetContainer(), droppedAt.Offset(), droppedAt.GetContainer(),
+        droppedAt.Offset(), IgnoreErrors());
+    NS_WARNING_ASSERTION(targetRange && targetRange->IsPositioned(),
+                         "Why did we fail to create collapsed static range at "
+                         "dropped position?");
+    if (targetRange && targetRange->IsPositioned()) {
+      editActionData.AppendTargetRange(*targetRange);
+    }
     nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
     if (rv == NS_ERROR_EDITOR_ACTION_CANCELED || NS_WARN_IF(NS_FAILED(rv))) {
       return EditorBase::ToGenericNSResult(rv);

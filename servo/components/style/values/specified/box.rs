@@ -271,8 +271,7 @@ impl Display {
     /// Whether this is `display: inline` (or `inline list-item`).
     #[inline]
     pub fn is_inline_flow(&self) -> bool {
-        self.outside() == DisplayOutside::Inline &&
-            self.inside() == DisplayInside::Flow
+        self.outside() == DisplayOutside::Inline && self.inside() == DisplayInside::Flow
     }
 
     /// Returns whether this `display` value is some kind of list-item.
@@ -1602,7 +1601,7 @@ pub enum Appearance {
     Meterchunk,
     /// The "arrowed" part of the dropdown button that open up a dropdown list.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozMenulistButton,
+    MozMenulistArrowButton,
     /// For HTML's <input type=number>
     NumberInput,
     /// A horizontal progress bar.

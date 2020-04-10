@@ -89,11 +89,41 @@ Family::Family(FontList* aList, const InitData& aData)
   mIndex = aData.mIndex | (aData.mBundled ? 0x80000000u : 0u);
 }
 
-void Face::SetCharacterMap(FontList* aList, const gfxSparseBitSet* aCharMap) {
-  if (!XRE_IsParentProcess()) {
-    Pointer ptr = aList->ToSharedPointer(this);
+class SetCharMapRunnable : public mozilla::Runnable {
+ public:
+  SetCharMapRunnable(uint32_t aListGeneration, Face* aFace,
+                     gfxCharacterMap* aCharMap)
+      : Runnable("SetCharMapRunnable"),
+        mListGeneration(aListGeneration),
+        mFace(aFace),
+        mCharMap(aCharMap) {}
+
+  NS_IMETHOD Run() override {
+    auto* list = gfxPlatformFontList::PlatformFontList()->SharedFontList();
+    if (!list || list->GetGeneration() != mListGeneration) {
+      return NS_OK;
+    }
     dom::ContentChild::GetSingleton()->SendSetCharacterMap(
-        aList->GetGeneration(), ptr, *aCharMap);
+        mListGeneration, list->ToSharedPointer(mFace), *mCharMap);
+    return NS_OK;
+  }
+
+ private:
+  uint32_t mListGeneration;
+  Face* mFace;
+  RefPtr<gfxCharacterMap> mCharMap;
+};
+
+void Face::SetCharacterMap(FontList* aList, gfxCharacterMap* aCharMap) {
+  if (!XRE_IsParentProcess()) {
+    if (NS_IsMainThread()) {
+      Pointer ptr = aList->ToSharedPointer(this);
+      dom::ContentChild::GetSingleton()->SendSetCharacterMap(
+          aList->GetGeneration(), ptr, *aCharMap);
+    } else {
+      NS_DispatchToMainThread(
+          new SetCharMapRunnable(aList->GetGeneration(), this, aCharMap));
+    }
     return;
   }
   auto pfl = gfxPlatformFontList::PlatformFontList();

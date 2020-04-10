@@ -14,6 +14,8 @@ import difflib
 import errno
 import functools
 import hashlib
+import io
+import itertools
 import os
 import pprint
 import re
@@ -50,6 +52,12 @@ def exec_(object, globals=None, locals=None):
     which happen with older versions of python 2.7.
     """
     exec(object, globals, locals)
+
+
+def _open(path, mode):
+    if 'b' in mode:
+        return io.open(path, mode)
+    return io.open(path, mode, encoding='utf-8', newline='\n')
 
 
 def hash_file(path, hasher=None):
@@ -226,9 +234,7 @@ class FileAvoidWrite(BytesIO):
         self._binary_mode = 'b' in readmode
 
     def write(self, buf):
-        if isinstance(buf, six.text_type):
-            buf = buf.encode('utf-8')
-        BytesIO.write(self, buf)
+        BytesIO.write(self, six.ensure_binary(buf))
 
     def avoid_writing_to_file(self):
         self._write_to_file = False
@@ -260,7 +266,7 @@ class FileAvoidWrite(BytesIO):
         old_content = None
 
         try:
-            existing = open(self.name, self.mode)
+            existing = _open(self.name, self.mode)
             existed = True
         except IOError:
             pass
@@ -281,7 +287,10 @@ class FileAvoidWrite(BytesIO):
             writemode = 'w'
             if self._binary_mode:
                 writemode += 'b'
-            with open(self.name, writemode) as file:
+                buf = six.ensure_binary(buf)
+            else:
+                buf = six.ensure_text(buf)
+            with _open(self.name, writemode) as file:
                 file.write(buf)
 
         self._generate_diff(buf, old_content)
@@ -1193,6 +1202,20 @@ def pair(iterable):
     '''
     i = iter(iterable)
     return six.moves.zip_longest(i, i)
+
+
+def pairwise(iterable):
+    '''Given an iterable, returns an iterable of overlapped pairs of
+    its items. Based on the Python itertools documentation.
+
+    For example,
+        list(pairwise([1,2,3,4,5,6]))
+    returns
+        [(1,2), (2,3), (3,4), (4,5), (5,6)]
+    '''
+    a, b = itertools.tee(iterable)
+    next(b, None)
+    return zip(a, b)
 
 
 VARIABLES_RE = re.compile('\$\((\w+)\)')

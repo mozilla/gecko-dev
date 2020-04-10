@@ -149,8 +149,8 @@ void CookieServiceChild::TrackCookieLoad(nsIChannel* aChannel) {
   bool isSameSiteForeign = NS_IsSameSiteForeign(aChannel, uri);
   SendPrepareCookieList(
       uriParams, result.contains(ThirdPartyAnalysis::IsForeign),
-      result.contains(ThirdPartyAnalysis::IsTrackingResource),
-      result.contains(ThirdPartyAnalysis::IsSocialTrackingResource),
+      result.contains(ThirdPartyAnalysis::IsThirdPartyTrackingResource),
+      result.contains(ThirdPartyAnalysis::IsThirdPartySocialTrackingResource),
       result.contains(ThirdPartyAnalysis::IsFirstPartyStorageAccessGranted),
       rejectedReason, isSafeTopLevelNav, isSameSiteForeign, attrs);
 }
@@ -243,10 +243,11 @@ void CookieServiceChild::PrefChanged(nsIPrefBranch* aPrefBranch) {
 }
 
 void CookieServiceChild::GetCookieStringFromCookieHashTable(
-    nsIURI* aHostURI, bool aIsForeign, bool aIsTrackingResource,
-    bool aIsSocialTrackingResource, bool aFirstPartyStorageAccessGranted,
-    uint32_t aRejectedReason, bool aIsSafeTopLevelNav, bool aIsSameSiteForeign,
-    nsIChannel* aChannel, nsACString& aCookieString) {
+    nsIURI* aHostURI, bool aIsForeign, bool aIsThirdPartyTrackingResource,
+    bool aIsThirdPartySocialTrackingResource,
+    bool aFirstPartyStorageAccessGranted, uint32_t aRejectedReason,
+    bool aIsSafeTopLevelNav, bool aIsSameSiteForeign, nsIChannel* aChannel,
+    nsACString& aCookieString) {
   nsCOMPtr<nsIEffectiveTLDService> TLDService =
       do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
   NS_ASSERTION(TLDService, "Can't get TLDService");
@@ -278,13 +279,14 @@ void CookieServiceChild::GetCookieStringFromCookieHashTable(
   int64_t currentTimeInUsec = PR_Now();
   int64_t currentTime = currentTimeInUsec / PR_USEC_PER_SEC;
 
-  nsCOMPtr<nsICookieSettings> cookieSettings =
-      nsCookieService::GetCookieSettings(aChannel);
+  nsCOMPtr<nsICookieJarSettings> cookieJarSettings =
+      nsCookieService::GetCookieJarSettings(aChannel);
 
   CookieStatus cookieStatus = nsCookieService::CheckPrefs(
-      cookieSettings, aHostURI, aIsForeign, aIsTrackingResource,
-      aIsSocialTrackingResource, aFirstPartyStorageAccessGranted, VoidCString(),
-      CountCookiesFromHashTable(baseDomain, attrs), attrs, &aRejectedReason);
+      cookieJarSettings, aHostURI, aIsForeign, aIsThirdPartyTrackingResource,
+      aIsThirdPartySocialTrackingResource, aFirstPartyStorageAccessGranted,
+      VoidCString(), CountCookiesFromHashTable(baseDomain, attrs), attrs,
+      &aRejectedReason);
 
   if (cookieStatus != STATUS_ACCEPTED &&
       cookieStatus != STATUS_ACCEPT_SESSION) {
@@ -375,13 +377,14 @@ void CookieServiceChild::SetCookieInternal(
     return false;
   }
 
-  nsCOMPtr<nsICookieSettings> cookieSettings;
-  nsresult rv = aLoadInfo->GetCookieSettings(getter_AddRefs(cookieSettings));
+  nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
+  nsresult rv =
+      aLoadInfo->GetCookieJarSettings(getter_AddRefs(cookieJarSettings));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }
 
-  uint32_t cookieBehavior = cookieSettings->GetCookieBehavior();
+  uint32_t cookieBehavior = cookieJarSettings->GetCookieBehavior();
   return cookieBehavior == nsICookieService::BEHAVIOR_REJECT_FOREIGN ||
          cookieBehavior == nsICookieService::BEHAVIOR_LIMIT_FOREIGN ||
          cookieBehavior == nsICookieService::BEHAVIOR_REJECT_TRACKER ||
@@ -452,8 +455,8 @@ nsresult CookieServiceChild::GetCookieStringInternal(
 
   GetCookieStringFromCookieHashTable(
       aHostURI, result.contains(ThirdPartyAnalysis::IsForeign),
-      result.contains(ThirdPartyAnalysis::IsTrackingResource),
-      result.contains(ThirdPartyAnalysis::IsSocialTrackingResource),
+      result.contains(ThirdPartyAnalysis::IsThirdPartyTrackingResource),
+      result.contains(ThirdPartyAnalysis::IsThirdPartySocialTrackingResource),
       result.contains(ThirdPartyAnalysis::IsFirstPartyStorageAccessGranted),
       rejectedReason, isSafeTopLevelNav, isSameSiteForeign, aChannel,
       aCookieString);
@@ -505,8 +508,8 @@ nsresult CookieServiceChild::SetCookieStringInternal(
     SendSetCookieString(
         hostURIParams, channelURIParams, optionalLoadInfoArgs,
         result.contains(ThirdPartyAnalysis::IsForeign),
-        result.contains(ThirdPartyAnalysis::IsTrackingResource),
-        result.contains(ThirdPartyAnalysis::IsSocialTrackingResource),
+        result.contains(ThirdPartyAnalysis::IsThirdPartyTrackingResource),
+        result.contains(ThirdPartyAnalysis::IsThirdPartySocialTrackingResource),
         result.contains(ThirdPartyAnalysis::IsFirstPartyStorageAccessGranted),
         rejectedReason, attrs, cookieString, nsCString(aServerTime), aFromHttp);
   }
@@ -516,13 +519,14 @@ nsresult CookieServiceChild::SetCookieStringInternal(
   nsCookieService::GetBaseDomain(mTLDService, aHostURI, baseDomain,
                                  requireHostMatch);
 
-  nsCOMPtr<nsICookieSettings> cookieSettings =
-      nsCookieService::GetCookieSettings(aChannel);
+  nsCOMPtr<nsICookieJarSettings> cookieJarSettings =
+      nsCookieService::GetCookieJarSettings(aChannel);
 
   CookieStatus cookieStatus = nsCookieService::CheckPrefs(
-      cookieSettings, aHostURI, result.contains(ThirdPartyAnalysis::IsForeign),
-      result.contains(ThirdPartyAnalysis::IsTrackingResource),
-      result.contains(ThirdPartyAnalysis::IsSocialTrackingResource),
+      cookieJarSettings, aHostURI,
+      result.contains(ThirdPartyAnalysis::IsForeign),
+      result.contains(ThirdPartyAnalysis::IsThirdPartyTrackingResource),
+      result.contains(ThirdPartyAnalysis::IsThirdPartySocialTrackingResource),
       result.contains(ThirdPartyAnalysis::IsFirstPartyStorageAccessGranted),
       aCookieString, CountCookiesFromHashTable(baseDomain, attrs), attrs,
       &rejectedReason);
@@ -616,7 +620,7 @@ CookieServiceChild::GetCookieStringFromHttp(nsIURI* aHostURI, nsIURI* aFirstURI,
 }
 
 NS_IMETHODIMP
-CookieServiceChild::SetCookieString(nsIURI* aHostURI, nsIPrompt* aPrompt,
+CookieServiceChild::SetCookieString(nsIURI* aHostURI,
                                     const nsACString& aCookieString,
                                     nsIChannel* aChannel) {
   return SetCookieStringInternal(aHostURI, aChannel, aCookieString,
@@ -625,7 +629,6 @@ CookieServiceChild::SetCookieString(nsIURI* aHostURI, nsIPrompt* aPrompt,
 
 NS_IMETHODIMP
 CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI, nsIURI* aFirstURI,
-                                            nsIPrompt* aPrompt,
                                             const nsACString& aCookieString,
                                             const nsACString& aServerTime,
                                             nsIChannel* aChannel) {

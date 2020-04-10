@@ -70,6 +70,7 @@ describe("ASRouter", () => {
   let FakeBookmarkPanelHub;
   let FakeToolbarBadgeHub;
   let FakeToolbarPanelHub;
+  let FakeMomentsPageHub;
   let personalizedCfrScores;
 
   function createFakeStorage() {
@@ -128,7 +129,6 @@ describe("ASRouter", () => {
     sandbox.stub(ASRouterPreferences, "trailhead").get(() => {
       return { trailheadTriplet: "test" };
     });
-    sandbox.stub(ASRouterPreferences, "useReleaseSnippets").get(() => true);
     sandbox.replaceGetter(
       ASRouterPreferences,
       "personalizedCfrScores",
@@ -168,6 +168,11 @@ describe("ASRouter", () => {
       uninit: sandbox.stub(),
       registerBadgeNotificationListener: sandbox.stub(),
     };
+    FakeMomentsPageHub = {
+      init: sandbox.stub(),
+      uninit: sandbox.stub(),
+      executeAction: sandbox.stub(),
+    };
     globals.set({
       // Testing framework doesn't know how to `defineLazyModuleGetter` so we're
       // importing these modules into the global scope ourselves.
@@ -184,6 +189,7 @@ describe("ASRouter", () => {
       BookmarkPanelHub: FakeBookmarkPanelHub,
       ToolbarBadgeHub: FakeToolbarBadgeHub,
       ToolbarPanelHub: FakeToolbarPanelHub,
+      MomentsPageHub: FakeMomentsPageHub,
       KintoHttpClient: class {
         bucket() {
           return this;
@@ -253,6 +259,7 @@ describe("ASRouter", () => {
       assert.calledOnce(FakeToolbarBadgeHub.init);
       assert.calledOnce(FakeToolbarPanelHub.init);
       assert.calledOnce(FakeBookmarkPanelHub.init);
+      assert.calledOnce(FakeMomentsPageHub.init);
 
       assert.calledWithExactly(
         FakeToolbarBadgeHub.init,
@@ -273,6 +280,17 @@ describe("ASRouter", () => {
           getMessages: Router.handleMessageRequest,
           dispatch: Router.dispatch,
           handleUserAction: Router.handleUserAction,
+        }
+      );
+
+      assert.calledWithExactly(
+        FakeMomentsPageHub.init,
+        Router.waitForInitialized,
+        {
+          handleMessageRequest: Router.handleMessageRequest,
+          addImpression: Router.addImpression,
+          blockMessageById: Router.blockMessageById,
+          dispatch: Router.dispatch,
         }
       );
 
@@ -599,6 +617,24 @@ describe("ASRouter", () => {
       assert.notCalled(CFRPageActions.forceRecommendation);
       assert.notCalled(CFRPageActions.showMilestone);
       assert.notCalled(target.sendAsyncMessage);
+      assert.notCalled(FakeMomentsPageHub.executeAction);
+    });
+    it("should route moments messages to the right hub", () => {
+      Router.routeMessageToTarget(
+        { template: "update_action" },
+        target,
+        "",
+        true
+      );
+
+      assert.calledOnce(FakeMomentsPageHub.executeAction);
+      assert.notCalled(FakeToolbarPanelHub.forceShowMessage);
+      assert.notCalled(FakeToolbarBadgeHub.registerBadgeNotificationListener);
+      assert.notCalled(FakeBookmarkPanelHub._forceShowMessage);
+      assert.notCalled(CFRPageActions.addRecommendation);
+      assert.notCalled(CFRPageActions.forceRecommendation);
+      assert.notCalled(CFRPageActions.showMilestone);
+      assert.notCalled(target.sendAsyncMessage);
     });
     it("should route toolbar_badge message to the right hub", () => {
       Router.routeMessageToTarget({ template: "toolbar_badge" }, target);
@@ -610,6 +646,7 @@ describe("ASRouter", () => {
       assert.notCalled(CFRPageActions.forceRecommendation);
       assert.notCalled(CFRPageActions.showMilestone);
       assert.notCalled(target.sendAsyncMessage);
+      assert.notCalled(FakeMomentsPageHub.executeAction);
     });
     it("should route milestone_message to the right hub", () => {
       Router.routeMessageToTarget({ template: "milestone_message" }, target);
@@ -621,6 +658,7 @@ describe("ASRouter", () => {
       assert.notCalled(FakeToolbarBadgeHub.registerBadgeNotificationListener);
       assert.notCalled(FakeToolbarPanelHub.forceShowMessage);
       assert.notCalled(target.sendAsyncMessage);
+      assert.notCalled(FakeMomentsPageHub.executeAction);
     });
     it("should route fxa_bookmark_panel message to the right hub force = true", () => {
       Router.routeMessageToTarget(
@@ -637,6 +675,7 @@ describe("ASRouter", () => {
       assert.notCalled(CFRPageActions.forceRecommendation);
       assert.notCalled(CFRPageActions.showMilestone);
       assert.notCalled(target.sendAsyncMessage);
+      assert.notCalled(FakeMomentsPageHub.executeAction);
     });
     it("should route cfr_doorhanger message to the right hub force = false", () => {
       Router.routeMessageToTarget(
@@ -653,6 +692,7 @@ describe("ASRouter", () => {
       assert.notCalled(CFRPageActions.forceRecommendation);
       assert.notCalled(CFRPageActions.showMilestone);
       assert.notCalled(target.sendAsyncMessage);
+      assert.notCalled(FakeMomentsPageHub.executeAction);
     });
     it("should route cfr_doorhanger message to the right hub force = true", () => {
       Router.routeMessageToTarget(
@@ -669,6 +709,44 @@ describe("ASRouter", () => {
       assert.notCalled(FakeBookmarkPanelHub._forceShowMessage);
       assert.notCalled(FakeToolbarBadgeHub.registerBadgeNotificationListener);
       assert.notCalled(target.sendAsyncMessage);
+      assert.notCalled(FakeMomentsPageHub.executeAction);
+    });
+    it("should route cfr_urlbar_chiclet message to the right hub force = false", () => {
+      Router.routeMessageToTarget(
+        { template: "cfr_urlbar_chiclet" },
+        target,
+        { param: {} },
+        false
+      );
+
+      assert.calledOnce(CFRPageActions.addRecommendation);
+      const { args } = CFRPageActions.addRecommendation.firstCall;
+      // Host should be null
+      assert.isNull(args[1]);
+      assert.notCalled(FakeToolbarPanelHub.forceShowMessage);
+      assert.notCalled(FakeBookmarkPanelHub._forceShowMessage);
+      assert.notCalled(FakeToolbarBadgeHub.registerBadgeNotificationListener);
+      assert.notCalled(CFRPageActions.forceRecommendation);
+      assert.notCalled(CFRPageActions.showMilestone);
+      assert.notCalled(target.sendAsyncMessage);
+      assert.notCalled(FakeMomentsPageHub.executeAction);
+    });
+    it("should route cfr_urlbar_chiclet message to the right hub force = true", () => {
+      Router.routeMessageToTarget(
+        { template: "cfr_urlbar_chiclet" },
+        target,
+        {},
+        true
+      );
+
+      assert.calledOnce(CFRPageActions.forceRecommendation);
+      assert.notCalled(FakeToolbarPanelHub.forceShowMessage);
+      assert.notCalled(CFRPageActions.addRecommendation);
+      assert.notCalled(CFRPageActions.showMilestone);
+      assert.notCalled(FakeBookmarkPanelHub._forceShowMessage);
+      assert.notCalled(FakeToolbarBadgeHub.registerBadgeNotificationListener);
+      assert.notCalled(target.sendAsyncMessage);
+      assert.notCalled(FakeMomentsPageHub.executeAction);
     });
     it("should route default to sending to content", () => {
       Router.routeMessageToTarget({ template: "snippets" }, target, {}, true);
@@ -680,6 +758,7 @@ describe("ASRouter", () => {
       assert.notCalled(CFRPageActions.showMilestone);
       assert.notCalled(FakeBookmarkPanelHub._forceShowMessage);
       assert.notCalled(FakeToolbarBadgeHub.registerBadgeNotificationListener);
+      assert.notCalled(FakeMomentsPageHub.executeAction);
     });
   });
 
@@ -959,25 +1038,6 @@ describe("ASRouter", () => {
       assert.calledOnce(stub);
       assert.calledWithExactly(stub, url);
       assert.equal(Router.state.providers[0].url, replacedUrl);
-    });
-    it("should use release snippets", () => {
-      const url = "https://www.example.com/%CHANNEL%/";
-      const provider = { id: "foo", enabled: true, type: "remote", url };
-      setMessageProviderPref([provider]);
-
-      Router._updateMessageProviders();
-
-      assert.isTrue(Router.state.providers[0].url.includes("release"));
-    });
-    it("should not use release snippets", () => {
-      sandbox.stub(ASRouterPreferences, "useReleaseSnippets").get(() => false);
-      const url = "https://www.example.com/%CHANNEL%/";
-      const provider = { id: "foo", enabled: true, type: "remote", url };
-      setMessageProviderPref([provider]);
-
-      Router._updateMessageProviders();
-
-      assert.isFalse(Router.state.providers[0].url.includes("release"));
     });
     it("should only add the providers that are enabled", () => {
       const providers = [

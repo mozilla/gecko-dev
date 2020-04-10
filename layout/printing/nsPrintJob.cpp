@@ -16,6 +16,7 @@
 #include "mozilla/dom/Selection.h"
 #include "mozilla/dom/CustomEvent.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "nsIBrowserChild.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDocShell.h"
@@ -86,7 +87,6 @@ static const char kPrintingPromptService[] =
 #include "nsPageSequenceFrame.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsIDocShellTreeOwner.h"
 #include "nsIWebBrowserChrome.h"
 #include "nsFrameManager.h"
 #include "mozilla/ReflowInput.h"
@@ -264,37 +264,6 @@ static nsPrintObject* FindPrintObjectByDOMWin(nsPrintObject* aPO,
   }
 
   return nullptr;
-}
-
-static void GetDocumentTitleAndURL(Document* aDoc, nsAString& aTitle,
-                                   nsAString& aURLStr) {
-  NS_ASSERTION(aDoc, "Pointer is null!");
-
-  aTitle.Truncate();
-  aURLStr.Truncate();
-
-  aDoc->GetTitle(aTitle);
-
-  nsIURI* url = aDoc->GetDocumentURI();
-  if (!url) return;
-
-  nsCOMPtr<nsIURIFixup> urifixup(components::URIFixup::Service());
-  if (!urifixup) return;
-
-  nsCOMPtr<nsIURI> exposableURI;
-  urifixup->CreateExposableURI(url, getter_AddRefs(exposableURI));
-
-  if (!exposableURI) return;
-
-  nsAutoCString urlCStr;
-  nsresult rv = exposableURI->GetSpec(urlCStr);
-  if (NS_FAILED(rv)) return;
-
-  nsCOMPtr<nsITextToSubURI> textToSubURI =
-      do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv);
-  if (NS_FAILED(rv)) return;
-
-  textToSubURI->UnEscapeURIForUI(NS_LITERAL_CSTRING("UTF-8"), urlCStr, aURLStr);
 }
 
 static nsresult GetSeqFrameAndCountPagesInternal(
@@ -609,11 +578,13 @@ nsresult nsPrintJob::Initialize(nsIDocumentViewerPrint* aDocViewerPrint,
       root &&
       root->HasAttr(kNameSpaceID_None, nsGkAtoms::mozdisallowselectionprint);
 
-  nsCOMPtr<nsIDocShellTreeOwner> owner;
-  aDocShell->GetTreeOwner(getter_AddRefs(owner));
-  nsCOMPtr<nsIWebBrowserChrome> browserChrome = do_GetInterface(owner);
-  if (browserChrome) {
-    browserChrome->IsWindowModal(&mIsForModalWindow);
+  if (nsPIDOMWindowOuter* window = aOriginalDoc->GetWindow()) {
+    if (nsCOMPtr<nsIWebBrowserChrome> wbc = window->GetWebBrowserChrome()) {
+      // We only get this in order to skip opening the progress dialog when
+      // the window is modal.  Once the platform code stops opening the
+      // progress dialog (bug 1558907), we can get rid of this.
+      wbc->IsWindowModal(&mIsForModalWindow);
+    }
   }
 
   bool hasMozPrintCallback = false;
@@ -621,20 +592,6 @@ nsresult nsPrintJob::Initialize(nsIDocumentViewerPrint* aDocViewerPrint,
                             static_cast<void*>(&hasMozPrintCallback));
   mHasMozPrintCallback =
       hasMozPrintCallback || AnySubdocHasPrintCallbackCanvas(*aOriginalDoc);
-
-  nsCOMPtr<nsIStringBundle> brandBundle;
-  nsCOMPtr<nsIStringBundleService> svc =
-      mozilla::services::GetStringBundleService();
-  if (svc) {
-    svc->CreateBundle("chrome://branding/locale/brand.properties",
-                      getter_AddRefs(brandBundle));
-    if (brandBundle) {
-      brandBundle->GetStringFromName("brandShortName", mFallbackDocTitle);
-    }
-  }
-  if (mFallbackDocTitle.IsEmpty()) {
-    mFallbackDocTitle.AssignLiteral(u"Mozilla Document");
-  }
 
   return NS_OK;
 }
@@ -1106,15 +1063,6 @@ int32_t nsPrintJob::GetPrintPreviewNumPages() {
   return numPages;
 }
 
-nsresult nsPrintJob::GetDocumentName(nsAString& aDocName) {
-  nsAutoString docURLStr;
-  GetDocumentTitleAndURL(mPrt->mPrintObject->mDocument, aDocName, docURLStr);
-  if (aDocName.IsEmpty() && !docURLStr.IsEmpty()) {
-    aDocName = docURLStr;
-  }
-  return NS_OK;
-}
-
 //----------------------------------------------------------------------------------
 nsresult nsPrintJob::GetGlobalPrintSettings(
     nsIPrintSettings** aGlobalPrintSettings) {
@@ -1285,48 +1233,74 @@ void nsPrintJob::SetPrintPO(nsPrintObject* aPO, bool aPrint) {
   }
 }
 
-//---------------------------------------------------------------------
-// This will first use a Title and/or URL from the PrintSettings
-// if one isn't set then it uses the one from the document
-// then if not title is there we will make sure we send something back
-// depending on the situation.
-void nsPrintJob::GetDisplayTitleAndURL(const UniquePtr<nsPrintObject>& aPO,
-                                       nsAString& aTitle, nsAString& aURLStr,
-                                       eDocTitleDefault aDefType) {
-  NS_ASSERTION(aPO, "Pointer is null!");
-
-  if (!mPrt) return;
-
+// static
+void nsPrintJob::GetDisplayTitleAndURL(Document& aDoc,
+                                       nsIPrintSettings* aSettings,
+                                       DocTitleDefault aTitleDefault,
+                                       nsAString& aTitle, nsAString& aURLStr) {
   aTitle.Truncate();
   aURLStr.Truncate();
 
-  // First check to see if the PrintSettings has defined an alternate title
-  // and use that if it did
-  if (mPrt->mPrintSettings) {
-    mPrt->mPrintSettings->GetTitle(aTitle);
-    mPrt->mPrintSettings->GetDocURL(aURLStr);
-  }
-
-  nsAutoString docTitle;
-  nsAutoString docUrl;
-  GetDocumentTitleAndURL(aPO->mDocument, docTitle, docUrl);
-
-  if (aURLStr.IsEmpty() && !docUrl.IsEmpty()) {
-    aURLStr = docUrl;
+  if (aSettings) {
+    aSettings->GetTitle(aTitle);
+    aSettings->GetDocURL(aURLStr);
   }
 
   if (aTitle.IsEmpty()) {
-    if (!docTitle.IsEmpty()) {
-      aTitle = docTitle;
-    } else {
-      if (aDefType == eDocTitleDefURLDoc) {
-        if (!aURLStr.IsEmpty()) {
-          aTitle = aURLStr;
-        } else if (!mFallbackDocTitle.IsEmpty()) {
-          aTitle = mFallbackDocTitle;
+    aDoc.GetTitle(aTitle);
+    if (aTitle.IsEmpty()) {
+      if (!aURLStr.IsEmpty() &&
+          aTitleDefault == DocTitleDefault::eDocURLElseFallback) {
+        aTitle = aURLStr;
+      } else {
+        nsCOMPtr<nsIStringBundle> brandBundle;
+        nsCOMPtr<nsIStringBundleService> svc =
+            mozilla::services::GetStringBundleService();
+        if (svc) {
+          svc->CreateBundle("chrome://branding/locale/brand.properties",
+                            getter_AddRefs(brandBundle));
+          if (brandBundle) {
+            brandBundle->GetStringFromName("brandShortName", aTitle);
+          }
+        }
+        if (aTitle.IsEmpty()) {
+          aTitle.AssignLiteral(u"Mozilla Document");
         }
       }
     }
+  }
+
+  if (aURLStr.IsEmpty()) {
+    nsIURI* url = aDoc.GetDocumentURI();
+    if (!url) {
+      return;
+    }
+
+    nsCOMPtr<nsIURIFixup> urifixup(components::URIFixup::Service());
+    if (!urifixup) {
+      return;
+    }
+
+    nsCOMPtr<nsIURI> exposableURI;
+    urifixup->CreateExposableURI(url, getter_AddRefs(exposableURI));
+    if (!exposableURI) {
+      return;
+    }
+
+    nsAutoCString urlCStr;
+    nsresult rv = exposableURI->GetSpec(urlCStr);
+    if (NS_FAILED(rv)) {
+      return;
+    }
+
+    nsCOMPtr<nsITextToSubURI> textToSubURI =
+        do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv);
+    if (NS_FAILED(rv)) {
+      return;
+    }
+
+    textToSubURI->UnEscapeURIForUI(NS_LITERAL_CSTRING("UTF-8"), urlCStr,
+                                   aURLStr);
   }
 }
 
@@ -1658,8 +1632,9 @@ nsresult nsPrintJob::SetupToPrintContent() {
 
   nsAutoString docTitleStr;
   nsAutoString docURLStr;
-  GetDisplayTitleAndURL(printData->mPrintObject, docTitleStr, docURLStr,
-                        eDocTitleDefURLDoc);
+  GetDisplayTitleAndURL(
+      *printData->mPrintObject->mDocument, printData->mPrintSettings,
+      DocTitleDefault::eDocURLElseFallback, docTitleStr, docURLStr);
 
   int32_t startPage = 1;
   int32_t endPage = printData->mNumPrintablePages;
@@ -2404,7 +2379,8 @@ nsresult nsPrintJob::DoPrint(const UniquePtr<nsPrintObject>& aPO) {
 
     nsAutoString docTitleStr;
     nsAutoString docURLStr;
-    GetDisplayTitleAndURL(aPO, docTitleStr, docURLStr, eDocTitleDefBlank);
+    GetDisplayTitleAndURL(*aPO->mDocument, mPrt->mPrintSettings,
+                          DocTitleDefault::eFallback, docTitleStr, docURLStr);
 
     if (!seqFrame) {
       SetIsPrinting(false);
@@ -2437,7 +2413,9 @@ void nsPrintJob::SetURLAndTitleOnProgressParams(
 
   nsAutoString docTitleStr;
   nsAutoString docURLStr;
-  GetDisplayTitleAndURL(aPO, docTitleStr, docURLStr, eDocTitleDefURLDoc);
+  GetDisplayTitleAndURL(*aPO->mDocument, mPrt->mPrintSettings,
+                        DocTitleDefault::eDocURLElseFallback, docTitleStr,
+                        docURLStr);
 
   // Make sure the Titles & URLS don't get too long for the progress dialog
   EllipseLongString(docTitleStr, kTitleLength, false);
@@ -2808,7 +2786,7 @@ nsresult nsPrintJob::EnablePOsForPrinting() {
         NS_ASSERTION(po, "nsPrintObject can't be null!");
         nsCOMPtr<nsPIDOMWindowOuter> domWin = po->mDocShell->GetWindow();
         if (IsThereARangeSelection(domWin)) {
-          printData->mCurrentFocusWin = domWin.forget();
+          printData->mCurrentFocusWin = std::move(domWin);
           SetPrintPO(po, true);
           break;
         }
@@ -3227,12 +3205,9 @@ static void DumpViews(nsIDocShell* aDocShell, FILE* out) {
 
     // dump the views of the sub documents
     int32_t i, n;
-    aDocShell->GetChildCount(&n);
-    for (i = 0; i < n; i++) {
-      nsCOMPtr<nsIDocShellTreeItem> child;
-      aDocShell->GetChildAt(i, getter_AddRefs(child));
-      nsCOMPtr<nsIDocShell> childAsShell(do_QueryInterface(child));
-      if (childAsShell) {
+    BrowsingContext* bc = nsDocShell::Cast(aDocShell)->GetBrowsingContext();
+    for (auto& child : bc->GetChildren()) {
+      if (auto childDS = child->GetDocShell()) {
         DumpViews(childAsShell, out);
       }
     }

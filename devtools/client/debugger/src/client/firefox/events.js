@@ -9,7 +9,7 @@ import type {
   PausedPacket,
   ThreadFront,
   Target,
-  DebuggerClient,
+  DevToolsClient,
 } from "./types";
 
 import Actions from "../../actions";
@@ -27,7 +27,7 @@ const {
 
 type Dependencies = {
   actions: typeof Actions,
-  debuggerClient: DebuggerClient,
+  devToolsClient: DevToolsClient,
 };
 
 let actions: typeof Actions;
@@ -60,14 +60,14 @@ function attachAllTargets(currentTarget: Target) {
 }
 
 function setupEvents(dependencies: Dependencies) {
-  const { debuggerClient } = dependencies;
+  const { devToolsClient } = dependencies;
   actions = dependencies.actions;
   panel = dependencies.panel;
   sourceQueue.initialize(actions);
 
-  debuggerClient.mainRoot.on("processListChanged", threadListChanged);
+  devToolsClient.mainRoot.on("processListChanged", threadListChanged);
 
-  workersListener = new WorkersListener(debuggerClient.mainRoot);
+  workersListener = new WorkersListener(devToolsClient.mainRoot);
 
   threadFrontListeners = new WeakMap();
 }

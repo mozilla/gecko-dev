@@ -259,4 +259,10 @@ class ClientEnvironmentBase {
   static get attribution() {
     return AttributionCode.getAttrDataAsync();
   }
+
+  static get appinfo() {
+    Services.appinfo.QueryInterface(Ci.nsIXULAppInfo);
+    Services.appinfo.QueryInterface(Ci.nsIPlatformInfo);
+    return Services.appinfo;
+  }
 }

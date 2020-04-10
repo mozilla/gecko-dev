@@ -37,6 +37,7 @@ const EventType PREPARE_DATA_FOR_SURFACE = EventType(EventType::LAST + 6);
 const EventType GET_DATA_FOR_SURFACE = EventType(EventType::LAST + 7);
 const EventType ADD_SURFACE_ALIAS = EventType(EventType::LAST + 8);
 const EventType REMOVE_SURFACE_ALIAS = EventType(EventType::LAST + 9);
+const EventType DEVICE_CHANGE_ACKNOWLEDGED = EventType(EventType::LAST + 10);
 
 class RecordedCanvasBeginTransaction final
     : public RecordedEventDerived<RecordedCanvasBeginTransaction> {
@@ -241,8 +242,10 @@ class RecordedCacheDataSurface final
 
 inline bool RecordedCacheDataSurface::PlayCanvasEvent(
     CanvasTranslator* aTranslator) const {
-  RefPtr<gfx::SourceSurface> surface =
-      aTranslator->LookupSourceSurface(mSurface);
+  gfx::SourceSurface* surface = aTranslator->LookupSourceSurface(mSurface);
+  if (!surface) {
+    return false;
+  }
 
   RefPtr<gfx::DataSourceSurface> dataSurface = surface->GetDataSurface();
 
@@ -286,8 +289,7 @@ inline bool RecordedPrepareDataForSurface::PlayCanvasEvent(
   RefPtr<gfx::DataSourceSurface> dataSurface =
       aTranslator->LookupDataSurface(mSurface);
   if (!dataSurface) {
-    RefPtr<gfx::SourceSurface> surface =
-        aTranslator->LookupSourceSurface(mSurface);
+    gfx::SourceSurface* surface = aTranslator->LookupSourceSurface(mSurface);
     if (!surface) {
       return false;
     }
@@ -338,14 +340,16 @@ class RecordedGetDataForSurface final
 
 inline bool RecordedGetDataForSurface::PlayCanvasEvent(
     CanvasTranslator* aTranslator) const {
-  RefPtr<gfx::SourceSurface> surface =
-      aTranslator->LookupSourceSurface(mSurface);
+  gfx::SourceSurface* surface = aTranslator->LookupSourceSurface(mSurface);
   if (!surface) {
     return false;
   }
 
   UniquePtr<gfx::DataSourceSurface::ScopedMap> map =
       aTranslator->GetPreparedMap(mSurface);
+  if (!map) {
+    return false;
+  }
 
   gfx::IntSize ssSize = surface->GetSize();
   size_t dataFormatWidth = ssSize.width * BytesPerPixel(surface->GetFormat());
@@ -458,6 +462,38 @@ RecordedRemoveSurfaceAlias::RecordedRemoveSurfaceAlias(S& aStream)
   ReadElement(aStream, mSurfaceAlias);
 }
 
+class RecordedDeviceChangeAcknowledged final
+    : public RecordedEventDerived<RecordedDeviceChangeAcknowledged> {
+ public:
+  RecordedDeviceChangeAcknowledged()
+      : RecordedEventDerived(DEVICE_CHANGE_ACKNOWLEDGED) {}
+
+  template <class S>
+  MOZ_IMPLICIT RecordedDeviceChangeAcknowledged(S& aStream);
+
+  bool PlayCanvasEvent(CanvasTranslator* aTranslator) const;
+
+  template <class S>
+  void Record(S& aStream) const;
+
+  std::string GetName() const final {
+    return "RecordedDeviceChangeAcknowledged";
+  }
+};
+
+inline bool RecordedDeviceChangeAcknowledged::PlayCanvasEvent(
+    CanvasTranslator* aTranslator) const {
+  aTranslator->DeviceChangeAcknowledged();
+  return true;
+}
+
+template <class S>
+void RecordedDeviceChangeAcknowledged::Record(S& aStream) const {}
+
+template <class S>
+RecordedDeviceChangeAcknowledged::RecordedDeviceChangeAcknowledged(S& aStream)
+    : RecordedEventDerived(DEVICE_CHANGE_ACKNOWLEDGED) {}
+
 #define FOR_EACH_CANVAS_EVENT(f)                               \
   f(CANVAS_BEGIN_TRANSACTION, RecordedCanvasBeginTransaction); \
   f(CANVAS_END_TRANSACTION, RecordedCanvasEndTransaction);     \
@@ -468,7 +504,8 @@ RecordedRemoveSurfaceAlias::RecordedRemoveSurfaceAlias(S& aStream)
   f(PREPARE_DATA_FOR_SURFACE, RecordedPrepareDataForSurface);  \
   f(GET_DATA_FOR_SURFACE, RecordedGetDataForSurface);          \
   f(ADD_SURFACE_ALIAS, RecordedAddSurfaceAlias);               \
-  f(REMOVE_SURFACE_ALIAS, RecordedRemoveSurfaceAlias);
+  f(REMOVE_SURFACE_ALIAS, RecordedRemoveSurfaceAlias);         \
+  f(DEVICE_CHANGE_ACKNOWLEDGED, RecordedDeviceChangeAcknowledged);
 
 }  // namespace layers
 }  // namespace mozilla

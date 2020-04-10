@@ -222,17 +222,8 @@ function dataCollectionCheckboxHandler({
       checkbox.removeAttribute("checked");
     }
 
-    // We can't use checkbox.disabled here because the XBL binding may not be present,
-    // in which case setting the property won't work properly.
-    if (
-      !collectionEnabled ||
-      Services.prefs.prefIsLocked(pref) ||
-      isDisabled()
-    ) {
-      checkbox.setAttribute("disabled", "true");
-    } else {
-      checkbox.removeAttribute("disabled");
-    }
+    checkbox.disabled =
+      !collectionEnabled || Services.prefs.prefIsLocked(pref) || isDisabled();
   }
 
   Preferences.get(PREF_UPLOAD_ENABLED).on("change", updateCheckbox);
@@ -501,11 +492,6 @@ var gPrivacyPane = {
       "command",
       gPrivacyPane.showSecurityDevices
     );
-    setEventListener(
-      "telemetryDataDeletionLearnMore",
-      "command",
-      gPrivacyPane.showDataDeletion
-    );
 
     this._pane = document.getElementById("panePrivacy");
 
@@ -641,6 +627,11 @@ var gPrivacyPane = {
         "submitHealthReportBox",
         "command",
         gPrivacyPane.updateSubmitHealthReport
+      );
+      setEventListener(
+        "telemetryDataDeletionLearnMore",
+        "command",
+        gPrivacyPane.showDataDeletion
       );
       if (AppConstants.MOZ_NORMANDY) {
         this.initOptOutStudyCheckbox();

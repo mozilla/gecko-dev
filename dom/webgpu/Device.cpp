@@ -5,13 +5,19 @@
 
 #include "js/ArrayBuffer.h"
 #include "js/Value.h"
-#include "mozilla/dom/WebGPUBinding.h"
-#include "mozilla/ipc/Shmem.h"
 #include "mozilla/Logging.h"
+#include "mozilla/ipc/Shmem.h"
+#include "mozilla/dom/WebGPUBinding.h"
 #include "Device.h"
 
 #include "Adapter.h"
+#include "Buffer.h"
+#include "ComputePipeline.h"
 #include "Queue.h"
+#include "RenderPipeline.h"
+#include "Sampler.h"
+#include "Texture.h"
+#include "TextureView.h"
 #include "ipc/WebGPUChild.h"
 
 namespace mozilla {
@@ -69,7 +75,7 @@ void Device::CreateBufferMapped(JSContext* aCx,
                                 ErrorResult& aRv) {
   const auto checked = CheckedInt<size_t>(aDesc.mSize);
   if (!checked.isValid()) {
-    aRv.ThrowRangeError(u"Mapped size is too large");
+    aRv.ThrowRangeError("Mapped size is too large");
     return;
   }
   const auto& size = checked.value();
@@ -127,6 +133,20 @@ void Device::UnmapBuffer(RawId aId, UniquePtr<ipc::Shmem> aShmem) {
   mBridge->SendDeviceUnmapBuffer(mId, aId, std::move(*aShmem));
 }
 
+already_AddRefed<Texture> Device::CreateTexture(
+    const dom::GPUTextureDescriptor& aDesc) {
+  RawId id = mBridge->DeviceCreateTexture(mId, aDesc);
+  RefPtr<Texture> texture = new Texture(this, id, aDesc);
+  return texture.forget();
+}
+
+already_AddRefed<Sampler> Device::CreateSampler(
+    const dom::GPUSamplerDescriptor& aDesc) {
+  RawId id = mBridge->DeviceCreateSampler(mId, aDesc);
+  RefPtr<Sampler> sampler = new Sampler(this, id);
+  return sampler.forget();
+}
+
 already_AddRefed<CommandEncoder> Device::CreateCommandEncoder(
     const dom::GPUCommandEncoderDescriptor& aDesc) {
   RawId id = mBridge->DeviceCreateCommandEncoder(mId, aDesc);
@@ -164,6 +184,13 @@ already_AddRefed<ComputePipeline> Device::CreateComputePipeline(
     const dom::GPUComputePipelineDescriptor& aDesc) {
   RawId id = mBridge->DeviceCreateComputePipeline(mId, aDesc);
   RefPtr<ComputePipeline> object = new ComputePipeline(this, id);
+  return object.forget();
+}
+
+already_AddRefed<RenderPipeline> Device::CreateRenderPipeline(
+    const dom::GPURenderPipelineDescriptor& aDesc) {
+  RawId id = mBridge->DeviceCreateRenderPipeline(mId, aDesc);
+  RefPtr<RenderPipeline> object = new RenderPipeline(this, id);
   return object.forget();
 }
 

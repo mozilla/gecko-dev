@@ -38,11 +38,11 @@ const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 const {
   ActorRegistry,
 } = require("devtools/server/actors/utils/actor-registry");
-const { DebuggerServer } = require("devtools/server/debugger-server");
-const { DebuggerServer: WorkerDebuggerServer } = worker.require(
-  "devtools/server/debugger-server"
+const { DevToolsServer } = require("devtools/server/devtools-server");
+const { DevToolsServer: WorkerDevToolsServer } = worker.require(
+  "devtools/server/devtools-server"
 );
-const { DebuggerClient } = require("devtools/shared/client/debugger-client");
+const { DevToolsClient } = require("devtools/shared/client/devtools-client");
 const { ObjectFront } = require("devtools/shared/fronts/object");
 const { LongStringFront } = require("devtools/shared/fronts/string");
 const { TargetFactory } = require("devtools/client/framework/target");
@@ -85,21 +85,22 @@ async function startupAddonsManager() {
 }
 
 async function createTargetForFakeTab(title) {
-  const client = await startTestDebuggerServer(title);
+  const client = await startTestDevToolsServer(title);
 
   const tabs = await listTabs(client);
   return findTab(tabs, title);
 }
 
 async function createTargetForMainProcess() {
-  DebuggerServer.init();
-  DebuggerServer.registerAllActors();
-  DebuggerServer.allowChromeProcess = true;
+  DevToolsServer.init();
+  DevToolsServer.registerAllActors();
+  DevToolsServer.allowChromeProcess = true;
 
-  const client = new DebuggerClient(DebuggerServer.connectPipe());
+  const client = new DevToolsClient(DevToolsServer.connectPipe());
   await client.connect();
 
-  return client.mainRoot.getMainProcess();
+  const mainProcessDescriptor = await client.mainRoot.getMainProcess();
+  return mainProcessDescriptor.getTarget();
 }
 
 /**
@@ -109,9 +110,9 @@ async function createTabMemoryFront() {
   const target = await createTargetForFakeTab("test_memory");
 
   // MemoryFront requires the HeadSnapshotActor actor to be available
-  // as a global actor. This isn't registered by startTestDebuggerServer which
+  // as a global actor. This isn't registered by startTestDevToolsServer which
   // only register the target actors and not the browser ones.
-  DebuggerServer.registerActors({ browser: true });
+  DevToolsServer.registerActors({ browser: true });
 
   const memoryFront = await target.getFront("memory");
   await memoryFront.attach();
@@ -317,11 +318,11 @@ var listener = {
 
       // Make sure we exit all nested event loops so that the test can finish.
       while (
-        DebuggerServer &&
-        DebuggerServer.xpcInspector &&
-        DebuggerServer.xpcInspector.eventLoopNestLevel > 0
+        DevToolsServer &&
+        DevToolsServer.xpcInspector &&
+        DevToolsServer.xpcInspector.eventLoopNestLevel > 0
       ) {
-        DebuggerServer.xpcInspector.exitNestedEventLoop();
+        DevToolsServer.xpcInspector.exitNestedEventLoop();
       }
 
       // In the world before bug 997440, exceptions were getting lost because of
@@ -351,13 +352,13 @@ function testGlobal(name) {
   return sandbox;
 }
 
-function addTestGlobal(name, server = DebuggerServer) {
+function addTestGlobal(name, server = DevToolsServer) {
   const global = testGlobal(name);
   server.addTestGlobal(global);
   return global;
 }
 
-// List the DebuggerClient |client|'s tabs, look for one whose title is
+// List the DevToolsClient |client|'s tabs, look for one whose title is
 // |title|, and apply |callback| to the packet's entry for that tab.
 async function getTestTab(client, title) {
   const tabs = await client.mainRoot.listTabs();
@@ -408,10 +409,10 @@ async function attachTestTabAndResume(client, title, callback = () => {}) {
 }
 
 /**
- * Initialize the testing debugger server.
+ * Initialize the testing devtools server.
  */
-function initTestDebuggerServer(server = DebuggerServer) {
-  if (server === WorkerDebuggerServer) {
+function initTestDevToolsServer(server = DevToolsServer) {
+  if (server === WorkerDevToolsServer) {
     const { createRootActor } = worker.require("xpcshell-test/testactors");
     server.setRootActor(createRootActor);
   } else {
@@ -426,15 +427,15 @@ function initTestDebuggerServer(server = DebuggerServer) {
 }
 
 /**
- * Initialize the testing debugger server with a tab whose title is |title|.
+ * Initialize the testing devtools server with a tab whose title is |title|.
  */
-async function startTestDebuggerServer(title, server = DebuggerServer) {
-  initTestDebuggerServer(server);
+async function startTestDevToolsServer(title, server = DevToolsServer) {
+  initTestDevToolsServer(server);
   addTestGlobal(title);
-  DebuggerServer.registerActors({ target: true });
+  DevToolsServer.registerActors({ target: true });
 
-  const transport = DebuggerServer.connectPipe();
-  const client = new DebuggerClient(transport);
+  const transport = DevToolsServer.connectPipe();
+  const client = new DevToolsClient(transport);
 
   await connect(client);
   return client;
@@ -442,7 +443,7 @@ async function startTestDebuggerServer(title, server = DebuggerServer) {
 
 async function finishClient(client) {
   await client.close();
-  DebuggerServer.destroy();
+  DevToolsServer.destroy();
   do_test_finished();
 }
 
@@ -603,7 +604,7 @@ function interrupt(threadFront) {
  * Resume JS execution for the specified thread and then wait for the next pause
  * event.
  *
- * @param DebuggerClient client
+ * @param DevToolsClient client
  * @param ThreadFront threadFront
  * @returns Promise
  */
@@ -641,7 +642,7 @@ function stepOver(threadFront) {
  * Resume JS execution for a step out and wait for the pause after the step
  * has been taken.
  *
- * @param DebuggerClient client
+ * @param DevToolsClient client
  * @param ThreadFront threadFront
  * @returns Promise
  */
@@ -777,16 +778,16 @@ async function setupTestFromUrl(url) {
   do_test_pending();
 
   const { createRootActor } = require("xpcshell-test/testactors");
-  DebuggerServer.setRootActor(createRootActor);
-  DebuggerServer.init(() => true);
+  DevToolsServer.setRootActor(createRootActor);
+  DevToolsServer.init(() => true);
 
   const global = createTestGlobal("test");
-  DebuggerServer.addTestGlobal(global);
+  DevToolsServer.addTestGlobal(global);
 
-  const debuggerClient = new DebuggerClient(DebuggerServer.connectPipe());
-  await connect(debuggerClient);
+  const devToolsClient = new DevToolsClient(DevToolsServer.connectPipe());
+  await connect(devToolsClient);
 
-  const tabs = await listTabs(debuggerClient);
+  const tabs = await listTabs(devToolsClient);
   const targetFront = findTab(tabs, "test");
   await targetFront.attach();
 
@@ -799,12 +800,12 @@ async function setupTestFromUrl(url) {
   const { source } = await promise;
 
   const sourceFront = threadFront.source(source);
-  return { global, debuggerClient, threadFront, sourceFront };
+  return { global, devToolsClient, threadFront, sourceFront };
 }
 
 /**
- * Run the given test function twice, one with a regular DebuggerServer,
- * testing against a fake tab. And another one against a WorkerDebuggerServer,
+ * Run the given test function twice, one with a regular DevToolsServer,
+ * testing against a fake tab. And another one against a WorkerDevToolsServer,
  * testing the worker codepath.
  *
  * @param Function test
@@ -815,8 +816,8 @@ async function setupTestFromUrl(url) {
  *           principals by default.
  *        - ThreadFront threadFront
  *          A reference to a ThreadFront instance that is attached to the debuggee.
- *        - DebuggerClient client
- *          A reference to the DebuggerClient used to communicated with the RDP server.
+ *        - DevToolsClient client
+ *          A reference to the DevToolsClient used to communicated with the RDP server.
  * @param Object options
  *        Optional arguments to tweak test environment
  *        - JSPrincipal principal
@@ -840,7 +841,7 @@ function threadFrontTest(test, options = {}) {
 
   async function runThreadFrontTestWithServer(server, test) {
     // Setup a server and connect a client to it.
-    initTestDebuggerServer(server);
+    initTestDevToolsServer(server);
 
     // Create a custom debuggee and register it to the server.
     // We are using a custom Sandbox as debuggee. Create a new zone because
@@ -850,7 +851,7 @@ function threadFrontTest(test, options = {}) {
     debuggee.__name = scriptName;
     server.addTestGlobal(debuggee);
 
-    const client = new DebuggerClient(server.connectPipe());
+    const client = new DevToolsClient(server.connectPipe());
     await client.connect();
 
     // Attach to the fake tab target and retrieve the ThreadFront instance.
@@ -884,13 +885,13 @@ function threadFrontTest(test, options = {}) {
   }
 
   return async () => {
-    dump(">>> Run thread front test against a regular DebuggerServer\n");
-    await runThreadFrontTestWithServer(DebuggerServer, test);
+    dump(">>> Run thread front test against a regular DevToolsServer\n");
+    await runThreadFrontTestWithServer(DevToolsServer, test);
 
     // Skip tests that fail in the worker context
     if (!doNotRunWorker) {
-      dump(">>> Run thread front test against a worker DebuggerServer\n");
-      await runThreadFrontTestWithServer(WorkerDebuggerServer, test);
+      dump(">>> Run thread front test against a worker DevToolsServer\n");
+      await runThreadFrontTestWithServer(WorkerDevToolsServer, test);
     }
   };
 }

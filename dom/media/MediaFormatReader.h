@@ -20,7 +20,6 @@
 #  include "MediaDataDemuxer.h"
 #  include "MediaMetadataManager.h"
 #  include "MediaPromiseDefs.h"
-#  include "nsAutoPtr.h"
 #  include "PDMFactory.h"
 #  include "SeekTarget.h"
 
@@ -330,7 +329,7 @@ class MediaFormatReader final
   class SharedShutdownPromiseHolder : public MozPromiseHolder<ShutdownPromise> {
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SharedShutdownPromiseHolder)
    private:
-    ~SharedShutdownPromiseHolder() {}
+    ~SharedShutdownPromiseHolder() = default;
   };
 
   struct DecoderData {

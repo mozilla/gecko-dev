@@ -207,7 +207,7 @@ static const char* const callbackNames[] = {
 
 enum YieldKind { Delegating, NotDelegating };
 
-typedef RootedValueVector NodeVector;
+using NodeVector = RootedValueVector;
 
 /*
  * ParseNode is a somewhat intricate data structure, and its invariants have
@@ -260,7 +260,7 @@ enum class GeneratorStyle { None, ES6 };
  * Bug 569487: generalize builder interface
  */
 class NodeBuilder {
-  typedef AutoValueArray<AST_LIMIT> CallbackArray;
+  using CallbackArray = AutoValueArray<AST_LIMIT>;
 
   JSContext* cx;
   frontend::Parser<frontend::FullParseHandler, char16_t>* parser;
@@ -2567,29 +2567,27 @@ bool ASTSerializer::classMethod(ClassMethod* classMethod,
 bool ASTSerializer::classField(ClassField* classField, MutableHandleValue dst) {
   RootedValue key(cx), val(cx);
   // Dig through the lambda and get to the actual expression
-  if (classField->initializer()) {
-    ParseNode* value = classField->initializer()
-                           ->body()
-                           ->head()
-                           ->as<LexicalScopeNode>()
-                           .scopeBody()
-                           ->as<ListNode>()
-                           .head()
-                           ->as<UnaryNode>()
-                           .kid()
-                           ->as<BinaryNode>()
-                           .right();
-    // RawUndefinedExpr is the node we use for "there is no initializer". If one
-    // writes, literally, `x = undefined;`, it will not be a RawUndefinedExpr
-    // node, but rather a variable reference.
-    // Behavior for "there is no initializer" should be { ..., "init": null }
-    if (value->getKind() != ParseNodeKind::RawUndefinedExpr) {
-      if (!expression(value, &val)) {
-        return false;
-      }
-    } else {
-      val.setNull();
+  ParseNode* value = classField->initializer()
+                         ->body()
+                         ->head()
+                         ->as<LexicalScopeNode>()
+                         .scopeBody()
+                         ->as<ListNode>()
+                         .head()
+                         ->as<UnaryNode>()
+                         .kid()
+                         ->as<BinaryNode>()
+                         .right();
+  // RawUndefinedExpr is the node we use for "there is no initializer". If one
+  // writes, literally, `x = undefined;`, it will not be a RawUndefinedExpr
+  // node, but rather a variable reference.
+  // Behavior for "there is no initializer" should be { ..., "init": null }
+  if (value->getKind() != ParseNodeKind::RawUndefinedExpr) {
+    if (!expression(value, &val)) {
+      return false;
     }
+  } else {
+    val.setNull();
   }
   return propertyName(&classField->name(), &key) &&
          builder.classField(key, val, &classField->pn_pos, dst);
@@ -3729,7 +3727,7 @@ static bool reflect_parse(JSContext* cx, uint32_t argc, Value* vp) {
       return false;
     }
 
-    ModuleBuilder builder(cx, module, &parser);
+    ModuleBuilder builder(cx, &parser);
 
     ModuleSharedContext modulesc(cx, module, compilationInfo,
                                  &cx->global()->emptyGlobalScope(), builder);

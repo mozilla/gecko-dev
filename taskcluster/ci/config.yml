@@ -44,16 +44,12 @@ treeherder:
         'M-fis': 'Mochitests with fission enabled'
         'M-spi': 'Mochitests with socket process'
         'M-spi-1proc': 'Mochitests with socket process without e10s'
-        'M-sw': 'Mochitests with serviceworker redesign'
-        'M-sw-1proc': 'Mochitests with serviceworker redesign without e10s'
         'M-V-1proc': 'Mochitests on Valgrind without e10s'
         'MSI': 'Repack installers into MSIs'
         'MSIs': 'Signing of Repacked installers of MSIs'
         'R': 'Reftests'
         'R-1proc': 'Reftests without e10s'
         'R-fis': 'Reftests with fission enabled'
-        'R-sw': 'Reftests with serviceworker redesign'
-        'R-sw-1proc': 'Reftests with serviceworker redesign enabled without e10s'
         'Rap': 'Raptor performance tests on Firefox'
         'Rap-1proc': 'Raptor performance tests on Firefox without e10s'
         'Rap-fis': 'Raptor performance tests on Firefox with fission enabled'
@@ -85,13 +81,9 @@ treeherder:
         'W': 'Web platform tests'
         'W-1proc': 'Web platform tests without e10s'
         'W-fis': 'Web platform tests with fission enabled'
-        'W-sw': 'Web platform tests with serviceworker redesign'
-        'W-sw-1proc': 'Web platform tests with serviceworker redesign, without e10s'
         'X': 'Xpcshell tests'
         'X-1proc': 'Xpcshell tests, without e10s'
         'X-fis': 'Xpcshell tests with fission enabled'
-        'X-sw': 'Xpcshell tests with serviceworker redesign'
-        'X-sw-1proc': 'Xpcshell tests with serviceworker redesign, without e10s'
         'L10n': 'Localised Repacks'
         'L10n-Rpk': 'Localized Repackaged Repacks'
         'BM': 'Beetmover'
@@ -127,10 +119,11 @@ treeherder:
         'ms-stage': 'Autograph-stage MAR signing test'
         'Rel': 'Release promotion'
         'Snap': 'Snap image generation'
+        'Flatpak': 'Flatpak image generation'
         'langpack': 'Langpack sigatures and uploads'
         'TPS': 'Sync tests'
         'UV': 'Update verify'
-        'pipfu': 'pipfile update'
+        'pydep': 'python dependency update'
         'WR': 'WebRender standalone'
         'Wgpu': 'WebGPU standalone'
         'Gd': 'Geckodriver'
@@ -141,6 +134,7 @@ treeherder:
         'js': 'JavaScript checks'
         'py': 'Python checks'
         'java': 'Java checks'
+        'rust': 'Rust checks'
         'Static-Analysis': 'Full tree static-analysis'
         'SS': 'Shadow scheduler'
         'test-info': 'Test manifest skip/fail information'
@@ -250,6 +244,82 @@ release-promotion:
             target-tasks-method: ship_desktop
             partial-updates: true
 
+
+merge-automation:
+    flavors:
+        central-to-beta:
+            version-files:
+                - browser/config/version.txt
+                - config/milestone.txt
+            version-files-suffix:
+                - browser/config/version_display.txt
+            version-suffix: b1
+            copy-files: []
+            replacements:
+                - - browser/config/mozconfigs/linux32/l10n-mozconfig
+                  - ac_add_options --with-branding=browser/branding/nightly
+                  - ac_add_options --enable-official-branding
+                - - browser/config/mozconfigs/linux64/l10n-mozconfig
+                  - ac_add_options --with-branding=browser/branding/nightly
+                  - ac_add_options --enable-official-branding
+                - - browser/config/mozconfigs/win32/l10n-mozconfig
+                  - ac_add_options --with-branding=browser/branding/nightly
+                  - ac_add_options --enable-official-branding
+                - - browser/config/mozconfigs/win64/l10n-mozconfig
+                  - ac_add_options --with-branding=browser/branding/nightly
+                  - ac_add_options --enable-official-branding
+                - - browser/config/mozconfigs/win64-aarch64/l10n-mozconfig
+                  - ac_add_options --with-branding=browser/branding/nightly
+                  - ac_add_options --enable-official-branding
+                - - browser/config/mozconfigs/macosx64/l10n-mozconfig
+                  - ac_add_options --with-branding=browser/branding/nightly
+                  - ac_add_options --enable-official-branding
+                - - build/mozconfig.common
+                  - 'MOZ_REQUIRE_SIGNING=${MOZ_REQUIRE_SIGNING-0}'
+                  - 'MOZ_REQUIRE_SIGNING=${MOZ_REQUIRE_SIGNING-1}'
+                - - build/mozconfig.common
+                  - '# Disable enforcing that add-ons are signed by the trusted root'
+                  - '# Enable enforcing that add-ons are signed by the trusted root'
+            merge-old-head: true
+            base-tag: 'FIREFOX_BETA_{major_version}_BASE'
+            end-tag: 'FIREFOX_BETA_{major_version}_END'
+            from-repo: 'https://hg.mozilla.org/mozilla-central'
+            from-branch: 'central'
+            to-repo: 'https://hg.mozilla.org/releases/mozilla-beta'
+            to-branch: 'beta'
+        beta-to-release:
+            version-files: []
+            version-files-suffix: []
+            version-suffix: ''
+            copy-files:
+                - - "browser/config/version.txt"
+                  - "browser/config/version_display.txt"
+            replacements: []
+            merge-old-head: true
+            base-tag: 'FIREFOX_RELEASE_{major_version}_BASE'
+            end-tag: 'FIREFOX_RELEASE_{major_version}_END'
+            from-repo: 'https://hg.mozilla.org/releases/mozilla-beta'
+            from-branch: 'beta'
+            to-repo: 'https://hg.mozilla.org/releases/mozilla-release'
+            to-branch: 'release'
+        release-to-esr:
+            version-files: []
+            version-files-suffix:
+                - browser/config/version_display.txt
+            version-suffix: "esr"
+            copy-files: []
+            replacements:
+                - - "build/mozconfig.common"
+                  - "# Enable enforcing that add-ons are signed by the trusted root"
+                  - "# Disable enforcing that add-ons are signed by the trusted root"
+            merge-old-head: false
+            base-tag: "FIREFOX_ESR_{major_version}_BASE"
+            from-repo: 'https://hg.mozilla.org/releases/mozilla-release'
+            from-branch: 'release'
+            to-repo: 'https://hg.mozilla.org/releases/mozilla-esr68'
+            to-branch: 'esr68'
+
+
 scriptworker:
     # See additional configuration in taskcluster/taskgraph/util/scriptworker.py
     scope-prefix: 'project:releng'
@@ -351,12 +421,17 @@ workers:
                     staging: gecko-t-signing
         mac-depsigning:
             provisioner: scriptworker-prov-v1
-            implementation: scriptworker-iscript
+            implementation: scriptworker-signing
             os: macosx
             worker-type: depsigning-mac-v1
+        mac-notarization-poller:
+            provisioner: scriptworker-prov-v1
+            implementation: notarization-poller
+            os: macosx
+            worker-type: mac-notarization-poller
         mac-signing:
             provisioner: scriptworker-prov-v1
-            implementation: scriptworker-iscript
+            implementation: scriptworker-signing
             os: macosx
             worker-type:
                 by-release-level:
@@ -370,6 +445,11 @@ workers:
                 by-release-level:
                     production: gecko-3-tree
                     staging: gecko-1-tree
+        tree-dev:
+            provisioner: scriptworker-k8s
+            implementation: treescript
+            os: scriptworker
+            worker-type: gecko-1-tree-dev
         t-ap.*:
             provisioner: proj-autophone
             implementation: script-engine-autophone
@@ -463,11 +543,11 @@ workers:
 
 mac-notarization:
     mac-behavior:
-        by-release-type:
-            nightly.*: mac_notarize
-            beta.*: mac_notarize
-            esr.*: mac_notarize
-            release.*: mac_notarize
+        by-project:
+            mozilla-(central|beta|release|esr.*):
+                by-shippable:
+                    "true": mac_notarize
+                    default: mac_sign_and_pkg
             default: mac_sign_and_pkg
     mac-entitlements:
         by-platform:

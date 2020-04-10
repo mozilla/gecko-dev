@@ -242,19 +242,14 @@ NS_IMETHODIMP RemoteWebProgressRequest::SetLoadFlags(nsLoadFlags aLoadFlags) {
 }
 
 NS_IMETHODIMP
-RemoteWebProgressRequest::IsTrackingResource(bool* aIsTrackingResource) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
 RemoteWebProgressRequest::IsThirdPartyTrackingResource(
     bool* aIsTrackingResource) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-RemoteWebProgressRequest::IsSocialTrackingResource(
-    bool* aIsSocialTrackingResource) {
+RemoteWebProgressRequest::IsThirdPartySocialTrackingResource(
+    bool* aIsThirdPartySocialTrackingResource) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

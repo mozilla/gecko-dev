@@ -34,9 +34,8 @@ struct SelectionDetails {
       : mStart(), mEnd(), mSelectionType(mozilla::SelectionType::eInvalid) {
     MOZ_COUNT_CTOR(SelectionDetails);
   }
-#ifdef NS_BUILD_REFCNT_LOGGING
-  ~SelectionDetails() { MOZ_COUNT_DTOR(SelectionDetails); }
-#endif
+  MOZ_COUNTED_DTOR(SelectionDetails)
+
   int32_t mStart;
   int32_t mEnd;
   mozilla::SelectionType mSelectionType;
@@ -46,8 +45,8 @@ struct SelectionDetails {
 
 struct SelectionCustomColors {
 #ifdef NS_BUILD_REFCNT_LOGGING
-  SelectionCustomColors() { MOZ_COUNT_CTOR(SelectionCustomColors); }
-  ~SelectionCustomColors() { MOZ_COUNT_DTOR(SelectionCustomColors); }
+  MOZ_COUNTED_DEFAULT_CTOR(SelectionCustomColors)
+  MOZ_COUNTED_DTOR(SelectionCustomColors)
 #endif
   mozilla::Maybe<nscolor> mForegroundColor;
   mozilla::Maybe<nscolor> mBackgroundColor;
@@ -193,7 +192,7 @@ class Selection;
  * Constants for places that want to handle table selections.  These
  * indicate what part of a table is being selected.
  */
-enum class TableSelection : uint32_t {
+enum class TableSelectionMode : uint32_t {
   None,     /* Nothing being selected; not valid in all cases. */
   Cell,     /* A cell is being selected. */
   Row,      /* A row is being selected. */
@@ -234,6 +233,13 @@ class nsFrameSelection final {
   void Init(mozilla::PresShell* aPresShell, nsIContent* aLimiter,
             bool aAccessibleCaretEnabled);
 
+  enum class FocusMode {
+    kExtendSelection,     /** Keep old anchor point. */
+    kCollapseToNewPoint,  /** Collapses the Selection to the new point. */
+    kMultiRangeSelection, /** Keeps existing non-collapsed ranges and marks them
+                             as generated. */
+  };
+
   /**
    * HandleClick will take the focus to the new frame at the new offset and
    * will either extend the selection from the old anchor, or replace the old
@@ -248,19 +254,14 @@ class nsFrameSelection final {
    * is specified different when you need to select to and include both start
    * and end points
    *
-   * @param aContinueSelection is the flag that tells the selection to keep the
-   * old anchor point or not.
-   *
-   * @param aMultipleSelection will tell the frame selector to replace /or not
-   * the old selection. cannot coexist with aContinueSelection
-   *
    * @param aHint will tell the selection which direction geometrically to
    * actually show the caret on. 1 = end of this line 0 = beginning of this line
    */
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  nsresult HandleClick(nsIContent* aNewFocus, uint32_t aContentOffset,
-                       uint32_t aContentEndOffset, bool aContinueSelection,
-                       bool aMultipleSelection, CaretAssociateHint aHint);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult HandleClick(nsIContent* aNewFocus,
+                                                   uint32_t aContentOffset,
+                                                   uint32_t aContentEndOffset,
+                                                   FocusMode aFocusMode,
+                                                   CaretAssociateHint aHint);
 
   /**
    * HandleDrag extends the selection to contain the frame closest to aPoint.
@@ -286,15 +287,15 @@ class nsFrameSelection final {
    * @param aContentOffset is the offset of the table or cell
    *
    * @param aTarget indicates what to select
-   *   * TableSelection::Cell
+   *   * TableSelectionMode::Cell
    *       We should select a cell (content points to the cell)
-   *   * TableSelection::Row
+   *   * TableSelectionMode::Row
    *       We should select a row (content points to any cell in row)
-   *   * TableSelection::Column
+   *   * TableSelectionMode::Column
    *       We should select a row (content points to any cell in column)
-   *   * TableSelection::Table
+   *   * TableSelectionMode::Table
    *       We should select a table (content points to the table)
-   *   * TableSelection::AllCells
+   *   * TableSelectionMode::AllCells
    *       We should select all cells (content points to any cell in table)
    *
    * @param aMouseEvent passed in so we can get where event occurred
@@ -302,29 +303,17 @@ class nsFrameSelection final {
    */
   /*unsafe*/
   nsresult HandleTableSelection(nsINode* aParentContent, int32_t aContentOffset,
-                                mozilla::TableSelection aTarget,
+                                mozilla::TableSelectionMode aTarget,
                                 mozilla::WidgetMouseEvent* aMouseEvent);
 
   /**
-   * Add cell to the selection.
+   * Add cell to the selection with `SelectionType::eNormal`.
    *
    * @param  aCell  [in] HTML td element.
    */
   nsresult SelectCellElement(nsIContent* aCell);
 
-  /**
-   * Add cells to the selection inside of the given cells range.
-   *
-   * @param  aTable             [in] HTML table element
-   * @param  aStartRowIndex     [in] row index where the cells range starts
-   * @param  aStartColumnIndex  [in] column index where the cells range starts
-   * @param  aEndRowIndex       [in] row index where the cells range ends
-   * @param  aEndColumnIndex    [in] column index where the cells range ends
-   */
-  nsresult AddCellsToSelection(nsIContent* aTable, int32_t aStartRowIndex,
-                               int32_t aStartColumnIndex, int32_t aEndRowIndex,
-                               int32_t aEndColumnIndex);
-
+ public:
   /**
    * Remove cells from selection inside of the given cell range.
    *
@@ -334,6 +323,8 @@ class nsFrameSelection final {
    * @param  aEndRowIndex       [in] row index where the cells range ends
    * @param  aEndColumnIndex    [in] column index where the cells range ends
    */
+  // TODO: annotate this with `MOZ_CAN_RUN_SCRIPT` instead.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
   nsresult RemoveCellsFromSelection(nsIContent* aTable, int32_t aStartRowIndex,
                                     int32_t aStartColumnIndex,
                                     int32_t aEndRowIndex,
@@ -348,6 +339,8 @@ class nsFrameSelection final {
    * @param  aEndRowIndex       [in] row index where the cells range ends
    * @param  aEndColumnIndex    [in] column index where the cells range ends
    */
+  // TODO: annotate this with `MOZ_CAN_RUN_SCRIPT` instead.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
   nsresult RestrictCellsToSelection(nsIContent* aTable, int32_t aStartRowIndex,
                                     int32_t aStartColumnIndex,
                                     int32_t aEndRowIndex,
@@ -409,10 +402,10 @@ class nsFrameSelection final {
    * If we are in table cell selection mode. aka ctrl click in table cell
    */
   bool GetTableCellSelection() const {
-    return mSelectingTableCellMode != mozilla::TableSelection::None;
+    return mTableSelection.mMode != mozilla::TableSelectionMode::None;
   }
   void ClearTableCellSelection() {
-    mSelectingTableCellMode = mozilla::TableSelection::None;
+    mTableSelection.mMode = mozilla::TableSelectionMode::None;
   }
 
   /**
@@ -451,6 +444,8 @@ class nsFrameSelection final {
    */
   nsresult RepaintSelection(mozilla::SelectionType aSelectionType);
 
+  bool IsValidSelectionPoint(nsINode* aNode) const;
+
   /**
    * Given a node and its child offset, return the nsIFrame and the offset into
    * that frame.
@@ -459,9 +454,9 @@ class nsFrameSelection final {
    * @param aOffset offset into above node.
    * @param aReturnOffset will contain offset into frame.
    */
-  nsIFrame* GetFrameForNodeOffset(nsIContent* aNode, int32_t aOffset,
-                                  CaretAssociateHint aHint,
-                                  int32_t* aReturnOffset) const;
+  static nsIFrame* GetFrameForNodeOffset(nsIContent* aNode, int32_t aOffset,
+                                         CaretAssociateHint aHint,
+                                         int32_t* aReturnOffset);
 
   /**
    * GetFrameToPageSelect() returns a frame which is ancestor limit of
@@ -641,21 +636,6 @@ class nsFrameSelection final {
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void SetAncestorLimiter(nsIContent* aLimiter);
 
   /**
-   * This will tell the frame selection that a double click has been pressed
-   * so it can track abort future drags if inside the same selection
-   * @param aDoubleDown has the double click down happened
-   */
-  void SetMouseDoubleDown(bool aDoubleDown) {
-    mMouseDoubleDownState = aDoubleDown;
-  }
-
-  /**
-   * This will return whether the double down flag was set.
-   * @return whether the double down flag was set
-   */
-  bool GetMouseDoubleDown() const { return mMouseDoubleDownState; }
-
-  /**
    * GetPrevNextBidiLevels will return the frames and associated Bidi levels of
    * the characters logically before and after a (collapsed) selection.
    *
@@ -714,15 +694,19 @@ class nsFrameSelection final {
   void StartBatchChanges();
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  void EndBatchChanges(int16_t aReason = nsISelectionListener::NO_REASON);
-
-  /*unsafe*/
-  nsresult DeleteFromDocument();
+  /**
+   * @param aReasons potentially multiple of the reasons defined in
+   * nsISelectionListener.idl
+   */
+  void EndBatchChanges(int16_t aReasons = nsISelectionListener::NO_REASON);
 
   mozilla::PresShell* GetPresShell() const { return mPresShell; }
 
   void DisconnectFromPresShell();
   nsresult ClearNormalSelection();
+
+  // Table selection support.
+  static nsITableCellLayout* GetCellLayout(nsIContent* aCellContent);
 
  private:
   ~nsFrameSelection();
@@ -730,31 +714,51 @@ class nsFrameSelection final {
   MOZ_CAN_RUN_SCRIPT
   nsresult TakeFocus(nsIContent* aNewFocus, uint32_t aContentOffset,
                      uint32_t aContentEndOffset, CaretAssociateHint aHint,
-                     bool aContinueSelection, bool aMultipleSelection);
+                     FocusMode aFocusMode);
 
   void BidiLevelFromMove(mozilla::PresShell* aPresShell, nsIContent* aNode,
                          uint32_t aContentOffset, nsSelectionAmount aAmount,
                          CaretAssociateHint aHint);
   void BidiLevelFromClick(nsIContent* aNewFocus, uint32_t aContentOffset);
-  nsPrevNextBidiLevels GetPrevNextBidiLevels(nsIContent* aNode,
-                                             uint32_t aContentOffset,
-                                             CaretAssociateHint aHint,
-                                             bool aJumpLines) const;
+  static nsPrevNextBidiLevels GetPrevNextBidiLevels(nsIContent* aNode,
+                                                    uint32_t aContentOffset,
+                                                    CaretAssociateHint aHint,
+                                                    bool aJumpLines);
 
   bool AdjustForMaintainedSelection(nsIContent* aContent, int32_t aOffset);
 
-  // post and pop reasons for notifications. we may stack these later
-  void PostReason(int16_t aReason) { mSelectionChangeReason = aReason; }
-  int16_t PopReason() {
-    int16_t retval = mSelectionChangeReason;
-    mSelectionChangeReason = nsISelectionListener::NO_REASON;
+  /**
+   * @param aReasons potentially multiple of the reasons defined in
+   * nsISelectionListener.idl.
+   */
+  void SetChangeReasons(int16_t aReasons) {
+    mSelectionChangeReasons = aReasons;
+  }
+
+  /**
+   * @param aReasons potentially multiple of the reasons defined in
+   * nsISelectionListener.idl.
+   */
+  void AddChangeReasons(int16_t aReasons) {
+    mSelectionChangeReasons |= aReasons;
+  }
+
+  /**
+   * @return potentially multiple of the reasons defined in
+   * nsISelectionListener.idl.
+   */
+  int16_t PopChangeReasons() {
+    int16_t retval = mSelectionChangeReasons;
+    mSelectionChangeReasons = nsISelectionListener::NO_REASON;
     return retval;
   }
+
   bool IsUserSelectionReason() const {
-    return (mSelectionChangeReason & (nsISelectionListener::DRAG_REASON |
-                                      nsISelectionListener::MOUSEDOWN_REASON |
-                                      nsISelectionListener::MOUSEUP_REASON |
-                                      nsISelectionListener::KEYPRESS_REASON)) !=
+    return (mSelectionChangeReasons &
+            (nsISelectionListener::DRAG_REASON |
+             nsISelectionListener::MOUSEDOWN_REASON |
+             nsISelectionListener::MOUSEUP_REASON |
+             nsISelectionListener::KEYPRESS_REASON)) !=
            nsISelectionListener::NO_REASON;
   }
 
@@ -784,7 +788,6 @@ class nsFrameSelection final {
   void SetDesiredPos(nsPoint aPos);  // set the mDesiredPos
 
   uint32_t GetBatching() const { return mBatching; }
-  bool GetNotifyFrames() const { return mNotifyFrames; }
   void SetDirty(bool aDirty = true) {
     if (mBatching) mChangesDuringBatching = aDirty;
   }
@@ -793,39 +796,16 @@ class nsFrameSelection final {
   // so remember to use nsCOMPtr when needed.
   MOZ_CAN_RUN_SCRIPT
   nsresult NotifySelectionListeners(mozilla::SelectionType aSelectionType);
-  // Update the selection cache on repaint when the
-  // selection being repainted is not empty.
-  nsresult UpdateSelectionCacheOnRepaintSelection(
-      mozilla::dom::Selection* aSel);
-
-  // Table selection support.
-  static nsITableCellLayout* GetCellLayout(nsIContent* aCellContent);
-
-  nsresult SelectBlockOfCells(nsIContent* aStartNode, nsIContent* aEndNode);
-  nsresult SelectRowOrColumn(nsIContent* aCellContent,
-                             mozilla::TableSelection aTarget);
-  nsresult UnselectCells(nsIContent* aTable, int32_t aStartRowIndex,
-                         int32_t aStartColumnIndex, int32_t aEndRowIndex,
-                         int32_t aEndColumnIndex,
-                         bool aRemoveOutsideOfCellRange);
 
   static nsresult GetCellIndexes(nsIContent* aCell, int32_t& aRowIndex,
                                  int32_t& aColIndex);
 
-  // Get our first range, if its first selected node is a cell.  If this does
-  // not return null, then the first node in the returned range is a cell
-  // (according to GetFirstCellNodeInRange).
-  nsRange* GetFirstCellRange();
-  // Get our next range, if its first selected node is a cell.  If this does
-  // not return null, then the first node in the returned range is a cell
-  // (according to GetFirstCellNodeInRange).
-  nsRange* GetNextCellRange();
-  nsIContent* GetFirstCellNodeInRange(nsRange* aRange) const;
+  static nsIContent* GetFirstCellNodeInRange(const nsRange* aRange);
   // Returns non-null table if in same table, null otherwise
-  nsIContent* IsInSameTable(nsIContent* aContent1, nsIContent* aContent2) const;
+  static nsIContent* IsInSameTable(nsIContent* aContent1,
+                                   nsIContent* aContent2);
   // Might return null
-  nsIContent* GetParentTable(nsIContent* aCellNode) const;
-  nsresult CreateAndAddRange(nsINode* aContainer, int32_t aOffset);
+  static nsIContent* GetParentTable(nsIContent* aCellNode);
 
   ////////////BEGIN nsFrameSelection members
 
@@ -833,14 +813,50 @@ class nsFrameSelection final {
       mDomSelections[sizeof(mozilla::kPresentSelectionTypes) /
                      sizeof(mozilla::SelectionType)];
 
-  nsCOMPtr<nsINode> mCellParent;  // used to snap to table selection
-  nsCOMPtr<nsIContent> mStartSelectedCell;
-  nsCOMPtr<nsIContent> mEndSelectedCell;
-  nsCOMPtr<nsIContent> mAppendStartSelectedCell;
-  nsCOMPtr<nsIContent> mUnselectCellOnMouseUp;
-  mozilla::TableSelection mSelectingTableCellMode =
-      mozilla::TableSelection::None;
-  int32_t mSelectedCellIndex = 0;
+  struct TableSelection {
+    // Get our first range, if its first selected node is a cell.  If this does
+    // not return null, then the first node in the returned range is a cell
+    // (according to GetFirstCellNodeInRange).
+    nsRange* GetFirstCellRange(const mozilla::dom::Selection& aNormalSelection);
+
+    // Get our next range, if its first selected node is a cell.  If this does
+    // not return null, then the first node in the returned range is a cell
+    // (according to GetFirstCellNodeInRange).
+    nsRange* GetNextCellRange(const mozilla::dom::Selection& aNormalSelection);
+
+    // TODO: annotate this with `MOZ_CAN_RUN_SCRIPT` instead.
+    MOZ_CAN_RUN_SCRIPT_BOUNDARY
+    nsresult HandleSelection(nsINode* aParentContent, int32_t aContentOffset,
+                             mozilla::TableSelectionMode aTarget,
+                             mozilla::WidgetMouseEvent* aMouseEvent,
+                             bool aDragState,
+                             mozilla::dom::Selection& aNormalSelection);
+
+    // TODO: annotate this with `MOZ_CAN_RUN_SCRIPT` instead.
+    MOZ_CAN_RUN_SCRIPT_BOUNDARY
+    nsresult SelectBlockOfCells(nsIContent* aStartCell, nsIContent* aEndCell,
+                                mozilla::dom::Selection& aNormalSelection);
+
+    nsresult SelectRowOrColumn(nsIContent* aCellContent,
+                               mozilla::dom::Selection& aNormalSelection);
+
+    MOZ_CAN_RUN_SCRIPT nsresult
+    UnselectCells(nsIContent* aTable, int32_t aStartRowIndex,
+                  int32_t aStartColumnIndex, int32_t aEndRowIndex,
+                  int32_t aEndColumnIndex, bool aRemoveOutsideOfCellRange,
+                  mozilla::dom::Selection& aNormalSelection);
+
+    nsCOMPtr<nsINode> mCellParent;  // used to snap to table selection
+    nsCOMPtr<nsIContent> mStartSelectedCell;
+    nsCOMPtr<nsIContent> mEndSelectedCell;
+    nsCOMPtr<nsIContent> mAppendStartSelectedCell;
+    nsCOMPtr<nsIContent> mUnselectCellOnMouseUp;
+    mozilla::TableSelectionMode mMode = mozilla::TableSelectionMode::None;
+    int32_t mSelectedCellIndex = 0;
+    bool mDragSelectingCells = false;
+  };
+
+  TableSelection mTableSelection;
 
   // maintain selection
   RefPtr<nsRange> mMaintainRange;
@@ -855,8 +871,9 @@ class nsFrameSelection final {
   nsCOMPtr<nsIContent> mAncestorLimiter;
 
   mozilla::PresShell* mPresShell = nullptr;
-  // Reason for notifications of selection changing.
-  int16_t mSelectionChangeReason = nsISelectionListener::NO_REASON;
+  // Reasons for notifications of selection changing.
+  // Can be multiple of the reasons defined in nsISelectionListener.idl.
+  int16_t mSelectionChangeReasons = nsISelectionListener::NO_REASON;
   // For visual display purposes.
   int16_t mDisplaySelection = nsISelectionController::SELECTION_OFF;
 
@@ -875,10 +892,7 @@ class nsFrameSelection final {
   bool mDelayedMouseEventIsShift = false;
 
   bool mChangesDuringBatching = false;
-  bool mNotifyFrames = true;
-  bool mDragSelectingCells = false;
-  bool mDragState = false;             // for drag purposes
-  bool mMouseDoubleDownState = false;  // has the doubleclick down happened
+  bool mDragState = false;  // for drag purposes
   bool mDesiredPosSet = false;
   bool mAccessibleCaretEnabled = false;
 

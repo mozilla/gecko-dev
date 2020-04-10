@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::batch::{BatchKey, BatchKind, BrushBatchKind, BatchFeatures};
+use crate::composite::CompositeSurfaceFormat;
 use crate::device::{Device, Program, ShaderError};
 use euclid::default::Transform3D;
 use crate::glyph_rasterizer::GlyphFormat;
@@ -536,6 +537,7 @@ pub struct Shaders {
     brush_blend: BrushShader,
     brush_mix_blend: BrushShader,
     brush_yuv_image: Vec<Option<BrushShader>>,
+    brush_conic_gradient: BrushShader,
     brush_radial_gradient: BrushShader,
     brush_linear_gradient: BrushShader,
     brush_opacity: BrushShader,
@@ -566,12 +568,15 @@ pub struct Shaders {
 
     ps_split_composite: LazilyCompiledShader,
 
-    // Composite shader. This is a very simple shader used to composite
-    // picture cache tiles into the framebuffer. In future, this will
-    // only be used on platforms that aren't directly handing picture
-    // cache surfaces to an OS compositor, such as DirectComposite or
-    // CoreAnimation.
-    pub composite: LazilyCompiledShader,
+    // Composite shaders.  These are very simple shaders used to composite
+    // picture cache tiles into the framebuffer on platforms that do not have an
+    // OS Compositor (or we cannot use it).  Such an OS Compositor (such as
+    // DirectComposite or CoreAnimation) handles the composition of the picture
+    // cache tiles at a lower level (e.g. in DWM for Windows); in that case we
+    // directly hand the picture cache surfaces over to the OS Compositor, and
+    // our own Composite shaders below never run.
+    pub composite_rgba: LazilyCompiledShader,
+    pub composite_yuv: Vec<Option<LazilyCompiledShader>>,
 }
 
 impl Shaders {
@@ -608,6 +613,20 @@ impl Shaders {
             "brush_mix_blend",
             device,
             &[],
+            options.precache_flags,
+            false /* advanced blend */,
+            false /* dual source */,
+            use_pixel_local_storage,
+        )?;
+
+        let brush_conic_gradient = BrushShader::new(
+            "brush_conic_gradient",
+            device,
+            if options.enable_dithering {
+               &[DITHERING_FEATURE]
+            } else {
+               &[]
+            },
             options.precache_flags,
             false /* advanced blend */,
             false /* dual source */,
@@ -821,18 +840,22 @@ impl Shaders {
         let mut yuv_features = Vec::new();
         let yuv_shader_num = IMAGE_BUFFER_KINDS.len();
         let mut brush_yuv_image = Vec::new();
+        let mut composite_yuv = Vec::new();
         // PrimitiveShader is not clonable. Use push() to initialize the vec.
         for _ in 0 .. yuv_shader_num {
             brush_yuv_image.push(None);
+            composite_yuv.push(None);
         }
         for image_buffer_kind in &IMAGE_BUFFER_KINDS {
             if image_buffer_kind.has_platform_support(&gl_type) {
+                yuv_features.push("YUV");
+
                 let feature_string = image_buffer_kind.get_feature_string();
                 if feature_string != "" {
                     yuv_features.push(feature_string);
                 }
 
-                let shader = BrushShader::new(
+                let brush_shader = BrushShader::new(
                     "brush_yuv_image",
                     device,
                     &yuv_features,
@@ -841,10 +864,21 @@ impl Shaders {
                     false /* dual source */,
                     use_pixel_local_storage,
                 )?;
+
+                let composite_shader = LazilyCompiledShader::new(
+                    ShaderKind::Composite,
+                    "composite",
+                    &yuv_features,
+                    device,
+                    options.precache_flags,
+                )?;
+
                 let index = Self::get_yuv_shader_index(
                     *image_buffer_kind,
                 );
-                brush_yuv_image[index] = Some(shader);
+                brush_yuv_image[index] = Some(brush_shader);
+                composite_yuv[index] = Some(composite_shader);
+
                 yuv_features.clear();
             }
         }
@@ -881,7 +915,7 @@ impl Shaders {
             options.precache_flags,
         )?;
 
-        let composite = LazilyCompiledShader::new(
+        let composite_rgba = LazilyCompiledShader::new(
             ShaderKind::Composite,
             "composite",
             &[],
@@ -904,6 +938,7 @@ impl Shaders {
             brush_blend,
             brush_mix_blend,
             brush_yuv_image,
+            brush_conic_gradient,
             brush_radial_gradient,
             brush_linear_gradient,
             brush_opacity,
@@ -916,12 +951,32 @@ impl Shaders {
             ps_text_run,
             ps_text_run_dual_source,
             ps_split_composite,
-            composite,
+            composite_rgba,
+            composite_yuv,
         })
     }
 
     fn get_yuv_shader_index(buffer_kind: ImageBufferKind) -> usize {
         (buffer_kind as usize)
+    }
+
+    pub fn get_composite_shader(
+        &mut self,
+        format: CompositeSurfaceFormat,
+        buffer_kind: ImageBufferKind,
+    ) -> &mut LazilyCompiledShader {
+        match format {
+            CompositeSurfaceFormat::Rgba => {
+                debug_assert_eq!(buffer_kind, ImageBufferKind::Texture2DArray);
+                &mut self.composite_rgba
+            }
+            CompositeSurfaceFormat::Yuv => {
+                let shader_index = Self::get_yuv_shader_index(buffer_kind);
+                self.composite_yuv[shader_index]
+                    .as_mut()
+                    .expect("bug: unsupported yuv shader requested")
+            }
+        }
     }
 
     pub fn get(&mut self, key: &BatchKey, features: BatchFeatures, debug_flags: DebugFlags) -> &mut LazilyCompiledShader {
@@ -952,6 +1007,9 @@ impl Shaders {
                     }
                     BrushBatchKind::MixBlend { .. } => {
                         &mut self.brush_mix_blend
+                    }
+                    BrushBatchKind::ConicGradient => {
+                        &mut self.brush_conic_gradient
                     }
                     BrushBatchKind::RadialGradient => {
                         &mut self.brush_radial_gradient
@@ -990,6 +1048,7 @@ impl Shaders {
         self.brush_solid.deinit(device);
         self.brush_blend.deinit(device);
         self.brush_mix_blend.deinit(device);
+        self.brush_conic_gradient.deinit(device);
         self.brush_radial_gradient.deinit(device);
         self.brush_linear_gradient.deinit(device);
         self.brush_opacity.deinit(device);
@@ -1021,7 +1080,12 @@ impl Shaders {
         self.cs_line_decoration.deinit(device);
         self.cs_border_segment.deinit(device);
         self.ps_split_composite.deinit(device);
-        self.composite.deinit(device);
+        self.composite_rgba.deinit(device);
+        for shader in self.composite_yuv {
+            if let Some(shader) = shader {
+                shader.deinit(device);
+            }
+        }
     }
 }
 

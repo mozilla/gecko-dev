@@ -220,7 +220,7 @@ CrossProcessPaint::CrossProcessPaint(dom::Promise* aPromise, float aScale,
                                      dom::WindowGlobalParent* aRoot)
     : mPromise{aPromise}, mRoot{aRoot}, mScale{aScale}, mPendingFragments{0} {}
 
-CrossProcessPaint::~CrossProcessPaint() {}
+CrossProcessPaint::~CrossProcessPaint() = default;
 
 static dom::TabId GetTabId(dom::WindowGlobalParent* aWGP) {
   // There is no unique TabId for a given WindowGlobalParent, as multiple
@@ -355,7 +355,7 @@ void CrossProcessPaint::MaybeResolve() {
     mPromise->MaybeResolve(bitmap);
   } else {
     CPP_LOG("Couldn't create ImageBitmap for SourceSurface.\n");
-    mPromise->MaybeReject(rv);
+    mPromise->MaybeReject(std::move(rv));
   }
   Clear();
 }
@@ -418,7 +418,7 @@ nsresult CrossProcessPaint::ResolveInternal(dom::TabId aTabId,
     aResolved->Remove(dependency);
   }
 
-  aResolved->Put(aTabId, snapshot);
+  aResolved->Put(aTabId, std::move(snapshot));
   return NS_OK;
 }
 

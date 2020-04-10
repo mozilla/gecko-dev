@@ -93,12 +93,12 @@ class MediaTrackListener {
 
   /**
    * Notify that this track listener has been removed from the graph, either
-   * after shutdown or RemoveTrackListener.
+   * after shutdown or through MediaTrack::RemoveListener().
    */
   virtual void NotifyRemoved(MediaTrackGraph* aGraph) {}
 
  protected:
-  virtual ~MediaTrackListener() {}
+  virtual ~MediaTrackListener() = default;
 };
 
 /**
@@ -159,7 +159,7 @@ class DirectMediaTrackListener : public MediaTrackListener {
   virtual void NotifyDirectListenerUninstalled() {}
 
  protected:
-  virtual ~DirectMediaTrackListener() {}
+  virtual ~DirectMediaTrackListener() = default;
 
   void MirrorAndDisableSegment(AudioSegment& aFrom, AudioSegment& aTo);
   void MirrorAndDisableSegment(VideoSegment& aFrom, VideoSegment& aTo,

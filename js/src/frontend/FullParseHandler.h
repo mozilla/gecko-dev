@@ -51,7 +51,7 @@ class FullParseHandler {
    * - lazyInnerFunctionIndex is used as we skip over inner functions
    *   (see skipLazyInnerFunction),
    */
-  const Rooted<LazyScript*> lazyOuterFunction_;
+  const Rooted<BaseScript*> lazyOuterFunction_;
   size_t lazyInnerFunctionIndex;
 
   size_t lazyClosedOverBindingIndex;
@@ -102,7 +102,7 @@ class FullParseHandler {
   }
 
   FullParseHandler(JSContext* cx, LifoAlloc& alloc,
-                   LazyScript* lazyOuterFunction,
+                   BaseScript* lazyOuterFunction,
                    SourceKind kind = SourceKind::Text)
       : allocator(cx, alloc),
         lazyOuterFunction_(cx, lazyOuterFunction),
@@ -497,11 +497,12 @@ class FullParseHandler {
     return new_<ClassMethod>(key, funNode, atype, isStatic);
   }
 
-  MOZ_MUST_USE ClassField* newClassFieldDefinition(
-      Node name, FunctionNodeType initializer) {
+  MOZ_MUST_USE ClassField* newClassFieldDefinition(Node name,
+                                                   FunctionNodeType initializer,
+                                                   bool isStatic) {
     MOZ_ASSERT(isUsableAsObjectPropertyName(name));
 
-    return new_<ClassField>(name, initializer);
+    return new_<ClassField>(name, initializer, isStatic);
   }
 
   MOZ_MUST_USE bool addClassMemberDefinition(ListNodeType memberList,
@@ -516,29 +517,6 @@ class FullParseHandler {
 
     addList(/* list = */ memberList, /* kid = */ member);
     return true;
-  }
-
-  void deleteConstructorScope(JSContext* cx, ListNodeType memberList) {
-    for (ParseNode* member : memberList->contents()) {
-      if (member->is<LexicalScopeNode>()) {
-        LexicalScopeNode* node = &member->as<LexicalScopeNode>();
-        MOZ_ASSERT(node->scopeBody()->isKind(ParseNodeKind::ClassMethod));
-        MOZ_ASSERT(node->scopeBody()->as<ClassMethod>().method().syntaxKind() ==
-                       FunctionSyntaxKind::ClassConstructor ||
-                   node->scopeBody()->as<ClassMethod>().method().syntaxKind() ==
-                       FunctionSyntaxKind::DerivedClassConstructor);
-        // Check isEmptyScope instead of asserting, because this function must
-        // be idempotent: when parsing via asm.js, this function is called, then
-        // later, after asm.js parsing fails, this function is called again on
-        // the same scope. (See bug 1555979)
-        if (!node->isEmptyScope()) {
-          MOZ_ASSERT(node->scopeBindings()->length == 1);
-          MOZ_ASSERT(node->scopeBindings()->trailingNames[0].name() ==
-                     cx->names().dotInitializers);
-          node->clearScopeBindings();
-        }
-      }
-    }
   }
 
   UnaryNodeType newInitialYieldExpression(uint32_t begin, Node gen) {

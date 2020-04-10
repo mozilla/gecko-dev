@@ -24,7 +24,7 @@ NS_INTERFACE_MAP_END
 
 MediaMetadata::MediaMetadata(nsIGlobalObject* aParent, const nsString& aTitle,
                              const nsString& aArtist, const nsString& aAlbum)
-    : mParent(aParent), mTitle(aTitle), mArtist(aArtist), mAlbum(aAlbum) {
+    : MediaMetadataBase(aTitle, aArtist, aAlbum), mParent(aParent) {
   MOZ_ASSERT(mParent);
 }
 
@@ -143,7 +143,7 @@ void MediaMetadata::SetArtworkInternal(const Sequence<MediaImage>& aArtwork,
   for (MediaImage& image : artwork) {
     nsresult rv = ResolveURL(image.mSrc, baseURI);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      aRv.ThrowTypeError<MSG_INVALID_URL>(image.mSrc);
+      aRv.ThrowTypeError<MSG_INVALID_URL>(NS_ConvertUTF16toUTF8(image.mSrc));
       return;
     }
   }

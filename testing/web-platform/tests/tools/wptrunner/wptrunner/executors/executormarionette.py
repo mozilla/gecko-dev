@@ -5,6 +5,7 @@ import time
 import traceback
 import uuid
 
+from six import iteritems
 from six.moves.urllib.parse import urljoin
 
 errors = None
@@ -114,8 +115,8 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
             except IOError:
                 self.logger.debug("Socket closed")
                 break
-            except Exception as e:
-                self.logger.warning(traceback.format_exc(e))
+            except Exception:
+                self.logger.warning(traceback.format_exc())
                 break
 
 
@@ -137,12 +138,12 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
         self.logger.debug("Loading %s" % url)
         try:
             self.dismiss_alert(lambda: self.marionette.navigate(url))
-        except Exception as e:
+        except Exception:
             self.logger.critical(
                 "Loading initial page %s failed. Ensure that the "
                 "there are no other programs bound to this port and "
                 "that your firewall rules or network setup does not "
-                r"prevent access.\e%s" % (url, traceback.format_exc(e)))
+                r"prevent access.\e%s" % (url, traceback.format_exc()))
             raise
         self.runner_handle = self.marionette.current_window_handle
         format_map = {"title": threading.current_thread().name.replace("'", '"')}
@@ -592,7 +593,6 @@ class MarionetteProtocol(Protocol):
             del self.marionette
         super(MarionetteProtocol, self).teardown()
 
-    @property
     def is_alive(self):
         try:
             self.marionette.current_window_handle
@@ -609,7 +609,7 @@ class MarionetteProtocol(Protocol):
             else:
                 self.prefs.set(name, value)
 
-        for name, value in new_environment.get("prefs", {}).iteritems():
+        for name, value in iteritems(new_environment.get("prefs", {})):
             self.executor.original_pref_values[name] = self.prefs.get(name)
             self.prefs.set(name, value)
 
@@ -659,7 +659,7 @@ class ExecuteAsyncScriptRun(TimedRunner):
                 message = getattr(e, "message", "")
                 if message:
                     message += "\n"
-                message += traceback.format_exc(e)
+                message += traceback.format_exc()
                 self.logger.warning(traceback.format_exc())
             self.result = False, ("INTERNAL-ERROR", message)
         finally:
@@ -698,7 +698,7 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
         self.protocol.testharness.load_runner(self.last_environment["protocol"])
 
     def is_alive(self):
-        return self.protocol.is_alive
+        return self.protocol.is_alive()
 
     def on_environment_change(self, new_environment):
         self.protocol.on_environment_change(self.last_environment, new_environment)
@@ -809,16 +809,16 @@ class MarionetteRefTestExecutor(RefTestExecutor):
                 if handles:
                     self.protocol.marionette.switch_to_window(handles[0])
             super(self.__class__, self).teardown()
-        except Exception as e:
+        except Exception:
             # Ignore errors during teardown
             self.logger.warning("Exception during reftest teardown:\n%s" %
-                                traceback.format_exc(e))
+                                traceback.format_exc())
 
     def reset(self):
         self.implementation.reset(**self.implementation_kwargs)
 
     def is_alive(self):
-        return self.protocol.is_alive
+        return self.protocol.is_alive()
 
     def on_environment_change(self, new_environment):
         self.protocol.on_environment_change(self.last_environment, new_environment)
@@ -894,7 +894,8 @@ class InternalRefTestImplementation(RefTestImplementation):
         data = {"screenshot": screenshot}
         if self.executor.group_metadata is not None:
             data["urlCount"] = {urljoin(self.executor.server_url(key[0]), key[1]):value
-                                for key, value in self.executor.group_metadata.get("url_count", {}).iteritems()
+                                for key, value in iteritems(
+                                    self.executor.group_metadata.get("url_count", {}))
                                 if value > 1}
         self.executor.protocol.marionette.set_context(self.executor.protocol.marionette.CONTEXT_CHROME)
         self.executor.protocol.marionette._send_message("reftest:setup", data)
@@ -934,9 +935,9 @@ class InternalRefTestImplementation(RefTestImplementation):
                 handles = self.executor.protocol.marionette.window_handles
                 if handles:
                     self.executor.protocol.marionette.switch_to_window(handles[0])
-        except Exception as e:
+        except Exception:
             # Ignore errors during teardown
-            self.logger.warning(traceback.format_exc(e))
+            self.logger.warning(traceback.format_exc())
 
 
 class GeckoDriverProtocol(WebDriverProtocol):
@@ -972,7 +973,7 @@ class MarionetteCrashtestExecutor(CrashtestExecutor):
             do_delayed_imports()
 
     def is_alive(self):
-        return self.protocol.is_alive
+        return self.protocol.is_alive()
 
     def on_environment_change(self, new_environment):
         self.protocol.on_environment_change(self.last_environment, new_environment)

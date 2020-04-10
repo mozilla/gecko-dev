@@ -232,7 +232,11 @@ void CanvasEventRingBuffer::CheckAndSignalReader() {
         return;
       case State::AboutToWait:
         // The reader is making a decision about whether to wait. So, we must
-        // wait until it has decided to avoid races.
+        // wait until it has decided to avoid races. Check if the reader is
+        // closed to avoid hangs.
+        if (mWriterServices->ReaderClosed()) {
+          return;
+        }
         continue;
       case State::Waiting:
         if (mRead->count != mOurCount) {
@@ -337,7 +341,7 @@ uint32_t CanvasEventRingBuffer::CreateCheckpoint() {
 }
 
 bool CanvasEventRingBuffer::WaitForCheckpoint(uint32_t aCheckpoint) {
-  return WaitForReadCount(aCheckpoint, kTimeout, kTimeoutRetryCount);
+  return WaitForReadCount(aCheckpoint, kTimeout);
 }
 
 void CanvasEventRingBuffer::CheckAndSignalWriter() {
@@ -347,7 +351,11 @@ void CanvasEventRingBuffer::CheckAndSignalWriter() {
         return;
       case State::AboutToWait:
         // The writer is making a decision about whether to wait. So, we must
-        // wait until it has decided to avoid races.
+        // wait until it has decided to avoid races. Check if the writer is
+        // closed to avoid hangs.
+        if (mReaderServices->WriterClosed()) {
+          return;
+        }
         continue;
       case State::Waiting:
         if (mWrite->count - mOurCount <= mWrite->requiredDifference) {
@@ -363,8 +371,7 @@ void CanvasEventRingBuffer::CheckAndSignalWriter() {
 }
 
 bool CanvasEventRingBuffer::WaitForReadCount(uint32_t aReadCount,
-                                             TimeDuration aTimeout,
-                                             int32_t aRetryCount) {
+                                             TimeDuration aTimeout) {
   uint32_t requiredDifference = mOurCount - aReadCount;
   uint32_t spinCount = kMaxSpinCount;
   do {
@@ -384,26 +391,20 @@ bool CanvasEventRingBuffer::WaitForReadCount(uint32_t aReadCount,
   mWrite->requiredDifference = requiredDifference;
   mWrite->state = State::Waiting;
 
-  do {
+  // Wait unless we detect the reading side has closed.
+  while (!mWriterServices->ReaderClosed()) {
     if (mWriterSemaphore->Wait(Some(aTimeout))) {
       MOZ_ASSERT(mOurCount - mRead->count <= requiredDifference);
       return true;
     }
-
-    if (mWriterServices->ReaderClosed()) {
-      // Something has gone wrong on the reading side, just return false so
-      // that we can hopefully recover.
-      return false;
-    }
-  } while (aRetryCount-- > 0);
+  }
 
   return false;
 }
 
 uint32_t CanvasEventRingBuffer::WaitForBytesToWrite() {
   uint32_t streamFullReadCount = mOurCount - kStreamSize;
-  if (!WaitForReadCount(streamFullReadCount + 1, kTimeout,
-                        kTimeoutRetryCount)) {
+  if (!WaitForReadCount(streamFullReadCount + 1, kTimeout)) {
     mGood = false;
     return 0;
   }
@@ -446,7 +447,19 @@ void CanvasEventRingBuffer::ReturnWrite(const char* aData, size_t aSize) {
 }
 
 void CanvasEventRingBuffer::ReturnRead(char* aOut, size_t aSize) {
+  // First wait for the event returning the data to be read.
+  WaitForCheckpoint(mOurCount);
   uint32_t readCount = mWrite->returnCount;
+
+  // If the event sending back data fails to play then it will ReturnWrite
+  // nothing. So, wait until something has been written or the reader has
+  // stopped processing.
+  while (readCount == mRead->returnCount) {
+    if (mRead->state != State::Processing) {
+      return;
+    }
+  }
+
   uint32_t bufPos = readCount % kStreamSize;
   uint32_t bufRemaining = kStreamSize - bufPos;
   uint32_t availableToRead =
@@ -460,9 +473,6 @@ void CanvasEventRingBuffer::ReturnRead(char* aOut, size_t aSize) {
       bufRemaining = kStreamSize - bufPos;
       aOut += availableToRead;
       aSize -= availableToRead;
-    } else {
-      // Double-check that the reader isn't waiting.
-      CheckAndSignalReader();
     }
 
     availableToRead = std::min(bufRemaining, (mRead->returnCount - readCount));
