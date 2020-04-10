@@ -241,9 +241,10 @@ DevToolsServerConnection.prototype = {
     };
   },
 
-  _queueResponse: function(from, type, responseOrPromise) {
+  _queueResponse: function(from, type, responseOrPromise, packetId) {
     const pendingResponse =
-      this._actorResponses.get(from) || Promise.resolve(null);
+          this._actorResponses.get(from) || Promise.resolve(null);
+    const stack = Error().stack;
     const responsePromise = pendingResponse
       .then(() => {
         return responseOrPromise;
@@ -260,6 +261,7 @@ DevToolsServerConnection.prototype = {
           response.from = from;
         }
 
+        response.packetId = packetId;
         this.transport.send(response);
       })
       .catch(error => {
@@ -394,7 +396,7 @@ DevToolsServerConnection.prototype = {
 
     // There will not be a return value if a bulk reply is sent.
     if (ret) {
-      this._queueResponse(packet.to, packet.type, ret);
+      this._queueResponse(packet.to, packet.type, ret, packet.packetId);
     }
   },
 

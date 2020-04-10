@@ -3618,6 +3618,15 @@ function BrowserReloadWithFlags(reloadFlags) {
         );
         gBrowser._insertBrowser(tab);
       }
+    } else if (browser.hasAttribute("recordExecution")) {
+      // Recording tabs always use new content processes when reloading, to get
+      // a fresh recording.
+      gBrowser.updateBrowserRemoteness(browser, {
+        recordExecution: "*",
+        newFrameloader: true,
+        remoteType: E10SUtils.DEFAULT_REMOTE_TYPE,
+      });
+      loadBrowserURI(browser, url);
     } else {
       unchangedRemoteness.push(tab);
     }

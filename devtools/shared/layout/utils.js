@@ -31,8 +31,6 @@ exports.setIgnoreLayoutChanges = (...args) =>
 
 const { ReplayInspector } = require("RecordReplayControl").module;
 
-const ReplayInspector = require("devtools/server/actors/replay/inspector");
-
 /**
  * Returns the `DOMWindowUtils` for the window given.
  *

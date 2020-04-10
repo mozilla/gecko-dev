@@ -2091,7 +2091,9 @@
       name,
       nextRemoteTabId,
       openerWindow,
+      recordExecution,
       remoteType,
+      replayExecution,
       sameProcessAsFrameLoader,
       uriIsAboutBlank,
       userContextId,
@@ -2586,6 +2588,8 @@
         skipBackgroundNotify,
         triggeringPrincipal,
         userContextId,
+        recordExecution,
+        replayExecution,
         csp,
         skipLoad,
         batchInsertingTabs,
@@ -2753,7 +2757,12 @@
 
         // If we open a new tab with the newtab URL in the default
         // userContext, check if there is a preloaded browser ready.
-        if (aURI == BROWSER_NEW_TAB_URL && !userContextId) {
+        if (
+          aURI == BROWSER_NEW_TAB_URL &&
+          !userContextId &&
+          !recordExecution &&
+          !replayExecution
+        ) {
           b = NewTabPagePreloading.getPreloadedBrowser(window);
           if (b) {
             usingPreloadedContent = true;
@@ -2770,6 +2779,8 @@
             openerWindow: opener,
             nextRemoteTabId,
             name,
+            recordExecution,
+            replayExecution,
             skipLoad,
           });
         }

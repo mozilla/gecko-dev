@@ -6,7 +6,6 @@
 
 const { Cr } = require("chrome");
 const flags = require("devtools/shared/flags");
-const ChromeUtils = require("ChromeUtils");
 
 /**
  * A transport for the debugging protocol that uses nsIMessageManagers to
@@ -64,11 +63,6 @@ ChildDebuggerTransport.prototype = {
   },
 
   receiveMessage: function({ data }) {
-    if (data.packetId == this.lastResumePacketId) {
-      ChromeUtils.recordReplayLog(`ChildTransport SendResume END`);
-    } else if (data.type == "paused") {
-      ChromeUtils.recordReplayLog(`ChildTransport Paused`);
-    }
     this.hooks.onPacket(data);
   },
 
@@ -110,10 +104,6 @@ ChildDebuggerTransport.prototype = {
       throw new Error(msg);
     }
     try {
-      if (packet.type == "resume") {
-        ChromeUtils.recordReplayLog("ChildTransport SendResume BEGIN");
-        this.lastResumePacketId = packet.packetId;
-      }
       this._mm.sendAsyncMessage(this._messageName, packet);
     } catch (e) {
       if (e.result != Cr.NS_ERROR_NULL_POINTER) {

@@ -915,11 +915,23 @@ ContentParent::GetNewOrUsedBrowserProcessInternal(Element* aFrameElement,
                                                   ContentParent* aOpener,
                                                   bool aPreferUsed,
                                                   bool aIsSync) {
+  // Figure out if this process will be recording or replaying, and which file
+  // to use for the recording.
+  nsAutoString recordingFile;
+  Maybe<RecordReplayState> maybeRecordReplayState =
+      GetRecordReplayState(aFrameElement, recordingFile);
+  if (maybeRecordReplayState.isNothing()) {
+    // Error, cannot fulfill this record/replay request.
+    return nullptr;
+  }
+  RecordReplayState recordReplayState = maybeRecordReplayState.value();
+
   nsTArray<ContentParent*>& contentParents = GetOrCreatePool(aRemoteType);
   uint32_t maxContentParents = GetMaxProcessCount(aRemoteType);
-  if (aRemoteType.EqualsLiteral(
-          LARGE_ALLOCATION_REMOTE_TYPE)  // We never want to re-use
-                                         // Large-Allocation processes.
+  if (recordReplayState == eNotRecordingOrReplaying
+      && aRemoteType.EqualsLiteral(
+             LARGE_ALLOCATION_REMOTE_TYPE)  // We never want to re-use
+                                            // Large-Allocation processes.
       && contentParents.Length() >= maxContentParents) {
     return GetNewOrUsedBrowserProcessInternal(
         aFrameElement, NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE), aPriority,
@@ -927,8 +939,11 @@ ContentParent::GetNewOrUsedBrowserProcessInternal(Element* aFrameElement,
   }
 
   // Let's try and reuse an existing process.
-  RefPtr<ContentParent> contentParent = GetUsedBrowserProcess(
-      aOpener, aRemoteType, contentParents, maxContentParents, aPreferUsed);
+  RefPtr<ContentParent> contentParent;
+  if (recordReplayState == eNotRecordingOrReplaying) {
+    contentParent = GetUsedBrowserProcess(
+        aOpener, aRemoteType, contentParents, maxContentParents, aPreferUsed);
+  }
 
   if (contentParent) {
     // We have located a process. It may not have finished initializing,
@@ -938,7 +953,7 @@ ContentParent::GetNewOrUsedBrowserProcessInternal(Element* aFrameElement,
 
   // No reusable process. Let's create and launch one.
   // The life cycle will be set to `LifecycleState::LAUNCHING`.
-  contentParent = new ContentParent(aOpener, aRemoteType);
+  contentParent = new ContentParent(aOpener, aRemoteType, recordReplayState);
   if (!contentParent->BeginSubprocessLaunch(aIsSync, aPriority)) {
     // Launch aborted because of shutdown. Bailout.
     contentParent->LaunchSubprocessReject();
@@ -2254,6 +2269,19 @@ bool ContentParent::BeginSubprocessLaunch(bool aIsSync,
   nsCString parentBuildID(mozilla::PlatformBuildID());
   extraArgs.push_back("-parentBuildID");
   extraArgs.push_back(parentBuildID.get());
+
+  // Specify whether the process is recording or replaying an execution.
+  if (mRecordReplayState != eNotRecordingOrReplaying) {
+    nsPrintfCString buf(
+        "%d", mRecordReplayState == eRecording
+                  ? (int)recordreplay::ProcessKind::MiddlemanRecording
+                  : (int)recordreplay::ProcessKind::MiddlemanReplaying);
+    extraArgs.push_back(recordreplay::gProcessKindOption);
+    extraArgs.push_back(buf.get());
+
+    extraArgs.push_back(recordreplay::gRecordingFileOption);
+    extraArgs.push_back(NS_ConvertUTF16toUTF8(mRecordingFile).get());
+  }
 
   // See also ActorDealloc.
   mSelfRef = this;

@@ -183,17 +183,6 @@ loader.lazyGetter(this, "registerHarOverlay", () => {
   return require("devtools/client/netmonitor/src/har/toolbox-overlay").register;
 });
 
-loader.lazyGetter(
-  this,
-  "reloadAndRecordTab",
-  () => require("devtools/client/webreplay/menu.js").reloadAndRecordTab
-);
-loader.lazyGetter(
-  this,
-  "reloadAndStopRecordingTab",
-  () => require("devtools/client/webreplay/menu.js").reloadAndStopRecordingTab
-);
-
 loader.lazyRequireGetter(
   this,
   "defaultThreadOptions",
@@ -3583,11 +3572,7 @@ Toolbox.prototype = {
   },
 
   closeToolbox: async function() {
-    const shouldStopRecording = this.target.isReplayEnabled();
     await this.destroy();
-    if (shouldStopRecording) {
-      reloadAndStopRecordingTab();
-    }
   },
 
   /**

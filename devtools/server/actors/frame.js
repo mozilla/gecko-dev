@@ -132,7 +132,7 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
    */
   form: function() {
     // SavedFrame actors have their own frame handling.
-    if (!(this.frame instanceof Debugger.Frame)) {
+    if (!isReplaying && !(this.frame instanceof Debugger.Frame)) {
       // The Frame actor shouldn't be used after evaluation is resumed, so
       // there shouldn't be an easy way for the saved frame to be referenced
       // once it has died.

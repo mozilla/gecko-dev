@@ -1197,7 +1197,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   /**
    * Handle a protocol request to resume execution of the debuggee.
    */
-  onResume: function({ resumeLimit, rewind }) {
+  onResume: async function({ resumeLimit, rewind }) {
     if (this._state !== "paused") {
       return {
         error: "wrongState",
@@ -1716,12 +1716,6 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     if (this.dbg.replaying) {
       const point = this.dbg.replayCurrentExecutionPoint();
       packet.executionPoint = point;
-      packet.recordingEndpoint = this.dbg.replayRecordingEndpoint();
-      if (point) {
-        this.dbg
-          .replayFramePositions(point)
-          .then(positions => this.onFramePositions(positions, frame));
-      }
     }
 
     if (poppedFrames) {
@@ -1798,47 +1792,6 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       positions: mappedPositions,
       unexecuted: unexecutedLocations,
     };
-  },
-
-  fetchAncestorFramePositions: function(index) {
-    const point = this.dbg.replayCurrentExecutionPoint();
-
-    let frame = this.youngestFrame;
-    for (let i = 0; frame && i < index; i++) {
-      frame = frame.older;
-    }
-
-    this.dbg.replayAncestorFramePositions(point, index).then(points => {
-      this.onFramePositions(points, frame);
-    });
-  },
-
-  onFramePositions: function(positions, frame) {
-    if (!positions) {
-      return;
-    }
-
-    const mappedPositions = positions.map(mappedPoint => {
-      let location = {};
-      if (mappedPoint.position.kind === "OnStep") {
-        const offsetLocation = this.sources.getScriptOffsetLocation(
-          frame.script,
-          mappedPoint.position.offset
-        );
-        location = {
-          line: offsetLocation.line,
-          column: offsetLocation.column,
-          sourceUrl: offsetLocation.url,
-        };
-      }
-      return { ...mappedPoint, location };
-    });
-
-    this.emit("replayFramePositions", {
-      positions: mappedPositions,
-      frame: frame.actor.actorID,
-      thread: this.actorID,
-    });
   },
 
   /**
@@ -2310,42 +2263,6 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
 
   pickExecutionPoints(count, ranges) {
     return this.dbg.replayPickExecutionPoints(count, ranges);
-  },
-
-  /*
-   * A function that the engine calls when replaying and the status has changed
-   * in a way that affects the UI, such as switching between a recording and
-   * replaying process or a change to the current execution point.
-   */
-  _makeReplayingOnStatusUpdate() {
-    return throttle(status => {
-      if (this.attached) {
-        this.emit("replayStatusUpdate", { status });
-      }
-    }, 100);
-  },
-
-  /**
-   * A function that the engine calls when replay has hit a point where it will
-   * pause, even if no breakpoint has been set. Such points include hitting the
-   * beginning or end of the replay, or reaching the target of a time warp.
-   *
-   * @param frame Debugger.Frame
-   *        The youngest stack frame, or null.
-   */
-  replayingOnForcedPause: function(frame) {
-    if (frame) {
-      this._pauseAndRespond(frame, { type: "replayForcedPause" });
-    } else {
-      const packet = this._paused(frame);
-      if (!packet) {
-        return;
-      }
-      packet.why = { type: "replayForcedPause" };
-
-      this.emit("paused", packet);
-      this._pushThreadPause();
-    }
   },
 
   /**

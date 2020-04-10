@@ -28,7 +28,6 @@ var DevToolsUtils = require("devtools/shared/DevToolsUtils");
 var { assert } = DevToolsUtils;
 var { TabSources } = require("devtools/server/actors/utils/TabSources");
 var makeDebugger = require("devtools/server/actors/utils/make-debugger");
-const { ReplayDebugger } = require("RecordReplayControl").module;
 const InspectorUtils = require("InspectorUtils");
 
 const EXTENSION_CONTENT_JSM = "resource://gre/modules/ExtensionContent.jsm";
@@ -260,12 +259,6 @@ const browsingContextTargetPrototype = {
     // Flag eventually overloaded by sub classes in order to watch new docshells
     // Used by the ParentProcessTargetActor to list all frames in the Browser Toolbox
     this.watchNewDocShells = false;
-
-    let canRewind = false;
-    if (isReplaying) {
-      const replayDebugger = new ReplayDebugger();
-      canRewind = replayDebugger.canRewind();
-    }
 
     this.traits = {
       reconfigure: true,
