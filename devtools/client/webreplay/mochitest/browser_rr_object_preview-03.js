@@ -34,6 +34,8 @@ add_task(async function() {
   await waitForFrameTimeline(dbg, "28%");
 
   let frames = dbg.selectors.getFrames(dbg.selectors.getCurrentThread());
+  ok(frames.length == 2, "Got two frames");
+
   await dbg.actions.selectFrame(getThreadContext(dbg), frames[1]);
 
   await toggleNode(dbg, "fooobj");
@@ -65,11 +67,13 @@ add_task(async function() {
   await stepInToLine(dbg, 21);
 
   await waitForInstantStep(dbg, "stepOver");
-  await stepInToLine(dbg, 22);
+  await stepOverToLine(dbg, 22);
 
   await waitForFrameTimeline(dbg, "25%");
 
   frames = dbg.selectors.getFrames(dbg.selectors.getCurrentThread());
+  ok(frames.length == 3, "Got three frames");
+
   await dbg.actions.selectFrame(getThreadContext(dbg), frames[1]);
   await waitForFrameTimeline(dbg, "42%");
 

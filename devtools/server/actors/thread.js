@@ -1445,7 +1445,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       const currentFrame = frame;
       frame = null;
 
-      if (!(currentFrame instanceof Debugger.Frame)) {
+      if (!isReplaying && !(currentFrame instanceof Debugger.Frame)) {
         frame = getSavedFrameParent(this, currentFrame);
       } else if (currentFrame.older) {
         frame = currentFrame.older;

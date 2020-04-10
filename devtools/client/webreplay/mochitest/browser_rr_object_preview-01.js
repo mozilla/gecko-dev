@@ -105,7 +105,7 @@ f();
   msg = await waitForMessage(hud, "Map { 1 → {…}, 2 → {…} }");
   await checkMessageObjectContents(
     msg,
-    ["0: 1 → Object { … }", "1: 2 → Object { … }", "size: 2"],
+    ["0: 1 → Object { a: 1 }", "1: 2 → Object { b: 2 }", "size: 2"],
     ["<entries>"]
   );
 
@@ -113,7 +113,7 @@ f();
   msg = await waitForMessage(hud, "WeakSet [ {…}, {…} ]");
   await checkMessageObjectContents(
     msg,
-    ["0: Object { … }", "1: Object { … }"],
+    ["0: Object { a: 1 }", "1: Object { b: 2 }"],
     ["<entries>"]
   );
 
@@ -121,7 +121,7 @@ f();
   msg = await waitForMessage(hud, "WeakMap { {…} → {…}, {…} → {…} }");
   await checkMessageObjectContents(
     msg,
-    ["0: Object { … } → Object { … }", "1: Object { … } → Object { … }"],
+    ["Object { a: 1 } → Object { b: 1 }", "Object { a: 2 } → Object { b: 2 }"],
     ["<entries>"]
   );
 

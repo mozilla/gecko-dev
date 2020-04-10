@@ -226,17 +226,16 @@ async function checkMessageObjectContents(msg, expected, expandList = []) {
     BrowserTest.expandObjectInspectorNode(labelNode);
   }
 
-  const properties = await waitFor(() => {
+  await waitFor(() => {
     const nodes = BrowserTest.getObjectInspectorNodes(oi);
     if (nodes && nodes.length > 1) {
-      return [...nodes].map(n => n.textContent);
+      const properties = [...nodes].map(n => n.textContent);
+      return expected.every(s => properties.find(v => v.includes(s)));
     }
     return null;
   });
 
-  expected.forEach(s => {
-    ok(properties.find(v => v.includes(s)), `Object contents include "${s}"`);
-  });
+  ok("Got expected object contents");
 }
 
 async function findNode(dbg, text) {

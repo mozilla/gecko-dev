@@ -953,7 +953,7 @@ ContentParent::GetNewOrUsedBrowserProcessInternal(Element* aFrameElement,
 
   // No reusable process. Let's create and launch one.
   // The life cycle will be set to `LifecycleState::LAUNCHING`.
-  contentParent = new ContentParent(aOpener, aRemoteType, recordReplayState);
+  contentParent = new ContentParent(aOpener, aRemoteType, recordReplayState, recordingFile);
   if (!contentParent->BeginSubprocessLaunch(aIsSync, aPriority)) {
     // Launch aborted because of shutdown. Bailout.
     contentParent->LaunchSubprocessReject();
