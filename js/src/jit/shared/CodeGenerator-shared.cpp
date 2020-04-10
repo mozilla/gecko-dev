@@ -116,7 +116,7 @@ bool CodeGeneratorShared::generatePrologue() {
     masm.profilerEnterFrame(masm.getStackPointer(), CallTempReg0);
   }
 
-  if (gen->info().trackRecordReplayProgress()) {
+  if (gen->outerInfo().trackRecordReplayProgress()) {
     masm.inc64(
         AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
     if (mozilla::recordreplay::IsReplaying()) {
@@ -134,11 +134,6 @@ bool CodeGeneratorShared::generatePrologue() {
       masm.storePtr(ImmWord(UINTPTR_MAX), Address(scratch, 0));
       masm.bind(&noMatch);
     }
-  }
-
-  if (gen->outerInfo().trackRecordReplayProgress()) {
-    masm.inc64(
-        AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
   }
 
   // Ensure that the Ion frame is properly aligned.

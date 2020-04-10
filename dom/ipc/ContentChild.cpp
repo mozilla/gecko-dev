@@ -3666,12 +3666,6 @@ mozilla::ipc::IPCResult ContentChild::RecvSaveCloudRecording(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentChild::RecvSaveRecording(
-    const FileDescriptor& aFile) {
-  recordreplay::parent::SaveRecording(aFile);
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult ContentChild::RecvCrossProcessRedirect(
     RedirectToRealChannelArgs&& aArgs,
     CrossProcessRedirectResolver&& aResolve) {

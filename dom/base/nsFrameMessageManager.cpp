@@ -604,17 +604,6 @@ static bool DirectMessageToMiddleman(const nsAString& aMessage) {
          aMessage.EqualsLiteral("SessionStore:flush");
 }
 
-// When recording or replaying, return whether a message should be received in
-// the middleman process instead of the recording/replaying process.
-static bool DirectMessageToMiddleman(const nsAString& aMessage) {
-  // Middleman processes run developer tools server code and need to receive
-  // debugger related messages. The session store flush message needs to be
-  // received in order to cleanly shutdown the process.
-  return (StringBeginsWith(aMessage, NS_LITERAL_STRING("debug:")) &&
-          recordreplay::parent::DebuggerRunsInMiddleman()) ||
-         aMessage.EqualsLiteral("SessionStore:flush");
-}
-
 void nsFrameMessageManager::ReceiveMessage(
     nsISupports* aTarget, nsFrameLoader* aTargetFrameLoader, bool aTargetClosed,
     const nsAString& aMessage, bool aIsSync, StructuredCloneData* aCloneData,

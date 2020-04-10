@@ -291,11 +291,7 @@ class BrowserChild::DelayedDeleteRunnable final : public Runnable,
     }
 
     // Check in case ActorDestroy was called after RecvDestroy message.
-    // Middleman processes with their own recording child process avoid
-    // sending a delete message, so that the parent process does not
-    // receive two deletes for the same actor.
-    if (mBrowserChild->IPCOpen() &&
-        !recordreplay::parent::IsMiddlemanWithRecordingChild()) {
+    if (mBrowserChild->IPCOpen()) {
       Unused << PBrowserChild::Send__delete__(mBrowserChild);
     }
 
@@ -1190,13 +1186,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvShow(
   // paints later on (the usual place where checkpoints occur).
   if (recordreplay::IsRecordingOrReplaying()) {
     recordreplay::CreateCheckpoint();
-  }
-
-  // We have now done enough initialization for the record/replay system to
-  // create checkpoints. Create a checkpoint now, in case this process never
-  // paints later on (the usual place where checkpoints occur).
-  if (recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::child::CreateCheckpoint();
   }
 
   UpdateVisibility();
@@ -2258,20 +2247,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvActivateFrameEvent(
 static bool LoadScriptInMiddleman(const nsString& aURL) {
   return  // Middleman processes run devtools server side scripts.
       StringBeginsWith(aURL, NS_LITERAL_STRING("resource://devtools/"))
-      // This script includes event listeners needed to propagate document
-      // title changes.
-      || aURL.EqualsLiteral("chrome://global/content/browser-child.js")
-      // This script is needed to respond to session store requests from the
-      // UI process.
-      || aURL.EqualsLiteral("chrome://browser/content/content-sessionStore.js");
-}
-
-// Return whether a remote script should be loaded in middleman processes in
-// addition to any child recording process they have.
-static bool LoadScriptInMiddleman(const nsString& aURL) {
-  return  // Middleman processes run devtools server side scripts.
-      (StringBeginsWith(aURL, NS_LITERAL_STRING("resource://devtools/")) &&
-       recordreplay::parent::DebuggerRunsInMiddleman())
       // This script includes event listeners needed to propagate document
       // title changes.
       || aURL.EqualsLiteral("chrome://global/content/browser-child.js")

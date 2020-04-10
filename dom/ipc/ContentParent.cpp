@@ -850,44 +850,6 @@ Maybe<ContentParent::RecordReplayState> ContentParent::GetRecordReplayState(
   return Some(eNotRecordingOrReplaying);
 }
 
-static bool CreateTemporaryRecordingFile(nsAString& aResult) {
-  static int sNumTemporaryRecordings;
-  nsCOMPtr<nsIFile> file;
-  return !NS_FAILED(
-             NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(file))) &&
-         !NS_FAILED(file->AppendNative(
-             nsPrintfCString("TempRecording.%d.%d", base::GetCurrentProcId(),
-                             ++sNumTemporaryRecordings))) &&
-         !NS_FAILED(file->GetPath(aResult));
-}
-
-/*static*/
-Maybe<ContentParent::RecordReplayState> ContentParent::GetRecordReplayState(
-    Element* aFrameElement, nsAString& aRecordingFile) {
-  if (!aFrameElement) {
-    return Some(eNotRecordingOrReplaying);
-  }
-  aFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::ReplayExecution,
-                         aRecordingFile);
-  if (!aRecordingFile.IsEmpty()) {
-    return Some(eReplaying);
-  }
-  aFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::RecordExecution,
-                         aRecordingFile);
-  if (aRecordingFile.IsEmpty() &&
-      recordreplay::parent::SaveAllRecordingsDirectory()) {
-    aRecordingFile.AssignLiteral("*");
-  }
-  if (!aRecordingFile.IsEmpty()) {
-    if (aRecordingFile.EqualsLiteral("*") &&
-        !CreateTemporaryRecordingFile(aRecordingFile)) {
-      return Nothing();
-    }
-    return Some(eRecording);
-  }
-  return Some(eNotRecordingOrReplaying);
-}
-
 /*static*/
 already_AddRefed<ContentParent> ContentParent::GetUsedBrowserProcess(
     ContentParent* aOpener, const nsAString& aRemoteType,
