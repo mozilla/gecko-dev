@@ -108,12 +108,6 @@ interface nsIRemoteTab : nsISupports
    */
   bool saveCloudRecording(in AString aUUID);
 
-  /**
-   * Save a recording of the associated content process' behavior to the
-   * specified filename. Returns whether the process is being recorded.
-   */
-  bool saveRecording(in AString aFileName);
-
   cenum NavigationType : 8 {
     NAVIGATE_BACK = 0,
     NAVIGATE_FORWARD = 1,
