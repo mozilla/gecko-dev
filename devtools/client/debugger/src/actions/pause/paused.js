@@ -40,7 +40,7 @@ export function paused(pauseInfo: Pause) {
     assert(cx.thread == thread, "Thread mismatch");
 
     if (frame) {
-      await dispatch(selectLocation(cx, frame.location, { remap: true }));
+      dispatch(selectLocation(cx, frame.location, { remap: true }));
     }
 
     await dispatch(markEvaluatedExpressionsAsLoading(cx));
