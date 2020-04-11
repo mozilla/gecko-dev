@@ -113,6 +113,10 @@ function pointEquals(pointA, pointB) {
 
 // eslint-disable-next-line no-unused-vars
 function pointToString(point) {
+  if (!point) {
+    console.error(`Error: Missing point in pointToString ${Error().stack}`);
+    throw new Error("Missing point");
+  }
   if (point.position) {
     return `${point.checkpoint}:${point.progress}:${positionToString(
       point.position
