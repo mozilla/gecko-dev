@@ -1336,16 +1336,19 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
         }
       }
 
-      this._pushThreadPause();
-
-      // Perform any resume which occurred during the dispatch.
+      // Perform any resume which occurred during the dispatch. There should be
+      // at most one.
       for (const info of resumes) {
         if (info.kind == "resume") {
           ChromeUtils.recordReplayLog(`ThreadActor.replayInstantWarp ProcessResume`);
-          this.doResume(info.limit);
-          return;
+          Services.tm.dispatchToMainThread(DevToolsUtils.makeInfallible(() => {
+            ChromeUtils.recordReplayLog(`ThreadActor.replayInstantWarp ResumeCallback`);
+            this.doResume(info.limit);
+          }));
         }
       }
+
+      this._pushThreadPause();
     }));
   },
 
