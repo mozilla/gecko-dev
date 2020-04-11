@@ -842,6 +842,18 @@ static PreambleResult Preamble_pthread_create(CallArguments* aArguments) {
   return PreambleResult::Veto;
 }
 
+static PreambleResult Preamble_pthread_get_stackaddr_np(CallArguments* aArguments) {
+  if (IsReplaying() && !AreThreadEventsPassedThrough()) {
+    auto pthread = aArguments->Arg<0, pthread_t>();
+    Thread* thread = Thread::GetByNativeId(pthread);
+    if (!thread->IsMainThread()) {
+      aArguments->Rval<void*>() = thread->StackBase();
+      return PreambleResult::Veto;
+    }
+  }
+  return PreambleResult::PassThrough;
+}
+
 static PreambleResult Preamble_pthread_join(CallArguments* aArguments) {
   if (AreThreadEventsPassedThrough()) {
     return PreambleResult::Redirect;
@@ -2304,7 +2316,7 @@ static SystemRedirection gSystemRedirections[] = {
      Preamble_pthread_cond_timedwait_relative_np},
     {"pthread_create", nullptr, Preamble_pthread_create},
     {"pthread_get_stacksize_np", nullptr, Preamble_PassThrough},
-    {"pthread_get_stackaddr_np", nullptr, Preamble_PassThrough},
+    {"pthread_get_stackaddr_np", nullptr, Preamble_pthread_get_stackaddr_np},
     {"pthread_join", nullptr, Preamble_pthread_join},
     {"pthread_mutex_init", nullptr, Preamble_pthread_mutex_init},
     {"pthread_mutex_destroy", nullptr, Preamble_pthread_mutex_destroy},

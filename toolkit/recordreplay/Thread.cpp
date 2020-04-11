@@ -47,10 +47,12 @@ void Thread::BindToCurrent() {
 
   if (!IsMainThread() && !mMachId) {
     MOZ_RELEASE_ASSERT(this == Current());
-    MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
+    SetPassThrough(false);
 
     mMachId = RecordReplayValue(IsRecording() ? mach_thread_self() : 0);
     mThreadSelfId = RecordReplayValue(IsRecording() ? syscall(SYS_thread_selfid) : 0);
+
+    SetPassThrough(true);
   }
 }
 
@@ -154,8 +156,8 @@ void Thread::ThreadMain(void* aArgument) {
   // respawned this thread.
   bool forked = !!thread->mMachId;
 
-  thread->SetPassThrough(false);
   thread->BindToCurrent();
+  thread->SetPassThrough(false);
 
   if (forked) {
     AutoPassThroughThreadEvents pt;
