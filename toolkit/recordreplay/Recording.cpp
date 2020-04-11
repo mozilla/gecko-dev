@@ -403,7 +403,7 @@ void Recording::NewContents(const uint8_t* aContents, size_t aSize,
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(IsReading());
 
-  child::PrintLog("NewRecordingContents %lu %lu\n", mContents.length(), aSize);
+  child::PrintLog("NewRecordingContents %lu %lu", mContents.length(), aSize);
 
   // Make sure the header matches when reading the first data in the recording.
   size_t offset = 0;
@@ -436,7 +436,7 @@ void Recording::NewContents(const uint8_t* aContents, size_t aSize,
       // cloud and have only received part of the recording. We will still have
       // enough of the recording to replay everything covered by the recording
       // summary that was most recently added, however.
-      child::PrintLog("NewRecordingContents IgnoreTruncated %lu %lu %lu\n",
+      child::PrintLog("NewRecordingContents IgnoreTruncated %lu %lu %lu",
                       offset, desc->mChunk.mCompressedSize, aSize);
       break;
     }
