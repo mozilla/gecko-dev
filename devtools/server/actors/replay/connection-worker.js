@@ -96,7 +96,7 @@ async function onServerMessage(evt) {
   }
 }
 
-const MessageLogCount = 3;
+const MessageLogCount = 20;
 
 function maybeLogMessage(prefix, id, message, count, delay) {
   if (gVerbose || count <= MessageLogCount) {
@@ -112,7 +112,7 @@ function maybeLogMessage(prefix, id, message, count, delay) {
 
 // How much time to give a new connection to establish itself before closing it
 // and reattempting to connect.
-const SocketTimeoutMs = 20000;
+const SocketTimeoutMs = 30 * 1000;
 
 // Information about a socket opened for a replayer connection.
 function ConnectionSocket(id, bulk) {
@@ -159,13 +159,14 @@ ConnectionSocket.prototype = {
   },
 
   onOpen() {
+    doLog(`ReplayerConnected ${this.id} ${this.bulk} ${elapsedTime()}\n`);
     this.open = true;
     this.pending.forEach(buf => doSend(this.id, buf));
     this.pending.length = 0;
   },
 
   onClose() {
-    doLog(`ReplayerDisconnected ${this.id} ${elapsedTime()}\n`);
+    doLog(`ReplayerDisconnected ${this.id} ${this.bulk} ${elapsedTime()}\n`);
     postMessage({ kind: "disconnected", id: this.id });
     gConnections[this.id] = null;
   },
@@ -184,7 +185,7 @@ ConnectionSocket.prototype = {
   onMessage(evt) {
     // When we have heard back from the replayer, we are fully connected to it.
     if (!this.connected && !this.bulk) {
-      doLog(`ReplayerConnected ${this.id} ${elapsedTime()}\n`);
+      doLog(`ReplayerEstablished ${this.id} ${elapsedTime()}\n`);
       postMessage({ kind: "connected", id: this.id });
     }
     this.connected = true;
@@ -227,7 +228,7 @@ ConnectionSocket.prototype = {
 };
 
 async function doConnect(id, channelId) {
-  doLog(`ReplayerConnect ${id} ${elapsedTime()}\n`);
+  doLog(`StartConnectingToReplayer ${id} ${elapsedTime()}\n`);
 
   if (gConnections[id]) {
     postError(`Duplicate connection ID ${id}`);
