@@ -168,7 +168,6 @@ export function selectLocation(
     const sourceWithContent = getSourceWithContent(getState(), source.id);
 
     if (
-      keepContext &&
       prefs.autoPrettyPrint &&
       !getPrettySource(getState(), loadedSource.id) &&
       canPrettyPrintSource(getState(), loadedSource.id) &&
