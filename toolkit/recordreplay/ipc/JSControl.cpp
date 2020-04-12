@@ -347,13 +347,14 @@ static bool Middleman_SpawnReplayingChild(JSContext* aCx, unsigned aArgc,
                                           Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  if (!args.get(0).isNumber()) {
+  if (!args.get(0).isNumber() || !args.get(1).isNumber()) {
     JS_ReportErrorASCII(aCx, "Expected numeric argument");
     return false;
   }
 
   size_t id = args.get(0).toNumber();
-  parent::SpawnReplayingChild(id);
+  size_t initialLength = args.get(1).toNumber();
+  parent::SpawnReplayingChild(id, initialLength);
   args.rval().setUndefined();
   return true;
 }
@@ -2182,7 +2183,7 @@ static bool RecordReplay_FindChangeFrames(JSContext* aCx, unsigned aArgc,
 ///////////////////////////////////////////////////////////////////////////////
 
 static const JSFunctionSpec gMiddlemanMethods[] = {
-    JS_FN("spawnReplayingChild", Middleman_SpawnReplayingChild, 1, 0),
+    JS_FN("spawnReplayingChild", Middleman_SpawnReplayingChild, 2, 0),
     JS_FN("sendManifest", Middleman_SendManifest, 4, 0),
     JS_FN("ping", Middleman_Ping, 3, 0),
     JS_FN("paintGraphics", Middleman_PaintGraphics, 3, 0),

@@ -23,7 +23,8 @@ void ChildProcessInfo::SetIntroductionMessage(IntroductionMessage* aMessage) {
 }
 
 ChildProcessInfo::ChildProcessInfo(
-    size_t aId, const Maybe<RecordingProcessData>& aRecordingProcessData)
+    size_t aId, const Maybe<RecordingProcessData>& aRecordingProcessData,
+    size_t aInitialReplayingLength)
     : mRecording(aRecordingProcessData.isSome()) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
@@ -33,7 +34,7 @@ ChildProcessInfo::ChildProcessInfo(
         ReceiveChildMessageOnMainThread(aId, std::move(aMsg));
       });
 
-  LaunchSubprocess(aId, aRecordingProcessData);
+  LaunchSubprocess(aId, aRecordingProcessData, aInitialReplayingLength);
 }
 
 ChildProcessInfo::~ChildProcessInfo() {
@@ -135,7 +136,8 @@ void GetArgumentsForChildProcess(base::ProcessId aMiddlemanPid,
 
 void ChildProcessInfo::LaunchSubprocess(
     size_t aChannelId,
-    const Maybe<RecordingProcessData>& aRecordingProcessData) {
+    const Maybe<RecordingProcessData>& aRecordingProcessData,
+    size_t aInitialReplayingLength) {
   MOZ_RELEASE_ASSERT(IsRecording() == aRecordingProcessData.isSome());
 
   MOZ_RELEASE_ASSERT(gIntroductionMessage);
@@ -174,10 +176,12 @@ void ChildProcessInfo::LaunchSubprocess(
         0, 0, child::gReplayJS.BeginReading(), child::gReplayJS.Length()));
     SendMessage(std::move(*jsmsg));
     if (gRecordingContents.length()) {
+      MOZ_RELEASE_ASSERT(aInitialReplayingLength);
       UniquePtr<Message> msg(RecordingDataMessage::New(
-          0, 0, gRecordingContents.begin(), gRecordingContents.length()));
+          0, 0, gRecordingContents.begin(), aInitialReplayingLength));
       SendMessage(std::move(*msg));
     } else {
+      MOZ_RELEASE_ASSERT(!aInitialReplayingLength);
       SendMessage(FetchCloudRecordingDataMessage());
     }
     dom::ContentChild::GetSingleton()->SendCreateReplayingProcess(aChannelId);

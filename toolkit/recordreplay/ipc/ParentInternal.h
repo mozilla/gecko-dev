@@ -39,8 +39,8 @@ ChildProcessInfo* GetActiveChild();
 // Get a child process by its ID.
 ChildProcessInfo* GetChildProcess(size_t aId);
 
-// Spawn a new replaying child process with the specified ID.
-void SpawnReplayingChild(size_t aId);
+// Spawn a new replaying child process with the specified ID and recording length.
+void SpawnReplayingChild(size_t aId, size_t aInitialLength);
 
 // Immediately forward any parent->child or sync child->parent IPDL messages.
 // These are sent on the main thread, which might be blocked waiting for a
@@ -167,11 +167,13 @@ class ChildProcessInfo {
 
   void OnCrash(size_t aForkId, const char* aWhy);
   void LaunchSubprocess(
-      size_t aId, const Maybe<RecordingProcessData>& aRecordingProcessData);
+      size_t aId, const Maybe<RecordingProcessData>& aRecordingProcessData,
+      size_t aInitialReplayingLength);
 
  public:
   explicit ChildProcessInfo(
-      size_t aId, const Maybe<RecordingProcessData>& aRecordingProcessData);
+      size_t aId, const Maybe<RecordingProcessData>& aRecordingProcessData,
+      size_t aInitialReplayingLength);
   ~ChildProcessInfo();
 
   size_t GetId() { return mChannel->GetId(); }

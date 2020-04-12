@@ -289,8 +289,8 @@ ChildProcessInfo* GetChildProcess(size_t aId) {
   return nullptr;
 }
 
-void SpawnReplayingChild(size_t aChannelId) {
-  ChildProcessInfo* child = new ChildProcessInfo(aChannelId, Nothing());
+void SpawnReplayingChild(size_t aChannelId, size_t aInitialLength) {
+  ChildProcessInfo* child = new ChildProcessInfo(aChannelId, Nothing(), aInitialLength);
   gReplayingChildren.append(child);
 }
 
@@ -667,7 +667,7 @@ void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
 
   if (gProcessKind == ProcessKind::MiddlemanRecording) {
     RecordingProcessData data(aPrefsHandle, aPrefMapHandle);
-    gRecordingChild = new ChildProcessInfo(0, Some(data));
+    gRecordingChild = new ChildProcessInfo(0, Some(data), 0);
     gActiveChildIsRecording = true;
   }
 
