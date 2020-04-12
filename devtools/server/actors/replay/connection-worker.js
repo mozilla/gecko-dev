@@ -291,11 +291,11 @@ function messageDescription(msg) {
 }
 
 function checkCompleteMessage(buf) {
-  if (buf.byteLength < 4) {
+  const info = readMessage(new Uint8Array(buf));
+  if (!info) {
     postError(`Message too short`);
   }
-  const { bulk, size } = readMessage(new Uint8Array(buf));
-  if (size != buf.byteLength) {
+  if (info.size != buf.byteLength) {
     postError(`Message not complete`);
   }
   return bulk;
