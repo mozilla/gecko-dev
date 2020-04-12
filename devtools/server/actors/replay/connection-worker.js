@@ -298,7 +298,7 @@ function checkCompleteMessage(buf) {
   if (info.size != buf.byteLength) {
     postError(`Message not complete`);
   }
-  return bulk;
+  return info.bulk;
 }
 
 function doSend(id, buf, delay) {
