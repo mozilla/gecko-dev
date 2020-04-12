@@ -1226,6 +1226,8 @@ bool MessageChannel::ShouldDeferMessage(const Message& aMsg) {
 }
 
 void MessageChannel::OnMessageReceivedFromLink(Message&& aMsg) {
+  mozilla::recordreplay::RecordReplayAssert("MessageChannel::OnMessageReceivedFromLink");
+
   AssertLinkThread();
   mMonitor->AssertCurrentThreadOwns();
 
@@ -2035,6 +2037,8 @@ nsresult MessageChannel::MessageTask::Cancel() {
 }
 
 void MessageChannel::MessageTask::Post() {
+  mozilla::recordreplay::RecordReplayAssert("MessageChannel::MessageTask::Post");
+
   MOZ_RELEASE_ASSERT(!mScheduled);
   MOZ_RELEASE_ASSERT(isInList());
 
