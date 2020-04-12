@@ -289,9 +289,19 @@ ChildProcessInfo* GetChildProcess(size_t aId) {
   return nullptr;
 }
 
+// Log text generated when there wasn't any replaying child.
+static nsAutoCString gPendingLogText;
+
 void SpawnReplayingChild(size_t aChannelId, size_t aInitialLength) {
   ChildProcessInfo* child = new ChildProcessInfo(aChannelId, Nothing(), aInitialLength);
   gReplayingChildren.append(child);
+
+  if (gPendingLogText.Length()) {
+    UniquePtr<Message> msg(LogTextMessage::New(
+        0, 0, gPendingLogText.BeginReading(), gPendingLogText.Length() + 1));
+    child->SendMessage(std::move(*msg));
+    gPendingLogText.SetLength(0);
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -353,12 +363,17 @@ void AddToLog(const nsAString& aText, bool aIncludePrefix /* = true */) {
 
   MOZ_RELEASE_ASSERT(IsMiddleman());
 
-  for (const auto& child : gReplayingChildren) {
-    if (child) {
-      UniquePtr<Message> msg(LogTextMessage::New(
-          0, 0, text.BeginReading(), text.Length() + 1));
-      child->SendMessage(std::move(*msg));
-    }
+  // Log text in the middleman is sent to the latest replaying child.
+  // If there are multiple replaying children, the earlier ones have crashed
+  // or are otherwise unusable. If there isn't a replaying child, save the
+  // text and send it to the first replaying child when it is spawned.
+  if (gReplayingChildren.length()) {
+    const auto& child = gReplayingChildren.back();
+    UniquePtr<Message> msg(LogTextMessage::New(
+        0, 0, text.BeginReading(), text.Length() + 1));
+    child->SendMessage(std::move(*msg));
+  } else {
+    gPendingLogText.Append(text);
   }
 }
 
