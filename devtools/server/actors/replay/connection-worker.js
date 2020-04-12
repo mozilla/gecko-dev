@@ -272,21 +272,22 @@ async function doConnect(id, channelId) {
 }
 
 function readMessage(msg, offset = 0) {
-  if (offset + 6 > msg.length) {
+  if (offset + 8 > msg.length) {
     return null;
   }
   const bulk = !!msg[offset + 4];
+  const kind = msg[offset + 6] | (msg[offset + 7] << 8);
   const size = msg[offset] | (msg[offset + 1] << 8) | (msg[offset + 2] << 16) | (msg[offset + 3] << 24);
-  return { bulk, size };
+  return { bulk, kind, size };
 }
 
 function messageDescription(msg) {
-  const { bulk, size } = readMessage(msg);
+  const { bulk, kind, size } = readMessage(msg);
   let hash = 0;
   for (let i = 0; i < size; i++) {
     hash = (((hash << 5) - hash) + msg[i]) >>> 0;
   }
-  return `Size ${size} Bulk ${bulk} Hash ${hash}`;
+  return `Size ${size} Kind ${kind} Bulk ${bulk} Hash ${hash}`;
 }
 
 function checkCompleteMessage(buf) {
