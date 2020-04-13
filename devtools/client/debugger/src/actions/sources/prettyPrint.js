@@ -49,24 +49,32 @@ export async function prettyPrintSource(
     throw new Error("Can't prettify non-javascript files.");
   }
 
-  const url = getPrettySourceURL(generatedSource.url);
-  const { code, mappings } = await prettyPrint({
-    text: content.value,
-    url,
-  });
-  client.eventMethods.sourceRemapStart(generatedSource.id);
-  await sourceMaps.applySourceMap(generatedSource.id, url, code, mappings);
-  client.eventMethods.sourceRemapEnd(generatedSource.id);
+  try {
+    const url = getPrettySourceURL(generatedSource.url);
+    const { code, mappings } = await prettyPrint({
+      text: content.value,
+      url,
+    });
+    client.eventMethods.sourceRemapStart(generatedSource.id);
+    await sourceMaps.applySourceMap(generatedSource.id, url, code, mappings);
+    client.eventMethods.sourceRemapEnd(generatedSource.id);
 
-  // The source map URL service used by other devtools listens to changes to
-  // sources based on their actor IDs, so apply the mapping there too.
-  for (const { actor } of actors) {
-    await sourceMaps.applySourceMap(actor, url, code, mappings);
+    // The source map URL service used by other devtools listens to changes to
+    // sources based on their actor IDs, so apply the mapping there too.
+    for (const { actor } of actors) {
+      await sourceMaps.applySourceMap(actor, url, code, mappings);
+    }
+    return {
+      text: code,
+      contentType: "text/javascript",
+    };
+  } catch (e) {
+    // Use the generated source if pretty printing fails.
+    return {
+      text: content.value,
+      contentType: "text/javascript",
+    };
   }
-  return {
-    text: code,
-    contentType: "text/javascript",
-  };
 }
 
 export function createPrettySource(cx: Context, sourceId: string) {
