@@ -505,6 +505,10 @@ void Recording::ReadChunk(char* aDest, const StreamChunkLocation& aChunk) {
 Stream* Recording::OpenStream(StreamName aName, size_t aNameIndex) {
   AutoSpinLock lock(mLock);
 
+  if ((size_t)aName >= (size_t)StreamName::Count) {
+    Print("Error: Invalid stream name %lu, crashing...\n", (size_t)aName);
+    MOZ_CRASH("Recording::OpenStream");
+  }
   auto& vector = mStreams[(size_t)aName];
 
   while (aNameIndex >= vector.length()) {
