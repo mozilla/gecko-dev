@@ -255,6 +255,8 @@ class WebReplayPlayer extends Component {
       consoleFrame.on("message-hover", this.onConsoleMessageHover.bind(this));
       consoleFrame.wrapper.subscribeToStore(this.onConsoleUpdate.bind(this));
     });
+
+    this.toolbox.webReplayPlayer = this;
   }
 
   componentDidUpdate(prevProps, prevState) {
