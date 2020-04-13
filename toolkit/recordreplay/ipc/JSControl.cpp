@@ -1078,6 +1078,10 @@ void EndIdleTime() {
   }
 }
 
+double TotalIdleTime() {
+  return gIdleTimeTotal;
+}
+
 static bool RecordReplay_CurrentExecutionTime(JSContext* aCx, unsigned aArgc,
                                               Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);

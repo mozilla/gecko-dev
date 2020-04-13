@@ -37,6 +37,9 @@ static TimeStamp gFirstCheckpointTime;
 // Time when the last checkpoint was taken.
 static TimeStamp gLastCheckpointTime;
 
+// Total idle time at the last checkpoint, in microseconds. Zero when replaying.
+static double gLastCheckpointIdleTime;
+
 // Total time when the recording process was paused.
 static TimeDuration gPausedTime;
 
@@ -58,6 +61,7 @@ void CreateCheckpoint() {
       js::CanCreateCheckpoint()) {
     gLastCheckpoint++;
     gLastCheckpointTime = TimeStamp::Now();
+    gLastCheckpointIdleTime = js::TotalIdleTime();
 
     recordreplay::RecordReplayAssert("CreateCheckpoint %lu", gLastCheckpoint);
 
@@ -70,9 +74,9 @@ void CreateCheckpoint() {
   }
 }
 
-// Normally we only create checkpoints when painting or instructed to
-// by the middleman. If this much time has elapsed then we will create
-// checkpoints at the top of the main thread's message loop.
+// Normally we only create checkpoints when painting or instructed to by the
+// middleman. If this much time has elapsed (excluding idle time) then we will
+// create checkpoints at the top of the main thread's message loop.
 static const size_t CheckpointThresholdMs = 200;
 
 void MaybeCreateCheckpoint() {
@@ -80,9 +84,12 @@ void MaybeCreateCheckpoint() {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
 
-  if (gLastCheckpointTime &&
-      (TimeStamp::Now() - gLastCheckpointTime).ToMilliseconds() > CheckpointThresholdMs) {
-    CreateCheckpoint();
+  if (gLastCheckpointTime) {
+    double absoluteMs = (TimeStamp::Now() - gLastCheckpointTime).ToMilliseconds();
+    double idleMs = (js::TotalIdleTime() - gLastCheckpointIdleTime) / 1000.0;
+    if (RecordReplayValue(absoluteMs - idleMs > CheckpointThresholdMs)) {
+      CreateCheckpoint();
+    }
   }
 }
 

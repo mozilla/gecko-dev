@@ -102,6 +102,9 @@ void OnMouseEvent(const TimeDuration& aTime, const char* aType, int32_t aX, int3
 void BeginIdleTime();
 void EndIdleTime();
 
+// Get the total amount of main thread idle time.
+double TotalIdleTime();
+
 // Incorporate scan data into this process.
 void AddScanDataMessage(Message::UniquePtr aMsg);
 
