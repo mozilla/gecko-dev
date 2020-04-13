@@ -2055,16 +2055,22 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       throw new Error("Unexpected pausePacketForms");
     }
     this.pausePacketForms = [];
-    let frames = this.walkFrames(youngestFrame, 0, 1000);
-    const environment = frames[0].getEnvironment();
-    frames = frames.map(f => f.form());
-    this._emitPreloadedData({
-      kind: "PauseData",
-      point,
-      environment,
-      frames,
-      cachedForms: this.pausePacketForms,
-    });
+    try {
+      let frames = this.walkFrames(youngestFrame, 0, 1000);
+      const environment = frames[0].getEnvironment();
+      frames = frames.map(f => f.form());
+      this._emitPreloadedData({
+        kind: "PauseData",
+        point,
+        environment,
+        frames,
+        cachedForms: this.pausePacketForms,
+      });
+    } catch (e) {
+      ChromeUtils.recordReplayLog(
+        `Error: Thread actor could not generate pause packet: ${e}`
+      );
+    }
     this.pausePacketForms = null;
   },
 
