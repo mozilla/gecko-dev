@@ -232,7 +232,7 @@ class MiddlemanProtocol : public ipc::IToplevelProtocol {
   static void ForwardMessageAsync(MiddlemanProtocol* aProtocol,
                                   Message* aMessage) {
     if (gActiveChildIsRecording || AlwaysForwardMessage(*aMessage)) {
-      PrintSpew("ForwardAsyncMsg %s %s %d\n",
+      PrintSpew("ForwardAsyncMsgFrom %s %s %d\n",
                 (aProtocol->mSide == ipc::ChildSide) ? "Child" : "Parent",
                 IPC::StringFromIPCMessageType(aMessage->type()),
                 (int)aMessage->routing_id());
