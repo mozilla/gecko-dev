@@ -590,6 +590,10 @@ static bool Middleman_UpdateRecording(JSContext* aCx, unsigned aArgc,
   size_t size = args.get(2).toNumber();
   MOZ_RELEASE_ASSERT(start + size <= parent::gRecordingContents.length());
 
+  nsPrintfCString logText("SendRecordingData %lu %llu %lu",
+                          child->GetId(), start, size);
+  parent::AddToLog(NS_ConvertUTF8toUTF16(logText));
+
   UniquePtr<Message> msg(RecordingDataMessage::New(
       0, start, parent::gRecordingContents.begin() + start, size));
   msg->SetBulk();

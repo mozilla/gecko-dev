@@ -713,16 +713,20 @@ void OnNewRecordingData(Message::UniquePtr aMsg) {
   PrintLog("NewRecordingData %llu %lu", nmsg.mTag, nmsg.BinaryDataSize());
 
   if (IncorporateRecordingData(nmsg)) {
-    for (size_t i = 0; i < gDeferredRecordingDataMessages.length(); i++) {
+    for (size_t i = 0; i < gDeferredRecordingDataMessages.length();) {
       auto& deferred = gDeferredRecordingDataMessages[i];
       const auto& ndeferred = (const RecordingDataMessage&)*deferred;
       if (IncorporateRecordingData(ndeferred)) {
+        PrintLog("AddDeferredRecordingData %llu", gRecordingContents.length());
         gDeferredRecordingDataMessages.erase(&deferred);
+      } else {
+        i++;
       }
     }
     gMonitor->NotifyAll();
   } else {
     // Defer processing this until it is contiguous with the earlier contents.
+    PrintLog("DeferRecordingData");
     gDeferredRecordingDataMessages.append(std::move(aMsg));
   }
 }
