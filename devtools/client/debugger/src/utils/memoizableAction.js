@@ -60,7 +60,7 @@ export function memoizeableAction<Args: ArgsWithContext, Result>(
             try {
               await action(args, thunkArgs);
             } catch (e) {
-              console.warn(`Action ${name} had an exception:`, e);
+              console.warn(`Action ${name} had an exception:`, e, e.stack);
             } finally {
               requests.delete(key);
             }
