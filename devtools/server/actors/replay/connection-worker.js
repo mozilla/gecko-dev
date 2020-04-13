@@ -63,13 +63,13 @@ function onServerClose() {
   gConnected = false;
   updateStatus("cloudReconnecting.label");
   setTimeout(openServerSocket, 3000);
-  doLog(`CloudServer Connection Closed\n`);
+  writeLog(`CloudServer Connection Closed`);
 }
 
 function onServerError(evt) {
   gConnected = false;
   updateStatus("cloudError.label");
-  doLog(`CloudServer Connection Error\n`);
+  writeLog(`CloudServer Connection Error`);
 }
 
 let gSessionId;
@@ -101,12 +101,11 @@ const MessageLogCount = 20;
 function maybeLogMessage(prefix, id, message, count, delay) {
   if (gVerbose || count <= MessageLogCount) {
     const desc = messageDescription(message);
-    const time = elapsedTime();
     const delayText = delay ? ` Delay ${roundTime(delay)}` : "";
-    doLog(`${prefix} Connection ${id} Elapsed ${time}${delayText} Message ${desc}\n`);
+    writeLog(`${prefix} Connection ${id} Message ${desc}${delayText}`);
   }
   if (!gVerbose && count == MessageLogCount) {
-    doLog(`Verbose not set, not logging future ${prefix} messages for connection ${id}\n`);
+    writeLog(`Verbose not set, not logging future ${prefix} messages for connection ${id}`);
   }
 }
 
@@ -159,14 +158,14 @@ ConnectionSocket.prototype = {
   },
 
   onOpen() {
-    doLog(`ReplayerConnected ${this.id} ${this.bulk} ${elapsedTime()}\n`);
+    writeLog(`ReplayerConnected ${this.id} ${this.bulk}`);
     this.open = true;
     this.pending.forEach(buf => doSend(this.id, buf));
     this.pending.length = 0;
   },
 
   onClose() {
-    doLog(`ReplayerDisconnected ${this.id} ${this.bulk} ${elapsedTime()}\n`);
+    writeLog(`ReplayerDisconnected ${this.id} ${this.bulk}`);
     postMessage({ kind: "disconnected", id: this.id });
     gConnections[this.id] = null;
   },
@@ -185,7 +184,7 @@ ConnectionSocket.prototype = {
   onMessage(evt) {
     // When we have heard back from the replayer, we are fully connected to it.
     if (!this.connected && !this.bulk) {
-      doLog(`ReplayerEstablished ${this.id} ${elapsedTime()}\n`);
+      writeLog(`ReplayerEstablished ${this.id}`);
       postMessage({ kind: "connected", id: this.id });
     }
     this.connected = true;
@@ -228,7 +227,7 @@ ConnectionSocket.prototype = {
 };
 
 async function doConnect(id, channelId) {
-  doLog(`StartConnectingToReplayer ${id} ${elapsedTime()}\n`);
+  writeLog(`StartConnectingToReplayer ${id}`);
 
   if (gConnections[id]) {
     postError(`Duplicate connection ID ${id}`);
@@ -264,7 +263,7 @@ async function doConnect(id, channelId) {
 
   setTimeout(() => {
     if (!connection.socket.connected) {
-      doLog(`ReplayerConnectionTimedOut ${id} ${elapsedTime()}\n`);
+      writeLog(`ReplayerConnectionTimedOut ${id}`);
       connection.socket.close();
       connection.bulkSocket.close();
     }
@@ -331,7 +330,7 @@ function postError(why, id) {
   } catch (e) {
     text = "<Unknown>";
   }
-  doLog(`ReplayerConnectionError ${id} ${text} ${elapsedTime()}\n`);
+  writeLog(`ReplayerConnectionError ${id} ${text}`);
   postMessage({ kind: "error", why: text, id });
 }
 
@@ -345,16 +344,17 @@ function makeInfallible(fn, thisv) {
   };
 }
 
+function writeLog(text) {
+  const elapsed = roundTime(ChromeUtils.recordReplayElapsedTime());
+  doLog(`[Connection ${elapsed}] ${text}\n`);
+}
+
 function doLog(text) {
   if (gConnected) {
     sendMessageToCloudServer({ kind: "log", text });
   } else {
     postMessage({ kind: "logOffline", text });
   }
-}
-
-function elapsedTime() {
-  return roundTime(ChromeUtils.recordReplayElapsedTime());
 }
 
 function roundTime(time) {

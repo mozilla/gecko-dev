@@ -403,7 +403,7 @@ void Recording::NewContents(const uint8_t* aContents, size_t aSize,
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(IsReading());
 
-  child::PrintLog("NewRecordingContents %lu %lu", mContents.length(), aSize);
+  child::PrintLog("IncorporateRecordingContents %lu %lu", mContents.length(), aSize);
 
   // Make sure the header matches when reading the first data in the recording.
   size_t offset = 0;
