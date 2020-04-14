@@ -671,6 +671,8 @@ static PreambleResult Preamble_syscall(CallArguments* aArguments) {
   if (IsReplaying() && !AreThreadEventsPassedThrough()) {
     Thread* thread = Thread::Current();
     if (!thread->IsMainThread()) {
+      auto callId = aArguments->Arg<0, size_t>();
+      MOZ_RELEASE_ASSERT(callId == SYS_thread_selfid);
       aArguments->Rval<uintptr_t>() = thread->GetThreadSelfId();
       return PreambleResult::Veto;
     }

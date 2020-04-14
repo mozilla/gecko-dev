@@ -29,10 +29,14 @@ struct LockAcquires {
   // protected by the lock itself, though reads may occur on other threads.
   Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve> mNextOwner;
 
+  // During replay, whether the lock is currently held by mNextOwner.
+  Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> mLocked;
+
   static const size_t NoNextOwner = 0;
 
   void ReadAndNotifyNextOwner(Thread* aCurrentThread) {
     MOZ_RELEASE_ASSERT(IsReplaying());
+    mLocked = false;
     if (mAcquires->AtEnd()) {
       mNextOwner = NoNextOwner;
     } else {
@@ -176,10 +180,13 @@ void Lock::Enter(NativeLock* aNativeLock) {
   } else {
     // Wait until this thread is next in line to acquire the lock, or until it
     // has been instructed to diverge from the recording.
+    thread->PendingLockId().emplace(mId);
     while (thread->Id() != acquires->mNextOwner &&
            !thread->MaybeDivergeFromRecording()) {
       Thread::Wait();
     }
+    thread->PendingLockId().reset();
+    acquires->mLocked = true;
   }
   if (aNativeLock) {
     thread->AddOwnedLock(aNativeLock);
@@ -296,6 +303,13 @@ MOZ_EXPORT void RecordReplayInterface_InternalEndOrderedAtomicAccess() {
 }
 
 }  // extern "C"
+
+/* static */
+size_t Lock::GetNextOwner(size_t aLockId, bool* aLocked) {
+  LockAcquires* acquires = gLockAcquires.Get(aLockId);
+  *aLocked = acquires->mLocked;
+  return acquires->mNextOwner;
+}
 
 // This hidden API can be used when writing record/replay asserts.
 void LastAcquiredLock(size_t* aId, size_t* aPosition) {

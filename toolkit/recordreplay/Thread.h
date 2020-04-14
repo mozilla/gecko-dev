@@ -122,6 +122,9 @@ class Thread {
   uintptr_t mMachId;
   uintptr_t mThreadSelfId;
 
+  // When replaying, the real thread self ID for the current thread.
+  uintptr_t mRealThreadSelfId;
+
   // Stream with events for the thread. This is only used on the thread itself.
   Stream* mEvents;
 
@@ -156,6 +159,9 @@ class Thread {
 
   // While replaying, recorded locks which this thread owns.
   InfallibleVector<NativeLock*> mOwnedLocks;
+
+  // ID of any lock which this thread is waiting to acquire.
+  Maybe<size_t> mPendingLockId;
 
   // Thread local storage, used for non-main threads when replaying.
   // This emulates pthread TLS entries. By associating these TLS entries with
@@ -286,6 +292,9 @@ class Thread {
   // Give access to the atomic lock which the thread owns.
   Maybe<size_t>& AtomicLockId() { return mAtomicLockId; }
 
+  // Give access to the lock the thread is waiting to acquire.
+  Maybe<size_t>& PendingLockId() { return mPendingLockId; }
+
   // Mark changes in the recorded locks which this thread owns.
   void AddOwnedLock(NativeLock* aLock);
   void RemoveOwnedLock(NativeLock* aLock);
@@ -363,6 +372,9 @@ class Thread {
   // Return the total amount of data consumed by the event streams of every
   // thread. If this increases over time, at least one thread had made progress.
   static size_t TotalEventProgress();
+
+  // Dump information about all running threads to stderr.
+  static void DumpThreads();
 };
 
 // Mark a region of code where a thread's event stream can be accessed.

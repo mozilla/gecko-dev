@@ -53,6 +53,10 @@ void Thread::BindToCurrent() {
     mThreadSelfId = RecordReplayValue(IsRecording() ? syscall(SYS_thread_selfid) : 0);
 
     SetPassThrough(true);
+
+    if (IsReplaying()) {
+      mRealThreadSelfId = syscall(SYS_thread_selfid);
+    }
   }
 }
 
@@ -617,6 +621,20 @@ size_t Thread::TotalEventProgress() {
     result += thread->mEvents->StreamPosition();
   }
   return result;
+}
+
+/* static */
+void Thread::DumpThreads() {
+  for (size_t id = MainThreadId; id <= MaxThreadId; id++) {
+    Thread* thread = GetById(id);
+    Print("Thread %lu: tid %lu\n", id, thread->mRealThreadSelfId);
+    if (thread->mPendingLockId.isSome()) {
+      size_t lockId = thread->mPendingLockId.ref();
+      bool locked;
+      size_t nextOwner = Lock::GetNextOwner(lockId, &locked);
+      Print("  WaitingOnLock %lu NextOwner %lu Locked %d\n", lockId, nextOwner, locked);
+    }
+  }
 }
 
 }  // namespace recordreplay

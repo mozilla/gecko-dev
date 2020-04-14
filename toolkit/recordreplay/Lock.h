@@ -58,6 +58,10 @@ class Lock {
 
   // Note that new data has been read into a lock's acquires stream.
   static void LockAcquiresUpdated(size_t aLockId);
+
+  // Get the thread ID of the next owner for aLockId. aLocked is set to whether
+  // the next owner currently holds the lock.
+  static size_t GetNextOwner(size_t aLockId, bool* aLocked);
 };
 
 }  // namespace recordreplay

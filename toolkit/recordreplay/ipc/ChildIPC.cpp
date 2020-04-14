@@ -164,6 +164,8 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       break;
     }
     case MessageType::Crash: {
+      Print("Error: Crashing hanged process, dumping threads...\n");
+      Thread::DumpThreads();
       ReportFatalError("Hung replaying process");
       break;
     }
