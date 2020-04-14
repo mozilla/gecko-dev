@@ -77,8 +77,14 @@ export async function prettyPrintSource(
   }
 }
 
+function toNavigateContext(cx) {
+  return { navigateCounter: cx.navigateCounter };
+}
+
 export function createPrettySource(cx: Context, sourceId: string) {
   return async ({ dispatch, getState, sourceMaps }: ThunkArgs) => {
+    cx = toNavigateContext(cx);
+
     const source = getSourceFromId(getState(), sourceId);
     const url = getPrettySourceURL(source.url || source.id);
     const id = generatedToOriginalId(sourceId, url);
