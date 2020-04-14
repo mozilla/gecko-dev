@@ -52,16 +52,23 @@ export function paused(pauseInfo: Pause) {
       dispatch(removeBreakpoint(cx, hiddenBreakpoint));
     }
 
-    await dispatch(mapFrames(cx));
-    dispatch(setFramePositions());
+    const promises = [];
+    promises.push((async () => {
+      await dispatch(mapFrames(cx));
+      dispatch(setFramePositions());
+    })());
 
-    await dispatch(fetchScopes(cx));
+    promises.push((async () => {
+      await dispatch(fetchScopes(cx));
 
-    // Run after fetching scoping data so that it may make use of the sourcemap
-    // expression mappings for local variables.
-    const atException = why.type == "exception";
-    if (!atException || !isEvaluatingExpression(getState(), thread)) {
-      await dispatch(evaluateExpressions(cx));
-    }
+      // Run after fetching scoping data so that it may make use of the sourcemap
+      // expression mappings for local variables.
+      const atException = why.type == "exception";
+      if (!atException || !isEvaluatingExpression(getState(), thread)) {
+        await dispatch(evaluateExpressions(cx));
+      }
+    })());
+
+    await Promise.all(promises);
   };
 }
