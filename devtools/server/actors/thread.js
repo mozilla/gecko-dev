@@ -1604,6 +1604,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
    * Handle a protocol request to pause the debuggee.
    */
   onInterrupt: function({ when, packetId }) {
+    ChromeUtils.recordReplayLog(`ThreadActor.onInterrupt ${this.state}`);
     if (this.state == "exited") {
       return { type: "exited" };
     } else if (this.state == "paused") {
