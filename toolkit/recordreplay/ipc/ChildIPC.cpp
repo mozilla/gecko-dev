@@ -733,30 +733,34 @@ void OnNewRecordingData(Message::UniquePtr aMsg) {
   }
 }
 
-void AddPendingRecordingData() {
+void AddPendingRecordingData(bool aRequireMore) {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
-  Thread::WaitForIdleThreads();
+  if (!NeedRespawnThreads()) {
+    Thread::WaitForIdleThreads();
+  }
 
   InfallibleVector<Stream*> updatedStreams;
   {
     MonitorAutoLock lock(*gMonitor);
 
     if (gRecordingContents.length() == gRecording->Size()) {
-      Print("Hit end of recording (%lu bytes, checkpoint %lu, position %lu), crashing...\n",
-            gRecordingContents.length(), GetLastCheckpoint(),
-            Thread::Current()->Events().StreamPosition());
+      if (aRequireMore) {
+        Print("Hit end of recording (%lu bytes, checkpoint %lu, position %lu), crashing...\n",
+              gRecordingContents.length(), GetLastCheckpoint(),
+              Thread::Current()->Events().StreamPosition());
 
-      nsAutoCString chunks;
-      Thread::Current()->Events().PrintChunks(chunks);
-      Print("Chunks %s\n", chunks.get());
+        nsAutoCString chunks;
+        Thread::Current()->Events().PrintChunks(chunks);
+        Print("Chunks %s\n", chunks.get());
 
-      MOZ_CRASH("AddPendingRecordingData");
+        MOZ_CRASH("AddPendingRecordingData");
+      }
+    } else {
+      gRecording->NewContents(
+          (const uint8_t*)gRecordingContents.begin() + gRecording->Size(),
+          gRecordingContents.length() - gRecording->Size(),
+          &updatedStreams);
     }
-
-    gRecording->NewContents(
-        (const uint8_t*)gRecordingContents.begin() + gRecording->Size(),
-        gRecordingContents.length() - gRecording->Size(),
-        &updatedStreams);
   }
 
   for (Stream* stream : updatedStreams) {
@@ -765,7 +769,9 @@ void AddPendingRecordingData() {
     }
   }
 
-  Thread::ResumeIdleThreads();
+  if (!NeedRespawnThreads()) {
+    Thread::ResumeIdleThreads();
+  }
 }
 
 void SaveCloudRecording(const char* aName) {

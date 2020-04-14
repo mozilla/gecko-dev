@@ -94,8 +94,9 @@ void PerformFork(size_t aForkId);
 // Send new recording data from a recording process to the middleman.
 void SendRecordingData(size_t aStart, const uint8_t* aData, size_t aSize);
 
-// Incorporate any new data into the recording.
-void AddPendingRecordingData();
+// Incorporate any new data into the recording. If there is no more data and
+// aRequireMore is set, crash.
+void AddPendingRecordingData(bool aRequireMore);
 
 // In a root replaying process, save all recording data to the cloud.
 void SaveCloudRecording(const char* aName);

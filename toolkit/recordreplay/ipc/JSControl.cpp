@@ -937,6 +937,7 @@ static bool RecordReplay_EnsureRecordingLength(JSContext* aCx, unsigned aArgc, V
 
   size_t length = args.get(0).toNumber();
   child::EnsureRecordingLength(length);
+  child::AddPendingRecordingData(/* aRequireMore */ false);
 
   args.rval().setUndefined();
   return true;

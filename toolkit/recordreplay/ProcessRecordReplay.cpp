@@ -292,7 +292,7 @@ void HitEndOfRecording() {
   if (Thread::CurrentIsMainThread()) {
     // We should have been provided with all the data needed to run forward in
     // the replay. Check to see if there is any pending data.
-    child::AddPendingRecordingData();
+    child::AddPendingRecordingData(/* aRequireMore */ true);
   } else {
     // Non-main threads may wait until more recording data is added.
     Thread::Wait();

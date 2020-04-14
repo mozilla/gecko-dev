@@ -221,6 +221,10 @@ void PauseMainThreadAndInvokeCallback(const std::function<void()>& aCallback) {
 // greatly reduces pressure on the kernel from having many forks around.
 static bool gNeedRespawnThreads;
 
+bool NeedRespawnThreads() {
+  return gNeedRespawnThreads;
+}
+
 void EnsureNonMainThreadsAreSpawned() {
   if (gNeedRespawnThreads) {
     AutoPassThroughThreadEvents pt;

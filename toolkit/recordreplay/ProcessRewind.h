@@ -92,6 +92,9 @@ size_t GetLastCheckpoint();
 // process, or false if this is the fork.
 bool ForkProcess(size_t aForkId);
 
+// Whether this was forked and non-main threads have not been respawned.
+bool NeedRespawnThreads();
+
 // Ensure that non-main threads have been respawned after a fork.
 void EnsureNonMainThreadsAreSpawned();
 

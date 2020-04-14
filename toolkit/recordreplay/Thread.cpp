@@ -627,7 +627,8 @@ size_t Thread::TotalEventProgress() {
 void Thread::DumpThreads() {
   for (size_t id = MainThreadId; id <= MaxThreadId; id++) {
     Thread* thread = GetById(id);
-    Print("Thread %lu: tid %lu\n", id, thread->mRealThreadSelfId);
+    Print("Thread %lu: tid %lu position %lu\n", id, thread->mRealThreadSelfId,
+          thread->Events().StreamPosition());
     if (thread->mPendingLockId.isSome()) {
       size_t lockId = thread->mPendingLockId.ref();
       size_t acquiresPosition = thread->mPendingLockAcquiresPosition.ref();
