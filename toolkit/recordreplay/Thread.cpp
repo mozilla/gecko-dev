@@ -53,10 +53,10 @@ void Thread::BindToCurrent() {
     mThreadSelfId = RecordReplayValue(IsRecording() ? syscall(SYS_thread_selfid) : 0);
 
     SetPassThrough(true);
+  }
 
-    if (IsReplaying()) {
-      mRealThreadSelfId = syscall(SYS_thread_selfid);
-    }
+  if (!IsMainThread() && IsReplaying()) {
+    mRealThreadSelfId = syscall(SYS_thread_selfid);
   }
 }
 
