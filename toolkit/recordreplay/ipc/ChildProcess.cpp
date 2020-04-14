@@ -176,7 +176,9 @@ void ChildProcessInfo::LaunchSubprocess(
         0, 0, child::gReplayJS.BeginReading(), child::gReplayJS.Length()));
     SendMessage(std::move(*jsmsg));
     if (gRecordingContents.length()) {
-      MOZ_RELEASE_ASSERT(aInitialReplayingLength);
+      if (!aInitialReplayingLength) {
+        aInitialReplayingLength = gRecordingContents.length();
+      }
       UniquePtr<Message> msg(RecordingDataMessage::New(
           0, 0, gRecordingContents.begin(), aInitialReplayingLength));
       SendMessage(std::move(*msg));
