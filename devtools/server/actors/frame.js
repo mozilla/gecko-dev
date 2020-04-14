@@ -210,8 +210,7 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
       }
     }
 
-    if (this.threadActor.pausePacketForms) {
-      this.threadActor.pausePacketForms.push(form);
+    if (this.threadActor.addPausePacketForm(form)) {
       this.uploaded = true;
       return { cached: this.actorID };
     }

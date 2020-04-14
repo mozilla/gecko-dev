@@ -478,6 +478,10 @@ nsresult nsStringBundle::LoadProperties() {
 nsresult SharedStringBundle::LoadProperties() {
   if (mStringMap) return NS_OK;
 
+  if (recordreplay::HasDivergedFromRecording()) {
+    return NS_ERROR_FAILURE;
+  }
+
   if (mMapFile.isSome()) {
     mStringMap = new SharedStringMap(mMapFile.ref(), mMapSize);
     mMapFile.reset();

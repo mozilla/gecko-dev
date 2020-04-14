@@ -88,6 +88,8 @@ Performance::Performance(nsPIDOMWindowInner* aWindow, bool aSystemPrincipal)
 Performance::~Performance() = default;
 
 DOMHighResTimeStamp Performance::Now() {
+  recordreplay::RecordReplayAssert("Performance::Now");
+
   DOMHighResTimeStamp rawTime = NowUnclamped();
   if (mSystemPrincipal) {
     return rawTime;

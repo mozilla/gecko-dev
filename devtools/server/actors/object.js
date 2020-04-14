@@ -149,8 +149,7 @@ const proto = {
     };
 
     const finishGrip = () => {
-      if (this.thread.pausePacketForms) {
-        this.thread.pausePacketForms.push(g);
+      if (this.thread.addPausePacketForm(g)) {
         this.uploaded = true;
         return { type: "object", cached: this.actorID };
       }

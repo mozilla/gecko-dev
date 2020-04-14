@@ -2075,6 +2075,17 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     this.pausePacketForms = null;
   },
 
+  addPausePacketForm(form) {
+    if (!form.actor) {
+      throw new Error("Pause packet form missing actor");
+    }
+    if (this.pausePacketForms) {
+      this.pausePacketForms.push(form);
+      return true;
+    }
+    return false;
+  },
+
   _onWindowReady: function({ isTopLevel, isBFCache, window }) {
     if (isTopLevel && this.state != "detached") {
       this.sources.reset();
