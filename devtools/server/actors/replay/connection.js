@@ -108,6 +108,7 @@ function AddToLog(text) {
 let gAppUpdater;
 
 function downloadStatusListener(status, ...args) {
+  ChromeUtils.recordReplayLog(`DownloadStatus ${status}`);
   switch (status) {
     case AppUpdater.STATUS.READY_FOR_RESTART:
       gCallbacks.updateStatus("cloudUpdateDownloaded.label");
@@ -132,6 +133,7 @@ function downloadStatusListener(status, ...args) {
     case AppUpdater.STATUS.MANUAL_UPDATE:
     case AppUpdater.STATUS.DOWNLOAD_AND_INSTALL:
     case AppUpdater.STATUS.DOWNLOAD_FAILED:
+      ChromeUtils.recordReplayLog(`Error: AutomaticUpdateFailed ${status}`);
       gCallbacks.updateStatus("cloudUpdateManualDownload.label");
       break;
   }
