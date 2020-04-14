@@ -630,9 +630,9 @@ void Thread::DumpThreads() {
     Print("Thread %lu: tid %lu\n", id, thread->mRealThreadSelfId);
     if (thread->mPendingLockId.isSome()) {
       size_t lockId = thread->mPendingLockId.ref();
-      bool locked;
-      size_t nextOwner = Lock::GetNextOwner(lockId, &locked);
-      Print("  WaitingOnLock %lu NextOwner %lu Locked %d\n", lockId, nextOwner, locked);
+      size_t acquiresPosition = thread->mPendingLockAcquiresPosition.ref();
+      Print("WaitingOnLock %lu Position %lu\n", lockId, acquiresPosition);
+      Lock::DumpLock(lockId);
     }
   }
 }

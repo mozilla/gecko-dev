@@ -29,14 +29,9 @@ struct LockAcquires {
   // protected by the lock itself, though reads may occur on other threads.
   Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve> mNextOwner;
 
-  // During replay, whether the lock is currently held by mNextOwner.
-  Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> mLocked;
-
   static const size_t NoNextOwner = 0;
 
-  void ReadAndNotifyNextOwner(Thread* aCurrentThread) {
-    MOZ_RELEASE_ASSERT(IsReplaying());
-    mLocked = false;
+  void ReadNextOwner() {
     if (mAcquires->AtEnd()) {
       mNextOwner = NoNextOwner;
     } else {
@@ -44,10 +39,18 @@ struct LockAcquires {
       if (!mNextOwner) {
         Print("Error: ReadNextOwner ZeroId\n");
       }
-      if (mNextOwner != aCurrentThread->Id()) {
-        Thread::Notify(mNextOwner);
-      }
     }
+  }
+
+  void NotifyNextOwner(Thread* aCurrentThread) {
+    if (mNextOwner && mNextOwner != aCurrentThread->Id()) {
+      Thread::Notify(mNextOwner);
+    }
+  }
+
+  void ReadAndNotifyNextOwner(Thread* aCurrentThread) {
+    ReadNextOwner();
+    NotifyNextOwner(aCurrentThread);
   }
 };
 
@@ -177,20 +180,50 @@ void Lock::Enter(NativeLock* aNativeLock) {
   LockAcquires* acquires = gLockAcquires.Get(mId);
   if (IsRecording()) {
     acquires->mAcquires->WriteScalar(thread->Id());
+    thread->Events().WriteScalar(acquires->mAcquires->StreamPosition());
   } else {
+    size_t acquiresPosition = thread->Events().ReadScalar();
+
     // Wait until this thread is next in line to acquire the lock, or until it
     // has been instructed to diverge from the recording.
+    MOZ_RELEASE_ASSERT(thread->PendingLockId().isNothing());
     thread->PendingLockId().emplace(mId);
+    thread->PendingLockAcquiresPosition().emplace(acquiresPosition);
     while (thread->Id() != acquires->mNextOwner &&
            !thread->MaybeDivergeFromRecording()) {
       Thread::Wait();
     }
-    thread->PendingLockId().reset();
-    acquires->mLocked = true;
   }
   if (aNativeLock) {
     thread->AddOwnedLock(aNativeLock);
   }
+}
+
+void Lock::FinishEnter() {
+  MOZ_RELEASE_ASSERT(IsReplaying());
+
+  Thread* thread = Thread::Current();
+  if (!thread || thread->PassThroughEvents() || thread->HasDivergedFromRecording()) {
+    return;
+  }
+
+  MOZ_RELEASE_ASSERT(thread->PendingLockId().isSome());
+  size_t lockId = thread->PendingLockId().ref();
+
+  LockAcquires* acquires = gLockAcquires.Get(lockId);
+  MOZ_RELEASE_ASSERT(acquires->mNextOwner == thread->Id());
+
+  size_t acquiresPosition = thread->PendingLockAcquiresPosition().ref();
+
+  if (acquires->mAcquires->StreamPosition() != acquiresPosition) {
+    child::ReportFatalError("AcquiresPosition Mismatch %lu: Recorded %lu Replayed %lu",
+                            lockId, acquiresPosition, acquires->mAcquires->StreamPosition());
+  }
+
+  thread->PendingLockId().reset();
+  thread->PendingLockAcquiresPosition().reset();
+
+  acquires->ReadNextOwner();
 }
 
 void Lock::Exit(NativeLock* aNativeLock) {
@@ -202,7 +235,7 @@ void Lock::Exit(NativeLock* aNativeLock) {
   if (IsReplaying() && !thread->HasDivergedFromRecording()) {
     // Notify the next owner before releasing the lock.
     LockAcquires* acquires = gLockAcquires.Get(mId);
-    acquires->ReadAndNotifyNextOwner(thread);
+    acquires->NotifyNextOwner(thread);
   }
 }
 
@@ -226,8 +259,7 @@ void Lock::LockAcquiresUpdated(size_t aLockId) {
 static const size_t NumAtomicLocks = 89;
 static Lock** gAtomicLocks;
 
-// While recording, these locks prevent multiple threads from simultaneously
-// owning the same atomic lock.
+// Substitute for the platform mutex associated with each atomic lock.
 static SpinLock* gAtomicLockOwners;
 
 /* static */
@@ -239,10 +271,8 @@ void Lock::InitializeLocks() {
   for (size_t i = 0; i < NumAtomicLocks; i++) {
     gAtomicLocks[i] = CreateNewLock(thread, gNumLocks++);
   }
-  if (IsRecording()) {
-    gAtomicLockOwners = new SpinLock[NumAtomicLocks];
-    PodZero(gAtomicLockOwners, NumAtomicLocks);
-  }
+  gAtomicLockOwners = new SpinLock[NumAtomicLocks];
+  PodZero(gAtomicLockOwners, NumAtomicLocks);
 }
 
 extern "C" {
@@ -269,15 +299,16 @@ MOZ_EXPORT void RecordReplayInterface_InternalBeginOrderedAtomicAccess(
     MOZ_RELEASE_ASSERT(atomicId < NumAtomicLocks);
   }
 
-  // When recording, hold a spin lock so that no other thread can access this
-  // same atomic until this access ends. When replaying, we don't need to hold
-  // any actual lock, as the atomic access cannot race and the Lock structure
-  // ensures that accesses happen in the same order.
   if (IsRecording()) {
     gAtomicLockOwners[atomicId].Lock();
   }
 
   gAtomicLocks[atomicId]->Enter(nullptr);
+
+  if (IsReplaying()) {
+    gAtomicLockOwners[atomicId].Lock();
+    gAtomicLocks[atomicId]->FinishEnter();
+  }
 
   MOZ_RELEASE_ASSERT(thread->AtomicLockId().isNothing());
   thread->AtomicLockId().emplace(atomicId);
@@ -295,20 +326,20 @@ MOZ_EXPORT void RecordReplayInterface_InternalEndOrderedAtomicAccess() {
   size_t atomicId = thread->AtomicLockId().ref();
   thread->AtomicLockId().reset();
 
-  if (IsRecording()) {
-    gAtomicLockOwners[atomicId].Unlock();
-  }
-
   gAtomicLocks[atomicId]->Exit(nullptr);
+  gAtomicLockOwners[atomicId].Unlock();
 }
 
 }  // extern "C"
 
 /* static */
-size_t Lock::GetNextOwner(size_t aLockId, bool* aLocked) {
+void Lock::DumpLock(size_t aLockId) {
+  // This isn't threadsafe, but is only called when the process has hanged.
   LockAcquires* acquires = gLockAcquires.Get(aLockId);
-  *aLocked = acquires->mLocked;
-  return acquires->mNextOwner;
+  Print("Lock %lu: NextOwner %lu Position %lu AtEnd %d\n",
+        aLockId, (size_t)acquires->mNextOwner,
+        acquires->mAcquires ? acquires->mAcquires->StreamPosition() : -1,
+        acquires->mAcquires ? acquires->mAcquires->AtEnd() : true);
 }
 
 // This hidden API can be used when writing record/replay asserts.

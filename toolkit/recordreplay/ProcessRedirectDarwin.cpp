@@ -775,6 +775,7 @@ static ssize_t WaitForCvar(pthread_mutex_t* aMutex, pthread_cond_t* aCond,
   lock->Enter(aMutex);
   if (IsReplaying()) {
     DirectLockMutex(aMutex);
+    lock->FinishEnter();
   }
   if (aRecordReturnValue) {
     return RecordReplayValue(rv);
@@ -915,6 +916,7 @@ static PreambleResult Preamble_pthread_mutex_lock(CallArguments* aArguments) {
     lock->Enter(mutex);
     if (IsReplaying()) {
       DirectLockMutex(mutex);
+      lock->FinishEnter();
     }
   }
   aArguments->Rval<ssize_t>() = rv;
@@ -943,6 +945,7 @@ static PreambleResult Preamble_pthread_mutex_trylock(
     lock->Enter(mutex);
     if (IsReplaying()) {
       DirectLockMutex(mutex);
+      lock->FinishEnter();
     }
   }
   aArguments->Rval<ssize_t>() = rv;

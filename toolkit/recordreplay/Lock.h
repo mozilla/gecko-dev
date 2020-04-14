@@ -40,6 +40,9 @@ class Lock {
   // until it is next in line to acquire the lock.
   void Enter(NativeLock* aNativeLock);
 
+  // Called when replaying after acquiring the physical lock after an Enter() call.
+  void FinishEnter();
+
   // This is called before releasing the lock, allowing the next owner to
   // acquire it while replaying.
   void Exit(NativeLock* aNativeLock);
@@ -59,9 +62,8 @@ class Lock {
   // Note that new data has been read into a lock's acquires stream.
   static void LockAcquiresUpdated(size_t aLockId);
 
-  // Get the thread ID of the next owner for aLockId. aLocked is set to whether
-  // the next owner currently holds the lock.
-  static size_t GetNextOwner(size_t aLockId, bool* aLocked);
+  // Dump information about a lock to stderr.
+  static void DumpLock(size_t aLockId);
 };
 
 }  // namespace recordreplay

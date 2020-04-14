@@ -160,8 +160,9 @@ class Thread {
   // While replaying, recorded locks which this thread owns.
   InfallibleVector<NativeLock*> mOwnedLocks;
 
-  // ID of any lock which this thread is waiting to acquire.
+  // Information about any lock which this thread is waiting to acquire.
   Maybe<size_t> mPendingLockId;
+  Maybe<size_t> mPendingLockAcquiresPosition;
 
   // Thread local storage, used for non-main threads when replaying.
   // This emulates pthread TLS entries. By associating these TLS entries with
@@ -292,8 +293,9 @@ class Thread {
   // Give access to the atomic lock which the thread owns.
   Maybe<size_t>& AtomicLockId() { return mAtomicLockId; }
 
-  // Give access to the lock the thread is waiting to acquire.
+  // Give access to information about lock the thread is waiting to acquire.
   Maybe<size_t>& PendingLockId() { return mPendingLockId; }
+  Maybe<size_t>& PendingLockAcquiresPosition() { return mPendingLockAcquiresPosition; }
 
   // Mark changes in the recorded locks which this thread owns.
   void AddOwnedLock(NativeLock* aLock);
