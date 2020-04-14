@@ -318,11 +318,15 @@ MOZ_EXPORT void RecordReplayInterface_InternalEndOrderedAtomicAccess() {
   MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
 
   Thread* thread = Thread::Current();
-  if (!thread || !thread->CanAccessRecording()) {
+  if (!thread) {
     return;
   }
 
-  MOZ_RELEASE_ASSERT(thread->AtomicLockId().isSome());
+  if (thread->AtomicLockId().isNothing()) {
+    MOZ_RELEASE_ASSERT(!thread->CanAccessRecording());
+    return;
+  }
+
   size_t atomicId = thread->AtomicLockId().ref();
   thread->AtomicLockId().reset();
 
