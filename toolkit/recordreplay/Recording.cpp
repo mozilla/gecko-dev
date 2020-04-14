@@ -405,13 +405,18 @@ void Recording::NewContents(const uint8_t* aContents, size_t aSize,
 
   child::PrintLog("IncorporateRecordingContents %lu %lu", mContents.length(), aSize);
 
-  // Make sure the header matches when reading the first data in the recording.
-  size_t offset = 0;
-  if (mContents.empty()) {
-    MOZ_RELEASE_ASSERT(aSize >= sizeof(Header));
-    offset += sizeof(Header);
+  mContents.append(aContents, aSize);
 
-    Header* header = (Header*) aContents;
+  ReadNewChunks(aUpdatedStreams);
+}
+
+void Recording::ReadNewChunks(InfallibleVector<Stream*>* aUpdatedStreams) {
+  // Make sure the header matches when reading the first data in the recording.
+  if (!mNextChunkOffset) {
+    MOZ_RELEASE_ASSERT(mContents.length() >= sizeof(Header));
+    mNextChunkOffset += sizeof(Header);
+
+    Header* header = (Header*) mContents.begin();
     MOZ_RELEASE_ASSERT(header->mMagic == MagicValue);
 
     BuildId currentBuildId;
@@ -424,20 +429,13 @@ void Recording::NewContents(const uint8_t* aContents, size_t aSize,
     }
   }
 
-  mContents.append(aContents, aSize);
+  // Read any chunks whose complete contents are available.
+  while (mNextChunkOffset + sizeof(ChunkDescriptor) < mContents.length()) {
+    ChunkDescriptor* desc = (ChunkDescriptor*)(mContents.begin() + mNextChunkOffset);
+    size_t chunkStart = mNextChunkOffset + sizeof(ChunkDescriptor);
 
-  while (offset < aSize) {
-    MOZ_RELEASE_ASSERT(offset + sizeof(ChunkDescriptor) <= aSize);
-    ChunkDescriptor* desc = (ChunkDescriptor*)(aContents + offset);
-    offset += sizeof(ChunkDescriptor);
-
-    if (offset + desc->mChunk.mCompressedSize > aSize) {
-      // We might only have part of the last chunk, if we are replaying in the
-      // cloud and have only received part of the recording. We will still have
-      // enough of the recording to replay everything covered by the recording
-      // summary that was most recently added, however.
-      child::PrintLog("NewRecordingContents IgnoreTruncated %lu %lu %lu",
-                      offset, desc->mChunk.mCompressedSize, aSize);
+    if (chunkStart + desc->mChunk.mCompressedSize > mContents.length()) {
+      // This entire chunk isn't available yet.
       break;
     }
 
@@ -447,8 +445,7 @@ void Recording::NewContents(const uint8_t* aContents, size_t aSize,
       aUpdatedStreams->append(stream);
     }
 
-    MOZ_RELEASE_ASSERT(offset + desc->mChunk.mCompressedSize <= aSize);
-    offset += desc->mChunk.mCompressedSize;
+    mNextChunkOffset = chunkStart + desc->mChunk.mCompressedSize;
   }
 }
 

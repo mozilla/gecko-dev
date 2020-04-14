@@ -242,6 +242,10 @@ class Recording {
   // modified: the recording can only grow.
   InfallibleVector<uint8_t> mContents;
 
+  // When reading, start offset of the next chunk that hasn't been incorporated
+  // into the recording.
+  size_t mNextChunkOffset = 0;
+
   // All streams in this recording, indexed by stream name and name index.
   typedef InfallibleVector<UniquePtr<Stream>> StreamVector;
   StreamVector mStreams[(size_t)StreamName::Count];
@@ -284,6 +288,7 @@ class Recording {
                                  size_t aDecompressedSize, uint64_t aStreamPos,
                                  bool aTakeLock);
   void ReadChunk(char* aDest, const StreamChunkLocation& aChunk);
+  void ReadNewChunks(InfallibleVector<Stream*>* aUpdatedStreams);
 };
 
 }  // namespace recordreplay
