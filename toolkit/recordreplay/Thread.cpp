@@ -415,6 +415,9 @@ MOZ_EXPORT bool RecordReplayInterface_InternalAreThreadEventsDisallowed() {
 // Thread Coordination
 ///////////////////////////////////////////////////////////////////////////////
 
+// ID of any thread the main thread is waiting to becom idle.
+static Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve> gWaitingOnIdleThreadId;
+
 /* static */
 void Thread::WaitForIdleThreads() {
   MOZ_RELEASE_ASSERT(CurrentIsMainThread());
@@ -431,6 +434,7 @@ void Thread::WaitForIdleThreads() {
       Thread* thread = GetById(i);
       if (!thread->mIdle) {
         done = false;
+        gWaitingOnIdleThreadId = i;
 
         // Check if there is a callback we can invoke to get this thread to
         // make progress. The mUnrecordedWaitOnlyWhenDiverged flag is used to
@@ -467,6 +471,8 @@ void Thread::WaitForIdleThreads() {
     MonitorAutoUnlock unlock(*gMonitor);
     WaitNoIdle();
   }
+
+  gWaitingOnIdleThreadId = 0;
 }
 
 /* static */
@@ -625,6 +631,7 @@ size_t Thread::TotalEventProgress() {
 
 /* static */
 void Thread::DumpThreads() {
+  Print("WaitingOnIdleThread: %lu\n", (size_t)gWaitingOnIdleThreadId);
   for (size_t id = MainThreadId; id <= MaxThreadId; id++) {
     Thread* thread = GetById(id);
     Print("Thread %lu: tid %lu position %lu\n", id, thread->mRealThreadSelfId,
