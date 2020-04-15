@@ -732,6 +732,7 @@ void OnNewRecordingData(Message::UniquePtr aMsg) {
         i++;
       }
     }
+    Print("NewRecordingData NotifyMonitor %p", gMonitor);
     gMonitor->NotifyAll();
   } else {
     // Defer processing this until it is contiguous with the earlier contents.
@@ -1237,7 +1238,8 @@ void EnsureRecordingLength(size_t aLength) {
   }
 
   while (gRecordingContents.length() < aLength) {
-    PrintLog("EnsureRecordingLength have %lu need %lu, waiting...", gRecordingContents.length(), aLength);
+    PrintLog("EnsureRecordingLength %p have %lu need %lu, waiting...",
+             gMonitor, gRecordingContents.length(), aLength);
     gMonitor->Wait();
   }
   PrintLog("EnsureRecordingLength done %lu", gRecordingContents.length());
