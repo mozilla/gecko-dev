@@ -216,7 +216,10 @@ function addMessage(newMessage, state, filtersState, prefsState, uiState) {
       );
     });
     if (existingMessage) {
+      ChromeUtils.recordReplayLog(`LogpointFinish ${JSON.stringify(newMessage.executionPoint)}`);
       removedIds.push(existingMessage.id);
+    } else {
+      ChromeUtils.recordReplayLog(`LogpointStart ${JSON.stringify(newMessage.executionPoint)}`);
     }
   }
 
