@@ -6,6 +6,9 @@
 
 #include "ParentInternal.h"
 
+#include "ChildInternal.h"
+#include "JSControl.h"
+
 #include "base/task.h"
 #include "mozilla/dom/ContentChild.h"
 #include "Thread.h"

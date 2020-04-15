@@ -9,7 +9,7 @@ EXPORTS.mozilla.recordreplay += [
     'ipc/ParentIPC.h',
 ]
 
-UNIFIED_SOURCES += [
+SOURCES += [
     'Assembler.cpp',
     'Callback.cpp',
     'ExternalCall.cpp',

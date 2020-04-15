@@ -22,6 +22,9 @@
 #include "ProcessRedirect.h"
 #include "rrIConnection.h"
 
+#include "mozilla/ClearOnShutdown.h"
+#include "nsImportModule.h"
+
 #include <algorithm>
 
 using std::min;
@@ -178,13 +181,13 @@ void GetCloudReplayStatus(nsAString& aResult) {
   aResult = gCloudReplayStatus;
 }
 
-static PersistentRootedObject* gStatusCallback;
+static JS::PersistentRootedObject* gStatusCallback;
 
 void SetCloudReplayStatusCallback(JS::HandleValue aCallback) {
   AutoSafeJSContext cx;
 
   if (!gStatusCallback) {
-    gStatusCallback = new PersistentRootedObject(cx);
+    gStatusCallback = new JS::PersistentRootedObject(cx);
   }
 
   *gStatusCallback = aCallback.isObject() ? &aCallback.toObject() : nullptr;
@@ -215,7 +218,7 @@ static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
     JS_WrapValue(aCx, newArgs[2]);
 
     JS::RootedObject thisv(aCx);
-    JS::RootedValue fval(aCx, ObjectValue(**gStatusCallback));
+    JS::RootedValue fval(aCx, JS::ObjectValue(**gStatusCallback));
     JS::RootedValue rv(aCx);
     if (!JS_CallFunctionValue(aCx, thisv, fval, newArgs, &rv)) {
       return false;
@@ -459,7 +462,7 @@ static ConnectionChannel* GetConnectionChannel(JSContext* aCx,
 // Use an indirection here to avoid releasing references and subsequently
 // crashing when the process exits.
 static nsCOMPtr<nsIThread>* gConnectionWorkerThread;
-static PersistentRootedObject* gWorkerSendCallback;
+static JS::PersistentRootedObject* gWorkerSendCallback;
 
 void RegisterConnectionWorker(JS::HandleObject aSendCallback) {
   MOZ_RELEASE_ASSERT(!gConnectionWorkerThread);
@@ -470,7 +473,7 @@ void RegisterConnectionWorker(JS::HandleObject aSendCallback) {
   *gConnectionWorkerThread = thread;
 
   AutoJSContext cx;
-  gWorkerSendCallback = new PersistentRootedObject(cx);
+  gWorkerSendCallback = new JS::PersistentRootedObject(cx);
   *gWorkerSendCallback = aSendCallback;
 }
 

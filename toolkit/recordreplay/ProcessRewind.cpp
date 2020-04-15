@@ -14,6 +14,8 @@
 #include "Monitor.h"
 #include "ProcessRecordReplay.h"
 
+#include <unistd.h>
+
 namespace mozilla {
 namespace recordreplay {
 

@@ -470,6 +470,9 @@ bool EX_SystemInput(ExternalCallContext& aCx, const void** aThingPtr);
 void EX_SystemOutput(ExternalCallContext& aCx, const void** aOutput,
                      bool aUpdating = false);
 
+// Get the external call which produced aThing.
+ExternalCall* LookupExternalCall(const void* aThing);
+
 void InitializeExternalCalls();
 
 // Whether we have diverged from the recording and encountered a call whose

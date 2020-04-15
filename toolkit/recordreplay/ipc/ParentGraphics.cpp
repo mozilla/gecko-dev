@@ -28,6 +28,7 @@
 #include "ImageOps.h"
 
 #include <mach/mach_vm.h>
+#include <unistd.h>
 
 namespace mozilla {
 namespace recordreplay {
@@ -94,7 +95,7 @@ static void InitGraphicsSandbox() {
 static void* gBufferMemory;
 
 // Last ArrayBuffer object used for rendering;
-static PersistentRootedObject* gLastBuffer;
+static JS::PersistentRootedObject* gLastBuffer;
 
 static void UpdateMiddlemanCanvas(size_t aWidth, size_t aHeight, size_t aStride,
                                   void* aData, const nsACString& aOptions) {
@@ -147,7 +148,7 @@ static void UpdateMiddlemanCanvas(size_t aWidth, size_t aHeight, size_t aStride,
   }
 
   if (!gLastBuffer) {
-    gLastBuffer = new PersistentRootedObject(cx);
+    gLastBuffer = new JS::PersistentRootedObject(cx);
   }
   *gLastBuffer = bufferObject;
 }

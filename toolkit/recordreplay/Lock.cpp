@@ -10,6 +10,7 @@
 #include "InfallibleVector.h"
 #include "SpinLock.h"
 #include "Thread.h"
+#include "ipc/ChildInternal.h"
 
 #include <unordered_map>
 

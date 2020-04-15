@@ -9,6 +9,13 @@
 
 #include "Thread.h"
 
+#include "ParentInternal.h"
+
+#include "mozilla/dom/ScriptSettings.h"
+
+#include "jsapi.h"
+#include "nsXULAppAPI.h"
+
 namespace JS {
 
 extern JS_PUBLIC_API bool DescribeScriptedCallerAtIndex(
@@ -44,7 +51,7 @@ static bool InterruptCallback(JSContext* aCx) {
 
   gWatchdogText.Append("Interrupt\n");
   for (unsigned index = 0;; index++) {
-    AutoFilename filename;
+    JS::AutoFilename filename;
     unsigned lineno, column;
     if (!DescribeScriptedCallerAtIndex(aCx, index, &filename, &lineno, &column)) {
       break;

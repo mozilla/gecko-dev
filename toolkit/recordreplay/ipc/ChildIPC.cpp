@@ -9,6 +9,7 @@
 
 #include "ChildInternal.h"
 
+#include "base/eintr_wrapper.h"
 #include "base/message_loop.h"
 #include "base/task.h"
 #include "chrome/common/child_thread.h"
@@ -31,10 +32,16 @@
 #include "Units.h"
 
 #include "imgIEncoder.h"
+#include "nsComponentManagerUtils.h"
+#include "mozilla/BasicEvents.h"
+
+#include <dlfcn.h>
+#include <mach/mach_vm.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 #include <algorithm>
-#include <mach/mach_vm.h>
-#include <unistd.h>
+#include <unordered_map>
 
 namespace mozilla {
 namespace recordreplay {
@@ -1032,9 +1039,6 @@ static Atomic<int32_t, SequentiallyConsistent, Behavior::DontPreserve>
 // ID of the compositor thread.
 static Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve>
     gCompositorThreadId;
-
-// Whether unhandled recording divergences are allowed.
-static bool gAllowUnhandledDivergence;
 
 already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(
     LayoutDeviceIntSize aSize) {

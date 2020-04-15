@@ -15,6 +15,11 @@
 #include "ProcessRewind.h"
 #include "SpinLock.h"
 #include "ThreadSnapshot.h"
+#include "ipc/ChildInternal.h"
+
+#include <mach/mach.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 
 namespace mozilla {
 namespace recordreplay {
@@ -598,7 +603,6 @@ void Thread::WaitForever() {
   while (true) {
     Wait();
   }
-  Unreachable();
 }
 
 /* static */

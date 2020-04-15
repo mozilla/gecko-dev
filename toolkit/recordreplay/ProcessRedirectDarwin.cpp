@@ -8,8 +8,10 @@
 
 #include "mozilla/Maybe.h"
 
+#include "ExternalCall.h"
 #include "HashTable.h"
 #include "Lock.h"
+#include "ipc/JSControl.h"
 #include "ProcessRecordReplay.h"
 #include "ProcessRewind.h"
 #include "base/eintr_wrapper.h"
@@ -41,6 +43,8 @@
 #include <Carbon/Carbon.h>
 #include <SystemConfiguration/SystemConfiguration.h>
 #include <objc/objc-runtime.h>
+
+#include <unordered_map>
 
 namespace mozilla {
 namespace recordreplay {

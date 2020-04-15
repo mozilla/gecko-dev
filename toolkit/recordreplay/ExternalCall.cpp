@@ -6,6 +6,8 @@
 
 #include "ExternalCall.h"
 
+#include "ipc/ChildInternal.h"
+
 #include <unordered_map>
 
 namespace mozilla {
@@ -348,7 +350,7 @@ bool HasExternalCallOutput(ExternalCallId aId,
 // System Values
 ///////////////////////////////////////////////////////////////////////////////
 
-static ExternalCall* LookupExternalCall(const void* aThing) {
+ExternalCall* LookupExternalCall(const void* aThing) {
   CallsByValueMap::const_iterator iter = gState->mCallsByValue.find(aThing);
   if (iter != gState->mCallsByValue.end()) {
     CallsByIdMap::const_iterator iter2 = gState->mCallsById.find(iter->second);
