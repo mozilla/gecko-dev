@@ -561,6 +561,10 @@ static void DrawCellWithScaling(NSCell* cell, CGContextRef cgContext, const HIRe
                                 BOOL mirrorHorizontal) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
+  recordreplay::RecordReplayAssert("DrawCellWithScaling %.2f %.2f %.2f %.2f",
+                                   destRect.origin.x, destRect.origin.y,
+                                   destRect.size.width, destRect.size.height);
+
   NSRect drawRect =
       NSMakeRect(destRect.origin.x, destRect.origin.y, destRect.size.width, destRect.size.height);
 
