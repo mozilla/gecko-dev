@@ -405,6 +405,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     this.dbg.onNewScript = this.onNewScript;
     this.dbg.onNewDebuggee = this._onNewDebuggee;
     if (this.dbg.replaying) {
+      this.dbg.threadActor = this;
       this.dbg.replayingOnForcedPause = this.replayingOnForcedPause.bind(this);
       this.dbg.replayingOnStatusUpdate = this.replayingOnStatusUpdate.bind(this);
       this.dbg.replayingOnTimeWarpClient = this.replayingOnTimeWarpClient.bind(this);
@@ -2282,8 +2283,8 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     return this.sources.isBlackBoxed(url, line, column);
   },
 
-  pickExecutionPoints(count, ranges) {
-    return this.dbg.replayPickExecutionPoints(count, ranges);
+  pickExecutionPoints(count, options) {
+    return this.dbg.replayPickExecutionPoints(count, options);
   },
 
   /**
