@@ -1233,8 +1233,10 @@ void EnsureRecordingLength(size_t aLength) {
   }
 
   while (gRecordingContents.length() < aLength) {
+    PrintLog("EnsureRecordingLength have %lu need %lu, waiting...", gRecordingContents.length(), aLength);
     gMonitor->Wait();
   }
+  PrintLog("EnsureRecordingLength done %lu", gRecordingContents.length());
 }
 
 static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock) {
