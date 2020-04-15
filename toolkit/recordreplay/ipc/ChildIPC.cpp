@@ -732,7 +732,7 @@ void OnNewRecordingData(Message::UniquePtr aMsg) {
         i++;
       }
     }
-    Print("NewRecordingData NotifyMonitor %p", gMonitor);
+    PrintLog("NewRecordingData NotifyMonitor %p", gMonitor);
     gMonitor->NotifyAll();
   } else {
     // Defer processing this until it is contiguous with the earlier contents.
