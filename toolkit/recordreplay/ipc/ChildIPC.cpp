@@ -539,7 +539,9 @@ static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
 static const size_t ForkTimeoutSeconds = 10;
 
 void PerformFork(size_t aForkId) {
+  PrintLog("PerformFork Start");
   gForkLock.WriteLock();
+  PrintLog("PerformFork Locked");
 
   if (ForkProcess(aForkId)) {
     // This is the original process.
