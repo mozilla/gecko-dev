@@ -101,7 +101,7 @@ static UniquePtr<ExternalCallResponseMessage, Message::FreePolicy>
 static bool gWaitingForCallResponse;
 
 static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock);
-static void SendMessageToForkedProcess(Message::UniquePtr aMsg);
+static void SendMessageToForkedProcess(Message::UniquePtr aMsg, bool aLockHeld = false);
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize);
 static void HandleSharedKeyResponse(const SharedKeyResponseMessage& aMsg);
 static void OnNewRecordingData(Message::UniquePtr aMsg);
@@ -393,7 +393,7 @@ base::ProcessId ParentProcessId() { return gParentPid; }
 
 static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg);
 
-// Messages to send to forks that don't exist yet.
+// Messages to send to forks that don't exist yet. Protected by gMonitor.
 static StaticInfallibleVector<Message::UniquePtr> gPendingForkMessages;
 
 struct ForkedProcess {
@@ -402,8 +402,9 @@ struct ForkedProcess {
   Channel* mChannel;
 };
 
-// Indexed by fork ID.
+// Indexed by fork ID. Protected by gMonitor.
 static StaticInfallibleVector<ForkedProcess*> gForkedProcesses;
+
 static FileHandle gForkWriteFd, gForkReadFd;
 static char* gFatalErrorMemory;
 static const size_t FatalErrorMemorySize = PageSize * 4;
@@ -417,6 +418,7 @@ static void ForkListenerThread(void*) {
     PrintLog("ConnectedToFork %lu", process.mForkId);
 
     AutoReadSpinLock disallowFork(gForkLock);
+    MonitorAutoLock lock(*gMonitor);
 
     process.mChannel = new Channel(0, Channel::Kind::ReplayRoot,
                                    HandleMessageFromForkedProcess,
@@ -454,9 +456,14 @@ static void InitializeForkListener() {
   }
 }
 
-static void SendMessageToForkedProcess(Message::UniquePtr aMsg) {
+static void SendMessageToForkedProcess(Message::UniquePtr aMsg, bool aLockHeld) {
   if (IsVerbose() && aMsg->mType == MessageType::ManifestStart) {
     PrintLog("SendManifestStartToForkedProcess %u %u", aMsg->mSize, aMsg->Hash());
+  }
+
+  Maybe<MonitorAutoLock> lock;
+  if (!aLockHeld) {
+    lock.emplace(*gMonitor);
   }
 
   if (aMsg->mForkId < gForkedProcesses.length() && gForkedProcesses[aMsg->mForkId]) {
@@ -481,6 +488,8 @@ static void HandleSharedKeyRequest(const SharedKeyRequestMessage& aMsg);
 static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
   // Certain messages from forked processes are intended for this one,
   // instead of the middleman.
+  AutoReadSpinLock disallowFork(gForkLock);
+
   switch (aMsg->mType) {
     case MessageType::UpdateRecordingFromRoot: {
       const auto& nmsg = static_cast<const UpdateRecordingFromRootMessage&>(*aMsg);
@@ -491,7 +500,7 @@ static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
           nmsg.mForkId, nmsg.mStart,
           gRecordingContents.begin() + nmsg.mStart,
           nmsg.mRequiredLength - nmsg.mStart));
-      SendMessageToForkedProcess(std::move(newMessage));
+      SendMessageToForkedProcess(std::move(newMessage), /* aLockHeld */ true);
       break;
     }
     case MessageType::ExternalCallRequest: {
@@ -926,7 +935,8 @@ static void HandleSharedKeySet(const SharedKeySetMessage& aMsg) {
 static void HandleSharedKeyRequest(const SharedKeyRequestMessage& aMsg) {
   MOZ_RELEASE_ASSERT(gForkId == 0);
 
-  MonitorAutoLock lock(*gSharedDatabaseMonitor);
+  Maybe<MonitorAutoLock> lock;
+  lock.emplace(*gSharedDatabaseMonitor);
 
   std::string key(aMsg.BinaryData(), aMsg.BinaryDataSize());
   std::string value;
@@ -938,6 +948,8 @@ static void HandleSharedKeyRequest(const SharedKeyRequestMessage& aMsg) {
 
   Message::UniquePtr response(SharedKeyResponseMessage::New(
       aMsg.mForkId, 0, value.data(), value.length()));
+  lock.reset();
+
   SendMessageToForkedProcess(std::move(response));
 }
 
