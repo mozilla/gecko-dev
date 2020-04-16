@@ -561,15 +561,6 @@ static void DrawCellWithScaling(NSCell* cell, CGContextRef cgContext, const HIRe
                                 BOOL mirrorHorizontal) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-  recordreplay::RecordReplayAssert("DrawCellWithScaling %.2f %.2f %.2f %.2f",
-                                   destRect.origin.x, destRect.origin.y,
-                                   destRect.size.width, destRect.size.height);
-  recordreplay::RecordReplayAssert("DrawCellWithScaling NATURAL %.2f %.2f",
-                                   naturalSize.width, naturalSize.height);
-  recordreplay::RecordReplayAssert("DrawCellWithScaling MINIMUM %.2f %.2f",
-                                   minimumSize.width, minimumSize.height);
-  recordreplay::RecordReplayAssert("DrawCellWithScaling CONTROL %d", (int) controlSize);
-
   NSRect drawRect =
       NSMakeRect(destRect.origin.x, destRect.origin.y, destRect.size.width, destRect.size.height);
 
@@ -590,8 +581,6 @@ static void DrawCellWithScaling(NSCell* cell, CGContextRef cgContext, const HIRe
 
   // Only skip the buffer if the area of our cell (in pixels^2) is too large.
   if (drawRect.size.width * drawRect.size.height > BITMAP_MAX_AREA) {
-    recordreplay::RecordReplayAssert("DrawCellWithScaling #1");
-
     // Inflate the rect Gecko gave us by the margin for the control.
     InflateControlRect(&drawRect, controlSize, marginSet);
 
@@ -604,19 +593,13 @@ static void DrawCellWithScaling(NSCell* cell, CGContextRef cgContext, const HIRe
 
     [NSGraphicsContext setCurrentContext:savedContext];
   } else {
-    recordreplay::RecordReplayAssert("DrawCellWithScaling #2");
-
     float w = ceil(drawRect.size.width);
     float h = ceil(drawRect.size.height);
     NSRect tmpRect = NSMakeRect(kMaxFocusRingWidth, kMaxFocusRingWidth, w, h);
 
-    recordreplay::RecordReplayAssert("DrawCellWithScaling #3");
-
     // inflate to figure out the frame we need to tell NSCell to draw in, to get something that's
     // 0,0,w,h
     InflateControlRect(&tmpRect, controlSize, marginSet);
-
-    recordreplay::RecordReplayAssert("DrawCellWithScaling #4");
 
     // and then, expand by kMaxFocusRingWidth size to make sure we can capture any focus ring
     w += kMaxFocusRingWidth * 2.0;
@@ -779,9 +762,6 @@ static void DrawCellWithSnapping(NSCell* cell, CGContextRef cgContext, const HIR
       EnumSizeForCocoaSize(controlSizeX) < EnumSizeForCocoaSize(controlSizeY) ? controlSizeX
                                                                               : controlSizeY;
   const size_t smallerControlSizeIndex = EnumSizeForCocoaSize(smallerControlSize);
-
-  recordreplay::RecordReplayAssert("DrawCellWithSnapping #1 %d", (int) smallerControlSizeIndex);
-
   const NSSize size = sizes[smallerControlSizeIndex];
   float diffWidth = size.width ? rectWidth - size.width : 0.0f;
   float diffHeight = size.height ? rectHeight - size.height : 0.0f;
@@ -790,9 +770,6 @@ static void DrawCellWithSnapping(NSCell* cell, CGContextRef cgContext, const HIR
     // Snap to the smaller control size.
     controlSize = smallerControlSize;
     sizeIndex = smallerControlSizeIndex;
-
-    recordreplay::RecordReplayAssert("DrawCellWithSnapping #2 %d", (int) sizeIndex);
-
     MOZ_ASSERT(sizeIndex < ArrayLength(settings.naturalSizes));
 
     // Resize and center the drawRect.
@@ -811,21 +788,12 @@ static void DrawCellWithSnapping(NSCell* cell, CGContextRef cgContext, const HIR
                       ? controlSizeX
                       : controlSizeY;
     sizeIndex = EnumSizeForCocoaSize(controlSize);
-
-    recordreplay::RecordReplayAssert("DrawCellWithSnapping #3 %d %d", (int) sizeIndex, (int) controlSize);
   }
 
   [cell setControlSize:controlSize];
 
-  recordreplay::RecordReplayAssert("DrawCellWithSnapping #5 %d", (int) sizeIndex);
-
   MOZ_ASSERT(sizeIndex < ArrayLength(settings.minimumSizes));
   const NSSize minimumSize = settings.minimumSizes[sizeIndex];
-
-  recordreplay::RecordReplayAssert("DrawCellWithSnapping #6 %d %d %.2f %.2f",
-                                   (int) sizeIndex, ArrayLength(settings.minimumSizes),
-                                   minimumSize.width, minimumSize.height);
-
   DrawCellWithScaling(cell, cgContext, drawRect, controlSize, sizes[sizeIndex], minimumSize,
                       settings.margins, view, mirrorHorizontal);
 
@@ -962,33 +930,10 @@ static NSCellStateValue CellStateForCheckboxOrRadioState(
   }
 }
 
-void ValidateNativeThemeCocoaSettings() {
-  for (int i = 0; i < 3; i++) {
-    {
-      mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-      fprintf(stderr, "ADDRESS %p\n", &checkboxSettings.minimumSizes[i]);
-    }
-    NSSize size = checkboxSettings.minimumSizes[i];
-    recordreplay::RecordReplayAssert("ValidateSettings checkbox %d %.2f %.2f",
-                                     i, size.width, size.height);
-  }
-  for (int i = 0; i < 3; i++) {
-    {
-      mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-      fprintf(stderr, "ADDRESS %p\n", &checkboxSettings.minimumSizes[i]);
-    }
-    NSSize size = radioSettings.minimumSizes[i];
-    recordreplay::RecordReplayAssert("ValidateSettings radio %d %.2f %.2f",
-                                     i, size.width, size.height);
-  }
-}
-
 void nsNativeThemeCocoa::DrawCheckboxOrRadio(CGContextRef cgContext, bool inCheckbox,
                                              const HIRect& inBoxRect,
                                              const CheckboxOrRadioParams& aParams) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
-
-  recordreplay::RecordReplayAssert("nsNativeThemeCocoa::DrawCheckboxOrRadio %d", inCheckbox);
 
   NSButtonCell* cell = inCheckbox ? mCheckboxCell : mRadioButtonCell;
   ApplyControlParamsToNSCell(aParams.controlParams, cell);
