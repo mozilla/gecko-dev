@@ -40,8 +40,9 @@ function Initialize(address, callbacks) {
 
   const buildId = `macOS-${Services.appinfo.appBuildID}`;
   const verbose = !!getenv("WEBREPLAY_VERBOSE");
+  const notimeout = !!getenv("WEBREPLAY_NO_TIMEOUT");
 
-  gWorker.postMessage({ kind: "initialize", address, buildId, verbose });
+  gWorker.postMessage({ kind: "initialize", address, buildId, verbose, notimeout });
 }
 
 // ID assigned to this browser session by the cloud server.

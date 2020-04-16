@@ -8,9 +8,7 @@
 let gServerSocket;
 const gConnections = [];
 
-let gServerAddress;
-let gBuildId;
-let gVerbose;
+let gConfig;
 
 ChromeUtils.recordReplayRegisterConnectionWorker(doSend);
 
@@ -19,9 +17,7 @@ self.addEventListener("message", makeInfallible(onMainThreadMessage));
 function onMainThreadMessage({ data }) {
   switch (data.kind) {
     case "initialize":
-      gServerAddress = data.address;
-      gBuildId = data.buildId;
-      gVerbose = data.verbose;
+      gConfig = data;
       openServerSocket();
       break;
     case "connect":
@@ -36,7 +32,7 @@ function onMainThreadMessage({ data }) {
 }
 
 function openServerSocket() {
-  gServerSocket = new WebSocket(gServerAddress);
+  gServerSocket = new WebSocket(gConfig.address);
   gServerSocket.onopen = makeInfallible(onServerOpen);
   gServerSocket.onclose = makeInfallible(onServerClose);
   gServerSocket.onmessage = makeInfallible(onServerMessage);
@@ -55,7 +51,7 @@ function sendMessageToCloudServer(msg) {
 }
 
 function onServerOpen(evt) {
-  sendMessageToCloudServer({ kind: "initialize", buildId: gBuildId });
+  sendMessageToCloudServer({ kind: "initialize", buildId: gConfig.buildId });
   updateStatus("cloudInitialize.label");
 }
 
@@ -99,12 +95,12 @@ async function onServerMessage(evt) {
 const MessageLogCount = 20;
 
 function maybeLogMessage(prefix, id, message, count, delay) {
-  if (gVerbose || count <= MessageLogCount) {
+  if (gConfig.verbose || count <= MessageLogCount) {
     const desc = messageDescription(message);
     const delayText = delay ? ` Delay ${roundTime(delay)}` : "";
     writeLog(`${prefix} Connection ${id} Message ${desc}${delayText}`);
   }
-  if (!gVerbose && count == MessageLogCount) {
+  if (!gConfig.verbose && count == MessageLogCount) {
     writeLog(`Verbose not set, not logging future ${prefix} messages for connection ${id}`);
   }
 }
@@ -255,19 +251,21 @@ async function doConnect(id, channelId) {
 
   function urlParams(bulk) {
     const id = connection.replayerSessionId;
-    return `id=${id}&dispatchId=${gSessionId}&bulk=${bulk}&verbose=${gVerbose}`;
+    return `id=${id}&dispatchId=${gSessionId}&bulk=${bulk}&verbose=${gConfig.verbose}`;
   }
 
   connection.socket.connect(`${address}/connect?${urlParams(false)}`);
   connection.bulkSocket.connect(`${address}/connect?${urlParams(true)}`);
 
-  setTimeout(() => {
-    if (!connection.socket.connected) {
-      writeLog(`ReplayerConnectionTimedOut ${id}`);
-      connection.socket.close();
-      connection.bulkSocket.close();
-    }
-  }, SocketTimeoutMs);
+  if (!gConfig.notimeout) {
+    setTimeout(() => {
+      if (!connection.socket.connected) {
+        writeLog(`ReplayerConnectionTimedOut ${id}`);
+        connection.socket.close();
+        connection.bulkSocket.close();
+      }
+    }, SocketTimeoutMs);
+  }
 }
 
 function readMessage(msg, offset = 0) {
