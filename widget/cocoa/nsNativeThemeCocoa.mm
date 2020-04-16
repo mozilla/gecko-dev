@@ -564,6 +564,8 @@ static void DrawCellWithScaling(NSCell* cell, CGContextRef cgContext, const HIRe
   recordreplay::RecordReplayAssert("DrawCellWithScaling %.2f %.2f %.2f %.2f",
                                    destRect.origin.x, destRect.origin.y,
                                    destRect.size.width, destRect.size.height);
+  recordreplay::RecordReplayAssert("DrawCellWithScaling NATURAL %.2f %.2f",
+                                   naturalSize.width, naturalSize.height);
 
   NSRect drawRect =
       NSMakeRect(destRect.origin.x, destRect.origin.y, destRect.size.width, destRect.size.height);
@@ -774,6 +776,9 @@ static void DrawCellWithSnapping(NSCell* cell, CGContextRef cgContext, const HIR
       EnumSizeForCocoaSize(controlSizeX) < EnumSizeForCocoaSize(controlSizeY) ? controlSizeX
                                                                               : controlSizeY;
   const size_t smallerControlSizeIndex = EnumSizeForCocoaSize(smallerControlSize);
+
+  recordreplay::RecordReplayAssert("DrawCellWithSnapping #1 %d", (int) smallerControlSizeIndex);
+
   const NSSize size = sizes[smallerControlSizeIndex];
   float diffWidth = size.width ? rectWidth - size.width : 0.0f;
   float diffHeight = size.height ? rectHeight - size.height : 0.0f;
@@ -782,6 +787,9 @@ static void DrawCellWithSnapping(NSCell* cell, CGContextRef cgContext, const HIR
     // Snap to the smaller control size.
     controlSize = smallerControlSize;
     sizeIndex = smallerControlSizeIndex;
+
+    recordreplay::RecordReplayAssert("DrawCellWithSnapping #2 %d", (int) sizeIndex);
+
     MOZ_ASSERT(sizeIndex < ArrayLength(settings.naturalSizes));
 
     // Resize and center the drawRect.
@@ -800,9 +808,13 @@ static void DrawCellWithSnapping(NSCell* cell, CGContextRef cgContext, const HIR
                       ? controlSizeX
                       : controlSizeY;
     sizeIndex = EnumSizeForCocoaSize(controlSize);
+
+    recordreplay::RecordReplayAssert("DrawCellWithSnapping #3 %d %d", (int) sizeIndex, (int) controlSize);
   }
 
   [cell setControlSize:controlSize];
+
+  recordreplay::RecordReplayAssert("DrawCellWithSnapping #5 %d", (int) sizeIndex);
 
   MOZ_ASSERT(sizeIndex < ArrayLength(settings.minimumSizes));
   const NSSize minimumSize = settings.minimumSizes[sizeIndex];
@@ -946,6 +958,8 @@ void nsNativeThemeCocoa::DrawCheckboxOrRadio(CGContextRef cgContext, bool inChec
                                              const HIRect& inBoxRect,
                                              const CheckboxOrRadioParams& aParams) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
+
+  recordreplay::RecordReplayAssert("nsNativeThemeCocoa::DrawCheckboxOrRadio %d", inCheckbox);
 
   NSButtonCell* cell = inCheckbox ? mCheckboxCell : mRadioButtonCell;
   ApplyControlParamsToNSCell(aParams.controlParams, cell);
