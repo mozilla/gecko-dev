@@ -28,6 +28,8 @@
 #include <mach/ndr.h>
 #include <sys/time.h>
 
+extern void ValidateNativeThemeCocoaSettings();
+
 namespace mozilla {
 namespace recordreplay {
 
@@ -192,6 +194,8 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   gRecordingPid = RecordReplayValue(gPid);
 
   gInitialized = true;
+
+  ValidateNativeThemeCocoaSettings();
 }
 
 MOZ_EXPORT size_t

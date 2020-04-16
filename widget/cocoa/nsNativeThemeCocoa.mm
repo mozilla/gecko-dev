@@ -433,12 +433,8 @@ static bool IsInSourceList(nsIFrame* aFrame) {
 
 NS_IMPL_ISUPPORTS_INHERITED(nsNativeThemeCocoa, nsNativeTheme, nsITheme)
 
-static void ValidateSettings();
-
 nsNativeThemeCocoa::nsNativeThemeCocoa() {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
-
-  ValidateSettings();
 
   kMaxFocusRingWidth = nsCocoaFeatures::OnYosemiteOrLater() ? 7 : 4;
 
@@ -966,7 +962,7 @@ static NSCellStateValue CellStateForCheckboxOrRadioState(
   }
 }
 
-static void ValidateSettings() {
+void ValidateNativeThemeCocoaSettings() {
   for (int i = 0; i < 3; i++) {
     NSSize size = checkboxSettings.minimumSizes[i];
     recordreplay::RecordReplayAssert("ValidateSettings checkbox %d %.2f %.2f",
@@ -999,7 +995,7 @@ void nsNativeThemeCocoa::DrawCheckboxOrRadio(CGContextRef cgContext, bool inChec
                                inBoxRect.origin.y + (int)((inBoxRect.size.height - length) / 2.0f),
                                length, length);
 
-  ValidateSettings();
+  ValidateNativeThemeCocoaSettings();
 
   DrawCellWithSnapping(cell, cgContext, drawRect, inCheckbox ? checkboxSettings : radioSettings,
                        aParams.verticalAlignFactor, mCellDrawView, NO);
