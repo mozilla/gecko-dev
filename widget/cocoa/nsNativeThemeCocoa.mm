@@ -821,6 +821,11 @@ static void DrawCellWithSnapping(NSCell* cell, CGContextRef cgContext, const HIR
 
   MOZ_ASSERT(sizeIndex < ArrayLength(settings.minimumSizes));
   const NSSize minimumSize = settings.minimumSizes[sizeIndex];
+
+  recordreplay::RecordReplayAssert("DrawCellWithSnapping #6 %d %d %.2f %.2f",
+                                   (int) sizeIndex, ArrayLength(settings.minimumSizes),
+                                   minimumSize.width, minimumSize.height);
+
   DrawCellWithScaling(cell, cgContext, drawRect, controlSize, sizes[sizeIndex], minimumSize,
                       settings.margins, view, mirrorHorizontal);
 
