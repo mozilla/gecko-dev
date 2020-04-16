@@ -964,11 +964,19 @@ static NSCellStateValue CellStateForCheckboxOrRadioState(
 
 void ValidateNativeThemeCocoaSettings() {
   for (int i = 0; i < 3; i++) {
+    {
+      mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+      fprintf(stderr, "ADDRESS %p\n", &checkboxSettings.minimumSizes[i]);
+    }
     NSSize size = checkboxSettings.minimumSizes[i];
     recordreplay::RecordReplayAssert("ValidateSettings checkbox %d %.2f %.2f",
                                      i, size.width, size.height);
   }
   for (int i = 0; i < 3; i++) {
+    {
+      mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+      fprintf(stderr, "ADDRESS %p\n", &checkboxSettings.minimumSizes[i]);
+    }
     NSSize size = radioSettings.minimumSizes[i];
     recordreplay::RecordReplayAssert("ValidateSettings radio %d %.2f %.2f",
                                      i, size.width, size.height);
@@ -994,8 +1002,6 @@ void nsNativeThemeCocoa::DrawCheckboxOrRadio(CGContextRef cgContext, bool inChec
   HIRect drawRect = CGRectMake(inBoxRect.origin.x + (int)((inBoxRect.size.width - length) / 2.0f),
                                inBoxRect.origin.y + (int)((inBoxRect.size.height - length) / 2.0f),
                                length, length);
-
-  ValidateNativeThemeCocoaSettings();
 
   DrawCellWithSnapping(cell, cgContext, drawRect, inCheckbox ? checkboxSettings : radioSettings,
                        aParams.verticalAlignFactor, mCellDrawView, NO);
