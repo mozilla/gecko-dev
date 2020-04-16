@@ -585,6 +585,8 @@ static void DrawCellWithScaling(NSCell* cell, CGContextRef cgContext, const HIRe
 
   // Only skip the buffer if the area of our cell (in pixels^2) is too large.
   if (drawRect.size.width * drawRect.size.height > BITMAP_MAX_AREA) {
+    recordreplay::RecordReplayAssert("DrawCellWithScaling #1");
+
     // Inflate the rect Gecko gave us by the margin for the control.
     InflateControlRect(&drawRect, controlSize, marginSet);
 
@@ -597,13 +599,19 @@ static void DrawCellWithScaling(NSCell* cell, CGContextRef cgContext, const HIRe
 
     [NSGraphicsContext setCurrentContext:savedContext];
   } else {
+    recordreplay::RecordReplayAssert("DrawCellWithScaling #2");
+
     float w = ceil(drawRect.size.width);
     float h = ceil(drawRect.size.height);
     NSRect tmpRect = NSMakeRect(kMaxFocusRingWidth, kMaxFocusRingWidth, w, h);
 
+    recordreplay::RecordReplayAssert("DrawCellWithScaling #3");
+
     // inflate to figure out the frame we need to tell NSCell to draw in, to get something that's
     // 0,0,w,h
     InflateControlRect(&tmpRect, controlSize, marginSet);
+
+    recordreplay::RecordReplayAssert("DrawCellWithScaling #4");
 
     // and then, expand by kMaxFocusRingWidth size to make sure we can capture any focus ring
     w += kMaxFocusRingWidth * 2.0;
