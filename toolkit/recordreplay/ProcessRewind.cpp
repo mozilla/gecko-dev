@@ -253,15 +253,12 @@ bool ForkProcess(size_t aForkId) {
   MOZ_RELEASE_ASSERT(IsReplaying());
 
   if (!gNeedRespawnThreads) {
-    child::PrintLog("StartWaitForIdleThreads");
     Thread::WaitForIdleThreads();
 
     // Before forking all other threads need to release any locks they are
     // holding. After the fork the new process will only have a main thread and
     // will not be able to acquire any lock held at the time of the fork.
-    child::PrintLog("OperateOnIdleThreadLocks BeginRelease");
     Thread::OperateOnIdleThreadLocks(Thread::OwnedLockState::NeedRelease);
-    child::PrintLog("OperateOnIdleThreadLocks EndRelease");
   }
 
   AutoEnsurePassThroughThreadEvents pt;
@@ -272,11 +269,8 @@ bool ForkProcess(size_t aForkId) {
   if (pid > 0) {
     child::PrintLog("ForkDone");
     if (!gNeedRespawnThreads) {
-      child::PrintLog("OperateOnIdleThreadLocks BeginAcquire");
       Thread::OperateOnIdleThreadLocks(Thread::OwnedLockState::NeedAcquire);
-      child::PrintLog("OperateOnIdleThreadLocks EndAcquire");
       Thread::ResumeIdleThreads();
-      child::PrintLog("IdleThreadsResumed");
     }
     return true;
   }
