@@ -566,6 +566,9 @@ static void DrawCellWithScaling(NSCell* cell, CGContextRef cgContext, const HIRe
                                    destRect.size.width, destRect.size.height);
   recordreplay::RecordReplayAssert("DrawCellWithScaling NATURAL %.2f %.2f",
                                    naturalSize.width, naturalSize.height);
+  recordreplay::RecordReplayAssert("DrawCellWithScaling MINIMUM %.2f %.2f",
+                                   minimumSize.width, minimumSize.height);
+  recordreplay::RecordReplayAssert("DrawCellWithScaling CONTROL %d", (int) controlSize);
 
   NSRect drawRect =
       NSMakeRect(destRect.origin.x, destRect.origin.y, destRect.size.width, destRect.size.height);
