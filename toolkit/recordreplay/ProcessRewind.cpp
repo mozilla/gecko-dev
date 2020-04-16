@@ -253,11 +253,13 @@ bool ForkProcess(size_t aForkId) {
   MOZ_RELEASE_ASSERT(IsReplaying());
 
   if (!gNeedRespawnThreads) {
+    child::PrintLog("ForkProcess WaitForIdleThreads");
     Thread::WaitForIdleThreads();
 
     // Before forking all other threads need to release any locks they are
     // holding. After the fork the new process will only have a main thread and
     // will not be able to acquire any lock held at the time of the fork.
+    child::PrintLog("ForkProcess ReleaseLocks");
     Thread::OperateOnIdleThreadLocks(Thread::OwnedLockState::NeedRelease);
   }
 
