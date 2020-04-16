@@ -982,6 +982,11 @@ void nsNativeThemeCocoa::DrawCheckboxOrRadio(CGContextRef cgContext, bool inChec
                                inBoxRect.origin.y + (int)((inBoxRect.size.height - length) / 2.0f),
                                length, length);
 
+  recordreplay::RecordReplayAssert("DrawCheckboxOrRadio #1 %d %d %d",
+                                   (int) inCheckbox,
+                                   HashBytes(&checkboxSettings, sizeof(checkboxSettings)),
+                                   HashBytes(&radioSettings, sizeof(radioSettings)));
+
   DrawCellWithSnapping(cell, cgContext, drawRect, inCheckbox ? checkboxSettings : radioSettings,
                        aParams.verticalAlignFactor, mCellDrawView, NO);
 
