@@ -224,7 +224,6 @@ class WebReplayPlayer extends Component {
       highlightedMessage: null,
       hoveredMessageOffset: null,
       unscannedRegions: [],
-      cachedPoints: [],
       shouldAnimate: true,
       zoomStartpoint: FirstCheckpointExecutionPoint,
       zoomEndpoint: FirstCheckpointExecutionPoint,
@@ -277,13 +276,6 @@ class WebReplayPlayer extends Component {
 
   get threadFront() {
     return this.toolbox.threadFront;
-  }
-
-  isCached(message) {
-    if (!message.executionPoint) {
-      return false;
-    }
-    return this.state.cachedPoints.some(p => pointEquals(p, message.executionPoint));
   }
 
   isRecording() {
@@ -367,7 +359,6 @@ class WebReplayPlayer extends Component {
       checkpoints,
       executionPoint,
       unscannedRegions,
-      cachedPoints,
       widgetEvents,
     } = status;
 
@@ -420,13 +411,6 @@ class WebReplayPlayer extends Component {
       if (!similar) {
         newState.unscannedRegions = unscannedRegions;
       }
-    }
-
-    if (cachedPoints !== undefined) {
-      newState.cachedPoints = [
-        ...this.state.cachedPoints,
-        ...cachedPoints,
-      ];
     }
 
     if (recording) {
@@ -844,8 +828,6 @@ class WebReplayPlayer extends Component {
 
     const isHighlighted = highlightedMessage == message.id;
 
-    const uncached = message.executionPoint && !this.isCached(message);
-
     const atPausedLocation =
       pausedMessage && sameLocation(pausedMessage, message);
 
@@ -864,16 +846,13 @@ class WebReplayPlayer extends Component {
         overlayed: isOverlayed,
         future: isFuture,
         highlighted: isHighlighted,
-        uncached,
         location: atPausedLocation,
       }),
       style: {
         left: `${Math.max(offset - markerWidth / 2, 0)}px`,
         zIndex: `${index + 100}`,
       },
-      title: uncached
-        ? "Loading..."
-        : getFormatStr("jumpMessage2", frameLocation),
+      title: getFormatStr("jumpMessage2", frameLocation),
       onClick: e => {
         e.preventDefault();
         e.stopPropagation();

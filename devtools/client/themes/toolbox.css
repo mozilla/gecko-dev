@@ -559,10 +559,6 @@
   transition-duration: 100ms;
 }
 
-.webreplay-player .message.uncached {
-  opacity: 0.5;
-}
-
 .webreplay-player .message.location {
   background: var(--replaying-marker-location-background);
 }
@@ -855,10 +851,6 @@
   background-color: var(--replaying-marker-highlighted-background);
   transform: scale(1.25);
   transition-duration: 100ms;
-}
-
-.webreplay-player .message.uncached {
-  opacity: 0.5;
 }
 
 .webreplay-player .message.location {
