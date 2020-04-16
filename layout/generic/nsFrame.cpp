@@ -1184,7 +1184,7 @@ void nsFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
   // primary frames and pseudos, but the first-line reparenting code makes it
   // all bad, should get around to bug 1465474 eventually :(
   const bool isNonText = !IsTextFrame();
-  if (isNonText) {
+  if (isNonText && !recordreplay::HasDivergedFromRecording()) {
     mComputedStyle->StartImageLoads(*doc, aOldComputedStyle);
   }
 
