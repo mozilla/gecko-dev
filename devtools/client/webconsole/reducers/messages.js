@@ -69,6 +69,11 @@ ChromeUtils.defineModuleGetter(
   "pointEquals",
   "resource://devtools/shared/execution-point-utils.js"
 );
+ChromeUtils.defineModuleGetter(
+  this,
+  "pointToString",
+  "resource://devtools/shared/execution-point-utils.js"
+);
 
 const { UPDATE_REQUEST } = require("devtools/client/netmonitor/src/constants");
 
@@ -106,6 +111,8 @@ const MessageState = overrides =>
         frontsToRelease: [],
         // Map of the form {messageId : numberOfRepeat}
         repeatById: {},
+        // Map logpointId:pointString to messages.
+        logpointMessages: new Map(),
         // Set of logpoint IDs that have been removed
         removedLogpointIds: new Set(),
         // Any execution point we are currently paused at, when replaying.
@@ -134,6 +141,7 @@ function cloneState(state) {
     frontsToRelease: [...state.frontsToRelease],
     repeatById: { ...state.repeatById },
     networkMessagesUpdateById: { ...state.networkMessagesUpdateById },
+    logpointMessages: new Map(state.logpointMessages),
     removedLogpointIds: new Set(state.removedLogpointIds),
     pausedExecutionPoint: state.pausedExecutionPoint,
     hasExecutionPoints: state.hasExecutionPoints,
@@ -209,18 +217,15 @@ function addMessage(newMessage, state, filtersState, prefsState, uiState) {
   // removed.
   const removedIds = [];
   if (newMessage.logpointId) {
-    const existingMessage = [...state.messagesById.values()].find(existing => {
-      return (
-        existing.logpointId == newMessage.logpointId &&
-        pointEquals(existing.executionPoint, newMessage.executionPoint)
-      );
-    });
+    const key = `${newMessage.logpointId}:${pointToString(newMessage.executionPoint)}`;
+    const existingMessage = state.logpointMessages.get(key);
     if (existingMessage) {
       ChromeUtils.recordReplayLog(`LogpointFinish ${JSON.stringify(newMessage.executionPoint)}`);
       removedIds.push(existingMessage.id);
     } else {
       ChromeUtils.recordReplayLog(`LogpointStart ${JSON.stringify(newMessage.executionPoint)}`);
     }
+    state.logpointMessages.set(key, newMessage);
   }
 
   // Check if the current message could be placed in a Warning Group.
@@ -399,6 +404,8 @@ function messages(
       }
       return { ...state, pausedExecutionPoint: action.executionPoint };
     case constants.MESSAGES_ADD:
+      ChromeUtils.recordReplayLog(`AddMessages ${action.messages.length}`);
+
       // Preemptively remove messages that will never be rendered
       const list = [];
       let prunableCount = 0;
