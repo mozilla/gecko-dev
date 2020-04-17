@@ -185,7 +185,7 @@ class Stream {
 
   // Make sure that a value or buffer is the same while replaying as it was
   // while recording.
-  void CheckInput(size_t aValue);
+  void CheckInput(size_t aValue, const char* aExtra = nullptr);
   void CheckInput(const char* aValue);
   void CheckInput(const void* aData, size_t aSize);
 

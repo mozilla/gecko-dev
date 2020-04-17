@@ -1587,6 +1587,7 @@ function maybeSortVisibleMessages(
   // messages with execution points, as either we aren't replaying or haven't
   // seen any messages yet.
   if (state.hasExecutionPoints) {
+    ChromeUtils.recordReplayLog(`SortVisibleMessagesStart ${state.visibleMessages.length}`);
     state.visibleMessages.sort((a, b) => {
       const pointA = messageExecutionPoint(state, a);
       const pointB = messageExecutionPoint(state, b);
@@ -1616,6 +1617,7 @@ function maybeSortVisibleMessages(
 
       return countA > countB;
     });
+    ChromeUtils.recordReplayLog(`SortVisibleMessagesEnd`);
   }
 
   if (state.warningGroupsById.size > 0 && sortWarningGroupMessage) {

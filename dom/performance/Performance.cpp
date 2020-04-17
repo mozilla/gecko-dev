@@ -88,7 +88,21 @@ Performance::Performance(nsPIDOMWindowInner* aWindow, bool aSystemPrincipal)
 Performance::~Performance() = default;
 
 DOMHighResTimeStamp Performance::Now() {
-  recordreplay::RecordReplayAssert("Performance::Now");
+  {
+    JSContext* cx = dom::danger::GetJSContext();
+    JS::AutoFilename filename;
+    unsigned lineno;
+    unsigned column;
+    if (JS::DescribeScriptedCaller(cx, &filename, &lineno, &column)) {
+      if (strstr(filename.get(), "chrome://") || strstr(filename.get(), "resource://")) {
+        recordreplay::RecordReplayAssert("Performance::Now %s:%u:%u", filename.get(), lineno, column);
+      } else {
+        recordreplay::RecordReplayAssert("Performance::Now UserFrame");
+      }
+    } else {
+      recordreplay::RecordReplayAssert("Performance::Now NoScriptedCaller");
+    }
+  }
 
   DOMHighResTimeStamp rawTime = NowUnclamped();
   if (mSystemPrincipal) {

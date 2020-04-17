@@ -192,7 +192,7 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
   // Check the execution progress counter for events executing on the main
   // thread.
   if (mNameIndex == MainThreadId) {
-    CheckInput(*ExecutionProgressCounter());
+    CheckInput(*ExecutionProgressCounter(), aExtra);
   }
 }
 
@@ -204,15 +204,16 @@ ThreadEvent Stream::ReplayThreadEvent() {
   return event;
 }
 
-void Stream::CheckInput(size_t aValue) {
+void Stream::CheckInput(size_t aValue, const char* aExtra) {
   if (IsRecording()) {
     WriteScalar(aValue);
   } else {
     size_t oldValue = ReadScalar();
     if (oldValue != aValue) {
       DumpEvents();
-      child::ReportFatalError("Input Mismatch: %s Recorded %llu Replayed %llu",
-                              ThreadEventName(mLastEvent), oldValue, aValue);
+      child::ReportFatalError("Input Mismatch: %s %s Recorded %llu Replayed %llu",
+                              ThreadEventName(mLastEvent),
+                              aExtra ? aExtra : "", oldValue, aValue);
     }
   }
 }
