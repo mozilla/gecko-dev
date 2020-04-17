@@ -1452,6 +1452,22 @@ static ClippedTime NowAsMillis(JSContext* cx) {
 
 bool js::date_now(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
+
+  {
+    JS::AutoFilename filename;
+    unsigned lineno;
+    unsigned column;
+    if (JS::DescribeScriptedCaller(cx, &filename, &lineno, &column)) {
+      if (strstr(filename.get(), "chrome://") || strstr(filename.get(), "resource://")) {
+        recordreplay::RecordReplayAssert("Date::Now %s:%u:%u", filename.get(), lineno, column);
+      } else {
+        recordreplay::RecordReplayAssert("Date::Now UserFrame");
+      }
+    } else {
+      recordreplay::RecordReplayAssert("Date::Now NoScriptedCaller");
+    }
+  }
+
   args.rval().set(TimeValue(NowAsMillis(cx)));
   return true;
 }
