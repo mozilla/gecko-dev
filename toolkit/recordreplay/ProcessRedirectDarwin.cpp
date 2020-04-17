@@ -2514,7 +2514,7 @@ static SystemRedirection gSystemRedirections[] = {
      EX_Compose<EX_CFTypeArg<0>, EX_CFTypeArg<1>>},
     {"CFGetTypeID", RR_ScalarRval, nullptr, EX_CFTypeArg<0>},
     {"CFLocaleCopyCurrent", RR_ScalarRval},
-    {"CFLocaleCopyPreferredLanguages", RR_ScalarRval},
+    {"CFLocaleCopyPreferredLanguages", RR_ScalarRval, nullptr, EX_CreateCFTypeRval},
     {"CFLocaleCreate", RR_ScalarRval},
     {"CFLocaleGetIdentifier", RR_ScalarRval},
     {"CFNotificationCenterAddObserver", nullptr,
