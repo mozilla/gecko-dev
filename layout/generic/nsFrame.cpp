@@ -947,6 +947,10 @@ static void AddAndRemoveImageAssociations(
     ImageLoader& aImageLoader, nsFrame* aFrame,
     const nsStyleImageLayers* aOldLayers,
     const nsStyleImageLayers* aNewLayers) {
+  if (recordreplay::HasDivergedFromRecording()) {
+    return;
+  }
+
   // If the old context had a background-image image, or mask-image image,
   // and new context does not have the same image, clear the image load
   // notifier (which keeps the image loading, if it still is) for the frame.
