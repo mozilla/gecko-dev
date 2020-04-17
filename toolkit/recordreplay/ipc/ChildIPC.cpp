@@ -116,9 +116,8 @@ static AtomicBool gExitCalled;
 
 // Processing routine for incoming channel messages.
 static void ChannelMessageHandler(Message::UniquePtr aMsg) {
-  AutoReadSpinLock disallowFork(gForkLock);
-
   if (aMsg->mForkId != gForkId) {
+    AutoReadSpinLock disallowFork(gForkLock);
     if (gForkId) {
       // For some reason we can receive messages intended for another fork
       // which has terminated.
@@ -129,6 +128,28 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
     SendMessageToForkedProcess(std::move(aMsg));
     return;
   }
+
+  // Handle critical messages without acquiring the fork lock. The main thread
+  // could be stuck holding the fork lock and we need to immediately handle
+  // requests to terminate.
+  switch (aMsg->mType) {
+    case MessageType::Terminate: {
+      Print("Terminate message received, exiting...\n");
+      gExitCalled = true;
+      _exit(0);
+      break;
+    }
+    case MessageType::Crash: {
+      Print("Error: Crashing hanged process, dumping threads...\n");
+      Thread::DumpThreads();
+      ReportFatalError("Hung replaying process");
+      break;
+    }
+    default:
+      break;
+  }
+
+  AutoReadSpinLock disallowFork(gForkLock);
 
   switch (aMsg->mType) {
     case MessageType::Introduction: {
@@ -162,18 +183,6 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
           *ExecutionProgressCounter() + Thread::TotalEventProgress();
       PrintLog("PingResponse %u %llu", nmsg.mId, total);
       gChannel->SendMessage(PingResponseMessage(gForkId, nmsg.mId, total));
-      break;
-    }
-    case MessageType::Terminate: {
-      Print("Terminate message received, exiting...\n");
-      gExitCalled = true;
-      _exit(0);
-      break;
-    }
-    case MessageType::Crash: {
-      Print("Error: Crashing hanged process, dumping threads...\n");
-      Thread::DumpThreads();
-      ReportFatalError("Hung replaying process");
       break;
     }
     case MessageType::ManifestStart: {
