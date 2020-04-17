@@ -2433,7 +2433,11 @@ static SystemRedirection gSystemRedirections[] = {
     /////////////////////////////////////////////////////////////////////////////
 
     {"_ZNSt3__16chrono12system_clock3nowEv", RR_ScalarRval},
-    {"__dynamic_cast", RR_dynamic_cast},
+    {"__dynamic_cast", RR_dynamic_cast, nullptr, nullptr,
+     // dynamic_cast can be used in intl code called while repainting. Emulating
+     // this is difficult after diverging from the recording so just pretend all
+     // dynamic casts fail in such conditions.
+     Preamble_VetoIfNotPassedThrough<0>},
 
     /////////////////////////////////////////////////////////////////////////////
     // Gecko functions
