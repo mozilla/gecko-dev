@@ -224,6 +224,9 @@ void InitializeCurrentTime();
 // Get a current timestamp, in microseconds.
 double CurrentTime();
 
+// Get the elapsed time since startup, in microseconds.
+double ElapsedTime();
+
 #define ForEachTimerKind(Macro) Macro(Default)
 
 enum class TimerKind {

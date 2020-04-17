@@ -70,6 +70,9 @@ static char* gInstallDirectory;
 static const char gExecutableSuffix[] =
     "Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container";
 
+// In a recording/replaying process, time at which execution started per CurrentTime.
+static double gStartTime;
+
 static void InitializeCrashDetector();
 
 extern "C" {
@@ -155,6 +158,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   }
 
   InitializeCurrentTime();
+  gStartTime = CurrentTime();
 
   gRecording = new Recording();
 
@@ -258,7 +262,18 @@ MOZ_EXPORT void RecordReplayInterface_InternalEndPassThroughThreadEventsWithLoca
   }
 }
 
+// The elapsed time since the process was initialized, in seconds. This is
+// exposed to the translation layer so that consistent times can be used for
+// logged messages.
+MOZ_EXPORT double RecordReplayInterface_ElapsedTime() {
+  return (CurrentTime() - gStartTime) / 1e6;
+}
+
 }  // extern "C"
+
+double ElapsedTime() {
+  return RecordReplayInterface_ElapsedTime();
+}
 
 // How many bytes have been sent from the recording to the middleman.
 size_t gRecordingDataSentToMiddleman;

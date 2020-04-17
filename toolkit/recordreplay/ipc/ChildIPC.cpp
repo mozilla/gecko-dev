@@ -337,8 +337,6 @@ void SetupRecordReplayChannel(int aArgc, char* aArgv[]) {
   }
 }
 
-static double gStartTime;
-
 static void InitializeForkListener();
 static void InitializeSharedDatabase();
 
@@ -346,8 +344,6 @@ void InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv) {
   if (!IsRecordingOrReplaying()) {
     return;
   }
-
-  gStartTime = CurrentTime();
 
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
 
@@ -880,19 +876,8 @@ void SetWebReplayJS(const nsCString& aControlJS, const nsCString& aReplayJS) {
   }
 }
 
-extern "C" {
-
-// The elapsed time since the process was initialized, in seconds. This is
-// exposed to the translation layer so that consistent times can be used for
-// logged messages.
-MOZ_EXPORT double RecordReplayInterface_ElapsedTime() {
-  return (CurrentTime() - gStartTime) / 1e6;
-}
-
-} // extern "C"
-
 void PrintLog(const nsAString& aText) {
-  double elapsed = RecordReplayInterface_ElapsedTime();
+  double elapsed = ElapsedTime();
   NS_ConvertUTF16toUTF8 ntext(aText);
   if (IsRecording()) {
     nsPrintfCString buf("[Recording %.3f] %s\n", elapsed, ntext.get());
