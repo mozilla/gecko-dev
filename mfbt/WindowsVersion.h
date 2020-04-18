@@ -14,9 +14,12 @@
 
 namespace mozilla {
 
+typedef Atomic<uint32_t, SequentiallyConsistent,
+               recordreplay::Behavior::DontPreserve> AtomicU32;
+
 inline bool IsWindowsVersionOrLater(uint32_t aVersion) {
-  static Atomic<uint32_t> minVersion(0);
-  static Atomic<uint32_t> maxVersion(UINT32_MAX);
+  static AtomicU32 minVersion(0);
+  static AtomicU32 maxVersion(UINT32_MAX);
 
   if (minVersion >= aVersion) {
     return true;
@@ -53,8 +56,8 @@ inline bool IsWindowsVersionOrLater(uint32_t aVersion) {
 }
 
 inline bool IsWindowsBuildOrLater(uint32_t aBuild) {
-  static Atomic<uint32_t> minBuild(0);
-  static Atomic<uint32_t> maxBuild(UINT32_MAX);
+  static AtomicU32 minBuild(0);
+  static AtomicU32 maxBuild(UINT32_MAX);
 
   if (minBuild >= aBuild) {
     return true;
@@ -82,8 +85,8 @@ inline bool IsWindowsBuildOrLater(uint32_t aBuild) {
 }
 
 inline bool IsWindows10BuildOrLater(uint32_t aBuild) {
-  static Atomic<uint32_t> minBuild(0);
-  static Atomic<uint32_t> maxBuild(UINT32_MAX);
+  static AtomicU32 minBuild(0);
+  static AtomicU32 maxBuild(UINT32_MAX);
 
   if (minBuild >= aBuild) {
     return true;

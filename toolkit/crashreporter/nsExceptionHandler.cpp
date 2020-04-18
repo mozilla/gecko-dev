@@ -1458,8 +1458,6 @@ bool MinidumpCallback(
     EXCEPTION_POINTERS* exinfo, MDRawAssertionInfo* assertion,
 #endif
     const phc::AddrInfo* addrInfo, bool succeeded) {
-  fprintf(stderr, "MinidumpCallback Invoked %d\n", getpid());
-
   bool returnValue = showOSCrashReporter ? false : succeeded;
 
   static XP_CHAR minidumpPath[XP_PATH_MAX];

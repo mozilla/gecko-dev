@@ -11,7 +11,10 @@
 #include "mozilla/Casting.h"
 #include "mozilla/Utf8.h"
 
+#ifndef XP_WIN
 #include <dlfcn.h>
+#endif
+
 #include <stdlib.h>
 
 namespace mozilla {
@@ -87,12 +90,16 @@ FOR_EACH_INTERFACE_VOID(DECLARE_SYMBOL_VOID)
 #undef DECLARE_SYMBOL_VOID
 
 static void* LoadSymbol(const char* aName) {
+#ifdef XP_WIN
+  MOZ_CRASH("LoadSymbol");
+#else
   void* rv = dlsym(RTLD_DEFAULT, aName);
   if (!rv) {
     fprintf(stderr, "Record/Replay LoadSymbol failed: %s\n", aName);
     MOZ_CRASH("LoadSymbol");
   }
   return rv;
+#endif
 }
 
 void Initialize(int aArgc, char* aArgv[]) {

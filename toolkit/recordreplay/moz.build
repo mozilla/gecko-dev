@@ -9,29 +9,34 @@ EXPORTS.mozilla.recordreplay += [
     'ipc/ParentIPC.h',
 ]
 
-SOURCES += [
-    'Assembler.cpp',
-    'Callback.cpp',
-    'ExternalCall.cpp',
-    'HashTable.cpp',
-    'ipc/Channel.cpp',
-    'ipc/ChildIPC.cpp',
-    'ipc/ChildProcess.cpp',
-    'ipc/JSControl.cpp',
-    'ipc/ParentForwarding.cpp',
-    'ipc/ParentGraphics.cpp',
-    'ipc/ParentIPC.cpp',
-    'ipc/Watchdog.cpp',
-    'Lock.cpp',
-    'ProcessRecordReplay.cpp',
-    'ProcessRedirect.cpp',
-    'ProcessRedirectDarwin.cpp',
-    'ProcessRewind.cpp',
-    'Recording.cpp',
-    'Thread.cpp',
-    'ThreadSnapshot.cpp',
-    'ValueIndex.cpp',
-]
+if CONFIG['OS_ARCH'] == 'WINNT':
+    SOURCES += [
+        'ipc/DisabledIPC.cpp'
+    ]
+else:
+    SOURCES += [
+        'Assembler.cpp',
+        'Callback.cpp',
+        'ExternalCall.cpp',
+        'HashTable.cpp',
+        'ipc/Channel.cpp',
+        'ipc/ChildIPC.cpp',
+        'ipc/ChildProcess.cpp',
+        'ipc/JSControl.cpp',
+        'ipc/ParentForwarding.cpp',
+        'ipc/ParentGraphics.cpp',
+        'ipc/ParentIPC.cpp',
+        'ipc/Watchdog.cpp',
+        'Lock.cpp',
+        'ProcessRecordReplay.cpp',
+        'ProcessRedirect.cpp',
+        'ProcessRedirectDarwin.cpp',
+        'ProcessRewind.cpp',
+        'Recording.cpp',
+        'Thread.cpp',
+        'ThreadSnapshot.cpp',
+        'ValueIndex.cpp',
+    ]
 
 LOCAL_INCLUDES += [
     '!/ipc/ipdl/_ipdlheaders',
