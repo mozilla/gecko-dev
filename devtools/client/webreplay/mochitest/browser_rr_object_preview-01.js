@@ -113,7 +113,7 @@ f();
   msg = await waitForMessage(hud, "WeakSet [ {…}, {…} ]");
   await checkMessageObjectContents(
     msg,
-    ["0: Object { a: 1 }", "1: Object { b: 2 }"],
+    ["Object { a: 1 }", "Object { b: 2 }"],
     ["<entries>"]
   );
 

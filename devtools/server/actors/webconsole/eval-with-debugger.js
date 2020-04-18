@@ -118,12 +118,8 @@ exports.evalWithDebugger = function(string, options = {}, webConsole) {
   const evalString = getEvalInput(string);
   const { frame, dbg } = getFrameDbg(options, webConsole);
 
-  // early return for replay
-  if (dbg.replaying) {
-    if (options.eager) {
-      throw new Error("Eager evaluations are not supported while replaying");
-    }
-    return evalReplay(frame, dbg, evalString);
+  if (isReplaying) {
+    throw new Error("Not supported while replaying");
   }
 
   const { dbgWindow, bindSelf } = getDbgWindow(options, dbg, webConsole);
@@ -472,15 +468,18 @@ function getFrameDbg(options, webConsole) {
   );
 }
 
-function evalReplay(frame, dbg, string) {
+exports.evalReplay = async function(string, options = {}, webConsole) {
+  const evalString = getEvalInput(string);
+  const { frame, dbg } = getFrameDbg(options, webConsole);
+
   // If the debugger is replaying then we can't yet introduce new bindings
   // for the eval, so compute the result now.
   let result;
   try {
     if (frame) {
-      result = frame.eval(string);
+      result = await frame.eval(evalString);
     } else {
-      result = dbg.replayGlobalEval(string);
+      result = await dbg.replayGlobalEval(evalString);
     }
   } catch (e) {
     result = { throw: e };
@@ -492,7 +491,7 @@ function evalReplay(frame, dbg, string) {
     frame: frame,
     window: null,
   };
-}
+};
 
 function getDbgWindow(options, dbg, webConsole) {
   const dbgWindow = dbg.makeGlobalObjectReference(webConsole.evalWindow);

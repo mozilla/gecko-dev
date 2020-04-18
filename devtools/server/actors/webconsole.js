@@ -31,6 +31,12 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
+  "evalReplay",
+  "devtools/server/actors/webconsole/eval-with-debugger",
+  true
+);
+loader.lazyRequireGetter(
+  this,
   "NetworkMonitorActor",
   "devtools/server/actors/network-monitor/network-monitor",
   true
@@ -1074,7 +1080,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     DevToolsUtils.executeSoon(async () => {
       try {
         // Execute the script that may pause.
-        let response = this.evaluateJS(request);
+        let response = await this.evaluateJS(request);
         // Wait for any potential returned Promise.
         response = await this._maybeWaitForResponseResult(response);
         // Finally, emit an unsolicited evaluationResult packet with the evaluation result.
@@ -1187,13 +1193,22 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     };
     const { mapped } = request;
 
-    // Set a flag on the thread actor which indicates an evaluation is being
-    // done for the client. This can affect how debugger handlers behave.
-    this.parentActor.threadActor.insideClientEvaluation = evalOptions;
+    let evalInfo;
+    if (isReplaying) {
+      const pauseCounter = this.dbg.replayPauseCounter();
+      evalInfo = await evalReplay(input, evalOptions, this);
+      if (pauseCounter != this.dbg.replayPauseCounter()) {
+        return { input, result: { unavailable: true } };
+      }
+    } else {
+      // Set a flag on the thread actor which indicates an evaluation is being
+      // done for the client. This can affect how debugger handlers behave.
+      this.parentActor.threadActor.insideClientEvaluation = evalOptions;
 
-    const evalInfo = evalWithDebugger(input, evalOptions, this);
+      evalInfo = evalWithDebugger(input, evalOptions, this);
 
-    this.parentActor.threadActor.insideClientEvaluation = null;
+      this.parentActor.threadActor.insideClientEvaluation = null;
+    }
 
     const evalResult = evalInfo.result;
     const helperResult = evalInfo.helperResult;

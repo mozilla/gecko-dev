@@ -337,7 +337,16 @@ function update(
 
     case "COMMAND":
       if (action.status === "start") {
+        state = {
+          ...state,
+          threadcx: {
+            ...state.threadcx,
+            pauseCounter: state.threadcx.pauseCounter + 1,
+            isPaused: false,
+          },
+        };
         return updateThreadState({
+          ...resumedPauseState,
           command: action.command,
           lastCommand: action.command,
           previousLocation: getPauseLocation(threadState(), action),

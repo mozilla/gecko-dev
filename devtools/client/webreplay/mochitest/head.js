@@ -174,8 +174,7 @@ async function warpToMessage(hud, dbg, text, maybeLine) {
   ok(messages.length == 1, "Found one paused message");
 
   if (maybeLine) {
-    const pauseLine = getVisibleSelectedFrameLine(dbg);
-    ok(pauseLine == maybeLine, `Paused at line ${maybeLine} after warp`);
+    await waitUntil(() => maybeLine == getVisibleSelectedFrameLine(dbg));
   }
 
   return message;

@@ -134,6 +134,10 @@ const proto = {
    * Returns a grip for this actor for returning in a protocol message.
    */
   form: function() {
+    if (!this.actorID) {
+      throw new Error(`Missing actorID`);
+    }
+
     if (this.thread.pausePacketForms) {
       if (this._obj) {
         throw new Error("Pause packet contains pause scoped environment");
@@ -359,7 +363,10 @@ const proto = {
    *
    * @param options object
    */
-  enumProperties: function(options) {
+  enumProperties: async function(options) {
+    if (isReplaying) {
+      await this.obj.replayEnsureFullContentsAsync();
+    }
     return PropertyIteratorActor(this, options, this.conn);
   },
 
