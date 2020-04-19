@@ -38,6 +38,10 @@
 #endif
 #include "wasm/WasmProcess.h"
 
+#ifndef XP_WIN
+#include <dlfcn.h>
+#endif
+
 using js::FutexThread;
 using JS::detail::InitState;
 using JS::detail::libraryInitState;
@@ -93,6 +97,8 @@ static void CheckCanonicalNaN() {
   } while (0)
 
 extern "C" void install_rust_panic_hook();
+
+void (*js::ExecutionProgressHook)(const char*, unsigned, unsigned);
 
 JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
     bool isDebugBuild) {
@@ -191,6 +197,15 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
 
 #ifdef JS_TRACE_LOGGING
   RETURN_IF_FAIL(JS::InitTraceLogger());
+#endif
+
+#ifndef XP_WIN
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    if (getenv("WEBREPLAY_NOTIFY_EXECUTION_PROGRESS")) {
+      void* hook = dlsym(RTLD_DEFAULT, "RecordReplayInterface_ExecutionProgressHook");
+      ExecutionProgressHook = mozilla::BitwiseCast<void(*)(const char*, unsigned, unsigned)>(hook);
+    }
+  }
 #endif
 
   libraryInitState = InitState::Running;

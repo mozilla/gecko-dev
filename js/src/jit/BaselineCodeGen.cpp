@@ -2259,6 +2259,10 @@ bool BaselineCodeGen<Handler>::emitIncExecutionProgressCounter(
   }
 
   auto incCounter = [this, scratch]() {
+    if (ExecutionProgressHook) {
+      loadScript(scratch);
+      masm.maybeCallExecutionProgressHook(scratch);
+    }
     masm.inc64(
         AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
     if (mozilla::recordreplay::IsReplaying()) {

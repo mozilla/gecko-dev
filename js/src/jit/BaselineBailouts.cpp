@@ -482,6 +482,7 @@ static jsbytecode* GetResumePC(JSScript* script, jsbytecode* pc,
     }
   }
   if (skippedLoopHead && script->trackRecordReplayProgress()) {
+    MaybeCallExecutionProgressHook(script);
     mozilla::recordreplay::AdvanceExecutionProgressCounter();
   }
 

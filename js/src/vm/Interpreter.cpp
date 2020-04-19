@@ -1956,6 +1956,7 @@ static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool Interpret(JSContext* cx,
         }
       }
       if (script->trackRecordReplayProgress()) {
+        MaybeCallExecutionProgressHook(script);
         mozilla::recordreplay::AdvanceExecutionProgressCounter();
       }
     }

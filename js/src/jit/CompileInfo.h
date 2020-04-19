@@ -170,7 +170,7 @@ class CompileInfo {
         hadOverflowBailout_(script->hadOverflowBailout()),
         hadFrequentBailouts_(script->hadFrequentBailouts()),
         mayReadFrameArgsDirectly_(script->mayReadFrameArgsDirectly()),
-        trackRecordReplayProgress_(script->trackRecordReplayProgress()),
+        trackRecordReplayProgressScript_(script->trackRecordReplayProgress() ? script : nullptr),
         inlineScriptTree_(inlineScriptTree) {
     MOZ_ASSERT_IF(osrPc, JSOp(*osrPc) == JSOp::LoopHead);
 
@@ -231,7 +231,7 @@ class CompileInfo {
         hadOverflowBailout_(false),
         hadFrequentBailouts_(false),
         mayReadFrameArgsDirectly_(false),
-        trackRecordReplayProgress_(false),
+        trackRecordReplayProgressScript_(nullptr),
         inlineScriptTree_(nullptr),
         needsBodyEnvironmentObject_(false),
         funNeedsSomeEnvironmentObject_(false) {
@@ -469,7 +469,7 @@ class CompileInfo {
   bool hadOverflowBailout() const { return hadOverflowBailout_; }
   bool hadFrequentBailouts() const { return hadFrequentBailouts_; }
   bool mayReadFrameArgsDirectly() const { return mayReadFrameArgsDirectly_; }
-  bool trackRecordReplayProgress() const { return trackRecordReplayProgress_; }
+  void* trackRecordReplayProgressScript() const { return trackRecordReplayProgressScript_; }
 
  private:
   unsigned nimplicit_;
@@ -494,7 +494,7 @@ class CompileInfo {
   bool hadFrequentBailouts_;
 
   bool mayReadFrameArgsDirectly_;
-  bool trackRecordReplayProgress_;
+  void* trackRecordReplayProgressScript_;
 
   InlineScriptTree* inlineScriptTree_;
 

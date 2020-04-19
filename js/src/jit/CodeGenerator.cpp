@@ -13167,7 +13167,9 @@ void CodeGenerator::visitInterruptCheck(LInterruptCheck* lir) {
   OutOfLineCode* ool =
       oolCallVM<Fn, InterruptCheck>(lir, ArgList(), StoreNothing());
 
-  if (lir->mir()->trackRecordReplayProgress()) {
+  void* trackScript = lir->mir()->trackRecordReplayProgressScript();
+  if (trackScript) {
+    masm.maybeCallExecutionProgressHook(trackScript);
     masm.inc64(
         AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
     if (mozilla::recordreplay::IsReplaying()) {

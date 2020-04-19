@@ -504,6 +504,11 @@ MOZ_EXPORT void RecordReplayInterface_AssertScriptedCaller(const char* aWhy) {
   }
 }
 
+MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(const char* aFilename, unsigned aLineno,
+                                                            unsigned aColumn) {
+  Print("ExecutionProgressHook %s:%u:%u\n", aFilename, aLineno, aColumn);
+}
+
 }  // extern "C"
 
 static mach_port_t gCrashDetectorExceptionPort;

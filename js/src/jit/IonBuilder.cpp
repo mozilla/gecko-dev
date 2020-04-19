@@ -1128,7 +1128,7 @@ AbortReasonOr<Ok> IonBuilder::buildInline(IonBuilder* callerBuilder,
   // the record/replay system's progress counter.
   if (script()->trackRecordReplayProgress()) {
     MInterruptCheck* check = MInterruptCheck::New(alloc());
-    check->setTrackRecordReplayProgress();
+    check->setTrackRecordReplayProgressScript(script());
     current->add(check);
   }
 
@@ -1831,7 +1831,7 @@ AbortReasonOr<Ok> IonBuilder::emitLoopHeadInstructions(jsbytecode* pc) {
   insertRecompileCheck(pc);
 
   if (script()->trackRecordReplayProgress()) {
-    check->setTrackRecordReplayProgress();
+    check->setTrackRecordReplayProgressScript(script());
 
     // When recording/replaying, MInterruptCheck is effectful and should
     // not reexecute after bailing out.

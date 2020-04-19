@@ -6341,10 +6341,10 @@ class MCheckOverRecursed : public MNullaryInstruction {
 
 // Check whether we need to fire the interrupt handler.
 class MInterruptCheck : public MNullaryInstruction {
-  bool trackRecordReplayProgress_;
+  void* trackRecordReplayProgressScript_;
 
   MInterruptCheck()
-      : MNullaryInstruction(classOpcode), trackRecordReplayProgress_(false) {
+      : MNullaryInstruction(classOpcode), trackRecordReplayProgressScript_(nullptr) {
     setGuard();
   }
 
@@ -6354,8 +6354,8 @@ class MInterruptCheck : public MNullaryInstruction {
 
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 
-  bool trackRecordReplayProgress() const { return trackRecordReplayProgress_; }
-  void setTrackRecordReplayProgress() { trackRecordReplayProgress_ = true; }
+  void* trackRecordReplayProgressScript() const { return trackRecordReplayProgressScript_; }
+  void setTrackRecordReplayProgressScript(void* aScript) { trackRecordReplayProgressScript_ = aScript; }
 };
 
 // Check whether we need to fire the interrupt handler (in wasm code).

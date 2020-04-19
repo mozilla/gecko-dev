@@ -208,6 +208,7 @@ bool InterpreterFrame::prologue(JSContext* cx) {
     if (!CheckGlobalOrEvalDeclarationConflicts(cx, env, script)) {
       // Treat this as a script entry, for consistency with Ion.
       if (script->trackRecordReplayProgress()) {
+        MaybeCallExecutionProgressHook(script);
         mozilla::recordreplay::AdvanceExecutionProgressCounter();
       }
       return false;

@@ -3059,6 +3059,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void printf(const char* output);
   void printf(const char* output, Register value);
 
+  void maybeCallExecutionProgressHook(void* script);
+  void maybeCallExecutionProgressHook(Register script);
+
 #ifdef JS_TRACE_LOGGING
   void loadTraceLogger(Register logger) {
     loadJSContext(logger);

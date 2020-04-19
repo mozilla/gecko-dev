@@ -49,6 +49,7 @@ inline bool probes::EnterScript(JSContext* cx, JSScript* script,
   }
 
   if (script->trackRecordReplayProgress()) {
+    MaybeCallExecutionProgressHook(script);
     mozilla::recordreplay::AdvanceExecutionProgressCounter();
   }
 

@@ -116,7 +116,9 @@ bool CodeGeneratorShared::generatePrologue() {
     masm.profilerEnterFrame(masm.getStackPointer(), CallTempReg0);
   }
 
-  if (gen->outerInfo().trackRecordReplayProgress()) {
+  void* trackScript = gen->outerInfo().trackRecordReplayProgressScript();
+  if (trackScript) {
+    masm.maybeCallExecutionProgressHook(trackScript);
     masm.inc64(
         AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
     if (mozilla::recordreplay::IsReplaying()) {

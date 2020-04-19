@@ -1962,6 +1962,46 @@ void MacroAssembler::printf(const char* output, Register value) {
 #endif
 }
 
+static void CallExecutionProgressHook(JSScript* aScript) {
+  AutoUnsafeCallWithABI unsafe;
+  ExecutionProgressHook(aScript->filename(), aScript->lineno(), aScript->column());
+}
+
+void MacroAssembler::maybeCallExecutionProgressHook(void* script) {
+  if (!ExecutionProgressHook) {
+    return;
+  }
+
+  AllocatableRegisterSet regs(RegisterSet::Volatile());
+  LiveRegisterSet save(regs.asLiveSet());
+  PushRegsInMask(save);
+
+  Register temp = regs.takeAnyGeneral();
+
+  setupUnalignedABICall(temp);
+  movePtr(ImmPtr(script), temp);
+  passABIArg(temp);
+  callWithABI(JS_FUNC_TO_DATA_PTR(void*, CallExecutionProgressHook));
+
+  PopRegsInMask(save);
+}
+
+void MacroAssembler::maybeCallExecutionProgressHook(Register script) {
+  AllocatableRegisterSet regs(RegisterSet::Volatile());
+  LiveRegisterSet save(regs.asLiveSet());
+  PushRegsInMask(save);
+
+  regs.takeUnchecked(script);
+
+  Register temp = regs.takeAnyGeneral();
+
+  setupUnalignedABICall(temp);
+  passABIArg(script);
+  callWithABI(JS_FUNC_TO_DATA_PTR(void*, CallExecutionProgressHook));
+
+  PopRegsInMask(save);
+}
+
 #ifdef JS_TRACE_LOGGING
 void MacroAssembler::tracelogStartId(Register logger, uint32_t textId,
                                      bool force) {
