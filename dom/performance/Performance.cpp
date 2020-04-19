@@ -68,12 +68,18 @@ already_AddRefed<Performance> Performance::CreateForWorker(
   return performance.forget();
 }
 
+static bool gWebReplayTest;
+static bool gWebReplayTestChecked;
+
 Performance::Performance(bool aSystemPrincipal)
     : mResourceTimingBufferSize(kDefaultResourceTimingBufferSize),
       mPendingNotificationObserversTask(false),
       mPendingResourceTimingBufferFullEvent(false),
       mSystemPrincipal(aSystemPrincipal) {
   MOZ_ASSERT(!NS_IsMainThread());
+  if (!gWebReplayTestChecked) {
+    gWebReplayTest = !!getenv("WEBREPLAY_TEST_SCRIPT");
+  }
 }
 
 Performance::Performance(nsPIDOMWindowInner* aWindow, bool aSystemPrincipal)
@@ -83,18 +89,14 @@ Performance::Performance(nsPIDOMWindowInner* aWindow, bool aSystemPrincipal)
       mPendingResourceTimingBufferFullEvent(false),
       mSystemPrincipal(aSystemPrincipal) {
   MOZ_ASSERT(NS_IsMainThread());
+  if (!gWebReplayTestChecked) {
+    gWebReplayTest = !!getenv("WEBREPLAY_TEST_SCRIPT");
+  }
 }
 
 Performance::~Performance() = default;
 
 DOMHighResTimeStamp Performance::Now() {
-  static bool gWebReplayTest;
-  static bool gWebReplayTestChecked;
-
-  if (!gWebReplayTestChecked) {
-    gWebReplayTest = !!getenv("WEBREPLAY_TEST_SCRIPT");
-  }
-
   {
     JSContext* cx = dom::danger::GetJSContext();
     JS::AutoFilename filename;

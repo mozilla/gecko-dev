@@ -1450,15 +1450,11 @@ static ClippedTime NowAsMillis(JSContext* cx) {
   return TimeClip(now / PRMJ_USEC_PER_MSEC);
 }
 
+static bool gWebReplayTest;
+static bool gWebReplayTestChecked;
+
 bool js::date_now(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
-
-  static bool gWebReplayTest;
-  static bool gWebReplayTestChecked;
-
-  if (!gWebReplayTestChecked) {
-    gWebReplayTest = !!getenv("WEBREPLAY_TEST_SCRIPT");
-  }
 
   {
     JS::AutoFilename filename;
@@ -3363,6 +3359,10 @@ static bool DateConstructor(JSContext* cx, unsigned argc, Value* vp) {
 
 static bool FinishDateClassInit(JSContext* cx, HandleObject ctor,
                                 HandleObject proto) {
+  if (!gWebReplayTestChecked) {
+    gWebReplayTest = !!getenv("WEBREPLAY_TEST_SCRIPT");
+  }
+
   /*
    * Date.prototype.toGMTString has the same initial value as
    * Date.prototype.toUTCString.
