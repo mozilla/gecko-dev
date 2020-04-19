@@ -252,9 +252,6 @@ void Stream::CheckInput(const void* aData, size_t aSize) {
 
     if (memcmp(aData, mInputBallast.get(), aSize) != 0) {
       DumpEvents();
-      if (InAutomatedTest()) {
-        js::DumpContent();
-      }
       child::ReportFatalError("Input Buffer Mismatch: %s",
                               ThreadEventName(mLastEvent));
     }
@@ -324,6 +321,9 @@ void Stream::PushEvent(const char* aEvent) {
 }
 
 void Stream::DumpEvents() {
+  if (InAutomatedTest()) {
+    js::DumpContent();
+  }
   if (gDumpEvents) {
     Print("Thread Events: %d\n", Thread::Current()->Id());
     size_t start = mEvents.length() > gDumpEvents ? mEvents.length() - gDumpEvents : 0;
