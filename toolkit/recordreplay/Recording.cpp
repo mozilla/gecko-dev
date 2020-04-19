@@ -375,7 +375,7 @@ Recording::Recording() : mMode(IsRecording() ? WRITE : READ) {
     mContents.append((const uint8_t*)&header, sizeof(Header));
   } else {
     // FIXME for debugging.
-    gDumpEvents = 100;
+    gDumpEvents = 100000;
     /*
     if (TestEnv("MOZ_REPLAYING_DUMP_EVENTS")) {
       gDumpEvents = atoi(getenv("MOZ_REPLAYING_DUMP_EVENTS"));
