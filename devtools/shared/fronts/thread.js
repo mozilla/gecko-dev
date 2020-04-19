@@ -203,7 +203,9 @@ class ThreadFront extends FrontClassWithSpec(threadSpec) {
     ChromeUtils.recordReplayLog(`ThreadFront.timeWarp`);
 
     const warp = () => {
-      this._doResume({ type: "warp", target }, true);
+      if (this.paused) {
+        this._doResume({ type: "warp", target }, true);
+      }
     };
     if (this.paused) {
       return warp();
