@@ -486,7 +486,7 @@ MOZ_EXPORT bool RecordReplayInterface_InternalInAutomatedTest() {
   return gAutomatedTesting;
 }
 
-MOZ_EXPORT void RecordReplayInterface_AssertScriptedCaller(const char* aWhy) {
+MOZ_EXPORT void RecordReplayInterface_InternalAssertScriptedCaller(const char* aWhy) {
   JS::AutoFilename filename;
   unsigned lineno;
   unsigned column;
@@ -506,7 +506,11 @@ MOZ_EXPORT void RecordReplayInterface_AssertScriptedCaller(const char* aWhy) {
 
 MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(const char* aFilename, unsigned aLineno,
                                                             unsigned aColumn) {
-  Print("ExecutionProgressHook %s:%u:%u\n", aFilename, aLineno, aColumn);
+  Thread* thread = Thread::Current();
+  if (!thread->HasDivergedFromRecording()) {
+    MOZ_RELEASE_ASSERT(!thread->AreEventsDisallowed());
+    MOZ_RELEASE_ASSERT(!thread->PassThroughEvents());
+  }
 }
 
 }  // extern "C"
