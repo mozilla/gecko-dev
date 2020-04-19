@@ -41,7 +41,7 @@ class ChunkAllocator {
   };
 
   ChunkPointer mFirstChunk;
-  Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve> mCapacity;
+  AtomicUInt mCapacity;
   SpinLock mLock;
 
   void EnsureChunk(ChunkPointer* aChunk) {

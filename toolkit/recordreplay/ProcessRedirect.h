@@ -348,8 +348,7 @@ struct AutoRecordReplayCallback {
 // Redirection Helpers
 ///////////////////////////////////////////////////////////////////////////////
 
-extern Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve>
-    gMemoryLeakBytes;
+extern AtomicUInt gMemoryLeakBytes;
 
 // For allocating memory in redirections that will never be reclaimed. This is
 // done for simplicity. If the amount of leaked memory from redirected calls

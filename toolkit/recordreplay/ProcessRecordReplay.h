@@ -214,6 +214,8 @@ void ResetPid();
 bool IsVerbose();
 
 typedef Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> AtomicBool;
+typedef Atomic<intptr_t, SequentiallyConsistent, Behavior::DontPreserve> AtomicInt;
+typedef Atomic<uintptr_t, SequentiallyConsistent, Behavior::DontPreserve> AtomicUInt;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Profiling

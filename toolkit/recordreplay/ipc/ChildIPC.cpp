@@ -1052,12 +1052,10 @@ static size_t gPaintWidth, gPaintHeight;
 // update and the compositor processes it before the main thread reaches
 // NotifyPaintStart. Outside of this window, the compositor can only write to
 // gDrawTargetBuffer or update gPaintWidth/gPaintHeight if this is non-zero.
-static Atomic<int32_t, SequentiallyConsistent, Behavior::DontPreserve>
-    gNumPendingPaints;
+static AtomicInt gNumPendingPaints;
 
 // ID of the compositor thread.
-static Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve>
-    gCompositorThreadId;
+static AtomicUInt gCompositorThreadId;
 
 already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(
     LayoutDeviceIntSize aSize) {

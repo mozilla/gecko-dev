@@ -346,7 +346,7 @@ void* OriginalFunction(const char* aName) {
 // Utility
 ///////////////////////////////////////////////////////////////////////////////
 
-Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve> gMemoryLeakBytes;
+AtomicUInt gMemoryLeakBytes;
 
 void* BindFunctionArgument(void* aFunction, void* aArgument,
                            size_t aArgumentPosition, Assembler& aAssembler) {

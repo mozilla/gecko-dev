@@ -19,7 +19,7 @@ namespace recordreplay {
 
 // The total number of locks that have been created. Each Lock is given a
 // non-zero id based on this counter.
-static Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve> gNumLocks;
+static AtomicUInt gNumLocks;
 
 struct LockAcquires {
   // List of thread acquire orders for the lock. This is protected by the lock
@@ -28,7 +28,7 @@ struct LockAcquires {
 
   // During replay, the next thread id to acquire the lock. Writes to this are
   // protected by the lock itself, though reads may occur on other threads.
-  Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve> mNextOwner;
+  AtomicUInt mNextOwner;
 
   static const size_t NoNextOwner = 0;
 

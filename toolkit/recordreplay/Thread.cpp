@@ -421,7 +421,7 @@ MOZ_EXPORT bool RecordReplayInterface_InternalAreThreadEventsDisallowed() {
 ///////////////////////////////////////////////////////////////////////////////
 
 // ID of any thread the main thread is waiting to becom idle.
-static Atomic<size_t, SequentiallyConsistent, Behavior::DontPreserve> gWaitingOnIdleThreadId;
+static AtomicUInt gWaitingOnIdleThreadId;
 
 /* static */
 void Thread::WaitForIdleThreads() {
