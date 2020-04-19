@@ -979,8 +979,9 @@ class TypedArrayObjectTemplate : public TypedArrayObject {
     MOZ_ASSERT(index < tarray.length());
 
     if (gRecordDataBuffers) {
-      mozilla::recordreplay::RecordReplayAssert("TypedArray::setIndex %lu %lu %.2f",
-                                                index, tarray.length(), val);
+      mozilla::recordreplay::RecordReplayAssert("TypedArray::setIndex %d %u %u %.2f",
+                                                (int) ArrayTypeID(),
+                                                index, tarray.length(), (double)val);
     }
 
     jit::AtomicOperations::storeSafeWhenRacy(
