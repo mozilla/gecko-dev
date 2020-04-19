@@ -284,6 +284,8 @@ LookupResult RasterImage::LookupFrameInternal(const IntSize& aSize,
                                               uint32_t aFlags,
                                               PlaybackType aPlaybackType,
                                               bool aMarkUsed) {
+  recordreplay::RecordReplayAssert("RasterImage::LookupFrameInternal");
+
   if (mAnimationState && aPlaybackType == PlaybackType::eAnimated) {
     MOZ_ASSERT(mFrameAnimator);
     MOZ_ASSERT(ToSurfaceFlags(aFlags) == DefaultSurfaceFlags(),
@@ -312,6 +314,8 @@ LookupResult RasterImage::LookupFrameInternal(const IntSize& aSize,
 LookupResult RasterImage::LookupFrame(const IntSize& aSize, uint32_t aFlags,
                                       PlaybackType aPlaybackType,
                                       bool aMarkUsed) {
+  recordreplay::RecordReplayAssert("RasterImage::LookupFrame");
+
   MOZ_ASSERT(NS_IsMainThread());
 
   // If we're opaque, we don't need to care about premultiplied alpha, because
@@ -1395,6 +1399,8 @@ RasterImage::Draw(gfxContext* aContext, const IntSize& aSize,
                   SamplingFilter aSamplingFilter,
                   const Maybe<SVGImageContext>& /*aSVGContext - ignored*/,
                   uint32_t aFlags, float aOpacity) {
+  recordreplay::RecordReplayAssert("RasterImage::Draw");
+
   if (aWhichFrame > FRAME_MAX_VALUE) {
     return ImgDrawResult::BAD_ARGS;
   }

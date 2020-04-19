@@ -291,6 +291,8 @@ class ImageSurfaceCache {
 
   already_AddRefed<CachedSurface> Lookup(const SurfaceKey& aSurfaceKey,
                                          bool aForAccess) {
+    recordreplay::RecordReplayAssert("ImageSurfaceCache::Lookup");
+
     RefPtr<CachedSurface> surface;
     mSurfaces.Get(aSurfaceKey, getter_AddRefs(surface));
 

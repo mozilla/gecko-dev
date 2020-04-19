@@ -47,6 +47,8 @@ void DecodedSurfaceProvider::DropImageReference() {
 }
 
 DrawableFrameRef DecodedSurfaceProvider::DrawableRef(size_t aFrame) {
+  recordreplay::RecordReplayAssert("DecodedSurfaceProvider::DrawableRef %lu", aFrame);
+
   MOZ_ASSERT(aFrame == 0,
              "Requesting an animation frame from a DecodedSurfaceProvider?");
 
