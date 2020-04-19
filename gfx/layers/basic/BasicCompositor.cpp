@@ -869,6 +869,8 @@ bool BasicCompositor::BlitRenderTarget(CompositingRenderTarget* aSource,
 Maybe<gfx::IntRect> BasicCompositor::BeginFrameForWindow(
     const nsIntRegion& aInvalidRegion, const Maybe<IntRect>& aClipRect,
     const IntRect& aRenderBounds, const nsIntRegion& aOpaqueRegion) {
+  recordreplay::RecordReplayAssert("BasicCompositor::BeginFrameForWindow");
+
   if (mIsPendingEndRemoteDrawing) {
     // Force to end previous remote drawing.
     EndRemoteDrawing();
