@@ -795,6 +795,20 @@ struct ContentInfo {
 // All content that has been parsed so far. Protected by child::gMonitor.
 static StaticInfallibleVector<ContentInfo> gContent;
 
+void DumpContent() {
+  // Don't use a lock, this is for debugging.
+  for (const auto& content : gContent) {
+    nsAutoCString str;
+    if (content.mContent8.length()) {
+      str = nsCString(content.mContent8.begin(), content.mContent8.length());
+    } else if (content.mContent16.length()) {
+      nsString str16(content.mContent16.begin(), content.mContent16.length());
+      str = NS_ConvertUTF16toUTF8(str16);
+    }
+    Print("Content %s %s:\n%s\nContentEnd\n", content.mURL, content.mContentType, str.get());
+  }
+}
+
 extern "C" {
 
 MOZ_EXPORT void RecordReplayInterface_BeginContentParse(

@@ -252,6 +252,9 @@ void Stream::CheckInput(const void* aData, size_t aSize) {
 
     if (memcmp(aData, mInputBallast.get(), aSize) != 0) {
       DumpEvents();
+      if (InAutomatedTest()) {
+        js::DumpContent();
+      }
       child::ReportFatalError("Input Buffer Mismatch: %s",
                               ThreadEventName(mLastEvent));
     }
@@ -312,7 +315,7 @@ size_t Stream::BallastMaxSize() {
   return Compression::LZ4::maxCompressedSize(BUFFER_MAX);
 }
 
-static bool gDumpEvents;
+static size_t gDumpEvents;
 
 void Stream::PushEvent(const char* aEvent) {
   if (gDumpEvents) {
@@ -323,8 +326,9 @@ void Stream::PushEvent(const char* aEvent) {
 void Stream::DumpEvents() {
   if (gDumpEvents) {
     Print("Thread Events: %d\n", Thread::Current()->Id());
-    for (char* ev : mEvents) {
-      Print("Event: %s\n", ev);
+    size_t start = mEvents.length() > gDumpEvents ? mEvents.length() - gDumpEvents : 0;
+    for (size_t i = start; i < mEvents.length(); i++) {
+      Print("Event: %s\n", mEvents[i]);
     }
   }
 }
@@ -370,7 +374,13 @@ Recording::Recording() : mMode(IsRecording() ? WRITE : READ) {
     GetCurrentBuildId(&header.mBuildId);
     mContents.append((const uint8_t*)&header, sizeof(Header));
   } else {
-    gDumpEvents = TestEnv("MOZ_REPLAYING_DUMP_EVENTS");
+    // FIXME for debugging.
+    gDumpEvents = 100;
+    /*
+    if (TestEnv("MOZ_REPLAYING_DUMP_EVENTS")) {
+      gDumpEvents = atoi(getenv("MOZ_REPLAYING_DUMP_EVENTS"));
+    }
+    */
   }
 }
 

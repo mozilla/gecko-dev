@@ -108,6 +108,9 @@ double TotalIdleTime();
 // Incorporate scan data into this process.
 void AddScanDataMessage(Message::UniquePtr aMsg);
 
+// Dump all parsed content to stderr.
+void DumpContent();
+
 // Utilities.
 
 JSString* ConvertStringToJSString(JSContext* aCx, const nsAString& aString);
