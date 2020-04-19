@@ -977,6 +977,12 @@ class TypedArrayObjectTemplate : public TypedArrayObject {
   static void setIndex(TypedArrayObject& tarray, uint32_t index,
                        NativeType val) {
     MOZ_ASSERT(index < tarray.length());
+
+    if (gRecordDataBuffers) {
+      mozilla::recordreplay::RecordReplayAssert("TypedArray::setIndex %lu %lu %.2f",
+                                                index, tarray.length(), val);
+    }
+
     jit::AtomicOperations::storeSafeWhenRacy(
         tarray.dataPointerEither().cast<NativeType*>() + index, val);
   }
