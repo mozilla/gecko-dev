@@ -38,7 +38,8 @@ namespace recordreplay {
   Macro(ShouldUpdateProgressCounter, bool, (const char* aURL), (aURL))         \
   Macro(DefineRecordReplayControlObject, bool, (void* aCx, void* aObj),        \
         (aCx, aObj))                                                           \
-  Macro(LoadedWithFileURI, bool, (), ())
+  Macro(LoadedWithFileURI, bool, (), ())                                       \
+  Macro(InternalInAutomatedTest, bool, (), ())
 
 #define FOR_EACH_INTERFACE_VOID(Macro)                                         \
   Macro(InternalBeginOrderedAtomicAccess, (const void* aValue), (aValue))      \
@@ -75,7 +76,8 @@ namespace recordreplay {
         (const void* aToken, const char16_t* aBuffer, size_t aLength),         \
         (aToken, aBuffer, aLength))                                            \
   Macro(EndContentParse, (const void* aToken), (aToken))                       \
-  Macro(AdvanceExecutionProgressCounter, (), ())
+  Macro(AdvanceExecutionProgressCounter, (), ())                               \
+  Macro(InternalAssertScriptedCaller, (const char* aWhy), (aWhy))
 // clang-format on
 
 #define DECLARE_SYMBOL(aName, aReturnType, aFormals, _) \

@@ -1450,28 +1450,10 @@ static ClippedTime NowAsMillis(JSContext* cx) {
   return TimeClip(now / PRMJ_USEC_PER_MSEC);
 }
 
-static bool gWebReplayTest;
-static bool gWebReplayTestChecked;
-
 bool js::date_now(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  {
-    JS::AutoFilename filename;
-    unsigned lineno;
-    unsigned column;
-    if (JS::DescribeScriptedCaller(cx, &filename, &lineno, &column)) {
-      if (gWebReplayTest ||
-          strstr(filename.get(), "chrome://") ||
-          strstr(filename.get(), "resource://")) {
-        mozilla::recordreplay::RecordReplayAssert("Date::Now %s:%u:%u", filename.get(), lineno, column);
-      } else {
-        mozilla::recordreplay::RecordReplayAssert("Date::Now UserFrame");
-      }
-    } else {
-      mozilla::recordreplay::RecordReplayAssert("Date::Now NoScriptedCaller");
-    }
-  }
+  mozilla::recordreplay::AssertScriptedCaller("Date.now");
 
   args.rval().set(TimeValue(NowAsMillis(cx)));
   return true;
@@ -3359,10 +3341,6 @@ static bool DateConstructor(JSContext* cx, unsigned argc, Value* vp) {
 
 static bool FinishDateClassInit(JSContext* cx, HandleObject ctor,
                                 HandleObject proto) {
-  if (!gWebReplayTestChecked) {
-    gWebReplayTest = !!getenv("WEBREPLAY_TEST_SCRIPT");
-  }
-
   /*
    * Date.prototype.toGMTString has the same initial value as
    * Date.prototype.toUTCString.

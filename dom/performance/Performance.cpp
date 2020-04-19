@@ -68,18 +68,12 @@ already_AddRefed<Performance> Performance::CreateForWorker(
   return performance.forget();
 }
 
-static bool gWebReplayTest;
-static bool gWebReplayTestChecked;
-
 Performance::Performance(bool aSystemPrincipal)
     : mResourceTimingBufferSize(kDefaultResourceTimingBufferSize),
       mPendingNotificationObserversTask(false),
       mPendingResourceTimingBufferFullEvent(false),
       mSystemPrincipal(aSystemPrincipal) {
   MOZ_ASSERT(!NS_IsMainThread());
-  if (!gWebReplayTestChecked) {
-    gWebReplayTest = !!getenv("WEBREPLAY_TEST_SCRIPT");
-  }
 }
 
 Performance::Performance(nsPIDOMWindowInner* aWindow, bool aSystemPrincipal)
@@ -89,31 +83,12 @@ Performance::Performance(nsPIDOMWindowInner* aWindow, bool aSystemPrincipal)
       mPendingResourceTimingBufferFullEvent(false),
       mSystemPrincipal(aSystemPrincipal) {
   MOZ_ASSERT(NS_IsMainThread());
-  if (!gWebReplayTestChecked) {
-    gWebReplayTest = !!getenv("WEBREPLAY_TEST_SCRIPT");
-  }
 }
 
 Performance::~Performance() = default;
 
 DOMHighResTimeStamp Performance::Now() {
-  {
-    JSContext* cx = dom::danger::GetJSContext();
-    JS::AutoFilename filename;
-    unsigned lineno;
-    unsigned column;
-    if (JS::DescribeScriptedCaller(cx, &filename, &lineno, &column)) {
-      if (gWebReplayTest ||
-          strstr(filename.get(), "chrome://") ||
-          strstr(filename.get(), "resource://")) {
-        recordreplay::RecordReplayAssert("Performance::Now %s:%u:%u", filename.get(), lineno, column);
-      } else {
-        recordreplay::RecordReplayAssert("Performance::Now UserFrame");
-      }
-    } else {
-      recordreplay::RecordReplayAssert("Performance::Now NoScriptedCaller");
-    }
-  }
+  mozilla::recordreplay::AssertScriptedCaller("Performance::Now");
 
   DOMHighResTimeStamp rawTime = NowUnclamped();
   if (mSystemPrincipal) {

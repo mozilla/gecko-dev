@@ -62,6 +62,9 @@ static bool gVerbose;
 // Whether we are replaying on a cloud machine.
 static bool gReplayingInCloud;
 
+// Whether we are running an automated test.
+static bool gAutomatedTesting;
+
 // Firefox installation directory.
 static char* gInstallDirectory;
 
@@ -194,6 +197,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
 
   InitializeRewindState();
   gRecordingPid = RecordReplayValue(gPid);
+  gAutomatedTesting = TestEnv("WEBREPLAY_TEST_SCRIPT");
 
   gInitialized = true;
 }
@@ -476,6 +480,28 @@ MOZ_EXPORT void RecordReplayInterface_InternalHoldJSObject(void* aJSObj) {
 
 MOZ_EXPORT bool RecordReplayInterface_LoadedWithFileURI() {
   return RecordReplayValue(!strncmp(gRecordingFilename, "file://", 7));
+}
+
+MOZ_EXPORT bool RecordReplayInterface_InternalInAutomatedTest() {
+  return gAutomatedTesting;
+}
+
+MOZ_EXPORT void RecordReplayInterface_AssertScriptedCaller(const char* aWhy) {
+  JS::AutoFilename filename;
+  unsigned lineno;
+  unsigned column;
+  JSContext* cx = dom::danger::GetJSContext();
+  if (JS::DescribeScriptedCaller(cx, &filename, &lineno, &column)) {
+    if (gAutomatedTesting ||
+        strstr(filename.get(), "chrome://") ||
+        strstr(filename.get(), "resource://")) {
+      RecordReplayAssert("Date::Now %s:%u:%u", filename.get(), lineno, column);
+    } else {
+      RecordReplayAssert("Date::Now UserFrame");
+    }
+  } else {
+    RecordReplayAssert("Date::Now NoScriptedCaller");
+  }
 }
 
 }  // extern "C"

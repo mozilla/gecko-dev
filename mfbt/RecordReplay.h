@@ -324,6 +324,12 @@ static inline void NoteContentParse(const void* aToken, const char* aURL,
   EndContentParse(aToken);
 }
 
+// Add a record/replay assertion for the current JS caller.
+static inline void AssertScriptedCaller(const char* aWhy);
+
+// Return whether a web replay automated test is being executed.
+static inline bool InAutomatedTest();
+
 ///////////////////////////////////////////////////////////////////////////////
 // API inline function implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -388,6 +394,8 @@ MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(UnregisterThing, (void* aThing), (aThing))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(ThingIndex, size_t, 0, (void* aThing), (aThing))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(VirtualThingName, const char*, nullptr,
                                (void* aThing), (aThing))
+MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(AssertScriptedCaller, (const char* aWhy), (aWhy))
+MOZ_MAKE_RECORD_REPLAY_WRAPPER(InAutomatedTest, bool, false, (), ())
 
 #undef MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID
 #undef MOZ_MAKERECORDREPLAYWRAPPER
