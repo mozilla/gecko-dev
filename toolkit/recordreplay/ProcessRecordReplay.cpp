@@ -510,6 +510,8 @@ MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(const char* aFilenam
   if (!thread->HasDivergedFromRecording()) {
     MOZ_RELEASE_ASSERT(!thread->AreEventsDisallowed());
     MOZ_RELEASE_ASSERT(!thread->PassThroughEvents());
+
+    RecordReplayAssert("ExecutionProgress %s:%u:%u", aFilename, aLineno, aColumn);
   }
 }
 
