@@ -265,11 +265,7 @@ bool ForkProcess(size_t aForkId) {
 
   AutoEnsurePassThroughThreadEvents pt;
 
-  child::PrintLog("ForkStart");
-  pid_t pid = fork();
-
-  if (pid > 0) {
-    child::PrintLog("ForkDone");
+  if (child::RawFork()) {
     if (!gNeedRespawnThreads) {
       Thread::OperateOnIdleThreadLocks(Thread::OwnedLockState::NeedAcquire);
       Thread::ResumeIdleThreads();

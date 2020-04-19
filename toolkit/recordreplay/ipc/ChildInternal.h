@@ -91,6 +91,9 @@ bool PaintingInProgress();
 // Fork this process and assign a new fork ID to the new process.
 void PerformFork(size_t aForkId);
 
+// Called to perform the actual fork. Returns whether this is the original process.
+bool RawFork();
+
 // Send new recording data from a recording process to the middleman.
 void SendRecordingData(size_t aStart, const uint8_t* aData, size_t aSize);
 

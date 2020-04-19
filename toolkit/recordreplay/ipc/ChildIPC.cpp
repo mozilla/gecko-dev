@@ -108,7 +108,8 @@ static void OnNewRecordingData(Message::UniquePtr aMsg);
 
 // Lock which allows non-main threads to prevent forks. Readers are the threads
 // preventing forks from happening, while the writer is the main thread during
-// a fork.
+// a fork. The fork lock is mainly used to prevent the process from forking
+// while a non-recorded thread is holding a lock.
 static ReadWriteSpinLock gForkLock;
 
 // Set when the process is shutting down, to suppress error reporting.
@@ -116,8 +117,9 @@ static AtomicBool gExitCalled;
 
 // Processing routine for incoming channel messages.
 static void ChannelMessageHandler(Message::UniquePtr aMsg) {
+  AutoReadSpinLock disallowFork(gForkLock);
+
   if (aMsg->mForkId != gForkId) {
-    AutoReadSpinLock disallowFork(gForkLock);
     if (gForkId) {
       // For some reason we can receive messages intended for another fork
       // which has terminated.
@@ -128,28 +130,6 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
     SendMessageToForkedProcess(std::move(aMsg));
     return;
   }
-
-  // Handle critical messages without acquiring the fork lock. The main thread
-  // could be stuck holding the fork lock and we need to immediately handle
-  // requests to terminate.
-  switch (aMsg->mType) {
-    case MessageType::Terminate: {
-      Print("Terminate message received, exiting...\n");
-      gExitCalled = true;
-      _exit(0);
-      break;
-    }
-    case MessageType::Crash: {
-      Print("Error: Crashing hanged process, dumping threads...\n");
-      Thread::DumpThreads();
-      ReportFatalError("Hung replaying process");
-      break;
-    }
-    default:
-      break;
-  }
-
-  AutoReadSpinLock disallowFork(gForkLock);
 
   switch (aMsg->mType) {
     case MessageType::Introduction: {
@@ -240,6 +220,18 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
     case MessageType::SharedKeyResponse: {
       const auto& nmsg = (const SharedKeyResponseMessage&)*aMsg;
       HandleSharedKeyResponse(nmsg);
+      break;
+    }
+    case MessageType::Terminate: {
+      Print("Terminate message received, exiting...\n");
+      gExitCalled = true;
+      _exit(0);
+      break;
+    }
+    case MessageType::Crash: {
+      Print("Error: Crashing hanged process, dumping threads...\n");
+      Thread::DumpThreads();
+      ReportFatalError("Hung replaying process");
       break;
     }
     default:
@@ -556,20 +548,10 @@ static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
 static const size_t ForkTimeoutSeconds = 10;
 
 void PerformFork(size_t aForkId) {
-  PrintLog("PerformFork Start");
-  gForkLock.WriteLock();
-  PrintLog("PerformFork Locked");
-
   if (ForkProcess(aForkId)) {
     // This is the original process.
-    gForkLock.WriteUnlock();
     return;
   }
-
-  // We need to reset the fork lock, but its internal spin lock might be held by
-  // a thread which no longer exists. Reset the lock instead of unlocking it
-  // to avoid deadlocking in this case.
-  PodZero(&gForkLock);
 
   AutoPassThroughThreadEvents pt;
 
@@ -596,6 +578,31 @@ void PerformFork(size_t aForkId) {
   TimeStamp deadline =
       TimeStamp::Now() + TimeDuration::FromSeconds(ForkTimeoutSeconds);
   gChannel->ExitIfNotInitializedBefore(deadline);
+}
+
+bool RawFork() {
+  PrintLog("RawFork Start");
+
+  // All non-main recorded threads are idle and have released any locks they
+  // were holding. Take the fork lock to make sure no non-recorded threads are
+  // holding locks while we fork.
+  gForkLock.WriteLock();
+
+  PrintLog("RawFork Forking");
+  pid_t pid = fork();
+
+  if (pid > 0) {
+    // This is the original process.
+    PrintLog("RawFork Done");
+    gForkLock.WriteUnlock();
+    return true;
+  }
+
+  // We need to reset the fork lock, but its internal spin lock might be held by
+  // a thread which no longer exists. Reset the lock instead of unlocking it
+  // to avoid deadlocking in this case.
+  PodZero(&gForkLock);
+  return false;
 }
 
 template <MessageType Type>
