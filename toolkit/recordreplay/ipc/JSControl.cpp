@@ -805,7 +805,9 @@ void DumpContent() {
       nsString str16(content.mContent16.begin(), content.mContent16.length());
       str = NS_ConvertUTF16toUTF8(str16);
     }
-    Print("Content %s %s:\n%s\nContentEnd\n", content.mURL, content.mContentType, str.get());
+    Print("Content %s %s:\n", content.mURL, content.mContentType);
+    DirectPrint(str.get());
+    Print("\nContentEnd %s %s\n", content.mURL, content.mContentType);
   }
 }
 
