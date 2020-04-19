@@ -1118,6 +1118,9 @@ extern JS::FilenameValidationCallback gFilenameValidationCallback;
 // See comment in jsapi.h.
 extern void (*HelperThreadTaskCallback)(js::RunnableTask*);
 
+// Set to add recording assertions on data buffer operations.
+extern bool gRecordDataBuffers;
+
 } /* namespace js */
 
 #endif /* vm_Runtime_h */

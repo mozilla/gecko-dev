@@ -9392,6 +9392,10 @@ AbortReasonOr<Ok> IonBuilder::setElemTryTypedArray(bool* emitted,
     return Ok();
   }
 
+  if (gRecordDataBuffers) {
+    return Ok();
+  }
+
   // Emit typed setelem variant.
   MOZ_TRY(jsop_setelem_typed(arrayType, object, index, value));
 

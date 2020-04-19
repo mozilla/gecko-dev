@@ -3980,6 +3980,10 @@ AttachDecision SetPropIRGenerator::tryAttachSetTypedElement(
     }
   }
 
+  if (gRecordDataBuffers) {
+    return AttachDecision::NoAction;
+  }
+
   if (IsPrimitiveArrayTypedObject(obj)) {
     writer.guardGroupForLayout(objId, obj->group());
   } else {
@@ -4022,6 +4026,10 @@ AttachDecision SetPropIRGenerator::tryAttachSetTypedArrayElementNonInt32Index(
     if (!rhsVal_.isNumber()) {
       return AttachDecision::NoAction;
     }
+  }
+
+  if (gRecordDataBuffers) {
+    return AttachDecision::NoAction;
   }
 
   ValOperandId keyId = setElemKeyValueId();

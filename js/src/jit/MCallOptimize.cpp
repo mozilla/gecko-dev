@@ -2969,6 +2969,10 @@ IonBuilder::InliningResult IonBuilder::inlineTypedArray(CallInfo& callInfo,
     return InliningStatus_NotInlined;
   }
 
+  if (gRecordDataBuffers) {
+    return InliningStatus_NotInlined;
+  }
+
   JSObject* templateObject = inspector->getTemplateObjectForNative(pc, native);
   if (!templateObject) {
     return InliningStatus_NotInlined;

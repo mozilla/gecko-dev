@@ -99,6 +99,7 @@ static void CheckCanonicalNaN() {
 extern "C" void install_rust_panic_hook();
 
 void (*js::ExecutionProgressHook)(const char*, unsigned, unsigned);
+bool js::gRecordDataBuffers;
 
 JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
     bool isDebugBuild) {
@@ -204,6 +205,9 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
     if (getenv("WEBREPLAY_NOTIFY_EXECUTION_PROGRESS")) {
       void* hook = dlsym(RTLD_DEFAULT, "RecordReplayInterface_ExecutionProgressHook");
       ExecutionProgressHook = mozilla::BitwiseCast<void(*)(const char*, unsigned, unsigned)>(hook);
+    }
+    if (getenv("WEBREPLAY_RECORD_DATA_BUFFERS")) {
+      gRecordDataBuffers = true;
     }
   }
 #endif
