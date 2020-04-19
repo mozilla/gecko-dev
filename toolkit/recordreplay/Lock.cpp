@@ -26,6 +26,12 @@ struct LockAcquires {
   // itself.
   Stream* mAcquires;
 
+  // During replay, the current owner of this lock, zero if not owned.
+  AtomicUInt mOwner;
+
+  // During replay, the number of times the lock has been acquired by its owner.
+  AtomicUInt mDepth;
+
   // During replay, the next thread id to acquire the lock. Writes to this are
   // protected by the lock itself, though reads may occur on other threads.
   AtomicUInt mNextOwner;
@@ -185,13 +191,20 @@ void Lock::Enter(NativeLock* aNativeLock) {
   } else {
     size_t acquiresPosition = thread->Events().ReadScalar();
 
-    // Wait until this thread is next in line to acquire the lock, or until it
-    // has been instructed to diverge from the recording.
     MOZ_RELEASE_ASSERT(thread->PendingLockId().isNothing());
     thread->PendingLockId().emplace(mId);
     thread->PendingLockAcquiresPosition().emplace(acquiresPosition);
-    while (thread->Id() != acquires->mNextOwner &&
-           !thread->MaybeDivergeFromRecording()) {
+    while (true) {
+      if (thread->Id() == acquires->mNextOwner &&
+          (!acquires->mOwner || acquires->mNextOwner == thread->Id())) {
+        // It is this thread's turn to acquire the lock, and it can take it immediately.
+        break;
+      }
+      if (thread->MaybeDivergeFromRecording()) {
+        // This thread has diverged from the recording and should ignore the
+        // acquire order when taking the lock.
+        break;
+      }
       Thread::Wait();
     }
   }
@@ -212,6 +225,7 @@ void Lock::FinishEnter() {
   size_t lockId = thread->PendingLockId().ref();
 
   LockAcquires* acquires = gLockAcquires.Get(lockId);
+  MOZ_RELEASE_ASSERT(acquires->mOwner == 0 || acquires->mOwner == thread->Id());
   MOZ_RELEASE_ASSERT(acquires->mNextOwner == thread->Id());
 
   size_t acquiresPosition = thread->PendingLockAcquiresPosition().ref();
@@ -224,6 +238,9 @@ void Lock::FinishEnter() {
   thread->PendingLockId().reset();
   thread->PendingLockAcquiresPosition().reset();
 
+  acquires->mOwner = thread->Id();
+  acquires->mDepth++;
+
   acquires->ReadNextOwner();
 }
 
@@ -234,8 +251,13 @@ void Lock::Exit(NativeLock* aNativeLock) {
   }
 
   if (IsReplaying() && !thread->HasDivergedFromRecording()) {
-    // Notify the next owner before releasing the lock.
+    // Update lock state and notify the next owner.
     LockAcquires* acquires = gLockAcquires.Get(mId);
+    MOZ_RELEASE_ASSERT(acquires->mOwner == thread->Id());
+    acquires->mDepth--;
+    if (acquires->mDepth == 0) {
+      acquires->mOwner = 0;
+    }
     acquires->NotifyNextOwner(thread);
   }
 }
