@@ -476,6 +476,9 @@ static void SendMessageToForkedProcess(Message::UniquePtr aMsg, bool aLockHeld) 
     bool remove =
         aMsg->mType == MessageType::Terminate ||
         aMsg->mType == MessageType::Crash;
+    if (aMsg->mType == MessageType::Crash) {
+      PrintLog("Forwarding crash message to fork %u", aMsg->mForkId);
+    }
     process->mChannel->SendMessage(std::move(*aMsg));
     if (remove) {
       delete process;
