@@ -1453,12 +1453,21 @@ static ClippedTime NowAsMillis(JSContext* cx) {
 bool js::date_now(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  static bool gWebReplayTest;
+  static bool gWebReplayTestChecked;
+
+  if (!gWebReplayTestChecked) {
+    gWebReplayTest = !!getenv("WEBREPLAY_TEST_SCRIPT");
+  }
+
   {
     JS::AutoFilename filename;
     unsigned lineno;
     unsigned column;
     if (JS::DescribeScriptedCaller(cx, &filename, &lineno, &column)) {
-      if (strstr(filename.get(), "chrome://") || strstr(filename.get(), "resource://")) {
+      if (gWebReplayTest ||
+          strstr(filename.get(), "chrome://") ||
+          strstr(filename.get(), "resource://")) {
         mozilla::recordreplay::RecordReplayAssert("Date::Now %s:%u:%u", filename.get(), lineno, column);
       } else {
         mozilla::recordreplay::RecordReplayAssert("Date::Now UserFrame");

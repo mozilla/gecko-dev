@@ -88,13 +88,22 @@ Performance::Performance(nsPIDOMWindowInner* aWindow, bool aSystemPrincipal)
 Performance::~Performance() = default;
 
 DOMHighResTimeStamp Performance::Now() {
+  static bool gWebReplayTest;
+  static bool gWebReplayTestChecked;
+
+  if (!gWebReplayTestChecked) {
+    gWebReplayTest = !!getenv("WEBREPLAY_TEST_SCRIPT");
+  }
+
   {
     JSContext* cx = dom::danger::GetJSContext();
     JS::AutoFilename filename;
     unsigned lineno;
     unsigned column;
     if (JS::DescribeScriptedCaller(cx, &filename, &lineno, &column)) {
-      if (strstr(filename.get(), "chrome://") || strstr(filename.get(), "resource://")) {
+      if (gWebReplayTest ||
+          strstr(filename.get(), "chrome://") ||
+          strstr(filename.get(), "resource://")) {
         recordreplay::RecordReplayAssert("Performance::Now %s:%u:%u", filename.get(), lineno, column);
       } else {
         recordreplay::RecordReplayAssert("Performance::Now UserFrame");
