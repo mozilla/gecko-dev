@@ -588,6 +588,9 @@ class WebConsoleUI {
   getWebconsoleFront({ frameActorId } = {}) {
     if (frameActorId) {
       const frameFront = this.hud.getFrontByID(frameActorId);
+      if (!frameFront) {
+        throw new Error("Missing frame front");
+      }
       return frameFront.getWebConsoleFront();
     }
 
