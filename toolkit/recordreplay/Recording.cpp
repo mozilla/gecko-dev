@@ -321,9 +321,6 @@ void Stream::PushEvent(const char* aEvent) {
 }
 
 void Stream::DumpEvents() {
-  if (InAutomatedTest()) {
-    js::DumpContent();
-  }
   if (gDumpEvents) {
     Print("Thread Events: %d\n", Thread::Current()->Id());
     size_t start = mEvents.length() > gDumpEvents ? mEvents.length() - gDumpEvents : 0;
@@ -374,13 +371,9 @@ Recording::Recording() : mMode(IsRecording() ? WRITE : READ) {
     GetCurrentBuildId(&header.mBuildId);
     mContents.append((const uint8_t*)&header, sizeof(Header));
   } else {
-    // FIXME for debugging.
-    gDumpEvents = 100000;
-    /*
     if (TestEnv("MOZ_REPLAYING_DUMP_EVENTS")) {
       gDumpEvents = atoi(getenv("MOZ_REPLAYING_DUMP_EVENTS"));
     }
-    */
   }
 }
 
