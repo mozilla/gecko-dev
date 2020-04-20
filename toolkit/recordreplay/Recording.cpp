@@ -170,7 +170,6 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
         continue;
       }
 
-      DumpEvents();
       const char* extra = "";
       if (oldEvent == ThreadEvent::Assert) {
         // Include the asserted string in the error. This must match up with
@@ -180,10 +179,11 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
         }
         extra = ReadInputString();
       }
-      child::ReportFatalError(
-          "Event Mismatch: Recorded %s %s Replayed %s %s",
-          ThreadEventName(oldEvent), extra,
-          ThreadEventName(aEvent), aExtra ? aExtra : "");
+      Print("Error: Recording Event Mismatch: Recorded %s %s Replayed %s %s\n",
+            ThreadEventName(oldEvent), extra,
+            ThreadEventName(aEvent), aExtra ? aExtra : "");
+      DumpEvents();
+      child::ReportFatalError("Recording Mismatch");
     }
     mLastEvent = aEvent;
     PushEvent(ThreadEventName(aEvent));
@@ -210,10 +210,11 @@ void Stream::CheckInput(size_t aValue, const char* aExtra) {
   } else {
     size_t oldValue = ReadScalar();
     if (oldValue != aValue) {
+      Print("Error: Recording Input Mismatch: %s %s Recorded %llu Replayed %llu\n",
+            ThreadEventName(mLastEvent),
+            aExtra ? aExtra : "", oldValue, aValue);
       DumpEvents();
-      child::ReportFatalError("Input Mismatch: %s %s Recorded %llu Replayed %llu",
-                              ThreadEventName(mLastEvent),
-                              aExtra ? aExtra : "", oldValue, aValue);
+      child::ReportFatalError("Recording Mismatch");
     }
   }
 }
@@ -234,9 +235,10 @@ void Stream::CheckInput(const char* aValue) {
   } else {
     const char* oldInput = ReadInputString();
     if (strcmp(oldInput, aValue) != 0) {
+      Print("Error: Recording Input Mismatch: %s Recorded %s Replayed %s\n",
+            ThreadEventName(mLastEvent), oldInput, aValue);
       DumpEvents();
-      child::ReportFatalError("Input Mismatch: %s Recorded %s Replayed %s",
-                              ThreadEventName(mLastEvent), oldInput, aValue);
+      child::ReportFatalError("Recording Mismatch");
     }
     PushEvent(aValue);
   }
@@ -251,9 +253,10 @@ void Stream::CheckInput(const void* aData, size_t aSize) {
     ReadBytes(mInputBallast.get(), aSize);
 
     if (memcmp(aData, mInputBallast.get(), aSize) != 0) {
+      Print("Error: Recording Input Buffer Mismatch: %s\n",
+            ThreadEventName(mLastEvent));
       DumpEvents();
-      child::ReportFatalError("Input Buffer Mismatch: %s",
-                              ThreadEventName(mLastEvent));
+      child::ReportFatalError("Recording Mismatch");
     }
   }
 }
@@ -323,15 +326,15 @@ void Stream::PushEvent(const char* aEvent) {
 extern "C" void DumpJSStack();
 
 void Stream::DumpEvents() {
-  if (InAutomatedTest()) {
-    js::DumpContent();
-  }
   if (gDumpEvents) {
     Print("Thread Events: %d\n", Thread::Current()->Id());
-    size_t start = mEvents.length() > gDumpEvents ? mEvents.length() - gDumpEvents : 0;
-    for (size_t i = start; i < mEvents.length(); i++) {
-      Print("Event: %s\n", mEvents[i]);
+    int limit = mEvents.length() > gDumpEvents ? mEvents.length() - gDumpEvents : 0;
+    for (int i = mEvents.length() - 1; i >= limit; i--) {
+      Print("Event %d: %s\n", i, mEvents[i]);
     }
+  }
+  if (InAutomatedTest()) {
+    js::DumpContent();
   }
 }
 
