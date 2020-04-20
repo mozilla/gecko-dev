@@ -379,11 +379,12 @@ Recording::Recording() : mMode(IsRecording() ? WRITE : READ) {
     GetCurrentBuildId(&header.mBuildId);
     mContents.append((const uint8_t*)&header, sizeof(Header));
   } else {
+    gDumpEvents = 100000;
+    /*
     if (TestEnv("MOZ_REPLAYING_DUMP_EVENTS")) {
       gDumpEvents = atoi(getenv("MOZ_REPLAYING_DUMP_EVENTS"));
-    } else if (InAutomatedTest()) {
-      gDumpEvents = 100000;
     }
+    */
   }
 }
 
