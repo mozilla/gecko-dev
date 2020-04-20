@@ -375,6 +375,8 @@ Recording::Recording() : mMode(IsRecording() ? WRITE : READ) {
   } else {
     if (TestEnv("MOZ_REPLAYING_DUMP_EVENTS")) {
       gDumpEvents = atoi(getenv("MOZ_REPLAYING_DUMP_EVENTS"));
+    } else if (InAutomatedTest()) {
+      gDumpEvents = 100000;
     }
   }
 }
