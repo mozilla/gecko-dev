@@ -307,6 +307,18 @@ uint32_t JS_FASTCALL js::ClampDoubleToUint8(const double x) {
   return y;
 }
 
+static void MaybeAssertTypedArrayContents(JSObject* obj) {
+  if (!gRecordDataBuffers) {
+    return;
+  }
+
+  MOZ_RELEASE_ASSERT(obj->is<TypedArrayObject>());
+  TypedArrayObject* nobj = &obj->as<TypedArrayObject>();
+
+  mozilla::recordreplay::RecordReplayAssert("TypedArray %d %d", (int) nobj->type(), (int) nobj->byteLength());
+  mozilla::recordreplay::RecordReplayAssertBytes(nobj->elements(), nobj->byteLength());
+}
+
 namespace {
 
 enum class SpeciesConstructorOverride { None, ArrayBuffer };
@@ -464,6 +476,8 @@ class TypedArrayObjectTemplate : public TypedArrayObject {
     if (!obj || !obj->init(cx, buffer, byteOffset, len, BYTES_PER_ELEMENT)) {
       return nullptr;
     }
+
+    MaybeAssertTypedArrayContents(obj);
 
     return obj;
   }
@@ -628,6 +642,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject {
     if (!obj) {
       return false;
     }
+
     args.rval().setObject(*obj);
     return true;
   }
@@ -1392,6 +1407,8 @@ template <typename T>
     }
   }
 
+  MaybeAssertTypedArrayContents(obj);
+
   // Step 24.
   return obj;
 }
@@ -1457,6 +1474,8 @@ template <typename T>
     }
 
     // Step 6.f (The assertion isn't applicable for the fast path).
+
+    MaybeAssertTypedArrayContents(obj);
 
     // Step 6.g.
     return obj;
@@ -1530,6 +1549,8 @@ template <typename T>
                                                              len)) {
     return nullptr;
   }
+
+  MaybeAssertTypedArrayContents(obj);
 
   // Step 13.
   return obj;
