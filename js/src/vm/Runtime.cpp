@@ -902,7 +902,13 @@ void JSRuntime::ensureRealmIsRecordingAllocations(
   }
 }
 
+bool js::gForceEmitRecordReplayAsserts;
+
 bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleValue value) {
+  if (gForceEmitRecordReplayAsserts) {
+    return true;
+  }
+
   JS::AutoSuppressGCAnalysis nogc;
 
   char buf[256];
@@ -910,11 +916,6 @@ bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleV
   MOZ_RELEASE_ASSERT(name->length() < sizeof(buf));
   memcpy(buf, name->latin1Chars(nogc), name->length());
   buf[name->length()] = 0;
-
-  {
-    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-    fprintf(stderr, "AssertValue %s\n", buf);
-  }
 
   if (value.isObject()) {
     JSObject* obj = &value.toObject();
@@ -930,12 +931,6 @@ bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleV
 
 bool js::RecordReplayAssertValueWithScript(JSContext* cx, HandleScript script,
                                            HandlePropertyName name, HandleValue value) {
-  {
-    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-    fprintf(stderr, "BeginAssertValue %s:%d %d\n", script->filename(), (int)script->lineno(),
-            script->trackRecordReplayProgress());
-  }
-
   if (script->trackRecordReplayProgress()) {
     return RecordReplayAssertValue(cx, name, value);
   }

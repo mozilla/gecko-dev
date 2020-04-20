@@ -12857,7 +12857,7 @@ AbortReasonOr<Ok> IonBuilder::jsop_instrumentation_scriptid() {
 }
 
 AbortReasonOr<Ok> IonBuilder::jsop_record_replay_assert() {
-  if (script()->trackRecordReplayProgress()) {
+  if (script()->trackRecordReplayProgress() || gForceEmitRecordReplayAsserts) {
     PropertyName* name = info().getAtom(pc)->asPropertyName();
     auto* ins = MRecordReplayAssertValue::New(alloc(), current->pop(), name);
     current->add(ins);

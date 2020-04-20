@@ -851,6 +851,13 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
            emitInstrumentationForOpcodeSlow(op, atomIndex);
   }
 
+  MOZ_MUST_USE bool maybeEmitRecordReplayAssert(JSAtom* atom) {
+    if (ExecutionProgressHook || gForceEmitRecordReplayAsserts) {
+      return emitDupAt(0) && emitAtomOp(JSOp::RecordReplayAssert, atom);
+    }
+    return true;
+  }
+
  private:
   MOZ_MUST_USE bool emitInstrumentationSlow(
       InstrumentationKind kind,

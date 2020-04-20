@@ -64,6 +64,9 @@ bool NameOpEmitter::emitGet() {
         //          [stack] VAL
         return false;
       }
+      if (!bce_->maybeEmitRecordReplayAssert(name_)) {
+        return false;
+      }
       break;
     case NameLocation::Kind::FrameSlot:
       if (loc_.isLexical()) {

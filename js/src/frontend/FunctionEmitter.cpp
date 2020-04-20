@@ -775,19 +775,6 @@ bool FunctionParamsEmitter::emitSimple(JS::Handle<JSAtom*> paramName) {
     }
   }
 
-  // Add record/replay assertions for parameters when emitting assertions for
-  // execution progress.
-  if (ExecutionProgressHook) {
-    if (!bce_->emitArgOp(JSOp::GetArg, argSlot_)) {
-      //            [stack] ARG
-      return false;
-    }
-
-    if (!bce_->emitAtomOp(JSOp::RecordReplayAssert, paramName)) {
-      return false;
-    }
-  }
-
   argSlot_++;
   return true;
 }

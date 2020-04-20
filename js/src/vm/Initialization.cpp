@@ -210,6 +210,9 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
       gRecordDataBuffers = true;
     }
   }
+  if (getenv("WEBREPLAY_FORCE_JS_RECORD_REPLAY_ASSERTS")) {
+    gForceEmitRecordReplayAsserts = true;
+  }
 #endif
 
   libraryInitState = InitState::Running;
