@@ -928,7 +928,10 @@ bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleV
   } else if (value.isBigInt()) {
     mozilla::recordreplay::RecordReplayAssert("Value %s BigInt", buf);
   } else {
-    mozilla::recordreplay::RecordReplayAssert("Value %s Primitive %llu", buf, value.asRawBits());
+    // int32 vs. double representations might not be consistent between
+    // recording and replaying, due to different JIT behaviors.
+    Value v = value.isInt32() ? DoubleValue(value.toInt32()) : value;
+    mozilla::recordreplay::RecordReplayAssert("Value %s Primitive %llu", buf, v.asRawBits());
   }
 
   return true;
