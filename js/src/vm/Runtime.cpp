@@ -905,7 +905,8 @@ void JSRuntime::ensureRealmIsRecordingAllocations(
 bool js::gForceEmitRecordReplayAsserts;
 
 bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleValue value) {
-  if (gForceEmitRecordReplayAsserts) {
+  if (!mozilla::recordreplay::IsRecordingOrReplaying()) {
+    MOZ_RELEASE_ASSERT(gForceEmitRecordReplayAsserts);
     return true;
   }
 

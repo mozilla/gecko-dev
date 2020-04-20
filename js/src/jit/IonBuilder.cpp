@@ -12862,6 +12862,8 @@ AbortReasonOr<Ok> IonBuilder::jsop_record_replay_assert() {
     auto* ins = MRecordReplayAssertValue::New(alloc(), current->pop(), name);
     current->add(ins);
     return resumeAfter(ins);
+  } else {
+    current->pop();
   }
   return Ok();
 }
