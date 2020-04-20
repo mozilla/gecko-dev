@@ -323,6 +323,9 @@ void Stream::PushEvent(const char* aEvent) {
 extern "C" void DumpJSStack();
 
 void Stream::DumpEvents() {
+  if (InAutomatedTest()) {
+    js::DumpContent();
+  }
   if (gDumpEvents) {
     Print("Thread Events: %d\n", Thread::Current()->Id());
     size_t start = mEvents.length() > gDumpEvents ? mEvents.length() - gDumpEvents : 0;
