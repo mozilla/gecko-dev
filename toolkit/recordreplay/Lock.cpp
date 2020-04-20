@@ -363,8 +363,9 @@ MOZ_EXPORT void RecordReplayInterface_InternalEndOrderedAtomicAccess() {
 void Lock::DumpLock(size_t aLockId) {
   // This isn't threadsafe, but is only called when the process has hanged.
   LockAcquires* acquires = gLockAcquires.Get(aLockId);
-  Print("Lock %lu: NextOwner %lu Position %lu AtEnd %d\n",
-        aLockId, (size_t)acquires->mNextOwner,
+  Print("Lock %lu: Owner %lu Depth %lu NextOwner %lu Position %lu AtEnd %d\n",
+        aLockId, (size_t)acquires->mOwner,
+        (size_t)acquires->mDepth, (size_t)acquires->mNextOwner,
         acquires->mAcquires ? acquires->mAcquires->StreamPosition() : -1,
         acquires->mAcquires ? acquires->mAcquires->AtEnd() : true);
 }
