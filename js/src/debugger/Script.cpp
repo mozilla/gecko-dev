@@ -1620,6 +1620,7 @@ static bool BytecodeIsEffectful(JSOp op) {
     case JSOp::InstrumentationActive:
     case JSOp::InstrumentationCallback:
     case JSOp::InstrumentationScriptId:
+    case JSOp::RecordReplayAssert:
     case JSOp::EnterWith:
     case JSOp::LeaveWith:
     case JSOp::SpreadNew:

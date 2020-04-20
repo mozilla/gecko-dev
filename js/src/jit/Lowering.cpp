@@ -4781,6 +4781,13 @@ void LIRGenerator::visitObjectWithProto(MObjectWithProto* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGenerator::visitRecordReplayAssertValue(MRecordReplayAssertValue* ins) {
+  MOZ_ASSERT(ins->prototype()->type() == MIRType::Value);
+
+  auto* lir = new (alloc()) LRecordReplayAssertValue(useBoxAtStart(ins->value()));
+  add(lir, ins);
+}
+
 void LIRGenerator::visitBuiltinProto(MBuiltinProto* ins) {
   MOZ_ASSERT(ins->type() == MIRType::Object);
 

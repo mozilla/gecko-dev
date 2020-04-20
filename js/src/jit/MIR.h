@@ -11076,6 +11076,23 @@ class MObjectWithProto : public MUnaryInstruction,
   bool possiblyCalls() const override { return true; }
 };
 
+class MRecordReplayAssertValue : public MUnaryInstruction,
+                                 public BoxInputsPolicy::Data {
+  CompilerPropertyName name_;
+
+  MRecordReplayAssertValue(MDefinition* value, PropertyName* name)
+      : MUnaryInstruction(classOpcode, value), name_(name) {
+    setGuard();
+  }
+
+ public:
+  INSTRUCTION_HEADER(RecordReplayAssertValue)
+  TRIVIAL_NEW_WRAPPERS
+  NAMED_OPERANDS((0, value))
+
+  PropertyName* name() const { return name_; }
+};
+
 class MBuiltinProto : public MNullaryInstruction {
   jsbytecode* pc_;
 

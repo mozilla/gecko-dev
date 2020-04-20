@@ -6711,6 +6711,19 @@ bool BaselineInterpreterCodeGen::emit_InstrumentationScriptId() {
   return true;
 }
 
+template <typename Handler>
+bool BaselineCodeGen<Handler>::emit_RecordReplayAssert() {
+  frame.popRegsAndSync(1);
+
+  prepareVMCall();
+  pushArg(R0);
+  pushScriptNameArg(R1.scratchReg(), R2.scratchReg());
+  pushScriptArg();
+
+  using Fn = bool (*)(JSContext*, HandleScript, HandlePropertyName, HandleValue);
+  return callVM<Fn, RecordReplayAssertValueWithScript>();
+}
+
 template <>
 bool BaselineCompilerCodeGen::emit_ForceInterpreter() {
   // Caller is responsible for checking script->hasForceInterpreterOp().

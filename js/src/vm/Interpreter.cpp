@@ -4303,6 +4303,16 @@ static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool Interpret(JSContext* cx,
     }
     END_CASE(InstrumentationScriptId)
 
+    CASE(RecordReplayAssert) {
+      ReservedRooted<PropertyName*> name(&rootName0, script->getName(REGS.pc));
+      ReservedRooted<Value> v(&rootValue0);
+      POP_COPY_TO(v);
+      if (script->trackRecordReplayProgress()) {
+        RecordReplayAssertValue(cx, name, v);
+      }
+    }
+    END_CASE(RecordReplayAssert)
+
     DEFAULT() {
       char numBuf[12];
       SprintfLiteral(numBuf, "%d", *REGS.pc);

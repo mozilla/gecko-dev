@@ -2456,6 +2456,9 @@ AbortReasonOr<Ok> IonBuilder::inspectOpcode(JSOp op, bool* restarted) {
     case JSOp::InstrumentationScriptId:
       return jsop_instrumentation_scriptid();
 
+    case JSOp::RecordReplayAssert:
+      return jsop_record_replay_assert();
+
     case JSOp::CheckClassHeritage:
       return jsop_checkclassheritage();
 
@@ -12850,6 +12853,16 @@ AbortReasonOr<Ok> IonBuilder::jsop_instrumentation_scriptid() {
     return abort(AbortReason::Error);
   }
   pushConstant(Int32Value(scriptId));
+  return Ok();
+}
+
+AbortReasonOr<Ok> IonBuilder::jsop_record_replay_assert() {
+  if (script()->trackRecordReplayProgress()) {
+    PropertyName* name = info().getAtom(pc)->asPropertyName();
+    auto* ins = MRecordReplayAssertValue::New(alloc(), current->pop(), name);
+    current->add(ins);
+    return resumeAfter(ins);
+  }
   return Ok();
 }
 

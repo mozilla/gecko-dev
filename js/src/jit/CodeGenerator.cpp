@@ -13800,6 +13800,14 @@ void CodeGenerator::visitObjectWithProto(LObjectWithProto* lir) {
   callVM<Fn, js::ObjectWithProtoOperation>(lir);
 }
 
+void CodeGenerator::visitRecordReplayAssertValue(LRecordReplayAssertValue* lir) {
+  pushArg(ToValue(lir, LRecordReplayAssertValue::ValueOperand));
+  pushArg(ImmGCPtr(lir->mir()->name()));
+
+  using Fn = bool (*)(JSContext*, HandlePropertyName, HandleValue);
+  callVM<Fn, js::RecordReplayAssertValue>(lir);
+};
+
 void CodeGenerator::visitBuiltinProto(LBuiltinProto* lir) {
   pushArg(ImmPtr(lir->mir()->pc()));
 

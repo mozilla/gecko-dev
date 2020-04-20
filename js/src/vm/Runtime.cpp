@@ -901,3 +901,43 @@ void JSRuntime::ensureRealmIsRecordingAllocations(
     global->realm()->chooseAllocationSamplingProbability();
   }
 }
+
+bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleValue value) {
+  JS::AutoSuppressGCAnalysis nogc;
+
+  char buf[256];
+
+  MOZ_RELEASE_ASSERT(name->length() < sizeof(buf));
+  memcpy(buf, name->latin1Chars(nogc), name->length());
+  buf[name->length()] = 0;
+
+  {
+    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+    fprintf(stderr, "AssertValue %s\n", buf);
+  }
+
+  if (value.isObject()) {
+    JSObject* obj = &value.toObject();
+    mozilla::recordreplay::RecordReplayAssert("Value %s Object %s", buf, obj->getClass()->name);
+  } else if (value.isString()) {
+    mozilla::recordreplay::RecordReplayAssert("Value %s String", buf);
+  } else {
+    mozilla::recordreplay::RecordReplayAssert("Value %s Primitive %llu", buf, value.asRawBits());
+  }
+
+  return true;
+}
+
+bool js::RecordReplayAssertValueWithScript(JSContext* cx, HandleScript script,
+                                           HandlePropertyName name, HandleValue value) {
+  {
+    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+    fprintf(stderr, "BeginAssertValue %s:%d %d\n", script->filename(), (int)script->lineno(),
+            script->trackRecordReplayProgress());
+  }
+
+  if (script->trackRecordReplayProgress()) {
+    return RecordReplayAssertValue(cx, name, value);
+  }
+  return true;
+}

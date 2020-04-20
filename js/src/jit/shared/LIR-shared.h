@@ -7254,6 +7254,22 @@ class LObjectWithProto : public LCallInstructionHelper<1, BOX_PIECES, 0> {
   }
 };
 
+class LRecordReplayAssertValue : public LCallInstructionHelper<0, BOX_PIECES, 0> {
+ public:
+  LIR_HEADER(RecordReplayAssertValue)
+
+  static const size_t ValueOperand = 0;
+
+  const MRecordReplayAssertValue* mir() const {
+    return mir_->toRecordReplayAssertValue();
+  }
+
+  explicit LRecordReplayAssertValue(const LBoxAllocation& value)
+      : LCallInstructionHelper(classOpcode) {
+    setBoxOperand(ValueOperand, value);
+  }
+};
+
 class LBuiltinProto : public LCallInstructionHelper<1, 0, 0> {
  public:
   LIR_HEADER(BuiltinProto)

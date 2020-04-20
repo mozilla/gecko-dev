@@ -1121,6 +1121,10 @@ extern void (*HelperThreadTaskCallback)(js::RunnableTask*);
 // Set to add recording assertions on data buffer operations.
 extern bool gRecordDataBuffers;
 
+extern bool RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleValue v);
+extern bool RecordReplayAssertValueWithScript(JSContext* cx, HandleScript script,
+                                              HandlePropertyName name, HandleValue value);
+
 } /* namespace js */
 
 #endif /* vm_Runtime_h */

@@ -234,6 +234,8 @@ namespace jit {
   _(ProxySetPropertyByValue, js::ProxySetPropertyByValue)                      \
   _(PushLexicalEnv, js::jit::PushLexicalEnv)                                   \
   _(PushVarEnv, js::jit::PushVarEnv)                                           \
+  _(RecordReplayAssertValue, js::RecordReplayAssertValue)                      \
+  _(RecordReplayAssertValueWithScript, js::RecordReplayAssertValueWithScript)  \
   _(RecreateLexicalEnv, js::jit::RecreateLexicalEnv)                           \
   _(RegExpMatcherRaw, js::RegExpMatcherRaw)                                    \
   _(RegExpSearcherRaw, js::RegExpSearcherRaw)                                  \

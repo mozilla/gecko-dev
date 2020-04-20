@@ -3480,6 +3480,15 @@
      */ \
     MACRO(InstrumentationScriptId, instrumentation_script_id, NULL, 1, 0, 1, JOF_BYTE) \
     /*
+     * If record/replay progress is tracked for the script, add a record/replay
+     * assertion that the value is consistent between recording/replaying.
+     *
+     *   Category: Other
+     *   Operands: uint32_t nameIndex
+     *   Stack: val =>
+     */ \
+    MACRO(RecordReplayAssert, record_replay_assert, NULL, 5, 1, 0, JOF_ATOM) \
+    /*
      * Break in the debugger, if one is attached. Otherwise this is a no-op.
      *
      * The [`Debugger` API][1] offers a way to hook into this instruction.
@@ -3502,7 +3511,6 @@
  * a power of two.  Use this macro to do so.
  */
 #define FOR_EACH_TRAILING_UNUSED_OPCODE(MACRO) \
-  MACRO(239)                                   \
   MACRO(240)                                   \
   MACRO(241)                                   \
   MACRO(242)                                   \
