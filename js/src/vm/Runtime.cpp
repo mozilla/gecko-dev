@@ -923,6 +923,10 @@ bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleV
     mozilla::recordreplay::RecordReplayAssert("Value %s Object %s", buf, obj->getClass()->name);
   } else if (value.isString()) {
     mozilla::recordreplay::RecordReplayAssert("Value %s String", buf);
+  } else if (value.isSymbol()) {
+    mozilla::recordreplay::RecordReplayAssert("Value %s Symbol", buf);
+  } else if (value.isBigInt()) {
+    mozilla::recordreplay::RecordReplayAssert("Value %s BigInt", buf);
   } else {
     mozilla::recordreplay::RecordReplayAssert("Value %s Primitive %llu", buf, value.asRawBits());
   }
