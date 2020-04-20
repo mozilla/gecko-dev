@@ -414,6 +414,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       this.dbg.replayingStepTargetEpoch = this.replayingStepTargetEpoch.bind(this);
       this.dbg.replayingEmitStepTargets = this.replayingEmitStepTargets.bind(this);
       this.dbg.replayingGeneratePausePacket = this.replayingGeneratePausePacket.bind(this);
+      this.dbg.replayPause();
     }
 
     this._debuggerSourcesSeen = new WeakSet();
