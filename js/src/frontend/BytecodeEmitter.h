@@ -852,7 +852,7 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   }
 
   MOZ_MUST_USE bool maybeEmitRecordReplayAssert(JSAtom* atom) {
-    if (ExecutionProgressHook || gForceEmitRecordReplayAsserts) {
+    if (gEmitRecordReplayAsserts) {
       return emitDupAt(0) && emitAtomOp(JSOp::RecordReplayAssert, atom);
     }
     return true;

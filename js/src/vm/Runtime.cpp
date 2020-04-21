@@ -902,6 +902,7 @@ void JSRuntime::ensureRealmIsRecordingAllocations(
   }
 }
 
+bool js::gEmitRecordReplayAsserts;
 bool js::gForceEmitRecordReplayAsserts;
 
 bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleValue value) {
