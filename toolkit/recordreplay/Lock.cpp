@@ -196,7 +196,7 @@ void Lock::Enter(NativeLock* aNativeLock) {
     thread->PendingLockAcquiresPosition().emplace(acquiresPosition);
     while (true) {
       if (thread->Id() == acquires->mNextOwner &&
-          (!acquires->mOwner || acquires->mNextOwner == thread->Id())) {
+          (!acquires->mOwner || acquires->mOwner == thread->Id())) {
         // It is this thread's turn to acquire the lock, and it can take it immediately.
         break;
       }
