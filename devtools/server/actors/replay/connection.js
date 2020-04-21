@@ -26,6 +26,15 @@ let gCallbacks;
 // Next ID to use for a replaying process connection.
 let gNextConnectionId = 1;
 
+// Environment variables to send to any replayers we connect to. These will
+// not be set except during automated tests and when diagnosing errors.
+const EnvironmentVariables = [
+  "WEBREPLAY_VERBOSE", // Log all messages sent/received over sockets.
+  "WEBREPLAY_NO_TIMEOUT", // Disables timeouts throughout the system.
+  "WEBREPLAY_DUMP_EVENTS", // Log recent events on mismatches.
+  "WEBREPLAY_DUMP_CONTENT", // Log parsed content on mismatches.
+];
+
 // eslint-disable-next-line no-unused-vars
 function Initialize(address, callbacks) {
   gWorker = new Worker("connection-worker.js");
@@ -39,10 +48,15 @@ function Initialize(address, callbacks) {
   gCallbacks = callbacks;
 
   const buildId = `macOS-${Services.appinfo.appBuildID}`;
-  const verbose = !!getenv("WEBREPLAY_VERBOSE");
-  const notimeout = !!getenv("WEBREPLAY_NO_TIMEOUT");
+  const env = {};
+  for (const name of EnvironmentVariables) {
+    const value = getenv(name);
+    if (value) {
+      env[name] = value;
+    }
+  }
 
-  gWorker.postMessage({ kind: "initialize", address, buildId, verbose, notimeout });
+  gWorker.postMessage({ kind: "initialize", address, buildId, env });
 }
 
 // ID assigned to this browser session by the cloud server.

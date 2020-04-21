@@ -94,13 +94,17 @@ async function onServerMessage(evt) {
 
 const MessageLogCount = 20;
 
+function isVerbose() {
+  return gConfig.env.WEBREPLAY_VERBOSE;
+}
+
 function maybeLogMessage(prefix, id, message, count, delay) {
-  if (gConfig.verbose || count <= MessageLogCount) {
+  if (isVerbose() || count <= MessageLogCount) {
     const desc = messageDescription(message);
     const delayText = delay ? ` Delay ${roundTime(delay)}` : "";
     writeLog(`${prefix} Connection ${id} Message ${desc}${delayText}`);
   }
-  if (!gConfig.verbose && count == MessageLogCount) {
+  if (!isVerbose() && count == MessageLogCount) {
     writeLog(`Verbose not set, not logging future ${prefix} messages for connection ${id}`);
   }
 }
@@ -251,13 +255,13 @@ async function doConnect(id, channelId) {
 
   function urlParams(bulk) {
     const id = connection.replayerSessionId;
-    return `id=${id}&dispatchId=${gSessionId}&bulk=${bulk}&verbose=${gConfig.verbose}`;
+    return `id=${id}&dispatchId=${gSessionId}&bulk=${bulk}&env=${JSON.stringify(gConfig.env)}`;
   }
 
   connection.socket.connect(`${address}/connect?${urlParams(false)}`);
   connection.bulkSocket.connect(`${address}/connect?${urlParams(true)}`);
 
-  if (!gConfig.notimeout) {
+  if (!gConfig.env.WEBREPLAY_NO_TIMEOUT) {
     setTimeout(() => {
       if (!connection.socket.connected) {
         writeLog(`ReplayerConnectionTimedOut ${id}`);
