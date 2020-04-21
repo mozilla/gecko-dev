@@ -701,12 +701,10 @@ static inline void SetProgressCounter(ProgressCounter aValue) {
 extern "C" {
 
 MOZ_EXPORT ProgressCounter* RecordReplayInterface_ExecutionProgressCounter() {
-  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   return &gProgressCounter;
 }
 
 MOZ_EXPORT ProgressCounter* RecordReplayInterface_ExecutionProgressInterrupt() {
-  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   return &gProgressInterrupt;
 }
 
