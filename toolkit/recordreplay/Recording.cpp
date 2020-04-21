@@ -198,9 +198,22 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
   }
 
   // Check the execution progress counter for events executing on the main
-  // thread.
+  // thread. This check is non-fatal: if we find a mismatch, update the progress
+  // counter to match the expected value. Ideally this would never happen but we
+  // want to be robust wrt JS executing differently during the replay.
   if (mNameIndex == MainThreadId) {
-    CheckInput(*ExecutionProgressCounter(), aExtra);
+    ProgressCounter progress = *ExecutionProgressCounter();
+    if (IsRecording()) {
+      WriteScalar(progress);
+    } else {
+      ProgressCounter oldProgress = ReadScalar();
+      if (progress != oldProgress) {
+        Print("Error: Recording ProgressCounter Mismatch: %s %s Recorded %llu Replayed %llu\n",
+              ThreadEventName(aEvent),
+              aExtra ? aExtra : "", oldProgress, progress);
+        *ExecutionProgressCounter() = oldProgress;
+      }
+    }
   }
 }
 
