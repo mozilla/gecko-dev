@@ -143,6 +143,13 @@ void Stream::WriteScalar(size_t aValue) {
   } while (aValue);
 }
 
+void Stream::StartRecordingMismatch() {
+  // Make sure we don't infinitely recurse due to triggering recording mismatches
+  // while reporting other recording mismatches.
+  MOZ_RELEASE_ASSERT(!mHadRecordingMismatch);
+  mHadRecordingMismatch = true;
+}
+
 // Workaround arc4random being called from jemalloc when recording on macOS but
 // not when replaying on linux.
 bool Stream::ReadMismatchedEventData(ThreadEvent aEvent) {
@@ -170,6 +177,7 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
         continue;
       }
 
+      StartRecordingMismatch();
       const char* extra = "";
       if (oldEvent == ThreadEvent::Assert) {
         // Include the asserted string in the error. This must match up with
@@ -210,6 +218,7 @@ void Stream::CheckInput(size_t aValue, const char* aExtra) {
   } else {
     size_t oldValue = ReadScalar();
     if (oldValue != aValue) {
+      StartRecordingMismatch();
       Print("Error: Recording Input Mismatch: %s %s Recorded %llu Replayed %llu\n",
             ThreadEventName(mLastEvent),
             aExtra ? aExtra : "", oldValue, aValue);
@@ -235,6 +244,7 @@ void Stream::CheckInput(const char* aValue) {
   } else {
     const char* oldInput = ReadInputString();
     if (strcmp(oldInput, aValue) != 0) {
+      StartRecordingMismatch();
       Print("Error: Recording Input Mismatch: %s Recorded %s Replayed %s\n",
             ThreadEventName(mLastEvent), oldInput, aValue);
       DumpEvents();
@@ -253,6 +263,7 @@ void Stream::CheckInput(const void* aData, size_t aSize) {
     ReadBytes(mInputBallast.get(), aSize);
 
     if (memcmp(aData, mInputBallast.get(), aSize) != 0) {
+      StartRecordingMismatch();
       Print("Error: Recording Input Buffer Mismatch: %s\n",
             ThreadEventName(mLastEvent));
       DumpEvents();

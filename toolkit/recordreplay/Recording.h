@@ -73,14 +73,14 @@ class Stream {
   friend class RecordingEventSection;
 
   // Recording this stream belongs to.
-  Recording* mRecording;
+  Recording* mRecording = nullptr;
 
   // Prefix name for this stream.
-  StreamName mName;
+  StreamName mName = (StreamName)0;
 
   // Index which, when combined with mName, uniquely identifies this stream in
   // the recording.
-  size_t mNameIndex;
+  size_t mNameIndex = 0;
 
   // All chunks of data in the stream.
   InfallibleVector<StreamChunkLocation> mChunks;
@@ -94,34 +94,37 @@ class Stream {
   static const size_t BUFFER_MAX = 1024 * 1024;
 
   // The capacity of mBuffer, at most BUFFER_MAX.
-  size_t mBufferSize;
+  size_t mBufferSize = 0;
 
   // During reading, the number of accessible bytes in mBuffer.
-  size_t mBufferLength;
+  size_t mBufferLength = 0;
 
   // The number of bytes read or written from mBuffer.
-  size_t mBufferPos;
+  size_t mBufferPos = 0;
 
   // The number of uncompressed bytes read or written from the stream.
-  size_t mStreamPos;
+  size_t mStreamPos = 0;
 
   // Any buffer available for use when decompressing or compressing data.
   UniquePtr<char[]> mBallast;
-  size_t mBallastSize;
+  size_t mBallastSize = 0;
 
   // Any buffer available to check for input mismatches.
   UniquePtr<char[]> mInputBallast;
-  size_t mInputBallastSize;
+  size_t mInputBallastSize = 0;
 
   // The last event in this stream, in case of an input mismatch.
-  ThreadEvent mLastEvent;
+  ThreadEvent mLastEvent = (ThreadEvent)0;
 
   // The number of chunks that have been completely read or written. When
   // writing, this equals mChunks.length().
-  size_t mChunkIndex;
+  size_t mChunkIndex = 0;
 
   // Whether there is a RecordingEventSection instance active for this stream.
-  bool mInRecordingEventSection;
+  bool mInRecordingEventSection = false;
+
+  // Whether we have started reporting a recording mismatch.
+  bool mHadRecordingMismatch = false;
 
   // When replaying and MOZ_REPLAYING_DUMP_EVENTS is set, this describes all
   // events in the stream we have replayed so far.
@@ -130,19 +133,7 @@ class Stream {
   Stream(Recording* aRecording, StreamName aName, size_t aNameIndex)
       : mRecording(aRecording),
         mName(aName),
-        mNameIndex(aNameIndex),
-        mBuffer(nullptr),
-        mBufferSize(0),
-        mBufferLength(0),
-        mBufferPos(0),
-        mStreamPos(0),
-        mBallast(nullptr),
-        mBallastSize(0),
-        mInputBallast(nullptr),
-        mInputBallastSize(0),
-        mLastEvent((ThreadEvent)0),
-        mChunkIndex(0),
-        mInRecordingEventSection(false) {}
+        mNameIndex(aNameIndex) {}
 
  public:
   StreamName Name() const { return mName; }
@@ -207,6 +198,7 @@ class Stream {
   void PushEvent(const char* aEvent);
   void DumpEvents();
 
+  void StartRecordingMismatch();
   bool ReadMismatchedEventData(ThreadEvent aEvent);
 };
 
