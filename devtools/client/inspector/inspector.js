@@ -211,9 +211,6 @@ Inspector.prototype = {
         dbg = await this._toolbox.loadTool("jsdebugger");
       }
       this._replayResumed = !dbg.isPaused();
-
-      this.currentTarget.threadFront.on("paused", this.handleThreadPaused);
-      this.currentTarget.threadFront.on("resumed", this.handleThreadResumed);
     }
 
     await this.toolbox.targetList.watchTargets(
