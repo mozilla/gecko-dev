@@ -327,6 +327,7 @@ size_t Stream::BallastMaxSize() {
 }
 
 static size_t gDumpEvents;
+static bool gDumpContent;
 
 void Stream::PushEvent(const char* aEvent) {
   if (gDumpEvents) {
@@ -343,6 +344,9 @@ void Stream::DumpEvents() {
     for (int i = mEvents.length() - 1; i >= limit; i--) {
       Print("Event %d: %s\n", i, mEvents[i]);
     }
+  }
+  if (InAutomatedTest() && gDumpContent) {
+    js::DumpContent();
   }
 }
 
@@ -387,9 +391,10 @@ Recording::Recording() : mMode(IsRecording() ? WRITE : READ) {
     GetCurrentBuildId(&header.mBuildId);
     mContents.append((const uint8_t*)&header, sizeof(Header));
   } else {
-    if (TestEnv("MOZ_REPLAYING_DUMP_EVENTS")) {
-      gDumpEvents = atoi(getenv("MOZ_REPLAYING_DUMP_EVENTS"));
+    if (TestEnv("WEBREPLAY_DUMP_EVENTS")) {
+      gDumpEvents = atoi(getenv("WEBREPLAY_DUMP_EVENTS"));
     }
+    gDumpContent = TestEnv("WEBREPLAY_DUMP_CONTENT");
   }
 }
 
