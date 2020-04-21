@@ -858,6 +858,14 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
     return true;
   }
 
+  MOZ_MUST_USE bool maybeEmitRecordReplayAssert(const char* str) {
+    if (gEmitRecordReplayAsserts) {
+      JSAtom* atom = (JSAtom*) JS_AtomizeString(cx, str);
+      return atom && maybeEmitRecordReplayAssert(atom);
+    }
+    return true;
+  }
+
  private:
   MOZ_MUST_USE bool emitInstrumentationSlow(
       InstrumentationKind kind,

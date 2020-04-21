@@ -53,6 +53,10 @@ bool ElemOpEmitter::prepareForKey() {
 bool ElemOpEmitter::emitGet() {
   MOZ_ASSERT(state_ == State::Key);
 
+  if (!bce_->maybeEmitRecordReplayAssert("GetElem")) {
+    return false;
+  }
+
   if (isIncDec() || isCompoundAssignment()) {
     if (!bce_->emit1(JSOp::ToId)) {
       //            [stack] # if Super
@@ -106,6 +110,10 @@ bool ElemOpEmitter::emitGet() {
       //            [stack] ELEM THIS
       return false;
     }
+  }
+
+  if (!bce_->maybeEmitRecordReplayAssert("GetElemValue")) {
+    return false;
   }
 
 #ifdef DEBUG
