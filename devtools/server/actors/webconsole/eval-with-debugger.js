@@ -477,9 +477,9 @@ exports.evalReplay = async function(string, options = {}, webConsole) {
   let result;
   try {
     if (frame) {
-      result = await frame.eval(evalString);
+      result = await frame.eval(evalString, {}, options.forConsoleMessage);
     } else {
-      result = await dbg.replayGlobalEval(evalString);
+      result = await dbg.replayGlobalEval(evalString, options.forConsoleMessage);
     }
   } catch (e) {
     result = { throw: e };

@@ -97,6 +97,7 @@ function evaluateExpression(expression) {
         frameActor,
         selectedNodeFront: webConsoleUI.getSelectedNodeFront(),
         mapped,
+        forConsoleMessage: true,
       })
       .then(onSettled, onSettled);
 

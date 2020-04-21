@@ -1190,6 +1190,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       eager: request.eager,
       bindings: request.bindings,
       lineNumber: request.lineNumber,
+      forConsoleMessage: request.forConsoleMessage,
     };
     const { mapped } = request;
 

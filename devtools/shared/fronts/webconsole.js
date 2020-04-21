@@ -205,6 +205,7 @@ class WebConsoleFront extends FrontClassWithSpec(webconsoleSpec) {
       selectedObjectActor: opts.selectedObjectActor,
       mapped: opts.mapped,
       eager: opts.eager,
+      forConsoleMessage: opts.forConsoleMessage,
     };
 
     this._pendingAsyncEvaluation = super.evaluateJSAsync(options);
