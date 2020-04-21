@@ -475,6 +475,8 @@ void RegisterConnectionWorker(JS::HandleObject aSendCallback) {
   AutoJSContext cx;
   gWorkerSendCallback = new JS::PersistentRootedObject(cx);
   *gWorkerSendCallback = aSendCallback;
+
+  RunOnShutdown([]() { *gWorkerSendCallback = nullptr; });
 }
 
 void OnCloudMessage(long aId, JS::HandleObject aMessage) {
@@ -512,6 +514,11 @@ class SendMessageToCloudRunnable : public Runnable {
 
   NS_IMETHODIMP Run() {
     MOZ_RELEASE_ASSERT(gWorkerSendCallback);
+
+    if (!*gWorkerSendCallback) {
+      // The browser is shutting down...
+      return NS_OK;
+    }
 
     dom::AutoJSAPI jsapi;
     if (!jsapi.Init(*gWorkerSendCallback)) {
