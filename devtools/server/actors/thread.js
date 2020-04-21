@@ -414,7 +414,6 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       this.dbg.replayingStepTargetEpoch = this.replayingStepTargetEpoch.bind(this);
       this.dbg.replayingEmitStepTargets = this.replayingEmitStepTargets.bind(this);
       this.dbg.replayingGeneratePausePacket = this.replayingGeneratePausePacket.bind(this);
-      this.dbg.replayPause();
     }
 
     this._debuggerSourcesSeen = new WeakSet();
@@ -448,6 +447,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
     // begin executing.
     if (this._parent.onThreadAttached) {
       this._parent.onThreadAttached();
+    }
+
+    if (this.dbg.replaying) {
+      this.dbg.replayPause();
     }
 
     try {
