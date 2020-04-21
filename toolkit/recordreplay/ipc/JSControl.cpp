@@ -691,6 +691,7 @@ static ProgressCounter gProgressCounter;
 static ProgressCounter gProgressInterrupt;
 
 static inline void SetProgressCounter(ProgressCounter aValue) {
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   gProgressCounter = aValue;
   if (gProgressCounter == gProgressInterrupt) {
     JS_RequestInterruptCallback(gMainThreadContext);
@@ -700,10 +701,12 @@ static inline void SetProgressCounter(ProgressCounter aValue) {
 extern "C" {
 
 MOZ_EXPORT ProgressCounter* RecordReplayInterface_ExecutionProgressCounter() {
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   return &gProgressCounter;
 }
 
 MOZ_EXPORT ProgressCounter* RecordReplayInterface_ExecutionProgressInterrupt() {
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   return &gProgressInterrupt;
 }
 
@@ -740,6 +743,7 @@ MOZ_EXPORT ProgressCounter RecordReplayInterface_NewTimeWarpTarget() {
 }  // extern "C"
 
 static bool InterruptCallback(JSContext* aCx) {
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   if (gProgressInterrupt && gProgressInterrupt <= gProgressCounter) {
     gProgressInterrupt = 0;
 

@@ -507,6 +507,8 @@ MOZ_EXPORT void RecordReplayInterface_InternalAssertScriptedCaller(const char* a
 MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(const char* aFilename, unsigned aLineno,
                                                             unsigned aColumn) {
   Thread* thread = Thread::Current();
+  MOZ_RELEASE_ASSERT(thread->IsMainThread());
+
   if (!thread->HasDivergedFromRecording()) {
     MOZ_RELEASE_ASSERT(!thread->AreEventsDisallowed());
     MOZ_RELEASE_ASSERT(!thread->PassThroughEvents());
