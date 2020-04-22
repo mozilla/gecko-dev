@@ -120,6 +120,13 @@ function AddToLog(text) {
   gWorker.postMessage({ kind: "log", text });
 }
 
+Services.ppmm.addMessageListener("RecordReplayMemoryUsage", {
+  receiveMessage(msg) {
+    const { logId, total, incomplete } = msg.data;
+    gWorker.postMessage({ kind: "memoryUsage", logId, total, incomplete });
+  },
+});
+
 let gAppUpdater;
 
 function downloadStatusListener(status, ...args) {

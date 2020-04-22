@@ -26,6 +26,9 @@ function onMainThreadMessage({ data }) {
     case "log":
       doLog(data.text);
       break;
+    case "memoryUsage":
+      doMemoryUsage(data.logId, data.total, data.incomplete);
+      break;
     default:
       postError(`Unknown event kind ${data.kind}`);
   }
@@ -361,4 +364,10 @@ function doLog(text) {
 
 function roundTime(time) {
   return ((time * 1000) | 0) / 1000;
+}
+
+function doMemoryUsage(logId, total, incomplete) {
+  if (gConnected) {
+    sendMessageToCloudServer({ kind: "memoryUsage", logId, total, incomplete });
+  }
 }
