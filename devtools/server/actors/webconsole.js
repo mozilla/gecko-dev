@@ -1413,6 +1413,13 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     let matchProp;
     let isElementAccess;
 
+    // Autocompletion is disabled while replaying for now.
+    if (isReplaying) {
+      return {
+        matches: null,
+      };
+    }
+
     const reqText = text.substr(0, cursor);
 
     if (isCommand(reqText)) {
