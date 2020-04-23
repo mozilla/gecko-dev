@@ -363,6 +363,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       this.dbg.replayingStepTargetEpoch = () => 0;
       this.dbg.replayingEmitStepTargets = () => {};
       this.dbg.replayingGeneratePausePacket = () => {};
+      this.dbg.onNewScript = () => {};
     }
 
     this._dbg = null;

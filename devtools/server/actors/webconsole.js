@@ -1177,7 +1177,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
 
       const pauseCounter = this.dbg.replayPauseCounter();
       await this.dbg.replayWaitForPauseComplete();
-      if (pauseCounter != this.dbg.replayPauseCounter()) {
+      if (!this.dbg || pauseCounter != this.dbg.replayPauseCounter()) {
         return { input, result: { unavailable: true } };
       }
     }
@@ -1198,7 +1198,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     if (isReplaying) {
       const pauseCounter = this.dbg.replayPauseCounter();
       evalInfo = await evalReplay(input, evalOptions, this);
-      if (pauseCounter != this.dbg.replayPauseCounter()) {
+      if (!this.dbg || pauseCounter != this.dbg.replayPauseCounter()) {
         return { input, result: { unavailable: true } };
       }
     } else {
