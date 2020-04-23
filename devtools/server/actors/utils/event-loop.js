@@ -160,14 +160,14 @@ EventLoop.prototype = {
     const windows = [];
     // Disable events in all open windows.
     for (const window of this.getAllWindowDebuggees()) {
-      const { windowUtils } = window;
       try {
+        const { windowUtils } = window;
         windowUtils.suppressEventHandling(true);
+        windowUtils.suspendTimeouts();
+        windows.push(window);
       } catch (e) {
         // This can fail during shutdown.
       }
-      windowUtils.suspendTimeouts();
-      windows.push(window);
     }
     return windows;
   },
@@ -178,9 +178,9 @@ EventLoop.prototype = {
   postNest(pausedWindows) {
     // Enable events in all open windows.
     for (const window of pausedWindows) {
-      const { windowUtils } = window;
-      windowUtils.resumeTimeouts();
       try {
+        const { windowUtils } = window;
+        windowUtils.resumeTimeouts();
         windowUtils.suppressEventHandling(false);
       } catch (e) {
         // This can fail during shutdown.
