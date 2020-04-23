@@ -64,9 +64,6 @@ bool NameOpEmitter::emitGet() {
         //          [stack] VAL
         return false;
       }
-      if (!bce_->maybeEmitRecordReplayAssert(name_)) {
-        return false;
-      }
       break;
     case NameLocation::Kind::FrameSlot:
       if (loc_.isLexical()) {
@@ -95,6 +92,10 @@ bool NameOpEmitter::emitGet() {
       MOZ_CRASH(
           "Synthesized vars for Annex B.3.3 should only be used in "
           "initialization");
+  }
+
+  if (!bce_->maybeEmitRecordReplayAssert(name_)) {
+    return false;
   }
 
   if (isCall()) {

@@ -11,6 +11,7 @@
 #include "util/DiagnosticAssertions.h"
 
 #include "jit/MacroAssembler-inl.h"
+#include "vm/BytecodeUtil-inl.h"
 #include "vm/Interpreter-inl.h"
 
 using namespace js;
@@ -421,7 +422,7 @@ bool IonGetNameIC::update(JSContext* cx, HandleScript outerScript,
     return false;
   }
 
-  if (JSOp(*GetNextPc(pc)) == JSOp::Typeof) {
+  if (HasTrailingTypeOf(pc)) {
     if (!FetchName<GetNameMode::TypeOf>(cx, obj, holder, name, prop, res)) {
       return false;
     }

@@ -231,6 +231,18 @@ class BytecodeRangeWithPosition : private BytecodeRange {
   bool wasArtifactEntryPoint;
 };
 
+static inline bool HasTrailingTypeOf(jsbytecode* pc) {
+  jsbytecode* next = GetNextPc(pc);
+  if (JSOp(*next) == JSOp::Dup) {
+    next = GetNextPc(next);
+    if (JSOp(*next) != JSOp::RecordReplayAssert) {
+      return false;
+    }
+    next = GetNextPc(next);
+  }
+  return JSOp(*next) == JSOp::Typeof;
+}
+
 }  // namespace js
 
 #endif /* vm_BytecodeUtil_inl_h */

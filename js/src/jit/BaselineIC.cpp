@@ -2349,9 +2349,7 @@ bool DoGetNameFallback(JSContext* cx, BaselineFrame* frame,
                                     BaselineCacheIRStubKind::Monitored,
                                     envChain, name);
 
-  static_assert(JSOpLength_GetGName == JSOpLength_GetName,
-                "Otherwise our check for JSOp::Typeof isn't ok");
-  if (JSOp(pc[JSOpLength_GetGName]) == JSOp::Typeof) {
+  if (HasTrailingTypeOf(pc)) {
     if (!GetEnvironmentName<GetNameMode::TypeOf>(cx, envChain, name, res)) {
       return false;
     }

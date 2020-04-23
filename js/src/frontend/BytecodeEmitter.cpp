@@ -909,7 +909,23 @@ bool BytecodeEmitter::emitAtomOp(JSOp op, uint32_t atomIndex,
     return false;
   }
 
-  return emitIndexOp(op, atomIndex);
+  if (!emitIndexOp(op, atomIndex)) {
+    return false;
+  }
+
+  switch (op) {
+    case JSOp::GetProp:
+    case JSOp::CallProp:
+    case JSOp::Length:
+      if (!maybeEmitRecordReplayAssert("GetProp")) {
+        return false;
+      }
+      break;
+    default:
+      break;
+  }
+
+  return true;
 }
 
 bool BytecodeEmitter::emitInternedScopeOp(uint32_t index, JSOp op) {
