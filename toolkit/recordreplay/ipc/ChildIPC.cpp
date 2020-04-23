@@ -109,7 +109,7 @@ static void OnNewRecordingData(Message::UniquePtr aMsg);
 // Lock which allows non-main threads to prevent forks. Readers are the threads
 // preventing forks from happening, while the writer is the main thread during
 // a fork. The fork lock is mainly used to prevent the process from forking
-// while a non-recorded thread is holding a lock.
+// while data which will be used after the fork is modified.
 static ReadWriteSpinLock gForkLock;
 
 // Set when the process is shutting down, to suppress error reporting.
@@ -117,8 +117,6 @@ static AtomicBool gExitCalled;
 
 // Processing routine for incoming channel messages.
 static void ChannelMessageHandler(Message::UniquePtr aMsg) {
-  AutoReadSpinLock disallowFork(gForkLock);
-
   if (aMsg->mForkId != gForkId) {
     if (gForkId) {
       // For some reason we can receive messages intended for another fork
@@ -166,6 +164,7 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       break;
     }
     case MessageType::ManifestStart: {
+      AutoReadSpinLock disallowFork(gForkLock);
       PrintLog("ManifestQueued");
       MonitorAutoLock lock(*gMonitor);
       const ManifestStartMessage& nmsg = (const ManifestStartMessage&)*aMsg;
@@ -177,6 +176,7 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       break;
     }
     case MessageType::ExternalCallResponse: {
+      AutoReadSpinLock disallowFork(gForkLock);
       MonitorAutoLock lock(*gMonitor);
       MOZ_RELEASE_ASSERT(gWaitingForCallResponse);
       MOZ_RELEASE_ASSERT(!gCallResponseMessage);
@@ -205,9 +205,11 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       DirectPrint(nmsg.BinaryData());
       break;
     }
-    case MessageType::RecordingData:
+    case MessageType::RecordingData: {
+      AutoReadSpinLock disallowFork(gForkLock);
       OnNewRecordingData(std::move(aMsg));
       break;
+    }
     case MessageType::FetchCloudRecordingData: {
       MonitorAutoLock lock(*gMonitor);
       char* buf;
@@ -218,6 +220,7 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       break;
     }
     case MessageType::SharedKeyResponse: {
+      AutoReadSpinLock disallowFork(gForkLock);
       const auto& nmsg = (const SharedKeyResponseMessage&)*aMsg;
       HandleSharedKeyResponse(nmsg);
       break;
@@ -488,8 +491,6 @@ static void HandleSharedKeyRequest(const SharedKeyRequestMessage& aMsg);
 static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
   // Certain messages from forked processes are intended for this one,
   // instead of the middleman.
-  AutoReadSpinLock disallowFork(gForkLock);
-
   switch (aMsg->mType) {
     case MessageType::UpdateRecordingFromRoot: {
       const auto& nmsg = static_cast<const UpdateRecordingFromRootMessage&>(*aMsg);
@@ -504,6 +505,7 @@ static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
       break;
     }
     case MessageType::ExternalCallRequest: {
+      AutoReadSpinLock disallowFork(gForkLock);
       const auto& nmsg = static_cast<const ExternalCallRequestMessage&>(*aMsg);
 
       InfallibleVector<char> outputData;
@@ -521,19 +523,24 @@ static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
       return;
     }
     case MessageType::ExternalCallResponse: {
+      AutoReadSpinLock disallowFork(gForkLock);
       const auto& nmsg = static_cast<const ExternalCallResponseMessage&>(*aMsg);
       AddExternalCallOutput(nmsg.mTag, nmsg.BinaryData(), nmsg.BinaryDataSize());
       return;
     }
-    case MessageType::ScanData:
+    case MessageType::ScanData: {
+      AutoReadSpinLock disallowFork(gForkLock);
       js::AddScanDataMessage(std::move(aMsg));
       return;
+    }
     case MessageType::SharedKeySet: {
+      AutoReadSpinLock disallowFork(gForkLock);
       const auto& nmsg = static_cast<const SharedKeySetMessage&>(*aMsg);
       HandleSharedKeySet(nmsg);
       return;
     }
     case MessageType::SharedKeyRequest: {
+      AutoReadSpinLock disallowFork(gForkLock);
       const auto& nmsg = static_cast<const SharedKeyRequestMessage&>(*aMsg);
       HandleSharedKeyRequest(nmsg);
       return;
@@ -545,8 +552,6 @@ static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
   gChannel->SendMessage(std::move(*aMsg));
 }
 
-static const size_t ForkTimeoutSeconds = 10;
-
 void PerformFork(size_t aForkId) {
   if (ForkProcess(aForkId)) {
     // This is the original process.
@@ -555,13 +560,14 @@ void PerformFork(size_t aForkId) {
 
   AutoPassThroughThreadEvents pt;
 
+  // gMonitor could have been held by a non-recorded thread when we forked.
+  // In this case we won't be able to retake it, so reinitialize it.
+  gMonitor = new Monitor();
+
   // Any pending manifests we have are for the original process. We can start
   // getting new manifests for this process once we've registered our channel,
   // so clear out the obsolete pending manifests first.
-  {
-    MonitorAutoLock lock(*gMonitor);
-    gPendingManifests.clear();
-  }
+  gPendingManifests.clear();
 
   gForkId = aForkId;
   gChannel = new Channel(0, Channel::Kind::ReplayForked, ChannelMessageHandler);
