@@ -288,6 +288,58 @@ function replayPreloadedData(threadFront, entry) {
   }
 }
 
+function isNonNullObject(obj) {
+  return obj && (typeof obj == "object" || typeof obj == "function");
+}
+
+function equalObjects(a, b) {
+  if (
+    !isNonNullObject(a) ||
+    !isNonNullObject(b) ||
+    Array.isArray(a) != Array.isArray(b)
+  ) {
+    return a === b;
+  }
+
+  if (Array.isArray(a)) {
+    if (a.length != b.length) {
+      return false;
+    }
+    for (let i = 0; i < a.length; i++) {
+      if (!equalObjects(a[i], b[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  const akeys = Object.keys(a).sort();
+  const bkeys = Object.keys(b).sort();
+  if (akeys.length != bkeys.length) {
+    return false;
+  }
+  for (let i = 0; i < akeys.length; i++) {
+    if (akeys[i] != bkeys[i]) {
+      return false;
+    }
+    const key = akeys[i];
+    if (!equalObjects(a[key], b[key])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function instantWarpPacket(threadFront, { packet }) {
+  const { point, frames, environment } = packet;
+  const expected = gPausePackets.get(pointToString(point));
+  if (equalObjects(frames, expected.frames) && equalObjects(environment, expected.environment)) {
+    ChromeUtils.recordReplayLog("InstantWarp packets match!");
+  } else {
+    ChromeUtils.recordReplayLog("Error: InstantWarp packets mismatch");
+  }
+}
+
 function canInstantStep(point, limit) {
   if (!point) {
     return null;
@@ -445,6 +497,7 @@ const clientEvents = {
   newSource,
   replayFramePositions,
   replayPreloadedData,
+  instantWarpPacket,
 };
 
 const eventMethods = {

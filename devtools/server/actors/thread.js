@@ -1354,6 +1354,22 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
         }
       }
 
+      // During automated tests we compare the pause packets precomputed in the
+      // client and used for instant warps with the packets generated when the
+      // thread has actually paused.
+      if (this.dbg.replayComparePausePackets()) {
+        // The counter is incremented when pushing the thread pause.
+        const pauseCounter = this.dbg.replayPauseCounter() + 1;
+        Services.tm.dispatchToMainThread(DevToolsUtils.makeInfallible(() => {
+          if (pauseCounter == this.dbg.replayPauseCounter()) {
+            let frames = this.walkFrames(this.youngestFrame, 0, 1000);
+            const environment = frames[0].getEnvironment();
+            frames = frames.map(f => f.form());
+            this.emit("instantWarpPacket", { packet: { point, frames, environment } });
+          }
+        }));
+      }
+
       this._pushThreadPause();
     }));
   },

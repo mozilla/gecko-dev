@@ -77,6 +77,9 @@ const threadSpec = generateActorSpec({
     replayPreloadedData: {
       data: Option(0, "array:json"),
     },
+    instantWarpPacket: {
+      packet: Option(0, "json"),
+    },
   },
 
   methods: {
