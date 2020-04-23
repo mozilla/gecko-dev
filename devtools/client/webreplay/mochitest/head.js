@@ -74,15 +74,19 @@ async function interrupt(dbg) {
 }
 
 function resumeThenPauseAtLineFunctionFactory(method) {
-  return async function(dbg, lineno) {
+  return async function(dbg, lineno, waitForLine) {
     await dbg.actions[method](getThreadContext(dbg));
     if (lineno !== undefined) {
       await waitForPaused(dbg);
     } else {
       await waitForPausedNoSource(dbg);
     }
-    const pauseLine = getVisibleSelectedFrameLine(dbg);
-    ok(pauseLine == lineno, `Paused at line ${pauseLine} expected ${lineno}`);
+    if (waitForLine) {
+      await waitUntil(() => lineno == getVisibleSelectedFrameLine(dbg));
+    } else {
+      const pauseLine = getVisibleSelectedFrameLine(dbg);
+      ok(pauseLine == lineno, `Paused at line ${pauseLine} expected ${lineno}`);
+    }
   };
 }
 

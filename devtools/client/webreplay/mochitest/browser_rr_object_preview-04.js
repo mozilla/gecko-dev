@@ -17,7 +17,7 @@ add_task(async function() {
   await waitForSources(dbg, "bundle_input.js");
 
   await addBreakpoint(dbg, "bundle_input.js", 16);
-  await rewindToLine(dbg, 16);
+  await rewindToLine(dbg, 16, /* waitForLine */ true);
 
   await waitUntil(() => dbg.selectors.getSelectedInlinePreviews());
 
