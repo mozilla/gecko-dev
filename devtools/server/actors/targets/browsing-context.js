@@ -1079,6 +1079,10 @@ const browsingContextTargetPrototype = {
    * Ensure that CSS error reporting is enabled.
    */
   ensureCSSErrorReportingEnabled(request) {
+    if (isReplaying) {
+      return;
+    }
+
     for (const docShell of this.docShells) {
       if (docShell.cssErrorReportingEnabled) {
         continue;
