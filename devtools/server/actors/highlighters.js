@@ -299,7 +299,7 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
       event.preventDefault();
     };
 
-    this._onPick = event => {
+    this._onPick = async event => {
       // If the picked node is a remote frame, then we need to let the event through
       // since there's a highlighter actor in that sub-frame also picking.
       if (isRemoteFrame(event.target)) {
@@ -315,10 +315,13 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
       // If shift is pressed, this is only a preview click, send the event to
       // the client, but don't stop picking.
       if (event.shiftKey) {
-        this._walker.emit(
-          "picker-node-previewed",
-          this._findAndAttachElement(event)
-        );
+        const node = await this._findAndAttachElement(event);
+        if (node && this._isPicking) {
+          this._walker.emit(
+            "picker-node-previewed",
+            node
+          );
+        }
         return;
       }
       this._stopPickerListeners();
@@ -329,12 +332,16 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
         }, HIGHLIGHTER_PICKED_TIMER);
       }
       if (!this._currentNode) {
-        this._currentNode = this._findAndAttachElement(event);
+        const node = await this._findAndAttachElement(event);
+        if (!node) {
+          return;
+        }
+        this._currentNode = node;
       }
       this._walker.emit("picker-node-picked", this._currentNode);
     };
 
-    this._onHovered = event => {
+    this._onHovered = async event => {
       // If the hovered node is a remote frame, then we need to let the event through
       // since there's a highlighter actor in that sub-frame also picking.
       if (isRemoteFrame(event.target)) {
@@ -346,7 +353,12 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
         return;
       }
 
-      this._currentNode = this._findAndAttachElement(event);
+      const node = await this._findAndAttachElement(event);
+      if (!node) {
+        return;
+      }
+
+      this._currentNode = node;
       if (this._hoveredNode !== this._currentNode.node) {
         this._highlighter.show(this._currentNode.node.rawNode);
         this._walker.emit("picker-node-hovered", this._currentNode);
@@ -449,13 +461,17 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
     return pickResults;
   },
 
-  _findAndAttachElement: function(event) {
+  _findAndAttachElement: async function(event) {
     // originalTarget allows access to the "real" element before any retargeting
     // is applied, such as in the case of XBL anonymous elements.  See also
     // https://developer.mozilla.org/docs/XBL/XBL_1.0_Reference/Anonymous_Content#Event_Flow_and_Targeting
     const node = isReplaying
-      ? ReplayInspector.findEventTarget(event)
+      ? await ReplayInspector.findEventTarget(event)
       : event.originalTarget || event.target;
+    if (!node) {
+      // Execution unpaused while waiting.
+      return null;
+    }
     return this._walker.attachElement(node);
   },
 
