@@ -2023,7 +2023,6 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
 
   replayFetchPreloadedData() {
     if (!this._replayPendingPreloadedData) {
-      console.error("Error: Duplicate replayFetchPreloadedData requests");
       return;
     }
     const pending = this._replayPendingPreloadedData;
