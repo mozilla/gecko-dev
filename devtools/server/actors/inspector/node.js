@@ -34,6 +34,18 @@ loader.lazyRequireGetter(
   "devtools/shared/inspector/css-logic",
   true
 );
+loader.lazyRequireGetter(
+  this,
+  "findCssSelectorAsync",
+  "devtools/shared/inspector/css-logic",
+  true
+);
+loader.lazyRequireGetter(
+  this,
+  "findAllCssSelectorsAsync",
+  "devtools/shared/inspector/css-logic",
+  true
+);
 
 loader.lazyRequireGetter(
   this,
@@ -582,7 +594,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
     if (Cu.isDeadWrapper(this.rawNode)) {
       return [];
     }
-    return findCssSelector(this.rawNode);
+    return (isReplaying ? findCssSelectorAsync : findCssSelector)(this.rawNode);
   },
 
   /**
@@ -593,7 +605,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
     if (Cu.isDeadWrapper(this.rawNode)) {
       return "";
     }
-    return findAllCssSelectors(this.rawNode);
+    return (isReplaying ? findAllCssSelectorsAsync : findAllCssSelectors)(this.rawNode);
   },
 
   /**
