@@ -663,6 +663,10 @@ void ReportCrash(const MinidumpInfo& aInfo, void* aFaultingAddress) {
   SendFatalErrorMessage(forkId, buf);
 }
 
+bool ExitCalled() {
+  return gExitCalled;
+}
+
 void ReportFatalError(const char* aFormat, ...) {
   if (gExitCalled) {
     return;

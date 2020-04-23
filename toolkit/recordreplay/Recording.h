@@ -198,7 +198,7 @@ class Stream {
   void PushEvent(const char* aEvent);
   void DumpEvents();
 
-  void StartRecordingMismatch();
+  bool StartRecordingMismatch();
   bool ReadMismatchedEventData(ThreadEvent aEvent);
 };
 

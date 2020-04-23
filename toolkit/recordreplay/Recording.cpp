@@ -143,11 +143,18 @@ void Stream::WriteScalar(size_t aValue) {
   } while (aValue);
 }
 
-void Stream::StartRecordingMismatch() {
+bool Stream::StartRecordingMismatch() {
+  if (child::ExitCalled()) {
+    // Sometimes recording mismatches occur while the process is shutting down.
+    // Ignore these.
+    return false;
+  }
+
   // Make sure we don't infinitely recurse due to triggering recording mismatches
   // while reporting other recording mismatches.
   MOZ_RELEASE_ASSERT(!mHadRecordingMismatch);
   mHadRecordingMismatch = true;
+  return true;
 }
 
 // Workaround arc4random being called from jemalloc when recording on macOS but
@@ -177,21 +184,22 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
         continue;
       }
 
-      StartRecordingMismatch();
-      const char* extra = "";
-      if (oldEvent == ThreadEvent::Assert) {
-        // Include the asserted string in the error. This must match up with
-        // the writes in RecordReplayAssert.
-        if (mNameIndex == MainThreadId) {
-          (void)ReadScalar();  // For the ExecutionProgressCounter write below.
+      if (StartRecordingMismatch()) {
+        const char* extra = "";
+        if (oldEvent == ThreadEvent::Assert) {
+          // Include the asserted string in the error. This must match up with
+          // the writes in RecordReplayAssert.
+          if (mNameIndex == MainThreadId) {
+            (void)ReadScalar();  // For the ExecutionProgressCounter write below.
+          }
+          extra = ReadInputString();
         }
-        extra = ReadInputString();
+        Print("Error: Recording Event Mismatch: Recorded %s %s Replayed %s %s\n",
+              ThreadEventName(oldEvent), extra,
+              ThreadEventName(aEvent), aExtra ? aExtra : "");
+        DumpEvents();
+        child::ReportFatalError("Recording Mismatch");
       }
-      Print("Error: Recording Event Mismatch: Recorded %s %s Replayed %s %s\n",
-            ThreadEventName(oldEvent), extra,
-            ThreadEventName(aEvent), aExtra ? aExtra : "");
-      DumpEvents();
-      child::ReportFatalError("Recording Mismatch");
     }
     mLastEvent = aEvent;
     PushEvent(ThreadEventName(aEvent));
@@ -230,8 +238,7 @@ void Stream::CheckInput(size_t aValue, const char* aExtra) {
     WriteScalar(aValue);
   } else {
     size_t oldValue = ReadScalar();
-    if (oldValue != aValue) {
-      StartRecordingMismatch();
+    if (oldValue != aValue && StartRecordingMismatch()) {
       Print("Error: Recording Input Mismatch: %s %s Recorded %llu Replayed %llu\n",
             ThreadEventName(mLastEvent),
             aExtra ? aExtra : "", oldValue, aValue);
@@ -256,8 +263,7 @@ void Stream::CheckInput(const char* aValue) {
     WriteBytes(aValue, len);
   } else {
     const char* oldInput = ReadInputString();
-    if (strcmp(oldInput, aValue) != 0) {
-      StartRecordingMismatch();
+    if (strcmp(oldInput, aValue) && StartRecordingMismatch()) {
       Print("Error: Recording Input Mismatch: %s Recorded %s Replayed %s\n",
             ThreadEventName(mLastEvent), oldInput, aValue);
       DumpEvents();
@@ -275,8 +281,7 @@ void Stream::CheckInput(const void* aData, size_t aSize) {
     EnsureInputBallast(aSize);
     ReadBytes(mInputBallast.get(), aSize);
 
-    if (memcmp(aData, mInputBallast.get(), aSize) != 0) {
-      StartRecordingMismatch();
+    if (memcmp(aData, mInputBallast.get(), aSize) && StartRecordingMismatch()) {
       Print("Error: Recording Input Buffer Mismatch: %s\n",
             ThreadEventName(mLastEvent));
       DumpEvents();

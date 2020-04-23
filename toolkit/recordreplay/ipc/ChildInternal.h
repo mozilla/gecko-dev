@@ -41,6 +41,9 @@ struct MinidumpInfo {
 
 void ReportCrash(const MinidumpInfo& aMinidumpInfo, void* aFaultingAddress);
 
+// Return whether this process is shutting down.
+bool ExitCalled();
+
 // Generate a minidump and report a fatal error to the middleman process.
 void ReportFatalError(const char* aFormat, ...);
 
