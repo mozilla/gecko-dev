@@ -514,9 +514,6 @@ class Channel {
 
   // Send data which contains message(s) to the other side of the channel.
   void SendMessageData(const char* aData, size_t aSize);
-
-  // Exit the process if the channel is not initialized before a deadline.
-  void ExitIfNotInitializedBefore(const TimeStamp& aDeadline);
 };
 
 // Command line option used to specify the middleman pid for a child process.

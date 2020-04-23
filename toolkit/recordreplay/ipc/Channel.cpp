@@ -243,20 +243,6 @@ Message::UniquePtr Channel::WaitForMessage() {
   return res;
 }
 
-void Channel::ExitIfNotInitializedBefore(const TimeStamp& aDeadline) {
-  MOZ_RELEASE_ASSERT(IsParent());
-
-  MonitorAutoLock lock(mMonitor);
-  while (!mInitialized) {
-    if (TimeStamp::Now() >= aDeadline) {
-      PrintSpew("Timed out waiting for channel initialization, exiting...\n");
-      _exit(0);
-    }
-
-    mMonitor.WaitUntil(aDeadline);
-  }
-}
-
 void Channel::PrintMessage(const char* aPrefix, const Message& aMsg) {
   if (!SpewEnabled()) {
     return;

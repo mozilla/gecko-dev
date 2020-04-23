@@ -571,13 +571,6 @@ void PerformFork(size_t aForkId) {
   process.mForkId = aForkId;
   int nbytes = write(gForkWriteFd, &process, sizeof(process));
   MOZ_RELEASE_ASSERT(nbytes == sizeof(process));
-
-  // If the root process is exiting while we are setting up the channel, it will
-  // not connect to this process and we won't be able to shut down properly.
-  // Set a timeout to avoid this situation.
-  TimeStamp deadline =
-      TimeStamp::Now() + TimeDuration::FromSeconds(ForkTimeoutSeconds);
-  gChannel->ExitIfNotInitializedBefore(deadline);
 }
 
 bool RawFork() {
