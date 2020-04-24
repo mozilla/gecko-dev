@@ -266,9 +266,6 @@ MFBT_API bool LoadedWithFileURI();
 typedef uint64_t ProgressCounter;
 MFBT_API ProgressCounter* ExecutionProgressCounter();
 
-// Value of the progress counter at which JS execution should be interrupted.
-MFBT_API ProgressCounter* ExecutionProgressInterrupt();
-
 // Advance the execution progress counter.
 MFBT_API void AdvanceExecutionProgressCounter();
 

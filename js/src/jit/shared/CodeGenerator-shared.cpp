@@ -121,21 +121,6 @@ bool CodeGeneratorShared::generatePrologue() {
     masm.maybeCallExecutionProgressHook(trackScript);
     masm.inc64(
         AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
-    if (mozilla::recordreplay::IsReplaying()) {
-      Register scratch = CallTempReg0;
-
-      Label noMatch;
-      masm.loadPtr(AbsoluteAddress(mozilla::recordreplay::ExecutionProgressInterrupt()), scratch);
-      masm.branchPtr(Assembler::NotEqual,
-                     AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()),
-                     scratch,
-                     &noMatch);
-      masm.movePtr(ImmPtr(gen->runtime->addressOfInterruptBits()), scratch);
-      masm.store32(Imm32((uint32_t)InterruptReason::CallbackUrgent), Address(scratch, 0));
-      masm.movePtr(ImmPtr(gen->runtime->addressOfJitStackLimit()), scratch);
-      masm.storePtr(ImmWord(UINTPTR_MAX), Address(scratch, 0));
-      masm.bind(&noMatch);
-    }
   }
 
   // Ensure that the Ion frame is properly aligned.

@@ -97,11 +97,6 @@ bool IsInitialized() {
   return !!gModule;
 }
 
-// Main thread runtime's JSContext, for doing interrupts.
-static JSContext* gMainThreadContext;
-
-static bool InterruptCallback(JSContext* aCx);
-
 static void EnsureInitialized() {
   if (IsInitialized()) {
     return;
@@ -114,8 +109,6 @@ static void EnsureInitialized() {
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
-
-  gMainThreadContext = cx;
 
   nsCOMPtr<rrIModule> module = do_ImportModule(ModuleURL);
   gModule = module.forget();
@@ -132,10 +125,6 @@ static void EnsureInitialized() {
 
   if (IsRecordingOrReplaying()) {
     InitializeScriptHits();
-
-    if (!JS_AddInterruptCallback(cx, InterruptCallback)) {
-      MOZ_CRASH("EnsureInitialized: AddInterruptCallback failed");
-    }
   }
 }
 
@@ -688,24 +677,16 @@ bool CanCreateCheckpoint() {
 }
 
 static ProgressCounter gProgressCounter;
-static ProgressCounter gProgressInterrupt;
 
 static inline void SetProgressCounter(ProgressCounter aValue) {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   gProgressCounter = aValue;
-  if (gProgressCounter == gProgressInterrupt) {
-    JS_RequestInterruptCallback(gMainThreadContext);
-  }
 }
 
 extern "C" {
 
 MOZ_EXPORT ProgressCounter* RecordReplayInterface_ExecutionProgressCounter() {
   return &gProgressCounter;
-}
-
-MOZ_EXPORT ProgressCounter* RecordReplayInterface_ExecutionProgressInterrupt() {
-  return &gProgressInterrupt;
 }
 
 MOZ_EXPORT void RecordReplayInterface_AdvanceExecutionProgressCounter() {
@@ -739,23 +720,6 @@ MOZ_EXPORT ProgressCounter RecordReplayInterface_NewTimeWarpTarget() {
 }
 
 }  // extern "C"
-
-static bool InterruptCallback(JSContext* aCx) {
-  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
-  if (gProgressInterrupt && gProgressInterrupt <= gProgressCounter) {
-    gProgressInterrupt = 0;
-
-    AutoDisallowThreadEvents disallow;
-    AutoSafeJSContext cx;
-    JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
-
-    RootedValue rv(cx);
-    if (!JS_CallFunctionName(cx, *gModuleObject, "OnInterrupt", HandleValueArray::empty(), &rv)) {
-      MOZ_CRASH("NewTimeWarpTarget");
-    }
-  }
-  return true;
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Replaying process content
@@ -1336,32 +1300,6 @@ static bool RecordReplay_SetWatchdog(JSContext* aCx, unsigned aArgc, Value* aVp)
   } else {
     EndRunEvent();
   }
-
-  args.rval().setUndefined();
-  return true;
-}
-
-static bool RecordReplay_RequestInterrupt(JSContext* aCx, unsigned aArgc, Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  if (!args.get(0).isNumber()) {
-    JS_ReportErrorASCII(aCx, "Expected numeric argument");
-    return false;
-  }
-
-  ProgressCounter counter = args.get(0).toNumber();
-
-  if (counter <= gProgressCounter) {
-    JS_ReportErrorASCII(aCx, "Already passed");
-    return false;
-  }
-
-  if (gProgressInterrupt && gProgressInterrupt != counter) {
-    JS_ReportErrorASCII(aCx, "Interrupt already set");
-    return false;
-  }
-
-  gProgressInterrupt = counter;
 
   args.rval().setUndefined();
   return true;
@@ -2272,7 +2210,6 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("crash", RecordReplay_Crash, 0, 0),
     JS_FN("memoryUsage", RecordReplay_MemoryUsage, 0, 0),
     JS_FN("setWatchdog", RecordReplay_SetWatchdog, 1, 0),
-    JS_FN("requestInterrupt", RecordReplay_RequestInterrupt, 1, 0),
     JS_FN("setSharedKey", RecordReplay_SetSharedKey, 2, 0),
     JS_FN("getSharedKey", RecordReplay_GetSharedKey, 1, 0),
     JS_FN("dumpToFile", RecordReplay_DumpToFile, 2, 0),

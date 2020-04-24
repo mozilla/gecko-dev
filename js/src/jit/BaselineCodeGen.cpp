@@ -2265,19 +2265,6 @@ bool BaselineCodeGen<Handler>::emitIncExecutionProgressCounter(
     }
     masm.inc64(
         AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
-    if (mozilla::recordreplay::IsReplaying()) {
-      Label noMatch;
-      masm.loadPtr(AbsoluteAddress(mozilla::recordreplay::ExecutionProgressInterrupt()), scratch);
-      masm.branchPtr(Assembler::NotEqual,
-                     AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()),
-                     scratch,
-                     &noMatch);
-      masm.movePtr(ImmPtr(cx->addressOfInterruptBits()), scratch);
-      masm.store32(Imm32((uint32_t)InterruptReason::CallbackUrgent), Address(scratch, 0));
-      masm.movePtr(ImmPtr(cx->addressOfJitStackLimit()), scratch);
-      masm.storePtr(ImmWord(UINTPTR_MAX), Address(scratch, 0));
-      masm.bind(&noMatch);
-    }
     return true;
   };
   return emitTestScriptFlag(JSScript::MutableFlags::TrackRecordReplayProgress,

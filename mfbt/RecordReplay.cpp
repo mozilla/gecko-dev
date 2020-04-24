@@ -33,7 +33,6 @@ namespace recordreplay {
   Macro(InternalThingIndex, size_t, (void* aThing), (aThing))                  \
   Macro(InternalVirtualThingName, const char*, (void* aThing), (aThing))       \
   Macro(ExecutionProgressCounter, ProgressCounter*, (), ())                    \
-  Macro(ExecutionProgressInterrupt, ProgressCounter*, (), ())                  \
   Macro(NewTimeWarpTarget, ProgressCounter, (), ())                            \
   Macro(ShouldUpdateProgressCounter, bool, (const char* aURL), (aURL))         \
   Macro(DefineRecordReplayControlObject, bool, (void* aCx, void* aObj),        \
