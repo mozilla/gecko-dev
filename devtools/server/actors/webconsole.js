@@ -1170,15 +1170,17 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     const input = request.text;
     const timestamp = Date.now();
 
+    const unpausedMessage = { input, exceptionMessage: "Pause debugger before evaluating" };
+
     if (isReplaying) {
       if (!this.dbg.isPaused()) {
-        return { input, result: { unavailable: true } };
+        return unpausedMessage;
       }
 
       const pauseCounter = this.dbg.replayPauseCounter();
       await this.dbg.replayWaitForPauseComplete();
       if (!this.dbg || pauseCounter != this.dbg.replayPauseCounter()) {
-        return { input, result: { unavailable: true } };
+        return unpausedMessage;
       }
     }
 
@@ -1199,7 +1201,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       const pauseCounter = this.dbg.replayPauseCounter();
       evalInfo = await evalReplay(input, evalOptions, this);
       if (!this.dbg || pauseCounter != this.dbg.replayPauseCounter()) {
-        return { input, result: { unavailable: true } };
+        return unpausedMessage;
       }
     } else {
       // Set a flag on the thread actor which indicates an evaluation is being

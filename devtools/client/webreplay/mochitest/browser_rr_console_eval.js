@@ -20,6 +20,12 @@ add_task(async function() {
   BrowserTest.execute(hud, "window.updateNumber");
   await waitForMessage(hud, "function updateNumber");
 
+  await dbg.actions.resume(getThreadContext(dbg));
+
+  BrowserTest.execute(hud, "number");
+
+  await waitForMessage(hud, "Pause debugger before evaluating");
+
   ok(true, "Evaluations worked");
 
   await shutdownDebugger(dbg);
