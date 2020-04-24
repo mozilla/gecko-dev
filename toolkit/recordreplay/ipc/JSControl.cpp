@@ -1733,6 +1733,14 @@ static void MaybeIncorporateScanData() {
 static bool gScanningScripts;
 static uint32_t gFrameDepth;
 
+// Any point we will stop at while scanning. When this is set we don't update
+// the scan information, but still track the frame depth so we know when we
+// are at the target point.
+size_t gScanBreakpointProgress;
+size_t gScanBreakpointScript;
+size_t gScanBreakpointOffset;
+size_t gScanBreakpointFrameIndex;
+
 static bool RecordReplay_IsScanningScripts(JSContext* aCx, unsigned aArgc,
                                            Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
@@ -1745,18 +1753,40 @@ static bool RecordReplay_SetScanningScripts(JSContext* aCx, unsigned aArgc,
                                             Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  MOZ_RELEASE_ASSERT(gFrameDepth == 0);
   gScanningScripts = ToBoolean(args.get(0));
+
+  if (gScanningScripts) {
+    size_t depth;
+    if (!RequireNumber(aCx, args.get(1), &depth)) {
+      return false;
+    }
+    gFrameDepth = depth;
+  } else {
+    gFrameDepth = 0;
+    gScanBreakpointProgress = 0;
+    gScanBreakpointScript = 0;
+    gScanBreakpointOffset = 0;
+    gScanBreakpointFrameIndex = 0;
+  }
 
   args.rval().setUndefined();
   return true;
 }
 
-static bool RecordReplay_GetFrameDepth(JSContext* aCx, unsigned aArgc,
-                                       Value* aVp) {
+static bool RecordReplay_SetScanBreakpoint(JSContext* aCx, unsigned aArgc,
+                                           Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  args.rval().setNumber(gFrameDepth);
+  MOZ_RELEASE_ASSERT(gScanningScripts);
+
+  if (!RequireNumber(aCx, args.get(0), &gScanBreakpointProgress) ||
+      !RequireNumber(aCx, args.get(1), &gScanBreakpointScript) ||
+      !RequireNumber(aCx, args.get(2), &gScanBreakpointOffset) ||
+      !RequireNumber(aCx, args.get(3), &gScanBreakpointFrameIndex)) {
+    return false;
+  }
+
+  args.rval().setUndefined();
   return true;
 }
 
@@ -1816,7 +1846,26 @@ static bool RecordReplay_OnScriptHit(JSContext* aCx, unsigned aArgc,
   uint32_t frameIndex = gFrameDepth - 1;
 
   if (!script) {
-    // This script is not being tracked and doesn't update the frame depth.
+    // This script is not being tracked.
+    args.rval().setUndefined();
+    return true;
+  }
+
+  if (gScanBreakpointProgress) {
+    if (gScanBreakpointProgress == gProgressCounter &&
+        gScanBreakpointScript == script &&
+        gScanBreakpointOffset == offset &&
+        gScanBreakpointFrameIndex == frameIndex) {
+      JSAutoRealm ar(aCx, xpc::PrivilegedJunkScope());
+
+      RootedValue rv(aCx);
+      HandleValueArray resumeArgs(args.get(1));
+      if (!JS_CallFunctionName(aCx, *gModuleObject, "ScanBreakpointHit",
+                               HandleValueArray::empty(), &rv)) {
+        MOZ_CRASH("RecordReplay_OnScriptHit");
+      }
+    }
+
     args.rval().setUndefined();
     return true;
   }
@@ -1849,18 +1898,20 @@ static bool RecordReplay_OnChangeFrame(JSContext* aCx, unsigned aArgc,
     SetFrameDepth(gFrameDepth + 1, script);
   }
 
-  uint32_t frameIndex = gFrameDepth - 1;
+  if (!gScanBreakpointProgress) {
+    uint32_t frameIndex = gFrameDepth - 1;
 
-  if (Kind == ChangeFrameEnter && frameIndex) {
-    // Find the last breakpoint hit in the calling frame.
-    const AnyScriptHit& lastHit = gScriptHits->LastHit(frameIndex - 1);
-    gScriptHits->AddChangeFrame(GetLastCheckpoint(), ChangeFrameCall,
-                                lastHit.mScript, lastHit.mOffset,
-                                lastHit.mFrameIndex, lastHit.mProgress);
+    if (Kind == ChangeFrameEnter && frameIndex) {
+      // Find the last breakpoint hit in the calling frame.
+      const AnyScriptHit& lastHit = gScriptHits->LastHit(frameIndex - 1);
+      gScriptHits->AddChangeFrame(GetLastCheckpoint(), ChangeFrameCall,
+                                  lastHit.mScript, lastHit.mOffset,
+                                  lastHit.mFrameIndex, lastHit.mProgress);
+    }
+
+    gScriptHits->AddChangeFrame(GetLastCheckpoint(), Kind, script, 0, frameIndex,
+                                gProgressCounter);
   }
-
-  gScriptHits->AddChangeFrame(GetLastCheckpoint(), Kind, script, 0, frameIndex,
-                              gProgressCounter);
 
   if (Kind == ChangeFrameExit) {
     SetFrameDepth(gFrameDepth - 1, script);
@@ -2188,8 +2239,8 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("getGraphics", RecordReplay_GetGraphics, 3, 0),
     JS_FN("hadUnhandledExternalCall", RecordReplay_HadUnhandledExternalCall, 0, 0),
     JS_FN("isScanningScripts", RecordReplay_IsScanningScripts, 0, 0),
-    JS_FN("setScanningScripts", RecordReplay_SetScanningScripts, 1, 0),
-    JS_FN("getFrameDepth", RecordReplay_GetFrameDepth, 0, 0),
+    JS_FN("setScanningScripts", RecordReplay_SetScanningScripts, 2, 0),
+    JS_FN("setScanBreakpoint", RecordReplay_SetScanBreakpoint, 4, 0),
     JS_FN("setFrameDepth", RecordReplay_SetFrameDepth, 1, 0),
     JS_FN("onScriptHit", RecordReplay_OnScriptHit, 3, 0),
     JS_FN("onEnterFrame", RecordReplay_OnChangeFrame<ChangeFrameEnter>, 2, 0),
