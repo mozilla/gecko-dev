@@ -81,8 +81,6 @@ const {
   processNetworkUpdates,
 } = require("devtools/client/netmonitor/src/utils/request-utils");
 
-const maxNumber = 100000;
-
 const MessageState = overrides =>
   Object.freeze(
     Object.assign(
@@ -1527,7 +1525,7 @@ function ensureExecutionPoint(state, newMessage) {
       // to make sure that those messages are placed immediately after the execution
       // point's message.
       point = lastMessage.executionPoint;
-      messageCount = maxNumber + 1;
+      messageCount = 0;
     } else {
       point = lastMessage.lastExecutionPoint.point;
       messageCount = lastMessage.lastExecutionPoint.messageCount + 1;
@@ -1602,19 +1600,6 @@ function maybeSortVisibleMessages(
       // have an execution point.
       let countA = messageCountSinceLastExecutionPoint(state, a);
       let countB = messageCountSinceLastExecutionPoint(state, b);
-
-      // Messages with real execution points will not have a message count.
-      // We overwrite that with maxNumber so that we can differentiate A) messages
-      // from evaluations while replaying a paused point and B) messages from evaluations
-      // when not replaying a paused point.
-      if (pointA.progress === pointB.progress) {
-        if (!countA) {
-          countA = maxNumber;
-        } else if (!countB) {
-          countB = maxNumber;
-        }
-      }
-
       return countA > countB;
     });
     ChromeUtils.recordReplayLog(`SortVisibleMessagesEnd`);

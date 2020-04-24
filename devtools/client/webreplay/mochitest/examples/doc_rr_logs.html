@@ -14,11 +14,11 @@ function recordingFinished() {
 var number = 0;
 function f() {
   number++;
-  console.log({ number }); 
+  console.log("number: 1");
   number++;
-  console.log({ number }); 
+  console.log("number: 2");
   number++;
-  console.log({ number }); 
+  console.log("number: 3");
   window.setTimeout(recordingFinished);
 }
 window.setTimeout(f, 1);

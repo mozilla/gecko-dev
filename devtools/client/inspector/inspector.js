@@ -425,6 +425,7 @@ Inspector.prototype = {
     this.selection.on("new-node-front", this.onNewSelection);
     this.selection.on("detached-front", this.onDetached);
     this.currentTarget.threadFront.on("paused", this.handleThreadPaused);
+    this.currentTarget.threadFront.on("instantWarp", this.handleThreadPaused);
     this.currentTarget.threadFront.on("resumed", this.handleThreadResumed);
 
     // Log the 3 pane inspector setting on inspector open. The question we want to answer

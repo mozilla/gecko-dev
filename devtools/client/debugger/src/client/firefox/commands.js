@@ -545,6 +545,7 @@ function timeWarp(position: ExecutionPoint) {
 
 function instantWarp(point: ExecutionPoint) {
   currentThreadFront.instantWarp(point);
+  currentThreadFront.emit("instantWarp", { executionPoint: point });
 }
 
 function fetchAncestorFramePositions(index: number) {

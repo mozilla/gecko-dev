@@ -323,14 +323,6 @@ class Message extends Component {
 
     if (isPaused) {
       topLevelClasses.push("paused");
-
-      if (
-        pausedExecutionPoint &&
-        executionPoint &&
-        !pointPrecedes(executionPoint, pausedExecutionPoint)
-      ) {
-        topLevelClasses.push("paused-before");
-      }
     }
 
     const timestampEl = this.renderTimestamp();

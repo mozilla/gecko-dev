@@ -35,6 +35,7 @@ function EvaluationResult(props) {
     timestampsVisible,
     maybeScrollToBottom,
     open,
+    isPaused,
   } = props;
 
   const {
@@ -106,6 +107,7 @@ function EvaluationResult(props) {
     timestampsVisible,
     maybeScrollToBottom,
     message,
+    isPaused,
   });
 }
 

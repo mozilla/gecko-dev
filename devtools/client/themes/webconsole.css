@@ -175,27 +175,12 @@
 
 .message.paused {
   z-index: 3;
+  border-bottom: 1px solid var(--purple-50);
+  margin-bottom: 0px;
 }
 
-.message.paused.paused-before {
-  border-top: 1px solid var(--purple-50);
-  margin-top: 0px;
-}
-
-.message.paused:not(.paused-before) {
-  border-top-color: var(--purple-50);
-  /* always show the border, even for the last child */
-  border-top-width: 1px;
-}
-
-.message.paused ~ .message .message-body-wrapper,
-.message.paused.paused-before .message-body-wrapper {
+.message.paused ~ .message .message-body-wrapper {
   opacity: 0.5;
-}
-
-.message.paused.paused-before .message-body-wrapper,
-.message.paused.paused-before > .icon {
-  margin-top: calc(var(--console-output-vertical-padding) - 1px);
 }
 
 .message.startGroup,
