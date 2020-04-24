@@ -344,8 +344,8 @@ function instantWarpPacket(threadFront, { packet }) {
     // Note: Logging packet contents exposes information about the current site.
     // This comparison only occurs during automated tests.
     ChromeUtils.recordReplayLog("Error: InstantWarp packets mismatch");
-    ChromeUtils.recordReplayLog(`Expected: JSON.stringify(expected)}`);
-    ChromeUtils.recordReplayLog(`Received: JSON.stringify(received)}`);
+    ChromeUtils.recordReplayLog(`Expected: ${JSON.stringify(expected)}`);
+    ChromeUtils.recordReplayLog(`Received: ${JSON.stringify(received)}`);
   }
 }
 
