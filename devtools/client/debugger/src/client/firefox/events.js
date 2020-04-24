@@ -292,21 +292,35 @@ function isNonNullObject(obj) {
   return obj && (typeof obj == "object" || typeof obj == "function");
 }
 
-function equalObjects(a, b) {
+// Note: Logging mismatches exposes information about the current site.
+// This comparison only occurs during automated tests.
+function reportMismatch(a, b) {
+  const astr = JSON.stringify(a);
+  const bstr = JSON.stringify(b);
+  ChromeUtils.recordReplayLog(`Error: Packet compare mismatch expected ${astr} received ${bstr}`);
+}
+
+function compareObjects(a, b) {
   if (
     !isNonNullObject(a) ||
     !isNonNullObject(b) ||
     Array.isArray(a) != Array.isArray(b)
   ) {
-    return a === b;
+    if (a !== b) {
+      reportMismatch(a, b);
+      return false;
+    }
+    return true;
   }
 
   if (Array.isArray(a)) {
     if (a.length != b.length) {
+      reportMismatch(a, b);
       return false;
     }
     for (let i = 0; i < a.length; i++) {
-      if (!equalObjects(a[i], b[i])) {
+      if (!compareObjects(a[i], b[i])) {
+        reportMismatch(a, b);
         return false;
       }
     }
@@ -316,14 +330,17 @@ function equalObjects(a, b) {
   const akeys = Object.keys(a).sort();
   const bkeys = Object.keys(b).sort();
   if (akeys.length != bkeys.length) {
+    reportMismatch(a, b);
     return false;
   }
   for (let i = 0; i < akeys.length; i++) {
     if (akeys[i] != bkeys[i]) {
+      reportMismatch(a, b);
       return false;
     }
     const key = akeys[i];
-    if (!equalObjects(a[key], b[key])) {
+    if (!compareObjects(a[key], b[key])) {
+      reportMismatch(a, b);
       return false;
     }
   }
@@ -338,14 +355,10 @@ function instantWarpPacket(threadFront, { packet }) {
   const { point, frames, environment } = packet;
   const expected = gPausePackets.get(pointToString(point));
   const received = { frames, environment };
-  if (equalObjects(expected, received)) {
+  if (compareObjects(expected, received)) {
     ChromeUtils.recordReplayLog("InstantWarp packets match!");
   } else {
-    // Note: Logging packet contents exposes information about the current site.
-    // This comparison only occurs during automated tests.
     ChromeUtils.recordReplayLog("Error: InstantWarp packets mismatch");
-    ChromeUtils.recordReplayLog(`Expected: ${JSON.stringify(expected)}`);
-    ChromeUtils.recordReplayLog(`Received: ${JSON.stringify(received)}`);
   }
 }
 
