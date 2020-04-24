@@ -336,9 +336,19 @@ function compareObjects(a, b) {
   // only includes previews where the depth is sufficiently low, but the one
   // used to update the client uses the more detailed form everywhere the object
   // appears. Tolerate this difference.
-  if (akeys.includes("preview") && !bkeys.includes("preview")) {
-    akeys = akeys.filter(name => name != "preview");
+
+  function maybeRemoveKey(type, value, key) {
+    if (a[type] == value && akeys.includes(key) && !bkeys.includes(key)) {
+      akeys = akeys.filter(k => k != key);
+    }
   }
+
+  // Watch for objects that include vs. don't include previews.
+  maybeRemoveKey("type", "object", "preview");
+
+  // Watch for different levels of detail within object previews.
+  maybeRemoveKey("kind", "ArrayLike", "items");
+  maybeRemoveKey("kind", "DOMEvent", "target");
 
   if (akeys.length != bkeys.length) {
     reportMismatch(a, b);
