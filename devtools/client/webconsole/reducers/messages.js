@@ -390,6 +390,8 @@ function messages(
 
   const { logLimit } = prefsState;
 
+  ChromeUtils.recordReplayLog(`WebConsole ${action.type}`);
+
   let newState;
   switch (action.type) {
     case constants.PAUSED_EXECUTION_POINT:
@@ -402,8 +404,6 @@ function messages(
       }
       return { ...state, pausedExecutionPoint: action.executionPoint };
     case constants.MESSAGES_ADD:
-      ChromeUtils.recordReplayLog(`AddMessages ${action.messages.length}`);
-
       // Preemptively remove messages that will never be rendered
       const list = [];
       let prunableCount = 0;

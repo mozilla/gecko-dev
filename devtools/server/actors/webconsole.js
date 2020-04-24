@@ -170,6 +170,8 @@ if (isWorker) {
   );
 }
 
+const ChromeUtils = require("ChromeUtils");
+
 function isObject(value) {
   return Object(value) === value;
 }
@@ -1069,6 +1071,8 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    *         `resultID` field.
    */
   evaluateJSAsync: async function(request) {
+    ChromeUtils.recordReplayLog(`WebConsole.evaluateJSAsync Start`);
+
     // Use Date instead of UUID as this code is used by workers, which
     // don't have access to the UUID XPCOM component.
     // Also use a counter in order to prevent mixing up response when calling
@@ -1089,6 +1093,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
           resultID,
           ...response,
         });
+        ChromeUtils.recordReplayLog(`WebConsole.evaluateJSAsync End`);
         return;
       } catch (e) {
         const message = `Encountered error while waiting for Helper Result: ${e}`;
