@@ -22,6 +22,10 @@ const {
  */
 function autocompleteUpdate(force, getterPath, expressionVars) {
   return async ({ dispatch, getState, webConsoleUI, hud }) => {
+    if (hud.currentTarget.isReplayEnabled()) {
+      return;
+    }
+
     if (hud.inputHasSelection()) {
       return dispatch(autocompleteClear());
     }
