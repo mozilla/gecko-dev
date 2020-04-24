@@ -142,7 +142,8 @@ const proto = {
       if (this._obj) {
         throw new Error("Pause packet contains pause scoped environment");
       }
-      if (this.uploaded) {
+      const depth = this.hooks.getGripDepth();
+      if (this.uploadedDepth !== undefined && this.uploadedDepth <= depth) {
         return { type: "object", cached: this.actorID };
       }
     }
@@ -154,7 +155,7 @@ const proto = {
 
     const finishGrip = () => {
       if (this.thread.addPausePacketForm(g)) {
-        this.uploaded = true;
+        this.uploadedDepth = this.hooks.getGripDepth();
         return { type: "object", cached: this.actorID };
       }
       return g;
