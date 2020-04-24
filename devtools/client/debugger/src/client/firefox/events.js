@@ -327,8 +327,19 @@ function compareObjects(a, b) {
     return true;
   }
 
-  const akeys = Object.keys(a).sort();
-  const bkeys = Object.keys(b).sort();
+  let akeys = Object.keys(a).sort();
+  let bkeys = Object.keys(b).sort();
+
+  // The expected value (the one we used to update the client) can contain more
+  // information than the actual pause packet. This happens when the same object
+  // appears in multiple places with different depths. The actual pause packet
+  // only includes previews where the depth is sufficiently low, but the one
+  // used to update the client uses the more detailed form everywhere the object
+  // appears. Tolerate this difference.
+  if (akeys.includes("preview") && !bkeys.includes("preview")) {
+    akeys = akeys.filter(name => name != "preview");
+  }
+
   if (akeys.length != bkeys.length) {
     reportMismatch(a, b);
     return false;
