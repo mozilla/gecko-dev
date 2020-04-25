@@ -1543,7 +1543,12 @@ function createRecordingButton() {
       }
 
       const savedRecordingItem = addItem("recordingSaveFinished.label", () => {
-        preventClose();
+        // Keep the menu open, except when running automated tests.
+        // This is a hacky workaround to not being able to close the menu
+        // using synthesized clicks for some reason.
+        if (!gRunningTestScript) {
+          preventClose();
+        }
 
         if (lastUploadedData && lastUploadedData.lastSaved) {
           const { uuid } = lastUploadedData.lastSaved;
@@ -1740,6 +1745,8 @@ function refreshAllRecordingButtons() {
 // get out of sync with the display state of the button.
 setInterval(refreshAllRecordingButtons, 2000);
 
+let gRunningTestScript;
+
 async function runTestScript() {
   const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
   const script = env.get("WEBREPLAY_TEST_SCRIPT");
@@ -1747,6 +1754,7 @@ async function runTestScript() {
     return;
   }
 
+  gRunningTestScript = true;
   const contents = await OS.File.read(script);
   const text = new TextDecoder("utf-8").decode(contents);
   eval(text);

@@ -353,6 +353,8 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
         return;
       }
 
+      this._currentNode = null;
+
       const node = await this._findAndAttachElement(event);
       if (!node) {
         return;

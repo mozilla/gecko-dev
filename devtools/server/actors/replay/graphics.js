@@ -35,6 +35,9 @@ function setupContents(window) {
   window.document.body.style.margin = "0px";
   window.document.body.prepend(canvas);
   window.document.setSuppressedEventListener(ev => mouseEventListener(window, ev));
+
+  const { innerWidth, innerHeight } = window;
+  Services.cpmm.sendAsyncMessage("RecordReplaySetupCanvas", { innerWidth, innerHeight });
 }
 
 function getCanvas(window) {
