@@ -664,7 +664,7 @@ const findCssSelectorAsync = async function(ele) {
   // document.querySelectorAll("#id") returns multiple if elements share an ID
   if (
     ele.id &&
-    await containingDocOrShadow.querySelectorAllAsync("#" + cssEscape(ele.id)).length === 1
+    (await containingDocOrShadow.querySelectorAllAsync("#" + cssEscape(ele.id))).length === 1
   ) {
     return "#" + cssEscape(ele.id);
   }
