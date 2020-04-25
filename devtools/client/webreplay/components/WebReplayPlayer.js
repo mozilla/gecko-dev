@@ -683,9 +683,11 @@ class WebReplayPlayer extends Component {
     if (this.state.replaying && pointEquals(point, this.state.replaying.point)) {
       const next = this.nextReplayingPoint(point);
       if (next) {
+        ChromeUtils.recordReplayLog(`WebReplayPlayer PaintNext`);
         this.threadFront.paint(next);
         this.setState({ replaying: { point: next }, executionPoint: next });
       } else {
+        ChromeUtils.recordReplayLog(`WebReplayPlayer StopReplaying`);
         this.seek(point);
         this.setState({ replaying: null });
       }
@@ -693,6 +695,8 @@ class WebReplayPlayer extends Component {
   }
 
   startReplaying() {
+    ChromeUtils.recordReplayLog(`WebReplayPlayer StartReplaying`);
+
     let point = this.nextReplayingPoint(this.state.executionPoint);
     if (!point) {
       point = this.state.zoomStartpoint;
@@ -703,6 +707,8 @@ class WebReplayPlayer extends Component {
   }
 
   stopReplaying() {
+    ChromeUtils.recordReplayLog(`WebReplayPlayer StopReplaying`);
+
     if (this.state.replaying && this.state.replaying.point) {
       this.seek(this.state.replaying.point);
     }
