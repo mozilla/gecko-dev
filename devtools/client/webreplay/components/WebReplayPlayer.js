@@ -219,7 +219,7 @@ class WebReplayPlayer extends Component {
       seeking: false,
       recording: true,
       paused: false,
-      replaying: null,
+      playback: null,
       messages: [],
       highlightedMessage: null,
       hoveredMessageOffset: null,
@@ -656,7 +656,7 @@ class WebReplayPlayer extends Component {
     this.seek(nextPoint);
   }
 
-  nextReplayingPoint(point) {
+  nextPlaybackPoint(point) {
     if (pointEquals(point, this.state.zoomEndpoint)) {
       return null;
     }
@@ -680,39 +680,39 @@ class WebReplayPlayer extends Component {
   }
 
   replayPaintFinished({ point }) {
-    if (this.state.replaying && pointEquals(point, this.state.replaying.point)) {
-      const next = this.nextReplayingPoint(point);
+    if (this.state.playback && pointEquals(point, this.state.playback.point)) {
+      const next = this.nextPlaybackPoint(point);
       if (next) {
-        ChromeUtils.recordReplayLog(`WebReplayPlayer PaintNext`);
+        ChromeUtils.recordReplayLog(`WebReplayPlayer PlaybackNext`);
         this.threadFront.paint(next);
-        this.setState({ replaying: { point: next }, executionPoint: next });
+        this.setState({ playback: { point: next }, executionPoint: next });
       } else {
-        ChromeUtils.recordReplayLog(`WebReplayPlayer StopReplaying`);
+        ChromeUtils.recordReplayLog(`WebReplayPlayer StopPlayback`);
         this.seek(point);
-        this.setState({ replaying: null });
+        this.setState({ playback: null });
       }
     }
   }
 
-  startReplaying() {
-    ChromeUtils.recordReplayLog(`WebReplayPlayer StartReplaying`);
+  startPlayback() {
+    ChromeUtils.recordReplayLog(`WebReplayPlayer StartPlayback`);
 
-    let point = this.nextReplayingPoint(this.state.executionPoint);
+    let point = this.nextPlaybackPoint(this.state.executionPoint);
     if (!point) {
       point = this.state.zoomStartpoint;
     }
     this.threadFront.paint(point);
 
-    this.setState({ replaying: { point }, executionPoint: point });
+    this.setState({ playback: { point }, executionPoint: point });
   }
 
-  stopReplaying() {
-    ChromeUtils.recordReplayLog(`WebReplayPlayer StopReplaying`);
+  stopPlayback() {
+    ChromeUtils.recordReplayLog(`WebReplayPlayer StopPlayback`);
 
-    if (this.state.replaying && this.state.replaying.point) {
-      this.seek(this.state.replaying.point);
+    if (this.state.playback && this.state.playback.point) {
+      this.seek(this.state.playback.point);
     }
-    this.setState({ replaying: null });
+    this.setState({ playback: null });
   }
 
   doZoomOut() {
@@ -724,7 +724,7 @@ class WebReplayPlayer extends Component {
 
   renderCommands() {
     const paused = this.isPaused();
-    const { replaying, zoomStartpoint, zoomEndpoint, recordingEndpoint } = this.state;
+    const { playback, zoomStartpoint, zoomEndpoint, recordingEndpoint } = this.state;
 
     const zoomed = (
       !pointEquals(zoomStartpoint, FirstCheckpointExecutionPoint) ||
@@ -734,7 +734,7 @@ class WebReplayPlayer extends Component {
     return [
       CommandButton({
         className: "",
-        active: paused && !replaying,
+        active: paused && !playback,
         img: "previous",
         onClick: () => this.doPrevious(),
       }),
@@ -742,13 +742,13 @@ class WebReplayPlayer extends Component {
       CommandButton({
         className: "primary",
         active: paused,
-        img: replaying ? "pause" : "play",
-        onClick: () => replaying ? this.stopReplaying() : this.startReplaying(),
+        img: playback ? "pause" : "play",
+        onClick: () => playback ? this.stopPlayback() : this.startPlayback(),
       }),
 
       CommandButton({
         className: "",
-        active: paused && !replaying,
+        active: paused && !playback,
         img: "next",
         onClick: () => this.doNext(),
       }),
