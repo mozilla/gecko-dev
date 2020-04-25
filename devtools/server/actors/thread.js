@@ -1739,11 +1739,6 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       packet.executionPoint = point;
     }
 
-    if (this.dbg.replaying) {
-      const point = this.dbg.replayCurrentExecutionPoint();
-      packet.executionPoint = point;
-    }
-
     if (poppedFrames) {
       packet.poppedFrames = poppedFrames;
     }
@@ -1752,6 +1747,10 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   },
 
   fetchAncestorFramePositions: async function(index) {
+    if (!isReplaying) {
+      return { positions: [], unexecuted: [] };
+    }
+
     const point = this.dbg.replayCurrentExecutionPoint();
     if (!point || !point.position) {
       return { positions: [], unexecuted: [] };
