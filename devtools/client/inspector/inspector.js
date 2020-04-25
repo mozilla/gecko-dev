@@ -1474,6 +1474,7 @@ Inspector.prototype = {
 
     const loading = this._markupFrame.contentDocument.getElementById("loading");
     loading.hidden = true;
+    ChromeUtils.recordReplayLog(`Inspector HideMarkupLoading`);
 
     if (!this.markup) {
       return;
@@ -1515,6 +1516,7 @@ Inspector.prototype = {
   async onNoMarkup() {
     const loading = this._markupFrame.contentDocument.getElementById("loading");
     loading.hidden = true;
+    ChromeUtils.recordReplayLog(`Inspector HideMarkupLoading`);
 
     if (this.currentTarget.isReplayEnabled()) {
       const dbg = await this._getDebugger();
@@ -1530,6 +1532,7 @@ Inspector.prototype = {
       try {
         const loading = this._markupFrame.contentDocument.getElementById("loading");
         loading.hidden = false;
+        ChromeUtils.recordReplayLog(`Inspector ShowMarkupLoading`);
 
         const button = this._markupFrame.contentDocument.getElementById("pause-button");
         button.hidden = true;
