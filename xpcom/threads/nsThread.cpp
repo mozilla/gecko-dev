@@ -113,7 +113,6 @@ namespace mozilla {
   namespace recordreplay {
     void BeginRunEvent(const TimeStamp& aNow);
     void EndRunEvent();
-    void ConnectionWorkerPrint(const char* aText);
   }
 }
 
@@ -1083,8 +1082,6 @@ static const char* EventQueuePriorityToString(EventQueuePriority aPriority) {
 
 NS_IMETHODIMP
 nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
-  mozilla::recordreplay::ConnectionWorkerPrint("nsThread ProcessNextEvent Begin");
-
   MOZ_ASSERT(mEvents);
   NS_ENSURE_TRUE(mEvents, NS_ERROR_NOT_IMPLEMENTED);
 
@@ -1249,11 +1246,7 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
         mozilla::recordreplay::BeginRunEvent(now);
       }
 
-      mozilla::recordreplay::ConnectionWorkerPrint("nsThread RunEvent Begin");
-
       event->Run();
-
-      mozilla::recordreplay::ConnectionWorkerPrint("nsThread RunEvent End");
 
       if (mIsMainThread) {
         mozilla::recordreplay::EndRunEvent();
@@ -1299,8 +1292,6 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
   }
 
   --mNestedEventLoopDepth;
-
-  mozilla::recordreplay::ConnectionWorkerPrint("nsThread ProcessNextEvent End");
 
   return rv;
 }

@@ -27,12 +27,6 @@
 using base::TimeTicks;
 using namespace mozilla::ipc;
 
-namespace mozilla {
-  namespace recordreplay {
-    void ConnectionWorkerPrint(const char* aText);
-  }
-}
-
 NS_DEFINE_NAMED_CID(NS_TIMER_CID);
 
 #ifdef DEBUG
@@ -291,8 +285,6 @@ void MessagePumpForNonMainThreads::Run(base::MessagePump::Delegate* aDelegate) {
   mDelayedWorkTimer = NS_NewTimer(mEventTarget);
   MOZ_ASSERT(mDelayedWorkTimer);
 
-  mozilla::recordreplay::ConnectionWorkerPrint("MessagePumpForNonMainThreads::Run Begin");
-
   // Chromium event notifications to be processed will be received by this
   // event loop as a DoWorkRunnables via ScheduleWork. Chromium events that
   // were received before our thread is valid, however, will not generate
@@ -310,8 +302,6 @@ void MessagePumpForNonMainThreads::Run(base::MessagePump::Delegate* aDelegate) {
   base::ScopedNSAutoreleasePool autoReleasePool;
   for (;;) {
     autoReleasePool.Recycle();
-
-    mozilla::recordreplay::ConnectionWorkerPrint("MessagePumpForNonMainThreads::Run Loop");
 
     bool didWork = NS_ProcessNextEvent(thread, false) ? true : false;
     if (!keep_running_) {
@@ -332,12 +322,7 @@ void MessagePumpForNonMainThreads::Run(base::MessagePump::Delegate* aDelegate) {
       continue;
     }
 
-    mozilla::recordreplay::ConnectionWorkerPrint("MessagePumpForNonMainThreads::Run DoIdleWork Begin");
-
     DebugOnly<bool> didIdleWork = aDelegate->DoIdleWork();
-
-    mozilla::recordreplay::ConnectionWorkerPrint("MessagePumpForNonMainThreads::Run DoIdleWork End");
-
     MOZ_ASSERT(!didIdleWork);
     if (!keep_running_) {
       break;
@@ -347,15 +332,9 @@ void MessagePumpForNonMainThreads::Run(base::MessagePump::Delegate* aDelegate) {
       continue;
     }
 
-    mozilla::recordreplay::ConnectionWorkerPrint("MessagePumpForNonMainThreads::Run LateCall Begin");
-
     // This will either sleep or process an event.
     NS_ProcessNextEvent(thread, true);
-
-    mozilla::recordreplay::ConnectionWorkerPrint("MessagePumpForNonMainThreads::Run LateCall End");
   }
-
-  mozilla::recordreplay::ConnectionWorkerPrint("MessagePumpForNonMainThreads::Run End");
 
   mDelayedWorkTimer->Cancel();
 

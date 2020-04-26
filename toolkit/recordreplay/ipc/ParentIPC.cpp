@@ -713,16 +713,5 @@ void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
 }
 
 }  // namespace parent
-
-void ConnectionWorkerPrint(const char* aText) {
-  /*
-  if (parent::gConnectionWorkerThread &&
-      *parent::gConnectionWorkerThread &&
-      *parent::gConnectionWorkerThread == NS_GetCurrentThreadNoCreate()) {
-    fprintf(stderr, "ConnectionWorker %.3f %s\n", parent::ElapsedTime(), aText);
-  }
-  */
-}
-
 }  // namespace recordreplay
 }  // namespace mozilla

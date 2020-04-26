@@ -34,12 +34,6 @@
 
 using namespace mozilla;
 
-namespace mozilla {
-  namespace recordreplay {
-    void ConnectionWorkerPrint(const char* aText);
-  }
-}
-
 #ifndef XPCOM_GLUE_AVOID_NSPR
 
 NS_IMPL_ISUPPORTS(IdlePeriod, nsIIdlePeriod)
@@ -411,8 +405,6 @@ extern nsresult NS_DispatchToCurrentThreadQueue(
 nsresult NS_ProcessPendingEvents(nsIThread* aThread, PRIntervalTime aTimeout) {
   nsresult rv = NS_OK;
 
-  mozilla::recordreplay::ConnectionWorkerPrint("NS_ProcessPendingEvents Begin");
-
 #  ifdef MOZILLA_INTERNAL_API
   if (!aThread) {
     aThread = NS_GetCurrentThread();
@@ -431,12 +423,8 @@ nsresult NS_ProcessPendingEvents(nsIThread* aThread, PRIntervalTime aTimeout) {
   }
 #  endif
 
-
-
   PRIntervalTime start = PR_IntervalNow();
   for (;;) {
-    mozilla::recordreplay::ConnectionWorkerPrint("NS_ProcessPendingEvents Loop");
-
     bool processedEvent;
     rv = aThread->ProcessNextEvent(false, &processedEvent);
     if (NS_FAILED(rv) || !processedEvent) {
@@ -446,9 +434,6 @@ nsresult NS_ProcessPendingEvents(nsIThread* aThread, PRIntervalTime aTimeout) {
       break;
     }
   }
-
-  mozilla::recordreplay::ConnectionWorkerPrint("NS_ProcessPendingEvents End");
-
   return rv;
 }
 #endif  // XPCOM_GLUE_AVOID_NSPR
@@ -475,8 +460,6 @@ bool NS_HasPendingEvents(nsIThread* aThread) {
 }
 
 bool NS_ProcessNextEvent(nsIThread* aThread, bool aMayWait) {
-  mozilla::recordreplay::ConnectionWorkerPrint("NS_ProcessNextEvent Begin");
-
 #ifdef MOZILLA_INTERNAL_API
   if (!aThread) {
     aThread = NS_GetCurrentThread();
@@ -495,11 +478,7 @@ bool NS_ProcessNextEvent(nsIThread* aThread, bool aMayWait) {
   }
 #endif
   bool val;
-  bool rv = NS_SUCCEEDED(aThread->ProcessNextEvent(aMayWait, &val)) && val;
-
-  mozilla::recordreplay::ConnectionWorkerPrint("NS_ProcessNextEvent End");
-
-  return rv;
+  return NS_SUCCEEDED(aThread->ProcessNextEvent(aMayWait, &val)) && val;
 }
 
 void NS_SetCurrentThreadName(const char* aName) {

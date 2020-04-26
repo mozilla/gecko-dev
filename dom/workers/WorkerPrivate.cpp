@@ -79,12 +79,6 @@
 
 #include "nsThreadManager.h"
 
-namespace mozilla {
-  namespace recordreplay {
-    void ConnectionWorkerPrint(const char* aText);
-  }
-}
-
 #ifdef XP_WIN
 #  undef PostMessage
 #endif
@@ -2788,16 +2782,12 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
   InitializeGCTimers();
 
   for (;;) {
-    mozilla::recordreplay::ConnectionWorkerPrint("WorkerPrivate::DoRunLoop Loop");
-
     WorkerStatus currentStatus;
     bool debuggerRunnablesPending = false;
     bool normalRunnablesPending = false;
 
     {
       MutexAutoLock lock(mMutex);
-
-      mozilla::recordreplay::ConnectionWorkerPrint("WorkerPrivate::DoRunLoop Locked");
 
       // Wait for a runnable to arrive that we can execute, or for it to be okay
       // to shutdown this worker once all holders have been removed.
@@ -2814,9 +2804,7 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
         // an event running for a very long time.
         mThread->SetRunningEventDelay(TimeDuration(), TimeStamp());
 
-        mozilla::recordreplay::ConnectionWorkerPrint("WorkerPrivate::DoRunLoop WaitForWorkerEvents Begin");
         WaitForWorkerEvents();
-        mozilla::recordreplay::ConnectionWorkerPrint("WorkerPrivate::DoRunLoop WaitForWorkerEvents End");
       }
 
       auto result = ProcessAllControlRunnablesLocked();
@@ -2831,8 +2819,6 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
 
       currentStatus = mStatus;
     }
-
-    mozilla::recordreplay::ConnectionWorkerPrint("WorkerPrivate::DoRunLoop WaitOver");
 
     // if all holders are done then we can kill this thread.
     if (currentStatus != Running && !HasActiveWorkerRefs()) {
@@ -2905,13 +2891,9 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
         debuggerRunnablesPending = !mDebuggerQueue.IsEmpty();
       }
 
-      mozilla::recordreplay::ConnectionWorkerPrint("WorkerPrivate::DoRunLoop RunDebuggerEvent Begin");
-
       MOZ_ASSERT(runnable);
       static_cast<nsIRunnable*>(runnable)->Run();
       runnable->Release();
-
-      mozilla::recordreplay::ConnectionWorkerPrint("WorkerPrivate::DoRunLoop RunDebuggerEvent End");
 
       CycleCollectedJSContext* ccjs = CycleCollectedJSContext::Get();
       ccjs->PerformDebuggerMicroTaskCheckpoint();
@@ -2927,9 +2909,7 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
       }
     } else if (normalRunnablesPending) {
       // Process a single runnable from the main queue.
-      mozilla::recordreplay::ConnectionWorkerPrint("WorkerPrivate::DoRunLoop ProcessNextEvent Begin");
       NS_ProcessNextEvent(mThread, false);
-      mozilla::recordreplay::ConnectionWorkerPrint("WorkerPrivate::DoRunLoop ProcessNextEvent End");
 
       normalRunnablesPending = NS_HasPendingEvents(mThread);
       if (normalRunnablesPending && GlobalScope()) {
