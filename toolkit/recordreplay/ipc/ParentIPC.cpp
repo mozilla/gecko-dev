@@ -573,10 +573,12 @@ void CreateReplayingCloudProcess(dom::ContentParent* aParent, uint32_t aChannelI
   Channel* channel = new Channel(
       aChannelId, Channel::Kind::ParentCloud,
       [=](Message::UniquePtr aMsg) {
+        fprintf(stderr, "SendMessageToCloud %.3f Begin", ElapsedTime());
         RefPtr<SendMessageToCloudRunnable> runnable =
           new SendMessageToCloudRunnable(connectionId, std::move(aMsg));
         NS_DispatchToThreadQueue(runnable.forget(), *gConnectionWorkerThread,
                                  EventQueuePriority::High);
+        fprintf(stderr, "SendMessageToCloud %.3f End", ElapsedTime());
       }, pid);
   while ((size_t)connectionId >= gConnectionChannels.length()) {
     gConnectionChannels.emplaceBack();
@@ -719,31 +721,11 @@ void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
 
 }  // namespace parent
 
-static double gConnectionWorkerEventBegin;
-
-void RunAnyEventBegin() {
+void ConnectionWorkerPrint(const char* aText) {
   if (parent::gConnectionWorkerThread &&
       *parent::gConnectionWorkerThread &&
       *parent::gConnectionWorkerThread == NS_GetCurrentThreadNoCreate()) {
-    if (gConnectionWorkerEventBegin) {
-      fprintf(stderr, "Error: Nested connection worker events\n");
-    }
-    gConnectionWorkerEventBegin = parent::ElapsedTime();
-  }
-}
-
-void RunAnyEventEnd() {
-  if (parent::gConnectionWorkerThread &&
-      *parent::gConnectionWorkerThread &&
-      *parent::gConnectionWorkerThread == NS_GetCurrentThreadNoCreate()) {
-    if (gConnectionWorkerEventBegin) {
-      fprintf(stderr, "ConnectionWorkerEvent Time %.3f Duration %.3f\n",
-              parent::ElapsedTime(),
-              parent::ElapsedTime() - gConnectionWorkerEventBegin);
-      gConnectionWorkerEventBegin = 0;
-    } else {
-      fprintf(stderr, "Error: Mismatched connection worker events\n");
-    }
+    fprintf(stderr, "ConnectionWorker %.3f %s\n", parent::ElapsedTime(), aText);
   }
 }
 

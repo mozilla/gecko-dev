@@ -46,8 +46,7 @@ using mozilla::Runnable;
 
 namespace mozilla {
   namespace recordreplay {
-    void RunAnyEventBegin();
-    void RunAnyEventEnd();
+    void ConnectionWorkerPrint(const char* aText);
   }
 }
 
@@ -450,13 +449,13 @@ void MessageLoop::RunTask(already_AddRefed<nsIRunnable> aTask) {
   // Execute the task and assume the worst: It is probably not reentrant.
   nestable_tasks_allowed_ = false;
 
-  mozilla::recordreplay::RunAnyEventBegin();
+  mozilla::recordreplay::ConnectionWorkerPrint("MessageLoop EventBegin");
 
   nsCOMPtr<nsIRunnable> task = aTask;
   task->Run();
   task = nullptr;
 
-  mozilla::recordreplay::RunAnyEventEnd();
+  mozilla::recordreplay::ConnectionWorkerPrint("MessageLoop EventEnd");
 
   nestable_tasks_allowed_ = true;
 }
