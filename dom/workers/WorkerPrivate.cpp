@@ -2797,6 +2797,8 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
     {
       MutexAutoLock lock(mMutex);
 
+      mozilla::recordreplay::ConnectionWorkerPrint("WorkerPrivate::DoRunLoop Locked");
+
       // Wait for a runnable to arrive that we can execute, or for it to be okay
       // to shutdown this worker once all holders have been removed.
       // Holders may be removed from inside normal runnables, but we don't check
@@ -2812,7 +2814,9 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
         // an event running for a very long time.
         mThread->SetRunningEventDelay(TimeDuration(), TimeStamp());
 
+        mozilla::recordreplay::ConnectionWorkerPrint("WorkerPrivate::DoRunLoop WaitForWorkerEvents Begin");
         WaitForWorkerEvents();
+        mozilla::recordreplay::ConnectionWorkerPrint("WorkerPrivate::DoRunLoop WaitForWorkerEvents End");
       }
 
       auto result = ProcessAllControlRunnablesLocked();
