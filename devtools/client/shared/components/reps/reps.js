@@ -4028,8 +4028,9 @@ function loadItemProperties(item, client, loadedProperties) {
   }
 
   if (shouldLoadItemFullText(item, loadedProperties)) {
-    const longStringFront = front || client.createLongStringFront(value);
-    promises.push(getFullText(longStringFront, item));
+    // FIXME the debugger does not implement createLongStringFront.
+    //const longStringFront = front || client.createLongStringFront(value);
+    //promises.push(getFullText(longStringFront, item));
   }
 
   if (shouldLoadItemProxySlots(item, loadedProperties)) {
