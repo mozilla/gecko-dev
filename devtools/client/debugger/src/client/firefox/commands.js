@@ -91,6 +91,7 @@ function releaseActor(actor: String) {
   // Object fronts are always thread scoped with web replay.
   return;
 
+  /*
   if (!actor) {
     return;
   }
@@ -99,6 +100,7 @@ function releaseActor(actor: String) {
   if (objFront) {
     return objFront.release().catch(() => {});
   }
+  */
 }
 
 function sendPacket(packet: Object) {
