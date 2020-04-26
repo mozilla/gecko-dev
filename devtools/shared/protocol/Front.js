@@ -72,6 +72,7 @@ class Front extends Pool {
     super.destroy();
     this.clearEvents();
     this.actorID = null;
+    this.destroyStack = Error().stack;
     this.targetFront = null;
     this.parentFront = null;
     this._frontCreationListeners = null;
