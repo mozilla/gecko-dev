@@ -1755,6 +1755,8 @@ Inspector.prototype = {
 
           self._updateProgress = null;
           self.emit("inspector-updated", name);
+
+          ChromeUtils.recordReplayLog(`Inspector Updated`);
         },
       };
     }
