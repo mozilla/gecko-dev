@@ -234,6 +234,14 @@ const objectSpec = generateActorSpec({
       request: {},
       response: {},
     },
+    beginLoadProperties: {
+      request: {},
+      response: {},
+    },
+    endLoadProperties: {
+      request: {},
+      response: {},
+    },
   },
 });
 

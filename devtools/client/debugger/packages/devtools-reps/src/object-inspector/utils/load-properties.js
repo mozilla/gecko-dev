@@ -53,11 +53,15 @@ function loadItemProperties(
 
   if (!front && value && client && client.getFrontByID) {
     front = client.getFrontByID(value.actor);
+    if (front) {
+      front.beginLoadProperties();
+    }
   }
 
   const getObjectFront = function() {
     if (!front) {
       front = client.createObjectFront(value);
+      front.beginLoadProperties();
     }
 
     return front;
@@ -98,7 +102,12 @@ function loadItemProperties(
     promises.push(getProxySlots(getObjectFront()));
   }
 
-  return Promise.all(promises).then(mergeResponses);
+  return Promise.all(promises).then(responses => {
+    if (front) {
+      front.endLoadProperties();
+    }
+    return mergeResponses(responses);
+  });
 }
 
 function mergeResponses(responses: Array<Object>): Object {

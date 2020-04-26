@@ -44,6 +44,11 @@ if (!isWorker) {
   );
 }
 
+let ChromeUtils;
+if (!isWorker) {
+  ChromeUtils = require("ChromeUtils");
+}
+
 const {
   getArrayLength,
   getPromiseState,
@@ -616,7 +621,10 @@ const proto = {
   /**
    * Handle a protocol request to provide the prototype of the object.
    */
-  prototype: function() {
+  prototype: async function() {
+    if (isReplaying) {
+      await this.obj.replayEnsurePrototypeAsync();
+    }
     let objProto = null;
     if (DevToolsUtils.isSafeDebuggerObject(this.obj)) {
       objProto = this.obj.proto;
@@ -918,6 +926,18 @@ const proto = {
    * Protocol.js uses this release method to call the destroy method.
    */
   release: function() {},
+
+  beginLoadProperties() {
+    if (ChromeUtils) {
+      ChromeUtils.recordReplayLog(`ObjectActor.beginLoadProperties ${this.actorID}`);
+    }
+  },
+
+  endLoadProperties() {
+    if (ChromeUtils) {
+      ChromeUtils.recordReplayLog(`ObjectActor.endLoadProperties ${this.actorID}`);
+    }
+  },
 };
 
 exports.ObjectActor = protocol.ActorClassWithSpec(objectSpec, proto);
