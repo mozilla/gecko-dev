@@ -14,6 +14,7 @@
 #include "js/Proxy.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ContentProcessMessageManager.h"
+#include "mozilla/dom/WorkerRunnable.h"
 #include "ChildInternal.h"
 #include "InfallibleVector.h"
 #include "JSControl.h"
@@ -459,24 +460,25 @@ static ConnectionChannel* GetConnectionChannel(JSContext* aCx,
   return &gConnectionChannels[id];
 }
 
-// Use an indirection here to avoid releasing references and subsequently
-// crashing when the process exits.
-static nsCOMPtr<nsIThread>* gConnectionWorkerThread;
+// This reference is manually cleared on shutdown, when the connection worker
+// can no longer be used.
+static dom::WorkerPrivate* gConnectionWorkerPrivate;
 static JS::PersistentRootedObject* gWorkerSendCallback;
 
 void RegisterConnectionWorker(JS::HandleObject aSendCallback) {
-  MOZ_RELEASE_ASSERT(!gConnectionWorkerThread);
+  MOZ_RELEASE_ASSERT(!gConnectionWorkerPrivate);
 
-  nsIThread* thread = NS_GetCurrentThreadNoCreate();
-  MOZ_RELEASE_ASSERT(thread);
-  gConnectionWorkerThread = new nsCOMPtr<nsIThread>();
-  *gConnectionWorkerThread = thread;
+  gConnectionWorkerPrivate = dom::GetCurrentThreadWorkerPrivate();
+  MOZ_RELEASE_ASSERT(gConnectionWorkerPrivate);
 
   AutoJSContext cx;
   gWorkerSendCallback = new JS::PersistentRootedObject(cx);
   *gWorkerSendCallback = aSendCallback;
 
-  RunOnShutdown([]() { *gWorkerSendCallback = nullptr; });
+  RunOnShutdown([]() {
+      gConnectionWorkerPrivate = nullptr;
+      *gWorkerSendCallback = nullptr;
+    });
 }
 
 void OnCloudMessage(long aId, JS::HandleObject aMessage) {
@@ -500,33 +502,27 @@ void OnCloudMessage(long aId, JS::HandleObject aMessage) {
   }
 }
 
-class SendMessageToCloudRunnable : public Runnable {
+class SendMessageToCloudRunnable : public dom::WorkerRunnable {
  public:
   int32_t mConnectionId;
   Message::UniquePtr mMsg;
   double mPostTime;
 
   SendMessageToCloudRunnable(int32_t aConnectionId, Message::UniquePtr aMsg)
-      : Runnable("SendMessageToCloudRunnable"),
+      : WorkerRunnable(gConnectionWorkerPrivate),
         mConnectionId(aConnectionId),
         mMsg(std::move(aMsg)),
         mPostTime(ElapsedTime()) {}
 
-  NS_IMETHODIMP Run() {
+  bool WorkerRun(JSContext* aCx, dom::WorkerPrivate* aWorkerPrivate) override {
     MOZ_RELEASE_ASSERT(gWorkerSendCallback);
 
     if (!*gWorkerSendCallback) {
       // The browser is shutting down...
-      return NS_OK;
+      return true;
     }
 
-    dom::AutoJSAPI jsapi;
-    if (!jsapi.Init(*gWorkerSendCallback)) {
-      MOZ_CRASH("SendMessageToCloudRunnable jsapi.Init failed");
-    }
-    JSContext* cx = jsapi.cx();
-
-    JS::RootedObject data(cx, JS::NewArrayBuffer(cx, mMsg->mSize));
+    JS::RootedObject data(aCx, JS::NewArrayBuffer(aCx, mMsg->mSize));
     MOZ_RELEASE_ASSERT(data);
 
     {
@@ -539,20 +535,20 @@ class SendMessageToCloudRunnable : public Runnable {
       memcpy(ptr, mMsg.get(), mMsg->mSize);
     }
 
-    JS::RootedObject thisv(cx);
-    JS::RootedValue fval(cx, JS::ObjectValue(**gWorkerSendCallback));
-    JS::AutoValueArray<3> args(cx);
+    JS::RootedObject thisv(aCx);
+    JS::RootedValue fval(aCx, JS::ObjectValue(**gWorkerSendCallback));
+    JS::AutoValueArray<3> args(aCx);
     args[0].setInt32(mConnectionId);
     args[1].setObject(*data);
     args[2].setNumber(ElapsedTime() - mPostTime);
-    JS::RootedValue rval(cx);
+    JS::RootedValue rval(aCx);
 
-    if (!JS_CallFunctionValue(cx, thisv, fval, args, &rval)) {
+    if (!JS_CallFunctionValue(aCx, thisv, fval, args, &rval)) {
       // Ignore failures during shutdown.
-      JS_ClearPendingException(cx);
+      JS_ClearPendingException(aCx);
     }
 
-    return NS_OK;
+    return true;
   }
 };
 
@@ -573,12 +569,9 @@ void CreateReplayingCloudProcess(dom::ContentParent* aParent, uint32_t aChannelI
   Channel* channel = new Channel(
       aChannelId, Channel::Kind::ParentCloud,
       [=](Message::UniquePtr aMsg) {
-        fprintf(stderr, "SendMessageToCloud %.3f Begin\n", ElapsedTime());
         RefPtr<SendMessageToCloudRunnable> runnable =
           new SendMessageToCloudRunnable(connectionId, std::move(aMsg));
-        NS_DispatchToThreadQueue(runnable.forget(), *gConnectionWorkerThread,
-                                 EventQueuePriority::High);
-        fprintf(stderr, "SendMessageToCloud %.3f End\n", ElapsedTime());
+        runnable->Dispatch();
       }, pid);
   while ((size_t)connectionId >= gConnectionChannels.length()) {
     gConnectionChannels.emplaceBack();
@@ -722,11 +715,13 @@ void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
 }  // namespace parent
 
 void ConnectionWorkerPrint(const char* aText) {
+  /*
   if (parent::gConnectionWorkerThread &&
       *parent::gConnectionWorkerThread &&
       *parent::gConnectionWorkerThread == NS_GetCurrentThreadNoCreate()) {
     fprintf(stderr, "ConnectionWorker %.3f %s\n", parent::ElapsedTime(), aText);
   }
+  */
 }
 
 }  // namespace recordreplay

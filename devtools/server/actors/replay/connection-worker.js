@@ -110,6 +110,9 @@ function maybeLogMessage(prefix, id, message, count, delay) {
   if (!isVerbose() && count == MessageLogCount) {
     writeLog(`Verbose not set, not logging future ${prefix} messages for connection ${id}`);
   }
+  if (delay && delay >= 0.05) {
+    writeLog(`Error: Long delay dispatching message: ${delay}`);
+  }
 }
 
 // How much time to give a new connection to establish itself before closing it
