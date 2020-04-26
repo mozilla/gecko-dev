@@ -573,12 +573,12 @@ void CreateReplayingCloudProcess(dom::ContentParent* aParent, uint32_t aChannelI
   Channel* channel = new Channel(
       aChannelId, Channel::Kind::ParentCloud,
       [=](Message::UniquePtr aMsg) {
-        fprintf(stderr, "SendMessageToCloud %.3f Begin", ElapsedTime());
+        fprintf(stderr, "SendMessageToCloud %.3f Begin\n", ElapsedTime());
         RefPtr<SendMessageToCloudRunnable> runnable =
           new SendMessageToCloudRunnable(connectionId, std::move(aMsg));
         NS_DispatchToThreadQueue(runnable.forget(), *gConnectionWorkerThread,
                                  EventQueuePriority::High);
-        fprintf(stderr, "SendMessageToCloud %.3f End", ElapsedTime());
+        fprintf(stderr, "SendMessageToCloud %.3f End\n", ElapsedTime());
       }, pid);
   while ((size_t)connectionId >= gConnectionChannels.length()) {
     gConnectionChannels.emplaceBack();
