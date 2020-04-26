@@ -328,7 +328,9 @@ exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
       this._isPicking = false;
       if (this._autohide) {
         this._targetActor.window.setTimeout(() => {
-          this._highlighter.hide();
+          if (this._highlighter) {
+            this._highlighter.hide();
+          }
         }, HIGHLIGHTER_PICKED_TIMER);
       }
       if (!this._currentNode) {
