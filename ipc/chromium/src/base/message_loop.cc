@@ -43,6 +43,14 @@ using base::TimeTicks;
 
 using mozilla::Runnable;
 
+
+namespace mozilla {
+  namespace recordreplay {
+    void RunAnyEventBegin();
+    void RunAnyEventEnd();
+  }
+}
+
 static base::ThreadLocalPointer<MessageLoop>& get_tls_ptr() {
   static base::ThreadLocalPointer<MessageLoop> tls_ptr;
   return tls_ptr;
@@ -442,9 +450,13 @@ void MessageLoop::RunTask(already_AddRefed<nsIRunnable> aTask) {
   // Execute the task and assume the worst: It is probably not reentrant.
   nestable_tasks_allowed_ = false;
 
+  mozilla::recordreplay::RunAnyEventBegin();
+
   nsCOMPtr<nsIRunnable> task = aTask;
   task->Run();
   task = nullptr;
+
+  mozilla::recordreplay::RunAnyEventEnd();
 
   nestable_tasks_allowed_ = true;
 }

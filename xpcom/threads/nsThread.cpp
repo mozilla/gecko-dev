@@ -113,6 +113,8 @@ namespace mozilla {
   namespace recordreplay {
     void BeginRunEvent(const TimeStamp& aNow);
     void EndRunEvent();
+    void RunAnyEventBegin();
+    void RunAnyEventEnd();
   }
 }
 
@@ -1246,7 +1248,11 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
         mozilla::recordreplay::BeginRunEvent(now);
       }
 
+      mozilla::recordreplay::RunAnyEventBegin();
+
       event->Run();
+
+      mozilla::recordreplay::RunAnyEventEnd();
 
       if (mIsMainThread) {
         mozilla::recordreplay::EndRunEvent();

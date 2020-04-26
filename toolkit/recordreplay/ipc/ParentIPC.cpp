@@ -718,5 +718,34 @@ void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
 }
 
 }  // namespace parent
+
+static double gConnectionWorkerEventBegin;
+
+void RunAnyEventBegin() {
+  if (parent::gConnectionWorkerThread &&
+      *parent::gConnectionWorkerThread &&
+      *parent::gConnectionWorkerThread == NS_GetCurrentThreadNoCreate()) {
+    if (gConnectionWorkerEventBegin) {
+      fprintf(stderr, "Error: Nested connection worker events\n");
+    }
+    gConnectionWorkerEventBegin = parent::ElapsedTime();
+  }
+}
+
+void RunAnyEventEnd() {
+  if (parent::gConnectionWorkerThread &&
+      *parent::gConnectionWorkerThread &&
+      *parent::gConnectionWorkerThread == NS_GetCurrentThreadNoCreate()) {
+    if (gConnectionWorkerEventBegin) {
+      fprintf(stderr, "ConnectionWorkerEvent Time %.3f Duration %.3f\n",
+              parent::ElapsedTime(),
+              parent::ElapsedTime() - gConnectionWorkerEventBegin);
+      gConnectionWorkerEventBegin = 0;
+    } else {
+      fprintf(stderr, "Error: Mismatched connection worker events\n");
+    }
+  }
+}
+
 }  // namespace recordreplay
 }  // namespace mozilla
