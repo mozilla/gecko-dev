@@ -95,10 +95,15 @@ void MaybeCreateCheckpoint() {
   }
 }
 
+// Ensure that non-main threads have been respawned after a fork.
+static void EnsureNonMainThreadsAreSpawned();
+
 static bool gUnhandledDivergeAllowed;
 
 void DivergeFromRecording() {
   MOZ_RELEASE_ASSERT(IsReplaying());
+
+  EnsureNonMainThreadsAreSpawned();
 
   Thread* thread = Thread::Current();
   MOZ_RELEASE_ASSERT(thread->IsMainThread());
@@ -227,7 +232,7 @@ bool NeedRespawnThreads() {
   return gNeedRespawnThreads;
 }
 
-void EnsureNonMainThreadsAreSpawned() {
+static void EnsureNonMainThreadsAreSpawned() {
   if (gNeedRespawnThreads) {
     AutoPassThroughThreadEvents pt;
     Thread::RespawnAllThreadsAfterFork();

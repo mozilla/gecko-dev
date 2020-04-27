@@ -95,9 +95,6 @@ bool ForkProcess(size_t aForkId);
 // Whether this was forked and non-main threads have not been respawned.
 bool NeedRespawnThreads();
 
-// Ensure that non-main threads have been respawned after a fork.
-void EnsureNonMainThreadsAreSpawned();
-
 // When paused at a breakpoint or at a checkpoint, unpause and proceed with
 // execution.
 void ResumeExecution();
