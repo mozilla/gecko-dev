@@ -1248,7 +1248,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       return error instanceof Error
         ? {
             error: "unknownError",
-            message: DevToolsUtils.safeErrorString(error),
+            message: DevToolsUtils.safeErrorString(error) + "\n" + "ThreadResumeError",
           }
         : // It is a known error, and the promise was rejected with an error
           // packet.

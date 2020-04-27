@@ -100,6 +100,7 @@ class Actor extends Pool {
     if (error.stack) {
       console.error(error.stack);
     }
+    require("ChromeUtils").recordReplayLog(`ActorError ${error.message} ${error.stack}`);
     this.conn.send({
       from: this.actorID,
       error: error.error || "unknownError",
