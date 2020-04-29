@@ -117,7 +117,7 @@ function maybeLogMessage(prefix, id, message, count, delay) {
 
 // How much time to give a new connection to establish itself before closing it
 // and reattempting to connect.
-const SocketTimeoutMs = 30 * 1000;
+const SocketTimeoutMs = 60 * 1000;
 
 // Information about a socket opened for a replayer connection.
 function ConnectionSocket(id, bulk) {

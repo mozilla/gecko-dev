@@ -239,6 +239,7 @@ class Front extends Pool {
       packetId,
       type,
       stack: getStack(),
+      stackTrace: Error().stack,
       response: null,
     });
     this.send(packet);
@@ -304,7 +305,7 @@ class Front extends Pool {
     }
 
     while (this._requests.length && this._requests[0].response) {
-      const { deferred, stack, response } = this._requests.shift();
+      const { deferred, stack, stackTrace, response } = this._requests.shift();
       callFunctionWithAsyncStack(
         () => {
           if (response.error) {
@@ -315,7 +316,7 @@ class Front extends Pool {
             } else {
               message = response.error;
             }
-            const packetError = new Error(message);
+            const packetError = new Error(message + " " + stackTrace);
             deferred.reject(packetError);
           } else {
             deferred.resolve(response);
