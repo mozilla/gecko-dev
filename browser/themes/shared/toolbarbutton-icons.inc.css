@@ -260,11 +260,11 @@ toolbar[brighttext] {
 }
 
 .recordingButtonRecording {
-  color: #ff4500 !important;
+  fill: #ff4500 !important;
 }
 
 .recordingButtonReplaying {
-  color: #0080ff !important;
+  fill: #0080ff !important;
 }
 
 #cloud-recordings-button {
