@@ -42,7 +42,7 @@ function Initialize(address, callbacks) {
     try {
       onMessage(evt);
     } catch (e) {
-      ChromeUtils.recordReplayLog(`RecordReplaySocketError ${e}`);
+      ChromeUtils.recordReplayLog(`RecordReplaySocketError ${e} ${e.stack}`);
     }
   });
   gCallbacks = callbacks;

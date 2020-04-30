@@ -1727,6 +1727,14 @@ function createRecordingButton() {
       });
     },
   });
+
+  // Listen for messages to add to the UI process log.
+  Services.ppmm.addMessageListener("RecordReplayLog", {
+    receiveMessage(msg) {
+      const { text } = msg.data;
+      ChromeUtils.recordReplayLog(text);
+    }
+  });
 }
 
 function refreshAllRecordingButtons() {

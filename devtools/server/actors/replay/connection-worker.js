@@ -110,7 +110,7 @@ function maybeLogMessage(prefix, id, message, count, delay) {
   if (!isVerbose() && count == MessageLogCount) {
     writeLog(`Verbose not set, not logging future ${prefix} messages for connection ${id}`);
   }
-  if (delay && delay >= 0.05) {
+  if (delay && delay >= 0.2) {
     writeLog(`Error: Long delay dispatching message: ${delay}`);
   }
 }

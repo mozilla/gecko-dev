@@ -608,9 +608,13 @@ already_AddRefed<nsAtom> NS_Atomize(const nsAString& aUTF16String) {
 already_AddRefed<nsAtom> nsAtomTable::AtomizeMainThread(
     const nsAString& aUTF16String) {
   MOZ_ASSERT(NS_IsMainThread());
+
   RefPtr<nsAtom> retVal;
   AtomTableKey key(aUTF16String.Data(), aUTF16String.Length());
   auto p = sRecentlyUsedMainThreadAtoms.Lookup(key);
+
+  recordreplay::RecordReplayAssert("nsAtomTable::AtomizeMainThread %u %d", key.mHash, !!p);
+
   if (p) {
     retVal = p.Data();
     return retVal.forget();

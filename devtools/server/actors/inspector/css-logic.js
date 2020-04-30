@@ -264,10 +264,11 @@ CssLogic.prototype = {
       cssSheet._passId = this._passId;
 
       // Find import and keyframes rules.
-      if (!cssSheet.getCssRules) {
-        throw new Error(`Missing getCssRules ${cssSheet} ${cssSheet.getCssRules}`);
+      const rules = cssSheet.getCssRules();
+      if (!rules) {
+        throw new Error(`Missing CSS sheet rules ${cssSheet} ${rules}`);
       }
-      for (const aDomRule of cssSheet.getCssRules()) {
+      for (const aDomRule of rules) {
         if (
           aDomRule.type == CSSRule.IMPORT_RULE &&
           aDomRule.styleSheet &&
