@@ -1567,7 +1567,11 @@ MarkupView.prototype = {
       })
       .then(() => {
         const container = this.getContainer(node, slotted);
-        scrollIntoViewIfNeeded(container.editor.elt, centered, smoothScroll);
+        if (container.editor) {
+          scrollIntoViewIfNeeded(container.editor.elt, centered, smoothScroll);
+        } else {
+          console.error(`Error: Missing container editor ${node.tagName}`);
+        }
       }, this._handleRejectionIfNotDestroyed);
   },
 
