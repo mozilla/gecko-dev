@@ -284,9 +284,11 @@ LookupResult RasterImage::LookupFrameInternal(const IntSize& aSize,
                                               uint32_t aFlags,
                                               PlaybackType aPlaybackType,
                                               bool aMarkUsed) {
-  recordreplay::RecordReplayAssert("RasterImage::LookupFrameInternal");
+  recordreplay::RecordReplayAssert("RasterImage::LookupFrameInternal %u %d %d",
+                                   aFlags, mAnimationState.isSome(), (int)aPlaybackType);
 
   if (mAnimationState && aPlaybackType == PlaybackType::eAnimated) {
+    recordreplay::RecordReplayAssert("RasterImage::LookupFrameInternal #1");
     MOZ_ASSERT(mFrameAnimator);
     MOZ_ASSERT(ToSurfaceFlags(aFlags) == DefaultSurfaceFlags(),
                "Can't composite frames with non-default surface flags");
@@ -299,11 +301,14 @@ LookupResult RasterImage::LookupFrameInternal(const IntSize& aSize,
   // illegal when high quality downscaling is disabled, so we use
   // SurfaceCache::Lookup in this case.
   if ((aFlags & FLAG_SYNC_DECODE) || !(aFlags & FLAG_HIGH_QUALITY_SCALING)) {
+    recordreplay::RecordReplayAssert("RasterImage::LookupFrameInternal #2");
     return SurfaceCache::Lookup(
         ImageKey(this),
         RasterSurfaceKey(aSize, surfaceFlags, PlaybackType::eStatic),
         aMarkUsed);
   }
+
+  recordreplay::RecordReplayAssert("RasterImage::LookupFrameInternal #3");
 
   // We'll return the best match we can find to the requested frame.
   return SurfaceCache::LookupBestMatch(

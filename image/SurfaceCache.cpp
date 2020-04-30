@@ -1562,14 +1562,19 @@ void SurfaceCache::Shutdown() {
 LookupResult SurfaceCache::Lookup(const ImageKey aImageKey,
                                   const SurfaceKey& aSurfaceKey,
                                   bool aMarkUsed) {
+  recordreplay::RecordReplayAssert("SurfaceCache::Lookup");
+
   nsTArray<RefPtr<CachedSurface>> discard;
   LookupResult rv(MatchType::NOT_FOUND);
 
   {
     StaticMutexAutoLock lock(sInstanceMutex);
     if (!sInstance) {
+      recordreplay::RecordReplayAssert("SurfaceCache::Lookup #1");
       return rv;
     }
+
+    recordreplay::RecordReplayAssert("SurfaceCache::Lookup #2");
 
     rv = sInstance->Lookup(aImageKey, aSurfaceKey, lock, aMarkUsed);
     sInstance->TakeDiscard(discard, lock);
