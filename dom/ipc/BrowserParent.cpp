@@ -3351,7 +3351,7 @@ void BrowserParent::SetDocShellIsActive(bool isActive) {
 #endif
 
   // Keep track of how many active recording/replaying tabs there are.
-  if (Manager()->IsRecordingOrReplaying()) {
+  if (Manager()->IsRecording()) {
     SetIsActiveRecordReplayTab(isActive);
   }
 }

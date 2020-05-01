@@ -600,8 +600,7 @@ static bool DirectMessageToMiddleman(const nsAString& aMessage) {
   // Middleman processes run developer tools server code and need to receive
   // debugger related messages. The session store flush message needs to be
   // received in order to cleanly shutdown the process.
-  return StringBeginsWith(aMessage, NS_LITERAL_STRING("debug:")) ||
-         aMessage.EqualsLiteral("SessionStore:flush");
+  return aMessage.EqualsLiteral("SessionStore:flush");
 }
 
 void nsFrameMessageManager::ReceiveMessage(

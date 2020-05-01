@@ -7,7 +7,6 @@
 #include "CrashReporterHost.h"
 #include "CrashReporterMetadataShmem.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/recordreplay/ParentIPC.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/Telemetry.h"

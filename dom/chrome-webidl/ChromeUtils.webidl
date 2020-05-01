@@ -123,17 +123,6 @@ namespace ChromeUtils {
   void releaseAssert(boolean condition,
                      optional DOMString message = "<no message>");
 
-  // In the UI process, how much time has elapsed since initialization.
-  double recordReplayElapsedTime();
-
-  // In the UI process connection worker thread, set the callback
-  // used for sending messages to the cloud.
-  void recordReplayRegisterConnectionWorker(object sendCallback);
-
-  // In the UI process connection worker thread, receive a complete message
-  // from a remote connection.
-  void recordReplayOnMessage(long id, object message);
-
 #ifdef NIGHTLY_BUILD
 
   /**
@@ -455,11 +444,6 @@ partial namespace ChromeUtils {
 
   DOMString getCloudReplayStatus();
   void setCloudReplayStatusCallback(any callback);
-
-  // Log record/replay information in a UI, middleman, or replaying process.
-  // Logging is controlled by the devtools.recordreplay.logging.enabled pref
-  // and must not contain identifying information about the user or visited site.
-  void recordReplayLog(DOMString text);
 
   // This is used to generate fake media control keys event in testing.
   [ChromeOnly]
