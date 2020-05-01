@@ -128,6 +128,7 @@ const FlexboxActor = ActorClassWithSpec(flexboxSpec, {
       return [];
     }
 
+    log(`GetFlexItems ${this.containerEl} ${this.containerEl.getAsFlexContainer}`);
     const flex = this.containerEl.getAsFlexContainer();
     if (!flex) {
       return [];

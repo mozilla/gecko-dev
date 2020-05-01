@@ -11,6 +11,7 @@ const { LongStringActor } = require("devtools/server/actors/string");
 const InspectorUtils = require("InspectorUtils");
 const TrackChangeEmitter = require("devtools/server/actors/utils/track-change-emitter");
 const { Cu } = require("chrome");
+const { ReplayInspector } = require("RecordReplayControl").module;
 
 // This will also add the "stylesheet" actor type for protocol.js to recognize
 
@@ -402,12 +403,19 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
     const fontsArray = [];
 
     if (isReplaying) {
+      const pauseCounter = ReplayInspector.pauseCounter();
       await Promise.all(fonts.map(async f => {
         await f.replayWaitForContentsLoaded();
+        if (pauseCounter != ReplayInspector.pauseCounter()) {
+          return;
+        }
         if (f.rule) {
           await f.rule.replayWaitForContentsLoaded();
         }
       }));
+      if (pauseCounter != ReplayInspector.pauseCounter()) {
+        return [];
+      }
     }
 
     for (let i = 0; i < fonts.length; i++) {
