@@ -133,7 +133,7 @@ CssLogic.prototype = {
       this.viewedDocument = doc;
 
       // Hunt down top level stylesheets, and cache them.
-      this._cacheSheets();
+      //this._cacheSheets();
     } else {
       // Clear cached data in the CssPropertyInfo objects.
       this._propertyInfos = {};
@@ -308,6 +308,9 @@ CssLogic.prototype = {
    * @ return {array} the list of keyframes rules in the document.
    */
   get keyframesRules() {
+    if (isReplaying) {
+      return [];
+    }
     if (!this._sheetsCached) {
       this._cacheSheets();
     }
@@ -884,7 +887,13 @@ CssSheet.prototype = {
    */
   get ruleCount() {
     try {
-      return this._ruleCount > -1 ? this._ruleCount : this.getCssRules().length;
+      if (this._ruleCount > -1) {
+        return this._ruleCount;
+      }
+      if (isReplaying) {
+        return this.domSheet.replayingRuleCount;
+      }
+      return this.getCssRules().length;
     } catch (e) {
       return 0;
     }

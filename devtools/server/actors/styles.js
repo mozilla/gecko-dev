@@ -1499,6 +1499,10 @@ var StyleRuleActor = protocol.ActorClassWithSpec(styleRuleSpec, {
    * nested rules.
    */
   _computeRuleIndex: function() {
+    if (isReplaying) {
+      return;
+    }
+
     let rule = this.rawRule;
     const result = [];
 

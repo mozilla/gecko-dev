@@ -442,7 +442,7 @@ var StyleSheetActor = protocol.ActorClassWithSpec(styleSheetSpec, {
     };
 
     try {
-      form.ruleCount = this.rawSheet.cssRules.length;
+      form.ruleCount = isReplaying ? this.rawSheet.replayingRuleCount : this.rawSheet.cssRules.length;
     } catch (e) {
       // stylesheet had an @import rule that wasn't loaded yet
       this.getCSSRules().then(() => {
