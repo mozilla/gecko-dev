@@ -287,7 +287,7 @@ class SecondaryPanes extends Component<Props, State> {
   }
 
   getEventButtons() {
-    const { logEventBreakpoints } = this.props;
+    const { logEventBreakpoints, canRewind } = this.props;
     return [
       <div key="events-buttons">
         <label
@@ -297,9 +297,10 @@ class SecondaryPanes extends Component<Props, State> {
         >
           <input
             type="checkbox"
-            checked={logEventBreakpoints ? "checked" : ""}
+            checked={(canRewind || logEventBreakpoints) ? "checked" : ""}
             onChange={e => this.props.toggleEventLogging()}
             onKeyDown={e => e.stopPropagation()}
+            disabled={canRewind}
           />
           {L10N.getStr("eventlisteners.log")}
         </label>
@@ -445,7 +446,7 @@ class SecondaryPanes extends Component<Props, State> {
       items.push(this.getXHRItem());
     }
 
-    if (features.eventListenersBreakpoints && !canRewind) {
+    if (features.eventListenersBreakpoints) {
       items.push(this.getEventListenersItem());
     }
 

@@ -192,6 +192,7 @@ const threadSpec = generateActorSpec({
     setActiveEventBreakpoints: {
       request: {
         ids: Arg(0, "array:string"),
+        logGroupId: Arg(1, "string"),
       },
     },
     pauseOnExceptions: {

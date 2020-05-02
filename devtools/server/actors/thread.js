@@ -434,7 +434,7 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
       this._setBreakpointsOnAttach(options.breakpoints);
     }
     if (options.eventBreakpoints) {
-      this.setActiveEventBreakpoints(options.eventBreakpoints);
+      this.setActiveEventBreakpoints(options.eventBreakpoints, options.eventBreakpointsLogGroupId);
     }
 
     this.dbg.enable();
@@ -488,7 +488,6 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
 
   toggleEventLogging(logEventBreakpoints) {
     this._options.logEventBreakpoints = logEventBreakpoints;
-    this._updateEventLogging();
     return this._options.logEventBreakpoints;
   },
 
@@ -620,42 +619,41 @@ const ThreadActor = ActorClassWithSpec(threadSpec, {
   getActiveEventBreakpoints: function() {
     return Array.from(this._activeEventBreakpoints);
   },
-  setActiveEventBreakpoints: function(ids) {
+  setActiveEventBreakpoints: function(ids, logpointId) {
     this._activeEventBreakpoints = new Set(ids);
 
-    if (this._activeEventBreakpoints.size === 0) {
-      this._debuggerNotificationObserver.removeListener(
-        this._eventBreakpointListener
-      );
+    if (isReplaying) {
+      this._updateEventLogging(logpointId);
     } else {
-      this._debuggerNotificationObserver.addListener(
-        this._eventBreakpointListener
-      );
+      if (this._activeEventBreakpoints.size === 0) {
+        this._debuggerNotificationObserver.removeListener(
+          this._eventBreakpointListener
+        );
+      } else {
+        this._debuggerNotificationObserver.addListener(
+          this._eventBreakpointListener
+        );
+      }
     }
-
-    this._updateEventLogging();
   },
 
-  _updateEventLogging() {
-    if (isReplaying && this._options.logEventBreakpoints) {
-      const logpointId = `logGroup-${Math.random()}`;
-      const ids = [...this._activeEventBreakpoints];
-      this.dbg.replaySetActiveEventBreakpoints(ids, (executionPoint, rv) => {
-        const { script, offset } = this.dbg.replayGetExecutionPointPosition(
-          executionPoint
-        );
-        const { lineNumber, columnNumber } = script.getOffsetLocation(offset);
-        const message = {
-          filename: script.url,
-          lineNumber,
-          columnNumber,
-          executionPoint,
-          arguments: rv,
-          logpointId,
-        };
-        this._parent._consoleActor.onConsoleAPICall(message);
-      });
-    }
+  _updateEventLogging(logpointId) {
+    const ids = [...this._activeEventBreakpoints];
+    this.dbg.replaySetActiveEventBreakpoints(ids, (executionPoint, rv) => {
+      const { script, offset } = this.dbg.replayGetExecutionPointPosition(
+        executionPoint
+      );
+      const { lineNumber, columnNumber } = script.getOffsetLocation(offset);
+      const message = {
+        filename: script.url,
+        lineNumber,
+        columnNumber,
+        executionPoint,
+        arguments: rv,
+        logpointId,
+      };
+      this._parent._consoleActor.onConsoleAPICall(message);
+    });
   },
 
   _onNewDebuggee(global) {

@@ -48,6 +48,7 @@ let devToolsClient: DevToolsClient;
 let sourceActors: { [ActorId]: SourceId };
 let breakpoints: { [string]: Object };
 let eventBreakpoints: ?EventListenerActiveList;
+let eventBreakpointsLogGroupId;
 
 const CALL_STACK_PAGE_SIZE = 1000;
 
@@ -225,22 +226,30 @@ function locationKey(location: BreakpointLocation) {
   return `${sourceUrl}:${sourceId}:${line}:${column}`;
 }
 
+function newLogGroupId() {
+  return `logGroup-${Math.random()}`;
+}
+
 function maybeGenerateLogGroupId(options) {
   if (
     options.logValue &&
     currentTarget.traits &&
     currentTarget.traits.canRewind
   ) {
-    return { ...options, logGroupId: `logGroup-${Math.random()}` };
+    return { ...options, logGroupId: newLogGroupId() };
   }
   return options;
 }
 
-async function maybeClearLogpoint(location: BreakpointLocation) {
+async function clearLogGroupId(id) {
+  const consoleFront = await currentTarget.getFront("console");
+  consoleFront.emit("clearLogpointMessages", id);
+}
+
+function maybeClearLogpoint(location: BreakpointLocation) {
   const bp = breakpoints[locationKey(location)];
   if (bp && bp.options.logGroupId && currentTarget) {
-    const consoleFront = await currentTarget.getFront("console");
-    consoleFront.emit("clearLogpointMessages", bp.options.logGroupId);
+    clearLogGroupId(bp.options.logGroupId);
   }
 }
 
@@ -389,9 +398,14 @@ function interrupt(thread: string): Promise<*> {
 }
 
 function setEventListenerBreakpoints(ids: string[]) {
-  eventBreakpoints = ids;
+  if (eventBreakpointsLogGroupId) {
+    clearLogGroupId(eventBreakpointsLogGroupId);
+  }
 
-  return forEachThread(thread => thread.setActiveEventBreakpoints(ids));
+  eventBreakpoints = ids;
+  eventBreakpointsLogGroupId = newLogGroupId();
+
+  return forEachThread(thread => thread.setActiveEventBreakpoints(ids, eventBreakpointsLogGroupId));
 }
 
 // eslint-disable-next-line
@@ -484,6 +498,7 @@ async function fetchThreads() {
   const options = {
     breakpoints,
     eventBreakpoints,
+    eventBreakpointsLogGroupId,
     observeAsmJS: true,
   };
 
