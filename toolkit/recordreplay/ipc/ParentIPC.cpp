@@ -83,10 +83,6 @@ void EnsureUIStateInitialized() {
 
   gStartupTime = TimeStamp::Now();
 
-  nsAutoString cloudServer;
-  Preferences::GetString("devtools.recordreplay.cloudServer", cloudServer);
-  MOZ_RELEASE_ASSERT(cloudServer.Length() != 0);
-
   nsCOMPtr<rrIConnection> connection =
     do_ImportModule("resource://devtools/server/actors/replay/connection.js");
   gConnection = connection.forget();
@@ -103,7 +99,7 @@ void EnsureUIStateInitialized() {
   }
 
   JS::RootedValue callbacksValue(cx, JS::ObjectValue(*callbacks));
-  if (NS_FAILED(gConnection->Initialize(cloudServer, callbacksValue))) {
+  if (NS_FAILED(gConnection->Initialize(callbacksValue))) {
     MOZ_CRASH("EnsureUIStateInitialized");
   }
 

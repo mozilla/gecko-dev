@@ -14,8 +14,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
 });
 
-// This file provides an interface for connecting middleman processes with
-// replaying processes living remotely in the cloud.
+// This interface connects to the cloud service and manages uploading recording data.
 
 // Worker which handles the sockets connecting to remote processes.
 let gWorker;
@@ -23,20 +22,8 @@ let gWorker;
 // Callbacks supplied on startup.
 let gCallbacks;
 
-// Next ID to use for a replaying process connection.
-let gNextConnectionId = 1;
-
-// Environment variables to send to any replayers we connect to. These will
-// not be set except during automated tests and when diagnosing errors.
-const EnvironmentVariables = [
-  "WEBREPLAY_VERBOSE", // Log all messages sent/received over sockets.
-  "WEBREPLAY_NO_TIMEOUT", // Disables timeouts throughout the system.
-  "WEBREPLAY_DUMP_EVENTS", // Log recent events on mismatches.
-  "WEBREPLAY_DUMP_CONTENT", // Log parsed content on mismatches.
-];
-
 // eslint-disable-next-line no-unused-vars
-function Initialize(address, callbacks) {
+function Initialize(callbacks) {
   gWorker = new Worker("connection-worker.js");
   gWorker.addEventListener("message", evt => {
     try {
@@ -47,16 +34,15 @@ function Initialize(address, callbacks) {
   });
   gCallbacks = callbacks;
 
-  const buildId = `macOS-${Services.appinfo.appBuildID}`;
-  const env = {};
-  for (const name of EnvironmentVariables) {
-    const value = getenv(name);
-    if (value) {
-      env[name] = value;
-    }
+  let address = Services.prefs.getStringPref("devtools.recordreplay.cloudServer");
+
+  const override = getenv("WEBREPLAY_SERVER");
+  if (override) {
+    address = override;
   }
 
-  gWorker.postMessage({ kind: "initialize", address, buildId, env });
+  const buildId = `macOS-${Services.appinfo.appBuildID}`;
+  gWorker.postMessage({ kind: "initialize", address, buildId });
 }
 
 // ID assigned to this browser session by the cloud server.
@@ -67,97 +53,6 @@ function onMessage(evt) {
     case "updateStatus":
       gCallbacks.updateStatus(evt.data.status);
       break;
-    case "loaded": {
-      let { sessionId, controlJS, replayJS, updateNeeded, updateWanted } = evt.data;
-
-      dump(`DispatcherSessionId ${sessionId}\n`);
-
-      gSessionId = sessionId;
-      flushOfflineLog();
-
-      if (updateNeeded) {
-        gCallbacks.updateStatus("cloudUpdateNeeded.label");
-      } else {
-        gCallbacks.updateStatus("");
-        gCallbacks.loadedJS(controlJS, replayJS);
-      }
-
-      if (updateNeeded || updateWanted) {
-        downloadUpdate(updateNeeded);
-      }
-      break;
-    }
-    case "connectionFailed":
-      Services.cpmm.sendAsyncMessage("RecordReplayCriticalError", { kind: "CloudSpawnError" });
-      break;
-    case "connected":
-      gCallbacks.onConnected(evt.data.id);
-      break;
-    case "disconnected":
-      gCallbacks.onDisconnected(evt.data.id);
-      break;
-    case "error":
-      if (evt.data.id) {
-        gCallbacks.onDisconnected(evt.data.id);
-      }
-      break;
-    case "logOffline":
-      addToOfflineLog(evt.data.text);
-      break;
-  }
-}
-
-// eslint-disable-next-line no-unused-vars
-function Connect(channelId) {
-  dump(`RecordReplayConnect\n`);
-  const id = gNextConnectionId++;
-  gWorker.postMessage({ kind: "connect", id, channelId });
-  return id;
-}
-
-// eslint-disable-next-line no-unused-vars
-function AddToLog(text) {
-  gWorker.postMessage({ kind: "log", text });
-}
-
-Services.ppmm.addMessageListener("RecordReplayMemoryUsage", {
-  receiveMessage(msg) {
-    const { logId, total, incomplete } = msg.data;
-    gWorker.postMessage({ kind: "memoryUsage", logId, total, incomplete });
-  },
-});
-
-let gAppUpdater;
-
-function downloadStatusListener(status, ...args) {
-  ChromeUtils.recordReplayLog(`DownloadStatus ${status}`);
-  switch (status) {
-    case AppUpdater.STATUS.READY_FOR_RESTART:
-      gCallbacks.updateStatus("cloudUpdateDownloaded.label");
-      break;
-    case AppUpdater.STATUS.OTHER_INSTANCE_HANDLING_UPDATES:
-    case AppUpdater.STATUS.CHECKING:
-    case AppUpdater.STATUS.STAGING:
-      gCallbacks.updateStatus("cloudUpdateDownloading.label");
-      break;
-    case AppUpdater.STATUS.DOWNLOADING:
-      if (!args.length) {
-        gCallbacks.updateStatus("cloudUpdateDownloading.label",
-                                0, gAppUpdater.update.selectedPatch.size);
-      } else {
-        const [progress, max] = args;
-        gCallbacks.updateStatus("cloudUpdateDownloading.label", progress, max);
-      }
-      break;
-    case AppUpdater.STATUS.UPDATE_DISABLED_BY_POLICY:
-    case AppUpdater.STATUS.NO_UPDATES_FOUND:
-    case AppUpdater.STATUS.UNSUPPORTED_SYSTEM:
-    case AppUpdater.STATUS.MANUAL_UPDATE:
-    case AppUpdater.STATUS.DOWNLOAD_AND_INSTALL:
-    case AppUpdater.STATUS.DOWNLOAD_FAILED:
-      ChromeUtils.recordReplayLog(`Error: AutomaticUpdateFailed ${status}`);
-      gCallbacks.updateStatus("cloudUpdateManualDownload.label");
-      break;
   }
 }
 
@@ -166,79 +61,5 @@ function getenv(name) {
   return env.get(name);
 }
 
-function downloadUpdate(updateNeeded) {
-  // Allow connecting to the cloud with an unknown build.
-  if (getenv("WEBREPLAY_NO_UPDATE")) {
-    gCallbacks.updateStatus("");
-    return;
-  }
-
-  if (gAppUpdater) {
-    return;
-  }
-  gAppUpdater = new AppUpdater();
-  if (updateNeeded) {
-    gAppUpdater.addListener(downloadStatusListener);
-  }
-  gAppUpdater.check();
-}
-
-function offlineLogPath() {
-  let dir = Services.dirsvc.get("UAppData", Ci.nsIFile);
-  dir.append("Recordings");
-
-  if (!dir.exists()) {
-    OS.File.makeDir(dir.path);
-  }
-
-  dir.append("offlineLog.log");
-  return dir.path;
-}
-
-// If defined, this reflects the full contents of the offline log.
-let offlineLogContents;
-let hasOfflineLogFlushTimer;
-
-async function waitForOfflineLogContents() {
-  if (offlineLogContents !== undefined) {
-    return;
-  }
-
-  const path = offlineLogPath();
-
-  if (!(await OS.File.exists(path))) {
-    offlineLogContents = "";
-    return;
-  }
-
-  const file = await OS.File.read(path);
-  offlineLogContents = new TextDecoder("utf-8").decode(file);
-}
-
-async function addToOfflineLog(text) {
-  await waitForOfflineLogContents();
-  offlineLogContents += `Offline ${gSessionId} ${text}`;
-
-  if (!hasOfflineLogFlushTimer) {
-    hasOfflineLogFlushTimer = true;
-    setTimeout(() => {
-      if (offlineLogContents.length) {
-        OS.File.writeAtomic(offlineLogPath(), offlineLogContents);
-      }
-      hasOfflineLogFlushTimer = false;
-    }, 500);
-  }
-}
-
-async function flushOfflineLog() {
-  await waitForOfflineLogContents();
-
-  if (offlineLogContents.length) {
-    AddToLog(offlineLogContents);
-    offlineLogContents = "";
-    OS.File.remove(offlineLogPath());
-  }
-}
-
 // eslint-disable-next-line no-unused-vars
-var EXPORTED_SYMBOLS = ["Initialize", "Connect", "AddToLog"];
+var EXPORTED_SYMBOLS = ["Initialize"];
