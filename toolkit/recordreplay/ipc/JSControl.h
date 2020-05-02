@@ -42,9 +42,6 @@ namespace js {
 // Buffer type used for encoding object data.
 typedef InfallibleVector<char16_t> CharBuffer;
 
-// Set the contents of the JS module (control or replay) to execute.
-void SetWebReplayJS(const nsCString& aModule);
-
 // JS state is initialized when the first checkpoint is reached.
 bool IsInitialized();
 
@@ -54,20 +51,8 @@ void ManifestStart(const CharBuffer& aContents);
 // The following hooks are used in the middleman process to call methods defined
 // by the middleman control logic.
 
-// Setup the middleman control state.
-void SetupMiddlemanControl(const Maybe<size_t>& aRecordingChildId);
-
 // Set the status of a cloud connection.
 void SetConnectionStatus(uint32_t aChannelId, const nsCString& aStatus);
-
-// Handle incoming messages from a child process.
-void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
-                             const ManifestFinishedMessage& aMsg,
-                             double aDelay);
-void ForwardUnhandledDivergence(parent::ChildProcessInfo* aChild,
-                                const UnhandledDivergenceMessage& aMsg);
-void ForwardPingResponse(parent::ChildProcessInfo* aChild,
-                         const PingResponseMessage& aMsg);
 
 // Prepare the child processes so that the recording file can be safely copied.
 void BeforeSaveRecording();
@@ -75,8 +60,6 @@ void AfterSaveRecording();
 
 // Save the current recording contents to the cloud.
 void SaveCloudRecording(const nsAString& aUUID);
-
-void OnCriticalError(const char* aWhy);
 
 // The following hooks are used in the recording/replaying process to
 // call methods defined by the JS sandbox.

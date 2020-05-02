@@ -234,8 +234,8 @@ MOZ_EXPORT void RecordReplayInterface_InternalInvalidateRecording(
     child::ReportFatalError("Recording invalidated while replaying: %s", aWhy);
   }
 
-  child::ReportCriticalError(aWhy);
-  Thread::WaitForeverNoIdle();
+  Print("INVALIDATE_RECORDING_CRASH\n");
+  MOZ_CRASH();
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalBeginPassThroughThreadEventsWithLocalReplay() {
@@ -297,10 +297,14 @@ void FlushRecording() {
   child::PrintLog("Chunks %s", chunks.get());
 
   if (gRecording->Size() > gRecordingDataSentToMiddleman) {
+    Print("FLUSH_RECORDING_CRASH\n");
+    MOZ_CRASH();
+    /*
     child::SendRecordingData(gRecordingDataSentToMiddleman,
                              gRecording->Data() + gRecordingDataSentToMiddleman,
                              gRecording->Size() - gRecordingDataSentToMiddleman);
     gRecordingDataSentToMiddleman = gRecording->Size();
+    */
   }
 }
 
@@ -309,9 +313,7 @@ void HitEndOfRecording() {
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
 
   if (Thread::CurrentIsMainThread()) {
-    // We should have been provided with all the data needed to run forward in
-    // the replay. Check to see if there is any pending data.
-    child::AddPendingRecordingData(/* aRequireMore */ true);
+    MOZ_CRASH("Hit end of recording");
   } else {
     // Non-main threads may wait until more recording data is added.
     Thread::Wait();
