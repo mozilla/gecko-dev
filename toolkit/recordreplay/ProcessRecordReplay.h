@@ -88,8 +88,9 @@ static inline void AssertEventsAreNotPassedThrough() {
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
 }
 
-// Flush any new recording data to disk.
-void FlushRecording();
+// Flush any new recording data and send it to the UI process.
+// If aFinishRecording is set then a recording description is included.
+void FlushRecording(bool aFinishRecording);
 
 // Called when any thread hits the end of its event stream.
 void HitEndOfRecording();

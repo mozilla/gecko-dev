@@ -260,7 +260,9 @@ void OnMouseEvent(const TimeDuration& aTime, const char* aType, int32_t aX, int3
   }
 }
 
-void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength) {
+void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength,
+                       const Maybe<size_t>& aTotalLength,
+                       const Maybe<TimeDuration>& aRecordingDuration) {
   MOZ_RELEASE_ASSERT(IsInitialized());
 
   AutoSafeJSContext cx;
@@ -270,11 +272,17 @@ void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength) {
   bufferObject = JS::NewArrayBufferWithUserOwnedContents(cx, aLength, (void*)aData);
   MOZ_RELEASE_ASSERT(bufferObject);
 
-  JS::AutoValueArray<4> args(cx);
+  JS::AutoValueArray<6> args(cx);
   args[0].setNumber((double)base::GetCurrentProcId());
   args[1].setNumber((double)aOffset);
   args[2].setNumber((double)aLength);
   args[3].setObject(*bufferObject);
+  if (aTotalLength.isSome()) {
+    args[4].setNumber((double)aTotalLength.ref());
+  }
+  if (aRecordingDuration.isSome()) {
+    args[5].setNumber(aRecordingDuration.ref().ToSeconds());
+  }
 
   RootedValue rv(cx);
   if (!JS_CallFunctionName(cx, *gModuleObject, "SendRecordingData", args, &rv)) {

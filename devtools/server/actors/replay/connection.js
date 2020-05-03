@@ -53,6 +53,9 @@ function onMessage(evt) {
     case "updateStatus":
       gCallbacks.updateStatus(evt.data.status);
       break;
+    case "commandResult":
+      onCommandResult(evt.data.id, evt.data.result);
+      break;
   }
 }
 
@@ -61,11 +64,81 @@ function getenv(name) {
   return env.get(name);
 }
 
+// Map recording process ID to information about its upload progress.
+//
+// FIXME need a better unique identifier for the recording process that can't
+// lead to bogus comparisons after the recording process exits and has its
+// pid reused.
+const gRecordings = new Map();
+
+let gNextMessageId = 1;
+
 Services.ppmm.addMessageListener("UploadRecordingData", {
-  receiveMessage(msg) {
-    const { pid, offset, length, buf } = msg.data;
+  async receiveMessage(msg) {
+    const { pid, offset, length, buf, description } = msg.data;
+
+    if (!gRecordings.has(pid)) {
+      const buildId = `macOS-${Services.appinfo.appBuildID}`;
+      const id = gNextMessageId++;
+      gWorker.postMessage({
+        kind: "sendCommand",
+        command: {
+          id,
+          method: "Internal.createRecording",
+          parameters: { buildId },
+        },
+      });
+      const info = {
+        createPromise: waitForCommandResult(id),
+      };
+      gRecordings.set(pid, info);
+    }
+    const info = gRecordings.get(pid);
+    const { recordingId } = await info.createPromise;
+
+    const id = gNextMessageId++;
+    gWorker.postMessage({
+      kind: "sendUploadCommand",
+      command: {
+        id,
+        method: "Internal.addRecordingData",
+        parameters: { recordingId, offset, length },
+      },
+    });
+
+    gWorker.postMessage({
+      kind: "sendUploadBinaryData",
+      buf,
+    });
+
+    if (description) {
+      // This is for the last flush before the recording tab is closed,
+      // add a recording description.
+      const id = gNextMessageId++;
+      gWorker.postMessage({
+        kind: "sendCommand",
+        command: {
+          id,
+          method: "Internal.addRecordingDescription",
+          parameters: description,
+        },
+      });
+    }
   }
 });
+
+const gResultWaiters = new Map();
+
+function waitForCommandResult(id) {
+  return new Promise(resolve => gResultWaiters.set(id, resolve));
+}
+
+function onCommandResult(id, result) {
+  if (gResultWaiters.has(id)) {
+    gResultWaiters.get(id)(result);
+    gResultWaiters.delete(id);
+  }
+}
 
 // eslint-disable-next-line no-unused-vars
 var EXPORTED_SYMBOLS = ["Initialize"];

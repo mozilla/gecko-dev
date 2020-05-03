@@ -5799,14 +5799,13 @@ void ContentParent::DeallocPSHistoryParent(PSHistoryParent* aActor) {
   delete static_cast<SHistoryParent*>(aActor);
 }
 
-nsresult ContentParent::SaveCloudRecording(const nsAString& aUUID,
-                                           bool* aRetval) {
+nsresult ContentParent::FinishRecording(bool* aRetval) {
   if (!mRecording) {
     *aRetval = false;
     return NS_OK;
   }
 
-  Unused << SendSaveCloudRecording(nsString(aUUID));
+  Unused << SendFinishRecording();
 
   *aRetval = true;
   return NS_OK;

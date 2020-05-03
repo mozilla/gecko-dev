@@ -292,20 +292,13 @@ BrowserHost::StopApzAutoscroll(nsViewID aScrollId, uint32_t aPresShellId) {
   return NS_OK;
 }
 
-/* bool saveRecording (in AString aFileName); */
+/* bool finishRecording (); */
 NS_IMETHODIMP
-BrowserHost::SaveRecording(const nsAString& aFileName, bool* _retval) {
-  MOZ_CRASH();
-  return NS_OK;
-}
-
-/* bool saveCloudRecording (in AString aUUID); */
-NS_IMETHODIMP
-BrowserHost::SaveCloudRecording(const nsAString& aUUID, bool* _retval) {
+BrowserHost::FinishRecording(bool* _retval) {
   if (!mRoot) {
     return NS_OK;
   }
-  return GetContentParent()->SaveCloudRecording(aUUID, _retval);
+  return GetContentParent()->FinishRecording(_retval);
 }
 
 NS_IMETHODIMP

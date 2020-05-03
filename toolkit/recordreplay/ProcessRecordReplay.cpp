@@ -278,7 +278,7 @@ double ElapsedTime() {
 // How many bytes have been sent from the recording to the middleman.
 size_t gRecordingDataSentToMiddleman;
 
-void FlushRecording() {
+void FlushRecording(bool aFinishRecording) {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
 
   if (IsRecording()) {
@@ -292,7 +292,9 @@ void FlushRecording() {
   if (nbytes > gRecordingDataSentToMiddleman) {
     js::SendRecordingData(gRecordingDataSentToMiddleman,
                           gRecording->Data() + gRecordingDataSentToMiddleman,
-                          nbytes - gRecordingDataSentToMiddleman);
+                          nbytes - gRecordingDataSentToMiddleman,
+                          aFinishRecording ? Some(nbytes) : Nothing(),
+                          aFinishRecording ? Some(RecordingDuration()) : Nothing());
     gRecordingDataSentToMiddleman = nbytes;
   }
 }

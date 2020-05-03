@@ -96,17 +96,9 @@ interface nsIRemoteTab : nsISupports
   void stopApzAutoscroll(in nsViewID aScrollId, in uint32_t aPresShellId);
 
   /**
-   * Save a recording of the associated content process' behavior to the
-   * specified filename. Returns whether the process is being recorded.
+   * Flush the current recording with a description.
    */
-  bool saveRecording(in AString aFileName);
-
-  /**
-   * Save a recording of the associated content process' behavior to a
-   * cloud service the content process is communicating with. Returns whether
-   * the process is being recorded.
-   */
-  bool saveCloudRecording(in AString aUUID);
+  bool finishRecording();
 
   cenum NavigationType : 8 {
     NAVIGATE_BACK = 0,

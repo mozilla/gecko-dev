@@ -1104,9 +1104,8 @@ void SendScanDataToRoot(const char* aData, size_t aSize) {
   free(msg);
 }
 
-void SaveCloudRecording(const nsAString& aUUID) {
-  Print("SAVE_CLOUD_RECORDING_CRASH\n");
-  MOZ_CRASH();
+void FinishRecording() {
+  FlushRecording(/* aFinishRecording */ true);
 }
 
 }  // namespace child

@@ -1293,8 +1293,7 @@ class ContentParent final
                                const bool& aMinimizeMemoryUsage,
                                const Maybe<FileDescriptor>& aDMDFile) override;
 
-  nsresult SaveRecording(nsIFile* aFile, bool* aRetval);
-  nsresult SaveCloudRecording(const nsAString& aDescriptor, bool* aRetval);
+  nsresult FinishRecording(bool* aRetval);
 
   bool IsRecording() const {
     return mRecording;

@@ -42,8 +42,8 @@ void InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv);
 base::ProcessId MiddlemanProcessId();
 base::ProcessId ParentProcessId();
 
-// Save the recording up to the current point in execution.
-void SaveCloudRecording(const nsAString& aUUID);
+// Flush the recording and send a description to the UI process.
+void FinishRecording();
 
 ///////////////////////////////////////////////////////////////////////////////
 // Painting Coordination

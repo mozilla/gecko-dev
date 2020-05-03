@@ -76,7 +76,11 @@ void PaintComplete();
 void OnMouseEvent(const TimeDuration& aTime, const char* aType, int32_t aX, int32_t aY);
 
 // Send recording data to the UI process for uploading to the cloud.
-void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength);
+// aTotalLength and aRecordingDuration are set if a description should
+// be included (this is the end of the recording).
+void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength,
+                       const Maybe<size_t>& aTotalLength,
+                       const Maybe<TimeDuration>& aRecordingDuration);
 
 // Accessors for state which can be accessed from JS.
 

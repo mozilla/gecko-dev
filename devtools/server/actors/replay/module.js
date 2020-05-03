@@ -255,8 +255,16 @@ function eventListener(info) {
   }
 }
 
-function SendRecordingData(pid, offset, length, buf) {
-  Services.cpmm.sendAsyncMessage("UploadRecordingData", { pid, offset, length, buf });
+function SendRecordingData(pid, offset, length, buf, totalLength, duration) {
+  let description;
+  if (totalLength) {
+    description = {
+      length: totalLength,
+      duration,
+    };
+  }
+  Services.cpmm.sendAsyncMessage("UploadRecordingData",
+                                 { pid, offset, length, buf, description });
 }
 
 const exports = {

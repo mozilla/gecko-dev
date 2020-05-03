@@ -42,18 +42,19 @@ static TimeStamp gLastCheckpointTime;
 // Total idle time at the last checkpoint, in microseconds. Zero when replaying.
 static double gLastCheckpointIdleTime;
 
-// Total time when the recording process was paused.
-static TimeDuration gPausedTime;
-
 // Last time when the recording was flushed.
 static TimeStamp gLastFlushTime;
 
 TimeDuration CurrentRecordingTime() {
   MOZ_RELEASE_ASSERT(gFirstCheckpointTime);
 
-  // gPausedTime is not updated when replaying.
-  RecordReplayBytes(&gPausedTime, sizeof(gPausedTime));
-  return TimeStamp::Now() - gFirstCheckpointTime - gPausedTime;
+  return TimeStamp::Now() - gFirstCheckpointTime;
+}
+
+TimeDuration RecordingDuration() {
+  MOZ_RELEASE_ASSERT(gFirstCheckpointTime);
+
+  return gLastCheckpointTime - gFirstCheckpointTime;
 }
 
 static const uint32_t FlushIntervalMs = 500;
@@ -76,12 +77,11 @@ void CreateCheckpoint() {
       gFirstCheckpointTime = gLastCheckpointTime;
     }
 
-    RecordReplayBytes(&gPausedTime, sizeof(gPausedTime));
     js::HitCheckpoint(gLastCheckpoint, CurrentRecordingTime());
 
     if (gLastCheckpoint == FirstCheckpointId ||
         (gLastCheckpointTime - gLastFlushTime).ToMilliseconds() >= FlushIntervalMs) {
-      FlushRecording();
+      FlushRecording(/* aFinishRecording */ false);
       gLastFlushTime = gLastCheckpointTime;
     }
   }
@@ -179,12 +179,6 @@ void PauseMainThreadAndServiceCallbacks() {
   }
   gMainThreadIsPaused = true;
 
-  TimeStamp startTime;
-  if (IsRecording()) {
-    AutoPassThroughThreadEvents pt;
-    startTime = TimeStamp::Now();
-  }
-
   MOZ_RELEASE_ASSERT(!HasDivergedFromRecording());
 
   MonitorAutoLock lock(*gMainThreadCallbackMonitor);
@@ -209,12 +203,6 @@ void PauseMainThreadAndServiceCallbacks() {
 
   // If we diverge from the recording we can't resume normal execution.
   MOZ_RELEASE_ASSERT(!HasDivergedFromRecording());
-
-  if (IsRecording()) {
-    AutoPassThroughThreadEvents pt;
-    TimeStamp endTime = TimeStamp::Now();
-    gPausedTime += endTime - startTime;
-  }
 
   gMainThreadIsPaused = false;
 }

@@ -3642,9 +3642,8 @@ mozilla::ipc::IPCResult ContentChild::RecvAddDynamicScalars(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentChild::RecvSaveCloudRecording(
-    const nsAString& aUUID) {
-  recordreplay::child::SaveCloudRecording(aUUID);
+mozilla::ipc::IPCResult ContentChild::RecvFinishRecording() {
+  recordreplay::child::FinishRecording();
   return IPC_OK();
 }
 
