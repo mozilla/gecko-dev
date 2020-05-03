@@ -45,6 +45,9 @@ static double gLastCheckpointIdleTime;
 // Total time when the recording process was paused.
 static TimeDuration gPausedTime;
 
+// Last time when the recording was flushed.
+static TimeStamp gLastFlushTime;
+
 TimeDuration CurrentRecordingTime() {
   MOZ_RELEASE_ASSERT(gFirstCheckpointTime);
 
@@ -52,6 +55,8 @@ TimeDuration CurrentRecordingTime() {
   RecordReplayBytes(&gPausedTime, sizeof(gPausedTime));
   return TimeStamp::Now() - gFirstCheckpointTime - gPausedTime;
 }
+
+static const uint32_t FlushIntervalMs = 500;
 
 void CreateCheckpoint() {
   MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
@@ -73,6 +78,12 @@ void CreateCheckpoint() {
 
     RecordReplayBytes(&gPausedTime, sizeof(gPausedTime));
     js::HitCheckpoint(gLastCheckpoint, CurrentRecordingTime());
+
+    if (gLastCheckpoint == FirstCheckpointId ||
+        (gLastCheckpointTime - gLastFlushTime).ToMilliseconds() >= FlushIntervalMs) {
+      FlushRecording();
+      gLastFlushTime = gLastCheckpointTime;
+    }
   }
 }
 

@@ -279,28 +279,21 @@ double ElapsedTime() {
 size_t gRecordingDataSentToMiddleman;
 
 void FlushRecording() {
-  MOZ_RELEASE_ASSERT(IsRecording());
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
 
-  gRecording->Flush();
+  if (IsRecording()) {
+    gRecording->Flush();
+  }
 
-  child::PrintLog("FlushRecording Checkpoint %lu Position %lu Size %lu",
-                  GetLastCheckpoint(), Thread::Current()->Events().StreamPosition(),
-                  gRecording->Size());
+  // Record/replay the size of the recording at this point so that we dispatch
+  // the same buffer to SendRecordingData when replaying.
+  size_t nbytes = RecordReplayValue(gRecording->Size());
 
-  nsAutoCString chunks;
-  Thread::Current()->Events().PrintChunks(chunks);
-  child::PrintLog("Chunks %s", chunks.get());
-
-  if (gRecording->Size() > gRecordingDataSentToMiddleman) {
-    Print("FLUSH_RECORDING_CRASH\n");
-    MOZ_CRASH();
-    /*
-    child::SendRecordingData(gRecordingDataSentToMiddleman,
-                             gRecording->Data() + gRecordingDataSentToMiddleman,
-                             gRecording->Size() - gRecordingDataSentToMiddleman);
-    gRecordingDataSentToMiddleman = gRecording->Size();
-    */
+  if (nbytes > gRecordingDataSentToMiddleman) {
+    js::SendRecordingData(gRecordingDataSentToMiddleman,
+                          gRecording->Data() + gRecordingDataSentToMiddleman,
+                          nbytes - gRecordingDataSentToMiddleman);
+    gRecordingDataSentToMiddleman = nbytes;
   }
 }
 

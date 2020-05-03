@@ -175,38 +175,6 @@ void Shutdown() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Saving Recordings
-///////////////////////////////////////////////////////////////////////////////
-
-StaticInfallibleVector<char> gRecordingContents;
-
-static void SaveRecordingInternal(const ipc::FileDescriptor& aFile) {
-  // Make sure the recording file is up to date and ready for copying.
-  js::BeforeSaveRecording();
-
-  // Copy the recording's contents to the new file.
-  ipc::FileDescriptor::UniquePlatformHandle writefd =
-      aFile.ClonePlatformHandle();
-  DirectWrite(writefd.get(), gRecordingContents.begin(),
-              gRecordingContents.length());
-
-  PrintSpew("Saved Recording Copy.\n");
-
-  js::AfterSaveRecording();
-}
-
-void SaveRecording(const ipc::FileDescriptor& aFile) {
-  MOZ_RELEASE_ASSERT(IsMiddleman());
-
-  if (NS_IsMainThread()) {
-    SaveRecordingInternal(aFile);
-  } else {
-    MainThreadMessageLoop()->PostTask(NewRunnableFunction(
-        "SaveRecordingInternal", SaveRecordingInternal, aFile));
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // Initialization
 ///////////////////////////////////////////////////////////////////////////////
 

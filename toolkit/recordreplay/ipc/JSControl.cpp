@@ -260,6 +260,30 @@ void OnMouseEvent(const TimeDuration& aTime, const char* aType, int32_t aX, int3
   }
 }
 
+void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength) {
+  MOZ_RELEASE_ASSERT(IsInitialized());
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  JS::Rooted<JSObject*> bufferObject(cx);
+  bufferObject = JS::NewArrayBufferWithUserOwnedContents(cx, aLength, (void*)aData);
+  MOZ_RELEASE_ASSERT(bufferObject);
+
+  JS::AutoValueArray<4> args(cx);
+  args[0].setNumber((double)base::GetCurrentProcId());
+  args[1].setNumber((double)aOffset);
+  args[2].setNumber((double)aLength);
+  args[3].setObject(*bufferObject);
+
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "SendRecordingData", args, &rv)) {
+    MOZ_CRASH("SendRecordingData");
+  }
+
+  MOZ_ALWAYS_TRUE(JS::DetachArrayBuffer(cx, bufferObject));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Replaying process content
 ///////////////////////////////////////////////////////////////////////////////
@@ -593,16 +617,6 @@ static bool RecordReplay_CurrentExecutionTime(JSContext* aCx, unsigned aArgc,
   // idling. Comparing these timestamps gives the elapsed non-idle time between
   // them.
   args.rval().setNumber((CurrentTime() - gIdleTimeTotal) / 1000.0);
-  return true;
-}
-
-static bool RecordReplay_FlushRecording(JSContext* aCx, unsigned aArgc,
-                                        Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  FlushRecording();
-
-  args.rval().setDouble(gRecording->Size());
   return true;
 }
 
@@ -1702,7 +1716,6 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("manifestFinished", RecordReplay_ManifestFinished, 3, 0),
     JS_FN("resumeExecution", RecordReplay_ResumeExecution, 0, 0),
     JS_FN("currentExecutionTime", RecordReplay_CurrentExecutionTime, 0, 0),
-    JS_FN("flushRecording", RecordReplay_FlushRecording, 0, 0),
     JS_FN("flushExternalCalls", RecordReplay_FlushExternalCalls, 0, 0),
     JS_FN("setRecordingSummary", RecordReplay_SetRecordingSummary, 1, 0),
     JS_FN("getRecordingSummary", RecordReplay_GetRecordingSummary, 0, 0),

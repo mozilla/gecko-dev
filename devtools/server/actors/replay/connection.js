@@ -61,5 +61,11 @@ function getenv(name) {
   return env.get(name);
 }
 
+Services.ppmm.addMessageListener("UploadRecordingData", {
+  receiveMessage(msg) {
+    const { pid, offset, length, buf } = msg.data;
+  }
+});
+
 // eslint-disable-next-line no-unused-vars
 var EXPORTED_SYMBOLS = ["Initialize"];

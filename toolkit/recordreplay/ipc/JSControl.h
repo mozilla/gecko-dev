@@ -54,10 +54,6 @@ void ManifestStart(const CharBuffer& aContents);
 // Set the status of a cloud connection.
 void SetConnectionStatus(uint32_t aChannelId, const nsCString& aStatus);
 
-// Prepare the child processes so that the recording file can be safely copied.
-void BeforeSaveRecording();
-void AfterSaveRecording();
-
 // Save the current recording contents to the cloud.
 void SaveCloudRecording(const nsAString& aUUID);
 
@@ -78,6 +74,9 @@ void PaintComplete();
 
 // Called when a mouse event occurs.
 void OnMouseEvent(const TimeDuration& aTime, const char* aType, int32_t aX, int32_t aY);
+
+// Send recording data to the UI process for uploading to the cloud.
+void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength);
 
 // Accessors for state which can be accessed from JS.
 

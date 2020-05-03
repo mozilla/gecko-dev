@@ -255,9 +255,14 @@ function eventListener(info) {
   }
 }
 
+function SendRecordingData(pid, offset, length, buf) {
+  Services.cpmm.sendAsyncMessage("UploadRecordingData", { pid, offset, length, buf });
+}
+
 const exports = {
   CanCreateCheckpoint,
   OnMouseEvent,
+  SendRecordingData,
 };
 
 function Initialize(text) {
