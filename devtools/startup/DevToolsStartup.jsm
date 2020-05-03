@@ -1659,9 +1659,9 @@ function createRecordingButton() {
   // Update UI when a recording finishes being saved.
   Services.ppmm.addMessageListener("RecordingSaved", {
     receiveMessage(msg) {
-      const { uuid, duration } = msg.data;
+      const { uuid, duration, graphics } = msg.data;
       savedRecordings.add(uuid);
-      cloudRecordingWaiters[uuid]({ duration });
+      cloudRecordingWaiters[uuid]({ duration, graphics });
       uploadDataCallback();
     }
   });
