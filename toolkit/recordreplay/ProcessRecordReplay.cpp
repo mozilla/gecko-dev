@@ -45,7 +45,7 @@ Recording* gRecording;
 
 bool gInitialized;
 ProcessKind gProcessKind;
-char* gRecordingFilename;
+const char* gRecordingFilename = "";
 
 // Current process ID.
 static int gPid;
@@ -89,10 +89,6 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
       MOZ_RELEASE_ASSERT(processKind.isNothing() && i + 1 < aArgc);
       processKind.emplace((ProcessKind)atoi(aArgv[i + 1]));
     }
-    if (!strcmp(aArgv[i], gRecordingFileOption)) {
-      MOZ_RELEASE_ASSERT(recordingFile.isNothing() && i + 1 < aArgc);
-      recordingFile.emplace(aArgv[i + 1]);
-    }
   }
   MOZ_RELEASE_ASSERT(processKind.isSome());
 
@@ -104,16 +100,16 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   switch (processKind.ref()) {
     case ProcessKind::Recording:
       gIsRecording = gIsRecordingOrReplaying = true;
-      fprintf(stderr, "RECORDING %d %s\n", getpid(), recordingFile.ref());
+      fprintf(stderr, "RECORDING %d %s\n", getpid(), gRecordingFilename);
       break;
     case ProcessKind::Replaying:
       gIsReplaying = gIsRecordingOrReplaying = true;
-      fprintf(stderr, "REPLAYING %d %s\n", getpid(), recordingFile.ref());
+      fprintf(stderr, "REPLAYING %d %s\n", getpid(), gRecordingFilename);
       break;
     case ProcessKind::MiddlemanRecording:
     case ProcessKind::MiddlemanReplaying:
       gIsMiddleman = true;
-      fprintf(stderr, "MIDDLEMAN %d %s\n", getpid(), recordingFile.ref());
+      fprintf(stderr, "MIDDLEMAN %d %s\n", getpid(), gRecordingFilename);
       break;
     default:
       MOZ_CRASH("Bad ProcessKind");

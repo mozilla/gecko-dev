@@ -110,7 +110,7 @@ const char* InstallDirectory();
 // Get the process kind and recording file specified at the command line.
 // These are available in the middleman as well as while recording/replaying.
 extern ProcessKind gProcessKind;
-extern char* gRecordingFilename;
+extern const char* gRecordingFilename;
 
 // Given a recording filename referring to a cloud recording, get the recording UUID.
 void ExtractCloudRecordingName(const char* aFileName, nsAutoCString& aRecordingName);

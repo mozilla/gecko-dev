@@ -2,9 +2,270 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// Logic that always runs in recording/replaying processes, and which can affect the recording.
+
+// Create a sandbox with resources from Gecko components we need.
+const sandbox = Cu.Sandbox(
+  Components.Constructor("@mozilla.org/systemprincipal;1", "nsIPrincipal")(),
+  {
+    wantGlobalProperties: ["InspectorUtils", "CSSRule"],
+  }
+);
+Cu.evalInSandbox(
+  "Components.utils.import('resource://gre/modules/jsdebugger.jsm');" +
+  "Components.utils.import('resource://gre/modules/Services.jsm');" +
+  "Components.utils.import('resource://devtools/shared/execution-point-utils.js');" +
+  "addDebuggerToGlobal(this);",
+  sandbox
+);
+const {
+  Debugger,
+  RecordReplayControl,
+  Services,
+  InspectorUtils,
+  CSSRule,
+  pointEquals,
+  pointPrecedes,
+  pointToString,
+  findClosestPoint,
+} = sandbox;
+
+const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
+
+let gWindow;
+function getWindow() {
+  if (!gWindow) {
+    for (const w of Services.ww.getWindowEnumerator()) {
+      gWindow = w;
+      break;
+    }
+  }
+  return gWindow;
+}
+
+const gDebugger = new Debugger();
+const gSandboxGlobal = gDebugger.makeGlobalObjectReference(sandbox);
+const gAllGlobals = [];
+
+function considerScript(script) {
+  return RecordReplayControl.shouldUpdateProgressCounter(script.url);
+}
+
+function countScriptFrames() {
+  let count = 0;
+  for (let frame = gDebugger.getNewestFrame(); frame; frame = frame.older) {
+    if (considerScript(frame.script)) {
+      count++;
+    }
+  }
+  return count;
+}
+
+function CanCreateCheckpoint() {
+  return countScriptFrames() == 0;
+}
+
+const gNewGlobalHooks = [];
+gDebugger.onNewGlobalObject = global => {
+  try {
+    gDebugger.addDebuggee(global);
+    gAllGlobals.push(global);
+    gNewGlobalHooks.forEach(hook => hook(global));
+  } catch (e) {}
+};
+
+// The UI process must wait until the content global is created here before
+// URLs can be loaded.
+Services.obs.addObserver(
+  { observe: () => Services.cpmm.sendAsyncMessage("RecordingInitialized") },
+  "content-document-global-created"
+);
+
+function IdMap() {
+  this._idMap = [undefined];
+  this._objectMap = new Map();
+}
+
+IdMap.prototype = {
+  add(obj) {
+    if (this._objectMap.has(obj)) {
+      return this._objectMap.get(obj);
+    }
+    const id = this._idMap.length;
+    this._idMap.push(obj);
+    this._objectMap.set(obj, id);
+    return id;
+  },
+
+  getId(obj) {
+    return this._objectMap.get(obj) || 0;
+  },
+
+  getObject(id) {
+    return this._idMap[id];
+  },
+
+  map(callback) {
+    const rv = [];
+    for (let i = 1; i < this._idMap.length; i++) {
+      rv.push(callback(i));
+    }
+    return rv;
+  },
+
+  forEach(callback) {
+    for (let i = 1; i < this._idMap.length; i++) {
+      callback(i, this._idMap[i]);
+    }
+  },
+};
+
+const gScripts = new IdMap();
+const gSources = new IdMap();
+
+const gScriptRoots = [];
+const gSourcesList = [];
+
+gDebugger.onNewScript = script => {
+  if (RecordReplayControl.areThreadEventsDisallowed()) {
+    return;
+  }
+
+  if (!considerScript(script)) {
+    ignoreScript(script);
+    return;
+  }
+
+  addScript(script);
+  gScriptRoots.push(gScripts.getId(script));
+
+  if (!gSources.getId(script.source)) {
+    const id = gSources.add(script.source);
+    gSourcesList.push(imports.getSourceData(id));
+  }
+
+  function addScript(script) {
+    const id = gScripts.add(script);
+    script.setInstrumentationId(id);
+    script.getChildScripts().forEach(addScript);
+  }
+
+  function ignoreScript(script) {
+    script.setInstrumentationId(0);
+    script.getChildScripts().forEach(ignoreScript);
+  }
+};
+
+getWindow().docShell.watchedByDevtools = true;
+Services.obs.addObserver(
+  {
+    observe(subject) {
+      subject.QueryInterface(Ci.nsIDocShell);
+      subject.watchedByDevtools = true;
+    },
+  },
+  "webnavigation-create"
+);
+
+Services.obs.addObserver(
+  {
+    observe(_1, _2, data) {
+      if (exports.OnHTMLContent) {
+        exports.OnHTMLContent(data);
+      }
+    },
+  },
+  "devtools-html-content"
+);
+
+Services.console.registerListener({
+  observe(message) {
+    if (!(message instanceof Ci.nsIScriptError)) {
+      return;
+    }
+
+    if (exports.OnConsoleError) {
+      exports.OnConsoleError(message);
+    }
+  }
+});
+
+Services.obs.addObserver({
+  observe(message) {
+    if (exports.OnConsoleAPICall) {
+      exports.OnConsoleAPICall(message);
+    }
+  },
+}, "console-api-log-event");
+
+getWindow().docShell.chromeEventHandler.addEventListener(
+  "DOMWindowCreated",
+  () => {
+    const window = getWindow();
+
+    window.document.styleSheetChangeEventsEnabled = true;
+
+    if (exports.OnWindowCreated) {
+      exports.OnWindowCreated(window);
+    }
+  },
+  true
+);
+
+getWindow().docShell.chromeEventHandler.addEventListener(
+  "StyleSheetApplicableStateChanged",
+  ({ stylesheet }) => {
+    if (exports.OnStyleSheetChange) {
+      exports.OnStyleSheetChange(stylesheet);
+    }
+  },
+  true
+);
+
+function advanceProgressCounter() {
+  let progress = RecordReplayControl.progressCounter();
+  RecordReplayControl.setProgressCounter(++progress);
+  return progress;
+}
+
+function OnMouseEvent(time, kind, x, y) {
+  advanceProgressCounter();
+};
+
+const { DebuggerNotificationObserver } = Cu.getGlobalForObject(require("resource://devtools/shared/Loader.jsm"));
+const gNotificationObserver = new DebuggerNotificationObserver();
+gNotificationObserver.addListener(eventListener);
+gNewGlobalHooks.push(global => {
+  try {
+    gNotificationObserver.connect(global.unsafeDereference());
+  } catch (e) {}
+});
+
+const { eventBreakpointForNotification } = require("devtools/server/actors/utils/event-breakpoints");
+
+function eventListener(info) {
+  const event = eventBreakpointForNotification(gDebugger, info);
+  if (!event) {
+    return;
+  }
+  advanceProgressCounter();
+
+  if (exports.OnEvent) {
+    exports.OnEvent(event);
+  }
+}
+
+const exports = {
+  CanCreateCheckpoint,
+  OnMouseEvent,
+};
+
 function Initialize(text) {
   try {
-    return new Function(`${text} return exports`)();
+    if (text) {
+      Object.assign(exports, new Function(`${text} return exports`)());
+    }
+    return exports;
   } catch (e) {
     dump(`Initialize Error: ${e}\n`);
   }

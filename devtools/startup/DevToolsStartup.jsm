@@ -1384,6 +1384,9 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 function createRecordingButton() {
   runTestScript();
 
+  // FIXME
+  ChromeUtils.recordReplayLog = () => {};
+
   let id = "recording-button";
   let item = {
     id: id,

@@ -10,8 +10,6 @@ const gConnections = [];
 
 let gConfig;
 
-ChromeUtils.recordReplayRegisterConnectionWorker(doSend);
-
 self.addEventListener("message", makeInfallible(onMainThreadMessage));
 
 function onMainThreadMessage({ data }) {
@@ -54,7 +52,7 @@ function onServerError(evt) {
   updateStatus("cloudError.label");
 }
 
-async function onServerMessage(evt) {
+function onServerMessage(evt) {
   const data = JSON.parse(evt.data);
   if (data.error) {
     updateStatus("cloudError.label");

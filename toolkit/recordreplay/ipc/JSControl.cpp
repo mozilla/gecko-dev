@@ -72,7 +72,6 @@ static void EnsureInitialized() {
   if (IsInitialized()) {
     return;
   }
-  MOZ_RELEASE_ASSERT(!gModuleText.IsEmpty());
 
   // Initialization so we can repaint at the first checkpoint without having
   // an unhandled recording divergence.
@@ -143,6 +142,10 @@ void ManifestStart(const CharBuffer& aContents) {
 void HitCheckpoint(size_t aCheckpoint, TimeDuration aTime) {
   EnsureInitialized();
 
+  if (IsRecording()) {
+    return;
+  }
+
   AutoDisallowThreadEvents disallow;
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
@@ -199,7 +202,7 @@ MOZ_EXPORT ProgressCounter RecordReplayInterface_NewTimeWarpTarget() {
   // and replaying.
   RecordReplayAssert("NewTimeWarpTarget");
 
-  if (!IsInitialized()) {
+  if (!IsInitialized() || IsRecording()) {
     return 0;
   }
 
@@ -219,6 +222,10 @@ MOZ_EXPORT ProgressCounter RecordReplayInterface_NewTimeWarpTarget() {
 }  // extern "C"
 
 void PaintComplete() {
+  if (IsRecording()) {
+    return;
+  }
+
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
@@ -1733,7 +1740,7 @@ extern "C" {
 
 MOZ_EXPORT bool RecordReplayInterface_DefineRecordReplayControlObject(
     void* aCxVoid, void* aObjectArg) {
-  MOZ_RELEASE_ASSERT(IsReplaying());
+  MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
 
   JSContext* aCx = static_cast<JSContext*>(aCxVoid);
   RootedObject object(aCx, static_cast<JSObject*>(aObjectArg));
