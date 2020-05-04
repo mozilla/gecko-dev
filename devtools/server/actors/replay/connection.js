@@ -84,7 +84,8 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
       const buildId = `macOS-${Services.appinfo.appBuildID}`;
       const id = gNextMessageId++;
       gWorker.postMessage({
-        kind: "sendCommand",
+        kind: "sendUploadCommand",
+        pid,
         command: {
           id,
           method: "Internal.createRecording",
