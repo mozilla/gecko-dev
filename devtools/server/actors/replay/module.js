@@ -252,9 +252,16 @@ function eventListener(info) {
 function SendRecordingData(pid, offset, length, buf, totalLength, duration) {
   let description;
   if (totalLength) {
+    // Supply a description for this recording, it is about to be finished.
+    const data = RecordReplayControl.getGraphics(
+      /* repaint */ false,
+      "image/jpeg",
+      "quality=50"
+    );
     description = {
       length: totalLength,
       duration,
+      lastScreen: { mimeType: "image/jpeg", data },
     };
   }
   Services.cpmm.sendAsyncMessage("UploadRecordingData",
