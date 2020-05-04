@@ -112,7 +112,7 @@ async function showRecordings() {
     container.appendChild(newRow);
   }
 
-  document.querySelector(".no-recordings").hidden = false; // !!gRecordings.length;
+  document.querySelector(".no-recordings").hidden = !!gRecordings.length;
 }
 
 function showError(kind) {
