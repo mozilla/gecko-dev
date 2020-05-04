@@ -31,9 +31,12 @@ toolkit.jar:
    content/global/aboutUrlClassifier.js
    content/global/aboutUrlClassifier.xhtml
    content/global/aboutUrlClassifier.css
-   content/global/aboutWebReplay.js
-   content/global/aboutWebReplay.xhtml
-   content/global/aboutWebReplay.css
+   content/global/aboutWebReplay/aboutWebReplay.js (aboutWebReplay/aboutWebReplay.js)
+   content/global/aboutWebReplay/index.html (aboutWebReplay/index.html)
+   content/global/aboutWebReplay/aboutWebReplay.css (aboutWebReplay/aboutWebReplay.css)
+   content/global/aboutWebReplay/assets/web-replay.svg (aboutWebReplay/assets/web-replay.svg)
+   content/global/aboutWebReplay/assets/link.svg (aboutWebReplay/assets/link.svg)
+   content/global/aboutWebReplay/assets/trash.svg (aboutWebReplay/assets/trash.svg)
    content/global/plugins.html
    content/global/plugins.css
    content/global/plugins.js

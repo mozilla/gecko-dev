@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<html >
+<head>
+  <title data-l10n-id="about-webreplay-title"></title>
+  <link rel="stylesheet" href="chrome://global/content/aboutWebReplay/aboutWebReplay.css" type="text/css"/>
+</head>
+
+<body>
+
+  <header>
+    <div id="logo"></div>
+  </header>
+
+
+  <div class="container">
+    <div class="recordings-list"></div>
+    <div class="no-recordings"  hidden="true">No saved recordings. Click the "Record" button in the top left to start your first recording.</div>
+  </div>
+
+  <template id="recording-row">
+
+    <a class="recording">
+      <div class="screenshot">
+        <div class="actions">
+          <div class="remove"> <div class="icon"></div> </div>
+          <div class="copylink"> <div class="icon"></div> </div>
+        </div>
+      </div>
+      <div class="title"></div>
+      <!-- <div class="url"></div> -->
+      <div class="secondary">
+        <span class="duration"></span>
+          &#9679;
+        <span class="start"></span>
+      </div>
+
+
+    </a>
+  </template>
+
+  <h2 class="error-title" data-l10n-id="error-title" hidden="true"></h2>
+
+  <div class="error-message"></div>
+
+  <script src="chrome://global/content/aboutWebReplay/aboutWebReplay.js"></script>
+
+</body>
+</html>

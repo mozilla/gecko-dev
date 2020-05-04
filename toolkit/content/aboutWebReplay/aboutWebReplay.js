@@ -4,8 +4,8 @@
 
 "use strict";
 
-const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 let gRecordings;
 
@@ -21,7 +21,12 @@ function formatTime(time) {
 const MsPerSecond = 1000;
 
 function formatDuration(duration) {
-  return `${(duration / MsPerSecond) | 0} seconds`;
+  const total = (duration / MsPerSecond) | 0;
+  const seconds = total % 60;
+  const minutes = Math.floor(total / 60);
+
+  const formattedSeconds = seconds > 9 ? seconds : `0${seconds}`;
+  return `${minutes}:${formattedSeconds}`;
 }
 
 // Maximum number of characters to print for titles and URLs.
@@ -64,38 +69,50 @@ function updateRecordings(recordings) {
   showRecordings();
 }
 
-let gLastCopyLink = null;
-
 async function showRecordings() {
   const container = document.querySelector(".recordings-list");
   const template = document.querySelector("#recording-row");
 
   container.innerHTML = "";
-
-  for (const { uuid, url, title, date, duration } of gRecordings) {
+  for (const { uuid, url, title, date, duration, graphics } of gRecordings) {
     const recordingUrl = `https://view.webreplay.io/${uuid}`;
     const newRow = document.importNode(template.content, true);
-    newRow.querySelector(".recording-title").innerText = formatString(title);
-    newRow.querySelector(".recording-url").innerText = formatString(url);
-    newRow.querySelector(".recording-start").innerText = formatTime(date);
-    newRow.querySelector(".recording-duration").innerText = formatDuration(duration);
+    newRow.querySelector(".title").innerText = formatString(title);
+    // newRow.querySelector(".url").innerText = formatString(url);
+    newRow.querySelector(".start").innerText = formatTime(date);
+    newRow.querySelector(".duration").innerText = formatDuration(duration);
     newRow.querySelector(".recording").href = recordingUrl;
-    const copylink = newRow.querySelector(".copylink");
-    copylink.addEventListener("click", e => {
+
+    if (graphics) {
+      const img = document.createElement("img");
+      img.src = "data:image/jpeg;base64, " + graphics;
+      newRow.querySelector(".screenshot").appendChild(img);
+    }
+
+    // screenshot.style.height = "100%";
+    // screenshot.style.display = "block";
+    // screenshot.style.position = "absolute";
+    // screenshot.style.left = "0";
+
+    newRow.querySelector(".copylink")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.target.classList.add("copied");
+      setTimeout(() => {
+        e.target.classList.remove("copied");
+      }, 2000);
       navigator.clipboard.writeText(recordingUrl);
-      copylink.innerText = "Copied!";
-      if (gLastCopyLink && gLastCopyLink != copylink) {
-        gLastCopyLink.innerText = "Copy Link";
-      }
-      gLastCopyLink = copylink;
     });
-    newRow.querySelector(".remove").addEventListener("click", e => {
-      updateRecordings(gRecordings.filter(item => item.uuid != uuid));
+    newRow.querySelector(".remove")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      updateRecordings(gRecordings.filter((item) => item.uuid != uuid));
     });
+
     container.appendChild(newRow);
   }
 
-  document.querySelector(".no-recordings").hidden = !!gRecordings.length;
+  document.querySelector(".no-recordings").hidden = false; // !!gRecordings.length;
 }
 
 function showError(kind) {
@@ -106,10 +123,10 @@ function showError(kind) {
   document.querySelector(".error-message").setAttribute("data-l10n-id", kind);
 }
 
-window.onload = async function() {
+window.onload = async function () {
   let match;
 
-  if (match = /error=(.*)/.exec(window.location)) {
+  if ((match = /error=(.*)/.exec(window.location))) {
     showError(match[1]);
     return;
   }
