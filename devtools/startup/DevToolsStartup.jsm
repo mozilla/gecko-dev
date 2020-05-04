@@ -1559,7 +1559,24 @@ async function reloadAndStopRecordingTab(gBrowser) {
   // data and sent a description to the cloud service.
   const recordingId = await waitForFinishedRecording();
 
-  const url = `https://view.webreplay.io/${recordingId}&loading=true`;
+  const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+
+  let viewHost = "https://webreplay.io";
+
+  // For testing, allow overriding the host for the view page.
+  const hostOverride = env.get("WEBREPLAY_VIEW_HOST");
+  if (hostOverride) {
+    viewHost = hostOverride;
+  }
+
+  // For testing, allow specifying the dispatcher to connect to.
+  let extra = "";
+  const dispatchOverride = env.get("WEBREPLAY_SERVER");
+  if (dispatchOverride) {
+    extra = `&dispatch=${dispatchOverride}`;
+  }
+
+  const url = `${viewHost}/view?id=${recordingId}&loading=true${extra}`;
   gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
     newFrameloader: true,
     remoteType: E10SUtils.DEFAULT_REMOTE_TYPE,
