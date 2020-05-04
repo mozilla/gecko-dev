@@ -121,10 +121,6 @@ IdMap.prototype = {
 };
 
 const gScripts = new IdMap();
-const gSources = new IdMap();
-
-const gScriptRoots = [];
-const gSourcesList = [];
 
 gDebugger.onNewScript = script => {
   if (RecordReplayControl.areThreadEventsDisallowed()) {
@@ -137,11 +133,9 @@ gDebugger.onNewScript = script => {
   }
 
   addScript(script);
-  gScriptRoots.push(gScripts.getId(script));
 
-  if (!gSources.getId(script.source)) {
-    const id = gSources.add(script.source);
-    gSourcesList.push(imports.getSourceData(id));
+  if (exports.OnNewScript) {
+    exports.OnNewScript(script);
   }
 
   function addScript(script) {

@@ -5,16 +5,8 @@
 
 "use strict";
 
-// Two sockets can be opened with the Web Replay cloud service.
-// gServerSocket is used for normal messages, and gUploadSocket is used for
-// uploading blocks of binary data. Two sockets are used so that the
-// normal socket isn't blocked when uploading large amounts of data.
+// Main socket for communicating with the Web Replay cloud service.
 let gServerSocket;
-let gUploadSocket;
-
-// The upload socket is created lazily.
-let gUploadOpen;
-const gPendingUploadMessages = [];
 
 let gConfig;
 
@@ -30,20 +22,13 @@ function onMainThreadMessage({ data }) {
       doSend(gServerSocket, JSON.stringify(data.command));
       break;
     case "sendUploadCommand":
-      ensureUploadSocket();
-      if (gUploadOpen) {
-        doSend(gUploadSocket, JSON.stringify(data.command));
-      } else {
-        gPendingUploadMessages.push(JSON.stringify(data.command));
-      }
+      getUploadSocket(data.pid).send(JSON.stringify(data.command));
       break;
     case "sendUploadBinaryData":
-      ensureUploadSocket();
-      if (gUploadOpen) {
-        doSend(gUploadSocket, data.buf);
-      } else {
-        gPendingUploadMessages.push(data.buf);
-      }
+      getUploadSocket(data.pid).send(data.buf);
+      break;
+    case "stopUpload":
+      destroyUploadSocket(data.pid);
       break;
     default:
       postError(`Unknown event kind ${data.kind}`);
@@ -58,15 +43,68 @@ function openServerSocket() {
   gServerSocket.onerror = makeInfallible(onServerError);
 }
 
-function ensureUploadSocket() {
-  if (gUploadSocket) {
-    return;
+// Every upload uses its own socket. This allows other communication with the
+// cloud service even if the upload socket has a lot of pending data to send.
+function UploadSocket() {
+  this.socket = new WebSocket(gConfig.address);
+  this.socket.onopen = makeInfallible(() => this.onOpen());
+  this.socket.onclose = makeInfallible(() => this.onClose());
+  this.socket.onmessage = makeInfallible(onServerMessage);
+  this.socket.onerror = makeInfallible(() => this.onError());
+
+  this.open = false;
+  this.pending = [];
+
+  this.closed = false;
+}
+
+UploadSocket.prototype = {
+  onOpen() {
+    this.open = true;
+    this.pending.forEach(msg => doSend(this.socket, msg));
+    this.pending.length = 0;
+  },
+
+  onClose() {
+    if (!this.closed) {
+      onServerClose();
+    }
+  },
+
+  onError() {
+    if (!this.closed) {
+      onServerError();
+    }
+  },
+
+  send(msg) {
+    if (this.open) {
+      doSend(this.socket, msg);
+    } else {
+      this.pending.push(msg);
+    }
+  },
+
+  close() {
+    this.closed = true;
+    this.socket.close();
+  },
+};
+
+const gUploadSockets = new Map();
+
+function getUploadSocket(pid) {
+  if (!gUploadSockets.has(pid)) {
+    gUploadSockets.set(pid, new UploadSocket());
   }
-  gUploadSocket = new WebSocket(gConfig.address);
-  gServerSocket.onopen = makeInfallible(onUploadOpen);
-  gServerSocket.onclose = makeInfallible(onServerClose);
-  gServerSocket.onmessage = makeInfallible(onServerMessage);
-  gServerSocket.onerror = makeInfallible(onServerError);
+  return gUploadSockets.get(pid);
+}
+
+function destroyUploadSocket(pid) {
+  if (gUploadSockets.has(pid)) {
+    gUploadSockets.get(pid).close();
+    gUploadSockets.delete(pid);
+  }
 }
 
 function updateStatus(status) {
@@ -81,18 +119,12 @@ function onServerOpen(evt) {
   updateStatus("");
 }
 
-function onUploadOpen(evt) {
-  gUploadOpen = true;
-  gPendingUploadMessages.forEach(msg => doSend(gUploadSocket, msg));
-  gPendingUploadMessages.length = 0;
-}
-
 function onServerClose() {
   updateStatus("cloudReconnecting.label");
   setTimeout(openServerSocket, 3000);
 }
 
-function onServerError(evt) {
+function onServerError() {
   updateStatus("cloudError.label");
 }
 

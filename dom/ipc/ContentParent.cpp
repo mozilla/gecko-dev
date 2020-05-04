@@ -347,6 +347,12 @@ namespace CubebUtils {
 extern FileDescriptor CreateAudioIPCConnection();
 }
 
+namespace recordreplay {
+  namespace parent {
+    extern void ContentParentDestroyed(int32_t aPid);
+  }
+}
+
 namespace dom {
 
 #define NS_IPC_IOSERVICE_SET_OFFLINE_TOPIC "ipc:network:set-offline"
@@ -1503,6 +1509,10 @@ void ContentParent::MaybeAsyncSendShutDownMessage() {
 }
 
 void ContentParent::ShutDownProcess(ShutDownMethod aMethod) {
+  if (mRecording) {
+    recordreplay::parent::ContentParentDestroyed(Pid());
+  }
+
   if (mScriptableHelper) {
     static_cast<ScriptableCPInfo*>(mScriptableHelper.get())->ProcessDied();
     mScriptableHelper = nullptr;

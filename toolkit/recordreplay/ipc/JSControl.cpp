@@ -273,7 +273,7 @@ void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength,
   MOZ_RELEASE_ASSERT(bufferObject);
 
   JS::AutoValueArray<6> args(cx);
-  args[0].setNumber((double)base::GetCurrentProcId());
+  args[0].setNumber((double)child::MiddlemanProcessId());
   args[1].setNumber((double)aOffset);
   args[2].setNumber((double)aLength);
   args[3].setObject(*bufferObject);

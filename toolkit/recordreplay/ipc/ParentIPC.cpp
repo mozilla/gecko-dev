@@ -162,6 +162,17 @@ double ElapsedTime() {
   return (TimeStamp::Now() - gStartupTime).ToSeconds();
 }
 
+void ContentParentDestroyed(int32_t aPid) {
+  MOZ_RELEASE_ASSERT(gUIStateInitialized);
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  if (NS_FAILED(gConnection->RecordingDestroyed(aPid))) {
+    MOZ_CRASH("ContentParentDestroyed");
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Child Processes
 ///////////////////////////////////////////////////////////////////////////////

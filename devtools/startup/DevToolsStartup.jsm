@@ -1370,7 +1370,7 @@ const JsonView = {
   },
 };
 
-var EXPORTED_SYMBOLS = ["DevToolsStartup", "validateProfilerWebChannelUrl"];
+var EXPORTED_SYMBOLS = ["DevToolsStartup", "validateProfilerWebChannelUrl", "onStartRecording", "onFinishedRecording"];
 
 // Web Replay stuff.
 
@@ -1387,9 +1387,8 @@ function createRecordingButton() {
   // FIXME
   ChromeUtils.recordReplayLog = () => {};
 
-  let id = "recording-button";
   let item = {
-    id: id,
+    id: "recording-button",
     type: "button",
     tooltiptext: "recording-button.tooltiptext2",
     onClick() {
@@ -1445,10 +1444,9 @@ function createRecordingButton() {
   CustomizableUI.createWidget(item);
   CustomizableWidgets.push(item);
 
-  id = "cloud-recordings-button";
   item = {
-    id: id,
-    type: "view",
+    id: "cloud-recordings-button",
+    type: "button",
     tooltiptext: "cloud-recordings-button.tooltiptext2",
     onClick: viewRecordings,
   };
@@ -1539,11 +1537,19 @@ function reloadAndRecordTab(gBrowser) {
   }, 2000);
 }
 
-function waitForFinishedRecording() {
-  return new Promise();
+let gFinishedRecordingWaiter;
+
+function onFinishedRecording(recordingId) {
+  if (gFinishedRecordingWaiter) {
+    gFinishedRecordingWaiter(recordingId);
+  }
 }
 
-function reloadAndStopRecordingTab(gBrowser) {
+function waitForFinishedRecording() {
+  return new Promise(resolve => gFinishedRecordingWaiter = resolve);
+}
+
+async function reloadAndStopRecordingTab(gBrowser) {
   const remoteTab = gBrowser.selectedTab.linkedBrowser.frameLoader.remoteTab;
   if (!remoteTab || !remoteTab.finishRecording()) {
     return;
@@ -1586,6 +1592,10 @@ async function addRecordingDescription(description) {
   }
 
   OS.File.writeAtomic(path, JSON.stringify([description, ...recordings]));
+}
+
+function onStartRecording(recordingId) {
+  addRecordingDescription({ recordingId });
 }
 
 function viewRecordings() {

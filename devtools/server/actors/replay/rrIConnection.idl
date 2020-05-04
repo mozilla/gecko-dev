@@ -11,4 +11,7 @@
 interface rrIConnection : nsISupports {
   // Establish the initial cloud server connection on startup.
   void Initialize(in jsval callbacks);
+
+  // Mark a recording process as destroyed, with the given middleman pid.
+  void RecordingDestroyed(in long pid);
 };
