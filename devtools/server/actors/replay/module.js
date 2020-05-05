@@ -258,6 +258,8 @@ function SendRecordingData(pid, offset, length, buf, totalLength, duration) {
       "image/jpeg",
       "quality=50"
     );
+    // Convert seconds to milliseconds
+    duration = (duration * 1000) | 0;
     description = {
       length: totalLength,
       duration,
