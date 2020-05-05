@@ -20,13 +20,10 @@ namespace mozilla {
 namespace recordreplay {
 
 #define ForEachMessageType(_Macro)                             \
-  /* Messages which can be interpreted or constructed by the cloud server. */ \
-  /* Avoid changing the message IDs for these. */              \
+  /* Messages sent from the middleman to the child process. */ \
                                                                \
   /* Sent by the middleman at startup. */                      \
   _Macro(Introduction)                                         \
-                                                               \
-  /* Messages sent from the middleman to the child process. */ \
                                                                \
   /* Periodically sent to replaying processes to make sure they are */ \
   /* responsive and determine how much progress they have made. This can be */ \

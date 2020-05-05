@@ -89,6 +89,10 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
       MOZ_RELEASE_ASSERT(processKind.isNothing() && i + 1 < aArgc);
       processKind.emplace((ProcessKind)atoi(aArgv[i + 1]));
     }
+    if (!strcmp(aArgv[i], gRecordingFileOption)) {
+      MOZ_RELEASE_ASSERT(recordingFile.isNothing() && i + 1 < aArgc);
+      recordingFile.emplace(aArgv[i + 1]);
+    }
   }
   MOZ_RELEASE_ASSERT(processKind.isSome());
 
@@ -180,7 +184,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
     // The crash detector is only useful when we have a local parent process to
     // report crashes to. Avoid initializing it when running in the cloud
     // so that we avoid calling mach interfaces with events passed through.
-    InitializeCrashDetector();
+    //InitializeCrashDetector();
   }
   Lock::InitializeLocks();
 
@@ -235,31 +239,9 @@ MOZ_EXPORT void RecordReplayInterface_InternalInvalidateRecording(
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalBeginPassThroughThreadEventsWithLocalReplay() {
-  if (IsReplaying() && !gReplayingInCloud) {
-    BeginPassThroughThreadEvents();
-  }
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalEndPassThroughThreadEventsWithLocalReplay() {
-  // If we are replaying locally we will be skipping over a section of the
-  // recording while events are passed through. Include the current stream
-  // position in the recording so that we will know how much to skip over.
-  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
-  Stream* localReplayStream = gRecording->OpenStream(StreamName::LocalReplaySkip, 0);
-  Stream& events = Thread::Current()->Events();
-
-  size_t position = IsRecording() ? events.StreamPosition() : 0;
-  localReplayStream->RecordOrReplayScalar(&position);
-
-  if (IsReplaying() && !ReplayingInCloud()) {
-    EndPassThroughThreadEvents();
-    MOZ_RELEASE_ASSERT(events.StreamPosition() <= position);
-    size_t nbytes = position - events.StreamPosition();
-    void* buf = malloc(nbytes);
-    events.ReadBytes(buf, nbytes);
-    free(buf);
-    MOZ_RELEASE_ASSERT(events.StreamPosition() == position);
-  }
 }
 
 // The elapsed time since the process was initialized, in seconds. This is
@@ -365,13 +347,6 @@ bool ReplayingInCloud() { return gReplayingInCloud; }
 const char* InstallDirectory() { return gInstallDirectory; }
 
 bool IsVerbose() { return gVerbose; }
-
-void ExtractCloudRecordingName(const char* aFileName, nsAutoCString& aRecordingName) {
-  const char prefix[] = "webreplay://";
-  if (!strncmp(aFileName, prefix, strlen(prefix))) {
-    aRecordingName = nsCString(aFileName + strlen(prefix));
-  }
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Record/Replay Assertions

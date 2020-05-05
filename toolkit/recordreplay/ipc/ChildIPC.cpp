@@ -249,7 +249,15 @@ void SetupRecordReplayChannel(int aArgc, char* aArgv[]) {
     char* buffer;
     size_t size;
     FetchCloudRecordingData(&buffer, &size);
-    gRecording->NewContents((const uint8_t*) buffer, size, nullptr);
+
+    InfallibleVector<Stream*> updatedStreams;
+    gRecording->NewContents((const uint8_t*) buffer, size, &updatedStreams);
+
+    for (Stream* stream : updatedStreams) {
+      if (stream->Name() == StreamName::Lock) {
+        Lock::LockAcquiresUpdated(stream->NameIndex());
+      }
+    }
   }
 }
 
@@ -631,18 +639,8 @@ static void FetchCloudRecordingData(char** aBuffer, size_t* aSize) {
     BitwiseCast<void(*)(char**, size_t*)>(ptr)(aBuffer, aSize);
   } else {
     // Fallback for offline testing.
-    nsAutoCString recordingName;
-    ExtractCloudRecordingName(gRecordingFilename, recordingName);
-    MOZ_RELEASE_ASSERT(!recordingName.IsEmpty());
-
-    const char* offlineDir = getenv("WEBREPLAY_OFFLINE");
-    if (!offlineDir) {
-      Print("WEBREPLAY_OFFLINE not set, crashing...\n");
-      MOZ_CRASH("SaveCloudRecording");
-    }
-    nsPrintfCString path("%s/%s", offlineDir, recordingName.get());
-
-    FileHandle file = DirectOpenFile(path.get(), /* aWriting */ false);
+    MOZ_RELEASE_ASSERT(gRecordingFilename);
+    FileHandle file = DirectOpenFile(gRecordingFilename, /* aWriting */ false);
     *aSize = DirectFileSize(file);
     *aBuffer = (char*) malloc(*aSize);
     DirectRead(file, *aBuffer, *aSize);

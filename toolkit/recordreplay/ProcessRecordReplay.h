@@ -113,9 +113,6 @@ const char* InstallDirectory();
 extern ProcessKind gProcessKind;
 extern const char* gRecordingFilename;
 
-// Given a recording filename referring to a cloud recording, get the recording UUID.
-void ExtractCloudRecordingName(const char* aFileName, nsAutoCString& aRecordingName);
-
 ///////////////////////////////////////////////////////////////////////////////
 // Helper Functions
 ///////////////////////////////////////////////////////////////////////////////
