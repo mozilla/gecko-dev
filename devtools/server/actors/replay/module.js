@@ -14,7 +14,6 @@ const sandbox = Cu.Sandbox(
 Cu.evalInSandbox(
   "Components.utils.import('resource://gre/modules/jsdebugger.jsm');" +
   "Components.utils.import('resource://gre/modules/Services.jsm');" +
-  "Components.utils.import('resource://devtools/shared/execution-point-utils.js');" +
   "addDebuggerToGlobal(this);",
   sandbox
 );
@@ -24,9 +23,6 @@ const {
   Services,
   InspectorUtils,
   CSSRule,
-  pointEquals,
-  pointPrecedes,
-  pointToString,
   findClosestPoint,
 } = sandbox;
 
