@@ -42,6 +42,9 @@ namespace js {
 // Buffer type used for encoding object data.
 typedef InfallibleVector<char16_t> CharBuffer;
 
+// Read the replay JS to load at the first checkpoint.
+void ReadReplayJS(const char* aFile);
+
 // JS state is initialized when the first checkpoint is reached.
 bool IsInitialized();
 

@@ -8,7 +8,6 @@
 
 #include "mozilla/Base64.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/Compression.h"
 #include "mozilla/StaticPtr.h"
 #include "js/CharacterEncoding.h"
 #include "js/Conversions.h"
@@ -58,6 +57,14 @@ static void InitializeScriptHits();
 
 static nsCString gModuleText;
 
+void ReadReplayJS(const char* aFile) {
+  FileHandle file = DirectOpenFile(aFile, /* aWriting */ false);
+  size_t size = DirectFileSize(file);
+  gModuleText.SetLength(size);
+  DirectRead(file, gModuleText.BeginWriting(), size);
+  DirectCloseFile(file);
+}
+
 // URL of the root module script.
 #define ModuleURL "resource://devtools/server/actors/replay/module.js"
 
@@ -83,6 +90,10 @@ static void EnsureInitialized() {
   nsCOMPtr<rrIModule> module = do_ImportModule(ModuleURL);
   gModule = module.forget();
   ClearOnShutdown(&gModule);
+
+  if (IsReplaying()) {
+    MOZ_RELEASE_ASSERT(gModuleText.Length());
+  }
 
   RootedValue value(cx);
   if (NS_FAILED(gModule->Initialize(gModuleText, &value))) {
@@ -621,10 +632,8 @@ static bool RecordReplay_CurrentExecutionTime(JSContext* aCx, unsigned aArgc,
                                               Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  // Get a current timestamp biased by the amount of time the process has spent
-  // idling. Comparing these timestamps gives the elapsed non-idle time between
-  // them.
-  args.rval().setNumber((CurrentTime() - gIdleTimeTotal) / 1000.0);
+  // Get the elapsed time in milliseconds since the process started.
+  args.rval().setInt32(CurrentTime() / 1000.0);
   return true;
 }
 
@@ -638,36 +647,31 @@ static bool RecordReplay_FlushExternalCalls(JSContext* aCx, unsigned aArgc,
   return true;
 }
 
-static bool RecordReplay_SetRecordingSummary(JSContext* aCx, unsigned aArgc,
-                                             Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  if (!args.get(0).isString()) {
-    JS_ReportErrorASCII(aCx, "Expected string argument");
-    return false;
-  }
-
-  nsAutoCString str;
-  ConvertJSStringToCString(aCx, args.get(0).toString(), str);
-  SetRecordingSummary(str);
-
-  args.rval().setUndefined();
-  return true;
-}
-
 static bool RecordReplay_GetRecordingSummary(JSContext* aCx, unsigned aArgc,
                                              Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  nsAutoCString summary;
-  GetRecordingSummary(summary);
+  InfallibleVector<ProgressCounter> progressCounters;
+  InfallibleVector<size_t> elapsed;
+  InfallibleVector<size_t> times;
+  GetRecordingSummary(progressCounters, elapsed, times);
 
-  JSString* str = JS_NewStringCopyZ(aCx, summary.get());
-  if (!str) {
+  RootedValueVector values(aCx);
+
+  for (size_t i = 0; i < progressCounters.length(); i++) {
+    if (!values.append(NumberValue(progressCounters[i])) ||
+        !values.append(NumberValue(elapsed[i])) ||
+        !values.append(NumberValue(times[i]))) {
+      return false;
+    }
+  }
+
+  JSObject* array = NewArrayObject(aCx, values);
+  if (!array) {
     return false;
   }
 
-  args.rval().setString(str);
+  args.rval().setObject(*array);
   return true;
 }
 
@@ -1721,11 +1725,10 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("setProgressCounter", RecordReplay_SetProgressCounter, 1, 0),
     JS_FN("shouldUpdateProgressCounter",
           RecordReplay_ShouldUpdateProgressCounter, 1, 0),
-    JS_FN("manifestFinished", RecordReplay_ManifestFinished, 3, 0),
+    JS_FN("manifestFinished", RecordReplay_ManifestFinished, 1, 0),
     JS_FN("resumeExecution", RecordReplay_ResumeExecution, 0, 0),
     JS_FN("currentExecutionTime", RecordReplay_CurrentExecutionTime, 0, 0),
     JS_FN("flushExternalCalls", RecordReplay_FlushExternalCalls, 0, 0),
-    JS_FN("setRecordingSummary", RecordReplay_SetRecordingSummary, 1, 0),
     JS_FN("getRecordingSummary", RecordReplay_GetRecordingSummary, 0, 0),
     JS_FN("getContent", RecordReplay_GetContent, 1, 0),
     JS_FN("getGraphics", RecordReplay_GetGraphics, 3, 0),

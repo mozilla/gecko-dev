@@ -84,6 +84,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   // Parse command line options for the process kind and recording file.
   Maybe<ProcessKind> processKind;
   Maybe<char*> recordingFile;
+  Maybe<char*> replayJSFile;
   for (int i = 0; i < aArgc; i++) {
     if (!strcmp(aArgv[i], gProcessKindOption)) {
       MOZ_RELEASE_ASSERT(processKind.isNothing() && i + 1 < aArgc);
@@ -92,6 +93,10 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
     if (!strcmp(aArgv[i], gRecordingFileOption)) {
       MOZ_RELEASE_ASSERT(recordingFile.isNothing() && i + 1 < aArgc);
       recordingFile.emplace(aArgv[i + 1]);
+    }
+    if (!strcmp(aArgv[i], "-recordReplayJS")) {
+      MOZ_RELEASE_ASSERT(replayJSFile.isNothing() && i + 1 < aArgc);
+      replayJSFile.emplace(aArgv[i + 1]);
     }
   }
   MOZ_RELEASE_ASSERT(processKind.isSome());
@@ -193,6 +198,10 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
 
   child::SetupRecordReplayChannel(aArgc, aArgv);
 
+  if (replayJSFile.isSome()) {
+    js::ReadReplayJS(replayJSFile.ref());
+  }
+
   thread->SetPassThrough(false);
 
   InitializeRewindState();
@@ -293,16 +302,19 @@ void HitEndOfRecording() {
   }
 }
 
-void SetRecordingSummary(const nsACString& aString) {
+void AddCheckpointSummary(ProgressCounter aProgress, size_t aElapsed, size_t aTime) {
   MOZ_RELEASE_ASSERT(IsRecording());
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
 
   Stream* stream = gRecording->OpenStream(StreamName::Summary, 0);
-  stream->WriteScalar(aString.Length());
-  stream->WriteBytes(aString.BeginReading(), aString.Length());
+  stream->WriteScalar(aProgress);
+  stream->WriteScalar(aElapsed);
+  stream->WriteScalar(aTime);
 }
 
-void GetRecordingSummary(nsAutoCString& aString) {
+void GetRecordingSummary(InfallibleVector<ProgressCounter>& aProgressCounters,
+                         InfallibleVector<size_t>& aElapsed,
+                         InfallibleVector<size_t>& aTimes) {
   MOZ_RELEASE_ASSERT(IsReplaying());
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
 
@@ -310,9 +322,9 @@ void GetRecordingSummary(nsAutoCString& aString) {
   MOZ_RELEASE_ASSERT(stream->StreamPosition() == 0);
 
   while (!stream->AtEnd()) {
-    size_t len = stream->ReadScalar();
-    aString.SetLength(len);
-    stream->ReadBytes(aString.BeginWriting(), len);
+    aProgressCounters.append(stream->ReadScalar());
+    aElapsed.append(stream->ReadScalar());
+    aTimes.append(stream->ReadScalar());
   }
 }
 

@@ -275,7 +275,13 @@ const exports = {
 function Initialize(text) {
   try {
     if (text) {
-      Object.assign(exports, new Function(`${text} return exports`)());
+      const imports = {
+        Cc, Ci, Cu, ChromeUtils, Debugger, RecordReplayControl, InspectorUtils,
+        considerScript, countScriptFrames, gScripts, gDebugger,
+        advanceProgressCounter, gAllGlobals, getWindow, gSandboxGlobal,
+        gNewGlobalHooks,
+      };
+      Object.assign(exports, new Function("imports", `${text} return exports`)(imports));
     }
     return exports;
   } catch (e) {

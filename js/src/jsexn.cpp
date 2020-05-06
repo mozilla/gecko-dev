@@ -300,6 +300,11 @@ void js::ErrorToException(JSContext* cx, JSErrorReport* reportp,
     return;
   }
 
+  if (mozilla::recordreplay::IsReplaying()) {
+    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+    PrintError(cx, stderr, JS::ConstUTF8CharsZ(), reportp, true);
+  }
+
   // Find the exception index associated with this error.
   JSErrNum errorNumber = static_cast<JSErrNum>(reportp->errorNumber);
   if (!callback) {

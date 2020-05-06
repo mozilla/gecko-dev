@@ -57,6 +57,13 @@ TimeDuration RecordingDuration() {
   return gLastCheckpointTime - gFirstCheckpointTime;
 }
 
+// Note: Result will not be accurate when replaying.
+static size_t NonIdleTimeSinceLastCheckpointMs() {
+  double absoluteMs = (TimeStamp::Now() - gLastCheckpointTime).ToMilliseconds();
+  double idleMs = (js::TotalIdleTime() - gLastCheckpointIdleTime) / 1000.0;
+  return absoluteMs - idleMs;
+}
+
 static const uint32_t FlushIntervalMs = 500;
 
 void CreateCheckpoint() {
@@ -68,6 +75,11 @@ void CreateCheckpoint() {
       !child::PaintingInProgress() &&
       js::CanCreateCheckpoint()) {
     gLastCheckpoint++;
+
+    size_t elapsed = 0;
+    if (gLastCheckpoint != FirstCheckpointId) {
+      elapsed = NonIdleTimeSinceLastCheckpointMs();
+    }
     gLastCheckpointTime = TimeStamp::Now();
     gLastCheckpointIdleTime = js::TotalIdleTime();
 
@@ -78,6 +90,11 @@ void CreateCheckpoint() {
     }
 
     js::HitCheckpoint(gLastCheckpoint, CurrentRecordingTime());
+
+    if (IsRecording()) {
+      size_t time = (gLastCheckpointTime - gFirstCheckpointTime).ToMilliseconds();
+      AddCheckpointSummary(*ExecutionProgressCounter(), elapsed, time);
+    }
 
     if (gLastCheckpoint == FirstCheckpointId ||
         (gLastCheckpointTime - gLastFlushTime).ToMilliseconds() >= FlushIntervalMs) {

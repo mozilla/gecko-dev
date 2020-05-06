@@ -10,6 +10,7 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/RecordReplay.h"
+#include "InfallibleVector.h"
 #include "nsString.h"
 
 #include <algorithm>
@@ -95,12 +96,13 @@ void FlushRecording(bool aFinishRecording);
 // Called when any thread hits the end of its event stream.
 void HitEndOfRecording();
 
-// Before saving the recording, set a summary which can be loaded when
-// replaying.
-void SetRecordingSummary(const nsACString& aString);
+// While recording, add information about the latest checkpoint.
+void AddCheckpointSummary(ProgressCounter aProgress, size_t aElapsed, size_t aTime);
 
-// Get the last summary which was set in the recording.
-void GetRecordingSummary(nsAutoCString& aString);
+// While replaying, get a summary of all checkpoints in the recording.
+void GetRecordingSummary(InfallibleVector<ProgressCounter>& aProgressCounters,
+                         InfallibleVector<size_t>& aElapsed,
+                         InfallibleVector<size_t>& aTimes);
 
 // Whether we are replaying a recording on a machine in the cloud.
 bool ReplayingInCloud();
