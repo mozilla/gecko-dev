@@ -241,7 +241,7 @@ function eventListener(info) {
   advanceProgressCounter();
 
   if (exports.OnEvent) {
-    exports.OnEvent(event);
+    exports.OnEvent(info.phase, event);
   }
 }
 
