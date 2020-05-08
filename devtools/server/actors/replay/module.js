@@ -266,10 +266,23 @@ function SendRecordingData(pid, offset, length, buf, totalLength, duration) {
                                  { pid, offset, length, buf, description });
 }
 
+function OnTestCommand(str) {
+  const [_, cmd, arg] = /(.*?) (.*)/.exec(str);
+  switch (cmd) {
+    case "WebReplaySendAsyncMessage":
+      Services.cpmm.sendAsyncMessage(arg);
+      break;
+    default:
+      dump(`Unrecognized Test Command ${cmd}\n`);
+      break;
+  }
+}
+
 const exports = {
   CanCreateCheckpoint,
   OnMouseEvent,
   SendRecordingData,
+  OnTestCommand,
 };
 
 function Initialize(text) {

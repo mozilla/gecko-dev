@@ -303,6 +303,24 @@ void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength,
   MOZ_ALWAYS_TRUE(JS::DetachArrayBuffer(cx, bufferObject));
 }
 
+void OnTestCommand(const char* aString) {
+  MOZ_RELEASE_ASSERT(IsInitialized());
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  JSString* str = JS_NewStringCopyZ(cx, aString);
+  MOZ_RELEASE_ASSERT(str);
+
+  JS::AutoValueArray<1> args(cx);
+  args[0].setString(str);
+
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "OnTestCommand", args, &rv)) {
+    MOZ_CRASH("OnTestCommand");
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Replaying process content
 ///////////////////////////////////////////////////////////////////////////////
