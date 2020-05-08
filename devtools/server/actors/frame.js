@@ -77,13 +77,9 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
    *        The parent thread actor for this frame.
    */
   initialize: function(frame, threadActor, depth) {
-    this._frame = frame;
+    this.frame = frame;
     this.threadActor = threadActor;
     this.depth = depth;
-  },
-
-  get frame() {
-    return this._frame || this.threadActor.replayPausedActorValue(this);
   },
 
   /**
@@ -132,7 +128,7 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
    */
   form: function() {
     // SavedFrame actors have their own frame handling.
-    if (!isReplaying && !(this.frame instanceof Debugger.Frame)) {
+    if (!(this.frame instanceof Debugger.Frame)) {
       // The Frame actor shouldn't be used after evaluation is resumed, so
       // there shouldn't be an easy way for the saved frame to be referenced
       // once it has died.
@@ -162,21 +158,27 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
     }
 
     const threadActor = this.threadActor;
-
-    if (this.threadActor.pausePacketForms) {
-      if (this._frame) {
-        throw new Error("Pause packet contains pause scoped frame");
-      }
-      if (this.uploaded) {
-        return { cached: this.actorID };
-      }
-    }
-
     const form = {
       actor: this.actorID,
+      type: this.frame.type,
       asyncCause: this.frame.onStack ? null : "await",
       state: this.frame.onStack ? "on-stack" : "suspended",
     };
+
+    if (this.depth) {
+      form.depth = this.depth;
+    }
+
+    if (this.frame.type != "wasmcall") {
+      form.this = createValueGrip(
+        this.frame.this,
+        threadActor._pausePool,
+        threadActor.objectGrip
+      );
+    }
+
+    form.displayName = formatDisplayName(this.frame);
+    form.arguments = this._args();
 
     if (this.frame.script) {
       const location = this.threadActor.sources.getFrameLocation(this.frame);
@@ -187,32 +189,8 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
       };
     }
 
-    if (!this.frame.replayingMinimal) {
-      if (this.depth) {
-        form.depth = this.depth;
-      }
-
-      form.type = this.frame.type;
-
-      if (this.frame.type != "wasmcall") {
-        form.this = createValueGrip(
-          this.frame.this,
-          threadActor.pauseScopePool,
-          threadActor.objectGrip
-        );
-      }
-
-      form.displayName = formatDisplayName(this.frame);
-      form.arguments = this._args();
-
-      if (!this.frame.older) {
-        form.oldest = true;
-      }
-    }
-
-    if (this.threadActor.addPausePacketForm(form)) {
-      this.uploaded = true;
-      return { cached: this.actorID };
+    if (!this.frame.older) {
+      form.oldest = true;
     }
 
     return form;
@@ -226,7 +204,7 @@ const FrameActor = ActorClassWithSpec(frameSpec, {
     return this.frame.arguments.map(arg =>
       createValueGrip(
         arg,
-        this.threadActor.pauseScopePool,
+        this.threadActor._pausePool,
         this.threadActor.objectGrip
       )
     );

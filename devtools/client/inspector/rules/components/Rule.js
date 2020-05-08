@@ -61,7 +61,6 @@ class Rule extends PureComponent {
       return;
     }
 
-    /*
     editableItem(
       {
         element: this.closeBraceSpan.current,
@@ -75,7 +74,6 @@ class Rule extends PureComponent {
         );
       }
     );
-    */
   }
 
   onEditorBlur() {

@@ -30,18 +30,10 @@ import type {
   ThreadContext,
   Previews,
   SourceLocation,
-  ExecutionPoint,
   HighlightedCalls,
 } from "../types";
 
-export type Command =
-  | null
-  | "stepOver"
-  | "stepIn"
-  | "stepOut"
-  | "resume"
-  | "rewind"
-  | "reverseStepOver";
+export type Command = null | "stepOver" | "stepIn" | "stepOut" | "resume";
 
 // Pause state associated with an individual thread.
 type ThreadPauseState = {
@@ -49,9 +41,6 @@ type ThreadPauseState = {
   isWaitingOnBreak: boolean,
   frames: ?(any[]),
   framesLoading: boolean,
-  replayFramePositions: {
-    [FrameId]: Array<ExecutionPoint>,
-  },
   frameScopes: {
     generated: {
       [FrameId]: {
@@ -72,7 +61,6 @@ type ThreadPauseState = {
     },
   },
   selectedFrameId: ?string,
-  executionPoint: ExecutionPoint,
 
   // Scope items that have been expanded in the current pause.
   expandedScopes: Set<string>,
@@ -105,10 +93,6 @@ export type PauseState = {
   shouldPauseOnExceptions: boolean,
   shouldPauseOnCaughtExceptions: boolean,
   previewLocation: ?SourceLocation,
-  replayFramePositions: {
-    positions: any,
-    unexecuted: any,
-  },
 };
 
 function createPauseState(thread: ThreadId = "UnknownThread") {
@@ -141,7 +125,6 @@ const resumedPauseState = {
     mappings: {},
   },
   selectedFrameId: null,
-  executionPoint: null,
   why: null,
   inlinePreview: {},
   highlightedCalls: null,
@@ -203,7 +186,7 @@ function update(
     }
 
     case "PAUSED": {
-      const { thread, frame, why, executionPoint } = action;
+      const { thread, frame, why } = action;
 
       state = {
         ...state,
@@ -222,14 +205,12 @@ function update(
         framesLoading: true,
         frameScopes: { ...resumedPauseState.frameScopes },
         why,
-        executionPoint,
       });
     }
 
     case "FETCHED_FRAMES": {
       const { frames } = action;
-      const selectedFrameId = frames.length ? frames[0].id : undefined;
-      return updateThreadState({ frames, selectedFrameId, framesLoading: false });
+      return updateThreadState({ frames, framesLoading: false });
     }
 
     case "PREVIEW_PAUSED_LOCATION": {
@@ -291,23 +272,6 @@ function update(
       });
     }
 
-    case "SET_FRAME_POSITIONS": {
-      const { positions, unexecuted } = action;
-      return { ...state, replayFramePositions: { positions, unexecuted } };
-    }
-
-    case "CLEAR_FRAME_POSITIONS": {
-      return { ...state, replayFramePositions: null };
-    }
-
-    case "SET_FRAME_POSITIONS":
-      return updateThreadState({
-        replayFramePositions: {
-          ...threadState().replayFramePositions,
-          [action.frame]: action.positions,
-        },
-      });
-
     case "BREAK_ON_NEXT":
       return updateThreadState({ isWaitingOnBreak: true });
 
@@ -337,14 +301,6 @@ function update(
 
     case "COMMAND":
       if (action.status === "start") {
-        state = {
-          ...state,
-          threadcx: {
-            ...state.threadcx,
-            pauseCounter: state.threadcx.pauseCounter + 1,
-            isPaused: false,
-          },
-        };
         return updateThreadState({
           ...resumedPauseState,
           command: action.command,
@@ -425,19 +381,16 @@ function update(
     }
 
     case "ADD_INLINE_PREVIEW": {
-      const { frameId, previews } = action;
+      const { frame, previews } = action;
+      const selectedFrameId = frame.id;
 
       return updateThreadState({
         inlinePreview: {
           ...threadState().inlinePreview,
-          [frameId]: previews,
+          [selectedFrameId]: previews,
         },
       });
     }
-
-    case "BATCH":
-      action.updates.forEach(u => (state = update(state, u)));
-      return state;
 
     case "HIGHLIGHT_CALLS": {
       const { highlightedCalls } = action;
@@ -542,11 +495,6 @@ export function getCurrentThreadFrames(state: State) {
     getCurrentThread(state)
   );
   return framesLoading ? null : frames;
-}
-
-export function getFramesLoading(state: State, thread: ThreadId) {
-  const { frames, framesLoading } = getThreadPauseState(state.pause, thread);
-  return frames && framesLoading;
 }
 
 function getGeneratedFrameId(frameId: string): string {
@@ -688,10 +636,6 @@ export function getSelectedFrameId(state: State, thread: ThreadId) {
 export function getTopFrame(state: State, thread: ThreadId) {
   const frames = getFrames(state, thread);
   return frames && frames[0];
-}
-
-export function getThreadExecutionPoint(state: State, thread: ThreadId) {
-  return getThreadPauseState(state.pause, thread).executionPoint;
 }
 
 export function getSkipPausing(state: State) {

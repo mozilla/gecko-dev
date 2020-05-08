@@ -7,9 +7,7 @@
 import { selectLocation } from "../sources";
 import { evaluateExpressions } from "../expressions";
 import { fetchScopes } from "./fetchScopes";
-import { setFramePositions } from "./setFramePositions";
 import assert from "../../utils/assert";
-import { getCanRewind } from "../../reducers/threads";
 
 import type { Frame, ThreadContext } from "../../types";
 import type { ThunkArgs } from "../types";
@@ -35,12 +33,7 @@ export function selectFrame(cx: ThreadContext, frame: Frame) {
       frame,
     });
 
-    if (getCanRewind(getState())) {
-      client.fetchAncestorFramePositions(frame.index);
-    }
-
     dispatch(selectLocation(cx, frame.location));
-    dispatch(setFramePositions());
 
     dispatch(evaluateExpressions(cx));
     dispatch(fetchScopes(cx));

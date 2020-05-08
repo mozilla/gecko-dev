@@ -122,7 +122,7 @@ export function selectSource(
 export function selectLocation(
   cx: Context,
   location: SourceLocation,
-  { keepContext = true, remap = false }: Object = {}
+  { keepContext = true }: Object = {}
 ) {
   return async ({ dispatch, getState, sourceMaps, client }: ThunkArgs) => {
     const currentSource = getSelectedSource(getState());
@@ -144,7 +144,14 @@ export function selectLocation(
       dispatch(closeActiveSearch());
     }
 
-    if (remap) {
+    // Preserve the current source map context (original / generated)
+    // when navigting to a new location.
+    const selectedSource = getSelectedSource(getState());
+    if (
+      keepContext &&
+      selectedSource &&
+      selectedSource.isOriginal != isOriginalId(location.sourceId)
+    ) {
       location = await mapLocation(getState(), sourceMaps, location);
       source = getSourceFromId(getState(), location.sourceId);
     }
@@ -168,6 +175,7 @@ export function selectLocation(
     const sourceWithContent = getSourceWithContent(getState(), source.id);
 
     if (
+      keepContext &&
       prefs.autoPrettyPrint &&
       !getPrettySource(getState(), loadedSource.id) &&
       canPrettyPrintSource(getState(), loadedSource.id) &&

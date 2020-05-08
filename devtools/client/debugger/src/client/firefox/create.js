@@ -36,7 +36,7 @@ export function prepareSourcePayload(
 
 export function createFrame(
   thread: ThreadId,
-  frame: Object,
+  frame: FrameFront,
   index: number = 0
 ): ?Frame {
   if (!frame) {
@@ -50,7 +50,7 @@ export function createFrame(
   };
 
   return {
-    id: frame.actor,
+    id: frame.actorID,
     thread,
     displayName: frame.displayName,
     location,
@@ -79,7 +79,6 @@ export function createPause(thread: string, packet: PausedPacket): any {
     ...packet,
     thread,
     frame: createFrame(thread, packet.frame),
-    executionPoint: packet.executionPoint,
   };
 }
 

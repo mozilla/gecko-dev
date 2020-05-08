@@ -84,10 +84,6 @@ exports.reportException = function reportException(who, exception) {
   const msg = `${who} threw an exception: ${exports.safeErrorString(
     exception
   )}`;
-  const ChromeUtils = require("ChromeUtils");
-  if (ChromeUtils.recordReplayLog) {
-    ChromeUtils.recordReplayLog(`Error: ${msg}`);
-  }
   dump(msg + "\n");
 
   if (typeof console !== "undefined" && console && console.error) {

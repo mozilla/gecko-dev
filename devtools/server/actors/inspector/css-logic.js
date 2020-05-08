@@ -42,7 +42,6 @@ const {
   STATUS,
 } = require("devtools/shared/inspector/css-logic");
 const InspectorUtils = require("InspectorUtils");
-const { ReplayInspector } = require("RecordReplayControl").module;
 
 const COMPAREMODE = {
   BOOLEAN: "bool",
@@ -51,10 +50,6 @@ const COMPAREMODE = {
 
 function CssLogic() {
   this._propertyInfos = {};
-
-  if (isReplaying) {
-    ReplayInspector.addUnpauseHook(() => this.reset());
-  }
 }
 
 exports.CssLogic = CssLogic;
@@ -133,7 +128,7 @@ CssLogic.prototype = {
       this.viewedDocument = doc;
 
       // Hunt down top level stylesheets, and cache them.
-      //this._cacheSheets();
+      this._cacheSheets();
     } else {
       // Clear cached data in the CssPropertyInfo objects.
       this._propertyInfos = {};
@@ -264,11 +259,7 @@ CssLogic.prototype = {
       cssSheet._passId = this._passId;
 
       // Find import and keyframes rules.
-      const rules = cssSheet.getCssRules();
-      if (!rules) {
-        throw new Error(`Missing CSS sheet rules ${cssSheet} ${rules}`);
-      }
-      for (const aDomRule of rules) {
+      for (const aDomRule of cssSheet.getCssRules()) {
         if (
           aDomRule.type == CSSRule.IMPORT_RULE &&
           aDomRule.styleSheet &&
@@ -308,9 +299,6 @@ CssLogic.prototype = {
    * @ return {array} the list of keyframes rules in the document.
    */
   get keyframesRules() {
-    if (isReplaying) {
-      return [];
-    }
     if (!this._sheetsCached) {
       this._cacheSheets();
     }
@@ -887,13 +875,7 @@ CssSheet.prototype = {
    */
   get ruleCount() {
     try {
-      if (this._ruleCount > -1) {
-        return this._ruleCount;
-      }
-      if (isReplaying) {
-        return this.domSheet.replayingRuleCount;
-      }
-      return this.getCssRules().length;
+      return this._ruleCount > -1 ? this._ruleCount : this.getCssRules().length;
     } catch (e) {
       return 0;
     }

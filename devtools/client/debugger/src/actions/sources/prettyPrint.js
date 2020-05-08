@@ -40,7 +40,6 @@ import type {
 
 export async function prettyPrintSource(
   sourceMaps: typeof SourceMaps,
-  client,
   generatedSource: Source,
   content: SourceContent,
   actors: Array<SourceActor>
@@ -49,42 +48,26 @@ export async function prettyPrintSource(
     throw new Error("Can't prettify non-javascript files.");
   }
 
-  try {
-    const url = getPrettySourceURL(generatedSource.url);
-    const { code, mappings } = await prettyPrint({
-      text: content.value,
-      url,
-    });
-    client.eventMethods.sourceRemapStart(generatedSource.id);
-    await sourceMaps.applySourceMap(generatedSource.id, url, code, mappings);
-    client.eventMethods.sourceRemapEnd(generatedSource.id);
+  const url = getPrettySourceURL(generatedSource.url);
+  const { code, mappings } = await prettyPrint({
+    text: content.value,
+    url,
+  });
+  await sourceMaps.applySourceMap(generatedSource.id, url, code, mappings);
 
-    // The source map URL service used by other devtools listens to changes to
-    // sources based on their actor IDs, so apply the mapping there too.
-    for (const { actor } of actors) {
-      await sourceMaps.applySourceMap(actor, url, code, mappings);
-    }
-    return {
-      text: code,
-      contentType: "text/javascript",
-    };
-  } catch (e) {
-    // Use the generated source if pretty printing fails.
-    return {
-      text: content.value,
-      contentType: "text/javascript",
-    };
+  // The source map URL service used by other devtools listens to changes to
+  // sources based on their actor IDs, so apply the mapping there too.
+  for (const { actor } of actors) {
+    await sourceMaps.applySourceMap(actor, url, code, mappings);
   }
-}
-
-function toNavigateContext(cx) {
-  return { navigateCounter: cx.navigateCounter };
+  return {
+    text: code,
+    contentType: "text/javascript",
+  };
 }
 
 export function createPrettySource(cx: Context, sourceId: string) {
   return async ({ dispatch, getState, sourceMaps }: ThunkArgs) => {
-    cx = toNavigateContext(cx);
-
     const source = getSourceFromId(getState(), sourceId);
     const url = getPrettySourceURL(source.url || source.id);
     const id = generatedToOriginalId(sourceId, url);

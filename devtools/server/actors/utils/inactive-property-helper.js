@@ -876,10 +876,6 @@ class InactivePropertyHelper {
   }
 
   getParentGridElement(node) {
-    if (isReplaying) {
-      return null;
-    }
-
     // The documentElement can't be a grid item, only a container, so bail out.
     if (node.flattenedTreeParentNode === node.ownerDocument) {
       return null;

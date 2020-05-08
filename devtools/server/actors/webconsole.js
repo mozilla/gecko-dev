@@ -31,12 +31,6 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "evalReplay",
-  "devtools/server/actors/webconsole/eval-with-debugger",
-  true
-);
-loader.lazyRequireGetter(
-  this,
   "NetworkMonitorActor",
   "devtools/server/actors/network-monitor/network-monitor",
   true
@@ -169,8 +163,6 @@ if (isWorker) {
     true
   );
 }
-
-const ChromeUtils = require("ChromeUtils");
 
 function isObject(value) {
   return Object(value) === value;
@@ -1071,8 +1063,6 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    *         `resultID` field.
    */
   evaluateJSAsync: async function(request) {
-    ChromeUtils.recordReplayLog(`WebConsole.evaluateJSAsync Start`);
-
     // Use Date instead of UUID as this code is used by workers, which
     // don't have access to the UUID XPCOM component.
     // Also use a counter in order to prevent mixing up response when calling
@@ -1084,7 +1074,7 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     DevToolsUtils.executeSoon(async () => {
       try {
         // Execute the script that may pause.
-        let response = await this.evaluateJS(request);
+        let response = this.evaluateJS(request);
         // Wait for any potential returned Promise.
         response = await this._maybeWaitForResponseResult(response);
         // Finally, emit an unsolicited evaluationResult packet with the evaluation result.
@@ -1093,7 +1083,6 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
           resultID,
           ...response,
         });
-        ChromeUtils.recordReplayLog(`WebConsole.evaluateJSAsync End`);
         return;
       } catch (e) {
         const message = `Encountered error while waiting for Helper Result: ${e}`;
@@ -1171,23 +1160,9 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    *         The evaluation response packet.
    */
   // eslint-disable-next-line complexity
-  evaluateJS: async function(request) {
+  evaluateJS: function(request) {
     const input = request.text;
     const timestamp = Date.now();
-
-    const unpausedMessage = { input, exceptionMessage: "Pause debugger before evaluating" };
-
-    if (isReplaying) {
-      if (!this.dbg.isPaused()) {
-        return unpausedMessage;
-      }
-
-      const pauseCounter = this.dbg.replayPauseCounter();
-      await this.dbg.replayWaitForPauseComplete();
-      if (!this.dbg || pauseCounter != this.dbg.replayPauseCounter()) {
-        return unpausedMessage;
-      }
-    }
 
     const evalOptions = {
       frameActor: request.frameActor,
@@ -1197,26 +1172,16 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
       eager: request.eager,
       bindings: request.bindings,
       lineNumber: request.lineNumber,
-      forConsoleMessage: request.forConsoleMessage,
     };
     const { mapped } = request;
 
-    let evalInfo;
-    if (isReplaying) {
-      const pauseCounter = this.dbg.replayPauseCounter();
-      evalInfo = await evalReplay(input, evalOptions, this);
-      if (!this.dbg || pauseCounter != this.dbg.replayPauseCounter()) {
-        return unpausedMessage;
-      }
-    } else {
-      // Set a flag on the thread actor which indicates an evaluation is being
-      // done for the client. This can affect how debugger handlers behave.
-      this.parentActor.threadActor.insideClientEvaluation = evalOptions;
+    // Set a flag on the thread actor which indicates an evaluation is being
+    // done for the client. This can affect how debugger handlers behave.
+    this.parentActor.threadActor.insideClientEvaluation = evalOptions;
 
-      evalInfo = evalWithDebugger(input, evalOptions, this);
+    const evalInfo = evalWithDebugger(input, evalOptions, this);
 
-      this.parentActor.threadActor.insideClientEvaluation = null;
-    }
+    this.parentActor.threadActor.insideClientEvaluation = null;
 
     const evalResult = evalInfo.result;
     const helperResult = evalInfo.helperResult;
@@ -1419,13 +1384,6 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
     let matches = [];
     let matchProp;
     let isElementAccess;
-
-    // Autocompletion is disabled while replaying for now.
-    if (isReplaying) {
-      return {
-        matches: null,
-      };
-    }
 
     const reqText = text.substr(0, cursor);
 

@@ -457,9 +457,6 @@ BoxModel.prototype = {
   },
 
   getCurrentInspectorFront() {
-    if (!this.inspector.selection.nodeFront) {
-      throw new Error(`getCurrentInspectorFront missing nodeFront ${Error().stack}`);
-    }
     return this.inspector.selection.nodeFront.inspectorFront;
   },
 };

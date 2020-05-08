@@ -17424,7 +17424,7 @@ function getSource(sourceId) {
   const source = cachedSources.get(sourceId);
 
   if (!source) {
-    throw new Error(`Parser: source ${sourceId} was not provided. ${Error().stack}`);
+    throw new Error(`Parser: source ${sourceId} was not provided.`);
   }
 
   return source;

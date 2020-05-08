@@ -258,10 +258,6 @@ function update(
 
     case "SET_FOCUSED_SOURCE_ITEM":
       return { ...state, focusedItem: action.item };
-
-    case "BATCH":
-      action.updates.forEach(u => (state = update(state, u)));
-      return state;
   }
 
   return state;

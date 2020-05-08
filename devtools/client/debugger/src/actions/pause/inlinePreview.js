@@ -8,11 +8,9 @@ import {
   getOriginalFrameScope,
   getGeneratedFrameScope,
   getInlinePreviews,
-  getSource,
 } from "../../selectors";
 import { features } from "../../utils/prefs";
 import { validateThreadContext } from "../../utils/context";
-import { loadSourceText } from "../sources/loadSourceText";
 
 import type { OriginalScope } from "../../utils/pause/mapScopes";
 import type { ThreadContext, Frame, Scope, Preview } from "../../types";
@@ -31,32 +29,30 @@ function getLocalScopeLevels(originalAstScopes): number {
   return levels;
 }
 
-export function generateInlinePreview(cx: ThreadContext, frameId, location) {
+export function generateInlinePreview(cx: ThreadContext, frame: ?Frame) {
   return async function({ dispatch, getState, parser, client }: ThunkArgs) {
-    if (!features.inlinePreview) {
+    if (!frame || !features.inlinePreview) {
       return;
     }
 
     const { thread } = cx;
 
     // Avoid regenerating inline previews when we already have preview data
-    if (getInlinePreviews(getState(), thread, frameId)) {
+    if (getInlinePreviews(getState(), thread, frame.id)) {
       return;
     }
-
-    ChromeUtils.recordReplayLog(`GenerateInlinePreview Start`);
 
     const originalFrameScopes = getOriginalFrameScope(
       getState(),
       thread,
-      location.sourceId,
-      frameId
+      frame.location.sourceId,
+      frame.id
     );
 
     const generatedFrameScopes = getGeneratedFrameScope(
       getState(),
       thread,
-      frameId
+      frame.id
     );
 
     let scopes: ?OriginalScope | Scope | null =
@@ -64,36 +60,17 @@ export function generateInlinePreview(cx: ThreadContext, frameId, location) {
       (generatedFrameScopes && generatedFrameScopes.scope);
 
     if (!scopes || !scopes.bindings) {
-      ChromeUtils.recordReplayLog(`GenerateInlinePreview LoadSourceText NoFrameScopes`);
       return;
     }
 
-    ChromeUtils.recordReplayLog(`GenerateInlinePreview LoadSourceText Start`);
-
-    const source = getSource(getState(), location.sourceId);
-    if (!source) {
-      return;
-    }
-    await dispatch(loadSourceText({ cx, source }));
-
-    ChromeUtils.recordReplayLog(`GenerateInlinePreview LoadSourceText Done`);
-
-    let originalAstScopes = client.eventMethods.maybeScopes(location);
+    const originalAstScopes = await parser.getScopes(frame.location);
+    validateThreadContext(getState(), cx);
     if (!originalAstScopes) {
-      ChromeUtils.recordReplayLog(`GenerateInlinePreview FetchingScopes`);
-      originalAstScopes = await parser.getScopes(location);
-      client.eventMethods.addScopes(location, originalAstScopes);
-      validateThreadContext(getState(), cx);
-      if (!originalAstScopes) {
-        ChromeUtils.recordReplayLog(`GenerateInlinePreview NoScopes`);
-        return;
-      }
+      return;
     }
-
-    ChromeUtils.recordReplayLog(`GenerateInlinePreview ScopesLoaded`);
 
     const allPreviews = [];
-    const pausedOnLine: number = location.line;
+    const pausedOnLine: number = frame.location.line;
     const levels: number = getLocalScopeLevels(originalAstScopes);
 
     for (
@@ -132,12 +109,7 @@ export function generateInlinePreview(cx: ThreadContext, frameId, location) {
 
         allPreviews.push(...previewsFromBindings);
       });
-
-      ChromeUtils.recordReplayLog(`GenerateInlinePreview PreviewBindings ${curLevel} Start`);
-
       await Promise.all(previewBindings);
-
-      ChromeUtils.recordReplayLog(`GenerateInlinePreview PreviewBindings ${curLevel} Done`);
 
       scopes = scopes.parent;
     }
@@ -157,7 +129,7 @@ export function generateInlinePreview(cx: ThreadContext, frameId, location) {
     return dispatch({
       type: "ADD_INLINE_PREVIEW",
       thread,
-      frameId,
+      frame,
       previews,
     });
   };

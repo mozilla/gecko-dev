@@ -97,7 +97,6 @@ function evaluateExpression(expression) {
         frameActor,
         selectedNodeFront: webConsoleUI.getSelectedNodeFront(),
         mapped,
-        forConsoleMessage: true,
       })
       .then(onSettled, onSettled);
 
@@ -213,11 +212,6 @@ function terminalInputChanged(expression) {
   return async ({ dispatch, webConsoleUI, hud, toolbox, client, getState }) => {
     const prefs = getAllPrefs(getState());
     if (!prefs.eagerEvaluation) {
-      return;
-    }
-
-    // The server does not support eager evaluation when replaying.
-    if (hud.currentTarget.isReplayEnabled()) {
       return;
     }
 

@@ -485,7 +485,7 @@ const LayoutActor = ActorClassWithSpec(layoutSpec, {
    * @return {Array} An array of GridActor objects.
    */
   getGrids(node) {
-    if (isReplaying || isNodeDead(node)) {
+    if (isNodeDead(node)) {
       return [];
     }
 

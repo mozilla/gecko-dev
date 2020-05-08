@@ -76,8 +76,6 @@ export async function onConnect(
   const initialState = await loadInitialState();
   const workers = bootstrapWorkers(panelWorkers);
 
-  panel.parserDispatcher = workers.parser;
-
   const { store, actions, selectors } = bootstrapStore(
     commands,
     workers,
@@ -85,7 +83,7 @@ export async function onConnect(
     initialState
   );
 
-  const connected = client.onConnect(connection, actions, panel);
+  const connected = client.onConnect(connection, actions);
 
   await syncBreakpoints();
   syncXHRBreakpoints();

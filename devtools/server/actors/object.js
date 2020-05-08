@@ -44,11 +44,6 @@ if (!isWorker) {
   );
 }
 
-let ChromeUtils;
-if (!isWorker) {
-  ChromeUtils = require("ChromeUtils");
-}
-
 const {
   getArrayLength,
   getPromiseState,
@@ -97,13 +92,13 @@ const proto = {
     conn
   ) {
     assert(
-      !obj || !obj.optimizedOut,
+      !obj.optimizedOut,
       "Should not create object actors for optimized out values!"
     );
     protocol.Actor.prototype.initialize.call(this, conn);
 
     this.conn = conn;
-    this._obj = obj;
+    this.obj = obj;
     this.thread = thread;
     this.hooks = {
       createValueGrip: createValueGripHook,
@@ -113,10 +108,6 @@ const proto = {
       incrementGripDepth,
       decrementGripDepth,
     };
-  },
-
-  get obj() {
-    return this._obj || this.thread.replayPausedActorValue(this);
   },
 
   rawValue: function() {
@@ -139,38 +130,16 @@ const proto = {
    * Returns a grip for this actor for returning in a protocol message.
    */
   form: function() {
-    if (!this.actorID) {
-      throw new Error(`Missing actorID`);
-    }
-
-    if (this.thread.pausePacketForms) {
-      if (this._obj) {
-        throw new Error("Pause packet contains pause scoped environment");
-      }
-      const depth = this.hooks.getGripDepth();
-      if (this.uploadedDepth !== undefined && this.uploadedDepth <= depth) {
-        return { type: "object", cached: this.actorID };
-      }
-    }
-
     const g = {
       type: "object",
       actor: this.actorID,
-    };
-
-    const finishGrip = () => {
-      if (this.thread.addPausePacketForm(g)) {
-        this.uploadedDepth = this.hooks.getGripDepth();
-        return { type: "object", cached: this.actorID };
-      }
-      return g;
     };
 
     // Unsafe objects must be treated carefully.
     if (DevToolsUtils.isCPOW(this.obj)) {
       // Cross-process object wrappers can't be accessed.
       g.class = "CPOW";
-      return finishGrip();
+      return g;
     }
 
     const unwrapped = DevToolsUtils.unwrap(this.obj);
@@ -178,7 +147,7 @@ const proto = {
       // Objects belonging to an invisible-to-debugger compartment might be proxies,
       // so just in case they shouldn't be accessed.
       g.class = "InvisibleToDebugger: " + this.obj.class;
-      return finishGrip();
+      return g;
     }
 
     if (unwrapped && unwrapped.isProxy) {
@@ -188,7 +157,7 @@ const proto = {
       this.hooks.incrementGripDepth();
       previewers.Proxy[0](this, g, null);
       this.hooks.decrementGripDepth();
-      return finishGrip();
+      return g;
     }
 
     const ownPropertyLength = this._getOwnPropertyLength();
@@ -231,7 +200,7 @@ const proto = {
       } catch (e) {}
     }
 
-    return finishGrip();
+    return g;
   },
 
   _getOwnPropertyLength: function() {
@@ -244,12 +213,6 @@ const proto = {
 
     if (isStorage(this.obj)) {
       return getStorageLength(this.obj);
-    }
-
-    if (isReplaying) {
-      // When replaying we can get the number of properties directly, to avoid
-      // needing to enumerate all of them.
-      return this.obj.getOwnPropertyNamesCount();
     }
 
     try {
@@ -369,10 +332,7 @@ const proto = {
    *
    * @param options object
    */
-  enumProperties: async function(options) {
-    if (isReplaying) {
-      await this.obj.replayEnsureFullContentsAsync();
-    }
+  enumProperties: function(options) {
     return PropertyIteratorActor(this, options, this.conn);
   },
 
@@ -508,12 +468,7 @@ const proto = {
           continue;
         }
 
-        let result;
-        if (isReplaying && this.obj.replayHasPropertyValue(name)) {
-          result = this.obj.replayPropertyValue(name);
-        } else {
-          result = getter.call(this.obj);
-        }
+        const result = getter.call(this.obj);
         if (!result || "throw" in result) {
           continue;
         }
@@ -621,10 +576,7 @@ const proto = {
   /**
    * Handle a protocol request to provide the prototype of the object.
    */
-  prototype: async function() {
-    if (isReplaying) {
-      await this.obj.replayEnsurePrototypeAsync();
-    }
+  prototype: function() {
     let objProto = null;
     if (DevToolsUtils.isSafeDebuggerObject(this.obj)) {
       objProto = this.obj.proto;
@@ -926,18 +878,6 @@ const proto = {
    * Protocol.js uses this release method to call the destroy method.
    */
   release: function() {},
-
-  beginLoadProperties() {
-    if (ChromeUtils) {
-      ChromeUtils.recordReplayLog(`ObjectActor.beginLoadProperties ${this.actorID}`);
-    }
-  },
-
-  endLoadProperties() {
-    if (ChromeUtils) {
-      ChromeUtils.recordReplayLog(`ObjectActor.endLoadProperties ${this.actorID}`);
-    }
-  },
 };
 
 exports.ObjectActor = protocol.ActorClassWithSpec(objectSpec, proto);

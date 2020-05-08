@@ -235,9 +235,6 @@ function getNodeFront(selector, { walker }) {
   if (selector._form) {
     return selector;
   }
-  if (!walker.rootNode) {
-    return null;
-  }
   return walker.querySelector(walker.rootNode, selector);
 }
 

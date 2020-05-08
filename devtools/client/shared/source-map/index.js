@@ -1,9 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-const ChromeUtils = require("ChromeUtils");
-
+ 
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory();
@@ -446,8 +444,6 @@ WorkerDispatcher.prototype = {
 
     const push = args => {
       return new Promise((resolve, reject) => {
-        ChromeUtils.recordReplayLog(`WorkerDispatch SourceMap ${method}`);
-
         if (queue && calls.length === 0) {
           Promise.resolve().then(flush);
         }

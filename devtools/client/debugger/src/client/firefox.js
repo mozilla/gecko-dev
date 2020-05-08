@@ -19,12 +19,12 @@ import { features, prefs } from "../utils/prefs";
 
 let actions;
 
-export async function onConnect(connection: any, _actions: Object, panel) {
+export async function onConnect(connection: any, _actions: Object) {
   const { devToolsClient, targetList } = connection;
   actions = _actions;
 
   setupCommands({ devToolsClient });
-  setupEvents({ actions, devToolsClient, panel });
+  setupEvents({ actions, devToolsClient });
   await targetList.watchTargets(
     targetList.ALL_TYPES,
     onTargetAvailable,

@@ -47,31 +47,33 @@ const {
   getInitialMessageCountForViewport,
 } = require("devtools/client/webconsole/utils/messages.js");
 
-function messageExecutionPoint(msg) {
-  const { executionPoint, lastExecutionPoint } = msg;
-  return executionPoint || (lastExecutionPoint && lastExecutionPoint.point);
-}
-
 function getClosestMessage(visibleMessages, messages, executionPoint) {
-  if (!executionPoint || !visibleMessages || !visibleMessages.length) {
+  if (!executionPoint || !visibleMessages) {
     return null;
   }
 
-  // If the pause location is before the first message, the first message is
-  // marked as the paused one. This allows later messages to be grayed out but
-  // isn't consistent with behavior for those other messages.
-  let last = messages.get(visibleMessages[0]);
+  const messageList = visibleMessages.map(id => messages.get(id));
 
-  for (const id of visibleMessages) {
-    const msg = messages.get(id);
-    const point = messageExecutionPoint(msg);
-    if (point && pointPrecedes(executionPoint, point)) {
-      break;
-    }
-    last = msg;
+  const precedingMessages = messageList.filter(m => {
+    return (
+      m &&
+      m.executionPoint &&
+      (pointPrecedes(m.executionPoint, executionPoint) ||
+        !pointPrecedes(executionPoint, m.executionPoint))
+    );
+  });
+
+  if (precedingMessages.length != 0) {
+    return precedingMessages.sort((a, b) => {
+      return pointPrecedes(a.executionPoint, b.executionPoint);
+    })[0];
   }
 
-  return last;
+  return messageList
+    .filter(m => m && m.executionPoint)
+    .sort((a, b) => {
+      return pointPrecedes(b.executionPoint, a.executionPoint);
+    })[0];
 }
 
 class ConsoleOutput extends Component {

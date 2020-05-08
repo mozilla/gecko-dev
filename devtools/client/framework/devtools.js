@@ -522,8 +522,6 @@ DevTools.prototype = {
       this._firstShowToolbox = false;
     }
 
-    // disabling this telemetry, toolbox.win can be null...
-    /*
     // We send the "enter" width here to ensure it is always sent *after*
     // the "open" event.
     const width = Math.ceil(toolbox.win.outerWidth / 50) * 50;
@@ -538,7 +536,6 @@ DevTools.prototype = {
       "width",
       width
     );
-    */
 
     return toolbox;
   },

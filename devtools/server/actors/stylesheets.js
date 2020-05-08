@@ -39,7 +39,6 @@ loader.lazyRequireGetter(
   "devtools/shared/layout/utils",
   true
 );
-const { ReplayDebugger, ReplayInspector } = require("RecordReplayControl").module;
 
 var TRANSITION_PSEUDO_CLASS = ":-moz-styleeditor-transitioning";
 var TRANSITION_DURATION_MS = 500;
@@ -200,13 +199,6 @@ async function fetchStylesheet(sheet, consoleActor) {
     }
   }
 
-  // When replaying, fetch the stylesheets from the replaying process, so that
-  // we get the same sheets which were used when recording.
-  if (isReplaying) {
-    const dbg = new ReplayDebugger();
-    return dbg.replayingContent(href);
-  }
-
   const options = {
     loadFromCache: true,
     policy: Ci.nsIContentPolicy.TYPE_INTERNAL_STYLESHEET,
@@ -258,7 +250,7 @@ var StyleSheetActor = protocol.ActorClassWithSpec(styleSheetSpec, {
    * Window of target
    */
   get window() {
-    return isReplaying ? ReplayInspector.window : this.parentActor.window;
+    return this.parentActor.window;
   },
 
   /**
@@ -442,7 +434,7 @@ var StyleSheetActor = protocol.ActorClassWithSpec(styleSheetSpec, {
     };
 
     try {
-      form.ruleCount = isReplaying ? this.rawSheet.replayingRuleCount : this.rawSheet.cssRules.length;
+      form.ruleCount = this.rawSheet.cssRules.length;
     } catch (e) {
       // stylesheet had an @import rule that wasn't loaded yet
       this.getCSSRules().then(() => {
@@ -717,9 +709,7 @@ var StyleSheetsActor = protocol.ActorClassWithSpec(styleSheetsSpec, {
   async getStyleSheets() {
     let actors = [];
 
-    const windows = isReplaying
-      ? [ReplayInspector.window]
-      : this.parentActor.windows;
+    const windows = this.parentActor.windows;
     for (const win of windows) {
       const sheets = await this._addStyleSheets(win);
       actors = actors.concat(sheets);
@@ -781,9 +771,7 @@ var StyleSheetsActor = protocol.ActorClassWithSpec(styleSheetsSpec, {
       const doc = win.document;
       // We have to set this flag in order to get the
       // StyleSheetApplicableStateChanged events.  See Document.webidl.
-      if (!isReplaying) {
-        doc.styleSheetChangeEventsEnabled = true;
-      }
+      doc.styleSheetChangeEventsEnabled = true;
 
       const documentOnly = !doc.nodePrincipal.isSystemPrincipal;
       const styleSheets = InspectorUtils.getAllStyleSheets(doc, documentOnly);

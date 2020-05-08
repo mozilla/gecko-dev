@@ -9,10 +9,6 @@ class ConsoleCommands {
     this.devToolsClient = devToolsClient;
     this.hud = hud;
     this.threadFront = threadFront;
-
-    threadFront.on("replayTimeWarp", ({ point }) => {
-      this.timeWarp(point);
-    });
   }
 
   getFrontByID(id) {

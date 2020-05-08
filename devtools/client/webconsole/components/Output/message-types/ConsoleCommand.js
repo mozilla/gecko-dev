@@ -32,7 +32,6 @@ function ConsoleCommand(props) {
     timestampsVisible,
     serviceContainer,
     maybeScrollToBottom,
-    isPaused,
   } = props;
 
   const { indent, source, type, level, timeStamp } = message;
@@ -54,7 +53,6 @@ function ConsoleCommand(props) {
     timestampsVisible,
     maybeScrollToBottom,
     message,
-    isPaused,
   });
 }
 

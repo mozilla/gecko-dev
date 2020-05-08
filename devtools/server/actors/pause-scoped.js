@@ -84,7 +84,7 @@ Object.assign(proto, {
    *        The protocol request object.
    */
   destroy: proto.withPaused(function(request) {
-    if (this.hooks.isThreadLifetimePool() || isReplaying) {
+    if (this.hooks.isThreadLifetimePool()) {
       return {
         error: "notReleasable",
         message: "Only thread-lifetime actors can be released.",

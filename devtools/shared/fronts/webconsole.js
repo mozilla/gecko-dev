@@ -24,10 +24,6 @@ const {
  */
 class WebConsoleFront extends FrontClassWithSpec(webconsoleSpec) {
   constructor(client, targetFront, parentFront) {
-    if (!client) {
-      throw new Error("Missing client");
-    }
-
     super(client, targetFront, parentFront);
     this._client = client;
     this.traits = {};
@@ -205,7 +201,6 @@ class WebConsoleFront extends FrontClassWithSpec(webconsoleSpec) {
       selectedObjectActor: opts.selectedObjectActor,
       mapped: opts.mapped,
       eager: opts.eager,
-      forConsoleMessage: opts.forConsoleMessage,
     };
 
     this._pendingAsyncEvaluation = super.evaluateJSAsync(options);

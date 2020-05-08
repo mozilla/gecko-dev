@@ -267,8 +267,6 @@ const browsingContextTargetPrototype = {
       frames: true,
       // Supports the logInPage request.
       logInPage: true,
-      // Supports requests related to rewinding.
-      canRewind: isReplaying,
       // Supports watchpoints in the server for Fx71+
       watchpoints: true,
     };
@@ -1079,10 +1077,6 @@ const browsingContextTargetPrototype = {
    * Ensure that CSS error reporting is enabled.
    */
   ensureCSSErrorReportingEnabled(request) {
-    if (isReplaying) {
-      return;
-    }
-
     for (const docShell of this.docShells) {
       if (docShell.cssErrorReportingEnabled) {
         continue;

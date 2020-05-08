@@ -52,7 +52,7 @@ export function getValue(expression: Expression) {
     return exception;
   }
 
-  const valueGrip = getGrip(value.exception || value.result);
+  const valueGrip = getGrip(value.result);
 
   if (
     valueGrip &&

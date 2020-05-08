@@ -113,7 +113,6 @@ class WebConsoleWrapper {
 
       if (this.toolbox) {
         this.toolbox.threadFront.on("paused", this.dispatchPaused);
-        this.toolbox.threadFront.on("instantWarp", this.dispatchPaused);
         this.toolbox.threadFront.on("progress", this.dispatchProgress);
       }
 
