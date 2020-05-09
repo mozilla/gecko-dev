@@ -232,7 +232,7 @@ MOZ_EXPORT ProgressCounter RecordReplayInterface_NewTimeWarpTarget() {
 
 }  // extern "C"
 
-void PaintComplete() {
+void PaintComplete(size_t aCheckpoint) {
   if (IsRecording()) {
     return;
   }
@@ -240,8 +240,11 @@ void PaintComplete() {
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
+  JS::AutoValueArray<1> args(cx);
+  args[0].setInt32(aCheckpoint);
+
   RootedValue rv(cx);
-  if (!JS_CallFunctionName(cx, *gModuleObject, "PaintComplete", HandleValueArray::empty(), &rv)) {
+  if (!JS_CallFunctionName(cx, *gModuleObject, "PaintComplete", args, &rv)) {
     MOZ_CRASH("PaintComplete");
   }
 }

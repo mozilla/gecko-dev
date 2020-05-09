@@ -72,8 +72,8 @@ bool CanCreateCheckpoint();
 // Called when a child crashes, returning whether the crash was recovered from.
 bool RecoverFromCrash(size_t aRootId, size_t aForkId);
 
-// Called when painting the last checkpoint finishes.
-void PaintComplete();
+// Called when painting the graphics at a checkpoint finishes.
+void PaintComplete(size_t aCheckpoint);
 
 // Called when a mouse event occurs.
 void OnMouseEvent(const TimeDuration& aTime, const char* aType, int32_t aX, int32_t aY);

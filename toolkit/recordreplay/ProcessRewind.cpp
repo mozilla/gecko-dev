@@ -71,10 +71,10 @@ void CreateCheckpoint() {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
 
-  if (!HasDivergedFromRecording() &&
-      !child::PaintingInProgress() &&
-      js::CanCreateCheckpoint()) {
+  if (!HasDivergedFromRecording() && js::CanCreateCheckpoint()) {
     gLastCheckpoint++;
+
+    child::MaybeSetCheckpointForLastPaint(gLastCheckpoint);
 
     size_t elapsed = 0;
     if (gLastCheckpoint != FirstCheckpointId) {

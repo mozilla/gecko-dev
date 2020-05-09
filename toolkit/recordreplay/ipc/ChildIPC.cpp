@@ -796,6 +796,9 @@ void NotifyVsyncObserver() {
 // yet. Only accessed on the main thread.
 static int32_t gNumPendingMainThreadPaints;
 
+// Any checkpoint to associate with the most recent pending paint.
+static size_t gPendingPaintCheckpoint;
+
 bool OnVsync() {
   // In the repainting stress mode, we create a new checkpoint on every vsync
   // message received from the UI process. When we notify the parent about the
@@ -916,6 +919,13 @@ void NotifyPaintStart() {
 
   gNumPendingPaints++;
   gNumPendingMainThreadPaints++;
+  gPendingPaintCheckpoint = 0;
+}
+
+void MaybeSetCheckpointForLastPaint(size_t aCheckpoint) {
+  if (gNumPendingMainThreadPaints && !gPendingPaintCheckpoint) {
+    gPendingPaintCheckpoint = aCheckpoint;
+  }
 }
 
 static void PaintFromMainThread() {
@@ -940,7 +950,7 @@ static void PaintFromMainThread() {
   }
 
   if (IsReplaying() && !HasDivergedFromRecording()) {
-    js::PaintComplete();
+    js::PaintComplete(gPendingPaintCheckpoint);
   }
 }
 
@@ -996,8 +1006,6 @@ bool GetGraphics(bool aRepaint, const nsACString& aMimeType,
       }
     }
   } else {
-    // We don't have a good way of making sure this assert passes when saving
-    // recording summaries.
     MOZ_RELEASE_ASSERT(!gNumPendingMainThreadPaints);
   }
 
@@ -1006,11 +1014,6 @@ bool GetGraphics(bool aRepaint, const nsACString& aMimeType,
   }
 
   return EncodeGraphics(aMimeType, aEncodeOptions, aData);
-}
-
-bool PaintingInProgress() {
-  MOZ_RELEASE_ASSERT(NS_IsMainThread());
-  return gNumPendingMainThreadPaints != 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

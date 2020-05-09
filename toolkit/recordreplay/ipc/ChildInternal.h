@@ -88,8 +88,8 @@ void SendExternalCallOutput(ExternalCallId aId,
 bool GetGraphics(bool aRepaint, const nsACString& aMimeType,
                  const nsACString& aEncodeOptions, nsACString& aData);
 
-// Return whether a non-main thread is performing a paint.
-bool PaintingInProgress();
+// If appropriate, associate a checkpoint with the most recent paint.
+void MaybeSetCheckpointForLastPaint(size_t aCheckpoint);
 
 // Fork this process and assign a new fork ID to the new process.
 void PerformFork(size_t aForkId);
