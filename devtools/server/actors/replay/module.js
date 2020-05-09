@@ -259,7 +259,8 @@ function SendRecordingData(pid, offset, length, buf, totalLength, duration) {
     description = {
       length: totalLength,
       duration,
-      lastScreen: { mimeType: "image/jpeg", data },
+      lastScreenMimeType: "image/jpeg",
+      lastScreenData: data,
     };
   }
   Services.cpmm.sendAsyncMessage("UploadRecordingData",
