@@ -1006,7 +1006,11 @@ bool GetGraphics(bool aRepaint, const nsACString& aMimeType,
       }
     }
   } else {
-    MOZ_RELEASE_ASSERT(!gNumPendingMainThreadPaints);
+    // Wait until we can read from gDrawTargetBuffer without racing.
+    MonitorAutoLock lock(*gMonitor);
+    while (gNumPendingPaints) {
+      gMonitor->Wait();
+    }
   }
 
   if (!gDrawTargetBuffer) {

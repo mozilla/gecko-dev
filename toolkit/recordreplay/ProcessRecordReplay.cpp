@@ -189,7 +189,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
     // The crash detector is only useful when we have a local parent process to
     // report crashes to. Avoid initializing it when running in the cloud
     // so that we avoid calling mach interfaces with events passed through.
-    //InitializeCrashDetector();
+    InitializeCrashDetector();
   }
   Lock::InitializeLocks();
 
