@@ -47,33 +47,6 @@ function getCanvas(window) {
   return window.middlemanCanvas;
 }
 
-function drawCursor(cx, x, y) {
-  const scale = 3;
-  const path = new Path2D(`
-M ${x} ${y}
-V ${y+10*scale}
-L ${x+2*scale} ${y+8*scale}
-L ${x+4*scale} ${y+13*scale}
-L ${x+5.5*scale} ${y+12.6*scale}
-L ${x+3.5*scale} ${y+7.6*scale}
-L ${x+6.5*scale} ${y+7.8*scale}
-Z
-`);
-  cx.fillStyle = "black";
-  cx.fill(path);
-  cx.strokeStyle = "white";
-  cx.lineWidth = 1;
-  cx.stroke(path);
-}
-
-function drawClick(cx, x, y) {
-  cx.strokeStyle = "black";
-  cx.lineWidth = 3;
-  cx.beginPath();
-  cx.arc(x, y, 50, 0, 2 * Math.PI);
-  cx.stroke();
-}
-
 function drawSmallWarning(cx, canvas) {
   cx.lineWidth = 2;
   cx.strokeStyle = "black";
@@ -171,16 +144,8 @@ function drawOptions(cx, window, canvas, options) {
   }
 
   const {
-    cursorX, cursorY, clickX, clickY, warning, loading, message
+    warning, loading, message
   } = JSON.parse(options);
-
-  if (cursorX >= 0 && cursorY >= 0) {
-    drawCursor(cx, cursorX, cursorY);
-  }
-
-  if (clickX >= 0 && clickY >= 0) {
-    drawClick(cx, clickX, clickY);
-  }
 
   if (loading) {
     drawLoadingMessage(cx, canvas);
