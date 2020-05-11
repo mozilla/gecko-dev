@@ -1573,7 +1573,13 @@ async function reloadAndStopRecordingTab(gBrowser) {
   let extra = "";
   const dispatchOverride = env.get("WEBREPLAY_SERVER");
   if (dispatchOverride) {
-    extra = `&dispatch=${dispatchOverride}`;
+    extra += `&dispatch=${dispatchOverride}`;
+  }
+
+  // For testing, allow specifying a test script to load in the tab.
+  const localTest = env.get("WEBREPLAY_LOCAL_TEST");
+  if (localTest) {
+    extra += `&test=${localTest}`;
   }
 
   const url = `${viewHost}/view?id=${recordingId}&loading=true${extra}`;
