@@ -1350,6 +1350,9 @@ nsresult ScriptLoader::StartLoad(ScriptLoadRequest* aRequest) {
       // Globals with instrumentation have modified script bytecode and can't
       // use cached bytecode.
       !js::GlobalHasInstrumentation(globalObject->GetGlobalJSObject()) &&
+      // When recording/replaying, scripts have instrumentation when replaying
+      // but not when recording.
+      !recordreplay::IsRecordingOrReplaying() &&
       // Bug 1436400: no bytecode cache support for modules yet.
       !aRequest->IsModuleRequest()) {
     if (!aRequest->IsLoadingSource()) {
