@@ -1381,11 +1381,14 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   E10SUtils: "resource://gre/modules/E10SUtils.jsm",
 });
 
+function recordReplayLog(text) {
+  dump(`${text}\n`);
+}
+
+ChromeUtils.recordReplayLog = recordReplayLog;
+
 function createRecordingButton() {
   runTestScript();
-
-  // FIXME
-  ChromeUtils.recordReplayLog = () => {};
 
   let item = {
     id: "recording-button",
@@ -1532,7 +1535,7 @@ function reloadAndRecordTab(gBrowser) {
   // will stay blank.
   setTimeout(() => {
     if (!recordingInitialized) {
-      ChromeUtils.recordReplayLog(`Error: Did not get RecordingInitialized notification`);
+      recordReplayLog(`Error: Did not get RecordingInitialized notification`);
     }
   }, 2000);
 }
@@ -1555,9 +1558,13 @@ async function reloadAndStopRecordingTab(gBrowser) {
     return;
   }
 
+  recordReplayLog(`WaitForFinishedRecording`);
+
   // A notification will be delivered when the UI process has all the recording
   // data and sent a description to the cloud service.
   const recordingId = await waitForFinishedRecording();
+
+  recordReplayLog(`FinishedRecording ${recordingId}`);
 
   const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
 
