@@ -451,7 +451,10 @@ bool Pickle::IgnoreSentinel(PickleIterator* iter) const {
   return ReadUInt32(iter, &found);
 }
 
-bool Pickle::WriteSentinel(uint32_t sentinel) { return WriteUInt32(sentinel); }
+bool Pickle::WriteSentinel(uint32_t sentinel) {
+  mozilla::recordreplay::RecordReplayAssert("Pickle::WriteSentinel %u", sentinel);
+  return WriteUInt32(sentinel);
+}
 #endif
 
 void Pickle::EndRead(PickleIterator& iter, uint32_t ipcMsgType) const {
