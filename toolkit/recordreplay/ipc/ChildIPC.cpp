@@ -800,14 +800,6 @@ static int32_t gNumPendingMainThreadPaints;
 static size_t gPendingPaintCheckpoint;
 
 bool OnVsync() {
-  // In the repainting stress mode, we create a new checkpoint on every vsync
-  // message received from the UI process. When we notify the parent about the
-  // new checkpoint it will trigger a repaint to make sure that all layout and
-  // painting activity can occur when diverged from the recording.
-  if (parent::InRepaintStressMode()) {
-    CreateCheckpoint();
-  }
-
   // After a paint starts, ignore incoming vsyncs until the paint completes.
   return gNumPendingMainThreadPaints == 0;
 }
