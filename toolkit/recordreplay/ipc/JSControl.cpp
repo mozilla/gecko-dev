@@ -307,7 +307,7 @@ void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength,
 }
 
 void OnTestCommand(const char* aString) {
-  MOZ_RELEASE_ASSERT(IsInitialized());
+  EnsureInitialized();
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
