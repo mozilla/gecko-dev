@@ -1102,6 +1102,7 @@ void SendScanDataToRoot(const char* aData, size_t aSize) {
 }
 
 void FinishRecording() {
+  CreateCheckpoint();
   FlushRecording(/* aFinishRecording */ true);
 }
 
