@@ -174,6 +174,8 @@ Services.console.registerListener({
       return;
     }
 
+    advanceProgressCounter();
+
     if (exports.OnConsoleError) {
       exports.OnConsoleError(message);
     }
