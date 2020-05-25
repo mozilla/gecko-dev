@@ -295,7 +295,7 @@ function Initialize(text) {
         Cc, Ci, Cu, ChromeUtils, Debugger, RecordReplayControl, InspectorUtils,
         considerScript, countScriptFrames, gScripts, gDebugger,
         advanceProgressCounter, gAllGlobals, getWindow, gSandboxGlobal,
-        gNewGlobalHooks,
+        gNewGlobalHooks, Services,
       };
       Object.assign(exports, new Function("imports", `${text} return exports`)(imports));
     }
