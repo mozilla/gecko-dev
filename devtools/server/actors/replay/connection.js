@@ -68,6 +68,28 @@ const gRecordings = new Map();
 
 let gNextMessageId = 1;
 
+function sendCommand(method, params) {
+  const id = gNextMessageId++;
+  gWorker.postMessage({
+    kind: "sendCommand",
+    command: { id, method, params },
+  });
+  return waitForCommandResult(id);
+}
+
+function sendUploadCommand(pid, method, params) {
+  const id = gNextMessageId++;
+  gWorker.postMessage({
+    kind: "sendUploadCommand",
+    pid,
+    command: { id, method, params },
+  });
+  return waitForCommandResult(id);
+}
+
+// Resolve hooks for promises waiting on a recording to be created.
+const gRecordingCreateWaiters = [];
+
 Services.ppmm.addMessageListener("UploadRecordingData", {
   async receiveMessage(msg) {
     const { pid, offset, length, buf, description } = msg.data;
@@ -82,22 +104,18 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
       }
 
       const buildId = `macOS-${Services.appinfo.appBuildID}`;
-      const id = gNextMessageId++;
-      gWorker.postMessage({
-        kind: "sendUploadCommand",
+      const createPromise = sendUploadCommand(
         pid,
-        command: {
-          id,
-          method: "Internal.createRecording",
-          params: { buildId },
-        },
-      });
+        "Internal.createRecording",
+        { buildId }
+      );
       const info = {
-        createPromise: waitForCommandResult(id),
+        createPromise,
         dataPromises: [],
         destroyed: false,
       };
       gRecordings.set(pid, info);
+      gRecordingCreateWaiters.forEach(resolve => resolve());
     }
     const info = gRecordings.get(pid);
     const { recordingId } = await info.createPromise;
@@ -110,39 +128,79 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
       onStartRecording(recordingId);
     }
 
-    const id = gNextMessageId++;
-    gWorker.postMessage({
-      kind: "sendUploadCommand",
+    const dataPromise = sendUploadCommand(
       pid,
-      command: {
-        id,
-        method: "Internal.addRecordingData",
-        params: { recordingId, offset, length },
-      },
-    });
+      "Internal.addRecordingData",
+      { recordingId, offset, length },
+    );
 
     gWorker.postMessage({ kind: "sendUploadBinaryData", pid, buf });
 
-    info.dataPromises.push(waitForCommandResult(id));
+    info.dataPromises.push(dataPromise);
 
     if (description) {
       // This is for the last flush before the recording tab is closed,
       // add a recording description.
-      const id = gNextMessageId++;
-      gWorker.postMessage({
-        kind: "sendCommand",
-        command: {
-          id,
-          method: "Internal.addRecordingDescription",
-          params: { recordingId, ...description },
-        },
-      });
-
-      waitForCommandResult(id).then(() => onFinishedRecording(recordingId));
+      sendCommand(
+        "Internal.addRecordingDescription",
+        { recordingId, ...description }
+      ).then(() => onFinishedRecording(recordingId));
 
       // Ignore any other flushes from this pid.
       RecordingDestroyed(pid);
     }
+  }
+});
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (((hash << 5) - hash) + str.charCodeAt(i)) | 0;
+  }
+  return hash;
+}
+
+function getResourceInfo(url, text) {
+  return {
+    url,
+    checksum: hashString(text).toString(),
+  };
+}
+
+async function addRecordingResource(recordingId, url) {
+  const response = await fetch(url);
+  if (response.status < 200 || response.status >= 300) {
+    console.error("Error fetching recording resource", url, response);
+    return;
+  }
+  const text = await response.text();
+  const resource = getResourceInfo(url, text);
+
+  sendCommand("Internal.addRecordingResource", { recordingId, resource });
+
+  const { known } = await sendCommand("Internal.hasResource", { resource });
+  if (!known) {
+    sendCommand("Internal.addResource", { resource, contents: text });
+  }
+}
+
+Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
+  async receiveMessage(msg) {
+    const { pid, url, text, sourceMapURL } = msg.data;
+
+    // Wait for a recording to be created for this pid, if it hasn't already happened.
+    let info;
+    while (true) {
+      info = gRecordings.get(pid);
+      if (info) {
+        break;
+      }
+      await new Promise(resolve => gRecordingCreateWaiters.push(resolve));
+    }
+    const { recordingId } = await info.createPromise;
+
+    const resolvedSourceMapURL = new URL(sourceMapURL, url).href;
+    addRecordingResource(recordingId, resolvedSourceMapURL);
   }
 });
 

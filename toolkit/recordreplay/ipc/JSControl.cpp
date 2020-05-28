@@ -307,6 +307,9 @@ void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength,
 }
 
 void OnTestCommand(const char* aString) {
+  if (!IsRecordingOrReplaying()) {
+    return;
+  }
   EnsureInitialized();
 
   AutoSafeJSContext cx;
@@ -509,6 +512,13 @@ static bool RecordReplay_ForkId(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
   args.rval().setInt32(child::GetForkId());
+  return true;
+}
+
+static bool RecordReplay_MiddlemanPid(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  args.rval().setInt32(child::MiddlemanProcessId());
   return true;
 }
 
@@ -1739,6 +1749,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("fork", RecordReplay_Fork, 1, 0),
     JS_FN("childId", RecordReplay_ChildId, 0, 0),
     JS_FN("forkId", RecordReplay_ForkId, 0, 0),
+    JS_FN("middlemanPid", RecordReplay_MiddlemanPid, 0, 0),
     JS_FN("areThreadEventsDisallowed", RecordReplay_AreThreadEventsDisallowed,
           0, 0),
     JS_FN("divergeFromRecording", RecordReplay_DivergeFromRecording, 0, 0),

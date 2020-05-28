@@ -117,6 +117,7 @@ IdMap.prototype = {
 };
 
 const gScripts = new IdMap();
+const gSources = new Set();
 
 gDebugger.onNewScript = script => {
   if (RecordReplayControl.areThreadEventsDisallowed()) {
@@ -129,6 +130,19 @@ gDebugger.onNewScript = script => {
   }
 
   addScript(script);
+
+  if (!gSources.has(script.source)) {
+    gSources.add(script.source);
+    if (script.source.sourceMapURL &&
+        Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")) {
+      const pid = RecordReplayControl.middlemanPid();
+      const { url, text, sourceMapURL } = script.source;
+      Services.cpmm.sendAsyncMessage(
+        "RecordReplayGeneratedSourceWithSourceMap",
+        { pid, url, text, sourceMapURL }
+      );
+    }
+  }
 
   if (exports.OnNewScript) {
     exports.OnNewScript(script);
