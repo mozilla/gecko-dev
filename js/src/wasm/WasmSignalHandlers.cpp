@@ -1091,8 +1091,6 @@ static bool EnsureLazyProcessSignalHandlers() {
   MOZ_RELEASE_ASSERT(lazyInstallState->success == false);
 
   if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    const char* env = getenv("WEBREPLAY_ALLOW_WASM");
-    MOZ_RELEASE_ASSERT(env && env[0]);
     lazyInstallState->success = true;
     return true;
   }
@@ -1146,8 +1144,6 @@ bool wasm::EnsureFullSignalHandlers(JSContext* cx) {
   }
 
   if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    const char* env = getenv("WEBREPLAY_ALLOW_WASM");
-    MOZ_RELEASE_ASSERT(env && env[0]);
     cx->wasmHaveSignalHandlers = true;
     return true;
   }
