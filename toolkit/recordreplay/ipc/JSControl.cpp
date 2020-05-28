@@ -307,9 +307,6 @@ void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength,
 }
 
 void OnTestCommand(const char* aString) {
-  if (!IsRecordingOrReplaying()) {
-    return;
-  }
   EnsureInitialized();
 
   AutoSafeJSContext cx;

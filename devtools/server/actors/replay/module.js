@@ -44,7 +44,7 @@ const gSandboxGlobal = gDebugger.makeGlobalObjectReference(sandbox);
 const gAllGlobals = [];
 
 function considerScript(script) {
-  return RecordReplayControl.shouldUpdateProgressCounter(script.url);
+  return RecordReplayControl && RecordReplayControl.shouldUpdateProgressCounter(script.url);
 }
 
 function countScriptFrames() {
@@ -120,7 +120,7 @@ const gScripts = new IdMap();
 const gSources = new Set();
 
 gDebugger.onNewScript = script => {
-  if (RecordReplayControl.areThreadEventsDisallowed()) {
+  if (!RecordReplayControl || RecordReplayControl.areThreadEventsDisallowed()) {
     return;
   }
 
@@ -229,6 +229,9 @@ getWindow().docShell.chromeEventHandler.addEventListener(
 );
 
 function advanceProgressCounter() {
+  if (!RecordReplayControl) {
+    return;
+  }
   let progress = RecordReplayControl.progressCounter();
   RecordReplayControl.setProgressCounter(++progress);
   return progress;
