@@ -2391,7 +2391,7 @@ void PromiseHelperTask::runTask() {
 bool js::StartOffThreadPromiseHelperTask(JSContext* cx,
                                          UniquePtr<PromiseHelperTask> task) {
   // Execute synchronously if there are no helper threads.
-  if (!CanUseExtraThreads()) {
+  if (!CanUseExtraThreads() || mozilla::recordreplay::IsRecordingOrReplaying()) {
     task.release()->executeAndResolveAndDestroy(cx);
     return true;
   }

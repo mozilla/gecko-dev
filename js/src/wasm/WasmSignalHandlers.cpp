@@ -999,6 +999,12 @@ void wasm::EnsureEagerProcessSignalHandlers() {
 
   // Signal handlers are currently disabled when recording or replaying.
   if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    // If this environment variable is set then wasm will still be permitted
+    // to run, albeit without signal handlers.
+    const char* env = getenv("WEBREPLAY_ALLOW_WASM");
+    if (env && env[0]) {
+      eagerInstallState->success = true;
+    }
     return;
   }
 
@@ -1084,6 +1090,13 @@ static bool EnsureLazyProcessSignalHandlers() {
   lazyInstallState->tried = true;
   MOZ_RELEASE_ASSERT(lazyInstallState->success == false);
 
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    const char* env = getenv("WEBREPLAY_ALLOW_WASM");
+    MOZ_RELEASE_ASSERT(env && env[0]);
+    lazyInstallState->success = true;
+    return true;
+  }
+
 #ifdef XP_DARWIN
   // Create the port that all JSContext threads will redirect their traps to.
   kern_return_t kret;
@@ -1130,6 +1143,13 @@ bool wasm::EnsureFullSignalHandlers(JSContext* cx) {
 
   if (!EnsureLazyProcessSignalHandlers()) {
     return false;
+  }
+
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    const char* env = getenv("WEBREPLAY_ALLOW_WASM");
+    MOZ_RELEASE_ASSERT(env && env[0]);
+    cx->wasmHaveSignalHandlers = true;
+    return true;
   }
 
 #ifdef XP_DARWIN
