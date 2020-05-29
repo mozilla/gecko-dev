@@ -297,7 +297,10 @@ bool ForkProcess(size_t aForkId) {
   Print("FORKED %d #%lu\n", getpid(), aForkId);
 
   if (TestEnv("MOZ_REPLAYING_WAIT_AT_FORK")) {
-    BusyWait();
+    long which = strtol(getenv("MOZ_REPLAYING_WAIT_AT_FORK"), nullptr, 10);
+    if ((size_t)which <= aForkId) {
+      BusyWait();
+    }
   }
 
   ResetPid();

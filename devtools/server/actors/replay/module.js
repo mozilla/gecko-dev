@@ -26,6 +26,9 @@ const {
   findClosestPoint,
 } = sandbox;
 
+// This script can be loaded into no-recording/replaying processes during automated tests.
+const isRecordingOrReplaying = !!RecordReplayControl.progressCounter;
+
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
 
 let gWindow;
@@ -44,7 +47,7 @@ const gSandboxGlobal = gDebugger.makeGlobalObjectReference(sandbox);
 const gAllGlobals = [];
 
 function considerScript(script) {
-  return RecordReplayControl && RecordReplayControl.shouldUpdateProgressCounter(script.url);
+  return RecordReplayControl.shouldUpdateProgressCounter(script.url);
 }
 
 function countScriptFrames() {
@@ -120,7 +123,7 @@ const gScripts = new IdMap();
 const gSources = new Set();
 
 gDebugger.onNewScript = script => {
-  if (!RecordReplayControl || RecordReplayControl.areThreadEventsDisallowed()) {
+  if (!isRecordingOrReplaying || RecordReplayControl.areThreadEventsDisallowed()) {
     return;
   }
 
@@ -229,7 +232,7 @@ getWindow().docShell.chromeEventHandler.addEventListener(
 );
 
 function advanceProgressCounter() {
-  if (!RecordReplayControl) {
+  if (!isRecordingOrReplaying) {
     return;
   }
   let progress = RecordReplayControl.progressCounter();
