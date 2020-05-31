@@ -144,7 +144,9 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
       sendCommand(
         "Internal.addRecordingDescription",
         { recordingId, ...description }
-      ).then(() => onFinishedRecording(recordingId));
+      );
+
+      onFinishedRecording(recordingId);
 
       // Ignore any other flushes from this pid.
       RecordingDestroyed(pid);

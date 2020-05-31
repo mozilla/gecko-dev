@@ -1589,7 +1589,7 @@ async function reloadAndStopRecordingTab(gBrowser) {
     extra += `&test=${localTest}`;
   }
 
-  const url = `${viewHost}/view?id=${recordingId}&loading=true${extra}`;
+  const url = `${viewHost}/view?id=${recordingId}${extra}`;
   gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
     newFrameloader: true,
     remoteType: E10SUtils.DEFAULT_REMOTE_TYPE,
