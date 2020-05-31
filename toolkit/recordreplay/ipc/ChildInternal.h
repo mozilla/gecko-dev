@@ -69,7 +69,7 @@ extern Monitor* gMonitor;
 void EnsureRecordingLength(size_t aLength);
 
 // Notify the middleman that the last manifest was finished.
-void ManifestFinished(const js::CharBuffer& aResponse, bool aBulk, bool aCompress);
+void ManifestFinished(const js::CharBuffer& aResponse);
 
 // Send messages operating on external calls.
 void SendExternalCallRequest(ExternalCallId aId,
@@ -88,24 +88,14 @@ void SendExternalCallOutput(ExternalCallId aId,
 bool GetGraphics(bool aRepaint, const nsACString& aMimeType,
                  const nsACString& aEncodeOptions, nsACString& aData);
 
-// Return whether a non-main thread is performing a paint.
-bool PaintingInProgress();
+// If appropriate, associate a checkpoint with the most recent paint.
+void MaybeSetCheckpointForLastPaint(size_t aCheckpoint);
 
 // Fork this process and assign a new fork ID to the new process.
 void PerformFork(size_t aForkId);
 
 // Called to perform the actual fork. Returns whether this is the original process.
 bool RawFork();
-
-// Send new recording data from a recording process to the middleman.
-void SendRecordingData(size_t aStart, const uint8_t* aData, size_t aSize);
-
-// Incorporate any new data into the recording. If there is no more data and
-// aRequireMore is set, crash.
-void AddPendingRecordingData(bool aRequireMore);
-
-// In a root replaying process, save all recording data to the cloud.
-void SaveCloudRecording(const char* aName);
 
 // Set any text to be printed if this process crashes.
 void SetCrashNote(const char* aNote);

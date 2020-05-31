@@ -53,7 +53,7 @@ class CustomElementWatcher extends EventEmitter {
    * Watch for custom element definitions matching the name of the provided NodeActor.
    */
   manageNode(nodeActor) {
-    if (isReplaying || !this._isValidNode(nodeActor)) {
+    if (!this._isValidNode(nodeActor)) {
       return;
     }
 
@@ -73,7 +73,7 @@ class CustomElementWatcher extends EventEmitter {
    * Stop watching the provided NodeActor.
    */
   unmanageNode(nodeActor) {
-    if (isReplaying || !this._isValidNode(nodeActor)) {
+    if (!this._isValidNode(nodeActor)) {
       return;
     }
 

@@ -3738,6 +3738,9 @@ CycleCollectedJSContext* CycleCollectedJSContext::Get() {
 MOZ_NEVER_INLINE static void SuspectAfterShutdown(
     void* aPtr, nsCycleCollectionParticipant* aCp,
     nsCycleCollectingAutoRefCnt* aRefCnt, bool* aShouldDelete) {
+  if (recordreplay::IsRecordingOrReplaying()) {
+    return;
+  }
   if (aRefCnt->get() == 0) {
     if (!aShouldDelete) {
       // The CC is shut down, so we can't be in the middle of an ICC.

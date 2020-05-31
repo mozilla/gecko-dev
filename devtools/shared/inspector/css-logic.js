@@ -648,73 +648,6 @@ const findCssSelector = function(ele) {
 };
 exports.findCssSelector = findCssSelector;
 
-// This is an identical implementation of findCssSelector but runs asynchronously,
-// for use when replaying.
-const findCssSelectorAsync = async function(ele) {
-  const { node, containingDocOrShadow } = findNodeAndContainer(ele);
-  ele = node;
-
-  if (!containingDocOrShadow || !containingDocOrShadow.contains(ele)) {
-    // findCssSelector received element not inside container.
-    return "";
-  }
-
-  const cssEscape = ele.ownerGlobal.CSS.escape;
-
-  // document.querySelectorAll("#id") returns multiple if elements share an ID
-  if (
-    ele.id &&
-    (await containingDocOrShadow.querySelectorAllAsync("#" + cssEscape(ele.id))).length === 1
-  ) {
-    return "#" + cssEscape(ele.id);
-  }
-
-  // Inherently unique by tag name
-  const tagName = ele.localName;
-  if (tagName === "html") {
-    return "html";
-  }
-  if (tagName === "head") {
-    return "head";
-  }
-  if (tagName === "body") {
-    return "body";
-  }
-
-  // We might be able to find a unique class name
-  let selector, index, matches;
-  for (let i = 0; i < ele.classList.length; i++) {
-    // Is this className unique by itself?
-    selector = "." + cssEscape(ele.classList.item(i));
-    matches = await containingDocOrShadow.querySelectorAllAsync(selector);
-    if (matches.length === 1) {
-      return selector;
-    }
-    // Maybe it's unique with a tag name?
-    selector = cssEscape(tagName) + selector;
-    matches = await containingDocOrShadow.querySelectorAllAsync(selector);
-    if (matches.length === 1) {
-      return selector;
-    }
-    // Maybe it's unique using a tag name and nth-child
-    index = positionInNodeList(ele, ele.parentNode.children) + 1;
-    selector = selector + ":nth-child(" + index + ")";
-    matches = await containingDocOrShadow.querySelectorAllAsync(selector);
-    if (matches.length === 1) {
-      return selector;
-    }
-  }
-
-  // Not unique enough yet.
-  index = positionInNodeList(ele, ele.parentNode.children) + 1;
-  selector = cssEscape(tagName) + ":nth-child(" + index + ")";
-  if (ele.parentNode !== containingDocOrShadow) {
-    selector = await findCssSelectorAsync(ele.parentNode) + " > " + selector;
-  }
-  return selector;
-};
-exports.findCssSelectorAsync = findCssSelectorAsync;
-
 /**
  * If the element is in a frame or under a shadowRoot, return the corresponding
  * element.
@@ -759,18 +692,6 @@ const findAllCssSelectors = function(node) {
   return selectors;
 };
 exports.findAllCssSelectors = findAllCssSelectors;
-
-// Identical async implementation for use when replaying.
-const findAllCssSelectorsAsync = async function(node) {
-  const selectors = [];
-  while (node) {
-    selectors.unshift(await findCssSelectorAsync(node));
-    node = getSelectorParent(node);
-  }
-
-  return selectors;
-};
-exports.findAllCssSelectorsAsync = findAllCssSelectorsAsync;
 
 /**
  * Get the full CSS path for a given element.

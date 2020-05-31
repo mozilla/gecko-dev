@@ -2349,6 +2349,7 @@ static SystemRedirection gSystemRedirections[] = {
     {"fclose", RR_SaveRvalHadErrorNegative},
     {"fflush", RR_SaveRvalHadErrorNegative},
     {"fprintf", RR_SaveRvalHadErrorNegative},
+    {"fputc", RR_SaveRvalHadErrorNegative},
     {"fputs", RR_SaveRvalHadErrorNegative},
     {"fopen", RR_SaveRvalHadErrorZero},
     {"fread", RR_Compose<RR_ScalarRval, RR_fread>},

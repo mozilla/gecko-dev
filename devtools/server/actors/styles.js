@@ -10,8 +10,6 @@ const { getCSSLexer } = require("devtools/shared/css/lexer");
 const { LongStringActor } = require("devtools/server/actors/string");
 const InspectorUtils = require("InspectorUtils");
 const TrackChangeEmitter = require("devtools/server/actors/utils/track-change-emitter");
-const { Cu } = require("chrome");
-const { ReplayInspector } = require("RecordReplayControl").module;
 
 // This will also add the "stylesheet" actor type for protocol.js to recognize
 
@@ -354,16 +352,15 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
    * @returns object
    *   object with 'fontFaces', a list of fonts that apply to this node.
    */
-  getAllUsedFontFaces: async function(options) {
+  getAllUsedFontFaces: function(options) {
     const windows = this.inspector.targetActor.windows;
     let fontsList = [];
     for (const win of windows) {
       // Fall back to the documentElement for XUL documents.
       const node = win.document.body
         ? win.document.body
-            : win.document.documentElement;
-      const faces = await this.getUsedFontFaces(node, options);
-      fontsList = [...fontsList, ...faces];
+        : win.document.documentElement;
+      fontsList = [...fontsList, ...this.getUsedFontFaces(node, options)];
     }
 
     return fontsList;
@@ -382,12 +379,9 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
    * @returns object
    *   object with 'fontFaces', a list of fonts that apply to this node.
    */
-  getUsedFontFaces: async function(node, options) {
+  getUsedFontFaces: function(node, options) {
     // node.rawNode is defined for NodeActor objects
     const actualNode = node.rawNode || node;
-    if (Cu.isDeadWrapper(actualNode)) {
-      return [];
-    }
     const contentDocument = actualNode.ownerDocument;
     // We don't get fonts for a node, but for a range
     const rng = contentDocument.createRange();
@@ -401,22 +395,6 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
     }
     const fonts = InspectorUtils.getUsedFontFaces(rng);
     const fontsArray = [];
-
-    if (isReplaying) {
-      const pauseCounter = ReplayInspector.pauseCounter();
-      await Promise.all(fonts.map(async f => {
-        await f.replayWaitForContentsLoaded();
-        if (pauseCounter != ReplayInspector.pauseCounter()) {
-          return;
-        }
-        if (f.rule) {
-          await f.rule.replayWaitForContentsLoaded();
-        }
-      }));
-      if (pauseCounter != ReplayInspector.pauseCounter()) {
-        return [];
-      }
-    }
 
     for (let i = 0; i < fonts.length; i++) {
       const font = fonts[i];
@@ -608,7 +586,7 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
     this._observedRules = [];
     this.selectedElement = node.rawNode;
 
-    if (!node || Cu.isDeadWrapper(node.rawNode)) {
+    if (!node) {
       return { entries: [], rules: [], sheets: [] };
     }
 
@@ -1507,10 +1485,6 @@ var StyleRuleActor = protocol.ActorClassWithSpec(styleRuleSpec, {
    * nested rules.
    */
   _computeRuleIndex: function() {
-    if (isReplaying) {
-      return;
-    }
-
     let rule = this.rawRule;
     const result = [];
 
@@ -2166,8 +2140,7 @@ function getRuleText(initialText, line, column) {
   while (true) {
     const token = lexer.nextToken();
     if (!token) {
-      // When replaying we might not be able to fetch the full text.
-      return { offset: 0, text: "" };
+      throw new Error("couldn't find start of the rule");
     }
     if (token.tokenType === "symbol" && token.text === "{") {
       break;
@@ -2280,12 +2253,7 @@ function getTextAtLineColumn(text, line, column) {
     const rx = new RegExp(
       "(?:[^\\r\\n\\f]*(?:\\r\\n|\\n|\\r|\\f)){" + (line - 1) + "}"
     );
-    try {
-      offset = rx.exec(text)[0].length;
-    } catch (e) {
-      // When replaying we might not be able to fetch the full text.
-      offset = 0;
-    }
+    offset = rx.exec(text)[0].length;
   } else {
     offset = 0;
   }

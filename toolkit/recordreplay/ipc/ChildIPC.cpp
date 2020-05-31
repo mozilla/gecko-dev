@@ -67,11 +67,6 @@ static base::ProcessId gMiddlemanPid;
 static base::ProcessId gParentPid;
 static StaticInfallibleVector<char*> gParentArgv;
 
-// File descriptors used by a pipe to create checkpoints when instructed by the
-// parent process.
-static FileHandle gCheckpointWriteFd;
-static FileHandle gCheckpointReadFd;
-
 // Copy of the introduction message we got from the middleman. This is saved on
 // receipt and then processed during InitRecordingOrReplayingProcess.
 static UniquePtr<IntroductionMessage, Message::FreePolicy> gIntroductionMessage;
@@ -82,15 +77,6 @@ static StaticInfallibleVector<js::CharBuffer*> gPendingManifests;
 // Whether we are currently processing a manifest and can't start another one.
 // Protected by gMonitor.
 static bool gProcessingManifest = true;
-
-// All recording contents we have received, protected by gMonitor. This may not
-// have all been incorporated into the recording, which happens on the main
-// thread.
-static StaticInfallibleVector<char> gRecordingContents;
-
-// Messages containing recording data which are not contiguous with the
-// recording contents received so far.
-static StaticInfallibleVector<Message::UniquePtr> gDeferredRecordingDataMessages;
 
 // Any response received to the last ExternalCallRequest message.
 static UniquePtr<ExternalCallResponseMessage, Message::FreePolicy>
@@ -104,7 +90,6 @@ static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock);
 static void SendMessageToForkedProcess(Message::UniquePtr aMsg, bool aLockHeld = false);
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize);
 static void HandleSharedKeyResponse(const SharedKeyResponseMessage& aMsg);
-static void OnNewRecordingData(Message::UniquePtr aMsg);
 
 // Lock which allows non-main threads to prevent forks. Readers are the threads
 // preventing forks from happening, while the writer is the main thread during
@@ -136,17 +121,6 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       gIntroductionMessage.reset(
           static_cast<IntroductionMessage*>(aMsg.release()));
       gMonitor->NotifyAll();
-      break;
-    }
-    case MessageType::CreateCheckpoint: {
-      MOZ_RELEASE_ASSERT(IsRecording());
-
-      // Ignore requests to create checkpoints before we have reached the first
-      // paint and finished initializing.
-      if (js::IsInitialized()) {
-        uint8_t data = 0;
-        DirectWrite(gCheckpointWriteFd, &data, 1);
-      }
       break;
     }
     case MessageType::Ping: {
@@ -185,40 +159,6 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       gMonitor->NotifyAll();
       break;
     }
-    case MessageType::ReplayJS: {
-      MonitorAutoLock lock(*gMonitor);
-      const ReplayJSMessage& nmsg = (const ReplayJSMessage&)*aMsg;
-
-      // We are off the main thread, but this is OK because the recording data
-      // itself has not been received yet, and the JS module will not be read
-      // until we have reached the first checkpoint.
-      MOZ_RELEASE_ASSERT(IsReplaying());
-      js::SetWebReplayJS(nsCString(nmsg.BinaryData(), nmsg.BinaryDataSize()));
-      break;
-    }
-    case MessageType::EnableLogging: {
-      parent::gLoggingEnabled = true;
-      break;
-    }
-    case MessageType::LogText: {
-      const LogTextMessage& nmsg = (const LogTextMessage&)*aMsg;
-      DirectPrint(nmsg.BinaryData());
-      break;
-    }
-    case MessageType::RecordingData: {
-      AutoReadSpinLock disallowFork(gForkLock);
-      OnNewRecordingData(std::move(aMsg));
-      break;
-    }
-    case MessageType::FetchCloudRecordingData: {
-      MonitorAutoLock lock(*gMonitor);
-      char* buf;
-      size_t size;
-      FetchCloudRecordingData(&buf, &size);
-      gRecordingContents.append(buf, size);
-      gMonitor->NotifyAll();
-      break;
-    }
     case MessageType::SharedKeyResponse: {
       AutoReadSpinLock disallowFork(gForkLock);
       const auto& nmsg = (const SharedKeyResponseMessage&)*aMsg;
@@ -239,26 +179,6 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
     }
     default:
       MOZ_CRASH();
-  }
-}
-
-// Main routine for a thread whose sole purpose is to listen to requests from
-// the middleman process to create a new checkpoint. This is separate from the
-// channel thread because this thread is recorded and the latter is not
-// recorded. By communicating between the two threads with a pipe, this
-// thread's behavior will be replicated exactly when replaying and new
-// checkpoints will be created at the same point as during recording.
-static void ListenForCheckpointThreadMain(void*) {
-  while (true) {
-    uint8_t data = 0;
-    ssize_t rv = HANDLE_EINTR(read(gCheckpointReadFd, &data, 1));
-    if (rv > 0) {
-      NS_DispatchToMainThread(NewRunnableFunction("CreateCheckpoint", CreateCheckpoint));
-    } else {
-      MOZ_RELEASE_ASSERT(errno == EIO);
-      MOZ_RELEASE_ASSERT(HasDivergedFromRecording());
-      Thread::WaitForever();
-    }
   }
 }
 
@@ -326,8 +246,17 @@ void SetupRecordReplayChannel(int aArgc, char* aArgv[]) {
 
   // If we're replaying, we also need to wait for some recording data.
   if (IsReplaying()) {
-    while (gRecordingContents.empty()) {
-      gMonitor->Wait();
+    char* buffer;
+    size_t size;
+    FetchCloudRecordingData(&buffer, &size);
+
+    InfallibleVector<Stream*> updatedStreams;
+    gRecording->NewContents((const uint8_t*) buffer, size, &updatedStreams);
+
+    for (Stream* stream : updatedStreams) {
+      if (stream->Name() == StreamName::Lock) {
+        Lock::LockAcquiresUpdated(stream->NameIndex());
+      }
     }
   }
 }
@@ -351,9 +280,6 @@ void InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv) {
       InitializeSharedDatabase();
     }
   }
-
-  DirectCreatePipe(&gCheckpointWriteFd, &gCheckpointReadFd);
-  Thread::StartThread(ListenForCheckpointThreadMain, nullptr, false);
 
   // Process the introduction message to fill in arguments.
   MOZ_RELEASE_ASSERT(gParentArgv.empty());
@@ -492,18 +418,6 @@ static void HandleMessageFromForkedProcess(Message::UniquePtr aMsg) {
   // Certain messages from forked processes are intended for this one,
   // instead of the middleman.
   switch (aMsg->mType) {
-    case MessageType::UpdateRecordingFromRoot: {
-      const auto& nmsg = static_cast<const UpdateRecordingFromRootMessage&>(*aMsg);
-      EnsureRecordingLength(nmsg.mRequiredLength);
-
-      MonitorAutoLock lock(*gMonitor);
-      Message::UniquePtr newMessage(RecordingDataMessage::New(
-          nmsg.mForkId, nmsg.mStart,
-          gRecordingContents.begin() + nmsg.mStart,
-          nmsg.mRequiredLength - nmsg.mStart));
-      SendMessageToForkedProcess(std::move(newMessage), /* aLockHeld */ true);
-      break;
-    }
     case MessageType::ExternalCallRequest: {
       AutoReadSpinLock disallowFork(gForkLock);
       const auto& nmsg = static_cast<const ExternalCallRequestMessage&>(*aMsg);
@@ -699,16 +613,6 @@ MOZ_EXPORT void RecordReplayInterface_ReportCrash(const char* aMessage) {
 
 } // extern "C"
 
-void ReportCriticalError(const char* aMessage) {
-  char msgBuf[4096];
-  CriticalErrorMessage* msg =
-      ConstructErrorMessageOnStack<MessageType::CriticalError>(
-          msgBuf, sizeof(msgBuf), gForkId, aMessage);
-  gChannel->SendMessage(std::move(*msg));
-
-  Print("Critical Error: %s\n", aMessage);
-}
-
 static bool gUnhandledDivergenceAllowed = true;
 
 void SetUnhandledDivergenceAllowed(bool aAllowed) {
@@ -729,129 +633,14 @@ void ReportUnhandledDivergence() {
 size_t GetId() { return gChildId; }
 size_t GetForkId() { return gForkId; }
 
-static bool IncorporateRecordingData(const RecordingDataMessage& aMsg) {
-  if (aMsg.mTag > gRecordingContents.length()) {
-    return false;
-  }
-
-  size_t extent = aMsg.mTag + aMsg.BinaryDataSize();
-  if (extent > gRecordingContents.length()) {
-    size_t nbytes = extent - gRecordingContents.length();
-    gRecordingContents.append(aMsg.BinaryData() + aMsg.BinaryDataSize() - nbytes,
-                              nbytes);
-  }
-
-  return true;
-}
-
-void OnNewRecordingData(Message::UniquePtr aMsg) {
-  MonitorAutoLock lock(*gMonitor);
-
-  const auto& nmsg = (const RecordingDataMessage&)*aMsg;
-  PrintLog("NewRecordingData %llu %lu", nmsg.mTag, nmsg.BinaryDataSize());
-
-  if (IncorporateRecordingData(nmsg)) {
-    for (size_t i = 0; i < gDeferredRecordingDataMessages.length();) {
-      auto& deferred = gDeferredRecordingDataMessages[i];
-      const auto& ndeferred = (const RecordingDataMessage&)*deferred;
-      if (IncorporateRecordingData(ndeferred)) {
-        PrintLog("AddDeferredRecordingData %llu", gRecordingContents.length());
-        gDeferredRecordingDataMessages.erase(&deferred);
-      } else {
-        i++;
-      }
-    }
-    PrintLog("NewRecordingData NotifyMonitor %p", gMonitor);
-    gMonitor->NotifyAll();
-  } else {
-    // Defer processing this until it is contiguous with the earlier contents.
-    PrintLog("DeferRecordingData");
-    gDeferredRecordingDataMessages.append(std::move(aMsg));
-  }
-}
-
-void AddPendingRecordingData(bool aRequireMore) {
-  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
-  if (!NeedRespawnThreads()) {
-    Thread::WaitForIdleThreads();
-  }
-
-  InfallibleVector<Stream*> updatedStreams;
-  {
-    MonitorAutoLock lock(*gMonitor);
-
-    if (gRecordingContents.length() == gRecording->Size()) {
-      if (aRequireMore) {
-        Print("Hit end of recording (%lu bytes, checkpoint %lu, position %lu), crashing...\n",
-              gRecordingContents.length(), GetLastCheckpoint(),
-              Thread::Current()->Events().StreamPosition());
-
-        nsAutoCString chunks;
-        Thread::Current()->Events().PrintChunks(chunks);
-        Print("Chunks %s\n", chunks.get());
-
-        MOZ_CRASH("AddPendingRecordingData");
-      }
-    } else {
-      gRecording->NewContents(
-          (const uint8_t*)gRecordingContents.begin() + gRecording->Size(),
-          gRecordingContents.length() - gRecording->Size(),
-          &updatedStreams);
-    }
-  }
-
-  for (Stream* stream : updatedStreams) {
-    if (stream->Name() == StreamName::Lock) {
-      Lock::LockAcquiresUpdated(stream->NameIndex());
-    }
-  }
-
-  if (!NeedRespawnThreads()) {
-    Thread::ResumeIdleThreads();
-  }
-}
-
-void SaveCloudRecording(const char* aName) {
-  MonitorAutoLock lock(*gMonitor);
-  AutoEnsurePassThroughThreadEvents pt;
-
-  static void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_SaveCloudRecording");
-  if (ptr) {
-    BitwiseCast<void(*)(const char*, const char*, size_t)>(ptr)(
-        aName, gRecordingContents.begin(), gRecordingContents.length());
-  } else {
-    // Fallback for offline testing.
-    const char* offlineDir = getenv("WEBREPLAY_OFFLINE");
-    if (!offlineDir) {
-      Print("WEBREPLAY_OFFLINE not set, crashing...\n");
-      MOZ_CRASH("SaveCloudRecording");
-    }
-    nsPrintfCString path("%s/%s", offlineDir, aName);
-
-    FileHandle file = DirectOpenFile(path.get(), /* aWriting */ true);
-    DirectWrite(file, gRecordingContents.begin(), gRecordingContents.length());
-    DirectCloseFile(file);
-  }
-}
-
 static void FetchCloudRecordingData(char** aBuffer, size_t* aSize) {
   static void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_LoadCloudRecording");
   if (ptr) {
     BitwiseCast<void(*)(char**, size_t*)>(ptr)(aBuffer, aSize);
   } else {
     // Fallback for offline testing.
-    nsAutoCString recordingName;
-    ExtractCloudRecordingName(gRecordingFilename, recordingName);
-    MOZ_RELEASE_ASSERT(!recordingName.IsEmpty());
-
-    const char* offlineDir = getenv("WEBREPLAY_OFFLINE");
-    if (!offlineDir) {
-      Print("WEBREPLAY_OFFLINE not set, crashing...\n");
-      MOZ_CRASH("SaveCloudRecording");
-    }
-    nsPrintfCString path("%s/%s", offlineDir, recordingName.get());
-
-    FileHandle file = DirectOpenFile(path.get(), /* aWriting */ false);
+    MOZ_RELEASE_ASSERT(gRecordingFilename);
+    FileHandle file = DirectOpenFile(gRecordingFilename, /* aWriting */ false);
     *aSize = DirectFileSize(file);
     *aBuffer = (char*) malloc(*aSize);
     DirectRead(file, *aBuffer, *aSize);
@@ -876,28 +665,10 @@ uint64_t GetMemoryUsage() {
   return 0;
 }
 
-// In the middleman, JS to send to new replaying processes. This matches up
-// with the control JS running in this process.
-nsCString gReplayJS;
-
-void SetWebReplayJS(const nsCString& aControlJS, const nsCString& aReplayJS) {
-  if (IsMiddleman()) {
-    js::SetWebReplayJS(aControlJS);
-    gReplayJS = aReplayJS;
-  } else if (IsRecording()) {
-    js::SetWebReplayJS(aReplayJS);
-  }
-}
-
 void PrintLog(const nsAString& aText) {
   double elapsed = ElapsedTime();
   NS_ConvertUTF16toUTF8 ntext(aText);
-  if (IsRecording()) {
-    nsPrintfCString buf("[Recording %.3f] %s\n", elapsed, ntext.get());
-    UniquePtr<Message> msg(LogTextMessage::New(
-        0, 0, buf.BeginReading(), buf.Length() + 1));
-    gChannel->SendMessage(std::move(*msg));
-  } else {
+  if (IsReplaying()) {
     nsPrintfCString buf("[#%lu %.3f] %s\n", gForkId, elapsed, ntext.get());
     DirectPrint(buf.get());
   }
@@ -1025,15 +796,10 @@ void NotifyVsyncObserver() {
 // yet. Only accessed on the main thread.
 static int32_t gNumPendingMainThreadPaints;
 
-bool OnVsync() {
-  // In the repainting stress mode, we create a new checkpoint on every vsync
-  // message received from the UI process. When we notify the parent about the
-  // new checkpoint it will trigger a repaint to make sure that all layout and
-  // painting activity can occur when diverged from the recording.
-  if (parent::InRepaintStressMode()) {
-    CreateCheckpoint();
-  }
+// Any checkpoint to associate with the most recent pending paint.
+static size_t gPendingPaintCheckpoint;
 
+bool OnVsync() {
   // After a paint starts, ignore incoming vsyncs until the paint completes.
   return gNumPendingMainThreadPaints == 0;
 }
@@ -1145,6 +911,13 @@ void NotifyPaintStart() {
 
   gNumPendingPaints++;
   gNumPendingMainThreadPaints++;
+  gPendingPaintCheckpoint = 0;
+}
+
+void MaybeSetCheckpointForLastPaint(size_t aCheckpoint) {
+  if (gNumPendingMainThreadPaints && !gPendingPaintCheckpoint) {
+    gPendingPaintCheckpoint = aCheckpoint;
+  }
 }
 
 static void PaintFromMainThread() {
@@ -1169,7 +942,7 @@ static void PaintFromMainThread() {
   }
 
   if (IsReplaying() && !HasDivergedFromRecording()) {
-    js::PaintComplete();
+    js::PaintComplete(gPendingPaintCheckpoint);
   }
 }
 
@@ -1225,9 +998,11 @@ bool GetGraphics(bool aRepaint, const nsACString& aMimeType,
       }
     }
   } else {
-    // We don't have a good way of making sure this assert passes when saving
-    // recording summaries.
-    MOZ_RELEASE_ASSERT(!gNumPendingMainThreadPaints);
+    // Wait until we can read from gDrawTargetBuffer without racing.
+    MonitorAutoLock lock(*gMonitor);
+    while (gNumPendingPaints) {
+      gMonitor->Wait();
+    }
   }
 
   if (!gDrawTargetBuffer) {
@@ -1237,30 +1012,9 @@ bool GetGraphics(bool aRepaint, const nsACString& aMimeType,
   return EncodeGraphics(aMimeType, aEncodeOptions, aData);
 }
 
-bool PaintingInProgress() {
-  MOZ_RELEASE_ASSERT(NS_IsMainThread());
-  return gNumPendingMainThreadPaints != 0;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // Message Helpers
 ///////////////////////////////////////////////////////////////////////////////
-
-void EnsureRecordingLength(size_t aLength) {
-  MonitorAutoLock lock(*gMonitor);
-
-  if (gForkId && gRecordingContents.length() < aLength) {
-    gChannel->SendMessage(UpdateRecordingFromRootMessage(
-        gForkId, gRecordingContents.length(), aLength));
-  }
-
-  while (gRecordingContents.length() < aLength) {
-    PrintLog("EnsureRecordingLength %p have %lu need %lu, waiting...",
-             gMonitor, gRecordingContents.length(), aLength);
-    gMonitor->Wait();
-  }
-  PrintLog("EnsureRecordingLength done %lu", gRecordingContents.length());
-}
 
 static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock) {
   if (!gPendingManifests.empty() && !gProcessingManifest) {
@@ -1276,26 +1030,14 @@ static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock) {
 
 #undef compress
 
-void ManifestFinished(const js::CharBuffer& aBuffer, bool aBulk, bool aCompress) {
+void ManifestFinished(const js::CharBuffer& aBuffer) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   MOZ_RELEASE_ASSERT(gProcessingManifest);
 
   NS_ConvertUTF16toUTF8 converted(aBuffer.begin(), aBuffer.length());
 
-  ManifestFinishedMessage* msg;
-  if (aCompress) {
-    char* compressed = new char[Compression::LZ4::maxCompressedSize(converted.Length())];
-    unsigned length = Compression::LZ4::compress(converted.get(), converted.Length(), compressed);
-    msg = ManifestFinishedMessage::New(gForkId, converted.Length(), compressed, length);
-    delete[] compressed;
-
-    PrintLog("CompressedMessage %u %u", converted.Length(), length);
-  } else {
-    msg = ManifestFinishedMessage::New(gForkId, 0, converted.get(), converted.Length());
-  }
-  if (aBulk) {
-    msg->SetBulk();
-  }
+  ManifestFinishedMessage* msg =
+      ManifestFinishedMessage::New(gForkId, 0, converted.get(), converted.Length());
 
   if (IsVerbose()) {
     nsPrintfCString logMessage("ManifestFinishedHash %lu %u %u\n",
@@ -1352,19 +1094,16 @@ void SendExternalCallOutput(ExternalCallId aId,
   gChannel->SendMessage(std::move(*msg));
 }
 
-void SendRecordingData(size_t aStart, const uint8_t* aData, size_t aSize) {
-  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
-  RecordingDataMessage* msg =
-      RecordingDataMessage::New(gForkId, aStart, (const char*)aData, aSize);
-  gChannel->SendMessage(std::move(*msg));
-  free(msg);
-}
-
 void SendScanDataToRoot(const char* aData, size_t aSize) {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   ScanDataMessage* msg = ScanDataMessage::New(gForkId, 0, aData, aSize);
   gChannel->SendMessage(std::move(*msg));
   free(msg);
+}
+
+void FinishRecording() {
+  CreateCheckpoint();
+  FlushRecording(/* aFinishRecording */ true);
 }
 
 }  // namespace child

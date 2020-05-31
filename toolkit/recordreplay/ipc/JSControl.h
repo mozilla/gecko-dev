@@ -42,8 +42,8 @@ namespace js {
 // Buffer type used for encoding object data.
 typedef InfallibleVector<char16_t> CharBuffer;
 
-// Set the contents of the JS module (control or replay) to execute.
-void SetWebReplayJS(const nsCString& aModule);
+// Read the replay JS to load at the first checkpoint.
+void ReadReplayJS(const char* aFile);
 
 // JS state is initialized when the first checkpoint is reached.
 bool IsInitialized();
@@ -54,29 +54,11 @@ void ManifestStart(const CharBuffer& aContents);
 // The following hooks are used in the middleman process to call methods defined
 // by the middleman control logic.
 
-// Setup the middleman control state.
-void SetupMiddlemanControl(const Maybe<size_t>& aRecordingChildId);
-
 // Set the status of a cloud connection.
 void SetConnectionStatus(uint32_t aChannelId, const nsCString& aStatus);
 
-// Handle incoming messages from a child process.
-void ForwardManifestFinished(parent::ChildProcessInfo* aChild,
-                             const ManifestFinishedMessage& aMsg,
-                             double aDelay);
-void ForwardUnhandledDivergence(parent::ChildProcessInfo* aChild,
-                                const UnhandledDivergenceMessage& aMsg);
-void ForwardPingResponse(parent::ChildProcessInfo* aChild,
-                         const PingResponseMessage& aMsg);
-
-// Prepare the child processes so that the recording file can be safely copied.
-void BeforeSaveRecording();
-void AfterSaveRecording();
-
 // Save the current recording contents to the cloud.
 void SaveCloudRecording(const nsAString& aUUID);
-
-void OnCriticalError(const char* aWhy);
 
 // The following hooks are used in the recording/replaying process to
 // call methods defined by the JS sandbox.
@@ -90,11 +72,18 @@ bool CanCreateCheckpoint();
 // Called when a child crashes, returning whether the crash was recovered from.
 bool RecoverFromCrash(size_t aRootId, size_t aForkId);
 
-// Called when painting the last checkpoint finishes.
-void PaintComplete();
+// Called when painting the graphics at a checkpoint finishes.
+void PaintComplete(size_t aCheckpoint);
 
 // Called when a mouse event occurs.
 void OnMouseEvent(const TimeDuration& aTime, const char* aType, int32_t aX, int32_t aY);
+
+// Send recording data to the UI process for uploading to the cloud.
+// aTotalLength and aRecordingDuration are set if a description should
+// be included (this is the end of the recording).
+void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength,
+                       const Maybe<size_t>& aTotalLength,
+                       const Maybe<TimeDuration>& aRecordingDuration);
 
 // Accessors for state which can be accessed from JS.
 

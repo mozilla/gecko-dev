@@ -42,26 +42,44 @@ static TimeStamp gLastCheckpointTime;
 // Total idle time at the last checkpoint, in microseconds. Zero when replaying.
 static double gLastCheckpointIdleTime;
 
-// Total time when the recording process was paused.
-static TimeDuration gPausedTime;
+// Last time when the recording was flushed.
+static TimeStamp gLastFlushTime;
 
 TimeDuration CurrentRecordingTime() {
   MOZ_RELEASE_ASSERT(gFirstCheckpointTime);
 
-  // gPausedTime is not updated when replaying.
-  RecordReplayBytes(&gPausedTime, sizeof(gPausedTime));
-  return TimeStamp::Now() - gFirstCheckpointTime - gPausedTime;
+  return TimeStamp::Now() - gFirstCheckpointTime;
 }
+
+TimeDuration RecordingDuration() {
+  MOZ_RELEASE_ASSERT(gFirstCheckpointTime);
+
+  return gLastCheckpointTime - gFirstCheckpointTime;
+}
+
+// Note: Result will not be accurate when replaying.
+static size_t NonIdleTimeSinceLastCheckpointMs() {
+  double absoluteMs = (TimeStamp::Now() - gLastCheckpointTime).ToMilliseconds();
+  double idleMs = (js::TotalIdleTime() - gLastCheckpointIdleTime) / 1000.0;
+  return absoluteMs - idleMs;
+}
+
+static const uint32_t FlushIntervalMs = 500;
 
 void CreateCheckpoint() {
   MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
 
-  if (!HasDivergedFromRecording() &&
-      !child::PaintingInProgress() &&
-      js::CanCreateCheckpoint()) {
+  if (!HasDivergedFromRecording() && js::CanCreateCheckpoint()) {
     gLastCheckpoint++;
+
+    child::MaybeSetCheckpointForLastPaint(gLastCheckpoint);
+
+    size_t elapsed = 0;
+    if (gLastCheckpoint != FirstCheckpointId) {
+      elapsed = NonIdleTimeSinceLastCheckpointMs();
+    }
     gLastCheckpointTime = TimeStamp::Now();
     gLastCheckpointIdleTime = js::TotalIdleTime();
 
@@ -71,8 +89,18 @@ void CreateCheckpoint() {
       gFirstCheckpointTime = gLastCheckpointTime;
     }
 
-    RecordReplayBytes(&gPausedTime, sizeof(gPausedTime));
     js::HitCheckpoint(gLastCheckpoint, CurrentRecordingTime());
+
+    if (IsRecording()) {
+      size_t time = (gLastCheckpointTime - gFirstCheckpointTime).ToMilliseconds();
+      AddCheckpointSummary(*ExecutionProgressCounter(), elapsed, time);
+    }
+
+    if (gLastCheckpoint == FirstCheckpointId ||
+        (gLastCheckpointTime - gLastFlushTime).ToMilliseconds() >= FlushIntervalMs) {
+      FlushRecording(/* aFinishRecording */ false);
+      gLastFlushTime = gLastCheckpointTime;
+    }
   }
 }
 
@@ -168,12 +196,6 @@ void PauseMainThreadAndServiceCallbacks() {
   }
   gMainThreadIsPaused = true;
 
-  TimeStamp startTime;
-  if (IsRecording()) {
-    AutoPassThroughThreadEvents pt;
-    startTime = TimeStamp::Now();
-  }
-
   MOZ_RELEASE_ASSERT(!HasDivergedFromRecording());
 
   MonitorAutoLock lock(*gMainThreadCallbackMonitor);
@@ -198,12 +220,6 @@ void PauseMainThreadAndServiceCallbacks() {
 
   // If we diverge from the recording we can't resume normal execution.
   MOZ_RELEASE_ASSERT(!HasDivergedFromRecording());
-
-  if (IsRecording()) {
-    AutoPassThroughThreadEvents pt;
-    TimeStamp endTime = TimeStamp::Now();
-    gPausedTime += endTime - startTime;
-  }
 
   gMainThreadIsPaused = false;
 }
@@ -281,7 +297,10 @@ bool ForkProcess(size_t aForkId) {
   Print("FORKED %d #%lu\n", getpid(), aForkId);
 
   if (TestEnv("MOZ_REPLAYING_WAIT_AT_FORK")) {
-    BusyWait();
+    long which = strtol(getenv("MOZ_REPLAYING_WAIT_AT_FORK"), nullptr, 10);
+    if ((size_t)which <= aForkId) {
+      BusyWait();
+    }
   }
 
   ResetPid();

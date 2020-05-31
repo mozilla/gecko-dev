@@ -565,12 +565,6 @@ class ContentChild final
       const Maybe<base::SharedMemoryHandle>& aSharedUASheetHandle,
       const uintptr_t& aSharedUASheetAddress);
 
-  mozilla::ipc::IPCResult RecvSetWebReplayJS(const nsCString& aControlJS,
-                                             const nsCString& aReplayJS);
-
-  mozilla::ipc::IPCResult RecvSetWebReplayConnectionStatus(uint32_t aChannelId,
-                                                           const nsCString& aStatus);
-
   mozilla::ipc::IPCResult RecvProvideAnonymousTemporaryFile(
       const uint64_t& aID, const FileDescOrError& aFD);
 
@@ -667,8 +661,7 @@ class ContentChild final
 
   bool DeallocPClientOpenWindowOpChild(PClientOpenWindowOpChild* aActor);
 
-  mozilla::ipc::IPCResult RecvSaveRecording(const FileDescriptor& aFile);
-  mozilla::ipc::IPCResult RecvSaveCloudRecording(const nsAString& aUUID);
+  mozilla::ipc::IPCResult RecvFinishRecording();
 
   mozilla::ipc::IPCResult RecvCrossProcessRedirect(
       RedirectToRealChannelArgs&& aArgs,

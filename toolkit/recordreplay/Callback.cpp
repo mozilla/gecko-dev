@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Callback.h"
-
 #include "ipc/ChildInternal.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/RecordReplay.h"

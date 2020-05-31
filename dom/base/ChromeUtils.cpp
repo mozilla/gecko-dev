@@ -1191,46 +1191,6 @@ void ChromeUtils::SetCloudReplayStatusCallback(const GlobalObject& aGlobal,
   recordreplay::parent::SetCloudReplayStatusCallback(aCallback);
 }
 
-/* static */
-void ChromeUtils::RecordReplayLog(const GlobalObject& aGlobal,
-                                  const nsAString& aText) {
-  if (XRE_IsParentProcess() ||
-      recordreplay::IsMiddleman() ||
-      recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::parent::AddToLog(aText);
-  }
-}
-
-/* static */
-double ChromeUtils::RecordReplayElapsedTime(const GlobalObject& aGlobal) {
-  return recordreplay::parent::ElapsedTime();
-}
-
-/* static */
-void ChromeUtils::RecordReplayRegisterConnectionWorker(const GlobalObject& aGlobal,
-                                                       JS::HandleObject aSendCallback) {
-  recordreplay::parent::RegisterConnectionWorker(aSendCallback);
-}
-
-/* static */
-void ChromeUtils::RecordReplayOnMessage(const GlobalObject& aGlobal,
-                                        long aId, JS::HandleObject aMessage) {
-  recordreplay::parent::OnCloudMessage(aId, aMessage);
-}
-
-/* static */
-void ChromeUtils::RecordReplayLog(const nsAString& aText) {
-  GlobalObject* global = nullptr;
-  if (NS_IsMainThread()) {
-    RecordReplayLog(*global, aText);
-  } else {
-    nsString text(aText);
-    NS_DispatchToMainThread(NS_NewRunnableFunction("RecordReplayLog", [=]() {
-          RecordReplayLog(*global, text);
-        }));
-  }
-}
-
 void ChromeUtils::GenerateMediaControlKeysTestEvent(
     const GlobalObject& aGlobal, MediaControlKeysTestEvent aEvent) {
   RefPtr<MediaControlService> service = MediaControlService::GetService();

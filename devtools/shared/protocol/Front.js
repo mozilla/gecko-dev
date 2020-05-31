@@ -14,8 +14,6 @@ var {
 } = require("devtools/shared/platform/stack");
 const defer = require("devtools/shared/defer");
 
-let gNextPacketId = 1;
-
 /**
  * Base class for client-side actor fronts.
  *
@@ -72,7 +70,6 @@ class Front extends Pool {
     super.destroy();
     this.clearEvents();
     this.actorID = null;
-    this.destroyStack = Error().stack;
     this.targetFront = null;
     this.parentFront = null;
     this._frontCreationListeners = null;
@@ -225,22 +222,14 @@ class Front extends Pool {
    * Send a two-way request on the connection.
    */
   request(packet) {
-    const packetId = gNextPacketId++;
-    packet.packetId = packetId;
-
-    //dump(`SEND_REQUEST ${this.actorID} ${JSON.stringify(packet)}\n`);
-
     const deferred = defer();
     // Save packet basics for debugging
     const { to, type } = packet;
     this._requests.push({
       deferred,
       to: to || this.actorID,
-      packetId,
       type,
       stack: getStack(),
-      stackTrace: Error().stack,
-      response: null,
     });
     this.send(packet);
     return deferred.promise;
@@ -250,8 +239,6 @@ class Front extends Pool {
    * Handler for incoming packets from the client's actor.
    */
   onPacket(packet) {
-    //dump(`ON_PACKET ${JSON.stringify(packet)}\n`);
-
     // Pick off event packets
     const type = packet.type || undefined;
     if (this._clientSpec.events && this._clientSpec.events.has(type)) {
@@ -285,53 +272,34 @@ class Front extends Pool {
     }
 
     // Remaining packets must be responses.
-
-    if (!packet.packetId) {
-      this.throwError(`Packet missing ID ${this.actorID} ${JSON.stringify(packet)}`);
+    if (this._requests.length === 0) {
+      const msg =
+        "Unexpected packet " + this.actorID + ", " + JSON.stringify(packet);
+      const err = Error(msg);
+      console.error(err);
+      throw err;
     }
 
-    let found;
-    for (let i = 0; i < this._requests.length; i++) {
-      if (this._requests[i].packetId == packet.packetId) {
-        if (found) {
-          this.throwError(`Duplicate packet response`);
-        }
-        found = true;
-        this._requests[i].response = packet;
-      }
-    }
-    if (!found) {
-      this.throwError(`Unknown packet ID`);
-    }
-
-    while (this._requests.length && this._requests[0].response) {
-      const { deferred, stack, stackTrace, response } = this._requests.shift();
-      callFunctionWithAsyncStack(
-        () => {
-          if (response.error) {
-            let message;
-            if (response.error && response.message) {
-              message =
-                "Protocol error (" + response.error + "): " + response.message;
-            } else {
-              message = response.error;
-            }
-            const packetError = new Error(message + " " + stackTrace);
-            deferred.reject(packetError);
+    const { deferred, stack } = this._requests.shift();
+    callFunctionWithAsyncStack(
+      () => {
+        if (packet.error) {
+          let message;
+          if (packet.error && packet.message) {
+            message =
+              "Protocol error (" + packet.error + "): " + packet.message;
           } else {
-            deferred.resolve(response);
+            message = packet.error;
           }
-        },
-        stack,
-        "DevTools RDP"
-      );
-    }
-  }
-
-  throwError(msg) {
-    const error = new Error(msg);
-    console.error(error);
-    throw error;
+          const packetError = new Error(message);
+          deferred.reject(packetError);
+        } else {
+          deferred.resolve(packet);
+        }
+      },
+      stack,
+      "DevTools RDP"
+    );
   }
 
   hasRequests() {

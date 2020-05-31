@@ -55,50 +55,9 @@ void ChildProcessInfo::OnIncomingMessage(const Message& aMsg, double aDelay) {
       OnCrash(nmsg.mForkId, nmsg.Error());
       return;
     }
-    case MessageType::CriticalError: {
-      const auto& nmsg = static_cast<const CriticalErrorMessage&>(aMsg);
-      js::OnCriticalError(nmsg.Error());
-      return;
-    }
     case MessageType::Paint:
       UpdateGraphicsAfterPaint(static_cast<const PaintMessage&>(aMsg));
       break;
-    case MessageType::ManifestFinished: {
-      const auto& nmsg = static_cast<const ManifestFinishedMessage&>(aMsg);
-      js::ForwardManifestFinished(this, nmsg, aDelay);
-      break;
-    }
-    case MessageType::UnhandledDivergence: {
-      const auto& nmsg = static_cast<const UnhandledDivergenceMessage&>(aMsg);
-      js::ForwardUnhandledDivergence(this, nmsg);
-      break;
-    }
-    case MessageType::PingResponse: {
-      const auto& nmsg = static_cast<const PingResponseMessage&>(aMsg);
-      js::ForwardPingResponse(this, nmsg);
-      break;
-    }
-    case MessageType::ExternalCallRequest: {
-      const auto& nmsg = static_cast<const ExternalCallRequestMessage&>(aMsg);
-      InfallibleVector<char> outputData;
-      ProcessExternalCall(nmsg.BinaryData(), nmsg.BinaryDataSize(),
-                          &outputData);
-      Message::UniquePtr response(ExternalCallResponseMessage::New(
-          nmsg.mForkId, nmsg.mTag, outputData.begin(), outputData.length()));
-      SendMessage(std::move(*response));
-      break;
-    }
-    case MessageType::RecordingData: {
-      const auto& msg = static_cast<const RecordingDataMessage&>(aMsg);
-      MOZ_RELEASE_ASSERT(msg.mTag == gRecordingContents.length());
-      gRecordingContents.append(msg.BinaryData(), msg.BinaryDataSize());
-      break;
-    }
-    case MessageType::LogText: {
-      const auto& nmsg = static_cast<const LogTextMessage&>(aMsg);
-      AddToLog(NS_ConvertUTF8toUTF16(nsCString(nmsg.BinaryData())), false);
-      break;
-    }
     default:
       break;
   }
@@ -142,55 +101,33 @@ void ChildProcessInfo::LaunchSubprocess(
     const Maybe<RecordingProcessData>& aRecordingProcessData,
     size_t aInitialReplayingLength) {
   MOZ_RELEASE_ASSERT(IsRecording() == aRecordingProcessData.isSome());
+  MOZ_RELEASE_ASSERT(IsRecording());
 
   MOZ_RELEASE_ASSERT(gIntroductionMessage);
   SendMessage(std::move(*gIntroductionMessage));
 
-  if (gLoggingEnabled) {
-    SendMessage(EnableLoggingMessage());
+  std::vector<std::string> extraArgs;
+  GetArgumentsForChildProcess(base::GetCurrentProcId(), aChannelId,
+                              gRecordingFilename, /* aRecording = */ true,
+                              extraArgs);
+
+  MOZ_RELEASE_ASSERT(!gRecordingProcess);
+  gRecordingProcess = new ipc::GeckoChildProcessHost(GeckoProcessType_Content);
+
+  // Preferences data is conveyed to the recording process via fixed file
+  // descriptors on macOS.
+  gRecordingProcess->AddFdToRemap(aRecordingProcessData.ref().mPrefsHandle.fd,
+                                  kPrefsFileDescriptor);
+  ipc::FileDescriptor::UniquePlatformHandle prefMapHandle =
+    aRecordingProcessData.ref().mPrefMapHandle.ClonePlatformHandle();
+  gRecordingProcess->AddFdToRemap(prefMapHandle.get(),
+                                  kPrefMapFileDescriptor);
+
+  if (!gRecordingProcess->LaunchAndWaitForProcessHandle(extraArgs)) {
+    MOZ_CRASH("ChildProcessInfo::LaunchSubprocess");
   }
 
-  if (IsRecording()) {
-    std::vector<std::string> extraArgs;
-    GetArgumentsForChildProcess(base::GetCurrentProcId(), aChannelId,
-                                gRecordingFilename, /* aRecording = */ true,
-                                extraArgs);
-
-    MOZ_RELEASE_ASSERT(!gRecordingProcess);
-    gRecordingProcess =
-        new ipc::GeckoChildProcessHost(GeckoProcessType_Content);
-
-    // Preferences data is conveyed to the recording process via fixed file
-    // descriptors on macOS.
-    gRecordingProcess->AddFdToRemap(aRecordingProcessData.ref().mPrefsHandle.fd,
-                                    kPrefsFileDescriptor);
-    ipc::FileDescriptor::UniquePlatformHandle prefMapHandle =
-        aRecordingProcessData.ref().mPrefMapHandle.ClonePlatformHandle();
-    gRecordingProcess->AddFdToRemap(prefMapHandle.get(),
-                                    kPrefMapFileDescriptor);
-
-    if (!gRecordingProcess->LaunchAndWaitForProcessHandle(extraArgs)) {
-      MOZ_CRASH("ChildProcessInfo::LaunchSubprocess");
-    }
-
-    SendGraphicsMemoryToChild();
-  } else {
-    UniquePtr<Message> jsmsg(ReplayJSMessage::New(
-        0, 0, child::gReplayJS.BeginReading(), child::gReplayJS.Length()));
-    SendMessage(std::move(*jsmsg));
-    if (gRecordingContents.length()) {
-      if (!aInitialReplayingLength) {
-        aInitialReplayingLength = gRecordingContents.length();
-      }
-      UniquePtr<Message> msg(RecordingDataMessage::New(
-          0, 0, gRecordingContents.begin(), aInitialReplayingLength));
-      SendMessage(std::move(*msg));
-    } else {
-      MOZ_RELEASE_ASSERT(!aInitialReplayingLength);
-      SendMessage(FetchCloudRecordingDataMessage());
-    }
-    dom::ContentChild::GetSingleton()->SendCreateReplayingProcess(aChannelId);
-  }
+  SendGraphicsMemoryToChild();
 }
 
 void ChildProcessInfo::OnCrash(size_t aForkId, const char* aWhy) {
@@ -200,23 +137,8 @@ void ChildProcessInfo::OnCrash(size_t aForkId, const char* aWhy) {
   CrashReporter::AnnotateCrashReport(
       CrashReporter::Annotation::RecordReplayError, nsAutoCString(aWhy));
 
-  if (IsRecording()) {
-    // Shut down cleanly so that we don't mask the report with our own crash.
-    Shutdown();
-  }
-
-  if (!UseCloudForReplayingProcesses()) {
-    // Notify the parent when a replaying process crashes so that a report can
-    // be generated.
-    dom::ContentChild::GetSingleton()->SendGenerateReplayCrashReport(GetId());
-  }
-
-  // Continue execution if we were able to recover from the crash.
-  if (js::RecoverFromCrash(GetId(), aForkId)) {
-    return;
-  }
-
-  MOZ_CRASH("Crash recovery failed");
+  // Shut down cleanly so that we don't mask the report with our own crash.
+  Shutdown();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -256,7 +178,7 @@ static Message::UniquePtr ExtractChildMessage(ChildProcessInfo** aProcess,
   }
 
   PendingMessage& pending = gPendingMessages[0];
-  *aProcess = GetChildProcess(pending.mChildId);
+  *aProcess = gRecordingChild;
   MOZ_RELEASE_ASSERT(*aProcess);
 
   *aDelay = ElapsedTime() - pending.mTime;

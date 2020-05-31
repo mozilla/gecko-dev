@@ -42,10 +42,8 @@ void InitRecordingOrReplayingProcess(int* aArgc, char*** aArgv);
 base::ProcessId MiddlemanProcessId();
 base::ProcessId ParentProcessId();
 
-// This will be used in both the middleman and child processes.
-void SetWebReplayJS(const nsCString& aControlJS, const nsCString& aReplayJS);
-
-void PrintToLog(const nsAString& aText);
+// Flush the recording and send a description to the UI process.
+void FinishRecording();
 
 ///////////////////////////////////////////////////////////////////////////////
 // Painting Coordination

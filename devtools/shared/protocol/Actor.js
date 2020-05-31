@@ -7,11 +7,6 @@
 const { extend } = require("devtools/shared/extend");
 var { Pool } = require("devtools/shared/protocol/Pool");
 
-let ReplayDebugger;
-if (isReplaying) {
-  ReplayDebugger = require("RecordReplayControl").module.ReplayDebugger;
-}
-
 /**
  * Keep track of which actorSpecs have been created. If a replica of a spec
  * is created, it can be caught, and specs which inherit from other specs will
@@ -100,7 +95,6 @@ class Actor extends Pool {
     if (error.stack) {
       console.error(error.stack);
     }
-    require("ChromeUtils").recordReplayLog(`ActorError ${error.message} ${error.stack}`);
     this.conn.send({
       from: this.actorID,
       error: error.error || "unknownError",
@@ -167,19 +161,12 @@ var generateRequestHandlers = function(actorSpec, actorProto) {
 
           let response;
           try {
-            if (isReplaying) {
-              ReplayDebugger.setCurrentProtocolResponse(`${actorSpec.typeName}.${packet.type}`);
-            }
             response = spec.response.write(retToSend, this);
-            if (isReplaying) {
-              ReplayDebugger.setCurrentProtocolResponse(null);
-            }
           } catch (ex) {
             console.error("Error writing response to: " + spec.name);
             throw ex;
           }
           response.from = this.actorID;
-          response.packetId = packet.packetId;
           // If spec.release has been specified, destroy the object.
           if (spec.release) {
             try {

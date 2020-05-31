@@ -4,13 +4,7 @@
 
 // @flow
 
-import {
-  getSelectedFrame,
-  getThreadContext,
-  getThreadExecutionPoint,
-  getCurrentThread,
-  getSource,
-} from "../../selectors";
+import { getSelectedFrame, getThreadContext } from "../../selectors";
 import { PROMISE } from "../utils/middleware/promise";
 import { evaluateExpressions } from "../expressions";
 import { selectLocation } from "../sources";
@@ -18,11 +12,6 @@ import { fetchScopes } from "./fetchScopes";
 import { fetchFrames } from "./fetchFrames";
 import { recordEvent } from "../../utils/telemetry";
 import assert from "../../utils/assert";
-
-import { mapFrames } from ".";
-import { generateInlinePreview } from "./inlinePreview";
-import { mapScopes } from "./mapScopes";
-import { setFramePositions } from "./setFramePositions";
 
 import type {
   ThreadId,
@@ -63,22 +52,8 @@ export function selectThread(cx: Context, thread: ThreadId) {
  * @static
  */
 export function command(cx: ThreadContext, type: Command) {
-  return async (thunkArgs: ThunkArgs) => {
-    const { dispatch, getState, client } = thunkArgs;
-    ChromeUtils.recordReplayLog(`Debugger CommandStart ${type}`);
-
-    const thread = getCurrentThread(getState());
-    const point = getThreadExecutionPoint(getState(), thread);
-
-    const instantInfo = client.eventMethods.canInstantStep(point, type);
-    if (instantInfo) {
-      return doInstantStep(thunkArgs, instantInfo);
-    }
-
+  return async ({ dispatch, getState, client }: ThunkArgs) => {
     if (type) {
-      if (type == "resume" || type == "rewind") {
-        dispatch({ type: "CLEAR_FRAME_POSITIONS" });
-      }
       return dispatch({
         type: "COMMAND",
         command: type,
@@ -88,65 +63,6 @@ export function command(cx: ThreadContext, type: Command) {
       });
     }
   };
-}
-
-async function doInstantStep({ dispatch, getState, client }, instantInfo) {
-  ChromeUtils.recordReplayLog(`Debugger InstantStep`);
-
-  const why = { type: "replayForcedPause" };
-  const { executionPoint, frames, environment } = instantInfo;
-  client.instantWarp(executionPoint);
-
-  const thread = getCurrentThread(getState());
-
-  const updates = [];
-  const batch = { type: "BATCH", updates };
-
-  updates.push({ type: "RESUME", thread, wasStepping: true });
-  updates.push({ type: "PAUSED", thread, why, executionPoint });
-
-  const frame = frames[0];
-  updates.push({ type: "FETCHED_FRAMES", thread, frames });
-
-  updates.push({
-    type: "ADD_SCOPES",
-    thread,
-    frame,
-    status: "done",
-    value: environment,
-  });
-
-  let mappedLocation = client.eventMethods.maybeMappedLocation(frame.location);
-
-  if (mappedLocation) {
-    const source = getSource(getState(), mappedLocation.sourceId);
-    if (source) {
-      updates.push({
-        type: "SET_SELECTED_LOCATION",
-        source,
-        location: mappedLocation,
-      });
-    }
-  }
-
-  dispatch(batch);
-
-  const cx = getThreadContext(getState());
-
-  if (mappedLocation) {
-    dispatch(mapFrames(cx)).then(() => dispatch(setFramePositions()));
-  } else {
-    ChromeUtils.recordReplayLog(`Debugger InstantStep WaitingForMapFrames`);
-    await dispatch(mapFrames(cx));
-    dispatch(setFramePositions());
-    mappedLocation = getSelectedFrame(getState(), thread).location;
-  }
-
-  dispatch(selectLocation(cx, mappedLocation));
-
-  dispatch(generateInlinePreview(cx, frame.id, mappedLocation));
-  await dispatch(mapScopes(cx, environment, frame));
-  await dispatch(evaluateExpressions(cx));
 }
 
 export function seekToPosition(position: ExecutionPoint) {
@@ -215,34 +131,6 @@ export function resume(cx: ThreadContext) {
     if (cx.isPaused) {
       recordEvent("continue");
       return dispatch(command(cx, "resume"));
-    }
-  };
-}
-
-/**
- * rewind
- * @memberof actions/pause
- * @static
- * @returns {Function} {@link command}
- */
-export function rewind(cx: ThreadContext) {
-  return ({ dispatch, getState }: ThunkArgs) => {
-    if (cx.isPaused) {
-      return dispatch(command(cx, "rewind"));
-    }
-  };
-}
-
-/**
- * reverseStepOver
- * @memberof actions/pause
- * @static
- * @returns {Function} {@link command}
- */
-export function reverseStepOver(cx: ThreadContext) {
-  return ({ dispatch, getState }: ThunkArgs) => {
-    if (cx.isPaused) {
-      return dispatch(command(cx, "reverseStepOver"));
     }
   };
 }

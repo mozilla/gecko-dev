@@ -78,10 +78,6 @@ function update(state: ASTState = initialASTState(), action: Action): ASTState {
       return initialASTState();
     }
 
-    case "BATCH":
-      action.updates.forEach(u => (state = update(state, u)));
-      return state;
-
     default: {
       return state;
     }

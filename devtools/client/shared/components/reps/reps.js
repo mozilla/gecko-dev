@@ -3990,15 +3990,11 @@ function loadItemProperties(item, client, loadedProperties) {
 
   if (!front && value && client && client.getFrontByID) {
     front = client.getFrontByID(value.actor);
-    if (front) {
-      front.beginLoadProperties();
-    }
   }
 
   const getObjectFront = function () {
     if (!front) {
       front = client.createObjectFront(value);
-      front.beginLoadProperties();
     }
 
     return front;
@@ -4028,21 +4024,15 @@ function loadItemProperties(item, client, loadedProperties) {
   }
 
   if (shouldLoadItemFullText(item, loadedProperties)) {
-    // FIXME the debugger does not implement createLongStringFront.
-    //const longStringFront = front || client.createLongStringFront(value);
-    //promises.push(getFullText(longStringFront, item));
+    const longStringFront = front || client.createLongStringFront(value);
+    promises.push(getFullText(longStringFront, item));
   }
 
   if (shouldLoadItemProxySlots(item, loadedProperties)) {
     promises.push(getProxySlots(getObjectFront()));
   }
 
-  return Promise.all(promises).then(responses => {
-    if (front) {
-      front.endLoadProperties();
-    }
-    return mergeResponses(responses);
-  });
+  return Promise.all(promises).then(mergeResponses);
 }
 
 function mergeResponses(responses) {

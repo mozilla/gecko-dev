@@ -28,8 +28,6 @@ import {
   getSourceFromId,
   getSkipPausing,
   shouldLogEventBreakpoints,
-  getCanRewind,
-  getFramesLoading,
 } from "../../selectors";
 
 import AccessibleImage from "../shared/AccessibleImage";
@@ -46,7 +44,6 @@ import XHRBreakpoints from "./XHRBreakpoints";
 import EventListeners from "./EventListeners";
 import DOMMutationBreakpoints from "./DOMMutationBreakpoints";
 import WhyPaused from "./WhyPaused";
-import FrameTimeline from "./FrameTimeline";
 
 import Scopes from "./Scopes";
 
@@ -94,7 +91,6 @@ type Props = {
   cx: ThreadContext,
   expressions: List<Expression>,
   hasFrames: boolean,
-  framesLoading: boolean,
   horizontal: boolean,
   breakpoints: Object,
   selectedFrame: ?Frame,
@@ -107,7 +103,6 @@ type Props = {
   workers: ThreadList,
   skipPausing: boolean,
   logEventBreakpoints: boolean,
-  canRewind: boolean,
   source: ?Source,
   toggleAllBreakpoints: typeof actions.toggleAllBreakpoints,
   toggleMapScopes: typeof actions.toggleMapScopes,
@@ -287,7 +282,7 @@ class SecondaryPanes extends Component<Props, State> {
   }
 
   getEventButtons() {
-    const { logEventBreakpoints, canRewind } = this.props;
+    const { logEventBreakpoints } = this.props;
     return [
       <div key="events-buttons">
         <label
@@ -297,10 +292,9 @@ class SecondaryPanes extends Component<Props, State> {
         >
           <input
             type="checkbox"
-            checked={(canRewind || logEventBreakpoints) ? "checked" : ""}
+            checked={logEventBreakpoints ? "checked" : ""}
             onChange={e => this.props.toggleEventLogging()}
             onKeyDown={e => e.stopPropagation()}
-            disabled={canRewind}
           />
           {L10N.getStr("eventlisteners.log")}
         </label>
@@ -421,7 +415,7 @@ class SecondaryPanes extends Component<Props, State> {
 
   getStartItems(): AccordionPaneItem[] {
     const items: AccordionPaneItem[] = [];
-    const { horizontal, hasFrames, framesLoading, canRewind } = this.props;
+    const { horizontal, hasFrames } = this.props;
 
     if (horizontal) {
       if (features.workers && this.props.workers.length > 0) {
@@ -438,11 +432,9 @@ class SecondaryPanes extends Component<Props, State> {
       if (horizontal) {
         items.push(this.getScopeItem());
       }
-    } else if (framesLoading) {
-      items.push(this.getCallStackItem());
     }
 
-    if (features.xhrBreakpoints && !canRewind) {
+    if (features.xhrBreakpoints) {
       items.push(this.getXHRItem());
     }
 
@@ -450,7 +442,7 @@ class SecondaryPanes extends Component<Props, State> {
       items.push(this.getEventListenersItem());
     }
 
-    if (features.domMutationBreakpoints && !canRewind) {
+    if (features.domMutationBreakpoints) {
       items.push(this.getDOMMutationsItem());
     }
 
@@ -514,7 +506,6 @@ class SecondaryPanes extends Component<Props, State> {
     return (
       <div className="secondary-panes-wrapper">
         <CommandBar horizontal={this.props.horizontal} />
-        <FrameTimeline />
         <div
           className={classnames(
             "secondary-panes",
@@ -550,7 +541,6 @@ const mapStateToProps = state => {
     cx: getThreadContext(state),
     expressions: getExpressions(state),
     hasFrames: !!getTopFrame(state, thread),
-    framesLoading: getFramesLoading(state, thread),
     breakpoints: getBreakpointsList(state),
     breakpointsDisabled: getBreakpointsDisabled(state),
     isWaitingOnBreak: getIsWaitingOnBreak(state, thread),
@@ -564,7 +554,6 @@ const mapStateToProps = state => {
     logEventBreakpoints: shouldLogEventBreakpoints(state),
     source:
       selectedFrame && getSourceFromId(state, selectedFrame.location.sourceId),
-    canRewind: getCanRewind(state),
   };
 };
 

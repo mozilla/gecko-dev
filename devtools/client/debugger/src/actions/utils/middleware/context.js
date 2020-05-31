@@ -23,26 +23,6 @@ function validateActionContext(getState, action) {
   validateContext(getState(), action.cx);
 }
 
-function actionLogData(action) {
-  switch (action.type) {
-    case "COMMAND":
-      return " " + action.command;
-    case "PAUSED":
-      return " " + JSON.stringify(action.executionPoint);
-  }
-  return "";
-}
-
-function logAction(action) {
-  if (action.type == "BATCH") {
-    action.updates.forEach(logAction);
-  } else {
-    const data = actionLogData(action);
-    const status = action.status ? ` [${action.status}]` : "";
-    ChromeUtils.recordReplayLog(`Debugger ${action.type}${data}${status}`);
-  }
-}
-
 // Middleware which looks for actions that have a cx property and ignores
 // them if the context is no longer valid.
 function context({ dispatch, getState }: ThunkArgs) {
@@ -50,9 +30,6 @@ function context({ dispatch, getState }: ThunkArgs) {
     if ("cx" in action) {
       validateActionContext(getState, action);
     }
-
-    logAction(action);
-
     return next(action);
   };
 }

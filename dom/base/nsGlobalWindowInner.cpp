@@ -271,6 +271,14 @@ using mozilla::TimeDuration;
 using mozilla::TimeStamp;
 using mozilla::dom::cache::CacheStorage;
 
+namespace mozilla {
+  namespace recordreplay {
+    namespace js {
+      void OnTestCommand(const char* aString);
+    }
+  }
+}
+
 #define FORWARD_TO_OUTER(method, args, err_rval)                     \
   PR_BEGIN_MACRO                                                     \
   nsGlobalWindowOuter* outer = GetOuterWindowInternal();             \
@@ -3409,6 +3417,15 @@ void nsGlobalWindowInner::Dump(const nsAString& aStr) {
   }
 
   char* cstr = ToNewUTF8String(aStr);
+
+  // dump() is used for SpecialPowers-like functionality in Web Replay local tests.
+  if (!strncmp(cstr, "WebReplay", 9)) {
+    char* env = getenv("WEBREPLAY_LOCAL_TEST");
+    if (env) {
+      recordreplay::js::OnTestCommand(cstr);
+      return;
+    }
+  }
 
 #if defined(XP_MACOSX)
   // have to convert \r to \n so that printing to the console works

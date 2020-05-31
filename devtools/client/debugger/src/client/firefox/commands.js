@@ -6,7 +6,7 @@
 
 import { prepareSourcePayload, createThread, createFrame } from "./create";
 import { updateTargets } from "./targets";
-import { clientEvents, eventMethods } from "./events";
+import { clientEvents } from "./events";
 
 import Reps from "devtools-reps";
 import type { Node } from "devtools-reps";
@@ -48,7 +48,6 @@ let devToolsClient: DevToolsClient;
 let sourceActors: { [ActorId]: SourceId };
 let breakpoints: { [string]: Object };
 let eventBreakpoints: ?EventListenerActiveList;
-let eventBreakpointsLogGroupId;
 
 const CALL_STACK_PAGE_SIZE = 1000;
 
@@ -89,10 +88,6 @@ async function loadObjectProperties(root: Node) {
 }
 
 function releaseActor(actor: String) {
-  // Object fronts are always thread scoped with web replay.
-  return;
-
-  /*
   if (!actor) {
     return;
   }
@@ -101,7 +96,6 @@ function releaseActor(actor: String) {
   if (objFront) {
     return objFront.release().catch(() => {});
   }
-  */
 }
 
 function sendPacket(packet: Object) {
@@ -168,14 +162,6 @@ function stepOut(thread: string): Promise<*> {
   return lookupThreadFront(thread).stepOut();
 }
 
-function rewind(thread: string): Promise<*> {
-  return lookupThreadFront(thread).rewind();
-}
-
-function reverseStepOver(thread: string): Promise<*> {
-  return lookupThreadFront(thread).reverseStepOver();
-}
-
 function breakOnNext(thread: string): Promise<*> {
   return lookupThreadFront(thread).breakOnNext();
 }
@@ -226,33 +212,6 @@ function locationKey(location: BreakpointLocation) {
   return `${sourceUrl}:${sourceId}:${line}:${column}`;
 }
 
-function newLogGroupId() {
-  return `logGroup-${Math.random()}`;
-}
-
-function maybeGenerateLogGroupId(options) {
-  if (
-    options.logValue &&
-    currentTarget.traits &&
-    currentTarget.traits.canRewind
-  ) {
-    return { ...options, logGroupId: newLogGroupId() };
-  }
-  return options;
-}
-
-async function clearLogGroupId(id) {
-  const consoleFront = await currentTarget.getFront("console");
-  consoleFront.emit("clearLogpointMessages", id);
-}
-
-function maybeClearLogpoint(location: BreakpointLocation) {
-  const bp = breakpoints[locationKey(location)];
-  if (bp && bp.options.logGroupId && currentTarget) {
-    clearLogGroupId(bp.options.logGroupId);
-  }
-}
-
 function hasBreakpoint(location: BreakpointLocation) {
   return !!breakpoints[locationKey(location)];
 }
@@ -261,15 +220,12 @@ function setBreakpoint(
   location: BreakpointLocation,
   options: BreakpointOptions
 ) {
-  maybeClearLogpoint(location);
-  options = maybeGenerateLogGroupId(options);
   breakpoints[locationKey(location)] = { location, options };
 
   return forEachThread(thread => thread.setBreakpoint(location, options));
 }
 
 function removeBreakpoint(location: PendingLocation) {
-  maybeClearLogpoint((location: any));
   delete breakpoints[locationKey((location: any))];
 
   return forEachThread(thread => thread.removeBreakpoint(location));
@@ -359,7 +315,8 @@ async function getFrames(thread: string) {
 }
 
 async function getFrameScopes(frame: Frame): Promise<*> {
-  return lookupThreadFront(frame.thread).getEnvironment(frame.id);
+  const frameFront = lookupThreadFront(frame.thread).get(frame.id);
+  return frameFront.getEnvironment();
 }
 
 function pauseOnExceptions(
@@ -398,14 +355,9 @@ function interrupt(thread: string): Promise<*> {
 }
 
 function setEventListenerBreakpoints(ids: string[]) {
-  if (eventBreakpointsLogGroupId) {
-    clearLogGroupId(eventBreakpointsLogGroupId);
-  }
-
   eventBreakpoints = ids;
-  eventBreakpointsLogGroupId = newLogGroupId();
 
-  return forEachThread(thread => thread.setActiveEventBreakpoints(ids, eventBreakpointsLogGroupId));
+  return forEachThread(thread => thread.setActiveEventBreakpoints(ids));
 }
 
 // eslint-disable-next-line
@@ -435,7 +387,6 @@ function pauseGrip(thread: string, func: Function): ObjectFront {
 
 function registerSourceActor(sourceActorId: string, sourceId: SourceId) {
   sourceActors[sourceActorId] = sourceId;
-  eventMethods.onSourceActorRegister(sourceActorId);
 }
 
 async function getSources(
@@ -498,7 +449,6 @@ async function fetchThreads() {
   const options = {
     breakpoints,
     eventBreakpoints,
-    eventBreakpointsLogGroupId,
     observeAsmJS: true,
   };
 
@@ -563,17 +513,8 @@ function timeWarp(position: ExecutionPoint) {
   currentThreadFront.timeWarp(position);
 }
 
-function instantWarp(point: ExecutionPoint) {
-  currentThreadFront.instantWarp(point);
-  currentThreadFront.emit("instantWarp", { executionPoint: point });
-}
-
 function fetchAncestorFramePositions(index: number) {
-  return currentThreadFront.fetchAncestorFramePositions(index);
-}
-
-function pickExecutionPoints(count: number, options) {
-  return currentThreadFront.pickExecutionPoints(count, options);
+  currentThreadFront.fetchAncestorFramePositions(index);
 }
 
 const clientCommands = {
@@ -588,8 +529,6 @@ const clientCommands = {
   stepIn,
   stepOut,
   stepOver,
-  rewind,
-  reverseStepOver,
   breakOnNext,
   sourceContents,
   getSourceForActor,
@@ -625,10 +564,7 @@ const clientCommands = {
   lookupTarget,
   getFrontByID,
   timeWarp,
-  instantWarp,
   fetchAncestorFramePositions,
-  pickExecutionPoints,
-  eventMethods,
 };
 
 export { setupCommands, setupCommandsTopTarget, clientCommands };

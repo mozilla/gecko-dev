@@ -17,7 +17,6 @@ export class ParserDispatcher extends WorkerDispatcher {
     sourceId: string,
     position: AstPosition
   ): Promise<AstLocation[]> {
-    ChromeUtils.recordReplayLog(`WorkerDispatch Parser findOutOfScopeLocations`);
     return this.invoke("findOutOfScopeLocations", sourceId, position);
   }
 
@@ -25,22 +24,18 @@ export class ParserDispatcher extends WorkerDispatcher {
     sourceId: SourceId,
     pausedPosition: AstPosition
   ): Promise<?SourceLocation> {
-    ChromeUtils.recordReplayLog(`WorkerDispatch Parser getNextStep`);
     return this.invoke("getNextStep", sourceId, pausedPosition);
   }
 
   async clearState(): Promise<void> {
-    ChromeUtils.recordReplayLog(`WorkerDispatch Parser clearState`);
     return this.invoke("clearState");
   }
 
   async getScopes(location: SourceLocation): Promise<SourceScope[]> {
-    ChromeUtils.recordReplayLog(`WorkerDispatch Parser getScopes`);
     return this.invoke("getScopes", location);
   }
 
   async getSymbols(sourceId: string): Promise<SymbolDeclarations> {
-    ChromeUtils.recordReplayLog(`WorkerDispatch Parser getSymbols`);
     return this.invoke("getSymbols", sourceId);
   }
 
@@ -52,12 +47,10 @@ export class ParserDispatcher extends WorkerDispatcher {
       isWasm: content.type === "wasm",
     };
 
-    ChromeUtils.recordReplayLog(`WorkerDispatch Parser setSource`);
     return this.invoke("setSource", astSource);
   }
 
   async hasSyntaxError(input: string): Promise<string | false> {
-    ChromeUtils.recordReplayLog(`WorkerDispatch Parser hasSyntaxError`);
     return this.invoke("hasSyntaxError", input);
   }
 
@@ -70,7 +63,6 @@ export class ParserDispatcher extends WorkerDispatcher {
     shouldMapBindings?: boolean,
     shouldMapAwait?: boolean
   ): Promise<{ expression: string }> {
-    ChromeUtils.recordReplayLog(`WorkerDispatch Parser mapExpression`);
     return this.invoke(
       "mapExpression",
       expression,

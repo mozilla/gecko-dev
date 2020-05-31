@@ -29,17 +29,20 @@ loader.lazyRequireGetter(
 exports.setIgnoreLayoutChanges = (...args) =>
   this.setIgnoreLayoutChanges(...args);
 
-const { ReplayInspector } = require("RecordReplayControl").module;
-
 /**
  * Returns the `DOMWindowUtils` for the window given.
  *
  * @param {DOMWindow} win
  * @returns {DOMWindowUtils}
  */
+const utilsCache = new WeakMap();
 function utilsFor(win) {
-  // N.B. utils cache is not valid to use when replaying and has been removed.
-  return win.windowUtils;
+  // XXXbz Given that we now have a direct getter for the DOMWindowUtils, is
+  // this weakmap cache path any faster than just calling the getter?
+  if (!utilsCache.has(win)) {
+    utilsCache.set(win, win.windowUtils);
+  }
+  return utilsCache.get(win);
 }
 
 /**
@@ -640,13 +643,6 @@ exports.getViewportDimensions = getViewportDimensions;
  * @return {DOMWindow}
  */
 function getWindowFor(node) {
-  // Check if we are replaying, as the tests below don't work when inspecting
-  // nodes in another process.
-  if (isReplaying) {
-    // Multiple windows are not supported yet when replaying, so return the
-    // global window.
-    return ReplayInspector.window;
-  }
   if (Node.isInstance(node)) {
     if (node.nodeType === node.DOCUMENT_NODE) {
       return node.defaultView;

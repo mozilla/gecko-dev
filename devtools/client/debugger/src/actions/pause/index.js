@@ -15,8 +15,6 @@ export {
   stepOver,
   stepOut,
   resume,
-  rewind,
-  reverseStepOver,
   seekToPosition,
 } from "./commands";
 export { fetchFrames } from "./fetchFrames";
@@ -33,5 +31,8 @@ export { toggleMapScopes } from "./mapScopes";
 export { setExpandedScope } from "./expandScopes";
 export { generateInlinePreview } from "./inlinePreview";
 export { highlightCalls, unhighlightCalls } from "./highlightCalls";
-export * from "./previewPausedLocation";
+export {
+  previewPausedLocation,
+  clearPreviewPausedLocation,
+} from "./previewPausedLocation";
 export { setFramePositions } from "./setFramePositions";

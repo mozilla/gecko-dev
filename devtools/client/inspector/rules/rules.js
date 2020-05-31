@@ -417,7 +417,6 @@ CssRuleView.prototype = {
       this.contentViewerFront = await this.currentTarget.getFront("emulation");
     }
 
-    /*
     if (!this.currentTarget.chrome) {
       this.printSimulationButton.removeAttribute("hidden");
       this.printSimulationButton.addEventListener(
@@ -425,7 +424,6 @@ CssRuleView.prototype = {
         this._onTogglePrintSimulation
       );
     }
-    */
 
     // Show the color scheme simulation toggle button if:
     // - The feature pref is enabled.

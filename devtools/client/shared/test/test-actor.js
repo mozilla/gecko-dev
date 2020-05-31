@@ -20,8 +20,6 @@ const {
   getCSSStyleRules,
 } = require("devtools/shared/inspector/css-logic");
 const InspectorUtils = require("InspectorUtils");
-const Debugger = require("Debugger");
-const { ReplayInspector } = require("RecordReplayControl").module;
 
 // Set up a dummy environment so that EventUtils works. We need to be careful to
 // pass a window object into each EventUtils method we call rather than having
@@ -305,11 +303,6 @@ var TestActor = (exports.TestActor = protocol.ActorClassWithSpec(testSpec, {
   },
 
   get content() {
-    // When replaying, the content window is in the replaying process. We can't
-    // use isReplaying here because this actor is loaded into its own sandbox.
-    if (Debugger.recordReplayProcessKind() == "Middleman") {
-      return ReplayInspector.window;
-    }
     return this.targetActor.window;
   },
 
@@ -508,13 +501,6 @@ var TestActor = (exports.TestActor = protocol.ActorClassWithSpec(testSpec, {
    * Get the window which mouse events on node should be delivered to.
    */
   windowForMouseEvent: function(node) {
-    // When replaying, the node is a proxy for an element in the replaying
-    // process. Use the window which the server is running against, which is
-    // able to receive events. We can't use isReplaying here because this actor
-    // is loaded into its own sandbox.
-    if (Debugger.recordReplayProcessKind() == "Middleman") {
-      return this.targetActor.window;
-    }
     return node.ownerDocument.defaultView;
   },
 

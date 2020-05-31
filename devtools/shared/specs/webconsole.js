@@ -154,7 +154,6 @@ const webconsoleSpecPrototype = {
         selectedObjectActor: Option(0, "string"),
         mapped: Option(0, "nullable:json"),
         eager: Option(0, "nullable:boolean"),
-        forConsoleMessage: Option(0, "nullable:boolean"),
       },
       response: RetVal("console.evaluatejsasync"),
     },

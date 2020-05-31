@@ -53,10 +53,11 @@ const threadSpec = generateActorSpec({
   events: {
     paused: {
       actor: Option(0, "nullable:string"),
-      frame: Option(0, "json"), // JSON instead of frame actor for same reason as TA.frames
+      frame: Option(0, "frame"),
       why: Option(0, "paused-reason"),
       poppedFrames: Option(0, "nullable:json"),
       error: Option(0, "nullable:json"),
+      recordingEndpoint: Option(0, "nullable:json"),
       executionPoint: Option(0, "nullable:json"),
     },
     resumed: {},
@@ -64,21 +65,6 @@ const threadSpec = generateActorSpec({
     willInterrupt: {},
     newSource: {
       source: Option(0, "json"),
-    },
-    replayStatusUpdate: {
-      status: Option(0, "json"),
-    },
-    replayTimeWarp: {
-      point: Option(0, "json"),
-    },
-    replayPaintFinished: {
-      point: Option(0, "json"),
-    },
-    replayPreloadedData: {
-      data: Option(0, "array:json"),
-    },
-    instantWarpPacket: {
-      packet: Option(0, "json"),
     },
   },
 
@@ -102,7 +88,6 @@ const threadSpec = generateActorSpec({
     resume: {
       request: {
         resumeLimit: Arg(0, "nullable:json"),
-        rewind: Arg(1, "boolean"),
       },
       response: RetVal("nullable:json"),
     },
@@ -111,9 +96,7 @@ const threadSpec = generateActorSpec({
         start: Arg(0, "number"),
         count: Arg(1, "number"),
       },
-      // Use a JSON return type for TA.frames, unlike Gecko, for consistency
-      // with the replay preloaded data.
-      response: RetVal("json"),
+      response: RetVal("thread.frames"),
     },
     interrupt: {
       request: {
@@ -130,21 +113,6 @@ const threadSpec = generateActorSpec({
       response: {
         skip: Arg(0, "json"),
       },
-    },
-    fetchAncestorFramePositions: {
-      request: {
-        index: Arg(0, "number"),
-      },
-      response: RetVal("json"),
-    },
-    replayInstantWarp: {
-      request: {
-        point: Option(0, "json"),
-      },
-    },
-    replayFetchStatus: {
-    },
-    replayFetchPreloadedData: {
     },
     dumpThread: {
       request: {},
@@ -192,7 +160,6 @@ const threadSpec = generateActorSpec({
     setActiveEventBreakpoints: {
       request: {
         ids: Arg(0, "array:string"),
-        logGroupId: Arg(1, "string"),
       },
     },
     pauseOnExceptions: {
@@ -202,60 +169,10 @@ const threadSpec = generateActorSpec({
       },
     },
 
-    paint: {
-      request: {
-        point: Arg(0, "json"),
-      },
-    },
-
-    paintCurrentPoint: {
-      request: {},
-    },
-
-    replayTriggerCrash: {
-      request: {
-        when: Arg(0, "string"),
-      },
-    },
-
     toggleEventLogging: {
       request: {
         logEventBreakpoints: Arg(0, "string"),
       },
-    },
-
-    getEnvironment: {
-      request: {
-        id: Arg(0, "string"),
-      },
-      response: {
-        value: RetVal("json"),
-      },
-    },
-
-    // For testing.
-    debuggerRequests: {
-      response: {
-        value: RetVal("array:json"),
-      },
-    },
-    pickExecutionPoints: {
-      request: {
-        count: Arg(0, "number"),
-        options: Arg(1, "json"),
-      },
-      response: {
-        points: RetVal("array:json"),
-      },
-    },
-
-    replayStatusUpdate: {
-      status: Option(0, "json"),
-    },
-    replayFramePositions: {
-      positions: Option(0, "array:json"),
-      frame: Option(0, "string"),
-      thread: Option(0, "string"),
     },
   },
 });

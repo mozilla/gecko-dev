@@ -128,7 +128,6 @@ const FlexboxActor = ActorClassWithSpec(flexboxSpec, {
       return [];
     }
 
-    log(`GetFlexItems ${this.containerEl} ${this.containerEl.getAsFlexContainer}`);
     const flex = this.containerEl.getAsFlexContainer();
     if (!flex) {
       return [];
@@ -486,7 +485,7 @@ const LayoutActor = ActorClassWithSpec(layoutSpec, {
    * @return {Array} An array of GridActor objects.
    */
   getGrids(node) {
-    if (isReplaying || isNodeDead(node)) {
+    if (isNodeDead(node)) {
       return [];
     }
 

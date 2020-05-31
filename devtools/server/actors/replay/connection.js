@@ -9,13 +9,14 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 const { setTimeout } = Components.utils.import('resource://gre/modules/Timer.jsm');
+const { onStartRecording, onFinishedRecording } =
+  ChromeUtils.import("resource:///modules/DevToolsStartup.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
 });
 
-// This file provides an interface for connecting middleman processes with
-// replaying processes living remotely in the cloud.
+// This interface connects to the cloud service and manages uploading recording data.
 
 // Worker which handles the sockets connecting to remote processes.
 let gWorker;
@@ -23,20 +24,8 @@ let gWorker;
 // Callbacks supplied on startup.
 let gCallbacks;
 
-// Next ID to use for a replaying process connection.
-let gNextConnectionId = 1;
-
-// Environment variables to send to any replayers we connect to. These will
-// not be set except during automated tests and when diagnosing errors.
-const EnvironmentVariables = [
-  "WEBREPLAY_VERBOSE", // Log all messages sent/received over sockets.
-  "WEBREPLAY_NO_TIMEOUT", // Disables timeouts throughout the system.
-  "WEBREPLAY_DUMP_EVENTS", // Log recent events on mismatches.
-  "WEBREPLAY_DUMP_CONTENT", // Log parsed content on mismatches.
-];
-
 // eslint-disable-next-line no-unused-vars
-function Initialize(address, callbacks) {
+function Initialize(callbacks) {
   gWorker = new Worker("connection-worker.js");
   gWorker.addEventListener("message", evt => {
     try {
@@ -47,116 +36,24 @@ function Initialize(address, callbacks) {
   });
   gCallbacks = callbacks;
 
-  const buildId = `macOS-${Services.appinfo.appBuildID}`;
-  const env = {};
-  for (const name of EnvironmentVariables) {
-    const value = getenv(name);
-    if (value) {
-      env[name] = value;
-    }
+  let address = Services.prefs.getStringPref("devtools.recordreplay.cloudServer");
+
+  const override = getenv("WEBREPLAY_SERVER");
+  if (override) {
+    address = override;
   }
 
-  gWorker.postMessage({ kind: "initialize", address, buildId, env });
+  const buildId = `macOS-${Services.appinfo.appBuildID}`;
+  gWorker.postMessage({ kind: "initialize", address, buildId });
 }
-
-// ID assigned to this browser session by the cloud server.
-let gSessionId;
 
 function onMessage(evt) {
   switch (evt.data.kind) {
     case "updateStatus":
       gCallbacks.updateStatus(evt.data.status);
       break;
-    case "loaded": {
-      let { sessionId, controlJS, replayJS, updateNeeded, updateWanted } = evt.data;
-
-      dump(`DispatcherSessionId ${sessionId}\n`);
-
-      gSessionId = sessionId;
-      flushOfflineLog();
-
-      if (updateNeeded) {
-        gCallbacks.updateStatus("cloudUpdateNeeded.label");
-      } else {
-        gCallbacks.updateStatus("");
-        gCallbacks.loadedJS(controlJS, replayJS);
-      }
-
-      if (updateNeeded || updateWanted) {
-        downloadUpdate(updateNeeded);
-      }
-      break;
-    }
-    case "connectionFailed":
-      Services.cpmm.sendAsyncMessage("RecordReplayCriticalError", { kind: "CloudSpawnError" });
-      break;
-    case "connected":
-      gCallbacks.onConnected(evt.data.id);
-      break;
-    case "disconnected":
-      gCallbacks.onDisconnected(evt.data.id);
-      break;
-    case "error":
-      if (evt.data.id) {
-        gCallbacks.onDisconnected(evt.data.id);
-      }
-      break;
-    case "logOffline":
-      addToOfflineLog(evt.data.text);
-      break;
-  }
-}
-
-// eslint-disable-next-line no-unused-vars
-function Connect(channelId) {
-  dump(`RecordReplayConnect\n`);
-  const id = gNextConnectionId++;
-  gWorker.postMessage({ kind: "connect", id, channelId });
-  return id;
-}
-
-// eslint-disable-next-line no-unused-vars
-function AddToLog(text) {
-  gWorker.postMessage({ kind: "log", text });
-}
-
-Services.ppmm.addMessageListener("RecordReplayMemoryUsage", {
-  receiveMessage(msg) {
-    const { logId, total, incomplete } = msg.data;
-    gWorker.postMessage({ kind: "memoryUsage", logId, total, incomplete });
-  },
-});
-
-let gAppUpdater;
-
-function downloadStatusListener(status, ...args) {
-  ChromeUtils.recordReplayLog(`DownloadStatus ${status}`);
-  switch (status) {
-    case AppUpdater.STATUS.READY_FOR_RESTART:
-      gCallbacks.updateStatus("cloudUpdateDownloaded.label");
-      break;
-    case AppUpdater.STATUS.OTHER_INSTANCE_HANDLING_UPDATES:
-    case AppUpdater.STATUS.CHECKING:
-    case AppUpdater.STATUS.STAGING:
-      gCallbacks.updateStatus("cloudUpdateDownloading.label");
-      break;
-    case AppUpdater.STATUS.DOWNLOADING:
-      if (!args.length) {
-        gCallbacks.updateStatus("cloudUpdateDownloading.label",
-                                0, gAppUpdater.update.selectedPatch.size);
-      } else {
-        const [progress, max] = args;
-        gCallbacks.updateStatus("cloudUpdateDownloading.label", progress, max);
-      }
-      break;
-    case AppUpdater.STATUS.UPDATE_DISABLED_BY_POLICY:
-    case AppUpdater.STATUS.NO_UPDATES_FOUND:
-    case AppUpdater.STATUS.UNSUPPORTED_SYSTEM:
-    case AppUpdater.STATUS.MANUAL_UPDATE:
-    case AppUpdater.STATUS.DOWNLOAD_AND_INSTALL:
-    case AppUpdater.STATUS.DOWNLOAD_FAILED:
-      ChromeUtils.recordReplayLog(`Error: AutomaticUpdateFailed ${status}`);
-      gCallbacks.updateStatus("cloudUpdateManualDownload.label");
+    case "commandResult":
+      onCommandResult(evt.data.id, evt.data.result);
       break;
   }
 }
@@ -166,79 +63,172 @@ function getenv(name) {
   return env.get(name);
 }
 
-function downloadUpdate(updateNeeded) {
-  // Allow connecting to the cloud with an unknown build.
-  if (getenv("WEBREPLAY_NO_UPDATE")) {
-    gCallbacks.updateStatus("");
-    return;
-  }
+// Map recording process ID to information about its upload progress.
+const gRecordings = new Map();
 
-  if (gAppUpdater) {
-    return;
-  }
-  gAppUpdater = new AppUpdater();
-  if (updateNeeded) {
-    gAppUpdater.addListener(downloadStatusListener);
-  }
-  gAppUpdater.check();
+let gNextMessageId = 1;
+
+function sendCommand(method, params) {
+  const id = gNextMessageId++;
+  gWorker.postMessage({
+    kind: "sendCommand",
+    command: { id, method, params },
+  });
+  return waitForCommandResult(id);
 }
 
-function offlineLogPath() {
-  let dir = Services.dirsvc.get("UAppData", Ci.nsIFile);
-  dir.append("Recordings");
-
-  if (!dir.exists()) {
-    OS.File.makeDir(dir.path);
-  }
-
-  dir.append("offlineLog.log");
-  return dir.path;
+function sendUploadCommand(pid, method, params) {
+  const id = gNextMessageId++;
+  gWorker.postMessage({
+    kind: "sendUploadCommand",
+    pid,
+    command: { id, method, params },
+  });
+  return waitForCommandResult(id);
 }
 
-// If defined, this reflects the full contents of the offline log.
-let offlineLogContents;
-let hasOfflineLogFlushTimer;
+// Resolve hooks for promises waiting on a recording to be created.
+const gRecordingCreateWaiters = [];
 
-async function waitForOfflineLogContents() {
-  if (offlineLogContents !== undefined) {
-    return;
-  }
+Services.ppmm.addMessageListener("UploadRecordingData", {
+  async receiveMessage(msg) {
+    const { pid, offset, length, buf, description } = msg.data;
 
-  const path = offlineLogPath();
-
-  if (!(await OS.File.exists(path))) {
-    offlineLogContents = "";
-    return;
-  }
-
-  const file = await OS.File.read(path);
-  offlineLogContents = new TextDecoder("utf-8").decode(file);
-}
-
-async function addToOfflineLog(text) {
-  await waitForOfflineLogContents();
-  offlineLogContents += `Offline ${gSessionId} ${text}`;
-
-  if (!hasOfflineLogFlushTimer) {
-    hasOfflineLogFlushTimer = true;
-    setTimeout(() => {
-      if (offlineLogContents.length) {
-        OS.File.writeAtomic(offlineLogPath(), offlineLogContents);
+    let first = !gRecordings.has(pid);
+    if (first) {
+      if (offset != 0) {
+        // We expect to get recording data notifications in order. If the offset
+        // is non-zero then this is for a recording child that we consider to
+        // be destroyed.
+        return;
       }
-      hasOfflineLogFlushTimer = false;
-    }, 500);
+
+      const buildId = `macOS-${Services.appinfo.appBuildID}`;
+      const createPromise = sendUploadCommand(
+        pid,
+        "Internal.createRecording",
+        { buildId }
+      );
+      const info = {
+        createPromise,
+        dataPromises: [],
+        destroyed: false,
+      };
+      gRecordings.set(pid, info);
+      gRecordingCreateWaiters.forEach(resolve => resolve());
+    }
+    const info = gRecordings.get(pid);
+    const { recordingId } = await info.createPromise;
+
+    if (info.destroyed) {
+      return;
+    }
+
+    if (first) {
+      onStartRecording(recordingId);
+    }
+
+    const dataPromise = sendUploadCommand(
+      pid,
+      "Internal.addRecordingData",
+      { recordingId, offset, length },
+    );
+
+    gWorker.postMessage({ kind: "sendUploadBinaryData", pid, buf });
+
+    info.dataPromises.push(dataPromise);
+
+    if (description) {
+      // This is for the last flush before the recording tab is closed,
+      // add a recording description.
+      sendCommand(
+        "Internal.addRecordingDescription",
+        { recordingId, ...description }
+      ).then(() => onFinishedRecording(recordingId));
+
+      // Ignore any other flushes from this pid.
+      RecordingDestroyed(pid);
+    }
+  }
+});
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (((hash << 5) - hash) + str.charCodeAt(i)) | 0;
+  }
+  return hash;
+}
+
+function getResourceInfo(url, text) {
+  return {
+    url,
+    checksum: hashString(text).toString(),
+  };
+}
+
+async function addRecordingResource(recordingId, url) {
+  const response = await fetch(url);
+  if (response.status < 200 || response.status >= 300) {
+    console.error("Error fetching recording resource", url, response);
+    return;
+  }
+  const text = await response.text();
+  const resource = getResourceInfo(url, text);
+
+  sendCommand("Internal.addRecordingResource", { recordingId, resource });
+
+  const { known } = await sendCommand("Internal.hasResource", { resource });
+  if (!known) {
+    sendCommand("Internal.addResource", { resource, contents: text });
   }
 }
 
-async function flushOfflineLog() {
-  await waitForOfflineLogContents();
+Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
+  async receiveMessage(msg) {
+    const { pid, url, text, sourceMapURL } = msg.data;
 
-  if (offlineLogContents.length) {
-    AddToLog(offlineLogContents);
-    offlineLogContents = "";
-    OS.File.remove(offlineLogPath());
+    // Wait for a recording to be created for this pid, if it hasn't already happened.
+    let info;
+    while (true) {
+      info = gRecordings.get(pid);
+      if (info) {
+        break;
+      }
+      await new Promise(resolve => gRecordingCreateWaiters.push(resolve));
+    }
+    const { recordingId } = await info.createPromise;
+
+    const resolvedSourceMapURL = new URL(sourceMapURL, url).href;
+    addRecordingResource(recordingId, resolvedSourceMapURL);
+  }
+});
+
+async function RecordingDestroyed(pid) {
+  const info = gRecordings.get(pid);
+  if (!info || info.destroyed) {
+    return;
+  }
+  info.destroyed = true;
+  gRecordings.delete(pid);
+
+  await Promise.all(info.dataPromises);
+
+  gWorker.postMessage({ kind: "stopUpload", pid });
+}
+
+const gResultWaiters = new Map();
+
+function waitForCommandResult(id) {
+  return new Promise(resolve => gResultWaiters.set(id, resolve));
+}
+
+function onCommandResult(id, result) {
+  if (gResultWaiters.has(id)) {
+    gResultWaiters.get(id)(result);
+    gResultWaiters.delete(id);
   }
 }
 
 // eslint-disable-next-line no-unused-vars
-var EXPORTED_SYMBOLS = ["Initialize", "Connect", "AddToLog"];
+var EXPORTED_SYMBOLS = ["Initialize", "RecordingDestroyed"];

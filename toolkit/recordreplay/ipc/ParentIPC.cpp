@@ -42,9 +42,6 @@ namespace parent {
 // Used in parent and middleman processes.
 static TimeStamp gStartupTime;
 
-// Used in all processes.
-AtomicBool gLoggingEnabled;
-
 ///////////////////////////////////////////////////////////////////////////////
 // UI Process State
 ///////////////////////////////////////////////////////////////////////////////
@@ -64,51 +61,16 @@ const char* SaveAllRecordingsDirectory() {
   return gSaveAllRecordingsDirectory;
 }
 
-static void ReadFileSync(const nsCString& aFile,
-                         StaticInfallibleVector<char>& aContents) {
-  FileHandle fd = DirectOpenFile(aFile.BeginReading(), false);
-
-  char buf[4096];
-  while (true) {
-    size_t n = DirectRead(fd, buf, sizeof(buf));
-    if (!n) {
-      break;
-    }
-    aContents.append(buf, n);
-  }
-
-  DirectCloseFile(fd);
-}
-
 static StaticRefPtr<rrIConnection> gConnection;
 
-static StaticInfallibleVector<char> gControlJS;
-static StaticInfallibleVector<char> gReplayJS;
-
 static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
-static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
-static bool ConnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
-static bool DisconnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 
 static const JSFunctionSpec gCallbacks[] = {
   JS_FN("updateStatus", StatusCallback, 1, 0),
-  JS_FN("loadedJS", LoadedCallback, 3, 0),
-  JS_FN("onConnected", ConnectedCallback, 1, 0),
-  JS_FN("onDisconnected", DisconnectedCallback, 1, 0),
   JS_FS_END
 };
 
 static nsString gCloudReplayStatus;
-
-bool UseCloudForReplayingProcesses() {
-  if (getenv("WEBREPLAY_OFFLINE")) {
-    return false;
-  }
-
-  nsAutoString cloudServer;
-  Preferences::GetString("devtools.recordreplay.cloudServer", cloudServer);
-  return cloudServer.Length() != 0;
-}
 
 static bool gUIStateInitialized;
 
@@ -120,27 +82,6 @@ void EnsureUIStateInitialized() {
   MOZ_RELEASE_ASSERT(!gConnection);
 
   gStartupTime = TimeStamp::Now();
-
-  if (Preferences::GetBool("devtools.recordreplay.logging.enabled")) {
-    gLoggingEnabled = true;
-  }
-
-  const char* sourcesPath = getenv("WEBREPLAY_SOURCES");
-  if (sourcesPath && gControlJS.empty()) {
-    ReadFileSync(nsPrintfCString("%s/control.js", sourcesPath), gControlJS);
-    ReadFileSync(nsPrintfCString("%s/replay.js", sourcesPath), gReplayJS);
-  }
-
-  if (!UseCloudForReplayingProcesses()) {
-    if (!sourcesPath) {
-      gCloudReplayStatus.AssignLiteral("cloudNotSet.label");
-    }
-    return;
-  }
-
-  nsAutoString cloudServer;
-  Preferences::GetString("devtools.recordreplay.cloudServer", cloudServer);
-  MOZ_RELEASE_ASSERT(cloudServer.Length() != 0);
 
   nsCOMPtr<rrIConnection> connection =
     do_ImportModule("resource://devtools/server/actors/replay/connection.js");
@@ -158,24 +99,11 @@ void EnsureUIStateInitialized() {
   }
 
   JS::RootedValue callbacksValue(cx, JS::ObjectValue(*callbacks));
-  if (NS_FAILED(gConnection->Initialize(cloudServer, callbacksValue))) {
+  if (NS_FAILED(gConnection->Initialize(callbacksValue))) {
     MOZ_CRASH("EnsureUIStateInitialized");
   }
 
   gCloudReplayStatus.AssignLiteral("cloudConnecting.label");
-}
-
-void GetWebReplayJS(nsAutoCString& aControlJS, nsAutoCString& aReplayJS) {
-  if (!gControlJS.length() || !gReplayJS.length()) {
-    fprintf(stderr, "Control/Replay JS not set, crashing...\n");
-    MOZ_CRASH("Control/Replay JS not set");
-  }
-
-  aControlJS.SetLength(gControlJS.length());
-  memcpy(aControlJS.BeginWriting(), gControlJS.begin(), gControlJS.length());
-
-  aReplayJS.SetLength(gReplayJS.length());
-  memcpy(aReplayJS.BeginWriting(), gReplayJS.begin(), gReplayJS.length());
 }
 
 void GetCloudReplayStatus(nsAString& aResult) {
@@ -230,39 +158,19 @@ static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return true;
 }
 
-static void ExtractJSString(JSContext* aCx, JSString* aString,
-                            StaticInfallibleVector<char>& aBuffer) {
-  MOZ_RELEASE_ASSERT(JS_StringHasLatin1Chars(aString));
-
-  JS::AutoAssertNoGC nogc(aCx);
-  size_t dataLength;
-  const JS::Latin1Char* dataChars =
-      JS_GetLatin1StringCharsAndLength(aCx, nogc, aString, &dataLength);
-  MOZ_RELEASE_ASSERT(dataChars);
-
-  aBuffer.clear();
-  aBuffer.append(dataChars, dataLength);
-}
-
-static bool LoadedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
-  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  if (!args.get(0).isString() || !args.get(1).isString()) {
-    JS_ReportErrorASCII(aCx, "Expected strings");
-    return false;
-  }
-
-  if (!getenv("WEBREPLAY_SOURCES")) {
-    ExtractJSString(aCx, args.get(0).toString(), gControlJS);
-    ExtractJSString(aCx, args.get(1).toString(), gReplayJS);
-  }
-
-  args.rval().setUndefined();
-  return true;
-}
-
 double ElapsedTime() {
   return (TimeStamp::Now() - gStartupTime).ToSeconds();
+}
+
+void ContentParentDestroyed(int32_t aPid) {
+  MOZ_RELEASE_ASSERT(gUIStateInitialized);
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  if (NS_FAILED(gConnection->RecordingDestroyed(aPid))) {
+    MOZ_CRASH("ContentParentDestroyed");
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -270,376 +178,11 @@ double ElapsedTime() {
 ///////////////////////////////////////////////////////////////////////////////
 
 // The single recording child process, or null.
-static ChildProcessInfo* gRecordingChild;
-
-// Any replaying child processes that have been spawned.
-static StaticInfallibleVector<UniquePtr<ChildProcessInfo>> gReplayingChildren;
+ChildProcessInfo* gRecordingChild;
 
 void Shutdown() {
   delete gRecordingChild;
-  gReplayingChildren.clear();
   _exit(0);
-}
-
-ChildProcessInfo* GetChildProcess(size_t aId) {
-  if (gRecordingChild && gRecordingChild->GetId() == aId) {
-    return gRecordingChild;
-  }
-  for (const auto& child : gReplayingChildren) {
-    if (child->GetId() == aId) {
-      return child.get();
-    }
-  }
-  return nullptr;
-}
-
-// Log text generated when there wasn't any replaying child.
-static nsAutoCString gPendingLogText;
-
-void SpawnReplayingChild(size_t aChannelId, size_t aInitialLength) {
-  ChildProcessInfo* child = new ChildProcessInfo(aChannelId, Nothing(), aInitialLength);
-  gReplayingChildren.append(child);
-
-  if (gPendingLogText.Length()) {
-    UniquePtr<Message> msg(LogTextMessage::New(
-        0, 0, gPendingLogText.BeginReading(), gPendingLogText.Length() + 1));
-    child->SendMessage(std::move(*msg));
-    gPendingLogText.SetLength(0);
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Preferences / Logging
-///////////////////////////////////////////////////////////////////////////////
-
-static bool gChromeRegistered;
-
-void ChromeRegistered() {
-  MOZ_RELEASE_ASSERT(NS_IsMainThread());
-  MOZ_RELEASE_ASSERT(IsMiddleman());
-
-  if (gChromeRegistered) {
-    return;
-  }
-  gChromeRegistered = true;
-
-  if (Preferences::GetBool("devtools.recordreplay.logging.enabled")) {
-    gLoggingEnabled = true;
-    if (gRecordingChild) {
-      gRecordingChild->SendMessage(EnableLoggingMessage());
-    }
-  }
-
-  Maybe<size_t> recordingChildId;
-
-  if (gRecordingChild) {
-    recordingChildId.emplace(gRecordingChild->GetId());
-  }
-
-  js::SetupMiddlemanControl(recordingChildId);
-}
-
-static void LogFromUIProcess(const nsACString& aText);
-
-void AddToLog(const nsAString& aText, bool aIncludePrefix /* = true */) {
-  if (!gLoggingEnabled) {
-    return;
-  }
-
-  if (IsRecordingOrReplaying()) {
-    child::PrintLog(aText);
-    return;
-  }
-
-  nsCString text;
-  if (aIncludePrefix) {
-    text = nsPrintfCString("[%s %.3f] %s\n",
-                           XRE_IsParentProcess() ? "UI" : "Control",
-                           ElapsedTime(), NS_ConvertUTF16toUTF8(aText).get());
-  } else {
-    text = NS_ConvertUTF16toUTF8(aText);
-  }
-
-  if (XRE_IsParentProcess()) {
-    LogFromUIProcess(text);
-    return;
-  }
-
-  MOZ_RELEASE_ASSERT(IsMiddleman());
-
-  // Log text in the middleman is sent to the latest replaying child.
-  // If there are multiple replaying children, the earlier ones have crashed
-  // or are otherwise unusable. If there isn't a replaying child, save the
-  // text and send it to the first replaying child when it is spawned.
-  if (gReplayingChildren.length()) {
-    const auto& child = gReplayingChildren.back();
-    UniquePtr<Message> msg(LogTextMessage::New(
-        0, 0, text.BeginReading(), text.Length() + 1));
-    child->SendMessage(std::move(*msg));
-  } else {
-    gPendingLogText.Append(text);
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Saving Recordings
-///////////////////////////////////////////////////////////////////////////////
-
-StaticInfallibleVector<char> gRecordingContents;
-
-static void SaveRecordingInternal(const ipc::FileDescriptor& aFile) {
-  // Make sure the recording file is up to date and ready for copying.
-  js::BeforeSaveRecording();
-
-  // Copy the recording's contents to the new file.
-  ipc::FileDescriptor::UniquePlatformHandle writefd =
-      aFile.ClonePlatformHandle();
-  DirectWrite(writefd.get(), gRecordingContents.begin(),
-              gRecordingContents.length());
-
-  PrintSpew("Saved Recording Copy.\n");
-
-  js::AfterSaveRecording();
-}
-
-void SaveRecording(const ipc::FileDescriptor& aFile) {
-  MOZ_RELEASE_ASSERT(IsMiddleman());
-
-  if (NS_IsMainThread()) {
-    SaveRecordingInternal(aFile);
-  } else {
-    MainThreadMessageLoop()->PostTask(NewRunnableFunction(
-        "SaveRecordingInternal", SaveRecordingInternal, aFile));
-  }
-}
-
-void SaveCloudRecording(const nsAString& aUUID) {
-  MOZ_RELEASE_ASSERT(IsMiddleman());
-  js::SaveCloudRecording(aUUID);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Cloud Processes
-///////////////////////////////////////////////////////////////////////////////
-
-// In the UI process, all replayer cloud connections in existence.
-struct ConnectionChannel {
-  // ContentParent hosting the middleman.
-  dom::ContentParent* mParent = nullptr;
-
-  // Channel for sending messages to the middleman.
-  Channel* mChannel = nullptr;
-
-  // Per-middleman ID of this channel.
-  uint32_t mChannelId = 0;
-
-  // Whether this connection is established.
-  bool mConnected = false;
-
-  void Clear() {
-    mParent = nullptr;
-    mChannel = nullptr;
-    mChannelId = 0;
-    mConnected = false;
-  }
-};
-
-static StaticInfallibleVector<ConnectionChannel> gConnectionChannels;
-
-static ConnectionChannel* GetConnectionChannel(JSContext* aCx,
-                                               JS::HandleValue aValue) {
-  if (!aValue.isNumber()) {
-    JS_ReportErrorASCII(aCx, "Expected number");
-    return nullptr;
-  }
-  size_t id = aValue.toNumber();
-  if (id >= gConnectionChannels.length() || !gConnectionChannels[id].mChannel) {
-    JS_ReportErrorASCII(aCx, "Bad connection channel ID");
-    return nullptr;
-  }
-  return &gConnectionChannels[id];
-}
-
-// This reference is manually cleared on shutdown, when the connection worker
-// can no longer be used.
-static dom::WorkerPrivate* gConnectionWorkerPrivate;
-static JS::PersistentRootedObject* gWorkerSendCallback;
-
-void RegisterConnectionWorker(JS::HandleObject aSendCallback) {
-  MOZ_RELEASE_ASSERT(!gConnectionWorkerPrivate);
-
-  gConnectionWorkerPrivate = dom::GetCurrentThreadWorkerPrivate();
-  MOZ_RELEASE_ASSERT(gConnectionWorkerPrivate);
-
-  AutoJSContext cx;
-  gWorkerSendCallback = new JS::PersistentRootedObject(cx);
-  *gWorkerSendCallback = aSendCallback;
-
-  RunOnShutdown([]() {
-      gConnectionWorkerPrivate = nullptr;
-      *gWorkerSendCallback = nullptr;
-    });
-}
-
-void OnCloudMessage(long aId, JS::HandleObject aMessage) {
-  if ((size_t)aId >= gConnectionChannels.length() ||
-      !gConnectionChannels[aId].mChannel) {
-    return;
-  }
-
-  ConnectionChannel* info = &gConnectionChannels[aId];
-  JS::AutoCheckCannotGC nogc;
-
-  uint32_t length;
-  uint8_t* ptr;
-  bool isSharedMemory;
-  JS::GetArrayBufferLengthAndData(aMessage, &length, &isSharedMemory, &ptr);
-
-  if (ptr) {
-    info->mChannel->SendMessageData((const char*) ptr, length);
-  } else {
-    MOZ_CRASH("Expected array buffer");
-  }
-}
-
-class SendMessageToCloudRunnable : public dom::WorkerRunnable {
- public:
-  int32_t mConnectionId;
-  Message::UniquePtr mMsg;
-  double mPostTime;
-
-  SendMessageToCloudRunnable(int32_t aConnectionId, Message::UniquePtr aMsg)
-      : WorkerRunnable(gConnectionWorkerPrivate),
-        mConnectionId(aConnectionId),
-        mMsg(std::move(aMsg)),
-        mPostTime(ElapsedTime()) {}
-
-  bool WorkerRun(JSContext* aCx, dom::WorkerPrivate* aWorkerPrivate) override {
-    MOZ_RELEASE_ASSERT(gWorkerSendCallback);
-
-    if (!*gWorkerSendCallback) {
-      // The browser is shutting down...
-      return true;
-    }
-
-    JS::RootedObject data(aCx, JS::NewArrayBuffer(aCx, mMsg->mSize));
-    MOZ_RELEASE_ASSERT(data);
-
-    {
-      JS::AutoCheckCannotGC nogc;
-
-      bool isSharedMemory;
-      uint8_t* ptr = JS::GetArrayBufferData(data, &isSharedMemory, nogc);
-      MOZ_RELEASE_ASSERT(ptr);
-
-      memcpy(ptr, mMsg.get(), mMsg->mSize);
-    }
-
-    JS::RootedObject thisv(aCx);
-    JS::RootedValue fval(aCx, JS::ObjectValue(**gWorkerSendCallback));
-    JS::AutoValueArray<3> args(aCx);
-    args[0].setInt32(mConnectionId);
-    args[1].setObject(*data);
-    args[2].setNumber(ElapsedTime() - mPostTime);
-    JS::RootedValue rval(aCx);
-
-    if (!JS_CallFunctionValue(aCx, thisv, fval, args, &rval)) {
-      // Ignore failures during shutdown.
-      JS_ClearPendingException(aCx);
-    }
-
-    return true;
-  }
-};
-
-void CreateReplayingCloudProcess(dom::ContentParent* aParent, uint32_t aChannelId) {
-  MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
-  MOZ_RELEASE_ASSERT(gConnection);
-
-  AutoSafeJSContext cx;
-  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
-
-  int32_t connectionId;
-  if (NS_FAILED(gConnection->Connect(aChannelId, &connectionId))) {
-    MOZ_CRASH("CreateReplayingCloudProcess");
-  }
-
-  base::ProcessId pid = aParent->Pid();
-
-  Channel* channel = new Channel(
-      aChannelId, Channel::Kind::ParentCloud,
-      [=](Message::UniquePtr aMsg) {
-        RefPtr<SendMessageToCloudRunnable> runnable =
-          new SendMessageToCloudRunnable(connectionId, std::move(aMsg));
-        runnable->Dispatch();
-      }, pid);
-  while ((size_t)connectionId >= gConnectionChannels.length()) {
-    gConnectionChannels.emplaceBack();
-  }
-  ConnectionChannel& info = gConnectionChannels[connectionId];
-  info.mParent = aParent;
-  info.mChannel = channel;
-  info.mChannelId = aChannelId;
-}
-
-void ContentParentDestroyed(dom::ContentParent* aParent) {
-  for (auto& info : gConnectionChannels) {
-    if (info.mParent == aParent) {
-      info.Clear();
-    }
-  }
-}
-
-static bool ConnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
-  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  ConnectionChannel* info = GetConnectionChannel(aCx, args.get(0));
-  if (!info) {
-    return false;
-  }
-
-  if (!info->mConnected) {
-    info->mConnected = true;
-    Unused << info->mParent->SendSetWebReplayConnectionStatus(
-        info->mChannelId, NS_LITERAL_CSTRING("connected"));
-  }
-
-  args.rval().setUndefined();
-  return true;
-}
-
-static bool DisconnectedCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
-  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  ConnectionChannel* info = GetConnectionChannel(aCx, args.get(0));
-  if (info) {
-    Unused << info->mParent->SendSetWebReplayConnectionStatus(
-        info->mChannelId, NS_LITERAL_CSTRING("disconnected"));
-    info->Clear();
-  } else {
-    JS_ClearPendingException(aCx);
-  }
-
-  args.rval().setUndefined();
-  return true;
-}
-
-static void LogFromUIProcess(const nsACString& aText) {
-  if (!gConnection) {
-    fprintf(stderr, "%s", nsCString(aText).get());
-    return;
-  }
-
-  AutoSafeJSContext cx;
-  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
-
-  if (NS_FAILED(gConnection->AddToLog(aText))) {
-    MOZ_CRASH("LogFromUIProcess");
-  }
-}
-
-void SetConnectionStatus(uint32_t aChannelId, const nsCString& aStatus) {
-  js::SetConnectionStatus(aChannelId, aStatus);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -656,7 +199,6 @@ static base::ProcessId gParentPid;
 base::ProcessId ParentProcessId() { return gParentPid; }
 
 Monitor* gMonitor;
-bool gActiveChildIsRecording;
 
 void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
                          const base::SharedMemoryHandle& aPrefsHandle,
@@ -672,12 +214,10 @@ void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
 
   // Construct the message that will be sent to each child when starting up.
   IntroductionMessage* msg = IntroductionMessage::New(aParentPid, aArgc, aArgv);
-  GetCurrentBuildId(&msg->mBuildId);
 
   ChildProcessInfo::SetIntroductionMessage(msg);
 
-  MOZ_RELEASE_ASSERT(gProcessKind == ProcessKind::MiddlemanRecording ||
-                     gProcessKind == ProcessKind::MiddlemanReplaying);
+  MOZ_RELEASE_ASSERT(gProcessKind == ProcessKind::MiddlemanRecording);
 
   InitializeGraphicsMemory();
 
@@ -685,31 +225,10 @@ void InitializeMiddleman(int aArgc, char* aArgv[], base::ProcessId aParentPid,
 
   gMainThreadMessageLoop = MessageLoop::current();
 
-  if (gProcessKind == ProcessKind::MiddlemanRecording) {
-    RecordingProcessData data(aPrefsHandle, aPrefMapHandle);
-    gRecordingChild = new ChildProcessInfo(0, Some(data), 0);
-    gActiveChildIsRecording = true;
-  }
+  RecordingProcessData data(aPrefsHandle, aPrefMapHandle);
+  gRecordingChild = new ChildProcessInfo(0, Some(data), 0);
 
   InitializeForwarding();
-
-  if (gProcessKind == ProcessKind::MiddlemanReplaying) {
-    nsAutoCString cloudRecordingName;
-    ExtractCloudRecordingName(gRecordingFilename, cloudRecordingName);
-    if (cloudRecordingName.Length()) {
-      SetBuildId(&msg->mBuildId, "cloud", cloudRecordingName.get());
-    } else {
-      // Load the entire recording into memory.
-      ReadFileSync(nsCString(gRecordingFilename), gRecordingContents);
-
-      // Update the build ID in the introduction message according to what we
-      // find in the recording. The introduction message is sent first to each
-      // replaying process, and when replaying in the cloud its contents will be
-      // analyzed to determine what binaries to use for the replay.
-      Recording::ExtractBuildId(gRecordingContents.begin(),
-                                gRecordingContents.length(), &msg->mBuildId);
-    }
-  }
 }
 
 }  // namespace parent

@@ -796,12 +796,6 @@ Toolbox.prototype = {
         useOnlyShared: true,
       }).require;
 
-      // The web console is immediately loaded when replaying, so that the
-      // timeline will always be populated with generated messages.
-      if (this.target.isReplayEnabled()) {
-        await this.loadTool("webconsole");
-      }
-
       this.isReady = true;
 
       const framesPromise = this._listFrames();
@@ -2170,12 +2164,7 @@ Toolbox.prototype = {
   _commandIsVisible: function(button) {
     const { isTargetSupported, isCurrentlyVisible, visibilityswitch } = button;
 
-    const defaultValue =
-      button.id !== "command-button-replay"
-        ? true
-        : Services.prefs.getBoolPref("devtools.recordreplay.mvp.enabled");
-
-    if (!Services.prefs.getBoolPref(visibilityswitch, defaultValue)) {
+    if (!Services.prefs.getBoolPref(visibilityswitch, true)) {
       return false;
     }
 
@@ -2817,9 +2806,6 @@ Toolbox.prototype = {
     }
 
     return this.loadTool("webconsole").then(() => {
-      if (!this.win) {
-        return;
-      }
       this.component.setIsSplitConsoleActive(true);
       this.telemetry.recordEvent("activate", "split_console", null, {
         host: this._getTelemetryHostString(),
@@ -2899,12 +2885,7 @@ Toolbox.prototype = {
    * Tells the target tab to reload.
    */
   reloadTarget: function(force) {
-    if (this.target.canRewind) {
-      // Recording tabs need to be reloaded in a new content process.
-      reloadAndRecordTab();
-    } else {
-      this.target.reload({ force: force });
-    }
+    this.target.reload({ force: force });
   },
 
   /**
@@ -4155,20 +4136,3 @@ Toolbox.prototype = {
     return id;
   },
 };
-
-function reloadAndRecordTab() {
-  const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
-  const url = gBrowser.currentURI.spec;
-  gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
-    recordExecution: "*",
-    newFrameloader: true,
-    remoteType: E10SUtils.DEFAULT_REMOTE_TYPE,
-  });
-  Services.ppmm.addMessageListener("RecordingInitialized", function listener() {
-    Services.ppmm.removeMessageListener("RecordingInitialized", listener);
-    gBrowser.loadURI(url, {
-      triggeringPrincipal: gBrowser.selectedBrowser.contentPrincipal,
-    });
-  });
-  Services.telemetry.scalarAdd("devtools.webreplay.reload_recording", 1);
-}

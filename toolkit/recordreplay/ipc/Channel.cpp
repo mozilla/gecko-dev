@@ -73,15 +73,7 @@ Channel::Channel(size_t aId, Kind aKind, const MessageHandler& aHandler,
 
   if (IsParent()) {
     ipc::FileDescriptor connection;
-    if (aKind == Kind::MiddlemanReplay) {
-      // The middleman is sandboxed at this point and the parent must open
-      // the channel on our behalf.
-      dom::ContentChild::GetSingleton()->SendOpenRecordReplayChannel(
-          aId, &connection);
-      MOZ_RELEASE_ASSERT(connection.IsValid());
-    } else {
-      parent::OpenChannel(base::GetCurrentProcId(), aId, &connection);
-    }
+    parent::OpenChannel(base::GetCurrentProcId(), aId, &connection);
 
     mConnectionFd = connection.ClonePlatformHandle().release();
     int rv = listen(mConnectionFd, 1);
@@ -259,12 +251,6 @@ void Channel::PrintMessage(const char* aPrefix, const Message& aMsg) {
       const ManifestFinishedMessage& nmsg =
           (const ManifestFinishedMessage&)aMsg;
       data = nsCString(nmsg.BinaryData(), nmsg.BinaryDataSize());
-      break;
-    }
-    case MessageType::RecordingData: {
-      const auto& nmsg = static_cast<const RecordingDataMessage&>(aMsg);
-      data = nsPrintfCString("Start %llu Size %lu", nmsg.mTag,
-                             nmsg.BinaryDataSize());
       break;
     }
     default:

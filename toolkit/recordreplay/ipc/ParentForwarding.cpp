@@ -34,7 +34,6 @@ static bool HandleMessageInMiddleman(ipc::Side aSide,
       type == dom::PContent::Msg_RegisterBrowsingContextGroup__ID ||
       type == dom::PContent::Msg_RegisterChrome__ID ||
       type == dom::PContent::Msg_SetXPCOMProcessAttributes__ID ||
-      type == dom::PContent::Msg_SetWebReplayJS__ID ||
       type == dom::PContent::Msg_UpdateSharedData__ID ||
       type == dom::PContent::Msg_SetProcessSandbox__ID ||
       // Graphics messages that affect both processes.
@@ -76,34 +75,14 @@ static bool HandleMessageInMiddleman(ipc::Side aSide,
     ipc::IProtocol::Result r =
         contentChild->PContentChild::OnMessageReceived(aMessage);
     MOZ_RELEASE_ASSERT(r == ipc::IProtocol::MsgProcessed);
-    if (type == dom::PContent::Msg_RegisterChrome__ID) {
-      // After the RegisterChrome message we can load chrome JS and finish
-      // initialization.
-      ChromeRegistered();
-    }
     return false;
   }
 
   // Handle messages that should only be sent to the middleman.
   if (  // Initialization that should only happen in the middleman.
       type == dom::PContent::Msg_InitRendering__ID ||
-      // Record/replay specific messages.
-      type == dom::PContent::Msg_SaveRecording__ID ||
-      type == dom::PContent::Msg_SaveCloudRecording__ID ||
-      type == dom::PContent::Msg_SetWebReplayConnectionStatus__ID ||
       // Teardown that should only happen in the middleman.
       type == dom::PContent::Msg_Shutdown__ID) {
-    ipc::IProtocol::Result r =
-        dom::ContentChild::GetSingleton()->PContentChild::OnMessageReceived(
-            aMessage);
-    MOZ_RELEASE_ASSERT(r == ipc::IProtocol::MsgProcessed);
-    return true;
-  }
-
-  // Send input events to the middleman when the active child is replaying,
-  // so that UI elements such as the replay overlay can be interacted with.
-  if (!gActiveChildIsRecording &&
-      nsContentUtils::IsMessageInputEvent(aMessage)) {
     ipc::IProtocol::Result r =
         dom::ContentChild::GetSingleton()->PContentChild::OnMessageReceived(
             aMessage);
@@ -145,16 +124,6 @@ static bool HandleMessageInMiddleman(ipc::Side aSide,
   }
 
   return false;
-}
-
-// Return whether a message should be sent to the recording child, even if it
-// is not currently active.
-static bool AlwaysForwardMessage(const IPC::Message& aMessage) {
-  IPC::Message::msgid_t type = aMessage.type();
-
-  // Forward close messages so that the tab shuts down properly even if it is
-  // currently replaying.
-  return type == dom::PBrowser::Msg_Destroy__ID;
 }
 
 static void BeginShutdown() {
@@ -231,17 +200,13 @@ class MiddlemanProtocol : public ipc::IToplevelProtocol {
 
   static void ForwardMessageAsync(MiddlemanProtocol* aProtocol,
                                   Message* aMessage) {
-    if (gActiveChildIsRecording || AlwaysForwardMessage(*aMessage)) {
-      PrintSpew("ForwardAsyncMsgFrom %s %s %d\n",
-                (aProtocol->mSide == ipc::ChildSide) ? "Child" : "Parent",
-                IPC::StringFromIPCMessageType(aMessage->type()),
-                (int)aMessage->routing_id());
-      if (!aProtocol->GetIPCChannel()->Send(aMessage)) {
-        MOZ_RELEASE_ASSERT(aProtocol->mSide == ipc::ParentSide);
-        BeginShutdown();
-      }
-    } else {
-      delete aMessage;
+    PrintSpew("ForwardAsyncMsgFrom %s %s %d\n",
+              (aProtocol->mSide == ipc::ChildSide) ? "Child" : "Parent",
+              IPC::StringFromIPCMessageType(aMessage->type()),
+              (int)aMessage->routing_id());
+    if (!aProtocol->GetIPCChannel()->Send(aMessage)) {
+      MOZ_RELEASE_ASSERT(aProtocol->mSide == ipc::ParentSide);
+      BeginShutdown();
     }
   }
 
@@ -382,8 +347,6 @@ static bool gParentProtocolOpened = false;
 
 // Main routine for the forwarding message loop thread.
 static void ForwardingMessageLoopMain(void*) {
-  MOZ_RELEASE_ASSERT(gActiveChildIsRecording);
-
   MessageLoop messageLoop;
   gForwardingMessageLoop = &messageLoop;
 

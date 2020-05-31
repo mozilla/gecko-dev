@@ -38,7 +38,6 @@ class BoxModelEditable extends PureComponent {
   componentDidMount() {
     const { property, onShowBoxModelEditor } = this.props;
 
-    /*
     editableItem(
       {
         element: this.boxModelEditable,
@@ -47,7 +46,6 @@ class BoxModelEditable extends PureComponent {
         onShowBoxModelEditor(element, event, property);
       }
     );
-    */
   }
 
   onMouseOver(event) {

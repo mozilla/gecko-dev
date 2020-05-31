@@ -22,7 +22,7 @@ import {
   sortSelectedBreakpoints,
 } from "../../../utils/breakpoint";
 
-import { getSelectedSource, getBreakpointSources, getCanRewind } from "../../../selectors";
+import { getSelectedSource, getBreakpointSources } from "../../../selectors";
 
 import type { Source } from "../../../types";
 import type { BreakpointSources } from "../../../selectors/breakpointSources";
@@ -41,7 +41,6 @@ type Props = {
   shouldPauseOnExceptions: boolean,
   shouldPauseOnCaughtExceptions: boolean,
   pauseOnExceptions: Function,
-  canRewind: boolean,
 };
 
 class Breakpoints extends Component<Props> {
@@ -72,13 +71,7 @@ class Breakpoints extends Component<Props> {
       shouldPauseOnExceptions,
       shouldPauseOnCaughtExceptions,
       pauseOnExceptions,
-      canRewind,
     } = this.props;
-
-    // Pause-on-exceptions is not supported yet when replaying.
-    if (canRewind) {
-      return null;
-    }
 
     const isEmpty = breakpointSources.length == 0;
 
@@ -163,7 +156,6 @@ class Breakpoints extends Component<Props> {
 const mapStateToProps = state => ({
   breakpointSources: getBreakpointSources(state),
   selectedSource: getSelectedSource(state),
-  canRewind: getCanRewind(state),
 });
 
 export default connect<Props, OwnProps, _, _, _, _>(

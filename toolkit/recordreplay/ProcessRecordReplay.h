@@ -10,6 +10,7 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/RecordReplay.h"
+#include "InfallibleVector.h"
 #include "nsString.h"
 
 #include <algorithm>
@@ -88,18 +89,20 @@ static inline void AssertEventsAreNotPassedThrough() {
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
 }
 
-// Flush any new recording data to disk.
-void FlushRecording();
+// Flush any new recording data and send it to the UI process.
+// If aFinishRecording is set then a recording description is included.
+void FlushRecording(bool aFinishRecording);
 
 // Called when any thread hits the end of its event stream.
 void HitEndOfRecording();
 
-// Before saving the recording, set a summary which can be loaded when
-// replaying.
-void SetRecordingSummary(const nsACString& aString);
+// While recording, add information about the latest checkpoint.
+void AddCheckpointSummary(ProgressCounter aProgress, size_t aElapsed, size_t aTime);
 
-// Get the last summary which was set in the recording.
-void GetRecordingSummary(nsAutoCString& aString);
+// While replaying, get a summary of all checkpoints in the recording.
+void GetRecordingSummary(InfallibleVector<ProgressCounter>& aProgressCounters,
+                         InfallibleVector<size_t>& aElapsed,
+                         InfallibleVector<size_t>& aTimes);
 
 // Whether we are replaying a recording on a machine in the cloud.
 bool ReplayingInCloud();
@@ -110,10 +113,7 @@ const char* InstallDirectory();
 // Get the process kind and recording file specified at the command line.
 // These are available in the middleman as well as while recording/replaying.
 extern ProcessKind gProcessKind;
-extern char* gRecordingFilename;
-
-// Given a recording filename referring to a cloud recording, get the recording UUID.
-void ExtractCloudRecordingName(const char* aFileName, nsAutoCString& aRecordingName);
+extern const char* gRecordingFilename;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helper Functions

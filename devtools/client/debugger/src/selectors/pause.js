@@ -57,7 +57,3 @@ export const getVisibleSelectedFrame: Selector<?{
     };
   }
 );
-
-export function getFramePositions(state: State) {
-  return state.pause.replayFramePositions;
-}

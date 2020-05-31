@@ -30,18 +30,6 @@ class ChildProcessInfo;
 // Get the message loop for the main thread.
 MessageLoop* MainThreadMessageLoop();
 
-// Called when chrome JS can start running and initialization can finish.
-void ChromeRegistered();
-
-// Get the current active child process.
-ChildProcessInfo* GetActiveChild();
-
-// Get a child process by its ID.
-ChildProcessInfo* GetChildProcess(size_t aId);
-
-// Spawn a new replaying child process with the specified ID and recording length.
-void SpawnReplayingChild(size_t aId, size_t aInitialLength);
-
 // Immediately forward any parent->child or sync child->parent IPDL messages.
 // These are sent on the main thread, which might be blocked waiting for a
 // response from the recording child and unable to run an event loop.
@@ -54,18 +42,9 @@ void InitializeForwarding();
 // Terminate all children and kill this process.
 void Shutdown();
 
-// All data in the recording.
-extern StaticInfallibleVector<char> gRecordingContents;
-
 // Monitor used for synchronizing between the main and channel or message loop
 // threads.
 extern Monitor* gMonitor;
-
-// Whether there is a currently active recording child.
-extern bool gActiveChildIsRecording;
-
-// Whether logging has been enabled in this process, used in all processes.
-extern AtomicBool gLoggingEnabled;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Graphics
@@ -120,13 +99,6 @@ static const int32_t GraphicsMemoryMessageId = 43;
 
 // Fixed size of the graphics shared memory buffer.
 static const size_t GraphicsMemorySize = 4096 * 4096 * 4;
-
-// Return whether the environment variable activating repaint stress mode is
-// set. This makes various changes in both the middleman and child processes to
-// trigger a child to diverge from the recording and repaint on every vsync,
-// making sure that repainting can handle all the system interactions that
-// occur while painting the current tab.
-bool InRepaintStressMode();
 
 ///////////////////////////////////////////////////////////////////////////////
 // Child Processes
@@ -185,6 +157,8 @@ class ChildProcessInfo {
   static void SetIntroductionMessage(IntroductionMessage* aMessage);
   static void MaybeProcessNextMessage();
 };
+
+extern ChildProcessInfo* gRecordingChild;
 
 }  // namespace parent
 }  // namespace recordreplay

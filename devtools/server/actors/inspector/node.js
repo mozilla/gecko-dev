@@ -34,18 +34,6 @@ loader.lazyRequireGetter(
   "devtools/shared/inspector/css-logic",
   true
 );
-loader.lazyRequireGetter(
-  this,
-  "findCssSelectorAsync",
-  "devtools/shared/inspector/css-logic",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "findAllCssSelectorsAsync",
-  "devtools/shared/inspector/css-logic",
-  true
-);
 
 loader.lazyRequireGetter(
   this,
@@ -300,10 +288,6 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
    * API.
    */
   watchDocument: function(doc, callback) {
-    if (isReplaying) {
-      return;
-    }
-
     const node = this.rawNode;
     // Create the observer on the node's actor.  The node will make sure
     // the observer is cleaned up when the actor is released.
@@ -353,7 +337,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
     }
 
     const rawNode = this.rawNode;
-    let numChildren = isReplaying ? rawNode.numChildNodes() : rawNode.childNodes.length;
+    let numChildren = rawNode.childNodes.length;
     const hasContentDocument = rawNode.contentDocument;
     const hasSVGDocument = rawNode.getSVGDocument && rawNode.getSVGDocument();
     if (numChildren === 0 && (hasContentDocument || hasSVGDocument)) {
@@ -434,9 +418,6 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
 
     // If it does, then check it also has scrollbars.
     try {
-      if (isReplaying) {
-        return node.hasScrollbarChildren();
-      }
       const walker = new DocumentWalker(
         this.rawNode,
         this.rawNode.ownerGlobal,
@@ -481,11 +462,9 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
   writeAttrs: function() {
     // If the node has no attributes or this.rawNode is the document node and a
     // node with `name="attributes"` exists in the DOM we need to bail.
-    // When replaying elements are not accessed as direct properties on the
-    // document so we don't need to worry about the latter case.
     if (
       !this.rawNode.attributes ||
-      (!isReplaying && !(this.rawNode.attributes instanceof NamedNodeMap))
+      !(this.rawNode.attributes instanceof NamedNodeMap)
     ) {
       return undefined;
     }
@@ -594,7 +573,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
     if (Cu.isDeadWrapper(this.rawNode)) {
       return [];
     }
-    return (isReplaying ? findCssSelectorAsync : findCssSelector)(this.rawNode);
+    return findCssSelector(this.rawNode);
   },
 
   /**
@@ -605,7 +584,7 @@ const NodeActor = protocol.ActorClassWithSpec(nodeSpec, {
     if (Cu.isDeadWrapper(this.rawNode)) {
       return "";
     }
-    return (isReplaying ? findAllCssSelectorsAsync : findAllCssSelectors)(this.rawNode);
+    return findAllCssSelectors(this.rawNode);
   },
 
   /**

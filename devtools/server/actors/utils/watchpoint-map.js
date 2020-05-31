@@ -96,11 +96,6 @@ class WatchpointMap {
   }
 
   remove(objActor, property) {
-    if (isReplaying) {
-      // Watchpoints are not used when replaying.
-      return;
-    }
-
     const obj = objActor.rawValue();
 
     // This should remove watchpoints on all of the object's properties if

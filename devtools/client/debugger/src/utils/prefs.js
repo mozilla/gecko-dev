@@ -18,6 +18,7 @@ if (isDevelopment()) {
   pref("devtools.browsertoolbox.fission", false);
   pref("devtools.debugger.logging", false);
   pref("devtools.debugger.alphabetize-outline", false);
+  pref("devtools.debugger.auto-pretty-print", false);
   pref("devtools.source-map.client-service.enabled", true);
   pref("devtools.chrome.enabled", false);
   pref("devtools.debugger.pause-on-exceptions", false);

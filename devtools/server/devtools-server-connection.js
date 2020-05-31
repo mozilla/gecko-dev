@@ -233,7 +233,6 @@ DevToolsServerConnection.prototype = {
     const errorString = prefix + ": " + DevToolsUtils.safeErrorString(error);
     reportError(errorString);
     dumpn(errorString);
-    require("ChromeUtils").recordReplayLog(`DebuggerServerConnectionError: ${errorString} ${Error().stack}`);
     return {
       from,
       error: "unknownError",
@@ -241,10 +240,9 @@ DevToolsServerConnection.prototype = {
     };
   },
 
-  _queueResponse: function(from, type, responseOrPromise, packetId) {
+  _queueResponse: function(from, type, responseOrPromise) {
     const pendingResponse =
-          this._actorResponses.get(from) || Promise.resolve(null);
-    const stack = Error().stack;
+      this._actorResponses.get(from) || Promise.resolve(null);
     const responsePromise = pendingResponse
       .then(() => {
         return responseOrPromise;
@@ -261,7 +259,6 @@ DevToolsServerConnection.prototype = {
           response.from = from;
         }
 
-        response.packetId = packetId;
         this.transport.send(response);
       })
       .catch(error => {
@@ -396,7 +393,7 @@ DevToolsServerConnection.prototype = {
 
     // There will not be a return value if a bulk reply is sent.
     if (ret) {
-      this._queueResponse(packet.to, packet.type, ret, packet.packetId);
+      this._queueResponse(packet.to, packet.type, ret);
     }
   },
 

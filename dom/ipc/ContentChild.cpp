@@ -632,18 +632,6 @@ mozilla::ipc::IPCResult ContentChild::RecvSetXPCOMProcessAttributes(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentChild::RecvSetWebReplayJS(
-    const nsCString& aControlJS, const nsCString& aReplayJS) {
-  recordreplay::child::SetWebReplayJS(aControlJS, aReplayJS);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult ContentChild::RecvSetWebReplayConnectionStatus(
-    uint32_t aChannelId, const nsCString& aStatus) {
-  recordreplay::parent::SetConnectionStatus(aChannelId, aStatus);
-  return IPC_OK();
-}
-
 bool ContentChild::Init(MessageLoop* aIOLoop, base::ProcessId aParentPid,
                         const char* aParentBuildID,
                         UniquePtr<IPC::Channel> aChannel, uint64_t aChildID,
@@ -3654,15 +3642,8 @@ mozilla::ipc::IPCResult ContentChild::RecvAddDynamicScalars(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentChild::RecvSaveRecording(
-    const FileDescriptor& aFile) {
-  recordreplay::parent::SaveRecording(aFile);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult ContentChild::RecvSaveCloudRecording(
-    const nsAString& aUUID) {
-  recordreplay::parent::SaveCloudRecording(aUUID);
+mozilla::ipc::IPCResult ContentChild::RecvFinishRecording() {
+  recordreplay::child::FinishRecording();
   return IPC_OK();
 }
 

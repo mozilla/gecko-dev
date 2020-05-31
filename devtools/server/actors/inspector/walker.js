@@ -11,7 +11,6 @@ const protocol = require("devtools/shared/protocol");
 const { walkerSpec } = require("devtools/shared/specs/walker");
 const { LongStringActor } = require("devtools/server/actors/string");
 const InspectorUtils = require("InspectorUtils");
-const { ReplayInspector } = require("RecordReplayControl").module;
 const {
   EXCLUDED_LISTENER,
 } = require("devtools/server/actors/inspector/constants");
@@ -281,7 +280,7 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
   initialize: function(conn, targetActor, options) {
     protocol.Actor.prototype.initialize.call(this, conn);
     this.targetActor = targetActor;
-    this.rootWin = isReplaying ? ReplayInspector.window : targetActor.window;
+    this.rootWin = targetActor.window;
     this.rootDoc = this.rootWin.document;
     this._refMap = new Map();
     this._pendingMutations = [];
@@ -340,6 +339,10 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
       this.onShadowrootattached
     );
 
+    // Ensure that the root document node actor is ready and
+    // managed.
+    this.rootNode = this.document();
+
     this.layoutChangeObserver = getLayoutChangesObserver(this.targetActor);
     this._onReflows = this._onReflows.bind(this);
     this.layoutChangeObserver.on("reflows", this._onReflows);
@@ -375,6 +378,7 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
   form: function() {
     return {
       actor: this.actorID,
+      root: this.rootNode.form(),
       traits: {
         // Firefox 71: getNodeActorFromContentDomReference is available.
         retrieveNodeFromContentDomReference: true,
@@ -562,11 +566,6 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
   },
 
   _onReflows: function(reflows) {
-    if (isReplaying) {
-      // Reflows in the control process don't affect what we're debugging.
-      return;
-    }
-
     // Going through the nodes the walker knows about, see which ones have had their
     // display or scrollable state changed and send events if any.
     const displayTypeChanges = [];
@@ -661,12 +660,6 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
     };
   },
 
-  async ensureDOMLoaded() {
-    if (isReplaying && ReplayInspector.isPaused()) {
-      await ReplayInspector.ensureDOMLoaded();
-    }
-  },
-
   /**
    * Return the document node that contains the given node,
    * or the root node if no node is specified.
@@ -674,14 +667,8 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
    *        The node whose document is needed, or null to
    *        return the root.
    */
-  document: async function(node) {
-    if (isReplaying && !ReplayInspector.isPaused()) {
-      return null;
-    }
+  document: function(node) {
     const doc = isNodeDead(node) ? this.rootDoc : nodeDocument(node.rawNode);
-    if (isReplaying) {
-      await doc.replayWaitForContentsLoaded();
-    }
     return this._ref(doc);
   },
 
@@ -742,7 +729,7 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
       isAfterPseudoElement(rawNode) ||
       isShadowHost(rawNode) ||
       rawNode.nodeType != Node.ELEMENT_NODE ||
-      (isReplaying ? rawNode.numChildren() : rawNode.children.length) > 0
+      rawNode.children.length > 0
     ) {
       return undefined;
     }
@@ -904,11 +891,7 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
    *    hasLast: true if the last child of the node is included in the list.
    *    nodes: Array of NodeActor representing the nodes returned by the request.
    */
-  children: async function(node, options = {}) {
-    if (isReplaying) {
-      await node.rawNode.replayWaitForChildrenLoaded();
-    }
-
+  children: function(node, options = {}) {
     const { hasFirst, hasLast, nodes } = this._getChildren(node, options);
     return {
       hasFirst,
@@ -1224,14 +1207,12 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
    * @param NodeActor baseNode
    * @param string selector
    */
-  querySelector: async function(baseNode, selector) {
+  querySelector: function(baseNode, selector) {
     if (isNodeDead(baseNode)) {
       return {};
     }
 
-    const node = isReplaying
-      ? await baseNode.rawNode.querySelectorAsync(selector)
-      : baseNode.rawNode.querySelector(selector);
+    const node = baseNode.rawNode.querySelector(selector);
     if (!node) {
       return {};
     }
@@ -1246,13 +1227,11 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
    * @param NodeActor baseNode
    * @param string selector
    */
-  querySelectorAll: async function(baseNode, selector) {
+  querySelectorAll: function(baseNode, selector) {
     let nodeList = null;
 
     try {
-      nodeList = isReplaying
-        ? await baseNode.rawNode.querySelectorAllAsync(selector)
-        : baseNode.rawNode.querySelectorAll(selector);
+      nodeList = baseNode.rawNode.querySelectorAll(selector);
     } catch (e) {
       // Bad selector. Do nothing as the selector can come from a searchbox.
     }

@@ -117,6 +117,9 @@ void EnsureNotDivergedFromRecording(const Maybe<int>& aCallId);
 // and replaying.
 TimeDuration CurrentRecordingTime();
 
+// Elapsed time between the recording starting and the last time it was flushed.
+TimeDuration RecordingDuration();
+
 }  // namespace recordreplay
 }  // namespace mozilla
 

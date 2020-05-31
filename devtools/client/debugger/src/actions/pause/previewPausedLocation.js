@@ -36,19 +36,6 @@ export function previewPausedLocation(location: Location) {
   };
 }
 
-export function previewPausedLocationBySourceId(location: Location) {
-  return ({ dispatch, getState }: ThunkArgs) => {
-    const cx = getContext(getState());
-
-    dispatch(selectLocation(cx, location));
-
-    dispatch({
-      type: "PREVIEW_PAUSED_LOCATION",
-      location,
-    });
-  };
-}
-
 export function clearPreviewPausedLocation() {
   return {
     type: "CLEAR_PREVIEW_PAUSED_LOCATION",

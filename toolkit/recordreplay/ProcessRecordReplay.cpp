@@ -45,7 +45,7 @@ Recording* gRecording;
 
 bool gInitialized;
 ProcessKind gProcessKind;
-char* gRecordingFilename;
+const char* gRecordingFilename = "";
 
 // Current process ID.
 static int gPid;
@@ -84,6 +84,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   // Parse command line options for the process kind and recording file.
   Maybe<ProcessKind> processKind;
   Maybe<char*> recordingFile;
+  Maybe<char*> replayJSFile;
   for (int i = 0; i < aArgc; i++) {
     if (!strcmp(aArgv[i], gProcessKindOption)) {
       MOZ_RELEASE_ASSERT(processKind.isNothing() && i + 1 < aArgc);
@@ -92,6 +93,10 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
     if (!strcmp(aArgv[i], gRecordingFileOption)) {
       MOZ_RELEASE_ASSERT(recordingFile.isNothing() && i + 1 < aArgc);
       recordingFile.emplace(aArgv[i + 1]);
+    }
+    if (!strcmp(aArgv[i], "-recordReplayJS")) {
+      MOZ_RELEASE_ASSERT(replayJSFile.isNothing() && i + 1 < aArgc);
+      replayJSFile.emplace(aArgv[i + 1]);
     }
   }
   MOZ_RELEASE_ASSERT(processKind.isSome());
@@ -104,16 +109,16 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   switch (processKind.ref()) {
     case ProcessKind::Recording:
       gIsRecording = gIsRecordingOrReplaying = true;
-      fprintf(stderr, "RECORDING %d %s\n", getpid(), recordingFile.ref());
+      fprintf(stderr, "RECORDING %d %s\n", getpid(), gRecordingFilename);
       break;
     case ProcessKind::Replaying:
       gIsReplaying = gIsRecordingOrReplaying = true;
-      fprintf(stderr, "REPLAYING %d %s\n", getpid(), recordingFile.ref());
+      fprintf(stderr, "REPLAYING %d %s\n", getpid(), gRecordingFilename);
       break;
     case ProcessKind::MiddlemanRecording:
     case ProcessKind::MiddlemanReplaying:
       gIsMiddleman = true;
-      fprintf(stderr, "MIDDLEMAN %d %s\n", getpid(), recordingFile.ref());
+      fprintf(stderr, "MIDDLEMAN %d %s\n", getpid(), gRecordingFilename);
       break;
     default:
       MOZ_CRASH("Bad ProcessKind");
@@ -193,6 +198,10 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
 
   child::SetupRecordReplayChannel(aArgc, aArgv);
 
+  if (replayJSFile.isSome()) {
+    js::ReadReplayJS(replayJSFile.ref());
+  }
+
   thread->SetPassThrough(false);
 
   InitializeRewindState();
@@ -234,36 +243,14 @@ MOZ_EXPORT void RecordReplayInterface_InternalInvalidateRecording(
     child::ReportFatalError("Recording invalidated while replaying: %s", aWhy);
   }
 
-  child::ReportCriticalError(aWhy);
-  Thread::WaitForeverNoIdle();
+  Print("INVALIDATE_RECORDING_CRASH\n");
+  MOZ_CRASH();
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalBeginPassThroughThreadEventsWithLocalReplay() {
-  if (IsReplaying() && !gReplayingInCloud) {
-    BeginPassThroughThreadEvents();
-  }
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalEndPassThroughThreadEventsWithLocalReplay() {
-  // If we are replaying locally we will be skipping over a section of the
-  // recording while events are passed through. Include the current stream
-  // position in the recording so that we will know how much to skip over.
-  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
-  Stream* localReplayStream = gRecording->OpenStream(StreamName::LocalReplaySkip, 0);
-  Stream& events = Thread::Current()->Events();
-
-  size_t position = IsRecording() ? events.StreamPosition() : 0;
-  localReplayStream->RecordOrReplayScalar(&position);
-
-  if (IsReplaying() && !ReplayingInCloud()) {
-    EndPassThroughThreadEvents();
-    MOZ_RELEASE_ASSERT(events.StreamPosition() <= position);
-    size_t nbytes = position - events.StreamPosition();
-    void* buf = malloc(nbytes);
-    events.ReadBytes(buf, nbytes);
-    free(buf);
-    MOZ_RELEASE_ASSERT(events.StreamPosition() == position);
-  }
 }
 
 // The elapsed time since the process was initialized, in seconds. This is
@@ -282,25 +269,24 @@ double ElapsedTime() {
 // How many bytes have been sent from the recording to the middleman.
 size_t gRecordingDataSentToMiddleman;
 
-void FlushRecording() {
-  MOZ_RELEASE_ASSERT(IsRecording());
+void FlushRecording(bool aFinishRecording) {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
 
-  gRecording->Flush();
+  if (IsRecording()) {
+    gRecording->Flush();
+  }
 
-  child::PrintLog("FlushRecording Checkpoint %lu Position %lu Size %lu",
-                  GetLastCheckpoint(), Thread::Current()->Events().StreamPosition(),
-                  gRecording->Size());
+  // Record/replay the size of the recording at this point so that we dispatch
+  // the same buffer to SendRecordingData when replaying.
+  size_t nbytes = RecordReplayValue(gRecording->Size());
 
-  nsAutoCString chunks;
-  Thread::Current()->Events().PrintChunks(chunks);
-  child::PrintLog("Chunks %s", chunks.get());
-
-  if (gRecording->Size() > gRecordingDataSentToMiddleman) {
-    child::SendRecordingData(gRecordingDataSentToMiddleman,
-                             gRecording->Data() + gRecordingDataSentToMiddleman,
-                             gRecording->Size() - gRecordingDataSentToMiddleman);
-    gRecordingDataSentToMiddleman = gRecording->Size();
+  if (nbytes > gRecordingDataSentToMiddleman) {
+    js::SendRecordingData(gRecordingDataSentToMiddleman,
+                          gRecording->Data() + gRecordingDataSentToMiddleman,
+                          nbytes - gRecordingDataSentToMiddleman,
+                          aFinishRecording ? Some(nbytes) : Nothing(),
+                          aFinishRecording ? Some(RecordingDuration()) : Nothing());
+    gRecordingDataSentToMiddleman = nbytes;
   }
 }
 
@@ -309,25 +295,26 @@ void HitEndOfRecording() {
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
 
   if (Thread::CurrentIsMainThread()) {
-    // We should have been provided with all the data needed to run forward in
-    // the replay. Check to see if there is any pending data.
-    child::AddPendingRecordingData(/* aRequireMore */ true);
+    MOZ_CRASH("Hit end of recording");
   } else {
     // Non-main threads may wait until more recording data is added.
     Thread::Wait();
   }
 }
 
-void SetRecordingSummary(const nsACString& aString) {
+void AddCheckpointSummary(ProgressCounter aProgress, size_t aElapsed, size_t aTime) {
   MOZ_RELEASE_ASSERT(IsRecording());
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
 
   Stream* stream = gRecording->OpenStream(StreamName::Summary, 0);
-  stream->WriteScalar(aString.Length());
-  stream->WriteBytes(aString.BeginReading(), aString.Length());
+  stream->WriteScalar(aProgress);
+  stream->WriteScalar(aElapsed);
+  stream->WriteScalar(aTime);
 }
 
-void GetRecordingSummary(nsAutoCString& aString) {
+void GetRecordingSummary(InfallibleVector<ProgressCounter>& aProgressCounters,
+                         InfallibleVector<size_t>& aElapsed,
+                         InfallibleVector<size_t>& aTimes) {
   MOZ_RELEASE_ASSERT(IsReplaying());
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
 
@@ -335,9 +322,9 @@ void GetRecordingSummary(nsAutoCString& aString) {
   MOZ_RELEASE_ASSERT(stream->StreamPosition() == 0);
 
   while (!stream->AtEnd()) {
-    size_t len = stream->ReadScalar();
-    aString.SetLength(len);
-    stream->ReadBytes(aString.BeginWriting(), len);
+    aProgressCounters.append(stream->ReadScalar());
+    aElapsed.append(stream->ReadScalar());
+    aTimes.append(stream->ReadScalar());
   }
 }
 
@@ -372,13 +359,6 @@ bool ReplayingInCloud() { return gReplayingInCloud; }
 const char* InstallDirectory() { return gInstallDirectory; }
 
 bool IsVerbose() { return gVerbose; }
-
-void ExtractCloudRecordingName(const char* aFileName, nsAutoCString& aRecordingName) {
-  const char prefix[] = "webreplay://";
-  if (!strncmp(aFileName, prefix, strlen(prefix))) {
-    aRecordingName = nsCString(aFileName + strlen(prefix));
-  }
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Record/Replay Assertions

@@ -19,39 +19,11 @@
 namespace mozilla {
 namespace recordreplay {
 
-// This file has definitions for creating and communicating on a special
-// bidirectional channel between a middleman process and a recording or
-// replaying process. This communication is not included in the recording, and
-// when replaying this is the only mechanism the child can use to communicate
-// with the middleman process.
-//
-// Replaying processes can rewind themselves, restoring execution state and the
-// contents of all heap memory to that at an earlier point. To keep the
-// replaying process and middleman from getting out of sync with each other,
-// there are tight constraints on when messages may be sent across the channel
-// by one process or the other. At any given time the child process may be
-// either paused or unpaused. If it is paused, it is not doing any execution
-// and cannot rewind itself. If it is unpaused, it may execute content and may
-// rewind itself.
-//
-// Messages can be sent from the child process to the middleman only when the
-// child process is unpaused, and messages can only be sent from the middleman
-// to the child process when the child process is paused. This prevents
-// messages from being lost when they are sent from the middleman as the
-// replaying process rewinds itself. A few exceptions to this rule are noted
-// below.
-
 #define ForEachMessageType(_Macro)                             \
-  /* Messages which can be interpreted or constructed by the cloud server. */ \
-  /* Avoid changing the message IDs for these. */              \
+  /* Messages sent from the middleman to the child process. */ \
                                                                \
   /* Sent by the middleman at startup. */                      \
   _Macro(Introduction)                                         \
-                                                               \
-  /* An error occurred and the record/replay session cannot continue. */ \
-  _Macro(CriticalError)                                        \
-                                                               \
-  /* Messages sent from the middleman to the child process. */ \
                                                                \
   /* Periodically sent to replaying processes to make sure they are */ \
   /* responsive and determine how much progress they have made. This can be */ \
@@ -65,25 +37,12 @@ namespace recordreplay {
   /* Force a hanged replaying process to crash and produce a dump. */ \
   _Macro(Crash)                                                \
                                                                \
-  /* Poke a child that is recording to create an artificial checkpoint, rather than */ \
-  /* (potentially) idling indefinitely. This has no effect on a replaying process. */ \
-  _Macro(CreateCheckpoint)                                     \
-                                                               \
   /* Unpause the child and perform a debugger-defined operation. */ \
   _Macro(ManifestStart)                                        \
                                                                \
   /* Respond to a ExternalCallRequest message. This is also sent between separate */ \
   /* replaying processes to fill the external call cache in root replaying processes. */ \
   _Macro(ExternalCallResponse)                                 \
-                                                               \
-  /* Tell a replaying process to fetch recording data from the cloud. */ \
-  _Macro(FetchCloudRecordingData)                              \
-                                                               \
-  /* Set the JS which will run in the replaying process. */    \
-  _Macro(ReplayJS)                                             \
-                                                               \
-  /* Enable logging in this process. */                        \
-  _Macro(EnableLogging)                                        \
                                                                \
   /* Messages sent from the child process to the middleman. */ \
                                                                \
@@ -107,21 +66,10 @@ namespace recordreplay {
   /* Get the result of performing an external call. */         \
   _Macro(ExternalCallRequest)                                  \
                                                                \
-  /* Get recording data that is stored in the root process. */ \
-  _Macro(UpdateRecordingFromRoot)                              \
-                                                               \
   /* Send scan data for decoding in the root process. */       \
   _Macro(ScanData)                                             \
                                                                \
   /* Messages sent in both directions. */                      \
-                                                               \
-  /* Send recording data from a recording process to the middleman, or from the */ \
-  /* middleman to a replaying process. */                      \
-  _Macro(RecordingData)                                        \
-                                                               \
-  /* Send some logging text to print, from the recording process to the middleman or */ \
-  /* from the middleman to a replaying process. */             \
-  _Macro(LogText)                                              \
                                                                \
   /* Set a value in the root replaying process database. */    \
   _Macro(SharedKeySet)                                         \
@@ -132,20 +80,15 @@ namespace recordreplay {
   /* Response to SharedKeyRequest */                           \
   _Macro(SharedKeyResponse)
 
-enum class MessageType : uint16_t {
+enum class MessageType : uint32_t {
 #define DefineEnum(Kind) Kind,
   ForEachMessageType(DefineEnum)
 #undef DefineEnum
 };
 
-static const size_t BulkFlag = 0x1;
-
 struct Message {
   // Total message size, including the header.
   uint32_t mSize;
-
-  // Any flags on this message.
-  uint16_t mFlags;
 
   // Type of message.
   MessageType mType;
@@ -155,7 +98,7 @@ struct Message {
 
  protected:
   Message(MessageType aType, uint32_t aSize, uint32_t aForkId)
-      : mSize(aSize), mFlags(0), mType(aType), mForkId(aForkId) {
+      : mSize(aSize), mType(aType), mForkId(aForkId) {
     static_assert(sizeof(Message) == 12);
     MOZ_RELEASE_ASSERT(mSize >= sizeof(*this));
   }
@@ -194,14 +137,6 @@ struct Message {
     return hash;
   }
 
-  void SetBulk() {
-    mFlags |= BulkFlag;
-  }
-
-  bool Bulk() const {
-    return mFlags & BulkFlag;
-  }
-
  protected:
   template <typename T, typename Elem>
   Elem* Data() {
@@ -227,10 +162,6 @@ struct Message {
 };
 
 struct IntroductionMessage : public Message {
-  // Used when replaying to describe the build that must be used for the replay,
-  // or the name of a recording that is stored in the cloud.
-  BuildId mBuildId;
-
   // Used when recording to specify the parent process pid.
   base::ProcessId mParentPid;
 
@@ -283,10 +214,6 @@ struct EmptyMessage : public Message {
 
 typedef EmptyMessage<MessageType::Terminate> TerminateMessage;
 typedef EmptyMessage<MessageType::Crash> CrashMessage;
-typedef EmptyMessage<MessageType::CreateCheckpoint> CreateCheckpointMessage;
-typedef EmptyMessage<MessageType::FetchCloudRecordingData>
-    FetchCloudRecordingDataMessage;
-typedef EmptyMessage<MessageType::EnableLogging> EnableLoggingMessage;
 
 template <MessageType Type>
 struct ErrorMessage : public Message {
@@ -297,7 +224,6 @@ struct ErrorMessage : public Message {
 };
 
 typedef ErrorMessage<MessageType::FatalError> FatalErrorMessage;
-typedef ErrorMessage<MessageType::CriticalError> CriticalErrorMessage;
 
 typedef EmptyMessage<MessageType::UnhandledDivergence> UnhandledDivergenceMessage;
 
@@ -351,26 +277,10 @@ typedef BinaryMessage<MessageType::ExternalCallResponse>
 // The tag is not used.
 typedef BinaryMessage<MessageType::ScanData> ScanDataMessage;
 
-// The tag is the start offset of the recording data needed.
-typedef BinaryMessage<MessageType::RecordingData> RecordingDataMessage;
-
-struct UpdateRecordingFromRootMessage : public Message {
-  uint64_t mStart;
-  uint64_t mRequiredLength;
-
-  UpdateRecordingFromRootMessage(uint32_t aForkId, uint64_t aStart,
-                                 uint32_t aRequiredLength)
-      : Message(MessageType::UpdateRecordingFromRoot, sizeof(*this), aForkId),
-        mStart(aStart),
-        mRequiredLength(aRequiredLength) {}
-};
-
 // The tag is not used.
 typedef BinaryMessage<MessageType::ManifestStart> ManifestStartMessage;
-typedef BinaryMessage<MessageType::ReplayJS> ReplayJSMessage;
-typedef BinaryMessage<MessageType::LogText> LogTextMessage;
 
-// The tag is the uncompressed size if the message is compressed.
+// The tag is not used.
 typedef BinaryMessage<MessageType::ManifestFinished> ManifestFinishedMessage;
 
 // The tag is the length of the key, after which the value follows.

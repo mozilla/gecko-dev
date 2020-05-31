@@ -19,8 +19,6 @@ loader.lazyRequireGetter(
  * matched.
  */
 
-const { ReplayInspector } = require("RecordReplayControl").module;
-
 /**
  * The WalkerIndex class indexes the document (and all subdocs) from
  * a given walker.
@@ -90,12 +88,6 @@ WalkerIndex.prototype = {
   },
 
   index: function() {
-    if (isReplaying) {
-      const index = ReplayInspector.indexDocument();
-      index.forEach(([type, node, value]) => this._addToIndex(type, node, value));
-      return;
-    }
-
     // Handle case where iterating nextNode() with the deepTreeWalker triggers
     // a mutation (Bug 1222558)
     this.currentlyIndexing = true;
@@ -287,11 +279,6 @@ WalkerSearch.prototype = {
     }
 
     const documents = this.walker.targetActor.windows.map(win => win.document);
-
-    // Sorting while replaying is NYI.
-    if (isReplaying) {
-      return resultList;
-    }
 
     // Sort the resulting nodes by order of appearance in the DOM
     resultList.sort((a, b) => {

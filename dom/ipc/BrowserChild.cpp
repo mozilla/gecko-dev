@@ -2245,11 +2245,10 @@ mozilla::ipc::IPCResult BrowserChild::RecvActivateFrameEvent(
 // Return whether a remote script should be loaded in middleman processes in
 // addition to any child recording process they have.
 static bool LoadScriptInMiddleman(const nsString& aURL) {
-  return  // Middleman processes run devtools server side scripts.
-      StringBeginsWith(aURL, NS_LITERAL_STRING("resource://devtools/"))
+  return
       // This script includes event listeners needed to propagate document
       // title changes.
-      || aURL.EqualsLiteral("chrome://global/content/browser-child.js")
+      aURL.EqualsLiteral("chrome://global/content/browser-child.js")
       // This script is needed to respond to session store requests from the
       // UI process.
       || aURL.EqualsLiteral("chrome://browser/content/content-sessionStore.js");

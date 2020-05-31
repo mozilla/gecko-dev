@@ -144,10 +144,10 @@ class BoxModelMain extends PureComponent {
     const { layout } = this.props.boxModel;
 
     property -=
-      parseFloat(layout["border-top-width"] || 0) +
-      parseFloat(layout["border-bottom-width"] || 0) +
-      parseFloat(layout["padding-top"] || 0) +
-      parseFloat(layout["padding-bottom"] || 0);
+      parseFloat(layout["border-top-width"]) +
+      parseFloat(layout["border-bottom-width"]) +
+      parseFloat(layout["padding-top"]) +
+      parseFloat(layout["padding-bottom"]);
     property = parseFloat(property.toPrecision(6));
 
     return property;
@@ -204,10 +204,10 @@ class BoxModelMain extends PureComponent {
     const { layout } = this.props.boxModel;
 
     property -=
-      parseFloat(layout["border-left-width"] || 0) +
-      parseFloat(layout["border-right-width"] || 0) +
-      parseFloat(layout["padding-left"] || 0) +
-      parseFloat(layout["padding-right"] || 0);
+      parseFloat(layout["border-left-width"]) +
+      parseFloat(layout["border-right-width"]) +
+      parseFloat(layout["padding-left"]) +
+      parseFloat(layout["padding-right"]);
     property = parseFloat(property.toPrecision(6));
 
     return property;

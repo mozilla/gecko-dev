@@ -14,8 +14,7 @@ const { Cu } = require("chrome");
  * @param ThreadActor thread
  *        The thread actor instance that owns this EventLoopStack.
  */
-function EventLoopStack({ window, thread }) {
-  this._window = window;
+function EventLoopStack({ thread }) {
   this._thread = thread;
 }
 
@@ -44,7 +43,6 @@ EventLoopStack.prototype = {
    */
   push: function() {
     return new EventLoop({
-      window: this._window,
       thread: this._thread,
     });
   },
@@ -57,8 +55,7 @@ EventLoopStack.prototype = {
  * @param ThreadActor thread
  *        The thread actor that is creating this nested event loop.
  */
-function EventLoop({ window, thread }) {
-  this._window = window;
+function EventLoop({ thread }) {
   this._thread = thread;
 
   this.enter = this.enter.bind(this);
@@ -121,9 +118,6 @@ EventLoop.prototype = {
    * Retrieve the list of all DOM Windows debugged by the current thread actor.
    */
   getAllWindowDebuggees() {
-    if (isReplaying) {
-      return [this._window];
-    }
     return (
       this._thread.dbg
         .getDebuggees()
@@ -160,14 +154,10 @@ EventLoop.prototype = {
     const windows = [];
     // Disable events in all open windows.
     for (const window of this.getAllWindowDebuggees()) {
-      try {
-        const { windowUtils } = window;
-        windowUtils.suppressEventHandling(true);
-        windowUtils.suspendTimeouts();
-        windows.push(window);
-      } catch (e) {
-        // This can fail during shutdown.
-      }
+      const { windowUtils } = window;
+      windowUtils.suppressEventHandling(true);
+      windowUtils.suspendTimeouts();
+      windows.push(window);
     }
     return windows;
   },
@@ -178,13 +168,9 @@ EventLoop.prototype = {
   postNest(pausedWindows) {
     // Enable events in all open windows.
     for (const window of pausedWindows) {
-      try {
-        const { windowUtils } = window;
-        windowUtils.resumeTimeouts();
-        windowUtils.suppressEventHandling(false);
-      } catch (e) {
-        // This can fail during shutdown.
-      }
+      const { windowUtils } = window;
+      windowUtils.resumeTimeouts();
+      windowUtils.suppressEventHandling(false);
     }
   },
 };
