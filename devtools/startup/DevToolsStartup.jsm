@@ -1591,13 +1591,10 @@ async function reloadAndStopRecordingTab(gBrowser) {
 
   const url = `${viewHost}/view?id=${recordingId}${extra}`;
   const tab = gBrowser.selectedTab;
-  gBrowser.selectedTab = gBrowser.addWebTab(null, {
+  gBrowser.selectedTab = gBrowser.addWebTab(url, {
     index: tab._tPos + 1,
   });
   gBrowser.removeTab(tab);
-  gBrowser.loadURI(url, {
-    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
-  });
 }
 
 // See also aboutRecordings.js

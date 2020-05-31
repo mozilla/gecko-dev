@@ -846,6 +846,11 @@ already_AddRefed<ContentParent> ContentParent::GetUsedBrowserProcess(
     ContentParent* aOpener, const nsAString& aRemoteType,
     nsTArray<ContentParent*>& aContentParents, uint32_t aMaxContentParents,
     bool aPreferUsed) {
+  // This code is disabled, as the presence of recording tabs can cause other
+  // new tabs to not render. There might be a simple fix here but it doesn't
+  // seem worth investigating.
+  return nullptr;
+  /*
   uint32_t numberOfParents = aContentParents.Length();
   nsTArray<RefPtr<nsIContentProcessInfo>> infos(numberOfParents);
   for (auto* cp : aContentParents) {
@@ -896,6 +901,7 @@ already_AddRefed<ContentParent> ContentParent::GetUsedBrowserProcess(
   }
 
   return nullptr;
+  */
 }
 
 /*static*/
