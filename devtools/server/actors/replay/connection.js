@@ -123,6 +123,10 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
       return;
     }
 
+    if (first) {
+      ChromeUtils.recordReplayLog(`CreateRecording ${recordingId}`);
+    }
+
     const dataPromise = sendUploadCommand(
       pid,
       "Internal.addRecordingData",
