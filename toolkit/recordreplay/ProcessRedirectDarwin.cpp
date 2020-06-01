@@ -1132,6 +1132,11 @@ static PreambleResult Preamble_dlsym(CallArguments* aArguments) {
   return PreambleResult::PassThrough;
 }
 
+static PreambleResult ExternalPreamble_dlerror(CallArguments* aArguments) {
+  aArguments->Rval<const char*>() = "Diverged from recording";
+  return PreambleResult::Veto;
+}
+
 static void RR_fread(Stream& aEvents, CallArguments* aArguments,
                      ErrorType* aError) {
   auto& buf = aArguments->Arg<0, void*>();
@@ -2345,7 +2350,7 @@ static SystemRedirection gSystemRedirections[] = {
     {"dlclose", nullptr, Preamble_Veto<0>},
     {"dlopen", nullptr, Preamble_dlopen},
     {"dlsym", nullptr, Preamble_dlsym},
-    {"dlerror", RR_CStringRval},
+    {"dlerror", RR_CStringRval, nullptr, nullptr, ExternalPreamble_dlerror},
     {"fclose", RR_SaveRvalHadErrorNegative},
     {"fflush", RR_SaveRvalHadErrorNegative},
     {"fprintf", RR_SaveRvalHadErrorNegative},
@@ -2401,7 +2406,7 @@ static SystemRedirection gSystemRedirections[] = {
      RR_Compose<RR_ScalarRval, RR_OutParam<0, mach_timebase_info_data_t>>},
     {"mach_vm_region", nullptr, Preamble_VetoIfNotPassedThrough<KERN_FAILURE>},
     {"opendir$INODE64", RR_ScalarRval},
-    {"rand", RR_ScalarRval},
+    {"rand", RR_ScalarRval, nullptr, nullptr, Preamble_PassThrough},
     {"readdir$INODE64", RR_readdir},
     {"realpath",
      RR_SaveRvalHadErrorZero<RR_Compose<

@@ -128,6 +128,10 @@ bool EnsureNSSInitializedChromeOrContent() {
     return true;
   }
 
+  if (mozilla::recordreplay::HasDivergedFromRecording()) {
+    return false;
+  }
+
   if (NSS_NoDB_Init(nullptr) != SECSuccess) {
     return false;
   }
