@@ -69,47 +69,58 @@ function updateRecordings(recordings) {
   showRecordings();
 }
 
+function makeRecordingElement(template, desc) {
+  const { recordingId, url, title, date, duration, lastScreenData } = desc;
+  const recordingUrl = `https://webreplay.io/view?id=${recordingId}`;
+  const newRow = document.importNode(template.content, true);
+  newRow.querySelector(".title").innerText = formatString(title);
+  // newRow.querySelector(".url").innerText = formatString(url);
+  newRow.querySelector(".start").innerText = formatTime(date);
+  newRow.querySelector(".duration").innerText = formatDuration(duration);
+  newRow.querySelector(".recording").href = recordingUrl;
+
+  if (lastScreenData) {
+    const img = document.createElement("img");
+    img.src = "data:image/jpeg;base64, " + lastScreenData;
+    newRow.querySelector(".screenshot").appendChild(img);
+  }
+
+  // screenshot.style.height = "100%";
+  // screenshot.style.display = "block";
+  // screenshot.style.position = "absolute";
+  // screenshot.style.left = "0";
+
+  newRow.querySelector(".copylink")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.target.classList.add("copied");
+    setTimeout(() => {
+      e.target.classList.remove("copied");
+    }, 2000);
+    navigator.clipboard.writeText(recordingUrl);
+  });
+
+  newRow.querySelector(".remove")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    updateRecordings(gRecordings.filter((item) => item.recordingId != recordingId));
+  });
+
+  return newRow;
+}
+
 async function showRecordings() {
   const container = document.querySelector(".recordings-list");
   const template = document.querySelector("#recording-row");
 
   container.innerHTML = "";
-  for (const { uuid, url, title, date, duration, graphics } of gRecordings) {
-    const recordingUrl = `https://view.webreplay.io/${uuid}`;
-    const newRow = document.importNode(template.content, true);
-    newRow.querySelector(".title").innerText = formatString(title);
-    // newRow.querySelector(".url").innerText = formatString(url);
-    newRow.querySelector(".start").innerText = formatTime(date);
-    newRow.querySelector(".duration").innerText = formatDuration(duration);
-    newRow.querySelector(".recording").href = recordingUrl;
-
-    if (graphics) {
-      const img = document.createElement("img");
-      img.src = "data:image/jpeg;base64, " + graphics;
-      newRow.querySelector(".screenshot").appendChild(img);
+  for (const desc of gRecordings) {
+    try {
+      const newRow = makeRecordingElement(template, desc);
+      container.appendChild(newRow);
+    } catch (e) {
+      console.error("Couldn't create recording element", e);
     }
-
-    // screenshot.style.height = "100%";
-    // screenshot.style.display = "block";
-    // screenshot.style.position = "absolute";
-    // screenshot.style.left = "0";
-
-    newRow.querySelector(".copylink")?.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      e.target.classList.add("copied");
-      setTimeout(() => {
-        e.target.classList.remove("copied");
-      }, 2000);
-      navigator.clipboard.writeText(recordingUrl);
-    });
-    newRow.querySelector(".remove")?.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      updateRecordings(gRecordings.filter((item) => item.uuid != uuid));
-    });
-
-    container.appendChild(newRow);
   }
 
   document.querySelector(".no-recordings").hidden = !!gRecordings.length;

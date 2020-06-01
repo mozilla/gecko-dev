@@ -1370,7 +1370,7 @@ const JsonView = {
   },
 };
 
-var EXPORTED_SYMBOLS = ["DevToolsStartup", "validateProfilerWebChannelUrl", "onStartRecording", "onFinishedRecording"];
+var EXPORTED_SYMBOLS = ["DevToolsStartup", "validateProfilerWebChannelUrl", "onFinishedRecording"];
 
 // Web Replay stuff.
 
@@ -1562,7 +1562,9 @@ async function reloadAndStopRecordingTab(gBrowser) {
 
   // A notification will be delivered when the UI process has all the recording
   // data and sent a description to the cloud service.
-  const recordingId = await waitForFinishedRecording();
+  const description = await waitForFinishedRecording();
+  const { recordingId } = description;
+  addRecordingDescription(description);
 
   recordReplayLog(`FinishedRecording ${recordingId}`);
 
@@ -1620,10 +1622,6 @@ async function addRecordingDescription(description) {
   }
 
   OS.File.writeAtomic(path, JSON.stringify([description, ...recordings]));
-}
-
-function onStartRecording(recordingId) {
-  addRecordingDescription({ recordingId });
 }
 
 function viewRecordings() {

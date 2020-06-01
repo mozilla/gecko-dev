@@ -9,8 +9,7 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 const { setTimeout } = Components.utils.import('resource://gre/modules/Timer.jsm');
-const { onStartRecording, onFinishedRecording } =
-  ChromeUtils.import("resource:///modules/DevToolsStartup.jsm");
+const { onFinishedRecording } = ChromeUtils.import("resource:///modules/DevToolsStartup.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
@@ -124,10 +123,6 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
       return;
     }
 
-    if (first) {
-      onStartRecording(recordingId);
-    }
-
     const dataPromise = sendUploadCommand(
       pid,
       "Internal.addRecordingData",
@@ -139,14 +134,32 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
     info.dataPromises.push(dataPromise);
 
     if (description) {
+      const {
+        length,
+        duration,
+        lastScreenMimeType,
+        lastScreenData,
+        url,
+        title,
+        date,
+      } = description;
+
       // This is for the last flush before the recording tab is closed,
       // add a recording description.
       sendCommand(
         "Internal.addRecordingDescription",
-        { recordingId, ...description }
+        { recordingId, length, duration, lastScreenMimeType, lastScreenData }
       );
 
-      onFinishedRecording(recordingId);
+      onFinishedRecording({
+        recordingId,
+        url,
+        title,
+        date,
+        duration,
+        lastScreenData,
+        lastScreenMimeType,
+      });
 
       // Ignore any other flushes from this pid.
       RecordingDestroyed(pid);
