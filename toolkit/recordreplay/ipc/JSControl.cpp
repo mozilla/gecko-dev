@@ -1112,18 +1112,25 @@ struct ScriptHitCheckpoint {
   }
 
   void ReadContents(BufferStream& aStream) {
-    MOZ_RELEASE_ASSERT(mRegions.length() == 0);
-    mBaseProgressIndex = aStream.ReadScalar();
+    size_t baseProgressIndex = aStream.ReadScalar();
+    if (baseProgressIndex) {
+      MOZ_RELEASE_ASSERT(!mBaseProgressIndex);
+      mBaseProgressIndex = baseProgressIndex;
+    }
+
     size_t numRegions = aStream.ReadScalar();
+    MOZ_RELEASE_ASSERT(!numRegions || mRegions.length() == 0);
     for (size_t i = 0; i < numRegions; i++) {
       mRegions.append(new ScriptHitRegion());
       mRegions[i]->ReadContents(aStream);
     }
 
-    MOZ_RELEASE_ASSERT(mPaintData.empty());
     size_t paintDataLength = aStream.ReadScalar32();
-    mPaintData.appendN(0, paintDataLength);
-    aStream.ReadBytes(mPaintData.begin(), paintDataLength);
+    MOZ_RELEASE_ASSERT(!paintDataLength || mPaintData.empty());
+    if (paintDataLength) {
+      mPaintData.appendN(0, paintDataLength);
+      aStream.ReadBytes(mPaintData.begin(), paintDataLength);
+    }
   }
 };
 
