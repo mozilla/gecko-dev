@@ -106,6 +106,8 @@ ThreadEventTarget::DispatchFromScript(nsIRunnable* aRunnable, uint32_t aFlags) {
 NS_IMETHODIMP
 ThreadEventTarget::Dispatch(already_AddRefed<nsIRunnable> aEvent,
                             uint32_t aFlags) {
+  mozilla::recordreplay::RecordReplayAssert("ThreadEventTarget::Dispatch");
+
   // We want to leak the reference when we fail to dispatch it, so that
   // we won't release the event in a wrong thread.
   LeakRefPtr<nsIRunnable> event(std::move(aEvent));
@@ -125,6 +127,8 @@ ThreadEventTarget::Dispatch(already_AddRefed<nsIRunnable> aEvent,
   event = tracedRunnable.forget();
 #endif
 
+  mozilla::recordreplay::RecordReplayAssert("ThreadEventTarget::Dispatch #1 %d", (int)aFlags);
+
   if (aFlags & DISPATCH_SYNC) {
     nsCOMPtr<nsIEventTarget> current = GetCurrentThreadEventTarget();
     if (NS_WARN_IF(!current)) {
@@ -137,6 +141,9 @@ ThreadEventTarget::Dispatch(already_AddRefed<nsIRunnable> aEvent,
 
     RefPtr<nsThreadSyncDispatch> wrapper =
         new nsThreadSyncDispatch(current.forget(), event.take());
+
+    mozilla::recordreplay::RecordReplayAssert("ThreadEventTarget::Dispatch #2");
+
     bool success = mSink->PutEvent(do_AddRef(wrapper),
                                    EventQueuePriority::Normal);  // hold a ref
     if (!success) {
@@ -153,6 +160,8 @@ ThreadEventTarget::Dispatch(already_AddRefed<nsIRunnable> aEvent,
 
     return NS_OK;
   }
+
+  mozilla::recordreplay::RecordReplayAssert("ThreadEventTarget::Dispatch #3");
 
   NS_ASSERTION(aFlags == NS_DISPATCH_NORMAL || aFlags == NS_DISPATCH_AT_END,
                "unexpected dispatch flags");

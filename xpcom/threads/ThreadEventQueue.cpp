@@ -69,12 +69,16 @@ template <class InnerQueueT>
 bool ThreadEventQueue<InnerQueueT>::PutEventInternal(
     already_AddRefed<nsIRunnable>&& aEvent, EventQueuePriority aPriority,
     NestedSink* aSink) {
+  recordreplay::RecordReplayAssert("ThreadEventQueue::PutEventInternal BEGIN");
+
   // We want to leak the reference when we fail to dispatch it, so that
   // we won't release the event in a wrong thread.
   LeakRefPtr<nsIRunnable> event(std::move(aEvent));
   nsCOMPtr<nsIThreadObserver> obs;
 
   {
+    recordreplay::RecordReplayAssert("ThreadEventQueue::PutEventInternal #1");
+
     // Check if the runnable wants to override the passed-in priority.
     // Do this outside the lock, so runnables implemented in JS can QI
     // (and possibly GC) outside of the lock.
@@ -96,6 +100,8 @@ bool ThreadEventQueue<InnerQueueT>::PutEventInternal(
         }
       }
     }
+
+    recordreplay::RecordReplayAssert("ThreadEventQueue::PutEventInternal #2");
 
     MutexAutoLock lock(mLock);
 
