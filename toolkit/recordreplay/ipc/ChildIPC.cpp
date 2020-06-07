@@ -941,8 +941,9 @@ static void PaintFromMainThread() {
     gChannel->SendMessage(PaintMessage(gPaintWidth, gPaintHeight));
   }
 
-  if (IsReplaying() && !HasDivergedFromRecording()) {
+  if (IsReplaying() && !HasDivergedFromRecording() && gPendingPaintCheckpoint) {
     js::PaintComplete(gPendingPaintCheckpoint);
+    gPendingPaintCheckpoint = 0;
   }
 }
 
