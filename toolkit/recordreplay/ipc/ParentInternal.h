@@ -76,19 +76,6 @@ void SendGraphicsMemoryToChild();
 // main child.
 void UpdateGraphicsAfterPaint(const PaintMessage& aMsg);
 
-// Update the graphics painted in the UI process according to some paint data.
-void PaintGraphics(const nsACString& aMimeType, const nsACString& aImageData,
-                   const nsACString& aOptions);
-
-// Clear any graphics painted in the UI process.
-void ClearGraphics(const nsACString& aOptions);
-
-// Restore the graphics last painted by the main child.
-void RestoreMainGraphics();
-
-// Restore the listener for suppressed events on the canvas.
-void RestoreSuppressedEventListener();
-
 // ID for the mach message sent from a child process to the middleman to
 // request a port for the graphics shmem.
 static const int32_t GraphicsHandshakeMessageId = 42;

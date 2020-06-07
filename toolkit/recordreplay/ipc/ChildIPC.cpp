@@ -885,7 +885,7 @@ static bool EncodeGraphics(const nsACString& aMimeType,
   nsString options = NS_ConvertUTF8toUTF16(aEncodeOptions);
   nsresult rv = encoder->InitFromData(
       (const uint8_t*)gDrawTargetBuffer, stride * gPaintHeight, gPaintWidth,
-      gPaintHeight, stride, imgIEncoder::INPUT_FORMAT_HOSTARGB, options);
+      gPaintHeight, stride, imgIEncoder::INPUT_FORMAT_RGBA, options);
   if (NS_FAILED(rv)) {
     return false;
   }

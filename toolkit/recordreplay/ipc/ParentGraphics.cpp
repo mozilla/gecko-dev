@@ -153,14 +153,8 @@ static void UpdateMiddlemanCanvas(size_t aWidth, size_t aHeight, size_t aStride,
   *gLastBuffer = bufferObject;
 }
 
-// The dimensions of the data in the graphics shmem buffer.
-static size_t gLastPaintWidth, gLastPaintHeight;
-
 void UpdateGraphicsAfterPaint(const PaintMessage& aMsg) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
-
-  gLastPaintWidth = aMsg.mWidth;
-  gLastPaintHeight = aMsg.mHeight;
 
   if (!aMsg.mWidth || !aMsg.mHeight) {
     return;
@@ -175,74 +169,6 @@ void UpdateGraphicsAfterPaint(const PaintMessage& aMsg) {
                                                                 aMsg.mWidth);
   UpdateMiddlemanCanvas(aMsg.mWidth, aMsg.mHeight, stride, gGraphicsMemory,
                         nsCString());
-}
-
-// Map holding the data from the last paint alive.
-gfx::DataSourceSurface::ScopedMap* gLastMap;
-
-void PaintGraphics(const nsACString& aMimeType, const nsACString& aImageData,
-                   const nsACString& aOptions) {
-  if (!gGraphics) {
-    InitGraphicsSandbox();
-  }
-
-  nsCOMPtr<nsIInputStream> stream;
-  nsresult rv = NS_NewCStringInputStream(getter_AddRefs(stream), aImageData);
-  MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
-
-  RefPtr<gfx::SourceSurface> surface = image::ImageOps::DecodeToSurface(
-      stream.forget(), aMimeType, 0);
-  MOZ_RELEASE_ASSERT(surface);
-
-  RefPtr<gfx::DataSourceSurface> dataSurface = surface->GetDataSurface();
-
-  auto* map = new gfx::DataSourceSurface::ScopedMap(dataSurface,
-                                                    gfx::DataSourceSurface::READ);
-
-  UpdateMiddlemanCanvas(surface->GetSize().width, surface->GetSize().height,
-                        map->GetStride(), map->GetData(), aOptions);
-
-  if (gLastMap) {
-    delete gLastMap;
-  }
-  gLastMap = map;
-}
-
-void ClearGraphics(const nsACString& aOptions) {
-  if (!gGraphics) {
-    InitGraphicsSandbox();
-  }
-
-  AutoSafeJSContext cx;
-  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
-
-  if (NS_FAILED(gGraphics->ClearCanvas(aOptions))) {
-    MOZ_CRASH("ClearGraphics");
-  }
-}
-
-void RestoreMainGraphics() {
-  if (!gLastPaintWidth || !gLastPaintHeight) {
-    return;
-  }
-
-  size_t stride = layers::ImageDataSerializer::ComputeRGBStride(
-      gSurfaceFormat, gLastPaintWidth);
-  UpdateMiddlemanCanvas(gLastPaintWidth, gLastPaintHeight, stride,
-                        gGraphicsMemory, nsCString());
-}
-
-void RestoreSuppressedEventListener() {
-  if (!gGraphics) {
-    return;
-  }
-
-  AutoSafeJSContext cx;
-  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
-
-  if (NS_FAILED(gGraphics->RestoreSuppressedEventListener())) {
-    MOZ_CRASH("RestoreSuppressedEventListener");
-  }
 }
 
 }  // namespace parent
