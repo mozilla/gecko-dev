@@ -36,6 +36,7 @@
 
 #include "vm/Compartment-inl.h"        // for Compartment::wrap
 #include "vm/EnvironmentObject-inl.h"  // for JSObject::enclosingEnvironment
+#include "vm/JSFunction-inl.h"
 #include "vm/JSObject-inl.h"           // for IsInternalFunctionObject
 #include "vm/ObjectOperations-inl.h"   // for HasProperty, GetProperty
 #include "vm/Realm-inl.h"              // for AutoRealm::AutoRealm
@@ -488,7 +489,12 @@ bool DebuggerEnvironment::getCallee(JSContext* cx,
 
   RootedObject callee(cx, &scope.as<CallObject>().callee());
   if (IsInternalFunctionObject(*callee)) {
-    callee = nullptr;
+    RootedFunction fun(cx, &callee->as<JSFunction>());
+    RootedObject enclosing(cx, &scope.as<CallObject>().enclosingEnvironment());
+    callee = CloneFunctionObjectIfNotSingleton(cx, fun, enclosing);
+    if (!callee) {
+      return false;
+    }
   }
 
   return owner()->wrapNullableDebuggeeObject(cx, callee, result);
