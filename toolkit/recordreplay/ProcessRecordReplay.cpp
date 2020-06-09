@@ -295,7 +295,9 @@ void HitEndOfRecording() {
   MOZ_RELEASE_ASSERT(!AreThreadEventsPassedThrough());
 
   if (Thread::CurrentIsMainThread()) {
-    MOZ_CRASH("Hit end of recording");
+    // We should have been provided with all the data needed to run forward in
+    // the replay. Incorporate any pending data received off thread.
+    child::AddPendingRecordingData();
   } else {
     // Non-main threads may wait until more recording data is added.
     Thread::Wait();

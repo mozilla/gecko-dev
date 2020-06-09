@@ -97,6 +97,9 @@ void PerformFork(size_t aForkId);
 // Called to perform the actual fork. Returns whether this is the original process.
 bool RawFork();
 
+// Incorporate any new data into the recording. If there is no more data, crash.
+void AddPendingRecordingData();
+
 // Set any text to be printed if this process crashes.
 void SetCrashNote(const char* aNote);
 

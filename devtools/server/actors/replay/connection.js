@@ -125,6 +125,9 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
 
     if (first) {
       ChromeUtils.recordReplayLog(`CreateRecording ${recordingId}`);
+
+      // For now, always start processing recordings as soon as they've been created.
+      sendCommand("Recording.processRecording", { recordingId });
     }
 
     const dataPromise = sendUploadCommand(
@@ -195,11 +198,11 @@ async function addRecordingResource(recordingId, url) {
   const text = await response.text();
   const resource = getResourceInfo(url, text);
 
-  sendCommand("Internal.addRecordingResource", { recordingId, resource });
+  await sendCommand("Internal.addRecordingResource", { recordingId, resource });
 
   const { known } = await sendCommand("Internal.hasResource", { resource });
   if (!known) {
-    sendCommand("Internal.addResource", { resource, contents: text });
+    await sendCommand("Internal.addResource", { resource, contents: text });
   }
 }
 
@@ -219,7 +222,7 @@ Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
     const { recordingId } = await info.createPromise;
 
     const resolvedSourceMapURL = new URL(sourceMapURL, url).href;
-    addRecordingResource(recordingId, resolvedSourceMapURL);
+    info.dataPromises.push(addRecordingResource(recordingId, resolvedSourceMapURL));
   }
 });
 

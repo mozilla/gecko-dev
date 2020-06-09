@@ -78,6 +78,11 @@ static StaticInfallibleVector<js::CharBuffer*> gPendingManifests;
 // Protected by gMonitor.
 static bool gProcessingManifest = true;
 
+// All recording contents we have received, protected by gMonitor. This may not
+// have all been incorporated into the recording, which happens on the main
+// thread.
+static StaticInfallibleVector<char> gRecordingContents;
+
 // Any response received to the last ExternalCallRequest message.
 static UniquePtr<ExternalCallResponseMessage, Message::FreePolicy>
     gCallResponseMessage;
@@ -88,7 +93,6 @@ static bool gWaitingForCallResponse;
 
 static void MaybeStartNextManifest(const MonitorAutoLock& aProofOfLock);
 static void SendMessageToForkedProcess(Message::UniquePtr aMsg, bool aLockHeld = false);
-static void FetchCloudRecordingData(char** aBuffer, size_t* aSize);
 static void HandleSharedKeyResponse(const SharedKeyResponseMessage& aMsg);
 
 // Lock which allows non-main threads to prevent forks. Readers are the threads
@@ -177,6 +181,19 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       ReportFatalError("Hung replaying process");
       break;
     }
+    case MessageType::RecordingData: {
+      MonitorAutoLock lock(*gMonitor);
+      const auto& nmsg = (const RecordingDataMessage&)*aMsg;
+      MOZ_RELEASE_ASSERT(nmsg.mTag <= gRecordingContents.length());
+      size_t extent = nmsg.mTag + nmsg.BinaryDataSize();
+      if (extent > gRecordingContents.length()) {
+        size_t nbytes = extent - gRecordingContents.length();
+        gRecordingContents.append(nmsg.BinaryData() + nmsg.BinaryDataSize() - nbytes,
+                                  nbytes);
+        gMonitor->NotifyAll();
+      }
+      break;
+    }
     default:
       MOZ_CRASH();
   }
@@ -246,17 +263,8 @@ void SetupRecordReplayChannel(int aArgc, char* aArgv[]) {
 
   // If we're replaying, we also need to wait for some recording data.
   if (IsReplaying()) {
-    char* buffer;
-    size_t size;
-    FetchCloudRecordingData(&buffer, &size);
-
-    InfallibleVector<Stream*> updatedStreams;
-    gRecording->NewContents((const uint8_t*) buffer, size, &updatedStreams);
-
-    for (Stream* stream : updatedStreams) {
-      if (stream->Name() == StreamName::Lock) {
-        Lock::LockAcquiresUpdated(stream->NameIndex());
-      }
+    while (gRecordingContents.empty()) {
+      gMonitor->Wait();
     }
   }
 }
@@ -633,18 +641,37 @@ void ReportUnhandledDivergence() {
 size_t GetId() { return gChildId; }
 size_t GetForkId() { return gForkId; }
 
-static void FetchCloudRecordingData(char** aBuffer, size_t* aSize) {
-  static void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_LoadCloudRecording");
-  if (ptr) {
-    BitwiseCast<void(*)(char**, size_t*)>(ptr)(aBuffer, aSize);
-  } else {
-    // Fallback for offline testing.
-    MOZ_RELEASE_ASSERT(gRecordingFilename);
-    FileHandle file = DirectOpenFile(gRecordingFilename, /* aWriting */ false);
-    *aSize = DirectFileSize(file);
-    *aBuffer = (char*) malloc(*aSize);
-    DirectRead(file, *aBuffer, *aSize);
-    DirectCloseFile(file);
+void AddPendingRecordingData() {
+  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
+  if (!NeedRespawnThreads()) {
+    Thread::WaitForIdleThreads();
+  }
+
+  InfallibleVector<Stream*> updatedStreams;
+  {
+    MonitorAutoLock lock(*gMonitor);
+
+    if (gRecordingContents.length() == gRecording->Size()) {
+      Print("Hit end of recording (%lu bytes, checkpoint %lu, position %lu), crashing...\n",
+            gRecordingContents.length(), GetLastCheckpoint(),
+            Thread::Current()->Events().StreamPosition());
+      MOZ_CRASH("AddPendingRecordingData");
+    } else {
+      gRecording->NewContents(
+          (const uint8_t*)gRecordingContents.begin() + gRecording->Size(),
+          gRecordingContents.length() - gRecording->Size(),
+          &updatedStreams);
+    }
+  }
+
+  for (Stream* stream : updatedStreams) {
+    if (stream->Name() == StreamName::Lock) {
+      Lock::LockAcquiresUpdated(stream->NameIndex());
+    }
+  }
+
+  if (!NeedRespawnThreads()) {
+    Thread::ResumeIdleThreads();
   }
 }
 

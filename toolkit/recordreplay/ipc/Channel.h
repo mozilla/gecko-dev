@@ -20,8 +20,6 @@ namespace mozilla {
 namespace recordreplay {
 
 #define ForEachMessageType(_Macro)                             \
-  /* Messages sent from the middleman to the child process. */ \
-                                                               \
   /* Sent by the middleman at startup. */                      \
   _Macro(Introduction)                                         \
                                                                \
@@ -43,8 +41,6 @@ namespace recordreplay {
   /* Respond to a ExternalCallRequest message. This is also sent between separate */ \
   /* replaying processes to fill the external call cache in root replaying processes. */ \
   _Macro(ExternalCallResponse)                                 \
-                                                               \
-  /* Messages sent from the child process to the middleman. */ \
                                                                \
   /* Pause after executing a manifest, specifying its response. */ \
   _Macro(ManifestFinished)                                     \
@@ -69,8 +65,6 @@ namespace recordreplay {
   /* Send scan data for decoding in the root process. */       \
   _Macro(ScanData)                                             \
                                                                \
-  /* Messages sent in both directions. */                      \
-                                                               \
   /* Set a value in the root replaying process database. */    \
   _Macro(SharedKeySet)                                         \
                                                                \
@@ -78,7 +72,10 @@ namespace recordreplay {
   _Macro(SharedKeyRequest)                                     \
                                                                \
   /* Response to SharedKeyRequest */                           \
-  _Macro(SharedKeyResponse)
+  _Macro(SharedKeyResponse)                                    \
+                                                               \
+  /* Recording data sent to replaying processes. */            \
+  _Macro(RecordingData)
 
 enum class MessageType : uint32_t {
 #define DefineEnum(Kind) Kind,
@@ -289,6 +286,9 @@ typedef BinaryMessage<MessageType::SharedKeySet> SharedKeySetMessage;
 // The tag is not used.
 typedef BinaryMessage<MessageType::SharedKeyRequest> SharedKeyRequestMessage;
 typedef BinaryMessage<MessageType::SharedKeyResponse> SharedKeyResponseMessage;
+
+// The tag is the start offset of the recording data.
+typedef BinaryMessage<MessageType::RecordingData> RecordingDataMessage;
 
 struct PingMessage : public Message {
   uint32_t mId;
