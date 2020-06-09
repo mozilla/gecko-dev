@@ -489,6 +489,8 @@ bool DebuggerEnvironment::getCallee(JSContext* cx,
 
   RootedObject callee(cx, &scope.as<CallObject>().callee());
   if (IsInternalFunctionObject(*callee)) {
+    AutoRealm ar(cx, callee);
+
     RootedFunction fun(cx, &callee->as<JSFunction>());
     RootedObject enclosing(cx, &scope.as<CallObject>().enclosingEnvironment());
     callee = CloneFunctionObjectIfNotSingleton(cx, fun, enclosing);
