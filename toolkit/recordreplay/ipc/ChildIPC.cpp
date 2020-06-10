@@ -641,7 +641,7 @@ void ReportUnhandledDivergence() {
 size_t GetId() { return gChildId; }
 size_t GetForkId() { return gForkId; }
 
-void AddPendingRecordingData() {
+void AddPendingRecordingData(bool aRequireMore) {
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
   if (!NeedRespawnThreads()) {
     Thread::WaitForIdleThreads();
@@ -652,10 +652,12 @@ void AddPendingRecordingData() {
     MonitorAutoLock lock(*gMonitor);
 
     if (gRecordingContents.length() == gRecording->Size()) {
-      Print("Hit end of recording (%lu bytes, checkpoint %lu, position %lu), crashing...\n",
-            gRecordingContents.length(), GetLastCheckpoint(),
-            Thread::Current()->Events().StreamPosition());
-      MOZ_CRASH("AddPendingRecordingData");
+      if (aRequireMore) {
+        Print("Hit end of recording (%lu bytes, checkpoint %lu, position %lu), crashing...\n",
+              gRecordingContents.length(), GetLastCheckpoint(),
+              Thread::Current()->Events().StreamPosition());
+        MOZ_CRASH("AddPendingRecordingData");
+      }
     } else {
       gRecording->NewContents(
           (const uint8_t*)gRecordingContents.begin() + gRecording->Size(),

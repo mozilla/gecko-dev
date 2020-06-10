@@ -679,6 +679,9 @@ static bool RecordReplay_GetRecordingSummary(JSContext* aCx, unsigned aArgc,
                                              Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
+  // Load any recording data accumulated off thread.
+  child::AddPendingRecordingData(/* aRequireMore */ false);
+
   InfallibleVector<ProgressCounter> progressCounters;
   InfallibleVector<size_t> elapsed;
   InfallibleVector<size_t> times;

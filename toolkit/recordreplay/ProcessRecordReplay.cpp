@@ -297,7 +297,7 @@ void HitEndOfRecording() {
   if (Thread::CurrentIsMainThread()) {
     // We should have been provided with all the data needed to run forward in
     // the replay. Incorporate any pending data received off thread.
-    child::AddPendingRecordingData();
+    child::AddPendingRecordingData(/* aRequireMore */ true);
   } else {
     // Non-main threads may wait until more recording data is added.
     Thread::Wait();
@@ -321,8 +321,6 @@ void GetRecordingSummary(InfallibleVector<ProgressCounter>& aProgressCounters,
   MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
 
   Stream* stream = gRecording->OpenStream(StreamName::Summary, 0);
-  MOZ_RELEASE_ASSERT(stream->StreamPosition() == 0);
-
   while (!stream->AtEnd()) {
     aProgressCounters.append(stream->ReadScalar());
     aElapsed.append(stream->ReadScalar());
