@@ -281,6 +281,10 @@ void xpc::ErrorReport::LogToStderr() {
     return;
   }
 
+  if (recordreplay::HasDivergedFromRecording()) {
+    return;
+  }
+
   nsAutoCString error;
   error.AssignLiteral("JavaScript ");
   if (JSREPORT_IS_STRICT(mFlags)) {

@@ -840,6 +840,7 @@ static bool RecordReplay_Dump(JSContext* aCx, unsigned aArgc, Value* aVp) {
 }
 
 static bool RecordReplay_Crash(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  Print("Intentionally crashing...\n");
   MOZ_CRASH("Intentional Crash");
 }
 
@@ -1294,6 +1295,7 @@ size_t gScanBreakpointProgress;
 size_t gScanBreakpointScript;
 size_t gScanBreakpointOffset;
 size_t gScanBreakpointFrameIndex;
+size_t gScanBreakpointIsOnPop;
 
 static bool RecordReplay_IsScanningScripts(JSContext* aCx, unsigned aArgc,
                                            Value* aVp) {
@@ -1336,7 +1338,8 @@ static bool RecordReplay_SetScanBreakpoint(JSContext* aCx, unsigned aArgc,
   if (!RequireNumber(aCx, args.get(0), &gScanBreakpointProgress) ||
       !RequireNumber(aCx, args.get(1), &gScanBreakpointScript) ||
       !RequireNumber(aCx, args.get(2), &gScanBreakpointOffset) ||
-      !RequireNumber(aCx, args.get(3), &gScanBreakpointFrameIndex)) {
+      !RequireNumber(aCx, args.get(3), &gScanBreakpointFrameIndex) ||
+      !RequireNumber(aCx, args.get(4), &gScanBreakpointIsOnPop)) {
     return false;
   }
 
@@ -1406,7 +1409,8 @@ static bool RecordReplay_OnScriptHit(JSContext* aCx, unsigned aArgc,
   }
 
   if (gScanBreakpointProgress) {
-    if (gScanBreakpointProgress == gProgressCounter &&
+    if (!gScanBreakpointIsOnPop &&
+        gScanBreakpointProgress == gProgressCounter &&
         gScanBreakpointScript == script &&
         gScanBreakpointOffset == offset &&
         gScanBreakpointFrameIndex == frameIndex) {
@@ -1452,9 +1456,28 @@ static bool RecordReplay_OnChangeFrame(JSContext* aCx, unsigned aArgc,
     SetFrameDepth(gFrameDepth + 1, script);
   }
 
-  if (!gScanBreakpointProgress) {
-    uint32_t frameIndex = gFrameDepth - 1;
+  uint32_t frameIndex = gFrameDepth - 1;
 
+  if (gScanBreakpointProgress) {
+    if (gScanBreakpointIsOnPop) {
+      Print("OnChangeFrame %lu %llu %lu %lu\n", Kind, gProgressCounter, script, frameIndex);
+    }
+
+    if (gScanBreakpointIsOnPop &&
+        Kind == ChangeFrameExit &&
+        gScanBreakpointProgress == gProgressCounter &&
+        gScanBreakpointScript == script &&
+        gScanBreakpointFrameIndex == frameIndex) {
+      JSAutoRealm ar(aCx, xpc::PrivilegedJunkScope());
+
+      RootedValue rv(aCx);
+      HandleValueArray resumeArgs(args.get(1));
+      if (!JS_CallFunctionName(aCx, *gModuleObject, "ScanBreakpointHit",
+                               HandleValueArray::empty(), &rv)) {
+        MOZ_CRASH("RecordReplay_OnScriptHit");
+      }
+    }
+  } else {
     if (Kind == ChangeFrameEnter && frameIndex) {
       // Find the last breakpoint hit in the calling frame.
       const AnyScriptHit& lastHit = gScriptHits->LastHit(frameIndex - 1);
@@ -1774,7 +1797,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("hadUnhandledExternalCall", RecordReplay_HadUnhandledExternalCall, 0, 0),
     JS_FN("isScanningScripts", RecordReplay_IsScanningScripts, 0, 0),
     JS_FN("setScanningScripts", RecordReplay_SetScanningScripts, 2, 0),
-    JS_FN("setScanBreakpoint", RecordReplay_SetScanBreakpoint, 4, 0),
+    JS_FN("setScanBreakpoint", RecordReplay_SetScanBreakpoint, 5, 0),
     JS_FN("setFrameDepth", RecordReplay_SetFrameDepth, 1, 0),
     JS_FN("onScriptHit", RecordReplay_OnScriptHit, 3, 0),
     JS_FN("onEnterFrame", RecordReplay_OnChangeFrame<ChangeFrameEnter>, 2, 0),
