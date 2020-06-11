@@ -281,7 +281,7 @@ void xpc::ErrorReport::LogToStderr() {
     return;
   }
 
-  if (recordreplay::HasDivergedFromRecording()) {
+  if (recordreplay::AreThreadEventsDisallowed()) {
     return;
   }
 
