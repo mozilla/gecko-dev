@@ -59,6 +59,10 @@ bool js::ReportExceptionClosure::operator()(JSContext* cx) {
 bool js::ReportCompileWarning(JSContext* cx, ErrorMetadata&& metadata,
                               UniquePtr<JSErrorNotes> notes, unsigned flags,
                               unsigned errorNumber, va_list* args) {
+  if (mozilla::recordreplay::AreThreadEventsDisallowed()) {
+    return true;
+  }
+
   // On the main thread, report the error immediately. When compiling off
   // thread, save the error so that the thread finishing the parse can report
   // it later.
