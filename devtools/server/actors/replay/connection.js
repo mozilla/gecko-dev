@@ -190,25 +190,32 @@ function getResourceInfo(url, text) {
 }
 
 async function addRecordingResource(recordingId, url) {
-  const response = await fetch(url);
-  if (response.status < 200 || response.status >= 300) {
-    console.error("Error fetching recording resource", url, response);
-    return;
-  }
-  const text = await response.text();
-  const resource = getResourceInfo(url, text);
+  try {
+    const response = await fetch(url);
+    if (response.status < 200 || response.status >= 300) {
+      console.error("Error fetching recording resource", url, response);
+      return null;
+    }
+    const text = await response.text();
+    const resource = getResourceInfo(url, text);
 
-  await sendCommand("Internal.addRecordingResource", { recordingId, resource });
+    await sendCommand("Internal.addRecordingResource", { recordingId, resource });
 
-  const { known } = await sendCommand("Internal.hasResource", { resource });
-  if (!known) {
-    await sendCommand("Internal.addResource", { resource, contents: text });
+    const { known } = await sendCommand("Internal.hasResource", { resource });
+    if (!known) {
+      await sendCommand("Internal.addResource", { resource, contents: text });
+    }
+
+    return text;
+  } catch (e) {
+    console.error("Exception fetching recording resource", url, e);
+    return null;
   }
 }
 
 Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
   async receiveMessage(msg) {
-    const { pid, url, text, sourceMapURL } = msg.data;
+    const { pid, url, sourceMapURL } = msg.data;
 
     // Wait for a recording to be created for this pid, if it hasn't already happened.
     let info;
@@ -222,9 +229,30 @@ Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
     const { recordingId } = await info.createPromise;
 
     const resolvedSourceMapURL = new URL(sourceMapURL, url).href;
-    info.dataPromises.push(addRecordingResource(recordingId, resolvedSourceMapURL));
+    const promise = addRecordingResource(recordingId, resolvedSourceMapURL);
+    info.dataPromises.push(promise);
+
+    const text = await promise;
+    if (text) {
+      // Look for sources which are not inlined into the map, and add them as
+      // additional recording resources.
+      const { sources = [], sourcesContent = [], sourceRoot = "" } = JSON.parse(text);
+      for (let i = 0; i < sources.length; i++) {
+        if (!sourcesContent[i]) {
+          const sourceURL = computeSourceURL(url, sourceRoot, sources[i]);
+          info.dataPromises.push(addRecordingResource(recordingId, sourceURL));
+        }
+      }
+    }
   }
 });
+
+function computeSourceURL(url, root, path) {
+  if (root != "") {
+    path = root + (root.endsWith("/") ? "" : "/") + path;
+  }
+  return new URL(path, url).href;
+}
 
 async function RecordingDestroyed(pid) {
   const info = gRecordings.get(pid);
