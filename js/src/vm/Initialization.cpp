@@ -202,7 +202,7 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
 
 #ifndef XP_WIN
   if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    if (getenv("WEBREPLAY_RECORD_EXECUTION_PROGRESS")) {
+    if (true/*getenv("WEBREPLAY_RECORD_EXECUTION_PROGRESS")*/) {
       void* hook = dlsym(RTLD_DEFAULT, "RecordReplayInterface_ExecutionProgressHook");
       ExecutionProgressHook = mozilla::BitwiseCast<void(*)(const char*, unsigned, unsigned)>(hook);
     }
