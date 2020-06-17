@@ -544,6 +544,8 @@ already_AddRefed<nsAtom> NS_Atomize(const char* aUTF8String) {
 }
 
 already_AddRefed<nsAtom> nsAtomTable::Atomize(const nsACString& aUTF8String) {
+  recordreplay::RecordReplayAssert("nsAtomTable::Atomize");
+
   bool err;
   AtomTableKey key(aUTF8String.Data(), aUTF8String.Length(), &err);
   if (MOZ_UNLIKELY(err)) {
@@ -583,6 +585,8 @@ already_AddRefed<nsAtom> NS_Atomize(const char16_t* aUTF16String) {
 }
 
 already_AddRefed<nsAtom> nsAtomTable::Atomize(const nsAString& aUTF16String) {
+  recordreplay::RecordReplayAssert("nsAtomTable::Atomize");
+
   AtomTableKey key(aUTF16String.Data(), aUTF16String.Length());
   nsAtomSubTable& table = SelectSubTable(key);
   MutexAutoLock lock(table.mLock);

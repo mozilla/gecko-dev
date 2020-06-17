@@ -184,14 +184,19 @@ already_AddRefed<nsContentList> NS_GetContentList(nsINode* aRootNode,
                                                   const nsAString& aTagname) {
   NS_ASSERTION(aRootNode, "content list has to have a root");
 
+  recordreplay::RecordReplayAssert("NS_GetContentList");
+
   RefPtr<nsContentList> list;
   nsContentListKey hashKey(aRootNode, aMatchNameSpaceId, aTagname,
                            aRootNode->OwnerDoc()->IsHTMLDocument());
   auto p = sRecentlyUsedContentLists.Lookup(hashKey);
   if (p) {
+    recordreplay::RecordReplayAssert("NS_GetContentList #1");
     list = p.Data();
     return list.forget();
   }
+
+  recordreplay::RecordReplayAssert("NS_GetContentList #2");
 
   static const PLDHashTableOps hash_table_ops = {
       ContentListHashtableHashKey, ContentListHashtableMatchEntry,
@@ -206,7 +211,12 @@ already_AddRefed<nsContentList> NS_GetContentList(nsINode* aRootNode,
   // First we look in our hashtable.  Then we create a content list if needed
   auto entry = static_cast<ContentListHashEntry*>(
       gContentListHashTable->Add(&hashKey, fallible));
-  if (entry) list = entry->mContentList;
+  if (entry) {
+    recordreplay::RecordReplayAssert("NS_GetContentList #3");
+    list = entry->mContentList;
+  }
+
+  recordreplay::RecordReplayAssert("NS_GetContentList #4 %d", !!list);
 
   if (!list) {
     // We need to create a ContentList and add it to our new entry, if
