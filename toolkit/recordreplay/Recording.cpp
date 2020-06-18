@@ -378,6 +378,7 @@ void Stream::DumpEvents() {
       Print("Event %lu: %s\n", which, mEvents[mEventIndex].c_str());
       which++;
     }
+    AdvanceEventIndex();
   }
 
   if (InAutomatedTest() && gDumpContent) {

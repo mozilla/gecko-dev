@@ -493,7 +493,13 @@ MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(const char* aFilenam
     MOZ_RELEASE_ASSERT(!thread->AreEventsDisallowed());
     MOZ_RELEASE_ASSERT(!thread->PassThroughEvents());
 
-    RecordReplayAssert("ExecutionProgress %s:%u:%u", aFilename, aLineno, aColumn);
+    // Only add asserts for certain URLs, so we can use these diagnostics
+    // without the recording size ballooning for other uses.
+    if (strstr(aFilename, "codemirror.bundle.js") ||
+        strstr(aFilename, "google.com") ||
+        strstr(aFilename, "gstatic.com")) {
+      RecordReplayAssert("ExecutionProgress %s:%u:%u", aFilename, aLineno, aColumn);
+    }
   }
 }
 

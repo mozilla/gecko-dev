@@ -1459,10 +1459,6 @@ static bool RecordReplay_OnChangeFrame(JSContext* aCx, unsigned aArgc,
   uint32_t frameIndex = gFrameDepth - 1;
 
   if (gScanBreakpointProgress) {
-    if (gScanBreakpointIsOnPop) {
-      Print("OnChangeFrame %lu %llu %lu %lu\n", Kind, gProgressCounter, script, frameIndex);
-    }
-
     if (gScanBreakpointIsOnPop &&
         Kind == ChangeFrameExit &&
         gScanBreakpointProgress == gProgressCounter &&
