@@ -2048,6 +2048,9 @@ void MessageChannel::MessageTask::Post() {
   nsCOMPtr<nsIEventTarget> eventTarget =
       mChannel->mListener->GetMessageEventTarget(mMessage);
 
+  mozilla::recordreplay::RecordReplayAssert("MessageChannel::MessageTask::Post #1 %d %d",
+                                            !!eventTarget, !!mChannel->mWorkerLoop);
+
   if (eventTarget) {
     eventTarget->Dispatch(self.forget(), NS_DISPATCH_NORMAL);
   } else if (mChannel->mWorkerLoop) {

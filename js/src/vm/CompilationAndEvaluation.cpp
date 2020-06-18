@@ -445,6 +445,8 @@ JS_PUBLIC_API void JS::ExposeScriptToDebugger(JSContext* cx,
 
 MOZ_NEVER_INLINE static bool ExecuteScript(JSContext* cx, HandleObject scope,
                                            HandleScript script, Value* rval) {
+  mozilla::recordreplay::RecordReplayAssert("ExecuteScript Overload1");
+
   MOZ_ASSERT(!cx->zone()->isAtomsZone());
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
@@ -456,6 +458,8 @@ MOZ_NEVER_INLINE static bool ExecuteScript(JSContext* cx, HandleObject scope,
 
 static bool ExecuteScript(JSContext* cx, HandleObjectVector envChain,
                           HandleScript scriptArg, Value* rval) {
+  mozilla::recordreplay::RecordReplayAssert("ExecuteScript Overload2");
+
   RootedObject env(cx);
   RootedScope dummy(cx);
   if (!CreateNonSyntacticEnvironmentChain(cx, envChain, &env, &dummy)) {
