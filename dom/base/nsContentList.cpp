@@ -148,6 +148,17 @@ nsIContent* nsEmptyContentList::Item(uint32_t aIndex) { return nullptr; }
 // Hashtable for storing nsContentLists
 static PLDHashTable* gContentListHashTable;
 
+nsContentListKey::nsContentListKey(nsINode* aRootNode, int32_t aMatchNameSpaceId,
+                                   const nsAString& aTagname, bool aIsHTMLDocument)
+  : mRootNode(aRootNode),
+    mMatchNameSpaceId(aMatchNameSpaceId),
+    mTagname(aTagname),
+    mIsHTMLDocument(aIsHTMLDocument) {
+  // Use consistent hash numbers between record/replay.
+  mHash = recordreplay::RecordReplayValue(AddToHash(HashString(aTagname), mRootNode,
+                                                    mMatchNameSpaceId, mIsHTMLDocument));
+}
+
 struct ContentListCache
     : public MruCache<nsContentListKey, nsContentList*, ContentListCache> {
   static HashNumber Hash(const nsContentListKey& aKey) {

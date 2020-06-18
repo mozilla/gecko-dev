@@ -170,13 +170,7 @@ struct nsContentListKey {
   //    work, because by the time it's called the document of the
   //    list's root node might have changed.
   nsContentListKey(nsINode* aRootNode, int32_t aMatchNameSpaceId,
-                   const nsAString& aTagname, bool aIsHTMLDocument)
-      : mRootNode(aRootNode),
-        mMatchNameSpaceId(aMatchNameSpaceId),
-        mTagname(aTagname),
-        mIsHTMLDocument(aIsHTMLDocument),
-        mHash(mozilla::AddToHash(mozilla::HashString(aTagname), mRootNode,
-                                 mMatchNameSpaceId, mIsHTMLDocument)) {}
+                   const nsAString& aTagname, bool aIsHTMLDocument);
 
   nsContentListKey(const nsContentListKey& aContentListKey) = default;
 
