@@ -153,11 +153,10 @@ nsContentListKey::nsContentListKey(nsINode* aRootNode, int32_t aMatchNameSpaceId
   : mRootNode(aRootNode),
     mMatchNameSpaceId(aMatchNameSpaceId),
     mTagname(aTagname),
-    mIsHTMLDocument(aIsHTMLDocument) {
-  // Use consistent hash numbers between record/replay.
-  mHash = recordreplay::RecordReplayValue(AddToHash(HashString(aTagname), mRootNode,
-                                                    mMatchNameSpaceId, mIsHTMLDocument));
-}
+    mIsHTMLDocument(aIsHTMLDocument),
+    // Use consistent hash numbers between record/replay.
+    mHash(recordreplay::RecordReplayValue(AddToHash(HashString(aTagname), mRootNode,
+                                                    mMatchNameSpaceId, mIsHTMLDocument))) {}
 
 struct ContentListCache
     : public MruCache<nsContentListKey, nsContentList*, ContentListCache> {
