@@ -126,14 +126,11 @@ class Stream {
   // Whether we have started reporting a recording mismatch.
   bool mHadRecordingMismatch = false;
 
-  // When replaying and MOZ_REPLAYING_DUMP_EVENTS is set, this describes all
-  // events in the stream we have replayed so far.
-  InfallibleVector<char*> mEvents;
+  // When replaying, this has a recent history of events we have replayed so far.
+  InfallibleVector<std::string> mEvents;
+  size_t mEventIndex = 0;
 
-  Stream(Recording* aRecording, StreamName aName, size_t aNameIndex)
-      : mRecording(aRecording),
-        mName(aName),
-        mNameIndex(aNameIndex) {}
+  Stream(Recording* aRecording, StreamName aName, size_t aNameIndex);
 
  public:
   StreamName Name() const { return mName; }
@@ -197,6 +194,7 @@ class Stream {
 
   void PushEvent(const char* aEvent);
   void DumpEvents();
+  void AdvanceEventIndex();
 
   bool StartRecordingMismatch();
   bool ReadMismatchedEventData(ThreadEvent aEvent);

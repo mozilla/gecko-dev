@@ -22,6 +22,18 @@ namespace recordreplay {
 // Stream
 ///////////////////////////////////////////////////////////////////////////////
 
+// How many recent events to remember in event streams.
+static const size_t NumRecentEvents = 1000;
+
+Stream::Stream(Recording* aRecording, StreamName aName, size_t aNameIndex)
+  : mRecording(aRecording),
+    mName(aName),
+    mNameIndex(aNameIndex) {
+  if (mName == StreamName::Event) {
+    mEvents.appendN(std::string(), NumRecentEvents);
+  }
+}
+
 void Stream::ReadBytes(void* aData, size_t aSize) {
   MOZ_RELEASE_ASSERT(mRecording->IsReading());
 
@@ -344,25 +356,30 @@ size_t Stream::BallastMaxSize() {
   return Compression::LZ4::maxCompressedSize(BUFFER_MAX);
 }
 
-static size_t gDumpEvents;
 static bool gDumpContent;
 
 void Stream::PushEvent(const char* aEvent) {
-  if (gDumpEvents) {
-    mEvents.append(strdup(aEvent));
-  }
+  mEvents[mEventIndex] = aEvent;
+  AdvanceEventIndex();
 }
 
-extern "C" void DumpJSStack();
+void Stream::AdvanceEventIndex() {
+  mEventIndex = (mEventIndex + 1) % mEvents.length();
+}
 
 void Stream::DumpEvents() {
-  if (gDumpEvents) {
-    Print("Thread Events: %d\n", Thread::Current()->Id());
-    int limit = mEvents.length() > gDumpEvents ? mEvents.length() - gDumpEvents : 0;
-    for (int i = mEvents.length() - 1; i >= limit; i--) {
-      Print("Event %d: %s\n", i, mEvents[i]);
+  Print("Thread Events: %d\n", Thread::Current()->Id());
+
+  size_t which = 0;
+  size_t limit = mEventIndex;
+  AdvanceEventIndex();
+  while (mEventIndex != limit) {
+    if (mEvents[mEventIndex].length()) {
+      Print("Event %lu: %s\n", which, mEvents[mEventIndex].c_str());
+      which++;
     }
   }
+
   if (InAutomatedTest() && gDumpContent) {
     js::DumpContent();
   }
@@ -409,9 +426,6 @@ Recording::Recording() : mMode(IsRecording() ? WRITE : READ) {
     GetCurrentBuildId(&header.mBuildId);
     mContents.append((const uint8_t*)&header, sizeof(Header));
   } else {
-    if (TestEnv("WEBREPLAY_DUMP_EVENTS")) {
-      gDumpEvents = atoi(getenv("WEBREPLAY_DUMP_EVENTS"));
-    }
     gDumpContent = TestEnv("WEBREPLAY_DUMP_CONTENT");
   }
 }
