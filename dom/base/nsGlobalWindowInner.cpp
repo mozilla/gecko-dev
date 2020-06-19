@@ -4486,6 +4486,8 @@ Storage* nsGlobalWindowInner::GetSessionStorage(ErrorResult& aError) {
 }
 
 Storage* nsGlobalWindowInner::GetLocalStorage(ErrorResult& aError) {
+  recordreplay::RecordReplayAssert("nsGlobalWindowInner::GetLocalStorage");
+
   if (!Storage::StoragePrefIsEnabled()) {
     return nullptr;
   }

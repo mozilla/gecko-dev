@@ -914,6 +914,8 @@ bool BasePrincipal::AddonAllowsLoad(nsIURI* aURI,
 
 void BasePrincipal::FinishInit(const nsACString& aOriginNoSuffix,
                                const OriginAttributes& aOriginAttributes) {
+  recordreplay::RecordReplayAssert("BasePrincipal::FinishInit #1");
+
   mInitialized = true;
   mOriginAttributes = aOriginAttributes;
 
@@ -928,6 +930,8 @@ void BasePrincipal::FinishInit(const nsACString& aOriginNoSuffix,
 
 void BasePrincipal::FinishInit(BasePrincipal* aOther,
                                const OriginAttributes& aOriginAttributes) {
+  recordreplay::RecordReplayAssert("BasePrincipal::FinishInit #2");
+
   mInitialized = true;
   mOriginAttributes = aOriginAttributes;
 
