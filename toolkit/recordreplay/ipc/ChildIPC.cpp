@@ -685,15 +685,6 @@ void SetCrashNote(const char* aNote) {
   }
 }
 
-uint64_t GetMemoryUsage() {
-  MOZ_RELEASE_ASSERT(Thread::CurrentIsMainThread());
-  void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_GetMemoryUsage");
-  if (ptr) {
-    return BitwiseCast<uint64_t(*)()>(ptr)();
-  }
-  return 0;
-}
-
 void PrintLog(const nsAString& aText) {
   double elapsed = ElapsedTime();
   NS_ConvertUTF16toUTF8 ntext(aText);

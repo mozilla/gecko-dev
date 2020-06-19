@@ -107,9 +107,6 @@ void SetCrashNote(const char* aNote);
 // Send scan data to be incorporated in the root process.
 void SendScanDataToRoot(const char* aData, size_t aSize);
 
-// Get the amount of memory used by this process, in bytes.
-uint64_t GetMemoryUsage();
-
 extern nsCString gReplayJS;
 
 // Handle a child-side log message.

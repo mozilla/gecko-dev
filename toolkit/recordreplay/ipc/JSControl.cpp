@@ -844,15 +844,6 @@ static bool RecordReplay_Crash(JSContext* aCx, unsigned aArgc, Value* aVp) {
   MOZ_CRASH("Intentional Crash");
 }
 
-static bool RecordReplay_MemoryUsage(JSContext* aCx, unsigned aArgc, Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  uint64_t nbytes = child::GetMemoryUsage();
-
-  args.rval().setNumber((double)nbytes);
-  return true;
-}
-
 static bool RecordReplay_SetSharedKey(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
@@ -1811,7 +1802,6 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FN("setCrashNote", RecordReplay_SetCrashNote, 1, 0),
     JS_FN("dump", RecordReplay_Dump, 1, 0),
     JS_FN("crash", RecordReplay_Crash, 0, 0),
-    JS_FN("memoryUsage", RecordReplay_MemoryUsage, 0, 0),
     JS_FN("setSharedKey", RecordReplay_SetSharedKey, 2, 0),
     JS_FN("getSharedKey", RecordReplay_GetSharedKey, 1, 0),
     JS_FN("dumpToFile", RecordReplay_DumpToFile, 2, 0),
