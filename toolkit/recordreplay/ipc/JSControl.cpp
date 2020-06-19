@@ -661,7 +661,7 @@ static bool RecordReplay_CurrentExecutionTime(JSContext* aCx, unsigned aArgc,
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
   // Get the elapsed time in milliseconds since the process started.
-  args.rval().setInt32(CurrentTime() / 1000.0);
+  args.rval().setInt32(ElapsedTime() * 1000.0);
   return true;
 }
 
