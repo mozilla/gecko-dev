@@ -217,6 +217,9 @@ typedef Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> AtomicBool;
 typedef Atomic<intptr_t, SequentiallyConsistent, Behavior::DontPreserve> AtomicInt;
 typedef Atomic<uintptr_t, SequentiallyConsistent, Behavior::DontPreserve> AtomicUInt;
 
+// For crash diagnostics.
+void DumpRecentJS();
+
 ///////////////////////////////////////////////////////////////////////////////
 // Profiling
 ///////////////////////////////////////////////////////////////////////////////

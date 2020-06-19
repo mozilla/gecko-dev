@@ -426,6 +426,8 @@ void Stream::DumpEvents() {
     AdvanceEventIndex();
   }
 
+  DumpRecentJS();
+
   if (InAutomatedTest() && gDumpContent) {
     js::DumpContent();
   }

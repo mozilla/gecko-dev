@@ -401,6 +401,49 @@ MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayAssertBytes(
 static ValueIndex* gGenericThings;
 static StaticMutexNotRecorded gGenericThingsMutex;
 
+// JS event that advanced the execution progress counter.
+struct RecentJSEvent {
+  ProgressCounter mProgress = 0;
+  std::string mFilename;
+  unsigned mLineno = 0;
+  unsigned mColumn = 0;
+};
+
+static StaticInfallibleVector<RecentJSEvent> gRecentJSEvents;
+static const size_t NumRecentJSEvents = 1000;
+
+size_t gRecentJSEventsIndex = 0;
+
+static void AdvanceRecentJSEventsIndex() {
+  gRecentJSEventsIndex = (gRecentJSEventsIndex + 1) % gRecentJSEvents.length();
+}
+
+static void AddRecentJS(const char* aFilename, unsigned aLineno, unsigned aColumn) {
+  if (gRecentJSEvents.length() == 0) {
+    gRecentJSEvents.appendN(RecentJSEvent(), NumRecentJSEvents);
+  }
+
+  RecentJSEvent& event = gRecentJSEvents[gRecentJSEventsIndex];
+  event.mProgress = *ExecutionProgressCounter();
+  event.mFilename = aFilename;
+  event.mLineno = aLineno;
+  event.mColumn = aColumn;
+  AdvanceRecentJSEventsIndex();
+}
+
+void DumpRecentJS() {
+  size_t limit = gRecentJSEventsIndex;
+  AdvanceRecentJSEventsIndex();
+  while (gRecentJSEventsIndex != limit) {
+    const RecentJSEvent& event = gRecentJSEvents[gRecentJSEventsIndex];
+    if (event.mFilename.length()) {
+      Print("JS %llu: %s:%u:%u\n", event.mProgress,
+            event.mFilename.c_str(), event.mLineno, event.mColumn);
+    }
+    AdvanceRecentJSEventsIndex();
+  }
+}
+
 extern "C" {
 
 MOZ_EXPORT void RecordReplayInterface_InternalRegisterThing(void* aThing) {
@@ -472,15 +515,9 @@ MOZ_EXPORT void RecordReplayInterface_InternalAssertScriptedCaller(const char* a
   unsigned column;
   JSContext* cx = dom::danger::GetJSContext();
   if (JS::DescribeScriptedCaller(cx, &filename, &lineno, &column)) {
-    if (gAutomatedTesting ||
-        strstr(filename.get(), "chrome://") ||
-        strstr(filename.get(), "resource://")) {
-      RecordReplayAssert("Date::Now %s:%u:%u", filename.get(), lineno, column);
-    } else {
-      RecordReplayAssert("Date::Now UserFrame");
-    }
+    RecordReplayAssert("%s %s:%u:%u", aWhy, filename.get(), lineno, column);
   } else {
-    RecordReplayAssert("Date::Now NoScriptedCaller");
+    RecordReplayAssert("%s NoScriptedCaller", aWhy);
   }
 }
 
@@ -493,13 +530,7 @@ MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(const char* aFilenam
     MOZ_RELEASE_ASSERT(!thread->AreEventsDisallowed());
     MOZ_RELEASE_ASSERT(!thread->PassThroughEvents());
 
-    // Only add asserts for certain URLs, so we can use these diagnostics
-    // without the recording size ballooning for other uses.
-    if (strstr(aFilename, "codemirror.bundle.js") ||
-        strstr(aFilename, "google.com") ||
-        strstr(aFilename, "gstatic.com")) {
-      RecordReplayAssert("ExecutionProgress %s:%u:%u", aFilename, aLineno, aColumn);
-    }
+    AddRecentJS(aFilename, aLineno, aColumn);
   }
 }
 
