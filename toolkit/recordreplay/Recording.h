@@ -113,6 +113,9 @@ class Stream {
   UniquePtr<char[]> mInputBallast;
   size_t mInputBallastSize = 0;
 
+  // Any value that should be read next.
+  Maybe<size_t> mPeekedScalar;
+
   // The last event in this stream, in case of an input mismatch.
   ThreadEvent mLastEvent = (ThreadEvent)0;
 
@@ -139,6 +142,7 @@ class Stream {
   void ReadBytes(void* aData, size_t aSize);
   void WriteBytes(const void* aData, size_t aSize);
   size_t ReadScalar();
+  size_t PeekScalar();
   void WriteScalar(size_t aValue);
   bool AtEnd();
 
@@ -167,6 +171,10 @@ class Stream {
   // Note a new thread event for this stream, and make sure it is the same
   // while replaying as it was while recording.
   void RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra = nullptr);
+
+  // Record/replay an atomic access, returning false (and not crashing) if there
+  // was a mismatch and we should pretend this access isn't recorded.
+  bool RecordOrReplayAtomicAccess(size_t* aAtomicId);
 
   // Replay a thread event without requiring it to be a specific event.
   ThreadEvent ReplayThreadEvent();

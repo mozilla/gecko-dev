@@ -315,10 +315,11 @@ MOZ_EXPORT void RecordReplayInterface_InternalBeginOrderedAtomicAccess(
       return;
     }
 
-    thread->Events().RecordOrReplayThreadEvent(ThreadEvent::AtomicAccess);
-
     atomicId = IsRecording() ? (HashGeneric(aValue) % NumAtomicLocks) : 0;
-    thread->Events().RecordOrReplayScalar(&atomicId);
+    if (!thread->Events().RecordOrReplayAtomicAccess(&atomicId)) {
+      return;
+    }
+
     MOZ_RELEASE_ASSERT(atomicId < NumAtomicLocks);
   }
 
@@ -346,7 +347,6 @@ MOZ_EXPORT void RecordReplayInterface_InternalEndOrderedAtomicAccess() {
   }
 
   if (thread->AtomicLockId().isNothing()) {
-    MOZ_RELEASE_ASSERT(!thread->CanAccessRecording());
     return;
   }
 

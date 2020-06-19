@@ -36,6 +36,7 @@ Stream::Stream(Recording* aRecording, StreamName aName, size_t aNameIndex)
 
 void Stream::ReadBytes(void* aData, size_t aSize) {
   MOZ_RELEASE_ASSERT(mRecording->IsReading());
+  MOZ_RELEASE_ASSERT(mPeekedScalar.isNothing());
 
   size_t totalRead = 0;
 
@@ -122,6 +123,12 @@ void Stream::WriteBytes(const void* aData, size_t aSize) {
 }
 
 size_t Stream::ReadScalar() {
+  if (mPeekedScalar.isSome()) {
+    size_t value = mPeekedScalar.ref();
+    mPeekedScalar.reset();
+    return value;
+  }
+
   // Read back a pointer sized value using the same encoding as WriteScalar.
   size_t value = 0, shift = 0;
   while (true) {
@@ -133,6 +140,13 @@ size_t Stream::ReadScalar() {
     }
     shift += 7;
   }
+  return value;
+}
+
+size_t Stream::PeekScalar() {
+  size_t value = ReadScalar();
+  MOZ_RELEASE_ASSERT(mPeekedScalar.isNothing());
+  mPeekedScalar.emplace(value);
   return value;
 }
 
@@ -169,19 +183,33 @@ bool Stream::StartRecordingMismatch() {
   return true;
 }
 
-// Workaround arc4random being called from jemalloc when recording on macOS but
-// not when replaying on linux.
 bool Stream::ReadMismatchedEventData(ThreadEvent aEvent) {
+  // Mismatches on atomic accesses are allowed. This isn't ideal.
+  if (aEvent == ThreadEvent::AtomicAccess) {
+    if (mNameIndex == MainThreadId) {
+      // For execution progress counter.
+      ReadScalar();
+    }
+
+    // For atomic ID.
+    ReadScalar();
+    return true;
+  }
+
+  // Workaround arc4random being called from jemalloc when recording on macOS but
+  // not when replaying on linux.
   if (!strcmp(ThreadEventName(aEvent), "arc4random")) {
     if (mNameIndex == MainThreadId) {
       // For execution progress counter.
       ReadScalar();
     }
 
+    // For return value.
     size_t value;
     RecordOrReplayValue(&value);
     return true;
   }
+
   return false;
 }
 
@@ -235,6 +263,23 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
       }
     }
   }
+}
+
+bool Stream::RecordOrReplayAtomicAccess(size_t* aAtomicId) {
+  if (IsRecording()) {
+    RecordOrReplayThreadEvent(ThreadEvent::AtomicAccess);
+    WriteScalar(*aAtomicId);
+    return true;
+  }
+
+  ThreadEvent event = (ThreadEvent)PeekScalar();
+  if (event != ThreadEvent::AtomicAccess) {
+    return false;
+  }
+
+  RecordOrReplayThreadEvent(ThreadEvent::AtomicAccess);
+  *aAtomicId = ReadScalar();
+  return true;
 }
 
 ThreadEvent Stream::ReplayThreadEvent() {
