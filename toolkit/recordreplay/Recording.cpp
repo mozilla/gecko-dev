@@ -186,11 +186,6 @@ bool Stream::StartRecordingMismatch() {
 bool Stream::ReadMismatchedEventData(ThreadEvent aEvent) {
   // Mismatches on atomic accesses are allowed. This isn't ideal.
   if (aEvent == ThreadEvent::AtomicAccess) {
-    if (mNameIndex == MainThreadId) {
-      // For execution progress counter.
-      ReadScalar();
-    }
-
     // For atomic ID.
     ReadScalar();
     return true;
@@ -248,8 +243,9 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
   // Check the execution progress counter for events executing on the main
   // thread. This check is non-fatal: if we find a mismatch, update the progress
   // counter to match the expected value. Ideally this would never happen but we
-  // want to be robust wrt JS executing differently during the replay.
-  if (mNameIndex == MainThreadId) {
+  // want to be robust wrt JS executing differently during the replay. Relax
+  // this requirement for atomic accesses, which might not match up exactly.
+  if (mNameIndex == MainThreadId && aEvent != ThreadEvent::AtomicAccess) {
     ProgressCounter progress = *ExecutionProgressCounter();
     if (IsRecording()) {
       WriteScalar(progress);
