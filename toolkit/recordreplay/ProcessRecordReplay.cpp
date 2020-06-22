@@ -437,7 +437,7 @@ void DumpRecentJS() {
   while (gRecentJSEventsIndex != limit) {
     const RecentJSEvent& event = gRecentJSEvents[gRecentJSEventsIndex];
     if (event.mFilename.length()) {
-      Print("JS %llu: %s:%u:%u\n", event.mProgress,
+      Print("JS Progress %llu: %s:%u:%u\n", event.mProgress,
             event.mFilename.c_str(), event.mLineno, event.mColumn);
     }
     AdvanceRecentJSEventsIndex();

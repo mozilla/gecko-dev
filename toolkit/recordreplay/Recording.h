@@ -131,6 +131,7 @@ class Stream {
 
   // When replaying, this has a recent history of events we have replayed so far.
   InfallibleVector<std::string> mEvents;
+  InfallibleVector<ProgressCounter> mEventsProgress;
   size_t mEventIndex = 0;
 
   Stream(Recording* aRecording, StreamName aName, size_t aNameIndex);

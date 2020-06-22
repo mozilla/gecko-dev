@@ -31,6 +31,7 @@ Stream::Stream(Recording* aRecording, StreamName aName, size_t aNameIndex)
     mNameIndex(aNameIndex) {
   if (mName == StreamName::Event) {
     mEvents.appendN(std::string(), NumRecentEvents);
+    mEventsProgress.appendN(0, NumRecentEvents);
   }
 }
 
@@ -395,10 +396,11 @@ size_t Stream::BallastMaxSize() {
   return Compression::LZ4::maxCompressedSize(BUFFER_MAX);
 }
 
-static bool gDumpContent;
-
 void Stream::PushEvent(const char* aEvent) {
   mEvents[mEventIndex] = aEvent;
+  if (mNameIndex == MainThreadId) {
+    mEventsProgress[mEventIndex] = *ExecutionProgressCounter();
+  }
   AdvanceEventIndex();
 }
 
@@ -414,7 +416,8 @@ void Stream::DumpEvents() {
   AdvanceEventIndex();
   while (mEventIndex != limit) {
     if (mEvents[mEventIndex].length()) {
-      Print("Event %lu: %s\n", which, mEvents[mEventIndex].c_str());
+      Print("Event %lu Progress %llu: %s\n",
+            which, mEventsProgress[mEventIndex], mEvents[mEventIndex].c_str());
       which++;
     }
     AdvanceEventIndex();
@@ -422,7 +425,7 @@ void Stream::DumpEvents() {
 
   DumpRecentJS();
 
-  if (InAutomatedTest() && gDumpContent) {
+  if (InAutomatedTest()) {
     js::DumpContent();
   }
 }
@@ -467,8 +470,6 @@ Recording::Recording() : mMode(IsRecording() ? WRITE : READ) {
     header.mMagic = MagicValue;
     GetCurrentBuildId(&header.mBuildId);
     mContents.append((const uint8_t*)&header, sizeof(Header));
-  } else {
-    gDumpContent = TestEnv("WEBREPLAY_DUMP_CONTENT");
   }
 }
 
