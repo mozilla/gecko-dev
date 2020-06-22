@@ -192,9 +192,9 @@ bool Stream::ReadMismatchedEventData(ThreadEvent aEvent) {
     return true;
   }
 
-  // Workaround arc4random being called from jemalloc when recording on macOS but
-  // not when replaying on linux.
-  if (!strcmp(ThreadEventName(aEvent), "arc4random")) {
+  // Tolerate some calls that happened while recording but not replaying.
+  if (!strcmp(ThreadEventName(aEvent), "arc4random") ||
+      !strcmp(ThreadEventName(aEvent), "mach_absolute_time")) {
     if (mNameIndex == MainThreadId) {
       // For execution progress counter.
       ReadScalar();
@@ -230,9 +230,14 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
           }
           extra = ReadInputString();
         }
-        Print("Error: Recording Event Mismatch: Recorded %s %s Replayed %s %s\n",
-              ThreadEventName(oldEvent), extra,
-              ThreadEventName(aEvent), aExtra ? aExtra : "");
+        ProgressCounter oldProgress = 0, progress = 0;
+        if (mNameIndex == MainThreadId && oldEvent != ThreadEvent::AtomicAccess) {
+          oldProgress = ReadScalar();
+          progress = *ExecutionProgressCounter();
+        }
+        Print("Error: Recording Event Mismatch: Recorded %s %s %llu Replayed %s %s %llu\n",
+              ThreadEventName(oldEvent), extra, oldProgress,
+              ThreadEventName(aEvent), aExtra ? aExtra : "", progress);
         DumpEvents();
         child::ReportFatalError("Recording Mismatch");
       }
