@@ -71,6 +71,8 @@ already_AddRefed<nsIDocShell> Location::GetDocShell() {
 }
 
 nsresult Location::GetURI(nsIURI** aURI, bool aGetInnermostURI) {
+  recordreplay::RecordReplayAssert("Location::GetURI");
+
   *aURI = nullptr;
 
   nsCOMPtr<nsIDocShell> docShell(GetDocShell());
@@ -222,6 +224,8 @@ void Location::SetHost(const nsAString& aHost, nsIPrincipal& aSubjectPrincipal,
 
 void Location::GetHostname(nsAString& aHostname,
                            nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv) {
+  recordreplay::AssertScriptedCaller("Location::GetHostname");
+
   if (!CallerSubsumes(&aSubjectPrincipal)) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;

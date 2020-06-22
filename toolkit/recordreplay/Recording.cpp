@@ -241,10 +241,7 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
   }
 
   // Check the execution progress counter for events executing on the main
-  // thread. This check is non-fatal: if we find a mismatch, update the progress
-  // counter to match the expected value. Ideally this would never happen but we
-  // want to be robust wrt JS executing differently during the replay. Relax
-  // this requirement for atomic accesses, which might not match up exactly.
+  // thread, except for atomic accesses, which might not match up exactly.
   if (mNameIndex == MainThreadId && aEvent != ThreadEvent::AtomicAccess) {
     ProgressCounter progress = *ExecutionProgressCounter();
     if (IsRecording()) {
@@ -255,7 +252,8 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
         Print("Error: Recording ProgressCounter Mismatch: %s %s Recorded %llu Replayed %llu\n",
               ThreadEventName(aEvent),
               aExtra ? aExtra : "", oldProgress, progress);
-        *ExecutionProgressCounter() = oldProgress;
+        DumpEvents();
+        child::ReportFatalError("Progress counter mismatch");
       }
     }
   }
