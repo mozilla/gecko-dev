@@ -155,6 +155,9 @@ bool DebugAPI::onDebuggerStatement(JSContext* cx, AbstractFramePtr frame) {
 
 /* static */
 bool DebugAPI::onExceptionUnwind(JSContext* cx, AbstractFramePtr frame) {
+  if (mozilla::recordreplay::IsRecordingOrReplaying() && cx->isThrowingOutOfMemory()) {
+    mozilla::recordreplay::InvalidateRecording("OutOfMemory exception unwind");
+  }
   if (MOZ_UNLIKELY(cx->realm()->isDebuggee())) {
     return slowPathOnExceptionUnwind(cx, frame);
   }

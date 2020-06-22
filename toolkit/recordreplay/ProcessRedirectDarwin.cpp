@@ -3498,8 +3498,8 @@ void* DirectAllocateMemory(size_t aSize) {
   void* res = CallFunction<void*>(gOriginal_mmap, nullptr, aSize,
                                   PROT_READ | PROT_WRITE | PROT_EXEC,
                                   MAP_ANON | MAP_PRIVATE, -1, 0);
-  if (res == (void*)-1) {
-    Print("OutOfMemory\n");
+  if (res == MAP_FAILED) {
+    Print("Error: DirectAllocateMemory OutOfMemory\n");
     MOZ_CRASH("OutOfMemory");
   }
   return res;

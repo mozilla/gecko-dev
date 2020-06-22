@@ -293,7 +293,10 @@ JS_FRIEND_API void js::ReportOutOfMemory(JSContext* cx) {
    */
   fprintf(stderr, "ReportOutOfMemory called\n");
 #endif
-  mozilla::recordreplay::InvalidateRecording("OutOfMemory exception thrown");
+  if (mozilla::recordreplay::IsReplaying()) {
+    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+    fprintf(stderr, "ReportOutOfMemory called %d\n", getpid());
+  }
 
   if (cx->isHelperThreadContext()) {
     return cx->addPendingOutOfMemory();
