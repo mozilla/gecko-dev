@@ -1323,6 +1323,11 @@ IncrementalFinalizeRunnable::Run() {
 
 void CycleCollectedJSRuntime::FinalizeDeferredThings(
     CycleCollectedJSContext::DeferredFinalizeType aType) {
+  // Never do deferred finalization when recording/replaying.
+  if (recordreplay::IsRecordingOrReplaying()) {
+    return;
+  }
+
   /*
    * If the previous GC created a runnable to finalize objects
    * incrementally, and if it hasn't finished yet, finish it now. We
