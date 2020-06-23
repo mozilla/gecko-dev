@@ -428,7 +428,9 @@ void Stream::DumpEvents() {
     AdvanceEventIndex();
   }
 
-  DumpRecentJS();
+  if (mNameIndex == MainThreadId) {
+    DumpRecentJS();
+  }
 
   if (InAutomatedTest()) {
     js::DumpContent();
