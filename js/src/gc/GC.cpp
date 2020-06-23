@@ -2899,11 +2899,6 @@ bool GCRuntime::triggerGC(JS::GCReason reason) {
     return false;
   }
 
-  if (mozilla::recordreplay::IsReplaying()) {
-    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-    fprintf(stderr, "GCRuntime::triggerGC %d\n", getpid());
-  }
-
   mozilla::recordreplay::AutoDisallowThreadEvents disallow;
 
   JS::PrepareForFullGC(rt->mainContextFromOwnThread());
@@ -3044,11 +3039,6 @@ bool GCRuntime::triggerZoneGC(Zone* zone, JS::GCReason reason, size_t used,
   /* GC is already running. */
   if (JS::RuntimeHeapIsBusy()) {
     return false;
-  }
-
-  if (mozilla::recordreplay::IsReplaying()) {
-    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-    fprintf(stderr, "GCRuntime::triggerZoneGC %d\n", getpid());
   }
 
   mozilla::recordreplay::AutoDisallowThreadEvents disallow;
@@ -7160,6 +7150,11 @@ void GCRuntime::collect(bool nonincrementalByAPI, SliceBudget budget,
                         const MaybeInvocationKind& gckindArg,
                         JS::GCReason reason) {
   MOZ_ASSERT(reason != JS::GCReason::NO_REASON);
+
+  if (mozilla::recordreplay::IsReplaying()) {
+    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+    fprintf(stderr, "GCRuntime::collect %d\n", getpid());
+  }
 
   MaybeInvocationKind gckind = gckindArg;
   MOZ_ASSERT_IF(!isIncrementalGCInProgress(), gckind.isSome());
