@@ -65,6 +65,9 @@ static bool gReplayingInCloud;
 // Whether we are running an automated test.
 static bool gAutomatedTesting;
 
+// Whether to assert on execution progress changes.
+static bool gExecutionAsserts;
+
 // Firefox installation directory.
 static char* gInstallDirectory;
 
@@ -207,6 +210,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   InitializeRewindState();
   gRecordingPid = RecordReplayValue(gPid);
   gAutomatedTesting = TestEnv("WEBREPLAY_TEST_SCRIPT");
+  gExecutionAsserts = TestEnv("WEBREPLAY_RECORD_EXECUTION_ASSERTS");
 
   gInitialized = true;
 }
@@ -529,6 +533,10 @@ MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(const char* aFilenam
   if (!thread->HasDivergedFromRecording()) {
     MOZ_RELEASE_ASSERT(!thread->AreEventsDisallowed());
     MOZ_RELEASE_ASSERT(!thread->PassThroughEvents());
+
+    if (gExecutionAsserts) {
+      RecordReplayAssert("ExecutionProgress %s:%u:%u", aFilename, aLineno, aColumn);
+    }
 
     AddRecentJS(aFilename, aLineno, aColumn);
   }

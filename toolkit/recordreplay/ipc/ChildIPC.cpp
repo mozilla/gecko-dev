@@ -137,7 +137,7 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       const PingMessage& nmsg = (const PingMessage&)*aMsg;
       uint64_t total =
           *ExecutionProgressCounter() + Thread::TotalEventProgress();
-      PrintLog("PingResponse %u %llu", nmsg.mId, total);
+      PrintLog("ReplayPingResponse %u %llu", nmsg.mId, total);
       gChannel->SendMessage(PingResponseMessage(gForkId, nmsg.mId, total));
       break;
     }
