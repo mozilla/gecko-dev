@@ -187,7 +187,25 @@ bool Stream::StartRecordingMismatch() {
 bool Stream::ReadMismatchedEventData(ThreadEvent aEvent) {
   // Mismatches on atomic accesses are allowed. This isn't ideal.
   if (aEvent == ThreadEvent::AtomicAccess) {
+    // For execution progress counter.
+    if (mNameIndex == MainThreadId) {
+      ReadScalar();
+    }
+
     // For atomic ID.
+    ReadScalar();
+    return true;
+  }
+
+  // Ditto for locks, which will appear after the atomic access.
+  if (aEvent == ThreadEvent::Lock) {
+    // For execution progress counter.
+    if (mNameIndex == MainThreadId) {
+      ReadScalar();
+    }
+
+    // For lock ID and stream position.
+    ReadScalar();
     ReadScalar();
     return true;
   }
@@ -195,8 +213,8 @@ bool Stream::ReadMismatchedEventData(ThreadEvent aEvent) {
   // Tolerate some calls that happened while recording but not replaying.
   if (!strcmp(ThreadEventName(aEvent), "arc4random") ||
       !strcmp(ThreadEventName(aEvent), "mach_absolute_time")) {
+    // For execution progress counter.
     if (mNameIndex == MainThreadId) {
-      // For execution progress counter.
       ReadScalar();
     }
 
@@ -231,7 +249,7 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
           extra = ReadInputString();
         }
         ProgressCounter oldProgress = 0, progress = 0;
-        if (mNameIndex == MainThreadId && oldEvent != ThreadEvent::AtomicAccess) {
+        if (mNameIndex == MainThreadId) {
           oldProgress = ReadScalar();
           progress = *ExecutionProgressCounter();
         }
@@ -246,9 +264,8 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
     PushEvent(ThreadEventName(aEvent));
   }
 
-  // Check the execution progress counter for events executing on the main
-  // thread, except for atomic accesses, which might not match up exactly.
-  if (mNameIndex == MainThreadId && aEvent != ThreadEvent::AtomicAccess) {
+  // Check the execution progress counter for events executing on the main thread.
+  if (mNameIndex == MainThreadId) {
     ProgressCounter progress = *ExecutionProgressCounter();
     if (IsRecording()) {
       WriteScalar(progress);
@@ -263,23 +280,6 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
       }
     }
   }
-}
-
-bool Stream::RecordOrReplayAtomicAccess(size_t* aAtomicId) {
-  if (IsRecording()) {
-    RecordOrReplayThreadEvent(ThreadEvent::AtomicAccess);
-    WriteScalar(*aAtomicId);
-    return true;
-  }
-
-  ThreadEvent event = (ThreadEvent)PeekScalar();
-  if (event != ThreadEvent::AtomicAccess) {
-    return false;
-  }
-
-  RecordOrReplayThreadEvent(ThreadEvent::AtomicAccess);
-  *aAtomicId = ReadScalar();
-  return true;
 }
 
 ThreadEvent Stream::ReplayThreadEvent() {

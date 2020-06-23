@@ -173,10 +173,6 @@ class Stream {
   // while replaying as it was while recording.
   void RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra = nullptr);
 
-  // Record/replay an atomic access, returning false (and not crashing) if there
-  // was a mismatch and we should pretend this access isn't recorded.
-  bool RecordOrReplayAtomicAccess(size_t* aAtomicId);
-
   // Replay a thread event without requiring it to be a specific event.
   ThreadEvent ReplayThreadEvent();
 
