@@ -23,7 +23,7 @@ namespace recordreplay {
 ///////////////////////////////////////////////////////////////////////////////
 
 // How many recent events to remember in event streams.
-static const size_t NumRecentEvents = 1000;
+static const size_t NumRecentEvents = 100000;
 
 Stream::Stream(Recording* aRecording, StreamName aName, size_t aNameIndex)
   : mRecording(aRecording),
