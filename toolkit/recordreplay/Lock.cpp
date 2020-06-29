@@ -22,6 +22,9 @@ namespace recordreplay {
 static AtomicUInt gNumLocks;
 
 struct LockAcquires {
+  // Associated lock ID.
+  size_t mId;
+
   // List of thread acquire orders for the lock. This is protected by the lock
   // itself.
   Stream* mAcquires;
@@ -76,6 +79,7 @@ static ReadWriteSpinLock gLocksLock;
 
 static Lock* CreateNewLock(Thread* aThread, size_t aId) {
   LockAcquires* info = gLockAcquires.Create(aId);
+  info->mId = aId;
   info->mAcquires = gRecording->OpenStream(StreamName::Lock, aId);
 
   if (IsReplaying()) {
@@ -194,6 +198,7 @@ void Lock::Enter(NativeLock* aNativeLock) {
     MOZ_RELEASE_ASSERT(thread->PendingLockId().isNothing());
     thread->PendingLockId().emplace(mId);
     thread->PendingLockAcquiresPosition().emplace(acquiresPosition);
+
     while (true) {
       if (thread->Id() == acquires->mNextOwner &&
           (!acquires->mOwner || acquires->mOwner == thread->Id())) {
@@ -213,6 +218,8 @@ void Lock::Enter(NativeLock* aNativeLock) {
   }
 }
 
+static inline bool IsAtomicLockId(size_t aLockId);
+
 void Lock::FinishEnter() {
   MOZ_RELEASE_ASSERT(IsReplaying());
 
@@ -230,9 +237,14 @@ void Lock::FinishEnter() {
 
   size_t acquiresPosition = thread->PendingLockAcquiresPosition().ref();
 
-  if (acquires->mAcquires->StreamPosition() != acquiresPosition) {
-    child::ReportFatalError("AcquiresPosition Mismatch %lu: Recorded %lu Replayed %lu",
-                            lockId, acquiresPosition, acquires->mAcquires->StreamPosition());
+  // The acquires stream should be at the same position when replaying,
+  // except for atomic lock accesses where we might have skipped over mismatched
+  // accesses in the recording.
+  if (acquires->mAcquires->StreamPosition() != acquiresPosition &&
+      !IsAtomicLockId(lockId)) {
+    child::ReportFatalError("AcquiresPosition Mismatch %lu Thread %lu: Recorded %lu Replayed %lu",
+                            lockId, thread->Id(),
+                            acquiresPosition, acquires->mAcquires->StreamPosition());
   }
 
   thread->PendingLockId().reset();
@@ -296,6 +308,10 @@ void Lock::InitializeLocks() {
   }
   gAtomicLockOwners = new SpinLock[NumAtomicLocks];
   PodZero(gAtomicLockOwners, NumAtomicLocks);
+}
+
+static inline bool IsAtomicLockId(size_t aLockId) {
+  return aLockId <= NumAtomicLocks;
 }
 
 extern "C" {
