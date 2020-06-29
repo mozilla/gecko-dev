@@ -207,6 +207,9 @@ MOZ_MakeRecordReplayPrinter(PrintSpew, true)
 // Get the ID of the process that produced the recording.
 int GetRecordingPid();
 
+// Get the current process ID.
+int GetPid();
+
 // Update the current pid after a fork.
 void ResetPid();
 
@@ -216,9 +219,6 @@ bool IsVerbose();
 typedef Atomic<bool, SequentiallyConsistent, Behavior::DontPreserve> AtomicBool;
 typedef Atomic<intptr_t, SequentiallyConsistent, Behavior::DontPreserve> AtomicInt;
 typedef Atomic<uintptr_t, SequentiallyConsistent, Behavior::DontPreserve> AtomicUInt;
-
-// For crash diagnostics.
-void DumpRecentJS();
 
 ///////////////////////////////////////////////////////////////////////////////
 // Profiling
@@ -285,6 +285,10 @@ void DirectDeleteFile(const char* aFilename);
 // Append data to a file open for writing, blocking until the write completes.
 void DirectWrite(FileHandle aFd, const void* aData, size_t aSize);
 
+inline void DirectWriteString(FileHandle aFd, const char* aString) {
+  DirectWrite(aFd, aString, strlen(aString));
+}
+
 // Print a string directly to stderr.
 void DirectPrint(const char* aString);
 
@@ -310,6 +314,9 @@ typedef pthread_mutex_t NativeLock;
 
 void DirectLockMutex(NativeLock* aLock, bool aPassThroughEvents = true);
 void DirectUnlockMutex(NativeLock* aLock, bool aPassThroughEvents = true);
+
+// For crash diagnostics.
+void DumpRecentJS(FileHandle aFd);
 
 }  // namespace recordreplay
 }  // namespace mozilla

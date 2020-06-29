@@ -12,6 +12,7 @@
 #include "ProcessRewind.h"
 #include "SpinLock.h"
 #include "nsAppRunner.h"
+#include "nsPrintfCString.h"
 
 #include <algorithm>
 
@@ -413,28 +414,45 @@ void Stream::AdvanceEventIndex() {
   mEventIndex = (mEventIndex + 1) % mEvents.length();
 }
 
+static AtomicBool gDumpingEvents;
+
 void Stream::DumpEvents() {
-  Print("Thread Events: %d\n", Thread::Current()->Id());
+  if (gDumpingEvents) {
+    // Only create one dump per process.
+    return;
+  }
+  gDumpingEvents = true;
+
+  nsPrintfCString filename("dumps/%d-thread-%lu.log",
+                           GetPid(), Thread::Current()->Id());
+
+  Print("Writing dump: %s\n", filename.get());
+
+  FileHandle fd = DirectOpenFile(filename.get(), /* aWriting */ true);
 
   size_t which = 0;
   size_t limit = mEventIndex;
   AdvanceEventIndex();
   while (mEventIndex != limit) {
     if (mEvents[mEventIndex].length()) {
-      Print("Event %lu Progress %llu: %s\n",
-            which, mEventsProgress[mEventIndex], mEvents[mEventIndex].c_str());
+      nsPrintfCString text("Event %lu Progress %llu: %s\n",
+                           which, mEventsProgress[mEventIndex],
+                           mEvents[mEventIndex].c_str());
+      DirectWriteString(fd, text.get());
       which++;
     }
     AdvanceEventIndex();
   }
 
   if (mNameIndex == MainThreadId) {
-    DumpRecentJS();
+    DumpRecentJS(fd);
   }
 
   if (InAutomatedTest()) {
-    js::DumpContent();
+    js::DumpContent(fd);
   }
+
+  DirectCloseFile(fd);
 }
 
 void Stream::PrintChunks(nsAutoCString& aString) {

@@ -17,6 +17,7 @@
 #include "ProcessRewind.h"
 #include "ValueIndex.h"
 #include "pratom.h"
+#include "nsPrintfCString.h"
 
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -356,6 +357,7 @@ const char* ThreadEventName(ThreadEvent aEvent) {
 }
 
 int GetRecordingPid() { return gRecordingPid; }
+int GetPid() { return gPid; }
 
 void ResetPid() { gPid = getpid(); }
 
@@ -435,14 +437,16 @@ static void AddRecentJS(const char* aFilename, unsigned aLineno, unsigned aColum
   AdvanceRecentJSEventsIndex();
 }
 
-void DumpRecentJS() {
+void DumpRecentJS(FileHandle aFd) {
   size_t limit = gRecentJSEventsIndex;
   AdvanceRecentJSEventsIndex();
   while (gRecentJSEventsIndex != limit) {
     const RecentJSEvent& event = gRecentJSEvents[gRecentJSEventsIndex];
     if (event.mFilename.length()) {
-      Print("JS Progress %llu: %s:%u:%u\n", event.mProgress,
-            event.mFilename.c_str(), event.mLineno, event.mColumn);
+      nsPrintfCString text("JS Progress %llu: %s:%u:%u\n",
+                           event.mProgress, event.mFilename.c_str(),
+                           event.mLineno, event.mColumn);
+      DirectWriteString(aFd, text.get());
     }
     AdvanceRecentJSEventsIndex();
   }

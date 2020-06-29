@@ -364,7 +364,7 @@ struct ContentInfo {
 // All content that has been parsed so far. Protected by child::gMonitor.
 static StaticInfallibleVector<ContentInfo> gContent;
 
-void DumpContent() {
+void DumpContent(FileHandle aFd) {
   // Don't use a lock, this is for debugging.
   for (const auto& content : gContent) {
     nsAutoCString str;
@@ -374,9 +374,11 @@ void DumpContent() {
       nsString str16(content.mContent16.begin(), content.mContent16.length());
       str = NS_ConvertUTF16toUTF8(str16);
     }
-    Print("Content %s %s:\n", content.mURL, content.mContentType);
-    DirectPrint(str.get());
-    Print("\nContentEnd %s %s\n", content.mURL, content.mContentType);
+    nsPrintfCString header("Content %s %s:\n", content.mURL, content.mContentType);
+    DirectWriteString(aFd, header.get());
+    DirectWriteString(aFd, str.get());
+    nsPrintfCString tail("\nContentEnd %s %s\n", content.mURL, content.mContentType);
+    DirectWriteString(aFd, tail.get());
   }
 }
 

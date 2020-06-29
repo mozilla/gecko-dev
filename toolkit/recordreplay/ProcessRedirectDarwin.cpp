@@ -3545,7 +3545,12 @@ void DirectDeleteFile(const char* aFilename) {
 void DirectWrite(FileHandle aFd, const void* aData, size_t aSize) {
   ssize_t rv =
       HANDLE_EINTR(CallFunction<int>(gOriginal_write, aFd, aData, aSize));
-  MOZ_RELEASE_ASSERT((size_t)rv == aSize);
+  if (rv != aSize) {
+    if (aFd != STDERR_FILENO) {
+      Print("DirectWrite failed: %lu %d\n", aSize, (int) rv);
+    }
+    MOZ_CRASH("DirectWrite");
+  }
 }
 
 void DirectPrint(const char* aString) {

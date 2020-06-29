@@ -57,9 +57,6 @@ void ManifestStart(const CharBuffer& aContents);
 // Set the status of a cloud connection.
 void SetConnectionStatus(uint32_t aChannelId, const nsCString& aStatus);
 
-// Save the current recording contents to the cloud.
-void SaveCloudRecording(const nsAString& aUUID);
-
 // The following hooks are used in the recording/replaying process to
 // call methods defined by the JS sandbox.
 
@@ -97,8 +94,8 @@ double TotalIdleTime();
 // Incorporate scan data into this process.
 void AddScanDataMessage(Message::UniquePtr aMsg);
 
-// Dump all parsed content to stderr.
-void DumpContent();
+// Dump all parsed content to aFd.
+void DumpContent(FileHandle aFd);
 
 // Utilities.
 
