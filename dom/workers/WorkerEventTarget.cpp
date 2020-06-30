@@ -83,30 +83,40 @@ WorkerEventTarget::DispatchFromScript(nsIRunnable* aRunnable, uint32_t aFlags) {
 NS_IMETHODIMP
 WorkerEventTarget::Dispatch(already_AddRefed<nsIRunnable> aRunnable,
                             uint32_t aFlags) {
+  recordreplay::RecordReplayAssert("WorkerEventTarget::Dispatch");
+
   nsCOMPtr<nsIRunnable> runnable(aRunnable);
 
   MutexAutoLock lock(mMutex);
 
   if (!mWorkerPrivate) {
+    recordreplay::RecordReplayAssert("WorkerEventTarget::Dispatch #1");
     return NS_ERROR_FAILURE;
   }
 
   if (mBehavior == Behavior::Hybrid) {
+    recordreplay::RecordReplayAssert("WorkerEventTarget::Dispatch #2");
     RefPtr<WorkerRunnable> r =
         mWorkerPrivate->MaybeWrapAsWorkerRunnable(runnable.forget());
     if (r->Dispatch()) {
+      recordreplay::RecordReplayAssert("WorkerEventTarget::Dispatch #3");
       return NS_OK;
     }
 
+    recordreplay::RecordReplayAssert("WorkerEventTarget::Dispatch #4");
     runnable = std::move(r);
   }
+
+  recordreplay::RecordReplayAssert("WorkerEventTarget::Dispatch #5");
 
   RefPtr<WorkerControlRunnable> r =
       new WrappedControlRunnable(mWorkerPrivate, std::move(runnable));
   if (!r->Dispatch()) {
+    recordreplay::RecordReplayAssert("WorkerEventTarget::Dispatch #6");
     return NS_ERROR_FAILURE;
   }
 
+  recordreplay::RecordReplayAssert("WorkerEventTarget::Dispatch #7");
   return NS_OK;
 }
 

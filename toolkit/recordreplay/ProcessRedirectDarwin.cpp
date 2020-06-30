@@ -3547,7 +3547,7 @@ void DirectWrite(FileHandle aFd, const void* aData, size_t aSize) {
       HANDLE_EINTR(CallFunction<int>(gOriginal_write, aFd, aData, aSize));
   if (rv != aSize) {
     if (aFd != STDERR_FILENO) {
-      Print("DirectWrite failed: %lu %d\n", aSize, (int) rv);
+      Print("DirectWrite failed: %lu %d %d\n", aSize, (int) rv, errno);
     }
     MOZ_CRASH("DirectWrite");
   }
