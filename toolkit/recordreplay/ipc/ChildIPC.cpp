@@ -186,6 +186,7 @@ static void ChannelMessageHandler(Message::UniquePtr aMsg) {
       const auto& nmsg = (const RecordingDataMessage&)*aMsg;
       MOZ_RELEASE_ASSERT(nmsg.mTag <= gRecordingContents.length());
       size_t extent = nmsg.mTag + nmsg.BinaryDataSize();
+      Print("ReceivedRecordingData %llu %lu\n", nmsg.mTag, nmsg.BinaryDataSize());
       if (extent > gRecordingContents.length()) {
         size_t nbytes = extent - gRecordingContents.length();
         gRecordingContents.append(nmsg.BinaryData() + nmsg.BinaryDataSize() - nbytes,
@@ -266,6 +267,7 @@ void SetupRecordReplayChannel(int aArgc, char* aArgv[]) {
     while (gRecordingContents.empty()) {
       gMonitor->Wait();
     }
+    Print("HaveInitialRecordingData\n");
   }
 }
 
