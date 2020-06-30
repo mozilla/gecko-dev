@@ -2431,8 +2431,6 @@ static SystemRedirection gSystemRedirections[] = {
     {"tzset"},
     {"_dyld_register_func_for_add_image"},
     {"_dyld_register_func_for_remove_image"},
-    {"setjmp", nullptr, Preamble_VetoIfNotPassedThrough<0>},
-    {"longjmp", nullptr, Preamble_NYI},
 
     /////////////////////////////////////////////////////////////////////////////
     // C++ library functions
@@ -3548,6 +3546,9 @@ void DirectWrite(FileHandle aFd, const void* aData, size_t aSize) {
   if (rv != aSize) {
     if (aFd != STDERR_FILENO) {
       Print("DirectWrite failed: %lu %d %d\n", aSize, (int) rv, errno);
+      if (errno == ENOMEM) {
+        Print("OutOfMemory\n");
+      }
     }
     MOZ_CRASH("DirectWrite");
   }

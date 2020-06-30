@@ -5676,6 +5676,8 @@ void Document::GetCookie(nsAString& aCookie, ErrorResult& rv) {
   aCookie.Truncate();  // clear current cookie in case service fails;
                        // no cookie isn't an error condition.
 
+  recordreplay::AssertScriptedCaller("Document::GetCookie");
+
   if (mDisableCookieAccess) {
     return;
   }
