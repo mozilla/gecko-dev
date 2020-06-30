@@ -66,8 +66,21 @@ static bool gReplayingInCloud;
 // Whether we are running an automated test.
 static bool gAutomatedTesting;
 
+struct JSFilter {
+  std::string mFilename;
+  unsigned mStartLine;
+  unsigned mEndLine;
+};
+
+static void ParseJSFilters(const char* aEnv, InfallibleVector<JSFilter>& aFilters);
+static bool FilterMatches(const InfallibleVector<JSFilter>& aFilters,
+                          const char* aFilename, unsigned aLine);
+
 // Whether to assert on execution progress changes.
-static bool gExecutionAsserts;
+static InfallibleVector<JSFilter> gExecutionAsserts;
+
+// Whether to assert on JS values.
+static InfallibleVector<JSFilter> gJSAsserts;
 
 // Firefox installation directory.
 static char* gInstallDirectory;
@@ -211,7 +224,8 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   InitializeRewindState();
   gRecordingPid = RecordReplayValue(gPid);
   gAutomatedTesting = TestEnv("WEBREPLAY_TEST_SCRIPT");
-  gExecutionAsserts = TestEnv("WEBREPLAY_RECORD_EXECUTION_ASSERTS");
+  ParseJSFilters("WEBREPLAY_RECORD_EXECUTION_ASSERTS", gExecutionAsserts);
+  ParseJSFilters("WEBREPLAY_RECORD_JS_ASSERTS", gJSAsserts);
 
   gInitialized = true;
 }
@@ -538,7 +552,7 @@ MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(const char* aFilenam
     MOZ_RELEASE_ASSERT(!thread->AreEventsDisallowed());
     MOZ_RELEASE_ASSERT(!thread->PassThroughEvents());
 
-    if (gExecutionAsserts) {
+    if (FilterMatches(gExecutionAsserts, aFilename, aLineno)) {
       RecordReplayAssert("ExecutionProgress %s:%u:%u", aFilename, aLineno, aColumn);
     }
 
@@ -546,7 +560,65 @@ MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(const char* aFilenam
   }
 }
 
+MOZ_EXPORT bool RecordReplayInterface_ShouldEmitRecordReplayAssert(const char* aFilename,
+                                                                   unsigned aLineno,
+                                                                   unsigned aColumn) {
+  return FilterMatches(gJSAsserts, aFilename, aLineno);
+}
+
 }  // extern "C"
+
+static void ParseJSFilters(const char* aEnv, InfallibleVector<JSFilter>& aFilters) {
+  const char* value = getenv(aEnv);
+  if (!value) {
+    return;
+  }
+
+  while (true) {
+    JSFilter filter;
+
+    const char* end = strchr(value, '@');
+    if (!end) {
+      break;
+    }
+
+    filter.mFilename = std::string(value, end - value);
+    value = end + 1;
+
+    end = strchr(value, '@');
+    if (!end) {
+      break;
+    }
+
+    filter.mStartLine = atoi(value);
+    value = end + 1;
+
+    filter.mEndLine = atoi(value);
+
+    Print("ParseJSFilter %s %s %u %u\n", aEnv,
+          filter.mFilename.c_str(), filter.mStartLine, filter.mEndLine);
+    aFilters.append(filter);
+
+    end = strchr(value, '@');
+    if (!end) {
+      break;
+    }
+
+    value = end + 1;
+  }
+}
+
+static bool FilterMatches(const InfallibleVector<JSFilter>& aFilters,
+                          const char* aFilename, unsigned aLine) {
+  for (const JSFilter& filter : aFilters) {
+    if (strstr(aFilename, filter.mFilename.c_str()) &&
+        aLine >= filter.mStartLine &&
+        aLine <= filter.mEndLine) {
+      return true;
+    }
+  }
+  return false;
+}
 
 static mach_port_t gCrashDetectorExceptionPort;
 

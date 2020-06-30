@@ -852,21 +852,27 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   }
 
   MOZ_MUST_USE bool maybeEmitRecordReplayAssert(uint32_t atomIndex) {
-    if (gEmitRecordReplayAsserts) {
+    if (ShouldEmitRecordReplayAssert(parser->options().filename(),
+                                     bytecodeSection().currentLine(),
+                                     bytecodeSection().lastColumn())) {
       return emitDupAt(0) && emitAtomOp(JSOp::RecordReplayAssert, atomIndex);
     }
     return true;
   }
 
   MOZ_MUST_USE bool maybeEmitRecordReplayAssert(JSAtom* atom) {
-    if (gEmitRecordReplayAsserts) {
+    if (ShouldEmitRecordReplayAssert(parser->options().filename(),
+                                     bytecodeSection().currentLine(),
+                                     bytecodeSection().lastColumn())) {
       return emitDupAt(0) && emitAtomOp(JSOp::RecordReplayAssert, atom);
     }
     return true;
   }
 
   MOZ_MUST_USE bool maybeEmitRecordReplayAssert(const char* str) {
-    if (gEmitRecordReplayAsserts) {
+    if (ShouldEmitRecordReplayAssert(parser->options().filename(),
+                                     bytecodeSection().currentLine(),
+                                     bytecodeSection().lastColumn())) {
       JSAtom* atom = (JSAtom*) JS_AtomizeString(cx, str);
       return atom && maybeEmitRecordReplayAssert(atom);
     }

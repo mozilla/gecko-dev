@@ -101,6 +101,16 @@ extern "C" void install_rust_panic_hook();
 void (*js::ExecutionProgressHook)(const char*, unsigned, unsigned);
 bool js::gRecordDataBuffers;
 
+static bool (*ShouldEmitRecordReplayAssertCallback)(const char*, unsigned, unsigned);
+
+bool js::ShouldEmitRecordReplayAssert(const char* aFilename,
+                                      unsigned aLineno, unsigned aColumn) {
+  if (ShouldEmitRecordReplayAssertCallback) {
+    return ShouldEmitRecordReplayAssertCallback(aFilename, aLineno, aColumn);
+  }
+  return false;
+}
+
 JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
     bool isDebugBuild) {
   // Verify that our DEBUG setting matches the caller's.
@@ -207,16 +217,14 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
       void* hook = dlsym(RTLD_DEFAULT, "RecordReplayInterface_ExecutionProgressHook");
       ExecutionProgressHook = mozilla::BitwiseCast<void(*)(const char*, unsigned, unsigned)>(hook);
     }
-    if (getenv("WEBREPLAY_RECORD_JS_ASSERTS")) {
-      gEmitRecordReplayAsserts = true;
-    }
+    void* shouldEmit = dlsym(RTLD_DEFAULT, "RecordReplayInterface_ShouldEmitRecordReplayAssert");
+    ShouldEmitRecordReplayAssertCallback = mozilla::BitwiseCast<bool(*)(const char*, unsigned, unsigned)>(shouldEmit);
     if (getenv("WEBREPLAY_RECORD_DATA_BUFFERS")) {
       gRecordDataBuffers = true;
     }
   }
   // This option is used for shell testing of assertion instrumentation.
   if (getenv("WEBREPLAY_FORCE_RECORD_JS_ASSERTS")) {
-    gEmitRecordReplayAsserts = true;
     gForceEmitRecordReplayAsserts = true;
   }
 #endif
