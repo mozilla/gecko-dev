@@ -1243,6 +1243,7 @@ static JSString* gMainAtom;
 static JSString* gEntryAtom;
 static JSString* gBreakpointAtom;
 static JSString* gExitAtom;
+static JSString* gGeneratorAtom;
 
 // Messages containing scan data which should be incorporated into this procdess.
 // This is accessed off thread and protected by gMonitor.
@@ -1258,8 +1259,9 @@ static void InitializeScriptHits() {
   gEntryAtom = JS_AtomizeAndPinString(cx, "entry");
   gBreakpointAtom = JS_AtomizeAndPinString(cx, "breakpoint");
   gExitAtom = JS_AtomizeAndPinString(cx, "exit");
+  gGeneratorAtom = JS_AtomizeAndPinString(cx, "generator");
 
-  MOZ_RELEASE_ASSERT(gMainAtom && gEntryAtom && gBreakpointAtom && gExitAtom);
+  MOZ_RELEASE_ASSERT(gMainAtom && gEntryAtom && gBreakpointAtom && gExitAtom && gGeneratorAtom);
 }
 
 void AddScanDataMessage(Message::UniquePtr aMsg) {
@@ -1517,6 +1519,23 @@ static bool RecordReplay_InstrumentationCallback(JSContext* aCx, unsigned aArgc,
     RootedValue rv(aCx);
     HandleValueArray resumeArgs(args.get(1));
     if (!JS_CallFunctionName(aCx, *gModuleObject, "ScriptResumeFrame", resumeArgs, &rv)) {
+      MOZ_CRASH("RecordReplay_InstrumentationCallback");
+    }
+
+    args.rval().setUndefined();
+    return true;
+  }
+
+  if (kind == gGeneratorAtom) {
+    if (!RecordReplay_OnChangeFrame<ChangeFrameEnter>(aCx, aArgc, aVp)) {
+      return false;
+    }
+
+    JSAutoRealm ar(aCx, xpc::PrivilegedJunkScope());
+
+    RootedValue rv(aCx);
+    HandleValueArray resumeArgs(args.get(1));
+    if (!JS_CallFunctionName(aCx, *gModuleObject, "ScriptBeginGenerator", resumeArgs, &rv)) {
       MOZ_CRASH("RecordReplay_InstrumentationCallback");
     }
 

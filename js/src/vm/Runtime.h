@@ -1050,6 +1050,8 @@ struct JSRuntime {
   };
   ErrorInterceptionSupport errorInterception;
 #endif  // defined(NIGHTLY_BUILD)
+
+  size_t nextGeneratorId = 1;
 };
 
 namespace js {

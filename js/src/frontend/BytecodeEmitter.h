@@ -303,11 +303,12 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
 
   bool inPrologue() const { return mainOffset_.isNothing(); }
 
-  MOZ_MUST_USE bool switchToMain() {
+  MOZ_MUST_USE bool switchToMain(bool generator = false) {
     MOZ_ASSERT(inPrologue());
     mainOffset_.emplace(bytecodeSection().code().length());
 
-    return emitInstrumentation(InstrumentationKind::Main);
+    return emitInstrumentation(
+        generator ? InstrumentationKind::Generator : InstrumentationKind::Main);
   }
 
   void setFunctionBodyEndPos(uint32_t pos) {
@@ -840,8 +841,7 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
            emit1(JSOp::RetRval);
   }
 
-  MOZ_MUST_USE bool emitInstrumentation(InstrumentationKind kind,
-                                        uint32_t npopped = 0) {
+  MOZ_MUST_USE bool emitInstrumentation(InstrumentationKind kind) {
     return MOZ_LIKELY(!instrumentationKinds) ||
            emitInstrumentationSlow(kind, std::function<bool(uint32_t)>());
   }

@@ -1309,6 +1309,7 @@ struct MOZ_STACK_CLASS DebuggerFrame::CallData {
   bool constructingGetter();
   bool environmentGetter();
   bool generatorGetter();
+  bool generatorIdGetter();
   bool asyncPromiseGetter();
   bool olderSavedFrameGetter();
   bool liveGetter();
@@ -1480,6 +1481,17 @@ bool DebuggerFrame::CallData::generatorGetter() {
                       "Debugger.Frame.prototype.generator has been removed. "
                       "Use frame.script.isGeneratorFunction instead.");
   return false;
+}
+
+bool DebuggerFrame::CallData::generatorIdGetter() {
+  if (!frame->hasGenerator()) {
+    JS_ReportErrorASCII(cx, "Not a generator frame");
+    return false;
+  }
+
+  AbstractGeneratorObject& generator = frame->unwrappedGenerator();
+  args.rval().setNumber((double)generator.getId());
+  return true;
 }
 
 bool DebuggerFrame::CallData::constructingGetter() {
@@ -1953,6 +1965,7 @@ const JSPropertySpec DebuggerFrame::properties_[] = {
     JS_DEBUG_PSG("constructing", constructingGetter),
     JS_DEBUG_PSG("environment", environmentGetter),
     JS_DEBUG_PSG("generator", generatorGetter),
+    JS_DEBUG_PSG("generatorId", generatorIdGetter),
     JS_DEBUG_PSG("live", liveGetter),
     JS_DEBUG_PSG("onStack", onStackGetter),
     JS_DEBUG_PSG("terminated", terminatedGetter),

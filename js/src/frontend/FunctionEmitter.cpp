@@ -406,6 +406,8 @@ bool FunctionScriptEmitter::prepareForParameters() {
   tdzCache_.emplace(bce_);
   functionEmitterScope_.emplace(bce_);
 
+  bool generator = funbox_->isGenerator() || funbox_->isAsync();
+
   if (funbox_->hasParameterExprs) {
     // There's parameter exprs, emit them in the main section.
     //
@@ -414,7 +416,7 @@ bool FunctionScriptEmitter::prepareForParameters() {
     // parameter exprs, any unobservable environment ops (like pushing the
     // call object, setting '.this', etc) need to go in the prologue, else it
     // messes up breakpoint tests.
-    if (!bce_->switchToMain()) {
+    if (!bce_->switchToMain(generator)) {
       return false;
     }
   }
@@ -429,7 +431,7 @@ bool FunctionScriptEmitter::prepareForParameters() {
   }
 
   if (!funbox_->hasParameterExprs) {
-    if (!bce_->switchToMain()) {
+    if (!bce_->switchToMain(generator)) {
       return false;
     }
   }

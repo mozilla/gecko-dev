@@ -46,6 +46,7 @@ JSObject* AbstractGeneratorObject::create(JSContext* cx,
   if (frame.script()->needsArgsObj()) {
     genObj->setArgsObj(frame.argsObj());
   }
+  genObj->setSlot(ID_SLOT, NumberValue(cx->runtime()->nextGeneratorId++));
   genObj->clearExpressionStack();
 
   if (!DebugAPI::onNewGenerator(cx, frame, genObj)) {
@@ -186,6 +187,12 @@ bool AbstractGeneratorObject::resume(JSContext* cx,
   }
 
   JSScript* script = callee->nonLazyScript();
+
+  if (script->trackRecordReplayProgress()) {
+    MaybeCallExecutionProgressHook(script);
+    mozilla::recordreplay::AdvanceExecutionProgressCounter();
+  }
+
   uint32_t offset = script->resumeOffsets()[genObj->resumeIndex()];
   activation.regs().pc = script->offsetToPC(offset);
 

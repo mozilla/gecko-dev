@@ -15,7 +15,7 @@ namespace js {
 // Logic related to instrumentation which can be performed in a realm.
 
 #define FOR_EACH_INSTRUMENTATION_KIND(MACRO)                                \
-  /* The main entry point of a script. */                                   \
+  /* The main entry point of a non-generator script. */                     \
   MACRO(Main, "main", 1 << 0)                                               \
   /* Points other than the main entry point where a frame for the script */ \
   /* might start executing. */                                              \
@@ -28,7 +28,9 @@ namespace js {
   MACRO(GetProperty, "getProperty", 1 << 4)                                 \
   MACRO(SetProperty, "setProperty", 1 << 5)                                 \
   MACRO(GetElement, "getElement", 1 << 6)                                   \
-  MACRO(SetElement, "setElement", 1 << 7)
+  MACRO(SetElement, "setElement", 1 << 7)                                   \
+  /* The main entry point of a generator script. */                         \
+  MACRO(Generator, "generator", 1 << 8)
 
 // Points at which instrumentation can be added on the scripts in a realm.
 enum class InstrumentationKind {

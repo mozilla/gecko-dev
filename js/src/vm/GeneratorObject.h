@@ -32,6 +32,7 @@ class AbstractGeneratorObject : public NativeObject {
     ARGS_OBJ_SLOT,
     EXPRESSION_STACK_SLOT,
     RESUME_INDEX_SLOT,
+    ID_SLOT,
     RESERVED_SLOTS
   };
 
@@ -95,6 +96,10 @@ class AbstractGeneratorObject : public NativeObject {
   }
   void clearExpressionStack() {
     setFixedSlot(EXPRESSION_STACK_SLOT, NullValue());
+  }
+
+  size_t getId() {
+    return getSlot(ID_SLOT).toNumber();
   }
 
   // The resumeIndex slot is abused for a few purposes.  It's undefined if
