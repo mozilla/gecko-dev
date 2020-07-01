@@ -7638,6 +7638,8 @@ static PseudoStyleType GetPseudoElementType(const nsString& aString,
 already_AddRefed<Element> Document::CreateElement(
     const nsAString& aTagName, const ElementCreationOptionsOrString& aOptions,
     ErrorResult& rv) {
+  recordreplay::AssertScriptedCaller("Document::CreateElement");
+
   rv = nsContentUtils::CheckQName(aTagName, false);
   if (rv.Failed()) {
     return nullptr;
