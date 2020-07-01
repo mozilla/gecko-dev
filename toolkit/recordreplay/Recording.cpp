@@ -24,7 +24,7 @@ namespace recordreplay {
 ///////////////////////////////////////////////////////////////////////////////
 
 // How many recent events to remember in event streams.
-static const size_t NumRecentEvents = 100000;
+static const size_t NumRecentEvents = 10000;
 
 Stream::Stream(Recording* aRecording, StreamName aName, size_t aNameIndex)
   : mRecording(aRecording),
@@ -423,12 +423,20 @@ void Stream::DumpEvents() {
   }
   gDumpingEvents = true;
 
-  nsPrintfCString filename("dumps/%d-thread-%lu.log",
-                           GetPid(), Thread::Current()->Id());
+  int key;
+  {
+    AutoEnsurePassThroughThreadEvents pt;
+    key = rand();
+  }
+
+  nsPrintfCString filename("dumps/%d.%d.log", GetPid(), key);
 
   Print("Writing dump: %s\n", filename.get());
 
   FileHandle fd = DirectOpenFile(filename.get(), /* aWriting */ true);
+
+  nsPrintfCString header("Thread %lu\n", Thread::Current()->Id());
+  DirectWriteString(fd, header.get());
 
   size_t which = 0;
   size_t limit = mEventIndex;
@@ -448,9 +456,7 @@ void Stream::DumpEvents() {
     DumpRecentJS(fd);
   }
 
-  if (InAutomatedTest()) {
-    js::DumpContent(fd);
-  }
+  js::DumpContent(fd);
 
   DirectCloseFile(fd);
 }

@@ -430,7 +430,7 @@ struct RecentJSEvent {
 };
 
 static StaticInfallibleVector<RecentJSEvent> gRecentJSEvents;
-static const size_t NumRecentJSEvents = 1000;
+static const size_t NumRecentJSEvents = 10000;
 
 size_t gRecentJSEventsIndex = 0;
 
