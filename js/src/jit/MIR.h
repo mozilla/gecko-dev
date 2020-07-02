@@ -6353,9 +6353,23 @@ class MInterruptCheck : public MNullaryInstruction {
   TRIVIAL_NEW_WRAPPERS
 
   AliasSet getAliasSet() const override { return AliasSet::None(); }
+};
 
-  void* trackRecordReplayProgressScript() const { return trackRecordReplayProgressScript_; }
-  void setTrackRecordReplayProgressScript(void* aScript) { trackRecordReplayProgressScript_ = aScript; }
+class MExecutionProgress : public MNullaryInstruction {
+  void* script_;
+
+  explicit MExecutionProgress(void* script)
+      : MNullaryInstruction(classOpcode), script_(script) {
+    setGuard();
+  }
+
+ public:
+  INSTRUCTION_HEADER(ExecutionProgress)
+  TRIVIAL_NEW_WRAPPERS
+
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
+
+  void* script() const { return script_; }
 };
 
 // Check whether we need to fire the interrupt handler (in wasm code).

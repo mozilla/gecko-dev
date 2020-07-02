@@ -116,13 +116,6 @@ bool CodeGeneratorShared::generatePrologue() {
     masm.profilerEnterFrame(masm.getStackPointer(), CallTempReg0);
   }
 
-  void* trackScript = gen->outerInfo().trackRecordReplayProgressScript();
-  if (trackScript) {
-    masm.maybeCallExecutionProgressHook(trackScript);
-    masm.inc64(
-        AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
-  }
-
   // Ensure that the Ion frame is properly aligned.
   masm.assertStackAlignment(JitStackAlignment, 0);
 

@@ -307,6 +307,12 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
     MOZ_ASSERT(inPrologue());
     mainOffset_.emplace(bytecodeSection().code().length());
 
+    if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+      if (!emit1(JSOp::ExecutionProgress)) {
+        return false;
+      }
+    }
+
     return emitInstrumentation(
         generator ? InstrumentationKind::Generator : InstrumentationKind::Main);
   }

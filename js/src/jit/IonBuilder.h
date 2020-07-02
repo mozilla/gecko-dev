@@ -649,6 +649,7 @@ class MOZ_STACK_CLASS IonBuilder {
   AbortReasonOr<Ok> jsop_getaliasedvar(EnvironmentCoordinate ec);
   AbortReasonOr<Ok> jsop_setaliasedvar(EnvironmentCoordinate ec);
   AbortReasonOr<Ok> jsop_debugger();
+  AbortReasonOr<Ok> jsop_execution_progress();
   AbortReasonOr<Ok> jsop_newtarget();
   AbortReasonOr<Ok> jsop_checkisobj(uint8_t kind);
   AbortReasonOr<Ok> jsop_checkiscallable(uint8_t kind);

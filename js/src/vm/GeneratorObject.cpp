@@ -187,12 +187,6 @@ bool AbstractGeneratorObject::resume(JSContext* cx,
   }
 
   JSScript* script = callee->nonLazyScript();
-
-  if (script->trackRecordReplayProgress()) {
-    MaybeCallExecutionProgressHook(script);
-    mozilla::recordreplay::AdvanceExecutionProgressCounter();
-  }
-
   uint32_t offset = script->resumeOffsets()[genObj->resumeIndex()];
   activation.regs().pc = script->offsetToPC(offset);
 

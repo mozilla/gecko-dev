@@ -1124,14 +1124,6 @@ AbortReasonOr<Ok> IonBuilder::buildInline(IonBuilder* callerBuilder,
 
   insertRecompileCheck(pc);
 
-  // Insert an interrupt check when recording or replaying, which will bump
-  // the record/replay system's progress counter.
-  if (script()->trackRecordReplayProgress()) {
-    MInterruptCheck* check = MInterruptCheck::New(alloc());
-    check->setTrackRecordReplayProgressScript(script());
-    current->add(check);
-  }
-
   // Initialize the env chain now that all resume points operands are
   // initialized.
   MOZ_TRY(initEnvironmentChain(callInfo.fun()));
@@ -1830,14 +1822,6 @@ AbortReasonOr<Ok> IonBuilder::emitLoopHeadInstructions(jsbytecode* pc) {
   current->add(check);
   insertRecompileCheck(pc);
 
-  if (script()->trackRecordReplayProgress()) {
-    check->setTrackRecordReplayProgressScript(script());
-
-    // When recording/replaying, MInterruptCheck is effectful and should
-    // not reexecute after bailing out.
-    MOZ_TRY(resumeAfter(check));
-  }
-
   return Ok();
 }
 
@@ -2398,6 +2382,9 @@ AbortReasonOr<Ok> IonBuilder::inspectOpcode(JSOp op, bool* restarted) {
 
     case JSOp::Debugger:
       return jsop_debugger();
+
+    case JSOp::ExecutionProgress:
+      return jsop_execution_progress();
 
     case JSOp::GImplicitThis:
       if (!script()->hasNonSyntacticScope()) {
@@ -12786,6 +12773,18 @@ AbortReasonOr<Ok> IonBuilder::jsop_debugger() {
   // cx->compartment()->isDebuggee(). Resume in-place and have baseline
   // handle the details.
   return resumeAt(debugger, pc);
+}
+
+AbortReasonOr<Ok> IonBuilder::jsop_execution_progress() {
+  if (!script()->trackRecordReplayProgress()) {
+    return Ok();
+  }
+
+  MExecutionProgress* progress = MExecutionProgress::New(alloc(), script());
+  current->add(progress);
+
+  // MExecutionProgress is effectful and should not reexecute after bailing out.
+  return resumeAfter(progress);
 }
 
 AbortReasonOr<Ok> IonBuilder::jsop_implicitthis(PropertyName* name) {

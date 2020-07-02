@@ -2633,6 +2633,12 @@ void LIRGenerator::visitInterruptCheck(MInterruptCheck* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGenerator::visitExecutionProgress(MExecutionProgress* ins) {
+  LInstruction* lir = new (alloc()) LExecutionProgress();
+  add(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
 void LIRGenerator::visitWasmInterruptCheck(MWasmInterruptCheck* ins) {
   auto* lir =
       new (alloc()) LWasmInterruptCheck(useRegisterAtStart(ins->tlsPtr()));

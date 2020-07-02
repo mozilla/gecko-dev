@@ -13167,17 +13167,16 @@ void CodeGenerator::visitInterruptCheck(LInterruptCheck* lir) {
   OutOfLineCode* ool =
       oolCallVM<Fn, InterruptCheck>(lir, ArgList(), StoreNothing());
 
-  void* trackScript = lir->mir()->trackRecordReplayProgressScript();
-  if (trackScript) {
-    masm.maybeCallExecutionProgressHook(trackScript);
-    masm.inc64(
-        AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
-  }
-
   const void* interruptAddr = gen->runtime->addressOfInterruptBits();
   masm.branch32(Assembler::NotEqual, AbsoluteAddress(interruptAddr), Imm32(0),
                 ool->entry());
   masm.bind(ool->rejoin());
+}
+
+void CodeGenerator::visitExecutionProgress(LExecutionProgress* lir) {
+  masm.maybeCallExecutionProgressHook(lir->mir()->script());
+  masm.inc64(
+      AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
 }
 
 void CodeGenerator::visitWasmInterruptCheck(LWasmInterruptCheck* lir) {

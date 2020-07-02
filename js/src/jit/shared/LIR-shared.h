@@ -676,6 +676,14 @@ class LInterruptCheck : public LInstructionHelper<0, 0, 0> {
   MInterruptCheck* mir() const { return mir_->toInterruptCheck(); }
 };
 
+class LExecutionProgress : public LInstructionHelper<0, 0, 0> {
+ public:
+  LIR_HEADER(ExecutionProgress)
+
+  LExecutionProgress() : LInstructionHelper(classOpcode) {}
+  MExecutionProgress* mir() const { return mir_->toExecutionProgress(); }
+};
+
 class LWasmInterruptCheck : public LInstructionHelper<0, 1, 0> {
  public:
   LIR_HEADER(WasmInterruptCheck)

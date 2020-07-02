@@ -3489,6 +3489,15 @@
      */ \
     MACRO(RecordReplayAssert, record_replay_assert, NULL, 5, 1, 0, JOF_ATOM) \
     /*
+     * If record/replay progress is tracked for the script, increment the
+     * execution progress counter.
+     *
+     *   Category: Other
+     *   Operands:
+     *   Stack: =>
+     */ \
+    MACRO(ExecutionProgress, execution_progress, NULL, 1, 0, 0, JOF_BYTE) \
+    /*
      * Break in the debugger, if one is attached. Otherwise this is a no-op.
      *
      * The [`Debugger` API][1] offers a way to hook into this instruction.
@@ -3511,7 +3520,6 @@
  * a power of two.  Use this macro to do so.
  */
 #define FOR_EACH_TRAILING_UNUSED_OPCODE(MACRO) \
-  MACRO(240)                                   \
   MACRO(241)                                   \
   MACRO(242)                                   \
   MACRO(243)                                   \
