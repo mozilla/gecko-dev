@@ -1485,11 +1485,12 @@ bool DebuggerFrame::CallData::generatorGetter() {
 
 bool DebuggerFrame::CallData::generatorIdGetter() {
   if (!frame->hasGenerator()) {
-    JS_ReportErrorASCII(cx, "Not a generator frame");
-    return false;
+    args.rval().setUndefined();
+    return true;
   }
 
   AbstractGeneratorObject& generator = frame->unwrappedGenerator();
+
   args.rval().setNumber((double)generator.getId());
   return true;
 }
