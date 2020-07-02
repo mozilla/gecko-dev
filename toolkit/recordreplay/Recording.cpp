@@ -213,7 +213,8 @@ bool Stream::ReadMismatchedEventData(ThreadEvent aEvent) {
 
   // Tolerate some calls that happened while recording but not replaying.
   if (!strcmp(ThreadEventName(aEvent), "arc4random") ||
-      !strcmp(ThreadEventName(aEvent), "mach_absolute_time")) {
+      !strcmp(ThreadEventName(aEvent), "mach_absolute_time") ||
+      aEvent == ThreadEvent::Value) {
     // For execution progress counter.
     if (mNameIndex == MainThreadId) {
       ReadScalar();

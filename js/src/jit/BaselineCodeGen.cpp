@@ -6112,6 +6112,10 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
   }
 #endif
 
+  if (!emitIncExecutionProgressCounter(scratch1)) {
+    return false;
+  }
+
   // Push |undefined| for all formals.
   Register scratch2 = regs.takeAny();
   Label loop, loopDone;
