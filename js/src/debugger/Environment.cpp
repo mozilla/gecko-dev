@@ -128,6 +128,7 @@ struct MOZ_STACK_CLASS DebuggerEnvironment::CallData {
   bool optimizedOutGetter();
 
   bool namesMethod();
+  bool nameLocationsMethod();
   bool findMethod();
   bool getVariableMethod();
   bool setVariableMethod();
@@ -298,6 +299,68 @@ bool DebuggerEnvironment::CallData::namesMethod() {
   return true;
 }
 
+bool DebuggerEnvironment::CallData::nameLocationsMethod() {
+  if (!environment->requireDebuggee(cx)) {
+    return false;
+  }
+
+  Rooted<IdVector> ids(cx, IdVector(cx));
+  if (!DebuggerEnvironment::getNames(cx, environment, &ids)) {
+    return false;
+  }
+
+  RootedObject array(cx, NewDenseEmptyArray(cx));
+  if (!array) {
+    return false;
+  }
+
+  RootedId nameId(cx, NameToId(cx->names().name));
+  RootedId lineNumberId(cx, NameToId(cx->names().lineNumber));
+  RootedId columnNumberId(cx, NameToId(cx->names().columnNumber));
+
+  for (size_t i = 0; i < ids.length(); i++) {
+    RootedValue nameValue(cx, StringValue(JSID_TO_ATOM(ids[i])));
+    RootedObject item(cx, NewObjectWithGivenProto<PlainObject>(cx, nullptr));
+    if (!item ||
+        !DefineDataProperty(cx, item, nameId, nameValue) ||
+        !NewbornArrayPush(cx, array, ObjectValue(*item))) {
+      return false;
+    }
+  }
+
+  Rooted<Env*> ref(cx, UncheckedUnwrap(environment->referent()));
+  if (ref->is<DebugEnvironmentProxy>()) {
+    Rooted<EnvironmentObject*> env(cx, &ref->as<DebugEnvironmentProxy>().environment());
+    Scope* scope = GetEnvironmentScope(*env);
+    if (scope) {
+      size_t numLocations;
+      const ScopeNameLocation* locations = scope->getLocations(&numLocations);
+      for (size_t i = 0; i < numLocations; i++) {
+        const ScopeNameLocation& location = locations[i];
+        for (size_t j = 0; j < ids.length(); j++) {
+          if (location.name == JSID_TO_ATOM(ids[j])) {
+            RootedValue itemValue(cx);
+            if (!JS_GetElement(cx, array, j, &itemValue)) {
+              return false;
+            }
+            RootedObject item(cx, &itemValue.toObject());
+            RootedValue lineValue(cx, NumberValue(location.line));
+            RootedValue columnValue(cx, NumberValue(location.column));
+            if (!DefineDataProperty(cx, item, lineNumberId, lineValue) ||
+                !DefineDataProperty(cx, item, columnNumberId, columnValue)) {
+              return false;
+            }
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  args.rval().setObject(*array);
+  return true;
+}
+
 bool DebuggerEnvironment::CallData::findMethod() {
   if (!args.requireAtLeast(cx, "Debugger.Environment.find", 1)) {
     return false;
@@ -384,6 +447,7 @@ const JSPropertySpec DebuggerEnvironment::properties_[] = {
 
 const JSFunctionSpec DebuggerEnvironment::methods_[] = {
     JS_DEBUG_FN("names", namesMethod, 0), JS_DEBUG_FN("find", findMethod, 1),
+    JS_DEBUG_FN("nameLocations", nameLocationsMethod, 0),
     JS_DEBUG_FN("getVariable", getVariableMethod, 1),
     JS_DEBUG_FN("setVariable", setVariableMethod, 2), JS_FS_END};
 

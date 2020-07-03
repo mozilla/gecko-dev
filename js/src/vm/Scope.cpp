@@ -29,6 +29,7 @@ using namespace js;
 using namespace js::frontend;
 
 using mozilla::Maybe;
+using mozilla::PodCopy;
 
 const char* js::BindingKindString(BindingKind kind) {
   switch (kind) {
@@ -171,6 +172,14 @@ static UniquePtr<typename ConcreteScope::Data> CopyScopeData(
   auto* dataCopy = new (bytes) typename ConcreteScope::Data(*data);
 
   std::uninitialized_copy_n(names, length, dataCopy->trailingNames.start());
+
+  if (dataCopy->locations) {
+    // Note: this will leak if the main Data is deleted without being assigned
+    // to a Scope object. Oh well.
+    ScopeNameLocation* locations = cx->pod_malloc<ScopeNameLocation>(dataCopy->numLocations);
+    PodCopy(locations, dataCopy->locations, dataCopy->numLocations);
+    dataCopy->locations = locations;
+  }
 
   return UniquePtr<typename ConcreteScope::Data>(dataCopy);
 }

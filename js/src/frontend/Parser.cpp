@@ -851,6 +851,24 @@ bool ParserBase::noteUsedNameInternal(HandlePropertyName name) {
   return usedNames_.noteUse(cx_, name, pc_->scriptId(), scope->id());
 }
 
+static ScopeNameLocation ToNameLocation(const ErrorReporter& er, JSAtom* name, uint32_t pos) {
+  ScopeNameLocation location;
+  location.name = name;
+  er.lineAndColumnAt(pos, &location.line, &location.column);
+  return location;
+}
+
+static void CopyLocationsToScopeData(LifoAlloc& alloc, BaseScopeData* bindings,
+                                     const Vector<ScopeNameLocation>& locations) {
+  // Why is ScopeNameLocation not a POD type? It is a mystery.
+  ScopeNameLocation* newLocations = (ScopeNameLocation*)
+    alloc.newArray<char>(locations.length() * sizeof(ScopeNameLocation));
+
+  PodCopy(newLocations, locations.begin(), locations.length());
+  bindings->locations = newLocations;
+  bindings->numLocations = locations.length();
+}
+
 template <class ParseHandler>
 bool PerHandlerParser<ParseHandler>::
     propagateFreeNamesAndMarkClosedOverBindings(ParseContext::Scope& scope) {
@@ -1193,8 +1211,15 @@ Maybe<FunctionScope::Data*> NewFunctionScopeData(
     }
   }
 
+  Vector<ScopeNameLocation> locations(cx);
+
   for (BindingIter bi = scope.bindings(pc); bi; bi++) {
     BindingName binding(bi.name(), allBindingsClosedOver || bi.closedOver());
+    if (bi.pos() != DeclaredNameInfo::npos) {
+      if (!locations.emplaceBack(ToNameLocation(pc->errorReporter(), bi.name(), bi.pos()))) {
+        return Nothing();
+      }
+    }
     switch (bi.kind()) {
       case BindingKind::FormalParameter:
         // Positional parameter names are already handled above.
@@ -1235,6 +1260,8 @@ Maybe<FunctionScope::Data*> NewFunctionScopeData(
     InitializeBindingData(bindings, numBindings, positionalFormals,
                           &FunctionScope::Data::nonPositionalFormalStart,
                           formals, &FunctionScope::Data::varStart, vars);
+
+    CopyLocationsToScopeData(alloc, bindings, locations);
   }
 
   return Some(bindings);
@@ -1289,6 +1316,8 @@ Maybe<LexicalScope::Data*> NewLexicalScopeData(JSContext* cx,
   BindingNameVector lets(cx);
   BindingNameVector consts(cx);
 
+  Vector<ScopeNameLocation> locations(cx);
+
   // Unlike other scopes with bindings which are body-level, it is unknown
   // if pc->sc()->allBindingsClosedOver() is correct at the time of
   // finishing parsing a lexical scope.
@@ -1297,6 +1326,11 @@ Maybe<LexicalScope::Data*> NewLexicalScopeData(JSContext* cx,
   // EmitterScope::enterLexical. Also see comment there.
   for (BindingIter bi = scope.bindings(pc); bi; bi++) {
     BindingName binding(bi.name(), bi.closedOver());
+    if (bi.pos() != DeclaredNameInfo::npos) {
+      if (!locations.emplaceBack(ToNameLocation(pc->errorReporter(), bi.name(), bi.pos()))) {
+        return Nothing();
+      }
+    }
     switch (bi.kind()) {
       case BindingKind::Let:
         if (!lets.append(binding)) {
@@ -1325,6 +1359,8 @@ Maybe<LexicalScope::Data*> NewLexicalScopeData(JSContext* cx,
     // The ordering here is important. See comments in LexicalScope.
     InitializeBindingData(bindings, numBindings, lets,
                           &LexicalScope::Data::constStart, consts);
+
+    CopyLocationsToScopeData(alloc, bindings, locations);
   }
 
   return Some(bindings);

@@ -229,6 +229,10 @@ class ParseContext : public Nestable<ParseContext> {
         return DeclarationKindToBindingKind(declarationKind());
       }
 
+      uint32_t pos() {
+        return declaredRange_.front().value()->pos();
+      }
+
       bool closedOver() {
         MOZ_ASSERT(!done());
         return declaredRange_.front().value()->closedOver();
@@ -346,6 +350,8 @@ class ParseContext : public Nestable<ParseContext> {
   MOZ_MUST_USE bool init();
 
   SharedContext* sc() { return sc_; }
+
+  ErrorReporter& errorReporter() { return errorReporter_; }
 
   // `true` if we are in the body of a function definition.
   bool isFunctionBox() const { return sc_->isFunctionBox(); }

@@ -239,6 +239,8 @@ class WrappedPtrOperations<Scope*, Wrapper> {
   }
 };
 
+struct ScopeNameLocation;
+
 //
 // The base class of all Scopes.
 //
@@ -358,6 +360,8 @@ class Scope : public js::gc::TenuredCell {
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
+  inline const ScopeNameLocation* getLocations(size_t* aNumLocations) const;
+
   void dump();
 #if defined(DEBUG) || defined(JS_JITSPEW)
   static bool dumpForDisassemble(JSContext* cx, JS::Handle<Scope*> scope,
@@ -365,8 +369,20 @@ class Scope : public js::gc::TenuredCell {
 #endif /* defined(DEBUG) || defined(JS_JITSPEW) */
 };
 
+// Location where a name was declared.
+struct ScopeNameLocation {
+  JSAtom* name;
+  uint32_t line;
+  uint32_t column;
+};
+
 /** Empty base class for scope Data classes to inherit from. */
-class BaseScopeData {};
+class BaseScopeData {
+ public:
+  // Optional locations of places where names in this scope were declared.
+  ScopeNameLocation* locations = nullptr;
+  size_t numLocations = 0;
+};
 
 template <class Data>
 inline size_t SizeOfData(uint32_t numBindings) {
@@ -375,6 +391,11 @@ inline size_t SizeOfData(uint32_t numBindings) {
                 "inherit from BaseScopeData");
   return sizeof(Data) +
          (numBindings ? numBindings - 1 : 0) * sizeof(BindingName);
+}
+
+inline const ScopeNameLocation* Scope::getLocations(size_t* aNumLocations) const {
+  *aNumLocations = data_->numLocations;
+  return data_->locations;
 }
 
 //
