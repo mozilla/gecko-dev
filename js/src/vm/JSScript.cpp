@@ -4324,6 +4324,9 @@ static bool ShouldTrackRecordReplayProgress(JSScript* script) {
   // scripts associated with the main thread's runtime. Whether self hosted
   // scripts execute may depend on performed Ion optimizations (for example,
   // self hosted TypedObject logic), so they are ignored.
+  if (gForceEmitExecutionProgress) {
+    return true;
+  }
   return MOZ_UNLIKELY(mozilla::recordreplay::IsRecordingOrReplaying()) &&
          !script->runtimeFromAnyThread()->parentRuntime &&
          !script->selfHosted() &&

@@ -13175,8 +13175,7 @@ void CodeGenerator::visitInterruptCheck(LInterruptCheck* lir) {
 
 void CodeGenerator::visitExecutionProgress(LExecutionProgress* lir) {
   masm.maybeCallExecutionProgressHook(lir->mir()->script());
-  masm.inc64(
-      AbsoluteAddress(mozilla::recordreplay::ExecutionProgressCounter()));
+  masm.inc64(AbsoluteAddress(ExecutionProgressCounter()));
 }
 
 void CodeGenerator::visitWasmInterruptCheck(LWasmInterruptCheck* lir) {

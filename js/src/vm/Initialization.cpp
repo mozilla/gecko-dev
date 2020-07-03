@@ -224,6 +224,9 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
     }
   }
   // This option is used for shell testing of assertion instrumentation.
+  if (getenv("WEBREPLAY_FORCE_EMIT_EXECUTION_PROGRESS")) {
+    gForceEmitExecutionProgress = true;
+  }
   if (getenv("WEBREPLAY_FORCE_RECORD_JS_ASSERTS")) {
     gForceEmitRecordReplayAsserts = true;
   }

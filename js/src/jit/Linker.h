@@ -22,10 +22,6 @@ class Linker {
   mozilla::Maybe<AutoWritableJitCodeFallible> awjcf;
 
   JitCode* fail(JSContext* cx) {
-    if (mozilla::recordreplay::IsReplaying()) {
-      mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-      fprintf(stderr, "Linker::fail called %d\n", getpid());
-    }
     ReportOutOfMemory(cx);
     return nullptr;
   }

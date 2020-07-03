@@ -2265,10 +2265,8 @@ bool BytecodeEmitter::emitYieldOp(JSOp op) {
 
   SET_RESUMEINDEX(bytecodeSection().code(off), resumeIndex);
 
-  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    if (!emit1(JSOp::ExecutionProgress)) {
-      return false;
-    }
+  if (!emit1(JSOp::ExecutionProgress)) {
+    return false;
   }
 
   if (!emitInstrumentation(InstrumentationKind::Entry)) {

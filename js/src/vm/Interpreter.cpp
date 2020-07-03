@@ -1961,7 +1961,7 @@ static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool Interpret(JSContext* cx,
     CASE(ExecutionProgress)
       if (script->trackRecordReplayProgress()) {
         MaybeCallExecutionProgressHook(script);
-        mozilla::recordreplay::AdvanceExecutionProgressCounter();
+        AdvanceExecutionProgressCounter();
       }
     END_CASE(ExecutionProgress)
 

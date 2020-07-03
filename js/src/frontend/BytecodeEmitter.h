@@ -307,7 +307,7 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
     MOZ_ASSERT(inPrologue());
     mainOffset_.emplace(bytecodeSection().code().length());
 
-    if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    if (emitterMode != BytecodeEmitter::SelfHosting) {
       if (!emit1(JSOp::ExecutionProgress)) {
         return false;
       }

@@ -902,7 +902,21 @@ void JSRuntime::ensureRealmIsRecordingAllocations(
   }
 }
 
+bool js::gForceEmitExecutionProgress;
 bool js::gForceEmitRecordReplayAsserts;
+
+uint64_t* js::ExecutionProgressCounter() {
+  static uint64_t dummyCounter;
+  return gForceEmitExecutionProgress
+    ? &dummyCounter
+    : mozilla::recordreplay::ExecutionProgressCounter();
+}
+
+void js::AdvanceExecutionProgressCounter() {
+  if (!gForceEmitExecutionProgress) {
+    mozilla::recordreplay::AdvanceExecutionProgressCounter();
+  }
+}
 
 bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleValue value) {
   if (!mozilla::recordreplay::IsRecordingOrReplaying()) {

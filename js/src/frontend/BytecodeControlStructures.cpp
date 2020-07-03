@@ -79,10 +79,8 @@ bool LoopControl::emitLoopHead(BytecodeEmitter* bce,
   }
   SetLoopHeadDepthHint(bce->bytecodeSection().code(off), loopDepth_);
 
-  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    if (!bce->emit1(JSOp::ExecutionProgress)) {
-      return false;
-    }
+  if (!bce->emit1(JSOp::ExecutionProgress)) {
+    return false;
   }
 
   return true;

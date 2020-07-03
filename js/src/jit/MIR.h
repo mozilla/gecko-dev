@@ -6341,10 +6341,8 @@ class MCheckOverRecursed : public MNullaryInstruction {
 
 // Check whether we need to fire the interrupt handler.
 class MInterruptCheck : public MNullaryInstruction {
-  void* trackRecordReplayProgressScript_;
-
   MInterruptCheck()
-      : MNullaryInstruction(classOpcode), trackRecordReplayProgressScript_(nullptr) {
+      : MNullaryInstruction(classOpcode) {
     setGuard();
   }
 

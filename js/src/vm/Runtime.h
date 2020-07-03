@@ -1124,7 +1124,11 @@ extern void (*HelperThreadTaskCallback)(js::RunnableTask*);
 extern bool gRecordDataBuffers;
 
 // Set to emit record/replay assertions even when not recording/replaying.
+extern bool gForceEmitExecutionProgress;
 extern bool gForceEmitRecordReplayAsserts;
+
+extern uint64_t* ExecutionProgressCounter();
+extern void AdvanceExecutionProgressCounter();
 
 extern bool ShouldEmitRecordReplayAssert(const char* aFilename,
                                          unsigned aLineno, unsigned aColumn);

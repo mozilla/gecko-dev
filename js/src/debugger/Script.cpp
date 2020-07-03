@@ -1656,6 +1656,7 @@ static bool BytecodeIsEffectful(JSOp op) {
     case JSOp::Retsub:
     case JSOp::ThrowMsg:
     case JSOp::ForceInterpreter:
+    case JSOp::ExecutionProgress:
       return false;
   }
 
