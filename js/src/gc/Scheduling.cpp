@@ -537,7 +537,8 @@ inline bool MemoryTracker::allowMultipleAssociations(MemoryUse use) {
   // one-to-many relationship only where necessary.
   return isNonGCMemoryUse(use) || use == MemoryUse::RegExpSharedBytecode ||
          use == MemoryUse::BreakpointSite || use == MemoryUse::Breakpoint ||
-         use == MemoryUse::ForOfPICStub || use == MemoryUse::ICUObject;
+         use == MemoryUse::ForOfPICStub || use == MemoryUse::ICUObject ||
+         use == MemoryUse::ScopeData;
 }
 
 void MemoryTracker::trackGCMemory(Cell* cell, size_t nbytes, MemoryUse use) {

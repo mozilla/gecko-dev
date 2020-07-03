@@ -860,13 +860,15 @@ static ScopeNameLocation ToNameLocation(const ErrorReporter& er, JSAtom* name, u
 
 static void CopyLocationsToScopeData(LifoAlloc& alloc, BaseScopeData* bindings,
                                      const Vector<ScopeNameLocation>& locations) {
-  // Why is ScopeNameLocation not a POD type? It is a mystery.
-  ScopeNameLocation* newLocations = (ScopeNameLocation*)
-    alloc.newArray<char>(locations.length() * sizeof(ScopeNameLocation));
+  if (locations.length()) {
+    // Why is ScopeNameLocation not a POD type? It is a mystery.
+    ScopeNameLocation* newLocations = (ScopeNameLocation*)
+      alloc.newArray<char>(locations.length() * sizeof(ScopeNameLocation));
 
-  PodCopy(newLocations, locations.begin(), locations.length());
-  bindings->locations = newLocations;
-  bindings->numLocations = locations.length();
+    PodCopy(newLocations, locations.begin(), locations.length());
+    bindings->locations = newLocations;
+    bindings->numLocations = locations.length();
+  }
 }
 
 template <class ParseHandler>
