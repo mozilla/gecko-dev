@@ -218,8 +218,6 @@ void Lock::Enter(NativeLock* aNativeLock) {
   }
 }
 
-static inline bool IsAtomicLockId(size_t aLockId);
-
 void Lock::FinishEnter() {
   MOZ_RELEASE_ASSERT(IsReplaying());
 
@@ -310,7 +308,7 @@ void Lock::InitializeLocks() {
   PodZero(gAtomicLockOwners, NumAtomicLocks);
 }
 
-static inline bool IsAtomicLockId(size_t aLockId) {
+bool IsAtomicLockId(size_t aLockId) {
   return aLockId <= NumAtomicLocks;
 }
 

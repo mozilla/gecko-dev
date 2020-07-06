@@ -202,7 +202,7 @@ class Stream {
   void AdvanceEventIndex();
 
   bool StartRecordingMismatch();
-  bool ReadMismatchedEventData(ThreadEvent aEvent);
+  bool ReadMismatchedEventData(ThreadEvent aEvent, Maybe<size_t>& aOldProgress);
 };
 
 // All information about the platform and build where a recording was made.

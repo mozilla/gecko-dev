@@ -66,6 +66,8 @@ class Lock {
   static void DumpLock(size_t aLockId);
 };
 
+bool IsAtomicLockId(size_t aLockId);
+
 }  // namespace recordreplay
 }  // namespace mozilla
 

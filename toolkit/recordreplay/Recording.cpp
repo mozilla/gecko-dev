@@ -40,8 +40,6 @@ void Stream::ReadBytes(void* aData, size_t aSize) {
   MOZ_RELEASE_ASSERT(mRecording->IsReading());
   MOZ_RELEASE_ASSERT(mPeekedScalar.isNothing());
 
-  size_t totalRead = 0;
-
   while (true) {
     // Read what we can from the data buffer.
     MOZ_RELEASE_ASSERT(mBufferPos <= mBufferLength);
@@ -53,7 +51,6 @@ void Stream::ReadBytes(void* aData, size_t aSize) {
     }
     mBufferPos += bufRead;
     mStreamPos += bufRead;
-    totalRead += bufRead;
     aSize -= bufRead;
 
     if (!aSize) {
@@ -185,7 +182,11 @@ bool Stream::StartRecordingMismatch() {
   return true;
 }
 
-bool Stream::ReadMismatchedEventData(ThreadEvent aEvent) {
+bool Stream::ReadMismatchedEventData(ThreadEvent aEvent, Maybe<size_t>& aOldProgress) {
+  Print("Warning: Mismatched event %s progress %llu\n",
+        ThreadEventName(aEvent),
+        mNameIndex == MainThreadId ? *ExecutionProgressCounter() : 0);
+
   // Mismatches on atomic accesses are allowed. This isn't ideal.
   if (aEvent == ThreadEvent::AtomicAccess) {
     // For execution progress counter.
@@ -202,11 +203,15 @@ bool Stream::ReadMismatchedEventData(ThreadEvent aEvent) {
   if (aEvent == ThreadEvent::Lock) {
     // For execution progress counter.
     if (mNameIndex == MainThreadId) {
-      ReadScalar();
+      aOldProgress.emplace(ReadScalar());
     }
 
     // For lock ID and stream position.
-    ReadScalar();
+    size_t lockId = ReadScalar();
+    if (!IsAtomicLockId(lockId)) {
+      return false;
+    }
+
     ReadScalar();
     return true;
   }
@@ -235,7 +240,9 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
   } else {
     ThreadEvent oldEvent = (ThreadEvent)ReadScalar();
     while (oldEvent != aEvent) {
-      if (ReadMismatchedEventData(oldEvent)) {
+      Maybe<size_t> oldProgress;
+
+      if (ReadMismatchedEventData(oldEvent, oldProgress)) {
         oldEvent = (ThreadEvent)ReadScalar();
         continue;
       }
@@ -246,17 +253,21 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
           // Include the asserted string in the error. This must match up with
           // the writes in RecordReplayAssert.
           if (mNameIndex == MainThreadId) {
-            (void)ReadScalar();  // For the ExecutionProgressCounter write below.
+            if (oldProgress.isNothing()) {
+              oldProgress.emplace(ReadScalar());
+            }
           }
           extra = ReadInputString();
         }
-        ProgressCounter oldProgress = 0, progress = 0;
+        ProgressCounter progress = 0;
         if (mNameIndex == MainThreadId) {
-          oldProgress = ReadScalar();
+          if (oldProgress.isNothing()) {
+            oldProgress.emplace(ReadScalar());
+          }
           progress = *ExecutionProgressCounter();
         }
         Print("Error: Recording Event Mismatch: Recorded %s %s %llu Replayed %s %s %llu\n",
-              ThreadEventName(oldEvent), extra, oldProgress,
+              ThreadEventName(oldEvent), extra, oldProgress.isSome() ? *oldProgress : 0,
               ThreadEventName(aEvent), aExtra ? aExtra : "", progress);
         DumpEvents();
         child::ReportFatalError("Recording Mismatch");
