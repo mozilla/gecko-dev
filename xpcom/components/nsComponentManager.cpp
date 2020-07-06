@@ -985,6 +985,8 @@ Maybe<EntryWrapper> nsComponentManagerImpl::LookupByCID(const MutexLock&,
 
 Maybe<EntryWrapper> nsComponentManagerImpl::LookupByContractID(
     const nsACString& aContractID) {
+  recordreplay::RecordReplayAssert("nsComponentManagerImpl::LookupByContractID %s",
+                                   nsCString(aContractID).get());
   return LookupByContractID(MutexLock(mLock), aContractID);
 }
 
