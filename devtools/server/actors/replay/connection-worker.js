@@ -131,6 +131,7 @@ function onServerError() {
 function onServerMessage(evt) {
   const data = JSON.parse(evt.data);
   if (data.error) {
+    dump(`ServerError ${JSON.stringify(data)}\n`);
     updateStatus("cloudError.label");
   } else {
     postMessage({ kind: "commandResult", id: data.id, result: data.result });

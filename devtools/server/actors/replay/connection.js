@@ -185,7 +185,13 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
       // add a recording description.
       sendCommand(
         "Internal.addRecordingDescription",
-        { recordingId, length, duration, lastScreenMimeType, lastScreenData }
+        {
+          recordingId,
+          length,
+          duration,
+          lastScreenMimeType,
+          lastScreenData: lastScreenData || undefined,
+        }
       );
 
       onFinishedRecording({
