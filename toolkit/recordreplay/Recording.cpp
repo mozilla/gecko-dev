@@ -183,9 +183,14 @@ bool Stream::StartRecordingMismatch() {
 }
 
 bool Stream::ReadMismatchedEventData(ThreadEvent aEvent, Maybe<size_t>& aOldProgress) {
-  Print("Warning: Mismatched event %s progress %llu\n",
-        ThreadEventName(aEvent),
-        mNameIndex == MainThreadId ? *ExecutionProgressCounter() : 0);
+  // Mismatches get spammed sometimes when shutting down, so put a limit on the
+  // number that we will print.
+  static AtomicInt numMismatches;
+  if (++numMismatches < 10) {
+    Print("Warning: Mismatched event %s progress %llu\n",
+          ThreadEventName(aEvent),
+          mNameIndex == MainThreadId ? *ExecutionProgressCounter() : 0);
+  }
 
   // Mismatches on atomic accesses are allowed. This isn't ideal.
   if (aEvent == ThreadEvent::AtomicAccess) {
