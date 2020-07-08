@@ -121,6 +121,12 @@ void Lock::New(NativeLock* aNativeLock) {
 
   gLocks->insert(LockMap::value_type(aNativeLock, lock));
 
+  if (IsReplaying()) {
+    char buf[2000];
+    child::ReadStack(buf, sizeof(buf));
+    lock->mCreateStack = nsCString(buf);
+  }
+
   thread->EndDisallowEvents();
 }
 
@@ -383,6 +389,21 @@ void Lock::DumpLock(size_t aLockId) {
         (size_t)acquires->mDepth, (size_t)acquires->mNextOwner,
         acquires->mAcquires ? acquires->mAcquires->StreamPosition() : -1,
         acquires->mAcquires ? acquires->mAcquires->AtEnd() : true);
+}
+
+/* static */
+void Lock::DumpCreateStack(size_t aLockId) {
+  AutoReadSpinLock ex(gLocksLock);
+
+  if (gLocks) {
+    for (LockMap::iterator iter = gLocks->begin(); iter != gLocks->end(); ++iter) {
+      Lock* lock = iter->second;
+      if (lock->Id() == aLockId) {
+        Print("LockCreateStack %lu\n%s\n", aLockId, lock->mCreateStack.get());
+        break;
+      }
+    }
+  }
 }
 
 // This hidden API can be used when writing record/replay asserts.

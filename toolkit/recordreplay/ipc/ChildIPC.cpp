@@ -687,6 +687,15 @@ void SetCrashNote(const char* aNote) {
   }
 }
 
+void ReadStack(char* aBuf, size_t aSize) {
+  void* ptr = dlsym(RTLD_DEFAULT, "RecordReplay_ReadStack");
+  if (ptr) {
+    BitwiseCast<void(*)(char*, size_t)>(ptr)(aBuf, aSize);
+  } else {
+    *aBuf = 0;
+  }
+}
+
 void PrintLog(const nsAString& aText) {
   double elapsed = ElapsedTime();
   NS_ConvertUTF16toUTF8 ntext(aText);

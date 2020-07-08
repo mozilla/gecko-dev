@@ -104,6 +104,9 @@ void AddPendingRecordingData(bool aRequireMore);
 // Set any text to be printed if this process crashes.
 void SetCrashNote(const char* aNote);
 
+// Read stack data for the current point.
+void ReadStack(char* aBuf, size_t aSize);
+
 // Send scan data to be incorporated in the root process.
 void SendScanDataToRoot(const char* aData, size_t aSize);
 

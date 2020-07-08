@@ -361,8 +361,12 @@ LexerResult nsPNGDecoder::DoDecode(SourceBufferIterator& aIterator,
                                    IResumable* aOnResume) {
   MOZ_ASSERT(!HasError(), "Shouldn't call DoDecode after error!");
 
+  recordreplay::RecordReplayAssert("nsPNGDecoder::DoDecode");
+
   return mLexer.Lex(aIterator, aOnResume,
                     [=](State aState, const char* aData, size_t aLength) {
+                      recordreplay::RecordReplayAssert("nsPNGDecoder::DoDecode Callback %d %lu",
+                                                       (int) aState, aLength);
                       switch (aState) {
                         case State::PNG_DATA:
                           return ReadPNGData(aData, aLength);
@@ -386,10 +390,15 @@ LexerTransition<nsPNGDecoder::State> nsPNGDecoder::ReadPNGData(
     mNextFrameInfo = Nothing();
   }
 
+  recordreplay::RecordReplayAssert("nsPNGDecoder::ReadPNGData #0");
+
   // libpng uses setjmp/longjmp for error handling.
   if (setjmp(png_jmpbuf(mPNG))) {
+    recordreplay::RecordReplayAssert("nsPNGDecoder::ReadPNGData #1");
     return Transition::TerminateFailure();
   }
+
+  recordreplay::RecordReplayAssert("nsPNGDecoder::ReadPNGData #2");
 
   // Pass the data off to libpng.
   mLastChunkLength = aLength;
@@ -1014,10 +1023,13 @@ bool nsPNGDecoder::IsValidICOResource() const {
   // nsPNGDecoder.cpp is called.  In this error callback we do a longjmp, so
   // we need to save the jump buffer here. Otherwise we'll end up without a
   // proper callstack.
+  recordreplay::RecordReplayAssert("nsPNGDecoder::IsValidICOResource #0");
   if (setjmp(png_jmpbuf(mPNG))) {
     // We got here from a longjmp call indirectly from png_get_IHDR
+    recordreplay::RecordReplayAssert("nsPNGDecoder::IsValidICOResource #1");
     return false;
   }
+  recordreplay::RecordReplayAssert("nsPNGDecoder::IsValidICOResource #2");
 
   png_uint_32 png_width,  // Unused
       png_height;         // Unused

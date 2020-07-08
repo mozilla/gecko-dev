@@ -253,7 +253,7 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
       }
 
       if (StartRecordingMismatch()) {
-        const char* extra = "";
+        nsAutoCString extra;
         if (oldEvent == ThreadEvent::Assert) {
           // Include the asserted string in the error. This must match up with
           // the writes in RecordReplayAssert.
@@ -262,7 +262,12 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
               oldProgress.emplace(ReadScalar());
             }
           }
-          extra = ReadInputString();
+          extra.AppendPrintf("%s", ReadInputString());
+        }
+        if (oldEvent == ThreadEvent::Lock) {
+          size_t lockId = ReadScalar();
+          extra.AppendPrintf("Id %lu\n", lockId);
+          Lock::DumpCreateStack(lockId);
         }
         ProgressCounter progress = 0;
         if (mNameIndex == MainThreadId) {
@@ -272,7 +277,7 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
           progress = *ExecutionProgressCounter();
         }
         Print("Error: Recording Event Mismatch: Recorded %s %s %llu Replayed %s %s %llu\n",
-              ThreadEventName(oldEvent), extra, oldProgress.isSome() ? *oldProgress : 0,
+              ThreadEventName(oldEvent), extra.get(), oldProgress.isSome() ? *oldProgress : 0,
               ThreadEventName(aEvent), aExtra ? aExtra : "", progress);
         DumpEvents();
         child::ReportFatalError("Recording Mismatch");

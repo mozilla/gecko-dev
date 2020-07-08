@@ -621,8 +621,8 @@ bool SourceBuffer::RemainingBytesIsNoMoreThan(
 SourceBufferIterator::State SourceBuffer::AdvanceIteratorOrScheduleResume(
     SourceBufferIterator& aIterator, size_t aRequestedBytes,
     IResumable* aConsumer) {
-  recordreplay::RecordReplayAssert("SourceBuffer::AdvanceIteratorOrScheduleResume %d",
-                                   recordreplay::ThingIndex(this));
+  recordreplay::RecordReplayAssert("SourceBuffer::AdvanceIteratorOrScheduleResume %d %lu",
+                                   recordreplay::ThingIndex(this), aRequestedBytes);
 
   MutexAutoLock lock(mMutex);
 

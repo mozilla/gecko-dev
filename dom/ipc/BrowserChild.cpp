@@ -3069,6 +3069,9 @@ nsresult BrowserChild::DoSendAsyncMessage(JSContext* aCx,
                                           StructuredCloneData& aData,
                                           JS::Handle<JSObject*> aCpows,
                                           nsIPrincipal* aPrincipal) {
+  recordreplay::AssertScriptedCaller("BrowserChild::DoSendAsyncMessage");
+  recordreplay::RecordReplayAssert("BrowserChild::DoSendAsyncMessage %s",
+                                   NS_ConvertUTF16toUTF8(aMessage).get());
   ClonedMessageData data;
   if (!BuildClonedMessageDataForChild(Manager(), aData, data)) {
     return NS_ERROR_DOM_DATA_CLONE_ERR;

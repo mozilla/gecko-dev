@@ -29,6 +29,9 @@ class Lock {
   // Unique ID for this lock.
   size_t mId;
 
+  // When replaying, stack information for this lock's creation point.
+  nsCString mCreateStack;
+
  public:
   explicit Lock(size_t aId) : mId(aId) { MOZ_ASSERT(aId); }
 
@@ -64,6 +67,7 @@ class Lock {
 
   // Dump information about a lock to stderr.
   static void DumpLock(size_t aLockId);
+  static void DumpCreateStack(size_t aLockId);
 };
 
 bool IsAtomicLockId(size_t aLockId);
