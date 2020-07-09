@@ -1404,7 +1404,7 @@ RasterImage::Draw(gfxContext* aContext, const IntSize& aSize,
                   SamplingFilter aSamplingFilter,
                   const Maybe<SVGImageContext>& /*aSVGContext - ignored*/,
                   uint32_t aFlags, float aOpacity) {
-  recordreplay::RecordReplayAssert("RasterImage::Draw");
+  recordreplay::RecordReplayAssert("RasterImage::Draw %d %d", (int)aFlags, (int)aSamplingFilter);
 
   if (aWhichFrame > FRAME_MAX_VALUE) {
     return ImgDrawResult::BAD_ARGS;

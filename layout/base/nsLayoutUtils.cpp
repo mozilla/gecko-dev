@@ -6839,7 +6839,8 @@ static ImgDrawResult DrawImageInternal(
     const nsRect& aFill, const nsPoint& aAnchor, const nsRect& aDirty,
     const Maybe<SVGImageContext>& aSVGContext, uint32_t aImageFlags,
     ExtendMode aExtendMode = ExtendMode::CLAMP, float aOpacity = 1.0) {
-  recordreplay::RecordReplayAssert("DrawImageInternal");
+  recordreplay::RecordReplayAssert("DrawImageInternal %d %d",
+                                   (int)aImageFlags, (int)aSamplingFilter);
 
   ImgDrawResult result = ImgDrawResult::SUCCESS;
 

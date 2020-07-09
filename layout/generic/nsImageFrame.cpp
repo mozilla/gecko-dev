@@ -1768,6 +1768,11 @@ void nsDisplayImage::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
   const bool oldImageIsDifferent =
       OldImageHasDifferentRatio(*frame, *mImage, mPrevImage);
 
+  recordreplay::RecordReplayAssert("nsDisplayImage::Paint %d %d %d",
+                                   aBuilder->ShouldSyncDecodeImages(),
+                                   oldImageIsDifferent,
+                                   aBuilder->IsPaintingToWindow());
+
   uint32_t flags = imgIContainer::FLAG_NONE;
   if (aBuilder->ShouldSyncDecodeImages() || oldImageIsDifferent) {
     flags |= imgIContainer::FLAG_SYNC_DECODE;
@@ -2009,6 +2014,8 @@ bool nsDisplayImage::CreateWebRenderCommands(
 ImgDrawResult nsImageFrame::PaintImage(gfxContext& aRenderingContext,
                                        nsPoint aPt, const nsRect& aDirtyRect,
                                        imgIContainer* aImage, uint32_t aFlags) {
+  recordreplay::RecordReplayAssert("nsImageFrame::PaintImage %d", (int)aFlags);
+
   DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
 
   // Render the image into our content area (the area inside
@@ -2029,8 +2036,10 @@ ImgDrawResult nsImageFrame::PaintImage(gfxContext& aRenderingContext,
 
   uint32_t flags = aFlags;
   if (mForceSyncDecoding) {
+    recordreplay::RecordReplayAssert("nsImageFrame::PaintImage #1");
     flags |= imgIContainer::FLAG_SYNC_DECODE;
   }
+  recordreplay::RecordReplayAssert("nsImageFrame::PaintImage #2");
 
   Maybe<SVGImageContext> svgContext;
   SVGImageContext::MaybeStoreContextPaint(svgContext, this, aImage);
