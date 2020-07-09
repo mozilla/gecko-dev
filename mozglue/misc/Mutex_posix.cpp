@@ -60,9 +60,11 @@ static void EnsureCPUCount() {
 
 #endif  // XP_DARWIN
 
-mozilla::detail::MutexImpl::MutexImpl(recordreplay::Behavior aRecorded)
+mozilla::detail::MutexImpl::MutexImpl(const char* aName, recordreplay::Behavior aRecorded)
+  : mName(aName)
+  , mRecorded(aRecorded)
 #ifdef XP_DARWIN
-    : averageSpins(0)
+  , averageSpins(0)
 #endif
 {
   pthread_mutexattr_t* attrp = nullptr;
@@ -127,7 +129,13 @@ inline void mozilla::detail::MutexImpl::mutexLock() {
       "mozilla::detail::MutexImpl::mutexLock: pthread_mutex_lock failed");
 }
 
-bool mozilla::detail::MutexImpl::tryLock() { return mutexTryLock(); }
+bool mozilla::detail::MutexImpl::tryLock() {
+  if (mRecorded == recordreplay::Behavior::Preserve) {
+    recordreplay::RecordReplayAssert("MutexImpl::tryLock %s", mName);
+  }
+
+  return mutexTryLock();
+}
 
 bool mozilla::detail::MutexImpl::mutexTryLock() {
   int result = pthread_mutex_trylock(&platformData()->ptMutex);
@@ -145,6 +153,10 @@ bool mozilla::detail::MutexImpl::mutexTryLock() {
 }
 
 void mozilla::detail::MutexImpl::lock() {
+  if (mRecorded == recordreplay::Behavior::Preserve) {
+    recordreplay::RecordReplayAssert("MutexImpl::lock %s", mName);
+  }
+
 #ifndef XP_DARWIN
   mutexLock();
 #else

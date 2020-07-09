@@ -256,6 +256,7 @@ class PSMutex : private ::mozilla::detail::MutexImpl {
  public:
   PSMutex()
       : ::mozilla::detail::MutexImpl(
+            "PSMutex",
             ::mozilla::recordreplay::Behavior::DontPreserve) {}
 
   void Lock() {

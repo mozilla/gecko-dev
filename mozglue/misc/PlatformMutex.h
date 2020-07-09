@@ -28,6 +28,7 @@ class MutexImpl {
   struct PlatformData;
 
   explicit MFBT_API MutexImpl(
+      const char* aName,
       recordreplay::Behavior aRecorded = recordreplay::Behavior::Preserve);
   MFBT_API ~MutexImpl();
 
@@ -49,6 +50,9 @@ class MutexImpl {
   bool mutexTryLock();
 
   PlatformData* platformData();
+
+  const char* mName;
+  recordreplay::Behavior mRecorded;
 
 #if !defined(XP_WIN)
   void* platformData_[sizeof(pthread_mutex_t) / sizeof(void*)];

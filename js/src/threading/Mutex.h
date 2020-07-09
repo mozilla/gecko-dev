@@ -37,6 +37,7 @@ class MutexImpl : public mozilla::detail::MutexImpl {
  protected:
   MutexImpl()
       : mozilla::detail::MutexImpl(
+            "JSMutex",
             mozilla::recordreplay::Behavior::DontPreserve) {}
 
   friend class Mutex;

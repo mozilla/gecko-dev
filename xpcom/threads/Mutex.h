@@ -44,7 +44,7 @@ class OffTheBooksMutex : public detail::MutexImpl, BlockingResourceBase {
   explicit OffTheBooksMutex(
       const char* aName,
       recordreplay::Behavior aRecorded = recordreplay::Behavior::Preserve)
-      : detail::MutexImpl(aRecorded),
+      : detail::MutexImpl(aName, aRecorded),
         BlockingResourceBase(aName, eMutex)
 #ifdef DEBUG
         ,

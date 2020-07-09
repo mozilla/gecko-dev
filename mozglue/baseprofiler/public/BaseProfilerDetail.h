@@ -32,6 +32,7 @@ class BaseProfilerMutex : private ::mozilla::detail::MutexImpl {
  public:
   BaseProfilerMutex()
       : ::mozilla::detail::MutexImpl(
+            "BaseProfilerMutex",
             ::mozilla::recordreplay::Behavior::DontPreserve) {}
 
   BaseProfilerMutex(const BaseProfilerMutex&) = delete;
@@ -106,7 +107,10 @@ class MOZ_RAII BaseProfilerAutoLock {
 // Does not preserve behavior in JS record/replay.
 class BaseProfilerMaybeMutex : private ::mozilla::detail::MutexImpl {
  public:
-  explicit BaseProfilerMaybeMutex(bool aActivate) {
+  explicit BaseProfilerMaybeMutex(bool aActivate)
+    : ::mozilla::detail::MutexImpl(
+          "BaseProfilerMaybeMutex",
+          ::mozilla::recordreplay::Behavior::DontPreserve) {
     if (aActivate) {
       mMaybeMutex.emplace();
     }

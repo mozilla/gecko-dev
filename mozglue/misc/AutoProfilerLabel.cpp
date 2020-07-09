@@ -39,6 +39,7 @@ class MOZ_RAII AutoProfilerLabelData {
    public:
     Mutex()
         : mozilla::detail::MutexImpl(
+              "AutoProfilerLabelData",
               mozilla::recordreplay::Behavior::DontPreserve) {}
     void Lock() { mozilla::detail::MutexImpl::lock(); }
     void Unlock() { mozilla::detail::MutexImpl::unlock(); }

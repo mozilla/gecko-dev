@@ -17,7 +17,7 @@ namespace recordreplay {
 // record/replay system.
 class Monitor : public detail::MutexImpl {
  public:
-  Monitor() : detail::MutexImpl(Behavior::DontPreserve) {}
+  Monitor() : detail::MutexImpl("RecordReplayMonitor", Behavior::DontPreserve) {}
 
   void Lock() { detail::MutexImpl::lock(); }
   void Unlock() { detail::MutexImpl::unlock(); }

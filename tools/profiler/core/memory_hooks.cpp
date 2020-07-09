@@ -162,6 +162,7 @@ class Mutex : private ::mozilla::detail::MutexImpl {
  public:
   Mutex()
       : ::mozilla::detail::MutexImpl(
+            "memory_hooks",
             ::mozilla::recordreplay::Behavior::DontPreserve) {}
 
   void Lock() { ::mozilla::detail::MutexImpl::lock(); }
