@@ -192,6 +192,36 @@ bool Stream::ReadMismatchedEventData(ThreadEvent aEvent, Maybe<size_t>& aOldProg
           mNameIndex == MainThreadId ? *ExecutionProgressCounter() : 0);
   }
 
+  // Mismatches on atomic accesses are allowed. This isn't ideal.
+  if (aEvent == ThreadEvent::AtomicAccess) {
+    // For execution progress counter.
+    if (mNameIndex == MainThreadId) {
+      ReadScalar();
+    }
+
+    // For atomic ID.
+    ReadScalar();
+    return true;
+  }
+
+  // Ditto for locks, which will appear after the atomic access.
+  if (aEvent == ThreadEvent::Lock) {
+    // For execution progress counter.
+    if (mNameIndex == MainThreadId) {
+      aOldProgress.emplace(ReadScalar());
+    }
+
+    // For lock ID.
+    size_t lockId = ReadScalar();
+    if (!IsAtomicLockId(lockId)) {
+      return false;
+    }
+
+    // For stream position.
+    ReadScalar();
+    return true;
+  }
+
   // Tolerate some calls that happened while recording but not replaying.
   if (!strcmp(ThreadEventName(aEvent), "arc4random") ||
       !strcmp(ThreadEventName(aEvent), "mach_absolute_time") ||
