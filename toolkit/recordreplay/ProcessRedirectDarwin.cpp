@@ -741,7 +741,7 @@ void DirectUnlockMutex(pthread_mutex_t* aMutex, bool aPassThroughEvents) {
 // Handle a redirection which releases a mutex, waits in some way for a cvar,
 // and reacquires the mutex before returning.
 static ssize_t WaitForCvar(pthread_mutex_t* aMutex, pthread_cond_t* aCond,
-                           bool aRecordReturnValue,
+                           bool aRecordReturnValue, size_t aRbp,
                            const std::function<ssize_t()>& aCallback) {
   Lock* lock = Lock::Find(aMutex);
   if (!lock) {
@@ -776,7 +776,7 @@ static ssize_t WaitForCvar(pthread_mutex_t* aMutex, pthread_cond_t* aCond,
   if (IsReplaying()) {
     DirectUnlockMutex(aMutex);
   }
-  lock->Enter(aMutex);
+  lock->Enter(aMutex, aRbp);
   if (IsReplaying()) {
     DirectLockMutex(aMutex);
     lock->FinishEnter();
@@ -792,7 +792,7 @@ static PreambleResult Preamble_pthread_cond_wait(CallArguments* aArguments) {
   auto& cond = aArguments->Arg<0, pthread_cond_t*>();
   auto& mutex = aArguments->Arg<1, pthread_mutex_t*>();
   js::BeginIdleTime();
-  aArguments->Rval<ssize_t>() = WaitForCvar(mutex, cond, false, [=]() {
+  aArguments->Rval<ssize_t>() = WaitForCvar(mutex, cond, false, aArguments->rbp, [=]() {
     return CallFunction<ssize_t>(gOriginal_pthread_cond_wait, cond, mutex);
   });
   js::EndIdleTime();
@@ -804,7 +804,7 @@ static PreambleResult Preamble_pthread_cond_timedwait(
   auto& cond = aArguments->Arg<0, pthread_cond_t*>();
   auto& mutex = aArguments->Arg<1, pthread_mutex_t*>();
   auto& timeout = aArguments->Arg<2, timespec*>();
-  aArguments->Rval<ssize_t>() = WaitForCvar(mutex, cond, true, [=]() {
+  aArguments->Rval<ssize_t>() = WaitForCvar(mutex, cond, true, aArguments->rbp, [=]() {
     return CallFunction<ssize_t>(gOriginal_pthread_cond_timedwait, cond, mutex,
                                  timeout);
   });
@@ -816,7 +816,7 @@ static PreambleResult Preamble_pthread_cond_timedwait_relative_np(
   auto& cond = aArguments->Arg<0, pthread_cond_t*>();
   auto& mutex = aArguments->Arg<1, pthread_mutex_t*>();
   auto& timeout = aArguments->Arg<2, timespec*>();
-  aArguments->Rval<ssize_t>() = WaitForCvar(mutex, cond, true, [=]() {
+  aArguments->Rval<ssize_t>() = WaitForCvar(mutex, cond, true, aArguments->rbp, [=]() {
     return CallFunction<ssize_t>(gOriginal_pthread_cond_timedwait_relative_np,
                                  cond, mutex, timeout);
   });
@@ -917,7 +917,7 @@ static PreambleResult Preamble_pthread_mutex_lock(CallArguments* aArguments) {
   rv = RecordReplayValue(rv);
   MOZ_RELEASE_ASSERT(rv == 0 || rv == EDEADLK);
   if (rv == 0) {
-    lock->Enter(mutex);
+    lock->Enter(mutex, aArguments->rbp);
     if (IsReplaying()) {
       DirectLockMutex(mutex);
       lock->FinishEnter();
@@ -946,7 +946,7 @@ static PreambleResult Preamble_pthread_mutex_trylock(
   rv = RecordReplayValue(rv);
   MOZ_RELEASE_ASSERT(rv == 0 || rv == EBUSY);
   if (rv == 0) {
-    lock->Enter(mutex);
+    lock->Enter(mutex, aArguments->rbp);
     if (IsReplaying()) {
       DirectLockMutex(mutex);
       lock->FinishEnter();
@@ -3180,6 +3180,7 @@ static uint64_t ReadLEB128(uint8_t*& aPtr, uint8_t* aEnd) {
 
 struct MachOLibrary {
   uint8_t* mAddress = nullptr;
+  size_t mMappingSize = 0;
 
   FileHandle mFile = 0;
   uint8_t* mFileAddress = nullptr;
@@ -3234,6 +3235,7 @@ struct MachOLibrary {
             break;
           case LC_SEGMENT_64:  {
             auto ncmd = (segment_command_64*)aCmd;
+            mMappingSize += ncmd->vmsize;
             mSegments.append(ncmd);
             BindSegment(ncmd);
             break;
@@ -3394,7 +3396,16 @@ static const char* gInitialLibrarySymbols[] = {
   "NSC_GetFunctionList", // libsoftokn3
 };
 
+struct LibraryInfo {
+  uint8_t* mBase;
+  size_t mSize;
+  const char* mName;
+};
+
+static StaticInfallibleVector<LibraryInfo> gLibraries;
+
 void ApplyLibraryRedirections(void* aLibrary) {
+  // Not threadsafe...
   for (const char*& symbol : gInitialLibrarySymbols) {
     if (!symbol) {
       continue;
@@ -3412,6 +3423,18 @@ void ApplyLibraryRedirections(void* aLibrary) {
     MachOLibrary library(info.dli_fname, address);
     library.ApplyRedirections();
 
+    const char* name = info.dli_fname;
+    size_t namelen = strlen(name);
+    if (namelen > 15) {
+      name = name + namelen - 15;
+    }
+
+    LibraryInfo lib;
+    lib.mBase = address;
+    lib.mSize = library.mMappingSize;
+    lib.mName = strdup(name);
+    gLibraries.append(lib);
+
     symbol = nullptr;
   }
 
@@ -3424,6 +3447,53 @@ void ApplyLibraryRedirections(void* aLibrary) {
         redirection.mOriginalFunction = (uint8_t*)gTLVGetAddress;
       }
     }
+  }
+}
+
+static bool MemoryIncludes(void* aBase, size_t aSize, void* aValue) {
+  return aValue >= aBase && (char*)aValue < (char*)aBase + aSize;
+}
+
+static void snprintf_append(char** aBuf, size_t* aSize, const char* aFormat, ...) {
+  va_list args;
+  va_start(args, aFormat);
+  vsnprintf(*aBuf, *aSize, aFormat, args);
+  va_end(args);
+
+  size_t n = strlen(*aBuf);
+  (*aBuf) += n;
+  (*aSize) -= n;
+}
+
+void ReadStack(size_t aRbp, Thread* aThread, char* aBuf, size_t aSize) {
+  aBuf[--aSize] = 0;
+  uint8_t** rbp = (uint8_t**)aRbp;
+
+  uint8_t* stackBase = aThread->StackBase();
+  size_t stackSize = aThread->StackSize();
+
+  size_t i = 0;
+  while (MemoryIncludes(stackBase, stackSize, rbp) && i++ < 5) {
+    uint8_t* ip = rbp[1];
+
+    bool found = false;
+    for (size_t i = 0; i < gLibraries.length(); i++) {
+      const auto& info = gLibraries[i];
+      if (MemoryIncludes(info.mBase, info.mSize, ip)) {
+        snprintf_append(&aBuf, &aSize, " %s+%lu", info.mName, ip - info.mBase);
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      snprintf_append(&aBuf, &aSize, "unknown+%lu", (size_t)ip);
+    }
+
+    uint8_t** next = (uint8_t**)rbp[0];
+    if (next <= rbp) {
+      break;
+    }
+    rbp = next;
   }
 }
 

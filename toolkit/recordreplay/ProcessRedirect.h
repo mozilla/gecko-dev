@@ -103,7 +103,9 @@ struct CallArguments {
   double floatrval0;  // 88
   double floatrval1;  // 96
   size_t stack[NumStackArguments];  // 104
-                                    // Size: 616
+ public:
+  size_t rbp;         // 616
+                                    // Size: 624
 
  public:
   template <typename T>

@@ -315,6 +315,10 @@ typedef pthread_mutex_t NativeLock;
 void DirectLockMutex(NativeLock* aLock, bool aPassThroughEvents = true);
 void DirectUnlockMutex(NativeLock* aLock, bool aPassThroughEvents = true);
 
+class Thread;
+
+void ReadStack(size_t aRbp, Thread* aThread, char* aBuf, size_t aLen);
+
 // For crash diagnostics.
 void DumpRecentJS(FileHandle aFd);
 

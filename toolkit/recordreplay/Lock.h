@@ -41,7 +41,7 @@ class Lock {
   // records the acquire in the lock's acquire order stream. When replaying,
   // this is called before the lock has been acquired, and blocks the thread
   // until it is next in line to acquire the lock.
-  void Enter(NativeLock* aNativeLock);
+  void Enter(NativeLock* aNativeLock, size_t aRbp);
 
   // Called when replaying after acquiring the physical lock after an Enter() call.
   void FinishEnter();

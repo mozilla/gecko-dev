@@ -121,11 +121,13 @@ void Lock::New(NativeLock* aNativeLock) {
 
   gLocks->insert(LockMap::value_type(aNativeLock, lock));
 
+  /*
   if (IsReplaying()) {
     char buf[2000];
     child::ReadStack(buf, sizeof(buf));
     lock->mCreateStack = nsCString(buf);
   }
+  */
 
   thread->EndDisallowEvents();
 }
@@ -179,7 +181,7 @@ Lock* Lock::Find(NativeLock* aNativeLock) {
   return nullptr;
 }
 
-void Lock::Enter(NativeLock* aNativeLock) {
+void Lock::Enter(NativeLock* aNativeLock, size_t aRbp) {
   Thread* thread = Thread::Current();
 
   RecordingEventSection res(thread);
@@ -198,8 +200,21 @@ void Lock::Enter(NativeLock* aNativeLock) {
   if (IsRecording()) {
     acquires->mAcquires->WriteScalar(thread->Id());
     thread->Events().WriteScalar(acquires->mAcquires->StreamPosition());
+
+    if (!IsAtomicLockId(mId)) {
+      char buf[1000];
+      ReadStack(aRbp, thread, buf, sizeof(buf));
+      size_t len = strlen(buf) + 1;
+      thread->Events().WriteScalar(len);
+      thread->Events().WriteBytes(buf, len);
+    }
   } else {
     size_t acquiresPosition = thread->Events().ReadScalar();
+
+    if (!IsAtomicLockId(mId)) {
+      size_t len = thread->Events().ReadScalar();
+      thread->Events().ReadBytes(nullptr, len);
+    }
 
     MOZ_RELEASE_ASSERT(thread->PendingLockId().isNothing());
     thread->PendingLockId().emplace(mId);
@@ -347,7 +362,7 @@ MOZ_EXPORT void RecordReplayInterface_InternalBeginOrderedAtomicAccess(
     gAtomicLockOwners[atomicId].Lock();
   }
 
-  gAtomicLocks[atomicId]->Enter(nullptr);
+  gAtomicLocks[atomicId]->Enter(nullptr, 0);
 
   if (IsReplaying()) {
     gAtomicLockOwners[atomicId].Lock();

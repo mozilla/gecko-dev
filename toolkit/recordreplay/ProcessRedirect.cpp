@@ -157,8 +157,7 @@ __asm(
     "pushq %rbp;"
     "movq %rsp, %rbp;"
 
-    // Make space for a CallArguments struct on the stack, with a little extra
-    // space for alignment.
+    // Make space for a CallArguments struct on the stack.
     "subq $624, %rsp;"
 
     // Fill in the structure's contents.
@@ -171,6 +170,7 @@ __asm(
     "movsd %xmm0, 48(%rsp);"
     "movsd %xmm1, 56(%rsp);"
     "movsd %xmm2, 64(%rsp);"
+    "movq %rbp, 616(%rsp);"
 
     // Count how many stack arguments we need to save.
     "movq $64, %rsi;"

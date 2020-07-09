@@ -211,12 +211,13 @@ bool Stream::ReadMismatchedEventData(ThreadEvent aEvent, Maybe<size_t>& aOldProg
       aOldProgress.emplace(ReadScalar());
     }
 
-    // For lock ID and stream position.
+    // For lock ID.
     size_t lockId = ReadScalar();
     if (!IsAtomicLockId(lockId)) {
       return false;
     }
 
+    // For stream position.
     ReadScalar();
     return true;
   }
@@ -267,7 +268,17 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
         if (oldEvent == ThreadEvent::Lock) {
           size_t lockId = ReadScalar();
           extra.AppendPrintf("LockId %lu", lockId);
-          Lock::DumpCreateStack(lockId);
+          //Lock::DumpCreateStack(lockId);
+
+          // For stream position.
+          ReadScalar();
+
+          if (!IsAtomicLockId(lockId)) {
+            size_t len = ReadScalar();
+            char* buf = new char[len];
+            ReadBytes(buf, len);
+            Print("LockRecordingStack %s\n", buf);
+          }
         }
         ProgressCounter progress = 0;
         if (mNameIndex == MainThreadId) {
