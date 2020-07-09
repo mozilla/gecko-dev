@@ -1549,7 +1549,8 @@ NS_IMETHODIMP
 nsComponentManagerImpl::GetServiceByContractID(const char* aContractID,
                                                const nsIID& aIID,
                                                void** aResult) {
-  recordreplay::RecordReplayAssert("nsComponentManagerImpl::GetServiceByContractID");
+  recordreplay::RecordReplayAssert("nsComponentManagerImpl::GetServiceByContractID %s",
+                                   aContractID);
 
   // test this first, since there's no point in returning a service during
   // shutdown -- whether it's available or not would depend on the order it
