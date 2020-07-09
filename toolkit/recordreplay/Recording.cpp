@@ -266,7 +266,7 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
         }
         if (oldEvent == ThreadEvent::Lock) {
           size_t lockId = ReadScalar();
-          extra.AppendPrintf("Id %lu\n", lockId);
+          extra.AppendPrintf("LockId %lu", lockId);
           Lock::DumpCreateStack(lockId);
         }
         ProgressCounter progress = 0;

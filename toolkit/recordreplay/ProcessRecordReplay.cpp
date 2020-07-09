@@ -416,6 +416,10 @@ MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayAssertBytes(
   thread->Events().CheckInput(aData, aSize);
 }
 
+MOZ_EXPORT void RecordReplayAssertFromC(const char* aText) {
+  RecordReplayAssert(aText);
+}
+
 }  // extern "C"
 
 static ValueIndex* gGenericThings;
