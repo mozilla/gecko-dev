@@ -1123,6 +1123,12 @@ XDRResult js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
     return xdr->fail(JS::TranscodeResult_Failure);
   }
 
+  // When recording/replaying, whether globals are instrumented can vary between
+  // recording and replaying.
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    return xdr->fail(JS::TranscodeResult_Failure);
+  }
+
   if (mode == XDR_ENCODE) {
     script = scriptp.get();
 
