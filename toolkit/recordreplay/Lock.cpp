@@ -201,20 +201,16 @@ void Lock::Enter(NativeLock* aNativeLock, size_t aRbp) {
     acquires->mAcquires->WriteScalar(thread->Id());
     thread->Events().WriteScalar(acquires->mAcquires->StreamPosition());
 
-    if (!IsAtomicLockId(mId)) {
-      char buf[1000];
-      ReadStack(aRbp, thread, buf, sizeof(buf));
-      size_t len = strlen(buf) + 1;
-      thread->Events().WriteScalar(len);
-      thread->Events().WriteBytes(buf, len);
-    }
+    char buf[1000];
+    ReadStack(aRbp, thread, buf, sizeof(buf));
+    size_t len = strlen(buf) + 1;
+    thread->Events().WriteScalar(len);
+    thread->Events().WriteBytes(buf, len);
   } else {
     size_t acquiresPosition = thread->Events().ReadScalar();
 
-    if (!IsAtomicLockId(mId)) {
-      size_t len = thread->Events().ReadScalar();
-      thread->Events().ReadBytes(nullptr, len);
-    }
+    size_t len = thread->Events().ReadScalar();
+    thread->Events().ReadBytes(nullptr, len);
 
     MOZ_RELEASE_ASSERT(thread->PendingLockId().isNothing());
     thread->PendingLockId().emplace(mId);
