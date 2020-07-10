@@ -9,6 +9,7 @@
 #include "ipc/ChildInternal.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/Compression.h"
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticMutex.h"
@@ -539,8 +540,11 @@ MOZ_EXPORT void RecordReplayInterface_InternalAssertScriptedCaller(const char* a
   JS::AutoFilename filename;
   unsigned lineno;
   unsigned column;
-  JSContext* cx = dom::danger::GetJSContext();
-  if (JS::DescribeScriptedCaller(cx, &filename, &lineno, &column)) {
+  JSContext* cx = nullptr;
+  if (NS_IsMainThread() && CycleCollectedJSContext::Get()) {
+    cx = dom::danger::GetJSContext();
+  }
+  if (cx && JS::DescribeScriptedCaller(cx, &filename, &lineno, &column)) {
     RecordReplayAssert("%s %s:%u:%u", aWhy, filename.get(), lineno, column);
   } else {
     RecordReplayAssert("%s NoScriptedCaller", aWhy);
