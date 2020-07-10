@@ -169,7 +169,7 @@ XDRResult XDRState<mode>::codeCharsZ(XDRTranscodeString<char16_t>& buffer) {
 
 template <XDRMode mode>
 static XDRResult VersionCheck(XDRState<mode>* xdr) {
-  recordreplay::RecordReplayAssert("VersionCheck");
+  mozilla::recordreplay::RecordReplayAssert("VersionCheck");
 
   JS::BuildIdCharVector buildId;
   uint8_t profileSize = 0;
