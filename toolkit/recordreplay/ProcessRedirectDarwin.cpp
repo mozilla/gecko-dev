@@ -3466,6 +3466,7 @@ static void snprintf_append(char** aBuf, size_t* aSize, const char* aFormat, ...
 }
 
 void ReadStack(size_t aRbp, Thread* aThread, char* aBuf, size_t aSize) {
+  aBuf[0] = 0;
   aBuf[--aSize] = 0;
   uint8_t** rbp = (uint8_t**)aRbp;
 

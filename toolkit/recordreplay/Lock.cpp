@@ -358,7 +358,10 @@ MOZ_EXPORT void RecordReplayInterface_InternalBeginOrderedAtomicAccess(
     gAtomicLockOwners[atomicId].Lock();
   }
 
-  gAtomicLocks[atomicId]->Enter(nullptr, 0);
+  void* rbp;
+  asm("movq %%rbp, %0" : "=r"(rbp) :);
+
+  gAtomicLocks[atomicId]->Enter(nullptr, (size_t)rbp);
 
   if (IsReplaying()) {
     gAtomicLockOwners[atomicId].Lock();
