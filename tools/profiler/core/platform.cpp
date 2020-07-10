@@ -2255,6 +2255,8 @@ static void StreamMetaJSCustomObject(PSLockRef aLock,
     if (!NS_FAILED(res)) aWriter.StringProperty("toolkit", string.Data());
   }
 
+  recordreplay::RecordReplayAssert("StreamMetaJSCustomObject");
+
   nsCOMPtr<nsIXULAppInfo> appInfo =
       do_GetService("@mozilla.org/xre/app-info;1");
 

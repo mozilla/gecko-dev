@@ -460,6 +460,8 @@ void GlobalStyleSheetCache::InitFromProfile() {
     return;
   }
 
+  recordreplay::RecordReplayAssert("GlobalStyleSheetCache::InitFromProfile");
+
   nsCOMPtr<nsIXULRuntime> appInfo =
       do_GetService("@mozilla.org/xre/app-info;1");
   if (appInfo) {

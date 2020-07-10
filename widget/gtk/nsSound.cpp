@@ -116,6 +116,8 @@ static ca_context* ca_context_get_default() {
   ca_context_change_props(ctx, "application.name",
                           NS_ConvertUTF16toUTF8(wbrand).get(), nullptr);
 
+  recordreplay::RecordReplayAssert("ca_context_get_default");
+
   nsCOMPtr<nsIXULAppInfo> appInfo =
       do_GetService("@mozilla.org/xre/app-info;1");
   if (appInfo) {

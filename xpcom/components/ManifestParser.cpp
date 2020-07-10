@@ -416,6 +416,8 @@ void ParseManifest(NSLocationType aType, FileLocation& aFile, char* aBuf,
   nsAutoString abi;
   nsAutoString process;
 
+  recordreplay::RecordReplayAssert("ParseManifest");
+
   nsCOMPtr<nsIXULAppInfo> xapp(do_GetService(XULAPPINFO_SERVICE_CONTRACTID));
   if (xapp) {
     nsAutoCString s;

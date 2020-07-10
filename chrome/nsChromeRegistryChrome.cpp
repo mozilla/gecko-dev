@@ -91,6 +91,8 @@ nsresult nsChromeRegistryChrome::Init() {
   nsresult rv = nsChromeRegistry::Init();
   if (NS_FAILED(rv)) return rv;
 
+  recordreplay::RecordReplayAssert("nsChromeRegistryChrome::Init");
+
   bool safeMode = false;
   nsCOMPtr<nsIXULRuntime> xulrun(do_GetService(XULAPPINFO_SERVICE_CONTRACTID));
   if (xulrun) xulrun->GetInSafeMode(&safeMode);

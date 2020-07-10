@@ -579,6 +579,7 @@ void Navigator::GetBuildID(nsAString& aBuildID, CallerType aCallerType,
     }
   }
 
+  recordreplay::RecordReplayAssert("Navigator::GetBuildID");
   nsCOMPtr<nsIXULAppInfo> appInfo =
       do_GetService("@mozilla.org/xre/app-info;1");
   if (!appInfo) {

@@ -474,6 +474,8 @@ bool MPRISServiceHandler::IsOpened() const { return mInitialized; }
 bool MPRISServiceHandler::HasTrackList() { return false; }
 
 void MPRISServiceHandler::InitIdentity() {
+  recordreplay::RecordReplayAssert("MPRISServiceHandler::InitIdentity");
+
   nsresult rv;
   nsAutoCString appName;
   nsCOMPtr<nsIXULAppInfo> appInfo =

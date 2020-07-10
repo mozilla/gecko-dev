@@ -3160,6 +3160,8 @@ QuotaManager::Observer::Observe(nsISupports* aSubject, const char* aTopic,
 
     gBuildId = new nsCString();
 
+    recordreplay::RecordReplayAssert("QuotaManager::Observer::Observe");
+
     nsCOMPtr<nsIPlatformInfo> platformInfo =
         do_GetService("@mozilla.org/xre/app-info;1");
     if (NS_WARN_IF(!platformInfo)) {

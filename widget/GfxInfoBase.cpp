@@ -1380,10 +1380,14 @@ nsresult GfxInfoBase::GetInfo(JSContext* aCx,
 nsAutoCString gBaseAppVersion;
 
 const nsCString& GfxInfoBase::GetApplicationVersion() {
+  recordreplay::RecordReplayAssert("GfxInfoBase::GetApplicationVersion");
+
   static bool versionInitialized = false;
   if (!versionInitialized) {
     // If we fail to get the version, we will not try again.
     versionInitialized = true;
+
+    recordreplay::RecordReplayAssert("GfxInfoBase::GetApplicationVersion #1");
 
     // Get the version from xpcom/system/nsIXULAppInfo.idl
     nsCOMPtr<nsIXULAppInfo> app = do_GetService("@mozilla.org/xre/app-info;1");

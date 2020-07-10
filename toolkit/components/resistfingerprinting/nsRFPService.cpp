@@ -652,6 +652,8 @@ static uint32_t GetSpoofedVersion() {
   // If we can't get the current Firefox version, use a hard-coded ESR version.
   const uint32_t kKnownEsrVersion = 60;
 
+  recordreplay::RecordReplayAssert("GetSpoofedVersion");
+
   nsresult rv;
   nsCOMPtr<nsIXULAppInfo> appInfo =
       do_GetService("@mozilla.org/xre/app-info;1", &rv);

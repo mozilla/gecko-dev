@@ -22,6 +22,7 @@ using namespace mozilla::a11y;
 
 ApplicationAccessible::ApplicationAccessible()
     : AccessibleWrap(nullptr, nullptr) {
+  recordreplay::RecordReplayAssert("ApplicationAccessible");
   mType = eApplicationType;
   mAppInfo = do_GetService("@mozilla.org/xre/app-info;1");
   MOZ_ASSERT(mAppInfo, "no application info");

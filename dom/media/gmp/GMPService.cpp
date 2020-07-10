@@ -129,6 +129,7 @@ GeckoMediaPluginService::GeckoMediaPluginService()
       mShuttingDownOnGMPThread(false),
       mXPCOMWillShutdown(false) {
   MOZ_ASSERT(NS_IsMainThread());
+  recordreplay::RecordReplayAssert("GeckoMediaPluginService");
 
   nsCOMPtr<nsIXULAppInfo> appInfo =
       do_GetService("@mozilla.org/xre/app-info;1");
