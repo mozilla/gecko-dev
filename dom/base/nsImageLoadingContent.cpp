@@ -539,7 +539,10 @@ void nsImageLoadingContent::MaybeForceSyncDecoding(
     // attribute on a timer.
     TimeStamp now = TimeStamp::Now();
     TimeDuration threshold = TimeDuration::FromMilliseconds(
-        StaticPrefs::image_infer_src_animation_threshold_ms());
+        // For some reason this threshold can vary between recording and replay.
+        // This shouldn't be able to happen but the reason hasn't been investigated.
+        2000
+        /*StaticPrefs::image_infer_src_animation_threshold_ms()*/);
 
     // If the length of time between request changes is less than the threshold,
     // then force sync decoding to eliminate flicker from the animation.
