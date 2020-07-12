@@ -38,7 +38,11 @@ void PrioritizedEventQueue::PutEvent(already_AddRefed<nsIRunnable>&& aEvent,
 
   if (priority == EventQueuePriority::Input &&
       mInputQueueState == STATE_DISABLED) {
-    priority = EventQueuePriority::Normal;
+    if (recordreplay::IsMiddleman()) {
+      priority = EventQueuePriority::High;
+    } else {
+      priority = EventQueuePriority::Normal;
+    }
   } else if (priority == EventQueuePriority::MediumHigh &&
              !StaticPrefs::threads_medium_high_event_queue_enabled()) {
     priority = EventQueuePriority::Normal;

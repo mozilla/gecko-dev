@@ -223,18 +223,20 @@ void ChildProcessInfo::MaybeProcessPendingMessageRunnable() {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   MonitorAutoLock lock(*gMonitor);
   MOZ_RELEASE_ASSERT(gHasPendingMessageRunnable);
-  gHasPendingMessageRunnable = false;
-  while (true) {
-    ChildProcessInfo* process = nullptr;
-    double delay;
-    Message::UniquePtr msg = ExtractChildMessage(&process, &delay);
 
-    if (msg) {
-      MonitorAutoUnlock unlock(*gMonitor);
-      process->OnIncomingMessage(*msg, delay);
-    } else {
-      break;
-    }
+  ChildProcessInfo* process = nullptr;
+  double delay;
+  Message::UniquePtr msg = ExtractChildMessage(&process, &delay);
+
+  if (msg) {
+    MainThreadMessageLoop()->PostTask(
+        NewRunnableFunction("MaybeProcessPendingMessageRunnable",
+                            MaybeProcessPendingMessageRunnable));
+
+    MonitorAutoUnlock unlock(*gMonitor);
+    process->OnIncomingMessage(*msg, delay);
+  } else {
+    gHasPendingMessageRunnable = false;
   }
 }
 
