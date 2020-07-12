@@ -521,12 +521,17 @@ void nsImageLoadingContent::SetSyncDecodingHint(bool aHint) {
 
 void nsImageLoadingContent::MaybeForceSyncDecoding(
     bool aPrepareNextRequest, nsIFrame* aFrame /* = nullptr */) {
+  recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding %d %d",
+                                   mSyncDecodingHint, aPrepareNextRequest);
+
   nsIFrame* frame = aFrame ? aFrame : GetOurPrimaryFrame();
   nsImageFrame* imageFrame = do_QueryFrame(frame);
   nsSVGImageFrame* svgImageFrame = do_QueryFrame(frame);
   if (!imageFrame && !svgImageFrame) {
+    recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding #1");
     return;
   }
+  recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding #2");
 
   bool forceSync = mSyncDecodingHint;
   if (!forceSync && aPrepareNextRequest) {
@@ -540,9 +545,13 @@ void nsImageLoadingContent::MaybeForceSyncDecoding(
     // then force sync decoding to eliminate flicker from the animation.
     forceSync = (now - mMostRecentRequestChange < threshold);
     mMostRecentRequestChange = now;
+
+    recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding #3 %d %d",
+                                     forceSync, threshold.ToMilliseconds());
   }
 
   if (imageFrame) {
+    recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding #4");
     imageFrame->SetForceSyncDecoding(forceSync);
   } else {
     svgImageFrame->SetForceSyncDecoding(forceSync);
