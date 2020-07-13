@@ -251,12 +251,12 @@ bool RealmInstrumentation::getScriptId(JSContext* cx,
     return false;
   }
 
-  if (!idValue.isNumber()) {
-    JS_ReportErrorASCII(cx, "Instrumentation ID not set for script");
-    return false;
+  if (idValue.isNumber()) {
+    *id = idValue.toNumber();
+  } else {
+    *id = 0;
   }
 
-  *id = idValue.toNumber();
   return true;
 }
 
