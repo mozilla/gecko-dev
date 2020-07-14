@@ -75,6 +75,11 @@ extern JS_PUBLIC_API SavedFrameResult GetSavedFrameSourceId(
     uint32_t* sourceIdp,
     SavedFrameSelfHosted selfHosted = SavedFrameSelfHosted::Include);
 
+extern JS_PUBLIC_API SavedFrameResult GetSavedFrameWarpTarget(
+    JSContext* cx, JSPrincipals* principals, Handle<JSObject*> savedFrame,
+    uint32_t* warpTargetp,
+    SavedFrameSelfHosted selfHosted = SavedFrameSelfHosted::Include);
+
 /**
  * Given a SavedFrame JSObject, get its line property. Defaults to 0.
  */

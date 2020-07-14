@@ -97,6 +97,9 @@ class JSErrorBase {
   // Unique identifier for the script source.
   unsigned sourceId;
 
+  // Warp target when replaying.
+  unsigned warpTarget;
+
   // Source line number.
   unsigned lineno;
 
@@ -113,6 +116,7 @@ class JSErrorBase {
   JSErrorBase()
       : filename(nullptr),
         sourceId(0),
+        warpTarget(0),
         lineno(0),
         column(0),
         errorNumber(0),

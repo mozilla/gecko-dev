@@ -3048,7 +3048,7 @@ static bool Reject(JSContext* cx, const CompileArgs& args,
   }
 
   RootedObject errorObj(
-      cx, ErrorObject::create(cx, JSEXN_WASMCOMPILEERROR, stack, filename, 0,
+      cx, ErrorObject::create(cx, JSEXN_WASMCOMPILEERROR, stack, filename, 0, 0,
                               line, 0, nullptr, message));
   if (!errorObj) {
     return false;

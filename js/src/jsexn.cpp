@@ -175,6 +175,7 @@ static UniquePtr<T> CopyErrorHelper(JSContext* cx, T* report) {
 
   /* Copy non-pointer members. */
   copy->sourceId = report->sourceId;
+  copy->warpTarget = report->warpTarget;
   copy->lineno = report->lineno;
   copy->column = report->column;
   copy->errorNumber = report->errorNumber;
@@ -345,6 +346,7 @@ void js::ErrorToException(JSContext* cx, JSErrorReport* reportp,
   }
 
   uint32_t sourceId = reportp->sourceId;
+  uint32_t warpTarget = reportp->warpTarget;
   uint32_t lineNumber = reportp->lineno;
   uint32_t columnNumber = reportp->column;
 
@@ -359,7 +361,7 @@ void js::ErrorToException(JSContext* cx, JSErrorReport* reportp,
   }
 
   ErrorObject* errObject =
-      ErrorObject::create(cx, exnType, stack, fileName, sourceId, lineNumber,
+      ErrorObject::create(cx, exnType, stack, fileName, sourceId, warpTarget, lineNumber,
                           columnNumber, std::move(report), messageStr);
   if (!errObject) {
     return;
@@ -671,6 +673,7 @@ bool ErrorReport::populateUncaughtExceptionReportUTF8VA(JSContext* cx,
     uint32_t column;
     ownedReport.sourceId =
         iter.hasScript() ? iter.script()->scriptSource()->id() : 0;
+    ownedReport.warpTarget = NewTimeWarpTarget(cx);
     ownedReport.lineno = iter.computeLine(&column);
     ownedReport.column = FixupColumnForDisplay(column);
     ownedReport.isMuted = iter.mutedErrors();
@@ -709,12 +712,13 @@ JSObject* js::CopyErrorObject(JSContext* cx, Handle<ErrorObject*> err) {
     return nullptr;
   }
   uint32_t sourceId = err->sourceId();
+  uint32_t warpTarget = err->timeWarpTarget();
   uint32_t lineNumber = err->lineNumber();
   uint32_t columnNumber = err->columnNumber();
   JSExnType errorType = err->type();
 
   // Create the Error object.
-  return ErrorObject::create(cx, errorType, stack, fileName, sourceId,
+  return ErrorObject::create(cx, errorType, stack, fileName, sourceId, warpTarget,
                              lineNumber, columnNumber, std::move(copyReport),
                              message);
 }
@@ -736,7 +740,7 @@ JS_PUBLIC_API bool JS::CreateError(JSContext* cx, JSExnType type,
   }
 
   JSObject* obj =
-      js::ErrorObject::create(cx, type, stack, fileName, 0, lineNumber,
+      js::ErrorObject::create(cx, type, stack, fileName, 0, 0, lineNumber,
                               columnNumber, std::move(rep), message);
   if (!obj) {
     return false;

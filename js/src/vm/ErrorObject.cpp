@@ -204,6 +204,20 @@ static void exn_finalize(JSFreeOp* fop, JSObject* obj) {
   }
 }
 
+uint32_t js::NewTimeWarpTarget(JSContext* cx) {
+  // When recording/replaying and running on the main thread, get a counter
+  // which the devtools can use to warp to this point in the future.
+  if (mozilla::recordreplay::IsRecordingOrReplaying() &&
+      !cx->runtime()->parentRuntime) {
+    uint64_t warpTarget = mozilla::recordreplay::NewTimeWarpTarget();
+
+    // Make sure we don't truncate the time warp target.
+    MOZ_RELEASE_ASSERT(warpTarget == (uint32_t)warpTarget);
+    return warpTarget;
+  }
+  return 0;
+}
+
 static ErrorObject* CreateErrorObject(JSContext* cx, const CallArgs& args,
                                       unsigned messageArg, JSExnType exnType,
                                       HandleObject proto) {
@@ -238,6 +252,8 @@ static ErrorObject* CreateErrorObject(JSContext* cx, const CallArgs& args,
     return nullptr;
   }
 
+  uint32_t warpTarget = NewTimeWarpTarget(cx);
+
   uint32_t lineNumber, columnNumber = 0;
   if (args.length() > messageArg + 2) {
     if (!ToUint32(cx, args[messageArg + 2], &lineNumber)) {
@@ -253,7 +269,7 @@ static ErrorObject* CreateErrorObject(JSContext* cx, const CallArgs& args,
     return nullptr;
   }
 
-  return ErrorObject::create(cx, exnType, stack, fileName, sourceId, lineNumber,
+  return ErrorObject::create(cx, exnType, stack, fileName, sourceId, warpTarget, lineNumber,
                              columnNumber, nullptr, message, proto);
 }
 
@@ -433,7 +449,7 @@ Shape* js::ErrorObject::assignInitialShape(JSContext* cx,
 bool js::ErrorObject::init(JSContext* cx, Handle<ErrorObject*> obj,
                            JSExnType type, UniquePtr<JSErrorReport> errorReport,
                            HandleString fileName, HandleObject stack,
-                           uint32_t sourceId, uint32_t lineNumber,
+                           uint32_t sourceId, uint32_t warpTarget, uint32_t lineNumber,
                            uint32_t columnNumber, HandleString message) {
   AssertObjectIsSavedFrameOrWrapper(cx, stack);
   cx->check(obj, stack);
@@ -482,19 +498,7 @@ bool js::ErrorObject::init(JSContext* cx, Handle<ErrorObject*> obj,
     obj->setSlotWithType(cx, messageShape, StringValue(message));
   }
   obj->initReservedSlot(SOURCEID_SLOT, Int32Value(sourceId));
-
-  // When recording/replaying and running on the main thread, get a counter
-  // which the devtools can use to warp to this point in the future.
-  if (mozilla::recordreplay::IsRecordingOrReplaying() &&
-      !cx->runtime()->parentRuntime) {
-    uint64_t timeWarpTarget = mozilla::recordreplay::NewTimeWarpTarget();
-
-    // Make sure we don't truncate the time warp target by storing it as a
-    // double.
-    MOZ_RELEASE_ASSERT(timeWarpTarget <
-                       uint64_t(DOUBLE_INTEGRAL_PRECISION_LIMIT));
-    obj->initReservedSlot(TIME_WARP_SLOT, DoubleValue(timeWarpTarget));
-  }
+  obj->initReservedSlot(TIME_WARP_SLOT, Int32Value(warpTarget));
 
   return true;
 }
@@ -502,7 +506,8 @@ bool js::ErrorObject::init(JSContext* cx, Handle<ErrorObject*> obj,
 /* static */
 ErrorObject* js::ErrorObject::create(JSContext* cx, JSExnType errorType,
                                      HandleObject stack, HandleString fileName,
-                                     uint32_t sourceId, uint32_t lineNumber,
+                                     uint32_t sourceId, uint32_t warpTarget,
+                                     uint32_t lineNumber,
                                      uint32_t columnNumber,
                                      UniquePtr<JSErrorReport> report,
                                      HandleString message,
@@ -529,7 +534,7 @@ ErrorObject* js::ErrorObject::create(JSContext* cx, JSExnType errorType,
   }
 
   if (!ErrorObject::init(cx, errObject, errorType, std::move(report), fileName,
-                         stack, sourceId, lineNumber, columnNumber, message)) {
+                         stack, sourceId, warpTarget, lineNumber, columnNumber, message)) {
     return nullptr;
   }
 
@@ -558,6 +563,7 @@ JSErrorReport* js::ErrorObject::getOrCreateErrorReport(JSContext* cx) {
 
   // Coordinates.
   report.sourceId = sourceId();
+  report.warpTarget = timeWarpTarget();
   report.lineno = lineNumber();
   report.column = columnNumber();
 

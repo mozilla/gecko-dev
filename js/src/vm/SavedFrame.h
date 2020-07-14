@@ -32,6 +32,7 @@ class SavedFrame : public NativeObject {
   static bool construct(JSContext* cx, unsigned argc, Value* vp);
   static bool sourceProperty(JSContext* cx, unsigned argc, Value* vp);
   static bool sourceIdProperty(JSContext* cx, unsigned argc, Value* vp);
+  static bool warpTargetProperty(JSContext* cx, unsigned argc, Value* vp);
   static bool lineProperty(JSContext* cx, unsigned argc, Value* vp);
   static bool columnProperty(JSContext* cx, unsigned argc, Value* vp);
   static bool functionDisplayNameProperty(JSContext* cx, unsigned argc,
@@ -46,6 +47,7 @@ class SavedFrame : public NativeObject {
   // Convenient getters for SavedFrame's reserved slots for use from C++.
   JSAtom* getSource();
   uint32_t getSourceId();
+  uint32_t getWarpTarget();
   uint32_t getLine();
   uint32_t getColumn();
   JSAtom* getFunctionDisplayName();
@@ -117,6 +119,7 @@ class SavedFrame : public NativeObject {
   void initFromLookup(JSContext* cx, Handle<Lookup> lookup);
   void initSource(JSAtom* source);
   void initSourceId(uint32_t id);
+  void initWarpTarget(uint32_t warpTarget);
   void initLine(uint32_t line);
   void initColumn(uint32_t column);
   void initFunctionDisplayName(JSAtom* maybeName);
@@ -129,6 +132,7 @@ class SavedFrame : public NativeObject {
     // The reserved slots in the SavedFrame class.
     JSSLOT_SOURCE,
     JSSLOT_SOURCEID,
+    JSSLOT_WARPTARGET,
     JSSLOT_LINE,
     JSSLOT_COLUMN,
     JSSLOT_FUNCTIONDISPLAYNAME,
@@ -257,6 +261,7 @@ class ConcreteStackFrame<SavedFrame> : public BaseStackFrame {
   }
 
   uint32_t sourceId() const override { return get().getSourceId(); }
+  uint32_t warpTarget() const override { return get().getWarpTarget(); }
 
   AtomOrTwoByteChars functionDisplayName() const override {
     auto name = get().getFunctionDisplayName();

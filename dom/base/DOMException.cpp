@@ -298,6 +298,14 @@ uint32_t Exception::SourceId(JSContext* aCx) const {
   return 0;
 }
 
+uint32_t Exception::WarpTarget(JSContext* aCx) const {
+  if (mLocation) {
+    return mLocation->GetWarpTarget(aCx);
+  }
+
+  return 0;
+}
+
 uint32_t Exception::LineNumber(JSContext* aCx) const {
   if (mLocation) {
     return mLocation->GetLineNumber(aCx);

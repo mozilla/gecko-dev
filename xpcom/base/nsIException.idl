@@ -21,6 +21,8 @@ interface nsIStackFrame : nsISupports
     // Unique identifier of the script source for the frame, or zero.
     [implicit_jscontext, binaryname(SourceIdXPCOM)]
     readonly attribute int32_t                 sourceId;
+    [implicit_jscontext, binaryname(WarpTargetXPCOM)]
+    readonly attribute int32_t                 warpTarget;
     // Valid line numbers begin at '1'. '0' indicates unknown.
     [implicit_jscontext, binaryname(LineNumberXPCOM)]
     readonly attribute int32_t                 lineNumber;
@@ -54,6 +56,8 @@ interface nsIStackFrame : nsISupports
     void getName(in JSContext aCx, out AString aName);
     [notxpcom, nostdcall]
     int32_t getSourceId(in JSContext aCx);
+    [notxpcom, nostdcall]
+    int32_t getWarpTarget(in JSContext aCx);
     [notxpcom, nostdcall]
     int32_t getLineNumber(in JSContext aCx);
     [notxpcom, nostdcall]

@@ -181,6 +181,7 @@ void xpc::ErrorBase::Init(JSErrorBase* aReport) {
   }
 
   mSourceId = aReport->sourceId;
+  mWarpTarget = aReport->warpTarget;
   mLineNumber = aReport->lineno;
   mColumn = aReport->column;
 }
@@ -247,6 +248,7 @@ void xpc::ErrorReport::Init(JSContext* aCx, mozilla::dom::Exception* aException,
     mFileName.SetIsVoid(true);
   }
   mSourceId = aException->SourceId(aCx);
+  mWarpTarget = aException->WarpTarget(aCx);
   mLineNumber = aException->LineNumber(aCx);
   mColumn = aException->ColumnNumber();
 
@@ -311,8 +313,7 @@ void xpc::ErrorReport::LogToConsole() {
 }
 
 void xpc::ErrorReport::LogToConsoleWithStack(
-    JS::HandleObject aStack, JS::HandleObject aStackGlobal,
-    uint64_t aTimeWarpTarget /* = 0 */) {
+    JS::HandleObject aStack, JS::HandleObject aStackGlobal) {
   // Don't log failures after diverging from a recording during replay, as
   // this will cause the associated debugger operation to fail.
   if (recordreplay::HasDivergedFromRecording()) {
@@ -352,7 +353,6 @@ void xpc::ErrorReport::LogToConsoleWithStack(
     errorObject = new nsScriptError();
   }
   errorObject->SetErrorMessageName(mErrorMsgName);
-  errorObject->SetTimeWarpTarget(aTimeWarpTarget);
 
   nsresult rv = errorObject->InitWithWindowID(
       mErrorMsg, mFileName, mSourceLine, mLineNumber, mColumn, mFlags,
@@ -361,6 +361,9 @@ void xpc::ErrorReport::LogToConsoleWithStack(
   NS_ENSURE_SUCCESS_VOID(rv);
 
   rv = errorObject->InitSourceId(mSourceId);
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  rv = errorObject->SetTimeWarpTarget(mWarpTarget);
   NS_ENSURE_SUCCESS_VOID(rv);
 
   for (size_t i = 0, len = mNotes.Length(); i < len; i++) {

@@ -36,7 +36,8 @@ class ErrorObject : public NativeObject {
 
   static bool init(JSContext* cx, Handle<ErrorObject*> obj, JSExnType type,
                    UniquePtr<JSErrorReport> errorReport, HandleString fileName,
-                   HandleObject stack, uint32_t sourceId, uint32_t lineNumber,
+                   HandleObject stack, uint32_t sourceId, uint32_t warpTarget,
+                   uint32_t lineNumber,
                    uint32_t columnNumber, HandleString message);
 
   static const ClassSpec classSpecs[JSEXN_ERROR_LIMIT];
@@ -74,6 +75,7 @@ class ErrorObject : public NativeObject {
   // property.
   static ErrorObject* create(JSContext* cx, JSExnType type, HandleObject stack,
                              HandleString fileName, uint32_t sourceId,
+                             uint32_t warpTarget,
                              uint32_t lineNumber, uint32_t columnNumber,
                              UniquePtr<JSErrorReport> report,
                              HandleString message,
@@ -136,6 +138,8 @@ class AggregateErrorObject : public ErrorObject {
 };
 
 JSString* ErrorToSource(JSContext* cx, HandleObject obj);
+
+uint32_t NewTimeWarpTarget(JSContext* cx);
 
 }  // namespace js
 

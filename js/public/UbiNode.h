@@ -255,6 +255,8 @@ class BaseStackFrame {
   // Get a unique per-process ID for this frame's source. Defaults to zero.
   virtual uint32_t sourceId() const = 0;
 
+  virtual uint32_t warpTarget() const = 0;
+
   // Return this frame's function name if named, otherwise the inferred
   // display name. Can be null.
   virtual AtomOrTwoByteChars functionDisplayName() const = 0;
@@ -422,6 +424,7 @@ class StackFrame {
   uint32_t column() const { return base()->column(); }
   AtomOrTwoByteChars source() const { return base()->source(); }
   uint32_t sourceId() const { return base()->sourceId(); }
+  uint32_t warpTarget() const { return base()->warpTarget(); }
   AtomOrTwoByteChars functionDisplayName() const {
     return base()->functionDisplayName();
   }
@@ -473,6 +476,7 @@ class ConcreteStackFrame<void> : public BaseStackFrame {
     MOZ_CRASH("null JS::ubi::StackFrame");
   }
   uint32_t sourceId() const override { MOZ_CRASH("null JS::ubi::StackFrame"); }
+  uint32_t warpTarget() const override { MOZ_CRASH("null JS::ubi::StackFrame"); }
   AtomOrTwoByteChars functionDisplayName() const override {
     MOZ_CRASH("null JS::ubi::StackFrame");
   }

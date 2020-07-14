@@ -292,6 +292,9 @@ class ConcreteStackFrame<DeserializedStackFrame> : public BaseStackFrame {
     // Source IDs are local to their host process and are not serialized.
     return 0;
   }
+  uint32_t warpTarget() const override {
+    return 0;
+  }
   AtomOrTwoByteChars functionDisplayName() const override {
     return AtomOrTwoByteChars(get().functionDisplayName);
   }

@@ -227,12 +227,14 @@ class JSStackFrame final : public nsIStackFrame, public xpc::JSStackFrameBase {
   nsString mFunname;
   nsString mAsyncCause;
   int32_t mSourceId;
+  int32_t mWarpTarget;
   int32_t mLineno;
   int32_t mColNo;
 
   bool mFilenameInitialized;
   bool mFunnameInitialized;
   bool mSourceIdInitialized;
+  bool mWarpTargetInitialized;
   bool mLinenoInitialized;
   bool mColNoInitialized;
   bool mAsyncCauseInitialized;
@@ -244,11 +246,13 @@ class JSStackFrame final : public nsIStackFrame, public xpc::JSStackFrameBase {
 JSStackFrame::JSStackFrame(JS::Handle<JSObject*> aStack)
     : mStack(aStack),
       mSourceId(0),
+      mWarpTarget(0),
       mLineno(0),
       mColNo(0),
       mFilenameInitialized(false),
       mFunnameInitialized(false),
       mSourceIdInitialized(false),
+      mWarpTargetInitialized(false),
       mLinenoInitialized(false),
       mColNoInitialized(false),
       mAsyncCauseInitialized(false),
@@ -480,6 +484,34 @@ int32_t JSStackFrame::GetSourceId(JSContext* aCx) {
 NS_IMETHODIMP
 JSStackFrame::GetSourceIdXPCOM(JSContext* aCx, int32_t* aSourceId) {
   *aSourceId = GetSourceId(aCx);
+  return NS_OK;
+}
+
+int32_t JSStackFrame::GetWarpTarget(JSContext* aCx) {
+  if (!mStack) {
+    return 0;
+  }
+
+  uint32_t warpTarget;
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameWarpTarget,
+                      mWarpTargetInitialized, &canCache, &useCachedValue, &warpTarget);
+
+  if (useCachedValue) {
+    return mWarpTarget;
+  }
+
+  if (canCache) {
+    mWarpTarget = warpTarget;
+    mWarpTargetInitialized = true;
+  }
+
+  return warpTarget;
+}
+
+NS_IMETHODIMP
+JSStackFrame::GetWarpTargetXPCOM(JSContext* aCx, int32_t* aWarpTarget) {
+  *aWarpTarget = GetWarpTarget(aCx);
   return NS_OK;
 }
 

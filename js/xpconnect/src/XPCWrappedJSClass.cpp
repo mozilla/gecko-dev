@@ -720,6 +720,8 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
             if (NS_FAILED(rv)) {
               scriptError = nullptr;
             }
+
+            scriptError->SetTimeWarpTarget(location->GetWarpTarget(cx));
           }
         }
         if (nullptr != scriptError) {

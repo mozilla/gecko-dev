@@ -88,6 +88,8 @@ class Exception : public nsIException, public nsWrapperCache {
 
   uint32_t SourceId(JSContext* aCx) const;
 
+  uint32_t WarpTarget(JSContext* aCx) const;
+
   uint32_t LineNumber(JSContext* aCx) const;
 
   uint32_t ColumnNumber() const;

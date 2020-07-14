@@ -29,6 +29,7 @@
 #include "js/SavedFrameAPI.h"
 #include "js/Vector.h"
 #include "util/StringBuffer.h"
+#include "vm/ErrorObject.h"
 #include "vm/GeckoProfiler.h"
 #include "vm/JSScript.h"
 #include "vm/Realm.h"
@@ -173,13 +174,15 @@ void LiveSavedFrameCache::findWithoutInvalidation(
 }
 
 struct MOZ_STACK_CLASS SavedFrame::Lookup {
-  Lookup(JSAtom* source, uint32_t sourceId, uint32_t line, uint32_t column,
+  Lookup(JSAtom* source, uint32_t sourceId, uint32_t warpTarget,
+         uint32_t line, uint32_t column,
          JSAtom* functionDisplayName, JSAtom* asyncCause, SavedFrame* parent,
          JSPrincipals* principals,
          const Maybe<LiveSavedFrameCache::FramePtr>& framePtr = Nothing(),
          jsbytecode* pc = nullptr, Activation* activation = nullptr)
       : source(source),
         sourceId(sourceId),
+        warpTarget(warpTarget),
         line(line),
         column(column),
         functionDisplayName(functionDisplayName),
@@ -199,6 +202,7 @@ struct MOZ_STACK_CLASS SavedFrame::Lookup {
   explicit Lookup(SavedFrame& savedFrame)
       : source(savedFrame.getSource()),
         sourceId(savedFrame.getSourceId()),
+        warpTarget(savedFrame.getWarpTarget()),
         line(savedFrame.getLine()),
         column(savedFrame.getColumn()),
         functionDisplayName(savedFrame.getFunctionDisplayName()),
@@ -213,6 +217,7 @@ struct MOZ_STACK_CLASS SavedFrame::Lookup {
 
   JSAtom* source;
   uint32_t sourceId;
+  uint32_t warpTarget;
   uint32_t line;
   uint32_t column;
   JSAtom* functionDisplayName;
@@ -247,6 +252,7 @@ class WrappedPtrOperations<SavedFrame::Lookup, Wrapper> {
  public:
   JSAtom* source() { return value().source; }
   uint32_t sourceId() { return value().sourceId; }
+  uint32_t warpTarget() { return value().warpTarget; }
   uint32_t line() { return value().line; }
   uint32_t column() { return value().column; }
   JSAtom* functionDisplayName() { return value().functionDisplayName; }
@@ -384,6 +390,7 @@ const JSClass SavedFrame::protoClass_ = {
 /* static */ const JSPropertySpec SavedFrame::protoAccessors[] = {
     JS_PSG("source", SavedFrame::sourceProperty, 0),
     JS_PSG("sourceId", SavedFrame::sourceIdProperty, 0),
+    JS_PSG("warpTarget", SavedFrame::warpTargetProperty, 0),
     JS_PSG("line", SavedFrame::lineProperty, 0),
     JS_PSG("column", SavedFrame::columnProperty, 0),
     JS_PSG("functionDisplayName", SavedFrame::functionDisplayNameProperty, 0),
@@ -410,6 +417,11 @@ JSAtom* SavedFrame::getSource() {
 
 uint32_t SavedFrame::getSourceId() {
   const Value& v = getReservedSlot(JSSLOT_SOURCEID);
+  return v.toPrivateUint32();
+}
+
+uint32_t SavedFrame::getWarpTarget() {
+  const Value& v = getReservedSlot(JSSLOT_WARPTARGET);
   return v.toPrivateUint32();
 }
 
@@ -461,6 +473,10 @@ void SavedFrame::initSource(JSAtom* source) {
 
 void SavedFrame::initSourceId(uint32_t sourceId) {
   initReservedSlot(JSSLOT_SOURCEID, PrivateUint32Value(sourceId));
+}
+
+void SavedFrame::initWarpTarget(uint32_t warpTarget) {
+  initReservedSlot(JSSLOT_WARPTARGET, PrivateUint32Value(warpTarget));
 }
 
 void SavedFrame::initLine(uint32_t line) {
@@ -518,6 +534,7 @@ void SavedFrame::initFromLookup(JSContext* cx, Handle<Lookup> lookup) {
 
   initSource(lookup.source());
   initSourceId(lookup.sourceId());
+  initWarpTarget(lookup.warpTarget());
   initLine(lookup.line());
   initColumn(lookup.column());
   initFunctionDisplayName(lookup.functionDisplayName());
@@ -769,6 +786,25 @@ JS_PUBLIC_API SavedFrameResult GetSavedFrameSourceId(
     return SavedFrameResult::AccessDenied;
   }
   *sourceIdp = frame->getSourceId();
+  return SavedFrameResult::Ok;
+}
+
+JS_PUBLIC_API SavedFrameResult GetSavedFrameWarpTarget(
+    JSContext* cx, JSPrincipals* principals, HandleObject savedFrame,
+    uint32_t* warpTargetp,
+    SavedFrameSelfHosted selfHosted /* = SavedFrameSelfHosted::Include */) {
+  js::AssertHeapIsIdle();
+  CHECK_THREAD(cx);
+  MOZ_RELEASE_ASSERT(cx->realm());
+
+  bool skippedAsync;
+  js::RootedSavedFrame frame(cx, UnwrapSavedFrame(cx, principals, savedFrame,
+                                                  selfHosted, skippedAsync));
+  if (!frame) {
+    *warpTargetp = 0;
+    return SavedFrameResult::AccessDenied;
+  }
+  *warpTargetp = frame->getWarpTarget();
   return SavedFrameResult::Ok;
 }
 
@@ -1106,6 +1142,7 @@ JS_PUBLIC_API JSObject* ConvertSavedFrameToPlainObject(
   do {
     if (!AssignProperty(cx, lastConverted, savedFrame, "source") ||
         !AssignProperty(cx, lastConverted, savedFrame, "sourceId") ||
+        !AssignProperty(cx, lastConverted, savedFrame, "warpTarget") ||
         !AssignProperty(cx, lastConverted, savedFrame, "line") ||
         !AssignProperty(cx, lastConverted, savedFrame, "column") ||
         !AssignProperty(cx, lastConverted, savedFrame, "functionDisplayName") ||
@@ -1166,6 +1203,20 @@ bool SavedFrame::sourceIdProperty(JSContext* cx, unsigned argc, Value* vp) {
   if (JS::GetSavedFrameSourceId(cx, principals, frame, &sourceId) ==
       JS::SavedFrameResult::Ok) {
     args.rval().setNumber(sourceId);
+  } else {
+    args.rval().setNull();
+  }
+  return true;
+}
+
+/* static */
+bool SavedFrame::warpTargetProperty(JSContext* cx, unsigned argc, Value* vp) {
+  THIS_SAVEDFRAME(cx, argc, vp, "(get warpTarget)", args, frame);
+  JSPrincipals* principals = cx->realm()->principals();
+  uint32_t warpTarget;
+  if (JS::GetSavedFrameWarpTarget(cx, principals, frame, &warpTarget) ==
+      JS::SavedFrameResult::Ok) {
+    args.rval().setNumber(warpTarget);
   } else {
     args.rval().setNull();
   }
@@ -1406,6 +1457,8 @@ bool SavedStacks::insertFrames(JSContext* cx, MutableHandleSavedFrame frame,
                          ? FrameIter::IGNORE_DEBUGGER_EVAL_PREV_LINK
                          : FrameIter::FOLLOW_DEBUGGER_EVAL_PREV_LINK);
 
+  uint32_t warpTarget = NewTimeWarpTarget(cx);
+
   // Once we've seen one frame with its hasCachedSavedFrame bit set, all its
   // parents (that can be cached) ought to have it set too.
   DebugOnly<bool> seenCached = false;
@@ -1452,9 +1505,10 @@ bool SavedStacks::insertFrames(JSContext* cx, MutableHandleSavedFrame frame,
     Rooted<LocationValue> location(cx);
     {
       AutoRealmUnchecked ar(cx, iter.realm());
-      if (!cx->realm()->savedStacks().getLocation(cx, iter, &location)) {
+      if (!cx->realm()->savedStacks().getLocation(cx, iter, warpTarget, &location)) {
         return false;
       }
+      warpTarget = 0;
     }
 
     RootedAtom displayAtom(cx, iter.maybeFunctionDisplayAtom());
@@ -1463,6 +1517,7 @@ bool SavedStacks::insertFrames(JSContext* cx, MutableHandleSavedFrame frame,
     MOZ_ASSERT_IF(framePtr && !iter.isWasm(), iter.pc());
 
     if (!stackChain.emplaceBack(location.source(), location.sourceId(),
+                                location.warpTarget(),
                                 location.line(), location.column(), displayAtom,
                                 nullptr,  // asyncCause
                                 nullptr,  // parent (not known yet)
@@ -1724,6 +1779,7 @@ SavedFrame* SavedStacks::createFrameFromLookup(
 }
 
 bool SavedStacks::getLocation(JSContext* cx, const FrameIter& iter,
+                              uint32_t warpTarget,
                               MutableHandle<LocationValue> locationp) {
   // We should only ever be caching location values for scripts in this
   // compartment. Otherwise, we would get dead cross-compartment scripts in
@@ -1779,7 +1835,7 @@ bool SavedStacks::getLocation(JSContext* cx, const FrameIter& iter,
     uint32_t line = PCToLineNumber(script, pc, &column);
 
     // Make the column 1-based. See comment above.
-    LocationValue value(source, sourceId, line, column + 1);
+    LocationValue value(source, sourceId, warpTarget, line, column + 1);
     if (!pcLocationMap.add(p, key, value)) {
       ReportOutOfMemory(cx);
       return false;
@@ -1975,6 +2031,7 @@ JS_PUBLIC_API bool ConstructSavedFrameStackSlow(
         js::ReconstructedSavedFramePrincipals::getSingleton(ubiFrame.get());
 
     if (!stackChain.emplaceBack(source, ubiFrame.get().sourceId(),
+                                ubiFrame.get().warpTarget(),
                                 ubiFrame.get().line(), ubiFrame.get().column(),
                                 functionDisplayName,
                                 /* asyncCause */ nullptr,
