@@ -70,6 +70,7 @@ SchedulerEventTarget::DispatchFromScript(nsIRunnable* aRunnable,
 NS_IMETHODIMP
 SchedulerEventTarget::Dispatch(already_AddRefed<nsIRunnable> aRunnable,
                                uint32_t aFlags) {
+  recordreplay::RecordReplayAssert("SchedulerEventTarget::Dispatch");
   if (NS_WARN_IF(aFlags != NS_DISPATCH_NORMAL)) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -194,6 +195,7 @@ void SchedulerGroup::Shutdown(bool aXPCOMShutdown) {
 
 already_AddRefed<nsISerialEventTarget> SchedulerGroup::CreateEventTargetFor(
     TaskCategory aCategory) {
+  recordreplay::RecordReplayAssert("SchedulerGroup::CreateEventTargetFor");
   RefPtr<SchedulerEventTarget> target =
       new SchedulerEventTarget(this, aCategory);
   return target.forget();

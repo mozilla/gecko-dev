@@ -801,6 +801,8 @@ already_AddRefed<nsIEventTarget> IToplevelProtocol::GetMessageEventTarget(
     const Message& aMsg) {
   int32_t route = aMsg.routing_id();
 
+  recordreplay::RecordReplayAssert("IToplevelProtocol::GetMessageEventTarget %d", route);
+
   Maybe<MutexAutoLock> lock;
   lock.emplace(mEventTargetMutex);
 
@@ -834,11 +836,13 @@ already_AddRefed<nsIEventTarget> IToplevelProtocol::GetMessageEventTarget(
 #endif /* DEBUG */
 
     mEventTargetMap.AddWithID(target, handle.mId);
+    recordreplay::RecordReplayAssert("IToplevelProtocol::GetMessageEventTarget #1");
   } else if (!target) {
     // We don't need the lock after this point.
     lock.reset();
 
     target = GetSpecificMessageEventTarget(aMsg);
+    recordreplay::RecordReplayAssert("IToplevelProtocol::GetMessageEventTarget #2");
   }
 
   return target.forget();
