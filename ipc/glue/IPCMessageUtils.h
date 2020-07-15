@@ -985,6 +985,21 @@ struct ParamTraits<JSStructuredCloneData> {
     MOZ_ASSERT(!(aParam.Size() % sizeof(uint64_t)));
     WriteParam(aMsg, aParam.Size());
     aParam.ForEachDataChunk([&](const char* aData, size_t aSize) {
+      size_t oldSize = mozilla::recordreplay::RecordReplayValue(aSize);
+      if (oldSize != aSize) {
+        // We are replaying and the lengths do not match up with the recording.
+        // This shouldn't ever happen, but has occurred when running the
+        // regular devtools in a recording tab. Paper over this problem for now.
+        {
+          mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+          fprintf(stderr, "Warning: ParamTraits<JSStructuredCloneData>::Write mismatch, expected %lu got %lu\n", oldSize, aSize);
+        }
+        char* data = new char[oldSize];
+        memset(data, 0, oldSize);
+        bool rv = aMsg->WriteBytes(data, oldSize, sizeof(uint64_t));
+        delete[] data;
+        return rv;
+      }
       return aMsg->WriteBytes(aData, aSize, sizeof(uint64_t));
     });
   }
