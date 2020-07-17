@@ -59,7 +59,7 @@
     "devtools-utils": "0.0.14",
     "devtools-wasm-dwarf": "0.0.1",
     "fuzzaldrin-plus": "^0.6.0",
-    "lodash": "^4.17.4",
+    "lodash": "^4.17.19",
     "lodash-move": "^1.1.1",
     "lodash.kebabcase": "^4.1.1",
     "md5": "^2.2.1",
