@@ -139,10 +139,10 @@ gDebugger.onNewScript = script => {
     if (script.source.sourceMapURL &&
         Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")) {
       const pid = RecordReplayControl.middlemanPid();
-      const { url, text, sourceMapURL } = script.source;
+      const { url, sourceMapURL } = script.source;
       Services.cpmm.sendAsyncMessage(
         "RecordReplayGeneratedSourceWithSourceMap",
-        { pid, url, text, sourceMapURL }
+        { pid, url, sourceMapURL }
       );
     }
   }
@@ -224,6 +224,15 @@ getWindow().docShell.chromeEventHandler.addEventListener(
 getWindow().docShell.chromeEventHandler.addEventListener(
   "StyleSheetApplicableStateChanged",
   ({ stylesheet }) => {
+    if (stylesheet.sourceMapURL &&
+        Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")) {
+      const pid = RecordReplayControl.middlemanPid();
+      Services.cpmm.sendAsyncMessage(
+        "RecordReplayGeneratedSourceWithSourceMap",
+        { pid, url: stylesheet.href, sourceMapURL: stylesheet.sourceMapURL }
+      );
+    }
+
     if (exports.OnStyleSheetChange) {
       exports.OnStyleSheetChange(stylesheet);
     }

@@ -264,7 +264,12 @@ Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
     }
     const { recordingId } = await info.createPromise;
 
-    const resolvedSourceMapURL = new URL(sourceMapURL, url).href;
+    let resolvedSourceMapURL;
+    try {
+      resolvedSourceMapURL = new URL(sourceMapURL, url).href;
+    } catch (e) {
+      resolvedSourceMapURL = sourceMapURL;
+    }
     const promise = addRecordingResource(recordingId, resolvedSourceMapURL);
     info.dataPromises.push(promise);
 
