@@ -3221,7 +3221,7 @@ UpdateService.prototype = {
     }
 
     const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
-    if (env.get("WEBREPLAY_NO_UPDATE") || env.get("WEBREPLAY_OFFLINE")) {
+    if (env.get("RECORD_REPLAY_NO_UPDATE") || env.get("RECORD_REPLAY_OFFLINE")) {
       cleanupActiveUpdate();
       return STATE_NONE;
     }

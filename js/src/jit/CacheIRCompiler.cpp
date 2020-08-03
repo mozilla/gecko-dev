@@ -4802,7 +4802,7 @@ void CacheIRCompiler::emitPostBarrierShared(Register obj,
                                             Register maybeIndex) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
 
-  // Generational GC is disabled for WebReplay.
+  // Generational GC is disabled when recording/replaying.
   if (mozilla::recordreplay::IsRecordingOrReplaying()) {
     return;
   }

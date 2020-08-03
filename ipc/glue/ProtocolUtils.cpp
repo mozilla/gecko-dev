@@ -160,8 +160,8 @@ void FatalError(const char* aMsg, bool aIsParent) {
         CrashReporter::Annotation::IPCFatalErrorMsg, nsDependentCString(aMsg));
     AnnotateSystemError();
 #ifndef FUZZING
-    // IPDL fatal errors in the parent process are disabled when using
-    // web replay. Because of the presence of the middleman, we can get
+    // IPDL fatal errors in the parent process are disabled when recording/replaying.
+    // Because of the presence of the middleman, we can get
     // messages from the recording process referring to actors which we have
     // already destroyed.
     //MOZ_CRASH("IPC FatalError in the parent process!");

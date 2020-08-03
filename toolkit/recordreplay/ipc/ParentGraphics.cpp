@@ -55,7 +55,7 @@ void InitializeGraphicsMemory() {
 
   gGraphicsMemory = (void*)address;
   gGraphicsReceiver =
-      new ReceivePort(nsPrintfCString("WebReplay.%d", getpid()).get());
+      new ReceivePort(nsPrintfCString("RecordReplay.%d", getpid()).get());
 }
 
 void SendGraphicsMemoryToChild() {

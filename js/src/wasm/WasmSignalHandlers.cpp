@@ -1001,7 +1001,7 @@ void wasm::EnsureEagerProcessSignalHandlers() {
   if (mozilla::recordreplay::IsRecordingOrReplaying()) {
     // If this environment variable is set then wasm will still be permitted
     // to run, albeit without signal handlers.
-    const char* env = getenv("WEBREPLAY_ALLOW_WASM");
+    const char* env = getenv("RECORD_REPLAY_ALLOW_WASM");
     if (env && env[0]) {
       eagerInstallState->success = true;
     }

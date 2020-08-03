@@ -1372,7 +1372,7 @@ const JsonView = {
 
 var EXPORTED_SYMBOLS = ["DevToolsStartup", "validateProfilerWebChannelUrl", "onFinishedRecording"];
 
-// Web Replay stuff.
+// Record Replay stuff.
 
 const { setTimeout, setInterval } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
@@ -1487,7 +1487,7 @@ let gRunningTestScript;
 
 async function runTestScript() {
   const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
-  const script = env.get("WEBREPLAY_TEST_SCRIPT");
+  const script = env.get("RECORD_REPLAY_TEST_SCRIPT");
   if (!script) {
     return;
   }
@@ -1570,23 +1570,23 @@ async function reloadAndStopRecordingTab(gBrowser) {
 
   const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
 
-  let viewHost = "https://webreplay.io";
+  let viewHost = "https://replay.io";
 
   // For testing, allow overriding the host for the view page.
-  const hostOverride = env.get("WEBREPLAY_VIEW_HOST");
+  const hostOverride = env.get("RECORD_REPLAY_VIEW_HOST");
   if (hostOverride) {
     viewHost = hostOverride;
   }
 
   // For testing, allow specifying the dispatcher to connect to.
   let extra = "";
-  const dispatchOverride = env.get("WEBREPLAY_SERVER");
+  const dispatchOverride = env.get("RECORD_REPLAY_SERVER");
   if (dispatchOverride) {
     extra += `&dispatch=${dispatchOverride}`;
   }
 
   // For testing, allow specifying a test script to load in the tab.
-  const localTest = env.get("WEBREPLAY_LOCAL_TEST");
+  const localTest = env.get("RECORD_REPLAY_LOCAL_TEST");
   if (localTest) {
     extra += `&test=${localTest}`;
   }
@@ -1627,7 +1627,7 @@ async function addRecordingDescription(description) {
 function viewRecordings() {
   const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
   const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
-  gBrowser.loadURI("about:webreplay", { triggeringPrincipal });
+  gBrowser.loadURI("about:replay", { triggeringPrincipal });
 }
 
 function cloudStatusToFatalError(status) {

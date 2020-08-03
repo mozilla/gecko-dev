@@ -205,14 +205,14 @@ void* gGraphicsShmem;
 
 static void WaitForGraphicsShmem() {
   // Setup a mach port to receive the graphics shmem handle over.
-  nsPrintfCString portString("WebReplay.%d.%lu", gMiddlemanPid, GetId());
+  nsPrintfCString portString("RecordReplay.%d.%lu", gMiddlemanPid, GetId());
   ReceivePort receivePort(portString.get());
 
   MachSendMessage handshakeMessage(parent::GraphicsHandshakeMessageId);
   handshakeMessage.AddDescriptor(
       MachMsgPortDescriptor(receivePort.GetPort(), MACH_MSG_TYPE_COPY_SEND));
 
-  MachPortSender sender(nsPrintfCString("WebReplay.%d", gMiddlemanPid).get());
+  MachPortSender sender(nsPrintfCString("RecordReplay.%d", gMiddlemanPid).get());
   kern_return_t kr = sender.SendMessage(handshakeMessage, 1000);
   MOZ_RELEASE_ASSERT(kr == KERN_SUCCESS);
 

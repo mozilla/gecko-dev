@@ -735,7 +735,7 @@ RDDProcessStatus:
 
 RecordReplay:
   description: >
-    Set to 1 if this crash happened in a Web Replay middleman, recording,
+    Set to 1 if this crash happened in a middleman, recording,
     or replaying process.
   type: boolean
 

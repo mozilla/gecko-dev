@@ -156,7 +156,7 @@ class LogModule {
 
   char* mName;
 
-  // Logging atomics and other state are not preserved by web replay, as they
+  // Logging atomics and other state are not preserved when recording, as they
   // may be accessed during the GC and other areas where recorded events are
   // not allowed.
   Atomic<LogLevel, Relaxed, recordreplay::Behavior::DontPreserve> mLevel;

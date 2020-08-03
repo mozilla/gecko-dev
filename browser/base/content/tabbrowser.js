@@ -1511,16 +1511,6 @@
               /* Do nothing. */
             }
           }
-        } else if (browser.hasAttribute("replayExecution")) {
-          const value = gBrowser.selectedBrowser.getAttribute("replayExecution");
-          const match = /^webreplay:\/\/(.*)/.exec(value);
-
-          // FIXME localize replaying tab titles.
-          if (match) {
-            title = `Replaying ${match[1]}`;
-          } else {
-            title = "Replaying";
-          }
         } else {
           // No suitable URI? Fall back to our untitled string.
           title = this.tabContainer.emptyTabTitle;
@@ -1910,7 +1900,7 @@
         aBrowser.setAttribute("recordExecution", recordExecution);
         EnsureRecordReplayWatcher();
 
-        // Web Replay middleman processes need the default URL to be loaded in
+        // Middleman processes need the default URL to be loaded in
         // order to set up their rendering state.
         aBrowser.setAttribute("nodefaultsrc", "false");
       } else if (aBrowser.hasAttribute("recordExecution")) {
@@ -6764,7 +6754,7 @@ function EnsureRecordReplayWatcher() {
         dump(`RecordReplayCriticalError ${msg.data.kind}\n`);
         ChromeUtils.recordReplayLog(`RecordReplayCriticalError ${msg.data.kind}`);
         const tab = gBrowser.selectedTab;
-        gBrowser.selectedTab = gBrowser.addTrustedTab(`about:webreplay?error=${msg.data.kind}`, {
+        gBrowser.selectedTab = gBrowser.addTrustedTab(`about:replay?error=${msg.data.kind}`, {
           index: tab._tPos + 1,
         });
         gBrowser.removeTab(tab);

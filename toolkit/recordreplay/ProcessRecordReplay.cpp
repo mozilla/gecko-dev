@@ -158,7 +158,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   if (TestEnv("MOZ_RECORD_REPLAY_SPEW")) {
     gSpewEnabled = true;
   }
-  if (TestEnv("WEBREPLAY_VERBOSE")) {
+  if (TestEnv("RECORD_REPLAY_VERBOSE")) {
     gVerbose = true;
   }
 
@@ -224,9 +224,9 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
 
   InitializeRewindState();
   gRecordingPid = RecordReplayValue(gPid);
-  gAutomatedTesting = TestEnv("WEBREPLAY_TEST_SCRIPT");
-  ParseJSFilters("WEBREPLAY_RECORD_EXECUTION_ASSERTS", gExecutionAsserts);
-  ParseJSFilters("WEBREPLAY_RECORD_JS_ASSERTS", gJSAsserts);
+  gAutomatedTesting = TestEnv("RECORD_REPLAY_TEST_SCRIPT");
+  ParseJSFilters("RECORD_REPLAY_RECORD_EXECUTION_ASSERTS", gExecutionAsserts);
+  ParseJSFilters("RECORD_REPLAY_RECORD_JS_ASSERTS", gJSAsserts);
 
   gInitialized = true;
 }

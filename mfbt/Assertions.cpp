@@ -20,7 +20,7 @@ MFBT_DATA const char* gMozCrashReason = nullptr;
 
 static char sPrintfCrashReason[sPrintfCrashReasonSize] = {};
 
-// Accesses to this atomic are not included in web replay recordings, so that
+// Accesses to this atomic are not included in recordings, so that
 // if we crash in an area where recorded events are not allowed the true reason
 // for the crash is not obscured by a record/replay error.
 static mozilla::Atomic<bool, mozilla::SequentiallyConsistent,

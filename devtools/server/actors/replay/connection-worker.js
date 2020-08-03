@@ -5,7 +5,7 @@
 
 "use strict";
 
-// Main socket for communicating with the Web Replay cloud service.
+// Main socket for communicating with the Record Replay cloud service.
 let gServerSocket;
 
 let gConfig;

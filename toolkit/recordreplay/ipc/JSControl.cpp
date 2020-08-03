@@ -308,7 +308,7 @@ void SendRecordingData(size_t aOffset, const uint8_t* aData, size_t aLength,
 
 void OnTestCommand(const char* aString) {
   // Ignore commands to finish the current test if we aren't recording/replaying.
-  if (!strcmp(aString, "WebReplaySendAsyncMessage RecordingFinished") &&
+  if (!strcmp(aString, "RecReplaySendAsyncMessage RecordingFinished") &&
       !IsRecordingOrReplaying()) {
     return;
   }

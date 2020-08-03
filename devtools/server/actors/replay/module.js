@@ -304,7 +304,7 @@ function SendRecordingData(pid, offset, length, buf, totalLength, duration) {
 function OnTestCommand(str) {
   const [_, cmd, arg] = /(.*?) (.*)/.exec(str);
   switch (cmd) {
-    case "WebReplaySendAsyncMessage":
+    case "RecReplaySendAsyncMessage":
       Services.cpmm.sendAsyncMessage(arg);
       break;
     default:

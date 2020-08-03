@@ -264,7 +264,7 @@ class RacyFeatures {
 
   // We combine the active bit with the feature bits so they can be read or
   // written in a single atomic operation. Accesses to this atomic are not
-  // recorded by web replay as they may occur at non-deterministic points.
+  // recorded as they may occur at non-deterministic points.
   static mozilla::Atomic<uint32_t, mozilla::MemoryOrdering::Relaxed,
                          recordreplay::Behavior::DontPreserve>
       sActiveAndFeatures;

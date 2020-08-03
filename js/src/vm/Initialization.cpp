@@ -212,22 +212,22 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
 
 #ifndef XP_WIN
   if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    if (getenv("WEBREPLAY_RECORD_EXECUTION_ASSERTS") ||
+    if (getenv("RECORD_REPLAY_RECORD_EXECUTION_ASSERTS") ||
         mozilla::recordreplay::IsReplaying()) {
       void* hook = dlsym(RTLD_DEFAULT, "RecordReplayInterface_ExecutionProgressHook");
       ExecutionProgressHook = mozilla::BitwiseCast<void(*)(const char*, unsigned, unsigned)>(hook);
     }
     void* shouldEmit = dlsym(RTLD_DEFAULT, "RecordReplayInterface_ShouldEmitRecordReplayAssert");
     ShouldEmitRecordReplayAssertCallback = mozilla::BitwiseCast<bool(*)(const char*, unsigned, unsigned)>(shouldEmit);
-    if (getenv("WEBREPLAY_RECORD_DATA_BUFFERS")) {
+    if (getenv("RECORD_REPLAY_RECORD_DATA_BUFFERS")) {
       gRecordDataBuffers = true;
     }
   }
   // This option is used for shell testing of assertion instrumentation.
-  if (getenv("WEBREPLAY_FORCE_EMIT_EXECUTION_PROGRESS")) {
+  if (getenv("RECORD_REPLAY_FORCE_EMIT_EXECUTION_PROGRESS")) {
     gForceEmitExecutionProgress = true;
   }
-  if (getenv("WEBREPLAY_FORCE_RECORD_JS_ASSERTS")) {
+  if (getenv("RECORD_REPLAY_FORCE_RECORD_JS_ASSERTS")) {
     gForceEmitRecordReplayAsserts = true;
   }
 #endif

@@ -8277,7 +8277,7 @@ AbortReasonOr<Ok> IonBuilder::loadStaticSlot(JSObject* staticObject,
 // Whether a write of the given value may need a post-write barrier for GC
 // purposes.
 bool IonBuilder::needsPostBarrier(MDefinition* value) {
-  // Generational GC is disabled for WebReplay.
+  // Generational GC is disabled when recording/replaying.
   if (mozilla::recordreplay::IsRecordingOrReplaying()) {
     return false;
   }

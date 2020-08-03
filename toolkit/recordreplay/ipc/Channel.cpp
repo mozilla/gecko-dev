@@ -27,7 +27,7 @@ static void GetSocketAddress(struct sockaddr_un* addr,
                              base::ProcessId aMiddlemanPid, size_t aId) {
   addr->sun_family = AF_UNIX;
   int n = snprintf(addr->sun_path, sizeof(addr->sun_path),
-                   "/tmp/WebReplay_%d_%d", aMiddlemanPid, (int)aId);
+                   "/tmp/RecordReplay_%d_%d", aMiddlemanPid, (int)aId);
   MOZ_RELEASE_ASSERT(n >= 0 && n < (int)sizeof(addr->sun_path));
   addr->sun_len = SUN_LEN(addr);
 }

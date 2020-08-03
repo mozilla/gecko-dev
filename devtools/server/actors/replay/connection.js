@@ -37,7 +37,7 @@ function Initialize(callbacks) {
 
   let address = Services.prefs.getStringPref("devtools.recordreplay.cloudServer");
 
-  const override = getenv("WEBREPLAY_SERVER");
+  const override = getenv("RECORD_REPLAY_SERVER");
   if (override) {
     address = override;
   }
@@ -67,8 +67,8 @@ function getenv(name) {
 
 async function loadAssertionFilters() {
   const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
-  if (env.get("WEBREPLAY_RECORD_EXECUTION_ASSERTS") ||
-      env.get("WEBREPLAY_RECORD_JS_ASSERTS")) {
+  if (env.get("RECORD_REPLAY_RECORD_EXECUTION_ASSERTS") ||
+      env.get("RECORD_REPLAY_RECORD_JS_ASSERTS")) {
     // Use the values from the current environment.
     return;
   }
@@ -80,8 +80,8 @@ async function loadAssertionFilters() {
 
   const { execution, values } = filters;
 
-  env.set("WEBREPLAY_RECORD_EXECUTION_ASSERTS", stringify([...execution, ...values]));
-  env.set("WEBREPLAY_RECORD_JS_ASSERTS", stringify(values));
+  env.set("RECORD_REPLAY_RECORD_EXECUTION_ASSERTS", stringify([...execution, ...values]));
+  env.set("RECORD_REPLAY_RECORD_JS_ASSERTS", stringify(values));
 
   function stringify(asserts) {
     let text = "";

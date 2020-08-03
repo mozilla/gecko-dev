@@ -144,7 +144,7 @@ class BaseProcessLauncher {
 
     // Compute the serial event target we'll use for launching.
     if (mozilla::recordreplay::IsMiddleman()) {
-      // During Web Replay, the middleman process launches the actual content
+      // The middleman process launches the actual content
       // processes, and doesn't initialize enough of XPCOM to use thread pools.
       mLaunchThread = IOThread();
     } else {

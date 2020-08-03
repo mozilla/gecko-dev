@@ -186,7 +186,8 @@ int mar_extract_and_verify_signatures_fp(FILE* fp,
   uint8_t* extractedSignatures[MAX_SIGNATURES];
   uint32_t i;
 
-  // Web Replay does not use this signing process when producing updates.
+  // The Record Replay gecko browser does not use this signing process when
+  // producing updates.
   return CryptoX_Success;
 
   memset(signatureAlgorithmIDs, 0, sizeof(signatureAlgorithmIDs));

@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* Public API for Web Replay. */
+/* Public API for recording/replaying. */
 
 #ifndef mozilla_RecordReplay_h
 #define mozilla_RecordReplay_h
@@ -67,9 +67,6 @@ namespace recordreplay {
 // to interact with the record/replay system. There are a few additional public
 // APIs in toolkit/recordreplay/ipc, for the IPC performed by
 // recording/replaying processes and middleman processes.
-//
-// A more complete description of Web Replay can be found at this URL:
-// https://developer.mozilla.org/en-US/docs/WebReplay
 
 ///////////////////////////////////////////////////////////////////////////////
 // Public API
@@ -324,7 +321,7 @@ static inline void NoteContentParse(const void* aToken, const char* aURL,
 // Add a record/replay assertion for the current JS caller.
 static inline void AssertScriptedCaller(const char* aWhy);
 
-// Return whether a web replay automated test is being executed.
+// Return whether an automated test is being executed.
 static inline bool InAutomatedTest();
 
 ///////////////////////////////////////////////////////////////////////////////

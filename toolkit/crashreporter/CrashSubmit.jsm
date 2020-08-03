@@ -127,7 +127,7 @@ function getPendingMinidump(id) {
 
 async function synthesizeExtraFile(extra) {
   let url =
-    "ServerURL=https://crash-reports.webreplay.io:8002/submit?id=" +
+    "ServerURL=https://crash-reports.replay.io:8002/submit?id=" +
     Services.appinfo.ID +
     "&version=" +
     Services.appinfo.version +
@@ -252,7 +252,7 @@ Submitter.prototype = {
 
     let formData = new FormData();
 
-    // When submitting Web Replay crash reports, only include keys of particular
+    // When submitting Record Replay crash reports, only include keys of particular
     // interest (none of which include personally identifiable information).
     const permittedKeys = [
       "RecordReplay",

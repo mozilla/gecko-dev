@@ -3306,7 +3306,7 @@ JSScript* CloneScriptIntoFunction(JSContext* cx, HandleScope enclosingScope,
 JSScript* CloneGlobalScript(JSContext* cx, ScopeKind scopeKind,
                             HandleScript src);
 
-// Web Replay hook optionally called when execution progress changes.
+// Record/replay hook optionally called when execution progress changes.
 extern void (*ExecutionProgressHook)(const char*, unsigned, unsigned);
 
 static inline void MaybeCallExecutionProgressHook(JSScript* aScript) {

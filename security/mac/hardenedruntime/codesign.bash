@@ -129,7 +129,7 @@ codesign --force -o runtime --verbose --sign "$IDENTITY" --deep \
 # Sign firefox main exectuable
 codesign --force -o runtime --verbose --sign "$IDENTITY" --deep \
 --entitlements ${BROWSER_ENTITLEMENTS_FILE} \
-"${BUNDLE}"/Contents/MacOS/webreplay
+"${BUNDLE}"/Contents/MacOS/recordreplay-gecko
 
 # Sign gmp-clearkey files
 find "${BUNDLE}"/Contents/Resources/gmp-clearkey -type f -exec \
