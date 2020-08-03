@@ -71,7 +71,7 @@ function updateRecordings(recordings) {
 
 function makeRecordingElement(template, desc) {
   const { recordingId, url, title, date, duration, lastScreenData } = desc;
-  const recordingUrl = `https://webreplay.io/view?id=${recordingId}`;
+  const recordingUrl = `https://replay.io/view?id=${recordingId}`;
   const newRow = document.importNode(template.content, true);
   newRow.querySelector(".title").innerText = formatString(title);
   // newRow.querySelector(".url").innerText = formatString(url);

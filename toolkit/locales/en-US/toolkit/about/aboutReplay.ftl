@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-about-webreplay-title = Web Replay Status
+about-replay-title = Replay Status
 saved-recordings = Saved Recordings
 nothing-saved = Nothing Saved
 copy-link = Copy Link

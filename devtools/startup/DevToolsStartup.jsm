@@ -1631,7 +1631,7 @@ function viewRecordings() {
 }
 
 function cloudStatusToFatalError(status) {
-  // Not all cloud status options are exposed in about:webreplay errors.
+  // Not all cloud status options are exposed in about:replay errors.
   switch (status) {
     case "cloudUpdateNeeded.label": return "CloudUpdateNeeded";
     case "cloudUpdateDownloading.label": return "CloudUpdateDownloading";

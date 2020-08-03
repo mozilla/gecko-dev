@@ -15,7 +15,7 @@ body, html {
 }
 
 #logo {
-  background-image: url('chrome://global/content/aboutWebReplay/assets/web-replay.svg');
+  background-image: url('chrome://global/content/aboutReplay/assets/replay.svg');
   width: 175px;
   height: 20px;
 }
@@ -106,11 +106,11 @@ img[src=""] {
 }
 
 .actions .copylink .icon {
-  mask-image: url('chrome://global/content/aboutWebReplay/assets/link.svg');
+  mask-image: url('chrome://global/content/aboutReplay/assets/link.svg');
 }
 
 .actions .remove .icon {
-  mask-image: url('chrome://global/content/aboutWebReplay/assets/trash.svg');
+  mask-image: url('chrome://global/content/aboutReplay/assets/trash.svg');
   width: 0.9rem;
 }
 

@@ -2,25 +2,25 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# NSIS branding defines for Web Replay
+# NSIS branding defines for the Record Replay browser
 
 # BrandFullNameInternal is used for some registry and file system values
 # instead of BrandFullName and typically should not be modified.
-!define BrandFullNameInternal "Web Replay"
-!define BrandFullName         "Web Replay"
-!define CompanyName           "webreplay.io"
-!define URLInfoAbout          "https://www.webreplay.io"
-!define HelpLink              "https://www.webreplay.io"
+!define BrandFullNameInternal "Replay"
+!define BrandFullName         "Replay"
+!define CompanyName           "replay.io"
+!define URLInfoAbout          "https://www.replay.io"
+!define HelpLink              "https://www.replay.io"
 
-!define URLStubDownloadX86 "https://www.webreplay.io"
-!define URLStubDownloadAMD64 "https://www.webreplay.io"
-!define URLStubDownloadAArch64 "https://www.webreplay.io"
-!define URLManualDownload "https://www.webreplay.io"
-!define URLSystemRequirements "https://www.webreplay.io"
+!define URLStubDownloadX86 "https://www.replay.io"
+!define URLStubDownloadAMD64 "https://www.replay.io"
+!define URLStubDownloadAArch64 "https://www.replay.io"
+!define URLManualDownload "https://www.replay.io"
+!define URLSystemRequirements "https://www.replay.io"
 !define Channel "release"
 
 # The installer's certificate name and issuer expected by the stub installer
-!define CertNameDownload   "Web Replay"
+!define CertNameDownload   "Replay"
 !define CertIssuerDownload "DigiCert SHA2 Assured ID Code Signing CA"
 
 # Dialog units are used so the UI displays correctly with the system's DPI
