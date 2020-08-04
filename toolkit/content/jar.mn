@@ -34,7 +34,7 @@ toolkit.jar:
    content/global/aboutReplay/aboutReplay.js (aboutReplay/aboutReplay.js)
    content/global/aboutReplay/index.html (aboutReplay/index.html)
    content/global/aboutReplay/aboutReplay.css (aboutReplay/aboutReplay.css)
-   content/global/aboutReplay/assets/web-replay.svg (aboutReplay/assets/web-replay.svg)
+   content/global/aboutReplay/assets/replay.svg (aboutReplay/assets/replay.svg)
    content/global/aboutReplay/assets/link.svg (aboutReplay/assets/link.svg)
    content/global/aboutReplay/assets/trash.svg (aboutReplay/assets/trash.svg)
    content/global/plugins.html
