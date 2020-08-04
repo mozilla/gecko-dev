@@ -801,7 +801,8 @@ already_AddRefed<nsIEventTarget> IToplevelProtocol::GetMessageEventTarget(
     const Message& aMsg) {
   int32_t route = aMsg.routing_id();
 
-  recordreplay::RecordReplayAssert("IToplevelProtocol::GetMessageEventTarget %d", route);
+  recordreplay::RecordReplayAssert("IToplevelProtocol::GetMessageEventTarget %d %s",
+                                   route, IPC::StringFromIPCMessageType(aMsg.type()));
 
   Maybe<MutexAutoLock> lock;
   lock.emplace(mEventTargetMutex);

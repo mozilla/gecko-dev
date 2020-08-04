@@ -268,7 +268,8 @@ void Stream::RecordOrReplayThreadEvent(ThreadEvent aEvent, const char* aExtra) {
           }
           progress = *ExecutionProgressCounter();
         }
-        Print("Error: Recording Event Mismatch: Recorded %s %s %llu Replayed %s %s %llu\n",
+        Print("Error: Recording Event Mismatch [Thread %lu]: Recorded %s %s %llu Replayed %s %s %llu\n",
+              mNameIndex,
               ThreadEventName(oldEvent), extra.get(), oldProgress.isSome() ? *oldProgress : 0,
               ThreadEventName(aEvent), aExtra ? aExtra : "", progress);
         DumpEvents();

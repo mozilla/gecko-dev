@@ -3795,6 +3795,8 @@ mozilla::ipc::IPCResult ContentChild::RecvSessionStorageData(
 
 already_AddRefed<nsIEventTarget> ContentChild::GetSpecificMessageEventTarget(
     const Message& aMsg) {
+  recordreplay::RecordReplayAssert("ContentChild::GetSpecificMessageEventTarget");
+
   switch (aMsg.type()) {
     // Javascript
     case PJavaScript::Msg_DropTemporaryStrongReferences__ID:

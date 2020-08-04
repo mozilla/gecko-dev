@@ -114,8 +114,8 @@ bool RealmInstrumentation::install(JSContext* cx, Handle<GlobalObject*> global,
   MOZ_ASSERT(global == cx->global());
 
   if (global->getInstrumentationHolder()) {
-    JS_ReportErrorASCII(cx, "Global already has instrumentation specified");
-    return false;
+    // Ignore duplicate installs.
+    return true;
   }
 
   RootedObject callback(cx, callbackArg);
