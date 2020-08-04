@@ -220,7 +220,10 @@ class Localization {
    * @returns {Localization}
    */
   constructor(resourceIds = [], sync = false, generateBundles = defaultGenerateBundles, generateBundlesSync = defaultGenerateBundlesSync) {
-    this.isSync = sync;
+    // Trying to localize resources asynchronously is broken in the Record Replay
+    // browser for an unknown reason.
+    this.isSync = true;
+    //this.isSync = sync;
     this.resourceIds = resourceIds;
     this.generateBundles = generateBundles;
     this.generateBundlesSync = generateBundlesSync;
