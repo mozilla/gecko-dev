@@ -5,7 +5,7 @@
 MOZ_APP_NAME="recordreplay-gecko"
 MOZ_APP_BASENAME="Replay"
 MOZ_APP_DISPLAYNAME="Replay"
-MOZ_APP_VENDOR="Record Replay Inc."
+MOZ_APP_VENDOR="RecordReplayInc"
 MOZ_APP_VERSION="0.1"
 MOZ_APP_VERSION_DISPLAY="0.1"
 
