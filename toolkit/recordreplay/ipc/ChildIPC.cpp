@@ -1141,7 +1141,7 @@ void FinishRecording() {
 }  // namespace child
 
 void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetEvent& aEvent) {
-  if (aEvent.mClass == eMouseEventClass) {
+  if (aEvent.mClass == eMouseEventClass && GetLastCheckpoint()) {
     js::OnMouseEvent(CurrentRecordingTime(), ToChar(aEvent.mMessage),
                      aEvent.mRefPoint.x, aEvent.mRefPoint.y);
   }
