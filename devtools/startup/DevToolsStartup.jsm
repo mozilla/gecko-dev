@@ -1591,12 +1591,16 @@ async function reloadAndStopRecordingTab(gBrowser) {
     extra += `&test=${localTest}`;
   }
 
+  const oldURL = gBrowser.currentURI.spec;
   const url = `${viewHost}/view?id=${recordingId}${extra}`;
-  const tab = gBrowser.selectedTab;
-  gBrowser.selectedTab = gBrowser.addWebTab(url, {
-    index: tab._tPos + 1,
+
+  gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
+    recordExecution: undefined,
+    newFrameloader: true,
+    remoteType: E10SUtils.WEB_REMOTE_TYPE,
   });
-  gBrowser.removeTab(tab);
+  const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+  gBrowser.loadURI(url, { triggeringPrincipal, oldRecordedURL: oldURL });
 }
 
 // See also aboutRecordings.js

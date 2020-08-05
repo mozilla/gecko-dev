@@ -648,7 +648,7 @@ function updateFxaToolbarMenu(enable, isInitialUpdate = false) {
   }
 }
 
-function UpdateBackForwardCommands(aWebNavigation) {
+function UpdateBackForwardCommands(aWebNavigation, aBrowser) {
   var backCommand = document.getElementById("Browser:Back");
   var forwardCommand = document.getElementById("Browser:Forward");
 
@@ -657,9 +657,25 @@ function UpdateBackForwardCommands(aWebNavigation) {
   // get inherited into anonymous content, broadcast to other widgets, etc.!
   // Don't do it if the value hasn't changed! - dwh
 
+  let canGoBack = aWebNavigation.canGoBack;
+  let canGoForward = aWebNavigation.canGoForward;
+
+  if (aBrowser.recordingInfo) {
+    try {
+      const currentURL = gBrowser.currentURI.spec;
+      const { recordedURL, viewURL } = aBrowser.recordingInfo;
+      if (currentURL == recordedURL) {
+        canGoForward = true;
+      }
+      if (currentURL == viewURL) {
+        canGoBack = true;
+      }
+    } catch (e) {}
+  }
+
   var backDisabled = backCommand.hasAttribute("disabled");
   var forwardDisabled = forwardCommand.hasAttribute("disabled");
-  if (backDisabled == aWebNavigation.canGoBack) {
+  if (backDisabled == canGoBack) {
     if (backDisabled) {
       backCommand.removeAttribute("disabled");
     } else {
@@ -667,7 +683,7 @@ function UpdateBackForwardCommands(aWebNavigation) {
     }
   }
 
-  if (forwardDisabled == aWebNavigation.canGoForward) {
+  if (forwardDisabled == canGoForward) {
     if (forwardDisabled) {
       forwardCommand.removeAttribute("disabled");
     } else {
@@ -1455,6 +1471,22 @@ function _createNullPrincipalFromTabUserContextId(tab = gBrowser.selectedTab) {
 // A shared function used by both remote and non-remote browser XBL bindings to
 // load a URI or redirect it to the correct process.
 function _loadURI(browser, uri, params = {}) {
+  // When stopping a recording and loading the viewer, we lose session history
+  // and can't go back to the recorded URL. Rather than get the C++ session
+  // history to have the right state (pretty complicated) we monkey patch things
+  // here and allow going back and forward between the recorded URL and view URL.
+  // This doesn't handle all aspects of session history, and when navigating to
+  // a third URL we drop this information.
+  if (params.oldRecordedURL) {
+    dump(`SET_RECORDING_INFO\n`);
+    browser.recordingInfo = { recordedURL: params.oldRecordedURL, viewURL: uri };
+  } else if (browser.recordingInfo) {
+    const { recordedURL, viewURL } = browser.recordingInfo;
+    if (uri != recordedURL && uri != viewURL) {
+      browser.recordingInfo = null;
+    }
+  }
+
   if (!uri) {
     uri = "about:blank";
   }
@@ -2716,10 +2748,34 @@ function gotoHistoryIndex(aEvent) {
   return true;
 }
 
+// Loading URLs this way does not preserve their session history, so we don't
+// get confusing behavior when going back and forth between the recorded and
+// view URLs.
+function loadURLWithNewLoader(url) {
+  const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+  let remoteType = E10SUtils.getRemoteTypeForURI(
+    url,
+    /* aMultiProcess */ true,
+    /* aRemoteSubframes */ false,
+    /* aPreferredRemoteType */ undefined,
+    /* aCurrentUri */ null
+  );
+  gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
+    newFrameloader: true,
+    remoteType,
+  });
+  gBrowser.loadURI(url, { triggeringPrincipal });
+}
+
 function BrowserForward(aEvent) {
   let where = whereToOpenLink(aEvent, false, true);
 
   if (where == "current") {
+    const { recordingInfo } = gBrowser.selectedBrowser;
+    if (recordingInfo) {
+      loadURLWithNewLoader(recordingInfo.viewURL);
+      return;
+    }
     try {
       gBrowser.goForward();
     } catch (ex) {}
@@ -2732,6 +2788,11 @@ function BrowserBack(aEvent) {
   let where = whereToOpenLink(aEvent, false, true);
 
   if (where == "current") {
+    const { recordingInfo } = gBrowser.selectedBrowser;
+    if (recordingInfo) {
+      loadURLWithNewLoader(recordingInfo.recordedURL);
+      return;
+    }
     try {
       gBrowser.goBack();
     } catch (ex) {}
@@ -5369,7 +5430,7 @@ var XULBrowserWindow = {
       CFRPageActions.updatePageActions(gBrowser.selectedBrowser);
     }
     Services.obs.notifyObservers(null, "touchbar-location-change", location);
-    UpdateBackForwardCommands(gBrowser.webNavigation);
+    UpdateBackForwardCommands(gBrowser.webNavigation, gBrowser.selectedBrowser);
     ReaderParent.updateReaderButton(gBrowser.selectedBrowser);
 
     if (!gMultiProcessBrowser) {
