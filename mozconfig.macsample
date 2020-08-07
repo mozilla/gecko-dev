@@ -1,0 +1,10 @@
+. $topsrcdir/browser/config/mozconfig
+
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/wr-opt
+mk_add_options MOZ_MAKE_FLAGS="-j12"
+mk_add_options AUTOCLOBBER=1
+
+ac_add_options --with-macos-sdk=$topsrcdir/MacOSX10.11.sdk
+ac_add_options --with-branding=browser/branding/recordreplay
+ac_add_options --enable-replace-malloc
+
