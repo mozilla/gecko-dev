@@ -1,18 +1,17 @@
 This branch contains modifications to the mozilla:release branch for compiling
 the Record Replay gecko based browser.
 
-Sample mozconfig for macOS:
+### Getting started:
 
-BEGIN
+**Mac OSX**
 
-. $topsrcdir/browser/config/mozconfig
+1. `cp mozconfig.macsample mozconfig` 
+2. untar `MacOSX10.11.sdk.tar.xz`
+3. run `./mach bootstrap` and select (2) Firefox Desktop
+4. run `./mach build`
 
-mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/wr-opt
-mk_add_options MOZ_MAKE_FLAGS="-j12"
-mk_add_options AUTOCLOBBER=1
+**Other OS**
 
-ac_add_options --with-macos-sdk=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk
-ac_add_options --with-branding=browser/branding/recordreplay
-ac_add_options --enable-replace-malloc
-
-END
+1. `cp mozconfig.sample mozconfig` 
+2. run `./mach bootstrap` and select (2) Firefox Desktop
+3. run `./mach build`

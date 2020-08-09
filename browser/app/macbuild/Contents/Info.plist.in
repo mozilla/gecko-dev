@@ -163,7 +163,7 @@
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
-	<string>recordreplay-gecko</string>
+	<string>replay</string>
 	<key>CFBundleGetInfoString</key>
 	<string>%MAC_APP_NAME% %APP_VERSION%</string>
 	<key>CFBundleIconFile</key>
