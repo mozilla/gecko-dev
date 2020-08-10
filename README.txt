@@ -7,7 +7,7 @@ BEGIN
 
 . $topsrcdir/browser/config/mozconfig
 
-mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/wr-opt
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/rr-opt
 mk_add_options MOZ_MAKE_FLAGS="-j12"
 mk_add_options AUTOCLOBBER=1
 

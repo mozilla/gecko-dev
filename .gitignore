@@ -167,3 +167,5 @@ lextab.py
 !.vscode/extensions.json
 !.vscode/tasks.json
 
+MacOSX10.11.sdk
+wr-opt/
