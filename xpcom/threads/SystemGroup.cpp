@@ -72,10 +72,14 @@ nsresult SystemGroup::Dispatch(TaskCategory aCategory,
 
 /* static */
 nsISerialEventTarget* SystemGroup::EventTargetFor(TaskCategory aCategory) {
+  return GetMainThreadSerialEventTarget();
+  // Disabled, this seems to race and has since been removed in m-c.
+  /*
   if (!SystemGroupImpl::Initialized()) {
     return GetMainThreadSerialEventTarget();
   }
   return SystemGroupImpl::Get()->EventTargetFor(aCategory);
+  */
 }
 
 /* static */
