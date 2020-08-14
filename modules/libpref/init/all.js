@@ -842,7 +842,7 @@ pref("toolkit.dump.emit", false);
 pref("devtools.recordreplay.cloudServer", "wss://dispatch.replay.io");
 
 // Whether to upload source maps and original sources to the cloud server.
-pref("devtools.recordreplay.uploadSourceMaps", false);
+pref("devtools.recordreplay.uploadSourceMaps", true);
 
 // Preferences for the new performance panel.
 // This pref configures the base URL for the profiler.firefox.com instance to
