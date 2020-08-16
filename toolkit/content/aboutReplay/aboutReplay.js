@@ -103,7 +103,9 @@ function makeRecordingElement(template, desc) {
   newRow.querySelector(".remove")?.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    updateRecordings(gRecordings.filter((item) => item.recordingId != recordingId));
+    updateRecordings(
+      gRecordings.filter((item) => item.recordingId != recordingId)
+    );
   });
 
   return newRow;
