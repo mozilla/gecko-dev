@@ -4421,6 +4421,8 @@ var DefaultBrowserCheck = {
    * @returns {boolean} True if the default browser check prompt will be shown.
    */
   async willCheckDefaultBrowser(isStartupCheck) {
+    return false;
+    
     // Perform default browser checking.
     if (!ShellService) {
       return false;
