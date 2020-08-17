@@ -16,12 +16,13 @@ body, html {
 
 #logo {
   background-image: url('chrome://global/content/aboutReplay/assets/replay.svg');
-  width: 175px;
-  height: 20px;
+  width: 20px;
+  height: 16px;
+  background-size: contain;
 }
 
 header {
-  height: 50px;
+  height: 30px;
   display: flex;
   padding: 0 1rem;
   align-items: center;
