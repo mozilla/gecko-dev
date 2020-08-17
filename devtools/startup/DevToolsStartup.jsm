@@ -1578,11 +1578,17 @@ async function reloadAndStopRecordingTab(gBrowser) {
     viewHost = hostOverride;
   }
 
-  // For testing, allow specifying the dispatcher to connect to.
+  // Find the dispatcher to connect to.
+  let dispatchAddress = env.get("RECORD_REPLAY_SERVER");
+  if (!dispatchAddress) {
+    dispatchAddress = Services.prefs.getStringPref("devtools.recordreplay.cloudServer");
+  }
+
   let extra = "";
-  const dispatchOverride = env.get("RECORD_REPLAY_SERVER");
-  if (dispatchOverride) {
-    extra += `&dispatch=${dispatchOverride}`;
+
+  // Specify the dispatch address if it is not the default.
+  if (dispatchAddress != "wss://dispatch.replay.io") {
+    extra += `&dispatch=${dispatchAddress}`;
   }
 
   // For testing, allow specifying a test script to load in the tab.
