@@ -128,7 +128,8 @@ BytecodeEmitter::BytecodeEmitter(
     : BytecodeEmitter(parent, sc, script, lazyScript, line, column,
                       compilationInfo, emitterMode, fieldInitializers) {
   parser = handle;
-  instrumentationKinds = parser->options().instrumentationKinds;
+  //instrumentationKinds = parser->options().instrumentationKinds;
+  instrumentationKinds = RealmInstrumentation::getInstrumentationKinds(cx->global());
 }
 
 BytecodeEmitter::BytecodeEmitter(
@@ -140,7 +141,8 @@ BytecodeEmitter::BytecodeEmitter(
                       compilationInfo, emitterMode, fieldInitializers) {
   ep_.emplace(parser);
   this->parser = ep_.ptr();
-  instrumentationKinds = this->parser->options().instrumentationKinds;
+  //instrumentationKinds = this->parser->options().instrumentationKinds;
+  instrumentationKinds = RealmInstrumentation::getInstrumentationKinds(cx->global());
 }
 
 void BytecodeEmitter::initFromBodyPosition(TokenPos bodyPosition) {
