@@ -1799,6 +1799,8 @@ static MOZ_MUST_USE bool AsyncGeneratorPromiseReactionJob(
 static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  mozilla::recordreplay::RecordReplayAssert("PromiseReactionJob");
+
   RootedFunction job(cx, &args.callee().as<JSFunction>());
 
   // Promise reactions don't return any value.
