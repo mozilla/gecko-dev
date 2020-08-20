@@ -5,80 +5,68 @@
 
 "use strict";
 
-// Main socket for communicating with the Record Replay cloud service.
-let gServerSocket;
-
-let gConfig;
+// Sockets for communicating with the Record Replay cloud service.
+const gUploadSockets = new Map();
 
 self.addEventListener("message", makeInfallible(onMainThreadMessage));
 
 function onMainThreadMessage({ data }) {
   switch (data.kind) {
-    case "initialize":
-      gConfig = data;
-      openServerSocket();
+    case "openChannel":
+      openUploadSocket(data.id, data.address);
       break;
     case "sendCommand":
-      doSend(gServerSocket, JSON.stringify(data.command));
+      gUploadSockets.get(data.id).send(JSON.stringify(data.command));
       break;
-    case "sendUploadCommand":
-      getUploadSocket(data.pid, data.url).send(JSON.stringify(data.command));
+    case "sendBinaryData":
+      gUploadSockets.get(data.id).send(data.buf);
       break;
-    case "sendUploadBinaryData":
-      getUploadSocket(data.pid).send(data.buf);
-      break;
-    case "stopUpload":
-      destroyUploadSocket(data.pid);
+    case "closeChannel":
+      destroyUploadSocket(data.id);
       break;
     default:
       postError(`Unknown event kind ${data.kind}`);
   }
 }
 
-function openServerSocket() {
-  gServerSocket = new WebSocket(gConfig.address);
-  gServerSocket.onopen = makeInfallible(onServerOpen);
-  gServerSocket.onclose = makeInfallible(onServerClose);
-  gServerSocket.onmessage = makeInfallible(onServerMessage);
-  gServerSocket.onerror = makeInfallible(onServerError);
-}
-
 // Every upload uses its own socket. This allows other communication with the
 // cloud service even if the upload socket has a lot of pending data to send.
-function UploadSocket(url) {
-  let address = gConfig.address;
-  if (gConfig.altPattern && url && url.includes(gConfig.altPattern)) {
-    address = gConfig.altAddress;
-  }
-
-  this.socket = new WebSocket(address);
-  this.socket.onopen = makeInfallible(() => this.onOpen());
-  this.socket.onclose = makeInfallible(() => this.onClose());
-  this.socket.onmessage = makeInfallible(onServerMessage);
-  this.socket.onerror = makeInfallible(() => this.onError());
-
+function UploadSocket(address) {
+  this.address = address;
   this.open = false;
   this.pending = [];
-
   this.closed = false;
+
+  this.initialize();
 }
 
 UploadSocket.prototype = {
+  initialize() {
+    this.socket = new WebSocket(this.address);
+    this.socket.onopen = makeInfallible(() => this.onOpen());
+    this.socket.onclose = makeInfallible(() => this.onClose());
+    this.socket.onmessage = makeInfallible(onServerMessage);
+    this.socket.onerror = makeInfallible(() => this.onError());
+  },
+
   onOpen() {
     this.open = true;
     this.pending.forEach(msg => doSend(this.socket, msg));
     this.pending.length = 0;
+
+    updateStatus("");
   },
 
   onClose() {
     if (!this.closed) {
-      onServerClose();
+      updateStatus("cloudReconnecting.label");
+      setTimeout(() => this.initialize(), 3000);
     }
   },
 
   onError() {
     if (!this.closed) {
-      onServerError();
+      updateStatus("cloudError.label");
     }
   },
 
@@ -96,41 +84,19 @@ UploadSocket.prototype = {
   },
 };
 
-const gUploadSockets = new Map();
-
-function getUploadSocket(pid, url) {
-  if (!gUploadSockets.has(pid)) {
-    gUploadSockets.set(pid, new UploadSocket(url));
-  }
-  return gUploadSockets.get(pid);
+function openUploadSocket(id, address) {
+  gUploadSockets.set(id, new UploadSocket(address));
 }
 
-function destroyUploadSocket(pid) {
-  if (gUploadSockets.has(pid)) {
-    gUploadSockets.get(pid).close();
-    gUploadSockets.delete(pid);
+function destroyUploadSocket(id) {
+  if (gUploadSockets.has(id)) {
+    gUploadSockets.get(id).close();
+    gUploadSockets.delete(id);
   }
 }
 
 function updateStatus(status) {
   postMessage({ kind: "updateStatus", status });
-}
-
-function sendMessageToCloudServer(msg) {
-  gServerSocket.send(JSON.stringify(msg));
-}
-
-function onServerOpen(evt) {
-  updateStatus("");
-}
-
-function onServerClose() {
-  updateStatus("cloudReconnecting.label");
-  setTimeout(openServerSocket, 3000);
-}
-
-function onServerError() {
-  updateStatus("cloudError.label");
 }
 
 function onServerMessage(evt) {
@@ -153,4 +119,8 @@ function makeInfallible(fn, thisv) {
       postError(e);
     }
   };
+}
+
+function postError(msg) {
+  dump(`Error: ${msg}\n`);
 }
