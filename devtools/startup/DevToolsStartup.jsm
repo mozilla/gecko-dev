@@ -1370,7 +1370,12 @@ const JsonView = {
   },
 };
 
-var EXPORTED_SYMBOLS = ["DevToolsStartup", "validateProfilerWebChannelUrl", "onFinishedRecording"];
+var EXPORTED_SYMBOLS = [
+  "DevToolsStartup",
+  "validateProfilerWebChannelUrl",
+  "onFinishedRecording",
+  "setNextRecordingURLCallback",
+];
 
 // Record Replay stuff.
 
@@ -1498,8 +1503,21 @@ async function runTestScript() {
   eval(text);
 }
 
+// Recording processes don't initially know the final URL they will be
+// recording, so we use this awkward callback to notify the connection system
+// when we start loading a tab so that it can use the right dispatch server.
+let gNextRecordingURLCallback;
+
+function setNextRecordingURLCallback(callback) {
+  gNextRecordingURLCallback = callback;
+}
+
 function reloadAndRecordTab(gBrowser) {
   let url = gBrowser.currentURI.spec;
+
+  if (gNextRecordingURLCallback) {
+    gNextRecordingURLCallback(url);
+  }
 
   let remoteType = E10SUtils.getRemoteTypeForURI(
     url,
