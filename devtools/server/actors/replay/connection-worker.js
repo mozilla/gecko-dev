@@ -22,7 +22,7 @@ function onMainThreadMessage({ data }) {
       doSend(gServerSocket, JSON.stringify(data.command));
       break;
     case "sendUploadCommand":
-      getUploadSocket(data.pid).send(JSON.stringify(data.command));
+      getUploadSocket(data.pid, data.url).send(JSON.stringify(data.command));
       break;
     case "sendUploadBinaryData":
       getUploadSocket(data.pid).send(data.buf);
@@ -45,8 +45,13 @@ function openServerSocket() {
 
 // Every upload uses its own socket. This allows other communication with the
 // cloud service even if the upload socket has a lot of pending data to send.
-function UploadSocket() {
-  this.socket = new WebSocket(gConfig.address);
+function UploadSocket(url) {
+  let address = gConfig.address;
+  if (gConfig.altPattern && url && url.includes(gConfig.altPattern)) {
+    address = gConfig.altAddress;
+  }
+
+  this.socket = new WebSocket(address);
   this.socket.onopen = makeInfallible(() => this.onOpen());
   this.socket.onclose = makeInfallible(() => this.onClose());
   this.socket.onmessage = makeInfallible(onServerMessage);
@@ -93,9 +98,9 @@ UploadSocket.prototype = {
 
 const gUploadSockets = new Map();
 
-function getUploadSocket(pid) {
+function getUploadSocket(pid, url) {
   if (!gUploadSockets.has(pid)) {
-    gUploadSockets.set(pid, new UploadSocket());
+    gUploadSockets.set(pid, new UploadSocket(url));
   }
   return gUploadSockets.get(pid);
 }

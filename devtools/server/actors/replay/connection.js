@@ -9,7 +9,10 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 const { setTimeout } = Components.utils.import('resource://gre/modules/Timer.jsm');
-const { onFinishedRecording } = ChromeUtils.import("resource:///modules/DevToolsStartup.jsm");
+const {
+  onFinishedRecording,
+  setNextRecordingURLCallback,
+} = ChromeUtils.import("resource:///modules/DevToolsStartup.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
@@ -42,8 +45,15 @@ function Initialize(callbacks) {
     address = override;
   }
 
+  // During automated tests, sometimes we want to use different dispatchers
+  // depending on the recording URL, e.g. to use a dispatcher on the localhost
+  // for the pages being tested but the normal dispatcher for recordings of the
+  // devtools viewer itself.
+  let altAddress = getenv("RECORD_REPLAY_ALTERNATE_SERVER");
+  let altPattern = getenv("RECORD_REPLAY_ALTERNATE_SERVER_PATTERN");
+
   const buildId = `macOS-${Services.appinfo.appBuildID}`;
-  gWorker.postMessage({ kind: "initialize", address, buildId });
+  gWorker.postMessage({ kind: "initialize", address, altAddress, altPattern, buildId });
 }
 
 function onMessage(evt) {
@@ -106,15 +116,20 @@ function sendCommand(method, params) {
   return waitForCommandResult(id);
 }
 
-function sendUploadCommand(pid, method, params) {
+function sendUploadCommand(pid, method, params, url) {
   const id = gNextMessageId++;
   gWorker.postMessage({
     kind: "sendUploadCommand",
     pid,
+    url,
     command: { id, method, params },
   });
   return waitForCommandResult(id);
 }
+
+// Keep track of the URL associated with each new recording.
+let gNextRecordingURL;
+setNextRecordingURLCallback(url => { gNextRecordingURL = url; });
 
 // Resolve hooks for promises waiting on a recording to be created.
 const gRecordingCreateWaiters = [];
@@ -136,7 +151,8 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
       const createPromise = sendUploadCommand(
         pid,
         "Internal.createRecording",
-        { buildId }
+        { buildId },
+        gNextRecordingURL
       );
       const info = {
         createPromise,
@@ -154,7 +170,7 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
     }
 
     if (first) {
-      ChromeUtils.recordReplayLog(`CreateRecording ${recordingId}`);
+      ChromeUtils.recordReplayLog(`CreateRecording ${recordingId} ${gNextRecordingURL}`);
 
       // For now, always start processing recordings as soon as they've been created.
       sendCommand("Recording.processRecording", { recordingId });
