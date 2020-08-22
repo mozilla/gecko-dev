@@ -912,6 +912,7 @@ enum class LogJSAPILevel {
   NoLogging = 0,
   TopLevelEnterExit = 1,
   AllEnterExit = 2,
+  ScanData = 3,
 };
 static LogJSAPILevel gLogJSAPI;
 
@@ -1429,6 +1430,11 @@ static bool RecordReplay_OnScriptHit(JSContext* aCx, unsigned aArgc,
     return true;
   }
 
+  if (gLogJSAPI == LogJSAPILevel::ScanData) {
+    child::PrintLog("ScriptHit %u %llu %u %u %u",
+                    GetLastCheckpoint(), gProgressCounter, script, offset, frameIndex);
+  }
+
   gScriptHits->AddHit(GetLastCheckpoint(), script, offset, frameIndex,
                       gProgressCounter);
   args.rval().setUndefined();
@@ -1478,9 +1484,21 @@ static bool RecordReplay_OnChangeFrame(JSContext* aCx, unsigned aArgc,
     if (Kind == ChangeFrameEnter && frameIndex) {
       // Find the last breakpoint hit in the calling frame.
       const AnyScriptHit& lastHit = gScriptHits->LastHit(frameIndex - 1);
+
+      if (gLogJSAPI == LogJSAPILevel::ScanData) {
+        child::PrintLog("CallSite %u %llu %u %u %u",
+                        GetLastCheckpoint(), lastHit.mProgress,
+                        lastHit.mScript, lastHit.mOffset, lastHit.mFrameIndex);
+      }
+
       gScriptHits->AddChangeFrame(GetLastCheckpoint(), ChangeFrameCall,
                                   lastHit.mScript, lastHit.mOffset,
                                   lastHit.mFrameIndex, lastHit.mProgress);
+    }
+
+    if (gLogJSAPI == LogJSAPILevel::ScanData) {
+      child::PrintLog("ChangeFrame %u %llu %u %u %u",
+                      GetLastCheckpoint(), gProgressCounter, (int)Kind, script, frameIndex);
     }
 
     gScriptHits->AddChangeFrame(GetLastCheckpoint(), Kind, script, 0, frameIndex,
