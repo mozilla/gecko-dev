@@ -192,8 +192,12 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
     if (first) {
       ChromeUtils.recordReplayLog(`CreateRecording ${recordingId} ${gNextRecordingURL}`);
 
-      // For now, always start processing recordings as soon as they've been created.
-      sendCommand(info.messageChannelId, "Recording.processRecording", { recordingId });
+      // Always start processing recordings as soon as they've been created,
+      // except when running automated tests (to reduce server load when we are
+      // recording the devtools viewer itself).
+      if (!getenv("RECORD_REPLAY_LOCAL_TEST")) {
+        sendCommand(info.messageChannelId, "Recording.processRecording", { recordingId });
+      }
     }
 
     const dataPromise = sendCommand(
