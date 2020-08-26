@@ -2361,6 +2361,10 @@ static SystemRedirection gSystemRedirections[] = {
     {"fseek", RR_SaveRvalHadErrorNegative},
     {"ftell", RR_SaveRvalHadErrorNegative},
     {"fwrite", RR_ScalarRval},
+    {"getnameinfo",
+     RR_Compose<RR_ScalarRval,
+                RR_WriteOptionalBuffer<2, 3>,
+                RR_WriteOptionalBuffer<4, 5>> },
     {"printf", RR_SaveRvalHadErrorNegative, nullptr, nullptr, Preamble_Veto<0>},
     {"setvbuf", RR_ScalarRval},
     {"getenv", RR_CStringRval, Preamble_getenv, nullptr, Preamble_Veto<0>},
@@ -2376,7 +2380,7 @@ static SystemRedirection gSystemRedirections[] = {
     {"gmtime", nullptr, Preamble_gmtime, nullptr, Preamble_PassThrough},
     {"mktime",
      RR_Compose<RR_ScalarRval, RR_OutParam<0, struct tm>>},
-    {"setlocale", RR_CStringRval},
+    {"setlocale", RR_CStringRval, nullptr, nullptr, Preamble_PassThrough},
     {"strftime", RR_Compose<RR_ScalarRval, RR_WriteBufferViaRval<0, 1, 1>>},
     {"arc4random", RR_ScalarRval, nullptr, nullptr, Preamble_PassThrough},
     {"arc4random_buf", RR_WriteBuffer<0, 1>},
@@ -3615,7 +3619,7 @@ void DirectDeleteFile(const char* aFilename) {
 void DirectWrite(FileHandle aFd, const void* aData, size_t aSize) {
   ssize_t rv =
       HANDLE_EINTR(CallFunction<int>(gOriginal_write, aFd, aData, aSize));
-  if (rv != aSize) {
+  if (rv != (ssize_t)aSize) {
     if (aFd != STDERR_FILENO) {
       Print("DirectWrite failed: %lu %d %d\n", aSize, (int) rv, errno);
       if (errno == ENOMEM) {
