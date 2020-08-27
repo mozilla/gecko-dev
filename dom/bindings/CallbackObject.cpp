@@ -97,8 +97,6 @@ void CallbackObject::Trace(JSTracer* aTracer) {
 }
 
 void CallbackObject::FinishSlowJSInitIfMoreThanOneOwner(JSContext* aCx) {
-  mozilla::recordreplay::RecordReplayAssert("CallbackObject::FinishSlowJSInitIfMoreThanOneOwner");
-
   MOZ_ASSERT(mRefCnt.get() > 0);
   if (mRefCnt.get() > 1) {
     mozilla::HoldJSObjects(this);
