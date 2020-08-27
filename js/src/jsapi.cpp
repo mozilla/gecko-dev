@@ -5987,8 +5987,6 @@ JS_PUBLIC_API bool JS::CaptureCurrentStack(
   CHECK_THREAD(cx);
   MOZ_RELEASE_ASSERT(cx->realm());
 
-  mozilla::recordreplay::RecordReplayAssert("CaptureCurrentStack");
-
   Realm* realm = cx->realm();
   Rooted<SavedFrame*> frame(cx);
   if (!realm->savedStacks().saveCurrentStack(cx, &frame, std::move(capture))) {
