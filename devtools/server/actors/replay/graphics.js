@@ -34,7 +34,9 @@ function setupContents(window) {
   canvas.style.position = "absolute";
   window.document.body.style.margin = "0px";
   window.document.body.prepend(canvas);
-  window.document.setSuppressedEventListener(ev => mouseEventListener(window, ev));
+  window.document.setSuppressedEventListener((ev) =>
+    mouseEventListener(window, ev)
+  );
 }
 
 function getCanvas(window) {
@@ -108,10 +110,7 @@ function mouseEventListener(window, event) {
     const y = event.clientY * window.devicePixelRatio;
 
     if (window.mouseHoveringOverWarning) {
-      if (x < canvas.width - 340 ||
-          y < 15 ||
-          x > canvas.width - 15 ||
-          y > 55) {
+      if (x < canvas.width - 340 || y < 15 || x > canvas.width - 15 || y > 55) {
         Services.cpmm.sendAsyncMessage("RecordReplayHidePointer");
         window.mouseHoveringOverWarning = false;
         refreshCanvas(window);
@@ -140,9 +139,7 @@ function drawOptions(cx, window, canvas, options) {
     return;
   }
 
-  const {
-    warning, loading, message
-  } = JSON.parse(options);
+  const { warning, loading, message } = JSON.parse(options);
 
   if (loading) {
     drawLoadingMessage(cx, canvas);
@@ -250,12 +247,20 @@ function ClearCanvas(options) {
 function RestoreSuppressedEventListener() {
   try {
     for (const window of Services.ww.getWindowEnumerator()) {
-      window.document.setSuppressedEventListener(ev => mouseEventListener(window, ev));
+      window.document.setSuppressedEventListener((ev) =>
+        mouseEventListener(window, ev)
+      );
     }
   } catch (e) {
-    console.error(`Middleman Graphics RestoreSuppressedEventListener Exception: ${e}\n`);
+    console.error(
+      `Middleman Graphics RestoreSuppressedEventListener Exception: ${e}\n`
+    );
   }
 }
 
 // eslint-disable-next-line no-unused-vars
-var EXPORTED_SYMBOLS = ["UpdateCanvas", "ClearCanvas", "RestoreSuppressedEventListener"];
+var EXPORTED_SYMBOLS = [
+  "UpdateCanvas",
+  "ClearCanvas",
+  "RestoreSuppressedEventListener",
+];

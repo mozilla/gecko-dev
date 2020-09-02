@@ -79,7 +79,7 @@ ChromeUtils.defineModuleGetter(
 
 // We don't want to spend time initializing the full loader here so we create
 // our own lazy require.
-XPCOMUtils.defineLazyGetter(this, "Telemetry", function() {
+XPCOMUtils.defineLazyGetter(this, "Telemetry", function () {
   const { require } = ChromeUtils.import(
     "resource://devtools/shared/Loader.jsm"
   );
@@ -89,12 +89,12 @@ XPCOMUtils.defineLazyGetter(this, "Telemetry", function() {
   return Telemetry;
 });
 
-XPCOMUtils.defineLazyGetter(this, "StartupBundle", function() {
+XPCOMUtils.defineLazyGetter(this, "StartupBundle", function () {
   const url = "chrome://devtools-startup/locale/startup.properties";
   return Services.strings.createBundle(url);
 });
 
-XPCOMUtils.defineLazyGetter(this, "KeyShortcutsBundle", function() {
+XPCOMUtils.defineLazyGetter(this, "KeyShortcutsBundle", function () {
   const url = "chrome://devtools-startup/locale/key-shortcuts.properties";
   return Services.strings.createBundle(url);
 });
@@ -121,7 +121,7 @@ function getLocalizedKeyShortcut(id) {
   }
 }
 
-XPCOMUtils.defineLazyGetter(this, "KeyShortcuts", function() {
+XPCOMUtils.defineLazyGetter(this, "KeyShortcuts", function () {
   const isMac = AppConstants.platform == "macosx";
 
   // Common modifier shared by most key shortcuts
@@ -311,7 +311,7 @@ function validateProfilerWebChannelUrl(targetUrl) {
   return frontEndUrl;
 }
 
-XPCOMUtils.defineLazyGetter(this, "ProfilerPopupBackground", function() {
+XPCOMUtils.defineLazyGetter(this, "ProfilerPopupBackground", function () {
   return ChromeUtils.import(
     "resource://devtools/client/performance-new/popup/background.jsm.js"
   );
@@ -358,11 +358,11 @@ DevToolsStartup.prototype = {
    */
   profilerRecordingButtonCreated: false,
 
-  isDisabledByPolicy: function() {
+  isDisabledByPolicy: function () {
     return Services.prefs.getBoolPref(DEVTOOLS_POLICY_DISABLED_PREF, false);
   },
 
-  handle: function(cmdLine) {
+  handle: function (cmdLine) {
     const flags = this.readCommandLineFlags(cmdLine);
 
     // handle() can be called after browser startup (e.g. opening links from other apps).
@@ -560,7 +560,7 @@ DevToolsStartup.prototype = {
       viewId: "PanelUI-developer",
       shortcutId: "key_toggleToolbox",
       tooltiptext: "developer-button.tooltiptext2",
-      onViewShowing: event => {
+      onViewShowing: (event) => {
         if (Services.prefs.getBoolPref(DEVTOOLS_ENABLED_PREF)) {
           // If DevTools are enabled, initialize DevTools to create all menuitems in the
           // system menu before trying to copy them.
@@ -591,7 +591,7 @@ DevToolsStartup.prototype = {
         // it right away.
         this.onBeforeCreated(anchor.ownerDocument);
       },
-      onBeforeCreated: doc => {
+      onBeforeCreated: (doc) => {
         // The developer toggle needs the "key_toggleToolbox" <key> element.
         // In DEV EDITION, the toggle is added before 1st paint and hookKeyShortcuts() is
         // not called yet when CustomizableUI creates the widget.
@@ -930,7 +930,7 @@ DevToolsStartup.prototype = {
     return k;
   },
 
-  initDevTools: function(reason, key = "") {
+  initDevTools: function (reason, key = "") {
     // If an entry point is fired and tools are not enabled open the installation page
     if (!Services.prefs.getBoolPref(DEVTOOLS_ENABLED_PREF)) {
       this.openInstallPage(reason);
@@ -963,7 +963,7 @@ DevToolsStartup.prototype = {
    *        Optional. If the onboarding flow was triggered by a keyboard shortcut, pass
    *        the shortcut key id (or toolId) to about:devtools.
    */
-  openInstallPage: function(reason, keyId) {
+  openInstallPage: function (reason, keyId) {
     // If DevTools are completely disabled, bail out here as this might be called directly
     // from other files.
     if (this.isDisabledByPolicy()) {
@@ -1013,7 +1013,7 @@ DevToolsStartup.prototype = {
     });
   },
 
-  handleConsoleFlag: function(cmdLine) {
+  handleConsoleFlag: function (cmdLine) {
     const window = Services.wm.getMostRecentWindow("devtools:webconsole");
     if (!window) {
       const require = this.initDevTools("CommandLine");
@@ -1032,7 +1032,7 @@ DevToolsStartup.prototype = {
   },
 
   // Open the toolbox on the selected tab once the browser starts up.
-  handleDevToolsFlag: async function(window) {
+  handleDevToolsFlag: async function (window) {
     const require = this.initDevTools("CommandLine");
     const { gDevTools } = require("devtools/client/framework/devtools");
     const { TargetFactory } = require("devtools/client/framework/target");
@@ -1043,7 +1043,7 @@ DevToolsStartup.prototype = {
   _isRemoteDebuggingEnabled() {
     let remoteDebuggingEnabled = false;
     try {
-      remoteDebuggingEnabled = kDebuggerPrefs.every(pref => {
+      remoteDebuggingEnabled = kDebuggerPrefs.every((pref) => {
         return Services.prefs.getBoolPref(pref);
       });
     } catch (ex) {
@@ -1063,7 +1063,7 @@ DevToolsStartup.prototype = {
     return remoteDebuggingEnabled;
   },
 
-  handleDebuggerFlag: function(cmdLine, binaryPath) {
+  handleDebuggerFlag: function (cmdLine, binaryPath) {
     if (!this._isRemoteDebuggingEnabled()) {
       return;
     }
@@ -1071,7 +1071,7 @@ DevToolsStartup.prototype = {
     let devtoolsThreadResumed = false;
     const pauseOnStartup = cmdLine.handleFlag("wait-for-jsdebugger", false);
     if (pauseOnStartup) {
-      const observe = function(subject, topic, data) {
+      const observe = function (subject, topic, data) {
         devtoolsThreadResumed = true;
         Services.obs.removeObserver(observe, "devtools-thread-resumed");
       };
@@ -1115,7 +1115,7 @@ DevToolsStartup.prototype = {
    * --start-debugger-server ws:
    *   Start the WebSocket server on the default port (taken from d.d.remote-port)
    */
-  handleDevToolsServerFlag: function(cmdLine, portOrPath) {
+  handleDevToolsServerFlag: function (cmdLine, portOrPath) {
     if (!this._isRemoteDebuggingEnabled()) {
       return;
     }
@@ -1289,7 +1289,7 @@ DevToolsStartup.prototype = {
 const JsonView = {
   initialized: false,
 
-  initialize: function() {
+  initialize: function () {
     // Prevent loading the frame script multiple times if we call this more than once.
     if (this.initialized) {
       return;
@@ -1317,7 +1317,7 @@ const JsonView = {
    * Save JSON to a file needs to be implemented here
    * in the parent process.
    */
-  onSave: function(message) {
+  onSave: function (message) {
     const browser = message.target;
     const chrome = browser.ownerGlobal;
     if (message.data === null) {
@@ -1379,7 +1379,9 @@ var EXPORTED_SYMBOLS = [
 
 // Record Replay stuff.
 
-const { setTimeout, setInterval } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
+const { setTimeout, setInterval } = ChromeUtils.import(
+  "resource://gre/modules/Timer.jsm"
+);
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
@@ -1404,8 +1406,14 @@ function createRecordingButton() {
         return;
       }
 
-      const { gBrowser, navigator, setCursor } = Services.wm.getMostRecentWindow("navigator:browser");
-      const recording = gBrowser.selectedBrowser.hasAttribute("recordExecution");
+      const {
+        gBrowser,
+        navigator,
+        setCursor,
+      } = Services.wm.getMostRecentWindow("navigator:browser");
+      const recording = gBrowser.selectedBrowser.hasAttribute(
+        "recordExecution"
+      );
 
       if (recording) {
         reloadAndStopRecordingTab(gBrowser);
@@ -1416,7 +1424,9 @@ function createRecordingButton() {
     onCreated(node) {
       function selectedBrowserHasAttribute(attr) {
         try {
-          return node.ownerDocument.defaultView.gBrowser.selectedBrowser.hasAttribute(attr);
+          return node.ownerDocument.defaultView.gBrowser.selectedBrowser.hasAttribute(
+            attr
+          );
         } catch (e) {
           return false;
         }
@@ -1491,7 +1501,9 @@ setInterval(refreshAllRecordingButtons, 2000);
 let gRunningTestScript;
 
 async function runTestScript() {
-  const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+  const env = Cc["@mozilla.org/process/environment;1"].getService(
+    Ci.nsIEnvironment
+  );
   const script = env.get("RECORD_REPLAY_TEST_SCRIPT");
   if (!script) {
     return;
@@ -1526,8 +1538,10 @@ function reloadAndRecordTab(gBrowser) {
     /* aPreferredRemoteType */ undefined,
     /* aCurrentUri */ null
   );
-  if (remoteType != E10SUtils.WEB_REMOTE_TYPE &&
-      remoteType != E10SUtils.FILE_REMOTE_TYPE) {
+  if (
+    remoteType != E10SUtils.WEB_REMOTE_TYPE &&
+    remoteType != E10SUtils.FILE_REMOTE_TYPE
+  ) {
     url = "about:blank";
     remoteType = E10SUtils.WEB_REMOTE_TYPE;
   }
@@ -1567,7 +1581,7 @@ function onFinishedRecording(recordingId) {
 }
 
 function waitForFinishedRecording() {
-  return new Promise(resolve => gFinishedRecordingWaiter = resolve);
+  return new Promise((resolve) => (gFinishedRecordingWaiter = resolve));
 }
 
 async function reloadAndStopRecordingTab(gBrowser) {
@@ -1586,7 +1600,9 @@ async function reloadAndStopRecordingTab(gBrowser) {
 
   recordReplayLog(`FinishedRecording ${recordingId}`);
 
-  const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+  const env = Cc["@mozilla.org/process/environment;1"].getService(
+    Ci.nsIEnvironment
+  );
 
   let viewHost = "https://replay.io";
 
@@ -1599,7 +1615,9 @@ async function reloadAndStopRecordingTab(gBrowser) {
   // Find the dispatcher to connect to.
   let dispatchAddress = env.get("RECORD_REPLAY_SERVER");
   if (!dispatchAddress) {
-    dispatchAddress = Services.prefs.getStringPref("devtools.recordreplay.cloudServer");
+    dispatchAddress = Services.prefs.getStringPref(
+      "devtools.recordreplay.cloudServer"
+    );
   }
 
   let extra = "";
@@ -1661,10 +1679,14 @@ function viewRecordings() {
 function cloudStatusToFatalError(status) {
   // Not all cloud status options are exposed in about:replay errors.
   switch (status) {
-    case "cloudUpdateNeeded.label": return "CloudUpdateNeeded";
-    case "cloudUpdateDownloading.label": return "CloudUpdateDownloading";
-    case "cloudUpdateDownloaded.label": return "CloudUpdateDownloaded";
-    case "cloudUpdateManualDownload.label": return "CloudUpdateManualDownload";
+    case "cloudUpdateNeeded.label":
+      return "CloudUpdateNeeded";
+    case "cloudUpdateDownloading.label":
+      return "CloudUpdateDownloading";
+    case "cloudUpdateDownloaded.label":
+      return "CloudUpdateDownloaded";
+    case "cloudUpdateManualDownload.label":
+      return "CloudUpdateManualDownload";
   }
   return "CloudNotConnected";
 }

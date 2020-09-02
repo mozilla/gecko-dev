@@ -51,7 +51,7 @@ UploadSocket.prototype = {
 
   onOpen() {
     this.open = true;
-    this.pending.forEach(msg => doSend(this.socket, msg));
+    this.pending.forEach((msg) => doSend(this.socket, msg));
     this.pending.length = 0;
 
     updateStatus("");

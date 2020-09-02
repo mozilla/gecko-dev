@@ -13,8 +13,8 @@ const sandbox = Cu.Sandbox(
 );
 Cu.evalInSandbox(
   "Components.utils.import('resource://gre/modules/jsdebugger.jsm');" +
-  "Components.utils.import('resource://gre/modules/Services.jsm');" +
-  "addDebuggerToGlobal(this);",
+    "Components.utils.import('resource://gre/modules/Services.jsm');" +
+    "addDebuggerToGlobal(this);",
   sandbox
 );
 const {
@@ -65,11 +65,11 @@ function CanCreateCheckpoint() {
 }
 
 const gNewGlobalHooks = [];
-gDebugger.onNewGlobalObject = global => {
+gDebugger.onNewGlobalObject = (global) => {
   try {
     gDebugger.addDebuggee(global);
     gAllGlobals.push(global);
-    gNewGlobalHooks.forEach(hook => hook(global));
+    gNewGlobalHooks.forEach((hook) => hook(global));
   } catch (e) {}
 };
 
@@ -122,8 +122,11 @@ IdMap.prototype = {
 const gScripts = new IdMap();
 const gSources = new Set();
 
-gDebugger.onNewScript = script => {
-  if (!isRecordingOrReplaying || RecordReplayControl.areThreadEventsDisallowed()) {
+gDebugger.onNewScript = (script) => {
+  if (
+    !isRecordingOrReplaying ||
+    RecordReplayControl.areThreadEventsDisallowed()
+  ) {
     return;
   }
 
@@ -136,8 +139,10 @@ gDebugger.onNewScript = script => {
 
   if (!gSources.has(script.source)) {
     gSources.add(script.source);
-    if (script.source.sourceMapURL &&
-        Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")) {
+    if (
+      script.source.sourceMapURL &&
+      Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")
+    ) {
       const pid = RecordReplayControl.middlemanPid();
       const { url, sourceMapURL } = script.source;
       Services.cpmm.sendAsyncMessage(
@@ -196,16 +201,19 @@ Services.console.registerListener({
     if (exports.OnConsoleError) {
       exports.OnConsoleError(message);
     }
-  }
+  },
 });
 
-Services.obs.addObserver({
-  observe(message) {
-    if (exports.OnConsoleAPICall) {
-      exports.OnConsoleAPICall(message);
-    }
+Services.obs.addObserver(
+  {
+    observe(message) {
+      if (exports.OnConsoleAPICall) {
+        exports.OnConsoleAPICall(message);
+      }
+    },
   },
-}, "console-api-log-event");
+  "console-api-log-event"
+);
 
 getWindow().docShell.chromeEventHandler.addEventListener(
   "DOMWindowCreated",
@@ -224,8 +232,10 @@ getWindow().docShell.chromeEventHandler.addEventListener(
 getWindow().docShell.chromeEventHandler.addEventListener(
   "StyleSheetApplicableStateChanged",
   ({ stylesheet }) => {
-    if (stylesheet.sourceMapURL &&
-        Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")) {
+    if (
+      stylesheet.sourceMapURL &&
+      Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")
+    ) {
       const pid = RecordReplayControl.middlemanPid();
       Services.cpmm.sendAsyncMessage(
         "RecordReplayGeneratedSourceWithSourceMap",
@@ -251,18 +261,22 @@ function advanceProgressCounter() {
 
 function OnMouseEvent(time, kind, x, y) {
   advanceProgressCounter();
-};
+}
 
-const { DebuggerNotificationObserver } = Cu.getGlobalForObject(require("resource://devtools/shared/Loader.jsm"));
+const { DebuggerNotificationObserver } = Cu.getGlobalForObject(
+  require("resource://devtools/shared/Loader.jsm")
+);
 const gNotificationObserver = new DebuggerNotificationObserver();
 gNotificationObserver.addListener(eventListener);
-gNewGlobalHooks.push(global => {
+gNewGlobalHooks.push((global) => {
   try {
     gNotificationObserver.connect(global.unsafeDereference());
   } catch (e) {}
 });
 
-const { eventBreakpointForNotification } = require("devtools/server/actors/utils/event-breakpoints");
+const {
+  eventBreakpointForNotification,
+} = require("devtools/server/actors/utils/event-breakpoints");
 
 function eventListener(info) {
   const event = eventBreakpointForNotification(gDebugger, info);
@@ -297,8 +311,13 @@ function SendRecordingData(pid, offset, length, buf, totalLength, duration) {
       date: Date.now(),
     };
   }
-  Services.cpmm.sendAsyncMessage("UploadRecordingData",
-                                 { pid, offset, length, buf, description });
+  Services.cpmm.sendAsyncMessage("UploadRecordingData", {
+    pid,
+    offset,
+    length,
+    buf,
+    description,
+  });
 }
 
 function OnTestCommand(str) {
@@ -324,12 +343,28 @@ function Initialize(text) {
   try {
     if (text) {
       const imports = {
-        Cc, Ci, Cu, ChromeUtils, Debugger, RecordReplayControl, InspectorUtils,
-        considerScript, countScriptFrames, gScripts, gDebugger,
-        advanceProgressCounter, gAllGlobals, getWindow, gSandboxGlobal,
-        gNewGlobalHooks, Services,
+        Cc,
+        Ci,
+        Cu,
+        ChromeUtils,
+        Debugger,
+        RecordReplayControl,
+        InspectorUtils,
+        considerScript,
+        countScriptFrames,
+        gScripts,
+        gDebugger,
+        advanceProgressCounter,
+        gAllGlobals,
+        getWindow,
+        gSandboxGlobal,
+        gNewGlobalHooks,
+        Services,
       };
-      Object.assign(exports, new Function("imports", `${text} return exports`)(imports));
+      Object.assign(
+        exports,
+        new Function("imports", `${text} return exports`)(imports)
+      );
     }
     return exports;
   } catch (e) {
