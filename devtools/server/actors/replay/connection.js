@@ -34,6 +34,42 @@ let gConfig;
 // When connecting we open an initial channel for commands not associated with a recording.
 let gMainChannelId;
 
+function getLoggedInUser() {
+  const userPref = Services.prefs.getStringPref("devtools.recordreplay.user");
+  const user = JSON.parse(userPref);
+  return user == "" ? null : user;
+}
+
+function saveRecordingInDB(description) {
+  const user = getLoggedInUser();
+
+  if (!user) {
+    return;
+  }
+
+  const pageUrl = Services.prefs.getStringPref(
+    "devtools.recordreplay.recordingsUrl"
+  );
+
+  const body = {
+    user_id: user.id,
+    recording_id: description.recordingId,
+    url: description.url,
+    title: description.title,
+    duration: description.duration,
+    last_screen_data: description.lastScreenData,
+    last_screen_mime_type: description.lastScreenMimeType,
+  };
+
+  fetch(`${pageUrl}/api/create-recording`, {
+    method: "post",
+    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json" },
+  })
+    .then((r) => console.log(`succeeded in creating recording`))
+    .catch((err) => console.error(err));
+}
+
 // eslint-disable-next-line no-unused-vars
 function Initialize(callbacks) {
   gWorker = new Worker("connection-worker.js");
@@ -257,9 +293,14 @@ Services.ppmm.addMessageListener("UploadRecordingData", {
         recordingId,
         length,
         duration,
+        url,
+        title,
+        date,
         lastScreenMimeType,
         lastScreenData: lastScreenData || undefined,
       });
+
+      saveRecordingInDB({ recordingId, ...description });
 
       onFinishedRecording({
         recordingId,

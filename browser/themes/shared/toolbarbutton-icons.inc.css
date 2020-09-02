@@ -259,6 +259,10 @@ toolbar[brighttext] {
   list-style-image: url("chrome://devtools/skin/images/command-replay.svg");
 }
 
+.recordingButtonHidden {
+  display: none !important;
+}
+
 .recordingButtonRecording {
   fill: #ff4500 !important;
 }

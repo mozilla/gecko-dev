@@ -840,6 +840,9 @@ pref("toolkit.dump.emit", false);
 
 // Address of the cloud server to connect to for record/replay sessions.
 pref("devtools.recordreplay.cloudServer", "wss://dispatch.replay.io");
+pref("devtools.recordreplay.recordingsUrl", "http://recordings.replay.io");
+pref("devtools.recordreplay.authentication-enabled", false);
+pref("devtools.recordreplay.user", "");
 
 // Whether to upload source maps and original sources to the cloud server.
 pref("devtools.recordreplay.uploadSourceMaps", true);

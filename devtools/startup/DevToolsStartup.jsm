@@ -620,6 +620,7 @@ DevToolsStartup.prototype = {
       return;
     }
     this.recordingButtonCreated = true;
+    this.initializeRecordingWebChannel();
 
     createRecordingButton();
   },
@@ -698,6 +699,41 @@ DevToolsStartup.prototype = {
     }
   },
 
+  initializeRecordingWebChannel() {
+    let channel;
+
+    // Register a channel for the URL in preferences. Also update the WebChannel if
+    // the URL changes.
+    Services.prefs.addObserver(
+      "devtools.recordreplay.recordingsUrl",
+      registerWebChannel
+    );
+    registerWebChannel();
+
+    function registerWebChannel() {
+      const pageUrl = Services.prefs.getStringPref(
+        "devtools.recordreplay.recordingsUrl"
+      );
+
+      if (channel) {
+        channel.stopListening();
+      }
+
+      const urlForWebChannel = Services.io.newURI(pageUrl);
+      channel = new WebChannel("record-replay", urlForWebChannel);
+
+      channel.listen((id, message, target) => {
+        // Defer loading the ProfilerPopupBackground script until it's absolutely needed,
+        // as this code path gets loaded at startup.
+        const { user } = message;
+
+        Services.prefs.setStringPref(
+          "devtools.recordreplay.user",
+          JSON.stringify(user)
+        );
+      });
+    }
+  },
   /*
    * We listen to the "Web Developer" system menu, which is under "Tools" main item.
    * This menu item is hardcoded empty in Firefox UI. We listen for its opening to
@@ -1394,6 +1430,12 @@ function recordReplayLog(text) {
 
 ChromeUtils.recordReplayLog = recordReplayLog;
 
+function getLoggedInUser() {
+  const userPref = Services.prefs.getStringPref("devtools.recordreplay.user");
+  const user = JSON.parse(userPref);
+  return user == "" ? null : user;
+}
+
 function createRecordingButton() {
   runTestScript();
 
@@ -1434,11 +1476,21 @@ function createRecordingButton() {
 
       node.refreshStatus = () => {
         const recording = selectedBrowserHasAttribute("recordExecution");
+        const user = getLoggedInUser();
+        const authenticationEnabled = Services.prefs.getBoolPref(
+          "devtools.recordreplay.authentication-enabled"
+        );
 
         if (recording) {
           node.classList.add("recordingButtonRecording");
         } else {
           node.classList.remove("recordingButtonRecording");
+        }
+
+        if (!authenticationEnabled || user?.id) {
+          node.classList.remove("recordingButtonHidden");
+        } else {
+          node.classList.add("recordingButtonHidden");
         }
 
         const status = ChromeUtils.getCloudReplayStatus();
@@ -1457,6 +1509,10 @@ function createRecordingButton() {
         node.setAttribute("tooltiptext", text);
       };
       node.refreshStatus();
+
+      Services.prefs.addObserver("devtools.recordreplay.user", () =>
+        node.refreshStatus()
+      );
     },
   };
   CustomizableUI.createWidget(item);
@@ -1673,7 +1729,10 @@ async function addRecordingDescription(description) {
 function viewRecordings() {
   const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
   const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
-  gBrowser.loadURI("about:replay", { triggeringPrincipal });
+  gBrowser.loadURI(
+    Services.prefs.getStringPref("devtools.recordreplay.recordingsUrl"),
+    { triggeringPrincipal }
+  );
 }
 
 function cloudStatusToFatalError(status) {
