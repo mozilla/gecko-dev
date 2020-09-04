@@ -1436,6 +1436,66 @@ function getLoggedInUser() {
   return user == "" ? null : user;
 }
 
+function saveRecordingInDB(description) {
+  const user = getLoggedInUser();
+
+  if (!user) {
+    return;
+  }
+
+  const pageUrl = Services.prefs.getStringPref(
+    "devtools.recordreplay.recordingsUrl"
+  );
+
+  const body = {
+    user_id: user.id,
+    recording_id: description.recordingId,
+    url: description.url,
+    title: description.title,
+    duration: description.duration,
+    last_screen_data: description.lastScreenData,
+    last_screen_mime_type: description.lastScreenMimeType,
+  };
+
+  return fetch(`${pageUrl}/api/create-recording`, {
+    method: "post",
+    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json" },
+  })
+    .then((r) => console.log(`succeeded in creating recording`))
+    .catch((err) => console.error(err));
+}
+
+async function syncRecordings() {
+  const user = getLoggedInUser();
+  const hasSynced = Services.prefs.getBoolPref(
+    "devtools.recordreplay.has-synced"
+  );
+  const authenticationEnabled = Services.prefs.getBoolPref(
+    "devtools.recordreplay.authentication-enabled"
+  );
+
+  if (!user?.id || !authenticationEnabled || hasSynced) {
+    console.log(`syncingRecordings`, {
+      loggedid: user?.id,
+      authenticationEnabled,
+      hasSynced,
+    });
+    return;
+  }
+
+  const recordings = await getRecordings();
+  console.log(`syncing recordings`, recordings.length);
+
+  for (const recording of recordings) {
+    console.log(`>> saving recording`, recording.url);
+    await saveRecordingInDB(recording);
+  }
+
+  console.log(`finished syncing recordings`, recordings.length);
+  Services.prefs.setBoolPref("devtools.recordreplay.has-synced", true);
+}
+
 function createRecordingButton() {
   runTestScript();
 
@@ -1510,9 +1570,10 @@ function createRecordingButton() {
       };
       node.refreshStatus();
 
-      Services.prefs.addObserver("devtools.recordreplay.user", () =>
-        node.refreshStatus()
-      );
+      Services.prefs.addObserver("devtools.recordreplay.user", () => {
+        node.refreshStatus();
+        syncRecordings();
+      });
     },
   };
   CustomizableUI.createWidget(item);
@@ -1528,6 +1589,8 @@ function createRecordingButton() {
   CustomizableWidgets.push(item);
 
   let cloudStatusUpdatedCallback;
+
+  syncRecordings();
 
   ChromeUtils.setCloudReplayStatusCallback((status, progress, max) => {
     dump(`CloudReplayStatus ${status}\n`);
@@ -1714,15 +1777,20 @@ function getRecordingsPath() {
   return dir.path;
 }
 
+async function getRecordings() {
+  const path = getRecordingsPath();
+  if (await OS.File.exists(path)) {
+    const file = await OS.File.read(path);
+    return JSON.parse(new TextDecoder("utf-8").decode(file));
+  }
+
+  return [];
+}
+
 async function addRecordingDescription(description) {
   const path = getRecordingsPath();
 
-  let recordings = [];
-  if (await OS.File.exists(path)) {
-    const file = await OS.File.read(path);
-    recordings = JSON.parse(new TextDecoder("utf-8").decode(file));
-  }
-
+  let recordings = await getRecordings();
   OS.File.writeAtomic(path, JSON.stringify([description, ...recordings]));
 }
 
