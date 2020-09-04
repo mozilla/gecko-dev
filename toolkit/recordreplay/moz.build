@@ -4,37 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-EXPORTS.mozilla.recordreplay += [
-    'ipc/ChildIPC.h',
-    'ipc/ParentIPC.h',
-]
-
 if CONFIG['OS_ARCH'] == 'WINNT':
     SOURCES += [
         'ipc/DisabledIPC.cpp'
     ]
 else:
     SOURCES += [
-        'Assembler.cpp',
-        'Callback.cpp',
-        'ExternalCall.cpp',
-        'HashTable.cpp',
-        'ipc/Channel.cpp',
-        'ipc/ChildIPC.cpp',
-        'ipc/ChildProcess.cpp',
-        'ipc/JSControl.cpp',
-        'ipc/ParentForwarding.cpp',
-        'ipc/ParentGraphics.cpp',
-        'ipc/ParentIPC.cpp',
-        'Lock.cpp',
+        'JSControl.cpp',
         'ProcessRecordReplay.cpp',
-        'ProcessRedirect.cpp',
-        'ProcessRedirectDarwin.cpp',
-        'ProcessRewind.cpp',
-        'Recording.cpp',
-        'Thread.cpp',
-        'ThreadSnapshot.cpp',
-        'ValueIndex.cpp',
     ]
 
 LOCAL_INCLUDES += [

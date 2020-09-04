@@ -22,6 +22,7 @@ namespace recordreplay {
 
 // clang-format off
 #define FOR_EACH_INTERFACE(Macro)                                              \
+  Macro(InternalAreThreadEventsPassedThrough, bool, (), ())                    \
   Macro(InternalAreThreadEventsDisallowed, bool, (), ())                       \
   Macro(InternalRecordReplayValue, size_t, (size_t aValue), (aValue))          \
   Macro(InternalHasDivergedFromRecording, bool, (), ())                        \
@@ -36,6 +37,8 @@ namespace recordreplay {
   Macro(InternalInAutomatedTest, bool, (), ())
 
 #define FOR_EACH_INTERFACE_VOID(Macro)                                         \
+  Macro(InternalBeginPassThroughThreadEvents, (), ())                          \
+  Macro(InternalEndPassThroughThreadEvents, (), ())                            \
   Macro(InternalBeginDisallowThreadEvents, (), ())                             \
   Macro(InternalEndDisallowThreadEvents, (), ())                               \
   Macro(InternalRecordReplayBytes, (void* aData, size_t aSize),                \
@@ -46,6 +49,8 @@ namespace recordreplay {
         (aFormat, aArgs))                                                      \
   Macro(InternalRecordReplayAssertBytes, (const void* aData, size_t aSize),    \
         (aData, aSize))                                                        \
+  Macro(InternalPrintLog, (const char* aFormat, va_list aArgs),                \
+        (aFormat, aArgs))                                                      \
   Macro(InternalRegisterThing, (void* aThing), (aThing))                       \
   Macro(InternalUnregisterThing, (void* aThing), (aThing))                     \
   Macro(BeginContentParse,                                                     \
@@ -155,7 +160,6 @@ FOR_EACH_INTERFACE_VOID(DEFINE_WRAPPER_VOID)
 bool gIsRecordingOrReplaying;
 bool gIsRecording;
 bool gIsReplaying;
-bool gIsMiddleman;
 
 }  // namespace recordreplay
 }  // namespace mozilla

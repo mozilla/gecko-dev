@@ -74,6 +74,22 @@ static inline bool IsRecordingOrReplaying() { return gIsRecordingOrReplaying; }
 static inline bool IsRecording() { return gIsRecording; }
 static inline bool IsReplaying() { return gIsReplaying; }
 
+// Mark a region where thread events are passed through the record/replay
+// system. While recording, no information from system calls or other events
+// will be recorded for the thread. While replaying, system calls and other
+// events are performed normally.
+static inline void BeginPassThroughThreadEvents();
+static inline void EndPassThroughThreadEvents();
+
+// Whether events in this thread are passed through.
+static inline bool AreThreadEventsPassedThrough();
+
+// RAII class for regions where thread events are passed through.
+struct MOZ_RAII AutoPassThroughThreadEvents {
+  AutoPassThroughThreadEvents() { BeginPassThroughThreadEvents(); }
+  ~AutoPassThroughThreadEvents() { EndPassThroughThreadEvents(); }
+};
+
 // Mark a region where thread events are not allowed to occur. The process will
 // crash immediately if an event does happen.
 static inline void BeginDisallowThreadEvents();
@@ -245,6 +261,10 @@ static inline bool InAutomatedTest();
       return aDefaultValue;                                                 \
     }
 
+MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(BeginPassThroughThreadEvents, (), ())
+MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(EndPassThroughThreadEvents, (), ())
+MOZ_MAKE_RECORD_REPLAY_WRAPPER(AreThreadEventsPassedThrough, bool, false, (),
+                               ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(BeginDisallowThreadEvents, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(EndDisallowThreadEvents, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(AreThreadEventsDisallowed, bool, false, (), ())
@@ -275,6 +295,17 @@ static inline void RecordReplayAssert(const char* aFormat, ...) {
     va_list ap;
     va_start(ap, aFormat);
     InternalRecordReplayAssert(aFormat, ap);
+    va_end(ap);
+  }
+}
+
+MFBT_API void InternalPrintLog(const char* aFormat, va_list aArgs);
+
+static inline void PrintLog(const char* aFormat, ...) {
+  if (IsRecordingOrReplaying()) {
+    va_list ap;
+    va_start(ap, aFormat);
+    InternalPrintLog(aFormat, ap);
     va_end(ap);
   }
 }

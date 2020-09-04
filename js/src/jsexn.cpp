@@ -302,7 +302,7 @@ void js::ErrorToException(JSContext* cx, JSErrorReport* reportp,
   }
 
   if (mozilla::recordreplay::IsReplaying()) {
-    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+    mozilla::recordreplay::AutoPassThroughThreadEvents pt;
     JSScript* script = cx->currentScript();
     if (script && strstr(script->filename(), "replay/module.js")) {
       PrintError(cx, stderr, JS::ConstUTF8CharsZ(), reportp, true);

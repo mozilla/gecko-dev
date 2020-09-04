@@ -15,6 +15,7 @@
 #  include "mozilla/EnumSet.h"
 #  include "mozilla/Maybe.h"
 #  include "mozilla/Sprintf.h"
+#  include "mozilla/RecordReplay.h"
 
 #  include "jstypes.h"
 #  include "vm/JSONPrinter.h"
