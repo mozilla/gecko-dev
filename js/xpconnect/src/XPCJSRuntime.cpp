@@ -1011,8 +1011,6 @@ static void OnLargeAllocationFailureCallback() {
 }
 
 bool mozilla::GetBuildId(JS::BuildIdCharVector* aBuildID) {
-  recordreplay::RecordReplayAssert("mozilla::GetBuildId");
-
   nsCOMPtr<nsIPlatformInfo> info = do_GetService("@mozilla.org/xre/app-info;1");
   if (!info) {
     return false;

@@ -18,8 +18,6 @@
 
 #include "pngpriv.h"
 
-extern void RecordReplayAssertFromC(const char* text);
-
 #if defined(PNG_READ_SUPPORTED) || defined(PNG_WRITE_SUPPORTED)
 
 static PNG_FUNCTION(void, png_default_error,PNGARG((png_const_structrp png_ptr,
@@ -713,8 +711,6 @@ static PNG_FUNCTION(void /* PRIVATE */,
 png_default_error,(png_const_structrp png_ptr, png_const_charp error_message),
     PNG_NORETURN)
 {
-   RecordReplayAssertFromC("png_default_error");
-
 #ifdef PNG_CONSOLE_IO_SUPPORTED
 #ifdef PNG_ERROR_NUMBERS_SUPPORTED
    /* Check on NULL only added in 1.5.4 */
@@ -761,8 +757,6 @@ png_default_error,(png_const_structrp png_ptr, png_const_charp error_message),
 PNG_FUNCTION(void,PNGAPI
 png_longjmp,(png_const_structrp png_ptr, int val),PNG_NORETURN)
 {
-   RecordReplayAssertFromC("png_longjmp");
-
 #ifdef PNG_SETJMP_SUPPORTED
    if (png_ptr != NULL && png_ptr->longjmp_fn != NULL &&
        png_ptr->jmp_buf_ptr != NULL)
@@ -891,8 +885,6 @@ PNG_FUNCTION(void /* PRIVATE */, (PNGCBAPI
 png_safe_error),(png_structp png_nonconst_ptr, png_const_charp error_message),
     PNG_NORETURN)
 {
-   RecordReplayAssertFromC("png_safe_error");
-
    png_const_structrp png_ptr = png_nonconst_ptr;
    png_imagep image = png_voidcast(png_imagep, png_ptr->error_ptr);
 

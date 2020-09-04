@@ -42,8 +42,6 @@ void SerializeURI(nsIURI* aURI, URIParams& aParams) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aURI);
 
-  recordreplay::RecordReplayAssert("SerializeURI %s", aURI->GetSpecOrDefault().get());
-
   aURI->Serialize(aParams);
   if (aParams.type() == URIParams::T__None) {
     MOZ_CRASH("Serialize failed!");

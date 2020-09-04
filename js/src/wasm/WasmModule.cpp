@@ -340,8 +340,6 @@ bool wasm::GetOptimizedEncodingBuildId(JS::BuildIdCharVector* buildId) {
   // cause machine code to become invalid, so include both the actual build-id
   // and cpu-id.
 
-  mozilla::recordreplay::RecordReplayAssert("GetOptimizedEncodingBuildId");
-
   if (!GetBuildId || !GetBuildId(buildId)) {
     return false;
   }

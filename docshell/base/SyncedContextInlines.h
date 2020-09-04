@@ -67,9 +67,7 @@ mozilla::ipc::IPCResult Transaction<Context>::CommitFromIPC(
 
   // Validate that the set from content is allowed before continuing.
   if (!Validate(owner, aSource)) {
-    // This happens when recording/replaying for an unknown reason.
-    return IPC_OK();
-    //return IPC_FAIL(aSource, "Invalid Transaction from Child");
+    return IPC_FAIL(aSource, "Invalid Transaction from Child");
   }
 
   BrowsingContextGroup* group = owner->Group();

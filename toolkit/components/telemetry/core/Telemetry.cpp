@@ -188,10 +188,8 @@ class TelemetryImpl final : public nsITelemetry, public nsIMemoryReporter {
   AutoHashtable<SlowSQLEntryType> mPrivateSQL;
   AutoHashtable<SlowSQLEntryType> mSanitizedSQL;
   Mutex mHashMutex;
-  Atomic<bool, SequentiallyConsistent, recordreplay::Behavior::DontPreserve>
-      mCanRecordBase;
-  Atomic<bool, SequentiallyConsistent, recordreplay::Behavior::DontPreserve>
-      mCanRecordExtended;
+  Atomic<bool, SequentiallyConsistent> mCanRecordBase;
+  Atomic<bool, SequentiallyConsistent> mCanRecordExtended;
 
 #if defined(MOZ_GECKO_PROFILER)
   // Stores data about stacks captured on demand.

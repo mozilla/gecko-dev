@@ -148,16 +148,6 @@ nsIContent* nsEmptyContentList::Item(uint32_t aIndex) { return nullptr; }
 // Hashtable for storing nsContentLists
 static PLDHashTable* gContentListHashTable;
 
-nsContentListKey::nsContentListKey(nsINode* aRootNode, int32_t aMatchNameSpaceId,
-                                   const nsAString& aTagname, bool aIsHTMLDocument)
-  : mRootNode(aRootNode),
-    mMatchNameSpaceId(aMatchNameSpaceId),
-    mTagname(aTagname),
-    mIsHTMLDocument(aIsHTMLDocument),
-    // Use consistent hash numbers between record/replay.
-    mHash(recordreplay::RecordReplayValue(AddToHash(HashString(aTagname), mRootNode,
-                                                    mMatchNameSpaceId, mIsHTMLDocument))) {}
-
 struct ContentListCache
     : public MruCache<nsContentListKey, nsContentList*, ContentListCache> {
   static HashNumber Hash(const nsContentListKey& aKey) {
@@ -194,19 +184,14 @@ already_AddRefed<nsContentList> NS_GetContentList(nsINode* aRootNode,
                                                   const nsAString& aTagname) {
   NS_ASSERTION(aRootNode, "content list has to have a root");
 
-  recordreplay::RecordReplayAssert("NS_GetContentList");
-
   RefPtr<nsContentList> list;
   nsContentListKey hashKey(aRootNode, aMatchNameSpaceId, aTagname,
                            aRootNode->OwnerDoc()->IsHTMLDocument());
   auto p = sRecentlyUsedContentLists.Lookup(hashKey);
   if (p) {
-    recordreplay::RecordReplayAssert("NS_GetContentList #1");
     list = p.Data();
     return list.forget();
   }
-
-  recordreplay::RecordReplayAssert("NS_GetContentList #2");
 
   static const PLDHashTableOps hash_table_ops = {
       ContentListHashtableHashKey, ContentListHashtableMatchEntry,
@@ -221,12 +206,7 @@ already_AddRefed<nsContentList> NS_GetContentList(nsINode* aRootNode,
   // First we look in our hashtable.  Then we create a content list if needed
   auto entry = static_cast<ContentListHashEntry*>(
       gContentListHashTable->Add(&hashKey, fallible));
-  if (entry) {
-    recordreplay::RecordReplayAssert("NS_GetContentList #3");
-    list = entry->mContentList;
-  }
-
-  recordreplay::RecordReplayAssert("NS_GetContentList #4 %d", !!list);
+  if (entry) list = entry->mContentList;
 
   if (!list) {
     // We need to create a ContentList and add it to our new entry, if

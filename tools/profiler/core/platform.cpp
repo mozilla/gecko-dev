@@ -254,10 +254,7 @@ static uint32_t StartupExtraDefaultFeatures() {
 // locked state.
 class PSMutex : private ::mozilla::detail::MutexImpl {
  public:
-  PSMutex()
-      : ::mozilla::detail::MutexImpl(
-            "PSMutex",
-            ::mozilla::recordreplay::Behavior::DontPreserve) {}
+  PSMutex() : ::mozilla::detail::MutexImpl() {}
 
   void Lock() {
     const int tid = profiler_current_thread_id();
@@ -316,9 +313,7 @@ class PSMutex : private ::mozilla::detail::MutexImpl {
   // This should only be used to compare with the current thread id; any other
   // number (0 or other id) could change at any time because the current thread
   // wouldn't own the lock.
-  Atomic<int, MemoryOrdering::SequentiallyConsistent,
-         recordreplay::Behavior::DontPreserve>
-      mOwningThreadId{0};
+  Atomic<int, MemoryOrdering::SequentiallyConsistent> mOwningThreadId{0};
 };
 
 // RAII class to lock the profiler mutex.
@@ -1243,8 +1238,7 @@ uint32_t ActivePS::sNextGeneration = 0;
 // The mutex that guards accesses to CorePS and ActivePS.
 static PSMutex gPSMutex;
 
-Atomic<uint32_t, MemoryOrdering::Relaxed, recordreplay::Behavior::DontPreserve>
-    RacyFeatures::sActiveAndFeatures(0);
+Atomic<uint32_t, MemoryOrdering::Relaxed> RacyFeatures::sActiveAndFeatures(0);
 
 // Each live thread has a RegisteredThread, and we store a reference to it in
 // TLS. This class encapsulates that TLS.
@@ -2254,8 +2248,6 @@ static void StreamMetaJSCustomObject(PSLockRef aLock,
     res = runtime->GetWidgetToolkit(string);
     if (!NS_FAILED(res)) aWriter.StringProperty("toolkit", string.Data());
   }
-
-  recordreplay::RecordReplayAssert("StreamMetaJSCustomObject");
 
   nsCOMPtr<nsIXULAppInfo> appInfo =
       do_GetService("@mozilla.org/xre/app-info;1");

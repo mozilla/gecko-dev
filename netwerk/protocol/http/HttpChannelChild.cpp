@@ -3082,12 +3082,6 @@ HttpChannelChild::PreferAlternativeDataType(const nsACString& aType,
                                             bool aDeliverAltData) {
   ENSURE_CALLED_BEFORE_ASYNC_OPEN();
 
-  recordreplay::RecordReplayAssert("PreferAlternativeDataType %s %s %d %d",
-                                   nsCString(aType).get(),
-                                   nsCString(aContentType).get(),
-                                   aDeliverAltData,
-                                   !!mSynthesizedCacheInfo);
-
   if (mSynthesizedCacheInfo) {
     return mSynthesizedCacheInfo->PreferAlternativeDataType(aType, aContentType,
                                                             aDeliverAltData);

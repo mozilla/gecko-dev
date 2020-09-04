@@ -5676,8 +5676,6 @@ void Document::GetCookie(nsAString& aCookie, ErrorResult& rv) {
   aCookie.Truncate();  // clear current cookie in case service fails;
                        // no cookie isn't an error condition.
 
-  recordreplay::AssertScriptedCaller("Document::GetCookie");
-
   if (mDisableCookieAccess) {
     return;
   }
@@ -7638,8 +7636,6 @@ static PseudoStyleType GetPseudoElementType(const nsString& aString,
 already_AddRefed<Element> Document::CreateElement(
     const nsAString& aTagName, const ElementCreationOptionsOrString& aOptions,
     ErrorResult& rv) {
-  recordreplay::AssertScriptedCaller("Document::CreateElement");
-
   rv = nsContentUtils::CheckQName(aTagName, false);
   if (rv.Failed()) {
     return nullptr;

@@ -158,10 +158,6 @@ void ProcessLink::SendMessage(Message* msg) {
   }
   mChan->mMonitor->AssertCurrentThreadOwns();
 
-  recordreplay::RecordReplayAssert("ProcessLink::SendMessage %s %lu",
-                                   IPC::StringFromIPCMessageType(msg->type()),
-                                   msg->size());
-
   mIOLoop->PostTask(NewNonOwningRunnableMethod<Message*>(
       "IPC::Channel::Send", mTransport.get(), &Transport::Send, msg));
 }

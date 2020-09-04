@@ -122,12 +122,9 @@ const size_t SourceBuffer::MIN_CHUNK_CAPACITY;
 const size_t SourceBuffer::MAX_CHUNK_CAPACITY;
 
 SourceBuffer::SourceBuffer()
-    : mMutex("image::SourceBuffer"), mConsumerCount(0), mCompacted(false) {
-  recordreplay::RegisterThing(this);
-}
+    : mMutex("image::SourceBuffer"), mConsumerCount(0), mCompacted(false) {}
 
 SourceBuffer::~SourceBuffer() {
-  recordreplay::UnregisterThing(this);
   MOZ_ASSERT(mConsumerCount == 0,
              "SourceBuffer destroyed with active consumers");
 }
@@ -621,9 +618,6 @@ bool SourceBuffer::RemainingBytesIsNoMoreThan(
 SourceBufferIterator::State SourceBuffer::AdvanceIteratorOrScheduleResume(
     SourceBufferIterator& aIterator, size_t aRequestedBytes,
     IResumable* aConsumer) {
-  recordreplay::RecordReplayAssert("SourceBuffer::AdvanceIteratorOrScheduleResume %d %lu",
-                                   recordreplay::ThingIndex(this), aRequestedBytes);
-
   MutexAutoLock lock(mMutex);
 
   MOZ_ASSERT(aIterator.HasMore(),

@@ -62,9 +62,7 @@ bool StructuredSpewer::ensureInitializationAttempted() {
 }
 
 void StructuredSpewer::tryToInitializeOutput(const char* path) {
-  static mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire,
-                         mozilla::recordreplay::Behavior::DontPreserve>
-      threadCounter;
+  static mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> threadCounter;
 
   char suffix_path[2048] = {0};
   SprintfLiteral(suffix_path, "%s.%d.%d", path, getpid(), threadCounter++);

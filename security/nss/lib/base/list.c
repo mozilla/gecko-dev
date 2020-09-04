@@ -35,16 +35,6 @@ struct nssListIteratorStr {
     nssListElement *current;
 };
 
-#include <dlfcn.h>
-
-static void RecordReplayAssertFromC(const char* text) {
-  static void* fnptr;
-  if (!fnptr) {
-    fnptr = dlsym(RTLD_DEFAULT, "RecordReplayAssertFromC");
-  }
-  ((void (*)(const char*))fnptr)(text);
-}
-
 #define NSSLIST_LOCK_IF(list) \
     if ((list)->lock)         \
     PZ_Lock((list)->lock)
@@ -163,8 +153,6 @@ nssList_GetCompareFunction(nssList *list)
 NSS_IMPLEMENT void
 nssList_Clear(nssList *list, nssListElementDestructorFunc destructor)
 {
-    RecordReplayAssertFromC("nssList_Clear");
-
     PRCList *link;
     nssListElement *node, *tmp;
     if (!list) {
@@ -232,8 +220,6 @@ nsslist_add_element(nssList *list, void *data)
 NSS_IMPLEMENT PRStatus
 nssList_Add(nssList *list, void *data)
 {
-    RecordReplayAssertFromC("nssList_Add");
-
     NSSLIST_LOCK_IF(list);
     (void)nsslist_add_element(list, data);
     NSSLIST_UNLOCK_IF(list);
@@ -243,8 +229,6 @@ nssList_Add(nssList *list, void *data)
 NSS_IMPLEMENT PRStatus
 nssList_AddUnique(nssList *list, void *data)
 {
-    RecordReplayAssertFromC("nssList_AddUnique");
-
     PRStatus nssrv;
     nssListElement *node;
     NSSLIST_LOCK_IF(list);
@@ -262,8 +246,6 @@ nssList_AddUnique(nssList *list, void *data)
 NSS_IMPLEMENT PRStatus
 nssList_Remove(nssList *list, void *data)
 {
-    RecordReplayAssertFromC("nssList_Remove");
-
     nssListElement *node;
     NSSLIST_LOCK_IF(list);
     node = nsslist_get_matching_element(list, data);
@@ -284,8 +266,6 @@ nssList_Remove(nssList *list, void *data)
 NSS_IMPLEMENT void *
 nssList_Get(nssList *list, void *data)
 {
-    RecordReplayAssertFromC("nssList_Get");
-
     nssListElement *node;
     NSSLIST_LOCK_IF(list);
     node = nsslist_get_matching_element(list, data);
@@ -302,8 +282,6 @@ nssList_Count(nssList *list)
 NSS_IMPLEMENT PRStatus
 nssList_GetArray(nssList *list, void **rvArray, PRUint32 maxElements)
 {
-    RecordReplayAssertFromC("nssList_GetArray");
-
     nssListElement *node;
     PRUint32 i = 0;
     PR_ASSERT(maxElements > 0);
@@ -328,8 +306,6 @@ nssList_GetArray(nssList *list, void **rvArray, PRUint32 maxElements)
 NSS_IMPLEMENT nssList *
 nssList_Clone(nssList *list)
 {
-    RecordReplayAssertFromC("nssList_Clone");
-
     nssList *rvList;
     nssListElement *node;
     rvList = nssList_Create(NULL, (list->lock != NULL));
@@ -391,8 +367,6 @@ nssListIterator_Destroy(nssListIterator *iter)
 NSS_IMPLEMENT void *
 nssListIterator_Start(nssListIterator *iter)
 {
-    RecordReplayAssertFromC("nssListIterator_Start");
-
     NSSLIST_LOCK_IF(iter);
     if (iter->list->count == 0) {
         return NULL;
@@ -426,8 +400,6 @@ nssListIterator_Next(nssListIterator *iter)
 NSS_IMPLEMENT PRStatus
 nssListIterator_Finish(nssListIterator *iter)
 {
-    RecordReplayAssertFromC("nssListIterator_Finish");
-
     iter->current = iter->list->head;
     return (iter->lock) ? PZ_Unlock(iter->lock) : PR_SUCCESS;
 }

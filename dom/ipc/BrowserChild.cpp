@@ -2242,18 +2242,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvActivateFrameEvent(
   return IPC_OK();
 }
 
-// Return whether a remote script should be loaded in middleman processes in
-// addition to any child recording process they have.
-static bool LoadScriptInMiddleman(const nsString& aURL) {
-  return
-      // This script includes event listeners needed to propagate document
-      // title changes.
-      aURL.EqualsLiteral("chrome://global/content/browser-child.js")
-      // This script is needed to respond to session store requests from the
-      // UI process.
-      || aURL.EqualsLiteral("chrome://browser/content/content-sessionStore.js");
-}
-
 mozilla::ipc::IPCResult BrowserChild::RecvLoadRemoteScript(
     const nsString& aURL, const bool& aRunInGlobalScope) {
   if (!InitBrowserChildMessageManager())
@@ -2265,11 +2253,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvLoadRemoteScript(
                            mBrowserChildMessageManager->GetOrCreateWrapper());
   if (!mm) {
     // This can happen if we're half-destroyed.  It's not a fatal error.
-    return IPC_OK();
-  }
-
-  // Make sure we only load whitelisted scripts in middleman processes.
-  if (recordreplay::IsMiddleman() && !LoadScriptInMiddleman(aURL)) {
     return IPC_OK();
   }
 
@@ -3069,9 +3052,6 @@ nsresult BrowserChild::DoSendAsyncMessage(JSContext* aCx,
                                           StructuredCloneData& aData,
                                           JS::Handle<JSObject*> aCpows,
                                           nsIPrincipal* aPrincipal) {
-  recordreplay::AssertScriptedCaller("BrowserChild::DoSendAsyncMessage");
-  recordreplay::RecordReplayAssert("BrowserChild::DoSendAsyncMessage %s",
-                                   NS_ConvertUTF16toUTF8(aMessage).get());
   ClonedMessageData data;
   if (!BuildClonedMessageDataForChild(Manager(), aData, data)) {
     return NS_ERROR_DOM_DATA_CLONE_ERR;

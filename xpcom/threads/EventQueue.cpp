@@ -20,7 +20,7 @@ void EventQueueInternal<ItemsPerPage>::PutEvent(
     const MutexAutoLock& aProofOfLock, mozilla::TimeDuration* aDelay) {
 #ifdef MOZ_GECKO_PROFILER
   // Sigh, this doesn't check if this thread is being profiled
-  if (true/*profiler_is_active()*/) {
+  if (profiler_is_active()) {
     // check to see if the profiler has been enabled since the last PutEvent
     while (mDispatchTimes.Count() < mQueue.Count()) {
       mDispatchTimes.Push(TimeStamp());
@@ -55,14 +55,14 @@ already_AddRefed<nsIRunnable> EventQueueInternal<ItemsPerPage>::GetEvent(
   // interesting with the dispatch times if the profiler is turned on, though.
   if (!mDispatchTimes.IsEmpty()) {
     TimeStamp dispatch_time = mDispatchTimes.Pop();
-    if (true/*profiler_is_active()*/) {
+    if (profiler_is_active()) {
       if (!dispatch_time.IsNull()) {
         if (aLastEventDelay) {
           *aLastEventDelay = TimeStamp::Now() - dispatch_time;
         }
       }
     }
-  } else if (true/*profiler_is_active()*/) {
+  } else if (profiler_is_active()) {
     if (aLastEventDelay) {
       // if we just turned on the profiler, we don't have dispatch
       // times for events already in the queue.

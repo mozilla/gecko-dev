@@ -17,8 +17,6 @@
 
 #include "mozilla/ipc/MessageChannel.h"
 #include "mozilla/ipc/Transport.h"
-#include "mozilla/recordreplay/ChildIPC.h"
-#include "mozilla/recordreplay/ParentIPC.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/SystemGroup.h"
 #include "mozilla/Unused.h"
@@ -160,11 +158,7 @@ void FatalError(const char* aMsg, bool aIsParent) {
         CrashReporter::Annotation::IPCFatalErrorMsg, nsDependentCString(aMsg));
     AnnotateSystemError();
 #ifndef FUZZING
-    // IPDL fatal errors in the parent process are disabled when recording/replaying.
-    // Because of the presence of the middleman, we can get
-    // messages from the recording process referring to actors which we have
-    // already destroyed.
-    //MOZ_CRASH("IPC FatalError in the parent process!");
+    MOZ_CRASH("IPC FatalError in the parent process!");
 #endif
   } else {
     formattedMessage.AppendLiteral("\". abort()ing as a result.");
@@ -581,7 +575,6 @@ IToplevelProtocol::IToplevelProtocol(const char* aName, ProtocolId aProtoId,
       mOtherPid(mozilla::ipc::kInvalidProcessId),
       mLastLocalId(0),
       mEventTargetMutex("ProtocolEventTargetMutex"),
-      mMiddlemanChannelOverride(nullptr),
       mChannel(aName, this) {
   mToplevel = this;
 }
@@ -593,15 +586,7 @@ base::ProcessId IToplevelProtocol::OtherPid() const {
 }
 
 void IToplevelProtocol::SetOtherProcessId(base::ProcessId aOtherPid) {
-  // When recording an execution, all communication we do is forwarded from
-  // the middleman to the parent process, so use its pid instead of the
-  // middleman's pid.
-  if (recordreplay::IsRecordingOrReplaying() &&
-      aOtherPid == recordreplay::child::MiddlemanProcessId()) {
-    mOtherPid = recordreplay::child::ParentProcessId();
-  } else {
-    mOtherPid = aOtherPid;
-  }
+  mOtherPid = aOtherPid;
 }
 
 bool IToplevelProtocol::Open(UniquePtr<Transport> aTransport,
@@ -643,12 +628,8 @@ bool IToplevelProtocol::IsOnCxxStack() const {
 
 int32_t IToplevelProtocol::NextId() {
   // Genreate the next ID to use for a shared memory or protocol. Parent and
-  // Child sides of the protocol use different pools, and actors created in the
-  // middleman need to use a distinct pool as well.
+  // Child sides of the protocol use different pools.
   int32_t tag = 0;
-  if (recordreplay::IsMiddleman()) {
-    tag |= 1 << 0;
-  }
   if (GetSide() == ParentSide) {
     tag |= 1 << 1;
   }
@@ -801,9 +782,6 @@ already_AddRefed<nsIEventTarget> IToplevelProtocol::GetMessageEventTarget(
     const Message& aMsg) {
   int32_t route = aMsg.routing_id();
 
-  recordreplay::RecordReplayAssert("IToplevelProtocol::GetMessageEventTarget %d %s",
-                                   route, IPC::StringFromIPCMessageType(aMsg.type()));
-
   Maybe<MutexAutoLock> lock;
   lock.emplace(mEventTargetMutex);
 
@@ -837,13 +815,11 @@ already_AddRefed<nsIEventTarget> IToplevelProtocol::GetMessageEventTarget(
 #endif /* DEBUG */
 
     mEventTargetMap.AddWithID(target, handle.mId);
-    recordreplay::RecordReplayAssert("IToplevelProtocol::GetMessageEventTarget #1");
   } else if (!target) {
     // We don't need the lock after this point.
     lock.reset();
 
     target = GetSpecificMessageEventTarget(aMsg);
-    recordreplay::RecordReplayAssert("IToplevelProtocol::GetMessageEventTarget #2");
   }
 
   return target.forget();

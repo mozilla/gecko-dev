@@ -7151,11 +7151,6 @@ void GCRuntime::collect(bool nonincrementalByAPI, SliceBudget budget,
                         JS::GCReason reason) {
   MOZ_ASSERT(reason != JS::GCReason::NO_REASON);
 
-  if (mozilla::recordreplay::IsReplaying()) {
-    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-    fprintf(stderr, "GCRuntime::collect %d\n", getpid());
-  }
-
   MaybeInvocationKind gckind = gckindArg;
   MOZ_ASSERT_IF(!isIncrementalGCInProgress(), gckind.isSome());
 

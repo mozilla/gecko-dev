@@ -24,8 +24,6 @@ void CompositorWidget::CleanupRemoteDrawing() { mLastBackBuffer = nullptr; }
 already_AddRefed<gfx::DrawTarget> CompositorWidget::GetBackBufferDrawTarget(
     gfx::DrawTarget* aScreenTarget, const gfx::IntRect& aRect,
     bool* aOutIsCleared) {
-  recordreplay::RecordReplayAssert("CompositorWidget::GetBackBufferDrawTarget");
-
   MOZ_ASSERT(aScreenTarget);
   gfx::SurfaceFormat format =
       aScreenTarget->GetFormat() == gfx::SurfaceFormat::B8G8R8X8

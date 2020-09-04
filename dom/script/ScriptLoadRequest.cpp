@@ -96,7 +96,6 @@ ScriptLoadRequest::ScriptLoadRequest(ScriptKind aKind, nsIURI* aURI,
       mReferrer(aReferrer),
       mUnreportedPreloadError(NS_OK) {
   MOZ_ASSERT(mFetchOptions);
-  recordreplay::RecordReplayAssert("ScriptLoadRequest %s", aURI->GetSpecOrDefault().get());
 }
 
 ScriptLoadRequest::~ScriptLoadRequest() {

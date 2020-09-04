@@ -39,7 +39,7 @@ class nsJARInputStream final : public nsIInputStream {
     memset(&mZs, 0, sizeof(z_stream));
   }
 
-  NS_DECL_THREADSAFE_ISUPPORTS_WITH_RECORDING(mozilla::recordreplay::Behavior::Preserve)
+  NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIINPUTSTREAM
 
   // takes ownership of |fd|, even on failure

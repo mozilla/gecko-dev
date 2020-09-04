@@ -104,8 +104,7 @@ class CostEntry {
 
   bool operator<(const CostEntry& aOther) const {
     return mCost < aOther.mCost ||
-           (mCost == aOther.mCost &&
-            recordreplay::RecordReplayValue(mSurface < aOther.mSurface));
+           (mCost == aOther.mCost && mSurface < aOther.mSurface);
   }
 
  private:
@@ -291,8 +290,6 @@ class ImageSurfaceCache {
 
   already_AddRefed<CachedSurface> Lookup(const SurfaceKey& aSurfaceKey,
                                          bool aForAccess) {
-    recordreplay::RecordReplayAssert("ImageSurfaceCache::Lookup");
-
     RefPtr<CachedSurface> surface;
     mSurfaces.Get(aSurfaceKey, getter_AddRefs(surface));
 
@@ -1562,19 +1559,14 @@ void SurfaceCache::Shutdown() {
 LookupResult SurfaceCache::Lookup(const ImageKey aImageKey,
                                   const SurfaceKey& aSurfaceKey,
                                   bool aMarkUsed) {
-  recordreplay::RecordReplayAssert("SurfaceCache::Lookup");
-
   nsTArray<RefPtr<CachedSurface>> discard;
   LookupResult rv(MatchType::NOT_FOUND);
 
   {
     StaticMutexAutoLock lock(sInstanceMutex);
     if (!sInstance) {
-      recordreplay::RecordReplayAssert("SurfaceCache::Lookup #1");
       return rv;
     }
-
-    recordreplay::RecordReplayAssert("SurfaceCache::Lookup #2");
 
     rv = sInstance->Lookup(aImageKey, aSurfaceKey, lock, aMarkUsed);
     sInstance->TakeDiscard(discard, lock);

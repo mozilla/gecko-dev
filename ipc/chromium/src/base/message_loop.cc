@@ -181,8 +181,6 @@ MessageLoop::MessageLoop(Type type, nsIEventTarget* aEventTarget)
       transient_hang_timeout_(0),
       permanent_hang_timeout_(0),
       next_sequence_num_(0) {
-  MOZ_RELEASE_ASSERT(!mozilla::recordreplay::AreThreadEventsPassedThrough());
-
   DCHECK(!current()) << "should only have one message loop per thread";
   get_tls_ptr().Set(this);
 
@@ -364,8 +362,6 @@ void MessageLoop::PostIdleTask(already_AddRefed<nsIRunnable> task) {
 // Possibly called on a background thread!
 void MessageLoop::PostTask_Helper(already_AddRefed<nsIRunnable> task,
                                   int delay_ms) {
-  MOZ_RELEASE_ASSERT(!mozilla::recordreplay::AreThreadEventsPassedThrough());
-
   if (nsIEventTarget* target = pump_->GetXPCOMThread()) {
     nsresult rv;
     if (delay_ms) {
@@ -474,8 +470,6 @@ void MessageLoop::AddToDelayedWorkQueue(const PendingTask& pending_task) {
 }
 
 void MessageLoop::ReloadWorkQueue() {
-  MOZ_RELEASE_ASSERT(!mozilla::recordreplay::AreThreadEventsPassedThrough());
-
   // We can improve performance of our loading tasks from incoming_queue_ to
   // work_queue_ by waiting until the last minute (work_queue_ is empty) to
   // load.  That reduces the number of locks-per-task significantly when our
@@ -513,7 +507,6 @@ bool MessageLoop::DoWork() {
 
   for (;;) {
     ReloadWorkQueue();
-
     if (work_queue_.empty()) break;
 
     // Execute oldest task.

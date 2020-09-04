@@ -523,11 +523,6 @@ bool DataViewObject::write(JSContext* cx, Handle<DataViewObject*> obj,
     return false;
   }
 
-  if (gRecordDataBuffers) {
-    mozilla::recordreplay::RecordReplayAssert("DataView::set %lu %d %.2f",
-                                              getIndex, isLittleEndian, (double)value);
-  }
-
   // Step 14.
   if (isSharedMemory) {
     DataViewIO<NativeType, SharedMem<uint8_t*>>::toBuffer(

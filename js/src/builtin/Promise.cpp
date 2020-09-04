@@ -390,12 +390,6 @@ static MOZ_ALWAYS_INLINE bool ShouldCaptureDebugInfo(JSContext* cx) {
 }
 
 static mozilla::Maybe<mozilla::TimeStamp> MaybeNow() {
-  // ShouldCaptureDebugInfo() may return inconsistent values when recording
-  // or replaying, so in places where we might need the current time for
-  // promise debug info we always capture the current time.
-  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    return mozilla::Some(mozilla::TimeStamp::Now());
-  }
   return mozilla::Nothing();
 }
 
@@ -485,7 +479,6 @@ class PromiseDebugInfo : public NativeObject {
     if (!ShouldCaptureDebugInfo(cx)) {
       return;
     }
-    mozilla::recordreplay::AutoDisallowThreadEvents disallow;
 
     // If async stacks weren't enabled and the Promise's global wasn't a
     // debuggee when the Promise was created, we won't have a debugInfo
@@ -980,8 +973,6 @@ static bool Promise_then_impl(JSContext* cx, HandleValue promiseVal,
 static MOZ_MUST_USE bool ResolvePromiseInternal(JSContext* cx,
                                                 HandleObject promise,
                                                 HandleValue resolutionVal) {
-  mozilla::recordreplay::RecordReplayAssert("ResolvePromiseInternal");
-
   cx->check(promise, resolutionVal);
   MOZ_ASSERT(!IsSettledMaybeWrappedPromise(promise));
 
@@ -1801,8 +1792,6 @@ static MOZ_MUST_USE bool AsyncGeneratorPromiseReactionJob(
 static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  mozilla::recordreplay::RecordReplayAssert("PromiseReactionJob");
-
   RootedFunction job(cx, &args.callee().as<JSFunction>());
 
   // Promise reactions don't return any value.
@@ -2238,7 +2227,6 @@ CreatePromiseObjectInternal(JSContext* cx, HandleObject proto /* = nullptr */,
   if (MOZ_LIKELY(!ShouldCaptureDebugInfo(cx))) {
     return promise;
   }
-  mozilla::recordreplay::AutoDisallowThreadEvents disallow;
 
   // Store an allocation stack so we can later figure out what the
   // control flow was for some unexpected results. Frightfully expensive,
@@ -4517,7 +4505,6 @@ static MOZ_MUST_USE bool InternalAwait(JSContext* cx, HandleValue value,
 MOZ_MUST_USE JSObject* js::AsyncFunctionAwait(
     JSContext* cx, Handle<AsyncFunctionGeneratorObject*> genObj,
     HandleValue value) {
-  mozilla::recordreplay::RecordReplayAssert("AsyncFunctionAwait");
   auto extra = [&](Handle<PromiseReactionRecord*> reaction) {
     reaction->setIsAsyncFunction(genObj);
   };

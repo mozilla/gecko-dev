@@ -610,11 +610,6 @@ static inline nsCString AsLiteralCString(const char* aStr) {
 }
 
 void nsComponentManagerImpl::RegisterModule(const mozilla::Module* aModule) {
-  recordreplay::RecordReplayAssert("nsComponentManagerImpl::RegisterModule %s",
-                                   aModule->mContractIDs && aModule->mContractIDs[0].contractid
-                                   ? aModule->mContractIDs[0].contractid
-                                   : "<none>");
-
   mLock.AssertNotCurrentThreadOwns();
 
   if (aModule->mVersion >= kModuleVersionWithSelector &&
@@ -775,8 +770,6 @@ void nsComponentManagerImpl::ManifestManifest(ManifestProcessingContext& aCx,
 void nsComponentManagerImpl::ManifestComponent(ManifestProcessingContext& aCx,
                                                int aLineNo,
                                                char* const* aArgv) {
-  recordreplay::RecordReplayAssert("nsComponentManagerImpl::ManifestComponent");
-
   mLock.AssertNotCurrentThreadOwns();
 
   char* id = aArgv[0];
@@ -827,8 +820,6 @@ void nsComponentManagerImpl::ManifestComponent(ManifestProcessingContext& aCx,
 
 void nsComponentManagerImpl::ManifestContract(ManifestProcessingContext& aCx,
                                               int aLineNo, char* const* aArgv) {
-  recordreplay::RecordReplayAssert("nsComponentManagerImpl::ManifestContract");
-
   mLock.AssertNotCurrentThreadOwns();
 
   char* contract = aArgv[0];
@@ -978,7 +969,6 @@ nsresult nsComponentManagerImpl::GetInterface(const nsIID& aUuid,
 }
 
 Maybe<EntryWrapper> nsComponentManagerImpl::LookupByCID(const nsID& aCID) {
-  recordreplay::RecordReplayAssert("nsComponentManagerImpl::LookupByCID");
   return LookupByCID(MutexLock(mLock), aCID);
 }
 
@@ -995,8 +985,6 @@ Maybe<EntryWrapper> nsComponentManagerImpl::LookupByCID(const MutexLock&,
 
 Maybe<EntryWrapper> nsComponentManagerImpl::LookupByContractID(
     const nsACString& aContractID) {
-  recordreplay::RecordReplayAssert("nsComponentManagerImpl::LookupByContractID %s",
-                                   nsCString(aContractID).get());
   return LookupByContractID(MutexLock(mLock), aContractID);
 }
 
@@ -1412,8 +1400,6 @@ nsresult nsComponentManagerImpl::GetServiceLocked(MutexLock& aLock,
 NS_IMETHODIMP
 nsComponentManagerImpl::GetService(const nsCID& aClass, const nsIID& aIID,
                                    void** aResult) {
-  recordreplay::RecordReplayAssert("nsComponentManagerImpl::GetService");
-
   // test this first, since there's no point in returning a service during
   // shutdown -- whether it's available or not would depend on the order it
   // occurs in the list
@@ -1440,7 +1426,6 @@ nsComponentManagerImpl::GetService(const nsCID& aClass, const nsIID& aIID,
 
 nsresult nsComponentManagerImpl::GetService(ModuleID aId, const nsIID& aIID,
                                             void** aResult) {
-  recordreplay::RecordReplayAssert("nsComponentManagerImpl::GetService");
   const auto& entry = gStaticModules[size_t(aId)];
 
   // test this first, since there's no point in returning a service during
@@ -1549,10 +1534,6 @@ NS_IMETHODIMP
 nsComponentManagerImpl::GetServiceByContractID(const char* aContractID,
                                                const nsIID& aIID,
                                                void** aResult) {
-  nsPrintfCString str("nsComponentManagerImpl::GetServiceByContractID %s",
-                      aContractID);
-  recordreplay::AssertScriptedCaller(str.get());
-
   // test this first, since there's no point in returning a service during
   // shutdown -- whether it's available or not would depend on the order it
   // occurs in the list
@@ -1582,8 +1563,6 @@ NS_IMETHODIMP
 nsComponentManagerImpl::RegisterFactory(const nsCID& aClass, const char* aName,
                                         const char* aContractID,
                                         nsIFactory* aFactory) {
-  recordreplay::RecordReplayAssert("nsComponentManagerImpl::RegisterFactory %s", aName);
-
   if (!aFactory) {
     // If a null factory is passed in, this call just wants to reset
     // the contract ID to point to an existing CID entry.
@@ -1639,8 +1618,6 @@ nsComponentManagerImpl::RegisterFactory(const nsCID& aClass, const char* aName,
 NS_IMETHODIMP
 nsComponentManagerImpl::UnregisterFactory(const nsCID& aClass,
                                           nsIFactory* aFactory) {
-  recordreplay::RecordReplayAssert("nsComponentManagerImpl::UnregisterFactory");
-
   // Don't release the dying factory or service object until releasing
   // the component manager monitor.
   nsCOMPtr<nsIFactory> dyingFactory;
@@ -1739,8 +1716,6 @@ nsComponentManagerImpl::CIDToContractID(const nsCID& aClass, char** aResult) {
 NS_IMETHODIMP
 nsComponentManagerImpl::ContractIDToCID(const char* aContractID,
                                         nsCID** aResult) {
-  recordreplay::RecordReplayAssert("nsComponentManagerImpl::ContractIDToCID");
-
   {
     MutexLock lock(mLock);
     Maybe<EntryWrapper> entry =
@@ -1831,8 +1806,6 @@ nsFactoryEntry::~nsFactoryEntry() {
 }
 
 already_AddRefed<nsIFactory> nsFactoryEntry::GetFactory() {
-  recordreplay::RecordReplayAssert("nsFactoryEntry::GetFactory");
-
   nsComponentManagerImpl::gComponentManager->mLock.AssertNotCurrentThreadOwns();
 
   if (!mFactory) {

@@ -743,7 +743,7 @@ class SourcePath(Path):
 
     def __new__(cls, context, value=None):
         if value.startswith('!'):
-            raise ValueError('Object directory paths are not allowed', value)
+            raise ValueError('Object directory paths are not allowed')
         if value.startswith('%'):
             raise ValueError('Filesystem absolute paths are not allowed')
         self = super(SourcePath, cls).__new__(cls, context, value)

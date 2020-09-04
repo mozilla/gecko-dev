@@ -294,10 +294,6 @@ JS_FRIEND_API void js::ReportOutOfMemory(JSContext* cx) {
    */
   fprintf(stderr, "ReportOutOfMemory called\n");
 #endif
-  if (mozilla::recordreplay::IsReplaying()) {
-    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-    fprintf(stderr, "ReportOutOfMemory called %d\n", getpid());
-  }
 
   if (cx->isHelperThreadContext()) {
     return cx->addPendingOutOfMemory();
@@ -338,15 +334,6 @@ void js::ReportOverRecursed(JSContext* maybecx, unsigned errorNumber) {
    */
   fprintf(stderr, "ReportOverRecursed called\n");
 #endif
-  if (mozilla::recordreplay::IsRecordingOrReplaying() &&
-      mozilla::recordreplay::InAutomatedTest() &&
-      maybecx) {
-    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-    for (ScriptFrameIter iter(maybecx); !iter.done(); ++iter) {
-      fprintf(stderr, "ScriptFrame %s:%d\n", iter.script()->filename(), iter.script()->lineno());
-    }
-  }
-  mozilla::recordreplay::InvalidateRecording("OverRecursed exception thrown");
   if (maybecx) {
     if (!maybecx->isHelperThreadContext()) {
       JS_ReportErrorNumberASCII(maybecx, GetErrorMessage, nullptr, errorNumber);
