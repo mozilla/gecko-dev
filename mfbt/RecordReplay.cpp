@@ -22,14 +22,9 @@ namespace recordreplay {
 
 // clang-format off
 #define FOR_EACH_INTERFACE(Macro)                                              \
-  Macro(InternalAreThreadEventsPassedThrough, bool, (), ())                    \
   Macro(InternalAreThreadEventsDisallowed, bool, (), ())                       \
   Macro(InternalRecordReplayValue, size_t, (size_t aValue), (aValue))          \
   Macro(InternalHasDivergedFromRecording, bool, (), ())                        \
-  Macro(InternalGeneratePLDHashTableCallbacks, const PLDHashTableOps*,         \
-        (const PLDHashTableOps* aOps), (aOps))                                 \
-  Macro(InternalUnwrapPLDHashTableCallbacks, const PLDHashTableOps*,           \
-        (const PLDHashTableOps* aOps), (aOps))                                 \
   Macro(InternalThingIndex, size_t, (void* aThing), (aThing))                  \
   Macro(InternalVirtualThingName, const char*, (void* aThing), (aThing))       \
   Macro(ExecutionProgressCounter, ProgressCounter*, (), ())                    \
@@ -41,22 +36,11 @@ namespace recordreplay {
   Macro(InternalInAutomatedTest, bool, (), ())
 
 #define FOR_EACH_INTERFACE_VOID(Macro)                                         \
-  Macro(InternalBeginOrderedAtomicAccess, (const void* aValue), (aValue))      \
-  Macro(InternalEndOrderedAtomicAccess, (), ())                                \
-  Macro(InternalBeginPassThroughThreadEvents, (), ())                          \
-  Macro(InternalEndPassThroughThreadEvents, (), ())                            \
-  Macro(InternalBeginPassThroughThreadEventsWithLocalReplay, (), ())           \
-  Macro(InternalEndPassThroughThreadEventsWithLocalReplay, (), ())             \
   Macro(InternalBeginDisallowThreadEvents, (), ())                             \
   Macro(InternalEndDisallowThreadEvents, (), ())                               \
   Macro(InternalRecordReplayBytes, (void* aData, size_t aSize),                \
         (aData, aSize))                                                        \
   Macro(InternalInvalidateRecording, (const char* aWhy), (aWhy))               \
-  Macro(InternalDestroyPLDHashTableCallbacks, (const PLDHashTableOps* aOps),   \
-        (aOps))                                                                \
-  Macro(InternalMovePLDHashTableContents,                                      \
-        (const PLDHashTableOps* aFirstOps, const PLDHashTableOps* aSecondOps), \
-        (aFirstOps, aSecondOps))                                               \
   Macro(InternalHoldJSObject, (void* aJSObj), (aJSObj))                        \
   Macro(InternalRecordReplayAssert, (const char* aFormat, va_list aArgs),      \
         (aFormat, aArgs))                                                      \
@@ -142,7 +126,7 @@ struct AutoSuppressGCAnalysis {
   ~AutoSuppressGCAnalysis() {
 #ifdef DEBUG
     // Need nontrivial destructor.
-    static Atomic<int, SequentiallyConsistent, Behavior::DontPreserve> dummy;
+    static Atomic<int, SequentiallyConsistent> dummy;
     dummy++;
 #endif
   }

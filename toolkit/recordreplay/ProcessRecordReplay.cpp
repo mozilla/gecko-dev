@@ -389,6 +389,8 @@ extern "C" {
 
 MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayAssert(
     const char* aFormat, va_list aArgs) {
+  return;
+
   Thread* thread = Thread::Current();
   RecordingEventSection res(thread);
   if (!res.CanAccessEvents()) {
@@ -407,6 +409,8 @@ MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayAssert(
 
 MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayAssertBytes(
     const void* aData, size_t aSize) {
+  return;
+
   Thread* thread = Thread::Current();
   RecordingEventSection res(thread);
   if (!res.CanAccessEvents()) {

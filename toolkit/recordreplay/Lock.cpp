@@ -91,6 +91,8 @@ static Lock* CreateNewLock(Thread* aThread, size_t aId) {
 
 /* static */
 void Lock::New(NativeLock* aNativeLock) {
+  return;
+
   Thread* thread = Thread::Current();
   RecordingEventSection res(thread);
   if (!res.CanAccessEvents()) {
@@ -333,6 +335,8 @@ extern "C" {
 
 MOZ_EXPORT void RecordReplayInterface_InternalBeginOrderedAtomicAccess(
     const void* aValue) {
+  return;
+
   MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
 
   Thread* thread = Thread::Current();
@@ -373,6 +377,8 @@ MOZ_EXPORT void RecordReplayInterface_InternalBeginOrderedAtomicAccess(
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalEndOrderedAtomicAccess() {
+  return;
+
   MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
 
   Thread* thread = Thread::Current();
