@@ -1760,7 +1760,7 @@ var BookmarkingUI = {
         }
 
         // We assume that menuItemL10nId has a single attribute.
-        let label = l10n[0].attributes[0].value;
+        let label = l10n[0]?.attributes[0].value;
 
         // Update the title and the starred state for the page action panel.
         PageActions.actionForID(PageActions.ACTION_ID_BOOKMARK).setTitle(
