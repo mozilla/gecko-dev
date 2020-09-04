@@ -354,9 +354,7 @@ extern FileDescriptor CreateAudioIPCConnection();
 }
 
 namespace recordreplay {
-  namespace parent {
-    extern void ContentParentDestroyed(int32_t aPid);
-  }
+  extern void ContentParentDestroyed(int32_t aPid);
 }
 
 namespace dom {
@@ -1522,7 +1520,7 @@ void ContentParent::MaybeAsyncSendShutDownMessage() {
 
 void ContentParent::ShutDownProcess(ShutDownMethod aMethod) {
   if (mRecording) {
-    recordreplay::parent::ContentParentDestroyed(Pid());
+    recordreplay::ContentParentDestroyed(Pid());
   }
 
   if (mScriptableHelper) {

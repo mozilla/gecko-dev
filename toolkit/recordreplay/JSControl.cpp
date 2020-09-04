@@ -14,6 +14,7 @@
 #include "js/JSON.h"
 #include "js/PropertySpec.h"
 #include "nsImportModule.h"
+#include "rrIConnection.h"
 #include "rrIModule.h"
 #include "xpcprivate.h"
 #include "nsMediaFeatures.h"
@@ -27,34 +28,6 @@ using namespace JS;
 namespace mozilla {
 namespace recordreplay {
 namespace js {
-
-// Callback for filling CharBuffers when converting objects to JSON.
-static bool FillCharBufferCallback(const char16_t* buf, uint32_t len,
-                                   void* data) {
-  CharBuffer* buffer = (CharBuffer*)data;
-  MOZ_RELEASE_ASSERT(buffer->length() == 0);
-  buffer->append(buf, len);
-  return true;
-}
-
-static JSObject* RequireObject(JSContext* aCx, HandleValue aValue) {
-  if (!aValue.isObject()) {
-    JS_ReportErrorASCII(aCx, "Expected object");
-    return nullptr;
-  }
-  return &aValue.toObject();
-}
-
-static bool RequireNumber(JSContext* aCx, HandleValue aValue, size_t* aNumber) {
-  if (!aValue.isNumber()) {
-    JS_ReportErrorASCII(aCx, "Expected number");
-    return false;
-  }
-  *aNumber = aValue.toNumber();
-  return true;
-}
-
-static void InitializeScriptHits();
 
 static nsCString gModuleText;
 
@@ -110,10 +83,21 @@ static void EnsureInitialized() {
 
   gModuleObject = new PersistentRootedObject(cx);
   *gModuleObject = &value.toObject();
+}
 
-  if (IsRecordingOrReplaying()) {
-    InitializeScriptHits();
+void ConvertJSStringToCString(JSContext* aCx, JSString* aString,
+                              nsAutoCString& aResult) {
+  size_t len = JS_GetStringLength(aString);
+
+  nsAutoString chars;
+  chars.SetLength(len);
+  if (!JS_CopyStringChars(aCx, Range<char16_t>(chars.BeginWriting(), len),
+                          aString)) {
+    MOZ_CRASH("ConvertJSStringToCString");
   }
+
+  NS_ConvertUTF16toUTF8 utf8(chars);
+  aResult = utf8;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -221,6 +205,8 @@ MOZ_EXPORT void RecordReplayInterface_EndContentParse(const void* aToken) {
 
 }  // extern "C"
 
+}  // namespace js
+
 ///////////////////////////////////////////////////////////////////////////////
 // Plumbing
 ///////////////////////////////////////////////////////////////////////////////
@@ -228,14 +214,8 @@ MOZ_EXPORT void RecordReplayInterface_EndContentParse(const void* aToken) {
 static const JSFunctionSpec gRecordReplayMethods[] = {
     JS_FS_END};
 
-extern "C" {
-
-MOZ_EXPORT bool RecordReplayInterface_DefineRecordReplayControlObject(
-    void* aCxVoid, void* aObjectArg) {
+  bool DefineRecordReplayControlObject(JSContext* aCx, JS::HandleObject object) {
   MOZ_RELEASE_ASSERT(IsRecordingOrReplaying());
-
-  JSContext* aCx = static_cast<JSContext*>(aCxVoid);
-  RootedObject object(aCx, static_cast<JSObject*>(aObjectArg));
 
   RootedObject staticObject(aCx, JS_NewObject(aCx, nullptr));
   if (!staticObject ||
@@ -243,10 +223,10 @@ MOZ_EXPORT bool RecordReplayInterface_DefineRecordReplayControlObject(
     return false;
   }
 
-  if (gModuleObject) {
+  if (js::gModuleObject) {
     // RecordReplayControl objects created while setting up the module itself
     // don't get references to the module.
-    RootedObject obj(aCx, *gModuleObject);
+    RootedObject obj(aCx, *js::gModuleObject);
     if (!JS_WrapObject(aCx, &obj) ||
         !JS_DefineProperty(aCx, staticObject, "module", obj, 0)) {
       return false;
@@ -260,8 +240,101 @@ MOZ_EXPORT bool RecordReplayInterface_DefineRecordReplayControlObject(
   return true;
 }
 
-}  // extern "C"
+static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 
-}  // namespace js
+static const JSFunctionSpec gCallbacks[] = {
+  JS_FN("updateStatus", StatusCallback, 1, 0),
+  JS_FS_END
+};
+
+static bool gUIStateInitialized;
+static StaticRefPtr<rrIConnection> gConnection;
+static nsString gCloudReplayStatus;
+
+void EnsureUIStateInitialized() {
+  if (gUIStateInitialized) {
+    return;
+  }
+  gUIStateInitialized = true;
+  MOZ_RELEASE_ASSERT(!gConnection);
+
+  nsCOMPtr<rrIConnection> connection =
+    do_ImportModule("resource://devtools/server/actors/replay/connection.js");
+  gConnection = connection.forget();
+  ClearOnShutdown(&gConnection);
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  JS::RootedObject callbacks(cx, JS_NewObject(cx, nullptr));
+  MOZ_RELEASE_ASSERT(callbacks);
+
+  if (!JS_DefineFunctions(cx, callbacks, gCallbacks)) {
+    MOZ_CRASH("EnsureUIStateInitialized");
+  }
+
+  JS::RootedValue callbacksValue(cx, JS::ObjectValue(*callbacks));
+  if (NS_FAILED(gConnection->Initialize(callbacksValue))) {
+    MOZ_CRASH("EnsureUIStateInitialized");
+  }
+
+  gCloudReplayStatus.AssignLiteral("cloudConnecting.label");
+}
+
+static JS::PersistentRootedObject* gStatusCallback;
+
+void SetCloudReplayStatusCallback(JS::HandleValue aCallback) {
+  AutoSafeJSContext cx;
+
+  if (!gStatusCallback) {
+    gStatusCallback = new JS::PersistentRootedObject(cx);
+  }
+
+  *gStatusCallback = aCallback.isObject() ? &aCallback.toObject() : nullptr;
+}
+
+static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isString()) {
+    JS_ReportErrorASCII(aCx, "Expected string");
+    return false;
+  }
+
+  nsAutoCString status;
+  js::ConvertJSStringToCString(aCx, args.get(0).toString(), status);
+  gCloudReplayStatus = NS_ConvertUTF8toUTF16(status);
+
+  if (gStatusCallback && *gStatusCallback) {
+    JSAutoRealm ar(aCx, *gStatusCallback);
+
+    JS::AutoValueArray<3> newArgs(aCx);
+    newArgs[0].set(args.get(0));
+    newArgs[1].set(args.get(1));
+    newArgs[2].set(args.get(2));
+
+    JS_WrapValue(aCx, newArgs[0]);
+    JS_WrapValue(aCx, newArgs[1]);
+    JS_WrapValue(aCx, newArgs[2]);
+
+    JS::RootedObject thisv(aCx);
+    JS::RootedValue fval(aCx, JS::ObjectValue(**gStatusCallback));
+    JS::RootedValue rv(aCx);
+    if (!JS_CallFunctionValue(aCx, thisv, fval, newArgs, &rv)) {
+      return false;
+    }
+  }
+
+  args.rval().setUndefined();
+  return true;
+}
+
+void GetCloudReplayStatus(nsAString& aResult) {
+  aResult = gCloudReplayStatus;
+}
+
+void ContentParentDestroyed(int32_t aPid) {
+}
+
 }  // namespace recordreplay
 }  // namespace mozilla

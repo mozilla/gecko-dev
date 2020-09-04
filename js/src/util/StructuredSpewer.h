@@ -14,8 +14,8 @@
 #  include "mozilla/EnumeratedArray.h"
 #  include "mozilla/EnumSet.h"
 #  include "mozilla/Maybe.h"
-#  include "mozilla/Sprintf.h"
 #  include "mozilla/RecordReplay.h"
+#  include "mozilla/Sprintf.h"
 
 #  include "jstypes.h"
 #  include "vm/JSONPrinter.h"

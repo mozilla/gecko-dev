@@ -683,13 +683,8 @@ static uint32_t GetSpoofedVersion() {
   return firefoxVersion - ((firefoxVersion - 4) % 8);
 }
 
-// Including recordreplay/ParentIPC.h doesn't compile, strangely.
-namespace mozilla {
-  namespace recordreplay {
-    namespace parent {
-      const char* CurrentFirefoxVersion();
-    }
-  }
+namespace mozilla::recordreplay {
+  const char* CurrentFirefoxVersion();
 }
 
 /* static */
@@ -702,7 +697,7 @@ void nsRFPService::GetSpoofedUserAgent(nsACString& userAgent,
   // https://developer.mozilla.org/en-US/docs/Web/API/NavigatorID/userAgent
   // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
 
-  const char* spoofedVersion = recordreplay::parent::CurrentFirefoxVersion();
+  const char* spoofedVersion = recordreplay::CurrentFirefoxVersion();
   const char* spoofedOS = isForHTTPHeader ? SPOOFED_HTTP_UA_OS : SPOOFED_UA_OS;
   userAgent.Assign(nsPrintfCString(
       "Mozilla/5.0 (%s; rv:%s) Gecko/%s Firefox/%s", spoofedOS,

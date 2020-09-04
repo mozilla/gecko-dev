@@ -135,6 +135,10 @@
 
 using mozilla::dom::Promise;
 
+namespace mozilla::recordreplay {
+  const char* CurrentFirefoxVersion();
+}
+
 namespace mozilla::net {
 
 LazyLogModule gHttpLog("nsHttp");
@@ -459,7 +463,7 @@ nsresult nsHttpHandler::Init() {
                                        gCallbackPrefs, this);
   PrefsChanged(nullptr);
 
-  const char* uaVersion = "74.0a1";
+  const char* uaVersion = recordreplay::CurrentFirefoxVersion();
 
   mMisc.Assign(nsPrintfCString("rv:%s", uaVersion));
 

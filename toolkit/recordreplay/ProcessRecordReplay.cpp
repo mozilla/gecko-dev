@@ -7,12 +7,15 @@
 #include "ProcessRecordReplay.h"
 
 #include "JSControl.h"
+#include "mozilla/BasicEvents.h"
+#include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/Compression.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticMutex.h"
+#include "mozilla/VsyncDispatcher.h"
 #include "nsAppRunner.h"
 #include "pratom.h"
 #include "nsPrintfCString.h"
@@ -299,6 +302,40 @@ static bool FilterMatches(const InfallibleVector<JSFilter>& aFilters,
     }
   }
   return false;
+}
+
+const char* CurrentFirefoxVersion() {
+  return "74.0a1";
+}
+
+bool OnVsync() {
+  return true;
+}
+
+void SetVsyncObserver(VsyncObserver* aObserver) {
+}
+
+already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(
+    LayoutDeviceIntSize aSize) {
+  MOZ_CRASH("FIXME");
+}
+
+void NotifyPaintStart() {
+}
+
+void NotifyPaintComplete() {
+}
+
+void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetMouseEvent& aEvent) {
+}
+
+void CreateCheckpoint() {
+}
+
+void MaybeCreateCheckpoint() {
+}
+
+void FinishRecording() {
 }
 
 }  // namespace recordreplay
