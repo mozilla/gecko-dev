@@ -27,14 +27,9 @@ namespace recordreplay {
   Macro(InternalRecordReplayValue, size_t, (size_t aValue), (aValue))          \
   Macro(InternalHasDivergedFromRecording, bool, (), ())                        \
   Macro(InternalThingIndex, size_t, (void* aThing), (aThing))                  \
-  Macro(InternalVirtualThingName, const char*, (void* aThing), (aThing))       \
   Macro(ExecutionProgressCounter, ProgressCounter*, (), ())                    \
   Macro(NewTimeWarpTarget, ProgressCounter, (), ())                            \
-  Macro(ShouldUpdateProgressCounter, bool, (const char* aURL), (aURL))         \
-  Macro(DefineRecordReplayControlObject, bool, (void* aCx, void* aObj),        \
-        (aCx, aObj))                                                           \
-  Macro(LoadedWithFileURI, bool, (), ())                                       \
-  Macro(InternalInAutomatedTest, bool, (), ())
+  Macro(ShouldUpdateProgressCounter, bool, (const char* aURL), (aURL))
 
 #define FOR_EACH_INTERFACE_VOID(Macro)                                         \
   Macro(InternalBeginPassThroughThreadEvents, (), ())                          \

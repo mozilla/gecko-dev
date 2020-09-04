@@ -1899,10 +1899,6 @@
       if (recordExecution) {
         aBrowser.setAttribute("recordExecution", recordExecution);
         EnsureRecordReplayWatcher();
-
-        // Middleman processes need the default URL to be loaded in
-        // order to set up their rendering state.
-        aBrowser.setAttribute("nodefaultsrc", "false");
       } else if (aBrowser.hasAttribute("recordExecution")) {
         aBrowser.removeAttribute("recordExecution");
       }

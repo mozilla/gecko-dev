@@ -73,6 +73,14 @@ static int (*gPointerId)(void* ptr);
 static void (*gAssert)(const char* format, va_list);
 static void (*gAssertBytes)(const char* why, const void*, size_t);
 static void (*gFinishRecording)();
+static uint64_t* (*gProgressCounter)();
+static void (*gBeginPassThroughEvents)();
+static void (*gEndPassThroughEvents)();
+static bool (*gAreEventsPassedThrough)();
+static void (*gBeginDisallowEvents)();
+static void (*gEndDisallowEvents)();
+static bool (*gAreEventsDisallowed)();
+static bool (*gHasDivergedFromRecording)();
 
 template <typename T>
 static void LoadSymbol(void* handle, const char* name, T& function) {
@@ -154,6 +162,14 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   LoadSymbol(handle, "RecordReplayPointerId", gPointerId);
   LoadSymbol(handle, "RecordReplayAssert", gAssert);
   LoadSymbol(handle, "RecordReplayAssertBytes", gAssertBytes);
+  LoadSymbol(handle, "RecordReplayProgressCounter", gProgressCounter);
+  LoadSymbol(handle, "RecordReplayBeginPassThroughEvents", gBeginPassThroughEvents);
+  LoadSymbol(handle, "RecordReplayEndPassThroughEvents", gEndPassThroughEvents);
+  LoadSymbol(handle, "RecordReplayAreEventsPassedThrough", gAreEventsPassedThrough);
+  LoadSymbol(handle, "RecordReplayBeginDisallowEvents", gBeginDisallowEvents);
+  LoadSymbol(handle, "RecordReplayEndDisallowEvents", gEndDisallowEvents);
+  LoadSymbol(handle, "RecordReplayAreEventsDisallowed", gAreEventsDisallowed);
+  LoadSymbol(handle, "RecordReplayHasDivergedFromRecording", gHasDivergedFromRecording);
 
   char buildId[128];
   snprintf(buildId, sizeof(buildId), "macOS-%s", PlatformBuildID());
@@ -248,6 +264,42 @@ MOZ_EXPORT bool RecordReplayInterface_ShouldEmitRecordReplayAssert(const char* a
 MOZ_EXPORT void RecordReplayInterface_InternalPrintLog(const char* aFormat,
                                                        va_list aArgs) {
   gPrintVA(aFormat, aArgs);
+}
+
+MOZ_EXPORT ProgressCounter* RecordReplayInterface_ExecutionProgressCounter() {
+  return gProgressCounter();
+}
+
+MOZ_EXPORT void RecordReplayInterface_AdvanceExecutionProgressCounter() {
+  ++*gProgressCounter();
+}
+
+MOZ_EXPORT void RecordReplayInterface_InternalBeginPassThroughThreadEvents() {
+  gBeginPassThroughEvents();
+}
+
+MOZ_EXPORT void RecordReplayInterface_InternalEndPassThroughThreadEvents() {
+  gEndPassThroughEvents();
+}
+
+MOZ_EXPORT bool RecordReplayInterface_InternalAreThreadEventsPassedThrough() {
+  return gAreEventsPassedThrough();
+}
+
+MOZ_EXPORT void RecordReplayInterface_InternalBeginDisallowThreadEvents() {
+  gBeginDisallowEvents();
+}
+
+MOZ_EXPORT void RecordReplayInterface_InternalEndDisallowThreadEvents() {
+  gEndDisallowEvents();
+}
+
+MOZ_EXPORT bool RecordReplayInterface_InternalAreThreadEventsDisallowed() {
+  return gAreEventsDisallowed();
+}
+
+MOZ_EXPORT bool RecordReplayInterface_InternalHasDivergedFromRecording() {
+  return gHasDivergedFromRecording();
 }
 
 }  // extern "C"

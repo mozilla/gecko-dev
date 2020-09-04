@@ -1538,24 +1538,9 @@ function reloadAndRecordTab(gBrowser) {
     remoteType,
   });
 
-  let recordingInitialized = false;
-
-  Services.ppmm.addMessageListener("RecordingInitialized", function listener() {
-    Services.ppmm.removeMessageListener("RecordingInitialized", listener);
-    recordingInitialized = true;
-    gBrowser.loadURI(url, {
-      triggeringPrincipal: gBrowser.selectedBrowser.contentPrincipal,
-    });
+  gBrowser.loadURI(url, {
+    triggeringPrincipal: gBrowser.selectedBrowser.contentPrincipal,
   });
-
-  // We should get the RecordingInitialized notification very quickly. Set a
-  // timer so we can log an error if it doesn't show up, in which case the tab
-  // will stay blank.
-  setTimeout(() => {
-    if (!recordingInitialized) {
-      recordReplayLog(`Error: Did not get RecordingInitialized notification`);
-    }
-  }, 2000);
 }
 
 let gFinishedRecordingWaiter;

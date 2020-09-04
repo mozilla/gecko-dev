@@ -953,14 +953,6 @@ nsresult nsScriptSecurityManager::CheckLoadURIFlags(
       return NS_OK;
     }
 
-    // Allow record/replay processes to load file URIs if they were originally
-    // opened with such a URI. Recording processes always start out as blank
-    // tabs when they are first created, and will have a null principal.
-    if (recordreplay::IsRecordingOrReplaying() &&
-        recordreplay::LoadedWithFileURI()) {
-      return NS_OK;
-    }
-
     // Nothing else.
     if (reportErrors) {
       ReportError(errorTag, aSourceURI, aTargetURI, aFromPrivateWindow,

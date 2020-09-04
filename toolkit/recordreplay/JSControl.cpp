@@ -118,14 +118,6 @@ MOZ_EXPORT bool RecordReplayInterface_ShouldUpdateProgressCounter(
 
 extern "C" {
 
-MOZ_EXPORT ProgressCounter* RecordReplayInterface_ExecutionProgressCounter() {
-  MOZ_CRASH("FIXME");
-  return nullptr;
-}
-
-MOZ_EXPORT void RecordReplayInterface_AdvanceExecutionProgressCounter() {
-}
-
 MOZ_EXPORT ProgressCounter RecordReplayInterface_NewTimeWarpTarget() {
   if (AreThreadEventsDisallowed()) {
     return 0;
