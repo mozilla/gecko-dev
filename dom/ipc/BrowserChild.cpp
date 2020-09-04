@@ -86,7 +86,6 @@
 #include "mozilla/layers/ShadowLayers.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/plugins/PPluginWidgetChild.h"
-#include "mozilla/recordreplay/ParentIPC.h"
 #include "nsBrowserStatusFilter.h"
 #include "nsColorPickerProxy.h"
 #include "nsCommandParams.h"
@@ -159,6 +158,13 @@ using namespace mozilla::docshell;
 using namespace mozilla::widget;
 using namespace mozilla::jsipc;
 using mozilla::layers::GeckoContentController;
+
+namespace mozilla {
+  namespace recordreplay {
+    void CreateCheckpoint();
+    void OnWidgetEvent(BrowserChild* aChild, const WidgetMouseEvent& aEvent);
+  }
+}
 
 NS_IMPL_ISUPPORTS(ContentListener, nsIDOMEventListener)
 

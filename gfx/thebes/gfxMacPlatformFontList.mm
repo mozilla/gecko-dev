@@ -640,8 +640,6 @@ void gfxMacFontFamily::FindStyleVariations(FontInfoData* aFontInfoData) {
   // we can create a font, fill it with dummy values, and avoid crashing when
   // gfxFontGroup::GetDefaultFont isn't able to find any fonts.
   if (recordreplay::HasDivergedFromRecording() && faceCount == 0) {
-    mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
-    fprintf(stderr, "gfxMacFontFamily::FindStyleVariations ForgingFontFace %d\n", getpid());
     faceCount = 1;
   }
 

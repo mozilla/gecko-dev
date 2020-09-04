@@ -304,7 +304,7 @@ using namespace mozilla::widget;
 using mozilla::loader::PScriptCacheChild;
 
 namespace mozilla {
-
+namespace recordreplay { void FinishRecording(); }
 namespace dom {
 
 // IPC sender for remote GC/CC logging.
@@ -3620,7 +3620,7 @@ mozilla::ipc::IPCResult ContentChild::RecvAddDynamicScalars(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvFinishRecording() {
-  recordreplay::child::FinishRecording();
+  recordreplay::FinishRecording();
   return IPC_OK();
 }
 

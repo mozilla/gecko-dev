@@ -39,7 +39,6 @@
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
 #include "mozilla/net/SocketProcessHost.h"
-#include "mozilla/recordreplay/ParentIPC.h"
 #include "IOActivityMonitor.h"
 #include "nsIOService.h"
 #include "nsThreadUtils.h"
@@ -48,6 +47,12 @@
 #include "nsIException.h"
 
 namespace mozilla {
+
+namespace recordreplay {
+  void GetCloudReplayStatus(nsAString& aResult);
+  void SetCloudReplayStatusCallback(JS::HandleValue aCallback);
+}
+
 namespace dom {
 
 /* static */
@@ -1182,13 +1187,13 @@ void ChromeUtils::PrivateNoteIntentionalCrash(const GlobalObject& aGlobal,
 /* static */
 void ChromeUtils::GetCloudReplayStatus(const GlobalObject& aGlobal,
                                        nsAString& aResult) {
-  recordreplay::parent::GetCloudReplayStatus(aResult);
+  recordreplay::GetCloudReplayStatus(aResult);
 }
 
 /* static */
 void ChromeUtils::SetCloudReplayStatusCallback(const GlobalObject& aGlobal,
                                                JS::HandleValue aCallback) {
-  recordreplay::parent::SetCloudReplayStatusCallback(aCallback);
+  recordreplay::SetCloudReplayStatusCallback(aCallback);
 }
 
 void ChromeUtils::GenerateMediaControlKeysTestEvent(

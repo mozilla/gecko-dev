@@ -46,6 +46,7 @@ namespace mozilla {
 namespace ipc {
 class Shmem;
 }  // namespace ipc
+namespace recordreplay { void NotifyPaintStart(); }
 
 namespace layers {
 
@@ -713,7 +714,7 @@ bool ShadowLayerForwarder::EndTransaction(
   }
 
   if (recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::child::NotifyPaintStart();
+    recordreplay::NotifyPaintStart();
   }
 
   *aSent = true;

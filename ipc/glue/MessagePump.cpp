@@ -34,6 +34,7 @@ static MessagePump::Delegate* gFirstDelegate;
 #endif
 
 namespace mozilla {
+namespace recordreplay { extern void MaybeCreateCheckpoint(); }
 namespace ipc {
 
 class DoWorkRunnable final : public CancelableRunnable,

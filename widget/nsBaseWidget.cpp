@@ -114,6 +114,11 @@ using namespace mozilla::widget;
 using namespace mozilla;
 using base::Thread;
 
+namespace mozilla::recordreplay {
+  already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(
+    LayoutDeviceIntSize aSize);
+}
+
 // Async pump timer during injected long touch taps
 #define TOUCH_INJECT_PUMP_TIMER_MSEC 50
 #define TOUCH_INJECT_LONG_TAP_DEFAULT_MSEC 1500
@@ -1409,7 +1414,7 @@ CompositorBridgeChild* nsBaseWidget::GetRemoteRenderer() {
 
 already_AddRefed<gfx::DrawTarget> nsBaseWidget::StartRemoteDrawing() {
   if (recordreplay::IsRecordingOrReplaying()) {
-    return recordreplay::child::DrawTargetForRemoteDrawing(mBounds.Size());
+    return recordreplay::DrawTargetForRemoteDrawing(mBounds.Size());
   }
   return nullptr;
 }

@@ -10,6 +10,11 @@
 #include "mozilla/VsyncDispatcher.h"
 #include "nsThreadUtils.h"
 
+namespace mozilla::recordreplay {
+  bool OnVsync();
+  void SetVsyncObserver(VsyncObserver* aObserver);
+}
+
 namespace mozilla::layout {
 
 VsyncChild::VsyncChild()
@@ -46,7 +51,7 @@ void VsyncChild::ActorDestroy(ActorDestroyReason aActorDestroyReason) {
   mObserver = nullptr;
 
   if (recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::child::SetVsyncObserver(nullptr);
+    recordreplay::SetVsyncObserver(nullptr);
   }
 }
 
@@ -57,7 +62,7 @@ mozilla::ipc::IPCResult VsyncChild::RecvNotify(const VsyncEvent& aVsync) {
   SchedulerGroup::MarkVsyncRan();
   if (mObservingVsync && mObserver) {
     if (recordreplay::IsRecordingOrReplaying() &&
-        !recordreplay::child::OnVsync()) {
+        !recordreplay::OnVsync()) {
       return IPC_OK();
     }
 
@@ -71,7 +76,7 @@ void VsyncChild::SetVsyncObserver(VsyncObserver* aVsyncObserver) {
   mObserver = aVsyncObserver;
 
   if (recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::child::SetVsyncObserver(mObserver);
+    recordreplay::SetVsyncObserver(mObserver);
   }
 }
 

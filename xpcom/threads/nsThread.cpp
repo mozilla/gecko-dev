@@ -126,6 +126,12 @@ uint32_t nsThread::sMaxActiveThreads;
 const uint32_t kTelemetryWakeupCountLimit = 100;
 #endif
 
+namespace mozilla {
+  namespace recordreplay {
+    extern void MaybeCreateCheckpoint();
+  }
+}
+
 //-----------------------------------------------------------------------------
 // Because we do not have our own nsIFactory, we have to implement nsIClassInfo
 // somewhat manually.

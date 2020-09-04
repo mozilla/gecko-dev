@@ -44,6 +44,7 @@
 using mozilla::Telemetry::LABELS_CONTENT_FRAME_TIME_REASON;
 
 namespace mozilla {
+namespace recordreplay { void NotifyPaintComplete(); }
 namespace layers {
 
 //--------------------------------------------------
@@ -149,7 +150,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
     const TransactionInfo& aInfo) {
   auto guard = MakeScopeExit([&] {
     if (recordreplay::IsRecordingOrReplaying()) {
-      recordreplay::child::NotifyPaintComplete();
+      recordreplay::NotifyPaintComplete();
     }
   });
 

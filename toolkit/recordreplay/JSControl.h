@@ -9,9 +9,7 @@
 
 #include "jsapi.h"
 
-#include "Channel.h"
 #include "InfallibleVector.h"
-#include "ProcessRewind.h"
 
 #include "mozilla/DefineEnum.h"
 #include "nsString.h"
@@ -90,12 +88,6 @@ void EndIdleTime();
 
 // Get the total amount of main thread idle time.
 double TotalIdleTime();
-
-// Incorporate scan data into this process.
-void AddScanDataMessage(Message::UniquePtr aMsg);
-
-// Dump all parsed content to aFd.
-void DumpContent(FileHandle aFd);
 
 // Utilities.
 
