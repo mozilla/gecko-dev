@@ -591,8 +591,8 @@ nsresult BrowserChild::Init(mozIDOMWindowProxy* aParent,
 
   mIPCOpen = true;
 
-  // Recording/replaying processes use their own compositor.
-  if (recordreplay::IsRecordingOrReplaying()) {
+  // Replaying processes use their own compositor.
+  if (recordreplay::IsReplaying()) {
     mPuppetWidget->CreateCompositor();
   }
 

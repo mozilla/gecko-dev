@@ -472,7 +472,7 @@ CompositorBridgeChild* ClientLayerManager::GetRemoteRenderer() {
 }
 
 CompositorBridgeChild* ClientLayerManager::GetCompositorBridgeChild() {
-  if (!XRE_IsParentProcess() && !recordreplay::IsRecordingOrReplaying()) {
+  if (!XRE_IsParentProcess() && !recordreplay::IsReplaying()) {
     return CompositorBridgeChild::Get();
   }
   return GetRemoteRenderer();
