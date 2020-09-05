@@ -843,6 +843,7 @@ pref("devtools.recordreplay.cloudServer", "wss://dispatch.replay.io");
 pref("devtools.recordreplay.recordingsUrl", "http://recordings.replay.io");
 pref("devtools.recordreplay.authentication-enabled", false);
 pref("devtools.recordreplay.user", "");
+pref("devtools.recordreplay.has-synced", false);
 
 // Whether to upload source maps and original sources to the cloud server.
 pref("devtools.recordreplay.uploadSourceMaps", true);
