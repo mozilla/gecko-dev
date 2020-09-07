@@ -1396,6 +1396,9 @@ class ContentParent final
   // Whether this process is recording its execution.
   bool mRecording;
 
+  // Whether this process has been told to finish uploading its recording and exit.
+  bool mRecordingFinished;
+
   // These variables track whether we've called Close() and KillHard() on our
   // channel.
   bool mCalledClose;

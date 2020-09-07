@@ -401,6 +401,11 @@ void MaybeCreateCheckpoint() {
 
 void FinishRecording() {
   gFinishRecording();
+
+  // RecordReplayFinishRecording() does not return until the recording has been
+  // fully uploaded. The ContentParent will not kill this process after
+  // finishing the recording, so we have to it ourselves.
+  exit(0);
 }
 
 }  // namespace recordreplay

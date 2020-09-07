@@ -321,8 +321,5 @@ void GetCloudReplayStatus(nsAString& aResult) {
   aResult = gCloudReplayStatus;
 }
 
-void ContentParentDestroyed(int32_t aPid) {
-}
-
 }  // namespace recordreplay
 }  // namespace mozilla

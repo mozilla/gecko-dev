@@ -353,10 +353,6 @@ namespace CubebUtils {
 extern FileDescriptor CreateAudioIPCConnection();
 }
 
-namespace recordreplay {
-  extern void ContentParentDestroyed(int32_t aPid);
-}
-
 namespace dom {
 
 #define NS_IPC_IOSERVICE_SET_OFFLINE_TOPIC "ipc:network:set-offline"
@@ -1519,10 +1515,6 @@ void ContentParent::MaybeAsyncSendShutDownMessage() {
 }
 
 void ContentParent::ShutDownProcess(ShutDownMethod aMethod) {
-  if (mRecording) {
-    recordreplay::ContentParentDestroyed(Pid());
-  }
-
   if (mScriptableHelper) {
     static_cast<ScriptableCPInfo*>(mScriptableHelper.get())->ProcessDied();
     mScriptableHelper = nullptr;
@@ -2311,6 +2303,7 @@ ContentParent::ContentParent(ContentParent* aOpener,
       mLifecycleState(LifecycleState::LAUNCHING),
       mIsForBrowser(!mRemoteType.IsEmpty()),
       mRecording(aRecording),
+      mRecordingFinished(false),
       mCalledClose(false),
       mCalledKillHard(false),
       mCreatedPairedMinidumps(false),
@@ -3504,6 +3497,13 @@ void ContentParent::HandleOrphanedMinidump(nsString* aDumpId) {
 // data review.
 void ContentParent::KillHard(const char* aReason) {
   AUTO_PROFILER_LABEL("ContentParent::KillHard", OTHER);
+
+  // Don't kill recording processes that are in the process of finishing their
+  // recording, as killing the process will stop any remaining upload.
+  // The process should exit on its own after the upload finishes.
+  if (mRecordingFinished) {
+    return;
+  }
 
   // On Windows, calling KillHard multiple times causes problems - the
   // process handle becomes invalid on the first call, causing a second call
@@ -5820,10 +5820,12 @@ void ContentParent::DeallocPSHistoryParent(PSHistoryParent* aActor) {
 }
 
 nsresult ContentParent::FinishRecording(bool* aRetval) {
-  if (!mRecording) {
+  if (!mRecording || mRecordingFinished) {
     *aRetval = false;
     return NS_OK;
   }
+
+  mRecordingFinished = true;
 
   Unused << SendFinishRecording();
 
