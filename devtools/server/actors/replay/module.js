@@ -276,31 +276,6 @@ function eventListener(info) {
   }
 }
 
-function SendRecordingData(pid, offset, length, buf, totalLength, duration) {
-  let description;
-  if (totalLength) {
-    // Supply a description for this recording, it is about to be finished.
-    const data = RecordReplayControl.getGraphics(
-      /* repaint */ false,
-      "image/jpeg",
-      "quality=50"
-    );
-    // Convert seconds to milliseconds
-    duration = (duration * 1000) | 0;
-    description = {
-      length: totalLength,
-      duration,
-      lastScreenMimeType: "image/jpeg",
-      lastScreenData: data,
-      url: getWindow().location.href,
-      title: getWindow().document.title,
-      date: Date.now(),
-    };
-  }
-  Services.cpmm.sendAsyncMessage("UploadRecordingData",
-                                 { pid, offset, length, buf, description });
-}
-
 function OnTestCommand(str) {
   const [_, cmd, arg] = /(.*?) (.*)/.exec(str);
   switch (cmd) {
@@ -316,7 +291,6 @@ function OnTestCommand(str) {
 const exports = {
   CanCreateCheckpoint,
   OnMouseEvent,
-  SendRecordingData,
   OnTestCommand,
 };
 

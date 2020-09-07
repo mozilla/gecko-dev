@@ -63,8 +63,6 @@ static InfallibleVector<JSFilter> gExecutionAsserts;
 // Whether to assert on JS values.
 static InfallibleVector<JSFilter> gJSAsserts;
 
-static void DataCallback(void* aData, size_t aSize);
-
 static void (*gAttach)(const char*);
 static void (*gRecordCommandLineArguments)(int*, char***);
 static uintptr_t (*gRecordReplayValue)(const char* why, uintptr_t value);
@@ -84,7 +82,6 @@ static void (*gEndDisallowEvents)();
 static bool (*gAreEventsDisallowed)();
 static bool (*gHasDivergedFromRecording)();
 static void (*gRecordReplayNewCheckpoint)();
-static void (*gRecordReplaySetDataCallback)(void*, size_t);
 
 template <typename T>
 static void LoadSymbol(void* handle, const char* name, T& function) {
@@ -175,9 +172,6 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   LoadSymbol(handle, "RecordReplayAreEventsDisallowed", gAreEventsDisallowed);
   LoadSymbol(handle, "RecordReplayHasDivergedFromRecording", gHasDivergedFromRecording);
   LoadSymbol(handle, "RecordReplayNewCheckpoint", gRecordReplayNewCheckpoint);
-  LoadSymbol(handle, "RecordReplaySetDataCallback", gRecordReplaySetDataCallback);
-
-  gRecordReplaySetDataCallback(DataCallback);
 
   char buildId[128];
   snprintf(buildId, sizeof(buildId), "macOS-%s", PlatformBuildID());
@@ -363,11 +357,6 @@ static bool FilterMatches(const InfallibleVector<JSFilter>& aFilters,
     }
   }
   return false;
-}
-
-
-
-static void DataCallback(void* aData, size_t aSize) {
 }
 
 const char* CurrentFirefoxVersion() {
