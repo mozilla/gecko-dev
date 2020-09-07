@@ -516,7 +516,9 @@ Realm::getOrCreateRandomNumberGenerator() {
 }
 
 double js::math_random_impl(JSContext* cx) {
-  return cx->realm()->getOrCreateRandomNumberGenerator().nextDouble();
+  double v = cx->realm()->getOrCreateRandomNumberGenerator().nextDouble();
+  mozilla::recordreplay::RecordReplayBytes(&v, sizeof(v));
+  return v;
 }
 
 bool js::math_random(JSContext* cx, unsigned argc, Value* vp) {

@@ -63,6 +63,8 @@ static InfallibleVector<JSFilter> gExecutionAsserts;
 // Whether to assert on JS values.
 static InfallibleVector<JSFilter> gJSAsserts;
 
+static void DataCallback(void* aData, size_t aSize);
+
 static void (*gAttach)(const char*);
 static void (*gRecordCommandLineArguments)(int*, char***);
 static uintptr_t (*gRecordReplayValue)(const char* why, uintptr_t value);
@@ -81,6 +83,8 @@ static void (*gBeginDisallowEvents)();
 static void (*gEndDisallowEvents)();
 static bool (*gAreEventsDisallowed)();
 static bool (*gHasDivergedFromRecording)();
+static void (*gRecordReplayNewCheckpoint)();
+static void (*gRecordReplaySetDataCallback)(void*, size_t);
 
 template <typename T>
 static void LoadSymbol(void* handle, const char* name, T& function) {
@@ -170,6 +174,10 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   LoadSymbol(handle, "RecordReplayEndDisallowEvents", gEndDisallowEvents);
   LoadSymbol(handle, "RecordReplayAreEventsDisallowed", gAreEventsDisallowed);
   LoadSymbol(handle, "RecordReplayHasDivergedFromRecording", gHasDivergedFromRecording);
+  LoadSymbol(handle, "RecordReplayNewCheckpoint", gRecordReplayNewCheckpoint);
+  LoadSymbol(handle, "RecordReplaySetDataCallback", gRecordReplaySetDataCallback);
+
+  gRecordReplaySetDataCallback(DataCallback);
 
   char buildId[128];
   snprintf(buildId, sizeof(buildId), "macOS-%s", PlatformBuildID());
@@ -258,7 +266,8 @@ MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(const char* aFilenam
 MOZ_EXPORT bool RecordReplayInterface_ShouldEmitRecordReplayAssert(const char* aFilename,
                                                                    unsigned aLineno,
                                                                    unsigned aColumn) {
-  return FilterMatches(gJSAsserts, aFilename, aLineno);
+  return true;
+  //return FilterMatches(gJSAsserts, aFilename, aLineno);
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalPrintLog(const char* aFormat,
@@ -356,6 +365,11 @@ static bool FilterMatches(const InfallibleVector<JSFilter>& aFilters,
   return false;
 }
 
+
+
+static void DataCallback(void* aData, size_t aSize) {
+}
+
 const char* CurrentFirefoxVersion() {
   return "74.0a1";
 }
@@ -381,13 +395,23 @@ void NotifyPaintComplete() {
 void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetMouseEvent& aEvent) {
 }
 
+static bool gHasCheckpoint = false;
+
 void CreateCheckpoint() {
+  gRecordReplayNewCheckpoint();
 }
 
 void MaybeCreateCheckpoint() {
+  // This is called at the top of the event loop, and the process might not be
+  // fully initialized. CreateCheckpoint() is only called after the process has
+  // been fully initialized, and we don't want any checkpoints before then.
+  if (gHasCheckpoint) {
+    gRecordReplayNewCheckpoint();
+  }
 }
 
 void FinishRecording() {
+  gFinishRecording();
 }
 
 }  // namespace recordreplay
