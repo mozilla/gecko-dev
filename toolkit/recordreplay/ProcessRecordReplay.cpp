@@ -43,8 +43,6 @@ MOZ_NEVER_INLINE void BusyWait() {
 // Basic interface
 ///////////////////////////////////////////////////////////////////////////////
 
-static ProcessKind gProcessKind;
-
 static bool gAutomatedTesting;
 
 struct JSFilter {
@@ -63,7 +61,7 @@ static InfallibleVector<JSFilter> gExecutionAsserts;
 // Whether to assert on JS values.
 static InfallibleVector<JSFilter> gJSAsserts;
 
-static void (*gAttach)(const char*);
+static void (*gAttach)(const char* dispatch, const char* buildId);
 static void (*gRecordCommandLineArguments)(int*, char***);
 static uintptr_t (*gRecordReplayValue)(const char* why, uintptr_t value);
 static void (*gRecordReplayBytes)(const char* why, void* buf, size_t size);
@@ -83,6 +81,7 @@ static bool (*gAreEventsDisallowed)();
 static bool (*gHasDivergedFromRecording)();
 static void (*gRecordReplayNewCheckpoint)();
 static char* (*gGetRecordingId)();
+static bool (*gRecordReplayIsReplaying)();
 
 template <typename T>
 static void LoadSymbol(void* handle, const char* name, T& function) {
@@ -99,40 +98,19 @@ extern "C" {
 
 MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   // Parse command line options for the process kind and recording file.
-  Maybe<ProcessKind> processKind;
+  Maybe<char*> dispatchAddress;
   Maybe<char*> replayJSFile;
   for (int i = 0; i < aArgc; i++) {
-    if (!strcmp(aArgv[i], gProcessKindOption)) {
-      MOZ_RELEASE_ASSERT(processKind.isNothing() && i + 1 < aArgc);
-      processKind.emplace((ProcessKind)atoi(aArgv[i + 1]));
+    if (!strcmp(aArgv[i], "-recordReplayDispatch")) {
+      MOZ_RELEASE_ASSERT(dispatchAddress.isNothing() && i + 1 < aArgc);
+      dispatchAddress.emplace(aArgv[i + 1]);
     }
     if (!strcmp(aArgv[i], "-recordReplayJS")) {
       MOZ_RELEASE_ASSERT(replayJSFile.isNothing() && i + 1 < aArgc);
       replayJSFile.emplace(aArgv[i + 1]);
     }
   }
-  MOZ_RELEASE_ASSERT(processKind.isSome());
-
-  gProcessKind = processKind.ref();
-
-  switch (processKind.ref()) {
-    case ProcessKind::Recording:
-      gIsRecording = gIsRecordingOrReplaying = true;
-      break;
-    case ProcessKind::Replaying:
-      gIsReplaying = gIsRecordingOrReplaying = true;
-      break;
-    default:
-      MOZ_CRASH("Bad ProcessKind");
-  }
-
-  if (IsRecording() && TestEnv("MOZ_RECORDING_WAIT_AT_START")) {
-    BusyWait();
-  }
-
-  if (IsReplaying() && TestEnv("MOZ_REPLAYING_WAIT_AT_START")) {
-    BusyWait();
-  }
+  MOZ_RELEASE_ASSERT(dispatchAddress.isSome());
 
   const char* driver = getenv("RECORD_REPLAY_DRIVER");
   if (!driver) {
@@ -174,10 +152,15 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   LoadSymbol(handle, "RecordReplayHasDivergedFromRecording", gHasDivergedFromRecording);
   LoadSymbol(handle, "RecordReplayNewCheckpoint", gRecordReplayNewCheckpoint);
   LoadSymbol(handle, "RecordReplayGetRecordingId", gGetRecordingId);
+  LoadSymbol(handle, "RecordReplayIsReplaying", gRecordReplayIsReplaying);
 
   char buildId[128];
   snprintf(buildId, sizeof(buildId), "macOS-gecko-%s", PlatformBuildID());
-  gAttach(buildId);
+  gAttach(*dispatchAddress, buildId);
+
+  gIsRecordingOrReplaying = true;
+  gIsRecording = !gRecordReplayIsReplaying();
+  gIsReplaying = gRecordReplayIsReplaying();
 
   gAutomatedTesting = TestEnv("RECORD_REPLAY_TEST_SCRIPT");
   ParseJSFilters("RECORD_REPLAY_RECORD_EXECUTION_ASSERTS", gExecutionAsserts);

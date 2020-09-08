@@ -1373,7 +1373,6 @@ const JsonView = {
 var EXPORTED_SYMBOLS = [
   "DevToolsStartup",
   "validateProfilerWebChannelUrl",
-  "setNextRecordingURLCallback",
 ];
 
 // Record Replay stuff.
@@ -1502,13 +1501,13 @@ async function runTestScript() {
   eval(text);
 }
 
-// Recording processes don't initially know the final URL they will be
-// recording, so we use this awkward callback to notify the connection system
-// when we start loading a tab so that it can use the right dispatch server.
-let gNextRecordingURLCallback;
-
-function setNextRecordingURLCallback(callback) {
-  gNextRecordingURLCallback = callback;
+function getDispatchServer(url) {
+  const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+  const address = env.get("RECORD_REPLAY_SERVER");
+  if (address) {
+    return address;
+  }
+  return Services.prefs.getStringPref("devtools.recordreplay.cloudServer");
 }
 
 function reloadAndRecordTab(gBrowser) {
@@ -1532,7 +1531,7 @@ function reloadAndRecordTab(gBrowser) {
   }
 
   gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
-    recordExecution: url,
+    recordExecution: getDispatchServer(url),
     newFrameloader: true,
     remoteType,
   });
@@ -1566,7 +1565,6 @@ async function reloadAndStopRecordingTab(gBrowser) {
   recordReplayLog(`WaitForFinishedRecording`);
 
   const recordingId = await waitForFinishedRecording();
-  const { recordingId } = description;
 
   recordReplayLog(`FinishedRecording ${recordingId}`);
 
@@ -1581,10 +1579,7 @@ async function reloadAndStopRecordingTab(gBrowser) {
   }
 
   // Find the dispatcher to connect to.
-  let dispatchAddress = env.get("RECORD_REPLAY_SERVER");
-  if (!dispatchAddress) {
-    dispatchAddress = Services.prefs.getStringPref("devtools.recordreplay.cloudServer");
-  }
+  const dispatchAddress = getDispatchServer();
 
   let extra = "";
 

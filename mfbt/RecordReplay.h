@@ -151,21 +151,6 @@ static inline size_t ThingIndex(void* aThing);
 // initialize record/replay state if so.
 MFBT_API void Initialize(int aArgc, char* aArgv[]);
 
-// Kinds of recording/replaying processes that can be spawned.
-enum class ProcessKind {
-  Recording,
-  Replaying
-};
-
-// Command line option for specifying the record/replay kind of a process.
-static const char gProcessKindOption[] = "-recordReplayKind";
-
-// Command line option for specifying the recording file to use.
-static const char gRecordingFileOption[] = "-recordReplayFile";
-
-// Whether the process was originally loaded with a file URI.
-MFBT_API bool LoadedWithFileURI();
-
 ///////////////////////////////////////////////////////////////////////////////
 // JS interface
 ///////////////////////////////////////////////////////////////////////////////
@@ -236,9 +221,6 @@ static inline void NoteContentParse(const void* aToken, const char* aURL,
 // Add a record/replay assertion for the current JS caller.
 static inline void AssertScriptedCaller(const char* aWhy);
 
-// Return whether an automated test is being executed.
-static inline bool InAutomatedTest();
-
 ///////////////////////////////////////////////////////////////////////////////
 // API inline function implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -283,7 +265,6 @@ MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(RegisterThing, (void* aThing), (aThing))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(UnregisterThing, (void* aThing), (aThing))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(ThingIndex, size_t, 0, (void* aThing), (aThing))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(AssertScriptedCaller, (const char* aWhy), (aWhy))
-MOZ_MAKE_RECORD_REPLAY_WRAPPER(InAutomatedTest, bool, false, (), ())
 
 #undef MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID
 #undef MOZ_MAKERECORDREPLAYWRAPPER

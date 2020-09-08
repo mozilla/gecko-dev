@@ -739,14 +739,15 @@ class ContentParent final
       nsIContentSecurityPolicy* aCsp);
 
   explicit ContentParent(int32_t aPluginID)
-      : ContentParent(nullptr, EmptyString(), false, aPluginID) {}
+      : ContentParent(nullptr, EmptyString(), nsString(), aPluginID) {}
   ContentParent(ContentParent* aOpener, const nsAString& aRemoteType,
-                bool aRecording = false)
-      : ContentParent(aOpener, aRemoteType, aRecording,
+                const nsAString& aRecordingDispatchAddress)
+      : ContentParent(aOpener, aRemoteType, aRecordingDispatchAddress,
                       nsFakePluginTag::NOT_JSPLUGIN) {}
 
   ContentParent(ContentParent* aOpener, const nsAString& aRemoteType,
-                bool aRecording, int32_t aPluginID);
+                const nsAString& aRecordingDispatchAddress,
+                int32_t aPluginID);
 
   // Launch the subprocess and associated initialization.
   // Returns false if the process fails to start.
@@ -1296,7 +1297,7 @@ class ContentParent final
   nsresult FinishRecording(bool* aRetval);
 
   bool IsRecording() const {
-    return mRecording;
+    return mRecordingDispatchAddress.Length() != 0;
   }
 
   void OnBrowsingContextGroupSubscribe(BrowsingContextGroup* aGroup);
@@ -1315,7 +1316,7 @@ class ContentParent final
 
  private:
   // Determine whether this frame should record its execution.
-  static bool GetRecording(Element* aFrameElement);
+  static nsString GetRecording(Element* aFrameElement);
 
   // Return an existing ContentParent if possible. Otherwise, `nullptr`.
   static already_AddRefed<ContentParent> GetUsedBrowserProcess(
@@ -1393,8 +1394,9 @@ class ContentParent final
 
   bool mIsForBrowser;
 
-  // Whether this process is recording its execution.
-  bool mRecording;
+  // If this process is recording its execution, dispatch address which the
+  // recording process should connect to.
+  nsString mRecordingDispatchAddress;
 
   // Whether this process has been told to finish uploading its recording and exit.
   bool mRecordingFinished;

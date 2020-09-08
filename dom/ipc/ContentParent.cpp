@@ -649,7 +649,8 @@ bool ContentParent::sEarlySandboxInit = false;
 /*static*/ RefPtr<ContentParent::LaunchPromise>
 ContentParent::PreallocateProcess() {
   RefPtr<ContentParent> process = new ContentParent(
-      /* aOpener = */ nullptr, NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE));
+      /* aOpener = */ nullptr, NS_LITERAL_STRING(DEFAULT_REMOTE_TYPE),
+      nsString());
 
   return process->LaunchSubprocessAsync(PROCESS_PRIORITY_PREALLOC);
 }
@@ -831,14 +832,14 @@ already_AddRefed<ContentParent> ContentParent::MinTabSelect(
 }
 
 /*static*/
-bool ContentParent::GetRecording(Element* aFrameElement) {
+nsString ContentParent::GetRecording(Element* aFrameElement) {
   if (!aFrameElement) {
-    return false;
+    return nsString();
   }
   nsString str;
   aFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::RecordExecution,
                          str);
-  return !str.IsEmpty();
+  return str;
 }
 
 /*static*/
@@ -913,11 +914,11 @@ ContentParent::GetNewOrUsedBrowserProcessInternal(Element* aFrameElement,
                                                   bool aPreferUsed,
                                                   bool aIsSync) {
   // Figure out if this process will be recording.
-  bool recording = ContentParent::GetRecording(aFrameElement);
+  nsString recording = ContentParent::GetRecording(aFrameElement);
 
   nsTArray<ContentParent*>& contentParents = GetOrCreatePool(aRemoteType);
   uint32_t maxContentParents = GetMaxProcessCount(aRemoteType);
-  if (!recording
+  if (recording.IsEmpty()
       && aRemoteType.EqualsLiteral(
              LARGE_ALLOCATION_REMOTE_TYPE)  // We never want to re-use
                                             // Large-Allocation processes.
@@ -929,7 +930,7 @@ ContentParent::GetNewOrUsedBrowserProcessInternal(Element* aFrameElement,
 
   // Let's try and reuse an existing process.
   RefPtr<ContentParent> contentParent;
-  if (!recording) {
+  if (recording.IsEmpty()) {
     contentParent = GetUsedBrowserProcess(
         aOpener, aRemoteType, contentParents, maxContentParents, aPreferUsed);
   }
@@ -2158,10 +2159,9 @@ bool ContentParent::BeginSubprocessLaunch(bool aIsSync,
   extraArgs.push_back(parentBuildID.get());
 
   // Specify whether the process is recording an execution.
-  if (mRecording) {
-    nsPrintfCString buf("%d", (int)recordreplay::ProcessKind::Recording);
-    extraArgs.push_back(recordreplay::gProcessKindOption);
-    extraArgs.push_back(buf.get());
+  if (!mRecordingDispatchAddress.IsEmpty()) {
+    extraArgs.push_back("-recordReplayDispatch");
+    extraArgs.push_back(NS_ConvertUTF16toUTF8(mRecordingDispatchAddress).get());
   }
 
   // See also ActorDealloc.
@@ -2286,7 +2286,7 @@ RefPtr<ContentParent::LaunchPromise> ContentParent::LaunchSubprocessAsync(
 
 ContentParent::ContentParent(ContentParent* aOpener,
                              const nsAString& aRemoteType,
-                             bool aRecording,
+                             const nsAString& aRecordingDispatchAddress,
                              int32_t aJSPluginID)
     : mSelfRef(nullptr),
       mSubprocess(nullptr),
@@ -2302,7 +2302,7 @@ ContentParent::ContentParent(ContentParent* aOpener,
       mNumDestroyingTabs(0),
       mLifecycleState(LifecycleState::LAUNCHING),
       mIsForBrowser(!mRemoteType.IsEmpty()),
-      mRecording(aRecording),
+      mRecordingDispatchAddress(aRecordingDispatchAddress),
       mRecordingFinished(false),
       mCalledClose(false),
       mCalledKillHard(false),
@@ -5820,7 +5820,7 @@ void ContentParent::DeallocPSHistoryParent(PSHistoryParent* aActor) {
 }
 
 nsresult ContentParent::FinishRecording(bool* aRetval) {
-  if (!mRecording || mRecordingFinished) {
+  if (mRecordingDispatchAddress.IsEmpty() || mRecordingFinished) {
     *aRetval = false;
     return NS_OK;
   }

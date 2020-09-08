@@ -91,7 +91,7 @@ void Initialize(int aArgc, char* aArgv[]) {
   // Only initialize if the right command line option was specified.
   bool found = false;
   for (int i = 0; i < aArgc; i++) {
-    if (!strcmp(aArgv[i], gProcessKindOption)) {
+    if (!strcmp(aArgv[i], "-recordReplayDispatch")) {
       found = true;
       break;
     }

@@ -11,7 +11,6 @@ const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 const { setTimeout } = Components.utils.import('resource://gre/modules/Timer.jsm');
 const {
   onFinishedRecording,
-  setNextRecordingURLCallback,
 } = ChromeUtils.import("resource:///modules/DevToolsStartup.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
@@ -131,125 +130,8 @@ function sendCommand(channelId, method, params) {
   return waitForCommandResult(id);
 }
 
-// Keep track of the URL associated with each new recording.
-let gNextRecordingURL;
-setNextRecordingURLCallback(url => { gNextRecordingURL = url; });
-
 // Resolve hooks for promises waiting on a recording to be created.
 const gRecordingCreateWaiters = [];
-
-Services.ppmm.addMessageListener("UploadRecordingData", {
-  async receiveMessage(msg) {
-    const { pid, offset, length, buf, description } = msg.data;
-
-    let first = !gRecordings.has(pid);
-    if (first) {
-      if (offset != 0) {
-        // We expect to get recording data notifications in order. If the offset
-        // is non-zero then this is for a recording child that we consider to
-        // be destroyed.
-        return;
-      }
-
-      let address = gConfig.address;
-      if (gConfig.altPattern &&
-          gNextRecordingURL &&
-          gNextRecordingURL.includes(gConfig.altPattern)) {
-        address = gConfig.altAddress;
-      }
-
-      // The upload channel is used to upload all data.
-      const uploadChannelId = openChannel(address);
-
-      // Channel to use for messages related to the recording. Use the main
-      // channel if possible, so that messages can be sent while the recording
-      // is still uploading.
-      const messageChannelId = address == gConfig.address ? gMainChannelId : uploadChannelId;
-
-      const buildId = `macOS-${Services.appinfo.appBuildID}`;
-      const createPromise = sendCommand(
-        uploadChannelId,
-        "Internal.createRecording",
-        { buildId }
-      );
-      const info = {
-        uploadChannelId,
-        messageChannelId,
-        createPromise,
-        dataPromises: [],
-        destroyed: false,
-      };
-      gRecordings.set(pid, info);
-      gRecordingCreateWaiters.forEach(resolve => resolve());
-    }
-    const info = gRecordings.get(pid);
-    const { recordingId } = await info.createPromise;
-
-    if (info.destroyed) {
-      return;
-    }
-
-    if (first) {
-      ChromeUtils.recordReplayLog(`CreateRecording ${recordingId} ${gNextRecordingURL}`);
-
-      // Always start processing recordings as soon as they've been created,
-      // except when running automated tests (to reduce server load when we are
-      // recording the devtools viewer itself).
-      if (!getenv("RECORD_REPLAY_LOCAL_TEST")) {
-        sendCommand(info.messageChannelId, "Recording.processRecording", { recordingId });
-      }
-    }
-
-    const dataPromise = sendCommand(
-      info.uploadChannelId,
-      "Internal.addRecordingData",
-      { recordingId, offset, length },
-    );
-
-    gWorker.postMessage({ kind: "sendBinaryData", id: info.uploadChannelId, buf });
-
-    info.dataPromises.push(dataPromise);
-
-    if (description) {
-      const {
-        length,
-        duration,
-        lastScreenMimeType,
-        lastScreenData,
-        url,
-        title,
-        date,
-      } = description;
-
-      // This is for the last flush before the recording tab is closed,
-      // add a recording description.
-      sendCommand(
-        info.messageChannelId,
-        "Internal.addRecordingDescription",
-        {
-          recordingId,
-          length,
-          duration,
-          lastScreenMimeType,
-          lastScreenData: lastScreenData || undefined,
-        }
-      );
-
-      onFinishedRecording({
-        recordingId,
-        url,
-        title,
-        date,
-        duration,
-        lastScreenData,
-        lastScreenMimeType,
-      });
-
-      // Ignore any other flushes from this pid.
-      RecordingDestroyed(pid);
-    }
-  }
-});
 
 function hashString(str) {
   let hash = 0;
