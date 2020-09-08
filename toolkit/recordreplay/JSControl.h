@@ -25,6 +25,8 @@ class ChildProcessInfo;
 
 namespace js {
 
+void EnsureInitialized();
+
 // Read the replay JS to load at the first checkpoint.
 void ReadReplayJS(const char* aFile);
 

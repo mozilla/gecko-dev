@@ -1513,10 +1513,6 @@ function getDispatchServer(url) {
 function reloadAndRecordTab(gBrowser) {
   let url = gBrowser.currentURI.spec;
 
-  if (gNextRecordingURLCallback) {
-    gNextRecordingURLCallback(url);
-  }
-
   let remoteType = E10SUtils.getRemoteTypeForURI(
     url,
     /* aMultiProcess */ true,

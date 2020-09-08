@@ -372,6 +372,7 @@ void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetMouseEvent& aEvent) {
 static bool gHasCheckpoint = false;
 
 void CreateCheckpoint() {
+  js::EnsureInitialized();
   gRecordReplayNewCheckpoint();
 }
 

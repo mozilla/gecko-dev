@@ -51,11 +51,11 @@ void ReadReplayJS(const char* aFile) {
 static StaticRefPtr<rrIModule> gModule;
 static PersistentRootedObject* gModuleObject;
 
-bool IsInitialized() {
+static bool IsInitialized() {
   return !!gModule;
 }
 
-static void EnsureInitialized() {
+void EnsureInitialized() {
   if (IsInitialized()) {
     return;
   }
