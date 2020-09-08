@@ -276,6 +276,10 @@ function eventListener(info) {
   }
 }
 
+function SendRecordingFinished(recordingId) {
+  Services.cpmm.sendAsyncMessage("RecordingFinished", { recordingId });
+}
+
 function OnTestCommand(str) {
   const [_, cmd, arg] = /(.*?) (.*)/.exec(str);
   switch (cmd) {
@@ -291,6 +295,7 @@ function OnTestCommand(str) {
 const exports = {
   CanCreateCheckpoint,
   OnMouseEvent,
+  SendRecordingFinished,
   OnTestCommand,
 };
 

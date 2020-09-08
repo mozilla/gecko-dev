@@ -1373,7 +1373,6 @@ const JsonView = {
 var EXPORTED_SYMBOLS = [
   "DevToolsStartup",
   "validateProfilerWebChannelUrl",
-  "onFinishedRecording",
   "setNextRecordingURLCallback",
 ];
 
@@ -1545,11 +1544,14 @@ function reloadAndRecordTab(gBrowser) {
 
 let gFinishedRecordingWaiter;
 
-function onFinishedRecording(recordingId) {
-  if (gFinishedRecordingWaiter) {
-    gFinishedRecordingWaiter(recordingId);
+Services.ppmm.addMessageListener("RecordingFinished", {
+  async receiveMessage(msg) {
+    const { recordingId } = msg.data;
+    if (gFinishedRecordingWaiter) {
+      gFinishedRecordingWaiter(recordingId);
+    }
   }
-}
+});
 
 function waitForFinishedRecording() {
   return new Promise(resolve => gFinishedRecordingWaiter = resolve);
@@ -1563,11 +1565,8 @@ async function reloadAndStopRecordingTab(gBrowser) {
 
   recordReplayLog(`WaitForFinishedRecording`);
 
-  // A notification will be delivered when the UI process has all the recording
-  // data and sent a description to the cloud service.
-  const description = await waitForFinishedRecording();
+  const recordingId = await waitForFinishedRecording();
   const { recordingId } = description;
-  addRecordingDescription(description);
 
   recordReplayLog(`FinishedRecording ${recordingId}`);
 

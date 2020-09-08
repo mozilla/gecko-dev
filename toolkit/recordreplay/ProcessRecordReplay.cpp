@@ -82,6 +82,7 @@ static void (*gEndDisallowEvents)();
 static bool (*gAreEventsDisallowed)();
 static bool (*gHasDivergedFromRecording)();
 static void (*gRecordReplayNewCheckpoint)();
+static char* (*gGetRecordingId)();
 
 template <typename T>
 static void LoadSymbol(void* handle, const char* name, T& function) {
@@ -172,9 +173,10 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   LoadSymbol(handle, "RecordReplayAreEventsDisallowed", gAreEventsDisallowed);
   LoadSymbol(handle, "RecordReplayHasDivergedFromRecording", gHasDivergedFromRecording);
   LoadSymbol(handle, "RecordReplayNewCheckpoint", gRecordReplayNewCheckpoint);
+  LoadSymbol(handle, "RecordReplayGetRecordingId", gGetRecordingId);
 
   char buildId[128];
-  snprintf(buildId, sizeof(buildId), "macOS-%s", PlatformBuildID());
+  snprintf(buildId, sizeof(buildId), "macOS-gecko-%s", PlatformBuildID());
   gAttach(buildId);
 
   gAutomatedTesting = TestEnv("RECORD_REPLAY_TEST_SCRIPT");
@@ -400,6 +402,9 @@ void MaybeCreateCheckpoint() {
 }
 
 void FinishRecording() {
+  char* recordingId = gGetRecordingId();
+  js::SendRecordingFinished(recordingId);
+
   gFinishRecording();
 
   // RecordReplayFinishRecording() does not return until the recording has been

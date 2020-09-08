@@ -193,6 +193,24 @@ MOZ_EXPORT void RecordReplayInterface_EndContentParse(const void* aToken) {
 
 }  // extern "C"
 
+void SendRecordingFinished(const char* aRecordingId) {
+  MOZ_RELEASE_ASSERT(IsInitialized());
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  JSString* str = JS_NewStringCopyZ(cx, aRecordingId);
+  MOZ_RELEASE_ASSERT(str);
+
+  JS::AutoValueArray<1> args(cx);
+  args[0].setString(str);
+
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *gModuleObject, "SendRecordingFinished", args, &rv)) {
+    MOZ_CRASH("SendRecordingFinished");
+  }
+}
+
 }  // namespace js
 
 ///////////////////////////////////////////////////////////////////////////////

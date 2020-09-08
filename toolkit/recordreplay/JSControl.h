@@ -28,8 +28,8 @@ namespace js {
 // Read the replay JS to load at the first checkpoint.
 void ReadReplayJS(const char* aFile);
 
-// JS state is initialized when the first checkpoint is reached.
-bool IsInitialized();
+// Notify the UI process that the recording was finished.
+void SendRecordingFinished(const char* aRecordingId);
 
 }  // namespace js
 }  // namespace recordreplay
