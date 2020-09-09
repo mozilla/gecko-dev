@@ -87,11 +87,11 @@ static void* LoadSymbol(const char* aName) {
 #endif
 }
 
-void Initialize(int aArgc, char* aArgv[]) {
+void Initialize(int* aArgc, char*** aArgv) {
   // Only initialize if the right command line option was specified.
   bool found = false;
-  for (int i = 0; i < aArgc; i++) {
-    if (!strcmp(aArgv[i], "-recordReplayDispatch")) {
+  for (int i = 0; i < *aArgc; i++) {
+    if (!strcmp((*aArgv)[i], "-recordReplayDispatch")) {
       found = true;
       break;
     }
@@ -100,7 +100,7 @@ void Initialize(int aArgc, char* aArgv[]) {
     return;
   }
 
-  void (*initialize)(int, char**);
+  void (*initialize)(int*, char***);
   BitwiseCast(LoadSymbol("RecordReplayInterface_Initialize"), &initialize);
   if (!initialize) {
     return;

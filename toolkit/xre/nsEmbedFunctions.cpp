@@ -346,7 +346,7 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
   NS_ENSURE_ARG_POINTER(aArgv[0]);
   MOZ_ASSERT(aChildData);
 
-  recordreplay::Initialize(aArgc, aArgv);
+  recordreplay::Initialize(&aArgc, &aArgv);
 
   NS_SetCurrentThreadName("MainThread");
 

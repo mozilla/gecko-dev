@@ -149,7 +149,7 @@ static inline size_t ThingIndex(void* aThing);
 
 // Determine whether this is a recording/replaying process, and
 // initialize record/replay state if so.
-MFBT_API void Initialize(int aArgc, char* aArgv[]);
+MFBT_API void Initialize(int* aArgc, char*** aArgv);
 
 ///////////////////////////////////////////////////////////////////////////////
 // JS interface

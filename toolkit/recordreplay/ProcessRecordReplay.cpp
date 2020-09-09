@@ -96,18 +96,20 @@ static void LoadSymbol(void* handle, const char* name, T& function) {
 
 extern "C" {
 
-MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
+MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   // Parse command line options for the process kind and recording file.
   Maybe<char*> dispatchAddress;
   Maybe<char*> replayJSFile;
-  for (int i = 0; i < aArgc; i++) {
-    if (!strcmp(aArgv[i], "-recordReplayDispatch")) {
-      MOZ_RELEASE_ASSERT(dispatchAddress.isNothing() && i + 1 < aArgc);
-      dispatchAddress.emplace(aArgv[i + 1]);
+  int argc = *aArgc;
+  char** argv = *aArgv;
+  for (int i = 0; i < argc; i++) {
+    if (!strcmp(argv[i], "-recordReplayDispatch")) {
+      MOZ_RELEASE_ASSERT(dispatchAddress.isNothing() && i + 1 < argc);
+      dispatchAddress.emplace(argv[i + 1]);
     }
-    if (!strcmp(aArgv[i], "-recordReplayJS")) {
-      MOZ_RELEASE_ASSERT(replayJSFile.isNothing() && i + 1 < aArgc);
-      replayJSFile.emplace(aArgv[i + 1]);
+    if (!strcmp(argv[i], "-recordReplayJS")) {
+      MOZ_RELEASE_ASSERT(replayJSFile.isNothing() && i + 1 < argc);
+      replayJSFile.emplace(argv[i + 1]);
     }
   }
   MOZ_RELEASE_ASSERT(dispatchAddress.isSome());
@@ -165,6 +167,8 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int aArgc, char* aArgv[]) {
   gAutomatedTesting = TestEnv("RECORD_REPLAY_TEST_SCRIPT");
   ParseJSFilters("RECORD_REPLAY_RECORD_EXECUTION_ASSERTS", gExecutionAsserts);
   ParseJSFilters("RECORD_REPLAY_RECORD_JS_ASSERTS", gJSAsserts);
+
+  gRecordCommandLineArguments(aArgc, aArgv);
 }
 
 MOZ_EXPORT size_t
