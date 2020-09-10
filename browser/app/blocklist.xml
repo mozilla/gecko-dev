@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<blocklist xmlns="http://www.mozilla.org/2006/addons-blocklist" lastupdate="1598995479473">
+<blocklist xmlns="http://www.mozilla.org/2006/addons-blocklist" lastupdate="1599557323077">
   <emItems>
     <emItem blockID="i334" id="{0F827075-B026-42F3-885D-98981EE7B1AE}">
       <prefs/>
@@ -4003,6 +4003,10 @@
       <versionRange minVersion="0" maxVersion="*" severity="3"/>
     </emItem>
     <emItem blockID="6307ddc1-3cb0-4797-882b-71a16615d4ae" id="{aea0443d-e1eb-40c3-937f-7b0986b0f6f2}">
+      <prefs/>
+      <versionRange minVersion="0" maxVersion="*" severity="3"/>
+    </emItem>
+    <emItem blockID="60737247-2edc-4c90-9938-eff22f1b06e4" id="/^((add-on@bookmark-this)|(extension@tab-modify))$/">
       <prefs/>
       <versionRange minVersion="0" maxVersion="*" severity="3"/>
     </emItem>
