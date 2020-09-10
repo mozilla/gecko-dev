@@ -123,6 +123,9 @@ bool MemoryProtectionExceptionHandler::isDisabled() {
   // Disable the exception handler for Beta and Release builds.
   return true;
 #else
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    return true;
+  }
   return false;
 #endif
 }
