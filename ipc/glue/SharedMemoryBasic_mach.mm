@@ -597,6 +597,8 @@ void* SharedMemoryBasic::FindFreeAddressSpace(size_t size) {
 }
 
 bool SharedMemoryBasic::ShareToProcess(base::ProcessId pid, Handle* aNewHandle) {
+  recordreplay::RecordReplayAssert("SharedMemoryBasic::ShareToProcess #1");
+
   if (pid == getpid()) {
     *aNewHandle = mPort;
     return mach_port_mod_refs(mach_task_self(), *aNewHandle, MACH_PORT_RIGHT_SEND, 1) ==
@@ -610,11 +612,16 @@ bool SharedMemoryBasic::ShareToProcess(base::ProcessId pid, Handle* aNewHandle) 
   uint64_t my_serial = serial;
   serial++;
 
+  recordreplay::RecordReplayAssert("SharedMemoryBasic::ShareToProcess #2");
+
   MemoryPorts* ports = GetMemoryPortsForPid(pid);
   if (!ports) {
     LOG_ERROR("Unable to get ports for process.\n");
     return false;
   }
+
+  recordreplay::RecordReplayAssert("SharedMemoryBasic::ShareToProcess #3");
+
   MachSendMessage smsg(kSharePortsMsg);
   smsg.AddDescriptor(MachMsgPortDescriptor(mPort, MACH_MSG_TYPE_COPY_SEND));
   smsg.SetData(&my_serial, sizeof(uint64_t));
@@ -646,6 +653,9 @@ bool SharedMemoryBasic::ShareToProcess(base::ProcessId pid, Handle* aNewHandle) 
     return false;
   }
   *aNewHandle = id;
+
+  recordreplay::RecordReplayAssert("SharedMemoryBasic::ShareToProcess #4");
+
   return true;
 }
 
