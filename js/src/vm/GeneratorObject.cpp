@@ -27,6 +27,8 @@ JSObject* AbstractGeneratorObject::create(JSContext* cx,
   MOZ_ASSERT(frame.script()->nfixed() == 0);
   MOZ_ASSERT(!frame.isConstructing());
 
+  mozilla::recordreplay::AssertScriptedCaller("AbstractGeneratorObject::create");
+
   RootedFunction fun(cx, frame.callee());
 
   Rooted<AbstractGeneratorObject*> genObj(cx);
