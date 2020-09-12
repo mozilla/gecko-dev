@@ -592,9 +592,11 @@ nsresult BrowserChild::Init(mozIDOMWindowProxy* aParent,
   mIPCOpen = true;
 
   // Replaying processes use their own compositor.
+  /*
   if (recordreplay::IsReplaying()) {
     mPuppetWidget->CreateCompositor();
   }
+  */
 
 #if !defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_THUNDERBIRD) && \
     !defined(MOZ_SUITE)
