@@ -36,6 +36,9 @@ let gMainChannelId;
 
 function getLoggedInUser() {
   const userPref = Services.prefs.getStringPref("devtools.recordreplay.user");
+  if (userPref == "") {
+    return;
+  }
   const user = JSON.parse(userPref);
   return user == "" ? null : user;
 }
