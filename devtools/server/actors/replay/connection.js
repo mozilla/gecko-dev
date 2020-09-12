@@ -51,7 +51,7 @@ function saveRecordingInDB(description) {
   }
 
   const pageUrl = Services.prefs.getStringPref(
-    "devtools.recordreplay.recordingsUrl"
+    "devtools.recordreplay.saveRecordingsUrl"
   );
 
   const body = {
