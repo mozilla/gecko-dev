@@ -337,6 +337,8 @@ class RefreshDriverTimer {
 
   void TickRefreshDrivers(VsyncId aId, TimeStamp aNow,
                           nsTArray<RefPtr<nsRefreshDriver>>& aDrivers) {
+    recordreplay::RecordReplayAssert("TickRefreshDrivers");
+
     if (aDrivers.IsEmpty()) {
       return;
     }
@@ -1828,9 +1830,12 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
   MOZ_ASSERT(!nsContentUtils::GetCurrentJSContext(),
              "Shouldn't have a JSContext on the stack");
 
+  recordreplay::RecordReplayAssert("nsRefreshDriver::Tick");
+
   if (nsNPAPIPluginInstance::InPluginCallUnsafeForReentry()) {
     NS_ERROR("Refresh driver should not run during plugin call!");
     // Try to survive this by just ignoring the refresh tick.
+    recordreplay::RecordReplayAssert("nsRefreshDriver::Tick RETURN #1");
     return;
   }
 
@@ -1840,6 +1845,7 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
   // of a tick iteration).  Just do nothing here, since our
   // prescontext went away.
   if (IsFrozen() || !mPresContext) {
+    recordreplay::RecordReplayAssert("nsRefreshDriver::Tick RETURN #2");
     return;
   }
 
@@ -1850,6 +1856,7 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
   // driver from going back in time, just skip this tick and
   // wait until the next tick.
   if ((aNowTime <= mMostRecentRefresh) && !mTestControllingRefreshes) {
+    recordreplay::RecordReplayAssert("nsRefreshDriver::Tick RETURN #3");
     return;
   }
 
@@ -1866,6 +1873,7 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
     // be completed (on the Compositor). Mark that we missed the paint
     // and keep waiting.
     PROFILER_ADD_MARKER("nsRefreshDriver::Tick waiting for paint", LAYOUT);
+    recordreplay::RecordReplayAssert("nsRefreshDriver::Tick RETURN #4");
     return;
   }
 

@@ -81,6 +81,8 @@ void VsyncChild::SetVsyncObserver(VsyncObserver* aVsyncObserver) {
 }
 
 TimeDuration VsyncChild::GetVsyncRate() {
+  recordreplay::RecordReplayAssert("VsyncChild::GetVsyncRate");
+
   if (mVsyncRate == TimeDuration::Forever()) {
     PVsyncChild::SendRequestVsyncRate();
   }
