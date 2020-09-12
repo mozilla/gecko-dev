@@ -269,11 +269,15 @@ static void PopulateReportBlame(JSContext* cx, JSErrorReport* report) {
   if (iter.hasScript()) {
     report->sourceId = iter.script()->scriptSource()->id();
   }
-  report->warpTarget = NewTimeWarpTarget(cx);
   uint32_t column;
   report->lineno = iter.computeLine(&column);
   report->column = FixupColumnForDisplay(column);
   report->isMuted = iter.mutedErrors();
+
+  mozilla::recordreplay::PrintLog("NewTimeWarpTarget %s:%d:%d",
+                                  report->filename, report->lineno, report->column);
+
+  report->warpTarget = NewTimeWarpTarget(cx);
 }
 
 /*

@@ -691,6 +691,7 @@ static void PrintErrorMessage(Side side, const char* channelName,
   const char* from = (side == ChildSide)
                          ? "Child"
                          : ((side == ParentSide) ? "Parent" : "Unknown");
+  recordreplay::PrintLog("###!!! [%s][%s] Error: %s", from, channelName, msg);
   printf_stderr("\n###!!! [%s][%s] Error: %s\n\n", from, channelName, msg);
 }
 
@@ -2529,6 +2530,8 @@ bool MessageChannel::MaybeHandleError(Result code, const Message& aMsg,
   } else {
     SprintfLiteral(reason, "%s %s", msgname, errorMsg);
   }
+
+  recordreplay::PrintLog("CHANNEL_ERROR %s", mListener->GetProtocolName());
 
   PrintErrorMessage(mSide, channelName, reason);
 
