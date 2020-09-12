@@ -107,6 +107,10 @@ MOZ_EXPORT ProgressCounter RecordReplayInterface_NewTimeWarpTarget() {
     return 0;
   }
 
+  // FIXME
+  return 0;
+
+  /*
   AutoDisallowThreadEvents disallow;
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
@@ -118,6 +122,7 @@ MOZ_EXPORT ProgressCounter RecordReplayInterface_NewTimeWarpTarget() {
 
   MOZ_RELEASE_ASSERT(rv.isNumber());
   return rv.toNumber();
+  */
 }
 
 }  // extern "C"
