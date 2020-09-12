@@ -1432,6 +1432,9 @@ ChromeUtils.recordReplayLog = recordReplayLog;
 
 function getLoggedInUser() {
   const userPref = Services.prefs.getStringPref("devtools.recordreplay.user");
+  if (userPref == "") {
+    return;
+  }
   const user = JSON.parse(userPref);
   return user == "" ? null : user;
 }
@@ -1476,7 +1479,7 @@ async function syncRecordings() {
   );
 
   if (!user?.id || !authenticationEnabled || hasSynced) {
-    console.log(`syncingRecordings`, {
+    console.log(`syncingRecordings (bailing)`, {
       loggedid: user?.id,
       authenticationEnabled,
       hasSynced,
