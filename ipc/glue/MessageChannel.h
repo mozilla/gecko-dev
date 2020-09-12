@@ -41,7 +41,8 @@ class ActorLifecycleProxy;
 
 class RefCountedMonitor : public Monitor {
  public:
-  RefCountedMonitor() : Monitor("mozilla.ipc.MessageChannel.mMonitor") {}
+  RefCountedMonitor(bool aOrdered = false)
+    : Monitor("mozilla.ipc.MessageChannel.mMonitor", aOrdered) {}
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RefCountedMonitor)
 

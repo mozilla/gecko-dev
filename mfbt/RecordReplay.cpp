@@ -27,6 +27,7 @@ namespace recordreplay {
   Macro(InternalRecordReplayValue, size_t, (size_t aValue), (aValue))          \
   Macro(InternalHasDivergedFromRecording, bool, (), ())                        \
   Macro(InternalThingIndex, size_t, (void* aThing), (aThing))                  \
+  Macro(InternalCreateOrderedLock, int, (const char* aName), (aName))          \
   Macro(ExecutionProgressCounter, ProgressCounter*, (), ())                    \
   Macro(NewTimeWarpTarget, ProgressCounter, (), ())                            \
   Macro(ShouldUpdateProgressCounter, bool, (const char* aURL), (aURL))
@@ -48,6 +49,8 @@ namespace recordreplay {
         (aFormat, aArgs))                                                      \
   Macro(InternalRegisterThing, (void* aThing), (aThing))                       \
   Macro(InternalUnregisterThing, (void* aThing), (aThing))                     \
+  Macro(InternalOrderedLock, (int aLock), (aLock))                             \
+  Macro(InternalOrderedUnlock, (int aLock), (aLock))                           \
   Macro(BeginContentParse,                                                     \
         (const void* aToken, const char* aURL, const char* aContentType),      \
         (aToken, aURL, aContentType))                                          \

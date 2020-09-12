@@ -818,7 +818,7 @@ bool MessageChannel::Open(mozilla::UniquePtr<Transport> aTransport,
                           MessageLoop* aIOLoop, Side aSide) {
   MOZ_ASSERT(!mLink, "Open() called > once");
 
-  mMonitor = new RefCountedMonitor();
+  mMonitor = new RefCountedMonitor(/* aOrdered */ true);
   mWorkerLoop = MessageLoop::current();
   mWorkerThread = PR_GetCurrentThread();
   mWorkerLoop->AddDestructionObserver(this);
@@ -867,7 +867,7 @@ bool MessageChannel::Open(MessageChannel* aTargetChan,
       break;
   }
 
-  mMonitor = new RefCountedMonitor();
+  mMonitor = new RefCountedMonitor(/* aOrdered */ true);
 
   MonitorAutoLock lock(*mMonitor);
   mChannelState = ChannelOpening;
@@ -929,7 +929,7 @@ bool MessageChannel::OpenOnSameThread(MessageChannel* aTargetChan,
 
   // XXX(nika): Avoid setting up a monitor for same thread channels? We
   // shouldn't need it.
-  mMonitor = new RefCountedMonitor();
+  mMonitor = new RefCountedMonitor(/* aOrdered */ true);
 
   mChannelState = ChannelOpening;
   aTargetChan->CommonThreadOpenInit(this, oppSide);

@@ -82,6 +82,9 @@ static bool (*gHasDivergedFromRecording)();
 static void (*gRecordReplayNewCheckpoint)();
 static char* (*gGetRecordingId)();
 static bool (*gRecordReplayIsReplaying)();
+static int (*gCreateOrderedLock)(const char* aName);
+static void (*gOrderedLock)(int aLock);
+static void (*gOrderedUnlock)(int aLock);
 
 template <typename T>
 static void LoadSymbol(void* handle, const char* name, T& function) {
@@ -146,6 +149,9 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   LoadSymbol(handle, "RecordReplayNewCheckpoint", gRecordReplayNewCheckpoint);
   LoadSymbol(handle, "RecordReplayGetRecordingId", gGetRecordingId);
   LoadSymbol(handle, "RecordReplayIsReplaying", gRecordReplayIsReplaying);
+  LoadSymbol(handle, "RecordReplayCreateOrderedLock", gCreateOrderedLock);
+  LoadSymbol(handle, "RecordReplayOrderedLock", gOrderedLock);
+  LoadSymbol(handle, "RecordReplayOrderedUnlock", gOrderedUnlock);
 
   char buildId[128];
   snprintf(buildId, sizeof(buildId), "macOS-gecko-%s", PlatformBuildID());
@@ -283,6 +289,18 @@ MOZ_EXPORT bool RecordReplayInterface_InternalAreThreadEventsDisallowed() {
 
 MOZ_EXPORT bool RecordReplayInterface_InternalHasDivergedFromRecording() {
   return gHasDivergedFromRecording();
+}
+
+MOZ_EXPORT int RecordReplayInterface_InternalCreateOrderedLock(const char* aName) {
+  return gCreateOrderedLock(aName);
+}
+
+MOZ_EXPORT void RecordReplayInterface_InternalOrderedLock(int aLock) {
+  gOrderedLock(aLock);
+}
+
+MOZ_EXPORT void RecordReplayInterface_InternalOrderedUnlock(int aLock) {
+  gOrderedUnlock(aLock);
 }
 
 }  // extern "C"

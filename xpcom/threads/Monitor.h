@@ -9,6 +9,7 @@
 
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/RecordReplay.h"
 
 namespace mozilla {
 
@@ -23,13 +24,29 @@ namespace mozilla {
  */
 class Monitor {
  public:
-  explicit Monitor(const char* aName)
-      : mMutex(aName), mCondVar(mMutex, "[Monitor.mCondVar]") {}
+  explicit Monitor(const char* aName, bool aOrdered = false)
+      : mMutex(aName), mCondVar(mMutex, "[Monitor.mCondVar]") {
+    if (aOrdered) {
+      mRecordReplayOrderedLockId = recordreplay::CreateOrderedLock(aName);
+    }
+  }
 
   ~Monitor() = default;
 
-  void Lock() { mMutex.Lock(); }
-  bool TryLock() { return mMutex.TryLock(); }
+  void Lock() {
+    Maybe<recordreplay::AutoOrderedLock> ordered;
+    if (mRecordReplayOrderedLockId) {
+      ordered.emplace(mRecordReplayOrderedLockId);
+    }
+    mMutex.Lock();
+  }
+  bool TryLock() {
+    Maybe<recordreplay::AutoOrderedLock> ordered;
+    if (mRecordReplayOrderedLockId) {
+      ordered.emplace(mRecordReplayOrderedLockId);
+    }
+    return mMutex.TryLock();
+  }
   void Unlock() { mMutex.Unlock(); }
 
   void Wait() { mCondVar.Wait(); }
@@ -51,6 +68,7 @@ class Monitor {
 
   Mutex mMutex;
   CondVar mCondVar;
+  int mRecordReplayOrderedLockId = 0;
 };
 
 /**

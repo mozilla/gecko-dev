@@ -147,6 +147,20 @@ static inline void RegisterThing(void* aThing);
 static inline void UnregisterThing(void* aThing);
 static inline size_t ThingIndex(void* aThing);
 
+// Access a locking resource that will be acquired in the same order when
+// replaying as when recording.
+static inline int CreateOrderedLock(const char* aName);
+static inline void OrderedLock(int aLock);
+static inline void OrderedUnlock(int aLock);
+
+// RAII class for using an ordered lock.
+struct MOZ_RAII AutoOrderedLock {
+  int mLock;
+
+  AutoOrderedLock(int aLock) : mLock(aLock) { OrderedLock(aLock); }
+  ~AutoOrderedLock() { OrderedUnlock(mLock); }
+};
+
 // Determine whether this is a recording/replaying process, and
 // initialize record/replay state if so.
 MFBT_API void Initialize(int* aArgc, char*** aArgv);
@@ -264,6 +278,10 @@ MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(RecordReplayAssertBytes,
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(RegisterThing, (void* aThing), (aThing))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(UnregisterThing, (void* aThing), (aThing))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(ThingIndex, size_t, 0, (void* aThing), (aThing))
+MOZ_MAKE_RECORD_REPLAY_WRAPPER(CreateOrderedLock, int, 0,
+                               (const char* aName), (aName))
+MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(OrderedLock, (int aLock), (aLock))
+MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(OrderedUnlock, (int aLock), (aLock))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(AssertScriptedCaller, (const char* aWhy), (aWhy))
 
 #undef MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID
