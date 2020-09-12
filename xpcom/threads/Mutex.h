@@ -10,6 +10,7 @@
 #include "mozilla/BlockingResourceBase.h"
 #include "mozilla/GuardObjects.h"
 #include "mozilla/PlatformMutex.h"
+#include "mozilla/RecordReplay.h"
 
 //
 // Provides:
@@ -41,13 +42,16 @@ class OffTheBooksMutex : public detail::MutexImpl, BlockingResourceBase {
    *          If success, a valid Mutex* which must be destroyed
    *          by Mutex::DestroyMutex()
    **/
-  explicit OffTheBooksMutex(const char* aName)
+  explicit OffTheBooksMutex(const char* aName, bool aOrdered = false)
       : BlockingResourceBase(aName, eMutex)
 #ifdef DEBUG
         ,
         mOwningThread(nullptr)
 #endif
   {
+    if (aOrdered) {
+      mRecordReplayOrderedLockId = recordreplay::CreateOrderedLock(aName);
+    }
   }
 
   ~OffTheBooksMutex() {
@@ -60,12 +64,24 @@ class OffTheBooksMutex : public detail::MutexImpl, BlockingResourceBase {
   /**
    * Lock this mutex.
    **/
-  void Lock() { this->lock(); }
+  void Lock() {
+    Maybe<recordreplay::AutoOrderedLock> ordered;
+    if (mRecordReplayOrderedLockId) {
+      ordered.emplace(mRecordReplayOrderedLockId);
+    }
+    this->lock();
+  }
 
   /**
    * Try to lock this mutex, returning true if we were successful.
    **/
-  bool TryLock() { return this->tryLock(); }
+  bool TryLock() {
+    Maybe<recordreplay::AutoOrderedLock> ordered;
+    if (mRecordReplayOrderedLockId) {
+      ordered.emplace(mRecordReplayOrderedLockId);
+    }
+    return this->tryLock();
+  }
 
   /**
    * Unlock this mutex.
@@ -112,6 +128,8 @@ class OffTheBooksMutex : public detail::MutexImpl, BlockingResourceBase {
 #ifdef DEBUG
   PRThread* mOwningThread;
 #endif
+
+  int mRecordReplayOrderedLockId = 0;
 };
 
 /**
@@ -121,7 +139,8 @@ class OffTheBooksMutex : public detail::MutexImpl, BlockingResourceBase {
  */
 class Mutex : public OffTheBooksMutex {
  public:
-  explicit Mutex(const char* aName) : OffTheBooksMutex(aName) {
+  explicit Mutex(const char* aName, bool aOrdered = false)
+      : OffTheBooksMutex(aName, aOrdered) {
     MOZ_COUNT_CTOR(Mutex);
   }
 

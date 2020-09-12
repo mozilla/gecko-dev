@@ -171,7 +171,7 @@ MessageLoop::MessageLoop(Type type, nsIEventTarget* aEventTarget)
       id_(++message_loop_id_seq),
       nestable_tasks_allowed_(true),
       exception_restoration_(false),
-      incoming_queue_lock_("MessageLoop Incoming Queue Lock"),
+      incoming_queue_lock_("MessageLoop Incoming Queue Lock", /* aOrdered */ true),
       state_(NULL),
       run_depth_base_(1),
       shutting_down_(false),

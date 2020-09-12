@@ -48,7 +48,7 @@ class ThreadEventQueue<InnerQueueT>::NestedSink : public ThreadTargetSink {
 template <class InnerQueueT>
 ThreadEventQueue<InnerQueueT>::ThreadEventQueue(UniquePtr<InnerQueueT> aQueue)
     : mBaseQueue(std::move(aQueue)),
-      mLock("ThreadEventQueue"),
+      mLock("ThreadEventQueue", /* aOrdered */ true),
       mEventsAvailable(mLock, "EventsAvail") {
   static_assert(std::is_base_of<AbstractEventQueue, InnerQueueT>::value,
                 "InnerQueueT must be an AbstractEventQueue subclass");
