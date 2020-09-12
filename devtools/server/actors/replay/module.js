@@ -299,21 +299,8 @@ const exports = {
   OnTestCommand,
 };
 
-function Initialize(text) {
-  try {
-    if (text) {
-      const imports = {
-        Cc, Ci, Cu, ChromeUtils, Debugger, RecordReplayControl, InspectorUtils,
-        considerScript, countScriptFrames, gScripts, gDebugger,
-        advanceProgressCounter, gAllGlobals, getWindow, gSandboxGlobal,
-        gNewGlobalHooks, Services,
-      };
-      Object.assign(exports, new Function("imports", `${text} return exports`)(imports));
-    }
-    return exports;
-  } catch (e) {
-    dump(`Initialize Error: ${e}\n`);
-  }
+function Initialize() {
+  return exports;
 }
 
 var EXPORTED_SYMBOLS = ["Initialize"];

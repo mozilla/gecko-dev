@@ -99,17 +99,12 @@ extern "C" {
 MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   // Parse command line options for the process kind and recording file.
   Maybe<char*> dispatchAddress;
-  Maybe<char*> replayJSFile;
   int argc = *aArgc;
   char** argv = *aArgv;
   for (int i = 0; i < argc; i++) {
     if (!strcmp(argv[i], "-recordReplayDispatch")) {
       MOZ_RELEASE_ASSERT(dispatchAddress.isNothing() && i + 1 < argc);
       dispatchAddress.emplace(argv[i + 1]);
-    }
-    if (!strcmp(argv[i], "-recordReplayJS")) {
-      MOZ_RELEASE_ASSERT(replayJSFile.isNothing() && i + 1 < argc);
-      replayJSFile.emplace(argv[i + 1]);
     }
   }
   MOZ_RELEASE_ASSERT(dispatchAddress.isSome());
@@ -122,10 +117,6 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
 
   // Don't create a stylo thread pool when recording or replaying.
   putenv((char*)"STYLO_THREADS=1");
-
-  if (replayJSFile.isSome()) {
-    js::ReadReplayJS(replayJSFile.ref());
-  }
 
   void* handle = dlopen(driver, RTLD_LAZY);
   if (!handle) {

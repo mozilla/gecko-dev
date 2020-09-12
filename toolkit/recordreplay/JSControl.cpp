@@ -29,22 +29,6 @@ namespace mozilla {
 namespace recordreplay {
 namespace js {
 
-static nsCString gModuleText;
-
-void ReadReplayJS(const char* aFile) {
-  int fd = open(aFile, O_RDONLY);
-  MOZ_RELEASE_ASSERT(fd >= 0);
-
-  struct stat info;
-  fstat(fd, &info);
-
-  gModuleText.SetLength(info.st_size);
-  int nread = read(fd, gModuleText.BeginWriting(), info.st_size);
-  MOZ_RELEASE_ASSERT(nread == info.st_size);
-
-  close(fd);
-}
-
 // URL of the root module script.
 #define ModuleURL "resource://devtools/server/actors/replay/module.js"
 
@@ -71,12 +55,8 @@ void EnsureInitialized() {
   gModule = module.forget();
   ClearOnShutdown(&gModule);
 
-  if (IsReplaying()) {
-    MOZ_RELEASE_ASSERT(gModuleText.Length());
-  }
-
   RootedValue value(cx);
-  if (NS_FAILED(gModule->Initialize(gModuleText, &value))) {
+  if (NS_FAILED(gModule->Initialize(&value))) {
     MOZ_CRASH("EnsureInitialized: Initialize failed");
   }
   MOZ_RELEASE_ASSERT(value.isObject());

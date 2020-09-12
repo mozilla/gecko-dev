@@ -27,9 +27,6 @@ namespace js {
 
 void EnsureInitialized();
 
-// Read the replay JS to load at the first checkpoint.
-void ReadReplayJS(const char* aFile);
-
 // Notify the UI process that the recording was finished.
 void SendRecordingFinished(const char* aRecordingId);
 
