@@ -726,11 +726,7 @@ DevToolsStartup.prototype = {
         // Defer loading the ProfilerPopupBackground script until it's absolutely needed,
         // as this code path gets loaded at startup.
         const { user } = message;
-
-        Services.prefs.setStringPref(
-          "devtools.recordreplay.user",
-          JSON.stringify(user)
-        );
+        saveRecordingUser(user);
       });
     }
   },
@@ -1499,6 +1495,25 @@ async function syncRecordings() {
   Services.prefs.setBoolPref("devtools.recordreplay.has-synced", true);
 }
 
+async function saveRecordingUser(user) {
+  if (!user) {
+    Services.prefs.setStringPref("devtools.recordreplay.user", "");
+    return;
+  }
+
+  const userData = await (
+    await fetch("http://recordings.replay.io/api/get-user", {
+      method: "POST",
+      body: { auth_id: user.sub },
+    })
+  ).json();
+
+  Services.prefs.setStringPref(
+    "devtools.recordreplay.user",
+    JSON.stringify(userData)
+  );
+}
+
 function createRecordingButton() {
   runTestScript();
 
@@ -1511,11 +1526,7 @@ function createRecordingButton() {
         return;
       }
 
-      const {
-        gBrowser,
-        navigator,
-        setCursor,
-      } = Services.wm.getMostRecentWindow("navigator:browser");
+      const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
       const recording = gBrowser.selectedBrowser.hasAttribute(
         "recordExecution"
       );
