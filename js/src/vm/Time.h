@@ -7,6 +7,7 @@
 #ifndef vm_Time_h
 #define vm_Time_h
 
+#include "mozilla/RecordReplay.h"
 #include "mozilla/TimeStamp.h"
 
 #include <stddef.h>
