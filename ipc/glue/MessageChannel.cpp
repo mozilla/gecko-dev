@@ -965,6 +965,10 @@ bool MessageChannel::Echo(Message* aMsg) {
 }
 
 bool MessageChannel::Send(Message* aMsg) {
+  recordreplay::RecordReplayAssert("MessageChannel::Send %s %lu",
+                                   IPC::StringFromIPCMessageType(aMsg->type()),
+                                   aMsg->size());
+
   if (aMsg->size() >= kMinTelemetryMessageSize) {
     Telemetry::Accumulate(Telemetry::IPC_MESSAGE_SIZE2, aMsg->size());
   }
