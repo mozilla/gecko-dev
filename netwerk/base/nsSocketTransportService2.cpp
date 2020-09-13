@@ -120,7 +120,7 @@ void nsSocketTransportService::SocketContext::MaybeResetEpoch() {
 
 nsSocketTransportService::nsSocketTransportService()
     : mThread(nullptr),
-      mLock("nsSocketTransportService::mLock"),
+      mLock("nsSocketTransportService::mLock", /* aOrdered */ true),
       mInitialized(false),
       mShuttingDown(false),
       mOffline(false),

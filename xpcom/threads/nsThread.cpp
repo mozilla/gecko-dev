@@ -620,6 +620,7 @@ nsThread::nsThread(NotNull<SynchronizedEventQueue*> aQueue,
       mLastWakeupCheckTime(TimeStamp::Now()),
 #endif
       mPerformanceCounterState(mNestedEventLoopDepth, mIsMainThread) {
+  recordreplay::RegisterThing(this);
 }
 
 nsThread::nsThread()
@@ -638,6 +639,7 @@ nsThread::nsThread()
 #endif
       mPerformanceCounterState(mNestedEventLoopDepth, mIsMainThread) {
   MOZ_ASSERT(!NS_IsMainThread());
+  recordreplay::RegisterThing(this);
 }
 
 nsThread::~nsThread() {
@@ -1072,6 +1074,9 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
   MOZ_ASSERT(mEvents);
   NS_ENSURE_TRUE(mEvents, NS_ERROR_NOT_IMPLEMENTED);
 
+  recordreplay::RecordReplayAssert("nsThread::ProcessNextEvent %d",
+                                   recordreplay::ThingIndex(this));
+
   LOG(("THRD(%p) ProcessNextEvent [%u %u]\n", this, aMayWait,
        mNestedEventLoopDepth));
 
@@ -1091,6 +1096,9 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
   bool reallyWait = aMayWait && (mNestedEventLoopDepth > 0 || !ShuttingDown());
 
   if (mIsInLocalExecutionMode) {
+    recordreplay::RecordReplayAssert("nsThread::ProcessNextEvent #1 %d",
+                                     recordreplay::ThingIndex(this));
+
     EventQueuePriority priority;
     if (const nsCOMPtr<nsIRunnable> event =
             mEvents->GetEvent(reallyWait, &priority)) {
@@ -1139,6 +1147,9 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
   nsresult rv = NS_OK;
 
   {
+    recordreplay::RecordReplayAssert("nsThread::ProcessNextEvent #2 %d",
+                                     recordreplay::ThingIndex(this));
+
     // Scope for |event| to make sure that its destructor fires while
     // mNestedEventLoopDepth has been incremented, since that destructor can
     // also do work.

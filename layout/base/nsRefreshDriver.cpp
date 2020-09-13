@@ -668,6 +668,8 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
     ~RefreshDriverVsyncObserver() = default;
 
     void RecordTelemetryProbes(TimeStamp aVsyncTimestamp) {
+      recordreplay::RecordReplayAssert("RecordTelemetryProbes");
+
       MOZ_ASSERT(NS_IsMainThread());
 #ifndef ANDROID /* bug 1142079 */
       if (XRE_IsParentProcess()) {
@@ -679,6 +681,7 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
             Telemetry::FX_REFRESH_DRIVER_SYNC_SCROLL_FRAME_DELAY_MS, sample);
         RecordJank(sample);
       } else if (mVsyncRate != TimeDuration::Forever()) {
+        recordreplay::RecordReplayAssert("RecordTelemetryProbes #1");
         TimeDuration contentDelay = (TimeStamp::Now() - mLastTick) - mVsyncRate;
         if (contentDelay.ToMilliseconds() < 0) {
           // Vsyncs are noisy and some can come at a rate quicker than
@@ -695,6 +698,7 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
       } else {
         // Request the vsync rate from the parent process. Might be a few vsyncs
         // until the parent responds.
+        recordreplay::RecordReplayAssert("RecordTelemetryProbes #2");
         if (mVsyncRefreshDriverTimer) {
           mVsyncRate = mVsyncRefreshDriverTimer->mVsyncChild->GetVsyncRate();
         }
