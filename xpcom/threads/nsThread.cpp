@@ -643,6 +643,8 @@ nsThread::nsThread()
 }
 
 nsThread::~nsThread() {
+  recordreplay::UnregisterThing(this);
+
   NS_ASSERTION(mRequestedShutdownContexts.IsEmpty(),
                "shouldn't be waiting on other threads to shutdown");
 
@@ -1234,7 +1236,11 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
 
       mLastEventStart = now;
 
+      recordreplay::RecordReplayAssert("nsThread::ProcessNextEvent RUN");
+
       event->Run();
+
+      recordreplay::RecordReplayAssert("nsThread::ProcessNextEvent AFTER_RUN");
 
       mEvents->DidRunEvent();
 

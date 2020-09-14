@@ -615,6 +615,8 @@ MessageChannel::MessageChannel(const char* aName, IToplevelProtocol* aListener)
 }
 
 MessageChannel::~MessageChannel() {
+  recordreplay::UnregisterThing(this);
+
   MOZ_COUNT_DTOR(ipc::MessageChannel);
   IPC_ASSERT(mCxxStackFrames.empty(), "mismatched CxxStackFrame ctor/dtors");
 #ifdef OS_WIN
@@ -1978,7 +1980,14 @@ MessageChannel::MessageTask::MessageTask(MessageChannel* aChannel,
   recordreplay::RegisterThing(this);
 }
 
+MessageChannel::MessageTask::~MessageTask() {
+  recordreplay::UnregisterThing(this);
+}
+
 nsresult MessageChannel::MessageTask::Run() {
+  recordreplay::RecordReplayAssert("MessageTask::Run %d %d", recordreplay::ThingIndex(this),
+                                   recordreplay::ThingIndex(mChannel));
+
   if (!mChannel) {
     return NS_OK;
   }
@@ -1996,7 +2005,7 @@ nsresult MessageChannel::MessageTask::Run() {
     return NS_OK;
   }
 
-  recordreplay::RecordReplayAssert("MessageTask::Run %d %d", recordreplay::ThingIndex(this),
+  recordreplay::RecordReplayAssert("MessageTask::Run #1 %d %d", recordreplay::ThingIndex(this),
                                    recordreplay::ThingIndex(mChannel));
 
   mChannel->RunMessage(*this);

@@ -595,7 +595,7 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
    private:
     MessageTask() = delete;
     MessageTask(const MessageTask&) = delete;
-    ~MessageTask() = default;
+    ~MessageTask();
 
     MessageChannel* mChannel;
     Message mMessage;

@@ -9,6 +9,8 @@
 #include "secrng.h"
 #include "prprf.h"
 
+#include <dlfcn.h>
+
 /* syscall getentropy() is limited to retrieving 256 bytes */
 #define GETENTROPY_MAX_BYTES 256
 
@@ -24,6 +26,26 @@ RNG_SystemInfoForRNG(void)
     RNG_RandomUpdate(bytes, numBytes);
 }
 
+static void (*gRecordReplayAssertFn)(const char*, va_list);
+
+static void RecordReplayAssertFromC(const char* aFormat, ...) {
+  if (!gRecordReplayAssertFn) {
+    void* fnptr = dlsym(RTLD_DEFAULT, "RecordReplayAssert");
+    if (!fnptr) {
+      return;
+    }
+    gRecordReplayAssertFn = fnptr;
+
+    fprintf(stderr, "Busy-waiting %d", getpid());
+  }
+
+  va_list ap;
+  va_start(ap, aFormat);
+  gRecordReplayAssertFn(aFormat, ap);
+  va_end(ap);
+}
+
+
 size_t
 RNG_SystemRNG(void *dest, size_t maxLen)
 {
@@ -31,6 +53,8 @@ RNG_SystemRNG(void *dest, size_t maxLen)
     int bytes;
     size_t fileBytes = 0;
     unsigned char *buffer = dest;
+
+    RecordReplayAssertFromC("RNG_SystemRNG");
 
 #if defined(__OpenBSD__) || (defined(__FreeBSD__) && __FreeBSD_version >= 1200000) || (defined(LINUX) && defined(__GLIBC__) && ((__GLIBC__ > 2) || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ >= 25))))
     int result;
@@ -41,6 +65,7 @@ RNG_SystemRNG(void *dest, size_t maxLen)
             getBytes = GETENTROPY_MAX_BYTES;
         }
         result = getentropy(buffer, getBytes);
+        RecordReplayAssertFromC("RNG_SystemRNG #1 %d", result);
         if (result == 0) { /* success */
             fileBytes += getBytes;
             buffer += getBytes;
@@ -49,6 +74,7 @@ RNG_SystemRNG(void *dest, size_t maxLen)
         }
     }
     if (fileBytes == maxLen) { /* success */
+      RecordReplayAssertFromC("RNG_SystemRNG #2");
         return maxLen;
     }
     /* If we failed with an error other than ENOSYS, it means the destination
@@ -61,6 +87,8 @@ RNG_SystemRNG(void *dest, size_t maxLen)
      * Reset the number of bytes to get and fall back to /dev/urandom. */
     fileBytes = 0;
 #endif
+    RecordReplayAssertFromC("RNG_SystemRNG #3");
+    fprintf(stderr, "OPEN_URANDOM %d\n", getpid());
     fd = open("/dev/urandom", O_RDONLY);
     if (fd < 0) {
         PORT_SetError(SEC_ERROR_NEED_RANDOM);

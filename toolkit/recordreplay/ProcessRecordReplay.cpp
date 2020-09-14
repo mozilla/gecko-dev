@@ -67,6 +67,7 @@ static uintptr_t (*gRecordReplayValue)(const char* why, uintptr_t value);
 static void (*gRecordReplayBytes)(const char* why, void* buf, size_t size);
 static void (*gPrintVA)(const char* format, va_list args);
 static void (*gRegisterPointer)(void* ptr);
+static void (*gUnregisterPointer)(void* ptr);
 static int (*gPointerId)(void* ptr);
 static void (*gAssert)(const char* format, va_list);
 static void (*gAssertBytes)(const char* why, const void*, size_t);
@@ -135,6 +136,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   LoadSymbol(handle, "RecordReplayPrintVA", gPrintVA);
   LoadSymbol(handle, "RecordReplayFinishRecording", gFinishRecording);
   LoadSymbol(handle, "RecordReplayRegisterPointer", gRegisterPointer);
+  LoadSymbol(handle, "RecordReplayUnregisterPointer", gUnregisterPointer);
   LoadSymbol(handle, "RecordReplayPointerId", gPointerId);
   LoadSymbol(handle, "RecordReplayAssert", gAssert);
   LoadSymbol(handle, "RecordReplayAssertBytes", gAssertBytes);
@@ -203,6 +205,7 @@ MOZ_EXPORT void RecordReplayInterface_InternalRegisterThing(void* aThing) {
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalUnregisterThing(void* aThing) {
+  gUnregisterPointer(aThing);
 }
 
 MOZ_EXPORT size_t RecordReplayInterface_InternalThingIndex(void* aThing) {

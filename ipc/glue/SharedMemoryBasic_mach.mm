@@ -472,6 +472,8 @@ void SharedMemoryBasic::CleanupForPid(pid_t pid) {
 
 bool SharedMemoryBasic::SendMachMessage(pid_t pid, MachSendMessage& message,
                                         MachReceiveMessage* response) {
+  recordreplay::RecordReplayAssert("SharedMemoryBasic::SendMachMessage");
+
   StaticMutexAutoLock smal(gMutex);
   ipc::MemoryPorts* ports = GetMemoryPortsForPid(pid);
   if (!ports) {
