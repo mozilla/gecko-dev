@@ -1897,6 +1897,8 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
        !mNeedToUpdateIntersectionObservations &&
        mVisualViewportResizeEvents.IsEmpty() && mScrollEvents.IsEmpty() &&
        mVisualViewportScrollEvents.IsEmpty())) {
+    recordreplay::RecordReplayAssert("nsRefreshDriver::Tick #1");
+
     // Things are being destroyed, or we no longer have any observers.
     // We don't want to stop the timer when observers are initially
     // removed, because sometimes observers can be added and removed
@@ -1918,9 +1920,11 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
             TimeStamp::Now() + TimeDuration::FromSeconds(4.0f);
         // Don't let the timer to run forever, so limit to 4s for now.
       } else if (mInitialTimerRunningLimit < TimeStamp::Now()) {
+        recordreplay::RecordReplayAssert("nsRefreshDriver::Tick #2");
         StopTimer();
       }
     } else {
+      recordreplay::RecordReplayAssert("nsRefreshDriver::Tick #3");
       StopTimer();
     }
     return;
