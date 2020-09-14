@@ -24,7 +24,8 @@ namespace recordreplay {
 #define FOR_EACH_INTERFACE(Macro)                                              \
   Macro(InternalAreThreadEventsPassedThrough, bool, (), ())                    \
   Macro(InternalAreThreadEventsDisallowed, bool, (), ())                       \
-  Macro(InternalRecordReplayValue, size_t, (size_t aValue), (aValue))          \
+  Macro(InternalRecordReplayValue, size_t, (const char* aWhy, size_t aValue),  \
+        (aWhy, aValue))                                                        \
   Macro(InternalHasDivergedFromRecording, bool, (), ())                        \
   Macro(InternalThingIndex, size_t, (void* aThing), (aThing))                  \
   Macro(InternalCreateOrderedLock, int, (const char* aName), (aName))          \
@@ -37,8 +38,8 @@ namespace recordreplay {
   Macro(InternalEndPassThroughThreadEvents, (), ())                            \
   Macro(InternalBeginDisallowThreadEvents, (), ())                             \
   Macro(InternalEndDisallowThreadEvents, (), ())                               \
-  Macro(InternalRecordReplayBytes, (void* aData, size_t aSize),                \
-        (aData, aSize))                                                        \
+  Macro(InternalRecordReplayBytes, (const char* aWhy, void* aData, size_t aSize), \
+        (aWhy, aData, aSize))                                                  \
   Macro(InternalInvalidateRecording, (const char* aWhy), (aWhy))               \
   Macro(InternalHoldJSObject, (void* aJSObj), (aJSObj))                        \
   Macro(InternalRecordReplayAssert, (const char* aFormat, va_list aArgs),      \

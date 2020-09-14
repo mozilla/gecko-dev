@@ -34,23 +34,66 @@ class Monitor {
   ~Monitor() = default;
 
   void Lock() {
-    Maybe<recordreplay::AutoOrderedLock> ordered;
     if (mRecordReplayOrderedLockId) {
-      ordered.emplace(mRecordReplayOrderedLockId);
+      // Adjust the order we take the lock based on whether we are recording,
+      // so that lock acquires happen in a consistent order and avoid deadlocks.
+      // When recording we take the ordered lock second, so that we can deal
+      // with waking up from a condvar notify. When replaying we take the
+      // ordered lock first, as it will block until we are next in line to
+      // take the lock.
+      if (recordreplay::IsRecording()) {
+        mMutex.Lock();
+        recordreplay::AutoOrderedLock ordered(mRecordReplayOrderedLockId);
+      } else {
+        recordreplay::AutoOrderedLock ordered(mRecordReplayOrderedLockId);
+        mMutex.Lock();
+      }
+    } else {
+      mMutex.Lock();
     }
-    mMutex.Lock();
   }
   bool TryLock() {
     Maybe<recordreplay::AutoOrderedLock> ordered;
     if (mRecordReplayOrderedLockId) {
+      // Lock acquire here doesn't matter as above, because TryLock won't block.
       ordered.emplace(mRecordReplayOrderedLockId);
     }
     return mMutex.TryLock();
   }
   void Unlock() { mMutex.Unlock(); }
 
-  void Wait() { mCondVar.Wait(); }
-  CVStatus Wait(TimeDuration aDuration) { return mCondVar.Wait(aDuration); }
+  void Wait() {
+    if (mRecordReplayOrderedLockId) {
+      if (recordreplay::IsRecording()) {
+        mCondVar.Wait();
+        recordreplay::AutoOrderedLock ordered(mRecordReplayOrderedLockId);
+      } else {
+        // When replaying, we don't wait on the condvar. Reproducing the
+        // lock that occurred when recording will ensure this thread is at the
+        // right place when replaying.
+        Unlock();
+        Lock();
+      }
+    } else {
+      mCondVar.Wait();
+    }
+  }
+  CVStatus Wait(TimeDuration aDuration) {
+    if (mRecordReplayOrderedLockId) {
+      if (recordreplay::IsRecording()) {
+        CVStatus rv = mCondVar.Wait(aDuration);
+        recordreplay::AutoOrderedLock ordered(mRecordReplayOrderedLockId);
+        return (CVStatus)recordreplay::RecordReplayValue(mMutex.Name(), (int)rv);
+      } else {
+        // Don't wait on the condvar, as above.
+        Unlock();
+        Lock();
+        return (CVStatus)recordreplay::RecordReplayValue(mMutex.Name(), 0);
+      }
+    } else {
+      return mCondVar.Wait(aDuration);
+    }
+  }
 
   void Notify() { mCondVar.Notify(); }
   void NotifyAll() { mCondVar.NotifyAll(); }

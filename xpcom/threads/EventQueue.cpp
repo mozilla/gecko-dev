@@ -49,7 +49,8 @@ template <size_t ItemsPerPage>
 already_AddRefed<nsIRunnable> EventQueueInternal<ItemsPerPage>::GetEvent(
     EventQueuePriority* aPriority, const MutexAutoLock& aProofOfLock,
     mozilla::TimeDuration* aLastEventDelay) {
-  recordreplay::RecordReplayAssert("EventQueueInternal::GetEvent");
+  recordreplay::RecordReplayAssert("EventQueueInternal::GetEvent %d",
+                                   recordreplay::ThingIndex(this));
 
   if (mQueue.IsEmpty()) {
     if (aLastEventDelay) {
@@ -87,7 +88,8 @@ already_AddRefed<nsIRunnable> EventQueueInternal<ItemsPerPage>::GetEvent(
 
   nsCOMPtr<nsIRunnable> result = mQueue.Pop();
 
-  recordreplay::RecordReplayAssert("EventQueueInternal::GetEvent RETURN %d",
+  recordreplay::RecordReplayAssert("EventQueueInternal::GetEvent RETURN %d %d",
+                                   recordreplay::ThingIndex(this),
                                    recordreplay::ThingIndex(result));
 
   return result.forget();

@@ -1411,8 +1411,6 @@ static bool date_parse(JSContext* cx, unsigned argc, Value* vp) {
 
 static ClippedTime NowAsMillis(JSContext* cx) {
   double now = PRMJ_Now();
-  mozilla::recordreplay::RecordReplayBytes(&now, sizeof(now));
-
   bool clampAndJitter = cx->realm()->behaviors().clampAndJitterTime();
   if (clampAndJitter && sReduceMicrosecondTimePrecisionCallback) {
     now = sReduceMicrosecondTimePrecisionCallback(now);

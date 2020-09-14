@@ -171,13 +171,14 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
 }
 
 MOZ_EXPORT size_t
-RecordReplayInterface_InternalRecordReplayValue(size_t aValue) {
-  return gRecordReplayValue("Value", aValue);
+RecordReplayInterface_InternalRecordReplayValue(const char* aWhy, size_t aValue) {
+  return gRecordReplayValue(aWhy, aValue);
 }
 
-MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayBytes(void* aData,
+MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayBytes(const char* aWhy,
+                                                                void* aData,
                                                                 size_t aSize) {
-  gRecordReplayBytes("Bytes", aData, aSize);
+  gRecordReplayBytes(aWhy, aData, aSize);
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalInvalidateRecording(

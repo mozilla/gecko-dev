@@ -821,6 +821,10 @@ nsAppShell::AfterProcessNextEvent(nsIThreadInternal* aThread, bool aEventWasProc
 - (id)initWithAppShell:(nsAppShell*)aAppShell {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NIL;
 
+  // This message will not be called while replaying (as for other messages
+  // sent to Gecko objects), so don't add any recorded events.
+  recordreplay::AutoPassThroughThreadEvents pt;
+
   if ((self = [self init])) {
     mAppShell = aAppShell;
 

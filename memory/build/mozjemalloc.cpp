@@ -134,6 +134,7 @@
 #include "mozilla/Likely.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/RandomNum.h"
+#include "mozilla/RecordReplay.h"
 #include "mozilla/Sprintf.h"
 // Note: MozTaggedAnonymousMmap() could call an LD_PRELOADed mmap
 // instead of the one defined here; use only MozTagAnonymousMemory().
@@ -2832,8 +2833,12 @@ void* arena_t::MallocSmall(size_t aSize, bool aZero) {
       // arc4random.  So we temporarily disable mRandomizeSmallAllocations to
       // skip this case and then re-enable it
       mRandomizeSmallAllocations = false;
-      mozilla::Maybe<uint64_t> prngState1 = mozilla::RandomUint64();
-      mozilla::Maybe<uint64_t> prngState2 = mozilla::RandomUint64();
+      mozilla::Maybe<uint64_t> prngState1, prngState2;
+      {
+        mozilla::recordreplay::AutoPassThroughThreadEvents pt;
+        prngState1 = mozilla::RandomUint64();
+        prngState2 = mozilla::RandomUint64();
+      }
       void* backing =
           base_alloc(sizeof(mozilla::non_crypto::XorShift128PlusRNG));
       mPRNG = new (backing) mozilla::non_crypto::XorShift128PlusRNG(
@@ -3614,7 +3619,11 @@ arena_t* ArenaCollection::CreateArena(bool aIsPrivate,
   // arena, stopping them from getting data they may want
 
   while (true) {
-    mozilla::Maybe<uint64_t> maybeRandomId = mozilla::RandomUint64();
+    mozilla::Maybe<uint64_t> maybeRandomId;
+    {
+      mozilla::recordreplay::AutoPassThroughThreadEvents pt;
+      maybeRandomId = mozilla::RandomUint64();
+    }
     MOZ_RELEASE_ASSERT(maybeRandomId.isSome());
 
     // Avoid 0 as an arena Id. We use 0 for disposed arenas.

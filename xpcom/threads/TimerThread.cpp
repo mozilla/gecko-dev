@@ -30,7 +30,7 @@ NS_IMPL_ISUPPORTS(TimerThread, nsIRunnable, nsIObserver)
 
 TimerThread::TimerThread()
     : mInitialized(false),
-      mMonitor("TimerThread.mMonitor"),
+      mMonitor("TimerThread.mMonitor", /* aOrdered */ true),
       mShutdown(false),
       mWaiting(false),
       mNotified(false),

@@ -99,7 +99,6 @@ DOMHighResTimeStamp Performance::Now() {
 
 DOMHighResTimeStamp Performance::NowUnclamped() const {
   TimeDuration duration = TimeStamp::NowUnfuzzed() - CreationTimeStamp();
-  mozilla::recordreplay::RecordReplayBytes(&duration, sizeof(duration));
   return duration.ToMilliseconds();
 }
 

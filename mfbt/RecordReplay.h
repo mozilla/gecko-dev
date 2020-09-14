@@ -105,11 +105,11 @@ struct MOZ_RAII AutoDisallowThreadEvents {
 };
 
 // Record or replay a value in the current thread's event stream.
-static inline size_t RecordReplayValue(size_t aValue);
+static inline size_t RecordReplayValue(const char* aWhy, size_t aValue);
 
 // Record or replay the contents of a range of memory in the current thread's
 // event stream.
-static inline void RecordReplayBytes(void* aData, size_t aSize);
+static inline void RecordReplayBytes(const char* aWhy, void* aData, size_t aSize);
 
 // During recording or replay, mark the recording as unusable. There are some
 // behaviors that can't be reliably recorded or replayed. For more information,
@@ -265,9 +265,10 @@ MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(BeginDisallowThreadEvents, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(EndDisallowThreadEvents, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(AreThreadEventsDisallowed, bool, false, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(RecordReplayValue, size_t, aValue,
-                               (size_t aValue), (aValue))
+                               (const char* aWhy, size_t aValue), (aWhy, aValue))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(RecordReplayBytes,
-                                    (void* aData, size_t aSize), (aData, aSize))
+                                    (const char* aWhy, void* aData, size_t aSize),
+                                    (aWhy, aData, aSize))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(HasDivergedFromRecording, bool, false, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(InvalidateRecording, (const char* aWhy),
                                     (aWhy))

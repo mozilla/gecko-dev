@@ -118,6 +118,8 @@ class OffTheBooksMutex : public detail::MutexImpl, BlockingResourceBase {
 
 #endif  // ifndef DEBUG
 
+  const char* Name() { return BlockingResourceBase::Name(); }
+
  private:
   OffTheBooksMutex();
   OffTheBooksMutex(const OffTheBooksMutex&);
