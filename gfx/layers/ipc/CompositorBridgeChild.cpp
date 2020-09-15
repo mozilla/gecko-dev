@@ -98,6 +98,10 @@ CompositorBridgeChild::CompositorBridgeChild(CompositorManagerChild* aManager)
       mSlowFlushCount(0),
       mTotalFlushCount(0) {
   MOZ_ASSERT(NS_IsMainThread());
+
+  if (recordreplay::IsRecordingOrReplaying()) {
+    fprintf(stderr, "RecordingCompositorBridgeChild %p Manager %p\n", this, aManager);
+  }
 }
 
 CompositorBridgeChild::~CompositorBridgeChild() {

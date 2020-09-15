@@ -591,12 +591,10 @@ nsresult BrowserChild::Init(mozIDOMWindowProxy* aParent,
 
   mIPCOpen = true;
 
-  // Replaying processes use their own compositor.
-  /*
-  if (recordreplay::IsReplaying()) {
+  // Recording/replaying processes have their own compositor.
+  if (recordreplay::IsRecordingOrReplaying()) {
     mPuppetWidget->CreateCompositor();
   }
-  */
 
 #if !defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_THUNDERBIRD) && \
     !defined(MOZ_SUITE)
@@ -2773,6 +2771,9 @@ bool BrowserChild::CreateRemoteLayerManager(
               &mTextureFactoryIdentifier);
         });
   } else {
+    if (recordreplay::IsRecordingOrReplaying()) {
+      fprintf(stderr, "BrowserChild::CreateRemoteLayerManager %p", aCompositorChild);
+    }
     nsTArray<LayersBackend> ignored;
     PLayerTransactionChild* shadowManager =
         aCompositorChild->SendPLayerTransactionConstructor(ignored,

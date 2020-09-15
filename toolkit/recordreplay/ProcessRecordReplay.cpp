@@ -366,10 +366,12 @@ const char* CurrentFirefoxVersion() {
 }
 
 bool OnVsync() {
+  PrintLog("OnVsync");
   return true;
 }
 
 void SetVsyncObserver(VsyncObserver* aObserver) {
+  PrintLog("SetVsyncObserver");
 }
 
 already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(
@@ -378,9 +380,11 @@ already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(
 }
 
 void NotifyPaintStart() {
+  PrintLog("NotifyPaintStart");
 }
 
 void NotifyPaintComplete() {
+  PrintLog("NotifyPaintComplete");
 }
 
 void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetMouseEvent& aEvent) {
