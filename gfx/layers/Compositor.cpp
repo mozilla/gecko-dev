@@ -557,7 +557,9 @@ gfx::IntRect Compositor::ComputeBackdropCopyRect(
 
 void Compositor::SetInvalid() { mParent = nullptr; }
 
-bool Compositor::IsValid() const { return !!mParent; }
+bool Compositor::IsValid() const {
+  return recordreplay::IsRecordingOrReplaying() || !!mParent;
+}
 
 void Compositor::UnlockAfterComposition(TextureHost* aTexture) {
   TextureSourceProvider::UnlockAfterComposition(aTexture);

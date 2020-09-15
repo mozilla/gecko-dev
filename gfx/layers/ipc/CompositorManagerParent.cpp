@@ -96,7 +96,7 @@ CompositorManagerParent::CreateSameProcessWidgetCompositorBridge(
   // Note that the static mutex not only is used to protect sInstance, but also
   // mPendingCompositorBridges.
   StaticMutexAutoLock lock(sMutex);
-  if (!recordreplay::IsRecordingOrReplaying() && NS_WARN_IF(!sInstance)) {
+  if (NS_WARN_IF(!sInstance)) {
     return nullptr;
   }
 
@@ -109,9 +109,7 @@ CompositorManagerParent::CreateSameProcessWidgetCompositorBridge(
       new CompositorBridgeParent(sInstance, aScale, vsyncRate, aOptions,
                                  aUseExternalSurfaceSize, aSurfaceSize);
 
-  if (sInstance) {
-    sInstance->mPendingCompositorBridges.AppendElement(bridge);
-  }
+  sInstance->mPendingCompositorBridges.AppendElement(bridge);
   return bridge.forget();
 }
 

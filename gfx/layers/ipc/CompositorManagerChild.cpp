@@ -24,8 +24,6 @@ using gfx::GPUProcessManager;
 
 StaticRefPtr<CompositorManagerChild> CompositorManagerChild::sInstance;
 
-static StaticRefPtr<CompositorManagerChild> sRecordReplayInProcessManager;
-
 /* static */
 bool CompositorManagerChild::IsInitialized(uint64_t aProcessToken) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -157,23 +155,9 @@ CompositorManagerChild::CreateSameProcessWidgetCompositorBridge(
   CompositorBridgeOptions options = SameProcessWidgetCompositorOptions();
 
   RefPtr<CompositorBridgeChild> bridge = new CompositorBridgeChild(sInstance);
-  if (recordreplay::IsRecordingOrReplaying()) {
-    MOZ_RELEASE_ASSERT(!sRecordReplayInProcessManager);
-    RefPtr<CompositorManagerParent> parent =
-        CompositorManagerParent::CreateSameProcess();
-    RefPtr<CompositorManagerChild> child =
-        new CompositorManagerChild(parent, 0, aNamespace);
-    MOZ_RELEASE_ASSERT(child->CanSend());
-    if (!child->SendPCompositorBridgeConstructor(bridge, options)) {
-      MOZ_CRASH("CompositorManagerChild::CreateSameProcessWidgetCompositorBridge");
-    }
-    parent->BindComplete(/* aIsRoot */ true);
-    sRecordReplayInProcessManager = std::move(child);
-  } else {
-    if (NS_WARN_IF(
-            !sInstance->SendPCompositorBridgeConstructor(bridge, options))) {
-      return nullptr;
-    }
+  if (NS_WARN_IF(
+          !sInstance->SendPCompositorBridgeConstructor(bridge, options))) {
+    return nullptr;
   }
 
   bridge->InitForWidget(1, aLayerManager, aNamespace);

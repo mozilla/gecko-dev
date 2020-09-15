@@ -296,7 +296,7 @@ bool TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
 
     tile.mTextureHost =
         TextureHost::AsTextureHost(texturedDesc.textureParent());
-    if (texturedDesc.readLocked()) {
+    if (!recordreplay::IsRecordingOrReplaying() && texturedDesc.readLocked()) {
       tile.mTextureHost->SetReadLocked();
       auto actor = tile.mTextureHost->GetIPDLActor();
       if (actor && tile.mTextureHost->IsDirectMap()) {
@@ -313,7 +313,7 @@ bool TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
     if (texturedDesc.textureOnWhiteParent().isSome()) {
       tile.mTextureHostOnWhite =
           TextureHost::AsTextureHost(texturedDesc.textureOnWhiteParent().ref());
-      if (texturedDesc.readLockedOnWhite()) {
+      if (!recordreplay::IsRecordingOrReplaying() && texturedDesc.readLockedOnWhite()) {
         tile.mTextureHostOnWhite->SetReadLocked();
         auto actor = tile.mTextureHostOnWhite->GetIPDLActor();
         if (actor && tile.mTextureHostOnWhite->IsDirectMap()) {

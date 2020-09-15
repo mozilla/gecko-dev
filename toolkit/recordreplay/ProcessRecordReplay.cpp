@@ -365,28 +365,6 @@ const char* CurrentFirefoxVersion() {
   return "74.0a1";
 }
 
-bool OnVsync() {
-  PrintLog("OnVsync");
-  return true;
-}
-
-void SetVsyncObserver(VsyncObserver* aObserver) {
-  PrintLog("SetVsyncObserver");
-}
-
-already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(
-    LayoutDeviceIntSize aSize) {
-  MOZ_CRASH("FIXME");
-}
-
-void NotifyPaintStart() {
-  PrintLog("NotifyPaintStart");
-}
-
-void NotifyPaintComplete() {
-  PrintLog("NotifyPaintComplete");
-}
-
 void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetMouseEvent& aEvent) {
 }
 

@@ -46,7 +46,12 @@ namespace mozilla {
 namespace ipc {
 class Shmem;
 }  // namespace ipc
-namespace recordreplay { void NotifyPaintStart(); }
+
+namespace recordreplay {
+  void SendUpdate(const layers::TransactionInfo& aInfo);
+  void SendNewCompositable(const layers::CompositableHandle& aHandle,
+                           const layers::TextureInfo& aInfo);
+}
 
 namespace layers {
 
@@ -700,6 +705,10 @@ bool ShadowLayerForwarder::EndTransaction(
   // finish. If it does we don't have to delay messages at all.
   GetCompositorBridgeChild()->PostponeMessagesIfAsyncPainting();
 
+  if (recordreplay::IsRecordingOrReplaying()) {
+    recordreplay::SendUpdate(info);
+  }
+
   MOZ_LAYERS_LOG(("[LayersForwarder] sending transaction..."));
   RenderTraceScope rendertrace3("Forward Transaction", "000093");
   if (!mShadowManager->SendUpdate(info)) {
@@ -711,10 +720,6 @@ bool ShadowLayerForwarder::EndTransaction(
     mPaintTiming.sendMs() =
         (TimeStamp::Now() - startTime.value()).ToMilliseconds();
     mShadowManager->SendRecordPaintTimes(mPaintTiming);
-  }
-
-  if (recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::NotifyPaintStart();
   }
 
   *aSent = true;
@@ -814,6 +819,10 @@ void ShadowLayerForwarder::Connect(CompositableClient* aCompositable,
   CompositableHandle handle(id);
   aCompositable->InitIPDL(handle);
   mShadowManager->SendNewCompositable(handle, aCompositable->GetTextureInfo());
+
+  if (recordreplay::IsRecordingOrReplaying()) {
+    recordreplay::SendNewCompositable(handle, aCompositable->GetTextureInfo());
+  }
 }
 
 void ShadowLayerForwarder::Attach(CompositableClient* aCompositable,
