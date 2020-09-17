@@ -1504,7 +1504,7 @@ async function saveRecordingUser(user) {
   const userData = await (
     await fetch("http://recordings.replay.io/api/get-user", {
       method: "POST",
-      body: { auth_id: user.sub },
+      body: JSON.stringify({ auth_id: user.sub }),
     })
   ).json();
 
