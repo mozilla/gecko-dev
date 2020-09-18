@@ -85,7 +85,7 @@ static const int32_t GraphicsHandshakeMessageId = 42;
 static const int32_t GraphicsMemoryMessageId = 43;
 
 // Fixed size of the graphics shared memory buffer.
-static const size_t GraphicsMemorySize = 4096 * 4096 * 4;
+static const size_t GraphicsMemorySize = 4096 * 4096 * 4 * 2;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Child Processes

@@ -879,7 +879,6 @@ already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(
   gfx::IntSize size(aSize.width, aSize.height);
   size_t bufferSize =
       layers::ImageDataSerializer::ComputeRGBBufferSize(size, gSurfaceFormat);
-  MOZ_RELEASE_ASSERT(bufferSize <= parent::GraphicsMemorySize);
 
   if (bufferSize != gDrawTargetBufferSize) {
     free(gDrawTargetBuffer);
@@ -968,7 +967,11 @@ static void PaintFromMainThread() {
   MOZ_RELEASE_ASSERT(!gNumPendingPaints);
 
   if (IsRecording() && gDrawTargetBuffer) {
-    memcpy(gGraphicsShmem, gDrawTargetBuffer, gDrawTargetBufferSize);
+    // Don't overflow the graphics shmem size if the drawn graphics are too big
+    // to fit. In this case the graphics in the tab can be truncated, but at
+    // least we won't crash.
+    memcpy(gGraphicsShmem, gDrawTargetBuffer,
+           std::min(gDrawTargetBufferSize, parent::GraphicsMemorySize));
     gChannel->SendMessage(PaintMessage(gPaintWidth, gPaintHeight));
   }
 

@@ -103,8 +103,13 @@ static void UpdateMiddlemanCanvas(size_t aWidth, size_t aHeight, size_t aStride,
   CheckedInt<size_t> scaledWidth = CheckedInt<size_t>(aWidth) * 4;
   CheckedInt<size_t> scaledHeight = CheckedInt<size_t>(aHeight) * aStride;
   MOZ_RELEASE_ASSERT(scaledWidth.isValid() && scaledWidth.value() <= aStride);
-  MOZ_RELEASE_ASSERT(scaledHeight.isValid() &&
-                     scaledHeight.value() <= GraphicsMemorySize);
+  MOZ_RELEASE_ASSERT(scaledHeight.isValid());
+
+  // If we have too much data to fit in the graphics shmem, the child will have
+  // truncated it. In this case, only draw the rows which were fully sent.
+  while (aHeight * aStride > GraphicsMemorySize) {
+    aHeight--;
+  }
 
   // Get memory which we can pass to the graphics module to store in a canvas.
   // Use the shared memory buffer directly, unless we need to transform the
