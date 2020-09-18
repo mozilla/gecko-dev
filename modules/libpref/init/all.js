@@ -842,7 +842,7 @@ pref("toolkit.dump.emit", false);
 pref("devtools.recordreplay.cloudServer", "wss://dispatch.replay.io");
 pref("devtools.recordreplay.recordingsUrl", "https://replay.io/view");
 pref("devtools.recordreplay.saveRecordingsUrl", "http://recordings.replay.io");
-pref("devtools.recordreplay.authentication-enabled", false);
+pref("devtools.recordreplay.authentication-enabled", true);
 pref("devtools.recordreplay.user", "");
 pref("devtools.recordreplay.has-synced", false);
 
