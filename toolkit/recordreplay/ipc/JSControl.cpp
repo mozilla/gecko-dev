@@ -211,7 +211,7 @@ MOZ_EXPORT ProgressCounter RecordReplayInterface_NewTimeWarpTarget() {
 
   // NewTimeWarpTarget() must be called at consistent points between recording
   // and replaying.
-  RecordReplayAssert("NewTimeWarpTarget");
+  AssertScriptedCaller("NewTimeWarpTarget");
 
   if (!IsInitialized() || IsRecording()) {
     return 0;
