@@ -700,31 +700,19 @@ DevToolsStartup.prototype = {
   },
 
   initializeRecordingWebChannel() {
-    let channel;
-
-    // Register a channel for the URL in preferences. Also update the WebChannel if
-    // the URL changes.
-    Services.prefs.addObserver(
-      "devtools.recordreplay.recordingsUrl",
-      registerWebChannel
+    const pageUrl = Services.prefs.getStringPref(
+      "devtools.recordreplay.recordingsUrl"
     );
-    registerWebChannel();
+    const localUrl = "http://localhost:8080/view";
 
-    function registerWebChannel() {
-      const pageUrl = Services.prefs.getStringPref(
-        "devtools.recordreplay.recordingsUrl"
-      );
+    registerWebChannel(pageUrl);
+    registerWebChannel(localUrl);
 
-      if (channel) {
-        channel.stopListening();
-      }
+    function registerWebChannel(url) {
+      const urlForWebChannel = Services.io.newURI(url);
+      const channel = new WebChannel("record-replay", urlForWebChannel);
 
-      const urlForWebChannel = Services.io.newURI(pageUrl);
-      channel = new WebChannel("record-replay", urlForWebChannel);
-
-      channel.listen((id, message, target) => {
-        // Defer loading the ProfilerPopupBackground script until it's absolutely needed,
-        // as this code path gets loaded at startup.
+      channel.listen((id, message) => {
         const { user } = message;
         saveRecordingUser(user);
       });
