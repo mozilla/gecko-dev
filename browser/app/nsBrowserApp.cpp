@@ -332,7 +332,7 @@ int main(int argc, char* argv[], char* envp[]) {
 #ifdef MOZ_BROWSER_CAN_BE_CONTENTPROC
   gBootstrap->XRE_EnableSameExecutableForContentProc();
 #endif
-
+  printf("Hello World\n");
   int result = do_main(argc, argv, envp);
 
   gBootstrap->NS_LogTerm();
