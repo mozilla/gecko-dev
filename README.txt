@@ -15,3 +15,8 @@ the Record Replay gecko based browser.
 1. `cp mozconfig.sample mozconfig` 
 2. run `./mach bootstrap` and select (2) Firefox Desktop
 3. run `./mach build`
+
+### Testing
+
+Locally built browsers will try to download updates after opening.
+Set the RECORD_REPLAY_NO_UPDATE environment variable when running to prevent this.
