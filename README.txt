@@ -20,3 +20,10 @@ the Record Replay gecko based browser.
 
 Locally built browsers will try to download updates after opening.
 Set the RECORD_REPLAY_NO_UPDATE environment variable when running to prevent this.
+
+If your browser has updated itself and you want to regenerate the
+install directory without having to rebuild everything, try:
+
+```
+rm -rf rr-opt/dist/Replay.app
+```
