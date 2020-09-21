@@ -1424,6 +1424,10 @@ function recordReplayLog(text) {
   dump(`${text}\n`);
 }
 
+const env = Cc["@mozilla.org/process/environment;1"].getService(
+  Ci.nsIEnvironment
+);
+
 ChromeUtils.recordReplayLog = recordReplayLog;
 
 function getLoggedInUser() {
@@ -1561,7 +1565,7 @@ function createRecordingButton() {
           node.classList.remove("recordingButtonRecording");
         }
 
-        if (!authenticationEnabled || user?.id) {
+        if (!authenticationEnabled || user?.id || gRunningTestScript) {
           node.classList.remove("recordingButtonHidden");
         } else {
           node.classList.add("recordingButtonHidden");
@@ -1634,9 +1638,6 @@ setInterval(refreshAllRecordingButtons, 2000);
 let gRunningTestScript;
 
 async function runTestScript() {
-  const env = Cc["@mozilla.org/process/environment;1"].getService(
-    Ci.nsIEnvironment
-  );
   const script = env.get("RECORD_REPLAY_TEST_SCRIPT");
   if (!script) {
     return;
