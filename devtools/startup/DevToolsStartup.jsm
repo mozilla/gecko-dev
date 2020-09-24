@@ -700,31 +700,19 @@ DevToolsStartup.prototype = {
   },
 
   initializeRecordingWebChannel() {
-    let channel;
-
-    // Register a channel for the URL in preferences. Also update the WebChannel if
-    // the URL changes.
-    Services.prefs.addObserver(
-      "devtools.recordreplay.recordingsUrl",
-      registerWebChannel
+    const pageUrl = Services.prefs.getStringPref(
+      "devtools.recordreplay.recordingsUrl"
     );
-    registerWebChannel();
+    const localUrl = "http://localhost:8080/view";
 
-    function registerWebChannel() {
-      const pageUrl = Services.prefs.getStringPref(
-        "devtools.recordreplay.recordingsUrl"
-      );
+    registerWebChannel(pageUrl);
+    registerWebChannel(localUrl);
 
-      if (channel) {
-        channel.stopListening();
-      }
+    function registerWebChannel(url) {
+      const urlForWebChannel = Services.io.newURI(url);
+      const channel = new WebChannel("record-replay", urlForWebChannel);
 
-      const urlForWebChannel = Services.io.newURI(pageUrl);
-      channel = new WebChannel("record-replay", urlForWebChannel);
-
-      channel.listen((id, message, target) => {
-        // Defer loading the ProfilerPopupBackground script until it's absolutely needed,
-        // as this code path gets loaded at startup.
+      channel.listen((id, message) => {
         const { user } = message;
         saveRecordingUser(user);
       });
@@ -1424,6 +1412,10 @@ function recordReplayLog(text) {
   dump(`${text}\n`);
 }
 
+const env = Cc["@mozilla.org/process/environment;1"].getService(
+  Ci.nsIEnvironment
+);
+
 ChromeUtils.recordReplayLog = recordReplayLog;
 
 function getLoggedInUser() {
@@ -1561,7 +1553,7 @@ function createRecordingButton() {
           node.classList.remove("recordingButtonRecording");
         }
 
-        if (!authenticationEnabled || user?.id) {
+        if (!authenticationEnabled || user?.id || gRunningTestScript) {
           node.classList.remove("recordingButtonHidden");
         } else {
           node.classList.add("recordingButtonHidden");
@@ -1634,9 +1626,6 @@ setInterval(refreshAllRecordingButtons, 2000);
 let gRunningTestScript;
 
 async function runTestScript() {
-  const env = Cc["@mozilla.org/process/environment;1"].getService(
-    Ci.nsIEnvironment
-  );
   const script = env.get("RECORD_REPLAY_TEST_SCRIPT");
   if (!script) {
     return;
