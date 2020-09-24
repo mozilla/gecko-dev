@@ -25,6 +25,7 @@
 #include "umutex.h"
 #include "uvector.h"
 
+#include "mozilla/RecordReplay.h"
 
 U_NAMESPACE_BEGIN
 
@@ -132,6 +133,8 @@ TimeZoneNamesDelegate::TimeZoneNamesDelegate()
 }
 
 TimeZoneNamesDelegate::TimeZoneNamesDelegate(const Locale& locale, UErrorCode& status) {
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesDelegate");
+
     Mutex lock(&gTimeZoneNamesLock);
     if (!gTimeZoneNamesCacheInitialized) {
         // Create empty hashtable if it is not already initialized.
@@ -153,6 +156,9 @@ TimeZoneNamesDelegate::TimeZoneNamesDelegate(const Locale& locale, UErrorCode& s
 
     const char *key = locale.getName();
     cacheEntry = (TimeZoneNamesCacheEntry *)uhash_get(gTimeZoneNamesCache, key);
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesDelegate #1 %d", !!cacheEntry);
+
     if (cacheEntry == NULL) {
         TimeZoneNames *tznames = NULL;
         char *newKey = NULL;
@@ -205,6 +211,8 @@ TimeZoneNamesDelegate::TimeZoneNamesDelegate(const Locale& locale, UErrorCode& s
         gAccessCount = 0;
     }
     fTZnamesCacheEntry = cacheEntry;
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesDelegate END");
 }
 
 TimeZoneNamesDelegate::~TimeZoneNamesDelegate() {
