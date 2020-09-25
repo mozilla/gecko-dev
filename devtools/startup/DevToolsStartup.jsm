@@ -1395,6 +1395,7 @@ var EXPORTED_SYMBOLS = [
   "validateProfilerWebChannelUrl",
   "onFinishedRecording",
   "setNextRecordingURLCallback",
+  "saveRecordingInDB",
 ];
 
 // Record Replay stuff.
@@ -1435,12 +1436,13 @@ function saveRecordingInDB(description) {
   }
 
   const pageUrl = Services.prefs.getStringPref(
-    "devtools.recordreplay.recordingsUrl"
+    "devtools.recordreplay.saveRecordingsUrl"
   );
 
   const body = {
     user_id: user.id,
     recording_id: description.recordingId,
+    id: description.recordingId,
     url: description.url,
     title: description.title,
     duration: description.duration,
@@ -1448,6 +1450,7 @@ function saveRecordingInDB(description) {
     last_screen_mime_type: description.lastScreenMimeType,
   };
 
+  console.log(`>>> saving recording`, description.recordingId);
   return fetch(`${pageUrl}/api/create-recording`, {
     method: "post",
     body: JSON.stringify(body),

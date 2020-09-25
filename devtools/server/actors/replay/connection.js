@@ -13,9 +13,11 @@ const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 const { setTimeout } = Components.utils.import(
   "resource://gre/modules/Timer.jsm"
 );
-const { onFinishedRecording, setNextRecordingURLCallback } = ChromeUtils.import(
-  "resource:///modules/DevToolsStartup.jsm"
-);
+const {
+  onFinishedRecording,
+  setNextRecordingURLCallback,
+  saveRecordingInDB,
+} = ChromeUtils.import("resource:///modules/DevToolsStartup.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
@@ -41,36 +43,6 @@ function getLoggedInUser() {
   }
   const user = JSON.parse(userPref);
   return user == "" ? null : user;
-}
-
-function saveRecordingInDB(description) {
-  const user = getLoggedInUser();
-
-  if (!user) {
-    return;
-  }
-
-  const pageUrl = Services.prefs.getStringPref(
-    "devtools.recordreplay.saveRecordingsUrl"
-  );
-
-  const body = {
-    user_id: user.id,
-    recording_id: description.recordingId,
-    url: description.url,
-    title: description.title,
-    duration: description.duration,
-    last_screen_data: description.lastScreenData,
-    last_screen_mime_type: description.lastScreenMimeType,
-  };
-
-  fetch(`${pageUrl}/api/create-recording`, {
-    method: "post",
-    body: JSON.stringify(body),
-    headers: { "Content-Type": "application/json" },
-  })
-    .then((r) => console.log(`succeeded in creating recording`))
-    .catch((err) => console.error(err));
 }
 
 // eslint-disable-next-line no-unused-vars
