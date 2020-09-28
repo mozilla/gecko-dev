@@ -1483,9 +1483,9 @@ function createRecordingButton() {
   runTestScript();
 
   let item = {
-    id: "recording-button",
+    id: "record-button",
     type: "button",
-    tooltiptext: "recording-button.tooltiptext2",
+    tooltiptext: "record-button.tooltiptext2",
     onClick() {
       if (ChromeUtils.getCloudReplayStatus()) {
         return;
@@ -1521,15 +1521,15 @@ function createRecordingButton() {
         );
 
         if (recording) {
-          node.classList.add("recordingButtonRecording");
+          node.classList.add("recording");
         } else {
-          node.classList.remove("recordingButtonRecording");
+          node.classList.remove("recording");
         }
 
         if (!authenticationEnabled || user?.id || gRunningTestScript) {
-          node.classList.remove("recordingButtonHidden");
+          node.classList.remove("hidden");
         } else {
-          node.classList.add("recordingButtonHidden");
+          node.classList.add("hidden");
         }
 
         const status = ChromeUtils.getCloudReplayStatus();
@@ -1580,7 +1580,7 @@ function createRecordingButton() {
 function refreshAllRecordingButtons() {
   try {
     for (const w of Services.wm.getEnumerator("navigator:browser")) {
-      const node = w.document.getElementById("recording-button");
+      const node = w.document.getElementById("record-button");
       if (node) {
         node.refreshStatus();
       }

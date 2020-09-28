@@ -255,20 +255,18 @@ toolbar[brighttext] {
   list-style-image: url("chrome://browser/skin/developer.svg");
 }
 
-#recording-button {
-  list-style-image: url("chrome://devtools/skin/images/command-replay.svg");
+#record-button {
+  fill: #2D7EFF !important;
+  list-style-image: url("chrome://devtools/skin/images/command-record-fill.svg");
 }
 
-.recordingButtonHidden {
+#record-button.recording {
+  fill: #ff2200 !important;
+  list-style-image: url("chrome://devtools/skin/images/command-stop-fill.svg");
+}
+
+#record-button.hidden {
   display: none !important;
-}
-
-.recordingButtonRecording {
-  fill: #ff4500 !important;
-}
-
-.recordingButtonReplaying {
-  fill: #0080ff !important;
 }
 
 #cloud-recordings-button {

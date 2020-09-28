@@ -5583,7 +5583,7 @@ var XULBrowserWindow = {
   },
 
   updateRecordingButton() {
-    const recordingButton = document.getElementById("recording-button");
+    const recordingButton = document.getElementById("record-button");
     if (recordingButton) {
       recordingButton.refreshStatus();
     }
