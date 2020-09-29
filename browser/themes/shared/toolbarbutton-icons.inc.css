@@ -255,13 +255,19 @@ toolbar[brighttext] {
   list-style-image: url("chrome://browser/skin/developer.svg");
 }
 
+#replay-signin-button {
+  list-style-image: url("chrome://devtools/skin/images/command-signin-fill.svg");
+}
+
+#replay-signin-button.hidden {
+  display: none !important;
+}
+
 #record-button {
-  fill: #2D7EFF !important;
   list-style-image: url("chrome://devtools/skin/images/command-record-fill.svg");
 }
 
 #record-button.recording {
-  fill: #ff2200 !important;
   list-style-image: url("chrome://devtools/skin/images/command-stop-fill.svg");
 }
 

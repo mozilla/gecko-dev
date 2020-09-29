@@ -1566,6 +1566,39 @@ function createRecordingButton() {
   CustomizableUI.createWidget(item);
   CustomizableWidgets.push(item);
 
+  item = {
+    id: "replay-signin-button",
+    type: "button",
+    tooltiptext: "replay-signin-button.tooltiptext2",
+    onClick() {
+      const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+      const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+      gBrowser.loadURI("https://replay.io/view", { triggeringPrincipal });
+
+    },
+    onCreated(node) {
+      node.refreshStatus = () => {
+        const user = getLoggedInUser();
+        const authenticationEnabled = Services.prefs.getBoolPref(
+          "devtools.recordreplay.authentication-enabled"
+        );
+
+        if (!authenticationEnabled || user?.id || gRunningTestScript) {
+          node.classList.add("hidden");
+        } else {
+          node.classList.remove("hidden");
+        }
+      };
+      node.refreshStatus();
+
+      Services.prefs.addObserver("devtools.recordreplay.user", () => {
+        node.refreshStatus();
+      });
+    },
+  }
+  CustomizableUI.createWidget(item);
+  CustomizableWidgets.push(item);
+
   let cloudStatusUpdatedCallback;
 
   ChromeUtils.setCloudReplayStatusCallback((status, progress, max) => {

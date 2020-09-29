@@ -264,7 +264,8 @@ toolbar .toolbarbutton-1:-moz-focusring {
   transition-duration: var(--toolbarbutton-hover-transition-duration);
 }
 
-:root:not([uidensity=compact]) #record-button > .toolbarbutton-icon {
+:root:not([uidensity=compact]) #record-button > .toolbarbutton-icon,
+:root:not([uidensity=compact]) #replay-signin-button > .toolbarbutton-icon {
   width: 100%;
   height: 100%;
 }

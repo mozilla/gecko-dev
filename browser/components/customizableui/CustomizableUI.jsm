@@ -225,13 +225,14 @@ var CustomizableUIInternal = {
       "spring",
       "urlbar-container",
       "spring",
+      "replay-signin-button",
       "record-button",
       "downloads-button",
       "fxa-toolbar-menu-button",
     ];
 
     if (AppConstants.MOZ_DEV_EDITION) {
-      navbarPlacements.splice(9, 0, "developer-button");
+      navbarPlacements.splice(10, 0, "developer-button");
     }
 
     this.registerArea(
