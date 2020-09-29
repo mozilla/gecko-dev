@@ -1460,36 +1460,6 @@ function saveRecordingInDB(description) {
     .catch((err) => console.error(err));
 }
 
-async function syncRecordings() {
-  const user = getLoggedInUser();
-  const hasSynced = Services.prefs.getBoolPref(
-    "devtools.recordreplay.has-synced"
-  );
-  const authenticationEnabled = Services.prefs.getBoolPref(
-    "devtools.recordreplay.authentication-enabled"
-  );
-
-  if (!user?.id || !authenticationEnabled || hasSynced) {
-    console.log(`syncingRecordings (bailing)`, {
-      loggedid: user?.id,
-      authenticationEnabled,
-      hasSynced,
-    });
-    return;
-  }
-
-  const recordings = await getRecordings();
-  console.log(`syncing recordings`, recordings.length);
-
-  for (const recording of recordings) {
-    console.log(`>> saving recording`, recording.url);
-    await saveRecordingInDB(recording);
-  }
-
-  console.log(`finished syncing recordings`, recordings.length);
-  Services.prefs.setBoolPref("devtools.recordreplay.has-synced", true);
-}
-
 async function saveRecordingUser(user) {
   if (!user) {
     Services.prefs.setStringPref("devtools.recordreplay.user", "");
@@ -1581,7 +1551,6 @@ function createRecordingButton() {
 
       Services.prefs.addObserver("devtools.recordreplay.user", () => {
         node.refreshStatus();
-        syncRecordings();
       });
     },
   };
@@ -1598,8 +1567,6 @@ function createRecordingButton() {
   CustomizableWidgets.push(item);
 
   let cloudStatusUpdatedCallback;
-
-  syncRecordings();
 
   ChromeUtils.setCloudReplayStatusCallback((status, progress, max) => {
     dump(`CloudReplayStatus ${status}\n`);
