@@ -1536,7 +1536,7 @@ function createRecordingButton() {
           node.classList.remove("recording");
         }
 
-        if (!authenticationEnabled || user?.id || gRunningTestScript) {
+        if (!authenticationEnabled || user?.id || isRunningTest()) {
           node.classList.remove("hidden");
         } else {
           node.classList.add("hidden");
@@ -1592,7 +1592,7 @@ function createRecordingButton() {
           "devtools.recordreplay.authentication-enabled"
         );
 
-        if (!authenticationEnabled || user?.id || gRunningTestScript) {
+        if (!authenticationEnabled || user?.id || isRunningTest()) {
           node.classList.add("hidden");
         } else {
           node.classList.remove("hidden");
