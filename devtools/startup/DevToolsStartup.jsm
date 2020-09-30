@@ -77,12 +77,14 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/WebChannel.jsm"
 );
 
+const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
+const {
+  ContentProcessListener,
+} = require("devtools/server/actors/webconsole/listeners/content-process");
+
 // We don't want to spend time initializing the full loader here so we create
 // our own lazy require.
 XPCOMUtils.defineLazyGetter(this, "Telemetry", function () {
-  const { require } = ChromeUtils.import(
-    "resource://devtools/shared/Loader.jsm"
-  );
   // eslint-disable-next-line no-shadow
   const Telemetry = require("devtools/client/shared/telemetry");
 
@@ -98,6 +100,10 @@ XPCOMUtils.defineLazyGetter(this, "KeyShortcutsBundle", function () {
   const url = "chrome://devtools-startup/locale/key-shortcuts.properties";
   return Services.strings.createBundle(url);
 });
+
+const env = Cc["@mozilla.org/process/environment;1"].getService(
+  Ci.nsIEnvironment
+);
 
 /**
  * Safely retrieve a localized DevTools key shortcut from KeyShortcutsBundle.
@@ -362,6 +368,10 @@ DevToolsStartup.prototype = {
     return Services.prefs.getBoolPref(DEVTOOLS_POLICY_DISABLED_PREF, false);
   },
 
+  onConsoleAPICall: (message) => {
+    console.log(...message.arguments);
+  },
+
   handle: function (cmdLine) {
     const flags = this.readCommandLineFlags(cmdLine);
 
@@ -392,6 +402,10 @@ DevToolsStartup.prototype = {
 
         this.hookRecordingButton();
         this.hookProfilerRecordingButton();
+      }
+
+      if (isRunningTest()) {
+        new ContentProcessListener(this);
       }
 
       // Update menu items when devtools.enabled changes.
@@ -1626,7 +1640,9 @@ function refreshAllRecordingButtons() {
 // get out of sync with the display state of the button.
 setInterval(refreshAllRecordingButtons, 2000);
 
-let gRunningTestScript;
+function isRunningTest() {
+  return !!env.get("RECORD_REPLAY_TEST_SCRIPT");
+}
 
 async function runTestScript() {
   const script = env.get("RECORD_REPLAY_TEST_SCRIPT");
@@ -1634,7 +1650,6 @@ async function runTestScript() {
     return;
   }
 
-  gRunningTestScript = true;
   const contents = await OS.File.read(script);
   const text = new TextDecoder("utf-8").decode(contents);
   eval(text);
