@@ -1427,10 +1427,6 @@ function recordReplayLog(text) {
   dump(`${text}\n`);
 }
 
-const env = Cc["@mozilla.org/process/environment;1"].getService(
-  Ci.nsIEnvironment
-);
-
 ChromeUtils.recordReplayLog = recordReplayLog;
 
 function getLoggedInUser() {
@@ -1588,7 +1584,6 @@ function createRecordingButton() {
       const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
       const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
       gBrowser.loadURI("https://replay.io/view", { triggeringPrincipal });
-
     },
     onCreated(node) {
       node.refreshStatus = () => {
@@ -1609,7 +1604,7 @@ function createRecordingButton() {
         node.refreshStatus();
       });
     },
-  }
+  };
   CustomizableUI.createWidget(item);
   CustomizableWidgets.push(item);
 
@@ -1739,10 +1734,6 @@ async function reloadAndStopRecordingTab(gBrowser) {
   addRecordingDescription(description);
 
   recordReplayLog(`FinishedRecording ${recordingId}`);
-
-  const env = Cc["@mozilla.org/process/environment;1"].getService(
-    Ci.nsIEnvironment
-  );
 
   let viewHost = "https://replay.io";
 
