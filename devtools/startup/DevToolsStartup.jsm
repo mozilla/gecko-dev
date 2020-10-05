@@ -1656,12 +1656,102 @@ function getDispatchServer(url) {
   return Services.prefs.getStringPref("devtools.recordreplay.cloudServer");
 }
 
+const DriverName = "macOS-recordreplay.so";
+const DriverJSON = "macOS-recordreplay.json";
+
+function driverFile() {
+  const file = Services.dirsvc.get("UAppData", Ci.nsIFile);
+  file.append(DriverName);
+  return file;
+}
+
+function driverJSONFile() {
+  const file = Services.dirsvc.get("UAppData", Ci.nsIFile);
+  file.append(DriverJSON);
+  return file;
+}
+
+async function fetchURL(url) {
+  const response = await fetch(url);
+  if (response.status < 200 || response.status >= 300) {
+    console.error("Error fetching URL", url, response);
+    return null;
+  }
+  return response;
+}
+
+async function updateRecordingDriver() {
+  try {
+    fetch;
+  } catch (e) {
+    dump(`updateRecordingDriver: fetch() not in scope, waiting...\n`);
+    setTimeout(updateRecordingDriver, 100);
+    return;
+  }
+
+  const downloadURL = Services.prefs.getStringPref(
+    "devtools.recordreplay.driverDownloads"
+  );
+
+  const driver = driverFile();
+  const json = driverJSONFile();
+
+  // If we have already downloaded the driver, redownload the server JSON
+  // (much smaller than the driver itself) to see if anything has changed.
+  if (json.exists()) {
+    const response = await fetchURL(`${downloadURL}/${DriverJSON}`);
+    if (!response) {
+      return;
+    }
+    const serverJSON = JSON.parse(await response.text());
+
+    const file = await OS.File.read(json.path);
+    const currentJSON = JSON.parse(new TextDecoder("utf-8").decode(file));
+
+    if (serverJSON.version == currentJSON.version) {
+      // We've already downloaded the latest driver.
+      return;
+    }
+  }
+
+  const jsonResponse = await fetchURL(`${downloadURL}/${DriverJSON}`);
+  if (!jsonResponse) {
+    return;
+  }
+  OS.File.writeAtomic(json.path, await jsonResponse.text());
+
+  const driverResponse = await fetchURL(`${downloadURL}/${DriverName}`);
+  if (!driverResponse) {
+    return;
+  }
+  OS.File.writeAtomic(
+    driver.path,
+    await driverResponse.arrayBuffer(),
+    {
+      // Write to a temporary path before renaming the result, so that any
+      // recording processes hopefully won't try to load partial binaries
+      // (they will keep trying if the load fails, though).
+      tmpPath: driver.path + ".tmp",
+
+      // Strip quarantine flag from the downloaded file. Even though this is
+      // an update to the browser itself, macOS will still quarantine it and
+      // prevent it from being loaded into recording processes.
+      noQuarantine: true,
+    }
+  );
+}
+
+// We check to see if there is a new recording driver every time the browser
+// starts up, and periodically after that.
+setTimeout(updateRecordingDriver, 0);
+setInterval(updateRecordingDriver, 1000 * 60 * 20);
+
 function reloadAndRecordTab(gBrowser) {
   let url = gBrowser.currentURI.spec;
 
-  if (gNextRecordingURLCallback) {
-    gNextRecordingURLCallback(url);
-  }
+  // Set the driver path for use in the recording process, if it isn't already set.
+  if (!gEnvironment.get("RECORD_REPLAY_DRIVER")) {
+    gEnvironment.set("RECORD_REPLAY_DRIVER", driverFile().path);
 
   let remoteType = E10SUtils.getRemoteTypeForURI(
     url,
