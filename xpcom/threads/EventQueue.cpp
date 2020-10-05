@@ -12,7 +12,14 @@ using namespace mozilla::detail;
 
 template <size_t ItemsPerPage>
 EventQueueInternal<ItemsPerPage>::EventQueueInternal(
-    EventQueuePriority aPriority) {}
+    EventQueuePriority aPriority) {
+  recordreplay::RegisterThing(this);
+}
+
+template <size_t ItemsPerPage>
+EventQueueInternal<ItemsPerPage>::~EventQueueInternal() {
+  recordreplay::UnregisterThing(this);
+}
 
 template <size_t ItemsPerPage>
 void EventQueueInternal<ItemsPerPage>::PutEvent(
@@ -20,7 +27,7 @@ void EventQueueInternal<ItemsPerPage>::PutEvent(
     const MutexAutoLock& aProofOfLock, mozilla::TimeDuration* aDelay) {
 #ifdef MOZ_GECKO_PROFILER
   // Sigh, this doesn't check if this thread is being profiled
-  if (true/*profiler_is_active()*/) {
+  if (profiler_is_active()) {
     // check to see if the profiler has been enabled since the last PutEvent
     while (mDispatchTimes.Count() < mQueue.Count()) {
       mDispatchTimes.Push(TimeStamp());
@@ -30,6 +37,11 @@ void EventQueueInternal<ItemsPerPage>::PutEvent(
 #endif
 
   nsCOMPtr<nsIRunnable> event(aEvent);
+
+  recordreplay::RecordReplayAssert("EventQueueInternal::PutEvent %d %d",
+                                   recordreplay::ThingIndex(this),
+                                   recordreplay::ThingIndex(event));
+
   mQueue.Push(std::move(event));
 }
 
@@ -37,6 +49,9 @@ template <size_t ItemsPerPage>
 already_AddRefed<nsIRunnable> EventQueueInternal<ItemsPerPage>::GetEvent(
     EventQueuePriority* aPriority, const MutexAutoLock& aProofOfLock,
     mozilla::TimeDuration* aLastEventDelay) {
+  recordreplay::RecordReplayAssert("EventQueueInternal::GetEvent %d",
+                                   recordreplay::ThingIndex(this));
+
   if (mQueue.IsEmpty()) {
     if (aLastEventDelay) {
       *aLastEventDelay = TimeDuration();
@@ -55,14 +70,14 @@ already_AddRefed<nsIRunnable> EventQueueInternal<ItemsPerPage>::GetEvent(
   // interesting with the dispatch times if the profiler is turned on, though.
   if (!mDispatchTimes.IsEmpty()) {
     TimeStamp dispatch_time = mDispatchTimes.Pop();
-    if (true/*profiler_is_active()*/) {
+    if (profiler_is_active()) {
       if (!dispatch_time.IsNull()) {
         if (aLastEventDelay) {
           *aLastEventDelay = TimeStamp::Now() - dispatch_time;
         }
       }
     }
-  } else if (true/*profiler_is_active()*/) {
+  } else if (profiler_is_active()) {
     if (aLastEventDelay) {
       // if we just turned on the profiler, we don't have dispatch
       // times for events already in the queue.
@@ -72,6 +87,11 @@ already_AddRefed<nsIRunnable> EventQueueInternal<ItemsPerPage>::GetEvent(
 #endif
 
   nsCOMPtr<nsIRunnable> result = mQueue.Pop();
+
+  recordreplay::RecordReplayAssert("EventQueueInternal::GetEvent RETURN %d %d",
+                                   recordreplay::ThingIndex(this),
+                                   recordreplay::ThingIndex(result));
+
   return result.forget();
 }
 
@@ -91,4 +111,11 @@ template <size_t ItemsPerPage>
 size_t EventQueueInternal<ItemsPerPage>::Count(
     const MutexAutoLock& aProofOfLock) const {
   return mQueue.Count();
+}
+
+namespace mozilla::detail {
+
+template class EventQueueInternal<16>;
+template class EventQueueInternal<64>;
+
 }

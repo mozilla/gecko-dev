@@ -201,6 +201,11 @@ HttpChannelChild::HttpChannelChild()
   // We require that the parent cookie service actor exists while
   // processing HTTP responses.
   RefPtr<CookieServiceChild> cookieService = CookieServiceChild::GetSingleton();
+
+  if (recordreplay::IsRecordingOrReplaying()) {
+    // Leak this to avoid non-deterministic behavior in destructor.
+    AddRef();
+  }
 }
 
 HttpChannelChild::~HttpChannelChild() {
@@ -3081,12 +3086,6 @@ HttpChannelChild::PreferAlternativeDataType(const nsACString& aType,
                                             const nsACString& aContentType,
                                             bool aDeliverAltData) {
   ENSURE_CALLED_BEFORE_ASYNC_OPEN();
-
-  recordreplay::RecordReplayAssert("PreferAlternativeDataType %s %s %d %d",
-                                   nsCString(aType).get(),
-                                   nsCString(aContentType).get(),
-                                   aDeliverAltData,
-                                   !!mSynthesizedCacheInfo);
 
   if (mSynthesizedCacheInfo) {
     return mSynthesizedCacheInfo->PreferAlternativeDataType(aType, aContentType,

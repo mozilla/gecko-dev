@@ -187,10 +187,6 @@ static const char kStaticCtorDtorWarning[] =
     "XPCOM objects created/destroyed from static ctor/dtor";
 
 static void AssertActivityIsLegal() {
-  if (recordreplay::IsRecordingOrReplaying()) {
-    // Avoid recorded events in the TLS accesses below.
-    return;
-  }
   if (gActivityTLS == BAD_TLS_INDEX || PR_GetThreadPrivate(gActivityTLS)) {
     if (PR_GetEnv("MOZ_FATAL_STATIC_XPCOM_CTORS_DTORS")) {
       MOZ_CRASH_UNSAFE(kStaticCtorDtorWarning);

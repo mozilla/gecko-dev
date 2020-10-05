@@ -741,8 +741,6 @@ nsUpdateProcessor::ProcessUpdate() {
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  recordreplay::RecordReplayAssert("nsUpdateProcessor::ProcessUpdate");
-
   nsCOMPtr<nsIXULAppInfo> appInfo =
       do_GetService("@mozilla.org/xre/app-info;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);

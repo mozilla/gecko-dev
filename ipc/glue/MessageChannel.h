@@ -41,7 +41,8 @@ class ActorLifecycleProxy;
 
 class RefCountedMonitor : public Monitor {
  public:
-  RefCountedMonitor() : Monitor("mozilla.ipc.MessageChannel.mMonitor") {}
+  RefCountedMonitor(bool aOrdered = false)
+    : Monitor("mozilla.ipc.MessageChannel.mMonitor", aOrdered) {}
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RefCountedMonitor)
 
@@ -322,10 +323,6 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
    */
   bool IsCrossProcess() const { return mIsCrossProcess; }
 
-  // Return whether a message definitely originated from a middleman process,
-  // due to its sequence number.
-  static bool MessageOriginatesFromMiddleman(const Message& aMessage);
-
 #ifdef OS_WIN
   struct MOZ_STACK_CLASS SyncStackFrame {
     SyncStackFrame(MessageChannel* channel, bool interrupt);
@@ -598,7 +595,7 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
    private:
     MessageTask() = delete;
     MessageTask(const MessageTask&) = delete;
-    ~MessageTask() = default;
+    ~MessageTask();
 
     MessageChannel* mChannel;
     Message mMessage;

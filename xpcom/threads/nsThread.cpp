@@ -126,6 +126,12 @@ uint32_t nsThread::sMaxActiveThreads;
 const uint32_t kTelemetryWakeupCountLimit = 100;
 #endif
 
+namespace mozilla {
+  namespace recordreplay {
+    extern void MaybeCreateCheckpoint();
+  }
+}
+
 //-----------------------------------------------------------------------------
 // Because we do not have our own nsIFactory, we have to implement nsIClassInfo
 // somewhat manually.
@@ -614,6 +620,7 @@ nsThread::nsThread(NotNull<SynchronizedEventQueue*> aQueue,
       mLastWakeupCheckTime(TimeStamp::Now()),
 #endif
       mPerformanceCounterState(mNestedEventLoopDepth, mIsMainThread) {
+  recordreplay::RegisterThing(this);
 }
 
 nsThread::nsThread()
@@ -632,9 +639,12 @@ nsThread::nsThread()
 #endif
       mPerformanceCounterState(mNestedEventLoopDepth, mIsMainThread) {
   MOZ_ASSERT(!NS_IsMainThread());
+  recordreplay::RegisterThing(this);
 }
 
 nsThread::~nsThread() {
+  recordreplay::UnregisterThing(this);
+
   NS_ASSERTION(mRequestedShutdownContexts.IsEmpty(),
                "shouldn't be waiting on other threads to shutdown");
 
@@ -1066,6 +1076,9 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
   MOZ_ASSERT(mEvents);
   NS_ENSURE_TRUE(mEvents, NS_ERROR_NOT_IMPLEMENTED);
 
+  recordreplay::RecordReplayAssert("nsThread::ProcessNextEvent %d",
+                                   recordreplay::ThingIndex(this));
+
   LOG(("THRD(%p) ProcessNextEvent [%u %u]\n", this, aMayWait,
        mNestedEventLoopDepth));
 
@@ -1085,6 +1098,9 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
   bool reallyWait = aMayWait && (mNestedEventLoopDepth > 0 || !ShuttingDown());
 
   if (mIsInLocalExecutionMode) {
+    recordreplay::RecordReplayAssert("nsThread::ProcessNextEvent #1 %d",
+                                     recordreplay::ThingIndex(this));
+
     EventQueuePriority priority;
     if (const nsCOMPtr<nsIRunnable> event =
             mEvents->GetEvent(reallyWait, &priority)) {
@@ -1133,6 +1149,9 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
   nsresult rv = NS_OK;
 
   {
+    recordreplay::RecordReplayAssert("nsThread::ProcessNextEvent #2 %d",
+                                     recordreplay::ThingIndex(this));
+
     // Scope for |event| to make sure that its destructor fires while
     // mNestedEventLoopDepth has been incremented, since that destructor can
     // also do work.
@@ -1217,7 +1236,11 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult) {
 
       mLastEventStart = now;
 
+      recordreplay::RecordReplayAssert("nsThread::ProcessNextEvent RUN");
+
       event->Run();
+
+      recordreplay::RecordReplayAssert("nsThread::ProcessNextEvent AFTER_RUN");
 
       mEvents->DidRunEvent();
 

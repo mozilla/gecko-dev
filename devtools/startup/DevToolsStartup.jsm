@@ -1407,9 +1407,6 @@ const JsonView = {
 var EXPORTED_SYMBOLS = [
   "DevToolsStartup",
   "validateProfilerWebChannelUrl",
-  "onFinishedRecording",
-  "setNextRecordingURLCallback",
-  "saveRecordingInDB",
 ];
 
 // Record Replay stuff.
@@ -1650,13 +1647,13 @@ async function runTestScript() {
   eval(text);
 }
 
-// Recording processes don't initially know the final URL they will be
-// recording, so we use this awkward callback to notify the connection system
-// when we start loading a tab so that it can use the right dispatch server.
-let gNextRecordingURLCallback;
-
-function setNextRecordingURLCallback(callback) {
-  gNextRecordingURLCallback = callback;
+function getDispatchServer(url) {
+  const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+  const address = env.get("RECORD_REPLAY_SERVER");
+  if (address) {
+    return address;
+  }
+  return Services.prefs.getStringPref("devtools.recordreplay.cloudServer");
 }
 
 function reloadAndRecordTab(gBrowser) {
@@ -1682,38 +1679,26 @@ function reloadAndRecordTab(gBrowser) {
   }
 
   gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
-    recordExecution: url,
+    recordExecution: getDispatchServer(url),
     newFrameloader: true,
     remoteType,
   });
 
-  let recordingInitialized = false;
-
-  Services.ppmm.addMessageListener("RecordingInitialized", function listener() {
-    Services.ppmm.removeMessageListener("RecordingInitialized", listener);
-    recordingInitialized = true;
-    gBrowser.loadURI(url, {
-      triggeringPrincipal: gBrowser.selectedBrowser.contentPrincipal,
-    });
+  gBrowser.loadURI(url, {
+    triggeringPrincipal: gBrowser.selectedBrowser.contentPrincipal,
   });
-
-  // We should get the RecordingInitialized notification very quickly. Set a
-  // timer so we can log an error if it doesn't show up, in which case the tab
-  // will stay blank.
-  setTimeout(() => {
-    if (!recordingInitialized) {
-      recordReplayLog(`Error: Did not get RecordingInitialized notification`);
-    }
-  }, 2000);
 }
 
 let gFinishedRecordingWaiter;
 
-function onFinishedRecording(recordingId) {
-  if (gFinishedRecordingWaiter) {
-    gFinishedRecordingWaiter(recordingId);
+Services.ppmm.addMessageListener("RecordingFinished", {
+  async receiveMessage(msg) {
+    const { recordingId } = msg.data;
+    if (gFinishedRecordingWaiter) {
+      gFinishedRecordingWaiter(recordingId);
+    }
   }
-}
+});
 
 function waitForFinishedRecording() {
   return new Promise((resolve) => (gFinishedRecordingWaiter = resolve));
@@ -1727,11 +1712,7 @@ async function reloadAndStopRecordingTab(gBrowser) {
 
   recordReplayLog(`WaitForFinishedRecording`);
 
-  // A notification will be delivered when the UI process has all the recording
-  // data and sent a description to the cloud service.
-  const description = await waitForFinishedRecording();
-  const { recordingId } = description;
-  addRecordingDescription(description);
+  const recordingId = await waitForFinishedRecording();
 
   recordReplayLog(`FinishedRecording ${recordingId}`);
 
@@ -1744,12 +1725,7 @@ async function reloadAndStopRecordingTab(gBrowser) {
   }
 
   // Find the dispatcher to connect to.
-  let dispatchAddress = env.get("RECORD_REPLAY_SERVER");
-  if (!dispatchAddress) {
-    dispatchAddress = Services.prefs.getStringPref(
-      "devtools.recordreplay.cloudServer"
-    );
-  }
+  const dispatchAddress = getDispatchServer();
 
   let extra = "";
 

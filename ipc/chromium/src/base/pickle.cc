@@ -451,10 +451,7 @@ bool Pickle::IgnoreSentinel(PickleIterator* iter) const {
   return ReadUInt32(iter, &found);
 }
 
-bool Pickle::WriteSentinel(uint32_t sentinel) {
-  mozilla::recordreplay::RecordReplayAssert("Pickle::WriteSentinel %u", sentinel);
-  return WriteUInt32(sentinel);
-}
+bool Pickle::WriteSentinel(uint32_t sentinel) { return WriteUInt32(sentinel); }
 #endif
 
 void Pickle::EndRead(PickleIterator& iter, uint32_t ipcMsgType) const {
@@ -616,9 +613,6 @@ bool Pickle::WriteBytesZeroCopy(void* data, uint32_t data_len,
                                 uint32_t capacity) {
   BeginWrite(data_len, sizeof(memberAlignmentType));
 
-  mozilla::recordreplay::RecordReplayAssert("Pickle::WriteBytesZeroCopy %u %u",
-                                            data_len, capacity);
-
   buffers_.WriteBytesZeroCopy(reinterpret_cast<char*>(data), data_len,
                               capacity);
 
@@ -630,9 +624,6 @@ bool Pickle::WriteBytes(const void* data, uint32_t data_len,
                         uint32_t alignment) {
   DCHECK(alignment == 4 || alignment == 8);
   DCHECK(intptr_t(header_) % alignment == 0);
-
-  mozilla::recordreplay::RecordReplayAssert("Pickle::WriteBytes %u %u",
-                                            data_len, alignment);
 
   BeginWrite(data_len, alignment);
 

@@ -1645,10 +1645,6 @@ JS_FRIEND_API JSObject* JS::NewArrayBuffer(JSContext* cx, uint32_t nbytes) {
 JS_PUBLIC_API JSObject* JS::NewArrayBufferWithContents(JSContext* cx,
                                                        size_t nbytes,
                                                        void* data) {
-  if (gRecordDataBuffers) {
-    mozilla::recordreplay::RecordReplayAssertBytes(data, nbytes);
-  }
-
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
   MOZ_ASSERT_IF(!data, nbytes == 0);
@@ -1667,10 +1663,6 @@ JS_PUBLIC_API JSObject* JS::NewArrayBufferWithContents(JSContext* cx,
 JS_PUBLIC_API JSObject* JS::NewExternalArrayBuffer(
     JSContext* cx, size_t nbytes, void* data,
     JS::BufferContentsFreeFunc freeFunc, void* freeUserData) {
-  if (gRecordDataBuffers) {
-    mozilla::recordreplay::RecordReplayAssertBytes(data, nbytes);
-  }
-
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
 
@@ -1687,10 +1679,6 @@ JS_PUBLIC_API JSObject* JS::NewExternalArrayBuffer(
 JS_PUBLIC_API JSObject* JS::NewArrayBufferWithUserOwnedContents(JSContext* cx,
                                                                 size_t nbytes,
                                                                 void* data) {
-  if (gRecordDataBuffers) {
-    mozilla::recordreplay::RecordReplayAssertBytes(data, nbytes);
-  }
-
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
 
@@ -1756,10 +1744,6 @@ JS_PUBLIC_API void* JS::StealArrayBufferContents(JSContext* cx,
 JS_PUBLIC_API JSObject* JS::NewMappedArrayBufferWithContents(JSContext* cx,
                                                              size_t nbytes,
                                                              void* data) {
-  if (gRecordDataBuffers) {
-    mozilla::recordreplay::RecordReplayAssertBytes(data, nbytes);
-  }
-
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
 

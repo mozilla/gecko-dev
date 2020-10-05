@@ -290,34 +290,8 @@ function eventListener(info) {
   }
 }
 
-function SendRecordingData(pid, offset, length, buf, totalLength, duration) {
-  let description;
-  if (totalLength) {
-    // Supply a description for this recording, it is about to be finished.
-    const data = RecordReplayControl.getGraphics(
-      /* repaint */ false,
-      "image/jpeg",
-      "quality=50"
-    );
-    // Convert seconds to milliseconds
-    duration = (duration * 1000) | 0;
-    description = {
-      length: totalLength,
-      duration,
-      lastScreenMimeType: "image/jpeg",
-      lastScreenData: data,
-      url: getWindow().location.href,
-      title: getWindow().document.title,
-      date: Date.now(),
-    };
-  }
-  Services.cpmm.sendAsyncMessage("UploadRecordingData", {
-    pid,
-    offset,
-    length,
-    buf,
-    description,
-  });
+function SendRecordingFinished(recordingId) {
+  Services.cpmm.sendAsyncMessage("RecordingFinished", { recordingId });
 }
 
 function OnTestCommand(str) {
@@ -335,41 +309,12 @@ function OnTestCommand(str) {
 const exports = {
   CanCreateCheckpoint,
   OnMouseEvent,
-  SendRecordingData,
+  SendRecordingFinished,
   OnTestCommand,
 };
 
-function Initialize(text) {
-  try {
-    if (text) {
-      const imports = {
-        Cc,
-        Ci,
-        Cu,
-        ChromeUtils,
-        Debugger,
-        RecordReplayControl,
-        InspectorUtils,
-        considerScript,
-        countScriptFrames,
-        gScripts,
-        gDebugger,
-        advanceProgressCounter,
-        gAllGlobals,
-        getWindow,
-        gSandboxGlobal,
-        gNewGlobalHooks,
-        Services,
-      };
-      Object.assign(
-        exports,
-        new Function("imports", `${text} return exports`)(imports)
-      );
-    }
-    return exports;
-  } catch (e) {
-    dump(`Initialize Error: ${e}\n`);
-  }
+function Initialize() {
+  return exports;
 }
 
 var EXPORTED_SYMBOLS = ["Initialize"];

@@ -11,6 +11,7 @@
 #include "mozJSComponentLoader.h"
 #include "nsZipArchive.h"
 
+#include "mozilla/RecordReplay.h"
 #include "mozilla/Scoped.h"
 #include "mozilla/Services.h"
 #include "nsIObserverService.h"

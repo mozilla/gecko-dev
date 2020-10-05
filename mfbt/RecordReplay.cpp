@@ -24,46 +24,34 @@ namespace recordreplay {
 #define FOR_EACH_INTERFACE(Macro)                                              \
   Macro(InternalAreThreadEventsPassedThrough, bool, (), ())                    \
   Macro(InternalAreThreadEventsDisallowed, bool, (), ())                       \
-  Macro(InternalRecordReplayValue, size_t, (size_t aValue), (aValue))          \
+  Macro(InternalRecordReplayValue, size_t, (const char* aWhy, size_t aValue),  \
+        (aWhy, aValue))                                                        \
   Macro(InternalHasDivergedFromRecording, bool, (), ())                        \
-  Macro(InternalGeneratePLDHashTableCallbacks, const PLDHashTableOps*,         \
-        (const PLDHashTableOps* aOps), (aOps))                                 \
-  Macro(InternalUnwrapPLDHashTableCallbacks, const PLDHashTableOps*,           \
-        (const PLDHashTableOps* aOps), (aOps))                                 \
   Macro(InternalThingIndex, size_t, (void* aThing), (aThing))                  \
-  Macro(InternalVirtualThingName, const char*, (void* aThing), (aThing))       \
+  Macro(InternalCreateOrderedLock, int, (const char* aName), (aName))          \
   Macro(ExecutionProgressCounter, ProgressCounter*, (), ())                    \
   Macro(NewTimeWarpTarget, ProgressCounter, (), ())                            \
-  Macro(ShouldUpdateProgressCounter, bool, (const char* aURL), (aURL))         \
-  Macro(DefineRecordReplayControlObject, bool, (void* aCx, void* aObj),        \
-        (aCx, aObj))                                                           \
-  Macro(LoadedWithFileURI, bool, (), ())                                       \
-  Macro(InternalInAutomatedTest, bool, (), ())
+  Macro(ShouldUpdateProgressCounter, bool, (const char* aURL), (aURL))
 
 #define FOR_EACH_INTERFACE_VOID(Macro)                                         \
-  Macro(InternalBeginOrderedAtomicAccess, (const void* aValue), (aValue))      \
-  Macro(InternalEndOrderedAtomicAccess, (), ())                                \
   Macro(InternalBeginPassThroughThreadEvents, (), ())                          \
   Macro(InternalEndPassThroughThreadEvents, (), ())                            \
-  Macro(InternalBeginPassThroughThreadEventsWithLocalReplay, (), ())           \
-  Macro(InternalEndPassThroughThreadEventsWithLocalReplay, (), ())             \
   Macro(InternalBeginDisallowThreadEvents, (), ())                             \
   Macro(InternalEndDisallowThreadEvents, (), ())                               \
-  Macro(InternalRecordReplayBytes, (void* aData, size_t aSize),                \
-        (aData, aSize))                                                        \
+  Macro(InternalRecordReplayBytes, (const char* aWhy, void* aData, size_t aSize), \
+        (aWhy, aData, aSize))                                                  \
   Macro(InternalInvalidateRecording, (const char* aWhy), (aWhy))               \
-  Macro(InternalDestroyPLDHashTableCallbacks, (const PLDHashTableOps* aOps),   \
-        (aOps))                                                                \
-  Macro(InternalMovePLDHashTableContents,                                      \
-        (const PLDHashTableOps* aFirstOps, const PLDHashTableOps* aSecondOps), \
-        (aFirstOps, aSecondOps))                                               \
   Macro(InternalHoldJSObject, (void* aJSObj), (aJSObj))                        \
   Macro(InternalRecordReplayAssert, (const char* aFormat, va_list aArgs),      \
         (aFormat, aArgs))                                                      \
   Macro(InternalRecordReplayAssertBytes, (const void* aData, size_t aSize),    \
         (aData, aSize))                                                        \
+  Macro(InternalPrintLog, (const char* aFormat, va_list aArgs),                \
+        (aFormat, aArgs))                                                      \
   Macro(InternalRegisterThing, (void* aThing), (aThing))                       \
   Macro(InternalUnregisterThing, (void* aThing), (aThing))                     \
+  Macro(InternalOrderedLock, (int aLock), (aLock))                             \
+  Macro(InternalOrderedUnlock, (int aLock), (aLock))                           \
   Macro(BeginContentParse,                                                     \
         (const void* aToken, const char* aURL, const char* aContentType),      \
         (aToken, aURL, aContentType))                                          \
@@ -103,11 +91,11 @@ static void* LoadSymbol(const char* aName) {
 #endif
 }
 
-void Initialize(int aArgc, char* aArgv[]) {
+void Initialize(int* aArgc, char*** aArgv) {
   // Only initialize if the right command line option was specified.
   bool found = false;
-  for (int i = 0; i < aArgc; i++) {
-    if (!strcmp(aArgv[i], gProcessKindOption)) {
+  for (int i = 0; i < *aArgc; i++) {
+    if (!strcmp((*aArgv)[i], "-recordReplayDispatch")) {
       found = true;
       break;
     }
@@ -116,7 +104,7 @@ void Initialize(int aArgc, char* aArgv[]) {
     return;
   }
 
-  void (*initialize)(int, char**);
+  void (*initialize)(int*, char***);
   BitwiseCast(LoadSymbol("RecordReplayInterface_Initialize"), &initialize);
   if (!initialize) {
     return;
@@ -142,7 +130,7 @@ struct AutoSuppressGCAnalysis {
   ~AutoSuppressGCAnalysis() {
 #ifdef DEBUG
     // Need nontrivial destructor.
-    static Atomic<int, SequentiallyConsistent, Behavior::DontPreserve> dummy;
+    static Atomic<int, SequentiallyConsistent> dummy;
     dummy++;
 #endif
   }
@@ -171,7 +159,6 @@ FOR_EACH_INTERFACE_VOID(DEFINE_WRAPPER_VOID)
 bool gIsRecordingOrReplaying;
 bool gIsRecording;
 bool gIsReplaying;
-bool gIsMiddleman;
 
 }  // namespace recordreplay
 }  // namespace mozilla

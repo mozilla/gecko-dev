@@ -134,6 +134,7 @@
 #include "mozilla/Likely.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/RandomNum.h"
+#include "mozilla/RecordReplay.h"
 #include "mozilla/Sprintf.h"
 // Note: MozTaggedAnonymousMmap() could call an LD_PRELOADed mmap
 // instead of the one defined here; use only MozTagAnonymousMemory().
@@ -504,11 +505,8 @@ END_GLOBALS
 // 6.25% of the process address space on a 32-bit OS for later use.
 static const size_t gRecycleLimit = 128_MiB;
 
-// The current amount of recycled bytes, updated atomically. Malloc may be
-// called non-deterministically when recording/replaying, so this atomic's
-// accesses are not recorded.
-static Atomic<size_t, ReleaseAcquire, recordreplay::Behavior::DontPreserve>
-    gRecycledSize;
+// The current amount of recycled bytes, updated atomically.
+static Atomic<size_t, ReleaseAcquire> gRecycledSize;
 
 // Maximum number of dirty pages per arena.
 #define DIRTY_MAX_DEFAULT (1U << 8)
@@ -547,11 +545,7 @@ static void* base_alloc(size_t aSize);
 // threads are created.
 static bool malloc_initialized;
 #else
-// Malloc may be called non-deterministically when recording/replaying, so this
-// atomic's accesses are not recorded.
-static Atomic<bool, SequentiallyConsistent,
-              recordreplay::Behavior::DontPreserve>
-    malloc_initialized;
+static Atomic<bool, SequentiallyConsistent> malloc_initialized;
 #endif
 
 static StaticMutex gInitLock = {STATIC_MUTEX_INIT};
@@ -2841,7 +2835,7 @@ void* arena_t::MallocSmall(size_t aSize, bool aZero) {
       mRandomizeSmallAllocations = false;
       mozilla::Maybe<uint64_t> prngState1, prngState2;
       {
-        mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+        mozilla::recordreplay::AutoPassThroughThreadEvents pt;
         prngState1 = mozilla::RandomUint64();
         prngState2 = mozilla::RandomUint64();
       }
@@ -3627,7 +3621,7 @@ arena_t* ArenaCollection::CreateArena(bool aIsPrivate,
   while (true) {
     mozilla::Maybe<uint64_t> maybeRandomId;
     {
-      mozilla::recordreplay::AutoEnsurePassThroughThreadEvents pt;
+      mozilla::recordreplay::AutoPassThroughThreadEvents pt;
       maybeRandomId = mozilla::RandomUint64();
     }
     MOZ_RELEASE_ASSERT(maybeRandomId.isSome());
@@ -4565,8 +4559,7 @@ static malloc_table_t gDynamicMallocTable = {
 // This briefly points to gDefaultMallocTable at startup. After that, it points
 // to either gOriginalMallocTable or gDynamicMallocTable. It's atomic to avoid
 // races when switching between tables.
-static Atomic<malloc_table_t const*, mozilla::MemoryOrdering::Relaxed,
-              recordreplay::Behavior::DontPreserve>
+static Atomic<malloc_table_t const*, mozilla::MemoryOrdering::Relaxed>
     gMallocTablePtr;
 
 #  ifdef MOZ_DYNAMIC_REPLACE_INIT

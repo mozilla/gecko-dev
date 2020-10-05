@@ -602,9 +602,6 @@ bool Channel::ChannelImpl::ProcessOutgoingMessages() {
                               // no connection?
   is_blocked_on_write_ = false;
 
-  mozilla::recordreplay::RecordReplayAssert("ChannelImpl::ProcessOutgoingMessages BEGIN %d %d",
-                                            output_queue_.empty(), pipe_);
-
   if (output_queue_.empty()) return true;
 
   if (pipe_ == -1) return false;
@@ -689,8 +686,6 @@ bool Channel::ChannelImpl::ProcessOutgoingMessages() {
     msgh.msg_iov = iov;
     msgh.msg_iovlen = iov_count;
 
-    mozilla::recordreplay::RecordReplayAssert("ChannelImpl::ProcessOutgoingMessages #1");
-
     ssize_t bytes_written = HANDLE_EINTR(sendmsg(pipe_, &msgh, MSG_DONTWAIT));
 
 #if !defined(OS_MACOSX)
@@ -737,9 +732,6 @@ bool Channel::ChannelImpl::ProcessOutgoingMessages() {
       }
     }
 
-    mozilla::recordreplay::RecordReplayAssert("ChannelImpl::ProcessOutgoingMessages #2 %d %d",
-                                              (int)bytes_written, (int)amt_to_write);
-
     if (static_cast<size_t>(bytes_written) != amt_to_write) {
       // If write() fails with EAGAIN then bytes_written will be -1.
       if (bytes_written > 0) {
@@ -772,8 +764,6 @@ bool Channel::ChannelImpl::ProcessOutgoingMessages() {
       delete msg;
     }
   }
-
-  mozilla::recordreplay::RecordReplayAssert("ChannelImpl::ProcessOutgoingMessages DONE");
   return true;
 }
 
@@ -788,8 +778,6 @@ bool Channel::ChannelImpl::Send(Message* message) {
   message = mozilla::ipc::Faulty::instance().MutateIPCMessage(
       "Channel::ChannelImpl::Send", message);
 #endif
-
-  mozilla::recordreplay::RecordReplayAssert("ChannelImpl::Send BEGIN %d", closed_);
 
   // If the channel has been closed, ProcessOutgoingMessages() is never going
   // to pop anything off output_queue; output_queue will only get emptied when
@@ -806,17 +794,12 @@ bool Channel::ChannelImpl::Send(Message* message) {
   }
 
   OutputQueuePush(message);
-
-  mozilla::recordreplay::RecordReplayAssert("ChannelImpl::Send #1 %d %d",
-                                            waiting_connect_, is_blocked_on_write_);
-
   if (!waiting_connect_) {
     if (!is_blocked_on_write_) {
       if (!ProcessOutgoingMessages()) return false;
     }
   }
 
-  mozilla::recordreplay::RecordReplayAssert("ChannelImpl::Send DONE");
   return true;
 }
 

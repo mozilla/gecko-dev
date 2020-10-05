@@ -147,12 +147,6 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvPaintTime(
 
 mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
     const TransactionInfo& aInfo) {
-  auto guard = MakeScopeExit([&] {
-    if (recordreplay::IsRecordingOrReplaying()) {
-      recordreplay::child::NotifyPaintComplete();
-    }
-  });
-
   AUTO_PROFILER_TRACING_MARKER("Paint", "LayerTransaction", GRAPHICS);
   AUTO_PROFILER_LABEL("LayerTransactionParent::RecvUpdate", GRAPHICS);
   PerfStats::AutoMetricRecording<PerfStats::Metric::LayerTransactions>
@@ -179,7 +173,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
 
   {
     AutoResolveRefLayers resolve(
-        mCompositorBridge->GetCompositionManager(this));
+        mCompositorBridge ? mCompositorBridge->GetCompositionManager(this) : nullptr);
     nsCString none;
     mLayerManager->BeginTransaction(none);
   }
@@ -446,11 +440,13 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
     }
   }
 
-  mCompositorBridge->ShadowLayersUpdated(this, aInfo, mUpdateHitTestingTree);
+  if (mCompositorBridge) {
+    mCompositorBridge->ShadowLayersUpdated(this, aInfo, mUpdateHitTestingTree);
+  }
 
   {
     AutoResolveRefLayers resolve(
-        mCompositorBridge->GetCompositionManager(this));
+        mCompositorBridge ? mCompositorBridge->GetCompositionManager(this) : nullptr);
     mLayerManager->EndTransaction(TimeStamp(),
                                   LayerManager::END_NO_IMMEDIATE_REDRAW);
   }
@@ -496,11 +492,6 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
 
     mLayerManager->RecordUpdateTime(
         (TimeStamp::Now() - updateStart).ToMilliseconds());
-  }
-
-  // Compose after every update when recording/replaying.
-  if (recordreplay::IsRecordingOrReplaying()) {
-    mCompositorBridge->ForceComposeToTarget(nullptr);
   }
 
   return IPC_OK();
@@ -890,7 +881,8 @@ bool LayerTransactionParent::DeallocShmem(ipc::Shmem& aShmem) {
 }
 
 bool LayerTransactionParent::IsSameProcess() const {
-  return OtherPid() == base::GetCurrentProcId();
+  return recordreplay::IsRecordingOrReplaying() ||
+    OtherPid() == base::GetCurrentProcId();
 }
 
 void LayerTransactionParent::SetPendingTransactionId(
@@ -948,11 +940,15 @@ void LayerTransactionParent::SendAsyncMessage(
 }
 
 void LayerTransactionParent::SendPendingAsyncMessages() {
-  mCompositorBridge->SendPendingAsyncMessages();
+  if (mCompositorBridge) {
+    mCompositorBridge->SendPendingAsyncMessages();
+  }
 }
 
 void LayerTransactionParent::SetAboutToSendAsyncMessages() {
-  mCompositorBridge->SetAboutToSendAsyncMessages();
+  if (mCompositorBridge) {
+    mCompositorBridge->SetAboutToSendAsyncMessages();
+  }
 }
 
 void LayerTransactionParent::NotifyNotUsed(PTextureParent* aTexture,

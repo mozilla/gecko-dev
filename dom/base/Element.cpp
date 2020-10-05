@@ -873,8 +873,6 @@ nsRect Element::GetClientAreaRect() {
 }
 
 already_AddRefed<DOMRect> Element::GetBoundingClientRect() {
-  mozilla::recordreplay::AssertScriptedCaller("Element::GetBoundingClientRect");
-
   RefPtr<DOMRect> rect = new DOMRect(this);
 
   nsIFrame* frame = GetPrimaryFrame(FlushType::Layout);

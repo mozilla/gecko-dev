@@ -57,7 +57,6 @@ ContentPrincipal::~ContentPrincipal() {}
 nsresult ContentPrincipal::Init(nsIURI* aURI,
                                 const OriginAttributes& aOriginAttributes,
                                 const nsACString& aOriginNoSuffix) {
-  recordreplay::RecordReplayAssert("ContentPrincipal::Init #1");
   NS_ENSURE_ARG(aURI);
 
   // Assert that the URI we get here isn't any of the schemes that we know we
@@ -80,7 +79,6 @@ nsresult ContentPrincipal::Init(nsIURI* aURI,
 
 nsresult ContentPrincipal::Init(ContentPrincipal* aOther,
                                 const OriginAttributes& aOriginAttributes) {
-  recordreplay::RecordReplayAssert("ContentPrincipal::Init #2");
   NS_ENSURE_ARG(aOther);
 
   mURI = aOther->mURI;

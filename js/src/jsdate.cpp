@@ -1452,9 +1452,6 @@ static ClippedTime NowAsMillis(JSContext* cx) {
 
 bool js::date_now(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
-
-  mozilla::recordreplay::AssertScriptedCaller("Date.now");
-
   args.rval().set(TimeValue(NowAsMillis(cx)));
   return true;
 }

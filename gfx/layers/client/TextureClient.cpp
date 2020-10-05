@@ -1741,7 +1741,8 @@ int32_t ShmemTextureReadLock::ReadUnlock() {
     return 0;
   }
   ShmReadLockInfo* info = GetShmReadLockInfoPtr();
-  int32_t readCount = PR_ATOMIC_DECREMENT(&info->readCount);
+  int32_t readCount = recordreplay::RecordReplayValue("ShmemTextureReadLock::ReadUnlock",
+                                                      PR_ATOMIC_DECREMENT(&info->readCount));
   MOZ_ASSERT(readCount >= 0);
   if (readCount <= 0) {
     if (mClientAllocator && mClientAllocator->GetTileLockAllocator()) {
@@ -1761,7 +1762,8 @@ int32_t ShmemTextureReadLock::GetReadCount() {
     return 0;
   }
   ShmReadLockInfo* info = GetShmReadLockInfoPtr();
-  return info->readCount;
+  return recordreplay::RecordReplayValue("ShmemTextureReadLock::GetReadCount",
+                                         info->readCount);
 }
 
 bool CrossProcessSemaphoreReadLock::Serialize(ReadLockDescriptor& aOutput,

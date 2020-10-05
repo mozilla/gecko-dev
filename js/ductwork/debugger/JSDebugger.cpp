@@ -9,6 +9,7 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/Wrapper.h"
+#include "mozilla/RecordReplay.h"
 #include "nsServiceManagerUtils.h"
 #include "nsMemory.h"
 
@@ -20,6 +21,10 @@
       0xa3, 0x9f, 0x83, 0xb6, 0x3c, 0xd1, 0xa9, 0x63 \
     }                                                \
   }
+
+namespace mozilla::recordreplay {
+  bool DefineRecordReplayControlObject(JSContext* cx, JS::HandleObject obj);
+}
 
 namespace mozilla::jsdebugger {
 

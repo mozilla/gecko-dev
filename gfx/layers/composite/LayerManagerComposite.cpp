@@ -164,10 +164,12 @@ LayerManagerComposite::LayerManagerComposite(Compositor* aCompositor)
   mTextRenderer = new TextRenderer();
   mDiagnostics = MakeUnique<Diagnostics>();
   MOZ_ASSERT(aCompositor);
-  mNativeLayerRoot = aCompositor->GetWidget()->GetNativeLayerRoot();
-  if (mNativeLayerRoot) {
-    mSurfacePoolHandle = aCompositor->GetSurfacePoolHandle();
-    MOZ_RELEASE_ASSERT(mSurfacePoolHandle);
+  if (aCompositor->GetWidget()) {
+    mNativeLayerRoot = aCompositor->GetWidget()->GetNativeLayerRoot();
+    if (mNativeLayerRoot) {
+      mSurfacePoolHandle = aCompositor->GetSurfacePoolHandle();
+      MOZ_RELEASE_ASSERT(mSurfacePoolHandle);
+    }
   }
 
 #ifdef USE_SKIA
@@ -179,7 +181,9 @@ LayerManagerComposite::~LayerManagerComposite() { Destroy(); }
 
 void LayerManagerComposite::Destroy() {
   if (!mDestroyed) {
-    mCompositor->GetWidget()->CleanupWindowEffects();
+    if (mCompositor->GetWidget()) {
+      mCompositor->GetWidget()->CleanupWindowEffects();
+    }
     if (mRoot) {
       RootLayer()->Destroy();
     }

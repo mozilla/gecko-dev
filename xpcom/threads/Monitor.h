@@ -9,6 +9,7 @@
 
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/RecordReplay.h"
 
 namespace mozilla {
 
@@ -23,18 +24,76 @@ namespace mozilla {
  */
 class Monitor {
  public:
-  explicit Monitor(const char* aName, recordreplay::Behavior aRecorded =
-                                          recordreplay::Behavior::Preserve)
-      : mMutex(aName, aRecorded), mCondVar(mMutex, "[Monitor.mCondVar]") {}
+  explicit Monitor(const char* aName, bool aOrdered = false)
+      : mMutex(aName), mCondVar(mMutex, "[Monitor.mCondVar]") {
+    if (aOrdered) {
+      mRecordReplayOrderedLockId = recordreplay::CreateOrderedLock(aName);
+    }
+  }
 
   ~Monitor() = default;
 
-  void Lock() { mMutex.Lock(); }
-  bool TryLock() { return mMutex.TryLock(); }
+  void Lock() {
+    if (mRecordReplayOrderedLockId) {
+      // Adjust the order we take the lock based on whether we are recording,
+      // so that lock acquires happen in a consistent order and avoid deadlocks.
+      // When recording we take the ordered lock second, so that we can deal
+      // with waking up from a condvar notify. When replaying we take the
+      // ordered lock first, as it will block until we are next in line to
+      // take the lock.
+      if (recordreplay::IsRecording()) {
+        mMutex.Lock();
+        recordreplay::AutoOrderedLock ordered(mRecordReplayOrderedLockId);
+      } else {
+        recordreplay::AutoOrderedLock ordered(mRecordReplayOrderedLockId);
+        mMutex.Lock();
+      }
+    } else {
+      mMutex.Lock();
+    }
+  }
+  bool TryLock() {
+    Maybe<recordreplay::AutoOrderedLock> ordered;
+    if (mRecordReplayOrderedLockId) {
+      // Lock acquire here doesn't matter as above, because TryLock won't block.
+      ordered.emplace(mRecordReplayOrderedLockId);
+    }
+    return mMutex.TryLock();
+  }
   void Unlock() { mMutex.Unlock(); }
 
-  void Wait() { mCondVar.Wait(); }
-  CVStatus Wait(TimeDuration aDuration) { return mCondVar.Wait(aDuration); }
+  void Wait() {
+    if (mRecordReplayOrderedLockId) {
+      if (recordreplay::IsRecording()) {
+        mCondVar.Wait();
+        recordreplay::AutoOrderedLock ordered(mRecordReplayOrderedLockId);
+      } else {
+        // When replaying, we don't wait on the condvar. Reproducing the
+        // lock that occurred when recording will ensure this thread is at the
+        // right place when replaying.
+        Unlock();
+        Lock();
+      }
+    } else {
+      mCondVar.Wait();
+    }
+  }
+  CVStatus Wait(TimeDuration aDuration) {
+    if (mRecordReplayOrderedLockId) {
+      if (recordreplay::IsRecording()) {
+        CVStatus rv = mCondVar.Wait(aDuration);
+        recordreplay::AutoOrderedLock ordered(mRecordReplayOrderedLockId);
+        return (CVStatus)recordreplay::RecordReplayValue(mMutex.Name(), (int)rv);
+      } else {
+        // Don't wait on the condvar, as above.
+        Unlock();
+        Lock();
+        return (CVStatus)recordreplay::RecordReplayValue(mMutex.Name(), 0);
+      }
+    } else {
+      return mCondVar.Wait(aDuration);
+    }
+  }
 
   void Notify() { mCondVar.Notify(); }
   void NotifyAll() { mCondVar.NotifyAll(); }
@@ -52,6 +111,7 @@ class Monitor {
 
   Mutex mMutex;
   CondVar mCondVar;
+  int mRecordReplayOrderedLockId = 0;
 };
 
 /**

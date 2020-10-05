@@ -3134,8 +3134,6 @@ template bool GenericGetter<MaybeCrossOriginObjectLenientThisPolicy,
 
 template <typename ThisPolicy>
 bool GenericSetter(JSContext* cx, unsigned argc, JS::Value* vp) {
-  recordreplay::RecordReplayAssert("GenericSetter");
-
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   const JSJitInfo* info = FUNCTION_VALUE_TO_JITINFO(args.calleev());
   prototypes::ID protoID = static_cast<prototypes::ID>(info->protoID);

@@ -8,6 +8,7 @@
 #define vm_SharedArrayObject_h
 
 #include "mozilla/Atomics.h"
+#include "mozilla/RecordReplay.h"
 
 #include "jsapi.h"
 #include "jstypes.h"

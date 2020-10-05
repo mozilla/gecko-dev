@@ -96,7 +96,7 @@ class LayerTransactionParent final : public PLayerTransactionParent,
 
   base::ProcessId GetChildProcessId() override { return OtherPid(); }
 
- protected:
+  //protected:
   mozilla::ipc::IPCResult RecvShutdown();
   mozilla::ipc::IPCResult RecvShutdownSync();
 

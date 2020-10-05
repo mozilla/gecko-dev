@@ -73,8 +73,6 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/network/Connection.h"
 
-#include "mozilla/recordreplay/ParentIPC.h"
-
 #include "nsNSSComponent.h"
 #include "TRRServiceChannel.h"
 
@@ -136,6 +134,10 @@
 //-----------------------------------------------------------------------------
 
 using mozilla::dom::Promise;
+
+namespace mozilla::recordreplay {
+  const char* CurrentFirefoxVersion();
+}
 
 namespace mozilla::net {
 
@@ -461,7 +463,7 @@ nsresult nsHttpHandler::Init() {
                                        gCallbackPrefs, this);
   PrefsChanged(nullptr);
 
-  const char* uaVersion = recordreplay::parent::CurrentFirefoxVersion();
+  const char* uaVersion = recordreplay::CurrentFirefoxVersion();
 
   mMisc.Assign(nsPrintfCString("rv:%s", uaVersion));
 

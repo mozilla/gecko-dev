@@ -48,7 +48,7 @@ class ThreadEventQueue<InnerQueueT>::NestedSink : public ThreadTargetSink {
 template <class InnerQueueT>
 ThreadEventQueue<InnerQueueT>::ThreadEventQueue(UniquePtr<InnerQueueT> aQueue)
     : mBaseQueue(std::move(aQueue)),
-      mLock("ThreadEventQueue"),
+      mLock("ThreadEventQueue", /* aOrdered */ true),
       mEventsAvailable(mLock, "EventsAvail") {
   static_assert(std::is_base_of<AbstractEventQueue, InnerQueueT>::value,
                 "InnerQueueT must be an AbstractEventQueue subclass");
@@ -69,16 +69,12 @@ template <class InnerQueueT>
 bool ThreadEventQueue<InnerQueueT>::PutEventInternal(
     already_AddRefed<nsIRunnable>&& aEvent, EventQueuePriority aPriority,
     NestedSink* aSink) {
-  recordreplay::RecordReplayAssert("ThreadEventQueue::PutEventInternal BEGIN");
-
   // We want to leak the reference when we fail to dispatch it, so that
   // we won't release the event in a wrong thread.
   LeakRefPtr<nsIRunnable> event(std::move(aEvent));
   nsCOMPtr<nsIThreadObserver> obs;
 
   {
-    recordreplay::RecordReplayAssert("ThreadEventQueue::PutEventInternal #1");
-
     // Check if the runnable wants to override the passed-in priority.
     // Do this outside the lock, so runnables implemented in JS can QI
     // (and possibly GC) outside of the lock.
@@ -100,8 +96,6 @@ bool ThreadEventQueue<InnerQueueT>::PutEventInternal(
         }
       }
     }
-
-    recordreplay::RecordReplayAssert("ThreadEventQueue::PutEventInternal #2");
 
     MutexAutoLock lock(mLock);
 
@@ -139,6 +133,8 @@ template <class InnerQueueT>
 already_AddRefed<nsIRunnable> ThreadEventQueue<InnerQueueT>::GetEvent(
     bool aMayWait, EventQueuePriority* aPriority,
     mozilla::TimeDuration* aLastEventDelay) {
+  recordreplay::RecordReplayAssert("ThreadEventQueue::GetEvent");
+
   nsCOMPtr<nsIRunnable> event;
   bool eventIsIdleRunnable = false;
   // This will be the IdlePeriodState for the queue the event, if any,
@@ -227,6 +223,9 @@ already_AddRefed<nsIRunnable> ThreadEventQueue<InnerQueueT>::GetEvent(
       idleState->FlagNotIdle();
     }
   }
+
+  recordreplay::RecordReplayAssert("ThreadEventQueue::GetEvent RETURN %d",
+                                   recordreplay::ThingIndex(event));
 
   return event.forget();
 }

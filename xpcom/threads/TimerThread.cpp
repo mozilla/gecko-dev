@@ -30,7 +30,7 @@ NS_IMPL_ISUPPORTS(TimerThread, nsIRunnable, nsIObserver)
 
 TimerThread::TimerThread()
     : mInitialized(false),
-      mMonitor("TimerThread.mMonitor"),
+      mMonitor("TimerThread.mMonitor", /* aOrdered */ true),
       mShutdown(false),
       mWaiting(false),
       mNotified(false),
@@ -103,11 +103,7 @@ class TimerEventAllocator {
 
  public:
   TimerEventAllocator()
-      : mPool(),
-        mFirstFree(nullptr),
-        // Timer thread state may be accessed during GC, so uses of this monitor
-        // are not preserved when recording/replaying.
-        mMonitor("TimerEventAllocator", recordreplay::Behavior::DontPreserve) {}
+      : mPool(), mFirstFree(nullptr), mMonitor("TimerEventAllocator") {}
 
   ~TimerEventAllocator() = default;
 
@@ -178,17 +174,12 @@ class nsTimerEvent final : public CancelableRunnable {
 
   static TimerEventAllocator* sAllocator;
 
-  // Timer thread state may be accessed during GC, so uses of this atomic are
-  // not preserved when recording/replaying.
-  static Atomic<int32_t, SequentiallyConsistent,
-                recordreplay::Behavior::DontPreserve>
-      sAllocatorUsers;
+  static Atomic<int32_t, SequentiallyConsistent> sAllocatorUsers;
   static bool sCanDeleteAllocator;
 };
 
 TimerEventAllocator* nsTimerEvent::sAllocator = nullptr;
-Atomic<int32_t, SequentiallyConsistent, recordreplay::Behavior::DontPreserve>
-    nsTimerEvent::sAllocatorUsers;
+Atomic<int32_t, SequentiallyConsistent> nsTimerEvent::sAllocatorUsers;
 bool nsTimerEvent::sCanDeleteAllocator = false;
 
 namespace {
@@ -698,6 +689,8 @@ void TimerThread::RemoveFirstTimerInternal() {
 
 already_AddRefed<nsTimerImpl> TimerThread::PostTimerEvent(
     already_AddRefed<nsTimerImpl> aTimerRef) {
+  recordreplay::RecordReplayAssert("TimerThread::PostTimerEvent");
+
   mMonitor.AssertCurrentThreadOwns();
 
   RefPtr<nsTimerImpl> timer(aTimerRef);
@@ -731,6 +724,8 @@ already_AddRefed<nsTimerImpl> TimerThread::PostTimerEvent(
   RefPtr<nsTimerEvent> event =
       ::new (KnownNotNull, p) nsTimerEvent(timer.forget());
 
+  recordreplay::RecordReplayAssert("TimerThread::PostTimerEvent DISPATCH");
+
   nsresult rv;
   {
     // We release mMonitor around the Dispatch because if this timer is targeted
@@ -744,6 +739,8 @@ already_AddRefed<nsTimerImpl> TimerThread::PostTimerEvent(
     RemoveTimerInternal(timer);
     return timer.forget();
   }
+
+  recordreplay::RecordReplayAssert("TimerThread::PostTimerEvent DONE");
 
   return nullptr;
 }

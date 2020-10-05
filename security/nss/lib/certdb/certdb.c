@@ -31,16 +31,6 @@
 #include "pki.h"
 #include "pki3hack.h"
 
-#include <dlfcn.h>
-
-static void RecordReplayAssertFromC(const char* text) {
-  static void* fnptr;
-  if (!fnptr) {
-    fnptr = dlsym(RTLD_DEFAULT, "RecordReplayAssertFromC");
-  }
-  ((void (*)(const char*))fnptr)(text);
-}
-
 SEC_ASN1_MKSUB(CERT_TimeChoiceTemplate)
 SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
 SEC_ASN1_MKSUB(SEC_BitStringTemplate)
@@ -3130,8 +3120,6 @@ cert_CreateSubjectKeyIDHashTable(void)
 SECStatus
 cert_AddSubjectKeyIDMapping(SECItem *subjKeyID, CERTCertificate *cert)
 {
-    RecordReplayAssertFromC("cert_AddSubjectKeyIDMapping");
-
     SECItem *newKeyID, *oldVal, *newVal;
     SECStatus rv = SECFailure;
 
@@ -3173,8 +3161,6 @@ done:
 SECStatus
 cert_RemoveSubjectKeyIDMapping(SECItem *subjKeyID)
 {
-    RecordReplayAssertFromC("cert_RemoveSubjectKeyIDMapping");
-
     SECStatus rv;
     if (!gSubjKeyIDLock)
         return SECFailure;
@@ -3277,8 +3263,6 @@ cert_DestroySubjectKeyIDSlotCheckHash(void)
 SECStatus
 cert_DestroySubjectKeyIDHashTable(void)
 {
-    RecordReplayAssertFromC("cert_DestroySubjectKeyIDHashTable");
-
     if (gSubjKeyIDHash) {
         PR_Lock(gSubjKeyIDLock);
         PL_HashTableDestroy(gSubjKeyIDHash);
@@ -3294,8 +3278,6 @@ cert_DestroySubjectKeyIDHashTable(void)
 SECItem *
 cert_FindDERCertBySubjectKeyID(SECItem *subjKeyID)
 {
-    RecordReplayAssertFromC("cert_FindDERCertBySubjectKeyID");
-
     SECItem *val;
 
     if (!gSubjKeyIDLock)

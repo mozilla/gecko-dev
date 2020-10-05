@@ -6839,9 +6839,6 @@ static ImgDrawResult DrawImageInternal(
     const nsRect& aFill, const nsPoint& aAnchor, const nsRect& aDirty,
     const Maybe<SVGImageContext>& aSVGContext, uint32_t aImageFlags,
     ExtendMode aExtendMode = ExtendMode::CLAMP, float aOpacity = 1.0) {
-  recordreplay::RecordReplayAssert("DrawImageInternal %d %d",
-                                   (int)aImageFlags, (int)aSamplingFilter);
-
   ImgDrawResult result = ImgDrawResult::SUCCESS;
 
   aImageFlags |= imgIContainer::FLAG_ASYNC_NOTIFY;
@@ -9656,6 +9653,8 @@ static void UpdateDisplayPortMarginsForPendingMetrics(
 
 /* static */
 void nsLayoutUtils::UpdateDisplayPortMarginsFromPendingMessages() {
+  recordreplay::RecordReplayAssert("nsLayoutUtils::UpdateDisplayPortMarginsFromPendingMessages");
+
   if (XRE_IsContentProcess() && mozilla::layers::CompositorBridgeChild::Get() &&
       mozilla::layers::CompositorBridgeChild::Get()->GetIPCChannel()) {
     CompositorBridgeChild::Get()->GetIPCChannel()->PeekMessages(

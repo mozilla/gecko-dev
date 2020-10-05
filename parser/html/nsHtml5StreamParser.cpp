@@ -202,15 +202,12 @@ nsHtml5StreamParser::nsHtml5StreamParser(nsHtml5TreeOpExecutor* aExecutor,
     mTreeBuilder->EnableViewSource(highlighter);  // doesn't own
   }
 
-  recordreplay::RegisterThing(this);
-
   // There's a zeroing operator new for everything else
 }
 
 nsHtml5StreamParser::~nsHtml5StreamParser() {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   mTokenizer->end();
-  recordreplay::UnregisterThing(this);
 #ifdef DEBUG
   {
     mozilla::MutexAutoLock flushTimerLock(mFlushTimerMutex);
@@ -1319,7 +1316,13 @@ class nsHtml5RequestStopper : public Runnable {
 
  public:
   explicit nsHtml5RequestStopper(nsHtml5StreamParser* aStreamParser)
-      : Runnable("nsHtml5RequestStopper"), mStreamParser(aStreamParser) {}
+      : Runnable("nsHtml5RequestStopper"), mStreamParser(aStreamParser) {
+    if (recordreplay::IsRecordingOrReplaying()) {
+      // Leak to avoid non-deterministic behavior in destructor.
+      AddRef();
+    }
+  }
+
   NS_IMETHOD Run() override {
     mozilla::MutexAutoLock autoLock(mStreamParser->mTokenizerMutex);
     mStreamParser->DoStopRequest();
@@ -1467,9 +1470,6 @@ nsresult nsHtml5StreamParser::OnDataAvailable(nsIRequest* aRequest,
                                               nsIInputStream* aInStream,
                                               uint64_t aSourceOffset,
                                               uint32_t aLength) {
-  recordreplay::RecordReplayAssert("nsHtml5StreamParser::OnDataAvailable %lu",
-                                   recordreplay::ThingIndex(this));
-
   nsresult rv;
   if (NS_FAILED(rv = mExecutor->IsBroken())) {
     return rv;

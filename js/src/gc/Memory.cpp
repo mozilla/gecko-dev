@@ -62,13 +62,9 @@ static size_t virtualMemoryLimit = size_t(-1);
  * VirtualAlloc always hands out regions of memory in increasing order.
  */
 #if defined(XP_DARWIN)
-static mozilla::Atomic<int, mozilla::Relaxed,
-                       mozilla::recordreplay::Behavior::DontPreserve>
-    growthDirection(1);
+static mozilla::Atomic<int, mozilla::Relaxed> growthDirection(1);
 #elif defined(XP_UNIX)
-static mozilla::Atomic<int, mozilla::Relaxed,
-                       mozilla::recordreplay::Behavior::DontPreserve>
-    growthDirection(0);
+static mozilla::Atomic<int, mozilla::Relaxed> growthDirection(0);
 #endif
 
 /*

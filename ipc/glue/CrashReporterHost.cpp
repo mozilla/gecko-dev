@@ -100,11 +100,6 @@ bool CrashReporterHost::AdoptMinidump(nsIFile* aFile,
 }
 
 int32_t CrashReporterHost::GetCrashType() {
-  if (mExtraAnnotations[CrashReporter::Annotation::RecordReplayHang]
-          .EqualsLiteral("1")) {
-    return nsICrashService::CRASH_TYPE_HANG;
-  }
-
   if (mExtraAnnotations[CrashReporter::Annotation::PluginHang].EqualsLiteral(
           "1")) {
     return nsICrashService::CRASH_TYPE_HANG;

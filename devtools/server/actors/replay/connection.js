@@ -10,14 +10,8 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
-const { setTimeout } = Components.utils.import(
-  "resource://gre/modules/Timer.jsm"
-);
-const {
-  onFinishedRecording,
-  setNextRecordingURLCallback,
-  saveRecordingInDB,
-} = ChromeUtils.import("resource:///modules/DevToolsStartup.jsm");
+const { setTimeout } = Components.utils.import('resource://gre/modules/Timer.jsm');
+const { onFinishedRecording } = ChromeUtils.import("resource:///modules/DevToolsStartup.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
@@ -159,139 +153,8 @@ function sendCommand(channelId, method, params) {
   return waitForCommandResult(id);
 }
 
-// Keep track of the URL associated with each new recording.
-let gNextRecordingURL;
-setNextRecordingURLCallback((url) => {
-  gNextRecordingURL = url;
-});
-
 // Resolve hooks for promises waiting on a recording to be created.
 const gRecordingCreateWaiters = [];
-
-Services.ppmm.addMessageListener("UploadRecordingData", {
-  async receiveMessage(msg) {
-    const { pid, offset, length, buf, description } = msg.data;
-
-    let first = !gRecordings.has(pid);
-    if (first) {
-      if (offset != 0) {
-        // We expect to get recording data notifications in order. If the offset
-        // is non-zero then this is for a recording child that we consider to
-        // be destroyed.
-        return;
-      }
-
-      let address = gConfig.address;
-      if (
-        gConfig.altPattern &&
-        gNextRecordingURL &&
-        gNextRecordingURL.includes(gConfig.altPattern)
-      ) {
-        address = gConfig.altAddress;
-      }
-
-      // The upload channel is used to upload all data.
-      const uploadChannelId = openChannel(address);
-
-      // Channel to use for messages related to the recording. Use the main
-      // channel if possible, so that messages can be sent while the recording
-      // is still uploading.
-      const messageChannelId =
-        address == gConfig.address ? gMainChannelId : uploadChannelId;
-
-      const buildId = `macOS-${Services.appinfo.appBuildID}`;
-      const createPromise = sendCommand(
-        uploadChannelId,
-        "Internal.createRecording",
-        { buildId }
-      );
-      const info = {
-        uploadChannelId,
-        messageChannelId,
-        createPromise,
-        dataPromises: [],
-        destroyed: false,
-      };
-      gRecordings.set(pid, info);
-      gRecordingCreateWaiters.forEach((resolve) => resolve());
-    }
-    const info = gRecordings.get(pid);
-    const { recordingId } = await info.createPromise;
-
-    if (info.destroyed) {
-      return;
-    }
-
-    if (first) {
-      ChromeUtils.recordReplayLog(
-        `CreateRecording ${recordingId} ${gNextRecordingURL}`
-      );
-
-      // Always start processing recordings as soon as they've been created,
-      // except when running automated tests (to reduce server load when we are
-      // recording the devtools viewer itself).
-      if (!getenv("RECORD_REPLAY_LOCAL_TEST")) {
-        sendCommand(info.messageChannelId, "Recording.processRecording", {
-          recordingId,
-        });
-      }
-    }
-
-    const dataPromise = sendCommand(
-      info.uploadChannelId,
-      "Internal.addRecordingData",
-      { recordingId, offset, length }
-    );
-
-    gWorker.postMessage({
-      kind: "sendBinaryData",
-      id: info.uploadChannelId,
-      buf,
-    });
-
-    info.dataPromises.push(dataPromise);
-
-    if (description) {
-      const {
-        length,
-        duration,
-        lastScreenMimeType,
-        lastScreenData,
-        url,
-        title,
-        date,
-      } = description;
-
-      // This is for the last flush before the recording tab is closed,
-      // add a recording description.
-      sendCommand(info.messageChannelId, "Internal.addRecordingDescription", {
-        recordingId,
-        length,
-        duration,
-        url,
-        title,
-        date,
-        lastScreenMimeType,
-        lastScreenData: lastScreenData || undefined,
-      });
-
-      saveRecordingInDB({ recordingId, ...description });
-
-      onFinishedRecording({
-        recordingId,
-        url,
-        title,
-        date,
-        duration,
-        lastScreenData,
-        lastScreenMimeType,
-      });
-
-      // Ignore any other flushes from this pid.
-      RecordingDestroyed(pid);
-    }
-  },
-});
 
 function hashString(str) {
   let hash = 0;
@@ -308,7 +171,7 @@ function getResourceInfo(url, text) {
   };
 }
 
-async function addRecordingResource(info, recordingId, url) {
+async function addRecordingResource(recordingId, url) {
   try {
     const response = await fetch(url);
     if (response.status < 200 || response.status >= 300) {
@@ -318,21 +181,23 @@ async function addRecordingResource(info, recordingId, url) {
     const text = await response.text();
     const resource = getResourceInfo(url, text);
 
-    await sendCommand(info.messageChannelId, "Internal.addRecordingResource", {
-      recordingId,
-      resource,
-    });
+    await sendCommand(
+      gMainChannelId,
+      "Internal.addRecordingResource",
+      { recordingId, resource }
+    );
 
     const { known } = await sendCommand(
-      info.messageChannelId,
+      gMainChannelId,
       "Internal.hasResource",
       { resource }
     );
     if (!known) {
-      await sendCommand(info.messageChannelId, "Internal.addResource", {
-        resource,
-        contents: text,
-      });
+      await sendCommand(
+        gMainChannelId,
+        "Internal.addResource",
+        { resource, contents: text }
+      );
     }
 
     return text;
@@ -363,14 +228,8 @@ Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
     } catch (e) {
       resolvedSourceMapURL = sourceMapURL;
     }
-    const promise = addRecordingResource(
-      info,
-      recordingId,
-      resolvedSourceMapURL
-    );
-    info.dataPromises.push(promise);
 
-    const text = await promise;
+    const text = await addRecordingResource(recordingId, resolvedSourceMapURL);
     if (text) {
       // Look for sources which are not inlined into the map, and add them as
       // additional recording resources.
@@ -380,9 +239,7 @@ Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
       for (let i = 0; i < sources.length; i++) {
         if (!sourcesContent[i]) {
           const sourceURL = computeSourceURL(url, sourceRoot, sources[i]);
-          info.dataPromises.push(
-            addRecordingResource(info, recordingId, sourceURL)
-          );
+          addRecordingResource(recordingId, sourceURL);
         }
       }
     }

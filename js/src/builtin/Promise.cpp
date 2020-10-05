@@ -390,12 +390,6 @@ static MOZ_ALWAYS_INLINE bool ShouldCaptureDebugInfo(JSContext* cx) {
 }
 
 static mozilla::Maybe<mozilla::TimeStamp> MaybeNow() {
-  // ShouldCaptureDebugInfo() may return inconsistent values when recording
-  // or replaying, so in places where we might need the current time for
-  // promise debug info we always capture the current time.
-  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    return mozilla::Some(mozilla::TimeStamp::Now());
-  }
   return mozilla::Nothing();
 }
 
@@ -485,7 +479,6 @@ class PromiseDebugInfo : public NativeObject {
     if (!ShouldCaptureDebugInfo(cx)) {
       return;
     }
-    mozilla::recordreplay::AutoDisallowThreadEvents disallow;
 
     // If async stacks weren't enabled and the Promise's global wasn't a
     // debuggee when the Promise was created, we won't have a debugInfo
@@ -2238,7 +2231,6 @@ CreatePromiseObjectInternal(JSContext* cx, HandleObject proto /* = nullptr */,
   if (MOZ_LIKELY(!ShouldCaptureDebugInfo(cx))) {
     return promise;
   }
-  mozilla::recordreplay::AutoDisallowThreadEvents disallow;
 
   // Store an allocation stack so we can later figure out what the
   // control flow was for some unexpected results. Frightfully expensive,

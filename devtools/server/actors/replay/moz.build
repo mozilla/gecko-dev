@@ -7,7 +7,6 @@
 DevToolsModules(
     'connection-worker.js',
     'connection.js',
-    'graphics.js',
     'module.js',
 )
 
@@ -15,6 +14,5 @@ XPIDL_MODULE = 'devtools_rr'
 
 XPIDL_SOURCES = [
     'rrIConnection.idl',
-    'rrIGraphics.idl',
     'rrIModule.idl',
 ]

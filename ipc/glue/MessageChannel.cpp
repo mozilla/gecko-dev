@@ -16,7 +16,6 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Mutex.h"
-#include "mozilla/recordreplay/ParentIPC.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/Telemetry.h"
@@ -562,18 +561,6 @@ static void TryRegisterStrongMemoryReporter() {
 
 Atomic<size_t> MessageChannel::gUnresolvedResponses;
 
-// Channels in record/replay middleman processes can forward messages that
-// originated in a child recording process. Middleman processes are given
-// a large negative sequence number so that sequence numbers on their messages
-// can be distinguished from those on recording process messages.
-static const int32_t MiddlemanStartSeqno = -(1 << 30);
-
-/* static */
-bool MessageChannel::MessageOriginatesFromMiddleman(const Message& aMessage) {
-  MOZ_ASSERT(recordreplay::IsMiddleman());
-  return aMessage.seqno() < MiddlemanStartSeqno;
-}
-
 MessageChannel::MessageChannel(const char* aName, IToplevelProtocol* aListener)
     : mName(aName),
       mListener(aListener),
@@ -607,6 +594,8 @@ MessageChannel::MessageChannel(const char* aName, IToplevelProtocol* aListener)
       mIsSameThreadChannel(false) {
   MOZ_COUNT_CTOR(ipc::MessageChannel);
 
+  recordreplay::RegisterThing(this);
+
 #ifdef OS_WIN
   mTopFrame = nullptr;
   mIsSyncWaitingOnNonMainThread = false;
@@ -623,13 +612,11 @@ MessageChannel::MessageChannel(const char* aName, IToplevelProtocol* aListener)
 
   TryRegisterStrongMemoryReporter<PendingResponseReporter>();
   TryRegisterStrongMemoryReporter<ChannelCountReporter>();
-
-  if (recordreplay::IsMiddleman()) {
-    mNextSeqno = MiddlemanStartSeqno;
-  }
 }
 
 MessageChannel::~MessageChannel() {
+  recordreplay::UnregisterThing(this);
+
   MOZ_COUNT_DTOR(ipc::MessageChannel);
   IPC_ASSERT(mCxxStackFrames.empty(), "mismatched CxxStackFrame ctor/dtors");
 #ifdef OS_WIN
@@ -708,6 +695,7 @@ static void PrintErrorMessage(Side side, const char* channelName,
   const char* from = (side == ChildSide)
                          ? "Child"
                          : ((side == ParentSide) ? "Parent" : "Unknown");
+  recordreplay::PrintLog("###!!! [%s][%s] Error: %s", from, channelName, msg);
   printf_stderr("\n###!!! [%s][%s] Error: %s\n\n", from, channelName, msg);
 }
 
@@ -834,7 +822,7 @@ bool MessageChannel::Open(mozilla::UniquePtr<Transport> aTransport,
                           MessageLoop* aIOLoop, Side aSide) {
   MOZ_ASSERT(!mLink, "Open() called > once");
 
-  mMonitor = new RefCountedMonitor();
+  mMonitor = new RefCountedMonitor(/* aOrdered */ true);
   mWorkerLoop = MessageLoop::current();
   mWorkerThread = PR_GetCurrentThread();
   mWorkerLoop->AddDestructionObserver(this);
@@ -883,7 +871,7 @@ bool MessageChannel::Open(MessageChannel* aTargetChan,
       break;
   }
 
-  mMonitor = new RefCountedMonitor();
+  mMonitor = new RefCountedMonitor(/* aOrdered */ true);
 
   MonitorAutoLock lock(*mMonitor);
   mChannelState = ChannelOpening;
@@ -945,7 +933,7 @@ bool MessageChannel::OpenOnSameThread(MessageChannel* aTargetChan,
 
   // XXX(nika): Avoid setting up a monitor for same thread channels? We
   // shouldn't need it.
-  mMonitor = new RefCountedMonitor();
+  mMonitor = new RefCountedMonitor(/* aOrdered */ true);
 
   mChannelState = ChannelOpening;
   aTargetChan->CommonThreadOpenInit(this, oppSide);
@@ -979,6 +967,10 @@ bool MessageChannel::Echo(Message* aMsg) {
 }
 
 bool MessageChannel::Send(Message* aMsg) {
+  recordreplay::RecordReplayAssert("MessageChannel::Send %s %lu",
+                                   IPC::StringFromIPCMessageType(aMsg->type()),
+                                   aMsg->size());
+
   if (aMsg->size() >= kMinTelemetryMessageSize) {
     Telemetry::Accumulate(Telemetry::IPC_MESSAGE_SIZE2, aMsg->size());
   }
@@ -1026,9 +1018,6 @@ bool MessageChannel::Send(Message* aMsg) {
 }
 
 void MessageChannel::SendMessageToLink(Message* aMsg) {
-  recordreplay::RecordReplayAssert("MessageChannel::SendMessageToLink %s %lu",
-                                   IPC::StringFromIPCMessageType(aMsg->type()),
-                                   aMsg->size());
   if (mIsPostponingSends) {
     UniquePtr<Message> msg(aMsg);
     mPostponedSends.push_back(std::move(msg));
@@ -1226,8 +1215,6 @@ bool MessageChannel::ShouldDeferMessage(const Message& aMsg) {
 }
 
 void MessageChannel::OnMessageReceivedFromLink(Message&& aMsg) {
-  mozilla::recordreplay::RecordReplayAssert("MessageChannel::OnMessageReceivedFromLink");
-
   AssertLinkThread();
   mMonitor->AssertCurrentThreadOwns();
 
@@ -1989,9 +1976,18 @@ MessageChannel::MessageTask::MessageTask(MessageChannel* aChannel,
     : CancelableRunnable(aMessage.name()),
       mChannel(aChannel),
       mMessage(std::move(aMessage)),
-      mScheduled(false) {}
+      mScheduled(false) {
+  recordreplay::RegisterThing(this);
+}
+
+MessageChannel::MessageTask::~MessageTask() {
+  recordreplay::UnregisterThing(this);
+}
 
 nsresult MessageChannel::MessageTask::Run() {
+  recordreplay::RecordReplayAssert("MessageTask::Run %d %d", recordreplay::ThingIndex(this),
+                                   recordreplay::ThingIndex(mChannel));
+
   if (!mChannel) {
     return NS_OK;
   }
@@ -2008,6 +2004,9 @@ nsresult MessageChannel::MessageTask::Run() {
   if (!isInList()) {
     return NS_OK;
   }
+
+  recordreplay::RecordReplayAssert("MessageTask::Run #1 %d %d", recordreplay::ThingIndex(this),
+                                   recordreplay::ThingIndex(mChannel));
 
   mChannel->RunMessage(*this);
   return NS_OK;
@@ -2037,8 +2036,6 @@ nsresult MessageChannel::MessageTask::Cancel() {
 }
 
 void MessageChannel::MessageTask::Post() {
-  mozilla::recordreplay::RecordReplayAssert("MessageChannel::MessageTask::Post");
-
   MOZ_RELEASE_ASSERT(!mScheduled);
   MOZ_RELEASE_ASSERT(isInList());
 
@@ -2048,8 +2045,9 @@ void MessageChannel::MessageTask::Post() {
   nsCOMPtr<nsIEventTarget> eventTarget =
       mChannel->mListener->GetMessageEventTarget(mMessage);
 
-  mozilla::recordreplay::RecordReplayAssert("MessageChannel::MessageTask::Post #1 %d %d",
-                                            !!eventTarget, !!mChannel->mWorkerLoop);
+  recordreplay::RecordReplayAssert("MessageChannel::MessageTask::Post %d %d",
+                                   recordreplay::ThingIndex(this),
+                                   recordreplay::ThingIndex(mChannel));
 
   if (eventTarget) {
     eventTarget->Dispatch(self.forget(), NS_DISPATCH_NORMAL);
@@ -2066,15 +2064,6 @@ void MessageChannel::MessageTask::Clear() {
 
 NS_IMETHODIMP
 MessageChannel::MessageTask::GetPriority(uint32_t* aPriority) {
-  if (recordreplay::IsRecordingOrReplaying()) {
-    // Ignore message priorities in recording/replaying processes. Incoming
-    // messages were sorted in the middleman process according to their
-    // priority before being forwarded here, and reordering them again in this
-    // process can cause problems such as dispatching messages for an actor
-    // before the constructor for that actor.
-    *aPriority = PRIORITY_NORMAL;
-    return NS_OK;
-  }
   switch (mMessage.priority()) {
     case Message::NORMAL_PRIORITY:
       *aPriority = PRIORITY_NORMAL;
@@ -2108,6 +2097,8 @@ MessageChannel::MessageTask::GetType(uint32_t* aType) {
 }
 
 void MessageChannel::DispatchMessage(Message&& aMsg) {
+  recordreplay::RecordReplayAssert("MessageChannel::DispatchMessage %d", recordreplay::ThingIndex(this));
+
   AssertWorkerThread();
   mMonitor->AssertCurrentThreadOwns();
 
@@ -2148,6 +2139,8 @@ void MessageChannel::DispatchMessage(Message&& aMsg) {
       }
 
       mListener->ArtificialSleep();
+
+      recordreplay::RecordReplayAssert("MessageChannel::DispatchMessage #1 %d", recordreplay::ThingIndex(this));
     }
 
     if (reply && transaction.IsCanceled()) {
@@ -2176,10 +2169,8 @@ void MessageChannel::DispatchSyncMessage(ActorLifecycleProxy* aProxy,
 
   int nestedLevel = aMsg.nested_level();
 
-  MOZ_RELEASE_ASSERT(
-      nestedLevel == IPC::Message::NOT_NESTED || NS_IsMainThread() ||
-      // Middleman processes forward sync messages on a non-main thread.
-      recordreplay::IsMiddleman());
+  MOZ_RELEASE_ASSERT(nestedLevel == IPC::Message::NOT_NESTED ||
+                     NS_IsMainThread());
 #ifdef MOZ_TASK_TRACER
   AutoScopedLabel autolabel("sync message %s", aMsg.name());
 #endif
@@ -2567,6 +2558,8 @@ bool MessageChannel::MaybeHandleError(Result code, const Message& aMsg,
   } else {
     SprintfLiteral(reason, "%s %s", msgname, errorMsg);
   }
+
+  recordreplay::PrintLog("CHANNEL_ERROR %s", mListener->GetProtocolName());
 
   PrintErrorMessage(mSide, channelName, reason);
 

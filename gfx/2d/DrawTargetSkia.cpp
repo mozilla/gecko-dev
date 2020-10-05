@@ -1555,8 +1555,6 @@ already_AddRefed<SourceSurface> DrawTargetSkia::CreateSourceSurfaceFromData(
 
 already_AddRefed<DrawTarget> DrawTargetSkia::CreateSimilarDrawTarget(
     const IntSize& aSize, SurfaceFormat aFormat) const {
-  recordreplay::RecordReplayAssert("DrawTargetSkia::CreateSimilarDrawTarget");
-
   RefPtr<DrawTargetSkia> target = new DrawTargetSkia();
 #ifdef DEBUG
   if (!IsBackedByPixels(mCanvas)) {

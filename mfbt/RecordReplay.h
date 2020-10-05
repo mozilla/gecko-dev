@@ -58,15 +58,8 @@ namespace recordreplay {
 // list is at the URL below). Some of the APIs below are used to accommodate
 // these behaviors and keep the replaying process on track.
 //
-// A third process type, middleman processes, are normal content processes
-// which facilitate communication with recording and replaying processes,
-// managing the graphics data they generate, and running devtools code that
-// interacts with them.
-//
 // This file contains the main public API for places where mozilla code needs
-// to interact with the record/replay system. There are a few additional public
-// APIs in toolkit/recordreplay/ipc, for the IPC performed by
-// recording/replaying processes and middleman processes.
+// to interact with the record/replay system.
 
 ///////////////////////////////////////////////////////////////////////////////
 // Public API
@@ -75,29 +68,11 @@ namespace recordreplay {
 extern MFBT_DATA bool gIsRecordingOrReplaying;
 extern MFBT_DATA bool gIsRecording;
 extern MFBT_DATA bool gIsReplaying;
-extern MFBT_DATA bool gIsMiddleman;
 
 // Get the kind of recording/replaying process this is, if any.
 static inline bool IsRecordingOrReplaying() { return gIsRecordingOrReplaying; }
 static inline bool IsRecording() { return gIsRecording; }
 static inline bool IsReplaying() { return gIsReplaying; }
-static inline bool IsMiddleman() { return gIsMiddleman; }
-
-// Mark a region which occurs atomically wrt the recording. No two threads can
-// be in an atomic region at once, and the order in which atomic sections are
-// executed by the various threads for the same aValue will be the same in the
-// replay as in the recording. These calls have no effect when not recording or
-// replaying.
-static inline void BeginOrderedAtomicAccess(const void* aValue);
-static inline void EndOrderedAtomicAccess();
-
-// RAII class for an atomic access.
-struct MOZ_RAII AutoOrderedAtomicAccess {
-  explicit AutoOrderedAtomicAccess(const void* aValue) {
-    BeginOrderedAtomicAccess(aValue);
-  }
-  ~AutoOrderedAtomicAccess() { EndOrderedAtomicAccess(); }
-};
 
 // Mark a region where thread events are passed through the record/replay
 // system. While recording, no information from system calls or other events
@@ -115,44 +90,6 @@ struct MOZ_RAII AutoPassThroughThreadEvents {
   ~AutoPassThroughThreadEvents() { EndPassThroughThreadEvents(); }
 };
 
-// As for AutoPassThroughThreadEvents, but may be used when events are already
-// passed through.
-struct MOZ_RAII AutoEnsurePassThroughThreadEvents {
-  AutoEnsurePassThroughThreadEvents()
-      : mPassedThrough(AreThreadEventsPassedThrough()) {
-    if (!mPassedThrough) BeginPassThroughThreadEvents();
-  }
-
-  ~AutoEnsurePassThroughThreadEvents() {
-    if (!mPassedThrough) EndPassThroughThreadEvents();
-  }
-
- private:
-  bool mPassedThrough;
-};
-
-// Mark a region where thread events are passed through when locally replaying.
-// Replaying processes can run either on a local machine as a content process
-// associated with a firefox parent process, or on remote machines in the cloud.
-// We want local replaying processes to be able to interact with the system so
-// that they can connect with the parent process and e.g. report crashes.
-// We also want to avoid such interaction when replaying in the cloud, as there
-// won't be a parent process to connect to. Using these methods allows us to
-// handle both of these cases without changing the calling code's control flow.
-static inline void BeginPassThroughThreadEventsWithLocalReplay();
-static inline void EndPassThroughThreadEventsWithLocalReplay();
-
-// RAII class for regions where thread events are passed through when replaying
-// locally.
-struct MOZ_RAII AutoPassThroughThreadEventsWithLocalReplay {
-  AutoPassThroughThreadEventsWithLocalReplay() {
-    BeginPassThroughThreadEventsWithLocalReplay();
-  }
-  ~AutoPassThroughThreadEventsWithLocalReplay() {
-    EndPassThroughThreadEventsWithLocalReplay();
-  }
-};
-
 // Mark a region where thread events are not allowed to occur. The process will
 // crash immediately if an event does happen.
 static inline void BeginDisallowThreadEvents();
@@ -168,28 +105,16 @@ struct MOZ_RAII AutoDisallowThreadEvents {
 };
 
 // Record or replay a value in the current thread's event stream.
-static inline size_t RecordReplayValue(size_t aValue);
+static inline size_t RecordReplayValue(const char* aWhy, size_t aValue);
 
 // Record or replay the contents of a range of memory in the current thread's
 // event stream.
-static inline void RecordReplayBytes(void* aData, size_t aSize);
+static inline void RecordReplayBytes(const char* aWhy, void* aData, size_t aSize);
 
 // During recording or replay, mark the recording as unusable. There are some
 // behaviors that can't be reliably recorded or replayed. For more information,
 // see 'Unrecordable Executions' in the URL above.
 static inline void InvalidateRecording(const char* aWhy);
-
-// API for ensuring deterministic recording and replaying of PLDHashTables.
-// This allows PLDHashTables to behave deterministically by generating a custom
-// set of operations for each table and requiring no other instrumentation.
-// (PLHashTables have a similar mechanism, though it is not exposed here.)
-static inline const PLDHashTableOps* GeneratePLDHashTableCallbacks(
-    const PLDHashTableOps* aOps);
-static inline const PLDHashTableOps* UnwrapPLDHashTableCallbacks(
-    const PLDHashTableOps* aOps);
-static inline void DestroyPLDHashTableCallbacks(const PLDHashTableOps* aOps);
-static inline void MovePLDHashTableContents(const PLDHashTableOps* aFirstOps,
-                                            const PLDHashTableOps* aSecondOps);
 
 // Prevent a JS object from ever being collected while recording or replaying.
 // GC behavior is non-deterministic when recording/replaying, and preventing
@@ -222,34 +147,23 @@ static inline void RegisterThing(void* aThing);
 static inline void UnregisterThing(void* aThing);
 static inline size_t ThingIndex(void* aThing);
 
-// Helper for record/replay asserts, try to determine a name for a C++ object
-// with virtual methods based on its vtable.
-static inline const char* VirtualThingName(void* aThing);
+// Access a locking resource that will be acquired in the same order when
+// replaying as when recording.
+static inline int CreateOrderedLock(const char* aName);
+static inline void OrderedLock(int aLock);
+static inline void OrderedUnlock(int aLock);
 
-// Enum which describes whether to preserve behavior between recording and
-// replay sessions.
-enum class Behavior { DontPreserve, Preserve };
+// RAII class for using an ordered lock.
+struct MOZ_RAII AutoOrderedLock {
+  int mLock;
 
-// Determine whether this is a recording/replaying or middleman process, and
-// initialize record/replay state if so.
-MFBT_API void Initialize(int aArgc, char* aArgv[]);
-
-// Kinds of recording/replaying processes that can be spawned.
-enum class ProcessKind {
-  Recording,
-  Replaying,
-  MiddlemanRecording,
-  MiddlemanReplaying
+  AutoOrderedLock(int aLock) : mLock(aLock) { OrderedLock(aLock); }
+  ~AutoOrderedLock() { OrderedUnlock(mLock); }
 };
 
-// Command line option for specifying the record/replay kind of a process.
-static const char gProcessKindOption[] = "-recordReplayKind";
-
-// Command line option for specifying the recording file to use.
-static const char gRecordingFileOption[] = "-recordReplayFile";
-
-// Whether the process was originally loaded with a file URI.
-MFBT_API bool LoadedWithFileURI();
+// Determine whether this is a recording/replaying process, and
+// initialize record/replay state if so.
+MFBT_API void Initialize(int* aArgc, char*** aArgv);
 
 ///////////////////////////////////////////////////////////////////////////////
 // JS interface
@@ -274,7 +188,7 @@ MFBT_API ProgressCounter NewTimeWarpTarget();
 MFBT_API bool ShouldUpdateProgressCounter(const char* aURL);
 
 // Define a RecordReplayControl object on the specified global object, with
-// methods specialized to the current recording/replaying or middleman process
+// methods specialized to the current recording/replaying process
 // kind. "aCx" must be a JSContext* pointer, and "aObj" must be a JSObject*
 // pointer, as with HoldJSObject above.
 MFBT_API bool DefineRecordReplayControlObject(void* aCx, void* aObj);
@@ -321,9 +235,6 @@ static inline void NoteContentParse(const void* aToken, const char* aURL,
 // Add a record/replay assertion for the current JS caller.
 static inline void AssertScriptedCaller(const char* aWhy);
 
-// Return whether an automated test is being executed.
-static inline bool InAutomatedTest();
-
 ///////////////////////////////////////////////////////////////////////////////
 // API inline function implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -346,37 +257,19 @@ static inline bool InAutomatedTest();
       return aDefaultValue;                                                 \
     }
 
-MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(BeginOrderedAtomicAccess,
-                                    (const void* aValue), (aValue))
-MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(EndOrderedAtomicAccess, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(BeginPassThroughThreadEvents, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(EndPassThroughThreadEvents, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(AreThreadEventsPassedThrough, bool, false, (),
                                ())
-MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(BeginPassThroughThreadEventsWithLocalReplay,
-                                    (), ())
-MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(EndPassThroughThreadEventsWithLocalReplay,
-                                    (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(BeginDisallowThreadEvents, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(EndDisallowThreadEvents, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(AreThreadEventsDisallowed, bool, false, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(RecordReplayValue, size_t, aValue,
-                               (size_t aValue), (aValue))
+                               (const char* aWhy, size_t aValue), (aWhy, aValue))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(RecordReplayBytes,
-                                    (void* aData, size_t aSize), (aData, aSize))
+                                    (const char* aWhy, void* aData, size_t aSize),
+                                    (aWhy, aData, aSize))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(HasDivergedFromRecording, bool, false, (), ())
-MOZ_MAKE_RECORD_REPLAY_WRAPPER(GeneratePLDHashTableCallbacks,
-                               const PLDHashTableOps*, aOps,
-                               (const PLDHashTableOps* aOps), (aOps))
-MOZ_MAKE_RECORD_REPLAY_WRAPPER(UnwrapPLDHashTableCallbacks,
-                               const PLDHashTableOps*, aOps,
-                               (const PLDHashTableOps* aOps), (aOps))
-MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(DestroyPLDHashTableCallbacks,
-                                    (const PLDHashTableOps* aOps), (aOps))
-MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(MovePLDHashTableContents,
-                                    (const PLDHashTableOps* aFirstOps,
-                                     const PLDHashTableOps* aSecondOps),
-                                    (aFirstOps, aSecondOps))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(InvalidateRecording, (const char* aWhy),
                                     (aWhy))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(HoldJSObject, (void* aJSObj), (aJSObj))
@@ -386,10 +279,11 @@ MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(RecordReplayAssertBytes,
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(RegisterThing, (void* aThing), (aThing))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(UnregisterThing, (void* aThing), (aThing))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(ThingIndex, size_t, 0, (void* aThing), (aThing))
-MOZ_MAKE_RECORD_REPLAY_WRAPPER(VirtualThingName, const char*, nullptr,
-                               (void* aThing), (aThing))
+MOZ_MAKE_RECORD_REPLAY_WRAPPER(CreateOrderedLock, int, 0,
+                               (const char* aName), (aName))
+MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(OrderedLock, (int aLock), (aLock))
+MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(OrderedUnlock, (int aLock), (aLock))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(AssertScriptedCaller, (const char* aWhy), (aWhy))
-MOZ_MAKE_RECORD_REPLAY_WRAPPER(InAutomatedTest, bool, false, (), ())
 
 #undef MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID
 #undef MOZ_MAKERECORDREPLAYWRAPPER
@@ -401,6 +295,17 @@ static inline void RecordReplayAssert(const char* aFormat, ...) {
     va_list ap;
     va_start(ap, aFormat);
     InternalRecordReplayAssert(aFormat, ap);
+    va_end(ap);
+  }
+}
+
+MFBT_API void InternalPrintLog(const char* aFormat, va_list aArgs);
+
+static inline void PrintLog(const char* aFormat, ...) {
+  if (IsRecordingOrReplaying()) {
+    va_list ap;
+    va_start(ap, aFormat);
+    InternalPrintLog(aFormat, ap);
     va_end(ap);
   }
 }
