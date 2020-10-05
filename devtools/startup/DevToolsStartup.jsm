@@ -1750,8 +1750,9 @@ function reloadAndRecordTab(gBrowser) {
   let url = gBrowser.currentURI.spec;
 
   // Set the driver path for use in the recording process, if it isn't already set.
-  if (!gEnvironment.get("RECORD_REPLAY_DRIVER")) {
-    gEnvironment.set("RECORD_REPLAY_DRIVER", driverFile().path);
+  if (!env.get("RECORD_REPLAY_DRIVER")) {
+    env.set("RECORD_REPLAY_DRIVER", driverFile().path);
+  }
 
   let remoteType = E10SUtils.getRemoteTypeForURI(
     url,
