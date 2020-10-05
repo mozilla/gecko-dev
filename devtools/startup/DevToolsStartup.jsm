@@ -1689,56 +1689,68 @@ async function updateRecordingDriver() {
     return;
   }
 
-  const downloadURL = Services.prefs.getStringPref(
-    "devtools.recordreplay.driverDownloads"
-  );
+  dump(`updateRecordingDriver Starting...\n`);
 
-  const driver = driverFile();
-  const json = driverJSONFile();
+  try {
+    const downloadURL = Services.prefs.getStringPref(
+      "devtools.recordreplay.driverDownloads"
+    );
 
-  // If we have already downloaded the driver, redownload the server JSON
-  // (much smaller than the driver itself) to see if anything has changed.
-  if (json.exists()) {
-    const response = await fetchURL(`${downloadURL}/${DriverJSON}`);
-    if (!response) {
+    const driver = driverFile();
+    const json = driverJSONFile();
+
+    // If we have already downloaded the driver, redownload the server JSON
+    // (much smaller than the driver itself) to see if anything has changed.
+    if (json.exists()) {
+      const response = await fetchURL(`${downloadURL}/${DriverJSON}`);
+      if (!response) {
+        dump(`updateRecordingDriver JSONFetchFailed\n`);
+        return;
+      }
+      const serverJSON = JSON.parse(await response.text());
+
+      const file = await OS.File.read(json.path);
+      const currentJSON = JSON.parse(new TextDecoder("utf-8").decode(file));
+
+      if (serverJSON.version == currentJSON.version) {
+        // We've already downloaded the latest driver.
+        dump(`updateRecordingDriver AlreadyOnLatestVersion\n`);
+        return;
+      }
+    }
+
+    const jsonResponse = await fetchURL(`${downloadURL}/${DriverJSON}`);
+    if (!jsonResponse) {
+      dump(`updateRecordingDriver UpdateNeeded JSONFetchFailed\n`);
       return;
     }
-    const serverJSON = JSON.parse(await response.text());
+    OS.File.writeAtomic(json.path, await jsonResponse.text());
 
-    const file = await OS.File.read(json.path);
-    const currentJSON = JSON.parse(new TextDecoder("utf-8").decode(file));
-
-    if (serverJSON.version == currentJSON.version) {
-      // We've already downloaded the latest driver.
+    const driverResponse = await fetchURL(`${downloadURL}/${DriverName}`);
+    if (!driverResponse) {
+      dump(`updateRecordingDriver UpdateNeeded DriverFetchFailed\n`);
       return;
     }
-  }
+    OS.File.writeAtomic(
+      driver.path,
+      await driverResponse.arrayBuffer(),
+      {
+        // Write to a temporary path before renaming the result, so that any
+        // recording processes hopefully won't try to load partial binaries
+        // (they will keep trying if the load fails, though).
+        tmpPath: driver.path + ".tmp",
 
-  const jsonResponse = await fetchURL(`${downloadURL}/${DriverJSON}`);
-  if (!jsonResponse) {
-    return;
-  }
-  OS.File.writeAtomic(json.path, await jsonResponse.text());
+        // Strip quarantine flag from the downloaded file. Even though this is
+        // an update to the browser itself, macOS will still quarantine it and
+        // prevent it from being loaded into recording processes.
+        noQuarantine: true,
+      }
+    );
 
-  const driverResponse = await fetchURL(`${downloadURL}/${DriverName}`);
-  if (!driverResponse) {
-    return;
+    dump(`updateRecordingDriver Updated\n`);
+  } catch (e) {
+    dump(`updateRecordingDriver Exception ${e}\n`);
   }
-  OS.File.writeAtomic(
-    driver.path,
-    await driverResponse.arrayBuffer(),
-    {
-      // Write to a temporary path before renaming the result, so that any
-      // recording processes hopefully won't try to load partial binaries
-      // (they will keep trying if the load fails, though).
-      tmpPath: driver.path + ".tmp",
-
-      // Strip quarantine flag from the downloaded file. Even though this is
-      // an update to the browser itself, macOS will still quarantine it and
-      // prevent it from being loaded into recording processes.
-      noQuarantine: true,
-    }
-  );
 }
 
 // We check to see if there is a new recording driver every time the browser
