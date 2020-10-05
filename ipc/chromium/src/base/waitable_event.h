@@ -136,7 +136,8 @@ class WaitableEvent {
    public:
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(WaitableEventKernel)
     WaitableEventKernel(bool manual_reset, bool initially_signaled)
-        : manual_reset_(manual_reset), signaled_(initially_signaled) {}
+      : lock_(/* ordered */ true),
+        manual_reset_(manual_reset), signaled_(initially_signaled) {}
 
     bool Dequeue(Waiter* waiter, void* tag);
 

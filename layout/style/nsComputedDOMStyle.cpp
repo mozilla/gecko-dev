@@ -986,6 +986,12 @@ nsIFrame* nsComputedDOMStyle::GetOuterFrame() const {
 }
 
 void nsComputedDOMStyle::UpdateCurrentStyleSources(nsCSSPropertyID aPropID) {
+  if (recordreplay::HasDivergedFromRecording()) {
+    // For now we don't want to update styles after diverging from the recording,
+    // as we might perform calls that weren't part of the recording.
+    return;
+  }
+
   nsCOMPtr<Document> document = do_QueryReferent(mDocumentWeak);
   if (!document) {
     ClearComputedStyle();

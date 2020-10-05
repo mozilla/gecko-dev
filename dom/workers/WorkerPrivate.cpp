@@ -2145,7 +2145,7 @@ WorkerPrivate::WorkerPrivate(
     const nsACString& aServiceWorkerScope, WorkerLoadInfo& aLoadInfo,
     nsString&& aId, const nsID& aAgentClusterId,
     const nsILoadInfo::CrossOriginOpenerPolicy aAgentClusterOpenerPolicy)
-    : mMutex("WorkerPrivate Mutex"),
+    : mMutex("WorkerPrivate Mutex", /* aOrdered */ true),
       mCondVar(mMutex, "WorkerPrivate CondVar"),
       mParent(aParent),
       mScriptURL(aScriptURL),

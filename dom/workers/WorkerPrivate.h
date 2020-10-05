@@ -70,7 +70,8 @@ class SharedMutex {
 
   class RefCountedMutex final : public Mutex {
    public:
-    explicit RefCountedMutex(const char* aName) : Mutex(aName) {}
+    explicit RefCountedMutex(const char* aName, bool aOrdered)
+      : Mutex(aName, aOrdered) {}
 
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RefCountedMutex)
 
@@ -81,8 +82,8 @@ class SharedMutex {
   const RefPtr<RefCountedMutex> mMutex;
 
  public:
-  explicit SharedMutex(const char* aName)
-      : mMutex(new RefCountedMutex(aName)) {}
+  explicit SharedMutex(const char* aName, bool aOrdered = false)
+      : mMutex(new RefCountedMutex(aName, aOrdered)) {}
 
   SharedMutex(const SharedMutex& aOther) = default;
 

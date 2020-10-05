@@ -182,8 +182,6 @@ already_AddRefed<nsIRunnable> PrioritizedEventQueue::GetEvent(
 already_AddRefed<nsIRunnable> PrioritizedEventQueue::GetEvent(
     EventQueuePriority* aPriority, const MutexAutoLock& aProofOfLock,
     TimeDuration* aHypotheticalInputEventDelay, bool* aIsIdleEvent) {
-  recordreplay::RecordReplayAssert("PrioritizedEventQueue::GetEvent");
-
   EventQueuePriority queue = SelectQueue(true, aProofOfLock);
 
   if (aPriority) {
@@ -263,9 +261,6 @@ already_AddRefed<nsIRunnable> PrioritizedEventQueue::GetEvent(
   if (!event) {
     *aHypotheticalInputEventDelay = TimeDuration();
   }
-
-  recordreplay::RecordReplayAssert("PrioritizedEventQueue::GetEvent RETURN %d",
-                                   recordreplay::ThingIndex(event));
 
   return event.forget();
 }

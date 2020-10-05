@@ -11,23 +11,23 @@ const sandbox = Cu.Sandbox(
     wantGlobalProperties: ["InspectorUtils", "CSSRule"],
   }
 );
-Cu.evalInSandbox(
-  "Components.utils.import('resource://gre/modules/jsdebugger.jsm');" +
-    "Components.utils.import('resource://gre/modules/Services.jsm');" +
-    "addDebuggerToGlobal(this);",
-  sandbox
-);
+Cu.evalInSandbox(`
+Components.utils.import('resource://gre/modules/jsdebugger.jsm');
+Components.utils.import('resource://gre/modules/Services.jsm');
+addDebuggerToGlobal(this);
+`, sandbox);
 const {
   Debugger,
   RecordReplayControl,
   Services,
   InspectorUtils,
-  CSSRule,
-  findClosestPoint,
 } = sandbox;
 
-// This script can be loaded into no-recording/replaying processes during automated tests.
+// This script can be loaded into non-recording/replaying processes during automated tests.
+// In non-recording/replaying processes there are no properties on RecordReplayControl.
 const isRecordingOrReplaying = !!RecordReplayControl.progressCounter;
+
+const log = RecordReplayControl.log;
 
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
 
@@ -60,29 +60,36 @@ function countScriptFrames() {
   return count;
 }
 
-function CanCreateCheckpoint() {
-  return countScriptFrames() == 0;
+function scriptFrameForIndex(index) {
+  index = countScriptFrames() - 1 - index;
+  for (let frame = gDebugger.getNewestFrame(); frame; frame = frame.older) {
+    if (considerScript(frame.script)) {
+      if (index-- == 0) {
+        return frame;
+      }
+    }
+  }
+  throw new Error("Can't find frame");
 }
 
-const gNewGlobalHooks = [];
-gDebugger.onNewGlobalObject = (global) => {
-  try {
-    gDebugger.addDebuggee(global);
-    gAllGlobals.push(global);
-    gNewGlobalHooks.forEach((hook) => hook(global));
-  } catch (e) {}
-};
+///////////////////////////////////////////////////////////////////////////////
+// Utilities
+///////////////////////////////////////////////////////////////////////////////
 
-// The UI process must wait until the content global is created here before
-// URLs can be loaded.
-Services.obs.addObserver(
-  { observe: () => Services.cpmm.sendAsyncMessage("RecordingInitialized") },
-  "content-document-global-created"
-);
+function assert(v) {
+  if (!v) {
+    log(`Error: Assertion failed ${Error().stack}`);
+    throw new Error("Assertion failed!");
+  }
+}
 
+function isNonNullObject(obj) {
+  return obj && (typeof obj == "object" || typeof obj == "function");
+}
+
+// Bidirectional map between values and numeric IDs.
 function IdMap() {
-  this._idMap = [undefined];
-  this._objectMap = new Map();
+  this.clear();
 }
 
 IdMap.prototype = {
@@ -117,10 +124,75 @@ IdMap.prototype = {
       callback(i, this._idMap[i]);
     }
   },
+
+  clear() {
+    this._idMap = [undefined];
+    this._objectMap = new Map();
+  }
 };
 
+// Map from keys to arrays of values.
+function ArrayMap() {
+  this.map = new Map();
+}
+
+ArrayMap.prototype = {
+  add(key, value) {
+    if (this.map.has(key)) {
+      this.map.get(key).push(value);
+    } else {
+      this.map.set(key, [value]);
+    }
+  },
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Main Logic
+///////////////////////////////////////////////////////////////////////////////
+
+function CanCreateCheckpoint() {
+  return countScriptFrames() == 0;
+}
+
+const gNewGlobalHooks = [];
+gDebugger.onNewGlobalObject = global => {
+  try {
+    gDebugger.addDebuggee(global);
+    gAllGlobals.push(global);
+    gNewGlobalHooks.forEach(hook => hook(global));
+  } catch (e) {}
+};
+
+let gExceptionValue;
+
+gDebugger.onExceptionUnwind = (frame, value) => {
+  gExceptionValue = { value };
+  RecordReplayControl.onExceptionUnwind();
+  gExceptionValue = null;
+};
+
+gDebugger.onDebuggerStatement = () => {
+  RecordReplayControl.onDebuggerStatement();
+};
+
+// The UI process must wait until the content global is created here before
+// URLs can be loaded.
+Services.obs.addObserver(
+  { observe: () => Services.cpmm.sendAsyncMessage("RecordingInitialized") },
+  "content-document-global-created"
+);
+
+// Associate each Debugger.Script with a numeric ID.
 const gScripts = new IdMap();
-const gSources = new Set();
+
+// Associate each Debugger.Source with a numeric ID.
+const gSources = new IdMap();
+
+// Map Debugger.Source.id to Debugger.Source.
+const gGeckoSources = new Map();
+
+// Map Debugger.Source to arrays of the top level scripts for that source.
+const gSourceRoots = new ArrayMap();
 
 gDebugger.onNewScript = (script) => {
   if (
@@ -137,24 +209,39 @@ gDebugger.onNewScript = (script) => {
 
   addScript(script);
 
-  if (!gSources.has(script.source)) {
-    gSources.add(script.source);
-    if (
-      script.source.sourceMapURL &&
-      Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")
-    ) {
-      const pid = RecordReplayControl.middlemanPid();
-      const { url, sourceMapURL } = script.source;
-      Services.cpmm.sendAsyncMessage(
-        "RecordReplayGeneratedSourceWithSourceMap",
-        { pid, url, sourceMapURL }
-      );
-    }
+  gSourceRoots.add(script.source, script);
+
+  if (gSources.getId(script.source)) {
+    return;
   }
 
-  if (exports.OnNewScript) {
-    exports.OnNewScript(script);
+  gSources.add(script.source);
+  const id = sourceToProtocolScriptId(script.source);
+
+  gGeckoSources.set(script.source.id, script.source);
+
+  if (
+    script.source.sourceMapURL &&
+    Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")
+  ) {
+    const recordingId = RecordReplayControl.recordingId();
+    const { url, sourceMapURL } = script.source;
+    Services.cpmm.sendAsyncMessage(
+      "RecordReplayGeneratedSourceWithSourceMap",
+      { recordingId, url, sourceMapURL }
+    );
   }
+
+  let kind = "scriptSource";
+
+  // This test is pretty lame but the "scriptElement" introduction type doesn't
+  // distinguish between script elements with inline content and with a "src"
+  // attribute.
+  if (script.source.url.endsWith("html")) {
+    kind = "inlineScript";
+  }
+
+  RecordReplayControl.onScriptParsed(id, kind, script.source.url);
 
   function addScript(script) {
     const id = gScripts.add(script);
@@ -179,56 +266,43 @@ Services.obs.addObserver(
   "webnavigation-create"
 );
 
+const gHtmlContent = new Map();
+
+function Host_getHTMLSource({ url }) {
+  const info = gHtmlContent.get(url);
+  const contents = info ? info.content : "";
+  return { contents };
+};
+
+function OnHTMLContent(data) {
+  const { uri, contents } = JSON.parse(data);
+  if (gHtmlContent.has(uri)) {
+    gHtmlContent.get(uri).content += contents;
+  } else {
+    gHtmlContent.set(uri, { content: contents, contentType: "text/html" });
+  }
+}
+
 Services.obs.addObserver(
   {
     observe(_1, _2, data) {
-      if (exports.OnHTMLContent) {
-        exports.OnHTMLContent(data);
-      }
+      OnHTMLContent(data);
     },
   },
   "devtools-html-content"
 );
 
-Services.console.registerListener({
-  observe(message) {
-    if (!(message instanceof Ci.nsIScriptError)) {
-      return;
-    }
-
-    advanceProgressCounter();
-
-    if (exports.OnConsoleError) {
-      exports.OnConsoleError(message);
-    }
-  },
-});
-
-Services.obs.addObserver(
-  {
-    observe(message) {
-      if (exports.OnConsoleAPICall) {
-        exports.OnConsoleAPICall(message);
-      }
-    },
-  },
-  "console-api-log-event"
-);
-
+// Listen for style sheet changes. This has to be set after creating the window.
 getWindow().docShell.chromeEventHandler.addEventListener(
   "DOMWindowCreated",
   () => {
     const window = getWindow();
-
     window.document.styleSheetChangeEventsEnabled = true;
-
-    if (exports.OnWindowCreated) {
-      exports.OnWindowCreated(window);
-    }
   },
   true
 );
 
+// Notify the UI process when we find a style sheet with a source map.
 getWindow().docShell.chromeEventHandler.addEventListener(
   "StyleSheetApplicableStateChanged",
   ({ stylesheet }) => {
@@ -236,15 +310,11 @@ getWindow().docShell.chromeEventHandler.addEventListener(
       stylesheet.sourceMapURL &&
       Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")
     ) {
-      const pid = RecordReplayControl.middlemanPid();
+      const recordingId = RecordReplayControl.recordingId();
       Services.cpmm.sendAsyncMessage(
         "RecordReplayGeneratedSourceWithSourceMap",
-        { pid, url: stylesheet.href, sourceMapURL: stylesheet.sourceMapURL }
+        { recordingId, url: stylesheet.href, sourceMapURL: stylesheet.sourceMapURL }
       );
-    }
-
-    if (exports.OnStyleSheetChange) {
-      exports.OnStyleSheetChange(stylesheet);
     }
   },
   true
@@ -280,13 +350,8 @@ const {
 
 function eventListener(info) {
   const event = eventBreakpointForNotification(gDebugger, info);
-  if (!event) {
-    return;
-  }
-  advanceProgressCounter();
-
-  if (exports.OnEvent) {
-    exports.OnEvent(info.phase, event);
+  if (event && (info.phase == "pre" || info.phase == "post")) {
+    RecordReplayControl.onEvent(event, info.phase == "pre");
   }
 }
 
@@ -306,11 +371,58 @@ function OnTestCommand(str) {
   }
 }
 
+const commands = {
+  "Pause.evaluateInFrame": Pause_evaluateInFrame,
+  "Pause.evaluateInGlobal": Pause_evaluateInGlobal,
+  "Pause.getAllFrames": Pause_getAllFrames,
+  "Pause.getExceptionValue": Pause_getExceptionValue,
+  "Pause.getObjectPreview": Pause_getObjectPreview,
+  "Pause.getObjectProperty": Pause_getObjectProperty,
+  "Pause.getScope": Pause_getScope,
+  "Debugger.getPossibleBreakpoints": Debugger_getPossibleBreakpoints,
+  "Debugger.getScriptSource": Debugger_getScriptSource,
+  "CSS.getAppliedRules": CSS_getAppliedRules,
+  "CSS.getComputedStyle": CSS_getComputedStyle,
+  "DOM.getAllBoundingClientRects": DOM_getAllBoundingClientRects,
+  "DOM.getBoundingClientRect": DOM_getBoundingClientRect,
+  "DOM.getBoxModel": DOM_getBoxModel,
+  "DOM.getDocument": DOM_getDocument,
+  "DOM.getEventListeners": DOM_getEventListeners,
+  "DOM.performSearch": DOM_performSearch,
+  "DOM.querySelector": DOM_querySelector,
+  "Graphics.getDevicePixelRatio": Graphics_getDevicePixelRatio,
+  "Host.convertFunctionOffsetToLocation": Host_convertFunctionOffsetToLocation,
+  "Host.convertLocationToFunctionOffset": Host_convertLocationToFunctionOffset,
+  "Host.countStackFrames": Host_countStackFrames,
+  "Host.currentGeneratorId": Host_currentGeneratorId,
+  "Host.getCurrentMessageContents": Host_getCurrentMessageContents,
+  "Host.getFunctionsInRange": Host_getFunctionsInRange,
+  "Host.getHTMLSource": Host_getHTMLSource,
+  "Host.getObjectPreviewRequiredProperties": Host_getObjectPreviewRequiredProperties,
+  "Host.getStepOffsets": Host_getStepOffsets,
+  "Host.getScriptSourceMapURL": Host_getScriptSourceMapURL,
+  "Host.getSheetSourceMapURL": Host_getSheetSourceMapURL,
+};
+
+function OnProtocolCommand(method, params) {
+  if (commands[method]) {
+    try {
+      return commands[method](params);
+    } catch (e) {
+      log(`Error: Exception processing command ${method}: ${e}`);
+      return null;
+    }
+  }
+  log(`Error: Unsupported command ${method}`);
+}
+
 const exports = {
   CanCreateCheckpoint,
   OnMouseEvent,
   SendRecordingFinished,
   OnTestCommand,
+  OnProtocolCommand,
+  SetScanningScripts,
 };
 
 function Initialize() {
@@ -318,3 +430,1572 @@ function Initialize() {
 }
 
 var EXPORTED_SYMBOLS = ["Initialize"];
+
+///////////////////////////////////////////////////////////////////////////////
+// Instrumentation
+///////////////////////////////////////////////////////////////////////////////
+
+gNewGlobalHooks.push(global => {
+  global.setInstrumentation(
+    global.makeDebuggeeNativeFunction(RecordReplayControl.instrumentationCallback),
+    ["main", "entry", "breakpoint", "exit", "generator"]
+  );
+
+  if (RecordReplayControl.isScanningScripts()) {
+    global.setInstrumentationActive(true);
+  }
+});
+
+function SetScanningScripts(value) {
+  gAllGlobals.forEach(g => g.setInstrumentationActive(value));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Console Commands
+///////////////////////////////////////////////////////////////////////////////
+
+function geckoSourceIdToProtocolId(sourceId) {
+  const source = gGeckoSources.get(sourceId);
+  return source ? sourceToProtocolScriptId(source) : undefined;
+}
+
+let gCurrentConsoleMessage;
+
+function OnConsoleError(message) {
+  const target = message.timeWarpTarget || 0;
+
+  let level = "error";
+  if (message.flags & Ci.nsIScriptError.warningFlag) {
+    level = "warning";
+  } else if (message.flags & Ci.nsIScriptError.infoFlag) {
+    level = "info";
+  }
+
+  // Diagnostics for TypeErrors that don't have an associated warp target.
+  if (!target && String(message.errorMessage).includes("TypeError")) {
+    log(`Error: TypeError message without a warp target "${message.errorMessage}" ${message.sourceId}`);
+  }
+
+  gCurrentConsoleMessage = {
+    source: "PageError",
+    level,
+    text: message.errorMessage,
+    url: message.sourceName,
+    scriptId: geckoSourceIdToProtocolId(message.sourceId),
+    line: message.lineNumber,
+    column: message.columnNumber,
+  };
+  RecordReplayControl.onConsoleMessage(target);
+  gCurrentConsoleMessage = null;
+}
+
+Services.console.registerListener({
+  observe(message) {
+    if (message instanceof Ci.nsIScriptError) {
+      OnConsoleError(message);
+    }
+  }
+});
+
+function consoleAPIMessageLevel({ level }) {
+  switch (level) {
+    case "trace": return "trace";
+    case "warn": return "warning";
+    case "error": return "error";
+    case "assert": return "assert";
+    default: return "info";
+  }
+}
+
+function OnConsoleAPICall(message) {
+  message = message.wrappedJSObject;
+
+  let argumentValues;
+  if (message.arguments) {
+    argumentValues = message.arguments.map(createProtocolValueRaw);
+  }
+
+  gCurrentConsoleMessage = {
+    source: "ConsoleAPI",
+    level: consoleAPIMessageLevel(message),
+    text: "",
+    url: message.filename,
+    sourceId: geckoSourceIdToProtocolId(message.sourceId),
+    line: message.lineNumber,
+    column: message.columnNumber,
+    argumentValues,
+  };
+  RecordReplayControl.onConsoleMessage(0);
+  gCurrentConsoleMessage = null;
+
+  clearPauseState();
+};
+
+Services.obs.addObserver({
+  observe(message) {
+    OnConsoleAPICall(message);
+  }
+}, "console-api-log-event");
+
+function Host_getCurrentMessageContents() {
+  assert(gCurrentConsoleMessage);
+  return gCurrentConsoleMessage;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Debugger Commands
+///////////////////////////////////////////////////////////////////////////////
+
+function positionPrecedes(posA, posB) {
+  return posA.line < posB.line || posA.line == posB.line && posA.column < posB.column;
+}
+
+// Whether line/column are in the range described by begin/end.
+function positionMatches(begin, end, line, column) {
+  if (begin && positionPrecedes({ line, column }, begin)) {
+    return false;
+  }
+  if (end && positionPrecedes(end, { line, column })) {
+    return false;
+  }
+  return true;
+}
+
+// Invoke callback on an overapproximation of all scripts in a source
+// between begin and end.
+function forMatchingScripts(source, begin, end, callback) {
+  const roots = gSourceRoots.map.get(source);
+  if (roots) {
+    processScripts(roots);
+  }
+
+  // Whether script overaps with the selected range.
+  function scriptMatches(script) {
+    let lineCount;
+    try {
+      lineCount = script.lineCount;
+    } catch (e) {
+      // Watch for optimized out scripts.
+      return false;
+    }
+
+    if (end) {
+      const startPos = { line: script.startLine, column: script.startColumn };
+      if (positionPrecedes(end, startPos)) {
+        return false;
+      }
+    }
+
+    if (begin) {
+      const endPos = {
+        line: script.startLine + lineCount - 1,
+
+        // There is no endColumn accessor, so we can only compute this accurately
+        // if the script is on a single line.
+        column: (lineCount == 1) ? script.startColumn + script.sourceLength : 1e9,
+      };
+      if (positionPrecedes(endPos, begin)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  function processScripts(scripts) {
+    for (const script of scripts) {
+      if (scriptMatches(script)) {
+        callback(script);
+        processScripts(script.getChildScripts());
+      }
+    }
+  }
+}
+
+// Invoke callback all positions in a source between begin and end (inclusive / optional).
+function forMatchingBreakpointPositions(source, begin, end, callback) {
+  forMatchingScripts(source, begin, end, script => {
+    script.getPossibleBreakpoints().forEach(({ offset, lineNumber, columnNumber }, i) => {
+      if (positionMatches(begin, end, lineNumber, columnNumber)) {
+        callback(script, offset, lineNumber, columnNumber);
+      } else if (i == 0 && positionMatches(begin, end, script.startLine, script.startColumn)) {
+        // The start location of the script is considered to match the first
+        // breakpoint position. This allows setting breakpoints or analyses by
+        // using the function location provided in the protocol, instead of
+        // requiring the client to find the exact breakpoint position.
+        callback(script, offset, lineNumber, columnNumber);
+      }
+    });
+  });
+}
+
+function protocolScriptIdToSource(scriptId) {
+  return gSources.getObject(Number(scriptId));
+}
+
+function sourceToProtocolScriptId(source) {
+  return String(gSources.getId(source));
+}
+
+function Debugger_getPossibleBreakpoints({ scriptId, begin, end}) {
+  const source = protocolScriptIdToSource(scriptId);
+
+  const lineLocations = new ArrayMap();
+  forMatchingBreakpointPositions(source, begin, end, (script, offset, line, column) => {
+    lineLocations.add(line, column);
+  });
+
+  return { lineLocations: finishLineLocations(lineLocations) };
+
+  // Convert a line => columns ArrayMap into a lineLocations WRP object.
+  function finishLineLocations(lineLocations) {
+    return [...lineLocations.map.entries()].map(([line, columns]) => {
+      return { line, columns };
+    });
+  }
+}
+
+function functionIdToScript(functionId) {
+  return gScripts.getObject(Number(functionId));
+}
+
+function scriptToFunctionId(script) {
+  return String(gScripts.getId(script));
+}
+
+function Host_convertFunctionOffsetToLocation({ functionId, offset}) {
+  const script = functionIdToScript(functionId);
+  const scriptId = sourceToProtocolScriptId(script.source);
+
+  if (offset === undefined) {
+    const location = { scriptId, line: script.startLine, column: script.startColumn };
+    return { location };
+  }
+
+  const breakpoints = script.getPossibleBreakpoints();
+  const bp = breakpoints.find(bp => bp.offset == offset);
+  if (!bp) {
+    throw new Error(`convertFunctionOffsetToLocation unknown offset ${offset}`);
+  }
+  const location = { scriptId, line: bp.lineNumber, column: bp.columnNumber };
+  return { location };
+}
+
+function Host_convertLocationToFunctionOffset({ location }) {
+  const { scriptId, line, column } = location;
+  const source = protocolScriptIdToSource(scriptId);
+  const target = { line, column };
+
+  let rv = {};
+  forMatchingBreakpointPositions(source, target, target, (script, offset) => {
+    rv = { functionId: scriptToFunctionId(script), offset };
+  });
+  return rv;
+}
+
+function Host_getFunctionsInRange({ scriptId, begin, end }) {
+  const source = protocolScriptIdToSource(scriptId);
+
+  const functions = [];
+  forMatchingScripts(source, begin, end, script => {
+    functions.push(scriptToFunctionId(script));
+  });
+  return { functions };
+}
+
+function Host_getStepOffsets({ functionId }) {
+  const script = functionIdToScript(functionId);
+  const offsets = script.getPossibleBreakpoints()
+    .filter(bp => bp.isStepStart)
+    .map(bp => bp.offset);
+  return { offsets };
+}
+
+function Host_getScriptSourceMapURL({ scriptId }) {
+  const source = protocolScriptIdToSource(scriptId);
+  const url = source.sourceMapURL;
+  return url ? { url } : {};
+}
+
+function Debugger_getScriptSource({ scriptId }) {
+  const source = protocolScriptIdToSource(scriptId);
+
+  let scriptSource = source.text;
+  if (source.startLine > 1) {
+    scriptSource = "\n".repeat(source.startLine - 1) + scriptSource;
+  }
+
+  return {
+    scriptSource,
+    contentType: "text/javascript",
+  };
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Graphics Commands
+///////////////////////////////////////////////////////////////////////////////
+
+function Graphics_getDevicePixelRatio() {
+  return { ratio: getWindow().devicePixelRatio };
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Pause Commands
+///////////////////////////////////////////////////////////////////////////////
+
+// Associate Debugger.{Object,Env} with the number to use for the protocol ID.
+const gPauseObjects = new IdMap();
+
+// Map raw object => Debugger.Object
+const gCanonicalObjects = new Map();
+
+// Clear out object state and associated strong references after getting object
+// IDs for the protocol and then resuming execution.
+function clearPauseState() {
+  gPauseObjects.clear();
+  gCanonicalObjects.clear();
+}
+
+function getObjectId(obj) {
+  if (!obj) {
+    return "0";
+  }
+  assert(obj instanceof Debugger.Object || obj instanceof Debugger.Environment);
+
+  let id = gPauseObjects.getId(obj);
+  if (id) {
+    return String(id);
+  }
+
+  // Sometimes there are multiple Debugger.Objects for the same underlying
+  // object. Make sure a consistent ID is used.
+  if (obj instanceof Debugger.Object) {
+    const raw = obj.unsafeDereference();
+    if (gCanonicalObjects.has(raw)) {
+      const canonical = gCanonicalObjects.get(raw);
+      return String(gPauseObjects.getId(canonical));
+    }
+    gCanonicalObjects.set(raw, obj);
+  }
+
+  return String(gPauseObjects.add(obj));
+}
+
+function getObjectFromId(id) {
+  return gPauseObjects.getObject(Number(id));
+}
+
+function makeDebuggeeValue(value) {
+  if (!isNonNullObject(value)) {
+    return value;
+  }
+  assert(!(value instanceof Debugger.Object));
+  try {
+    const dbgGlobal = gDebugger.makeGlobalObjectReference(Cu.getGlobalForObject(value));
+    return dbgGlobal.makeDebuggeeValue(value);
+  } catch (e) {
+    return gSandboxGlobal.makeDebuggeeValue(value);
+  }
+}
+
+function getObjectIdRaw(obj) {
+  return getObjectId(makeDebuggeeValue(obj));
+}
+
+const UnserializablePrimitives = [
+  [ Infinity, "Infinity" ],
+  [ -Infinity, "-Infinity" ],
+  [ NaN, "NaN" ],
+  [ -0, "-0" ],
+];
+
+function maybeUnserializableNumber(v) {
+  for (const [unserializable, str] of UnserializablePrimitives) {
+    if (Object.is(v, unserializable)) {
+      return str;
+    }
+  }
+}
+
+function createProtocolValue(v) {
+  if (isNonNullObject(v)) {
+    if (v.optimizedOut || v.missingArguments) {
+      return { unavailable: true };
+    }
+    if (v.uninitialized) {
+      return { uninitialized: true };
+    }
+    return { object: getObjectId(v) };
+  }
+  if (v === undefined) {
+    return {};
+  }
+  const unserializableNumber = maybeUnserializableNumber(v);
+  if (unserializableNumber) {
+    return { unserializableNumber };
+  }
+  if (typeof v == "bigint") {
+    return { bigint: v.toString() };
+  }
+  return { value: v };
+}
+
+function createProtocolValueRaw(v) {
+  return createProtocolValue(makeDebuggeeValue(v));
+}
+
+function createProtocolPropertyDescriptor(name, desc) {
+  const rv = createProtocolValue(desc.value);
+  rv.name = name;
+
+  let flags = 0;
+  if (desc.writable) {
+    flags |= 1;
+  }
+  if (desc.configurable) {
+    flags |= 2;
+  }
+  if (desc.enumerable) {
+    flags |= 4;
+  }
+  if (flags != 7) {
+    rv.flags = flags;
+  }
+
+  if (desc.get) {
+    rv.get = getObjectId(desc.get);
+  }
+  if (desc.set) {
+    rv.set = getObjectId(desc.set);
+  }
+
+  return rv;
+}
+
+function getFunctionName(obj) {
+  return obj.name || obj.displayName;
+}
+
+function getFunctionLocation(obj) {
+  let { script } = obj;
+  if (!script && obj.isBoundFunction) {
+    script = obj.boundTargetFunction.script;
+  }
+  if (script) {
+    return {
+      scriptId: gSources.getId(script.source).toString(),
+      line: script.startLine,
+      column: script.startColumn,
+    };
+  }
+}
+
+function createProtocolFrame(frameId, frame) {
+  const type = getFrameType(frame);
+  const scriptId = sourceToProtocolScriptId(frame.script.source);
+
+  // Find the line/column for this frame. This is a bit tricky because we want
+  // positions that are consistent with those for any breakpoint we are
+  // paused at. When pausing at a breakpoint the frame won't actually be at
+  // that breakpoint, it will be at an instrumentation opcode shortly before
+  // the breakpoint, which might have a different position. So, we adjust the
+  // frame offset by a fixed amount to get to the breakpoint, and if it isn't
+  // a breakpoint then we are not at an instrumentation opcode in the frame
+  // and can use the frame's normal offset.
+  const CallBreakpointOffset = 9;
+  let offset = frame.offset;
+  try {
+    if (frame.script.getOffsetMetadata(offset + CallBreakpointOffset).isBreakpoint) {
+      offset += CallBreakpointOffset;
+    }
+  } catch (e) {}
+  const { lineNumber, columnNumber } = frame.script.getOffsetMetadata(offset);
+
+  const location = [{
+    scriptId,
+    line: lineNumber,
+    column: columnNumber,
+  }];
+
+  let functionName;
+  let functionLocation;
+  if (frame.type == "call") {
+    functionName = getFunctionName(frame.callee);
+    functionLocation = [getFunctionLocation(frame.callee)];
+  }
+
+  const scopeChain = getScopeChain(frame, frameId);
+  const thisv = createProtocolValue(frame.this);
+
+  return {
+    frameId,
+    type,
+    functionName,
+    functionLocation,
+    location,
+    scopeChain,
+    "this": thisv,
+  };
+
+  // Get the protocol type to use for frame.
+  function getFrameType(frame) {
+    switch (frame.type) {
+      case "call":
+      case "wasmcall":
+        return "call";
+      case "eval":
+      case "debugger":
+        return "eval";
+      case "global":
+        return "global";
+      case "module":
+        return "module";
+    }
+    ThrowError("Bad frame type");
+  }
+
+  function getScopeChain(frame, frameId) {
+    const scopeChain = [];
+    for (let env = frame.environment; env; env = env.parent) {
+      const scopeId = getObjectId(env);
+      scopeChain.push(scopeId);
+    }
+    return scopeChain;
+  }
+}
+
+function createProtocolObject(objectId) {
+  const obj = getObjectFromId(objectId);
+
+  const className = obj.class;
+  const preview = new ProtocolObjectPreview(obj).fill();
+
+  return { objectId, className, preview };
+}
+
+// Return whether an object should be ignored when generating previews.
+function isObjectBlacklisted(obj) {
+  // Accessing Storage object properties can cause hangs when trying to
+  // communicate with the non-existent parent process.
+  return obj.class == "Storage";
+}
+
+// Return whether an object's property should be ignored when generating previews.
+function isObjectPropertyBlacklisted(obj, name) {
+  if (isObjectBlacklisted(obj)) {
+    return true;
+  }
+  switch (`${obj.class}.${name}`) {
+    case "Window.localStorage":
+    case "Window.sysinfo":
+    case "Navigator.hardwareConcurrency":
+    case "XPCWrappedNative_NoHelper.isParentWindowMainWidgetVisible":
+    case "XPCWrappedNative_NoHelper.systemFont":
+      return true;
+  }
+  switch (name) {
+    case "__proto__":
+      // Accessing __proto__ doesn't cause problems, but is redundant with the
+      // prototype reference included in the preview directly.
+      return true;
+  }
+  return false;
+}
+
+// Get the "own" property names of an object to use.
+function propertyNames(object) {
+  if (isObjectBlacklisted(object)) {
+    return [];
+  }
+  try {
+    return object.getOwnPropertyNames();
+  } catch (e) {
+    return [];
+  }
+}
+
+// Return whether a getter should be callable without having side effects.
+function safeGetter(getter) {
+  // For now we only allow calling native C++ getters.
+  return getter.class == "Function" && !getter.script;
+}
+
+// Structure for managing construction of protocol ObjectPreview objects.
+function ProtocolObjectPreview(obj) {
+  // Underlying Debugger.Object
+  this.obj = obj;
+
+  // Underlying JSObject
+  this.raw = obj.unsafeDereference();
+
+  // Additional properties to add to the resulting preview.
+  this.extra = {};
+}
+
+ProtocolObjectPreview.prototype = {
+  addProperty(property) {
+    if (!this.properties) {
+      this.properties = [];
+    }
+    this.properties.push(property);
+  },
+
+  addGetterValue(name) {
+    if (isObjectPropertyBlacklisted(this.obj, name)) {
+      return;
+    }
+    if (!this.getterValues) {
+      this.getterValues = [];
+    }
+    if (this.getterValues.some(v => v.name == name)) {
+      return;
+    }
+    try {
+      const value = createProtocolValueRaw(this.raw[name]);
+      this.getterValues.push({ name, ...value });
+    } catch (e) {}
+  },
+
+  addContainerEntry(entry) {
+    if (!this.containerEntries) {
+      this.containerEntries = [];
+    }
+    this.containerEntries.push(entry);
+  },
+
+  addContainerEntryRaw(value, key, hasKey) {
+    key = hasKey ? createProtocolValueRaw(key) : undefined;
+    value = createProtocolValueRaw(value);
+    this.addContainerEntry({ key, value });
+  },
+
+  fill() {
+    let prototypeId;
+    if (this.obj.proto) {
+      try {
+        prototypeId = getObjectId(this.obj.proto);
+      } catch (e) {}
+    }
+
+    // Add "own" properties of the object.
+    for (const name of propertyNames(this.obj)) {
+      try {
+        const desc = this.obj.getOwnPropertyDescriptor(name);
+        const property = createProtocolPropertyDescriptor(name, desc);
+        this.addProperty(property);
+      } catch (e) {}
+    }
+
+    // Add getter values on the object.
+    for (const name of this.findPrototypeGetterNames()) {
+      this.addGetterValue(name);
+    }
+
+    // Add class-specific data.
+    const previewer = CustomPreviewers[this.obj.class];
+    if (previewer) {
+      for (const entry of previewer) {
+        if (typeof entry == "string") {
+          this.addGetterValue(entry);
+        } else {
+          entry.call(this);
+        }
+      }
+    }
+
+    // Add data for DOM/CSS objects.
+    if (Node.isInstance(this.raw)) {
+      this.extra.node = nodeContents(this.raw);
+    } else if (CSSRule.isInstance(this.raw)) {
+      this.extra.rule = ruleContents(this.raw);
+    } else if (CSSStyleDeclaration.isInstance(this.raw)) {
+      this.extra.style = styleContents(this.raw);
+    } else if (StyleSheet.isInstance(this.raw)) {
+      this.extra.styleSheet = styleSheetContents(this.raw);
+    }
+
+    return {
+      prototypeId,
+      properties: this.properties,
+      containerEntries: this.containerEntries,
+      getterValues: this.getterValues,
+      ...this.extra,
+    };
+  },
+
+  // Get the names of getters on the prototype chain which should be called to
+  // produce a full preview.
+  findPrototypeGetterNames() {
+    const seen = new Set();
+    const getterNames = [];
+    let proto = this.obj;
+    while (proto) {
+      for (const name of propertyNames(proto)) {
+        if (seen.has(name)) {
+          continue;
+        }
+        seen.add(name);
+        try {
+          const desc = proto.getOwnPropertyDescriptor(name);
+          if (desc.get && safeGetter(desc.get)) {
+            getterNames.push(name);
+          }
+        } catch (e) {}
+      }
+      try {
+        proto = proto.proto;
+      } catch (e) {
+        break;
+      }
+    }
+    return getterNames;
+  },
+};
+
+function previewMap() {
+  for (const [k, v] of Cu.waiveXrays(Map.prototype.entries.call(this.raw))) {
+    this.addContainerEntryRaw(v, k, true);
+  }
+
+  this.extra.containerEntryCount = this.raw.size;
+}
+
+function previewWeakMap() {
+  const keys = ChromeUtils.nondeterministicGetWeakMapKeys(this.raw);
+  this.extra.containerEntryCount = keys.length;
+
+  for (const k of keys) {
+    const v = WeakMap.prototype.get.call(this.raw, k);
+    this.addContainerEntryRaw(v, k, true);
+  }
+}
+
+function previewSet() {
+  for (const v of Cu.waiveXrays(Set.prototype.values.call(this.raw))) {
+    this.addContainerEntryRaw(v);
+  }
+
+  this.extra.containerEntryCount = this.raw.size;
+}
+
+function previewWeakSet() {
+  const keys = ChromeUtils.nondeterministicGetWeakSetKeys(this.raw);
+  this.extra.containerEntryCount = keys.length;
+
+  for (const k of keys) {
+    this.addContainerEntryRaw(k);
+  }
+}
+
+function previewRegExp() {
+  this.extra.regexpString = this.raw.toString();
+}
+
+function previewDate() {
+  this.extra.dateTime = this.raw.getTime();
+}
+
+const ErrorProperties = [
+  "name",
+  "message",
+  "stack",
+  "fileName",
+  "lineNumber",
+  "columnNumber",
+];
+
+function previewFunction() {
+  this.extra.functionName = getFunctionName(this.obj);
+
+  const functionLocation = getFunctionLocation(this.obj);
+  if (functionLocation) {
+    this.extra.functionLocation = [functionLocation];
+  }
+
+  const parameterNames = (this.obj.parameterNames || []).filter(n => typeof n == "string");
+  this.extra.functionParameterNames = parameterNames;
+}
+
+const CustomPreviewers = {
+  Array: ["length"],
+  Int8Array: ["length"],
+  Uint8Array: ["length"],
+  Uint8ClampedArray: ["length"],
+  Int16Array: ["length"],
+  Uint16Array: ["length"],
+  Int32Array: ["length"],
+  Uint32Array: ["length"],
+  Float32Array: ["length"],
+  Float64Array: ["length"],
+  BigInt64Array: ["length"],
+  BigUint64Array: ["length"],
+  Map: ["size", previewMap],
+  WeakMap: [previewWeakMap],
+  Set: ["size", previewSet],
+  WeakSet: [previewWeakSet],
+  RegExp: ["global", "source", previewRegExp],
+  Date: [previewDate],
+  Error: ErrorProperties,
+  EvalError: ErrorProperties,
+  RangeError: ErrorProperties,
+  ReferenceError: ErrorProperties,
+  SyntaxError: ErrorProperties,
+  TypeError: ErrorProperties,
+  URIError: ErrorProperties,
+  Function: [previewFunction],
+  MouseEvent: ["type", "target", "clientX", "clientY", "layerX", "layerY"],
+  KeyboardEvent: ["type", "target", "key", "charCode", "keyCode", "altKey", "ctrlKey", "metaKey", "shiftKey"],
+  MessageEvent: ["type", "target", "isTrusted", "data"],
+};
+
+function getPseudoType(node) {
+  switch (node.localName) {
+    case "_moz_generated_content_marker": return "marker";
+    case "_moz_generated_content_before": return "before";
+    case "_moz_generated_content_after": return "after";
+  }
+}
+
+function nodeContents(node) {
+  let attributes, pseudoType;
+  if (Element.isInstance(node)) {
+    attributes = [];
+    for (const { name, value } of node.attributes) {
+      attributes.push({ name, value });
+    }
+    pseudoType = getPseudoType(node);
+  }
+
+  let style;
+  if (node.style) {
+    style = getObjectIdRaw(node.style);
+  }
+
+  let parentNode;
+  if (node.parentNode) {
+    parentNode = getObjectIdRaw(node.parentNode);
+  } else if (node.defaultView && node.defaultView.parent != node.defaultView) {
+    // Nested documents use the parent element instead of null.
+    const iframes = node.defaultView.parent.document.getElementsByTagName("iframe");
+    const iframe = [...iframes].find(f => f.contentDocument == node);
+    if (iframe) {
+      parentNode = getObjectIdRaw(iframe);
+    }
+  }
+
+  let childNodes;
+  if (node.childNodes.length) {
+    childNodes = [...node.childNodes].map(n => getObjectIdRaw(n));
+  } else if (node.nodeName == "IFRAME") {
+    // Treat an iframe's content document as one of its child nodes.
+    childNodes = [getObjectIdRaw(node.contentDocument)];
+  }
+
+  let documentURL;
+  if (node.nodeType == Node.DOCUMENT_NODE) {
+    documentURL = node.URL;
+  }
+
+  return {
+    nodeType: node.nodeType,
+    nodeName: node.nodeName,
+    nodeValue: node.nodeValue ? node.nodeValue : undefined,
+    isConnected: node.isConnected,
+    attributes,
+    pseudoType,
+    style,
+    parentNode,
+    childNodes,
+    documentURL,
+  };
+}
+
+function ruleContents(rule) {
+  let parentStyleSheet;
+  if (rule.parentStyleSheet) {
+    parentStyleSheet = getObjectIdRaw(rule.parentStyleSheet);
+  }
+
+  let style;
+  if (rule.style) {
+    style = getObjectIdRaw(rule.style);
+  }
+
+  return {
+    type: rule.type,
+    cssText: rule.cssText,
+    parentStyleSheet,
+    startLine: InspectorUtils.getRelativeRuleLine(rule),
+    startColumn: InspectorUtils.getRuleColumn(rule),
+    selectorText: rule.selectorText,
+    style,
+  };
+}
+
+function styleContents(style) {
+  let parentRule;
+  if (style.parentRule) {
+    parentRule = getObjectIdRaw(style.parentRule);
+  }
+
+  const properties = [];
+  for (let i = 0; i < style.length; i++) {
+    const name = style.item(i);
+    const value = style.getPropertyValue(name);
+    const important = style.getPropertyPriority(name) == "important" ? true : undefined;
+    properties.push({ name, value, important });
+  }
+
+  return {
+    cssText: style.cssText,
+    parentRule,
+    properties,
+  };
+}
+
+function createProtocolScope(scopeId) {
+  const env = getObjectFromId(scopeId);
+
+  const type = getEnvType(env);
+  const functionLexical = (env.scopeKind == "function lexical");
+
+  let object, bindings;
+  if (env.type == "declarative") {
+    bindings = [];
+    for (const name of env.names()) {
+      const v = env.getVariable(name);
+      bindings.push({ name, ...createProtocolValue(v) });
+    }
+  } else {
+    object = getObjectId(env.object);
+  }
+
+  let functionName;
+  if (env.callee) {
+    functionName = getFunctionName(env.callee);
+  }
+
+  return {
+    scopeId,
+    type,
+    functionLexical,
+    object,
+    functionName,
+    bindings,
+  };
+
+  // Get the prototocl type to use for env.
+  function getEnvType(env) {
+    switch (env.type) {
+      case "object": return "global";
+      case "with": return "with";
+      case "declarative":
+        return env.callee ? "function" : "block";
+    }
+    ThrowError("Bad environment type");
+  }
+}
+
+function styleSheetContents(styleSheet) {
+  return {
+    href: styleSheet.href || undefined,
+    isSystem: styleSheet.parsingMode != "author",
+  };
+}
+
+function completionToProtocolResult(completion) {
+  let returned, exception;
+  if ("return" in completion) {
+    returned = createProtocolValue(completion.return);
+  }
+  if ("throw" in completion) {
+    exception = createProtocolValue(completion.throw);
+  }
+  return { returned, exception, data: {} };
+}
+
+function convertValueFromParent(value) {
+  if ("value" in value) {
+    return value.value;
+  }
+  if ("object" in value) {
+    return getObjectFromId(value.object);
+  }
+  if ("unserializableNumber" in value) {
+    return Number(value.unserializableNumber);
+  }
+  if ("bigint" in value) {
+    return BigInt(value.bigint);
+  }
+  return undefined;
+}
+
+function convertBindings(bindings) {
+  const newBindings = {};
+  if (bindings) {
+    for (const binding of bindings) {
+      newBindings[binding.name] = convertValueFromParent(binding);
+    }
+  }
+  return newBindings;
+}
+
+function Pause_evaluateInFrame({ frameId, expression, bindings }) {
+  const frame = scriptFrameForIndex(Number(frameId));
+
+  const newBindings = convertBindings(bindings);
+  const completion = frame.evalWithBindings(expression, newBindings);
+  return { result: completionToProtocolResult(completion) };
+}
+
+function Pause_evaluateInGlobal({ expression, bindings }) {
+  const newBindings = convertBindings(bindings);
+  const dbgWindow = gDebugger.makeGlobalObjectReference(getWindow());
+  const completion = dbgWindow.executeInGlobalWithBindings(expression, newBindings);
+  return { result: completionToProtocolResult(completion) };
+}
+
+function Pause_getAllFrames() {
+  const frameIds = [];
+  const frameData = [];
+  const numFrames = countScriptFrames();
+  for (let i = 0; i < numFrames; i++) {
+    const frame = scriptFrameForIndex(i);
+    const id = String(i);
+    frameIds.push(id);
+    frameData.push(createProtocolFrame(id, frame));
+  }
+  return {
+    frames: frameIds.reverse(),
+    data: { frames: frameData },
+  };
+}
+
+function Host_countStackFrames() {
+  return { count: countScriptFrames() };
+}
+
+function Host_currentGeneratorId() {
+  const { generatorId } = gDebugger.getNewestFrame();
+  return { id: generatorId };
+}
+
+function Pause_getExceptionValue() {
+  assert(gExceptionValue);
+  return {
+    exception: createProtocolValue(gExceptionValue.value),
+    data: {},
+  };
+}
+
+function Pause_getObjectPreview({ object }) {
+  const objectData = createProtocolObject(object);
+  return { data: { objects: [objectData] }};
+}
+
+function Host_getObjectPreviewRequiredProperties({ object }) {
+  const obj = getObjectFromId(object);
+  const properties = [];
+
+  // Any names in custom previewers for the object should always be included
+  // in previews, regardless of overflow.
+  const previewer = CustomPreviewers[obj.class];
+  if (previewer) {
+    for (const entry of previewer) {
+      if (typeof entry == "string") {
+        properties.push(entry);
+      }
+    }
+  }
+
+  return { properties };
+}
+
+function Pause_getObjectProperty({ object, name }) {
+  const dbgObject = getObjectFromId(object);
+  const completion = dbgObject.getProperty(name);
+  return { result: completionToProtocolResult(completion) };
+}
+
+function Pause_getScope({ scope }) {
+  const scopeData = createProtocolScope(scope);
+  return { data: { scopes: [scopeData] } };
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// CSS Commands
+///////////////////////////////////////////////////////////////////////////////
+
+// This set is the intersection of the elements described at [1] and the
+// elements which the firefox devtools server actually operates on [2].
+//
+// [1] https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-elements
+// [2] PSEUDO_ELEMENTS in devtools/shared/css/generated/properties-db.js
+const PseudoElements = [
+  ":after",
+  ":backdrop",
+  ":before",
+  ":cue",
+  ":first-letter",
+  ":first-line",
+  ":marker",
+  ":placeholder",
+  ":selection",
+];
+
+function addRules(rules, node, pseudoElement) {
+  const baseRules = InspectorUtils.getCSSStyleRules(node, pseudoElement);
+
+  // getCSSStyleRules returns rules in increasing order of specificity.
+  // We need to return rules ordered in the opposite way.
+  baseRules.reverse();
+
+  for (const rule of baseRules) {
+    rules.push({ rule: getObjectIdRaw(rule), pseudoElement });
+  }
+}
+
+function CSS_getAppliedRules({ node }) {
+  const nodeObj = getObjectFromId(node).unsafeDereference();
+  if (nodeObj.nodeType != Node.ELEMENT_NODE) {
+    return { rules: [], data: {} };
+  }
+
+  if (getPseudoType(node)) {
+    // Don't return rules for the pseudo-element itself. These can be obtained
+    // from the parent node's applied rules.
+    return { rules: [], data: {} };
+  }
+
+  const rules = [];
+
+  addRules(rules, nodeObj);
+  for (const pseudoElement of PseudoElements) {
+    addRules(rules, nodeObj, pseudoElement);
+  }
+
+  return { rules, data: {} };
+}
+
+function CSS_getComputedStyle({ node }) {
+  const nodeObj = getObjectFromId(node).unsafeDereference();
+  if (nodeObj.nodeType != Node.ELEMENT_NODE) {
+    return { computedStyle: [] };
+  }
+
+  const pseudoType = getPseudoType(node);
+
+  let styleInfo;
+  if (pseudoType) {
+    styleInfo = nodeObj.ownerGlobal.getComputedStyle(nodeObj.parentNode, pseudoType);
+  } else {
+    styleInfo = nodeObj.ownerGlobal.getComputedStyle(nodeObj);
+  }
+
+  const computedStyle = [];
+  for (let i = 0; i < styleInfo.length; i++) {
+    computedStyle.push({
+      name: styleInfo.item(i),
+      value: styleInfo.getPropertyValue(styleInfo.item(i)),
+    });
+  }
+  return { computedStyle };
+}
+
+function Host_getSheetSourceMapURL({ sheet }) {
+  const sheetObj = getObjectFromId(sheet).unsafeDereference();
+  const url = sheetObj.sourceMapURL || undefined;
+  return { url };
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// DOM Commands
+///////////////////////////////////////////////////////////////////////////////
+
+// Mouse Targets Overview
+//
+// Mouse target data is used to figure out which element to highlight when the
+// mouse is hovered/clicked on different parts of the screen when the element
+// picker is used. To determine this, we need to know the bounding client rects
+// of every element (easy) and the order in which different elements are stacked
+// (not easy).
+//
+// To figure out the order in which elements are stacked, we reconstruct the
+// stacking contexts on the page and the order in which elements are laid out
+// within those stacking contexts, allowing us to assemble a sorted array of
+// elements such that for any two elements that overlap, the frontmost element
+// appears first in the array.
+//
+// References:
+//
+// https://www.w3.org/TR/CSS21/zindex.html
+//
+//   This reference talks about element kinds like floating and non-zindexed
+//   positioned descendants having a context that acts like a normal stacking
+//   context except for the treatment of descendants that actually create a
+//   normal stacking context. This language is confusing and the initial attempt
+//   to implement it gave poor results on pages so it is ignored here and these
+//   elements are treated as having a normal stacking context instead.
+//
+// https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
+//
+//   This is helpful but the rules for when stacking contexts are created are
+//   quite baroque and don't seem to match up with the spec above, so they are
+//   mostly ignored here.
+
+// Information about an element needed to add it to a stacking context.
+function StackingContextElement(elem, left, top) {
+  assert(elem.nodeType == Node.ELEMENT_NODE);
+
+  // Underlying element.
+  this.raw = elem;
+
+  // Offset relative to the outer window of the window containing this context.
+  this.left = left;
+  this.top = top;
+
+  // Style information for the node.
+  this.style = getWindow().getComputedStyle(elem);
+
+  // Any stacking context at which this element is the root.
+  this.context = null;
+}
+
+StackingContextElement.prototype = {
+  toString() {
+    return getObjectIdRaw(this.raw);
+  },
+};
+
+let gNextStackingContextId = 1;
+
+// Information about all the nodes in the same stacking context.
+function StackingContext(root, left = 0, top = 0) {
+  this.id = gNextStackingContextId++;
+
+  // Offset relative to the outer window of the window containing this context.
+  this.left = left;
+  this.top = top;
+
+  // The arrays below are filled in tree order (preorder depth first traversal).
+
+  // All non-positioned, non-floating elements.
+  this.nonPositionedElements = [];
+
+  // All floating elements.
+  this.floatingElements = [];
+
+  // All positioned elements with an auto or zero z-index.
+  this.positionedElements = [];
+
+  // Arrays of elements with non-zero z-indexes, indexed by that z-index.
+  this.zIndexElements = new Map();
+
+  if (root) {
+    this.addNonPositionedElement(root);
+    this.addChildren(root.raw);
+  }
+}
+
+StackingContext.prototype = {
+  toString() {
+    return `StackingContext:${this.id}`;
+  },
+
+  // Add elem and its descendants to this stacking context.
+  add(elem) {
+    log(`${this} Add ${elem}`);
+
+    // Create a new stacking context for any iframes.
+    if (elem.raw.tagName == "IFRAME") {
+      const { left, top } = elem.raw.getBoundingClientRect();
+      this.addContext(elem, left, top);
+      elem.context.addChildren(elem.raw.contentWindow.document);
+    }
+
+    if (elem.style.getPropertyValue("position") != "static") {
+      const zIndex = elem.style.getPropertyValue("z-index");
+      this.addContext(elem);
+
+      if (zIndex != "auto") {
+        // Elements with a zero z-index have their own stacking context but are
+        // grouped with other positioned children with an auto z-index.
+        const index = +zIndex | 0;
+        if (index) {
+          this.addZIndexElement(elem, index);
+          return;
+        }
+      }
+
+      this.addPositionedElement(elem);
+      return;
+    }
+
+    if (elem.style.getPropertyValue("float") != "none") {
+      // Group the element and its descendants.
+      this.addContext(elem);
+      this.addFloatingElement(elem);
+      return;
+    }
+
+    const display = elem.style.getPropertyValue("display");
+    if (display == "inline-block" || display == "inline-table") {
+      // Group the element and its descendants.
+      this.addContext(elem);
+      this.addNonPositionedElement(elem);
+      return;
+    }
+
+    this.addNonPositionedElement(elem);
+    this.addChildren(elem.raw);
+  },
+
+  addContext(elem, left = 0, top = 0) {
+    if (elem.context) {
+      assert(!left && !top);
+      return;
+    }
+    elem.context = new StackingContext(elem, this.left + left, this.top + top);
+    log(`${this} NewContext ${elem} ${elem.context}`);
+  },
+
+  addZIndexElement(elem, index) {
+    log(`${this} ZIndex ${index} ${elem}`);
+    const existing = this.zIndexElements.get(index);
+    if (existing) {
+      existing.push(elem);
+    } else {
+      this.zIndexElements.set(index, [elem]);
+    }
+  },
+
+  addPositionedElement(elem) {
+    log(`${this} Positioned ${elem}`);
+    this.positionedElements.push(elem);
+  },
+
+  addFloatingElement(elem) {
+    log(`${this} Floating ${elem}`);
+    this.floatingElements.push(elem);
+  },
+
+  addNonPositionedElement(elem) {
+    log(`${this} NonPositioned ${elem}`);
+    this.nonPositionedElements.push(elem);
+  },
+
+  addChildren(parentNode) {
+    for (const child of parentNode.children) {
+      this.add(new StackingContextElement(child, this.left, this.top));
+    }
+  },
+
+  // Get the elements in this context ordered back-to-front.
+  flatten() {
+    const rv = [];
+
+    const pushElements = elems => {
+      for (const elem of elems) {
+        if (elem.context && elem.context != this) {
+          rv.push(...elem.context.flatten());
+        } else {
+          log(`${this} FlattenPush ${elem}`);
+          rv.push(elem);
+        }
+      }
+    };
+
+    const pushZIndexElements = filter => {
+      for (const z of zIndexes) {
+        if (filter(z)) {
+          log(`${this} PushZIndex ${z}`);
+          pushElements(this.zIndexElements.get(z));
+        }
+      }
+    };
+
+    const zIndexes = [...this.zIndexElements.keys()];
+    zIndexes.sort((a, b) => a - b);
+
+    log(`${this} FlattenStart`);
+
+    pushZIndexElements(z => z < 0);
+    pushElements(this.nonPositionedElements);
+    pushElements(this.floatingElements);
+    pushElements(this.positionedElements);
+    pushZIndexElements(z => z > 0);
+
+    log(`${this} FlattenEnd`);
+    return rv;
+  },
+};
+
+function DOM_getAllBoundingClientRects() {
+  const cx = new StackingContext();
+
+  const { document } = getWindow();
+  cx.addChildren(document);
+
+  const entries = cx.flatten();
+
+  // Get elements in front-to-back order.
+  entries.reverse();
+
+  const elements = entries.map(elem => {
+    const id = getObjectIdRaw(elem.raw);
+    const { left, top, right, bottom } = elem.raw.getBoundingClientRect(elem);
+    if (left >= right || top >= bottom) {
+      return null;
+    }
+    return {
+      node: id,
+      rect: [
+        elem.left + left,
+        elem.top + top,
+        elem.left + right,
+        elem.top + bottom,
+      ],
+    };
+  }).filter(v => !!v);
+
+  return { elements };
+}
+
+function DOM_getBoundingClientRect({ node }) {
+  const nodeObj = getObjectFromId(node).unsafeDereference();
+  if (!nodeObj.getBoundingClientRect) {
+    return { rect: [0, 0, 0, 0] };
+  }
+
+  const { left, top, right, bottom } = nodeObj.getBoundingClientRect();
+  return { rect: [left, top, right, bottom] };
+}
+
+function DOM_getBoxModel({ node }) {
+  const nodeObj = getObjectFromId(node).unsafeDereference();
+
+  const model = { node };
+  for (const box of ["content", "padding", "border", "margin"]) {
+    const compactQuads = [];
+    if (nodeObj.getBoxQuads) {
+      const quads = nodeObj.getBoxQuads({ box, relativeTo: getWindow().document });
+      for (const { p1, p2, p3, p4 } of quads) {
+        compactQuads.push(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y);
+      }
+    }
+    model[box] = compactQuads;
+  }
+  return { model };
+}
+
+function DOM_getDocument() {
+  const document = getObjectIdRaw(getWindow().document);
+  return { document, data: {} };
+}
+
+function unwrapXray(obj) {
+  if (Cu.isXrayWrapper(obj)) {
+    return obj.wrappedJSObject;
+  }
+  return obj;
+}
+
+function DOM_getEventListeners({ node }) {
+  const listeners = [];
+
+  const nodeObj = getObjectFromId(node).unsafeDereference();
+  const listenerInfo = Services.els.getListenerInfoFor(nodeObj) || [];
+  if (nodeObj.nodeName && nodeObj.nodeName == "HTML") {
+    // Add event listeners for the document and window as well.
+    listenerInfo.push(
+      ...Services.els.getListenerInfoFor(nodeObj.parentNode),
+      ...Services.els.getListenerInfoFor(nodeObj.ownerGlobal)
+    );
+  }
+
+  for (const { type, listenerObject, capturing } of listenerInfo) {
+    const handler = unwrapXray(listenerObject);
+    if (!handler) {
+      continue;
+    }
+    listeners.push({
+      node,
+      handler: getObjectIdRaw(handler),
+      type,
+      capture: capturing,
+    });
+  }
+
+  return { listeners, data: {} };
+}
+
+function newTreeWalker() {
+  const walker = Cc["@mozilla.org/inspector/deep-tree-walker;1"].createInstance(
+    Ci.inIDeepTreeWalker
+  );
+  walker.showAnonymousContent = true;
+  walker.showSubDocuments = true;
+  walker.showDocumentsAsNodes = true;
+  walker.init(getWindow().document, 0xffffffff);
+  return walker;
+}
+
+function forAllNodes(callback) {
+  const walker = newTreeWalker();
+  for (let node = walker.currentNode; node; node = walker.nextNode()) {
+    callback(node);
+  }
+}
+
+// Get the raw DOM nodes containing a query string.
+function searchDOM(query) {
+  const rv = [];
+  forAllNodes(addEntries);
+  return rv;
+
+  function checkText(node, text) {
+    if (text.includes(query)) {
+      if (!rv.length || rv[rv.length - 1] != node) {
+        rv.push(node);
+      }
+    }
+  }
+
+  function addEntries(node) {
+    if (node.nodeType == Node.ELEMENT_NODE) {
+      checkText(node, convertNodeName(node.localName));
+      for (const { name, value } of node.attributes) {
+        checkText(node, name);
+        checkText(node, value);
+      }
+    } else {
+      checkText(node, node.textContent || "");
+    }
+  }
+
+  function convertNodeName(name) {
+    switch (name) {
+      case "_moz_generated_content_marker": return "::marker";
+      case "_moz_generated_content_before": return "::before";
+      case "_moz_generated_content_after": return "::after";
+    }
+    return name;
+  }
+}
+
+function DOM_performSearch({ query }) {
+  const rawNodes = searchDOM(query);
+  const nodes = rawNodes.map(getObjectIdRaw);
+  return { nodes, data: {} };
+}
+
+function DOM_querySelector({ node, selector }) {
+  const nodeObj = getObjectFromId(node).unsafeDereference();
+
+  const resultObj = nodeObj.querySelector(selector);
+  if (!resultObj) {
+    return { data: {} };
+  }
+  const result = getObjectIdRaw(resultObj);
+  return { result, data: {} };
+}

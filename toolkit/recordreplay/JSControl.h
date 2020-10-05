@@ -25,10 +25,11 @@ class ChildProcessInfo;
 
 namespace js {
 
-void EnsureInitialized();
+void InitializeJS();
+void EnsureModuleInitialized();
 
 // Notify the UI process that the recording was finished.
-void SendRecordingFinished(const char* aRecordingId);
+void SendRecordingFinished();
 
 }  // namespace js
 }  // namespace recordreplay

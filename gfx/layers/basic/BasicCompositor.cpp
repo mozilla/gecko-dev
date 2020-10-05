@@ -30,6 +30,10 @@
 namespace mozilla {
 using namespace mozilla::gfx;
 
+namespace recordreplay {
+  already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(const IntRect& aBounds);
+}
+
 namespace layers {
 
 class DataTextureSourceBasic : public DataTextureSource,
@@ -774,7 +778,7 @@ void BasicCompositor::DrawGeometry(
       break;
     }
     case EffectTypes::COMPONENT_ALPHA: {
-      MOZ_CRASH("Can't (easily) support component alpha with BasicCompositor!");
+      //MOZ_CRASH("Can't (easily) support component alpha with BasicCompositor!");
       break;
     }
     default: {
@@ -878,7 +882,12 @@ Maybe<gfx::IntRect> BasicCompositor::BeginFrameForWindow(
   MOZ_RELEASE_ASSERT(mCurrentFrameDest == FrameDestination::NO_CURRENT_FRAME,
                      "mCurrentFrameDest not restored properly");
 
-  IntRect rect(IntPoint(), mWidget->GetClientSize().ToUnknownSize());
+  IntRect rect;
+  if (mWidget) {
+    rect = IntRect(IntPoint(), mWidget->GetClientSize().ToUnknownSize());
+  } else {
+    rect = aRenderBounds;
+  }
 
   mShouldInvalidateWindow = NeedToRecreateFullWindowRenderTarget();
 
@@ -895,15 +904,21 @@ Maybe<gfx::IntRect> BasicCompositor::BeginFrameForWindow(
   LayoutDeviceIntRegion invalidRegion =
       LayoutDeviceIntRegion::FromUnknownRegion(mInvalidRegion);
   BufferMode bufferMode = BufferMode::BUFFERED;
-  // StartRemoteDrawingInRegion can mutate invalidRegion.
-  RefPtr<DrawTarget> dt =
-      mWidget->StartRemoteDrawingInRegion(invalidRegion, &bufferMode);
-  if (!dt) {
-    return Nothing();
-  }
-  if (invalidRegion.IsEmpty()) {
-    mWidget->EndRemoteDrawingInRegion(dt, invalidRegion);
-    return Nothing();
+  RefPtr<DrawTarget> dt;
+  if (recordreplay::IsRecordingOrReplaying()) {
+    bufferMode = BufferMode::BUFFER_NONE;
+    dt = recordreplay::DrawTargetForRemoteDrawing(aRenderBounds);
+  } else {
+    // StartRemoteDrawingInRegion can mutate invalidRegion.
+    RefPtr<DrawTarget> dt =
+        mWidget->StartRemoteDrawingInRegion(invalidRegion, &bufferMode);
+    if (!dt) {
+      return Nothing();
+    }
+    if (invalidRegion.IsEmpty()) {
+      mWidget->EndRemoteDrawingInRegion(dt, invalidRegion);
+      return Nothing();
+    }
   }
 
   mInvalidRegion = invalidRegion.ToUnknownRegion();
@@ -1163,7 +1178,7 @@ void BasicCompositor::EndRemoteDrawing() {
         mFrontBuffer, LayoutDeviceIntRegion::FromUnknownRegion(mInvalidRegion));
 
     mFrontBuffer = nullptr;
-  } else {
+  } else if (!recordreplay::IsRecordingOrReplaying()) {
     mWidget->EndRemoteDrawingInRegion(
         mRenderTarget->mDrawTarget,
         LayoutDeviceIntRegion::FromUnknownRegion(mInvalidRegion));

@@ -53,6 +53,13 @@ dictionary NativeOSFileWriteAtomicOptions
   boolean flush = false;
 
   /**
+   * If specified and true, the resulting file will have its quarantine flag
+   * stripped, so that it can be executed without prompts. This should only
+   * be used with trusted content!
+   */
+  boolean noQuarantine = false;
+
+  /**
    * If specified, this will backup the destination file as
    * specified.
    */

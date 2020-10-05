@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include "mozilla/PlatformMutex.h"
+#include "mozilla/RecordReplay.h"
 #include "MutexPlatformData_posix.h"
 
 #define REPORT_PTHREADS_ERROR(result, msg) \
@@ -148,7 +149,9 @@ void mozilla::detail::MutexImpl::lock() {
   // feature.
 
   MOZ_ASSERT(sCPUCount);
-  if (sCPUCount == 1) {
+
+  // Always lock the mutex when recording/replaying, in case it is ordered.
+  if (sCPUCount == 1 || recordreplay::IsRecordingOrReplaying()) {
     mutexLock();
     return;
   }
@@ -178,6 +181,10 @@ void mozilla::detail::MutexImpl::unlock() {
   TRY_CALL_PTHREADS(
       pthread_mutex_unlock(&platformData()->ptMutex),
       "mozilla::detail::MutexImpl::unlock: pthread_mutex_unlock failed");
+}
+
+pthread_mutex_t* mozilla::detail::MutexImpl::NativeHandle() {
+  return &platformData()->ptMutex;
 }
 
 #undef TRY_CALL_PTHREADS

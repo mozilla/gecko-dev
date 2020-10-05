@@ -337,8 +337,6 @@ class RefreshDriverTimer {
 
   void TickRefreshDrivers(VsyncId aId, TimeStamp aNow,
                           nsTArray<RefPtr<nsRefreshDriver>>& aDrivers) {
-    recordreplay::RecordReplayAssert("TickRefreshDrivers");
-
     if (aDrivers.IsEmpty()) {
       return;
     }
@@ -668,8 +666,6 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
     ~RefreshDriverVsyncObserver() = default;
 
     void RecordTelemetryProbes(TimeStamp aVsyncTimestamp) {
-      recordreplay::RecordReplayAssert("RecordTelemetryProbes");
-
       MOZ_ASSERT(NS_IsMainThread());
 #ifndef ANDROID /* bug 1142079 */
       if (XRE_IsParentProcess()) {
@@ -681,7 +677,6 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
             Telemetry::FX_REFRESH_DRIVER_SYNC_SCROLL_FRAME_DELAY_MS, sample);
         RecordJank(sample);
       } else if (mVsyncRate != TimeDuration::Forever()) {
-        recordreplay::RecordReplayAssert("RecordTelemetryProbes #1");
         TimeDuration contentDelay = (TimeStamp::Now() - mLastTick) - mVsyncRate;
         if (contentDelay.ToMilliseconds() < 0) {
           // Vsyncs are noisy and some can come at a rate quicker than
@@ -698,7 +693,6 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
       } else {
         // Request the vsync rate from the parent process. Might be a few vsyncs
         // until the parent responds.
-        recordreplay::RecordReplayAssert("RecordTelemetryProbes #2");
         if (mVsyncRefreshDriverTimer) {
           mVsyncRate = mVsyncRefreshDriverTimer->mVsyncChild->GetVsyncRate();
         }
@@ -1834,12 +1828,9 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
   MOZ_ASSERT(!nsContentUtils::GetCurrentJSContext(),
              "Shouldn't have a JSContext on the stack");
 
-  recordreplay::RecordReplayAssert("nsRefreshDriver::Tick");
-
   if (nsNPAPIPluginInstance::InPluginCallUnsafeForReentry()) {
     NS_ERROR("Refresh driver should not run during plugin call!");
     // Try to survive this by just ignoring the refresh tick.
-    recordreplay::RecordReplayAssert("nsRefreshDriver::Tick RETURN #1");
     return;
   }
 
@@ -1849,7 +1840,6 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
   // of a tick iteration).  Just do nothing here, since our
   // prescontext went away.
   if (IsFrozen() || !mPresContext) {
-    recordreplay::RecordReplayAssert("nsRefreshDriver::Tick RETURN #2");
     return;
   }
 
@@ -1860,7 +1850,6 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
   // driver from going back in time, just skip this tick and
   // wait until the next tick.
   if ((aNowTime <= mMostRecentRefresh) && !mTestControllingRefreshes) {
-    recordreplay::RecordReplayAssert("nsRefreshDriver::Tick RETURN #3");
     return;
   }
 
@@ -1877,7 +1866,6 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
     // be completed (on the Compositor). Mark that we missed the paint
     // and keep waiting.
     PROFILER_ADD_MARKER("nsRefreshDriver::Tick waiting for paint", LAYOUT);
-    recordreplay::RecordReplayAssert("nsRefreshDriver::Tick RETURN #4");
     return;
   }
 
@@ -1897,8 +1885,6 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
        !mNeedToUpdateIntersectionObservations &&
        mVisualViewportResizeEvents.IsEmpty() && mScrollEvents.IsEmpty() &&
        mVisualViewportScrollEvents.IsEmpty())) {
-    recordreplay::RecordReplayAssert("nsRefreshDriver::Tick #1");
-
     // Things are being destroyed, or we no longer have any observers.
     // We don't want to stop the timer when observers are initially
     // removed, because sometimes observers can be added and removed
@@ -1920,11 +1906,9 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
             TimeStamp::Now() + TimeDuration::FromSeconds(4.0f);
         // Don't let the timer to run forever, so limit to 4s for now.
       } else if (mInitialTimerRunningLimit < TimeStamp::Now()) {
-        recordreplay::RecordReplayAssert("nsRefreshDriver::Tick #2");
         StopTimer();
       }
     } else {
-      recordreplay::RecordReplayAssert("nsRefreshDriver::Tick #3");
       StopTimer();
     }
     return;

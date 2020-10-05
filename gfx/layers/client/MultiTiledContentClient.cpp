@@ -82,8 +82,6 @@ void ClientMultiTiledLayerBuffer::PaintThebes(
     const nsIntRegion& aDirtyRegion,
     LayerManager::DrawPaintedLayerCallback aCallback, void* aCallbackData,
     TilePaintFlags aFlags) {
-  recordreplay::RecordReplayAssert("ClientMultiTiledLayerBuffer::PaintThebes");
-
   TILING_LOG("TILING %p: PaintThebes painting region %s\n", &mPaintedLayer,
              Stringify(aPaintRegion).c_str());
   TILING_LOG("TILING %p: PaintThebes new valid region %s\n", &mPaintedLayer,
@@ -135,8 +133,6 @@ void ClientMultiTiledLayerBuffer::PaintThebes(
 void ClientMultiTiledLayerBuffer::MaybeSyncTextures(
     const nsIntRegion& aPaintRegion, const TilesPlacement& aNewTiles,
     const IntSize& aScaledTileSize) {
-  recordreplay::RecordReplayAssert("ClientMultiTiledLayerBuffer::MaybeSyncTextures");
-
   if (mManager->AsShadowForwarder()->SupportsTextureDirectMapping()) {
     AutoTArray<uint64_t, 10> syncTextureSerials;
     SurfaceMode mode;
@@ -163,23 +159,16 @@ void ClientMultiTiledLayerBuffer::MaybeSyncTextures(
       }
     }
 
-    recordreplay::RecordReplayAssert("ClientMultiTiledLayerBuffer::MaybeSyncTextures #1 %d",
-                                     syncTextureSerials.Length());
-
     if (syncTextureSerials.Length() > 0) {
       mManager->AsShadowForwarder()->SyncTextures(syncTextureSerials);
     }
   }
-
-  recordreplay::RecordReplayAssert("ClientMultiTiledLayerBuffer::MaybeSyncTextures DONE");
 }
 
 void ClientMultiTiledLayerBuffer::Update(const nsIntRegion& newValidRegion,
                                          const nsIntRegion& aPaintRegion,
                                          const nsIntRegion& aDirtyRegion,
                                          TilePaintFlags aFlags) {
-  recordreplay::RecordReplayAssert("ClientMultiTiledLayerBuffer::Update");
-
   const IntSize scaledTileSize = GetScaledTileSize();
   const gfx::IntRect newBounds = newValidRegion.GetBounds();
 

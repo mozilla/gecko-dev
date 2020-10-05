@@ -10,7 +10,9 @@ if CONFIG['OS_ARCH'] == 'WINNT':
     ]
 else:
     SOURCES += [
+        'Assembler.cpp',
         'Graphics.cpp',
+        'HashTable.cpp',
         'JSControl.cpp',
         'ProcessRecordReplay.cpp',
     ]

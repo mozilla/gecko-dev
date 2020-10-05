@@ -1457,8 +1457,6 @@ bool SavedStacks::insertFrames(JSContext* cx, MutableHandleSavedFrame frame,
                          ? FrameIter::IGNORE_DEBUGGER_EVAL_PREV_LINK
                          : FrameIter::FOLLOW_DEBUGGER_EVAL_PREV_LINK);
 
-  uint32_t warpTarget = NewTimeWarpTarget(cx);
-
   // Once we've seen one frame with its hasCachedSavedFrame bit set, all its
   // parents (that can be cached) ought to have it set too.
   DebugOnly<bool> seenCached = false;
@@ -1505,10 +1503,9 @@ bool SavedStacks::insertFrames(JSContext* cx, MutableHandleSavedFrame frame,
     Rooted<LocationValue> location(cx);
     {
       AutoRealmUnchecked ar(cx, iter.realm());
-      if (!cx->realm()->savedStacks().getLocation(cx, iter, warpTarget, &location)) {
+      if (!cx->realm()->savedStacks().getLocation(cx, iter, 0, &location)) {
         return false;
       }
-      warpTarget = 0;
     }
 
     RootedAtom displayAtom(cx, iter.maybeFunctionDisplayAtom());

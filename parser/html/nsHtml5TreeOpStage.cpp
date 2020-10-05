@@ -6,7 +6,7 @@
 
 using namespace mozilla;
 
-nsHtml5TreeOpStage::nsHtml5TreeOpStage() : mMutex("nsHtml5TreeOpStage mutex") {}
+nsHtml5TreeOpStage::nsHtml5TreeOpStage() : mMutex("nsHtml5TreeOpStage mutex", /* aOrdered */ true) {}
 
 nsHtml5TreeOpStage::~nsHtml5TreeOpStage() {}
 

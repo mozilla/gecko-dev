@@ -198,11 +198,7 @@ bool RequestPorts(const MemoryPorts& request_ports, mach_port_t ports_in_receive
 MemoryPorts* GetMemoryPortsForPid(pid_t pid) {
   gMutex.AssertCurrentThreadOwns();
 
-  recordreplay::RecordReplayAssert("GetMemoryPortsForPid %d", pid);
-
   if (gMemoryCommPorts.find(pid) == gMemoryCommPorts.end()) {
-    recordreplay::RecordReplayAssert("GetMemoryPortsForPid #1");
-
     // We don't have the ports open to communicate with that pid, so we're going to
     // ask our parent process over IPC to set them up for us.
     if (gParentPid == 0) {
@@ -476,8 +472,6 @@ void SharedMemoryBasic::CleanupForPid(pid_t pid) {
 
 bool SharedMemoryBasic::SendMachMessage(pid_t pid, MachSendMessage& message,
                                         MachReceiveMessage* response) {
-  recordreplay::RecordReplayAssert("SharedMemoryBasic::SendMachMessage");
-
   StaticMutexAutoLock smal(gMutex);
   ipc::MemoryPorts* ports = GetMemoryPortsForPid(pid);
   if (!ports) {
@@ -604,7 +598,7 @@ void* SharedMemoryBasic::FindFreeAddressSpace(size_t size) {
 
 bool SharedMemoryBasic::ShareToProcess(base::ProcessId pid, Handle* aNewHandle) {
   // FIXME investigate why these pids can differ between recording/replaying.
-  pid = recordreplay::RecordReplayValue(pid);
+  pid = recordreplay::RecordReplayValue("SharedMemoryBasic::ShareToProcess", pid);
 
   recordreplay::RecordReplayAssert("SharedMemoryBasic::ShareToProcess #1 %d", pid);
 
@@ -621,16 +615,11 @@ bool SharedMemoryBasic::ShareToProcess(base::ProcessId pid, Handle* aNewHandle) 
   uint64_t my_serial = serial;
   serial++;
 
-  recordreplay::RecordReplayAssert("SharedMemoryBasic::ShareToProcess #2");
-
   MemoryPorts* ports = GetMemoryPortsForPid(pid);
   if (!ports) {
     LOG_ERROR("Unable to get ports for process.\n");
     return false;
   }
-
-  recordreplay::RecordReplayAssert("SharedMemoryBasic::ShareToProcess #3");
-
   MachSendMessage smsg(kSharePortsMsg);
   smsg.AddDescriptor(MachMsgPortDescriptor(mPort, MACH_MSG_TYPE_COPY_SEND));
   smsg.SetData(&my_serial, sizeof(uint64_t));
@@ -662,9 +651,6 @@ bool SharedMemoryBasic::ShareToProcess(base::ProcessId pid, Handle* aNewHandle) 
     return false;
   }
   *aNewHandle = id;
-
-  recordreplay::RecordReplayAssert("SharedMemoryBasic::ShareToProcess #4");
-
   return true;
 }
 

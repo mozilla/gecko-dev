@@ -331,8 +331,6 @@ bool Channel::ChannelImpl::Connect() {
 }
 
 bool Channel::ChannelImpl::ProcessIncomingMessages() {
-  mozilla::recordreplay::RecordReplayAssert("ChannelImpl::ProcessIncomingMessages");
-
   struct msghdr msg = {0};
   struct iovec iov;
 
@@ -820,7 +818,6 @@ void Channel::ChannelImpl::CloseClientFileDescriptor() {
 
 // Called by libevent when we can read from th pipe without blocking.
 void Channel::ChannelImpl::OnFileCanReadWithoutBlocking(int fd) {
-  mozilla::recordreplay::RecordReplayAssert("ChannelImpl::OnFileCanReadWithoutBlocking");
   if (!waiting_connect_ && fd == pipe_) {
     if (!ProcessIncomingMessages()) {
       Close();

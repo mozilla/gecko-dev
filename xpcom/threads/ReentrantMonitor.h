@@ -27,6 +27,8 @@
 //
 namespace mozilla {
 
+void RecordReplayAddOrderedMonitor(const char* aName, PRMonitor* aMonitor);
+
 /**
  * ReentrantMonitor
  * Java-like monitor.
@@ -39,7 +41,7 @@ class ReentrantMonitor : BlockingResourceBase {
    * ReentrantMonitor
    * @param aName A name which can reference this monitor
    */
-  explicit ReentrantMonitor(const char* aName)
+  explicit ReentrantMonitor(const char* aName, bool aOrdered = false)
       : BlockingResourceBase(aName, eReentrantMonitor)
 #ifdef DEBUG
         ,
@@ -50,6 +52,9 @@ class ReentrantMonitor : BlockingResourceBase {
     mReentrantMonitor = PR_NewMonitor();
     if (!mReentrantMonitor) {
       MOZ_CRASH("Can't allocate mozilla::ReentrantMonitor");
+    }
+    if (aOrdered) {
+      RecordReplayAddOrderedMonitor(aName, mReentrantMonitor);
     }
   }
 

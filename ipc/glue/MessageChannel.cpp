@@ -594,8 +594,6 @@ MessageChannel::MessageChannel(const char* aName, IToplevelProtocol* aListener)
       mIsSameThreadChannel(false) {
   MOZ_COUNT_CTOR(ipc::MessageChannel);
 
-  recordreplay::RegisterThing(this);
-
 #ifdef OS_WIN
   mTopFrame = nullptr;
   mIsSyncWaitingOnNonMainThread = false;
@@ -615,8 +613,6 @@ MessageChannel::MessageChannel(const char* aName, IToplevelProtocol* aListener)
 }
 
 MessageChannel::~MessageChannel() {
-  recordreplay::UnregisterThing(this);
-
   MOZ_COUNT_DTOR(ipc::MessageChannel);
   IPC_ASSERT(mCxxStackFrames.empty(), "mismatched CxxStackFrame ctor/dtors");
 #ifdef OS_WIN
@@ -967,10 +963,6 @@ bool MessageChannel::Echo(Message* aMsg) {
 }
 
 bool MessageChannel::Send(Message* aMsg) {
-  recordreplay::RecordReplayAssert("MessageChannel::Send %s %lu",
-                                   IPC::StringFromIPCMessageType(aMsg->type()),
-                                   aMsg->size());
-
   if (aMsg->size() >= kMinTelemetryMessageSize) {
     Telemetry::Accumulate(Telemetry::IPC_MESSAGE_SIZE2, aMsg->size());
   }
@@ -1976,18 +1968,9 @@ MessageChannel::MessageTask::MessageTask(MessageChannel* aChannel,
     : CancelableRunnable(aMessage.name()),
       mChannel(aChannel),
       mMessage(std::move(aMessage)),
-      mScheduled(false) {
-  recordreplay::RegisterThing(this);
-}
-
-MessageChannel::MessageTask::~MessageTask() {
-  recordreplay::UnregisterThing(this);
-}
+      mScheduled(false) {}
 
 nsresult MessageChannel::MessageTask::Run() {
-  recordreplay::RecordReplayAssert("MessageTask::Run %d %d", recordreplay::ThingIndex(this),
-                                   recordreplay::ThingIndex(mChannel));
-
   if (!mChannel) {
     return NS_OK;
   }
@@ -2004,9 +1987,6 @@ nsresult MessageChannel::MessageTask::Run() {
   if (!isInList()) {
     return NS_OK;
   }
-
-  recordreplay::RecordReplayAssert("MessageTask::Run #1 %d %d", recordreplay::ThingIndex(this),
-                                   recordreplay::ThingIndex(mChannel));
 
   mChannel->RunMessage(*this);
   return NS_OK;
@@ -2044,10 +2024,6 @@ void MessageChannel::MessageTask::Post() {
   RefPtr<MessageTask> self = this;
   nsCOMPtr<nsIEventTarget> eventTarget =
       mChannel->mListener->GetMessageEventTarget(mMessage);
-
-  recordreplay::RecordReplayAssert("MessageChannel::MessageTask::Post %d %d",
-                                   recordreplay::ThingIndex(this),
-                                   recordreplay::ThingIndex(mChannel));
 
   if (eventTarget) {
     eventTarget->Dispatch(self.forget(), NS_DISPATCH_NORMAL);
@@ -2097,8 +2073,6 @@ MessageChannel::MessageTask::GetType(uint32_t* aType) {
 }
 
 void MessageChannel::DispatchMessage(Message&& aMsg) {
-  recordreplay::RecordReplayAssert("MessageChannel::DispatchMessage %d", recordreplay::ThingIndex(this));
-
   AssertWorkerThread();
   mMonitor->AssertCurrentThreadOwns();
 
@@ -2139,8 +2113,6 @@ void MessageChannel::DispatchMessage(Message&& aMsg) {
       }
 
       mListener->ArtificialSleep();
-
-      recordreplay::RecordReplayAssert("MessageChannel::DispatchMessage #1 %d", recordreplay::ThingIndex(this));
     }
 
     if (reply && transaction.IsCanceled()) {
@@ -2558,8 +2530,6 @@ bool MessageChannel::MaybeHandleError(Result code, const Message& aMsg,
   } else {
     SprintfLiteral(reason, "%s %s", msgname, errorMsg);
   }
-
-  recordreplay::PrintLog("CHANNEL_ERROR %s", mListener->GetProtocolName());
 
   PrintErrorMessage(mSide, channelName, reason);
 

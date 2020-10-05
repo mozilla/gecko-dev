@@ -26,13 +26,14 @@ namespace mozilla {
  * initialized to 0 in order to initialize mMutex.  It is only safe to use
  * StaticMutex as a global or static variable.
  */
-class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS StaticMutex {
+template <bool Ordered>
+class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS BaseStaticMutex {
  public:
   // In debug builds, check that mMutex is initialized for us as we expect by
   // the compiler.  In non-debug builds, don't declare a constructor so that
   // the compiler can see that the constructor is trivial.
 #ifdef DEBUG
-  StaticMutex() { MOZ_ASSERT(!mMutex); }
+  BaseStaticMutex() { MOZ_ASSERT(!mMutex); }
 #endif
 
   void Lock() { Mutex()->Lock(); }
@@ -51,7 +52,7 @@ class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS StaticMutex {
       return mMutex;
     }
 
-    OffTheBooksMutex* mutex = new OffTheBooksMutex("StaticMutex");
+    OffTheBooksMutex* mutex = new OffTheBooksMutex("StaticMutex", Ordered);
     if (!mMutex.compareExchange(nullptr, mutex)) {
       delete mutex;
     }
@@ -66,17 +67,23 @@ class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS StaticMutex {
   // this constructor always, the compiler wouldn't generate a trivial
   // default constructor for us in non-debug mode.
 #ifdef DEBUG
-  StaticMutex(StaticMutex& aOther);
+  BaseStaticMutex(BaseStaticMutex& aOther);
 #endif
 
   // Disallow these operators.
-  StaticMutex& operator=(StaticMutex* aRhs);
+  BaseStaticMutex& operator=(BaseStaticMutex* aRhs);
   static void* operator new(size_t) noexcept(true);
   static void operator delete(void*);
 };
 
+typedef BaseStaticMutex<false> StaticMutex;
+typedef BaseStaticMutex<true> OrderedStaticMutex;
+
 typedef detail::BaseAutoLock<StaticMutex&> StaticMutexAutoLock;
 typedef detail::BaseAutoUnlock<StaticMutex&> StaticMutexAutoUnlock;
+
+typedef detail::BaseAutoLock<OrderedStaticMutex&> OrderedStaticMutexAutoLock;
+typedef detail::BaseAutoUnlock<OrderedStaticMutex&> OrderedStaticMutexAutoUnlock;
 
 }  // namespace mozilla
 

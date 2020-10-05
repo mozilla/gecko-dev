@@ -55,6 +55,8 @@
 #  include <windows.h>
 #endif  // defined (XP_WIN)
 
+#include "mozilla/MacLaunchHelper.h"
+
 namespace mozilla {
 
 MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPRFileDesc, PRFileDesc,
@@ -890,6 +892,7 @@ class DoWriteAtomicEvent : public AbstractDoEvent {
       const nsAString& aPath, UniquePtr<char[], JS::FreePolicy> aBuffer,
       const uint64_t aBytes, const nsAString& aTmpPath,
       const nsAString& aBackupTo, const bool aFlush, const bool aNoOverwrite,
+      const bool aNoQuarantine,
       nsMainThreadPtrHandle<nsINativeOSFileSuccessCallback>& aOnSuccess,
       nsMainThreadPtrHandle<nsINativeOSFileErrorCallback>& aOnError)
       : AbstractDoEvent(aOnSuccess, aOnError),
@@ -900,6 +903,7 @@ class DoWriteAtomicEvent : public AbstractDoEvent {
         mBackupTo(aBackupTo),
         mFlush(aFlush),
         mNoOverwrite(aNoOverwrite),
+        mNoQuarantine(aNoQuarantine),
         mResult(new Int32Result(TimeStamp::Now())) {
     MOZ_ASSERT(NS_IsMainThread());
   }
@@ -1084,6 +1088,23 @@ class DoWriteAtomicEvent : public AbstractDoEvent {
 #endif  // defined(XP_WIN)
       }
 
+      // Strip any quarantine flag on the written file, if necessary, so that
+      // the file can be run or loaded into a process. This is used for the
+      // driver downloaded by the replay browser, as macOS quarantines any
+      // files created by the browser even if they are related to the update
+      // process.
+      NS_ConvertUTF16toUTF8 path8(mTmpPath);
+      if (mNoQuarantine) {
+        char* args[] = {
+          (char*)"/usr/bin/xattr",
+          (char*)"-d",
+          (char*)"com.apple.quarantine",
+          strdup(path8.get()),
+        };
+        pid_t pid;
+        LaunchChildMac(4, args, &pid);
+      }
+
 #if defined(XP_WIN)
       if (::MoveFileW(mTmpPath.get(), mPath.get()) == false) {
         Fail(NS_LITERAL_CSTRING("rename"), nullptr, ::GetLastError());
@@ -1124,6 +1145,7 @@ class DoWriteAtomicEvent : public AbstractDoEvent {
   const nsString mBackupTo;
   const bool mFlush;
   const bool mNoOverwrite;
+  const bool mNoQuarantine;
 
  private:
   RefPtr<Int32Result> mResult;
@@ -1259,7 +1281,8 @@ NativeOSFileInternalsService::WriteAtomic(
 
   RefPtr<AbstractDoEvent> event = new DoWriteAtomicEvent(
       aPath, std::move(buffer), bytes, dict.mTmpPath, dict.mBackupTo,
-      dict.mFlush, dict.mNoOverwrite, onSuccessHandle, onErrorHandle);
+      dict.mFlush, dict.mNoOverwrite, dict.mNoQuarantine,
+      onSuccessHandle, onErrorHandle);
   nsresult rv;
   nsCOMPtr<nsIEventTarget> target =
       do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);

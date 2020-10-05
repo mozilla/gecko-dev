@@ -28,6 +28,11 @@
 #include "nsRegion.h"  // for nsIntRegion
 
 namespace mozilla {
+
+namespace recordreplay {
+  layers::TextureHost* CreateTextureHost(layers::PTextureChild* aChild);
+}
+
 namespace layers {
 
 class ClientTiledLayerBuffer;
@@ -163,7 +168,11 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
       AutoTArray<CompositableHost::TimedTexture, 4> textures;
       for (auto& timedTexture : op.textures()) {
         CompositableHost::TimedTexture* t = textures.AppendElement();
-        t->mTexture = TextureHost::AsTextureHost(timedTexture.textureParent());
+        if (recordreplay::IsRecordingOrReplaying()) {
+          t->mTexture = recordreplay::CreateTextureHost(timedTexture.textureChild());
+        } else {
+          t->mTexture = TextureHost::AsTextureHost(timedTexture.textureParent());
+        }
         MOZ_ASSERT(t->mTexture);
         t->mTimeStamp = timedTexture.timeStamp();
         t->mPictureRect = timedTexture.picture();
@@ -196,10 +205,14 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
     case CompositableOperationDetail::TOpUseComponentAlphaTextures: {
       const OpUseComponentAlphaTextures& op =
           aDetail.get_OpUseComponentAlphaTextures();
-      RefPtr<TextureHost> texOnBlack =
-          TextureHost::AsTextureHost(op.textureOnBlackParent());
-      RefPtr<TextureHost> texOnWhite =
-          TextureHost::AsTextureHost(op.textureOnWhiteParent());
+      RefPtr<TextureHost> texOnBlack, texOnWhite;
+      if (recordreplay::IsRecordingOrReplaying()) {
+        texOnBlack = recordreplay::CreateTextureHost(op.textureOnBlackChild());
+        texOnWhite = recordreplay::CreateTextureHost(op.textureOnWhiteChild());
+      } else {
+        texOnBlack = TextureHost::AsTextureHost(op.textureOnBlackParent());
+        texOnWhite = TextureHost::AsTextureHost(op.textureOnWhiteParent());
+      }
       if (op.readLockedBlack()) {
         texOnBlack->SetReadLocked();
       }

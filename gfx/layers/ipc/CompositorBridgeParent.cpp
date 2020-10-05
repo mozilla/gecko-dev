@@ -908,7 +908,7 @@ void CompositorBridgeParent::ScheduleComposition(
 
   if (mWrBridge) {
     mWrBridge->ScheduleGenerateFrame(aRenderRoots);
-  } else {
+  } else if (mCompositorScheduler) {
     mCompositorScheduler->ScheduleComposition();
   }
 }
@@ -1014,27 +1014,27 @@ void CompositorBridgeParent::CompositeToTarget(VsyncId aId, DrawTarget* aTarget,
     }
   }
 
-  mCompositionManager->ComputeRotation();
+  TimeStamp time;
+  if (recordreplay::IsRecordingOrReplaying()) {
+    time = TimeStamp::Now();
+  } else {
+    mCompositionManager->ComputeRotation();
 
-  TimeStamp time =
-      mTestTime.valueOr(mCompositorScheduler->GetLastComposeTime());
-  bool requestNextFrame =
-      mCompositionManager->TransformShadowTree(time, mVsyncRate);
+    time = mTestTime.valueOr(mCompositorScheduler->GetLastComposeTime());
+    bool requestNextFrame =
+        mCompositionManager->TransformShadowTree(time, mVsyncRate);
 
-  // Don't eagerly schedule new compositions here when recording or replaying.
-  // Recording/replaying processes schedule composites at the top of the main
-  // thread's event loop rather than via PVsync, which can cause the composites
-  // scheduled here to pile up without any drawing actually happening.
-  if (requestNextFrame && !recordreplay::IsRecordingOrReplaying()) {
-    ScheduleComposition();
+    if (requestNextFrame) {
+      ScheduleComposition();
 #if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
     // If we have visible windowed plugins then we need to wait for content (and
     // then the plugins) to have been updated by the active animation.
-    if (!mPluginWindowsHidden && mCachedPluginData.Length()) {
-      mWaitForPluginsUntil =
-          mCompositorScheduler->GetLastComposeTime() + (mVsyncRate * 2);
-    }
+      if (!mPluginWindowsHidden && mCachedPluginData.Length()) {
+        mWaitForPluginsUntil =
+            mCompositorScheduler->GetLastComposeTime() + (mVsyncRate * 2);
+      }
 #endif
+    }
   }
 
   RenderTraceLayers(mLayerManager->GetRoot(), "0000");
@@ -1241,7 +1241,7 @@ void CompositorBridgeParent::ScheduleRotationOnCompositorThread(
     const TargetConfig& aTargetConfig, bool aIsFirstPaint) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
 
-  if (!aIsFirstPaint && !mCompositionManager->IsFirstPaint() &&
+  if (!aIsFirstPaint && mCompositionManager && !mCompositionManager->IsFirstPaint() &&
       mCompositionManager->RequiresReorientation(aTargetConfig.orientation())) {
     if (mForceCompositionTask != nullptr) {
       mForceCompositionTask->Cancel();
@@ -1270,7 +1270,9 @@ void CompositorBridgeParent::ShadowLayersUpdated(
     mLayerManager->GetCompositor()->SetScreenRotation(targetConfig.rotation());
   }
 
-  mCompositionManager->Updated(aInfo.isFirstPaint(), targetConfig);
+  if (mCompositionManager) {
+    mCompositionManager->Updated(aInfo.isFirstPaint(), targetConfig);
+  }
   Layer* root = aLayerTree->GetRoot();
   mLayerManager->SetRoot(root);
 
@@ -1492,6 +1494,10 @@ void CompositorBridgeParent::InitializeLayerManager(
 
   MonitorAutoLock lock(*sIndirectLayerTreesLock);
   sIndirectLayerTrees[mRootLayerTreeID].mLayerManager = mLayerManager;
+}
+
+void CompositorBridgeParent::SetLayerManager(HostLayerManager* aLayerManager) {
+  mLayerManager = aLayerManager;
 }
 
 bool CompositorBridgeParent::InitializeAdvancedLayers(

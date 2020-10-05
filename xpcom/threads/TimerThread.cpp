@@ -689,8 +689,6 @@ void TimerThread::RemoveFirstTimerInternal() {
 
 already_AddRefed<nsTimerImpl> TimerThread::PostTimerEvent(
     already_AddRefed<nsTimerImpl> aTimerRef) {
-  recordreplay::RecordReplayAssert("TimerThread::PostTimerEvent");
-
   mMonitor.AssertCurrentThreadOwns();
 
   RefPtr<nsTimerImpl> timer(aTimerRef);
@@ -724,8 +722,6 @@ already_AddRefed<nsTimerImpl> TimerThread::PostTimerEvent(
   RefPtr<nsTimerEvent> event =
       ::new (KnownNotNull, p) nsTimerEvent(timer.forget());
 
-  recordreplay::RecordReplayAssert("TimerThread::PostTimerEvent DISPATCH");
-
   nsresult rv;
   {
     // We release mMonitor around the Dispatch because if this timer is targeted
@@ -739,8 +735,6 @@ already_AddRefed<nsTimerImpl> TimerThread::PostTimerEvent(
     RemoveTimerInternal(timer);
     return timer.forget();
   }
-
-  recordreplay::RecordReplayAssert("TimerThread::PostTimerEvent DONE");
 
   return nullptr;
 }

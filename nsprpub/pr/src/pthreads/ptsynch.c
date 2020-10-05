@@ -545,6 +545,10 @@ error1:
     return NULL;
 }  /* PR_NewMonitor */
 
+PR_IMPLEMENT(pthread_mutex_t*) PR_MonitorMutex(PRMonitor* mon) {
+    return &mon->lock;
+}
+
 PR_IMPLEMENT(PRMonitor*) PR_NewNamedMonitor(const char* name)
 {
     PRMonitor* mon = PR_NewMonitor();

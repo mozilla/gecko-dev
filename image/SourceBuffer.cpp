@@ -122,7 +122,8 @@ const size_t SourceBuffer::MIN_CHUNK_CAPACITY;
 const size_t SourceBuffer::MAX_CHUNK_CAPACITY;
 
 SourceBuffer::SourceBuffer()
-    : mMutex("image::SourceBuffer"), mConsumerCount(0), mCompacted(false) {}
+    : mMutex("image::SourceBuffer", /* aOrdered */ true),
+      mConsumerCount(0), mCompacted(false) {}
 
 SourceBuffer::~SourceBuffer() {
   MOZ_ASSERT(mConsumerCount == 0,

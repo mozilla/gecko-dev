@@ -43,7 +43,7 @@ NS_IMPL_QUERY_INTERFACE(nsThreadPool, nsIThreadPool, nsIEventTarget,
                         nsIRunnable)
 
 nsThreadPool::nsThreadPool()
-    : mMutex("[nsThreadPool.mMutex]"),
+    : mMutex("[nsThreadPool.mMutex]", /* aOrdered */ true),
       mEventsAvailable(mMutex, "[nsThreadPool.mEventsAvailable]"),
       mThreadLimit(DEFAULT_THREAD_LIMIT),
       mIdleThreadLimit(DEFAULT_IDLE_THREAD_LIMIT),

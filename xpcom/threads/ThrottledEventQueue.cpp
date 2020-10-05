@@ -123,7 +123,7 @@ class ThrottledEventQueue::Inner final : public nsISupports {
 
   explicit Inner(nsISerialEventTarget* aBaseTarget, const char* aName,
                  uint32_t aPriority)
-      : mMutex("ThrottledEventQueue"),
+      : mMutex("ThrottledEventQueue", /* aOrdered */ true),
         mIdleCondVar(mMutex, "ThrottledEventQueue:Idle"),
         mBaseTarget(aBaseTarget),
         mName(aName),

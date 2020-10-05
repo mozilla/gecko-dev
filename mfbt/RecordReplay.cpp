@@ -26,6 +26,10 @@ namespace recordreplay {
   Macro(InternalAreThreadEventsDisallowed, bool, (), ())                       \
   Macro(InternalRecordReplayValue, size_t, (const char* aWhy, size_t aValue),  \
         (aWhy, aValue))                                                        \
+  Macro(InternalGeneratePLDHashTableCallbacks, const PLDHashTableOps*,         \
+        (const PLDHashTableOps* aOps), (aOps))                                 \
+  Macro(InternalUnwrapPLDHashTableCallbacks, const PLDHashTableOps*,           \
+        (const PLDHashTableOps* aOps), (aOps))                                 \
   Macro(InternalHasDivergedFromRecording, bool, (), ())                        \
   Macro(InternalThingIndex, size_t, (void* aThing), (aThing))                  \
   Macro(InternalCreateOrderedLock, int, (const char* aName), (aName))          \
@@ -41,6 +45,11 @@ namespace recordreplay {
   Macro(InternalRecordReplayBytes, (const char* aWhy, void* aData, size_t aSize), \
         (aWhy, aData, aSize))                                                  \
   Macro(InternalInvalidateRecording, (const char* aWhy), (aWhy))               \
+  Macro(InternalDestroyPLDHashTableCallbacks, (const PLDHashTableOps* aOps),   \
+        (aOps))                                                                \
+  Macro(InternalMovePLDHashTableContents,                                      \
+        (const PLDHashTableOps* aFirstOps, const PLDHashTableOps* aSecondOps), \
+        (aFirstOps, aSecondOps))                                               \
   Macro(InternalHoldJSObject, (void* aJSObj), (aJSObj))                        \
   Macro(InternalRecordReplayAssert, (const char* aFormat, va_list aArgs),      \
         (aFormat, aArgs))                                                      \
@@ -52,6 +61,8 @@ namespace recordreplay {
   Macro(InternalUnregisterThing, (void* aThing), (aThing))                     \
   Macro(InternalOrderedLock, (int aLock), (aLock))                             \
   Macro(InternalOrderedUnlock, (int aLock), (aLock))                           \
+  Macro(InternalAddOrderedPthreadMutex,                                        \
+        (const char* aName, pthread_mutex_t* aMutex), (aName, aMutex))         \
   Macro(BeginContentParse,                                                     \
         (const void* aToken, const char* aURL, const char* aContentType),      \
         (aToken, aURL, aContentType))                                          \

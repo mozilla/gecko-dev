@@ -3047,8 +3047,6 @@ static bool date_toSource(JSContext* cx, unsigned argc, Value* vp) {
 
 // ES6 20.3.4.41.
 MOZ_ALWAYS_INLINE bool date_toString_impl(JSContext* cx, const CallArgs& args) {
-  mozilla::recordreplay::AssertScriptedCaller("Date.toString");
-
   // Steps 1-2.
   return FormatDate(
       cx, args.thisv().toObject().as<DateObject>().UTCTime().toNumber(),

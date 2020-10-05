@@ -11,7 +11,6 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 const { setTimeout } = Components.utils.import('resource://gre/modules/Timer.jsm');
-const { onFinishedRecording } = ChromeUtils.import("resource:///modules/DevToolsStartup.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
@@ -209,18 +208,7 @@ async function addRecordingResource(recordingId, url) {
 
 Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
   async receiveMessage(msg) {
-    const { pid, url, sourceMapURL } = msg.data;
-
-    // Wait for a recording to be created for this pid, if it hasn't already happened.
-    let info;
-    while (true) {
-      info = gRecordings.get(pid);
-      if (info) {
-        break;
-      }
-      await new Promise((resolve) => gRecordingCreateWaiters.push(resolve));
-    }
-    const { recordingId } = await info.createPromise;
+    const { recordingId, url, sourceMapURL } = msg.data;
 
     let resolvedSourceMapURL;
     try {
@@ -228,7 +216,6 @@ Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
     } catch (e) {
       resolvedSourceMapURL = sourceMapURL;
     }
-
     const text = await addRecordingResource(recordingId, resolvedSourceMapURL);
     if (text) {
       // Look for sources which are not inlined into the map, and add them as
@@ -253,19 +240,6 @@ function computeSourceURL(url, root, path) {
   return new URL(path, url).href;
 }
 
-async function RecordingDestroyed(pid) {
-  const info = gRecordings.get(pid);
-  if (!info || info.destroyed) {
-    return;
-  }
-  info.destroyed = true;
-  gRecordings.delete(pid);
-
-  await Promise.all(info.dataPromises);
-
-  gWorker.postMessage({ kind: "closeChannel", id: info.uploadChannelId });
-}
-
 const gResultWaiters = new Map();
 
 function waitForCommandResult(id) {
@@ -280,4 +254,4 @@ function onCommandResult(id, result) {
 }
 
 // eslint-disable-next-line no-unused-vars
-var EXPORTED_SYMBOLS = ["Initialize", "RecordingDestroyed"];
+var EXPORTED_SYMBOLS = ["Initialize"];

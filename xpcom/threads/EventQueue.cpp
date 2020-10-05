@@ -12,14 +12,7 @@ using namespace mozilla::detail;
 
 template <size_t ItemsPerPage>
 EventQueueInternal<ItemsPerPage>::EventQueueInternal(
-    EventQueuePriority aPriority) {
-  recordreplay::RegisterThing(this);
-}
-
-template <size_t ItemsPerPage>
-EventQueueInternal<ItemsPerPage>::~EventQueueInternal() {
-  recordreplay::UnregisterThing(this);
-}
+    EventQueuePriority aPriority) {}
 
 template <size_t ItemsPerPage>
 void EventQueueInternal<ItemsPerPage>::PutEvent(
@@ -37,11 +30,6 @@ void EventQueueInternal<ItemsPerPage>::PutEvent(
 #endif
 
   nsCOMPtr<nsIRunnable> event(aEvent);
-
-  recordreplay::RecordReplayAssert("EventQueueInternal::PutEvent %d %d",
-                                   recordreplay::ThingIndex(this),
-                                   recordreplay::ThingIndex(event));
-
   mQueue.Push(std::move(event));
 }
 
@@ -49,9 +37,6 @@ template <size_t ItemsPerPage>
 already_AddRefed<nsIRunnable> EventQueueInternal<ItemsPerPage>::GetEvent(
     EventQueuePriority* aPriority, const MutexAutoLock& aProofOfLock,
     mozilla::TimeDuration* aLastEventDelay) {
-  recordreplay::RecordReplayAssert("EventQueueInternal::GetEvent %d",
-                                   recordreplay::ThingIndex(this));
-
   if (mQueue.IsEmpty()) {
     if (aLastEventDelay) {
       *aLastEventDelay = TimeDuration();
@@ -87,11 +72,6 @@ already_AddRefed<nsIRunnable> EventQueueInternal<ItemsPerPage>::GetEvent(
 #endif
 
   nsCOMPtr<nsIRunnable> result = mQueue.Pop();
-
-  recordreplay::RecordReplayAssert("EventQueueInternal::GetEvent RETURN %d %d",
-                                   recordreplay::ThingIndex(this),
-                                   recordreplay::ThingIndex(result));
-
   return result.forget();
 }
 
@@ -111,11 +91,4 @@ template <size_t ItemsPerPage>
 size_t EventQueueInternal<ItemsPerPage>::Count(
     const MutexAutoLock& aProofOfLock) const {
   return mQueue.Count();
-}
-
-namespace mozilla::detail {
-
-template class EventQueueInternal<16>;
-template class EventQueueInternal<64>;
-
 }

@@ -70,6 +70,13 @@
     } while (0)
 #endif
 
+namespace mozilla::recordreplay {
+  void RegisterTextureChild(layers::PTextureChild* aChild,
+                            layers::TextureData* aData,
+                            const layers::SurfaceDescriptor& aDesc,
+                            layers::TextureFlags aFlags);
+}
+
 namespace mozilla::layers {
 
 using namespace mozilla::ipc;
@@ -1105,6 +1112,10 @@ bool TextureClient::InitIPDLActor(CompositableForwarder* aForwarder) {
   // mutex since it will be unlocked in TextureClient::Unlock.
   if (mIsLocked) {
     LockActor();
+  }
+
+  if (recordreplay::IsRecordingOrReplaying()) {
+    recordreplay::RegisterTextureChild(mActor, mData, desc, GetFlags());
   }
 
   return mActor->IPCOpen();

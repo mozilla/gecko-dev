@@ -846,6 +846,9 @@ pref("devtools.recordreplay.authentication-enabled", true);
 pref("devtools.recordreplay.user", "");
 pref("devtools.recordreplay.has-synced", false);
 
+// Base URL to use when checking for new driver versions.
+pref("devtools.recordreplay.driverDownloads", "https://replay.io/downloads");
+
 // Whether to upload source maps and original sources to the cloud server.
 pref("devtools.recordreplay.uploadSourceMaps", true);
 

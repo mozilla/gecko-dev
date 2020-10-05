@@ -37,6 +37,7 @@ EXPORTS.mozilla += [
     'AutoSQLiteLifetime.h',
     'Bootstrap.h',
     'CmdLineAndEnvUtils.h',
+    'MacLaunchHelper.h',
     'SafeMode.h',
     'UntrustedModulesData.h',
 ]

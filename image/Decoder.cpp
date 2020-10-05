@@ -82,7 +82,9 @@ Decoder::~Decoder() {
     qcms_profile_release(mInProfile);
   }
 
-  if (mImage && !NS_IsMainThread()) {
+  // For now we leak the image reference when recording/replaying rather than
+  // non-deterministically dispatch events to the main thread.
+  if (mImage && !NS_IsMainThread() && !recordreplay::IsRecordingOrReplaying()) {
     // Dispatch mImage to main thread to prevent it from being destructed by the
     // decode thread.
     NS_ReleaseOnMainThreadSystemGroup(mImage.forget());

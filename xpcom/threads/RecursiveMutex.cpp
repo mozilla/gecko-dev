@@ -12,6 +12,8 @@
 #  define NativeHandle(m) (reinterpret_cast<CRITICAL_SECTION*>(&m))
 #endif
 
+#include "prmon.h"
+
 namespace mozilla {
 
 RecursiveMutex::RecursiveMutex(
@@ -82,6 +84,13 @@ void RecursiveMutex::UnlockInternal() {
   MOZ_RELEASE_ASSERT(pthread_mutex_unlock(&mMutex) == 0,
                      "pthread_mutex_unlock failed");
 #endif
+}
+
+extern "C" pthread_mutex_t* PR_MonitorMutex(PRMonitor* mon);
+
+void RecordReplayAddOrderedMonitor(const char* aName, PRMonitor* aMonitor) {
+  pthread_mutex_t* mutex = PR_MonitorMutex(aMonitor);
+  recordreplay::AddOrderedPthreadMutex(aName, mutex);
 }
 
 }  // namespace mozilla

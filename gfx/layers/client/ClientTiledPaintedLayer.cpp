@@ -302,8 +302,6 @@ bool ClientTiledPaintedLayer::UseProgressiveDraw() {
 bool ClientTiledPaintedLayer::RenderHighPrecision(
     const nsIntRegion& aInvalidRegion, const nsIntRegion& aVisibleRegion,
     LayerManager::DrawPaintedLayerCallback aCallback, void* aCallbackData) {
-  recordreplay::RecordReplayAssert("ClientTiledPaintedLayer::RenderHighPrecision");
-
   // If we have started drawing low-precision already, then we
   // shouldn't do anything there.
   if (mPaintData.mLowPrecisionPaintCount != 0) {
@@ -445,8 +443,6 @@ void ClientTiledPaintedLayer::EndPaint() {
 }
 
 void ClientTiledPaintedLayer::RenderLayer() {
-  recordreplay::RecordReplayAssert("ClientTiledPaintedLayer::RenderLayer");
-
   if (!ClientManager()->IsRepeatTransaction()) {
     // Only paint the mask layers on the first transaction.
     RenderMaskLayers(this);

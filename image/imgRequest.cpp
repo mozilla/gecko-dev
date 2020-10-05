@@ -61,7 +61,7 @@ imgRequest::imgRequest(imgLoader* aLoader, const ImageCacheKey& aCacheKey)
       mCORSMode(imgIRequest::CORS_NONE),
       mImageErrorCode(NS_OK),
       mImageAvailable(false),
-      mMutex("imgRequest"),
+      mMutex("imgRequest", /* aOrdered */ true),
       mProgressTracker(new ProgressTracker()),
       mIsMultiPartChannel(false),
       mIsInCache(false),

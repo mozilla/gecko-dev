@@ -404,9 +404,6 @@ JSScript* nsJSUtils::ExecutionContext::GetScript() {
 JSScript* nsJSUtils::ExecutionContext::MaybeGetScript() { return mScript; }
 
 nsresult nsJSUtils::ExecutionContext::ExecScript() {
-  const char* filename = mScript ? JS_GetScriptFilename(mScript) : "";
-  recordreplay::RecordReplayAssert("ExecutionContext::ExecScript %s %d", filename ? filename : "", mSkip);
-
   if (mSkip) {
     return mRv;
   }

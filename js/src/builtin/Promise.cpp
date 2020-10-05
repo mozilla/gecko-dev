@@ -973,8 +973,6 @@ static bool Promise_then_impl(JSContext* cx, HandleValue promiseVal,
 static MOZ_MUST_USE bool ResolvePromiseInternal(JSContext* cx,
                                                 HandleObject promise,
                                                 HandleValue resolutionVal) {
-  mozilla::recordreplay::RecordReplayAssert("ResolvePromiseInternal");
-
   cx->check(promise, resolutionVal);
   MOZ_ASSERT(!IsSettledMaybeWrappedPromise(promise));
 
@@ -1793,8 +1791,6 @@ static MOZ_MUST_USE bool AsyncGeneratorPromiseReactionJob(
  */
 static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
-
-  mozilla::recordreplay::RecordReplayAssert("PromiseReactionJob");
 
   RootedFunction job(cx, &args.callee().as<JSFunction>());
 
@@ -4509,7 +4505,6 @@ static MOZ_MUST_USE bool InternalAwait(JSContext* cx, HandleValue value,
 MOZ_MUST_USE JSObject* js::AsyncFunctionAwait(
     JSContext* cx, Handle<AsyncFunctionGeneratorObject*> genObj,
     HandleValue value) {
-  mozilla::recordreplay::RecordReplayAssert("AsyncFunctionAwait");
   auto extra = [&](Handle<PromiseReactionRecord*> reaction) {
     reaction->setIsAsyncFunction(genObj);
   };

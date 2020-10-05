@@ -57,7 +57,7 @@ class DecodePoolImpl {
 
   DecodePoolImpl(uint8_t aMaxThreads, uint8_t aMaxIdleThreads,
                  TimeDuration aIdleTimeout)
-      : mMonitor("DecodePoolImpl"),
+      : mMonitor("DecodePoolImpl", /* aOrdered */ true),
         mThreads(aMaxThreads),
         mIdleTimeout(aIdleTimeout),
         mMaxIdleThreads(aMaxIdleThreads),

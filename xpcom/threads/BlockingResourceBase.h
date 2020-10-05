@@ -63,9 +63,6 @@ class BlockingResourceBase {
    */
   static const char* const kResourceTypeName[];
 
-  // Get the name of the resource.
-  const char* Name() const { return mName; }
-
 #ifdef DEBUG
 
   static size_t SizeOfDeadlockDetector(MallocSizeOf aMallocSizeOf);
@@ -321,13 +318,9 @@ class BlockingResourceBase {
 
 #else  // non-DEBUG implementation
 
-  BlockingResourceBase(const char* aName, BlockingResourceType aType)
-      : mName(aName) {}
+  BlockingResourceBase(const char* aName, BlockingResourceType aType) {}
 
   ~BlockingResourceBase() {}
-
- private:
-  const char* mName;
 
 #endif
 };

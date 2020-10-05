@@ -36,6 +36,10 @@ class MutexImpl {
   // through the PLT.
   MFBT_API bool tryLock();
 
+#if !defined(XP_WIN)
+  MFBT_API pthread_mutex_t* NativeHandle();
+#endif
+
  private:
   MutexImpl(const MutexImpl&) = delete;
   void operator=(const MutexImpl&) = delete;

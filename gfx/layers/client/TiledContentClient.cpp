@@ -550,8 +550,6 @@ static already_AddRefed<TextureClient> CreateBackBufferTexture(
 
 void TileClient::GetSyncTextureSerials(SurfaceMode aMode,
                                        nsTArray<uint64_t>& aSerials) {
-  recordreplay::RecordReplayAssert("TileClient::GetSyncTextureSerials");
-
   if (mFrontBuffer && mFrontBuffer->HasIntermediateBuffer() &&
       !mFrontBuffer->IsReadLocked() &&
       (aMode != SurfaceMode::SURFACE_COMPONENT_ALPHA ||
@@ -559,22 +557,14 @@ void TileClient::GetSyncTextureSerials(SurfaceMode aMode,
     return;
   }
 
-  if (mBackBuffer) {
-    recordreplay::RecordReplayAssert("TileClient::GetSyncTextureSerials #0 %d %d",
-                                     mBackBuffer->HasIntermediateBuffer(),
-                                     mBackBuffer->IsReadLocked());
-  }
-
   if (mBackBuffer && !mBackBuffer->HasIntermediateBuffer() &&
       mBackBuffer->IsReadLocked()) {
-    recordreplay::RecordReplayAssert("TileClient::GetSyncTextureSerials #1");
     aSerials.AppendElement(mBackBuffer->GetSerial());
   }
 
   if (aMode == SurfaceMode::SURFACE_COMPONENT_ALPHA && mBackBufferOnWhite &&
       !mBackBufferOnWhite->HasIntermediateBuffer() &&
       mBackBufferOnWhite->IsReadLocked()) {
-    recordreplay::RecordReplayAssert("TileClient::GetSyncTextureSerials #2");
     aSerials.AppendElement(mBackBufferOnWhite->GetSerial());
   }
 }

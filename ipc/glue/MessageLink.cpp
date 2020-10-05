@@ -248,10 +248,6 @@ uint32_t ThreadLink::Unsound_NumQueuedMessages() const {
 //
 
 void ProcessLink::OnMessageReceived(Message&& msg) {
-  recordreplay::RecordReplayAssert("ProcessLink::OnMessageReceived %s %lu",
-                                   IPC::StringFromIPCMessageType(msg.type()),
-                                   msg.size());
-
   AssertIOThread();
   NS_ASSERTION(mChan->mChannelState != ChannelError, "Shouldn't get here!");
   MonitorAutoLock lock(*mChan->mMonitor);

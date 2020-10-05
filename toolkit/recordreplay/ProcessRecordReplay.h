@@ -16,10 +16,21 @@
 
 namespace mozilla::recordreplay {
 
+void LoadSymbolInternal(const char* name, void** psym);
+
+template <typename T>
+inline void LoadSymbol(const char* name, T& function) {
+  void* sym;
+  LoadSymbolInternal(name, &sym);
+  BitwiseCast(sym, &function);
+}
+
 static inline bool TestEnv(const char* env) {
   const char* value = getenv(env);
   return value && value[0];
 }
+
+void InitializeGraphics();
 
 }  // namespace mozilla::recordreplay
 

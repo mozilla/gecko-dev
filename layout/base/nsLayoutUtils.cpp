@@ -9653,8 +9653,6 @@ static void UpdateDisplayPortMarginsForPendingMetrics(
 
 /* static */
 void nsLayoutUtils::UpdateDisplayPortMarginsFromPendingMessages() {
-  recordreplay::RecordReplayAssert("nsLayoutUtils::UpdateDisplayPortMarginsFromPendingMessages");
-
   if (XRE_IsContentProcess() && mozilla::layers::CompositorBridgeChild::Get() &&
       mozilla::layers::CompositorBridgeChild::Get()->GetIPCChannel()) {
     CompositorBridgeChild::Get()->GetIPCChannel()->PeekMessages(

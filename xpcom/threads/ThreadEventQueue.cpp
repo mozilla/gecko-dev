@@ -133,8 +133,6 @@ template <class InnerQueueT>
 already_AddRefed<nsIRunnable> ThreadEventQueue<InnerQueueT>::GetEvent(
     bool aMayWait, EventQueuePriority* aPriority,
     mozilla::TimeDuration* aLastEventDelay) {
-  recordreplay::RecordReplayAssert("ThreadEventQueue::GetEvent");
-
   nsCOMPtr<nsIRunnable> event;
   bool eventIsIdleRunnable = false;
   // This will be the IdlePeriodState for the queue the event, if any,
@@ -223,9 +221,6 @@ already_AddRefed<nsIRunnable> ThreadEventQueue<InnerQueueT>::GetEvent(
       idleState->FlagNotIdle();
     }
   }
-
-  recordreplay::RecordReplayAssert("ThreadEventQueue::GetEvent RETURN %d",
-                                   recordreplay::ThingIndex(event));
 
   return event.forget();
 }

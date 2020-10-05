@@ -11,12 +11,17 @@
 #include "base/lock_impl.h"
 #include "base/platform_thread.h"
 #include "build/build_config.h"
+#include "mozilla/RecordReplay.h"
 
 // A convenient wrapper for an OS specific critical section.
 class Lock {
  public:
   // Optimized wrapper implementation
-  Lock() : lock_() {}
+  Lock(bool ordered = false) : lock_() {
+    if (ordered) {
+      mozilla::recordreplay::AddOrderedPthreadMutex("Lock", lock_.native_handle());
+    }
+  }
   ~Lock() {}
   void Acquire() { lock_.Lock(); }
   void Release() { lock_.Unlock(); }

@@ -173,7 +173,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
 
   {
     AutoResolveRefLayers resolve(
-        mCompositorBridge ? mCompositorBridge->GetCompositionManager(this) : nullptr);
+        mCompositorBridge->GetCompositionManager(this));
     nsCString none;
     mLayerManager->BeginTransaction(none);
   }
@@ -440,13 +440,11 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
     }
   }
 
-  if (mCompositorBridge) {
-    mCompositorBridge->ShadowLayersUpdated(this, aInfo, mUpdateHitTestingTree);
-  }
+  mCompositorBridge->ShadowLayersUpdated(this, aInfo, mUpdateHitTestingTree);
 
   {
     AutoResolveRefLayers resolve(
-        mCompositorBridge ? mCompositorBridge->GetCompositionManager(this) : nullptr);
+        mCompositorBridge->GetCompositionManager(this));
     mLayerManager->EndTransaction(TimeStamp(),
                                   LayerManager::END_NO_IMMEDIATE_REDRAW);
   }
@@ -940,15 +938,11 @@ void LayerTransactionParent::SendAsyncMessage(
 }
 
 void LayerTransactionParent::SendPendingAsyncMessages() {
-  if (mCompositorBridge) {
-    mCompositorBridge->SendPendingAsyncMessages();
-  }
+  mCompositorBridge->SendPendingAsyncMessages();
 }
 
 void LayerTransactionParent::SetAboutToSendAsyncMessages() {
-  if (mCompositorBridge) {
-    mCompositorBridge->SetAboutToSendAsyncMessages();
-  }
+  mCompositorBridge->SetAboutToSendAsyncMessages();
 }
 
 void LayerTransactionParent::NotifyNotUsed(PTextureParent* aTexture,

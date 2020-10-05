@@ -26,7 +26,6 @@ class EventQueueInternal : public AbstractEventQueue {
 
   EventQueueInternal() {}
   explicit EventQueueInternal(EventQueuePriority aPriority);
-  ~EventQueueInternal();
 
   void PutEvent(already_AddRefed<nsIRunnable>&& aEvent,
                 EventQueuePriority aPriority, const MutexAutoLock& aProofOfLock,

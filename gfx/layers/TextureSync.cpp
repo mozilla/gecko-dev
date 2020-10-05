@@ -218,11 +218,7 @@ void TextureSync::UpdateTextureLocks(base::ProcessId aProcessId) {
 
 bool TextureSync::WaitForTextures(base::ProcessId aProcessId,
                                   const nsTArray<uint64_t>& textureIds) {
-  recordreplay::RecordReplayAssert("TextureSync::WaitForTextures");
-
   if (aProcessId == base::GetCurrentProcId()) {
-    recordreplay::RecordReplayAssert("TextureSync::WaitForTextures #1");
-
     bool success =
         WaitForTextureIdsToUnlock(aProcessId, MakeSpan<uint64_t>(textureIds));
     if (!success) {
@@ -269,8 +265,6 @@ bool TextureSync::WaitForTextures(base::ProcessId aProcessId,
     LOG_ERROR("Failed waiting for textures to unlock.\n");
     return false;
   }
-
-  recordreplay::RecordReplayAssert("TextureSync::WaitForTextures DONE");
 
   return true;
 }

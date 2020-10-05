@@ -478,7 +478,7 @@ class MOZ_STACK_CLASS AutoReadSegment final {
 nsPipe::nsPipe()
     : mOutput(this),
       mOriginalInput(new nsPipeInputStream(this)),
-      mReentrantMonitor("nsPipe.mReentrantMonitor"),
+      mReentrantMonitor("nsPipe.mReentrantMonitor", /* aOrdered */ true),
       mMaxAdvanceBufferSegmentCount(0),
       mWriteSegment(-1),
       mWriteCursor(nullptr),

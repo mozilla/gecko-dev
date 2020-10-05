@@ -67,7 +67,7 @@ class BufferTextureData : public TextureData {
 
   Maybe<StereoMode> GetStereoMode() const;
 
- protected:
+ //protected:
   gfx::IntSize GetSize() const;
 
   gfx::SurfaceFormat GetFormat() const;

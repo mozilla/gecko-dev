@@ -30,6 +30,11 @@
 
 namespace mozilla {
 using namespace gfx;
+
+namespace recordreplay {
+  layers::TextureHost* CreateTextureHost(layers::PTextureChild* aChild);
+}
+
 namespace layers {
 
 class Layer;
@@ -294,8 +299,13 @@ bool TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
     const TexturedTileDescriptor& texturedDesc =
         tileDesc.get_TexturedTileDescriptor();
 
-    tile.mTextureHost =
-        TextureHost::AsTextureHost(texturedDesc.textureParent());
+    if (recordreplay::IsRecordingOrReplaying()) {
+      tile.mTextureHost =
+          recordreplay::CreateTextureHost(texturedDesc.textureChild());
+    } else {
+      tile.mTextureHost =
+          TextureHost::AsTextureHost(texturedDesc.textureParent());
+    }
     if (!recordreplay::IsRecordingOrReplaying() && texturedDesc.readLocked()) {
       tile.mTextureHost->SetReadLocked();
       auto actor = tile.mTextureHost->GetIPDLActor();
@@ -310,10 +320,15 @@ bool TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
       }
     }
 
-    if (texturedDesc.textureOnWhiteParent().isSome()) {
+    if (recordreplay::IsRecordingOrReplaying()) {
+      if (texturedDesc.textureOnWhiteChild().isSome()) {
+        tile.mTextureHostOnWhite =
+          recordreplay::CreateTextureHost(texturedDesc.textureOnWhiteChild().ref());
+      }
+    } else if (texturedDesc.textureOnWhiteParent().isSome()) {
       tile.mTextureHostOnWhite =
           TextureHost::AsTextureHost(texturedDesc.textureOnWhiteParent().ref());
-      if (!recordreplay::IsRecordingOrReplaying() && texturedDesc.readLockedOnWhite()) {
+      if (texturedDesc.readLockedOnWhite()) {
         tile.mTextureHostOnWhite->SetReadLocked();
         auto actor = tile.mTextureHostOnWhite->GetIPDLActor();
         if (actor && tile.mTextureHostOnWhite->IsDirectMap()) {

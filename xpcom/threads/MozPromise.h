@@ -228,7 +228,7 @@ class MozPromise : public MozPromiseBase {
   // a MozPromise::Private, defined below.
   MozPromise(const char* aCreationSite, bool aIsCompletionPromise)
       : mCreationSite(aCreationSite),
-        mMutex("MozPromise Mutex"),
+        mMutex("MozPromise Mutex", /* aOrdered */ true),
         mHaveRequest(false),
         mIsCompletionPromise(aIsCompletionPromise)
 #  ifdef PROMISE_DEBUG

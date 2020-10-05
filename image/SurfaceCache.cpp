@@ -60,7 +60,7 @@ class SurfaceCacheImpl;
 static StaticRefPtr<SurfaceCacheImpl> sInstance;
 
 // The mutex protecting the surface cache.
-static StaticMutex sInstanceMutex;
+static OrderedStaticMutex sInstanceMutex;
 
 ///////////////////////////////////////////////////////////////////////////////
 // SurfaceCache Implementation
@@ -762,7 +762,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   void InitMemoryReporter() { RegisterWeakMemoryReporter(this); }
 
   InsertOutcome Insert(NotNull<ISurfaceProvider*> aProvider, bool aSetAvailable,
-                       const StaticMutexAutoLock& aAutoLock) {
+                       const OrderedStaticMutexAutoLock& aAutoLock) {
     // If this is a duplicate surface, refuse to replace the original.
     // XXX(seth): Calling Lookup() and then RemoveEntry() does the lookup
     // twice. We'll make this more efficient in bug 1185137.
@@ -851,7 +851,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   void Remove(NotNull<CachedSurface*> aSurface, bool aStopTracking,
-              const StaticMutexAutoLock& aAutoLock) {
+              const OrderedStaticMutexAutoLock& aAutoLock) {
     ImageKey imageKey = aSurface->GetImageKey();
 
     RefPtr<ImageSurfaceCache> cache = GetImageCache(imageKey);
@@ -876,7 +876,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   bool StartTracking(NotNull<CachedSurface*> aSurface,
-                     const StaticMutexAutoLock& aAutoLock) {
+                     const OrderedStaticMutexAutoLock& aAutoLock) {
     CostEntry costEntry = aSurface->GetCostEntry();
     MOZ_ASSERT(costEntry.GetCost() <= mAvailableCost,
                "Cost too large and the caller didn't catch it");
@@ -906,7 +906,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   void StopTracking(NotNull<CachedSurface*> aSurface, bool aIsTracked,
-                    const StaticMutexAutoLock& aAutoLock) {
+                    const OrderedStaticMutexAutoLock& aAutoLock) {
     CostEntry costEntry = aSurface->GetCostEntry();
 
     if (aSurface->IsLocked()) {
@@ -935,7 +935,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   LookupResult Lookup(const ImageKey aImageKey, const SurfaceKey& aSurfaceKey,
-                      const StaticMutexAutoLock& aAutoLock, bool aMarkUsed) {
+                      const OrderedStaticMutexAutoLock& aAutoLock, bool aMarkUsed) {
     RefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
     if (!cache) {
       // No cached surfaces for this image.
@@ -973,7 +973,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
 
   LookupResult LookupBestMatch(const ImageKey aImageKey,
                                const SurfaceKey& aSurfaceKey,
-                               const StaticMutexAutoLock& aAutoLock,
+                               const OrderedStaticMutexAutoLock& aAutoLock,
                                bool aMarkUsed) {
     RefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
     if (!cache) {
@@ -1037,7 +1037,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   size_t MaximumCapacity() const { return size_t(mMaxCost); }
 
   void SurfaceAvailable(NotNull<ISurfaceProvider*> aProvider,
-                        const StaticMutexAutoLock& aAutoLock) {
+                        const OrderedStaticMutexAutoLock& aAutoLock) {
     if (!aProvider->Availability().IsPlaceholder()) {
       MOZ_ASSERT_UNREACHABLE("Calling SurfaceAvailable on non-placeholder");
       return;
@@ -1066,7 +1066,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   void UnlockImage(const ImageKey aImageKey,
-                   const StaticMutexAutoLock& aAutoLock) {
+                   const OrderedStaticMutexAutoLock& aAutoLock) {
     RefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
     if (!cache || !cache->IsLocked()) {
       return;  // Already unlocked.
@@ -1077,7 +1077,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   void UnlockEntries(const ImageKey aImageKey,
-                     const StaticMutexAutoLock& aAutoLock) {
+                     const OrderedStaticMutexAutoLock& aAutoLock) {
     RefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
     if (!cache || !cache->IsLocked()) {
       return;  // Already unlocked.
@@ -1092,7 +1092,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   already_AddRefed<ImageSurfaceCache> RemoveImage(
-      const ImageKey aImageKey, const StaticMutexAutoLock& aAutoLock) {
+      const ImageKey aImageKey, const OrderedStaticMutexAutoLock& aAutoLock) {
     RefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
     if (!cache) {
       return nullptr;  // No cached surfaces for this image, so nothing to do.
@@ -1118,7 +1118,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   void PruneImage(const ImageKey aImageKey,
-                  const StaticMutexAutoLock& aAutoLock) {
+                  const OrderedStaticMutexAutoLock& aAutoLock) {
     RefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
     if (!cache) {
       return;  // No cached surfaces for this image, so nothing to do.
@@ -1133,7 +1133,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
     MaybeRemoveEmptyCache(aImageKey, cache);
   }
 
-  void DiscardAll(const StaticMutexAutoLock& aAutoLock) {
+  void DiscardAll(const OrderedStaticMutexAutoLock& aAutoLock) {
     // Remove in order of cost because mCosts is an array and the other data
     // structures are all hash tables. Note that locked surfaces are not
     // removed, since they aren't present in mCosts.
@@ -1143,7 +1143,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
     }
   }
 
-  void DiscardForMemoryPressure(const StaticMutexAutoLock& aAutoLock) {
+  void DiscardForMemoryPressure(const OrderedStaticMutexAutoLock& aAutoLock) {
     // Compute our discardable cost. Since locked surfaces aren't discardable,
     // we exclude them.
     const Cost discardableCost = (mMaxCost - mAvailableCost) - mLockedCost;
@@ -1170,13 +1170,13 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   void TakeDiscard(nsTArray<RefPtr<CachedSurface>>& aDiscard,
-                   const StaticMutexAutoLock& aAutoLock) {
+                   const OrderedStaticMutexAutoLock& aAutoLock) {
     MOZ_ASSERT(aDiscard.IsEmpty());
     aDiscard = std::move(mCachedSurfacesDiscard);
   }
 
   void LockSurface(NotNull<CachedSurface*> aSurface,
-                   const StaticMutexAutoLock& aAutoLock) {
+                   const OrderedStaticMutexAutoLock& aAutoLock) {
     if (aSurface->IsPlaceholder() || aSurface->IsLocked()) {
       return;
     }
@@ -1190,7 +1190,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   size_t ShallowSizeOfIncludingThis(
-      MallocSizeOf aMallocSizeOf, const StaticMutexAutoLock& aAutoLock) const {
+      MallocSizeOf aMallocSizeOf, const OrderedStaticMutexAutoLock& aAutoLock) const {
     size_t bytes =
         aMallocSizeOf(this) + mCosts.ShallowSizeOfExcludingThis(aMallocSizeOf) +
         mImageCaches.ShallowSizeOfExcludingThis(aMallocSizeOf) +
@@ -1205,7 +1205,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   NS_IMETHOD
   CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData,
                  bool aAnonymize) override {
-    StaticMutexAutoLock lock(sInstanceMutex);
+    OrderedStaticMutexAutoLock lock(sInstanceMutex);
 
     uint32_t lockedImageCount = 0;
     uint32_t totalSurfaceCount = 0;
@@ -1303,7 +1303,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   void CollectSizeOfSurfaces(const ImageKey aImageKey,
                              nsTArray<SurfaceMemoryCounter>& aCounters,
                              MallocSizeOf aMallocSizeOf,
-                             const StaticMutexAutoLock& aAutoLock) {
+                             const OrderedStaticMutexAutoLock& aAutoLock) {
     RefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
     if (!cache) {
       return;  // No surfaces for this image.
@@ -1350,7 +1350,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
 
   bool MarkUsed(NotNull<CachedSurface*> aSurface,
                 NotNull<ImageSurfaceCache*> aCache,
-                const StaticMutexAutoLock& aAutoLock) {
+                const OrderedStaticMutexAutoLock& aAutoLock) {
     if (aCache->IsLocked()) {
       LockSurface(aSurface, aAutoLock);
       return true;
@@ -1368,7 +1368,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   void DoUnlockSurfaces(NotNull<ImageSurfaceCache*> aCache, bool aStaticOnly,
-                        const StaticMutexAutoLock& aAutoLock) {
+                        const OrderedStaticMutexAutoLock& aAutoLock) {
     AutoTArray<NotNull<CachedSurface*>, 8> discard;
 
     // Unlock all the surfaces the per-image cache is holding.
@@ -1395,7 +1395,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   void RemoveEntry(const ImageKey aImageKey, const SurfaceKey& aSurfaceKey,
-                   const StaticMutexAutoLock& aAutoLock) {
+                   const OrderedStaticMutexAutoLock& aAutoLock) {
     RefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
     if (!cache) {
       return;  // No cached surfaces for this image.
@@ -1411,23 +1411,23 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   class SurfaceTracker final
-      : public ExpirationTrackerImpl<CachedSurface, 2, StaticMutex,
-                                     StaticMutexAutoLock> {
+      : public ExpirationTrackerImpl<CachedSurface, 2, OrderedStaticMutex,
+                                     OrderedStaticMutexAutoLock> {
    public:
     explicit SurfaceTracker(uint32_t aSurfaceCacheExpirationTimeMS)
-        : ExpirationTrackerImpl<CachedSurface, 2, StaticMutex,
-                                StaticMutexAutoLock>(
+        : ExpirationTrackerImpl<CachedSurface, 2, OrderedStaticMutex,
+                                OrderedStaticMutexAutoLock>(
               aSurfaceCacheExpirationTimeMS, "SurfaceTracker",
               SystemGroup::EventTargetFor(TaskCategory::Other)) {}
 
    protected:
     void NotifyExpiredLocked(CachedSurface* aSurface,
-                             const StaticMutexAutoLock& aAutoLock) override {
+                             const OrderedStaticMutexAutoLock& aAutoLock) override {
       sInstance->Remove(WrapNotNull(aSurface), /* aStopTracking */ true,
                         aAutoLock);
     }
 
-    void NotifyHandlerEndLocked(const StaticMutexAutoLock& aAutoLock) override {
+    void NotifyHandlerEndLocked(const OrderedStaticMutexAutoLock& aAutoLock) override {
       sInstance->TakeDiscard(mDiscard, aAutoLock);
     }
 
@@ -1435,7 +1435,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
       nsTArray<RefPtr<CachedSurface>> discard(std::move(mDiscard));
     }
 
-    StaticMutex& GetMutex() override { return sInstanceMutex; }
+    OrderedStaticMutex& GetMutex() override { return sInstanceMutex; }
 
     nsTArray<RefPtr<CachedSurface>> mDiscard;
   };
@@ -1448,7 +1448,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
                        const char16_t*) override {
       nsTArray<RefPtr<CachedSurface>> discard;
       {
-        StaticMutexAutoLock lock(sInstanceMutex);
+        OrderedStaticMutexAutoLock lock(sInstanceMutex);
         if (sInstance && strcmp(aTopic, "memory-pressure") == 0) {
           sInstance->DiscardForMemoryPressure(lock);
           sInstance->TakeDiscard(discard, lock);
@@ -1548,7 +1548,7 @@ void SurfaceCache::Initialize() {
 void SurfaceCache::Shutdown() {
   RefPtr<SurfaceCacheImpl> cache;
   {
-    StaticMutexAutoLock lock(sInstanceMutex);
+    OrderedStaticMutexAutoLock lock(sInstanceMutex);
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(sInstance, "No singleton - was Shutdown() called twice?");
     cache = sInstance.forget();
@@ -1563,7 +1563,7 @@ LookupResult SurfaceCache::Lookup(const ImageKey aImageKey,
   LookupResult rv(MatchType::NOT_FOUND);
 
   {
-    StaticMutexAutoLock lock(sInstanceMutex);
+    OrderedStaticMutexAutoLock lock(sInstanceMutex);
     if (!sInstance) {
       return rv;
     }
@@ -1583,7 +1583,7 @@ LookupResult SurfaceCache::LookupBestMatch(const ImageKey aImageKey,
   LookupResult rv(MatchType::NOT_FOUND);
 
   {
-    StaticMutexAutoLock lock(sInstanceMutex);
+    OrderedStaticMutexAutoLock lock(sInstanceMutex);
     if (!sInstance) {
       return rv;
     }
@@ -1601,7 +1601,7 @@ InsertOutcome SurfaceCache::Insert(NotNull<ISurfaceProvider*> aProvider) {
   InsertOutcome rv(InsertOutcome::FAILURE);
 
   {
-    StaticMutexAutoLock lock(sInstanceMutex);
+    OrderedStaticMutexAutoLock lock(sInstanceMutex);
     if (!sInstance) {
       return rv;
     }
@@ -1616,7 +1616,7 @@ InsertOutcome SurfaceCache::Insert(NotNull<ISurfaceProvider*> aProvider) {
 /* static */
 bool SurfaceCache::CanHold(const IntSize& aSize,
                            uint32_t aBytesPerPixel /* = 4 */) {
-  StaticMutexAutoLock lock(sInstanceMutex);
+  OrderedStaticMutexAutoLock lock(sInstanceMutex);
   if (!sInstance) {
     return false;
   }
@@ -1627,7 +1627,7 @@ bool SurfaceCache::CanHold(const IntSize& aSize,
 
 /* static */
 bool SurfaceCache::CanHold(size_t aSize) {
-  StaticMutexAutoLock lock(sInstanceMutex);
+  OrderedStaticMutexAutoLock lock(sInstanceMutex);
   if (!sInstance) {
     return false;
   }
@@ -1637,7 +1637,7 @@ bool SurfaceCache::CanHold(size_t aSize) {
 
 /* static */
 void SurfaceCache::SurfaceAvailable(NotNull<ISurfaceProvider*> aProvider) {
-  StaticMutexAutoLock lock(sInstanceMutex);
+  OrderedStaticMutexAutoLock lock(sInstanceMutex);
   if (!sInstance) {
     return;
   }
@@ -1647,7 +1647,7 @@ void SurfaceCache::SurfaceAvailable(NotNull<ISurfaceProvider*> aProvider) {
 
 /* static */
 void SurfaceCache::LockImage(const ImageKey aImageKey) {
-  StaticMutexAutoLock lock(sInstanceMutex);
+  OrderedStaticMutexAutoLock lock(sInstanceMutex);
   if (sInstance) {
     return sInstance->LockImage(aImageKey);
   }
@@ -1655,7 +1655,7 @@ void SurfaceCache::LockImage(const ImageKey aImageKey) {
 
 /* static */
 void SurfaceCache::UnlockImage(const ImageKey aImageKey) {
-  StaticMutexAutoLock lock(sInstanceMutex);
+  OrderedStaticMutexAutoLock lock(sInstanceMutex);
   if (sInstance) {
     return sInstance->UnlockImage(aImageKey, lock);
   }
@@ -1663,7 +1663,7 @@ void SurfaceCache::UnlockImage(const ImageKey aImageKey) {
 
 /* static */
 void SurfaceCache::UnlockEntries(const ImageKey aImageKey) {
-  StaticMutexAutoLock lock(sInstanceMutex);
+  OrderedStaticMutexAutoLock lock(sInstanceMutex);
   if (sInstance) {
     return sInstance->UnlockEntries(aImageKey, lock);
   }
@@ -1673,7 +1673,7 @@ void SurfaceCache::UnlockEntries(const ImageKey aImageKey) {
 void SurfaceCache::RemoveImage(const ImageKey aImageKey) {
   RefPtr<ImageSurfaceCache> discard;
   {
-    StaticMutexAutoLock lock(sInstanceMutex);
+    OrderedStaticMutexAutoLock lock(sInstanceMutex);
     if (sInstance) {
       discard = sInstance->RemoveImage(aImageKey, lock);
     }
@@ -1684,7 +1684,7 @@ void SurfaceCache::RemoveImage(const ImageKey aImageKey) {
 void SurfaceCache::PruneImage(const ImageKey aImageKey) {
   nsTArray<RefPtr<CachedSurface>> discard;
   {
-    StaticMutexAutoLock lock(sInstanceMutex);
+    OrderedStaticMutexAutoLock lock(sInstanceMutex);
     if (sInstance) {
       sInstance->PruneImage(aImageKey, lock);
       sInstance->TakeDiscard(discard, lock);
@@ -1696,7 +1696,7 @@ void SurfaceCache::PruneImage(const ImageKey aImageKey) {
 void SurfaceCache::DiscardAll() {
   nsTArray<RefPtr<CachedSurface>> discard;
   {
-    StaticMutexAutoLock lock(sInstanceMutex);
+    OrderedStaticMutexAutoLock lock(sInstanceMutex);
     if (sInstance) {
       sInstance->DiscardAll(lock);
       sInstance->TakeDiscard(discard, lock);
@@ -1710,7 +1710,7 @@ void SurfaceCache::CollectSizeOfSurfaces(
     MallocSizeOf aMallocSizeOf) {
   nsTArray<RefPtr<CachedSurface>> discard;
   {
-    StaticMutexAutoLock lock(sInstanceMutex);
+    OrderedStaticMutexAutoLock lock(sInstanceMutex);
     if (!sInstance) {
       return;
     }
@@ -1722,7 +1722,7 @@ void SurfaceCache::CollectSizeOfSurfaces(
 
 /* static */
 size_t SurfaceCache::MaximumCapacity() {
-  StaticMutexAutoLock lock(sInstanceMutex);
+  OrderedStaticMutexAutoLock lock(sInstanceMutex);
   if (!sInstance) {
     return 0;
   }

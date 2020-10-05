@@ -387,6 +387,8 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
     return IPC_OK();
   };
 
+  void SetLayerManager(HostLayerManager* aLayerManager);
+
   mozilla::ipc::IPCResult RecvAllPluginsCaptured() override;
   mozilla::ipc::IPCResult RecvBeginRecording(
       const TimeStamp& aRecordingStart,
@@ -773,7 +775,7 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
   void Invalidate();
   bool IsPaused() { return mPaused; }
 
- protected:
+  //protected:
   void ForceComposition();
   void CancelCurrentCompositeTask();
 

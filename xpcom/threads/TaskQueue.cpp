@@ -62,7 +62,7 @@ TaskQueue::TaskQueue(already_AddRefed<nsIEventTarget> aTarget,
                      bool aRetainFlags)
     : AbstractThread(aRequireTailDispatch),
       mTarget(aTarget),
-      mQueueMonitor("TaskQueue::Queue"),
+      mQueueMonitor("TaskQueue::Queue", /* aOrdered */ true),
       mTailDispatcher(nullptr),
       mShouldRetainFlags(aRetainFlags),
       mIsRunning(false),

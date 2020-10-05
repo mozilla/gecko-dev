@@ -35,8 +35,6 @@ static void RecordReplayAssertFromC(const char* aFormat, ...) {
       return;
     }
     gRecordReplayAssertFn = fnptr;
-
-    fprintf(stderr, "Busy-waiting %d", getpid());
   }
 
   va_list ap;
@@ -88,7 +86,6 @@ RNG_SystemRNG(void *dest, size_t maxLen)
     fileBytes = 0;
 #endif
     RecordReplayAssertFromC("RNG_SystemRNG #3");
-    fprintf(stderr, "OPEN_URANDOM %d\n", getpid());
     fd = open("/dev/urandom", O_RDONLY);
     if (fd < 0) {
         PORT_SetError(SEC_ERROR_NEED_RANDOM);

@@ -44,8 +44,6 @@
 #include "uassert.h"
 #include "ustr_imp.h"
 
-#include "mozilla/RecordReplay.h"
-
 #ifdef U_DEBUG_TZ
 # include <stdio.h>
 # include "uresimp.h" // for debugging
@@ -1205,8 +1203,6 @@ TimeZone::getDSTSavings()const {
 UnicodeString&
 TimeZone::getDisplayName(UBool inDaylight, EDisplayType style, const Locale& locale, UnicodeString& result) const
 {
-    mozilla::recordreplay::RecordReplayAssert("TimeZone::getDisplayName");
-
     UErrorCode status = U_ZERO_ERROR;
     UDate date = Calendar::getNow();
     UTimeZoneFormatTimeType timeType = UTZFMT_TIME_TYPE_UNKNOWN;

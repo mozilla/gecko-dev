@@ -158,6 +158,12 @@ void ImageContainer::EnsureImageClient() {
     return;
   }
 
+  // When diverged from the recording there is no UI process and we will end
+  // up waiting forever if we try to create a client.
+  if (recordreplay::HasDivergedFromRecording()) {
+    return;
+  }
+
   RefPtr<ImageBridgeChild> imageBridge = ImageBridgeChild::GetSingleton();
   if (imageBridge) {
     mImageClient =
