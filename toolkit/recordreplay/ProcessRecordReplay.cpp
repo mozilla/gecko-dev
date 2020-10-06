@@ -126,11 +126,11 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
     if (gDriverHandle) {
       break;
     }
-    fprintf(stderr, "Loading driver at %s failed, waiting...\n", driver);
+    fprintf(stderr, "Loading driver at %s failed [%s], waiting...\n", driver, dlerror());
     sleep(1);
   }
   if (!gDriverHandle) {
-    fprintf(stderr, "Loading driver at %s failed, crashing.\n", driver);
+    fprintf(stderr, "Loading driver at %s failed [%s], crashing.\n", driver, dlerror());
     MOZ_CRASH("RECORD_REPLAY_DRIVER loading failed");
   }
 
