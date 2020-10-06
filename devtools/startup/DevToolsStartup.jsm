@@ -1494,7 +1494,7 @@ function createRecordingButton() {
     type: "button",
     tooltiptext: "record-button.tooltiptext2",
     onClick() {
-      if (ChromeUtils.getCloudReplayStatus()) {
+      if (ChromeUtils.getCloudReplayStatus() || !gHasRecordingDriver) {
         return;
       }
 
@@ -1543,6 +1543,9 @@ function createRecordingButton() {
         let tooltip = status;
         if (status) {
           node.disabled = true;
+        } else if (!gHasRecordingDriver) {
+          node.disabled = true;
+          tooltip = "missingDriver.label";
         } else if (recording) {
           node.disabled = false;
           tooltip = "stopRecording.label";
@@ -1680,6 +1683,8 @@ async function fetchURL(url) {
   return response;
 }
 
+let gHasRecordingDriver;
+
 async function updateRecordingDriver() {
   try {
     fetch;
@@ -1689,8 +1694,6 @@ async function updateRecordingDriver() {
     return;
   }
 
-  dump(`updateRecordingDriver Starting...\n`);
-
   try {
     const downloadURL = Services.prefs.getStringPref(
       "devtools.recordreplay.driverDownloads"
@@ -1699,9 +1702,16 @@ async function updateRecordingDriver() {
     const driver = driverFile();
     const json = driverJSONFile();
 
+    dump(`updateRecordingDriver Starting... [Driver ${driver.path}]\n`);
+
+    if (driver.exists() && !gHasRecordingDriver) {
+      gHasRecordingDriver = true;
+      refreshAllRecordingButtons();
+    }
+
     // If we have already downloaded the driver, redownload the server JSON
     // (much smaller than the driver itself) to see if anything has changed.
-    if (json.exists()) {
+    if (json.exists() && driver.exists()) {
       const response = await fetchURL(`${downloadURL}/${DriverJSON}`);
       if (!response) {
         dump(`updateRecordingDriver JSONFetchFailed\n`);
@@ -1746,6 +1756,11 @@ async function updateRecordingDriver() {
         noQuarantine: true,
       }
     );
+
+    if (!gHasRecordingDriver) {
+      gHasRecordingDriver = true;
+      refreshAllRecordingButtons();
+    }
 
     dump(`updateRecordingDriver Updated\n`);
   } catch (e) {
@@ -1892,19 +1907,4 @@ function viewRecordings() {
     Services.prefs.getStringPref("devtools.recordreplay.recordingsUrl"),
     { triggeringPrincipal }
   );
-}
-
-function cloudStatusToFatalError(status) {
-  // Not all cloud status options are exposed in about:replay errors.
-  switch (status) {
-    case "cloudUpdateNeeded.label":
-      return "CloudUpdateNeeded";
-    case "cloudUpdateDownloading.label":
-      return "CloudUpdateDownloading";
-    case "cloudUpdateDownloaded.label":
-      return "CloudUpdateDownloaded";
-    case "cloudUpdateManualDownload.label":
-      return "CloudUpdateManualDownload";
-  }
-  return "CloudNotConnected";
 }
