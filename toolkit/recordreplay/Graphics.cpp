@@ -22,12 +22,16 @@ using namespace mozilla::layers;
 
 namespace mozilla::recordreplay {
 
-static bool (*gShouldPaint)();
-static void (*gOnPaint)(const char* aMimeType, const char* aData);
+static void (*gOnPaint)();
+static bool (*gSetPaintCallback)(char* (*aCallback)(const char* aMimeType, int aJPEGQuality));
+
+static char* PaintCallback(const char* aMimeType, int aJPEGQuality);
 
 void InitializeGraphics() {
-  LoadSymbol("RecordReplayShouldPaint", gShouldPaint);
   LoadSymbol("RecordReplayOnPaint", gOnPaint);
+  LoadSymbol("RecordReplaySetPaintCallback", gSetPaintCallback);
+
+  gSetPaintCallback(PaintCallback);
 }
 
 static LayerManagerComposite* gLayerManager;
@@ -57,8 +61,6 @@ static void EnsureInitialized() {
                                                        LayersId(), TimeDuration());
 }
 
-static void ReportPaint();
-
 void SendUpdate(const TransactionInfo& aInfo) {
   EnsureInitialized();
 
@@ -76,12 +78,23 @@ void SendUpdate(const TransactionInfo& aInfo) {
   // in case we end up wanting to paint later.
   ipc::IPCResult rv = gLayerTransactionParent->RecvUpdate(aInfo);
   MOZ_RELEASE_ASSERT(rv == ipc::IPCResult::Ok());
+}
 
-  // Only composite if the driver wants to know about the painted data.
-  if (gShouldPaint()) {
-    gCompositorBridge->CompositeToTarget(VsyncId(), nullptr, nullptr);
-    ReportPaint();
+static TimeStamp gCompositeTime;
+
+TimeStamp CompositeTime() {
+  return gCompositeTime;
+}
+
+void OnPaint() {
+  if (!HasCheckpoint()) {
+    return;
   }
+
+  gCompositeTime = TimeStamp::Now();
+  recordreplay::RecordReplayBytes("CompositeTime", &gCompositeTime, sizeof(gCompositeTime));
+
+  gOnPaint();
 }
 
 void SendNewCompositable(const layers::CompositableHandle& aHandle,
@@ -101,6 +114,9 @@ static size_t gDrawTargetBufferSize;
 
 // Dimensions of the last paint which the compositor performed.
 static size_t gPaintWidth, gPaintHeight;
+
+// Whether the draw target has been fetched while compositing.
+static bool gFetchedDrawTarget;
 
 already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(const gfx::IntRect& aSize) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
@@ -128,6 +144,7 @@ already_AddRefed<gfx::DrawTarget> DrawTargetForRemoteDrawing(const gfx::IntRect&
       /* aUninitialized = */ true);
   MOZ_RELEASE_ASSERT(drawTarget);
 
+  gFetchedDrawTarget = true;
   return drawTarget.forget();
 }
 
@@ -177,9 +194,20 @@ TextureHost* CreateTextureHost(PTextureChild* aChild) {
   return rv;
 }
 
-static void EncodeGraphics(const char* aMimeType,
-                           const char* aEncodeOptions) {
-  AutoPassThroughThreadEvents pt;
+static char* PaintCallback(const char* aMimeType, int aJPEGQuality) {
+  if (!gCompositorBridge) {
+    return nullptr;
+  }
+
+  MOZ_RELEASE_ASSERT(!gFetchedDrawTarget);
+
+  AutoDisallowThreadEvents disallow;
+  gCompositorBridge->CompositeToTarget(VsyncId(), nullptr, nullptr);
+
+  if (!gFetchedDrawTarget) {
+    return nullptr;
+  }
+  gFetchedDrawTarget = false;
 
   // Get an image encoder for the media type.
   nsPrintfCString encoderCID("@mozilla.org/image/encoder;2?type=%s",
@@ -189,38 +217,35 @@ static void EncodeGraphics(const char* aMimeType,
   size_t stride = layers::ImageDataSerializer::ComputeRGBStride(SurfaceFormat,
                                                                 gPaintWidth);
 
-  nsString options = NS_ConvertUTF8toUTF16(aEncodeOptions);
+  nsCString options8;
+  if (!strcmp(aMimeType, "image/jpeg")) {
+    options8 = nsPrintfCString("quality=%d", aJPEGQuality);
+  }
+
+  nsString options = NS_ConvertUTF8toUTF16(options8);
   nsresult rv = encoder->InitFromData(
       (const uint8_t*)gDrawTargetBuffer, stride * gPaintHeight, gPaintWidth,
       gPaintHeight, stride, imgIEncoder::INPUT_FORMAT_RGBA, options);
   if (NS_FAILED(rv)) {
     PrintLog("Error: encoder->InitFromData() failed");
-    return;
+    return nullptr;
   }
 
   uint64_t count;
   rv = encoder->Available(&count);
   if (NS_FAILED(rv)) {
     PrintLog("Error: encoder->Available() failed");
-    return;
+    return nullptr;
   }
 
   nsCString data;
   rv = Base64EncodeInputStream(encoder, data, count);
   if (NS_FAILED(rv)) {
     PrintLog("Error: Base64EncodeInputStream() failed");
-    return;
+    return nullptr;
   }
 
-  gOnPaint(aMimeType, data.get());
-}
-
-static void ReportPaint() {
-  // For now we only supply JPEG graphics, which is all that the devtools
-  // client uses. This API needs to be redesigned to decouple these things
-  // and allow the driver to fetch whatever graphics it wants...
-  //EncodeGraphics("image/png", "");
-  EncodeGraphics("image/jpeg", "quality=50");
+  return strdup(data.get());
 }
 
 } // namespace mozilla::recordreplay

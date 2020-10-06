@@ -31,6 +31,7 @@ static inline bool TestEnv(const char* env) {
 }
 
 void InitializeGraphics();
+bool HasCheckpoint();
 
 }  // namespace mozilla::recordreplay
 

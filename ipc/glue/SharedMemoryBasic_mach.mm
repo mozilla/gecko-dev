@@ -530,6 +530,8 @@ bool SharedMemoryBasic::Create(size_t size) {
 
   memory_object_size_t memoryObjectSize = round_page(size);
 
+  recordreplay::RecordReplayAssert("SharedMemoryBasic::Create %lu", size);
+
   kern_return_t kr =
       mach_make_memory_entry_64(mach_task_self(), &memoryObjectSize, 0,
                                 MAP_MEM_NAMED_CREATE | VM_PROT_DEFAULT, &mPort, MACH_PORT_NULL);

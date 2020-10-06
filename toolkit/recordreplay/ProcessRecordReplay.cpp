@@ -383,16 +383,21 @@ void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetMouseEvent& aEvent) {
 
 static bool gHasCheckpoint = false;
 
+bool HasCheckpoint() {
+  return gHasCheckpoint;
+}
+
 void CreateCheckpoint() {
   js::EnsureModuleInitialized();
   gRecordReplayNewCheckpoint();
+  gHasCheckpoint = true;
 }
 
 void MaybeCreateCheckpoint() {
   // This is called at the top of the event loop, and the process might not be
   // fully initialized. CreateCheckpoint() is only called after the process has
   // been fully initialized, and we don't want any checkpoints before then.
-  if (gHasCheckpoint) {
+  if (HasCheckpoint()) {
     gRecordReplayNewCheckpoint();
   }
 }

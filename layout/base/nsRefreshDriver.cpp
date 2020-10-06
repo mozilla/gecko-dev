@@ -122,6 +122,8 @@ static mozilla::LazyLogModule sRefreshDriverLog("nsRefreshDriver");
 #  define REFRESH_WAIT_WARNING 1
 #endif
 
+namespace mozilla::recordreplay { void OnPaint(); }
+
 namespace {
 // `true` if we are currently in jank-critical mode.
 //
@@ -366,6 +368,10 @@ class RefreshDriverTimer {
 
     TickRefreshDrivers(aId, now, mContentRefreshDrivers);
     TickRefreshDrivers(aId, now, mRootRefreshDrivers);
+
+    if (recordreplay::IsRecordingOrReplaying()) {
+      recordreplay::OnPaint();
+    }
 
     LOG("[%p] done.", this);
   }

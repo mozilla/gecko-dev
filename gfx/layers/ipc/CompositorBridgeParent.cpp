@@ -112,6 +112,8 @@
 
 namespace mozilla {
 
+namespace recordreplay { TimeStamp CompositeTime(); }
+
 namespace layers {
 
 using namespace mozilla::ipc;
@@ -1014,27 +1016,24 @@ void CompositorBridgeParent::CompositeToTarget(VsyncId aId, DrawTarget* aTarget,
     }
   }
 
-  TimeStamp time;
-  if (recordreplay::IsRecordingOrReplaying()) {
-    time = TimeStamp::Now();
-  } else {
-    mCompositionManager->ComputeRotation();
+  mCompositionManager->ComputeRotation();
 
-    time = mTestTime.valueOr(mCompositorScheduler->GetLastComposeTime());
-    bool requestNextFrame =
-        mCompositionManager->TransformShadowTree(time, mVsyncRate);
+  TimeStamp time = recordreplay::IsRecordingOrReplaying()
+    ? recordreplay::CompositeTime()
+    : mTestTime.valueOr(mCompositorScheduler->GetLastComposeTime());
+  bool requestNextFrame =
+      mCompositionManager->TransformShadowTree(time, mVsyncRate);
 
-    if (requestNextFrame) {
-      ScheduleComposition();
+  if (requestNextFrame && !recordreplay::IsRecordingOrReplaying()) {
+    ScheduleComposition();
 #if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
-    // If we have visible windowed plugins then we need to wait for content (and
-    // then the plugins) to have been updated by the active animation.
-      if (!mPluginWindowsHidden && mCachedPluginData.Length()) {
-        mWaitForPluginsUntil =
-            mCompositorScheduler->GetLastComposeTime() + (mVsyncRate * 2);
-      }
-#endif
+  // If we have visible windowed plugins then we need to wait for content (and
+  // then the plugins) to have been updated by the active animation.
+    if (!mPluginWindowsHidden && mCachedPluginData.Length()) {
+      mWaitForPluginsUntil =
+          mCompositorScheduler->GetLastComposeTime() + (mVsyncRate * 2);
     }
+#endif
   }
 
   RenderTraceLayers(mLayerManager->GetRoot(), "0000");
@@ -1498,6 +1497,10 @@ void CompositorBridgeParent::InitializeLayerManager(
 
 void CompositorBridgeParent::SetLayerManager(HostLayerManager* aLayerManager) {
   mLayerManager = aLayerManager;
+
+  if (recordreplay::IsRecordingOrReplaying()) {
+    mCompositionManager = new AsyncCompositionManager(this, mLayerManager);
+  }
 }
 
 bool CompositorBridgeParent::InitializeAdvancedLayers(
