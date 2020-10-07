@@ -61,13 +61,17 @@ static void EnsureInitialized() {
                                                        LayersId(), TimeDuration());
 }
 
+// This can be enabled to do in process compositing while recording, for easier
+// debugging.
+static bool gPaintWhileRecording;
+
 void SendUpdate(const TransactionInfo& aInfo) {
   EnsureInitialized();
 
   // We never need to update the compositor state in the recording process,
   // because we send updates to the UI process which will composite in the
   // regular way.
-  if (IsRecording()) {
+  if (IsRecording() && !gPaintWhileRecording) {
     return;
   }
 
@@ -93,6 +97,10 @@ void OnPaint() {
 
   gCompositeTime = TimeStamp::Now();
   recordreplay::RecordReplayBytes("CompositeTime", &gCompositeTime, sizeof(gCompositeTime));
+
+  if (IsRecording() && gPaintWhileRecording) {
+    PaintCallback("image/jpeg", 50);
+  }
 
   gOnPaint();
 }
@@ -180,6 +188,10 @@ void RegisterTextureChild(PTextureChild* aChild, TextureData* aData,
 
 TextureHost* CreateTextureHost(PTextureChild* aChild) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
+
+  if (!aChild) {
+    return nullptr;
+  }
 
   auto iter = gTextureInfo.find(aChild);
   MOZ_RELEASE_ASSERT(iter != gTextureInfo.end());

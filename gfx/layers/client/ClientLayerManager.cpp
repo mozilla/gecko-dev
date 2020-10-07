@@ -794,7 +794,13 @@ bool ClientLayerManager::IsCompositingCheap() {
 bool ClientLayerManager::AreComponentAlphaLayersEnabled() {
   return GetCompositorBackendType() != LayersBackend::LAYERS_BASIC &&
          AsShadowForwarder()->SupportsComponentAlpha() &&
-         LayerManager::AreComponentAlphaLayersEnabled();
+         LayerManager::AreComponentAlphaLayersEnabled() &&
+         // When recording/replaying, the recording process is connected to
+         // the normal UI process compositor, which is probably accelerated.
+         // The replaying process uses an in process basic compositor, however.
+         // Because layers will be passed to both compositors, we have to avoid
+         // using features which aren't supported by the basic compositor.
+         !recordreplay::IsRecordingOrReplaying();
 }
 
 void ClientLayerManager::SetIsFirstPaint() { mForwarder->SetIsFirstPaint(); }

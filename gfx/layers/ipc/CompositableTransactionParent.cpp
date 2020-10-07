@@ -129,15 +129,24 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
         }
         const TexturedTileDescriptor& texturedDesc =
             tileDesc.get_TexturedTileDescriptor();
-        RefPtr<TextureHost> texture =
-            TextureHost::AsTextureHost(texturedDesc.textureParent());
-        if (texture) {
+
+        RefPtr<TextureHost> texture;
+        if (recordreplay::IsRecordingOrReplaying()) {
+          texture = recordreplay::CreateTextureHost(texturedDesc.textureChild());
+        } else {
+          texture = TextureHost::AsTextureHost(texturedDesc.textureParent());
+        }
+        if (texture && !recordreplay::IsRecordingOrReplaying()) {
           texture->SetLastFwdTransactionId(mFwdTransactionId);
           // Make sure that each texture was handled by the compositable
           // because the recycling logic depends on it.
           MOZ_ASSERT(texture->NumCompositableRefs() > 0);
         }
-        if (texturedDesc.textureOnWhiteParent().isSome()) {
+        if (recordreplay::IsRecordingOrReplaying()) {
+          if (texturedDesc.textureOnWhiteChild().isSome()) {
+            texture = recordreplay::CreateTextureHost(texturedDesc.textureOnWhiteChild().ref());
+          }
+        } else if (texturedDesc.textureOnWhiteParent().isSome()) {
           texture = TextureHost::AsTextureHost(
               texturedDesc.textureOnWhiteParent().ref());
           if (texture) {

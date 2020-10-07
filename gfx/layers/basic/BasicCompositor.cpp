@@ -778,7 +778,7 @@ void BasicCompositor::DrawGeometry(
       break;
     }
     case EffectTypes::COMPONENT_ALPHA: {
-      //MOZ_CRASH("Can't (easily) support component alpha with BasicCompositor!");
+      MOZ_CRASH("Can't (easily) support component alpha with BasicCompositor!");
       break;
     }
     default: {
