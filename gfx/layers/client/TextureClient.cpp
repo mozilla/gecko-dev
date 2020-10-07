@@ -1326,6 +1326,8 @@ already_AddRefed<TextureClient> TextureClient::CreateForRawBufferAccess(
     gfx::IntSize aSize, gfx::BackendType aMoz2DBackend,
     LayersBackend aLayersBackend, TextureFlags aTextureFlags,
     TextureAllocationFlags aAllocFlags) {
+  recordreplay::RecordReplayAssert("TextureClient::CreateForRawBufferAccess");
+
   // also test the validity of aAllocator
   if (!aAllocator || !aAllocator->IPCOpen()) {
     return nullptr;

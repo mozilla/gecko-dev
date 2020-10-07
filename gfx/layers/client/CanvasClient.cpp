@@ -97,6 +97,8 @@ void CanvasClient2D::Update(gfx::IntSize aSize,
                             wr::RenderRoot aRenderRoot) {
   mBufferProviderTexture = nullptr;
 
+  recordreplay::RecordReplayAssert("CanvasClient2D::Update Start");
+
   AutoRemoveTexture autoRemove(this, aRenderRoot);
   if (mBackBuffer &&
       (mBackBuffer->IsReadLocked() || mBackBuffer->GetSize() != aSize)) {
@@ -106,6 +108,8 @@ void CanvasClient2D::Update(gfx::IntSize aSize,
 
   bool bufferCreated = false;
   if (!mBackBuffer) {
+    recordreplay::RecordReplayAssert("CanvasClient2D::Update #1");
+
     gfxContentType contentType = aCanvasRenderer->IsOpaque()
                                      ? gfxContentType::COLOR
                                      : gfxContentType::COLOR_ALPHA;
@@ -162,6 +166,8 @@ void CanvasClient2D::Update(gfx::IntSize aSize,
   }
 
   mBackBuffer.swap(mFrontBuffer);
+
+  recordreplay::RecordReplayAssert("CanvasClient2D::Update End");
 }
 
 already_AddRefed<TextureClient> CanvasClient2D::CreateTextureClientForCanvas(
