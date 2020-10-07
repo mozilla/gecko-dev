@@ -1404,10 +1404,7 @@ const JsonView = {
   },
 };
 
-var EXPORTED_SYMBOLS = [
-  "DevToolsStartup",
-  "validateProfilerWebChannelUrl",
-];
+var EXPORTED_SYMBOLS = ["DevToolsStartup", "validateProfilerWebChannelUrl"];
 
 // Record Replay stuff.
 
@@ -1436,6 +1433,8 @@ function getLoggedInUser() {
 }
 
 function saveRecordingInDB(description) {
+  console.log(`>> saveRecordingInDB`, description);
+  return;
   const user = getLoggedInUser();
 
   if (!user) {
@@ -1651,7 +1650,9 @@ async function runTestScript() {
 }
 
 function getDispatchServer(url) {
-  const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+  const env = Cc["@mozilla.org/process/environment;1"].getService(
+    Ci.nsIEnvironment
+  );
   const address = env.get("RECORD_REPLAY_SERVER");
   if (address) {
     return address;
@@ -1741,21 +1742,17 @@ async function updateRecordingDriver() {
       dump(`updateRecordingDriver UpdateNeeded DriverFetchFailed\n`);
       return;
     }
-    OS.File.writeAtomic(
-      driver.path,
-      await driverResponse.arrayBuffer(),
-      {
-        // Write to a temporary path before renaming the result, so that any
-        // recording processes hopefully won't try to load partial binaries
-        // (they will keep trying if the load fails, though).
-        tmpPath: driver.path + ".tmp",
+    OS.File.writeAtomic(driver.path, await driverResponse.arrayBuffer(), {
+      // Write to a temporary path before renaming the result, so that any
+      // recording processes hopefully won't try to load partial binaries
+      // (they will keep trying if the load fails, though).
+      tmpPath: driver.path + ".tmp",
 
-        // Strip quarantine flag from the downloaded file. Even though this is
-        // an update to the browser itself, macOS will still quarantine it and
-        // prevent it from being loaded into recording processes.
-        noQuarantine: true,
-      }
-    );
+      // Strip quarantine flag from the downloaded file. Even though this is
+      // an update to the browser itself, macOS will still quarantine it and
+      // prevent it from being loaded into recording processes.
+      noQuarantine: true,
+    });
 
     if (!gHasRecordingDriver) {
       gHasRecordingDriver = true;
@@ -1815,7 +1812,7 @@ Services.ppmm.addMessageListener("RecordingFinished", {
     if (gFinishedRecordingWaiter) {
       gFinishedRecordingWaiter(recordingId);
     }
-  }
+  },
 });
 
 function waitForFinishedRecording() {

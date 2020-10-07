@@ -11,17 +11,15 @@ const sandbox = Cu.Sandbox(
     wantGlobalProperties: ["InspectorUtils", "CSSRule"],
   }
 );
-Cu.evalInSandbox(`
+Cu.evalInSandbox(
+  `
 Components.utils.import('resource://gre/modules/jsdebugger.jsm');
 Components.utils.import('resource://gre/modules/Services.jsm');
 addDebuggerToGlobal(this);
-`, sandbox);
-const {
-  Debugger,
-  RecordReplayControl,
-  Services,
-  InspectorUtils,
-} = sandbox;
+`,
+  sandbox
+);
+const { Debugger, RecordReplayControl, Services, InspectorUtils } = sandbox;
 
 // This script can be loaded into non-recording/replaying processes during automated tests.
 // In non-recording/replaying processes there are no properties on RecordReplayControl.
@@ -128,7 +126,7 @@ IdMap.prototype = {
   clear() {
     this._idMap = [undefined];
     this._objectMap = new Map();
-  }
+  },
 };
 
 // Map from keys to arrays of values.
@@ -155,11 +153,11 @@ function CanCreateCheckpoint() {
 }
 
 const gNewGlobalHooks = [];
-gDebugger.onNewGlobalObject = global => {
+gDebugger.onNewGlobalObject = (global) => {
   try {
     gDebugger.addDebuggee(global);
     gAllGlobals.push(global);
-    gNewGlobalHooks.forEach(hook => hook(global));
+    gNewGlobalHooks.forEach((hook) => hook(global));
   } catch (e) {}
 };
 
@@ -226,10 +224,11 @@ gDebugger.onNewScript = (script) => {
   ) {
     const recordingId = RecordReplayControl.recordingId();
     const { url, sourceMapURL } = script.source;
-    Services.cpmm.sendAsyncMessage(
-      "RecordReplayGeneratedSourceWithSourceMap",
-      { recordingId, url, sourceMapURL }
-    );
+    Services.cpmm.sendAsyncMessage("RecordReplayGeneratedSourceWithSourceMap", {
+      recordingId,
+      url,
+      sourceMapURL,
+    });
   }
 
   let kind = "scriptSource";
@@ -272,7 +271,7 @@ function Host_getHTMLSource({ url }) {
   const info = gHtmlContent.get(url);
   const contents = info ? info.content : "";
   return { contents };
-};
+}
 
 function OnHTMLContent(data) {
   const { uri, contents } = JSON.parse(data);
@@ -313,7 +312,11 @@ getWindow().docShell.chromeEventHandler.addEventListener(
       const recordingId = RecordReplayControl.recordingId();
       Services.cpmm.sendAsyncMessage(
         "RecordReplayGeneratedSourceWithSourceMap",
-        { recordingId, url: stylesheet.href, sourceMapURL: stylesheet.sourceMapURL }
+        {
+          recordingId,
+          url: stylesheet.href,
+          sourceMapURL: stylesheet.sourceMapURL,
+        }
       );
     }
   },
@@ -435,9 +438,11 @@ var EXPORTED_SYMBOLS = ["Initialize"];
 // Instrumentation
 ///////////////////////////////////////////////////////////////////////////////
 
-gNewGlobalHooks.push(global => {
+gNewGlobalHooks.push((global) => {
   global.setInstrumentation(
-    global.makeDebuggeeNativeFunction(RecordReplayControl.instrumentationCallback),
+    global.makeDebuggeeNativeFunction(
+      RecordReplayControl.instrumentationCallback
+    ),
     ["main", "entry", "breakpoint", "exit", "generator"]
   );
 
@@ -447,7 +452,7 @@ gNewGlobalHooks.push(global => {
 });
 
 function SetScanningScripts(value) {
-  gAllGlobals.forEach(g => g.setInstrumentationActive(value));
+  gAllGlobals.forEach((g) => g.setInstrumentationActive(value));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -473,7 +478,9 @@ function OnConsoleError(message) {
 
   // Diagnostics for TypeErrors that don't have an associated warp target.
   if (!target && String(message.errorMessage).includes("TypeError")) {
-    log(`Error: TypeError message without a warp target "${message.errorMessage}" ${message.sourceId}`);
+    log(
+      `Error: TypeError message without a warp target "${message.errorMessage}" ${message.sourceId}`
+    );
   }
 
   gCurrentConsoleMessage = {
@@ -494,16 +501,21 @@ Services.console.registerListener({
     if (message instanceof Ci.nsIScriptError) {
       OnConsoleError(message);
     }
-  }
+  },
 });
 
 function consoleAPIMessageLevel({ level }) {
   switch (level) {
-    case "trace": return "trace";
-    case "warn": return "warning";
-    case "error": return "error";
-    case "assert": return "assert";
-    default: return "info";
+    case "trace":
+      return "trace";
+    case "warn":
+      return "warning";
+    case "error":
+      return "error";
+    case "assert":
+      return "assert";
+    default:
+      return "info";
   }
 }
 
@@ -529,13 +541,16 @@ function OnConsoleAPICall(message) {
   gCurrentConsoleMessage = null;
 
   clearPauseState();
-};
+}
 
-Services.obs.addObserver({
-  observe(message) {
-    OnConsoleAPICall(message);
-  }
-}, "console-api-log-event");
+Services.obs.addObserver(
+  {
+    observe(message) {
+      OnConsoleAPICall(message);
+    },
+  },
+  "console-api-log-event"
+);
 
 function Host_getCurrentMessageContents() {
   assert(gCurrentConsoleMessage);
@@ -547,7 +562,10 @@ function Host_getCurrentMessageContents() {
 ///////////////////////////////////////////////////////////////////////////////
 
 function positionPrecedes(posA, posB) {
-  return posA.line < posB.line || posA.line == posB.line && posA.column < posB.column;
+  return (
+    posA.line < posB.line ||
+    (posA.line == posB.line && posA.column < posB.column)
+  );
 }
 
 // Whether line/column are in the range described by begin/end.
@@ -592,7 +610,7 @@ function forMatchingScripts(source, begin, end, callback) {
 
         // There is no endColumn accessor, so we can only compute this accurately
         // if the script is on a single line.
-        column: (lineCount == 1) ? script.startColumn + script.sourceLength : 1e9,
+        column: lineCount == 1 ? script.startColumn + script.sourceLength : 1e9,
       };
       if (positionPrecedes(endPos, begin)) {
         return false;
@@ -614,18 +632,23 @@ function forMatchingScripts(source, begin, end, callback) {
 
 // Invoke callback all positions in a source between begin and end (inclusive / optional).
 function forMatchingBreakpointPositions(source, begin, end, callback) {
-  forMatchingScripts(source, begin, end, script => {
-    script.getPossibleBreakpoints().forEach(({ offset, lineNumber, columnNumber }, i) => {
-      if (positionMatches(begin, end, lineNumber, columnNumber)) {
-        callback(script, offset, lineNumber, columnNumber);
-      } else if (i == 0 && positionMatches(begin, end, script.startLine, script.startColumn)) {
-        // The start location of the script is considered to match the first
-        // breakpoint position. This allows setting breakpoints or analyses by
-        // using the function location provided in the protocol, instead of
-        // requiring the client to find the exact breakpoint position.
-        callback(script, offset, lineNumber, columnNumber);
-      }
-    });
+  forMatchingScripts(source, begin, end, (script) => {
+    script
+      .getPossibleBreakpoints()
+      .forEach(({ offset, lineNumber, columnNumber }, i) => {
+        if (positionMatches(begin, end, lineNumber, columnNumber)) {
+          callback(script, offset, lineNumber, columnNumber);
+        } else if (
+          i == 0 &&
+          positionMatches(begin, end, script.startLine, script.startColumn)
+        ) {
+          // The start location of the script is considered to match the first
+          // breakpoint position. This allows setting breakpoints or analyses by
+          // using the function location provided in the protocol, instead of
+          // requiring the client to find the exact breakpoint position.
+          callback(script, offset, lineNumber, columnNumber);
+        }
+      });
   });
 }
 
@@ -637,13 +660,18 @@ function sourceToProtocolScriptId(source) {
   return String(gSources.getId(source));
 }
 
-function Debugger_getPossibleBreakpoints({ scriptId, begin, end}) {
+function Debugger_getPossibleBreakpoints({ scriptId, begin, end }) {
   const source = protocolScriptIdToSource(scriptId);
 
   const lineLocations = new ArrayMap();
-  forMatchingBreakpointPositions(source, begin, end, (script, offset, line, column) => {
-    lineLocations.add(line, column);
-  });
+  forMatchingBreakpointPositions(
+    source,
+    begin,
+    end,
+    (script, offset, line, column) => {
+      lineLocations.add(line, column);
+    }
+  );
 
   return { lineLocations: finishLineLocations(lineLocations) };
 
@@ -663,17 +691,21 @@ function scriptToFunctionId(script) {
   return String(gScripts.getId(script));
 }
 
-function Host_convertFunctionOffsetToLocation({ functionId, offset}) {
+function Host_convertFunctionOffsetToLocation({ functionId, offset }) {
   const script = functionIdToScript(functionId);
   const scriptId = sourceToProtocolScriptId(script.source);
 
   if (offset === undefined) {
-    const location = { scriptId, line: script.startLine, column: script.startColumn };
+    const location = {
+      scriptId,
+      line: script.startLine,
+      column: script.startColumn,
+    };
     return { location };
   }
 
   const breakpoints = script.getPossibleBreakpoints();
-  const bp = breakpoints.find(bp => bp.offset == offset);
+  const bp = breakpoints.find((bp) => bp.offset == offset);
   if (!bp) {
     throw new Error(`convertFunctionOffsetToLocation unknown offset ${offset}`);
   }
@@ -697,7 +729,7 @@ function Host_getFunctionsInRange({ scriptId, begin, end }) {
   const source = protocolScriptIdToSource(scriptId);
 
   const functions = [];
-  forMatchingScripts(source, begin, end, script => {
+  forMatchingScripts(source, begin, end, (script) => {
     functions.push(scriptToFunctionId(script));
   });
   return { functions };
@@ -705,9 +737,10 @@ function Host_getFunctionsInRange({ scriptId, begin, end }) {
 
 function Host_getStepOffsets({ functionId }) {
   const script = functionIdToScript(functionId);
-  const offsets = script.getPossibleBreakpoints()
-    .filter(bp => bp.isStepStart)
-    .map(bp => bp.offset);
+  const offsets = script
+    .getPossibleBreakpoints()
+    .filter((bp) => bp.isStepStart)
+    .map((bp) => bp.offset);
   return { offsets };
 }
 
@@ -791,7 +824,9 @@ function makeDebuggeeValue(value) {
   }
   assert(!(value instanceof Debugger.Object));
   try {
-    const dbgGlobal = gDebugger.makeGlobalObjectReference(Cu.getGlobalForObject(value));
+    const dbgGlobal = gDebugger.makeGlobalObjectReference(
+      Cu.getGlobalForObject(value)
+    );
     return dbgGlobal.makeDebuggeeValue(value);
   } catch (e) {
     return gSandboxGlobal.makeDebuggeeValue(value);
@@ -803,10 +838,10 @@ function getObjectIdRaw(obj) {
 }
 
 const UnserializablePrimitives = [
-  [ Infinity, "Infinity" ],
-  [ -Infinity, "-Infinity" ],
-  [ NaN, "NaN" ],
-  [ -0, "-0" ],
+  [Infinity, "Infinity"],
+  [-Infinity, "-Infinity"],
+  [NaN, "NaN"],
+  [-0, "-0"],
 ];
 
 function maybeUnserializableNumber(v) {
@@ -905,17 +940,21 @@ function createProtocolFrame(frameId, frame) {
   const CallBreakpointOffset = 9;
   let offset = frame.offset;
   try {
-    if (frame.script.getOffsetMetadata(offset + CallBreakpointOffset).isBreakpoint) {
+    if (
+      frame.script.getOffsetMetadata(offset + CallBreakpointOffset).isBreakpoint
+    ) {
       offset += CallBreakpointOffset;
     }
   } catch (e) {}
   const { lineNumber, columnNumber } = frame.script.getOffsetMetadata(offset);
 
-  const location = [{
-    scriptId,
-    line: lineNumber,
-    column: columnNumber,
-  }];
+  const location = [
+    {
+      scriptId,
+      line: lineNumber,
+      column: columnNumber,
+    },
+  ];
 
   let functionName;
   let functionLocation;
@@ -934,7 +973,7 @@ function createProtocolFrame(frameId, frame) {
     functionLocation,
     location,
     scopeChain,
-    "this": thisv,
+    this: thisv,
   };
 
   // Get the protocol type to use for frame.
@@ -1047,7 +1086,7 @@ ProtocolObjectPreview.prototype = {
     if (!this.getterValues) {
       this.getterValues = [];
     }
-    if (this.getterValues.some(v => v.name == name)) {
+    if (this.getterValues.some((v) => v.name == name)) {
       return;
     }
     try {
@@ -1212,7 +1251,9 @@ function previewFunction() {
     this.extra.functionLocation = [functionLocation];
   }
 
-  const parameterNames = (this.obj.parameterNames || []).filter(n => typeof n == "string");
+  const parameterNames = (this.obj.parameterNames || []).filter(
+    (n) => typeof n == "string"
+  );
   this.extra.functionParameterNames = parameterNames;
 }
 
@@ -1244,15 +1285,28 @@ const CustomPreviewers = {
   URIError: ErrorProperties,
   Function: [previewFunction],
   MouseEvent: ["type", "target", "clientX", "clientY", "layerX", "layerY"],
-  KeyboardEvent: ["type", "target", "key", "charCode", "keyCode", "altKey", "ctrlKey", "metaKey", "shiftKey"],
+  KeyboardEvent: [
+    "type",
+    "target",
+    "key",
+    "charCode",
+    "keyCode",
+    "altKey",
+    "ctrlKey",
+    "metaKey",
+    "shiftKey",
+  ],
   MessageEvent: ["type", "target", "isTrusted", "data"],
 };
 
 function getPseudoType(node) {
   switch (node.localName) {
-    case "_moz_generated_content_marker": return "marker";
-    case "_moz_generated_content_before": return "before";
-    case "_moz_generated_content_after": return "after";
+    case "_moz_generated_content_marker":
+      return "marker";
+    case "_moz_generated_content_before":
+      return "before";
+    case "_moz_generated_content_after":
+      return "after";
   }
 }
 
@@ -1276,8 +1330,10 @@ function nodeContents(node) {
     parentNode = getObjectIdRaw(node.parentNode);
   } else if (node.defaultView && node.defaultView.parent != node.defaultView) {
     // Nested documents use the parent element instead of null.
-    const iframes = node.defaultView.parent.document.getElementsByTagName("iframe");
-    const iframe = [...iframes].find(f => f.contentDocument == node);
+    const iframes = node.defaultView.parent.document.getElementsByTagName(
+      "iframe"
+    );
+    const iframe = [...iframes].find((f) => f.contentDocument == node);
     if (iframe) {
       parentNode = getObjectIdRaw(iframe);
     }
@@ -1285,7 +1341,7 @@ function nodeContents(node) {
 
   let childNodes;
   if (node.childNodes.length) {
-    childNodes = [...node.childNodes].map(n => getObjectIdRaw(n));
+    childNodes = [...node.childNodes].map((n) => getObjectIdRaw(n));
   } else if (node.nodeName == "IFRAME") {
     // Treat an iframe's content document as one of its child nodes.
     childNodes = [getObjectIdRaw(node.contentDocument)];
@@ -1342,7 +1398,8 @@ function styleContents(style) {
   for (let i = 0; i < style.length; i++) {
     const name = style.item(i);
     const value = style.getPropertyValue(name);
-    const important = style.getPropertyPriority(name) == "important" ? true : undefined;
+    const important =
+      style.getPropertyPriority(name) == "important" ? true : undefined;
     properties.push({ name, value, important });
   }
 
@@ -1357,7 +1414,7 @@ function createProtocolScope(scopeId) {
   const env = getObjectFromId(scopeId);
 
   const type = getEnvType(env);
-  const functionLexical = (env.scopeKind == "function lexical");
+  const functionLexical = env.scopeKind == "function lexical";
 
   let object, bindings;
   if (env.type == "declarative") {
@@ -1387,8 +1444,10 @@ function createProtocolScope(scopeId) {
   // Get the prototocl type to use for env.
   function getEnvType(env) {
     switch (env.type) {
-      case "object": return "global";
-      case "with": return "with";
+      case "object":
+        return "global";
+      case "with":
+        return "with";
       case "declarative":
         return env.callee ? "function" : "block";
     }
@@ -1451,7 +1510,10 @@ function Pause_evaluateInFrame({ frameId, expression, bindings }) {
 function Pause_evaluateInGlobal({ expression, bindings }) {
   const newBindings = convertBindings(bindings);
   const dbgWindow = gDebugger.makeGlobalObjectReference(getWindow());
-  const completion = dbgWindow.executeInGlobalWithBindings(expression, newBindings);
+  const completion = dbgWindow.executeInGlobalWithBindings(
+    expression,
+    newBindings
+  );
   return { result: completionToProtocolResult(completion) };
 }
 
@@ -1490,7 +1552,7 @@ function Pause_getExceptionValue() {
 
 function Pause_getObjectPreview({ object }) {
   const objectData = createProtocolObject(object);
-  return { data: { objects: [objectData] }};
+  return { data: { objects: [objectData] } };
 }
 
 function Host_getObjectPreviewRequiredProperties({ object }) {
@@ -1587,7 +1649,10 @@ function CSS_getComputedStyle({ node }) {
 
   let styleInfo;
   if (pseudoType) {
-    styleInfo = nodeObj.ownerGlobal.getComputedStyle(nodeObj.parentNode, pseudoType);
+    styleInfo = nodeObj.ownerGlobal.getComputedStyle(
+      nodeObj.parentNode,
+      pseudoType
+    );
   } else {
     styleInfo = nodeObj.ownerGlobal.getComputedStyle(nodeObj);
   }
@@ -1794,7 +1859,7 @@ StackingContext.prototype = {
   flatten() {
     const rv = [];
 
-    const pushElements = elems => {
+    const pushElements = (elems) => {
       for (const elem of elems) {
         if (elem.context && elem.context != this) {
           rv.push(...elem.context.flatten());
@@ -1805,7 +1870,7 @@ StackingContext.prototype = {
       }
     };
 
-    const pushZIndexElements = filter => {
+    const pushZIndexElements = (filter) => {
       for (const z of zIndexes) {
         if (filter(z)) {
           log(`${this} PushZIndex ${z}`);
@@ -1819,11 +1884,11 @@ StackingContext.prototype = {
 
     log(`${this} FlattenStart`);
 
-    pushZIndexElements(z => z < 0);
+    pushZIndexElements((z) => z < 0);
     pushElements(this.nonPositionedElements);
     pushElements(this.floatingElements);
     pushElements(this.positionedElements);
-    pushZIndexElements(z => z > 0);
+    pushZIndexElements((z) => z > 0);
 
     log(`${this} FlattenEnd`);
     return rv;
@@ -1841,22 +1906,24 @@ function DOM_getAllBoundingClientRects() {
   // Get elements in front-to-back order.
   entries.reverse();
 
-  const elements = entries.map(elem => {
-    const id = getObjectIdRaw(elem.raw);
-    const { left, top, right, bottom } = elem.raw.getBoundingClientRect(elem);
-    if (left >= right || top >= bottom) {
-      return null;
-    }
-    return {
-      node: id,
-      rect: [
-        elem.left + left,
-        elem.top + top,
-        elem.left + right,
-        elem.top + bottom,
-      ],
-    };
-  }).filter(v => !!v);
+  const elements = entries
+    .map((elem) => {
+      const id = getObjectIdRaw(elem.raw);
+      const { left, top, right, bottom } = elem.raw.getBoundingClientRect(elem);
+      if (left >= right || top >= bottom) {
+        return null;
+      }
+      return {
+        node: id,
+        rect: [
+          elem.left + left,
+          elem.top + top,
+          elem.left + right,
+          elem.top + bottom,
+        ],
+      };
+    })
+    .filter((v) => !!v);
 
   return { elements };
 }
@@ -1878,7 +1945,10 @@ function DOM_getBoxModel({ node }) {
   for (const box of ["content", "padding", "border", "margin"]) {
     const compactQuads = [];
     if (nodeObj.getBoxQuads) {
-      const quads = nodeObj.getBoxQuads({ box, relativeTo: getWindow().document });
+      const quads = nodeObj.getBoxQuads({
+        box,
+        relativeTo: getWindow().document,
+      });
       for (const { p1, p2, p3, p4 } of quads) {
         compactQuads.push(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y);
       }
@@ -1975,9 +2045,12 @@ function searchDOM(query) {
 
   function convertNodeName(name) {
     switch (name) {
-      case "_moz_generated_content_marker": return "::marker";
-      case "_moz_generated_content_before": return "::before";
-      case "_moz_generated_content_after": return "::after";
+      case "_moz_generated_content_marker":
+        return "::marker";
+      case "_moz_generated_content_before":
+        return "::before";
+      case "_moz_generated_content_after":
+        return "::after";
     }
     return name;
   }
