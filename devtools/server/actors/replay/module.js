@@ -40,6 +40,7 @@ function getWindow() {
   return gWindow;
 }
 
+const startTime = new Date();
 const gDebugger = new Debugger();
 const gSandboxGlobal = gDebugger.makeGlobalObjectReference(sandbox);
 const gAllGlobals = [];
@@ -359,7 +360,14 @@ function eventListener(info) {
 }
 
 function SendRecordingFinished(recordingId) {
-  Services.cpmm.sendAsyncMessage("RecordingFinished", { recordingId });
+  const document = getWindow().document;
+  const data = {
+    recordingId,
+    url: document.URL,
+    title: document.title,
+    duration: new Date() - startTime,
+  };
+  Services.cpmm.sendAsyncMessage("RecordingFinished", data);
 }
 
 function OnTestCommand(str) {

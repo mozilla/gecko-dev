@@ -1433,8 +1433,6 @@ function getLoggedInUser() {
 }
 
 function saveRecordingInDB(description) {
-  console.log(`>> saveRecordingInDB`, description);
-  return;
   const user = getLoggedInUser();
 
   if (!user) {
@@ -1452,8 +1450,8 @@ function saveRecordingInDB(description) {
     url: description.url,
     title: description.title,
     duration: description.duration,
-    last_screen_data: description.lastScreenData,
-    last_screen_mime_type: description.lastScreenMimeType,
+    last_screen_data: description.lastScreenData || "",
+    last_screen_mime_type: description.lastScreenMimeType || "jpeg",
   };
 
   console.log(`>>> saving recording`, description.recordingId);
@@ -1462,7 +1460,9 @@ function saveRecordingInDB(description) {
     body: JSON.stringify(body),
     headers: { "Content-Type": "application/json" },
   })
-    .then((r) => console.log(`succeeded in creating recording`))
+    .then(async (r) =>
+      console.log(`succeeded in creating recording`, await r.json())
+    )
     .catch((err) => console.error(err));
 }
 
@@ -1808,9 +1808,8 @@ let gFinishedRecordingWaiter;
 
 Services.ppmm.addMessageListener("RecordingFinished", {
   async receiveMessage(msg) {
-    const { recordingId } = msg.data;
     if (gFinishedRecordingWaiter) {
-      gFinishedRecordingWaiter(recordingId);
+      gFinishedRecordingWaiter(msg.data);
     }
   },
 });
@@ -1827,9 +1826,11 @@ async function reloadAndStopRecordingTab(gBrowser) {
 
   recordReplayLog(`WaitForFinishedRecording`);
 
-  const recordingId = await waitForFinishedRecording();
+  const data = await waitForFinishedRecording();
+  const { recordingId } = data;
 
   recordReplayLog(`FinishedRecording ${recordingId}`);
+  saveRecordingInDB(data);
 
   let viewHost = "https://replay.io";
 
