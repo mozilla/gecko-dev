@@ -162,7 +162,8 @@ nsHtml5StreamParser::nsHtml5StreamParser(nsHtml5TreeOpExecutor* aExecutor,
           aMode == NORMAL ? mExecutor->GetStage() : nullptr)),
       mTokenizer(
           new nsHtml5Tokenizer(mTreeBuilder.get(), aMode == VIEW_SOURCE_XML)),
-      mTokenizerMutex("nsHtml5StreamParser mTokenizerMutex"),
+      // This is ordered for the same reason as mSpeculationMutex below.
+      mTokenizerMutex("nsHtml5StreamParser mTokenizerMutex", /* aOrdered */ true),
       mOwner(aOwner),
       mLastWasCR(false),
       mStreamState(eHtml5StreamState::STREAM_NOT_STARTED),
