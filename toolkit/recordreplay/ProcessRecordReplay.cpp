@@ -86,6 +86,7 @@ static int (*gCreateOrderedLock)(const char* aName);
 static void (*gOrderedLock)(int aLock);
 static void (*gOrderedUnlock)(int aLock);
 static void (*gAddOrderedPthreadMutex)(const char* aName, pthread_mutex_t* aMutex);
+static void (*gOnMouseEvent)(const char* aKind, size_t aClientX, size_t aClientY);
 
 static void* gDriverHandle;
 
@@ -160,6 +161,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   LoadSymbol("RecordReplayOrderedLock", gOrderedLock);
   LoadSymbol("RecordReplayOrderedUnlock", gOrderedUnlock);
   LoadSymbol("RecordReplayAddOrderedPthreadMutex", gAddOrderedPthreadMutex);
+  LoadSymbol("RecordReplayOnMouseEvent", gOnMouseEvent);
 
   js::InitializeJS();
   InitializeGraphics();
@@ -378,9 +380,6 @@ const char* CurrentFirefoxVersion() {
   return "74.0a1";
 }
 
-void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetMouseEvent& aEvent) {
-}
-
 static bool gHasCheckpoint = false;
 
 bool HasCheckpoint() {
@@ -412,6 +411,23 @@ void FinishRecording() {
   // finishing the recording, so we have to it ourselves.
   PrintLog("Recording finished, exiting.");
   exit(0);
+}
+
+void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetMouseEvent& aEvent) {
+  if (!gHasCheckpoint) {
+    return;
+  }
+
+  const char* kind = nullptr;
+  if (aEvent.mMessage == eMouseDown) {
+    kind = "mousedown";
+  } else if (aEvent.mMessage == eMouseMove) {
+    kind = "mousemove";
+  }
+
+  if (kind) {
+    gOnMouseEvent(kind, aEvent.mRefPoint.x, aEvent.mRefPoint.y);
+  }
 }
 
 }  // namespace recordreplay

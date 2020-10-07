@@ -40,6 +40,7 @@ static void (*gOnDebuggerStatement)();
 static void (*gOnEvent)(const char* aEvent, bool aBefore);
 static void (*gOnConsoleMessage)(int aTimeWarpTarget);
 static size_t (*gNewTimeWarpTarget)();
+static size_t (*gElapsedTimeMs)();
 
 // Callback used when the recording driver is sending us a command to look up
 // some state.
@@ -61,6 +62,7 @@ void InitializeJS() {
   LoadSymbol("RecordReplayOnEvent", gOnEvent);
   LoadSymbol("RecordReplayOnConsoleMessage", gOnConsoleMessage);
   LoadSymbol("RecordReplayNewBookmark", gNewTimeWarpTarget);
+  LoadSymbol("RecordReplayElapsedTimeMs", gElapsedTimeMs);
 
   gSetDefaultCommandCallback(CommandCallback);
   gSetChangeInstrumentCallback(SetChangeInstrumentCallback);
