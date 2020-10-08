@@ -3928,6 +3928,12 @@ static inline void AssertFrameTreeIsSane(const PresShell& aPresShell) {
 }
 
 void PresShell::DoFlushPendingNotifications(mozilla::ChangesToFlush aFlush) {
+  // For now we don't flush layout after diverging from the recording, to avoid
+  // calls that didn't happen while recording.
+  if (recordreplay::HasDivergedFromRecording()) {
+    return;
+  }
+
   // FIXME(emilio, bug 1530177): Turn into a release assert when bug 1530188 and
   // bug 1530190 are fixed.
   MOZ_DIAGNOSTIC_ASSERT(!mForbiddenToFlush, "This is bad!");

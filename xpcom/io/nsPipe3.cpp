@@ -67,6 +67,7 @@ class nsPipeEvents {
 
   inline void NotifyInputReady(nsIAsyncInputStream* aStream,
                                nsIInputStreamCallback* aCallback) {
+    recordreplay::RecordReplayAssert("nsPipeEvents::NotifyInputReady");
     mInputList.AppendElement(InputEntry(aStream, aCallback));
   }
 
@@ -1381,6 +1382,8 @@ nsPipeInputStream::AsyncWait(nsIInputStreamCallback* aCallback, uint32_t aFlags,
                              uint32_t aRequestedCount,
                              nsIEventTarget* aTarget) {
   LOG(("III AsyncWait [this=%p]\n", this));
+
+  recordreplay::RecordReplayAssert("nsPipeInputStream::AsyncWait Start");
 
   nsPipeEvents pipeEvents;
   {

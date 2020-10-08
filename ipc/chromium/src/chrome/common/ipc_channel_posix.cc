@@ -596,6 +596,15 @@ bool Channel::ChannelImpl::ProcessIncomingMessages() {
 }
 
 bool Channel::ChannelImpl::ProcessOutgoingMessages() {
+  // Don't process channel messages after diverging from the recording.
+  // We don't need behavior here to match up with the recording process after
+  // divergence, and we have seen crashes when trying to read off the end of
+  // BufferLists in this function. It would be nice to have a better idea of
+  // what is happening here.
+  if (mozilla::recordreplay::HasDivergedFromRecording()) {
+    return true;
+  }
+
   DCHECK(!waiting_connect_);  // Why are we trying to send messages if there's
                               // no connection?
   is_blocked_on_write_ = false;
