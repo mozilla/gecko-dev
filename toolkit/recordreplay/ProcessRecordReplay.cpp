@@ -88,6 +88,7 @@ static void (*gOrderedUnlock)(int aLock);
 static void (*gAddOrderedPthreadMutex)(const char* aName, pthread_mutex_t* aMutex);
 static void (*gOnMouseEvent)(const char* aKind, size_t aClientX, size_t aClientY);
 static void (*gSetRecordingIdCallback)(void (*aCallback)(const char*));
+static void (*gProcessRecording)();
 
 static void* gDriverHandle;
 
@@ -166,6 +167,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   LoadSymbol("RecordReplayAddOrderedPthreadMutex", gAddOrderedPthreadMutex);
   LoadSymbol("RecordReplayOnMouseEvent", gOnMouseEvent);
   LoadSymbol("RecordReplaySetRecordingIdCallback", gSetRecordingIdCallback);
+  LoadSymbol("RecordReplayProcessRecording", gProcessRecording);
 
   js::InitializeJS();
   InitializeGraphics();
@@ -184,6 +186,12 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
 
   gRecordCommandLineArguments(aArgc, aArgv);
   gSetRecordingIdCallback(RecordingIdCallback);
+
+  // Unless disabled via the environment, pre-process all created recordings so
+  // that they will load faster after saving the recording.
+  if (!TestEnv("RECORD_REPLAY_DONT_PROCESS_RECORDINGS")) {
+    gProcessRecording();
+  }
 }
 
 MOZ_EXPORT size_t
