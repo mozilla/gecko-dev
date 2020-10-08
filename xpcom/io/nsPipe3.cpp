@@ -1610,13 +1610,24 @@ MonitorAction nsPipeOutputStream::OnOutputException(nsresult aReason,
 
 NS_IMETHODIMP_(MozExternalRefCountType)
 nsPipeOutputStream::AddRef() {
-  ++mWriterRefCnt;
+  // Ensure the pipe is closed at a consistent point when replaying by only
+  // modifying the refcount within an ordered lock.
+  {
+    ReentrantMonitorAutoEnter mon(mPipe->mReentrantMonitor);
+    ++mWriterRefCnt;
+  }
   return mPipe->AddRef();
 }
 
 NS_IMETHODIMP_(MozExternalRefCountType)
 nsPipeOutputStream::Release() {
-  if (--mWriterRefCnt == 0) {
+  bool close;
+  {
+    ReentrantMonitorAutoEnter mon(mPipe->mReentrantMonitor);
+    close = --mWriterRefCnt == 0;
+  }
+
+  if (close) {
     Close();
   }
   return mPipe->Release();
