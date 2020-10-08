@@ -86,7 +86,9 @@ void RecursiveMutex::UnlockInternal() {
 #endif
 }
 
-extern "C" pthread_mutex_t* PR_MonitorMutex(PRMonitor* mon);
+PR_BEGIN_EXTERN_C
+  NSPR_API(pthread_mutex_t*) PR_MonitorMutex(PRMonitor* mon);
+PR_END_EXTERN_C
 
 void RecordReplayAddOrderedMonitor(const char* aName, PRMonitor* aMonitor) {
   pthread_mutex_t* mutex = PR_MonitorMutex(aMonitor);

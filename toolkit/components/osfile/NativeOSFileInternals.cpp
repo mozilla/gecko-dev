@@ -1088,13 +1088,14 @@ class DoWriteAtomicEvent : public AbstractDoEvent {
 #endif  // defined(XP_WIN)
       }
 
+#if defined(XP_MACOSX)
       // Strip any quarantine flag on the written file, if necessary, so that
       // the file can be run or loaded into a process. This is used for the
       // driver downloaded by the replay browser, as macOS quarantines any
       // files created by the browser even if they are related to the update
       // process.
-      NS_ConvertUTF16toUTF8 path8(mTmpPath);
       if (mNoQuarantine) {
+        NS_ConvertUTF16toUTF8 path8(mTmpPath);
         char* args[] = {
           (char*)"/usr/bin/xattr",
           (char*)"-d",
@@ -1104,6 +1105,7 @@ class DoWriteAtomicEvent : public AbstractDoEvent {
         pid_t pid;
         LaunchChildMac(4, args, &pid);
       }
+#endif
 
 #if defined(XP_WIN)
       if (::MoveFileW(mTmpPath.get(), mPath.get()) == false) {

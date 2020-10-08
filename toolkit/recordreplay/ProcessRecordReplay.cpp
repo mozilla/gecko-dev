@@ -24,10 +24,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <mach/exc.h>
-#include <mach/mach.h>
-#include <mach/mach_vm.h>
-#include <mach/ndr.h>
 #include <sys/time.h>
 
 namespace mozilla {
