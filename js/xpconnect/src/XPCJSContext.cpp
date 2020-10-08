@@ -1324,6 +1324,8 @@ XPCJSContext* XPCJSContext::NewXPCJSContext() {
 void XPCJSContext::BeforeProcessTask(bool aMightBlock) {
   MOZ_ASSERT(NS_IsMainThread());
 
+  recordreplay::RecordReplayAssert("XPCJSContext::BeforeProcessTask");
+
   // Start the slow script timer.
   mSlowScriptCheckpoint = mozilla::TimeStamp::NowLoRes();
   mSlowScriptSecondHalf = false;
