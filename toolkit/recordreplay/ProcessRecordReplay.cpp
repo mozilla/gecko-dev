@@ -87,6 +87,7 @@ static void (*gOrderedLock)(int aLock);
 static void (*gOrderedUnlock)(int aLock);
 static void (*gAddOrderedPthreadMutex)(const char* aName, pthread_mutex_t* aMutex);
 static void (*gOnMouseEvent)(const char* aKind, size_t aClientX, size_t aClientY);
+static void (*gSetRecordingIdCallback)(void (*aCallback)(const char*));
 
 static void* gDriverHandle;
 
@@ -97,6 +98,8 @@ void LoadSymbolInternal(const char* name, void** psym) {
     MOZ_CRASH();
   }
 }
+
+static void RecordingIdCallback(const char* aRecordingId);
 
 extern "C" {
 
@@ -162,6 +165,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   LoadSymbol("RecordReplayOrderedUnlock", gOrderedUnlock);
   LoadSymbol("RecordReplayAddOrderedPthreadMutex", gAddOrderedPthreadMutex);
   LoadSymbol("RecordReplayOnMouseEvent", gOnMouseEvent);
+  LoadSymbol("RecordReplaySetRecordingIdCallback", gSetRecordingIdCallback);
 
   js::InitializeJS();
   InitializeGraphics();
@@ -179,6 +183,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   ParseJSFilters("RECORD_REPLAY_RECORD_JS_ASSERTS", gJSAsserts);
 
   gRecordCommandLineArguments(aArgc, aArgv);
+  gSetRecordingIdCallback(RecordingIdCallback);
 }
 
 MOZ_EXPORT size_t
@@ -428,6 +433,13 @@ void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetMouseEvent& aEvent) {
   if (kind) {
     gOnMouseEvent(kind, aEvent.mRefPoint.x, aEvent.mRefPoint.y);
   }
+}
+
+static void RecordingIdCallback(const char* aRecordingId) {
+  // Print out a string that is recognized by the automated test harness.
+  AutoPassThroughThreadEvents pt;
+  const char* url = getenv("RECORD_REPLAY_URL");
+  fprintf(stderr, "CreateRecording %s %s\n", aRecordingId, url ? url : "");
 }
 
 }  // namespace recordreplay

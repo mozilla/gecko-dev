@@ -1781,6 +1781,9 @@ function reloadAndRecordTab(gBrowser) {
     env.set("RECORD_REPLAY_DRIVER", driverFile().path);
   }
 
+  // The recording process uses this env var when printing out the recording ID.
+  env.set("RECORD_REPLAY_URL", url);
+
   let remoteType = E10SUtils.getRemoteTypeForURI(
     url,
     /* aMultiProcess */ true,
