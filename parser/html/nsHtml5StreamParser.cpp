@@ -1650,15 +1650,19 @@ void nsHtml5StreamParser::FlushTreeOpsAndDisarmTimer() {
 }
 
 void nsHtml5StreamParser::ParseAvailableData() {
+  recordreplay::RecordReplayAssert("nsHtml5StreamParser::ParseAvailableData Start");
+
   MOZ_ASSERT(IsParserThread(), "Wrong thread!");
   mTokenizerMutex.AssertCurrentThreadOwns();
   MOZ_ASSERT(!mDecodingLocalFileWithoutTokenizing);
 
   if (IsTerminatedOrInterrupted()) {
+    recordreplay::RecordReplayAssert("nsHtml5StreamParser::ParseAvailableData #1");
     return;
   }
 
   if (mSpeculating && !IsSpeculationEnabled()) {
+    recordreplay::RecordReplayAssert("nsHtml5StreamParser::ParseAvailableData #2");
     return;
   }
 
@@ -1686,6 +1690,7 @@ void nsHtml5StreamParser::ParseAvailableData() {
             return;  // no more data for now but expecting more
           case STREAM_ENDED:
             if (mAtEOF) {
+              recordreplay::RecordReplayAssert("nsHtml5StreamParser::ParseAvailableData #3");
               return;
             }
             mAtEOF = true;
@@ -1719,6 +1724,7 @@ void nsHtml5StreamParser::ParseAvailableData() {
               }
             }
             FlushTreeOpsAndDisarmTimer();
+            recordreplay::RecordReplayAssert("nsHtml5StreamParser::ParseAvailableData #4");
             return;  // no more data and not expecting more
           default:
             MOZ_ASSERT_UNREACHABLE("It should be impossible to reach this.");
@@ -1735,12 +1741,14 @@ void nsHtml5StreamParser::ParseAvailableData() {
     if (mFirstBuffer->hasMore()) {
       if (!mTokenizer->EnsureBufferSpace(mFirstBuffer->getLength())) {
         MarkAsBroken(NS_ERROR_OUT_OF_MEMORY);
+        recordreplay::RecordReplayAssert("nsHtml5StreamParser::ParseAvailableData #5");
         return;
       }
       mLastWasCR = mTokenizer->tokenizeBuffer(mFirstBuffer);
       nsresult rv;
       if (NS_FAILED((rv = mTreeBuilder->IsBroken()))) {
         MarkAsBroken(rv);
+        recordreplay::RecordReplayAssert("nsHtml5StreamParser::ParseAvailableData #6");
         return;
       }
       // At this point, internalEncodingDeclaration() may have called
@@ -1763,6 +1771,7 @@ void nsHtml5StreamParser::ParseAvailableData() {
         mSpeculating = true;
       }
       if (IsTerminatedOrInterrupted()) {
+        recordreplay::RecordReplayAssert("nsHtml5StreamParser::ParseAvailableData #7");
         return;
       }
     }
