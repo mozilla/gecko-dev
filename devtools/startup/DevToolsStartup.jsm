@@ -1404,10 +1404,7 @@ const JsonView = {
   },
 };
 
-var EXPORTED_SYMBOLS = [
-  "DevToolsStartup",
-  "validateProfilerWebChannelUrl",
-];
+var EXPORTED_SYMBOLS = ["DevToolsStartup", "validateProfilerWebChannelUrl"];
 
 // Record Replay stuff.
 
@@ -1453,8 +1450,8 @@ function saveRecordingInDB(description) {
     url: description.url,
     title: description.title,
     duration: description.duration,
-    last_screen_data: description.lastScreenData,
-    last_screen_mime_type: description.lastScreenMimeType,
+    last_screen_data: description.lastScreenData || "",
+    last_screen_mime_type: description.lastScreenMimeType || "jpeg",
   };
 
   console.log(`>>> saving recording`, description.recordingId);
@@ -1463,7 +1460,9 @@ function saveRecordingInDB(description) {
     body: JSON.stringify(body),
     headers: { "Content-Type": "application/json" },
   })
-    .then((r) => console.log(`succeeded in creating recording`))
+    .then(async (r) =>
+      console.log(`succeeded in creating recording`, await r.json())
+    )
     .catch((err) => console.error(err));
 }
 
@@ -1651,7 +1650,9 @@ async function runTestScript() {
 }
 
 function getDispatchServer(url) {
-  const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+  const env = Cc["@mozilla.org/process/environment;1"].getService(
+    Ci.nsIEnvironment
+  );
   const address = env.get("RECORD_REPLAY_SERVER");
   if (address) {
     return address;
@@ -1741,21 +1742,17 @@ async function updateRecordingDriver() {
       dump(`updateRecordingDriver UpdateNeeded DriverFetchFailed\n`);
       return;
     }
-    OS.File.writeAtomic(
-      driver.path,
-      await driverResponse.arrayBuffer(),
-      {
-        // Write to a temporary path before renaming the result, so that any
-        // recording processes hopefully won't try to load partial binaries
-        // (they will keep trying if the load fails, though).
-        tmpPath: driver.path + ".tmp",
+    OS.File.writeAtomic(driver.path, await driverResponse.arrayBuffer(), {
+      // Write to a temporary path before renaming the result, so that any
+      // recording processes hopefully won't try to load partial binaries
+      // (they will keep trying if the load fails, though).
+      tmpPath: driver.path + ".tmp",
 
-        // Strip quarantine flag from the downloaded file. Even though this is
-        // an update to the browser itself, macOS will still quarantine it and
-        // prevent it from being loaded into recording processes.
-        noQuarantine: true,
-      }
-    );
+      // Strip quarantine flag from the downloaded file. Even though this is
+      // an update to the browser itself, macOS will still quarantine it and
+      // prevent it from being loaded into recording processes.
+      noQuarantine: true,
+    });
 
     if (!gHasRecordingDriver) {
       gHasRecordingDriver = true;
@@ -1811,11 +1808,10 @@ let gFinishedRecordingWaiter;
 
 Services.ppmm.addMessageListener("RecordingFinished", {
   async receiveMessage(msg) {
-    const { recordingId } = msg.data;
     if (gFinishedRecordingWaiter) {
-      gFinishedRecordingWaiter(recordingId);
+      gFinishedRecordingWaiter(msg.data);
     }
-  }
+  },
 });
 
 function waitForFinishedRecording() {
@@ -1830,9 +1826,11 @@ async function reloadAndStopRecordingTab(gBrowser) {
 
   recordReplayLog(`WaitForFinishedRecording`);
 
-  const recordingId = await waitForFinishedRecording();
+  const data = await waitForFinishedRecording();
+  const { recordingId } = data;
 
   recordReplayLog(`FinishedRecording ${recordingId}`);
+  saveRecordingInDB(data);
 
   let viewHost = "https://replay.io";
 
