@@ -25,7 +25,7 @@ mozilla::dom::ContentParent* ProtocolFuzzerHelper::CreateContentParent(
   auto* cp = new mozilla::dom::ContentParent(aOpener, aRemoteType);
   // TODO: this duplicates MessageChannel::Open
   cp->GetIPCChannel()->mWorkerThread = PR_GetCurrentThread();
-  cp->GetIPCChannel()->mMonitor = new RefCountedMonitor();
+  cp->GetIPCChannel()->mMonitor = new RefCountedMonitor(/* aOrdered */ true);
   return cp;
 }
 
