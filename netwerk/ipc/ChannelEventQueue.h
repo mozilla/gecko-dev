@@ -140,7 +140,7 @@ class ChannelEventQueue final {
         mForXMLHttpRequest(false),
         mOwner(owner),
         mMutex("ChannelEventQueue::mMutex", /* aOrdered */ true),
-        mRunningMutex("ChannelEventQueue::mRunningMutex") {}
+        mRunningMutex("ChannelEventQueue::mRunningMutex", /* aOrdered */ true) {}
 
   // Puts IPDL-generated channel event into queue, to be run later
   // automatically when EndForcedQueueing and/or Resume is called.

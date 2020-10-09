@@ -20,7 +20,8 @@ namespace mozilla {
 
 class RecursiveMutex : public BlockingResourceBase {
  public:
-  explicit RecursiveMutex(const char* aName MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+  explicit RecursiveMutex(const char* aName,
+                          bool aOrdered = false MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
   ~RecursiveMutex();
 
 #ifdef DEBUG

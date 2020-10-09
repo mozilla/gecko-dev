@@ -17,7 +17,7 @@
 namespace mozilla {
 
 RecursiveMutex::RecursiveMutex(
-    const char* aName MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
+    const char* aName, bool aOrdered MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
     : BlockingResourceBase(aName, eRecursiveMutex)
 #ifdef DEBUG
       ,
@@ -56,6 +56,10 @@ RecursiveMutex::RecursiveMutex(
 
   MOZ_RELEASE_ASSERT(pthread_mutexattr_destroy(&attr) == 0,
                      "pthread_mutexattr_destroy failed");
+
+  if (aOrdered) {
+    recordreplay::AddOrderedPthreadMutex(aName, &mMutex);
+  }
 #endif
 }
 
