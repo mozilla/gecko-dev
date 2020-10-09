@@ -1324,10 +1324,14 @@ XPCJSContext* XPCJSContext::NewXPCJSContext() {
 void XPCJSContext::BeforeProcessTask(bool aMightBlock) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  recordreplay::RecordReplayAssert("XPCJSContext::BeforeProcessTask");
-
-  // Start the slow script timer.
-  mSlowScriptCheckpoint = mozilla::TimeStamp::NowLoRes();
+  // Start the slow script timer. This odd way of recording the result is a
+  // diagnostic for a mismatch problem.
+  {
+    recordreplay::AutoPassThroughThreadEvents pt;
+    mSlowScriptCheckpoint = mozilla::TimeStamp::NowLoRes();
+  }
+  recordreplay::RecordReplayBytes("XPCJSContext::BeforeProcessTask",
+                                  &mSlowScriptCheckpoint, sizeof(mSlowScriptCheckpoint));
   mSlowScriptSecondHalf = false;
   mSlowScriptActualWait = mozilla::TimeDuration();
   mTimeoutAccumulated = false;
