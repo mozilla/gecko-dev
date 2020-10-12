@@ -566,7 +566,16 @@ SourceBufferIterator SourceBuffer::Iterator(size_t aReadLength) {
 }
 
 void SourceBuffer::OnIteratorRelease() {
-  MutexAutoLock lock(mMutex);
+  // Iterator releases happen at non-deterministic points when replaying.
+  // and happens at non-deterministic points when replaying. Pass through
+  // thread events to signal that this lock acquire should not be ordered.
+  // The point of release won't have an effect on how waiting consumers are
+  // signaled, which is why this lock is ordered.
+  Maybe<MutexAutoLock> lock;
+  {
+    recordreplay::AutoPassThroughThreadEvents pt;
+    lock.emplace(mMutex);
+  }
 
   MOZ_ASSERT(mConsumerCount > 0, "Consumer count doesn't add up");
   mConsumerCount--;
