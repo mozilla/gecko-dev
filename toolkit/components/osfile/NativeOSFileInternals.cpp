@@ -1127,6 +1127,14 @@ class DoWriteAtomicEvent : public AbstractDoEvent {
       }
     }
 
+    // Diagnostics for problems reading the recording driver.
+    if (mNoQuarantine) {
+      struct stat s;
+      int rv = stat(path.get(), &s);
+      fprintf(stderr, "DoWriteAtomicEvent Stats %s Error %d %s Size %lu Mode %d\n",
+              path.get(), rv, strerror(errno), s.st_size, s.st_mode);
+    }
+
     *aBytesWritten = bytesWrittenSuccess;
     return NS_OK;
   }

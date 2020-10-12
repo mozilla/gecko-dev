@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <sys/stat.h>
 #include <sys/time.h>
 
 namespace mozilla {
@@ -127,6 +128,14 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
     if (gDriverHandle) {
       break;
     }
+
+    // Diagnostics...
+    struct stat s;
+    int rv = stat(driver, &s);
+    fprintf(stderr,
+            "RecordReplayInterface_Initialize DriverStats %s Error %d %s Size %lu Mode %d\n",
+            driver, rv, strerror(errno), s.st_size, s.st_mode);
+
     fprintf(stderr, "Loading driver at %s failed [%s], waiting...\n", driver, dlerror());
     sleep(1);
   }
