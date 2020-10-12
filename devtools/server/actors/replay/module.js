@@ -504,13 +504,15 @@ function OnConsoleError(message) {
   gCurrentConsoleMessage = null;
 }
 
-Services.console.registerListener({
-  observe(message) {
-    if (message instanceof Ci.nsIScriptError) {
-      OnConsoleError(message);
-    }
-  },
-});
+if (isRecordingOrReplaying) {
+  Services.console.registerListener({
+    observe(message) {
+      if (message instanceof Ci.nsIScriptError) {
+        OnConsoleError(message);
+      }
+    },
+  });
+}
 
 function consoleAPIMessageLevel({ level }) {
   switch (level) {
@@ -551,14 +553,16 @@ function OnConsoleAPICall(message) {
   clearPauseState();
 }
 
-Services.obs.addObserver(
-  {
-    observe(message) {
-      OnConsoleAPICall(message);
+if (isRecordingOrReplaying) {
+  Services.obs.addObserver(
+    {
+      observe(message) {
+        OnConsoleAPICall(message);
+      },
     },
-  },
-  "console-api-log-event"
-);
+    "console-api-log-event"
+  );
+}
 
 function Host_getCurrentMessageContents() {
   assert(gCurrentConsoleMessage);
