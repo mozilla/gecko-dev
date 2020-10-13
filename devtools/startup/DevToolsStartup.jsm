@@ -1451,7 +1451,7 @@ function saveRecordingInDB(description) {
     title: description.title,
     duration: description.duration,
     last_screen_data: description.lastScreenData || "",
-    last_screen_mime_type: description.lastScreenMimeType || "jpeg",
+    last_screen_mime_type: description.lastScreenMimeType || "image/jpeg",
   };
 
   console.log(`>>> saving recording`, description.recordingId);

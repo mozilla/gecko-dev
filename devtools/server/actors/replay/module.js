@@ -29,6 +29,8 @@ const log = RecordReplayControl.log;
 
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
 
+const { getCurrentZoom } = require("devtools/shared/layout/utils");
+
 let gWindow;
 function getWindow() {
   if (!gWindow) {
@@ -38,6 +40,27 @@ function getWindow() {
     }
   }
   return gWindow;
+}
+
+function getWindowAsImageData(win) {
+  const canvas = win.document.createElementNS(
+    "http://www.w3.org/1999/xhtml",
+    "canvas"
+  );
+  const scale = getCurrentZoom(win);
+  const width = win.innerWidth;
+  const height = win.innerHeight;
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  canvas.mozOpaque = true;
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.scale(scale, scale);
+  ctx.drawWindow(win, win.scrollX, win.scrollY, width, height, "#fff");
+
+  const dataURL = canvas.toDataURL("image/jpeg", 0.5);
+  return dataURL.slice(dataURL.indexOf(",") + 1);
 }
 
 const startTime = new Date();
@@ -366,6 +389,8 @@ function SendRecordingFinished(recordingId) {
     url: document.URL,
     title: document.title,
     duration: new Date() - startTime,
+    lastScreenData: getWindowAsImageData(getWindow()),
+    lastScreenMimeType: "image/jpeg",
   };
   Services.cpmm.sendAsyncMessage("RecordingFinished", data);
 }
