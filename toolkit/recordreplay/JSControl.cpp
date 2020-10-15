@@ -48,7 +48,7 @@ static char* CommandCallback(const char* aMethod, const char* aParams);
 
 // Callback used to change whether execution is being scanned and we should
 // call OnInstrument.
-static void SetChangeInstrumentCallback(bool aValue);
+static void ChangeInstrumentCallback(bool aValue);
 
 // Handle initialization at process startup.
 void InitializeJS() {
@@ -65,7 +65,7 @@ void InitializeJS() {
   LoadSymbol("RecordReplayElapsedTimeMs", gElapsedTimeMs);
 
   gSetDefaultCommandCallback(CommandCallback);
-  gSetChangeInstrumentCallback(SetChangeInstrumentCallback);
+  gSetChangeInstrumentCallback(ChangeInstrumentCallback);
 }
 
 // URL of the root module script.
@@ -343,7 +343,7 @@ static bool Method_ShouldUpdateProgressCounter(JSContext* aCx,
 static bool gScanningScripts;
 
 // This is called by the recording driver to notify us when to start/stop scanning.
-static void SetChangeInstrumentCallback(bool aValue) {
+static void ChangeInstrumentCallback(bool aValue) {
   MOZ_RELEASE_ASSERT(IsModuleInitialized());
 
   if (gScanningScripts == aValue) {
