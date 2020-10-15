@@ -434,7 +434,6 @@ const commands = {
   "Host.getCurrentMessageContents": Host_getCurrentMessageContents,
   "Host.getFunctionsInRange": Host_getFunctionsInRange,
   "Host.getHTMLSource": Host_getHTMLSource,
-  "Host.getObjectPreviewRequiredProperties": Host_getObjectPreviewRequiredProperties,
   "Host.getStepOffsets": Host_getStepOffsets,
   "Host.getScriptSourceMapURL": Host_getScriptSourceMapURL,
   "Host.getSheetSourceMapURL": Host_getSheetSourceMapURL,
@@ -1000,7 +999,7 @@ function createProtocolFrame(frameId, frame) {
     functionLocation = [getFunctionLocation(frame.callee)];
   }
 
-  const scopeChain = getScopeChain(frame, frameId);
+  const scopeChain = getScopeChain(frame);
   const thisv = createProtocolValue(frame.this);
 
   return {
@@ -1030,7 +1029,7 @@ function createProtocolFrame(frameId, frame) {
     ThrowError("Bad frame type");
   }
 
-  function getScopeChain(frame, frameId) {
+  function getScopeChain(frame) {
     const scopeChain = [];
     for (let env = frame.environment; env; env = env.parent) {
       const scopeId = getObjectId(env);
@@ -1040,11 +1039,11 @@ function createProtocolFrame(frameId, frame) {
   }
 }
 
-function createProtocolObject(objectId) {
+function createProtocolObject(objectId, canOverflow) {
   const obj = getObjectFromId(objectId);
 
   const className = obj.class;
-  const preview = new ProtocolObjectPreview(obj).fill();
+  const preview = new ProtocolObjectPreview(obj, canOverflow).fill();
 
   return { objectId, className, preview };
 }
@@ -1096,8 +1095,12 @@ function safeGetter(getter) {
   return getter.class == "Function" && !getter.script;
 }
 
+// Target limit for the number of items (properties etc.) to include in object
+// previews before overflowing.
+const NumItemsBeforeOverflow = 10;
+
 // Structure for managing construction of protocol ObjectPreview objects.
-function ProtocolObjectPreview(obj) {
+function ProtocolObjectPreview(obj, canOverflow) {
   // Underlying Debugger.Object
   this.obj = obj;
 
@@ -1106,33 +1109,62 @@ function ProtocolObjectPreview(obj) {
 
   // Additional properties to add to the resulting preview.
   this.extra = {};
+
+  // Whether the preview can overflow.
+  this.canOverflow = canOverflow;
+
+  // Whether the preview did overflow.
+  this.overflow = false;
+
+  // How many items have been added to the object, for determining when to overflow.
+  this.numItems = 0;
 }
 
 ProtocolObjectPreview.prototype = {
+  canAddItem(force) {
+    if (!force && this.canOverflow && this.numItems >= NumItemsBeforeOverflow) {
+      this.overflow = true;
+      return false;
+    }
+    this.numItems++;
+    return true;
+  },
+
   addProperty(property) {
+    if (!this.canAddItem()) {
+      return;
+    }
     if (!this.properties) {
       this.properties = [];
     }
     this.properties.push(property);
   },
 
-  addGetterValue(name) {
+  addGetterValue(name, force) {
     if (isObjectPropertyBlacklisted(this.obj, name)) {
       return;
     }
     if (!this.getterValues) {
-      this.getterValues = [];
+      this.getterValues = new Map();
     }
-    if (this.getterValues.some((v) => v.name == name)) {
+    if (this.getterValues.has(name)) {
+      return;
+    }
+    if (!this.canAddItem(force)) {
       return;
     }
     try {
       const value = createProtocolValueRaw(this.raw[name]);
-      this.getterValues.push({ name, ...value });
-    } catch (e) {}
+      this.getterValues.set(name, { name, ...value });
+    } catch (e) {
+      this.numItems--;
+    }
   },
 
   addContainerEntry(entry) {
+    if (!this.canAddItem()) {
+      return;
+    }
     if (!this.containerEntries) {
       this.containerEntries = [];
     }
@@ -1153,6 +1185,20 @@ ProtocolObjectPreview.prototype = {
       } catch (e) {}
     }
 
+    // Add class-specific data.
+    const previewer = CustomPreviewers[this.obj.class];
+    if (previewer) {
+      for (const entry of previewer) {
+        if (typeof entry == "string") {
+          // Getters in class specific data are always added, even if they
+          // would otherwise cause the preview to overflow.
+          this.addGetterValue(entry, /* force */ true);
+        } else {
+          entry.call(this);
+        }
+      }
+    }
+
     // Add "own" properties of the object.
     for (const name of propertyNames(this.obj)) {
       try {
@@ -1160,21 +1206,18 @@ ProtocolObjectPreview.prototype = {
         const property = createProtocolPropertyDescriptor(name, desc);
         this.addProperty(property);
       } catch (e) {}
+      if (this.overflow) {
+        break;
+      }
     }
 
-    // Add getter values on the object.
-    for (const name of this.findPrototypeGetterNames()) {
-      this.addGetterValue(name);
-    }
-
-    // Add class-specific data.
-    const previewer = CustomPreviewers[this.obj.class];
-    if (previewer) {
-      for (const entry of previewer) {
-        if (typeof entry == "string") {
-          this.addGetterValue(entry);
-        } else {
-          entry.call(this);
+    // Add getter values on the object, but only if we're generating a
+    // non-overflowing preview.
+    if (!this.canOverflow) {
+      for (const name of this.findPrototypeGetterNames()) {
+        this.addGetterValue(name);
+        if (this.overflow) {
+          break;
         }
       }
     }
@@ -1190,11 +1233,17 @@ ProtocolObjectPreview.prototype = {
       this.extra.styleSheet = styleSheetContents(this.raw);
     }
 
+    let getterValues;
+    if (this.getterValues) {
+      getterValues = [...this.getterValues.values()];
+    }
+
     return {
       prototypeId,
+      overflow: this.overflow ? true : undefined,
       properties: this.properties,
       containerEntries: this.containerEntries,
-      getterValues: this.getterValues,
+      getterValues,
       ...this.extra,
     };
   },
@@ -1231,6 +1280,9 @@ ProtocolObjectPreview.prototype = {
 function previewMap() {
   for (const [k, v] of Cu.waiveXrays(Map.prototype.entries.call(this.raw))) {
     this.addContainerEntryRaw(v, k, true);
+    if (this.overflow) {
+      break;
+    }
   }
 
   this.extra.containerEntryCount = this.raw.size;
@@ -1243,12 +1295,18 @@ function previewWeakMap() {
   for (const k of keys) {
     const v = WeakMap.prototype.get.call(this.raw, k);
     this.addContainerEntryRaw(v, k, true);
+    if (this.overflow) {
+      break;
+    }
   }
 }
 
 function previewSet() {
   for (const v of Cu.waiveXrays(Set.prototype.values.call(this.raw))) {
     this.addContainerEntryRaw(v);
+    if (this.overflow) {
+      break;
+    }
   }
 
   this.extra.containerEntryCount = this.raw.size;
@@ -1260,6 +1318,9 @@ function previewWeakSet() {
 
   for (const k of keys) {
     this.addContainerEntryRaw(k);
+    if (this.overflow) {
+      break;
+    }
   }
 }
 
@@ -1587,27 +1648,9 @@ function Pause_getExceptionValue() {
   };
 }
 
-function Pause_getObjectPreview({ object }) {
-  const objectData = createProtocolObject(object);
+function Pause_getObjectPreview({ object, canOverflow }) {
+  const objectData = createProtocolObject(object, canOverflow);
   return { data: { objects: [objectData] } };
-}
-
-function Host_getObjectPreviewRequiredProperties({ object }) {
-  const obj = getObjectFromId(object);
-  const properties = [];
-
-  // Any names in custom previewers for the object should always be included
-  // in previews, regardless of overflow.
-  const previewer = CustomPreviewers[obj.class];
-  if (previewer) {
-    for (const entry of previewer) {
-      if (typeof entry == "string") {
-        properties.push(entry);
-      }
-    }
-  }
-
-  return { properties };
 }
 
 function Pause_getObjectProperty({ object, name }) {
