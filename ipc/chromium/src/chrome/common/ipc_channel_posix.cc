@@ -331,6 +331,14 @@ bool Channel::ChannelImpl::Connect() {
 }
 
 bool Channel::ChannelImpl::ProcessIncomingMessages() {
+  // Don't process incoming messages after diverging from the recording.
+  // Any messages we see here will be replayed from the recording, and might
+  // not match up with what the process is currently doing. For example,
+  // we could get a reply to a sync message when we aren't waiting for one.
+  if (mozilla::recordreplay::HasDivergedFromRecording()) {
+    return true;
+  }
+
   struct msghdr msg = {0};
   struct iovec iov;
 
