@@ -86,6 +86,7 @@ static void (*gAddOrderedPthreadMutex)(const char* aName, pthread_mutex_t* aMute
 static void (*gOnMouseEvent)(const char* aKind, size_t aClientX, size_t aClientY);
 static void (*gSetRecordingIdCallback)(void (*aCallback)(const char*));
 static void (*gProcessRecording)();
+static void (*gSetCrashReasonCallback)(const char* (*aCallback)());
 
 static void* gDriverHandle;
 
@@ -98,6 +99,11 @@ void LoadSymbolInternal(const char* name, void** psym) {
 }
 
 static void RecordingIdCallback(const char* aRecordingId);
+
+// This is called when the process crashes to return any reason why Gecko is crashing.
+static const char* GetCrashReason() {
+  return gMozCrashReason;
+}
 
 extern "C" {
 
@@ -173,6 +179,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   LoadSymbol("RecordReplayOnMouseEvent", gOnMouseEvent);
   LoadSymbol("RecordReplaySetRecordingIdCallback", gSetRecordingIdCallback);
   LoadSymbol("RecordReplayProcessRecording", gProcessRecording);
+  LoadSymbol("RecordReplaySetCrashReasonCallback", gSetCrashReasonCallback);
 
   js::InitializeJS();
   InitializeGraphics();
@@ -191,6 +198,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
 
   gRecordCommandLineArguments(aArgc, aArgv);
   gSetRecordingIdCallback(RecordingIdCallback);
+  gSetCrashReasonCallback(GetCrashReason);
 
   // Unless disabled via the environment, pre-process all created recordings so
   // that they will load faster after saving the recording.
