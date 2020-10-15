@@ -162,7 +162,7 @@ NS_IMETHODIMP_(MozExternalRefCountType) SharedThreadPool::Release(void) {
   // When recording/replaying this destruction code runs non-deterministically.
   // Currently we aren't able to handle posting events non-deterministically,
   // so avoid shutting down the pool.
-  if (!recordreplay::IsRecordingOrReplaying())
+  if (!recordreplay::IsRecordingOrReplaying()) {
     // Dispatch an event to the main thread to call Shutdown() on
     // the nsIThreadPool. The Runnable here will add a refcount to the pool,
     // and when the Runnable releases the nsIThreadPool it will be deleted.
