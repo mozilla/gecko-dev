@@ -112,6 +112,16 @@ bool nsRFPService::IsTimerPrecisionReductionEnabled(TimerPrecisionType aType) {
          TimerResolution() > 0;
 }
 
+// When accessing the LRU cache we can get different behavior when replaying
+// due to different thread interleavings. This is fine for the cache itself,
+// since filling entries won't interact with the system, but we need to avoid
+// recording calls to get the current time at non-deterministic points.
+// Just pass through these calls so that they aren't recorded.
+static inline PRTime ReallyNow() {
+  mozilla::recordreplay::AutoPassThroughThreadEvents pt;
+  return PR_Now();
+}
+
 /*
  * The below is a simple time-based Least Recently Used cache used to store the
  * result of a cryptographic hash function. It has LRU_CACHE_SIZE slots, and
@@ -148,7 +158,7 @@ class LRUCache final {
           return EmptyCString();
         }
 
-        cacheEntry.accessTime = PR_Now();
+        cacheEntry.accessTime = ReallyNow();
         MOZ_LOG(gResistFingerprintingLog, LogLevel::Verbose,
                 ("LRU Cache HIT with %lli %lli", aKeyPart1, aKeyPart2));
         return cacheEntry.data;
@@ -181,7 +191,7 @@ class LRUCache final {
     lowestKey->keyPart1 = aKeyPart1;
     lowestKey->keyPart2 = aKeyPart2;
     lowestKey->data = aValue;
-    lowestKey->accessTime = PR_Now();
+    lowestKey->accessTime = ReallyNow();
     MOZ_LOG(gResistFingerprintingLog, LogLevel::Verbose,
             ("LRU Cache STORE with %lli %lli", aKeyPart1, aKeyPart2));
   }
