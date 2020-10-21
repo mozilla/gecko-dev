@@ -2405,11 +2405,15 @@ void HTMLMediaElement::ResetState() {
 }
 
 void HTMLMediaElement::SelectResourceWrapper() {
+  recordreplay::RecordReplayAssert("HTMLMediaElement::SelectResourceWrapper Start");
+
   SelectResource();
   MaybeBeginCloningVisually();
   mIsRunningSelectResource = false;
   mHaveQueuedSelectResource = false;
   mIsDoingExplicitLoad = false;
+
+  recordreplay::RecordReplayAssert("HTMLMediaElement::SelectResourceWrapper End");
 }
 
 void HTMLMediaElement::SelectResource() {
