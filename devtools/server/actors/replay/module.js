@@ -1211,16 +1211,8 @@ ProtocolObjectPreview.prototype = {
       }
     }
 
-    // Add getter values on the object, but only if we're generating a
-    // non-overflowing preview.
-    if (!this.canOverflow) {
-      for (const name of this.findPrototypeGetterNames()) {
-        this.addGetterValue(name);
-        if (this.overflow) {
-          break;
-        }
-      }
-    }
+    // Add values of getters found on the prototype chain.
+    this.addPrototypeGetterValues();
 
     // Add data for DOM/CSS objects.
     if (Node.isInstance(this.raw)) {
@@ -1248,11 +1240,9 @@ ProtocolObjectPreview.prototype = {
     };
   },
 
-  // Get the names of getters on the prototype chain which should be called to
-  // produce a full preview.
-  findPrototypeGetterNames() {
+  // Add any getter values on the preview for properties found on the prototype chain.
+  addPrototypeGetterValues() {
     const seen = new Set();
-    const getterNames = [];
     let proto = this.obj;
     while (proto) {
       for (const name of propertyNames(proto)) {
@@ -1263,7 +1253,10 @@ ProtocolObjectPreview.prototype = {
         try {
           const desc = proto.getOwnPropertyDescriptor(name);
           if (desc.get && safeGetter(desc.get)) {
-            getterNames.push(name);
+            this.addGetterValue(name);
+            if (this.overflow) {
+              return;
+            }
           }
         } catch (e) {}
       }
@@ -1273,7 +1266,6 @@ ProtocolObjectPreview.prototype = {
         break;
       }
     }
-    return getterNames;
   },
 };
 
