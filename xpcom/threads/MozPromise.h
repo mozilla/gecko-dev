@@ -1015,7 +1015,14 @@ class MozPromise : public MozPromiseBase {
 
   virtual ~MozPromise() {
     PROMISE_LOG("MozPromise::~MozPromise [this=%p]", this);
-    AssertIsDead();
+
+    // Avoid calling AssertIsDead when recording/replaying, as the point when
+    // this function runs can vary between recording and replaying,
+    // and AssertIsDead takes an ordered lock.
+    if (!recordreplay::IsRecordingOrReplaying()) {
+      AssertIsDead();
+    }
+
     // We can't guarantee a completion promise will always be revolved or
     // rejected since ResolveOrRejectRunnable might not run when dispatch fails.
     if (!mIsCompletionPromise) {
