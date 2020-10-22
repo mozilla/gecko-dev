@@ -444,7 +444,7 @@ function OnProtocolCommand(method, params) {
     try {
       return commands[method](params);
     } catch (e) {
-      log(`Error: Exception processing command ${method}: ${e}`);
+      log(`Error: Exception processing command ${method}: ${e} ${e.stack}`);
       return null;
     }
   }
