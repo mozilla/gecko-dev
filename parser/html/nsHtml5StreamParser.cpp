@@ -1475,6 +1475,9 @@ nsresult nsHtml5StreamParser::OnDataAvailable(nsIRequest* aRequest,
                                               nsIInputStream* aInStream,
                                               uint64_t aSourceOffset,
                                               uint32_t aLength) {
+  recordreplay::RecordReplayAssert("nsHtml5StreamParser::OnDataAvailable %lu %u",
+                                   aSourceOffset, aLength);
+
   nsresult rv;
   if (NS_FAILED(rv = mExecutor->IsBroken())) {
     return rv;

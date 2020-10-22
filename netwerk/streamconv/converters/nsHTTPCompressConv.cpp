@@ -264,6 +264,9 @@ nsresult nsHTTPCompressConv::BrotliHandler(nsIInputStream* stream,
 NS_IMETHODIMP
 nsHTTPCompressConv::OnDataAvailable(nsIRequest* request, nsIInputStream* iStr,
                                     uint64_t aSourceOffset, uint32_t aCount) {
+  recordreplay::RecordReplayAssert("nsHTTPCompressConv::OnDataAvailable %lu %u",
+                                   aSourceOffset, aCount);
+
   nsresult rv = NS_ERROR_INVALID_CONTENT_ENCODING;
   uint32_t streamLen = aCount;
   LOG(("nsHttpCompressConv %p OnDataAvailable %d", this, aCount));
