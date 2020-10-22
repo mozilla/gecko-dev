@@ -753,6 +753,7 @@ void TextureClient::Unlock() {
 }
 
 void TextureClient::EnableReadLock() {
+  recordreplay::RecordReplayAssert("TextureClient::EnableReadLock %d", !!mReadLock);
   if (!mReadLock) {
     if (mAllocator->GetTileLockAllocator()) {
       mReadLock = NonBlockingTextureReadLock::Create(mAllocator);

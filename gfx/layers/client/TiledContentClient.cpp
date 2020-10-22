@@ -526,6 +526,8 @@ void TileClient::DiscardBackBuffer() {
 static already_AddRefed<TextureClient> CreateBackBufferTexture(
     TextureClient* aCurrentTexture, CompositableClient& aCompositable,
     TextureClientAllocator* aAllocator) {
+  recordreplay::RecordReplayAssert("CreateBackBufferTexture");
+
   if (aCurrentTexture) {
     // Our current back-buffer is still locked by the compositor. This can occur
     // when the client is producing faster than the compositor can consume. In
