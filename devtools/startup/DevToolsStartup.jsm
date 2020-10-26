@@ -1695,11 +1695,16 @@ async function updateRecordingDriver() {
     return;
   }
 
+  let downloadURL;
   try {
-    const downloadURL = Services.prefs.getStringPref(
+    downloadURL = Services.prefs.getStringPref(
       "devtools.recordreplay.driverDownloads"
     );
+  } catch (e) {
+    downloadURL = "https://replay.io/downloads";
+  }
 
+  try {
     const driver = driverFile();
     const json = driverJSONFile();
 
