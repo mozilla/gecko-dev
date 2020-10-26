@@ -199,13 +199,17 @@ ThreadSafeWorkerRef::ThreadSafeWorkerRef(StrongWorkerRef* aRef) : mRef(aRef) {
 }
 
 ThreadSafeWorkerRef::~ThreadSafeWorkerRef() {
-  // Let's release the StrongWorkerRef on the correct thread. Skip this when
-  // recording/replaying (allowing the worker to leak) because this class can
-  // be destroyed in event runnable destructors that run at non-deterministic
-  // points when replaying, and we don't yet support posting events in such
-  // situations.
-  if (!mRef->mWorkerPrivate->IsOnWorkerThread() &&
-      !recordreplay::IsRecordingOrReplaying()) {
+  // Let's release the StrongWorkerRef on the correct thread.
+  if (!mRef->mWorkerPrivate->IsOnWorkerThread()) {
+    // When recording/replaying we leak the reference because this class can
+    // be destroyed in event runnable destructors that run at non-deterministic
+    // points when replaying, and we don't yet support posting events in such
+    // situations.
+    if (recordreplay::IsRecordingOrReplaying()) {
+      mRef.forget();
+      return;
+    }
+
     WorkerPrivate* workerPrivate = mRef->mWorkerPrivate;
     RefPtr<ReleaseRefControlRunnable> r =
         new ReleaseRefControlRunnable(workerPrivate, mRef.forget());
