@@ -1427,6 +1427,12 @@ TextureClient::TextureClient(TextureData* aData, TextureFlags aFlags,
     MOZ_ASSERT(!(mFlags & TextureFlags::NON_BLOCKING_READ_LOCK));
     EnableBlockingReadLock();
   }
+
+  // The destructor uses ordered locks and can run at inconsistent times when
+  // replaying, so we leak this class for now.
+  if (recordreplay::IsRecordingOrReplaying()) {
+    ADDREF_MANUALLY(this);
+  }
 }
 
 bool TextureClient::CopyToTextureClient(TextureClient* aTarget,
