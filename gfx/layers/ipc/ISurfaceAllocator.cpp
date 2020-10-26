@@ -105,17 +105,26 @@ bool FixedSizeSmallShmemSectionAllocator::AllocShmemSection(
 
   uint32_t allocationSize = (aSize + sizeof(ShmemSectionHeapAllocation));
 
+  recordreplay::RecordReplayAssert("FixedSizeSmallShmemSectionAllocator::AllocShmemSection #1 %d %d",
+                                   aSize, mUsedShmems.size());
+
   for (size_t i = 0; i < mUsedShmems.size(); i++) {
     ShmemSectionHeapHeader* header =
         mUsedShmems[i].get<ShmemSectionHeapHeader>();
+    recordreplay::RecordReplayAssert("FixedSizeSmallShmemSectionAllocator::AllocShmemSection #2 %d %d",
+                                     i, (int)header->mAllocatedBlocks);
     if ((header->mAllocatedBlocks + 1) * allocationSize +
             sizeof(ShmemSectionHeapHeader) <
         sShmemPageSize) {
+      recordreplay::RecordReplayAssert("FixedSizeSmallShmemSectionAllocator::AllocShmemSection #3 %d", i);
       aShmemSection->shmem() = mUsedShmems[i];
       MOZ_ASSERT(mUsedShmems[i].IsWritable());
       break;
     }
   }
+
+  recordreplay::RecordReplayAssert("FixedSizeSmallShmemSectionAllocator::AllocShmemSection #4 %d",
+                                   aShmemSection->shmem().IsWritable());
 
   if (!aShmemSection->shmem().IsWritable()) {
     ipc::Shmem tmp;
@@ -140,6 +149,9 @@ bool FixedSizeSmallShmemSectionAllocator::AllocShmemSection(
       aShmemSection->shmem().get<uint8_t>() + sizeof(ShmemSectionHeapHeader);
 
   ShmemSectionHeapAllocation* allocHeader = nullptr;
+
+  recordreplay::RecordReplayAssert("FixedSizeSmallShmemSectionAllocator::AllocShmemSection #5 %d %d",
+                                   (int)header->mTotalBlocks, (int)header->mAllocatedBlocks);
 
   if (header->mTotalBlocks > header->mAllocatedBlocks) {
     // Search for the first available block.
@@ -168,6 +180,10 @@ bool FixedSizeSmallShmemSectionAllocator::AllocShmemSection(
   aShmemSection->size() = aSize;
   aShmemSection->offset() = (heap + sizeof(ShmemSectionHeapAllocation)) -
                             aShmemSection->shmem().get<uint8_t>();
+
+  recordreplay::RecordReplayAssert("FixedSizeSmallShmemSectionAllocator::AllocShmemSection #6 %d %d",
+                                   aShmemSection->size(), aShmemSection->offset());
+
   ShrinkShmemSectionHeap();
   return true;
 }
@@ -176,6 +192,11 @@ void FixedSizeSmallShmemSectionAllocator::FreeShmemSection(
     mozilla::layers::ShmemSection& aShmemSection) {
   MOZ_ASSERT(aShmemSection.size() == sSupportedBlockSize);
   MOZ_ASSERT(aShmemSection.offset() < sShmemPageSize - sSupportedBlockSize);
+
+  recordreplay::RecordReplayAssert("FixedSizeSmallShmemSectionAllocator::FreeShmemSection #1 %d %d %d",
+                                   aShmemSection.size(),
+                                   aShmemSection.offset(),
+                                   aShmemSection.shmem().IsWritable());
 
   if (!aShmemSection.shmem().IsWritable()) {
     return;
