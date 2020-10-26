@@ -53,6 +53,8 @@ Event::Event(nsPIDOMWindowInner* aParent) {
 
 void Event::ConstructorInit(EventTarget* aOwner, nsPresContext* aPresContext,
                             WidgetEvent* aEvent) {
+  recordreplay::RecordReplayAssert("Event::ConstructorInit");
+
   SetOwner(aOwner);
   mIsMainThreadEvent = NS_IsMainThread();
 

@@ -622,6 +622,8 @@ nsProgressNotificationProxy::GetInterface(const nsIID& iid, void** result) {
 static void NewRequestAndEntry(bool aForcePrincipalCheckForCacheEntry,
                                imgLoader* aLoader, const ImageCacheKey& aKey,
                                imgRequest** aRequest, imgCacheEntry** aEntry) {
+  recordreplay::RecordReplayAssert("NewRequestAndEntry");
+
   RefPtr<imgRequest> request = new imgRequest(aLoader, aKey);
   RefPtr<imgCacheEntry> entry =
       new imgCacheEntry(aLoader, request, aForcePrincipalCheckForCacheEntry);
@@ -2078,6 +2080,8 @@ nsresult imgLoader::LoadImage(
     nsISupports* aCacheKey, nsContentPolicyType aContentPolicyType,
     const nsAString& initiatorType, bool aUseUrgentStartForChannel,
     imgRequestProxy** _retval) {
+  recordreplay::RecordReplayAssert("imgLoader::LoadImage");
+
   VerifyCacheSizes();
 
   NS_ASSERTION(aURI, "imgLoader::LoadImage -- NULL URI pointer");
