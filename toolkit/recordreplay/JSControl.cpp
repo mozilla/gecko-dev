@@ -41,6 +41,7 @@ static void (*gOnEvent)(const char* aEvent, bool aBefore);
 static void (*gOnConsoleMessage)(int aTimeWarpTarget);
 static size_t (*gNewTimeWarpTarget)();
 static size_t (*gElapsedTimeMs)();
+static void (*gAddAnnotation)(const char* aText);
 
 // Callback used when the recording driver is sending us a command to look up
 // some state.
@@ -63,6 +64,7 @@ void InitializeJS() {
   LoadSymbol("RecordReplayOnConsoleMessage", gOnConsoleMessage);
   LoadSymbol("RecordReplayNewBookmark", gNewTimeWarpTarget);
   LoadSymbol("RecordReplayElapsedTimeMs", gElapsedTimeMs);
+  LoadSymbol("RecordReplayAddAnnotation", gAddAnnotation);
 
   gSetDefaultCommandCallback(CommandCallback);
   gSetChangeInstrumentCallback(ChangeInstrumentCallback);
@@ -265,6 +267,25 @@ static bool Method_Log(JSContext* aCx, unsigned aArgc, Value* aVp) {
   }
 
   PrintLog(cstr.get());
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool Method_Annotate(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  RootedString str(aCx, ToString(aCx, args.get(0)));
+  if (!str) {
+    return false;
+  }
+
+  JS::UniqueChars cstr = JS_EncodeStringToLatin1(aCx, str);
+  if (!cstr) {
+    return false;
+  }
+
+  gAddAnnotation(cstr.get());
 
   args.rval().setUndefined();
   return true;
@@ -477,6 +498,7 @@ static bool Method_OnConsoleMessage(JSContext* aCx, unsigned aArgc, Value* aVp) 
 
 static const JSFunctionSpec gRecordReplayMethods[] = {
   JS_FN("log", Method_Log, 1, 0),
+  JS_FN("annotate", Method_Annotate, 1, 0),
   JS_FN("onScriptParsed", Method_OnScriptParsed, 3, 0),
   JS_FN("areThreadEventsDisallowed", Method_AreThreadEventsDisallowed, 0, 0),
   JS_FN("progressCounter", Method_ProgressCounter, 0, 0),
