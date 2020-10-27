@@ -139,3 +139,8 @@ img[src=""] {
   background: var(--blue-primary-color);
   transition: background-color 0.5s ease-in-out;
 }
+
+.error-message {
+  text-align: center;
+  font-size: x-large;
+}

@@ -1822,6 +1822,23 @@ Services.ppmm.addMessageListener("RecordingFinished", {
   },
 });
 
+Services.ppmm.addMessageListener("RecordingUnusable", {
+  async receiveMessage(msg) {
+    if (gFinishedRecordingWaiter) {
+      gFinishedRecordingWaiter(null);
+    }
+    const { why } = msg.data;
+    const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+    gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
+      recordExecution: undefined,
+      newFrameloader: true,
+      remoteType: E10SUtils.WEB_REMOTE_TYPE,
+    });
+    const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+    gBrowser.loadURI(`about:replay?error=${why}`, { triggeringPrincipal });
+  },
+});
+
 function waitForFinishedRecording() {
   return new Promise((resolve) => (gFinishedRecordingWaiter = resolve));
 }
@@ -1835,6 +1852,11 @@ async function reloadAndStopRecordingTab(gBrowser) {
   recordReplayLog(`WaitForFinishedRecording`);
 
   const data = await waitForFinishedRecording();
+  if (!data) {
+    // The recording is unusable.
+    return;
+  }
+
   const { recordingId } = data;
 
   recordReplayLog(`FinishedRecording ${recordingId}`);

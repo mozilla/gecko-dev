@@ -31,6 +31,9 @@ void EnsureModuleInitialized();
 // Notify the UI process that the recording was finished.
 void SendRecordingFinished();
 
+// Make sure the UI process is notified if the recording is unusable.
+void MaybeSendRecordingUnusable();
+
 }  // namespace js
 }  // namespace recordreplay
 }  // namespace mozilla

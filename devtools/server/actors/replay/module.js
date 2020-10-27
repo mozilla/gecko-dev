@@ -247,12 +247,14 @@ gDebugger.onNewScript = (script) => {
     Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")
   ) {
     const recordingId = RecordReplayControl.recordingId();
-    const { url, sourceMapURL } = script.source;
-    Services.cpmm.sendAsyncMessage("RecordReplayGeneratedSourceWithSourceMap", {
-      recordingId,
-      url,
-      sourceMapURL,
-    });
+    if (recordingId) {
+      const { url, sourceMapURL } = script.source;
+      Services.cpmm.sendAsyncMessage("RecordReplayGeneratedSourceWithSourceMap", {
+        recordingId,
+        url,
+        sourceMapURL,
+      });
+    }
   }
 
   let kind = "scriptSource";
@@ -334,14 +336,16 @@ getWindow().docShell.chromeEventHandler.addEventListener(
       Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")
     ) {
       const recordingId = RecordReplayControl.recordingId();
-      Services.cpmm.sendAsyncMessage(
-        "RecordReplayGeneratedSourceWithSourceMap",
-        {
-          recordingId,
-          url: stylesheet.href,
-          sourceMapURL: stylesheet.sourceMapURL,
-        }
-      );
+      if (recordingId) {
+        Services.cpmm.sendAsyncMessage(
+          "RecordReplayGeneratedSourceWithSourceMap",
+          {
+            recordingId,
+            url: stylesheet.href,
+            sourceMapURL: stylesheet.sourceMapURL,
+          }
+        );
+      }
     }
   },
   true
@@ -393,6 +397,10 @@ function SendRecordingFinished(recordingId) {
     lastScreenMimeType: "image/jpeg",
   };
   Services.cpmm.sendAsyncMessage("RecordingFinished", data);
+}
+
+function SendRecordingUnusable(why) {
+  Services.cpmm.sendAsyncMessage("RecordingUnusable", { why });
 }
 
 function OnTestCommand(str) {
@@ -455,6 +463,7 @@ const exports = {
   CanCreateCheckpoint,
   OnMouseEvent,
   SendRecordingFinished,
+  SendRecordingUnusable,
   OnTestCommand,
   OnProtocolCommand,
   SetScanningScripts,

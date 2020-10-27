@@ -42,6 +42,7 @@ static void (*gOnConsoleMessage)(int aTimeWarpTarget);
 static size_t (*gNewTimeWarpTarget)();
 static size_t (*gElapsedTimeMs)();
 static void (*gAddAnnotation)(const char* aText);
+static char* (*gGetUnusableRecordingReason)();
 
 // Callback used when the recording driver is sending us a command to look up
 // some state.
@@ -65,6 +66,7 @@ void InitializeJS() {
   LoadSymbol("RecordReplayNewBookmark", gNewTimeWarpTarget);
   LoadSymbol("RecordReplayElapsedTimeMs", gElapsedTimeMs);
   LoadSymbol("RecordReplayAddAnnotation", gAddAnnotation);
+  LoadSymbol("RecordReplayGetUnusableRecordingReason", gGetUnusableRecordingReason);
 
   gSetDefaultCommandCallback(CommandCallback);
   gSetChangeInstrumentCallback(ChangeInstrumentCallback);
@@ -211,15 +213,33 @@ MOZ_EXPORT void RecordReplayInterface_EndContentParse(const void* aToken) {
 
 }  // extern "C"
 
+static bool IsRecordingUnusable() {
+  if (IsRecording()) {
+    char* reason = gGetUnusableRecordingReason();
+    if (reason) {
+      free(reason);
+      return true;
+    }
+  }
+  return false;
+}
+
 // Recording IDs are UUIDs, and have a fixed length.
 static char gRecordingId[40];
 
 static const char* GetRecordingId() {
+  if (IsRecordingUnusable()) {
+    return nullptr;
+  }
   if (!gRecordingId[0]) {
     // RecordReplayGetRecordingId() is not currently supported while replaying,
     // so we embed the recording ID in the recording itself.
     if (IsRecording()) {
       char* recordingId = gGetRecordingId();
+      if (!recordingId) {
+        MOZ_RELEASE_ASSERT(IsRecordingUnusable());
+        return nullptr;
+      }
       MOZ_RELEASE_ASSERT(*recordingId != 0);
       MOZ_RELEASE_ASSERT(strlen(recordingId) + 1 <= sizeof(gRecordingId));
       strcpy(gRecordingId, recordingId);
@@ -229,13 +249,32 @@ static const char* GetRecordingId() {
   return gRecordingId;
 }
 
+// Report the recording as either finished or unusable.
 void SendRecordingFinished() {
   MOZ_RELEASE_ASSERT(IsModuleInitialized());
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  JSString* str = JS_NewStringCopyZ(cx, GetRecordingId());
+  const char* recordingId = GetRecordingId();
+  if (!recordingId) {
+    char* reason = gGetUnusableRecordingReason();
+    MOZ_RELEASE_ASSERT(reason);
+
+    JSString* str = JS_NewStringCopyZ(cx, reason);
+    MOZ_RELEASE_ASSERT(str);
+
+    JS::AutoValueArray<1> args(cx);
+    args[0].setString(str);
+
+    RootedValue rv(cx);
+    if (!JS_CallFunctionName(cx, *gModuleObject, "SendRecordingUnusable", args, &rv)) {
+      MOZ_CRASH("SendRecordingFinished");
+    }
+    return;
+  }
+
+  JSString* str = JS_NewStringCopyZ(cx, recordingId);
   MOZ_RELEASE_ASSERT(str);
 
   JS::AutoValueArray<1> args(cx);
@@ -244,6 +283,16 @@ void SendRecordingFinished() {
   RootedValue rv(cx);
   if (!JS_CallFunctionName(cx, *gModuleObject, "SendRecordingFinished", args, &rv)) {
     MOZ_CRASH("SendRecordingFinished");
+  }
+}
+
+void MaybeSendRecordingUnusable() {
+  MOZ_RELEASE_ASSERT(IsModuleInitialized());
+
+  if (IsRecordingUnusable()) {
+    // Finishing the recording after it is unusable will notify the UI process
+    // appropriately, and will trigger shutdown of this process appropriately.
+    FinishRecording();
   }
 }
 
@@ -472,12 +521,17 @@ static bool Method_RecordingId(JSContext* aCx, unsigned aArgc,
                                      Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  JSString* str = JS_NewStringCopyZ(aCx, GetRecordingId());
-  if (!str) {
-    return false;
-  }
+  const char* recordingId = GetRecordingId();
+  if (recordingId) {
+    JSString* str = JS_NewStringCopyZ(aCx, recordingId);
+    if (!str) {
+      return false;
+    }
 
-  args.rval().setString(str);
+    args.rval().setString(str);
+  } else {
+    args.rval().setNull();
+  }
   return true;
 }
 

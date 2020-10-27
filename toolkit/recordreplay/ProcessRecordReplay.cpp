@@ -87,6 +87,7 @@ static void (*gOnMouseEvent)(const char* aKind, size_t aClientX, size_t aClientY
 static void (*gSetRecordingIdCallback)(void (*aCallback)(const char*));
 static void (*gProcessRecording)();
 static void (*gSetCrashReasonCallback)(const char* (*aCallback)());
+static void (*gInvalidateRecording)(const char* aFormat, ...);
 
 static void* gDriverHandle;
 
@@ -180,6 +181,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   LoadSymbol("RecordReplaySetRecordingIdCallback", gSetRecordingIdCallback);
   LoadSymbol("RecordReplayProcessRecording", gProcessRecording);
   LoadSymbol("RecordReplaySetCrashReasonCallback", gSetCrashReasonCallback);
+  LoadSymbol("RecordReplayInvalidateRecording", gInvalidateRecording);
 
   js::InitializeJS();
   InitializeGraphics();
@@ -220,8 +222,7 @@ MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayBytes(const char* aWhy
 
 MOZ_EXPORT void RecordReplayInterface_InternalInvalidateRecording(
     const char* aWhy) {
-  PrintLog("Recording invalidated %s, crashing...", aWhy);
-  MOZ_CRASH();
+  gInvalidateRecording("%s", aWhy);
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayAssert(
@@ -414,6 +415,8 @@ bool HasCheckpoint() {
 
 void CreateCheckpoint() {
   js::EnsureModuleInitialized();
+  js::MaybeSendRecordingUnusable();
+
   gRecordReplayNewCheckpoint();
   gHasCheckpoint = true;
 }

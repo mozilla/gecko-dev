@@ -128,12 +128,10 @@ async function showRecordings() {
   document.querySelector(".no-recordings").hidden = !!gRecordings.length;
 }
 
-function showError(kind) {
-  document.querySelector(".recordings-title").hidden = true;
+function showError(why) {
   document.querySelector(".no-recordings").hidden = true;
   document.querySelector(".error-title").hidden = false;
-
-  document.querySelector(".error-message").setAttribute("data-l10n-id", kind);
+  document.querySelector(".error-message").innerText = `Recording Error: ${why}`;
 }
 
 window.onload = async function () {
