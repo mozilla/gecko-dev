@@ -152,7 +152,13 @@ class nsPipeInputStream final : public nsIAsyncInputStream,
         mBlocking(true),
         mBlocked(false),
         mCallbackFlags(0),
-        mPriority(nsIRunnablePriority::PRIORITY_NORMAL) {}
+        mPriority(nsIRunnablePriority::PRIORITY_NORMAL) {
+    // Avoid closing the stream at non-deterministic points when recording/replaying
+    // by leaking the stream entirely.
+    if (recordreplay::IsRecordingOrReplaying()) {
+      AddRef();
+    }
+  }
 
   nsPipeInputStream(const nsPipeInputStream& aOther)
       : mPipe(aOther.mPipe),
@@ -162,7 +168,12 @@ class nsPipeInputStream final : public nsIAsyncInputStream,
         mBlocked(false),
         mCallbackFlags(0),
         mReadState(aOther.mReadState),
-        mPriority(nsIRunnablePriority::PRIORITY_NORMAL) {}
+        mPriority(nsIRunnablePriority::PRIORITY_NORMAL) {
+    // Leak streams when record/replaying, as above.
+    if (recordreplay::IsRecordingOrReplaying()) {
+      AddRef();
+    }
+  }
 
   nsresult Fill();
   void SetNonBlocking(bool aNonBlocking) { mBlocking = !aNonBlocking; }
