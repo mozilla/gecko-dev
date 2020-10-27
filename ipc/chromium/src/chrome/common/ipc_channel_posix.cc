@@ -629,7 +629,8 @@ bool Channel::ChannelImpl::ProcessOutgoingMessages() {
 #endif
     Message* msg = output_queue_.front();
 
-    mozilla::recordreplay::RecordReplayAssert("ChannelImpl::ProcessOutgoingMessages #1 %lu",
+    mozilla::recordreplay::RecordReplayAssert("ChannelImpl::ProcessOutgoingMessages #1 %s %lu",
+                                              IPC::StringFromIPCMessageType(msg->type()),
                                               msg->Buffers().Size());
 
     struct msghdr msgh = {0};
