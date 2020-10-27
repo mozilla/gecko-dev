@@ -88,6 +88,7 @@ static void (*gSetRecordingIdCallback)(void (*aCallback)(const char*));
 static void (*gProcessRecording)();
 static void (*gSetCrashReasonCallback)(const char* (*aCallback)());
 static void (*gInvalidateRecording)(const char* aFormat, ...);
+static bool (*gIsTearingDownProcess)();
 
 static void* gDriverHandle;
 
@@ -182,6 +183,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   LoadSymbol("RecordReplayProcessRecording", gProcessRecording);
   LoadSymbol("RecordReplaySetCrashReasonCallback", gSetCrashReasonCallback);
   LoadSymbol("RecordReplayInvalidateRecording", gInvalidateRecording);
+  LoadSymbol("RecordReplayIsTearingDownProcess", gIsTearingDownProcess);
 
   js::InitializeJS();
   InitializeGraphics();
@@ -440,6 +442,10 @@ void FinishRecording() {
   // finishing the recording, so we have to it ourselves.
   PrintLog("Recording finished, exiting.");
   exit(0);
+}
+
+bool IsTearingDownProcess() {
+  return gIsTearingDownProcess();
 }
 
 void OnWidgetEvent(dom::BrowserChild* aChild, const WidgetMouseEvent& aEvent) {

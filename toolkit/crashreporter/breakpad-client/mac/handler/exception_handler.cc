@@ -74,6 +74,8 @@
   extern ProtectedMemoryAllocator *gBreakpadAllocator;
 #endif
 
+namespace mozilla::recordreplay { bool IsTearingDownProcess(); }
+
 namespace google_breakpad {
 
 static union {
@@ -647,6 +649,11 @@ void ExceptionHandler::SignalHandler(int sig, siginfo_t* info, void* uc) {
   if (gBreakpadAllocator)
     gBreakpadAllocator->Unprotect();
 #endif
+  // Recording processes use abort() to tear down the process after finishing
+  // the recording. This isn't an error.
+  if (mozilla::recordreplay::IsTearingDownProcess()) {
+    return;
+  }
   gProtectedData.handler->WriteMinidumpWithException(
       EXC_SOFTWARE,
       MD_EXCEPTION_CODE_MAC_ABORT,
