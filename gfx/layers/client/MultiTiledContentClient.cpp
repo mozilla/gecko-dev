@@ -169,6 +169,8 @@ void ClientMultiTiledLayerBuffer::Update(const nsIntRegion& newValidRegion,
                                          const nsIntRegion& aPaintRegion,
                                          const nsIntRegion& aDirtyRegion,
                                          TilePaintFlags aFlags) {
+  recordreplay::RecordReplayAssert("ClientMultiTiledLayerBuffer::Update Start");
+
   const IntSize scaledTileSize = GetScaledTileSize();
   const gfx::IntRect newBounds = newValidRegion.GetBounds();
 
@@ -264,6 +266,8 @@ void ClientMultiTiledLayerBuffer::Update(const nsIntRegion& newValidRegion,
       mCallback(&mPaintedLayer, ctx, paintRegion, dirtyRegion,
                 DrawRegionClip::DRAW, nsIntRegion(), mCallbackData);
       ctx = nullptr;
+
+      recordreplay::RecordReplayAssert("ClientMultiTiledLayerBuffer::Update #1");
 
       // Edge padding allows us to avoid resampling artifacts
       if (StaticPrefs::layers_tiles_edge_padding_AtStartup() &&
