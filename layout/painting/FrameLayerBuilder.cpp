@@ -1979,6 +1979,8 @@ class MaskImageData {
   }
 
   gfx::DrawTarget* CreateDrawTarget() {
+    recordreplay::RecordReplayAssert("MaskImageData::CreateDrawTarget");
+
     if (mDrawTarget) {
       return mDrawTarget;
     }

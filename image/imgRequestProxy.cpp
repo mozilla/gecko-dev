@@ -696,6 +696,9 @@ imgRequestProxy::GetProducerId(uint32_t* aId) {
 
 NS_IMETHODIMP
 imgRequestProxy::GetImageStatus(uint32_t* aStatus) {
+  recordreplay::RecordReplayAssert("imgRequestProxy::GetImageStatus %lu",
+                                   recordreplay::ThingIndex(GetOwner()));
+
   if (IsValidating()) {
     // We are currently validating the image, and so our status could revert if
     // we discard the cache. We should also be deferring notifications, such

@@ -53,6 +53,9 @@ nsresult ImageTracker::Add(imgIRequest* aImage) {
 nsresult ImageTracker::Remove(imgIRequest* aImage, uint32_t aFlags) {
   NS_ENSURE_ARG_POINTER(aImage);
 
+  recordreplay::RecordReplayAssert("ImageTracker::Remove %lu %u",
+                                   recordreplay::ThingIndex(aImage), aFlags);
+
   // Get the old count. It should exist and be > 0.
   if (auto entry = mImages.Lookup(aImage)) {
     MOZ_ASSERT(entry.Data() > 0, "Entry in the image tracker with count 0!");
