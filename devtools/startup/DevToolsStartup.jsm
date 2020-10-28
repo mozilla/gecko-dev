@@ -1433,7 +1433,13 @@ function getLoggedInUser() {
 }
 
 function saveRecordingInDB(description) {
-  const user = getLoggedInUser();
+  let user;
+
+  if (isRunningTest()) {
+    user = {id: "77c6dc81-280d-4f28-971b-9915ab00f0f7"}
+  } else {
+    user = getLoggedInUser();
+  }
 
   if (!user) {
     return;
@@ -1860,7 +1866,7 @@ async function reloadAndStopRecordingTab(gBrowser) {
   const { recordingId } = data;
 
   recordReplayLog(`FinishedRecording ${recordingId}`);
-  saveRecordingInDB(data);
+  await saveRecordingInDB(data);
 
   let viewHost = "https://replay.io";
 
