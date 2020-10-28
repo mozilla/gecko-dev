@@ -1048,12 +1048,15 @@ function createProtocolFrame(frameId, frame) {
   }
 }
 
-function createProtocolObject(objectId, canOverflow) {
+function createProtocolObject(objectId, level) {
   const obj = getObjectFromId(objectId);
 
   const className = obj.class;
-  RecordReplayControl.annotate(`CreateProtocolObject ${objectId} ${className} ${canOverflow}`);
-  const preview = new ProtocolObjectPreview(obj, canOverflow).fill();
+  RecordReplayControl.annotate(`CreateProtocolObject ${objectId} ${className} ${level}`);
+  let preview;
+  if (level != "none") {
+    preview = new ProtocolObjectPreview(obj, level).fill();
+  }
 
   return { objectId, className, preview };
 }
@@ -1110,7 +1113,7 @@ function safeGetter(getter) {
 const NumItemsBeforeOverflow = 10;
 
 // Structure for managing construction of protocol ObjectPreview objects.
-function ProtocolObjectPreview(obj, canOverflow) {
+function ProtocolObjectPreview(obj, level) {
   // Underlying Debugger.Object
   this.obj = obj;
 
@@ -1120,8 +1123,8 @@ function ProtocolObjectPreview(obj, canOverflow) {
   // Additional properties to add to the resulting preview.
   this.extra = {};
 
-  // Whether the preview can overflow.
-  this.canOverflow = canOverflow;
+  // ObjectPreviewLevel for the resulting preview. Not "none".
+  this.level = level;
 
   // Whether the preview did overflow.
   this.overflow = false;
@@ -1132,7 +1135,11 @@ function ProtocolObjectPreview(obj, canOverflow) {
 
 ProtocolObjectPreview.prototype = {
   canAddItem(force) {
-    if (!force && this.canOverflow && this.numItems >= NumItemsBeforeOverflow) {
+    if (this.level == "noProperties") {
+      this.overflow = true;
+      return false;
+    }
+    if (!force && this.level == "canOverflow" && this.numItems >= NumItemsBeforeOverflow) {
       this.overflow = true;
       return false;
     }
@@ -1211,23 +1218,27 @@ ProtocolObjectPreview.prototype = {
       }
     }
 
-    // Add "own" properties of the object.
-    RecordReplayControl.annotate(`PreviewStartGetNames`);
-    const names = propertyNames(this.obj);
-    RecordReplayControl.annotate(`PreviewGetNames ${names.length}`);
-    for (const name of names) {
-      try {
-        const desc = this.obj.getOwnPropertyDescriptor(name);
-        const property = createProtocolPropertyDescriptor(name, desc);
-        this.addProperty(property);
-      } catch (e) {}
-      if (this.overflow) {
-        break;
+    if (this.level != "noProperties") {
+      // Add "own" properties of the object.
+      RecordReplayControl.annotate(`PreviewStartGetNames`);
+      const names = propertyNames(this.obj);
+      RecordReplayControl.annotate(`PreviewGetNames ${names.length}`);
+      for (const name of names) {
+        try {
+          const desc = this.obj.getOwnPropertyDescriptor(name);
+          const property = createProtocolPropertyDescriptor(name, desc);
+          this.addProperty(property);
+        } catch (e) {}
+        if (this.overflow) {
+          break;
+        }
       }
-    }
 
-    // Add values of getters found on the prototype chain.
-    this.addPrototypeGetterValues();
+      // Add values of getters found on the prototype chain.
+      this.addPrototypeGetterValues();
+    } else {
+      this.overflow = true;
+    }
 
     // Add data for DOM/CSS objects.
     if (Node.isInstance(this.raw)) {
@@ -1665,8 +1676,8 @@ function Pause_getExceptionValue() {
   };
 }
 
-function Pause_getObjectPreview({ object, canOverflow }) {
-  const objectData = createProtocolObject(object, canOverflow);
+function Pause_getObjectPreview({ object, level = "full" }) {
+  const objectData = createProtocolObject(object, level);
   return { data: { objects: [objectData] } };
 }
 
