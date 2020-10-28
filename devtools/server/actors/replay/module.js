@@ -1052,7 +1052,7 @@ function createProtocolObject(objectId, canOverflow) {
   const obj = getObjectFromId(objectId);
 
   const className = obj.class;
-  RecordReplayControl.annotate(`CreateProtocolObject ${className} ${canOverflow}`);
+  RecordReplayControl.annotate(`CreateProtocolObject ${objectId} ${className} ${canOverflow}`);
   const preview = new ProtocolObjectPreview(obj, canOverflow).fill();
 
   return { objectId, className, preview };
@@ -1164,10 +1164,11 @@ ProtocolObjectPreview.prototype = {
       return;
     }
     try {
-      RecordReplayControl.annotate(`PreviewCallGetter ${name}`);
+      RecordReplayControl.annotate(`PreviewCallGetter ${name} ${this.numItems}`);
       const value = createProtocolValueRaw(this.raw[name]);
       this.getterValues.set(name, { name, ...value });
     } catch (e) {
+      RecordReplayControl.annotate(`PreviewCallGetter Exception ${e}`);
       this.numItems--;
     }
   },
@@ -2084,9 +2085,14 @@ function DOM_getEventListeners({ node }) {
     if (!handler) {
       continue;
     }
+    const dbgHandler = makeDebuggeeValue(handler);
+    if (dbgHandler.class != "Function") {
+      continue;
+    }
+    const id = getObjectId(dbgHandler);
     listeners.push({
       node,
-      handler: getObjectIdRaw(handler),
+      handler: id,
       type,
       capture: capturing,
     });
