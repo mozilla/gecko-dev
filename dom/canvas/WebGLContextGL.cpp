@@ -1315,7 +1315,7 @@ void WebGLContext::UniformData(const uint32_t loc, const bool transpose,
   if (elemCount > 1 && !validationInfo.isArray) {
     GenerateError(
         LOCAL_GL_INVALID_OPERATION,
-        "(uniform %s) `values` length (%u) must exactle match size of %s.",
+        "(uniform %s) `values` length (%u) must exactly match size of %s.",
         activeInfo.name.c_str(), lengthInType,
         EnumString(activeInfo.elemType).c_str());
     return;
