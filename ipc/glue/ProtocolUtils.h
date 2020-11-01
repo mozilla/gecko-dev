@@ -890,6 +890,15 @@ class ActorLifecycleProxy {
 void TableToArray(const nsTHashtable<nsPtrHashKey<void>>& aTable,
                   nsTArray<void*>& aArray);
 
+// Insert record/replay assertions when sending IPDL messages within this
+// scope, for tracking down the reasons for different message contents.
+struct AutoRecordReplayAssertMessageContents {
+  AutoRecordReplayAssertMessageContents();
+  ~AutoRecordReplayAssertMessageContents();
+};
+
+bool ShouldRecordReplayAssertMessageContents();
+
 }  // namespace ipc
 
 template <typename Protocol>

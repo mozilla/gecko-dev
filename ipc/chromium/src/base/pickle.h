@@ -176,14 +176,7 @@ class Pickle {
   // Takes ownership of data
   bool WriteBytesZeroCopy(void* data, uint32_t data_len, uint32_t capacity);
 
-  bool WriteSentinel(uint32_t sentinel)
-#ifdef MOZ_PICKLE_SENTINEL_CHECKING
-      ;
-#else
-  {
-    return true;
-  }
-#endif
+  bool WriteSentinel(uint32_t sentinel);
 
   int32_t* GetInt32PtrForTest(uint32_t offset);
 

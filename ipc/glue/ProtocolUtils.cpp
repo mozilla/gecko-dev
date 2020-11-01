@@ -895,5 +895,33 @@ void IToplevelProtocol::SetEventTargetForRoute(int32_t aRoute,
   mEventTargetMap.AddWithID(aEventTarget, aRoute);
 }
 
+static MOZ_THREAD_LOCAL(uint32_t) gNumRecordReplayAssertMessageContents;
+static std::atomic<bool> gNumRecordReplayAssertMessageContentsInitialized;
+
+AutoRecordReplayAssertMessageContents::AutoRecordReplayAssertMessageContents() {
+  if (recordreplay::IsRecordingOrReplaying()) {
+    if (!gNumRecordReplayAssertMessageContentsInitialized) {
+      // Hopefully this won't race...
+      gNumRecordReplayAssertMessageContents.init();
+      gNumRecordReplayAssertMessageContentsInitialized = true;
+    }
+    gNumRecordReplayAssertMessageContents.set(gNumRecordReplayAssertMessageContents.get() + 1);
+  }
+}
+
+AutoRecordReplayAssertMessageContents::~AutoRecordReplayAssertMessageContents() {
+  if (recordreplay::IsRecordingOrReplaying()) {
+    gNumRecordReplayAssertMessageContents.set(gNumRecordReplayAssertMessageContents.get() - 1);
+  }
+}
+
+bool ShouldRecordReplayAssertMessageContents() {
+  if (recordreplay::IsRecordingOrReplaying()) {
+    return gNumRecordReplayAssertMessageContentsInitialized &&
+      gNumRecordReplayAssertMessageContents.get() > 0;
+  }
+  return false;
+}
+
 }  // namespace ipc
 }  // namespace mozilla

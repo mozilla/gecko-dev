@@ -2044,9 +2044,12 @@ HttpChannelChild::ConnectParent(uint32_t registrarId) {
   HttpChannelConnectArgs connectArgs(registrarId, mShouldParentIntercept);
   PBrowserOrId browser = static_cast<ContentChild*>(gNeckoChild->Manager())
                              ->GetBrowserOrId(browserChild);
-  if (!gNeckoChild->SendPHttpChannelConstructor(
-          this, browser, IPC::SerializedLoadContext(this), connectArgs)) {
-    return NS_ERROR_FAILURE;
+  {
+    ipc::AutoRecordReplayAssertMessageContents assert;
+    if (!gNeckoChild->SendPHttpChannelConstructor(
+            this, browser, IPC::SerializedLoadContext(this), connectArgs)) {
+      return NS_ERROR_FAILURE;
+    }
   }
 
   {
@@ -2800,9 +2803,12 @@ nsresult HttpChannelChild::ContinueAsyncOpen() {
   SetEventTarget();
 
   PBrowserOrId browser = cc->GetBrowserOrId(browserChild);
-  if (!gNeckoChild->SendPHttpChannelConstructor(
-          this, browser, IPC::SerializedLoadContext(this), openArgs)) {
-    return NS_ERROR_FAILURE;
+  {
+    ipc::AutoRecordReplayAssertMessageContents assert;
+    if (!gNeckoChild->SendPHttpChannelConstructor(
+            this, browser, IPC::SerializedLoadContext(this), openArgs)) {
+      return NS_ERROR_FAILURE;
+    }
   }
 
   {
