@@ -1455,6 +1455,8 @@ class ChildProcessMessageManagerCallback : public MessageManagerCallback {
     if (aCpows && !cc->GetCPOWManager()->Wrap(aCx, aCpows, &cpows)) {
       return NS_ERROR_UNEXPECTED;
     }
+    recordreplay::RecordReplayAssert("DoSendAsyncMessage %s", NS_ConvertUTF16toUTF8(aMessage).get());
+    mozilla::ipc::AutoRecordReplayAssertMessageContents assert;
     if (!cc->SendAsyncMessage(PromiseFlatString(aMessage), cpows,
                               IPC::Principal(aPrincipal), data)) {
       return NS_ERROR_UNEXPECTED;
