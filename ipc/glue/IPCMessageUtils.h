@@ -985,7 +985,21 @@ struct ParamTraits<JSStructuredCloneData> {
     MOZ_ASSERT(!(aParam.Size() % sizeof(uint64_t)));
     WriteParam(aMsg, aParam.Size());
     aParam.ForEachDataChunk([&](const char* aData, size_t aSize) {
-      return aMsg->WriteBytes(aData, aSize, sizeof(uint64_t));
+      // Structured clone data can differ when replaying due to bugs. This can
+      // affect the size of the IPDL messages we send, which will cause us to
+      // crash when the recorded sendmsg calls are returning size information
+      // for the messages sent while recording instead of the messages sent
+      // while replaying. For now we paper over this by making sure we send
+      // structured clone data with a length consistent with what happened
+      // while recording, padding or truncating the buffer as necessary.
+      size_t recordedSize = mozilla::recordreplay::RecordReplayValue("WriteStructuredCloneData", aSize);
+      if (recordedSize <= aSize) {
+        return aMsg->WriteBytes(aData, recordedSize, sizeof(uint64_t));
+      }
+      char* newData = new char[recordedSize]; // Leaks, who cares...
+      memcpy(newData, aData, aSize);
+      memset(newData + aSize, 0, recordedSize - aSize);
+      return aMsg->WriteBytes(newData, recordedSize, sizeof(uint64_t));
     });
   }
 
