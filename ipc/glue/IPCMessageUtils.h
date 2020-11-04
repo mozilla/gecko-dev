@@ -981,61 +981,9 @@ template <>
 struct ParamTraits<JSStructuredCloneData> {
   typedef JSStructuredCloneData paramType;
 
-  static void Write(Message* aMsg, const paramType& aParam) {
-    MOZ_ASSERT(!(aParam.Size() % sizeof(uint64_t)));
-    WriteParam(aMsg, aParam.Size());
-    aParam.ForEachDataChunk([&](const char* aData, size_t aSize) {
-      // Structured clone data can differ when replaying due to bugs. This can
-      // affect the size of the IPDL messages we send, which will cause us to
-      // crash when the recorded sendmsg calls are returning size information
-      // for the messages sent while recording instead of the messages sent
-      // while replaying. For now we paper over this by making sure we send
-      // structured clone data with a length consistent with what happened
-      // while recording, padding or truncating the buffer as necessary.
-      size_t recordedSize = mozilla::recordreplay::RecordReplayValue("WriteStructuredCloneData", aSize);
-      if (recordedSize <= aSize) {
-        return aMsg->WriteBytes(aData, recordedSize, sizeof(uint64_t));
-      }
-      char* newData = new char[recordedSize]; // Leaks, who cares...
-      memcpy(newData, aData, aSize);
-      memset(newData + aSize, 0, recordedSize - aSize);
-      return aMsg->WriteBytes(newData, recordedSize, sizeof(uint64_t));
-    });
-  }
-
+  static void Write(Message* aMsg, const paramType& aParam);
   static bool Read(const Message* aMsg, PickleIterator* aIter,
-                   paramType* aResult) {
-    size_t length = 0;
-    if (!ReadParam(aMsg, aIter, &length)) {
-      return false;
-    }
-    MOZ_ASSERT(!(length % sizeof(uint64_t)));
-
-    mozilla::BufferList<InfallibleAllocPolicy> buffers(0, 0, 4096);
-
-    // Borrowing is not suitable to use for IPC to hand out data
-    // because we often want to store the data somewhere for
-    // processing after IPC has released the underlying buffers. One
-    // case is PContentChild::SendGetXPCOMProcessAttributes. We can't
-    // return a borrowed buffer because the out param outlives the
-    // IPDL callback.
-    if (length &&
-        !aMsg->ExtractBuffers(aIter, length, &buffers, sizeof(uint64_t))) {
-      return false;
-    }
-
-    bool success;
-    mozilla::BufferList<js::SystemAllocPolicy> out =
-        buffers.MoveFallible<js::SystemAllocPolicy>(&success);
-    if (!success) {
-      return false;
-    }
-
-    *aResult = JSStructuredCloneData(
-        std::move(out), JS::StructuredCloneScope::DifferentProcess);
-
-    return true;
-  }
+                   paramType* aResult);
 };
 
 template <>
