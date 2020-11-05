@@ -969,13 +969,24 @@ uint32_t imgCacheEntry::SecondsFromPRTime(PRTime prTime) {
   return uint32_t(int64_t(prTime) / int64_t(PR_USEC_PER_SEC));
 }
 
+// Diagnostic for a mismatch found when replaying.
+static PRTime RecordReplayNow(const char* why) {
+  PRTime rv;
+  {
+    recordreplay::AutoPassThroughThreadEvents pt;
+    rv = PR_Now();
+  }
+  recordreplay::RecordReplayBytes(why, &rv, sizeof(rv));
+  return rv;
+}
+
 imgCacheEntry::imgCacheEntry(imgLoader* loader, imgRequest* request,
                              bool forcePrincipalCheck)
     : mLoader(loader),
       mRequest(request),
       mDataSize(0),
-      mTouchedTime(SecondsFromPRTime(PR_Now())),
-      mLoadTime(SecondsFromPRTime(PR_Now())),
+      mTouchedTime(SecondsFromPRTime(RecordReplayNow("imgCacheEntry #1"))),
+      mLoadTime(SecondsFromPRTime(RecordReplayNow("imgCacheEntry #2"))),
       mExpiryTime(0),
       mMustValidate(false),
       // We start off as evicted so we don't try to update the cache.
