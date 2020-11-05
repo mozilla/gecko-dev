@@ -3104,6 +3104,10 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo, DrawTarget&
                                       float aScale) {
   AutoRestoreTransform autoRestoreTransform(&aDrawTarget);
 
+  recordreplay::RecordReplayAssert("nsNativeThemeCocoa::RenderWidget %.2f %.2f %.2f %.2f %.2f",
+                                   aWidgetRect.X(), aWidgetRect.Y(),
+                                   aWidgetRect.Width(), aWidgetRect.Height(), aScale);
+
   gfx::Rect dirtyRect = aDirtyRect;
   gfx::Rect widgetRect = aWidgetRect;
   dirtyRect.Scale(1.0f / aScale);
