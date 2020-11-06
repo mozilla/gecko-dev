@@ -293,7 +293,7 @@ Services.obs.addObserver(
 
 const gHtmlContent = new Map();
 
-function Host_getHTMLSource({ url }) {
+function Target_getHTMLSource({ url }) {
   const info = gHtmlContent.get(url);
   const contents = info ? info.content : "";
   return { contents };
@@ -435,16 +435,16 @@ const commands = {
   "DOM.performSearch": DOM_performSearch,
   "DOM.querySelector": DOM_querySelector,
   "Graphics.getDevicePixelRatio": Graphics_getDevicePixelRatio,
-  "Host.convertFunctionOffsetToLocation": Host_convertFunctionOffsetToLocation,
-  "Host.convertLocationToFunctionOffset": Host_convertLocationToFunctionOffset,
-  "Host.countStackFrames": Host_countStackFrames,
-  "Host.currentGeneratorId": Host_currentGeneratorId,
-  "Host.getCurrentMessageContents": Host_getCurrentMessageContents,
-  "Host.getFunctionsInRange": Host_getFunctionsInRange,
-  "Host.getHTMLSource": Host_getHTMLSource,
-  "Host.getStepOffsets": Host_getStepOffsets,
-  "Host.getScriptSourceMapURL": Host_getScriptSourceMapURL,
-  "Host.getSheetSourceMapURL": Host_getSheetSourceMapURL,
+  "Target.convertFunctionOffsetToLocation": Target_convertFunctionOffsetToLocation,
+  "Target.convertLocationToFunctionOffset": Target_convertLocationToFunctionOffset,
+  "Target.countStackFrames": Target_countStackFrames,
+  "Target.currentGeneratorId": Target_currentGeneratorId,
+  "Target.getCurrentMessageContents": Target_getCurrentMessageContents,
+  "Target.getFunctionsInRange": Target_getFunctionsInRange,
+  "Target.getHTMLSource": Target_getHTMLSource,
+  "Target.getStepOffsets": Target_getStepOffsets,
+  "Target.getScriptSourceMapURL": Target_getScriptSourceMapURL,
+  "Target.getSheetSourceMapURL": Target_getSheetSourceMapURL,
 };
 
 function OnProtocolCommand(method, params) {
@@ -597,7 +597,7 @@ if (isRecordingOrReplaying) {
   );
 }
 
-function Host_getCurrentMessageContents() {
+function Target_getCurrentMessageContents() {
   assert(gCurrentConsoleMessage);
   return gCurrentConsoleMessage;
 }
@@ -736,7 +736,7 @@ function scriptToFunctionId(script) {
   return String(gScripts.getId(script));
 }
 
-function Host_convertFunctionOffsetToLocation({ functionId, offset }) {
+function Target_convertFunctionOffsetToLocation({ functionId, offset }) {
   const script = functionIdToScript(functionId);
   const scriptId = sourceToProtocolScriptId(script.source);
 
@@ -758,7 +758,7 @@ function Host_convertFunctionOffsetToLocation({ functionId, offset }) {
   return { location };
 }
 
-function Host_convertLocationToFunctionOffset({ location }) {
+function Target_convertLocationToFunctionOffset({ location }) {
   const { scriptId, line, column } = location;
   const source = protocolScriptIdToSource(scriptId);
   const target = { line, column };
@@ -770,7 +770,7 @@ function Host_convertLocationToFunctionOffset({ location }) {
   return rv;
 }
 
-function Host_getFunctionsInRange({ scriptId, begin, end }) {
+function Target_getFunctionsInRange({ scriptId, begin, end }) {
   const source = protocolScriptIdToSource(scriptId);
 
   const functions = [];
@@ -780,7 +780,7 @@ function Host_getFunctionsInRange({ scriptId, begin, end }) {
   return { functions };
 }
 
-function Host_getStepOffsets({ functionId }) {
+function Target_getStepOffsets({ functionId }) {
   const script = functionIdToScript(functionId);
   const offsets = script
     .getPossibleBreakpoints()
@@ -789,7 +789,7 @@ function Host_getStepOffsets({ functionId }) {
   return { offsets };
 }
 
-function Host_getScriptSourceMapURL({ scriptId }) {
+function Target_getScriptSourceMapURL({ scriptId }) {
   const source = protocolScriptIdToSource(scriptId);
   const url = source.sourceMapURL;
   return url ? { url } : {};
@@ -1659,11 +1659,11 @@ function Pause_getAllFrames() {
   };
 }
 
-function Host_countStackFrames() {
+function Target_countStackFrames() {
   return { count: countScriptFrames() };
 }
 
-function Host_currentGeneratorId() {
+function Target_currentGeneratorId() {
   const { generatorId } = gDebugger.getNewestFrame();
   return { id: generatorId };
 }
@@ -1775,7 +1775,7 @@ function CSS_getComputedStyle({ node }) {
   return { computedStyle };
 }
 
-function Host_getSheetSourceMapURL({ sheet }) {
+function Target_getSheetSourceMapURL({ sheet }) {
   const sheetObj = getObjectFromId(sheet).unsafeDereference();
   const url = sheetObj.sourceMapURL || undefined;
   return { url };
