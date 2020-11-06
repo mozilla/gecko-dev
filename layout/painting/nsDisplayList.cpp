@@ -4914,6 +4914,10 @@ void nsDisplayThemedBackground::PaintInternal(nsDisplayListBuilder* aBuilder,
                                               gfxContext* aCtx,
                                               const nsRect& aBounds,
                                               nsRect* aClipRect) {
+  recordreplay::RecordReplayAssert("nsDisplayThemedBackground::PaintInternal %.2f %.2f %.2f %.2f",
+                                   mBackgroundRect.X(), mBackgroundRect.Y(),
+                                   mBackgroundRect.Width(), mBackgroundRect.Height());
+
   // XXXzw this ignores aClipRect.
   nsPresContext* presContext = StyleFrame()->PresContext();
   nsITheme* theme = presContext->Theme();
