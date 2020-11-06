@@ -2184,13 +2184,18 @@ nsresult imgLoader::LoadImage(
   ImageCacheKey key(aURI, attrs, aLoadingDocument);
   imgCacheTable& cache = GetCache(key);
 
+  recordreplay::RecordReplayAssert("imgLoader::LoadImage #1");
+
   if (cache.Get(key, getter_AddRefs(entry)) && entry) {
+    recordreplay::RecordReplayAssert("imgLoader::LoadImage #2");
+
     bool newChannelCreated = false;
     if (ValidateEntry(entry, aURI, aInitialDocumentURI, aReferrerInfo,
                       aLoadGroup, aObserver, ToSupports(aLoadingDocument),
                       aLoadingDocument, requestFlags, aContentPolicyType, true,
                       &newChannelCreated, _retval, aTriggeringPrincipal,
                       corsmode)) {
+      recordreplay::RecordReplayAssert("imgLoader::LoadImage #3");
       request = entry->GetRequest();
 
       // If this entry has no proxies, its request has no reference to the
@@ -2228,6 +2233,8 @@ nsresult imgLoader::LoadImage(
       entry = nullptr;
     }
   }
+
+  recordreplay::RecordReplayAssert("imgLoader::LoadImage #4");
 
   // Keep the channel in this scope, so we can adjust its notificationCallbacks
   // later when we create the proxy.
