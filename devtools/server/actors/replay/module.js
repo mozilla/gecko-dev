@@ -238,7 +238,7 @@ gDebugger.onNewScript = (script) => {
   }
 
   gSources.add(script.source);
-  const id = sourceToProtocolScriptId(script.source);
+  const id = sourceToProtocolSourceId(script.source);
 
   gGeckoSources.set(script.source.id, script.source);
 
@@ -266,7 +266,7 @@ gDebugger.onNewScript = (script) => {
     kind = "inlineScript";
   }
 
-  RecordReplayControl.onScriptParsed(id, kind, script.source.url);
+  RecordReplayControl.onNewSource(id, kind, script.source.url);
 
   function addScript(script) {
     const id = gScripts.add(script);
@@ -424,7 +424,7 @@ const commands = {
   "Pause.getObjectProperty": Pause_getObjectProperty,
   "Pause.getScope": Pause_getScope,
   "Debugger.getPossibleBreakpoints": Debugger_getPossibleBreakpoints,
-  "Debugger.getScriptSource": Debugger_getScriptSource,
+  "Debugger.getSourceContents": Debugger_getSourceContents,
   "CSS.getAppliedRules": CSS_getAppliedRules,
   "CSS.getComputedStyle": CSS_getComputedStyle,
   "DOM.getAllBoundingClientRects": DOM_getAllBoundingClientRects,
@@ -443,7 +443,7 @@ const commands = {
   "Target.getFunctionsInRange": Target_getFunctionsInRange,
   "Target.getHTMLSource": Target_getHTMLSource,
   "Target.getStepOffsets": Target_getStepOffsets,
-  "Target.getScriptSourceMapURL": Target_getScriptSourceMapURL,
+  "Target.getSourceMapURL": Target_getSourceMapURL,
   "Target.getSheetSourceMapURL": Target_getSheetSourceMapURL,
 };
 
@@ -502,7 +502,7 @@ function SetScanningScripts(value) {
 
 function geckoSourceIdToProtocolId(sourceId) {
   const source = gGeckoSources.get(sourceId);
-  return source ? sourceToProtocolScriptId(source) : undefined;
+  return source ? sourceToProtocolSourceId(source) : undefined;
 }
 
 let gCurrentConsoleMessage;
@@ -529,7 +529,7 @@ function OnConsoleError(message) {
     level,
     text: message.errorMessage,
     url: message.sourceName,
-    scriptId: geckoSourceIdToProtocolId(message.sourceId),
+    sourceId: geckoSourceIdToProtocolId(message.sourceId),
     line: message.lineNumber,
     column: message.columnNumber,
   };
@@ -697,16 +697,16 @@ function forMatchingBreakpointPositions(source, begin, end, callback) {
   });
 }
 
-function protocolScriptIdToSource(scriptId) {
-  return gSources.getObject(Number(scriptId));
+function protocolSourceIdToSource(sourceId) {
+  return gSources.getObject(Number(sourceId));
 }
 
-function sourceToProtocolScriptId(source) {
+function sourceToProtocolSourceId(source) {
   return String(gSources.getId(source));
 }
 
-function Debugger_getPossibleBreakpoints({ scriptId, begin, end }) {
-  const source = protocolScriptIdToSource(scriptId);
+function Debugger_getPossibleBreakpoints({ sourceId, begin, end }) {
+  const source = protocolSourceIdToSource(sourceId);
 
   const lineLocations = new ArrayMap();
   forMatchingBreakpointPositions(
@@ -738,11 +738,11 @@ function scriptToFunctionId(script) {
 
 function Target_convertFunctionOffsetToLocation({ functionId, offset }) {
   const script = functionIdToScript(functionId);
-  const scriptId = sourceToProtocolScriptId(script.source);
+  const sourceId = sourceToProtocolSourceId(script.source);
 
   if (offset === undefined) {
     const location = {
-      scriptId,
+      sourceId,
       line: script.startLine,
       column: script.startColumn,
     };
@@ -754,13 +754,13 @@ function Target_convertFunctionOffsetToLocation({ functionId, offset }) {
   if (!bp) {
     throw new Error(`convertFunctionOffsetToLocation unknown offset ${offset}`);
   }
-  const location = { scriptId, line: bp.lineNumber, column: bp.columnNumber };
+  const location = { sourceId, line: bp.lineNumber, column: bp.columnNumber };
   return { location };
 }
 
 function Target_convertLocationToFunctionOffset({ location }) {
-  const { scriptId, line, column } = location;
-  const source = protocolScriptIdToSource(scriptId);
+  const { sourceId, line, column } = location;
+  const source = protocolSourceIdToSource(sourceId);
   const target = { line, column };
 
   let rv = {};
@@ -770,8 +770,8 @@ function Target_convertLocationToFunctionOffset({ location }) {
   return rv;
 }
 
-function Target_getFunctionsInRange({ scriptId, begin, end }) {
-  const source = protocolScriptIdToSource(scriptId);
+function Target_getFunctionsInRange({ sourceId, begin, end }) {
+  const source = protocolSourceIdToSource(sourceId);
 
   const functions = [];
   forMatchingScripts(source, begin, end, (script) => {
@@ -789,22 +789,22 @@ function Target_getStepOffsets({ functionId }) {
   return { offsets };
 }
 
-function Target_getScriptSourceMapURL({ scriptId }) {
-  const source = protocolScriptIdToSource(scriptId);
+function Target_getSourceMapURL({ sourceId }) {
+  const source = protocolSourceIdToSource(sourceId);
   const url = source.sourceMapURL;
   return url ? { url } : {};
 }
 
-function Debugger_getScriptSource({ scriptId }) {
-  const source = protocolScriptIdToSource(scriptId);
+function Debugger_getSourceContents({ sourceId }) {
+  const source = protocolSourceIdToSource(sourceId);
 
-  let scriptSource = source.text;
+  let contents = source.text;
   if (source.startLine > 1) {
-    scriptSource = "\n".repeat(source.startLine - 1) + scriptSource;
+    contents = "\n".repeat(source.startLine - 1) + contents;
   }
 
   return {
-    scriptSource,
+    contents,
     contentType: "text/javascript",
   };
 }
@@ -963,7 +963,7 @@ function getFunctionLocation(obj) {
   }
   if (script) {
     return {
-      scriptId: gSources.getId(script.source).toString(),
+      sourceId: sourceToProtocolSourceId(script.source),
       line: script.startLine,
       column: script.startColumn,
     };
@@ -972,7 +972,7 @@ function getFunctionLocation(obj) {
 
 function createProtocolFrame(frameId, frame) {
   const type = getFrameType(frame);
-  const scriptId = sourceToProtocolScriptId(frame.script.source);
+  const sourceId = sourceToProtocolSourceId(frame.script.source);
 
   // Find the line/column for this frame. This is a bit tricky because we want
   // positions that are consistent with those for any breakpoint we are
@@ -995,7 +995,7 @@ function createProtocolFrame(frameId, frame) {
 
   const location = [
     {
-      scriptId,
+      sourceId,
       line: lineNumber,
       column: columnNumber,
     },

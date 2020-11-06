@@ -30,7 +30,7 @@ namespace mozilla {
 namespace recordreplay {
 namespace js {
 
-static void (*gOnScriptParsed)(const char* aId, const char* aKind, const char* aUrl);
+static void (*gOnNewSource)(const char* aId, const char* aKind, const char* aUrl);
 static char* (*gGetRecordingId)();
 static void (*gSetDefaultCommandCallback)(char* (*aCallback)(const char*, const char*));
 static void (*gSetChangeInstrumentCallback)(void (*aCallback)(bool));
@@ -54,7 +54,7 @@ static void ChangeInstrumentCallback(bool aValue);
 
 // Handle initialization at process startup.
 void InitializeJS() {
-  LoadSymbol("RecordReplayOnScriptParsed", gOnScriptParsed);
+  LoadSymbol("RecordReplayOnNewSource", gOnNewSource);
   LoadSymbol("RecordReplayGetRecordingId", gGetRecordingId);
   LoadSymbol("RecordReplaySetDefaultCommandCallback", gSetDefaultCommandCallback);
   LoadSymbol("RecordReplaySetChangeInstrumentCallback", gSetChangeInstrumentCallback);
@@ -340,8 +340,7 @@ static bool Method_Annotate(JSContext* aCx, unsigned aArgc, Value* aVp) {
   return true;
 }
 
-static bool Method_OnScriptParsed(JSContext* aCx, unsigned aArgc,
-                                  Value* aVp) {
+static bool Method_OnNewSource(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
   if (!args.get(0).isString() ||
@@ -355,7 +354,7 @@ static bool Method_OnScriptParsed(JSContext* aCx, unsigned aArgc,
   ConvertJSStringToCString(aCx, args.get(0).toString(), id);
   ConvertJSStringToCString(aCx, args.get(1).toString(), kind);
   ConvertJSStringToCString(aCx, args.get(2).toString(), url);
-  gOnScriptParsed(id.get(), kind.get(), url.get());
+  gOnNewSource(id.get(), kind.get(), url.get());
 
   args.rval().setUndefined();
   return true;
@@ -553,7 +552,7 @@ static bool Method_OnConsoleMessage(JSContext* aCx, unsigned aArgc, Value* aVp) 
 static const JSFunctionSpec gRecordReplayMethods[] = {
   JS_FN("log", Method_Log, 1, 0),
   JS_FN("annotate", Method_Annotate, 1, 0),
-  JS_FN("onScriptParsed", Method_OnScriptParsed, 3, 0),
+  JS_FN("onNewSource", Method_OnNewSource, 3, 0),
   JS_FN("areThreadEventsDisallowed", Method_AreThreadEventsDisallowed, 0, 0),
   JS_FN("progressCounter", Method_ProgressCounter, 0, 0),
   JS_FN("setProgressCounter", Method_SetProgressCounter, 1, 0),
