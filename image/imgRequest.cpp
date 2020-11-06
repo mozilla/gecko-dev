@@ -732,6 +732,8 @@ imgRequest::OnStartRequest(nsIRequest* aRequest) {
 
 NS_IMETHODIMP
 imgRequest::OnStopRequest(nsIRequest* aRequest, nsresult status) {
+  recordreplay::RecordReplayAssert("imgRequest::OnStopRequest %d", status);
+
   LOG_FUNC(gImgLog, "imgRequest::OnStopRequest");
   MOZ_ASSERT(NS_IsMainThread(), "Can't send notifications off-main-thread");
 
@@ -990,6 +992,8 @@ bool imgRequest::ImageAvailable() const { return mImageAvailable; }
 NS_IMETHODIMP
 imgRequest::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aInStr,
                             uint64_t aOffset, uint32_t aCount) {
+  recordreplay::RecordReplayAssert("imgRequest::OnDataAvailable %llu %u", aOffset, aCount);
+
   LOG_SCOPE_WITH_PARAM(gImgLog, "imgRequest::OnDataAvailable", "count", aCount);
 
   NS_ASSERTION(aRequest, "imgRequest::OnDataAvailable -- no request!");
