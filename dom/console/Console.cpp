@@ -1388,6 +1388,9 @@ void ReifyStack(JSContext* aCx, nsIStackFrame* aStack,
 void Console::Method(const GlobalObject& aGlobal, MethodName aMethodName,
                      const nsAString& aMethodString,
                      const Sequence<JS::Value>& aData) {
+  nsPrintfCString str("Console::Method %s", NS_ConvertUTF16toUTF8(aMethodString).get());
+  recordreplay::AssertScriptedCaller(str.get());
+
   RefPtr<Console> console = GetConsole(aGlobal);
   if (!console) {
     return;
