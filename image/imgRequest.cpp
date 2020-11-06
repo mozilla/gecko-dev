@@ -515,6 +515,8 @@ void imgRequest::UpdateCacheEntrySize() {
 
 void imgRequest::SetCacheValidation(imgCacheEntry* aCacheEntry,
                                     nsIRequest* aRequest) {
+  recordreplay::RecordReplayAssert("imgRequest::SetCacheValidation %d", !!aCacheEntry);
+
   /* get the expires info */
   if (aCacheEntry) {
     // Expiration time defaults to 0. We set the expiration time on our
