@@ -531,7 +531,7 @@ void imgRequest::SetCacheValidation(imgCacheEntry* aCacheEntry,
       if (expiration == 0) {
         // If the channel doesn't support caching, then ensure this expires the
         // next time it is used.
-        expiration = imgCacheEntry::SecondsFromPRTime(PR_Now()) - 1;
+        expiration = imgCacheEntry::SecondsFromPRTime(RecordReplayNow("imgRequest::SetCacheValidation")) - 1;
       }
       aCacheEntry->SetExpiryTime(expiration);
     }

@@ -1003,7 +1003,7 @@ void imgCacheEntry::Touch(bool updateTime /* = true */) {
   LOG_SCOPE(gImgLog, "imgCacheEntry::Touch");
 
   if (updateTime) {
-    mTouchedTime = SecondsFromPRTime(PR_Now());
+    mTouchedTime = SecondsFromPRTime(RecordReplayNow("imgCacheEntry::Touch"));
   }
 
   UpdateCache();
@@ -1018,7 +1018,7 @@ void imgCacheEntry::UpdateCache(int32_t diff /* = 0 */) {
 }
 
 void imgCacheEntry::UpdateLoadTime() {
-  mLoadTime = SecondsFromPRTime(PR_Now());
+  mLoadTime = SecondsFromPRTime(RecordReplayNow("imgCacheEntry::UpdateLoadTime"));
 }
 
 void imgCacheEntry::SetHasNoProxies(bool hasNoProxies) {
@@ -1799,7 +1799,7 @@ bool imgLoader::ValidateEntry(
   // to know when it will expire.
   uint32_t expiryTime = aEntry->GetExpiryTime();
   bool hasExpired = expiryTime != 0 &&
-                    expiryTime <= imgCacheEntry::SecondsFromPRTime(PR_Now());
+                    expiryTime <= imgCacheEntry::SecondsFromPRTime(RecordReplayNow("imgLoader::ValidateEntry"));
 
   nsresult rv;
 
