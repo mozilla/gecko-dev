@@ -80,6 +80,7 @@ DOMTimeMilliSec nsDOMNavigationTiming::TimeStampToDOM(TimeStamp aStamp) const {
 
 void nsDOMNavigationTiming::NotifyNavigationStart(
     DocShellState aDocShellState) {
+  recordreplay::RecordReplayAssert("nsDOMNavigationTiming::NotifyNavigationStart");
   mNavigationStartHighRes = (double)PR_Now() / PR_USEC_PER_MSEC;
   mNavigationStart = TimeStamp::Now();
   mDocShellHasBeenActiveSinceNavigationStart =
