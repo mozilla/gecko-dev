@@ -28,6 +28,11 @@
 #include <sys/time.h>
 
 namespace mozilla {
+
+namespace image {
+  extern void RecordReplayInitializeSurfaceCacheMutex();
+}
+
 namespace recordreplay {
 
 MOZ_NEVER_INLINE void BusyWait() {
@@ -107,6 +112,15 @@ static const char* GetCrashReason() {
   return gMozCrashReason;
 }
 
+// Do any special Gecko configuration to get it ready for recording/replaying.
+static void ConfigureGecko() {
+  // Don't create a stylo thread pool when recording or replaying.
+  putenv((char*)"STYLO_THREADS=1");
+
+  // This mutex needs to be initialized on a consistent thread.
+  image::RecordReplayInitializeSurfaceCacheMutex();
+}
+
 extern "C" {
 
 MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
@@ -127,9 +141,6 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
     fprintf(stderr, "RECORD_REPLAY_DRIVER not set, crashing...\n");
     MOZ_CRASH("RECORD_REPLAY_DRIVER not set");
   }
-
-  // Don't create a stylo thread pool when recording or replaying.
-  putenv((char*)"STYLO_THREADS=1");
 
   for (size_t i = 0; i < 60; i++) {
     gDriverHandle = dlopen(driver, RTLD_LAZY);
@@ -209,6 +220,8 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   if (!TestEnv("RECORD_REPLAY_DONT_PROCESS_RECORDINGS")) {
     gProcessRecording();
   }
+
+  ConfigureGecko();
 }
 
 MOZ_EXPORT size_t

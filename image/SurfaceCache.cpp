@@ -62,6 +62,12 @@ static StaticRefPtr<SurfaceCacheImpl> sInstance;
 // The mutex protecting the surface cache.
 static OrderedStaticMutex sInstanceMutex;
 
+// We need to initialize the mutex on a consistent thread when recording/replaying.
+void RecordReplayInitializeSurfaceCacheMutex() {
+  MOZ_ASSERT(recordreplay::IsRecordingOrReplaying());
+  OrderedStaticMutexAutoLock lock(sInstanceMutex);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // SurfaceCache Implementation
 ///////////////////////////////////////////////////////////////////////////////
