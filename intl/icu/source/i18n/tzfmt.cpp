@@ -36,6 +36,8 @@
 #include "tznames_impl.h"   // TextTrieMap
 #include "patternprops.h"
 
+#include "mozilla/RecordReplay.h"
+
 U_NAMESPACE_BEGIN
 
 // Bit flags used by the parse method.
@@ -319,6 +321,7 @@ UOBJECT_DEFINE_RTTI_IMPLEMENTATION(TimeZoneFormat)
 TimeZoneFormat::TimeZoneFormat(const Locale& locale, UErrorCode& status) 
 : fLocale(locale), fTimeZoneNames(NULL), fTimeZoneGenericNames(NULL),
   fDefParseOptionFlags(0), fTZDBTimeZoneNames(NULL) {
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneFormat::TimeZoneFormat");
 
     for (int32_t i = 0; i < UTZFMT_PAT_COUNT; i++) {
         fGMTOffsetPatternItems[i] = NULL;
@@ -512,6 +515,7 @@ TimeZoneFormat::clone() const {
 
 TimeZoneFormat* U_EXPORT2
 TimeZoneFormat::createInstance(const Locale& locale, UErrorCode& status) {
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneFormat::createInstance");
     TimeZoneFormat* tzfmt = new TimeZoneFormat(locale, status);
     if (U_SUCCESS(status)) {
         return tzfmt;

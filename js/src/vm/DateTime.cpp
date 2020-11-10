@@ -471,6 +471,9 @@ bool js::DateTimeInfo::internalTimeZoneDisplayName(char16_t* buf, size_t buflen,
   if (!cachedName) {
     // Retrieve the display name for the given locale.
     icu::UnicodeString displayName;
+
+    mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalTimeZoneDisplayName callGetDisplayName %d %s",
+                                              daylightSavings, locale);
     timeZone()->getDisplayName(daylightSavings, icu::TimeZone::LONG,
                                icu::Locale(locale), displayName);
 

@@ -25,6 +25,8 @@
 #include "umutex.h"
 #include "uvector.h"
 
+#include "mozilla/RecordReplay.h"
+
 
 U_NAMESPACE_BEGIN
 
@@ -133,6 +135,9 @@ TimeZoneNamesDelegate::TimeZoneNamesDelegate()
 
 TimeZoneNamesDelegate::TimeZoneNamesDelegate(const Locale& locale, UErrorCode& status) {
     Mutex lock(&gTimeZoneNamesLock);
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesDelegate::TimeZoneNamesDelegate");
+
     if (!gTimeZoneNamesCacheInitialized) {
         // Create empty hashtable if it is not already initialized.
         gTimeZoneNamesCache = uhash_open(uhash_hashChars, uhash_compareChars, NULL, &status);
@@ -153,6 +158,10 @@ TimeZoneNamesDelegate::TimeZoneNamesDelegate(const Locale& locale, UErrorCode& s
 
     const char *key = locale.getName();
     cacheEntry = (TimeZoneNamesCacheEntry *)uhash_get(gTimeZoneNamesCache, key);
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesDelegate::TimeZoneNamesDelegate #1 %d",
+                                              !!cacheEntry);
+
     if (cacheEntry == NULL) {
         TimeZoneNames *tznames = NULL;
         char *newKey = NULL;
@@ -174,6 +183,8 @@ TimeZoneNamesDelegate::TimeZoneNamesDelegate(const Locale& locale, UErrorCode& s
             if (cacheEntry == NULL) {
                 status = U_MEMORY_ALLOCATION_ERROR;
             } else {
+                mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesDelegate::TimeZoneNamesDelegate #2");
+
                 cacheEntry->names = tznames;
                 cacheEntry->refCount = 1;
                 cacheEntry->lastAccess = (double)uprv_getUTCtime();
@@ -194,6 +205,8 @@ TimeZoneNamesDelegate::TimeZoneNamesDelegate(const Locale& locale, UErrorCode& s
             cacheEntry = NULL;
         }
     } else {
+        mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesDelegate::TimeZoneNamesDelegate #3");
+
         // Update the reference count
         cacheEntry->refCount++;
         cacheEntry->lastAccess = (double)uprv_getUTCtime();
@@ -205,6 +218,8 @@ TimeZoneNamesDelegate::TimeZoneNamesDelegate(const Locale& locale, UErrorCode& s
         gAccessCount = 0;
     }
     fTZnamesCacheEntry = cacheEntry;
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesDelegate::TimeZoneNamesDelegate #4");
 }
 
 TimeZoneNamesDelegate::~TimeZoneNamesDelegate() {
@@ -306,6 +321,7 @@ TimeZoneNames::~TimeZoneNames() {
 
 TimeZoneNames*
 TimeZoneNames::createInstance(const Locale& locale, UErrorCode& status) {
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNames::createInstance");
     TimeZoneNames *instance = NULL;
     if (U_SUCCESS(status)) {
         instance = new TimeZoneNamesDelegate(locale, status);

@@ -44,6 +44,8 @@
 #include "uassert.h"
 #include "ustr_imp.h"
 
+#include "mozilla/RecordReplay.h"
+
 #ifdef U_DEBUG_TZ
 # include <stdio.h>
 # include "uresimp.h" // for debugging
@@ -1203,6 +1205,8 @@ TimeZone::getDSTSavings()const {
 UnicodeString&
 TimeZone::getDisplayName(UBool inDaylight, EDisplayType style, const Locale& locale, UnicodeString& result) const
 {
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::getDisplayName");
+
     UErrorCode status = U_ZERO_ERROR;
     UDate date = Calendar::getNow();
     UTimeZoneFormatTimeType timeType = UTZFMT_TIME_TYPE_UNKNOWN;
@@ -1271,6 +1275,7 @@ TimeZone::getDisplayName(UBool inDaylight, EDisplayType style, const Locale& loc
         default:
             UPRV_UNREACHABLE;
         }
+        mozilla::recordreplay::RecordReplayAssert("TimeZone::getDisplayName #1");
         LocalPointer<TimeZoneNames> tznames(TimeZoneNames::createInstance(locale, status));
         if (U_FAILURE(status)) {
             result.remove();
@@ -1280,6 +1285,7 @@ TimeZone::getDisplayName(UBool inDaylight, EDisplayType style, const Locale& loc
         tznames->getDisplayName(canonicalID, nameType, date, result);
         if (result.isEmpty()) {
             // Fallback to localized GMT
+            mozilla::recordreplay::RecordReplayAssert("TimeZone::getDisplayName #2");
             LocalPointer<TimeZoneFormat> tzfmt(TimeZoneFormat::createInstance(locale, status));
             offset = inDaylight && useDaylightTime() ? getRawOffset() + getDSTSavings() : getRawOffset();
             if (style == LONG) {
@@ -1288,6 +1294,7 @@ TimeZone::getDisplayName(UBool inDaylight, EDisplayType style, const Locale& loc
                 tzfmt->formatOffsetShortLocalizedGMT(offset, result, status);
             }
         }
+        mozilla::recordreplay::RecordReplayAssert("TimeZone::getDisplayName #3");
     }
     if (U_FAILURE(status)) {
         result.remove();
