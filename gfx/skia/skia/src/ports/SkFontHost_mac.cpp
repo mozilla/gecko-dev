@@ -50,6 +50,8 @@
 #include "src/utils/SkUTF.h"
 #include "src/utils/mac/SkUniqueCFRef.h"
 
+#include "mozilla/RecordReplay.h"
+
 #include <dlfcn.h>
 
 #include <utility>
@@ -1250,6 +1252,9 @@ void SkScalerContext_Mac::generateMetrics(SkGlyph* glyph) {
 
     const CGGlyph cgGlyph = (CGGlyph) glyph->getGlyphID();
     glyph->zeroMetrics();
+
+    mozilla::recordreplay::RecordReplayAssert("SkScalerContext_Mac::generateMetrics %p %d %d",
+                                              fCTFont.get(), kCTFontOrientationHorizontal, cgGlyph);
 
     // The following block produces cgAdvance in CG units (pixels, y up).
     CGSize cgAdvance;
