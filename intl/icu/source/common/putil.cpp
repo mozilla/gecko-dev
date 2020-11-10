@@ -158,6 +158,8 @@
 #   define HAVE_GETTIMEOFDAY 0
 #endif
 
+#include "mozilla/RecordReplay.h"
+
 U_NAMESPACE_USE
 
 /* Define the extension for data files, again... */
@@ -295,11 +297,18 @@ typedef union {
 U_CAPI UDate U_EXPORT2
 uprv_getUTCtime()
 {
+  // Diagnostics for backend issue 343
+  UDate rv;
+  {
+    mozilla::recordreplay::AutoPassThroughThreadEvents pt;
 #if defined(U_DEBUG_FAKETIME)
-    return getUTCtime_fake(); /* Hook for overriding the clock */
+    rv = getUTCtime_fake(); /* Hook for overriding the clock */
 #else
-    return uprv_getRawUTCtime();
+    rv = uprv_getRawUTCtime();
 #endif
+  }
+  mozilla::recordreplay::RecordReplayBytes("uprv_getUTCTime", &rv, sizeof(rv));
+  return rv;
 }
 
 /* Return UTC (GMT) time measured in milliseconds since 0:00 on 1/1/70.*/

@@ -90,7 +90,7 @@ class ConsoleCallData final {
 
   ConsoleCallData()
       : mMethodName(Console::MethodLog),
-        mTimeStamp(JS_Now() / PR_USEC_PER_MSEC),
+        mTimeStamp(0),
         mStartTimerValue(0),
         mStartTimerStatus(Console::eTimerUnknown),
         mLogTimerDuration(0),
@@ -99,7 +99,14 @@ class ConsoleCallData final {
         mIDType(eUnknown),
         mOuterIDNumber(0),
         mInnerIDNumber(0),
-        mStatus(eUnused) {}
+        mStatus(eUnused) {
+    // Diagnostics for backend issue 343
+    {
+      recordreplay::AutoPassThroughThreadEvents pt;
+      mTimeStamp = JS_Now() / PR_USEC_PER_MSEC;
+    }
+    recordreplay::RecordReplayBytes("ConsoleCallData", &mTimeStamp, sizeof(mTimeStamp));
+  }
 
   bool Initialize(JSContext* aCx, Console::MethodName aName,
                   const nsAString& aString,
