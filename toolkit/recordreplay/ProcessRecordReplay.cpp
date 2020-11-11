@@ -27,6 +27,8 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
+extern "C" void RecordReplayOrderDefaultTimeZoneMutex();
+
 namespace mozilla {
 
 namespace image {
@@ -119,6 +121,9 @@ static void ConfigureGecko() {
 
   // This mutex needs to be initialized on a consistent thread.
   image::RecordReplayInitializeSurfaceCacheMutex();
+
+  // Order statically allocated mutex in intl code.
+  RecordReplayOrderDefaultTimeZoneMutex();
 }
 
 extern "C" {

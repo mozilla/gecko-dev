@@ -29,6 +29,8 @@
 #include "unicode/uclean.h"
 #include "unicode/uobject.h"
 
+#include "mozilla/RecordReplay.h"
+
 #include "putilimp.h"
 
 #if defined(U_USER_ATOMICS_H) || defined(U_USER_MUTEX_H)
@@ -231,17 +233,28 @@ public:
 
     // requirements for C++ BasicLockable, allows UMutex to work with std::lock_guard
     void lock() {
+        if (fRecordReplayOrderedLock) {
+          mozilla::recordreplay::OrderedLock(fRecordReplayOrderedLock);
+        }
         std::mutex *m = fMutex.load(std::memory_order_acquire);
         if (m == nullptr) { m = getMutex(); }
         m->lock();
+        if (fRecordReplayOrderedLock) {
+          mozilla::recordreplay::OrderedUnlock(fRecordReplayOrderedLock);
+        }
     }
     void unlock() { fMutex.load(std::memory_order_relaxed)->unlock(); }
 
     static void cleanup();
 
+    void setRecordReplayOrdered() {
+      fRecordReplayOrderedLock = mozilla::recordreplay::CreateOrderedLock("UMutex");
+    }
+
 private:
     alignas(std::mutex) char fStorage[sizeof(std::mutex)] {};
     std::atomic<std::mutex *> fMutex { nullptr };
+    int fRecordReplayOrderedLock = 0;
 
     /** All initialized UMutexes are kept in a linked list, so that they can be found,
      * and the underlying std::mutex destructed, by u_cleanup().

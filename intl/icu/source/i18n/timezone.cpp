@@ -531,6 +531,10 @@ TimeZone::detectHostTimeZone()
 
 static UMutex gDefaultZoneMutex;
 
+extern "C" void RecordReplayOrderDefaultTimeZoneMutex() {
+  gDefaultZoneMutex.setRecordReplayOrdered();
+}
+
 /**
  * Initialize DEFAULT_ZONE from the system default time zone.  
  * Upon return, DEFAULT_ZONE will not be NULL, unless operator new()
