@@ -1282,6 +1282,7 @@ TimeZone::getDisplayName(UBool inDaylight, EDisplayType style, const Locale& loc
             return result;
         }
         UnicodeString canonicalID(ZoneMeta::getCanonicalCLDRID(*this));
+        mozilla::recordreplay::RecordReplayAssert("TimeZone::getDisplayName #1.1 %d", canonicalID.isEmpty());
         tznames->getDisplayName(canonicalID, nameType, date, result);
         if (result.isEmpty()) {
             // Fallback to localized GMT

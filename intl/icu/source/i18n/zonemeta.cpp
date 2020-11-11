@@ -30,6 +30,8 @@
 #include "olsontz.h"
 #include "uinvchar.h"
 
+#include "mozilla/RecordReplay.h"
+
 static icu::UMutex gZoneMetaLock;
 
 // CLDR Canonical ID mapping table
@@ -231,9 +233,25 @@ static void U_CALLCONV initCanonicalIDCache(UErrorCode &status) {
     ucln_i18n_registerCleanup(UCLN_I18N_ZONEMETA, zoneMeta_cleanup);
 }
 
+static std::string UnicodeStringToCString(const UnicodeString& s) {
+  std::string rv;
+  rv.resize(s.length());
+  for (size_t i = 0; i < s.length(); i++) {
+    char16_t c = s[i];
+    if (c && c < 256) {
+      rv[i] = c;
+    } else {
+      rv[i] = '*';
+    }
+  }
+  return rv;
+}
 
 const UChar* U_EXPORT2
 ZoneMeta::getCanonicalCLDRID(const UnicodeString &tzid, UErrorCode& status) {
+    mozilla::recordreplay::RecordReplayAssert("ZoneMeta::getCanonicalCLDRID %s",
+                                              UnicodeStringToCString(tzid).c_str());
+
     if (U_FAILURE(status)) {
         return NULL;
     }
@@ -387,11 +405,14 @@ ZoneMeta::getCanonicalCLDRID(const UnicodeString &tzid, UnicodeString &systemID,
 
 const UChar* U_EXPORT2
 ZoneMeta::getCanonicalCLDRID(const TimeZone& tz) {
+    mozilla::recordreplay::RecordReplayAssert("ZoneMeta::getCanonicalCLDRID");
     if (dynamic_cast<const OlsonTimeZone *>(&tz) != NULL) {
         // short cut for OlsonTimeZone
+        mozilla::recordreplay::RecordReplayAssert("ZoneMeta::getCanonicalCLDRID #1");
         const OlsonTimeZone *otz = (const OlsonTimeZone*)&tz;
         return otz->getCanonicalID();
     }
+    mozilla::recordreplay::RecordReplayAssert("ZoneMeta::getCanonicalCLDRID #2");
     UErrorCode status = U_ZERO_ERROR;
     UnicodeString tzID;
     return getCanonicalCLDRID(tz.getID(tzID), status);
