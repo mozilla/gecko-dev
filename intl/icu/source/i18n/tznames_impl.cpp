@@ -36,6 +36,8 @@
 #include "uvector.h"
 #include "olsontz.h"
 
+#include "mozilla/RecordReplay.h"
+
 U_NAMESPACE_BEGIN
 
 #define ZID_KEY_MAX  128
@@ -1232,6 +1234,9 @@ TimeZoneNamesImpl::getMetaZoneDisplayName(const UnicodeString& mzID,
 UnicodeString&
 TimeZoneNamesImpl::getTimeZoneDisplayName(const UnicodeString& tzID, UTimeZoneNameType type, UnicodeString& name) const {
     name.setToBogus();  // cleanup result.
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesImpl::getTimeZoneDisplayName %d", tzID.isEmpty());
+
     if (tzID.isEmpty()) {
         return name;
     }
@@ -1246,12 +1251,17 @@ TimeZoneNamesImpl::getTimeZoneDisplayName(const UnicodeString& tzID, UTimeZoneNa
         if (U_FAILURE(status)) { return name; }
     }
 
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesImpl::getTimeZoneDisplayName #1 %d", !!tznames);
+
     if (tznames != NULL) {
         const UChar *s = tznames->getName(type);
+        mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesImpl::getTimeZoneDisplayName #2 %d", !!s);
         if (s != NULL) {
             name.setTo(TRUE, s, -1);
         }
     }
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesImpl::getTimeZoneDisplayName #3");
     return name;
 }
 

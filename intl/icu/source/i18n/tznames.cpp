@@ -351,13 +351,16 @@ TimeZoneNames::getExemplarLocationName(const UnicodeString& tzID, UnicodeString&
 
 UnicodeString&
 TimeZoneNames::getDisplayName(const UnicodeString& tzID, UTimeZoneNameType type, UDate date, UnicodeString& name) const {
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNames::getDisplayName");
     getTimeZoneDisplayName(tzID, type, name);
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNames::getDisplayName #1 %d", name.isEmpty());
     if (name.isEmpty()) {
         UChar mzIDBuf[32];
         UnicodeString mzID(mzIDBuf, 0, UPRV_LENGTHOF(mzIDBuf));
         getMetaZoneID(tzID, date, mzID);
         getMetaZoneDisplayName(mzID, type, name);
     }
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNames::getDisplayName #2 %d", name.isEmpty());
     return name;
 }
 
