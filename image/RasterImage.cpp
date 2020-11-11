@@ -1141,6 +1141,8 @@ DrawableSurface RasterImage::RequestDecodeForSizeInternal(
 
 static bool LaunchDecodingTask(IDecodingTask* aTask, RasterImage* aImage,
                                uint32_t aFlags, bool aHaveSourceData) {
+  recordreplay::RecordReplayAssert("LaunchDecodingTask %u %d", aFlags, aHaveSourceData);
+
   if (aHaveSourceData) {
     nsCString uri(aImage->GetURIString());
 

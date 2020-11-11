@@ -479,7 +479,11 @@ void DecodePool::SyncRunIfPossible(IDecodingTask* aTask,
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("DecodePool::SyncRunIfPossible",
                                         GRAPHICS, aURI);
 
+  recordreplay::RecordReplayAssert("DecodePool::SyncRunIfPossible Start");
+
   aTask->Run();
+
+  recordreplay::RecordReplayAssert("DecodePool::SyncRunIfPossible Done");
 }
 
 already_AddRefed<nsIEventTarget> DecodePool::GetIOEventTarget() {
