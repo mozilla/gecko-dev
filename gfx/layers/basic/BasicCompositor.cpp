@@ -910,8 +910,7 @@ Maybe<gfx::IntRect> BasicCompositor::BeginFrameForWindow(
     dt = recordreplay::DrawTargetForRemoteDrawing(aRenderBounds);
   } else {
     // StartRemoteDrawingInRegion can mutate invalidRegion.
-    RefPtr<DrawTarget> dt =
-        mWidget->StartRemoteDrawingInRegion(invalidRegion, &bufferMode);
+    dt = mWidget->StartRemoteDrawingInRegion(invalidRegion, &bufferMode);
     if (!dt) {
       return Nothing();
     }
