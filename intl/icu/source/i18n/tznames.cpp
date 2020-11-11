@@ -167,6 +167,7 @@ TimeZoneNamesDelegate::TimeZoneNamesDelegate(const Locale& locale, UErrorCode& s
         char *newKey = NULL;
 
         tznames = new TimeZoneNamesImpl(locale, status);
+        mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesDelegate::TimeZoneNamesDelegate #1.1");
         if (tznames == NULL) {
             status = U_MEMORY_ALLOCATION_ERROR;
         }

@@ -1032,6 +1032,8 @@ TimeZoneNamesImpl::TimeZoneNamesImpl(const Locale& locale, UErrorCode& status)
 
 void
 TimeZoneNamesImpl::initialize(const Locale& locale, UErrorCode& status) {
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesImpl::initialize %d", U_FAILURE(status));
+
     if (U_FAILURE(status)) {
         return;
     }
@@ -1041,6 +1043,7 @@ TimeZoneNamesImpl::initialize(const Locale& locale, UErrorCode& status) {
     fZoneStrings = ures_open(U_ICUDATA_ZONE, locale.getName(), &tmpsts);
     fZoneStrings = ures_getByKeyWithFallback(fZoneStrings, gZoneStrings, fZoneStrings, &tmpsts);
     if (U_FAILURE(tmpsts)) {
+        mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesImpl::initialize #1");
         status = tmpsts;
         cleanup();
         return;
@@ -1050,6 +1053,7 @@ TimeZoneNamesImpl::initialize(const Locale& locale, UErrorCode& status) {
     fMZNamesMap = uhash_open(uhash_hashUChars, uhash_compareUChars, NULL, &status);
     fTZNamesMap = uhash_open(uhash_hashUChars, uhash_compareUChars, NULL, &status);
     if (U_FAILURE(status)) {
+        mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesImpl::initialize #2");
         cleanup();
         return;
     }
@@ -1062,9 +1066,12 @@ TimeZoneNamesImpl::initialize(const Locale& locale, UErrorCode& status) {
     TimeZone *tz = TimeZone::createDefault();
     const UChar *tzID = ZoneMeta::getCanonicalCLDRID(*tz);
     if (tzID != NULL) {
+        mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesImpl::initialize #3");
         loadStrings(UnicodeString(tzID), status);
     }
     delete tz;
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZoneNamesImpl::initialize Done");
 
     return;
 }
