@@ -29,6 +29,8 @@
 #include "zonemeta.h"
 #include "umutex.h"
 
+#include "mozilla/RecordReplay.h"
+
 #ifdef U_DEBUG_TZ
 # include <stdio.h>
 # include "uresimp.h" // for debugging
@@ -97,6 +99,7 @@ UOBJECT_DEFINE_RTTI_IMPLEMENTATION(OlsonTimeZone)
  * constructor fails so the resultant object is well-behaved.
  */
 void OlsonTimeZone::constructEmpty() {
+    mozilla::recordreplay::RecordReplayAssert("OlsonTimeZone::constructEmpty");
     canonicalID = NULL;
 
     transitionCountPre32 = transitionCount32 = transitionCountPost32 = 0;
@@ -123,6 +126,8 @@ OlsonTimeZone::OlsonTimeZone(const UResourceBundle* top,
                              UErrorCode& ec) :
   BasicTimeZone(tzid), finalZone(NULL)
 {
+    mozilla::recordreplay::RecordReplayAssert("OlsonTimeZone::OlsonTimeZone");
+
     clearTransitionRules();
     U_DEBUG_TZ_MSG(("OlsonTimeZone(%s)\n", ures_getKey((UResourceBundle*)res)));
     if ((top == NULL || res == NULL) && U_SUCCESS(ec)) {
@@ -253,6 +258,8 @@ OlsonTimeZone::OlsonTimeZone(const UResourceBundle* top,
 
         // initialize canonical ID
         canonicalID = ZoneMeta::getCanonicalCLDRID(tzid, ec);
+
+        mozilla::recordreplay::RecordReplayAssert("OlsonTimeZone::OlsonTimeZone #1 %d", !!canonicalID);
     }
 
     if (U_FAILURE(ec)) {
@@ -273,6 +280,8 @@ OlsonTimeZone::OlsonTimeZone(const OlsonTimeZone& other) :
  */
 OlsonTimeZone& OlsonTimeZone::operator=(const OlsonTimeZone& other) {
     canonicalID = other.canonicalID;
+
+    mozilla::recordreplay::RecordReplayAssert("OlsonTimeZone::operator= %d", !!canonicalID);
 
     transitionTimesPre32 = other.transitionTimesPre32;
     transitionTimes32 = other.transitionTimes32;
