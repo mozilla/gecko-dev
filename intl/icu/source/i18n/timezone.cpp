@@ -545,6 +545,9 @@ static void U_CALLCONV initDefault()
     ucln_i18n_registerCleanup(UCLN_I18N_TIMEZONE, timeZone_cleanup);
 
     Mutex lock(&gDefaultZoneMutex);
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZone initDefault %d", !!DEFAULT_ZONE);
+
     // If setDefault() has already been called we can skip getting the
     // default zone information from the system.
     if (DEFAULT_ZONE != NULL) {
@@ -569,6 +572,8 @@ static void U_CALLCONV initDefault()
     U_ASSERT(DEFAULT_ZONE == NULL);
 
     DEFAULT_ZONE = default_zone;
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZone initDefault #1 %d", !!DEFAULT_ZONE);
 }
 
 // -------------------------------------
@@ -576,9 +581,11 @@ static void U_CALLCONV initDefault()
 TimeZone* U_EXPORT2
 TimeZone::createDefault()
 {
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::createDefault");
     umtx_initOnce(gDefaultZoneInitOnce, initDefault);
     {
         Mutex lock(&gDefaultZoneMutex);
+        mozilla::recordreplay::RecordReplayAssert("TimeZone::createDefault #1 %d", !!DEFAULT_ZONE);
         return (DEFAULT_ZONE != NULL) ? DEFAULT_ZONE->clone() : NULL;
     }
 }
