@@ -328,6 +328,7 @@ UBool OlsonTimeZone::operator==(const TimeZone& other) const {
  * TimeZone API.
  */
 OlsonTimeZone* OlsonTimeZone::clone() const {
+    mozilla::recordreplay::RecordReplayAssert("OlsonTimeZone::clone");
     return new OlsonTimeZone(*this);
 }
 

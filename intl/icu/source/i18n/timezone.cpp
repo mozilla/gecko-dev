@@ -345,6 +345,7 @@ UOBJECT_DEFINE_ABSTRACT_RTTI_IMPLEMENTATION(TimeZone)
 TimeZone::TimeZone()
     :   UObject(), fID()
 {
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::TimeZone #1");
 }
 
 // -------------------------------------
@@ -352,6 +353,7 @@ TimeZone::TimeZone()
 TimeZone::TimeZone(const UnicodeString &id)
     :   UObject(), fID(id)
 {
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::TimeZone #2");
 }
 
 // -------------------------------------
@@ -365,6 +367,7 @@ TimeZone::~TimeZone()
 TimeZone::TimeZone(const TimeZone &source)
     :   UObject(source), fID(source.fID)
 {
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::TimeZone #3");
 }
 
 // -------------------------------------
@@ -599,6 +602,7 @@ TimeZone::adoptDefault(TimeZone* zone)
     {
         {
             Mutex lock(&gDefaultZoneMutex);
+            mozilla::recordreplay::RecordReplayAssert("TimeZone::adoptDefault");
             TimeZone *old = DEFAULT_ZONE;
             DEFAULT_ZONE = zone;
             delete old;
