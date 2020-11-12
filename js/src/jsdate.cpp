@@ -2811,7 +2811,11 @@ static bool FormatDate(JSContext* cx, double utcTime, FormatSpec format,
 
   MOZ_ASSERT(NumbersAreIdentical(TimeClip(utcTime).toDouble(), utcTime));
 
+  mozilla::recordreplay::RecordReplayAssert("FormatDate %.2f %d", utcTime, (int)format);
+
   double localTime = LocalTime(utcTime);
+
+  mozilla::recordreplay::RecordReplayAssert("FormatDate #1");
 
   int offset = 0;
   RootedString timeZoneComment(cx);
