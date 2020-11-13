@@ -134,11 +134,22 @@ function showError(why) {
   document.querySelector(".error-message").innerText = `Recording Error: ${why}`;
 }
 
+function showSubmitted(why) {
+  document.querySelector(".no-recordings").hidden = true;
+  document.querySelector(".error-title").hidden = false;
+  document.querySelector(".error-message").innerText = why;
+}
+
 window.onload = async function () {
   let match;
 
   if ((match = /error=(.*)/.exec(window.location))) {
     showError(match[1]);
+    return;
+  }
+
+  if ((match = /submitted=(.*)/.exec(window.location))) {
+    showSubmitted(match[1]);
     return;
   }
 

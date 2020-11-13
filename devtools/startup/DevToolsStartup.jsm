@@ -1865,6 +1865,22 @@ async function reloadAndStopRecordingTab(gBrowser) {
 
   const { recordingId } = data;
 
+  // When the submitTestRecordings pref is set we don't load the viewer,
+  // but show a simple page that the recording was submitted, to make things
+  // simpler for QA and provide feedback that the pref was set correctly.
+  if (Services.prefs.getBoolPref("devtools.recordreplay.submitTestRecordings")) {
+    fetch(`https://test-inbox.replay.io/${recordingId}`);
+    const why = `Test recording added: ${recordingId}`;
+    const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+    gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
+      recordExecution: undefined,
+      newFrameloader: true,
+      remoteType: E10SUtils.WEB_REMOTE_TYPE,
+    });
+    gBrowser.loadURI(`about:replay?submitted=${why}`, { triggeringPrincipal });
+    return;
+  }
+
   recordReplayLog(`FinishedRecording ${recordingId}`);
   await saveRecordingInDB(data);
 

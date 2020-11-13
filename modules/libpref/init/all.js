@@ -852,6 +852,9 @@ pref("devtools.recordreplay.driverDownloads", "https://replay.io/downloads");
 // Whether to upload source maps and original sources to the cloud server.
 pref("devtools.recordreplay.uploadSourceMaps", true);
 
+// Set this to submit recordings to the test server instead of replaying them.
+pref("devtools.recordreplay.submitTestRecordings", false);
+
 // Preferences for the new performance panel.
 // This pref configures the base URL for the profiler.firefox.com instance to
 // use. This is useful so that a developer can change it while working on
