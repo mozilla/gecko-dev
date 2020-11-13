@@ -1474,20 +1474,14 @@ function saveRecordingInDB(description) {
 
 async function saveRecordingUser(user) {
   if (!user) {
+    // TODO maybe change this pref name
     Services.prefs.setStringPref("devtools.recordreplay.user", "");
     return;
   }
 
-  const userData = await (
-    await fetch("http://recordings.replay.io/api/get-user", {
-      method: "POST",
-      body: JSON.stringify({ auth_id: user.sub }),
-    })
-  ).json();
-
   Services.prefs.setStringPref(
     "devtools.recordreplay.user",
-    JSON.stringify(userData)
+    JSON.stringify(user)
   );
 }
 
@@ -1535,7 +1529,7 @@ function createRecordingButton() {
           node.classList.remove("recording");
         }
 
-        if (!isAuthenticationEnabled() || user?.id || isRunningTest()) {
+        if (!isAuthenticationEnabled() || user?.sub || isRunningTest()) {
           node.classList.remove("hidden");
         } else {
           node.classList.add("hidden");
@@ -1591,7 +1585,7 @@ function createRecordingButton() {
       node.refreshStatus = () => {
         const user = getLoggedInUser();
 
-        if (!isAuthenticationEnabled() || user?.id || isRunningTest()) {
+        if (!isAuthenticationEnabled() || user?.sub || isRunningTest()) {
           node.classList.add("hidden");
         } else {
           node.classList.remove("hidden");

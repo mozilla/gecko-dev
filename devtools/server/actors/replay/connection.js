@@ -29,7 +29,7 @@ let gConfig;
 // When connecting we open an initial channel for commands not associated with a recording.
 let gMainChannelId;
 
-function getLoggedInUser() {
+function getLoggedInUserAuthId() {
   const userPref = Services.prefs.getStringPref("devtools.recordreplay.user");
   if (userPref == "") {
     return;
@@ -139,7 +139,7 @@ const gRecordings = new Map();
 
 let gNextMessageId = 1;
 
-function sendCommand(method, params) {
+function sendCommand(method, params = {}) {
   const id = gNextMessageId++;
   gWorker.postMessage({
     kind: "sendCommand",
@@ -166,6 +166,23 @@ function getResourceInfo(url, text) {
     checksum: hashString(text).toString(),
   };
 }
+
+function isAuthenticationEnabled() {
+  // Authentication is controlled by a preference but can be disabled by an
+  // environment variable.
+  return (
+    Services.prefs.getBoolPref(
+      "devtools.recordreplay.authentication-enabled"
+    ) && !getenv("RECORD_REPLAY_DISABLE_AUTHENTICATION")
+  );
+}
+
+function isRunningTest() {
+  return !!getenv("RECORD_REPLAY_TEST_SCRIPT");
+}
+
+function saveRecordingInDB(description) {}
+
 
 async function addRecordingResource(recordingId, url) {
   try {
@@ -220,6 +237,29 @@ Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
     }
   },
 });
+
+Services.ppmm.addMessageListener("RecordingFinished", {
+  async receiveMessage(msg) {
+    await sendCommand("Internal.setRecordingMetadata", {
+      authId: getLoggedInUserAuthId(),
+      recordingData: msg.data,
+    });
+  },
+});
+
+function getLoggedInUserAuthId() {
+  const userPref = Services.prefs.getStringPref("devtools.recordreplay.user");
+  if (userPref == "") {
+    return;
+  }
+
+  if (isRunningTest()) {
+    return "auth0|5f6e41315c863800757cdf74";
+  }
+
+  const user = JSON.parse(userPref);
+  return user == "" ? "" : user.sub;
+}
 
 function computeSourceURL(url, root, path) {
   if (root != "") {

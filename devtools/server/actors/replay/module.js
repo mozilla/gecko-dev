@@ -389,7 +389,7 @@ function eventListener(info) {
 function SendRecordingFinished(recordingId) {
   const document = getWindow().document;
   const data = {
-    recordingId,
+    id: recordingId,
     url: document.URL,
     title: document.title,
     duration: new Date() - startTime,
