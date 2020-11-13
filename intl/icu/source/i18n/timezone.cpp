@@ -461,6 +461,8 @@ TimeZone::createTimeZone(const UnicodeString& ID)
 TimeZone* U_EXPORT2
 TimeZone::detectHostTimeZone()
 {
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone");
+
     // We access system timezone data through uprv_tzset(), uprv_tzname(), and others,
     // which have platform specific implementations in putil.cpp
     int32_t rawOffset = 0;
@@ -479,19 +481,28 @@ TimeZone::detectHostTimeZone()
     // function maps the Windows Time Zone name to an ICU timezone ID.
     hostID = uprv_tzname(0);
 
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone #1 %s", hostID);
+
     // Invert sign because UNIX semantics are backwards
     rawOffset = uprv_timezone() * -U_MILLIS_PER_SECOND;
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone #2 %d", rawOffset);
 
     TimeZone* hostZone = NULL;
 
     UnicodeString hostStrID(hostID, -1, US_INV);
 
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone #3 %u", hostStrID.length());
+
     if (hostStrID.length() == 0) {
+        mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone #4");
         // The host time zone detection (or remapping) above has failed and
         // we have no name at all. Fallback to using the Unknown zone.
         hostStrID = UnicodeString(TRUE, UNKNOWN_ZONE_ID, UNKNOWN_ZONE_ID_LENGTH);
         hostDetectionSucceeded = FALSE;
     }
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone #5");
 
     hostZone = createSystemTimeZone(hostStrID);
 
@@ -501,20 +512,30 @@ TimeZone::detectHostTimeZone()
 #endif
 
     int32_t hostIDLen = hostStrID.length();
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone #6 %d %d %d",
+                                              !!hostZone, rawOffset, hostIDLen);
+
     if (hostZone != NULL && rawOffset != hostZone->getRawOffset()
         && (3 <= hostIDLen && hostIDLen <= 4))
     {
+        mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone #7");
         // Uh oh. This probably wasn't a good id.
         // It was probably an ambiguous abbreviation
         delete hostZone;
         hostZone = NULL;
     }
 
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone #7");
+
     // Construct a fixed standard zone with the host's ID
     // and raw offset.
     if (hostZone == NULL && hostDetectionSucceeded) {
+        mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone #8");
         hostZone = new SimpleTimeZone(rawOffset, hostStrID);
     }
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone #9");
 
     // If we _still_ don't have a time zone, use the Unknown zone.
     //
@@ -522,10 +543,13 @@ TimeZone::detectHostTimeZone()
     // new SimpleTimeZone(...) above fails, the following
     // code may also fail.
     if (hostZone == NULL) {
+        mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone #10");
         // Unknown zone uses static allocated memory, so it must always exist.
         // However, clone() allocates memory and can fail.
         hostZone = TimeZone::getUnknown().clone();
     }
+
+    mozilla::recordreplay::RecordReplayAssert("TimeZone::detectHostTimeZone #11");
 
     return hostZone;
 }
