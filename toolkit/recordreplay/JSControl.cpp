@@ -461,10 +461,11 @@ static bool Method_InstrumentationCallback(JSContext* aCx, unsigned aArgc,
   uint32_t script = args.get(1).toNumber();
   uint32_t offset = args.get(2).toNumber();
 
-  char functionId[32];
-  snprintf(functionId, sizeof(functionId), "%u", script);
-
-  gInstrument(kind, functionId, offset);
+  if (script) {
+    char functionId[32];
+    snprintf(functionId, sizeof(functionId), "%u", script);
+    gInstrument(kind, functionId, offset);
+  }
 
   args.rval().setUndefined();
   return true;
