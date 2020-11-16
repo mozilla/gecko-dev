@@ -1528,9 +1528,6 @@ function createRecordingButton() {
       node.refreshStatus = () => {
         const recording = selectedBrowserHasAttribute("recordExecution");
         const user = getLoggedInUser();
-        const authenticationEnabled = Services.prefs.getBoolPref(
-          "devtools.recordreplay.authentication-enabled"
-        );
 
         if (recording) {
           node.classList.add("recording");
@@ -1538,7 +1535,7 @@ function createRecordingButton() {
           node.classList.remove("recording");
         }
 
-        if (!authenticationEnabled || user?.id || isRunningTest()) {
+        if (!isAuthenticationEnabled() || user?.id || isRunningTest()) {
           node.classList.remove("hidden");
         } else {
           node.classList.add("hidden");
@@ -1593,11 +1590,8 @@ function createRecordingButton() {
     onCreated(node) {
       node.refreshStatus = () => {
         const user = getLoggedInUser();
-        const authenticationEnabled = Services.prefs.getBoolPref(
-          "devtools.recordreplay.authentication-enabled"
-        );
 
-        if (!authenticationEnabled || user?.id || isRunningTest()) {
+        if (!isAuthenticationEnabled() || user?.id || isRunningTest()) {
           node.classList.add("hidden");
         } else {
           node.classList.remove("hidden");
@@ -1888,7 +1882,9 @@ async function reloadAndStopRecordingTab(gBrowser) {
   }
 
   recordReplayLog(`FinishedRecording ${recordingId}`);
-  await saveRecordingInDB(data);
+  if (isAuthenticationEnabled()) {
+    await saveRecordingInDB(data);
+  }
 
   let viewHost = "https://replay.io";
 
@@ -1912,6 +1908,10 @@ async function reloadAndStopRecordingTab(gBrowser) {
   const localTest = env.get("RECORD_REPLAY_LOCAL_TEST");
   if (localTest) {
     extra += `&test=${localTest}`;
+  } else if (!isAuthenticationEnabled()) {
+    // Adding this urlparam disables checks in the devtools that the user has
+    // permission to view the recording.
+    extra += `&test=1`;
   }
 
   const oldURL = gBrowser.currentURI.spec;
@@ -1963,4 +1963,11 @@ function viewRecordings() {
     Services.prefs.getStringPref("devtools.recordreplay.recordingsUrl"),
     { triggeringPrincipal }
   );
+}
+
+function isAuthenticationEnabled() {
+  // Authentication is controlled by a preference but can be disabled by an
+  // environment variable.
+  return Services.prefs.getBoolPref("devtools.recordreplay.authentication-enabled")
+      && !env.get("RECORD_REPLAY_DISABLE_AUTHENTICATION");
 }
