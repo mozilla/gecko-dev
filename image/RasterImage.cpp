@@ -148,13 +148,17 @@ nsresult RasterImage::Init(const char* aMimeType, uint32_t aFlags) {
 //******************************************************************************
 NS_IMETHODIMP_(void)
 RasterImage::RequestRefresh(const TimeStamp& aTime) {
+  recordreplay::RecordReplayAssert("RasterImage::RequestRefresh Start");
+
   if (HadRecentRefresh(aTime)) {
+    recordreplay::RecordReplayAssert("RasterImage::RequestRefresh #1");
     return;
   }
 
   EvaluateAnimation();
 
   if (!mAnimating) {
+    recordreplay::RecordReplayAssert("RasterImage::RequestRefresh #2");
     return;
   }
 
@@ -180,6 +184,8 @@ RasterImage::RequestRefresh(const TimeStamp& aTime) {
     mAnimationFinished = true;
     EvaluateAnimation();
   }
+
+  recordreplay::RecordReplayAssert("RasterImage::RequestRefresh Done");
 }
 
 //******************************************************************************
