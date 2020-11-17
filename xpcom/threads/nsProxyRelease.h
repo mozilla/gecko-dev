@@ -266,6 +266,10 @@ class MOZ_IS_SMARTPTR_TO_REFCOUNTED nsMainThreadPtrHolder final {
     if (NS_IsMainThread()) {
       NS_IF_RELEASE(mRawPtr);
     } else if (mRawPtr) {
+      if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+        // Avoid posting runnables at non-deterministic points.
+        return;
+      }
       if (!mMainThreadEventTarget) {
         mMainThreadEventTarget = do_GetMainThread();
       }
