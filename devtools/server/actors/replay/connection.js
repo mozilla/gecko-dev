@@ -228,21 +228,28 @@ Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
 
 Services.ppmm.addMessageListener("RecordingFinished", {
   async receiveMessage(msg) {
-    await sendCommand("Internal.setRecordingMetadata", {
+    // NOTE(dmiller): this can be null in the devtools tests for some reason, but not in production
+    // Not sure why.
+    if (isRunningTest() && !msg.data) {
+      console.log("got RecordingFinished with empty msg data, skipping");
+      return;
+    }
+    const params = {
       authId: getLoggedInUserAuthId(),
       recordingData: msg.data,
-    });
+    };
+    await sendCommand("Internal.setRecordingMetadata", params);
   },
 });
 
 function getLoggedInUserAuthId() {
+  if (isRunningTest()) {
+    return "auth0|5f6e41315c863800757cdf74";
+  }
+
   const userPref = Services.prefs.getStringPref("devtools.recordreplay.user");
   if (userPref == "") {
     return;
-  }
-
-  if (isRunningTest()) {
-    return "auth0|5f6e41315c863800757cdf74";
   }
 
   const user = JSON.parse(userPref);
