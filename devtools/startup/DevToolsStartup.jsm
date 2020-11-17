@@ -1423,53 +1423,17 @@ function recordReplayLog(text) {
 
 ChromeUtils.recordReplayLog = recordReplayLog;
 
-function getLoggedInUser() {
+function isLoggedIn() {
   const userPref = Services.prefs.getStringPref("devtools.recordreplay.user");
   if (userPref == "") {
     return;
   }
   const user = JSON.parse(userPref);
-  return user == "" ? null : user;
-}
 
-function saveRecordingInDB(description) {
-  let user;
-
-  if (isRunningTest()) {
-    user = {id: "77c6dc81-280d-4f28-971b-9915ab00f0f7"}
-  } else {
-    user = getLoggedInUser();
-  }
-
-  if (!user) {
-    return;
-  }
-
-  const pageUrl = Services.prefs.getStringPref(
-    "devtools.recordreplay.saveRecordingsUrl"
-  );
-
-  const body = {
-    user_id: user.id,
-    recording_id: description.recordingId,
-    id: description.recordingId,
-    url: description.url,
-    title: description.title,
-    duration: description.duration,
-    last_screen_data: description.lastScreenData || "",
-    last_screen_mime_type: description.lastScreenMimeType || "image/jpeg",
-  };
-
-  console.log(`>>> saving recording`, description.recordingId);
-  return fetch(`${pageUrl}/api/create-recording`, {
-    method: "post",
-    body: JSON.stringify(body),
-    headers: { "Content-Type": "application/json" },
-  })
-    .then(async (r) =>
-      console.log(`succeeded in creating recording`, await r.json())
-    )
-    .catch((err) => console.error(err));
+  // Older versions of Replay did not store the raw object from Auth0 and
+  // instead stored backend DB user info, so we need to explicitly look for
+  // "sub", not just any parsed object.
+  return user == "" ? null : !!user?.sub;
 }
 
 async function saveRecordingUser(user) {
@@ -1478,16 +1442,9 @@ async function saveRecordingUser(user) {
     return;
   }
 
-  const userData = await (
-    await fetch("http://recordings.replay.io/api/get-user", {
-      method: "POST",
-      body: JSON.stringify({ auth_id: user.sub }),
-    })
-  ).json();
-
   Services.prefs.setStringPref(
     "devtools.recordreplay.user",
-    JSON.stringify(userData)
+    JSON.stringify(user)
   );
 }
 
@@ -1527,7 +1484,6 @@ function createRecordingButton() {
 
       node.refreshStatus = () => {
         const recording = selectedBrowserHasAttribute("recordExecution");
-        const user = getLoggedInUser();
 
         if (recording) {
           node.classList.add("recording");
@@ -1535,7 +1491,7 @@ function createRecordingButton() {
           node.classList.remove("recording");
         }
 
-        if (!isAuthenticationEnabled() || user?.id || isRunningTest()) {
+        if (!isAuthenticationEnabled() || isLoggedIn() || isRunningTest()) {
           node.classList.remove("hidden");
         } else {
           node.classList.add("hidden");
@@ -1589,9 +1545,7 @@ function createRecordingButton() {
     },
     onCreated(node) {
       node.refreshStatus = () => {
-        const user = getLoggedInUser();
-
-        if (!isAuthenticationEnabled() || user?.id || isRunningTest()) {
+        if (!isAuthenticationEnabled() || isLoggedIn() || isRunningTest()) {
           node.classList.add("hidden");
         } else {
           node.classList.remove("hidden");
@@ -1862,7 +1816,7 @@ async function reloadAndStopRecordingTab(gBrowser) {
     return;
   }
 
-  const { recordingId } = data;
+  const recordingId = data.id;
 
   // When the submitTestRecordings pref is set we don't load the viewer,
   // but show a simple page that the recording was submitted, to make things
@@ -1882,9 +1836,6 @@ async function reloadAndStopRecordingTab(gBrowser) {
   }
 
   recordReplayLog(`FinishedRecording ${recordingId}`);
-  if (isAuthenticationEnabled()) {
-    await saveRecordingInDB(data);
-  }
 
   let viewHost = "https://replay.io";
 
