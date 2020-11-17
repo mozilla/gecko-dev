@@ -29,15 +29,6 @@ let gConfig;
 // When connecting we open an initial channel for commands not associated with a recording.
 let gMainChannelId;
 
-function getLoggedInUserAuthId() {
-  const userPref = Services.prefs.getStringPref("devtools.recordreplay.user");
-  if (userPref == "") {
-    return;
-  }
-  const user = JSON.parse(userPref);
-  return user == "" ? null : user;
-}
-
 // eslint-disable-next-line no-unused-vars
 function Initialize(callbacks) {
   gWorker = new Worker("connection-worker.js");
@@ -180,9 +171,6 @@ function isAuthenticationEnabled() {
 function isRunningTest() {
   return !!getenv("RECORD_REPLAY_TEST_SCRIPT");
 }
-
-function saveRecordingInDB(description) {}
-
 
 async function addRecordingResource(recordingId, url) {
   try {
