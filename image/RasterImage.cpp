@@ -320,6 +320,8 @@ LookupResult RasterImage::LookupFrame(const IntSize& aSize, uint32_t aFlags,
                                       bool aMarkUsed) {
   MOZ_ASSERT(NS_IsMainThread());
 
+  recordreplay::RecordReplayAssert("RasterImage::LookupFrame %u", aFlags);
+
   // If we're opaque, we don't need to care about premultiplied alpha, because
   // that can only matter for frames with transparency.
   if (IsOpaque()) {
