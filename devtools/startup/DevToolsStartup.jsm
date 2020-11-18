@@ -1738,7 +1738,9 @@ function reloadAndRecordTab(gBrowser) {
   }
 
   // Don't preprocess recordings if we will be submitting them for testing.
-  if (Services.prefs.getBoolPref("devtools.recordreplay.submitTestRecordings")) {
+  if (
+    Services.prefs.getBoolPref("devtools.recordreplay.submitTestRecordings")
+  ) {
     env.set("RECORD_REPLAY_DONT_PROCESS_RECORDINGS", "1");
   }
 
@@ -1773,7 +1775,7 @@ function reloadAndRecordTab(gBrowser) {
 
 let gFinishedRecordingWaiter;
 
-Services.ppmm.addMessageListener("RecordingFinished", {
+Services.ppmm.addMessageListener("RecordingSaved", {
   async receiveMessage(msg) {
     if (gFinishedRecordingWaiter) {
       gFinishedRecordingWaiter(msg.data);
@@ -1821,7 +1823,9 @@ async function reloadAndStopRecordingTab(gBrowser) {
   // When the submitTestRecordings pref is set we don't load the viewer,
   // but show a simple page that the recording was submitted, to make things
   // simpler for QA and provide feedback that the pref was set correctly.
-  if (Services.prefs.getBoolPref("devtools.recordreplay.submitTestRecordings")) {
+  if (
+    Services.prefs.getBoolPref("devtools.recordreplay.submitTestRecordings")
+  ) {
     const url = gBrowser.currentURI.spec;
     fetch(`https://test-inbox.replay.io/${recordingId}:${url}`);
     const why = `Test recording added: ${recordingId}`;
@@ -1919,6 +1923,9 @@ function viewRecordings() {
 function isAuthenticationEnabled() {
   // Authentication is controlled by a preference but can be disabled by an
   // environment variable.
-  return Services.prefs.getBoolPref("devtools.recordreplay.authentication-enabled")
-      && !env.get("RECORD_REPLAY_DISABLE_AUTHENTICATION");
+  return (
+    Services.prefs.getBoolPref(
+      "devtools.recordreplay.authentication-enabled"
+    ) && !env.get("RECORD_REPLAY_DISABLE_AUTHENTICATION")
+  );
 }

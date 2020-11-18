@@ -10,7 +10,9 @@ const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
-const { setTimeout } = Components.utils.import('resource://gre/modules/Timer.jsm');
+const { setTimeout } = Components.utils.import(
+  "resource://gre/modules/Timer.jsm"
+);
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
@@ -239,6 +241,7 @@ Services.ppmm.addMessageListener("RecordingFinished", {
       recordingData: msg.data,
     };
     await sendCommand("Internal.setRecordingMetadata", params);
+    Services.cpmm.sendAsyncMessage("RecordingSaved", msg.data);
   },
 });
 
