@@ -1051,6 +1051,11 @@ function createProtocolFrame(frameId, frame) {
 function createProtocolObject(objectId, level) {
   const obj = getObjectFromId(objectId);
 
+  if (!obj) {
+    log("Error: createProtocolObject unknown object");
+    return { objectId, className: "BadObjectId" };
+  }
+
   const className = obj.class;
   RecordReplayControl.annotate(`CreateProtocolObject ${objectId} ${className} ${level}`);
   let preview;
