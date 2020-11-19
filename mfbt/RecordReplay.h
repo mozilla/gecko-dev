@@ -104,6 +104,16 @@ struct MOZ_RAII AutoDisallowThreadEvents {
   ~AutoDisallowThreadEvents() { EndDisallowThreadEvents(); }
 };
 
+// Mark a region where a note will be printed when crashing.
+static inline void PushCrashNote(const char* aNote);
+static inline void PopCrashNote();
+
+// RAII class for a region where a note will be printed when crashing.
+struct MOZ_RAII AutoSetCrashNote {
+  AutoSetCrashNote(const char* aNote) { PushCrashNote(aNote); }
+  ~AutoSetCrashNote() { PopCrashNote(); }
+};
+
 // Record or replay a value in the current thread's event stream.
 static inline size_t RecordReplayValue(const char* aWhy, size_t aValue);
 
@@ -281,6 +291,8 @@ MOZ_MAKE_RECORD_REPLAY_WRAPPER(AreThreadEventsPassedThrough, bool, false, (),
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(BeginDisallowThreadEvents, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(EndDisallowThreadEvents, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(AreThreadEventsDisallowed, bool, false, (), ())
+MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(PushCrashNote, (const char* aNote), (aNote))
+MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(PopCrashNote, (), ())
 MOZ_MAKE_RECORD_REPLAY_WRAPPER(RecordReplayValue, size_t, aValue,
                                (const char* aWhy, size_t aValue), (aWhy, aValue))
 MOZ_MAKE_RECORD_REPLAY_WRAPPER_VOID(RecordReplayBytes,

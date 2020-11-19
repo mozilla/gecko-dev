@@ -16,12 +16,12 @@
 
 namespace mozilla::recordreplay {
 
-void LoadSymbolInternal(const char* name, void** psym);
+void LoadSymbolInternal(const char* name, void** psym, bool aOptional);
 
 template <typename T>
-inline void LoadSymbol(const char* name, T& function) {
+inline void LoadSymbol(const char* name, T& function, bool aOptional = false) {
   void* sym;
-  LoadSymbolInternal(name, &sym);
+  LoadSymbolInternal(name, &sym, aOptional);
   BitwiseCast(sym, &function);
 }
 

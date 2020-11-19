@@ -42,6 +42,8 @@ namespace recordreplay {
   Macro(InternalEndPassThroughThreadEvents, (), ())                            \
   Macro(InternalBeginDisallowThreadEvents, (), ())                             \
   Macro(InternalEndDisallowThreadEvents, (), ())                               \
+  Macro(InternalPushCrashNote, (const char* aNote), (aNote))                   \
+  Macro(InternalPopCrashNote, (), ())                                          \
   Macro(InternalRecordReplayBytes, (const char* aWhy, void* aData, size_t aSize), \
         (aWhy, aData, aSize))                                                  \
   Macro(InternalInvalidateRecording, (const char* aWhy), (aWhy))               \

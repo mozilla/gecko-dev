@@ -96,12 +96,13 @@ static void (*gProcessRecording)();
 static void (*gSetCrashReasonCallback)(const char* (*aCallback)());
 static void (*gInvalidateRecording)(const char* aFormat, ...);
 static bool (*gIsTearingDownProcess)();
+static void (*gSetCrashNote)(const char* aNote);
 
 static void* gDriverHandle;
 
-void LoadSymbolInternal(const char* name, void** psym) {
+void LoadSymbolInternal(const char* name, void** psym, bool aOptional) {
   *psym = dlsym(gDriverHandle, name);
-  if (!*psym) {
+  if (!*psym && !aOptional) {
     fprintf(stderr, "Could not find %s in Record Replay driver, crashing.\n", name);
     MOZ_CRASH();
   }
@@ -200,6 +201,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   LoadSymbol("RecordReplaySetCrashReasonCallback", gSetCrashReasonCallback);
   LoadSymbol("RecordReplayInvalidateRecording", gInvalidateRecording);
   LoadSymbol("RecordReplayIsTearingDownProcess", gIsTearingDownProcess);
+  LoadSymbol("RecordReplaySetCrashNote", gSetCrashNote, /* aOptional */ true);
 
   js::InitializeJS();
   InitializeGraphics();
@@ -367,6 +369,27 @@ MOZ_EXPORT void RecordReplayInterface_InternalOrderedUnlock(int aLock) {
 MOZ_EXPORT void RecordReplayInterface_InternalAddOrderedPthreadMutex(const char* aName,
                                                                      pthread_mutex_t* aMutex) {
   gAddOrderedPthreadMutex(aName, aMutex);
+}
+
+static Vector<const char*> gCrashNotes;
+
+MOZ_EXPORT void RecordReplayInterface_InternalPushCrashNote(const char* aNote) {
+  if (NS_IsMainThread()) {
+    (void) gCrashNotes.append(aNote);
+    if (gSetCrashNote) {
+      gSetCrashNote(aNote);
+    }
+  }
+}
+
+MOZ_EXPORT void RecordReplayInterface_InternalPopCrashNote() {
+  if (NS_IsMainThread()) {
+    MOZ_RELEASE_ASSERT(gCrashNotes.length());
+    gCrashNotes.popBack();
+    if (gSetCrashNote) {
+      gSetCrashNote(gCrashNotes.length() ? gCrashNotes.back() : nullptr);
+    }
+  }
 }
 
 }  // extern "C"
