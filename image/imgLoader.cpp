@@ -2091,8 +2091,7 @@ nsresult imgLoader::LoadImage(
     nsISupports* aCacheKey, nsContentPolicyType aContentPolicyType,
     const nsAString& initiatorType, bool aUseUrgentStartForChannel,
     imgRequestProxy** _retval) {
-  recordreplay::RecordReplayAssert("imgLoader::LoadImage %lu",
-                                   aURI->GetSpecOrDefault().Length());
+  recordreplay::RecordReplayAssert("imgLoader::LoadImage");
 
   VerifyCacheSizes();
 

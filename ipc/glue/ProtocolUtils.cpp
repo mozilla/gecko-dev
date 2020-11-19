@@ -57,7 +57,6 @@ IPCResult IPCResult::Fail(NotNull<IProtocol*> actor, const char* where,
                           const char* why) {
   // Calls top-level protocol to handle the error.
   nsPrintfCString errorMsg("%s %s\n", where, why);
-  recordreplay::PrintLog("Error: IPCResult::Fail %s", errorMsg.get());
   actor->GetIPCChannel()->Listener()->ProcessingError(
       HasResultCodes::MsgProcessingError, errorMsg.get());
   return IPCResult(false);

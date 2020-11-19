@@ -323,7 +323,6 @@ mozilla::GenericErrorResult<OOM&> js::ReportOutOfMemoryResult(JSContext* cx) {
 }
 
 void js::ReportOverRecursed(JSContext* maybecx, unsigned errorNumber) {
-  mozilla::recordreplay::InvalidateRecording("Over-recursed exception unwind");
 #ifdef JS_MORE_DETERMINISTIC
   /*
    * We cannot make stack depth deterministic across different

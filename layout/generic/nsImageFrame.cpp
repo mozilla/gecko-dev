@@ -1769,10 +1769,6 @@ void nsDisplayImage::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
       OldImageHasDifferentRatio(*frame, *mImage, mPrevImage);
 
   uint32_t flags = imgIContainer::FLAG_NONE;
-
-  recordreplay::RecordReplayAssert("nsDisplayImage::Paint %d %d",
-                                   aBuilder->ShouldSyncDecodeImages(), oldImageIsDifferent);
-
   if (aBuilder->ShouldSyncDecodeImages() || oldImageIsDifferent) {
     flags |= imgIContainer::FLAG_SYNC_DECODE;
   }

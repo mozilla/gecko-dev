@@ -168,10 +168,6 @@ void LocalStorageCache::NotifyObservers(const LocalStorage* aStorage,
   // We want to send a message to the parent in order to broadcast the
   // StorageEvent correctly to any child process.
 
-  recordreplay::RecordReplayAssert("LocalStorageCache::NotifyObservers %lu %lu %lu %lu",
-                                   aStorage->DocumentURI().Length(),
-                                   aKey.Length(), aOldValue.Length(), aNewValue.Length());
-
   Unused << mActor->SendNotify(aStorage->DocumentURI(), aKey, aOldValue,
                                aNewValue);
 }
