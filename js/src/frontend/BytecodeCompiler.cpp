@@ -197,6 +197,8 @@ static JSScript* CreateGlobalScript(CompilationInfo& compilationInfo,
                                     JS::SourceText<Unit>& srcBuf) {
   AutoAssertReportedException assertException(compilationInfo.cx);
 
+  mozilla::recordreplay::AutoSetCrashNote crashNote("CreateGlobalScript");
+
   LifoAllocScope allocScope(&compilationInfo.cx->tempLifoAlloc());
   frontend::ScriptCompiler<Unit> compiler(srcBuf);
 
@@ -498,6 +500,8 @@ JSScript* frontend::ScriptCompiler<Unit>::compileScript(
     SharedContext* sc) {
   assertSourceParserAndScriptCreated(compilationInfo);
 
+  mozilla::recordreplay::AutoSetCrashNote crashNote("frontend::ScriptCompiler<Unit>::compileScript");
+
   TokenStreamPosition startPosition(compilationInfo.keepAtoms,
                                     parser->tokenStream);
 
@@ -565,6 +569,8 @@ JSScript* frontend::ScriptCompiler<Unit>::compileScript(
 template <typename Unit>
 ModuleObject* frontend::ModuleCompiler<Unit>::compile(
     CompilationInfo& compilationInfo) {
+  mozilla::recordreplay::AutoSetCrashNote crashNote("frontend::ModuleCompiler<Unit>::compile");
+
   if (!createSourceAndParser(compilationInfo.allocScope, compilationInfo) ||
       !createCompleteScript(compilationInfo)) {
     return nullptr;
@@ -661,6 +667,8 @@ template <typename Unit>
 bool frontend::StandaloneFunctionCompiler<Unit>::compile(
     MutableHandleFunction fun, CompilationInfo& compilationInfo,
     FunctionNode* parsedFunction) {
+  mozilla::recordreplay::AutoSetCrashNote crashNote("frontend::StandaloneFunctionCompiler<Unit>::compile");
+
   FunctionBox* funbox = parsedFunction->funbox();
   if (funbox->isInterpreted()) {
     MOZ_ASSERT(fun == funbox->function());
@@ -736,6 +744,8 @@ static JSScript* CompileGlobalBinASTScriptImpl(
     JSContext* cx, const ReadOnlyCompileOptions& options, const uint8_t* src,
     size_t len, JS::BinASTFormat format, ScriptSourceObject** sourceObjectOut) {
   AutoAssertReportedException assertException(cx);
+
+  mozilla::recordreplay::AutoSetCrashNote crashNote("CompileGlobalBinASTScriptImpl");
 
   LifoAllocScope allocScope(&cx->tempLifoAlloc());
   CompilationInfo compilationInfo(cx, allocScope, options);
@@ -936,6 +946,8 @@ static bool CompileLazyFunctionImpl(JSContext* cx, Handle<BaseScript*> lazy,
                                     const Unit* units, size_t length) {
   MOZ_ASSERT(cx->compartment() == lazy->compartment());
 
+  mozilla::recordreplay::AutoSetCrashNote crashNote("CompileLazyFunctionImpl");
+
   // We can only compile functions whose parents have previously been
   // compiled, because compilation requires full information about the
   // function's immediately enclosing scope.
@@ -1039,6 +1051,8 @@ static bool CompileLazyBinASTFunctionImpl(JSContext* cx,
                                           Handle<BaseScript*> lazy,
                                           const uint8_t* buf, size_t length) {
   MOZ_ASSERT(cx->compartment() == lazy->compartment());
+
+  mozilla::recordreplay::AutoSetCrashNote crashNote("CompileLazyBinASTFunctionImpl");
 
   // We can only compile functions whose parents have previously been
   // compiled, because compilation requires full information about the

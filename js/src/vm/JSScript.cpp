@@ -4167,6 +4167,8 @@ bool JSScript::createImmutableScriptData(JSContext* cx, uint32_t codeLength,
 // runtime's RuntimeScriptDataTable or frees it if a matching entry already
 // exists.
 bool JSScript::shareScriptData(JSContext* cx) {
+  mozilla::recordreplay::AutoSetCrashNote crashNote("JSScript::shareScriptData");
+
   RuntimeScriptData* rsd = sharedData();
   MOZ_ASSERT(rsd);
   MOZ_ASSERT(rsd->refCount() == 1);
