@@ -148,13 +148,17 @@ nsresult RasterImage::Init(const char* aMimeType, uint32_t aFlags) {
 //******************************************************************************
 NS_IMETHODIMP_(void)
 RasterImage::RequestRefresh(const TimeStamp& aTime) {
+  recordreplay::RecordReplayAssert("RasterImage::RequestRefresh Start");
+
   if (HadRecentRefresh(aTime)) {
+    recordreplay::RecordReplayAssert("RasterImage::RequestRefresh #1");
     return;
   }
 
   EvaluateAnimation();
 
   if (!mAnimating) {
+    recordreplay::RecordReplayAssert("RasterImage::RequestRefresh #2");
     return;
   }
 
@@ -180,6 +184,8 @@ RasterImage::RequestRefresh(const TimeStamp& aTime) {
     mAnimationFinished = true;
     EvaluateAnimation();
   }
+
+  recordreplay::RecordReplayAssert("RasterImage::RequestRefresh Done");
 }
 
 //******************************************************************************
@@ -313,6 +319,8 @@ LookupResult RasterImage::LookupFrame(const IntSize& aSize, uint32_t aFlags,
                                       PlaybackType aPlaybackType,
                                       bool aMarkUsed) {
   MOZ_ASSERT(NS_IsMainThread());
+
+  recordreplay::RecordReplayAssert("RasterImage::LookupFrame %u", aFlags);
 
   // If we're opaque, we don't need to care about premultiplied alpha, because
   // that can only matter for frames with transparency.

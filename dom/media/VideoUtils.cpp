@@ -210,6 +210,8 @@ bool IsValidVideoRegion(const gfx::IntSize& aFrame,
 }
 
 already_AddRefed<SharedThreadPool> GetMediaThreadPool(MediaThreadType aType) {
+  recordreplay::RecordReplayAssert("GetMediaThreadPool %d", aType);
+
   const char* name;
   uint32_t threads = 4;
   switch (aType) {
@@ -248,6 +250,8 @@ already_AddRefed<SharedThreadPool> GetMediaThreadPool(MediaThreadType aType) {
       MOZ_ALWAYS_SUCCEEDS(pool->SetThreadStackSize(minStackSize));
     }
   }
+
+  recordreplay::RecordReplayAssert("GetMediaThreadPool Done %d", aType);
 
   return pool.forget();
 }

@@ -79,7 +79,7 @@ already_AddRefed<PerformanceStorageWorker> PerformanceStorageWorker::Create(
 }
 
 PerformanceStorageWorker::PerformanceStorageWorker()
-    : mMutex("PerformanceStorageWorker::mMutex") {}
+    : mMutex("PerformanceStorageWorker::mMutex", /* aOrdered */ true) {}
 
 PerformanceStorageWorker::~PerformanceStorageWorker() = default;
 

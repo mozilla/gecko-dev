@@ -3355,6 +3355,8 @@ void nsStandardURL::Serialize(URIParams& aParams) {
              "The spec should never be this long, we missed a check.");
   StandardURLParams params;
 
+  mozilla::recordreplay::RecordReplayAssert("nsStandardURL::Serialize %lu", mSpec.Length());
+
   params.urlType() = mURLType;
   params.port() = mPort;
   params.defaultPort() = mDefaultPort;
