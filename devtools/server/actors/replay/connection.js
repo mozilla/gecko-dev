@@ -184,15 +184,15 @@ async function addRecordingResource(recordingId, url) {
     const text = await response.text();
     const resource = getResourceInfo(url, text);
 
-    await sendCommand("Internal.addRecordingResource", {
-      recordingId,
-      resource,
-    });
-
     const { known } = await sendCommand("Internal.hasResource", { resource });
     if (!known) {
       await sendCommand("Internal.addResource", { resource, contents: text });
     }
+
+    await sendCommand("Internal.addRecordingResource", {
+      recordingId,
+      resource,
+    });
 
     return text;
   } catch (e) {
