@@ -4090,6 +4090,8 @@ void BrowserChild::NotifyContentBlockingEvent(
   Unused << SendNotifyContentBlockingEvent(aEvent, requestData, aBlocked,
                                            PromiseFlatCString(aTrackingOrigin),
                                            aTrackingFullHashes, aReason);
+
+  recordreplay::RecordReplayAssert("BrowserChild::NotifyContentBlockingEvent Done");
 }
 
 BrowserChildMessageManager::BrowserChildMessageManager(

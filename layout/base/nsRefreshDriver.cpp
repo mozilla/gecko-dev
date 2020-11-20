@@ -806,6 +806,8 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
     }
 
     ++sActiveVsyncTimers;
+
+    recordreplay::RecordReplayAssert("VsyncRefreshDriverTimer::StartTimer #1");
   }
 
   void StopTimer() override {

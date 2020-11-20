@@ -217,6 +217,8 @@ nsresult NS_DispatchToCurrentThread(already_AddRefed<nsIRunnable>&& aEvent) {
     // thread as the dispatch target, it's mostly safe to do it here.
     NS_RELEASE(temp);
   }
+
+  recordreplay::RecordReplayAssert("NS_DispatchToCurrentThread #1");
   return rv;
 }
 

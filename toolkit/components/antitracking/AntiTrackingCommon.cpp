@@ -647,15 +647,20 @@ void NotifyAllowDecisionInternal(nsIChannel* aReportingChannel,
 
   // This can be called in either the parent process or the child processes.
 
+  recordreplay::RecordReplayAssert("NotifyAllowDecisionInternal Start");
+
   // Now send the generic "cookies loaded" notifications, from the most generic
   // to the most specific.
   AntiTrackingCommon::NotifyContentBlockingEvent(
       aWindow, aReportingChannel, aTrackingChannel, false,
       nsIWebProgressListener::STATE_COOKIES_LOADED, trackingOrigin);
 
+  recordreplay::RecordReplayAssert("NotifyAllowDecisionInternal #1");
+
   nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
       do_QueryInterface(aTrackingChannel);
   if (!classifiedChannel) {
+    recordreplay::RecordReplayAssert("NotifyAllowDecisionInternal #2");
     return;
   }
 
@@ -675,6 +680,8 @@ void NotifyAllowDecisionInternal(nsIChannel* aReportingChannel,
         nsIWebProgressListener::STATE_COOKIES_LOADED_SOCIALTRACKER,
         trackingOrigin);
   }
+
+  recordreplay::RecordReplayAssert("NotifyAllowDecisionInternal #3");
 }
 
 void NotifyBlockingDecisionInternal(
