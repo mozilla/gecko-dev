@@ -127,6 +127,16 @@ static void ConfigureGecko() {
   RecordReplayOrderDefaultTimeZoneMutex();
 }
 
+static const char* GetPlatformKind() {
+#if defined(XP_MACOSX)
+  return "macOS";
+#elif defined(XP_LINUX)
+  return "linux";
+#else
+  return "unknown";
+#endif
+}
+
 extern "C" {
 
 MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
@@ -207,7 +217,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   InitializeGraphics();
 
   char buildId[128];
-  snprintf(buildId, sizeof(buildId), "macOS-gecko-%s", PlatformBuildID());
+  snprintf(buildId, sizeof(buildId), "%s-gecko-%s", GetPlatformKind(), PlatformBuildID());
   gAttach(*dispatchAddress, buildId);
 
   gIsRecordingOrReplaying = true;
