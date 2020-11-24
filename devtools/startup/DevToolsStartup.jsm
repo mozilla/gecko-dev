@@ -1738,11 +1738,13 @@ function reloadAndRecordTab(gBrowser) {
   }
 
   // Don't preprocess recordings if we will be submitting them for testing.
-  if (
-    Services.prefs.getBoolPref("devtools.recordreplay.submitTestRecordings")
-  ) {
-    env.set("RECORD_REPLAY_DONT_PROCESS_RECORDINGS", "1");
-  }
+  try {
+    if (
+      Services.prefs.getBoolPref("devtools.recordreplay.submitTestRecordings")
+    ) {
+      env.set("RECORD_REPLAY_DONT_PROCESS_RECORDINGS", "1");
+    }
+  } catch (e) {}
 
   // The recording process uses this env var when printing out the recording ID.
   env.set("RECORD_REPLAY_URL", url);

@@ -104,7 +104,14 @@ static void* LoadSymbol(const char* aName) {
 #endif
 }
 
+static bool gInitialized;
+
 void Initialize(int* aArgc, char*** aArgv) {
+  if (gInitialized) {
+    return;
+  }
+  gInitialized = true;
+
   // Only initialize if the right command line option was specified.
   bool found = false;
   for (int i = 0; i < *aArgc; i++) {

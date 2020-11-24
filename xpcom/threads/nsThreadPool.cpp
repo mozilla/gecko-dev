@@ -42,6 +42,10 @@ NS_IMPL_RELEASE(nsThreadPool)
 NS_IMPL_QUERY_INTERFACE(nsThreadPool, nsIThreadPool, nsIEventTarget,
                         nsIRunnable)
 
+static void InitThreadPool() {
+  gCurrentThreadPool.infallibleInit();
+}
+
 nsThreadPool::nsThreadPool()
     : mMutex("[nsThreadPool.mMutex]", /* aOrdered */ true),
       mEventsAvailable(mMutex, "[nsThreadPool.mEventsAvailable]"),
@@ -53,8 +57,8 @@ nsThreadPool::nsThreadPool()
       mShutdown(false),
       mRegressiveMaxIdleTime(false),
       mIsAPoolThreadFree(true) {
-  static std::once_flag flag;
-  std::call_once(flag, [] { gCurrentThreadPool.infallibleInit(); });
+  static pthread_once_t flag = PTHREAD_ONCE_INIT;
+  pthread_once(&flag, InitThreadPool);
 
   LOG(("THRD-P(%p) constructor!!!\n", this));
 }

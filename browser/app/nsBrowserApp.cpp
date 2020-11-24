@@ -8,6 +8,7 @@
 #include "mozilla/XREAppData.h"
 #include "application.ini.h"
 #include "mozilla/Bootstrap.h"
+#include "mozilla/RecordReplay.h"
 #if defined(XP_WIN)
 #  include <windows.h>
 #  include <stdlib.h>
@@ -217,7 +218,7 @@ static int do_main(int argc, char* argv[], char* envp[]) {
   return gBootstrap->XRE_main(argc, argv, config);
 }
 
-static nsresult InitXPCOMGlue(LibLoadingStrategy aLibLoadingStrategy) {
+static nsresult InitXPCOMGlue(LibLoadingStrategy aLibLoadingStrategy, bool skipLogInit = false) {
   if (gBootstrap) {
     return NS_OK;
   }
@@ -234,8 +235,10 @@ static nsresult InitXPCOMGlue(LibLoadingStrategy aLibLoadingStrategy) {
     return NS_ERROR_FAILURE;
   }
 
-  // This will set this thread as the main thread.
-  gBootstrap->NS_LogInit();
+  if (!skipLogInit) {
+    // This will set this thread as the main thread.
+    gBootstrap->NS_LogInit();
+  }
 
   return NS_OK;
 }
@@ -275,8 +278,10 @@ int main(int argc, char* argv[], char* envp[]) {
 
   mozilla::TimeStamp start = mozilla::TimeStamp::Now();
 
-  AUTO_BASE_PROFILER_INIT;
-  AUTO_BASE_PROFILER_LABEL("nsBrowserApp main", OTHER);
+  // Avoid using the profiler before initializing record/replay state, as it
+  // can create new threads via TimeStamp::ComputeProcessUptime
+  //AUTO_BASE_PROFILER_INIT;
+  //AUTO_BASE_PROFILER_LABEL("nsBrowserApp main", OTHER);
 
 #ifdef MOZ_BROWSER_CAN_BE_CONTENTPROC
   // We are launching as a content process, delegate to the appropriate
@@ -295,10 +300,18 @@ int main(int argc, char* argv[], char* envp[]) {
     }
 #  endif
 
-    nsresult rv = InitXPCOMGlue(LibLoadingStrategy::NoReadAhead);
+    nsresult rv = InitXPCOMGlue(LibLoadingStrategy::NoReadAhead, /* skipLogInit */ true);
     if (NS_FAILED(rv)) {
       return 255;
     }
+
+    // We need to initialize record/replay state after loading other libraries,
+    // because the record/replay code is in libxul. We need to do this before
+    // calling NS_LogInit, because this will init NSPR and we have to be recording
+    // by that point.
+    recordreplay::Initialize(&argc, &argv);
+
+    gBootstrap->NS_LogInit();
 
     int result = content_process_main(gBootstrap.get(), argc, argv);
 

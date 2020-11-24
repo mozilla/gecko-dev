@@ -18,6 +18,8 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "mozilla/RecordReplay.h"
+
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__) || \
     defined(__OpenBSD__)
 #  include <sys/param.h>
@@ -250,7 +252,8 @@ static void* ComputeProcessUptimeThread(void* aTime) {
 
   char threadStat[40];
   SprintfLiteral(threadStat, "/proc/self/task/%d/stat",
-                 (pid_t)syscall(__NR_gettid));
+                 // Thread IDs are not consistent between recording and replaying.
+                 recordreplay::RecordReplayValue("gettid", (pid_t)syscall(__NR_gettid)));
 
   uint64_t threadJiffies = JiffiesSinceBoot(threadStat);
   uint64_t selfJiffies = JiffiesSinceBoot("/proc/self/stat");
