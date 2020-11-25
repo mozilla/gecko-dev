@@ -201,32 +201,61 @@ async function addRecordingResource(recordingId, url) {
   }
 }
 
+const recordingAsyncOperations = new Map();
+function getOrCreateRecordingAsyncOps(recordingId) {
+  let ops = recordingAsyncOperations.get(recordingId);
+  if (!ops) {
+    if (ops === null) {
+      console.error(
+        "Unexpectedly accessing async operation list after taking it."
+      );
+    }
+
+    ops = [];
+    recordingAsyncOperations.set(recordingId, ops);
+  }
+  return ops;
+}
+function takeRecordingAsyncOps(recordingId) {
+  let ops = recordingAsyncOperations.get(recordingId);
+  // Set to null instead of deleting so we can show a warning if the
+  // recording's async operation list is accessed after this point.
+  recordingAsyncOperations.set(recordingId, null);
+  return ops || [];
+}
+
 Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
-  async receiveMessage(msg) {
+  receiveMessage(msg) {
     const { recordingId, url, sourceMapURL } = msg.data;
 
-    let resolvedSourceMapURL;
-    try {
-      resolvedSourceMapURL = new URL(sourceMapURL, url).href;
-    } catch (e) {
-      resolvedSourceMapURL = sourceMapURL;
-    }
-    const text = await addRecordingResource(recordingId, resolvedSourceMapURL);
-    if (text) {
-      // Look for sources which are not inlined into the map, and add them as
-      // additional recording resources.
-      const { sources = [], sourcesContent = [], sourceRoot = "" } = JSON.parse(
-        text
-      );
-      for (let i = 0; i < sources.length; i++) {
-        if (!sourcesContent[i]) {
-          const sourceURL = computeSourceURL(url, sourceRoot, sources[i]);
-          addRecordingResource(recordingId, sourceURL);
-        }
-      }
-    }
+    getOrCreateRecordingAsyncOps(recordingId)
+      .push(uploadAllSourcemapAssets(recordingId, url, sourceMapURL));
   },
 });
+
+async function uploadAllSourcemapAssets(recordingId, url, sourceMapURL) {
+  let resolvedSourceMapURL;
+  try {
+    resolvedSourceMapURL = new URL(sourceMapURL, url).href;
+  } catch (e) {
+    resolvedSourceMapURL = sourceMapURL;
+  }
+
+  const text = await addRecordingResource(recordingId, resolvedSourceMapURL);
+  if (text) {
+    // Look for sources which are not inlined into the map, and add them as
+    // additional recording resources.
+    const { sources = [], sourcesContent = [], sourceRoot = "" } = JSON.parse(
+      text
+    );
+    await Promise.all(Array.from({ length: sources.length }, async (_, i) => {
+      if (!sourcesContent[i]) {
+        const sourceURL = computeSourceURL(url, sourceRoot, sources[i]);
+        await addRecordingResource(recordingId, sourceURL);
+      }
+    }));
+  }
+}
 
 Services.ppmm.addMessageListener("RecordingFinished", {
   async receiveMessage(msg) {
@@ -236,11 +265,22 @@ Services.ppmm.addMessageListener("RecordingFinished", {
       console.log("got RecordingFinished with empty msg data, skipping");
       return;
     }
-    const params = {
-      authId: getLoggedInUserAuthId(),
-      recordingData: msg.data,
-    };
-    await sendCommand("Internal.setRecordingMetadata", params);
+
+    await Promise.all([
+      sendCommand("Internal.setRecordingMetadata", {
+        authId: getLoggedInUserAuthId(),
+        recordingData: msg.data,
+      }),
+
+      // Ensure that all sourcemap resources have been sent to the server before
+      // we consider the recording saved, so that we don't risk creating a
+      // recording session without all the maps available.
+      // NOTE: Since we only do this here, recordings that become unusable
+      // will never be cleaned up and will leak. We don't currently have
+      // an easy way to know the ID of unusable recordings, so we accept
+      // the leak as a minor issue.
+      Promise.allSettled(takeRecordingAsyncOps(msg.data.id)),
+    ]);
     Services.cpmm.sendAsyncMessage("RecordingSaved", msg.data);
   },
 });
