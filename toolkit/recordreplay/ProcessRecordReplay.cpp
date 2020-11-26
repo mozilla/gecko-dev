@@ -51,8 +51,8 @@ static bool gAutomatedTesting;
 
 struct JSFilter {
   std::string mFilename;
-  unsigned mStartLine;
-  unsigned mEndLine;
+  unsigned mStartLine = 0;
+  unsigned mEndLine = 0;
 };
 
 static void ParseJSFilters(const char* aEnv, InfallibleVector<JSFilter>& aFilters);
@@ -313,6 +313,7 @@ MOZ_EXPORT void RecordReplayInterface_InternalAssertScriptedCaller(const char* a
 MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(const char* aFilename, unsigned aLineno,
                                                             unsigned aColumn) {
   if (FilterMatches(gExecutionAsserts, aFilename, aLineno)) {
+    PrintLog("ExecutionProgress %s:%u:%u", aFilename, aLineno, aColumn);
     RecordReplayAssert("ExecutionProgress %s:%u:%u", aFilename, aLineno, aColumn);
   }
 }
@@ -410,6 +411,12 @@ static void ParseJSFilters(const char* aEnv, InfallibleVector<JSFilter>& aFilter
     return;
   }
 
+  if (!strcmp(value, "*")) {
+    JSFilter filter;
+    filter.mFilename = value;
+    aFilters.append(filter);
+  }
+
   while (true) {
     JSFilter filter;
 
@@ -447,6 +454,9 @@ static void ParseJSFilters(const char* aEnv, InfallibleVector<JSFilter>& aFilter
 static bool FilterMatches(const InfallibleVector<JSFilter>& aFilters,
                           const char* aFilename, unsigned aLine) {
   for (const JSFilter& filter : aFilters) {
+    if (filter.mFilename == "*") {
+      return true;
+    }
     if (strstr(aFilename, filter.mFilename.c_str()) &&
         aLine >= filter.mStartLine &&
         aLine <= filter.mEndLine) {
