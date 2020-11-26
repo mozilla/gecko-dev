@@ -3,6 +3,8 @@
 // recognized in your jurisdiction.
 // See file LICENSE for detail or copy at http://jsoncpp.sourceforge.net/LICENSE
 
+#include "mozilla/RecordReplay.h"
+
 #if !defined(JSON_IS_AMALGAMATION)
 #include "json_tool.h"
 #include <json/writer.h>
@@ -1243,9 +1245,11 @@ void StreamWriterBuilder::setDefaults(Json::Value* settings) {
 }
 
 String writeString(StreamWriter::Factory const& factory, Value const& root) {
+  mozilla::recordreplay::PrintLog("WRITE_STRING_START");
   OStringStream sout;
   StreamWriterPtr const writer(factory.newStreamWriter());
   writer->write(root, &sout);
+  mozilla::recordreplay::PrintLog("WRITE_STRING_END");
   return sout.str();
 }
 

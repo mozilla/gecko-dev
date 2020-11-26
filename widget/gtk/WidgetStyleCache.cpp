@@ -149,6 +149,7 @@ static GtkWidget* CreateSpinWidget() {
 }
 
 static GtkWidget* CreateEntryWidget() {
+  recordreplay::RecordReplayAssert("CreateEntryWidget");
   GtkWidget* widget = gtk_entry_new();
   AddToWindowContainer(widget);
   return widget;
@@ -167,6 +168,8 @@ typedef struct {
 
 static void GetInnerWidget(GtkWidget* widget, gpointer client_data) {
   auto info = static_cast<GtkInnerWidgetInfo*>(client_data);
+
+  recordreplay::RecordReplayAssert("GetInnerWidget %d %d", ((GTypeInstance*)widget)->g_class->g_type, info->type);
 
   if (G_TYPE_CHECK_INSTANCE_TYPE(widget, info->type)) {
     *info->widget = widget;
@@ -239,6 +242,8 @@ static GtkWidget* CreateComboBoxArrowWidget() {
 }
 
 static GtkWidget* CreateComboBoxSeparatorWidget() {
+  recordreplay::RecordReplayAssert("CreateComboBoxSeparatorWidget #0");
+
   // Ensure to search for separator only once as it can fail
   // TODO - it won't initialize after ResetWidgetCache() call
   static bool isMissingSeparator = false;
@@ -249,25 +254,32 @@ static GtkWidget* CreateComboBoxSeparatorWidget() {
   GtkWidget* buttonChild =
       gtk_bin_get_child(GTK_BIN(GetWidget(MOZ_GTK_COMBOBOX_BUTTON)));
   if (GTK_IS_BOX(buttonChild)) {
+    recordreplay::RecordReplayAssert("CreateComboBoxSeparatorWidget #1");
     /* appears-as-list = FALSE, cell-view = TRUE; the button
      * contains an hbox. This hbox is there because the ComboBox
      * needs to place a cell renderer, a separator, and an arrow in
      * the button when appears-as-list is FALSE. */
     GtkInnerWidgetInfo info = {GTK_TYPE_SEPARATOR, &comboBoxSeparator};
     gtk_container_forall(GTK_CONTAINER(buttonChild), GetInnerWidget, &info);
+    recordreplay::RecordReplayAssert("CreateComboBoxSeparatorWidget #2");
   }
 
+  recordreplay::RecordReplayAssert("CreateComboBoxSeparatorWidget #3");
+
   if (comboBoxSeparator) {
+    recordreplay::RecordReplayAssert("CreateComboBoxSeparatorWidget #4");
     g_object_add_weak_pointer(G_OBJECT(comboBoxSeparator),
                               reinterpret_cast<gpointer*>(sWidgetStorage) +
                                   MOZ_GTK_COMBOBOX_SEPARATOR);
   } else {
+    recordreplay::RecordReplayAssert("CreateComboBoxSeparatorWidget #5");
     /* comboBoxSeparator may be NULL
      * when "appears-as-list" = TRUE or "cell-view" = FALSE;
      * if there is no separator, then we just won't paint it. */
     isMissingSeparator = true;
   }
 
+  recordreplay::RecordReplayAssert("CreateComboBoxSeparatorWidget #6");
   return comboBoxSeparator;
 }
 
@@ -280,10 +292,14 @@ static GtkWidget* CreateComboBoxEntryWidget() {
 static GtkWidget* CreateComboBoxEntryTextareaWidget() {
   GtkWidget* comboBoxTextarea = nullptr;
 
+  recordreplay::RecordReplayAssert("CreateComboBoxEntryTextareaWidget #0");
+
   /* Get its inner Entry and Button */
   GtkInnerWidgetInfo info = {GTK_TYPE_ENTRY, &comboBoxTextarea};
   gtk_container_forall(GTK_CONTAINER(GetWidget(MOZ_GTK_COMBOBOX_ENTRY)),
                        GetInnerWidget, &info);
+
+  recordreplay::RecordReplayAssert("CreateComboBoxEntryTextareaWidget #1 %d", !!comboBoxTextarea);
 
   if (!comboBoxTextarea) {
     comboBoxTextarea = GetWidget(MOZ_GTK_ENTRY);
@@ -659,6 +675,7 @@ static void CreateHeaderBar() {
 }
 
 static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
+  recordreplay::RecordReplayAssert("CreateWidget %d", aAppearance);
   switch (aAppearance) {
     case MOZ_GTK_WINDOW:
       return CreateWindowWidget();
@@ -722,16 +739,22 @@ static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
     case MOZ_GTK_NOTEBOOK:
       return CreateNotebookWidget();
     case MOZ_GTK_COMBOBOX:
+      recordreplay::RecordReplayAssert("CreateComboBoxWidget");
       return CreateComboBoxWidget();
     case MOZ_GTK_COMBOBOX_BUTTON:
+      recordreplay::RecordReplayAssert("CreateComboBoxButtonWidget");
       return CreateComboBoxButtonWidget();
     case MOZ_GTK_COMBOBOX_ARROW:
+      recordreplay::RecordReplayAssert("CreateComboBoxArrowWidget");
       return CreateComboBoxArrowWidget();
     case MOZ_GTK_COMBOBOX_SEPARATOR:
+      recordreplay::RecordReplayAssert("CreateComboBoxSeparatorWidget");
       return CreateComboBoxSeparatorWidget();
     case MOZ_GTK_COMBOBOX_ENTRY:
+      recordreplay::RecordReplayAssert("CreateComboBoxEntryWidget");
       return CreateComboBoxEntryWidget();
     case MOZ_GTK_COMBOBOX_ENTRY_TEXTAREA:
+      recordreplay::RecordReplayAssert("CreateComboBoxEntryTextareaWidget");
       return CreateComboBoxEntryTextareaWidget();
     case MOZ_GTK_COMBOBOX_ENTRY_BUTTON:
       return CreateComboBoxEntryButtonWidget();
@@ -754,9 +777,12 @@ static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
 }
 
 GtkWidget* GetWidget(WidgetNodeType aAppearance) {
+  recordreplay::RecordReplayAssert("GetWidget #0 %d", aAppearance);
   GtkWidget* widget = sWidgetStorage[aAppearance];
   if (!widget) {
+    recordreplay::RecordReplayAssert("GetWidget #1 %d", aAppearance);
     widget = CreateWidget(aAppearance);
+    recordreplay::RecordReplayAssert("GetWidget #2 %d", aAppearance);
     // Some widgets (MOZ_GTK_COMBOBOX_SEPARATOR for instance) may not be
     // available or implemented.
     if (!widget) {
@@ -779,6 +805,7 @@ GtkWidget* GetWidget(WidgetNodeType aAppearance) {
 
     sWidgetStorage[aAppearance] = widget;
   }
+  recordreplay::RecordReplayAssert("GetWidget #3 %d", aAppearance);
   return widget;
 }
 
@@ -889,8 +916,13 @@ GtkStyleContext* CreateCSSNode(const char* aName, GtkStyleContext* aParentStyle,
 // Return a style context matching that of the root CSS node of a widget.
 // This is used by all GTK versions.
 static GtkStyleContext* GetWidgetRootStyle(WidgetNodeType aNodeType) {
+  recordreplay::RecordReplayAssert("GetWidgetRootStyle %d", aNodeType);
+
   GtkStyleContext* style = sStyleStorage[aNodeType];
-  if (style) return style;
+  if (style) {
+    recordreplay::RecordReplayAssert("GetWidgetRootStyle #1");
+    return style;
+  }
 
   switch (aNodeType) {
     case MOZ_GTK_MENUBARITEM:
@@ -932,13 +964,18 @@ static GtkStyleContext* GetWidgetRootStyle(WidgetNodeType aNodeType) {
       style = CreateStyleForWidget(gtk_label_new(nullptr), MOZ_GTK_TOOLTIP_BOX);
       break;
     default:
+      recordreplay::RecordReplayAssert("GetWidgetRootStyle #2.0 %d", aNodeType);
       GtkWidget* widget = GetWidget(aNodeType);
       MOZ_ASSERT(widget);
+      recordreplay::RecordReplayAssert("GetWidgetRootStyle #2 %d", aNodeType);
       return gtk_widget_get_style_context(widget);
   }
 
   MOZ_ASSERT(style);
   sStyleStorage[aNodeType] = style;
+
+  recordreplay::RecordReplayAssert("GetWidgetRootStyle #3");
+
   return style;
 }
 
