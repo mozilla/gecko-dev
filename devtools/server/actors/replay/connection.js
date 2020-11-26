@@ -76,9 +76,6 @@ function onMessage(evt) {
   switch (evt.data.kind) {
     case "updateStatus":
       gCallbacks.updateStatus(evt.data.status);
-      if (evt.data.status == "") {
-        loadAssertionFilters();
-      }
       break;
     case "commandResult":
       onCommandResult(evt.data.id, evt.data.result);
@@ -91,40 +88,6 @@ function getenv(name) {
     Ci.nsIEnvironment
   );
   return env.get(name);
-}
-
-async function loadAssertionFilters() {
-  const env = Cc["@mozilla.org/process/environment;1"].getService(
-    Ci.nsIEnvironment
-  );
-  if (
-    env.get("RECORD_REPLAY_RECORD_EXECUTION_ASSERTS") ||
-    env.get("RECORD_REPLAY_RECORD_JS_ASSERTS")
-  ) {
-    // Use the values from the current environment.
-    return;
-  }
-
-  const filters = await sendCommand("Internal.getAssertionFilters");
-  if (!filters) {
-    return;
-  }
-
-  const { execution, values } = filters;
-
-  env.set(
-    "RECORD_REPLAY_RECORD_EXECUTION_ASSERTS",
-    stringify([...execution, ...values])
-  );
-  env.set("RECORD_REPLAY_RECORD_JS_ASSERTS", stringify(values));
-
-  function stringify(asserts) {
-    let text = "";
-    for (const { url, startLine, endLine } of asserts) {
-      text += `${url}@${startLine}@${endLine}@`;
-    }
-    return text;
-  }
 }
 
 // Map recording process ID to information about its upload progress.
