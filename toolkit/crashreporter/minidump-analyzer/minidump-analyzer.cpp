@@ -419,7 +419,9 @@ static bool UpdateExtraDataFile(const string& aDumpPath,
     }
 
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-    writer->write(extra, &f);
+    OutStringStream ns;
+    writer->write(extra, &ns);
+    f << ns.str();
     f << "\n";
     res = !f.fail();
     f.close();

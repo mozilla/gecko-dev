@@ -134,6 +134,33 @@ extern JSON_API int msvc_pre1900_c99_snprintf(char* outBuf, size_t size,
 
 #endif // if !defined(JSON_IS_AMALGAMATION)
 
+// This is substituting for std::basic_ostringstream because the latter is
+// crashing on linux when replaying. The crash should get fixed but this is the
+// more expedient option for now.
+class OutStringStream {
+ public:
+  OutStringStream& operator <<(const char* aString) {
+    mString.append(aString);
+    return *this;
+  }
+
+  OutStringStream& operator <<(const std::string& aString) {
+    return *this << aString.c_str();
+  }
+
+  OutStringStream& operator <<(char aChar) {
+    mString.append(1, aChar);
+    return *this;
+  }
+
+  const std::string& str() const {
+    return mString;
+  }
+
+ private:
+  std::string mString;
+};
+
 namespace Json {
 typedef int Int;
 typedef unsigned int UInt;
@@ -163,11 +190,13 @@ using String = std::basic_string<char, std::char_traits<char>, Allocator<char>>;
 using IStringStream =
     std::basic_istringstream<String::value_type, String::traits_type,
                              String::allocator_type>;
-using OStringStream =
-    std::basic_ostringstream<String::value_type, String::traits_type,
-                             String::allocator_type>;
+//using OStringStream =
+//    std::basic_ostringstream<String::value_type, String::traits_type,
+//                             String::allocator_type>;
+using OStringStream = OutStringStream;
 using IStream = std::istream;
-using OStream = std::ostream;
+//using OStream = std::ostream;
+using OStream = OutStringStream;
 } // namespace Json
 
 // Legacy names (formerly macros).

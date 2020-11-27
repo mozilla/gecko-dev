@@ -354,7 +354,7 @@ String JSON_API valueToQuotedString(const char* value);
 
 /// \brief Output using the StyledStreamWriter.
 /// \see Json::operator>>()
-JSON_API OStream& operator<<(OStream&, const Value& root);
+JSON_API OStream& writeValue(OStream&, const Value& root);
 
 } // namespace Json
 

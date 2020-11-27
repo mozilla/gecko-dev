@@ -1948,7 +1948,8 @@ void CharReaderBuilder::setDefaults(Json::Value* settings) {
 
 bool parseFromStream(CharReader::Factory const& fact, IStream& sin, Value* root,
                      String* errs) {
-  OStringStream ssin;
+  std::basic_ostringstream<String::value_type, String::traits_type,
+                           String::allocator_type> ssin;
   ssin << sin.rdbuf();
   String doc = ssin.str();
   char const* begin = doc.data();

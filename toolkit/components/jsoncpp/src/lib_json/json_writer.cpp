@@ -1245,15 +1245,13 @@ void StreamWriterBuilder::setDefaults(Json::Value* settings) {
 }
 
 String writeString(StreamWriter::Factory const& factory, Value const& root) {
-  mozilla::recordreplay::PrintLog("WRITE_STRING_START");
-  OStringStream sout;
+  OutStringStream sout;
   StreamWriterPtr const writer(factory.newStreamWriter());
   writer->write(root, &sout);
-  mozilla::recordreplay::PrintLog("WRITE_STRING_END");
   return sout.str();
 }
 
-OStream& operator<<(OStream& sout, Value const& root) {
+OStream& writeValue(OStream& sout, Value const& root) {
   StreamWriterBuilder builder;
   StreamWriterPtr const writer(builder.newStreamWriter());
   writer->write(root, &sout);

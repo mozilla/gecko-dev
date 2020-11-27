@@ -193,7 +193,9 @@ static void OverwriteEventFile(const string& aPath, const string& aEventVersion,
     Json::StreamWriterBuilder builder;
     builder["indentation"] = "";
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-    writer->write(aData, f);
+    OutStringStream ns;
+    writer->write(aData, &ns);
+    *f << ns.str();
     *f << "\n";
   }
 
