@@ -304,9 +304,6 @@ nsresult BasePrincipal::ToJSON(nsACString& aResult) {
   std::string key = std::to_string(Kind());
   root[key] = innerJSONObject;
   std::string result = Json::writeString(builder, root);
-  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    fprintf(stderr, "BASE_PRINCIPAL_JSON %s\n", result.c_str());
-  }
   aResult.Append(result);
   if (aResult.Length() == 0) {
     MOZ_ASSERT(false, "JSON writer failed to output a principal serialization");
