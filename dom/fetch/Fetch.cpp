@@ -1063,6 +1063,13 @@ bool FetchBody<Derived>::GetBodyUsed(ErrorResult& aRv) const {
 
     JSContext* cx = jsapi.cx();
     JS::Rooted<JSObject*> body(cx, mReadableStreamBody);
+
+    // Attempt to workaround compartment mismatches seen in logs.
+    Maybe<JSAutoRealm> ar;
+    if (!IsCrossCompartmentWrapper(body)) {
+      ar.emplace(cx, body);
+    }
+
     bool disturbed;
     if (!JS::ReadableStreamIsDisturbed(cx, body, &disturbed)) {
       aRv.StealExceptionFromJSContext(cx);
