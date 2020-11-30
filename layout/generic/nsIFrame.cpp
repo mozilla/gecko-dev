@@ -942,6 +942,10 @@ static void AddAndRemoveImageAssociations(
     ImageLoader& aImageLoader, nsIFrame* aFrame,
     const nsStyleImageLayers* aOldLayers,
     const nsStyleImageLayers* aNewLayers) {
+  if (recordreplay::HasDivergedFromRecording()) {
+    return;
+  }
+
   // If the old context had a background-image image, or mask-image image,
   // and new context does not have the same image, clear the image load
   // notifier (which keeps the image loading, if it still is) for the frame.
@@ -1179,7 +1183,7 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
   // primary frames and pseudos, but the first-line reparenting code makes it
   // all bad, should get around to bug 1465474 eventually :(
   const bool isNonText = !IsTextFrame();
-  if (isNonText) {
+  if (isNonText && !recordreplay::HasDivergedFromRecording()) {
     mComputedStyle->StartImageLoads(*doc, aOldComputedStyle);
   }
 
