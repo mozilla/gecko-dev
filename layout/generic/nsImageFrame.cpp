@@ -2036,6 +2036,9 @@ ImgDrawResult nsImageFrame::PaintImage(gfxContext& aRenderingContext,
     flags |= imgIContainer::FLAG_SYNC_DECODE;
   }
 
+  recordreplay::RecordReplayAssert("nsImageFrame::PaintImage %u %u",
+                                   aFlags, mForceSyncDecoding);
+
   Maybe<SVGImageContext> svgContext;
   SVGImageContext::MaybeStoreContextPaint(svgContext, this, aImage);
 
